@@ -19,20 +19,23 @@ import {
   createCleanHardwareProfile,
 } from '~/__tests__/cypress/cypress/utils/oc_commands/hardwareProfiles';
 import { hardwareProfileSection } from '~/__tests__/cypress/cypress/pages/components/HardwareProfileSection';
+import { generateTestUUID } from '~/__tests__/cypress/cypress/utils/uuidGenerator';
 
 describe('Workbenches - tolerations tests', () => {
   let testData: WBTolerationsTestData;
   let projectName: string;
   let projectDescription: string;
   let hardwareProfileResourceName: string;
+  const projectUuid = generateTestUUID();
+  const hardwareProfileUuid = generateTestUUID();
 
   // Setup: Load test data and ensure clean state
   retryableBefore(() => {
     return loadWBTolerationsFixture('e2e/hardwareProfiles/testWorkbenchTolerations.yaml')
       .then((fixtureData: WBTolerationsTestData) => {
-        projectName = fixtureData.wbTolerationsTestNamespace;
+        projectName = `${fixtureData.wbTolerationsTestNamespace}-${projectUuid}`;
         projectDescription = fixtureData.wbTolerationsTestDescription;
-        hardwareProfileResourceName = fixtureData.hardwareProfileName;
+        hardwareProfileResourceName = `${fixtureData.hardwareProfileName}-${hardwareProfileUuid}`;
         testData = fixtureData;
 
         if (!projectName) {
@@ -93,7 +96,7 @@ describe('Workbenches - tolerations tests', () => {
       createSpawnerPage.findNotebookImage('code-server-notebook').click();
       hardwareProfileSection.selectPotentiallyDisabledProfile(
         testData.hardwareProfileDeploymentSize,
-        testData.hardwareProfileName,
+        hardwareProfileResourceName,
       );
       createSpawnerPage.findSubmitButton().click();
 

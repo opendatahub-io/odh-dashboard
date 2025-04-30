@@ -62,6 +62,7 @@ export default defineConfig({
   defaultCommandTimeout: 10000,
   e2e: {
     baseUrl: BASE_URL,
+    userAgent: 'Mozilla/5.0 (X11; Linux x86_64; rv:128.0) Gecko/20100101 Firefox/128.0',
     specPattern: env.CY_MOCK
       ? `cypress/tests/mocked/**/*.cy.ts`
       : env.CY_RECORD

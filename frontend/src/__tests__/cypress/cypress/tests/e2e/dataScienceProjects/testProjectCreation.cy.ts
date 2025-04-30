@@ -12,9 +12,12 @@ import {
 import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
 import type { DataScienceProjectData } from '~/__tests__/cypress/cypress/types';
 import { retryableBefore } from '~/__tests__/cypress/cypress/utils/retryableHooks';
+import { generateTestUUID } from '~/__tests__/cypress/cypress/utils/uuidGenerator';
 
 describe('Verify Data Science Project - Creation and Deletion', () => {
   let testData: DataScienceProjectData;
+  let projectName: string;
+  const uuid = generateTestUUID();
 
   // Setup: Load test data and ensure clean state
   retryableBefore(() => {
@@ -22,7 +25,7 @@ describe('Verify Data Science Project - Creation and Deletion', () => {
       .fixture('e2e/dataScienceProjects/testProjectCreation.yaml', 'utf8')
       .then((yamlContent: string) => {
         testData = yaml.load(yamlContent) as DataScienceProjectData;
-        const projectName = testData.projectResourceName;
+        projectName = `${testData.projectResourceName}-${uuid}`;
 
         if (!projectName) {
           throw new Error('Project name is undefined or empty');
@@ -31,7 +34,6 @@ describe('Verify Data Science Project - Creation and Deletion', () => {
         return verifyOpenShiftProjectExists(projectName);
       })
       .then((exists: boolean) => {
-        const projectName = testData.projectResourceName;
         // Clean up existing project if it exists
         if (exists) {
           cy.log(`Project ${projectName} exists. Deleting before test.`);
@@ -59,9 +61,7 @@ describe('Verify Data Science Project - Creation and Deletion', () => {
 
       // Input project details
       cy.step('Enter valid project information');
-      createProjectModal.k8sNameDescription
-        .findDisplayNameInput()
-        .type(testData.projectDisplayName);
+      createProjectModal.k8sNameDescription.findDisplayNameInput().type(projectName);
       createProjectModal.k8sNameDescription
         .findDescriptionInput()
         .type(testData.projectDescription);
@@ -71,9 +71,9 @@ describe('Verify Data Science Project - Creation and Deletion', () => {
       createProjectModal.findSubmitButton().click();
 
       // Verify project creation
-      cy.step(`Verify that the project ${testData.projectDisplayName} has been created`);
-      cy.url().should('include', `/projects/${testData.projectResourceName}`);
-      projectDetails.verifyProjectName(testData.projectDisplayName);
+      cy.step(`Verify that the project ${projectName} has been created`);
+      cy.url().should('include', `/projects/${projectName}`);
+      projectDetails.verifyProjectName(projectName);
       projectDetails.verifyProjectDescription(testData.projectDescription);
 
       // Initiate project deletion
@@ -84,12 +84,12 @@ describe('Verify Data Science Project - Creation and Deletion', () => {
       // Confirm project deletion
       cy.step('Entering project details for deletion');
       deleteModal.shouldBeOpen();
-      deleteModal.findInput().type(testData.projectDisplayName);
+      deleteModal.findInput().type(projectName);
       deleteModal.findSubmitButton().should('be.enabled').click();
 
       // Verify project deletion
-      cy.step(`Verify that the project ${testData.projectDisplayName} has been deleted`);
-      projectListPage.filterProjectByName(testData.projectDisplayName);
+      cy.step(`Verify that the project ${projectName} has been deleted`);
+      projectListPage.filterProjectByName(projectName);
       projectListPage.findEmptyResults();
     },
   );
@@ -137,9 +137,7 @@ describe('Verify Data Science Project - Creation and Deletion', () => {
         'Enter invalid resource details - iterate through the array defined in the fixtures file',
       );
       createProjectModal.k8sNameDescription.findResourceEditLink().click();
-      createProjectModal.k8sNameDescription
-        .findDisplayNameInput()
-        .type(testData.projectDisplayName);
+      createProjectModal.k8sNameDescription.findDisplayNameInput().type(projectName);
 
       // Test each invalid resource name
       cy.step('Test invalid resource name and verify that project creation is prevented');

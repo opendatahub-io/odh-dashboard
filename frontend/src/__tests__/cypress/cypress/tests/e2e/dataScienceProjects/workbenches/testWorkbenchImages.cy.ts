@@ -10,17 +10,19 @@ import {
   wasSetupPerformed,
 } from '~/__tests__/cypress/cypress/utils/retryableHooks';
 import { getNotebookImageNames } from '~/__tests__/cypress/cypress/utils/oc_commands/imageStreams';
+import { generateTestUUID } from '~/__tests__/cypress/cypress/utils/uuidGenerator';
 
 const applicationNamespace = Cypress.env('APPLICATIONS_NAMESPACE');
 
 describe('Workbenches - image/version tests', () => {
   let projectName: string;
+  const uuid = generateTestUUID();
 
   // Setup: Load test data and ensure clean state
   retryableBefore(() => {
     return loadWBImagesFixture('e2e/dataScienceProjects/testWorkbenchImages.yaml')
       .then((fixtureData: WBImagesTestData) => {
-        projectName = fixtureData.wbImagesTestNamespace;
+        projectName = `${fixtureData.wbImagesTestNamespace}-${uuid}`;
 
         if (!projectName) {
           throw new Error('Project name is undefined or empty in the loaded fixture');
