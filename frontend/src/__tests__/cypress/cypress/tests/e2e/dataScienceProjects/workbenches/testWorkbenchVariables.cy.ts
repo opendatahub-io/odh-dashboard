@@ -10,18 +10,20 @@ import {
   retryableBeforeEach,
   wasSetupPerformed,
 } from '~/__tests__/cypress/cypress/utils/retryableHooks';
+import { generateTestUUID } from '~/__tests__/cypress/cypress/utils/uuidGenerator';
 
 describe('Workbenches - variable tests', () => {
   let projectName: string;
   let projectDescription: string;
   let testData: WBVariablesTestData;
+  const uuid = generateTestUUID();
 
   // Setup: Load test data and ensure clean state
   retryableBeforeEach(() => {
     return loadWBVariablesFixture('e2e/dataScienceProjects/testWorkbenchVariables.yaml')
       .then((fixtureData: WBVariablesTestData) => {
         testData = fixtureData;
-        projectName = fixtureData.wbVariablesTestNamespace;
+        projectName = `${fixtureData.wbVariablesTestNamespace}-${uuid}`;
         projectDescription = fixtureData.wbVariablesTestDescription;
 
         if (!projectName) {

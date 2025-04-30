@@ -16,6 +16,7 @@ import {
   retryableBefore,
   wasSetupPerformed,
 } from '~/__tests__/cypress/cypress/utils/retryableHooks';
+import { generateTestUUID } from '~/__tests__/cypress/cypress/utils/uuidGenerator';
 
 describe('Verify Cluster Storage - Creating, Editing and Deleting', () => {
   let testData: DataScienceProjectData;
@@ -24,6 +25,7 @@ describe('Verify Cluster Storage - Creating, Editing and Deleting', () => {
   let pvStorageName: string;
   let pvStorageDescription: string;
   let pvStorageNameEdited: string;
+  const uuid = generateTestUUID();
 
   // Setup: Load test data and ensure clean state
   retryableBefore(() => {
@@ -47,7 +49,7 @@ describe('Verify Cluster Storage - Creating, Editing and Deleting', () => {
     return loadDSPFixture('e2e/dataScienceProjects/testClusterStorageCreation.yaml')
       .then((fixtureData: DataScienceProjectData) => {
         testData = fixtureData;
-        projectName = testData.projectPVStorageResourceName;
+        projectName = `${testData.projectPVStorageResourceName}-${uuid}`;
         pvStorageName = testData.pvStorageName;
         pvStorageDescription = testData.pvStorageDescription;
         pvStorageNameEdited = testData.pvStorageNameEdited;
@@ -81,12 +83,10 @@ describe('Verify Cluster Storage - Creating, Editing and Deleting', () => {
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
       // Project navigation and navigate to the Cluster Storage tab
-      cy.step(
-        `Navigate to the Project list tab and search for ${testData.projectPVStorageResourceName}`,
-      );
+      cy.step(`Navigate to the Project list tab and search for ${projectName}`);
       projectListPage.navigate();
-      projectListPage.filterProjectByName(testData.projectPVStorageResourceName);
-      projectListPage.findProjectLink(testData.projectPVStorageResourceName).click();
+      projectListPage.filterProjectByName(projectName);
+      projectListPage.findProjectLink(projectName).click();
 
       //Navigate to Cluster Storage and click to Add Storage
       cy.step('Navigate to Cluster Storage and click to create Cluster Storage');

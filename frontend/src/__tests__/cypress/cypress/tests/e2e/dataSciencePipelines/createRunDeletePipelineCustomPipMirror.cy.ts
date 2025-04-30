@@ -20,8 +20,10 @@ import {
   retryableBefore,
   wasSetupPerformed,
 } from '~/__tests__/cypress/cypress/utils/retryableHooks';
+import { generateTestUUID } from '~/__tests__/cypress/cypress/utils/uuidGenerator';
 
-const projectName = 'test-dsp-custom-pip-prj';
+const uuid = generateTestUUID();
+const projectName = `test-dsp-custom-pip-prj-${uuid}`;
 const dspaSecretName = 'test-custom-pip-dspa-secret';
 const testPipelineIrisName = 'test-iris-pipeline';
 const testRunName = 'test-pipelines-run';

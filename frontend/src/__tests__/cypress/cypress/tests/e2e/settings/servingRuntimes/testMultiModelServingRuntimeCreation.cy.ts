@@ -37,7 +37,7 @@ retryableBefore(() => {
 describe('Verify Admins Can Import and Delete a Custom Multi-Model Serving Runtime Template By Uploading A YAML file', () => {
   it(
     'Admin should access serving runtimes, import a yaml file and then delete',
-    { tags: ['@Smoke', '@SmokeSet2', '@ODS-2276', '@Dashboard'] },
+    { tags: ['@Smoke', '@SmokeSet2', '@ODS-2276', '@Dashboard', '@NonConcurrent'] },
     () => {
       // Authentication and navigation
       cy.step('Log into the application');
