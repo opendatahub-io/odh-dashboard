@@ -1,7 +1,7 @@
-import { Modal } from '@patternfly/react-core/deprecated';
 import * as React from 'react';
-import { ConnectionTypeDataField } from '~/concepts/connectionTypes/types';
+import { Modal } from '@patternfly/react-core/deprecated';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
+import { ConnectionTypeDataField } from '~/concepts/connectionTypes/types';
 
 type Props = {
   field: ConnectionTypeDataField;

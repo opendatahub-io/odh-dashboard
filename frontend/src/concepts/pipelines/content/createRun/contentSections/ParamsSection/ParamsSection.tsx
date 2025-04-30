@@ -1,12 +1,12 @@
-import { Alert, FormSection } from '@patternfly/react-core';
 import * as React from 'react';
-import ParamsDefaultFields from '~/components/ParamsDefaultFields';
+import { Alert, FormSection } from '@patternfly/react-core';
 import {
   CreateRunPageSections,
   runPageSectionTitles,
 } from '~/concepts/pipelines/content/createRun/const';
-import { getInputDefinitionParams } from '~/concepts/pipelines/content/createRun/utils';
 import { PipelineVersionKF, RuntimeConfigParameters } from '~/concepts/pipelines/kfTypes';
+import { getInputDefinitionParams } from '~/concepts/pipelines/content/createRun/utils';
+import ParamsDefaultFields from '~/components/ParamsDefaultFields';
 
 type ParamsSectionProps = {
   runParams: RuntimeConfigParameters | undefined;
@@ -59,7 +59,7 @@ export const ParamsSection: React.FC<ParamsSectionProps> = ({
         />
       );
     });
-  }; //end of renderContent
+  };
 
   return (
     <FormSection
