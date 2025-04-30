@@ -13,7 +13,7 @@ export enum InferenceServiceState {
 
 export enum ModelSourceKind {
   CATALOG = 'catalog',
-  DSP = 'dsp',
+  KFP = 'kfp',
 }
 
 export enum ExecutionState {

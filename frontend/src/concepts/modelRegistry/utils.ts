@@ -166,13 +166,13 @@ export const catalogParamsToModelSourceProperties = (
 /**
  * Converts model source properties to pipeline run reference
  * @param properties - The model source properties
- * @returns PipelineRunReference object or null if not a DSP source or if required properties are missing
+ * @returns PipelineRunReference object or null if not a KFP source or if required properties are missing
  */
 export const modelSourcePropertiesToPipelineRunRef = (
   properties: ModelSourceProperties,
 ): PipelineRunReference | null => {
   if (
-    properties.modelSourceKind !== ModelSourceKind.DSP ||
+    properties.modelSourceKind !== ModelSourceKind.KFP ||
     !properties.modelSourceGroup ||
     !properties.modelSourceId ||
     !properties.modelSourceName
