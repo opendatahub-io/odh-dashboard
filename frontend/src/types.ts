@@ -696,11 +696,9 @@ export type CustomWatchK8sResult<R extends K8sResourceCommon | K8sResourceCommon
   loadError: Error | undefined,
 ];
 
-/**
- * @deprecated Use FetchStateObject instead via useFetch.
- */
-export type ContextResourceData<T> = FetchStateObject<T[], Error | AxiosError>;
-export type PendingContextResourceData<T> = ContextResourceData<T> & { pending: boolean };
+export type PendingContextResourceData<T> = FetchStateObject<T[], Error | AxiosError> & {
+  pending: boolean;
+};
 
 export type ListWithNonDashboardPresence<T> = {
   items: T[];
