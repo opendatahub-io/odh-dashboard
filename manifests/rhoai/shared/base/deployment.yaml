@@ -2,9 +2,6 @@
   path: /metadata/name
   value: rhods-dashboard
 - op: replace
-  path: /spec/replicas
-  value: 5
-- op: replace
   path: /spec/selector/matchLabels/deployment
   value: rhods-dashboard
 - op: replace
