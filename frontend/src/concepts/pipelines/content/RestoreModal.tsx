@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button, Modal, ModalBody, ModalHeader, ModalFooter } from '@patternfly/react-core';
+import { Modal, ModalBody, ModalHeader, ModalFooter } from '@patternfly/react-core';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';

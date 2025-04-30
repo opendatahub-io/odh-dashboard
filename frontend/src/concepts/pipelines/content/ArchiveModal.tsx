@@ -82,7 +82,7 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
 
   return (
     <Modal isOpen variant="small" onClose={onCancelClose} data-testid={testId}>
-      <ModalHeader title={title} titleIconVariant="warning"></ModalHeader>
+      <ModalHeader title={title} titleIconVariant="warning" />
       <ModalBody>
         <Stack hasGutter>
           {children}
