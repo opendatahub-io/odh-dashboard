@@ -175,6 +175,10 @@ const NewModelConnectionField: React.FC<NewConnectionFieldProps> = ({
   React.useEffect(() => {
     if (newConnectionData.selectedConnectionType && newConnectionData.newConnection) {
       setNewConnection(newConnectionData.newConnection);
+      setData('storage', {
+        ...data.storage,
+        type: InferenceServiceStorageType.NEW_STORAGE,
+      });
     }
     setIsConnectionValid(
       newConnectionData.isFormValid &&
@@ -188,8 +192,10 @@ const NewModelConnectionField: React.FC<NewConnectionFieldProps> = ({
     data.project,
     data.storage.path,
     modelUri,
+    data.storage,
     setIsConnectionValid,
     setNewConnection,
+    setData,
   ]);
 
   return (
