@@ -9,7 +9,7 @@ class ArchiveModal extends Modal {
   }
 
   find() {
-    return cy.findByTestId(this.testId).parents('div[role="dialog"]');
+    return cy.findByTestId(this.testId);
   }
 
   findConfirmInput() {
