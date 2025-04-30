@@ -7,7 +7,6 @@ import RoleBindingPermissionsTableRow from './RoleBindingPermissionsTableRow';
 import { columnsRoleBindingPermissions } from './data';
 import { RoleBindingPermissionsRoleType } from './types';
 import { firstSubject } from './utils';
-import RoleBindingPermissionsTableRowAdd from './RoleBindingPermissionsTableRowAdd';
 
 type RoleBindingPermissionsTableProps = {
   ownerReference?: K8sResourceCommon;
@@ -28,7 +27,7 @@ type RoleBindingPermissionsTableProps = {
   createRoleBinding: (roleBinding: RoleBindingKind) => Promise<RoleBindingKind>;
   deleteRoleBinding: (name: string, namespace: string) => Promise<K8sStatus>;
   onDismissNewRow: () => void;
-  onError: (error: Error) => void;
+  onError: (error: React.ReactNode) => void;
   refresh: () => void;
 };
 
@@ -52,7 +51,58 @@ const RoleBindingPermissionsTable: React.FC<RoleBindingPermissionsTableProps> = 
   refresh,
 }) => {
   const [editCell, setEditCell] = React.useState<string[]>([]);
-
+  const createProjectRoleBinding = (
+    subjectName: string,
+    newRBObject: RoleBindingKind,
+    oldRBObject?: RoleBindingKind,
+  ) => {
+    const roleType = newRBObject.subjects[0].kind.toLowerCase();
+    const usedNames: string[] = permissions
+      .map((p) => p.subjects[0].name)
+      .filter((name) => isAdding || name !== oldRBObject?.subjects[0].name);
+    const isDuplicateName = usedNames.includes(subjectName);
+    if (isDuplicateName) {
+      // Prevent duplicate role binding
+      onError(
+        <>
+          The {roleType} <strong>{subjectName}</strong> already exists. Edit the {roleType}
+          &apos;s existing permissions, or add a new {roleType} to assign it permissions.
+        </>,
+      );
+      refresh();
+    } else if (isAdding) {
+      // Add new role binding
+      createRoleBinding(newRBObject)
+        .then(() => {
+          onDismissNewRow();
+          refresh();
+        })
+        .catch((e) => {
+          onError(<>{e}</>);
+        });
+    } else {
+      // Edit existing role binding
+      createRoleBinding(newRBObject)
+        .then(() => {
+          if (oldRBObject) {
+            deleteRoleBinding(oldRBObject.metadata.name, oldRBObject.metadata.namespace)
+              .then(() => refresh())
+              .catch((e) => {
+                onError(<>{e}</>);
+                setEditCell((prev) => prev.filter((cell) => cell !== oldRBObject.metadata.name));
+              });
+          }
+        })
+        .then(() => {
+          onDismissNewRow();
+          refresh();
+        })
+        .catch((e) => {
+          onError(<>{e}</>);
+          setEditCell((prev) => prev.filter((cell) => cell !== oldRBObject?.metadata.name));
+        });
+    }
+  };
   return (
     <Table
       variant="compact"
@@ -62,12 +112,14 @@ const RoleBindingPermissionsTable: React.FC<RoleBindingPermissionsTableProps> = 
       disableRowRenderSupport
       footerRow={() =>
         isAdding ? (
-          <RoleBindingPermissionsTableRowAdd
-            key="add-permission-row"
+          <RoleBindingPermissionsTableRow
+            key="add-permissions-row"
             subjectKind={subjectKind}
-            isProjectSubject={isProjectSubject}
             permissionOptions={permissionOptions}
+            isProjectSubject={isProjectSubject}
             typeAhead={typeAhead}
+            isEditing={false}
+            isAdding
             onChange={(subjectName, rbRoleRefName) => {
               const newRBObject = generateRoleBindingPermissions(
                 namespace,
@@ -78,14 +130,7 @@ const RoleBindingPermissionsTable: React.FC<RoleBindingPermissionsTableProps> = 
                 labels,
                 ownerReference,
               );
-              createRoleBinding(newRBObject)
-                .then(() => {
-                  onDismissNewRow();
-                  refresh();
-                })
-                .catch((e) => {
-                  onError(e);
-                });
+              createProjectRoleBinding(subjectName, newRBObject);
             }}
             onCancel={onDismissNewRow}
           />
@@ -102,6 +147,7 @@ const RoleBindingPermissionsTable: React.FC<RoleBindingPermissionsTableProps> = 
           isEditing={
             firstSubject(rb, isProjectSubject) === '' || editCell.includes(rb.metadata.name)
           }
+          isAdding={false}
           typeAhead={typeAhead}
           onChange={(subjectName, rbRoleRefName) => {
             const newRBObject = generateRoleBindingPermissions(
@@ -113,19 +159,7 @@ const RoleBindingPermissionsTable: React.FC<RoleBindingPermissionsTableProps> = 
               labels,
               ownerReference,
             );
-            createRoleBinding(newRBObject)
-              .then(() =>
-                deleteRoleBinding(rb.metadata.name, rb.metadata.namespace)
-                  .then(() => refresh())
-                  .catch((e) => {
-                    onError(e);
-                    setEditCell((prev) => prev.filter((cell) => cell !== rb.metadata.name));
-                  }),
-              )
-              .catch((e) => {
-                onError(e);
-                setEditCell((prev) => prev.filter((cell) => cell !== rb.metadata.name));
-              });
+            createProjectRoleBinding(subjectName, newRBObject, rb);
             refresh();
           }}
           onDelete={() => {
@@ -136,6 +170,7 @@ const RoleBindingPermissionsTable: React.FC<RoleBindingPermissionsTableProps> = 
           }}
           onCancel={() => {
             setEditCell((prev) => prev.filter((cell) => cell !== rb.metadata.name));
+            onDismissNewRow();
           }}
         />
       )}
