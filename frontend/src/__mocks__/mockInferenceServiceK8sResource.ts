@@ -21,6 +21,7 @@ type MockResourceConfigType = {
   maxReplicas?: number;
   imagePullSecrets?: Array<{ name: string }>;
   lastFailureInfoMessage?: string;
+  lastFailureInfoReason?: string;
   resources?: ContainerResources;
   kserveInternalUrl?: string;
   statusPredictor?: Record<string, string>;
@@ -88,6 +89,7 @@ export const mockInferenceServiceK8sResource = ({
   maxReplicas = 1,
   imagePullSecrets = undefined,
   lastFailureInfoMessage = 'Waiting for runtime Pod to become available',
+  lastFailureInfoReason,
   resources,
   statusPredictor = undefined,
   kserveInternalUrl = '',
@@ -192,7 +194,7 @@ export const mockInferenceServiceK8sResource = ({
           lastFailureInfo: {
             message: lastFailureInfoMessage,
             modelRevisionName: 'model-size__isvc-59ce37c85b',
-            reason: 'RuntimeUnhealthy',
+            reason: lastFailureInfoReason,
             location: '',
             time: '',
           },
