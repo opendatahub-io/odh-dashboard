@@ -140,8 +140,9 @@ export const useEnableApplication = (
     let closed = false;
     if (doEnable) {
       if (isInternalRouteIntegrationsApp(internalRoute)) {
-        // Capture the baseline timestamp before polling starts.
-        baselineTimestampRef.current = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
+        // Set baseline timestamp 1s earlier to avoid polling loop
+        const oneSecondAgo = new Date(Date.now() - 1000);
+        baselineTimestampRef.current = oneSecondAgo.toISOString().replace(/\.\d{3}Z$/, 'Z');
         enableIntegrationApp(internalRoute, enableValues)
           .then((response) => {
             if (!closed) {
