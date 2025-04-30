@@ -2,6 +2,10 @@
 
 The supported external redirect paths in the application.
 
+## Why use `/external`?
+
+`<dashboard-url>/external` is a reserved path on our route to allow for us to more easily expose a route to the external world (e.g., Elyra) — this way we can rework our internal route structures all we want and never break external apps.
+
 ## Supported Redirects
 
 ### Pipeline SDK Redirects
