@@ -1,6 +1,7 @@
 import React from 'react';
 import {
   Alert,
+  FormGroup,
   FormSection,
   Popover,
   Radio,
@@ -310,90 +311,122 @@ export const ConnectionSection: React.FC<Props> = ({
           body={data.storage.type === InferenceServiceStorageType.EXISTING_URI && data.storage.uri}
         />
       )}
-      <Radio
-        name="existing-connection-radio"
-        id="existing-connection-radio"
-        data-testid="existing-connection-radio"
-        label="Existing connection"
-        isChecked={storageType === InferenceServiceStorageType.EXISTING_STORAGE}
-        onChange={() => {
-          setConnection(undefined);
-          setData('storage', {
-            ...data.storage,
-            type: InferenceServiceStorageType.EXISTING_STORAGE,
-            uri: undefined,
-            alert: undefined,
-          });
-        }}
-        body={
-          storageType === InferenceServiceStorageType.EXISTING_STORAGE &&
-          connections && (
-            <ExistingModelConnectionField
+      {connections?.length !== 0 ? (
+        <>
+          <Radio
+            name="existing-connection-radio"
+            id="existing-connection-radio"
+            data-testid="existing-connection-radio"
+            label="Existing connection"
+            isChecked={data.storage.type === InferenceServiceStorageType.EXISTING_STORAGE}
+            onChange={() => {
+              setConnection(undefined);
+              setData('storage', {
+                ...data.storage,
+                type: InferenceServiceStorageType.EXISTING_STORAGE,
+                uri: undefined,
+                alert: undefined,
+              });
+            }}
+            body={
+              data.storage.type === InferenceServiceStorageType.EXISTING_STORAGE &&
+              connections && (
+                <ExistingModelConnectionField
+                  connectionTypes={connectionTypes}
+                  projectConnections={connections}
+                  selectedConnection={selectedConnection?.connection}
+                  onSelect={(selection) => {
+                    setConnection(selection);
+                    setData('storage', {
+                      ...data.storage,
+                      dataConnection: getResourceNameFromK8sResource(selection),
+                    });
+                  }}
+                  folderPath={data.storage.path}
+                  setFolderPath={(path) => setData('storage', { ...data.storage, path })}
+                  modelUri={data.storage.uri}
+                  setModelUri={(uri) => setData('storage', { ...data.storage, uri })}
+                  setIsConnectionValid={setIsConnectionValid}
+                />
+              )
+            }
+          />
+          <Radio
+            name="new-connection-radio"
+            id="new-connection-radio"
+            data-testid="new-connection-radio"
+            label="Create connection"
+            className="pf-v6-u-mb-lg"
+            isChecked={data.storage.type === InferenceServiceStorageType.NEW_STORAGE}
+            onChange={() => {
+              setConnection(undefined);
+              setData('storage', {
+                ...data.storage,
+                type: InferenceServiceStorageType.NEW_STORAGE,
+                uri: undefined,
+                alert: undefined,
+              });
+            }}
+            body={
+              data.storage.type === InferenceServiceStorageType.NEW_STORAGE && (
+                <Stack hasGutter>
+                  {data.storage.alert && (
+                    <StackItem>
+                      <Alert
+                        isInline
+                        variant={data.storage.alert.type}
+                        title={data.storage.alert.title}
+                      >
+                        {data.storage.alert.message}
+                      </Alert>
+                    </StackItem>
+                  )}
+                  <NewModelConnectionField
+                    connectionTypes={connectionTypes}
+                    data={data}
+                    setData={setData}
+                    initialNewConnectionType={initialNewConnectionType}
+                    initialNewConnectionValues={initialNewConnectionValues}
+                    initialConnectionName={data.storage.dataConnection}
+                    setNewConnection={setConnection}
+                    modelUri={data.storage.uri}
+                    setModelUri={(uri) => setData('storage', { ...data.storage, uri })}
+                    setIsConnectionValid={setIsConnectionValid}
+                  />
+                </Stack>
+              )
+            }
+          />
+        </>
+      ) : (
+        <FormGroup
+          name="new-connection"
+          id="new-connection"
+          data-testid="new-connection"
+          className="pf-v6-u-mb-lg"
+        >
+          <Stack hasGutter>
+            {data.storage.alert && (
+              <StackItem>
+                <Alert isInline variant={data.storage.alert.type} title={data.storage.alert.title}>
+                  {data.storage.alert.message}
+                </Alert>
+              </StackItem>
+            )}
+            <NewModelConnectionField
               connectionTypes={connectionTypes}
-              projectConnections={connections}
-              selectedConnection={selectedConnection?.connection}
-              onSelect={(selection) => {
-                setConnection(selection);
-                setData('storage', {
-                  ...data.storage,
-                  dataConnection: getResourceNameFromK8sResource(selection),
-                });
-              }}
-              folderPath={data.storage.path}
-              setFolderPath={(path) => setData('storage', { ...data.storage, path })}
+              data={data}
+              setData={setData}
+              initialNewConnectionType={initialNewConnectionType}
+              initialNewConnectionValues={initialNewConnectionValues}
+              setNewConnection={setConnection}
               modelUri={data.storage.uri}
               setModelUri={(uri) => setData('storage', { ...data.storage, uri })}
               setIsConnectionValid={setIsConnectionValid}
             />
-          )
-        }
-      />
-      <Radio
-        name="new-connection-radio"
-        id="new-connection-radio"
-        data-testid="new-connection-radio"
-        label="Create connection"
-        className="pf-v6-u-mb-lg"
-        isChecked={storageType === InferenceServiceStorageType.NEW_STORAGE}
-        onChange={() => {
-          setConnection(undefined);
-          setData('storage', {
-            ...data.storage,
-            type: InferenceServiceStorageType.NEW_STORAGE,
-            uri: undefined,
-            alert: undefined,
-          });
-        }}
-        body={
-          storageType === InferenceServiceStorageType.NEW_STORAGE && (
-            <Stack hasGutter>
-              {data.storage.alert && (
-                <StackItem>
-                  <Alert
-                    isInline
-                    variant={data.storage.alert.type}
-                    title={data.storage.alert.title}
-                  >
-                    {data.storage.alert.message}
-                  </Alert>
-                </StackItem>
-              )}
-              <NewModelConnectionField
-                connectionTypes={connectionTypes}
-                data={data}
-                setData={setData}
-                initialNewConnectionType={initialNewConnectionType}
-                initialNewConnectionValues={initialNewConnectionValues}
-                initialConnectionName={data.storage.dataConnection}
-                setNewConnection={setConnection}
-                modelUri={data.storage.uri}
-                setModelUri={(uri) => setData('storage', { ...data.storage, uri })}
-                setIsConnectionValid={setIsConnectionValid}
-              />
-            </Stack>
-          )
-        }
-      />
+          </Stack>
+        </FormGroup>
+      )}
     </>
   );
 };
