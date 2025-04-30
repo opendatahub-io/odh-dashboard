@@ -1,6 +1,14 @@
 import * as React from 'react';
-import { Alert, Form, Stack, StackItem } from '@patternfly/react-core';
-import { Modal } from '@patternfly/react-core/deprecated';
+import {
+  Alert,
+  Form,
+  Stack,
+  StackItem,
+  Modal,
+  ModalBody,
+  ModalHeader,
+  ModalFooter,
+} from '@patternfly/react-core';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { createPipelinesCR, deleteSecret } from '~/api';
 import { EMPTY_AWS_PIPELINE_DATA } from '~/pages/projects/dataConnections/const';
@@ -116,13 +124,42 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
   };
 
   return (
-    <Modal
-      title="Configure pipeline server"
-      variant="medium"
-      description="Configuring a pipeline server enables you to create and manage pipelines."
-      isOpen
-      onClose={onCancel}
-      footer={
+    <Modal variant="medium" isOpen onClose={onCancel}>
+      <ModalHeader
+        title="Configure pipeline server"
+        description="Configuring a pipeline server enables you to create and manage pipelines."
+      />
+      <ModalBody>
+        <Stack hasGutter>
+          <StackItem>
+            <Alert
+              variant="info"
+              isInline
+              title="Pipeline server configuration cannot be edited after creation. To use a different configuration after creation, delete the pipeline server and create a new one."
+            />
+          </StackItem>
+          <StackItem>
+            <Form
+              onSubmit={(e) => {
+                e.preventDefault();
+                submit();
+              }}
+            >
+              <ObjectStorageSection
+                setConfig={setConfig}
+                config={config}
+                loaded={loaded}
+                connections={connections}
+              />
+              <PipelinesDatabaseSection setConfig={setConfig} config={config} />
+              {isFineTuningAvailable && (
+                <SamplePipelineSettingsSection setConfig={setConfig} config={config} />
+              )}
+            </Form>
+          </StackItem>
+        </Stack>
+      </ModalBody>
+      <ModalFooter>
         <DashboardModalFooter
           submitLabel="Configure pipeline server"
           onSubmit={submit}
@@ -132,36 +169,7 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
           alertTitle="Error configuring pipeline server"
           error={error}
         />
-      }
-    >
-      <Stack hasGutter>
-        <StackItem>
-          <Alert
-            variant="info"
-            isInline
-            title="Pipeline server configuration cannot be edited after creation. To use a different configuration after creation, delete the pipeline server and create a new one."
-          />
-        </StackItem>
-        <StackItem>
-          <Form
-            onSubmit={(e) => {
-              e.preventDefault();
-              submit();
-            }}
-          >
-            <ObjectStorageSection
-              setConfig={setConfig}
-              config={config}
-              loaded={loaded}
-              connections={connections}
-            />
-            <PipelinesDatabaseSection setConfig={setConfig} config={config} />
-            {isFineTuningAvailable && (
-              <SamplePipelineSettingsSection setConfig={setConfig} config={config} />
-            )}
-          </Form>
-        </StackItem>
-      </Stack>
+      </ModalFooter>
     </Modal>
   );
 };
