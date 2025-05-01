@@ -36,11 +36,15 @@ import {
 } from '~/__tests__/cypress/cypress/utils/models';
 import { mockServingRuntimeK8sResource } from '~/__mocks__/mockServingRuntimeK8sResource';
 import { mockInferenceServiceK8sResource } from '~/__mocks__/mockInferenceServiceK8sResource';
-import { asProjectAdminUser, asProjectEditUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
+import {
+  asProjectAdminUser,
+  asProjectEditUser,
+} from '~/__tests__/cypress/cypress/utils/mockUsers';
 import { NamespaceApplicationCase } from '~/pages/projects/types';
 import { mockNimServingRuntimeTemplate } from '~/__mocks__/mockNimResource';
 import { mockNimAccount } from '~/__mocks__/mockNimAccount';
 import { mockOdhApplication } from '~/__mocks__/mockOdhApplication';
+import { mock403Error } from '~/__mocks__';
 
 type HandlersProps = {
   isEmpty?: boolean;
@@ -62,6 +66,7 @@ type HandlersProps = {
   pipelineServerErrorMessage?: string;
   rejectAddSupportServingPlatformProject?: boolean;
   disableWorkbenches?: boolean;
+  hasRevokedAccess?: boolean;
 };
 
 const initIntercepts = ({
@@ -84,6 +89,7 @@ const initIntercepts = ({
   pipelineServerErrorMessage,
   rejectAddSupportServingPlatformProject = false,
   disableWorkbenches = false,
+  hasRevokedAccess = false,
 }: HandlersProps) => {
   cy.interceptK8sList(
     { model: SecretModel, ns: 'test-project' },
@@ -137,7 +143,9 @@ const initIntercepts = ({
       disableKServeMetrics,
     }),
   );
-  if (pipelineServerInstalled) {
+  if (hasRevokedAccess) {
+    cy.interceptK8s(DataSciencePipelineApplicationModel, mock403Error({}));
+  } else if (pipelineServerInstalled) {
     cy.interceptK8sList(
       DataSciencePipelineApplicationModel,
       mockK8sResourceList([
@@ -304,6 +312,11 @@ describe('Project Details', () => {
       projectDetails.shouldBeEmptyState('Workbenches', 'workbenches', true);
       projectDetails.shouldBeEmptyState('Cluster storage', 'cluster-storages', true);
       projectDetails.shouldBeEmptyState('Pipelines', 'pipelines-projects', true);
+    });
+
+    it.only('Shows 403 page when user does not have access to the project', () => {
+      initIntercepts({ hasRevokedAccess: true });
+      projectDetails.visit('test-project');
     });
 
     it('Shows project information', () => {
