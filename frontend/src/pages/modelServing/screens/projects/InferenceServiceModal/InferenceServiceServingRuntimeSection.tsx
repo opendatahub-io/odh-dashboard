@@ -21,10 +21,6 @@ const InferenceServiceServingRuntimeSection: React.FC<
     data.project === '' || !!currentServingRuntime,
   );
 
-  const selectedServingRuntime = servingRuntimes.find(
-    (servingRuntime) => servingRuntime.metadata.name === data.servingRuntimeName,
-  );
-
   const placeholderText =
     servingRuntimes.length === 0 ? 'No model servers available to select' : 'Select a model server';
 
@@ -56,9 +52,6 @@ const InferenceServiceServingRuntimeSection: React.FC<
         toggleProps={{ id: 'inference-service-model-selection' }}
         isFullWidth
         value={data.servingRuntimeName}
-        toggleLabel={
-          selectedServingRuntime && getDisplayNameFromK8sResource(selectedServingRuntime)
-        }
         placeholder={placeholderText}
         onChange={(option) => {
           if (option !== data.servingRuntimeName) {

@@ -16,7 +16,6 @@ const EnvDataTypeField: React.FC<EnvDataTypeFieldProps> = ({ options, onSelectio
       <SimpleSelect
         popperProps={{ appendTo: getDashboardMainContainer() }}
         isFullWidth
-        //toggleLabel={selection ? options[selection].label : 'Select one'}
         placeholder="Select one"
         value={selection}
         options={Object.keys(options).map((option) => ({

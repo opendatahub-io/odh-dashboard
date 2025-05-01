@@ -79,6 +79,12 @@ const sortOrders = {
 const isSortType = (e: string | null): e is keyof typeof sortTypes => !!e && e in sortTypes;
 const isSortOrder = (e: string | null): e is keyof typeof sortOrders => !!e && e in sortOrders;
 
+const SortOrderIcon: React.FC<{ isAsc: boolean; alt: string }> = ({ isAsc, alt }) => (
+  <span style={{ display: 'inline-flex', alignItems: 'center', width: '100%' }}>
+    {isAsc ? <PficonSortCommonAscIcon alt={alt} /> : <PficonSortCommonDescIcon alt={alt} />}
+  </span>
+);
+
 const LearningCenterToolbar: React.FC<LearningCenterToolbarProps> = ({
   count,
   totalCount,
@@ -125,16 +131,8 @@ const LearningCenterToolbar: React.FC<LearningCenterToolbarProps> = ({
 
   const sortOrderDropdownItems = Object.entries(sortOrders).map(([key, val]) => ({
     key,
-    label: key,
-    dropdownLabel: (
-      <>
-        {key === SORT_ASC ? (
-          <PficonSortCommonAscIcon data-key={key} alt={val} />
-        ) : (
-          <PficonSortCommonDescIcon data-key={key} alt={val} />
-        )}
-      </>
-    ),
+    label: val,
+    dropdownLabel: <SortOrderIcon isAsc={key === SORT_ASC} alt={val} />,
   }));
 
   const handleTextChange = (val: string) => {
@@ -209,15 +207,13 @@ const LearningCenterToolbar: React.FC<LearningCenterToolbarProps> = ({
               <SimpleSelect
                 aria-label="Select sort order"
                 options={sortOrderDropdownItems}
-                icon={
-                  sortOrder === SORT_ASC ? (
-                    <PficonSortCommonAscIcon data-key={sortOrder} alt={sortOrders.ASC} />
-                  ) : (
-                    <PficonSortCommonDescIcon data-key={sortOrder} alt={sortOrders.DESC} />
-                  )
+                toggleLabel={
+                  <SortOrderIcon isAsc={sortOrder === 'ASC'} alt={sortOrders[sortOrder]} />
                 }
                 value={sortOrder}
                 onChange={onSortOrderSelect}
+                isFullWidth
+                toggleProps={{ style: { minWidth: '100px' } }}
                 popperProps={{ appendTo: 'inline' }}
               />
             </ToolbarItem>
