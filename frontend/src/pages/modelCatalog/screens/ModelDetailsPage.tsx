@@ -39,6 +39,7 @@ import { modelCustomizationRootPath, getRegisterCatalogModelRoute } from '~/rout
 import RhUiControlsIcon from '~/images/icons/RhUiControlsIcon';
 import { CatalogModelDetailsParams } from '~/pages/modelCatalog/types';
 import { ODH_PRODUCT_NAME } from '~/utilities/const';
+import ScrollViewOnMount from '~/components/ScrollViewOnMount';
 import ModelDetailsView from './ModelDetailsView';
 import DeployCatalogModelModal from './DeployCatalogModelModal';
 
@@ -147,91 +148,97 @@ const ModelDetailsPage: React.FC = conditionalArea(
   );
 
   return (
-    <ApplicationsPage
-      breadcrumb={
-        <Breadcrumb>
-          <BreadcrumbItem>
-            <Link to="/modelCatalog">Model catalog</Link>
-          </BreadcrumbItem>
-          <BreadcrumbItem isActive>{decodedParams.modelName}</BreadcrumbItem>
-        </Breadcrumb>
-      }
-      title={
-        <Flex spaceItems={{ default: 'spaceItemsMd' }} alignItems={{ default: 'alignItemsCenter' }}>
-          {model?.logo ? (
-            <img src={model.logo} alt="model logo" style={{ height: '40px', width: '40px' }} />
-          ) : (
-            <Skeleton
-              shape="square"
-              width="40px"
-              height="40px"
-              screenreaderText="Brand image loading"
-            />
-          )}
-          <Stack>
-            <StackItem>
-              <Flex
-                spaceItems={{ default: 'spaceItemsSm' }}
-                alignItems={{ default: 'alignItemsCenter' }}
-              >
-                <FlexItem>{decodedParams.modelName}</FlexItem>
-                {model && (
-                  <Label variant="outline" icon={<RhUiTagIcon />}>
-                    {getTagFromModel(model)}
-                  </Label>
-                )}
-              </Flex>
-            </StackItem>
-            {model && (
-              <StackItem>
-                <Content component={ContentVariants.small}>Provided by {model.provider}</Content>
-              </StackItem>
+    <>
+      <ScrollViewOnMount shouldScroll />
+      <ApplicationsPage
+        breadcrumb={
+          <Breadcrumb>
+            <BreadcrumbItem>
+              <Link to="/modelCatalog">Model catalog</Link>
+            </BreadcrumbItem>
+            <BreadcrumbItem isActive>{decodedParams.modelName}</BreadcrumbItem>
+          </Breadcrumb>
+        }
+        title={
+          <Flex
+            spaceItems={{ default: 'spaceItemsMd' }}
+            alignItems={{ default: 'alignItemsCenter' }}
+          >
+            {model?.logo ? (
+              <img src={model.logo} alt="model logo" style={{ height: '40px', width: '40px' }} />
+            ) : (
+              <Skeleton
+                shape="square"
+                width="40px"
+                height="40px"
+                screenreaderText="Brand image loading"
+              />
             )}
-          </Stack>
-        </Flex>
-      }
-      empty={model === null}
-      emptyStatePage={
-        <EmptyModelCatalogState
-          testid="empty-model-catalog-state"
-          title="Details not found"
-          description="To request access to model catalog, contact your administrator."
-          headerIcon={() => (
-            <img src={typedEmptyImage(ProjectObjectType.registeredModels)} alt="" />
-          )}
-        />
-      }
-      loadError={modelCatalogSources.error}
-      loaded={loaded}
-      errorMessage="Unable to load model catalog"
-      provideChildrenPadding
-      headerAction={
-        loaded && (
-          <ActionList>
-            <ActionListGroup>
-              {tuningAvailable && isLabBase(model?.labels) && fineTuneActionItem}
-              {registerModelButton()}
-              {deployModelButton}
-            </ActionListGroup>
-          </ActionList>
-        )
-      }
-    >
-      {model && (
-        <>
-          <ModelDetailsView model={model} />
-          {isDeployModalOpen && (
-            <DeployCatalogModelModal
-              model={model}
-              onSubmit={(selectedProject) => {
-                navigate(`/modelServing/${selectedProject.metadata.name}`);
-              }}
-              onCancel={() => setIsDeployModalOpen(false)}
-            />
-          )}
-        </>
-      )}
-    </ApplicationsPage>
+            <Stack>
+              <StackItem>
+                <Flex
+                  spaceItems={{ default: 'spaceItemsSm' }}
+                  alignItems={{ default: 'alignItemsCenter' }}
+                >
+                  <FlexItem>{decodedParams.modelName}</FlexItem>
+                  {model && (
+                    <Label variant="outline" icon={<RhUiTagIcon />}>
+                      {getTagFromModel(model)}
+                    </Label>
+                  )}
+                </Flex>
+              </StackItem>
+              {model && (
+                <StackItem>
+                  <Content component={ContentVariants.small}>Provided by {model.provider}</Content>
+                </StackItem>
+              )}
+            </Stack>
+          </Flex>
+        }
+        empty={model === null}
+        emptyStatePage={
+          <EmptyModelCatalogState
+            testid="empty-model-catalog-state"
+            title="Details not found"
+            description="To request access to model catalog, contact your administrator."
+            headerIcon={() => (
+              <img src={typedEmptyImage(ProjectObjectType.registeredModels)} alt="" />
+            )}
+          />
+        }
+        loadError={modelCatalogSources.error}
+        loaded={loaded}
+        errorMessage="Unable to load model catalog"
+        provideChildrenPadding
+        headerAction={
+          loaded && (
+            <ActionList>
+              <ActionListGroup>
+                {tuningAvailable && isLabBase(model?.labels) && fineTuneActionItem}
+                {registerModelButton()}
+                {deployModelButton}
+              </ActionListGroup>
+            </ActionList>
+          )
+        }
+      >
+        {model && (
+          <>
+            <ModelDetailsView model={model} />
+            {isDeployModalOpen && (
+              <DeployCatalogModelModal
+                model={model}
+                onSubmit={(selectedProject) => {
+                  navigate(`/modelServing/${selectedProject.metadata.name}`);
+                }}
+                onCancel={() => setIsDeployModalOpen(false)}
+              />
+            )}
+          </>
+        )}
+      </ApplicationsPage>
+    </>
   );
 });
 
