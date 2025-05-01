@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Form, FormSection } from '@patternfly/react-core';
+import { Form, FormSection, Spinner } from '@patternfly/react-core';
 import { Modal } from '@patternfly/react-core/deprecated';
 import { EitherOrNone } from '@openshift/dynamic-plugin-sdk';
 import {
@@ -57,6 +57,7 @@ import usePrefillModelDeployModal, {
 } from '~/pages/modelServing/screens/projects/usePrefillModelDeployModal';
 import { useKServeDeploymentMode } from '~/pages/modelServing/useKServeDeploymentMode';
 import { SERVING_RUNTIME_SCOPE } from '~/pages/modelServing/screens/const';
+import { useModelDeploymentNotification } from '~/pages/modelServing/screens/projects/useModelDeploymentNotification';
 import KServeAutoscalerReplicaSection from './KServeAutoscalerReplicaSection';
 import EnvironmentVariablesSection from './EnvironmentVariablesSection';
 import ServingRuntimeArgsSection from './ServingRuntimeArgsSection';
@@ -163,6 +164,12 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
     SupportedArea.SERVING_RUNTIME_PARAMS,
   ).status;
 
+  const { watchDeployment } = useModelDeploymentNotification(
+    namespace,
+    createDataInferenceService.k8sName,
+    true,
+  );
+
   React.useEffect(() => {
     if (currentProjectName) {
       setCreateDataInferenceService('project', currentProjectName);
@@ -184,6 +191,17 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
     // Don't update if kServeNameDesc changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [createDataInferenceService.name, setKserveNameDesc]);
+
+  const isDataReady =
+    !modelDeployPrefillInfo ||
+    (!!kServeNameDesc.name &&
+      Array.isArray(servingRuntimeTemplates) &&
+      servingRuntimeTemplates.length > 0 &&
+      (!projectContext || connectionsLoaded) &&
+      (podSpecOptionsState.acceleratorProfile.loaded ||
+        podSpecOptionsState.hardwareProfile.profilesLoaded));
+
+  const isLoading = !isDataReady;
 
   // Serving Runtime Validation
   const isDisabledServingRuntime = namespace === '' || actionInProgress;
@@ -313,6 +331,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
         props.success = true;
         fireFormTrackingEvent(editInfo ? 'Model Updated' : 'Model Deployed', props);
         onSuccess(props);
+        watchDeployment();
       })
       .catch((e) => {
         props.success = false;
@@ -361,7 +380,8 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
               }
             />
           )}
-          {!hideForm && (
+          {!hideForm && isLoading && <Spinner data-testid="spinner" />}
+          {!hideForm && !isLoading && (
             <>
               <K8sNameDescriptionField
                 data={kServeNameDesc}
@@ -430,7 +450,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
             </>
           )}
         </FormSection>
-        {!hideForm && (
+        {!hideForm && !isLoading && (
           <FormSection title="Source model location" id="model-location">
             <ConnectionSection
               existingUriOption={
@@ -454,7 +474,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
             />
           </FormSection>
         )}
-        {servingRuntimeParamsEnabled && (
+        {servingRuntimeParamsEnabled && !isLoading && (
           <FormSection
             title="Configuration parameters"
             id="configuration-params"

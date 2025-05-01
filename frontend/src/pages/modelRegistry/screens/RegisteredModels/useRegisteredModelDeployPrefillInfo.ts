@@ -41,7 +41,7 @@ const useRegisteredModelDeployPrefillInfo = (
           : undefined,
         modelArtifactUri: modelArtifact.uri,
         connectionTypeName,
-        modelArtifactStorageKey: modelArtifact.storageKey,
+        initialConnectionName: modelArtifact.storageKey,
         modelRegistryInfo: {
           modelVersionId: modelVersion.id,
           registeredModelId: modelVersion.registeredModelId,

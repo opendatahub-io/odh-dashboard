@@ -33,6 +33,7 @@
   "settings": {},
   "rules": {
     "no-barrel-files/no-barrel-files": "error",
+    "@typescript-eslint/no-non-null-assertion": "error",
     "eqeqeq": ["error", "always", { "null": "ignore" }],
     "no-restricted-properties": [
       "error",

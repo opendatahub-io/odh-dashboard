@@ -43,7 +43,7 @@ describe('usePrefillModelDeployModal', () => {
     const mockRegisteredModelDeployInfo: ModelDeployPrefillInfo = {
       modelName: 'test-model',
       modelArtifactUri: '',
-      modelArtifactStorageKey: 'test-key',
+      initialConnectionName: 'test-key',
     };
     mockUseConnections.mockReturnValue([[mockConnection({})], true, undefined, jest.fn()]);
     mockuseWatchConnectionTypes.mockReturnValue([
@@ -80,7 +80,7 @@ describe('usePrefillModelDeployModal', () => {
       const mockRegisteredModelDeployInfo: ModelDeployPrefillInfo = {
         modelName: 'test-model',
         modelArtifactUri: 's3://test/test?endpoint=test&defaultRegion=test',
-        modelArtifactStorageKey: 'test-key',
+        initialConnectionName: 'test-key',
       };
       mockUseConnections.mockReturnValue([[], false, undefined, jest.fn()]);
       mockuseWatchConnectionTypes.mockReturnValue([[], true, undefined, jest.fn()]);
@@ -103,7 +103,7 @@ describe('usePrefillModelDeployModal', () => {
       const mockRegisteredModelDeployInfo: ModelDeployPrefillInfo = {
         modelName: 'test-model',
         modelArtifactUri: 's3://test/test?endpoint=test&defaultRegion=test',
-        modelArtifactStorageKey: 'test-key',
+        initialConnectionName: 'test-key',
       };
       mockUseConnections.mockReturnValue([[], true, undefined, jest.fn()]);
       mockuseWatchConnectionTypes.mockReturnValue([[], false, undefined, jest.fn()]);
@@ -126,7 +126,7 @@ describe('usePrefillModelDeployModal', () => {
       const mockRegisteredModelDeployInfo: ModelDeployPrefillInfo = {
         modelName: 'test-model',
         modelArtifactUri: 's3://test/test?endpoint=test&defaultRegion=test',
-        modelArtifactStorageKey: 'test-key',
+        initialConnectionName: 'test-key',
       };
       mockUseConnections.mockReturnValue([[mockConnection({})], true, undefined, jest.fn()]);
       mockuseWatchConnectionTypes.mockReturnValue([
@@ -181,7 +181,7 @@ describe('usePrefillModelDeployModal', () => {
               { key: 'AWS_ACCESS_KEY_ID', value: '' },
               { key: 'AWS_SECRET_ACCESS_KEY', value: '' },
             ],
-            dataConnection: '',
+            dataConnection: 'test-key',
             path: 'test',
             type: 'new-storage',
           },
@@ -193,7 +193,7 @@ describe('usePrefillModelDeployModal', () => {
       const mockRegisteredModelDeployInfo: ModelDeployPrefillInfo = {
         modelName: 'test-model',
         modelArtifactUri: 's3://test/test?endpoint=test&defaultRegion=test',
-        modelArtifactStorageKey: 'test-key',
+        initialConnectionName: 'test-key',
       };
       mockUseConnections.mockReturnValue([
         [
@@ -269,7 +269,7 @@ describe('usePrefillModelDeployModal', () => {
       const mockRegisteredModelDeployInfo: ModelDeployPrefillInfo = {
         modelName: 'test-model',
         modelArtifactUri: 's3://test/test?endpoint=test&defaultRegion=test',
-        modelArtifactStorageKey: 'test-key',
+        initialConnectionName: 'test-key',
       };
       mockUseConnections.mockReturnValue([
         [
@@ -368,7 +368,7 @@ describe('usePrefillModelDeployModal', () => {
       const mockRegisteredModelDeployInfo: ModelDeployPrefillInfo = {
         modelName: 'test-model',
         modelArtifactUri: 'http://test',
-        modelArtifactStorageKey: 'test-key',
+        initialConnectionName: 'test-key',
       };
       mockUseConnections.mockReturnValue([[mockConnection({})], true, undefined, jest.fn()]);
       mockuseWatchConnectionTypes.mockReturnValue([
@@ -417,10 +417,10 @@ describe('usePrefillModelDeployModal', () => {
               { key: 'AWS_S3_ENDPOINT', value: '' },
               { key: 'AWS_DEFAULT_REGION', value: '' },
             ],
-            dataConnection: '',
+            dataConnection: 'test-key',
             path: '',
             type: 'new-storage',
-            uri: 'http://test',
+            uri: '',
           },
         ],
       ]);
@@ -430,7 +430,7 @@ describe('usePrefillModelDeployModal', () => {
       const mockRegisteredModelDeployInfo: ModelDeployPrefillInfo = {
         modelName: 'test-model',
         modelArtifactUri: 'http://tests',
-        modelArtifactStorageKey: 'test-key',
+        initialConnectionName: 'test-key',
       };
       mockUseConnections.mockReturnValue([
         [
@@ -496,7 +496,7 @@ describe('usePrefillModelDeployModal', () => {
       const mockRegisteredModelDeployInfo: ModelDeployPrefillInfo = {
         modelName: 'test-model',
         modelArtifactUri: 'http://tests',
-        modelArtifactStorageKey: 'test-key',
+        initialConnectionName: 'test-key',
       };
       mockUseConnections.mockReturnValue([
         [
@@ -569,7 +569,7 @@ describe('usePrefillModelDeployModal', () => {
       const mockRegisteredModelDeployInfo: ModelDeployPrefillInfo = {
         modelName: 'test-model',
         modelArtifactUri: 'oci://test.io/test/private:test',
-        modelArtifactStorageKey: 'test-key',
+        initialConnectionName: 'test-key',
       };
       mockUseConnections.mockReturnValue([[mockConnection({})], true, undefined, jest.fn()]);
       mockuseWatchConnectionTypes.mockReturnValue([
@@ -584,7 +584,6 @@ describe('usePrefillModelDeployModal', () => {
         mockSetCreateData,
         mockRegisteredModelDeployInfo,
       );
-
       waitFor(() => {
         expect(renderResult).hookToStrictEqual({
           connections: [
@@ -595,7 +594,9 @@ describe('usePrefillModelDeployModal', () => {
           connectionsLoadError: undefined,
           connectionsLoaded: true,
           initialNewConnectionType: undefined,
-          initialNewConnectionValues: {},
+          initialNewConnectionValues: {
+            ACCESS_TYPE: ['Pull'],
+          },
         });
       });
 
@@ -631,7 +632,7 @@ describe('usePrefillModelDeployModal', () => {
       const mockRegisteredModelDeployInfo: ModelDeployPrefillInfo = {
         modelName: 'test-model',
         modelArtifactUri: 'oci://registry.redhat.io/test/private:test',
-        modelArtifactStorageKey: 'test-key',
+        initialConnectionName: 'test-key',
       };
       mockUseConnections.mockReturnValue([[mockConnection({})], true, undefined, jest.fn()]);
       mockuseWatchConnectionTypes.mockReturnValue([
@@ -687,7 +688,7 @@ describe('usePrefillModelDeployModal', () => {
       const mockRegisteredModelDeployInfo: ModelDeployPrefillInfo = {
         modelName: 'test-model',
         modelArtifactUri: 'oci://registry.redhat.io/rhelai1/private:test',
-        modelArtifactStorageKey: 'test-key',
+        initialConnectionName: 'test-key',
       };
       mockUseConnections.mockReturnValue([
         [
@@ -695,6 +696,7 @@ describe('usePrefillModelDeployModal', () => {
             data: {
               OCI_HOST: 'cmVnaXN0cnkucmVkaGF0LmlvL3JoZWxhaTE=',
               '.dockerconfigjson': 'aHR0cHM6Ly9kZW1vLW1vZGVscy9zb21lLXBhdGguemlw',
+              ACCESS_TYPE: 'WyJQdWxsIl0',
             },
           }),
         ],
@@ -725,6 +727,7 @@ describe('usePrefillModelDeployModal', () => {
                 data: {
                   OCI_HOST: 'cmVnaXN0cnkucmVkaGF0LmlvL3JoZWxhaTE=',
                   '.dockerconfigjson': 'aHR0cHM6Ly9kZW1vLW1vZGVscy9zb21lLXBhdGguemlw',
+                  ACCESS_TYPE: 'WyJQdWxsIl0',
                 },
               }),
               isRecommended: true,
@@ -761,15 +764,15 @@ describe('usePrefillModelDeployModal', () => {
       const mockRegisteredModelDeployInfo: ModelDeployPrefillInfo = {
         modelName: 'test-model',
         modelArtifactUri: 'oci://registry.redhat.io/rhelai1/private:test',
-        modelArtifactStorageKey: 'test-key',
+        initialConnectionName: 'test-key',
       };
       mockUseConnections.mockReturnValue([
         [
           mockConnection({
-            data: { OCI_HOST: 'cmVnaXN0cnkucmVkaGF0LmlvL3JoZWxhaTE=' },
+            data: { OCI_HOST: 'cmVnaXN0cnkucmVkaGF0LmlvL3JoZWxhaTE=', ACCESS_TYPE: 'WyJQdWxsIl0' },
           }),
           mockConnection({
-            data: { OCI_HOST: 'cmVnaXN0cnkucmVkaGF0LmlvL3JoZWxhaTE=' },
+            data: { OCI_HOST: 'cmVnaXN0cnkucmVkaGF0LmlvL3JoZWxhaTE=', ACCESS_TYPE: 'WyJQdWxsIl0' },
           }),
         ],
         true,
@@ -788,7 +791,6 @@ describe('usePrefillModelDeployModal', () => {
         mockSetCreateData,
         mockRegisteredModelDeployInfo,
       );
-
       waitFor(() => {
         expect(renderResult).hookToStrictEqual({
           connections: [
@@ -796,6 +798,7 @@ describe('usePrefillModelDeployModal', () => {
               connection: mockConnection({
                 data: {
                   OCI_HOST: 'cmVnaXN0cnkucmVkaGF0LmlvL3JoZWxhaTE=',
+                  ACCESS_TYPE: 'WyJQdWxsIl0',
                 },
               }),
               isRecommended: true,
@@ -804,6 +807,7 @@ describe('usePrefillModelDeployModal', () => {
               connection: mockConnection({
                 data: {
                   OCI_HOST: 'cmVnaXN0cnkucmVkaGF0LmlvL3JoZWxhaTE=',
+                  ACCESS_TYPE: 'WyJQdWxsIl0',
                 },
               }),
               isRecommended: true,
@@ -815,7 +819,6 @@ describe('usePrefillModelDeployModal', () => {
           initialNewConnectionValues: {},
         });
       });
-
       expect(mockSetCreateData.mock.calls).toEqual([
         ['name', 'test-model'],
         [

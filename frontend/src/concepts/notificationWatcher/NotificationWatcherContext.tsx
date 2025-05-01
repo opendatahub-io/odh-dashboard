@@ -12,11 +12,21 @@ type NotificationWatcherContextProviderProps = {
   children: React.ReactNode;
 };
 
-export type FinalNotificationWatcherResponse =
-  | ({ status: 'success' | 'error' } & Pick<AppNotification, 'title' | 'message' | 'actions'>)
-  | { status: 'stop' };
+export enum NotificationResponseStatus {
+  SUCCESS = 'success',
+  ERROR = 'error',
+  STOP = 'stop',
+  REPOLL = 'repoll',
+}
 
-export type RepollNotificationWatcherResponse = { status: 'repoll' };
+export type FinalNotificationWatcherResponse =
+  | ({ status: NotificationResponseStatus.SUCCESS | NotificationResponseStatus.ERROR } & Pick<
+      AppNotification,
+      'title' | 'message' | 'actions'
+    >)
+  | { status: NotificationResponseStatus.STOP };
+
+export type RepollNotificationWatcherResponse = { status: NotificationResponseStatus.REPOLL };
 
 export type NotificationWatcherResponse =
   | FinalNotificationWatcherResponse
@@ -59,7 +69,7 @@ export const NotificationWatcherContextProvider: React.FC<
         itemToInvoke
           .callback(signal)
           .then((response) => {
-            if (response.status !== 'repoll') {
+            if (response.status !== NotificationResponseStatus.REPOLL) {
               abortControllersMapRef.current.delete(itemToInvoke);
             }
 
@@ -69,16 +79,16 @@ export const NotificationWatcherContextProvider: React.FC<
 
             const { status } = response;
             switch (status) {
-              case 'success':
+              case NotificationResponseStatus.SUCCESS:
                 notification.success(response.title, response.message, response.actions);
                 break;
-              case 'error':
+              case NotificationResponseStatus.ERROR:
                 notification.error(response.title, response.message, response.actions);
                 break;
-              case 'repoll':
+              case NotificationResponseStatus.REPOLL:
                 invoke(itemToInvoke, signal);
                 break;
-              case 'stop':
+              case NotificationResponseStatus.STOP:
                 // Do nothing more
                 break;
               default: {

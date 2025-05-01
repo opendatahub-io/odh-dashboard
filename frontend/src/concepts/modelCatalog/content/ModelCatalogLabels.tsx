@@ -14,19 +14,19 @@ export const ModelCatalogLabels: React.FC<{
       switch (label) {
         case ReservedILabLabel.LabBase:
           return (
-            <Label data-testid="model-catalog-label" color="yellow" variant="filled">
+            <Label key={label} data-testid="model-catalog-label" color="yellow" variant="filled">
               LAB starter
             </Label>
           );
         case ReservedILabLabel.LabTeacher:
           return (
-            <Label data-testid="model-catalog-label" color="purple" variant="filled">
+            <Label key={label} data-testid="model-catalog-label" color="purple" variant="filled">
               LAB teacher
             </Label>
           );
         case ReservedILabLabel.LabJudge:
           return (
-            <Label data-testid="model-catalog-label" color="orange" variant="filled">
+            <Label key={label} data-testid="model-catalog-label" color="orange" variant="filled">
               LAB judge
             </Label>
           );

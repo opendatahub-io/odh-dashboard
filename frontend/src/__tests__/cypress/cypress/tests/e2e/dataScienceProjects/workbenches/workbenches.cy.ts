@@ -16,6 +16,7 @@ import {
   retryableBefore,
   wasSetupPerformed,
 } from '~/__tests__/cypress/cypress/utils/retryableHooks';
+import { generateTestUUID } from '~/__tests__/cypress/cypress/utils/uuidGenerator';
 
 describe('Workbench and PVSs tests', () => {
   let projectName: string;
@@ -23,6 +24,7 @@ describe('Workbench and PVSs tests', () => {
   let PVCDisplayName: string;
   let PVCSize: string;
   let defaultStorageClass: string;
+  const uuid = generateTestUUID();
 
   retryableBefore(() => {
     return getOpenshiftDefaultStorageClass()
@@ -35,7 +37,7 @@ describe('Workbench and PVSs tests', () => {
         return loadPVCFixture('e2e/dataScienceProjects/testProjectWbPV.yaml');
       })
       .then((fixtureData: PVCReplacements) => {
-        projectName = fixtureData.NAMESPACE;
+        projectName = `${fixtureData.NAMESPACE}-${uuid}`;
         PVCName = fixtureData.PVC_NAME;
         PVCDisplayName = fixtureData.PVC_DISPLAY_NAME;
         PVCSize = fixtureData.PVC_SIZE;

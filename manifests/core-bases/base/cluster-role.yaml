@@ -132,9 +132,15 @@ rules:
       - namespaces
   - apiGroups:
       - rbac.authorization.k8s.io
+      # The rbac.authorization.k8s.io permissions (list, get, create, patch, and delete on rolebindings, clusterrolebindings, and roles) are needed so the dashboard can handle user access and permissions automatically. 
+      # This includes tasks like assigning roles, updating existing bindings, and creating or removing access rules.
+      # Ex. the standalone Jupyter workbench requires the ability to create an image puller role if one doesn't exist.
     verbs:
       - list
       - get
+      - create
+      - patch
+      - delete
     resources:
       - rolebindings
       - clusterrolebindings

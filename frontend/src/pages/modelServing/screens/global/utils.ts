@@ -10,6 +10,11 @@ export const getInferenceServiceModelState = (
   asEnumMember(is.status?.modelStatus?.states?.activeModelState, InferenceServiceModelState) ||
   InferenceServiceModelState.UNKNOWN;
 
+export const getInferenceServiceLastFailureReason = (is: InferenceServiceKind): string =>
+  is.status?.modelStatus?.lastFailureInfo?.reason ||
+  is.status?.modelStatus?.lastFailureInfo?.message ||
+  'Unknown';
+
 export const getInferenceServiceStatusMessage = (is: InferenceServiceKind): string => {
   const activeModelState = is.status?.modelStatus?.states?.activeModelState;
   const targetModelState = is.status?.modelStatus?.states?.targetModelState;

@@ -33,6 +33,7 @@ type HandlersProps = {
   kServeInstalled?: boolean;
   disableProjectScoped?: boolean;
   disableHardwareProfiles?: boolean;
+  isEmpty?: boolean;
 };
 
 const registeredModelMocked = mockRegisteredModel({ name: 'test-1' });
@@ -61,12 +62,14 @@ const initIntercepts = ({
   kServeInstalled = true,
   disableProjectScoped = true,
   disableHardwareProfiles = true,
+  isEmpty = false,
 }: HandlersProps) => {
   initDeployPrefilledModelIntercepts({
     modelMeshInstalled,
     kServeInstalled,
     disableProjectScoped,
     disableHardwareProfiles,
+    isEmpty,
   });
 
   cy.interceptK8sList(
@@ -248,7 +251,7 @@ describe('Deploy model version', () => {
     cy.findByTestId('oci-deploy-kserve-alert').should('exist');
   });
 
-  it('Selects Create Connection in case of no matching OCI connections', () => {
+  it('Selects Create Connection in case of no matching OCI connections and verifies the prepopulation of Pull Access type', () => {
     initIntercepts({});
     cy.visit(`/modelRegistry/modelregistry-sample/registeredModels/1/versions`);
     const modelVersionRow = modelRegistry.getModelVersionRow('test model version 3');
@@ -263,8 +266,13 @@ describe('Deploy model version', () => {
     cy.findByText('The format of the source model is').should('not.exist');
 
     // Validate connection section
-    kserveModal.findNewConnectionOption().should('be.checked');
     kserveModal.findModelURITextBox().should('have.value', 'test.io/test/private:test');
+    kserveModal
+      .findConnectionFieldInput('ACCESS_TYPE')
+      .click()
+      .then(() => {
+        kserveModal.verifyPullSecretCheckbox();
+      });
   });
 
   it('Selects Current URI in case of built-in registry OCI connections', () => {
@@ -463,10 +471,40 @@ describe('Deploy model version', () => {
 
     // Validate connection section
     kserveModal.findNewConnectionOption().should('be.checked');
+    kserveModal.findConnectionNameInput().should('have.value', 'test storage key');
     kserveModal.findLocationBucketInput().should('have.value', 'test-bucket');
     kserveModal.findLocationEndpointInput().should('have.value', 'test-endpoint');
     kserveModal.findLocationRegionInput().should('have.value', 'test-region');
     kserveModal.findLocationPathInput().should('have.value', 'demo-models/test-path');
+  });
+
+  it('Selects Create Connection in case of no matching URI connections', () => {
+    initIntercepts({});
+    cy.interceptK8sList(
+      SecretModel,
+      mockK8sResourceList([
+        mockCustomSecretK8sResource({
+          namespace: 'kserve-project',
+          name: 'test-secret',
+          annotations: {
+            'opendatahub.io/connection-type': 'uri-v1-1',
+            'openshift.io/display-name': 'Test Secret-1',
+          },
+          data: { URI: 'aHR0cDovL3Rlc3Rz' },
+        }),
+      ]),
+    );
+    cy.visit(`/modelRegistry/modelregistry-sample/registeredModels/1/versions`);
+    const modelVersionRow = modelRegistry.getModelVersionRow('test model version 2');
+    modelVersionRow.findKebabAction('Deploy').click();
+    modelVersionDeployModal.selectProjectByName('KServe project');
+    kserveModal
+      .findConnectionFieldInput('URI')
+      .should('have.value', 'https://demo-models/some-path.zip');
+    kserveModal.selectConnectionType(
+      'OCI compliant registry - v1 Connection type description Category: Database, Testing',
+    );
+    kserveModal.findOCIModelURI().should('have.value', '');
   });
 
   it('Check whether all data is still persistent, if user changes connection types', () => {
@@ -614,6 +652,7 @@ describe('Deploy model version', () => {
           data: {
             '.dockerconfigjson': 'aHR0cHM6Ly9kZW1vLW1vZGVscy9zb21lLXBhdGguemlw',
             OCI_HOST: 'dGVzdC5pby90ZXN0',
+            ACCESS_TYPE: 'WyJQdWxsIl0',
           },
         }),
       ]),
@@ -672,5 +711,14 @@ describe('Deploy model version', () => {
       .findExistingConnectionSelectValueField()
       .findSelectOption('Test Secret Match 2 Recommended Type: URI - v1')
       .should('exist');
+  });
+
+  it('Deploy modal will show spinner, if the data is still loading', () => {
+    initIntercepts({ isEmpty: true });
+    cy.visit(`/modelRegistry/modelregistry-sample/registeredModels/1/versions`);
+    const modelVersionRow = modelRegistry.getModelVersionRow('test model version 3');
+    modelVersionRow.findKebabAction('Deploy').click();
+    modelVersionDeployModal.selectProjectByName('KServe project');
+    kserveModal.findSpinner().should('exist');
   });
 });

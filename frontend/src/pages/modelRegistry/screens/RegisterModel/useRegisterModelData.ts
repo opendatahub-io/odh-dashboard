@@ -1,4 +1,4 @@
-import { ModelRegistryCustomProperties } from '~/concepts/modelRegistry/types';
+import { ModelRegistryCustomProperties, ModelArtifact } from '~/concepts/modelRegistry/types';
 import useGenericObjectState, { GenericObjectState } from '~/utilities/useGenericObjectState';
 
 export enum ModelLocationType {
@@ -19,6 +19,8 @@ export type RegistrationCommonFormData = {
   modelLocationURI: string;
   versionCustomProperties?: ModelRegistryCustomProperties;
   modelCustomProperties?: ModelRegistryCustomProperties;
+  additionalArtifactProperties?: Partial<ModelArtifact>;
+  storageKey?: string;
 };
 
 export type RegisterModelFormData = RegistrationCommonFormData & {
@@ -47,6 +49,7 @@ const registrationCommonFormDataDefaults: RegistrationCommonFormData = {
   modelLocationURI: '',
   modelCustomProperties: {},
   versionCustomProperties: {},
+  storageKey: '',
 };
 
 const registerModelFormDataDefaults: RegisterModelFormData = {

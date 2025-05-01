@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Form, FormSection, HelperTextItem } from '@patternfly/react-core';
+import { Form, FormSection, HelperTextItem, Spinner } from '@patternfly/react-core';
 import { Modal } from '@patternfly/react-core/deprecated';
 import { EitherOrNone } from '@openshift/dynamic-plugin-sdk';
 import {
@@ -23,6 +23,7 @@ import {
   isModelServingCompatible,
   ModelServingCompatibleTypes,
 } from '~/concepts/connectionTypes/utils';
+import { useModelDeploymentNotification } from '~/pages/modelServing/screens/projects/useModelDeploymentNotification';
 import ProjectSection from './ProjectSection';
 import InferenceServiceFrameworkSection from './InferenceServiceFrameworkSection';
 import InferenceServiceServingRuntimeSection from './InferenceServiceServingRuntimeSection';
@@ -58,6 +59,12 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
   const [actionInProgress, setActionInProgress] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
 
+  const { watchDeployment } = useModelDeploymentNotification(
+    createData.project,
+    createData.k8sName,
+    false,
+  );
+
   const currentProjectName = projectContext?.currentProject.metadata.name || '';
   const currentServingRuntimeName = projectContext?.currentServingRuntime?.metadata.name || '';
 
@@ -68,6 +75,11 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
     connectionsLoaded,
     connectionsLoadError,
   } = usePrefillModelDeployModal(projectContext, createData, setCreateData, modelDeployPrefillInfo);
+
+  const isDataReady =
+    !modelDeployPrefillInfo ||
+    (!!inferenceServiceNameDesc.name && (!projectContext || connectionsLoaded));
+  const isLoading = !isDataReady;
 
   const modelMeshConnections = React.useMemo(
     () =>
@@ -99,6 +111,12 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
     }
     return isConnectionValid;
   };
+
+  React.useEffect(() => {
+    if (createData.name) {
+      setInferenceServiceNameDesc('name', createData.name);
+    }
+  }, [createData.name, setInferenceServiceNameDesc]);
 
   const isDisabled =
     actionInProgress ||
@@ -136,7 +154,10 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
       undefined,
       connection,
     )
-      .then(() => onSuccess())
+      .then(() => {
+        onSuccess();
+        watchDeployment();
+      })
       .catch((e) => {
         setActionInProgress(false);
         setErrorModal(e);
@@ -173,7 +194,8 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
             }
           />
         )}
-        {!shouldFormHidden && (
+        {!shouldFormHidden && isLoading && <Spinner />}
+        {!shouldFormHidden && !isLoading && (
           <>
             <K8sNameDescriptionField
               data={inferenceServiceNameDesc}

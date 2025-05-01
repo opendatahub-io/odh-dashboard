@@ -6,7 +6,6 @@ import {
   Icon,
   InputGroup,
   Label,
-  NumberInput,
   Popover,
   Split,
   SplitItem,
@@ -14,12 +13,12 @@ import {
   StackItem,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
-import { isHTMLInputElement } from '~/utilities/utils';
 import { AcceleratorProfileKind } from '~/k8sTypes';
 import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import { AcceleratorProfileFormData } from '~/utilities/useAcceleratorProfileFormState';
 import { AcceleratorProfileState } from '~/utilities/useReadAcceleratorState';
+import NumberInputWrapper from '~/components/NumberInputWrapper';
 import useAcceleratorCountWarning from './useAcceleratorCountWarning';
 
 type AcceleratorProfileSelectFieldProps = {
@@ -119,10 +118,6 @@ const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps
     options.push(formatOption(formData.profile));
   }
 
-  const onStep = (step: number) => {
-    setFormData('count', Math.max(formData.count + step, 1));
-  };
-
   // if there is more than a none option, show the dropdown
   if (options.length === 1) {
     return null;
@@ -192,7 +187,7 @@ const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps
         <StackItem>
           <FormGroup label="Number of accelerators" fieldId="number-of-accelerators">
             <InputGroup>
-              <NumberInput
+              <NumberInputWrapper
                 inputAriaLabel="Number of accelerators"
                 id="number-of-accelerators"
                 name="number-of-accelerators"
@@ -200,13 +195,9 @@ const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps
                 validated={acceleratorCountWarning ? 'warning' : 'default'}
                 min={1}
                 max={999}
-                onPlus={() => onStep(1)}
-                onMinus={() => onStep(-1)}
-                onChange={(event) => {
-                  if (isHTMLInputElement(event.target)) {
-                    const newSize = Number(event.target.value);
-                    setFormData('count', Math.max(Math.min(newSize, 999), 1));
-                  }
+                onChange={(value) => {
+                  const newSize = Number(value);
+                  setFormData('count', Math.max(Math.min(newSize, 999), 1));
                 }}
               />
             </InputGroup>

@@ -154,7 +154,9 @@ const EnvironmentVariablesSection: React.FC<EnvironmentVariablesSectionType> = (
                   value={envVar.name}
                   onChange={(_event, value) => updateEnvVar(index, { name: value })}
                   ref={
-                    index === data.servingRuntimeEnvVars!.length - 1 ? lastNameFieldRef : undefined
+                    data.servingRuntimeEnvVars && index === data.servingRuntimeEnvVars.length - 1
+                      ? lastNameFieldRef
+                      : undefined
                   }
                   validated={error ? 'error' : 'default'}
                 />

@@ -45,8 +45,6 @@ const InferenceServiceTable: React.FC<InferenceServiceTableProps> = ({
   const [deleteInferenceService, setDeleteInferenceService] =
     React.useState<InferenceServiceKind>();
   const [editInferenceService, setEditInferenceService] = React.useState<InferenceServiceKind>();
-  const project = projects.find(byName(inferenceServices[0]?.metadata.namespace)) ?? null;
-  const isKServeNIMEnabled = !!project && isProjectNIMSupported(project);
   const mappedColumns = React.useMemo(() => {
     const columns = getColumns?.(projects);
 
@@ -60,8 +58,6 @@ const InferenceServiceTable: React.FC<InferenceServiceTableProps> = ({
 
     return getProjectInferenceServiceColumns();
   }, [getColumns, isGlobal, projects]);
-
-  const KServeManageModalComponent = isKServeNIMEnabled ? ManageNIMServingModal : ManageKServeModal;
 
   return (
     <>
@@ -129,26 +125,35 @@ const InferenceServiceTable: React.FC<InferenceServiceTableProps> = ({
           }}
         />
       ) : null}
-      {!!editInferenceService && !isModelMesh(editInferenceService) ? (
-        <KServeManageModalComponent
-          editInfo={{
-            inferenceServiceEditInfo: editInferenceService,
-            servingRuntimeEditInfo: {
-              servingRuntime: servingRuntimes.find(
-                (sr) => sr.metadata.name === editInferenceService.spec.predictor.model?.runtime,
-              ),
-              secrets: [],
-            },
-            secrets: filterTokens ? filterTokens(editInferenceService.metadata.name) : [],
-          }}
-          onClose={(edited) => {
-            if (edited) {
-              refresh?.();
-            }
-            setEditInferenceService(undefined);
-          }}
-        />
-      ) : null}
+      {!!editInferenceService && !isModelMesh(editInferenceService)
+        ? (() => {
+            const projectForEdit = projects.find(byName(editInferenceService.metadata.namespace));
+            const isNIM = projectForEdit ? isProjectNIMSupported(projectForEdit) : false;
+            const KServeManageModalComponent = isNIM ? ManageNIMServingModal : ManageKServeModal;
+
+            return (
+              <KServeManageModalComponent
+                editInfo={{
+                  inferenceServiceEditInfo: editInferenceService,
+                  servingRuntimeEditInfo: {
+                    servingRuntime: servingRuntimes.find(
+                      (sr) =>
+                        sr.metadata.name === editInferenceService.spec.predictor.model?.runtime,
+                    ),
+                    secrets: [],
+                  },
+                  secrets: filterTokens ? filterTokens(editInferenceService.metadata.name) : [],
+                }}
+                onClose={(edited) => {
+                  if (edited) {
+                    refresh?.();
+                  }
+                  setEditInferenceService(undefined);
+                }}
+              />
+            );
+          })()
+        : null}
     </>
   );
 };

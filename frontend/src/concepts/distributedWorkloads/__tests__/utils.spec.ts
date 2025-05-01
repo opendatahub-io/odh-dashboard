@@ -11,6 +11,7 @@ import {
   WorkloadRequestedResources,
   getQueueRequestedResources,
   getTotalSharedQuota,
+  getWorkloadStatusMessage,
 } from '~/concepts/distributedWorkloads/utils';
 import { WorkloadOwnerType, WorkloadPodSet } from '~/k8sTypes';
 import { PodContainer } from '~/types';
@@ -43,6 +44,15 @@ describe('getStatusInfo', () => {
     expect(info.color).toBe('green');
     expect(info.message).toBe('Job finished successfully');
     expect(info.status).toBe('Succeeded');
+  });
+  it('should return "Finished" when status is Succeeded and message is "No message"', () => {
+    const wl = mockWorkloadK8sResource({
+      k8sName: 'test-workload',
+      mockStatusEmptyWorkload: true,
+      mockStatus: WorkloadStatusType.Succeeded,
+    });
+    const info = getStatusInfo(wl);
+    expect(getWorkloadStatusMessage(info)).toEqual('Finished');
   });
 });
 

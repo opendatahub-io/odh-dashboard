@@ -22,6 +22,7 @@ import {
 } from '~/routes';
 import useNotification from '~/utilities/useNotification';
 import {
+  NotificationResponseStatus,
   NotificationWatcherContext,
   NotificationWatcherResponse,
 } from '~/concepts/notificationWatcher/NotificationWatcherContext';
@@ -175,7 +176,7 @@ const FineTunePageFooter: React.FC<FineTunePageFooterProps> = ({
                 model.modelRegistryName
               ) {
                 return {
-                  status: 'success',
+                  status: NotificationResponseStatus.SUCCESS,
                   title: `${resource.display_name} successfully completed`,
                   message: `Your new model, ${resource.display_name}, is within the model registry`,
                   actions: [
@@ -196,7 +197,7 @@ const FineTunePageFooter: React.FC<FineTunePageFooterProps> = ({
               }
 
               return {
-                status: 'success',
+                status: NotificationResponseStatus.SUCCESS,
                 title: `${resource.display_name} successfully completed`,
                 message: `Your run ${resource.display_name} has successfully completed`,
                 actions: [
@@ -211,7 +212,7 @@ const FineTunePageFooter: React.FC<FineTunePageFooterProps> = ({
             }
             if (response.state === RuntimeStateKF.FAILED) {
               return {
-                status: 'error',
+                status: NotificationResponseStatus.ERROR,
                 title: `${resource.display_name} has failed`,
                 message: `Your run ${resource.display_name} has failed`,
                 actions: [
@@ -228,15 +229,15 @@ const FineTunePageFooter: React.FC<FineTunePageFooterProps> = ({
               response.state === RuntimeStateKF.RUNNING ||
               response.state === RuntimeStateKF.PENDING
             ) {
-              return { status: 'repoll' };
+              return { status: NotificationResponseStatus.REPOLL };
             }
             // Stop on any other state
-            return { status: 'stop' };
+            return { status: NotificationResponseStatus.STOP };
           })
           .catch((e) => {
             // eslint-disable-next-line no-console
             console.error('Error calling api.getPipelineRun', e);
-            return { status: 'stop' };
+            return { status: NotificationResponseStatus.STOP };
           }),
     });
   };
