@@ -12,17 +12,19 @@ import {
   retryableBefore,
   wasSetupPerformed,
 } from '~/__tests__/cypress/cypress/utils/retryableHooks';
+import { generateTestUUID } from '~/__tests__/cypress/cypress/utils/uuidGenerator';
 
 describe('Verify that users can provide contributor project permissions to non-admin users', () => {
   let testData: DataScienceProjectData;
   let projectName: string;
+  const uuid = generateTestUUID();
 
   // Setup: Load test data and ensure clean state
   retryableBefore(() => {
     return loadDSPFixture('e2e/dataScienceProjects/testProjectContributorPermissions.yaml')
       .then((fixtureData: DataScienceProjectData) => {
         testData = fixtureData;
-        projectName = testData.projectContributorResourceName;
+        projectName = `${testData.projectContributorResourceName}-${uuid}`;
         if (!projectName) {
           throw new Error('Project name is undefined or empty in the loaded fixture');
         }
@@ -53,12 +55,10 @@ describe('Verify that users can provide contributor project permissions to non-a
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
       // Project navigation, add user and provide contributor permissions
-      cy.step(
-        `Navigate to the Project list tab and search for ${testData.projectContributorResourceName}`,
-      );
+      cy.step(`Navigate to the Project list tab and search for ${projectName}`);
       projectListPage.navigate();
-      projectListPage.filterProjectByName(testData.projectContributorResourceName);
-      projectListPage.findProjectLink(testData.projectContributorResourceName).click();
+      projectListPage.filterProjectByName(projectName);
+      projectListPage.findProjectLink(projectName).click();
       projectDetails.findSectionTab('permissions').click();
 
       cy.step('Assign contributor user Project Permissions');
@@ -91,8 +91,8 @@ describe('Verify that users can provide contributor project permissions to non-a
         'Verify that the user has access to the created project but cannot access Permissions',
       );
       projectListPage.navigate();
-      projectListPage.filterProjectByName(testData.projectContributorResourceName);
-      projectListPage.findProjectLink(testData.projectContributorResourceName).click();
+      projectListPage.filterProjectByName(projectName);
+      projectListPage.findProjectLink(projectName).click();
       cy.log('Attempting to find permissions tab which should not be visible');
       projectDetails.findSectionTab('permissions').should('not.exist');
     },

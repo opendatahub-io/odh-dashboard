@@ -57,6 +57,7 @@ import usePrefillModelDeployModal, {
 } from '~/pages/modelServing/screens/projects/usePrefillModelDeployModal';
 import { useKServeDeploymentMode } from '~/pages/modelServing/useKServeDeploymentMode';
 import { SERVING_RUNTIME_SCOPE } from '~/pages/modelServing/screens/const';
+import { useModelDeploymentNotification } from '~/pages/modelServing/screens/projects/useModelDeploymentNotification';
 import KServeAutoscalerReplicaSection from './KServeAutoscalerReplicaSection';
 import EnvironmentVariablesSection from './EnvironmentVariablesSection';
 import ServingRuntimeArgsSection from './ServingRuntimeArgsSection';
@@ -162,6 +163,12 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
   const servingRuntimeParamsEnabled = useIsAreaAvailable(
     SupportedArea.SERVING_RUNTIME_PARAMS,
   ).status;
+
+  const { watchDeployment } = useModelDeploymentNotification(
+    namespace,
+    createDataInferenceService.k8sName,
+    true,
+  );
 
   React.useEffect(() => {
     if (currentProjectName) {
@@ -324,6 +331,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
         props.success = true;
         fireFormTrackingEvent(editInfo ? 'Model Updated' : 'Model Deployed', props);
         onSuccess(props);
+        watchDeployment();
       })
       .catch((e) => {
         props.success = false;

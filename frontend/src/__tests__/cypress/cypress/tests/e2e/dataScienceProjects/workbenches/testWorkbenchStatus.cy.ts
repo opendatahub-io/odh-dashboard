@@ -13,16 +13,18 @@ import {
   retryableBefore,
   wasSetupPerformed,
 } from '~/__tests__/cypress/cypress/utils/retryableHooks';
+import { generateTestUUID } from '~/__tests__/cypress/cypress/utils/uuidGenerator';
 
 describe('Workbenches - status tests', () => {
   let projectName: string;
   let projectDescription: string;
+  const uuid = generateTestUUID();
 
   // Setup: Load test data and ensure clean state
   retryableBefore(() => {
     return loadWBStatusFixture('e2e/dataScienceProjects/testWorkbenchStatus.yaml')
       .then((fixtureData: WBStatusTestData) => {
-        projectName = fixtureData.wbStatusTestNamespace;
+        projectName = `${fixtureData.wbStatusTestNamespace}-${uuid}`;
         projectDescription = fixtureData.wbStatusTestDescription;
 
         if (!projectName) {

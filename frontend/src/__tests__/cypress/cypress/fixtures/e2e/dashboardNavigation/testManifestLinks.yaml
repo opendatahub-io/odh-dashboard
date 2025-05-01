@@ -12,3 +12,5 @@ excludedSubstrings:
   - console-openshift-console.apps.test-cluster.example.com
   - figma.com/figma/ns
   - scikit-learn.org/stable/getting_started.html
+  - 2Fopentracker
+  - 2Ftracker.openbittorrent
