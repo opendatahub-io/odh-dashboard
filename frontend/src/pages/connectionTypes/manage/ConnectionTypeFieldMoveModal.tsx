@@ -1,6 +1,12 @@
 import * as React from 'react';
-import { Form, FormGroup } from '@patternfly/react-core';
-import { Modal } from '@patternfly/react-core/deprecated';
+import {
+  Form,
+  FormGroup,
+  Modal,
+  ModalBody,
+  ModalHeader,
+  ModalFooter,
+} from '@patternfly/react-core';
 import { ConnectionTypeField, ConnectionTypeFieldType } from '~/concepts/connectionTypes/types';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
@@ -38,12 +44,26 @@ export const ConnectionTypeMoveFieldToSectionModal: React.FC<Props> = ({
   );
 
   return (
-    <Modal
-      isOpen
-      title="Move to section"
-      onClose={onClose}
-      variant="medium"
-      footer={
+    <Modal isOpen onClose={onClose} variant="medium">
+      <ModalHeader title="Move to section" />
+      <ModalBody>
+        <Form>
+          <div>
+            Select the section heading that <b>{row.field.name}</b> will be moved to.
+          </div>
+          <FormGroup fieldId="sectionHeading" label="Section heading" isRequired>
+            <SimpleSelect
+              id="sectionHeading"
+              dataTestId="section-heading-select"
+              options={options}
+              value={selectedSection?.key}
+              onChange={(key) => setSelectedSection(options.find((s) => s.key === key))}
+              isFullWidth
+            />
+          </FormGroup>
+        </Form>
+      </ModalBody>
+      <ModalFooter>
         <DashboardModalFooter
           submitLabel="Move"
           onCancel={onClose}
@@ -55,23 +75,7 @@ export const ConnectionTypeMoveFieldToSectionModal: React.FC<Props> = ({
           }}
           isSubmitDisabled={!selectedSection}
         />
-      }
-    >
-      <Form>
-        <div>
-          Select the section heading that <b>{row.field.name}</b> will be moved to.
-        </div>
-        <FormGroup fieldId="sectionHeading" label="Section heading" isRequired>
-          <SimpleSelect
-            id="sectionHeading"
-            dataTestId="section-heading-select"
-            options={options}
-            value={selectedSection?.key}
-            onChange={(key) => setSelectedSection(options.find((s) => s.key === key))}
-            isFullWidth
-          />
-        </FormGroup>
-      </Form>
+      </ModalFooter>
     </Modal>
   );
 };
