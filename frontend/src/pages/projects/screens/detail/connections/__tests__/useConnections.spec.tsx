@@ -23,12 +23,12 @@ describe('useConnections', () => {
     expect(mockGetSecretsByLabel).toHaveBeenCalledTimes(1);
     expect(renderResult).hookToStrictEqual(standardUseFetchState(connectionsMock, true));
     expect(renderResult).hookToHaveUpdateCount(2);
-    expect(renderResult).hookToBeStable([false, false, true, true]);
+    expect(renderResult).hookToBeStable({ data: false, loaded: false, error: true, refresh: true });
 
     // refresh
     await act(() => renderResult.result.current[3]());
     expect(mockGetSecretsByLabel).toHaveBeenCalledTimes(2);
     expect(renderResult).hookToHaveUpdateCount(3);
-    expect(renderResult).hookToBeStable([false, true, true, true]);
+    expect(renderResult).hookToBeStable({ data: false, loaded: true, error: true, refresh: true });
   });
 });

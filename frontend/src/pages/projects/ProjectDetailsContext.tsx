@@ -38,7 +38,7 @@ import useProjectPvcs from './screens/detail/storage/useProjectPvcs';
 import useProjectSharing from './projectSharing/useProjectSharing';
 import useConnections from './screens/detail/connections/useConnections';
 
-type ProjectDetailsContextType = {
+export type ProjectDetailsContextType = {
   currentProject: ProjectKind;
   filterTokens: (servingRuntime?: string) => SecretKind[];
   notebooks: FetchStateObject<NotebookState[]>;
