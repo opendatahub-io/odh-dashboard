@@ -16,12 +16,12 @@ type Props = {
 
 export const NavItemHref: React.FC<Props> = ({
   extension: {
-    properties: { href, pathMatch, dataAttributes, title, statusProviderId },
+    properties: { href, path, dataAttributes, title, statusProviderId },
   },
   onNotifyStatus,
 }) => {
   const [status, setStatus] = React.useState<StatusReport | undefined>(undefined);
-  const isMatch = !!useMatch(pathMatch ?? href);
+  const isMatch = !!useMatch(path ?? href);
 
   React.useEffect(
     () => () => {

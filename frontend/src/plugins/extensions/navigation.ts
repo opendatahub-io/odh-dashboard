@@ -26,7 +26,7 @@ const extensions: NavExtension[] = [
       id: 'dsg',
       title: 'Data science projects',
       href: '/projects',
-      pathMatch: '/projects/*',
+      path: '/projects/*',
       group: '2_projects',
     },
   },
@@ -48,7 +48,7 @@ const extensions: NavExtension[] = [
       title: 'Model catalog',
       href: '/modelCatalog',
       section: 'models',
-      pathMatch: '/modelCatalog/*',
+      path: '/modelCatalog/*',
     },
   },
   {
@@ -61,7 +61,7 @@ const extensions: NavExtension[] = [
       title: 'Model registry',
       href: '/modelRegistry',
       section: 'models',
-      pathMatch: '/modelRegistry/*',
+      path: '/modelRegistry/*',
     },
   },
   {
@@ -74,7 +74,7 @@ const extensions: NavExtension[] = [
       title: 'Model deployments',
       href: '/modelServing',
       section: 'models',
-      pathMatch: '/modelServing/*',
+      path: '/modelServing/*',
     },
   },
   {
@@ -87,7 +87,7 @@ const extensions: NavExtension[] = [
       title: 'Model customization',
       href: '/modelCustomization',
       section: 'models',
-      pathMatch: '/modelCustomization/*',
+      path: '/modelCustomization/*',
     },
   },
 
@@ -108,7 +108,7 @@ const extensions: NavExtension[] = [
       title: 'Pipelines',
       href: '/pipelines',
       section: 'pipelines-and-runs',
-      pathMatch: '/pipelines/*',
+      path: '/pipelines/*',
     },
   },
   {
@@ -121,7 +121,7 @@ const extensions: NavExtension[] = [
       title: 'Runs',
       href: '/pipelineRuns',
       section: 'pipelines-and-runs',
-      pathMatch: '/pipelineRuns/*',
+      path: '/pipelineRuns/*',
     },
   },
   {
@@ -144,7 +144,7 @@ const extensions: NavExtension[] = [
       title: 'Experiments and runs',
       href: '/experiments',
       section: 'experiments',
-      pathMatch: '/experiments/*',
+      path: '/experiments/*',
     },
   },
   {
@@ -157,7 +157,7 @@ const extensions: NavExtension[] = [
       title: 'Executions',
       href: '/executions',
       section: 'experiments',
-      pathMatch: '/executions/*',
+      path: '/executions/*',
     },
   },
   {
@@ -170,7 +170,7 @@ const extensions: NavExtension[] = [
       title: 'Artifacts',
       href: '/artifacts',
       section: 'experiments',
-      pathMatch: '/artifacts/*',
+      path: '/artifacts/*',
     },
   },
 
@@ -183,7 +183,7 @@ const extensions: NavExtension[] = [
       id: 'workloadMetrics',
       title: 'Distributed workloads',
       href: '/distributedWorkloads',
-      pathMatch: '/distributedWorkloads/*',
+      path: '/distributedWorkloads/*',
     },
   },
 
@@ -244,6 +244,7 @@ const extensions: NavExtension[] = [
     properties: {
       id: 'settings',
       title: 'Settings',
+      group: '9_settings',
     },
   },
   {
@@ -256,7 +257,7 @@ const extensions: NavExtension[] = [
       title: 'Workbench images',
       href: '/workbenchImages',
       section: 'settings',
-      pathMatch: '/workbenchImages/*',
+      path: '/workbenchImages/*',
     },
   },
   {
@@ -269,7 +270,6 @@ const extensions: NavExtension[] = [
       title: 'Cluster settings',
       href: '/clusterSettings',
       section: 'settings',
-      group: '9_settings',
     },
   },
 
@@ -284,7 +284,7 @@ const extensions: NavExtension[] = [
       title: 'Accelerator profiles',
       href: '/acceleratorProfiles',
       section: 'settings',
-      pathMatch: '/acceleratorProfiles/*',
+      path: '/acceleratorProfiles/*',
     },
   },
   {
@@ -297,7 +297,7 @@ const extensions: NavExtension[] = [
       title: 'Hardware profiles',
       href: '/hardwareProfiles',
       section: 'settings',
-      pathMatch: '/hardwareProfiles/*',
+      path: '/hardwareProfiles/*',
       statusProviderId: 'hardware-profiles.status',
       accessReview: {
         group: 'dashboard.opendatahub.io',
@@ -317,7 +317,7 @@ const extensions: NavExtension[] = [
       title: 'Serving runtimes',
       href: '/servingRuntimes',
       section: 'settings',
-      pathMatch: '/servingRuntimes/*',
+      path: '/servingRuntimes/*',
     },
   },
 
@@ -332,7 +332,7 @@ const extensions: NavExtension[] = [
       title: 'Connection types',
       href: '/connectionTypes',
       section: 'settings',
-      pathMatch: '/connectionTypes/*',
+      path: '/connectionTypes/*',
     },
   },
 
@@ -346,7 +346,7 @@ const extensions: NavExtension[] = [
       title: 'Storage classes',
       href: '/storageClasses',
       section: 'settings',
-      pathMatch: '/storageClasses/*',
+      path: '/storageClasses/*',
     },
   },
 
@@ -360,7 +360,7 @@ const extensions: NavExtension[] = [
       title: 'Model registry settings',
       href: '/modelRegistrySettings',
       section: 'settings',
-      pathMatch: '/modelRegistrySettings/*',
+      path: '/modelRegistrySettings/*',
     },
   },
 

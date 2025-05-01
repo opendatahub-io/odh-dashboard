@@ -52,7 +52,7 @@ export const NavSection: React.FC<Props> = ({
   const navExtensionIsActive = React.useCallback(
     (e: LoadedExtension<NavExtension>) => {
       if (isHrefNavItemExtension(e)) {
-        return matchPath(e.properties.pathMatch ?? e.properties.href, pathname);
+        return matchPath(e.properties.path ?? e.properties.href, pathname);
       }
       return false;
     },

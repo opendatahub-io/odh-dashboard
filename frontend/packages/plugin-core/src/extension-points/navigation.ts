@@ -11,11 +11,12 @@ export type HrefNavItemExtension = Extension<
     /** The status provider ID for this item. */
     statusProviderId?: string;
     /**
-     * The path pattern to match against the URL to determine if this link matches the current route.
+     * The react-router path pattern to match against the current location.
+     * If not supplied, the `href` is used to match against current location.
      *
-     * If not supplied, the `href` is used as an exact match to the current route.
+     * A successful match will highlight the item as active.
      */
-    pathMatch?: string;
+    path?: string;
   }
 >;
 
