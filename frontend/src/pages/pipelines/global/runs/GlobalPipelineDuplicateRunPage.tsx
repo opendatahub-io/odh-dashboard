@@ -1,16 +1,17 @@
 import React from 'react';
 import { BreadcrumbDetailsComponentProps } from '~/concepts/pipelines/content/types';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { globalPipelineRunDetailsRoute, pipelineRunsBaseRoute } from '~/routes';
+import { globalPipelineRunDetailsRoute, globalPipelineRunsRoute } from '~/routes';
 import DuplicateRunPage from '~/concepts/pipelines/content/createRun/DuplicateRunPage';
 
 const GlobalPipelineDuplicateRunPage: BreadcrumbDetailsComponentProps = ({ breadcrumbPath }) => {
   const { namespace } = usePipelinesAPI();
+  const contextPath = globalPipelineRunsRoute(namespace);
 
   return (
     <DuplicateRunPage
       breadcrumbPath={breadcrumbPath}
-      contextPath={pipelineRunsBaseRoute(namespace)}
+      contextPath={contextPath}
       detailsRedirect={(runId) => globalPipelineRunDetailsRoute(namespace, runId)}
     />
   );

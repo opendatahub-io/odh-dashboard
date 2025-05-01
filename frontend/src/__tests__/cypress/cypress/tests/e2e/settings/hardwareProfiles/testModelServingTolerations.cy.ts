@@ -26,6 +26,7 @@ import {
   createCleanHardwareProfile,
 } from '~/__tests__/cypress/cypress/utils/oc_commands/hardwareProfiles';
 import { createCleanProject } from '~/__tests__/cypress/cypress/utils/projectChecker';
+import { generateTestUUID } from '~/__tests__/cypress/cypress/utils/uuidGenerator';
 
 let testData: ModelTolerationsTestData;
 let projectName: string;
@@ -35,6 +36,8 @@ let modelFilePath: string;
 let hardwareProfileResourceName: string;
 let tolerationValue: string;
 const awsBucket = 'BUCKET_3' as const;
+const projectUuid = generateTestUUID();
+const hardwareProfileUuid = generateTestUUID();
 
 describe('Notebooks - tolerations tests', () => {
   retryableBefore(() => {
@@ -48,11 +51,11 @@ describe('Notebooks - tolerations tests', () => {
     return loadModelTolerationsFixture('e2e/hardwareProfiles/testModelServingTolerations.yaml')
       .then((fixtureData: ModelTolerationsTestData) => {
         testData = fixtureData;
-        projectName = testData.modelServingTolerationsTestNamespace;
+        projectName = `${testData.modelServingTolerationsTestNamespace}-${projectUuid}`;
         contributor = LDAP_CONTRIBUTOR_USER.USERNAME;
         modelName = testData.modelName;
         modelFilePath = testData.modelFilePath;
-        hardwareProfileResourceName = testData.hardwareProfileName;
+        hardwareProfileResourceName = `${testData.hardwareProfileName}-${hardwareProfileUuid}`;
         tolerationValue = testData.tolerationValue;
 
         if (!projectName) {
@@ -130,7 +133,7 @@ describe('Notebooks - tolerations tests', () => {
 
       inferenceServiceModal.selectPotentiallyDisabledProfile(
         testData.hardwareProfileDeploymentSize,
-        testData.hardwareProfileName,
+        hardwareProfileResourceName,
       );
       inferenceServiceModal.findLocationPathInput().type(modelFilePath);
       inferenceServiceModal.findSubmitButton().click();

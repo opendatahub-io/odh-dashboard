@@ -145,19 +145,23 @@ describe('Manage Accelerator Profile', () => {
     tableRow.findKebabAction('Delete').click();
     createAcceleratorProfile.getRow('toleration-key').findKebabAction('Delete').click();
     createAcceleratorProfile.shouldHaveModalEmptyState();
-    cy.interceptOdh('POST /api/accelerator-profiles', { success: true }).as('createAccelerator');
+    cy.interceptK8s(
+      'POST',
+      {
+        model: AcceleratorProfileModel,
+        name: 'test-accelerator-name',
+        ns: 'opendatahub',
+        times: 1,
+      },
+      mockAcceleratorProfile({
+        name: 'test-accelerator-name',
+        namespace: 'opendatahub',
+      }),
+    ).as('createAccelerator');
+
     createAcceleratorProfile.findSubmitButton().click();
 
-    cy.wait('@createAccelerator').then((interception) => {
-      expect(interception.request.body).to.be.eql({
-        name: 'test-accelerator-name',
-        displayName: 'test-accelerator',
-        description: '',
-        identifier: 'nvidia.com/gpu',
-        enabled: true,
-        tolerations: [],
-      });
-    });
+    cy.wait('@createAccelerator');
   });
 
   it('edit page has expected values', () => {
@@ -177,23 +181,37 @@ describe('Manage Accelerator Profile', () => {
       .shouldHaveTolerationSeconds('-');
 
     //update the description
-    cy.interceptOdh(
-      'PUT /api/accelerator-profiles/:name',
-      { path: { name: 'test-accelerator' } },
-      { success: true },
+    cy.interceptK8s(
+      'PUT',
+      {
+        model: AcceleratorProfileModel,
+        name: 'test-accelerator',
+        ns: 'opendatahub',
+        times: 1,
+      },
+      mockAcceleratorProfile({
+        name: 'test-accelerator',
+        namespace: 'opendatahub',
+      }),
     ).as('updatedAccelerator');
+
+    cy.interceptK8s(
+      'GET',
+      {
+        model: AcceleratorProfileModel,
+        name: 'test-accelerator',
+        ns: 'opendatahub',
+        times: 1,
+      },
+      mockAcceleratorProfile({
+        name: 'test-accelerator',
+        namespace: 'opendatahub',
+      }),
+    );
+
     editAcceleratorProfile.k8sNameDescription.findDescriptionInput().fill('Updated description');
     editAcceleratorProfile.findSubmitButton().click();
-    cy.wait('@updatedAccelerator').then((interception) => {
-      expect(interception.request.body).to.eql({
-        name: 'test-accelerator',
-        displayName: 'Test Accelerator',
-        identifier: 'nvidia.com/gpu',
-        enabled: true,
-        tolerations: [{ key: 'nvidia.com/gpu', operator: 'Exists', effect: 'NoSchedule' }],
-        description: 'Updated description',
-      });
-    });
+    cy.wait('@updatedAccelerator');
   });
 
   it('invalid id in edit page', () => {

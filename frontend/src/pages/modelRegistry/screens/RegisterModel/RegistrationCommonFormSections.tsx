@@ -59,11 +59,15 @@ const RegistrationCommonFormSections = <D extends RegistrationCommonFormData>({
     convertObjectStorageSecretData(connection).forEach((dataItem) => {
       setData(connectionDataMap[dataItem.key], dataItem.value);
     });
+    // Store the connection name
+    setData('storageKey', connection.metadata.name);
   };
 
   const fillURIByConnection = (connection: Connection) => {
     if (connection.data?.URI) {
       setData('modelLocationURI', window.atob(connection.data.URI));
+      // Store the connection name
+      setData('storageKey', connection.metadata.name);
     }
   };
 

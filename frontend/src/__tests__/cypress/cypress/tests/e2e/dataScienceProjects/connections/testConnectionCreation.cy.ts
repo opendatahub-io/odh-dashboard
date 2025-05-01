@@ -11,6 +11,7 @@ import {
   retryableBefore,
   wasSetupPerformed,
 } from '~/__tests__/cypress/cypress/utils/retryableHooks';
+import { generateTestUUID } from '~/__tests__/cypress/cypress/utils/uuidGenerator';
 
 describe('Verify Connections - Creation and Deletion', () => {
   let testData: DataScienceProjectData;
@@ -18,6 +19,7 @@ describe('Verify Connections - Creation and Deletion', () => {
   let s3Config: AWSS3BucketDetails;
   let s3AccessKey: string;
   let s3SecretKey: string;
+  const uuid = generateTestUUID();
 
   // Setup: Load test data and ensure clean state
   retryableBefore(() => {
@@ -38,7 +40,7 @@ describe('Verify Connections - Creation and Deletion', () => {
     return loadDSPFixture('e2e/dataScienceProjects/testDataConnectionCreation.yaml')
       .then((fixtureData: DataScienceProjectData) => {
         testData = fixtureData;
-        projectName = testData.projectDCResourceName;
+        projectName = `${testData.projectDCResourceName}-${uuid}`;
         if (!projectName) {
           throw new Error('Project name is undefined or empty in the loaded fixture');
         }
@@ -69,10 +71,10 @@ describe('Verify Connections - Creation and Deletion', () => {
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
       // Project navigation
-      cy.step(`Navigate to the Project list tab and search for ${testData.projectDCResourceName}`);
+      cy.step(`Navigate to the Project list tab and search for ${projectName}`);
       projectListPage.navigate();
-      projectListPage.filterProjectByName(testData.projectDCResourceName);
-      projectListPage.findProjectLink(testData.projectDCResourceName).click();
+      projectListPage.filterProjectByName(projectName);
+      projectListPage.findProjectLink(projectName).click();
 
       //Navigate to Connections and create Connection
       cy.step('Navigate to Connections and click to create Connection');

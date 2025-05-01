@@ -20,6 +20,7 @@ import {
   wasSetupPerformed,
 } from '~/__tests__/cypress/cypress/utils/retryableHooks';
 import { attemptToClickTooltip } from '~/__tests__/cypress/cypress/utils/models';
+import { generateTestUUID } from '~/__tests__/cypress/cypress/utils/uuidGenerator';
 
 let testData: DataScienceProjectData;
 let projectName: string;
@@ -27,6 +28,7 @@ let contributor: string;
 let modelName: string;
 let modelFilePath: string;
 const awsBucket = 'BUCKET_3' as const;
+const uuid = generateTestUUID();
 
 describe('Verify Model Creation and Validation using the UI', () => {
   retryableBefore(() => {
@@ -40,7 +42,7 @@ describe('Verify Model Creation and Validation using the UI', () => {
     return loadDSPFixture('e2e/dataScienceProjects/testSingleModelContributorCreation.yaml').then(
       (fixtureData: DataScienceProjectData) => {
         testData = fixtureData;
-        projectName = testData.projectSingleModelResourceName;
+        projectName = `${testData.projectSingleModelResourceName}-${uuid}`;
         contributor = LDAP_CONTRIBUTOR_USER.USERNAME;
         modelName = testData.singleModelName;
         modelFilePath = testData.modelFilePath;
@@ -77,12 +79,10 @@ describe('Verify Model Creation and Validation using the UI', () => {
       cy.visitWithLogin('/', LDAP_CONTRIBUTOR_USER);
 
       // Project navigation, add user and provide contributor permissions
-      cy.step(
-        `Navigate to the Project list tab and search for ${testData.projectSingleModelResourceName}`,
-      );
+      cy.step(`Navigate to the Project list tab and search for ${projectName}`);
       projectListPage.navigate();
-      projectListPage.filterProjectByName(testData.projectSingleModelResourceName);
-      projectListPage.findProjectLink(testData.projectSingleModelResourceName).click();
+      projectListPage.filterProjectByName(projectName);
+      projectListPage.findProjectLink(projectName).click();
 
       // Navigate to Model Serving tab and Deploy a Single Model
       cy.step('Navigate to Model Serving and click to Deploy a Single Model');

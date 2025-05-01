@@ -1430,6 +1430,7 @@ describe('Serving Runtime List', () => {
       kserveModal.findAuthenticationCheckbox().check();
       kserveModal.findExternalRouteError().should('not.exist');
       kserveModal.findServiceAccountNameInput().should('have.value', 'default-name');
+      kserveModal.findExistingConnectionOption().click();
       kserveModal.findExistingConnectionSelect().should('have.attr', 'disabled');
       kserveModal
         .findExistingConnectionSelect()
@@ -1577,6 +1578,7 @@ describe('Serving Runtime List', () => {
       kserveModal.findAuthenticationCheckbox().check();
       kserveModal.findExternalRouteError().should('not.exist');
       kserveModal.findServiceAccountNameInput().should('have.value', 'default-name');
+      kserveModal.findExistingConnectionOption().click();
       kserveModal.findExistingConnectionSelect().should('have.attr', 'disabled');
       kserveModal
         .findExistingConnectionSelect()
@@ -1707,6 +1709,7 @@ describe('Serving Runtime List', () => {
       kserveModal.findModelNameInput().type('Test Name');
       kserveModal.findServingRuntimeTemplateDropdown().findSelectOption('Caikit').click();
       kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
+      kserveModal.findExistingConnectionOption().click();
       kserveModal.findLocationPathInput().type('test-model/');
 
       // Verify submit is enabled before testing env vars
@@ -2450,6 +2453,7 @@ describe('Serving Runtime List', () => {
       kserveModal.findServingRuntimeTemplateDropdown().findSelectOption('Caikit').click();
       kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
       kserveModal.findSubmitButton().should('be.disabled');
+      kserveModal.findExistingConnectionOption().click();
       kserveModal.findExistingConnectionSelect().should('have.attr', 'disabled');
       kserveModal
         .findExistingConnectionSelect()
@@ -2488,6 +2492,7 @@ describe('Serving Runtime List', () => {
       kserveModal.findServingRuntimeTemplateDropdown().findSelectOption('Caikit').click();
       kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
       kserveModal.findSubmitButton().should('be.disabled');
+      kserveModal.findExistingConnectionOption().click();
       kserveModal.findExistingConnectionSelect().should('have.attr', 'disabled');
       kserveModal
         .findExistingConnectionSelect()

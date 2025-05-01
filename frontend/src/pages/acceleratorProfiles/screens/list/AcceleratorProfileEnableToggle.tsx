@@ -1,8 +1,9 @@
 import * as React from 'react';
 import { Switch } from '@patternfly/react-core';
 import DisableAcceleratorProfileModal from '~/pages/acceleratorProfiles/screens/list/DisableAcceleratorProfileModal';
-import { updateAcceleratorProfile } from '~/services/acceleratorProfileService';
 import useNotification from '~/utilities/useNotification';
+import { updateAcceleratorProfile } from '~/api';
+import { useDashboardNamespace } from '~/redux/selectors';
 
 type AcceleratorProfileEnableToggleProps = {
   enabled: boolean;
@@ -18,10 +19,11 @@ const AcceleratorProfileEnableToggle: React.FC<AcceleratorProfileEnableTogglePro
   const [isEnabled, setEnabled] = React.useState(enabled);
   const [isLoading, setLoading] = React.useState(false);
   const notification = useNotification();
+  const { dashboardNamespace } = useDashboardNamespace();
 
   const handleChange = (checked: boolean) => {
     setLoading(true);
-    updateAcceleratorProfile(name, {
+    updateAcceleratorProfile(name, dashboardNamespace, {
       enabled: checked,
     })
       .then(() => {

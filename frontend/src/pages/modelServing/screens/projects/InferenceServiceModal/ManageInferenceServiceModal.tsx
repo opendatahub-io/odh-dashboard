@@ -23,6 +23,7 @@ import {
   isModelServingCompatible,
   ModelServingCompatibleTypes,
 } from '~/concepts/connectionTypes/utils';
+import { useModelDeploymentNotification } from '~/pages/modelServing/screens/projects/useModelDeploymentNotification';
 import ProjectSection from './ProjectSection';
 import InferenceServiceFrameworkSection from './InferenceServiceFrameworkSection';
 import InferenceServiceServingRuntimeSection from './InferenceServiceServingRuntimeSection';
@@ -57,6 +58,12 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
     useK8sNameDescriptionFieldData({ initialData: editInfo });
   const [actionInProgress, setActionInProgress] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
+
+  const { watchDeployment } = useModelDeploymentNotification(
+    createData.project,
+    createData.k8sName,
+    false,
+  );
 
   const currentProjectName = projectContext?.currentProject.metadata.name || '';
   const currentServingRuntimeName = projectContext?.currentServingRuntime?.metadata.name || '';
@@ -147,7 +154,10 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
       undefined,
       connection,
     )
-      .then(() => onSuccess())
+      .then(() => {
+        onSuccess();
+        watchDeployment();
+      })
       .catch((e) => {
         setActionInProgress(false);
         setErrorModal(e);

@@ -12,8 +12,10 @@ import {
   retryableBefore,
   wasSetupPerformed,
 } from '~/__tests__/cypress/cypress/utils/retryableHooks';
+import { generateTestUUID } from '~/__tests__/cypress/cypress/utils/uuidGenerator';
 
-const projectName = 'test-pipelines-prj';
+const uuid = generateTestUUID();
+const projectName = `test-pipelines-prj-${uuid}`;
 const dspaSecretName = 'dashboard-dspa-secret';
 const testPipelineName = 'test-pipelines-pipeline';
 const testRunName = 'test-pipelines-run';

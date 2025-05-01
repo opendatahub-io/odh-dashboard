@@ -266,7 +266,6 @@ describe('Deploy model version', () => {
     cy.findByText('The format of the source model is').should('not.exist');
 
     // Validate connection section
-    kserveModal.findNewConnectionOption().should('be.checked');
     kserveModal.findModelURITextBox().should('have.value', 'test.io/test/private:test');
     kserveModal
       .findConnectionFieldInput('ACCESS_TYPE')
@@ -472,6 +471,7 @@ describe('Deploy model version', () => {
 
     // Validate connection section
     kserveModal.findNewConnectionOption().should('be.checked');
+    kserveModal.findConnectionNameInput().should('have.value', 'test storage key');
     kserveModal.findLocationBucketInput().should('have.value', 'test-bucket');
     kserveModal.findLocationEndpointInput().should('have.value', 'test-endpoint');
     kserveModal.findLocationRegionInput().should('have.value', 'test-region');

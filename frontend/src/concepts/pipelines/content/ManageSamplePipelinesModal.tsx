@@ -4,6 +4,7 @@ import { Modal } from '@patternfly/react-core/deprecated';
 import { getPipelinesCR, toggleInstructLabState } from '~/api';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import {
+  NotificationResponseStatus,
   NotificationWatcherContext,
   NotificationWatcherResponse,
 } from '~/concepts/notificationWatcher/NotificationWatcherContext';
@@ -82,26 +83,26 @@ const ManageSamplePipelinesModal: React.FC<ManageSamplePipelinesModalProps> = ({
                     // Refresh the pipelines list to make the ilab pipeline shown
                     refreshAllAPI();
                     return {
-                      status: 'success',
+                      status: NotificationResponseStatus.SUCCESS,
                       title,
                     };
                   }
                   if (iLabPipelineResponse.error) {
                     notificationWatcherRef.current = false;
                     return {
-                      status: 'error',
+                      status: NotificationResponseStatus.ERROR,
                       title: 'Error enabling InstructLab pipeline',
                       message: iLabPipelineResponse.error.message,
                     };
                   }
                   if (!serverReady) {
                     // re-poll only if the server is not ready
-                    return { status: 'repoll' };
+                    return { status: NotificationResponseStatus.REPOLL };
                   }
-                  return { status: 'stop' };
+                  return { status: NotificationResponseStatus.STOP };
                 })
                 // e.g. 404 error when InstructLab pipeline is not ready, we keep re-polling it
-                .catch(() => ({ status: 'repoll' })),
+                .catch(() => ({ status: NotificationResponseStatus.REPOLL })),
             callbackDelay: 10000,
           });
         }

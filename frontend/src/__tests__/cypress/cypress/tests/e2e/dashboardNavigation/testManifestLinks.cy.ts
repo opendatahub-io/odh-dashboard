@@ -2,7 +2,7 @@ import * as yaml from 'js-yaml';
 import { isUrlExcluded } from '~/__tests__/cypress/cypress/utils/urlExtractor';
 import { retryableBefore } from '~/__tests__/cypress/cypress/utils/retryableHooks';
 
-describe('[Product Bugs: RHOAIENG-9365,RHOAIENG-16956, RHOAIENG-16959] Verify that all the URLs referenced in the Manifest directory are operational', () => {
+describe('Verify that all the URLs referenced in the Manifest directory are operational', () => {
   let excludedSubstrings: string[];
 
   // Setup: Load test data
@@ -15,7 +15,7 @@ describe('[Product Bugs: RHOAIENG-9365,RHOAIENG-16956, RHOAIENG-16959] Verify th
 
   it(
     'Reads the manifest directory, filters out test/sample URLs and validates the remaining URLs',
-    { tags: ['@Smoke', '@SmokeSet1', '@ODS-327', '@ODS-492', '@Dashboard', '@Bug'] },
+    { tags: ['@Smoke', '@SmokeSet1', '@ODS-327', '@ODS-492', '@Dashboard'] },
     () => {
       const manifestsDir = '../../../../manifests';
       cy.log(`Resolved manifests directory: ${manifestsDir}`);
