@@ -54,7 +54,7 @@ describe('useModelVersionsByRegisteredModel', () => {
     expect(renderResult).hookToHaveUpdateCount(1);
   });
 
-  it('should reject when registeredModelId is not provided', () => {
+  it('should not call API when registeredModelId is not provided', () => {
     // Test the initial state
     const renderResult = testHook(useModelVersionsByRegisteredModel)();
     expect(renderResult.result.current).toStrictEqual(standardUseFetchState(defaultEmptyState));
