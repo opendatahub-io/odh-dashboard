@@ -9,7 +9,7 @@ import {
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import { CreatingInferenceServiceObject } from '~/pages/modelServing/screens/types';
 import { SupportedModelFormats } from '~/k8sTypes';
-import SimpleSelect from '~/components/SimpleSelect';
+import SimpleSelect, { SimpleSelectOptionStrict } from '~/components/SimpleSelect';
 import useModelFramework from './useModelFramework';
 
 type InferenceServiceFrameworkSectionProps = {
@@ -53,7 +53,7 @@ const InferenceServiceFrameworkSection: React.FC<InferenceServiceFrameworkSectio
       <SimpleSelect
         dataTestId="inference-service-framework-selection"
         toggleProps={{ id: 'inference-service-framework-selection' }}
-        options={models.map((framework) => {
+        options={models.map((framework): SimpleSelectOptionStrict => {
           const name = framework.version
             ? `${framework.name} - ${framework.version}`
             : `${framework.name}`;

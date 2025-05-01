@@ -5,7 +5,7 @@ import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import { KnownLabels, ProjectKind } from '~/k8sTypes';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
-import SimpleSelect from '~/components/SimpleSelect';
+import SimpleSelect, { SimpleSelectOptionStrict } from '~/components/SimpleSelect';
 
 type ProjectSelectorProps = {
   selectedProject: ProjectKind | null;
@@ -55,11 +55,12 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
               }
             }}
             value={selectedProject?.metadata.name}
-            options={(isOciModel ? kserveProjects : projects).map((project) => ({
-              key: project.metadata.name,
-              value: project.metadata.name,
-              label: getDisplayNameFromK8sResource(project),
-            }))}
+            options={(isOciModel ? kserveProjects : projects).map(
+              (project): SimpleSelectOptionStrict => ({
+                key: project.metadata.name,
+                label: getDisplayNameFromK8sResource(project),
+              }),
+            )}
             dataTestId="deploy-model-project-selector"
             placeholder="Select target project"
             toggleProps={{ id: 'deploy-model-project-selector' }}

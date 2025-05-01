@@ -33,19 +33,17 @@ export type SimpleSelectOption = {
 export type SimpleGroupSelectOption = {
   key: string;
   label: string;
-  options: SimpleSelectOption[];
+  options: SimpleSelectOptionStrict[];
 };
 
-// Utility type to enforce exact prop types (no extra props allowed)
-type Exact<T, Shape> = T extends Shape
-  ? Exclude<keyof T, keyof Shape> extends never
-    ? T
-    : never
-  : never;
+// Prevents addition of anything outside what's defined in SimpleSelectOption
+type Strict<T> = T & { [K in Exclude<keyof T, keyof SimpleSelectOption>]: never };
+
+export type SimpleSelectOptionStrict = Strict<SimpleSelectOption>;
 
 type SimpleSelectProps = {
-  options?: Exact<SimpleSelectOption, SimpleSelectOption>[];
-  groupedOptions?: Exact<SimpleGroupSelectOption, SimpleGroupSelectOption>[];
+  options?: SimpleSelectOptionStrict[];
+  groupedOptions?: SimpleGroupSelectOption[];
   value: string | undefined;
   toggleLabel?: React.ReactNode;
   placeholder?: string;

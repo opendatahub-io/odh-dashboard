@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { TextInput } from '@patternfly/react-core';
-import SimpleSelect from '~/components/SimpleSelect';
+import SimpleSelect, { SimpleSelectOptionStrict } from '~/components/SimpleSelect';
 
 type IdentifierSelectFieldProps = {
   value: string;
@@ -16,10 +16,12 @@ export const IdentifierSelectField: React.FC<IdentifierSelectFieldProps> = ({
   // remove possible duplicates
   const options = useMemo(
     () =>
-      Array.from(new Set(identifierOptions)).map((option) => ({
-        key: option,
-        label: option,
-      })),
+      Array.from(new Set(identifierOptions)).map(
+        (option): SimpleSelectOptionStrict => ({
+          key: option,
+          label: option,
+        }),
+      ),
     [identifierOptions],
   );
 

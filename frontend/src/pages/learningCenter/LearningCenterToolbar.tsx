@@ -25,7 +25,7 @@ import {
 import { removeQueryArgument, setQueryArgument } from '~/utilities/router';
 import { useQueryParams } from '~/utilities/useQueryParams';
 import { fireMiscTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
-import SimpleSelect from '~/components/SimpleSelect';
+import SimpleSelect, { SimpleSelectOptionStrict } from '~/components/SimpleSelect';
 import {
   SEARCH_FILTER_KEY,
   DOC_SORT_KEY,
@@ -119,21 +119,25 @@ const LearningCenterToolbar: React.FC<LearningCenterToolbarProps> = ({
     [navigate],
   );
 
-  const sortTypeDropdownItems = Object.entries(sortTypes).map(([key, val]) => ({
-    key,
-    label: key,
-    dropdownLabel: <>{val}</>,
-  }));
+  const sortTypeDropdownItems = Object.entries(sortTypes).map(
+    ([key, val]): SimpleSelectOptionStrict => ({
+      key,
+      label: key,
+      dropdownLabel: <>{val}</>,
+    }),
+  );
   const onSortOrderSelect = React.useCallback(
     (value: string) => setQueryArgument(navigate, DOC_SORT_ORDER_KEY, value),
     [navigate],
   );
 
-  const sortOrderDropdownItems = Object.entries(sortOrders).map(([key, val]) => ({
-    key,
-    label: val,
-    dropdownLabel: <SortOrderIcon isAsc={key === SORT_ASC} alt={val} />,
-  }));
+  const sortOrderDropdownItems = Object.entries(sortOrders).map(
+    ([key, val]): SimpleSelectOptionStrict => ({
+      key,
+      label: val,
+      dropdownLabel: <SortOrderIcon isAsc={key === SORT_ASC} alt={val} />,
+    }),
+  );
 
   const handleTextChange = (val: string) => {
     if (val.length > 0) {

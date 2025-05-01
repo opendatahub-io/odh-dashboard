@@ -14,7 +14,10 @@ import {
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { AcceleratorProfileKind } from '~/k8sTypes';
-import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
+import SimpleSelect, {
+  SimpleSelectOption,
+  SimpleSelectOptionStrict,
+} from '~/components/SimpleSelect';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import { AcceleratorProfileFormData } from '~/utilities/useAcceleratorProfileFormState';
 import { AcceleratorProfileState } from '~/utilities/useReadAcceleratorState';
@@ -73,7 +76,7 @@ const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps
     };
   };
 
-  const options: SimpleSelectOption[] = enabledAcceleratorProfiles
+  const options: SimpleSelectOptionStrict[] = enabledAcceleratorProfiles
     .toSorted((a, b) => {
       const aSupported = isAcceleratorProfileSupported(a);
       const bSupported = isAcceleratorProfileSupported(b);

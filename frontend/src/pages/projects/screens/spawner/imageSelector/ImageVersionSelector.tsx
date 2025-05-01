@@ -18,7 +18,7 @@ import {
 } from '~/pages/projects/screens/spawner/spawnerUtils';
 import { ImageStreamSpecTagType } from '~/k8sTypes';
 import { isElyraVersionOutOfDate } from '~/concepts/pipelines/elyra/utils';
-import SimpleSelect from '~/components/SimpleSelect';
+import SimpleSelect, { SimpleSelectOptionStrict } from '~/components/SimpleSelect';
 import ImageVersionTooltip from './ImageVersionTooltip';
 
 type ImageVersionSelectorProps = {
@@ -42,7 +42,7 @@ const ImageVersionSelector: React.FC<ImageVersionSelectorProps> = ({
     .toSorted(compareImageVersionOrder)
     .map((imageVersion) => getImageVersionSelectOptionObject(imageStream, imageVersion));
 
-  const options = selectOptionObjects.map((optionObject) => {
+  const options = selectOptionObjects.map((optionObject): SimpleSelectOptionStrict => {
     const { imageVersion } = optionObject;
     // Cannot wrap the SelectOption with Tooltip because Select component requires SelectOption as the children
     // Can only wrap the SelectOption children with Tooltip

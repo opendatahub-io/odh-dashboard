@@ -3,7 +3,7 @@ import { MetricsCommonContext } from '~/concepts/metrics/MetricsCommonContext';
 import { RefreshIntervalTitle } from '~/concepts/metrics/types';
 import { isRefreshIntervalTitle } from '~/concepts/metrics/utils';
 import { asEnumMember, enumIterator } from '~/utilities/utils';
-import SimpleSelect from '~/components/SimpleSelect';
+import SimpleSelect, { SimpleSelectOptionStrict } from '~/components/SimpleSelect';
 
 export const MetricsRefreshIntervalSelect: React.FC = () => {
   const { currentRefreshInterval, setCurrentRefreshInterval } =
@@ -18,10 +18,12 @@ export const MetricsRefreshIntervalSelect: React.FC = () => {
           setCurrentRefreshInterval(value);
         }
       }}
-      options={enumIterator(RefreshIntervalTitle).map(([, value]) => ({
-        key: value,
-        label: value,
-      }))}
+      options={enumIterator(RefreshIntervalTitle).map(
+        ([, value]): SimpleSelectOptionStrict => ({
+          key: value,
+          label: value,
+        }),
+      )}
       toggleProps={{
         id: 'metrics-toolbar-refresh-interval-select-toggle',
         style: { width: '15ch' },

@@ -5,7 +5,7 @@ import { CreatingInferenceServiceObject } from '~/pages/modelServing/screens/typ
 import { ServingRuntimeKind } from '~/k8sTypes';
 import useServingRuntimes from '~/pages/modelServing/useServingRuntimes';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
-import SimpleSelect from '~/components/SimpleSelect';
+import SimpleSelect, { SimpleSelectOptionStrict } from '~/components/SimpleSelect';
 
 type InferenceServiceServingRuntimeSectionProps = {
   data: CreatingInferenceServiceObject;
@@ -44,10 +44,12 @@ const InferenceServiceServingRuntimeSection: React.FC<
     <FormGroup label="Model server" fieldId="inference-service-model-selection" isRequired>
       <SimpleSelect
         dataTestId="inference-service-model-selection"
-        options={servingRuntimes.map((servingRuntime) => ({
-          key: servingRuntime.metadata.name,
-          label: getDisplayNameFromK8sResource(servingRuntime),
-        }))}
+        options={servingRuntimes.map(
+          (servingRuntime): SimpleSelectOptionStrict => ({
+            key: servingRuntime.metadata.name,
+            label: getDisplayNameFromK8sResource(servingRuntime),
+          }),
+        )}
         isSkeleton={!loaded && data.project !== ''}
         toggleProps={{ id: 'inference-service-model-selection' }}
         isFullWidth

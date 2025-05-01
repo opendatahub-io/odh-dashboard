@@ -4,7 +4,7 @@ import { MinusCircleIcon } from '@patternfly/react-icons';
 import { EnvironmentVariableType, EnvVariable } from '~/pages/projects/types';
 import IndentSection from '~/pages/projects/components/IndentSection';
 import { asEnumMember, getDashboardMainContainer } from '~/utilities/utils';
-import SimpleSelect from '~/components/SimpleSelect';
+import SimpleSelect, { SimpleSelectOptionStrict } from '~/components/SimpleSelect';
 import EnvTypeSwitch from './EnvTypeSwitch';
 
 type EnvTypeSelectFieldProps = {
@@ -29,10 +29,12 @@ const EnvTypeSelectField: React.FC<EnvTypeSelectFieldProps> = ({
               isFullWidth
               value={envVariable.type ?? undefined}
               placeholder="Select environment variable type"
-              options={Object.values(EnvironmentVariableType).map((type) => ({
-                key: type,
-                label: type,
-              }))}
+              options={Object.values(EnvironmentVariableType).map(
+                (type): SimpleSelectOptionStrict => ({
+                  key: type,
+                  label: type,
+                }),
+              )}
               onChange={(value) => {
                 const enumValue = asEnumMember(value, EnvironmentVariableType);
                 if (enumValue !== null) {

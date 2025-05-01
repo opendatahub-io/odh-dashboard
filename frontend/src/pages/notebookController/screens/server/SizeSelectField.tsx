@@ -2,7 +2,7 @@ import * as React from 'react';
 import { FormGroup, FormHelperText, HelperText, HelperTextItem } from '@patternfly/react-core';
 import { NotebookSize } from '~/types';
 import { getDashboardMainContainer } from '~/utilities/utils';
-import SimpleSelect from '~/components/SimpleSelect';
+import SimpleSelect, { SimpleSelectOptionStrict } from '~/components/SimpleSelect';
 import { formatMemory } from '~/utilities/valueUnits';
 
 type SizeSelectFieldProps = {
@@ -13,7 +13,7 @@ type SizeSelectFieldProps = {
 
 const SizeSelectField: React.FC<SizeSelectFieldProps> = ({ value, setValue, sizes }) => {
   const sizeOptions = () =>
-    sizes.map((size) => {
+    sizes.map((size): SimpleSelectOptionStrict => {
       const { name } = size;
       const desc =
         `Limits: ${size.resources.limits?.cpu || '??'} CPU, ` +

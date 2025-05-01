@@ -3,7 +3,10 @@ import { Form, FormGroup } from '@patternfly/react-core';
 import { Modal } from '@patternfly/react-core/deprecated';
 import { ConnectionTypeField, ConnectionTypeFieldType } from '~/concepts/connectionTypes/types';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
-import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
+import SimpleSelect, {
+  SimpleSelectOption,
+  SimpleSelectOptionStrict,
+} from '~/components/SimpleSelect';
 
 type Props = {
   row: { field: ConnectionTypeField; index: number };
@@ -23,7 +26,7 @@ export const ConnectionTypeMoveFieldToSectionModal: React.FC<Props> = ({
       (r, i) => r.type === ConnectionTypeFieldType.Section && i < row.index,
     );
 
-    const temp: SimpleSelectOption[] = [];
+    const temp: SimpleSelectOptionStrict[] = [];
     for (let i = 0; fields && i < fields.length; i++) {
       if (fields[i].type === ConnectionTypeFieldType.Section && i !== parentSectionIndex) {
         temp.push({ label: fields[i].name, key: String(i) });

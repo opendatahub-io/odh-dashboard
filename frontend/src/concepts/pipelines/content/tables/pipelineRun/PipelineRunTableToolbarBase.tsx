@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { TextInput } from '@patternfly/react-core';
 import PipelineFilterBar from '~/concepts/pipelines/content/tables/PipelineFilterBar';
-import SimpleSelect from '~/components/SimpleSelect';
+import SimpleSelect, { SimpleSelectOptionStrict } from '~/components/SimpleSelect';
 import { FilterOptions } from '~/concepts/pipelines/content/tables/usePipelineFilter';
 import { RuntimeStateKF, runtimeStateLabels } from '~/concepts/pipelines/kfTypes';
 import DashboardDatePicker from '~/components/DashboardDatePicker';
@@ -86,10 +86,12 @@ const PipelineRunTableToolbarBase: React.FC<PipelineRunTableToolbarBaseProps> = 
             value={value}
             placeholder="Select a status"
             aria-label="Select a status"
-            options={Object.values(statusRuntimeStates).map((v) => ({
-              key: v,
-              label: v,
-            }))}
+            options={Object.values(statusRuntimeStates).map(
+              (v): SimpleSelectOptionStrict => ({
+                key: v,
+                label: v,
+              }),
+            )}
             onChange={(v) => onChange(v)}
             dataTestId="runtime-status-dropdown"
             popperProps={{ maxWidth: undefined, appendTo: 'inline' }}

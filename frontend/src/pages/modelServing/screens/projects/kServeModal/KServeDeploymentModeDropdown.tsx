@@ -1,7 +1,7 @@
 import { FormGroup, Icon, Popover } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import React from 'react';
-import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
+import SimpleSelect, { SimpleSelectOptionStrict } from '~/components/SimpleSelect';
 import { DeploymentMode } from '~/k8sTypes';
 
 type Props = {
@@ -11,7 +11,7 @@ type Props = {
 };
 
 export const KServeDeploymentModeDropdown: React.FC<Props> = ({ isRaw, setIsRaw, isDisabled }) => {
-  const options: SimpleSelectOption[] = [
+  const options: SimpleSelectOptionStrict[] = [
     {
       label: `Standard`,
       key: DeploymentMode.RawDeployment,
