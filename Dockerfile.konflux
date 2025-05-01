@@ -6,6 +6,10 @@ FROM registry.access.redhat.com/ubi9/nodejs-20@sha256:2bb3667b3fa41061d343ca8209
 ## Build args to be used at this step
 ARG SOURCE_CODE
 
+# Explicitly declare the ARG for TARGETARCH
+# This is necessary to ensure that the correct architecture is used in the build stage
+ARG TARGETARCH
+
 WORKDIR /usr/src/app
 
 ## Copying in source code
@@ -16,7 +20,22 @@ USER default
 
 RUN npm cache clean --force
 
-RUN npm ci
+# Explicitly install the required esbuild binary for the target platform
+# This is necessary because the esbuild binary is not included in the node_modules
+# Check https://github.com/evanw/esbuild/blob/main/npm/esbuild/package.json for updates
+ARG ESBUILD_VERSION=0.25.3
+RUN \
+  case ${TARGETARCH} in \
+    "amd64")   ESBUILD_PKG="@esbuild/linux-x64@${ESBUILD_VERSION}" ;; \
+    "arm64")   ESBUILD_PKG="@esbuild/linux-arm64@${ESBUILD_VERSION}" ;; \
+    "ppc64le") ESBUILD_PKG="@esbuild/linux-ppc64le@${ESBUILD_VERSION}" ;; \
+    "s390x")   ESBUILD_PKG="@esbuild/linux-s390x@${ESBUILD_VERSION}" ;; \
+    *) echo "Unsupported architecture: ${TARGETARCH}" && exit 1 ;; \
+  esac \
+  && echo "Installing ${ESBUILD_PKG} for ${TARGETARCH}" \
+  && npm ci --no-save ${ESBUILD_PKG}
+
+RUN npm ci --omit=optional
 
 # Set Red Hat Openshift AI logo and links
 ENV ODH_LOGO=../images/rhoai-logo.svg
