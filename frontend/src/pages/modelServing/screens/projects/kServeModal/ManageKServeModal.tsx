@@ -1,6 +1,13 @@
 import * as React from 'react';
-import { Form, FormSection, Spinner } from '@patternfly/react-core';
-import { Modal } from '@patternfly/react-core/deprecated';
+import {
+  Form,
+  FormSection,
+  Spinner,
+  Modal,
+  ModalBody,
+  ModalHeader,
+  ModalFooter,
+} from '@patternfly/react-core';
 import { EitherOrNone } from '@openshift/dynamic-plugin-sdk';
 import {
   getCreateInferenceServiceLabels,
@@ -342,13 +349,148 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
   };
 
   return (
-    <Modal
-      title={editInfo ? 'Edit model' : 'Deploy model'}
-      description="Configure properties for deploying your model"
-      variant="medium"
-      isOpen
-      onClose={() => onBeforeClose(false)}
-      footer={
+    <Modal variant="medium" isOpen onClose={() => onBeforeClose(false)}>
+      <ModalHeader
+        title={editInfo ? 'Edit model' : 'Deploy model'}
+        description="Configure properties for deploying your model"
+      />
+      <ModalBody>
+        {!isAuthAvailable && alertVisible && !isRawAvailable && (
+          <NoAuthAlert onClose={() => setAlertVisible(false)} />
+        )}
+        <Form
+          onSubmit={(e) => {
+            e.preventDefault();
+            submit();
+          }}
+        >
+          <FormSection title="Model deployment">
+            {projectSection || (
+              <ProjectSection
+                projectName={
+                  (projectContext?.currentProject &&
+                    getDisplayNameFromK8sResource(projectContext.currentProject)) ||
+                  editInfo?.inferenceServiceEditInfo?.metadata.namespace ||
+                  ''
+                }
+              />
+            )}
+            {!hideForm && isLoading && <Spinner data-testid="spinner" />}
+            {!hideForm && !isLoading && (
+              <>
+                <K8sNameDescriptionField
+                  data={kServeNameDesc}
+                  onDataChange={setKserveNameDesc}
+                  dataTestId="inference-service"
+                  nameLabel="Model deployment name"
+                  nameHelperText="This is the name of the inference service created when the model is deployed"
+                  hideDescription
+                />
+                <ServingRuntimeTemplateSection
+                  data={createDataServingRuntime}
+                  onConfigureParamsClick={
+                    servingRuntimeParamsEnabled
+                      ? () =>
+                          requestAnimationFrame(() => {
+                            servingRuntimeArgsInputRef.current?.focus();
+                          })
+                      : undefined
+                  }
+                  setData={setCreateDataServingRuntime}
+                  templates={servingRuntimeTemplates || []}
+                  projectSpecificTemplates={projectTemplates}
+                  isEditing={!!editInfo}
+                  compatibleIdentifiers={profileIdentifiers}
+                  resetModelFormat={() => setCreateDataInferenceService('format', { name: '' })}
+                />
+                <InferenceServiceFrameworkSection
+                  data={createDataInferenceService}
+                  setData={setCreateDataInferenceService}
+                  servingRuntimeName={servingRuntimeSelected?.metadata.name}
+                  modelContext={servingRuntimeSelected?.spec.supportedModelFormats}
+                  registeredModelFormat={modelDeployPrefillInfo?.modelFormat}
+                />
+                {isRawAvailable && isServerlessAvailable && (
+                  <KServeDeploymentModeDropdown
+                    isRaw={!!createDataInferenceService.isKServeRawDeployment}
+                    setIsRaw={(isRaw) =>
+                      setCreateDataInferenceService('isKServeRawDeployment', isRaw)
+                    }
+                    isDisabled={!!editInfo}
+                  />
+                )}
+                {!isAuthAvailable && alertVisible && isRawAvailable && (
+                  <NoAuthAlert onClose={() => setAlertVisible(false)} />
+                )}
+                <KServeAutoscalerReplicaSection
+                  data={createDataInferenceService}
+                  setData={setCreateDataInferenceService}
+                  infoContent="Consider network traffic and failover scenarios when specifying the number of model
+                server replicas."
+                />
+                <ServingRuntimeSizeSection
+                  podSpecOptionState={podSpecOptionsState}
+                  projectName={namespace}
+                  servingRuntimeSelected={servingRuntimeSelected}
+                  infoContent="Select a server size that will accommodate your largest model. See the product documentation for more information."
+                  isEditing={!!editInfo}
+                />
+                <AuthServingRuntimeSection
+                  data={createDataInferenceService}
+                  setData={setCreateDataInferenceService}
+                  allowCreate={allowCreate}
+                  publicRoute
+                  showModelRoute={isAuthAvailable}
+                />
+              </>
+            )}
+          </FormSection>
+          {!hideForm && !isLoading && (
+            <FormSection title="Source model location" id="model-location">
+              <ConnectionSection
+                existingUriOption={
+                  existingUriOption ||
+                  editInfo?.inferenceServiceEditInfo?.spec.predictor.model?.storageUri
+                }
+                data={createDataInferenceService}
+                setData={setCreateDataInferenceService}
+                initialNewConnectionType={initialNewConnectionType}
+                initialNewConnectionValues={initialNewConnectionValues}
+                loaded={
+                  modelDeployPrefillInfo
+                    ? !!projectContext?.connections && connectionsLoaded
+                    : !!projectContext?.connections || connectionsLoaded
+                }
+                loadError={connectionsLoadError}
+                connection={connection}
+                setConnection={setConnection}
+                setIsConnectionValid={setIsConnectionValid}
+                connections={connections}
+              />
+            </FormSection>
+          )}
+          {servingRuntimeParamsEnabled && !isLoading && (
+            <FormSection
+              title="Configuration parameters"
+              id="configuration-params"
+              data-testid="configuration-params"
+            >
+              <ServingRuntimeArgsSection
+                predefinedArgs={getKServeContainerArgs(servingRuntimeSelected)}
+                data={createDataInferenceService}
+                setData={setCreateDataInferenceService}
+                inputRef={servingRuntimeArgsInputRef}
+              />
+              <EnvironmentVariablesSection
+                predefinedVars={getKServeContainerEnvVarStrs(servingRuntimeSelected)}
+                data={createDataInferenceService}
+                setData={setCreateDataInferenceService}
+              />
+            </FormSection>
+          )}
+        </Form>
+      </ModalBody>
+      <ModalFooter>
         <DashboardModalFooter
           submitLabel={editInfo ? 'Redeploy' : 'Deploy'}
           onSubmit={submit}
@@ -357,143 +499,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
           error={error}
           alertTitle="Error creating model server"
         />
-      }
-      showClose
-    >
-      {!isAuthAvailable && alertVisible && !isRawAvailable && (
-        <NoAuthAlert onClose={() => setAlertVisible(false)} />
-      )}
-      <Form
-        onSubmit={(e) => {
-          e.preventDefault();
-          submit();
-        }}
-      >
-        <FormSection title="Model deployment">
-          {projectSection || (
-            <ProjectSection
-              projectName={
-                (projectContext?.currentProject &&
-                  getDisplayNameFromK8sResource(projectContext.currentProject)) ||
-                editInfo?.inferenceServiceEditInfo?.metadata.namespace ||
-                ''
-              }
-            />
-          )}
-          {!hideForm && isLoading && <Spinner data-testid="spinner" />}
-          {!hideForm && !isLoading && (
-            <>
-              <K8sNameDescriptionField
-                data={kServeNameDesc}
-                onDataChange={setKserveNameDesc}
-                dataTestId="inference-service"
-                nameLabel="Model deployment name"
-                nameHelperText="This is the name of the inference service created when the model is deployed"
-                hideDescription
-              />
-              <ServingRuntimeTemplateSection
-                data={createDataServingRuntime}
-                onConfigureParamsClick={
-                  servingRuntimeParamsEnabled
-                    ? () =>
-                        requestAnimationFrame(() => {
-                          servingRuntimeArgsInputRef.current?.focus();
-                        })
-                    : undefined
-                }
-                setData={setCreateDataServingRuntime}
-                templates={servingRuntimeTemplates || []}
-                projectSpecificTemplates={projectTemplates}
-                isEditing={!!editInfo}
-                compatibleIdentifiers={profileIdentifiers}
-                resetModelFormat={() => setCreateDataInferenceService('format', { name: '' })}
-              />
-              <InferenceServiceFrameworkSection
-                data={createDataInferenceService}
-                setData={setCreateDataInferenceService}
-                servingRuntimeName={servingRuntimeSelected?.metadata.name}
-                modelContext={servingRuntimeSelected?.spec.supportedModelFormats}
-                registeredModelFormat={modelDeployPrefillInfo?.modelFormat}
-              />
-              {isRawAvailable && isServerlessAvailable && (
-                <KServeDeploymentModeDropdown
-                  isRaw={!!createDataInferenceService.isKServeRawDeployment}
-                  setIsRaw={(isRaw) =>
-                    setCreateDataInferenceService('isKServeRawDeployment', isRaw)
-                  }
-                  isDisabled={!!editInfo}
-                />
-              )}
-              {!isAuthAvailable && alertVisible && isRawAvailable && (
-                <NoAuthAlert onClose={() => setAlertVisible(false)} />
-              )}
-              <KServeAutoscalerReplicaSection
-                data={createDataInferenceService}
-                setData={setCreateDataInferenceService}
-                infoContent="Consider network traffic and failover scenarios when specifying the number of model
-                server replicas."
-              />
-              <ServingRuntimeSizeSection
-                podSpecOptionState={podSpecOptionsState}
-                projectName={namespace}
-                servingRuntimeSelected={servingRuntimeSelected}
-                infoContent="Select a server size that will accommodate your largest model. See the product documentation for more information."
-                isEditing={!!editInfo}
-              />
-              <AuthServingRuntimeSection
-                data={createDataInferenceService}
-                setData={setCreateDataInferenceService}
-                allowCreate={allowCreate}
-                publicRoute
-                showModelRoute={isAuthAvailable}
-              />
-            </>
-          )}
-        </FormSection>
-        {!hideForm && !isLoading && (
-          <FormSection title="Source model location" id="model-location">
-            <ConnectionSection
-              existingUriOption={
-                existingUriOption ||
-                editInfo?.inferenceServiceEditInfo?.spec.predictor.model?.storageUri
-              }
-              data={createDataInferenceService}
-              setData={setCreateDataInferenceService}
-              initialNewConnectionType={initialNewConnectionType}
-              initialNewConnectionValues={initialNewConnectionValues}
-              loaded={
-                modelDeployPrefillInfo
-                  ? !!projectContext?.connections && connectionsLoaded
-                  : !!projectContext?.connections || connectionsLoaded
-              }
-              loadError={connectionsLoadError}
-              connection={connection}
-              setConnection={setConnection}
-              setIsConnectionValid={setIsConnectionValid}
-              connections={connections}
-            />
-          </FormSection>
-        )}
-        {servingRuntimeParamsEnabled && !isLoading && (
-          <FormSection
-            title="Configuration parameters"
-            id="configuration-params"
-            data-testid="configuration-params"
-          >
-            <ServingRuntimeArgsSection
-              predefinedArgs={getKServeContainerArgs(servingRuntimeSelected)}
-              data={createDataInferenceService}
-              setData={setCreateDataInferenceService}
-              inputRef={servingRuntimeArgsInputRef}
-            />
-            <EnvironmentVariablesSection
-              predefinedVars={getKServeContainerEnvVarStrs(servingRuntimeSelected)}
-              data={createDataInferenceService}
-              setData={setCreateDataInferenceService}
-            />
-          </FormSection>
-        )}
-      </Form>
+      </ModalFooter>
     </Modal>
   );
 };
