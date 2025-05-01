@@ -18,7 +18,7 @@ import TruncatedText from '~/components/TruncatedText';
 
 import './SimpleSelect.scss';
 
-export type SimpleSelectOption = {
+type SimpleSelectOption = {
   key: string;
   label: string;
   description?: React.ReactNode;

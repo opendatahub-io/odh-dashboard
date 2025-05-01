@@ -14,10 +14,7 @@ import {
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { AcceleratorProfileKind } from '~/k8sTypes';
-import SimpleSelect, {
-  SimpleSelectOption,
-  SimpleSelectOptionStrict,
-} from '~/components/SimpleSelect';
+import SimpleSelect, { SimpleSelectOptionStrict } from '~/components/SimpleSelect';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import { AcceleratorProfileFormData } from '~/utilities/useAcceleratorProfileFormState';
 import { AcceleratorProfileState } from '~/utilities/useReadAcceleratorState';
@@ -55,7 +52,7 @@ const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps
     (ac) => ac.spec.enabled,
   );
 
-  const formatOption = (cr: AcceleratorProfileKind): SimpleSelectOption => {
+  const formatOption = (cr: AcceleratorProfileKind): SimpleSelectOptionStrict => {
     const displayName = `${cr.spec.displayName}${!cr.spec.enabled ? ' (disabled)' : ''}`;
 
     return {
