@@ -9,7 +9,7 @@ import {
   retryableBefore,
   wasSetupPerformed,
 } from '~/__tests__/cypress/cypress/utils/retryableHooks';
-import { getNotebookImageNames } from '~/__tests__/cypress/cypress/utils/oc_commands/imageStreams';
+import { getNotebookImageNames, type NotebookImageInfo } from '~/__tests__/cypress/cypress/utils/oc_commands/imageStreams';
 import { generateTestUUID } from '~/__tests__/cypress/cypress/utils/uuidGenerator';
 
 const applicationNamespace = Cypress.env('APPLICATIONS_NAMESPACE');
@@ -29,9 +29,6 @@ describe('Workbenches - image/version tests', () => {
         }
         cy.log(`Loaded project name: ${projectName}`);
         return createCleanProject(projectName);
-      })
-      .then(() => {
-        cy.log(`Project ${projectName} confirmed to be created and verified successfully`);
       });
   });
 
@@ -46,7 +43,7 @@ describe('Workbenches - image/version tests', () => {
 
   it(
     'Verifies that workbench images have an additional dropdown which supports N/N-1 image versions.',
-    { tags: ['@Sanity', '@SanitySet2', '@ODS-2131', '@Dashboard', '@Workbenches'] },
+    { tags: ['@Sanity', '@SanitySet3', '@ODS-2131', '@Dashboard', '@Workbenches'] },
     () => {
       const workbenchName = projectName.replace('dsp-', '');
 
@@ -62,31 +59,60 @@ describe('Workbenches - image/version tests', () => {
       cy.step(`Create workbench ${workbenchName}`);
       workbenchPage.findCreateButton().click();
 
-      // Get notebook images and versions
-      getNotebookImageNames(applicationNamespace).then((imageInfos) => {
-        imageInfos.forEach((info) => {
-          cy.step(`Verify notebook image: ${info.image}`);
-          createSpawnerPage.findNotebookImage(info.image).click();
-
-          if (info.versions.length > 1) {
-            cy.step(`Verify versions for image: ${info.image}`);
-            cy.get('[data-testid="workbench-image-version-selection"]').should('exist');
-
-            info.versions.forEach((version) => {
-              cy.step(`Verify version: ${version} for image: ${info.image}`);
-              createSpawnerPage.findNotebookVersion(version);
-
-              // Verify that the selected version is displayed in the toggle button
-              cy.get(
-                '[data-testid="workbench-image-version-selection"] .pf-v6-c-menu-toggle__text',
-              ).should('contain', version);
-            });
-          } else {
-            cy.log(
-              `Skipping version verification for ${info.image} as it has only one or no versions.`,
-            );
-            cy.get('[data-testid="workbench-image-version-selection"]').should('not.exist');
+      // Get notebook images and verify them
+      cy.wrap(null).then(() => {
+        return getNotebookImageNames(applicationNamespace).then((imageInfos) => {
+          if (!imageInfos || imageInfos.length === 0) {
+            throw new Error('No notebook images found for verification');
           }
+
+          cy.log(`Verifying ${imageInfos.length} notebook images`);
+          
+          // Chain the image verifications
+          const verifyImages = (images: NotebookImageInfo[], index = 0): Cypress.Chainable<undefined> => {
+            if (index >= images.length) {
+              return cy.wrap(undefined);
+            }
+
+            const info = images[index];
+            return cy
+              .step(`Verify notebook image: ${info.image}`)
+              .then(() => createSpawnerPage.findNotebookImage(info.image).click())
+              .then(() => {
+                if (info.versions.length > 1) {
+                  return cy
+                    .step(`Verify versions for image: ${info.image}`)
+                    .then(() => cy.get('[data-testid="workbench-image-version-selection"]').should('exist'))
+                    .then(() => {
+                      // Chain the version verifications
+                      const verifyVersions = (versions: string[], vIndex = 0): Cypress.Chainable<undefined> => {
+                        if (vIndex >= versions.length) {
+                          return cy.wrap(undefined);
+                        }
+
+                        const version = versions[vIndex];
+                        return cy
+                          .step(`Verify version: ${version} for image: ${info.image}`)
+                          .then(() => createSpawnerPage.findNotebookVersion(version))
+                          .then(() =>
+                            cy
+                              .get('[data-testid="workbench-image-version-selection"] .pf-v6-c-menu-toggle__text')
+                              .should('contain', version),
+                          )
+                          .then(() => verifyVersions(versions, vIndex + 1));
+                      };
+
+                      return verifyVersions(info.versions);
+                    });
+                } else {
+                  cy.log(`Skipping version verification for ${info.image} as it has only one or no versions.`);
+                  return cy.get('[data-testid="workbench-image-version-selection"]').should('not.exist');
+                }
+              })
+              .then(() => verifyImages(images, index + 1));
+          };
+
+          return verifyImages(imageInfos);
         });
       });
     },
