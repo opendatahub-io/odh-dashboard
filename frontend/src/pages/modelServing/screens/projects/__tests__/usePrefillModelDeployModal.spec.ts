@@ -39,6 +39,10 @@ const mockUseConnections = jest.mocked(useConnections);
 const mockuseWatchConnectionTypes = jest.mocked(useWatchConnectionTypes);
 
 describe('usePrefillModelDeployModal', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   it('when no storage filed exist', () => {
     const mockRegisteredModelDeployInfo: ModelDeployPrefillInfo = {
       modelName: 'test-model',
@@ -73,6 +77,42 @@ describe('usePrefillModelDeployModal', () => {
     });
 
     expect(mockSetCreateData.mock.calls).toEqual([]);
+  });
+
+  it('should only prefill once even if dependencies change', () => {
+    const mockRegisteredModelDeployInfo: ModelDeployPrefillInfo = {
+      modelName: 'test-model',
+      modelArtifactUri: 's3://test/test?endpoint=test&defaultRegion=test',
+      initialConnectionName: 'test-key',
+    };
+
+    mockUseConnections.mockReturnValue([[mockConnection({})], true, undefined, jest.fn()]);
+    mockuseWatchConnectionTypes.mockReturnValue([
+      [mockConnectionTypeConfigMapObj({})],
+      true,
+      undefined,
+      jest.fn(),
+    ]);
+
+    const { rerender } = testHook(usePrefillModelDeployModal)(
+      mockProjectContext,
+      data,
+      mockSetCreateData,
+      mockRegisteredModelDeployInfo,
+    );
+
+    expect(mockSetCreateData).toHaveBeenCalledTimes(2);
+    mockSetCreateData.mockClear();
+
+    mockUseConnections.mockReturnValue([
+      [mockConnection({}), mockConnection({})],
+      true,
+      undefined,
+      jest.fn(),
+    ]);
+
+    rerender(mockProjectContext, data, mockSetCreateData, mockRegisteredModelDeployInfo);
+    expect(mockSetCreateData).not.toHaveBeenCalled();
   });
 
   describe('S3 -  connection', () => {
@@ -170,7 +210,7 @@ describe('usePrefillModelDeployModal', () => {
             alert: {
               message:
                 'The selected project does not have a connection that matches the model location. You can create a matching connection by using the data in the autopopulated fields, or edit the fields to create a different connection. Alternatively, click Existing connection to select an existing non-matching connection.',
-              title: 'We’ve populated the details of a new connection for you.',
+              title: "We've populated the details of a new connection for you.",
               type: 'info',
             },
             awsData: [
@@ -406,7 +446,7 @@ describe('usePrefillModelDeployModal', () => {
             alert: {
               message:
                 'The selected project does not have a connection that matches the model location. You can create a matching connection by using the data in the autopopulated fields, or edit the fields to create a different connection. Alternatively, click Existing connection to select an existing non-matching connection.',
-              title: 'We’ve populated the details of a new connection for you.',
+              title: "We've populated the details of a new connection for you.",
               type: 'info',
             },
             awsData: [
@@ -608,7 +648,7 @@ describe('usePrefillModelDeployModal', () => {
             alert: {
               message:
                 'The selected project does not have a connection that matches the model location. You can create a matching connection by using the data in the autopopulated fields, or edit the fields to create a different connection. Alternatively, click Existing connection to select an existing non-matching connection.',
-              title: 'We’ve populated the details of a new connection for you.',
+              title: "We've populated the details of a new connection for you.",
               type: 'info',
             },
             awsData: [
