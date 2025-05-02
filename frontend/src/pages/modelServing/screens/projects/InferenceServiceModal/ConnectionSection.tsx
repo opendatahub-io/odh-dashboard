@@ -369,6 +369,7 @@ export const ConnectionSection: React.FC<Props> = ({
               setData('storage', {
                 ...data.storage,
                 type: InferenceServiceStorageType.NEW_STORAGE,
+                dataConnection: '',
                 uri: undefined,
                 alert: undefined,
               });
