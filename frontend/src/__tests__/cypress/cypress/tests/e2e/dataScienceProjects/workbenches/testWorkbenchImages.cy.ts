@@ -9,7 +9,10 @@ import {
   retryableBefore,
   wasSetupPerformed,
 } from '~/__tests__/cypress/cypress/utils/retryableHooks';
-import { getNotebookImageNames, type NotebookImageInfo } from '~/__tests__/cypress/cypress/utils/oc_commands/imageStreams';
+import {
+  getNotebookImageNames,
+  type NotebookImageInfo,
+} from '~/__tests__/cypress/cypress/utils/oc_commands/imageStreams';
 import { generateTestUUID } from '~/__tests__/cypress/cypress/utils/uuidGenerator';
 
 const applicationNamespace = Cypress.env('APPLICATIONS_NAMESPACE');
@@ -20,8 +23,8 @@ describe('Workbenches - image/version tests', () => {
 
   // Setup: Load test data and ensure clean state
   retryableBefore(() => {
-    return loadWBImagesFixture('e2e/dataScienceProjects/testWorkbenchImages.yaml')
-      .then((fixtureData: WBImagesTestData) => {
+    return loadWBImagesFixture('e2e/dataScienceProjects/testWorkbenchImages.yaml').then(
+      (fixtureData: WBImagesTestData) => {
         projectName = `${fixtureData.wbImagesTestNamespace}-${uuid}`;
 
         if (!projectName) {
@@ -29,7 +32,8 @@ describe('Workbenches - image/version tests', () => {
         }
         cy.log(`Loaded project name: ${projectName}`);
         return createCleanProject(projectName);
-      });
+      },
+    );
   });
 
   after(() => {
@@ -67,9 +71,12 @@ describe('Workbenches - image/version tests', () => {
           }
 
           cy.log(`Verifying ${imageInfos.length} notebook images`);
-          
+
           // Chain the image verifications
-          const verifyImages = (images: NotebookImageInfo[], index = 0): Cypress.Chainable<undefined> => {
+          const verifyImages = (
+            images: NotebookImageInfo[],
+            index = 0,
+          ): Cypress.Chainable<undefined> => {
             if (index >= images.length) {
               return cy.wrap(undefined);
             }
@@ -82,10 +89,15 @@ describe('Workbenches - image/version tests', () => {
                 if (info.versions.length > 1) {
                   return cy
                     .step(`Verify versions for image: ${info.image}`)
-                    .then(() => cy.get('[data-testid="workbench-image-version-selection"]').should('exist'))
+                    .then(() =>
+                      cy.get('[data-testid="workbench-image-version-selection"]').should('exist'),
+                    )
                     .then(() => {
                       // Chain the version verifications
-                      const verifyVersions = (versions: string[], vIndex = 0): Cypress.Chainable<undefined> => {
+                      const verifyVersions = (
+                        versions: string[],
+                        vIndex = 0,
+                      ): Cypress.Chainable<undefined> => {
                         if (vIndex >= versions.length) {
                           return cy.wrap(undefined);
                         }
@@ -96,7 +108,9 @@ describe('Workbenches - image/version tests', () => {
                           .then(() => createSpawnerPage.findNotebookVersion(version))
                           .then(() =>
                             cy
-                              .get('[data-testid="workbench-image-version-selection"] .pf-v6-c-menu-toggle__text')
+                              .get(
+                                '[data-testid="workbench-image-version-selection"] .pf-v6-c-menu-toggle__text',
+                              )
                               .should('contain', version),
                           )
                           .then(() => verifyVersions(versions, vIndex + 1));
@@ -104,10 +118,13 @@ describe('Workbenches - image/version tests', () => {
 
                       return verifyVersions(info.versions);
                     });
-                } else {
-                  cy.log(`Skipping version verification for ${info.image} as it has only one or no versions.`);
-                  return cy.get('[data-testid="workbench-image-version-selection"]').should('not.exist');
                 }
+                cy.log(
+                  `Skipping version verification for ${info.image} as it has only one or no versions.`,
+                );
+                return cy
+                  .get('[data-testid="workbench-image-version-selection"]')
+                  .should('not.exist');
               })
               .then(() => verifyImages(images, index + 1));
           };

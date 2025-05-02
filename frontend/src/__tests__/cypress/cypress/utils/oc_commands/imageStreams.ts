@@ -26,13 +26,18 @@ export function getNotebookImageNames(namespace: string): Cypress.Chainable<Note
 
           imageStreams.items.forEach((item: any) => {
             if (item.metadata?.labels?.['opendatahub.io/notebook-image'] === 'true') {
-              const versions = item.spec?.tags
-                ?.filter((tag: any) => tag.annotations?.['opendatahub.io/image-tag-outdated'] !== 'true')
-                ?.map((tag: any) => tag.name) || [];
+              const versions =
+                item.spec?.tags
+                  ?.filter(
+                    (tag: any) => tag.annotations?.['opendatahub.io/image-tag-outdated'] !== 'true',
+                  )
+                  ?.map((tag: any) => tag.name) || [];
               notebookImages.push({
                 image: item.metadata.name,
                 name: item.metadata.name,
-                versions: versions.sort((a: string, b: string) => b.localeCompare(a, undefined, { numeric: true })),
+                versions: versions.sort((a: string, b: string) =>
+                  b.localeCompare(a, undefined, { numeric: true }),
+                ),
               });
             }
           });

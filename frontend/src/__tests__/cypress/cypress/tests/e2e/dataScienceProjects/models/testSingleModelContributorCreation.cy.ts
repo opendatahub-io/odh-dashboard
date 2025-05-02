@@ -71,7 +71,9 @@ describe('Verify Model Creation and Validation using the UI', () => {
 
   it(
     'Verify that a Non Admin can Serve and Query a Model using the UI',
-    { tags: ['@Smoke', '@SmokeSet3', '@ODS-2552', '@Dashboard', '@Modelserving', '@NonConcurrent'] },
+    {
+      tags: ['@Smoke', '@SmokeSet3', '@ODS-2552', '@Dashboard', '@Modelserving', '@NonConcurrent'],
+    },
     () => {
       cy.log('Model Name:', modelName);
       // Authentication and navigation

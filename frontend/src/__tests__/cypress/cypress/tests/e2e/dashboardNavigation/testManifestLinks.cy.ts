@@ -35,7 +35,7 @@ describe('Verify that all the URLs referenced in the Manifest directory are oper
           'Verify that each filtered URL is accessible and that a 200 is returned - currently failing due to issues linked RHOAIENG-9235',
         );
         const results: Array<{ url: string; status: number }> = [];
-        
+
         filteredUrls.forEach((url) => {
           cy.request(url).then((response) => {
             const { status } = response;

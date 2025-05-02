@@ -52,7 +52,9 @@
     "cypress:server:build:coverage": "COVERAGE=true npm run cypress:server:build",
     "cypress:server": "serve ./public-cypress -p 9001 -s -L",
     "cypress:server:dev": "POLL_INTERVAL=9999999 FAST_POLL_INTERVAL=9999999 ODH_PORT=9001 WS_HOSTNAME=localhost:9002 npm run start:dev",
-    "cypress:format": "prettier --write src/__tests__/**/*.snap.json"
+    "cypress:format": "prettier --write src/__tests__/**/*.snap.json",
+    "test:cypress:e2e": "cd src/__tests__/cypress && npx cypress run --env grepTags=\"${CY_TEST_TAGS}\",skipTags=\"${CY_SKIP_TAGS}\" --browser chrome",
+    "test:cypress:e2e:open": "cd src/__tests__/cypress && npx cypress open --env grepTags=\"${CY_TEST_TAGS}\",skipTags=\"${CY_SKIP_TAGS}\""
   },
   "dependencies": {
     "@monaco-editor/react": "^4.6.0",
