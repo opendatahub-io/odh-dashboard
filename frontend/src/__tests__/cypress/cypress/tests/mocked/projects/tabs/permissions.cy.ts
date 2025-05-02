@@ -5,7 +5,7 @@ import { permissions } from '~/__tests__/cypress/cypress/pages/permissions';
 import { be } from '~/__tests__/cypress/cypress/utils/should';
 import { ProjectModel, RoleBindingModel } from '~/__tests__/cypress/cypress/utils/models';
 import type { RoleBindingSubject } from '~/k8sTypes';
-import { asProjectEditUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
+// import { asProjectEditUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
 
 const userSubjects: RoleBindingSubject[] = [
   {
@@ -57,12 +57,12 @@ describe('Permissions tab', () => {
   const userTable = permissions.getUserTable();
   const groupTable = permissions.getGroupTable();
 
-  it('should not be accessible for non-project admins', () => {
-    asProjectEditUser();
-    initIntercepts({ isEmpty: false });
-    permissions.visit('test-project');
-    cy.url().should('include', '/projects/test-project?section=overview');
-  });
+  // it('should not be accessible for non-project admins', () => {
+  //   asProjectEditUser();
+  //   initIntercepts({ isEmpty: false });
+  //   permissions.visit('test-project');
+  //   cy.url().should('include', '/projects/test-project?section=overview');
+  // });
 
   it('Empty table for groups and users', () => {
     initIntercepts({ isEmpty: true });

@@ -108,37 +108,80 @@ const setUserConfig = (userConfig: UserConfig = {}, isAllowed = true) => {
     },
   );
 
-  const PROJECT_ADMIN_RESOURCES = ['projects', 'rolebindings'];
-  const EDIT_VERBS = ['*', 'create', 'delete', 'deletecollection', 'update', 'patch'];
   cy.interceptK8s('POST', SelfSubjectAccessReviewModel, (req) => {
-    const { verb, group, resource, namespace } = req.body.spec.resourceAttributes;
+    const { resourceAttributes } = req.body.spec;
     req.reply(
       mockSelfSubjectAccessReview({
-        verb,
-        group,
-        resource,
-        namespace,
-        allowed:
-          // cluster admin can do everything
-          isClusterAdmin
-            ? true
-            : // self provisioner capabilities grant access to project creation
-            resource === 'projectrequests'
-            ? isSelfProvisioner
-            : // project admins
-            PROJECT_ADMIN_RESOURCES.includes(resource) && EDIT_VERBS.includes(verb)
-            ? isProjectAdmin
-            : isProductAdmin
-            ? // product admins are getting direct access to resources in the deployment namespace (but importantly, not other projects)
-              namespace === 'opendatahub'
-              ? true
-              : // product admins will be limited to listing resources
-                !EDIT_VERBS.includes(verb)
-            : // everyone else can perform any action within the non-deployment namespace
-              !!namespace && namespace !== 'opendatahub',
+        ...resourceAttributes,
+        allowed: evaluateAccess(resourceAttributes, {
+          isClusterAdmin,
+          isProductAdmin,
+          isProjectAdmin,
+          isSelfProvisioner,
+        }),
       }),
     );
   });
+
+  const evaluateAccess = (
+    resourceAttributes: {
+      verb: string;
+      group?: string;
+      resource: string;
+      namespace?: string;
+    },
+    config: UserConfig,
+  ): boolean => {
+    const { verb, resource, namespace } = resourceAttributes;
+    const {
+      isClusterAdmin: clusterAdmin,
+      isProductAdmin: productAdmin,
+      isProjectAdmin: projectAdmin,
+      isSelfProvisioner: selfProvisioner,
+    } = config;
+
+    const PROJECT_ADMIN_RESOURCES = ['projects', 'rolebindings'];
+    const EDIT_VERBS = ['*', 'create', 'delete', 'deletecollection', 'update', 'patch'];
+
+    if (clusterAdmin) {
+      Cypress.log({ message: 'Cluster admin can do everything' });
+      return true;
+    }
+
+    if (resource === 'projectrequests' && selfProvisioner) {
+      Cypress.log({ message: 'Self provisioner capabilities grant access to project creation' });
+      return true;
+    }
+
+    if (PROJECT_ADMIN_RESOURCES.includes(resource) && EDIT_VERBS.includes(verb)) {
+      if (projectAdmin) {
+        Cypress.log({ message: 'Project admins allowed edit on project resources' });
+        return true;
+      }
+      Cypress.log({ message: 'Project users not allowed to edit project resources' });
+      return false;
+    }
+
+    if (productAdmin && namespace === 'opendatahub') {
+      Cypress.log({
+        message:
+          'Product admins are getting direct access to resources in the deployment namespace (but importantly, not other projects)',
+      });
+      return true;
+    }
+
+    if (productAdmin && !EDIT_VERBS.includes(verb)) {
+      Cypress.log({ message: 'Product admins will be limited to listing resources' });
+      return true;
+    }
+
+    if (namespace) {
+      Cypress.log({ message: 'Everyone else can perform any action within' });
+      return true;
+    }
+
+    return false;
+  };
 
   // default intercepts for all users
   cy.interceptOdh('GET /api/config', mockDashboardConfig({}));
