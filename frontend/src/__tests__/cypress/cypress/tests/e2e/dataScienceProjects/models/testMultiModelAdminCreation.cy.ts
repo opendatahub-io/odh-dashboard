@@ -68,7 +68,15 @@ describe('Verify Admin Multi Model Creation and Validation using the UI', () => 
   it(
     'Verify that an Admin can Serve, Query a Multi Model using both the UI and External links',
     {
-      tags: ['@Smoke', '@SmokeSet3', '@ODS-2053', '@ODS-2054', '@Dashboard', '@Modelserving'],
+      tags: [
+        '@Smoke',
+        '@SmokeSet3',
+        '@ODS-2053',
+        '@ODS-2054',
+        '@Dashboard',
+        '@Modelserving',
+        '@NonConcurrent',
+      ],
     },
     () => {
       cy.log('Model Name:', modelName);
