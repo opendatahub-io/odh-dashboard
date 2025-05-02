@@ -1223,6 +1223,7 @@ export type DashboardCommonConfig = {
   disableNIMModelServing: boolean;
   disableAdminConnectionTypes: boolean;
   disableFineTuning: boolean;
+  disableModelServingExtension: boolean;
 };
 
 export type DashboardConfigKind = K8sResourceCommon & {

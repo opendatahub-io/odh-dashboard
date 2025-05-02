@@ -1,6 +1,8 @@
 import * as React from 'react';
 import { Breadcrumb, BreadcrumbItem, Flex, FlexItem, Truncate } from '@patternfly/react-core';
 import { Link, useSearchParams } from 'react-router-dom';
+import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
+import { isProjectDetailsTab } from '@odh-dashboard/plugin-core/extension-points';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import GenericHorizontalBar from '~/pages/projects/components/GenericHorizontalBar';
@@ -49,6 +51,12 @@ const ProjectDetails: React.FC = () => {
   const workbenchEnabled = useIsAreaAvailable(SupportedArea.WORKBENCHES).status;
 
   useCheckLogoutParams();
+
+  const [projectDetailsTabExtensions] = useResolvedExtensions(isProjectDetailsTab);
+  // TODO: render all details tab extensions instead of just modelServing
+  const ModelsProjectDetailsTab = projectDetailsTabExtensions.find(
+    (tab) => tab.properties.id === ProjectSectionID.MODEL_SERVER,
+  )?.properties.component.default;
 
   return (
     <ApplicationsPage
@@ -111,7 +119,11 @@ const ProjectDetails: React.FC = () => {
                   {
                     id: ProjectSectionID.MODEL_SERVER,
                     title: 'Models',
-                    component: <ModelServingPlatform />,
+                    component: ModelsProjectDetailsTab ? (
+                      <ModelsProjectDetailsTab />
+                    ) : (
+                      <ModelServingPlatform />
+                    ),
                   },
                 ]
               : []),
@@ -151,6 +163,7 @@ const ProjectDetails: React.FC = () => {
             pipelinesEnabled,
             projectSharingEnabled,
             workbenchEnabled,
+            ModelsProjectDetailsTab,
           ],
         )}
       />

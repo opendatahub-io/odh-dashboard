@@ -42,6 +42,7 @@ export const allFeatureFlags: string[] = Object.keys({
   disableNIMModelServing: false,
   disableAdminConnectionTypes: false,
   disableFineTuning: true,
+  disableModelServingExtension: true, // internal dev only
 } satisfies DashboardCommonConfig);
 
 export const SupportedAreasStateMap: SupportedAreasState = {
@@ -166,6 +167,10 @@ export const SupportedAreasStateMap: SupportedAreasState = {
       SupportedArea.MODEL_CATALOG,
       SupportedArea.MODEL_REGISTRY,
     ],
+  },
+  [SupportedArea.MODEL_SERVING_EXTENSION]: {
+    featureFlags: ['disableModelServingExtension'],
+    reliantAreas: [SupportedArea.MODEL_SERVING],
   },
 };
 
