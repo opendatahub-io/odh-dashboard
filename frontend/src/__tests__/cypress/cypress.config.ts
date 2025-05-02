@@ -151,7 +151,7 @@ export default defineConfig({
       // Apply retries only for tests in the "e2e" folder
       return {
         ...config,
-        retries: !env.CY_MOCK && !env.CY_RECORD ? { runMode: 0, openMode: 0 } : config.retries,
+        retries: !env.CY_MOCK && !env.CY_RECORD ? { runMode: 2, openMode: 0 } : config.retries,
       };
     },
   },
