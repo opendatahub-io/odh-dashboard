@@ -71,8 +71,8 @@ export enum SupportedArea {
   /* Model catalog areas */
   MODEL_CATALOG = 'model-catalog',
 
-  /* Extensions */
-  MODEL_SERVING_EXTENSION = 'model-serving-extension',
+  /* Plugins */
+  PLUGIN_MODEL_SERVING = 'plugin-model-serving',
 }
 
 /** Components deployed by the Operator. Part of the DSC Status. */

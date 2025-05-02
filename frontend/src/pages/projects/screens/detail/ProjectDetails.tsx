@@ -1,16 +1,13 @@
 import * as React from 'react';
 import { Breadcrumb, BreadcrumbItem, Flex, FlexItem, Truncate } from '@patternfly/react-core';
 import { Link, useSearchParams } from 'react-router-dom';
-import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
-import { isProjectDetailsTab } from '@odh-dashboard/plugin-core/extension-points';
+import { useModelServingTab } from '~/concepts/projects/projectDetails/useModelServingTab';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import GenericHorizontalBar from '~/pages/projects/components/GenericHorizontalBar';
 import ProjectSharing from '~/pages/projects/projectSharing/ProjectSharing';
 import ProjectSettingsPage from '~/pages/projects/projectSettings/ProjectSettingsPage';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import useModelServingEnabled from '~/pages/modelServing/useModelServingEnabled';
-import ModelServingPlatform from '~/pages/modelServing/screens/projects/ModelServingPlatform';
 import { ProjectObjectType, SectionType } from '~/concepts/design/utils';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
 import { AccessReviewResourceAttributes } from '~/k8sTypes';
@@ -41,7 +38,7 @@ const ProjectDetails: React.FC = () => {
   const biasMetricsAreaAvailable = useIsAreaAvailable(SupportedArea.BIAS_METRICS).status;
   const projectSharingEnabled = useIsAreaAvailable(SupportedArea.DS_PROJECTS_PERMISSIONS).status;
   const pipelinesEnabled = useIsAreaAvailable(SupportedArea.DS_PIPELINES).status;
-  const modelServingEnabled = useModelServingEnabled();
+  const modelServingTab = useModelServingTab();
   const [searchParams, setSearchParams] = useSearchParams();
   const state = searchParams.get('section');
   const [allowCreate, rbacLoaded] = useAccessReview({
@@ -51,12 +48,6 @@ const ProjectDetails: React.FC = () => {
   const workbenchEnabled = useIsAreaAvailable(SupportedArea.WORKBENCHES).status;
 
   useCheckLogoutParams();
-
-  const [projectDetailsTabExtensions] = useResolvedExtensions(isProjectDetailsTab);
-  // TODO: render all details tab extensions instead of just modelServing
-  const ModelsProjectDetailsTab = projectDetailsTabExtensions.find(
-    (tab) => tab.properties.id === ProjectSectionID.MODEL_SERVER,
-  )?.properties.component.default;
 
   return (
     <ApplicationsPage
@@ -114,19 +105,7 @@ const ProjectDetails: React.FC = () => {
                   },
                 ]
               : []),
-            ...(modelServingEnabled
-              ? [
-                  {
-                    id: ProjectSectionID.MODEL_SERVER,
-                    title: 'Models',
-                    component: ModelsProjectDetailsTab ? (
-                      <ModelsProjectDetailsTab />
-                    ) : (
-                      <ModelServingPlatform />
-                    ),
-                  },
-                ]
-              : []),
+            ...modelServingTab,
             {
               id: ProjectSectionID.CLUSTER_STORAGES,
               title: 'Cluster storage',
@@ -159,11 +138,10 @@ const ProjectDetails: React.FC = () => {
           [
             allowCreate,
             biasMetricsAreaAvailable,
-            modelServingEnabled,
             pipelinesEnabled,
             projectSharingEnabled,
             workbenchEnabled,
-            ModelsProjectDetailsTab,
+            modelServingTab,
           ],
         )}
       />

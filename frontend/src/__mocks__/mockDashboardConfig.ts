@@ -228,7 +228,7 @@ export const mockDashboardConfig = ({
       disableNIMModelServing,
       disableAdminConnectionTypes: false,
       disableFineTuning,
-      disableModelServingExtension: true,
+      disableModelServingPlugin: true,
     },
     notebookController: {
       enabled: !disableNotebookController,

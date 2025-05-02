@@ -9,7 +9,7 @@ const extensions: ProjectDetailsTab[] = [
       component: () => import('./components/ModelsProjectDetailsTab'),
     },
     flags: {
-      required: ['model-serving-extension'], // same value as SupportedArea.MODEL_SERVING_EXTENSION,
+      required: ['plugin-model-serving'], // same value as SupportedArea.PLUGIN_MODEL_SERVING,
     },
   },
 ];
