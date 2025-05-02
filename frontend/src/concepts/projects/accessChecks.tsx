@@ -50,5 +50,6 @@ export const useProjectPermissionsTabVisible = (
     shouldRunCheck,
   );
 
+// TODO: expand this out to meet future needs
 export const useProjectSettingsTabVisible = (): boolean =>
   useIsAreaAvailable(SupportedArea.BIAS_METRICS).status;

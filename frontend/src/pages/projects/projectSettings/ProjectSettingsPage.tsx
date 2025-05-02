@@ -7,6 +7,7 @@ import { useProjectSettingsTabVisible } from '~/concepts/projects/accessChecks';
 
 const ProjectSettingsPage = (): ReactElement => {
   const { currentProject } = React.useContext(ProjectDetailsContext);
+  const projectSettingsTabVisible = useProjectSettingsTabVisible();
 
   return (
     <PageSection
@@ -16,7 +17,7 @@ const ProjectSettingsPage = (): ReactElement => {
       id={ProjectSectionID.SETTINGS}
     >
       <Stack hasGutter>
-        {useProjectSettingsTabVisible() && (
+        {projectSettingsTabVisible && (
           <StackItem>
             <ModelBiasSettingsCard project={currentProject} />
           </StackItem>
