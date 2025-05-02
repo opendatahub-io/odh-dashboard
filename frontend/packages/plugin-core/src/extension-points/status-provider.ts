@@ -4,10 +4,15 @@ export type StatusReport = { status: 'info' | 'warning' | 'error'; message: stri
 
 export type StatusProviderHook = () => StatusReport | undefined;
 
+/**
+ * Provides a status report which can be referenced by various components.
+ */
 export type StatusProviderExtension = Extension<
   'app.status-provider',
   {
+    /** The status provider ID. */
     id: string;
+    /** The status provider hook. */
     statusProviderHook: CodeRef<StatusProviderHook>;
   }
 >;
