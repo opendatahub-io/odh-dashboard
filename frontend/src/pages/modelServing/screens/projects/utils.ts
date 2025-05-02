@@ -744,6 +744,5 @@ export function isCurrentServingPlatformEnabled(
     multi: 'modelMesh',
   } as const;
   const mappedKey = platformKeyMap[currentPlatform];
-  // mappedKey will be 'kServe' or 'modelMesh', both are always present in statuses
   return statuses[mappedKey].enabled;
 }
