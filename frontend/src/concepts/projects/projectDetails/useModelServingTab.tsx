@@ -1,5 +1,5 @@
 import React from 'react';
-import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
+import { LazyCodeRefComponent, useExtensions } from '@odh-dashboard/plugin-core';
 import { isProjectDetailsTab } from '@odh-dashboard/plugin-core/extension-points';
 import useModelServingEnabled from '~/pages/modelServing/useModelServingEnabled';
 import { SectionDefinition } from '~/pages/projects/components/GenericHorizontalBar';
@@ -9,18 +9,18 @@ import ModelServingPlatform from '~/pages/modelServing/screens/projects/ModelSer
 export const useModelServingTab = (): SectionDefinition[] => {
   const modelServingEnabled = useModelServingEnabled();
 
-  const [projectDetailsTabExtensions] = useResolvedExtensions(isProjectDetailsTab);
-  const ModelsProjectDetailsTab = projectDetailsTabExtensions.find(
+  const projectDetailsTabExtensions = useExtensions(isProjectDetailsTab);
+  const modelsProjectDetailsTab = projectDetailsTabExtensions.find(
     (tab) => tab.properties.id === ProjectSectionID.MODEL_SERVER,
-  )?.properties.component.default;
+  )?.properties.component;
 
   const tab: SectionDefinition[] = modelServingEnabled
     ? [
         {
           id: ProjectSectionID.MODEL_SERVER,
           title: 'Models',
-          component: ModelsProjectDetailsTab ? (
-            <ModelsProjectDetailsTab />
+          component: modelsProjectDetailsTab ? (
+            <LazyCodeRefComponent component={modelsProjectDetailsTab} />
           ) : (
             <ModelServingPlatform />
           ),

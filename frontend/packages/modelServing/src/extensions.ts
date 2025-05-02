@@ -1,4 +1,7 @@
 import type { ProjectDetailsTab } from '@odh-dashboard/plugin-core/extension-points';
+// Allow this import as it consists of types and enums only.
+// eslint-disable-next-line import/no-extraneous-dependencies
+import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
 
 const extensions: ProjectDetailsTab[] = [
   {
@@ -9,7 +12,7 @@ const extensions: ProjectDetailsTab[] = [
       component: () => import('./components/ModelsProjectDetailsTab'),
     },
     flags: {
-      required: ['plugin-model-serving'], // same value as SupportedArea.PLUGIN_MODEL_SERVING,
+      required: [SupportedArea.PLUGIN_MODEL_SERVING],
     },
   },
 ];
