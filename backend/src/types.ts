@@ -1295,6 +1295,7 @@ export type NIMAccountKind = K8sResourceCommon & {
       name: string;
     };
     conditions?: K8sCondition[];
+    lastAccountCheck?: string;
   };
 };
 
