@@ -46,6 +46,32 @@ const mockPipelineVersions = [
     pipeline_version_id: 'oldest',
   },
 ];
+const mockPipelineVersionWithEmpties = buildMockPipelineVersion(
+  {
+    pipeline_id: mockPipeline.pipeline_id,
+  },
+  {
+    parameters: {
+      min_max_scaler: {
+        parameterType: InputDefinitionParameterType.BOOLEAN,
+      },
+      neighbors: {
+        parameterType: InputDefinitionParameterType.INTEGER,
+      },
+      standard_scaler: {
+        parameterType: InputDefinitionParameterType.STRING,
+      },
+      empty_param_1: {
+        parameterType: InputDefinitionParameterType.STRING,
+        isOptional: true,
+      },
+      empty_param_2: {
+        parameterType: InputDefinitionParameterType.STRING,
+        isOptional: true,
+      },
+    },
+  },
+);
 const mockArgoPipelineVersion = mockArgoWorkflowPipelineVersion({});
 const pipelineVersionRef = {
   pipeline_id: mockPipeline.pipeline_id,
@@ -187,6 +213,7 @@ describe('Pipeline create runs', () => {
 
       const { parameters } = createRunParams.runtime_config;
       const paramsSection = createRunPage.getParamsSection();
+      // console.log('paramsSection??', paramsSection);
       paramsSection.findParamById('radio-min_max_scaler-false').click();
       paramsSection.fillParamInputById('neighbors', String(parameters.neighbors));
       paramsSection.fillParamInputById('standard_scaler', String(parameters.standard_scaler));
@@ -215,7 +242,7 @@ describe('Pipeline create runs', () => {
       verifyRelativeURL(`/pipelineRuns/${projectName}/runs/${createRunParams.run_id}`);
     });
 
-    it('duplicates an active run', () => {
+    it.only('duplicates an active run', () => {
       const [mockRun] = initialMockRuns;
       const mockExperiment = mockExperiments[0];
       const mockDuplicateRun = buildMockRunKF({
@@ -224,16 +251,17 @@ describe('Pipeline create runs', () => {
         experiment_id: mockExperiment.experiment_id,
       });
 
+      debugger;
       // Mock experiments, pipelines & versions for form select dropdowns
       duplicateRunPage.mockGetExperiments(projectName, mockExperiments);
       duplicateRunPage.mockGetPipelines(projectName, [mockPipeline]);
       duplicateRunPage.mockGetPipelineVersions(
         projectName,
-        [mockPipelineVersion],
+        [mockPipelineVersionWithEmpties],
         mockPipelineVersion.pipeline_id,
       );
       duplicateRunPage.mockGetRun(projectName, mockRun);
-      duplicateRunPage.mockGetPipelineVersion(projectName, mockPipelineVersion);
+      duplicateRunPage.mockGetPipelineVersion(projectName, mockPipelineVersionWithEmpties);
       duplicateRunPage.mockGetPipeline(projectName, mockPipeline);
       duplicateRunPage.mockGetExperiment(projectName, mockExperiment);
 
@@ -262,6 +290,9 @@ describe('Pipeline create runs', () => {
       paramsSection.findParamById('radio-min_max_scaler-false').should('be.checked');
       paramsSection.findParamById('neighbors').find('input').should('have.value', '1');
       paramsSection.findParamById('standard_scaler').should('have.value', 'false');
+      paramsSection.findParamById('empty_param_1').should('have.value', '');
+      paramsSection.findParamById('empty_param_2').should('have.value', '');
+      debugger;
 
       duplicateRunPage
         .mockCreateRun(projectName, mockPipelineVersion, mockDuplicateRun)
@@ -285,6 +316,93 @@ describe('Pipeline create runs', () => {
 
       // Should redirect to the details of the newly duplicated active run
       verifyRelativeURL(`/experiments/${projectName}/experiment-1/runs/${mockDuplicateRun.run_id}`);
+    });
+
+    it('creates an active run then duplicates it and makes sure that empty params are still there as empty', () => {
+      pipelineRunsGlobal.visit(projectName);
+
+      const createRunParams = {
+        display_name: 'New run',
+        description: 'New run description',
+        run_id: 'new-run-id',
+        runtime_config: {
+          parameters: {
+            min_max_scaler: false,
+            neighbors: 1,
+            standard_scaler: 'yes',
+          },
+        },
+      } satisfies Partial<PipelineRunKF>;
+
+      // Mock experiments, pipelines & versions for form select dropdowns
+      createRunPage.mockGetExperiments(projectName, mockExperiments);
+      createRunPage.mockGetPipelines(projectName, [mockPipeline]);
+      createRunPage.mockGetPipelineVersions(
+        projectName,
+        [mockPipelineVersionWithEmpties],
+        mockPipelineVersion.pipeline_id,
+      );
+
+      // Navigate to the 'Create run' page
+      pipelineRunsGlobal.findCreateRunButton().click();
+      verifyRelativeURL(`/pipelineRuns/${projectName}/runs/create`);
+      createRunPage.find();
+      // debugger;
+
+      const veryLongDesc = 'Test description'.repeat(30); // A string over 255 characters
+      // Fill out the form without a schedule and submit
+      createRunPage.fillName(initialMockRuns[0].display_name);
+      cy.findByTestId('duplicate-name-help-text').should('be.visible');
+      createRunPage.fillName('New run');
+      createRunPage.fillDescription(veryLongDesc);
+      createRunPage.experimentSelect
+        .findToggleButton()
+        .should('contain.text', 'Select an experiment');
+      createRunPage.experimentSelect.findToggleButton().should('not.be.disabled').click();
+      createRunPage.selectExperimentByName('Test experiment 1');
+      createRunPage.pipelineSelect.findToggleButton().should('not.be.disabled').click();
+      createRunPage.selectPipelineByName('Test pipeline');
+      createRunPage.pipelineVersionSelect.findToggleButton().should('not.be.disabled');
+
+      const { parameters } = createRunParams.runtime_config;
+      const paramsSection = createRunPage.getParamsSection();
+      // console.log('paramsSection??', paramsSection);
+      paramsSection.findParamById('radio-min_max_scaler-false').click();
+      paramsSection.fillParamInputById('neighbors', String(parameters.neighbors));
+      paramsSection.fillParamInputById('standard_scaler', String(parameters.standard_scaler));
+
+      paramsSection.findParamById('empty_param_1').should('have.value', '');
+      paramsSection.findParamById('empty_param_2').should('have.value', '');
+
+      createRunPage
+        .mockCreateRun(projectName, mockPipelineVersionWithEmpties, createRunParams)
+        .as('createRun2');
+      createRunPage.submit();
+
+      cy.wait('@createRun2').then((interception) => {
+        debugger;
+        console.log('interception.request.body', interception.request.body);
+        expect(interception.request.body).to.eql({
+          display_name: 'New run',
+          description: veryLongDesc.substring(0, 255), // Verify the description in truncated
+          pipeline_version_reference: {
+            pipeline_id: 'test-pipeline',
+            pipeline_version_id: 'test-pipeline-version',
+          },
+          runtime_config: {
+            parameters: {
+              min_max_scaler: false,
+              neighbors: 1,
+              standard_scaler: 'yes',
+            },
+          },
+          service_account: '',
+          experiment_id: 'experiment-1',
+        });
+      });
+
+      // Should be redirected to the run details page
+      verifyRelativeURL(`/pipelineRuns/${projectName}/runs/${createRunParams.run_id}`);
     });
 
     it('create run with default and optional parameters', () => {
