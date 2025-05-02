@@ -3,6 +3,8 @@ import type { NavExtension } from '@odh-dashboard/plugin-core/extension-points';
 // eslint-disable-next-line no-restricted-syntax
 import { SupportedArea } from '~/concepts/areas/types';
 
+const ADMIN_USER = 'ADMIN_USER';
+
 const extensions: NavExtension[] = [
   {
     type: 'app.navigation/href',
@@ -250,7 +252,7 @@ const extensions: NavExtension[] = [
   {
     type: 'app.navigation/href',
     flags: {
-      required: [SupportedArea.BYON, 'ADMIN_USER'],
+      required: [SupportedArea.BYON, ADMIN_USER],
     },
     properties: {
       id: 'settings-notebook-images',
@@ -263,7 +265,7 @@ const extensions: NavExtension[] = [
   {
     type: 'app.navigation/href',
     flags: {
-      required: [SupportedArea.CLUSTER_SETTINGS, 'ADMIN_USER'],
+      required: [SupportedArea.CLUSTER_SETTINGS, ADMIN_USER],
     },
     properties: {
       id: 'settings-cluster-settings',
@@ -276,7 +278,7 @@ const extensions: NavExtension[] = [
   {
     type: 'app.navigation/href',
     flags: {
-      required: [SupportedArea.ACCELERATOR_PROFILES, 'ADMIN_USER'],
+      required: [SupportedArea.ACCELERATOR_PROFILES, ADMIN_USER],
       disallowed: [SupportedArea.HARDWARE_PROFILES],
     },
     properties: {
@@ -310,7 +312,7 @@ const extensions: NavExtension[] = [
   {
     type: 'app.navigation/href',
     flags: {
-      required: [SupportedArea.CUSTOM_RUNTIMES, 'ADMIN_USER'],
+      required: [SupportedArea.CUSTOM_RUNTIMES, ADMIN_USER],
     },
     properties: {
       id: 'settings-custom-serving-runtimes',
@@ -324,8 +326,7 @@ const extensions: NavExtension[] = [
   {
     type: 'app.navigation/href',
     flags: {
-      // required: ['connection-types' /* SupportedArea.ADMIN_CONNECTION_TYPES */, 'ADMIN_USER'],
-      required: [SupportedArea.ADMIN_CONNECTION_TYPES, 'ADMIN_USER'],
+      required: [SupportedArea.ADMIN_CONNECTION_TYPES, ADMIN_USER],
     },
     properties: {
       id: 'settings-connection-types',
@@ -339,7 +340,7 @@ const extensions: NavExtension[] = [
   {
     type: 'app.navigation/href',
     flags: {
-      required: [SupportedArea.STORAGE_CLASSES, 'ADMIN_USER'],
+      required: [SupportedArea.STORAGE_CLASSES, ADMIN_USER],
     },
     properties: {
       id: 'settings-storage-classes',
@@ -353,7 +354,7 @@ const extensions: NavExtension[] = [
   {
     type: 'app.navigation/href',
     flags: {
-      required: [SupportedArea.MODEL_REGISTRY, 'ADMIN_USER'],
+      required: [SupportedArea.MODEL_REGISTRY, ADMIN_USER],
     },
     properties: {
       id: 'settings-model-registry',
