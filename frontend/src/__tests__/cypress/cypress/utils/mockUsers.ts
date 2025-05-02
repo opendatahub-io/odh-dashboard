@@ -58,7 +58,7 @@ export const getUserConfig = (): UserConfig => Cypress.env('USER_CONFIG');
 
 const setUserConfig = (userConfig: UserConfig = {}, isAllowed = true) => {
   Cypress.env('USER_CONFIG', userConfig);
-  const { isClusterAdmin, isProductAdmin, isProjectAdmin, isSelfProvisioner } = userConfig;
+  const { isClusterAdmin, isProductAdmin, isProjectAdmin } = userConfig;
 
   // return empty k8s resource list
   cy.intercept(
@@ -113,12 +113,7 @@ const setUserConfig = (userConfig: UserConfig = {}, isAllowed = true) => {
     req.reply(
       mockSelfSubjectAccessReview({
         ...resourceAttributes,
-        allowed: evaluateAccess(resourceAttributes, {
-          isClusterAdmin,
-          isProductAdmin,
-          isProjectAdmin,
-          isSelfProvisioner,
-        }),
+        allowed: evaluateAccess(resourceAttributes, userConfig),
       }),
     );
   });
@@ -148,6 +143,20 @@ const setUserConfig = (userConfig: UserConfig = {}, isAllowed = true) => {
       return true;
     }
 
+    if (productAdmin) {
+      if (namespace === 'opendatahub') {
+        Cypress.log({
+          message:
+            'Product admins are getting direct access to resources in the deployment namespace (but importantly, not other projects)',
+        });
+        return true;
+      }
+      if (!EDIT_VERBS.includes(verb)) {
+        Cypress.log({ message: 'Product admins will be limited to listing resources' });
+        return true;
+      }
+    }
+
     if (resource === 'projectrequests' && selfProvisioner) {
       Cypress.log({ message: 'Self provisioner capabilities grant access to project creation' });
       return true;
@@ -165,19 +174,6 @@ const setUserConfig = (userConfig: UserConfig = {}, isAllowed = true) => {
       }
       Cypress.log({ message: 'Project users not allowed to edit project resources' });
       return false;
-    }
-
-    if (productAdmin && namespace === 'opendatahub') {
-      Cypress.log({
-        message:
-          'Product admins are getting direct access to resources in the deployment namespace (but importantly, not other projects)',
-      });
-      return true;
-    }
-
-    if (productAdmin && !EDIT_VERBS.includes(verb)) {
-      Cypress.log({ message: 'Product admins will be limited to listing resources' });
-      return true;
     }
 
     if (namespace) {
