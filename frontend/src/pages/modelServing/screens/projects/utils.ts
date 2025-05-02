@@ -731,3 +731,19 @@ export const fetchInferenceServiceCount = async (namespace: string): Promise<num
     );
   }
 };
+
+export function isCurrentServingPlatformEnabled(
+  currentPlatform: ServingRuntimePlatform | undefined,
+  statuses: ServingPlatformStatuses,
+): boolean {
+  if (!currentPlatform) {
+    return false;
+  }
+  const platformKeyMap = {
+    single: 'kServe',
+    multi: 'modelMesh',
+  } as const;
+  const mappedKey = platformKeyMap[currentPlatform];
+  // mappedKey will be 'kServe' or 'modelMesh', both are always present in statuses
+  return statuses[mappedKey].enabled;
+}
