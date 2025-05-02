@@ -153,6 +153,11 @@ const setUserConfig = (userConfig: UserConfig = {}, isAllowed = true) => {
       return true;
     }
 
+    if (resource === 'rolebindings' && !projectAdmin) {
+      Cypress.log({ message: 'Users cannot access permissions tab' });
+      return false;
+    }
+
     if (PROJECT_ADMIN_RESOURCES.includes(resource) && EDIT_VERBS.includes(verb)) {
       if (projectAdmin) {
         Cypress.log({ message: 'Project admins allowed edit on project resources' });
