@@ -29,7 +29,9 @@ export const RunTypeSection: React.FC<RunTypeSectionProps> = ({ data, isDuplicat
       To create a schedule that executes recurring runs,{' '}
       <Link
         to={createRecurringRunRoute(namespace, experiment?.experiment_id)}
-        state={{ locationData: data }}
+        state={{
+          locationData: data,
+        }}
         data-testid="run-type-section-alert-link"
         replace
       >
@@ -46,7 +48,9 @@ export const RunTypeSection: React.FC<RunTypeSectionProps> = ({ data, isDuplicat
         To create a non-recurring run,{' '}
         <Link
           to={createRunRoute(namespace, experiment?.experiment_id)}
-          state={{ locationData: data }}
+          state={{
+            locationData: data,
+          }}
           data-testid="run-type-section-alert-link"
           replace
         >

@@ -143,6 +143,30 @@ export class CreateRunPage {
     return this.find().findByTestId('run-page-submit-button');
   }
 
+  findUseLatestVersionRadio(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('use-latest-version-radio');
+  }
+
+  findViewLatestVersionButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('view-latest-version-button');
+  }
+
+  findViewLatestVersionPopover(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('view-latest-version-popover');
+  }
+
+  findUseFixedVersionRadio(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('use-fixed-version-radio');
+  }
+
+  findPipelineNotSelectedAlert(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('pipeline-not-selected-alert');
+  }
+
+  findNoPipelineVersionsAvailableAlert(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('no-pipeline-versions-available-alert');
+  }
+
   getParamsSection(): ParamsSection {
     return new ParamsSection(() => cy.findByTestId('run-section-params'));
   }

@@ -74,7 +74,12 @@ const PipelineDetailsActions: React.FC<PipelineDetailsActionsProps> = ({
               key="create-run"
               onClick={() =>
                 navigate(createRunRoute(namespace), {
-                  state: { contextData: { pipeline, version: pipelineVersion } },
+                  state: {
+                    contextData: {
+                      pipeline,
+                      version: pipelineVersion,
+                    },
+                  },
                 })
               }
             >
@@ -90,7 +95,12 @@ const PipelineDetailsActions: React.FC<PipelineDetailsActionsProps> = ({
               key="create-schedule"
               onClick={() =>
                 navigate(createRecurringRunRoute(namespace), {
-                  state: { contextData: { pipeline, version: pipelineVersion } },
+                  state: {
+                    contextData: {
+                      pipeline,
+                      version: pipelineVersion,
+                    },
+                  },
                 })
               }
             >

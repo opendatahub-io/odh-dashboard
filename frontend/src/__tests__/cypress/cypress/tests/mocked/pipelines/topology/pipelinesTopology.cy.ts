@@ -388,7 +388,9 @@ describe('Pipeline topology', () => {
           .find('a')
           .click();
         verifyRelativeURL(
-          `/pipelines/${projectId}/${mockRecurringRun.pipeline_version_reference.pipeline_id}/${mockRecurringRun.pipeline_version_reference.pipeline_version_id}/view`,
+          `/pipelines/${projectId}/${
+            mockRecurringRun.pipeline_version_reference.pipeline_id
+          }/${mockRecurringRun.pipeline_version_reference.pipeline_version_id!}/view`,
         );
       });
     });
