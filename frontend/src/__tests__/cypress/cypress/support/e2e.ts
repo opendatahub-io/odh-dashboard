@@ -85,6 +85,9 @@ Cypress.suiteTestCount = {};
 Cypress.skippedSuites = new Set<string>();
 Cypress.testsExecuted = false;
 
+// Get global tests timeout from --env argument
+const timeoutSeconds = Cypress.env('CY_TEST_TIMEOUT_SECONDS');
+
 // Configure global settings
 chai.use(chaiSubset);
 webSocketsAddCommands();
@@ -160,14 +163,23 @@ function shouldSkipTest(testTags: string[]): boolean {
   const skipTags = Cypress.env('skipTags') ? Cypress.env('skipTags').split(' ') : [];
   const grepTags = Cypress.env('grepTags') ? Cypress.env('grepTags').split(' ') : [];
 
+  // If skip tags are provided and the test has any of them, skip it
   const shouldSkip =
     skipTags.length > 0 && skipTags.some((tag: string) => mappedTestTags.includes(tag));
+
+  // If grep tags are provided, the test must match at least one of them
+  // If no grep tags are provided, run all tests
   const shouldRun =
     grepTags.length === 0 ||
     grepTags.some((tag: string) => {
       const plainTag = tag.startsWith('@') ? tag.substring(1) : tag;
       return mappedTestTags.some((t: string) => t === tag || t === `@${plainTag}`);
     });
+
+  // If we have grep tags but no tests match them, we should skip all tests
+  if (grepTags.length > 0 && !shouldRun) {
+    return true;
+  }
 
   return shouldSkip || !shouldRun;
 }
@@ -245,12 +257,22 @@ Cypress.on('suite:start', (suite) => {
 // Global before hook
 before(() => {
   cy.intercept({ resourceType: /xhr|fetch/ }, { log: false });
+
+  if (timeoutSeconds) {
+    cy.task('log', `Setting tests timeout to: ${timeoutSeconds} seconds`);
+  }
 });
 
 // Enhanced beforeEach with suite-level control
 beforeEach(function beforeEachHook(this: Mocha.Context) {
   if (!this.currentTest) {
     return;
+  }
+
+  if (timeoutSeconds) {
+    this._testTimeoutTimer = setTimeout(() => {
+      throw new Error(`Test exceeded ${timeoutSeconds}s`);
+    }, Number(timeoutSeconds) * 1000);
   }
 
   const testTitle = this.currentTest.title;
@@ -260,7 +282,6 @@ beforeEach(function beforeEachHook(this: Mocha.Context) {
   // If the entire suite is marked as skipped, skip this test immediately
   if (suiteTitle && Cypress.skippedSuites.has(suiteTitle)) {
     this.skip();
-    return;
   }
 
   const testTags = Cypress.testTags[testTitle] ?? [];
@@ -341,3 +362,4 @@ after(() => {
     }
   });
 });
+
