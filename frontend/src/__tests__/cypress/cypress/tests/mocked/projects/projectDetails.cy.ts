@@ -41,7 +41,7 @@ import { NamespaceApplicationCase } from '~/pages/projects/types';
 import { mockNimServingRuntimeTemplate } from '~/__mocks__/mockNimResource';
 import { mockNimAccount } from '~/__mocks__/mockNimAccount';
 import { mockOdhApplication } from '~/__mocks__/mockOdhApplication';
-import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
+import type { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
 
 type HandlersProps = {
   isEmpty?: boolean;
