@@ -12,10 +12,8 @@ export const errorMsgList = (app: NIMAccountKind): string[] => {
     .map((condition) => condition.message);
 };
 
-export const apiKeyValidationTimestamp = (app: NIMAccountKind): string => {
-  const conditions = app?.status?.conditions || [];
-  const apiKeyCondition = conditions.find((condition) => condition.type === 'APIKeyValidation');
-  return apiKeyCondition?.lastTransitionTime || '';
+export const getLastAccountCheckTimestamp = (app: NIMAccountKind): string => {
+  return app?.status?.lastAccountCheck || '';
 };
 
 export const apiKeyValidationStatus = (app: NIMAccountKind): string => {

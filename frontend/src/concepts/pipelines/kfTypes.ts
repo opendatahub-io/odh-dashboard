@@ -396,7 +396,7 @@ export type PipelineKF = PipelineCoreResourceKF & {
 
 export type PipelineVersionReferenceKF = {
   pipeline_id: string;
-  pipeline_version_id: string;
+  pipeline_version_id?: string;
 };
 
 export enum RuntimeStateKF {
@@ -510,7 +510,7 @@ export type PipelineRunKF = PipelineCoreResourceKF & {
 
 export type PipelineVersionReference = {
   pipeline_id: string;
-  pipeline_version_id: string;
+  pipeline_version_id?: string;
 };
 
 export type PipelineRecurringRunKF = PipelineCoreResourceKF & {
