@@ -1,3 +1,4 @@
+import * as React from 'react';
 import { KnownLabels, SecretKind } from '~/k8sTypes';
 import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '~/concepts/k8s/utils';
 import { K8sNameDescriptionFieldData } from '~/concepts/k8s/K8sNameDescriptionField/types';
@@ -464,4 +465,44 @@ export const convertObjectStorageSecretData = (dataConnection: Connection): AWSD
     ...convertedData,
   ];
   return convertedSecret;
+};
+
+export const useTrimInputHandlers = (
+  value: string | undefined,
+  onChange?: (value: string) => void,
+): {
+  onBlur: (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
+  onPaste: (e: React.ClipboardEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
+} => {
+  const onBlur = React.useCallback(
+    (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      const trimmed = e.currentTarget.value.trim();
+      if (trimmed !== value && onChange) {
+        // const input = e.currentTarget;
+        // input.value = trimmed;
+        // input.dispatchEvent(new Event('input', { bubbles: true }));
+        onChange(trimmed);
+      }
+    },
+    [value, onChange],
+  );
+  const onPaste = React.useCallback(
+    (e: React.ClipboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      if (!onChange) {
+        return;
+      }
+      e.preventDefault();
+      const pasted = e.clipboardData.getData('text').trim();
+      const input = e.currentTarget;
+      const start = input.selectionStart || 0;
+      const end = input.selectionEnd || 0;
+      const newValue = input.value.slice(0, start) + pasted + input.value.slice(end);
+      input.setSelectionRange(start + pasted.length, start + pasted.length);
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      onChange(newValue);
+    },
+    [onChange],
+  );
+
+  return { onBlur, onPaste };
 };

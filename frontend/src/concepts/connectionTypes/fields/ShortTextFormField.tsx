@@ -3,6 +3,7 @@ import { TextInput } from '@patternfly/react-core';
 import { ShortTextField } from '~/concepts/connectionTypes/types';
 import { FieldProps } from '~/concepts/connectionTypes/fields/types';
 import DefaultValueTextRenderer from '~/concepts/connectionTypes/fields/DefaultValueTextRenderer';
+import { useTrimInputHandlers } from '~/concepts/connectionTypes/utils';
 
 const ShortTextFormField: React.FC<FieldProps<ShortTextField>> = ({
   id,
@@ -13,6 +14,7 @@ const ShortTextFormField: React.FC<FieldProps<ShortTextField>> = ({
   'data-testid': dataTestId,
 }) => {
   const isPreview = mode === 'preview';
+  const { onBlur: trimmedBlur, onPaste: trimmedPaste } = useTrimInputHandlers(value, onChange);
   return (
     <DefaultValueTextRenderer id={id} field={field} mode={mode}>
       <TextInput
@@ -24,6 +26,8 @@ const ShortTextFormField: React.FC<FieldProps<ShortTextField>> = ({
         data-testid={dataTestId}
         value={(isPreview ? field.properties.defaultValue : value) ?? ''}
         onChange={isPreview || !onChange ? undefined : (_e, v) => onChange(v)}
+        onBlur={(e) => trimmedBlur(e)}
+        onPaste={(e) => trimmedPaste(e)}
       />
     </DefaultValueTextRenderer>
   );

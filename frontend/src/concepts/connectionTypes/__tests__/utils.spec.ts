@@ -1,3 +1,5 @@
+import { renderHook } from '@testing-library/react';
+import * as React from 'react';
 import { mockConnection } from '~/__mocks__/mockConnection';
 import {
   mockConnectionTypeConfigMapObj,
@@ -19,6 +21,7 @@ import {
   ModelServingCompatibleTypes,
   toConnectionTypeConfigMap,
   toConnectionTypeConfigMapObj,
+  useTrimInputHandlers,
 } from '~/concepts/connectionTypes/utils';
 
 describe('toConnectionTypeConfigMap / toConnectionTypeConfigMapObj', () => {
@@ -492,5 +495,57 @@ describe('getModelServingCompatibility', () => {
         }),
       ),
     ).toEqual([]);
+  });
+});
+
+describe('useTrimInputHandlers', () => {
+  it('trims whitespace on blur and calls onChange', () => {
+    const handleChange = jest.fn();
+    const { result } = renderHook(() => useTrimInputHandlers('    hello.     ', handleChange));
+
+    const mockEvent = {
+      currentTarget: {
+        value: '    hello     ',
+      },
+    } as React.FocusEvent<HTMLInputElement>;
+
+    result.current.onBlur(mockEvent);
+    expect(handleChange).toHaveBeenCalledWith('hello');
+  });
+
+  it('does not call onChange on blur if value is already trimmed', () => {
+    const handleChange = jest.fn();
+    const { result } = renderHook(() => useTrimInputHandlers('hello.', handleChange));
+
+    const mockEvent = {
+      currentTarget: {
+        value: 'hello.',
+      },
+    } as React.FocusEvent<HTMLInputElement>;
+
+    result.current.onBlur(mockEvent);
+    expect(handleChange).not.toHaveBeenCalled();
+  });
+
+  it('trims pasted text before inserting it', () => {
+    const handleChange = jest.fn();
+    const { result } = renderHook(() => useTrimInputHandlers('foo', handleChange));
+
+    const mockEvent = {
+      preventDefault: jest.fn(),
+      clipboardData: {
+        getData: () => '    bar.     ',
+      },
+      currentTarget: {
+        value: 'foo',
+        selectionStart: 3,
+        selectionEnd: 3,
+        setSelectionRange: jest.fn(),
+        dispatchEvent: jest.fn(),
+      },
+    } as unknown as React.ClipboardEvent<HTMLInputElement>;
+
+    result.current.onPaste(mockEvent);
+    expect(handleChange).toHaveBeenCalledWith('foobar.');
   });
 });

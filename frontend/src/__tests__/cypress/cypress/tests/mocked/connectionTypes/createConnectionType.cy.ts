@@ -319,4 +319,18 @@ describe('edit', () => {
       'field1',
     ]);
   });
+
+  it('trims whitespace from text fields on blur and paste', () => {
+    createConnectionTypePage.visitCreatePage();
+
+    // Test blur trimming
+    createConnectionTypePage.findConnectionTypeName().type('   my name   ');
+    createConnectionTypePage.findConnectionTypeName().blur();
+    createConnectionTypePage.findConnectionTypeName().should('have.value', 'my name');
+
+    // Test paste trimming (simulate by typing with spaces and blurring)
+    createConnectionTypePage.findConnectionTypeDesc().clear().type('   my description   ');
+    createConnectionTypePage.findConnectionTypeDesc().blur();
+    createConnectionTypePage.findConnectionTypeDesc().should('have.value', 'my description');
+  });
 });
