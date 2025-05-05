@@ -343,6 +343,10 @@ class ProjectDetails {
     return cy.findByTestId('delete-project-action').find('button');
   }
 
+  find403Page() {
+    return cy.findByTestId('unauthorized-error');
+  }
+
   getKserveTableRow(name: string) {
     return new KserveTableRow(() =>
       this.findKserveModelsTable()
