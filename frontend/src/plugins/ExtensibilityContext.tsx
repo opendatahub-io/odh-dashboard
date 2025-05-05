@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { FeatureFlags, PluginStoreProvider } from '@openshift/dynamic-plugin-sdk';
+import { PluginStore } from '@odh-dashboard/plugin-core';
 import { useAppContext } from '~/app/AppContext';
 import { AreaContext } from '~/concepts/areas/AreaContext';
 import { useDeepCompareMemoize } from '~/utilities/useDeepCompareMemoize';
@@ -8,7 +9,6 @@ import { enumIterator } from '~/utilities/utils';
 import { isAreaAvailable } from '~/concepts/areas/utils';
 import extensionDeclarations from '~/plugins/extensions';
 import { useUser } from '~/redux/selectors';
-import { PluginStore } from '~/plugins/plugin-store';
 
 export const ExtensibilityContextProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
   const { isAdmin } = useUser();

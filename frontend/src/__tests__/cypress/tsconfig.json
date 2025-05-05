@@ -3,7 +3,7 @@
   "include": ["./**/*.ts"],
   "exclude": ["node_modules", "public", "coverage", ".nyc_output"],
   "compilerOptions": {
-    "sourceMap": true,
+    "moduleResolution": "node",
     "types": ["node", "cypress", "@testing-library/cypress", "cypress-axe", "cypress-plugin-steps", "@cypress/grep"]
   }
 }
