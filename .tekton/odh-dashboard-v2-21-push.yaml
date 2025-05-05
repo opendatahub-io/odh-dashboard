@@ -8,7 +8,7 @@ metadata:
     pipelinesascode.tekton.dev/max-keep-runs: "3"
     build.appstudio.openshift.io/build-nudge-files: "build/operator-nudging.yaml"
     pipelinesascode.tekton.dev/on-cel-expression: |
-      event == "push"
+      event == "push" 
       && target_branch == "rhoai-2.21"
       && ( !".tekton/**".pathChanged() || ".tekton/odh-dashboard-v2-21-push.yaml".pathChanged() )
   creationTimestamp: null
@@ -50,10 +50,9 @@ spec:
   - name: prefetch-input
     value: |
       [
-        {"type": "npm", "path": "."},
-        {"type": "npm", "path": "frontend"},
-        {"type": "npm", "path": "backend"},
-        {"type": "npm", "path": "install/konflux"}
+        {"type": "npm", "path": "."}, 
+        {"type": "npm", "path": "frontend"}, 
+        {"type": "npm", "path": "backend"}
       ]
   - name: build-image-index
     value: true
