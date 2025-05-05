@@ -10,7 +10,7 @@ import {
   MenuToggle,
 } from '@patternfly/react-core';
 import React from 'react';
-import { EyeIcon, EyeSlashIcon, KeyIcon } from '@patternfly/react-icons';
+import { EyeIcon, EyeSlashIcon, KeyIcon, OptimizeIcon } from '@patternfly/react-icons';
 import styles from '@patternfly/react-styles/css/components/Menu/menu';
 import { css } from '@patternfly/react-styles';
 import { AWSDataEntry } from '~/pages/projects/types';
@@ -83,20 +83,14 @@ export const PipelineDropdown = ({
           onClick={onToggle}
           isExpanded={isOpen}
         >
-          <KeyIcon />
+          <OptimizeIcon /> <span style={{ marginLeft: '8px' }}>Autofill from connection</span>
         </MenuToggle>
       )}
       isOpen={isOpen}
     >
       <Menu onSelect={onSelect} isScrollable isPlain>
         <MenuContent>
-          <MenuGroup
-            label={
-              <h1 className={css(styles.menuGroupTitle)}>
-                <KeyIcon /> Populate the form with credentials from your selected connection
-              </h1>
-            }
-          >
+          <MenuGroup>
             <MenuList>
               {connections.map((dataItem, index) => (
                 <MenuItem
