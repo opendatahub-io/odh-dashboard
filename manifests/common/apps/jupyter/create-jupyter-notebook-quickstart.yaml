@@ -22,8 +22,8 @@ spec:
       description: |-
         ### Prerequisites
         - You have logged in to Open Data Hub.
-        - You know the names and values that you want to use for environment variables in your notebook server environment, for example, `AWS_SECRET_ACCESS_KEY`.
-        - If you want to work with a very large data set, work with your administrator to proactively increase the storage capacity of your notebook server.
+        - You know the names and values that you want to use for environment variables in your workbench environment, for example, `AWS_SECRET_ACCESS_KEY`.
+        - If you want to work with a very large data set, work with your administrator to proactively increase the storage capacity of your workbench.
         ### Launch a notebook
         1. On the **Enabled applications** page, locate the **Jupyter** card.
         2. Click **Launch application**.
@@ -31,7 +31,7 @@ spec:
            b) Enter your credentials and click **Log in** (or equivalent for your identity provider).
            c) If you see an **Access permission needed** message, you are not in the default user group or the default administrator group for Open Data Hub. Contact your administrator so that they can add you to the correct group.
         3. If you have previously launched Jupyter, skip to Step 4.
-           If you have not launched Jupyter previously, start a notebook server.
+           If you have not launched Jupyter previously, start a workbench.
            a) Select the **Notebook image** to use for your server.
            b) If the notebook image contains multiple versions, select the version of the notebook image from the **Versions** section.
            c) Select the **Container size** for your server.

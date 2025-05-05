@@ -5,11 +5,11 @@ metadata:
   annotations:
     opendatahub.io/categories: 'Package management,Notebook environments,Getting started'
 spec:
-  displayName: How to install Python packages on your notebook server
+  displayName: How to install Python packages on your workbench
   appName: jupyter
   type: how-to
   description: |-
-    Install additional python packages into your notebook server.
+    Install additional python packages into your workbench.
   url: https://docs.redhat.com/en/documentation/red_hat_openshift_ai_cloud_service/1/html/working_with_connected_applications/using_the_jupyter_application#installing-python-packages-on-your-notebook-server_connected-apps
   durationMinutes: 15
 ---
@@ -20,11 +20,11 @@ metadata:
   annotations:
     opendatahub.io/categories: 'Notebook environments,Getting started'
 spec:
-  displayName: How to update notebook server settings
+  displayName: How to update workbench settings
   type: how-to
   appName: jupyter
   description: |-
-    Update the settings or the notebook image on your notebook server.
+    Update the settings or the notebook image on your workbench.
   url: https://docs.redhat.com/en/documentation/red_hat_openshift_ai_cloud_service/1/html/managing_resources/managing-notebook-servers_notebook-mgmt
   durationMinutes: 15
 ---
@@ -50,10 +50,10 @@ metadata:
   annotations:
     opendatahub.io/categories: 'Package management,Notebook environments,Getting started'
 spec:
-  displayName: How to view installed packages on your notebook server
+  displayName: How to view installed packages on your workbench
   appName: jupyter
   type: how-to
   description: |-
-    See which packages are installed into your running notebook server.
+    See which packages are installed into your running workbench.
   url: https://docs.redhat.com/en/documentation/red_hat_openshift_ai_cloud_service/1/html/working_with_connected_applications/using_the_jupyter_application#viewing-python-packages-installed-on-your-notebook-server_connected-apps
   durationMinutes: 15
