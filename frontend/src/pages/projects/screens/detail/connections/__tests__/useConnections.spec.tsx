@@ -26,7 +26,7 @@ describe('useConnections', () => {
     expect(renderResult).hookToBeStable({ data: false, loaded: false, error: true, refresh: true });
 
     // refresh
-    await act(() => renderResult.result.current[3]());
+    await act(() => renderResult.result.current.refresh());
     expect(mockGetSecretsByLabel).toHaveBeenCalledTimes(2);
     expect(renderResult).hookToHaveUpdateCount(3);
     expect(renderResult).hookToBeStable({ data: false, loaded: true, error: true, refresh: true });

@@ -91,7 +91,12 @@ describe('usePrefillModelDeployModal', () => {
       initialConnectionName: 'test-key',
     };
 
-    mockUseConnections.mockReturnValue([[mockConnection({})], true, undefined, jest.fn()]);
+    mockUseConnections.mockReturnValue({
+      data: [mockConnection({})],
+      loaded: true,
+      error: undefined,
+      refresh: jest.fn(),
+    });
     mockuseWatchConnectionTypes.mockReturnValue([
       [mockConnectionTypeConfigMapObj({})],
       true,
@@ -109,12 +114,12 @@ describe('usePrefillModelDeployModal', () => {
     expect(mockSetCreateData).toHaveBeenCalledTimes(2);
     mockSetCreateData.mockClear();
 
-    mockUseConnections.mockReturnValue([
-      [mockConnection({}), mockConnection({})],
-      true,
-      undefined,
-      jest.fn(),
-    ]);
+    mockUseConnections.mockReturnValue({
+      data: [mockConnection({}), mockConnection({})],
+      loaded: true,
+      error: undefined,
+      refresh: jest.fn(),
+    });
 
     rerender(mockProjectContext, data, mockSetCreateData, mockRegisteredModelDeployInfo);
     expect(mockSetCreateData).not.toHaveBeenCalled();
