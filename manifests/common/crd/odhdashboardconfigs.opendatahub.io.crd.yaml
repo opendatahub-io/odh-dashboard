@@ -186,12 +186,12 @@ spec:
                           type: string
                     storageClassName:
                       type: string
-                # Likely needs a better spot to exit -- hard to do granular permissions
+                # Likely needs a better spot to exist -- hard to do granular permissions
                 templateOrder:
                   type: array
                   items:
                     type: string
-                # Likely needs a better spot to exit -- hard to do granular permissions
+                # Likely needs a better spot to exist -- hard to do granular permissions
                 templateDisablement:
                   type: array
                   items:
