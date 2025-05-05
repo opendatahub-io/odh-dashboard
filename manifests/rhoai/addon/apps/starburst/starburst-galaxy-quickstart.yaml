@@ -65,7 +65,7 @@ spec:
         3. Click **Launch** on the Jupyter card to access the Jupyter **Start a workbench** page.  A new browser tab will open displaying the **Start a workbench** page.
         4. Select the **Standard Data Science** notebook image and the **Default** container size.
         5. Add the environment variables for **TRINO\_USERNAME**, **TRINO\_PASSWORD**, **TRINO\_HOSTNAME**, and **TRINO\_PORT** using the connection details you obtained in the previous task.
-        6. Click on **Start server** to launch Jupyter.
+        6. Click on **Start workbench** to launch Jupyter.
 
         If you have not previously authorized the jupyterhub-hub service account to access your account, the **Authorize Access** page appears prompting you to provide authorization. Inspect the permissions selected by default, and click the **Allow selected permissions** button.
 
@@ -73,7 +73,7 @@ spec:
       review:
         instructions: |-
           #### To verify that you have launched a Jupyter workbench:
-          Do you see a message in the page that says **The server is starting up**?
+          Do you see a message in the page that says **The workbench is starting up**?
         failedTaskHelp: This task is not verified yet. Try the task again.
       summary:
         success: Your workbench has started and the JupyterLab interface will load shortly. When the page displays a **Stop** option, proceed to the next step.

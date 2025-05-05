@@ -188,8 +188,7 @@ spec:
     `AWS_SECRET_ACCESS_KEY`.
 
     - If you want to work with a very large data set, work with your
-    administrator to proactively increase the storage capacity of your notebook
-    server.
+    administrator to proactively increase the storage capacity of your workbench.
 
     ## Procedure
 
@@ -207,21 +206,21 @@ spec:
 
       This is not required if you have previously launched Jupyter.
 
-      i. Select the **Notebook image** to use for your server.
+      i. Select the **Notebook image** to use for your workbench.
 
       ii. If the notebook image contains multiple versions, select the version of the notebook image from the **Versions** section.
 
-      iii. Select the **Container size** for your server.
+      iii. Select the **Container size** for your workbench.
 
-      iv. Optional: Select the **Number of GPUs** (graphics processing units) for your server.
+      iv. Optional: Select the **Number of GPUs** (graphics processing units) for your workbench.
 
       v. Optional: Select and specify values for any new **Environment variables**.
 
       The interface stores these variables so that you only need to enter them once. Example variable names for common environment variables are automatically provided for frequently integrated environments and frameworks, such as Amazon Web Services (AWS).
 
-      vi. Click **Start server**.
+      vi. Click **Start workbench**.
 
-      The **Starting server** progress indicator appears. Click **Expand event log** to view additional information on the server creation process. Depending on the deployment size and resources you requested, starting the server can take up to several minutes. After the server starts, the JupyterLab interface opens.
+      The **Starting workbench** progress indicator appears. Click **Expand event log** to view additional information on the workbench creation process. Depending on the deployment size and resources you requested, starting the workbench can take up to several minutes. After the workbench starts, the JupyterLab interface opens.
 
     ## Verification
 

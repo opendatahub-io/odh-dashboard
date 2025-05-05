@@ -51,7 +51,7 @@ spec:
           Can you select the number of GPUS?
         failedTaskHelp: Ensure you have met the prerequisites for the add-on and try the steps again.
       summary:
-        success: Your server has started and Jupyter will automatically use the selected GPUs
+        success: Your workbench has started and Jupyter will automatically use the selected GPUs
         failed: Ensure you have met the prerequisites for the add-on and try the steps again.
   nextQuickStart: [gpu-enabled-notebook-quickstart]
   conclusion: >-
