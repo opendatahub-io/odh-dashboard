@@ -20,9 +20,10 @@ import {
   ExclamationTriangleIcon,
   InfoCircleIcon,
 } from '@patternfly/react-icons';
-import { ProjectObjectType, typedObjectImage } from '~/concepts/design/utils';
+import { ProjectObjectType } from '~/concepts/design/utils';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { ODH_PRODUCT_NAME } from '~/utilities/const';
+import TypedObjectIcon from '~/concepts/design/TypedObjectIcon';
 import { NotebookImageAvailability, NotebookImageStatus } from './const';
 import { NotebookImage } from './types';
 
@@ -171,7 +172,7 @@ export const NotebookImageDisplayName = ({
   // otherwise, return the popover with the label as the trigger
   return (
     <>
-      <Flex>
+      <Flex spaceItems={{ default: 'spaceItemsSm' }}>
         <FlexItem>
           <HelperText>
             <HelperTextItem
@@ -180,29 +181,23 @@ export const NotebookImageDisplayName = ({
             >
               {notebookImage.imageDisplayName || 'unknown'}
             </HelperTextItem>
-            {notebookImage.imageStatus !== NotebookImageStatus.DELETED &&
-              notebookImage.imageAvailability === NotebookImageAvailability.ENABLED &&
-              isProjectScopedAvailable &&
-              isImageStreamProjectScoped && (
-                <HelperTextItem>
-                  <Label
-                    isCompact
-                    variant="outline"
-                    color="blue"
-                    data-testid="project-scoped-label"
-                    icon={
-                      <img
-                        style={{ height: '20px' }}
-                        src={typedObjectImage(ProjectObjectType.project)}
-                        alt=""
-                      />
-                    }
-                  >
-                    Project-scoped
-                  </Label>
-                </HelperTextItem>
-              )}
           </HelperText>
+        </FlexItem>
+        <FlexItem>
+          {notebookImage.imageStatus !== NotebookImageStatus.DELETED &&
+            notebookImage.imageAvailability === NotebookImageAvailability.ENABLED &&
+            isProjectScopedAvailable &&
+            isImageStreamProjectScoped && (
+              <Label
+                isCompact
+                variant="outline"
+                color="blue"
+                data-testid="project-scoped-label"
+                icon={<TypedObjectIcon alt="" resourceType={ProjectObjectType.project} />}
+              >
+                Project-scoped
+              </Label>
+            )}
         </FlexItem>
         {(notebookImage.imageStatus === NotebookImageStatus.DELETED ||
           notebookImage.imageAvailability === NotebookImageAvailability.DISABLED ||

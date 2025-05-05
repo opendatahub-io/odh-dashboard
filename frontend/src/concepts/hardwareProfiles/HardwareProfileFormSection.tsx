@@ -76,6 +76,7 @@ const HardwareProfileFormSection: React.FC<HardwareProfileFormSectionProps<PodSp
             }
           >
             <HardwareProfileSelect
+              isProjectScoped={isProjectScoped}
               hardwareProfileConfig={formData}
               previewDescription
               hardwareProfiles={hardwareProfiles}

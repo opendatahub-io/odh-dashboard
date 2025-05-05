@@ -1,6 +1,7 @@
 import { Label } from '@patternfly/react-core';
 import * as React from 'react';
-import { ProjectObjectType, typedObjectImage } from '~/concepts/design/utils';
+import TypedObjectIcon from '~/concepts/design/TypedObjectIcon';
+import { ProjectObjectType } from '~/concepts/design/utils';
 import { ServingRuntimeKind } from '~/k8sTypes';
 import { getDisplayNameFromServingRuntimeTemplate } from '~/pages/modelServing/customServingRuntimes/utils';
 import { SERVING_RUNTIME_SCOPE } from '~/pages/modelServing/screens/const';
@@ -25,13 +26,7 @@ const InferenceServiceServingRuntime: React.FC<Props> = ({ servingRuntime, isPro
                 color="blue"
                 data-testid="project-scoped-label"
                 isCompact
-                icon={
-                  <img
-                    style={{ height: '15px', paddingTop: '3px' }}
-                    src={typedObjectImage(ProjectObjectType.project)}
-                    alt=""
-                  />
-                }
+                icon={<TypedObjectIcon alt="" resourceType={ProjectObjectType.project} />}
               >
                 Project-scoped
               </Label>
