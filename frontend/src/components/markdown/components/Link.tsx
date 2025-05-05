@@ -12,7 +12,7 @@ const Link: React.FC<LinkProps> = ({ children, href = '#', className }) => (
     variant="link"
     className={className}
     isInline
-    onClick={() => href !== '#' && window.open(href, '_blank')}
+    onClick={() => href !== '#' && window.open(href, '_blank', 'noopener,noreferrer')}
   >
     {children}
   </Button>
