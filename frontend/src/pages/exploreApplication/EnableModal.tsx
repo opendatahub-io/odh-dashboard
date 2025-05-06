@@ -18,7 +18,6 @@ import { EnableApplicationStatus, useEnableApplication } from '~/utilities/useEn
 import { asEnumMember } from '~/utilities/utils';
 import EnableVariable from './EnableVariable';
 import './EnableModal.scss';
-import { ModalBoxHeader } from '@patternfly/react-core/deprecated';
 
 type EnableModalProps = {
   selectedApp: OdhApplication;
