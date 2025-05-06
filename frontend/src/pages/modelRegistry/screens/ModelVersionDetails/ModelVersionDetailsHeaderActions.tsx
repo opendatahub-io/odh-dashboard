@@ -9,6 +9,7 @@ import {
   ActionList,
   ActionListItem,
   ActionListGroup,
+  Tooltip,
 } from '@patternfly/react-core';
 import { useNavigate } from 'react-router';
 import { ArchiveModelVersionModal } from '~/pages/modelRegistry/screens/components/ArchiveModelVersionModal';
@@ -62,20 +63,32 @@ const ModelVersionsDetailsHeaderActions: React.FC<ModelVersionsDetailsHeaderActi
     return null;
   }
 
+  const deployButton = (
+    <Button
+      id="deploy-button"
+      aria-label="Deploy version"
+      ref={tooltipRef}
+      variant={ButtonVariant.primary}
+      onClick={() => setIsDeployModalOpen(true)}
+      isAriaDisabled={!deployButtonState.enabled}
+      data-testid="deploy-button"
+    >
+      Deploy
+    </Button>
+  );
+
   return (
     <ActionList className="pf-v5-u-display-flex">
       <ActionListGroup className="pf-v5-u-flex-1">
         {deployButtonState.visible && (
           <ActionListItem>
-            <Button
-              id="deploy-button"
-              aria-label="Deploy version"
-              ref={tooltipRef}
-              variant={ButtonVariant.primary}
-              onClick={() => setIsDeployModalOpen(true)}
-            >
-              Deploy
-            </Button>
+            {deployButtonState.enabled ? (
+              deployButton
+            ) : (
+              <Tooltip content={deployButtonState.tooltip}>
+                <span>{deployButton}</span>
+              </Tooltip>
+            )}
           </ActionListItem>
         )}
         {isFineTuningEnabled && (
