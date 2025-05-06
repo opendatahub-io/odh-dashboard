@@ -58,14 +58,19 @@ describe('useInferenceServices', () => {
     k8sListResourceMock.mockResolvedValue(mockInferenceServices);
     const renderResult = testHook(useInferenceServices)('namespace');
     expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
-    expect(renderResult).hookToStrictEqual(standardUseFetchStateObject({ data: [] }));
+    expect(renderResult).hookToStrictEqual(
+      standardUseFetchStateObject({ data: { hasNonDashboardItems: false, items: [] } }),
+    );
     expect(renderResult).hookToHaveUpdateCount(1);
 
     // wait for update
     await renderResult.waitForNextUpdate();
     expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
     expect(renderResult).hookToStrictEqual(
-      standardUseFetchStateObject({ data: mockInferenceServices.items, loaded: true }),
+      standardUseFetchStateObject({
+        data: { hasNonDashboardItems: false, items: mockInferenceServices.items },
+        loaded: true,
+      }),
     );
     expect(renderResult).hookToHaveUpdateCount(2);
     expect(renderResult).hookToBeStable({ data: false, loaded: false, error: true, refresh: true });
@@ -75,7 +80,10 @@ describe('useInferenceServices', () => {
     await act(() => renderResult.result.current.refresh());
     expect(k8sListResourceMock).toHaveBeenCalledTimes(2);
     expect(renderResult).hookToStrictEqual(
-      standardUseFetchStateObject({ data: [...mockInferenceServices.items], loaded: true }),
+      standardUseFetchStateObject({
+        data: { hasNonDashboardItems: false, items: [...mockInferenceServices.items] },
+        loaded: true,
+      }),
     );
     expect(renderResult).hookToHaveUpdateCount(3);
     expect(renderResult).hookToBeStable({ data: false, loaded: true, error: true, refresh: true });
@@ -90,14 +98,19 @@ describe('useInferenceServices', () => {
     k8sListResourceMock.mockResolvedValue(mockInferenceServices);
     const renderResult = testHook(useInferenceServices)();
     expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
-    expect(renderResult).hookToStrictEqual(standardUseFetchStateObject({ data: [] }));
+    expect(renderResult).hookToStrictEqual(
+      standardUseFetchStateObject({ data: { hasNonDashboardItems: false, items: [] } }),
+    );
     expect(renderResult).hookToHaveUpdateCount(1);
 
     // wait for update
     await renderResult.waitForNextUpdate();
     expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
     expect(renderResult).hookToStrictEqual(
-      standardUseFetchStateObject({ data: mockInferenceServices.items, loaded: true }),
+      standardUseFetchStateObject({
+        data: { hasNonDashboardItems: false, items: mockInferenceServices.items },
+        loaded: true,
+      }),
     );
     expect(renderResult).hookToHaveUpdateCount(2);
     expect(renderResult).hookToBeStable({ data: false, loaded: false, error: true, refresh: true });
@@ -107,7 +120,10 @@ describe('useInferenceServices', () => {
     await act(() => renderResult.result.current.refresh());
     expect(k8sListResourceMock).toHaveBeenCalledTimes(2);
     expect(renderResult).hookToStrictEqual(
-      standardUseFetchStateObject({ data: [...mockInferenceServices.items], loaded: true }),
+      standardUseFetchStateObject({
+        data: { hasNonDashboardItems: false, items: [...mockInferenceServices.items] },
+        loaded: true,
+      }),
     );
     expect(renderResult).hookToHaveUpdateCount(3);
     expect(renderResult).hookToBeStable({ data: false, loaded: true, error: true, refresh: true });
@@ -122,7 +138,7 @@ describe('useInferenceServices', () => {
     const renderResult = testHook(useInferenceServices)('namespace');
     expect(k8sListResourceMock).not.toHaveBeenCalled();
     expect(renderResult).hookToStrictEqual(
-      standardUseFetchStateObject({ data: [], loaded: false }),
+      standardUseFetchStateObject({ data: { hasNonDashboardItems: false, items: [] } }),
     );
     expect(renderResult).hookToHaveUpdateCount(1);
   });
@@ -136,7 +152,7 @@ describe('useInferenceServices', () => {
     const renderResult = testHook(useInferenceServices)('namespace');
     expect(k8sListResourceMock).not.toHaveBeenCalled();
     expect(renderResult).hookToStrictEqual(
-      standardUseFetchStateObject({ data: [], loaded: false }),
+      standardUseFetchStateObject({ data: { hasNonDashboardItems: false, items: [] } }),
     );
     expect(renderResult).hookToHaveUpdateCount(1);
   });
@@ -150,14 +166,19 @@ describe('useInferenceServices', () => {
     k8sListResourceMock.mockResolvedValue(mockInferenceServices);
     const renderResult = testHook(useInferenceServices)('namespace');
     expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
-    expect(renderResult).hookToStrictEqual(standardUseFetchStateObject({ data: [] }));
+    expect(renderResult).hookToStrictEqual(
+      standardUseFetchStateObject({ data: { hasNonDashboardItems: false, items: [] } }),
+    );
     expect(renderResult).hookToHaveUpdateCount(1);
 
     // wait for update
     await renderResult.waitForNextUpdate();
     expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
     expect(renderResult).hookToStrictEqual(
-      standardUseFetchStateObject({ data: mockInferenceServices.items, loaded: true }),
+      standardUseFetchStateObject({
+        data: { hasNonDashboardItems: false, items: mockInferenceServices.items },
+        loaded: true,
+      }),
     );
     expect(renderResult).hookToHaveUpdateCount(2);
     expect(renderResult).hookToBeStable({ data: false, loaded: false, error: true, refresh: true });
@@ -167,7 +188,10 @@ describe('useInferenceServices', () => {
     await act(() => renderResult.result.current.refresh());
     expect(k8sListResourceMock).toHaveBeenCalledTimes(2);
     expect(renderResult).hookToStrictEqual(
-      standardUseFetchStateObject({ data: [...mockInferenceServices.items], loaded: true }),
+      standardUseFetchStateObject({
+        data: { hasNonDashboardItems: false, items: [...mockInferenceServices.items] },
+        loaded: true,
+      }),
     );
     expect(renderResult).hookToHaveUpdateCount(3);
     expect(renderResult).hookToBeStable({ data: false, loaded: true, error: true, refresh: true });
@@ -182,14 +206,19 @@ describe('useInferenceServices', () => {
     k8sListResourceMock.mockResolvedValue(mockInferenceServices);
     const renderResult = testHook(useInferenceServices)('namespace');
     expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
-    expect(renderResult).hookToStrictEqual(standardUseFetchStateObject({ data: [] }));
+    expect(renderResult).hookToStrictEqual(
+      standardUseFetchStateObject({ data: { hasNonDashboardItems: false, items: [] } }),
+    );
     expect(renderResult).hookToHaveUpdateCount(1);
 
     // wait for update
     await renderResult.waitForNextUpdate();
     expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
     expect(renderResult).hookToStrictEqual(
-      standardUseFetchStateObject({ data: mockInferenceServices.items, loaded: true }),
+      standardUseFetchStateObject({
+        data: { hasNonDashboardItems: false, items: mockInferenceServices.items },
+        loaded: true,
+      }),
     );
     expect(renderResult).hookToHaveUpdateCount(2);
     expect(renderResult).hookToBeStable({ data: false, loaded: false, error: true, refresh: true });
@@ -199,7 +228,10 @@ describe('useInferenceServices', () => {
     await act(() => renderResult.result.current.refresh());
     expect(k8sListResourceMock).toHaveBeenCalledTimes(2);
     expect(renderResult).hookToStrictEqual(
-      standardUseFetchStateObject({ data: [...mockInferenceServices.items], loaded: true }),
+      standardUseFetchStateObject({
+        data: { hasNonDashboardItems: false, items: [...mockInferenceServices.items] },
+        loaded: true,
+      }),
     );
     expect(renderResult).hookToHaveUpdateCount(3);
     expect(renderResult).hookToBeStable({ data: false, loaded: true, error: true, refresh: true });
@@ -211,14 +243,18 @@ describe('useInferenceServices', () => {
     const renderResult = testHook(useInferenceServices)('namespace');
     expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
     expect(renderResult).hookToStrictEqual(
-      standardUseFetchStateObject({ data: [], loaded: false }),
+      standardUseFetchStateObject({ data: { hasNonDashboardItems: false, items: [] } }),
     );
     expect(renderResult).hookToHaveUpdateCount(1);
 
     // // Wait for the hook to handle the error
     await renderResult.waitForNextUpdate();
     expect(renderResult).hookToStrictEqual(
-      standardUseFetchStateObject({ data: [], loaded: false, error: new Error('error') }),
+      standardUseFetchStateObject({
+        data: { hasNonDashboardItems: false, items: [] },
+        loaded: false,
+        error: new Error('error'),
+      }),
     );
     expect(renderResult).hookToHaveUpdateCount(2);
     expect(renderResult).hookToBeStable({ data: false, loaded: true, error: false, refresh: true });
@@ -284,14 +320,19 @@ describe('useInferenceServices', () => {
     k8sListResourceMock.mockResolvedValue(mockInferenceServices);
     const renderResult = testHook(useInferenceServices)('namespace', '1', '2', 'test-registry');
     expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
-    expect(renderResult).hookToStrictEqual(standardUseFetchStateObject({ data: [] }));
+    expect(renderResult).hookToStrictEqual(
+      standardUseFetchStateObject({ data: { hasNonDashboardItems: false, items: [] } }),
+    );
     expect(renderResult).hookToHaveUpdateCount(1);
 
     // wait for update
     await renderResult.waitForNextUpdate();
     expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
     expect(renderResult).hookToStrictEqual(
-      standardUseFetchStateObject({ data: mockInferenceServices.items.slice(0, 3), loaded: true }),
+      standardUseFetchStateObject({
+        data: { hasNonDashboardItems: false, items: mockInferenceServices.items.slice(0, 3) },
+        loaded: true,
+      }),
     );
 
     expect(renderResult).hookToHaveUpdateCount(2);
@@ -302,7 +343,10 @@ describe('useInferenceServices', () => {
     await act(() => renderResult.result.current.refresh());
     expect(k8sListResourceMock).toHaveBeenCalledTimes(2);
     expect(renderResult).hookToStrictEqual(
-      standardUseFetchStateObject({ data: mockInferenceServices.items.slice(0, 3), loaded: true }),
+      standardUseFetchStateObject({
+        data: { hasNonDashboardItems: false, items: mockInferenceServices.items.slice(0, 3) },
+        loaded: true,
+      }),
     );
     expect(renderResult).hookToHaveUpdateCount(3);
     expect(renderResult).hookToBeStable({ data: false, loaded: true, error: true, refresh: true });

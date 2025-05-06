@@ -257,14 +257,19 @@ const useFetch = <Type>(
     [result, loaded, loadError, refresh],
   );
 
-  // Return the default reset state if a change is pending and initialPromisePurity is true
-  if (initialPromisePurity && changePendingRef.current) {
-    return {
+  const defaultResetState: FetchStateObject<Type> = React.useMemo(
+    () => ({
       data: initialDefaultStateRef.current,
       loaded: false,
       error: undefined,
       refresh,
-    };
+    }),
+    [refresh],
+  );
+
+  // Return the default reset state if a change is pending and initialPromisePurity is true
+  if (initialPromisePurity && changePendingRef.current) {
+    return defaultResetState;
   }
 
   return returnState;
