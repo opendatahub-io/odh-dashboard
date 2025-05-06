@@ -478,9 +478,6 @@ export const useTrimInputHandlers = (
     (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
       const trimmed = e.currentTarget.value.trim();
       if (trimmed !== value && onChange) {
-        // const input = e.currentTarget;
-        // input.value = trimmed;
-        // input.dispatchEvent(new Event('input', { bubbles: true }));
         onChange(trimmed);
       }
     },

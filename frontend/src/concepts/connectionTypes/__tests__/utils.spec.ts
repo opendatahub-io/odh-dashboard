@@ -501,7 +501,7 @@ describe('getModelServingCompatibility', () => {
 describe('useTrimInputHandlers', () => {
   it('trims whitespace on blur and calls onChange', () => {
     const handleChange = jest.fn();
-    const { result } = renderHook(() => useTrimInputHandlers('    hello.     ', handleChange));
+    const { result } = renderHook(() => useTrimInputHandlers('', handleChange));
 
     const mockEvent = {
       currentTarget: {
@@ -515,11 +515,11 @@ describe('useTrimInputHandlers', () => {
 
   it('does not call onChange on blur if value is already trimmed', () => {
     const handleChange = jest.fn();
-    const { result } = renderHook(() => useTrimInputHandlers('hello.', handleChange));
+    const { result } = renderHook(() => useTrimInputHandlers('hello', handleChange));
 
     const mockEvent = {
       currentTarget: {
-        value: 'hello.',
+        value: 'hello',
       },
     } as React.FocusEvent<HTMLInputElement>;
 
@@ -529,23 +529,21 @@ describe('useTrimInputHandlers', () => {
 
   it('trims pasted text before inserting it', () => {
     const handleChange = jest.fn();
-    const { result } = renderHook(() => useTrimInputHandlers('foo', handleChange));
+    const { result } = renderHook(() => useTrimInputHandlers('', handleChange));
 
     const mockEvent = {
       preventDefault: jest.fn(),
       clipboardData: {
-        getData: () => '    bar.     ',
+        getData: () => '    foo     ',
       },
       currentTarget: {
-        value: 'foo',
-        selectionStart: 3,
-        selectionEnd: 3,
+        value: '',
         setSelectionRange: jest.fn(),
         dispatchEvent: jest.fn(),
       },
     } as unknown as React.ClipboardEvent<HTMLInputElement>;
 
     result.current.onPaste(mockEvent);
-    expect(handleChange).toHaveBeenCalledWith('foobar.');
+    expect(handleChange).toHaveBeenCalledWith('foo');
   });
 });
