@@ -31,7 +31,7 @@ const SelectedTaskDrawerContent: React.FC<SelectedTaskDrawerContentProps> = ({ t
       </DrawerHead>
       {/* TODO: Revert the custom classname once
       https://github.com/patternfly/patternfly-react/issues/11804 is resolved */}
-      <DrawerPanelBody className="pf-v6-u-p-sm">
+      <DrawerPanelBody data-testid="task-drawer" className="pf-v6-u-p-sm">
         <PipelineTaskDetails task={task} />
       </DrawerPanelBody>
     </>
