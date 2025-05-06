@@ -199,7 +199,7 @@ describe('Homepage Model Catalog section', () => {
     homePage
       .getHomeModelCatalogSection()
       .getModelCatalogFooter()
-      .should('contain', 'Showing 4 of all models');
+      .should('contain', '4 of 5 models');
   });
 
   it('should show footer text with visible model count - all models are visible', () => {
@@ -226,6 +226,32 @@ describe('Homepage Model Catalog section', () => {
       .getHomeModelCatalogSection()
       .getModelCatalogFooter()
       .should('contain', 'Showing all models');
+  });
+
+  it('should show featured models only, but include non-featured model count as part of total count in footer', () => {
+    cy.interceptK8s(
+      {
+        model: ConfigMapModel,
+        ns: 'opendatahub',
+        name: 'model-catalog-sources',
+      },
+      mockModelCatalogConfigMap([
+        mockModelCatalogSource({
+          source: 'Red Hat',
+          models: [
+            mockCatalogModel({ name: 'model-1', labels: ['featured'] }),
+            mockCatalogModel({ name: 'model-2', labels: ['featured'] }),
+            mockCatalogModel({ name: 'model-3', labels: ['featured'] }),
+            mockCatalogModel({ name: 'model-4', labels: [] }),
+            mockCatalogModel({ name: 'model-5', labels: [] }),
+          ],
+        }),
+      ]),
+    );
+    homePage.visit();
+    const modelCatalogSection = homePage.getHomeModelCatalogSection();
+    modelCatalogSection.getModelCatalogCardGallery().children().should('have.length', 3);
+    modelCatalogSection.getModelCatalogFooter().should('contain', '3 of 5 models');
   });
 
   it('should navigate to model catalog page', () => {

@@ -239,6 +239,7 @@ jobs:
     needs: [Unit-Tests, Cypress-Mock-Tests]
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - name: Setup Node.js ${{ env.NODE_VERSION }}
         uses: actions/setup-node@v4.3.0
         with:
