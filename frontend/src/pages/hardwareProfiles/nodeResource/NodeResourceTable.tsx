@@ -1,11 +1,10 @@
 import React from 'react';
-import { Alert, Button, Modal, ModalVariant } from '@patternfly/react-core';
 import { TableBase } from '~/components/table';
 import { Identifier, IdentifierResourceType } from '~/types';
-import { hasCPUandMemory } from '~/pages/hardwareProfiles/manage/ManageNodeResourceSection';
 import { nodeResourceColumns, DEFAULT_CPU_IDENTIFIER, DEFAULT_MEMORY_IDENTIFIER } from './const';
 import NodeResourceTableRow from './NodeResourceTableRow';
 import ManageNodeResourceModal from './ManageNodeResourceModal';
+import DeleteNodeResourceModal from './DeleteNodeResourceModal';
 
 type NodeResourceTableProps = {
   nodeResources: Identifier[];
@@ -16,14 +15,7 @@ const NodeResourceTable: React.FC<NodeResourceTableProps> = ({ nodeResources, on
   const viewOnly = !onUpdate;
   const [editIdentifier, setEditIdentifier] = React.useState<Identifier | undefined>();
   const [currentIndex, setCurrentIndex] = React.useState<number | undefined>();
-  const [deleteConfirmOpen, setDeleteConfirmOpen] = React.useState(false);
-  const [pendingDeleteIndex, setPendingDeleteIndex] = React.useState<number | undefined>();
-
-  const isCPUorMemory = (identifier: Identifier): boolean =>
-    identifier.resourceType === IdentifierResourceType.CPU ||
-    identifier.identifier === DEFAULT_CPU_IDENTIFIER ||
-    identifier.resourceType === IdentifierResourceType.MEMORY ||
-    identifier.identifier === DEFAULT_MEMORY_IDENTIFIER;
+  const [deleteIdentifier, setDeleteIdentifier] = React.useState<Identifier | undefined>();
 
   const wouldRemoveLastCPUorMemory = (identifier: Identifier, resources: Identifier[]): boolean => {
     const isCPU =
@@ -59,25 +51,21 @@ const NodeResourceTable: React.FC<NodeResourceTableProps> = ({ nodeResources, on
     const identifierToDelete = nodeResources[rowIndex];
 
     if (wouldRemoveLastCPUorMemory(identifierToDelete, nodeResources)) {
-      setPendingDeleteIndex(rowIndex);
-      setDeleteConfirmOpen(true);
-      return;
-    }
-
-    // If not CPU/memory or not the last one, proceed with delete
-    const updatedIdentifiers = [...nodeResources];
-    updatedIdentifiers.splice(rowIndex, 1);
-    onUpdate?.(updatedIdentifiers);
-  };
-
-  const confirmDelete = () => {
-    if (pendingDeleteIndex !== undefined) {
+      setDeleteIdentifier(identifierToDelete);
+    } else {
+      // If not CPU/memory or not the last one, proceed with delete
       const updatedIdentifiers = [...nodeResources];
-      updatedIdentifiers.splice(pendingDeleteIndex, 1);
+      updatedIdentifiers.splice(rowIndex, 1);
       onUpdate?.(updatedIdentifiers);
     }
-    setDeleteConfirmOpen(false);
-    setPendingDeleteIndex(undefined);
+  };
+
+  const handleDeleteConfirm = (deleted: boolean) => {
+    if (deleted && deleteIdentifier) {
+      const updatedIdentifiers = nodeResources.filter((r) => r !== deleteIdentifier);
+      onUpdate?.(updatedIdentifiers);
+    }
+    setDeleteIdentifier(undefined);
   };
 
   return (
@@ -122,38 +110,10 @@ const NodeResourceTable: React.FC<NodeResourceTableProps> = ({ nodeResources, on
           nodeResources={nodeResources}
         />
       ) : null}
-      {deleteConfirmOpen && (
+      {deleteIdentifier && (
         <>
-          <div>hi there delete would be open here</div>
-          <Modal
-            variant={ModalVariant.small}
-            title="Remove resource"
-            onClose={() => {
-              setDeleteConfirmOpen(false);
-              setPendingDeleteIndex(undefined);
-            }}
-          >
-            <Alert variant="warning" isInline title="Removing the last CPU or Memory resource">
-              It is not recommended to remove the last CPU or Memory resource. Resources that use
-              this hardware profile will schedule, but will be very unstable due to not having any
-              lower or upper resource bounds.
-            </Alert>
-            <div className="pf-v6-u-mt-md">
-              <Button variant="danger" onClick={confirmDelete}>
-                Remove
-              </Button>
-              <Button
-                variant="link"
-                onClick={() => {
-                  setDeleteConfirmOpen(false);
-                  setPendingDeleteIndex(undefined);
-                }}
-                className="pf-v6-u-ml-sm"
-              >
-                Cancel
-              </Button>
-            </div>
-          </Modal>
+          <div> ack ack ack 44a</div>
+          <DeleteNodeResourceModal identifier={deleteIdentifier} onClose={handleDeleteConfirm} />
         </>
       )}
     </>
