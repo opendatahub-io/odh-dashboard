@@ -62,6 +62,7 @@ type HandlersProps = {
   pipelineServerErrorMessage?: string;
   rejectAddSupportServingPlatformProject?: boolean;
   disableWorkbenches?: boolean;
+  namespace?: string;
 };
 
 const initIntercepts = ({
@@ -84,9 +85,10 @@ const initIntercepts = ({
   pipelineServerErrorMessage,
   rejectAddSupportServingPlatformProject = false,
   disableWorkbenches = false,
+  namespace = 'test-project',
 }: HandlersProps) => {
   cy.interceptK8sList(
-    { model: SecretModel, ns: 'test-project' },
+    { model: SecretModel, ns: namespace },
     mockK8sResourceList(isEmpty ? [] : [mockSecretK8sResource({})]),
   );
   cy.interceptK8sList(
@@ -170,22 +172,58 @@ const initIntercepts = ({
     }),
   );
   cy.interceptK8sList(
-    { model: PVCModel, ns: 'test-project' },
+    { model: PVCModel, ns: namespace },
     mockK8sResourceList(isEmpty ? [] : [mockPVCK8sResource({})]),
   );
-  cy.interceptK8s(
-    'POST',
-    ServiceAccountModel,
+  cy.interceptK8s('POST', ServiceAccountModel, {
+    statusCode: 200,
+    body: mockServiceAccountK8sResource({
+      name: 'test-name-sa',
+      namespace,
+    }),
+  });
 
+  cy.interceptK8sList(
     {
-      statusCode: 200,
-      body: mockServiceAccountK8sResource({
-        name: 'test-name-sa',
-        namespace: 'test-project',
-      }),
+      model: ImageStreamModel,
+      ns: namespace,
     },
+    mockK8sResourceList(
+      isEmpty || isUnknown
+        ? []
+        : [
+            mockImageStreamK8sResource({
+              name: imageStreamName,
+              displayName: 'Test image',
+              opts: {
+                metadata: {
+                  labels: {
+                    'opendatahub.io/notebook-image': isEnabled,
+                  },
+                },
+                spec: {
+                  tags: [
+                    {
+                      name: imageStreamTag,
+                      annotations: {
+                        'opendatahub.io/notebook-python-dependencies':
+                          imageStreamPythonDependencies ?? '[]',
+                      },
+                    },
+                  ],
+                },
+                status: {
+                  tags: [
+                    {
+                      tag: imageStreamTag,
+                    },
+                  ],
+                },
+              },
+            }),
+          ],
+    ),
   );
-
   cy.interceptK8sList(
     {
       model: ImageStreamModel,
@@ -229,11 +267,11 @@ const initIntercepts = ({
   );
   cy.interceptOdh(
     'GET /api/namespaces/:namespace/:context',
-    { path: { namespace: 'test-project', context: '*' } },
+    { path: { namespace, context: '*' } },
     rejectAddSupportServingPlatformProject ? { statusCode: 401 } : { applied: true },
   ).as('addSupportServingPlatformProject');
   cy.interceptK8sList(
-    { model: NotebookModel, ns: 'test-project' },
+    { model: NotebookModel, ns: namespace },
     mockK8sResourceList(
       isEmpty
         ? []
@@ -293,12 +331,30 @@ describe('Project Details', () => {
   const servingRuntimes = [mockServingRuntimeK8sResource({})];
   const inferenceServices = [mockInferenceServiceK8sResource({})];
   const initModelServingIntercepts = ({ isEmpty = false }) => {
-    cy.interceptK8sList(ServingRuntimeModel, mockK8sResourceList(!isEmpty ? servingRuntimes : []));
-    cy.interceptK8sList(
-      InferenceServiceModel,
-      mockK8sResourceList(!isEmpty ? inferenceServices : []),
-    );
+    if (isEmpty) {
+      cy.interceptK8sList(
+        {
+          model: ServingRuntimeModel,
+          ns: 'test-project',
+        },
+        mockK8sResourceList([], { namespace: 'test-project' }),
+      );
+      cy.interceptK8sList(
+        {
+          model: InferenceServiceModel,
+          ns: 'test-project',
+        },
+        mockK8sResourceList([], { namespace: 'test-project' }),
+      );
+    } else {
+      cy.interceptK8sList(ServingRuntimeModel, mockK8sResourceList(servingRuntimes));
+      cy.interceptK8sList(InferenceServiceModel, mockK8sResourceList(inferenceServices));
+    }
   };
+
+  beforeEach(() => {
+    initModelServingIntercepts({});
+  });
 
   describe('Empty project details', () => {
     it('Empty state component in project details', () => {
@@ -312,8 +368,22 @@ describe('Project Details', () => {
     it('shows 403 page when user does not have access to the project', () => {
       asProjectEditUser({ projects: [] });
       cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})]));
-      projectDetails.visit('test-project');
+      projectDetails.visit('test-project', { wait: false });
       projectDetails.find403Page().should('exist');
+    });
+
+    it('shows 403 page with context when pipelines are disabled', () => {
+      asProjectEditUser({ projects: [] });
+      cy.interceptOdh(
+        'GET /api/config',
+        mockDashboardConfig({
+          disablePipelines: true,
+        }),
+      );
+      cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})]));
+      projectDetails.visitSection('test-project', 'workbenches');
+      projectDetails.find403Page().should('exist');
+      projectDetails.findSectionTab('workbenches').should('exist');
     });
 
     it('Shows project information', () => {
@@ -382,7 +452,6 @@ describe('Project Details', () => {
 
     it('Both model serving platforms are enabled, no platform selected', () => {
       initIntercepts({ disableKServeConfig: false, disableModelConfig: false });
-      initModelServingIntercepts({});
       projectDetails.visitSection('test-project', 'model-server');
       projectDetails.findSelectPlatformButton('single').should('exist');
       projectDetails.findSelectPlatformButton('multi').should('exist');
@@ -393,7 +462,6 @@ describe('Project Details', () => {
         disableKServeConfig: false,
         disableModelConfig: true,
       });
-      initModelServingIntercepts({});
       projectDetails.visitSection('test-project', 'model-server');
       projectDetails.findTopLevelDeployModelButton().should('have.attr', 'aria-disabled');
       projectDetails.findTopLevelDeployModelButton().trigger('mouseenter');
@@ -405,7 +473,6 @@ describe('Project Details', () => {
         disableKServeConfig: true,
         disableModelConfig: false,
       });
-      initModelServingIntercepts({});
       projectDetails.visitSection('test-project', 'model-server');
       projectDetails.findTopLevelAddModelServerButton().should('have.attr', 'aria-disabled');
       projectDetails.findTopLevelAddModelServerButton().trigger('mouseenter');
@@ -418,7 +485,6 @@ describe('Project Details', () => {
         disableModelConfig: false,
         enableModelMesh: false,
       });
-      initModelServingIntercepts({});
       projectDetails.visitSection('test-project', 'model-server');
       projectDetails.findTopLevelDeployModelButton().should('have.attr', 'aria-disabled');
       projectDetails.findTopLevelDeployModelButton().trigger('mouseenter');
@@ -431,7 +497,6 @@ describe('Project Details', () => {
         disableModelConfig: false,
         enableModelMesh: true,
       });
-      initModelServingIntercepts({});
       projectDetails.visitSection('test-project', 'model-server');
       projectDetails.findTopLevelAddModelServerButton().should('have.attr', 'aria-disabled');
       projectDetails.findTopLevelAddModelServerButton().trigger('mouseenter');
@@ -440,6 +505,7 @@ describe('Project Details', () => {
 
     it('Single model serving platform is enabled', () => {
       initIntercepts({ templates: true, disableKServeConfig: false, disableModelConfig: true });
+      initModelServingIntercepts({ isEmpty: true });
       projectDetails.visit('test-project');
       projectDetails.shouldBeEmptyState('Models', 'model-server', true);
       projectDetails.findServingPlatformLabel().should('have.text', 'Single-model serving enabled');
@@ -447,7 +513,6 @@ describe('Project Details', () => {
 
     it('Shows KServe metrics only when available', () => {
       initIntercepts({ templates: true, disableKServeConfig: false, disableModelConfig: true });
-      initModelServingIntercepts({});
 
       projectDetails.visitSection('test-project', 'model-server');
       projectDetails.getKserveModelMetricLink('Test Inference Service').should('not.exist');
@@ -458,7 +523,6 @@ describe('Project Details', () => {
         disableModelConfig: true,
         disableKServeMetrics: false,
       });
-      initModelServingIntercepts({});
 
       projectDetails.visitSection('test-project', 'model-server');
       projectDetails.getKserveModelMetricLink('Test Inference Service').should('be.visible');
@@ -524,7 +588,7 @@ describe('Project Details', () => {
       projectDetails.visitSection('test-project', 'workbenches');
       projectDetails.findUnsupportedPipelineVersionAlert().should('not.exist');
     });
-    //TODO: fix this test
+
     it('Notebook with deleted image', () => {
       initIntercepts({ imageStreamName: 'test', imageStreamTag: 'failing-tag' });
       projectDetails.visitSection('test-project', 'workbenches');
@@ -533,7 +597,6 @@ describe('Project Details', () => {
       notebookRow.findNotebookImageAvailability().should('have.text', 'Deleted');
     });
 
-    //TODO: fix this test
     it('Notebook with disabled image', () => {
       initIntercepts({ isEnabled: 'false' });
       projectDetails.visitSection('test-project', 'workbenches');
@@ -542,7 +605,6 @@ describe('Project Details', () => {
       notebookRow.findNotebookImageAvailability().should('have.text', 'Disabled');
     });
 
-    //TODO: fix this test
     it('Notebook with unknown image', () => {
       initIntercepts({ isUnknown: true });
       projectDetails.visitSection('test-project', 'workbenches');
@@ -553,7 +615,6 @@ describe('Project Details', () => {
   describe('Selecting a model serving platform', () => {
     it('Select single-model serving on models tab', () => {
       initIntercepts({ disableKServeConfig: false, disableModelConfig: false });
-      initModelServingIntercepts({});
       projectDetails.visitSection('test-project', 'model-server');
       projectDetails.findSelectPlatformButton('single').click();
       cy.wait('@addSupportServingPlatformProject').then((interception) => {
@@ -562,7 +623,6 @@ describe('Project Details', () => {
         );
       });
     });
-    //TODO: fix this test
     it('Un-select single-model serving on models tab', () => {
       initIntercepts({
         disableKServeConfig: false,
@@ -584,7 +644,6 @@ describe('Project Details', () => {
         disableKServeConfig: false,
         disableModelConfig: false,
       });
-      initModelServingIntercepts({});
       projectDetails.visitSection('test-project', 'model-server');
       projectDetails.findSelectPlatformButton('multi').click();
       cy.wait('@addSupportServingPlatformProject').then((interception) => {
@@ -594,13 +653,13 @@ describe('Project Details', () => {
       });
     });
 
-    //TODO: fix this test
     it('Un-select multi-model serving on models tab', () => {
       initIntercepts({
         disableKServeConfig: false,
         disableModelConfig: false,
         enableModelMesh: true,
       });
+      initModelServingIntercepts({ isEmpty: true });
       projectDetails.visitSection('test-project', 'model-server');
       projectDetails.findResetPlatformButton().click();
       cy.wait('@addSupportServingPlatformProject').then((interception) => {
@@ -616,7 +675,6 @@ describe('Project Details', () => {
         disableModelConfig: false,
         disableNIMConfig: false,
       });
-      initModelServingIntercepts({});
       projectDetails.visitSection('test-project', 'model-server');
       projectDetails.findSelectPlatformButton('nim').click();
       cy.wait('@addSupportServingPlatformProject').then((interception) => {
@@ -626,7 +684,6 @@ describe('Project Details', () => {
       });
     });
 
-    //TODO: fix this test
     it('Un-select NIM serving on models tab', () => {
       initIntercepts({
         disableKServeConfig: false,
@@ -635,6 +692,7 @@ describe('Project Details', () => {
         enableModelMesh: false,
         enableNIM: true,
       });
+      initModelServingIntercepts({ isEmpty: true });
       projectDetails.visitSection('test-project', 'model-server');
       projectDetails.findResetPlatformButton().click();
       cy.wait('@addSupportServingPlatformProject').then((interception) => {
@@ -655,7 +713,6 @@ describe('Project Details', () => {
       projectDetails.findErrorSelectingPlatform().should('exist');
     });
 
-    //TODO: fix this test
     it('Show error when failed to un-select platform on overview tab', () => {
       initIntercepts({
         disableKServeConfig: false,
@@ -680,13 +737,13 @@ describe('Project Details', () => {
       });
     });
 
-    //TODO: fix this test
     it('Un-select single-model serving on overview tab', () => {
       initIntercepts({
         disableKServeConfig: false,
         disableModelConfig: false,
         enableModelMesh: false,
       });
+      initModelServingIntercepts({ isEmpty: true });
       projectDetails.visitSection('test-project', 'overview');
       projectDetails.findResetPlatformButton().click();
       cy.wait('@addSupportServingPlatformProject').then((interception) => {
@@ -710,13 +767,13 @@ describe('Project Details', () => {
       });
     });
 
-    //TODO: fix this test
     it('Un-select multi-model serving on overview tab', () => {
       initIntercepts({
         disableKServeConfig: false,
         disableModelConfig: false,
         enableModelMesh: true,
       });
+      initModelServingIntercepts({ isEmpty: true });
       projectDetails.visitSection('test-project', 'overview');
       projectDetails.findResetPlatformButton().click();
       cy.wait('@addSupportServingPlatformProject').then((interception) => {
@@ -741,7 +798,6 @@ describe('Project Details', () => {
       });
     });
 
-    //TODO: fix this test
     it('Un-select NIM serving on overview tab', () => {
       initIntercepts({
         disableKServeConfig: false,
@@ -750,6 +806,7 @@ describe('Project Details', () => {
         enableModelMesh: false,
         enableNIM: true,
       });
+      initModelServingIntercepts({ isEmpty: true });
       projectDetails.visitSection('test-project', 'overview');
       projectDetails.findResetPlatformButton().click();
       cy.wait('@addSupportServingPlatformProject').then((interception) => {
@@ -759,19 +816,18 @@ describe('Project Details', () => {
       });
     });
 
-    //TODO: fix this test
     it('Show error when failed to select platform on overview tab', () => {
       initIntercepts({
         disableKServeConfig: false,
         disableModelConfig: false,
         rejectAddSupportServingPlatformProject: true,
       });
+      initModelServingIntercepts({ isEmpty: true });
       projectDetails.visitSection('test-project', 'model-server');
       projectDetails.findSelectPlatformButton('single').click();
       projectDetails.findErrorSelectingPlatform().should('exist');
     });
 
-    //TODO: fix this test
     it('Show error when failed to un-select platform on overview tab', () => {
       initIntercepts({
         disableKServeConfig: false,
@@ -779,6 +835,7 @@ describe('Project Details', () => {
         enableModelMesh: false,
         rejectAddSupportServingPlatformProject: true,
       });
+      initModelServingIntercepts({ isEmpty: true });
       projectDetails.visitSection('test-project', 'model-server');
       projectDetails.findResetPlatformButton().click();
       projectDetails.findErrorSelectingPlatform().should('exist');
@@ -786,13 +843,13 @@ describe('Project Details', () => {
   });
 
   describe('Navigating back to model registry after selecting a platform', () => {
-    //TODO: fix this test
     it('Navigate back after choosing single-model serving from models tab', () => {
       initIntercepts({
         disableKServeConfig: false,
         disableModelConfig: false,
         enableModelMesh: false,
       });
+      initModelServingIntercepts({ isEmpty: true });
       projectDetails.visitSection(
         'test-project',
         'model-server',
@@ -805,14 +862,12 @@ describe('Project Details', () => {
       );
     });
 
-    //TODO: fix this test
     it('Navigate back after choosing multi-model serving from models tab', () => {
       initIntercepts({
         disableKServeConfig: false,
         disableModelConfig: false,
         enableModelMesh: true,
       });
-      initModelServingIntercepts({});
       projectDetails.visitSection(
         'test-project',
         'model-server',
@@ -828,7 +883,6 @@ describe('Project Details', () => {
       );
     });
 
-    //TODO: fix this test
     it('Navigate back after choosing NIM serving from the models tab', () => {
       initIntercepts({
         disableKServeConfig: false,
@@ -837,6 +891,7 @@ describe('Project Details', () => {
         enableModelMesh: false,
         enableNIM: true,
       });
+      initModelServingIntercepts({ isEmpty: true });
       projectDetails.visitSection(
         'test-project',
         'model-server',
@@ -849,13 +904,13 @@ describe('Project Details', () => {
       );
     });
 
-    //TODO: fix this test
     it('Navigate back after choosing single-model serving from overview tab after switching tabs', () => {
       initIntercepts({
         disableKServeConfig: false,
         disableModelConfig: false,
         enableModelMesh: false,
       });
+      initModelServingIntercepts({ isEmpty: true });
       projectDetails.visitSection(
         'test-project',
         'model-server',
@@ -869,7 +924,6 @@ describe('Project Details', () => {
       );
     });
 
-    //TODO: fix this test
     it('Navigate back after choosing NIM serving from overview tab after switching tabs', () => {
       initIntercepts({
         disableKServeConfig: false,
@@ -878,6 +932,7 @@ describe('Project Details', () => {
         enableModelMesh: false,
         enableNIM: true,
       });
+      initModelServingIntercepts({ isEmpty: true });
       projectDetails.visitSection(
         'test-project',
         'model-server',

@@ -185,9 +185,11 @@ class CreateEditProjectModal extends Modal {
 }
 
 class ProjectDetails {
-  visit(project: string) {
+  visit(project: string, opts: { wait?: boolean } = { wait: true }) {
     cy.visitWithLogin(`/projects/${project}`);
-    this.wait();
+    if (opts.wait) {
+      this.wait();
+    }
   }
 
   visitSection(project: string, section: string, extraUrlParams = '') {
