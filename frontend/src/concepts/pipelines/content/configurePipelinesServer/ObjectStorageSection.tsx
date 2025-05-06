@@ -54,7 +54,7 @@ export const ObjectStorageSection = ({
           <FlexItem>Object storage connection</FlexItem>
           {loaded && !!connections.length && (
             <FlexItem align={{ default: 'alignRight' }}>
-              <Tooltip content="Populate the form with credentials from your selected data connection">
+              <Tooltip content="Populate the form with credentials from your selected connection">
                 <div className="pf-v6-u-mt-md">
                   <PipelineDropdown
                     config={config}
