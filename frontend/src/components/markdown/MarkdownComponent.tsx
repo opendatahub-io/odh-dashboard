@@ -141,7 +141,7 @@ const MarkdownComponent = ({
           return <img src={src} alt={alt || 'Model documentation image'} {...props} />;
         },
       }}
-      rehypePlugins={[rehypeUnwrapImages, rehypeSanitize, rehypeRaw]}
+      rehypePlugins={[rehypeRaw, rehypeUnwrapImages, rehypeSanitize]}
       remarkPlugins={[remarkGfm]}
     >
       {data}
