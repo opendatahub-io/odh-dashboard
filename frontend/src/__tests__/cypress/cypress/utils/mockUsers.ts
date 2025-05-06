@@ -134,8 +134,8 @@ const setUserConfig = (userConfig: UserConfig = {}, isAllowed = true) => {
               ? true
               : // product admins will be limited to listing resources
                 !EDIT_VERBS.includes(verb)
-            : // everyone else can perform any action within
-              !!namespace,
+            : // everyone else can perform any action within the non-deployment namespace
+              !!namespace && namespace !== 'opendatahub',
       }),
     );
   });

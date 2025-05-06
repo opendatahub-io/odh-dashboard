@@ -55,10 +55,10 @@ import type {
   PipelineVersionKF,
 } from '~/concepts/pipelines/kfTypes';
 import type { GrpcResponse } from '~/__mocks__/mlmd/utils';
+import type { NimServingResponse } from '~/__mocks__/mockNimResource';
 import type { BuildMockPipelinveVersionsType } from '~/__mocks__';
 import type { ArtifactStorage } from '~/concepts/pipelines/types';
 import type { ConnectionTypeConfigMap } from '~/concepts/connectionTypes/types';
-import type { NimServingResponse } from '~/__tests__/cypress/cypress/types';
 
 type SuccessErrorResponse = {
   success: boolean;

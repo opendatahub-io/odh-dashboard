@@ -29,6 +29,23 @@ import {
 const projectName = 'test-project-name';
 const mockPipeline = buildMockPipeline();
 const mockPipelineVersion = buildMockPipelineVersion({ pipeline_id: mockPipeline.pipeline_id });
+const mockPipelineVersions = [
+  {
+    ...mockPipelineVersion,
+    display_name: 'Test pipeline version (latest)',
+    pipeline_version_id: 'latest',
+  },
+  {
+    ...mockPipelineVersion,
+    display_name: 'Test pipeline version (old)',
+    pipeline_version_id: 'old',
+  },
+  {
+    ...mockPipelineVersion,
+    display_name: 'Test pipeline version (oldest)',
+    pipeline_version_id: 'oldest',
+  },
+];
 const mockArgoPipelineVersion = mockArgoWorkflowPipelineVersion({});
 const pipelineVersionRef = {
   pipeline_id: mockPipeline.pipeline_id,
@@ -687,6 +704,7 @@ describe('Pipeline create runs', () => {
       duplicateSchedulePage.pipelineSelect
         .findToggleButton()
         .should('have.text', mockPipeline.display_name);
+      duplicateSchedulePage.findUseFixedVersionRadio().should('be.checked');
       duplicateSchedulePage.pipelineVersionSelect
         .findToggleButton()
         .should('have.text', mockPipelineVersion.display_name);
@@ -848,6 +866,188 @@ describe('Pipeline create runs', () => {
       createSchedulePage.findCatchUpSwitch().click();
       createSchedulePage.findCatchUpSwitchValue().should('not.be.checked');
     });
+
+    it('should not show the version selection area when the pipeline is not selected', () => {
+      pipelineRunsGlobal.visit(projectName);
+
+      createRunPage.mockGetExperiments(projectName, mockExperiments);
+      createRunPage.mockGetPipelines(projectName, [mockPipeline]);
+
+      pipelineRunsGlobal.findSchedulesTab().click();
+      pipelineRunsGlobal.findScheduleRunButton().click();
+
+      createRunPage.find();
+      createRunPage.findPipelineNotSelectedAlert().should('exist');
+      createRunPage.findUseLatestVersionRadio().should('not.exist');
+    });
+
+    it('should not show the version selection area when no pipeline versions are available', () => {
+      pipelineRunsGlobal.visit(projectName);
+
+      createRunPage.mockGetExperiments(projectName, mockExperiments);
+      createRunPage.mockGetPipelines(projectName, [mockPipeline]);
+      createRunPage.mockGetPipelineVersions(projectName, [], mockPipelineVersion.pipeline_id);
+
+      pipelineRunsGlobal.findSchedulesTab().click();
+      pipelineRunsGlobal.findScheduleRunButton().click();
+
+      createRunPage.find();
+      createRunPage.pipelineSelect.findToggleButton().should('not.be.disabled').click();
+      createRunPage.selectPipelineByName(mockPipeline.display_name);
+      createRunPage.findNoPipelineVersionsAvailableAlert().should('exist');
+      createRunPage.findUseLatestVersionRadio().should('not.exist');
+    });
+
+    it('should not include the pipeline version in the submission when the latest version is selected', () => {
+      const createRunParams = {
+        display_name: 'New run name',
+        description: 'New run description',
+        experiment_id: 'experiment-1',
+        run_id: 'new-run-id',
+        service_account: '',
+        runtime_config: {
+          parameters: {
+            min_max_scaler: false,
+            neighbors: 1,
+            standard_scaler: 'yes',
+          },
+        },
+      } satisfies Partial<PipelineRunKF>;
+
+      pipelineRunsGlobal.visit(projectName);
+
+      createRunPage
+        .mockCreateRecurringRun(projectName, mockPipelineVersion, createRunParams)
+        .as('submitRecurringRun');
+      createRunPage.mockGetExperiments(projectName, mockExperiments);
+      createRunPage.mockGetPipelines(projectName, [mockPipeline]);
+      createRunPage.mockGetPipelineVersions(
+        projectName,
+        mockPipelineVersions,
+        mockPipelineVersion.pipeline_id,
+      );
+
+      pipelineRunsGlobal.findSchedulesTab().click();
+      pipelineRunsGlobal.findScheduleRunButton().click();
+
+      createRunPage.find();
+
+      createRunPage.experimentSelect.findToggleButton().should('not.be.disabled').click();
+      createRunPage.selectExperimentByName(mockExperiments[0].display_name);
+
+      createRunPage.fillName(createRunParams.display_name);
+      createRunPage.fillDescription(createRunParams.description);
+
+      createRunPage.pipelineSelect.findToggleButton().should('not.be.disabled').click();
+      createRunPage.selectPipelineByName(mockPipeline.display_name);
+      createRunPage.pipelineSelect
+        .findToggleButton()
+        .should('not.be.disabled')
+        .should('have.text', mockPipeline.display_name);
+
+      createRunPage.findUseLatestVersionRadio().should('be.checked');
+
+      const { parameters } = createRunParams.runtime_config;
+      const paramsSection = createRunPage.getParamsSection();
+      paramsSection.findParamById('radio-min_max_scaler-false').click();
+      paramsSection.fillParamInputById('neighbors', String(parameters.neighbors));
+      paramsSection.fillParamInputById('standard_scaler', String(parameters.standard_scaler));
+
+      createRunPage.submit();
+
+      cy.wait('@submitRecurringRun').then((interception) => {
+        expect(interception.request.body).to.eql({
+          display_name: createRunParams.display_name,
+          description: createRunParams.description,
+          runtime_config: createRunParams.runtime_config,
+          pipeline_version_reference: { pipeline_id: mockPipeline.pipeline_id },
+          trigger: { periodic_schedule: { interval_second: '604800' } },
+          max_concurrency: '10',
+          mode: 'ENABLE',
+          no_catchup: false,
+          service_account: createRunParams.service_account,
+          experiment_id: createRunParams.experiment_id,
+        });
+      });
+    });
+
+    it('should include the pipeline version in the submission when a fixed version is selected', () => {
+      const createRunParams = {
+        display_name: 'New run name',
+        description: 'New run description',
+        experiment_id: 'experiment-1',
+        run_id: 'new-run-id',
+        service_account: '',
+        runtime_config: {
+          parameters: {
+            min_max_scaler: false,
+            neighbors: 1,
+            standard_scaler: 'yes',
+          },
+        },
+      } satisfies Partial<PipelineRunKF>;
+
+      pipelineRunsGlobal.visit(projectName);
+
+      createRunPage
+        .mockCreateRecurringRun(projectName, mockPipelineVersion, createRunParams)
+        .as('submitRecurringRun');
+      createRunPage.mockGetExperiments(projectName, mockExperiments);
+      createRunPage.mockGetPipelines(projectName, [mockPipeline]);
+      createRunPage.mockGetPipelineVersions(
+        projectName,
+        mockPipelineVersions,
+        mockPipelineVersion.pipeline_id,
+      );
+
+      pipelineRunsGlobal.findSchedulesTab().click();
+      pipelineRunsGlobal.findScheduleRunButton().click();
+
+      createRunPage.find();
+
+      createRunPage.experimentSelect.findToggleButton().should('not.be.disabled').click();
+      createRunPage.selectExperimentByName(mockExperiments[0].display_name);
+
+      createRunPage.fillName(createRunParams.display_name);
+      createRunPage.fillDescription(createRunParams.description);
+
+      createRunPage.pipelineSelect.findToggleButton().should('not.be.disabled').click();
+      createRunPage.selectPipelineByName(mockPipeline.display_name);
+      createRunPage.pipelineSelect
+        .findToggleButton()
+        .should('not.be.disabled')
+        .should('have.text', mockPipeline.display_name);
+
+      const selectedPipelineVersion = mockPipelineVersions[1];
+      createRunPage.findUseFixedVersionRadio().click();
+      createRunPage.pipelineVersionSelect.openAndSelectItem(selectedPipelineVersion.display_name);
+
+      const { parameters } = createRunParams.runtime_config;
+      const paramsSection = createRunPage.getParamsSection();
+      paramsSection.findParamById('radio-min_max_scaler-false').click();
+      paramsSection.fillParamInputById('neighbors', String(parameters.neighbors));
+      paramsSection.fillParamInputById('standard_scaler', String(parameters.standard_scaler));
+
+      createRunPage.submit();
+
+      cy.wait('@submitRecurringRun').then((interception) => {
+        expect(interception.request.body).to.eql({
+          display_name: createRunParams.display_name,
+          description: createRunParams.description,
+          pipeline_version_reference: {
+            pipeline_id: mockPipeline.pipeline_id,
+            pipeline_version_id: selectedPipelineVersion.pipeline_version_id,
+          },
+          runtime_config: createRunParams.runtime_config,
+          trigger: { periodic_schedule: { interval_second: '604800' } },
+          max_concurrency: '10',
+          mode: 'ENABLE',
+          no_catchup: false,
+          service_account: createRunParams.service_account,
+          experiment_id: createRunParams.experiment_id,
+        });
+      });
+    });
   });
 });
 
@@ -948,6 +1148,7 @@ const createScheduleRunCommonTest = () => {
   createSchedulePage.fillDescription('New recurring run description');
   createSchedulePage.pipelineSelect.findToggleButton().should('not.be.disabled').click();
   createSchedulePage.selectPipelineByName('Test pipeline');
+  createSchedulePage.findUseFixedVersionRadio().click();
   createSchedulePage.pipelineVersionSelect.findToggleButton().should('not.be.disabled');
   const { parameters } = createRecurringRunParams.runtime_config;
   const paramsSection = createRunPage.getParamsSection();

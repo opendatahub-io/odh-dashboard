@@ -1,4 +1,4 @@
-import { PluginStore } from '~/plugins/plugin-store';
+import { PluginStore } from '../plugin-store';
 
 describe('PluginStore', () => {
   it('should filter extensions based on feature flags', () => {

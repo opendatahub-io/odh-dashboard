@@ -12,6 +12,7 @@ import RunForm from '~/concepts/pipelines/content/createRun/RunForm';
 import useRunFormData from '~/concepts/pipelines/content/createRun/useRunFormData';
 import RunPageFooter from '~/concepts/pipelines/content/createRun/RunPageFooter';
 import {
+  PipelineVersionToUse,
   RunFormData,
   RunType,
   RunTypeOption,
@@ -79,6 +80,14 @@ const RunPage: React.FC<RunPageProps> = ({
     [isSchedule, triggerType],
   );
 
+  const versionToUseData = React.useMemo<PipelineVersionToUse>(
+    () =>
+      locationVersion || contextPipelineVersion
+        ? PipelineVersionToUse.PROVIDED
+        : PipelineVersionToUse.LATEST,
+    [locationVersion, contextPipelineVersion],
+  );
+
   const [formData, setFormDataValue] = useRunFormData(duplicateRun, {
     nameDesc: duplicateRun
       ? {
@@ -89,6 +98,7 @@ const RunPage: React.FC<RunPageProps> = ({
     runType: runTypeData,
     pipeline: locationPipeline || contextPipeline,
     version: locationVersion || contextPipelineVersion,
+    versionToUse: versionToUseData,
     experiment: locationExperiment || contextExperiment || defaultExperiment,
   });
 

@@ -91,7 +91,12 @@ const PipelineVersionTableRow: React.FC<PipelineVersionTableRowProps> = ({
               title: 'Create run',
               onClick: () => {
                 navigate(createRunRoute(namespace), {
-                  state: { contextData: { pipeline, version } },
+                  state: {
+                    contextData: {
+                      pipeline,
+                      version,
+                    },
+                  },
                 });
               },
               isAriaDisabled: isCreateDisabled,
@@ -103,7 +108,12 @@ const PipelineVersionTableRow: React.FC<PipelineVersionTableRowProps> = ({
               title: 'Create schedule',
               onClick: () => {
                 navigate(createRecurringRunRoute(namespace), {
-                  state: { contextData: { pipeline, version } },
+                  state: {
+                    contextData: {
+                      pipeline,
+                      version,
+                    },
+                  },
                 });
               },
               isAriaDisabled: isCreateDisabled,

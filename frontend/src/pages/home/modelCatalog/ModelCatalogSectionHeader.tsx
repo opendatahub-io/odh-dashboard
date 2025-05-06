@@ -6,7 +6,7 @@ import { ProjectObjectType, SectionType } from '~/concepts/design/utils';
 const ModelCatalogSectionHeader: React.FC = () => (
   <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
     <FlexItem>
-      <HeaderIcon type={ProjectObjectType.modelCatalog} sectionType={SectionType.organize} />
+      <HeaderIcon type={ProjectObjectType.modelCatalog} sectionType={SectionType.training} />
     </FlexItem>
     <FlexItem>
       <Content component={ContentVariants.h1}>Model catalog</Content>
