@@ -9,3 +9,18 @@ export type ModelServingPlatform = Extension<
 >;
 export const isModelServingPlatform = (extension: Extension): extension is ModelServingPlatform =>
   extension.type === 'model-serving.platform';
+
+export type ModelServingPlatformCard = Extension<
+  'model-serving.platform/card',
+  {
+    platform: string;
+    title: string;
+    description: string;
+    selectText: string;
+  }
+>;
+export const isModelServingPlatformCard =
+  (platform?: string) =>
+  (extension: Extension): extension is ModelServingPlatformCard =>
+    extension.type === 'model-serving.platform/card' &&
+    (platform ? extension.properties.platform === platform : true);
