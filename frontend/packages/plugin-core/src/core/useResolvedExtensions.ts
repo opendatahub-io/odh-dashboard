@@ -5,9 +5,9 @@ import type {
   ResolvedExtension,
   ExtensionPredicate,
 } from '@openshift/dynamic-plugin-sdk';
-import { useExtensions } from '@openshift/dynamic-plugin-sdk';
-import { allSettledPromises } from '~/utilities/allSettledPromises';
+import { allSettledPromises } from '@odh-dashboard/internal/utilities/allSettledPromises';
 import { resolveCodeRefValues } from './internal/coderefs';
+import { useExtensions } from './useExtensions';
 
 export type UseResolvedExtensionsResult<TExtension extends Extension> = [
   resolvedExtensions: LoadedExtension<ResolvedExtension<TExtension>>[],

@@ -32,16 +32,18 @@ const ModelCatalogSection: React.FC = conditionalArea(
   const modelCatalogSources = useMakeFetchObject(useModelCatalogSources());
   const { data, loaded, error } = modelCatalogSources;
 
-  const models = data
-    .flatMap((sourceModels: ModelCatalogSource) =>
-      sourceModels.models.map((vals: CatalogModel) => ({ source: sourceModels.source, ...vals })),
-    )
-    .filter((model) => model.labels && model.labels.find((l) => l === FEATURED_LABEL));
+  const models = data.flatMap((sourceModels: ModelCatalogSource) =>
+    sourceModels.models.map((vals: CatalogModel) => ({ source: sourceModels.source, ...vals })),
+  );
+
+  const featuredModels = models.filter(
+    (model) => model.labels && model.labels.find((l) => l === FEATURED_LABEL),
+  );
 
   const [visibleCardCount, setVisibleCardCount] = React.useState<number>(MAX_SHOWN_MODELS);
-  const numCards = Math.min(models.length, visibleCardCount);
+  const numCards = Math.min(featuredModels.length, visibleCardCount);
 
-  const shownModels = models.length ? models.slice(0, visibleCardCount) : [];
+  const shownModels = featuredModels.length ? featuredModels.slice(0, visibleCardCount) : [];
 
   const [hintHidden, setHintHidden] = useBrowserStorage<boolean>(
     'odh.dashboard.homepage.model.catalog.hint',
@@ -76,7 +78,7 @@ const ModelCatalogSection: React.FC = conditionalArea(
     return <ProjectsLoading />;
   }
 
-  if (models.length === 0) {
+  if (featuredModels.length === 0) {
     return null;
   }
 

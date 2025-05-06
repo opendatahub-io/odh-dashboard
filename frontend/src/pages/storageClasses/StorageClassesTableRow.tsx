@@ -14,12 +14,11 @@ import {
 import { Tr, Td, ActionsColumn, TableText } from '@patternfly/react-table';
 import { PencilAltIcon, OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 
-import { MetadataAnnotation, StorageClassKind } from '~/k8sTypes';
+import { MetadataAnnotation, StorageClassConfig, StorageClassKind } from '~/k8sTypes';
 import { TableRowTitleDescription } from '~/components/table';
-import { updateStorageClassConfig } from '~/services/StorageClassService';
 import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
 import { NoValue } from '~/components/NoValue';
-import { ResponseStatus } from '~/types';
+import { updateStorageClassConfig } from '~/api';
 import { ColumnLabel } from './constants';
 import { isOpenshiftDefaultStorageClass, isValidConfigValue } from './utils';
 import { StorageClassEnableSwitch } from './StorageClassEnableSwitch';
@@ -114,7 +113,7 @@ export const StorageClassesTableRow: React.FC<StorageClassesTableRowProps> = ({ 
   }, [metadata.name, storageClassConfigs, refresh]);
 
   const onEnableSwitchChange = React.useCallback(
-    async (update: () => Promise<ResponseStatus>) => {
+    async (update: () => Promise<StorageClassConfig>) => {
       setIsTogglingEnabled(true);
 
       await update();

@@ -1,4 +1,9 @@
-import { K8sResourceListResult, StorageClassConfig, StorageClassKind } from '~/k8sTypes';
+import {
+  K8sResourceListResult,
+  MetadataAnnotation,
+  StorageClassConfig,
+  StorageClassKind,
+} from '~/k8sTypes';
 
 export const mockStorageClassList = (
   storageClasses: StorageClassKind[] = mockStorageClasses,
@@ -18,7 +23,9 @@ export const buildMockStorageClassConfig = (
 ): string =>
   JSON.stringify({
     ...JSON.parse(
-      String(mockStorageClass.metadata.annotations?.['opendatahub.io/sc-config'] ?? null),
+      String(
+        mockStorageClass.metadata.annotations?.[MetadataAnnotation.OdhStorageClassConfig] ?? null,
+      ),
     ),
     ...config,
   });
@@ -32,7 +39,7 @@ export const buildMockStorageClass = (
     ...mockStorageClass.metadata,
     annotations: {
       ...mockStorageClass.metadata.annotations,
-      'opendatahub.io/sc-config':
+      [MetadataAnnotation.OdhStorageClassConfig]:
         typeof config !== 'string' ? buildMockStorageClassConfig(mockStorageClass, config) : config,
     },
   },

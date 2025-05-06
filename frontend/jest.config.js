@@ -2,7 +2,7 @@
 // https://jestjs.io/docs/en/configuration.html
 
 module.exports = {
-  roots: ['<rootDir>/src/'],
+  roots: ['<rootDir>'],
   testMatch: [
     '**/src/__tests__/unit/**/?(*.)+(spec|test).ts?(x)',
     '**/__tests__/?(*.)+(spec|test).ts?(x)',
@@ -12,7 +12,7 @@ module.exports = {
   clearMocks: true,
 
   // An array of directory names to be searched recursively up from the requiring module's location
-  moduleDirectories: ['node_modules', '<rootDir>/src'],
+  moduleDirectories: ['node_modules', '<rootDir>/src', '<rootDir>/packages'],
 
   // A map from regular expressions to module names that allow to stub out resources with a single module
   moduleNameMapper: {
@@ -40,6 +40,7 @@ module.exports = {
 
   collectCoverageFrom: [
     '<rootDir>/src/**/*.{ts,tsx}',
+    '<rootDir>/packages/**/src/**/*.{ts,tsx}',
     '!<rootDir>/src/third_party/**',
     '!<rootDir>/src/__tests__/**',
     '!<rootDir>/src/__mocks__/**',
