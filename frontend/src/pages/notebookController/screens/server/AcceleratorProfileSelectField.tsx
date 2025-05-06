@@ -13,7 +13,6 @@ import {
   Label,
   MenuGroup,
   MenuItem,
-  NumberInput,
   Popover,
   Skeleton,
   Split,
@@ -34,8 +33,8 @@ import GlobalIcon from '~/images/icons/GlobalIcon';
 import useReadAcceleratorState, {
   AcceleratorProfileState,
 } from '~/utilities/useReadAcceleratorState';
-import useAcceleratorCountWarning from './useAcceleratorCountWarning';
 import NumberInputWrapper from '~/components/NumberInputWrapper';
+import useAcceleratorCountWarning from './useAcceleratorCountWarning';
 
 type AcceleratorProfileSelectFieldProps = {
   currentProject?: string;
