@@ -8,7 +8,7 @@ import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
 import { mockInferenceServiceK8sResource } from '~/__mocks__/mockInferenceServiceK8sResource';
 import { InferenceServiceKind, KnownLabels } from '~/k8sTypes';
 
-const mockInferenceServices = mockK8sResourceList([
+const mockInferenceServices = [
   mockInferenceServiceK8sResource({ name: 'item-1' }),
   mockInferenceServiceK8sResource({ name: 'item-2' }),
   mockInferenceServiceK8sResource({
@@ -27,6 +27,14 @@ const mockInferenceServices = mockK8sResourceList([
       [KnownLabels.MODEL_REGISTRY_NAME]: 'test-registry-2',
     },
   }),
+];
+
+const mockInferenceServicesList = mockK8sResourceList(mockInferenceServices);
+
+const mockInferenceServicesListWithNonDashboardItems = mockK8sResourceList([
+  ...mockInferenceServices,
+  mockInferenceServiceK8sResource({ name: 'item-5', isNonDashboardItem: true }),
+  mockInferenceServiceK8sResource({ name: 'item-6', isNonDashboardItem: true }),
 ]);
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
@@ -55,7 +63,7 @@ describe('useInferenceServices', () => {
     // Mock the return value of useAccessReview
     useAccessReviewMock.mockReturnValue([true, true]);
 
-    k8sListResourceMock.mockResolvedValue(mockInferenceServices);
+    k8sListResourceMock.mockResolvedValue(mockInferenceServicesList);
     const renderResult = testHook(useInferenceServices)('namespace');
     expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
     expect(renderResult).hookToStrictEqual(
@@ -68,7 +76,7 @@ describe('useInferenceServices', () => {
     expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
     expect(renderResult).hookToStrictEqual(
       standardUseFetchStateObject({
-        data: { hasNonDashboardItems: false, items: mockInferenceServices.items },
+        data: { hasNonDashboardItems: false, items: mockInferenceServicesList.items },
         loaded: true,
       }),
     );
@@ -76,12 +84,14 @@ describe('useInferenceServices', () => {
     expect(renderResult).hookToBeStable({ data: false, loaded: false, error: true, refresh: true });
 
     // refresh
-    k8sListResourceMock.mockResolvedValue(mockK8sResourceList([...mockInferenceServices.items]));
+    k8sListResourceMock.mockResolvedValue(
+      mockK8sResourceList([...mockInferenceServicesList.items]),
+    );
     await act(() => renderResult.result.current.refresh());
     expect(k8sListResourceMock).toHaveBeenCalledTimes(2);
     expect(renderResult).hookToStrictEqual(
       standardUseFetchStateObject({
-        data: { hasNonDashboardItems: false, items: [...mockInferenceServices.items] },
+        data: { hasNonDashboardItems: false, items: [...mockInferenceServicesList.items] },
         loaded: true,
       }),
     );
@@ -95,7 +105,7 @@ describe('useInferenceServices', () => {
     // Mock the return value of useAccessReview
     useAccessReviewMock.mockReturnValue([true, true]);
 
-    k8sListResourceMock.mockResolvedValue(mockInferenceServices);
+    k8sListResourceMock.mockResolvedValue(mockInferenceServicesList);
     const renderResult = testHook(useInferenceServices)();
     expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
     expect(renderResult).hookToStrictEqual(
@@ -108,7 +118,7 @@ describe('useInferenceServices', () => {
     expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
     expect(renderResult).hookToStrictEqual(
       standardUseFetchStateObject({
-        data: { hasNonDashboardItems: false, items: mockInferenceServices.items },
+        data: { hasNonDashboardItems: false, items: mockInferenceServicesList.items },
         loaded: true,
       }),
     );
@@ -116,12 +126,14 @@ describe('useInferenceServices', () => {
     expect(renderResult).hookToBeStable({ data: false, loaded: false, error: true, refresh: true });
 
     // refresh
-    k8sListResourceMock.mockResolvedValue(mockK8sResourceList([...mockInferenceServices.items]));
+    k8sListResourceMock.mockResolvedValue(
+      mockK8sResourceList([...mockInferenceServicesList.items]),
+    );
     await act(() => renderResult.result.current.refresh());
     expect(k8sListResourceMock).toHaveBeenCalledTimes(2);
     expect(renderResult).hookToStrictEqual(
       standardUseFetchStateObject({
-        data: { hasNonDashboardItems: false, items: [...mockInferenceServices.items] },
+        data: { hasNonDashboardItems: false, items: [...mockInferenceServicesList.items] },
         loaded: true,
       }),
     );
@@ -163,7 +175,7 @@ describe('useInferenceServices', () => {
     // Mock the return value of useAccessReview
     useAccessReviewMock.mockReturnValue([false, true]);
 
-    k8sListResourceMock.mockResolvedValue(mockInferenceServices);
+    k8sListResourceMock.mockResolvedValue(mockInferenceServicesList);
     const renderResult = testHook(useInferenceServices)('namespace');
     expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
     expect(renderResult).hookToStrictEqual(
@@ -176,7 +188,7 @@ describe('useInferenceServices', () => {
     expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
     expect(renderResult).hookToStrictEqual(
       standardUseFetchStateObject({
-        data: { hasNonDashboardItems: false, items: mockInferenceServices.items },
+        data: { hasNonDashboardItems: false, items: mockInferenceServicesList.items },
         loaded: true,
       }),
     );
@@ -184,12 +196,14 @@ describe('useInferenceServices', () => {
     expect(renderResult).hookToBeStable({ data: false, loaded: false, error: true, refresh: true });
 
     // refresh
-    k8sListResourceMock.mockResolvedValue(mockK8sResourceList([...mockInferenceServices.items]));
+    k8sListResourceMock.mockResolvedValue(
+      mockK8sResourceList([...mockInferenceServicesList.items]),
+    );
     await act(() => renderResult.result.current.refresh());
     expect(k8sListResourceMock).toHaveBeenCalledTimes(2);
     expect(renderResult).hookToStrictEqual(
       standardUseFetchStateObject({
-        data: { hasNonDashboardItems: false, items: [...mockInferenceServices.items] },
+        data: { hasNonDashboardItems: false, items: [...mockInferenceServicesList.items] },
         loaded: true,
       }),
     );
@@ -203,7 +217,7 @@ describe('useInferenceServices', () => {
     // Mock the return value of useAccessReview
     useAccessReviewMock.mockReturnValue([true, true]);
 
-    k8sListResourceMock.mockResolvedValue(mockInferenceServices);
+    k8sListResourceMock.mockResolvedValue(mockInferenceServicesList);
     const renderResult = testHook(useInferenceServices)('namespace');
     expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
     expect(renderResult).hookToStrictEqual(
@@ -216,7 +230,7 @@ describe('useInferenceServices', () => {
     expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
     expect(renderResult).hookToStrictEqual(
       standardUseFetchStateObject({
-        data: { hasNonDashboardItems: false, items: mockInferenceServices.items },
+        data: { hasNonDashboardItems: false, items: mockInferenceServicesList.items },
         loaded: true,
       }),
     );
@@ -224,12 +238,14 @@ describe('useInferenceServices', () => {
     expect(renderResult).hookToBeStable({ data: false, loaded: false, error: true, refresh: true });
 
     // refresh
-    k8sListResourceMock.mockResolvedValue(mockK8sResourceList([...mockInferenceServices.items]));
+    k8sListResourceMock.mockResolvedValue(
+      mockK8sResourceList([...mockInferenceServicesList.items]),
+    );
     await act(() => renderResult.result.current.refresh());
     expect(k8sListResourceMock).toHaveBeenCalledTimes(2);
     expect(renderResult).hookToStrictEqual(
       standardUseFetchStateObject({
-        data: { hasNonDashboardItems: false, items: [...mockInferenceServices.items] },
+        data: { hasNonDashboardItems: false, items: [...mockInferenceServicesList.items] },
         loaded: true,
       }),
     );
@@ -260,54 +276,50 @@ describe('useInferenceServices', () => {
     expect(renderResult).hookToBeStable({ data: false, loaded: true, error: false, refresh: true });
   });
 
-  it('has "dashboard" labelSelector by default', async () => {
+  it('has no labelSelector by default', async () => {
     useModelServingEnabledMock.mockReturnValue(true);
     useAccessReviewMock.mockReturnValue([true, true]);
-    k8sListResourceMock.mockResolvedValue(mockInferenceServices);
+    k8sListResourceMock.mockResolvedValue(mockInferenceServicesList);
 
     testHook(useInferenceServices)();
 
-    expect(k8sListResourceMock.mock.calls[0][0].queryOptions?.queryParams).toEqual({
-      labelSelector: 'opendatahub.io/dashboard=true',
-    });
+    expect(k8sListResourceMock.mock.calls[0][0].queryOptions?.queryParams).toEqual({});
   });
 
   it('includes "registered-model-id" labelSelector when "registeredModelId" is specified', async () => {
     useModelServingEnabledMock.mockReturnValue(true);
     useAccessReviewMock.mockReturnValue([true, true]);
-    k8sListResourceMock.mockResolvedValue(mockInferenceServices);
+    k8sListResourceMock.mockResolvedValue(mockInferenceServicesList);
 
     testHook(useInferenceServices)(undefined, 'some-registered-model-id');
 
     expect(k8sListResourceMock.mock.calls[0][0].queryOptions?.queryParams).toEqual({
-      labelSelector:
-        'opendatahub.io/dashboard=true,modelregistry.opendatahub.io/registered-model-id=some-registered-model-id',
+      labelSelector: 'modelregistry.opendatahub.io/registered-model-id=some-registered-model-id',
     });
   });
 
   it('includes "model-version-id" labelSelector when "modelVersionId" is specified', async () => {
     useModelServingEnabledMock.mockReturnValue(true);
     useAccessReviewMock.mockReturnValue([true, true]);
-    k8sListResourceMock.mockResolvedValue(mockInferenceServices);
+    k8sListResourceMock.mockResolvedValue(mockInferenceServicesList);
 
     testHook(useInferenceServices)(undefined, undefined, 'some-model-version-id');
 
     expect(k8sListResourceMock.mock.calls[0][0].queryOptions?.queryParams).toEqual({
-      labelSelector:
-        'opendatahub.io/dashboard=true,modelregistry.opendatahub.io/model-version-id=some-model-version-id',
+      labelSelector: 'modelregistry.opendatahub.io/model-version-id=some-model-version-id',
     });
   });
 
   it('includes appropriate labelSelectors when "modelVersionId" and "registeredModelId" are specified', async () => {
     useModelServingEnabledMock.mockReturnValue(true);
     useAccessReviewMock.mockReturnValue([true, true]);
-    k8sListResourceMock.mockResolvedValue(mockInferenceServices);
+    k8sListResourceMock.mockResolvedValue(mockInferenceServicesList);
 
     testHook(useInferenceServices)(undefined, 'some-registered-model-id', 'some-model-version-id');
 
     expect(k8sListResourceMock.mock.calls[0][0].queryOptions?.queryParams).toEqual({
       labelSelector:
-        'opendatahub.io/dashboard=true,modelregistry.opendatahub.io/registered-model-id=some-registered-model-id,modelregistry.opendatahub.io/model-version-id=some-model-version-id',
+        'modelregistry.opendatahub.io/registered-model-id=some-registered-model-id,modelregistry.opendatahub.io/model-version-id=some-model-version-id',
     });
   });
 
@@ -317,7 +329,7 @@ describe('useInferenceServices', () => {
     // Mock the return value of useAccessReview
     useAccessReviewMock.mockReturnValue([true, true]);
 
-    k8sListResourceMock.mockResolvedValue(mockInferenceServices);
+    k8sListResourceMock.mockResolvedValue(mockInferenceServicesList);
     const renderResult = testHook(useInferenceServices)('namespace', '1', '2', 'test-registry');
     expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
     expect(renderResult).hookToStrictEqual(
@@ -330,7 +342,7 @@ describe('useInferenceServices', () => {
     expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
     expect(renderResult).hookToStrictEqual(
       standardUseFetchStateObject({
-        data: { hasNonDashboardItems: false, items: mockInferenceServices.items.slice(0, 3) },
+        data: { hasNonDashboardItems: false, items: mockInferenceServicesList.items.slice(0, 3) },
         loaded: true,
       }),
     );
@@ -339,16 +351,40 @@ describe('useInferenceServices', () => {
     expect(renderResult).hookToBeStable({ data: false, loaded: false, error: true, refresh: true });
 
     // refresh
-    k8sListResourceMock.mockResolvedValue(mockK8sResourceList([...mockInferenceServices.items]));
+    k8sListResourceMock.mockResolvedValue(
+      mockK8sResourceList([...mockInferenceServicesList.items]),
+    );
     await act(() => renderResult.result.current.refresh());
     expect(k8sListResourceMock).toHaveBeenCalledTimes(2);
     expect(renderResult).hookToStrictEqual(
       standardUseFetchStateObject({
-        data: { hasNonDashboardItems: false, items: mockInferenceServices.items.slice(0, 3) },
+        data: { hasNonDashboardItems: false, items: mockInferenceServicesList.items.slice(0, 3) },
         loaded: true,
       }),
     );
     expect(renderResult).hookToHaveUpdateCount(3);
     expect(renderResult).hookToBeStable({ data: false, loaded: true, error: true, refresh: true });
+  });
+
+  it('should exclude non-dashboard inference services when they are present and include hasNonDashboardItems: true', async () => {
+    useModelServingEnabledMock.mockReturnValue(true);
+    useAccessReviewMock.mockReturnValue([true, true]);
+    k8sListResourceMock.mockResolvedValue(mockInferenceServicesListWithNonDashboardItems);
+
+    const renderResult = testHook(useInferenceServices)('namespace');
+    expect(renderResult).hookToStrictEqual(
+      standardUseFetchStateObject({ data: { hasNonDashboardItems: false, items: [] } }),
+    );
+    expect(renderResult).hookToHaveUpdateCount(1);
+
+    // wait for update
+    await renderResult.waitForNextUpdate();
+    expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
+    expect(renderResult).hookToStrictEqual(
+      standardUseFetchStateObject({
+        data: { hasNonDashboardItems: true, items: mockInferenceServicesList.items },
+        loaded: true,
+      }),
+    );
   });
 });
