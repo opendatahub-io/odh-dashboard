@@ -10,7 +10,7 @@ import {
   MenuToggle,
 } from '@patternfly/react-core';
 import React from 'react';
-import { EyeIcon, EyeSlashIcon, KeyIcon, OptimizeIcon } from '@patternfly/react-icons';
+import { EyeIcon, EyeSlashIcon, OptimizeIcon } from '@patternfly/react-icons';
 import styles from '@patternfly/react-styles/css/components/Menu/menu';
 import { css } from '@patternfly/react-styles';
 import { AWSDataEntry } from '~/pages/projects/types';
