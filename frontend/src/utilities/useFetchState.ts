@@ -1,3 +1,4 @@
+import React from 'react';
 import useFetch, {
   AdHocUpdate,
   FetchOptions,
@@ -50,7 +51,7 @@ const useFetchState = <Type>(
     refreshRate,
     initialPromisePurity,
   });
-  return [data, loaded, error, refresh];
+  return React.useMemo(() => [data, loaded, error, refresh], [data, loaded, error, refresh]);
 };
 
 export default useFetchState;
