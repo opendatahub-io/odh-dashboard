@@ -74,11 +74,7 @@ const NotebookServer: React.FC = () => {
                   </Button>
                 </ActionListItem>
                 <ActionListItem onClick={() => setNotebooksToStop([notebook])}>
-                  <Button
-                    data-id="stop-workbench-button"
-                    data-testid="stop-workbench-button"
-                    variant="secondary"
-                  >
+                  <Button data-id="stop-wb-button" data-testid="stop-wb-button" variant="secondary">
                     Stop workbench
                   </Button>
                 </ActionListItem>

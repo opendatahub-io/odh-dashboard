@@ -65,7 +65,7 @@ class NotebookServer {
   }
 
   findStopServerButton() {
-    return cy.findByTestId('stop-workbench-button');
+    return cy.findByTestId('stop-wb-button');
   }
 
   findStopNotebookServerButton() {
