@@ -1,5 +1,6 @@
 export * from './navigation';
 export * from './status-provider';
+export * from './project-details';
 
 /**
  * ## Extension Point Definitions
