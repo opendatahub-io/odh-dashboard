@@ -83,7 +83,14 @@ export const PipelineDropdown = ({
           onClick={onToggle}
           isExpanded={isOpen}
         >
-          <OptimizeIcon /> <span style={{ marginLeft: '8px' }}>Autofill from connection</span>
+          <Flex spaceItems={{ default: 'spaceItemsSm' }}>
+            <FlexItem>
+              <OptimizeIcon />
+            </FlexItem>
+            <FlexItem>
+              Autofill from connection
+            </FlexItem>
+          </Flex>
         </MenuToggle>
       )}
       isOpen={isOpen}
