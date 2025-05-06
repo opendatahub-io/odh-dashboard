@@ -137,12 +137,12 @@ class StorageClassesTable {
     return this.findEmptyState().findByTestId('clear-filters-button');
   }
 
-  mockUpdateStorageClass(storageClassName: string, times?: number) {
-    return cy.interceptOdh(
-      `PUT /api/storage-class/:name/config`,
-      { path: { name: storageClassName }, times },
-      { success: true, error: '' },
-    );
+  mockGetStorageClass(storageClass: StorageClassKind, times = 1) {
+    return cy.interceptK8s('GET', { model: StorageClassModel, times }, storageClass);
+  }
+
+  mockPatchStorageClass(storageClass: StorageClassKind, times = 1) {
+    return cy.interceptK8s('PATCH', { model: StorageClassModel, times }, storageClass);
   }
 }
 
@@ -195,12 +195,12 @@ class StorageClassEditModal extends Modal {
     return this.find().findByTestId('edit-sc-modal-info-alert');
   }
 
-  mockUpdateStorageClass(storageClassName: string, times?: number) {
-    return cy.interceptOdh(
-      `PUT /api/storage-class/:name/config`,
-      { path: { name: storageClassName }, times },
-      { success: true, error: '' },
-    );
+  mockGetStorageClass(storageClass: StorageClassKind, times = 1) {
+    return cy.interceptK8s('GET', { model: StorageClassModel, times }, storageClass);
+  }
+
+  mockPatchStorageClass(storageClass: StorageClassKind, times = 1) {
+    return cy.interceptK8s('PATCH', { model: StorageClassModel, times }, storageClass);
   }
 }
 
