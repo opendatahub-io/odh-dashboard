@@ -421,7 +421,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
               </FormGroup>
               {addSecureDB &&
                 (!configSecretsLoaded && !configSecretsError ? (
-                  <EmptyState icon={Spinner} />
+                  <Spinner className="pf-v6-u-m-md" />
                 ) : configSecretsLoaded ? (
                   <CreateMRSecureDBSection
                     secureDBInfo={secureDBInfo}
