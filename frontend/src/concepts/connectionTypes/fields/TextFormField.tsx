@@ -3,7 +3,7 @@ import { TextArea } from '@patternfly/react-core';
 import { TextField } from '~/concepts/connectionTypes/types';
 import { FieldProps } from '~/concepts/connectionTypes/fields/types';
 import DefaultValueTextRenderer from '~/concepts/connectionTypes/fields/DefaultValueTextRenderer';
-import { useTrimInputHandlers } from '~/concepts/connectionTypes/utils';
+import { trimInputOnBlur, trimInputOnPaste } from '~/concepts/connectionTypes/utils';
 
 const TextFormField: React.FC<FieldProps<TextField>> = ({
   id,
@@ -13,7 +13,6 @@ const TextFormField: React.FC<FieldProps<TextField>> = ({
   value,
   'data-testid': dataTestId,
 }) => {
-  const { onBlur: trimmedBlur, onPaste: trimmedPaste } = useTrimInputHandlers(value, onChange);
   const isPreview = mode === 'preview';
   return (
     <DefaultValueTextRenderer id={id} field={field} mode={mode} component="pre">
@@ -27,8 +26,8 @@ const TextFormField: React.FC<FieldProps<TextField>> = ({
         resizeOrientation="vertical"
         value={(isPreview ? field.properties.defaultValue : value) ?? ''}
         onChange={isPreview || !onChange ? undefined : (_e, v) => onChange(v)}
-        onBlur={(e) => trimmedBlur(e)}
-        onPaste={(e) => trimmedPaste(e)}
+        onBlur={(e) => trimInputOnBlur(value, onChange)(e)}
+        onPaste={(e) => trimInputOnPaste(value, onChange)(e)}
       />
     </DefaultValueTextRenderer>
   );

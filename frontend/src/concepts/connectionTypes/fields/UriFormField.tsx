@@ -10,7 +10,7 @@ import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { UriField } from '~/concepts/connectionTypes/types';
 import { FieldProps } from '~/concepts/connectionTypes/fields/types';
 import DefaultValueTextRenderer from '~/concepts/connectionTypes/fields/DefaultValueTextRenderer';
-import { useTrimInputHandlers } from '~/concepts/connectionTypes/utils';
+import { trimInputOnBlur, trimInputOnPaste } from '~/concepts/connectionTypes/utils';
 
 const validateUrl = (url?: string) => {
   if (!url) {
@@ -34,7 +34,6 @@ const UriFormField: React.FC<FieldProps<UriField>> = ({
 }) => {
   const isPreview = mode === 'preview';
   const [isValid, setIsValid] = React.useState(() => validateUrl(value));
-  const { onBlur: trimmedBlur, onPaste: trimmedPaste } = useTrimInputHandlers(value, onChange);
   React.useEffect(() => {
     onValidate?.(!isValid, value);
     // do not run when callback changes
@@ -63,10 +62,10 @@ const UriFormField: React.FC<FieldProps<UriField>> = ({
         }
         validated={isValid ? ValidatedOptions.default : ValidatedOptions.error}
         onBlur={(e) => {
-          trimmedBlur(e);
+          trimInputOnBlur(value, onChange)(e);
           setIsValid(validateUrl(value));
         }}
-        onPaste={(e) => trimmedPaste(e)}
+        onPaste={(e) => trimInputOnPaste(value, onChange)(e)}
       />
       {!isValid && (
         <FormHelperText>

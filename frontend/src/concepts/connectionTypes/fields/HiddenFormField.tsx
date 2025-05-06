@@ -6,7 +6,7 @@ import PasswordInput from '~/components/PasswordInput';
 import { FieldProps } from '~/concepts/connectionTypes/fields/types';
 import FormGroupText from '~/components/FormGroupText';
 import UnspecifiedValue from '~/concepts/connectionTypes/fields/UnspecifiedValue';
-import { useTrimInputHandlers } from '~/concepts/connectionTypes/utils';
+import { trimInputOnBlur, trimInputOnPaste } from '~/concepts/connectionTypes/utils';
 
 const HiddenFormField: React.FC<FieldProps<HiddenField>> = ({
   id,
@@ -17,7 +17,6 @@ const HiddenFormField: React.FC<FieldProps<HiddenField>> = ({
   'data-testid': dataTestId,
 }) => {
   const isPreview = mode === 'preview';
-  const { onBlur: trimmedBlur, onPaste: trimmedPaste } = useTrimInputHandlers(value, onChange);
   return mode !== 'default' && field.properties.defaultReadOnly ? (
     <FormGroupText id={id}>
       {field.properties.defaultValue ? (
@@ -58,8 +57,8 @@ const HiddenFormField: React.FC<FieldProps<HiddenField>> = ({
       ariaLabelShow="Show value"
       value={(isPreview ? field.properties.defaultValue : value) ?? ''}
       onChange={isPreview || !onChange ? undefined : (_e, v) => onChange(v)}
-      onBlur={(e) => trimmedBlur(e)}
-      onPaste={(e) => trimmedPaste(e)}
+      onBlur={(e) => trimInputOnBlur(value, onChange)(e)}
+      onPaste={(e) => trimInputOnPaste(value, onChange)(e)}
     />
   );
 };

@@ -1,4 +1,3 @@
-import { renderHook } from '@testing-library/react';
 import * as React from 'react';
 import { mockConnection } from '~/__mocks__/mockConnection';
 import {
@@ -21,7 +20,8 @@ import {
   ModelServingCompatibleTypes,
   toConnectionTypeConfigMap,
   toConnectionTypeConfigMapObj,
-  useTrimInputHandlers,
+  trimInputOnBlur,
+  trimInputOnPaste,
 } from '~/concepts/connectionTypes/utils';
 
 describe('toConnectionTypeConfigMap / toConnectionTypeConfigMapObj', () => {
@@ -501,7 +501,6 @@ describe('getModelServingCompatibility', () => {
 describe('useTrimInputHandlers', () => {
   it('trims whitespace on blur and calls onChange', () => {
     const handleChange = jest.fn();
-    const { result } = renderHook(() => useTrimInputHandlers('', handleChange));
 
     const mockEvent = {
       currentTarget: {
@@ -509,13 +508,12 @@ describe('useTrimInputHandlers', () => {
       },
     } as React.FocusEvent<HTMLInputElement>;
 
-    result.current.onBlur(mockEvent);
+    trimInputOnBlur('', handleChange)(mockEvent);
     expect(handleChange).toHaveBeenCalledWith('hello');
   });
 
   it('does not call onChange on blur if value is already trimmed', () => {
     const handleChange = jest.fn();
-    const { result } = renderHook(() => useTrimInputHandlers('hello', handleChange));
 
     const mockEvent = {
       currentTarget: {
@@ -523,13 +521,12 @@ describe('useTrimInputHandlers', () => {
       },
     } as React.FocusEvent<HTMLInputElement>;
 
-    result.current.onBlur(mockEvent);
+    trimInputOnBlur('hello', handleChange)(mockEvent);
     expect(handleChange).not.toHaveBeenCalled();
   });
 
   it('trims pasted text before inserting it', () => {
     const handleChange = jest.fn();
-    const { result } = renderHook(() => useTrimInputHandlers('', handleChange));
 
     const mockEvent = {
       preventDefault: jest.fn(),
@@ -543,7 +540,7 @@ describe('useTrimInputHandlers', () => {
       },
     } as unknown as React.ClipboardEvent<HTMLInputElement>;
 
-    result.current.onPaste(mockEvent);
+    trimInputOnPaste('', handleChange)(mockEvent);
     expect(handleChange).toHaveBeenCalledWith('foo');
   });
 });

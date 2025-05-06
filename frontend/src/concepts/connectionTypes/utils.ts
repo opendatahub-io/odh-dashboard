@@ -467,39 +467,22 @@ export const convertObjectStorageSecretData = (dataConnection: Connection): AWSD
   return convertedSecret;
 };
 
-export const useTrimInputHandlers = (
-  value: string | undefined,
-  onChange?: (value: string) => void,
-): {
-  onBlur: (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
-  onPaste: (e: React.ClipboardEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
-} => {
-  const onBlur = React.useCallback(
-    (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-      const trimmed = e.currentTarget.value.trim();
-      if (trimmed !== value && onChange) {
-        onChange(trimmed);
-      }
-    },
-    [value, onChange],
-  );
-  const onPaste = React.useCallback(
-    (e: React.ClipboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-      if (!onChange) {
-        return;
-      }
-      e.preventDefault();
-      const pasted = e.clipboardData.getData('text').trim();
-      const input = e.currentTarget;
-      const start = input.selectionStart || 0;
-      const end = input.selectionEnd || 0;
-      const newValue = input.value.slice(0, start) + pasted + input.value.slice(end);
-      input.setSelectionRange(start + pasted.length, start + pasted.length);
-      input.dispatchEvent(new Event('input', { bubbles: true }));
-      onChange(newValue);
-    },
-    [onChange],
-  );
+export const trimInputOnBlur =
+  (value: string | undefined, onChange?: (value: string) => void) =>
+  (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>): void => {
+    const trimmed = e.currentTarget.value.trim();
+    if (trimmed !== value && onChange) {
+      onChange(trimmed);
+    }
+  };
 
-  return { onBlur, onPaste };
-};
+export const trimInputOnPaste =
+  (value: string | undefined, onChange?: (value: string) => void) =>
+  (e: React.ClipboardEvent<HTMLInputElement | HTMLTextAreaElement>): void => {
+    const trimmed = e.clipboardData.getData('text').trim();
+    if (!onChange) {
+      return;
+    }
+    e.preventDefault();
+    onChange(trimmed);
+  };
