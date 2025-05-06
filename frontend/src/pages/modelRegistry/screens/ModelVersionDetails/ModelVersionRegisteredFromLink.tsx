@@ -29,7 +29,7 @@ const ModelVersionRegisteredFromLink: React.FC<ModelVersionRegisteredFromLinkPro
   const registeredFromPipelineDetails = modelSourcePropertiesToPipelineRunRef(modelArtifact);
 
   const registeredfromText = (
-    <span style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}>
+    <span className="pf-v6-u-font-weight-bold">
       {registeredFromCatalogDetails?.modelName} ({registeredFromCatalogDetails?.tag})
     </span>
   );
@@ -46,7 +46,7 @@ const ModelVersionRegisteredFromLink: React.FC<ModelVersionRegisteredFromLinkPro
 
       const renderRunLink = registeredPipelineProject ? (
         <Link
-          style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}
+          className="pf-v6-u-font-weight-bold"
           to={globalPipelineRunDetailsRoute(
             registeredFromPipelineDetails.project,
             registeredFromPipelineDetails.runId,
