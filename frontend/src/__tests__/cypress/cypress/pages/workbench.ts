@@ -385,6 +385,14 @@ class CreateSpawnerPage {
     return cy.findByTestId('submit-button');
   }
 
+  findCancelButton() {
+    return cy.findByTestId('cancel-button');
+  }
+
+  findSideBarItems(section: string) {
+    return cy.findByTestId(`${section}-jump-link`).find('a');
+  }
+
   getEnvironmentVariableTypeField(index: number) {
     return new EnvironmentVariableTypeField(() =>
       cy.findAllByTestId('environment-variable-field').eq(index),

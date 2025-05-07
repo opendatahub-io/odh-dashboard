@@ -43,6 +43,7 @@ import { mockAcceleratorProfile } from '~/__mocks__/mockAcceleratorProfile';
 import { mockConnectionTypeConfigMap } from '~/__mocks__/mockConnectionType';
 import type { NotebookKind, PodKind } from '~/k8sTypes';
 import type { EnvironmentFromVariable } from '~/pages/projects/types';
+import { SpawnerPageSectionID } from '~/pages/projects/screens/spawner/types';
 
 const configYamlPath = '../../__mocks__/mock-upload-configmap.yaml';
 
@@ -352,6 +353,26 @@ describe('Workbench page', () => {
     workbenchPage.visit('test-project');
     workbenchPage.findEmptyState().should('exist');
     workbenchPage.findCreateButton().should('be.enabled');
+  });
+
+  it('Cancel button', () => {
+    initIntercepts({ isEmpty: true });
+    workbenchPage.visit('test-project');
+    //cancel button should work
+    workbenchPage.findCreateButton().click();
+    createSpawnerPage.findCancelButton().click();
+    verifyRelativeURL('/projects/test-project?section=workbenches');
+
+    //cancel button should work after clicking on sidebar items
+    workbenchPage.findCreateButton().click();
+    createSpawnerPage.findSideBarItems(SpawnerPageSectionID.NAME_DESCRIPTION).click();
+    createSpawnerPage.findSideBarItems(SpawnerPageSectionID.WORKBENCH_IMAGE).click();
+    createSpawnerPage.findSideBarItems(SpawnerPageSectionID.DEPLOYMENT_SIZE).click();
+    createSpawnerPage.findSideBarItems(SpawnerPageSectionID.ENVIRONMENT_VARIABLES).click();
+    createSpawnerPage.findSideBarItems(SpawnerPageSectionID.CLUSTER_STORAGE).click();
+    createSpawnerPage.findSideBarItems(SpawnerPageSectionID.CONNECTIONS).click();
+    createSpawnerPage.findCancelButton().click();
+    verifyRelativeURL('/projects/test-project?section=workbenches');
   });
 
   it('Create workbench', () => {
