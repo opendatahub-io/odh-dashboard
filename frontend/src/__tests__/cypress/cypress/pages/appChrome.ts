@@ -35,15 +35,17 @@ class AppChrome {
   findNavItem(name: string, section?: string) {
     if (section) {
       this.findNavSection(section)
-        // do not fail if the section is not found
-        .should('have.length.at.least', 0)
+        .should('exist')
         .then(($el) => {
           if ($el.attr('aria-expanded') === 'false') {
             cy.wrap($el).click();
+            // Wait for the section to expand and animation to complete
+            cy.wrap($el).should('have.attr', 'aria-expanded', 'true');
+            // Additional wait for any animations
           }
         });
     }
-    return this.findSideBar().findByRole('link', { name });
+    return this.findSideBar().findByRole('link', { name }).should('exist').should('be.visible');
   }
 }
 
