@@ -13,8 +13,11 @@ import {
   ModelServingPlatform,
   ModelServingPlatformCard,
 } from '../../extension-points';
+import DeleteModelServingModal from '../deleteModal/DeleteModelServingModal';
 
 export const EmptyModelServingView: React.FC = () => {
+  const [isDeleting, setIsDeleting] = React.useState(false);
+
   const platforms = useExtensions<ModelServingPlatform>(isModelServingPlatform);
   const selectedPlatform = 'kserve';
 
@@ -29,30 +32,42 @@ export const EmptyModelServingView: React.FC = () => {
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (cards.length === 1) {
     return (
-      <EmptyDetailsView
-        allowCreate
-        iconImage={typedEmptyImage(ProjectObjectType.modelServer)}
-        // imageAlt={isProjectModelMesh ? 'No model servers' : 'No deployed models'}
-        title={cards[0].properties.title}
-        description={cards[0].properties.description}
-        createButton={<Button>{cards[0].properties.selectText}</Button>}
-        // footerExtraChildren={
-        //   deployingFromRegistry &&
-        //   !isProjectModelMesh && ( // For modelmesh we don't want to offer this until there is a model server
-        //     <EmptyStateActions>
-        //       <Button
-        //         variant="link"
-        //         onClick={() =>
-        //           navigate(modelVersionRoute(modelVersionId, registeredModelId, modelRegistryName))
-        //         }
-        //         data-testid="deploy-from-registry"
-        //       >
-        //         Deploy model from model registry
-        //       </Button>
-        //     </EmptyStateActions>
-        //   )
-        // }
-      />
+      <>
+        <EmptyDetailsView
+          allowCreate
+          iconImage={typedEmptyImage(ProjectObjectType.modelServer)}
+          // imageAlt={isProjectModelMesh ? 'No model servers' : 'No deployed models'}
+          title={cards[0].properties.title}
+          description={cards[0].properties.description}
+          createButton={<Button>{cards[0].properties.selectText}</Button>}
+          // footerExtraChildren={
+          //   deployingFromRegistry &&
+          //   !isProjectModelMesh && ( // For modelmesh we don't want to offer this until there is a model server
+          //     <EmptyStateActions>
+          //       <Button
+          //         variant="link"
+          //         onClick={() =>
+          //           navigate(modelVersionRoute(modelVersionId, registeredModelId, modelRegistryName))
+          //         }
+          //         data-testid="deploy-from-registry"
+          //       >
+          //         Deploy model from model registry
+          //       </Button>
+          //     </EmptyStateActions>
+          //   )
+          // }
+        />
+        <Button
+          onClick={() => {setIsDeleting(true)}}
+          size='sm'
+          variant='danger'
+        >
+          Delete dummy model
+        </Button>
+        {isDeleting && <DeleteModelServingModal
+          onClose={(deleted) => {setIsDeleting(false)}}
+        />}
+      </>
     );
   }
 

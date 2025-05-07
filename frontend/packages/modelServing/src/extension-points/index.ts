@@ -24,3 +24,35 @@ export const isModelServingPlatformCard =
   (extension: Extension): extension is ModelServingPlatformCard =>
     extension.type === 'model-serving.platform/card' &&
     (platform ? extension.properties.platform === platform : true);
+
+export type ModelServingDeployedModel = Extension<
+  'model-serving.platform/deployed-model',
+  {
+    platform: string;
+    resourceName: string;
+    displayName: string;
+    namespace: string;
+  }
+>;
+
+export const isModelServingDeployedModel =
+  (platform?: string) =>
+  (extension: Extension): extension is ModelServingDeployedModel =>
+    extension.type === 'model-serving.platform/deployed-model' &&
+    (platform ? extension.properties.platform === platform : true);
+
+export type ModelServingDeleteModal = Extension<
+  'model-serving.platform/delete-modal',
+  {
+    platform: string;
+    onDelete: (deployedModel: ModelServingDeployedModel) => Promise<void>;
+    title: string;
+    submitButtonLabel: string;
+  }
+>;
+
+export const isModelServingDeleteModal =
+  (platform?: string) =>
+  (extension: Extension): extension is ModelServingDeleteModal =>
+    extension.type === 'model-serving.platform/delete-modal' &&
+    (platform ? extension.properties.platform === platform : true);
