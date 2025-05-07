@@ -15,7 +15,7 @@ describe('Verify that all the URLs referenced in the Manifest directory are oper
 
   it(
     'Reads the manifest directory, filters out test/sample URLs and validates the remaining URLs',
-    { tags: ['@Smoke', '@SmokeSet1', '@ODS-327', '@ODS-492', '@Dashboard'] },
+    { tags: ['@Smoke', '@SmokeSet1', '@ODS-327', '@ODS-492', '@Dashboard', '@NonConcurrent'] },
     () => {
       const manifestsDir = '../../../../manifests';
       cy.log(`Resolved manifests directory: ${manifestsDir}`);
