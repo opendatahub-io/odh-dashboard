@@ -8,8 +8,6 @@ import {
   MenuItemAction,
   MenuList,
   MenuToggle,
-  FlexItem,
-  Flex,
 } from '@patternfly/react-core';
 import React from 'react';
 import { EyeIcon, EyeSlashIcon, OptimizeIcon } from '@patternfly/react-icons';
