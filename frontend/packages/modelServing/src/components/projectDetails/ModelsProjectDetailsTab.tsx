@@ -4,23 +4,32 @@ import DetailsSection from '@odh-dashboard/internal/pages/projects/screens/detai
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { ProjectSectionID } from '@odh-dashboard/internal/pages/projects/screens/detail/types';
 import { EmptyModelServingView } from './EmptyModelServingView';
+import { ProjectModelsProvider, ProjectModelsContext } from '../../ProjectModelsContext';
 
 const ModelsProjectDetailsTab: React.FC = () => {
-  const models = [];
+  const { project, models } = React.useContext(ProjectModelsContext);
+
+  const isLoading = !project || !models;
 
   return (
     <>
       <DetailsSection
         id={ProjectSectionID.MODEL_SERVER}
         title="Models"
-        isLoading={false}
+        isLoading={isLoading}
         isEmpty={models.length === 0}
-        emptyState={<EmptyModelServingView />}
+        emptyState={!isLoading && <EmptyModelServingView project={project} />}
       >
-        <>Model tab content. Platform selection, and view models table</>
+        <>Vew models table</>
       </DetailsSection>
     </>
   );
 };
 
-export default ModelsProjectDetailsTab;
+const WithContext: React.FC = () => (
+  <ProjectModelsProvider>
+    <ModelsProjectDetailsTab />
+  </ProjectModelsProvider>
+);
+
+export default WithContext;

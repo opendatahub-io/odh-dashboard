@@ -7,6 +7,8 @@ import EmptyDetailsView from '@odh-dashboard/internal/components/EmptyDetailsVie
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { ProjectObjectType, typedEmptyImage } from '@odh-dashboard/internal/concepts/design/utils';
 import { useExtensions } from '@odh-dashboard/plugin-core';
+import type { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
+import { SelectPlatformView } from './SelectPlatformView';
 import {
   isModelServingPlatform,
   isModelServingPlatformCard,
@@ -14,9 +16,9 @@ import {
   ModelServingPlatformCard,
 } from '../../extension-points';
 
-export const EmptyModelServingView: React.FC = () => {
+export const EmptyModelServingView: React.FC<{ project: ProjectKind }> = ({ project }) => {
   const platforms = useExtensions<ModelServingPlatform>(isModelServingPlatform);
-  const selectedPlatform = 'kserve';
+  const selectedPlatform = '';
 
   const cards = useExtensions<ModelServingPlatformCard>(
     isModelServingPlatformCard(selectedPlatform),
@@ -27,7 +29,8 @@ export const EmptyModelServingView: React.FC = () => {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  if (cards.length === 1) {
+  if (selectedPlatform) {
+    // TODO this will preselect if there is only one platform
     return (
       <EmptyDetailsView
         allowCreate
@@ -56,5 +59,5 @@ export const EmptyModelServingView: React.FC = () => {
     );
   }
 
-  return <>select platform</>;
+  return <SelectPlatformView platforms={platforms} cards={cards} project={project} />;
 };

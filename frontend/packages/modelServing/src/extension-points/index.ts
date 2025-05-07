@@ -1,3 +1,4 @@
+import type { ProjectKind } from '@odh-dashboard/internal/k8sTypes.js';
 import { Extension } from '@openshift/dynamic-plugin-sdk';
 
 export type ModelServingPlatform = Extension<
@@ -5,6 +6,10 @@ export type ModelServingPlatform = Extension<
   {
     id: string;
     name: string;
+    isInstalled: () => Promise<boolean>;
+    enable: (project: ProjectKind) => Promise<string>;
+    disable: (project: ProjectKind) => Promise<string>;
+    isEnabled: (project: ProjectKind) => Promise<boolean>;
   }
 >;
 export const isModelServingPlatform = (extension: Extension): extension is ModelServingPlatform =>
