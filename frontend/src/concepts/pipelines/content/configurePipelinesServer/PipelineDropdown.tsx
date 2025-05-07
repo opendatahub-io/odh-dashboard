@@ -84,13 +84,9 @@ export const PipelineDropdown = ({
           ref={toggleRef}
           onClick={onToggle}
           isExpanded={isOpen}
+          icon={<OptimizeIcon />}
         >
-          <Flex spaceItems={{ default: 'spaceItemsSm' }}>
-            <FlexItem>
-              <OptimizeIcon />
-            </FlexItem>
-            <FlexItem>Autofill from connection</FlexItem>
-          </Flex>
+          Autofill from connection
         </MenuToggle>
       )}
       isOpen={isOpen}
