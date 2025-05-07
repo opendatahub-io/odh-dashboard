@@ -1,7 +1,7 @@
 import * as React from 'react';
-import { Alert, Stack, StackItem } from '@patternfly/react-core';
+import { Alert, Button, Stack, StackItem } from '@patternfly/react-core';
+import { Modal } from '@patternfly/react-core/deprecated';
 import { Identifier } from '~/types';
-import DeleteModal from '~/pages/projects/components/DeleteModal';
 
 type DeleteNodeResourceModalProps = {
   identifier: Identifier;
@@ -18,18 +18,21 @@ const DeleteNodeResourceModal: React.FC<DeleteNodeResourceModalProps> = ({
 
   const deleteTitle = `Delete resource: ${identifier.displayName}`;
 
-  // todo: figure out how to use the 'deleting' status; set to false for now! TODO
   return (
-    <DeleteModal
+    <Modal
       title={deleteTitle}
-      onClose={onBeforeClose}
-      onDelete={() => {
-        onBeforeClose(true);
-      }}
-      deleting={false}
-      submitButtonLabel="Delete"
-      deleteName={identifier.displayName}
-      testId="delete-node-resource-modal"
+      onClose={() => onBeforeClose(false)}
+      isOpen
+      actions={[
+        <Button key="delete-button" onClick={() => onBeforeClose(true)}>
+          Delete
+        </Button>,
+        <Button key="cancel-button" variant="link" onClick={() => onBeforeClose(false)}>
+          Cancel
+        </Button>,
+      ]}
+      variant="small"
+      data-testid="delete-node-resource-modal"
     >
       <Stack hasGutter>
         <StackItem>
@@ -41,11 +44,11 @@ const DeleteNodeResourceModal: React.FC<DeleteNodeResourceModalProps> = ({
         </StackItem>
         <StackItem>
           <p>
-            Are you sure you want to delete the resource: <strong>{identifier.displayName}</strong>?
+            The resource: <strong>{identifier.displayName}</strong> will be deleted.
           </p>
         </StackItem>
       </Stack>
-    </DeleteModal>
+    </Modal>
   );
 };
 
