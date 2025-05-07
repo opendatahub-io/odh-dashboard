@@ -18,6 +18,7 @@ import { isInferenceServiceTokenEnabled } from '~/pages/modelServing/screens/pro
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 
 type KServeInferenceServiceTableRowProps = {
+  project?: string;
   obj: InferenceServiceKind;
   onEditKServe: (obj: {
     inferenceService: InferenceServiceKind;
@@ -32,6 +33,7 @@ type KServeInferenceServiceTableRowProps = {
 };
 
 const KServeInferenceServiceTableRow: React.FC<KServeInferenceServiceTableRowProps> = ({
+  project,
   obj,
   rowIndex,
   columnNames,
@@ -91,7 +93,7 @@ const KServeInferenceServiceTableRow: React.FC<KServeInferenceServiceTableRowPro
               </StackItem>
               {servingRuntime && (
                 <StackItem>
-                  <ServingRuntimeDetails obj={servingRuntime} isvc={obj} />
+                  <ServingRuntimeDetails project={project} obj={servingRuntime} isvc={obj} />
                 </StackItem>
               )}
               {isAuthAvailable && (

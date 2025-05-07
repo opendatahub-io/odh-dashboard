@@ -28,12 +28,13 @@ import { AcceleratorProfileFormData } from '~/utilities/useAcceleratorProfileFor
 import ProjectScopedPopover from '~/components/ProjectScopedPopover';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import SearchSelector from '~/components/searchSelector/SearchSelector';
-import { ProjectObjectType, typedObjectImage } from '~/concepts/design/utils';
+import { ProjectObjectType } from '~/concepts/design/utils';
 import GlobalIcon from '~/images/icons/GlobalIcon';
 import useReadAcceleratorState, {
   AcceleratorProfileState,
 } from '~/utilities/useReadAcceleratorState';
 import NumberInputWrapper from '~/components/NumberInputWrapper';
+import TypedObjectIcon from '~/concepts/design/TypedObjectIcon';
 import useAcceleratorCountWarning from './useAcceleratorCountWarning';
 
 type AcceleratorProfileSelectFieldProps = {
@@ -135,12 +136,8 @@ const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps
             spaceItems={{ default: 'spaceItemsXs' }}
             alignItems={{ default: 'alignItemsCenter' }}
           >
-            <FlexItem style={{ display: 'flex' }}>
-              <img
-                style={{ height: '20px' }}
-                src={typedObjectImage(ProjectObjectType.project)}
-                alt=""
-              />
+            <FlexItem>
+              <TypedObjectIcon alt="" resourceType={ProjectObjectType.project} />
             </FlexItem>
             <FlexItem>{profile.spec.displayName} </FlexItem>
             <FlexItem align={{ default: 'alignRight' }}>
@@ -309,36 +306,34 @@ const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps
                 searchValue={searchAcceleratorProfile}
                 toggleContent={
                   formData.profile?.spec.displayName ? (
-                    <>
-                      {formData.profile.spec.displayName}
-                      {formData.profile.metadata.namespace === currentProject ? (
-                        <Label
-                          variant="outline"
-                          color="blue"
-                          data-testid="project-scoped-label"
-                          isCompact
-                          icon={
-                            <img
-                              style={{ height: '15px', paddingTop: '3px' }}
-                              src={typedObjectImage(ProjectObjectType.project)}
-                              alt=""
-                            />
-                          }
-                        >
-                          Project-scoped
-                        </Label>
-                      ) : (
-                        <Label
-                          variant="outline"
-                          color="blue"
-                          data-testid="global-scoped-label"
-                          isCompact
-                          icon={<GlobalIcon />}
-                        >
-                          Global-scoped
-                        </Label>
-                      )}
-                    </>
+                    <Flex gap={{ default: 'gapSm' }}>
+                      <FlexItem>{formData.profile.spec.displayName}</FlexItem>
+                      <FlexItem>
+                        {formData.profile.metadata.namespace === currentProject ? (
+                          <Label
+                            variant="outline"
+                            color="blue"
+                            data-testid="project-scoped-label"
+                            isCompact
+                            icon={
+                              <TypedObjectIcon alt="" resourceType={ProjectObjectType.project} />
+                            }
+                          >
+                            Project-scoped
+                          </Label>
+                        ) : (
+                          <Label
+                            variant="outline"
+                            color="blue"
+                            data-testid="global-scoped-label"
+                            isCompact
+                            icon={<GlobalIcon />}
+                          >
+                            Global-scoped
+                          </Label>
+                        )}
+                      </FlexItem>
+                    </Flex>
                   ) : formData.useExistingSettings ? (
                     'Existing settings'
                   ) : (
@@ -356,13 +351,12 @@ const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps
                           <Flex
                             spaceItems={{ default: 'spaceItemsXs' }}
                             alignItems={{ default: 'alignItemsCenter' }}
-                            style={{ paddingBottom: '5px' }}
                           >
                             <FlexItem style={{ display: 'flex', paddingLeft: '12px' }}>
-                              <img
-                                style={{ height: '20px', paddingTop: '3px' }}
-                                src={typedObjectImage(ProjectObjectType.project)}
+                              <TypedObjectIcon
+                                style={{ height: '12px', width: '12px' }}
                                 alt=""
+                                resourceType={ProjectObjectType.project}
                               />
                             </FlexItem>
                             <FlexItem>Project-scoped accelerator profiles</FlexItem>
@@ -387,10 +381,10 @@ const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps
                             style={{ paddingBottom: '5px' }}
                           >
                             <FlexItem
-                              style={{ display: 'flex', paddingLeft: '10px' }}
+                              style={{ display: 'flex', paddingLeft: '12px' }}
                               data-testid="ds-project-image"
                             >
-                              <GlobalIcon />
+                              <GlobalIcon style={{ height: '12px', width: '12px' }} />
                             </FlexItem>
                             <FlexItem>Global accelerator profiles</FlexItem>
                           </Flex>

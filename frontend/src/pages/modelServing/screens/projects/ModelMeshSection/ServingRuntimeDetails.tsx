@@ -4,6 +4,7 @@ import {
   DescriptionListDescription,
   DescriptionListGroup,
   DescriptionListTerm,
+  Label,
   List,
   ListItem,
 } from '@patternfly/react-core';
@@ -14,13 +15,16 @@ import { getResourceSize } from '~/pages/modelServing/utils';
 import { formatMemory } from '~/utilities/valueUnits';
 import { useModelServingPodSpecOptionsState } from '~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
 import { useIsAreaAvailable, SupportedArea } from '~/concepts/areas';
+import TypedObjectIcon from '~/concepts/design/TypedObjectIcon';
+import { ProjectObjectType } from '~/concepts/design/utils';
 
 type ServingRuntimeDetailsProps = {
+  project?: string;
   obj: ServingRuntimeKind;
   isvc?: InferenceServiceKind;
 };
 
-const ServingRuntimeDetails: React.FC<ServingRuntimeDetailsProps> = ({ obj, isvc }) => {
+const ServingRuntimeDetails: React.FC<ServingRuntimeDetailsProps> = ({ project, obj, isvc }) => {
   const { dashboardConfig } = React.useContext(AppContext);
   const isHardwareProfileAvailable = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;
   const {
@@ -82,17 +86,30 @@ const ServingRuntimeDetails: React.FC<ServingRuntimeDetailsProps> = ({ obj, isvc
           <DescriptionListGroup>
             <DescriptionListTerm>Accelerator</DescriptionListTerm>
             <DescriptionListDescription>
-              {initialAcceleratorProfileState.acceleratorProfile
-                ? `${initialAcceleratorProfileState.acceleratorProfile.spec.displayName}${
-                    !initialAcceleratorProfileState.acceleratorProfile.spec.enabled
-                      ? ' (disabled)'
-                      : ''
-                  }`
-                : enabledAcceleratorProfiles.length === 0
-                ? 'No accelerator enabled'
-                : initialAcceleratorProfileState.unknownProfileDetected
-                ? 'Unknown'
-                : 'No accelerator selected'}
+              {initialAcceleratorProfileState.acceleratorProfile ? (
+                <>
+                  {initialAcceleratorProfileState.acceleratorProfile.spec.displayName}{' '}
+                  {initialAcceleratorProfileState.acceleratorProfile.metadata.namespace ===
+                    project && (
+                    <Label
+                      variant="outline"
+                      color="blue"
+                      data-testid="project-scoped-label"
+                      isCompact
+                      icon={<TypedObjectIcon alt="" resourceType={ProjectObjectType.project} />}
+                    >
+                      Project-scoped
+                    </Label>
+                  )}
+                  {!initialAcceleratorProfileState.acceleratorProfile.spec.enabled && ' (disabled)'}
+                </>
+              ) : enabledAcceleratorProfiles.length === 0 ? (
+                'No accelerator enabled'
+              ) : initialAcceleratorProfileState.unknownProfileDetected ? (
+                'Unknown'
+              ) : (
+                'No accelerator selected'
+              )}
             </DescriptionListDescription>
           </DescriptionListGroup>
           {!initialAcceleratorProfileState.unknownProfileDetected &&
