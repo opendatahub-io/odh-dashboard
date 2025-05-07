@@ -308,7 +308,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
                 navigate(
                   isWorkbenchesAvailable
                     ? `/projects/${projectName}?section=${ProjectSectionID.WORKBENCHES}`
-                    : '/',
+                    : `/projects/${projectName}?section=${ProjectSectionID.OVERVIEW}`,
                 );
               }}
             >
