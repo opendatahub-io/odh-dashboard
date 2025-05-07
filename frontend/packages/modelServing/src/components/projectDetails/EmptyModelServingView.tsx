@@ -9,19 +9,17 @@ import { ProjectObjectType, typedEmptyImage } from '@odh-dashboard/internal/conc
 import { useExtensions } from '@odh-dashboard/plugin-core';
 import type { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
 import { SelectPlatformView } from './SelectPlatformView';
-import {
-  isModelServingPlatform,
-  isModelServingPlatformCard,
-  ModelServingPlatform,
-  ModelServingPlatformCard,
-} from '../../extension-points';
+import { ModelServingContext } from '../../ModelServingContext';
+import { isModelServingPlatformCard, ModelServingPlatformCard } from '../../extension-points';
+import { ProjectModelsContext } from '../../ProjectModelsContext';
 
 export const EmptyModelServingView: React.FC<{ project: ProjectKind }> = ({ project }) => {
-  const platforms = useExtensions<ModelServingPlatform>(isModelServingPlatform);
-  const selectedPlatform = '';
+  const { modelServingPlatforms: platforms } = React.useContext(ModelServingContext);
+  const { servingPlatform: selectedPlatform, setModelServingPlatform } =
+    React.useContext(ProjectModelsContext);
 
   const cards = useExtensions<ModelServingPlatformCard>(
-    isModelServingPlatformCard(selectedPlatform),
+    isModelServingPlatformCard(selectedPlatform?.properties.id),
   );
 
   if (platforms.length === 0) {
@@ -30,7 +28,6 @@ export const EmptyModelServingView: React.FC<{ project: ProjectKind }> = ({ proj
 
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (selectedPlatform) {
-    // TODO this will preselect if there is only one platform
     return (
       <EmptyDetailsView
         allowCreate
@@ -40,24 +37,18 @@ export const EmptyModelServingView: React.FC<{ project: ProjectKind }> = ({ proj
         description={cards[0].properties.description}
         createButton={<Button>{cards[0].properties.selectText}</Button>}
         // footerExtraChildren={
-        //   deployingFromRegistry &&
-        //   !isProjectModelMesh && ( // For modelmesh we don't want to offer this until there is a model server
-        //     <EmptyStateActions>
-        //       <Button
-        //         variant="link"
-        //         onClick={() =>
-        //           navigate(modelVersionRoute(modelVersionId, registeredModelId, modelRegistryName))
-        //         }
-        //         data-testid="deploy-from-registry"
-        //       >
-        //         Deploy model from model registry
-        //       </Button>
-        //     </EmptyStateActions>
-        //   )
+        //   deployingFromRegistry stuff
         // }
       />
     );
   }
 
-  return <SelectPlatformView platforms={platforms} cards={cards} project={project} />;
+  return (
+    <SelectPlatformView
+      platforms={platforms}
+      cards={cards}
+      project={project}
+      setModelServingPlatform={setModelServingPlatform}
+    />
+  );
 };

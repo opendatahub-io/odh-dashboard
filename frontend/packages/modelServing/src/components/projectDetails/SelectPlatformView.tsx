@@ -21,13 +21,14 @@ import EmptyDetailsView from '@odh-dashboard/internal/components/EmptyDetailsVie
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { ProjectObjectType, typedEmptyImage } from '@odh-dashboard/internal/concepts/design/utils';
 import type { ProjectKind } from '@odh-dashboard/internal/k8sTypes.js';
-import { ModelServingPlatform, ModelServingPlatformCard } from 'extension-points';
+import { ModelServingPlatform, ModelServingPlatformCard } from '../../extension-points';
 
 export const SelectPlatformView: React.FC<{
   platforms?: ModelServingPlatform[];
   cards?: ModelServingPlatformCard[];
   project: ProjectKind;
-}> = ({ platforms, cards, project }) => {
+  setModelServingPlatform: (platform: ModelServingPlatform) => void;
+}> = ({ platforms, cards, project, setModelServingPlatform }) => {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const a = 'a';
   return (
@@ -70,9 +71,12 @@ export const SelectPlatformView: React.FC<{
                       <Bullseye>
                         <Button
                           onClick={async () => {
-                            await platforms
-                              ?.find((p) => p.properties.id === c.properties.platform)
-                              ?.properties.enable(project);
+                            const platform = platforms?.find(
+                              (p) => p.properties.id === c.properties.platform,
+                            );
+                            if (platform) {
+                              setModelServingPlatform(platform);
+                            }
                           }}
                         >
                           {c.properties.selectText}
@@ -82,25 +86,6 @@ export const SelectPlatformView: React.FC<{
                   </Card>
                 </GalleryItem>
               ))}
-              {/* {kServeEnabled && (
-                <GalleryItem>
-                  <EmptySingleModelServingCard
-                    setErrorSelectingPlatform={setErrorSelectingPlatform}
-                  />
-                </GalleryItem>
-              )}
-              {modelMeshEnabled && (
-                <GalleryItem>
-                  <EmptyMultiModelServingCard
-                    setErrorSelectingPlatform={setErrorSelectingPlatform}
-                  />
-                </GalleryItem>
-              )}
-              {isNIMAvailable && (
-                <GalleryItem>
-                  <EmptyNIMModelServingCard setErrorSelectingPlatform={setErrorSelectingPlatform} />
-                </GalleryItem>
-              )} */}
             </Gallery>
           </StackItem>
           {/* {errorSelectingPlatform && (

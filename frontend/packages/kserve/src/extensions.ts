@@ -17,16 +17,16 @@ const extensions: (ModelServingPlatform | ModelServingPlatformCard)[] = [
       isInstalled: () => Promise.resolve(true),
       enable: (project: ProjectKind) =>
         addSupportServingPlatformProject(
-          project.metadata.namespace ?? '',
+          project.metadata.name,
           NamespaceApplicationCase.KSERVE_PROMOTION,
         ),
       disable: (project: ProjectKind) =>
         addSupportServingPlatformProject(
-          project.metadata.namespace ?? '',
+          project.metadata.name,
           NamespaceApplicationCase.RESET_MODEL_SERVING_PLATFORM,
         ),
       isEnabled: (project: ProjectKind) =>
-        Promise.resolve(project.metadata.labels?.['modelmesh-enabled'] === 'false'),
+        project.metadata.labels?.['modelmesh-enabled'] === 'false',
     },
   },
   {
