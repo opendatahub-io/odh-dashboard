@@ -26,6 +26,14 @@ declare global {
       ) => Cypress.Chainable<void>;
 
       /**
+       * Finds a app nav item relative to the subject element.
+       *
+       * @param name the name of the item
+       * @param section the section of the item
+       */
+      findAppNavItem: (name: string, section?: string) => Cypress.Chainable<JQuery>;
+
+      /**
        * Find a patternfly kebab toggle button.
        *
        * @param isDropdownToggle - True to indicate that it is a dropdown toggle instead of table kebab actions
@@ -179,6 +187,31 @@ declare global {
     }
   }
 }
+
+Cypress.Commands.addQuery('findAppNavItem', (name: string, section?: string) => {
+  Cypress.log({
+    displayName: 'findAppNavItem',
+    message: `name: ${name}, section: ${section ?? 'none'}`,
+  });
+
+  return (subject) => {
+    Cypress.ensure.isElement(subject, 'findAppNavItem', cy);
+    const $el: JQuery<HTMLElement> = subject;
+
+    let $parent = $el;
+    if (section) {
+      const $section = $el.find(`:contains('${section}')`).closest('button');
+      if ($section.length) {
+        $parent = $section.parent();
+        if ($section.attr('aria-expanded') === 'false') {
+          $section.trigger('click');
+        }
+      }
+    }
+
+    return $parent.find(`:contains('${name}')`).closest('a');
+  };
+});
 
 Cypress.Commands.add('visitWithLogin', (relativeUrl, credentials = HTPASSWD_CLUSTER_ADMIN_USER) => {
   if (Cypress.env('MOCK')) {
