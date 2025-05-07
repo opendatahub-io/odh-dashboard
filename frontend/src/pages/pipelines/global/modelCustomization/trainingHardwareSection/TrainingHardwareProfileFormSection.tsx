@@ -86,12 +86,11 @@ const TrainingHardwareProfileFormSection: React.FC<TrainingHardwareProfileFormSe
                       projectScopedHardwareProfiles['0'].length > 0 && (
                         <List>
                           <ListItem>
-                            <b>Project-scoped</b> hardware profiles are accessible only within this
+                            <b>Project-scoped hardware profiles</b> are accessible only within this
                             project.
                           </ListItem>
                           <ListItem>
-                            <b>Global-scoped</b> hardware profiles are accessible within all
-                            projects.
+                            <b>Global hardware profiles</b> are accessible within all projects.
                           </ListItem>
                         </List>
                       )}

@@ -49,6 +49,7 @@ import {
   mockGlobalScopedAcceleratorProfiles,
   mockProjectScopedAcceleratorProfiles,
 } from '~/__mocks__/mockAcceleratorProfile';
+import { acceleratorProfileSection } from '~/__tests__/cypress/cypress/pages/components/subComponents/AcceleratorProfileSection';
 
 type HandlersProps = {
   disableKServeConfig?: boolean;
@@ -777,6 +778,7 @@ describe('Model Serving Global', () => {
       servingRuntimes: [
         mockServingRuntimeK8sResource({
           hardwareProfileName: 'large-profile-1',
+          hardwareProfileNamespace: 'test-project',
         }),
       ],
     });
@@ -799,11 +801,12 @@ describe('Model Serving Global', () => {
     kserveModal.findModelNameInput().should('exist');
 
     // Verify accelerator profile section exists
-    kserveModal.findAcceleratorProfileSearchSelector().should('exist');
-    kserveModal.findAcceleratorProfileSearchSelector().click();
+    acceleratorProfileSection.findAcceleratorProfileSearchSelector().should('exist');
+    acceleratorProfileSection.findAcceleratorProfileSearchSelector().click();
 
     // verify available project-scoped accelerator profile
-    const projectScopedAcceleratorProfile = kserveModal.getProjectScopedAcceleratorProfile();
+    const projectScopedAcceleratorProfile =
+      acceleratorProfileSection.getProjectScopedAcceleratorProfile();
     projectScopedAcceleratorProfile
       .find()
       .findByRole('menuitem', {
@@ -814,8 +817,9 @@ describe('Model Serving Global', () => {
     kserveModal.findProjectScopedLabel().should('exist');
 
     // verify available global-scoped accelerator profile
-    kserveModal.findAcceleratorProfileSearchSelector().click();
-    const globalScopedAcceleratorProfile = kserveModal.getGlobalScopedAcceleratorProfile();
+    acceleratorProfileSection.findAcceleratorProfileSearchSelector().click();
+    const globalScopedAcceleratorProfile =
+      acceleratorProfileSection.getGlobalScopedAcceleratorProfile();
     globalScopedAcceleratorProfile
       .find()
       .findByRole('menuitem', {
@@ -839,7 +843,7 @@ describe('Model Serving Global', () => {
     });
     modelServingGlobal.visit('test-project');
     modelServingGlobal.getModelRow('Test Inference Service').findKebabAction('Edit').click();
-    kserveModalEdit
+    acceleratorProfileSection
       .findAcceleratorProfileSearchSelector()
       .should('contain.text', 'Large Profile-1');
     kserveModalEdit.findProjectScopedLabel().should('exist');

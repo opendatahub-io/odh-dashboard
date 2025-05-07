@@ -95,6 +95,13 @@ export const assembleNotebook = (
     volumeMounts.push(getshmVolumeMount());
   }
 
+  let hardwareProfileNamespace: Record<string, string | null> | null = {
+    'opendatahub.io/hardware-profile-namespace': null,
+  };
+  if (selectedHardwareProfile?.metadata.namespace === projectName) {
+    hardwareProfileNamespace = { 'opendatahub.io/hardware-profile-namespace': data.projectName };
+  }
+
   const resource: NotebookKind = {
     apiVersion: 'kubeflow.org/v1',
     kind: 'Notebook',
@@ -106,6 +113,7 @@ export const assembleNotebook = (
         [KnownLabels.DASHBOARD_RESOURCE]: 'true',
       },
       annotations: {
+        ...hardwareProfileNamespace,
         'openshift.io/display-name': notebookName.trim(),
         'openshift.io/description': description || '',
         'notebooks.opendatahub.io/oauth-logout-url': `${origin}/projects/${projectName}?notebookLogout=${notebookId}`,
@@ -294,7 +302,6 @@ export const updateNotebook = (
   opts?: K8sAPIOptions,
 ): Promise<NotebookKind> => {
   const notebook = assembleNotebook(assignableData, username);
-
   const oldNotebook = structuredClone(existingNotebook);
   const container = oldNotebook.spec.template.spec.containers[0];
 
