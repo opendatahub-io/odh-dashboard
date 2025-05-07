@@ -3,6 +3,8 @@ import { Contextual } from './components/Contextual';
 import { Modal } from './components/Modal';
 import { TableRow } from './components/table';
 
+class AcceleratorProfileGroup extends Contextual<HTMLElement> {}
+
 class StorageModal extends Modal {
   constructor() {
     super('Add storage to Test Notebook');
@@ -391,6 +393,28 @@ class CreateSpawnerPage {
     );
   }
 
+  findAcceleratorProfileSearchSelector() {
+    return cy.findByTestId('accelerator-profile-selection-toggle');
+  }
+
+  getGlobalAcceleratorProfileLabel(): Cypress.Chainable<JQuery<HTMLBodyElement>> {
+    return cy.get('body').contains('Global accelerator profiles');
+  }
+
+  getProjectScopedAcceleratorProfileLabel(): Cypress.Chainable<JQuery<HTMLBodyElement>> {
+    return cy.get('body').contains('Project-scoped accelerator profiles');
+  }
+
+  getProjectScopedAcceleratorProfile(): Contextual<HTMLElement> {
+    return new AcceleratorProfileGroup(() =>
+      cy.findByTestId('project-scoped-accelerator-profiles'),
+    );
+  }
+
+  getGlobalScopedAcceleratorProfile(): Contextual<HTMLElement> {
+    return new AcceleratorProfileGroup(() => cy.findByTestId('global-scoped-accelerator-profiles'));
+  }
+
   findNotebookImage(name: string) {
     return cy
       .findByTestId('workbench-image-stream-selection')
@@ -415,11 +439,11 @@ class CreateSpawnerPage {
   }
 
   findProjectScopedLabel() {
-    return cy.findByTestId('project-scoped-image');
+    return cy.findByTestId('project-scoped-label');
   }
 
   findGlobalScopedLabel() {
-    return cy.findByTestId('global-scoped-image');
+    return cy.findByTestId('global-scoped-label');
   }
 
   getProjectScopedNotebookImages() {

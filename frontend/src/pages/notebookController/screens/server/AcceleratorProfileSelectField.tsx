@@ -19,6 +19,7 @@ import {
   SplitItem,
   Stack,
   StackItem,
+  Truncate,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { AcceleratorProfileKind } from '~/k8sTypes';
@@ -123,10 +124,23 @@ const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps
       .map((profile, index) => (
         <MenuItem
           key={`${index}-project-scoped`}
-          description={profile.spec.description}
           isSelected={
             formData.profile?.metadata.name === profile.metadata.name &&
             formData.profile.metadata.namespace === profile.metadata.namespace
+          }
+          description={
+            <Stack style={{ marginLeft: '23px' }}>
+              {profile.spec.description && (
+                <StackItem>
+                  <Truncate content={profile.spec.description} />
+                </StackItem>
+              )}
+              {profile.spec.identifier && (
+                <StackItem>
+                  <Truncate content={profile.spec.identifier} />
+                </StackItem>
+              )}
+            </Stack>
           }
           onClick={() => {
             setFormData('profile', profile);
@@ -169,7 +183,20 @@ const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps
       .map((profile, index) => (
         <MenuItem
           key={`${index}-global`}
-          description={profile.spec.description}
+          description={
+            <Stack style={{ marginLeft: '23px' }}>
+              {profile.spec.description && (
+                <StackItem>
+                  <Truncate content={profile.spec.description} />
+                </StackItem>
+              )}
+              {profile.spec.identifier && (
+                <StackItem>
+                  <Truncate content={profile.spec.identifier} />
+                </StackItem>
+              )}
+            </Stack>
+          }
           isSelected={
             formData.profile?.metadata.name === profile.metadata.name &&
             formData.profile.metadata.namespace === profile.metadata.namespace
@@ -300,7 +327,7 @@ const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps
             <>
               <SearchSelector
                 isFullWidth
-                dataTestId="hardware-profile-selection"
+                dataTestId="accelerator-profile-selection"
                 onSearchChange={(newValue) => setSearchAcceleratorProfile(newValue)}
                 onSearchClear={() => setSearchAcceleratorProfile('')}
                 searchValue={searchAcceleratorProfile}
