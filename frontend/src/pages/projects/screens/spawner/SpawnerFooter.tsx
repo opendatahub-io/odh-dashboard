@@ -55,7 +55,6 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
   canEnablePipelines,
 }) => {
   const [error, setError] = React.useState<K8sStatusError>();
-  const isWorkbenchesAvailable = useIsAreaAvailable(SupportedArea.WORKBENCHES).status;
   const {
     notebooks: { data: notebooks, refresh: refreshNotebooks },
     connections: { data: projectConnections, refresh: refreshConnections },
@@ -305,11 +304,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
                 fireFormTrackingEvent(`Workbench ${editNotebook ? 'Updated' : 'Created'}`, {
                   outcome: TrackingOutcome.cancel,
                 });
-                navigate(
-                  isWorkbenchesAvailable
-                    ? `/projects/${projectName}?section=${ProjectSectionID.WORKBENCHES}`
-                    : `/projects/${projectName}?section=${ProjectSectionID.OVERVIEW}`,
-                );
+                navigate(`/projects/${projectName}?section=${ProjectSectionID.WORKBENCHES}`);
               }}
             >
               Cancel
