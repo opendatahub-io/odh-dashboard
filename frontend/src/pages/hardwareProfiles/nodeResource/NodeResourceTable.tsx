@@ -111,10 +111,7 @@ const NodeResourceTable: React.FC<NodeResourceTableProps> = ({ nodeResources, on
         />
       ) : null}
       {deleteIdentifier && (
-        <>
-          <div> ack ack ack 44a</div>
-          <DeleteNodeResourceModal identifier={deleteIdentifier} onClose={handleDeleteConfirm} />
-        </>
+        <DeleteNodeResourceModal identifier={deleteIdentifier} onClose={handleDeleteConfirm} />
       )}
     </>
   );
