@@ -19,8 +19,8 @@ import useManageElyraSecret from '~/concepts/pipelines/context/useManageElyraSec
 import { conditionalArea, SupportedArea } from '~/concepts/areas';
 import { DEV_MODE } from '~/utilities/const';
 import { MetadataStoreServicePromiseClient } from '~/third_party/mlmd';
-import { getGenericErrorCode } from '~/api';
-import UnauthorizedError from '~/pages/UnauthorizedError';
+// import { getGenericErrorCode } from '~/api';
+// import UnauthorizedError from '~/pages/UnauthorizedError';
 import usePipelineAPIState, { PipelineAPIState } from './usePipelineAPIState';
 import usePipelineNamespaceCR, { dspaLoaded, hasServerTimedOut } from './usePipelineNamespaceCR';
 import usePipelinesAPIRoute from './usePipelinesAPIRoute';
@@ -81,90 +81,98 @@ type PipelineContextProviderProps = {
 export const PipelineContextProvider = conditionalArea<PipelineContextProviderProps>(
   SupportedArea.DS_PIPELINES,
   true,
-)(({ children, namespace, pageName }) => {
-  const { projects } = React.useContext(ProjectsContext);
-  const project = projects.find(byName(namespace)) ?? null;
-  useSyncPreferredProject(project);
-
-  const state = usePipelineNamespaceCR(namespace);
-  const [pipelineNamespaceCR, crLoaded, crLoadError, refreshCR] = state;
-  const isCRReady = dspaLoaded(state);
-  const [disableTimeout, setDisableTimeout] = React.useState(false);
-  const serverTimedOut = !disableTimeout && hasServerTimedOut(state, isCRReady);
-  const ignoreTimedOut = React.useCallback(() => {
-    setDisableTimeout(true);
-  }, []);
-  const dspaName = pipelineNamespaceCR?.metadata.name;
-  const [pipelineAPIRouteHost, routeLoaded, routeLoadError, refreshRoute] = usePipelinesAPIRoute(
-    isCRReady,
-    dspaName ?? '',
+)(
+  ({
+    children,
     namespace,
-  );
+    // pageName
+  }) => {
+    const { projects } = React.useContext(ProjectsContext);
+    const project = projects.find(byName(namespace)) ?? null;
+    useSyncPreferredProject(project);
 
-  const routeHost = routeLoaded && pipelineAPIRouteHost ? pipelineAPIRouteHost : null;
-  const hostPath =
-    routeLoaded && namespace && dspaName ? `/api/service/pipelines/${namespace}/${dspaName}` : null;
-  useManageElyraSecret(namespace, pipelineNamespaceCR, routeHost);
-
-  const refreshState = React.useCallback(
-    () => Promise.all([refreshCR(), refreshRoute()]).then(() => undefined),
-    [refreshRoute, refreshCR],
-  );
-
-  const metadataStoreServiceClient = React.useMemo(() => {
-    const client = new MetadataStoreServicePromiseClient(
-      `/api/service/mlmd/${namespace}/${dspaName ?? ''}`,
+    const state = usePipelineNamespaceCR(namespace);
+    const [pipelineNamespaceCR, crLoaded, crLoadError, refreshCR] = state;
+    const isCRReady = dspaLoaded(state);
+    const [disableTimeout, setDisableTimeout] = React.useState(false);
+    const serverTimedOut = !disableTimeout && hasServerTimedOut(state, isCRReady);
+    const ignoreTimedOut = React.useCallback(() => {
+      setDisableTimeout(true);
+    }, []);
+    const dspaName = pipelineNamespaceCR?.metadata.name;
+    const [pipelineAPIRouteHost, routeLoaded, routeLoadError, refreshRoute] = usePipelinesAPIRoute(
+      isCRReady,
+      dspaName ?? '',
+      namespace,
     );
-    if (DEV_MODE) {
-      // Enables the use of this browser extension: https://github.com/SafetyCulture/grpc-web-devtools
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-empty-function, @typescript-eslint/consistent-type-assertions
-      const enableDevTools = (window as any).__GRPCWEB_DEVTOOLS__ || (() => {});
-      enableDevTools([client]);
-    }
-    return client;
-  }, [namespace, dspaName]);
 
-  const [apiState, refreshAPIState] = usePipelineAPIState(hostPath);
-  const { getRecurringRunInformation } = useRecurringRunRelatedInformation(apiState);
-  let error = crLoadError || routeLoadError;
-  if (error || !project) {
-    error = error || new Error('Project not found');
-    if (getGenericErrorCode(error) === 403) {
-      return <UnauthorizedError accessDomain={pageName} />;
+    const routeHost = routeLoaded && pipelineAPIRouteHost ? pipelineAPIRouteHost : null;
+    const hostPath =
+      routeLoaded && namespace && dspaName
+        ? `/api/service/pipelines/${namespace}/${dspaName}`
+        : null;
+    useManageElyraSecret(namespace, pipelineNamespaceCR, routeHost);
+
+    const refreshState = React.useCallback(
+      () => Promise.all([refreshCR(), refreshRoute()]).then(() => undefined),
+      [refreshRoute, refreshCR],
+    );
+
+    const metadataStoreServiceClient = React.useMemo(() => {
+      const client = new MetadataStoreServicePromiseClient(
+        `/api/service/mlmd/${namespace}/${dspaName ?? ''}`,
+      );
+      if (DEV_MODE) {
+        // Enables the use of this browser extension: https://github.com/SafetyCulture/grpc-web-devtools
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-empty-function, @typescript-eslint/consistent-type-assertions
+        const enableDevTools = (window as any).__GRPCWEB_DEVTOOLS__ || (() => {});
+        enableDevTools([client]);
+      }
+      return client;
+    }, [namespace, dspaName]);
+
+    const [apiState, refreshAPIState] = usePipelineAPIState(hostPath);
+    const { getRecurringRunInformation } = useRecurringRunRelatedInformation(apiState);
+    let error = crLoadError || routeLoadError;
+    if (error || !project) {
+      error = error || new Error('Project not found');
+      // if (getGenericErrorCode(error) === 403) {
+      //   return <UnauthorizedError accessDomain={pageName} />;
+      // }
+      return (
+        <Bullseye>
+          <Alert title="Pipelines load error" variant="danger" isInline>
+            {JSON.stringify(error)}
+          </Alert>
+        </Bullseye>
+      );
     }
+
     return (
-      <Bullseye>
-        <Alert title="Pipelines load error" variant="danger" isInline>
-          {error.message}
-        </Alert>
-      </Bullseye>
+      <PipelinesContext.Provider
+        value={{
+          hasCR: !!pipelineNamespaceCR,
+          hasCompatibleVersion: pipelineNamespaceCR?.spec.dspVersion === 'v2',
+          crInitializing: !crLoaded,
+          crName: pipelineNamespaceCR?.metadata.name ?? '',
+          crStatus: pipelineNamespaceCR?.status,
+          serverTimedOut,
+          ignoreTimedOut,
+          project,
+          apiState,
+          namespace,
+          refreshState,
+          refreshAPIState,
+          getRecurringRunInformation,
+          metadataStoreServiceClient,
+          managedPipelines: pipelineNamespaceCR?.spec.apiServer?.managedPipelines,
+        }}
+      >
+        {children}
+      </PipelinesContext.Provider>
     );
-  }
-
-  return (
-    <PipelinesContext.Provider
-      value={{
-        hasCR: !!pipelineNamespaceCR,
-        hasCompatibleVersion: pipelineNamespaceCR?.spec.dspVersion === 'v2',
-        crInitializing: !crLoaded,
-        crName: pipelineNamespaceCR?.metadata.name ?? '',
-        crStatus: pipelineNamespaceCR?.status,
-        serverTimedOut,
-        ignoreTimedOut,
-        project,
-        apiState,
-        namespace,
-        refreshState,
-        refreshAPIState,
-        getRecurringRunInformation,
-        metadataStoreServiceClient,
-        managedPipelines: pipelineNamespaceCR?.spec.apiServer?.managedPipelines,
-      }}
-    >
-      {children}
-    </PipelinesContext.Provider>
-  );
-});
+  },
+);
 
 type UsePipelinesAPI = PipelineAPIState & {
   /** The contextual namespace */
