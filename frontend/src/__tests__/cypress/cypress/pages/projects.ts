@@ -189,6 +189,8 @@ class ProjectDetails {
     cy.visitWithLogin(`/projects/${project}`);
     if (opts.wait) {
       this.wait();
+    } else {
+      cy.testA11y();
     }
   }
 
