@@ -1,8 +1,4 @@
-import {
-  mockAcceleratorProfile,
-  mockGlobalScopedAcceleratorProfiles,
-  mockProjectScopedAcceleratorProfiles,
-} from '~/__mocks__/mockAcceleratorProfile';
+import { mockAcceleratorProfile } from '~/__mocks__/mockAcceleratorProfile';
 import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
 import { mockDscStatus } from '~/__mocks__/mockDscStatus';
 import { mockInferenceServiceK8sResource } from '~/__mocks__/mockInferenceServiceK8sResource';
@@ -423,17 +419,6 @@ const initIntercepts = ({
       ],
     }),
   ]).as('getConnectionTypes');
-
-  // Mock accelerator profiles
-  cy.interceptK8sList(
-    { model: AcceleratorProfileModel, ns: 'opendatahub' },
-    mockK8sResourceList(mockGlobalScopedAcceleratorProfiles),
-  ).as('acceleratorProfiles');
-
-  cy.interceptK8sList(
-    { model: AcceleratorProfileModel, ns: 'test-project' },
-    mockK8sResourceList(mockProjectScopedAcceleratorProfiles),
-  ).as('acceleratorProfiles');
 };
 
 describe('Serving Runtime List', () => {
