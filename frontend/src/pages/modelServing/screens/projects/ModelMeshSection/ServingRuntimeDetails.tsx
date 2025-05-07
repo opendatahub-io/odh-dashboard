@@ -26,6 +26,7 @@ type ServingRuntimeDetailsProps = {
 
 const ServingRuntimeDetails: React.FC<ServingRuntimeDetailsProps> = ({ project, obj, isvc }) => {
   const { dashboardConfig } = React.useContext(AppContext);
+  const isProjectScopedAvailable = useIsAreaAvailable(SupportedArea.DS_PROJECT_SCOPED).status;
   const isHardwareProfileAvailable = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;
   const {
     acceleratorProfile: { initialState: initialAcceleratorProfileState },
@@ -88,19 +89,23 @@ const ServingRuntimeDetails: React.FC<ServingRuntimeDetailsProps> = ({ project, 
             <DescriptionListDescription>
               {initialAcceleratorProfileState.acceleratorProfile ? (
                 <>
-                  {initialAcceleratorProfileState.acceleratorProfile.spec.displayName}{' '}
-                  {initialAcceleratorProfileState.acceleratorProfile.metadata.namespace ===
-                    project && (
-                    <Label
-                      variant="outline"
-                      color="blue"
-                      data-testid="project-scoped-label"
-                      isCompact
-                      icon={<TypedObjectIcon alt="" resourceType={ProjectObjectType.project} />}
-                    >
-                      Project-scoped
-                    </Label>
-                  )}
+                  {initialAcceleratorProfileState.acceleratorProfile.spec.displayName}
+                  {isProjectScopedAvailable &&
+                    initialAcceleratorProfileState.acceleratorProfile.metadata.namespace ===
+                      project && (
+                      <>
+                        {' '}
+                        <Label
+                          variant="outline"
+                          color="blue"
+                          data-testid="project-scoped-label"
+                          isCompact
+                          icon={<TypedObjectIcon alt="" resourceType={ProjectObjectType.project} />}
+                        >
+                          Project-scoped
+                        </Label>
+                      </>
+                    )}
                   {!initialAcceleratorProfileState.acceleratorProfile.spec.enabled && ' (disabled)'}
                 </>
               ) : enabledAcceleratorProfiles.length === 0 ? (
