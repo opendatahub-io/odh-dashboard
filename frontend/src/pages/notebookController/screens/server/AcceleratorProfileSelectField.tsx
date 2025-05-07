@@ -312,15 +312,22 @@ const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps
     options.push(formatOption(formData.profile));
   }
 
-  // if there is more than a none option, show the dropdown
-  if (options.length === 1) {
-    return null;
-  }
-
   const filteredAcceleratorProfiles = getAcceleratorProfiles();
   const filteredDashboardAcceleratorProfiles = getDashboardAcceleratorProfiles();
   const hasProjectScopedAccelerators =
     isProjectScopedAvailable && currentProjectAcceleratorProfiles.length > 0;
+
+  // if there is more than a none option, show the dropdown
+  if (!isProjectScopedAvailable && options.length === 1) {
+    return null;
+  }
+  if (
+    isProjectScopedAvailable &&
+    filteredAcceleratorProfiles.length === 0 &&
+    filteredDashboardAcceleratorProfiles.length === 1
+  ) {
+    return null;
+  }
 
   return (
     <Stack hasGutter>
@@ -430,7 +437,7 @@ const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps
                     </>
                   )}
                   {filteredDashboardAcceleratorProfiles.length > 0 &&
-                    filteredDashboardAcceleratorProfiles.length > 0 && <Divider component="li" />}
+                    filteredAcceleratorProfiles.length > 0 && <Divider component="li" />}
                   {filteredDashboardAcceleratorProfiles.length > 0 && (
                     <>
                       <MenuGroup

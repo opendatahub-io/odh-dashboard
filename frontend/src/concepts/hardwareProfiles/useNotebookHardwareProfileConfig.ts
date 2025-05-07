@@ -17,6 +17,8 @@ const useNotebookHardwareProfileConfig = (
   const nodeSelector = notebook?.spec.template.spec.nodeSelector;
   const namespace = notebook?.metadata.namespace;
   const isProjectScoped = useIsAreaAvailable(SupportedArea.DS_PROJECT_SCOPED).status;
+  const hardwareProfileNamespace =
+    notebook?.metadata.annotations?.['opendatahub.io/hardware-profile-namespace'];
 
   return useHardwareProfileConfig(
     name,
@@ -25,6 +27,7 @@ const useNotebookHardwareProfileConfig = (
     nodeSelector,
     [HardwareProfileFeatureVisibility.WORKBENCH],
     isProjectScoped ? namespace : undefined,
+    hardwareProfileNamespace,
   );
 };
 

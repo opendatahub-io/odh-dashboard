@@ -23,6 +23,8 @@ const useServingHardwareProfileConfig = (
     inferenceService?.spec.predictor.nodeSelector || servingRuntime?.spec.nodeSelector;
   const namespace = servingRuntime?.metadata.namespace;
   const isProjectScoped = useIsAreaAvailable(SupportedArea.DS_PROJECT_SCOPED).status;
+  const hardwareProfileNamespace =
+    servingRuntime?.metadata.annotations?.['opendatahub.io/hardware-profile-namespace'];
 
   return useHardwareProfileConfig(
     name,
@@ -31,6 +33,7 @@ const useServingHardwareProfileConfig = (
     nodeSelector,
     [HardwareProfileFeatureVisibility.MODEL_SERVING],
     isProjectScoped ? namespace : undefined,
+    hardwareProfileNamespace,
   );
 };
 
