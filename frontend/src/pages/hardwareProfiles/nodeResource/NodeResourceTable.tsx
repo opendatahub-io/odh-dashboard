@@ -47,7 +47,6 @@ const NodeResourceTable: React.FC<NodeResourceTableProps> = ({ nodeResources, on
   };
 
   const handleDelete = (rowIndex: number) => {
-    console.log('handleDelete', rowIndex);
     const identifierToDelete = nodeResources[rowIndex];
 
     if (wouldRemoveLastCPUorMemory(identifierToDelete, nodeResources)) {
@@ -60,8 +59,8 @@ const NodeResourceTable: React.FC<NodeResourceTableProps> = ({ nodeResources, on
     }
   };
 
-  const handleDeleteConfirm = (deleted: boolean) => {
-    if (deleted && deleteIdentifier) {
+  const handleDeleteConfirm = (shouldDoDeletion: boolean) => {
+    if (shouldDoDeletion && deleteIdentifier) {
       const updatedIdentifiers = nodeResources.filter((r) => r !== deleteIdentifier);
       onUpdate?.(updatedIdentifiers);
     }
