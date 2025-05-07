@@ -433,8 +433,7 @@ describe('Serving Runtime List', () => {
       });
       projectDetails.visitSection('test-project', 'model-server');
       // shouldn't exist because kServe is disabled and theres nothing to change to
-      cy.findByTestId('change-serving-platform-button').should('not.exist');
-
+      projectDetails.findResetPlatformButton().should('not.exist');
       // simulate modelMesh being disabled
       cy.interceptOdh(
         'GET /api/dsc/status',
@@ -445,7 +444,7 @@ describe('Serving Runtime List', () => {
       );
 
       cy.reload();
-      cy.findByTestId('change-serving-platform-button').should('exist');
+      projectDetails.findResetPlatformButton().should('exist');
     });
   });
   describe('No server available', () => {
