@@ -21,7 +21,7 @@ import {
   ServingRuntimeEditInfo,
 } from '~/pages/modelServing/screens/types';
 import { ServingRuntimePlatform } from '~/types';
-import { DEFAULT_MODEL_SERVER_SIZES } from '~/pages/modelServing/screens/const';
+import { DEFAULT_MODEL_SERVER_SIZES, platformKeyMap } from '~/pages/modelServing/screens/const';
 import { useDeepCompareMemoize } from '~/utilities/useDeepCompareMemoize';
 import { EMPTY_AWS_SECRET_DATA } from '~/pages/projects/dataConnections/const';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
@@ -739,10 +739,6 @@ export function isCurrentServingPlatformEnabled(
   if (!currentPlatform) {
     return false;
   }
-  const platformKeyMap = {
-    single: 'kServe',
-    multi: 'modelMesh',
-  } as const;
   const mappedKey = platformKeyMap[currentPlatform];
   return statuses[mappedKey].enabled;
 }
