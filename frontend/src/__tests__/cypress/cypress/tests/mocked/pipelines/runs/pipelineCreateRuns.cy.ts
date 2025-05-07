@@ -46,6 +46,32 @@ const mockPipelineVersions = [
     pipeline_version_id: 'oldest',
   },
 ];
+const mockPipelineVersionWithEmpties = buildMockPipelineVersion(
+  {
+    pipeline_id: mockPipeline.pipeline_id,
+  },
+  {
+    parameters: {
+      min_max_scaler: {
+        parameterType: InputDefinitionParameterType.BOOLEAN,
+      },
+      neighbors: {
+        parameterType: InputDefinitionParameterType.INTEGER,
+      },
+      standard_scaler: {
+        parameterType: InputDefinitionParameterType.STRING,
+      },
+      empty_param_1: {
+        parameterType: InputDefinitionParameterType.STRING,
+        isOptional: true,
+      },
+      empty_param_2: {
+        parameterType: InputDefinitionParameterType.STRING,
+        isOptional: true,
+      },
+    },
+  },
+);
 const mockArgoPipelineVersion = mockArgoWorkflowPipelineVersion({});
 const pipelineVersionRef = {
   pipeline_id: mockPipeline.pipeline_id,
@@ -229,11 +255,11 @@ describe('Pipeline create runs', () => {
       duplicateRunPage.mockGetPipelines(projectName, [mockPipeline]);
       duplicateRunPage.mockGetPipelineVersions(
         projectName,
-        [mockPipelineVersion],
+        [mockPipelineVersionWithEmpties],
         mockPipelineVersion.pipeline_id,
       );
       duplicateRunPage.mockGetRun(projectName, mockRun);
-      duplicateRunPage.mockGetPipelineVersion(projectName, mockPipelineVersion);
+      duplicateRunPage.mockGetPipelineVersion(projectName, mockPipelineVersionWithEmpties);
       duplicateRunPage.mockGetPipeline(projectName, mockPipeline);
       duplicateRunPage.mockGetExperiment(projectName, mockExperiment);
 
@@ -262,12 +288,16 @@ describe('Pipeline create runs', () => {
       paramsSection.findParamById('radio-min_max_scaler-false').should('be.checked');
       paramsSection.findParamById('neighbors').find('input').should('have.value', '1');
       paramsSection.findParamById('standard_scaler').should('have.value', 'false');
+      paramsSection.findParamById('empty_param_1').should('have.value', '');
+      paramsSection.findParamById('empty_param_2').should('have.value', '');
 
       duplicateRunPage
         .mockCreateRun(projectName, mockPipelineVersion, mockDuplicateRun)
         .as('duplicateRun');
       duplicateRunPage.submit();
 
+      // don't include the empty params as they are not included in the request body
+      // since they have no value
       cy.wait('@duplicateRun').then((interception) => {
         expect(interception.request.body).to.eql({
           display_name: 'Duplicate of Test run',
