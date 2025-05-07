@@ -1,6 +1,7 @@
 import * as React from 'react';
 import {
   Alert,
+  Bullseye,
   Button,
   Checkbox,
   Form,
@@ -420,7 +421,9 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
               </FormGroup>
               {addSecureDB &&
                 (!configSecretsLoaded && !configSecretsError ? (
-                  <Spinner className="pf-v6-u-m-md" />
+                  <Bullseye>
+                    <Spinner className="pf-v6-u-m-md" />
+                  </Bullseye>
                 ) : configSecretsLoaded ? (
                   <CreateMRSecureDBSection
                     secureDBInfo={secureDBInfo}
