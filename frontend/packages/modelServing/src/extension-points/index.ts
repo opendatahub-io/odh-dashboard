@@ -9,7 +9,7 @@ export type ModelServingPlatform = Extension<
     isInstalled: () => Promise<boolean>;
     enable: (project: ProjectKind) => Promise<string>;
     disable: (project: ProjectKind) => Promise<string>;
-    isEnabled: (project: ProjectKind) => Promise<boolean>;
+    isEnabled: (project: ProjectKind) => boolean;
   }
 >;
 export const isModelServingPlatform = (extension: Extension): extension is ModelServingPlatform =>
