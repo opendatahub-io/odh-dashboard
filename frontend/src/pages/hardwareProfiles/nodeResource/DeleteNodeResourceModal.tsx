@@ -2,6 +2,7 @@ import * as React from 'react';
 import { Alert, Button, Stack, StackItem } from '@patternfly/react-core';
 import { Modal } from '@patternfly/react-core/deprecated';
 import { Identifier } from '~/types';
+import { CPU_MEMORY_MISSING_WARNING } from '~/pages/hardwareProfiles/const';
 
 type DeleteNodeResourceModalProps = {
   identifier: Identifier;
@@ -12,8 +13,8 @@ const DeleteNodeResourceModal: React.FC<DeleteNodeResourceModalProps> = ({
   identifier,
   onClose,
 }) => {
-  const onBeforeClose = (deleted = false) => {
-    onClose(deleted);
+  const onBeforeClose = (shouldDoDeletion: boolean) => {
+    onClose(shouldDoDeletion);
   };
 
   const deleteTitle = `Delete resource: ${identifier.displayName}`;
@@ -37,9 +38,7 @@ const DeleteNodeResourceModal: React.FC<DeleteNodeResourceModalProps> = ({
       <Stack hasGutter>
         <StackItem>
           <Alert variant="warning" isInline title="Removing the last CPU or Memory resource">
-            It is not recommended to remove the last CPU or Memory resource. Resources that use this
-            hardware profile will schedule, but will be very unstable due to not having any lower or
-            upper resource bounds.
+            {CPU_MEMORY_MISSING_WARNING}
           </Alert>
         </StackItem>
         <StackItem>
