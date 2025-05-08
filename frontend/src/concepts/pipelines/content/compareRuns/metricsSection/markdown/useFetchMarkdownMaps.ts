@@ -6,7 +6,7 @@ import {
   getFullArtifactPathLabel,
   getFullArtifactPaths,
 } from '~/concepts/pipelines/content/compareRuns/metricsSection/utils';
-import { PipelineRunKF } from '~/concepts/pipelines/kfTypes';
+import { ArtifactType, PipelineRunKF } from '~/concepts/pipelines/kfTypes';
 import { allSettledPromises } from '~/utilities/allSettledPromises';
 
 const useFetchMarkdownMaps = (
@@ -17,7 +17,7 @@ const useFetchMarkdownMaps = (
   configsLoaded: boolean;
 } => {
   const [configsLoaded, setConfigsLoaded] = React.useState(false);
-  const { getStorageObjectUrl } = useArtifactStorage();
+  const { getStorageObjectDownloadUrl, getStorageObjectRenderUrl } = useArtifactStorage();
 
   const [configMapBuilder, setConfigMapBuilder] = React.useState<
     Record<string, MarkdownAndTitle[]>
@@ -39,10 +39,19 @@ const useFetchMarkdownMaps = (
         .map(async (path) => {
           const { run } = path;
           let sizeBytes: number | undefined;
-
-          const url = await getStorageObjectUrl(path.linkedArtifact.artifact).catch(
-            () => undefined,
-          );
+          let url: string | undefined;
+          if (
+            path.linkedArtifact.artifact.getType() === ArtifactType.MODEL ||
+            path.linkedArtifact.artifact.getType() === ArtifactType.HTML
+          ) {
+            url = await getStorageObjectDownloadUrl(path.linkedArtifact.artifact).catch(
+              () => undefined,
+            );
+          } else {
+            url = await getStorageObjectRenderUrl(path.linkedArtifact.artifact).catch(
+              () => undefined,
+            );
+          }
 
           if (url === undefined) {
             return null;
@@ -50,7 +59,7 @@ const useFetchMarkdownMaps = (
           return { run, sizeBytes, url, path };
         }),
 
-    [fullArtifactPaths, getStorageObjectUrl],
+    [fullArtifactPaths, getStorageObjectDownloadUrl, getStorageObjectRenderUrl],
   );
 
   React.useEffect(() => {
