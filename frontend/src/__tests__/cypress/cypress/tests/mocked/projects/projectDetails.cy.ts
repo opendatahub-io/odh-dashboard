@@ -306,6 +306,12 @@ describe('Project Details', () => {
       projectDetails.shouldBeEmptyState('Pipelines', 'pipelines-projects', true);
     });
 
+    it('shows 403 page when user does not have access to the project', () => {
+      asProjectEditUser({ projects: [] });
+      cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})]));
+      projectDetails.visit('test-project');
+    });
+
     it('Shows project information', () => {
       initIntercepts({ disableKServeConfig: true, disableModelConfig: true });
       projectDetails.visit('test-project');
