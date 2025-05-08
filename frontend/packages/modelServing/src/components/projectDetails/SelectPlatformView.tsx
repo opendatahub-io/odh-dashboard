@@ -20,17 +20,25 @@ import {
 import EmptyDetailsView from '@odh-dashboard/internal/components/EmptyDetailsView';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { ProjectObjectType, typedEmptyImage } from '@odh-dashboard/internal/concepts/design/utils';
-import type { ProjectKind } from '@odh-dashboard/internal/k8sTypes.js';
-import { ModelServingPlatform, ModelServingPlatformCard } from '../../extension-points';
+// eslint-disable-next-line import/no-extraneous-dependencies
+import EmptyModelServingPlatform from '@odh-dashboard/internal/pages/modelServing/screens/projects/EmptyModelServingPlatform';
+import { useExtensions } from '@odh-dashboard/plugin-core';
+import {
+  ModelServingPlatform,
+  ModelServingPlatformCard,
+  isModelServingPlatformCard,
+} from '../../extension-points';
 
 export const SelectPlatformView: React.FC<{
   platforms?: ModelServingPlatform[];
-  cards?: ModelServingPlatformCard[];
-  project: ProjectKind;
   setModelServingPlatform: (platform: ModelServingPlatform) => void;
-}> = ({ platforms, cards, project, setModelServingPlatform }) => {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const a = 'a';
+}> = ({ platforms, setModelServingPlatform }) => {
+  const cards = useExtensions<ModelServingPlatformCard>(isModelServingPlatformCard);
+
+  if (!platforms || platforms.length === 0) {
+    return <EmptyModelServingPlatform />;
+  }
+
   return (
     <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapLg' }}>
       <FlexItem
@@ -45,15 +53,13 @@ export const SelectPlatformView: React.FC<{
       <FlexItem flex={{ default: 'flex_1' }}>
         <Stack hasGutter>
           <StackItem>
-            <Content>
-              <Content component="p">
-                Select the model serving type to be used when deploying from this project.
-              </Content>
+            <Content component="p">
+              Select the model serving type to be used when deploying from this project.
             </Content>
           </StackItem>
           <StackItem>
             <Gallery hasGutter>
-              {cards?.map((c) => (
+              {cards.map((c) => (
                 <GalleryItem key={c.properties.platform}>
                   <Card
                     style={{
@@ -70,8 +76,9 @@ export const SelectPlatformView: React.FC<{
                     <CardFooter>
                       <Bullseye>
                         <Button
+                          variant="secondary"
                           onClick={async () => {
-                            const platform = platforms?.find(
+                            const platform = platforms.find(
                               (p) => p.properties.id === c.properties.platform,
                             );
                             if (platform) {
