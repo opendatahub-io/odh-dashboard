@@ -2,14 +2,13 @@ import React from 'react';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { ProjectDetailsContext } from '@odh-dashboard/internal/pages/projects/ProjectDetailsContext';
 import type { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
-import { ModelServingContext } from './ModelServingContext';
-import { ModelServingPlatformExtension } from './extension-points';
+import { ModelServingContext, ModelServingPlatform } from './ModelServingContext';
 import { getActiveServingPlatform } from './concepts/modelServingPlatforms';
 
 type ProjectModelsContextType = {
   project?: ProjectKind;
-  platform?: ModelServingPlatformExtension | null;
-  setModelServingPlatform: (platform: ModelServingPlatformExtension) => void;
+  platform?: ModelServingPlatform | null;
+  setModelServingPlatform: (platform: ModelServingPlatform) => void;
   models?: string[];
 };
 
@@ -32,9 +31,9 @@ export const ProjectModelsProvider: React.FC<ProjectModelsProviderProps> = ({ ch
     ProjectModelsContextType['platform']
   >(getActiveServingPlatform(currentProject, availablePlatforms ?? []));
   const setModelServingPlatform = React.useCallback(
-    (platform: ModelServingPlatformExtension) => {
+    (platform: ModelServingPlatform) => {
       setServingPlatform(platform);
-      platform.properties.enable().then((res) => res(currentProject));
+      platform.properties.enable(currentProject);
     },
     [currentProject, setServingPlatform],
   );

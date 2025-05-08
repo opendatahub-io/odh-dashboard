@@ -5,15 +5,10 @@ import EmptyDetailsView from '@odh-dashboard/internal/components/EmptyDetailsVie
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { ProjectObjectType, typedEmptyImage } from '@odh-dashboard/internal/concepts/design/utils';
 import { useExtensions } from '@odh-dashboard/plugin-core';
-import {
-  isModelServingPlatformCard,
-  ModelServingPlatformExtension,
-  ModelServingPlatformCard,
-} from '../../extension-points';
+import { ModelServingPlatform } from '../../ModelServingContext';
+import { isModelServingPlatformCard, ModelServingPlatformCard } from '../../extension-points';
 
-export const NoModelsView: React.FC<{ platform: ModelServingPlatformExtension }> = ({
-  platform,
-}) => {
+export const NoModelsView: React.FC<{ platform: ModelServingPlatform }> = ({ platform }) => {
   const cards = useExtensions<ModelServingPlatformCard>(isModelServingPlatformCard);
   const selectedPlatformCard = React.useMemo(
     () => cards.find((c) => c.properties.platform === platform.properties.id),
