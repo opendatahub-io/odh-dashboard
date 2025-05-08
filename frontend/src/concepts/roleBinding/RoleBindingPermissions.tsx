@@ -1,5 +1,6 @@
 import * as React from 'react';
 import {
+  Alert,
   EmptyState,
   EmptyStateBody,
   EmptyStateVariant,
@@ -133,6 +134,9 @@ const RoleBindingPermissions: React.FC<RoleBindingPermissionsProps> = ({
       id={ProjectSectionID.PERMISSIONS}
     >
       <Stack hasGutter>
+        <Alert variant="warning" title="Warning" isInline>
+          Editing or deleting a user or group can result in loss of access to the project.
+        </Alert>
         <StackItem>{description}</StackItem>
         <StackItem>{isGroupFirst ? groupTable : userTable}</StackItem>
         <StackItem>{isGroupFirst ? userTable : groupTable}</StackItem>
