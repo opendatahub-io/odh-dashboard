@@ -96,7 +96,7 @@ describe('ArtifactNodeDrawerContent', () => {
     expect(within(artifactDetailsList).getByText('1 Jan 2023')).toBeVisible();
 
     const artifactUriList = screen.getByTestId('artifact-uri-description-list');
-    expect(within(artifactUriList).getByText('some.uri')).toBeVisible();
+    expect(within(artifactUriList).getByText('-')).toBeVisible();
   });
 
   it('renders "Scalar metrics" visualization drawer content', async () => {

@@ -358,6 +358,7 @@ export const mockedArtifactsResponse: GetArtifactsResponse = {
     {
       id: 8,
       typeId: 15,
+      type: 'system.ClassificationMetrics',
       uri: 's3://scalar-metrics-uri-scalar-metrics-uri',
       customProperties: {
         display_name: { stringValue: 'registered model metrics' },
