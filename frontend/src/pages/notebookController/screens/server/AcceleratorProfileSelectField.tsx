@@ -216,6 +216,18 @@ const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps
         </MenuItem>
       ));
 
+    profileItems.push(
+      <MenuItem
+        key="none"
+        isSelected={!formData.profile}
+        onClick={() => {
+          setFormData('profile', undefined);
+        }}
+      >
+        None
+      </MenuItem>,
+    );
+
     if (initialState.unknownProfileDetected) {
       profileItems.push(
         <MenuItem
@@ -364,7 +376,7 @@ const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps
                   ) : formData.useExistingSettings ? (
                     'Existing settings'
                   ) : (
-                    'Select accelerator profile...'
+                    !formData.profile && 'None'
                   )
                 }
               >

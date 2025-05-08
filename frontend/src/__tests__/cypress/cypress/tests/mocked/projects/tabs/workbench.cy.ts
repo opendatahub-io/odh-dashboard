@@ -587,26 +587,12 @@ describe('Workbench page', () => {
     createSpawnerPage.findAcceleratorProfileSearchSelector().click();
 
     // verify available project-scoped accelerator profile
-    const projectScopedAcceleratorProfile = createSpawnerPage.getProjectScopedAcceleratorProfile();
-    projectScopedAcceleratorProfile
-      .find()
-      .findByRole('menuitem', {
-        name: 'Small Profile nvidia.com/gpu',
-        hidden: true,
-      })
-      .click();
+    createSpawnerPage.findAcceleratorProfile('Small Profile nvidia.com/gpu').click();
     createSpawnerPage.findProjectScopedLabel().should('exist');
 
     // verify available global-scoped accelerator profile
     createSpawnerPage.findAcceleratorProfileSearchSelector().click();
-    const globalScopedAcceleratorProfile = createSpawnerPage.getGlobalScopedAcceleratorProfile();
-    globalScopedAcceleratorProfile
-      .find()
-      .findByRole('menuitem', {
-        name: 'Small Profile Global nvidia.com/gpu',
-        hidden: true,
-      })
-      .click();
+    createSpawnerPage.findAcceleratorProfile('Small Profile Global nvidia.com/gpu').click();
     createSpawnerPage.findGlobalScopedLabel().should('exist');
   });
 

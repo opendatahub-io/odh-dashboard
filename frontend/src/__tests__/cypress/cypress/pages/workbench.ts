@@ -3,8 +3,6 @@ import { Contextual } from './components/Contextual';
 import { Modal } from './components/Modal';
 import { TableRow } from './components/table';
 
-class AcceleratorProfileGroup extends Contextual<HTMLElement> {}
-
 class StorageModal extends Modal {
   constructor() {
     super('Add storage to Test Notebook');
@@ -405,14 +403,11 @@ class CreateSpawnerPage {
     return cy.get('body').contains('Project-scoped accelerator profiles');
   }
 
-  getProjectScopedAcceleratorProfile(): Contextual<HTMLElement> {
-    return new AcceleratorProfileGroup(() =>
-      cy.findByTestId('project-scoped-accelerator-profiles'),
-    );
-  }
-
-  getGlobalScopedAcceleratorProfile(): Contextual<HTMLElement> {
-    return new AcceleratorProfileGroup(() => cy.findByTestId('global-scoped-accelerator-profiles'));
+  findAcceleratorProfile(name: string) {
+    return cy.findByRole('menuitem', {
+      name,
+      hidden: true,
+    });
   }
 
   findNotebookImage(name: string) {
