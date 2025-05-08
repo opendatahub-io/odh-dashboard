@@ -293,8 +293,8 @@ describe('Model version details', () => {
       initIntercepts(false, true, false);
       modelVersionDetails.visit();
       modelVersionDetails.findVersionId().contains('1');
-      cy.findByTestId('registered-from-catalog').should('not.exist');
-      cy.findByTestId('registered-from-title').should('not.exist');
+      cy.findByTestId('registered-from-catalog').should('exist');
+      cy.findByTestId('registered-from-title').should('exist');
     });
 
     it('Model version details page header', () => {
