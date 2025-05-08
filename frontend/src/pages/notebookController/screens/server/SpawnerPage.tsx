@@ -246,7 +246,7 @@ const SpawnerPage: React.FC = () => {
   };
 
   const fireStartServerEvent = () => {
-    fireFormTrackingEvent('Workbench Started', {
+    fireFormTrackingEvent('Notebook Server Started', {
       outcome: TrackingOutcome.submit,
       podSpecOptions: JSON.stringify({
         notebookSize: podSpecOptionsState.notebooksSize.selectedSize,
@@ -282,7 +282,7 @@ const SpawnerPage: React.FC = () => {
         refreshNotebookForStart();
       })
       .catch((e) => {
-        fireFormTrackingEvent('Workbench Started', {
+        fireFormTrackingEvent('Notebook Server Started', {
           outcome: TrackingOutcome.submit,
           success: false,
           error: e.message,
