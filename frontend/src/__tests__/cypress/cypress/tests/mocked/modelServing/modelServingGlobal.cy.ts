@@ -20,6 +20,7 @@ import {
   modelServingSection,
 } from '~/__tests__/cypress/cypress/pages/modelServing';
 import {
+  AcceleratorProfileModel,
   HardwareProfileModel,
   InferenceServiceModel,
   ProjectModel,
@@ -44,6 +45,10 @@ import {
 } from '~/__mocks__/mockHardwareProfile';
 import { initInterceptsForAllProjects } from '~/__tests__/cypress/cypress/utils/servingUtils';
 import { nimDeployModal } from '~/__tests__/cypress/cypress/pages/components/NIMDeployModal';
+import {
+  mockGlobalScopedAcceleratorProfiles,
+  mockProjectScopedAcceleratorProfiles,
+} from '~/__mocks__/mockAcceleratorProfile';
 
 type HandlersProps = {
   disableKServeConfig?: boolean;
@@ -205,6 +210,18 @@ const initIntercepts = ({
       { namespace: 'opendatahub' },
     ),
   );
+
+  // Mock accelerator profiles
+  cy.interceptK8sList(
+    { model: AcceleratorProfileModel, ns: 'opendatahub' },
+    mockK8sResourceList(mockGlobalScopedAcceleratorProfiles),
+  ).as('acceleratorProfiles');
+
+  cy.interceptK8sList(
+    { model: AcceleratorProfileModel, ns: 'test-project' },
+    mockK8sResourceList(mockProjectScopedAcceleratorProfiles),
+  ).as('acceleratorProfiles');
+
   cy.interceptOdh('GET /api/connection-types', [
     mockConnectionTypeConfigMap({
       displayName: 'URI - v1',
@@ -769,6 +786,63 @@ describe('Model Serving Global', () => {
       .findHardwareProfileSearchSelector()
       .should('contain.text', 'Large Profile-1');
     hardwareProfileSection.findProjectScopedLabel().should('exist');
+  });
+
+  it('should display accelerator profile selection when both accelerator profile and project-scoped feature flag is enabled', () => {
+    initIntercepts({
+      projectEnableModelMesh: false,
+      disableServingRuntimeParamsConfig: false,
+      disableProjectScoped: false,
+    });
+    modelServingGlobal.visit('test-project');
+    modelServingGlobal.findDeployModelButton().click();
+    kserveModal.findModelNameInput().should('exist');
+
+    // Verify accelerator profile section exists
+    kserveModal.findAcceleratorProfileSearchSelector().should('exist');
+    kserveModal.findAcceleratorProfileSearchSelector().click();
+
+    // verify available project-scoped accelerator profile
+    const projectScopedAcceleratorProfile = kserveModal.getProjectScopedAcceleratorProfile();
+    projectScopedAcceleratorProfile
+      .find()
+      .findByRole('menuitem', {
+        name: 'Small Profile nvidia.com/gpu',
+        hidden: true,
+      })
+      .click();
+    kserveModal.findProjectScopedLabel().should('exist');
+
+    // verify available global-scoped accelerator profile
+    kserveModal.findAcceleratorProfileSearchSelector().click();
+    const globalScopedAcceleratorProfile = kserveModal.getGlobalScopedAcceleratorProfile();
+    globalScopedAcceleratorProfile
+      .find()
+      .findByRole('menuitem', {
+        name: 'Small Profile Global nvidia.com/gpu',
+        hidden: true,
+      })
+      .click();
+    kserveModal.findGlobalScopedLabel().should('exist');
+  });
+
+  it('Display project scoped label on accelerator profile selection on Edit', () => {
+    initIntercepts({
+      projectEnableModelMesh: false,
+      disableServingRuntimeParamsConfig: false,
+      disableProjectScoped: false,
+      servingRuntimes: [
+        mockServingRuntimeK8sResource({
+          acceleratorName: 'large-profile-1',
+        }),
+      ],
+    });
+    modelServingGlobal.visit('test-project');
+    modelServingGlobal.getModelRow('Test Inference Service').findKebabAction('Edit').click();
+    kserveModalEdit
+      .findAcceleratorProfileSearchSelector()
+      .should('contain.text', 'Large Profile-1');
+    kserveModalEdit.findProjectScopedLabel().should('exist');
   });
 
   it('Display global scoped label on serving runtime selection', () => {

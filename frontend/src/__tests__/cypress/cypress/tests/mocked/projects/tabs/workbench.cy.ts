@@ -39,7 +39,11 @@ import {
 } from '~/__tests__/cypress/cypress/utils/models';
 import { mock200Status, mock404Error } from '~/__mocks__/mockK8sStatus';
 import type { NotebookSize } from '~/types';
-import { mockAcceleratorProfile } from '~/__mocks__/mockAcceleratorProfile';
+import {
+  mockAcceleratorProfile,
+  mockGlobalScopedAcceleratorProfiles,
+  mockProjectScopedAcceleratorProfiles,
+} from '~/__mocks__/mockAcceleratorProfile';
 import { mockConnectionTypeConfigMap } from '~/__mocks__/mockConnectionType';
 import type { NotebookKind, PodKind } from '~/k8sTypes';
 import type { EnvironmentFromVariable } from '~/pages/projects/types';
@@ -52,6 +56,7 @@ type HandlersProps = {
   mockPodList?: PodKind[];
   envFrom?: EnvironmentFromVariable[];
   disableProjectScoped?: boolean;
+  disableHardwareProfiles?: boolean;
   notebooks?: NotebookKind[];
 };
 
@@ -75,6 +80,7 @@ const initIntercepts = ({
   ],
   mockPodList = [mockPodK8sResource({})],
   disableProjectScoped = true,
+  disableHardwareProfiles = true,
   notebooks = [
     mockNotebookK8sResource({
       envFrom,
@@ -159,6 +165,7 @@ const initIntercepts = ({
     mockDashboardConfig({
       notebookSizes,
       disableProjectScoped,
+      disableHardwareProfiles,
     }),
   );
   cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})]));
@@ -344,6 +351,17 @@ const initIntercepts = ({
       }),
     ]),
   );
+
+  // Mock accelerator profiles
+  cy.interceptK8sList(
+    { model: AcceleratorProfileModel, ns: 'opendatahub' },
+    mockK8sResourceList(mockGlobalScopedAcceleratorProfiles),
+  ).as('acceleratorProfiles');
+
+  cy.interceptK8sList(
+    { model: AcceleratorProfileModel, ns: 'test-project' },
+    mockK8sResourceList(mockProjectScopedAcceleratorProfiles),
+  ).as('acceleratorProfiles');
 };
 
 describe('Workbench page', () => {
@@ -551,6 +569,30 @@ describe('Workbench page', () => {
       .find()
       .findByRole('menuitem', { name: 'Test Image', hidden: true })
       .click();
+    createSpawnerPage.findGlobalScopedLabel().should('exist');
+  });
+
+  it('Display accelerator profile selection when both accelerator profile and project-scoped feature flag is enabled', () => {
+    initIntercepts({
+      disableProjectScoped: false,
+      disableHardwareProfiles: true,
+    });
+    workbenchPage.visit('test-project');
+    workbenchPage.findCreateButton().click();
+    createSpawnerPage.findSubmitButton().should('be.disabled');
+    verifyRelativeURL('/projects/test-project/spawner');
+
+    // Verify accelerator profile section exists
+    createSpawnerPage.findAcceleratorProfileSearchSelector().should('exist');
+    createSpawnerPage.findAcceleratorProfileSearchSelector().click();
+
+    // verify available project-scoped accelerator profile
+    createSpawnerPage.findAcceleratorProfile('Small Profile nvidia.com/gpu').click();
+    createSpawnerPage.findProjectScopedLabel().should('exist');
+
+    // verify available global-scoped accelerator profile
+    createSpawnerPage.findAcceleratorProfileSearchSelector().click();
+    createSpawnerPage.findAcceleratorProfile('Small Profile Global nvidia.com/gpu').click();
     createSpawnerPage.findGlobalScopedLabel().should('exist');
   });
 

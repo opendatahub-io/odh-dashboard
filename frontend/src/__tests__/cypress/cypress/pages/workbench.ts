@@ -391,6 +391,25 @@ class CreateSpawnerPage {
     );
   }
 
+  findAcceleratorProfileSearchSelector() {
+    return cy.findByTestId('accelerator-profile-selection-toggle');
+  }
+
+  getGlobalAcceleratorProfileLabel(): Cypress.Chainable<JQuery<HTMLBodyElement>> {
+    return cy.get('body').contains('Global accelerator profiles');
+  }
+
+  getProjectScopedAcceleratorProfileLabel(): Cypress.Chainable<JQuery<HTMLBodyElement>> {
+    return cy.get('body').contains('Project-scoped accelerator profiles');
+  }
+
+  findAcceleratorProfile(name: string) {
+    return cy.findByRole('menuitem', {
+      name,
+      hidden: true,
+    });
+  }
+
   findNotebookImage(name: string) {
     return cy
       .findByTestId('workbench-image-stream-selection')
@@ -415,11 +434,11 @@ class CreateSpawnerPage {
   }
 
   findProjectScopedLabel() {
-    return cy.findByTestId('project-scoped-image');
+    return cy.findByTestId('project-scoped-label');
   }
 
   findGlobalScopedLabel() {
-    return cy.findByTestId('global-scoped-image');
+    return cy.findByTestId('global-scoped-label');
   }
 
   getProjectScopedNotebookImages() {

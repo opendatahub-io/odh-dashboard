@@ -40,7 +40,7 @@ import type {
   ServingRuntimeKind,
 } from '~/k8sTypes';
 import { DeploymentMode } from '~/k8sTypes';
-import { ServingRuntimePlatform } from '~/types';
+import { ServingRuntimePlatform, TolerationEffect, TolerationOperator } from '~/types';
 import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
 import { StackCapability } from '~/concepts/areas/types';
 import { mockDsciStatus } from '~/__mocks__/mockDsciStatus';
@@ -357,6 +357,19 @@ const initIntercepts = ({
         enabled: !disableAccelerator,
         identifier: 'nvidia.com/gpu',
         description: 'Lorem, ipsum dolor sit amet consectetur adipisicing elit. Saepe, quis',
+      }),
+      mockAcceleratorProfile({
+        name: 'small-profile',
+        displayName: 'Small Profile',
+        namespace: 'test-project',
+        enabled: !disableAccelerator,
+        tolerations: [
+          {
+            effect: TolerationEffect.NO_SCHEDULE,
+            key: 'NotebooksOnlyChange',
+            operator: TolerationOperator.EXISTS,
+          },
+        ],
       }),
     ]),
   );
@@ -2319,6 +2332,35 @@ describe('Serving Runtime List', () => {
       kserveRow.findDescriptionListItem('Number of accelerators').should('exist');
     });
 
+    it('Check project-scoped accelerator when disabled but selected', () => {
+      initIntercepts({
+        projectEnableModelMesh: false,
+        disableKServeConfig: false,
+        disableModelMeshConfig: true,
+        disableAccelerator: true,
+        disableProjectScoped: false,
+        servingRuntimes: [
+          mockServingRuntimeK8sResource({
+            name: 'test-model',
+            namespace: 'test-project',
+            auth: true,
+            route: true,
+            acceleratorName: 'small-profile',
+          }),
+        ],
+      });
+
+      projectDetails.visitSection('test-project', 'model-server');
+      const kserveRow = modelServingSection.getKServeRow('Llama Caikit');
+      kserveRow.findExpansion().should(be.collapsed);
+      kserveRow.findToggleButton().click();
+      kserveRow
+        .findDescriptionListItem('Accelerator')
+        .next('dd')
+        .should('have.text', 'Small Profile Project-scoped (disabled)');
+      kserveRow.findDescriptionListItem('Number of accelerators').should('exist');
+    });
+
     it('Check accelerator when enabled but not selected', () => {
       initIntercepts({
         projectEnableModelMesh: false,
@@ -2375,6 +2417,35 @@ describe('Serving Runtime List', () => {
       kserveRow.findExpansion().should(be.collapsed);
       kserveRow.findToggleButton().click();
       kserveRow.findDescriptionListItem('Accelerator').next('dd').should('have.text', 'NVIDIA GPU');
+      kserveRow.findDescriptionListItem('Number of accelerators').should('exist');
+    });
+
+    it('Check project-scoped accelerator when enabled and selected', () => {
+      initIntercepts({
+        projectEnableModelMesh: false,
+        disableKServeConfig: false,
+        disableModelMeshConfig: true,
+        disableAccelerator: false,
+        disableProjectScoped: false,
+        servingRuntimes: [
+          mockServingRuntimeK8sResource({
+            name: 'test-model',
+            namespace: 'test-project',
+            auth: true,
+            route: true,
+            acceleratorName: 'small-profile',
+          }),
+        ],
+      });
+
+      projectDetails.visitSection('test-project', 'model-server');
+      const kserveRow = modelServingSection.getKServeRow('Llama Caikit');
+      kserveRow.findExpansion().should(be.collapsed);
+      kserveRow.findToggleButton().click();
+      kserveRow
+        .findDescriptionListItem('Accelerator')
+        .next('dd')
+        .should('have.text', 'Small Profile Project-scoped');
       kserveRow.findDescriptionListItem('Number of accelerators').should('exist');
     });
   });

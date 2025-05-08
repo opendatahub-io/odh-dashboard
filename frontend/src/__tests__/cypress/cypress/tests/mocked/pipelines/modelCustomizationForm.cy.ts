@@ -10,6 +10,7 @@ import {
   dataScienceProjectSection,
   pipelineSection,
   hyperparameterSection,
+  acceleratorProfileSection,
 } from '~/__tests__/cypress/cypress/pages/pipelines/modelCustomizationForm';
 import {
   buildMockPipeline,
@@ -31,6 +32,7 @@ import {
   mockStorageClassList,
 } from '~/__mocks__';
 import {
+  AcceleratorProfileModel,
   DataSciencePipelineApplicationModel,
   HardwareProfileModel,
   ProjectModel,
@@ -44,6 +46,10 @@ import {
   mockProjectScopedHardwareProfiles,
 } from '~/__mocks__/mockHardwareProfile';
 import { hardwareProfileSection } from '~/__tests__/cypress/cypress/pages/components/HardwareProfileSection';
+import {
+  mockGlobalScopedAcceleratorProfiles,
+  mockProjectScopedAcceleratorProfiles,
+} from '~/__mocks__/mockAcceleratorProfile';
 
 const projectName = 'test-project-name-2';
 const MODEL_REGISTRY_API_VERSION = 'v1alpha3';
@@ -105,6 +111,26 @@ const projectScopedHardwareProfiles = mockProjectScopedHardwareProfiles.map((pro
         defaultCount: '2',
       },
     ],
+  },
+}));
+
+const globalScopedAcceleratorProfiles = mockGlobalScopedAcceleratorProfiles.map((profile) => ({
+  ...profile,
+  spec: {
+    ...profile.spec,
+    identifiers: 'nvidia.com/gpu',
+  },
+}));
+
+const projectScopedAcceleratorProfiles = mockProjectScopedAcceleratorProfiles.map((profile) => ({
+  ...profile,
+  metadata: {
+    ...profile.metadata,
+    namespace: projectName,
+  },
+  spec: {
+    ...profile.spec,
+    identifiers: 'nvidia.com/gpu',
   },
 }));
 
@@ -203,6 +229,43 @@ describe('Model Customization Form', () => {
       })
       .click();
     hardwareProfileSection.findGlobalScopedLabel().should('exist');
+  });
+
+  it('Should show project scoped and global scoped accelerator profiles when project-scoped accelerator profiles exist', () => {
+    initIntercepts({ disableProjectScoped: false, disableHardwareProfiles: true });
+    setupModelRegistryIntercepts({ modelRegistryServiceName: 'modelregistry-sample' });
+    visitModelVersionDetails({ serviceName: 'modelregistry-sample', versionNo: '1' });
+    cy.wait('@getIlabPipeline');
+    cy.wait('@getPipelineVersions');
+
+    // Verify accelerator profile section exists
+    acceleratorProfileSection.findAcceleratorProfileSearchSelector().should('exist');
+    acceleratorProfileSection.findAcceleratorProfileSearchSelector().click();
+
+    // verify available project-scoped hardware profile
+    const projectScopedAcceleratorProfile =
+      acceleratorProfileSection.getProjectScopedAcceleratorProfile();
+    projectScopedAcceleratorProfile
+      .find()
+      .findByRole('menuitem', {
+        name: 'Small Profile nvidia.com/gpu',
+        hidden: true,
+      })
+      .click();
+    acceleratorProfileSection.findProjectScopedLabel().should('exist');
+
+    // verify available global-scoped hardware profile
+    acceleratorProfileSection.findAcceleratorProfileSearchSelector().click();
+    const globalScopedAcceleratorProfile =
+      acceleratorProfileSection.getGlobalScopedAcceleratorProfile();
+    globalScopedAcceleratorProfile
+      .find()
+      .findByRole('menuitem', {
+        name: 'Small Profile Global nvidia.com/gpu',
+        hidden: true,
+      })
+      .click();
+    acceleratorProfileSection.findGlobalScopedLabel().should('exist');
   });
 
   it('Should submit', () => {
@@ -505,6 +568,14 @@ export const initIntercepts = (
   cy.interceptK8sList(
     { model: HardwareProfileModel, ns: projectName },
     mockK8sResourceList(projectScopedHardwareProfiles),
+  );
+  cy.interceptK8sList(
+    { model: AcceleratorProfileModel, ns: 'opendatahub' },
+    mockK8sResourceList(globalScopedAcceleratorProfiles),
+  );
+  cy.interceptK8sList(
+    { model: AcceleratorProfileModel, ns: projectName },
+    mockK8sResourceList(projectScopedAcceleratorProfiles),
   );
   cy.interceptOdh(
     'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId/versions/:pipelineVersionId',
