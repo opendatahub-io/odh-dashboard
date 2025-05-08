@@ -62,7 +62,6 @@ const StopServerModal: React.FC<StopServerModalProps> = ({ notebooksToStop, onNo
 
   const modalActions = [
     <Button
-      data-id="stop-workbench-button"
       data-testid="stop-workbench-button"
       isDisabled={isDeleting}
       key="confirm"
