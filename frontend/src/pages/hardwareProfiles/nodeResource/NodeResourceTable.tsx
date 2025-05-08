@@ -25,7 +25,8 @@ const NodeResourceTable: React.FC<NodeResourceTableProps> = ({ nodeResources, on
       identifier.resourceType === IdentifierResourceType.MEMORY ||
       identifier.identifier === DEFAULT_MEMORY_IDENTIFIER;
 
-    if (!isCPU && !isMemory) {
+    // if it's not cpu or memory, guard not applicable, can just remove it
+    if (!(isCPU || isMemory)) {
       return false;
     }
 
@@ -36,14 +37,12 @@ const NodeResourceTable: React.FC<NodeResourceTableProps> = ({ nodeResources, on
           r.resourceType === IdentifierResourceType.CPU || r.identifier === DEFAULT_CPU_IDENTIFIER,
       );
     }
-    if (isMemory) {
-      return !remainingResources.some(
-        (r) =>
-          r.resourceType === IdentifierResourceType.MEMORY ||
-          r.identifier === DEFAULT_MEMORY_IDENTIFIER,
-      );
-    }
-    return false;
+    // has to be memory; all that is left
+    return !remainingResources.some(
+      (r) =>
+        r.resourceType === IdentifierResourceType.MEMORY ||
+        r.identifier === DEFAULT_MEMORY_IDENTIFIER,
+    );
   };
 
   const handleDelete = (rowIndex: number) => {
