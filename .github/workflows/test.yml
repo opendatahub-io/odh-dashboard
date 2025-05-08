@@ -9,8 +9,6 @@ jobs:
       modules-cache-key: ${{ steps.key.outputs.modules-cache-key }}
     steps:
       - uses: actions/checkout@v4
-      - name: Check for uncomitted changes
-        run: git diff --exit-code
       - name: Generate modules cache key
         id: key
         run: |
@@ -35,6 +33,8 @@ jobs:
         if: steps.modules-cache.outputs.cache-hit != 'true'
         run: npm install
 
+      - name: Check for uncommitted changes
+        run: git diff --exit-code
   Lint:
     needs: Setup
     runs-on: ubuntu-latest
