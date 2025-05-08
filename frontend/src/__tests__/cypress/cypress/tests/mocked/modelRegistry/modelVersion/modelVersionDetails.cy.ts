@@ -294,7 +294,6 @@ describe('Model version details', () => {
       modelVersionDetails.visit();
       modelVersionDetails.findVersionId().contains('1');
       cy.findByTestId('registered-from-catalog').should('not.exist');
-      modelVersionDetails.findRegisteredFromCatalog().should('not.exist');
       cy.findByTestId('registered-from-title').should('not.exist');
     });
 
