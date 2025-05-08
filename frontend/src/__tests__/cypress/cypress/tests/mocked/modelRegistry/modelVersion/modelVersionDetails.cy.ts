@@ -133,12 +133,17 @@ const mockModelArtifactFromCatalog = mockModelArtifact({
   modelSourceId: 'test-catalog-tag',
 });
 
-const initIntercepts = (isEmptyProject = false, fromCatalog = false) => {
+const initIntercepts = (
+  isEmptyProject = false,
+  fromCatalog = false,
+  modelCatalogAvailable = true,
+) => {
   cy.interceptOdh(
     'GET /api/config',
     mockDashboardConfig({
       disableModelRegistry: false,
       disableFineTuning: false,
+      disableModelCatalog: !modelCatalogAvailable,
     }),
   );
 
@@ -271,17 +276,26 @@ describe('Model version details', () => {
     });
 
     it('Model version details registered from catalog', () => {
-      initIntercepts(false, true);
+      initIntercepts(false, true, true);
       modelVersionDetails.visit();
-      modelVersionDetails.findVersionId().contains('1');
-      modelVersionDetails.findRegisteredFromCatalog().should('exist');
-      modelVersionDetails
-        .findRegisteredFromCatalog()
-        .should('have.text', 'test-catalog-model (test-catalog-tag) in Model catalog');
-      modelVersionDetails.findRegisteredFromCatalog().click();
+      cy.findByTestId('model-version-id').contains('1');
+      cy.findByTestId('registered-from-catalog').should('exist');
+      cy.findByTestId('registered-from-catalog').should(
+        'have.text',
+        'test-catalog-model (test-catalog-tag)',
+      );
+      cy.findByTestId('registered-from-catalog').click();
       verifyRelativeURL(
         '/modelCatalog/test-catalog-source/test-catalog-repo/test-catalog-model/test-catalog-tag',
       );
+    });
+
+    it('Model version details registered from catalog with model catalog unavailable', () => {
+      initIntercepts(false, true, false);
+      modelVersionDetails.visit();
+      cy.findByTestId('model-version-id').contains('1');
+      cy.findByTestId('registered-from-catalog').should('not.exist');
+      cy.contains('Registered from').should('exist');
     });
 
     it('Model version details page header', () => {

@@ -16,6 +16,7 @@ import EditableTextDescriptionListGroup from '~/components/EditableTextDescripti
 import { EditableLabelsDescriptionListGroup } from '~/components/EditableLabelsDescriptionListGroup';
 import ModelPropertiesDescriptionListGroup from '~/pages/modelRegistry/screens/ModelPropertiesDescriptionListGroup';
 import { getLabels, mergeUpdatedLabels } from '~/pages/modelRegistry/screens/utils';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import useModelArtifactsByVersionId from '~/concepts/modelRegistry/apiHooks/useModelArtifactsByVersionId';
 import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegistryContext';
 import ModelTimestamp from '~/pages/modelRegistry/screens/components/ModelTimestamp';
@@ -42,6 +43,7 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
   const [modelArtifacts, modelArtifactsLoaded, modelArtifactsLoadError, refreshModelArtifacts] =
     useModelArtifactsByVersionId(mv.id);
   const modelArtifact = modelArtifacts.items.length ? modelArtifacts.items[0] : null;
+  const modelCatalogAvailable = useIsAreaAvailable(SupportedArea.MODEL_CATALOG).status;
   const { apiState } = React.useContext(ModelRegistryContext);
   const storageFields = uriToModelLocation(modelArtifact?.uri || '');
   const [registeredModel, registeredModelLoaded, registeredModelLoadError, refreshRegisteredModel] =
@@ -141,7 +143,12 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
           >
             <InlineTruncatedClipboardCopy testId="model-version-id" textToCopy={mv.id} />
           </DashboardDescriptionListGroup>
-          {modelArtifact && <ModelVersionRegisteredFromLink modelArtifact={modelArtifact} />}
+          {modelArtifact && (
+            <ModelVersionRegisteredFromLink
+              modelArtifact={modelArtifact}
+              isModelCatalogAvailable={modelCatalogAvailable}
+            />
+          )}
         </DescriptionList>
 
         <Title style={{ margin: '1em 0' }} headingLevel={ContentVariants.h3}>
