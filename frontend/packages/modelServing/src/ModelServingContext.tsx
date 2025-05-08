@@ -3,11 +3,11 @@ import { useExtensions } from '@odh-dashboard/plugin-core';
 import { ModelServingPlatform, isModelServingPlatform } from './extension-points';
 
 type ModelServingContextType = {
-  modelServingPlatforms: ModelServingPlatform[];
+  availablePlatforms?: ModelServingPlatform[];
 };
 
 export const ModelServingContext = React.createContext<ModelServingContextType>({
-  modelServingPlatforms: [],
+  availablePlatforms: [],
 });
 
 type ModelServingProviderProps = {
@@ -17,7 +17,10 @@ type ModelServingProviderProps = {
 export const ModelServingProvider: React.FC<ModelServingProviderProps> = ({ children }) => {
   const platforms = useExtensions<ModelServingPlatform>(isModelServingPlatform);
 
-  const contextValue = React.useMemo(() => ({ modelServingPlatforms: platforms }), [platforms]);
+  const contextValue = React.useMemo(
+    () => ({ availablePlatforms: platforms } satisfies ModelServingContextType),
+    [platforms],
+  );
 
   return (
     <ModelServingContext.Provider value={contextValue}>{children}</ModelServingContext.Provider>

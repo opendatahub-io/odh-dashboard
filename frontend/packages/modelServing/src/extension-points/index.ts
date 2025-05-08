@@ -24,8 +24,6 @@ export type ModelServingPlatformCard = Extension<
     selectText: string;
   }
 >;
-export const isModelServingPlatformCard =
-  (platform?: string) =>
-  (extension: Extension): extension is ModelServingPlatformCard =>
-    extension.type === 'model-serving.platform/card' &&
-    (platform ? extension.properties.platform === platform : true);
+export const isModelServingPlatformCard = (
+  extension: Extension,
+): extension is ModelServingPlatformCard => extension.type === 'model-serving.platform/card';

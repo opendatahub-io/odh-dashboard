@@ -8,14 +8,14 @@ import { getActiveServingPlatform } from './concepts/modelServingPlatforms';
 
 type ProjectModelsContextType = {
   project?: ProjectKind;
-  servingPlatform?: ModelServingPlatform | null;
+  platform?: ModelServingPlatform | null;
   setModelServingPlatform: (platform: ModelServingPlatform) => void;
   models?: string[];
 };
 
 export const ProjectModelsContext = React.createContext<ProjectModelsContextType>({
   project: undefined,
-  servingPlatform: undefined,
+  platform: undefined,
   setModelServingPlatform: () => undefined,
   models: [],
 });
@@ -25,12 +25,12 @@ type ProjectModelsProviderProps = {
 };
 
 export const ProjectModelsProvider: React.FC<ProjectModelsProviderProps> = ({ children }) => {
-  const { modelServingPlatforms } = React.useContext(ModelServingContext);
-  const { currentProject } = React.useContext(ProjectDetailsContext);
+  const { availablePlatforms } = React.useContext(ModelServingContext);
+  const { currentProject } = React.useContext(ProjectDetailsContext); // TODO: this should refresh from a websocket
 
   const [servingPlatform, setServingPlatform] = React.useState<
-    ProjectModelsContextType['servingPlatform']
-  >(getActiveServingPlatform(currentProject, modelServingPlatforms));
+    ProjectModelsContextType['platform']
+  >(getActiveServingPlatform(currentProject, availablePlatforms ?? []));
   const setModelServingPlatform = React.useCallback(
     (platform: ModelServingPlatform) => {
       setServingPlatform(platform);
@@ -45,7 +45,7 @@ export const ProjectModelsProvider: React.FC<ProjectModelsProviderProps> = ({ ch
     () =>
       ({
         project: currentProject,
-        servingPlatform,
+        platform: servingPlatform,
         setModelServingPlatform,
         models: deployedModels,
       } satisfies ProjectModelsContextType),
