@@ -322,6 +322,18 @@ class ManageHardwareProfile {
     return cy.findByTestId('node-resource-table-alert');
   }
 
+  findNodeResourceDeletionDialog() {
+    return cy.findByTestId('delete-node-resource-modal');
+  }
+
+  findNodeResourceDeletionDialogDeleteButton() {
+    return cy.findByTestId('delete-node-resource-modal-delete-btn');
+  }
+
+  findNodeResourceDeletionDialogCancelButton() {
+    return cy.findByTestId('delete-node-resource-modal-cancel-btn');
+  }
+
   getTolerationTableRow(name: string) {
     return new TolerationRow(() =>
       this.findTolerationTable().find(`[data-label=Key]`).contains(name).parents('tr'),
@@ -341,6 +353,18 @@ class ManageHardwareProfile {
         .contains(name)
         .parents('tr'),
     );
+  }
+
+  hasNodeResourceRow(name: string): Cypress.Chainable<boolean> {
+    // Use .then to transform the result into a boolean
+    return cy.document().then(() => {
+      // Create a wrapped jQuery selector that won't fail if the element doesn't exist
+      return cy.wrap(
+        Cypress.$(
+          `[data-testid="hardware-profile-node-resources-table"] [data-label="Resource identifier"]:contains("${name}")`,
+        ).length > 0,
+      );
+    });
   }
 }
 
