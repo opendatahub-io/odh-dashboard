@@ -23,15 +23,12 @@ import { ProjectObjectType, typedEmptyImage } from '@odh-dashboard/internal/conc
 // eslint-disable-next-line import/no-extraneous-dependencies
 import EmptyModelServingPlatform from '@odh-dashboard/internal/pages/modelServing/screens/projects/EmptyModelServingPlatform';
 import { useExtensions } from '@odh-dashboard/plugin-core';
-import {
-  ModelServingPlatformExtension,
-  ModelServingPlatformCard,
-  isModelServingPlatformCard,
-} from '../../extension-points';
+import { ModelServingPlatform } from '../../ModelServingContext';
+import { ModelServingPlatformCard, isModelServingPlatformCard } from '../../extension-points';
 
 export const SelectPlatformView: React.FC<{
-  platforms?: ModelServingPlatformExtension[];
-  setModelServingPlatform: (platform: ModelServingPlatformExtension) => void;
+  platforms?: ModelServingPlatform[];
+  setModelServingPlatform: (platform: ModelServingPlatform) => void;
 }> = ({ platforms, setModelServingPlatform }) => {
   const cards = useExtensions<ModelServingPlatformCard>(isModelServingPlatformCard);
 
