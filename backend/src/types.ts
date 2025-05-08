@@ -13,6 +13,7 @@ export type OperatorStatus = {
 
 export type DashboardConfig = K8sResourceCommon & {
   spec: {
+    // Optional in CRD -- normalized when cached in ResourceWatcher
     dashboardConfig: {
       enablement: boolean;
       disableInfo: boolean;
@@ -50,13 +51,8 @@ export type DashboardConfig = K8sResourceCommon & {
       disableAdminConnectionTypes: boolean;
       disableFineTuning: boolean;
     };
-    /** @deprecated -- replacing this with Platform Auth resource -- remove when this is no longer in the CRD */
-    groupsConfig?: {
-      /** @deprecated -- see above */
-      adminGroups: string;
-      /** @deprecated -- see above */
-      allowedGroups: string;
-    };
+    // Intentionally disjointed from the CRD, we should move away from this code-wise now; CRD later
+    // groupsConfig?: {
     notebookSizes?: NotebookSize[];
     modelServerSizes?: ModelServerSize[];
     notebookController?: {
@@ -628,14 +624,6 @@ export type ImageTagInfo = {
 };
 
 export type ImageType = 'byon' | 'jupyter' | 'other';
-
-export type StorageClassConfig = {
-  displayName: string;
-  isEnabled: boolean;
-  isDefault: boolean;
-  lastModified: string;
-  description?: string;
-};
 
 export type PersistentVolumeClaimKind = {
   apiVersion?: string;

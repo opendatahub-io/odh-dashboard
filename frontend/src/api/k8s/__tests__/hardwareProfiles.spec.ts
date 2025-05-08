@@ -112,7 +112,7 @@ describe('listHardwareProfile', () => {
 });
 
 describe('getHardwareProfile', () => {
-  it('should fetch and return  specific hardware profile', async () => {
+  it('should fetch and return specific hardware profile', async () => {
     const namespace = 'test-project';
     const projectName = 'test';
     mockGetResource.mockResolvedValue(mockHardwareProfile({ uid: 'test-project-12' }));

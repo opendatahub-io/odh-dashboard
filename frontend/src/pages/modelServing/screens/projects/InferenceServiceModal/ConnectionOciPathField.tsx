@@ -75,7 +75,7 @@ const ConnectionOciPathField: React.FC<ConnectionOciPathFieldProps> = ({
                 }}
                 onBlur={(e) => {
                   trimInputOnBlur(modelUri, (trimmedValue) => {
-                    setModelUri(addUriPrefix(trimmedValue));
+                    setModelUri(addUriPrefix(hideUriPrefix((trimmedValue)));
                   })(e);
                 }}
                 onPaste={(e) => trimInputOnPaste(modelUri, setModelUri)(e)}

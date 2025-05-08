@@ -210,11 +210,6 @@
             "pattern": "@mf/**",
             "group": "external",
             "position": "after"
-          },
-          {
-            "pattern": "~/**",
-            "group": "internal",
-            "position": "before"
           }
         ],
         "pathGroupsExcludedImportTypes": ["builtin"],
@@ -249,7 +244,11 @@
       "error",
       {
         "devDependencies": true,
-        "optionalDependencies": true
+        "optionalDependencies": true,
+        "packageDir": [
+          ".",
+          "./packages"
+        ]
       }
     ],
     "no-relative-import-paths/no-relative-import-paths": [
@@ -416,19 +415,19 @@
           }
         ]
       }
-    // },
-    // {
-    //   "files": ["src/plugins/extensions.ts"],
-    //   "rules": {
-    //     "@typescript-eslint/consistent-type-imports": "error",
-    //     "no-restricted-syntax": [
-    //       "error",
-    //       {
-    //         "selector":"ImportDeclaration[importKind!='type']",
-    //         "message": "Must use 'import type' when importing. Use dynamic imports for code references (eg. `() => import('~/Test')`)."
-    //       }
-    //     ]
-    //   }
+    },
+    {
+      "files": ["src/plugins/extensions/**"],
+      "rules": {
+        "@typescript-eslint/consistent-type-imports": "error",
+        "no-restricted-syntax": [
+          "error",
+          {
+            "selector":"ImportDeclaration[importKind!='type']",
+            "message": "Must use 'import type' when importing. Use dynamic imports for code references (eg. `() => import('~/Test')`)."
+          }
+        ]
+      }
     }
   ]
 }
