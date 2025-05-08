@@ -139,48 +139,155 @@ const setUserConfig = (userConfig: UserConfig = {}, isAllowed = true) => {
     const EDIT_VERBS = ['*', 'create', 'delete', 'deletecollection', 'update', 'patch'];
 
     if (clusterAdmin) {
-      Cypress.log({ message: 'Cluster admin can do everything' });
+      Cypress.log({
+        name: 'SSAR Permission Check',
+        displayName: 'Cluster Admin:',
+        message: 'Full access granted',
+        consoleProps: () => {
+          return {
+            Verb: resourceAttributes.verb,
+            Resource: resourceAttributes.resource,
+            Namespace: resourceAttributes.namespace,
+            Group: resourceAttributes.group,
+          };
+        },
+      });
       return true;
     }
 
     if (productAdmin) {
       if (namespace === 'opendatahub') {
         Cypress.log({
-          message:
-            'Product admins are getting direct access to resources in the deployment namespace (but importantly, not other projects)',
+          name: 'SSAR Permission Check',
+          displayName: 'Product Admin:',
+          message: 'Access to resources in deployment namespace',
+          consoleProps: () => {
+            return {
+              Verb: resourceAttributes.verb,
+              Resource: resourceAttributes.resource,
+              Namespace: resourceAttributes.namespace,
+              Group: resourceAttributes.group,
+            };
+          },
         });
         return true;
       }
       if (!EDIT_VERBS.includes(verb)) {
-        Cypress.log({ message: 'Product admins will be limited to listing resources' });
+        Cypress.log({
+          name: 'SSAR Permission Check',
+          displayName: 'Product Admin:',
+          message: 'Limited to listing resources',
+          consoleProps: () => {
+            return {
+              Verb: resourceAttributes.verb,
+              Resource: resourceAttributes.resource,
+              Namespace: resourceAttributes.namespace,
+              Group: resourceAttributes.group,
+            };
+          },
+        });
         return true;
       }
     }
 
     if (resource === 'projectrequests' && selfProvisioner) {
-      Cypress.log({ message: 'Self provisioner capabilities grant access to project creation' });
+      Cypress.log({
+        name: 'SSAR Permission Check',
+        displayName: 'Self Provisioner:',
+        message: 'Grant access to project creation',
+        consoleProps: () => {
+          return {
+            Verb: resourceAttributes.verb,
+            Resource: resourceAttributes.resource,
+            Namespace: resourceAttributes.namespace,
+            Group: resourceAttributes.group,
+          };
+        },
+      });
       return true;
     }
 
     if (resource === 'rolebindings' && !projectAdmin) {
-      Cypress.log({ message: 'Users cannot access permissions tab' });
+      Cypress.log({
+        name: 'SSAR Permission Check',
+        displayName: 'Project Users:',
+        message: 'Access denied (requires Project Admin)',
+        consoleProps: () => {
+          return {
+            Verb: resourceAttributes.verb,
+            Resource: resourceAttributes.resource,
+            Namespace: resourceAttributes.namespace,
+            Group: resourceAttributes.group,
+          };
+        },
+      });
       return false;
     }
 
     if (PROJECT_ADMIN_RESOURCES.includes(resource) && EDIT_VERBS.includes(verb)) {
       if (projectAdmin) {
-        Cypress.log({ message: 'Project admins allowed edit on project resources' });
+        Cypress.log({
+          name: 'SSAR Permission Check',
+          displayName: 'Project Admin:',
+          message: 'Edit access granted',
+          consoleProps: () => {
+            return {
+              Verb: resourceAttributes.verb,
+              Resource: resourceAttributes.resource,
+              Namespace: resourceAttributes.namespace,
+              Group: resourceAttributes.group,
+            };
+          },
+        });
         return true;
       }
-      Cypress.log({ message: 'Project users not allowed to edit project resources' });
+      Cypress.log({
+        name: 'SSAR Permission Check',
+        displayName: 'Project Users:',
+        message: 'Edit access denied',
+        consoleProps: () => {
+          return {
+            Verb: resourceAttributes.verb,
+            Resource: resourceAttributes.resource,
+            Namespace: resourceAttributes.namespace,
+            Group: resourceAttributes.group,
+          };
+        },
+      });
       return false;
     }
-
     if (namespace) {
-      Cypress.log({ message: 'Everyone else can perform any action within' });
+      if (namespace === 'opendatahub' && !productAdmin) {
+        Cypress.log({
+          name: 'SSAR Permission Check',
+          displayName: 'Permission:',
+          message: 'Access denied to opendatahub namespace',
+          consoleProps: () => {
+            return {
+              Verb: resourceAttributes.verb,
+              Resource: resourceAttributes.resource,
+              Namespace: resourceAttributes.namespace,
+              Group: resourceAttributes.group,
+            };
+          },
+        });
+        return false;
+      }
+      Cypress.log({
+        name: 'SSAR Permission Check',
+        displayName: 'Permission:',
+        message: 'Access granted within namespace',
+        consoleProps: () => {
+          return {
+            Verb: resourceAttributes.verb,
+            Resource: resourceAttributes.resource,
+            Namespace: resourceAttributes.namespace,
+            Group: resourceAttributes.group,
+          };
+        },
+      });
       return true;
     }
-
     return false;
   };
 
