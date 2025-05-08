@@ -139,7 +139,9 @@ const ModelVersionRegisteredFromLink: React.FC<ModelVersionRegisteredFromLinkPro
   }
 
   return (
-    <DashboardDescriptionListGroup title="Registered from">{content}</DashboardDescriptionListGroup>
+    <DashboardDescriptionListGroup title="Registered from" data-testid="registered-from-title">
+      {content}
+    </DashboardDescriptionListGroup>
   );
 };
 

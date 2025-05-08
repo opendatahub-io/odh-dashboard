@@ -293,9 +293,9 @@ describe('Model version details', () => {
       initIntercepts(false, true, false);
       modelVersionDetails.visit();
       modelVersionDetails.findVersionId().contains('1');
-      cy.contains('test-catalog-model (test-catalog-tag) in Model catalog').should('exist');
+      cy.findByTestId('registered-from-catalog').should('not.exist');
       modelVersionDetails.findRegisteredFromCatalog().should('not.exist');
-      cy.contains('Registered from').should('exist');
+      cy.findByTestId('registered-from-title').should('not.exist');
     });
 
     it('Model version details page header', () => {
