@@ -93,14 +93,18 @@ const ModelDetailsPage: React.FC = conditionalArea(
           />
         }
       >
-        <Button variant="secondary" isAriaDisabled data-testid="register-model-button">
+        <Button
+          variant={!deployButtonState.visible ? 'primary' : 'secondary'}
+          isAriaDisabled
+          data-testid="register-model-button"
+        >
           Register model
         </Button>
       </Popover>
     ) : (
       <Button
         data-testid="register-model-button"
-        variant="secondary"
+        variant={!deployButtonState.visible ? 'primary' : 'secondary'}
         onClick={() => {
           navigate(getRegisterCatalogModelRoute(decodedParams));
         }}
@@ -229,8 +233,8 @@ const ModelDetailsPage: React.FC = conditionalArea(
             <ActionList>
               <ActionListGroup>
                 {tuningAvailable && isLabBase(model?.labels) && fineTuneActionItem}
-                {registerModelButton()}
                 {deployButtonState.visible && renderDeployModelButton()}
+                {registerModelButton()}
               </ActionListGroup>
             </ActionList>
           )
