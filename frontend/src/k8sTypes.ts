@@ -1224,6 +1224,7 @@ export type DashboardCommonConfig = {
   disableAdminConnectionTypes: boolean;
   disableFineTuning: boolean;
   disableModelServingPlugin: boolean;
+  disableLlamaStackChatBot: boolean;
 };
 
 export type DashboardConfigKind = K8sResourceCommon & {
