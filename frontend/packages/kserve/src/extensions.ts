@@ -1,34 +1,20 @@
-import type { ProjectKind } from '@odh-dashboard/internal/k8sTypes.js';
 import type {
-  ModelServingPlatform,
+  ModelServingPlatformExtension,
   ModelServingPlatformCard,
 } from '@odh-dashboard/model-serving/extension-points';
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { addSupportServingPlatformProject } from '@odh-dashboard/internal/api/index';
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { NamespaceApplicationCase } from '@odh-dashboard/internal/pages/projects/types';
 
-const extensions: (ModelServingPlatform | ModelServingPlatformCard)[] = [
+const extensions: (ModelServingPlatformExtension | ModelServingPlatformCard)[] = [
   {
     type: 'model-serving.platform',
     properties: {
       id: 'kserve',
       name: 'KServe',
-      isInstalled: () => Promise.resolve(true),
-      isEnabled: (project: ProjectKind) =>
-        project.metadata.labels?.['modelmesh-enabled'] === 'false',
-      enable: (project: ProjectKind) =>
-        addSupportServingPlatformProject(
-          project.metadata.name,
-          NamespaceApplicationCase.KSERVE_PROMOTION,
-        ),
-      disable: (project: ProjectKind) =>
-        addSupportServingPlatformProject(
-          project.metadata.name,
-          NamespaceApplicationCase.RESET_MODEL_SERVING_PLATFORM,
-        ),
+      isInstalled: () => import('./managePlatform').then((m) => m.isInstalled),
+      isEnabled: () => import('./managePlatform').then((m) => m.isEnabled),
+      enable: () => import('./managePlatform').then((m) => m.enable),
+      disable: () => import('./managePlatform').then((m) => m.disable),
     },
-  } satisfies ModelServingPlatform,
+  } satisfies ModelServingPlatformExtension,
   {
     type: 'model-serving.platform/card',
     properties: {

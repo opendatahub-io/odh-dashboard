@@ -3,13 +3,13 @@ import React from 'react';
 import { ProjectDetailsContext } from '@odh-dashboard/internal/pages/projects/ProjectDetailsContext';
 import type { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
 import { ModelServingContext } from './ModelServingContext';
-import { ModelServingPlatform } from './extension-points';
+import { ModelServingPlatformExtension } from './extension-points';
 import { getActiveServingPlatform } from './concepts/modelServingPlatforms';
 
 type ProjectModelsContextType = {
   project?: ProjectKind;
-  platform?: ModelServingPlatform | null;
-  setModelServingPlatform: (platform: ModelServingPlatform) => void;
+  platform?: ModelServingPlatformExtension | null;
+  setModelServingPlatform: (platform: ModelServingPlatformExtension) => void;
   models?: string[];
 };
 
@@ -32,9 +32,9 @@ export const ProjectModelsProvider: React.FC<ProjectModelsProviderProps> = ({ ch
     ProjectModelsContextType['platform']
   >(getActiveServingPlatform(currentProject, availablePlatforms ?? []));
   const setModelServingPlatform = React.useCallback(
-    (platform: ModelServingPlatform) => {
+    (platform: ModelServingPlatformExtension) => {
       setServingPlatform(platform);
-      platform.properties.enable(currentProject);
+      platform.properties.enable().then((res) => res(currentProject));
     },
     [currentProject, setServingPlatform],
   );
