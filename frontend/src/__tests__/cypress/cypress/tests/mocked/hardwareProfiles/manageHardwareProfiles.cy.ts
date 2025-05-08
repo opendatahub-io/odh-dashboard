@@ -151,6 +151,26 @@ describe('Manage Hardware Profile', () => {
     // test that values were added correctly
     createHardwareProfile.getNodeResourceTableRow('test-gpu').shouldHaveResourceLabel('Test GPU');
 
+    // make a new one; a test-ack that should be deletable - no dialog should show up
+    createHardwareProfile.findAddNodeResourceButton().click();
+    // fill in form required fields
+    createNodeResourceModal.findNodeResourceSubmitButton().should('be.disabled');
+    createNodeResourceModal.findNodeResourceLabelInput().fill('Test Ack');
+    createNodeResourceModal.findNodeResourceIdentifierInput().fill('test-ack');
+    createNodeResourceModal.findNodeResourceTypeSelect().should('contain.text', 'Other');
+    createNodeResourceModal.findNodeResourceSubmitButton().should('be.enabled');
+    createNodeResourceModal.findNodeResourceSubmitButton().click();
+    // test that values were added correctly
+    createHardwareProfile.getNodeResourceTableRow('test-ack').shouldHaveResourceLabel('Test Ack');
+
+    // now; delete it; no dialog should show:
+    createHardwareProfile.getNodeResourceTableRow('test-ack').findDeleteAction().click();
+    createHardwareProfile.findNodeResourceDeletionDialog().should('not.exist');
+    createHardwareProfile.findNodeResourceTableAlert().should('not.exist');
+
+    // Assert that the row does not exist
+    createHardwareProfile.hasNodeResourceRow('test-ack').should('be.false');
+
     // test edit node resource
     createHardwareProfile.getNodeResourceTableRow('cpu').findEditAction().click();
     editNodeResourceModal.findNodeResourceTypeSelect().should('contain.text', 'CPU');
