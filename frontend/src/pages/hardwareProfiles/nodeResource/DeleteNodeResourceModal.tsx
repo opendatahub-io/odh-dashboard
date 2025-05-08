@@ -25,10 +25,19 @@ const DeleteNodeResourceModal: React.FC<DeleteNodeResourceModalProps> = ({
       onClose={() => onBeforeClose(false)}
       isOpen
       actions={[
-        <Button key="delete-button" onClick={() => onBeforeClose(true)}>
+        <Button
+          key="delete-button"
+          data-testid="delete-node-resource-modal-delete-btn"
+          onClick={() => onBeforeClose(true)}
+        >
           Delete
         </Button>,
-        <Button key="cancel-button" variant="link" onClick={() => onBeforeClose(false)}>
+        <Button
+          key="cancel-button"
+          data-testid="delete-node-resource-modal-cancel-btn"
+          variant="link"
+          onClick={() => onBeforeClose(false)}
+        >
           Cancel
         </Button>,
       ]}
