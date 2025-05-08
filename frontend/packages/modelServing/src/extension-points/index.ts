@@ -1,19 +1,20 @@
-import type { ProjectKind } from '@odh-dashboard/internal/k8sTypes.js';
-import { Extension } from '@openshift/dynamic-plugin-sdk';
+import type { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
+import { CodeRef, Extension } from '@openshift/dynamic-plugin-sdk';
 
-export type ModelServingPlatform = Extension<
+export type ModelServingPlatformExtension = Extension<
   'model-serving.platform',
   {
     id: string;
     name: string;
-    isInstalled: () => Promise<boolean>;
-    enable: (project: ProjectKind) => Promise<string>;
-    disable: (project: ProjectKind) => Promise<string>;
-    isEnabled: (project: ProjectKind) => boolean;
+    isInstalled: CodeRef<() => Promise<boolean>>;
+    enable: CodeRef<(project: ProjectKind) => Promise<string>>;
+    disable: CodeRef<(project: ProjectKind) => Promise<string>>;
+    isEnabled: CodeRef<(project: ProjectKind) => boolean>;
   }
 >;
-export const isModelServingPlatform = (extension: Extension): extension is ModelServingPlatform =>
-  extension.type === 'model-serving.platform';
+export const isModelServingPlatform = (
+  extension: Extension,
+): extension is ModelServingPlatformExtension => extension.type === 'model-serving.platform';
 
 export type ModelServingPlatformCard = Extension<
   'model-serving.platform/card',

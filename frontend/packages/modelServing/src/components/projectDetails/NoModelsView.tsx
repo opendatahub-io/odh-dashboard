@@ -7,11 +7,13 @@ import { ProjectObjectType, typedEmptyImage } from '@odh-dashboard/internal/conc
 import { useExtensions } from '@odh-dashboard/plugin-core';
 import {
   isModelServingPlatformCard,
-  ModelServingPlatform,
+  ModelServingPlatformExtension,
   ModelServingPlatformCard,
 } from '../../extension-points';
 
-export const NoModelsView: React.FC<{ platform: ModelServingPlatform }> = ({ platform }) => {
+export const NoModelsView: React.FC<{ platform: ModelServingPlatformExtension }> = ({
+  platform,
+}) => {
   const cards = useExtensions<ModelServingPlatformCard>(isModelServingPlatformCard);
   const selectedPlatformCard = React.useMemo(
     () => cards.find((c) => c.properties.platform === platform.properties.id),

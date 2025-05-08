@@ -1,9 +1,9 @@
 import React from 'react';
 import { useExtensions } from '@odh-dashboard/plugin-core';
-import { ModelServingPlatform, isModelServingPlatform } from './extension-points';
+import { ModelServingPlatformExtension, isModelServingPlatform } from './extension-points';
 
 type ModelServingContextType = {
-  availablePlatforms?: ModelServingPlatform[];
+  availablePlatforms?: ModelServingPlatformExtension[];
 };
 
 export const ModelServingContext = React.createContext<ModelServingContextType>({
@@ -15,7 +15,7 @@ type ModelServingProviderProps = {
 };
 
 export const ModelServingProvider: React.FC<ModelServingProviderProps> = ({ children }) => {
-  const platforms = useExtensions<ModelServingPlatform>(isModelServingPlatform);
+  const platforms = useExtensions(isModelServingPlatform);
 
   const contextValue = React.useMemo(
     () => ({ availablePlatforms: platforms } satisfies ModelServingContextType),

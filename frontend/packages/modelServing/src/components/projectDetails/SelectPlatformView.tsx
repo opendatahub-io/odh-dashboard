@@ -24,14 +24,14 @@ import { ProjectObjectType, typedEmptyImage } from '@odh-dashboard/internal/conc
 import EmptyModelServingPlatform from '@odh-dashboard/internal/pages/modelServing/screens/projects/EmptyModelServingPlatform';
 import { useExtensions } from '@odh-dashboard/plugin-core';
 import {
-  ModelServingPlatform,
+  ModelServingPlatformExtension,
   ModelServingPlatformCard,
   isModelServingPlatformCard,
 } from '../../extension-points';
 
 export const SelectPlatformView: React.FC<{
-  platforms?: ModelServingPlatform[];
-  setModelServingPlatform: (platform: ModelServingPlatform) => void;
+  platforms?: ModelServingPlatformExtension[];
+  setModelServingPlatform: (platform: ModelServingPlatformExtension) => void;
 }> = ({ platforms, setModelServingPlatform }) => {
   const cards = useExtensions<ModelServingPlatformCard>(isModelServingPlatformCard);
 
