@@ -18,7 +18,7 @@ import TruncatedText from '~/components/TruncatedText';
 
 import './SimpleSelect.scss';
 
-export type SimpleSelectOption = {
+type SimpleSelectOption = {
   key: string;
   label: string;
   description?: React.ReactNode;
@@ -33,13 +33,18 @@ export type SimpleSelectOption = {
 export type SimpleGroupSelectOption = {
   key: string;
   label: string;
-  options: SimpleSelectOption[];
+  options: SimpleSelectOptionStrict[];
 };
 
+// Prevents addition of anything outside what's defined in SimpleSelectOption
+type Strict<T> = T & { [K in Exclude<keyof T, keyof SimpleSelectOption>]: never };
+
+export type SimpleSelectOptionStrict = Strict<SimpleSelectOption>;
+
 type SimpleSelectProps = {
-  options?: SimpleSelectOption[];
+  options?: SimpleSelectOptionStrict[];
   groupedOptions?: SimpleGroupSelectOption[];
-  value?: string;
+  value: string | undefined;
   toggleLabel?: React.ReactNode;
   placeholder?: string;
   onChange: (key: string, isPlaceholder: boolean) => void;

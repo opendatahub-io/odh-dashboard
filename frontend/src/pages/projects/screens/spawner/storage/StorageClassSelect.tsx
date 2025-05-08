@@ -12,7 +12,7 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import React from 'react';
-import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
+import SimpleSelect, { SimpleSelectOptionStrict } from '~/components/SimpleSelect';
 import useStorageClasses from '~/concepts/k8s/useStorageClasses';
 import { getStorageClassConfig } from '~/pages/storageClasses/utils';
 import useAdminDefaultStorageClass from './useAdminDefaultStorageClass';
@@ -61,7 +61,7 @@ const StorageClassSelect: React.FC<StorageClassSelectProps> = ({
     ? getStorageClassConfig(selectedStorageClass)
     : undefined;
 
-  const options: SimpleSelectOption[] = (
+  const options: SimpleSelectOptionStrict[] = (
     disableStorageClassSelect ? storageClasses : enabledStorageClasses
   ).map((sc) => {
     const config = getStorageClassConfig(sc);

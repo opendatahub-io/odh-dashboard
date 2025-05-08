@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { FormGroup } from '@patternfly/react-core';
 import { ServingRuntimeAPIProtocol, ServingRuntimePlatform } from '~/types';
-import SimpleSelect from '~/components/SimpleSelect';
+import SimpleSelect, { SimpleSelectOptionStrict } from '~/components/SimpleSelect';
 import { asEnumMember } from '~/utilities/utils';
 
 type CustomServingRuntimeAPIProtocolSelectorProps = {
@@ -17,7 +17,7 @@ const CustomServingRuntimeAPIProtocolSelector: React.FC<
     selectedPlatforms.includes(ServingRuntimePlatform.MULTI) &&
     !selectedPlatforms.includes(ServingRuntimePlatform.SINGLE);
 
-  const options = [
+  const options: SimpleSelectOptionStrict[] = [
     {
       key: ServingRuntimeAPIProtocol.REST,
       label: ServingRuntimeAPIProtocol.REST,
@@ -43,7 +43,7 @@ const CustomServingRuntimeAPIProtocolSelector: React.FC<
         aria-label="Select a model serving api protocol"
         placeholder="Select a value"
         options={options}
-        value={selectedAPIProtocol || ''}
+        value={selectedAPIProtocol}
         onChange={(key) => {
           const enumValue = asEnumMember(key, ServingRuntimeAPIProtocol);
           if (enumValue !== null) {

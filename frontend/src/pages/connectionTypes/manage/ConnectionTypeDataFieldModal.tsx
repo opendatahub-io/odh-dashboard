@@ -30,7 +30,7 @@ import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconBut
 import DataFieldPropertiesForm from '~/pages/connectionTypes/manage/DataFieldPropertiesForm';
 import { prepareFieldForSave } from '~/pages/connectionTypes/manage/manageFieldUtils';
 import useGenericObjectState from '~/utilities/useGenericObjectState';
-import SimpleSelect from '~/components/SimpleSelect';
+import SimpleSelect, { SimpleSelectOptionStrict } from '~/components/SimpleSelect';
 
 const isConnectionTypeFieldType = (
   fieldType: string | number | undefined,
@@ -215,12 +215,14 @@ export const ConnectionTypeDataFieldModal: React.FC<Props> = ({
             options={connectionTypeDataFields
               .map((value) => ({ label: fieldTypeToString(value), value }))
               .toSorted((a, b) => a.label.localeCompare(b.label))
-              .map(({ value, label }) => ({
-                key: value,
-                label: value,
-                dropdownLabel: label,
-                dataTestId: `field-${value}-select`,
-              }))}
+              .map(
+                ({ value, label }): SimpleSelectOptionStrict => ({
+                  key: value,
+                  label: value,
+                  dropdownLabel: label,
+                  dataTestId: `field-${value}-select`,
+                }),
+              )}
             shouldFocusToggleOnSelect
             isFullWidth
             value={fieldType}

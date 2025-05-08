@@ -4,7 +4,7 @@ import { FilterIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router';
 import { SearchType } from '~/concepts/dashboard/DashboardSearchField';
 import { ModelVersion, RegisteredModel } from '~/concepts/modelRegistry/types';
-import SimpleSelect from '~/components/SimpleSelect';
+import SimpleSelect, { SimpleSelectOptionStrict } from '~/components/SimpleSelect';
 import { filterRegisteredModels } from '~/pages/modelRegistry/screens/utils';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
 import EmptyModelRegistryState from '~/pages/modelRegistry/screens/components/EmptyModelRegistryState';
@@ -82,10 +82,12 @@ const RegisteredModelListView: React.FC<RegisteredModelListViewProps> = ({
         categoryName="Keyword"
       >
         <SimpleSelect
-          options={searchTypes.map((key) => ({
-            key,
-            label: key,
-          }))}
+          options={searchTypes.map(
+            (key): SimpleSelectOptionStrict => ({
+              key,
+              label: key,
+            }),
+          )}
           value={searchType}
           onChange={(newSearchType) => {
             const newSearchTypeInput = asEnumMember(newSearchType, SearchType);
