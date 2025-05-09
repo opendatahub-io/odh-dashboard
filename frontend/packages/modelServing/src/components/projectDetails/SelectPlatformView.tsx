@@ -22,16 +22,12 @@ import EmptyDetailsView from '@odh-dashboard/internal/components/EmptyDetailsVie
 import { ProjectObjectType, typedEmptyImage } from '@odh-dashboard/internal/concepts/design/utils';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import EmptyModelServingPlatform from '@odh-dashboard/internal/pages/modelServing/screens/projects/EmptyModelServingPlatform';
-import { useExtensions } from '@odh-dashboard/plugin-core';
-import { ModelServingPlatform } from '../../ModelServingContext';
-import { ModelServingPlatformCard, isModelServingPlatformCard } from '../../extension-points';
+import { ModelServingPlatform } from '../../concepts/modelServingPlatforms';
 
 export const SelectPlatformView: React.FC<{
   platforms?: ModelServingPlatform[];
   setModelServingPlatform: (platform: ModelServingPlatform) => void;
 }> = ({ platforms, setModelServingPlatform }) => {
-  const cards = useExtensions<ModelServingPlatformCard>(isModelServingPlatformCard);
-
   if (!platforms || platforms.length === 0) {
     return <EmptyModelServingPlatform />;
   }
@@ -56,8 +52,8 @@ export const SelectPlatformView: React.FC<{
           </StackItem>
           <StackItem>
             <Gallery hasGutter>
-              {cards.map((c) => (
-                <GalleryItem key={c.properties.platform}>
+              {platforms.map((p) => (
+                <GalleryItem key={p.properties.id}>
                   <Card
                     style={{
                       height: '100%',
@@ -67,23 +63,20 @@ export const SelectPlatformView: React.FC<{
                     data-testid="single-serving-platform-card"
                   >
                     <CardTitle>
-                      <Content component={ContentVariants.h2}>{c.properties.title}</Content>
+                      <Content component={ContentVariants.h2}>
+                        {p.properties.enableCardText.title}
+                      </Content>
                     </CardTitle>
-                    <CardBody>{c.properties.description}</CardBody>
+                    <CardBody>{p.properties.enableCardText.description}</CardBody>
                     <CardFooter>
                       <Bullseye>
                         <Button
                           variant="secondary"
                           onClick={async () => {
-                            const platform = platforms.find(
-                              (p) => p.properties.id === c.properties.platform,
-                            );
-                            if (platform) {
-                              setModelServingPlatform(platform);
-                            }
+                            setModelServingPlatform(p);
                           }}
                         >
-                          {c.properties.selectText}
+                          {p.properties.enableCardText.selectText}
                         </Button>
                       </Bullseye>
                     </CardFooter>

@@ -3,15 +3,12 @@ import React from 'react';
 import DetailsSection from '@odh-dashboard/internal/pages/projects/screens/detail/DetailsSection';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { ProjectSectionID } from '@odh-dashboard/internal/pages/projects/screens/detail/types';
-// eslint-disable-next-line import/no-extraneous-dependencies
-import ModelServingPlatformSelectButton from '@odh-dashboard/internal/pages/modelServing/screens/projects/ModelServingPlatformSelectButton';
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { NamespaceApplicationCase } from '@odh-dashboard/internal/pages/projects/types';
-import { Flex, Label } from '@patternfly/react-core';
+import { Button, Flex, Label } from '@patternfly/react-core';
+import { PencilAltIcon } from '@patternfly/react-icons';
 import { SelectPlatformView } from './SelectPlatformView';
 import { NoModelsView } from './NoModelsView';
-import { ProjectModelsProvider, ProjectModelsContext } from '../../ProjectModelsContext';
-import { ModelServingContext, ModelServingProvider } from '../../ModelServingContext';
+import { ProjectModelsProvider, ProjectModelsContext } from '../../concepts/ProjectModelsContext';
+import { ModelServingContext, ModelServingProvider } from '../../concepts/ModelServingContext';
 
 const ModelsProjectDetailsTab: React.FC = () => {
   const { availablePlatforms } = React.useContext(ModelServingContext);
@@ -19,6 +16,7 @@ const ModelsProjectDetailsTab: React.FC = () => {
     project,
     platform: projectPlatform,
     setModelServingPlatform,
+    resetModelServingPlatform,
     models,
   } = React.useContext(ProjectModelsContext);
 
@@ -42,17 +40,22 @@ const ModelsProjectDetailsTab: React.FC = () => {
         labels={[
           [
             <Flex gap={{ default: 'gapSm' }} key="serving-platform-label">
-              <Label data-testid="serving-platform-label">hi</Label>
-              {activePlatform && (
-                // TODO: go back to platform selection page
-                <ModelServingPlatformSelectButton
-                  namespace="project.metadata.name"
-                  servingPlatform={NamespaceApplicationCase.RESET_MODEL_SERVING_PLATFORM}
-                  setError={() => undefined}
+              <Label data-testid="serving-platform-label">
+                {activePlatform?.properties.enableCardText.enabledText}
+              </Label>
+              {activePlatform && availablePlatforms && availablePlatforms.length > 1 && (
+                <Button
                   variant="link"
                   isInline
-                  data-testid="change-serving-platform-button"
-                />
+                  icon={<PencilAltIcon />}
+                  isLoading={isLoading}
+                  isDisabled={isLoading}
+                  onClick={async () => {
+                    resetModelServingPlatform();
+                  }}
+                >
+                  Change
+                </Button>
               )}
             </Flex>,
           ],
