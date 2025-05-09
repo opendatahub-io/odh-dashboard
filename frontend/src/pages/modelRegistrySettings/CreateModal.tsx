@@ -1,7 +1,6 @@
 import * as React from 'react';
 import {
   Alert,
-  Button,
   Checkbox,
   EmptyState,
   Form,
