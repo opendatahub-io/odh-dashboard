@@ -9,7 +9,6 @@ import {
   getStorageClassConfig,
 } from '~/__tests__/cypress/cypress/utils/oc_commands/storageClass';
 import {
-  createOpenShiftProject,
   deleteOpenShiftProject,
   addUserToProject,
 } from '~/__tests__/cypress/cypress/utils/oc_commands/project';
