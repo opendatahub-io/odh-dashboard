@@ -9,8 +9,10 @@ import {
   getTagFromModel,
   isLabBase,
   removeILabLabels,
+  getDeployButtonState,
 } from '~/pages/modelCatalog/utils';
 import { EMPTY_CUSTOM_PROPERTY_STRING } from '~/pages/modelCatalog/const';
+import { DEPLOY_BUTTON_TOOLTIP } from '~/pages/modelServing/screens/const';
 
 describe('findModelFromModelCatalogSources', () => {
   const catalogModelMock = [mockModelCatalogSource({})];
@@ -189,5 +191,62 @@ describe('createCustomPropertiesFromModel', () => {
     );
 
     expect(result).toEqual({});
+  });
+});
+
+describe('getDeployButtonState', () => {
+  it('returns not visible if model serving is disabled', () => {
+    expect(
+      getDeployButtonState({
+        isModelServingEnabled: false,
+        platformEnabledCount: 1,
+        isKServeEnabled: true,
+        isOciModel: false,
+      }),
+    ).toEqual({ visible: false });
+  });
+
+  it('returns disabled with tooltip if no platforms are enabled', () => {
+    expect(
+      getDeployButtonState({
+        isModelServingEnabled: true,
+        platformEnabledCount: 0,
+        isKServeEnabled: false,
+        isOciModel: false,
+      }),
+    ).toEqual({
+      visible: true,
+      enabled: false,
+      tooltip: DEPLOY_BUTTON_TOOLTIP.ENABLE_MODEL_SERVING_PLATFORM,
+    });
+  });
+
+  it('returns disabled with tooltip if OCI model and kserve is not enabled', () => {
+    expect(
+      getDeployButtonState({
+        isModelServingEnabled: true,
+        platformEnabledCount: 1,
+        isKServeEnabled: false,
+        isOciModel: true,
+      }),
+    ).toEqual({
+      visible: true,
+      enabled: false,
+      tooltip: DEPLOY_BUTTON_TOOLTIP.ENABLE_SINGLE_MODEL_SERVING,
+    });
+  });
+
+  it('returns enabled if all requirements are met', () => {
+    expect(
+      getDeployButtonState({
+        isModelServingEnabled: true,
+        platformEnabledCount: 1,
+        isKServeEnabled: true,
+        isOciModel: false,
+      }),
+    ).toEqual({
+      visible: true,
+      enabled: true,
+    });
   });
 });

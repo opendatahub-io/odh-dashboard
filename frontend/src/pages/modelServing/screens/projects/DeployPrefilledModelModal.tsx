@@ -15,6 +15,7 @@ import ModelServingContextProvider, {
 import { getKServeTemplates } from '~/pages/modelServing/customServingRuntimes/utils';
 import { isRedHatRegistryUri } from '~/pages/modelRegistry/screens/utils';
 import useServingConnections from '~/pages/projects/screens/detail/connections/useServingConnections';
+import { isOciModelUri } from '~/pages/modelServing/utils';
 import { ModelDeployPrefillInfo } from './usePrefillModelDeployModal';
 
 interface DeployPrefilledModelModalProps {
@@ -70,8 +71,7 @@ const DeployPrefilledModelModalContents: React.FC<
     servingPlatformStatuses,
   );
   const [connections] = useServingConnections(selectedProject?.metadata.name);
-
-  const isOciModel = modelDeployPrefillInfo.modelArtifactUri?.includes('oci://');
+  const isOciModel = isOciModelUri(modelDeployPrefillInfo.modelArtifactUri);
   const platformToUse = platform || (isOciModel ? ServingRuntimePlatform.SINGLE : undefined);
   const { loaded: projectDeployStatusLoaded, error: projectError } =
     useProjectErrorForPrefilledModel(selectedProject?.metadata.name, platformToUse);
