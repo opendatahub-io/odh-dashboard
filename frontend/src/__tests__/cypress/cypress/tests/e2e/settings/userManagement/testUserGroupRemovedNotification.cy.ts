@@ -17,7 +17,7 @@ describe('Verify a notification is shown when a user group is removed', () => {
 
   it(
     'Deletes a user group that has admin privileges and verifies a notification is shown',
-    { tags: ['@Dashboard', '@Destructive', '@ODS-1816', '@Tier1', '@NonConcurrent'] },
+    { tags: ['@Dashboard', '@Destructive', '@ODS-1686', '@Tier1', '@NonConcurrent'] },
     () => {
       cy.step('Create a new group using oc command');
       createGroup(GROUP_NAME).then((result) => {
