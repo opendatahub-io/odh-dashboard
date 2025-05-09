@@ -21,7 +21,7 @@ import {
   ServingRuntimeEditInfo,
 } from '~/pages/modelServing/screens/types';
 import { ServingRuntimePlatform } from '~/types';
-import { DEFAULT_MODEL_SERVER_SIZES } from '~/pages/modelServing/screens/const';
+import { DEFAULT_MODEL_SERVER_SIZES, platformKeyMap } from '~/pages/modelServing/screens/const';
 import { useDeepCompareMemoize } from '~/utilities/useDeepCompareMemoize';
 import { EMPTY_AWS_SECRET_DATA } from '~/pages/projects/dataConnections/const';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
@@ -731,3 +731,14 @@ export const fetchInferenceServiceCount = async (namespace: string): Promise<num
     );
   }
 };
+
+export function isCurrentServingPlatformEnabled(
+  currentPlatform: ServingRuntimePlatform | undefined,
+  statuses: ServingPlatformStatuses,
+): boolean {
+  if (!currentPlatform) {
+    return false;
+  }
+  const mappedKey = platformKeyMap[currentPlatform];
+  return statuses[mappedKey].enabled;
+}

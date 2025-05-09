@@ -435,6 +435,31 @@ const initIntercepts = ({
 };
 
 describe('Serving Runtime List', () => {
+  describe('Change button visiblity', () => {
+    it('Change button visible when current platform is disabled', () => {
+      // starts with modelMesh enabled and kServe disabled
+      initIntercepts({
+        disableModelMeshConfig: false,
+        disableKServeConfig: true,
+        servingRuntimes: [],
+        projectEnableModelMesh: true,
+      });
+      projectDetails.visitSection('test-project', 'model-server');
+      // shouldn't exist because kServe is disabled and theres nothing to change to
+      projectDetails.findResetPlatformButton().should('not.exist');
+      // simulate modelMesh being disabled
+      cy.interceptOdh(
+        'GET /api/dsc/status',
+        mockDscStatus({
+          components: undefined,
+          installedComponents: { kserve: false, 'model-mesh': false },
+        }),
+      );
+
+      cy.reload();
+      projectDetails.findResetPlatformButton().should('exist');
+    });
+  });
   describe('No server available', () => {
     it('No model serving platform available', () => {
       initIntercepts({
