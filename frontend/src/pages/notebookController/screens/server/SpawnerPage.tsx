@@ -303,8 +303,8 @@ const SpawnerPage: React.FC = () => {
     <>
       <ImpersonateAlert />
       <ApplicationsPage
-        title="Start a notebook server"
-        description="Select options for your notebook server."
+        title="Start a basic workbench"
+        description="Configure your basic workbench. Each user can start a single basic workbench, and its features are limited to only a workbench image."
         provideChildrenPadding
         loaded={loaded}
         loadingContent={
@@ -321,7 +321,7 @@ const SpawnerPage: React.FC = () => {
         empty={images.length === 0}
       >
         <Form maxWidth="1000px" data-testid="notebook-server-form">
-          <FormSection title="Notebook image">
+          <FormSection title="Workbench image">
             <FormGroup fieldId="modal-notebook-image">
               <Grid sm={12} md={12} lg={12} xl={6} xl2={6} hasGutter>
                 {images
@@ -402,7 +402,7 @@ const SpawnerPage: React.FC = () => {
                 }}
                 isDisabled={disableSubmit}
               >
-                Start server
+                Start workbench
               </Button>
               <Button
                 data-id="cancel-button"

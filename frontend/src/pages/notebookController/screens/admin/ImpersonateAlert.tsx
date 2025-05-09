@@ -12,7 +12,7 @@ const ImpersonateAlert: React.FC = () => {
   return (
     <Alert
       variant="info"
-      title={`This notebook server is being created for "${impersonatedUsername}"`}
+      title={`This workbench is being created for "${impersonatedUsername}"`}
       isInline
       data-testid="impersonate-alert"
     >

@@ -6,7 +6,7 @@ export const columns: SortableData<AdminViewUserData>[] = [
   { label: 'Privilege', field: 'privilege', sortable: true },
   { label: 'Last activity', field: 'lastActivity', sortable: true },
   {
-    label: 'Server status',
+    label: 'Workbench status',
     field: 'serverStatus',
     sortable: (a: AdminViewUserData, b: AdminViewUserData): number => {
       const first = a.serverStatus.isNotebookRunning ? 1 : -1;

@@ -27,7 +27,7 @@ const NotebookControllerTabs: React.FC = () => {
           data-id="spawner-tab"
           data-testid="spawner-tab"
           eventKey={NotebookControllerTabTypes.SERVER}
-          title={<TabTitleText>Notebook Server</TabTitleText>}
+          title={<TabTitleText>Workbench</TabTitleText>}
         >
           <NotebookServerRoutes />
         </Tab>

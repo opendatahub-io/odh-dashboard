@@ -55,7 +55,7 @@ const StartServerModal: React.FC<StartServerModalProps> = ({ spawnInProgress, on
             status: AlertVariant.danger,
             title: 'Failed to redirect',
             description:
-              'For unknown reasons the notebook server was unable to be redirected to. Please check your notebook status.',
+              'For unknown reasons the workbench was unable to be redirected to. Please check your workbench status.',
           });
         });
     },

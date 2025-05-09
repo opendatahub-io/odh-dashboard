@@ -603,7 +603,7 @@ export enum NotebookState {
 }
 
 export enum ProgressionStep {
-  SERVER_REQUESTED = 'SERVER_REQUESTED',
+  WORKBENCH_REQUESTED = 'WORKBENCH_REQUESTED',
   POD_PROBLEM = 'POD_PROBLEM',
   POD_CREATED = 'POD_CREATED',
   POD_ASSIGNED = 'POD_ASSIGNED',
@@ -619,11 +619,11 @@ export enum ProgressionStep {
   OAUTH_CONTAINER_CREATED = 'OAUTH_CONTAINER_CREATED',
   OAUTH_CONTAINER_PROBLEM = 'OAUTH_CONTAINER_PROBLEM',
   OAUTH_CONTAINER_STARTED = 'OAUTH_CONTAINER_STARTED',
-  SERVER_STARTED = 'SERVER_STARTED',
+  WORKBENCH_STARTED = 'WORKBENCH_STARTED',
 }
 
 export const ProgressionStepTitles: Record<ProgressionStep, string> = {
-  [ProgressionStep.SERVER_REQUESTED]: 'Server requested',
+  [ProgressionStep.WORKBENCH_REQUESTED]: 'Workbench requested',
   [ProgressionStep.POD_PROBLEM]: 'There was a problem with the pod',
   [ProgressionStep.POD_CREATED]: 'Pod created',
   [ProgressionStep.POD_ASSIGNED]: 'Pod assigned',
@@ -639,7 +639,7 @@ export const ProgressionStepTitles: Record<ProgressionStep, string> = {
   [ProgressionStep.OAUTH_CONTAINER_CREATED]: 'Oauth proxy container created',
   [ProgressionStep.OAUTH_CONTAINER_PROBLEM]: 'There was a problem with Oauth',
   [ProgressionStep.OAUTH_CONTAINER_STARTED]: 'Oauth proxy container started',
-  [ProgressionStep.SERVER_STARTED]: 'Server started',
+  [ProgressionStep.WORKBENCH_STARTED]: 'Workbench started',
 };
 
 export const AssociatedSteps: { [key in ProgressionStep]?: ProgressionStep[] } = {
@@ -654,7 +654,7 @@ export const AssociatedSteps: { [key in ProgressionStep]?: ProgressionStep[] } =
     ProgressionStep.OAUTH_CONTAINER_CREATED,
   ],
   [ProgressionStep.POD_ASSIGNED]: [ProgressionStep.POD_CREATED],
-  [ProgressionStep.SERVER_STARTED]: Object.values(ProgressionStep),
+  [ProgressionStep.WORKBENCH_STARTED]: Object.values(ProgressionStep),
 };
 
 export const OptionalSteps: ProgressionStep[] = [

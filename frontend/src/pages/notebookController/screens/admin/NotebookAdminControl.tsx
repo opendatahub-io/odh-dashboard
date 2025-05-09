@@ -48,7 +48,7 @@ const NotebookAdminControl: React.FC = () => {
   return (
     <ApplicationsPage
       title="Administration"
-      description="Manage notebook servers."
+      description="Manage workbenches."
       provideChildrenPadding
       loaded={loaded}
       loadingContent={
