@@ -4,6 +4,7 @@ import {
   ODHDashboardConfigModel,
   SelfSubjectAccessReviewModel,
 } from '~/__tests__/cypress/cypress/utils/models';
+import type { AccessReviewResourceAttributes } from '~/k8sTypes';
 
 // Establish a user before applying any test specific intercepts.
 
@@ -119,12 +120,7 @@ const setUserConfig = (userConfig: UserConfig = {}, isAllowed = true) => {
   });
 
   const evaluateAccess = (
-    resourceAttributes: {
-      verb: string;
-      group?: string;
-      resource: string;
-      namespace?: string;
-    },
+    resourceAttributes: AccessReviewResourceAttributes,
     config: UserConfig,
   ): boolean => {
     const { verb, resource, namespace } = resourceAttributes;
@@ -135,159 +131,67 @@ const setUserConfig = (userConfig: UserConfig = {}, isAllowed = true) => {
       isSelfProvisioner: selfProvisioner,
     } = config;
 
+    const convertResourceAttrToString = (attr: AccessReviewResourceAttributes): string =>
+      `${attr.verb} on ${attr.group ?? ''}/${attr.resource ?? ''}${
+        attr.subresource ? `/${attr.subresource}` : ''
+      } ${attr.namespace ? `(in ${attr.namespace})` : ''} ${attr.name ? `for ${attr.name}` : ''}`;
+
+    const log = (displayName: string, message: string) => {
+      Cypress.log({
+        displayName: `${displayName}:`,
+        message: `${message}. Details: ${convertResourceAttrToString(resourceAttributes)}`,
+      });
+    };
+
     const PROJECT_ADMIN_RESOURCES = ['projects', 'rolebindings'];
     const EDIT_VERBS = ['*', 'create', 'delete', 'deletecollection', 'update', 'patch'];
 
     if (clusterAdmin) {
-      Cypress.log({
-        name: 'SSAR Permission Check',
-        displayName: 'Cluster Admin:',
-        message: 'Full access granted',
-        consoleProps: () => {
-          return {
-            Verb: resourceAttributes.verb,
-            Resource: resourceAttributes.resource,
-            Namespace: resourceAttributes.namespace,
-            Group: resourceAttributes.group,
-          };
-        },
-      });
+      log('Cluster Admin', 'Full access granted');
       return true;
     }
 
     if (productAdmin) {
       if (namespace === 'opendatahub') {
-        Cypress.log({
-          name: 'SSAR Permission Check',
-          displayName: 'Product Admin:',
-          message: 'Access to resources in deployment namespace',
-          consoleProps: () => {
-            return {
-              Verb: resourceAttributes.verb,
-              Resource: resourceAttributes.resource,
-              Namespace: resourceAttributes.namespace,
-              Group: resourceAttributes.group,
-            };
-          },
-        });
+        log('Product Admin', 'Access to resources in deployment namespace');
         return true;
       }
+
       if (!EDIT_VERBS.includes(verb)) {
-        Cypress.log({
-          name: 'SSAR Permission Check',
-          displayName: 'Product Admin:',
-          message: 'Limited to listing resources',
-          consoleProps: () => {
-            return {
-              Verb: resourceAttributes.verb,
-              Resource: resourceAttributes.resource,
-              Namespace: resourceAttributes.namespace,
-              Group: resourceAttributes.group,
-            };
-          },
-        });
+        log('Product Admin', 'Limited to listing resources');
         return true;
       }
     }
 
     if (resource === 'projectrequests' && selfProvisioner) {
-      Cypress.log({
-        name: 'SSAR Permission Check',
-        displayName: 'Self Provisioner:',
-        message: 'Grant access to project creation',
-        consoleProps: () => {
-          return {
-            Verb: resourceAttributes.verb,
-            Resource: resourceAttributes.resource,
-            Namespace: resourceAttributes.namespace,
-            Group: resourceAttributes.group,
-          };
-        },
-      });
+      log('Self Provisioner', 'Grant access to project creation');
       return true;
     }
 
     if (resource === 'rolebindings' && !projectAdmin) {
-      Cypress.log({
-        name: 'SSAR Permission Check',
-        displayName: 'Project Users:',
-        message: 'Access denied (requires Project Admin)',
-        consoleProps: () => {
-          return {
-            Verb: resourceAttributes.verb,
-            Resource: resourceAttributes.resource,
-            Namespace: resourceAttributes.namespace,
-            Group: resourceAttributes.group,
-          };
-        },
-      });
+      log('Project Users', 'Access denied (requires Project Admin)');
       return false;
     }
 
-    if (PROJECT_ADMIN_RESOURCES.includes(resource) && EDIT_VERBS.includes(verb)) {
+    if (PROJECT_ADMIN_RESOURCES.includes(resource ?? '') && EDIT_VERBS.includes(verb)) {
       if (projectAdmin) {
-        Cypress.log({
-          name: 'SSAR Permission Check',
-          displayName: 'Project Admin:',
-          message: 'Edit access granted',
-          consoleProps: () => {
-            return {
-              Verb: resourceAttributes.verb,
-              Resource: resourceAttributes.resource,
-              Namespace: resourceAttributes.namespace,
-              Group: resourceAttributes.group,
-            };
-          },
-        });
+        log('Project Admin', 'Edit access granted');
         return true;
       }
-      Cypress.log({
-        name: 'SSAR Permission Check',
-        displayName: 'Project Users:',
-        message: 'Edit access denied',
-        consoleProps: () => {
-          return {
-            Verb: resourceAttributes.verb,
-            Resource: resourceAttributes.resource,
-            Namespace: resourceAttributes.namespace,
-            Group: resourceAttributes.group,
-          };
-        },
-      });
+      log('Project Users', 'Edit access denied');
       return false;
     }
+
     if (namespace) {
       if (namespace === 'opendatahub' && !productAdmin) {
-        Cypress.log({
-          name: 'SSAR Permission Check',
-          displayName: 'Permission:',
-          message: 'Access denied to opendatahub namespace',
-          consoleProps: () => {
-            return {
-              Verb: resourceAttributes.verb,
-              Resource: resourceAttributes.resource,
-              Namespace: resourceAttributes.namespace,
-              Group: resourceAttributes.group,
-            };
-          },
-        });
+        log('Permission', 'Access denied to opendatahub namespace');
         return false;
       }
-      Cypress.log({
-        name: 'SSAR Permission Check',
-        displayName: 'Permission:',
-        message: 'Access granted within namespace',
-        consoleProps: () => {
-          return {
-            Verb: resourceAttributes.verb,
-            Resource: resourceAttributes.resource,
-            Namespace: resourceAttributes.namespace,
-            Group: resourceAttributes.group,
-          };
-        },
-      });
+      log('Permission', 'Access granted within namespace');
       return true;
     }
+
+    log('Permission', 'No namespace, no access');
     return false;
   };
 
