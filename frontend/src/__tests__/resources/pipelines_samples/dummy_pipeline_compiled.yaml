@@ -38,7 +38,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef dummy(message: str):\n    \"\"\"Print a message\"\"\"\n    print(message)\n\
           \n"
-        image: registry.redhat.io/ubi8/python-39@sha256:3523b184212e1f2243e76d8094ab52b01ea3015471471290d011625e1763af61
+        image: registry.redhat.io/ubi9/python-39@sha256:59f3aa83a24152eeee04c27d4cc5c2b9f50519a67acc153cdb382ac914f3d503
 pipelineInfo:
   description: Dummy Pipeline
   name: dummy-pipeline
