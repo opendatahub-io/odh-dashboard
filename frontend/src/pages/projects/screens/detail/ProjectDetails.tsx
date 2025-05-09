@@ -21,6 +21,7 @@ import StorageList from './storage/StorageList';
 import ConnectionsList from './connections/ConnectionsList';
 import PipelinesSection from './pipelines/PipelinesSection';
 import ProjectActions from './ProjectActions';
+import RagChatbot from './chatbot/RagChatbot';
 
 import './ProjectDetails.scss';
 
@@ -98,6 +99,11 @@ const ProjectDetails: React.FC = () => {
                 ]
               : []),
             ...modelServingTab,
+            {
+              id: ProjectSectionID.CHATBOT,
+              title: 'Chatbot',
+              component: <RagChatbot />,
+            },
             {
               id: ProjectSectionID.CLUSTER_STORAGES,
               title: 'Cluster storage',
