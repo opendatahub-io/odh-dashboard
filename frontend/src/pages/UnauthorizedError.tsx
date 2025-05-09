@@ -5,6 +5,9 @@ import {
   EmptyStateBody,
   PageSection,
   PageSectionVariants,
+  Button,
+  EmptyStateActions,
+  EmptyStateFooter,
 } from '@patternfly/react-core';
 import { LockIcon } from '@patternfly/react-icons';
 import { ODH_PRODUCT_NAME } from '~/utilities/const';
@@ -27,6 +30,13 @@ const UnauthorizedError: React.FC<UnauthorizedErrorProps> = ({
       <EmptyStateBody>
         To access {accessDomain}, ask your administrator to adjust your permissions.
       </EmptyStateBody>
+      <EmptyStateFooter>
+        <EmptyStateActions>
+          <Button component="a" href="/" variant="primary">
+            Return to Home
+          </Button>
+        </EmptyStateActions>
+      </EmptyStateFooter>
     </EmptyState>
   </PageSection>
 );

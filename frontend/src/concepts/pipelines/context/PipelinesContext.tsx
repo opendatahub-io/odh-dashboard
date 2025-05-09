@@ -19,6 +19,8 @@ import useManageElyraSecret from '~/concepts/pipelines/context/useManageElyraSec
 import { conditionalArea, SupportedArea } from '~/concepts/areas';
 import { DEV_MODE } from '~/utilities/const';
 import { MetadataStoreServicePromiseClient } from '~/third_party/mlmd';
+import { getGenericErrorCode } from '~/api';
+import UnauthorizedError from '~/pages/UnauthorizedError';
 import usePipelineAPIState, { PipelineAPIState } from './usePipelineAPIState';
 import usePipelineNamespaceCR, { dspaLoaded, hasServerTimedOut } from './usePipelineNamespaceCR';
 import usePipelinesAPIRoute from './usePipelinesAPIRoute';
@@ -73,12 +75,13 @@ const PipelinesContext = React.createContext<PipelineContext>({
 type PipelineContextProviderProps = {
   children: React.ReactNode;
   namespace: string;
+  pageName?: string;
 };
 
 export const PipelineContextProvider = conditionalArea<PipelineContextProviderProps>(
   SupportedArea.DS_PIPELINES,
   true,
-)(({ children, namespace }) => {
+)(({ children, namespace, pageName }) => {
   const { projects } = React.useContext(ProjectsContext);
   const project = projects.find(byName(namespace)) ?? null;
   useSyncPreferredProject(project);
@@ -126,6 +129,9 @@ export const PipelineContextProvider = conditionalArea<PipelineContextProviderPr
   let error = crLoadError || routeLoadError;
   if (error || !project) {
     error = error || new Error('Project not found');
+    if (getGenericErrorCode(error) === 403) {
+      return <UnauthorizedError accessDomain={pageName} />;
+    }
     return (
       <Bullseye>
         <Alert title="Pipelines load error" variant="danger" isInline>

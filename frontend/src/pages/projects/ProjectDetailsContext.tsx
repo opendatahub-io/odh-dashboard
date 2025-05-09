@@ -89,6 +89,7 @@ const ProjectDetailsContextProvider: React.FC = () => {
   const serverSecrets = useContextResourceData<SecretKind>(useServingRuntimeSecrets(namespace));
   const projectSharingRB = useContextResourceData<RoleBindingKind>(useProjectSharing(namespace));
   const groups = useGroups();
+  const pageName = 'project details';
 
   const filterTokens = React.useCallback(
     (servingRuntimeName?: string): SecretKind[] => {
@@ -156,7 +157,7 @@ const ProjectDetailsContextProvider: React.FC = () => {
     return (
       <InvalidProject
         namespace={namespace}
-        title="Problem loading project details"
+        title={`Problem loading ${pageName}`}
         getRedirectPath={(ns) => `/projects/${ns}`}
       />
     );
@@ -165,7 +166,7 @@ const ProjectDetailsContextProvider: React.FC = () => {
   return (
     <ProjectDetailsContext.Provider value={contextValue}>
       {pipelinesEnabled ? (
-        <PipelineContextProvider namespace={project.metadata.name}>
+        <PipelineContextProvider namespace={project.metadata.name} pageName={pageName}>
           <Outlet />
         </PipelineContextProvider>
       ) : (
