@@ -1,8 +1,8 @@
 {
     "compilerOptions": {
         "module": "esnext",
-        "target": "es5",
-        "lib": ["es6", "dom", "ES2023.Array"],
+        "target": "es2021",
+        "lib": ["es2021", "dom", "ES2023.Array"],
         "sourceMap": true,
         "jsx": "react",
         "moduleResolution": "bundler",
