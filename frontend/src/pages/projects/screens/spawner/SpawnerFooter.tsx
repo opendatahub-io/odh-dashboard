@@ -55,7 +55,6 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
   canEnablePipelines,
 }) => {
   const [error, setError] = React.useState<K8sStatusError>();
-
   const {
     notebooks: { data: notebooks, refresh: refreshNotebooks },
     connections: { data: projectConnections, refresh: refreshConnections },
@@ -300,11 +299,12 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
             <Button
               variant="link"
               id="cancel-button"
+              data-testid="cancel-button"
               onClick={() => {
                 fireFormTrackingEvent(`Workbench ${editNotebook ? 'Updated' : 'Created'}`, {
                   outcome: TrackingOutcome.cancel,
                 });
-                navigate(-1);
+                navigate(`/projects/${projectName}?section=${ProjectSectionID.WORKBENCHES}`);
               }}
             >
               Cancel

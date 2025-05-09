@@ -56,7 +56,10 @@ const TrainingHardwareSection: React.FC<TrainingHardwareSectionProps> = ({
           projectName={projectName}
         />
       ) : (
-        <TrainingAcceleratorFormSection podSpecOptionsState={podSpecOptionsState} />
+        <TrainingAcceleratorFormSection
+          projectName={projectName}
+          podSpecOptionsState={podSpecOptionsState}
+        />
       )}
       <TrainingNodeInput data={trainingNode} setData={setTrainingNode} />
       <TrainingStorageClassSelect data={storageClass} setData={setStorageClass} />
