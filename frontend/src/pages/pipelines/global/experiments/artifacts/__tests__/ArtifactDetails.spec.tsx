@@ -10,6 +10,11 @@ import GlobalPipelineCoreDetails from '~/pages/pipelines/global/GlobalPipelineCo
 import * as useGetArtifactById from '~/concepts/pipelines/apiHooks/mlmd/useGetArtifactById';
 import * as useArtifactStorage from '~/concepts/pipelines/apiHooks/useArtifactStorage';
 
+// Mock the useDispatch hook
+jest.mock('~/redux/hooks', () => ({
+  useAppDispatch: jest.fn(),
+}));
+
 jest.mock('~/redux/selectors', () => ({
   ...jest.requireActual('~/redux/selectors'),
   useUser: jest.fn(() => ({ isAdmin: true })),

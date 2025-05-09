@@ -26,6 +26,11 @@ jest.mock('~/concepts/pipelines/content/compareRuns/metricsSection/roc/utils', (
   isConfidenceMetric: jest.fn(() => true),
 }));
 
+// Mock the useDispatch hook
+jest.mock('~/redux/hooks', () => ({
+  useAppDispatch: jest.fn(),
+}));
+
 jest.mock('~/concepts/pipelines/content/artifacts/charts/confusionMatrix/utils', () => ({
   buildConfusionMatrixConfig: jest.fn(() => ({
     labels: ['Some label'],

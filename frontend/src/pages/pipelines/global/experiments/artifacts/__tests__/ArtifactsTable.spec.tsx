@@ -10,6 +10,11 @@ import EnsureAPIAvailability from '~/concepts/pipelines/EnsureAPIAvailability';
 import EnsureCompatiblePipelineServer from '~/concepts/pipelines/EnsureCompatiblePipelineServer';
 import { ArtifactsList } from '~/pages/pipelines/global/experiments/artifacts/ArtifactsList';
 
+// Mock the useDispatch hook
+jest.mock('~/redux/hooks', () => ({
+  useAppDispatch: jest.fn(),
+}));
+
 jest.mock('~/redux/selectors', () => ({
   ...jest.requireActual('~/redux/selectors'),
   useUser: jest.fn(() => ({ isAdmin: true })),
