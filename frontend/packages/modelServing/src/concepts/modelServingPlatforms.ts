@@ -19,29 +19,58 @@ export const useActiveServingPlatform = (
   setActivePlatform: (platform: ModelServingPlatform) => void;
   resetActivePlatform: () => void;
 } => {
-  const [tmpActivePlatform, setTmpActivePlatform] = React.useState<ModelServingPlatform | null>();
+  const [activePlatform, setTmpActivePlatform] = React.useState<
+    ModelServingPlatform | null | undefined
+  >(project.metadata.name && platforms ? getActiveServingPlatform(project, platforms) : undefined);
+  const newPlatform = React.useRef<ModelServingPlatform | null | undefined>();
 
-  const activePlatform = React.useMemo(
-    () =>
-      tmpActivePlatform === undefined
-        ? platforms
-          ? getActiveServingPlatform(project, platforms)
-          : undefined
-        : tmpActivePlatform,
-    [tmpActivePlatform, project, platforms],
-  );
+  React.useEffect(() => {
+    if (!project.metadata.name || !platforms) {
+      return;
+    }
+    // If an operation is "active" (newPlatform.current is a platform object or null), then bail.
+    // This prevents the effect from overriding an optimistic update.
+    if (newPlatform.current !== undefined) {
+      return;
+    }
+    const p = getActiveServingPlatform(project, platforms);
+    if (p?.properties.id !== activePlatform?.properties.id) {
+      setTmpActivePlatform(p);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [project, platforms, activePlatform?.properties.id, newPlatform.current]);
 
   const setActivePlatform = React.useCallback(
-    (platform: ModelServingPlatform) => {
-      platform.properties.manage.enable(project);
-      setTmpActivePlatform(platform);
+    (platformToEnable: ModelServingPlatform) => {
+      newPlatform.current = platformToEnable;
+      platformToEnable.properties.manage.enable(project).finally(() => {
+        if (newPlatform.current === platformToEnable) {
+          newPlatform.current = undefined;
+        }
+      });
+      setTmpActivePlatform(platformToEnable);
     },
-    [project, setTmpActivePlatform],
+    [project],
   );
 
   const resetActivePlatform = React.useCallback(() => {
+    if (!activePlatform) {
+      if (newPlatform.current === null) {
+        return;
+      }
+    }
+    newPlatform.current = null;
+
+    const disablePromise = activePlatform
+      ? activePlatform.properties.manage.disable(project)
+      : Promise.resolve();
+
+    disablePromise.finally(() => {
+      if (newPlatform.current === null) {
+        newPlatform.current = undefined;
+      }
+    });
     setTmpActivePlatform(null);
-    activePlatform?.properties.manage.disable(project);
   }, [project, activePlatform]);
 
   return {
