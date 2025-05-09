@@ -21,32 +21,32 @@ const extensions: ModelServingPlatformExtension[] = [
       },
     },
   } satisfies ModelServingPlatformExtension,
-  // {
-  //   type: 'model-serving.platform',
-  //   properties: {
-  //     id: 'modelmesh-dummy',
-  //     name: 'ModelMesh (dummy)',
-  //     manage: () =>
-  //       import('./managePlatform').then(() => ({
-  //         isInstalled: () => Promise.resolve(true),
-  //         isEnabled: () => false,
-  //         enable: () => Promise.resolve(''),
-  //         disable: () => Promise.resolve(''),
-  //       })),
-  //     enableCardText: {
-  //       title: 'Multi-model serving platform',
-  //       description:
-  //         'Multiple models can be deployed on one shared model server. Useful for deploying a number of small or medium-sized models that can share the server resources.',
-  //       selectText: 'Select multi-model',
-  //       enabledText: 'Multi-model serving enabled',
-  //     },
-  //     deployedModelsView: {
-  //       startHintTitle: 'Start by deploying a model',
-  //       startHintDescription: 'Each model is deployed on its own model server',
-  //       deployButtonText: 'Deploy model',
-  //     },
-  //   },
-  // } satisfies ModelServingPlatformExtension,
+  {
+    type: 'model-serving.platform',
+    properties: {
+      id: 'modelmesh-dummy',
+      name: 'ModelMesh (dummy)',
+      manage: () =>
+        import('./managePlatform').then(() => ({
+          isInstalled: () => Promise.resolve(true),
+          isEnabled: () => false,
+          enable: () => Promise.resolve(''),
+          disable: () => Promise.resolve(''),
+        })),
+      enableCardText: {
+        title: 'Multi-model serving platform',
+        description:
+          'Multiple models can be deployed on one shared model server. Useful for deploying a number of small or medium-sized models that can share the server resources.',
+        selectText: 'Select multi-model',
+        enabledText: 'Multi-model serving enabled',
+      },
+      deployedModelsView: {
+        startHintTitle: 'Start by deploying a model',
+        startHintDescription: 'Each model is deployed on its own model server',
+        deployButtonText: 'Deploy model',
+      },
+    },
+  } satisfies ModelServingPlatformExtension,
 ];
 
 export default extensions;
