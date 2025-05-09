@@ -8,7 +8,7 @@ class PipelineImportModal extends Modal {
   }
 
   find() {
-    return cy.findByTestId('import-pipeline-modal').parents('div[role="dialog"]');
+    return cy.findByTestId('import-pipeline-modal');
   }
 
   findPipelineNameInput() {

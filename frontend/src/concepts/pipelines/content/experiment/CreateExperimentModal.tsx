@@ -7,8 +7,11 @@ import {
   Stack,
   StackItem,
   TextInput,
+  Modal,
+  ModalBody,
+  ModalHeader,
+  ModalFooter,
 } from '@patternfly/react-core';
-import { Modal } from '@patternfly/react-core/deprecated';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import useCreateExperimentData from '~/concepts/pipelines/content/experiment/useCreateExperimentData';
 import { ExperimentKF } from '~/concepts/pipelines/kfTypes';
@@ -47,11 +50,61 @@ const CreateExperimentModal: React.FC<CreateExperimentModalProps> = ({ onClose }
   return (
     <Modal
       isOpen
-      title="Create experiment"
       onClose={() => {
         onBeforeClose();
       }}
-      actions={[
+      variant="small"
+    >
+      <ModalHeader title="Create experiment" />
+      <ModalBody>
+        <Form>
+          <Stack hasGutter>
+            <StackItem>
+              <FormGroup label="Project" fieldId="project-name">
+                {getDisplayNameFromK8sResource(project)}
+              </FormGroup>
+            </StackItem>
+            <StackItem>
+              <FormGroup label="Experiment name" isRequired fieldId="experiment-name">
+                <TextInput
+                  isRequired
+                  type="text"
+                  id="experiment-name"
+                  name="experiment-name"
+                  value={name}
+                  onChange={(_, value) => setData('name', value)}
+                  maxLength={NAME_CHARACTER_LIMIT}
+                />
+
+                <CharLimitHelperText limit={NAME_CHARACTER_LIMIT} />
+              </FormGroup>
+            </StackItem>
+            <StackItem>
+              <FormGroup label="Description" fieldId="experiment-description">
+                <TextInput
+                  isRequired
+                  type="text"
+                  id="experiment-description"
+                  name="experiment-description"
+                  value={description}
+                  onChange={(_, value) => setData('description', value)}
+                  maxLength={DESCRIPTION_CHARACTER_LIMIT}
+                />
+
+                <CharLimitHelperText limit={DESCRIPTION_CHARACTER_LIMIT} />
+              </FormGroup>
+            </StackItem>
+            {error && (
+              <StackItem>
+                <Alert title="Error creating experiment" isInline variant="danger">
+                  {error.message}
+                </Alert>
+              </StackItem>
+            )}
+          </Stack>
+        </Form>
+      </ModalBody>
+      <ModalFooter>
         <Button
           key="create-button"
           variant="primary"
@@ -81,59 +134,11 @@ const CreateExperimentModal: React.FC<CreateExperimentModalProps> = ({ onClose }
           }}
         >
           Create experiment
-        </Button>,
+        </Button>
         <Button key="cancel-button" variant="secondary" onClick={() => onBeforeClose()}>
           Cancel
-        </Button>,
-      ]}
-      variant="small"
-    >
-      <Form>
-        <Stack hasGutter>
-          <StackItem>
-            <FormGroup label="Project" fieldId="project-name">
-              {getDisplayNameFromK8sResource(project)}
-            </FormGroup>
-          </StackItem>
-          <StackItem>
-            <FormGroup label="Experiment name" isRequired fieldId="experiment-name">
-              <TextInput
-                isRequired
-                type="text"
-                id="experiment-name"
-                name="experiment-name"
-                value={name}
-                onChange={(_, value) => setData('name', value)}
-                maxLength={NAME_CHARACTER_LIMIT}
-              />
-
-              <CharLimitHelperText limit={NAME_CHARACTER_LIMIT} />
-            </FormGroup>
-          </StackItem>
-          <StackItem>
-            <FormGroup label="Description" fieldId="experiment-description">
-              <TextInput
-                isRequired
-                type="text"
-                id="experiment-description"
-                name="experiment-description"
-                value={description}
-                onChange={(_, value) => setData('description', value)}
-                maxLength={DESCRIPTION_CHARACTER_LIMIT}
-              />
-
-              <CharLimitHelperText limit={DESCRIPTION_CHARACTER_LIMIT} />
-            </FormGroup>
-          </StackItem>
-          {error && (
-            <StackItem>
-              <Alert title="Error creating experiment" isInline variant="danger">
-                {error.message}
-              </Alert>
-            </StackItem>
-          )}
-        </Stack>
-      </Form>
+        </Button>
+      </ModalFooter>
     </Modal>
   );
 };

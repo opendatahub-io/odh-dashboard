@@ -1,6 +1,13 @@
 import React from 'react';
-import { Alert, Stack, StackItem } from '@patternfly/react-core';
-import { Modal } from '@patternfly/react-core/deprecated';
+import {
+  Alert,
+  Stack,
+  StackItem,
+  Modal,
+  ModalBody,
+  ModalHeader,
+  ModalFooter,
+} from '@patternfly/react-core';
 import { getPipelinesCR, toggleInstructLabState } from '~/api';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import {
@@ -115,20 +122,49 @@ const ManageSamplePipelinesModal: React.FC<ManageSamplePipelinesModalProps> = ({
 
   return (
     <Modal
-      title="Manage preconfigured pipelines"
-      description={
-        <>
-          Select a preconfigured pipeline to install it on your project and enable automatic
-          updates. After installation, you can deselect the pipeline to disable automatic updates.
-          <br />
-          <br />
-          Note: You can manually delete preconfigured pipelines after installation.
-        </>
-      }
       isOpen
       variant="small"
       onClose={() => onClose()}
-      footer={
+      data-testid="manage-sample-pipelines-modal"
+    >
+      <ModalHeader
+        title="Manage preconfigured pipelines"
+        description={
+          <>
+            Select a preconfigured pipeline to install it on your project and enable automatic
+            updates. After installation, you can deselect the pipeline to disable automatic updates.
+            <br />
+            <br />
+            Note: You can manually delete preconfigured pipelines after installation.
+          </>
+        }
+      />
+      <ModalBody>
+        <Stack hasGutter>
+          <StackItem>
+            <InstructLabPipelineEnablement isEnabled={checked} setEnabled={setChecked} />
+          </StackItem>
+          {!isInstructLabEnabled && checked ? (
+            <StackItem>
+              <Alert
+                isInline
+                variant="warning"
+                title="Installing the InstructLab pipeline will cause the pipeline server to restart."
+              />
+            </StackItem>
+          ) : null}
+          {isInstructLabEnabled && !checked ? (
+            <StackItem>
+              <Alert
+                isInline
+                variant="warning"
+                title="If you want to remove the InstructLab pipeline, you must manually delete it."
+              />
+            </StackItem>
+          ) : null}
+        </Stack>
+      </ModalBody>
+      <ModalFooter>
         <DashboardModalFooter
           onCancel={() => onClose()}
           onSubmit={onSubmit}
@@ -138,32 +174,7 @@ const ManageSamplePipelinesModal: React.FC<ManageSamplePipelinesModalProps> = ({
           error={error}
           alertTitle="Error managing sample pipelines"
         />
-      }
-      data-testid="manage-sample-pipelines-modal"
-    >
-      <Stack hasGutter>
-        <StackItem>
-          <InstructLabPipelineEnablement isEnabled={checked} setEnabled={setChecked} />
-        </StackItem>
-        {!isInstructLabEnabled && checked ? (
-          <StackItem>
-            <Alert
-              isInline
-              variant="warning"
-              title="Installing the InstructLab pipeline will cause the pipeline server to restart."
-            />
-          </StackItem>
-        ) : null}
-        {isInstructLabEnabled && !checked ? (
-          <StackItem>
-            <Alert
-              isInline
-              variant="warning"
-              title="If you want to remove the InstructLab pipeline, you must manually delete it."
-            />
-          </StackItem>
-        ) : null}
-      </Stack>
+      </ModalFooter>
     </Modal>
   );
 };

@@ -7,8 +7,11 @@ import {
   Split,
   SplitItem,
   Tooltip,
+  Modal,
+  ModalBody,
+  ModalFooter,
+  ModalHeader,
 } from '@patternfly/react-core';
-import { Modal } from '@patternfly/react-core/deprecated';
 import { CloseIcon } from '@patternfly/react-icons';
 import * as React from 'react';
 import { allFeatureFlags } from '~/concepts/areas/const';
@@ -106,13 +109,15 @@ const DevFeatureFlagsBanner: React.FC<Props> = ({
         <Modal
           data-testid="dev-feature-flags-modal"
           variant="large"
-          title="Feature flags"
           isOpen
           onClose={() => {
             setModalOpen(false);
             setDevFeatureFlagQueryVisible(false);
           }}
-          actions={[
+        >
+          <ModalHeader title="Feature flags" />
+          <ModalBody>{renderDevFeatureFlags()}</ModalBody>
+          <ModalFooter>
             <Button
               data-testid="reset-feature-flags-modal-button"
               key="confirm"
@@ -120,10 +125,8 @@ const DevFeatureFlagsBanner: React.FC<Props> = ({
               onClick={() => resetDevFeatureFlags()}
             >
               Reset to defaults
-            </Button>,
-          ]}
-        >
-          {renderDevFeatureFlags()}
+            </Button>
+          </ModalFooter>
         </Modal>
       ) : null}
     </>
