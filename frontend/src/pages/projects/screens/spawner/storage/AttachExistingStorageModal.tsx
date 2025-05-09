@@ -1,5 +1,12 @@
-import { Form, Stack, StackItem } from '@patternfly/react-core';
-import { Modal } from '@patternfly/react-core/deprecated';
+import {
+  Form,
+  Stack,
+  StackItem,
+  Modal,
+  ModalBody,
+  ModalHeader,
+  ModalFooter,
+} from '@patternfly/react-core';
 import React from 'react';
 import { ExistingStorageObject, MountPath } from '~/pages/projects/types';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
@@ -36,13 +43,36 @@ const AttachExistingStorageModal: React.FC<AttachExistingStorageModalProps> = ({
   };
 
   return (
-    <Modal
-      title="Attach Existing Storage"
-      variant="medium"
-      onClose={() => onBeforeClose(false)}
-      showClose
-      isOpen
-      footer={
+    <Modal variant="medium" onClose={() => onBeforeClose(false)} isOpen>
+      <ModalHeader title="Attach Existing Storage" />
+      <ModalBody>
+        <Form
+          onSubmit={(e) => {
+            e.preventDefault();
+            onBeforeClose(true, data);
+          }}
+        >
+          <Stack hasGutter>
+            <StackItem>
+              <AddExistingStorageField
+                data={data}
+                setData={(existingStorage) =>
+                  setData({ ...data, storage: existingStorage.storage, pvc: existingStorage.pvc })
+                }
+                existingStorageNames={existingStorageNames}
+              />
+            </StackItem>
+            <StackItem>
+              <SpawnerMountPathField
+                mountPath={data.mountPath}
+                inUseMountPaths={existingMountPaths}
+                onChange={(path) => setData({ ...data, mountPath: path })}
+              />
+            </StackItem>
+          </Stack>
+        </Form>
+      </ModalBody>
+      <ModalFooter>
         <DashboardModalFooter
           submitLabel="Attach storage"
           onSubmit={() => onBeforeClose(true, data)}
@@ -50,33 +80,7 @@ const AttachExistingStorageModal: React.FC<AttachExistingStorageModalProps> = ({
           isSubmitDisabled={!data.mountPath.value || !!data.mountPath.error}
           alertTitle="Error creating storage"
         />
-      }
-    >
-      <Form
-        onSubmit={(e) => {
-          e.preventDefault();
-          onBeforeClose(true, data);
-        }}
-      >
-        <Stack hasGutter>
-          <StackItem>
-            <AddExistingStorageField
-              data={data}
-              setData={(existingStorage) =>
-                setData({ ...data, storage: existingStorage.storage, pvc: existingStorage.pvc })
-              }
-              existingStorageNames={existingStorageNames}
-            />
-          </StackItem>
-          <StackItem>
-            <SpawnerMountPathField
-              mountPath={data.mountPath}
-              inUseMountPaths={existingMountPaths}
-              onChange={(path) => setData({ ...data, mountPath: path })}
-            />
-          </StackItem>
-        </Stack>
-      </Form>
+      </ModalFooter>
     </Modal>
   );
 };

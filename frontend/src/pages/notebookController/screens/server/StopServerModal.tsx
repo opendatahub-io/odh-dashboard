@@ -1,6 +1,5 @@
 import * as React from 'react';
-import { Button } from '@patternfly/react-core';
-import { Modal, ModalVariant } from '@patternfly/react-core/deprecated';
+import { Button, Modal, ModalBody, ModalHeader, ModalFooter } from '@patternfly/react-core';
 import { Notebook } from '~/types';
 import { stopNotebook } from '~/services/notebookService';
 import useNotification from '~/utilities/useNotification';
@@ -80,14 +79,15 @@ const StopServerModal: React.FC<StopServerModalProps> = ({ notebooksToStop, onNo
     <Modal
       aria-label="Stop server modal"
       appendTo={document.body}
-      variant={ModalVariant.small}
-      title={`Stop ${textToShow}`}
+      variant="small"
       isOpen
-      showClose
       onClose={onClose}
-      actions={modalActions}
     >
-      Are you sure you want to stop {textToShow}? Any changes made without saving will be lost.
+      <ModalHeader title={`Stop ${textToShow}`} />
+      <ModalBody>
+        Are you sure you want to stop {textToShow}? Any changes made without saving will be lost.
+      </ModalBody>
+      <ModalFooter>{modalActions}</ModalFooter>
     </Modal>
   );
 };
