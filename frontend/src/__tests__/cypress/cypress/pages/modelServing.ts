@@ -111,7 +111,7 @@ class ModelServingGlobal {
 }
 
 class ServingRuntimeGroup extends Contextual<HTMLElement> {}
-
+class AcceleratorProfileGroup extends Contextual<HTMLElement> {}
 class InferenceServiceModal extends Modal {
   k8sNameDescription = new K8sNameDescriptionField('inference-service');
 
@@ -158,11 +158,11 @@ class InferenceServiceModal extends Modal {
   }
 
   findProjectScopedLabel() {
-    return this.find().findByTestId('project-scoped-image');
+    return this.find().findByTestId('project-scoped-label');
   }
 
   findGlobalScopedLabel() {
-    return this.find().findByTestId('global-scoped-image');
+    return this.find().findByTestId('global-scoped-label');
   }
 
   getProjectScopedServingRuntime() {
@@ -227,6 +227,28 @@ class InferenceServiceModal extends Modal {
 
   findExistingConnectionOption() {
     return this.find().findByTestId('existing-connection-radio');
+  }
+
+  findAcceleratorProfileSearchSelector() {
+    return this.find().findByTestId('accelerator-profile-selection-toggle');
+  }
+
+  getGlobalAcceleratorProfileLabel(): Cypress.Chainable<JQuery<HTMLBodyElement>> {
+    return cy.get('body').contains('Global accelerator profiles');
+  }
+
+  getProjectScopedAcceleratorProfileLabel(): Cypress.Chainable<JQuery<HTMLBodyElement>> {
+    return cy.get('body').contains('Project-scoped accelerator profiles');
+  }
+
+  getProjectScopedAcceleratorProfile(): Contextual<HTMLElement> {
+    return new AcceleratorProfileGroup(() =>
+      cy.findByTestId('project-scoped-accelerator-profiles'),
+    );
+  }
+
+  getGlobalScopedAcceleratorProfile(): Contextual<HTMLElement> {
+    return new AcceleratorProfileGroup(() => cy.findByTestId('global-scoped-accelerator-profiles'));
   }
 
   findExternalRouteError() {

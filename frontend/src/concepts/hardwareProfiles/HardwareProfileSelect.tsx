@@ -244,7 +244,7 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
   };
 
   const getDashboardHardwareProfiles = () => {
-    const DahboardEnabledProfiles = hardwareProfiles
+    const DashboardEnabledProfiles = hardwareProfiles
       .filter((hp) => hp.spec.enabled)
       .toSorted((a, b) => {
         // First compare by whether they have extra resources
@@ -263,10 +263,10 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
 
     // allow continued use of already selected profile if it is disabled
     if (initialHardwareProfile && !initialHardwareProfile.spec.enabled) {
-      DahboardEnabledProfiles.push(initialHardwareProfile);
+      DashboardEnabledProfiles.push(initialHardwareProfile);
     }
 
-    const formattedOptions = DahboardEnabledProfiles.filter((profile) =>
+    const formattedOptions = DashboardEnabledProfiles.filter((profile) =>
       profile.spec.displayName
         .toLocaleLowerCase()
         .includes(searchHardwareProfile.toLocaleLowerCase()),

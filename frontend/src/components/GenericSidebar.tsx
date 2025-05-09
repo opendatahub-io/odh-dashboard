@@ -42,6 +42,7 @@ const GenericSidebar: React.FC<GenericSidebarProps> = ({
           <JumpLinksItem
             key={section}
             href={`#${section}`}
+            data-testid={`${section}-jump-link`}
             onClick={onJumpLinksItemClick ? () => onJumpLinksItemClick(section) : undefined}
           >
             {titles[section]}

@@ -54,6 +54,7 @@ const KServeInferenceServiceTable: React.FC = () => {
         defaultSortColumn={1}
         rowRenderer={(modelServer, rowIndex) => (
           <KServeInferenceServiceTableRow
+            project={project?.metadata.name}
             key={modelServer.metadata.uid}
             obj={modelServer}
             columnNames={columns.map((column) => column.field)}

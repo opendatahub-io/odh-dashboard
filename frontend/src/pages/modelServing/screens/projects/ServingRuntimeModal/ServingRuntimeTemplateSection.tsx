@@ -301,7 +301,7 @@ const ServingRuntimeTemplateSection: React.FC<ServingRuntimeTemplateSectionProps
                   <Label
                     variant="outline"
                     color="blue"
-                    data-testid="project-scoped-image"
+                    data-testid="project-scoped-label"
                     isCompact
                     icon={
                       <img
@@ -320,7 +320,7 @@ const ServingRuntimeTemplateSection: React.FC<ServingRuntimeTemplateSectionProps
                     color="blue"
                     isCompact
                     icon={<GlobalIcon />}
-                    data-testid="global-scoped-image"
+                    data-testid="global-scoped-label"
                   >
                     Global-scoped
                   </Label>

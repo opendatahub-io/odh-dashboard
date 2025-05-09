@@ -27,9 +27,12 @@ const useReadAcceleratorState = (
   resources?: ContainerResources,
   tolerations?: Toleration[],
   existingAcceleratorProfileName?: string,
+  namespace?: string,
 ): FetchState<AcceleratorProfileState> => {
   const { dashboardNamespace } = useDashboardNamespace();
-  const [acceleratorProfiles, loaded, loadError] = useAcceleratorProfiles(dashboardNamespace);
+  const [acceleratorProfiles, loaded, loadError] = useAcceleratorProfiles(
+    namespace ?? dashboardNamespace,
+  );
 
   const fetchAcceleratorState = React.useCallback((): Promise<AcceleratorProfileState> => {
     if (!loaded || loadError) {

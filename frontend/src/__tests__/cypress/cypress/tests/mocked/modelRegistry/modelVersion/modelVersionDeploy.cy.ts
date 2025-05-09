@@ -6,6 +6,7 @@ import {
 } from '~/__mocks__';
 import { mockRegisteredModelList } from '~/__mocks__/mockRegisteredModelsList';
 import {
+  AcceleratorProfileModel,
   SecretModel,
   ServiceModel,
   ServingRuntimeModel,
@@ -23,6 +24,10 @@ import { kserveModal } from '~/__tests__/cypress/cypress/pages/modelServing';
 import { mockModelArtifact } from '~/__mocks__/mockModelArtifact';
 import { initDeployPrefilledModelIntercepts } from '~/__tests__/cypress/cypress/utils/modelServingUtils';
 import { hardwareProfileSection } from '~/__tests__/cypress/cypress/pages/components/HardwareProfileSection';
+import {
+  mockGlobalScopedAcceleratorProfiles,
+  mockProjectScopedAcceleratorProfiles,
+} from '~/__mocks__/mockAcceleratorProfile';
 
 const MODEL_REGISTRY_API_VERSION = 'v1alpha3';
 
@@ -198,6 +203,17 @@ const initIntercepts = ({
     },
     mockModelArtifactList({}),
   );
+
+  // Mock accelerator profiles
+  cy.interceptK8sList(
+    { model: AcceleratorProfileModel, ns: 'opendatahub' },
+    mockK8sResourceList(mockGlobalScopedAcceleratorProfiles),
+  ).as('acceleratorProfiles');
+
+  cy.interceptK8sList(
+    { model: AcceleratorProfileModel, ns: 'test-project' },
+    mockK8sResourceList(mockProjectScopedAcceleratorProfiles),
+  ).as('acceleratorProfiles');
 };
 
 describe('Deploy model version', () => {
@@ -433,6 +449,42 @@ describe('Deploy model version', () => {
       })
       .click();
     hardwareProfileSection.findGlobalScopedLabel().should('exist');
+  });
+
+  it('Display project specific accelerator profile while deploying', () => {
+    initIntercepts({ disableProjectScoped: false });
+    cy.visit(`/modelRegistry/modelregistry-sample/registeredModels/1/versions`);
+    const modelVersionRow = modelRegistry.getModelVersionRow('test model version 4');
+    modelVersionRow.findKebabAction('Deploy').click();
+    modelVersionDeployModal.selectProjectByName('Test project');
+    kserveModal.findModelNameInput().should('exist');
+
+    // Verify accelerator profile section exists
+    kserveModal.findAcceleratorProfileSearchSelector().should('exist');
+    kserveModal.findAcceleratorProfileSearchSelector().click();
+
+    // verify available project-scoped accelerator profile
+    const projectScopedAcceleratorProfile = kserveModal.getProjectScopedAcceleratorProfile();
+    projectScopedAcceleratorProfile
+      .find()
+      .findByRole('menuitem', {
+        name: 'Small Profile nvidia.com/gpu',
+        hidden: true,
+      })
+      .click();
+    kserveModal.findProjectScopedLabel().should('exist');
+
+    // verify available global-scoped accelerator profile
+    kserveModal.findAcceleratorProfileSearchSelector().click();
+    const globalScopedAcceleratorProfile = kserveModal.getGlobalScopedAcceleratorProfile();
+    globalScopedAcceleratorProfile
+      .find()
+      .findByRole('menuitem', {
+        name: 'Small Profile Global nvidia.com/gpu',
+        hidden: true,
+      })
+      .click();
+    kserveModal.findGlobalScopedLabel().should('exist');
   });
 
   it('Selects Create Connection in case of no matching connections', () => {
