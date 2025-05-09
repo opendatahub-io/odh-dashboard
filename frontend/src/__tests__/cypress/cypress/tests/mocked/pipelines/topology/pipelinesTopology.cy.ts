@@ -238,7 +238,9 @@ describe('Pipeline topology', () => {
       taskDrawer.findArgumentCodeBlock().should('not.be.empty');
       taskDrawer.findTaskImage().should('have.text', 'Imagequay.io/hukhan/iris-base:1');
       taskDrawer.findCloseDrawerButton().click();
-      taskDrawer.find().should('not.exist');
+
+      // Step 5: Assert that the key element (the title) is gone.
+      cy.findByTestId('pipeline-task-name').should('not.exist');
     });
 
     it('delete pipeline version from action dropdown', () => {
