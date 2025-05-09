@@ -107,9 +107,11 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
   const isStorageClassesAvailable = useIsAreaAvailable(SupportedArea.STORAGE_CLASSES).status;
   const isHardwareProfilesAvailable = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;
 
-  const [storages, storagesLoaded, storagesLoadError] = useProjectPvcs(
-    currentProject.metadata.name,
-  );
+  const {
+    data: storages,
+    loaded: storagesLoaded,
+    error: storagesLoadError,
+  } = useProjectPvcs(currentProject.metadata.name);
 
   const defaultStorageClassName = isStorageClassesAvailable
     ? defaultStorageClass?.metadata.name

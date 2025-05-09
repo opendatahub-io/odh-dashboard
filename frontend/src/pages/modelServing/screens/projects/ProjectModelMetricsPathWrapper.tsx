@@ -20,7 +20,10 @@ const ProjectModelMetricsPathWrapper: React.FC<ProjectModelMetricsPathWrapperPro
   }>();
   const {
     currentProject,
-    inferenceServices: { data: models, loaded },
+    inferenceServices: {
+      data: { items: models },
+      loaded,
+    },
   } = React.useContext(ProjectDetailsContext);
   const model = models.find((currentModel) => currentModel.metadata.name === modelName);
   if (!loaded) {

@@ -46,7 +46,9 @@ const KServeInferenceServiceTableRow: React.FC<KServeInferenceServiceTableRowPro
 
   const [isExpanded, setExpanded] = React.useState(false);
   const {
-    servingRuntimes: { data: servingRuntimes },
+    servingRuntimes: {
+      data: { items: servingRuntimes },
+    },
   } = React.useContext(ProjectDetailsContext);
 
   const frameworkName = obj.spec.predictor.model?.modelFormat?.name || '';

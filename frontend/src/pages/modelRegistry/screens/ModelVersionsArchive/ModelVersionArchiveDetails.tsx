@@ -13,7 +13,6 @@ import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegi
 import { ModelState } from '~/concepts/modelRegistry/types';
 import useInferenceServices from '~/pages/modelServing/useInferenceServices';
 import useServingRuntimes from '~/pages/modelServing/useServingRuntimes';
-import { useMakeFetchObject } from '~/utilities/useMakeFetchObject';
 import ModelVersionArchiveDetailsBreadcrumb from './ModelVersionArchiveDetailsBreadcrumb';
 
 type ModelVersionsArchiveDetailsProps = {
@@ -36,15 +35,13 @@ const ModelVersionsArchiveDetails: React.FC<ModelVersionsArchiveDetailsProps> = 
   const [rm] = useRegisteredModelById(rmId);
   const [mv, mvLoaded, mvLoadError, refreshModelVersion] = useModelVersionById(mvId);
   const [isRestoreModalOpen, setIsRestoreModalOpen] = React.useState(false);
-  const inferenceServices = useMakeFetchObject(
-    useInferenceServices(
-      undefined,
-      mv?.registeredModelId,
-      mv?.id,
-      preferredModelRegistry?.metadata.name,
-    ),
+  const inferenceServices = useInferenceServices(
+    undefined,
+    mv?.registeredModelId,
+    mv?.id,
+    preferredModelRegistry?.metadata.name,
   );
-  const servingRuntimes = useMakeFetchObject(useServingRuntimes());
+  const servingRuntimes = useServingRuntimes();
 
   useEffect(() => {
     if (rm?.state === ModelState.ARCHIVED && mv?.id) {

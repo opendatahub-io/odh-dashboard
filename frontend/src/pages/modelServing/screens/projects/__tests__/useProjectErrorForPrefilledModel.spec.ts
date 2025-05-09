@@ -38,7 +38,7 @@ const useContextMock = React.useContext as jest.Mock;
 const mockServingRuntimesFromContext = (data: ServingRuntimeKind[]) => {
   useContextMock.mockReturnValue({
     servingRuntimes: {
-      data,
+      data: { items: data, hasNonDashboardItems: false },
       loaded: true,
       error: undefined,
     } satisfies Pick<ModelServingContextType['servingRuntimes'], 'data' | 'loaded' | 'error'>,

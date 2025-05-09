@@ -1,8 +1,9 @@
+import React from 'react';
 import { TimeframeTitle } from '~/concepts/metrics/types';
 import { TimeframeStep, TimeframeTimeRange } from '~/concepts/metrics/const';
 import { PendingContextResourceData, PrometheusQueryRangeResultValue } from '~/types';
-import useRestructureContextResourceData from '~/utilities/useRestructureContextResourceData';
 import { FetchOptions } from '~/utilities/useFetchState';
+import { useMakeFetchObject } from '~/utilities/useMakeFetchObject';
 import usePrometheusQueryRange, { ResponsePredicate } from './usePrometheusQueryRange';
 
 const useQueryRangeResourceData = <T = PrometheusQueryRangeResultValue>(
@@ -15,19 +16,20 @@ const useQueryRangeResourceData = <T = PrometheusQueryRangeResultValue>(
   namespace: string,
   apiPath = '/api/prometheus/serving',
   fetchOptions?: Partial<FetchOptions>,
-): PendingContextResourceData<T> =>
-  useRestructureContextResourceData<T>(
-    usePrometheusQueryRange<T>(
-      active,
-      apiPath,
-      query,
-      TimeframeTimeRange[timeframe],
-      end,
-      TimeframeStep[timeframe],
-      responsePredicate,
-      namespace,
-      fetchOptions,
-    ),
+): PendingContextResourceData<T> => {
+  const [data, error, loaded, refresh, pending] = usePrometheusQueryRange<T>(
+    active,
+    apiPath,
+    query,
+    TimeframeTimeRange[timeframe],
+    end,
+    TimeframeStep[timeframe],
+    responsePredicate,
+    namespace,
+    fetchOptions,
   );
+  const fetchObject = useMakeFetchObject([data, error, loaded, refresh]);
+  return React.useMemo(() => ({ ...fetchObject, pending }), [fetchObject, pending]);
+};
 
 export default useQueryRangeResourceData;
