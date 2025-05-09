@@ -24,6 +24,10 @@ class ModelVersionDetails {
     return cy.findByTestId('registered-from-catalog');
   }
 
+  findRegisteredFromTitle() {
+    return cy.findByTestId('registered-from-title');
+  }
+
   findRegisteredFromPipeline() {
     return cy.findByTestId('registered-from-pipeline');
   }
