@@ -41,14 +41,14 @@ const useFetchMarkdownMaps = (
           let sizeBytes: number | undefined;
           let url: string | undefined;
           if (
-            path.linkedArtifact.artifact.getType() === ArtifactType.MODEL ||
+            path.linkedArtifact.artifact.getType() === ArtifactType.MARKDOWN ||
             path.linkedArtifact.artifact.getType() === ArtifactType.HTML
           ) {
-            url = await getStorageObjectDownloadUrl(path.linkedArtifact.artifact).catch(
+            url = await getStorageObjectRenderUrl(path.linkedArtifact.artifact).catch(
               () => undefined,
             );
           } else {
-            url = await getStorageObjectRenderUrl(path.linkedArtifact.artifact).catch(
+            url = await getStorageObjectDownloadUrl(path.linkedArtifact.artifact).catch(
               () => undefined,
             );
           }
