@@ -6,6 +6,7 @@ import PasswordInput from '~/components/PasswordInput';
 import { FieldProps } from '~/concepts/connectionTypes/fields/types';
 import FormGroupText from '~/components/FormGroupText';
 import UnspecifiedValue from '~/concepts/connectionTypes/fields/UnspecifiedValue';
+import { trimInputOnBlur, trimInputOnPaste } from '~/concepts/connectionTypes/utils';
 
 const HiddenFormField: React.FC<FieldProps<HiddenField>> = ({
   id,
@@ -56,6 +57,8 @@ const HiddenFormField: React.FC<FieldProps<HiddenField>> = ({
       ariaLabelShow="Show value"
       value={(isPreview ? field.properties.defaultValue : value) ?? ''}
       onChange={isPreview || !onChange ? undefined : (_e, v) => onChange(v)}
+      onBlur={(e) => trimInputOnBlur(value, onChange)(e)}
+      onPaste={(e) => trimInputOnPaste(value, onChange)(e)}
     />
   );
 };

@@ -1,3 +1,4 @@
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { NotebookKind } from '~/k8sTypes';
 import { Notebook } from '~/types';
 import useAcceleratorProfileFormState, {
@@ -12,8 +13,14 @@ const useNotebookAcceleratorProfileFormState = (
     (container) => container.name === notebook.metadata.name,
   )?.resources;
   const tolerations = notebook?.spec.template.spec.tolerations;
-
-  return useAcceleratorProfileFormState(resources, tolerations, name);
+  const isProjectScopedAvailable = useIsAreaAvailable(SupportedArea.DS_PROJECT_SCOPED).status;
+  const namespace = notebook?.metadata.namespace;
+  return useAcceleratorProfileFormState(
+    resources,
+    tolerations,
+    name,
+    isProjectScopedAvailable ? namespace : undefined,
+  );
 };
 
 export default useNotebookAcceleratorProfileFormState;

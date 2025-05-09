@@ -223,7 +223,7 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
                       isCompact
                       variant="outline"
                       color="blue"
-                      data-testid="project-scoped-image"
+                      data-testid="project-scoped-label"
                       icon={
                         <img
                           style={{ height: '20px' }}
@@ -238,7 +238,7 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
                     <Label
                       isCompact
                       variant="outline"
-                      data-testid="global-scoped-image"
+                      data-testid="global-scoped-label"
                       color="blue"
                       icon={<GlobalIcon />}
                     >
