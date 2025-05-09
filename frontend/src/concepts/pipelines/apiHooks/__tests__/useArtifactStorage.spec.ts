@@ -36,14 +36,17 @@ describe('useArtifactStorage', () => {
 
   it('should return size and url from artifact', async () => {
     mockApi.mockResolvedValue({
-      download_url: 'http://rhoai.v1/namespace/45456',
+      download_url: 'http://rhoai.v1/namespace/45456/download',
       artifact_size: '60',
+      render_url: 'http://rhoai.v1/namespace/45456/render',
     });
     const { result } = testHook(useArtifactStorage)();
     const storageObjectSize = await result.current.getStorageObjectSize(artifact);
-    const storageObjectUrl = await result.current.getStorageObjectUrl(artifact);
+    const storageObjectDownloadUrl = await result.current.getStorageObjectDownloadUrl(artifact);
+    const storageObjectRenderUrl = await result.current.getStorageObjectRenderUrl(artifact);
     expect(storageObjectSize).toBe(60);
-    expect(storageObjectUrl).toBe('http://rhoai.v1/namespace/45456');
+    expect(storageObjectDownloadUrl).toBe('http://rhoai.v1/namespace/45456/download');
+    expect(storageObjectRenderUrl).toBe('http://rhoai.v1/namespace/45456/render');
   });
 
   it('should handle error while fetching storage object', async () => {
@@ -52,7 +55,10 @@ describe('useArtifactStorage', () => {
     await expect(result.current.getStorageObjectSize(artifact)).rejects.toThrow(
       'Error fetching Storage size error',
     );
-    await expect(result.current.getStorageObjectUrl(artifact)).rejects.toThrow(
+    await expect(result.current.getStorageObjectDownloadUrl(artifact)).rejects.toThrow(
+      'Error fetching Storage url error',
+    );
+    await expect(result.current.getStorageObjectRenderUrl(artifact)).rejects.toThrow(
       'Error fetching Storage url error',
     );
   });
