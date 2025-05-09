@@ -94,18 +94,19 @@ const setUserConfig = (userConfig: UserConfig = {}, isAllowed = true) => {
 
   // return empty k8s resource list for namespaced requests
   cy.intercept({ pathname: '/api/k8s/api/*/namespaces/*/*' }, (req) => {
-    const { resourceAttributes } = req.body.spec;
+    const [, , , version, , namespace, resource] = req.url.split('/');
     if (
       evaluateAccess(
         {
-          ...resourceAttributes,
           verb: 'list',
+          resource,
+          namespace,
         },
         userConfig,
       )
     ) {
       req.reply(200, {
-        apiVersion: resourceAttributes.version,
+        apiVersion: version,
         metadata: {},
         items: [],
       });
