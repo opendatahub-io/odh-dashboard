@@ -5,6 +5,7 @@ import { ArtifactType } from '~/concepts/pipelines/kfTypes';
 import { useArtifactStorage } from '~/concepts/pipelines/apiHooks/useArtifactStorage';
 import { Artifact } from '~/third_party/mlmd';
 import { triggerFileDownload } from '~/utilities/string';
+import useNotification from '~/utilities/useNotification';
 
 interface ArtifactUriLinkProps {
   artifact: Artifact;
@@ -19,6 +20,7 @@ export const ArtifactUriLink: React.FC<ArtifactUriLinkProps> = ({ artifact }) =>
   const isDownloadableOnly = artifact.getType() === ArtifactType.MODEL;
   const { getStorageObjectDownloadUrl, getStorageObjectRenderUrl } = useArtifactStorage();
   const [loading, setLoading] = React.useState<boolean>(false);
+  const notification = useNotification();
 
   const handleDownload = () => {
     getStorageObjectDownloadUrl(artifact)
@@ -28,8 +30,7 @@ export const ArtifactUriLink: React.FC<ArtifactUriLinkProps> = ({ artifact }) =>
         }
       })
       .catch((error) => {
-        // eslint-disable-next-line no-console
-        console.error('Failed to get the storage URL:', error);
+        notification.error('Failed to get the storage URL', error);
       })
       .finally(() => {
         setLoading(false);
@@ -44,8 +45,7 @@ export const ArtifactUriLink: React.FC<ArtifactUriLinkProps> = ({ artifact }) =>
         }
       })
       .catch((error) => {
-        // eslint-disable-next-line no-console
-        console.error('Failed to get the storage URL:', error);
+        notification.error('Failed to get the storage URL', error);
       })
       .finally(() => {
         setLoading(false);
