@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Form, getUniqueId, Stack, StackItem } from '@patternfly/react-core';
+import { Form, getUniqueId, Skeleton, Stack, StackItem } from '@patternfly/react-core';
 import { Modal } from '@patternfly/react-core/deprecated';
 import { EitherOrNone } from '@openshift/dynamic-plugin-sdk';
 import {
@@ -135,8 +135,7 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
     editInfo?.servingRuntimeEditInfo?.servingRuntime,
   );
 
-  const isStorageClassesAvailable = useIsAreaAvailable(SupportedArea.STORAGE_CLASSES).status;
-  const [defaultSc] = useAdminDefaultStorageClass();
+  const [defaultSc, defaultStorageClassLoaded] = useAdminDefaultStorageClass();
   const defaultStorageClassName = defaultSc?.metadata.name || '';
   const deployedStorageClassName = pvc?.spec.storageClassName || '';
   const [storageClassName, setStorageClassName] = React.useState(
@@ -383,15 +382,18 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
             </StackItem>
           </StackItem>
           <StackItem>
-            {isStorageClassesAvailable && (
+            {defaultStorageClassLoaded ? (
               <StorageClassSelect
                 storageClassName={storageClassName}
                 setStorageClassName={setStorageClassName}
                 isRequired
                 disableStorageClassSelect={!!editInfo}
               />
+            ) : (
+              <Skeleton width="300px" height="36px" />
             )}
           </StackItem>
+
           <StackItem>
             <NIMPVCSizeSection pvcSize={pvcSize} setPvcSize={setPvcSize} />
           </StackItem>
