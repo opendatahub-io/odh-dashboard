@@ -10,14 +10,16 @@ const Dotenv = require('dotenv-webpack');
  * @param {string} directory
  * @returns {boolean}
  */
-const getProjectIsRootDir = directory => {
+const getProjectIsRootDir = (directory) => {
   const dotenvLocalFile = path.resolve(directory, '.env.local');
   const dotenvFile = path.resolve(directory, '.env');
   let localIsRoot;
   let isRoot;
 
   if (fs.existsSync(dotenvLocalFile)) {
-    const { ODH_IS_PROJECT_ROOT_DIR: DOTENV_LOCAL_ROOT } = dotenv.parse(fs.readFileSync(dotenvLocalFile));
+    const { ODH_IS_PROJECT_ROOT_DIR: DOTENV_LOCAL_ROOT } = dotenv.parse(
+      fs.readFileSync(dotenvLocalFile),
+    );
     localIsRoot = DOTENV_LOCAL_ROOT;
   }
 
@@ -35,7 +37,7 @@ const getProjectIsRootDir = directory => {
  * @param {string} directory
  * @returns {object}
  */
-const getTsCompilerOptions = directory => {
+const getTsCompilerOptions = (directory) => {
   const tsconfigFile = path.resolve(directory, './tsconfig.json');
   let tsCompilerOptions = {};
 
@@ -50,17 +52,17 @@ const getTsCompilerOptions = directory => {
 /**
  * Setup a webpack dotenv plugin config.
  *
- * @param {string} path
+ * @param {string} filePath
  * @returns {*}
  */
-const setupWebpackDotenvFile = path => {
+const setupWebpackDotenvFile = (dotEnvFilePath) => {
   const settings = {
     systemvars: true,
-    silent: true
+    silent: true,
   };
 
-  if (path) {
-    settings.path = path;
+  if (dotEnvFilePath) {
+    settings.path = dotEnvFilePath;
   }
 
   return new Dotenv(settings);
@@ -78,7 +80,9 @@ const setupWebpackDotenvFilesForEnv = ({ directory, env, isRoot = true }) => {
   const dotenvWebpackSettings = [];
 
   if (env) {
-    dotenvWebpackSettings.push(setupWebpackDotenvFile(path.resolve(directory, `.env.${env}.local`)));
+    dotenvWebpackSettings.push(
+      setupWebpackDotenvFile(path.resolve(directory, `.env.${env}.local`)),
+    );
     dotenvWebpackSettings.push(setupWebpackDotenvFile(path.resolve(directory, `.env.${env}`)));
   }
 
@@ -87,8 +91,12 @@ const setupWebpackDotenvFilesForEnv = ({ directory, env, isRoot = true }) => {
 
   if (!isRoot) {
     if (env) {
-      dotenvWebpackSettings.push(setupWebpackDotenvFile(path.resolve(directory, '..', `.env.${env}.local`)));
-      dotenvWebpackSettings.push(setupWebpackDotenvFile(path.resolve(directory, '..', `.env.${env}`)));
+      dotenvWebpackSettings.push(
+        setupWebpackDotenvFile(path.resolve(directory, '..', `.env.${env}.local`)),
+      );
+      dotenvWebpackSettings.push(
+        setupWebpackDotenvFile(path.resolve(directory, '..', `.env.${env}`)),
+      );
     }
 
     dotenvWebpackSettings.push(setupWebpackDotenvFile(path.resolve(directory, '..', '.env.local')));
@@ -101,11 +109,11 @@ const setupWebpackDotenvFilesForEnv = ({ directory, env, isRoot = true }) => {
 /**
  * Setup, and access, a dotenv file and the related set of parameters.
  *
- * @param {string} path
+ * @param {string} dotEnvFilePath
  * @returns {*}
  */
-const setupDotenvFile = path => {
-  const dotenvInitial = dotenv.config({ path });
+const setupDotenvFile = (dotEnvFilePath) => {
+  const dotenvInitial = dotenv.config({ path: dotEnvFilePath });
   dotenvExpand(dotenvInitial);
 };
 
@@ -141,7 +149,10 @@ const setupDotenvFilesForEnv = ({ env }) => {
   const PUBLIC_PATH = process.env.ODH_PUBLIC_PATH || '/';
   const SRC_DIR = path.resolve(RELATIVE_DIRNAME, process.env.ODH_SRC_DIR || TS_BASE_URL || 'src');
   const COMMON_DIR = path.resolve(RELATIVE_DIRNAME, process.env.ODH_COMMON_DIR || 'packages');
-  const DIST_DIR = path.resolve(RELATIVE_DIRNAME, process.env.ODH_DIST_DIR || TS_OUT_DIR || 'public');
+  const DIST_DIR = path.resolve(
+    RELATIVE_DIRNAME,
+    process.env.ODH_DIST_DIR || TS_OUT_DIR || 'public',
+  );
   const HOST = process.env.ODH_HOST || 'localhost';
   const PORT = process.env.ODH_PORT || '3000';
   const BACKEND_PORT = process.env.PORT || process.env.BACKEND_PORT || 8080;
