@@ -1,16 +1,14 @@
 import React from 'react';
 import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
-import { ResolvedExtension } from '@openshift/dynamic-plugin-sdk';
-import { ModelServingPlatformExtension, isModelServingPlatform } from './extension-points';
-
-export type ModelServingPlatform = ResolvedExtension<ModelServingPlatformExtension>;
+import { ModelServingPlatform } from './modelServingPlatforms';
+import { isModelServingPlatformExtension } from '../extension-points';
 
 type ModelServingContextType = {
   availablePlatforms?: ModelServingPlatform[];
 };
 
 export const ModelServingContext = React.createContext<ModelServingContextType>({
-  availablePlatforms: [],
+  availablePlatforms: undefined,
 });
 
 type ModelServingProviderProps = {
@@ -18,7 +16,7 @@ type ModelServingProviderProps = {
 };
 
 export const ModelServingProvider: React.FC<ModelServingProviderProps> = ({ children }) => {
-  const [platforms] = useResolvedExtensions(isModelServingPlatform);
+  const [platforms] = useResolvedExtensions(isModelServingPlatformExtension);
 
   const contextValue = React.useMemo(
     () => ({ availablePlatforms: platforms } satisfies ModelServingContextType),
