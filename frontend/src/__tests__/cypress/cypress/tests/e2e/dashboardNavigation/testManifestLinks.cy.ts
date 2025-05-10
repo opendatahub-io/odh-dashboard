@@ -15,7 +15,7 @@ describe('Verify that all the URLs referenced in the Manifest directory are oper
 
   it(
     'Reads the manifest directory, filters out test/sample URLs and validates the remaining URLs',
-    { tags: ['@Smoke', '@SmokeSet1', '@ODS-327', '@ODS-492', '@Dashboard'] },
+    { tags: ['@Smoke', '@SmokeSet1', '@ODS-327', '@ODS-492', '@Dashboard', '@NonConcurrent'] },
     () => {
       const manifestsDir = '../../../../manifests';
       cy.log(`Resolved manifests directory: ${manifestsDir}`);
@@ -34,13 +34,22 @@ describe('Verify that all the URLs referenced in the Manifest directory are oper
         cy.step(
           'Verify that each filtered URL is accessible and that a 200 is returned - currently failing due to issues linked RHOAIENG-9235',
         );
+        const results: Array<{ url: string; status: number }> = [];
+
         filteredUrls.forEach((url) => {
           cy.request(url).then((response) => {
             const { status } = response;
             const logMessage =
               status === 200 ? `✅ ${url} - Status: ${status}` : `❌ ${url} - Status: ${status}`;
             cy.log(logMessage);
-            expect(status).to.eq(200); // Assert that the response status is 200
+            results.push({ url, status });
+          });
+        });
+
+        // Wait for all requests to complete
+        cy.wrap(null).then(() => {
+          results.forEach(({ url, status }) => {
+            expect(status).to.eq(200, `URL ${url} should return 200`);
           });
         });
       });

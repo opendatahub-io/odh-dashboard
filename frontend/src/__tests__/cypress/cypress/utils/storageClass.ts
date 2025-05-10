@@ -9,10 +9,10 @@ import {
   getStorageClassConfig,
 } from '~/__tests__/cypress/cypress/utils/oc_commands/storageClass';
 import {
-  createOpenShiftProject,
   deleteOpenShiftProject,
   addUserToProject,
 } from '~/__tests__/cypress/cypress/utils/oc_commands/project';
+import { createCleanProject } from './projectChecker';
 
 /**
  * Provision (using oc) all necessary resources for the Storage Class testing feature
@@ -71,7 +71,7 @@ export const tearDownStorageClassFeature = (createdSC: string[]): void => {
  */
 export const provisionClusterStorageSCFeature = (projectName: string, userName: string): void => {
   // Provision a Project
-  createOpenShiftProject(projectName);
+  createCleanProject(projectName);
   addUserToProject(projectName, userName);
 };
 
