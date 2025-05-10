@@ -2,12 +2,12 @@ import React, { ReactElement } from 'react';
 import { PageSection, Stack, StackItem } from '@patternfly/react-core';
 import ModelBiasSettingsCard from '~/pages/projects/projectSettings/ModelBiasSettingsCard';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
+import { useProjectSettingsTabVisible } from '~/concepts/projects/accessChecks';
 
 const ProjectSettingsPage = (): ReactElement => {
   const { currentProject } = React.useContext(ProjectDetailsContext);
-  const biasMetricsAreaAvailable = useIsAreaAvailable(SupportedArea.BIAS_METRICS).status;
+  const projectSettingsTabVisible = useProjectSettingsTabVisible();
 
   return (
     <PageSection
@@ -17,7 +17,7 @@ const ProjectSettingsPage = (): ReactElement => {
       id={ProjectSectionID.SETTINGS}
     >
       <Stack hasGutter>
-        {biasMetricsAreaAvailable && (
+        {projectSettingsTabVisible && (
           <StackItem>
             <ModelBiasSettingsCard project={currentProject} />
           </StackItem>
