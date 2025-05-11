@@ -81,7 +81,7 @@ class SchedulesDeleteModal extends DeleteModal {
   }
 
   find() {
-    return cy.findByTestId('delete-schedule-modal').parents('div[role="dialog"]');
+    return cy.findByTestId('delete-schedule-modal');
   }
 }
 

@@ -183,7 +183,7 @@ class PipelineDeleteModal extends DeleteModal {
   }
 
   find() {
-    return cy.findByTestId('delete-pipeline-modal').parents('div[role="dialog"]');
+    return cy.findByTestId('delete-pipeline-modal');
   }
 }
 
