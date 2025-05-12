@@ -23,7 +23,7 @@ const RoleBindingPermissionsChangeModal: React.FC<RoleBindingPermissionsChangeMo
       {isDeleting ? 'Delete' : 'Save'}
     </Button>,
     <Button
-      data-id="cancel-button"
+      data-testid="cancel-button"
       key="cancel"
       variant="secondary"
       onClick={() => {
