@@ -11,7 +11,7 @@ import {
   FormSection,
   Alert,
 } from '@patternfly/react-core';
-import { trimInputOnBlur, trimInputOnPaste } from '~/concepts/connectionTypes/utils';
+import { trimInputOnPaste } from '~/concepts/connectionTypes/utils';
 
 type ConnectionOciPathFieldProps = {
   ociHost?: string;
@@ -73,10 +73,8 @@ const ConnectionOciPathField: React.FC<ConnectionOciPathFieldProps> = ({
                 onChange={(e, value: string) => {
                   setModelUri(value);
                 }}
-                onBlur={(e) => {
-                  trimInputOnBlur(modelUri, (trimmedValue) => {
-                    setModelUri(addUriPrefix(hideUriPrefix(trimmedValue)));
-                  })(e);
+                onBlur={() => {
+                  setModelUri(addUriPrefix(hideUriPrefix(modelUri?.trim())));
                 }}
                 onPaste={(e) => trimInputOnPaste(modelUri, setModelUri)(e)}
               />
