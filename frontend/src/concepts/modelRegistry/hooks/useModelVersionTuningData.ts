@@ -1,9 +1,9 @@
-import { useContext } from 'react';
+import * as React from 'react';
 import type { ModelVersion, RegisteredModel } from '~/concepts/modelRegistry/types';
 import useModelArtifactsByVersionId from '~/concepts/modelRegistry/apiHooks/useModelArtifactsByVersionId';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import { getServerAddress } from '~/pages/modelRegistry/screens/utils';
-import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
+import { ModelRegistriesContext } from '~/concepts/modelRegistry/context/ModelRegistriesContext';
 
 export const useModelVersionTuningData = (
   modelVersionId: string | null,
@@ -23,9 +23,8 @@ export const useModelVersionTuningData = (
   loaded: boolean;
   loadError: Error | null;
 } => {
-  const { preferredModelRegistry, modelRegistryServices } = useContext(
-    ModelRegistrySelectorContext,
-  );
+  const { preferredModelRegistry, modelRegistryServices } =
+    React.useContext(ModelRegistriesContext);
   const registryService = modelRegistryServices.find(
     (s) => s.metadata.name === preferredModelRegistry?.metadata.name,
   );

@@ -1,14 +1,14 @@
 import * as React from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
-import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
-import { ModelRegistryContextProvider } from '~/concepts/modelRegistry/context/ModelRegistryContext';
+import { ModelRegistriesContext } from '~/concepts/modelRegistry/context/ModelRegistriesContext';
+import { ModelRegistryPageContextProvider } from '~/concepts/modelRegistry/context/ModelRegistryPageContext';
 import ModelCatalogCoreLoader from './ModelCatalogCoreLoader';
 import ModelDetailsPage from './screens/ModelDetailsPage';
 import ModelCatalog from './screens/ModelCatalog';
 import RegisterCatalogModel from './screens/RegisterCatalogModel';
 
 const ModelCatalogRoutes: React.FC = () => {
-  const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
+  const { preferredModelRegistry } = React.useContext(ModelRegistriesContext);
   return (
     <Routes>
       <Route path="/" element={<ModelCatalogCoreLoader />}>
@@ -18,11 +18,11 @@ const ModelCatalogRoutes: React.FC = () => {
           <Route
             path="register"
             element={
-              <ModelRegistryContextProvider
+              <ModelRegistryPageContextProvider
                 modelRegistryName={preferredModelRegistry?.metadata.name || null}
               >
                 <RegisterCatalogModel />
-              </ModelRegistryContextProvider>
+              </ModelRegistryPageContextProvider>
             }
           />
 

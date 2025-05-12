@@ -5,7 +5,7 @@ import useFetchState, {
   NotReadyError,
 } from '~/utilities/useFetchState';
 import { ModelVersionList } from '~/concepts/modelRegistry/types';
-import { useModelRegistryAPI } from '~/concepts/modelRegistry/context/ModelRegistryContext';
+import { useModelRegistryAPI } from '~/concepts/modelRegistry/context/ModelRegistryPageContext';
 
 const useModelVersions = (): FetchState<ModelVersionList> => {
   const { api, apiAvailable } = useModelRegistryAPI();

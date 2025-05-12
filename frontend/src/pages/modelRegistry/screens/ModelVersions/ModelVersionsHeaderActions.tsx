@@ -8,11 +8,11 @@ import {
   FlexItem,
 } from '@patternfly/react-core';
 import { useNavigate } from 'react-router';
-import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegistryContext';
 import { ArchiveRegisteredModelModal } from '~/pages/modelRegistry/screens/components/ArchiveRegisteredModelModal';
 import { registeredModelsRoute } from '~/routes/modelRegistry/registeredModels';
-import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
 import { RegisteredModel, ModelState } from '~/concepts/modelRegistry/types';
+import { ModelRegistriesContext } from '~/concepts/modelRegistry/context/ModelRegistriesContext';
+import { ModelRegistryPageContext } from '~/concepts/modelRegistry/context/ModelRegistryPageContext';
 
 interface ModelVersionsHeaderActionsProps {
   rm: RegisteredModel;
@@ -23,8 +23,8 @@ const ModelVersionsHeaderActions: React.FC<ModelVersionsHeaderActionsProps> = ({
   rm,
   hasDeployments = false,
 }) => {
-  const { apiState } = React.useContext(ModelRegistryContext);
-  const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
+  const { apiState } = React.useContext(ModelRegistryPageContext);
+  const { preferredModelRegistry } = React.useContext(ModelRegistriesContext);
 
   const navigate = useNavigate();
   const [isOpen, setOpen] = React.useState(false);
