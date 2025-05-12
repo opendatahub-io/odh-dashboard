@@ -1,8 +1,6 @@
 import {
   Menu,
-  Content,
   MenuContent,
-  MenuGroup,
   MenuItem,
   Dropdown,
   MenuItemAction,
@@ -75,7 +73,7 @@ export const PipelineDropdown = ({
   return (
     <Dropdown
       onOpenChange={(isOpened) => setIsOpen(isOpened)}
-      popperProps={{ position: 'right' }}
+      popperProps={{ position: 'right', maxWidth: 'trigger' }}
       toggle={(toggleRef) => (
         <MenuToggle
           data-testid="select-connection"
@@ -91,51 +89,49 @@ export const PipelineDropdown = ({
     >
       <Menu onSelect={onSelect} isScrollable isPlain>
         <MenuContent>
-          <MenuGroup>
-            <MenuList>
-              {connections.map((dataItem, index) => (
-                <MenuItem
-                  key={dataItem.metadata.name}
-                  actions={
-                    <MenuItemAction
-                      icon={showPassword[index] ? <EyeSlashIcon /> : <EyeIcon />}
-                      actionId={index}
-                      // eslint-disable-next-line no-console
-                      onClick={(ev) => {
-                        ev.preventDefault();
-                        ev.stopPropagation();
-                        setShowPassword((s) => [
-                          ...s.slice(0, index),
-                          !s[index],
-                          ...s.slice(index + 1),
-                        ]);
-                      }}
-                      aria-label={dataItem.metadata.name}
-                    />
-                  }
-                  description={
-                    showPassword[index] ? (
-                      <Content className={css(styles.menuItemDescription)}>
-                        {existingConnection(dataItem)?.map(
-                          (field) =>
-                            field.value && (
-                              <Content component="p" key={field.key}>
-                                <b>{getLabelName(field.key)}</b> : {field.value}
-                              </Content>
-                            ),
-                        )}
-                      </Content>
-                    ) : (
-                      '•••••••••••••••••'
-                    )
-                  }
-                  itemId={dataItem.metadata.name}
-                >
-                  {getDisplayNameFromK8sResource(dataItem)}
-                </MenuItem>
-              ))}
-            </MenuList>
-          </MenuGroup>
+          <MenuList>
+            {connections.map((dataItem, index) => (
+              <MenuItem
+                key={dataItem.metadata.name}
+                actions={
+                  <MenuItemAction
+                    icon={showPassword[index] ? <EyeSlashIcon /> : <EyeIcon />}
+                    actionId={index}
+                    // eslint-disable-next-line no-console
+                    onClick={(ev) => {
+                      ev.preventDefault();
+                      ev.stopPropagation();
+                      setShowPassword((s) => [
+                        ...s.slice(0, index),
+                        !s[index],
+                        ...s.slice(index + 1),
+                      ]);
+                    }}
+                    aria-label={dataItem.metadata.name}
+                  />
+                }
+                description={
+                  showPassword[index] ? (
+                    <>
+                      {existingConnection(dataItem)?.map(
+                        (field) =>
+                          field.value && (
+                            <p key={field.key}>
+                              <b>{getLabelName(field.key)}</b> : {field.value}
+                            </p>
+                          ),
+                      )}
+                    </>
+                  ) : (
+                    '•••••••••••••••••'
+                  )
+                }
+                itemId={dataItem.metadata.name}
+              >
+                {getDisplayNameFromK8sResource(dataItem)}
+              </MenuItem>
+            ))}
+          </MenuList>
         </MenuContent>
       </Menu>
     </Dropdown>
