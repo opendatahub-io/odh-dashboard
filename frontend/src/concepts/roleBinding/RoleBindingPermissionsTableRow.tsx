@@ -167,10 +167,6 @@ const RoleBindingPermissionsTableRow: React.FC<RoleBindingPermissionsTableRowPro
                   date={createdDate}
                   tooltip={{ variant: TimestampTooltipVariant.default }}
                 >
-                  <DashboardPopupIconButton
-                    icon={<OutlinedQuestionCircleIcon />}
-                    aria-label="More info"
-                  />
                   {relativeTime(Date.now(), createdDate.getTime())}
                 </Timestamp>
               </Content>
