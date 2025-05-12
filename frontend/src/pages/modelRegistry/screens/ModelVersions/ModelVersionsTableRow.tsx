@@ -3,7 +3,6 @@ import { ActionsColumn, IAction, Td, Tr } from '@patternfly/react-table';
 import { Content, ContentVariants, Truncate, FlexItem } from '@patternfly/react-core';
 import { Link, useNavigate } from 'react-router-dom';
 import { ModelVersion, ModelState, RegisteredModel } from '~/concepts/modelRegistry/types';
-import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
 import ModelLabels from '~/pages/modelRegistry/screens/components/ModelLabels';
 import ModelTimestamp from '~/pages/modelRegistry/screens/components/ModelTimestamp';
 import {
@@ -13,13 +12,14 @@ import {
   modelVersionRoute,
 } from '~/routes';
 import { ArchiveModelVersionModal } from '~/pages/modelRegistry/screens/components/ArchiveModelVersionModal';
-import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegistryContext';
 import { RestoreModelVersionModal } from '~/pages/modelRegistry/screens/components/RestoreModelVersionModal';
 import DeployRegisteredVersionModal from '~/pages/modelRegistry/screens/components/DeployRegisteredVersionModal';
 import { useIsAreaAvailable, SupportedArea } from '~/concepts/areas';
 import StartRunModal from '~/pages/pipelines/global/modelCustomization/startRunModal/StartRunModal';
 import { useModelVersionTuningData } from '~/concepts/modelRegistry/hooks/useModelVersionTuningData';
 import { getModelCustomizationPath } from '~/routes/pipelines/modelCustomization';
+import { ModelRegistryPageContext } from '~/concepts/modelRegistry/context/ModelRegistryPageContext';
+import { ModelRegistriesContext } from '~/concepts/modelRegistry/context/ModelRegistriesContext';
 
 type ModelVersionsTableRowProps = {
   modelVersion: ModelVersion;
@@ -39,8 +39,8 @@ const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
   refresh,
 }) => {
   const navigate = useNavigate();
-  const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
-  const { apiState } = React.useContext(ModelRegistryContext);
+  const { preferredModelRegistry } = React.useContext(ModelRegistriesContext);
+  const { apiState } = React.useContext(ModelRegistryPageContext);
   const isFineTuningEnabled = useIsAreaAvailable(SupportedArea.FINE_TUNING).status;
 
   const [isArchiveModalOpen, setIsArchiveModalOpen] = React.useState(false);

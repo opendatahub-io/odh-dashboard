@@ -4,7 +4,6 @@ import { Breadcrumb, BreadcrumbItem, Flex, FlexItem, Truncate } from '@patternfl
 import { Link } from 'react-router-dom';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import useModelVersionById from '~/concepts/modelRegistry/apiHooks/useModelVersionById';
-import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
 import {
   archiveModelVersionDetailsRoute,
   modelVersionArchiveDetailsRoute,
@@ -16,6 +15,7 @@ import useInferenceServices from '~/pages/modelServing/useInferenceServices';
 import useServingRuntimes from '~/pages/modelServing/useServingRuntimes';
 import { useMakeFetchObject } from '~/utilities/useMakeFetchObject';
 import { ModelState } from '~/concepts/modelRegistry/types';
+import { ModelRegistriesContext } from '~/concepts/modelRegistry/context/ModelRegistriesContext';
 import { ModelVersionDetailsTab } from './const';
 import ModelVersionsDetailsHeaderActions from './ModelVersionDetailsHeaderActions';
 import ModelVersionDetailsTabs from './ModelVersionDetailsTabs';
@@ -31,7 +31,7 @@ type ModelVersionsDetailProps = {
 const ModelVersionsDetails: React.FC<ModelVersionsDetailProps> = ({ tab, ...pageProps }) => {
   const navigate = useNavigate();
 
-  const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
+  const { preferredModelRegistry } = React.useContext(ModelRegistriesContext);
 
   const { modelVersionId: mvId, registeredModelId: rmId } = useParams();
   const [rm] = useRegisteredModelById(rmId);

@@ -14,7 +14,7 @@ import {
 import { EllipsisVIcon, FilterIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router';
 import { registerModelRoute, registerVersionRoute, registeredModelArchiveRoute } from '~/routes';
-import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
+import { ModelRegistriesContext } from '~/concepts/modelRegistry/context/ModelRegistriesContext';
 
 type RegisteredModelsTableToolbarProps = {
   toggleGroupItems?: React.ReactNode;
@@ -26,7 +26,7 @@ const RegisteredModelsTableToolbar: React.FC<RegisteredModelsTableToolbarProps> 
   onClearAllFilters,
 }) => {
   const navigate = useNavigate();
-  const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
+  const { preferredModelRegistry } = React.useContext(ModelRegistriesContext);
   const [isRegisterNewVersionOpen, setIsRegisterNewVersionOpen] = React.useState(false);
   const [isArchivedModelKebabOpen, setIsArchivedModelKebabOpen] = React.useState(false);
 
