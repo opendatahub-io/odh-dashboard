@@ -9,8 +9,6 @@ import {
 } from '@patternfly/react-core';
 import React from 'react';
 import { EyeIcon, EyeSlashIcon, OptimizeIcon } from '@patternfly/react-icons';
-import styles from '@patternfly/react-styles/css/components/Menu/menu';
-import { css } from '@patternfly/react-styles';
 import { AWSDataEntry } from '~/pages/projects/types';
 import { PIPELINE_AWS_KEY } from '~/pages/projects/dataConnections/const';
 import { Connection } from '~/concepts/connectionTypes/types';
