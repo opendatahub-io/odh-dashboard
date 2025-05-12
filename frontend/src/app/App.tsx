@@ -26,6 +26,8 @@ import { NimContextProvider } from '~/concepts/nimServing/NIMAvailabilityContext
 import { NotificationWatcherContextProvider } from '~/concepts/notificationWatcher/NotificationWatcherContext';
 import { AccessReviewProvider } from '~/concepts/userSSAR';
 import { ExtensibilityContextProvider } from '~/plugins/ExtensibilityContext';
+import useFetchDscStatus from '~/concepts/areas/useFetchDscStatus';
+import { OdhPlatformType } from '~/types';
 import useDevFeatureFlags from './useDevFeatureFlags';
 import Header from './Header';
 import AppRoutes from './AppRoutes';
@@ -59,18 +61,22 @@ const App: React.FC = () => {
 
   useDetectUser();
 
-  const contextValue = React.useMemo(
-    () =>
-      dashboardConfig
-        ? {
-            buildStatuses,
-            dashboardConfig,
-            storageClasses,
-            isRHOAI: dashboardConfig.metadata?.namespace === 'redhat-ods-applications',
-          }
-        : null,
-    [buildStatuses, dashboardConfig, storageClasses],
-  );
+  const [dscStatus] = useFetchDscStatus();
+  const contextValue = React.useMemo(() => {
+    if (!dashboardConfig) {
+      return null;
+    }
+    const releaseName = dscStatus?.release?.name;
+
+    return {
+      buildStatuses,
+      dashboardConfig,
+      storageClasses,
+      isRHOAI:
+        releaseName === OdhPlatformType.SELF_MANAGED_RHOAI ||
+        releaseName === OdhPlatformType.MANAGED_RHOAI,
+    };
+  }, [buildStatuses, dashboardConfig, storageClasses, dscStatus]);
 
   const isUnauthorized = fetchConfigError?.request?.status === 403;
 
