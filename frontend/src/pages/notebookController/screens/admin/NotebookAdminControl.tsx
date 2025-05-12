@@ -15,6 +15,7 @@ import ApplicationsPage from '~/pages/ApplicationsPage';
 import StopServerModal from '~/pages/notebookController/screens/server/StopServerModal';
 import { Notebook } from '~/types';
 import { ODH_PRODUCT_NAME } from '~/utilities/const';
+import { NotebookControllerContext } from '~/pages/notebookController/NotebookControllerContext';
 import { columns } from './data';
 import StopAllServersButton from './StopAllServersButton';
 import UserTableCellTransform from './UserTableCellTransform';
@@ -24,6 +25,9 @@ import { NotebookAdminContext } from './NotebookAdminContext';
 const NotebookAdminControl: React.FC = () => {
   const [users, loaded, loadError] = useAdminUsers();
   const { serverStatuses, setServerStatuses } = React.useContext(NotebookAdminContext);
+  const { currentUserNotebookLink } = React.useContext(NotebookControllerContext);
+
+  const link = currentUserNotebookLink || '#';
 
   const onNotebooksStop = React.useCallback(
     (didStop: boolean) => {
@@ -48,7 +52,7 @@ const NotebookAdminControl: React.FC = () => {
   return (
     <ApplicationsPage
       title="Administration"
-      description="Manage workbenches."
+      description="Manage workbenches for your organization."
       provideChildrenPadding
       loaded={loaded}
       loadingContent={
@@ -108,7 +112,11 @@ const NotebookAdminControl: React.FC = () => {
         </StackItem>
       </Stack>
       {notebooksToStop.length ? (
-        <StopServerModal notebooksToStop={notebooksToStop} onNotebooksStop={onNotebooksStop} />
+        <StopServerModal
+          notebooksToStop={notebooksToStop}
+          onNotebooksStop={onNotebooksStop}
+          link={link}
+        />
       ) : null}
     </ApplicationsPage>
   );

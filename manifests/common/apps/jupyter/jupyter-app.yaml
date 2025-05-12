@@ -16,12 +16,11 @@ spec:
     </svg>
   getStartedLink: 'https://opendatahub.io/docs/getting-started-with-open-data-hub/#launching-jupyter-and-starting-a-notebook-server_get-started'
   internalRoute: notebookController
-  displayName: Jupyter
+  displayName: Start basic workbench
   kfdefApplications:
     - odh-notebook-controller
     - notebook-images
   support: red hat
-  provider: Jupyter
   docsLink: 'https://jupyter.org'
   quickStart: create-jupyter-notebook
   getStartedMarkDown: >-
@@ -77,5 +76,5 @@ spec:
 
     The JupyterLab interface opens in the same tab.
   description: >-
-    Create a single, limited-use workbench without configuring a project.
+    Create a single, limited-use workbench that is not associated with a project.
   category: Red Hat managed

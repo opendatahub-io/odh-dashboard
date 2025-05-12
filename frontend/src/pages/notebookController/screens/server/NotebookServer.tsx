@@ -55,6 +55,7 @@ const NotebookServer: React.FC = () => {
                 <StopServerModal
                   notebooksToStop={notebooksToStop}
                   onNotebooksStop={onNotebooksStop}
+                  link={link}
                 />
               ) : null}
               <ActionList>
