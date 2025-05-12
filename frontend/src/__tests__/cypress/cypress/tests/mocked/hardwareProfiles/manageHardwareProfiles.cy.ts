@@ -226,7 +226,6 @@ describe('Manage Hardware Profile', () => {
 
     // test deleting the last CPU trigger the alert shown
     createHardwareProfile.getNodeResourceTableRow('cpu').findDeleteAction().click();
-    // debugger;
     createHardwareProfile.findNodeResourceDeletionDialog().should('exist');
     createHardwareProfile.findNodeResourceDeletionDialogDeleteButton().click();
     createHardwareProfile.findNodeResourceDeletionDialog().should('not.exist');
