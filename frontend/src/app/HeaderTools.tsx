@@ -16,7 +16,14 @@ import {
   ToggleGroupItem,
 } from '@patternfly/react-core';
 import { QuestionCircleIcon, MoonIcon, SunIcon } from '@patternfly/react-icons';
-import { COMMUNITY_LINK, DOC_LINK, SUPPORT_LINK, DEV_MODE, EXT_CLUSTER } from '~/utilities/const';
+import {
+  COMMUNITY_LINK,
+  DOC_LINK,
+  SUPPORT_LINK,
+  DEV_MODE,
+  EXT_CLUSTER,
+  SHOW_FEATURE_FLAG_BUTTON,
+} from '~/utilities/const';
 import useNotification from '~/utilities/useNotification';
 import { updateImpersonateSettings } from '~/services/impersonateService';
 import { AppNotification } from '~/redux/types';
@@ -26,6 +33,7 @@ import AppLauncher from './AppLauncher';
 import { useAppContext } from './AppContext';
 import { useThemeContext } from './ThemeContext';
 import { logout } from './appUtils';
+import FeatureFlagLauncher from './FeatureFlagLauncher';
 
 interface HeaderToolsProps {
   onNotificationsClick: () => void;
@@ -159,6 +167,12 @@ const HeaderTools: React.FC<HeaderToolsProps> = ({ onNotificationsClick }) => {
               onClick={onNotificationsClick}
             />
           </ToolbarItem>
+          {SHOW_FEATURE_FLAG_BUTTON && (
+            <ToolbarItem data-testid="feature-flags-menu">
+              <FeatureFlagLauncher />
+            </ToolbarItem>
+          )}
+
           {!dashboardConfig.spec.dashboardConfig.disableAppLauncher ? (
             <ToolbarItem data-testid="application-launcher">
               <AppLauncher />
