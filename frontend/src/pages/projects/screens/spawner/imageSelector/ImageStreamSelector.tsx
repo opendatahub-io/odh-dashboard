@@ -22,9 +22,10 @@ import { ImageStreamKind } from '~/k8sTypes';
 import SimpleSelect from '~/components/SimpleSelect';
 import { useIsAreaAvailable, SupportedArea } from '~/concepts/areas';
 import GlobalIcon from '~/images/icons/GlobalIcon';
-import { ProjectObjectType, typedObjectImage } from '~/concepts/design/utils';
+import { ProjectObjectType } from '~/concepts/design/utils';
 import SearchSelector from '~/components/searchSelector/SearchSelector';
 import ProjectScopedPopover from '~/components/ProjectScopedPopover';
+import TypedObjectIcon from '~/concepts/design/TypedObjectIcon';
 
 type ImageStreamSelectorProps = {
   currentProjectStreams?: ImageStreamKind[];
@@ -70,10 +71,10 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
                 style={{ paddingBottom: '5px' }}
               >
                 <FlexItem style={{ display: 'flex', paddingLeft: '12px' }}>
-                  <img
-                    style={{ height: 20, paddingTop: '3px' }}
-                    src={typedObjectImage(ProjectObjectType.project)}
+                  <TypedObjectIcon
+                    style={{ height: '12px', width: '12px' }}
                     alt=""
+                    resourceType={ProjectObjectType.project}
                   />
                 </FlexItem>
                 <FlexItem>Project-scoped images</FlexItem>
@@ -90,13 +91,7 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
                   selectedImageStream.metadata.namespace === imageStream.metadata.namespace
                 }
                 onClick={() => onImageStreamSelect(imageStream)}
-                icon={
-                  <img
-                    style={{ height: 25 }}
-                    src={typedObjectImage(ProjectObjectType.project)}
-                    alt=""
-                  />
-                }
+                icon={<TypedObjectIcon alt="" resourceType={ProjectObjectType.project} />}
               >
                 <Split>
                   {getImageStreamDisplayName(imageStream)}
@@ -123,9 +118,12 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
           <MenuGroup
             data-testid="global-scoped-notebook-images"
             label={
-              <Flex>
-                <FlexItem style={{ paddingLeft: '12px', paddingRight: 0 }}>
-                  <GlobalIcon />
+              <Flex
+                spaceItems={{ default: 'spaceItemsXs' }}
+                alignItems={{ default: 'alignItemsCenter' }}
+              >
+                <FlexItem style={{ display: 'flex', paddingLeft: '12px' }}>
+                  <GlobalIcon style={{ height: '12px', width: '12px' }} />
                 </FlexItem>
                 <FlexItem> Global images </FlexItem>
               </Flex>
@@ -214,8 +212,8 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
           onSearchClear={() => setSearchImageStreamName('')}
           searchValue={searchImageStreamName}
           toggleContent={
-            selectedImageStream && (
-              <Flex alignItems={{ default: 'alignItemsCenter' }}>
+            selectedImageStream ? (
+              <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
                 <FlexItem>{getImageStreamDisplayName(selectedImageStream)}</FlexItem>
                 <FlexItem>
                   {selectedImageStream.metadata.namespace === currentProject ? (
@@ -224,13 +222,7 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
                       variant="outline"
                       color="blue"
                       data-testid="project-scoped-label"
-                      icon={
-                        <img
-                          style={{ height: '20px' }}
-                          src={typedObjectImage(ProjectObjectType.project)}
-                          alt=""
-                        />
-                      }
+                      icon={<TypedObjectIcon alt="" resourceType={ProjectObjectType.project} />}
                     >
                       Project-scoped
                     </Label>
@@ -247,6 +239,8 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
                   )}
                 </FlexItem>
               </Flex>
+            ) : (
+              'Select one'
             )
           }
         >

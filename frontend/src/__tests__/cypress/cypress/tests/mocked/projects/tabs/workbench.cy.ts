@@ -432,6 +432,7 @@ describe('Workbench page', () => {
     createSpawnerPage.k8sNameDescription.findDisplayNameInput().fill('test-project');
     createSpawnerPage.k8sNameDescription.findDescriptionInput().fill('test-description');
     //to check scrollable dropdown selection
+    createSpawnerPage.findNotebookImageSelector().should('contain.text', 'Select one');
     createSpawnerPage.findNotebookImage('test-9').click();
     createSpawnerPage.selectContainerSize(
       'XSmall Limits: 0.5 CPU, 500MiB Memory Requests: 0.1 CPU, 100MiB Memory',
@@ -551,6 +552,7 @@ describe('Workbench page', () => {
     createSpawnerPage.k8sNameDescription.findDescriptionInput().fill('test-description');
 
     // Verify both groups are initially visible
+    createSpawnerPage.findNotebookImageSearchSelector().should('contain.text', 'Select one');
     createSpawnerPage.findNotebookImageSearchSelector().click();
     cy.contains('Project-scoped images').should('be.visible');
     cy.contains('Global images').should('be.visible');

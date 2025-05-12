@@ -7,6 +7,8 @@ import {
   Popover,
   Content,
   ContentVariants,
+  ListItem,
+  List,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { HardwareProfileFeatureVisibility, HardwareProfileKind } from '~/k8sTypes';
@@ -18,6 +20,7 @@ import HardwareProfileSelect from '~/concepts/hardwareProfiles/HardwareProfileSe
 import { filterHardwareProfilesForTraining } from '~/pages/pipelines/global/modelCustomization/utils';
 import { useHardwareProfilesByFeatureVisibility } from '~/pages/hardwareProfiles/migration/useHardwareProfilesByFeatureVisibility';
 import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 
 type TrainingHardwareProfileFormSectionProps = {
   data: HardwareProfileConfig;
@@ -38,6 +41,7 @@ const TrainingHardwareProfileFormSection: React.FC<TrainingHardwareProfileFormSe
     [HardwareProfileFeatureVisibility.PIPELINES],
     projectName,
   );
+  const isProjectScoped = useIsAreaAvailable(SupportedArea.DS_PROJECT_SCOPED).status;
 
   const onProfileSelect = (profile?: HardwareProfileKind) => {
     if (profile) {
@@ -76,13 +80,26 @@ const TrainingHardwareProfileFormSection: React.FC<TrainingHardwareProfileFormSe
               bodyContent={
                 <>
                   <Content component={ContentVariants.p}>
+                    This list includes only hardware profiles with defined GPUs.
+                    {isProjectScoped &&
+                      projectScopedHardwareProfiles['1'] &&
+                      projectScopedHardwareProfiles['0'].length > 0 && (
+                        <List>
+                          <ListItem>
+                            <b>Project-scoped</b> hardware profiles are accessible only within this
+                            project.
+                          </ListItem>
+                          <ListItem>
+                            <b>Global-scoped</b> hardware profiles are accessible within all
+                            projects.
+                          </ListItem>
+                        </List>
+                      )}
+                  </Content>
+                  <Content component={ContentVariants.p}>
                     Hardware profiles enable administrators to create profiles for additional types
                     of identifiers, limit workload resource allocations, and target workloads to
                     specific nodes by including tolerations and nodeSelectors in profiles.
-                  </Content>
-                  <br />
-                  <Content component={ContentVariants.p}>
-                    This list includes only hardware profiles that have GPU defined.
                   </Content>
                 </>
               }
@@ -96,6 +113,7 @@ const TrainingHardwareProfileFormSection: React.FC<TrainingHardwareProfileFormSe
         >
           <HardwareProfileSelect
             allowExistingSettings={false}
+            isProjectScoped={isProjectScoped}
             isHardwareProfileSupported={() => false}
             hardwareProfiles={filteredHardwareProfiles}
             hardwareProfilesLoaded={loaded}

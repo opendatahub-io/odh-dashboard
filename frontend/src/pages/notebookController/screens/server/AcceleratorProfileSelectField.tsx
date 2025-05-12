@@ -11,6 +11,8 @@ import {
   Icon,
   InputGroup,
   Label,
+  List,
+  ListItem,
   MenuGroup,
   MenuItem,
   Popover,
@@ -40,6 +42,7 @@ import useAcceleratorCountWarning from './useAcceleratorCountWarning';
 
 type AcceleratorProfileSelectFieldProps = {
   currentProject?: string;
+  hasAdditionalPopoverInfo?: boolean;
   compatibleIdentifiers?: string[];
   resourceDisplayName?: string;
   infoContent?: string;
@@ -51,6 +54,7 @@ type AcceleratorProfileSelectFieldProps = {
 
 const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps> = ({
   compatibleIdentifiers,
+  hasAdditionalPopoverInfo = false,
   resourceDisplayName = 'image',
   infoContent,
   initialState,
@@ -315,6 +319,8 @@ const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps
 
   const filteredAcceleratorProfiles = getAcceleratorProfiles();
   const filteredDashboardAcceleratorProfiles = getDashboardAcceleratorProfiles();
+  const hasProjectScopedAccelerators =
+    isProjectScopedAvailable && currentProjectAcceleratorProfiles.length > 0;
 
   return (
     <Stack hasGutter>
@@ -324,10 +330,27 @@ const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps
           fieldId="modal-notebook-accelerator"
           isRequired={isRequired}
           labelHelp={
-            isProjectScopedAvailable && currentProjectAcceleratorProfiles.length > 0 ? (
+            hasProjectScopedAccelerators && !hasAdditionalPopoverInfo ? (
               <ProjectScopedPopover title="Accelerator profile" item="accelerator profiles" />
             ) : infoContent ? (
-              <Popover bodyContent={<div>{infoContent}</div>}>
+              <Popover
+                bodyContent={
+                  <div>
+                    {infoContent}
+                    {hasProjectScopedAccelerators && hasAdditionalPopoverInfo && (
+                      <List>
+                        <ListItem>
+                          <b>Project-scoped accelerators</b> are accessible only within this
+                          project.
+                        </ListItem>
+                        <ListItem>
+                          <b>Global accelerators</b> are accessible across all projects.
+                        </ListItem>
+                      </List>
+                    )}
+                  </div>
+                }
+              >
                 <Icon aria-label="Accelerator info" role="button">
                   <OutlinedQuestionCircleIcon />
                 </Icon>
