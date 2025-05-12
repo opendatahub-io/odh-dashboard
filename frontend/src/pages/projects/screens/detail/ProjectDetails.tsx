@@ -10,11 +10,10 @@ import ProjectSettingsPage from '~/pages/projects/projectSettings/ProjectSetting
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { ProjectObjectType, SectionType } from '~/concepts/design/utils';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
-import { AccessReviewResourceAttributes } from '~/k8sTypes';
-import { useAccessReview } from '~/api';
 import { getDescriptionFromK8sResource, getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import ResourceNameTooltip from '~/components/ResourceNameTooltip';
 import HeaderIcon from '~/concepts/design/HeaderIcon';
+import { useProjectPermissionsTabVisible } from '~/concepts/projects/accessChecks';
 import useCheckLogoutParams from './useCheckLogoutParams';
 import ProjectOverview from './overview/ProjectOverview';
 import NotebookList from './notebooks/NotebookList';
@@ -24,12 +23,6 @@ import PipelinesSection from './pipelines/PipelinesSection';
 import ProjectActions from './ProjectActions';
 
 import './ProjectDetails.scss';
-
-const accessReviewResource: AccessReviewResourceAttributes = {
-  group: 'rbac.authorization.k8s.io',
-  resource: 'rolebindings',
-  verb: 'create',
-};
 
 const ProjectDetails: React.FC = () => {
   const { currentProject } = React.useContext(ProjectDetailsContext);
@@ -41,10 +34,9 @@ const ProjectDetails: React.FC = () => {
   const modelServingTab = useModelServingTab();
   const [searchParams, setSearchParams] = useSearchParams();
   const state = searchParams.get('section');
-  const [allowCreate, rbacLoaded] = useAccessReview({
-    ...accessReviewResource,
-    namespace: currentProject.metadata.name,
-  });
+
+  const [allowCreate, rbacLoaded] = useProjectPermissionsTabVisible(currentProject.metadata.name);
+
   const workbenchEnabled = useIsAreaAvailable(SupportedArea.WORKBENCHES).status;
 
   useCheckLogoutParams();
