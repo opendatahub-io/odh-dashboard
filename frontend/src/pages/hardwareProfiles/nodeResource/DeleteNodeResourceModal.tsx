@@ -1,6 +1,14 @@
 import * as React from 'react';
-import { Alert, Button, Stack, StackItem } from '@patternfly/react-core';
-import { Modal } from '@patternfly/react-core/deprecated';
+import {
+  Alert,
+  Button,
+  Stack,
+  StackItem,
+  Modal,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+} from '@patternfly/react-core';
 import { Identifier } from '~/types';
 import { CPU_MEMORY_MISSING_WARNING } from '~/pages/hardwareProfiles/const';
 
@@ -21,17 +29,34 @@ const DeleteNodeResourceModal: React.FC<DeleteNodeResourceModalProps> = ({
 
   return (
     <Modal
-      title={deleteTitle}
-      onClose={() => onBeforeClose(false)}
       isOpen
-      actions={[
+      data-testid="delete-node-resource-modal"
+      variant="small"
+      onClose={() => onBeforeClose(false)}
+    >
+      <ModalHeader title={deleteTitle} />
+      <ModalBody>
+        <Stack hasGutter>
+          <StackItem>
+            <Alert variant="warning" isInline title="Removing the last CPU or Memory resource">
+              {CPU_MEMORY_MISSING_WARNING}
+            </Alert>
+          </StackItem>
+          <StackItem>
+            <p>
+              The resource: <strong>{identifier.displayName}</strong> will be deleted.
+            </p>
+          </StackItem>
+        </Stack>
+      </ModalBody>
+      <ModalFooter>
         <Button
           key="delete-button"
           data-testid="delete-node-resource-modal-delete-btn"
           onClick={() => onBeforeClose(true)}
         >
           Delete
-        </Button>,
+        </Button>
         <Button
           key="cancel-button"
           data-testid="delete-node-resource-modal-cancel-btn"
@@ -39,23 +64,8 @@ const DeleteNodeResourceModal: React.FC<DeleteNodeResourceModalProps> = ({
           onClick={() => onBeforeClose(false)}
         >
           Cancel
-        </Button>,
-      ]}
-      variant="small"
-      data-testid="delete-node-resource-modal"
-    >
-      <Stack hasGutter>
-        <StackItem>
-          <Alert variant="warning" isInline title="Removing the last CPU or Memory resource">
-            {CPU_MEMORY_MISSING_WARNING}
-          </Alert>
-        </StackItem>
-        <StackItem>
-          <p>
-            The resource: <strong>{identifier.displayName}</strong> will be deleted.
-          </p>
-        </StackItem>
-      </Stack>
+        </Button>
+      </ModalFooter>
     </Modal>
   );
 };
