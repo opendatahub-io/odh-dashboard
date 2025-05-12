@@ -1,4 +1,4 @@
-import { mockDashboardConfig, mockStatus } from '~/__mocks__';
+import { mock403Error, mockDashboardConfig, mockStatus } from '~/__mocks__';
 import { mockSelfSubjectAccessReview } from '~/__mocks__/mockSelfSubjectAccessReview';
 import {
   ODHDashboardConfigModel,
@@ -36,7 +36,10 @@ export const asProductAdminUser = (): void => {
  * Users with project admin access can perform any action including creation of role bindings in specific projects
  * or all projects if none specified.
  */
-export const asProjectAdminUser = (options?: { isSelfProvisioner?: boolean }): void => {
+export const asProjectAdminUser = (options?: {
+  isSelfProvisioner?: boolean;
+  projects?: string[];
+}): void => {
   setUserConfig({ isSelfProvisioner: true, ...options, isProjectAdmin: true });
 };
 
@@ -44,7 +47,10 @@ export const asProjectAdminUser = (options?: { isSelfProvisioner?: boolean }): v
  * Users with project edit access can perform any action except creation of role bindings in specific projects
  * or all projects if none specified.
  */
-export const asProjectEditUser = (options?: { isSelfProvisioner?: boolean }): void => {
+export const asProjectEditUser = (options?: {
+  isSelfProvisioner?: boolean;
+  projects?: string[];
+}): void => {
   setUserConfig({ isSelfProvisioner: true, ...options, isProjectAdmin: false });
 };
 
@@ -53,13 +59,14 @@ export type UserConfig = {
   isProductAdmin?: boolean;
   isProjectAdmin?: boolean;
   isSelfProvisioner?: boolean;
+  projects?: string[];
 };
 
 export const getUserConfig = (): UserConfig => Cypress.env('USER_CONFIG');
 
 const setUserConfig = (userConfig: UserConfig = {}, isAllowed = true) => {
   Cypress.env('USER_CONFIG', userConfig);
-  const { isClusterAdmin, isProductAdmin, isProjectAdmin } = userConfig;
+  const { isClusterAdmin, isProductAdmin } = userConfig;
 
   // return empty k8s resource list
   cy.intercept(
@@ -86,28 +93,49 @@ const setUserConfig = (userConfig: UserConfig = {}, isAllowed = true) => {
   );
 
   // return empty k8s resource list for namespaced requests
-  cy.intercept(
-    { pathname: '/api/k8s/api/*/namespaces/*/*' },
-    {
-      statusCode: isClusterAdmin || isProjectAdmin || !isProductAdmin ? 403 : 200,
-      body: {
-        apiVersion: 'unknown',
+  cy.intercept({ pathname: '/api/k8s/api/*/namespaces/*/*' }, (req) => {
+    const [, , , version, , namespace, resource] = req.url.split('/');
+    if (
+      evaluateAccess(
+        {
+          verb: 'list',
+          resource,
+          namespace,
+        },
+        userConfig,
+      )
+    ) {
+      req.reply(200, {
+        apiVersion: version,
         metadata: {},
         items: [],
-      },
-    },
-  );
-  cy.intercept(
-    { pathname: '/api/k8s/apis/*/*/namespaces/*/*' },
-    {
-      statusCode: isClusterAdmin || isProjectAdmin || !isProductAdmin ? 403 : 200,
-      body: {
-        apiVersion: 'unknown',
+      });
+    } else {
+      req.reply(403, mock403Error({}));
+    }
+  });
+
+  cy.intercept({ pathname: '/api/k8s/apis/*/*/namespaces/*/*' }, (req) => {
+    const [, , , api, version, , namespace, resource] = req.url.split('/');
+    if (
+      evaluateAccess(
+        {
+          verb: 'list',
+          resource,
+          namespace,
+        },
+        userConfig,
+      )
+    ) {
+      req.reply(200, {
+        apiVersion: `${api}/${version}`,
         metadata: {},
         items: [],
-      },
-    },
-  );
+      });
+    } else {
+      req.reply(403, mock403Error({}));
+    }
+  });
 
   cy.interceptK8s('POST', SelfSubjectAccessReviewModel, (req) => {
     const { resourceAttributes } = req.body.spec;
@@ -129,6 +157,7 @@ const setUserConfig = (userConfig: UserConfig = {}, isAllowed = true) => {
       isProductAdmin: productAdmin,
       isProjectAdmin: projectAdmin,
       isSelfProvisioner: selfProvisioner,
+      projects,
     } = config;
 
     const convertResourceAttrToString = (attr: AccessReviewResourceAttributes): string =>
@@ -186,6 +215,10 @@ const setUserConfig = (userConfig: UserConfig = {}, isAllowed = true) => {
       if (namespace === 'opendatahub' && !productAdmin) {
         log('Permission', 'Access denied to opendatahub namespace');
         return false;
+      }
+      if (projects) {
+        log('Permission', 'Access granted within allowed projects');
+        return projects.includes(namespace);
       }
       log('Permission', 'Access granted within namespace');
       return true;
