@@ -69,11 +69,11 @@ const NotebookServerDetails: React.FC = () => {
       isExpanded={isExpanded}
       isIndented
     >
-      <p className="odh-notebook-controller__server-details-title">Notebook image</p>
+      <p className="odh-notebook-controller__server-details-title">Workbench image</p>
       {!image || !tag ? (
         loaded ? (
           <Alert variant="danger" isInline title="Error loading related images...">
-            Unable to show notebook image details at this time.
+            Unable to show workbench image details at this time.
           </Alert>
         ) : (
           <Spinner />
