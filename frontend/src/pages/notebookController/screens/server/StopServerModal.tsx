@@ -1,12 +1,11 @@
 import * as React from 'react';
-import { Button, Checkbox, Stack, StackItem } from '@patternfly/react-core';
+import { Button, Stack, StackItem } from '@patternfly/react-core';
 import { Modal, ModalVariant } from '@patternfly/react-core/deprecated';
 import { Notebook } from '~/types';
 import { stopNotebook } from '~/services/notebookService';
 import useNotification from '~/utilities/useNotification';
 import { allSettledPromises } from '~/utilities/allSettledPromises';
 import { useUser } from '~/redux/selectors';
-import useStopNotebookModalAvailability from '~/pages/projects/notebook/useStopNotebookModalAvailability';
 
 type StopServerModalProps = {
   notebooksToStop: Notebook[];
@@ -23,8 +22,6 @@ const StopServerModal: React.FC<StopServerModalProps> = ({
   const [isDeleting, setDeleting] = React.useState(false);
 
   const { isAdmin } = useUser();
-
-  const [dontShowModalValue, setDontShowModalValue] = useStopNotebookModalAvailability();
 
   if (!notebooksToStop.length) {
     return null;
@@ -129,14 +126,6 @@ const StopServerModal: React.FC<StopServerModalProps> = ({
           ) : (
             'open the workbenches.'
           )}
-        </StackItem>
-        <StackItem>
-          <Checkbox
-            id="dont-show-again"
-            label="Don't show again"
-            isChecked={dontShowModalValue}
-            onChange={(e, checked) => setDontShowModalValue(checked)}
-          />
         </StackItem>
       </Stack>
     </Modal>
