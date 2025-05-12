@@ -73,7 +73,7 @@ export const PipelineDropdown = ({
   return (
     <Dropdown
       onOpenChange={(isOpened) => setIsOpen(isOpened)}
-      popperProps={{ position: 'right', maxWidth: 'trigger' }}
+      popperProps={{ position: 'right', maxWidth: '600px' }}
       toggle={(toggleRef) => (
         <MenuToggle
           data-testid="select-connection"
