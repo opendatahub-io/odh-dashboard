@@ -1,4 +1,5 @@
 import { BuildPhase, ImageStreamKind, ImageStreamSpecTagType } from '~/k8sTypes';
+import { ImageStreamStatusTag } from '~/types';
 
 export enum SpawnerPageSectionID {
   NAME_DESCRIPTION = 'name-and-description',
@@ -32,6 +33,7 @@ export type ImageStreamSelectOptionObjectType = {
 
 export type ImageVersionSelectOptionObjectType = {
   imageVersion: ImageStreamSpecTagType;
+  imageStreamTag?: ImageStreamStatusTag;
   toString: () => string;
 };
 
