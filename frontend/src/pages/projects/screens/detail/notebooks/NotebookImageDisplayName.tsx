@@ -12,7 +12,9 @@ import {
   HelperText,
   HelperTextItem,
   Button,
+  Truncate,
 } from '@patternfly/react-core';
+import { t_global_spacer_xs as ExtraSmallSpacerSize } from '@patternfly/react-tokens';
 import React from 'react';
 import {
   CheckCircleIcon,
@@ -24,6 +26,12 @@ import { ProjectObjectType } from '~/concepts/design/utils';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { ODH_PRODUCT_NAME } from '~/utilities/const';
 import TypedObjectIcon from '~/concepts/design/TypedObjectIcon';
+import { convertISOTimeToHumanReadable } from '~/utilities/time';
+import {
+  getImageVersionBuildDate,
+  getImageVersionSoftwareString,
+  getMatchingImageStreamStatusTag,
+} from '~/pages/projects/screens/spawner/spawnerUtils';
 import { NotebookImageAvailability, NotebookImageStatus } from './const';
 import { NotebookImage } from './types';
 
@@ -169,10 +177,32 @@ export const NotebookImageDisplayName = ({
   // get the popover title, body, and variant based on the image availability
   const { title, body, variant, footer } = getNotebookImagePopoverText();
 
-  // otherwise, return the popover with the label as the trigger
+  const imageBuildDate =
+    notebookImage.imageStatus !== NotebookImageStatus.DELETED
+      ? getImageVersionBuildDate(
+          notebookImage.imageVersion,
+          getMatchingImageStreamStatusTag(notebookImage.imageStream, notebookImage.imageVersion),
+        )
+      : undefined;
+
+  const imageVersionSoftwareString =
+    notebookImage.imageStatus !== NotebookImageStatus.DELETED
+      ? getImageVersionSoftwareString(notebookImage.imageVersion)
+      : undefined;
+
+  // Prepare the version display string for the Truncate content
+  const versionDisplayString =
+    notebookImage.imageStatus !== NotebookImageStatus.DELETED
+      ? `${notebookImage.imageVersion.name}${
+          notebookImage.imageVersion.annotations?.['opendatahub.io/notebook-build-commit']
+            ? ` (${notebookImage.imageVersion.annotations['opendatahub.io/notebook-build-commit']})`
+            : ''
+        }`
+      : '';
+
   return (
     <>
-      <Flex spaceItems={{ default: 'spaceItemsSm' }}>
+      <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
         <FlexItem>
           <HelperText>
             <HelperTextItem
@@ -199,11 +229,61 @@ export const NotebookImageDisplayName = ({
               </Label>
             )}
         </FlexItem>
-        {(notebookImage.imageStatus === NotebookImageStatus.DELETED ||
-          notebookImage.imageAvailability === NotebookImageAvailability.DISABLED ||
-          notebookImage.imageStatus === NotebookImageStatus.LATEST ||
-          notebookImage.imageStatus === NotebookImageStatus.DEPRECATED) && (
+      </Flex>
+      <Flex flexWrap={{ default: 'nowrap' }}>
+        {isExpanded && notebookImage.imageStatus !== NotebookImageStatus.DELETED && (
           <FlexItem>
+            <Popover
+              headerContent={
+                notebookImage.imageStream.metadata.annotations?.[
+                  'opendatahub.io/notebook-image-name'
+                ] ?? notebookImage.imageStream.metadata.name
+              }
+              bodyContent={
+                <>
+                  <div>Version: {notebookImage.imageVersion.name}</div>
+                  {notebookImage.imageVersion.annotations?.[
+                    'opendatahub.io/notebook-build-commit'
+                  ] && (
+                    <div>
+                      Build ID:{' '}
+                      {
+                        notebookImage.imageVersion.annotations[
+                          'opendatahub.io/notebook-build-commit'
+                        ]
+                      }
+                    </div>
+                  )}
+                  {imageBuildDate && (
+                    <div>Build Date: {convertISOTimeToHumanReadable(imageBuildDate)}</div>
+                  )}
+                  {imageVersionSoftwareString && <div>Software: {imageVersionSoftwareString}</div>}
+                </>
+              }
+              position="right"
+              triggerAction="hover"
+            >
+              <Button variant="link" isInline style={{ textDecoration: 'none' }}>
+                <Content component={ContentVariants.small}>
+                  <Truncate
+                    style={{
+                      textDecoration: 'underline dashed',
+                      color: 'grey',
+                      textUnderlineOffset: ExtraSmallSpacerSize.var,
+                    }}
+                    content={versionDisplayString}
+                    tooltipPosition="left"
+                  />
+                </Content>
+              </Button>
+            </Popover>
+          </FlexItem>
+        )}
+        <FlexItem>
+          {(notebookImage.imageStatus === NotebookImageStatus.DELETED ||
+            notebookImage.imageAvailability === NotebookImageAvailability.DISABLED ||
+            notebookImage.imageStatus === NotebookImageStatus.LATEST ||
+            notebookImage.imageStatus === NotebookImageStatus.DEPRECATED) && (
             <Popover
               aria-label="Image display name popover"
               headerContent={<Alert variant={variant} isInline isPlain title={title} />}
@@ -223,12 +303,9 @@ export const NotebookImageDisplayName = ({
                 {notebookImage.imageStatus || NotebookImageAvailability.DISABLED}
               </Label>
             </Popover>
-          </FlexItem>
-        )}
+          )}
+        </FlexItem>
       </Flex>
-      {isExpanded && notebookImage.imageStatus !== NotebookImageStatus.DELETED && (
-        <Content component={ContentVariants.small}>{notebookImage.tagSoftware}</Content>
-      )}
     </>
   );
 };

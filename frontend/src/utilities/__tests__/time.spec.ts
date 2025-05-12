@@ -10,6 +10,7 @@ import {
   relativeTime,
   convertToTwentyFourHourTime,
   convertToDate,
+  convertISOTimeToHumanReadable,
 } from '~/utilities/time';
 
 describe('relativeDuration', () => {
@@ -256,5 +257,19 @@ describe('convertSecondsToPeriodicTime', () => {
 
   it('should return an empty string for 0 seconds', () => {
     expect(convertSecondsToPeriodicTime(0)).toBe('');
+  });
+});
+
+describe('convertISOTimeToHumanReadable', () => {
+  it('should convert ISO time to human readable time', () => {
+    expect(convertISOTimeToHumanReadable('2021-01-01T15:30:00Z')).toBe('2021-01-01 15:30:00');
+  });
+
+  it('should convert ISO time to human readable time during the morning', () => {
+    expect(convertISOTimeToHumanReadable('2021-01-01T05:30:00Z')).toBe('2021-01-01 05:30:00');
+  });
+
+  it('should return an empty string if the ISO time is empty', () => {
+    expect(convertISOTimeToHumanReadable('')).toBe('');
   });
 });
