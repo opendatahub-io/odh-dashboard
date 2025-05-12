@@ -1,6 +1,5 @@
-import * as React from 'react';
-import { Button } from '@patternfly/react-core';
-import { Modal, ModalVariant } from '@patternfly/react-core/deprecated';
+import * as React from 'react'; //import { Modal, ModalVariant } from '@patternfly/react-core/deprecated';
+import { Modal, ModalHeader, ModalBody, ModalFooter, Button } from '@patternfly/react-core';
 
 type RoleBindingPermissionsChangeModalProps = {
   onClose: () => void;
@@ -18,37 +17,37 @@ const RoleBindingPermissionsChangeModal: React.FC<RoleBindingPermissionsChangeMo
   isDeleting,
 }) => {
   const textToShow = isDeleting ? 'Delete' : 'Edit';
-  const modalActions = [
-    <Button key="confirm" variant="primary" onClick={isDeleting ? onDelete : onEdit}>
-      {isDeleting ? 'Delete' : 'Save'}
-    </Button>,
-    <Button
-      data-testid="cancel-button"
-      key="cancel"
-      variant="secondary"
-      onClick={() => {
-        onCancel();
-        onClose();
-      }}
-    >
-      Cancel
-    </Button>,
-  ];
   return (
     <Modal
+      variant="small"
       aria-label="Role binding permissions change modal"
       data-testid="role-binding-permissions-change-modal"
       appendTo={document.body}
-      variant={ModalVariant.small}
-      title={`Confirm ${textToShow.toLowerCase()}`}
       isOpen
-      showClose
       onClose={onClose}
-      actions={modalActions}
     >
-      Are you sure you want to {isDeleting ? 'delete' : 'edit'} this role binding?{' '}
-      {isDeleting ? 'Deleting' : 'Editing'} your permissions could result in loss of access to the
-      project.
+      <ModalHeader title={`Confirm ${textToShow.toLowerCase()}`} />
+      <ModalBody>
+        Are you sure you want to {isDeleting ? 'delete' : 'edit'} this role binding?{' '}
+        {isDeleting ? 'Deleting' : 'Editing'} your permissions could result in loss of access to the
+        project.
+      </ModalBody>
+      <ModalFooter>
+        <Button variant="primary" key="confirm" onClick={isDeleting ? onDelete : onEdit}>
+          {isDeleting ? 'Delete' : 'Save'}
+        </Button>
+        <Button
+          variant="secondary"
+          key="cancel"
+          onClick={() => {
+            onCancel();
+            onClose();
+          }}
+          data-testid="cancel-button"
+        >
+          Cancel
+        </Button>
+      </ModalFooter>
     </Modal>
   );
 };
