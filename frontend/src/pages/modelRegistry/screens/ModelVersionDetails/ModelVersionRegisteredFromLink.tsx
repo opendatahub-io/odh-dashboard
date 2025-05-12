@@ -29,7 +29,7 @@ const ModelVersionRegisteredFromLink: React.FC<ModelVersionRegisteredFromLinkPro
   const registeredFromPipelineDetails = modelSourcePropertiesToPipelineRunRef(modelArtifact);
 
   const registeredfromText = (
-    <span className="pf-v6-u-font-weight-bold">
+    <span className="pf-v6-u-font-weight-bold" data-testid="registered-from-catalog">
       {registeredFromCatalogDetails?.modelName} ({registeredFromCatalogDetails?.tag})
     </span>
   );
@@ -119,9 +119,7 @@ const ModelVersionRegisteredFromLink: React.FC<ModelVersionRegisteredFromLinkPro
       return (
         <>
           {isModelCatalogAvailable ? (
-            <Link to={catalogModelUrl} data-testid="registered-from-catalog">
-              {registeredfromText}
-            </Link>
+            <Link to={catalogModelUrl}>{registeredfromText}</Link>
           ) : (
             registeredfromText
           )}{' '}
@@ -139,7 +137,9 @@ const ModelVersionRegisteredFromLink: React.FC<ModelVersionRegisteredFromLinkPro
   }
 
   return (
-    <DashboardDescriptionListGroup title="Registered from">{content}</DashboardDescriptionListGroup>
+    <DashboardDescriptionListGroup title="Registered from" groupTestId="registered-from-title">
+      {content}
+    </DashboardDescriptionListGroup>
   );
 };
 
