@@ -1,9 +1,6 @@
 import * as React from 'react';
-import {
-  ContextResourceData,
-  PrometheusQueryRangeResponseDataResult,
-  PrometheusQueryRangeResultValue,
-} from '~/types';
+import { PrometheusQueryRangeResponseDataResult, PrometheusQueryRangeResultValue } from '~/types';
+import { FetchStateObject } from '~/utilities/useFetch';
 import {
   ModelMetricType,
   ServerMetricType,
@@ -34,14 +31,16 @@ export const useModelServingMetrics = (
   namespace: string,
 ): {
   data: {
-    [ServerMetricType.REQUEST_COUNT]: ContextResourceData<PrometheusQueryRangeResultValue>;
-    [ServerMetricType.AVG_RESPONSE_TIME]: ContextResourceData<PrometheusQueryRangeResponseDataResult>;
-    [ServerMetricType.CPU_UTILIZATION]: ContextResourceData<PrometheusQueryRangeResultValue>;
-    [ServerMetricType.MEMORY_UTILIZATION]: ContextResourceData<PrometheusQueryRangeResultValue>;
-    [ModelMetricType.REQUEST_COUNT_FAILED]: ContextResourceData<PrometheusQueryRangeResultValue>;
-    [ModelMetricType.REQUEST_COUNT_SUCCESS]: ContextResourceData<PrometheusQueryRangeResultValue>;
-    [ModelMetricType.TRUSTY_AI_SPD]: ContextResourceData<PrometheusQueryRangeResponseDataResult>;
-    [ModelMetricType.TRUSTY_AI_DIR]: ContextResourceData<PrometheusQueryRangeResponseDataResult>;
+    [ServerMetricType.REQUEST_COUNT]: FetchStateObject<PrometheusQueryRangeResultValue[]>;
+    [ServerMetricType.AVG_RESPONSE_TIME]: FetchStateObject<
+      PrometheusQueryRangeResponseDataResult[]
+    >;
+    [ServerMetricType.CPU_UTILIZATION]: FetchStateObject<PrometheusQueryRangeResultValue[]>;
+    [ServerMetricType.MEMORY_UTILIZATION]: FetchStateObject<PrometheusQueryRangeResultValue[]>;
+    [ModelMetricType.REQUEST_COUNT_FAILED]: FetchStateObject<PrometheusQueryRangeResultValue[]>;
+    [ModelMetricType.REQUEST_COUNT_SUCCESS]: FetchStateObject<PrometheusQueryRangeResultValue[]>;
+    [ModelMetricType.TRUSTY_AI_SPD]: FetchStateObject<PrometheusQueryRangeResponseDataResult[]>;
+    [ModelMetricType.TRUSTY_AI_DIR]: FetchStateObject<PrometheusQueryRangeResponseDataResult[]>;
   };
   refresh: () => void;
 } => {

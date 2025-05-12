@@ -14,8 +14,6 @@ import RedirectErrorState from '~/pages/external/RedirectErrorState';
 import TitleWithIcon from '~/concepts/design/TitleWithIcon';
 import { ProjectObjectType } from '~/concepts/design/utils';
 import useModelRegistriesBackend from '~/concepts/modelRegistrySettings/useModelRegistriesBackend';
-import { useContextResourceData } from '~/utilities/useContextResourceData';
-import { RoleBindingKind } from '~/k8sTypes';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
 import ModelRegistriesTable from './ModelRegistriesTable';
 import CreateModal from './CreateModal';
@@ -28,7 +26,7 @@ const ModelRegistrySettings: React.FC = () => {
 
   const [modelRegistries, mrloaded, loadError, refreshModelRegistries] =
     useModelRegistriesBackend();
-  const roleBindings = useContextResourceData<RoleBindingKind>(useModelRegistryRoleBindings());
+  const roleBindings = useModelRegistryRoleBindings();
   const { refreshRulesReview } = React.useContext(ModelRegistrySelectorContext);
   const loaded = mrloaded && roleBindings.loaded;
 

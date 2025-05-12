@@ -3,6 +3,9 @@ import { waitFor } from '@testing-library/react';
 import useFetchState, { FetchState } from '~/utilities/useFetchState';
 import { standardUseFetchState, testHook } from '~/__tests__/unit/testUtils/hooks';
 
+// These tests are around to keep the deprecated useFetchState working,
+// but are redundant with the useFetch tests and should be removed when useFetchState is removed.
+
 jest.useFakeTimers();
 
 describe('useFetchState', () => {
