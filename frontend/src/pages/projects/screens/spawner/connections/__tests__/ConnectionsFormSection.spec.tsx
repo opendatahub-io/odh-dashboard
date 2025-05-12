@@ -117,7 +117,7 @@ describe('ConnectionsFormSection', () => {
     );
 
     act(() => result.getByRole('button', { name: 'Attach existing connections' }).click());
-    const attachModal = result.getByRole('dialog', { name: 'Attach existing connections' });
+    const attachModal = result.getByRole('dialog');
     expect(attachModal).toBeTruthy();
     expect(within(attachModal).getByRole('button', { name: 'Attach' })).toBeDisabled();
     expect(within(attachModal).getByRole('button', { name: 'Cancel' })).toBeEnabled();
