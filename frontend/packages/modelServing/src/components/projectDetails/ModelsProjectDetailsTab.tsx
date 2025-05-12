@@ -31,48 +31,46 @@ const ModelsProjectDetailsTab: React.FC = () => {
   );
 
   return (
-    <>
-      <DetailsSection
-        id={ProjectSectionID.MODEL_SERVER}
-        title={hasModels ? 'Models' : undefined}
-        isLoading={isLoading}
-        labels={[
-          [
-            <Flex gap={{ default: 'gapSm' }} key="serving-platform-label">
-              <Label data-testid="serving-platform-label">
-                {activePlatform?.properties.enableCardText.enabledText}
-              </Label>
-              {activePlatform && availablePlatforms && availablePlatforms.length > 1 && (
-                <Button
-                  variant="link"
-                  isInline
-                  icon={<PencilAltIcon />}
-                  isLoading={isLoading}
-                  isDisabled={isLoading}
-                  onClick={() => {
-                    resetModelServingPlatform();
-                  }}
-                >
-                  Change
-                </Button>
-              )}
-            </Flex>,
-          ],
-        ]}
-        isEmpty={!activePlatform}
-        emptyState={
-          !isLoading && (
-            <SelectPlatformView
-              platforms={availablePlatforms}
-              setModelServingPlatform={setModelServingPlatform}
-            />
-          )
-        }
-      >
-        {activePlatform &&
-          (hasModels ? <>View models table</> : <NoModelsView platform={activePlatform} />)}
-      </DetailsSection>
-    </>
+    <DetailsSection
+      id={ProjectSectionID.MODEL_SERVER}
+      title={hasModels ? 'Models' : undefined}
+      isLoading={isLoading}
+      labels={[
+        [
+          <Flex gap={{ default: 'gapSm' }} key="serving-platform-label">
+            <Label data-testid="serving-platform-label">
+              {activePlatform?.properties.enableCardText.enabledText}
+            </Label>
+            {activePlatform && availablePlatforms && availablePlatforms.length > 1 && (
+              <Button
+                variant="link"
+                isInline
+                icon={<PencilAltIcon />}
+                isLoading={isLoading}
+                isDisabled={isLoading}
+                onClick={() => {
+                  resetModelServingPlatform();
+                }}
+              >
+                Change
+              </Button>
+            )}
+          </Flex>,
+        ],
+      ]}
+      isEmpty={!activePlatform}
+      emptyState={
+        !isLoading && (
+          <SelectPlatformView
+            platforms={availablePlatforms}
+            setModelServingPlatform={setModelServingPlatform}
+          />
+        )
+      }
+    >
+      {activePlatform &&
+        (hasModels ? <>View models table</> : <NoModelsView platform={activePlatform} />)}
+    </DetailsSection>
   );
 };
 
