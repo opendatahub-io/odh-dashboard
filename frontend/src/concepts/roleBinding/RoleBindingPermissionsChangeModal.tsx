@@ -6,6 +6,7 @@ type RoleBindingPermissionsChangeModalProps = {
   onClose: () => void;
   onEdit: () => void;
   onDelete: () => void;
+  onCancel: () => void;
   isDeleting: boolean;
 };
 
@@ -13,6 +14,7 @@ const RoleBindingPermissionsChangeModal: React.FC<RoleBindingPermissionsChangeMo
   onClose,
   onEdit,
   onDelete,
+  onCancel,
   isDeleting,
 }) => {
   const textToShow = isDeleting ? 'Delete' : 'Edit';
@@ -20,13 +22,22 @@ const RoleBindingPermissionsChangeModal: React.FC<RoleBindingPermissionsChangeMo
     <Button key="confirm" variant="primary" onClick={isDeleting ? onDelete : onEdit}>
       {isDeleting ? 'Delete' : 'Save'}
     </Button>,
-    <Button data-id="cancel-button" key="cancel" variant="secondary" onClick={onClose}>
+    <Button
+      data-id="cancel-button"
+      key="cancel"
+      variant="secondary"
+      onClick={() => {
+        onCancel();
+        onClose();
+      }}
+    >
       Cancel
     </Button>,
   ];
   return (
     <Modal
       aria-label="Role binding permissions change modal"
+      data-testid="role-binding-permissions-change-modal"
       appendTo={document.body}
       variant={ModalVariant.small}
       title={`Confirm ${textToShow.toLowerCase()}`}

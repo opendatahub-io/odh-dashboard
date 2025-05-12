@@ -29,6 +29,14 @@ class PermissionsTab {
   getGroupTable() {
     return new PermissionTable(() => cy.findByTestId('role-binding-table Group'));
   }
+
+  findConfirmModal() {
+    return cy.findByTestId('role-binding-permissions-change-modal');
+  }
+
+  findModalCancelButton() {
+    return cy.findByTestId('cancel-button');
+  }
 }
 
 class PermissionTable extends Contextual<HTMLElement> {

@@ -13,6 +13,11 @@ const userSubjects: RoleBindingSubject[] = [
     apiGroup: 'rbac.authorization.k8s.io',
     name: 'user-1',
   },
+  {
+    kind: 'User',
+    apiGroup: 'rbac.authorization.k8s.io',
+    name: 'test-user',
+  },
 ];
 
 const groupSubjects: RoleBindingSubject[] = [
@@ -40,6 +45,11 @@ const initIntercepts = ({ isEmpty = false }: HandlersProps) => {
         : [
             mockRoleBindingK8sResource({
               name: 'user-1',
+              subjects: userSubjects,
+              roleRefName: 'edit',
+            }),
+            mockRoleBindingK8sResource({
+              name: 'test-user',
               subjects: userSubjects,
               roleRefName: 'edit',
             }),
@@ -171,6 +181,57 @@ describe('Permissions tab', () => {
       userTable.getTableRow('user-1').findKebabAction('Delete').click();
 
       cy.wait('@deleteUser');
+    });
+
+    it('Shows confirmation modal when editing own permissions', () => {
+      // Mock the current user as 'user-1'
+      initIntercepts({ isEmpty: false });
+      permissions.visit('test-project');
+
+      // Try to edit own permissions
+      userTable.getTableRow('test-user').findKebabAction('Edit').click();
+      userTable.findEditInput('test-user').clear().type('test-user');
+      userTable.selectPermission('test-user', 'Admin Edit the project and manage user access');
+      userTable.findEditSaveButton('test-user').click();
+
+      // Verify modal appears
+      cy.get('[data-testid="role-binding-permissions-change-modal"]').should('be.visible');
+      cy.get('[data-testid="role-binding-permissions-change-modal"]').contains('Confirm edit');
+      cy.get('[data-testid="cancel-button"]').click();
+    });
+
+    it('Shows confirmation modal when deleting own permissions', () => {
+      // Mock the current user as 'user-1'
+      cy.interceptK8s(
+        'DELETE',
+        { model: RoleBindingModel, ns: 'test-project', name: 'test-user' },
+        mock200Status({}),
+      ).as('deleteUser');
+      initIntercepts({ isEmpty: false });
+      permissions.visit('test-project');
+
+      // Try to delete own permissions
+      userTable.getTableRow('test-user').findKebabAction('Delete').click();
+
+      // Verify modal appears
+      permissions.findConfirmModal().should('be.visible');
+      permissions.findConfirmModal().contains('Confirm delete');
+      permissions.findModalCancelButton().click();
+    });
+
+    it('Does not show confirmation modal when editing other users permissions', () => {
+      // Mock the current user as 'user-2'
+      initIntercepts({ isEmpty: false });
+      permissions.visit('test-project');
+
+      // Try to edit other user's permissions
+      userTable.getTableRow('user-1').findKebabAction('Edit').click();
+      userTable.findEditInput('user-1').clear().type('user-3');
+      userTable.selectPermission('user-3', 'Admin Edit the project and manage user access');
+      userTable.findEditSaveButton('user-3').click();
+
+      // Verify modal does not appear
+      permissions.findConfirmModal().should('not.exist');
     });
   });
 

@@ -23,7 +23,12 @@ import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import { projectDisplayNameToNamespace } from '~/concepts/projects/utils';
 import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
 import { useUser } from '~/redux/selectors';
-import { castRoleBindingPermissionsRoleType, firstSubject, roleLabel } from './utils';
+import {
+  castRoleBindingPermissionsRoleType,
+  firstSubject,
+  roleLabel,
+  isCurrentUserChanging,
+} from './utils';
 import { RoleBindingPermissionsRoleType } from './types';
 import RoleBindingPermissionsNameInput from './RoleBindingPermissionsNameInput';
 import RoleBindingPermissionsPermissionSelection from './RoleBindingPermissionsPermissionSelection';
@@ -70,7 +75,7 @@ const RoleBindingPermissionsTableRow: React.FC<RoleBindingPermissionsTableRowPro
   onDelete,
 }) => {
   const currentUser = useUser();
-  const isCurrentUserBeingChanged = currentUser.username === obj?.subjects[0].name;
+  const isCurrentUserBeingChanged = isCurrentUserChanging(obj, currentUser.username);
   const { projects } = React.useContext(ProjectsContext);
   const [roleBindingName, setRoleBindingName] = React.useState(() => {
     if (isAdding || !obj) {
@@ -237,8 +242,8 @@ const RoleBindingPermissionsTableRow: React.FC<RoleBindingPermissionsTableRowPro
                         setIsDeleting(true);
                         setShowModal(true);
                       } else {
-                        //onDelete?.();
-                        console.log('Deleting! jkjk');
+                        onDelete?.();
+                        //console.log('Deleting! jkjk');
                       }
                     },
                   },
@@ -250,7 +255,12 @@ const RoleBindingPermissionsTableRow: React.FC<RoleBindingPermissionsTableRowPro
       </Tbody>
       {showModal && (
         <RoleBindingPermissionsChangeModal
-          onClose={() => setShowModal(false)}
+          onClose={() => {
+            setShowModal(false);
+            if (isEditing) {
+              onCancel();
+            }
+          }}
           onEdit={() => {
             setIsLoading(true);
             onChange(
@@ -267,6 +277,7 @@ const RoleBindingPermissionsTableRow: React.FC<RoleBindingPermissionsTableRowPro
           }}
           onDelete={() => onDelete?.()}
           isDeleting={isDeleting}
+          onCancel={() => onCancel()}
         />
       )}
     </>

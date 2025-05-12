@@ -49,3 +49,13 @@ export const roleLabel = (value: RoleBindingPermissionsRoleType): string => {
 
 export const removePrefix = (roleBindings: RoleBindingKind[]): string[] =>
   roleBindings.map((rb) => rb.subjects[0]?.name.replace(/^system:serviceaccounts:/, ''));
+
+export const isCurrentUserChanging = (
+  roleBinding: RoleBindingKind | undefined,
+  currentUsername: string,
+): boolean => {
+  if (!roleBinding) {
+    return false;
+  }
+  return currentUsername === roleBinding.subjects[0].name;
+};
