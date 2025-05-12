@@ -418,11 +418,12 @@ class CreateSpawnerPage {
     });
   }
 
+  findNotebookImageSelector() {
+    return cy.findByTestId('workbench-image-stream-selection');
+  }
+
   findNotebookImage(name: string) {
-    return cy
-      .findByTestId('workbench-image-stream-selection')
-      .findDropdownItemByTestId(name)
-      .scrollIntoView();
+    return this.findNotebookImageSelector().findDropdownItemByTestId(name).scrollIntoView();
   }
 
   findNotebookImageSearchSelector() {

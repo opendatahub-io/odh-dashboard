@@ -1,7 +1,8 @@
 import { HelperText, HelperTextItem, Label, Spinner } from '@patternfly/react-core';
 import React from 'react';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import { ProjectObjectType, typedObjectImage } from '~/concepts/design/utils';
+import TypedObjectIcon from '~/concepts/design/TypedObjectIcon';
+import { ProjectObjectType } from '~/concepts/design/utils';
 import { HardwareProfileKind } from '~/k8sTypes';
 
 type NotebookTableRowHardwareProfileProps = {
@@ -39,13 +40,7 @@ const NotebookTableRowHardwareProfile: React.FC<NotebookTableRowHardwareProfileP
           color="blue"
           data-testid="project-scoped-label"
           isCompact
-          icon={
-            <img
-              style={{ height: '15px', paddingTop: '3px' }}
-              src={typedObjectImage(ProjectObjectType.project)}
-              alt=""
-            />
-          }
+          icon={<TypedObjectIcon alt="" resourceType={ProjectObjectType.project} />}
         >
           Project-scoped
         </Label>
