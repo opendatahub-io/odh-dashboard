@@ -20,7 +20,7 @@ const extensions: ModelServingPlatformExtension[] = [
         deployButtonText: 'Deploy model',
       },
     },
-  } satisfies ModelServingPlatformExtension,
+  },
   {
     type: 'model-serving.platform',
     properties: {
@@ -46,7 +46,7 @@ const extensions: ModelServingPlatformExtension[] = [
         deployButtonText: 'Deploy model',
       },
     },
-  } satisfies ModelServingPlatformExtension,
+  },
 ];
 
 export default extensions;

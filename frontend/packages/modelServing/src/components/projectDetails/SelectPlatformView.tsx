@@ -72,7 +72,7 @@ export const SelectPlatformView: React.FC<{
                       <Bullseye>
                         <Button
                           variant="secondary"
-                          onClick={async () => {
+                          onClick={() => {
                             setModelServingPlatform(p);
                           }}
                         >

@@ -14,9 +14,9 @@ const projectDetailsTabs: ProjectDetailsTab[] = [
     flags: {
       required: [SupportedArea.PLUGIN_MODEL_SERVING],
     },
-  } satisfies ProjectDetailsTab,
+  },
 ];
 
-const extensions: ProjectDetailsTab[] = [...projectDetailsTabs];
+const extensions: typeof projectDetailsTabs = [...projectDetailsTabs];
 
 export default extensions;

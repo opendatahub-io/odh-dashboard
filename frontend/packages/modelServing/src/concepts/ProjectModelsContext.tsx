@@ -2,10 +2,12 @@ import React from 'react';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { ProjectDetailsContext } from '@odh-dashboard/internal/pages/projects/ProjectDetailsContext';
 import type { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
-import { ModelServingContext } from './ModelServingContext';
+import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
 import { useActiveServingPlatform, ModelServingPlatform } from './modelServingPlatforms';
+import { isModelServingPlatformExtension } from '../extension-points';
 
-type ProjectModelsContextType = {
+type ModelServingContextType = {
+  availablePlatforms?: ModelServingPlatform[];
   project?: ProjectKind;
   platform?: ModelServingPlatform | null;
   setModelServingPlatform: (platform: ModelServingPlatform) => void;
@@ -13,7 +15,8 @@ type ProjectModelsContextType = {
   models?: string[];
 };
 
-export const ProjectModelsContext = React.createContext<ProjectModelsContextType>({
+export const ModelServingContext = React.createContext<ModelServingContextType>({
+  availablePlatforms: undefined,
   project: undefined,
   platform: undefined,
   setModelServingPlatform: () => undefined,
@@ -21,14 +24,14 @@ export const ProjectModelsContext = React.createContext<ProjectModelsContextType
   models: [],
 });
 
-type ProjectModelsProviderProps = {
+type ModelServingProviderProps = {
   children: React.ReactNode;
 };
 
-export const ProjectModelsProvider: React.FC<ProjectModelsProviderProps> = ({ children }) => {
-  const { availablePlatforms } = React.useContext(ModelServingContext);
-  const { currentProject } = React.useContext(ProjectDetailsContext); // TODO: this should refresh from a websocket
+export const ModelServingProvider: React.FC<ModelServingProviderProps> = ({ children }) => {
+  const { currentProject } = React.useContext(ProjectDetailsContext);
 
+  const [availablePlatforms] = useResolvedExtensions(isModelServingPlatformExtension);
   const { activePlatform, setActivePlatform, resetActivePlatform } = useActiveServingPlatform(
     currentProject,
     availablePlatforms,
@@ -36,19 +39,26 @@ export const ProjectModelsProvider: React.FC<ProjectModelsProviderProps> = ({ ch
 
   const [deployedModels] = React.useState<string[]>([]);
 
-  const contextValue = React.useMemo(
-    () =>
-      ({
-        project: currentProject,
-        platform: activePlatform,
-        setModelServingPlatform: setActivePlatform,
-        resetModelServingPlatform: resetActivePlatform,
-        models: deployedModels,
-      } satisfies ProjectModelsContextType),
-    [currentProject, activePlatform, deployedModels, setActivePlatform, resetActivePlatform],
+  const contextValue = React.useMemo<ModelServingContextType>(
+    () => ({
+      availablePlatforms,
+      project: currentProject,
+      platform: activePlatform,
+      setModelServingPlatform: setActivePlatform,
+      resetModelServingPlatform: resetActivePlatform,
+      models: deployedModels,
+    }),
+    [
+      currentProject,
+      activePlatform,
+      deployedModels,
+      setActivePlatform,
+      resetActivePlatform,
+      availablePlatforms,
+    ],
   );
 
   return (
-    <ProjectModelsContext.Provider value={contextValue}>{children}</ProjectModelsContext.Provider>
+    <ModelServingContext.Provider value={contextValue}>{children}</ModelServingContext.Provider>
   );
 };

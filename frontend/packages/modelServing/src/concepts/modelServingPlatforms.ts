@@ -37,6 +37,7 @@ export const useActiveServingPlatform = (
     if (p?.properties.id !== activePlatform?.properties.id) {
       setTmpActivePlatform(p);
     }
+    // Intentionally include ref.current in deps to rerun effect after async api call completes and updates ref.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project, platforms, activePlatform?.properties.id, newPlatform.current]);
 

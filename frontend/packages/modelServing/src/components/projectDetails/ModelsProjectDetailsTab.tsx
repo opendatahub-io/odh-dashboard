@@ -7,18 +7,17 @@ import { Button, Flex, Label } from '@patternfly/react-core';
 import { PencilAltIcon } from '@patternfly/react-icons';
 import { SelectPlatformView } from './SelectPlatformView';
 import { NoModelsView } from './NoModelsView';
-import { ProjectModelsProvider, ProjectModelsContext } from '../../concepts/ProjectModelsContext';
-import { ModelServingContext, ModelServingProvider } from '../../concepts/ModelServingContext';
+import { ModelServingProvider, ModelServingContext } from '../../concepts/ProjectModelsContext';
 
 const ModelsProjectDetailsTab: React.FC = () => {
-  const { availablePlatforms } = React.useContext(ModelServingContext);
   const {
+    availablePlatforms,
     project,
     platform: projectPlatform,
     setModelServingPlatform,
     resetModelServingPlatform,
     models,
-  } = React.useContext(ProjectModelsContext);
+  } = React.useContext(ModelServingContext);
 
   const isLoading = !project || !models || !availablePlatforms;
   const hasModels = models && models.length > 0;
@@ -50,7 +49,7 @@ const ModelsProjectDetailsTab: React.FC = () => {
                   icon={<PencilAltIcon />}
                   isLoading={isLoading}
                   isDisabled={isLoading}
-                  onClick={async () => {
+                  onClick={() => {
                     resetModelServingPlatform();
                   }}
                 >
@@ -79,9 +78,7 @@ const ModelsProjectDetailsTab: React.FC = () => {
 
 const WithContext: React.FC = () => (
   <ModelServingProvider>
-    <ProjectModelsProvider>
-      <ModelsProjectDetailsTab />
-    </ProjectModelsProvider>
+    <ModelsProjectDetailsTab />
   </ModelServingProvider>
 );
 
