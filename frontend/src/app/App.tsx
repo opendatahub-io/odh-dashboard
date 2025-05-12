@@ -27,6 +27,7 @@ import { NotificationWatcherContextProvider } from '~/concepts/notificationWatch
 import { AccessReviewProvider } from '~/concepts/userSSAR';
 import { ExtensibilityContextProvider } from '~/plugins/ExtensibilityContext';
 import useFetchDscStatus from '~/concepts/areas/useFetchDscStatus';
+import { OdhPlatformType } from '~/types';
 import useDevFeatureFlags from './useDevFeatureFlags';
 import Header from './Header';
 import AppRoutes from './AppRoutes';
@@ -65,7 +66,6 @@ const App: React.FC = () => {
     if (!dashboardConfig) {
       return null;
     }
-
     const releaseName = dscStatus?.release?.name;
 
     return {
@@ -73,7 +73,8 @@ const App: React.FC = () => {
       dashboardConfig,
       storageClasses,
       isRHOAI:
-        releaseName === 'OpenShift AI Self-Managed' || releaseName === 'OpenShift AI Cloud Service',
+        releaseName === OdhPlatformType.SELF_MANAGED_RHOAI ||
+        releaseName === OdhPlatformType.MANAGED_RHOAI,
     };
   }, [buildStatuses, dashboardConfig, storageClasses, dscStatus]);
 
