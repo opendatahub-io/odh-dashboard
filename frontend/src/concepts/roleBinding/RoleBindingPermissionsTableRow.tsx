@@ -167,6 +167,10 @@ const RoleBindingPermissionsTableRow: React.FC<RoleBindingPermissionsTableRowPro
                   date={createdDate}
                   tooltip={{ variant: TimestampTooltipVariant.default }}
                 >
+                  <DashboardPopupIconButton
+                    icon={<OutlinedQuestionCircleIcon />}
+                    aria-label="More info"
+                  />
                   {relativeTime(Date.now(), createdDate.getTime())}
                 </Timestamp>
               </Content>
@@ -243,7 +247,6 @@ const RoleBindingPermissionsTableRow: React.FC<RoleBindingPermissionsTableRowPro
                         setShowModal(true);
                       } else {
                         onDelete?.();
-                        //console.log('Deleting! jkjk');
                       }
                     },
                   },
