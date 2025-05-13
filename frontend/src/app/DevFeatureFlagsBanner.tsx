@@ -23,9 +23,9 @@ type Props = { dashboardConfig: Partial<DashboardCommonConfig> } & DevFeatureFla
 
 type DevFeatureFlagsModalProps = {
   onClose: () => void;
-  devFeatureFlags: DevFeatureFlags;
+  devFeatureFlags: Partial<DashboardCommonConfig> | null;
   dashboardConfig: Partial<DashboardCommonConfig>;
-  setDevFeatureFlag: (key: string, value: boolean) => void;
+  setDevFeatureFlag: (key: keyof DashboardCommonConfig, value: boolean) => void;
   resetDevFeatureFlags: () => void;
 };
 
@@ -53,7 +53,7 @@ const DevFeatureFlagsModal: React.FC<DevFeatureFlagsModalProps> = ({
                   label={key}
                   isChecked={value ?? null}
                   onChange={(_, checked) => {
-                    setDevFeatureFlag(key as string, checked);
+                    setDevFeatureFlag(key as keyof DashboardCommonConfig, checked);
                   }}
                 />
               </GridItem>
