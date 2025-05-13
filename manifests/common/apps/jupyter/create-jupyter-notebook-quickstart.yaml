@@ -25,7 +25,7 @@ spec:
         - You know the names and values that you want to use for environment variables in your workbench environment, for example, `AWS_SECRET_ACCESS_KEY`.
         - If you want to work with a very large data set, work with your administrator to proactively increase the storage capacity of your workbench.
         ### Launch a notebook
-        1. On the **Enabled applications** page, locate the **Jupyter** card.
+        1. On the **Enabled applications** page, locate the **Start basic workbench** card.
         2. Click **Launch application**.
            a) If prompted, select your identity provider.
            b) Enter your credentials and click **Log in** (or equivalent for your identity provider).
