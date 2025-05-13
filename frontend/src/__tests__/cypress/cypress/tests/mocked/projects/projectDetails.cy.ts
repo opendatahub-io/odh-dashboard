@@ -569,6 +569,7 @@ describe('Project Details', () => {
       projectDetails.visit('test-project');
       cy.findByTestId('chatbot-tab').should('exist');
       cy.findByRole('tab', { name: 'Chatbot' }).click();
+      cy.findByTestId('chatbot').should('exist');
     });
 
     it('Notebook with outdated Elyra image shows alert and v2 pipeline server', () => {

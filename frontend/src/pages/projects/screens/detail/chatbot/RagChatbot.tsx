@@ -6,10 +6,7 @@ import { ChatbotWelcomePrompt } from '@patternfly/chatbot/dist/esm/ChatbotWelcom
 import { ChatbotFooter, ChatbotFootnote } from '@patternfly/chatbot/dist/esm/ChatbotFooter';
 import { MessageBar } from '@patternfly/chatbot/dist/esm/MessageBar';
 import { MessageBox } from '@patternfly/chatbot/dist/esm/MessageBox';
-import {
-  ChatbotHeader,
-  ChatbotHeaderActions,
-} from '@patternfly/chatbot/dist/esm/ChatbotHeader';
+import { ChatbotHeader, ChatbotHeaderActions } from '@patternfly/chatbot/dist/esm/ChatbotHeader';
 import '@patternfly/chatbot/dist/css/main.css';
 
 const RagChatbot: React.FC = () => {
