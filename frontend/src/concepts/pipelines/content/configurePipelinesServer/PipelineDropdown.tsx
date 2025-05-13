@@ -1,8 +1,6 @@
 import {
   Menu,
-  Content,
   MenuContent,
-  MenuGroup,
   MenuItem,
   Dropdown,
   MenuItemAction,
@@ -10,9 +8,7 @@ import {
   MenuToggle,
 } from '@patternfly/react-core';
 import React from 'react';
-import { EyeIcon, EyeSlashIcon, KeyIcon } from '@patternfly/react-icons';
-import styles from '@patternfly/react-styles/css/components/Menu/menu';
-import { css } from '@patternfly/react-styles';
+import { EyeIcon, EyeSlashIcon, OptimizeIcon } from '@patternfly/react-icons';
 import { AWSDataEntry } from '~/pages/projects/types';
 import { PIPELINE_AWS_KEY } from '~/pages/projects/dataConnections/const';
 import { Connection } from '~/concepts/connectionTypes/types';
@@ -75,72 +71,65 @@ export const PipelineDropdown = ({
   return (
     <Dropdown
       onOpenChange={(isOpened) => setIsOpen(isOpened)}
-      popperProps={{ position: 'right' }}
+      popperProps={{ position: 'right', maxWidth: '600px' }}
       toggle={(toggleRef) => (
         <MenuToggle
           data-testid="select-connection"
           ref={toggleRef}
           onClick={onToggle}
           isExpanded={isOpen}
+          icon={<OptimizeIcon />}
         >
-          <KeyIcon />
+          Autofill from connection
         </MenuToggle>
       )}
       isOpen={isOpen}
     >
       <Menu onSelect={onSelect} isScrollable isPlain>
         <MenuContent>
-          <MenuGroup
-            label={
-              <h1 className={css(styles.menuGroupTitle)}>
-                <KeyIcon /> Populate the form with credentials from your selected connection
-              </h1>
-            }
-          >
-            <MenuList>
-              {connections.map((dataItem, index) => (
-                <MenuItem
-                  key={dataItem.metadata.name}
-                  actions={
-                    <MenuItemAction
-                      icon={showPassword[index] ? <EyeSlashIcon /> : <EyeIcon />}
-                      actionId={index}
-                      // eslint-disable-next-line no-console
-                      onClick={(ev) => {
-                        ev.preventDefault();
-                        ev.stopPropagation();
-                        setShowPassword((s) => [
-                          ...s.slice(0, index),
-                          !s[index],
-                          ...s.slice(index + 1),
-                        ]);
-                      }}
-                      aria-label={dataItem.metadata.name}
-                    />
-                  }
-                  description={
-                    showPassword[index] ? (
-                      <Content className={css(styles.menuItemDescription)}>
-                        {existingConnection(dataItem)?.map(
-                          (field) =>
-                            field.value && (
-                              <Content component="p" key={field.key}>
-                                <b>{getLabelName(field.key)}</b> : {field.value}
-                              </Content>
-                            ),
-                        )}
-                      </Content>
-                    ) : (
-                      '•••••••••••••••••'
-                    )
-                  }
-                  itemId={dataItem.metadata.name}
-                >
-                  {getDisplayNameFromK8sResource(dataItem)}
-                </MenuItem>
-              ))}
-            </MenuList>
-          </MenuGroup>
+          <MenuList>
+            {connections.map((dataItem, index) => (
+              <MenuItem
+                key={dataItem.metadata.name}
+                actions={
+                  <MenuItemAction
+                    icon={showPassword[index] ? <EyeSlashIcon /> : <EyeIcon />}
+                    actionId={index}
+                    // eslint-disable-next-line no-console
+                    onClick={(ev) => {
+                      ev.preventDefault();
+                      ev.stopPropagation();
+                      setShowPassword((s) => [
+                        ...s.slice(0, index),
+                        !s[index],
+                        ...s.slice(index + 1),
+                      ]);
+                    }}
+                    aria-label={dataItem.metadata.name}
+                  />
+                }
+                description={
+                  showPassword[index] ? (
+                    <>
+                      {existingConnection(dataItem)?.map(
+                        (field) =>
+                          field.value && (
+                            <p key={field.key}>
+                              <b>{getLabelName(field.key)}</b> : {field.value}
+                            </p>
+                          ),
+                      )}
+                    </>
+                  ) : (
+                    '•••••••••••••••••'
+                  )
+                }
+                itemId={dataItem.metadata.name}
+              >
+                {getDisplayNameFromK8sResource(dataItem)}
+              </MenuItem>
+            ))}
+          </MenuList>
         </MenuContent>
       </Menu>
     </Dropdown>

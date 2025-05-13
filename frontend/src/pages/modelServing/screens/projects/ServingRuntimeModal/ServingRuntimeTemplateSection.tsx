@@ -29,11 +29,12 @@ import { isCompatibleWithIdentifier } from '~/pages/projects/screens/spawner/spa
 import SimpleSelect from '~/components/SimpleSelect';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import SearchSelector from '~/components/searchSelector/SearchSelector';
-import { ProjectObjectType, typedObjectImage } from '~/concepts/design/utils';
+import { ProjectObjectType } from '~/concepts/design/utils';
 import GlobalIcon from '~/images/icons/GlobalIcon';
 import { CustomWatchK8sResult } from '~/types';
 import { SERVING_RUNTIME_SCOPE } from '~/pages/modelServing/screens/const';
 import ProjectScopedPopover from '~/components/ProjectScopedPopover';
+import TypedObjectIcon from '~/concepts/design/TypedObjectIcon';
 
 type ServingRuntimeTemplateSectionProps = {
   data: CreatingServingRuntimeObject;
@@ -61,7 +62,6 @@ const ServingRuntimeTemplateSection: React.FC<ServingRuntimeTemplateSectionProps
 
   const [searchServingRuntime, setSearchServingRuntime] = React.useState('');
   const [servingRuntimeDisplayName, setServingRuntimeDisplayName] = React.useState('');
-
   const filteredTemplates = React.useMemo(
     () =>
       templates.filter((template) => {
@@ -134,10 +134,10 @@ const ServingRuntimeTemplateSection: React.FC<ServingRuntimeTemplateSectionProps
                 style={{ paddingBottom: '5px' }}
               >
                 <FlexItem style={{ display: 'flex', paddingLeft: '12px' }}>
-                  <img
-                    style={{ height: '20px', paddingTop: '3px' }}
-                    src={typedObjectImage(ProjectObjectType.project)}
+                  <TypedObjectIcon
+                    style={{ height: '12px', width: '12px' }}
                     alt=""
+                    resourceType={ProjectObjectType.project}
                   />
                 </FlexItem>
                 <FlexItem>Project-scoped serving runtimes</FlexItem>
@@ -169,11 +169,7 @@ const ServingRuntimeTemplateSection: React.FC<ServingRuntimeTemplateSectionProps
                   alignItems={{ default: 'alignItemsCenter' }}
                 >
                   <FlexItem style={{ display: 'flex' }}>
-                    <img
-                      style={{ height: '20px' }}
-                      src={typedObjectImage(ProjectObjectType.project)}
-                      alt=""
-                    />
+                    <TypedObjectIcon alt="" resourceType={ProjectObjectType.project} />
                   </FlexItem>
                   <FlexItem>
                     <Truncate content={getServingRuntimeDisplayNameFromTemplate(template)} />
@@ -206,10 +202,10 @@ const ServingRuntimeTemplateSection: React.FC<ServingRuntimeTemplateSectionProps
                 style={{ paddingBottom: '5px' }}
               >
                 <FlexItem
-                  style={{ display: 'flex', paddingLeft: '10px' }}
+                  style={{ display: 'flex', paddingLeft: '12px' }}
                   data-testid="ds-project-image"
                 >
-                  <GlobalIcon />
+                  <GlobalIcon style={{ height: '12px', width: '12px' }} />
                 </FlexItem>
                 <FlexItem>Global serving runtimes</FlexItem>
               </Flex>
@@ -295,37 +291,45 @@ const ServingRuntimeTemplateSection: React.FC<ServingRuntimeTemplateSectionProps
           searchValue={searchServingRuntime}
           toggleContent={
             data.servingRuntimeTemplateName ? (
-              <>
-                {isEditing ? data.servingRuntimeTemplateName : servingRuntimeDisplayName}{' '}
-                {data.scope === SERVING_RUNTIME_SCOPE.Project && (
-                  <Label
-                    variant="outline"
-                    color="blue"
-                    data-testid="project-scoped-label"
-                    isCompact
-                    icon={
-                      <img
-                        style={{ height: '15px', paddingTop: '3px' }}
-                        src={typedObjectImage(ProjectObjectType.project)}
-                        alt=""
-                      />
-                    }
-                  >
-                    Project-scoped
-                  </Label>
-                )}
-                {data.scope === SERVING_RUNTIME_SCOPE.Global && (
-                  <Label
-                    variant="outline"
-                    color="blue"
-                    isCompact
-                    icon={<GlobalIcon />}
-                    data-testid="global-scoped-label"
-                  >
-                    Global-scoped
-                  </Label>
-                )}
-              </>
+              <Flex gap={{ default: 'gapSm' }}>
+                <FlexItem>
+                  {isEditing ? data.servingRuntimeTemplateName : servingRuntimeDisplayName}{' '}
+                </FlexItem>
+                <FlexItem>
+                  {data.scope === SERVING_RUNTIME_SCOPE.Project && (
+                    <Label
+                      variant={isEditing ? 'filled' : 'outline'}
+                      style={{
+                        border: isEditing
+                          ? 'var( --pf-t--global--border--color--disabled) 1px solid'
+                          : undefined,
+                      }}
+                      color={isEditing ? 'grey' : 'blue'}
+                      data-testid="project-scoped-label"
+                      isCompact
+                      icon={<TypedObjectIcon alt="" resourceType={ProjectObjectType.project} />}
+                    >
+                      Project-scoped
+                    </Label>
+                  )}
+                  {data.scope === SERVING_RUNTIME_SCOPE.Global && (
+                    <Label
+                      variant={isEditing ? 'filled' : 'outline'}
+                      style={{
+                        border: isEditing
+                          ? 'var( --pf-t--global--border--color--disabled) 1px solid'
+                          : undefined,
+                      }}
+                      color={isEditing ? 'grey' : 'blue'}
+                      isCompact
+                      icon={<GlobalIcon />}
+                      data-testid="global-scoped-label"
+                    >
+                      Global-scoped
+                    </Label>
+                  )}
+                </FlexItem>
+              </Flex>
             ) : (
               'Select one'
             )
