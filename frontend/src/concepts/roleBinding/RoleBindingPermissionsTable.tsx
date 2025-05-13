@@ -2,7 +2,7 @@ import * as React from 'react';
 import { K8sResourceCommon, K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
 import { Table } from '~/components/table';
 import { RoleBindingKind, RoleBindingRoleRef, RoleBindingSubject } from '~/k8sTypes';
-import { generateRoleBindingPermissions } from '~/api';
+import { generateRoleBindingPermissions, patchRoleBindingSubjects } from '~/api';
 import RoleBindingPermissionsTableRow from './RoleBindingPermissionsTableRow';
 import { columnsRoleBindingPermissions } from './data';
 import { RoleBindingPermissionsRoleType } from './types';
@@ -51,26 +51,43 @@ const RoleBindingPermissionsTable: React.FC<RoleBindingPermissionsTableProps> = 
   refresh,
 }) => {
   const [editCell, setEditCell] = React.useState<string[]>([]);
-  const createProjectRoleBinding = (
+  const tryPatchRoleBinding = async (
+    oldRBObject: RoleBindingKind,
+    newRBObject: RoleBindingKind,
+  ): Promise<boolean> => {
+    // Trying to patch roleRef will always fail
+    if (oldRBObject.roleRef.name !== newRBObject.roleRef.name) {
+      return false;
+    }
+    try {
+      await patchRoleBindingSubjects(
+        oldRBObject.metadata.name,
+        oldRBObject.metadata.namespace,
+        newRBObject.subjects,
+        { dryRun: true },
+      );
+    } catch (e) {
+      return false;
+    }
+    try {
+      await patchRoleBindingSubjects(
+        oldRBObject.metadata.name,
+        oldRBObject.metadata.namespace,
+        newRBObject.subjects,
+        { dryRun: false },
+      );
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  const createProjectRoleBinding = async (
     subjectName: string,
     newRBObject: RoleBindingKind,
     oldRBObject?: RoleBindingKind,
   ) => {
-    const roleType = newRBObject.subjects[0].kind.toLowerCase();
-    const usedNames: string[] = permissions
-      .map((p) => p.subjects[0].name)
-      .filter((name) => isAdding || name !== oldRBObject?.subjects[0].name);
-    const isDuplicateName = usedNames.includes(subjectName);
-    if (isDuplicateName) {
-      // Prevent duplicate role binding
-      onError(
-        <>
-          The {roleType} <strong>{subjectName}</strong> already exists. Edit the {roleType}
-          &apos;s existing permissions, or add a new {roleType} to assign it permissions.
-        </>,
-      );
-      refresh();
-    } else if (isAdding) {
+    if (isAdding) {
       // Add new role binding
       createRoleBinding(newRBObject)
         .then(() => {
@@ -80,27 +97,31 @@ const RoleBindingPermissionsTable: React.FC<RoleBindingPermissionsTableProps> = 
         .catch((e) => {
           onError(<>{e}</>);
         });
-    } else {
-      // Edit existing role binding
-      createRoleBinding(newRBObject)
-        .then(() => {
-          if (oldRBObject) {
+    } else if (oldRBObject) {
+      const patchSucceeded = await tryPatchRoleBinding(oldRBObject, newRBObject);
+      if (patchSucceeded) {
+        setEditCell((prev) => prev.filter((cell) => cell !== oldRBObject.metadata.name));
+        onDismissNewRow();
+        refresh();
+      } else {
+        createRoleBinding(newRBObject)
+          .then(() => {
             deleteRoleBinding(oldRBObject.metadata.name, oldRBObject.metadata.namespace)
               .then(() => refresh())
               .catch((e) => {
                 onError(<>{e}</>);
                 setEditCell((prev) => prev.filter((cell) => cell !== oldRBObject.metadata.name));
               });
-          }
-        })
-        .then(() => {
-          onDismissNewRow();
-          refresh();
-        })
-        .catch((e) => {
-          onError(<>{e}</>);
-          setEditCell((prev) => prev.filter((cell) => cell !== oldRBObject?.metadata.name));
-        });
+          })
+          .then(() => {
+            onDismissNewRow();
+            refresh();
+          })
+          .catch((e) => {
+            onError(<>{e}</>);
+            setEditCell((prev) => prev.filter((cell) => cell !== oldRBObject.metadata.name));
+          });
+      }
     }
   };
   return (
