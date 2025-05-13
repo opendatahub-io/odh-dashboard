@@ -1,6 +1,10 @@
 import * as React from 'react';
 import type { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
 import { ResolvedExtension } from '@openshift/dynamic-plugin-sdk';
+// eslint-disable-next-line import/no-extraneous-dependencies
+import { addSupportServingPlatformProject } from '@odh-dashboard/internal/api/k8s/projects';
+// eslint-disable-next-line import/no-extraneous-dependencies
+import { NamespaceApplicationCase } from '@odh-dashboard/internal/pages/projects/types';
 import { ModelServingPlatformExtension } from '../extension-points';
 
 export type ModelServingPlatform = ResolvedExtension<ModelServingPlatformExtension>;
@@ -63,7 +67,10 @@ export const useActiveServingPlatform = (
     newPlatform.current = null;
 
     const disablePromise = activePlatform
-      ? activePlatform.properties.manage.disable(project)
+      ? addSupportServingPlatformProject(
+          project.metadata.name,
+          NamespaceApplicationCase.RESET_MODEL_SERVING_PLATFORM,
+        )
       : Promise.resolve();
 
     disablePromise.finally(() => {

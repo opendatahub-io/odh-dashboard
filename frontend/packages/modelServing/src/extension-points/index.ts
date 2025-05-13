@@ -9,7 +9,6 @@ export type ModelServingPlatformExtension = Extension<
     manage: CodeRef<{
       isInstalled: () => Promise<boolean>;
       enable: (project: ProjectKind) => Promise<string>;
-      disable: (project: ProjectKind) => Promise<string>;
       isEnabled: (project: ProjectKind) => boolean;
     }>;
     enableCardText: {

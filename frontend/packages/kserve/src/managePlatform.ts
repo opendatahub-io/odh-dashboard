@@ -15,15 +15,8 @@ const enable = (project: ProjectKind): Promise<string> =>
     NamespaceApplicationCase.KSERVE_PROMOTION,
   );
 
-const disable = (project: ProjectKind): Promise<string> =>
-  addSupportServingPlatformProject(
-    project.metadata.name,
-    NamespaceApplicationCase.RESET_MODEL_SERVING_PLATFORM,
-  );
-
 export default {
   isInstalled,
   isEnabled,
   enable,
-  disable,
 };
