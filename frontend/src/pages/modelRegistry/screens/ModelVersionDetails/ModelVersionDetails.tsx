@@ -14,6 +14,7 @@ import useInferenceServices from '~/pages/modelServing/useInferenceServices';
 import useServingRuntimes from '~/pages/modelServing/useServingRuntimes';
 import { useMakeFetchObject } from '~/utilities/useMakeFetchObject';
 import { ModelState } from '~/concepts/modelRegistry/types';
+import useModelArtifactsByVersionId from '~/concepts/modelRegistry/apiHooks/useModelArtifactsByVersionId';
 import { ModelVersionDetailsTab } from './const';
 import ModelVersionsDetailsHeaderActions from './ModelVersionDetailsHeaderActions';
 import ModelVersionDetailsTabs from './ModelVersionDetailsTabs';
@@ -34,6 +35,8 @@ const ModelVersionsDetails: React.FC<ModelVersionsDetailProps> = ({ tab, ...page
   const { modelVersionId: mvId, registeredModelId: rmId } = useParams();
   const [rm] = useRegisteredModelById(rmId);
   const [mv, mvLoaded, mvLoadError, refreshModelVersion] = useModelVersionById(mvId);
+  const [modelArtifacts, modelArtifactsLoaded, modelArtifactsLoadError, refreshModelArtifacts] =
+    useModelArtifactsByVersionId(mvId);
   const inferenceServices = useMakeFetchObject(
     useInferenceServices(
       undefined,
@@ -46,9 +49,10 @@ const ModelVersionsDetails: React.FC<ModelVersionsDetailProps> = ({ tab, ...page
 
   const refresh = React.useCallback(() => {
     refreshModelVersion();
+    refreshModelArtifacts();
     inferenceServices.refresh();
     servingRuntimes.refresh();
-  }, [inferenceServices, servingRuntimes, refreshModelVersion]);
+  }, [inferenceServices, servingRuntimes, refreshModelVersion, refreshModelArtifacts]);
 
   useEffect(() => {
     if (rm?.state === ModelState.ARCHIVED && mv?.id) {
@@ -130,6 +134,9 @@ const ModelVersionsDetails: React.FC<ModelVersionsDetailProps> = ({ tab, ...page
                 registeredModel={rm}
                 hasDeployment={inferenceServices.data.length > 0}
                 refresh={refresh}
+                modelArtifacts={modelArtifacts}
+                modelArtifactsLoaded={modelArtifactsLoaded}
+                modelArtifactsLoadError={modelArtifactsLoadError}
               />
             </FlexItem>
           </Flex>
@@ -147,6 +154,9 @@ const ModelVersionsDetails: React.FC<ModelVersionsDetailProps> = ({ tab, ...page
           inferenceServices={inferenceServices}
           servingRuntimes={servingRuntimes}
           refresh={refresh}
+          modelArtifacts={modelArtifacts}
+          modelArtifactsLoaded={modelArtifactsLoaded}
+          modelArtifactsLoadError={modelArtifactsLoadError}
         />
       )}
     </ApplicationsPage>

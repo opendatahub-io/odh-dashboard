@@ -2,7 +2,7 @@ import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageSection, Tab, Tabs, TabTitleText } from '@patternfly/react-core';
 import '~/pages/pipelines/global/runs/GlobalPipelineRunsTabs.scss';
-import { ModelVersion } from '~/concepts/modelRegistry/types';
+import { ModelVersion, ModelArtifactList } from '~/concepts/modelRegistry/types';
 import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
 import { FetchStateObject } from '~/types';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
@@ -17,6 +17,9 @@ type ModelVersionDetailTabsProps = {
   servingRuntimes: FetchStateObject<ServingRuntimeKind[]>;
   isArchiveVersion?: boolean;
   refresh: () => void;
+  modelArtifacts: ModelArtifactList;
+  modelArtifactsLoaded: boolean;
+  modelArtifactsLoadError: Error | undefined;
 };
 
 const ModelVersionDetailsTabs: React.FC<ModelVersionDetailTabsProps> = ({
@@ -26,6 +29,9 @@ const ModelVersionDetailsTabs: React.FC<ModelVersionDetailTabsProps> = ({
   servingRuntimes,
   isArchiveVersion,
   refresh,
+  modelArtifacts,
+  modelArtifactsLoaded,
+  modelArtifactsLoadError,
 }) => {
   const navigate = useNavigate();
   const { status: isModelServingEnabled } = useIsAreaAvailable(SupportedArea.MODEL_SERVING);
@@ -53,6 +59,9 @@ const ModelVersionDetailsTabs: React.FC<ModelVersionDetailTabsProps> = ({
             modelVersion={mv}
             refresh={refresh}
             isArchiveVersion={isArchiveVersion}
+            modelArtifacts={modelArtifacts}
+            modelArtifactsLoaded={modelArtifactsLoaded}
+            modelArtifactsLoadError={modelArtifactsLoadError}
           />
         </PageSection>
       </Tab>

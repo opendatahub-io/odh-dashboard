@@ -15,6 +15,7 @@ import { ModelState } from '~/concepts/modelRegistry/types';
 import useInferenceServices from '~/pages/modelServing/useInferenceServices';
 import useServingRuntimes from '~/pages/modelServing/useServingRuntimes';
 import { useMakeFetchObject } from '~/utilities/useMakeFetchObject';
+import useModelArtifactsByVersionId from '~/concepts/modelRegistry/apiHooks/useModelArtifactsByVersionId';
 import ModelVersionArchiveDetailsBreadcrumb from './ModelVersionArchiveDetailsBreadcrumb';
 
 type ModelVersionsArchiveDetailsProps = {
@@ -36,6 +37,8 @@ const ModelVersionsArchiveDetails: React.FC<ModelVersionsArchiveDetailsProps> = 
   const { modelVersionId: mvId, registeredModelId: rmId } = useParams();
   const [rm] = useRegisteredModelById(rmId);
   const [mv, mvLoaded, mvLoadError, refreshModelVersion] = useModelVersionById(mvId);
+  const [modelArtifacts, modelArtifactsLoaded, modelArtifactsLoadError, refreshModelArtifacts] =
+    useModelArtifactsByVersionId(mvId);
   const [isRestoreModalOpen, setIsRestoreModalOpen] = React.useState(false);
   const inferenceServices = useMakeFetchObject(
     useInferenceServices(
@@ -46,6 +49,11 @@ const ModelVersionsArchiveDetails: React.FC<ModelVersionsArchiveDetailsProps> = 
     ),
   );
   const servingRuntimes = useMakeFetchObject(useServingRuntimes());
+
+  const refresh = React.useCallback(() => {
+    refreshModelVersion();
+    refreshModelArtifacts();
+  }, [refreshModelVersion, refreshModelArtifacts]);
 
   useEffect(() => {
     if (rm?.state === ModelState.ARCHIVED && mv?.id) {
@@ -106,7 +114,10 @@ const ModelVersionsArchiveDetails: React.FC<ModelVersionsArchiveDetailsProps> = 
             modelVersion={mv}
             inferenceServices={inferenceServices}
             servingRuntimes={servingRuntimes}
-            refresh={refreshModelVersion}
+            refresh={refresh}
+            modelArtifacts={modelArtifacts}
+            modelArtifactsLoaded={modelArtifactsLoaded}
+            modelArtifactsLoadError={modelArtifactsLoadError}
           />
         )}
       </ApplicationsPage>
