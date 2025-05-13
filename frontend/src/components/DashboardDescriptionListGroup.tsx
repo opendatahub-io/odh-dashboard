@@ -19,9 +19,10 @@ import {
   TimesIcon,
   OutlinedQuestionCircleIcon,
 } from '@patternfly/react-icons';
+import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
 
 import './DashboardDescriptionListGroup.scss';
-import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
+import { useBrowserUnloadBlocker } from '~/utilities/useBrowserUnloadBlocker';
 
 type EditableProps = {
   isEditing: boolean;
@@ -68,6 +69,9 @@ const DashboardDescriptionListGroup: React.FC<DashboardDescriptionListGroupProps
     cancelButtonTestId,
     isSaveDisabled,
   } = props;
+
+  useBrowserUnloadBlocker(!!(isEditable && isEditing));
+
   return (
     <DescriptionListGroup data-testid={groupTestId}>
       {action || isEditable ? (
