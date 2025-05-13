@@ -133,7 +133,11 @@ const App: React.FC = () => {
                 isManagedSidebar
                 isContentFilled
                 masthead={
-                  <Header onNotificationsClick={() => setNotificationsOpen(!notificationsOpen)} />
+                  <Header
+                    dashboardConfig={dashboardConfig.spec.dashboardConfig}
+                    {...devFeatureFlagsProps}
+                    onNotificationsClick={() => setNotificationsOpen(!notificationsOpen)}
+                  />
                 }
                 sidebar={isAllowed ? <NavSidebar /> : undefined}
                 notificationDrawer={
