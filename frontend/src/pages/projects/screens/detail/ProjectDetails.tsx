@@ -39,6 +39,7 @@ const ProjectDetails: React.FC = () => {
   const [allowCreate, rbacLoaded] = useProjectPermissionsTabVisible(currentProject.metadata.name);
 
   const workbenchEnabled = useIsAreaAvailable(SupportedArea.WORKBENCHES).status;
+  const chatBotEnabled = useIsAreaAvailable(SupportedArea.LLAMA_STACK_CHAT_BOT).status;
 
   useCheckLogoutParams();
 
@@ -99,11 +100,15 @@ const ProjectDetails: React.FC = () => {
                 ]
               : []),
             ...modelServingTab,
-            {
-              id: ProjectSectionID.CHATBOT,
-              title: 'Chatbot',
-              component: <RagChatbot />,
-            },
+            ...(chatBotEnabled
+              ? [
+                  {
+                    id: ProjectSectionID.CHATBOT,
+                    title: 'Chatbot',
+                    component: <RagChatbot />,
+                  },
+                ]
+              : []),
             {
               id: ProjectSectionID.CLUSTER_STORAGES,
               title: 'Cluster storage',
@@ -140,6 +145,7 @@ const ProjectDetails: React.FC = () => {
             projectSharingEnabled,
             workbenchEnabled,
             modelServingTab,
+            chatBotEnabled,
           ],
         )}
       />

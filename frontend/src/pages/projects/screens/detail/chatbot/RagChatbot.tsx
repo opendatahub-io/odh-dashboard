@@ -10,6 +10,7 @@ import {
   ChatbotHeaderActions,
 } from '@patternfly/chatbot/dist/dynamic/ChatbotHeader';
 import '@patternfly/chatbot/dist/css/main.css';
+import { Label } from '@patternfly/react-core';
 
 const RagChatbot: React.FC = () => {
   const displayMode = ChatbotDisplayMode.embedded;
@@ -41,7 +42,11 @@ const RagChatbot: React.FC = () => {
     <div style={{ height: '95%' }}>
       <Chatbot displayMode={displayMode}>
         <ChatbotHeader>
-          <ChatbotHeaderActions>{model}</ChatbotHeaderActions>
+          <ChatbotHeaderActions>
+            <Label variant="outline" color="blue">
+              {model}
+            </Label>
+          </ChatbotHeaderActions>
         </ChatbotHeader>
         <ChatbotContent style={{ maxHeight: '59vh' }}>
           <MessageBox announcement="">
