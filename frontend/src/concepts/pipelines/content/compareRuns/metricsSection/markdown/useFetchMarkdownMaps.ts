@@ -17,7 +17,7 @@ const useFetchMarkdownMaps = (
   configsLoaded: boolean;
 } => {
   const [configsLoaded, setConfigsLoaded] = React.useState(false);
-  const { getStorageObjectDownloadUrl, getStorageObjectRenderUrl } = useArtifactStorage();
+  const { getStorageObjectRenderUrl } = useArtifactStorage();
 
   const [configMapBuilder, setConfigMapBuilder] = React.useState<
     Record<string, MarkdownAndTitle[]>
@@ -47,10 +47,6 @@ const useFetchMarkdownMaps = (
             url = await getStorageObjectRenderUrl(path.linkedArtifact.artifact).catch(
               () => undefined,
             );
-          } else {
-            url = await getStorageObjectDownloadUrl(path.linkedArtifact.artifact).catch(
-              () => undefined,
-            );
           }
 
           if (url === undefined) {
@@ -59,7 +55,7 @@ const useFetchMarkdownMaps = (
           return { run, sizeBytes, url, path };
         }),
 
-    [fullArtifactPaths, getStorageObjectDownloadUrl, getStorageObjectRenderUrl],
+    [fullArtifactPaths, getStorageObjectRenderUrl],
   );
 
   React.useEffect(() => {
