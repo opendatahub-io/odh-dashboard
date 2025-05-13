@@ -185,9 +185,13 @@ class CreateEditProjectModal extends Modal {
 }
 
 class ProjectDetails {
-  visit(project: string) {
+  visit(project: string, opts: { wait?: boolean } = { wait: true }) {
     cy.visitWithLogin(`/projects/${project}`);
-    this.wait();
+    if (opts.wait) {
+      this.wait();
+    } else {
+      cy.testA11y();
+    }
   }
 
   visitSection(project: string, section: string, extraUrlParams = '') {
@@ -341,6 +345,10 @@ class ProjectDetails {
 
   findDeleteProjectButton() {
     return cy.findByTestId('delete-project-action').find('button');
+  }
+
+  find403Page() {
+    return cy.findByTestId('unauthorized-error');
   }
 
   getKserveTableRow(name: string) {

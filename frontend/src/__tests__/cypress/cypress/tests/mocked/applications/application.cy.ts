@@ -5,6 +5,7 @@ import { aboutDialog } from '~/__tests__/cypress/cypress/pages/aboutDialog';
 import { mockConsoleLinks } from '~/__mocks__/mockConsoleLinks';
 import { loginDialog } from '~/__tests__/cypress/cypress/pages/loginDialog';
 import { DataScienceStackComponent } from '~/concepts/areas/types';
+import { OdhPlatformType } from '~/types';
 
 describe('Application', () => {
   it('should disallow access to the dashboard', () => {
@@ -119,6 +120,10 @@ describe('Application', () => {
         version: '1.0.1',
       },
     });
+    cy.interceptOdh(
+      'GET /api/dsc/status',
+      mockDscStatus({ release: { name: OdhPlatformType.SELF_MANAGED_RHOAI, version: '2.21.0' } }),
+    );
 
     appChrome.visit();
     aboutDialog.show();
@@ -126,6 +131,7 @@ describe('Application', () => {
     aboutDialog.findText().should('contain.text', 'OpenShift');
     aboutDialog.findProductName().should('contain.text', 'OpenShift AI');
   });
+
   it('should show the login modal when receiving a 403 status code', () => {
     // Mock the intercept to return a 403 status code
     cy.interceptOdh('GET /api/config', {

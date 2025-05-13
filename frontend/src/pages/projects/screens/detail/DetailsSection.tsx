@@ -14,6 +14,8 @@ import {
 } from '@patternfly/react-core';
 import { ProjectObjectType } from '~/concepts/design/utils';
 import HeaderIcon from '~/concepts/design/HeaderIcon';
+import { getGenericErrorCode } from '~/api';
+import UnauthorizedError from '~/pages/UnauthorizedError';
 import { ProjectSectionID } from './types';
 
 type DetailsSectionProps = {
@@ -49,6 +51,9 @@ const DetailsSection: React.FC<DetailsSectionProps> = ({
 }) => {
   const renderContent = () => {
     if (loadError) {
+      if (getGenericErrorCode(loadError) === 403) {
+        return <UnauthorizedError accessDomain={id} />;
+      }
       return (
         <Alert variant="danger" isInline title="Loading error">
           {loadError.message}
