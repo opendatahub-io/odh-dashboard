@@ -81,6 +81,15 @@ const ProjectDetails: React.FC = () => {
         sections={React.useMemo(
           () => [
             { id: ProjectSectionID.OVERVIEW, title: 'Overview', component: <ProjectOverview /> },
+            ...(chatBotEnabled
+              ? [
+                  {
+                    id: ProjectSectionID.CHATBOT,
+                    title: 'Chatbot',
+                    component: <RagChatbot />,
+                  },
+                ]
+              : []),
             ...(workbenchEnabled
               ? [
                   {
@@ -100,15 +109,6 @@ const ProjectDetails: React.FC = () => {
                 ]
               : []),
             ...modelServingTab,
-            ...(chatBotEnabled
-              ? [
-                  {
-                    id: ProjectSectionID.CHATBOT,
-                    title: 'Chatbot',
-                    component: <RagChatbot />,
-                  },
-                ]
-              : []),
             {
               id: ProjectSectionID.CLUSTER_STORAGES,
               title: 'Cluster storage',
