@@ -85,14 +85,16 @@ const ImageVersionSelector: React.FC<ImageVersionSelectorProps> = ({
         </ImageVersionTooltip>
       ),
       description: (
-        <>
-          <b>Software:</b> {getImageVersionSoftwareString(imageVersion)}
+        <div>
+          <div data-testid="workbench-image-version-software">
+            <b>Software:</b> {getImageVersionSoftwareString(imageVersion)}
+          </div>
           {imageBuildDate && (
-            <div>
+            <div data-testid="workbench-image-version-build-date">
               <b>Build date:</b> {convertISOTimeToHumanReadable(imageBuildDate)}
             </div>
           )}
-        </>
+        </div>
       ),
       isDisabled: !checkTagBuildValid(buildStatuses, imageStream, imageVersion),
     };
@@ -104,6 +106,7 @@ const ImageVersionSelector: React.FC<ImageVersionSelectorProps> = ({
   return (
     <FormGroup isRequired label="Version selection" fieldId="workbench-image-version-selection">
       <SimpleSelect
+        data-testid="workbench-image-version-dropdown"
         options={options}
         onChange={(selection) => {
           const selectedObject = selectOptionObjects.find(
