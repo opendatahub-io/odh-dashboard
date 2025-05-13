@@ -14,7 +14,7 @@ jest.mock('react-router-dom', () => ({
     jest.fn(),
   ]),
 }));
-jest.mock('~/components/browserStorage', () => ({
+jest.mock('~/components/browserStorage/BrowserStorageContext', () => ({
   useBrowserStorage: jest.fn(() => [null, jest.fn()]),
 }));
 jest.mock('~/utilities/axios', () => ({
