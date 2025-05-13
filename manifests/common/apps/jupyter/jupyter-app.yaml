@@ -206,13 +206,13 @@ spec:
 
       This is not required if you have previously launched Jupyter.
 
-      i. Select the **Notebook image** to use for your workbench.
+      i. Select the **Workbench image** to use for your workbench.
 
       ii. If the notebook image contains multiple versions, select the version of the notebook image from the **Versions** section.
 
       iii. Select the **Container size** for your workbench.
 
-      iv. Optional: Select the **Number of GPUs** (graphics processing units) for your workbench.
+      iv. Optional: Select the **Number of Accelerators** for your workbench.
 
       v. Optional: Select and specify values for any new **Environment variables**.
 

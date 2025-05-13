@@ -32,10 +32,10 @@ spec:
            c) If you see an **Access permission needed** message, you are not in the default user group or the default administrator group for Open Data Hub. Contact your administrator so that they can add you to the correct group.
         3. If you have previously launched Jupyter, skip to Step 4.
            If you have not launched Jupyter previously, start a workbench.
-           a) Select the **Notebook image** to use for your workbench.
+           a) Select the **Workbench image** to use for your workbench.
            b) If the notebook image contains multiple versions, select the version of the notebook image from the **Versions** section.
            c) Select the **Container size** for your workbench.
-        4. (Optional) Select the **Number of GPUs** (graphics processing units) for your workbench.
+        4. (Optional) Select the **Number of Accelerators** for your workbench.
         5. (Optional) Select and specify values for any new **Environment variables**.  
            The interface stores these variables so that you need to enter them only once. Example variable names for common environment variables are automatically provided for frequently integrated environments and frameworks, such as Amazon Web Services (AWS).
         6. Click **Start workbench**.

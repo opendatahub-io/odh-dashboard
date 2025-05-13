@@ -24,7 +24,7 @@ spec:
       review:
         instructions: |-
           #### Launched Jupyter workbench
-          Do you have a notebook browser tab?
+          Do you have a workbench browser tab?
         failedTaskHelp: This task is not verified yet. Try the task again.
       summary:
         success: You have a workbench up and running.
