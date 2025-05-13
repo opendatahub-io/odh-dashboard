@@ -40,7 +40,7 @@ const RagChatbot: React.FC = () => {
 
   return (
     <div style={{ height: '95%' }}>
-      <Chatbot displayMode={displayMode}>
+      <Chatbot displayMode={displayMode} data-testid="chatbot">
         <ChatbotHeader>
           <ChatbotHeaderActions>
             <Label variant="outline" color="blue">
