@@ -7,6 +7,7 @@ type RoleBindingPermissionsChangeModalProps = {
   onDelete: () => void;
   onCancel: () => void;
   isDeleting: boolean;
+  roleName?: string;
 };
 
 const RoleBindingPermissionsChangeModal: React.FC<RoleBindingPermissionsChangeModalProps> = ({
@@ -15,6 +16,7 @@ const RoleBindingPermissionsChangeModal: React.FC<RoleBindingPermissionsChangeMo
   onDelete,
   onCancel,
   isDeleting,
+  roleName,
 }) => {
   const textToShow = isDeleting ? 'Delete' : 'Edit';
   return (
@@ -28,12 +30,17 @@ const RoleBindingPermissionsChangeModal: React.FC<RoleBindingPermissionsChangeMo
     >
       <ModalHeader title={`Confirm ${textToShow.toLowerCase()}`} />
       <ModalBody>
-        Are you sure you want to {isDeleting ? 'delete' : 'edit'} this role binding?{' '}
-        {isDeleting ? 'Deleting' : 'Editing'} your permissions could result in loss of access to the
-        project.
+        Are you sure you want to {isDeleting ? 'delete' : 'edit'} permissions for{' '}
+        <strong>{roleName || 'this role binding'}</strong>? {isDeleting ? 'Deleting' : 'Editing'}{' '}
+        your permissions could result in loss of access to the project.
       </ModalBody>
       <ModalFooter>
-        <Button variant="primary" key="confirm" onClick={isDeleting ? onDelete : onEdit}>
+        <Button
+          variant="primary"
+          key="confirm"
+          onClick={isDeleting ? onDelete : onEdit}
+          data-testid="confirm-button"
+        >
           {isDeleting ? 'Delete' : 'Save'}
         </Button>
         <Button

@@ -300,7 +300,8 @@ describe('Permissions tab', () => {
       groupTable.findEditInput('group-1').clear().type('group-3');
       groupTable.selectPermission('group-3', 'Admin Edit the project and manage user access');
       groupTable.findEditSaveButton('group-3').click();
-
+      permissions.findConfirmModal().should('be.visible');
+      permissions.findModalConfirmButton().click();
       cy.wait('@editGroup').then((interception) => {
         expect(interception.request.body).to.containSubset({
           metadata: {
@@ -327,7 +328,8 @@ describe('Permissions tab', () => {
 
       permissions.visit('test-project');
       groupTable.getTableRow('group-1').findKebabAction('Delete').click();
-
+      permissions.findConfirmModal().should('be.visible');
+      permissions.findModalConfirmButton().click();
       cy.wait('@deleteGroup');
     });
   });

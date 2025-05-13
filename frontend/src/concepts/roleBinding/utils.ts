@@ -1,6 +1,7 @@
 import { capitalize } from '@patternfly/react-core';
 import { ProjectKind, RoleBindingKind } from '~/k8sTypes';
 import { namespaceToProjectDisplayName } from '~/concepts/projects/utils';
+import { patchRoleBindingSubjects } from '~/api';
 import { RoleBindingPermissionsRBType, RoleBindingPermissionsRoleType } from './types';
 
 export const filterRoleBindingSubjects = (
@@ -58,4 +59,35 @@ export const isCurrentUserChanging = (
     return false;
   }
   return currentUsername === roleBinding.subjects[0].name;
+};
+
+export const tryPatchRoleBinding = async (
+  oldRBObject: RoleBindingKind,
+  newRBObject: RoleBindingKind,
+): Promise<boolean> => {
+  // Trying to patch roleRef will always fail
+  if (oldRBObject.roleRef.name !== newRBObject.roleRef.name) {
+    return false;
+  }
+  try {
+    await patchRoleBindingSubjects(
+      oldRBObject.metadata.name,
+      oldRBObject.metadata.namespace,
+      newRBObject.subjects,
+      { dryRun: true },
+    );
+  } catch (e) {
+    return false;
+  }
+  try {
+    await patchRoleBindingSubjects(
+      oldRBObject.metadata.name,
+      oldRBObject.metadata.namespace,
+      newRBObject.subjects,
+      { dryRun: false },
+    );
+    return true;
+  } catch {
+    return false;
+  }
 };

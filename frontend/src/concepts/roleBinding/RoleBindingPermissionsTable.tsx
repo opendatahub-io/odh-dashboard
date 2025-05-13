@@ -2,11 +2,11 @@ import * as React from 'react';
 import { K8sResourceCommon, K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
 import { Table } from '~/components/table';
 import { RoleBindingKind, RoleBindingRoleRef, RoleBindingSubject } from '~/k8sTypes';
-import { generateRoleBindingPermissions, patchRoleBindingSubjects } from '~/api';
+import { generateRoleBindingPermissions } from '~/api';
 import RoleBindingPermissionsTableRow from './RoleBindingPermissionsTableRow';
 import { columnsRoleBindingPermissions } from './data';
 import { RoleBindingPermissionsRoleType } from './types';
-import { firstSubject } from './utils';
+import { firstSubject, tryPatchRoleBinding } from './utils';
 
 type RoleBindingPermissionsTableProps = {
   ownerReference?: K8sResourceCommon;
@@ -51,39 +51,8 @@ const RoleBindingPermissionsTable: React.FC<RoleBindingPermissionsTableProps> = 
   refresh,
 }) => {
   const [editCell, setEditCell] = React.useState<string[]>([]);
-  const tryPatchRoleBinding = async (
-    oldRBObject: RoleBindingKind,
-    newRBObject: RoleBindingKind,
-  ): Promise<boolean> => {
-    // Trying to patch roleRef will always fail
-    if (oldRBObject.roleRef.name !== newRBObject.roleRef.name) {
-      return false;
-    }
-    try {
-      await patchRoleBindingSubjects(
-        oldRBObject.metadata.name,
-        oldRBObject.metadata.namespace,
-        newRBObject.subjects,
-        { dryRun: true },
-      );
-    } catch (e) {
-      return false;
-    }
-    try {
-      await patchRoleBindingSubjects(
-        oldRBObject.metadata.name,
-        oldRBObject.metadata.namespace,
-        newRBObject.subjects,
-        { dryRun: false },
-      );
-      return true;
-    } catch {
-      return false;
-    }
-  };
 
   const createProjectRoleBinding = async (
-    subjectName: string,
     newRBObject: RoleBindingKind,
     oldRBObject?: RoleBindingKind,
   ) => {
@@ -151,7 +120,7 @@ const RoleBindingPermissionsTable: React.FC<RoleBindingPermissionsTableProps> = 
                 labels,
                 ownerReference,
               );
-              createProjectRoleBinding(subjectName, newRBObject);
+              createProjectRoleBinding(newRBObject);
             }}
             onCancel={onDismissNewRow}
           />
@@ -180,7 +149,7 @@ const RoleBindingPermissionsTable: React.FC<RoleBindingPermissionsTableProps> = 
               labels,
               ownerReference,
             );
-            createProjectRoleBinding(subjectName, newRBObject, rb);
+            createProjectRoleBinding(newRBObject, rb);
             refresh();
           }}
           onDelete={() => {

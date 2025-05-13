@@ -184,7 +184,7 @@ const RoleBindingPermissionsTableRow: React.FC<RoleBindingPermissionsTableRowPro
                     icon={<CheckIcon />}
                     isDisabled={isLoading || !roleBindingName || !roleBindingRoleRef}
                     onClick={() => {
-                      if (isCurrentUserBeingChanged) {
+                      if (isCurrentUserBeingChanged || (subjectKind === 'Group' && !isAdding)) {
                         setIsDeleting(false);
                         setShowModal(true);
                       } else {
@@ -238,7 +238,7 @@ const RoleBindingPermissionsTableRow: React.FC<RoleBindingPermissionsTableRowPro
                   {
                     title: 'Delete',
                     onClick: () => {
-                      if (isCurrentUserBeingChanged) {
+                      if (isCurrentUserBeingChanged || subjectKind === 'Group') {
                         setIsDeleting(true);
                         setShowModal(true);
                       } else {
@@ -254,6 +254,7 @@ const RoleBindingPermissionsTableRow: React.FC<RoleBindingPermissionsTableRowPro
       </Tbody>
       {showModal && (
         <RoleBindingPermissionsChangeModal
+          roleName={roleBindingName}
           onClose={() => {
             setShowModal(false);
             if (isEditing) {

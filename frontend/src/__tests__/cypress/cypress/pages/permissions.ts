@@ -37,6 +37,10 @@ class PermissionsTab {
   findModalCancelButton() {
     return cy.findByTestId('cancel-button');
   }
+
+  findModalConfirmButton() {
+    return cy.findByTestId('confirm-button');
+  }
 }
 
 class PermissionTable extends Contextual<HTMLElement> {
