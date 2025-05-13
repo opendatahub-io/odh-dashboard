@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { Button, Content, CodeBlock, CodeBlockCode } from '@patternfly/react-core';
+import { AngleDownIcon, AngleRightIcon } from '@patternfly/react-icons';
 
-type DetailsProps = {
+type DetailsComponentProps = {
   children: React.ReactNode;
   summary: string;
   className?: string;
 };
 
-const Details: React.FC<DetailsProps> = ({ children, summary, className }) => {
+const DetailsComponent: React.FC<DetailsComponentProps> = ({ children, summary, className }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const processedSummary = summary.replace(/\\n/g, ' ').trim();
   const processedChildren = React.Children.map(children, (child) => {
@@ -28,7 +29,7 @@ const Details: React.FC<DetailsProps> = ({ children, summary, className }) => {
         onClick={() => setIsExpanded(!isExpanded)}
         style={{ padding: 0, margin: 0, textAlign: 'left' }}
       >
-        {isExpanded ? '▼' : '▶'} {processedSummary}
+        {isExpanded ? <AngleDownIcon /> : <AngleRightIcon />} {processedSummary}
       </Button>
       {isExpanded && (
         <Content style={{ marginLeft: '1.5rem', marginTop: '0.5rem' }}>{processedChildren}</Content>
@@ -37,4 +38,4 @@ const Details: React.FC<DetailsProps> = ({ children, summary, className }) => {
   );
 };
 
-export default Details;
+export default DetailsComponent;

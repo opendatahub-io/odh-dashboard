@@ -1,13 +1,13 @@
 import React from 'react';
 import { Button } from '@patternfly/react-core';
 
-type LinkProps = {
+type LinkComponentProps = {
   children: React.ReactNode;
   href?: string;
   className?: string;
 };
 
-const Link: React.FC<LinkProps> = ({ children, href = '#', className }) => (
+const LinkComponent: React.FC<LinkComponentProps> = ({ children, href = '#', className }) => (
   <Button
     variant="link"
     className={className}
@@ -18,4 +18,4 @@ const Link: React.FC<LinkProps> = ({ children, href = '#', className }) => (
   </Button>
 );
 
-export default Link;
+export default LinkComponent;
