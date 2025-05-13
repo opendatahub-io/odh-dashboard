@@ -21,6 +21,69 @@ import { DevFeatureFlags } from '~/types';
 
 type Props = { dashboardConfig: Partial<DashboardCommonConfig> } & DevFeatureFlags;
 
+type DevFeatureFlagsModalProps = {
+  onClose: () => void;
+  devFeatureFlags: DevFeatureFlags;
+  dashboardConfig: Partial<DashboardCommonConfig>;
+  setDevFeatureFlag: (key: string, value: boolean) => void;
+  resetDevFeatureFlags: () => void;
+};
+
+const DevFeatureFlagsModal: React.FC<DevFeatureFlagsModalProps> = ({
+  onClose,
+  devFeatureFlags,
+  dashboardConfig,
+  setDevFeatureFlag,
+  resetDevFeatureFlags,
+}) => {
+  const renderDevFeatureFlags = () => (
+    <Grid hasGutter span={6} md={3}>
+      {allFeatureFlags
+        .filter(isFeatureFlag)
+        .toSorted()
+        .map((key) => {
+          const value =
+            devFeatureFlags[key as string] ?? dashboardConfig[key as keyof DashboardCommonConfig];
+          return (
+            <React.Fragment key={key}>
+              <GridItem>
+                <Checkbox
+                  id={key}
+                  data-testid={`${key}-checkbox`}
+                  label={key}
+                  isChecked={value ?? null}
+                  onChange={(_, checked) => {
+                    setDevFeatureFlag(key as string, checked);
+                  }}
+                />
+              </GridItem>
+              <GridItem data-testid={`${key}-value`}>{`${value ?? ''}${
+                key in devFeatureFlags ? ' (overridden)' : ''
+              }`}</GridItem>
+            </React.Fragment>
+          );
+        })}
+    </Grid>
+  );
+
+  return (
+    <Modal data-testid="dev-feature-flags-modal" variant="large" onClose={onClose}>
+      <ModalHeader title="Feature flags" />
+      <ModalBody>{renderDevFeatureFlags()}</ModalBody>
+      <ModalFooter>
+        <Button
+          data-testid="reset-feature-flags-modal-button"
+          key="confirm"
+          variant="link"
+          onClick={() => resetDevFeatureFlags()}
+        >
+          Reset to defaults
+        </Button>
+      </ModalFooter>
+    </Modal>
+  );
+};
+
 const DevFeatureFlagsBanner: React.FC<Props> = ({
   dashboardConfig,
   devFeatureFlags,
@@ -35,34 +98,6 @@ const DevFeatureFlagsBanner: React.FC<Props> = ({
     return null;
   }
 
-  const renderDevFeatureFlags = () => (
-    <Grid hasGutter span={6} md={3}>
-      {allFeatureFlags
-        .filter(isFeatureFlag)
-        .toSorted()
-        .map((key) => {
-          const value = devFeatureFlags[key] ?? dashboardConfig[key];
-          return (
-            <React.Fragment key={key}>
-              <GridItem>
-                <Checkbox
-                  id={key}
-                  data-testid={`${key}-checkbox`}
-                  label={key}
-                  isChecked={value ?? null}
-                  onChange={(_, checked) => {
-                    setDevFeatureFlag(key, checked);
-                  }}
-                />
-              </GridItem>
-              <GridItem data-testid={`${key}-value`}>{`${value ?? ''}${
-                key in devFeatureFlags ? ' (overridden)' : ''
-              }`}</GridItem>
-            </React.Fragment>
-          );
-        })}
-    </Grid>
-  );
   return (
     <>
       <Banner color="blue">
@@ -106,28 +141,16 @@ const DevFeatureFlagsBanner: React.FC<Props> = ({
         </Split>
       </Banner>
       {isModalOpen ? (
-        <Modal
-          data-testid="dev-feature-flags-modal"
-          variant="large"
-          isOpen
+        <DevFeatureFlagsModal
           onClose={() => {
             setModalOpen(false);
             setDevFeatureFlagQueryVisible(false);
           }}
-        >
-          <ModalHeader title="Feature flags" />
-          <ModalBody>{renderDevFeatureFlags()}</ModalBody>
-          <ModalFooter>
-            <Button
-              data-testid="reset-feature-flags-modal-button"
-              key="confirm"
-              variant="link"
-              onClick={() => resetDevFeatureFlags()}
-            >
-              Reset to defaults
-            </Button>
-          </ModalFooter>
-        </Modal>
+          devFeatureFlags={devFeatureFlags}
+          dashboardConfig={dashboardConfig}
+          setDevFeatureFlag={setDevFeatureFlag}
+          resetDevFeatureFlags={resetDevFeatureFlags}
+        />
       ) : null}
     </>
   );
