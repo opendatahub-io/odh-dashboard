@@ -234,6 +234,7 @@ export const NotebookImageDisplayName = ({
         {isExpanded && notebookImage.imageStatus !== NotebookImageStatus.DELETED && (
           <FlexItem>
             <Popover
+              data-testid="notebook-image-version-popover"
               headerContent={
                 notebookImage.imageStream.metadata.annotations?.[
                   'opendatahub.io/notebook-image-name'
@@ -241,12 +242,14 @@ export const NotebookImageDisplayName = ({
               }
               bodyContent={
                 <>
-                  <div>Version: {notebookImage.imageVersion.name}</div>
+                  <div data-testid="notebook-image-version-name">
+                    Version: {notebookImage.imageVersion.name}
+                  </div>
                   {notebookImage.imageVersion.annotations?.[
                     'opendatahub.io/notebook-build-commit'
                   ] && (
-                    <div>
-                      Build ID:{' '}
+                    <div data-testid="notebook-image-version-build-commit">
+                      Build Commit:{' '}
                       {
                         notebookImage.imageVersion.annotations[
                           'opendatahub.io/notebook-build-commit'
@@ -255,15 +258,21 @@ export const NotebookImageDisplayName = ({
                     </div>
                   )}
                   {imageBuildDate && (
-                    <div>Build Date: {convertISOTimeToHumanReadable(imageBuildDate)}</div>
+                    <div data-testid="notebook-image-version-build-date">
+                      Build Date: {convertISOTimeToHumanReadable(imageBuildDate)}
+                    </div>
                   )}
-                  {imageVersionSoftwareString && <div>Software: {imageVersionSoftwareString}</div>}
+                  {imageVersionSoftwareString && (
+                    <div data-testid="notebook-image-version-software">
+                      Software: {imageVersionSoftwareString}
+                    </div>
+                  )}
                 </>
               }
               position="right"
               triggerAction="hover"
             >
-              <Button variant="link" isInline style={{ textDecoration: 'none' }}>
+              <Button variant="link" isInline data-testid="notebook-image-version-link">
                 <Content component={ContentVariants.small}>
                   <Truncate
                     style={{
