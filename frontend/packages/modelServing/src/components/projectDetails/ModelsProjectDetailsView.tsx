@@ -7,7 +7,7 @@ import { Button, Flex, Label } from '@patternfly/react-core';
 import { PencilAltIcon } from '@patternfly/react-icons';
 import { SelectPlatformView } from './SelectPlatformView';
 import { NoModelsView } from './NoModelsView';
-import { ModelServingContext } from '../../concepts/ProjectModelsContext';
+import { ModelServingContext } from '../../concepts/ModelServingContext';
 
 const ModelsProjectDetailsView: React.FC = () => {
   const {
