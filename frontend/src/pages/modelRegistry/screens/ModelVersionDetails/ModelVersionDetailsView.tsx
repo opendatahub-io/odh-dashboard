@@ -16,11 +16,7 @@ import EditableTextDescriptionListGroup from '~/components/EditableTextDescripti
 import { EditableLabelsDescriptionListGroup } from '~/components/EditableLabelsDescriptionListGroup';
 import ModelPropertiesDescriptionListGroup from '~/pages/modelRegistry/screens/ModelPropertiesDescriptionListGroup';
 import { getLabels, mergeUpdatedLabels } from '~/pages/modelRegistry/screens/utils';
-<<<<<<< Updated upstream
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import useModelArtifactsByVersionId from '~/concepts/modelRegistry/apiHooks/useModelArtifactsByVersionId';
-=======
->>>>>>> Stashed changes
 import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegistryContext';
 import ModelTimestamp from '~/pages/modelRegistry/screens/components/ModelTimestamp';
 import { uriToModelLocation } from '~/concepts/modelRegistry/utils';
