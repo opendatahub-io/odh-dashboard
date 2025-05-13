@@ -4,7 +4,7 @@ import { ProjectDetailsContext } from '@odh-dashboard/internal/pages/projects/Pr
 import type { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
 import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
 import { useActiveServingPlatform, ModelServingPlatform } from './modelServingPlatforms';
-import { isModelServingPlatformExtension } from '../extension-points';
+import { isModelServingPlatformExtension } from '../../extension-points';
 
 type ModelServingContextType = {
   availablePlatforms?: ModelServingPlatform[];
@@ -12,6 +12,8 @@ type ModelServingContextType = {
   platform?: ModelServingPlatform | null;
   setModelServingPlatform: (platform: ModelServingPlatform) => void;
   resetModelServingPlatform: () => void;
+  activeModelServingPlatformLoading: boolean;
+  activeModelServingPlatformError: string | null;
   models?: string[];
 };
 
@@ -21,6 +23,8 @@ export const ModelServingContext = React.createContext<ModelServingContextType>(
   platform: undefined,
   setModelServingPlatform: () => undefined,
   resetModelServingPlatform: () => undefined,
+  activeModelServingPlatformLoading: false,
+  activeModelServingPlatformError: null,
   models: [],
 });
 
@@ -32,10 +36,13 @@ export const ModelServingProvider: React.FC<ModelServingProviderProps> = ({ chil
   const { currentProject } = React.useContext(ProjectDetailsContext);
 
   const [availablePlatforms] = useResolvedExtensions(isModelServingPlatformExtension);
-  const { activePlatform, setActivePlatform, resetActivePlatform } = useActiveServingPlatform(
-    currentProject,
-    availablePlatforms,
-  );
+  const {
+    activePlatform,
+    setActivePlatform,
+    resetActivePlatform,
+    activePlatformLoading,
+    activePlatformError,
+  } = useActiveServingPlatform(currentProject, availablePlatforms);
 
   const [deployedModels] = React.useState<string[]>([]);
 
@@ -47,6 +54,8 @@ export const ModelServingProvider: React.FC<ModelServingProviderProps> = ({ chil
       setModelServingPlatform: setActivePlatform,
       resetModelServingPlatform: resetActivePlatform,
       models: deployedModels,
+      activeModelServingPlatformLoading: activePlatformLoading,
+      activeModelServingPlatformError: activePlatformError,
     }),
     [
       currentProject,
@@ -55,6 +64,8 @@ export const ModelServingProvider: React.FC<ModelServingProviderProps> = ({ chil
       setActivePlatform,
       resetActivePlatform,
       availablePlatforms,
+      activePlatformLoading,
+      activePlatformError,
     ],
   );
 

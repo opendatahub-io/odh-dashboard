@@ -9,7 +9,7 @@ const projectDetailsTabs: ProjectDetailsTab[] = [
     properties: {
       id: 'model-server', // same value as ProjectSectionID.MODEL_SERVER
       title: 'Models',
-      component: () => import('./components/projectDetails/ModelsProjectDetailsTab'),
+      component: () => import('./src/ModelsProjectDetailsTab'),
     },
     flags: {
       required: [SupportedArea.PLUGIN_MODEL_SERVING],

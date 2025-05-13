@@ -1,16 +1,17 @@
-import type { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
-import { CodeRef, Extension } from '@openshift/dynamic-plugin-sdk';
+import { Extension } from '@openshift/dynamic-plugin-sdk';
+// eslint-disable-next-line import/no-extraneous-dependencies
+import { NamespaceApplicationCase } from '@odh-dashboard/internal/pages/projects/types';
 
 export type ModelServingPlatformExtension = Extension<
   'model-serving.platform',
   {
     id: string;
     name: string;
-    manage: CodeRef<{
-      isInstalled: () => Promise<boolean>;
-      enable: (project: ProjectKind) => Promise<string>;
-      isEnabled: (project: ProjectKind) => boolean;
-    }>;
+    manage: {
+      namespaceApplicationCase: NamespaceApplicationCase;
+      enabledLabel: string;
+      enabledLabelValue: string;
+    };
     enableCardText: {
       title: string;
       description: string;

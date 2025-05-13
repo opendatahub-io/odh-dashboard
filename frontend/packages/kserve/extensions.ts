@@ -1,3 +1,5 @@
+// eslint-disable-next-line import/no-extraneous-dependencies
+import { NamespaceApplicationCase } from '@odh-dashboard/internal/pages/projects/types';
 import type { ModelServingPlatformExtension } from '@odh-dashboard/model-serving/extension-points';
 
 const extensions: ModelServingPlatformExtension[] = [
@@ -6,7 +8,11 @@ const extensions: ModelServingPlatformExtension[] = [
     properties: {
       id: 'kserve',
       name: 'KServe',
-      manage: () => import('./managePlatform').then((m) => m.default),
+      manage: {
+        namespaceApplicationCase: NamespaceApplicationCase.KSERVE_PROMOTION,
+        enabledLabel: 'modelmesh-enabled',
+        enabledLabelValue: 'false',
+      },
       enableCardText: {
         title: 'Single-model serving platform',
         description:
@@ -26,13 +32,11 @@ const extensions: ModelServingPlatformExtension[] = [
     properties: {
       id: 'modelmesh-dummy',
       name: 'ModelMesh (dummy)',
-      manage: () =>
-        import('./managePlatform').then(() => ({
-          isInstalled: () => Promise.resolve(true),
-          isEnabled: () => false,
-          enable: () => Promise.resolve(''),
-          disable: () => Promise.resolve(''),
-        })),
+      manage: {
+        namespaceApplicationCase: NamespaceApplicationCase.MODEL_MESH_PROMOTION,
+        enabledLabel: 'modelmesh-enabled',
+        enabledLabelValue: 'true',
+      },
       enableCardText: {
         title: 'Multi-model serving platform',
         description:
