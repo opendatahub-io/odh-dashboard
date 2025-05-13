@@ -747,3 +747,10 @@ export type IntegrationAppStatus = {
   variablesValidationTimestamp?: string;
   error: string;
 };
+
+export enum OdhPlatformType {
+  // eslint-disable-next-line no-restricted-syntax
+  OPEN_DATA_HUB = 'Open Data Hub',
+  SELF_MANAGED_RHOAI = 'OpenShift AI Self-Managed',
+  MANAGED_RHOAI = 'OpenShift AI Cloud Service',
+} // Reference: https://github.com/red-hat-data-services/rhods-operator/blob/main/pkg/cluster/const.go

@@ -23,6 +23,7 @@ import {
   DataScienceClusterKindStatus,
   KnownLabels,
   AuthKind,
+  OdhPlatformType,
 } from '../types';
 import {
   DEFAULT_ACTIVE_TIMEOUT,
@@ -901,11 +902,13 @@ export const cleanupGPU = async (fastify: KubeFastifyInstance): Promise<void> =>
   }
 };
 
-/**
- * TODO: There should be a better way to go about this... but the namespace is unlikely to ever change
- */
-export const isRHOAI = (fastify: KubeFastifyInstance): boolean =>
-  fastify.kube.namespace === 'redhat-ods-applications';
+export const isRHOAI = (fastify: KubeFastifyInstance): boolean => {
+  const releaseName = getClusterStatus(fastify)?.release?.name;
+  return (
+    releaseName === OdhPlatformType.SELF_MANAGED_RHOAI ||
+    releaseName === OdhPlatformType.MANAGED_RHOAI
+  );
+};
 
 export const getServingRuntimeNameFromTemplate = (template: Template): string =>
   template.objects[0].metadata.name;

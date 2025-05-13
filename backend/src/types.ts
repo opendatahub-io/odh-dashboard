@@ -1028,6 +1028,9 @@ export type DataScienceClusterKindStatus = {
   conditions: K8sCondition[];
   installedComponents: { [key in ComponentNames]?: boolean };
   phase?: string;
+  release?: {
+    name: string;
+  };
 };
 
 export type DataScienceClusterKind = K8sResourceCommon & {
@@ -1312,3 +1315,9 @@ export type AuthKind = K8sResourceCommon & {
     allowedGroups: string[];
   };
 };
+
+export enum OdhPlatformType {
+  OPEN_DATA_HUB = 'Open Data Hub',
+  SELF_MANAGED_RHOAI = 'OpenShift AI Self-Managed',
+  MANAGED_RHOAI = 'OpenShift AI Cloud Service',
+} // Reference: https://github.com/red-hat-data-services/rhods-operator/blob/main/pkg/cluster/const.go
