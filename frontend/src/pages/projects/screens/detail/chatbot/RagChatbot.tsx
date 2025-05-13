@@ -1,16 +1,16 @@
 import React, { useState } from 'react';
+import { Label } from '@patternfly/react-core';
 import Chatbot, { ChatbotDisplayMode } from '@patternfly/chatbot/dist/esm/Chatbot';
-import { ChatbotContent } from '@patternfly/chatbot/dist/dynamic/ChatbotContent';
-import { ChatbotWelcomePrompt } from '@patternfly/chatbot/dist/dynamic/ChatbotWelcomePrompt';
-import { ChatbotFooter, ChatbotFootnote } from '@patternfly/chatbot/dist/dynamic/ChatbotFooter';
-import { MessageBar } from '@patternfly/chatbot/dist/dynamic/MessageBar';
-import { MessageBox } from '@patternfly/chatbot/dist/dynamic/MessageBox';
+import { ChatbotContent } from '@patternfly/chatbot/dist/esm/ChatbotContent';
+import { ChatbotWelcomePrompt } from '@patternfly/chatbot/dist/esm/ChatbotWelcomePrompt';
+import { ChatbotFooter, ChatbotFootnote } from '@patternfly/chatbot/dist/esm/ChatbotFooter';
+import { MessageBar } from '@patternfly/chatbot/dist/esm/MessageBar';
+import { MessageBox } from '@patternfly/chatbot/dist/esm/MessageBox';
 import {
   ChatbotHeader,
   ChatbotHeaderActions,
-} from '@patternfly/chatbot/dist/dynamic/ChatbotHeader';
+} from '@patternfly/chatbot/dist/esm/ChatbotHeader';
 import '@patternfly/chatbot/dist/css/main.css';
-import { Label } from '@patternfly/react-core';
 
 const RagChatbot: React.FC = () => {
   const displayMode = ChatbotDisplayMode.embedded;
