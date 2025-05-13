@@ -12,11 +12,11 @@ import { useParams, useNavigate } from 'react-router';
 import { Link } from 'react-router-dom';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { modelRegistryRoute, registeredModelRoute } from '~/routes';
-import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegistryContext';
 import { useAppSelector } from '~/redux/hooks';
 import useRegisteredModels from '~/concepts/modelRegistry/apiHooks/useRegisteredModels';
 import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
+import { ModelRegistryPageContext } from '~/concepts/modelRegistry/context/ModelRegistryPageContext';
 import { useRegisterModelData } from './useRegisterModelData';
 import {
   isModelNameExisting,
@@ -34,7 +34,7 @@ const eventName = 'Model Registered';
 const RegisterModel: React.FC = () => {
   const { modelRegistry: mrName } = useParams();
   const navigate = useNavigate();
-  const { apiState } = React.useContext(ModelRegistryContext);
+  const { apiState } = React.useContext(ModelRegistryPageContext);
   const author = useAppSelector((state) => state.user || '');
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [submitError, setSubmitError] = React.useState<Error | undefined>(undefined);

@@ -31,7 +31,6 @@ import {
   getTagFromModel,
   isLabBase,
 } from '~/pages/modelCatalog/utils';
-import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
 import PopoverListContent from '~/components/PopoverListContent';
 import { FindAdministratorOptions } from '~/pages/projects/screens/projects/const';
 import { RhUiTagIcon } from '~/images/icons';
@@ -40,6 +39,7 @@ import RhUiControlsIcon from '~/images/icons/RhUiControlsIcon';
 import { CatalogModelDetailsParams } from '~/pages/modelCatalog/types';
 import { ODH_PRODUCT_NAME } from '~/utilities/const';
 import ScrollViewOnMount from '~/components/ScrollViewOnMount';
+import { ModelRegistriesContext } from '~/concepts/modelRegistry/context/ModelRegistriesContext';
 import ModelDetailsView from './ModelDetailsView';
 import DeployCatalogModelModal from './DeployCatalogModelModal';
 
@@ -52,7 +52,7 @@ const ModelDetailsPage: React.FC = conditionalArea(
   const { modelCatalogSources } = React.useContext(ModelCatalogContext);
   const decodedParams = decodeParams(params);
   const { modelRegistryServices, modelRegistryServicesLoaded, modelRegistryServicesLoadError } =
-    React.useContext(ModelRegistrySelectorContext);
+    React.useContext(ModelRegistriesContext);
   const tuningAvailable = useIsAreaAvailable(SupportedArea.FINE_TUNING).status;
   const loaded =
     (modelRegistryServicesLoaded || !!modelRegistryServicesLoadError) && modelCatalogSources.loaded;

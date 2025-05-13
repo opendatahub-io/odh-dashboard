@@ -1,13 +1,13 @@
 import * as React from 'react';
 import { ClipboardCopy, DescriptionList, Flex, FlexItem, Content } from '@patternfly/react-core';
 import { RegisteredModel } from '~/concepts/modelRegistry/types';
-import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegistryContext';
 import DashboardDescriptionListGroup from '~/components/DashboardDescriptionListGroup';
 import EditableTextDescriptionListGroup from '~/components/EditableTextDescriptionListGroup';
 import { EditableLabelsDescriptionListGroup } from '~/components/EditableLabelsDescriptionListGroup';
 import ModelTimestamp from '~/pages/modelRegistry/screens/components/ModelTimestamp';
 import { getLabels, mergeUpdatedLabels } from '~/pages/modelRegistry/screens/utils';
 import ModelPropertiesDescriptionListGroup from '~/pages/modelRegistry/screens/ModelPropertiesDescriptionListGroup';
+import { ModelRegistryPageContext } from '~/concepts/modelRegistry/context/ModelRegistryPageContext';
 
 type ModelDetailsViewProps = {
   registeredModel: RegisteredModel;
@@ -20,7 +20,7 @@ const ModelDetailsView: React.FC<ModelDetailsViewProps> = ({
   refresh,
   isArchiveModel,
 }) => {
-  const { apiState } = React.useContext(ModelRegistryContext);
+  const { apiState } = React.useContext(ModelRegistryPageContext);
   return (
     <Flex
       direction={{ default: 'column', md: 'row' }}

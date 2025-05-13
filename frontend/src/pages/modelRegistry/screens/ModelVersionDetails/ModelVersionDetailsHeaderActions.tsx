@@ -12,15 +12,15 @@ import {
 } from '@patternfly/react-core';
 import { useNavigate } from 'react-router';
 import { ArchiveModelVersionModal } from '~/pages/modelRegistry/screens/components/ArchiveModelVersionModal';
-import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegistryContext';
 import { ModelVersion, ModelState, RegisteredModel } from '~/concepts/modelRegistry/types';
-import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
 import { modelVersionDeploymentsRoute, modelVersionListRoute } from '~/routes';
 import DeployRegisteredVersionModal from '~/pages/modelRegistry/screens/components/DeployRegisteredVersionModal';
 import { useIsAreaAvailable, SupportedArea } from '~/concepts/areas';
 import StartRunModal from '~/pages/pipelines/global/modelCustomization/startRunModal/StartRunModal';
 import { useModelVersionTuningData } from '~/concepts/modelRegistry/hooks/useModelVersionTuningData';
 import { getModelCustomizationPath } from '~/routes/pipelines/modelCustomization';
+import { ModelRegistriesContext } from '~/concepts/modelRegistry/context/ModelRegistriesContext';
+import { ModelRegistryPageContext } from '~/concepts/modelRegistry/context/ModelRegistryPageContext';
 
 interface ModelVersionsDetailsHeaderActionsProps {
   mv: ModelVersion;
@@ -35,8 +35,8 @@ const ModelVersionsDetailsHeaderActions: React.FC<ModelVersionsDetailsHeaderActi
   hasDeployment = false,
   refresh,
 }) => {
-  const { apiState } = React.useContext(ModelRegistryContext);
-  const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
+  const { apiState } = React.useContext(ModelRegistryPageContext);
+  const { preferredModelRegistry } = React.useContext(ModelRegistriesContext);
   const navigate = useNavigate();
   const [isOpenActionDropdown, setOpenActionDropdown] = React.useState(false);
   const [isArchiveModalOpen, setIsArchiveModalOpen] = React.useState(false);
