@@ -1,19 +1,6 @@
 import React from 'react';
-import {
-  Divider,
-  Dropdown,
-  DropdownGroup,
-  DropdownItem,
-  DropdownList,
-  MenuToggle,
-} from '@patternfly/react-core';
+import { Dropdown, DropdownItem, MenuToggle } from '@patternfly/react-core';
 import { FlagIcon } from '@patternfly/react-icons';
-import openshiftLogo from '~/images/openshift.svg';
-import { useWatchConsoleLinks } from '~/utilities/useWatchConsoleLinks';
-import { getOpenShiftConsoleServerURL } from '~/utilities/clusterUtils';
-import { useClusterInfo } from '~/redux/selectors/clusterInfo';
-import { ApplicationAction, Section } from '~/types';
-import { useAppContext } from './AppContext';
 import './AppLauncher.scss';
 
 const FeatureFlagLauncher: React.FC = () => {
