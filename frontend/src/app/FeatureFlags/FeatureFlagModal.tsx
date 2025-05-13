@@ -1,3 +1,4 @@
+import * as React from 'react';
 import {
   Button,
   Checkbox,
@@ -8,7 +9,7 @@ import {
   ModalFooter,
   ModalHeader,
 } from '@patternfly/react-core';
-import * as React from 'react';
+
 import { allFeatureFlags } from '~/concepts/areas/const';
 import { isFeatureFlag } from '~/concepts/areas/utils';
 import { FeatureFlagModalProps } from '~/types';
@@ -41,7 +42,7 @@ const DevFeatureFlagsBanner: React.FC<FeatureFlagModalProps> = ({
                 />
               </GridItem>
               <GridItem data-testid={`${key}-value`}>{`${value ?? ''}${
-                key in (devFeatureFlags ?? {}) ? ' (overridden)' : ''
+                key in devFeatureFlags ? ' (overridden)' : ''
               }`}</GridItem>
             </React.Fragment>
           );
