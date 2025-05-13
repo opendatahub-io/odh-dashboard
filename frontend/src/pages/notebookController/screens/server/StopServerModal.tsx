@@ -114,7 +114,7 @@ const StopServerModal: React.FC<StopServerModalProps> = ({
       actions={modalActions}
     >
       <Stack hasGutter>
-        <StackItem>Are unsaved changes to the {getWorkbenchName()} will be lost.</StackItem>
+        <StackItem>Any unsaved changes to the {getWorkbenchName()} will be lost.</StackItem>
         <StackItem>
           To save changes,{' '}
           {link !== '#' && notebooksToStop.length === 1 ? (
