@@ -23,7 +23,6 @@ const FeatureFlagModal: React.FC<Props> = ({
   resetDevFeatureFlags,
   onClose,
 }) => {
-  console.log('in menu: devFeatureFlags', devFeatureFlags, dashboardConfig);
   const renderDevFeatureFlags = () => (
     <Grid hasGutter span={6} md={3}>
       {allFeatureFlags

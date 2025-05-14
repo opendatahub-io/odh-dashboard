@@ -2,9 +2,14 @@ import React from 'react';
 import { Dropdown, DropdownItem, MenuToggle, Tooltip } from '@patternfly/react-core';
 import { FlagIcon } from '@patternfly/react-icons';
 import { FeatureFlagProps } from '~/types';
+import { DashboardCommonConfig } from '~/k8sTypes';
 import FeatureFlagModal from './FeatureFlags/FeatureFlagModal';
 
-const FeatureFlagLauncher: React.FC<FeatureFlagProps> = ({
+export type FeatureFlagLauncherProps = FeatureFlagProps & {
+  dashboardConfig: DashboardCommonConfig;
+};
+
+const FeatureFlagLauncher: React.FC<FeatureFlagLauncherProps> = ({
   dashboardConfig,
   devFeatureFlags,
   setDevFeatureFlag,
@@ -13,17 +18,16 @@ const FeatureFlagLauncher: React.FC<FeatureFlagProps> = ({
   const [isOpen, setIsOpen] = React.useState(false);
   const [isModalOpen, setModalOpen] = React.useState(false);
 
-  console.log('in LAUNCHER: devFeatureFlags', devFeatureFlags, dashboardConfig);
-
-  const checkLoading = () =>
-    typeof dashboardConfig === 'object' && Object.keys(dashboardConfig).length === 0;
+  const checkLoading = React.useCallback(
+    () => typeof dashboardConfig === 'object' && Object.keys(dashboardConfig).length === 0,
+    [dashboardConfig],
+  );
 
   const [isLoading, setIsLoading] = React.useState(checkLoading);
 
   React.useEffect(() => {
     setIsLoading(checkLoading());
-    console.log('sigh; in useEffect:', dashboardConfig);
-  }, [dashboardConfig]);
+  }, [dashboardConfig, checkLoading]);
 
   const toggle = (
     <MenuToggle
@@ -60,7 +64,6 @@ const FeatureFlagLauncher: React.FC<FeatureFlagProps> = ({
           key="edit"
           onClick={() => {
             setModalOpen(true);
-            console.log('edit flags here TODO');
           }}
           isDisabled={isLoading}
         >
@@ -76,7 +79,7 @@ const FeatureFlagLauncher: React.FC<FeatureFlagProps> = ({
           Restore Flags to default values
         </DropdownItem>
       </Dropdown>
-      {isModalOpen && devFeatureFlags ? (
+      {isModalOpen && !isLoading ? (
         <FeatureFlagModal
           dashboardConfig={dashboardConfig}
           devFeatureFlags={devFeatureFlags}

@@ -34,13 +34,13 @@ import AppLauncher from './AppLauncher';
 import { useAppContext } from './AppContext';
 import { useThemeContext } from './ThemeContext';
 import { logout } from './appUtils';
-import FeatureFlagLauncher from './FeatureFlagLauncher';
+import FeatureFlagLauncher, { FeatureFlagLauncherProps } from './FeatureFlagLauncher';
 
 interface HeaderToolsProps {
   onNotificationsClick: () => void;
 }
 
-type Props = HeaderToolsProps & FeatureFlagProps;
+type Props = HeaderToolsProps & FeatureFlagLauncherProps;
 
 const HeaderTools: React.FC<Props> = ({ onNotificationsClick, ...devFeatureFlagsProps }) => {
   const [userMenuOpen, setUserMenuOpen] = React.useState(false);

@@ -17,7 +17,6 @@ export type DevFeatureFlags = {
 };
 
 export type FeatureFlagProps = {
-  dashboardConfig: Partial<DashboardCommonConfig>;
   devFeatureFlags: Partial<DashboardCommonConfig>;
   setDevFeatureFlag: (flag: keyof DashboardCommonConfig, value: boolean) => void;
   resetDevFeatureFlags: () => void;
