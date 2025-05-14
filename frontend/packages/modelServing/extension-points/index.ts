@@ -6,7 +6,6 @@ export type ModelServingPlatformExtension = Extension<
   'model-serving.platform',
   {
     id: string;
-    name: string;
     manage: {
       namespaceApplicationCase: NamespaceApplicationCase;
       enabledLabel: string;

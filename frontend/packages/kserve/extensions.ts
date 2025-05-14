@@ -7,7 +7,6 @@ const extensions: ModelServingPlatformExtension[] = [
     type: 'model-serving.platform',
     properties: {
       id: 'kserve',
-      name: 'KServe',
       manage: {
         namespaceApplicationCase: NamespaceApplicationCase.KSERVE_PROMOTION,
         enabledLabel: 'modelmesh-enabled',
@@ -31,7 +30,6 @@ const extensions: ModelServingPlatformExtension[] = [
     type: 'model-serving.platform',
     properties: {
       id: 'modelmesh-dummy',
-      name: 'ModelMesh (dummy)',
       manage: {
         namespaceApplicationCase: NamespaceApplicationCase.MODEL_MESH_PROMOTION,
         enabledLabel: 'modelmesh-enabled',
