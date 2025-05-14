@@ -5,6 +5,7 @@ import '~/pages/pipelines/global/runs/GlobalPipelineRunsTabs.scss';
 import { ModelVersion } from '~/concepts/modelRegistry/types';
 import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
 import { FetchStateObject } from '~/types';
+import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { ModelVersionDetailsTabTitle, ModelVersionDetailsTab } from './const';
 import ModelVersionDetailsView from './ModelVersionDetailsView';
 import ModelVersionRegisteredDeploymentsView from './ModelVersionRegisteredDeploymentsView';
@@ -27,6 +28,8 @@ const ModelVersionDetailsTabs: React.FC<ModelVersionDetailTabsProps> = ({
   refresh,
 }) => {
   const navigate = useNavigate();
+  const { status: isModelServingEnabled } = useIsAreaAvailable(SupportedArea.MODEL_SERVING);
+
   return (
     <Tabs
       activeKey={tab}
@@ -53,7 +56,7 @@ const ModelVersionDetailsTabs: React.FC<ModelVersionDetailTabsProps> = ({
           />
         </PageSection>
       </Tab>
-      {!isArchiveVersion && (
+      {!isArchiveVersion && isModelServingEnabled && (
         <Tab
           eventKey={ModelVersionDetailsTab.DEPLOYMENTS}
           title={<TabTitleText>{ModelVersionDetailsTabTitle.DEPLOYMENTS}</TabTitleText>}

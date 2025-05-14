@@ -49,10 +49,12 @@ describe('Deploy catalog model', () => {
   it('Error if kserve is not enabled', () => {
     initIntercepts({ kServeInstalled: false });
     modelDetailsPage.visit();
-    modelDetailsPage.findDeployModelButton().click();
-    cy.wait('@getProjects');
-    modelCatalogDeployModal.selectProjectByName('KServe project');
-    cy.findByText('Single-model platform is not installed').should('exist');
+    modelDetailsPage.findDeployModelButton().should('have.attr', 'aria-disabled', 'true');
+    modelDetailsPage.findDeployModelButton().focus();
+    cy.findByRole('tooltip').should(
+      'contain.text',
+      'To deploy this model, an administrator must first enable single-model serving in the cluster settings.',
+    );
   });
 
   it('Allow using a project with no platform selected (it will use kserve)', () => {
