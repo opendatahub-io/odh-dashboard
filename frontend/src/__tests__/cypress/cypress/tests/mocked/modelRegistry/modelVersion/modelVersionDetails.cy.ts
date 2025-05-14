@@ -702,4 +702,35 @@ describe('Model version details', () => {
       modelVersionDetails.findStartRunModal().should('exist');
     });
   });
+
+  describe('model serving is disabled', () => {
+    beforeEach(() => {
+      initIntercepts();
+      // Mock fine-tuning as enabled
+      cy.interceptOdh(
+        'GET /api/dsc/status',
+        mockDscStatus({
+          installedComponents: {
+            'model-registry-operator': true,
+            'data-science-pipelines-operator': true,
+          },
+        }),
+      );
+      modelVersionDetails.visit();
+    });
+
+    it('should show the deploy button as disabled', () => {
+      cy.interceptOdh(
+        'GET /api/config',
+        mockDashboardConfig({
+          disableModelServing: true,
+        }),
+      );
+      modelVersionDetails.findDeployModelButton().click();
+      cy.findByRole('tooltip').should(
+        'contain.text',
+        'To enable model serving, an administrator must first select a model serving platform in the cluster settings.',
+      );
+    });
+  });
 });

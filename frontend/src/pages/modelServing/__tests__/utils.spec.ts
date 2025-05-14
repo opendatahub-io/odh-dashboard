@@ -3,6 +3,7 @@ import {
   getServingRuntimeOrReturnEmpty,
   resourcesArePositive,
   setUpTokenAuth,
+  isOciModelUri,
 } from '~/pages/modelServing/utils';
 import { mockServingRuntimeK8sResource } from '~/__mocks__/mockServingRuntimeK8sResource';
 import { ContainerResources } from '~/types';
@@ -292,5 +293,16 @@ describe('getServingRuntimeSizeOrReturnEmpty', () => {
     };
     const servingRuntime = mockServingRuntimeK8sResource({ resources });
     expect(getServingRuntimeOrReturnEmpty(servingRuntime)).toBe(resources);
+  });
+});
+
+describe('isOciModelUri', () => {
+  it('returns true for oci:// URIs', () => {
+    expect(isOciModelUri('oci://my-model')).toBe(true);
+  });
+  it('returns false for non-oci URIs', () => {
+    expect(isOciModelUri('s3://my-model')).toBe(false);
+    expect(isOciModelUri(undefined)).toBe(false);
+    expect(isOciModelUri('')).toBe(false);
   });
 });

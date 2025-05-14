@@ -20,6 +20,9 @@ import { useIsAreaAvailable, SupportedArea } from '~/concepts/areas';
 import StartRunModal from '~/pages/pipelines/global/modelCustomization/startRunModal/StartRunModal';
 import { useModelVersionTuningData } from '~/concepts/modelRegistry/hooks/useModelVersionTuningData';
 import { getModelCustomizationPath } from '~/routes/pipelines/modelCustomization';
+import { isOciModelUri } from '~/pages/modelServing/utils';
+import useModelArtifactsByVersionId from '~/concepts/modelRegistry/apiHooks/useModelArtifactsByVersionId';
+import useDeployButtonState from '~/pages/modelServing/screens/projects/useDeployButtonState';
 
 type ModelVersionsTableRowProps = {
   modelVersion: ModelVersion;
@@ -48,6 +51,10 @@ const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
   const [isDeployModalOpen, setIsDeployModalOpen] = React.useState(false);
   const [tuningModelVersionId, setTuningModelVersionId] = React.useState<string | null>(null);
 
+  const [modelArtifacts] = useModelArtifactsByVersionId(mv.id);
+  const isOciModel = isOciModelUri(modelArtifacts.items.map((artifact) => artifact.uri)[0]);
+  const deployButtonState = useDeployButtonState(isOciModel);
+
   const { tuningData, loaded, loadError } = useModelVersionTuningData(
     tuningModelVersionId,
     tuningModelVersionId === mv.id ? mv : null,
@@ -58,6 +65,19 @@ const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
     return null;
   }
 
+  const deployAction = deployButtonState.visible
+    ? [
+        {
+          title: 'Deploy',
+          onClick: () => setIsDeployModalOpen(true),
+          isAriaDisabled: !deployButtonState.enabled,
+          tooltipProps: !deployButtonState.enabled
+            ? { content: deployButtonState.tooltip }
+            : undefined,
+        },
+      ]
+    : [];
+
   const actions: IAction[] = isArchiveRow
     ? [
         {
@@ -66,10 +86,7 @@ const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
         },
       ]
     : [
-        {
-          title: 'Deploy',
-          onClick: () => setIsDeployModalOpen(true),
-        },
+        ...deployAction,
         ...(isFineTuningEnabled
           ? [
               {
