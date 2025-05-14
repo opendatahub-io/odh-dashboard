@@ -118,9 +118,12 @@ const StopServerModal: React.FC<StopServerModalProps> = ({
         <StackItem>
           To save changes,{' '}
           {link !== '#' && notebooksToStop.length === 1 ? (
-            <Button component="a" href={link} variant="link" isInline>
-              open the workbench.
-            </Button>
+            <>
+              <Button component="a" href={link} variant="link" isInline>
+                open the workbench
+              </Button>
+              .
+            </>
           ) : notebooksToStop.length === 1 ? (
             'open the workbench.'
           ) : (
