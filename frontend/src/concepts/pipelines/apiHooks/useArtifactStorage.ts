@@ -4,7 +4,8 @@ import { usePipelinesAPI } from '~/concepts/pipelines/context';
 
 export type ArtifactType = {
   getStorageObjectSize: (artifact: Artifact) => Promise<number>;
-  getStorageObjectUrl: (artifact: Artifact) => Promise<string | undefined>;
+  getStorageObjectRenderUrl: (artifact: Artifact) => Promise<string | undefined>;
+  getStorageObjectDownloadUrl: (artifact: Artifact) => Promise<string | undefined>;
 };
 
 export const useArtifactStorage = (): ArtifactType => {
@@ -21,7 +22,18 @@ export const useArtifactStorage = (): ArtifactType => {
     [api],
   );
 
-  const getStorageObjectUrl = React.useCallback(
+  const getStorageObjectRenderUrl = React.useCallback(
+    async (artifact: Artifact): Promise<string | undefined> =>
+      api
+        .getArtifact({}, artifact.getId(), 'RENDER')
+        .then((artifactStorage) => artifactStorage.render_url)
+        .catch((e) => {
+          throw new Error(`Error fetching Storage url ${e}`);
+        }),
+    [api],
+  );
+
+  const getStorageObjectDownloadUrl = React.useCallback(
     async (artifact: Artifact): Promise<string | undefined> =>
       api
         .getArtifact({}, artifact.getId(), 'DOWNLOAD')
@@ -32,5 +44,5 @@ export const useArtifactStorage = (): ArtifactType => {
     [api],
   );
 
-  return { getStorageObjectSize, getStorageObjectUrl };
+  return { getStorageObjectSize, getStorageObjectRenderUrl, getStorageObjectDownloadUrl };
 };
