@@ -5,8 +5,7 @@ import { asEnumMember } from '~/utilities/utils';
 import ScheduledRuns from '~/pages/pipelines/global/runs/ScheduledRuns';
 import { ActiveRuns } from '~/pages/pipelines/global/runs/ActiveRuns';
 import { ArchivedRuns } from '~/pages/pipelines/global/runs/ArchivedRuns';
-import { PipelineRunType } from '~/pages/pipelines/global/runs/types';
-import { PipelineRunTabTitle } from '~/pages/pipelines/global/runs/types';
+import { PipelineRunType, PipelineRunTabTitle } from '~/pages/pipelines/global/runs/types';
 
 import './GlobalPipelineRunsTabs.scss';
 
