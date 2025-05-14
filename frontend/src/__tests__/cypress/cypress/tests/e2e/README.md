@@ -49,21 +49,22 @@ Before you begin, ensure you have the following installed:
    npm install
    ```
 
-3. **Navigate to the directory containing test variables:**
-
-   ```bash
-   cd frontend/src/__tests__/cypress/
-   ```
-
-   > **NOTE:** Test variables are required to execute tests. Contact the QE Dashboard team for access.
-
-4. **Export the test variables:**
+3. **Export the test variables:**
 
    ```bash
    export CY_TEST_CONFIG='PATH_TO_YOUR_TEST_VARIABLES'
    ```
+4. **Navigate to the frontend directory:**
 
-5. **Open Cypress in frontend folder:**
+   ```bash
+   cd frontend
+   ```
+
+   > **NOTE:** Test variables are required to execute tests. Contact the QE Dashboard team for access.
+
+
+
+5. **Run Cypress:**
 
    This command launches the Cypress Test Runner, where you can run your tests interactively.
 
