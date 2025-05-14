@@ -1,0 +1,55 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# .cursorrules - Creating Jira Issues Under an Epic
+
+## Trigger:
+User requests Jira creation (e.g., "create jira", "make jira tickets") AND an Epic is the intended parent.
+
+## Pre-flight Checklist & Information Gathering:
+Ensure you have the following before calling `mcp_atlassian_jira_create_issue`:
+
+1.  **Parent Epic Key**: (e.g., `RHOAIENG-24697`). From user or context.
+    *   Placeholder: `PARENT_EPIC_KEY`
+2.  **Epic Link Custom Field ID**: From user. (e.g., `customfield_12311140`).
+    *   Placeholder: `EPIC_LINK_FIELD_ID`
+3.  **Team Custom Field ID**: From user. (e.g., `customfield_12313240`).
+    *   Placeholder: `TEAM_FIELD_ID`
+4.  **Team Value (ID)**: From user. (e.g., `4158`). **MUST BE A STRING.**
+    *   Placeholder: `TEAM_VALUE_ID` (string)
+5.  **Component Name**: From user. (e.g., `Dashboard`). **MUST BE A STRING.**
+    *   Placeholder: `COMPONENT_NAME` (string)
+6.  **Project Key**: Infer from `PARENT_EPIC_KEY` (e.g., "RHOAIENG" from "RHOAIENG-123").
+    *   Placeholder: `PROJECT_KEY`
+
+## For Each Jira Issue:
+1.  **Summary**: From user.
+2.  **Description**: From user.
+3.  **Issue Type**:
+    *   If UI-facing: `Story`
+    *   If non-UI-facing (backend, data model, etc.): `Task`
+    *   Confirm with user if unsure.
+    *   Placeholder: `JIRA_ISSUE_TYPE`
+
+## Tool Call Template: `mcp_atlassian_jira_create_issue`
+default_api.mcp_atlassian_jira_create_issue(
+    project_key = PROJECT_KEY,
+    issue_type = JIRA_ISSUE_TYPE,
+    summary = "...", # Issue's summary
+    description = "...", # Issue's description
+    components = COMPONENT_NAME,  # Pass as direct string argument
+    additional_fields = {
+        EPIC_LINK_FIELD_ID: PARENT_EPIC_KEY,
+        TEAM_FIELD_ID: TEAM_VALUE_ID  # Ensure TEAM_VALUE_ID is a string
+    }
+)
+
+## Important Reminders & Best Practices:
+*   **Verify Placeholders**: Always confirm the actual values for `EPIC_LINK_FIELD_ID`, `TEAM_FIELD_ID`, `TEAM_VALUE_ID`, and `COMPONENT_NAME` with the user if they haven't been provided or recently confirmed. Do not assume old values persist indefinitely.
+*   **Team Value is a STRING**: The `TEAM_VALUE_ID` (e.g., "4158") must be passed as a string within the `additional_fields` dictionary.
+*   **Component is a STRING argument**: The `components` parameter (e.g., "Dashboard") is a direct top-level argument to the tool, not part of `additional_fields`.
+*   **Epic Link vs. Parent Field**: Do **NOT** use the `parent` field in `additional_fields` for linking to Epics when the issue type is `Story` or `Task`. Use the `EPIC_LINK_FIELD_ID` custom field.
+*   **Iterative Creation**: If multiple issues are requested, process them one by one, confirming success or handling errors for each before moving to the next.
+*   **Error Handling**: If a tool call fails, analyze the error message. It often provides clues about field formats (e.g., string vs. object, direct argument vs. `additional_fields`). Clarify with the user or try common variations if the error is about data format.
