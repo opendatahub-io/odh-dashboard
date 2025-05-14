@@ -531,6 +531,35 @@ describe('Deploy model version', () => {
     kserveModal.findLocationPathInput().should('have.value', 'demo-models/test-path');
   });
 
+  it('Selects Create Connection in case of no connections in project', () => {
+    initIntercepts({});
+    cy.visit(`/modelRegistry/modelregistry-sample/registeredModels/1/versions`);
+    const modelVersionRow = modelRegistry.getModelVersionRow(modelVersionMocked2.name);
+    modelVersionRow.findKebabAction('Deploy').click();
+    modelVersionDeployModal.selectProjectByName('KServe project');
+
+    // Validate name input field
+    kserveModal.findModelNameInput().should('exist');
+
+    // Validate model framework section
+    kserveModal.findModelFrameworkSelect().should('be.disabled');
+    cy.findByText('The format of the source model is').should('not.exist');
+    kserveModal.findServingRuntimeTemplateDropdown().findSelectOption('Multi Platform').click();
+    kserveModal.findModelFrameworkSelect().should('be.enabled');
+    cy.findByText(
+      `The format of the source model is ${modelArtifactMocked.modelFormatName ?? ''} - ${
+        modelArtifactMocked.modelFormatVersion ?? ''
+      }`,
+    ).should('exist');
+
+    // Validate connection section
+    kserveModal.findConnectionNameInput().should('have.value', 'test storage key');
+    kserveModal.findLocationBucketInput().should('have.value', 'test-bucket');
+    kserveModal.findLocationEndpointInput().should('have.value', 'test-endpoint');
+    kserveModal.findLocationRegionInput().should('have.value', 'test-region');
+    kserveModal.findLocationPathInput().should('have.value', 'demo-models/test-path');
+  });
+
   it('Selects Create Connection in case of no matching URI connections', () => {
     initIntercepts({});
     cy.interceptK8sList(

@@ -659,7 +659,7 @@ describe('usePrefillModelDeployModal', () => {
               { key: 'AWS_S3_ENDPOINT', value: '' },
               { key: 'AWS_DEFAULT_REGION', value: '' },
             ],
-            dataConnection: '',
+            dataConnection: 'test-key',
             path: '',
             type: 'new-storage',
             uri: 'oci://test.io/test/private:test',
