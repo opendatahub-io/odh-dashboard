@@ -16,12 +16,11 @@ export type DevFeatureFlags = {
   setDevFeatureFlagQueryVisible: (visible: boolean) => void;
 };
 
-export type FeatureFlagModalProps = {
-  dashboardConfig: Partial<DashboardCommonConfig>;
-  devFeatureFlags: Partial<DashboardCommonConfig>;
+export type FeatureFlagProps = {
+  dashboardConfig: Partial<DashboardCommonConfig> | null;
+  devFeatureFlags: Partial<DashboardCommonConfig> | null;
   setDevFeatureFlag: (flag: keyof DashboardCommonConfig, value: boolean) => void;
   resetDevFeatureFlags: () => void;
-  onClose: () => void;
 };
 
 export type PrometheusQueryResponse<TResultExtraProps extends object = object> = {

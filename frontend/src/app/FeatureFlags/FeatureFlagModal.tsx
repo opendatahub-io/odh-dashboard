@@ -12,15 +12,18 @@ import {
 
 import { allFeatureFlags } from '~/concepts/areas/const';
 import { isFeatureFlag } from '~/concepts/areas/utils';
-import { FeatureFlagModalProps } from '~/types';
+import { FeatureFlagProps } from '~/types';
 
-const DevFeatureFlagsBanner: React.FC<FeatureFlagModalProps> = ({
+type Props = FeatureFlagProps & { onClose: () => void };
+
+const FeatureFlagModal: React.FC<Props> = ({
   dashboardConfig,
   devFeatureFlags,
   setDevFeatureFlag,
   resetDevFeatureFlags,
   onClose,
 }) => {
+  console.log('in menu: devFeatureFlags', devFeatureFlags, dashboardConfig);
   const renderDevFeatureFlags = () => (
     <Grid hasGutter span={6} md={3}>
       {allFeatureFlags
@@ -67,4 +70,4 @@ const DevFeatureFlagsBanner: React.FC<FeatureFlagModalProps> = ({
   );
 };
 
-export default DevFeatureFlagsBanner;
+export default FeatureFlagModal;

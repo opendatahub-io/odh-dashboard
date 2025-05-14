@@ -13,7 +13,7 @@ import { BarsIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router-dom';
 import { ODH_LOGO, ODH_LOGO_DARK, ODH_PRODUCT_NAME } from '~/utilities/const';
 import { useUser } from '~/redux/selectors';
-import { FeatureFlagModalProps } from '~/types';
+import { FeatureFlagProps } from '~/types';
 import { useThemeContext } from './ThemeContext';
 import HeaderTools from './HeaderTools';
 
@@ -21,7 +21,7 @@ type HeaderProps = {
   onNotificationsClick: () => void;
 };
 
-type Props = HeaderProps & FeatureFlagModalProps;
+type Props = HeaderProps & FeatureFlagProps;
 
 const MastheadBranchComponent: React.FC<React.ComponentProps<typeof Link>> = (props) => (
   <Link {...props} to="/" />

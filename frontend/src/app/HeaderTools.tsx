@@ -29,6 +29,7 @@ import { updateImpersonateSettings } from '~/services/impersonateService';
 import { AppNotification } from '~/redux/types';
 import { useAppSelector } from '~/redux/hooks';
 import AboutDialog from '~/app/AboutDialog';
+import { FeatureFlagProps } from '~/types';
 import AppLauncher from './AppLauncher';
 import { useAppContext } from './AppContext';
 import { useThemeContext } from './ThemeContext';
@@ -39,7 +40,9 @@ interface HeaderToolsProps {
   onNotificationsClick: () => void;
 }
 
-const HeaderTools: React.FC<HeaderToolsProps> = ({ onNotificationsClick }) => {
+type Props = HeaderToolsProps & FeatureFlagProps;
+
+const HeaderTools: React.FC<Props> = ({ onNotificationsClick, ...devFeatureFlagsProps }) => {
   const [userMenuOpen, setUserMenuOpen] = React.useState(false);
   const [helpMenuOpen, setHelpMenuOpen] = React.useState(false);
   const [aboutShown, setAboutShown] = React.useState(false);
@@ -169,7 +172,7 @@ const HeaderTools: React.FC<HeaderToolsProps> = ({ onNotificationsClick }) => {
           </ToolbarItem>
           {SHOW_FEATURE_FLAG_BUTTON && (
             <ToolbarItem data-testid="feature-flags-menu">
-              <FeatureFlagLauncher />
+              <FeatureFlagLauncher {...devFeatureFlagsProps} />
             </ToolbarItem>
           )}
 
