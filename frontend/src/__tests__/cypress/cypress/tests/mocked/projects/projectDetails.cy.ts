@@ -63,6 +63,7 @@ type HandlersProps = {
   rejectAddSupportServingPlatformProject?: boolean;
   disableWorkbenches?: boolean;
   namespace?: string;
+  disableLlamaStackChatBot?: boolean;
 };
 
 const initIntercepts = ({
@@ -86,6 +87,7 @@ const initIntercepts = ({
   rejectAddSupportServingPlatformProject = false,
   disableWorkbenches = false,
   namespace = 'test-project',
+  disableLlamaStackChatBot = false,
 }: HandlersProps) => {
   cy.interceptK8sList(
     { model: SecretModel, ns: namespace },
@@ -137,6 +139,7 @@ const initIntercepts = ({
       disableModelMesh: disableModelConfig,
       disableNIMModelServing: disableNIMConfig,
       disableKServeMetrics,
+      disableLlamaStackChatBot,
     }),
   );
   if (pipelineServerInstalled) {
@@ -547,6 +550,26 @@ describe('Project Details', () => {
       projectDetails.shouldBeEmptyState('Workbenches', 'workbenches', false);
       projectDetails.shouldBeEmptyState('Cluster storage', 'cluster-storages', false);
       projectDetails.shouldBeEmptyState('Pipelines', 'pipelines-projects', false);
+    });
+
+    it('Chatbot disabled in the cluster', () => {
+      initIntercepts({
+        disableLlamaStackChatBot: true,
+      });
+
+      projectDetails.visit('test-project');
+      cy.findByTestId('chatbot-tab').should('not.exist');
+    });
+
+    it('Chatbot enabled in the cluster', () => {
+      initIntercepts({
+        disableLlamaStackChatBot: false,
+      });
+
+      projectDetails.visit('test-project');
+      cy.findByTestId('chatbot-tab').should('exist');
+      cy.findByRole('tab', { name: 'Chatbot' }).click();
+      cy.findByTestId('chatbot').should('exist');
     });
 
     it('Notebook with outdated Elyra image shows alert and v2 pipeline server', () => {

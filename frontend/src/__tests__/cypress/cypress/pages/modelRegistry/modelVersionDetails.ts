@@ -191,6 +191,10 @@ class ModelVersionDetails {
   findStartRunModal() {
     return cy.findByRole('dialog', { hidden: true }).contains('Start a LAB-tuning run');
   }
+
+  findDeployModelButton() {
+    return cy.findByTestId('deploy-button');
+  }
 }
 
 class PropertyRow extends TableRow {}
