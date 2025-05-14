@@ -25,10 +25,12 @@ import {
 } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/types';
 import {
   modelCustomizationRootPath,
+  ModelCustomizationRouterState,
+} from '~/routes/pipelines/modelCustomization';
+import {
   globalPipelineRecurringRunDetailsRoute,
   globalPipelineRunDetailsRoute,
-  ModelCustomizationRouterState,
-} from '~/routes';
+} from '~/routes/pipelines/runs';
 import { registeredModelRoute } from '~/routes/modelRegistry/registeredModels';
 import { modelVersionRoute } from '~/routes/modelRegistry/modelVersions';
 import { modelRegistryRoute } from '~/routes/modelRegistry/registryBase';

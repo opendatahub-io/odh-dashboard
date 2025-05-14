@@ -3,7 +3,7 @@ import { Bullseye, Spinner } from '@patternfly/react-core';
 import { Outlet } from 'react-router-dom';
 import { ExperimentKF, StorageStateKF } from '~/concepts/pipelines/kfTypes';
 import { useExperimentByParams } from '~/pages/pipelines/global/experiments/useExperimentByParams';
-import { experimentRoute } from '~/routes';
+import { experimentRoute } from '~/routes/pipelines/experiments';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 
 type ExperimentContextState = {

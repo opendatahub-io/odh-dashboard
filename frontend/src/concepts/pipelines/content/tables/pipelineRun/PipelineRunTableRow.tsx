@@ -15,7 +15,7 @@ import usePipelineRunVersionInfo from '~/concepts/pipelines/content/tables/usePi
 import { PipelineVersionLink } from '~/concepts/pipelines/content/PipelineVersionLink';
 import { PipelineRunType } from '~/pages/pipelines/global/runs';
 import { RestoreRunModal } from '~/pages/pipelines/global/runs/RestoreRunModal';
-import { compareRunsRoute, duplicateRunRoute } from '~/routes';
+import { compareRunsRoute, duplicateRunRoute } from '~/routes/pipelines/runs';
 import { ArchiveRunModal } from '~/pages/pipelines/global/runs/ArchiveRunModal';
 import PipelineRunTableRowExperiment from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableRowExperiment';
 import {

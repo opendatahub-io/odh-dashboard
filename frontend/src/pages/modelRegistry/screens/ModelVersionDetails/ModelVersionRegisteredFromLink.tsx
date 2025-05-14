@@ -7,7 +7,7 @@ import { ProjectObjectType } from '~/concepts/design/utils';
 import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import { FindAdministratorOptions } from '~/pages/projects/screens/projects/const';
 import PopoverListContent from '~/components/PopoverListContent';
-import { globalPipelineRunDetailsRoute } from '~/routes';
+import { globalPipelineRunDetailsRoute } from '~/routes/pipelines/runs';
 import { getCatalogModelDetailsRoute } from '~/routes/modelCatalog/catalogModelDetails';
 import { ModelArtifact } from '~/concepts/modelRegistry/types';
 import DashboardDescriptionListGroup from '~/components/DashboardDescriptionListGroup';

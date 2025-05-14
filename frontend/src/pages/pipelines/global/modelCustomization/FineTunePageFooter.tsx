@@ -13,12 +13,11 @@ import { ModelCustomizationFormData } from '~/concepts/pipelines/content/modelCu
 import useRunFormData from '~/concepts/pipelines/content/createRun/useRunFormData';
 import { handleSubmit } from '~/concepts/pipelines/content/createRun/submitUtils';
 import { isRunSchedule } from '~/concepts/pipelines/utils';
+import { globalPipelineRunDetailsRoute, globalPipelineRunsRoute } from '~/routes/pipelines/runs';
 import {
-  globalPipelineRunDetailsRoute,
-  globalPipelineRunsRoute,
   modelCustomizationRootPath,
   ModelCustomizationRouterState,
-} from '~/routes';
+} from '~/routes/pipelines/modelCustomization';
 import { modelVersionRoute } from '~/routes/modelRegistry/modelVersions';
 import useNotification from '~/utilities/useNotification';
 import {

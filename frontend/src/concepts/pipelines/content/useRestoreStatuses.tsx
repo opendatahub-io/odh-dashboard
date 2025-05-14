@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Link } from 'react-router-dom';
 import { PipelineRunKF, ExperimentKF } from '~/concepts/pipelines/kfTypes';
 import useNotification from '~/utilities/useNotification';
-import { experimentRoute } from '~/routes';
+import { experimentRoute } from '~/routes/pipelines/experiments';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { PipelineResourceRestoreResult, StatusEntry } from '~/pages/pipelines/global/runs/types';
 import { processExperimentResults, processRunResults } from '~/pages/pipelines/global/runs/utils';

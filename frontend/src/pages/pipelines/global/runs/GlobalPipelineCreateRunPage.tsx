@@ -3,7 +3,7 @@ import CreateRunPage from '~/concepts/pipelines/content/createRun/CreateRunPage'
 import { RunTypeOption } from '~/concepts/pipelines/content/createRun/types';
 import { BreadcrumbDetailsComponentProps } from '~/concepts/pipelines/content/types';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { globalPipelineRecurringRunsRoute, globalPipelineRunsRoute } from '~/routes';
+import { globalPipelineRecurringRunsRoute, globalPipelineRunsRoute } from '~/routes/pipelines/runs';
 
 export const GlobalPipelineCreateRunPage: BreadcrumbDetailsComponentProps = ({
   breadcrumbPath,
