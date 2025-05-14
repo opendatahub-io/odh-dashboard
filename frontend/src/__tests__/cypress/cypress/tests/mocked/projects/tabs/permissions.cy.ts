@@ -1,7 +1,10 @@
 import { mockK8sResourceList, mockProjectK8sResource } from '~/__mocks__';
 import { mock200Status } from '~/__mocks__/mockK8sStatus';
 import { mockRoleBindingK8sResource } from '~/__mocks__/mockRoleBindingK8sResource';
-import { permissions } from '~/__tests__/cypress/cypress/pages/permissions';
+import {
+  permissions,
+  roleBindingPermissionsChangeModal,
+} from '~/__tests__/cypress/cypress/pages/permissions';
 import { be } from '~/__tests__/cypress/cypress/utils/should';
 import { ProjectModel, RoleBindingModel } from '~/__tests__/cypress/cypress/utils/models';
 import type { RoleBindingSubject } from '~/k8sTypes';
@@ -192,8 +195,10 @@ describe('Permissions tab', () => {
       userTable.selectPermission('test-user', 'Admin Edit the project and manage user access');
       userTable.findEditSaveButton('test-user').click();
 
-      permissions.findConfirmModal().should('be.visible');
-      permissions.findModalCancelButton().click();
+      roleBindingPermissionsChangeModal.findPermissionsChangeModal().should('exist');
+      roleBindingPermissionsChangeModal.findModalInput().should('exist').type('test-user');
+      roleBindingPermissionsChangeModal.findModalConfirmButton('Save').should('not.be.disabled');
+      roleBindingPermissionsChangeModal.findModalCancelButton().click();
     });
 
     it('Shows confirmation modal when deleting own permissions', () => {
@@ -207,8 +212,10 @@ describe('Permissions tab', () => {
 
       userTable.getTableRow('test-user').findKebabAction('Delete').click();
 
-      permissions.findConfirmModal().should('be.visible');
-      permissions.findModalCancelButton().click();
+      roleBindingPermissionsChangeModal.findPermissionsChangeModal().should('exist');
+      roleBindingPermissionsChangeModal.findModalInput().should('exist').type('test-user');
+      roleBindingPermissionsChangeModal.findModalConfirmButton('Delete').should('not.be.disabled');
+      roleBindingPermissionsChangeModal.findModalCancelButton().click();
     });
 
     it('Does not show confirmation modal when editing other users permissions', () => {
@@ -220,7 +227,7 @@ describe('Permissions tab', () => {
       userTable.selectPermission('user-3', 'Admin Edit the project and manage user access');
       userTable.findEditSaveButton('user-3').click();
 
-      permissions.findConfirmModal().should('not.exist');
+      roleBindingPermissionsChangeModal.findPermissionsChangeModal().should('not.exist');
     });
 
     it('Does not show confirmation modal when deleting other users permissions', () => {
@@ -233,7 +240,7 @@ describe('Permissions tab', () => {
       permissions.visit('test-project');
 
       userTable.getTableRow('user-1').findKebabAction('Delete').click();
-      permissions.findConfirmModal().should('not.exist');
+      roleBindingPermissionsChangeModal.findPermissionsChangeModal().should('not.exist');
       cy.wait('@deleteUser');
     });
   });

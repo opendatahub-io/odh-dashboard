@@ -277,7 +277,6 @@ const RoleBindingPermissionsTableRow: React.FC<RoleBindingPermissionsTableRowPro
           }}
           onDelete={() => onDelete?.()}
           isDeleting={isDeleting}
-          onCancel={() => onCancel()}
         />
       )}
     </>
