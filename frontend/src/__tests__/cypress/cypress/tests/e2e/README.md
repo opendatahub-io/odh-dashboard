@@ -54,6 +54,7 @@ Before you begin, ensure you have the following installed:
    ```bash
    export CY_TEST_CONFIG='PATH_TO_YOUR_TEST_VARIABLES'
    ```
+
 4. **Navigate to the frontend directory:**
 
    ```bash
@@ -61,8 +62,6 @@ Before you begin, ensure you have the following installed:
    ```
 
    > **NOTE:** Test variables are required to execute tests. Contact the QE Dashboard team for access.
-
-
 
 5. **Run Cypress:**
 
