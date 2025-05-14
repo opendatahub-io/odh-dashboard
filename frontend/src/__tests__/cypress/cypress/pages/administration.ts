@@ -47,7 +47,7 @@ class AdministrationTab {
   shouldHaveImpersonateAlert() {
     cy.findByTestId('impersonate-alert').should(
       'have.text',
-      'Info alert:This notebook server is being created for "regularuser1"Return to administration view',
+      'Info alert:This workbench is being created for "regularuser1"Return to administration view',
     );
     return this;
   }
@@ -96,17 +96,17 @@ class AdministrationUsersRow extends TableRow {
   }
 
   findServerStatusButton() {
-    return this.find().findByTestId('server-button');
+    return this.find().findByTestId('workbench-button');
   }
 }
 
 class StopNotebookModal extends Modal {
   constructor() {
-    super('Stop server modal Stop server');
+    super('Stop workbench modal Stop workbench');
   }
 
   findStopNotebookServerButton() {
-    return this.find().findByTestId('stop-nb-server-button');
+    return this.find().findByTestId('stop-workbench-button');
   }
 }
 

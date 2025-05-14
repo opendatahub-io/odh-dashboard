@@ -44,13 +44,13 @@ describe('Enabled Page', () => {
 
     enabledPage.visit();
     jupyterCard.findApplicationLink().click();
-    cy.findByTestId('app-page-title').should('have.text', 'Start a notebook server');
+    cy.findByTestId('app-page-title').should('have.text', 'Start a basic workbench');
 
     // Now validate with the home page feature flag enabled
     cy.interceptOdh('GET /api/config', mockDashboardConfig({ disableHome: false }));
 
     enabledPage.visit();
     jupyterCard.findApplicationLink().click();
-    cy.findByTestId('app-page-title').should('have.text', 'Start a notebook server');
+    cy.findByTestId('app-page-title').should('have.text', 'Start a basic workbench');
   });
 });

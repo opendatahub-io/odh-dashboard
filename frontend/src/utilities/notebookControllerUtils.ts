@@ -569,7 +569,7 @@ export const useNotebookProgress = (
     progressSteps.find((p) => p.step === ProgressionStep.OAUTH_CONTAINER_STARTED)?.status ===
       EventStatus.SUCCESS
   ) {
-    const startedStep = progressSteps.find((p) => p.step === ProgressionStep.SERVER_STARTED);
+    const startedStep = progressSteps.find((p) => p.step === ProgressionStep.WORKBENCH_STARTED);
     if (startedStep) {
       startedStep.status = EventStatus.SUCCESS;
     }

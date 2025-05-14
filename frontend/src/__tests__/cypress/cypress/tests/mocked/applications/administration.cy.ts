@@ -49,7 +49,7 @@ it('Administration tab should not be accessible for non-project admins', () => {
   notebookController.visit();
   notebookController.findAdministrationTab().should('not.exist');
   notebookController.findSpawnerTab().should('not.exist');
-  notebookController.findAppTitle().should('contain', 'Start a notebook server');
+  notebookController.findAppTitle().should('contain', 'Start a basic workbench');
 });
 
 describe('Administration Tab', () => {
@@ -65,7 +65,7 @@ describe('Administration Tab', () => {
     administration.findStopAllServersButton().should('be.disabled');
     const userRow = administration.getRow('test-user');
     userRow.shouldHavePrivilege('User');
-    userRow.findServerStatusButton().should('have.text', 'Start your server');
+    userRow.findServerStatusButton().should('have.text', 'Start your workbench');
     userRow.findServerStatusButton().should('be.enabled');
   });
 
@@ -92,10 +92,10 @@ describe('Administration Tab', () => {
     administration.findTableHeaderButton('Last activity').should(be.sortDescending);
 
     // By server status
-    administration.findTableHeaderButton('Server status').click();
-    administration.findTableHeaderButton('Server status').should(be.sortAscending);
-    administration.findTableHeaderButton('Server status').click();
-    administration.findTableHeaderButton('Server status').should(be.sortDescending);
+    administration.findTableHeaderButton('Workbench status').click();
+    administration.findTableHeaderButton('Workbench status').should(be.sortAscending);
+    administration.findTableHeaderButton('Workbench status').click();
+    administration.findTableHeaderButton('Workbench status').should(be.sortDescending);
   });
 
   it('Validate pagination', () => {
@@ -115,7 +115,7 @@ describe('Administration Tab', () => {
     testPagination({ totalItems, firstElement: 'Test user-0', paginationVariant: 'bottom' });
   });
 
-  it('Validate that last activity will be "Just now" and user can stop server from the table, when notebook lacks the last-activity annotation', () => {
+  it('Validate that last activity will be "Just now" and user can stop workbench from the table, when notebook lacks the last-activity annotation', () => {
     const allowedUsers = [
       mockAllowedUsers({}),
       mockAllowedUsers({ username: 'regularuser1', lastActivity: 'Now' }),
@@ -136,8 +136,8 @@ describe('Administration Tab', () => {
     const userRow = administration.getRow('regularuser1');
     userRow.shouldHavePrivilege('User');
     userRow.shouldHaveLastActivity('Just now');
-    userRow.findServerStatusButton().should('have.text', 'View server');
-    userRow.findKebabAction('Stop server').click();
+    userRow.findServerStatusButton().should('have.text', 'View workbench');
+    userRow.findKebabAction('Stop workbench').click();
 
     stopNotebookModal.findStopNotebookServerButton().should('be.enabled');
     stopNotebookModal.findStopNotebookServerButton().click();
@@ -147,7 +147,7 @@ describe('Administration Tab', () => {
     });
   });
 
-  it('Validate that clicking on "Start server" button will open a form in administartion tab and "Start your server" button will navigate to notebook server tab', () => {
+  it('Validate that clicking on "Start workbench" button will open a form in administartion tab and "Start workbench" button will navigate to notebook server tab', () => {
     initIntercepts({});
     notebookController.visit();
     notebookController.findAdministrationTab().click();
@@ -164,7 +164,7 @@ describe('Administration Tab', () => {
     // Navigate to notebook server tab
     userRow = administration.getRow('test-user');
     userRow.findServerStatusButton().click();
-    notebookController.findAppTitle().should('contain', 'Start a notebook server');
+    notebookController.findAppTitle().should('contain', 'Start a basic workbench');
     notebookController.findAppTitle().should('not.contain', 'Administration');
   });
 });

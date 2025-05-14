@@ -72,7 +72,7 @@ it('Administration tab should not be accessible for non-product admins', () => {
   notebookServer.visit();
   notebookController.findAdministrationTab().should('not.exist');
   notebookController.findSpawnerTab().should('not.exist');
-  notebookController.findAppTitle().should('contain', 'Start a notebook server');
+  notebookController.findAppTitle().should('contain', 'Start a basic workbench');
 });
 
 describe('NotebookServer', () => {
@@ -81,7 +81,7 @@ describe('NotebookServer', () => {
     initIntercepts();
   });
 
-  it('should start notebook server', () => {
+  it('should start a workbench', () => {
     notebookServer.visit();
     notebookServer.findStartServerButton().should('be.visible');
     notebookServer.findStartServerButton().click();
@@ -119,7 +119,7 @@ describe('NotebookServer', () => {
     });
   });
 
-  it('should start notebook server with params', () => {
+  it('should start a workbench with params', () => {
     const existingParamEnvs: EnvironmentVariable[] = [
       {
         name: 'one',
@@ -182,7 +182,7 @@ describe('NotebookServer', () => {
     notebookServer.findEnvVarValue(1).should('contain.value', 'test2');
   });
 
-  it('should start notebook server with hardware profile', () => {
+  it('should start a workbench with hardware profile', () => {
     cy.interceptOdh(
       'GET /api/config',
       mockDashboardConfig({
@@ -232,7 +232,7 @@ describe('NotebookServer', () => {
     });
   });
 
-  it('should start notebook server with accelerator profile', () => {
+  it('should start a workbench with accelerator profile', () => {
     notebookServer.visit();
     notebookServer.findAcceleratorProfileSelect().click();
     notebookServer.findAcceleratorProfileSelect().findSelectOption('Test GPU').click();
@@ -285,7 +285,7 @@ describe('NotebookServer', () => {
     });
   });
 
-  it('should stop notebook server', () => {
+  it('should stop a workbench', () => {
     cy.interceptOdh(
       'GET /api/notebooks/openshift-ai-notebooks/:username/status',
       { path: { username: 'jupyter-nb-test-2duser' } },

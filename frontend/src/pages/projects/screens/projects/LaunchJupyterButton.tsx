@@ -16,7 +16,7 @@ const LaunchJupyterButton: React.FC = () => {
   return (
     <Tooltip
       position="left"
-      content="Launch a notebook server to create a standalone workbench outside of a project."
+      content="Create a limited-use workbench that is not associated with a project."
     >
       <Button
         data-testid="launch-standalone-notebook-server"
@@ -28,7 +28,7 @@ const LaunchJupyterButton: React.FC = () => {
           navigate('/notebookController');
         }}
       >
-        Launch standalone workbench
+        Create standalone workbench
       </Button>
     </Tooltip>
   );

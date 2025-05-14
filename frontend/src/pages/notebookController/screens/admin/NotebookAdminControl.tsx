@@ -48,7 +48,7 @@ const NotebookAdminControl: React.FC = () => {
   return (
     <ApplicationsPage
       title="Administration"
-      description="Manage notebook servers."
+      description="Manage workbenches for your organization."
       provideChildrenPadding
       loaded={loaded}
       loadingContent={
@@ -108,7 +108,11 @@ const NotebookAdminControl: React.FC = () => {
         </StackItem>
       </Stack>
       {notebooksToStop.length ? (
-        <StopServerModal notebooksToStop={notebooksToStop} onNotebooksStop={onNotebooksStop} />
+        <StopServerModal
+          notebooksToStop={notebooksToStop}
+          onNotebooksStop={onNotebooksStop}
+          link="#"
+        />
       ) : null}
     </ApplicationsPage>
   );
