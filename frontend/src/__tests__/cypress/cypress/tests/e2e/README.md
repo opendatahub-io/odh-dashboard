@@ -52,7 +52,7 @@ Before you begin, ensure you have the following installed:
 3. **Navigate to the directory containing test variables:**
 
    ```bash
-   cd frontend
+   cd frontend/src/__tests__/cypress/
    ```
 
    > **NOTE:** Test variables are required to execute tests. Contact the QE Dashboard team for access.
@@ -63,7 +63,7 @@ Before you begin, ensure you have the following installed:
    export CY_TEST_CONFIG='PATH_TO_YOUR_TEST_VARIABLES'
    ```
 
-5. **Open Cypress:**
+5. **Open Cypress in frontend folder:**
 
    This command launches the Cypress Test Runner, where you can run your tests interactively.
 
