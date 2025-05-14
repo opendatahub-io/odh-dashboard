@@ -12,7 +12,7 @@ import { experimentsBaseRoute } from '~/routes/pipelines/experiments';
 import ExperimentContextProvider from '~/pages/pipelines/global/experiments/ExperimentContext';
 import ExperimentPipelineRuns from '~/pages/pipelines/global/experiments/ExperimentPipelineRuns';
 import ExperimentPipelineRunsTabs from '~/pages/pipelines/global/experiments/ExperimentPipelineRunsTabs';
-import { PipelineRunType } from '~/pages/pipelines/global/runs';
+import { PipelineRunType } from '~/pages/pipelines/global/runs/types';
 import ExperimentPipelineRunDetails from '~/pages/pipelines/global/experiments/ExperimentPipelineRunDetails';
 import ExperimentPipelineRecurringRunDetails from '~/pages/pipelines/global/experiments/ExperimentPipelineRecurringRunDetails';
 import {

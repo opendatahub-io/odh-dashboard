@@ -3,7 +3,7 @@ import React from 'react';
 import { Alert, AlertActionCloseButton, FormSection } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 
-import { PipelineRunTabTitle } from '~/pages/pipelines/global/runs';
+import { PipelineRunTabTitle } from '~/pages/pipelines/global/runs/types';
 import {
   CreateRunPageSections,
   runPageSectionTitles,

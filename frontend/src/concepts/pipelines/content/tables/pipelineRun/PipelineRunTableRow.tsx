@@ -13,7 +13,7 @@ import PipelineRunTableRowTitle from '~/concepts/pipelines/content/tables/pipeli
 import useNotification from '~/utilities/useNotification';
 import usePipelineRunVersionInfo from '~/concepts/pipelines/content/tables/usePipelineRunVersionInfo';
 import { PipelineVersionLink } from '~/concepts/pipelines/content/PipelineVersionLink';
-import { PipelineRunType } from '~/pages/pipelines/global/runs';
+import { PipelineRunType } from '~/pages/pipelines/global/runs/types';
 import { RestoreRunModal } from '~/pages/pipelines/global/runs/RestoreRunModal';
 import { compareRunsRoute, duplicateRunRoute } from '~/routes/pipelines/runs';
 import { ArchiveRunModal } from '~/pages/pipelines/global/runs/ArchiveRunModal';

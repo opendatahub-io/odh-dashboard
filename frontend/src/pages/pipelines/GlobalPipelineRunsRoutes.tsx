@@ -5,7 +5,7 @@ import GlobalPipelineCoreLoader from '~/pages/pipelines/global/GlobalPipelineCor
 import { PipelineRunCoreDetails } from '~/pages/pipelines/global/GlobalPipelineCoreDetails';
 import { globNamespaceAll } from '~/routes/pipelines/global';
 import { pipelineRunsBaseRoute } from '~/routes/pipelines/runs';
-import { PipelineRunType } from '~/pages/pipelines/global/runs';
+import { PipelineRunType } from '~/pages/pipelines/global/runs/types';
 import PipelineAvailabilityLoader from '~/pages/pipelines/global/pipelines/PipelineAvailabilityLoader';
 import GlobalPipelineRuns from '~/pages/pipelines/global/runs/GlobalPipelineRuns';
 import {
