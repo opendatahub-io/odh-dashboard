@@ -17,6 +17,7 @@ type NotebookUpdateImageModalFooterProps = {
   imageCard: string;
   currentImageCard: string;
   onModalClose: () => void;
+  setIsUpdating: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
 const NotebookUpdateImageModalFooter: React.FC<NotebookUpdateImageModalFooterProps> = ({
@@ -25,6 +26,7 @@ const NotebookUpdateImageModalFooter: React.FC<NotebookUpdateImageModalFooterPro
   imageCard,
   currentImageCard,
   onModalClose,
+  setIsUpdating,
 }) => {
   const [error, setError] = React.useState<K8sStatusError>();
   const [createInProgress, setCreateInProgress] = React.useState(false);
@@ -60,6 +62,7 @@ const NotebookUpdateImageModalFooter: React.FC<NotebookUpdateImageModalFooterPro
       fireFormTrackingEvent('Workbench image updated', tep);
       notebooks.find((x) => x.notebook.metadata.name === notebook.metadata.name)?.refresh();
     }
+    setIsUpdating(true);
     onModalClose();
   };
 
