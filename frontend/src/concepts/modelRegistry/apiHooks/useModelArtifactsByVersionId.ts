@@ -8,15 +8,19 @@ import { ModelArtifactList } from '~/concepts/modelRegistry/types';
 import { useModelRegistryAPI } from '~/concepts/modelRegistry/context/ModelRegistryContext';
 
 const useModelArtifactsByVersionId = (modelVersionId?: string): FetchState<ModelArtifactList> => {
-  const { api } = useModelRegistryAPI();
+  const { api, apiAvailable } = useModelRegistryAPI();
   const callback = React.useCallback<FetchStateCallbackPromise<ModelArtifactList>>(
     (opts) => {
+      if (!apiAvailable) {
+        return Promise.reject(new NotReadyError('API not yet available'));
+      }
       if (!modelVersionId) {
         return Promise.reject(new NotReadyError('No model registeredModel id'));
       }
+
       return api.getModelArtifactsByModelVersion(opts, modelVersionId);
     },
-    [api, modelVersionId],
+    [api, apiAvailable, modelVersionId],
   );
 
   return useFetchState(
