@@ -6,7 +6,7 @@ import { DashboardCommonConfig } from '~/k8sTypes';
 import FeatureFlagModal from './FeatureFlags/FeatureFlagModal';
 
 export type FeatureFlagLauncherProps = FeatureFlagProps & {
-  dashboardConfig: DashboardCommonConfig;
+  dashboardConfig: Partial<DashboardCommonConfig>;
 };
 
 const FeatureFlagLauncher: React.FC<FeatureFlagLauncherProps> = ({

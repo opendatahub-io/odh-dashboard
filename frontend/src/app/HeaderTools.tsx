@@ -29,7 +29,6 @@ import { updateImpersonateSettings } from '~/services/impersonateService';
 import { AppNotification } from '~/redux/types';
 import { useAppSelector } from '~/redux/hooks';
 import AboutDialog from '~/app/AboutDialog';
-import { FeatureFlagProps } from '~/types';
 import AppLauncher from './AppLauncher';
 import { useAppContext } from './AppContext';
 import { useThemeContext } from './ThemeContext';

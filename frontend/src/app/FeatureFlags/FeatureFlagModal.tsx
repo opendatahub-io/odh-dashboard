@@ -12,9 +12,9 @@ import {
 
 import { allFeatureFlags } from '~/concepts/areas/const';
 import { isFeatureFlag } from '~/concepts/areas/utils';
-import { FeatureFlagProps } from '~/types';
+import { FeatureFlagLauncherProps } from '~/app/FeatureFlagLauncher';
 
-type Props = FeatureFlagProps & { onClose: () => void };
+type Props = FeatureFlagLauncherProps & { onClose: () => void };
 
 const FeatureFlagModal: React.FC<Props> = ({
   dashboardConfig,
@@ -29,7 +29,7 @@ const FeatureFlagModal: React.FC<Props> = ({
         .filter(isFeatureFlag)
         .toSorted()
         .map((key) => {
-          const value = devFeatureFlags[key] ?? dashboardConfig[key];
+          const value = devFeatureFlags?.[key] ?? dashboardConfig[key];
           return (
             <React.Fragment key={key}>
               <GridItem>
@@ -37,14 +37,14 @@ const FeatureFlagModal: React.FC<Props> = ({
                   id={key}
                   data-testid={`${key}-checkbox`}
                   label={key}
-                  isChecked={value ?? null}
+                  isChecked={value}
                   onChange={(_, checked) => {
                     setDevFeatureFlag(key, checked);
                   }}
                 />
               </GridItem>
-              <GridItem data-testid={`${key}-value`}>{`${value ?? ''}${
-                key in devFeatureFlags ? ' (overridden)' : ''
+              <GridItem data-testid={`${key}-value`}>{`${value}${
+                devFeatureFlags && key in devFeatureFlags ? ' (overridden)' : ''
               }`}</GridItem>
             </React.Fragment>
           );

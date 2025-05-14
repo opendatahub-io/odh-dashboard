@@ -22,8 +22,6 @@ const DevFeatureFlagsBanner: React.FC<Props> = ({
     return null;
   }
 
-  console.log('in toolbar: devFeatureFlags', devFeatureFlags, dashboardConfig);
-
   return (
     <>
       <Banner color="blue">

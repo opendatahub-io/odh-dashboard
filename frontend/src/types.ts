@@ -9,17 +9,14 @@ import { DashboardCommonConfig, ImageStreamKind, ImageStreamSpecTagType } from '
 import { EitherNotBoth } from './typeHelpers';
 import { NotebookPodSpecOptions } from './concepts/hardwareProfiles/useNotebookPodSpecOptionsState';
 
-export type DevFeatureFlags = {
+export type FeatureFlagProps = {
   devFeatureFlags: Partial<DashboardCommonConfig> | null;
   setDevFeatureFlag: (flag: keyof DashboardCommonConfig, value: boolean) => void;
   resetDevFeatureFlags: () => void;
-  setDevFeatureFlagQueryVisible: (visible: boolean) => void;
 };
 
-export type FeatureFlagProps = {
-  devFeatureFlags: Partial<DashboardCommonConfig>;
-  setDevFeatureFlag: (flag: keyof DashboardCommonConfig, value: boolean) => void;
-  resetDevFeatureFlags: () => void;
+export type DevFeatureFlags = FeatureFlagProps & {
+  setDevFeatureFlagQueryVisible: (visible: boolean) => void;
 };
 
 export type PrometheusQueryResponse<TResultExtraProps extends object = object> = {
