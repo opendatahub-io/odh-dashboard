@@ -16,7 +16,7 @@ const ModelsProjectDetailsView: React.FC = () => {
     platform: projectPlatform,
     setModelServingPlatform,
     resetModelServingPlatform,
-    activeModelServingPlatformLoading,
+    newModelServingPlatformLoading,
     models,
   } = React.useContext(ModelServingContext);
 
@@ -47,8 +47,8 @@ const ModelsProjectDetailsView: React.FC = () => {
                 variant="link"
                 isInline
                 icon={<PencilAltIcon />}
-                isLoading={isLoading || activeModelServingPlatformLoading}
-                isDisabled={isLoading || activeModelServingPlatformLoading}
+                isLoading={newModelServingPlatformLoading !== undefined}
+                isDisabled={newModelServingPlatformLoading !== undefined}
                 onClick={() => {
                   resetModelServingPlatform();
                 }}
@@ -65,6 +65,7 @@ const ModelsProjectDetailsView: React.FC = () => {
           <SelectPlatformView
             platforms={availablePlatforms}
             setModelServingPlatform={setModelServingPlatform}
+            newPlatformLoading={newModelServingPlatformLoading}
           />
         )
       }

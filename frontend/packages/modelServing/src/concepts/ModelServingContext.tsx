@@ -12,7 +12,7 @@ type ModelServingContextType = {
   platform?: ModelServingPlatform | null;
   setModelServingPlatform: (platform: ModelServingPlatform) => void;
   resetModelServingPlatform: () => void;
-  activeModelServingPlatformLoading: boolean;
+  newModelServingPlatformLoading?: ModelServingPlatform | null;
   activeModelServingPlatformError: string | null;
   models?: string[];
 };
@@ -23,7 +23,7 @@ export const ModelServingContext = React.createContext<ModelServingContextType>(
   platform: undefined,
   setModelServingPlatform: () => undefined,
   resetModelServingPlatform: () => undefined,
-  activeModelServingPlatformLoading: false,
+  newModelServingPlatformLoading: undefined,
   activeModelServingPlatformError: null,
   models: [],
 });
@@ -40,7 +40,7 @@ export const ModelServingProvider: React.FC<ModelServingProviderProps> = ({ chil
     activePlatform,
     setActivePlatform,
     resetActivePlatform,
-    activePlatformLoading,
+    newPlatformLoading: activePlatformLoading,
     activePlatformError,
   } = useActiveServingPlatform(currentProject, availablePlatforms);
 
@@ -54,7 +54,7 @@ export const ModelServingProvider: React.FC<ModelServingProviderProps> = ({ chil
       setModelServingPlatform: setActivePlatform,
       resetModelServingPlatform: resetActivePlatform,
       models: deployedModels,
-      activeModelServingPlatformLoading: activePlatformLoading,
+      newModelServingPlatformLoading: activePlatformLoading,
       activeModelServingPlatformError: activePlatformError,
     }),
     [

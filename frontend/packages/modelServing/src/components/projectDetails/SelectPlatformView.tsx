@@ -27,7 +27,8 @@ import { ModelServingPlatform } from '../../concepts/modelServingPlatforms';
 export const SelectPlatformView: React.FC<{
   platforms?: ModelServingPlatform[];
   setModelServingPlatform: (platform: ModelServingPlatform) => void;
-}> = ({ platforms, setModelServingPlatform }) => {
+  newPlatformLoading?: ModelServingPlatform | null;
+}> = ({ platforms, setModelServingPlatform, newPlatformLoading }) => {
   if (!platforms || platforms.length === 0) {
     return <EmptyModelServingPlatform />;
   }
@@ -71,6 +72,8 @@ export const SelectPlatformView: React.FC<{
                     <CardFooter>
                       <Bullseye>
                         <Button
+                          isLoading={newPlatformLoading?.properties.id === p.properties.id}
+                          isDisabled={newPlatformLoading?.properties.id === p.properties.id}
                           variant="secondary"
                           onClick={() => {
                             setModelServingPlatform(p);
