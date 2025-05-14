@@ -13,6 +13,7 @@ import {
   HelperTextItem,
   Button,
   Truncate,
+  Tooltip,
 } from '@patternfly/react-core';
 import { t_global_spacer_xs as ExtraSmallSpacerSize } from '@patternfly/react-tokens';
 import React from 'react';
@@ -21,6 +22,7 @@ import {
   ExclamationCircleIcon,
   ExclamationTriangleIcon,
   InfoCircleIcon,
+  InProgressIcon,
 } from '@patternfly/react-icons';
 import { ProjectObjectType } from '~/concepts/design/utils';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
@@ -32,28 +34,47 @@ import {
   getImageVersionSoftwareString,
   getMatchingImageStreamStatusTag,
 } from '~/pages/projects/screens/spawner/spawnerUtils';
+import { NotebookState } from '~/pages/projects/notebook/types';
 import { NotebookImageAvailability, NotebookImageStatus } from './const';
 import { NotebookImage } from './types';
 
 type NotebookImageDisplayNameProps = {
   isImageStreamProjectScoped: boolean;
   notebookImage: NotebookImage | null;
+  notebookState: NotebookState;
   loaded: boolean;
   loadError?: Error;
   isExpanded?: boolean;
   onUpdateImageClick: () => void;
+  isUpdating: boolean;
+  setIsUpdating: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
 export const NotebookImageDisplayName = ({
   isImageStreamProjectScoped,
   notebookImage,
+  notebookState,
   loaded,
   loadError,
   isExpanded,
   onUpdateImageClick,
+  isUpdating,
+  setIsUpdating,
 }: NotebookImageDisplayNameProps): React.JSX.Element => {
   const isProjectScopedAvailable = useIsAreaAvailable(SupportedArea.DS_PROJECT_SCOPED).status;
   const [isPopoverVisible, setIsPopoverVisible] = React.useState(false);
+  const { isStarting, isRunning, isStopping, isStopped } = notebookState;
+  const [isRestarting, setIsRestarting] = React.useState(false);
+
+  React.useEffect(() => {
+    if (isUpdating && isRunning && isRestarting) {
+      setIsUpdating(false);
+    } else if (isUpdating && isStopped && !isRestarting) {
+      setIsUpdating(false);
+    } else if (isUpdating && (isStarting || isStopping)) {
+      setIsRestarting(true);
+    }
+  }, [isStarting, isRunning, isStopping, isUpdating, setIsUpdating, isRestarting, isStopped]);
 
   // if there was an error loading the image, display unknown WITHOUT a label
   if (loadError) {
@@ -288,32 +309,45 @@ export const NotebookImageDisplayName = ({
             </Popover>
           </FlexItem>
         )}
-        <FlexItem>
-          {(notebookImage.imageStatus === NotebookImageStatus.DELETED ||
-            notebookImage.imageAvailability === NotebookImageAvailability.DISABLED ||
-            notebookImage.imageStatus === NotebookImageStatus.LATEST ||
-            notebookImage.imageStatus === NotebookImageStatus.DEPRECATED) && (
-            <Popover
-              aria-label="Image display name popover"
-              headerContent={<Alert variant={variant} isInline isPlain title={title} />}
-              bodyContent={body}
-              footerContent={footer}
-              shouldOpen={() => setIsPopoverVisible(true)}
-              shouldClose={() => setIsPopoverVisible(false)}
-              isVisible={isPopoverVisible}
-            >
-              <Label
-                onClick={(e) => e.preventDefault()}
-                data-testid="notebook-image-availability"
-                isCompact
-                color={getNotebookImageLabelColor()}
-                icon={getNotebookImageIcon()}
+        {isUpdating && (
+          <FlexItem>
+            <Tooltip content="Updating version" data-testid="updating-image-icon-tooltip">
+              <InProgressIcon
+                className="odh-u-spin"
+                style={{ cursor: 'pointer' }}
+                data-testid="updating-image-icon"
+              />
+            </Tooltip>
+          </FlexItem>
+        )}
+        {!isUpdating && (
+          <FlexItem>
+            {(notebookImage.imageStatus === NotebookImageStatus.DELETED ||
+              notebookImage.imageAvailability === NotebookImageAvailability.DISABLED ||
+              notebookImage.imageStatus === NotebookImageStatus.LATEST ||
+              notebookImage.imageStatus === NotebookImageStatus.DEPRECATED) && (
+              <Popover
+                aria-label="Image display name popover"
+                headerContent={<Alert variant={variant} isInline isPlain title={title} />}
+                bodyContent={body}
+                footerContent={footer}
+                shouldOpen={() => setIsPopoverVisible(true)}
+                shouldClose={() => setIsPopoverVisible(false)}
+                isVisible={isPopoverVisible}
               >
-                {notebookImage.imageStatus || NotebookImageAvailability.DISABLED}
-              </Label>
-            </Popover>
-          )}
-        </FlexItem>
+                <Label
+                  onClick={(e) => e.preventDefault()}
+                  data-testid="notebook-image-availability"
+                  isCompact
+                  color={getNotebookImageLabelColor()}
+                  icon={getNotebookImageIcon()}
+                >
+                  {notebookImage.imageStatus || NotebookImageAvailability.DISABLED}
+                </Label>
+              </Popover>
+            )}
+          </FlexItem>
+        )}
       </Flex>
     </>
   );

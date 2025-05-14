@@ -19,12 +19,14 @@ type NotebookUpdateImageModalProps = {
   notebook: NotebookKind;
   notebookImage: NotebookImage;
   onModalClose: () => void;
+  setIsUpdating: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
 const NotebookUpdateImageModal: React.FC<NotebookUpdateImageModalProps> = ({
   notebook,
   notebookImage,
   onModalClose,
+  setIsUpdating,
 }) => {
   const currentImageCard = 'current-image-card';
   const latestImageCard = 'latest-image-card';
@@ -90,6 +92,7 @@ const NotebookUpdateImageModal: React.FC<NotebookUpdateImageModalProps> = ({
         imageCard={imageCard}
         currentImageCard={currentImageCard}
         onModalClose={onModalClose}
+        setIsUpdating={setIsUpdating}
       />
     </Modal>
   );
