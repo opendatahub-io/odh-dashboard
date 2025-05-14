@@ -21,6 +21,7 @@ module.exports = {
       '<rootDir>/config/transform.file.js',
     '~/(.*)': '<rootDir>/src/$1',
     '^monaco-editor$': '<rootDir>/src/__tests__/unit/__mocks__/monaco-editor.ts',
+    '^@odh-dashboard/internal/(.*)$': '<rootDir>/src/$1',
   },
 
   // The test environment that will be used for testing.
