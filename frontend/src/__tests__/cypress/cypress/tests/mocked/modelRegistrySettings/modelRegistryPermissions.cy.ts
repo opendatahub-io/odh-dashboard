@@ -348,6 +348,7 @@ describe('MR Permissions', () => {
       groupTable.findNameSelect().clear().type('example-mr-group-opti');
       cy.findByText('example-mr-group-option').click();
       groupTable.findEditSaveButton('example-mr-group-option').click();
+
       cy.wait('@editGroup').then((interception) => {
         expect(interception.request.body).to.containSubset({
           metadata: {
@@ -388,6 +389,7 @@ describe('MR Permissions', () => {
 
       modelRegistryPermissions.visit('example-mr');
       groupTable.getTableRow('example-mr-users-2').findKebabAction('Delete').click();
+
       cy.wait('@deleteGroup');
     });
 
@@ -493,6 +495,7 @@ describe('MR Permissions', () => {
       projectTable.getTableRow('Test Project').findKebabAction('Edit').click();
       projectTable.findNameSelect().findSelectOption('Project').click();
       projectTable.findEditSaveButton('Project').click();
+
       cy.wait('@editProject').then((interception) => {
         expect(interception.request.body).to.containSubset({
           roleRef: {

@@ -55,18 +55,6 @@ class MRPermissions {
   getProjectsContent() {
     return new ProjectsTab(() => cy.findByTestId('projects-tab-content'));
   }
-
-  findConfirmModal() {
-    return cy.findByTestId('role-binding-permissions-change-modal');
-  }
-
-  findModalCancelButton() {
-    return cy.findByTestId('cancel-button');
-  }
-
-  findModalConfirmButton() {
-    return cy.findByTestId('confirm-button');
-  }
 }
 
 class PermissionTable extends Contextual<HTMLElement> {

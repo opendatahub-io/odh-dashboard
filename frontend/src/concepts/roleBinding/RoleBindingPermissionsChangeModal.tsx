@@ -32,7 +32,7 @@ const RoleBindingPermissionsChangeModal: React.FC<RoleBindingPermissionsChangeMo
       <ModalBody>
         Are you sure you want to {isDeleting ? 'delete' : 'edit'} permissions for{' '}
         <strong>{roleName || 'this role binding'}</strong>? {isDeleting ? 'Deleting' : 'Editing'}{' '}
-        your permissions could result in loss of access to the project.
+        these permissions may result in loss of access to this resource.
       </ModalBody>
       <ModalFooter>
         <Button

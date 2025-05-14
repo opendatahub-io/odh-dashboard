@@ -135,7 +135,7 @@ const RoleBindingPermissions: React.FC<RoleBindingPermissionsProps> = ({
     >
       <Stack hasGutter>
         <Alert variant="warning" title="Warning" isInline>
-          Editing or deleting a user or group can result in loss of access to the project.
+          Changing user or group permissions may remove their access to this resource.
         </Alert>
         <StackItem>{description}</StackItem>
         <StackItem>{isGroupFirst ? groupTable : userTable}</StackItem>
