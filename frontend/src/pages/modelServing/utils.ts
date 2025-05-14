@@ -186,9 +186,7 @@ export const createSecrets = async (
   existingSecrets?: SecretKind[],
   opts?: K8sAPIOptions,
 ): Promise<void> => {
-  const serviceAccountName =
-    existingSecrets?.[0]?.metadata.annotations?.['kubernetes.io/service-account.name'] ||
-    getModelServiceAccountName(fillData.name);
+  const { serviceAccountName } = getTokenNames(deployedModelName, namespace);
 
   const deletedSecrets =
     existingSecrets

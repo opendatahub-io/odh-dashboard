@@ -89,7 +89,9 @@ const KServeInferenceServiceTable: React.FC = () => {
               secrets: [],
             },
             inferenceServiceEditInfo: editKserveResources.inferenceService,
-            secrets: filterTokens(editKserveResources.inferenceService.metadata.name),
+            secrets: filterTokens(
+              editKserveResources.inferenceService.spec.predictor.model?.runtime,
+            ),
           }}
           onClose={(submit: boolean) => {
             setEditKServeResources(undefined);
