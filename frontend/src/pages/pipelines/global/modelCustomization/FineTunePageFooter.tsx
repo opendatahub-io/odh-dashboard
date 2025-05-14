@@ -18,8 +18,8 @@ import {
   globalPipelineRunsRoute,
   modelCustomizationRootPath,
   ModelCustomizationRouterState,
-  modelVersionRoute,
 } from '~/routes';
+import { modelVersionRoute } from '~/routes/modelRegistry/modelVersions';
 import useNotification from '~/utilities/useNotification';
 import {
   NotificationResponseStatus,

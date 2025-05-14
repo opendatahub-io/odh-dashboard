@@ -13,7 +13,7 @@ import { getProjectModelServingPlatform } from '~/pages/modelServing/screens/pro
 import ManageServingRuntimeModal from '~/pages/modelServing/screens/projects/ServingRuntimeModal/ManageServingRuntimeModal';
 import ManageKServeModal from '~/pages/modelServing/screens/projects/kServeModal/ManageKServeModal';
 import ManageNIMServingModal from '~/pages/modelServing/screens/projects/NIMServiceModal/ManageNIMServingModal';
-import { modelVersionRoute } from '~/routes';
+import { modelVersionRoute } from '~/routes/modelRegistry/modelVersions';
 import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformStatuses';
 
 type AddModelFooterProps = {

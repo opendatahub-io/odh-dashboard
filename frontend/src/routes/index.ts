@@ -2,4 +2,3 @@
 
 export * from './pipelines';
 export * from './projects';
-export * from './modelRegistry';

@@ -24,14 +24,14 @@ import {
   FineTuneTaxonomyType,
 } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/types';
 import {
-  registeredModelRoute,
-  modelVersionRoute,
-  modelRegistryRoute,
   modelCustomizationRootPath,
   globalPipelineRecurringRunDetailsRoute,
   globalPipelineRunDetailsRoute,
   ModelCustomizationRouterState,
 } from '~/routes';
+import { registeredModelRoute } from '~/routes/modelRegistry/registeredModels';
+import { modelVersionRoute } from '~/routes/modelRegistry/modelVersions';
+import { modelRegistryRoute } from '~/routes/modelRegistry/registryBase';
 import { createHyperParametersSchema } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/hyperparameterValidationUtils';
 import { InferenceServiceStorageType } from '~/pages/modelServing/screens/types';
 import { getInputDefinitionParams } from '~/concepts/pipelines/content/createRun/utils';
