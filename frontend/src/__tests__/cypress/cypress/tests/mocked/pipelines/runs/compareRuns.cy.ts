@@ -335,7 +335,7 @@ describe('Compare runs', () => {
         cy.interceptOdh(
           'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/artifacts/:artifactId',
           {
-            query: { view: 'DOWNLOAD' },
+            query: { view: 'RENDER' },
             path: { namespace: projectName, serviceName: 'dspa', artifactId: '16' },
           },
           mockArtifactStorage({ namespace: projectName }),

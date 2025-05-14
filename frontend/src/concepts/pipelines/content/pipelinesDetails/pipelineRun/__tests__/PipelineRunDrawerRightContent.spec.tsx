@@ -29,6 +29,11 @@ const task: PipelineTask = {
   volumeMounts: [],
 };
 
+// Mock the useDispatch hook
+jest.mock('~/redux/hooks', () => ({
+  useAppDispatch: jest.fn(),
+}));
+
 jest.mock('~/concepts/areas/useIsAreaAvailable', () => () => ({
   status: true,
   featureFlags: {},
