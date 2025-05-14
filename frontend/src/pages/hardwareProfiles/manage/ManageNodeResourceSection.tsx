@@ -5,7 +5,10 @@ import { useSearchParams } from 'react-router-dom';
 import { Identifier, IdentifierResourceType } from '~/types';
 import NodeResourceTable from '~/pages/hardwareProfiles/nodeResource/NodeResourceTable';
 import ManageNodeResourceModal from '~/pages/hardwareProfiles/nodeResource/ManageNodeResourceModal';
-import { ManageHardwareProfileSectionTitles } from '~/pages/hardwareProfiles/const';
+import {
+  ManageHardwareProfileSectionTitles,
+  CPU_MEMORY_MISSING_WARNING,
+} from '~/pages/hardwareProfiles/const';
 import { ManageHardwareProfileSectionID } from '~/pages/hardwareProfiles/manage/types';
 import {
   DEFAULT_CPU_IDENTIFIER,
@@ -86,9 +89,7 @@ const ManageNodeResourceSection: React.FC<ManageNodeResourceSectionProps> = ({
             variant={AlertVariant.warning}
             data-testid="node-resource-table-alert"
           >
-            It is not recommended to remove the CPU or Memory. The resources that use this hardware
-            profile will schedule, but will be very unstable due to not having any lower or upper
-            resource bounds.
+            {CPU_MEMORY_MISSING_WARNING}
           </Alert>
         )}
         {!isEmpty && (

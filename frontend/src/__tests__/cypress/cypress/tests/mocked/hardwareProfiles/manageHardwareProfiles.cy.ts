@@ -151,6 +151,26 @@ describe('Manage Hardware Profile', () => {
     // test that values were added correctly
     createHardwareProfile.getNodeResourceTableRow('test-gpu').shouldHaveResourceLabel('Test GPU');
 
+    // make a new one; a test-ack that should be deletable - no dialog should show up
+    createHardwareProfile.findAddNodeResourceButton().click();
+    // fill in form required fields
+    createNodeResourceModal.findNodeResourceSubmitButton().should('be.disabled');
+    createNodeResourceModal.findNodeResourceLabelInput().fill('Test Ack');
+    createNodeResourceModal.findNodeResourceIdentifierInput().fill('test-ack');
+    createNodeResourceModal.findNodeResourceTypeSelect().should('contain.text', 'Other');
+    createNodeResourceModal.findNodeResourceSubmitButton().should('be.enabled');
+    createNodeResourceModal.findNodeResourceSubmitButton().click();
+    // test that values were added correctly
+    createHardwareProfile.getNodeResourceTableRow('test-ack').shouldHaveResourceLabel('Test Ack');
+
+    // now; delete it; no dialog should show:
+    createHardwareProfile.getNodeResourceTableRow('test-ack').findDeleteAction().click();
+    createHardwareProfile.findNodeResourceDeletionDialog().should('not.exist');
+    createHardwareProfile.findNodeResourceTableAlert().should('not.exist');
+
+    // Assert that the row does not exist
+    createHardwareProfile.hasNodeResourceRow('test-ack').should('be.false');
+
     // test edit node resource
     createHardwareProfile.getNodeResourceTableRow('cpu').findEditAction().click();
     editNodeResourceModal.findNodeResourceTypeSelect().should('contain.text', 'CPU');
@@ -206,6 +226,10 @@ describe('Manage Hardware Profile', () => {
 
     // test deleting the last CPU trigger the alert shown
     createHardwareProfile.getNodeResourceTableRow('cpu').findDeleteAction().click();
+    createHardwareProfile.findNodeResourceDeletionDialog().should('exist');
+    createHardwareProfile.findNodeResourceDeletionDialogDeleteButton().click();
+    createHardwareProfile.findNodeResourceDeletionDialog().should('not.exist');
+
     createHardwareProfile.findNodeResourceTableAlert().should('exist');
     createHardwareProfile.findAddNodeResourceButton().click();
     createNodeResourceModal.findNodeResourceLabelInput().fill('CPU');
@@ -216,8 +240,39 @@ describe('Manage Hardware Profile', () => {
 
     createHardwareProfile.findNodeResourceTableAlert().should('not.exist');
 
-    // test deleting the last Memory trigger the alert shown
+    // add an extra memory:
+    createHardwareProfile.findAddNodeResourceButton().click();
+    createNodeResourceModal.findNodeResourceLabelInput().fill('extra-memory');
+    createNodeResourceModal.findNodeResourceIdentifierInput().fill('extra-memory');
+    createNodeResourceModal.findNodeResourceTypeSelect().findSelectOption('Memory').click();
+    createNodeResourceModal.findNodeResourceSubmitButton().should('be.enabled');
+    createNodeResourceModal.findNodeResourceSubmitButton().click();
+
+    createHardwareProfile.hasNodeResourceRow('extra-memory').should('be.true');
+
+    // test deleting one of the two memory slots does NOT trigger an alert (or the dialog):
+    createHardwareProfile.getNodeResourceTableRow('extra-memory').findDeleteAction().click();
+
+    createHardwareProfile.findNodeResourceDeletionDialog().should('not.exist');
+    createHardwareProfile.findNodeResourceTableAlert().should('not.exist');
+    // Assert that the row does not exist
+    createHardwareProfile.hasNodeResourceRow('extra-memory').should('be.false');
+
+    // now: test deleting the last Memory trigger the alert shown
     createHardwareProfile.getNodeResourceTableRow('memory').findDeleteAction().click();
+    createHardwareProfile.findNodeResourceDeletionDialog().should('exist');
+
+    // first; cancel; should be a no-op (row still there, no alert shown)
+    createHardwareProfile.findNodeResourceDeletionDialogCancelButton().click();
+    createHardwareProfile.hasNodeResourceRow('memory').should('be.true');
+    createHardwareProfile.findNodeResourceTableAlert().should('not.exist');
+
+    // now; do it again and actually delete it:
+    createHardwareProfile.getNodeResourceTableRow('memory').findDeleteAction().click();
+    createHardwareProfile.findNodeResourceDeletionDialog().should('exist');
+    createHardwareProfile.findNodeResourceDeletionDialogDeleteButton().click();
+    createHardwareProfile.findNodeResourceDeletionDialog().should('not.exist');
+
     createHardwareProfile.findNodeResourceTableAlert().should('exist');
     createHardwareProfile.findAddNodeResourceButton().click();
     createNodeResourceModal.findNodeResourceLabelInput().fill('MEMORY');
