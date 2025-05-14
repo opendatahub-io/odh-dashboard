@@ -17,7 +17,7 @@ import {
 import text from '@patternfly/react-styles/css/utilities/Text/text';
 import truncateStyles from '@patternfly/react-styles/css/components/Truncate/truncate';
 import { InfoCircleIcon } from '@patternfly/react-icons';
-import { useBrowserStorage } from '~/components/browserStorage';
+import { useBrowserStorage } from '~/components/browserStorage/BrowserStorageContext';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
 import { getDescriptionFromK8sResource, getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import { ServiceKind } from '~/k8sTypes';

@@ -5,7 +5,7 @@ import '@testing-library/jest-dom';
 import { act } from 'react';
 import { Artifact } from '~/third_party/mlmd';
 import { artifactsBaseRoute } from '~/routes';
-import { ArtifactDetails } from '~/pages/pipelines/global/experiments/artifacts/ArtifactDetails';
+import { ArtifactDetails } from '~/pages/pipelines/global/experiments/artifacts/ArtifactDetails/ArtifactDetails';
 import GlobalPipelineCoreDetails from '~/pages/pipelines/global/GlobalPipelineCoreDetails';
 import * as useGetArtifactById from '~/concepts/pipelines/apiHooks/mlmd/useGetArtifactById';
 import * as useArtifactStorage from '~/concepts/pipelines/apiHooks/useArtifactStorage';

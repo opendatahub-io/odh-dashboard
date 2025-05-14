@@ -14,7 +14,7 @@ import { NotebookImageStatus } from '~/pages/projects/screens/detail/notebooks/c
 import { getNotebookImageData } from '~/pages/projects/screens/detail/notebooks/useNotebookImageData';
 import useImageStreams from '~/pages/projects/screens/spawner/useImageStreams';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { useBrowserStorage } from '~/components/browserStorage';
+import { useBrowserStorage } from '~/components/browserStorage/BrowserStorageContext';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
 import { isElyraVersionOutOfDate, isElyraVersionUpToDate } from './utils';

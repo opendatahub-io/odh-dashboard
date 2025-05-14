@@ -14,7 +14,7 @@ import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import OdhDocCard from '~/components/OdhDocCard';
 import ScrolledGallery from '~/concepts/design/ScrolledGallery';
 import CollapsibleSection from '~/concepts/design/CollapsibleSection';
-import { useBrowserStorage } from '~/components/browserStorage';
+import { useBrowserStorage } from '~/components/browserStorage/BrowserStorageContext';
 import { useSpecifiedResources } from './useSpecifiedResources';
 
 const includedCards = [

@@ -16,7 +16,7 @@ import { conditionalArea, SupportedArea } from '~/concepts/areas';
 import EvenlySpacedGallery from '~/components/EvenlySpacedGallery';
 import ModelCatalogSectionHeader from '~/pages/home/modelCatalog/ModelCatalogSectionHeader';
 import ModelCatalogHint from '~/pages/home/modelCatalog/ModelCatalogHint';
-import { useBrowserStorage } from '~/components/browserStorage';
+import { useBrowserStorage } from '~/components/browserStorage/BrowserStorageContext';
 import ProjectsLoading from '~/pages/home/projects/ProjectsLoading';
 import { CatalogModel, ModelCatalogSource } from '~/concepts/modelCatalog/types';
 import ModelCatalogSectionFooter from '~/pages/home/modelCatalog/ModelCatalogSectionFooter';

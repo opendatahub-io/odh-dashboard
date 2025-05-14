@@ -7,7 +7,7 @@ import {
   RunTypeOption,
 } from '~/concepts/pipelines/content/createRun/types';
 import { ValueOf } from '~/typeHelpers';
-import { ParamsSection } from '~/concepts/pipelines/content/createRun/contentSections/ParamsSection';
+import { ParamsSection } from '~/concepts/pipelines/content/createRun/contentSections/ParamsSection/ParamsSection';
 import RunTypeSectionScheduled from '~/concepts/pipelines/content/createRun/contentSections/RunTypeSectionScheduled';
 import {
   PipelineRecurringRunKF,
