@@ -16,9 +16,7 @@ const FeatureFlagLauncher: React.FC<FeatureFlagProps> = ({
   console.log('in LAUNCHER: devFeatureFlags', devFeatureFlags, dashboardConfig);
 
   const checkLoading = () =>
-    dashboardConfig === null ||
-
-    (typeof dashboardConfig === 'object' && Object.keys(dashboardConfig).length === 0);
+    typeof dashboardConfig === 'object' && Object.keys(dashboardConfig).length === 0;
 
   const [isLoading, setIsLoading] = React.useState(checkLoading);
 

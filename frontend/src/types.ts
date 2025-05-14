@@ -17,8 +17,8 @@ export type DevFeatureFlags = {
 };
 
 export type FeatureFlagProps = {
-  dashboardConfig: Partial<DashboardCommonConfig> | null;
-  devFeatureFlags: Partial<DashboardCommonConfig> | null;
+  dashboardConfig: Partial<DashboardCommonConfig>;
+  devFeatureFlags: Partial<DashboardCommonConfig>;
   setDevFeatureFlag: (flag: keyof DashboardCommonConfig, value: boolean) => void;
   resetDevFeatureFlags: () => void;
 };
