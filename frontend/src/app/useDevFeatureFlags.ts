@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { useBrowserStorage } from '~/components/browserStorage';
+import { useBrowserStorage } from '~/components/browserStorage/BrowserStorageContext';
 import { allFeatureFlags } from '~/concepts/areas/const';
 import { isFeatureFlag } from '~/concepts/areas/utils';
 import { DashboardCommonConfig, DashboardConfigKind } from '~/k8sTypes';

@@ -306,7 +306,7 @@ const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps
     options.push({
       key: 'use-existing',
       label: 'Existing settings',
-      description: 'Use the existing accelerator settings from the notebook server',
+      description: 'Use the existing accelerator settings from the workbench',
     });
   } else if (formData.profile && !formData.profile.spec.enabled) {
     options.push(formatOption(formData.profile));

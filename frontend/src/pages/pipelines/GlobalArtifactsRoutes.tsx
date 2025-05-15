@@ -4,9 +4,9 @@ import { Navigate, Route } from 'react-router-dom';
 import ProjectsRoutes from '~/concepts/projects/ProjectsRoutes';
 import GlobalPipelineCoreLoader from '~/pages/pipelines/global/GlobalPipelineCoreLoader';
 import { artifactsBaseRoute } from '~/routes';
-import { GlobalArtifactsPage } from './global/experiments/artifacts';
+import { GlobalArtifactsPage } from './global/experiments/artifacts/GlobalArtifactsPage';
 import GlobalPipelineCoreDetails from './global/GlobalPipelineCoreDetails';
-import { ArtifactDetails } from './global/experiments/artifacts/ArtifactDetails';
+import { ArtifactDetails } from './global/experiments/artifacts/ArtifactDetails/ArtifactDetails';
 
 const GlobalArtifactsRoutes: React.FC = () => (
   <ProjectsRoutes>

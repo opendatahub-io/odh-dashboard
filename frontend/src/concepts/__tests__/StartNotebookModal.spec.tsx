@@ -35,7 +35,7 @@ describe('Start Notebook modal', () => {
     expect(stepper).toBeTruthy();
     const steps = screen.getAllByRole('listitem');
     expect(steps).toHaveLength(13);
-    expect(steps[0]).toHaveTextContent('Server requested');
+    expect(steps[0]).toHaveTextContent('Workbench requested');
     expect(steps[1]).toHaveTextContent('Pod created');
     expect(steps[2]).toHaveTextContent('Pod assigned');
     expect(steps[3]).toHaveTextContent('Interface added');
@@ -47,7 +47,7 @@ describe('Start Notebook modal', () => {
     expect(steps[9]).toHaveTextContent('Oauth proxy pulled');
     expect(steps[10]).toHaveTextContent('Oauth proxy container created');
     expect(steps[11]).toHaveTextContent('Oauth proxy container started');
-    expect(steps[12]).toHaveTextContent('Server started');
+    expect(steps[12]).toHaveTextContent('Workbench started');
   });
 
   it('should show failed notebook startup status', async () => {

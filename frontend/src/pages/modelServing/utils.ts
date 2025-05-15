@@ -382,3 +382,5 @@ export const isModelServerEditInfoChanged = (
 export const isModelMesh = (inferenceService: InferenceServiceKind): boolean =>
   inferenceService.metadata.annotations?.['serving.kserve.io/deploymentMode'] ===
   DeploymentMode.ModelMesh;
+
+export const isOciModelUri = (modelUri?: string): boolean => !!modelUri?.includes('oci://');
