@@ -2,11 +2,11 @@
 
 # Dashboard Config
 
-By default the ODH Dashboard comes with a set of core features enabled that are design to work for most scenarios. The dashboard can be configured from its OdhDashboard CR, `odh-dashboard-config`.
+By default the ODH Dashboard comes with a set of core features enabled that are designed to work for most scenarios. The dashboard can be configured from its OdhDashboard CR, `odh-dashboard-config`.
 
 ## Features
 
-The following are a list of features that are supported, along with there default settings.
+The following are a list of features that are supported, along with their default settings.
 
 | Feature                      | Default | Description                                                                                          |
 | ---------------------------- | ------- | ---------------------------------------------------------------------------------------------------- |
