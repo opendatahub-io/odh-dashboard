@@ -6,7 +6,7 @@ import { ProjectObjectType, SectionType, sectionTypeBorderColor } from '~/concep
 import DividedGallery from '~/concepts/design/DividedGallery';
 import { useUser } from '~/redux/selectors';
 import InfoGalleryItem from '~/concepts/design/InfoGalleryItem';
-import { useBrowserStorage } from '~/components/browserStorage';
+import { useBrowserStorage } from '~/components/browserStorage/BrowserStorageContext';
 import { SupportedArea } from '~/concepts/areas';
 import useIsAreaAvailable from '~/concepts/areas/useIsAreaAvailable';
 import { fireLinkTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';

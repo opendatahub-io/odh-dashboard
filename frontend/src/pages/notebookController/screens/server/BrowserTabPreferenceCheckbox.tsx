@@ -15,7 +15,7 @@ const BrowserTabPreferenceCheckbox: React.FC = () => {
         id="checkbox-notebook-browser-tab-preference"
         name="checkbox-notebook-browser-tab-preference"
         isChecked={isUsingCurrentTab}
-        label="Start server in current tab"
+        label="Start workbench in current tab"
         onChange={(e, checked) => handleChange(checked)}
       />
     </FormGroup>

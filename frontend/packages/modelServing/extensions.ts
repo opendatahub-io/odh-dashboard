@@ -3,18 +3,20 @@ import type { ProjectDetailsTab } from '@odh-dashboard/plugin-core/extension-poi
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
 
-const extensions: ProjectDetailsTab[] = [
+const projectDetailsTabs: ProjectDetailsTab[] = [
   {
     type: 'app.project-details/tab',
     properties: {
       id: 'model-server', // same value as ProjectSectionID.MODEL_SERVER
       title: 'Models',
-      component: () => import('./components/ModelsProjectDetailsTab'),
+      component: () => import('./src/ModelsProjectDetailsTab'),
     },
     flags: {
       required: [SupportedArea.PLUGIN_MODEL_SERVING],
     },
   },
 ];
+
+const extensions: typeof projectDetailsTabs = [...projectDetailsTabs];
 
 export default extensions;

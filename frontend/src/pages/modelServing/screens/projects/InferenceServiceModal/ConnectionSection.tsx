@@ -426,6 +426,7 @@ export const ConnectionSection: React.FC<Props> = ({
               setData={setData}
               initialNewConnectionType={initialNewConnectionType}
               initialNewConnectionValues={initialNewConnectionValues}
+              initialConnectionName={data.storage.dataConnection}
               setNewConnection={setConnection}
               modelUri={data.storage.uri}
               setModelUri={(uri) => setData('storage', { ...data.storage, uri })}

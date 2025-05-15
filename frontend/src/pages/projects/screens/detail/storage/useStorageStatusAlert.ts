@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useBrowserStorage } from '~/components/browserStorage';
+import { useBrowserStorage } from '~/components/browserStorage/BrowserStorageContext';
 import { PersistentVolumeClaimKind } from '~/k8sTypes';
 import useNotification from '~/utilities/useNotification';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';

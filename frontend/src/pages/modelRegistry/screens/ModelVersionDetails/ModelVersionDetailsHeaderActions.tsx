@@ -9,6 +9,7 @@ import {
   ActionList,
   ActionListItem,
   ActionListGroup,
+  Tooltip,
 } from '@patternfly/react-core';
 import { useNavigate } from 'react-router';
 import { ArchiveModelVersionModal } from '~/pages/modelRegistry/screens/components/ArchiveModelVersionModal';
@@ -21,6 +22,9 @@ import { useIsAreaAvailable, SupportedArea } from '~/concepts/areas';
 import StartRunModal from '~/pages/pipelines/global/modelCustomization/startRunModal/StartRunModal';
 import { useModelVersionTuningData } from '~/concepts/modelRegistry/hooks/useModelVersionTuningData';
 import { getModelCustomizationPath } from '~/routes/pipelines/modelCustomization';
+import useDeployButtonState from '~/pages/modelServing/screens/projects/useDeployButtonState';
+import useModelArtifactsByVersionId from '~/concepts/modelRegistry/apiHooks/useModelArtifactsByVersionId';
+import { isOciModelUri } from '~/pages/modelServing/utils';
 
 interface ModelVersionsDetailsHeaderActionsProps {
   mv: ModelVersion;
@@ -51,25 +55,42 @@ const ModelVersionsDetailsHeaderActions: React.FC<ModelVersionsDetailsHeaderActi
     mv,
     registeredModel,
   );
+  const [modelArtifacts] = useModelArtifactsByVersionId(mv.id);
+  const isOciModel = isOciModelUri(modelArtifacts.items.map((artifact) => artifact.uri)[0]);
+  const deployButtonState = useDeployButtonState(isOciModel);
 
   if (!preferredModelRegistry) {
     return null;
   }
 
+  const deployButton = (
+    <Button
+      id="deploy-button"
+      aria-label="Deploy version"
+      ref={tooltipRef}
+      variant={ButtonVariant.primary}
+      onClick={() => setIsDeployModalOpen(true)}
+      isAriaDisabled={!deployButtonState.enabled}
+      data-testid="deploy-button"
+    >
+      Deploy
+    </Button>
+  );
+
   return (
     <ActionList className="pf-v5-u-display-flex">
       <ActionListGroup className="pf-v5-u-flex-1">
-        <ActionListItem>
-          <Button
-            id="deploy-button"
-            aria-label="Deploy version"
-            ref={tooltipRef}
-            variant={ButtonVariant.primary}
-            onClick={() => setIsDeployModalOpen(true)}
-          >
-            Deploy
-          </Button>
-        </ActionListItem>
+        {deployButtonState.visible && (
+          <ActionListItem>
+            {deployButtonState.enabled ? (
+              deployButton
+            ) : (
+              <Tooltip content={deployButtonState.tooltip}>
+                <span>{deployButton}</span>
+              </Tooltip>
+            )}
+          </ActionListItem>
+        )}
         {isFineTuningEnabled && (
           <ActionListItem
             className="pf-v5-u-w-100"

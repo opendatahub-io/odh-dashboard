@@ -3,7 +3,7 @@ import { act } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { testHook } from '~/__tests__/unit/testUtils/hooks';
 import useDevFeatureFlags from '~/app/useDevFeatureFlags';
-import { useBrowserStorage } from '~/components/browserStorage';
+import { useBrowserStorage } from '~/components/browserStorage/BrowserStorageContext';
 import { allFeatureFlags } from '~/concepts/areas/const';
 import { DashboardCommonConfig, DashboardConfigKind } from '~/k8sTypes';
 import axios from '~/utilities/axios';
@@ -14,7 +14,7 @@ jest.mock('react-router-dom', () => ({
     jest.fn(),
   ]),
 }));
-jest.mock('~/components/browserStorage', () => ({
+jest.mock('~/components/browserStorage/BrowserStorageContext', () => ({
   useBrowserStorage: jest.fn(() => [null, jest.fn()]),
 }));
 jest.mock('~/utilities/axios', () => ({

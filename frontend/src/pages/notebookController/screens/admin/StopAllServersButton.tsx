@@ -25,7 +25,7 @@ const StopAllServersButton: React.FC<StopAllServersButtonProps> = ({ users }) =>
         setServerStatuses(activeServers);
       }}
     >
-      Stop all servers ({serverCount})
+      Stop all workbenches ({serverCount})
     </Button>
   );
 };

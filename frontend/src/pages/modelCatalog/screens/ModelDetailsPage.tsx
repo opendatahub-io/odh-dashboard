@@ -16,6 +16,7 @@ import {
   Popover,
   ActionListGroup,
   Skeleton,
+  Tooltip,
 } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
@@ -40,6 +41,8 @@ import RhUiControlsIcon from '~/images/icons/RhUiControlsIcon';
 import { CatalogModelDetailsParams } from '~/pages/modelCatalog/types';
 import { ODH_PRODUCT_NAME } from '~/utilities/const';
 import ScrollViewOnMount from '~/components/ScrollViewOnMount';
+import { isOciModelUri } from '~/pages/modelServing/utils';
+import useDeployButtonState from '~/pages/modelServing/screens/projects/useDeployButtonState';
 import ModelDetailsView from './ModelDetailsView';
 import DeployCatalogModelModal from './DeployCatalogModelModal';
 
@@ -68,6 +71,8 @@ const ModelDetailsPage: React.FC = conditionalArea(
       ),
     [modelCatalogSources, decodedParams],
   );
+  const isOciModel = isOciModelUri(model?.artifacts?.map((artifact) => artifact.uri)[0]);
+  const deployButtonState = useDeployButtonState(isOciModel);
 
   const registerModelButton = () => {
     if (modelRegistryServicesLoadError) {
@@ -88,14 +93,18 @@ const ModelDetailsPage: React.FC = conditionalArea(
           />
         }
       >
-        <Button variant="secondary" isAriaDisabled data-testid="register-model-button">
+        <Button
+          variant={!deployButtonState.visible ? 'primary' : 'secondary'}
+          isAriaDisabled
+          data-testid="register-model-button"
+        >
           Register model
         </Button>
       </Popover>
     ) : (
       <Button
         data-testid="register-model-button"
-        variant="secondary"
+        variant={!deployButtonState.visible ? 'primary' : 'secondary'}
         onClick={() => {
           navigate(getRegisterCatalogModelRoute(decodedParams));
         }}
@@ -105,15 +114,23 @@ const ModelDetailsPage: React.FC = conditionalArea(
     );
   };
 
-  const deployModelButton = (
-    <Button
-      variant="primary"
-      data-testid="deploy-model-button"
-      onClick={() => setIsDeployModalOpen(true)}
-    >
-      Deploy model
-    </Button>
-  );
+  const renderDeployModelButton = () => {
+    const deployModelButton = (
+      <Button
+        variant="primary"
+        data-testid="deploy-model-button"
+        onClick={() => setIsDeployModalOpen(true)}
+        isAriaDisabled={!deployButtonState.enabled}
+      >
+        Deploy model
+      </Button>
+    );
+
+    if (deployButtonState.enabled) {
+      return deployModelButton;
+    }
+    return <Tooltip content={deployButtonState.tooltip}>{deployModelButton}</Tooltip>;
+  };
 
   const fineTuneActionItem = (
     <Popover
@@ -216,8 +233,8 @@ const ModelDetailsPage: React.FC = conditionalArea(
             <ActionList>
               <ActionListGroup>
                 {tuningAvailable && isLabBase(model?.labels) && fineTuneActionItem}
+                {deployButtonState.visible && renderDeployModelButton()}
                 {registerModelButton()}
-                {deployModelButton}
               </ActionListGroup>
             </ActionList>
           )
