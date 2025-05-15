@@ -147,7 +147,12 @@ const DashboardDescriptionListGroup: React.FC<DashboardDescriptionListGroupProps
           {isEditing ? contentWhenEditing : isEmpty ? contentWhenEmpty : children}
         </DescriptionListDescription>
       </DescriptionListGroup>
-      {hasUnsavedChanges && <NavigationBlockerModal hasUnsavedChanges={hasUnsavedChanges} />}
+      {hasUnsavedChanges && (
+        <NavigationBlockerModal
+          hasUnsavedChanges={hasUnsavedChanges}
+          onDiscardEditsClick={onDiscardEditsClick}
+        />
+      )}
     </>
   );
 };
