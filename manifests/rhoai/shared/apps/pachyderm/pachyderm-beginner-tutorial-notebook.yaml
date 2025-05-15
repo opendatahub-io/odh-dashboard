@@ -16,18 +16,18 @@ spec:
     Pachyderm provides industry leading data versioning, pipelines, and lineage that allow data science teams
     to automate and optimize their machine learning operations (MLOps).
   tasks:
-    - title: Launching Jupyter notebook server
+    - title: Launching Jupyter workbench
       description: |-
         ### Important considerations
         Use the **Standard Data Science** notebook with a **Medium** container size.
 
       review:
         instructions: |-
-          #### Launched Jupyter notebook server
-          Do you have a notebook browser tab?
+          #### Launched Jupyter workbench
+          Do you have a workbench browser tab?
         failedTaskHelp: This task is not verified yet. Try the task again.
       summary:
-        success: You have a notebook server up and running.
+        success: You have a workbench up and running.
         failed: Review the "Creating a Jupyter notebook" quick start for additional help.
     - title: Loading Pachyderm beginner tutorial notebook
       description: |-
