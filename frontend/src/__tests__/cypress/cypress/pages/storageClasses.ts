@@ -152,7 +152,7 @@ class StorageClassEditModal extends Modal {
   }
 
   find() {
-    return cy.findByTestId('edit-sc-modal').parents('div[role="dialog"]');
+    return cy.findByTestId('edit-sc-modal');
   }
 
   findOpenshiftScName() {
