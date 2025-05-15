@@ -29,7 +29,8 @@ import {
 import { SubmitLabel } from '~/pages/modelRegistry/screens/RegisterModel/const';
 import RegisterModelDetailsFormSection from '~/pages/modelRegistry/screens/RegisterModel/RegisterModelDetailsFormSection';
 import RegistrationFormFooter from '~/pages/modelRegistry/screens/RegisterModel/RegistrationFormFooter';
-import { getCatalogModelDetailsRoute, registeredModelRoute } from '~/routes';
+import { getCatalogModelDetailsRoute } from '~/routes/modelCatalog/catalogModelDetails';
+import { registeredModelRoute } from '~/routes/modelRegistry/registeredModels';
 import { useAppSelector } from '~/redux/hooks';
 import { ModelCatalogContext } from '~/concepts/modelCatalog/context/ModelCatalogContext';
 import { CatalogModel } from '~/concepts/modelCatalog/types';

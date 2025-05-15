@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import useNotification from '~/utilities/useNotification';
 import { PipelineRunKF, RuntimeStateKF, StorageStateKF } from '~/concepts/pipelines/kfTypes';
-import { compareRunsRoute, duplicateRunRoute } from '~/routes';
+import { compareRunsRoute, duplicateRunRoute } from '~/routes/pipelines/runs';
 import useExperimentById from '~/concepts/pipelines/apiHooks/useExperimentById';
 import { getDashboardMainContainer } from '~/utilities/utils';
 import { ExperimentContext } from '~/pages/pipelines/global/experiments/ExperimentContext';

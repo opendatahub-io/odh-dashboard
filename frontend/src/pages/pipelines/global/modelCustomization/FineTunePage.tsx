@@ -17,7 +17,7 @@ import BaseModelSection from '~/pages/pipelines/global/modelCustomization/baseMo
 import TeacherModelSection from '~/pages/pipelines/global/modelCustomization/teacherJudgeSection/TeacherModelSection';
 import JudgeModelSection from '~/pages/pipelines/global/modelCustomization/teacherJudgeSection/JudgeModelSection';
 import { PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
-import { ModelCustomizationRouterState } from '~/routes';
+import { ModelCustomizationRouterState } from '~/routes/pipelines/modelCustomization';
 import FineTunedModelSection from '~/pages/pipelines/global/modelCustomization/fineTunedModelSection/FineTunedModelSection';
 import { useWatchConnectionTypes } from '~/utilities/useWatchConnectionTypes';
 import { FineTunedModelNewConnectionContextProvider } from '~/pages/pipelines/global/modelCustomization/fineTunedModelSection/FineTunedModelNewConnectionContext';

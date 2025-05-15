@@ -10,7 +10,7 @@ import {
 import { useNavigate } from 'react-router';
 import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegistryContext';
 import { ArchiveRegisteredModelModal } from '~/pages/modelRegistry/screens/components/ArchiveRegisteredModelModal';
-import { registeredModelsRoute } from '~/routes';
+import { registeredModelsRoute } from '~/routes/modelRegistry/registeredModels';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
 import { RegisteredModel, ModelState } from '~/concepts/modelRegistry/types';
 
