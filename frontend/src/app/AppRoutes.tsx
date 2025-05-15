@@ -4,14 +4,12 @@ import { InvalidArgoDeploymentAlert } from '~/concepts/pipelines/content/Invalid
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import UnauthorizedError from '~/pages/UnauthorizedError';
 import { useUser } from '~/redux/selectors';
-import {
-  globArtifactsAll,
-  globExecutionsAll,
-  globExperimentsAll,
-  globModelCustomizationAll,
-  globPipelineRunsAll,
-  globPipelinesAll,
-} from '~/routes';
+import { globArtifactsAll } from '~/routes/pipelines/artifacts';
+import { globExecutionsAll } from '~/routes/pipelines/executions';
+import { globExperimentsAll } from '~/routes/pipelines/experiments';
+import { globModelCustomizationAll } from '~/routes/pipelines/modelCustomization';
+import { globPipelineRunsAll } from '~/routes/pipelines/runs';
+import { globPipelinesAll } from '~/routes/pipelines/global';
 import { useCheckJupyterEnabled } from '~/utilities/notebookControllerUtils';
 import { SupportedArea } from '~/concepts/areas';
 import useIsAreaAvailable from '~/concepts/areas/useIsAreaAvailable';

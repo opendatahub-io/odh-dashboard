@@ -11,7 +11,7 @@ import useInferenceServices from '~/pages/modelServing/useInferenceServices';
 import useServingRuntimes from '~/pages/modelServing/useServingRuntimes';
 import { useMakeFetchObject } from '~/utilities/useMakeFetchObject';
 import { ModelState } from '~/concepts/modelRegistry/types';
-import { modelVersionRoute } from '~/routes';
+import { modelVersionRoute } from '~/routes/modelRegistry/modelVersions';
 import ArchiveModelVersionDetailsBreadcrumb from './ArchiveModelVersionDetailsBreadcrumb';
 
 type ArchiveModelVersionDetailsProps = {

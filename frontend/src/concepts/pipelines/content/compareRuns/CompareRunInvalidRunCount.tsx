@@ -10,7 +10,7 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
-import { manageCompareRunsRoute } from '~/routes';
+import { manageCompareRunsRoute } from '~/routes/pipelines/runs';
 import { PipelineRunKF } from '~/concepts/pipelines/kfTypes';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { ExperimentContext } from '~/pages/pipelines/global/experiments/ExperimentContext';

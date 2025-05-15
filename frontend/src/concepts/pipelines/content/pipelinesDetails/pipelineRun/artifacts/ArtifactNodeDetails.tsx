@@ -13,7 +13,7 @@ import {
 } from '@patternfly/react-core';
 
 import { Artifact } from '~/third_party/mlmd';
-import { artifactsDetailsRoute } from '~/routes';
+import { artifactsDetailsRoute } from '~/routes/pipelines/artifacts';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { getArtifactName } from '~/pages/pipelines/global/experiments/artifacts/utils';
 import PipelinesTableRowTime from '~/concepts/pipelines/content/tables/PipelinesTableRowTime';

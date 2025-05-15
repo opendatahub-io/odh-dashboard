@@ -11,7 +11,7 @@ import PipelineRunTable from '~/concepts/pipelines/content/tables/pipelineRun/Pi
 import PipelineRunTableRow from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableRow';
 import PipelineRunTableToolbar from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableToolbar';
 import { PipelineRunKF } from '~/concepts/pipelines/kfTypes';
-import { compareRunsRoute } from '~/routes';
+import { compareRunsRoute } from '~/routes/pipelines/runs';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { ExperimentContext } from '~/pages/pipelines/global/experiments/ExperimentContext';
 import { usePipelineFilterSearchParams } from '~/concepts/pipelines/content/tables/usePipelineFilter';

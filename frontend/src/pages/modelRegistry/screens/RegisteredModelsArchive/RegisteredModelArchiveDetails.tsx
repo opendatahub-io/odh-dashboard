@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router';
 import { Button, Flex, FlexItem, Label, Truncate } from '@patternfly/react-core';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
-import { registeredModelRoute } from '~/routes';
+import { registeredModelRoute } from '~/routes/modelRegistry/registeredModels';
 import useRegisteredModelById from '~/concepts/modelRegistry/apiHooks/useRegisteredModelById';
 import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegistryContext';
 import { ModelState } from '~/concepts/modelRegistry/types';

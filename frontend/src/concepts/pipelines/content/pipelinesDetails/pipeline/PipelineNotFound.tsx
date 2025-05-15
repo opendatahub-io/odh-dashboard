@@ -9,7 +9,7 @@ import {
 } from '@patternfly/react-core';
 import { CubesIcon } from '@patternfly/react-icons';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { pipelinesBaseRoute } from '~/routes';
+import { pipelinesBaseRoute } from '~/routes/pipelines/global';
 
 const PipelineNotFound: React.FC = () => {
   const { namespace } = usePipelinesAPI();

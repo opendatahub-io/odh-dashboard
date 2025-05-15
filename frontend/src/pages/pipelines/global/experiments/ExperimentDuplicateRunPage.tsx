@@ -4,7 +4,8 @@ import { Link } from 'react-router-dom';
 import { PathProps } from '~/concepts/pipelines/content/types';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { ExperimentContext } from '~/pages/pipelines/global/experiments/ExperimentContext';
-import { experimentRunsRoute, runDetailsRoute } from '~/routes';
+import { experimentRunsRoute } from '~/routes/pipelines/experiments';
+import { runDetailsRoute } from '~/routes/pipelines/runs';
 import DuplicateRunPage from '~/concepts/pipelines/content/createRun/DuplicateRunPage';
 
 const ExperimentDuplicateRunPage: React.FC<PathProps> = ({ breadcrumbPath }) => {

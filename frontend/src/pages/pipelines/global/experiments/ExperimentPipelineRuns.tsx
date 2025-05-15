@@ -14,7 +14,7 @@ import {
   ExperimentContext,
   useContextExperimentArchivedOrDeleted,
 } from '~/pages/pipelines/global/experiments/ExperimentContext';
-import { experimentsBaseRoute } from '~/routes';
+import { experimentsBaseRoute } from '~/routes/pipelines/experiments';
 
 const ExperimentPipelineRuns: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) => {
   const { experiment } = React.useContext(ExperimentContext);

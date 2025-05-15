@@ -18,7 +18,7 @@ import MarkdownView from '~/components/MarkdownView';
 import { PipelineCoreDetailsPageComponent } from '~/concepts/pipelines/content/types';
 import DeletePipelineRunsModal from '~/concepts/pipelines/content/DeletePipelineRunsModal';
 import usePipelineVersionById from '~/concepts/pipelines/apiHooks/usePipelineVersionById';
-import { PipelineRunType } from '~/pages/pipelines/global/runs';
+import { PipelineRunType } from '~/pages/pipelines/global/runs/types';
 import SelectedTaskDrawerContent from '~/concepts/pipelines/content/pipelinesDetails/pipeline/SelectedTaskDrawerContent';
 import { PipelineRunDetailsTabs } from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDetailsTabs';
 import usePipelineRecurringRunById from '~/concepts/pipelines/apiHooks/usePipelineRecurringRunById';

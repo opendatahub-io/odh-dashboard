@@ -7,11 +7,11 @@ import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/M
 import ModelLabels from '~/pages/modelRegistry/screens/components/ModelLabels';
 import ModelTimestamp from '~/pages/modelRegistry/screens/components/ModelTimestamp';
 import {
-  archiveModelVersionDetailsRoute,
-  modelVersionArchiveDetailsRoute,
   modelVersionDeploymentsRoute,
   modelVersionRoute,
-} from '~/routes';
+} from '~/routes/modelRegistry/modelVersions';
+import { archiveModelVersionDetailsRoute } from '~/routes/modelRegistry/modelArchive';
+import { modelVersionArchiveDetailsRoute } from '~/routes/modelRegistry/modelVersionArchive';
 import { ArchiveModelVersionModal } from '~/pages/modelRegistry/screens/components/ArchiveModelVersionModal';
 import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegistryContext';
 import { RestoreModelVersionModal } from '~/pages/modelRegistry/screens/components/RestoreModelVersionModal';

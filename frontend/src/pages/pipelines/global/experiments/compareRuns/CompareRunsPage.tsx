@@ -8,7 +8,7 @@ import { CompareRunsInvalidRunCount } from '~/concepts/pipelines/content/compare
 import CompareRunsRunList from '~/concepts/pipelines/content/compareRuns/CompareRunsRunList';
 import { ExperimentContext } from '~/pages/pipelines/global/experiments/ExperimentContext';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { experimentRunsRoute } from '~/routes';
+import { experimentRunsRoute } from '~/routes/pipelines/experiments';
 import { CompareRunMetricsSection } from './CompareRunsMetricsSection';
 import { CompareRunParamsSection } from './CompareRunParamsSection';
 

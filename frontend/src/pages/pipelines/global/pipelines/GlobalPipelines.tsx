@@ -10,7 +10,7 @@ import PipelinesView from '~/pages/pipelines/global/pipelines/PipelinesView';
 import EnsureAPIAvailability from '~/concepts/pipelines/EnsureAPIAvailability';
 import PipelineAndVersionContextProvider from '~/concepts/pipelines/content/PipelineAndVersionContext';
 import EnsureCompatiblePipelineServer from '~/concepts/pipelines/EnsureCompatiblePipelineServer';
-import { pipelinesBaseRoute } from '~/routes';
+import { pipelinesBaseRoute } from '~/routes/pipelines/global';
 import { ProjectObjectType } from '~/concepts/design/utils';
 import TitleWithIcon from '~/concepts/design/TitleWithIcon';
 

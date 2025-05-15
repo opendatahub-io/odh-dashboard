@@ -4,7 +4,7 @@ import { render, screen, within } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { act } from 'react';
 import { Artifact } from '~/third_party/mlmd';
-import { artifactsBaseRoute } from '~/routes';
+import { artifactsBaseRoute } from '~/routes/pipelines/artifacts';
 import { ArtifactDetails } from '~/pages/pipelines/global/experiments/artifacts/ArtifactDetails/ArtifactDetails';
 import GlobalPipelineCoreDetails from '~/pages/pipelines/global/GlobalPipelineCoreDetails';
 import * as useGetArtifactById from '~/concepts/pipelines/apiHooks/mlmd/useGetArtifactById';

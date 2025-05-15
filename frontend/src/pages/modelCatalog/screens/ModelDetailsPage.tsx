@@ -36,7 +36,8 @@ import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/M
 import PopoverListContent from '~/components/PopoverListContent';
 import { FindAdministratorOptions } from '~/pages/projects/screens/projects/const';
 import { RhUiTagIcon } from '~/images/icons';
-import { modelCustomizationRootPath, getRegisterCatalogModelRoute } from '~/routes';
+import { modelCustomizationRootPath } from '~/routes/pipelines/modelCustomization';
+import { getRegisterCatalogModelRoute } from '~/routes/modelCatalog/catalogModelRegister';
 import RhUiControlsIcon from '~/images/icons/RhUiControlsIcon';
 import { CatalogModelDetailsParams } from '~/pages/modelCatalog/types';
 import { ODH_PRODUCT_NAME } from '~/utilities/const';

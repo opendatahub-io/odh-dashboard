@@ -8,7 +8,7 @@ import TitleWithIcon from '~/concepts/design/TitleWithIcon';
 import { ProjectObjectType, typedEmptyImage } from '~/concepts/design/utils';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
 import WhosMyAdministrator from '~/components/WhosMyAdministrator';
-import { modelRegistryRoute } from '~/routes';
+import { modelRegistryRoute } from '~/routes/modelRegistry/registryBase';
 import RedirectErrorState from '~/pages/external/RedirectErrorState';
 import InvalidModelRegistry from './screens/InvalidModelRegistry';
 import EmptyModelRegistryState from './screens/components/EmptyModelRegistryState';

@@ -6,7 +6,7 @@ import { TableRowTitleDescription, CheckboxTd } from '~/components/table';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import usePipelineRunVersionInfo from '~/concepts/pipelines/content/tables/usePipelineRunVersionInfo';
 import { PipelineVersionLink } from '~/concepts/pipelines/content/PipelineVersionLink';
-import { duplicateRecurringRunRoute, recurringRunDetailsRoute } from '~/routes';
+import { duplicateRecurringRunRoute, recurringRunDetailsRoute } from '~/routes/pipelines/runs';
 import {
   RecurringRunCreated,
   RecurringRunScheduled,

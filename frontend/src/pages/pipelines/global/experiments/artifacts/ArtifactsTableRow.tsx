@@ -5,7 +5,7 @@ import { Link } from 'react-router';
 import { ArtifactUriLink } from '~/concepts/pipelines/content/artifacts/ArtifactUriLink';
 import PipelinesTableRowTime from '~/concepts/pipelines/content/tables/PipelinesTableRowTime';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { artifactsDetailsRoute } from '~/routes';
+import { artifactsDetailsRoute } from '~/routes/pipelines/artifacts';
 import { Artifact } from '~/third_party/mlmd';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { getArtifactName, getIsArtifactModelRegistered } from './utils';

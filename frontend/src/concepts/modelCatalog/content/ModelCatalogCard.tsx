@@ -19,7 +19,7 @@ import {
 } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import { CatalogModel } from '~/concepts/modelCatalog/types';
-import { getCatalogModelDetailsRouteFromModel } from '~/routes';
+import { getCatalogModelDetailsRouteFromModel } from '~/routes/modelCatalog/catalogModelDetails';
 import { getTagFromModel } from '~/pages/modelCatalog/utils';
 import { RhUiTagIcon } from '~/images/icons';
 import { ModelCatalogLabels } from '~/concepts/modelCatalog/content/ModelCatalogLabels';

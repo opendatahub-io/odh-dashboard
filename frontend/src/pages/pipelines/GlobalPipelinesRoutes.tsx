@@ -8,7 +8,7 @@ import {
 } from '~/pages/pipelines/global/pipelines/const';
 import { PipelineVersionCoreDetails } from '~/pages/pipelines/global/GlobalPipelineCoreDetails';
 import PipelineDetails from '~/concepts/pipelines/content/pipelinesDetails/pipeline/PipelineDetails';
-import { globNamespaceAll, pipelinesBaseRoute } from '~/routes';
+import { globNamespaceAll, pipelinesBaseRoute } from '~/routes/pipelines/global';
 import PipelineAvailabilityLoader from '~/pages/pipelines/global/pipelines/PipelineAvailabilityLoader';
 import GlobalPipelines from './global/pipelines/GlobalPipelines';
 

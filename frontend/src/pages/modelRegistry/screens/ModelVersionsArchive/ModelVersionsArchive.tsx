@@ -4,7 +4,7 @@ import { Breadcrumb, BreadcrumbItem } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
-import { registeredModelRoute } from '~/routes';
+import { registeredModelRoute } from '~/routes/modelRegistry/registeredModels';
 import useRegisteredModelById from '~/concepts/modelRegistry/apiHooks/useRegisteredModelById';
 import useModelVersionsByRegisteredModel from '~/concepts/modelRegistry/apiHooks/useModelVersionsByRegisteredModel';
 import { filterArchiveVersions } from '~/concepts/modelRegistry/utils';

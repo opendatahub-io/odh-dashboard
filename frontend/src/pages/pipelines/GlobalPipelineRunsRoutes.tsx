@@ -3,8 +3,9 @@ import { Navigate, Route } from 'react-router-dom';
 import ProjectsRoutes from '~/concepts/projects/ProjectsRoutes';
 import GlobalPipelineCoreLoader from '~/pages/pipelines/global/GlobalPipelineCoreLoader';
 import { PipelineRunCoreDetails } from '~/pages/pipelines/global/GlobalPipelineCoreDetails';
-import { globNamespaceAll, pipelineRunsBaseRoute } from '~/routes';
-import { PipelineRunType } from '~/pages/pipelines/global/runs';
+import { globNamespaceAll } from '~/routes/pipelines/global';
+import { pipelineRunsBaseRoute } from '~/routes/pipelines/runs';
+import { PipelineRunType } from '~/pages/pipelines/global/runs/types';
 import PipelineAvailabilityLoader from '~/pages/pipelines/global/pipelines/PipelineAvailabilityLoader';
 import GlobalPipelineRuns from '~/pages/pipelines/global/runs/GlobalPipelineRuns';
 import {

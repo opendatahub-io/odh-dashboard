@@ -1,7 +1,8 @@
 import React from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@patternfly/react-core';
-import { experimentRunsRoute, globalPipelineRunDetailsRoute } from '~/routes';
+import { experimentRunsRoute } from '~/routes/pipelines/experiments';
+import { globalPipelineRunDetailsRoute } from '~/routes/pipelines/runs';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { useRedirect } from '~/utilities/useRedirect';
 import RedirectErrorState from '~/pages/external/RedirectErrorState';

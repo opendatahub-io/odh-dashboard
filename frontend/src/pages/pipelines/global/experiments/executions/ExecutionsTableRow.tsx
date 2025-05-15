@@ -3,7 +3,7 @@ import { Td, Tr } from '@patternfly/react-table';
 import { Link } from 'react-router-dom';
 import { Execution } from '~/third_party/mlmd';
 import { getExecutionDisplayName } from '~/pages/pipelines/global/experiments/executions/utils';
-import { executionDetailsRoute } from '~/routes';
+import { executionDetailsRoute } from '~/routes/pipelines/executions';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { ExecutionStatus } from '~/pages/pipelines/global/experiments/executions/ExecutionStatus';
 

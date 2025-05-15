@@ -1,7 +1,7 @@
 import React from 'react';
 import { BreadcrumbDetailsComponentProps } from '~/concepts/pipelines/content/types';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { globalPipelineRunDetailsRoute, globalPipelineRunsRoute } from '~/routes';
+import { globalPipelineRunDetailsRoute, globalPipelineRunsRoute } from '~/routes/pipelines/runs';
 import DuplicateRunPage from '~/concepts/pipelines/content/createRun/DuplicateRunPage';
 
 const GlobalPipelineDuplicateRunPage: BreadcrumbDetailsComponentProps = ({ breadcrumbPath }) => {

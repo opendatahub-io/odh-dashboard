@@ -19,7 +19,7 @@ import { usePipelineFilterSearchParams } from '~/concepts/pipelines/content/tabl
 import SimpleMenuActions from '~/components/SimpleMenuActions';
 import { ArchiveRunModal } from '~/pages/pipelines/global/runs/ArchiveRunModal';
 import { RestoreRunModal } from '~/pages/pipelines/global/runs/RestoreRunModal';
-import { compareRunsRoute, createRunRoute } from '~/routes';
+import { compareRunsRoute, createRunRoute } from '~/routes/pipelines/runs';
 import {
   ExperimentContext,
   useContextExperimentArchivedOrDeleted,

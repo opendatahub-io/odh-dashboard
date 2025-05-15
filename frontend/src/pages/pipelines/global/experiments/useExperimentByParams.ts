@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { experimentsRootPath } from '~/routes';
+import { experimentsRootPath } from '~/routes/pipelines/experiments';
 import useExperimentById from '~/concepts/pipelines/apiHooks/useExperimentById';
 import { ExperimentKF } from '~/concepts/pipelines/kfTypes';
 

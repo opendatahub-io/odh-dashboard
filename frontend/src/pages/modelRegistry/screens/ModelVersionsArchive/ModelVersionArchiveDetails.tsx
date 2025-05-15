@@ -4,7 +4,8 @@ import { Button, Flex, FlexItem, Label, Truncate } from '@patternfly/react-core'
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import useModelVersionById from '~/concepts/modelRegistry/apiHooks/useModelVersionById';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
-import { archiveModelVersionDetailsRoute, modelVersionRoute } from '~/routes';
+import { archiveModelVersionDetailsRoute } from '~/routes/modelRegistry/modelArchive';
+import { modelVersionRoute } from '~/routes/modelRegistry/modelVersions';
 import useRegisteredModelById from '~/concepts/modelRegistry/apiHooks/useRegisteredModelById';
 import { ModelVersionDetailsTab } from '~/pages/modelRegistry/screens/ModelVersionDetails/const';
 import ModelVersionDetailsTabs from '~/pages/modelRegistry/screens/ModelVersionDetails/ModelVersionDetailsTabs';

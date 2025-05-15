@@ -8,7 +8,7 @@ import PipelineSelector from '~/concepts/pipelines/content/pipelineSelector/Pipe
 import { getNameEqualsFilter } from '~/concepts/pipelines/utils';
 import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
-import { pipelineVersionDetailsRoute } from '~/routes';
+import { pipelineVersionDetailsRoute } from '~/routes/pipelines/global';
 import { generatePipelineVersionName, PipelineUploadOption } from './utils';
 import { usePipelineVersionImportModalData } from './useImportModalData';
 import PipelineImportBase from './PipelineImportBase';

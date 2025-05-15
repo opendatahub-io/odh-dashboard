@@ -42,7 +42,7 @@ import ManageNIMServingModal from '~/pages/modelServing/screens/projects/NIMServ
 import { NamespaceApplicationCase } from '~/pages/projects/types';
 import ModelServingPlatformSelectButton from '~/pages/modelServing/screens/projects/ModelServingPlatformSelectButton';
 import ModelServingPlatformSelectErrorAlert from '~/pages/modelServing/screens/ModelServingPlatformSelectErrorAlert';
-import { modelVersionRoute } from '~/routes';
+import { modelVersionRoute } from '~/routes/modelRegistry/modelVersions';
 import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformStatuses';
 import ManageServingRuntimeModal from './ServingRuntimeModal/ManageServingRuntimeModal';
 import ModelMeshServingRuntimeTable from './ModelMeshSection/ServingRuntimeTable';

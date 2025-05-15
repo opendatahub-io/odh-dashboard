@@ -19,7 +19,7 @@ import { Link } from 'react-router-dom';
 import { Artifact } from '~/third_party/mlmd';
 import { ArtifactUriLink } from '~/concepts/pipelines/content/artifacts/ArtifactUriLink';
 import { useGetEventByArtifactId } from '~/concepts/pipelines/apiHooks/mlmd/useGetEventByArtifactId';
-import { executionDetailsRoute } from '~/routes';
+import { executionDetailsRoute } from '~/routes/pipelines/executions';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { useGetExecutionById } from '~/concepts/pipelines/apiHooks/mlmd/useGetExecutionById';
 import { getOriginalExecutionId } from '~/pages/pipelines/global/experiments/executions/utils';

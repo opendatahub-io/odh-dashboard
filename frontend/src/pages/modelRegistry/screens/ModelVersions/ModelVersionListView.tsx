@@ -25,7 +25,8 @@ import {
   sortModelVersionsByCreateTime,
 } from '~/pages/modelRegistry/screens/utils';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
-import { modelVersionArchiveRoute, registerVersionForModelRoute } from '~/routes';
+import { modelVersionArchiveRoute } from '~/routes/modelRegistry/modelVersionArchive';
+import { registerVersionForModelRoute } from '~/routes/modelRegistry/register';
 import { asEnumMember } from '~/utilities/utils';
 import { ProjectObjectType, typedEmptyImage } from '~/concepts/design/utils';
 import { filterArchiveVersions, filterLiveVersions } from '~/concepts/modelRegistry/utils';

@@ -7,7 +7,7 @@ import useModelVersionsByRegisteredModel from '~/concepts/modelRegistry/apiHooks
 import useRegisteredModelById from '~/concepts/modelRegistry/apiHooks/useRegisteredModelById';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
 import { ModelState } from '~/concepts/modelRegistry/types';
-import { registeredModelArchiveDetailsRoute } from '~/routes';
+import { registeredModelArchiveDetailsRoute } from '~/routes/modelRegistry/modelArchive';
 import { useMakeFetchObject } from '~/utilities/useMakeFetchObject';
 import useInferenceServices from '~/pages/modelServing/useInferenceServices';
 import ModelVersionsTabs from './ModelVersionsTabs';

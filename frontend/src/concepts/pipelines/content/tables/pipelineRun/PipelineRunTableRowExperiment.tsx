@@ -2,7 +2,7 @@ import React from 'react';
 import { Label, Skeleton, Split, SplitItem } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { experimentRunsRoute } from '~/routes';
+import { experimentRunsRoute } from '~/routes/pipelines/experiments';
 import { ExperimentKF } from '~/concepts/pipelines/kfTypes';
 import { NoRunContent } from '~/concepts/pipelines/content/tables/renderUtils';
 import TruncatedText from '~/components/TruncatedText';

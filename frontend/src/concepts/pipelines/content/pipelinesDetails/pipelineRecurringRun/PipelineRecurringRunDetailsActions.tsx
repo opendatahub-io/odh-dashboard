@@ -15,7 +15,7 @@ import {
   RecurringRunStatus,
   StorageStateKF,
 } from '~/concepts/pipelines/kfTypes';
-import { duplicateRecurringRunRoute } from '~/routes';
+import { duplicateRecurringRunRoute } from '~/routes/pipelines/runs';
 import { getDashboardMainContainer } from '~/utilities/utils';
 import { ExperimentContext } from '~/pages/pipelines/global/experiments/ExperimentContext';
 import useExperimentById from '~/concepts/pipelines/apiHooks/useExperimentById';

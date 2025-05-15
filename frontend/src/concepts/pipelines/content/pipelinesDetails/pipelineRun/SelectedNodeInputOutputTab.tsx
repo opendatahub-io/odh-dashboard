@@ -17,7 +17,7 @@ import { PipelineTask, PipelineTaskParam } from '~/concepts/pipelines/topology';
 import { ExecutionDetailsPropertiesValueCode } from '~/pages/pipelines/global/experiments/executions/details/ExecutionDetailsPropertiesValue';
 import { InputDefinitionParameterType } from '~/concepts/pipelines/kfTypes';
 import { NoValue } from '~/components/NoValue';
-import { executionDetailsRoute } from '~/routes';
+import { executionDetailsRoute } from '~/routes/pipelines/executions';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 
 type SelectedNodeInputOutputTabProps = {

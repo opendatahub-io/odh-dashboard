@@ -6,7 +6,7 @@ import { RunTypeOption } from '~/concepts/pipelines/content/createRun/types';
 import { PathProps, PipelineCoreDetailsPageComponent } from '~/concepts/pipelines/content/types';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { ExperimentContext } from '~/pages/pipelines/global/experiments/ExperimentContext';
-import { experimentRecurringRunsRoute, experimentRunsRoute } from '~/routes';
+import { experimentRecurringRunsRoute, experimentRunsRoute } from '~/routes/pipelines/experiments';
 
 const ExperimentCreateRunPageInner: React.FC<PathProps & { runType: RunTypeOption }> = ({
   breadcrumbPath,

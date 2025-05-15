@@ -11,7 +11,7 @@ import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { ServingRuntimeTableTabs } from '~/pages/modelServing/screens/types';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
 import { getDisplayNameFromServingRuntimeTemplate } from '~/pages/modelServing/customServingRuntimes/utils';
-import { modelVersionRoute } from '~/routes';
+import { modelVersionRoute } from '~/routes/modelRegistry/modelVersions';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 
 import {

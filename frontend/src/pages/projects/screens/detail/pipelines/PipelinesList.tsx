@@ -8,7 +8,7 @@ import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import EmptyStateErrorMessage from '~/components/EmptyStateErrorMessage';
 import { TABLE_CONTENT_LIMIT } from '~/concepts/pipelines/const';
 import usePipelinesTable from '~/concepts/pipelines/content/tables/pipeline/usePipelinesTable';
-import { pipelinesBaseRoute } from '~/routes';
+import { pipelinesBaseRoute } from '~/routes/pipelines/global';
 import NoPipelineServer from '~/concepts/pipelines/NoPipelineServer';
 
 type PipelinesListProps = {

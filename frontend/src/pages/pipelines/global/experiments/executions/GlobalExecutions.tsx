@@ -5,7 +5,7 @@ import PipelineServerActions from '~/concepts/pipelines/content/PipelineServerAc
 import PipelineCoreApplicationPage from '~/pages/pipelines/global/PipelineCoreApplicationPage';
 import EnsureAPIAvailability from '~/concepts/pipelines/EnsureAPIAvailability';
 import EnsureCompatiblePipelineServer from '~/concepts/pipelines/EnsureCompatiblePipelineServer';
-import { executionsBaseRoute } from '~/routes';
+import { executionsBaseRoute } from '~/routes/pipelines/executions';
 import {
   executionsPageDescription,
   executionsPageTitle,

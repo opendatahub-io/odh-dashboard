@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button, Tooltip } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
-import { createRecurringRunRoute } from '~/routes';
+import { createRecurringRunRoute } from '~/routes/pipelines/runs';
 import {
   ExperimentContext,
   useContextExperimentArchivedOrDeleted,

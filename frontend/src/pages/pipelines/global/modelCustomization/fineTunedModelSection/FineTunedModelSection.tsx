@@ -16,7 +16,7 @@ import {
   FineTunePageSections,
   fineTunePageSectionTitles,
 } from '~/pages/pipelines/global/modelCustomization/const';
-import { ModelCustomizationRouterState } from '~/routes';
+import { ModelCustomizationRouterState } from '~/routes/pipelines/modelCustomization';
 import FineTunedModelConnectionSection from '~/pages/pipelines/global/modelCustomization/fineTunedModelSection/FineTunedModelConnectionSection';
 import { ConnectionTypeConfigMapObj } from '~/concepts/connectionTypes/types';
 import { ODH_PRODUCT_NAME } from '~/utilities/const';
