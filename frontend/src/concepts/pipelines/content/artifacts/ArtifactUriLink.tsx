@@ -17,7 +17,8 @@ export const ArtifactUriLink: React.FC<ArtifactUriLinkProps> = ({ artifact }) =>
     artifact.getType() === ArtifactType.METRICS ||
     artifact.getType() === ArtifactType.SLICED_CLASSIFICATION_METRICS;
 
-  const isDownloadableOnly = artifact.getType() === ArtifactType.MODEL;
+  const isDownloadableOnly =
+    artifact.getType() === ArtifactType.MODEL || artifact.getType() === ArtifactType.ARTIFACT;
   const { getStorageObjectDownloadUrl, getStorageObjectRenderUrl } = useArtifactStorage();
   const [loading, setLoading] = React.useState<boolean>(false);
   const notification = useNotification();
