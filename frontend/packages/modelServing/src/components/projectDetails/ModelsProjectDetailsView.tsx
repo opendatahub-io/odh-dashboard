@@ -3,10 +3,14 @@ import React from 'react';
 import DetailsSection from '@odh-dashboard/internal/pages/projects/screens/detail/DetailsSection';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { ProjectSectionID } from '@odh-dashboard/internal/pages/projects/screens/detail/types';
-import { Button, Flex, Label } from '@patternfly/react-core';
-import { PencilAltIcon } from '@patternfly/react-icons';
+import { Button, Flex, Label, Popover } from '@patternfly/react-core';
+// eslint-disable-next-line import/no-extraneous-dependencies
+import DashboardPopupIconButton from '@odh-dashboard/internal/concepts/dashboard/DashboardPopupIconButton';
+import { OutlinedQuestionCircleIcon, PencilAltIcon } from '@patternfly/react-icons';
 import { SelectPlatformView } from './SelectPlatformView';
 import { NoModelsView } from './NoModelsView';
+import DeploymentsTable from './DeploymentsTable';
+import { DeployButton } from '../deploy/DeployButton';
 import { ModelServingContext } from '../../concepts/ModelServingContext';
 
 const ModelsProjectDetailsView: React.FC = () => {
@@ -17,11 +21,11 @@ const ModelsProjectDetailsView: React.FC = () => {
     setModelServingPlatform,
     resetModelServingPlatform,
     newModelServingPlatformLoading,
-    models,
+    deployments,
   } = React.useContext(ModelServingContext);
 
-  const isLoading = !project || !models || !availablePlatforms;
-  const hasModels = models && models.length > 0;
+  const isLoading = !project || !deployments || !availablePlatforms;
+  const hasModels = !!deployments && deployments.length > 0;
 
   const activePlatform = React.useMemo(
     () =>
@@ -33,9 +37,28 @@ const ModelsProjectDetailsView: React.FC = () => {
 
   return (
     <DetailsSection
+      objectType="model"
       id={ProjectSectionID.MODEL_SERVER}
-      title={hasModels ? 'Models' : undefined}
+      title={hasModels ? 'Models and model servers' : undefined}
+      popover={
+        hasModels ? (
+          <Popover
+            headerContent="About models"
+            bodyContent="Deploy models to test them and integrate them into applications. Deploying a model makes it accessible via an API, enabling you to return predictions based on data inputs."
+          >
+            <DashboardPopupIconButton
+              icon={<OutlinedQuestionCircleIcon />}
+              aria-label="More info"
+            />
+          </Popover>
+        ) : undefined
+      }
       isLoading={isLoading}
+      actions={
+        hasModels && activePlatform
+          ? [<DeployButton key="deploy-button" platform={activePlatform} variant="secondary" />]
+          : undefined
+      }
       labels={[
         [
           <Flex gap={{ default: 'gapSm' }} key="serving-platform-label">
@@ -71,7 +94,11 @@ const ModelsProjectDetailsView: React.FC = () => {
       }
     >
       {activePlatform &&
-        (hasModels ? <>View models table</> : <NoModelsView platform={activePlatform} />)}
+        (!hasModels ? (
+          <NoModelsView platform={activePlatform} />
+        ) : (
+          <DeploymentsTable modelServingPlatform={activePlatform} deployments={deployments} />
+        ))}
     </DetailsSection>
   );
 };

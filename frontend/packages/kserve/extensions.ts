@@ -1,8 +1,11 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { NamespaceApplicationCase } from '@odh-dashboard/internal/pages/projects/types';
-import type { ModelServingPlatformExtension } from '@odh-dashboard/model-serving/extension-points';
+import type {
+  ModelServingPlatformExtension,
+  ModelServingDeploymentsTableExtension,
+} from '@odh-dashboard/model-serving/extension-points';
 
-const extensions: ModelServingPlatformExtension[] = [
+const extensions: (ModelServingPlatformExtension | ModelServingDeploymentsTableExtension)[] = [
   {
     type: 'model-serving.platform',
     properties: {
@@ -27,28 +30,41 @@ const extensions: ModelServingPlatformExtension[] = [
     },
   },
   {
-    type: 'model-serving.platform',
+    type: 'model-serving.deployments-table',
     properties: {
-      id: 'modelmesh-dummy',
-      manage: {
-        namespaceApplicationCase: NamespaceApplicationCase.MODEL_MESH_PROMOTION,
-        enabledLabel: 'modelmesh-enabled',
-        enabledLabelValue: 'true',
-      },
-      enableCardText: {
-        title: 'Multi-model serving platform',
-        description:
-          'Multiple models can be deployed on one shared model server. Useful for deploying a number of small or medium-sized models that can share the server resources.',
-        selectText: 'Select multi-model',
-        enabledText: 'Multi-model serving enabled',
-      },
-      deployedModelsView: {
-        startHintTitle: 'Start by deploying a model',
-        startHintDescription: 'Each model is deployed on its own model server',
-        deployButtonText: 'Deploy model',
-      },
+      platform: 'kserve',
+      columns: [
+        {
+          field: 'servingRuntime',
+          label: 'Serving runtime',
+          sortable: false,
+        },
+      ],
     },
   },
+  // {
+  //   type: 'model-serving.platform',
+  //   properties: {
+  //     id: 'modelmesh-dummy',
+  //     manage: {
+  //       namespaceApplicationCase: NamespaceApplicationCase.MODEL_MESH_PROMOTION,
+  //       enabledLabel: 'modelmesh-enabled',
+  //       enabledLabelValue: 'true',
+  //     },
+  //     enableCardText: {
+  //       title: 'Multi-model serving platform',
+  //       description:
+  //         'Multiple models can be deployed on one shared model server. Useful for deploying a number of small or medium-sized models that can share the server resources.',
+  //       selectText: 'Select multi-model',
+  //       enabledText: 'Multi-model serving enabled',
+  //     },
+  //     deployedModelsView: {
+  //       startHintTitle: 'Start by deploying a model',
+  //       startHintDescription: 'Each model is deployed on its own model server',
+  //       deployButtonText: 'Deploy model',
+  //     },
+  //   },
+  // },
 ];
 
 export default extensions;
