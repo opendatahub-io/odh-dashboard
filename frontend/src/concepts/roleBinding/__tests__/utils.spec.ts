@@ -1,6 +1,11 @@
 import { mockRoleBindingK8sResource } from '~/__mocks__/mockRoleBindingK8sResource';
-import { isCurrentUserChanging, tryPatchRoleBinding } from '~/concepts/roleBinding/utils';
+import {
+  castRoleBindingPermissionsRoleType,
+  isCurrentUserChanging,
+  tryPatchRoleBinding,
+} from '~/concepts/roleBinding/utils';
 import { patchRoleBindingSubjects } from '~/api';
+import { RoleBindingPermissionsRoleType } from '~/concepts/roleBinding/types';
 
 // Mock the patchRoleBindingSubjects function
 jest.mock('~/api', () => ({
@@ -109,6 +114,28 @@ describe('tryPatchRoleBinding', () => {
       oldRBObject.metadata.namespace,
       newRBObject.subjects,
       { dryRun: false },
+    );
+  });
+});
+
+describe('castRoleBindingPermissionsRoleType', () => {
+  it('should return default when role includes registry-user', () => {
+    expect(castRoleBindingPermissionsRoleType('registry-user')).toBe(
+      RoleBindingPermissionsRoleType.DEFAULT,
+    );
+  });
+
+  it('should return admin when role is admin', () => {
+    expect(castRoleBindingPermissionsRoleType('admin')).toBe(RoleBindingPermissionsRoleType.ADMIN);
+  });
+
+  it('should return edit when role is edit', () => {
+    expect(castRoleBindingPermissionsRoleType('edit')).toBe(RoleBindingPermissionsRoleType.EDIT);
+  });
+
+  it('should return custom when role is not admin, edit, or registry-user', () => {
+    expect(castRoleBindingPermissionsRoleType('custom')).toBe(
+      RoleBindingPermissionsRoleType.CUSTOM,
     );
   });
 });

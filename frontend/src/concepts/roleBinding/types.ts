@@ -9,6 +9,7 @@ export enum RoleBindingPermissionsRoleType {
   EDIT = 'edit',
   ADMIN = 'admin',
   DEFAULT = 'default',
+  CUSTOM = 'custom',
 }
 
 export type RoleBindingSubjectWithRole = RoleBindingSubject & {

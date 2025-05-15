@@ -26,7 +26,10 @@ export const castRoleBindingPermissionsRoleType = (
   if (role === RoleBindingPermissionsRoleType.EDIT) {
     return RoleBindingPermissionsRoleType.EDIT;
   }
-  return RoleBindingPermissionsRoleType.DEFAULT;
+  if (role.includes('registry-user')) {
+    return RoleBindingPermissionsRoleType.DEFAULT;
+  }
+  return RoleBindingPermissionsRoleType.CUSTOM;
 };
 
 export const firstSubject = (
