@@ -9,8 +9,11 @@ import {
   Popover,
   TextArea,
   TextInput,
+  Modal,
+  ModalBody,
+  ModalHeader,
+  ModalFooter,
 } from '@patternfly/react-core';
-import { Modal } from '@patternfly/react-core/deprecated';
 import { OutlinedQuestionCircleIcon, WarningTriangleIcon } from '@patternfly/react-icons';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import {
@@ -101,9 +104,143 @@ export const ConnectionTypeDataFieldModal: React.FC<Props> = ({
     <Modal
       isOpen
       variant="medium"
-      title={isEdit ? 'Edit field' : 'Add field'}
       onClose={onClose}
-      footer={
+      data-testid="archive-model-version-modal"
+      elementToFocus="#name"
+    >
+      <ModalHeader title={isEdit ? 'Edit field' : 'Add field'} />
+      <ModalBody>
+        <Form>
+          <FormGroup fieldId="name" label="Name" isRequired>
+            <TextInput
+              id="name"
+              value={name}
+              onChange={(_ev, value) => {
+                setData('name', value);
+                if (autoGenerateEnvVar) {
+                  setData('envVar', fieldNameToEnvVar(value));
+                }
+              }}
+              data-testid="field-name-input"
+            />
+          </FormGroup>
+          <FormGroup
+            fieldId="description"
+            label="Description"
+            labelHelp={
+              <Popover
+                aria-label="description help"
+                headerContent="Description"
+                bodyContent="Use the description to provide users in your organization with additional information about a field, or instructions for completing the field. Your input will appear in a popover, like this one."
+              >
+                <DashboardPopupIconButton
+                  icon={<OutlinedQuestionCircleIcon />}
+                  aria-label="More info for section heading"
+                />
+              </Popover>
+            }
+          >
+            <TextArea
+              id="description"
+              data-testid="field-description-input"
+              value={description}
+              onChange={(_ev, value) => setData('description', value)}
+            />
+          </FormGroup>
+          <FormGroup
+            fieldId="envVar"
+            label="Environment variable"
+            labelHelp={
+              <Popover
+                aria-label="environment variable help"
+                headerContent="Environment variable"
+                bodyContent="Environment variables are how the system references the field value in a workbench or model server. Your input will appear in a popover, like this one. "
+              >
+                <DashboardPopupIconButton
+                  icon={<OutlinedQuestionCircleIcon />}
+                  aria-label="More info for section heading"
+                />
+              </Popover>
+            }
+            isRequired
+          >
+            <TextInput
+              id="envVar"
+              value={envVar}
+              onChange={(_ev, value) => {
+                if (autoGenerateEnvVar) {
+                  setAutoGenerateEnvVar(false);
+                }
+                setData('envVar', value);
+              }}
+              data-testid="field-env-var-input"
+              validated={!isEnvVarValid || isEnvVarConflict ? 'warning' : 'default'}
+            />
+            <FormHelperText>
+              <HelperText>
+                <HelperTextItem
+                  variant={isEnvVarValid ? 'default' : 'warning'}
+                  icon={isEnvVarValid ? undefined : <WarningTriangleIcon />}
+                >
+                  For highest compatibility, field must consist of alphanumeric characters, ( - ), (
+                  _ ), or ( . )
+                </HelperTextItem>
+              </HelperText>
+              {isEnvVarConflict ? (
+                <HelperText data-testid="envvar-conflict-warning">
+                  <HelperTextItem icon={<WarningTriangleIcon />} variant="warning">
+                    {envVar} already exists within this connection type. Try a different name.
+                  </HelperTextItem>
+                </HelperText>
+              ) : undefined}
+            </FormHelperText>
+          </FormGroup>
+          <FormGroup fieldId="fieldType" label="Type" isRequired data-testid="field-type-select">
+            <SimpleSelect
+              id="fieldType"
+              onChange={(selection) => {
+                if (isConnectionTypeFieldType(selection)) {
+                  setPropertiesValid(true);
+                  setData('properties', {});
+                  // setProperties({});
+                  setData('fieldType', selection);
+                  // setFieldType(selection);
+                }
+              }}
+              options={connectionTypeDataFields
+                .map((value) => ({ label: fieldTypeToString(value), value }))
+                .toSorted((a, b) => a.label.localeCompare(b.label))
+                .map(({ value, label }) => ({
+                  key: value,
+                  label: value,
+                  dropdownLabel: label,
+                  dataTestId: `field-${value}-select`,
+                }))}
+              shouldFocusToggleOnSelect
+              isFullWidth
+              value={fieldType}
+              toggleLabel={fieldTypeToString(fieldType)}
+            />
+          </FormGroup>
+          <DataFieldPropertiesForm
+            field={newField}
+            onChange={(value) => setData('properties', value)}
+            onValidate={setPropertiesValid}
+          />
+          <FormGroup fieldId="isRequired">
+            <Checkbox
+              id="isRequired"
+              data-testid="field-required-checkbox"
+              label="Field is required"
+              isChecked={required || false}
+              onChange={(_ev, checked) => {
+                setData('required', checked);
+              }}
+            />
+          </FormGroup>
+        </Form>
+      </ModalBody>
+      <ModalFooter>
         <DashboardModalFooter
           onCancel={onClose}
           onSubmit={handleSubmit}
@@ -111,139 +248,7 @@ export const ConnectionTypeDataFieldModal: React.FC<Props> = ({
           isSubmitDisabled={!canSubmit || !isValid}
           alertTitle="Error"
         />
-      }
-      data-testid="archive-model-version-modal"
-      elementToFocus="#name"
-    >
-      <Form>
-        <FormGroup fieldId="name" label="Name" isRequired>
-          <TextInput
-            id="name"
-            value={name}
-            onChange={(_ev, value) => {
-              setData('name', value);
-              if (autoGenerateEnvVar) {
-                setData('envVar', fieldNameToEnvVar(value));
-              }
-            }}
-            data-testid="field-name-input"
-          />
-        </FormGroup>
-        <FormGroup
-          fieldId="description"
-          label="Description"
-          labelHelp={
-            <Popover
-              aria-label="description help"
-              headerContent="Description"
-              bodyContent="Use the description to provide users in your organization with additional information about a field, or instructions for completing the field. Your input will appear in a popover, like this one."
-            >
-              <DashboardPopupIconButton
-                icon={<OutlinedQuestionCircleIcon />}
-                aria-label="More info for section heading"
-              />
-            </Popover>
-          }
-        >
-          <TextArea
-            id="description"
-            data-testid="field-description-input"
-            value={description}
-            onChange={(_ev, value) => setData('description', value)}
-          />
-        </FormGroup>
-        <FormGroup
-          fieldId="envVar"
-          label="Environment variable"
-          labelHelp={
-            <Popover
-              aria-label="environment variable help"
-              headerContent="Environment variable"
-              bodyContent="Environment variables are how the system references the field value in a workbench or model server. Your input will appear in a popover, like this one. "
-            >
-              <DashboardPopupIconButton
-                icon={<OutlinedQuestionCircleIcon />}
-                aria-label="More info for section heading"
-              />
-            </Popover>
-          }
-          isRequired
-        >
-          <TextInput
-            id="envVar"
-            value={envVar}
-            onChange={(_ev, value) => {
-              if (autoGenerateEnvVar) {
-                setAutoGenerateEnvVar(false);
-              }
-              setData('envVar', value);
-            }}
-            data-testid="field-env-var-input"
-            validated={!isEnvVarValid || isEnvVarConflict ? 'warning' : 'default'}
-          />
-          <FormHelperText>
-            <HelperText>
-              <HelperTextItem
-                variant={isEnvVarValid ? 'default' : 'warning'}
-                icon={isEnvVarValid ? undefined : <WarningTriangleIcon />}
-              >
-                For highest compatibility, field must consist of alphanumeric characters, ( - ), ( _
-                ), or ( . )
-              </HelperTextItem>
-            </HelperText>
-            {isEnvVarConflict ? (
-              <HelperText data-testid="envvar-conflict-warning">
-                <HelperTextItem icon={<WarningTriangleIcon />} variant="warning">
-                  {envVar} already exists within this connection type. Try a different name.
-                </HelperTextItem>
-              </HelperText>
-            ) : undefined}
-          </FormHelperText>
-        </FormGroup>
-        <FormGroup fieldId="fieldType" label="Type" isRequired data-testid="field-type-select">
-          <SimpleSelect
-            id="fieldType"
-            onChange={(selection) => {
-              if (isConnectionTypeFieldType(selection)) {
-                setPropertiesValid(true);
-                setData('properties', {});
-                // setProperties({});
-                setData('fieldType', selection);
-                // setFieldType(selection);
-              }
-            }}
-            options={connectionTypeDataFields
-              .map((value) => ({ label: fieldTypeToString(value), value }))
-              .toSorted((a, b) => a.label.localeCompare(b.label))
-              .map(({ value, label }) => ({
-                key: value,
-                label: value,
-                dropdownLabel: label,
-                dataTestId: `field-${value}-select`,
-              }))}
-            shouldFocusToggleOnSelect
-            isFullWidth
-            value={fieldType}
-            toggleLabel={fieldTypeToString(fieldType)}
-          />
-        </FormGroup>
-        <DataFieldPropertiesForm
-          field={newField}
-          onChange={(value) => setData('properties', value)}
-          onValidate={setPropertiesValid}
-        />
-        <FormGroup fieldId="isRequired">
-          <Checkbox
-            id="isRequired"
-            data-testid="field-required-checkbox"
-            label="Field is required"
-            isChecked={required || false}
-            onChange={(_ev, checked) => {
-              setData('required', checked);
-            }}
-          />
-        </FormGroup>
-      </Form>
+      </ModalFooter>
     </Modal>
   );
 };

@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Form } from '@patternfly/react-core';
-import { Modal } from '@patternfly/react-core/deprecated';
+import { Form, Modal, ModalBody, ModalHeader, ModalFooter } from '@patternfly/react-core';
 import { Toleration } from '~/types';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import TolerationFields from './TolerationFields';
@@ -38,13 +37,19 @@ const ManageTolerationModal: React.FC<ManageTolerationModalProps> = ({
 
   return (
     <Modal
-      title={initialToleration ? 'Edit toleration' : 'Add toleration'}
       variant="medium"
       isOpen
       onClose={() => {
         onBeforeClose();
       }}
-      footer={
+    >
+      <ModalHeader title={initialToleration ? 'Edit toleration' : 'Add toleration'} />
+      <ModalBody>
+        <Form>
+          <TolerationFields toleration={toleration} onUpdate={handleUpdate} />
+        </Form>
+      </ModalBody>
+      <ModalFooter>
         <DashboardModalFooter
           submitLabel={initialToleration ? 'Update' : 'Add'}
           onSubmit={() => {
@@ -55,11 +60,7 @@ const ManageTolerationModal: React.FC<ManageTolerationModalProps> = ({
           isSubmitDisabled={isButtonDisabled}
           alertTitle="Error saving toleration"
         />
-      }
-    >
-      <Form>
-        <TolerationFields toleration={toleration} onUpdate={handleUpdate} />
-      </Form>
+      </ModalFooter>
     </Modal>
   );
 };
