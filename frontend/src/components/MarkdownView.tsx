@@ -13,6 +13,7 @@ type MarkdownViewProps = {
   maxHeading?: number;
 };
 
+/* TODO: RHOAIENG-25396 Deprecate this in favor of using the <MarkdownComponent /> */
 const MarkdownView: React.FC<MarkdownViewProps & React.HTMLAttributes<HTMLDivElement>> = ({
   className = '',
   markdown = '',
