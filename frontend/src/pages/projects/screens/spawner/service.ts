@@ -58,7 +58,7 @@ export const updatePvcDataForNotebook = async (
 
   if (existingPvc && storageData.storageType === StorageType.EXISTING_PVC) {
     if (isPvcUpdateRequired(existingPvc, storageData)) {
-      await updatePvc(storageData, existingPvc, projectName, { dryRun });
+      await updatePvc(storageData, existingPvc, projectName, { dryRun }, true);
     }
     const { name } = existingPvc.metadata;
 

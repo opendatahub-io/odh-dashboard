@@ -24,7 +24,7 @@ export const isPvcUpdateRequired = (
   storageData: StorageData,
 ): boolean =>
   getDisplayNameFromK8sResource(existingPvc) !== storageData.name ||
-  getDescriptionFromK8sResource(existingPvc) !== storageData.description ||
+  getDescriptionFromK8sResource(existingPvc) !== (storageData.description ?? '') ||
   existingPvc.spec.resources.requests.storage !== storageData.size ||
   existingPvc.spec.storageClassName !== storageData.storageClassName;
 

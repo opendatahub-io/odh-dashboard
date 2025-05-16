@@ -163,6 +163,58 @@ describe('updatePvc', () => {
       resource: createAssemblePvcs(['ReadWriteOnce']),
     });
   });
+
+  it('should update pvc and remove spec when excludeSpec is true', async () => {
+    const existingPvc = mockPVCK8sResource({
+      name: 'Old name',
+      namespace: 'namespace',
+      storage: '5Gi',
+      storageClassName: 'standard-csi',
+      displayName: 'Old Storage',
+    });
+
+    const storageData: StorageData = {
+      name: 'Updated name',
+      description: 'Updated description',
+      size: '10Gi',
+      storageClassName: 'standard-csi',
+    };
+
+    k8sUpdateResourceMock.mockResolvedValue(existingPvc);
+
+    await updatePvc(storageData, existingPvc, 'namespace', undefined, true);
+
+    const expectedPvc = {
+      ...existingPvc,
+      metadata: {
+        ...existingPvc.metadata,
+        annotations: {
+          ...existingPvc.metadata.annotations,
+          'openshift.io/display-name': 'Updated name',
+          'openshift.io/description': 'Updated description',
+        },
+      },
+      spec: {
+        ...existingPvc.spec,
+        resources: {
+          requests: {
+            storage: '10Gi',
+          },
+        },
+      },
+      status: {
+        ...existingPvc.status,
+        phase: 'Pending',
+      },
+    };
+
+    expect(k8sUpdateResourceMock).toHaveBeenCalledWith({
+      model: PVCModel,
+      fetchOptions: { requestInit: {} },
+      queryOptions: { queryParams: {} },
+      resource: expectedPvc,
+    });
+  });
 });
 
 describe('deletePvc', () => {
