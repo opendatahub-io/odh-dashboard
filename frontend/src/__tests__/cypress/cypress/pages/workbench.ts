@@ -59,6 +59,14 @@ class WorkbenchPage {
   findCreateButton() {
     return cy.findByTestId('create-workbench-button');
   }
+
+  findUpdatingImageIcon() {
+    return cy.findByTestId('updating-image-icon');
+  }
+
+  findUpdatingImageIconTooltip() {
+    return cy.findByTestId('updating-image-icon-tooltip');
+  }
 }
 
 class EnvironmentVariableTypeField extends Contextual<HTMLElement> {
