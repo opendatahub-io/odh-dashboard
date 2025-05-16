@@ -4,7 +4,7 @@
 
 import { K8sResourceCommon, WatchK8sResult } from '@openshift/dynamic-plugin-sdk-utils';
 import { AxiosError } from 'axios';
-import { EnvironmentFromVariable } from './pages/projects/types';
+import { EnvironmentFromVariable } from '~/pages/projects/types';
 import { DashboardCommonConfig, ImageStreamKind, ImageStreamSpecTagType } from './k8sTypes';
 import { EitherNotBoth } from './typeHelpers';
 import { NotebookPodSpecOptions } from './concepts/hardwareProfiles/useNotebookPodSpecOptionsState';
