@@ -45,8 +45,6 @@ const HeaderTools: React.FC<Props> = ({ onNotificationsClick, ...devFeatureFlags
   const { theme, setTheme } = useThemeContext();
   const notification = useNotification();
 
-  console.log('in dev mode??? avo44:', DEV_MODE);
-
   React.useEffect(() => {
     const htmlElement = document.getElementsByTagName('html')[0];
     if (theme === 'dark') {
@@ -157,12 +155,14 @@ const HeaderTools: React.FC<Props> = ({ onNotificationsClick, ...devFeatureFlags
       <ToolbarContent>
         <ToolbarGroup variant="action-group-plain" align={{ default: 'alignEnd' }}>
           <ToolbarItem>
-            <NotificationBadge
-              aria-label="Notification drawer"
-              variant="read"
-              count={newNotifications}
-              onClick={onNotificationsClick}
-            />
+            <Tooltip content="Notifications" position="bottom">
+              <NotificationBadge
+                aria-label="Notification drawer"
+                variant="read"
+                count={newNotifications}
+                onClick={onNotificationsClick}
+              />
+            </Tooltip>
           </ToolbarItem>
           {DEV_MODE && (
             <ToolbarItem data-testid="feature-flags-menu">
@@ -172,7 +172,9 @@ const HeaderTools: React.FC<Props> = ({ onNotificationsClick, ...devFeatureFlags
 
           {!dashboardConfig.spec.dashboardConfig.disableAppLauncher ? (
             <ToolbarItem data-testid="application-launcher">
-              <AppLauncher />
+              <Tooltip content="Applications" position="bottom">
+                <AppLauncher />
+              </Tooltip>
             </ToolbarItem>
           ) : null}
           <ToolbarItem>
@@ -180,16 +182,18 @@ const HeaderTools: React.FC<Props> = ({ onNotificationsClick, ...devFeatureFlags
               popperProps={{ position: 'right' }}
               onOpenChange={(isOpen) => setHelpMenuOpen(isOpen)}
               toggle={(toggleRef) => (
-                <MenuToggle
-                  variant="plain"
-                  aria-label="Help items"
-                  id="help-icon-toggle"
-                  ref={toggleRef}
-                  onClick={() => setHelpMenuOpen(!helpMenuOpen)}
-                  isExpanded={helpMenuOpen}
-                >
-                  <QuestionCircleIcon />
-                </MenuToggle>
+                <Tooltip content="Info" triggerRef={toggleRef} position="bottom">
+                  <MenuToggle
+                    variant="plain"
+                    aria-label="Help items"
+                    id="help-icon-toggle"
+                    ref={toggleRef}
+                    onClick={() => setHelpMenuOpen(!helpMenuOpen)}
+                    isExpanded={helpMenuOpen}
+                  >
+                    <QuestionCircleIcon />
+                  </MenuToggle>
+                </Tooltip>
               )}
               isOpen={helpMenuOpen}
             >
@@ -239,16 +243,18 @@ const HeaderTools: React.FC<Props> = ({ onNotificationsClick, ...devFeatureFlags
           <Dropdown
             popperProps={{ position: 'right' }}
             onOpenChange={(isOpen) => setUserMenuOpen(isOpen)}
-            toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-              <MenuToggle
-                aria-label="User menu"
-                id="user-menu-toggle"
-                ref={toggleRef}
-                onClick={() => setUserMenuOpen(!userMenuOpen)}
-                isExpanded={userMenuOpen}
-              >
-                {userName}
-              </MenuToggle>
+            toggle={(toggleRef) => (
+              <Tooltip content="User Menu" triggerRef={toggleRef} position="bottom">
+                <MenuToggle
+                  aria-label="User menu"
+                  id="user-menu-toggle"
+                  ref={toggleRef}
+                  onClick={() => setUserMenuOpen(!userMenuOpen)}
+                  isExpanded={userMenuOpen}
+                >
+                  {userName}
+                </MenuToggle>
+              </Tooltip>
             )}
             isOpen={userMenuOpen}
           >
