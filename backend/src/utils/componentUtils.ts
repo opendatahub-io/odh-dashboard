@@ -249,6 +249,10 @@ export const getIsAppEnabled = async (
   fastify: KubeFastifyInstance,
   appDef: OdhApplication,
 ): Promise<boolean> => {
+  if (appDef.metadata.name === 'jupyter') {
+    return checkJupyterEnabled();
+  }
+
   const enabledCM = await getApplicationEnabledConfigMap(fastify, appDef);
   if (enabledCM) {
     return true;
