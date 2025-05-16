@@ -1,11 +1,12 @@
 import { SupportedAreasStateMap } from '~/concepts/areas/const';
 import { SupportedArea } from '~/concepts/areas';
+import { SupportedAreaType } from '~/concepts/areas/types';
 
 describe('Verify const stability', () => {
   const computeTestFunc = (map: Partial<typeof SupportedAreasStateMap>) => {
     const hasSuccessfulReliantAreaInternal = (
-      key: SupportedArea,
-      passedArea: SupportedArea[] = [],
+      key: SupportedAreaType,
+      passedArea: SupportedAreaType[] = [],
     ): boolean => {
       const state = map[key];
 
