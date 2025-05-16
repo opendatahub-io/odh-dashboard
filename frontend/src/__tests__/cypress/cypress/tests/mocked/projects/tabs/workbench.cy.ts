@@ -861,16 +861,19 @@ describe('Workbench page', () => {
   it('Update Notebook Image', () => {
     initIntercepts({});
     cy.interceptK8sList(
-      PVCModel,
+      { model: PVCModel, times: 1 },
       mockK8sResourceList([
         mockPVCK8sResource({ name: 'outdated-notebook', displayName: 'Outdated Notebook' }),
       ]),
     );
-    cy.interceptK8s(RouteModel, mockRouteK8sResource({ notebookName: 'outdated-notebook' }));
+    cy.interceptK8s(
+      { model: RouteModel, times: 1 },
+      mockRouteK8sResource({ notebookName: 'outdated-notebook' }),
+    );
     cy.interceptK8sList(
-      PodModel,
+      { model: PodModel, times: 5 },
       mockK8sResourceList([mockPodK8sResource({ isRunning: true })]),
-    ).as('restartPod');
+    );
     workbenchPage.visit('test-project');
     workbenchPage.getNotebookRow('Outdated Notebook').findNotebookImageLabel().click();
     notebookImageUpdateModal.findUpdateImageButton().click();
@@ -878,7 +881,7 @@ describe('Workbench page', () => {
     notebookImageUpdateModal.findLatestVersionOption().click();
     cy.interceptK8s(
       'PATCH',
-      NotebookModel,
+      { model: NotebookModel, times: 1 },
       mockNotebookK8sResource({
         name: 'outdated-notebook',
         displayName: 'Outdated Notebook',
@@ -886,7 +889,7 @@ describe('Workbench page', () => {
     ).as('updateNotebookImage');
     cy.interceptK8s(
       'GET',
-      NotebookModel,
+      { model: NotebookModel, times: 1 },
       mockNotebookK8sResource({
         name: 'outdated-notebook',
         displayName: 'Outdated Notebook',
