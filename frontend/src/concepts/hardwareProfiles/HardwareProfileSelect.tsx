@@ -16,7 +16,7 @@ import {
   FormHelperText,
 } from '@patternfly/react-core';
 import * as React from 'react';
-import SimpleSelect, { SimpleSelectOptionStrict } from '~/components/SimpleSelect';
+import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
 import { HardwareProfileKind } from '~/k8sTypes';
 import SearchSelector from '~/components/searchSelector/SearchSelector';
 import { ProjectObjectType, typedObjectImage } from '~/concepts/design/utils';
@@ -92,7 +92,7 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
       enabledProfiles.push(initialHardwareProfile);
     }
 
-    const formattedOptions: SimpleSelectOptionStrict[] = enabledProfiles.map((profile) => {
+    const formattedOptions: SimpleSelectOption[] = enabledProfiles.map((profile) => {
       const displayName = `${profile.spec.displayName}${
         !profile.spec.enabled ? ' (disabled)' : ''
       }`;

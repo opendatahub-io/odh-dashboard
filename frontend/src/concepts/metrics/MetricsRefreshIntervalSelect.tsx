@@ -3,7 +3,7 @@ import { MetricsCommonContext } from '~/concepts/metrics/MetricsCommonContext';
 import { RefreshIntervalTitle } from '~/concepts/metrics/types';
 import { isRefreshIntervalTitle } from '~/concepts/metrics/utils';
 import { asEnumMember, enumIterator } from '~/utilities/utils';
-import SimpleSelect, { SimpleSelectOptionStrict } from '~/components/SimpleSelect';
+import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
 
 export const MetricsRefreshIntervalSelect: React.FC = () => {
   const { currentRefreshInterval, setCurrentRefreshInterval } =
@@ -19,7 +19,7 @@ export const MetricsRefreshIntervalSelect: React.FC = () => {
         }
       }}
       options={enumIterator(RefreshIntervalTitle).map(
-        ([, value]): SimpleSelectOptionStrict => ({
+        ([, value]): SimpleSelectOption => ({
           key: value,
           label: value,
         }),

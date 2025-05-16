@@ -7,7 +7,7 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import SimpleSelect, { SimpleSelectOptionStrict } from '~/components/SimpleSelect';
+import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
 import {
   PeriodicOptions,
   RunTypeScheduledData,
@@ -28,7 +28,7 @@ type TriggerTypeFieldProps = {
 const TriggerTypeField: React.FC<TriggerTypeFieldProps> = ({ data, onChange }) => {
   let content: React.ReactNode | null;
   const [numberPart, unitPart] = extractNumberAndTimeUnit(data.value);
-  const options: SimpleSelectOptionStrict[] = [
+  const options: SimpleSelectOption[] = [
     { key: ScheduledType.PERIODIC, label: 'Periodic' },
     { key: ScheduledType.CRON, label: 'Cron' },
   ];
@@ -76,7 +76,7 @@ const TriggerTypeField: React.FC<TriggerTypeFieldProps> = ({ data, onChange }) =
                 popperProps={{ maxWidth: undefined }}
                 isFullWidth
                 options={Object.values(PeriodicOptions).map(
-                  (v): SimpleSelectOptionStrict => ({
+                  (v): SimpleSelectOption => ({
                     key: v,
                     label: v,
                   }),

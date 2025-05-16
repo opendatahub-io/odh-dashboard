@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { InputGroup, SearchInput, InputGroupItem } from '@patternfly/react-core';
 import { FilterIcon } from '@patternfly/react-icons';
-import SimpleSelect, { SimpleSelectOptionStrict } from '~/components/SimpleSelect';
+import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
 import { asEnumMember } from '~/utilities/utils';
 
 // List all the possible search fields here
@@ -46,7 +46,7 @@ const DashboardSearchField: React.FC<DashboardSearchFieldProps> = ({
         aria-label="Filter type"
         dataTestId="filter-dropdown-select"
         options={types.map(
-          (key): SimpleSelectOptionStrict => ({
+          (key): SimpleSelectOption => ({
             key,
             label: key,
           }),
