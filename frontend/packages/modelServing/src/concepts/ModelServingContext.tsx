@@ -4,7 +4,8 @@ import { ProjectDetailsContext } from '@odh-dashboard/internal/pages/projects/Pr
 import type { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
 import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
 import { useActiveServingPlatform, ModelServingPlatform } from './modelServingPlatforms';
-import { isModelServingPlatformExtension } from '../../extension-points';
+import { useDeployedModels } from './modelDeployments';
+import { isModelServingPlatformExtension, Deployment } from '../../extension-points';
 
 type ModelServingContextType = {
   availablePlatforms?: ModelServingPlatform[];
@@ -14,7 +15,7 @@ type ModelServingContextType = {
   resetModelServingPlatform: () => void;
   newModelServingPlatformLoading?: ModelServingPlatform | null;
   activeModelServingPlatformError: string | null;
-  models?: string[];
+  deployments?: Deployment[] | null;
 };
 
 export const ModelServingContext = React.createContext<ModelServingContextType>({
@@ -25,7 +26,7 @@ export const ModelServingContext = React.createContext<ModelServingContextType>(
   resetModelServingPlatform: () => undefined,
   newModelServingPlatformLoading: undefined,
   activeModelServingPlatformError: null,
-  models: [],
+  deployments: undefined,
 });
 
 type ModelServingProviderProps = {
@@ -44,7 +45,7 @@ export const ModelServingProvider: React.FC<ModelServingProviderProps> = ({ chil
     activePlatformError,
   } = useActiveServingPlatform(currentProject, availablePlatforms);
 
-  const [deployedModels] = React.useState<string[]>([]);
+  const [deployedModels] = useDeployedModels(currentProject.metadata.name);
 
   const contextValue = React.useMemo<ModelServingContextType>(
     () => ({
@@ -53,7 +54,7 @@ export const ModelServingProvider: React.FC<ModelServingProviderProps> = ({ chil
       platform: activePlatform,
       setModelServingPlatform: setActivePlatform,
       resetModelServingPlatform: resetActivePlatform,
-      models: deployedModels,
+      deployments: deployedModels,
       newModelServingPlatformLoading: activePlatformLoading,
       activeModelServingPlatformError: activePlatformError,
     }),
