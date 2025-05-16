@@ -1,4 +1,5 @@
 import compareVersions from 'compare-versions';
+import type { ImageStreamStatusTag } from '~/types';
 import { NotebookSize, Volume, VolumeMount } from '~/types';
 import { BuildKind, ImageStreamKind, ImageStreamSpecTagType, K8sDSGResource } from '~/k8sTypes';
 import {
@@ -36,6 +37,27 @@ export const getVersion = (version?: string | number, prefix?: string): string =
 export const getNameVersionString = (software: ImageVersionDependencyType): string =>
   `${software.name} ${getVersion(software.version, 'v')}`;
 
+export const getMatchingImageStreamStatusTag = (
+  imageStream: ImageStreamKind,
+  imageVersion: ImageStreamSpecTagType,
+): ImageStreamStatusTag | undefined => {
+  const statusTag = imageStream.status?.tags?.find((tag) => tag.tag === imageVersion.name);
+  if (!statusTag || !statusTag.items) {
+    return undefined;
+  }
+  return {
+    tag: statusTag.tag,
+    items: statusTag.items,
+  };
+};
+
+export const getImageVersionBuildDate = (
+  imageVersion: ImageStreamSpecTagType,
+  imageStreamStatusTag: ImageStreamStatusTag | undefined,
+): string | undefined =>
+  imageStreamStatusTag?.items.find((item) => item.dockerImageReference === imageVersion.from?.name)
+    ?.created;
+
 /******************* PF Select related utils *******************/
 /**
  * Create object for PF Select component to use
@@ -45,10 +67,12 @@ export const getImageVersionSelectOptionObject = (
   imageStream: ImageStreamKind,
   imageVersion: ImageStreamSpecTagType,
 ): ImageVersionSelectOptionObjectType => ({
+  imageStreamTag: getMatchingImageStreamStatusTag(imageStream, imageVersion),
   imageVersion,
   toString: () =>
     `${imageVersion.name}${checkVersionRecommended(imageVersion) ? ' (Recommended)' : ''}`,
 });
+
 export const isImageVersionSelectOptionObject = (
   object: unknown,
 ): object is ImageVersionSelectOptionObjectType =>

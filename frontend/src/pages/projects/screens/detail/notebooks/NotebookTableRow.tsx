@@ -78,6 +78,7 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
   const { dashboardConfig } = useAppContext();
   const [isOpenConfirm, setOpenConfirm] = React.useState(false);
   const [isModalOpen, setIsModalOpen] = React.useState(false);
+  const [isUpdating, setIsUpdating] = React.useState(false);
   const [inProgress, setInProgress] = React.useState(false);
   const { name: notebookName, namespace: notebookNamespace } = obj.notebook.metadata;
   const isHardwareProfileAvailable = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;
@@ -164,10 +165,13 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
                   data.imageStream.metadata.namespace === currentProject.metadata.name
                 }
                 notebookImage={notebookImage}
+                notebookState={obj}
                 loaded={loaded}
                 loadError={loadError}
                 isExpanded
                 onUpdateImageClick={onUpdateImageClick}
+                isUpdating={isUpdating}
+                setIsUpdating={setIsUpdating}
               />
             </SplitItem>
             {showOutOfDateElyraInfo && (
@@ -282,9 +286,11 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
       ) : null}
       {isModalOpen && notebookImage && (
         <NotebookUpdateImageModal
+          notebookState={obj}
           notebookImage={notebookImage}
           notebook={obj.notebook}
           onModalClose={onModalClose}
+          setIsUpdating={setIsUpdating}
         />
       )}
     </Tbody>
