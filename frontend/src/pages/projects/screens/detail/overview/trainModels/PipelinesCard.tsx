@@ -48,10 +48,9 @@ const PipelinesCard: React.FC = () => {
             <Stack hasGutter>
               <Content>
                 <Content component="small">
-                  Pipelines are platforms for building and deploying portable and scalable
-                  machine-learning (ML) workflows. You can import a pipeline or create one in a
-                  workbench. Before you can work with pipelines, you must first configure a pipeline
-                  server in your project.
+                  To create or use pipelines, you must first configure a pipeline server in this
+                  project. A pipeline server provides the infrastructure necessary for the pipeline
+                  to execute steps, track results, and manage runs.
                 </Content>
               </Content>
               {notebooksLoaded && !notebooksError && notebooks.length > 0 ? (
