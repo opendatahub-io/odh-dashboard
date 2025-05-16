@@ -1,6 +1,15 @@
 import React from 'react';
-import { Alert, Button, Form, FormSection, Spinner } from '@patternfly/react-core';
-import { Modal } from '@patternfly/react-core/deprecated'; // TODO migrate to non-deprecated modal
+import {
+  Alert,
+  Button,
+  Form,
+  FormSection,
+  Spinner,
+  Modal,
+  ModalBody,
+  ModalHeader,
+  ModalFooter,
+} from '@patternfly/react-core';
 import { ProjectKind } from '~/k8sTypes';
 import useProjectErrorForPrefilledModel from '~/pages/modelServing/screens/projects/useProjectErrorForPrefilledModel';
 import ProjectSelector from '~/pages/modelServing/screens/projects/InferenceServiceModal/ProjectSelector';
@@ -138,26 +147,23 @@ const DeployPrefilledModelModalContents: React.FC<
     );
 
     return (
-      <Modal
-        title="Deploy model"
-        description="Configure properties for deploying your model"
-        variant="medium"
-        isOpen
-        onClose={() => onClose(false)}
-        actions={[
-          // The Deploy button is disabled as this particular return of the Modal
-          // only happens when there's not a valid selected project, otherwise we'll
-          // render the ManageKServeModal or ManageInferenceServiceModal
+      <Modal variant="medium" isOpen onClose={() => onClose(false)}>
+        <ModalHeader
+          title="Deploy model"
+          description="Configure properties for deploying your model"
+        />
+        <ModalBody>{modalForm}</ModalBody>
+        <ModalFooter>
+          {/* The Deploy button is disabled as this particular return of the Modal
+          only happens when there's not a valid selected project, otherwise we'll
+          render the ManageKServeModal or ManageInferenceServiceModal */}
           <Button key="deploy" variant="primary" isDisabled>
             Deploy
-          </Button>,
+          </Button>
           <Button key="cancel" variant="link" onClick={() => onClose(false)}>
             Cancel
-          </Button>,
-        ]}
-        showClose
-      >
-        {modalForm}
+          </Button>
+        </ModalFooter>
       </Modal>
     );
   }
