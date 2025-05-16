@@ -169,19 +169,19 @@ class NotebookImageUpdateModal {
 
 class NotebookImageVersionPopover extends Contextual<HTMLElement> {
   findImageVersionName() {
-    return this.find().findByTestId('notebook-image-version-name');
+    return cy.findByTestId('notebook-image-version-name');
   }
 
   findImageVersionBuildCommit() {
-    return this.find().findByTestId('notebook-image-version-build-commit');
+    return cy.findByTestId('notebook-image-version-build-commit');
   }
 
   findImageVersionBuildDate() {
-    return this.find().findByTestId('notebook-image-version-build-date');
+    return cy.findByTestId('notebook-image-version-build-date');
   }
 
   findImageVersionSoftware() {
-    return this.find().findByTestId('notebook-image-version-software');
+    return cy.findByTestId('notebook-image-version-software');
   }
 }
 
