@@ -1,5 +1,6 @@
 import { Contextual } from './components/Contextual';
 import { TableRow } from './components/table';
+import { DeleteModal } from './components/DeleteModal';
 
 class PermissionsTableRow extends TableRow {}
 
@@ -28,6 +29,24 @@ class PermissionsTab {
 
   getGroupTable() {
     return new PermissionTable(() => cy.findByTestId('role-binding-table Group'));
+  }
+}
+
+class RoleBindingPermissionsChangeModal extends DeleteModal {
+  findPermissionsChangeModal() {
+    return cy.findByTestId('delete-modal');
+  }
+
+  findModalCancelButton() {
+    return cy.get('button').contains('Cancel');
+  }
+
+  findModalInput() {
+    return cy.findByTestId('delete-modal-input');
+  }
+
+  findModalConfirmButton(action: string) {
+    return cy.get('button').contains(action);
   }
 }
 
@@ -92,3 +111,4 @@ class PermissionTable extends Contextual<HTMLElement> {
 }
 
 export const permissions = new PermissionsTab();
+export const roleBindingPermissionsChangeModal = new RoleBindingPermissionsChangeModal();

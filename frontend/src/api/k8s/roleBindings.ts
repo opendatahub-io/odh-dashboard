@@ -150,3 +150,26 @@ export const patchRoleBindingOwnerRef = (
       opts,
     ),
   );
+
+export const patchRoleBindingSubjects = (
+  rbName: string,
+  namespace: string,
+  subjects: RoleBindingSubject[],
+  opts?: K8sAPIOptions,
+): Promise<RoleBindingKind> =>
+  k8sPatchResource<RoleBindingKind>(
+    applyK8sAPIOptions(
+      {
+        model: RoleBindingModel,
+        queryOptions: { name: rbName, ns: namespace },
+        patches: [
+          {
+            op: 'replace',
+            path: '/subjects',
+            value: subjects,
+          },
+        ],
+      },
+      opts,
+    ),
+  );

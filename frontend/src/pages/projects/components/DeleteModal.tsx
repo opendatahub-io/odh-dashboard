@@ -23,6 +23,7 @@ type DeleteModalProps = {
   error?: Error;
   children: React.ReactNode;
   testId?: string;
+  genericLabel?: boolean;
 };
 
 const DeleteModal: React.FC<DeleteModalProps> = ({
@@ -35,6 +36,7 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
   error,
   submitButtonLabel = 'Delete',
   testId,
+  genericLabel,
 }) => {
   const [value, setValue] = React.useState('');
 
@@ -66,7 +68,8 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
           <StackItem>
             <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsSm' }}>
               <FlexItem>
-                Type <strong>{deleteNameSanitized}</strong> to confirm deletion:
+                Type <strong>{deleteNameSanitized}</strong> to confirm
+                {genericLabel ? '' : ' deletion'}:
               </FlexItem>
 
               <TextInput
