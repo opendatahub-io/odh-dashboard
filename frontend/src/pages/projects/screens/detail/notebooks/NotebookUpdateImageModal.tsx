@@ -10,12 +10,14 @@ import {
   FlexItem,
 } from '@patternfly/react-core';
 import { NotebookKind } from '~/k8sTypes';
+import { NotebookState } from '~/pages/projects/notebook/types';
 import { NotebookUpdateImageCard } from './NotebookUpdateImageCard';
 import NotebookUpdateImageModalFooter from './NotebookUpdateImageModalFooter';
 import { NotebookImage } from './types';
 import { NotebookImageStatus } from './const';
 
 type NotebookUpdateImageModalProps = {
+  notebookState: NotebookState;
   notebook: NotebookKind;
   notebookImage: NotebookImage;
   onModalClose: () => void;
@@ -23,6 +25,7 @@ type NotebookUpdateImageModalProps = {
 };
 
 const NotebookUpdateImageModal: React.FC<NotebookUpdateImageModalProps> = ({
+  notebookState,
   notebook,
   notebookImage,
   onModalClose,
@@ -87,6 +90,7 @@ const NotebookUpdateImageModal: React.FC<NotebookUpdateImageModalProps> = ({
         </Stack>
       </ModalBody>
       <NotebookUpdateImageModalFooter
+        notebookState={notebookState}
         notebook={notebook}
         notebookImage={notebookImage}
         imageCard={imageCard}

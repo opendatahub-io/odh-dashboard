@@ -63,18 +63,16 @@ export const NotebookImageDisplayName = ({
 }: NotebookImageDisplayNameProps): React.JSX.Element => {
   const isProjectScopedAvailable = useIsAreaAvailable(SupportedArea.DS_PROJECT_SCOPED).status;
   const [isPopoverVisible, setIsPopoverVisible] = React.useState(false);
-  const { isStarting, isRunning, isStopping, isStopped } = notebookState;
+  const { isStarting, isRunning, isStopping } = notebookState;
   const [isRestarting, setIsRestarting] = React.useState(false);
 
   React.useEffect(() => {
     if (isUpdating && isRunning && isRestarting) {
       setIsUpdating(false);
-    } else if (isUpdating && isStopped && !isRestarting) {
-      setIsUpdating(false);
     } else if (isUpdating && (isStarting || isStopping)) {
       setIsRestarting(true);
     }
-  }, [isStarting, isRunning, isStopping, isUpdating, setIsUpdating, isRestarting, isStopped]);
+  }, [isStarting, isRunning, isStopping, isUpdating, setIsUpdating, isRestarting]);
 
   // if there was an error loading the image, display unknown WITHOUT a label
   if (loadError) {
