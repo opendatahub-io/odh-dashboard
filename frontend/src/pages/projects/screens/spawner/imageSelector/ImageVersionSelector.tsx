@@ -8,6 +8,7 @@ import {
   HelperText,
   HelperTextItem,
   Label,
+  Timestamp,
 } from '@patternfly/react-core';
 import { CheckCircleIcon } from '@patternfly/react-icons';
 import { ImageVersionSelectDataType } from '~/pages/projects/screens/spawner/types';
@@ -24,7 +25,6 @@ import {
 import { ImageStreamSpecTagType } from '~/k8sTypes';
 import { isElyraVersionOutOfDate } from '~/concepts/pipelines/elyra/utils';
 import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
-import { convertISOTimeToHumanReadable } from '~/utilities/time';
 import ImageVersionTooltip from './ImageVersionTooltip';
 
 type ImageVersionSelectorProps = {
@@ -92,7 +92,7 @@ const ImageVersionSelector: React.FC<ImageVersionSelectorProps> = ({
           </div>
           {imageBuildDate && (
             <div data-testid="workbench-image-version-build-date">
-              <b>Build date:</b> {convertISOTimeToHumanReadable(imageBuildDate)}
+              <b>Build date:</b> <Timestamp date={new Date(imageBuildDate)} shouldDisplayUTC />
             </div>
           )}
         </div>

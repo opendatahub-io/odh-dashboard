@@ -508,7 +508,7 @@ describe('Workbench page', () => {
     notebookImageVersionDropdown.findNotebookImageLabel().should('be.visible');
     notebookImageVersionDropdown
       .findImageVersionButton(
-        '2024.2 (12345) Latest Software: Python v3.8 Build date: 2023-06-30 15:07:36',
+        '2024.2 (12345) Latest Software: Python v3.8 Build date: 6/30/2023, 3:07:36 PM UTC',
       )
       .click();
     createSpawnerPage.selectContainerSize(
@@ -923,7 +923,7 @@ describe('Workbench page', () => {
     const popover = notebookRow.findNotebookImageVersionPopover();
     popover.findImageVersionName().contains('Version: 2024.2');
     popover.findImageVersionBuildCommit().contains('Build Commit: 12345');
-    popover.findImageVersionBuildDate().contains('Build Date: 2023-06-30 15:07:36');
+    popover.findImageVersionBuildDate().contains('Build Date: 6/30/2023, 3:07:36 PM UTC');
     popover.findImageVersionSoftware().contains('Software: Python v3.8');
   });
 
