@@ -24,7 +24,7 @@ import usePipelineVersionById from '~/concepts/pipelines/apiHooks/usePipelineVer
 import usePipelineById from '~/concepts/pipelines/apiHooks/usePipelineById';
 import PipelineVersionSelector from '~/concepts/pipelines/content/pipelineSelector/PipelineVersionSelector';
 import DeletePipelinesModal from '~/concepts/pipelines/content/DeletePipelinesModal';
-import { pipelineVersionDetailsRoute, pipelinesBaseRoute } from '~/routes';
+import { pipelineVersionDetailsRoute, pipelinesBaseRoute } from '~/routes/pipelines/global';
 import { getCorePipelineSpec } from '~/concepts/pipelines/getCorePipelineSpec';
 import { isArgoWorkflow } from '~/concepts/pipelines/content/tables/utils';
 import PipelineDetailsActions from './PipelineDetailsActions';

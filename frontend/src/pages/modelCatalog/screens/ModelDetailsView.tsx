@@ -15,9 +15,9 @@ import { CatalogModel } from '~/concepts/modelCatalog/types';
 import ModelTimestamp from '~/pages/modelRegistry/screens/components/ModelTimestamp';
 import { getTagFromModel } from '~/pages/modelCatalog/utils';
 import ExternalLink from '~/components/ExternalLink';
-import MarkdownView from '~/components/MarkdownView';
 import { RhUiTagIcon } from '~/images/icons';
 import { ModelCatalogLabels } from '~/concepts/modelCatalog/content/ModelCatalogLabels';
+import MarkdownComponent from '~/components/markdown/MarkdownComponent';
 
 type ModelDetailsViewProps = {
   model: CatalogModel;
@@ -34,7 +34,7 @@ const ModelDetailsView: React.FC<ModelDetailsViewProps> = ({ model }) => (
           {!model.readme && <p className={text.textColorDisabled}>No model card</p>}
         </Content>
         {model.readme && (
-          <MarkdownView data-testid="model-card-markdown" markdown={model.readme} maxHeading={3} />
+          <MarkdownComponent data={model.readme} dataTestId="model-card-markdown" maxHeading={3} />
         )}
       </SidebarContent>
       <SidebarPanel>

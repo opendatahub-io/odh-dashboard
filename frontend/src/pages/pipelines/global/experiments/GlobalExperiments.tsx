@@ -5,7 +5,7 @@ import PipelineCoreApplicationPage from '~/pages/pipelines/global/PipelineCoreAp
 import EnsureAPIAvailability from '~/concepts/pipelines/EnsureAPIAvailability';
 import PipelineAndVersionContextProvider from '~/concepts/pipelines/content/PipelineAndVersionContext';
 import EnsureCompatiblePipelineServer from '~/concepts/pipelines/EnsureCompatiblePipelineServer';
-import { experimentsBaseRoute } from '~/routes';
+import { experimentsBaseRoute } from '~/routes/pipelines/experiments';
 import { ProjectObjectType } from '~/concepts/design/utils';
 import TitleWithIcon from '~/concepts/design/TitleWithIcon';
 import { ExperimentListTabs, experimentsPageDescription, experimentsPageTitle } from './const';

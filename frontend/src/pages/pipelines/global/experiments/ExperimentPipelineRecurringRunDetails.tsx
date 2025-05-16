@@ -3,7 +3,7 @@ import { BreadcrumbItem, Truncate } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { PipelineCoreDetailsPageComponent } from '~/concepts/pipelines/content/types';
 import { ExperimentContext } from '~/pages/pipelines/global/experiments/ExperimentContext';
-import { experimentRecurringRunsRoute } from '~/routes';
+import { experimentRecurringRunsRoute } from '~/routes/pipelines/experiments';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import PipelineRecurringRunDetails from '~/concepts/pipelines/content/pipelinesDetails/pipelineRecurringRun/PipelineRecurringRunDetails';
 

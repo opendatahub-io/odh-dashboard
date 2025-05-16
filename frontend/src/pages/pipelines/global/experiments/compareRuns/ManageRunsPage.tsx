@@ -14,7 +14,8 @@ import { ExclamationCircleIcon } from '@patternfly/react-icons';
 
 import { usePipelineActiveRunsTable } from '~/concepts/pipelines/content/tables/pipelineRun/usePipelineRunTable';
 import { CompareRunsSearchParam, PathProps } from '~/concepts/pipelines/content/types';
-import { compareRunsRoute, createRunRoute, experimentRunsRoute } from '~/routes';
+import { compareRunsRoute, createRunRoute } from '~/routes/pipelines/runs';
+import { experimentRunsRoute } from '~/routes/pipelines/experiments';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { ExperimentContext } from '~/pages/pipelines/global/experiments/ExperimentContext';

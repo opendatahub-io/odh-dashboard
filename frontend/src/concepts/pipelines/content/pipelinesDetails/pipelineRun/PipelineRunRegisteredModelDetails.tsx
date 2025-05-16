@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router';
-import { modelVersionRoute } from '~/routes';
+import { modelVersionRoute } from '~/routes/modelRegistry/modelVersions';
 import { PipelineRunArtifactModelData } from './artifacts/types';
 
 type PipelineRunRegisteredModelDeatilsProps = {

@@ -1,6 +1,6 @@
 import React from 'react';
 import ApplicationsPage from '~/pages/ApplicationsPage';
-import { modelRegistryRoute } from '~/routes';
+import { modelRegistryRoute } from '~/routes/modelRegistry/registryBase';
 import useRegisteredModels from '~/concepts/modelRegistry/apiHooks/useRegisteredModels';
 import useModelVersions from '~/concepts/modelRegistry/apiHooks/useModelVersions';
 import TitleWithIcon from '~/concepts/design/TitleWithIcon';

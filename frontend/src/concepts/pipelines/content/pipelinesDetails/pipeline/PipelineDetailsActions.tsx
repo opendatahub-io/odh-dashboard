@@ -11,8 +11,8 @@ import {
   createRunRoute,
   globalPipelineRecurringRunsVersionRoute,
   globalPipelineRunsVersionRoute,
-  pipelineVersionDetailsRoute,
-} from '~/routes';
+} from '~/routes/pipelines/runs';
+import { pipelineVersionDetailsRoute } from '~/routes/pipelines/global';
 import { getDashboardMainContainer } from '~/utilities/utils';
 import {
   PIPELINE_CREATE_RUN_TOOLTIP_ARGO_ERROR,
