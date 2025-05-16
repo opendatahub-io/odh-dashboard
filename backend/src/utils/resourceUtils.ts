@@ -1,5 +1,4 @@
 import * as _ from 'lodash';
-import createError from 'http-errors';
 import { V1ConfigMap, V1Role, V1RoleBinding, V1RoleBindingList } from '@kubernetes/client-node';
 import {
   AcceleratorProfileKind,
@@ -9,8 +8,6 @@ import {
   ConsoleLinkKind,
   DashboardConfig,
   K8sResourceCommon,
-  KfDefApplication,
-  KfDefResource,
   KubeFastifyInstance,
   OdhApplication,
   OdhDocument,
@@ -57,7 +54,6 @@ let clusterStatusWatcher: ResourceWatcher<DataScienceClusterKindStatus>;
 let subscriptionWatcher: ResourceWatcher<SubscriptionStatusData>;
 let appWatcher: ResourceWatcher<OdhApplication>;
 let docWatcher: ResourceWatcher<OdhDocument>;
-let kfDefWatcher: ResourceWatcher<KfDefApplication>;
 let buildsWatcher: ResourceWatcher<BuildStatus>;
 let consoleLinksWatcher: ResourceWatcher<ConsoleLinkKind>;
 let quickStartWatcher: ResourceWatcher<QuickStart>;
@@ -159,46 +155,6 @@ const fetchSubscriptions = (fastify: KubeFastifyInstance): Promise<SubscriptionS
     return installedCSVs;
   };
   return fetchAll();
-};
-
-/** @deprecated -- we are moving away from KfDefs */
-const fetchInstalledKfdefs = async (fastify: KubeFastifyInstance): Promise<KfDefApplication[]> => {
-  const customObjectsApi = fastify.kube.customObjectsApi;
-  const namespace = fastify.kube.namespace;
-
-  try {
-    const res = await customObjectsApi.listNamespacedCustomObject(
-      'kfdef.apps.kubeflow.org',
-      'v1',
-      namespace,
-      'kfdefs',
-    );
-    const kfdefs = (res?.body as { items: KfDefResource[] })?.items;
-    return kfdefs.reduce((acc, kfdef) => {
-      if (kfdef?.spec?.applications?.length) {
-        acc.push(...kfdef.spec.applications);
-      }
-      return acc;
-    }, [] as KfDefApplication[]);
-  } catch (e) {
-    const errorResponse = e.response.body;
-    if (errorResponse?.trim() === '404 page not found') {
-      // 404s like this are because the CRD does not exist
-      // If there were no resources, we would get an empty array
-      // This is not an error case, we are supporting the new Operator that does not use KfDefs
-      fastify.log.info('Detected no KfDef CRD installed -- suppressing issue pulling KfDef');
-      return [];
-    }
-
-    // Old flow, if it fails in other ways, we'll need to still handle a failed KfDef issue
-    fastify.log.error(e, 'failed to get kfdefs');
-    const error = createError(500, 'failed to get kfdefs');
-    error.explicitInternalServerError = true;
-    error.error = 'failed to get kfdefs';
-    error.message =
-      'Unable to load Kubeflow resources. Please ensure the Open Data Hub operator has been installed.';
-    throw error;
-  }
 };
 
 const fetchQuickStarts = async (fastify: KubeFastifyInstance): Promise<QuickStart[]> => {
@@ -554,7 +510,6 @@ export const initializeWatchedResources = (fastify: KubeFastifyInstance): void =
     fetchWatchedClusterStatus,
   );
   subscriptionWatcher = new ResourceWatcher<SubscriptionStatusData>(fastify, fetchSubscriptions);
-  kfDefWatcher = new ResourceWatcher<KfDefApplication>(fastify, fetchInstalledKfdefs);
   appWatcher = new ResourceWatcher<OdhApplication>(fastify, fetchApplications);
   docWatcher = new ResourceWatcher<OdhDocument>(fastify, fetchDocs);
   quickStartWatcher = new ResourceWatcher<QuickStart>(fastify, fetchQuickStarts);
@@ -606,10 +561,6 @@ export const updateDashboardConfig = (): Promise<void> => {
 
 export const getSubscriptions = (): SubscriptionStatusData[] => {
   return subscriptionWatcher.getResources();
-};
-
-export const getInstalledKfdefs = (): KfDefApplication[] => {
-  return kfDefWatcher.getResources();
 };
 
 export const getApplications = (): OdhApplication[] => {
