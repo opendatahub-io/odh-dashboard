@@ -8,7 +8,7 @@ import {
   HardwareProfileFilterOptions,
   hardwareProfileFilterOptions,
 } from '~/pages/hardwareProfiles/const';
-import SimpleSelect, { SimpleSelectOptionStrict } from '~/components/SimpleSelect';
+import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
 import { AccessAllowed, verbModelAccess } from '~/concepts/userSSAR';
 import { HardwareProfileModel } from '~/api';
 import { HardwareProfileFeatureVisibility } from '~/k8sTypes';
@@ -61,7 +61,7 @@ const HardwareProfilesToolbar: React.FC<HardwareProfilesToolbarProps> = ({
             value={value}
             aria-label="Hardware profile use cases"
             options={Object.values(HardwareProfileFeatureVisibility).map(
-              (v): SimpleSelectOptionStrict => ({
+              (v): SimpleSelectOption => ({
                 key: v,
                 label: HardwareProfileFeatureVisibilityTitles[v],
               }),

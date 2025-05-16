@@ -5,7 +5,7 @@ import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import { KnownLabels, ProjectKind } from '~/k8sTypes';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
-import SimpleSelect, { SimpleSelectOptionStrict } from '~/components/SimpleSelect';
+import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
 
 type ProjectSelectorProps = {
   selectedProject: ProjectKind | null;
@@ -56,7 +56,7 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
             }}
             value={selectedProject?.metadata.name}
             options={(isOciModel ? kserveProjects : projects).map(
-              (project): SimpleSelectOptionStrict => ({
+              (project): SimpleSelectOption => ({
                 key: project.metadata.name,
                 label: getDisplayNameFromK8sResource(project),
               }),

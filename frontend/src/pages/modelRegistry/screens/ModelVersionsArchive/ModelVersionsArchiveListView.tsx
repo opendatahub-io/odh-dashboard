@@ -10,7 +10,7 @@ import {
 import { FilterIcon, SearchIcon } from '@patternfly/react-icons';
 import { SearchType } from '~/concepts/dashboard/DashboardSearchField';
 import { ModelVersion, RegisteredModel } from '~/concepts/modelRegistry/types';
-import SimpleSelect, { SimpleSelectOptionStrict } from '~/components/SimpleSelect';
+import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
 import { filterModelVersions } from '~/pages/modelRegistry/screens/utils';
 import EmptyModelRegistryState from '~/pages/modelRegistry/screens/components/EmptyModelRegistryState';
 import { asEnumMember } from '~/utilities/utils';
@@ -63,7 +63,7 @@ const ModelVersionsArchiveListView: React.FC<ModelVersionsArchiveListViewProps> 
               >
                 <SimpleSelect
                   options={searchTypes.map(
-                    (key): SimpleSelectOptionStrict => ({
+                    (key): SimpleSelectOption => ({
                       key,
                       label: key,
                     }),

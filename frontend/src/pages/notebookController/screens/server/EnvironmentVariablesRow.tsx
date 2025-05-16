@@ -4,7 +4,7 @@ import { MinusCircleIcon } from '@patternfly/react-icons';
 import { CUSTOM_VARIABLE, EMPTY_KEY } from '~/pages/notebookController/const';
 import { EnvVarCategoryType, EnvVarType, VariableRow } from '~/types';
 import { getDashboardMainContainer } from '~/utilities/utils';
-import SimpleSelect, { SimpleSelectOptionStrict } from '~/components/SimpleSelect';
+import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
 import EnvironmentVariablesField from './EnvironmentVariablesField';
 
 type EnvironmentVariablesRowProps = {
@@ -81,7 +81,7 @@ const EnvironmentVariablesRow: React.FC<EnvironmentVariablesRowProps> = ({
           options={[
             { key: CUSTOM_VARIABLE, label: CUSTOM_VARIABLE },
             ...categories.map(
-              (category): SimpleSelectOptionStrict => ({
+              (category): SimpleSelectOption => ({
                 key: category.name,
                 label: category.name,
               }),

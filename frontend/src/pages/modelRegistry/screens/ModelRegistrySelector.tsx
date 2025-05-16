@@ -21,7 +21,7 @@ import { useBrowserStorage } from '~/components/browserStorage';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
 import { getDescriptionFromK8sResource, getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import { ServiceKind } from '~/k8sTypes';
-import SimpleSelect, { SimpleSelectOptionStrict } from '~/components/SimpleSelect';
+import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
 import WhosMyAdministrator from '~/components/WhosMyAdministrator';
 import InlineTruncatedClipboardCopy from '~/components/InlineTruncatedClipboardCopy';
 import ModelRegistrySelectIcon from '~/images/icons/ModelRegistrySelectIcon';
@@ -82,7 +82,7 @@ const ModelRegistrySelector: React.FC<ModelRegistrySelectorProps> = ({
     );
   };
 
-  const allOptions: SimpleSelectOptionStrict[] = modelRegistryServices.map((mr) => ({
+  const allOptions: SimpleSelectOption[] = modelRegistryServices.map((mr) => ({
     key: mr.metadata.name,
     label: mr.metadata.name,
     dropdownLabel: getDisplayNameFromK8sResource(mr),

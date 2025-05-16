@@ -7,7 +7,7 @@ import {
 import { BiasMetricType } from '~/api';
 import { isMetricType } from '~/pages/modelServing/screens/metrics/utils';
 import { asEnumMember, enumIterator } from '~/utilities/utils';
-import SimpleSelect, { SimpleSelectOptionStrict } from '~/components/SimpleSelect';
+import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
 
 type MetricTypeFieldProps = {
   fieldId: string;
@@ -25,7 +25,7 @@ const MetricTypeField: React.FC<MetricTypeFieldProps> = ({ fieldId, value, onCha
         }
       }}
       options={enumIterator(BiasMetricType).map(
-        ([, type]): SimpleSelectOptionStrict => ({
+        ([, type]): SimpleSelectOption => ({
           key: type,
           label: METRIC_TYPE_DISPLAY_NAME[type],
           description: METRIC_TYPE_DESCRIPTION[type],

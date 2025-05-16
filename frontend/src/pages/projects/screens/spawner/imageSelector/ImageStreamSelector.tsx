@@ -19,7 +19,7 @@ import {
   isCompatibleWithIdentifier,
 } from '~/pages/projects/screens/spawner/spawnerUtils';
 import { ImageStreamKind } from '~/k8sTypes';
-import SimpleSelect, { SimpleSelectOptionStrict } from '~/components/SimpleSelect';
+import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
 import { useIsAreaAvailable, SupportedArea } from '~/concepts/areas';
 import GlobalIcon from '~/images/icons/GlobalIcon';
 import { ProjectObjectType, typedObjectImage } from '~/concepts/design/utils';
@@ -170,7 +170,7 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
 
   const options = imageStreams
     .toSorted(compareImageStreamOrder)
-    .map((imageStream): SimpleSelectOptionStrict => {
+    .map((imageStream): SimpleSelectOption => {
       const description = getRelatedVersionDescription(imageStream);
       const displayName = getImageStreamDisplayName(imageStream);
 

@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { FormGroup } from '@patternfly/react-core';
 import { ServingRuntimeAPIProtocol, ServingRuntimePlatform } from '~/types';
-import SimpleSelect, { SimpleSelectOptionStrict } from '~/components/SimpleSelect';
+import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
 import { asEnumMember } from '~/utilities/utils';
 
 type CustomServingRuntimeAPIProtocolSelectorProps = {
@@ -17,7 +17,7 @@ const CustomServingRuntimeAPIProtocolSelector: React.FC<
     selectedPlatforms.includes(ServingRuntimePlatform.MULTI) &&
     !selectedPlatforms.includes(ServingRuntimePlatform.SINGLE);
 
-  const options: SimpleSelectOptionStrict[] = [
+  const options: SimpleSelectOption[] = [
     {
       key: ServingRuntimeAPIProtocol.REST,
       label: ServingRuntimeAPIProtocol.REST,

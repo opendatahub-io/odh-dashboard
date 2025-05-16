@@ -25,7 +25,7 @@ import {
 import { removeQueryArgument, setQueryArgument } from '~/utilities/router';
 import { useQueryParams } from '~/utilities/useQueryParams';
 import { fireMiscTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
-import SimpleSelect, { SimpleSelectOptionStrict } from '~/components/SimpleSelect';
+import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
 import {
   SEARCH_FILTER_KEY,
   DOC_SORT_KEY,
@@ -120,7 +120,7 @@ const LearningCenterToolbar: React.FC<LearningCenterToolbarProps> = ({
   );
 
   const sortTypeDropdownItems = Object.entries(sortTypes).map(
-    ([key, val]): SimpleSelectOptionStrict => ({
+    ([key, val]): SimpleSelectOption => ({
       key,
       label: key,
       dropdownLabel: <>{val}</>,
@@ -132,7 +132,7 @@ const LearningCenterToolbar: React.FC<LearningCenterToolbarProps> = ({
   );
 
   const sortOrderDropdownItems = Object.entries(sortOrders).map(
-    ([key, val]): SimpleSelectOptionStrict => ({
+    ([key, val]): SimpleSelectOption => ({
       key,
       label: val,
       dropdownLabel: <SortOrderIcon isAsc={key === SORT_ASC} alt={val} />,

@@ -30,7 +30,7 @@ import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconBut
 import DataFieldPropertiesForm from '~/pages/connectionTypes/manage/DataFieldPropertiesForm';
 import { prepareFieldForSave } from '~/pages/connectionTypes/manage/manageFieldUtils';
 import useGenericObjectState from '~/utilities/useGenericObjectState';
-import SimpleSelect, { SimpleSelectOptionStrict } from '~/components/SimpleSelect';
+import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
 
 const isConnectionTypeFieldType = (
   fieldType: string | number | undefined,
@@ -216,7 +216,7 @@ export const ConnectionTypeDataFieldModal: React.FC<Props> = ({
               .map((value) => ({ label: fieldTypeToString(value), value }))
               .toSorted((a, b) => a.label.localeCompare(b.label))
               .map(
-                ({ value, label }): SimpleSelectOptionStrict => ({
+                ({ value, label }): SimpleSelectOption => ({
                   key: value,
                   label: value,
                   dropdownLabel: label,

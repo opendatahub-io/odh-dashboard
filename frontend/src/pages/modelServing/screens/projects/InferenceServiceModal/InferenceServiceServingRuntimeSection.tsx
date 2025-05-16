@@ -5,7 +5,7 @@ import { CreatingInferenceServiceObject } from '~/pages/modelServing/screens/typ
 import { ServingRuntimeKind } from '~/k8sTypes';
 import useServingRuntimes from '~/pages/modelServing/useServingRuntimes';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
-import SimpleSelect, { SimpleSelectOptionStrict } from '~/components/SimpleSelect';
+import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
 
 type InferenceServiceServingRuntimeSectionProps = {
   data: CreatingInferenceServiceObject;
@@ -45,7 +45,7 @@ const InferenceServiceServingRuntimeSection: React.FC<
       <SimpleSelect
         dataTestId="inference-service-model-selection"
         options={servingRuntimes.map(
-          (servingRuntime): SimpleSelectOptionStrict => ({
+          (servingRuntime): SimpleSelectOption => ({
             key: servingRuntime.metadata.name,
             label: getDisplayNameFromK8sResource(servingRuntime),
           }),

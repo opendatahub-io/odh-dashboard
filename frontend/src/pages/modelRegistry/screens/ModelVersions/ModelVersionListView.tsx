@@ -18,7 +18,7 @@ import { EllipsisVIcon, FilterIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router';
 import { SearchType } from '~/concepts/dashboard/DashboardSearchField';
 import { ModelVersion, RegisteredModel } from '~/concepts/modelRegistry/types';
-import SimpleSelect, { SimpleSelectOptionStrict } from '~/components/SimpleSelect';
+import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
 import EmptyModelRegistryState from '~/pages/modelRegistry/screens/components/EmptyModelRegistryState';
 import {
   filterModelVersions,
@@ -139,7 +139,7 @@ const ModelVersionListView: React.FC<ModelVersionListViewProps> = ({
                   <SimpleSelect
                     dataTestId="model-versions-table-filter"
                     options={searchTypes.map(
-                      (key): SimpleSelectOptionStrict => ({
+                      (key): SimpleSelectOption => ({
                         key,
                         label: key,
                       }),

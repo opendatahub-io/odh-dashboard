@@ -12,7 +12,7 @@ import {
   StackItem,
 } from '@patternfly/react-core';
 import SettingSection from '~/components/SettingSection';
-import SimpleSelect, { SimpleSelectOptionStrict } from '~/components/SimpleSelect';
+import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
 import { ModelServingPlatformEnabled } from '~/types';
 import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformStatuses';
 import { useKServeDeploymentMode } from '~/pages/modelServing/useKServeDeploymentMode';
@@ -74,7 +74,7 @@ const ModelServingPlatformSettings: React.FC<ModelServingPlatformSettingsProps> 
     }
   }, [enabledPlatforms, initialValue, kServeInstalled, modelMeshInstalled]);
 
-  const options: SimpleSelectOptionStrict[] = [
+  const options: SimpleSelectOption[] = [
     {
       key: DeploymentMode.RawDeployment,
       label: 'Standard (No additional dependencies)',

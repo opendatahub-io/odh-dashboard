@@ -4,7 +4,7 @@ import { FilterIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router';
 import { SearchType } from '~/concepts/dashboard/DashboardSearchField';
 import { ModelVersion, RegisteredModel } from '~/concepts/modelRegistry/types';
-import SimpleSelect, { SimpleSelectOptionStrict } from '~/components/SimpleSelect';
+import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
 import { filterRegisteredModels } from '~/pages/modelRegistry/screens/utils';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
 import EmptyModelRegistryState from '~/pages/modelRegistry/screens/components/EmptyModelRegistryState';
@@ -83,7 +83,7 @@ const RegisteredModelListView: React.FC<RegisteredModelListViewProps> = ({
       >
         <SimpleSelect
           options={searchTypes.map(
-            (key): SimpleSelectOptionStrict => ({
+            (key): SimpleSelectOption => ({
               key,
               label: key,
             }),

@@ -26,7 +26,7 @@ import {
   isServingRuntimeKind,
 } from '~/pages/modelServing/customServingRuntimes/utils';
 import { isCompatibleWithIdentifier } from '~/pages/projects/screens/spawner/spawnerUtils';
-import SimpleSelect, { SimpleSelectOptionStrict } from '~/components/SimpleSelect';
+import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import SearchSelector from '~/components/searchSelector/SearchSelector';
 import { ProjectObjectType, typedObjectImage } from '~/concepts/design/utils';
@@ -88,7 +88,7 @@ const ServingRuntimeTemplateSection: React.FC<ServingRuntimeTemplateSectionProps
   );
 
   const options = filteredTemplates.map(
-    (template): SimpleSelectOptionStrict => ({
+    (template): SimpleSelectOption => ({
       key: getServingRuntimeNameFromTemplate(template),
       label: getServingRuntimeDisplayNameFromTemplate(template),
       dropdownLabel: (

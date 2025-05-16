@@ -4,7 +4,7 @@ import { TableVariant } from '@patternfly/react-table';
 import { Artifact } from '~/third_party/mlmd';
 import { TableBase } from '~/components/table';
 import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
-import SimpleSelect, { SimpleSelectOptionStrict } from '~/components/SimpleSelect';
+import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
 import { ArtifactType } from '~/concepts/pipelines/kfTypes';
 import { useMlmdListContext } from '~/concepts/pipelines/context';
 import FilterToolbar from '~/components/FilterToolbar';
@@ -120,7 +120,7 @@ export const ArtifactsTable: React.FC<ArtifactsTableProps> = ({
               value={value ?? ''}
               aria-label="Search type"
               options={Object.values(ArtifactType).map(
-                (v): SimpleSelectOptionStrict => ({
+                (v): SimpleSelectOption => ({
                   key: v,
                   label: v,
                 }),

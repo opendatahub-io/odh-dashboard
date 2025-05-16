@@ -6,7 +6,7 @@ import {
   getMlmdExecutionState,
   options,
 } from '~/pages/pipelines/global/experiments/executions/const';
-import SimpleSelect, { SimpleSelectOptionStrict } from '~/components/SimpleSelect';
+import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
 import { ExecutionStatus, ExecutionType } from '~/concepts/pipelines/kfTypes';
 import { useMlmdListContext } from '~/concepts/pipelines/context';
 
@@ -87,7 +87,7 @@ const ExecutionsTableToolbar: React.FC<ExecutionsTableToolbarProps> = ({
             value={value ?? ''}
             aria-label="Search type"
             options={Object.values(ExecutionType).map(
-              (v): SimpleSelectOptionStrict => ({
+              (v): SimpleSelectOption => ({
                 key: v,
                 label: v,
               }),
@@ -102,7 +102,7 @@ const ExecutionsTableToolbar: React.FC<ExecutionsTableToolbarProps> = ({
             value={value ?? ''}
             aria-label="Search status"
             options={Object.values(ExecutionStatus).map(
-              (v): SimpleSelectOptionStrict => ({
+              (v): SimpleSelectOption => ({
                 key: v,
                 label: v,
               }),

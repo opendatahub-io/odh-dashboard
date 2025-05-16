@@ -9,7 +9,7 @@ import {
 import { isGpuDisabled } from '~/pages/modelServing/screens/projects/utils';
 import AcceleratorProfileSelectField from '~/pages/notebookController/screens/server/AcceleratorProfileSelectField';
 import { getCompatibleIdentifiers } from '~/pages/projects/screens/spawner/spawnerUtils';
-import SimpleSelect, { SimpleSelectOptionStrict } from '~/components/SimpleSelect';
+import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
 import { formatMemory } from '~/utilities/valueUnits';
 import { ModelServingPodSpecOptionsState } from '~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
@@ -51,7 +51,7 @@ const ServingRuntimeSizeSection = ({
   ];
 
   const sizeOptions = () =>
-    sizeCustom.map((size): SimpleSelectOptionStrict => {
+    sizeCustom.map((size): SimpleSelectOption => {
       const { name } = size;
       const desc =
         name !== 'Custom'
