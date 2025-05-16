@@ -8,8 +8,8 @@ import ModelTimestamp from '~/pages/modelRegistry/screens/components/ModelTimest
 import {
   registeredModelArchiveDetailsRoute,
   registeredModelArchiveRoute,
-  registeredModelRoute,
-} from '~/routes';
+} from '~/routes/modelRegistry/modelArchive';
+import { registeredModelRoute } from '~/routes/modelRegistry/registeredModels';
 import ModelLabels from '~/pages/modelRegistry/screens/components/ModelLabels';
 import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegistryContext';
 import { ArchiveRegisteredModelModal } from '~/pages/modelRegistry/screens/components/ArchiveRegisteredModelModal';

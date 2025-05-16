@@ -1,6 +1,6 @@
 import React from 'react';
 import { BreadcrumbDetailsComponentProps } from '~/concepts/pipelines/content/types';
-import { globalPipelineRecurringRunsRoute } from '~/routes';
+import { globalPipelineRecurringRunsRoute } from '~/routes/pipelines/runs';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import PipelineRecurringRunDetails from '~/concepts/pipelines/content/pipelinesDetails/pipelineRecurringRun/PipelineRecurringRunDetails';
 

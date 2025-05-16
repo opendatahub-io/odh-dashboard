@@ -5,7 +5,7 @@ import {
   PipelineVersionKF,
   RuntimeConfigParameters,
 } from '~/concepts/pipelines/kfTypes';
-import { PipelineRunType } from '~/pages/pipelines/global/runs';
+import { PipelineRunType } from '~/pages/pipelines/global/runs/types';
 
 export enum RunTypeOption {
   ONE_TRIGGER = 'run',

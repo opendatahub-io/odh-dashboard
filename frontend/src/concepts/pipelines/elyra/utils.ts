@@ -18,7 +18,7 @@ import {
 import { Volume, VolumeMount } from '~/types';
 import { RUNTIME_MOUNT_PATH } from '~/pages/projects/pvc/const';
 import { createRoleBinding, getRoleBinding, patchRoleBindingOwnerRef } from '~/api';
-import { experimentsBaseRoute } from '~/routes';
+import { experimentsBaseRoute } from '~/routes/pipelines/experiments';
 import { getImageVersionDependencies } from '~/pages/projects/screens/spawner/spawnerUtils';
 
 type ElyraRoleBindingOwnerRef = {

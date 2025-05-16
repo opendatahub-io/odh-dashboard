@@ -1,6 +1,5 @@
 import * as React from 'react';
-import { Button } from '@patternfly/react-core';
-import { Modal } from '@patternfly/react-core/deprecated';
+import { Button, Modal, ModalBody, ModalHeader, ModalFooter } from '@patternfly/react-core';
 
 type DisableAcceleratorProfileModalType = {
   onClose: (confirmStatus: boolean) => void;
@@ -9,12 +8,14 @@ type DisableAcceleratorProfileModalType = {
 const DisableAcceleratorProfileModal: React.FC<DisableAcceleratorProfileModalType> = ({
   onClose,
 }) => (
-  <Modal
-    variant="small"
-    title="Disable accelerator profile"
-    isOpen
-    onClose={() => onClose(false)}
-    actions={[
+  <Modal variant="small" isOpen onClose={() => onClose(false)}>
+    <ModalHeader title="Disable accelerator profile" />
+    <ModalBody>
+      This will disable the accelerator profile and it will no longer be available for use with new
+      workbenches and runtimes. Existing resources using this profile will retain it unless a new
+      profile is selected.
+    </ModalBody>
+    <ModalFooter>
       <Button
         data-testid="disable-button"
         key="confirm-disable"
@@ -22,7 +23,7 @@ const DisableAcceleratorProfileModal: React.FC<DisableAcceleratorProfileModalTyp
         onClick={() => onClose(true)}
       >
         Disable
-      </Button>,
+      </Button>
       <Button
         data-testid="cancel-button"
         key="cancel"
@@ -30,12 +31,8 @@ const DisableAcceleratorProfileModal: React.FC<DisableAcceleratorProfileModalTyp
         onClick={() => onClose(false)}
       >
         Cancel
-      </Button>,
-    ]}
-  >
-    This will disable the accelerator profile and it will no longer be available for use with new
-    workbenches and runtimes. Existing resources using this profile will retain it unless a new
-    profile is selected.
+      </Button>
+    </ModalFooter>
   </Modal>
 );
 

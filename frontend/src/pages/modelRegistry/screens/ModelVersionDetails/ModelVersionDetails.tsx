@@ -5,12 +5,10 @@ import { Link } from 'react-router-dom';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import useModelVersionById from '~/concepts/modelRegistry/apiHooks/useModelVersionById';
 import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
-import {
-  archiveModelVersionDetailsRoute,
-  modelVersionArchiveDetailsRoute,
-  modelVersionRoute,
-  registeredModelRoute,
-} from '~/routes';
+import { archiveModelVersionDetailsRoute } from '~/routes/modelRegistry/modelArchive';
+import { modelVersionArchiveDetailsRoute } from '~/routes/modelRegistry/modelVersionArchive';
+import { modelVersionRoute } from '~/routes/modelRegistry/modelVersions';
+import { registeredModelRoute } from '~/routes/modelRegistry/registeredModels';
 import useRegisteredModelById from '~/concepts/modelRegistry/apiHooks/useRegisteredModelById';
 import useInferenceServices from '~/pages/modelServing/useInferenceServices';
 import useServingRuntimes from '~/pages/modelServing/useServingRuntimes';

@@ -27,23 +27,22 @@ spec:
   getStartedMarkDown: >-
     # Jupyter
 
-    Launch Jupyter and start a notebook server to start working with your notebooks.
+    Launch Jupyter and start a workbench to start working with your notebooks.
 
     ## Prerequisites
 
     - You have logged in to Red Hat OpenShift AI.
 
     - You know the names and values that you want to use for environment
-    variables in your notebook server environment, for example,
+    variables in your workbench environment, for example,
     `AWS_SECRET_ACCESS_KEY`.
 
     - If you want to work with a very large data set, work with your
-    administrator to proactively increase the storage capacity of your notebook
-    server.
+    administrator to proactively increase the storage capacity of your workbench.
 
     ## Procedure
 
-    1. Locate the **Jupyter** card on the **Enabled applications** page.
+    1. Locate the **Start basic workbench** card on the **Enabled applications** page.
 
     2. Click **Launch application**.
 
@@ -53,25 +52,25 @@ spec:
 
       If you see **Error 403: Forbidden**, you are not in the default user group or the default administrator group for OpenShift AI. Contact your administrator so that they can add you to the correct group using [Adding users for Red Hat OpenShift AI](https://docs.redhat.com/en/documentation/red_hat_openshift_ai_cloud_service/1/html/managing_openshift_ai/managing-users-and-groups#adding-users-to-user-groups_managing-rhoai).
 
-    3. Start a notebook server.
+    3. Start a workbench.
 
       This is not required if you have previously launched Jupyter.
 
-      i. Select the **Notebook image** to use for your server.
+      i. Select the **Workbench image** to use for your workbench.
 
-      ii. If the notebook image contains multiple versions, select the version of the notebook image from the **Versions** section.
+      ii. If the workbench image contains multiple versions, select the version of the workbench image from the **Versions** section.
 
-      iii. Select the **Container size** for your server.
+      iii. Select the **Container size** for your workbench.
 
-      iv. Optional: Select the **Number of GPUs** (graphics processing units) for your server.
+      iv. Optional: Select the **Number of Accelerators** for your workbench.
 
       v. Optional: Select and specify values for any new **Environment variables**.
 
       The interface stores these variables so that you only need to enter them once. Example variable names for common environment variables are automatically provided for frequently integrated environments and frameworks, such as Amazon Web Services (AWS).
 
-      vi. Click **Start server**.
+      vi. Click **Start workbench**.
 
-      The **Starting server** progress indicator appears. Click **Expand event log** to view additional information on the server creation process. Depending on the deployment size and resources you requested, starting the server can take up to several minutes. After the server starts, the JupyterLab interface opens.
+      The **Starting workbench** progress indicator appears. Click **Expand event log** to view additional information on the workbench creation process. Depending on the deployment size and resources you requested, starting the workbench can take up to several minutes. After the workbench starts, the JupyterLab interface opens.
 
     ## Verification
 

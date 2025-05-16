@@ -3,12 +3,12 @@ import React from 'react';
 import { Alert, AlertActionCloseButton, FormSection } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 
-import { PipelineRunTabTitle } from '~/pages/pipelines/global/runs';
+import { PipelineRunTabTitle } from '~/pages/pipelines/global/runs/types';
 import {
   CreateRunPageSections,
   runPageSectionTitles,
 } from '~/concepts/pipelines/content/createRun/const';
-import { createRecurringRunRoute, createRunRoute } from '~/routes';
+import { createRecurringRunRoute, createRunRoute } from '~/routes/pipelines/runs';
 import { RunFormData, RunTypeOption } from '~/concepts/pipelines/content/createRun/types';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { ExperimentContext } from '~/pages/pipelines/global/experiments/ExperimentContext';
