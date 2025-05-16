@@ -18,7 +18,7 @@ import {
 } from '~/pages/projects/screens/spawner/spawnerUtils';
 import { ImageStreamSpecTagType } from '~/k8sTypes';
 import { isElyraVersionOutOfDate } from '~/concepts/pipelines/elyra/utils';
-import SimpleSelect from '~/components/SimpleSelect';
+import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
 import ImageVersionTooltip from './ImageVersionTooltip';
 
 type ImageVersionSelectorProps = {
@@ -42,7 +42,7 @@ const ImageVersionSelector: React.FC<ImageVersionSelectorProps> = ({
     .toSorted(compareImageVersionOrder)
     .map((imageVersion) => getImageVersionSelectOptionObject(imageStream, imageVersion));
 
-  const options = selectOptionObjects.map((optionObject) => {
+  const options = selectOptionObjects.map((optionObject): SimpleSelectOption => {
     const { imageVersion } = optionObject;
     // Cannot wrap the SelectOption with Tooltip because Select component requires SelectOption as the children
     // Can only wrap the SelectOption children with Tooltip
@@ -84,7 +84,8 @@ const ImageVersionSelector: React.FC<ImageVersionSelectorProps> = ({
             ? `${imageStream.metadata.name}-${selectedImageVersion.name}`
             : undefined
         }
-        toggleLabel={selectedImageVersion?.name ?? 'Select one'}
+        toggleLabel={selectedImageVersion?.name}
+        placeholder="Select one"
         aria-label="Image version select"
         popperProps={{ appendTo: 'inline' }}
       />

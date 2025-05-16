@@ -19,7 +19,7 @@ import {
   isCompatibleWithIdentifier,
 } from '~/pages/projects/screens/spawner/spawnerUtils';
 import { ImageStreamKind } from '~/k8sTypes';
-import SimpleSelect from '~/components/SimpleSelect';
+import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
 import { useIsAreaAvailable, SupportedArea } from '~/concepts/areas';
 import GlobalIcon from '~/images/icons/GlobalIcon';
 import { ProjectObjectType } from '~/concepts/design/utils';
@@ -166,32 +166,35 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
     );
   };
 
-  const options = imageStreams.toSorted(compareImageStreamOrder).map((imageStream) => {
-    const description = getRelatedVersionDescription(imageStream);
-    const displayName = getImageStreamDisplayName(imageStream);
+  const options = imageStreams
+    .toSorted(compareImageStreamOrder)
+    .map((imageStream): SimpleSelectOption => {
+      const description = getRelatedVersionDescription(imageStream);
+      const displayName = getImageStreamDisplayName(imageStream);
 
-    return {
-      key: imageStream.metadata.name,
-      label: displayName,
-      description,
-      disabled: !checkImageStreamAvailability(imageStream, buildStatuses),
-      dropdownLabel: (
-        <Split>
-          <SplitItem>{displayName}</SplitItem>
-          <SplitItem isFilled />
-          <SplitItem>
-            {compatibleIdentifiers?.some((identifier) =>
-              isCompatibleWithIdentifier(identifier, imageStream),
-            ) && (
-              <Label color="blue">
-                Compatible with {isHardwareProfilesAvailable ? ' hardware profile' : ' accelerator'}
-              </Label>
-            )}
-          </SplitItem>
-        </Split>
-      ),
-    };
-  });
+      return {
+        key: imageStream.metadata.name,
+        label: displayName,
+        description,
+        isDisabled: !checkImageStreamAvailability(imageStream, buildStatuses),
+        dropdownLabel: (
+          <Split>
+            <SplitItem>{displayName}</SplitItem>
+            <SplitItem isFilled />
+            <SplitItem>
+              {compatibleIdentifiers?.some((identifier) =>
+                isCompatibleWithIdentifier(identifier, imageStream),
+              ) && (
+                <Label color="blue">
+                  Compatible with{' '}
+                  {isHardwareProfilesAvailable ? ' hardware profile' : ' accelerator'}
+                </Label>
+              )}
+            </SplitItem>
+          </Split>
+        ),
+      };
+    });
 
   return (
     <FormGroup
@@ -255,7 +258,7 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
           aria-label="Select an image"
           options={options}
           placeholder="Select one"
-          value={selectedImageStream?.metadata.name ?? ''}
+          value={selectedImageStream?.metadata.name}
           popperProps={{ appendTo: 'inline' }}
           onChange={(key) => {
             const imageStream = imageStreams.find(

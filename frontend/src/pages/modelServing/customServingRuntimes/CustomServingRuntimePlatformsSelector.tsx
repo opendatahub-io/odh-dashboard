@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { FormGroup } from '@patternfly/react-core';
 import { ServingRuntimePlatform } from '~/types';
-import SimpleSelect from '~/components/SimpleSelect';
+import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
 
 type CustomServingRuntimePlatformsSelectorProps = {
   isSinglePlatformEnabled: boolean;
@@ -18,7 +18,7 @@ const RuntimePlatformSelectOptionLabels = {
 const CustomServingRuntimePlatformsSelector: React.FC<
   CustomServingRuntimePlatformsSelectorProps
 > = ({ isSinglePlatformEnabled, isMultiPlatformEnabled, setSelectedPlatforms }) => {
-  const options = [
+  const options: SimpleSelectOption[] = [
     {
       key: ServingRuntimePlatform.SINGLE,
       label: RuntimePlatformSelectOptionLabels[ServingRuntimePlatform.SINGLE],

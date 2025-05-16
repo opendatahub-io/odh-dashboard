@@ -4,7 +4,7 @@ import { TableVariant } from '@patternfly/react-table';
 import { Artifact } from '~/third_party/mlmd';
 import { TableBase } from '~/components/table';
 import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
-import SimpleSelect from '~/components/SimpleSelect';
+import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
 import { ArtifactType } from '~/concepts/pipelines/kfTypes';
 import { useMlmdListContext } from '~/concepts/pipelines/context';
 import FilterToolbar from '~/components/FilterToolbar';
@@ -119,10 +119,12 @@ export const ArtifactsTable: React.FC<ArtifactsTableProps> = ({
               {...props}
               value={value ?? ''}
               aria-label="Search type"
-              options={Object.values(ArtifactType).map((v) => ({
-                key: v,
-                label: v,
-              }))}
+              options={Object.values(ArtifactType).map(
+                (v): SimpleSelectOption => ({
+                  key: v,
+                  label: v,
+                }),
+              )}
               onChange={(v) => onChange(v)}
               data-testid="artifact-type-filter-select"
               popperProps={{ maxWidth: undefined }}

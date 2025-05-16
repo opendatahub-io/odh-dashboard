@@ -9,7 +9,7 @@ import {
 import { isGpuDisabled } from '~/pages/modelServing/screens/projects/utils';
 import AcceleratorProfileSelectField from '~/pages/notebookController/screens/server/AcceleratorProfileSelectField';
 import { getCompatibleIdentifiers } from '~/pages/projects/screens/spawner/spawnerUtils';
-import SimpleSelect from '~/components/SimpleSelect';
+import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
 import { formatMemory } from '~/utilities/valueUnits';
 import { ModelServingPodSpecOptionsState } from '~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
@@ -51,7 +51,7 @@ const ServingRuntimeSizeSection = ({
   ];
 
   const sizeOptions = () =>
-    sizeCustom.map((size) => {
+    sizeCustom.map((size): SimpleSelectOption => {
       const { name } = size;
       const desc =
         name !== 'Custom'
@@ -114,9 +114,7 @@ const ServingRuntimeSizeSection = ({
                 options={sizeOptions()}
                 value={podSpecOptionState.modelSize.selectedSize.name}
                 toggleProps={{ id: 'model-server-size-selection' }}
-                toggleLabel={
-                  podSpecOptionState.modelSize.selectedSize.name || 'Select a model server size'
-                }
+                placeholder="Select a model server size"
                 onChange={(option) => {
                   const valuesSelected = sizeCustom.find((element) => element.name === option);
                   if (valuesSelected) {

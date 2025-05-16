@@ -5,7 +5,7 @@ import { CreatingInferenceServiceObject } from '~/pages/modelServing/screens/typ
 import { ServingRuntimeKind } from '~/k8sTypes';
 import useServingRuntimes from '~/pages/modelServing/useServingRuntimes';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
-import SimpleSelect from '~/components/SimpleSelect';
+import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
 
 type InferenceServiceServingRuntimeSectionProps = {
   data: CreatingInferenceServiceObject;
@@ -19,10 +19,6 @@ const InferenceServiceServingRuntimeSection: React.FC<
   const [servingRuntimes, loaded, loadError] = useServingRuntimes(
     data.project,
     data.project === '' || !!currentServingRuntime,
-  );
-
-  const selectedServingRuntime = servingRuntimes.find(
-    (servingRuntime) => servingRuntime.metadata.name === data.servingRuntimeName,
   );
 
   const placeholderText =
@@ -48,18 +44,17 @@ const InferenceServiceServingRuntimeSection: React.FC<
     <FormGroup label="Model server" fieldId="inference-service-model-selection" isRequired>
       <SimpleSelect
         dataTestId="inference-service-model-selection"
-        options={servingRuntimes.map((servingRuntime) => ({
-          key: servingRuntime.metadata.name,
-          label: getDisplayNameFromK8sResource(servingRuntime),
-        }))}
+        options={servingRuntimes.map(
+          (servingRuntime): SimpleSelectOption => ({
+            key: servingRuntime.metadata.name,
+            label: getDisplayNameFromK8sResource(servingRuntime),
+          }),
+        )}
         isSkeleton={!loaded && data.project !== ''}
         toggleProps={{ id: 'inference-service-model-selection' }}
         isFullWidth
         value={data.servingRuntimeName}
-        toggleLabel={
-          (selectedServingRuntime && getDisplayNameFromK8sResource(selectedServingRuntime)) ||
-          placeholderText
-        }
+        placeholder={placeholderText}
         onChange={(option) => {
           if (option !== data.servingRuntimeName) {
             setData('servingRuntimeName', option);

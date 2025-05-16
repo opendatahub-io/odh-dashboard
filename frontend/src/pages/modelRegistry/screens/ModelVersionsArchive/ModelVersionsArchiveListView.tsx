@@ -10,7 +10,7 @@ import {
 import { FilterIcon, SearchIcon } from '@patternfly/react-icons';
 import { SearchType } from '~/concepts/dashboard/DashboardSearchField';
 import { ModelVersion, RegisteredModel } from '~/concepts/modelRegistry/types';
-import SimpleSelect from '~/components/SimpleSelect';
+import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
 import { filterModelVersions } from '~/pages/modelRegistry/screens/utils';
 import EmptyModelRegistryState from '~/pages/modelRegistry/screens/components/EmptyModelRegistryState';
 import { asEnumMember } from '~/utilities/utils';
@@ -62,10 +62,12 @@ const ModelVersionsArchiveListView: React.FC<ModelVersionsArchiveListViewProps> 
                 categoryName="Keyword"
               >
                 <SimpleSelect
-                  options={searchTypes.map((key) => ({
-                    key,
-                    label: key,
-                  }))}
+                  options={searchTypes.map(
+                    (key): SimpleSelectOption => ({
+                      key,
+                      label: key,
+                    }),
+                  )}
                   value={searchType}
                   onChange={(newSearchType) => {
                     const enumMember = asEnumMember(newSearchType, SearchType);

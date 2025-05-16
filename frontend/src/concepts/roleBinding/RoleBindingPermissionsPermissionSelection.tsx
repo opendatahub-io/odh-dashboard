@@ -1,5 +1,5 @@
 import React from 'react';
-import SimpleSelect from '~/components/SimpleSelect';
+import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
 import { RoleBindingPermissionsRoleType } from './types';
 import { castRoleBindingPermissionsRoleType, roleLabel } from './utils';
 
@@ -17,11 +17,13 @@ const RoleBindingPermissionsPermissionSelection: React.FC<
 > = ({ selection, onSelect, permissionOptions }) => (
   <SimpleSelect
     isFullWidth
-    options={permissionOptions.map((option) => ({
-      ...option,
-      label: roleLabel(option.type),
-      key: option.type,
-    }))}
+    options={permissionOptions.map(
+      (option): SimpleSelectOption => ({
+        ...option,
+        label: roleLabel(option.type),
+        key: option.type,
+      }),
+    )}
     value={selection}
     toggleLabel={roleLabel(selection)}
     onChange={(newSelection) => {
