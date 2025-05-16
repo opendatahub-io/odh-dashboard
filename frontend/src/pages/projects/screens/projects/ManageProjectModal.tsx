@@ -1,6 +1,15 @@
 import * as React from 'react';
-import { Alert, Button, Form, Stack, StackItem } from '@patternfly/react-core';
-import { Modal } from '@patternfly/react-core/deprecated';
+import {
+  Alert,
+  Button,
+  Form,
+  Stack,
+  StackItem,
+  Modal,
+  ModalBody,
+  ModalHeader,
+  ModalFooter,
+} from '@patternfly/react-core';
 import { createProject, updateProject } from '~/api';
 import { useUser } from '~/redux/selectors';
 import { ProjectKind } from '~/k8sTypes';
@@ -73,12 +82,38 @@ const ManageProjectModal: React.FC<ManageProjectModalProps> = ({ editProjectData
   };
 
   return (
-    <Modal
-      title={editProjectData ? 'Edit project' : 'Create project'}
-      variant="medium"
-      isOpen
-      onClose={() => onBeforeClose()}
-      actions={[
+    <Modal variant="medium" isOpen onClose={() => onBeforeClose()}>
+      <ModalHeader title={editProjectData ? 'Edit project' : 'Create project'} />
+      <ModalBody>
+        <Stack hasGutter>
+          <StackItem>
+            <Form
+              onSubmit={(e) => {
+                e.preventDefault();
+                submit();
+              }}
+            >
+              <K8sNameDescriptionField
+                autoFocusName
+                dataTestId="manage-project-modal"
+                {...k8sNameDescriptionData}
+              />
+            </Form>
+          </StackItem>
+          {error && (
+            <StackItem>
+              <Alert
+                variant="danger"
+                isInline
+                title={editProjectData ? 'Error updating project' : 'Error creating project'}
+              >
+                {error.message}
+              </Alert>
+            </StackItem>
+          )}
+        </Stack>
+      </ModalBody>
+      <ModalFooter>
         <Button
           key="confirm"
           variant="primary"
@@ -87,7 +122,7 @@ const ManageProjectModal: React.FC<ManageProjectModalProps> = ({ editProjectData
           onClick={submit}
         >
           {editProjectData ? 'Update' : 'Create'}
-        </Button>,
+        </Button>
         <Button
           key="cancel"
           variant="link"
@@ -99,36 +134,8 @@ const ManageProjectModal: React.FC<ManageProjectModalProps> = ({ editProjectData
           }}
         >
           Cancel
-        </Button>,
-      ]}
-    >
-      <Stack hasGutter>
-        <StackItem>
-          <Form
-            onSubmit={(e) => {
-              e.preventDefault();
-              submit();
-            }}
-          >
-            <K8sNameDescriptionField
-              autoFocusName
-              dataTestId="manage-project-modal"
-              {...k8sNameDescriptionData}
-            />
-          </Form>
-        </StackItem>
-        {error && (
-          <StackItem>
-            <Alert
-              variant="danger"
-              isInline
-              title={editProjectData ? 'Error updating project' : 'Error creating project'}
-            >
-              {error.message}
-            </Alert>
-          </StackItem>
-        )}
-      </Stack>
+        </Button>
+      </ModalFooter>
     </Modal>
   );
 };
