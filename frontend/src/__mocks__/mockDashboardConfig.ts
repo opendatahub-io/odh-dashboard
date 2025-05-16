@@ -40,6 +40,7 @@ export type MockDashboardConfigType = {
   disableFineTuning?: boolean;
   disableLlamaStackChatBot?: boolean;
   modelServerSizes?: ModelServingSize[];
+  [key: string]: boolean | NotebookSize[] | ModelServingSize[] | undefined;
 };
 
 export const mockDashboardConfig = ({
@@ -230,7 +231,6 @@ export const mockDashboardConfig = ({
       disableNIMModelServing,
       disableAdminConnectionTypes: false,
       disableFineTuning,
-      disableModelServingPlugin: true,
       disableLlamaStackChatBot,
     },
     notebookController: {
