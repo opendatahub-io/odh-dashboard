@@ -19,9 +19,11 @@ import {
   TimesIcon,
   OutlinedQuestionCircleIcon,
 } from '@patternfly/react-icons';
+import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
 
 import './DashboardDescriptionListGroup.scss';
-import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
+import { useBrowserUnloadBlocker } from '~/utilities/useBrowserUnloadBlocker';
+import NavigationBlockerModal from './NavigationBlockerModal';
 
 type EditableProps = {
   isEditing: boolean;
@@ -68,77 +70,90 @@ const DashboardDescriptionListGroup: React.FC<DashboardDescriptionListGroupProps
     cancelButtonTestId,
     isSaveDisabled,
   } = props;
+
+  const hasUnsavedChanges = !!(isEditable && isEditing);
+
+  useBrowserUnloadBlocker(hasUnsavedChanges);
+
   return (
-    <DescriptionListGroup data-testid={groupTestId}>
-      {action || isEditable ? (
-        <DescriptionListTerm className="odh-custom-description-list-term-with-action">
-          <Split>
-            <SplitItem isFilled>{title}</SplitItem>
-            <SplitItem>
-              {action ||
-                (isEditing ? (
-                  <ActionList isIconList>
-                    <ActionListItem>
-                      <Button
-                        data-testid={saveButtonTestId}
-                        icon={<CheckIcon />}
-                        aria-label={`Save edits to ${title}`}
-                        variant="link"
-                        onClick={onSaveEditsClick}
-                        isDisabled={isSavingEdits || isSaveDisabled}
-                      />
-                    </ActionListItem>
-                    <ActionListItem>
-                      <Button
-                        data-testid={cancelButtonTestId}
-                        icon={<TimesIcon />}
-                        aria-label={`Discard edits to ${title} `}
-                        variant="plain"
-                        onClick={onDiscardEditsClick}
-                        isDisabled={isSavingEdits}
-                      />
-                    </ActionListItem>
-                  </ActionList>
-                ) : (
-                  <Button
-                    data-testid={editButtonTestId}
-                    aria-label={`Edit ${title}`}
-                    variant="link"
-                    icon={<PencilAltIcon />}
-                    iconPosition="start"
-                    onClick={onEditClick}
-                  >
-                    Edit
-                  </Button>
-                ))}
-            </SplitItem>
-          </Split>
-        </DescriptionListTerm>
-      ) : (
-        <DescriptionListTerm>
-          <Flex
-            spaceItems={{ default: 'spaceItemsNone' }}
-            alignItems={{ default: 'alignItemsCenter' }}
-          >
-            <FlexItem>{title}</FlexItem>
-            {popover && (
-              <Popover bodyContent={popover}>
-                <DashboardPopupIconButton
-                  icon={<OutlinedQuestionCircleIcon />}
-                  aria-label="More info"
-                />
-              </Popover>
-            )}
-          </Flex>
-        </DescriptionListTerm>
+    <>
+      <DescriptionListGroup data-testid={groupTestId}>
+        {action || isEditable ? (
+          <DescriptionListTerm className="odh-custom-description-list-term-with-action">
+            <Split>
+              <SplitItem isFilled>{title}</SplitItem>
+              <SplitItem>
+                {action ||
+                  (isEditing ? (
+                    <ActionList isIconList>
+                      <ActionListItem>
+                        <Button
+                          data-testid={saveButtonTestId}
+                          icon={<CheckIcon />}
+                          aria-label={`Save edits to ${title}`}
+                          variant="link"
+                          onClick={onSaveEditsClick}
+                          isDisabled={isSavingEdits || isSaveDisabled}
+                        />
+                      </ActionListItem>
+                      <ActionListItem>
+                        <Button
+                          data-testid={cancelButtonTestId}
+                          icon={<TimesIcon />}
+                          aria-label={`Discard edits to ${title} `}
+                          variant="plain"
+                          onClick={onDiscardEditsClick}
+                          isDisabled={isSavingEdits}
+                        />
+                      </ActionListItem>
+                    </ActionList>
+                  ) : (
+                    <Button
+                      data-testid={editButtonTestId}
+                      aria-label={`Edit ${title}`}
+                      variant="link"
+                      icon={<PencilAltIcon />}
+                      iconPosition="start"
+                      onClick={onEditClick}
+                    >
+                      Edit
+                    </Button>
+                  ))}
+              </SplitItem>
+            </Split>
+          </DescriptionListTerm>
+        ) : (
+          <DescriptionListTerm>
+            <Flex
+              spaceItems={{ default: 'spaceItemsNone' }}
+              alignItems={{ default: 'alignItemsCenter' }}
+            >
+              <FlexItem>{title}</FlexItem>
+              {popover && (
+                <Popover bodyContent={popover}>
+                  <DashboardPopupIconButton
+                    icon={<OutlinedQuestionCircleIcon />}
+                    aria-label="More info"
+                  />
+                </Popover>
+              )}
+            </Flex>
+          </DescriptionListTerm>
+        )}
+        <DescriptionListDescription
+          className={isEmpty && !isEditing ? text.textColorDisabled : ''}
+          aria-disabled={!!(isEmpty && !isEditing)}
+        >
+          {isEditing ? contentWhenEditing : isEmpty ? contentWhenEmpty : children}
+        </DescriptionListDescription>
+      </DescriptionListGroup>
+      {hasUnsavedChanges && (
+        <NavigationBlockerModal
+          hasUnsavedChanges={hasUnsavedChanges}
+          onDiscardEditsClick={onDiscardEditsClick}
+        />
       )}
-      <DescriptionListDescription
-        className={isEmpty && !isEditing ? text.textColorDisabled : ''}
-        aria-disabled={!!(isEmpty && !isEditing)}
-      >
-        {isEditing ? contentWhenEditing : isEmpty ? contentWhenEmpty : children}
-      </DescriptionListDescription>
-    </DescriptionListGroup>
+    </>
   );
 };
 

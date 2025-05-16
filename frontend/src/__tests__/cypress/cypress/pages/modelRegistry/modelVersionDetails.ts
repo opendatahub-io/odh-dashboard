@@ -1,4 +1,5 @@
 import { TableRow } from '~/__tests__/cypress/cypress/pages/components/table';
+import { Modal } from '~/__tests__/cypress/cypress/pages/components/Modal';
 
 class ModelVersionDetails {
   visit() {
@@ -197,6 +198,25 @@ class ModelVersionDetails {
   }
 }
 
+class NavigationBlockerModal extends Modal {
+  constructor() {
+    super('Discard unsaved changes?');
+  }
+
+  findDiscardButton() {
+    return cy.findByTestId('confirm-discard-changes');
+  }
+
+  findCloseModal() {
+    return cy.findByTestId('cancel-discard-changes');
+  }
+
+  findDiscardUnsavedChanges() {
+    return cy.findByText('Discard unsaved changes?');
+  }
+}
+
 class PropertyRow extends TableRow {}
 
 export const modelVersionDetails = new ModelVersionDetails();
+export const navigationBlockerModal = new NavigationBlockerModal();

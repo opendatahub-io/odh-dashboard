@@ -22,7 +22,10 @@ import {
   ServingRuntimeModel,
 } from '~/__tests__/cypress/cypress/utils/models';
 import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url';
-import { modelVersionDetails } from '~/__tests__/cypress/cypress/pages/modelRegistry/modelVersionDetails';
+import {
+  modelVersionDetails,
+  navigationBlockerModal,
+} from '~/__tests__/cypress/cypress/pages/modelRegistry/modelVersionDetails';
 import { InferenceServiceModelState } from '~/pages/modelServing/screens/types';
 import { modelServingGlobal } from '~/__tests__/cypress/cypress/pages/modelServing';
 import {
@@ -526,6 +529,38 @@ describe('Model version details', () => {
       modelVersionDetails.findPipelineRunLink().should('contain.text', 'pipeline-run-test');
       modelVersionDetails.findProjectAccessInfoButton().click();
       modelVersionDetails.shouldHaveProjectAccessInfo();
+    });
+  });
+
+  describe('Discard unsaved changes', () => {
+    beforeEach(() => {
+      initIntercepts();
+      modelVersionDetails.visit();
+    });
+
+    it('should show discard modal when editing and moving to Deployments tab', () => {
+      modelVersionDetails.findEditLabelsButton().click();
+      modelVersionDetails.findAddLabelButton().click();
+      cy.findByTestId('editable-label-group').within(() => {
+        cy.contains('New Label').should('exist').click();
+      });
+
+      modelVersionDetails.findRegisteredDeploymentsTab().click();
+      navigationBlockerModal.findDiscardUnsavedChanges().should('exist');
+      navigationBlockerModal.findDiscardButton().click();
+      modelVersionDetails.findDetailsTab().click();
+    });
+
+    it('should continue editing when clicking cancel', () => {
+      modelVersionDetails.findEditLabelsButton().click();
+      modelVersionDetails.findAddLabelButton().click();
+      cy.findByTestId('editable-label-group').within(() => {
+        cy.contains('New Label').should('exist').click();
+      });
+
+      modelVersionDetails.findRegisteredDeploymentsTab().click();
+      navigationBlockerModal.findCloseModal().click();
+      cy.findByTestId('editable-labels-group-save').should('exist');
     });
   });
 
