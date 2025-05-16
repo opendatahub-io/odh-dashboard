@@ -16,14 +16,7 @@ import {
   ToggleGroupItem,
 } from '@patternfly/react-core';
 import { QuestionCircleIcon, MoonIcon, SunIcon } from '@patternfly/react-icons';
-import {
-  COMMUNITY_LINK,
-  DOC_LINK,
-  SUPPORT_LINK,
-  DEV_MODE,
-  EXT_CLUSTER,
-  SHOW_FEATURE_FLAG_BUTTON,
-} from '~/utilities/const';
+import { COMMUNITY_LINK, DOC_LINK, SUPPORT_LINK, DEV_MODE, EXT_CLUSTER } from '~/utilities/const';
 import useNotification from '~/utilities/useNotification';
 import { updateImpersonateSettings } from '~/services/impersonateService';
 import { AppNotification } from '~/redux/types';
@@ -51,6 +44,8 @@ const HeaderTools: React.FC<Props> = ({ onNotificationsClick, ...devFeatureFlags
   const { dashboardConfig } = useAppContext();
   const { theme, setTheme } = useThemeContext();
   const notification = useNotification();
+
+  console.log('in dev mode??? avo44:', DEV_MODE);
 
   React.useEffect(() => {
     const htmlElement = document.getElementsByTagName('html')[0];
@@ -169,7 +164,7 @@ const HeaderTools: React.FC<Props> = ({ onNotificationsClick, ...devFeatureFlags
               onClick={onNotificationsClick}
             />
           </ToolbarItem>
-          {SHOW_FEATURE_FLAG_BUTTON && (
+          {DEV_MODE && (
             <ToolbarItem data-testid="feature-flags-menu">
               <FeatureFlagLauncher {...devFeatureFlagsProps} />
             </ToolbarItem>

@@ -14,14 +14,14 @@ const DevFeatureFlagsBanner: React.FC<Props> = ({
   setDevFeatureFlag,
   resetDevFeatureFlags,
   setDevFeatureFlagQueryVisible,
+  isBannerVisible,
 }) => {
   const [isBannerHidden, setBannerHidden] = React.useState(false);
   const [isModalOpen, setModalOpen] = React.useState(false);
 
-  if (!devFeatureFlags || isBannerHidden) {
+  if (!isBannerVisible || !devFeatureFlags || isBannerHidden) {
     return null;
   }
-
   return (
     <>
       <Banner color="blue">

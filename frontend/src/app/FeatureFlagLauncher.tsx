@@ -1,6 +1,6 @@
 import React from 'react';
-import { Dropdown, DropdownItem, MenuToggle, Tooltip } from '@patternfly/react-core';
-import { FlagIcon } from '@patternfly/react-icons';
+import { Dropdown, DropdownGroup, DropdownItem, MenuToggle, Tooltip } from '@patternfly/react-core';
+import { FlagIcon, PencilAltIcon, RedoIcon } from '@patternfly/react-icons';
 import { FeatureFlagProps } from '~/types';
 import { DashboardCommonConfig } from '~/k8sTypes';
 import FeatureFlagModal from './FeatureFlags/FeatureFlagModal';
@@ -50,34 +50,38 @@ const FeatureFlagLauncher: React.FC<FeatureFlagLauncherProps> = ({
         onSelect={() => setIsOpen(false)}
         toggle={(toggleRef) =>
           isLoading ? (
-            <Tooltip content="Loading feature flags..." triggerRef={toggleRef}>
+            <Tooltip content="Loading feature flags..." triggerRef={toggleRef} position="bottom">
               {React.cloneElement(toggle, { ref: toggleRef })}
             </Tooltip>
           ) : (
-            React.cloneElement(toggle, { ref: toggleRef })
+            <Tooltip content="Feature Flags" triggerRef={toggleRef} position="bottom">
+              {React.cloneElement(toggle, { ref: toggleRef })}
+            </Tooltip>
           )
         }
         shouldFocusToggleOnSelect
         popperProps={{ position: 'right', appendTo: 'inline' }}
       >
-        <DropdownItem
-          key="edit"
-          onClick={() => {
-            setModalOpen(true);
-          }}
-          isDisabled={isLoading}
-        >
-          Edit Flags
-        </DropdownItem>
-        <DropdownItem
-          key="restore"
-          onClick={() => {
-            resetDevFeatureFlags();
-          }}
-          isDisabled={isLoading}
-        >
-          Restore Flags to default values
-        </DropdownItem>
+        <DropdownGroup label="Feature Flags" data-testid="application-feature-flag-group">
+          <DropdownItem
+            key="edit"
+            onClick={() => {
+              setModalOpen(true);
+            }}
+            isDisabled={isLoading}
+          >
+            <PencilAltIcon /> Edit Flags
+          </DropdownItem>
+          <DropdownItem
+            key="restore"
+            onClick={() => {
+              resetDevFeatureFlags();
+            }}
+            isDisabled={isLoading}
+          >
+            <RedoIcon /> Restore Flags to default values
+          </DropdownItem>
+        </DropdownGroup>
       </Dropdown>
       {isModalOpen && !isLoading ? (
         <FeatureFlagModal

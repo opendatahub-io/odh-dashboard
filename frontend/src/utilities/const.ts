@@ -15,7 +15,6 @@ const FAST_POLL_INTERVAL = process.env.FAST_POLL_INTERVAL
 const SERVER_TIMEOUT = process.env.SERVER_TIMEOUT ? parseInt(process.env.SERVER_TIMEOUT) : 300000; // 5 minutes
 const { DOC_LINK } = process.env;
 const { COMMUNITY_LINK } = process.env;
-const SHOW_FEATURE_FLAG_BUTTON = !!process.env.SHOW_FEATURE_FLAG_BUTTON;
 const { SUPPORT_LINK } = process.env;
 const ODH_LOGO = process.env.ODH_LOGO || 'odh-logo-light-theme.svg';
 const ODH_LOGO_DARK = process.env.ODH_LOGO_DARK || 'odh-logo-dark-theme.svg';
@@ -34,7 +33,6 @@ export {
   SERVER_TIMEOUT,
   DOC_LINK,
   COMMUNITY_LINK,
-  SHOW_FEATURE_FLAG_BUTTON,
   SUPPORT_LINK,
   ODH_LOGO,
   ODH_LOGO_DARK,
