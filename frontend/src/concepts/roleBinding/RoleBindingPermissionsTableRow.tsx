@@ -254,7 +254,7 @@ const RoleBindingPermissionsTableRow: React.FC<RoleBindingPermissionsTableRowPro
       </Tbody>
       {showModal && (
         <RoleBindingPermissionsChangeModal
-          roleName={roleBindingName}
+          roleName={currentUser.username}
           onClose={() => {
             setShowModal(false);
             if (isEditing) {
