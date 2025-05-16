@@ -7,6 +7,8 @@ interface CharLimitHelperTextProps {
 
 export const CharLimitHelperText: React.FC<CharLimitHelperTextProps> = ({ limit }) => (
   <HelperText>
-    <HelperTextItem>{`Cannot exceed ${limit} characters`}</HelperTextItem>
+    <HelperTextItem>
+      <strong>{`Cannot exceed ${limit} characters`}</strong>
+    </HelperTextItem>
   </HelperText>
 );
