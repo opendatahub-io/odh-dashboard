@@ -84,6 +84,3 @@ const FeatureFlagLauncher: React.FC<FeatureFlagLauncherProps> = ({
 };
 
 export default FeatureFlagLauncher;
-
-// TODO:  inhale the devfeatureflags banner:  take the modal into it's own component;
-// and use the same component for the launcher.  also:  show this to katie edwards for ux feedback

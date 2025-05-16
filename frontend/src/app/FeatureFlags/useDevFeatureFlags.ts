@@ -42,8 +42,6 @@ const useDevFeatureFlags = (
     false,
   );
 
-  console.log('(in useDevFeatureFlags) isBannerVisible:', isBannerVisible);
-
   // only keep valid feature flags
   const sanitizedSessionFlags = React.useMemo<Partial<DashboardCommonConfig> | null>(() => {
     if (sessionFlags) {

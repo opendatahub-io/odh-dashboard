@@ -203,8 +203,8 @@ const HeaderTools: React.FC<Props> = ({ onNotificationsClick, ...devFeatureFlags
             </Dropdown>
           </ToolbarItem>
           <ToolbarItem>
-          <Tooltip content="Light/Dark Mode" position="bottom" triggerRef={lightModeRef}>        
-            <ToggleGroup aria-label="Theme toggle group">
+            <Tooltip content="Light/Dark Mode" position="bottom" triggerRef={lightModeRef}>
+              <ToggleGroup aria-label="Theme toggle group">
                 <ToggleGroupItem
                   ref={lightModeRef}
                   aria-label="light theme"
@@ -214,7 +214,7 @@ const HeaderTools: React.FC<Props> = ({ onNotificationsClick, ...devFeatureFlags
                     setTheme('light');
                   }}
                 />
-             
+
                 <ToggleGroupItem
                   ref={darkModeRef}
                   aria-label="dark theme"
@@ -224,12 +224,10 @@ const HeaderTools: React.FC<Props> = ({ onNotificationsClick, ...devFeatureFlags
                     setTheme('dark');
                   }}
                 />
-           
-            </ToggleGroup>
+              </ToggleGroup>
             </Tooltip>
           </ToolbarItem>
         </ToolbarGroup>
-        </ToolbarContent>
 
         {DEV_MODE && isImpersonating && (
           <ToolbarItem>

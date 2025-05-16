@@ -19,17 +19,10 @@ const DevFeatureFlagsBanner: React.FC<Props> = ({
   const [isBannerHidden, setBannerHidden] = React.useState(false);
   const [isModalOpen, setModalOpen] = React.useState(false);
 
-  console.log(
-    'in banner; flags? isBannerVisible/devFeatureFlags/isHidden:',
-    isBannerVisible,
-    devFeatureFlags,
-    isBannerHidden,
-  );
   if (!isBannerVisible || !devFeatureFlags || isBannerHidden) {
-    console.log('not showing banner');
     return null;
   }
-  console.log('showing banner');
+
   return (
     <>
       <Banner color="blue">
