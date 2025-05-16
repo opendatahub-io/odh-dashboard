@@ -36,9 +36,15 @@ type RunFormProps = {
   data: RunFormData;
   onValueChange: (key: keyof RunFormData, value: ValueOf<RunFormData>) => void;
   isDuplicated: boolean;
+  onValidationChange?: (isValid: boolean) => void;
 };
 
-const RunForm: React.FC<RunFormProps> = ({ data, onValueChange, isDuplicated }) => {
+const RunForm: React.FC<RunFormProps> = ({
+  data,
+  onValueChange,
+  isDuplicated,
+  onValidationChange,
+}) => {
   const { api } = usePipelinesAPI();
   const [latestVersion, latestVersionLoaded] = useLatestPipelineVersion(data.pipeline?.pipeline_id);
   // Use this state to avoid the pipeline version being set as the latest version at the initial load
@@ -136,6 +142,7 @@ const RunForm: React.FC<RunFormProps> = ({ data, onValueChange, isDuplicated }) 
             setHasDuplicateName(false);
             checkForDuplicateName(value);
           }}
+          onValidationChange={onValidationChange}
           nameHelperText={hasDuplicateName ? <DuplicateNameHelperText name={name} /> : undefined}
         />
 
