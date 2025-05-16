@@ -249,8 +249,8 @@ export const getIsAppEnabled = async (
   fastify: KubeFastifyInstance,
   appDef: OdhApplication,
 ): Promise<boolean> => {
-  if (appDef.metadata.name === 'jupyter') {
-    return checkJupyterEnabled();
+  if (appDef.spec.category === "Red Hat managed") {
+    return true;
   }
 
   const enabledCM = await getApplicationEnabledConfigMap(fastify, appDef);
