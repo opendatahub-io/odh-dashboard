@@ -894,11 +894,11 @@ describe('Workbench page', () => {
         name: 'outdated-notebook',
         displayName: 'Outdated Notebook',
       }),
-    ).as('getWorkbench');
+    );
 
     notebookImageUpdateModal.findSubmitUpdateImageButton().click();
-    cy.wait('@updateNotebookImage');
     workbenchPage.findUpdatingImageIcon().should('exist');
+    cy.wait('@updateNotebookImage');
   });
 
   it('Shows latest image label', () => {
