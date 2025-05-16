@@ -18,25 +18,13 @@ const FeatureFlagLauncher: React.FC<FeatureFlagLauncherProps> = ({
   const [isOpen, setIsOpen] = React.useState(false);
   const [isModalOpen, setModalOpen] = React.useState(false);
 
-  const checkLoading = React.useCallback(
-    () => typeof dashboardConfig === 'object' && Object.keys(dashboardConfig).length === 0,
-    [dashboardConfig],
-  );
-
-  const [isLoading, setIsLoading] = React.useState(checkLoading);
-
-  React.useEffect(() => {
-    setIsLoading(checkLoading());
-  }, [dashboardConfig, checkLoading]);
-
   const toggle = (
     <MenuToggle
       aria-label="Feature Flag Launcher"
       variant="plain"
-      onClick={() => !isLoading && setIsOpen(!isOpen)}
+      onClick={() => setIsOpen(!isOpen)}
       isExpanded={isOpen}
       style={{ width: 'auto' }}
-      isDisabled={isLoading}
     >
       <FlagIcon />
     </MenuToggle>
@@ -48,17 +36,11 @@ const FeatureFlagLauncher: React.FC<FeatureFlagLauncherProps> = ({
         isOpen={isOpen}
         onOpenChange={(isOpenChange) => setIsOpen(isOpenChange)}
         onSelect={() => setIsOpen(false)}
-        toggle={(toggleRef) =>
-          isLoading ? (
-            <Tooltip content="Loading feature flags..." triggerRef={toggleRef} position="bottom">
-              {React.cloneElement(toggle, { ref: toggleRef })}
-            </Tooltip>
-          ) : (
-            <Tooltip content="Feature Flags" triggerRef={toggleRef} position="bottom">
-              {React.cloneElement(toggle, { ref: toggleRef })}
-            </Tooltip>
-          )
-        }
+        toggle={(toggleRef) => (
+          <Tooltip content="Feature Flags" triggerRef={toggleRef} position="bottom">
+            {React.cloneElement(toggle, { ref: toggleRef })}
+          </Tooltip>
+        )}
         shouldFocusToggleOnSelect
         popperProps={{ position: 'right', appendTo: 'inline' }}
       >
@@ -68,7 +50,6 @@ const FeatureFlagLauncher: React.FC<FeatureFlagLauncherProps> = ({
             onClick={() => {
               setModalOpen(true);
             }}
-            isDisabled={isLoading}
           >
             <PencilAltIcon /> Edit Flags
           </DropdownItem>
@@ -77,13 +58,12 @@ const FeatureFlagLauncher: React.FC<FeatureFlagLauncherProps> = ({
             onClick={() => {
               resetDevFeatureFlags();
             }}
-            isDisabled={isLoading}
           >
             <RedoIcon /> Restore Flags to default values
           </DropdownItem>
         </DropdownGroup>
       </Dropdown>
-      {isModalOpen && !isLoading ? (
+      {isModalOpen ? (
         <FeatureFlagModal
           dashboardConfig={dashboardConfig}
           devFeatureFlags={devFeatureFlags}
