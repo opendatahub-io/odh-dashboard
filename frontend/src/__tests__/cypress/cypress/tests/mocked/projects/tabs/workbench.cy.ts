@@ -862,9 +862,15 @@ describe('Workbench page', () => {
     initIntercepts({});
     cy.interceptK8sList(
       PVCModel,
-      mockK8sResourceList([mockPVCK8sResource({ name: 'outdated-notebook' })]),
+      mockK8sResourceList([
+        mockPVCK8sResource({ name: 'outdated-notebook', displayName: 'Outdated Notebook' }),
+      ]),
     );
     cy.interceptK8s(RouteModel, mockRouteK8sResource({ notebookName: 'outdated-notebook' }));
+    cy.interceptK8sList(
+      PodModel,
+      mockK8sResourceList([mockPodK8sResource({ isRunning: true })]),
+    ).as('restartPod');
     workbenchPage.visit('test-project');
     workbenchPage.getNotebookRow('Outdated Notebook').findNotebookImageLabel().click();
     notebookImageUpdateModal.findUpdateImageButton().click();
@@ -875,6 +881,7 @@ describe('Workbench page', () => {
       NotebookModel,
       mockNotebookK8sResource({
         name: 'outdated-notebook',
+        displayName: 'Outdated Notebook',
       }),
     ).as('updateNotebookImage');
     cy.interceptK8s(
@@ -882,12 +889,13 @@ describe('Workbench page', () => {
       NotebookModel,
       mockNotebookK8sResource({
         name: 'outdated-notebook',
+        displayName: 'Outdated Notebook',
       }),
     ).as('getWorkbench');
 
     notebookImageUpdateModal.findSubmitUpdateImageButton().click();
-
     cy.wait('@updateNotebookImage');
+    workbenchPage.findUpdatingImageIcon().should('exist');
   });
 
   it('Shows latest image label', () => {
