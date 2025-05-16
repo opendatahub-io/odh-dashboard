@@ -230,6 +230,7 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
             servingRuntimeSelected={servingRuntimeSelected}
             infoContent="Select a server size that will accommodate your largest model. See the product documentation for more information."
             isEditing={!!editInfo}
+            projectName={currentProject.metadata.name}
           />
           <AuthServingRuntimeSection
             data={createData}

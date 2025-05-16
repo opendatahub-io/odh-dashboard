@@ -16,12 +16,14 @@ type ServingRuntimeTableExpandedSectionProps = {
   activeColumn?: ServingRuntimeTableTabs;
   onClose: () => void;
   obj: ServingRuntimeKind;
+  project: string;
 };
 
 const ServingRuntimeTableExpandedSection: React.FC<ServingRuntimeTableExpandedSectionProps> = ({
   activeColumn,
   onClose,
   obj,
+  project,
 }) => {
   const {
     inferenceServices: { data: inferenceServices, refresh: refreshInferenceServices },
@@ -34,7 +36,7 @@ const ServingRuntimeTableExpandedSection: React.FC<ServingRuntimeTableExpandedSe
       <>
         <Td dataLabel="Type expansion" colSpan={7}>
           <ExpandableRowContent>
-            <ServingRuntimeDetails obj={obj} />
+            <ServingRuntimeDetails obj={obj} project={project} />
           </ExpandableRowContent>
         </Td>
       </>

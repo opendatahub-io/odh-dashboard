@@ -245,6 +245,7 @@ describe('Workbench Hardware Profiles', () => {
         mockNotebookK8sResource({
           hardwareProfileName: 'large-profile-1',
           displayName: 'Test Notebook',
+          hardwareProfileNamespace: 'test-project',
         }),
       ]),
     );
@@ -363,6 +364,7 @@ describe('Workbench Hardware Profiles', () => {
           mockNotebookK8sResource({
             hardwareProfileName: 'large-profile-1',
             displayName: 'Test Notebook',
+            hardwareProfileNamespace: 'test-project',
           }),
         ]),
       );

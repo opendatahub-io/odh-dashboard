@@ -29,6 +29,7 @@ import {
   mockGlobalScopedAcceleratorProfiles,
   mockProjectScopedAcceleratorProfiles,
 } from '~/__mocks__/mockAcceleratorProfile';
+import { acceleratorProfileSection } from '~/__tests__/cypress/cypress/pages/components/subComponents/AcceleratorProfileSection';
 
 const MODEL_REGISTRY_API_VERSION = 'v1alpha3';
 
@@ -378,7 +379,7 @@ describe('Deploy model version', () => {
 
     // Check for project specific serving runtimes
     projectScopedSR.find().findByRole('menuitem', { name: 'Caikit', hidden: true }).click();
-    kserveModal.findProjectScopedLabel().should('exist');
+    acceleratorProfileSection.findProjectScopedLabel().should('exist');
     kserveModal.findModelFrameworkSelect().should('be.disabled');
     kserveModal.findModelFrameworkSelect().should('have.text', 'openvino_ir - opset1');
     cy.findByText(
@@ -391,7 +392,7 @@ describe('Deploy model version', () => {
     kserveModal.findServingRuntimeTemplateSearchSelector().click();
     const globalScopedSR = kserveModal.getGlobalScopedServingRuntime();
     globalScopedSR.find().findByRole('menuitem', { name: 'Multi Platform', hidden: true }).click();
-    kserveModal.findGlobalScopedLabel().should('exist');
+    acceleratorProfileSection.findGlobalScopedLabel().should('exist');
     kserveModal.findModelFrameworkSelect().should('be.enabled');
     kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
     cy.findByText(
@@ -461,11 +462,12 @@ describe('Deploy model version', () => {
     kserveModal.findModelNameInput().should('exist');
 
     // Verify accelerator profile section exists
-    kserveModal.findAcceleratorProfileSearchSelector().should('exist');
-    kserveModal.findAcceleratorProfileSearchSelector().click();
+    acceleratorProfileSection.findAcceleratorProfileSearchSelector().should('exist');
+    acceleratorProfileSection.findAcceleratorProfileSearchSelector().click();
 
     // verify available project-scoped accelerator profile
-    const projectScopedAcceleratorProfile = kserveModal.getProjectScopedAcceleratorProfile();
+    const projectScopedAcceleratorProfile =
+      acceleratorProfileSection.getProjectScopedAcceleratorProfile();
     projectScopedAcceleratorProfile
       .find()
       .findByRole('menuitem', {
@@ -473,11 +475,12 @@ describe('Deploy model version', () => {
         hidden: true,
       })
       .click();
-    kserveModal.findProjectScopedLabel().should('exist');
+    acceleratorProfileSection.findProjectScopedLabel().should('exist');
 
     // verify available global-scoped accelerator profile
-    kserveModal.findAcceleratorProfileSearchSelector().click();
-    const globalScopedAcceleratorProfile = kserveModal.getGlobalScopedAcceleratorProfile();
+    acceleratorProfileSection.findAcceleratorProfileSearchSelector().click();
+    const globalScopedAcceleratorProfile =
+      acceleratorProfileSection.getGlobalScopedAcceleratorProfile();
     globalScopedAcceleratorProfile
       .find()
       .findByRole('menuitem', {
@@ -485,7 +488,7 @@ describe('Deploy model version', () => {
         hidden: true,
       })
       .click();
-    kserveModal.findGlobalScopedLabel().should('exist');
+    acceleratorProfileSection.findGlobalScopedLabel().should('exist');
   });
 
   it('Selects Create Connection in case of no matching connections', () => {
