@@ -4,6 +4,7 @@ import { FlagIcon, PencilAltIcon, RedoIcon } from '@patternfly/react-icons';
 import { FeatureFlagProps } from '~/types';
 import { DashboardCommonConfig } from '~/k8sTypes';
 import FeatureFlagModal from './FeatureFlags/FeatureFlagModal';
+import './AppLauncher.scss';
 
 export type FeatureFlagLauncherProps = FeatureFlagProps & {
   dashboardConfig: Partial<DashboardCommonConfig>;
@@ -44,22 +45,26 @@ const FeatureFlagLauncher: React.FC<FeatureFlagLauncherProps> = ({
         shouldFocusToggleOnSelect
         popperProps={{ position: 'right', appendTo: 'inline' }}
       >
-        <DropdownGroup label="Feature Flags" data-testid="application-feature-flag-group">
+        <DropdownGroup label="Feature Flags" data-testid="application-dev-feature-flag-group">
           <DropdownItem
             key="edit"
             onClick={() => {
               setModalOpen(true);
             }}
+            className="odh-launcher__dropdown-item"
+            icon={<PencilAltIcon />}
           >
-            <PencilAltIcon /> Edit Flags
+            Edit Flags
           </DropdownItem>
           <DropdownItem
             key="restore"
             onClick={() => {
               resetDevFeatureFlags();
             }}
+            className="odh-launcher__dropdown-item"
+            icon={<RedoIcon />}
           >
-            <RedoIcon /> Restore Flags to default values
+            Restore Flags to default values
           </DropdownItem>
         </DropdownGroup>
       </Dropdown>

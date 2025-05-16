@@ -13,6 +13,7 @@ describe('DevFeatureFlagsBanner', () => {
         resetDevFeatureFlags={() => undefined}
         devFeatureFlags={null}
         setDevFeatureFlagQueryVisible={() => undefined}
+        isBannerVisible={false}
       />,
     );
     expect(result.container).toBeEmptyDOMElement();
@@ -28,6 +29,7 @@ describe('DevFeatureFlagsBanner', () => {
         resetDevFeatureFlags={resetFn}
         setDevFeatureFlagQueryVisible={visibleFn}
         devFeatureFlags={{}}
+        isBannerVisible
       />,
     );
     expect(result.container).not.toBeEmptyDOMElement();
@@ -55,6 +57,7 @@ describe('DevFeatureFlagsBanner', () => {
         devFeatureFlags={{
           disableHome: true,
         }}
+        isBannerVisible
       />,
     );
     expect(result.container).not.toBeEmptyDOMElement();
