@@ -88,11 +88,11 @@ const ImageVersionSelector: React.FC<ImageVersionSelectorProps> = ({
       description: (
         <div>
           <div data-testid="workbench-image-version-software">
-            <b>Software:</b> {getImageVersionSoftwareString(imageVersion)}
+            Software: {getImageVersionSoftwareString(imageVersion)}
           </div>
           {imageBuildDate && (
             <div data-testid="workbench-image-version-build-date">
-              <b>Build date:</b> <Timestamp date={new Date(imageBuildDate)} shouldDisplayUTC />
+              Build date: <Timestamp date={new Date(imageBuildDate)} shouldDisplayUTC />
             </div>
           )}
         </div>
