@@ -12,13 +12,13 @@ spec:
   description: Install GPU add-on
   prerequisites: [You have completed the "Installing and verifying NVIDIA GPU add-on" quick start.]
   introduction: |-
-    This quick start shows you how to run a notebook that uses a GPU available in your cluster.
+    This quick start shows you how to run a workbench that uses a GPU available in your cluster.
   tasks:
     - title: Import the notebook repository into Jupyter
       description: |-
         ### Prerequisites
 
-        - You have launched a notebook server with at least 1 GPU attached. For help, run the "Installing and verifying NVIDIA GPU add-on" quick start.
+        - You have launched a workbench with at least 1 GPU attached. For help, run the "Installing and verifying NVIDIA GPU add-on" quick start.
 
         ### Procedure
 
@@ -31,7 +31,7 @@ spec:
           Can you see a getting-started-with-gpus directory in the file navigation pane in Jupyter?
         failedTaskHelp: This task is not verified yet. Try the task again.
       summary:
-        success: You have successfully cloned the notebook repository into your notebook server environment.
+        success: You have successfully cloned the notebook repository into your workbench environment.
         failed: Ensure you have met the prerequisites for the GPU add-on and try the steps again.
     - title: Run the "Using GPU resources with PyTorch" notebook
       description: |-

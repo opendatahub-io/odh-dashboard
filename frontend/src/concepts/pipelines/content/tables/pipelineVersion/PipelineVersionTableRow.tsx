@@ -11,8 +11,8 @@ import {
   createRunRoute,
   globalPipelineRecurringRunsVersionRoute,
   globalPipelineRunsVersionRoute,
-  pipelineVersionDetailsRoute,
-} from '~/routes';
+} from '~/routes/pipelines/runs';
+import { pipelineVersionDetailsRoute } from '~/routes/pipelines/global';
 import { isArgoWorkflow } from '~/concepts/pipelines/content/tables/utils';
 import {
   PIPELINE_CREATE_RUN_TOOLTIP_ARGO_ERROR,
@@ -91,7 +91,12 @@ const PipelineVersionTableRow: React.FC<PipelineVersionTableRowProps> = ({
               title: 'Create run',
               onClick: () => {
                 navigate(createRunRoute(namespace), {
-                  state: { contextData: { pipeline, version } },
+                  state: {
+                    contextData: {
+                      pipeline,
+                      version,
+                    },
+                  },
                 });
               },
               isAriaDisabled: isCreateDisabled,
@@ -103,7 +108,12 @@ const PipelineVersionTableRow: React.FC<PipelineVersionTableRowProps> = ({
               title: 'Create schedule',
               onClick: () => {
                 navigate(createRecurringRunRoute(namespace), {
-                  state: { contextData: { pipeline, version } },
+                  state: {
+                    contextData: {
+                      pipeline,
+                      version,
+                    },
+                  },
                 });
               },
               isAriaDisabled: isCreateDisabled,

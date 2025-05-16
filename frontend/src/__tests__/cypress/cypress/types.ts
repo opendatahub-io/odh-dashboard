@@ -1,5 +1,4 @@
 import type { RouteMatcher } from 'cypress/types/net-stubbing';
-import type { ConfigMapKind, SecretKind } from '~/k8sTypes';
 
 export type Snapshot = {
   method: string;
@@ -189,12 +188,6 @@ export type NotebookImageData = {
   codeserverImageName: string;
 };
 
-export type NimServingResponse = {
-  body: {
-    body: ConfigMapKind | SecretKind;
-  };
-};
-
 export type SettingsTestData = {
   pvcDefaultSize: number;
 };
@@ -285,53 +278,6 @@ export type WorkloadMetricsTestData = {
   memoryQuota: number;
   refreshIntervals: number[];
 };
-
-export enum KnownFineTuningPipelineParameters {
-  OUTPUT_OCI_MODEL_URI = 'output_oci_model_uri',
-  OUTPUT_OCI_REGISTRY_SECRET = 'output_oci_registry_secret',
-  OUTPUT_MODEL_NAME = 'output_model_name',
-  OUTPUT_MODEL_VERSION = 'output_model_version',
-  OUTPUT_MODEL_REGISTRY_API_URL = 'output_model_registry_api_url',
-  OUTPUT_MODEL_REGISTRY_NAME = 'output_model_registry_name',
-  OUTPUT_MODELCAR_BASE_IMAGE = 'output_modelcar_base_image',
-  SDG_REPO_URL = 'sdg_repo_url',
-  SDG_REPO_SECRET = 'sdg_repo_secret',
-  SDG_REPO_BRANCH = 'sdg_repo_branch',
-  SDG_REPO_PR = 'sdg_repo_pr',
-  SDG_TEACHER_SECRET = 'sdg_teacher_secret',
-  SDG_BASE_MODEL = 'sdg_base_model',
-  SDG_SCALE_FACTOR = 'sdg_scale_factor',
-  SDG_PIPELINE = 'sdg_pipeline',
-  SDG_MAX_BATCH_LEN = 'sdg_max_batch_len',
-  SDG_SAMPLE_SIZE = 'sdg_sample_size',
-  TRAIN_TOLERATIONS = 'train_tolerations',
-  TRAIN_NODE_SELECTORS = 'train_node_selectors',
-  TRAIN_GPU_IDENTIFIER = 'train_gpu_identifier',
-  TRAIN_GPU_PER_WORKER = 'train_gpu_per_worker',
-  TRAIN_CPU_PER_WORKER = 'train_cpu_per_worker',
-  TRAIN_MEMORY_PER_WORKER = 'train_memory_per_worker',
-  TRAIN_NUM_WORKERS = 'train_num_workers',
-  TRAIN_NUM_EPOCHS_PHASE_1 = 'train_num_epochs_phase_1',
-  TRAIN_NUM_EPOCHS_PHASE_2 = 'train_num_epochs_phase_2',
-  TRAIN_EFFECTIVE_BATCH_SIZE_PHASE_1 = 'train_effective_batch_size_phase_1',
-  TRAIN_EFFECTIVE_BATCH_SIZE_PHASE_2 = 'train_effective_batch_size_phase_2',
-  TRAIN_LEARNING_RATE_PHASE_1 = 'train_learning_rate_phase_1',
-  TRAIN_LEARNING_RATE_PHASE_2 = 'train_learning_rate_phase_2',
-  TRAIN_NUM_WARMUP_STEPS_PHASE_1 = 'train_num_warmup_steps_phase_1',
-  TRAIN_NUM_WARMUP_STEPS_PHASE_2 = 'train_num_warmup_steps_phase_2',
-  TRAIN_SAVE_SAMPLES = 'train_save_samples',
-  TRAIN_MAX_BATCH_LEN = 'train_max_batch_len',
-  TRAIN_SEED = 'train_seed',
-  MT_BENCH_MAX_WORKERS = 'mt_bench_max_workers',
-  MT_BENCH_MERGE_SYSTEM_USER_MESSAGE = 'mt_bench_merge_system_user_message',
-  FINAL_EVAL_MAX_WORKERS = 'final_eval_max_workers',
-  FINAL_EVAL_FEW_SHOTS = 'final_eval_few_shots',
-  FINAL_EVAL_BATCH_SIZE = 'final_eval_batch_size',
-  FINAL_EVAL_MERGE_SYSTEM_USER_MESSAGE = 'final_eval_merge_system_user_message',
-  EVAL_GPU_IDENTIFIER = 'eval_gpu_identifier',
-  EVAL_JUDGE_SECRET = 'eval_judge_secret',
-  K8S_STORAGE_CLASS_NAME = 'k8s_storage_class_name',
-}
 
 export type DeployOCIModelData = {
   projectName: string;

@@ -42,6 +42,8 @@ export const allFeatureFlags: string[] = Object.keys({
   disableNIMModelServing: false,
   disableAdminConnectionTypes: false,
   disableFineTuning: true,
+  disableModelServingPlugin: true, // internal dev only
+  disableLlamaStackChatBot: true, // internal dev only
 } satisfies DashboardCommonConfig);
 
 export const SupportedAreasStateMap: SupportedAreasState = {
@@ -166,6 +168,15 @@ export const SupportedAreasStateMap: SupportedAreasState = {
       SupportedArea.MODEL_CATALOG,
       SupportedArea.MODEL_REGISTRY,
     ],
+  },
+  [SupportedArea.PLUGIN_MODEL_SERVING]: {
+    featureFlags: ['disableModelServingPlugin'],
+    reliantAreas: [SupportedArea.MODEL_SERVING],
+  },
+  [SupportedArea.LLAMA_STACK_CHAT_BOT]: {
+    featureFlags: ['disableLlamaStackChatBot'],
+    reliantAreas: [SupportedArea.MODEL_SERVING],
+    //TODO: Add Llama Stack component when details known.
   },
 };
 

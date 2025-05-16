@@ -16,7 +16,7 @@ const NotebookActions: React.FC<ServerStatusProps> = ({ data }) => {
 
   const rowActions: IAction[] = [
     {
-      title: 'Stop server',
+      title: 'Stop workbench',
       onClick: () => {
         setServerStatuses([data]);
       },

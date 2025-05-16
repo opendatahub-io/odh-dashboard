@@ -16,6 +16,7 @@ import {
   Popover,
   ActionListGroup,
   Skeleton,
+  Tooltip,
 } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
@@ -35,10 +36,14 @@ import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/M
 import PopoverListContent from '~/components/PopoverListContent';
 import { FindAdministratorOptions } from '~/pages/projects/screens/projects/const';
 import { RhUiTagIcon } from '~/images/icons';
-import { modelCustomizationRootPath, getRegisterCatalogModelRoute } from '~/routes';
+import { modelCustomizationRootPath } from '~/routes/pipelines/modelCustomization';
+import { getRegisterCatalogModelRoute } from '~/routes/modelCatalog/catalogModelRegister';
 import RhUiControlsIcon from '~/images/icons/RhUiControlsIcon';
 import { CatalogModelDetailsParams } from '~/pages/modelCatalog/types';
 import { ODH_PRODUCT_NAME } from '~/utilities/const';
+import ScrollViewOnMount from '~/components/ScrollViewOnMount';
+import { isOciModelUri } from '~/pages/modelServing/utils';
+import useDeployButtonState from '~/pages/modelServing/screens/projects/useDeployButtonState';
 import ModelDetailsView from './ModelDetailsView';
 import DeployCatalogModelModal from './DeployCatalogModelModal';
 
@@ -67,6 +72,8 @@ const ModelDetailsPage: React.FC = conditionalArea(
       ),
     [modelCatalogSources, decodedParams],
   );
+  const isOciModel = isOciModelUri(model?.artifacts?.map((artifact) => artifact.uri)[0]);
+  const deployButtonState = useDeployButtonState(isOciModel);
 
   const registerModelButton = () => {
     if (modelRegistryServicesLoadError) {
@@ -87,14 +94,18 @@ const ModelDetailsPage: React.FC = conditionalArea(
           />
         }
       >
-        <Button variant="secondary" isAriaDisabled data-testid="register-model-button">
+        <Button
+          variant={!deployButtonState.visible ? 'primary' : 'secondary'}
+          isAriaDisabled
+          data-testid="register-model-button"
+        >
           Register model
         </Button>
       </Popover>
     ) : (
       <Button
         data-testid="register-model-button"
-        variant="secondary"
+        variant={!deployButtonState.visible ? 'primary' : 'secondary'}
         onClick={() => {
           navigate(getRegisterCatalogModelRoute(decodedParams));
         }}
@@ -104,15 +115,23 @@ const ModelDetailsPage: React.FC = conditionalArea(
     );
   };
 
-  const deployModelButton = (
-    <Button
-      variant="primary"
-      data-testid="deploy-model-button"
-      onClick={() => setIsDeployModalOpen(true)}
-    >
-      Deploy model
-    </Button>
-  );
+  const renderDeployModelButton = () => {
+    const deployModelButton = (
+      <Button
+        variant="primary"
+        data-testid="deploy-model-button"
+        onClick={() => setIsDeployModalOpen(true)}
+        isAriaDisabled={!deployButtonState.enabled}
+      >
+        Deploy model
+      </Button>
+    );
+
+    if (deployButtonState.enabled) {
+      return deployModelButton;
+    }
+    return <Tooltip content={deployButtonState.tooltip}>{deployModelButton}</Tooltip>;
+  };
 
   const fineTuneActionItem = (
     <Popover
@@ -147,91 +166,97 @@ const ModelDetailsPage: React.FC = conditionalArea(
   );
 
   return (
-    <ApplicationsPage
-      breadcrumb={
-        <Breadcrumb>
-          <BreadcrumbItem>
-            <Link to="/modelCatalog">Model catalog</Link>
-          </BreadcrumbItem>
-          <BreadcrumbItem isActive>{decodedParams.modelName}</BreadcrumbItem>
-        </Breadcrumb>
-      }
-      title={
-        <Flex spaceItems={{ default: 'spaceItemsMd' }} alignItems={{ default: 'alignItemsCenter' }}>
-          {model?.logo ? (
-            <img src={model.logo} alt="model logo" style={{ height: '40px', width: '40px' }} />
-          ) : (
-            <Skeleton
-              shape="square"
-              width="40px"
-              height="40px"
-              screenreaderText="Brand image loading"
-            />
-          )}
-          <Stack>
-            <StackItem>
-              <Flex
-                spaceItems={{ default: 'spaceItemsSm' }}
-                alignItems={{ default: 'alignItemsCenter' }}
-              >
-                <FlexItem>{decodedParams.modelName}</FlexItem>
-                {model && (
-                  <Label variant="outline" icon={<RhUiTagIcon />}>
-                    {getTagFromModel(model)}
-                  </Label>
-                )}
-              </Flex>
-            </StackItem>
-            {model && (
-              <StackItem>
-                <Content component={ContentVariants.small}>Provided by {model.provider}</Content>
-              </StackItem>
+    <>
+      <ScrollViewOnMount shouldScroll />
+      <ApplicationsPage
+        breadcrumb={
+          <Breadcrumb>
+            <BreadcrumbItem>
+              <Link to="/modelCatalog">Model catalog</Link>
+            </BreadcrumbItem>
+            <BreadcrumbItem isActive>{decodedParams.modelName}</BreadcrumbItem>
+          </Breadcrumb>
+        }
+        title={
+          <Flex
+            spaceItems={{ default: 'spaceItemsMd' }}
+            alignItems={{ default: 'alignItemsCenter' }}
+          >
+            {model?.logo ? (
+              <img src={model.logo} alt="model logo" style={{ height: '40px', width: '40px' }} />
+            ) : (
+              <Skeleton
+                shape="square"
+                width="40px"
+                height="40px"
+                screenreaderText="Brand image loading"
+              />
             )}
-          </Stack>
-        </Flex>
-      }
-      empty={model === null}
-      emptyStatePage={
-        <EmptyModelCatalogState
-          testid="empty-model-catalog-state"
-          title="Details not found"
-          description="To request access to model catalog, contact your administrator."
-          headerIcon={() => (
-            <img src={typedEmptyImage(ProjectObjectType.registeredModels)} alt="" />
-          )}
-        />
-      }
-      loadError={modelCatalogSources.error}
-      loaded={loaded}
-      errorMessage="Unable to load model catalog"
-      provideChildrenPadding
-      headerAction={
-        loaded && (
-          <ActionList>
-            <ActionListGroup>
-              {tuningAvailable && isLabBase(model?.labels) && fineTuneActionItem}
-              {registerModelButton()}
-              {deployModelButton}
-            </ActionListGroup>
-          </ActionList>
-        )
-      }
-    >
-      {model && (
-        <>
-          <ModelDetailsView model={model} />
-          {isDeployModalOpen && (
-            <DeployCatalogModelModal
-              model={model}
-              onSubmit={(selectedProject) => {
-                navigate(`/modelServing/${selectedProject.metadata.name}`);
-              }}
-              onCancel={() => setIsDeployModalOpen(false)}
-            />
-          )}
-        </>
-      )}
-    </ApplicationsPage>
+            <Stack>
+              <StackItem>
+                <Flex
+                  spaceItems={{ default: 'spaceItemsSm' }}
+                  alignItems={{ default: 'alignItemsCenter' }}
+                >
+                  <FlexItem>{decodedParams.modelName}</FlexItem>
+                  {model && (
+                    <Label variant="outline" icon={<RhUiTagIcon />}>
+                      {getTagFromModel(model)}
+                    </Label>
+                  )}
+                </Flex>
+              </StackItem>
+              {model && (
+                <StackItem>
+                  <Content component={ContentVariants.small}>Provided by {model.provider}</Content>
+                </StackItem>
+              )}
+            </Stack>
+          </Flex>
+        }
+        empty={model === null}
+        emptyStatePage={
+          <EmptyModelCatalogState
+            testid="empty-model-catalog-state"
+            title="Details not found"
+            description="To request access to model catalog, contact your administrator."
+            headerIcon={() => (
+              <img src={typedEmptyImage(ProjectObjectType.registeredModels)} alt="" />
+            )}
+          />
+        }
+        loadError={modelCatalogSources.error}
+        loaded={loaded}
+        errorMessage="Unable to load model catalog"
+        provideChildrenPadding
+        headerAction={
+          loaded && (
+            <ActionList>
+              <ActionListGroup>
+                {tuningAvailable && isLabBase(model?.labels) && fineTuneActionItem}
+                {deployButtonState.visible && renderDeployModelButton()}
+                {registerModelButton()}
+              </ActionListGroup>
+            </ActionList>
+          )
+        }
+      >
+        {model && (
+          <>
+            <ModelDetailsView model={model} />
+            {isDeployModalOpen && (
+              <DeployCatalogModelModal
+                model={model}
+                onSubmit={(selectedProject) => {
+                  navigate(`/modelServing/${selectedProject.metadata.name}`);
+                }}
+                onCancel={() => setIsDeployModalOpen(false)}
+              />
+            )}
+          </>
+        )}
+      </ApplicationsPage>
+    </>
   );
 });
 

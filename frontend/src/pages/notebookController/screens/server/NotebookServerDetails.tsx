@@ -64,16 +64,16 @@ const NotebookServerDetails: React.FC = () => {
     <ExpandableSection
       data-id="details-expand"
       className="odh-notebook-controller__server-details"
-      toggleText="Notebook server details"
+      toggleText="Workbench details"
       onToggle={(e, expanded: boolean) => onToggle(expanded)}
       isExpanded={isExpanded}
       isIndented
     >
-      <p className="odh-notebook-controller__server-details-title">Notebook image</p>
+      <p className="odh-notebook-controller__server-details-title">Workbench image</p>
       {!image || !tag ? (
         loaded ? (
           <Alert variant="danger" isInline title="Error loading related images...">
-            Unable to show notebook image details at this time.
+            Unable to show workbench image details at this time.
           </Alert>
         ) : (
           <Spinner />

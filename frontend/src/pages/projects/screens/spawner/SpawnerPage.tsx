@@ -296,6 +296,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                     value={notebookSize}
                   />
                   <AcceleratorProfileSelectField
+                    currentProject={currentProject.metadata.name}
                     compatibleIdentifiers={
                       selectedImage.imageStream
                         ? getCompatibleIdentifiers(selectedImage.imageStream)

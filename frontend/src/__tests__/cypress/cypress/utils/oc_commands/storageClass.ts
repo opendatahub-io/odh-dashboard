@@ -1,5 +1,6 @@
 import type { SCReplacements, CommandLineResult } from '~/__tests__/cypress/cypress/types';
 import { replacePlaceholdersInYaml } from '~/__tests__/cypress/cypress/utils/yaml_files';
+import { MetadataAnnotation } from '~/k8sTypes';
 import { applyOpenShiftYaml, patchOpenShiftResource } from './baseCommands';
 
 /**
@@ -172,7 +173,7 @@ export const updateStorageClass = (
   const patchContent = JSON.stringify({
     metadata: {
       annotations: {
-        'opendatahub.io/sc-config': JSON.stringify({
+        [MetadataAnnotation.OdhStorageClassConfig]: JSON.stringify({
           isDefault: storageClassReplacements.SC_IS_DEFAULT === 'true',
           isEnabled: storageClassReplacements.SC_IS_ENABLED === 'true',
           displayName: storageClassReplacements.SC_NAME,

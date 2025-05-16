@@ -10,7 +10,8 @@ import PipelineVersionUploadModal from '~/concepts/pipelines/content/import/Pipe
 import PipelinesTableRowTime from '~/concepts/pipelines/content/tables/PipelinesTableRowTime';
 import usePipelineTableRowData from '~/concepts/pipelines/content/tables/pipeline/usePipelineTableRowData';
 import { PipelineAndVersionContext } from '~/concepts/pipelines/content/PipelineAndVersionContext';
-import { pipelineVersionDetailsRoute, createRunRoute, createRecurringRunRoute } from '~/routes';
+import { pipelineVersionDetailsRoute } from '~/routes/pipelines/global';
+import { createRunRoute, createRecurringRunRoute } from '~/routes/pipelines/runs';
 import { isArgoWorkflow } from '~/concepts/pipelines/content/tables/utils';
 import {
   PIPELINE_CREATE_RUN_TOOLTIP_ARGO_ERROR,
@@ -131,7 +132,12 @@ const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
                   title: 'Create run',
                   onClick: () => {
                     navigate(createRunRoute(namespace), {
-                      state: { contextData: { pipeline, version } },
+                      state: {
+                        contextData: {
+                          pipeline,
+                          version,
+                        },
+                      },
                     });
                   },
                   isAriaDisabled: isCreateDisabled,
@@ -143,7 +149,11 @@ const PipelinesTableRow: React.FC<PipelinesTableRowProps> = ({
                   title: 'Create schedule',
                   onClick: () => {
                     navigate(createRecurringRunRoute(namespace), {
-                      state: { contextData: { pipeline, version } },
+                      state: {
+                        contextData: {
+                          pipeline,
+                        },
+                      },
                     });
                   },
                   isAriaDisabled: isCreateDisabled,

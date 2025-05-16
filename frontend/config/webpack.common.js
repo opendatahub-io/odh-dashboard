@@ -177,6 +177,7 @@ module.exports = (env) => {
       filename: '[name].bundle.js',
       path: DIST_DIR,
       publicPath: PUBLIC_PATH,
+      chunkFilename: '[name]-[chunkhash].js',
     },
     plugins: [
       ...setupWebpackDotenvFilesForEnv({
@@ -237,7 +238,7 @@ module.exports = (env) => {
       alias: {
         '~': path.resolve(SRC_DIR),
       },
-      symlinks: false,
+      symlinks: true,
       cacheWithContext: false,
     },
   };

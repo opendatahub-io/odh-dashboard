@@ -24,7 +24,10 @@ import {
   getTemplateEnabledForPlatform,
 } from '~/pages/modelServing/customServingRuntimes/utils';
 import { ServingRuntimePlatform } from '~/types';
-import { getProjectModelServingPlatform } from '~/pages/modelServing/screens/projects/utils';
+import {
+  getProjectModelServingPlatform,
+  isCurrentServingPlatformEnabled,
+} from '~/pages/modelServing/screens/projects/utils';
 import KServeInferenceServiceTable from '~/pages/modelServing/screens/projects/KServeSection/KServeInferenceServiceTable';
 import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
 import DetailsSection from '~/pages/projects/screens/detail/DetailsSection';
@@ -39,7 +42,7 @@ import ManageNIMServingModal from '~/pages/modelServing/screens/projects/NIMServ
 import { NamespaceApplicationCase } from '~/pages/projects/types';
 import ModelServingPlatformSelectButton from '~/pages/modelServing/screens/projects/ModelServingPlatformSelectButton';
 import ModelServingPlatformSelectErrorAlert from '~/pages/modelServing/screens/ModelServingPlatformSelectErrorAlert';
-import { modelVersionRoute } from '~/routes';
+import { modelVersionRoute } from '~/routes/modelRegistry/modelVersions';
 import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformStatuses';
 import ManageServingRuntimeModal from './ServingRuntimeModal/ManageServingRuntimeModal';
 import ModelMeshServingRuntimeTable from './ModelMeshSection/ServingRuntimeTable';
@@ -99,6 +102,11 @@ const ModelServingPlatform: React.FC = () => {
     servingPlatformStatuses.platformEnabledCount !== 1 && !currentProjectServingPlatform;
 
   const isProjectModelMesh = currentProjectServingPlatform === ServingRuntimePlatform.MULTI;
+
+  const isCurrentPlatformEnabled = isCurrentServingPlatformEnabled(
+    currentProjectServingPlatform,
+    servingPlatformStatuses,
+  );
 
   const onSubmit = (submit: boolean) => {
     setPlatformSelected(undefined);
@@ -324,21 +332,26 @@ const ModelServingPlatform: React.FC = () => {
                   <Label data-testid="serving-platform-label">
                     {isKServeNIMEnabled
                       ? 'NVIDIA NIM serving enabled'
-                      : isProjectModelMesh
-                      ? 'Multi-model serving enabled'
-                      : 'Single-model serving enabled'}
+                      : isCurrentPlatformEnabled
+                      ? isProjectModelMesh
+                        ? 'Multi-model serving enabled'
+                        : 'Single-model serving enabled'
+                      : 'Current platform disabled'}
                   </Label>
 
-                  {emptyModelServer && servingPlatformStatuses.platformEnabledCount > 1 && (
-                    <ModelServingPlatformSelectButton
-                      namespace={currentProject.metadata.name}
-                      servingPlatform={NamespaceApplicationCase.RESET_MODEL_SERVING_PLATFORM}
-                      setError={setErrorSelectingPlatform}
-                      variant="link"
-                      isInline
-                      data-testid="change-serving-platform-button"
-                    />
-                  )}
+                  {emptyModelServer &&
+                    (servingPlatformStatuses.platformEnabledCount > 1 ||
+                      !isCurrentPlatformEnabled ||
+                      platformError) && (
+                      <ModelServingPlatformSelectButton
+                        namespace={currentProject.metadata.name}
+                        servingPlatform={NamespaceApplicationCase.RESET_MODEL_SERVING_PLATFORM}
+                        setError={setErrorSelectingPlatform}
+                        variant="link"
+                        isInline
+                        data-testid="change-serving-platform-button"
+                      />
+                    )}
                 </Flex>,
               ]
             : undefined

@@ -2,13 +2,10 @@ import React from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { PageSection, Tab, Tabs, TabTitleText } from '@patternfly/react-core';
 import { asEnumMember } from '~/utilities/utils';
-import {
-  ScheduledRuns,
-  ActiveRuns,
-  ArchivedRuns,
-  PipelineRunType,
-  PipelineRunTabTitle,
-} from '~/pages/pipelines/global/runs';
+import ScheduledRuns from '~/pages/pipelines/global/runs/ScheduledRuns';
+import { ActiveRuns } from '~/pages/pipelines/global/runs/ActiveRuns';
+import { ArchivedRuns } from '~/pages/pipelines/global/runs/ArchivedRuns';
+import { PipelineRunType, PipelineRunTabTitle } from '~/pages/pipelines/global/runs/types';
 
 import './GlobalPipelineRunsTabs.scss';
 

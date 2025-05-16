@@ -1223,15 +1223,15 @@ export type DashboardCommonConfig = {
   disableNIMModelServing: boolean;
   disableAdminConnectionTypes: boolean;
   disableFineTuning: boolean;
+  disableModelServingPlugin: boolean;
+  disableLlamaStackChatBot: boolean;
 };
 
 export type DashboardConfigKind = K8sResourceCommon & {
   spec: {
     dashboardConfig: DashboardCommonConfig;
-    groupsConfig?: {
-      adminGroups: string;
-      allowedGroups: string;
-    };
+    // Intentionally disjointed from the CRD, we should move away from this code-wise now; CRD later
+    // groupsConfig?: {
     notebookSizes?: NotebookSize[];
     modelServerSizes?: ModelServingSize[];
     notebookController?: {

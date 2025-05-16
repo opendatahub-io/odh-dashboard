@@ -40,7 +40,7 @@ import type {
   ServingRuntimeKind,
 } from '~/k8sTypes';
 import { DeploymentMode } from '~/k8sTypes';
-import { ServingRuntimePlatform } from '~/types';
+import { ServingRuntimePlatform, TolerationEffect, TolerationOperator } from '~/types';
 import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
 import { StackCapability } from '~/concepts/areas/types';
 import { mockDsciStatus } from '~/__mocks__/mockDsciStatus';
@@ -358,6 +358,19 @@ const initIntercepts = ({
         identifier: 'nvidia.com/gpu',
         description: 'Lorem, ipsum dolor sit amet consectetur adipisicing elit. Saepe, quis',
       }),
+      mockAcceleratorProfile({
+        name: 'small-profile',
+        displayName: 'Small Profile',
+        namespace: 'test-project',
+        enabled: !disableAccelerator,
+        tolerations: [
+          {
+            effect: TolerationEffect.NO_SCHEDULE,
+            key: 'NotebooksOnlyChange',
+            operator: TolerationOperator.EXISTS,
+          },
+        ],
+      }),
     ]),
   );
   cy.interceptK8sList(
@@ -422,6 +435,31 @@ const initIntercepts = ({
 };
 
 describe('Serving Runtime List', () => {
+  describe('Change button visiblity', () => {
+    it('Change button visible when current platform is disabled', () => {
+      // starts with modelMesh enabled and kServe disabled
+      initIntercepts({
+        disableModelMeshConfig: false,
+        disableKServeConfig: true,
+        servingRuntimes: [],
+        projectEnableModelMesh: true,
+      });
+      projectDetails.visitSection('test-project', 'model-server');
+      // shouldn't exist because kServe is disabled and theres nothing to change to
+      projectDetails.findResetPlatformButton().should('not.exist');
+      // simulate modelMesh being disabled
+      cy.interceptOdh(
+        'GET /api/dsc/status',
+        mockDscStatus({
+          components: undefined,
+          installedComponents: { kserve: false, 'model-mesh': false },
+        }),
+      );
+
+      cy.reload();
+      projectDetails.findResetPlatformButton().should('exist');
+    });
+  });
   describe('No server available', () => {
     it('No model serving platform available', () => {
       initIntercepts({
@@ -1430,6 +1468,7 @@ describe('Serving Runtime List', () => {
       kserveModal.findAuthenticationCheckbox().check();
       kserveModal.findExternalRouteError().should('not.exist');
       kserveModal.findServiceAccountNameInput().should('have.value', 'default-name');
+      kserveModal.findExistingConnectionOption().click();
       kserveModal.findExistingConnectionSelect().should('have.attr', 'disabled');
       kserveModal
         .findExistingConnectionSelect()
@@ -1577,6 +1616,7 @@ describe('Serving Runtime List', () => {
       kserveModal.findAuthenticationCheckbox().check();
       kserveModal.findExternalRouteError().should('not.exist');
       kserveModal.findServiceAccountNameInput().should('have.value', 'default-name');
+      kserveModal.findExistingConnectionOption().click();
       kserveModal.findExistingConnectionSelect().should('have.attr', 'disabled');
       kserveModal
         .findExistingConnectionSelect()
@@ -1707,6 +1747,7 @@ describe('Serving Runtime List', () => {
       kserveModal.findModelNameInput().type('Test Name');
       kserveModal.findServingRuntimeTemplateDropdown().findSelectOption('Caikit').click();
       kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
+      kserveModal.findExistingConnectionOption().click();
       kserveModal.findLocationPathInput().type('test-model/');
 
       // Verify submit is enabled before testing env vars
@@ -2316,6 +2357,35 @@ describe('Serving Runtime List', () => {
       kserveRow.findDescriptionListItem('Number of accelerators').should('exist');
     });
 
+    it('Check project-scoped accelerator when disabled but selected', () => {
+      initIntercepts({
+        projectEnableModelMesh: false,
+        disableKServeConfig: false,
+        disableModelMeshConfig: true,
+        disableAccelerator: true,
+        disableProjectScoped: false,
+        servingRuntimes: [
+          mockServingRuntimeK8sResource({
+            name: 'test-model',
+            namespace: 'test-project',
+            auth: true,
+            route: true,
+            acceleratorName: 'small-profile',
+          }),
+        ],
+      });
+
+      projectDetails.visitSection('test-project', 'model-server');
+      const kserveRow = modelServingSection.getKServeRow('Llama Caikit');
+      kserveRow.findExpansion().should(be.collapsed);
+      kserveRow.findToggleButton().click();
+      kserveRow
+        .findDescriptionListItem('Accelerator')
+        .next('dd')
+        .should('have.text', 'Small Profile Project-scoped (disabled)');
+      kserveRow.findDescriptionListItem('Number of accelerators').should('exist');
+    });
+
     it('Check accelerator when enabled but not selected', () => {
       initIntercepts({
         projectEnableModelMesh: false,
@@ -2372,6 +2442,35 @@ describe('Serving Runtime List', () => {
       kserveRow.findExpansion().should(be.collapsed);
       kserveRow.findToggleButton().click();
       kserveRow.findDescriptionListItem('Accelerator').next('dd').should('have.text', 'NVIDIA GPU');
+      kserveRow.findDescriptionListItem('Number of accelerators').should('exist');
+    });
+
+    it('Check project-scoped accelerator when enabled and selected', () => {
+      initIntercepts({
+        projectEnableModelMesh: false,
+        disableKServeConfig: false,
+        disableModelMeshConfig: true,
+        disableAccelerator: false,
+        disableProjectScoped: false,
+        servingRuntimes: [
+          mockServingRuntimeK8sResource({
+            name: 'test-model',
+            namespace: 'test-project',
+            auth: true,
+            route: true,
+            acceleratorName: 'small-profile',
+          }),
+        ],
+      });
+
+      projectDetails.visitSection('test-project', 'model-server');
+      const kserveRow = modelServingSection.getKServeRow('Llama Caikit');
+      kserveRow.findExpansion().should(be.collapsed);
+      kserveRow.findToggleButton().click();
+      kserveRow
+        .findDescriptionListItem('Accelerator')
+        .next('dd')
+        .should('have.text', 'Small Profile Project-scoped');
       kserveRow.findDescriptionListItem('Number of accelerators').should('exist');
     });
   });
@@ -2450,6 +2549,7 @@ describe('Serving Runtime List', () => {
       kserveModal.findServingRuntimeTemplateDropdown().findSelectOption('Caikit').click();
       kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
       kserveModal.findSubmitButton().should('be.disabled');
+      kserveModal.findExistingConnectionOption().click();
       kserveModal.findExistingConnectionSelect().should('have.attr', 'disabled');
       kserveModal
         .findExistingConnectionSelect()
@@ -2488,6 +2588,7 @@ describe('Serving Runtime List', () => {
       kserveModal.findServingRuntimeTemplateDropdown().findSelectOption('Caikit').click();
       kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
       kserveModal.findSubmitButton().should('be.disabled');
+      kserveModal.findExistingConnectionOption().click();
       kserveModal.findExistingConnectionSelect().should('have.attr', 'disabled');
       kserveModal
         .findExistingConnectionSelect()

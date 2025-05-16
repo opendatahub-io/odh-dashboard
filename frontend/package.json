@@ -4,6 +4,10 @@
   "description": "Frontend for ODH dashboard.",
   "license": "Apache-2.0",
   "private": true,
+  "workspaces": [
+    "src",
+    "packages/*"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/opendatahub-io/odh-dashboard.git"
@@ -52,12 +56,18 @@
     "cypress:server:build:coverage": "COVERAGE=true npm run cypress:server:build",
     "cypress:server": "serve ./public-cypress -p 9001 -s -L",
     "cypress:server:dev": "POLL_INTERVAL=9999999 FAST_POLL_INTERVAL=9999999 ODH_PORT=9001 WS_HOSTNAME=localhost:9002 npm run start:dev",
-    "cypress:format": "prettier --write src/__tests__/**/*.snap.json"
+    "cypress:format": "prettier --write src/__tests__/**/*.snap.json",
+    "test:cypress:e2e": "cd src/__tests__/cypress && npx cypress run --env grepTags=\"${CY_TEST_TAGS}\",skipTags=\"${CY_SKIP_TAGS}\" --browser chrome",
+    "test:cypress:e2e:open": "cd src/__tests__/cypress && npx cypress open --env grepTags=\"${CY_TEST_TAGS}\",skipTags=\"${CY_SKIP_TAGS}\""
   },
   "dependencies": {
     "@monaco-editor/react": "^4.6.0",
+    "@odh-dashboard/plugin-core": "0.0.0",
+    "@odh-dashboard/model-serving": "0.0.0",
+    "@odh-dashboard/kserve": "0.0.0",
     "@openshift/dynamic-plugin-sdk": "^5.0.1",
-    "@openshift/dynamic-plugin-sdk-utils": "^4.0.1",
+    "@openshift/dynamic-plugin-sdk-utils": "^5.0.1",
+    "@patternfly/chatbot": "^2.2.1",
     "@patternfly/patternfly": "^6.2.0",
     "@patternfly/quickstarts": "^6.2.0",
     "@patternfly/react-catalog-view-extension": "^6.1.0",
@@ -88,18 +98,23 @@
     "react-cool-dimensions": "^2.0.5",
     "react-dom": "^18.2.0",
     "react-dropzone": "^14.2.3",
+    "react-markdown": "^10.1.0",
     "react-redux": "^8.0.4",
     "react-router": "^7.1.5",
     "react-router-dom": "^7.1.5",
     "redux": "^4.2.0",
     "redux-thunk": "^2.4.1",
+    "rehype-raw": "^7.0.0",
+    "rehype-sanitize": "^6.0.0",
+    "rehype-unwrap-images": "^1.0.0",
+    "remark-gfm": "^4.0.1",
     "showdown": "^2.1.0",
     "yaml": "^2.2.2",
     "zod": "^3.23.8"
   },
   "devDependencies": {
     "@babel/core": "^7.21.0",
-    "@module-federation/enhanced": "^0.12.0",
+    "@module-federation/enhanced": "^0.13.1",
     "@pmmmwh/react-refresh-webpack-plugin": "^0.5.15",
     "@swc/core": "^1.11.21",
     "@types/dompurify": "^2.2.6",
@@ -241,6 +256,7 @@
     "@patternfly/quickstarts": {
       "@patternfly/react-core": "^6.2.0"
     },
+    "react-router": "^7.1.5",
     "ws": "^8.17.1",
     "dompurify": "^3.2.4"
   }

@@ -69,7 +69,10 @@ const ProjectDetailsContextProvider: React.FC = () => {
   const { dashboardNamespace } = useDashboardNamespace();
   const { namespace } = useParams<{ namespace: string }>();
   const { projects } = React.useContext(ProjectsContext);
-  const project = projects.find(byName(namespace)) ?? null;
+  const project = React.useMemo(
+    () => projects.find(byName(namespace)) ?? null,
+    [namespace, projects],
+  );
   useSyncPreferredProject(project);
   const notebooks = useContextResourceData<NotebookState>(useProjectNotebookStates(namespace));
   const pvcs = useContextResourceData<PersistentVolumeClaimKind>(useProjectPvcs(namespace));
@@ -89,6 +92,7 @@ const ProjectDetailsContextProvider: React.FC = () => {
   const serverSecrets = useContextResourceData<SecretKind>(useServingRuntimeSecrets(namespace));
   const projectSharingRB = useContextResourceData<RoleBindingKind>(useProjectSharing(namespace));
   const groups = useGroups();
+  const pageName = 'project details';
 
   const filterTokens = React.useCallback(
     (servingRuntimeName?: string): SecretKind[] => {
@@ -156,7 +160,7 @@ const ProjectDetailsContextProvider: React.FC = () => {
     return (
       <InvalidProject
         namespace={namespace}
-        title="Problem loading project details"
+        title={`Problem loading ${pageName}`}
         getRedirectPath={(ns) => `/projects/${ns}`}
       />
     );
@@ -165,7 +169,7 @@ const ProjectDetailsContextProvider: React.FC = () => {
   return (
     <ProjectDetailsContext.Provider value={contextValue}>
       {pipelinesEnabled ? (
-        <PipelineContextProvider namespace={project.metadata.name}>
+        <PipelineContextProvider namespace={project.metadata.name} pageName={pageName}>
           <Outlet />
         </PipelineContextProvider>
       ) : (

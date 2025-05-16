@@ -1,3 +1,4 @@
+import * as React from 'react';
 import { KnownLabels, SecretKind } from '~/k8sTypes';
 import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '~/concepts/k8s/utils';
 import { K8sNameDescriptionFieldData } from '~/concepts/k8s/K8sNameDescriptionField/types';
@@ -465,3 +466,23 @@ export const convertObjectStorageSecretData = (dataConnection: Connection): AWSD
   ];
   return convertedSecret;
 };
+
+export const trimInputOnBlur =
+  (value: string | undefined, onChange?: (value: string) => void) =>
+  (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>): void => {
+    const trimmed = e.currentTarget.value.trim();
+    if (trimmed !== value && onChange) {
+      onChange(trimmed);
+    }
+  };
+
+export const trimInputOnPaste =
+  (value: string | undefined, onChange?: (value: string) => void) =>
+  (e: React.ClipboardEvent<HTMLInputElement | HTMLTextAreaElement>): void => {
+    const trimmed = e.clipboardData.getData('text').trim();
+    if (!onChange) {
+      return;
+    }
+    e.preventDefault();
+    onChange(trimmed);
+  };

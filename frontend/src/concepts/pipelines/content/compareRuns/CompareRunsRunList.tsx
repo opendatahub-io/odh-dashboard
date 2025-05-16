@@ -14,7 +14,7 @@ import useCompareRunsCheckboxTable from '~/concepts/pipelines/content/compareRun
 import PipelineRunTableRow from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableRow';
 import { compareRunColumns } from '~/concepts/pipelines/content/tables/columns';
 import PipelineRunTableToolbar from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableToolbar';
-import { manageCompareRunsRoute } from '~/routes';
+import { manageCompareRunsRoute } from '~/routes/pipelines/runs';
 import { usePipelinesAPI } from '~/concepts/pipelines/context';
 import { ExperimentContext } from '~/pages/pipelines/global/experiments/ExperimentContext';
 

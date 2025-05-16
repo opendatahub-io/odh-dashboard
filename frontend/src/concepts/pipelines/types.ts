@@ -30,6 +30,7 @@ export type ArtifactStorage = {
   storage_path: string;
   uri: string;
   download_url?: string;
+  render_url?: string;
   namespace: string;
   artifact_type: string;
   artifact_size: string;

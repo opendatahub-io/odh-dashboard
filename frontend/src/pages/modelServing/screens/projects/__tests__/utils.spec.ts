@@ -6,6 +6,7 @@ import {
   getCreateInferenceServiceLabels,
   getProjectModelServingPlatform,
   getUrlFromKserveInferenceService,
+  isCurrentServingPlatformEnabled,
 } from '~/pages/modelServing/screens/projects/utils';
 import { ServingPlatformStatuses } from '~/pages/modelServing/screens/types';
 import { ServingRuntimePlatform } from '~/types';
@@ -516,5 +517,37 @@ describe('updateServingRuntimeTemplate', () => {
     const result = updateServingRuntimeTemplate(servingRuntimeWithoutVolumeMounts, pvcName);
 
     expect(result.spec.containers[0].volumeMounts).toBeUndefined();
+  });
+});
+
+describe('isCurrentServingPlatformEnabled', () => {
+  const baseStatuses = {
+    kServe: { enabled: true, installed: true },
+    kServeNIM: { enabled: false, installed: false },
+    modelMesh: { enabled: true, installed: true },
+    platformEnabledCount: 2,
+    refreshNIMAvailability: async () => true,
+  };
+
+  it('returns true if currentPlatform is single and kServe is enabled', () => {
+    expect(isCurrentServingPlatformEnabled(ServingRuntimePlatform.SINGLE, baseStatuses)).toBe(true);
+  });
+
+  it('returns false if currentPlatform is single and kServe is disabled', () => {
+    const statuses = { ...baseStatuses, kServe: { enabled: false, installed: true } };
+    expect(isCurrentServingPlatformEnabled(ServingRuntimePlatform.SINGLE, statuses)).toBe(false);
+  });
+
+  it('returns true if currentPlatform is multi and modelMesh is enabled', () => {
+    expect(isCurrentServingPlatformEnabled(ServingRuntimePlatform.MULTI, baseStatuses)).toBe(true);
+  });
+
+  it('returns false if currentPlatform is multi and modelMesh is disabled', () => {
+    const statuses = { ...baseStatuses, modelMesh: { enabled: false, installed: true } };
+    expect(isCurrentServingPlatformEnabled(ServingRuntimePlatform.MULTI, statuses)).toBe(false);
+  });
+
+  it('returns false if currentPlatform is undefined', () => {
+    expect(isCurrentServingPlatformEnabled(undefined, baseStatuses)).toBe(false);
   });
 });

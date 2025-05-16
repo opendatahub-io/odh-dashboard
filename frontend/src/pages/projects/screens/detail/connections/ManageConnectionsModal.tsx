@@ -1,6 +1,5 @@
 import React from 'react';
-import { Alert, Form } from '@patternfly/react-core';
-import { Modal } from '@patternfly/react-core/deprecated';
+import { Alert, Form, Modal, ModalBody, ModalHeader, ModalFooter } from '@patternfly/react-core';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
 import ConnectionTypeForm from '~/concepts/connectionTypes/ConnectionTypeForm';
 import {
@@ -109,13 +108,57 @@ export const ManageConnectionModal: React.FC<Props> = ({
 
   return (
     <Modal
-      title={isEdit ? 'Edit connection' : 'Create connection'}
       isOpen
       onClose={() => {
         onClose();
       }}
       variant="medium"
-      footer={
+    >
+      <ModalHeader title={isEdit ? 'Edit connection' : 'Create connection'} />
+      <ModalBody>
+        {isEdit && (
+          <Alert
+            className="pf-v6-u-mb-lg"
+            variant="warning"
+            isInline
+            title="Dependent resources require further action"
+          >
+            Connection changes are not applied to dependent resources until those resources are
+            restarted, redeployed, or otherwise regenerated.
+          </Alert>
+        )}
+        <Form>
+          <ConnectionTypeForm
+            options={!isEdit ? enabledConnectionTypes : undefined}
+            connectionType={selectedConnectionType || (isEdit ? connectionTypeSource : undefined)}
+            setConnectionType={(name: string) => {
+              const obj = connectionTypes.find((c) => c.metadata.name === name);
+              if (!isModified) {
+                setIsModified(true);
+              }
+              changeSelectionType(obj);
+            }}
+            connectionNameDesc={nameDescData}
+            setConnectionNameDesc={(key: keyof K8sNameDescriptionFieldData, value: string) => {
+              if (!isModified) {
+                setIsModified(true);
+              }
+              setNameDescData(key, value);
+            }}
+            connectionValues={connectionValues}
+            onChange={(field, value) => {
+              if (!isModified) {
+                setIsModified(true);
+              }
+              setConnectionValues((prev) => ({ ...prev, [field.envVar]: value }));
+            }}
+            onValidate={(field, error) =>
+              setConnectionErrors((prev) => ({ ...prev, [field.envVar]: !!error }))
+            }
+          />
+        </Form>
+      </ModalBody>
+      <ModalFooter>
         <DashboardModalFooter
           submitLabel={isEdit ? 'Save' : 'Create'}
           onCancel={onClose}
@@ -151,49 +194,7 @@ export const ManageConnectionModal: React.FC<Props> = ({
           isSubmitLoading={isSaving}
           alertTitle=""
         />
-      }
-    >
-      {isEdit && (
-        <Alert
-          className="pf-v6-u-mb-lg"
-          variant="warning"
-          isInline
-          title="Dependent resources require further action"
-        >
-          Connection changes are not applied to dependent resources until those resources are
-          restarted, redeployed, or otherwise regenerated.
-        </Alert>
-      )}
-      <Form>
-        <ConnectionTypeForm
-          options={!isEdit ? enabledConnectionTypes : undefined}
-          connectionType={selectedConnectionType || (isEdit ? connectionTypeSource : undefined)}
-          setConnectionType={(name: string) => {
-            const obj = connectionTypes.find((c) => c.metadata.name === name);
-            if (!isModified) {
-              setIsModified(true);
-            }
-            changeSelectionType(obj);
-          }}
-          connectionNameDesc={nameDescData}
-          setConnectionNameDesc={(key: keyof K8sNameDescriptionFieldData, value: string) => {
-            if (!isModified) {
-              setIsModified(true);
-            }
-            setNameDescData(key, value);
-          }}
-          connectionValues={connectionValues}
-          onChange={(field, value) => {
-            if (!isModified) {
-              setIsModified(true);
-            }
-            setConnectionValues((prev) => ({ ...prev, [field.envVar]: value }));
-          }}
-          onValidate={(field, error) =>
-            setConnectionErrors((prev) => ({ ...prev, [field.envVar]: !!error }))
-          }
-        />
-      </Form>
+      </ModalFooter>
     </Modal>
   );
 };

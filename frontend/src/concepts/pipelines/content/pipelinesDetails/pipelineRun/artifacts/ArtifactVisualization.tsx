@@ -34,10 +34,10 @@ interface ArtifactVisualizationProps {
 }
 
 export const ArtifactVisualization: React.FC<ArtifactVisualizationProps> = ({ artifact }) => {
-  const [downloadedArtifactUrl, setDownloadedArtifactUrl] = React.useState<string | undefined>();
+  const [renderUrl, setRenderUrl] = React.useState<string>();
   const [loading, setLoading] = React.useState<boolean>(false);
   const { namespace } = usePipelinesAPI();
-  const { getStorageObjectUrl } = useArtifactStorage();
+  const { getStorageObjectRenderUrl } = useArtifactStorage();
   const artifactType = artifact.getType();
 
   const memoizedArtifact = useDeepCompareMemoize(artifact);
@@ -46,18 +46,18 @@ export const ArtifactVisualization: React.FC<ArtifactVisualizationProps> = ({ ar
     if (artifactType === ArtifactType.MARKDOWN || artifactType === ArtifactType.HTML) {
       const uri = memoizedArtifact.getUri();
       if (uri) {
-        const downloadArtifact = async () => {
-          await getStorageObjectUrl(memoizedArtifact)
-            .then((url) => setDownloadedArtifactUrl(url))
+        const renderArtifact = async () => {
+          await getStorageObjectRenderUrl(memoizedArtifact)
+            .then((url) => setRenderUrl(url))
             .catch(() => null);
           setLoading(false);
         };
         setLoading(true);
-        setDownloadedArtifactUrl(undefined);
-        downloadArtifact();
+        setRenderUrl(undefined);
+        renderArtifact();
       }
     }
-  }, [memoizedArtifact, getStorageObjectUrl, artifactType, namespace]);
+  }, [memoizedArtifact, getStorageObjectRenderUrl, artifactType, namespace]);
 
   if (artifactType === ArtifactType.CLASSIFICATION_METRICS) {
     const confusionMatrix = artifact.getCustomPropertiesMap().get('confusionMatrix');
@@ -152,18 +152,14 @@ export const ArtifactVisualization: React.FC<ArtifactVisualizationProps> = ({ ar
         </Bullseye>
       );
     }
-    if (downloadedArtifactUrl) {
+    if (renderUrl) {
       return (
         <Stack className="pf-v6-u-pt-lg pf-v6-u-pb-lg" hasGutter>
           <StackItem>
             <Title headingLevel="h3">Artifact details</Title>
           </StackItem>
           <StackItem>
-            <iframe
-              src={downloadedArtifactUrl}
-              data-testid="artifact-visualization"
-              title="Artifact details"
-            />
+            <iframe src={renderUrl} data-testid="artifact-visualization" title="Artifact details" />
           </StackItem>
         </Stack>
       );

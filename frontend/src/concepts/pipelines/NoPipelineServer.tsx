@@ -15,12 +15,12 @@ const NoPipelineServer: React.FC<NoPipelineServerProps> = ({ variant = 'link' })
 
   return (
     <EmptyDetailsView
-      title={installed ? 'Start by importing a pipeline' : 'Enable pipelines'}
-      description={`Pipelines are platforms for building and deploying portable and scalable machine-learning (ML) workflows. You can import a pipeline or create one in a workbench.${
+      title={installed ? 'Start by importing a pipeline' : 'Configure a pipeline server'}
+      description={
         installed
-          ? ''
-          : ' Before you can work with pipelines, you must first configure a pipeline server in your project.'
-      }`}
+          ? 'Pipelines are platforms for building and deploying portable and scalable machine-learning (ML) workflows. You can import a pipeline or create one in a workbench.'
+          : 'To create or use pipelines, you must first configure a pipeline server in this project. A pipeline server provides the infrastructure necessary for the pipeline to execute steps, track results, and manage runs.'
+      }
       iconImage={typedEmptyImage(ProjectObjectType.pipeline, 'MissingModel')}
       imageAlt=""
       createButton={

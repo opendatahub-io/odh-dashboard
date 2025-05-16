@@ -1,6 +1,13 @@
 import * as React from 'react';
-import { Form, Stack, StackItem } from '@patternfly/react-core';
-import { Modal } from '@patternfly/react-core/deprecated';
+import {
+  Form,
+  Stack,
+  StackItem,
+  Modal,
+  ModalBody,
+  ModalHeader,
+  ModalFooter,
+} from '@patternfly/react-core';
 import { EitherOrNone } from '@openshift/dynamic-plugin-sdk';
 import {
   submitServingRuntimeResourcesWithDryRun,
@@ -174,14 +181,61 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
   };
 
   return (
-    <Modal
-      title={`${editInfo ? 'Edit' : 'Add'} model server`}
-      description="A model server specifies resources available for use by one or more supported models, and includes a serving runtime."
-      variant="medium"
-      isOpen
-      onClose={() => onBeforeClose(false)}
-      showClose
-      footer={
+    <Modal variant="medium" isOpen onClose={() => onBeforeClose(false)}>
+      <ModalHeader
+        title={`${editInfo ? 'Edit' : 'Add'} model server`}
+        description="A model server specifies resources available for use by one or more supported models, and includes a serving runtime."
+      />
+      <ModalBody>
+        <Form
+          onSubmit={(e) => {
+            e.preventDefault();
+            submit();
+          }}
+        >
+          <Stack hasGutter>
+            <StackItem>
+              <K8sNameDescriptionField
+                data={modelServerNameDesc}
+                onDataChange={setModelServerNameDesc}
+                dataTestId="serving-runtime"
+                nameLabel="Model server name"
+                hideDescription
+              />
+            </StackItem>
+            <StackItem>
+              <ServingRuntimeTemplateSection
+                data={createData}
+                setData={setCreateData}
+                templates={servingRuntimeTemplates || []}
+                isEditing={!!editInfo}
+                compatibleIdentifiers={profileIdentifiers}
+              />
+            </StackItem>
+            <StackItem>
+              <ServingRuntimeReplicaSection
+                data={createData}
+                setData={setCreateData}
+                infoContent="Consider network traffic and failover scenarios when specifying the number of model
+                server replicas."
+              />
+            </StackItem>
+            <ServingRuntimeSizeSection
+              podSpecOptionState={podSpecOptionsState}
+              servingRuntimeSelected={servingRuntimeSelected}
+              infoContent="Select a server size that will accommodate your largest model. See the product documentation for more information."
+              isEditing={!!editInfo}
+            />
+            <AuthServingRuntimeSection
+              data={createData}
+              setData={setCreateData}
+              allowCreate={allowCreate}
+              publicRoute
+            />
+          </Stack>
+        </Form>
+      </ModalBody>
+      <ModalFooter>
         <DashboardModalFooter
           submitLabel={editInfo ? 'Update' : 'Add'}
           onSubmit={submit}
@@ -190,55 +244,7 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
           alertTitle={`Error ${editInfo ? 'updating' : 'creating'} model server`}
           error={error}
         />
-      }
-    >
-      <Form
-        onSubmit={(e) => {
-          e.preventDefault();
-          submit();
-        }}
-      >
-        <Stack hasGutter>
-          <StackItem>
-            <K8sNameDescriptionField
-              data={modelServerNameDesc}
-              onDataChange={setModelServerNameDesc}
-              dataTestId="serving-runtime"
-              nameLabel="Model server name"
-              hideDescription
-            />
-          </StackItem>
-          <StackItem>
-            <ServingRuntimeTemplateSection
-              data={createData}
-              setData={setCreateData}
-              templates={servingRuntimeTemplates || []}
-              isEditing={!!editInfo}
-              compatibleIdentifiers={profileIdentifiers}
-            />
-          </StackItem>
-          <StackItem>
-            <ServingRuntimeReplicaSection
-              data={createData}
-              setData={setCreateData}
-              infoContent="Consider network traffic and failover scenarios when specifying the number of model
-                server replicas."
-            />
-          </StackItem>
-          <ServingRuntimeSizeSection
-            podSpecOptionState={podSpecOptionsState}
-            servingRuntimeSelected={servingRuntimeSelected}
-            infoContent="Select a server size that will accommodate your largest model. See the product documentation for more information."
-            isEditing={!!editInfo}
-          />
-          <AuthServingRuntimeSection
-            data={createData}
-            setData={setCreateData}
-            allowCreate={allowCreate}
-            publicRoute
-          />
-        </Stack>
-      </Form>
+      </ModalFooter>
     </Modal>
   );
 };

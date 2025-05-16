@@ -385,17 +385,45 @@ class CreateSpawnerPage {
     return cy.findByTestId('submit-button');
   }
 
+  findCancelButton() {
+    return cy.findByTestId('cancel-button');
+  }
+
+  findSideBarItems(section: string) {
+    return cy.findByTestId(`${section}-jump-link`).find('a');
+  }
+
   getEnvironmentVariableTypeField(index: number) {
     return new EnvironmentVariableTypeField(() =>
       cy.findAllByTestId('environment-variable-field').eq(index),
     );
   }
 
+  findAcceleratorProfileSearchSelector() {
+    return cy.findByTestId('accelerator-profile-selection-toggle');
+  }
+
+  getGlobalAcceleratorProfileLabel(): Cypress.Chainable<JQuery<HTMLBodyElement>> {
+    return cy.get('body').contains('Global accelerator profiles');
+  }
+
+  getProjectScopedAcceleratorProfileLabel(): Cypress.Chainable<JQuery<HTMLBodyElement>> {
+    return cy.get('body').contains('Project-scoped accelerator profiles');
+  }
+
+  findAcceleratorProfile(name: string) {
+    return cy.findByRole('menuitem', {
+      name,
+      hidden: true,
+    });
+  }
+
+  findNotebookImageSelector() {
+    return cy.findByTestId('workbench-image-stream-selection');
+  }
+
   findNotebookImage(name: string) {
-    return cy
-      .findByTestId('workbench-image-stream-selection')
-      .findDropdownItemByTestId(name)
-      .scrollIntoView();
+    return this.findNotebookImageSelector().findDropdownItemByTestId(name).scrollIntoView();
   }
 
   findNotebookImageSearchSelector() {
@@ -415,11 +443,11 @@ class CreateSpawnerPage {
   }
 
   findProjectScopedLabel() {
-    return cy.findByTestId('project-scoped-image');
+    return cy.findByTestId('project-scoped-label');
   }
 
   findGlobalScopedLabel() {
-    return cy.findByTestId('global-scoped-image');
+    return cy.findByTestId('global-scoped-label');
   }
 
   getProjectScopedNotebookImages() {

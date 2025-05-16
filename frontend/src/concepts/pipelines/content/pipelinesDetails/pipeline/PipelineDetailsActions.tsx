@@ -11,8 +11,8 @@ import {
   createRunRoute,
   globalPipelineRecurringRunsVersionRoute,
   globalPipelineRunsVersionRoute,
-  pipelineVersionDetailsRoute,
-} from '~/routes';
+} from '~/routes/pipelines/runs';
+import { pipelineVersionDetailsRoute } from '~/routes/pipelines/global';
 import { getDashboardMainContainer } from '~/utilities/utils';
 import {
   PIPELINE_CREATE_RUN_TOOLTIP_ARGO_ERROR,
@@ -74,7 +74,12 @@ const PipelineDetailsActions: React.FC<PipelineDetailsActionsProps> = ({
               key="create-run"
               onClick={() =>
                 navigate(createRunRoute(namespace), {
-                  state: { contextData: { pipeline, version: pipelineVersion } },
+                  state: {
+                    contextData: {
+                      pipeline,
+                      version: pipelineVersion,
+                    },
+                  },
                 })
               }
             >
@@ -90,7 +95,12 @@ const PipelineDetailsActions: React.FC<PipelineDetailsActionsProps> = ({
               key="create-schedule"
               onClick={() =>
                 navigate(createRecurringRunRoute(namespace), {
-                  state: { contextData: { pipeline, version: pipelineVersion } },
+                  state: {
+                    contextData: {
+                      pipeline,
+                      version: pipelineVersion,
+                    },
+                  },
                 })
               }
             >

@@ -1,3 +1,4 @@
+import * as React from 'react';
 import { mockConnection } from '~/__mocks__/mockConnection';
 import {
   mockConnectionTypeConfigMapObj,
@@ -19,6 +20,8 @@ import {
   ModelServingCompatibleTypes,
   toConnectionTypeConfigMap,
   toConnectionTypeConfigMapObj,
+  trimInputOnBlur,
+  trimInputOnPaste,
 } from '~/concepts/connectionTypes/utils';
 
 describe('toConnectionTypeConfigMap / toConnectionTypeConfigMapObj', () => {
@@ -492,5 +495,52 @@ describe('getModelServingCompatibility', () => {
         }),
       ),
     ).toEqual([]);
+  });
+});
+
+describe('useTrimInputHandlers', () => {
+  it('trims whitespace on blur and calls onChange', () => {
+    const handleChange = jest.fn();
+
+    const mockEvent = {
+      currentTarget: {
+        value: '    hello     ',
+      },
+    } as React.FocusEvent<HTMLInputElement>;
+
+    trimInputOnBlur('', handleChange)(mockEvent);
+    expect(handleChange).toHaveBeenCalledWith('hello');
+  });
+
+  it('does not call onChange on blur if value is already trimmed', () => {
+    const handleChange = jest.fn();
+
+    const mockEvent = {
+      currentTarget: {
+        value: 'hello',
+      },
+    } as React.FocusEvent<HTMLInputElement>;
+
+    trimInputOnBlur('hello', handleChange)(mockEvent);
+    expect(handleChange).not.toHaveBeenCalled();
+  });
+
+  it('trims pasted text before inserting it', () => {
+    const handleChange = jest.fn();
+
+    const mockEvent = {
+      preventDefault: jest.fn(),
+      clipboardData: {
+        getData: () => '    foo     ',
+      },
+      currentTarget: {
+        value: '',
+        setSelectionRange: jest.fn(),
+        dispatchEvent: jest.fn(),
+      },
+    } as unknown as React.ClipboardEvent<HTMLInputElement>;
+
+    trimInputOnPaste('', handleChange)(mockEvent);
+    expect(handleChange).toHaveBeenCalledWith('foo');
   });
 });

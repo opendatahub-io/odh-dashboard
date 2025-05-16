@@ -1,6 +1,13 @@
 import * as React from 'react';
-import { Button } from '@patternfly/react-core';
-import { Modal, ModalVariant } from '@patternfly/react-core/deprecated';
+import {
+  Button,
+  Stack,
+  StackItem,
+  Modal,
+  ModalBody,
+  ModalHeader,
+  ModalFooter,
+} from '@patternfly/react-core';
 import { Notebook } from '~/types';
 import { stopNotebook } from '~/services/notebookService';
 import useNotification from '~/utilities/useNotification';
@@ -9,10 +16,15 @@ import { useUser } from '~/redux/selectors';
 
 type StopServerModalProps = {
   notebooksToStop: Notebook[];
+  link: string;
   onNotebooksStop: (didStop: boolean) => void;
 };
 
-const StopServerModal: React.FC<StopServerModalProps> = ({ notebooksToStop, onNotebooksStop }) => {
+const StopServerModal: React.FC<StopServerModalProps> = ({
+  notebooksToStop,
+  onNotebooksStop,
+  link,
+}) => {
   const notification = useNotification();
   const [isDeleting, setDeleting] = React.useState(false);
 
@@ -23,7 +35,29 @@ const StopServerModal: React.FC<StopServerModalProps> = ({ notebooksToStop, onNo
   }
 
   const hasMultipleServers = notebooksToStop.length > 1;
-  const textToShow = hasMultipleServers ? 'all servers' : 'server';
+  const textToShow = hasMultipleServers ? 'all workbenches' : 'workbench';
+
+  const getWorkbenchName = () => {
+    if (hasMultipleServers) {
+      return 'workbenches';
+    }
+
+    const notebook = notebooksToStop.at(0);
+
+    if (notebook) {
+      return (
+        <>
+          <b>
+            {notebook.metadata.annotations?.['opendatahub.io/display-name'] ??
+              notebook.metadata.name}
+          </b>{' '}
+          workbench
+        </>
+      );
+    }
+
+    return 'workbench';
+  };
 
   const onClose = () => {
     onNotebooksStop(false);
@@ -62,8 +96,7 @@ const StopServerModal: React.FC<StopServerModalProps> = ({ notebooksToStop, onNo
 
   const modalActions = [
     <Button
-      data-id="stop-nb-button"
-      data-testid="stop-nb-server-button"
+      data-testid="stop-workbench-button"
       isDisabled={isDeleting}
       key="confirm"
       variant="primary"
@@ -78,16 +111,34 @@ const StopServerModal: React.FC<StopServerModalProps> = ({ notebooksToStop, onNo
 
   return (
     <Modal
-      aria-label="Stop server modal"
+      aria-label="Stop workbench modal"
       appendTo={document.body}
-      variant={ModalVariant.small}
-      title={`Stop ${textToShow}`}
+      variant="small"
       isOpen
-      showClose
       onClose={onClose}
-      actions={modalActions}
     >
-      Are you sure you want to stop {textToShow}? Any changes made without saving will be lost.
+      <ModalHeader title={`Stop ${textToShow}`} />
+      <ModalBody>
+        <Stack hasGutter>
+          <StackItem>Any unsaved changes to the {getWorkbenchName()} will be lost.</StackItem>
+          <StackItem>
+            To save changes,{' '}
+            {link !== '#' && notebooksToStop.length === 1 ? (
+              <>
+                <Button component="a" href={link} variant="link" isInline>
+                  open the workbench
+                </Button>
+                .
+              </>
+            ) : notebooksToStop.length === 1 ? (
+              'open the workbench.'
+            ) : (
+              'open the workbenches.'
+            )}
+          </StackItem>
+        </Stack>
+      </ModalBody>
+      <ModalFooter>{modalActions}</ModalFooter>
     </Modal>
   );
 };

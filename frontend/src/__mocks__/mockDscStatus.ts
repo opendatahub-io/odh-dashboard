@@ -7,6 +7,10 @@ export type MockDscStatus = {
   conditions?: K8sCondition[];
   phase?: string;
   installedComponents?: DataScienceClusterKindStatus['installedComponents'];
+  release?: {
+    name: string;
+    version: string;
+  };
 };
 
 export const mockDscStatus = ({
@@ -39,6 +43,7 @@ export const mockDscStatus = ({
   ),
   conditions = [],
   phase = 'Ready',
+  release = { name: 'Open Data Hub', version: '2.28.0' },
 }: MockDscStatus): DataScienceClusterKindStatus => ({
   components,
   conditions: [
@@ -142,6 +147,7 @@ export const mockDscStatus = ({
     {},
   ),
   phase,
+  release,
 });
 
 export const dataScienceStackComponentMap = DataScienceStackComponentMap;

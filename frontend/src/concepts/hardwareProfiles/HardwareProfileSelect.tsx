@@ -19,10 +19,10 @@ import * as React from 'react';
 import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
 import { HardwareProfileKind } from '~/k8sTypes';
 import SearchSelector from '~/components/searchSelector/SearchSelector';
-import { ProjectObjectType, typedObjectImage } from '~/concepts/design/utils';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+import { ProjectObjectType } from '~/concepts/design/utils';
 import GlobalIcon from '~/images/icons/GlobalIcon';
 import TruncatedText from '~/components/TruncatedText';
+import TypedObjectIcon from '~/concepts/design/TypedObjectIcon';
 import HardwareProfileDetailsPopover from './HardwareProfileDetailsPopover';
 import { HardwareProfileConfig } from './useHardwareProfileConfig';
 import { formatResource, formatResourceValue, getProfileScore } from './utils';
@@ -31,6 +31,7 @@ type HardwareProfileSelectProps = {
   initialHardwareProfile?: HardwareProfileKind;
   previewDescription?: boolean;
   hardwareProfiles: HardwareProfileKind[];
+  isProjectScoped: boolean;
   hardwareProfilesLoaded: boolean;
   hardwareProfilesError: Error | undefined;
   projectScopedHardwareProfiles: [
@@ -52,6 +53,7 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
   initialHardwareProfile,
   previewDescription = false,
   hardwareProfiles,
+  isProjectScoped,
   hardwareProfilesLoaded,
   hardwareProfilesError,
   projectScopedHardwareProfiles,
@@ -61,7 +63,6 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
   onChange,
   project,
 }) => {
-  const isProjectScoped = useIsAreaAvailable(SupportedArea.DS_PROJECT_SCOPED).status;
   const [searchHardwareProfile, setSearchHardwareProfile] = React.useState('');
   const [
     currentProjectHardwareProfiles,
@@ -191,7 +192,7 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
                 hardwareProfileConfig.selectedProfile.metadata.namespace
             }
             description={
-              <Stack style={{ marginLeft: '23px' }}>
+              <Stack style={{ marginLeft: '19px' }}>
                 {profile.spec.description && (
                   <StackItem>
                     <Truncate content={profile.spec.description} />
@@ -222,12 +223,8 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
               spaceItems={{ default: 'spaceItemsXs' }}
               alignItems={{ default: 'alignItemsCenter' }}
             >
-              <FlexItem style={{ display: 'flex' }}>
-                <img
-                  style={{ height: '20px' }}
-                  src={typedObjectImage(ProjectObjectType.project)}
-                  alt=""
-                />
+              <FlexItem>
+                <TypedObjectIcon alt="" resourceType={ProjectObjectType.project} />
               </FlexItem>
               <FlexItem>
                 <Truncate content={displayName} />
@@ -244,7 +241,7 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
   };
 
   const getDashboardHardwareProfiles = () => {
-    const DahboardEnabledProfiles = hardwareProfiles
+    const DashboardEnabledProfiles = hardwareProfiles
       .filter((hp) => hp.spec.enabled)
       .toSorted((a, b) => {
         // First compare by whether they have extra resources
@@ -263,10 +260,10 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
 
     // allow continued use of already selected profile if it is disabled
     if (initialHardwareProfile && !initialHardwareProfile.spec.enabled) {
-      DahboardEnabledProfiles.push(initialHardwareProfile);
+      DashboardEnabledProfiles.push(initialHardwareProfile);
     }
 
-    const formattedOptions = DahboardEnabledProfiles.filter((profile) =>
+    const formattedOptions = DashboardEnabledProfiles.filter((profile) =>
       profile.spec.displayName
         .toLocaleLowerCase()
         .includes(searchHardwareProfile.toLocaleLowerCase()),
@@ -361,37 +358,34 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
                 searchValue={searchHardwareProfile}
                 toggleContent={
                   hardwareProfileConfig.selectedProfile?.spec.displayName ? (
-                    <>
-                      {hardwareProfileConfig.selectedProfile.spec.displayName}
-                      {'  '}
-                      {hardwareProfileConfig.selectedProfile.metadata.namespace === project ? (
-                        <Label
-                          variant="outline"
-                          color="blue"
-                          data-testid="project-scoped-label"
-                          isCompact
-                          icon={
-                            <img
-                              style={{ height: '15px', paddingTop: '3px' }}
-                              src={typedObjectImage(ProjectObjectType.project)}
-                              alt=""
-                            />
-                          }
-                        >
-                          Project-scoped
-                        </Label>
-                      ) : (
-                        <Label
-                          variant="outline"
-                          color="blue"
-                          data-testid="global-scoped-label"
-                          isCompact
-                          icon={<GlobalIcon />}
-                        >
-                          Global-scoped
-                        </Label>
-                      )}
-                    </>
+                    <Flex gap={{ default: 'gapSm' }}>
+                      <FlexItem>{hardwareProfileConfig.selectedProfile.spec.displayName}</FlexItem>
+                      <FlexItem>
+                        {hardwareProfileConfig.selectedProfile.metadata.namespace === project ? (
+                          <Label
+                            variant="outline"
+                            color="blue"
+                            data-testid="project-scoped-label"
+                            isCompact
+                            icon={
+                              <TypedObjectIcon alt="" resourceType={ProjectObjectType.project} />
+                            }
+                          >
+                            Project-scoped
+                          </Label>
+                        ) : (
+                          <Label
+                            variant="outline"
+                            color="blue"
+                            data-testid="global-scoped-label"
+                            isCompact
+                            icon={<GlobalIcon />}
+                          >
+                            Global-scoped
+                          </Label>
+                        )}
+                      </FlexItem>
+                    </Flex>
                   ) : allowExistingSettings ? (
                     'Use existing settings'
                   ) : (
@@ -411,10 +405,10 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
                           style={{ paddingBottom: '5px' }}
                         >
                           <FlexItem style={{ display: 'flex', paddingLeft: '12px' }}>
-                            <img
-                              style={{ height: '20px', paddingTop: '3px' }}
-                              src={typedObjectImage(ProjectObjectType.project)}
+                            <TypedObjectIcon
+                              style={{ height: '12px', width: '12px' }}
                               alt=""
+                              resourceType={ProjectObjectType.project}
                             />
                           </FlexItem>
                           <FlexItem>Project-scoped hardware profiles</FlexItem>
@@ -438,10 +432,10 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
                             style={{ paddingBottom: '5px' }}
                           >
                             <FlexItem
-                              style={{ display: 'flex', paddingLeft: '10px' }}
+                              style={{ display: 'flex', paddingLeft: '12px' }}
                               data-testid="ds-project-image"
                             >
-                              <GlobalIcon />
+                              <GlobalIcon style={{ height: '12px', width: '12px' }} />
                             </FlexItem>
                             <FlexItem>Global hardware profiles</FlexItem>
                           </Flex>

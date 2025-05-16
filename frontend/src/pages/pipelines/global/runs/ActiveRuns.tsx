@@ -3,7 +3,7 @@ import { Bullseye, EmptyState, EmptyStateBody, Spinner } from '@patternfly/react
 import { CubesIcon, ExclamationCircleIcon } from '@patternfly/react-icons';
 import PipelineRunTable from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTable';
 import { usePipelineActiveRunsTable } from '~/concepts/pipelines/content/tables/pipelineRun/usePipelineRunTable';
-import { createRunRoute } from '~/routes';
+import { createRunRoute } from '~/routes/pipelines/runs';
 import {
   ExperimentContext,
   useContextExperimentArchivedOrDeleted,

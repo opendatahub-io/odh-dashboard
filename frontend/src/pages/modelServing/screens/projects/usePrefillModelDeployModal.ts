@@ -68,18 +68,27 @@ const usePrefillModelDeployModal = (
   const loaded = connectionsLoaded && connectionTypesLoaded;
   const loadError = connectionsLoadError || connectionTypeError;
 
+  // Add a hasPrefilledRef to track whether the form has been prefilled
+  // This prevents the connection type from switching back to Current URI
+  const hasPrefilledRef = React.useRef(false);
+
   React.useEffect(() => {
     const alert = {
       type: AlertVariant.info,
-      title: 'We’ve populated the details of a new connection for you.',
+      title: "We've populated the details of a new connection for you.",
       message:
         'The selected project does not have a connection that matches the model location. You can create a matching connection by using the data in the autopopulated fields, or edit the fields to create a different connection. Alternatively, click Existing connection to select an existing non-matching connection.',
     };
-    if (modelDeployPrefillInfo?.modelArtifactUri && loaded) {
+    if (modelDeployPrefillInfo?.modelArtifactUri && loaded && !hasPrefilledRef.current) {
+      // Mark as prefilled to prevent future prefills
+      hasPrefilledRef.current = true;
+
       setCreateData('name', modelDeployPrefillInfo.modelName);
       const recommendedConnections = connections.filter(
         (dataConnection) => dataConnection.isRecommended,
       );
+
+      const connectionName = modelDeployPrefillInfo.initialConnectionName || '';
 
       if (!modelLocation) {
         setCreateData('storage', {
@@ -96,7 +105,7 @@ const usePrefillModelDeployModal = (
           AwsKeys.DEFAULT_REGION,
         ];
         const prefilledAWSData = [
-          { key: AwsKeys.NAME, value: modelDeployPrefillInfo.initialConnectionName || '' },
+          { key: AwsKeys.NAME, value: connectionName },
           { key: AwsKeys.AWS_S3_BUCKET, value: modelLocation.s3Fields.bucket },
           { key: AwsKeys.S3_ENDPOINT, value: modelLocation.s3Fields.endpoint },
           { key: AwsKeys.DEFAULT_REGION, value: modelLocation.s3Fields.region || '' },
@@ -105,7 +114,7 @@ const usePrefillModelDeployModal = (
         if (recommendedConnections.length === 0) {
           setCreateData('storage', {
             awsData: prefilledAWSData,
-            dataConnection: modelDeployPrefillInfo.initialConnectionName || '',
+            dataConnection: connectionName,
             path: modelLocation.s3Fields.path,
             type: InferenceServiceStorageType.NEW_STORAGE,
             alert,
@@ -140,7 +149,7 @@ const usePrefillModelDeployModal = (
           setCreateData('storage', {
             awsData: EMPTY_AWS_SECRET_DATA,
             uri: '',
-            dataConnection: modelDeployPrefillInfo.initialConnectionName || '',
+            dataConnection: connectionName,
             path: '',
             type: InferenceServiceStorageType.NEW_STORAGE,
             alert,
@@ -185,7 +194,7 @@ const usePrefillModelDeployModal = (
           setCreateData('storage', {
             awsData: EMPTY_AWS_SECRET_DATA,
             uri: modelLocation.ociUri,
-            dataConnection: '',
+            dataConnection: connectionName,
             path: '',
             type: InferenceServiceStorageType.NEW_STORAGE,
             alert,

@@ -23,6 +23,7 @@ import {
   DataScienceClusterKindStatus,
   KnownLabels,
   AuthKind,
+  OdhPlatformType,
 } from '../types';
 import {
   DEFAULT_ACTIVE_TIMEOUT,
@@ -89,21 +90,6 @@ const fetchOrCreateDashboardCR = async (fastify: KubeFastifyInstance): Promise<D
     )
     .then((res) => {
       const dashboardCR = res?.body as DashboardConfig;
-      if (
-        dashboardCR &&
-        dashboardCR.spec.dashboardConfig.disableKServe === undefined &&
-        dashboardCR.spec.dashboardConfig.disableModelMesh === undefined
-      ) {
-        // return a merge between dashboardCR and blankDashboardCR but changing spec.disableKServe to true and spec.disableModelMesh to false
-        return _.merge({}, blankDashboardCR, dashboardCR, {
-          spec: {
-            dashboardConfig: {
-              disableKServe: true,
-              disableModelMesh: false,
-            },
-          },
-        });
-      }
       return _.merge({}, blankDashboardCR, dashboardCR); // merge with blank CR to prevent any missing values
     })
     .catch((e) => {
@@ -114,6 +100,8 @@ const fetchOrCreateDashboardCR = async (fastify: KubeFastifyInstance): Promise<D
     });
 };
 
+// Do not contain any feature flags -- code overrides will do their trick until managed by users
+const defaultDashboardCR = _.omit(blankDashboardCR, 'spec.dashboardConfig');
 const createDashboardCR = (fastify: KubeFastifyInstance): Promise<DashboardConfig> => {
   return fastify.kube.customObjectsApi
     .createNamespacedCustomObject(
@@ -121,12 +109,12 @@ const createDashboardCR = (fastify: KubeFastifyInstance): Promise<DashboardConfi
       DASHBOARD_CONFIG.version,
       fastify.kube.namespace,
       DASHBOARD_CONFIG.plural,
-      blankDashboardCR,
+      defaultDashboardCR,
     )
     .then((result) => result.body as DashboardConfig)
     .catch((e) => {
       fastify.log.error('Error creating Dashboard CR: ', e);
-      return blankDashboardCR;
+      return defaultDashboardCR;
     });
 };
 
@@ -914,11 +902,13 @@ export const cleanupGPU = async (fastify: KubeFastifyInstance): Promise<void> =>
   }
 };
 
-/**
- * TODO: There should be a better way to go about this... but the namespace is unlikely to ever change
- */
-export const isRHOAI = (fastify: KubeFastifyInstance): boolean =>
-  fastify.kube.namespace === 'redhat-ods-applications';
+export const isRHOAI = (fastify: KubeFastifyInstance): boolean => {
+  const releaseName = getClusterStatus(fastify)?.release?.name;
+  return (
+    releaseName === OdhPlatformType.SELF_MANAGED_RHOAI ||
+    releaseName === OdhPlatformType.MANAGED_RHOAI
+  );
+};
 
 export const getServingRuntimeNameFromTemplate = (template: Template): string =>
   template.objects[0].metadata.name;

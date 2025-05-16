@@ -1,21 +1,19 @@
 import * as React from 'react';
 import { Breadcrumb, BreadcrumbItem, Flex, FlexItem, Truncate } from '@patternfly/react-core';
 import { Link, useSearchParams } from 'react-router-dom';
+import { useModelServingTab } from '~/concepts/projects/projectDetails/useModelServingTab';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import GenericHorizontalBar from '~/pages/projects/components/GenericHorizontalBar';
 import ProjectSharing from '~/pages/projects/projectSharing/ProjectSharing';
 import ProjectSettingsPage from '~/pages/projects/projectSettings/ProjectSettingsPage';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import useModelServingEnabled from '~/pages/modelServing/useModelServingEnabled';
-import ModelServingPlatform from '~/pages/modelServing/screens/projects/ModelServingPlatform';
 import { ProjectObjectType, SectionType } from '~/concepts/design/utils';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
-import { AccessReviewResourceAttributes } from '~/k8sTypes';
-import { useAccessReview } from '~/api';
 import { getDescriptionFromK8sResource, getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import ResourceNameTooltip from '~/components/ResourceNameTooltip';
 import HeaderIcon from '~/concepts/design/HeaderIcon';
+import { useProjectPermissionsTabVisible } from '~/concepts/projects/accessChecks';
 import useCheckLogoutParams from './useCheckLogoutParams';
 import ProjectOverview from './overview/ProjectOverview';
 import NotebookList from './notebooks/NotebookList';
@@ -23,14 +21,9 @@ import StorageList from './storage/StorageList';
 import ConnectionsList from './connections/ConnectionsList';
 import PipelinesSection from './pipelines/PipelinesSection';
 import ProjectActions from './ProjectActions';
+import RagChatbot from './chatbot/RagChatbot';
 
 import './ProjectDetails.scss';
-
-const accessReviewResource: AccessReviewResourceAttributes = {
-  group: 'rbac.authorization.k8s.io',
-  resource: 'rolebindings',
-  verb: 'create',
-};
 
 const ProjectDetails: React.FC = () => {
   const { currentProject } = React.useContext(ProjectDetailsContext);
@@ -39,14 +32,14 @@ const ProjectDetails: React.FC = () => {
   const biasMetricsAreaAvailable = useIsAreaAvailable(SupportedArea.BIAS_METRICS).status;
   const projectSharingEnabled = useIsAreaAvailable(SupportedArea.DS_PROJECTS_PERMISSIONS).status;
   const pipelinesEnabled = useIsAreaAvailable(SupportedArea.DS_PIPELINES).status;
-  const modelServingEnabled = useModelServingEnabled();
+  const modelServingTab = useModelServingTab();
   const [searchParams, setSearchParams] = useSearchParams();
   const state = searchParams.get('section');
-  const [allowCreate, rbacLoaded] = useAccessReview({
-    ...accessReviewResource,
-    namespace: currentProject.metadata.name,
-  });
+
+  const [allowCreate, rbacLoaded] = useProjectPermissionsTabVisible(currentProject.metadata.name);
+
   const workbenchEnabled = useIsAreaAvailable(SupportedArea.WORKBENCHES).status;
+  const chatBotEnabled = useIsAreaAvailable(SupportedArea.LLAMA_STACK_CHAT_BOT).status;
 
   useCheckLogoutParams();
 
@@ -88,6 +81,15 @@ const ProjectDetails: React.FC = () => {
         sections={React.useMemo(
           () => [
             { id: ProjectSectionID.OVERVIEW, title: 'Overview', component: <ProjectOverview /> },
+            ...(chatBotEnabled
+              ? [
+                  {
+                    id: ProjectSectionID.CHATBOT,
+                    title: 'Chatbot',
+                    component: <RagChatbot />,
+                  },
+                ]
+              : []),
             ...(workbenchEnabled
               ? [
                   {
@@ -106,15 +108,7 @@ const ProjectDetails: React.FC = () => {
                   },
                 ]
               : []),
-            ...(modelServingEnabled
-              ? [
-                  {
-                    id: ProjectSectionID.MODEL_SERVER,
-                    title: 'Models',
-                    component: <ModelServingPlatform />,
-                  },
-                ]
-              : []),
+            ...modelServingTab,
             {
               id: ProjectSectionID.CLUSTER_STORAGES,
               title: 'Cluster storage',
@@ -147,10 +141,11 @@ const ProjectDetails: React.FC = () => {
           [
             allowCreate,
             biasMetricsAreaAvailable,
-            modelServingEnabled,
             pipelinesEnabled,
             projectSharingEnabled,
             workbenchEnabled,
+            modelServingTab,
+            chatBotEnabled,
           ],
         )}
       />
