@@ -286,6 +286,7 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
       ) : null}
       {isModalOpen && notebookImage && (
         <NotebookUpdateImageModal
+          notebookState={obj}
           notebookImage={notebookImage}
           notebook={obj.notebook}
           onModalClose={onModalClose}
