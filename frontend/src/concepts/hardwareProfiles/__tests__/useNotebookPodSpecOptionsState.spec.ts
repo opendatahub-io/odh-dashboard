@@ -56,6 +56,7 @@ describe('useNotebookPodSpecOptionsState', () => {
   beforeEach(() => {
     mockUseIsAreaAvailable.mockReturnValue({
       status: true,
+      devFlags: {},
       featureFlags: {},
       reliantAreas: {},
       requiredComponents: {},
@@ -227,6 +228,7 @@ describe('useNotebookPodSpecOptionsState', () => {
   it('should use legacy pod spec options when hardware profiles are not available', () => {
     mockUseIsAreaAvailable.mockReturnValue({
       status: false,
+      devFlags: {},
       featureFlags: {},
       reliantAreas: {},
       requiredComponents: {},

@@ -29,6 +29,7 @@ describe('useHardwareProfileConfig', () => {
     mockUseDashboardNamespace.mockReturnValue({ dashboardNamespace: 'test-namespace' });
     mockUseIsAreaAvailable.mockReturnValue({
       status: true,
+      devFlags: {},
       featureFlags: {},
       reliantAreas: {},
       requiredComponents: {},
@@ -129,6 +130,7 @@ describe('useHardwareProfileConfig', () => {
   it('should handle hardware profiles not being available', () => {
     mockUseIsAreaAvailable.mockReturnValue({
       status: false,
+      devFlags: {},
       featureFlags: {},
       reliantAreas: {},
       requiredComponents: {},
