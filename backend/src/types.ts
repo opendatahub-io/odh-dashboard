@@ -252,22 +252,6 @@ export type ConsoleLinkKind = {
   };
 } & K8sResourceCommon;
 
-export type KfDefApplication = {
-  kustomizeConfig: {
-    repoRef: {
-      name: string;
-      path: string;
-    };
-  };
-  name: string;
-};
-
-export type KfDefResource = K8sResourceCommon & {
-  spec: {
-    applications: KfDefApplication[];
-  };
-};
-
 export type KubeStatus = {
   currentContext: string;
   currentUser: User;
@@ -352,7 +336,6 @@ export type OdhApplication = {
     img: string;
     shownOnEnabledPage: boolean | null;
     isEnabled: boolean | null;
-    kfdefApplications: string[];
     link: string | null;
     provider: string;
     quickStart: string | null;
