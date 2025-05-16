@@ -249,7 +249,7 @@ export const getIsAppEnabled = async (
   fastify: KubeFastifyInstance,
   appDef: OdhApplication,
 ): Promise<boolean> => {
-  if (appDef.spec.category === "Red Hat managed") {
+  if (appDef.spec.category === 'Red Hat managed') {
     return true;
   }
 
