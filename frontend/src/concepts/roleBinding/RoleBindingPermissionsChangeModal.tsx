@@ -33,6 +33,7 @@ const RoleBindingPermissionsChangeModal: React.FC<RoleBindingPermissionsChangeMo
       }}
       deleteName={roleName || 'delete'}
       submitButtonLabel={isDeleting ? 'Delete' : 'Save'}
+      genericLabel
     >
       Are you sure you want to {isDeleting ? 'delete' : 'edit'} permissions for{' '}
       <strong>{roleName || 'this role binding'}</strong>? {isDeleting ? 'Deleting' : 'Editing'}{' '}
