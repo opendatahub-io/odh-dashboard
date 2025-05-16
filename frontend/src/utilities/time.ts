@@ -215,6 +215,3 @@ export const convertSecondsToPeriodicTime = (seconds: number): string => {
 
   return '';
 };
-
-export const convertISOTimeToHumanReadable = (isoTime: string): string =>
-  isoTime.replace('T', ' ').replace('Z', '');

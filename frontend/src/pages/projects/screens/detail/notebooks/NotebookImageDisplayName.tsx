@@ -14,6 +14,7 @@ import {
   Button,
   Truncate,
   Tooltip,
+  Timestamp,
 } from '@patternfly/react-core';
 import { t_global_spacer_xs as ExtraSmallSpacerSize } from '@patternfly/react-tokens';
 import React from 'react';
@@ -28,7 +29,6 @@ import { ProjectObjectType } from '~/concepts/design/utils';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { ODH_PRODUCT_NAME } from '~/utilities/const';
 import TypedObjectIcon from '~/concepts/design/TypedObjectIcon';
-import { convertISOTimeToHumanReadable } from '~/utilities/time';
 import {
   getImageVersionBuildDate,
   getImageVersionSoftwareString,
@@ -280,7 +280,7 @@ export const NotebookImageDisplayName = ({
                   )}
                   {imageBuildDate && (
                     <div data-testid="notebook-image-version-build-date">
-                      Build Date: {convertISOTimeToHumanReadable(imageBuildDate)}
+                      Build Date: <Timestamp date={new Date(imageBuildDate)} shouldDisplayUTC />
                     </div>
                   )}
                   {imageVersionSoftwareString && (
