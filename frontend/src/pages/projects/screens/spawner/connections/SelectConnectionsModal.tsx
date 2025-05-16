@@ -1,6 +1,16 @@
 import React from 'react';
-import { Button, Flex, FlexItem, Form, FormGroup, Truncate } from '@patternfly/react-core';
-import { Modal } from '@patternfly/react-core/deprecated';
+import {
+  Button,
+  Flex,
+  FlexItem,
+  Form,
+  FormGroup,
+  Truncate,
+  Modal,
+  ModalBody,
+  ModalHeader,
+  ModalFooter,
+} from '@patternfly/react-core';
 import { MultiSelection, SelectionOptions } from '~/components/MultiSelection';
 import { Connection, ConnectionTypeConfigMapObj } from '~/concepts/connectionTypes/types';
 import { getDescriptionFromK8sResource, getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
@@ -68,12 +78,34 @@ export const SelectConnectionsModal: React.FC<Props> = ({
   );
 
   return (
-    <Modal
-      isOpen
-      variant="medium"
-      title="Attach existing connections"
-      onClose={onClose}
-      actions={[
+    <Modal isOpen variant="medium" onClose={onClose}>
+      <ModalHeader title="Attach existing connections" />
+      <ModalBody>
+        <Form>
+          {envVarConflicts.length > 0 && (
+            <DuplicateEnvVarWarning envVarConflicts={envVarConflicts} />
+          )}
+          <FormGroup label="Connections" isRequired>
+            <MultiSelection
+              id="select-connection"
+              ariaLabel="Connections"
+              placeholder="Select a connection, or search by keyword or type"
+              isDisabled={connectionsToList.length === 1}
+              value={selectionOptions}
+              setValue={setSelectionOptions}
+              filterFunction={(filterText, options) =>
+                options.filter(
+                  (o) =>
+                    !filterText ||
+                    o.name.toLowerCase().includes(filterText.toLowerCase()) ||
+                    o.data?.toLowerCase().includes(filterText.toLowerCase()),
+                )
+              }
+            />
+          </FormGroup>
+        </Form>
+      </ModalBody>
+      <ModalFooter>
         <Button
           data-testid="attach-button"
           key="attach-button"
@@ -84,33 +116,11 @@ export const SelectConnectionsModal: React.FC<Props> = ({
           }}
         >
           Attach
-        </Button>,
+        </Button>
         <Button key="cancel-button" variant="secondary" onClick={onClose}>
           Cancel
-        </Button>,
-      ]}
-    >
-      <Form>
-        {envVarConflicts.length > 0 && <DuplicateEnvVarWarning envVarConflicts={envVarConflicts} />}
-        <FormGroup label="Connections" isRequired>
-          <MultiSelection
-            id="select-connection"
-            ariaLabel="Connections"
-            placeholder="Select a connection, or search by keyword or type"
-            isDisabled={connectionsToList.length === 1}
-            value={selectionOptions}
-            setValue={setSelectionOptions}
-            filterFunction={(filterText, options) =>
-              options.filter(
-                (o) =>
-                  !filterText ||
-                  o.name.toLowerCase().includes(filterText.toLowerCase()) ||
-                  o.data?.toLowerCase().includes(filterText.toLowerCase()),
-              )
-            }
-          />
-        </FormGroup>
-      </Form>
+        </Button>
+      </ModalFooter>
     </Modal>
   );
 };

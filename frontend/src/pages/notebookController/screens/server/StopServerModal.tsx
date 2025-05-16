@@ -1,6 +1,13 @@
 import * as React from 'react';
-import { Button, Stack, StackItem } from '@patternfly/react-core';
-import { Modal, ModalVariant } from '@patternfly/react-core/deprecated';
+import {
+  Button,
+  Stack,
+  StackItem,
+  Modal,
+  ModalBody,
+  ModalHeader,
+  ModalFooter,
+} from '@patternfly/react-core';
 import { Notebook } from '~/types';
 import { stopNotebook } from '~/services/notebookService';
 import useNotification from '~/utilities/useNotification';
@@ -106,31 +113,32 @@ const StopServerModal: React.FC<StopServerModalProps> = ({
     <Modal
       aria-label="Stop workbench modal"
       appendTo={document.body}
-      variant={ModalVariant.small}
-      title={`Stop ${textToShow}?`}
+      variant="small"
       isOpen
-      showClose
       onClose={onClose}
-      actions={modalActions}
     >
-      <Stack hasGutter>
-        <StackItem>Any unsaved changes to the {getWorkbenchName()} will be lost.</StackItem>
-        <StackItem>
-          To save changes,{' '}
-          {link !== '#' && notebooksToStop.length === 1 ? (
-            <>
-              <Button component="a" href={link} variant="link" isInline>
-                open the workbench
-              </Button>
-              .
-            </>
-          ) : notebooksToStop.length === 1 ? (
-            'open the workbench.'
-          ) : (
-            'open the workbenches.'
-          )}
-        </StackItem>
-      </Stack>
+      <ModalHeader title={`Stop ${textToShow}`} />
+      <ModalBody>
+        <Stack hasGutter>
+          <StackItem>Any unsaved changes to the {getWorkbenchName()} will be lost.</StackItem>
+          <StackItem>
+            To save changes,{' '}
+            {link !== '#' && notebooksToStop.length === 1 ? (
+              <>
+                <Button component="a" href={link} variant="link" isInline>
+                  open the workbench
+                </Button>
+                .
+              </>
+            ) : notebooksToStop.length === 1 ? (
+              'open the workbench.'
+            ) : (
+              'open the workbenches.'
+            )}
+          </StackItem>
+        </Stack>
+      </ModalBody>
+      <ModalFooter>{modalActions}</ModalFooter>
     </Modal>
   );
 };
