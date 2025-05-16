@@ -1,6 +1,13 @@
 import * as React from 'react';
-import { Form, Stack, StackItem } from '@patternfly/react-core';
-import { Modal } from '@patternfly/react-core/deprecated';
+import {
+  Form,
+  Stack,
+  StackItem,
+  Modal,
+  ModalBody,
+  ModalHeader,
+  ModalFooter,
+} from '@patternfly/react-core';
 import { PersistentVolumeClaimKind } from '~/k8sTypes';
 import CreateNewStorageSection from '~/pages/projects/screens/spawner/storage/CreateNewStorageSection';
 import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
@@ -81,14 +88,34 @@ const BaseStorageModal: React.FC<BaseStorageModalProps> = ({
   };
 
   return (
-    <Modal
-      title={title}
-      description={description}
-      variant="medium"
-      isOpen
-      onClose={() => onClose(false)}
-      showClose
-      footer={
+    <Modal variant="medium" isOpen onClose={() => onClose(false)}>
+      <ModalHeader title={title} description={description} />
+      <ModalBody>
+        <Form
+          onSubmit={(e) => {
+            e.preventDefault();
+            submit();
+          }}
+        >
+          <Stack hasGutter>
+            <StackItem>
+              <CreateNewStorageSection
+                data={createData}
+                setData={setCreateData}
+                currentStatus={existingPvc?.status}
+                autoFocusName
+                onNameChange={onNameChange}
+                setValid={setNameDescValid}
+                hasDuplicateName={hasDuplicateName}
+                disableStorageClassSelect={!!existingPvc}
+                editableK8sName={!existingPvc}
+              />
+            </StackItem>
+            {children}
+          </Stack>
+        </Form>
+      </ModalBody>
+      <ModalFooter>
         <DashboardModalFooter
           submitLabel={submitLabel}
           onSubmit={submit}
@@ -97,31 +124,7 @@ const BaseStorageModal: React.FC<BaseStorageModalProps> = ({
           error={error}
           alertTitle="Error creating storage"
         />
-      }
-    >
-      <Form
-        onSubmit={(e) => {
-          e.preventDefault();
-          submit();
-        }}
-      >
-        <Stack hasGutter>
-          <StackItem>
-            <CreateNewStorageSection
-              data={createData}
-              setData={setCreateData}
-              currentStatus={existingPvc?.status}
-              autoFocusName
-              onNameChange={onNameChange}
-              setValid={setNameDescValid}
-              hasDuplicateName={hasDuplicateName}
-              disableStorageClassSelect={!!existingPvc}
-              editableK8sName={!existingPvc}
-            />
-          </StackItem>
-          {children}
-        </Stack>
-      </Form>
+      </ModalFooter>
     </Modal>
   );
 };
