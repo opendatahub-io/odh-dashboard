@@ -7,7 +7,6 @@ import {
   ToolbarItem,
   Button,
   Tooltip,
-  MenuToggleElement,
   MenuToggle,
   DropdownItem,
   Dropdown,
@@ -44,6 +43,9 @@ const HeaderTools: React.FC<Props> = ({ onNotificationsClick, ...devFeatureFlags
   const { dashboardConfig } = useAppContext();
   const { theme, setTheme } = useThemeContext();
   const notification = useNotification();
+
+  const lightModeRef = React.useRef<HTMLDivElement>(null);
+  const darkModeRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
     const htmlElement = document.getElementsByTagName('html')[0];
@@ -202,22 +204,28 @@ const HeaderTools: React.FC<Props> = ({ onNotificationsClick, ...devFeatureFlags
           </ToolbarItem>
           <ToolbarItem>
             <ToggleGroup aria-label="Theme toggle group">
-              <ToggleGroupItem
-                aria-label="light theme"
-                icon={<SunIcon />}
-                isSelected={theme === 'light'}
-                onChange={() => {
-                  setTheme('light');
-                }}
-              />
-              <ToggleGroupItem
-                aria-label="dark theme"
-                icon={<MoonIcon />}
-                isSelected={theme === 'dark'}
-                onChange={() => {
-                  setTheme('dark');
-                }}
-              />
+              <Tooltip content="Light Mode" position="bottom" triggerRef={lightModeRef}>
+                <ToggleGroupItem
+                  ref={lightModeRef}
+                  aria-label="light theme"
+                  icon={<SunIcon />}
+                  isSelected={theme === 'light'}
+                  onChange={() => {
+                    setTheme('light');
+                  }}
+                />
+              </Tooltip>
+              <Tooltip content="Dark Mode" position="bottom" triggerRef={darkModeRef}>
+                <ToggleGroupItem
+                  ref={darkModeRef}
+                  aria-label="dark theme"
+                  icon={<MoonIcon />}
+                  isSelected={theme === 'dark'}
+                  onChange={() => {
+                    setTheme('dark');
+                  }}
+                />
+              </Tooltip>
             </ToggleGroup>
           </ToolbarItem>
         </ToolbarGroup>
@@ -244,7 +252,7 @@ const HeaderTools: React.FC<Props> = ({ onNotificationsClick, ...devFeatureFlags
             popperProps={{ position: 'right' }}
             onOpenChange={(isOpen) => setUserMenuOpen(isOpen)}
             toggle={(toggleRef) => (
-              <Tooltip content="User Menu" triggerRef={toggleRef} position="bottom">
+              <Tooltip content="User Menu" triggerRef={toggleRef}>
                 <MenuToggle
                   aria-label="User menu"
                   id="user-menu-toggle"
