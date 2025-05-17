@@ -25,7 +25,6 @@ type MockOdhApplicationConfig = {
   betaText?: string | null;
   shownOnEnabledPage?: boolean | null;
   isEnabled?: boolean | null;
-  kfdefApplications?: string[];
   csvName?: string;
   annotations?: { [key: string]: string };
   enable?: {
@@ -71,7 +70,6 @@ export const mockOdhApplication = ({
   betaText = null,
   shownOnEnabledPage = null,
   isEnabled = null,
-  kfdefApplications = [],
   csvName = undefined,
   annotations = {},
   enable = undefined,
@@ -106,7 +104,6 @@ export const mockOdhApplication = ({
     betaText,
     shownOnEnabledPage,
     isEnabled,
-    kfdefApplications,
     csvName,
     enable,
     featureFlag,

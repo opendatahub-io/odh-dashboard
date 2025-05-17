@@ -82,10 +82,23 @@ export const updatePvc = (
   existingData: PersistentVolumeClaimKind,
   namespace: string,
   opts?: K8sAPIOptions,
+  excludeSpec?: boolean,
 ): Promise<PersistentVolumeClaimKind> => {
   const pvc = assemblePvc(data, namespace, existingData.metadata.name);
+  const newData = excludeSpec
+    ? {
+        ...pvc,
+        spec: {
+          resources: {
+            requests: {
+              storage: pvc.spec.resources.requests.storage,
+            },
+          },
+        },
+      }
+    : pvc;
 
-  const pvcResource = _.merge({}, existingData, pvc);
+  const pvcResource = _.merge({}, existingData, newData);
   if (!data.description && pvcResource.metadata.annotations?.['openshift.io/description']) {
     pvcResource.metadata.annotations['openshift.io/description'] = undefined;
   }
