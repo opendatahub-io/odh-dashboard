@@ -18,6 +18,7 @@ import {
   getRoleBinding,
   listRoleBindings,
   patchRoleBindingOwnerRef,
+  patchRoleBindingSubjects,
 } from '~/api/k8s/roleBindings';
 import { RoleBindingModel } from '~/api/models/k8s';
 import {
@@ -350,6 +351,34 @@ describe('patchRoleBindingOwnerRef', () => {
       fetchOptions: { requestInit: {} },
       model: RoleBindingModel,
       patches: [{ op: 'replace', path: '/metadata/ownerReferences', value: [] }],
+      queryOptions: { name: 'rbName', ns: namespace, queryParams: {} },
+    });
+    expect(k8sPatchResourceMock).toHaveBeenCalledTimes(1);
+    expect(result).toStrictEqual(roleBindingMock);
+  });
+});
+
+describe('patchRoleBindingSubjects', () => {
+  it('should patch role binding subjects', async () => {
+    const newSubjects: RoleBindingSubject[] = [
+      {
+        apiGroup: 'rbac.authorization.k8s.io',
+        kind: 'User',
+        name: 'test-user',
+      },
+    ];
+    k8sPatchResourceMock.mockResolvedValue(roleBindingMock);
+    const result = await patchRoleBindingSubjects('rbName', namespace, newSubjects);
+    expect(k8sPatchResourceMock).toHaveBeenCalledWith({
+      fetchOptions: { requestInit: {} },
+      model: RoleBindingModel,
+      patches: [
+        {
+          op: 'replace',
+          path: '/subjects',
+          value: newSubjects,
+        },
+      ],
       queryOptions: { name: 'rbName', ns: namespace, queryParams: {} },
     });
     expect(k8sPatchResourceMock).toHaveBeenCalledTimes(1);
