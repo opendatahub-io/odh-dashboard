@@ -238,6 +238,7 @@ describe('Pipeline topology', () => {
       taskDrawer.findArgumentCodeBlock().should('not.be.empty');
       taskDrawer.findTaskImage().should('have.text', 'Imagequay.io/hukhan/iris-base:1');
       taskDrawer.findCloseDrawerButton().click();
+
       taskDrawer.find().should('not.exist');
     });
 
@@ -452,6 +453,7 @@ describe('Pipeline topology', () => {
       taskDrawer.findArgumentCodeBlock().should('not.be.empty');
       taskDrawer.findTaskImage().should('have.text', 'Imagequay.io/hukhan/iris-base:1');
       taskDrawer.findCloseDrawerButton().click();
+
       taskDrawer.find().should('not.exist');
     });
 

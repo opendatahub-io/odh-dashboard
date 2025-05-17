@@ -207,7 +207,11 @@ const PipelineVisualizationSurface: React.FC<PipelineVisualizationSurfaceProps> 
       }
       sideBarOpen={!!selectedNode}
       sideBarResizable
-      sideBar={<TopologySideBar resizable>{sidePanel}</TopologySideBar>}
+      sideBar={
+        <TopologySideBar data-testid="pipeline-topology-drawer" resizable>
+          {sidePanel}
+        </TopologySideBar>
+      }
     >
       <VisualizationSurface state={{ selectedIds: selections }} />
     </TopologyView>
