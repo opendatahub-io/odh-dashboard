@@ -37,13 +37,36 @@ describe('Verify that all the URLs referenced in the Manifest directory are oper
         const results: Array<{ url: string; status: number }> = [];
 
         filteredUrls.forEach((url) => {
-          cy.request(url).then((response) => {
-            const { status } = response;
-            const logMessage =
-              status === 200 ? `✅ ${url} - Status: ${status}` : `❌ ${url} - Status: ${status}`;
-            cy.log(logMessage);
-            results.push({ url, status });
-          });
+          const makeRequest = (retryCount = 0) => {
+            cy.request({
+              url,
+              failOnStatusCode: false,
+            }).then((response) => {
+              const { status } = response;
+
+              // We were getting a 429 sometimes, so we're retrying
+              if (status === 429 && retryCount < 3) {
+                cy.log(
+                  `⚠️ Rate limited (429) for ${url}, waiting 5 seconds before retry ${
+                    retryCount + 1
+                  }/3`,
+                );
+                // We need to wait here to respect rate limiting
+                // eslint-disable-next-line cypress/no-unnecessary-waiting
+                cy.wait(5000).then(() => {
+                  makeRequest(retryCount + 1);
+                });
+                return;
+              }
+
+              const logMessage =
+                status === 200 ? `✅ ${url} - Status: ${status}` : `❌ ${url} - Status: ${status}`;
+              cy.log(logMessage);
+              results.push({ url, status });
+            });
+          };
+
+          makeRequest();
         });
 
         // Wait for all requests to complete
