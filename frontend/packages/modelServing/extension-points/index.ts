@@ -6,7 +6,6 @@ import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import { SortableData } from '@odh-dashboard/internal/components/table/types';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { K8sAPIOptions, ProjectKind } from '@odh-dashboard/internal/k8sTypes';
-import { ModelServingPlatform } from '../src/concepts/modelServingPlatforms';
 
 //// Types for the model serving platform extension
 
@@ -62,8 +61,7 @@ export type ModelServingDeploymentsTableExtension = Extension<
     cellRenderer: CodeRef<(deployment: Deployment, column: string) => string>;
   }
 >;
-export const isModelServingDeploymentsTableExtension =
-  (platform?: ModelServingPlatform) =>
-  (extension: Extension): extension is ModelServingDeploymentsTableExtension =>
-    extension.type === 'model-serving.deployments-table' &&
-    (platform ? extension.properties.platform === platform.properties.id : true);
+export const isModelServingDeploymentsTableExtension = (
+  extension: Extension,
+): extension is ModelServingDeploymentsTableExtension =>
+  extension.type === 'model-serving.deployments-table';

@@ -8,7 +8,7 @@ import {
 // eslint-disable-next-line import/no-extraneous-dependencies
 import ResourceTr from '@odh-dashboard/internal/components/ResourceTr';
 import { ActionsColumn, Td } from '@patternfly/react-table';
-import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
+import { useResolvedPlatformExtension } from '../../concepts/extensionUtils';
 import { ModelServingPlatform } from '../../concepts/modelServingPlatforms';
 import { Deployment, isModelServingDeploymentsTableExtension } from '../../../extension-points';
 
@@ -38,7 +38,7 @@ const genericColumns: SortableData<Deployment>[] = [
 const DeploymentRow: React.FC<{
   deployment: Deployment;
   platformColumns: SortableData<Deployment>[];
-  cellRenderer: (deployment: Deployment, column: string) => string;
+  cellRenderer?: (deployment: Deployment, column: string) => string;
 }> = ({ deployment, platformColumns, cellRenderer }) => (
   <ResourceTr resource={deployment.model}>
     <Td dataLabel="Name">
@@ -49,7 +49,7 @@ const DeploymentRow: React.FC<{
     </Td>
     {platformColumns.map((column) => (
       <Td key={column.field} dataLabel={column.label}>
-        {cellRenderer(deployment, column.field)}
+        {cellRenderer ? cellRenderer(deployment, column.field) : '-'}
       </Td>
     ))}
     <Td dataLabel="Status">-</Td>
@@ -63,17 +63,18 @@ const DeploymentsTable: React.FC<{
   modelServingPlatform: ModelServingPlatform;
   deployments: Deployment[] | undefined;
 }> = ({ modelServingPlatform, deployments }) => {
-  const [platformTableExtension] = useResolvedExtensions(
-    isModelServingDeploymentsTableExtension(modelServingPlatform),
-  )[0];
+  const tableExtension = useResolvedPlatformExtension(
+    isModelServingDeploymentsTableExtension,
+    modelServingPlatform,
+  );
 
+  const platformColumns = React.useMemo(
+    () => tableExtension?.properties.columns() ?? [],
+    [tableExtension],
+  );
   const allColumns: SortableData<Deployment>[] = React.useMemo(
-    () => [
-      genericColumns[0],
-      ...platformTableExtension.properties.columns(),
-      ...genericColumns.slice(1),
-    ],
-    [platformTableExtension],
+    () => [genericColumns[0], ...platformColumns, ...genericColumns.slice(1)],
+    [platformColumns],
   );
 
   return (
@@ -82,9 +83,10 @@ const DeploymentsTable: React.FC<{
       data={deployments ?? []}
       rowRenderer={(row: Deployment) => (
         <DeploymentRow
+          key={row.model.metadata?.name}
           deployment={row}
-          platformColumns={platformTableExtension.properties.columns()}
-          cellRenderer={platformTableExtension.properties.cellRenderer}
+          platformColumns={platformColumns}
+          cellRenderer={tableExtension?.properties.cellRenderer}
         />
       )}
     />
