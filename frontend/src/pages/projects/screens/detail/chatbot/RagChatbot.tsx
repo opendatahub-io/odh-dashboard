@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+/* eslint-disable no-restricted-imports */
+import React, { useEffect, useState } from 'react';
 import { Label } from '@patternfly/react-core';
 import {
   ChatbotHeader,
@@ -12,13 +13,19 @@ import {
   ChatbotDisplayMode,
   Chatbot,
 } from '@patternfly/chatbot';
+import type { Model as LlamaModel } from 'llama-stack-client/resources/models';
+import { createLlamaStackClient } from '~/api/llamaStack';
 import '@patternfly/chatbot/dist/css/main.css';
 
 const RagChatbot: React.FC = () => {
+  const llamaClient = createLlamaStackClient('llamastack', 'llama-test-milvus-service');
   const displayMode = ChatbotDisplayMode.embedded;
   const [showPopover, setShowPopover] = useState(true);
+  const [models, setModels] = useState<LlamaModel[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const model = 'Llama 3.2';
+  const modelName = 'Llama 3.2';
   const footnoteProps = {
     label: 'ChatBot uses AI. Check for mistakes.',
     popover: {
@@ -41,13 +48,41 @@ const RagChatbot: React.FC = () => {
     },
   };
 
+  useEffect(() => {
+    const fetchModels = async () => {
+      try {
+        const modelList = await llamaClient.models.list();
+        setModels(modelList);
+      } catch (err) {
+        setError('Failed to fetch models');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchModels();
+  }, [llamaClient.models]);
+
+  if (loading) {
+    return <div>Loading models...</div>;
+  }
+  if (error) {
+    return <div>{error}</div>;
+  }
+
   return (
     <div style={{ height: '95%' }}>
+      <h2 className="text-xl font-bold mb-2">Available Models</h2>
+      <ul className="list-disc pl-6">
+        {models.map((model) => (
+          <li key={model.identifier}>{model.identifier}</li>
+        ))}
+      </ul>
       <Chatbot displayMode={displayMode} data-testid="chatbot">
         <ChatbotHeader>
           <ChatbotHeaderActions>
             <Label variant="outline" color="blue">
-              {model}
+              {modelName}
             </Label>
           </ChatbotHeaderActions>
         </ChatbotHeader>
