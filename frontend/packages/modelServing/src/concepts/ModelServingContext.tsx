@@ -4,7 +4,7 @@ import { ProjectDetailsContext } from '@odh-dashboard/internal/pages/projects/Pr
 import type { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
 import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
 import { useActiveServingPlatform, ModelServingPlatform } from './modelServingPlatforms';
-import { useDeployedModels } from './modelDeployments';
+import { useDeployedModels } from './deployments';
 import { isModelServingPlatformExtension, Deployment } from '../../extension-points';
 
 type ModelServingContextType = {
@@ -45,7 +45,7 @@ export const ModelServingProvider: React.FC<ModelServingProviderProps> = ({ chil
     activePlatformError,
   } = useActiveServingPlatform(currentProject, availablePlatforms);
 
-  const [deployedModels] = useDeployedModels(currentProject.metadata.name);
+  const [deployedModels] = useDeployedModels(currentProject, activePlatform);
 
   const contextValue = React.useMemo<ModelServingContextType>(
     () => ({

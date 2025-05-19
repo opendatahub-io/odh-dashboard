@@ -15,6 +15,9 @@ const extensions: (ModelServingPlatformExtension | ModelServingDeploymentsTableE
         enabledLabel: 'modelmesh-enabled',
         enabledLabelValue: 'false',
       },
+      deployments: {
+        list: () => import('./src/deployments').then((m) => m.listDeployments),
+      },
       enableCardText: {
         title: 'Single-model serving platform',
         description:
@@ -33,13 +36,8 @@ const extensions: (ModelServingPlatformExtension | ModelServingDeploymentsTableE
     type: 'model-serving.deployments-table',
     properties: {
       platform: 'kserve',
-      columns: [
-        {
-          field: 'servingRuntime',
-          label: 'Serving runtime',
-          sortable: false,
-        },
-      ],
+      columns: () => import('./src/deploymentsTable').then((m) => m.columns),
+      cellRenderer: () => import('./src/deploymentsTable').then((m) => m.cellRenderer),
     },
   },
   // {

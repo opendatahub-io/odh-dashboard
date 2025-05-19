@@ -1,15 +1,26 @@
-import { Extension } from '@openshift/dynamic-plugin-sdk';
+import { Extension, CodeRef } from '@openshift/dynamic-plugin-sdk';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { NamespaceApplicationCase } from '@odh-dashboard/internal/pages/projects/types';
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { SortableData } from '@odh-dashboard/internal/components/table/types';
-import { ModelServingPlatform } from 'concepts/modelServingPlatforms';
+// eslint-disable-next-line import/no-extraneous-dependencies
+import { K8sAPIOptions, ProjectKind } from '@odh-dashboard/internal/k8sTypes';
+import { ModelServingPlatform } from '../src/concepts/modelServingPlatforms';
 
 //// Types for the model serving platform extension
 
-export type Deployment<T extends K8sResourceCommon = K8sResourceCommon> = {
-  model: T;
+export type Deployment<
+  M extends K8sResourceCommon = K8sResourceCommon,
+  S extends K8sResourceCommon = K8sResourceCommon,
+> = {
+  modelServingPlatformId: string;
+  model: M;
+  server?: S;
+  status?: {
+    state?: string;
+    message?: string;
+  };
 };
 
 //// Extension points
@@ -22,6 +33,9 @@ export type ModelServingPlatformExtension = Extension<
       namespaceApplicationCase: NamespaceApplicationCase;
       enabledLabel: string;
       enabledLabelValue: string;
+    };
+    deployments: {
+      list: CodeRef<(project: ProjectKind, opts: K8sAPIOptions) => Promise<Deployment[]>>;
     };
     enableCardText: {
       title: string;
@@ -44,7 +58,8 @@ export type ModelServingDeploymentsTableExtension = Extension<
   'model-serving.deployments-table',
   {
     platform: string;
-    columns: SortableData<Deployment>[];
+    columns: CodeRef<() => SortableData<Deployment>[]>;
+    cellRenderer: CodeRef<(deployment: Deployment, column: string) => string>;
   }
 >;
 export const isModelServingDeploymentsTableExtension =

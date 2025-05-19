@@ -7,6 +7,8 @@ import { Button, Flex, Label, Popover } from '@patternfly/react-core';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import DashboardPopupIconButton from '@odh-dashboard/internal/concepts/dashboard/DashboardPopupIconButton';
 import { OutlinedQuestionCircleIcon, PencilAltIcon } from '@patternfly/react-icons';
+// eslint-disable-next-line import/no-extraneous-dependencies
+import { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
 import { SelectPlatformView } from './SelectPlatformView';
 import { NoModelsView } from './NoModelsView';
 import DeploymentsTable from './DeploymentsTable';
@@ -37,7 +39,7 @@ const ModelsProjectDetailsView: React.FC = () => {
 
   return (
     <DetailsSection
-      objectType="model"
+      objectType={ProjectObjectType.modelServer}
       id={ProjectSectionID.MODEL_SERVER}
       title={hasModels ? 'Models and model servers' : undefined}
       popover={
