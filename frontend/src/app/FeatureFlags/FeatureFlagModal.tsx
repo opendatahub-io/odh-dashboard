@@ -18,18 +18,20 @@ type Props = FeatureFlagLauncherProps & { onClose: () => void };
 
 const FeatureFlagModal: React.FC<Props> = ({
   dashboardConfig,
-  devFeatureFlags,
+  devFeatureFlags = {},
   setDevFeatureFlag,
   resetDevFeatureFlags,
   onClose,
 }) => {
+  const flags = devFeatureFlags ?? {};
+
   const renderDevFeatureFlags = () => (
     <Grid hasGutter span={6} md={3}>
       {allFeatureFlags
         .filter(isFeatureFlag)
         .toSorted()
         .map((key) => {
-          const value = devFeatureFlags?.[key] ?? dashboardConfig[key];
+          const value = flags[key] ?? dashboardConfig[key];
           return (
             <React.Fragment key={key}>
               <GridItem>
@@ -43,8 +45,8 @@ const FeatureFlagModal: React.FC<Props> = ({
                   }}
                 />
               </GridItem>
-              <GridItem data-testid={`${key}-value`}>{`${value}${
-                devFeatureFlags && key in devFeatureFlags ? ' (overridden)' : ''
+              <GridItem data-testid={`${key}-value`}>{`${value ?? ''}${
+                key in flags ? ' (overridden)' : ''
               }`}</GridItem>
             </React.Fragment>
           );
