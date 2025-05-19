@@ -1,137 +1,195 @@
+/**
+ * URL Validator Module
+ *
+ * This module provides functionality to validate HTTPS URLs by making HTTP requests
+ * and handling various response scenarios including redirects, timeouts, and errors.
+ * It supports proxy configuration and provides detailed status information for each URL.
+ *
+ * The module includes a retry mechanism for network-related errors with exponential backoff:
+ * - Maximum of 3 retry attempts
+ * - Initial retry delay of 1 second, doubling with each retry (1s, 2s, 4s)
+ * - Retries on specific network errors: ENETUNREACH, ECONNRESET, ETIMEDOUT, ECONNREFUSED
+ */
+
 import * as http from 'http';
 import * as https from 'https';
 // eslint-disable-next-line @typescript-eslint/no-var-requires, import/no-extraneous-dependencies
 const HttpsProxyAgent: new (options: string | object) => https.Agent = require('https-proxy-agent');
 
+/** Common user agent string used for requests */
 const commonUserAgent =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.212 Safari/537.36';
-const maxRedirects = 5;
-const requestTimeout = 30000; // 30 seconds
 
-const makeRequest = (
+/** Maximum number of redirects to follow */
+const maxRedirects = 5;
+
+/** Request timeout in milliseconds */
+const requestTimeout = 30000;
+
+/** Maximum number of retries for network errors */
+const maxRetries = 3;
+
+/** Initial retry delay in milliseconds */
+const initialRetryDelay = 1000;
+
+/** Common request headers */
+const commonHeaders = {
+  'User-Agent': commonUserAgent,
+  Accept:
+    'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+  'Accept-Language': 'en-US,en;q=0.9',
+  'Accept-Encoding': 'gzip, deflate, br',
+};
+
+/**
+ * Interface for the response from URL validation
+ */
+interface UrlValidationResult {
+  url: string;
+  status: number;
+  error?: string;
+}
+
+/**
+ * Sleep for a specified duration
+ * @param ms - Duration in milliseconds
+ */
+const sleep = (ms: number): Promise<void> =>
+  new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+
+/**
+ * Checks if an error is retryable based on its error code
+ * @param error - The error to check
+ * @returns boolean indicating if the error is retryable
+ * @remarks
+ * The following error codes are considered retryable:
+ * - ENETUNREACH: Network is unreachable
+ * - ECONNRESET: Connection was reset
+ * - ETIMEDOUT: Connection timed out
+ * - ECONNREFUSED: Connection was refused
+ */
+const isRetryableError = (error: Error & { code?: string }): boolean => {
+  const retryableCodes = ['ENETUNREACH', 'ECONNRESET', 'ETIMEDOUT', 'ECONNREFUSED'];
+  return retryableCodes.includes(error.code || '');
+};
+
+/**
+ * Makes an HTTP request to validate a URL
+ * @param urlToTest - The URL to validate
+ * @param proxyUrlFromTask - Optional proxy URL to use for the request
+ * @param redirectCount - Current count of redirects followed
+ * @param retryCount - Current retry attempt (0-based)
+ * @returns Promise resolving to validation result
+ * @remarks
+ * The function implements a retry mechanism with exponential backoff:
+ * - First retry: 1 second delay
+ * - Second retry: 2 seconds delay
+ * - Third retry: 4 seconds delay
+ *
+ * Retries are only attempted for specific network errors (see isRetryableError).
+ * Each retry maintains the same redirect count and proxy configuration.
+ */
+const makeRequest = async (
   urlToTest: string,
   proxyUrlFromTask?: string,
   redirectCount = 0,
-): Promise<{ url: string; status: number; error?: string }> => {
-  return new Promise((resolve) => {
-    let resolved = false; // Flag to prevent double resolving
+  retryCount = 0,
+): Promise<UrlValidationResult> => {
+  if (redirectCount > maxRedirects) {
+    return { url: urlToTest, status: 0, error: 'Too many redirects' };
+  }
 
-    const doResolve = (codeValue: number, errorMessage?: string) => {
-      if (!resolved) {
-        resolved = true;
-        // If an errorMessage is present, it signifies an issue (e.g., network error, timeout)
-        // that prevented obtaining a standard HTTP status, or a specific condition like 'too many redirects'.
-        // In these cases, status will be reported as 0.
-        // Actual HTTP status codes (e.g., 200, 404) are passed as codeValue when errorMessage is undefined.
-        const reportedStatus = errorMessage ? 0 : codeValue;
-        resolve({ url: urlToTest, status: reportedStatus, error: errorMessage });
-      }
-    };
+  const effectiveProxyUrl = proxyUrlFromTask || process.env.https_proxy || process.env.HTTPS_PROXY;
+  let agent: http.Agent | undefined;
 
-    if (redirectCount > maxRedirects) {
-      doResolve(-2, 'Too many redirects'); // Will set status to 0 due to errorMessage
-      return;
+  if (effectiveProxyUrl && urlToTest.startsWith('https')) {
+    try {
+      agent = new HttpsProxyAgent(effectiveProxyUrl);
+    } catch (e: unknown) {
+      return {
+        url: urlToTest,
+        status: 0,
+        error: e instanceof Error ? e.message : 'Failed to create proxy agent',
+      };
     }
+  }
 
-    const effectiveProxyUrl =
-      proxyUrlFromTask || process.env.https_proxy || process.env.HTTPS_PROXY;
-    let agent: http.Agent | undefined;
+  const protocol = urlToTest.startsWith('https') ? https : http;
+  const options: http.RequestOptions = {
+    timeout: requestTimeout,
+    headers: commonHeaders,
+    agent,
+  };
 
-    if (effectiveProxyUrl && urlToTest.startsWith('https')) {
+  try {
+    const response = await new Promise<http.IncomingMessage>((resolve, reject) => {
+      const req = protocol.get(urlToTest, options, resolve);
+      req.on('error', reject);
+      req.on('timeout', () => {
+        req.destroy();
+        reject(new Error(`Request timed out after ${requestTimeout}ms`));
+      });
+    });
+
+    const statusCode = response.statusCode || 0;
+    const { location } = response.headers;
+
+    // Handle redirects
+    if (statusCode >= 300 && statusCode < 400 && location) {
       try {
-        agent = new HttpsProxyAgent(effectiveProxyUrl);
+        const currentUrl = new URL(urlToTest);
+        const nextUrl = new URL(location, currentUrl.origin).toString();
+        return await makeRequest(nextUrl, proxyUrlFromTask, redirectCount + 1);
       } catch (e: unknown) {
-        // Failed to create HttpsProxyAgent.
-        // The request might proceed without a proxy or fail later.
-        // Propagating this as a resolution error.
-        doResolve(0, e instanceof Error ? e.message : 'Failed to create proxy agent');
-        return;
+        return {
+          url: urlToTest,
+          status: 0,
+          error: e instanceof Error ? e.message : 'Invalid redirect URL',
+        };
       }
     }
 
-    const protocol = urlToTest.startsWith('https') ? https : http;
-    const options: http.RequestOptions = {
-      timeout: requestTimeout,
-      headers: {
-        'User-Agent': commonUserAgent,
-        Accept:
-          'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
-        'Accept-Language': 'en-US,en;q=0.9',
-        'Accept-Encoding': 'gzip, deflate, br',
-      },
-    };
-    if (agent) {
-      options.agent = agent;
+    // Consume response data
+    await new Promise<void>((resolve) => {
+      response.on('data', () => undefined);
+      response.on('end', resolve);
+    });
+
+    return { url: urlToTest, status: statusCode };
+  } catch (err: unknown) {
+    const error = err as Error & { code?: string; errors?: Array<Error & { code?: string }> };
+
+    // Check if we should retry the request
+    if (retryCount < maxRetries && isRetryableError(error)) {
+      const delay = initialRetryDelay * Math.pow(2, retryCount);
+      await sleep(delay);
+      return makeRequest(urlToTest, proxyUrlFromTask, redirectCount, retryCount + 1);
     }
 
-    const req = protocol.get(urlToTest, options, (res: http.IncomingMessage) => {
-      const statusCode = res.statusCode || 0; // Default to 0 if statusCode is undefined
-      const { location } = res.headers;
+    let errorMessage = error.message;
+    if (error.code) {
+      errorMessage = `Code: ${error.code} - ${error.message}`;
+    } else if (error.name === 'AggregateError' && Array.isArray(error.errors)) {
+      errorMessage = error.errors
+        .map((e) => `(Code: ${e.code || 'N/A'} - ${e.message})`)
+        .join('; ');
+    }
 
-      if (statusCode >= 300 && statusCode < 400 && location) {
-        let nextUrl = location;
-        try {
-          const currentUrl = new URL(urlToTest);
-          nextUrl = new URL(location, currentUrl.origin).toString();
-        } catch (e: unknown) {
-          doResolve(-3, e instanceof Error ? e.message : 'Invalid redirect URL'); // Will set status to 0
-          return;
-        }
-        res.resume();
-        makeRequest(nextUrl, proxyUrlFromTask, redirectCount + 1)
-          .then((finalResult) => {
-            if (!resolved) {
-              resolved = true;
-              // Pass through the final result from the redirect chain.
-              // If finalResult has an error, its status (due to doResolve) would be 0.
-              // If it's a success, its status will be the HTTP status.
-              resolve({ url: urlToTest, status: finalResult.status, error: finalResult.error });
-            }
-          })
-          .catch((err) => {
-            // This catch is for promise rejections from the recursive makeRequest call.
-            doResolve(0, err?.message || 'Error in redirect chain'); // Explicitly status 0 for this error
-          });
-      } else {
-        // Consume data to trigger 'end'. This is necessary for the 'end' event to fire.
-        res.on('data', () => {
-          /* consume stream */
-        });
-        res.on('end', () => {
-          doResolve(statusCode); // If no errorMessage, status will be statusCode
-        });
-        res.on('aborted', () => {
-          doResolve(-4, 'Response aborted by the server'); // Will set status to 0
-        });
-      }
-    });
-
-    req.on('error', (err: Error & { code?: string; errors?: Array<Error & { code?: string }> }) => {
-      let clientErrorMessage = err.message;
-      if (err.code) {
-        clientErrorMessage = `Code: ${err.code} - ${err.message}`;
-      }
-      // Check for .errors property if err.name suggests an AggregateError.
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      if (err.name === 'AggregateError' && Array.isArray(err.errors)) {
-        clientErrorMessage = err.errors
-          .map((e) => `(Code: ${e.code || 'N/A'} - ${e.message})`)
-          .join('; ');
-      }
-      doResolve(-5, clientErrorMessage); // Will set status to 0
-    });
-
-    req.on('timeout', () => {
-      req.destroy(); // Important to destroy the request on timeout
-      doResolve(-1, `Request timed out after ${requestTimeout}ms`); // Will set status to 0
-    });
-  });
+    return { url: urlToTest, status: 0, error: errorMessage };
+  }
 };
 
+/**
+ * Validates multiple HTTPS URLs in parallel
+ * @param urls - Array of URLs to validate
+ * @param proxyUrlFromTask - Optional proxy URL to use for requests
+ * @returns Promise resolving to array of validation results
+ */
 export async function validateHttpsUrls(
   urls: string[],
   proxyUrlFromTask?: string,
-): Promise<{ url: string; status: number; error?: string }[]> {
-  const promises = urls.map((url) => makeRequest(url, proxyUrlFromTask));
-  return Promise.all(promises);
+): Promise<UrlValidationResult[]> {
+  return Promise.all(urls.map((url) => makeRequest(url, proxyUrlFromTask)));
 }
