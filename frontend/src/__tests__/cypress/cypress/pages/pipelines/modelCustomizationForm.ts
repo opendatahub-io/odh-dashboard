@@ -1,6 +1,5 @@
 import { Contextual } from '~/__tests__/cypress/cypress/pages/components/Contextual';
-
-class AcceleratorProfileGroup extends Contextual<HTMLElement> {}
+import { AcceleratorProfileSection } from '~/__tests__/cypress/cypress/pages/components/subComponents/AcceleratorProfileSection';
 
 class ModelCustomizationFormGlobal {
   visit(projectName: string, empty = false) {
@@ -176,39 +175,9 @@ class HardwareSection {
   }
 }
 
-class AcceleratorProfileSection {
+class ModelCustomizationAcceleratorProfileSection extends AcceleratorProfileSection {
   find() {
     return cy.findByTestId('fine-tune-section-training-hardware');
-  }
-
-  findAcceleratorProfileSearchSelector() {
-    return this.find().findByTestId('accelerator-profile-selection-toggle');
-  }
-
-  getGlobalAcceleratorProfileLabel(): Cypress.Chainable<JQuery<HTMLBodyElement>> {
-    return cy.get('body').contains('Global accelerator profiles');
-  }
-
-  getProjectScopedAcceleratorProfileLabel(): Cypress.Chainable<JQuery<HTMLBodyElement>> {
-    return cy.get('body').contains('Project-scoped accelerator profiles');
-  }
-
-  getProjectScopedAcceleratorProfile(): Contextual<HTMLElement> {
-    return new AcceleratorProfileGroup(() =>
-      cy.findByTestId('project-scoped-accelerator-profiles'),
-    );
-  }
-
-  getGlobalScopedAcceleratorProfile(): Contextual<HTMLElement> {
-    return new AcceleratorProfileGroup(() => cy.findByTestId('global-scoped-accelerator-profiles'));
-  }
-
-  findProjectScopedLabel(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('project-scoped-label');
-  }
-
-  findGlobalScopedLabel(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('global-scoped-label');
   }
 }
 
@@ -317,7 +286,8 @@ export const baseModelSection = new BaseModelSection();
 export const judgeModelSection = new JudgeModelSection();
 export const taxonomySection = new TaxonomySection();
 export const hardwareSection = new HardwareSection();
-export const acceleratorProfileSection = new AcceleratorProfileSection();
+export const acceleratorProfileSectionModelCustomization =
+  new ModelCustomizationAcceleratorProfileSection();
 export const dataScienceProjectSection = new DataScienceProjectSection();
 export const pipelineSection = new PipelineSection();
 export const hyperparameterSection = new HyperparameterSection();
