@@ -19,7 +19,9 @@ USER default
 
 RUN npm cache clean --force
 
-RUN npm ci --omit=optional
+RUN npm ci --omit=optional --ignore-scripts
+RUN cd frontend && npm ci --omit=optional --ignore-scripts
+RUN cd backend && npm ci --omit=optional --ignore-scripts
 
 RUN npm run build
 
