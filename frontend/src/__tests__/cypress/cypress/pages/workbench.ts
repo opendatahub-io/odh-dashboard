@@ -399,18 +399,6 @@ class CreateSpawnerPage {
     );
   }
 
-  findAcceleratorProfileSearchSelector() {
-    return cy.findByTestId('accelerator-profile-selection-toggle');
-  }
-
-  getGlobalAcceleratorProfileLabel(): Cypress.Chainable<JQuery<HTMLBodyElement>> {
-    return cy.get('body').contains('Global accelerator profiles');
-  }
-
-  getProjectScopedAcceleratorProfileLabel(): Cypress.Chainable<JQuery<HTMLBodyElement>> {
-    return cy.get('body').contains('Project-scoped accelerator profiles');
-  }
-
   findAcceleratorProfile(name: string) {
     return cy.findByRole('menuitem', {
       name,
