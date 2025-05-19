@@ -1,6 +1,6 @@
 ---
-description:
-globs:
+description: creating a jira
+globs: 
 alwaysApply: false
 ---
 # .cursorrules - Creating Jira Issues Under an Epic
