@@ -3,7 +3,7 @@ import { HelperText, HelperTextItem } from '@patternfly/react-core';
 import { Table } from '~/components/table';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
 import { tokenColumns } from '~/pages/modelServing/screens/global/data';
-import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
+import { InferenceServiceKind, isInferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
 import ServingRuntimeTokenTableRow from '~/pages/modelServing/screens/projects/ModelMeshSection/ServingRuntimeTokenTableRow';
 
 type ServingRuntimeTokensTableProps = {
@@ -20,7 +20,9 @@ const ServingRuntimeTokensTable: React.FC<ServingRuntimeTokensTableProps> = ({
     filterTokens,
   } = React.useContext(ProjectDetailsContext);
 
-  const tokens = filterTokens(obj.metadata.name);
+  const name = isInferenceServiceKind(obj) ? obj.spec.predictor.model?.runtime : obj.metadata.name;
+
+  const tokens = filterTokens(name);
 
   if (!isTokenEnabled) {
     return (

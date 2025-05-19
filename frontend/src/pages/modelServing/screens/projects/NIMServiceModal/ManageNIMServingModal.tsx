@@ -288,8 +288,8 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
     const submitInferenceServiceResource = getSubmitInferenceServiceResourceFn(
       createDataInferenceService,
       editInfo?.inferenceServiceEditInfo,
-      servingRuntimeName,
-      inferenceServiceName,
+      editInfo?.servingRuntimeEditInfo?.servingRuntime?.metadata.name || servingRuntimeName,
+      editInfo?.inferenceServiceEditInfo?.metadata.name || inferenceServiceName,
       false,
       podSpecOptionsState.podSpecOptions,
       allowCreate,
