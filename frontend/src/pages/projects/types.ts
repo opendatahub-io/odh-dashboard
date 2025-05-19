@@ -10,9 +10,9 @@ export type UpdateObjectAtPropAndValue<T> = <K extends keyof T>(
 ) => void;
 
 export type NameDescType = {
-  name: string;
+  name?: string;
   k8sName?: string;
-  description: string;
+  description?: string;
 };
 
 export type MountPath = {

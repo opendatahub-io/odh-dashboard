@@ -221,12 +221,14 @@ describe('Pipeline create runs', () => {
       createRunPage
         .mockCreateRun(projectName, mockPipelineVersion, createRunParams)
         .as('createRun');
+      createRunPage.findSubmitButton().should('be.disabled');
+      createRunPage.fillDescription('New test description');
       createRunPage.submit();
 
       cy.wait('@createRun').then((interception) => {
         expect(interception.request.body).to.eql({
           display_name: 'New run',
-          description: veryLongDesc.substring(0, 255), // Verify the description in truncated
+          description: 'New test description',
           pipeline_version_reference: {
             pipeline_id: 'test-pipeline',
             pipeline_version_id: 'test-pipeline-version',
