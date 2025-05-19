@@ -37,7 +37,7 @@ const FeatureFlagModal: React.FC<Props> = ({
                   id={key}
                   data-testid={`${key}-checkbox`}
                   label={key}
-                  isChecked={value}
+                  isChecked={value ?? null}
                   onChange={(_, checked) => {
                     setDevFeatureFlag(key, checked);
                   }}
