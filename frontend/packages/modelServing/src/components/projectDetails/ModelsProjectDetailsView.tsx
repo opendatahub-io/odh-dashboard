@@ -26,7 +26,7 @@ const ModelsProjectDetailsView: React.FC = () => {
     deployments,
   } = React.useContext(ModelServingContext);
 
-  const isLoading = !project || !deployments || !availablePlatforms;
+  const isLoading = !project || !availablePlatforms || !!(projectPlatform && !deployments);
   const hasModels = !!deployments && deployments.length > 0;
 
   const activePlatform = React.useMemo(
