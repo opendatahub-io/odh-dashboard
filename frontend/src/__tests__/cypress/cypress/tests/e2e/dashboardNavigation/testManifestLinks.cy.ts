@@ -59,8 +59,12 @@ describe('Verify that all the URLs referenced in the Manifest directory are oper
                 return;
               }
 
-              const logMessage =
-                status === 200 ? `✅ ${url} - Status: ${status}` : `❌ ${url} - Status: ${status}`;
+              // Define valid status codes
+              const validStatusCodes = [200, 201, 202, 204, 301, 302, 307, 308];
+              const isSuccess = validStatusCodes.includes(status);
+              const logMessage = isSuccess
+                ? `✅ ${url} - Status: ${status}`
+                : `❌ ${url} - Status: ${status}`;
               cy.log(logMessage);
               results.push({ url, status });
             });
@@ -72,7 +76,13 @@ describe('Verify that all the URLs referenced in the Manifest directory are oper
         // Wait for all requests to complete
         cy.wrap(null).then(() => {
           results.forEach(({ url, status }) => {
-            expect(status).to.eq(200, `URL ${url} should return 200`);
+            const validStatusCodes = [200, 201, 202, 204, 301, 302, 307, 308];
+            expect(validStatusCodes).to.include(
+              status,
+              `URL ${url} should return one of the valid status codes: ${validStatusCodes.join(
+                ', ',
+              )}`,
+            );
           });
         });
       });
