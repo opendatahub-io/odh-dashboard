@@ -54,18 +54,20 @@ const NameDescriptionField: React.FC<NameDescriptionFieldProps> = ({
   hasNameError,
   onNameChange,
   onValidationChange,
+  nameHelperText,
 }) => {
   const k8sName = React.useMemo(() => {
     if (showK8sName) {
-      return translateDisplayNameForK8s(data.name);
+      return translateDisplayNameForK8s(data.name ?? '');
     }
 
     return '';
   }, [showK8sName, data.name]);
 
   React.useEffect(() => {
-    const isNameValid = !hasNameError && (!maxLengthName || data.name.length <= maxLengthName);
-    const isDescValid = !maxLengthDesc || data.description.length <= maxLengthDesc;
+    const isNameValid =
+      !hasNameError && (!maxLengthName || (data.name ?? '').length <= maxLengthName);
+    const isDescValid = !maxLengthDesc || (data.description ?? '').length <= maxLengthDesc;
     onValidationChange?.(isNameValid && isDescValid);
   }, [data.name, data.description, maxLengthName, maxLengthDesc, hasNameError, onValidationChange]);
 
@@ -80,7 +82,7 @@ const NameDescriptionField: React.FC<NameDescriptionFieldProps> = ({
             id={nameFieldId}
             data-testid={nameFieldId}
             name={nameFieldId}
-            value={data.name}
+            value={data.name ?? ''}
             onChange={
               setData
                 ? (_e, value) => {
@@ -90,12 +92,13 @@ const NameDescriptionField: React.FC<NameDescriptionFieldProps> = ({
                 : undefined
             }
             validated={
-              hasNameError || (maxLengthName && data.name.length > maxLengthName)
+              hasNameError || (maxLengthName && (data.name ?? '').length > maxLengthName)
                 ? 'error'
                 : 'default'
             }
           />
-          {maxLengthName && data.name.length > maxLengthName && (
+          {nameHelperText}
+          {maxLengthName && (data.name ?? '').length > maxLengthName && (
             <FormHelperText>
               <HelperText>
                 <HelperTextItem variant="error">
@@ -157,14 +160,13 @@ const NameDescriptionField: React.FC<NameDescriptionFieldProps> = ({
             id={descriptionFieldId}
             data-testid={descriptionFieldId}
             name={descriptionFieldId}
-            value={data.description}
+            value={data.description ?? ''}
             onChange={setData ? (e, description) => setData({ ...data, description }) : undefined}
             validated={
-              maxLengthDesc && data.description.length > maxLengthDesc ? 'error' : 'default'
+              maxLengthDesc && (data.description ?? '').length > maxLengthDesc ? 'error' : 'default'
             }
           />
-
-          {maxLengthDesc && data.description.length > maxLengthDesc && (
+          {maxLengthDesc && (data.description ?? '').length > maxLengthDesc && (
             <FormHelperText>
               <HelperText>
                 <HelperTextItem variant="error">
