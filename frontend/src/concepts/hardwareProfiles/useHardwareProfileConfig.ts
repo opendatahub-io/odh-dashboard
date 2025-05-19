@@ -105,6 +105,7 @@ export const useHardwareProfileConfig = (
   nodeSelector?: NodeSelector,
   visibleIn?: HardwareProfileFeatureVisibility[],
   namespace?: string,
+  hardwareProfileNamespace?: string | null,
 ): UseHardwareProfileConfigResult => {
   const [dashboardProfiles, dashboardProfilesLoaded, dashboardProfilesLoadError] =
     useHardwareProfilesByFeatureVisibility(visibleIn);
@@ -143,9 +144,17 @@ export const useHardwareProfileConfig = (
       if (resources) {
         // try to match to existing profile
         if (existingHardwareProfileName) {
-          selectedProfile = profiles.find(
-            (profile) => profile.metadata.name === existingHardwareProfileName,
-          );
+          if (hardwareProfileNamespace) {
+            selectedProfile = projectScopedProfiles.find(
+              (profile) =>
+                profile.metadata.name === existingHardwareProfileName &&
+                profile.metadata.namespace === hardwareProfileNamespace,
+            );
+          } else {
+            selectedProfile = dashboardProfiles.find(
+              (profile) => profile.metadata.name === existingHardwareProfileName,
+            );
+          }
         } else {
           selectedProfile = matchToHardwareProfile(profiles, resources, tolerations, nodeSelector);
         }
@@ -175,6 +184,9 @@ export const useHardwareProfileConfig = (
     nodeSelector,
     formData.resources,
     formData.selectedProfile,
+    hardwareProfileNamespace,
+    projectScopedProfiles,
+    dashboardProfiles,
   ]);
 
   return {

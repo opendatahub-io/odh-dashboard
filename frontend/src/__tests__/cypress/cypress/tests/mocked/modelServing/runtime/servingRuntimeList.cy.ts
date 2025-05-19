@@ -1,4 +1,7 @@
-import { mockAcceleratorProfile } from '~/__mocks__/mockAcceleratorProfile';
+import {
+  mockAcceleratorProfile,
+  mockProjectScopedAcceleratorProfiles,
+} from '~/__mocks__/mockAcceleratorProfile';
 import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
 import { mockDscStatus } from '~/__mocks__/mockDscStatus';
 import { mockInferenceServiceK8sResource } from '~/__mocks__/mockInferenceServiceK8sResource';
@@ -46,6 +49,7 @@ import { StackCapability } from '~/concepts/areas/types';
 import { mockDsciStatus } from '~/__mocks__/mockDsciStatus';
 import {
   AcceleratorProfileModel,
+  HardwareProfileModel,
   InferenceServiceModel,
   NotebookModel,
   ODHDashboardConfigModel,
@@ -62,6 +66,12 @@ import {
 } from '~/__tests__/cypress/cypress/utils/models';
 import { mockRoleK8sResource } from '~/__mocks__/mockRoleK8sResource';
 import { mockConnectionTypeConfigMap } from '~/__mocks__/mockConnectionType';
+import {
+  mockGlobalScopedHardwareProfiles,
+  mockProjectScopedHardwareProfiles,
+} from '~/__mocks__/mockHardwareProfile';
+import { hardwareProfileSection } from '~/__tests__/cypress/cypress/pages/components/HardwareProfileSection';
+import { acceleratorProfileSection } from '~/__tests__/cypress/cypress/pages/components/subComponents/AcceleratorProfileSection';
 
 type HandlersProps = {
   disableKServeConfig?: boolean;
@@ -83,6 +93,7 @@ type HandlersProps = {
   requiredCapabilities?: StackCapability[];
   DscComponents?: DataScienceClusterKindStatus['components'];
   disableProjectScoped?: boolean;
+  disableHardwareProfiles?: boolean;
 };
 
 const initIntercepts = ({
@@ -94,6 +105,7 @@ const initIntercepts = ({
   disableKServeRaw = true,
   projectEnableModelMesh,
   disableProjectScoped = true,
+  disableHardwareProfiles = true,
   servingRuntimes = [
     mockServingRuntimeK8sResourceLegacy({ tolerations: [], nodeSelector: {} }),
     mockServingRuntimeK8sResource({
@@ -151,6 +163,7 @@ const initIntercepts = ({
       disableServingRuntimeParams,
       disableKServeRaw,
       disableProjectScoped,
+      disableHardwareProfiles,
     }),
   );
   cy.interceptK8sList(PodModel, mockK8sResourceList([mockPodK8sResource({})]));
@@ -288,6 +301,18 @@ const initIntercepts = ({
         },
   ).as('createRole');
   cy.interceptK8sList(ServingRuntimeModel, mockK8sResourceList(servingRuntimes));
+
+  // Mock hardware profiles
+  cy.interceptK8sList(
+    { model: HardwareProfileModel, ns: 'opendatahub' },
+    mockK8sResourceList(mockGlobalScopedHardwareProfiles),
+  ).as('hardwareProfiles');
+
+  cy.interceptK8sList(
+    { model: HardwareProfileModel, ns: 'test-project' },
+    mockK8sResourceList(mockProjectScopedHardwareProfiles),
+  ).as('hardwareProfiles');
+
   cy.interceptK8s(
     'POST',
     {
@@ -1903,6 +1928,247 @@ describe('Serving Runtime List', () => {
       cy.get('@createRoleBinding.all').then((interceptions) => {
         expect(interceptions).to.have.length(2); //1 dry run request and 1 actual request
       });
+    });
+
+    it('should display accelerator profile selection when both accelerator profile and project-scoped feature flag is enabled for Model mesh, while adding model server', () => {
+      initIntercepts({
+        projectEnableModelMesh: true,
+        disableKServeConfig: false,
+        disableModelMeshConfig: true,
+        disableProjectScoped: false,
+        inferenceServices: [
+          mockInferenceServiceK8sResource({ name: 'test-inference', isModelMesh: true }),
+          mockInferenceServiceK8sResource({
+            name: 'another-inference-service',
+            displayName: 'Another Inference Service',
+            deleted: true,
+            isModelMesh: true,
+          }),
+          mockInferenceServiceK8sResource({
+            name: 'ovms-testing',
+            displayName: 'OVMS ONNX',
+            isModelMesh: true,
+          }),
+        ],
+      });
+
+      cy.interceptK8sList(
+        { model: AcceleratorProfileModel, ns: 'test-project' },
+        mockK8sResourceList(mockProjectScopedAcceleratorProfiles),
+      ).as('acceleratorProfiles');
+
+      projectDetails.visitSection('test-project', 'model-server');
+      modelServingSection.findAddModelServerButton().click();
+      createServingRuntimeModal.shouldBeOpen();
+
+      // verify available project-scoped accelerator profile
+      acceleratorProfileSection.findAcceleratorProfileSearchSelector().should('exist');
+      acceleratorProfileSection.findAcceleratorProfileSearchSelector().click();
+
+      const projectScopedAcceleratorProfile =
+        acceleratorProfileSection.getProjectScopedAcceleratorProfile();
+      projectScopedAcceleratorProfile
+        .find()
+        .findByRole('menuitem', { name: 'Small Profile nvidia.com/gpu', hidden: true })
+        .click();
+      acceleratorProfileSection.findProjectScopedLabel().should('exist');
+
+      // verify available global-scoped hardware profile
+      acceleratorProfileSection.findAcceleratorProfileSearchSelector().click();
+      const globalScopedHardwareProfile =
+        acceleratorProfileSection.getGlobalScopedAcceleratorProfile();
+      globalScopedHardwareProfile
+        .find()
+        .findByRole('menuitem', {
+          name: 'NVIDIA GPU Lorem, ipsum dolor sit amet consectetur adipisicing elit. Saepe, quis nvidia.com/gpu',
+          hidden: true,
+        })
+        .click();
+      acceleratorProfileSection.findGlobalScopedLabel().should('exist');
+    });
+
+    it('should display accelerator profile selection when both accelerator profile and project-scoped feature flag is enabled for Model mesh, while editing model server', () => {
+      initIntercepts({
+        projectEnableModelMesh: true,
+        disableKServeConfig: false,
+        disableModelMeshConfig: true,
+        disableAccelerator: false,
+        disableProjectScoped: false,
+        servingRuntimes: [
+          mockServingRuntimeK8sResource({
+            name: 'test-model',
+            namespace: 'test-project',
+            auth: true,
+            route: true,
+            acceleratorName: 'small-profile',
+          }),
+        ],
+      });
+
+      cy.interceptK8sList(
+        { model: AcceleratorProfileModel, ns: 'test-project' },
+        mockK8sResourceList(mockProjectScopedAcceleratorProfiles),
+      ).as('acceleratorProfiles');
+
+      projectDetails.visitSection('test-project', 'model-server');
+
+      // click on the toggle button and open edit model server
+      modelServingSection
+        .getModelMeshRow('OVMS Model Serving')
+        .find()
+        .findKebabAction('Edit model server')
+        .click();
+
+      editServingRuntimeModal.shouldBeOpen();
+      // cy.wait('@acceleratorProfile');
+      acceleratorProfileSection
+        .findAcceleratorProfileSearchSelector()
+        .should('contain.text', 'Small Profile');
+      acceleratorProfileSection.findProjectScopedLabel().should('exist');
+    });
+
+    it('Check project-scoped accelerator when enabled and selected', () => {
+      initIntercepts({
+        projectEnableModelMesh: true,
+        disableKServeConfig: false,
+        disableModelMeshConfig: true,
+        disableAccelerator: false,
+        disableProjectScoped: false,
+        servingRuntimes: [
+          mockServingRuntimeK8sResource({
+            name: 'test-model',
+            namespace: 'test-project',
+            auth: true,
+            route: true,
+            acceleratorName: 'small-profile',
+          }),
+        ],
+      });
+
+      projectDetails.visitSection('test-project', 'model-server');
+      modelServingSection.findModelServer().click();
+      modelServingSection
+        .findAcceleratorSection()
+        .should('have.text', 'AcceleratorSmall Profile Project-scoped');
+    });
+
+    it('Check project-scoped hardware when enabled and selected', () => {
+      initIntercepts({
+        projectEnableModelMesh: true,
+        disableKServeConfig: false,
+        disableModelMeshConfig: true,
+        disableHardwareProfiles: false,
+        disableAccelerator: false,
+        disableProjectScoped: false,
+        servingRuntimes: [
+          mockServingRuntimeK8sResource({
+            hardwareProfileName: 'large-profile-1',
+            hardwareProfileNamespace: 'test-project',
+          }),
+        ],
+      });
+
+      projectDetails.visitSection('test-project', 'model-server');
+      modelServingSection.findModelServer().click();
+      modelServingSection
+        .findHardwareSection()
+        .should('have.text', 'Large Profile-1Project-scoped');
+    });
+
+    it('should display hardware profile selection when both hardware profile and project-scoped feature flag is enabled for Model mesh, while adding model server', () => {
+      initIntercepts({
+        projectEnableModelMesh: true,
+        disableKServeConfig: false,
+        disableModelMeshConfig: true,
+        disableHardwareProfiles: false,
+        disableProjectScoped: false,
+        inferenceServices: [
+          mockInferenceServiceK8sResource({ name: 'test-inference', isModelMesh: true }),
+          mockInferenceServiceK8sResource({
+            name: 'another-inference-service',
+            displayName: 'Another Inference Service',
+            deleted: true,
+            isModelMesh: true,
+          }),
+          mockInferenceServiceK8sResource({
+            name: 'ovms-testing',
+            displayName: 'OVMS ONNX',
+            isModelMesh: true,
+          }),
+        ],
+      });
+      projectDetails.visitSection('test-project', 'model-server');
+
+      modelServingSection.findAddModelServerButton().click();
+
+      createServingRuntimeModal.shouldBeOpen();
+
+      // Verify hardware profile section exists
+      hardwareProfileSection.findHardwareProfileSearchSelector().should('exist');
+      hardwareProfileSection.findHardwareProfileSearchSelector().click();
+
+      // verify available project-scoped hardware profile
+      const projectScopedHardwareProfile = hardwareProfileSection.getProjectScopedHardwareProfile();
+      projectScopedHardwareProfile
+        .find()
+        .findByRole('menuitem', {
+          name: 'Small Profile CPU: Request = 1; Limit = 1; Memory: Request = 2Gi; Limit = 2Gi',
+          hidden: true,
+        })
+        .click();
+      hardwareProfileSection.findProjectScopedLabel().should('exist');
+
+      // verify available global-scoped hardware profile
+      hardwareProfileSection.findHardwareProfileSearchSelector().click();
+      const globalScopedHardwareProfile = hardwareProfileSection.getGlobalScopedHardwareProfile();
+      globalScopedHardwareProfile
+        .find()
+        .findByRole('menuitem', {
+          name: 'Small Profile CPU: Request = 1; Limit = 1; Memory: Request = 2Gi; Limit = 2Gi',
+          hidden: true,
+        })
+        .click();
+      hardwareProfileSection.findGlobalScopedLabel().should('exist');
+    });
+
+    it('should display hardware profile selection when both hardware profile and project-scoped feature flag is enabled for Model mesh, while editing model server', () => {
+      initIntercepts({
+        projectEnableModelMesh: true,
+        disableKServeConfig: false,
+        disableModelMeshConfig: true,
+        disableHardwareProfiles: false,
+        disableProjectScoped: false,
+        servingRuntimes: [
+          mockServingRuntimeK8sResource({
+            hardwareProfileName: 'large-profile-1',
+            hardwareProfileNamespace: 'test-project',
+          }),
+        ],
+        inferenceServices: [
+          mockInferenceServiceK8sResource({ name: 'test-inference', isModelMesh: true }),
+          mockInferenceServiceK8sResource({
+            name: 'ovms-testing',
+            displayName: 'OVMS ONNX',
+            isModelMesh: true,
+          }),
+        ],
+      });
+
+      projectDetails.visitSection('test-project', 'model-server');
+
+      // click on the toggle button and open edit model server
+      modelServingSection
+        .getModelMeshRow('OVMS Model Serving')
+        .find()
+        .findKebabAction('Edit model server')
+        .click();
+
+      editServingRuntimeModal.shouldBeOpen();
+
+      hardwareProfileSection
+        .findHardwareProfileSearchSelector()
+        .should('contain.text', 'Large Profile-1');
+      hardwareProfileSection.findProjectScopedLabel().should('exist');
     });
 
     it('Edit ModelMesh model server', () => {

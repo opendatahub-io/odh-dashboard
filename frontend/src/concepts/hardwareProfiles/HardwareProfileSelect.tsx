@@ -421,29 +421,27 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
                   {filteredHardwareProfiles.length > 0 &&
                     filteredDashboardHardwareProfiles.length > 0 && <Divider component="li" />}
                   {filteredDashboardHardwareProfiles.length > 0 && (
-                    <>
-                      <MenuGroup
-                        key="global-scoped"
-                        data-testid="global-scoped-hardware-profiles"
-                        label={
-                          <Flex
-                            spaceItems={{ default: 'spaceItemsXs' }}
-                            alignItems={{ default: 'alignItemsCenter' }}
-                            style={{ paddingBottom: '5px' }}
+                    <MenuGroup
+                      key="global-scoped"
+                      data-testid="global-scoped-hardware-profiles"
+                      label={
+                        <Flex
+                          spaceItems={{ default: 'spaceItemsXs' }}
+                          alignItems={{ default: 'alignItemsCenter' }}
+                          style={{ paddingBottom: '5px' }}
+                        >
+                          <FlexItem
+                            style={{ display: 'flex', paddingLeft: '12px' }}
+                            data-testid="ds-project-image"
                           >
-                            <FlexItem
-                              style={{ display: 'flex', paddingLeft: '12px' }}
-                              data-testid="ds-project-image"
-                            >
-                              <GlobalIcon style={{ height: '12px', width: '12px' }} />
-                            </FlexItem>
-                            <FlexItem>Global hardware profiles</FlexItem>
-                          </Flex>
-                        }
-                      >
-                        {filteredDashboardHardwareProfiles}
-                      </MenuGroup>
-                    </>
+                            <GlobalIcon style={{ height: '12px', width: '12px' }} />
+                          </FlexItem>
+                          <FlexItem>Global hardware profiles</FlexItem>
+                        </Flex>
+                      }
+                    >
+                      {filteredDashboardHardwareProfiles}
+                    </MenuGroup>
                   )}
                   {filteredHardwareProfiles.length === 0 &&
                     filteredDashboardHardwareProfiles.length === 0 && (

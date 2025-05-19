@@ -4,6 +4,8 @@ import {
   DescriptionListDescription,
   DescriptionListGroup,
   DescriptionListTerm,
+  Flex,
+  FlexItem,
   Label,
   List,
   ListItem,
@@ -72,19 +74,38 @@ const ServingRuntimeDetails: React.FC<ServingRuntimeDetailsProps> = ({ project, 
       {isHardwareProfileAvailable ? (
         <DescriptionListGroup>
           <DescriptionListTerm>Hardware profile</DescriptionListTerm>
-          <DescriptionListDescription>
-            {hardwareProfile.initialHardwareProfile
-              ? `${hardwareProfile.initialHardwareProfile.spec.displayName}${
-                  !hardwareProfile.initialHardwareProfile.spec.enabled ? ' (disabled)' : ''
-                }`
-              : hardwareProfile.formData.useExistingSettings
-              ? 'Unknown'
-              : 'No hardware profile selected'}
+          <DescriptionListDescription data-testid="hardware-section">
+            {hardwareProfile.initialHardwareProfile ? (
+              <Flex gap={{ default: 'gapSm' }}>
+                <FlexItem>{hardwareProfile.initialHardwareProfile.spec.displayName}</FlexItem>
+                <FlexItem>
+                  {isProjectScopedAvailable &&
+                    hardwareProfile.initialHardwareProfile.metadata.namespace === project && (
+                      <Label
+                        variant="outline"
+                        color="blue"
+                        data-testid="project-scoped-label"
+                        isCompact
+                        icon={<TypedObjectIcon alt="" resourceType={ProjectObjectType.project} />}
+                      >
+                        Project-scoped
+                      </Label>
+                    )}
+                </FlexItem>
+                <Flex>
+                  {!hardwareProfile.initialHardwareProfile.spec.enabled ? '(disabled)' : ''}
+                </Flex>
+              </Flex>
+            ) : hardwareProfile.formData.useExistingSettings ? (
+              'Unknown'
+            ) : (
+              'No hardware profile selected'
+            )}
           </DescriptionListDescription>
         </DescriptionListGroup>
       ) : (
         <>
-          <DescriptionListGroup>
+          <DescriptionListGroup data-testid="accelerator-section">
             <DescriptionListTerm>Accelerator</DescriptionListTerm>
             <DescriptionListDescription>
               {initialAcceleratorProfileState.acceleratorProfile ? (

@@ -93,6 +93,7 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
       <Tr isControlRow>
         <EmptyTableCellForAlignment />
         <Td
+          data-testid="model-server-name"
           dataLabel="Model Server Name"
           compoundExpand={compoundExpandParams(ServingRuntimeTableTabs.TYPE, false)}
         >
@@ -229,6 +230,7 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
           activeColumn={expandedColumn}
           obj={obj}
           onClose={() => setExpandedColumn(undefined)}
+          project={currentProject.metadata.name}
         />
       </Tr>
     </Tbody>

@@ -111,7 +111,7 @@ class ModelServingGlobal {
 }
 
 class ServingRuntimeGroup extends Contextual<HTMLElement> {}
-class AcceleratorProfileGroup extends Contextual<HTMLElement> {}
+
 class InferenceServiceModal extends Modal {
   k8sNameDescription = new K8sNameDescriptionField('inference-service');
 
@@ -227,28 +227,6 @@ class InferenceServiceModal extends Modal {
 
   findExistingConnectionOption() {
     return this.find().findByTestId('existing-connection-radio');
-  }
-
-  findAcceleratorProfileSearchSelector() {
-    return this.find().findByTestId('accelerator-profile-selection-toggle');
-  }
-
-  getGlobalAcceleratorProfileLabel(): Cypress.Chainable<JQuery<HTMLBodyElement>> {
-    return cy.get('body').contains('Global accelerator profiles');
-  }
-
-  getProjectScopedAcceleratorProfileLabel(): Cypress.Chainable<JQuery<HTMLBodyElement>> {
-    return cy.get('body').contains('Project-scoped accelerator profiles');
-  }
-
-  getProjectScopedAcceleratorProfile(): Contextual<HTMLElement> {
-    return new AcceleratorProfileGroup(() =>
-      cy.findByTestId('project-scoped-accelerator-profiles'),
-    );
-  }
-
-  getGlobalScopedAcceleratorProfile(): Contextual<HTMLElement> {
-    return new AcceleratorProfileGroup(() => cy.findByTestId('global-scoped-accelerator-profiles'));
   }
 
   findExternalRouteError() {
@@ -619,6 +597,10 @@ class ModelServingSection {
     return cy.findByTestId('section-model-server');
   }
 
+  findDescriptionListItem(itemName: string) {
+    return this.find().next('tr').find(`dt:contains("${itemName}")`);
+  }
+
   private findKServeTable() {
     return this.find().findByTestId('kserve-inference-service-table');
   }
@@ -629,6 +611,18 @@ class ModelServingSection {
 
   findModelServerName(name: string) {
     return this.find().findByTestId(`metrics-link-${name}`);
+  }
+
+  findModelServer() {
+    return this.find().findByTestId('model-server-name');
+  }
+
+  findHardwareSection() {
+    return this.find().findByTestId('hardware-section');
+  }
+
+  findAcceleratorSection() {
+    return this.find().findByTestId('accelerator-section');
   }
 
   findStatusTooltip() {

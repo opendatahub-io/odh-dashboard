@@ -48,6 +48,7 @@ import { mockConnectionTypeConfigMap } from '~/__mocks__/mockConnectionType';
 import type { NotebookKind, PodKind } from '~/k8sTypes';
 import type { EnvironmentFromVariable } from '~/pages/projects/types';
 import { SpawnerPageSectionID } from '~/pages/projects/screens/spawner/types';
+import { acceleratorProfileSection } from '~/__tests__/cypress/cypress/pages/components/subComponents/AcceleratorProfileSection';
 
 const configYamlPath = '../../__mocks__/mock-upload-configmap.yaml';
 
@@ -606,15 +607,15 @@ describe('Workbench page', () => {
     verifyRelativeURL('/projects/test-project/spawner');
 
     // Verify accelerator profile section exists
-    createSpawnerPage.findAcceleratorProfileSearchSelector().should('exist');
-    createSpawnerPage.findAcceleratorProfileSearchSelector().click();
+    acceleratorProfileSection.findAcceleratorProfileSearchSelector().should('exist');
+    acceleratorProfileSection.findAcceleratorProfileSearchSelector().click();
 
     // verify available project-scoped accelerator profile
     createSpawnerPage.findAcceleratorProfile('Small Profile nvidia.com/gpu').click();
     createSpawnerPage.findProjectScopedLabel().should('exist');
 
     // verify available global-scoped accelerator profile
-    createSpawnerPage.findAcceleratorProfileSearchSelector().click();
+    acceleratorProfileSection.findAcceleratorProfileSearchSelector().click();
     createSpawnerPage.findAcceleratorProfile('Small Profile Global nvidia.com/gpu').click();
     createSpawnerPage.findGlobalScopedLabel().should('exist');
   });

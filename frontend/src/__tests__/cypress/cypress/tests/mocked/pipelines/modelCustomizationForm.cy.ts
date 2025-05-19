@@ -10,7 +10,7 @@ import {
   dataScienceProjectSection,
   pipelineSection,
   hyperparameterSection,
-  acceleratorProfileSection,
+  acceleratorProfileSectionModelCustomization,
 } from '~/__tests__/cypress/cypress/pages/pipelines/modelCustomizationForm';
 import {
   buildMockPipeline,
@@ -239,12 +239,14 @@ describe('Model Customization Form', () => {
     cy.wait('@getPipelineVersions');
 
     // Verify accelerator profile section exists
-    acceleratorProfileSection.findAcceleratorProfileSearchSelector().should('exist');
-    acceleratorProfileSection.findAcceleratorProfileSearchSelector().click();
+    acceleratorProfileSectionModelCustomization
+      .findAcceleratorProfileSearchSelector()
+      .should('exist');
+    acceleratorProfileSectionModelCustomization.findAcceleratorProfileSearchSelector().click();
 
     // verify available project-scoped hardware profile
     const projectScopedAcceleratorProfile =
-      acceleratorProfileSection.getProjectScopedAcceleratorProfile();
+      acceleratorProfileSectionModelCustomization.getProjectScopedAcceleratorProfile();
     projectScopedAcceleratorProfile
       .find()
       .findByRole('menuitem', {
@@ -252,12 +254,12 @@ describe('Model Customization Form', () => {
         hidden: true,
       })
       .click();
-    acceleratorProfileSection.findProjectScopedLabel().should('exist');
+    acceleratorProfileSectionModelCustomization.findProjectScopedLabel().should('exist');
 
     // verify available global-scoped hardware profile
-    acceleratorProfileSection.findAcceleratorProfileSearchSelector().click();
+    acceleratorProfileSectionModelCustomization.findAcceleratorProfileSearchSelector().click();
     const globalScopedAcceleratorProfile =
-      acceleratorProfileSection.getGlobalScopedAcceleratorProfile();
+      acceleratorProfileSectionModelCustomization.getGlobalScopedAcceleratorProfile();
     globalScopedAcceleratorProfile
       .find()
       .findByRole('menuitem', {
@@ -265,7 +267,7 @@ describe('Model Customization Form', () => {
         hidden: true,
       })
       .click();
-    acceleratorProfileSection.findGlobalScopedLabel().should('exist');
+    acceleratorProfileSectionModelCustomization.findGlobalScopedLabel().should('exist');
   });
 
   it('Should submit', () => {

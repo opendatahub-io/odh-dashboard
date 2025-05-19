@@ -20,6 +20,7 @@ type MockResourceConfigType = {
   templateDisplayName?: string;
   isProjectScoped?: boolean;
   scope?: string;
+  hardwareProfileNamespace?: string;
 };
 
 export const mockServingRuntimeK8sResourceLegacy = ({
@@ -128,6 +129,7 @@ export const mockServingRuntimeK8sResource = ({
   templateDisplayName = 'OpenVINO Serving Runtime (Supports GPUs)',
   isProjectScoped = false,
   scope,
+  hardwareProfileNamespace = undefined,
 }: MockResourceConfigType): ServingRuntimeKind => ({
   apiVersion: 'serving.kserve.io/v1alpha1',
   kind: 'ServingRuntime',
@@ -141,6 +143,7 @@ export const mockServingRuntimeK8sResource = ({
       'opendatahub.io/template-display-name': templateDisplayName,
       'opendatahub.io/accelerator-name': acceleratorName,
       'opendatahub.io/hardware-profile-name': hardwareProfileName,
+
       'opendatahub.io/template-name': 'ovms',
       'openshift.io/display-name': displayName,
       'opendatahub.io/apiProtocol': apiProtocol,
@@ -149,6 +152,9 @@ export const mockServingRuntimeK8sResource = ({
         'enable-route': route ? 'true' : 'false',
       }),
       ...(isProjectScoped && { 'opendatahub.io/serving-runtime-scope': scope }),
+      ...(hardwareProfileNamespace && {
+        'opendatahub.io/hardware-profile-namespace': hardwareProfileNamespace,
+      }),
     },
     name,
     namespace,
