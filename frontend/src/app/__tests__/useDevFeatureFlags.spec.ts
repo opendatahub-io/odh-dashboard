@@ -3,10 +3,10 @@ import { act } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { testHook } from '~/__tests__/unit/testUtils/hooks';
 import useDevFeatureFlags from '~/app/FeatureFlags/useDevFeatureFlags';
-import { useBrowserStorage } from '~/components/browserStorage';
 import { allFeatureFlags } from '~/concepts/areas/const';
 import { DashboardCommonConfig, DashboardConfigKind } from '~/k8sTypes';
 import axios from '~/utilities/axios';
+import { useBrowserStorage } from '~/components/browserStorage/BrowserStorageContext';
 
 jest.mock('react-router-dom', () => ({
   useSearchParams: jest.fn(() => [
