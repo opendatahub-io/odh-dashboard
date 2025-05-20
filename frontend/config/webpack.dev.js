@@ -1,10 +1,11 @@
+/* eslint-disable @typescript-eslint/restrict-template-expressions */
 const { execSync } = require('child_process');
 const path = require('path');
 const { merge } = require('webpack-merge');
-const { setupWebpackDotenvFilesForEnv, setupDotenvFilesForEnv } = require('./dotenv');
 const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
 const ReactRefreshWebpackPlugin = require('@pmmmwh/react-refresh-webpack-plugin');
 const SpeedMeasurePlugin = require('speed-measure-webpack-plugin');
+const { setupWebpackDotenvFilesForEnv, setupDotenvFilesForEnv } = require('./dotenv');
 
 const smp = new SpeedMeasurePlugin({ disable: !process.env.MEASURE });
 
@@ -106,19 +107,18 @@ module.exports = smp.wrap(
                 headers,
               },
             ];
-          } else {
-            return [
-              {
-                context: ['/api', ...mfProxies],
-                target: `http://0.0.0.0:${BACKEND_PORT}`,
-              },
-              {
-                context: ['/wss'],
-                target: `ws://0.0.0.0:${BACKEND_PORT}`,
-                ws: true,
-              },
-            ];
           }
+          return [
+            {
+              context: ['/api', ...mfProxies],
+              target: `http://0.0.0.0:${BACKEND_PORT}`,
+            },
+            {
+              context: ['/wss'],
+              target: `ws://0.0.0.0:${BACKEND_PORT}`,
+              ws: true,
+            },
+          ];
         })(),
         devMiddleware: {
           stats: 'errors-only',
