@@ -4,7 +4,7 @@ import useModelRegistryEnabled from '~/concepts/modelRegistry/useModelRegistryEn
 import { useModelRegistryServices } from '~/concepts/modelRegistry/apiHooks/useModelRegistryServices';
 import { AreaContext } from '~/concepts/areas/AreaContext';
 
-export interface ModelRegistrySelectorContextType {
+export interface ModelRegistriesContextType {
   modelRegistryServicesLoaded: boolean;
   modelRegistryServicesLoadError?: Error;
   modelRegistryServices: ServiceKind[];
@@ -13,11 +13,11 @@ export interface ModelRegistrySelectorContextType {
   refreshRulesReview: () => void;
 }
 
-type ModelRegistrySelectorContextProviderProps = {
+type ModelRegistriesContextProviderProps = {
   children: React.ReactNode;
 };
 
-export const ModelRegistrySelectorContext = React.createContext<ModelRegistrySelectorContextType>({
+export const ModelRegistriesContext = React.createContext<ModelRegistriesContextType>({
   modelRegistryServicesLoaded: false,
   modelRegistryServicesLoadError: undefined,
   modelRegistryServices: [],
@@ -26,22 +26,21 @@ export const ModelRegistrySelectorContext = React.createContext<ModelRegistrySel
   refreshRulesReview: () => undefined,
 });
 
-export const ModelRegistrySelectorContextProvider: React.FC<
-  ModelRegistrySelectorContextProviderProps
-> = ({ children, ...props }) => {
+export const ModelRegistriesContextProvider: React.FC<ModelRegistriesContextProviderProps> = ({
+  children,
+  ...props
+}) => {
   if (useModelRegistryEnabled()) {
     return (
-      <EnabledModelRegistrySelectorContextProvider {...props}>
+      <EnabledModelRegistriesContextProvider {...props}>
         {children}
-      </EnabledModelRegistrySelectorContextProvider>
+      </EnabledModelRegistriesContextProvider>
     );
   }
   return children;
 };
 
-const EnabledModelRegistrySelectorContextProvider: React.FC<React.PropsWithChildren> = ({
-  children,
-}) => {
+const EnabledModelRegistriesContextProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
   const { dscStatus } = React.useContext(AreaContext);
   const modelRegistryNamespace = dscStatus?.components?.modelregistry?.registriesNamespace;
   const [preferredModelRegistry, setPreferredModelRegistry] = React.useState<ServiceKind | null>(
@@ -86,8 +85,8 @@ const EnabledModelRegistrySelectorContextProvider: React.FC<React.PropsWithChild
   ]);
 
   return (
-    <ModelRegistrySelectorContext.Provider value={contextValue}>
+    <ModelRegistriesContext.Provider value={contextValue}>
       {children}
-    </ModelRegistrySelectorContext.Provider>
+    </ModelRegistriesContext.Provider>
   );
 };

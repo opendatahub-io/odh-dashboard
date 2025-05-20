@@ -3,7 +3,6 @@ import { useNavigate, Link } from 'react-router-dom';
 import { ActionsColumn, IAction, Td, Tr } from '@patternfly/react-table';
 import { FlexItem, Content, ContentVariants, Truncate } from '@patternfly/react-core';
 import { ModelState, RegisteredModel } from '~/concepts/modelRegistry/types';
-import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
 import ModelTimestamp from '~/pages/modelRegistry/screens/components/ModelTimestamp';
 import {
   registeredModelArchiveDetailsRoute,
@@ -11,10 +10,11 @@ import {
 } from '~/routes/modelRegistry/modelArchive';
 import { registeredModelRoute } from '~/routes/modelRegistry/registeredModels';
 import ModelLabels from '~/pages/modelRegistry/screens/components/ModelLabels';
-import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegistryContext';
 import { ArchiveRegisteredModelModal } from '~/pages/modelRegistry/screens/components/ArchiveRegisteredModelModal';
 import { RestoreRegisteredModelModal } from '~/pages/modelRegistry/screens/components/RestoreRegisteredModel';
 import { ModelVersionsTab } from '~/pages/modelRegistry/screens/ModelVersions/const';
+import { ModelRegistryPageContext } from '~/concepts/modelRegistry/context/ModelRegistryPageContext';
+import { ModelRegistriesContext } from '~/concepts/modelRegistry/context/ModelRegistriesContext';
 
 type RegisteredModelTableRowProps = {
   registeredModel: RegisteredModel;
@@ -29,9 +29,9 @@ const RegisteredModelTableRow: React.FC<RegisteredModelTableRowProps> = ({
   hasDeploys = false,
   refresh,
 }) => {
-  const { apiState } = React.useContext(ModelRegistryContext);
+  const { apiState } = React.useContext(ModelRegistryPageContext);
   const navigate = useNavigate();
-  const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
+  const { preferredModelRegistry } = React.useContext(ModelRegistriesContext);
   const [isArchiveModalOpen, setIsArchiveModalOpen] = React.useState(false);
   const [isRestoreModalOpen, setIsRestoreModalOpen] = React.useState(false);
   const rmUrl = registeredModelRoute(rm.id, preferredModelRegistry?.metadata.name);

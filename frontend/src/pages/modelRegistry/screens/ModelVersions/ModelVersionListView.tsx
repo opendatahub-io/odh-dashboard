@@ -24,12 +24,12 @@ import {
   filterModelVersions,
   sortModelVersionsByCreateTime,
 } from '~/pages/modelRegistry/screens/utils';
-import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
 import { modelVersionArchiveRoute } from '~/routes/modelRegistry/modelVersionArchive';
 import { registerVersionForModelRoute } from '~/routes/modelRegistry/register';
 import { asEnumMember } from '~/utilities/utils';
 import { ProjectObjectType, typedEmptyImage } from '~/concepts/design/utils';
 import { filterArchiveVersions, filterLiveVersions } from '~/concepts/modelRegistry/utils';
+import { ModelRegistriesContext } from '~/concepts/modelRegistry/context/ModelRegistriesContext';
 import ModelVersionsTable from './ModelVersionsTable';
 
 type ModelVersionListViewProps = {
@@ -51,7 +51,7 @@ const ModelVersionListView: React.FC<ModelVersionListViewProps> = ({
 
   const archiveModelVersions = filterArchiveVersions(modelVersions);
   const navigate = useNavigate();
-  const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
+  const { preferredModelRegistry } = React.useContext(ModelRegistriesContext);
 
   const [searchType, setSearchType] = React.useState<SearchType>(SearchType.KEYWORD);
   const [search, setSearch] = React.useState('');

@@ -18,7 +18,6 @@ import ModelPropertiesDescriptionListGroup from '~/pages/modelRegistry/screens/M
 import { getLabels, mergeUpdatedLabels } from '~/pages/modelRegistry/screens/utils';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import useModelArtifactsByVersionId from '~/concepts/modelRegistry/apiHooks/useModelArtifactsByVersionId';
-import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegistryContext';
 import ModelTimestamp from '~/pages/modelRegistry/screens/components/ModelTimestamp';
 import { uriToModelLocation } from '~/concepts/modelRegistry/utils';
 import InlineTruncatedClipboardCopy from '~/components/InlineTruncatedClipboardCopy';
@@ -27,6 +26,7 @@ import {
   bumpRegisteredModelTimestamp,
 } from '~/concepts/modelRegistry/utils/updateTimestamps';
 import useRegisteredModelById from '~/concepts/modelRegistry/apiHooks/useRegisteredModelById';
+import { ModelRegistryPageContext } from '~/concepts/modelRegistry/context/ModelRegistryPageContext';
 import ModelVersionRegisteredFromLink from './ModelVersionRegisteredFromLink';
 
 type ModelVersionDetailsViewProps = {
@@ -44,7 +44,7 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
     useModelArtifactsByVersionId(mv.id);
   const modelArtifact = modelArtifacts.items.length ? modelArtifacts.items[0] : null;
   const modelCatalogAvailable = useIsAreaAvailable(SupportedArea.MODEL_CATALOG).status;
-  const { apiState } = React.useContext(ModelRegistryContext);
+  const { apiState } = React.useContext(ModelRegistryPageContext);
   const storageFields = uriToModelLocation(modelArtifact?.uri || '');
   const [registeredModel, registeredModelLoaded, registeredModelLoadError, refreshRegisteredModel] =
     useRegisteredModelById(mv.registeredModelId);
