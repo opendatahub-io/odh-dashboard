@@ -23,6 +23,8 @@ const FeatureFlagModal: React.FC<Props> = ({
   resetDevFeatureFlags,
   onClose,
 }) => {
+  // here for typescript errors that the flags could be null; easier to set here than address it
+  // each time inline it is used below
   const flags = devFeatureFlags ?? {};
 
   const renderDevFeatureFlags = () => (
