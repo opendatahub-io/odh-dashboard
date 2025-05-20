@@ -19,7 +19,7 @@ import { useUser } from '~/redux/selectors';
 import { DASHBOARD_MAIN_CONTAINER_ID } from '~/utilities/const';
 import useDetectUser from '~/utilities/useDetectUser';
 import ProjectsContextProvider from '~/concepts/projects/ProjectsContext';
-import { ModelRegistrySelectorContextProvider } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
+import { ModelRegistriesContextProvider } from '~/concepts/modelRegistry/context/ModelRegistriesContext';
 import useStorageClasses from '~/concepts/k8s/useStorageClasses';
 import AreaContextProvider from '~/concepts/areas/AreaContext';
 import { NimContextProvider } from '~/concepts/nimServing/NIMAvailabilityContext';
@@ -152,13 +152,13 @@ const App: React.FC = () => {
                 <ErrorBoundary>
                   <NimContextProvider>
                     <ProjectsContextProvider>
-                      <ModelRegistrySelectorContextProvider>
+                      <ModelRegistriesContextProvider>
                         <QuickStarts>
                           <NotificationWatcherContextProvider>
                             <AppRoutes />
                           </NotificationWatcherContextProvider>
                         </QuickStarts>
-                      </ModelRegistrySelectorContextProvider>
+                      </ModelRegistriesContextProvider>
                     </ProjectsContextProvider>
                   </NimContextProvider>
                   <ToastNotifications />

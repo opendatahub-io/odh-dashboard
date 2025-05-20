@@ -5,11 +5,11 @@ import { Link } from 'react-router-dom';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import useModelVersionsByRegisteredModel from '~/concepts/modelRegistry/apiHooks/useModelVersionsByRegisteredModel';
 import useRegisteredModelById from '~/concepts/modelRegistry/apiHooks/useRegisteredModelById';
-import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
 import { ModelState } from '~/concepts/modelRegistry/types';
 import { registeredModelArchiveDetailsRoute } from '~/routes/modelRegistry/modelArchive';
 import { useMakeFetchObject } from '~/utilities/useMakeFetchObject';
 import useInferenceServices from '~/pages/modelServing/useInferenceServices';
+import { ModelRegistriesContext } from '~/concepts/modelRegistry/context/ModelRegistriesContext';
 import ModelVersionsTabs from './ModelVersionsTabs';
 import ModelVersionsHeaderActions from './ModelVersionsHeaderActions';
 import { ModelVersionsTab } from './const';
@@ -22,7 +22,7 @@ type ModelVersionsProps = {
 >;
 
 const ModelVersions: React.FC<ModelVersionsProps> = ({ tab, ...pageProps }) => {
-  const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
+  const { preferredModelRegistry } = React.useContext(ModelRegistriesContext);
   const { registeredModelId: rmId } = useParams();
   const [modelVersions, mvLoaded, mvLoadError, mvRefresh] = useModelVersionsByRegisteredModel(rmId);
   const [rm, rmLoaded, rmLoadError, rmRefresh] = useRegisteredModelById(rmId);

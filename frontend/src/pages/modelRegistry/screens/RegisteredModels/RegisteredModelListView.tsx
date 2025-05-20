@@ -6,13 +6,13 @@ import { SearchType } from '~/concepts/dashboard/DashboardSearchField';
 import { ModelVersion, RegisteredModel } from '~/concepts/modelRegistry/types';
 import SimpleSelect from '~/components/SimpleSelect';
 import { filterRegisteredModels } from '~/pages/modelRegistry/screens/utils';
-import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
 import EmptyModelRegistryState from '~/pages/modelRegistry/screens/components/EmptyModelRegistryState';
 import { registerModelRoute } from '~/routes/modelRegistry/register';
 import { registeredModelArchiveRoute } from '~/routes/modelRegistry/modelArchive';
 import { asEnumMember } from '~/utilities/utils';
 import { ProjectObjectType, typedEmptyImage } from '~/concepts/design/utils';
 import { filterArchiveModels, filterLiveModels } from '~/concepts/modelRegistry/utils';
+import { ModelRegistriesContext } from '~/concepts/modelRegistry/context/ModelRegistriesContext';
 import RegisteredModelTable from './RegisteredModelTable';
 import RegisteredModelsTableToolbar from './RegisteredModelsTableToolbar';
 
@@ -28,7 +28,7 @@ const RegisteredModelListView: React.FC<RegisteredModelListViewProps> = ({
   refresh,
 }) => {
   const navigate = useNavigate();
-  const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
+  const { preferredModelRegistry } = React.useContext(ModelRegistriesContext);
   const [searchType, setSearchType] = React.useState<SearchType>(SearchType.KEYWORD);
   const [search, setSearch] = React.useState('');
   const unfilteredRegisteredModels = filterLiveModels(registeredModels);
