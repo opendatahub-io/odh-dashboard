@@ -13,6 +13,7 @@ import { ModelServingPlatform } from '../../concepts/modelServingPlatforms';
 import { Deployment, isModelServingDeploymentsTableExtension } from '../../../extension-points';
 
 const genericColumns: SortableData<Deployment>[] = [
+  // Platform can enable expanded view of the deployment
   // {
   //   field: 'expand',
   //   label: '',
@@ -22,6 +23,12 @@ const genericColumns: SortableData<Deployment>[] = [
     label: 'Model deployment name',
     field: 'name',
     sortable: true,
+  },
+  // Platform specific columns go here
+  {
+    label: 'Inference endpoint',
+    field: 'inferenceEndpoint',
+    sortable: false,
   },
   {
     label: 'Status',
@@ -52,6 +59,7 @@ const DeploymentRow: React.FC<{
         {cellRenderer ? cellRenderer(deployment, column.field) : '-'}
       </Td>
     ))}
+    <Td dataLabel="Inference endpoint">-</Td>
     <Td dataLabel="Status">-</Td>
     <Td isActionCell>
       <ActionsColumn isDisabled items={[]} />

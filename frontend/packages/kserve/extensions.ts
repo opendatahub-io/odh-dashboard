@@ -5,18 +5,20 @@ import type {
   ModelServingDeploymentsTableExtension,
 } from '@odh-dashboard/model-serving/extension-points';
 
+export const KSERVE_ID = 'kserve';
+
 const extensions: (ModelServingPlatformExtension | ModelServingDeploymentsTableExtension)[] = [
   {
     type: 'model-serving.platform',
     properties: {
-      id: 'kserve',
+      id: KSERVE_ID,
       manage: {
         namespaceApplicationCase: NamespaceApplicationCase.KSERVE_PROMOTION,
         enabledLabel: 'modelmesh-enabled',
         enabledLabelValue: 'false',
       },
       deployments: {
-        list: () => import('./src/deployments').then((m) => m.listDeployments),
+        watch: () => import('./src/deployments').then((m) => m.useWatchDeployments),
       },
       enableCardText: {
         title: 'Single-model serving platform',
@@ -35,34 +37,11 @@ const extensions: (ModelServingPlatformExtension | ModelServingDeploymentsTableE
   {
     type: 'model-serving.deployments-table',
     properties: {
-      platform: 'kserve',
+      platform: KSERVE_ID,
       columns: () => import('./src/deploymentsTable').then((m) => m.columns),
       cellRenderer: () => import('./src/deploymentsTable').then((m) => m.cellRenderer),
     },
   },
-  // {
-  //   type: 'model-serving.platform',
-  //   properties: {
-  //     id: 'modelmesh-dummy',
-  //     manage: {
-  //       namespaceApplicationCase: NamespaceApplicationCase.MODEL_MESH_PROMOTION,
-  //       enabledLabel: 'modelmesh-enabled',
-  //       enabledLabelValue: 'true',
-  //     },
-  //     enableCardText: {
-  //       title: 'Multi-model serving platform',
-  //       description:
-  //         'Multiple models can be deployed on one shared model server. Useful for deploying a number of small or medium-sized models that can share the server resources.',
-  //       selectText: 'Select multi-model',
-  //       enabledText: 'Multi-model serving enabled',
-  //     },
-  //     deployedModelsView: {
-  //       startHintTitle: 'Start by deploying a model',
-  //       startHintDescription: 'Each model is deployed on its own model server',
-  //       deployButtonText: 'Deploy model',
-  //     },
-  //   },
-  // },
 ];
 
 export default extensions;

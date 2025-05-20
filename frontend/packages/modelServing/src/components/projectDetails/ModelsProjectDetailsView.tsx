@@ -12,34 +12,28 @@ import { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils
 import { SelectPlatformView } from './SelectPlatformView';
 import { NoModelsView } from './NoModelsView';
 import DeploymentsTable from './DeploymentsTable';
+import { ModelDeploymentsContext } from '../../concepts/ModelDeploymentsContext';
 import { DeployButton } from '../deploy/DeployButton';
-import { ModelServingContext } from '../../concepts/ModelServingContext';
+import { ModelServingPlatformContext } from '../../concepts/ModelServingPlatformContext';
 
 const ModelsProjectDetailsView: React.FC = () => {
-  const {
-    availablePlatforms,
-    project,
-    platform: projectPlatform,
-    setModelServingPlatform,
-    resetModelServingPlatform,
-    newModelServingPlatformLoading,
-    deployments,
-  } = React.useContext(ModelServingContext);
+  const { availablePlatforms, project, platform, setPlatform, resetPlatform, newPlatformLoading } =
+    React.useContext(ModelServingPlatformContext);
+  const { deployments, loaded: deploymentsLoaded } = React.useContext(ModelDeploymentsContext);
 
-  const isLoading = !project || !availablePlatforms || !!(projectPlatform && !deployments);
+  const isLoading =
+    !project || !availablePlatforms || !!(platform && (!deployments || !deploymentsLoaded));
   const hasModels = !!deployments && deployments.length > 0;
 
   const activePlatform = React.useMemo(
     () =>
-      availablePlatforms && availablePlatforms.length === 1
-        ? availablePlatforms[0]
-        : projectPlatform,
-    [availablePlatforms, projectPlatform],
+      availablePlatforms && availablePlatforms.length === 1 ? availablePlatforms[0] : platform,
+    [availablePlatforms, platform],
   );
 
   return (
     <DetailsSection
-      objectType={ProjectObjectType.modelServer}
+      objectType={ProjectObjectType.model}
       id={ProjectSectionID.MODEL_SERVER}
       title={hasModels ? 'Models and model servers' : undefined}
       popover={
@@ -72,10 +66,10 @@ const ModelsProjectDetailsView: React.FC = () => {
                 variant="link"
                 isInline
                 icon={<PencilAltIcon />}
-                isLoading={newModelServingPlatformLoading !== undefined}
-                isDisabled={newModelServingPlatformLoading !== undefined}
+                isLoading={newPlatformLoading !== undefined}
+                isDisabled={newPlatformLoading !== undefined || hasModels}
                 onClick={() => {
-                  resetModelServingPlatform();
+                  resetPlatform();
                 }}
               >
                 Change
@@ -89,8 +83,8 @@ const ModelsProjectDetailsView: React.FC = () => {
         !isLoading && (
           <SelectPlatformView
             platforms={availablePlatforms}
-            setModelServingPlatform={setModelServingPlatform}
-            newPlatformLoading={newModelServingPlatformLoading}
+            setModelServingPlatform={setPlatform}
+            newPlatformLoading={newPlatformLoading}
           />
         )
       }
