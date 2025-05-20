@@ -17,6 +17,7 @@ import {
   getModelServingCompatibility,
   isModelServingCompatible,
   isValidEnvVar,
+  isValueFromEnvVar,
   ModelServingCompatibleTypes,
   toConnectionTypeConfigMap,
   toConnectionTypeConfigMapObj,
@@ -542,5 +543,30 @@ describe('useTrimInputHandlers', () => {
 
     trimInputOnPaste('', handleChange)(mockEvent);
     expect(handleChange).toHaveBeenCalledWith('foo');
+  });
+});
+
+describe('isValueFrom', () => {
+  it('should return true if the value is from a valueFrom envVar', () => {
+    expect(
+      isValueFromEnvVar({
+        valueFrom: {
+          secretKeyRef: {
+            name: 'test',
+            key: '',
+          },
+        },
+        name: '',
+      }),
+    ).toBe(true);
+  });
+
+  it('should return false if the value is not from a valueFrom envVar', () => {
+    expect(
+      isValueFromEnvVar({
+        value: 'test',
+        name: '',
+      }),
+    ).toBe(false);
   });
 });

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { KnownLabels, SecretKind } from '~/k8sTypes';
+import { KnownLabels, SecretKind, ServingContainer } from '~/k8sTypes';
 import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '~/concepts/k8s/utils';
 import { K8sNameDescriptionFieldData } from '~/concepts/k8s/K8sNameDescriptionField/types';
 import {
@@ -445,6 +445,9 @@ export const validateEnvVarName = (name: string): string | undefined => {
   }
   return undefined;
 };
+
+export const isValueFromEnvVar = (envVar: NonNullable<ServingContainer['env']>[number]): boolean =>
+  envVar.valueFrom !== undefined;
 
 export const convertObjectStorageSecretData = (dataConnection: Connection): AWSDataEntry => {
   let convertedData: { key: AwsKeys; value: string }[] = [];
