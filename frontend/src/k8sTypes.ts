@@ -111,6 +111,7 @@ export type NotebookAnnotations = Partial<{
   'opendatahub.io/image-display-name': string; // the display name of the image
   'notebooks.opendatahub.io/last-image-version-git-commit-selection': string; // the build commit of the last image they selected
   'opendatahub.io/hardware-profile-namespace': string | null; // the namespace of the hardware profile used
+  'opendatahub.io/accelerator-profile-namespace': string | undefined; // the namespace of the accelerator profile used
 }>;
 
 export type DashboardLabels = {
@@ -140,6 +141,7 @@ export type ServingRuntimeAnnotations = Partial<{
   'opendatahub.io/apiProtocol': string;
   'opendatahub.io/serving-runtime-scope': string;
   'opendatahub.io/hardware-profile-namespace': string | undefined;
+  'opendatahub.io/accelerator-profile-namespace': string | undefined;
   'enable-route': string;
   'enable-auth': string;
   'modelmesh-enabled': 'true' | 'false';
