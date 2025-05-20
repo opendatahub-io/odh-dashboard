@@ -1,11 +1,11 @@
 import * as React from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { useBrowserStorage } from '~/components/browserStorage';
 import { allFeatureFlags } from '~/concepts/areas/const';
 import { isFeatureFlag } from '~/concepts/areas/utils';
 import { DashboardCommonConfig, DashboardConfigKind } from '~/k8sTypes';
 import { DevFeatureFlags } from '~/types';
 import axios from '~/utilities/axios';
+import { useBrowserStorage } from '~/components/browserStorage/BrowserStorageContext';
 
 const PARAM_NAME = 'devFeatureFlags';
 const SESSION_KEY = 'odh-feature-flags';
