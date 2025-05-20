@@ -27,11 +27,18 @@ const useAcceleratorProfileFormState = (
   tolerations?: Toleration[],
   existingAcceleratorProfileName?: string,
   namespace?: string,
+  acceleratorProfileNamespace?: string,
 ): UseAcceleratorProfileFormResult => {
   const [globalScopedInitialState, globalScopedLoaded, globalScopedLoadError, refresh] =
     useReadAcceleratorState(resources, tolerations, existingAcceleratorProfileName);
   const [projectScopedInitialState, projectScopedLoaded, projectScopedLoadError] =
-    useReadAcceleratorState(resources, tolerations, existingAcceleratorProfileName, namespace);
+    useReadAcceleratorState(
+      resources,
+      tolerations,
+      existingAcceleratorProfileName,
+      namespace,
+      acceleratorProfileNamespace,
+    );
 
   const loaded = namespace ? projectScopedLoaded && globalScopedLoaded : globalScopedLoaded;
   const loadError = namespace

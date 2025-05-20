@@ -28,6 +28,7 @@ const useReadAcceleratorState = (
   tolerations?: Toleration[],
   existingAcceleratorProfileName?: string,
   namespace?: string,
+  acceleratorProfileNamespace?: string,
 ): FetchState<AcceleratorProfileState> => {
   const { dashboardNamespace } = useDashboardNamespace();
   const [acceleratorProfiles, loaded, loadError] = useAcceleratorProfiles(
@@ -45,9 +46,18 @@ const useReadAcceleratorState = (
     }
     // Exit early if no resources = not in edit mode
     if (resources) {
-      const acceleratorProfile = acceleratorProfiles.find(
-        (cr) => cr.metadata.name === existingAcceleratorProfileName,
-      );
+      let acceleratorProfile: AcceleratorProfileKind | undefined;
+      if (namespace) {
+        acceleratorProfile = acceleratorProfiles.find(
+          (cr) =>
+            cr.metadata.name === existingAcceleratorProfileName &&
+            cr.metadata.namespace === acceleratorProfileNamespace,
+        );
+      } else {
+        acceleratorProfile = acceleratorProfiles.find(
+          (cr) => cr.metadata.name === existingAcceleratorProfileName,
+        );
+      }
 
       if (acceleratorProfile) {
         return Promise.resolve({
@@ -139,7 +149,9 @@ const useReadAcceleratorState = (
     loadError,
     resources,
     acceleratorProfiles,
+    namespace,
     existingAcceleratorProfileName,
+    acceleratorProfileNamespace,
     tolerations,
     dashboardNamespace,
   ]);
