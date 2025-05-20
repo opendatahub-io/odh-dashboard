@@ -32,6 +32,7 @@ export enum InferenceServiceModelState {
 
 export type ModelStatus = {
   failedToSchedule: boolean;
+  failureMessage?: string | null;
 };
 
 export type SupportedModelFormatsInfo = {
