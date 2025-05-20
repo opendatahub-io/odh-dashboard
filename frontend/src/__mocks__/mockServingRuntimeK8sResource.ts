@@ -20,11 +20,8 @@ type MockResourceConfigType = {
   templateDisplayName?: string;
   isProjectScoped?: boolean;
   scope?: string;
-<<<<<<< HEAD
   hardwareProfileNamespace?: string;
-=======
   isNonDashboardItem?: boolean;
->>>>>>> d7cfd9028 (Add cypress tests)
 };
 
 export const mockServingRuntimeK8sResourceLegacy = ({
@@ -133,11 +130,8 @@ export const mockServingRuntimeK8sResource = ({
   templateDisplayName = 'OpenVINO Serving Runtime (Supports GPUs)',
   isProjectScoped = false,
   scope,
-<<<<<<< HEAD
   hardwareProfileNamespace = undefined,
-=======
   isNonDashboardItem = false,
->>>>>>> d7cfd9028 (Add cypress tests)
 }: MockResourceConfigType): ServingRuntimeKind => ({
   apiVersion: 'serving.kserve.io/v1alpha1',
   kind: 'ServingRuntime',
