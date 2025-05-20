@@ -7,28 +7,27 @@ import {
   ModalBody,
   ModalHeader,
   ModalFooter,
+  Checkbox,
 } from '@patternfly/react-core';
 import { Notebook } from '#~/types';
-import { stopNotebook } from '#~/services/notebookService';
-import useNotification from '#~/utilities/useNotification';
-import { allSettledPromises } from '#~/utilities/allSettledPromises';
-import { useUser } from '#~/redux/selectors';
+import useStopNotebookModalAvailability from '#~/pages/projects/notebook/useStopNotebookModalAvailability';
 
 type StopServerModalProps = {
   notebooksToStop: Notebook[];
   link: string;
-  onNotebooksStop: (didStop: boolean) => void;
+  isDeleting: boolean;
+  setShowModal: (showModal: boolean) => void;
+  handleStopWorkbenches: () => void;
 };
 
 const StopServerModal: React.FC<StopServerModalProps> = ({
   notebooksToStop,
-  onNotebooksStop,
   link,
+  isDeleting,
+  setShowModal,
+  handleStopWorkbenches,
 }) => {
-  const notification = useNotification();
-  const [isDeleting, setDeleting] = React.useState(false);
-
-  const { isAdmin } = useUser();
+  const [dontShowModalValue, setDontShowModalValue] = useStopNotebookModalAvailability();
 
   if (!notebooksToStop.length) {
     return null;
@@ -59,39 +58,13 @@ const StopServerModal: React.FC<StopServerModalProps> = ({
     return 'workbench';
   };
 
-  const onClose = () => {
-    onNotebooksStop(false);
-  };
-
-  const handleStopServer = () => {
-    setDeleting(true);
-    allSettledPromises<Notebook | void>(
-      notebooksToStop.map((notebook) => {
-        const notebookName = notebook.metadata.name || '';
-        if (!notebookName) {
-          return Promise.resolve();
-        }
-
-        if (!isAdmin) {
-          return stopNotebook();
-        }
-
-        const notebookUser = notebook.metadata.annotations?.['opendatahub.io/username'];
-        if (!notebookUser) {
-          return Promise.resolve();
-        }
-
-        return stopNotebook(notebookUser);
-      }),
-    )
-      .then(() => {
-        setDeleting(false);
-        onNotebooksStop(true);
-      })
-      .catch((e) => {
-        setDeleting(false);
-        notification.error(`Error stopping ${textToShow}`, e.message);
-      });
+  const onBeforeClose = (confirmStatus: boolean) => {
+    if (!confirmStatus) {
+      setDontShowModalValue(false);
+      setShowModal(false);
+    } else {
+      handleStopWorkbenches();
+    }
   };
 
   const modalActions = [
@@ -100,11 +73,16 @@ const StopServerModal: React.FC<StopServerModalProps> = ({
       isDisabled={isDeleting}
       key="confirm"
       variant="primary"
-      onClick={handleStopServer}
+      onClick={() => onBeforeClose(true)}
     >
       Stop {textToShow}
     </Button>,
-    <Button data-id="cancel-button" key="cancel" variant="secondary" onClick={onClose}>
+    <Button
+      data-id="cancel-button"
+      key="cancel"
+      variant="secondary"
+      onClick={() => onBeforeClose(false)}
+    >
       Cancel
     </Button>,
   ];
@@ -115,7 +93,7 @@ const StopServerModal: React.FC<StopServerModalProps> = ({
       appendTo={document.body}
       variant="small"
       isOpen
-      onClose={onClose}
+      onClose={() => onBeforeClose(false)}
     >
       <ModalHeader title={`Stop ${textToShow}`} />
       <ModalBody>
@@ -135,6 +113,14 @@ const StopServerModal: React.FC<StopServerModalProps> = ({
             ) : (
               'open the workbenches.'
             )}
+          </StackItem>
+          <StackItem>
+            <Checkbox
+              id="dont-show-again"
+              label="Don't show again"
+              isChecked={dontShowModalValue}
+              onChange={(e, checked) => setDontShowModalValue(checked)}
+            />
           </StackItem>
         </Stack>
       </ModalBody>
