@@ -7,6 +7,8 @@ import {
 import { PodModel } from '~/api/models';
 import { PodKind } from '~/k8sTypes';
 
+// the sdk call here is what actually does the networking
+// maybe put a watch here instead
 export const getPodsForNotebook = (namespace: string, notebookName: string): Promise<PodKind[]> =>
   k8sListResource<PodKind>({
     model: PodModel,

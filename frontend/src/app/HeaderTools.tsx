@@ -47,9 +47,6 @@ const HeaderTools: React.FC<Props> = ({ onNotificationsClick, ...devFeatureFlags
   const lightModeRef = React.useRef<HTMLDivElement>(null);
   const darkModeRef = React.useRef<HTMLDivElement>(null);
 
-  console.log('in dev_mode??', DEV_MODE);
-  console.log('argh....app env???', process.env.APP_ENV);
-
   React.useEffect(() => {
     const htmlElement = document.getElementsByTagName('html')[0];
     if (theme === 'dark') {

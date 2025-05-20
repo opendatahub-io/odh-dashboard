@@ -97,8 +97,6 @@ const useDevFeatureFlags = (
           return null;
         })()
       : null) ?? sanitizedSessionFlags;
-
-  console.log('44a: devFeatureFlags', devFeatureFlags);
   firstLoad.current = false;
 
   React.useEffect(() => {
