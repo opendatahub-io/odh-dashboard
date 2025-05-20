@@ -44,9 +44,6 @@ const HeaderTools: React.FC<Props> = ({ onNotificationsClick, ...devFeatureFlags
   const { theme, setTheme } = useThemeContext();
   const notification = useNotification();
 
-  const lightModeRef = React.useRef<HTMLDivElement>(null);
-  const darkModeRef = React.useRef<HTMLDivElement>(null);
-
   React.useEffect(() => {
     const htmlElement = document.getElementsByTagName('html')[0];
     if (theme === 'dark') {
@@ -203,32 +200,26 @@ const HeaderTools: React.FC<Props> = ({ onNotificationsClick, ...devFeatureFlags
             </Dropdown>
           </ToolbarItem>
           <ToolbarItem>
-            <Tooltip content="Light/Dark Mode" position="bottom" triggerRef={lightModeRef}>
-              <ToggleGroup aria-label="Theme toggle group">
-                <ToggleGroupItem
-                  ref={lightModeRef}
-                  aria-label="light theme"
-                  icon={<SunIcon />}
-                  isSelected={theme === 'light'}
-                  onChange={() => {
-                    setTheme('light');
-                  }}
-                />
-
-                <ToggleGroupItem
-                  ref={darkModeRef}
-                  aria-label="dark theme"
-                  icon={<MoonIcon />}
-                  isSelected={theme === 'dark'}
-                  onChange={() => {
-                    setTheme('dark');
-                  }}
-                />
-              </ToggleGroup>
-            </Tooltip>
+            <ToggleGroup aria-label="Theme toggle group">
+              <ToggleGroupItem
+                aria-label="light theme"
+                icon={<SunIcon />}
+                isSelected={theme === 'light'}
+                onChange={() => {
+                  setTheme('light');
+                }}
+              />
+              <ToggleGroupItem
+                aria-label="dark theme"
+                icon={<MoonIcon />}
+                isSelected={theme === 'dark'}
+                onChange={() => {
+                  setTheme('dark');
+                }}
+              />
+            </ToggleGroup>
           </ToolbarItem>
         </ToolbarGroup>
-
         {DEV_MODE && isImpersonating && (
           <ToolbarItem>
             <Tooltip
