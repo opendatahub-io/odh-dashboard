@@ -86,3 +86,43 @@ export const initialScFilterData: StorageClassFilterData = {
   [StorageClassFilterOption.DisplayName]: '',
   [StorageClassFilterOption.OpenshiftScName]: '',
 };
+
+export enum ProvisionerList {
+  No_Provisioner = "kubernetes.io/no-provisioner",
+  Aws_Ebs = "kubernetes.io/aws-ebs",
+  Gce_Pd = "kubernetes.io/gce-pd",
+  Glusterfs = "kubernetes.io/glusterfs",
+  Cinder = "kubernetes.io/cinder",
+  Azure_File = "kubernetes.io/azure-file",
+  Azure_Disk = "kubernetes.io/azure-disk",
+  Quobyte = "kubernetes.io/quobyte",
+  Vsphere_Volume = "kubernetes.io/vsphere-volume",
+  Portworx_Volume = "kubernetes.io/portworx-volume",
+  Scaleio = "kubernetes.io/scaleio",
+  Storageos = "kubernetes.io/storageos",
+  Openstack = "cinder.csi.openstack.org"
+}
+
+export enum AccessModes {
+  RWO = 'RWO',
+  RWOP = 'RWOP',
+  ROX = 'ROX',
+  RWX = 'RWX'
+}
+
+export const ProvisionAccessModeMap = {
+  [ProvisionerList.No_Provisioner]: [],
+  [ProvisionerList.Aws_Ebs]: [AccessModes.RWO, AccessModes.RWOP],
+  [ProvisionerList.Azure_File]:[AccessModes.RWO, AccessModes.RWOP, AccessModes.ROX, AccessModes.RWX],
+  [ProvisionerList.Azure_Disk]:[AccessModes.RWO, AccessModes.RWOP],
+  [ProvisionerList.Cinder]:[AccessModes.RWO, AccessModes.RWOP],
+  [ProvisionerList.Gce_Pd]:[AccessModes.RWO, AccessModes.RWOP],
+  [ProvisionerList.Glusterfs]:[],
+  [ProvisionerList.Openstack]:[AccessModes.RWOP, AccessModes.RWX],
+  [ProvisionerList.Portworx_Volume]:[],
+  [ProvisionerList.Quobyte]:[],
+  [ProvisionerList.Scaleio]:[],
+  [ProvisionerList.Storageos]:[],
+  [ProvisionerList.Vsphere_Volume]:[AccessModes.RWO, AccessModes.RWOP, AccessModes.RWX]
+}
+
