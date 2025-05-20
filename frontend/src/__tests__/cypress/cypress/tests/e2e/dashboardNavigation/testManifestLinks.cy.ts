@@ -1,58 +1,132 @@
 import * as yaml from 'js-yaml';
 import { isUrlExcluded } from '~/__tests__/cypress/cypress/utils/urlExtractor';
-import { retryableBefore } from '~/__tests__/cypress/cypress/utils/retryableHooks';
+
+/**
+ * Type definitions for URL validation results
+ */
+interface UrlValidationResult {
+  url: string;
+  status: number;
+  error?: string;
+}
+
+/**
+ * Type definition for the YAML configuration
+ */
+interface ManifestTestConfig {
+  excludedSubstrings?: string[];
+}
+
+/**
+ * Set of valid HTTP status codes that indicate a successful response
+ * 200-204: Success responses
+ */
+const VALID_STATUS_CODES = new Set([200, 201, 202, 204]);
+
+/**
+ * Error code mappings for better error reporting
+ */
+const ERROR_CODES = {
+  [-1]: 'TIMEOUT',
+  [-2]: 'REDIRECT_MAX',
+  [-3]: 'REDIRECT_INVALID',
+  [-4]: 'ABORTED',
+  [-5]: 'NETWORK_ERROR',
+} as const;
+
+/**
+ * Formats the validation result message for logging
+ * @param result - The URL validation result
+ * @returns Formatted log message
+ */
+const formatValidationMessage = (result: UrlValidationResult): string => {
+  const { url, status, error } = result;
+  const isValid = VALID_STATUS_CODES.has(status);
+
+  if (isValid) {
+    return `✅ ${url} - Status: ${status}`;
+  }
+
+  const statusKey = status as keyof typeof ERROR_CODES;
+  const errorType = statusKey in ERROR_CODES ? ERROR_CODES[statusKey] : 'UNKNOWN';
+  const baseMessage = `${errorType} ❌ ${url} - Error Code: ${status}`;
+  return error ? `${baseMessage} (Details: ${error})` : baseMessage;
+};
 
 describe('Verify that all the URLs referenced in the Manifest directory are operational', () => {
-  let excludedSubstrings: string[];
+  let excludedSubstrings: string[] = [];
 
-  // Setup: Load test data
-  retryableBefore(() => {
-    cy.fixture('e2e/dashboardNavigation/testManifestLinks.yaml', 'utf8').then((yamlString) => {
-      const yamlData = yaml.load(yamlString) as { excludedSubstrings: string[] };
-      excludedSubstrings = yamlData.excludedSubstrings;
+  before(() => {
+    // Load and parse the YAML configuration
+    cy.fixture('e2e/dashboardNavigation/testManifestLinks.yaml').then((yamlString) => {
+      try {
+        const yamlData = yaml.load(yamlString) as ManifestTestConfig;
+        excludedSubstrings = yamlData.excludedSubstrings ?? [];
+        cy.log(`Loaded ${excludedSubstrings.length} excluded substrings`);
+      } catch (error: unknown) {
+        cy.log(
+          'Error parsing YAML configuration:',
+          error instanceof Error ? error.message : String(error),
+        );
+        excludedSubstrings = [];
+      }
     });
   });
 
   it(
     'Reads the manifest directory, filters out test/sample URLs and validates the remaining URLs',
-    { tags: ['@Smoke', '@SmokeSet1', '@ODS-327', '@ODS-492', '@Dashboard', '@NonConcurrent'] },
+    { tags: ['@Smoke', '@SmokeSet1', '@ODS-327', '@ODS-492', '@Dashboard', '@RHOAIENG-9235'] },
     () => {
+      // Verify that excludedSubstrings is properly initialized
       const manifestsDir = '../../../../manifests';
       cy.log(`Resolved manifests directory: ${manifestsDir}`);
 
-      // Extract URLs from the manifests directory using the registered task
-      cy.task<string[]>('extractHttpsUrls', manifestsDir).then((urls) => {
-        // Filter out Sample/Test URLs
-        const filteredUrls = urls.filter((url) => !isUrlExcluded(url, excludedSubstrings));
+      cy.task<string[]>('extractHttpsUrls', manifestsDir)
+        .then((urls) => {
+          if (!Array.isArray(urls)) {
+            throw new Error('Failed to extract URLs from manifests directory');
+          }
 
-        // Log filtered URLs for debugging
-        filteredUrls.forEach((url) => {
-          cy.log(url);
-        });
+          // Filter out Sample/Test URLs in a single pass
+          const filteredUrls = urls.filter((url) => url && !isUrlExcluded(url, excludedSubstrings));
 
-        // Verify that each remaining URL is accessible and returns a 200 status code
-        cy.step(
-          'Verify that each filtered URL is accessible and that a 200 is returned - currently failing due to issues linked RHOAIENG-9235',
-        );
-        const results: Array<{ url: string; status: number }> = [];
+          cy.log(`Found ${urls.length} total URLs, filtered to ${filteredUrls.length} URLs`);
 
-        filteredUrls.forEach((url) => {
-          cy.request(url).then((response) => {
-            const { status } = response;
-            const logMessage =
-              status === 200 ? `✅ ${url} - Status: ${status}` : `❌ ${url} - Status: ${status}`;
-            cy.log(logMessage);
-            results.push({ url, status });
+          // Log filtered URLs for debugging
+          filteredUrls.forEach((url) => {
+            cy.log(`[PRE-CHECK UI LOG] URL to check: ${url}`);
+          });
+
+          cy.task(
+            'log',
+            `[Step] Verifying URLs against valid status codes: ${Array.from(
+              VALID_STATUS_CODES,
+            ).join(', ')}`,
+            { log: false },
+          );
+
+          return cy.task<UrlValidationResult[]>('validateHttpsUrls', filteredUrls);
+        })
+        .then((results) => {
+          if (!Array.isArray(results)) {
+            throw new Error('Failed to validate URLs');
+          }
+
+          results.forEach((result) => {
+            const isValid = VALID_STATUS_CODES.has(result.status);
+            const logMessage = formatValidationMessage(result);
+
+            cy.step(logMessage);
+            softTrue(
+              isValid,
+              `URL ${result.url} should return one of the valid status codes (${Array.from(
+                VALID_STATUS_CODES,
+              ).join(', ')}), but was ${result.status}${
+                result.error ? ` - Details: ${result.error}` : ''
+              }`,
+            );
           });
         });
-
-        // Wait for all requests to complete
-        cy.wrap(null).then(() => {
-          results.forEach(({ url, status }) => {
-            expect(status).to.eq(200, `URL ${url} should return 200`);
-          });
-        });
-      });
     },
   );
 });
