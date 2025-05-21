@@ -890,7 +890,7 @@ describe('Workbench page', () => {
       }),
     );
     notebookImageUpdateModal.findSubmitUpdateImageButton().click();
-    workbenchPage.findUpdatingImageIcon().should('exist');
+    workbenchPage.findUpdatingImageIcon().should('be.visible');
     cy.wait('@updateNotebookImage');
   });
 
