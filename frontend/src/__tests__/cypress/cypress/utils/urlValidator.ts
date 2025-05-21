@@ -24,10 +24,10 @@ const commonUserAgent =
 const maxRedirects = 5;
 
 /** Request timeout in milliseconds */
-const requestTimeout = 30000;
+const requestTimeout = 50000;
 
 /** Maximum number of retries for network errors */
-const maxRetries = 3;
+const maxRetries = 5;
 
 /** Initial retry delay in milliseconds */
 const initialRetryDelay = 1000;
