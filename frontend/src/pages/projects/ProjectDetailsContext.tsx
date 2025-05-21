@@ -99,7 +99,6 @@ const ProjectDetailsContextProvider: React.FC = () => {
       if (!namespace || !servingRuntimeName) {
         return [];
       }
-
       const { serviceAccountName } = getTokenNames(servingRuntimeName, namespace);
 
       const secrets = serverSecrets.data.filter(
@@ -107,6 +106,7 @@ const ProjectDetailsContextProvider: React.FC = () => {
           secret.metadata.annotations?.['kubernetes.io/service-account.name'] ===
           serviceAccountName,
       );
+
       return secrets;
     },
     [namespace, serverSecrets],

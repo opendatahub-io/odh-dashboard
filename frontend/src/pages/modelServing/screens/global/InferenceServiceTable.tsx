@@ -142,7 +142,9 @@ const InferenceServiceTable: React.FC<InferenceServiceTableProps> = ({
                     ),
                     secrets: [],
                   },
-                  secrets: filterTokens ? filterTokens(editInferenceService.metadata.name) : [],
+                  secrets: filterTokens
+                    ? filterTokens(editInferenceService.spec.predictor.model?.runtime)
+                    : [],
                 }}
                 onClose={(edited) => {
                   if (edited) {
