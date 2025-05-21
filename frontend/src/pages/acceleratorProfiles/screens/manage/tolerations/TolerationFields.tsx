@@ -39,7 +39,7 @@ const TolerationFields: React.FC<TolerationFieldsProps> = ({ toleration, onUpdat
         <SimpleSelect
           isFullWidth
           options={operatorDropdownOptions}
-          value={toleration.operator || ''}
+          value={toleration.operator}
           onChange={(key) => handleFieldUpdate('operator', key)}
           dataTestId="toleration-operator-select"
         />
