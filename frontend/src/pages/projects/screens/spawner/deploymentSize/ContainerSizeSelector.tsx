@@ -3,7 +3,7 @@ import { FormGroup, FormHelperText, HelperText, HelperTextItem } from '@patternf
 import { NotebookSize } from '~/types';
 import { getSizeDescription } from '~/pages/projects/screens/spawner/spawnerUtils';
 import { getDashboardMainContainer } from '~/utilities/utils';
-import SimpleSelect from '~/components/SimpleSelect';
+import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
 
 type ContainerSizeSelectorProps = {
   value: NotebookSize;
@@ -21,7 +21,7 @@ const ContainerSizeSelector: React.FC<ContainerSizeSelectorProps> = ({
       popperProps={{ appendTo: getDashboardMainContainer() }}
       isFullWidth
       value={value.name}
-      options={sizes.map((size) => {
+      options={sizes.map((size): SimpleSelectOption => {
         const { name } = size;
         const desc = getSizeDescription(size);
         return { key: name, label: name, description: desc };

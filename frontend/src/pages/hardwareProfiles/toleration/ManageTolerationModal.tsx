@@ -63,7 +63,7 @@ const ManageTolerationModal: React.FC<ManageTolerationModalProps> = ({
             <SimpleSelect
               isFullWidth
               options={operatorDropdownOptions}
-              value={toleration.operator || ''}
+              value={toleration.operator}
               onChange={(key) => {
                 const operator = asEnumMember(key, TolerationOperator);
                 setToleration('operator', operator ?? undefined);
@@ -75,7 +75,7 @@ const ManageTolerationModal: React.FC<ManageTolerationModalProps> = ({
             <SimpleSelect
               isFullWidth
               options={effectDropdownOptions}
-              value={toleration.effect || ''}
+              value={toleration.effect}
               onChange={(key) => {
                 const effect = asEnumMember(key, TolerationEffect);
                 setToleration('effect', effect ?? undefined);
