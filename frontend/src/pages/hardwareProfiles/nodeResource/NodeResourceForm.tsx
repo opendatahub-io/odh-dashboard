@@ -15,7 +15,7 @@ import {
 import { Identifier, IdentifierResourceType } from '~/types';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import { UnitOption } from '~/utilities/valueUnits';
-import SimpleSelect from '~/components/SimpleSelect';
+import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
 import { asEnumMember } from '~/utilities/utils';
 import {
   DEFAULT_ACCELERATOR_SIZE,
@@ -88,10 +88,12 @@ const NodeResourceForm: React.FC<NodeResourceFormProps> = ({
           dataTestId="node-resource-type-select"
           isFullWidth
           options={[
-            ...Object.values(IdentifierResourceType).map((v) => ({
-              key: v,
-              label: v,
-            })),
+            ...Object.values(IdentifierResourceType).map(
+              (v): SimpleSelectOption => ({
+                key: v,
+                label: v,
+              }),
+            ),
             { key: 'Other', label: 'Other' },
           ]}
           value={identifier.resourceType || 'Other'}
