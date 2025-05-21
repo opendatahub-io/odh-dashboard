@@ -557,6 +557,9 @@ export type InferenceServiceKind = K8sResourceCommon & {
   };
 };
 
+export const isInferenceServiceKind = (obj: K8sResourceCommon): obj is InferenceServiceKind =>
+  obj.kind === 'InferenceService';
+
 export type RoleBindingSubject = {
   kind: string;
   apiGroup?: string;
