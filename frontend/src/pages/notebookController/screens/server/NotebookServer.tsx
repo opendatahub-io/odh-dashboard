@@ -42,7 +42,7 @@ const NotebookServer: React.FC = () => {
     [requestNotebookRefresh, navigate],
   );
 
-  const handleStopWorkbenches = () => {
+  const handleStopWorkbenches = React.useCallback(() => {
     setIsDeleting(true);
     stopWorkbenches(notebooksToStop, isAdmin)
       .then(() => {
@@ -57,13 +57,15 @@ const NotebookServer: React.FC = () => {
           e.message,
         );
       });
-  };
+  }, [isAdmin, notebooksToStop, notification, onNotebooksStop]);
 
   const link = currentUserNotebookLink || '#';
 
-  if (notebooksToStop.length && !showModal) {
-    handleStopWorkbenches();
-  }
+  React.useEffect(() => {
+    if (notebooksToStop.length && !showModal) {
+      handleStopWorkbenches();
+    }
+  }, [notebooksToStop.length, showModal, handleStopWorkbenches]);
 
   return (
     <>

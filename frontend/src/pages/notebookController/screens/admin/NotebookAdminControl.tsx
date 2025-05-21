@@ -54,7 +54,7 @@ const NotebookAdminControl: React.FC = () => {
     [serverStatuses],
   );
 
-  const handleStopWorkbenches = () => {
+  const handleStopWorkbenches = React.useCallback(() => {
     setIsDeleting(true);
     stopWorkbenches(notebooksToStop, isAdmin)
       .then(() => {
@@ -69,11 +69,13 @@ const NotebookAdminControl: React.FC = () => {
           e.message,
         );
       });
-  };
+  }, [isAdmin, notebooksToStop, notification, onNotebooksStop]);
 
-  if (notebooksToStop.length && !showModal) {
-    handleStopWorkbenches();
-  }
+  React.useEffect(() => {
+    if (notebooksToStop.length && !showModal) {
+      handleStopWorkbenches();
+    }
+  }, [notebooksToStop.length, showModal, handleStopWorkbenches]);
 
   return (
     <ApplicationsPage
