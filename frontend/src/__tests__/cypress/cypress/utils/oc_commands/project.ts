@@ -43,24 +43,22 @@ export const deleteOpenShiftProject = (
   const { timeout, wait = true } = options;
   const waitFlag = wait ? '' : '--wait=false';
   const ocCommand = `oc delete project ${projectName} ${waitFlag}`.trim();
-  
+
   // Only apply timeout if we're waiting for the deletion
-  const execOptions = { 
+  const execOptions = {
     failOnNonZeroExit: false,
-    ...(wait && timeout && { timeout })
+    ...(wait && timeout && { timeout }),
   };
 
-  return cy
-    .exec(ocCommand, execOptions)
-    .then((result) => {
-      if (result.code !== 0) {
-        cy.log(`ERROR deleting ${projectName} Project
+  return cy.exec(ocCommand, execOptions).then((result) => {
+    if (result.code !== 0) {
+      cy.log(`ERROR deleting ${projectName} Project
                 stdout: ${result.stdout}
                 stderr: ${result.stderr}`);
-        throw new Error(`Command failed with code ${result.code}`);
-      }
-      return result;
-    });
+      throw new Error(`Command failed with code ${result.code}`);
+    }
+    return result;
+  });
 };
 
 /**

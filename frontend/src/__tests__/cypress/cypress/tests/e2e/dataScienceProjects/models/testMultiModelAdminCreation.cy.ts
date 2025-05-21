@@ -61,7 +61,7 @@ describe('Verify Admin Multi Model Creation and Validation using the UI', () => 
     //Check if the Before Method was executed to perform the setup
     if (!wasSetupPerformed()) return;
 
-    deleteOpenShiftProject(projectName, {  wait: false });
+    deleteOpenShiftProject(projectName, { wait: false });
   });
 
   it(
