@@ -4,10 +4,14 @@ import type {
   ModelServingPlatformExtension,
   ModelServingDeploymentsTableExtension,
 } from '@odh-dashboard/model-serving/extension-points';
+import { KServeDeployment } from './src/deployments';
 
 export const KSERVE_ID = 'kserve';
 
-const extensions: (ModelServingPlatformExtension | ModelServingDeploymentsTableExtension)[] = [
+const extensions: (
+  | ModelServingPlatformExtension<KServeDeployment>
+  | ModelServingDeploymentsTableExtension<KServeDeployment>
+)[] = [
   {
     type: 'model-serving.platform',
     properties: {
@@ -39,7 +43,6 @@ const extensions: (ModelServingPlatformExtension | ModelServingDeploymentsTableE
     properties: {
       platform: KSERVE_ID,
       columns: () => import('./src/deploymentsTable').then((m) => m.columns),
-      cellRenderer: () => import('./src/deploymentsTable').then((m) => m.cellRenderer),
     },
   },
 ];

@@ -10,7 +10,11 @@ import ResourceTr from '@odh-dashboard/internal/components/ResourceTr';
 import { ActionsColumn, Td } from '@patternfly/react-table';
 import { useResolvedPlatformExtension } from '../../concepts/extensionUtils';
 import { ModelServingPlatform } from '../../concepts/modelServingPlatforms';
-import { Deployment, isModelServingDeploymentsTableExtension } from '../../../extension-points';
+import {
+  Deployment,
+  DeploymentsTableColumn,
+  isModelServingDeploymentsTableExtension,
+} from '../../../extension-points';
 
 const genericColumns: SortableData<Deployment>[] = [
   // Platform can enable expanded view of the deployment
@@ -44,9 +48,8 @@ const genericColumns: SortableData<Deployment>[] = [
 
 const DeploymentRow: React.FC<{
   deployment: Deployment;
-  platformColumns: SortableData<Deployment>[];
-  cellRenderer?: (deployment: Deployment, column: string) => string;
-}> = ({ deployment, platformColumns, cellRenderer }) => (
+  platformColumns: DeploymentsTableColumn[];
+}> = ({ deployment, platformColumns }) => (
   <ResourceTr resource={deployment.model}>
     <Td dataLabel="Name">
       <TableRowTitleDescription
@@ -56,7 +59,7 @@ const DeploymentRow: React.FC<{
     </Td>
     {platformColumns.map((column) => (
       <Td key={column.field} dataLabel={column.label}>
-        {cellRenderer ? cellRenderer(deployment, column.field) : '-'}
+        {column.cellRenderer(deployment, column.field)}
       </Td>
     ))}
     <Td dataLabel="Inference endpoint">-</Td>
@@ -94,7 +97,6 @@ const DeploymentsTable: React.FC<{
           key={row.model.metadata?.name}
           deployment={row}
           platformColumns={platformColumns}
-          cellRenderer={tableExtension?.properties.cellRenderer}
         />
       )}
     />

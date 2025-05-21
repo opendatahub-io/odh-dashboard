@@ -1,3 +1,4 @@
+import React from 'react';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import {
   InferenceServiceKind,
@@ -28,7 +29,7 @@ export const isKServeDeployment = (
 export const useWatchDeployments = (
   project: ProjectKind,
   opts?: K8sAPIOptions,
-): [Deployment[] | undefined, boolean, Error | undefined] => {
+): [KServeDeployment[] | undefined, boolean, Error | undefined] => {
   const [inferenceServiceList, inferenceServiceLoaded, inferenceServiceError]: CustomWatchK8sResult<
     InferenceServiceKind[]
   > = useK8sWatchResourceList<InferenceServiceKind[]>(
@@ -53,14 +54,18 @@ export const useWatchDeployments = (
     opts,
   );
 
-  const deployments: KServeDeployment[] = inferenceServiceList.map((inferenceService) => ({
-    modelServingPlatformId: KSERVE_ID,
-    model: inferenceService,
-    server: servingRuntimeList.find(
-      (servingRuntime) =>
-        servingRuntime.metadata.name === inferenceService.spec.predictor.model?.runtime,
-    ),
-  }));
+  const deployments: KServeDeployment[] = React.useMemo(
+    () =>
+      inferenceServiceList.map((inferenceService) => ({
+        modelServingPlatformId: KSERVE_ID,
+        model: inferenceService,
+        server: servingRuntimeList.find(
+          (servingRuntime) =>
+            servingRuntime.metadata.name === inferenceService.spec.predictor.model?.runtime,
+        ),
+      })),
+    [inferenceServiceList, servingRuntimeList],
+  );
 
   return [
     deployments,
