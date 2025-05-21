@@ -363,11 +363,11 @@ describe('Project Details', () => {
     }
   };
 
-  beforeEach(() => {
-    initModelServingIntercepts({});
-  });
-
   describe('Empty project details', () => {
+    beforeEach(() => {
+      initModelServingIntercepts({});
+    });
+
     it('Empty state component in project details', () => {
       initIntercepts({ isEmpty: true });
       projectDetails.visit('test-project');
@@ -552,6 +552,10 @@ describe('Project Details', () => {
   });
 
   describe('No empty project details', () => {
+    beforeEach(() => {
+      initModelServingIntercepts({});
+    });
+
     it('No empty state components in the project details', () => {
       initIntercepts({});
       projectDetails.visit('test-project');
@@ -645,6 +649,7 @@ describe('Project Details', () => {
 
   describe('Selecting a model serving platform', () => {
     it('Select single-model serving on models tab', () => {
+      initModelServingIntercepts({});
       initIntercepts({ disableKServeConfig: false, disableModelConfig: false });
       projectDetails.visitSection('test-project', 'model-server');
       projectDetails.findSelectPlatformButton('single').click();
@@ -671,6 +676,7 @@ describe('Project Details', () => {
     });
 
     it('Select multi-model serving on models tab', () => {
+      initModelServingIntercepts({});
       initIntercepts({
         disableKServeConfig: false,
         disableModelConfig: false,
@@ -685,6 +691,7 @@ describe('Project Details', () => {
     });
 
     it('Un-select multi-model serving on models tab', () => {
+      initModelServingIntercepts({});
       initIntercepts({
         disableKServeConfig: false,
         disableModelConfig: false,
@@ -701,6 +708,7 @@ describe('Project Details', () => {
     });
 
     it('Select NIM serving on models tab', () => {
+      initModelServingIntercepts({});
       initIntercepts({
         disableKServeConfig: false,
         disableModelConfig: false,
@@ -716,6 +724,7 @@ describe('Project Details', () => {
     });
 
     it('Un-select NIM serving on models tab', () => {
+      initModelServingIntercepts({});
       initIntercepts({
         disableKServeConfig: false,
         disableModelConfig: false,
@@ -734,6 +743,7 @@ describe('Project Details', () => {
     });
 
     it('Show error when failed to select platform on overview tab', () => {
+      initModelServingIntercepts({});
       initIntercepts({
         disableKServeConfig: false,
         disableModelConfig: false,
@@ -758,6 +768,7 @@ describe('Project Details', () => {
     });
 
     it('Select single-model serving on overview tab', () => {
+      initModelServingIntercepts({});
       initIntercepts({ disableKServeConfig: false, disableModelConfig: false });
       projectDetails.visitSection('test-project', 'overview');
       projectDetails.findSelectPlatformButton('single').click();
@@ -785,6 +796,7 @@ describe('Project Details', () => {
     });
 
     it('Select multi-model serving on overview tab', () => {
+      initModelServingIntercepts({});
       initIntercepts({
         disableKServeConfig: false,
         disableModelConfig: false,
@@ -815,6 +827,7 @@ describe('Project Details', () => {
     });
 
     it('Select NIM serving on overview tab', () => {
+      initModelServingIntercepts({});
       initIntercepts({
         disableKServeConfig: false,
         disableModelConfig: false,
@@ -880,6 +893,7 @@ describe('Project Details', () => {
         isNonDashboardItem: true,
       });
 
+      initModelServingIntercepts({});
       initIntercepts({
         disableKServeConfig: false,
         disableModelConfig: false,
@@ -940,6 +954,10 @@ describe('Project Details', () => {
   });
 
   describe('Navigating back to model registry after selecting a platform', () => {
+    beforeEach(() => {
+      initModelServingIntercepts({});
+    });
+
     it('Navigate back after choosing single-model serving from models tab', () => {
       initIntercepts({
         disableKServeConfig: false,
@@ -1049,6 +1067,7 @@ describe('Project Details', () => {
       initIntercepts({
         disableWorkbenches: true,
       });
+      initModelServingIntercepts({});
     });
 
     it('should hide workbench tab when workbenches are disabled', () => {
