@@ -54,7 +54,7 @@ describe(
       if (!wasSetupPerformed()) return;
 
       // Delete provisioned Project - 5 min timeout to accomadate increased time to delete a project with a model
-      deleteOpenShiftProject(projectName, { timeout: 300000 });
+      deleteOpenShiftProject(projectName, { wait: false });
     });
 
     it(

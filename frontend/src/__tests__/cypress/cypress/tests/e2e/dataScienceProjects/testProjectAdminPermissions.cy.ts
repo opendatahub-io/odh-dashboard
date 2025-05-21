@@ -43,7 +43,7 @@ describe('Verify that users can provide admin project permissions to non-admin u
     // Delete provisioned Project
     if (projectName) {
       cy.log(`Deleting Project ${projectName} after the test has finished.`);
-      deleteOpenShiftProject(projectName);
+      deleteOpenShiftProject(projectName, { wait: false });
     }
   });
 
