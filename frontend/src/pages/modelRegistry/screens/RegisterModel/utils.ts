@@ -120,7 +120,9 @@ export const registerVersion = async (
               region: formData.modelLocationRegion,
               path: formData.modelLocationPath,
             }) || '' // We'll only hit this case if required fields are empty strings, so form validation should catch it.
-          : formData.modelLocationURI,
+          : formData.modelLocationType === ModelLocationType.URI
+          ? formData.modelLocationURI
+          : formData.modelLocationOCI,
       artifactType: 'model-artifact',
     };
     modelArtifact = await apiState.api.createModelArtifactForModelVersion(
@@ -142,6 +144,7 @@ const isSubmitDisabledForCommonFields = (formData: RegistrationCommonFormData): 
     versionName,
     modelLocationType,
     modelLocationURI,
+    modelLocationOCI,
     modelLocationBucket,
     modelLocationEndpoint,
     modelLocationPath,
@@ -149,6 +152,7 @@ const isSubmitDisabledForCommonFields = (formData: RegistrationCommonFormData): 
   return (
     !versionName ||
     (modelLocationType === ModelLocationType.URI && !modelLocationURI) ||
+    (modelLocationType === ModelLocationType.OCI && !modelLocationOCI) ||
     (modelLocationType === ModelLocationType.ObjectStorage &&
       (!modelLocationBucket || !modelLocationEndpoint || !modelLocationPath)) ||
     !isNameValid(versionName)

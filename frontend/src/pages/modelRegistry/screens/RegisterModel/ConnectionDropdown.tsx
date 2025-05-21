@@ -32,10 +32,14 @@ export const ConnectionDropdown = ({
     setIsOpen(!isOpen);
   };
 
-  const filteredConnections =
-    type === ModelLocationType.ObjectStorage
-      ? connections.filter((c) => c.data?.AWS_S3_BUCKET)
-      : connections.filter((c) => c.data?.URI);
+  const typeToKey: Record<ModelLocationType, string> = {
+    [ModelLocationType.ObjectStorage]: 'AWS_S3_BUCKET',
+    [ModelLocationType.URI]: 'URI',
+    [ModelLocationType.OCI]: 'OCI_HOST',
+  };
+
+  const filterKey = typeToKey[type];
+  const filteredConnections = filterKey ? connections.filter((c) => c.data?.[filterKey]) : [];
 
   const getToggleContent = () => {
     if (!project) {
@@ -89,7 +93,6 @@ export const ConnectionDropdown = ({
         </MenuToggle>
       )}
       isOpen={isOpen}
-      popperProps={{ appendTo: 'inline' }}
     >
       <Menu onSelect={onSelectConnection} isScrollable isPlain>
         <MenuContent>
