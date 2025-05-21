@@ -2,12 +2,12 @@ import * as React from 'react';
 import {
   Form,
   getUniqueId,
-  Stack,
-  StackItem,
   Modal,
   ModalBody,
   ModalFooter,
   ModalHeader,
+  Stack,
+  StackItem,
 } from '@patternfly/react-core';
 import { EitherOrNone } from '@openshift/dynamic-plugin-sdk';
 import {
@@ -143,7 +143,6 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
     editInfo?.servingRuntimeEditInfo?.servingRuntime,
   );
 
-  const isStorageClassesAvailable = useIsAreaAvailable(SupportedArea.STORAGE_CLASSES).status;
   const [defaultSc] = useAdminDefaultStorageClass();
   const defaultStorageClassName = defaultSc?.metadata.name || '';
   const deployedStorageClassName = pvc?.spec.storageClassName || '';
@@ -379,14 +378,12 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
               </StackItem>
             </StackItem>
             <StackItem>
-              {isStorageClassesAvailable && (
-                <StorageClassSelect
-                  storageClassName={storageClassName}
-                  setStorageClassName={setStorageClassName}
-                  isRequired
-                  disableStorageClassSelect={!!editInfo}
-                />
-              )}
+              <StorageClassSelect
+                storageClassName={storageClassName}
+                setStorageClassName={setStorageClassName}
+                isRequired
+                disableStorageClassSelect={!!editInfo}
+              />
             </StackItem>
             <StackItem>
               <NIMPVCSizeSection pvcSize={pvcSize} setPvcSize={setPvcSize} />
