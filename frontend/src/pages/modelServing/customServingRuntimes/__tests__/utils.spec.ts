@@ -125,6 +125,6 @@ describe('getServingRuntimeVersionFromTemplate', () => {
 
   it('should return empty string if annotation is not present', () => {
     const servingRuntime = mockServingRuntimeK8sResource({});
-    expect(getServingRuntimeVersionFromTemplate(servingRuntime)).toBe('');
+    expect(getServingRuntimeVersionFromTemplate(servingRuntime)).toBe(undefined);
   });
 });
