@@ -6,7 +6,7 @@ import {
   getMlmdExecutionState,
   options,
 } from '~/pages/pipelines/global/experiments/executions/const';
-import SimpleSelect from '~/components/SimpleSelect';
+import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
 import { ExecutionStatus, ExecutionType } from '~/concepts/pipelines/kfTypes';
 import { useMlmdListContext } from '~/concepts/pipelines/context';
 
@@ -86,10 +86,12 @@ const ExecutionsTableToolbar: React.FC<ExecutionsTableToolbarProps> = ({
             {...props}
             value={value ?? ''}
             aria-label="Search type"
-            options={Object.values(ExecutionType).map((v) => ({
-              key: v,
-              label: v,
-            }))}
+            options={Object.values(ExecutionType).map(
+              (v): SimpleSelectOption => ({
+                key: v,
+                label: v,
+              }),
+            )}
             onChange={(v) => onChange(v)}
             popperProps={{ maxWidth: undefined }}
           />
@@ -99,10 +101,12 @@ const ExecutionsTableToolbar: React.FC<ExecutionsTableToolbarProps> = ({
             {...props}
             value={value ?? ''}
             aria-label="Search status"
-            options={Object.values(ExecutionStatus).map((v) => ({
-              key: v,
-              label: v,
-            }))}
+            options={Object.values(ExecutionStatus).map(
+              (v): SimpleSelectOption => ({
+                key: v,
+                label: v,
+              }),
+            )}
             onChange={(v) => onChange(v)}
             popperProps={{ maxWidth: undefined }}
           />
