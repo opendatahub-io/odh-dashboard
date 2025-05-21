@@ -6,6 +6,7 @@ import { ServingRuntimeKind } from '~/k8sTypes';
 import {
   getDisplayNameFromServingRuntimeTemplate,
   getEnabledPlatformsFromTemplate,
+  getServingRuntimeVersionFromTemplate,
   getTemplateEnabledForPlatform,
 } from '~/pages/modelServing/customServingRuntimes/utils';
 import { ServingRuntimePlatform } from '~/types';
@@ -110,5 +111,20 @@ describe('getEnabledPlatformsFromTemplate', () => {
       ServingRuntimePlatform.SINGLE,
       ServingRuntimePlatform.MULTI,
     ]);
+  });
+});
+
+describe('getServingRuntimeVersionFromTemplate', () => {
+  it('should return the version from the annotation', () => {
+    const servingRuntime = mockServingRuntimeK8sResource({});
+    servingRuntime.metadata.annotations = {
+      'opendatahub.io/runtime-version': '1.0.0',
+    };
+    expect(getServingRuntimeVersionFromTemplate(servingRuntime)).toBe('1.0.0');
+  });
+
+  it('should return empty string if annotation is not present', () => {
+    const servingRuntime = mockServingRuntimeK8sResource({});
+    expect(getServingRuntimeVersionFromTemplate(servingRuntime)).toBe(undefined);
   });
 });
