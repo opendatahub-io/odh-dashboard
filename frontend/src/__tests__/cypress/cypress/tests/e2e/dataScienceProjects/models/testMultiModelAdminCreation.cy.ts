@@ -139,6 +139,10 @@ describe('Verify Admin Multi Model Creation and Validation using the UI', () => 
         checkReady: true,
         checkLatestDeploymentReady: false,
       });
+      // Usually it takes a little longer to load the status tooltip, so it's faster to Reload the page
+      cy.reload();
+      modelMeshRow.findDeployedModelExpansionButton().click();
+      // Click the status tooltip
       attemptToClickTooltip();
 
       //Verify the Model is accessible externally
