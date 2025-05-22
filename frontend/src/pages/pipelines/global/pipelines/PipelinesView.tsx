@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { Bullseye, Spinner } from '@patternfly/react-core';
 import GlobalNoPipelines from '#~/pages/pipelines/global/pipelines/GlobalNoPipelines';
 import PipelinesTable from '#~/concepts/pipelines/content/tables/pipeline/PipelinesTable';
 import EmptyStateErrorMessage from '#~/components/EmptyStateErrorMessage';
@@ -30,6 +29,7 @@ const PipelinesView: React.FC = () => {
   if (!loaded && !initialLoaded) {
     return (
       <Bullseye>
+        Pipeline is loading
         <Spinner />
       </Bullseye>
     );

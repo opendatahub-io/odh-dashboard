@@ -1,18 +1,18 @@
 import * as React from 'react';
 import { DSPipelineKind } from '#~/k8sTypes';
 import { getPipelinesCR, listPipelinesCR } from '#~/api';
-import useFetchState, { FetchState, FetchStateCallbackPromise } from '#~/utilities/useFetchState';
+import useFetchState, {   FetchStateWithStarting,, FetchStateCallbackPromise } from '#~/utilities/useFetchState';
 import { FAST_POLL_INTERVAL, SERVER_TIMEOUT } from '#~/utilities/const';
 
 type State = DSPipelineKind | null;
 
-export const dspaLoaded = ([state, loaded]: FetchState<State>): boolean =>
+export const dspaLoaded = ([state, loaded]: FetchStateWithStarting<State>): boolean =>
   loaded &&
   !!state &&
   !!state.status?.conditions?.find((c) => c.type === 'APIServerReady' && c.status === 'True');
 
 export const hasServerTimedOut = (
-  [state, loaded]: FetchState<State>,
+  [state, loaded]: FetchStateWithStarting<State>,
   isDspaLoaded: boolean,
 ): boolean => {
   if (!state || !loaded || isDspaLoaded) {
@@ -28,12 +28,13 @@ export const hasServerTimedOut = (
   return Date.now() - new Date(createTime).getTime() > SERVER_TIMEOUT;
 };
 
-const usePipelineNamespaceCR = (namespace: string): FetchState<State> => {
+const usePipelineNamespaceCR = (namespace: string): FetchStateWithStarting<State> => {
   const [name, setName] = React.useState<string>();
   const callback = React.useCallback<FetchStateCallbackPromise<State>>(
     (opts) => {
       if (name) {
         return getPipelinesCR(namespace, name, opts).catch((e) => {
+          console.log('frust: 44a: getPipelinesCR error', e);
           if (e.statusObject?.code === 404) {
             setName(undefined);
             return null;
@@ -44,6 +45,7 @@ const usePipelineNamespaceCR = (namespace: string): FetchState<State> => {
       }
 
       return listPipelinesCR(namespace, opts).then((r) => {
+        console.log('frust: 44a: listPipelinesCR (r)', r);
         if (r.length > 0) {
           setName(r[0].metadata.name);
           return r[0];
@@ -57,18 +59,25 @@ const usePipelineNamespaceCR = (namespace: string): FetchState<State> => {
 
   const [isStarting, setIsStarting] = React.useState(false);
 
+  // state is an array here
   const state = useFetchState<State>(callback, null, {
     initialPromisePurity: true,
     refreshRate: isStarting ? FAST_POLL_INTERVAL : undefined,
   });
 
   const resourceLoaded = state[1] && !!state[0];
-  const hasStatus = dspaLoaded(state);
-  React.useEffect(() => {
-    setIsStarting(resourceLoaded && !hasStatus);
-  }, [hasStatus, resourceLoaded]);
+  const pipelineApiServerReady = dspaLoaded(state);
 
-  return state;
+  React.useEffect(() => {
+    setIsStarting(resourceLoaded && !pipelineApiServerReady);
+  }, [pipelineApiServerReady, resourceLoaded]);
+
+  console.log('bar-45a: is it starting???', isStarting);
+
+  console.log('foo-45a: has status???', pipelineApiServerReady);
+
+  console.log('45a: state', state);
+  return [...state, isStarting];
 };
 
 export default usePipelineNamespaceCR;

@@ -9,6 +9,7 @@ import {
   ModalHeader,
   ModalFooter,
 } from '@patternfly/react-core';
+import { JILL_EMPTY_AWS_PIPELINE_DATA } from '#~/pages/projects/dataConnections/privateConst';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { createPipelinesCR, deleteSecret } from '#~/api';
 import { EMPTY_AWS_PIPELINE_DATA } from '#~/pages/projects/dataConnections/const';
@@ -34,7 +35,7 @@ type ConfigurePipelinesServerModalProps = {
 
 const FORM_DEFAULTS: PipelineServerConfigType = {
   database: { useDefault: true, value: EMPTY_DATABASE_CONNECTION },
-  objectStorage: { newValue: EMPTY_AWS_PIPELINE_DATA },
+  objectStorage: { newValue: JILL_EMPTY_AWS_PIPELINE_DATA },
   enableInstructLab: false,
 };
 
@@ -91,8 +92,10 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
 
     configureDSPipelineResourceSpec(configureConfig, project.metadata.name)
       .then((spec) => {
+        console.log('44a (pipeline modal) spec', spec);
         createPipelinesCR(namespace, spec)
           .then(() => {
+            console.log('44a (pipeline modal) createPipelinesCR success', namespace, spec);
             onBeforeClose();
             fireFormTrackingEvent(serverConfiguredEvent, {
               outcome: TrackingOutcome.submit,

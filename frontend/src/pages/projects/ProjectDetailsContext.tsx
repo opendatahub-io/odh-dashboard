@@ -164,7 +164,8 @@ const ProjectDetailsContextProvider: React.FC = () => {
       />
     );
   }
-
+  console.log('44a: pipelines enabled?', pipelinesEnabled);
+  // TODO LOOK HERE
   return (
     <ProjectDetailsContext.Provider value={contextValue}>
       {pipelinesEnabled ? (

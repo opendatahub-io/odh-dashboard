@@ -61,6 +61,7 @@ const ManageSamplePipelinesModal: React.FC<ManageSamplePipelinesModalProps> = ({
       managedPipelines ? { ...managedPipelines, ...instructLabStatus } : instructLabStatus,
     )
       .then((dspa) => {
+        console.log('44a-bc dspa', dspa);
         const isEnabled = dspa.spec.apiServer?.managedPipelines?.instructLab?.state === 'Managed';
         if (isEnabled) {
           notification.info('Restarting pipeline server');
