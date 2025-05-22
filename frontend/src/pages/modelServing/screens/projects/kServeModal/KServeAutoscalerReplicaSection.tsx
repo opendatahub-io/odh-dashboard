@@ -26,7 +26,7 @@ const KServeAutoscalerReplicaSection: React.FC<KServeAutoscalerReplicaSectionPro
       }
     }}
     value={data.minReplicas}
-    isRaw={!!data.isKServeRawDeployment}
+    showMinMax={!!data.isKServeRawDeployment}
     maxValue={data.maxReplicas}
     onMaxChange={(value) => {
       setData('maxReplicas', value);

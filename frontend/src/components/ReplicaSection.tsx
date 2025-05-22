@@ -4,30 +4,29 @@ import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import NumberInputWrapper from '~/components/NumberInputWrapper';
 import { normalizeBetween } from '~/utilities/utils';
 
-const MIN_SIZE = 0;
-const MAX_SIZE = 999;
-const ADVANCED_MAX_SIZE = 99;
+const lowerLimit = 0;
+const upperLimit = 99;
 
 type ReplicaSectionProps = {
   value: number;
   onChange: (value: number) => void;
   infoContent?: string;
   isRequired?: boolean;
-  isRaw: boolean;
+  showMinMax: boolean;
   maxValue: number;
   onMaxChange?: (value: number) => void;
 };
 
-const ReplicaSection: React.FC<ReplicaSectionProps> = ({
+const ReplicaFormGroup: React.FC<ReplicaSectionProps> = ({
   value,
   onChange,
   infoContent,
   isRequired = false,
-  isRaw = true,
+  showMinMax = true,
   maxValue,
   onMaxChange,
 }) => {
-  const maxLimit = isRaw ? MAX_SIZE : maxValue;
+  const maxLimit = showMinMax ? upperLimit : maxValue;
 
   return (
     <FormGroup
@@ -47,40 +46,40 @@ const ReplicaSection: React.FC<ReplicaSectionProps> = ({
     >
       <Flex>
         <FlexItem>
-          {!isRaw && (
+          {!showMinMax && (
             <FormGroup
               label={<span style={{ fontWeight: 'normal' }}>Minimum replicas</span>}
               fieldId="min-replicas"
               data-testid="min-replicas"
             >
               <NumberInputWrapper
-                min={MIN_SIZE}
+                min={lowerLimit}
                 max={maxLimit}
                 value={value}
                 onChange={(val) => {
                   const newSize = val === undefined ? 0 : Number(val);
                   if (!Number.isNaN(newSize) && newSize <= maxLimit) {
-                    onChange(normalizeBetween(newSize, MIN_SIZE, maxLimit));
+                    onChange(normalizeBetween(newSize, lowerLimit, maxLimit));
                   }
                 }}
               />
             </FormGroup>
           )}
-          {isRaw && (
+          {showMinMax && (
             <NumberInputWrapper
-              min={MIN_SIZE}
-              max={MAX_SIZE}
+              min={lowerLimit}
+              max={upperLimit}
               value={value}
               onChange={(val) => {
                 const newSize = val === undefined ? 0 : Number(val);
-                if (!Number.isNaN(newSize) && newSize <= MAX_SIZE) {
-                  onChange(normalizeBetween(newSize, MIN_SIZE, MAX_SIZE));
+                if (!Number.isNaN(newSize) && newSize <= upperLimit) {
+                  onChange(normalizeBetween(newSize, lowerLimit, upperLimit));
                 }
               }}
             />
           )}
         </FlexItem>
-        {!isRaw && onMaxChange && (
+        {!showMinMax && onMaxChange && (
           <FlexItem>
             <FormGroup
               label={<span style={{ fontWeight: 'normal' }}>Maximum replicas</span>}
@@ -89,12 +88,12 @@ const ReplicaSection: React.FC<ReplicaSectionProps> = ({
             >
               <NumberInputWrapper
                 min={value}
-                max={ADVANCED_MAX_SIZE}
+                max={upperLimit}
                 value={maxValue}
                 onChange={(val) => {
                   const newSize = val === undefined ? 0 : Number(val);
-                  if (!Number.isNaN(newSize) && newSize <= ADVANCED_MAX_SIZE && newSize >= value) {
-                    onMaxChange(normalizeBetween(newSize, value, ADVANCED_MAX_SIZE));
+                  if (!Number.isNaN(newSize) && newSize <= upperLimit && newSize >= value) {
+                    onMaxChange(normalizeBetween(newSize, value, upperLimit));
                   }
                 }}
               />
@@ -106,4 +105,4 @@ const ReplicaSection: React.FC<ReplicaSectionProps> = ({
   );
 };
 
-export default ReplicaSection;
+export default ReplicaFormGroup;

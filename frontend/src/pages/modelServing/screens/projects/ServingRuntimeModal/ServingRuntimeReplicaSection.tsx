@@ -20,7 +20,7 @@ const ServingRuntimeReplicaSection: React.FC<ServingRuntimeReplicaSectionProps> 
       infoContent={infoContent}
       onChange={(value) => setData('numReplicas', value)}
       value={data.numReplicas}
-      isRaw
+      showMinMax
       maxValue={data.numReplicas}
     />
   </FormSection>
