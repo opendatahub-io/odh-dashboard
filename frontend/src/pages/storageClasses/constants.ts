@@ -146,7 +146,5 @@ export const provisionerAccessModes: Record<StorageProvisioner, AccessMode[]> = 
   [StorageProvisioner.CEPHFS_CSI]: [AccessMode.RWO, AccessMode.RWX, AccessMode.ROX, AccessMode.RWOP],
   [StorageProvisioner.RBD_CSI]: [AccessMode.RWO, AccessMode.ROX, AccessMode.RWOP],
   [StorageProvisioner.FILE_CSI_AZURE]: [AccessMode.RWO, AccessMode.RWX, AccessMode.ROX, AccessMode.RWOP]
-} as const;
-
-export type ProvisionerAccessModes = typeof provisionerAccessModes; 
+}
 
