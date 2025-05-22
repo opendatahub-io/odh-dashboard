@@ -2,11 +2,11 @@ import { merge } from 'lodash-es';
 import { act } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { testHook } from '~/__tests__/unit/testUtils/hooks';
-import useDevFeatureFlags from '~/app/useDevFeatureFlags';
-import { useBrowserStorage } from '~/components/browserStorage/BrowserStorageContext';
+import useDevFeatureFlags from '~/app/FeatureFlags/useDevFeatureFlags';
 import { allFeatureFlags } from '~/concepts/areas/const';
 import { DashboardCommonConfig, DashboardConfigKind } from '~/k8sTypes';
 import axios from '~/utilities/axios';
+import { useBrowserStorage } from '~/components/browserStorage/BrowserStorageContext';
 
 jest.mock('react-router-dom', () => ({
   useSearchParams: jest.fn(() => [
@@ -34,8 +34,17 @@ const useBrowserStorageMock = jest.mocked(useBrowserStorage);
 
 const mockSession = (sessionFlags: Partial<DashboardCommonConfig> | null) => {
   const setSessionFn = jest.fn();
-  useBrowserStorageMock.mockReturnValue([sessionFlags, setSessionFn]);
+  useBrowserStorageMock
+    .mockReturnValueOnce([sessionFlags, setSessionFn]) // first call
+    .mockReturnValueOnce([false, jest.fn()]);
+
   return { sessionFlags, setSessionFn };
+};
+
+const mockNoSession = () => {
+  useBrowserStorageMock
+    .mockReturnValueOnce([null, jest.fn()])
+    .mockReturnValueOnce([false, jest.fn()]);
 };
 
 const mockUseSearchParams = (queryFlags: { [key in string]: boolean } | null | boolean) => {
@@ -68,8 +77,9 @@ const mockUseSearchParams = (queryFlags: { [key in string]: boolean } | null | b
 
 describe('useDevFeatureFlags', () => {
   it('should pass through dashboardConfig if no dev feature flags set', () => {
+    mockNoSession();
     const dashboardConfig = {
-      spec: { dashboardConfig: { disableAppLauncher: true } },
+      spec: { dashboardConfig: {} },
     } as DashboardConfigKind;
     const renderResult = testHook(useDevFeatureFlags)(dashboardConfig);
     expect(renderResult.result.current.dashboardConfig).toBe(dashboardConfig);
@@ -79,6 +89,7 @@ describe('useDevFeatureFlags', () => {
       resetDevFeatureFlags: expect.any(Function),
       setDevFeatureFlag: expect.any(Function),
       setDevFeatureFlagQueryVisible: expect.any(Function),
+      isBannerVisible: false,
     });
   });
 
@@ -97,6 +108,7 @@ describe('useDevFeatureFlags', () => {
       resetDevFeatureFlags: expect.any(Function),
       setDevFeatureFlag: expect.any(Function),
       setDevFeatureFlagQueryVisible: expect.any(Function),
+      isBannerVisible: false,
     });
 
     expect(axiosMock.defaults.headers.common['x-odh-feature-flags']).toEqual(
@@ -147,6 +159,7 @@ describe('useDevFeatureFlags', () => {
       resetDevFeatureFlags: expect.any(Function),
       setDevFeatureFlag: expect.any(Function),
       setDevFeatureFlagQueryVisible: expect.any(Function),
+      isBannerVisible: false,
     });
 
     expect(searchParams.delete).toHaveBeenCalledWith('devFeatureFlags');
@@ -161,8 +174,9 @@ describe('useDevFeatureFlags', () => {
     });
   });
 
-  it('should load flags from query string with true', () => {
+  it('should set all flags to false when devFeatureFlags=true', () => {
     mockUseSearchParams(true);
+    mockNoSession();
     const dashboardConfig = {
       spec: { dashboardConfig: { disableAppLauncher: true } },
     } as DashboardConfigKind;
@@ -184,11 +198,13 @@ describe('useDevFeatureFlags', () => {
       resetDevFeatureFlags: expect.any(Function),
       setDevFeatureFlag: expect.any(Function),
       setDevFeatureFlagQueryVisible: expect.any(Function),
+      isBannerVisible: false,
     });
   });
 
-  it('should load flags from query string with true', () => {
+  it('should set all flags to true when devFeatureFlags=false', () => {
     mockUseSearchParams(false);
+    mockNoSession();
     const dashboardConfig = {
       spec: { dashboardConfig: { disableAppLauncher: false } },
     } as DashboardConfigKind;
@@ -210,6 +226,7 @@ describe('useDevFeatureFlags', () => {
       resetDevFeatureFlags: expect.any(Function),
       setDevFeatureFlag: expect.any(Function),
       setDevFeatureFlagQueryVisible: expect.any(Function),
+      isBannerVisible: false,
     });
   });
 });

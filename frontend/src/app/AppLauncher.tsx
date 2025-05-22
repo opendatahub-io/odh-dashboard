@@ -128,7 +128,7 @@ const AppLauncher: React.FC = () => {
   const renderApplicationLauncherGroup = (section: Section, sectionIndex: number) => {
     const appItems = section.actions.map((action) => (
       <DropdownItem
-        className="odh-app-launcher__dropdown-item"
+        className="odh-launcher__dropdown-item"
         data-testid="application-launcher-item"
         isExternalLink
         key={action.label}

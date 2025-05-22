@@ -1,11 +1,11 @@
 import * as React from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { useBrowserStorage } from '~/components/browserStorage/BrowserStorageContext';
 import { allFeatureFlags } from '~/concepts/areas/const';
 import { isFeatureFlag } from '~/concepts/areas/utils';
 import { DashboardCommonConfig, DashboardConfigKind } from '~/k8sTypes';
 import { DevFeatureFlags } from '~/types';
 import axios from '~/utilities/axios';
+import { useBrowserStorage } from '~/components/browserStorage/BrowserStorageContext';
 
 const PARAM_NAME = 'devFeatureFlags';
 const SESSION_KEY = 'odh-feature-flags';
@@ -35,6 +35,11 @@ const useDevFeatureFlags = (
     null,
     true,
     true,
+  );
+
+  const [isBannerVisible, setBannerVisible] = useBrowserStorage<boolean>(
+    `odh.dashboard.devFlag.banner`,
+    false,
   );
 
   // only keep valid feature flags
@@ -104,10 +109,12 @@ const useDevFeatureFlags = (
               .join(',')
           : '',
       );
+      setBannerVisible(true);
       setSearchParams(searchParams, { replace: true });
     } else if (searchParams.has(PARAM_NAME)) {
       // clean up query string
       searchParams.delete(PARAM_NAME);
+      setBannerVisible(true);
       setSearchParams(searchParams, { replace: true });
     }
     // do not react to changes in searchParams or setSearchParams
@@ -166,6 +173,7 @@ const useDevFeatureFlags = (
     setDevFeatureFlag,
     resetDevFeatureFlags,
     setDevFeatureFlagQueryVisible,
+    isBannerVisible,
   };
 };
 
