@@ -28,7 +28,7 @@ const LaunchJupyterButton: React.FC = () => {
           navigate('/notebookController');
         }}
       >
-        Create standalone workbench
+        Start basic workbench
       </Button>
     </Tooltip>
   );
