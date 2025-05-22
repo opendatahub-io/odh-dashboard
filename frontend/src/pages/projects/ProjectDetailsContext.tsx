@@ -69,10 +69,7 @@ const ProjectDetailsContextProvider: React.FC = () => {
   const { dashboardNamespace } = useDashboardNamespace();
   const { namespace } = useParams<{ namespace: string }>();
   const { projects } = React.useContext(ProjectsContext);
-  const project = React.useMemo(
-    () => projects.find(byName(namespace)) ?? null,
-    [namespace, projects],
-  );
+  const project = projects.find(byName(namespace)) ?? null;
   useSyncPreferredProject(project);
   const notebooks = useContextResourceData<NotebookState>(useProjectNotebookStates(namespace));
   const pvcs = useContextResourceData<PersistentVolumeClaimKind>(useProjectPvcs(namespace));
