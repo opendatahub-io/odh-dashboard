@@ -1,4 +1,4 @@
-export type TypedPromiseRejectedResult<R> = Omit<PromiseRejectedResult, 'reason'> & { reason: R };
+import { TypedPromiseRejectedResult } from '#~/types';
 
 export const allSettledPromises = <T, E = undefined>(
   data: Promise<T>[],

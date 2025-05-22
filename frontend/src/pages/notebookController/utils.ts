@@ -1,6 +1,6 @@
 import { stopNotebook } from '#~/services/notebookService';
-import { Notebook } from '#~/types';
-import { allSettledPromises, TypedPromiseRejectedResult } from '#~/utilities/allSettledPromises';
+import { Notebook, TypedPromiseRejectedResult } from '#~/types';
+import { allSettledPromises } from '#~/utilities/allSettledPromises';
 
 export const stopWorkbenches = (
   notebooksToStop: Notebook[],
