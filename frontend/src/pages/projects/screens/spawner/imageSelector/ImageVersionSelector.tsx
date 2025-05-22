@@ -1,16 +1,22 @@
 import * as React from 'react';
 import {
   Alert,
+  Flex,
+  FlexItem,
   FormGroup,
   FormHelperText,
   HelperText,
   HelperTextItem,
+  Label,
+  Timestamp,
 } from '@patternfly/react-core';
+import { CheckCircleIcon } from '@patternfly/react-icons';
 import { ImageVersionSelectDataType } from '~/pages/projects/screens/spawner/types';
 import {
   checkTagBuildValid,
   compareImageVersionOrder,
   getAvailableVersionsForImageStream,
+  getImageVersionBuildDate,
   getImageVersionDependencies,
   getImageVersionSelectOptionObject,
   getImageVersionSoftwareString,
@@ -43,7 +49,9 @@ const ImageVersionSelector: React.FC<ImageVersionSelectorProps> = ({
     .map((imageVersion) => getImageVersionSelectOptionObject(imageStream, imageVersion));
 
   const options = selectOptionObjects.map((optionObject): SimpleSelectOption => {
-    const { imageVersion } = optionObject;
+    const { imageVersion, imageStreamTag } = optionObject;
+    const imageBuildDate = getImageVersionBuildDate(imageVersion, imageStreamTag);
+
     // Cannot wrap the SelectOption with Tooltip because Select component requires SelectOption as the children
     // Can only wrap the SelectOption children with Tooltip
     // But in this way, you will only see the tooltip when you hover the option main text (excluding description), not the whole button
@@ -52,10 +60,43 @@ const ImageVersionSelector: React.FC<ImageVersionSelectorProps> = ({
       label: `${imageStream.metadata.name}-${imageVersion.name}`,
       dropdownLabel: (
         <ImageVersionTooltip dependencies={getImageVersionDependencies(imageVersion, false)}>
-          {optionObject.toString()}
+          <Flex>
+            <FlexItem>
+              {`${optionObject.imageVersion.name} ${
+                optionObject.imageVersion.annotations?.['opendatahub.io/notebook-build-commit']
+                  ? `(${optionObject.imageVersion.annotations['opendatahub.io/notebook-build-commit']})`
+                  : ''
+              }`}
+            </FlexItem>
+            <FlexItem align={{ default: 'alignRight' }}>
+              {optionObject.imageVersion.annotations?.[
+                'opendatahub.io/workbench-image-recommended'
+              ] === 'true' && (
+                <Label
+                  data-testid="notebook-image-availability"
+                  isCompact
+                  color="green"
+                  icon={<CheckCircleIcon />}
+                >
+                  Latest
+                </Label>
+              )}
+            </FlexItem>
+          </Flex>
         </ImageVersionTooltip>
       ),
-      description: getImageVersionSoftwareString(imageVersion),
+      description: (
+        <div>
+          <div data-testid="workbench-image-version-software">
+            Software: {getImageVersionSoftwareString(imageVersion)}
+          </div>
+          {imageBuildDate && (
+            <div data-testid="workbench-image-version-build-date">
+              Build date: <Timestamp date={new Date(imageBuildDate)} shouldDisplayUTC />
+            </div>
+          )}
+        </div>
+      ),
       isDisabled: !checkTagBuildValid(buildStatuses, imageStream, imageVersion),
     };
   });
@@ -66,6 +107,7 @@ const ImageVersionSelector: React.FC<ImageVersionSelectorProps> = ({
   return (
     <FormGroup isRequired label="Version selection" fieldId="workbench-image-version-selection">
       <SimpleSelect
+        data-testid="workbench-image-version-dropdown"
         options={options}
         onChange={(selection) => {
           const selectedObject = selectOptionObjects.find(
