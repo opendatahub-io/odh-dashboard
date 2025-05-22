@@ -71,7 +71,7 @@ const ModelServingPlatform: React.FC = () => {
 
   const {
     servingRuntimes: {
-      data: servingRuntimes,
+      data: { items: servingRuntimes },
       loaded: servingRuntimesLoaded,
       error: servingRuntimeError,
       refresh: refreshServingRuntime,
@@ -81,7 +81,10 @@ const ModelServingPlatform: React.FC = () => {
     servingRuntimeTemplateDisablement: { data: templateDisablement },
     connections: { data: connections },
     serverSecrets: { refresh: refreshTokens },
-    inferenceServices: { refresh: refreshInferenceServices },
+    inferenceServices: {
+      data: { items: inferenceServices },
+      refresh: refreshInferenceServices,
+    },
     currentProject,
   } = React.useContext(ProjectDetailsContext);
 
@@ -93,7 +96,6 @@ const ModelServingPlatform: React.FC = () => {
   );
 
   const emptyTemplates = templatesEnabled.length === 0;
-  const emptyModelServer = servingRuntimes.length === 0;
 
   const { platform: currentProjectServingPlatform, error: platformError } =
     getProjectModelServingPlatform(currentProject, servingPlatformStatuses);
@@ -102,6 +104,10 @@ const ModelServingPlatform: React.FC = () => {
     servingPlatformStatuses.platformEnabledCount !== 1 && !currentProjectServingPlatform;
 
   const isProjectModelMesh = currentProjectServingPlatform === ServingRuntimePlatform.MULTI;
+
+  const emptyModelServer = isProjectModelMesh
+    ? servingRuntimes.length === 0
+    : inferenceServices.length === 0;
 
   const isCurrentPlatformEnabled = isCurrentServingPlatformEnabled(
     currentProjectServingPlatform,

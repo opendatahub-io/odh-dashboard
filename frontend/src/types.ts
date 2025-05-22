@@ -8,6 +8,7 @@ import { EnvironmentFromVariable } from '~/pages/projects/types';
 import { DashboardCommonConfig, ImageStreamKind, ImageStreamSpecTagType } from './k8sTypes';
 import { EitherNotBoth } from './typeHelpers';
 import { NotebookPodSpecOptions } from './concepts/hardwareProfiles/useNotebookPodSpecOptionsState';
+import { FetchStateObject } from './utilities/useFetch';
 
 export type DevFeatureFlags = {
   devFeatureFlags: Partial<DashboardCommonConfig> | null;
@@ -695,16 +696,14 @@ export type CustomWatchK8sResult<R extends K8sResourceCommon | K8sResourceCommon
   loadError: Error | undefined,
 ];
 
-export type FetchStateObject<T, E = Error> = {
-  data: T;
-  loaded: boolean;
-  error?: E;
-  refresh: () => void;
+export type PendingContextResourceData<T> = FetchStateObject<T[], Error | AxiosError> & {
+  pending: boolean;
 };
 
-// TODO this and useContextResourceData should probably be removed in favor of useMakeFetchObject
-export type ContextResourceData<T> = FetchStateObject<T[], Error | AxiosError>;
-export type PendingContextResourceData<T> = ContextResourceData<T> & { pending: boolean };
+export type ListWithNonDashboardPresence<T> = {
+  items: T[];
+  hasNonDashboardItems: boolean;
+};
 
 export type BreadcrumbItemType = {
   label: string;

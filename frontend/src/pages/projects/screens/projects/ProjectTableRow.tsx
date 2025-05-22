@@ -40,7 +40,7 @@ const ProjectTableRow: React.FC<ProjectTableRowProps> = ({
     setEditData,
     setDeleteData,
   );
-  const [notebookStates, loaded, , refresh] = useProjectNotebookStates(project.metadata.name);
+  const { data: notebookStates, loaded, refresh } = useProjectNotebookStates(project.metadata.name);
   const runningCount = notebookStates.filter(
     (notebookState) => notebookState.isRunning || notebookState.isStarting,
   ).length;

@@ -13,14 +13,14 @@ import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { K8sResourceCommon, K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
 import { GroupKind, RoleBindingKind, RoleBindingRoleRef } from '~/k8sTypes';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
-import { ContextResourceData } from '~/types';
+import { FetchStateObject } from '~/utilities/useFetch';
 import RoleBindingPermissionsTableSection from './RoleBindingPermissionsTableSection';
 import { RoleBindingPermissionsRBType, RoleBindingPermissionsRoleType } from './types';
 import { filterRoleBindingSubjects } from './utils';
 
 type RoleBindingPermissionsProps = {
   ownerReference?: K8sResourceCommon;
-  roleBindingPermissionsRB: ContextResourceData<RoleBindingKind>;
+  roleBindingPermissionsRB: FetchStateObject<RoleBindingKind[]>;
   defaultRoleBindingName?: string;
   permissionOptions: {
     type: RoleBindingPermissionsRoleType;
