@@ -1,34 +1,29 @@
 import * as React from 'react';
-import {
-  Button,
-  Stack,
-  StackItem,
-  Modal,
-  ModalBody,
-  ModalHeader,
-  ModalFooter,
-  Checkbox,
-} from '@patternfly/react-core';
+import { Button } from '@patternfly/react-core';
 import { Notebook } from '#~/types';
-import useStopNotebookModalAvailability from '#~/pages/projects/notebook/useStopNotebookModalAvailability';
+import StopWorkbenchModal from '#~/pages/projects/notebook/StopWorkbenchModal';
 
 type StopServerModalProps = {
   notebooksToStop: Notebook[];
   link: string;
   isDeleting: boolean;
+  dontShowModalValue: boolean;
   setShowModal: (showModal: boolean) => void;
   handleStopWorkbenches: () => void;
+  setDontShowModalValue: (value: boolean) => void;
+  onNotebooksStop: (didStop: boolean) => void;
 };
 
 const StopServerModal: React.FC<StopServerModalProps> = ({
   notebooksToStop,
   link,
   isDeleting,
+  dontShowModalValue,
   setShowModal,
   handleStopWorkbenches,
+  setDontShowModalValue,
+  onNotebooksStop,
 }) => {
-  const [dontShowModalValue, setDontShowModalValue] = useStopNotebookModalAvailability();
-
   if (!notebooksToStop.length) {
     return null;
   }
@@ -61,10 +56,27 @@ const StopServerModal: React.FC<StopServerModalProps> = ({
   const onBeforeClose = (confirmStatus: boolean) => {
     if (!confirmStatus) {
       setDontShowModalValue(false);
+      onNotebooksStop(false);
       setShowModal(false);
     } else {
       handleStopWorkbenches();
     }
+  };
+
+  const displayLink = () => {
+    if (link !== '#' && notebooksToStop.length === 1) {
+      return (
+        <>
+          <Button component="a" href={link} variant="link" isInline>
+            open the workbench
+          </Button>
+        </>
+      );
+    }
+    if (notebooksToStop.length === 1) {
+      return 'open the workbench.';
+    }
+    return 'open the workbenches.';
   };
 
   const modalActions = [
@@ -88,44 +100,15 @@ const StopServerModal: React.FC<StopServerModalProps> = ({
   ];
 
   return (
-    <Modal
-      aria-label="Stop workbench modal"
-      appendTo={document.body}
-      variant="small"
-      isOpen
-      onClose={() => onBeforeClose(false)}
-    >
-      <ModalHeader title={`Stop ${textToShow}`} />
-      <ModalBody>
-        <Stack hasGutter>
-          <StackItem>Any unsaved changes to the {getWorkbenchName()} will be lost.</StackItem>
-          <StackItem>
-            To save changes,{' '}
-            {link !== '#' && notebooksToStop.length === 1 ? (
-              <>
-                <Button component="a" href={link} variant="link" isInline>
-                  open the workbench
-                </Button>
-                .
-              </>
-            ) : notebooksToStop.length === 1 ? (
-              'open the workbench.'
-            ) : (
-              'open the workbenches.'
-            )}
-          </StackItem>
-          <StackItem>
-            <Checkbox
-              id="dont-show-again"
-              label="Don't show again"
-              isChecked={dontShowModalValue}
-              onChange={(e, checked) => setDontShowModalValue(checked)}
-            />
-          </StackItem>
-        </Stack>
-      </ModalBody>
-      <ModalFooter>{modalActions}</ModalFooter>
-    </Modal>
+    <StopWorkbenchModal
+      workbenchName={getWorkbenchName()}
+      isRunning
+      modalActions={modalActions}
+      link={displayLink()}
+      dontShowModalValue={dontShowModalValue}
+      setDontShowModalValue={setDontShowModalValue}
+      onBeforeClose={onBeforeClose}
+    />
   );
 };
 
