@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { KnownLabels, SecretKind, ServingContainer } from '~/k8sTypes';
+import { KnownLabels, SecretKind } from '~/k8sTypes';
 import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '~/concepts/k8s/utils';
 import { K8sNameDescriptionFieldData } from '~/concepts/k8s/K8sNameDescriptionField/types';
 import {
@@ -429,25 +429,6 @@ export const findSectionFields = (
 
   return fields.slice(sectionIndex + 1, nextSectionIndex === -1 ? undefined : nextSectionIndex);
 };
-
-export const VALID_ENV_VARNAME_REGEX = /^[A-Za-z_][A-Za-z0-9_\-.]*$/;
-export const STARTS_WITH_DIGIT_REGEX = /^\d/;
-
-export const validateEnvVarName = (name: string): string | undefined => {
-  if (!name) {
-    return undefined;
-  }
-  if (STARTS_WITH_DIGIT_REGEX.test(name)) {
-    return 'Must not start with a digit.';
-  }
-  if (!VALID_ENV_VARNAME_REGEX.test(name)) {
-    return "Must consist of alphabetic characters, digits, '_', '-', or '.'";
-  }
-  return undefined;
-};
-
-export const isValueFromEnvVar = (envVar: NonNullable<ServingContainer['env']>[number]): boolean =>
-  envVar.valueFrom !== undefined;
 
 export const convertObjectStorageSecretData = (dataConnection: Connection): AWSDataEntry => {
   let convertedData: { key: AwsKeys; value: string }[] = [];

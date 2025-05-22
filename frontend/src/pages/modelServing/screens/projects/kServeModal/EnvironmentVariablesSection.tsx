@@ -23,7 +23,7 @@ import {
 } from '@patternfly/react-icons';
 import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
 import { CreatingInferenceServiceObject } from '~/pages/modelServing/screens/types';
-import { isValueFromEnvVar, validateEnvVarName } from '~/concepts/connectionTypes/utils';
+import { isValueFromEnvVar, validateEnvVarName } from '~/pages/modelServing/screens/projects/utils';
 import { ServingContainer } from '~/k8sTypes';
 
 type EnvironmentVariablesSectionType = {
