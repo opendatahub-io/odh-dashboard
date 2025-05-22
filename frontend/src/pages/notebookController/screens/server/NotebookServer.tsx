@@ -6,6 +6,9 @@ import ApplicationsPage from '~/pages/ApplicationsPage';
 import { NotebookControllerContext } from '~/pages/notebookController/NotebookControllerContext';
 import ImpersonateAlert from '~/pages/notebookController/screens/admin/ImpersonateAlert';
 import useNotification from '~/utilities/useNotification';
+import { stopWorkbenches } from '~/pages/notebookController/utils';
+import { useUser } from '~/redux/selectors';
+import useStopNotebookModalAvailability from '~/pages/projects/notebook/useStopNotebookModalAvailability';
 import NotebookServerDetails from './NotebookServerDetails';
 import StopServerModal from './StopServerModal';
 
@@ -21,6 +24,10 @@ const NotebookServer: React.FC = () => {
     requestNotebookRefresh,
   } = React.useContext(NotebookControllerContext);
   const [notebooksToStop, setNotebooksToStop] = React.useState<Notebook[]>([]);
+  const [dontShowModalValue, setDontShowModalValue] = useStopNotebookModalAvailability();
+  const [showModal, setShowModal] = React.useState(!dontShowModalValue);
+  const { isAdmin } = useUser();
+  const [isDeleting, setIsDeleting] = React.useState(false);
 
   const onNotebooksStop = React.useCallback(
     (didStop: boolean) => {
@@ -35,7 +42,32 @@ const NotebookServer: React.FC = () => {
     [requestNotebookRefresh, navigate],
   );
 
+  const handleStopWorkbenches = React.useCallback(() => {
+    setIsDeleting(true);
+    stopWorkbenches(notebooksToStop, isAdmin)
+      .then(() => {
+        setIsDeleting(false);
+        onNotebooksStop(true);
+        setShowModal(false);
+      })
+      .catch((e) => {
+        setIsDeleting(false);
+        notification.error(
+          `Error stopping workbench${notebooksToStop.length > 1 ? 's' : ''}`,
+          e.message,
+        );
+      });
+  }, [isAdmin, notebooksToStop, notification, onNotebooksStop]);
+
   const link = currentUserNotebookLink || '#';
+
+  React.useEffect(() => {
+    if (notebooksToStop.length && !showModal && dontShowModalValue) {
+      handleStopWorkbenches();
+    } else if (notebooksToStop.length && !dontShowModalValue) {
+      setShowModal(true);
+    }
+  }, [notebooksToStop.length, showModal, handleStopWorkbenches, dontShowModalValue]);
 
   return (
     <>
@@ -51,11 +83,16 @@ const NotebookServer: React.FC = () => {
         {notebook && (
           <Stack hasGutter>
             <StackItem>
-              {notebooksToStop.length ? (
+              {notebooksToStop.length && showModal ? (
                 <StopServerModal
                   notebooksToStop={notebooksToStop}
-                  onNotebooksStop={onNotebooksStop}
+                  isDeleting={isDeleting}
+                  handleStopWorkbenches={handleStopWorkbenches}
                   link={link}
+                  setShowModal={setShowModal}
+                  setDontShowModalValue={setDontShowModalValue}
+                  dontShowModalValue={dontShowModalValue}
+                  onNotebooksStop={onNotebooksStop}
                 />
               ) : null}
               <ActionList>
