@@ -18,6 +18,7 @@ import {
   VolumeMount,
 } from './types';
 import { ModelServingSize } from './pages/modelServing/screens/types';
+import { AccessMode } from '~/pages/storageClasses/constants';
 
 export enum KnownLabels {
   DASHBOARD_RESOURCE = 'opendatahub.io/dashboard',
@@ -50,12 +51,17 @@ export type DisplayNameAnnotations = Partial<{
   'openshift.io/display-name': string; // the name provided by the user
 }>;
 
+
+
 export type StorageClassConfig = {
   displayName: string;
   isEnabled: boolean;
   isDefault: boolean;
   lastModified: string;
   description?: string;
+  accessModeSettings: {
+    [key in AccessMode]?: boolean;
+  };
 };
 
 export enum MetadataAnnotation {
