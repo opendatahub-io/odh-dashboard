@@ -65,8 +65,8 @@ export const getDefaultAccessModeSettings = (
 ): Partial<Record<AccessMode, boolean>> => {
   const initialSettings: Partial<Record<AccessMode, boolean>> = {};
   return supportedAccessModes.reduce((currentSettings, mode) => {
-    // AccessMode.ROX should be set to false, and all other supported access modes should be set to true
-    const newSetting = mode !== AccessMode.ROX;
+    // AccessMode.ROW should be set to true, and all other supported access modes should be set to false
+    const newSetting = mode === AccessMode.RWO;
     return {
       ...currentSettings,
       [mode]: newSetting,
