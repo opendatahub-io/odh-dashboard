@@ -17,23 +17,13 @@ describe('getSupportedAccessModesForProvisioner', () => {
 });
 
 describe('getDefaultAccessModeSettings', () => {
-  it('should set ROX to false and other supported modes to true', () => {
+  it('should set RWO to true and other supported modes to false', () => {
     const supportedModes = [AccessMode.RWO, AccessMode.RWX, AccessMode.ROX, AccessMode.RWOP];
     const expectedSettings = {
       [AccessMode.RWO]: true,
-      [AccessMode.RWX]: true,
+      [AccessMode.RWX]: false,
       [AccessMode.ROX]: false,
-      [AccessMode.RWOP]: true,
-    };
-    expect(getDefaultAccessModeSettings(supportedModes)).toEqual(expectedSettings);
-  });
-
-  it('should set all supported modes to true if ROX is not present', () => {
-    const supportedModes = [AccessMode.RWO, AccessMode.RWX, AccessMode.RWOP];
-    const expectedSettings = {
-      [AccessMode.RWO]: true,
-      [AccessMode.RWX]: true,
-      [AccessMode.RWOP]: true,
+      [AccessMode.RWOP]: false,
     };
     expect(getDefaultAccessModeSettings(supportedModes)).toEqual(expectedSettings);
   });
