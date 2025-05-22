@@ -10,7 +10,7 @@ import {
   getSupportedAccessModesForProvisioner,
   getDefaultAccessModeSettings,
 } from './utils';
-import { AccessMode, StorageProvisioner } from './constants';
+import { StorageProvisioner } from './constants';
 
 export interface StorageClassContextProps {
   storageClasses: StorageClassKind[];
