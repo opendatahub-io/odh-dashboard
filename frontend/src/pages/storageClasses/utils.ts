@@ -1,6 +1,6 @@
 import { isValidDate } from '@patternfly/react-core';
 import { MetadataAnnotation, StorageClassConfig, StorageClassKind } from '~/k8sTypes';
-import { AccessMode, StorageProvisioner, provisionerAccessModes } from './constants';
+import { AccessMode, StorageProvisioner, provisionerAccessModes } from './storageEnums';
 
 export const getStorageClassConfig = (
   storageClass: StorageClassKind,
@@ -42,7 +42,7 @@ export const isValidConfigValue = (
 // Create a Set of StorageProvisioner values for efficient lookup in the type guard
 const storageProvisionerValuesSet = new Set<string>(Object.values(StorageProvisioner));
 
-// Type guard to check if a value is a valid StorageProvisioner enum member
+// Type guard to check if a string is a valid StorageProvisioner enum key
 const isStorageProvisioner = (value: string): value is StorageProvisioner =>
   storageProvisionerValuesSet.has(value);
 

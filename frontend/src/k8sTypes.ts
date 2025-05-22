@@ -2,7 +2,7 @@ import { K8sResourceCommon, MatchExpression } from '@openshift/dynamic-plugin-sd
 import { EitherNotBoth } from '@openshift/dynamic-plugin-sdk';
 import { AwsKeys } from '~/pages/projects/dataConnections/const';
 import { DataScienceStackComponent, StackComponent } from '~/concepts/areas/types';
-import { AccessMode } from '~/pages/storageClasses/constants';
+import { AccessMode } from '~/pages/storageClasses/storageEnums';
 import {
   ContainerResourceAttributes,
   ContainerResources,
