@@ -85,7 +85,9 @@ class PermissionTable extends Contextual<HTMLElement> {
   addGroupName(name: string) {
     const userNameCell = permissions.getGroupTable().find().find('[data-label="Username"]');
     userNameCell.find('input[role="combobox"]').type(name);
-    cy.findByRole('listbox').findByRole('option', { name: `Select "${name}"` }).click();
+    cy.findByRole('listbox')
+      .findByRole('option', { name: `Select "${name}"` })
+      .click();
   }
 
   selectAdminOption() {
