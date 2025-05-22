@@ -111,7 +111,7 @@ export enum StorageProvisioner {
   PD_CSI_GKE = 'pd.csi.storage.gke.io',
   CEPHFS_CSI = 'cephfs.csi.ceph.com',
   RBD_CSI = 'rbd.csi.ceph.com',
-  FILE_CSI_AZURE = 'file.csi.azure.com'
+  FILE_CSI_AZURE = 'file.csi.azure.com',
 }
 
 // list of access modes
@@ -119,7 +119,7 @@ export enum AccessMode {
   RWO = 'ReadWriteOnce',
   RWX = 'ReadWriteMany',
   ROX = 'ReadOnlyMany',
-  RWOP = 'ReadWriteOncePod'
+  RWOP = 'ReadWriteOncePod',
 }
 
 // object that maps provisioners to their supported access modes
@@ -129,7 +129,12 @@ export const provisionerAccessModes: Record<StorageProvisioner, AccessMode[]> = 
   [StorageProvisioner.GCE_PD]: [AccessMode.RWO, AccessMode.ROX, AccessMode.RWOP],
   [StorageProvisioner.GLUSTERFS]: [AccessMode.RWO, AccessMode.RWX, AccessMode.ROX, AccessMode.RWOP],
   [StorageProvisioner.CINDER]: [AccessMode.RWO, AccessMode.RWOP],
-  [StorageProvisioner.AZURE_FILE]: [AccessMode.RWO, AccessMode.RWX, AccessMode.ROX, AccessMode.RWOP],
+  [StorageProvisioner.AZURE_FILE]: [
+    AccessMode.RWO,
+    AccessMode.RWX,
+    AccessMode.ROX,
+    AccessMode.RWOP,
+  ],
   [StorageProvisioner.AZURE_DISK]: [AccessMode.RWO],
   [StorageProvisioner.QUOBYTE]: [AccessMode.RWO, AccessMode.RWX, AccessMode.ROX],
   [StorageProvisioner.RBD]: [AccessMode.RWO, AccessMode.ROX],
@@ -143,8 +148,17 @@ export const provisionerAccessModes: Record<StorageProvisioner, AccessMode[]> = 
   [StorageProvisioner.OVIRT_CSI]: [AccessMode.RWO],
   [StorageProvisioner.CINDER_CSI]: [AccessMode.RWO],
   [StorageProvisioner.PD_CSI_GKE]: [AccessMode.RWO, AccessMode.RWOP],
-  [StorageProvisioner.CEPHFS_CSI]: [AccessMode.RWO, AccessMode.RWX, AccessMode.ROX, AccessMode.RWOP],
+  [StorageProvisioner.CEPHFS_CSI]: [
+    AccessMode.RWO,
+    AccessMode.RWX,
+    AccessMode.ROX,
+    AccessMode.RWOP,
+  ],
   [StorageProvisioner.RBD_CSI]: [AccessMode.RWO, AccessMode.ROX, AccessMode.RWOP],
-  [StorageProvisioner.FILE_CSI_AZURE]: [AccessMode.RWO, AccessMode.RWX, AccessMode.ROX, AccessMode.RWOP]
-}
-
+  [StorageProvisioner.FILE_CSI_AZURE]: [
+    AccessMode.RWO,
+    AccessMode.RWX,
+    AccessMode.ROX,
+    AccessMode.RWOP,
+  ],
+};

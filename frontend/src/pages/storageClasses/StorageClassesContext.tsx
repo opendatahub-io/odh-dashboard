@@ -10,7 +10,6 @@ import {
   getSupportedAccessModesForProvisioner,
   getDefaultAccessModeSettings,
 } from './utils';
-import { StorageProvisioner } from './constants';
 
 export interface StorageClassContextProps {
   storageClasses: StorageClassKind[];
@@ -76,7 +75,7 @@ export const StorageClassContextProvider: React.FC<StorageClassContextProviderPr
     const updateRequests = storageClasses.reduce(
       (acc: Promise<StorageClassConfig>[], storageClass, index) => {
         const { name } = storageClass.metadata;
-        const provisioner = storageClass.provisioner as StorageProvisioner;
+        const { provisioner } = storageClass;
         let config;
         if (storageClass.metadata.annotations?.[MetadataAnnotation.OdhStorageClassConfig]) {
           try {
