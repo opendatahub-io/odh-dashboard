@@ -896,6 +896,25 @@ describe('Serving Runtime List', () => {
       kserveModal.findServingRuntimeEnvVarsValue('0').type('test-value');
       kserveModal.findSubmitButton().should('be.enabled');
 
+      // test model server size select
+      kserveModal.findModelServerSizeSelect().click();
+      kserveModal.findModelServerSizeSelectOption('Medium').find('button').click();
+      kserveModal.findSubmitButton().should('be.enabled');
+      kserveModal.findModelServerSizeSelect().click();
+      kserveModal.findModelServerSizeSelectOption('Custom').find('button').click();
+      kserveModal.findSubmitButton().should('be.enabled');
+
+      // test custom cpu and memory
+      kserveModal.findCPURequestInput().clear().type('3');
+      kserveModal.findCPULimitInput().clear().type('2');
+      kserveModal.findMemoryRequestInput().clear().type('4Gi');
+      kserveModal.findMemoryLimitInput().clear().type('3Gi');
+      kserveModal.findSubmitButton().should('be.disabled');
+
+      kserveModal.findModelServerSizeSelect().click();
+      kserveModal.findModelServerSizeSelectOption('Small').find('button').click();
+      kserveModal.findSubmitButton().should('be.enabled');
+
       // test submitting form, the modal should close to indicate success.
       kserveModal.findSubmitButton().click();
       kserveModal.shouldBeOpen(false);

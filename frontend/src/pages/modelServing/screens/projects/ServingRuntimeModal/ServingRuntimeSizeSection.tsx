@@ -53,6 +53,7 @@ const ServingRuntimeSizeSection = ({
   const sizeOptions = () =>
     sizeCustom.map((size) => {
       const { name } = size;
+      const dataTestId = `model-server-size-select-option-${name}`;
       const desc =
         name !== 'Custom'
           ? `Limits: ${size.resources.limits?.cpu || '??'} CPU, ` +
@@ -60,7 +61,7 @@ const ServingRuntimeSizeSection = ({
             `Requests: ${size.resources.requests?.cpu || '??'} CPU, ` +
             `${formatMemory(size.resources.requests?.memory) || '??'} Memory`
           : '';
-      return { key: name, label: name, description: desc };
+      return { key: name, label: name, description: desc, dataTestId };
     });
 
   const isHardwareProfileSupported = React.useCallback(
