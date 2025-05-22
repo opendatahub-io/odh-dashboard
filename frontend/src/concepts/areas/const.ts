@@ -181,7 +181,6 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.LM_EVAL]: {
     featureFlags: ['disableLMEval'],
-    //TODO: Discuss with the team regarding reliant areas.
     reliantAreas: [SupportedArea.MODEL_REGISTRY, SupportedArea.MODEL_SERVING],
   },
 };
