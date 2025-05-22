@@ -19,9 +19,21 @@ const KServeAutoscalerReplicaSection: React.FC<KServeAutoscalerReplicaSectionPro
     isRequired
     onChange={(value) => {
       setData('minReplicas', value);
-      setData('maxReplicas', value);
+      if (data.isKServeRawDeployment) {
+        setData('maxReplicas', value);
+      } else if (value > data.maxReplicas) {
+        setData('maxReplicas', value);
+      }
     }}
     value={data.minReplicas}
+    showMinMax={!!data.isKServeRawDeployment}
+    maxValue={data.maxReplicas}
+    onMaxChange={(value) => {
+      setData('maxReplicas', value);
+      if (value < data.minReplicas) {
+        setData('minReplicas', value);
+      }
+    }}
   />
 );
 

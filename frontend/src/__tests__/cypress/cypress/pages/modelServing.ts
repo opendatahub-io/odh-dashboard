@@ -490,6 +490,30 @@ class KServeModal extends InferenceServiceModal {
   constructor(private edit = false) {
     super(edit);
   }
+
+  findMinReplicasInput() {
+    return this.find().findByTestId('min-replicas').find('input');
+  }
+
+  findMaxReplicasInput() {
+    return this.find().findByTestId('max-replicas').find('input');
+  }
+
+  findMinReplicasPlusButton() {
+    return this.find().findByTestId('min-replicas').findByRole('button', { name: 'Plus' });
+  }
+
+  findMinReplicasMinusButton() {
+    return this.find().findByTestId('min-replicas').findByRole('button', { name: 'Minus' });
+  }
+
+  findMaxReplicasPlusButton() {
+    return this.find().findByTestId('max-replicas').findByRole('button', { name: 'Plus' });
+  }
+
+  findMaxReplicasMinusButton() {
+    return this.find().findByTestId('max-replicas').findByRole('button', { name: 'Minus' });
+  }
 }
 mixin(KServeModal, [ServingRuntimeModal, InferenceServiceModal]);
 

@@ -413,9 +413,15 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
                 {isRawAvailable && isServerlessAvailable && (
                   <KServeDeploymentModeDropdown
                     isRaw={!!createDataInferenceService.isKServeRawDeployment}
-                    setIsRaw={(isRaw) =>
-                      setCreateDataInferenceService('isKServeRawDeployment', isRaw)
-                    }
+                    setIsRaw={(isRaw) => {
+                      setCreateDataInferenceService('isKServeRawDeployment', isRaw);
+                      if (isRaw) {
+                        setCreateDataInferenceService(
+                          'maxReplicas',
+                          createDataInferenceService.minReplicas,
+                        );
+                      }
+                    }}
                     isDisabled={!!editInfo}
                   />
                 )}
