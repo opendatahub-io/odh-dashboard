@@ -28,7 +28,11 @@ type MockResourceConfigType = {
   kserveInternalLabel?: boolean;
   additionalLabels?: Record<string, string>;
   args?: string[];
-  env?: Array<{ name: string; value: string }>;
+  env?: Array<{
+    name: string;
+    value?: string;
+    valueFrom?: { secretKeyRef: { name: string; key: string } };
+  }>;
   isKserveRaw?: boolean;
   tolerations?: Toleration[];
   nodeSelector?: NodeSelector;

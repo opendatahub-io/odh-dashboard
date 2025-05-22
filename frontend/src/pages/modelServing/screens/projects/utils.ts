@@ -8,6 +8,7 @@ import {
   PersistentVolumeClaimKind,
   ProjectKind,
   SecretKind,
+  ServingContainer,
   ServingRuntimeKind,
 } from '~/k8sTypes';
 import { NamespaceApplicationCase, UpdateObjectAtPropAndValue } from '~/pages/projects/types';
@@ -742,3 +743,22 @@ export function isCurrentServingPlatformEnabled(
   const mappedKey = platformKeyMap[currentPlatform];
   return statuses[mappedKey].enabled;
 }
+
+export const VALID_ENV_VARNAME_REGEX = /^[A-Za-z_][A-Za-z0-9_\-.]*$/;
+export const STARTS_WITH_DIGIT_REGEX = /^\d/;
+
+export const validateEnvVarName = (name: string): string | undefined => {
+  if (!name) {
+    return undefined;
+  }
+  if (STARTS_WITH_DIGIT_REGEX.test(name)) {
+    return 'Must not start with a digit.';
+  }
+  if (!VALID_ENV_VARNAME_REGEX.test(name)) {
+    return "Must consist of alphabetic characters, digits, '_', '-', or '.'";
+  }
+  return undefined;
+};
+
+export const isValueFromEnvVar = (envVar: NonNullable<ServingContainer['env']>[number]): boolean =>
+  envVar.valueFrom !== undefined;

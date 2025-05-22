@@ -430,22 +430,6 @@ export const findSectionFields = (
   return fields.slice(sectionIndex + 1, nextSectionIndex === -1 ? undefined : nextSectionIndex);
 };
 
-export const VALID_ENV_VARNAME_REGEX = /^[A-Za-z_][A-Za-z0-9_\-.]*$/;
-export const STARTS_WITH_DIGIT_REGEX = /^\d/;
-
-export const validateEnvVarName = (name: string): string | undefined => {
-  if (!name) {
-    return undefined;
-  }
-  if (STARTS_WITH_DIGIT_REGEX.test(name)) {
-    return 'Must not start with a digit.';
-  }
-  if (!VALID_ENV_VARNAME_REGEX.test(name)) {
-    return "Must consist of alphabetic characters, digits, '_', '-', or '.'";
-  }
-  return undefined;
-};
-
 export const convertObjectStorageSecretData = (dataConnection: Connection): AWSDataEntry => {
   let convertedData: { key: AwsKeys; value: string }[] = [];
   const secretData = dataConnection.data;

@@ -7,6 +7,7 @@ import {
   getProjectModelServingPlatform,
   getUrlFromKserveInferenceService,
   isCurrentServingPlatformEnabled,
+  isValueFromEnvVar,
 } from '~/pages/modelServing/screens/projects/utils';
 import { ServingPlatformStatuses } from '~/pages/modelServing/screens/types';
 import { ServingRuntimePlatform } from '~/types';
@@ -549,5 +550,30 @@ describe('isCurrentServingPlatformEnabled', () => {
 
   it('returns false if currentPlatform is undefined', () => {
     expect(isCurrentServingPlatformEnabled(undefined, baseStatuses)).toBe(false);
+  });
+});
+
+describe('isValueFrom', () => {
+  it('should return true if the value is from a valueFrom envVar', () => {
+    expect(
+      isValueFromEnvVar({
+        valueFrom: {
+          secretKeyRef: {
+            name: 'test',
+            key: '',
+          },
+        },
+        name: '',
+      }),
+    ).toBe(true);
+  });
+
+  it('should return false if the value is not from a valueFrom envVar', () => {
+    expect(
+      isValueFromEnvVar({
+        value: 'test',
+        name: '',
+      }),
+    ).toBe(false);
   });
 });
