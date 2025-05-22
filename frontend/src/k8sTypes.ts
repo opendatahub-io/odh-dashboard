@@ -2,6 +2,7 @@ import { K8sResourceCommon, MatchExpression } from '@openshift/dynamic-plugin-sd
 import { EitherNotBoth } from '@openshift/dynamic-plugin-sdk';
 import { AwsKeys } from '~/pages/projects/dataConnections/const';
 import { DataScienceStackComponent, StackComponent } from '~/concepts/areas/types';
+import { AccessMode } from '~/pages/storageClasses/constants';
 import {
   ContainerResourceAttributes,
   ContainerResources,
@@ -18,7 +19,6 @@ import {
   VolumeMount,
 } from './types';
 import { ModelServingSize } from './pages/modelServing/screens/types';
-import { AccessMode } from '~/pages/storageClasses/constants';
 
 export enum KnownLabels {
   DASHBOARD_RESOURCE = 'opendatahub.io/dashboard',
@@ -50,8 +50,6 @@ export type DisplayNameAnnotations = Partial<{
   'openshift.io/description': string; // the description provided by the user
   'openshift.io/display-name': string; // the name provided by the user
 }>;
-
-
 
 export type StorageClassConfig = {
   displayName: string;

@@ -39,27 +39,36 @@ export const isValidConfigValue = (
   }
 };
 
+// Create a Set of StorageProvisioner values for efficient lookup in the type guard
+const storageProvisionerValuesSet = new Set<string>(Object.values(StorageProvisioner));
+
+// Type guard to check if a value is a valid StorageProvisioner enum member
+const isStorageProvisioner = (value: string): value is StorageProvisioner =>
+  storageProvisionerValuesSet.has(value);
+
 export const getSupportedAccessModesForProvisioner = (
-  provisioner: StorageProvisioner | string,
+  provisionerParameter: StorageProvisioner | string,
 ): AccessMode[] => {
-  const modes = provisionerAccessModes[provisioner as StorageProvisioner];
-  if (modes) {
-    return modes;
+  const provisionerString = String(provisionerParameter);
+  if (isStorageProvisioner(provisionerString)) {
+    // Here, provisionerString is confirmed to be of type StorageProvisioner (which is a string enum value)
+    // and a valid key for provisionerAccessModes.
+    return provisionerAccessModes[provisionerString];
   }
+
+  // If it's a string not in the enum
   return [];
 };
 
 export const getDefaultAccessModeSettings = (
   supportedAccessModes: AccessMode[],
-): { [key in AccessMode]?: boolean } => supportedAccessModes.reduce(
-  (settings, mode) => {
-    if (mode === AccessMode.ROX) {
-      // ROX is supported by provisioner, but we default it to false
-      settings[mode] = false;
-    } else {
-      settings[mode] = true; // Default to true if supported and not ROX
-    }
-    return settings;
-  },
-  {} as { [key in AccessMode]?: boolean },
-);
+): Partial<Record<AccessMode, boolean>> => {
+  const initialSettings: Partial<Record<AccessMode, boolean>> = {};
+  return supportedAccessModes.reduce((currentSettings, mode) => {
+    const newSetting = mode === AccessMode.ROX;
+    return {
+      ...currentSettings, 
+      [mode]: newSetting,
+    };
+  }, initialSettings);
+};
