@@ -1,5 +1,12 @@
-import { AccessMode, StorageProvisioner, provisionerAccessModes } from '../storageEnums';
-import { getSupportedAccessModesForProvisioner, getDefaultAccessModeSettings } from '../utils';
+import {
+  AccessMode,
+  StorageProvisioner,
+  provisionerAccessModes,
+} from '~/pages/storageClasses/storageEnums';
+import {
+  getSupportedAccessModesForProvisioner,
+  getDefaultAccessModeSettings,
+} from '~/pages/storageClasses/utils';
 
 describe('getSupportedAccessModesForProvisioner', () => {
   it('should return correct access modes for a known provisioner', () => {
