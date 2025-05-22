@@ -927,6 +927,31 @@ describe('Model Serving Global', () => {
     modelServingGlobal.getModelMetricLink('Test Inference Service').click();
     cy.findByTestId('app-page-title').should('have.text', 'Test Inference Service metrics');
   });
+  it('Display the version label if the annotation is present', () => {
+    const servingRuntimeWithVersion = mockServingRuntimeK8sResource({});
+    servingRuntimeWithVersion.metadata.annotations =
+      servingRuntimeWithVersion.metadata.annotations || {};
+    servingRuntimeWithVersion.metadata.annotations['opendatahub.io/runtime-version'] = '1.2.3';
+
+    initIntercepts({
+      servingRuntimes: [servingRuntimeWithVersion],
+    });
+
+    modelServingGlobal.visit();
+    modelServingGlobal.findServingRuntimeVersionLabel().should('exist');
+    modelServingGlobal.findServingRuntimeVersionLabel().should('contain.text', '1.2.3');
+  });
+
+  it('Not display the version label if the annotation is absent', () => {
+    const servingRuntimeWithoutVersion = mockServingRuntimeK8sResource({});
+
+    initIntercepts({
+      servingRuntimes: [servingRuntimeWithoutVersion],
+    });
+
+    modelServingGlobal.visit();
+    modelServingGlobal.findServingRuntimeVersionLabel().should('not.exist');
+  });
 
   describe('Table filter and pagination', () => {
     it('filter by name', () => {

@@ -104,18 +104,38 @@ export const checkInferenceServiceState = (
     return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => {
       attempts++;
 
+      // Log raw command output for debugging
+      cy.log(`Raw command output (attempt ${attempts}):
+        Exit code: ${result.code}
+        Stdout length: ${result.stdout.length}
+        Stderr: ${result.stderr || 'none'}`);
+
+      // Check if the command failed
+      if (result.code !== 0) {
+        const errorMsg = `Command failed with exit code ${result.code}: ${result.stderr}`;
+        cy.log(`❌ ${errorMsg}`);
+        throw new Error(errorMsg);
+      }
+
+      // Check if stdout is empty
+      if (!result.stdout.trim()) {
+        const errorMsg = 'Command succeeded but returned empty output';
+        cy.log(`❌ ${errorMsg}`);
+        throw new Error(errorMsg);
+      }
+
       let serviceState: InferenceServiceState;
       try {
+        // Log the first 100 characters of stdout for debugging
+        cy.log(`Attempting to parse JSON (first 100 chars): ${result.stdout.substring(0, 100)}...`);
         serviceState = JSON.parse(result.stdout) as InferenceServiceState;
       } catch (error) {
-        cy.log(
-          `❌ Failed to parse JSON: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        );
-        throw new Error(
-          `Failed to parse InferenceService JSON: ${
-            error instanceof Error ? error.message : 'Unknown error'
-          }`,
-        );
+        const errorMsg = `Failed to parse InferenceService JSON: ${
+          error instanceof Error ? error.message : 'Unknown error'
+        }`;
+        cy.log(`❌ ${errorMsg}`);
+        cy.log(`Raw stdout: ${result.stdout}`);
+        throw new Error(errorMsg);
       }
 
       // Check active model state
