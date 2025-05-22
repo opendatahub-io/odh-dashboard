@@ -67,7 +67,7 @@ export const getDefaultAccessModeSettings = (
   return supportedAccessModes.reduce((currentSettings, mode) => {
     const newSetting = mode === AccessMode.ROX;
     return {
-      ...currentSettings, 
+      ...currentSettings,
       [mode]: newSetting,
     };
   }, initialSettings);
