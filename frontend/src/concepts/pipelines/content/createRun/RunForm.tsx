@@ -1,6 +1,5 @@
 import * as React from 'react';
 import { Form, FormSection } from '@patternfly/react-core';
-import NameDescriptionField from '#~/concepts/k8s/NameDescriptionField';
 import {
   PipelineVersionToUse,
   RunFormData,
@@ -26,7 +25,8 @@ import { isArgoWorkflow } from '#~/concepts/pipelines/content/tables/utils';
 import {
   NAME_CHARACTER_LIMIT,
   DESCRIPTION_CHARACTER_LIMIT,
-} from '#~/concepts/pipelines/content/const';
+} from '~/concepts/pipelines/content/const';
+import K8sNameDescriptionField from '~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import PipelineSection from './contentSections/PipelineSection';
 import { RunTypeSection } from './contentSections/RunTypeSection';
 import { CreateRunPageSections, runPageSectionTitles } from './const';
@@ -131,17 +131,34 @@ const RunForm: React.FC<RunFormProps> = ({
           ]
         }
       >
-        <NameDescriptionField
-          nameFieldId="run-name"
-          descriptionFieldId="run-description"
-          data={data.nameDesc}
-          setData={(nameDesc) => onValueChange('nameDesc', nameDesc)}
+        <K8sNameDescriptionField
+          dataTestId="run"
+          data={{
+            name: data.nameDesc.name,
+            description: data.nameDesc.description,
+            k8sName: {
+              value: data.nameDesc.name,
+              state: {
+                immutable: false,
+                invalidCharacters: false,
+                invalidLength: false,
+                maxLength: NAME_CHARACTER_LIMIT,
+                touched: false,
+              },
+            },
+          }}
+          onDataChange={(key, value) => {
+            if (key === 'name') {
+              setHasDuplicateName(false);
+              checkForDuplicateName(value);
+            }
+            onValueChange('nameDesc', {
+              ...data.nameDesc,
+              [key]: value,
+            });
+          }}
           maxLengthName={NAME_CHARACTER_LIMIT}
           maxLengthDesc={DESCRIPTION_CHARACTER_LIMIT}
-          onNameChange={(value) => {
-            setHasDuplicateName(false);
-            checkForDuplicateName(value);
-          }}
           onValidationChange={onValidationChange}
           nameHelperText={hasDuplicateName ? <DuplicateNameHelperText name={name} /> : undefined}
         />

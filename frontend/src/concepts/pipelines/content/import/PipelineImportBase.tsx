@@ -138,8 +138,8 @@ const PipelineImportBase: React.FC<PipelineImportBaseProps> = ({
                 data={{ name, description: description || '' }}
                 hasNameError={hasDuplicateName}
                 setData={(newData) => {
-                  setData('name', newData.name ?? '');
-                  setData('description', newData.description ?? '');
+                  setData('name', newData.name);
+                  setData('description', newData.description);
                 }}
                 maxLengthName={NAME_CHARACTER_LIMIT}
                 maxLengthDesc={DESCRIPTION_CHARACTER_LIMIT}

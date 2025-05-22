@@ -12,10 +12,11 @@ import {
   K8sNameDescriptionFieldUpdateFunction,
   UseK8sNameDescriptionDataConfiguration,
   UseK8sNameDescriptionFieldData,
-} from '#~/concepts/k8s/K8sNameDescriptionField/types';
-import ResourceNameDefinitionTooltip from '#~/concepts/k8s/ResourceNameDefinitionTooltip';
-import { handleUpdateLogic, setupDefaults } from '#~/concepts/k8s/K8sNameDescriptionField/utils';
-import ResourceNameField from '#~/concepts/k8s/K8sNameDescriptionField/ResourceNameField';
+} from '~/concepts/k8s/K8sNameDescriptionField/types';
+import ResourceNameDefinitionTooltip from '~/concepts/k8s/ResourceNameDefinitionTooltip';
+import { handleUpdateLogic, setupDefaults } from '~/concepts/k8s/K8sNameDescriptionField/utils';
+import ResourceNameField from '~/concepts/k8s/K8sNameDescriptionField/ResourceNameField';
+import { CharLimitHelperText } from '~/components/CharLimitHelperText';
 
 /** Companion data hook */
 export const useK8sNameDescriptionFieldData = (
@@ -40,6 +41,9 @@ type K8sNameDescriptionFieldProps = {
   nameLabel?: string;
   nameHelperText?: React.ReactNode;
   onDataChange?: UseK8sNameDescriptionFieldData['onDataChange'];
+  onValidationChange?: (isValid: boolean) => void;
+  maxLengthName?: number;
+  maxLengthDesc?: number;
   hideDescription?: boolean;
 };
 
@@ -53,13 +57,26 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
   dataTestId,
   descriptionLabel = 'Description',
   onDataChange,
+  onValidationChange,
   nameLabel = 'Name',
   nameHelperText,
+  maxLengthName,
+  maxLengthDesc,
   hideDescription,
 }) => {
   const [showK8sField, setShowK8sField] = React.useState(false);
 
   const { name, description, k8sName } = data;
+
+  const isValid = React.useMemo(() => {
+    const isNameValid = (!name || !maxLengthName || name.length <= maxLengthName) && !!name;
+    const isDescValid = !maxLengthDesc || description.length <= maxLengthDesc;
+    return isNameValid && isDescValid;
+  }, [name, description, maxLengthName, maxLengthDesc]);
+
+  React.useEffect(() => {
+    onValidationChange?.(isValid);
+  }, [isValid, onValidationChange]);
 
   return (
     <>
@@ -73,32 +90,36 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
           isRequired
           value={name}
           onChange={(event, value) => onDataChange?.('name', value)}
+          validated={maxLengthName && name.length > maxLengthName ? 'error' : 'default'}
         />
-        {nameHelperText || (!showK8sField && !k8sName.state.immutable) ? (
-          <HelperText>
-            {nameHelperText && <HelperTextItem>{nameHelperText}</HelperTextItem>}
-            {!showK8sField && !k8sName.state.immutable && (
-              <>
-                {k8sName.value && (
-                  <HelperTextItem>
-                    The resource name will be <b>{k8sName.value}</b>.
-                  </HelperTextItem>
-                )}
+        <HelperText>
+          {nameHelperText && <HelperTextItem>{nameHelperText}</HelperTextItem>}
+          {maxLengthName && name.length > maxLengthName && (
+            <HelperTextItem variant="error">
+              <CharLimitHelperText limit={maxLengthName} />
+            </HelperTextItem>
+          )}
+          {!showK8sField && !k8sName.state.immutable && (
+            <>
+              {k8sName.value && (
                 <HelperTextItem>
-                  <Button
-                    data-testid={`${dataTestId}-editResourceLink`}
-                    variant="link"
-                    isInline
-                    onClick={() => setShowK8sField(true)}
-                  >
-                    Edit resource name
-                  </Button>{' '}
-                  <ResourceNameDefinitionTooltip />
+                  The resource name will be <b>{k8sName.value}</b>.
                 </HelperTextItem>
-              </>
-            )}
-          </HelperText>
-        ) : null}
+              )}
+              <HelperTextItem>
+                <Button
+                  data-testid={`${dataTestId}-editResourceLink`}
+                  variant="link"
+                  isInline
+                  onClick={() => setShowK8sField(true)}
+                >
+                  Edit resource name
+                </Button>{' '}
+                <ResourceNameDefinitionTooltip />
+              </HelperTextItem>
+            </>
+          )}
+        </HelperText>
       </FormGroup>
       <ResourceNameField
         allowEdit={showK8sField}
@@ -116,7 +137,15 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
             value={description}
             onChange={(event, value) => onDataChange?.('description', value)}
             resizeOrientation="vertical"
+            validated={maxLengthDesc && description.length > maxLengthDesc ? 'error' : 'default'}
           />
+          {maxLengthDesc && description.length > maxLengthDesc && (
+            <HelperText>
+              <HelperTextItem variant="error">
+                <CharLimitHelperText limit={maxLengthDesc} />
+              </HelperTextItem>
+            </HelperText>
+          )}
         </FormGroup>
       ) : null}
     </>
