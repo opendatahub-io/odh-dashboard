@@ -4,7 +4,7 @@ import { FlagIcon, PencilAltIcon, RedoIcon } from '@patternfly/react-icons';
 import { FeatureFlagProps } from '~/types';
 import { DashboardCommonConfig } from '~/k8sTypes';
 import FeatureFlagModal from './FeatureFlagModal';
-import './AppLauncher.scss';
+import '~/app/AppLauncher.scss';
 
 export type FeatureFlagLauncherProps = FeatureFlagProps & {
   dashboardConfig: Partial<DashboardCommonConfig>;
