@@ -151,6 +151,20 @@ const initIntercepts = ({
         },
       },
     }),
+    mockNotebookK8sResource({
+      name: 'mismatch-commit-byon-notebook',
+      displayName: 'BYON Notebook',
+      image: 'test-6:2024.2',
+      envFrom,
+      opts: {
+        metadata: {
+          name: 'mismatch-commit-byon-notebook',
+          labels: {
+            'opendatahub.io/notebook-image': 'true',
+          },
+        },
+      },
+    }),
   ],
 }: HandlersProps) => {
   cy.interceptK8sList(StorageClassModel, mockStorageClassList());
@@ -208,6 +222,52 @@ const initIntercepts = ({
         namespace: 'opendatahub',
         name: 'test-6',
         displayName: 'Test image 6',
+        opts: {
+          metadata: {
+            name: 'test-6',
+            labels: {
+              'component.opendatahub.io/name': 'notebooks',
+              'opendatahub.io/component': 'true',
+              'opendatahub.io/notebook-image': 'true',
+              'app.kubernetes.io/created-by': 'byon',
+            },
+          },
+          spec: {
+            tags: [
+              {
+                name: '2024.2',
+                annotations: {
+                  'opendatahub.io/notebook-python-dependencies':
+                    '[{"name":"JupyterLab","version": "3.2"}, {"name": "Notebook","version": "6.4"}]',
+                  'opendatahub.io/notebook-software': '[{"name":"Python","version":"v3.8"}]',
+                },
+                from: {
+                  kind: 'DockerImage',
+                  name: 'quay.io/opendatahub/notebooks@sha256:a138838e1c9acd7708462e420bf939e03296b97e9cf6c0aa0fd9a5d20361ab75',
+                },
+              },
+            ],
+          },
+          status: {
+            dockerImageRepository:
+              'image-registry.openshift-image-registry.svc:5000/opendatahub/jupyter-minimal-notebook',
+            tags: [
+              {
+                tag: '2024.2',
+                items: [
+                  {
+                    created: '2023-06-30T15:07:36Z',
+                    dockerImageReference:
+                      'quay.io/opendatahub/notebooks@sha256:a138838e1c9acd7708462e420bf939e03296b97e9cf6c0aa0fd9a5d20361ab75',
+                    image:
+                      'quay.io/opendatahub/notebooks@sha256:a138838e1c9acd7708462e420bf939e03296b97e9cf6c0aa0fd9a5d20361ab75',
+                    generation: 2,
+                  },
+                ],
+              },
+            ],
+          },
+        },
       }),
       mockImageStreamK8sResource({
         namespace: 'opendatahub',
@@ -830,10 +890,14 @@ describe('Workbench page', () => {
     initIntercepts({});
     cy.interceptK8sList(
       PVCModel,
-      mockK8sResourceList([mockPVCK8sResource({ name: 'mismatch-commit-notebook' })]),
+      mockK8sResourceList([
+        mockPVCK8sResource({ name: 'mismatch-commit-notebook' }),
+        mockPVCK8sResource({ name: 'mismatch-commit-byon-notebook' }),
+      ]),
     );
     cy.interceptK8s(RouteModel, mockRouteK8sResource({ notebookName: 'mismatch-commit-notebook' }));
     workbenchPage.visit('test-project');
+    workbenchPage.getNotebookRow('BYON Notebook').findNotebookImageLabel().should('not.exist');
     workbenchPage.getNotebookRow('Deleted Notebook').findNotebookImageLabel().click();
     cy.contains('Notebook image deleted');
   });

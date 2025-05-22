@@ -347,16 +347,16 @@ export const checkRequiredFieldsForNotebookStart = (
   return isNotebookDataValid && isEnvVariableDataValid(envVariables);
 };
 
+export const isBYONImageStream = (imageStream: ImageStreamKind): boolean =>
+  imageStream.metadata.labels?.['app.kubernetes.io/created-by'] === 'byon';
+
 export const isInvalidBYONImageStream = (imageStream: ImageStreamKind): boolean => {
   // there will be always only 1 tag in the spec for BYON images
   // status tags could be more than one
   const activeTag = imageStream.status?.tags?.find(
     (statusTag) => statusTag.tag === imageStream.spec.tags?.[0].name,
   );
-  return (
-    imageStream.metadata.labels?.['app.kubernetes.io/created-by'] === 'byon' &&
-    (activeTag === undefined || activeTag.items === null)
-  );
+  return isBYONImageStream(imageStream) && (activeTag === undefined || activeTag.items === null);
 };
 
 export const getPvcVolumeDetails = (

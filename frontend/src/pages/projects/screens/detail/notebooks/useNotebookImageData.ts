@@ -3,7 +3,10 @@ import { ImageStreamKind, ImageStreamSpecTagType, NotebookKind } from '~/k8sType
 import useNamespaces from '~/pages/notebookController/useNamespaces';
 import useImageStreams from '~/pages/projects/screens/spawner/useImageStreams';
 import { PodContainer } from '~/types';
-import { getImageStreamDisplayName } from '~/pages/projects/screens/spawner/spawnerUtils';
+import {
+  getImageStreamDisplayName,
+  isBYONImageStream,
+} from '~/pages/projects/screens/spawner/spawnerUtils';
 import { NotebookImageAvailability, NotebookImageStatus } from './const';
 import { NotebookImageData } from './types';
 
@@ -115,7 +118,7 @@ const getNotebookImageInternalRegistry = (
 ): NotebookImageData[0] => {
   const imageStream = images.find((image) => image.metadata.name === imageName);
 
-  if (!imageStream || !findNotebookImageCommit(notebook, images)) {
+  if (!imageStream || isNotebookImageDeleted(notebook, imageStream)) {
     // Get the image display name from the notebook metadata if we can't find the image stream. (this is a fallback and could still be undefined)
     return getDeletedImageData(
       notebook.metadata.annotations?.['opendatahub.io/image-display-name'],
@@ -155,7 +158,7 @@ const getNotebookImageNoInternalRegistry = (
       image.spec.tags?.find((version) => version.from?.name === containerImage),
   );
 
-  if (!imageStream || !findNotebookImageCommit(notebook, images)) {
+  if (!imageStream || isNotebookImageDeleted(notebook, imageStream)) {
     // Get the image display name from the notebook metadata if we can't find the image stream. (this is a fallback and could still be undefined)
     return getDeletedImageData(
       notebook.metadata.annotations?.['opendatahub.io/image-display-name'],
@@ -197,7 +200,7 @@ const getNotebookImageNoInternalRegistryNoSHA = (
     ),
   );
 
-  if (!imageStream || !findNotebookImageCommit(notebook, images)) {
+  if (!imageStream || isNotebookImageDeleted(notebook, imageStream)) {
     // Get the image display name from the notebook metadata if we can't find the image stream. (this is a fallback and could still be undefined)
     return getDeletedImageData(
       notebook.metadata.annotations?.['opendatahub.io/image-display-name'],
@@ -247,17 +250,16 @@ const getImageStatus = (imageVersion: ImageStreamSpecTagType): NotebookImageStat
   return undefined;
 };
 
-const findNotebookImageCommit = (notebook: NotebookKind, images: ImageStreamKind[]) =>
-  images.some(
-    (image) =>
-      image.spec.tags &&
-      image.spec.tags.some(
-        (imageTags) =>
-          imageTags.annotations?.['opendatahub.io/notebook-build-commit'] ===
-          notebook.metadata.annotations?.[
-            'notebooks.opendatahub.io/last-image-version-git-commit-selection'
-          ],
-      ),
+const isNotebookImageDeleted = (notebook: NotebookKind, imageStream: ImageStreamKind) =>
+  !findNotebookImageCommit(notebook, imageStream) && !isBYONImageStream(imageStream);
+
+const findNotebookImageCommit = (notebook: NotebookKind, imageStream: ImageStreamKind) =>
+  imageStream.spec.tags?.some(
+    (imageTags) =>
+      imageTags.annotations?.['opendatahub.io/notebook-build-commit'] ===
+      notebook.metadata.annotations?.[
+        'notebooks.opendatahub.io/last-image-version-git-commit-selection'
+      ],
   );
 
 export default useNotebookImageData;
