@@ -73,6 +73,12 @@ export const assembleServingRuntime = (
     annotations['opendatahub.io/hardware-profile-namespace'] = undefined;
   }
 
+  if (podSpecOptions.selectedAcceleratorProfile?.metadata.namespace === namespace) {
+    annotations['opendatahub.io/accelerator-profile-namespace'] = namespace;
+  } else {
+    annotations['opendatahub.io/accelerator-profile-namespace'] = undefined;
+  }
+
   // TODO: Enable GRPC
   if (!isEditing) {
     updatedServingRuntime.metadata = {

@@ -17,12 +17,15 @@ const useServingAcceleratorProfileFormState = (
     inferenceService?.spec.predictor.tolerations || servingRuntime?.spec.tolerations;
   const isProjectScopedAvailable = useIsAreaAvailable(SupportedArea.DS_PROJECT_SCOPED).status;
   const namespace = servingRuntime?.metadata.namespace;
+  const acceleratorProfileNamespace =
+    servingRuntime?.metadata.annotations?.['opendatahub.io/accelerator-profile-namespace'];
 
   return useAcceleratorProfileFormState(
     resources,
     tolerations,
     acceleratorProfileName,
     isProjectScopedAvailable ? namespace : undefined,
+    acceleratorProfileNamespace,
   );
 };
 
