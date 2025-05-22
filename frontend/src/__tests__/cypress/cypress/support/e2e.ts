@@ -27,6 +27,21 @@ import { addCommands as webSocketsAddCommands } from './websockets';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const softAssert = require('soft-assert');
 
+// Track step counter
+let stepCounter: number;
+
+// Enhance cy.step() to print real-time steps with counter in the terminal
+Cypress.Commands.overwrite('step', (originalFn, message: string) => {
+  stepCounter++;
+  cy.task('log', `[STEP ${stepCounter}] ${message}`);
+  return originalFn(message);
+});
+
+// Reset step counter before each test
+beforeEach(() => {
+  stepCounter = 0;
+});
+
 // ============================
 // Type Definitions
 // ============================
