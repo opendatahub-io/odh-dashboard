@@ -61,8 +61,7 @@ describe('Verify Admin Multi Model Creation and Validation using the UI', () => 
     //Check if the Before Method was executed to perform the setup
     if (!wasSetupPerformed()) return;
 
-    // Delete provisioned Project - 5 min timeout to accomadate increased time to delete a project with a model
-    deleteOpenShiftProject(projectName, { timeout: 300000 });
+    deleteOpenShiftProject(projectName, { wait: false });
   });
 
   it(

@@ -55,7 +55,7 @@ describe('Verify Workload Metrics Default page Contents', () => {
       projectName,
     );
     cy.log('Deleting Namespace ${projectName}');
-    deleteOpenShiftProject(projectName);
+    deleteOpenShiftProject(projectName, { wait: false });
   });
 
   it(

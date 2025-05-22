@@ -46,7 +46,7 @@ describe('Workbenches - negative tests', () => {
     // Delete provisioned Project
     if (projectName) {
       cy.log(`Deleting Project ${projectName} after the test has finished.`);
-      deleteOpenShiftProject(projectName);
+      deleteOpenShiftProject(projectName, { wait: false });
     }
   });
 
