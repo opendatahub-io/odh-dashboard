@@ -5,6 +5,7 @@ import { FetchStateRefreshPromise } from '~/utilities/useFetchState';
 import { allSettledPromises } from '~/utilities/allSettledPromises';
 import { updateStorageClassConfig } from '~/api';
 import { getStorageClassConfig, isOpenshiftDefaultStorageClass } from './utils';
+import { AccessMode, StorageProvisioner, provisionerAccessModes } from './constants';
 
 export interface StorageClassContextProps {
   storageClasses: StorageClassKind[];
@@ -70,6 +71,7 @@ export const StorageClassContextProvider: React.FC<StorageClassContextProviderPr
     const updateRequests = storageClasses.reduce(
       (acc: Promise<StorageClassConfig>[], storageClass, index) => {
         const { name } = storageClass.metadata;
+        const provisioner = storageClass.provisioner as StorageProvisioner;
         let config;
         if (storageClass.metadata.annotations?.[MetadataAnnotation.OdhStorageClassConfig]) {
           try {
@@ -96,11 +98,23 @@ export const StorageClassContextProvider: React.FC<StorageClassContextProviderPr
             isEnabled = true;
           }
 
+          const supportedAccessModesForProvisioner = provisionerAccessModes[provisioner] || [];
+          const accessModeSettings = supportedAccessModesForProvisioner.reduce((settings, mode) => {
+            if (mode === AccessMode.ROX) {
+              // ROX is supported by provisioner, but we default it to false
+              settings[mode] = false;
+            } else {
+              settings[mode] = true; // Default to true if supported and not ROX
+            }
+            return settings;
+          }, {} as { [key in AccessMode]?: boolean });
+
           acc.push(
             updateStorageClassConfig(name, {
               isDefault,
               isEnabled,
               displayName: name,
+              accessModeSettings,
             }),
           );
         }
