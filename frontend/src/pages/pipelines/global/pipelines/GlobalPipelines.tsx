@@ -24,7 +24,7 @@ const GlobalPipelines: React.FC = () => {
       headerAction={<PipelineServerActions isDisabled={!pipelinesAPI.pipelinesServer.installed} />}
       getRedirectPath={pipelinesBaseRoute}
     >
-      <EnsureAPIAvailability>
+      <EnsureAPIAvailability isPipeline>
         <EnsureCompatiblePipelineServer>
           <PipelineAndVersionContextProvider>
             <PipelinesView />

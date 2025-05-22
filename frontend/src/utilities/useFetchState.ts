@@ -31,6 +31,7 @@ export type FetchState<Type> = [
   refresh: FetchStateRefreshPromise<Type>,
 ];
 
+export type FetchStateWithStarting<Type> = [...FetchState<Type>, isStarting?: boolean | undefined];
 /**
  * @deprecated Use useFetch instead.
  * useFetchState has been renamed to useFetch and changed to return an object instead of an array.

@@ -215,3 +215,25 @@ export const convertSecondsToPeriodicTime = (seconds: number): string => {
 
   return '';
 };
+
+const shortTimeRangeMinuteLimit = 3;
+const mediumTimeRangeMinuteLimit = 5;
+
+export const getTimeRangeCategory = (
+  timestamp: string | undefined | null,
+): 'shortRange' | 'mediumRange' | 'longRange' => {
+  if (!timestamp) {
+    return 'longRange';
+  }
+  const now = Date.now();
+  const timestampMs = new Date(timestamp).getTime();
+  const diffMinutes = (now - timestampMs) / (1000 * 60);
+
+  if (diffMinutes > mediumTimeRangeMinuteLimit) {
+    return 'longRange';
+  }
+  if (diffMinutes > shortTimeRangeMinuteLimit) {
+    return 'mediumRange';
+  }
+  return 'shortRange';
+};

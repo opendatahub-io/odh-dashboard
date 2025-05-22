@@ -30,6 +30,7 @@ const PipelinesView: React.FC = () => {
   if (!loaded && !initialLoaded) {
     return (
       <Bullseye>
+        Pipeline is loading
         <Spinner />
       </Bullseye>
     );
