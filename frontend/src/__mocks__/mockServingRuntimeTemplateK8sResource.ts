@@ -13,6 +13,7 @@ type MockResourceConfigType = {
   containerName?: string;
   containerEnvVars?: { name: string; value: string }[];
   supportedModelFormats?: SupportedModelFormats[];
+  annotations?: Record<string, string>;
 };
 
 export const mockServingRuntimeTemplateK8sResource = ({
@@ -38,6 +39,7 @@ export const mockServingRuntimeTemplateK8sResource = ({
       version: '1',
     },
   ],
+  annotations,
 }: MockResourceConfigType): TemplateKind => ({
   apiVersion: 'template.openshift.io/v1',
   kind: 'Template',
@@ -51,6 +53,7 @@ export const mockServingRuntimeTemplateK8sResource = ({
     annotations: {
       'opendatahub.io/modelServingSupport': JSON.stringify(platforms),
       'opendatahub.io/apiProtocol': apiProtocol,
+      ...annotations,
     },
   },
   objects: [

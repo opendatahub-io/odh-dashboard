@@ -9,6 +9,9 @@ export const customServingRuntimesInitialMock = [
     name: 'template-1',
     displayName: 'Multi Platform',
     platforms: [ServingRuntimePlatform.SINGLE],
+    annotations: {
+      'opendatahub.io/runtime-version': '1.0.0',
+    },
   }),
   mockServingRuntimeTemplateK8sResource({
     name: 'template-2',
