@@ -1,5 +1,6 @@
+/* eslint-disable camelcase */
 import type { Model as LlamaModel } from 'llama-stack-client/resources/models';
-import axios from '~/utilities/axios';
+import axios from '#~/utilities/axios';
 
 // Roles must be 'user' and 'assistant' according to the Llama Stack API
 type ChatMessage = {
@@ -18,13 +19,11 @@ export const listModels = (): Promise<LlamaModel[]> => {
     });
 };
 
-// eslint-disable-next-line camelcase
 export const completeChat = (messages: ChatMessage[], model_id: string): Promise<string> => {
   const url = '/api/llama-stack/chat/complete';
 
   const formattedMessages = messages.map((msg) => {
     if (msg.role === 'assistant' && !msg.stop_reason) {
-      // eslint-disable-next-line camelcase
       return { ...msg, stop_reason: 'stop' };
     }
     return msg;
@@ -33,7 +32,6 @@ export const completeChat = (messages: ChatMessage[], model_id: string): Promise
   return fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    // eslint-disable-next-line camelcase
     body: JSON.stringify({ messages: formattedMessages, model_id }),
   })
     .then((response) => {
