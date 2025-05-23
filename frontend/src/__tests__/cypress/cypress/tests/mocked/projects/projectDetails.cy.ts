@@ -577,7 +577,7 @@ describe('Project Details', () => {
       initIntercepts({
         disableLlamaStackChatBot: false,
       });
-      cy.intercept('GET', '/api/llama-stack/models/list*', (req) => {
+      cy.intercept('GET', '/api/llama-stack/models/list', (req) => {
         req.reply({
           statusCode: 200,
           body: [
@@ -627,7 +627,6 @@ describe('Project Details', () => {
       cy.wait('@getModels');
 
       cy.findByTestId('chatbot-message-bar').should('be.visible').click();
-
       cy.findByTestId('chatbot-message-bar').type('hello{enter}');
 
       cy.wait('@sendChatMessage');
