@@ -4,7 +4,6 @@ import { DownloadIcon, ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { ArtifactType } from '~/concepts/pipelines/kfTypes';
 import { useArtifactStorage } from '~/concepts/pipelines/apiHooks/useArtifactStorage';
 import { Artifact } from '~/third_party/mlmd';
-import { triggerFileDownload } from '~/utilities/string';
 import useNotification from '~/utilities/useNotification';
 
 interface ArtifactUriLinkProps {
@@ -27,7 +26,7 @@ export const ArtifactUriLink: React.FC<ArtifactUriLinkProps> = ({ artifact }) =>
     getStorageObjectDownloadUrl(artifact)
       .then((url) => {
         if (url) {
-          triggerFileDownload('', url);
+          window.open(url, '_blank');
         }
       })
       .catch((error) => {
