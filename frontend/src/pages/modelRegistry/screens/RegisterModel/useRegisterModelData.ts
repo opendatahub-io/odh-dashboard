@@ -4,6 +4,7 @@ import useGenericObjectState, { GenericObjectState } from '~/utilities/useGeneri
 export enum ModelLocationType {
   ObjectStorage = 'Object storage',
   URI = 'URI',
+  OCI = 'OCI',
 }
 
 export type RegistrationCommonFormData = {
@@ -17,6 +18,7 @@ export type RegistrationCommonFormData = {
   modelLocationRegion: string;
   modelLocationPath: string;
   modelLocationURI: string;
+  modelLocationOCI: string;
   versionCustomProperties?: ModelRegistryCustomProperties;
   modelCustomProperties?: ModelRegistryCustomProperties;
   additionalArtifactProperties?: Partial<ModelArtifact>;
@@ -47,6 +49,7 @@ const registrationCommonFormDataDefaults: RegistrationCommonFormData = {
   modelLocationRegion: '',
   modelLocationPath: '',
   modelLocationURI: '',
+  modelLocationOCI: '',
   modelCustomProperties: {},
   versionCustomProperties: {},
   storageKey: '',
