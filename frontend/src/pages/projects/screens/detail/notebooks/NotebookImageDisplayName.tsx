@@ -34,11 +34,12 @@ import {
 } from '#~/pages/projects/screens/spawner/spawnerUtils';
 import { NotebookState } from '#~/pages/projects/notebook/types';
 import UnderlinedTruncateButton from '#~/components/UnderlinedTruncateButton';
+import { NotebookKind } from '#~/k8sTypes';
 import { NotebookImageAvailability, NotebookImageStatus } from './const';
 import { NotebookImage } from './types';
 
 type NotebookImageDisplayNameProps = {
-  isImageStreamProjectScoped: boolean;
+  notebook: NotebookKind;
   notebookImage: NotebookImage | null;
   notebookState: NotebookState;
   loaded: boolean;
@@ -50,7 +51,7 @@ type NotebookImageDisplayNameProps = {
 };
 
 export const NotebookImageDisplayName = ({
-  isImageStreamProjectScoped,
+  notebook,
   notebookImage,
   notebookState,
   loaded,
@@ -235,7 +236,7 @@ export const NotebookImageDisplayName = ({
           {notebookImage.imageStatus !== NotebookImageStatus.DELETED &&
             notebookImage.imageAvailability === NotebookImageAvailability.ENABLED &&
             isProjectScopedAvailable &&
-            isImageStreamProjectScoped && (
+            notebook.metadata.annotations?.['opendatahub.io/workbench-image-namespace'] && (
               <Label
                 isCompact
                 variant="outline"
