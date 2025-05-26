@@ -91,12 +91,16 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
                   selectedImageStream.metadata.namespace === imageStream.metadata.namespace
                 }
                 onClick={() => onImageStreamSelect(imageStream)}
-                icon={<TypedObjectIcon alt="" resourceType={ProjectObjectType.project} />}
               >
-                <Split>
-                  {getImageStreamDisplayName(imageStream)}
-                  <SplitItem isFilled />
-                  <SplitItem>
+                <Flex
+                  spaceItems={{ default: 'spaceItemsXs' }}
+                  alignItems={{ default: 'alignItemsCenter' }}
+                >
+                  <FlexItem>
+                    <TypedObjectIcon alt="" resourceType={ProjectObjectType.project} />
+                  </FlexItem>
+                  <FlexItem>{getImageStreamDisplayName(imageStream)}</FlexItem>
+                  <FlexItem align={{ default: 'alignRight' }}>
                     {compatibleIdentifiers?.some((identifier) =>
                       isCompatibleWithIdentifier(identifier, imageStream),
                     ) && (
@@ -105,8 +109,8 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
                         {isHardwareProfilesAvailable ? ' hardware profile' : ' accelerator'}
                       </Label>
                     )}
-                  </SplitItem>
-                </Split>
+                  </FlexItem>
+                </Flex>
               </MenuItem>
             ))}
           </MenuGroup>
@@ -139,12 +143,16 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
                   selectedImageStream.metadata.namespace === imageStream.metadata.namespace
                 }
                 onClick={() => onImageStreamSelect(imageStream)}
-                icon={<GlobalIcon />}
               >
-                <Split>
-                  {getImageStreamDisplayName(imageStream)}
-                  <SplitItem isFilled />
-                  <SplitItem>
+                <Flex
+                  spaceItems={{ default: 'spaceItemsXs' }}
+                  alignItems={{ default: 'alignItemsCenter' }}
+                >
+                  <FlexItem>
+                    <GlobalIcon />
+                  </FlexItem>
+                  <FlexItem>{getImageStreamDisplayName(imageStream)}</FlexItem>
+                  <FlexItem align={{ default: 'alignRight' }}>
                     {compatibleIdentifiers?.some((identifier) =>
                       isCompatibleWithIdentifier(identifier, imageStream),
                     ) && (
@@ -153,8 +161,8 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
                         {isHardwareProfilesAvailable ? ' hardware profile' : ' accelerator'}
                       </Label>
                     )}
-                  </SplitItem>
-                </Split>
+                  </FlexItem>
+                </Flex>
               </MenuItem>
             ))}
           </MenuGroup>
@@ -258,7 +266,11 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
           aria-label="Select an image"
           options={options}
           placeholder="Select one"
-          value={selectedImageStream?.metadata.name}
+          value={
+            selectedImageStream?.metadata.namespace !== currentProject
+              ? selectedImageStream?.metadata.name
+              : ''
+          }
           popperProps={{ appendTo: 'inline' }}
           onChange={(key) => {
             const imageStream = imageStreams.find(

@@ -31,6 +31,7 @@ type MockResourceConfigType = {
   additionalVolumes?: Volume[];
   hardwareProfileName?: string;
   hardwareProfileNamespace?: string | null;
+  workbenchImageNamespace?: string | null;
 };
 
 export const mockNotebookK8sResource = ({
@@ -57,6 +58,7 @@ export const mockNotebookK8sResource = ({
   additionalVolumes = [],
   hardwareProfileName = '',
   hardwareProfileNamespace = null,
+  workbenchImageNamespace = null,
 }: MockResourceConfigType): NotebookKind =>
   _.merge(
     {
@@ -76,6 +78,7 @@ export const mockNotebookK8sResource = ({
           'openshift.io/display-name': displayName,
           'opendatahub.io/hardware-profile-name': hardwareProfileName,
           'opendatahub.io/hardware-profile-namespace': hardwareProfileNamespace,
+          'opendatahub.io/workbench-image-namespace': workbenchImageNamespace,
         },
         creationTimestamp: '2023-02-14T21:44:13Z',
         generation: 4,
