@@ -31,25 +31,34 @@ export const createOpenShiftProject = (
  * Delete an OpenShift Project given its name
  *
  * @param projectName OpenShift Project name
+ * @param options Configuration options for the delete operation
+ * @param options.timeout Timeout in milliseconds for the command (only used when wait is true)
+ * @param options.wait Whether to wait for the deletion to complete (default: true)
  * @returns Result Object of the operation
  */
 export const deleteOpenShiftProject = (
   projectName: string,
-  options: { timeout?: number } = {},
+  options: { timeout?: number; wait?: boolean } = {},
 ): Cypress.Chainable<CommandLineResult> => {
-  const { timeout } = options;
-  const ocCommand = `oc delete project ${projectName}`;
-  return cy
-    .exec(ocCommand, { failOnNonZeroExit: false, ...(timeout && { timeout }) })
-    .then((result) => {
-      if (result.code !== 0) {
-        cy.log(`ERROR deleting ${projectName} Project
+  const { timeout, wait = true } = options;
+  const waitFlag = wait ? '' : '--wait=false';
+  const ocCommand = `oc delete project ${projectName} ${waitFlag}`.trim();
+
+  // Only apply timeout if we're waiting for the deletion
+  const execOptions = {
+    failOnNonZeroExit: false,
+    ...(wait && timeout && { timeout }),
+  };
+
+  return cy.exec(ocCommand, execOptions).then((result) => {
+    if (result.code !== 0) {
+      cy.log(`ERROR deleting ${projectName} Project
                 stdout: ${result.stdout}
                 stderr: ${result.stderr}`);
-        throw new Error(`Command failed with code ${result.code}`);
-      }
-      return result;
-    });
+      throw new Error(`Command failed with code ${result.code}`);
+    }
+    return result;
+  });
 };
 
 /**

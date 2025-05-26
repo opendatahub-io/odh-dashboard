@@ -42,7 +42,7 @@ describe('Verify that users can provide contributor project permissions to non-a
     // Delete provisioned Project
     if (projectName) {
       cy.log(`Deleting Project ${projectName} after the test has finished.`);
-      deleteOpenShiftProject(projectName);
+      deleteOpenShiftProject(projectName, { wait: false });
     }
   });
 

@@ -35,7 +35,7 @@ describe(
       if (!wasSetupPerformed()) return;
 
       // Delete provisioned Project
-      deleteOpenShiftProject(projectName);
+      deleteOpenShiftProject(projectName, { wait: false });
     });
 
     it(
