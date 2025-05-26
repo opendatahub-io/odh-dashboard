@@ -1266,6 +1266,34 @@ export type AcceleratorProfileKind = K8sResourceCommon & {
   };
 };
 
+export type LMEvaluationKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+    namespace: string;
+    annotations?: Partial<{
+      'opendatahub.io/modified-date': string;
+    }>;
+  };
+  spec: {
+    modelName: string;
+    evalDataset: string;
+    evalMetrics: string[];
+    batchSize?: number;
+    timeout?: number;
+  };
+  status?: {
+    conditions?: K8sCondition[];
+    completionTime?: string;
+    startTime?: string;
+    results?: {
+      metricName: string;
+      score: number;
+      details?: Record<string, unknown>;
+    }[];
+    phase: 'Pending' | 'Running' | 'Succeeded' | 'Failed';
+  };
+};
+
 export enum HardwareProfileFeatureVisibility {
   WORKBENCH = 'workbench',
   MODEL_SERVING = 'model-serving',
