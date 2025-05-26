@@ -20,7 +20,7 @@ export const createCleanProject = (projectName: string): void => {
   verifyOpenShiftProjectExists(projectName).then((exists) => {
     if (exists) {
       cy.log(`Project ${projectName} already exists. Deleting it.`);
-      deleteOpenShiftProject(projectName, { wait: false });
+      deleteOpenShiftProject(projectName, { wait: true });
     }
     cy.log(`Creating project ${projectName}`);
     createAndVerifyProject(projectName);
