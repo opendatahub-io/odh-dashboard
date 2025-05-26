@@ -1503,6 +1503,21 @@ describe('Serving Runtime List', () => {
       kserveModal.findSubmitButton().should('be.enabled');
       // raw
       kserveModal.findDeploymentModeSelect().should('contain.text', 'Advanced');
+
+      // Test advanced mode replica settings
+      kserveModal.findMinReplicasInput().should('have.value', '1');
+      kserveModal.findMinReplicasPlusButton().should('be.disabled');
+      kserveModal.findMaxReplicasInput().should('have.value', '1');
+      kserveModal.findMaxReplicasMinusButton().should('be.disabled');
+      kserveModal.findMaxReplicasPlusButton().click();
+      kserveModal.findMaxReplicasInput().should('have.value', '2');
+      kserveModal.findMinReplicasPlusButton().click();
+      kserveModal.findMinReplicasInput().should('have.value', '2');
+
+      // Test max limit of 99
+      kserveModal.findMaxReplicasInput().clear().type('100');
+      kserveModal.findMaxReplicasInput().should('have.value', '99');
+      kserveModal.findMaxReplicasPlusButton().should('be.disabled');
       kserveModal.findDeploymentModeSelect().findSelectOption('Standard').click();
 
       // test submitting form, the modal should close to indicate success.
@@ -1564,8 +1579,8 @@ describe('Serving Runtime List', () => {
           },
           spec: {
             predictor: {
-              minReplicas: 1,
-              maxReplicas: 1,
+              minReplicas: 2,
+              maxReplicas: 2,
               model: {
                 modelFormat: { name: 'onnx', version: '1' },
                 runtime: 'test-name',
