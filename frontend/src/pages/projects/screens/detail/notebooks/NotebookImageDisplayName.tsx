@@ -20,12 +20,14 @@ import {
   ExclamationTriangleIcon,
   InfoCircleIcon,
 } from '@patternfly/react-icons';
-import { ProjectObjectType } from '~/concepts/design/utils';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { ODH_PRODUCT_NAME } from '~/utilities/const';
-import TypedObjectIcon from '~/concepts/design/TypedObjectIcon';
-import { NotebookImageAvailability, NotebookImageStatus } from './const';
-import { NotebookImage } from './types';
+import {
+  NotebookImageAvailability,
+  NotebookImageStatus,
+} from '~/pages/projects/screens/detail/notebooks/const';
+import ScopedLabel from '~/components/ScopedLabel';
+import { NotebookImage } from '~/pages/projects/screens/detail/notebooks/types';
 
 type NotebookImageDisplayNameProps = {
   isImageStreamProjectScoped: boolean;
@@ -188,15 +190,9 @@ export const NotebookImageDisplayName = ({
             notebookImage.imageAvailability === NotebookImageAvailability.ENABLED &&
             isProjectScopedAvailable &&
             isImageStreamProjectScoped && (
-              <Label
-                isCompact
-                variant="outline"
-                color="blue"
-                data-testid="project-scoped-label"
-                icon={<TypedObjectIcon alt="" resourceType={ProjectObjectType.project} />}
-              >
+              <ScopedLabel isProject color="blue" isCompact>
                 Project-scoped
-              </Label>
+              </ScopedLabel>
             )}
         </FlexItem>
         {(notebookImage.imageStatus === NotebookImageStatus.DELETED ||
