@@ -1,9 +1,7 @@
-import * as React from 'react';
+import React from 'react';
 import type { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
 import { ResolvedExtension } from '@openshift/dynamic-plugin-sdk';
-// eslint-disable-next-line import/no-extraneous-dependencies
 import { addSupportServingPlatformProject } from '@odh-dashboard/internal/api/k8s/projects';
-// eslint-disable-next-line import/no-extraneous-dependencies
 import { NamespaceApplicationCase } from '@odh-dashboard/internal/pages/projects/types';
 import { ModelServingPlatformExtension } from '../../extension-points';
 
