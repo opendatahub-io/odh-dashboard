@@ -25,7 +25,7 @@ import AppLauncher from './AppLauncher';
 import { useAppContext } from './AppContext';
 import { useThemeContext } from './ThemeContext';
 import { logout } from './appUtils';
-import FeatureFlagLauncher, { FeatureFlagLauncherProps } from './FeatureFlags/FeatureFlagLauncher';
+import FeatureFlagLauncher, { FeatureFlagLauncherProps } from './featureFlags/FeatureFlagLauncher';
 
 interface HeaderToolsProps {
   onNotificationsClick: () => void;

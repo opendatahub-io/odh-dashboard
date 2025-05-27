@@ -3,7 +3,7 @@ import { render, screen, fireEvent, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import FeatureFlagLauncher, {
   FeatureFlagLauncherProps,
-} from '~/app/FeatureFlags/FeatureFlagLauncher';
+} from '~/app/featureFlags/FeatureFlagLauncher';
 
 const ffMockDashboardConfig = {
   enablement: true,

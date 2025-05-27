@@ -4,7 +4,7 @@ import * as React from 'react';
 
 import { DashboardCommonConfig } from '~/k8sTypes';
 import { DevFeatureFlags } from '~/types';
-import FeatureFlagModal from './FeatureFlagModal';
+import FeatureFlagModal from '~/app/featureFlags/FeatureFlagModal';
 
 type Props = { dashboardConfig: Partial<DashboardCommonConfig> } & DevFeatureFlags;
 

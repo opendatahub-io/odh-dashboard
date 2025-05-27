@@ -2,7 +2,7 @@ import { merge } from 'lodash-es';
 import { act } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { testHook } from '~/__tests__/unit/testUtils/hooks';
-import useDevFeatureFlags from '~/app/FeatureFlags/useDevFeatureFlags';
+import useDevFeatureFlags from '~/app/featureFlags/useDevFeatureFlags';
 import { allFeatureFlags } from '~/concepts/areas/const';
 import { DashboardCommonConfig, DashboardConfigKind } from '~/k8sTypes';
 import axios from '~/utilities/axios';

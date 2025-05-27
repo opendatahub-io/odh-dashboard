@@ -2,7 +2,7 @@ import * as React from 'react';
 import { act } from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import DevFeatureFlagsBanner from '~/app/FeatureFlags/DevFeatureFlagsBanner';
+import DevFeatureFlagsBanner from '~/app/featureFlags/DevFeatureFlagsBanner';
 
 describe('DevFeatureFlagsBanner', () => {
   it('should not render if no feature flags are overridden', () => {

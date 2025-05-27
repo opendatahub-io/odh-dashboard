@@ -3,7 +3,7 @@ import { Dropdown, DropdownGroup, DropdownItem, MenuToggle, Tooltip } from '@pat
 import { FlagIcon, PencilAltIcon, RedoIcon } from '@patternfly/react-icons';
 import { FeatureFlagProps } from '~/types';
 import { DashboardCommonConfig } from '~/k8sTypes';
-import FeatureFlagModal from './FeatureFlagModal';
+import FeatureFlagModal from '~/app/featureFlags/FeatureFlagModal';
 import '~/app/AppLauncher.scss';
 
 export type FeatureFlagLauncherProps = FeatureFlagProps & {
@@ -19,18 +19,6 @@ const FeatureFlagLauncher: React.FC<FeatureFlagLauncherProps> = ({
   const [isOpen, setIsOpen] = React.useState(false);
   const [isModalOpen, setModalOpen] = React.useState(false);
 
-  const toggle = (
-    <MenuToggle
-      aria-label="Feature Flag Launcher"
-      variant="plain"
-      onClick={() => setIsOpen(!isOpen)}
-      isExpanded={isOpen}
-      style={{ width: 'auto' }}
-    >
-      <FlagIcon />
-    </MenuToggle>
-  );
-
   return (
     <>
       <Dropdown
@@ -39,7 +27,15 @@ const FeatureFlagLauncher: React.FC<FeatureFlagLauncherProps> = ({
         onSelect={() => setIsOpen(false)}
         toggle={(toggleRef) => (
           <Tooltip content="Feature Flags" triggerRef={toggleRef} position="bottom">
-            {React.cloneElement(toggle, { ref: toggleRef })}
+            <MenuToggle
+              aria-label="Feature Flag Launcher"
+              variant="plain"
+              ref={toggleRef}
+              onClick={() => setIsOpen(!isOpen)}
+              isExpanded={isOpen}
+            >
+              <FlagIcon />
+            </MenuToggle>
           </Tooltip>
         )}
         shouldFocusToggleOnSelect

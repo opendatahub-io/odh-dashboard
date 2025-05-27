@@ -12,7 +12,7 @@ import {
 
 import { allFeatureFlags } from '~/concepts/areas/const';
 import { isFeatureFlag } from '~/concepts/areas/utils';
-import { FeatureFlagLauncherProps } from '~/app/FeatureFlags/FeatureFlagLauncher';
+import { FeatureFlagLauncherProps } from '~/app/featureFlags/FeatureFlagLauncher';
 
 type Props = FeatureFlagLauncherProps & { onClose: () => void };
 
