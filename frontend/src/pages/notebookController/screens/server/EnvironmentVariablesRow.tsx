@@ -4,7 +4,7 @@ import { MinusCircleIcon } from '@patternfly/react-icons';
 import { CUSTOM_VARIABLE, EMPTY_KEY } from '~/pages/notebookController/const';
 import { EnvVarCategoryType, EnvVarType, VariableRow } from '~/types';
 import { getDashboardMainContainer } from '~/utilities/utils';
-import SimpleSelect from '~/components/SimpleSelect';
+import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
 import EnvironmentVariablesField from './EnvironmentVariablesField';
 
 type EnvironmentVariablesRowProps = {
@@ -75,11 +75,17 @@ const EnvironmentVariablesRow: React.FC<EnvironmentVariablesRowProps> = ({
       <Flex>
         <SimpleSelect
           toggleProps={{ style: { width: '70%' } }}
-          toggleLabel={variableRow.variableType}
+          value={variableRow.variableType}
+          placeholder="Select a variable type"
           aria-labelledby="container-size"
           options={[
             { key: CUSTOM_VARIABLE, label: CUSTOM_VARIABLE },
-            ...categories.map((category) => ({ key: category.name, label: category.name })),
+            ...categories.map(
+              (category): SimpleSelectOption => ({
+                key: category.name,
+                label: category.name,
+              }),
+            ),
           ]}
           popperProps={{ appendTo: getDashboardMainContainer() }}
           onChange={updateVariableType}

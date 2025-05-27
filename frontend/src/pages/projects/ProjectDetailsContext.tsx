@@ -69,10 +69,7 @@ const ProjectDetailsContextProvider: React.FC = () => {
   const { dashboardNamespace } = useDashboardNamespace();
   const { namespace } = useParams<{ namespace: string }>();
   const { projects } = React.useContext(ProjectsContext);
-  const project = React.useMemo(
-    () => projects.find(byName(namespace)) ?? null,
-    [namespace, projects],
-  );
+  const project = projects.find(byName(namespace)) ?? null;
   useSyncPreferredProject(project);
   const notebooks = useContextResourceData<NotebookState>(useProjectNotebookStates(namespace));
   const pvcs = useContextResourceData<PersistentVolumeClaimKind>(useProjectPvcs(namespace));
@@ -99,7 +96,6 @@ const ProjectDetailsContextProvider: React.FC = () => {
       if (!namespace || !servingRuntimeName) {
         return [];
       }
-
       const { serviceAccountName } = getTokenNames(servingRuntimeName, namespace);
 
       const secrets = serverSecrets.data.filter(
@@ -107,6 +103,7 @@ const ProjectDetailsContextProvider: React.FC = () => {
           secret.metadata.annotations?.['kubernetes.io/service-account.name'] ===
           serviceAccountName,
       );
+
       return secrets;
     },
     [namespace, serverSecrets],
