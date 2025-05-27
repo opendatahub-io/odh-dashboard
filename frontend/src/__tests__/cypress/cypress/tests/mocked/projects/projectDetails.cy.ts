@@ -41,6 +41,7 @@ import { NamespaceApplicationCase } from '~/pages/projects/types';
 import { mockNimServingRuntimeTemplate } from '~/__mocks__/mockNimResource';
 import { mockNimAccount } from '~/__mocks__/mockNimAccount';
 import { mockOdhApplication } from '~/__mocks__/mockOdhApplication';
+import type { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
 
 type HandlersProps = {
   isEmpty?: boolean;
@@ -64,6 +65,8 @@ type HandlersProps = {
   disableWorkbenches?: boolean;
   namespace?: string;
   disableLlamaStackChatBot?: boolean;
+  inferenceServices?: InferenceServiceKind[];
+  servingRuntimes?: ServingRuntimeKind[];
 };
 
 const initIntercepts = ({
@@ -88,6 +91,8 @@ const initIntercepts = ({
   disableWorkbenches = false,
   namespace = 'test-project',
   disableLlamaStackChatBot = false,
+  inferenceServices = [],
+  servingRuntimes = [],
 }: HandlersProps) => {
   cy.interceptK8sList(
     { model: SecretModel, ns: namespace },
@@ -328,6 +333,9 @@ const initIntercepts = ({
     },
   );
   cy.interceptK8sList(NIMAccountModel, mockK8sResourceList([mockNimAccount({})]));
+
+  cy.interceptK8sList(ServingRuntimeModel, mockK8sResourceList(servingRuntimes));
+  cy.interceptK8sList(InferenceServiceModel, mockK8sResourceList(inferenceServices));
 };
 
 describe('Project Details', () => {
@@ -355,11 +363,11 @@ describe('Project Details', () => {
     }
   };
 
-  beforeEach(() => {
-    initModelServingIntercepts({});
-  });
-
   describe('Empty project details', () => {
+    beforeEach(() => {
+      initModelServingIntercepts({});
+    });
+
     it('Empty state component in project details', () => {
       initIntercepts({ isEmpty: true });
       projectDetails.visit('test-project');
@@ -544,6 +552,10 @@ describe('Project Details', () => {
   });
 
   describe('No empty project details', () => {
+    beforeEach(() => {
+      initModelServingIntercepts({});
+    });
+
     it('No empty state components in the project details', () => {
       initIntercepts({});
       projectDetails.visit('test-project');
@@ -637,6 +649,7 @@ describe('Project Details', () => {
 
   describe('Selecting a model serving platform', () => {
     it('Select single-model serving on models tab', () => {
+      initModelServingIntercepts({});
       initIntercepts({ disableKServeConfig: false, disableModelConfig: false });
       projectDetails.visitSection('test-project', 'model-server');
       projectDetails.findSelectPlatformButton('single').click();
@@ -663,6 +676,7 @@ describe('Project Details', () => {
     });
 
     it('Select multi-model serving on models tab', () => {
+      initModelServingIntercepts({});
       initIntercepts({
         disableKServeConfig: false,
         disableModelConfig: false,
@@ -677,6 +691,7 @@ describe('Project Details', () => {
     });
 
     it('Un-select multi-model serving on models tab', () => {
+      initModelServingIntercepts({});
       initIntercepts({
         disableKServeConfig: false,
         disableModelConfig: false,
@@ -693,6 +708,7 @@ describe('Project Details', () => {
     });
 
     it('Select NIM serving on models tab', () => {
+      initModelServingIntercepts({});
       initIntercepts({
         disableKServeConfig: false,
         disableModelConfig: false,
@@ -708,6 +724,7 @@ describe('Project Details', () => {
     });
 
     it('Un-select NIM serving on models tab', () => {
+      initModelServingIntercepts({});
       initIntercepts({
         disableKServeConfig: false,
         disableModelConfig: false,
@@ -726,6 +743,7 @@ describe('Project Details', () => {
     });
 
     it('Show error when failed to select platform on overview tab', () => {
+      initModelServingIntercepts({});
       initIntercepts({
         disableKServeConfig: false,
         disableModelConfig: false,
@@ -750,6 +768,7 @@ describe('Project Details', () => {
     });
 
     it('Select single-model serving on overview tab', () => {
+      initModelServingIntercepts({});
       initIntercepts({ disableKServeConfig: false, disableModelConfig: false });
       projectDetails.visitSection('test-project', 'overview');
       projectDetails.findSelectPlatformButton('single').click();
@@ -777,6 +796,7 @@ describe('Project Details', () => {
     });
 
     it('Select multi-model serving on overview tab', () => {
+      initModelServingIntercepts({});
       initIntercepts({
         disableKServeConfig: false,
         disableModelConfig: false,
@@ -807,6 +827,7 @@ describe('Project Details', () => {
     });
 
     it('Select NIM serving on overview tab', () => {
+      initModelServingIntercepts({});
       initIntercepts({
         disableKServeConfig: false,
         disableModelConfig: false,
@@ -863,9 +884,80 @@ describe('Project Details', () => {
       projectDetails.findResetPlatformButton().click();
       projectDetails.findErrorSelectingPlatform().should('exist');
     });
+
+    it('Change serving platform button should be disabled with tooltip when non-dashboard inference service exists', () => {
+      // Create a non-dashboard inference service
+      const nonDashboardInferenceService = mockInferenceServiceK8sResource({
+        name: 'non-dashboard-inference',
+        namespace: 'test-project',
+        isNonDashboardItem: true,
+      });
+
+      initModelServingIntercepts({});
+      initIntercepts({
+        disableKServeConfig: false,
+        disableModelConfig: false,
+        enableModelMesh: false,
+        inferenceServices: [nonDashboardInferenceService],
+        servingRuntimes: [],
+      });
+
+      projectDetails.visitSection('test-project', 'model-server');
+
+      // Find the change serving platform button
+      projectDetails.findResetPlatformButton().should('have.attr', 'aria-disabled');
+
+      // Verify the tooltip content
+      projectDetails
+        .findResetPlatformButton()
+        .trigger('mouseenter')
+        .then(() => {
+          cy.findByRole('tooltip').should(
+            'have.text',
+            'To change the model serving platform, delete all models and model servers in the project. This project contains models or servers not managed by the dashboard.',
+          );
+        });
+    });
+
+    it('Change serving platform button should be disabled with tooltip when non-dashboard serving runtime exists', () => {
+      // Create a non-dashboard serving runtime
+      const nonDashboardServingRuntime = mockServingRuntimeK8sResource({
+        name: 'non-dashboard-runtime',
+        namespace: 'test-project',
+        isNonDashboardItem: true,
+      });
+
+      initIntercepts({
+        disableKServeConfig: false,
+        disableModelConfig: false,
+        enableModelMesh: false,
+        inferenceServices: [],
+        servingRuntimes: [nonDashboardServingRuntime],
+      });
+
+      projectDetails.visitSection('test-project', 'model-server');
+
+      // Find the change serving platform button
+      projectDetails.findResetPlatformButton().should('have.attr', 'aria-disabled');
+
+      // Verify the tooltip content
+      projectDetails
+        .findResetPlatformButton()
+        .trigger('mouseenter')
+        .then(() => {
+          cy.findByRole('tooltip').should(
+            'have.text',
+            'To change the model serving platform, delete all models and model servers in the project. This project contains models or servers not managed by the dashboard.',
+          );
+        });
+    });
   });
 
   describe('Navigating back to model registry after selecting a platform', () => {
+    beforeEach(() => {
+      initModelServingIntercepts({});
+    });
+
     it('Navigate back after choosing single-model serving from models tab', () => {
       initIntercepts({
         disableKServeConfig: false,
@@ -975,6 +1067,7 @@ describe('Project Details', () => {
       initIntercepts({
         disableWorkbenches: true,
       });
+      initModelServingIntercepts({});
     });
 
     it('should hide workbench tab when workbenches are disabled', () => {
