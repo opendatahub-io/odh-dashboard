@@ -1270,27 +1270,29 @@ export type LMEvaluationKind = K8sResourceCommon & {
   metadata: {
     name: string;
     namespace: string;
-    annotations?: Partial<{
-      'opendatahub.io/modified-date': string;
-    }>;
+    resourceVersion: string;
+    uid: string;
   };
   spec: {
-    modelName: string;
-    evalDataset: string;
-    evalMetrics: string[];
-    batchSize?: number;
+    allowCodeExecution?: boolean;
+    allowOnline?: boolean;
+    batchSize?: string;
+    logSamples?: boolean;
+    model: string;
+    modelArgs?: string[];
     timeout?: number;
+    taskList?: {
+      taskNames?: string[];
+    };
   };
   status?: {
-    conditions?: K8sCondition[];
-    completionTime?: string;
-    startTime?: string;
-    results?: {
-      metricName: string;
-      score: number;
-      details?: Record<string, unknown>;
-    }[];
-    phase: 'Pending' | 'Running' | 'Succeeded' | 'Failed';
+    completeTime?: string;
+    lastScheduleTime?: string;
+    message?: string;
+    podName?: string;
+    reason?: string;
+    results?: string;
+    state?: string;
   };
 };
 
