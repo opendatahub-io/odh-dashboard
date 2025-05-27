@@ -2,6 +2,7 @@ import React from 'react';
 import { mockInferenceServiceK8sResource } from '~/__mocks__';
 import { testHook } from '~/__tests__/unit/testUtils/hooks';
 import { useInferenceServicesForConnection } from '~/pages/projects/useInferenceServicesForConnection';
+import { ProjectDetailsContextType } from '~/pages/projects/ProjectDetailsContext';
 import { mockConnection } from '~/__mocks__/mockConnection';
 
 jest.mock('react', () => ({
@@ -32,7 +33,13 @@ const mockInferenceServices = [
 
 describe('useInferenceServicesForConnection', () => {
   beforeEach(() => {
-    useContextMock.mockReturnValue({ inferenceServices: { data: mockInferenceServices } });
+    useContextMock.mockReturnValue({
+      inferenceServices: {
+        data: { items: mockInferenceServices, hasNonDashboardItems: false },
+        loaded: true,
+        refresh: jest.fn(),
+      },
+    } satisfies Pick<ProjectDetailsContextType, 'inferenceServices'>);
   });
 
   it('should return matching inference services', () => {

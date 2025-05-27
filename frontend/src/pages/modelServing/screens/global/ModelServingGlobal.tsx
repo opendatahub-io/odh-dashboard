@@ -14,12 +14,12 @@ import ModelServingLoading from './ModelServingLoading';
 const ModelServingGlobal: React.FC = () => {
   const {
     servingRuntimes: {
-      data: servingRuntimes,
+      data: { items: servingRuntimes },
       loaded: servingRuntimesLoaded,
       refresh: refreshServingRuntimes,
     },
     inferenceServices: {
-      data: inferenceServices,
+      data: { items: inferenceServices },
       loaded: inferenceServicesLoaded,
       refresh: refreshInferenceServices,
     },

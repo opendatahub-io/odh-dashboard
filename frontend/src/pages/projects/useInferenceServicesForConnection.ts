@@ -7,7 +7,9 @@ export const useInferenceServicesForConnection = (
   connection: Connection,
 ): InferenceServiceKind[] => {
   const {
-    inferenceServices: { data: inferenceServices },
+    inferenceServices: {
+      data: { items: inferenceServices },
+    },
   } = React.useContext(ProjectDetailsContext);
   const connectionName = connection.metadata.name;
 

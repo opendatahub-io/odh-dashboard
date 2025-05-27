@@ -16,7 +16,6 @@ import {
 } from '~/concepts/roleBinding/types';
 import { filterRoleBindingSubjects, removePrefix } from '~/concepts/roleBinding/utils';
 import { RoleBindingKind, RoleBindingRoleRef } from '~/k8sTypes';
-import { ContextResourceData } from '~/types';
 import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
 import RoleBindingPermissionsTableSection from '~/concepts/roleBinding/RoleBindingPermissionsTableSection';
@@ -24,10 +23,11 @@ import {
   createModelRegistryRoleBinding,
   deleteModelRegistryRoleBinding,
 } from '~/services/modelRegistrySettingsService';
+import { FetchStateObject } from '~/utilities/useFetch';
 
 type RoleBindingProjectPermissionsProps = {
   ownerReference?: K8sResourceCommon;
-  roleBindingPermissionsRB: ContextResourceData<RoleBindingKind>;
+  roleBindingPermissionsRB: FetchStateObject<RoleBindingKind[]>;
   permissionOptions: {
     type: RoleBindingPermissionsRoleType;
     description: string;

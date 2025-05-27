@@ -36,6 +36,7 @@ type MockResourceConfigType = {
   isKserveRaw?: boolean;
   tolerations?: Toleration[];
   nodeSelector?: NodeSelector;
+  isNonDashboardItem?: boolean;
 };
 
 type InferenceServicek8sError = K8sStatus & {
@@ -104,6 +105,7 @@ export const mockInferenceServiceK8sResource = ({
   isKserveRaw = false,
   tolerations,
   nodeSelector,
+  isNonDashboardItem = false,
 }: MockResourceConfigType): InferenceServiceKind => ({
   apiVersion: 'serving.kserve.io/v1beta1',
   kind: 'InferenceService',
@@ -128,7 +130,7 @@ export const mockInferenceServiceK8sResource = ({
     labels: {
       name,
       ...additionalLabels,
-      [KnownLabels.DASHBOARD_RESOURCE]: 'true',
+      ...(isNonDashboardItem ? {} : { [KnownLabels.DASHBOARD_RESOURCE]: 'true' }),
       ...(kserveInternalLabel && { 'networking.knative.dev/visibility': 'cluster-local' }),
     },
     name,

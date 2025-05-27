@@ -12,7 +12,9 @@ import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 const EmptyModelServing: React.FC = () => {
   const navigate = useNavigate();
   const {
-    servingRuntimes: { data: servingRuntimes },
+    servingRuntimes: {
+      data: { items: servingRuntimes },
+    },
     project,
   } = React.useContext(ModelServingContext);
   const servingPlatformStatuses = useServingPlatformStatuses();

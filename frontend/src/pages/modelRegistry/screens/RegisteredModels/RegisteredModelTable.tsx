@@ -4,7 +4,6 @@ import { Table } from '~/components/table';
 import { RegisteredModel } from '~/concepts/modelRegistry/types';
 import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
 import useInferenceServices from '~/pages/modelServing/useInferenceServices';
-import { useMakeFetchObject } from '~/utilities/useMakeFetchObject';
 import { KnownLabels } from '~/k8sTypes';
 import RegisteredModelTableRow from './RegisteredModelTableRow';
 import { rmColumns } from './RegisteredModelsTableColumns';
@@ -22,11 +21,9 @@ const RegisteredModelTable: React.FC<RegisteredModelTableProps> = ({
   refresh,
 }) => {
   const { mrName } = useParams();
-  const inferenceServices = useMakeFetchObject(
-    useInferenceServices(undefined, undefined, undefined, mrName),
-  );
+  const inferenceServices = useInferenceServices(undefined, undefined, undefined, mrName);
   const hasDeploys = (rmId: string) =>
-    !!inferenceServices.data.some(
+    !!inferenceServices.data.items.some(
       (s) => s.metadata.labels?.[KnownLabels.REGISTERED_MODEL_ID] === rmId,
     );
   return (

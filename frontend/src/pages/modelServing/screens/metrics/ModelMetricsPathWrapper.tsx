@@ -15,7 +15,10 @@ const ModelMetricsPathWrapper: React.FC<ModelMetricsPathWrapperProps> = ({ child
     inferenceService: string;
   }>();
   const {
-    inferenceServices: { data: models, loaded },
+    inferenceServices: {
+      data: { items: models },
+      loaded,
+    },
   } = React.useContext(ModelServingContext);
   const inferenceService = models.find(
     (model) => model.metadata.name === modelName && model.metadata.namespace === projectName,

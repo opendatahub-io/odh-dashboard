@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Bullseye, Alert, Spinner } from '@patternfly/react-core';
 import { ClusterQueueKind, LocalQueueKind, WorkloadKind } from '~/k8sTypes';
-import { FetchStateObject } from '~/types';
+import { FetchStateObject } from '~/utilities/useFetch';
 import { DEFAULT_LIST_FETCH_STATE } from '~/utilities/const';
 import { SupportedArea, conditionalArea } from '~/concepts/areas';
 import useSyncPreferredProject from '~/concepts/projects/useSyncPreferredProject';

@@ -7,7 +7,6 @@ import useModelVersionsByRegisteredModel from '~/concepts/modelRegistry/apiHooks
 import useRegisteredModelById from '~/concepts/modelRegistry/apiHooks/useRegisteredModelById';
 import { ModelState } from '~/concepts/modelRegistry/types';
 import { registeredModelArchiveDetailsRoute } from '~/routes/modelRegistry/modelArchive';
-import { useMakeFetchObject } from '~/utilities/useMakeFetchObject';
 import useInferenceServices from '~/pages/modelServing/useInferenceServices';
 import { ModelRegistriesContext } from '~/concepts/modelRegistry/context/ModelRegistriesContext';
 import ModelVersionsTabs from './ModelVersionsTabs';
@@ -29,8 +28,11 @@ const ModelVersions: React.FC<ModelVersionsProps> = ({ tab, ...pageProps }) => {
   const loadError = mvLoadError || rmLoadError;
   const loaded = mvLoaded && rmLoaded;
   const navigate = useNavigate();
-  const inferenceServices = useMakeFetchObject(
-    useInferenceServices(undefined, rmId, undefined, preferredModelRegistry?.metadata.name),
+  const inferenceServices = useInferenceServices(
+    undefined,
+    rmId,
+    undefined,
+    preferredModelRegistry?.metadata.name,
   );
 
   useEffect(() => {
@@ -59,7 +61,10 @@ const ModelVersions: React.FC<ModelVersionsProps> = ({ tab, ...pageProps }) => {
       title={rm?.name}
       headerAction={
         rm && (
-          <ModelVersionsHeaderActions hasDeployments={!!inferenceServices.data.length} rm={rm} />
+          <ModelVersionsHeaderActions
+            hasDeployments={!!inferenceServices.data.items.length}
+            rm={rm}
+          />
         )
       }
       description={<Truncate content={rm?.description || ''} />}

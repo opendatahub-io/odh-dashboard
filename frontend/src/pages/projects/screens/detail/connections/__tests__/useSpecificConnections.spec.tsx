@@ -10,15 +10,15 @@ const mockUseConnections = jest.mocked(useConnections);
 
 describe('useServingConnections', () => {
   it('should return only serving compatible connections', async () => {
-    mockUseConnections.mockReturnValue([
-      [
+    mockUseConnections.mockReturnValue({
+      data: [
         mockConnection({ name: 'foo', connectionType: 'uri-v1' }),
         mockConnection({ name: 'bar', connectionType: 'random' }),
       ],
-      true,
-      undefined,
-      jest.fn(),
-    ]);
+      loaded: true,
+      error: undefined,
+      refresh: jest.fn(),
+    });
     const renderResult = testHook(useServingConnections)('ds-project-1');
 
     waitFor(() => {
@@ -35,12 +35,15 @@ describe('useServingConnections', () => {
 
 describe('usePipelinesConnections', () => {
   it('should return only pipelines compatible connections', async () => {
-    mockUseConnections.mockReturnValue([
-      [mockConnection({ name: 'foo' }), mockConnection({ name: 'bar', connectionType: 'random' })],
-      true,
-      undefined,
-      jest.fn(),
-    ]);
+    mockUseConnections.mockReturnValue({
+      data: [
+        mockConnection({ name: 'foo' }),
+        mockConnection({ name: 'bar', connectionType: 'random' }),
+      ],
+      loaded: true,
+      error: undefined,
+      refresh: jest.fn(),
+    });
     const renderResult = testHook(usePipelinesConnections)('ds-project-1');
 
     waitFor(() => {
