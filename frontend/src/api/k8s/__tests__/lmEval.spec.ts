@@ -451,3 +451,104 @@ describe('createModelEvaluation', () => {
     expect(result).toStrictEqual(mockEvaluation);
   });
 });
+
+describe('mockLMEvaluation status fields', () => {
+  it('should include default status fields with test values', () => {
+    const mockEvaluation = mockLMEvaluation();
+
+    expect(mockEvaluation.status).toBeDefined();
+    expect(mockEvaluation.status?.results).toBe(
+      '{"mmlu": {"accuracy": 0.85}, "hellaswag": {"accuracy": 0.78}}',
+    );
+    expect(mockEvaluation.status?.podName).toBe('test-lm-evaluation-pod-12345');
+    expect(mockEvaluation.status?.completeTime).toBe('2024-01-15T10:30:00Z');
+    expect(mockEvaluation.status?.lastScheduleTime).toBe('2024-01-15T10:00:00Z');
+  });
+
+  it('should create evaluation with completed state', () => {
+    const mockEvaluation = mockLMEvaluation({
+      state: 'Completed',
+      message: 'Evaluation completed successfully',
+      reason: 'EvaluationCompleted',
+      results: '{"mmlu": {"accuracy": 0.92}, "hellaswag": {"accuracy": 0.88}}',
+      completeTime: '2024-01-15T11:45:00Z',
+    });
+
+    expect(mockEvaluation.status?.state).toBe('Completed');
+    expect(mockEvaluation.status?.message).toBe('Evaluation completed successfully');
+    expect(mockEvaluation.status?.reason).toBe('EvaluationCompleted');
+    expect(mockEvaluation.status?.results).toBe(
+      '{"mmlu": {"accuracy": 0.92}, "hellaswag": {"accuracy": 0.88}}',
+    );
+    expect(mockEvaluation.status?.completeTime).toBe('2024-01-15T11:45:00Z');
+  });
+
+  it('should create evaluation with failed state', () => {
+    const mockEvaluation = mockLMEvaluation({
+      state: 'Failed',
+      message: 'Evaluation failed due to insufficient resources',
+      reason: 'InsufficientResources',
+      podName: 'test-lm-evaluation-pod-failed-67890',
+      results: undefined,
+      completeTime: undefined,
+    });
+
+    expect(mockEvaluation.status?.state).toBe('Failed');
+    expect(mockEvaluation.status?.message).toBe('Evaluation failed due to insufficient resources');
+    expect(mockEvaluation.status?.reason).toBe('InsufficientResources');
+    expect(mockEvaluation.status?.podName).toBe('test-lm-evaluation-pod-failed-67890');
+    expect(mockEvaluation.status?.results).toBeUndefined();
+    expect(mockEvaluation.status?.completeTime).toBeUndefined();
+  });
+
+  it('should create evaluation with running state', () => {
+    const mockEvaluation = mockLMEvaluation({
+      state: 'Running',
+      message: 'Evaluation is currently running',
+      reason: 'EvaluationInProgress',
+      podName: 'test-lm-evaluation-pod-running-54321',
+      results: undefined,
+      completeTime: undefined,
+      lastScheduleTime: '2024-01-15T12:00:00Z',
+    });
+
+    expect(mockEvaluation.status?.state).toBe('Running');
+    expect(mockEvaluation.status?.message).toBe('Evaluation is currently running');
+    expect(mockEvaluation.status?.reason).toBe('EvaluationInProgress');
+    expect(mockEvaluation.status?.podName).toBe('test-lm-evaluation-pod-running-54321');
+    expect(mockEvaluation.status?.lastScheduleTime).toBe('2024-01-15T12:00:00Z');
+    expect(mockEvaluation.status?.results).toBeUndefined();
+    expect(mockEvaluation.status?.completeTime).toBeUndefined();
+  });
+
+  it('should allow overriding individual status fields', () => {
+    const customResults = '{"arc_easy": {"accuracy": 0.95}}';
+    const customPodName = 'custom-evaluation-pod-99999';
+
+    const mockEvaluation = mockLMEvaluation({
+      results: customResults,
+      podName: customPodName,
+    });
+
+    expect(mockEvaluation.status?.results).toBe(customResults);
+    expect(mockEvaluation.status?.podName).toBe(customPodName);
+    expect(mockEvaluation.status?.completeTime).toBe('2024-01-15T10:30:00Z');
+    expect(mockEvaluation.status?.lastScheduleTime).toBe('2024-01-15T10:00:00Z');
+  });
+
+  it('should handle undefined status fields correctly', () => {
+    const mockEvaluation = mockLMEvaluation({
+      results: undefined,
+      podName: undefined,
+      completeTime: undefined,
+      lastScheduleTime: undefined,
+    });
+
+    expect(mockEvaluation.status?.results).toBeUndefined();
+    expect(mockEvaluation.status?.podName).toBeUndefined();
+    expect(mockEvaluation.status?.completeTime).toBeUndefined();
+    expect(mockEvaluation.status?.lastScheduleTime).toBeUndefined();
+    expect(mockEvaluation.status?.state).toBe('Pending');
+    expect(mockEvaluation.status?.message).toBe('Evaluation is pending');
+  });
+});
