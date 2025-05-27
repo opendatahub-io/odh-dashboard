@@ -128,8 +128,14 @@ export const getDisplayNameFromServingRuntimeTemplate = (resource: ServingRuntim
 
 export const getServingRuntimeVersionFromTemplate = (
   resource: ServingRuntimeKind | TemplateKind,
-): string | undefined =>
-  resource.metadata.annotations?.['opendatahub.io/runtime-version'] || undefined;
+): string | undefined => {
+  if (resource.kind === 'Template' && 'objects' in resource) {
+    return (
+      resource.objects[0].metadata.annotations?.['opendatahub.io/runtime-version'] || undefined
+    );
+  }
+  return resource.metadata.annotations?.['opendatahub.io/runtime-version'] || undefined;
+};
 
 export const getEnabledPlatformsFromTemplate = (
   template: TemplateKind,
