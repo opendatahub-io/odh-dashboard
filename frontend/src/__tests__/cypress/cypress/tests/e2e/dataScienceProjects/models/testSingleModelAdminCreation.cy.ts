@@ -84,8 +84,8 @@ describe('Verify Admin Single Model Creation and Validation using the UI', () =>
       // Launch a Single Serving Model and select the required entries
       cy.step('Launch a Single Serving Model using Openvino');
       inferenceServiceModal.findModelNameInput().type(testData.singleModelAdminName);
-      inferenceServiceModal.findServingRuntimeTemplate().click();
-      inferenceServiceModal.findOpenVinoServingRuntime().click();
+      inferenceServiceModal.findServingRuntimeTemplateSearchSelector().click();
+      inferenceServiceModal.findGlobalScopedTemplateOption('OpenVINO Model Server').click();
       inferenceServiceModal.findModelFrameworkSelect().click();
       inferenceServiceModal.findOpenVinoIROpSet13().click();
 

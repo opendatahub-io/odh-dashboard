@@ -13,6 +13,7 @@ export type ProjectScopedToggleContentProps = {
   color?: ScopedLabelColor;
   isCompact?: boolean;
   fallback?: React.ReactNode;
+  additionalContent?: React.ReactNode;
 };
 
 const ProjectScopedToggleContent: React.FC<ProjectScopedToggleContentProps> = ({
@@ -25,6 +26,7 @@ const ProjectScopedToggleContent: React.FC<ProjectScopedToggleContentProps> = ({
   color = 'blue',
   isCompact = true,
   fallback = 'Select one',
+  additionalContent,
 }) => {
   if (!displayName) {
     return <>{fallback}</>;
@@ -32,6 +34,7 @@ const ProjectScopedToggleContent: React.FC<ProjectScopedToggleContentProps> = ({
   return (
     <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
       <FlexItem>{displayName}</FlexItem>
+      {additionalContent && <FlexItem>{additionalContent}</FlexItem>}
       <FlexItem>
         <ScopedLabel
           isProject={isProject}
