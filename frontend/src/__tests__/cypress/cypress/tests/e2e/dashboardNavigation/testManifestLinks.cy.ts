@@ -90,19 +90,12 @@ describe('Verify that all the URLs referenced in the Manifest directory are oper
           // Filter out Sample/Test URLs in a single pass
           const filteredUrls = urls.filter((url) => url && !isUrlExcluded(url, excludedSubstrings));
 
-          cy.log(`Found ${urls.length} total URLs, filtered to ${filteredUrls.length} URLs`);
-
-          // Log filtered URLs for debugging
-          filteredUrls.forEach((url) => {
-            cy.log(`[PRE-CHECK UI LOG] URL to check: ${url}`);
-          });
-
-          cy.task(
-            'log',
-            `[Step] Verifying URLs against valid status codes: ${Array.from(
-              VALID_STATUS_CODES,
-            ).join(', ')}`,
-            { log: false },
+          cy.log(
+            `Found ${urls.length} total URLs, filtered to ${
+              filteredUrls.length
+            } URLs.\nValid status codes to check: ${Array.from(VALID_STATUS_CODES).join(
+              ', ',
+            )}\n\nURLs to verify:\n${filteredUrls.join('\n')}`,
           );
 
           return cy.task<UrlValidationResult[]>('validateHttpsUrls', filteredUrls);

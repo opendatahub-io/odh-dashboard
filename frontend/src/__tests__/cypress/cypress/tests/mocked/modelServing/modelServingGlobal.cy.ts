@@ -953,6 +953,34 @@ describe('Model Serving Global', () => {
     modelServingGlobal.findServingRuntimeVersionLabel().should('not.exist');
   });
 
+  it('Should display env vars from a valueFrom secret', () => {
+    initIntercepts({
+      inferenceServices: [
+        mockInferenceServiceK8sResource({
+          env: [
+            {
+              name: 'value-from-secret-env-var',
+              valueFrom: { secretKeyRef: { name: 'test-secret', key: 'test-key' } },
+            },
+            {
+              name: 'key-value-env-var',
+              value: 'test-value',
+            },
+          ],
+        }),
+      ],
+    });
+    modelServingGlobal.visit('test-project');
+
+    modelServingGlobal.getModelRow('Test Inference Service').findKebabAction('Edit').click();
+    kserveModalEdit.findServingRuntimeEnvVarsValue('0').should('be.disabled');
+    kserveModalEdit
+      .findServingRuntimeEnvVarsValue('0')
+      .should('have.value', '{"secretKeyRef":{"name":"test-secret","key":"test-key"}}');
+    kserveModalEdit.findServingRuntimeEnvVarsValue('1').should('not.be.disabled');
+    kserveModalEdit.findServingRuntimeEnvVarsValue('1').should('have.value', 'test-value');
+  });
+
   describe('Table filter and pagination', () => {
     it('filter by name', () => {
       initIntercepts({});
