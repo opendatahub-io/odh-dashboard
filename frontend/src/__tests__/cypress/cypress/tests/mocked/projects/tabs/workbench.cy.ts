@@ -873,14 +873,15 @@ describe('Workbench page', () => {
     notebookImageUpdateModal.findUpdateImageButton().click();
     notebookImageUpdateModal.findSubmitUpdateImageButton().should('be.disabled');
     notebookImageUpdateModal.findLatestVersionOption().click();
-    cy.interceptK8s(
-      'PATCH',
-      NotebookModel,
-      mockNotebookK8sResource({
+
+    cy.interceptK8s('PATCH', NotebookModel, {
+      delay: 500,
+      body: mockNotebookK8sResource({
         name: 'outdated-notebook',
-        displayName: 'Outdated Notebook',
+        displayName: 'Outdated Notebook (updated)',
       }),
-    ).as('updateNotebookImage');
+    }).as('updateNotebookImage');
+
     cy.interceptK8s(
       'GET',
       NotebookModel,
