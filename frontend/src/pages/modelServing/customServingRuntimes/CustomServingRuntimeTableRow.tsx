@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
 import { useNavigate } from 'react-router-dom';
-import { Label, Split, SplitItem } from '@patternfly/react-core';
+import { Label, LabelGroup } from '@patternfly/react-core';
 import { TemplateKind } from '~/k8sTypes';
 import ResourceNameTooltip from '~/components/ResourceNameTooltip';
 import CustomServingRuntimePlatformsLabelGroup from '~/pages/modelServing/customServingRuntimes/CustomServingRuntimePlatformsLabelGroup';
@@ -48,20 +48,12 @@ const CustomServingRuntimeTableRow: React.FC<CustomServingRuntimeTableRowProps> 
         <ResourceNameTooltip resource={template}>
           {getServingRuntimeDisplayNameFromTemplate(template)}
         </ResourceNameTooltip>
-        <Split hasGutter>
-          {templateOOTB && (
-            <SplitItem>
-              <Label data-testid="pre-installed-label">{PreInstalledName}</Label>
-            </SplitItem>
-          )}
+        <LabelGroup>
+          {templateOOTB && <Label data-testid="pre-installed-label">{PreInstalledName}</Label>}
           {getServingRuntimeVersionFromTemplate(template) && (
-            <SplitItem>
-              <ServingRuntimeVersionLabel
-                version={getServingRuntimeVersionFromTemplate(template)}
-              />
-            </SplitItem>
+            <ServingRuntimeVersionLabel version={getServingRuntimeVersionFromTemplate(template)} />
           )}
-        </Split>
+        </LabelGroup>
       </Td>
       <Td dataLabel="Enabled">
         <CustomServingRuntimeEnabledToggle template={template} />

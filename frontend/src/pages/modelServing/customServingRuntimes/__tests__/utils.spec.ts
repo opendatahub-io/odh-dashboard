@@ -8,6 +8,7 @@ import {
   getEnabledPlatformsFromTemplate,
   getServingRuntimeVersionFromTemplate,
   getTemplateEnabledForPlatform,
+  isTemplateKind,
 } from '~/pages/modelServing/customServingRuntimes/utils';
 import { ServingRuntimePlatform } from '~/types';
 import { mockServingRuntimeTemplateK8sResource } from '~/__mocks__/mockServingRuntimeTemplateK8sResource';
@@ -126,5 +127,16 @@ describe('getServingRuntimeVersionFromTemplate', () => {
   it('should return empty string if annotation is not present', () => {
     const servingRuntime = mockServingRuntimeK8sResource({});
     expect(getServingRuntimeVersionFromTemplate(servingRuntime)).toBe(undefined);
+  });
+});
+
+describe('isTemplateKind', () => {
+  it('should return true if the resource is a template', () => {
+    const template = mockServingRuntimeTemplateK8sResource({});
+    expect(isTemplateKind(template)).toBe(true);
+  });
+  it('should return false if the resource is not a template', () => {
+    const servingRuntime = mockServingRuntimeK8sResource({});
+    expect(isTemplateKind(servingRuntime)).toBe(false);
   });
 });

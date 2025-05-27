@@ -9,9 +9,6 @@ export const customServingRuntimesInitialMock = [
     name: 'template-1',
     displayName: 'Multi Platform',
     platforms: [ServingRuntimePlatform.SINGLE],
-    annotations: {
-      'opendatahub.io/runtime-version': '1.0.0',
-    },
   }),
   mockServingRuntimeTemplateK8sResource({
     name: 'template-2',
@@ -24,6 +21,19 @@ export const customServingRuntimesInitialMock = [
     displayName: 'OVMS',
     platforms: [ServingRuntimePlatform.MULTI],
     preInstalled: true,
+    // override the objects to leave the runtime version annotation empty
+    objects: [
+      {
+        apiVersion: 'serving.kserve.io/v1alpha1',
+        kind: 'ServingRuntime',
+        metadata: {
+          name: 'template-3',
+          annotations: {
+            'openshift.io/display-name': 'OVMS',
+          },
+        },
+      },
+    ],
   }),
   mockServingRuntimeTemplateK8sResource({
     name: 'template-4',

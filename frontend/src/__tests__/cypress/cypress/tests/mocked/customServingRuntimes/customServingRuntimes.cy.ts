@@ -35,9 +35,9 @@ describe('Custom serving runtimes', () => {
 
   it('should display serving runtime version label', () => {
     servingRuntimes.getRowById('template-1').findServingRuntimeVersionLabel().should('exist');
-    servingRuntimes.getRowById('template-2').findServingRuntimeVersionLabel().should('not.exist');
+    servingRuntimes.getRowById('template-2').findServingRuntimeVersionLabel().should('exist');
     servingRuntimes.getRowById('template-3').findServingRuntimeVersionLabel().should('not.exist');
-    servingRuntimes.getRowById('template-4').findServingRuntimeVersionLabel().should('not.exist');
+    servingRuntimes.getRowById('template-4').findServingRuntimeVersionLabel().should('exist');
   });
 
   it('should test pre-installed label', () => {
