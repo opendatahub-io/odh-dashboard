@@ -1273,8 +1273,6 @@ export type LMEvaluationKind = K8sResourceCommon & {
   metadata: {
     name: string;
     namespace: string;
-    resourceVersion: string;
-    uid: string;
   };
   spec: {
     allowCodeExecution?: boolean;
@@ -1284,8 +1282,8 @@ export type LMEvaluationKind = K8sResourceCommon & {
     model: string;
     modelArgs?: string[];
     timeout?: number;
-    taskList?: {
-      taskNames?: string[];
+    taskList: {
+      taskNames: string[];
     };
   };
   status?: {

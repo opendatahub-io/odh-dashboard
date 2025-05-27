@@ -17,12 +17,13 @@ export const listModelEvaluations = async (namespace: string): Promise<LMEvaluat
   }).then((listResource) => listResource.items);
 
 const assembleModelEvaluation = (
-  modelName: string,
+  model: string,
   evalConfig: {
-    evalDataset: string;
-    evalMetrics: string[];
-    batchSize?: number;
+    batchSize?: string;
     timeout?: number;
+    taskList: {
+      taskNames: string[];
+    };
   },
   namespace: string,
   name?: string,
@@ -30,30 +31,28 @@ const assembleModelEvaluation = (
   apiVersion: kindApiVersion(LMEvalModel),
   kind: LMEvalModel.kind,
   metadata: {
-    name: name || `eval-${translateDisplayNameForK8s(modelName)}`,
+    name: name || `eval-${translateDisplayNameForK8s(model)}`,
     namespace,
-    annotations: {
-      'opendatahub.io/modified-date': new Date().toISOString(),
-    },
   },
   spec: {
-    modelName,
+    model,
     ...evalConfig,
   },
 });
 
 export const createModelEvaluation = (
-  modelName: string,
+  model: string,
   evalConfig: {
-    evalDataset: string;
-    evalMetrics: string[];
-    batchSize?: number;
+    batchSize?: string;
     timeout?: number;
+    taskList: {
+      taskNames: string[];
+    };
   },
   namespace: string,
   opts?: K8sAPIOptions,
 ): Promise<LMEvaluationKind> => {
-  const resource = assembleModelEvaluation(modelName, evalConfig, namespace);
+  const resource = assembleModelEvaluation(model, evalConfig, namespace);
   return k8sCreateResource<LMEvaluationKind>(
     applyK8sAPIOptions(
       {

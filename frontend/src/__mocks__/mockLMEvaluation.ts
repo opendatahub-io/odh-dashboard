@@ -4,34 +4,42 @@ import { genUID } from '~/__mocks__/mockUtils';
 type MockLMEvaluationConfigType = {
   name?: string;
   namespace?: string;
-  modelName?: string;
-  evalDataset?: string;
-  evalMetrics?: string[];
-  batchSize?: number;
+  model?: string;
+  taskNames?: string[];
+  batchSize?: string;
   timeout?: number;
-  phase?: 'Pending' | 'Running' | 'Succeeded' | 'Failed';
-  completionTime?: string;
-  startTime?: string;
-  results?: Array<{
-    metricName: string;
-    score: number;
-    details?: Record<string, unknown>;
-  }>;
+  allowCodeExecution?: boolean;
+  allowOnline?: boolean;
+  logSamples?: boolean;
+  modelArgs?: string[];
+  state?: string;
+  message?: string;
+  reason?: string;
+  results?: string;
+  podName?: string;
+  completeTime?: string;
+  lastScheduleTime?: string;
   uid?: string;
 };
 
 export const mockLMEvaluation = ({
   name = 'test-lm-evaluation',
   namespace = 'test-project',
-  modelName = 'test-model',
-  evalDataset = 'mmlu',
-  evalMetrics = ['accuracy', 'f1_score'],
-  batchSize = 8,
+  model = 'test-model',
+  taskNames = ['mmlu', 'hellaswag'],
+  batchSize = '8',
   timeout = 3600,
-  phase = 'Pending',
-  completionTime,
-  startTime = '2023-03-17T16:12:41Z',
-  results = [],
+  allowCodeExecution = false,
+  allowOnline = false,
+  logSamples = false,
+  modelArgs = [],
+  state = 'Pending',
+  message = 'Evaluation is pending',
+  reason = 'EvaluationPending',
+  results,
+  podName,
+  completeTime,
+  lastScheduleTime,
   uid,
 }: MockLMEvaluationConfigType = {}): LMEvaluationKind => ({
   apiVersion: 'lmeval.opendatahub.io/v1alpha1',
@@ -48,26 +56,24 @@ export const mockLMEvaluation = ({
     },
   },
   spec: {
-    modelName,
-    evalDataset,
-    evalMetrics,
+    model,
+    taskList: {
+      taskNames,
+    },
     batchSize,
     timeout,
+    allowCodeExecution,
+    allowOnline,
+    logSamples,
+    modelArgs,
   },
   status: {
-    phase,
-    startTime,
-    ...(completionTime && { completionTime }),
-    conditions: [
-      {
-        type: 'Ready',
-        status: phase === 'Succeeded' ? 'True' : 'False',
-        lastTransitionTime: '2023-03-17T16:12:41Z',
-        reason: phase === 'Succeeded' ? 'EvaluationCompleted' : 'EvaluationInProgress',
-        message:
-          phase === 'Succeeded' ? 'Evaluation completed successfully' : 'Evaluation in progress',
-      },
-    ],
-    results,
+    state,
+    message,
+    reason,
+    ...(results && { results }),
+    ...(podName && { podName }),
+    ...(completeTime && { completeTime }),
+    ...(lastScheduleTime && { lastScheduleTime }),
   },
 });
