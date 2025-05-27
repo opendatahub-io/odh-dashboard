@@ -4,7 +4,6 @@ import {
   Flex,
   FlexItem,
   Label,
-  Content,
   Alert,
   AlertProps,
   LabelProps,
@@ -12,11 +11,10 @@ import {
   HelperText,
   HelperTextItem,
   Button,
-  Truncate,
   Tooltip,
   Timestamp,
+  TooltipPosition,
 } from '@patternfly/react-core';
-import { t_global_spacer_xs as ExtraSmallSpacerSize } from '@patternfly/react-tokens';
 import React from 'react';
 import {
   CheckCircleIcon,
@@ -35,6 +33,7 @@ import {
   getMatchingImageStreamStatusTag,
 } from '~/pages/projects/screens/spawner/spawnerUtils';
 import { NotebookState } from '~/pages/projects/notebook/types';
+import UnderlinedTruncateButton from '~/components/UnderlinedTruncateButton';
 import { NotebookImageAvailability, NotebookImageStatus } from './const';
 import { NotebookImage } from './types';
 
@@ -291,19 +290,13 @@ export const NotebookImageDisplayName = ({
               position="right"
               triggerAction="hover"
             >
-              <Button variant="link" isInline data-testid="notebook-image-version-link">
-                <Content component={ContentVariants.small}>
-                  <Truncate
-                    style={{
-                      textDecoration: 'underline dashed',
-                      color: 'grey',
-                      textUnderlineOffset: ExtraSmallSpacerSize.var,
-                    }}
-                    content={versionDisplayString}
-                    tooltipPosition="left"
-                  />
-                </Content>
-              </Button>
+              <UnderlinedTruncateButton
+                content={versionDisplayString}
+                tooltipPosition={TooltipPosition.left}
+                contentSize={ContentVariants.small}
+                data-testid="notebook-image-version-link"
+                textDecoration="underline dashed"
+              />
             </Popover>
           </FlexItem>
         )}
