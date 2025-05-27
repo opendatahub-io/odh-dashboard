@@ -219,6 +219,22 @@ function markSuiteAsSkipped(suite: Mocha.Suite) {
 // Event Handlers
 // ============================
 
+// Print Cypress 'step', 'exec' and 'log' commands to terminal
+let stepCounter: number;
+beforeEach(() => {
+  stepCounter = 0;
+});
+Cypress.on('command:enqueued', (command) => {
+  if (command.name === 'step') {
+    stepCounter++;
+    cy.task('log', `[STEP ${stepCounter}] ${command.args[0]}`);
+  } else if (command.name === 'exec') {
+    cy.task('log', `[EXEC] ${command.args[0]}`);
+  } else if (command.name === 'log') {
+    cy.task('log', `${command.args[0]}`);
+  }
+});
+
 // Track test execution
 Cypress.on('test:before:run', (test) => {
   // Set the flag to indicate a test is running
