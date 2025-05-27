@@ -28,7 +28,7 @@ import { NotebookAdminContext } from './NotebookAdminContext';
 const NotebookAdminControl: React.FC = () => {
   const [users, loaded, loadError] = useAdminUsers();
   const { serverStatuses, setServerStatuses } = React.useContext(NotebookAdminContext);
-  const [dontShowModalValue, setDontShowModalValue] = useStopNotebookModalAvailability();
+  const [dontShowModalValue] = useStopNotebookModalAvailability();
   const [showModal, setShowModal] = React.useState(!dontShowModalValue);
   const { isAdmin } = useUser();
   const notification = useNotification();
@@ -148,8 +148,6 @@ const NotebookAdminControl: React.FC = () => {
           handleStopWorkbenches={handleStopWorkbenches}
           link="#"
           setShowModal={setShowModal}
-          setDontShowModalValue={setDontShowModalValue}
-          dontShowModalValue={dontShowModalValue}
           onNotebooksStop={onNotebooksStop}
         />
       ) : null}

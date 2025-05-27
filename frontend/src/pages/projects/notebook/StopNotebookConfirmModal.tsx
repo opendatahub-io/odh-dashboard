@@ -16,7 +16,7 @@ const StopNotebookConfirmModal: React.FC<StopNotebookConfirmProps> = ({
   onClose,
 }) => {
   const { notebook, isRunning } = notebookState;
-  const [dontShowModalValue, setDontShowModalValue] = useStopNotebookModalAvailability();
+  const [, setDontShowModalValue] = useStopNotebookModalAvailability();
   const onBeforeClose = (confirmStatus: boolean) => {
     if (!confirmStatus) {
       // Disable the choice -- we were in this modal and they checked and then cancelled -- so undo it
@@ -46,8 +46,6 @@ const StopNotebookConfirmModal: React.FC<StopNotebookConfirmProps> = ({
       isRunning={isRunning}
       modalActions={modalActions}
       link={<NotebookRouteLink label="open the workbench" notebook={notebook} isRunning />}
-      dontShowModalValue={dontShowModalValue}
-      setDontShowModalValue={setDontShowModalValue}
       onBeforeClose={onBeforeClose}
     />
   );

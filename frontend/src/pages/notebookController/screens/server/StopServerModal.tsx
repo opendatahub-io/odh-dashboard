@@ -2,15 +2,14 @@ import * as React from 'react';
 import { Button } from '@patternfly/react-core';
 import { Notebook } from '#~/types';
 import StopWorkbenchModal from '#~/pages/projects/notebook/StopWorkbenchModal';
+import useStopNotebookModalAvailability from '#~/pages/projects/notebook/useStopNotebookModalAvailability';
 
 type StopServerModalProps = {
   notebooksToStop: Notebook[];
   link: string;
   isDeleting: boolean;
-  dontShowModalValue: boolean;
   setShowModal: (showModal: boolean) => void;
   handleStopWorkbenches: () => void;
-  setDontShowModalValue: (value: boolean) => void;
   onNotebooksStop: (didStop: boolean) => void;
 };
 
@@ -18,12 +17,12 @@ const StopServerModal: React.FC<StopServerModalProps> = ({
   notebooksToStop,
   link,
   isDeleting,
-  dontShowModalValue,
   setShowModal,
   handleStopWorkbenches,
-  setDontShowModalValue,
   onNotebooksStop,
 }) => {
+  const [, setDontShowModalValue] = useStopNotebookModalAvailability();
+
   if (!notebooksToStop.length) {
     return null;
   }
@@ -112,8 +111,6 @@ const StopServerModal: React.FC<StopServerModalProps> = ({
       isRunning
       modalActions={modalActions}
       link={displayLink()}
-      dontShowModalValue={dontShowModalValue}
-      setDontShowModalValue={setDontShowModalValue}
       onBeforeClose={onBeforeClose}
       title={getWorkbenchModalTitle()}
     />

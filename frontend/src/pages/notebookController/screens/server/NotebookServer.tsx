@@ -24,7 +24,7 @@ const NotebookServer: React.FC = () => {
     requestNotebookRefresh,
   } = React.useContext(NotebookControllerContext);
   const [notebooksToStop, setNotebooksToStop] = React.useState<Notebook[]>([]);
-  const [dontShowModalValue, setDontShowModalValue] = useStopNotebookModalAvailability();
+  const [dontShowModalValue] = useStopNotebookModalAvailability();
   const [showModal, setShowModal] = React.useState(!dontShowModalValue);
   const { isAdmin } = useUser();
   const [isDeleting, setIsDeleting] = React.useState(false);
@@ -90,8 +90,6 @@ const NotebookServer: React.FC = () => {
                   handleStopWorkbenches={handleStopWorkbenches}
                   link={link}
                   setShowModal={setShowModal}
-                  setDontShowModalValue={setDontShowModalValue}
-                  dontShowModalValue={dontShowModalValue}
                   onNotebooksStop={onNotebooksStop}
                 />
               ) : null}
