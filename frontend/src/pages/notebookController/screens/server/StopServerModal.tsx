@@ -31,9 +31,16 @@ const StopServerModal: React.FC<StopServerModalProps> = ({
   const hasMultipleServers = notebooksToStop.length > 1;
   const textToShow = hasMultipleServers ? 'all workbenches' : 'workbench';
 
+  const getWorkbenchModalTitle = () => {
+    if (hasMultipleServers) {
+      return 'Stop all workbenches?';
+    }
+    return 'Stop workbench?';
+  };
+
   const getWorkbenchName = () => {
     if (hasMultipleServers) {
-      return 'workbenches';
+      return <strong>workbenches</strong>;
     }
 
     const notebook = notebooksToStop.at(0);
@@ -41,16 +48,16 @@ const StopServerModal: React.FC<StopServerModalProps> = ({
     if (notebook) {
       return (
         <>
-          <b>
+          <strong>
             {notebook.metadata.annotations?.['opendatahub.io/display-name'] ??
               notebook.metadata.name}
-          </b>{' '}
+          </strong>{' '}
           workbench
         </>
       );
     }
 
-    return 'workbench';
+    return <strong>workbench</strong>;
   };
 
   const onBeforeClose = (confirmStatus: boolean) => {
@@ -74,9 +81,9 @@ const StopServerModal: React.FC<StopServerModalProps> = ({
       );
     }
     if (notebooksToStop.length === 1) {
-      return 'open the workbench.';
+      return 'open the workbench';
     }
-    return 'open the workbenches.';
+    return 'open the workbenches';
   };
 
   const modalActions = [
@@ -108,6 +115,7 @@ const StopServerModal: React.FC<StopServerModalProps> = ({
       dontShowModalValue={dontShowModalValue}
       setDontShowModalValue={setDontShowModalValue}
       onBeforeClose={onBeforeClose}
+      title={getWorkbenchModalTitle()}
     />
   );
 };

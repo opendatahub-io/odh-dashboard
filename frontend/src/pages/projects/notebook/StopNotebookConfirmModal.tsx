@@ -42,7 +42,7 @@ const StopNotebookConfirmModal: React.FC<StopNotebookConfirmProps> = ({
 
   return (
     <StopWorkbenchModal
-      workbenchName={getDisplayNameFromK8sResource(notebook)}
+      workbenchName={<strong>{getDisplayNameFromK8sResource(notebook)}</strong>}
       isRunning={isRunning}
       modalActions={modalActions}
       link={<NotebookRouteLink label="open the workbench" notebook={notebook} isRunning />}

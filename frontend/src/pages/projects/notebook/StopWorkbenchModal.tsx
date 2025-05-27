@@ -19,6 +19,7 @@ type StopWorkbenchModalProps = {
   dontShowModalValue: boolean;
   onBeforeClose: (confirmStatus: boolean) => void;
   setDontShowModalValue: (value: boolean) => void;
+  title?: string;
 };
 
 const StopWorkbenchModal: React.FC<StopWorkbenchModalProps> = ({
@@ -29,6 +30,7 @@ const StopWorkbenchModal: React.FC<StopWorkbenchModalProps> = ({
   setDontShowModalValue,
   onBeforeClose,
   link,
+  title = 'Stop workbench?',
 }) => (
   <Modal
     variant="small"
@@ -36,12 +38,10 @@ const StopWorkbenchModal: React.FC<StopWorkbenchModalProps> = ({
     isOpen
     onClose={() => onBeforeClose(false)}
   >
-    <ModalHeader title="Stop workbench?" />
+    <ModalHeader title={title} />
     <ModalBody>
       <Stack hasGutter>
-        <StackItem>
-          Any unsaved changes to the <strong>{workbenchName}</strong> workbench will be lost.
-        </StackItem>
+        <StackItem>Any unsaved changes to the {workbenchName} will be lost.</StackItem>
         {isRunning && (
           <StackItem>
             <Flex>
