@@ -83,7 +83,7 @@ export const provisionClusterStorageSCFeature = (projectName: string, userName: 
  */
 export const tearDownClusterStorageSCFeature = (projectName: string): void => {
   // Delete provisioned projectName
-  deleteOpenShiftProject(projectName, { ignoreNotFound: true });
+  deleteOpenShiftProject(projectName, { wait:false, ignoreNotFound: true  });
 };
 
 /**

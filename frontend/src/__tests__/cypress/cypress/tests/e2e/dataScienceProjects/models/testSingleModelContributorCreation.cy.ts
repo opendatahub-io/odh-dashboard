@@ -60,7 +60,7 @@ describe('Verify Model Creation and Validation using the UI', () => {
   });
   after(() => {
     // Delete provisioned Project
-    deleteOpenShiftProject(projectName, { ignoreNotFound: true });
+    deleteOpenShiftProject(projectName, { wait:false, ignoreNotFound: true  });
   });
 
   it(
