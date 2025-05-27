@@ -1,5 +1,4 @@
 import { LMEvaluationKind } from '~/k8sTypes';
-import { genUID } from '~/__mocks__/mockUtils';
 
 type MockLMEvaluationConfigType = {
   name?: string;
@@ -19,7 +18,6 @@ type MockLMEvaluationConfigType = {
   podName?: string;
   completeTime?: string;
   lastScheduleTime?: string;
-  uid?: string;
 };
 
 export const mockLMEvaluation = ({
@@ -40,20 +38,12 @@ export const mockLMEvaluation = ({
   podName,
   completeTime,
   lastScheduleTime,
-  uid,
 }: MockLMEvaluationConfigType = {}): LMEvaluationKind => ({
   apiVersion: 'lmeval.opendatahub.io/v1alpha1',
   kind: 'LMEvaluation',
   metadata: {
     name,
     namespace,
-    uid: uid || genUID('lm-evaluation'),
-    resourceVersion: '1309350',
-    creationTimestamp: '2023-03-17T16:12:41Z',
-    generation: 1,
-    annotations: {
-      'opendatahub.io/modified-date': '2023-03-17T16:12:41Z',
-    },
   },
   spec: {
     model,
