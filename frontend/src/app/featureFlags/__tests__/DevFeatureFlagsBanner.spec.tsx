@@ -13,7 +13,7 @@ describe('DevFeatureFlagsBanner', () => {
         resetDevFeatureFlags={() => undefined}
         devFeatureFlags={null}
         setDevFeatureFlagQueryVisible={() => undefined}
-        isBannerVisible={false}
+        isBannerVisible
       />,
     );
     expect(result.container).toBeEmptyDOMElement();
