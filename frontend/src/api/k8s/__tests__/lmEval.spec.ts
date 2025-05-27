@@ -4,12 +4,9 @@ import {
   k8sListResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import { mockLMEvaluation } from '~/__mocks__/mockLMEvaluation';
-import { mockInferenceServiceK8sResource } from '~/__mocks__/mockInferenceServiceK8sResource';
-import { LMEvalModel, InferenceServiceModel } from '~/api/models';
+import { LMEvalModel } from '~/api/models';
 import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
 import {
-  listDeployedModels,
-  getDeployedModel,
   listModelEvaluations,
   createModelEvaluation,
   getModelEvaluationResult,
@@ -25,74 +22,6 @@ jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
 const mockListResource = jest.mocked(k8sListResource);
 const mockGetResource = jest.mocked(k8sGetResource);
 const mockCreateResource = jest.mocked(k8sCreateResource<LMEvaluationKind>);
-
-describe('listDeployedModels', () => {
-  it('should fetch and return list of deployed models', async () => {
-    const namespace = 'test-project';
-    const mockInferenceService = mockInferenceServiceK8sResource({ name: 'test-model' });
-    mockListResource.mockResolvedValue(mockK8sResourceList([mockInferenceService]));
-
-    const result = await listDeployedModels(namespace);
-    expect(mockListResource).toHaveBeenCalledWith({
-      model: InferenceServiceModel,
-      queryOptions: {
-        ns: namespace,
-      },
-    });
-    expect(mockListResource).toHaveBeenCalledTimes(1);
-    expect(result).toStrictEqual([mockInferenceService]);
-  });
-
-  it('should handle errors when fetching list of deployed models', async () => {
-    const namespace = 'test-project';
-    mockListResource.mockRejectedValue(new Error('error1'));
-
-    await expect(listDeployedModels(namespace)).rejects.toThrow('error1');
-    expect(mockListResource).toHaveBeenCalledTimes(1);
-    expect(mockListResource).toHaveBeenCalledWith({
-      model: InferenceServiceModel,
-      queryOptions: {
-        ns: namespace,
-      },
-    });
-  });
-});
-
-describe('getDeployedModel', () => {
-  it('should fetch and return specific deployed model', async () => {
-    const namespace = 'test-project';
-    const modelName = 'test-model';
-    const mockInferenceService = mockInferenceServiceK8sResource({ name: modelName });
-    mockGetResource.mockResolvedValue(mockInferenceService);
-
-    const result = await getDeployedModel(modelName, namespace);
-    expect(mockGetResource).toHaveBeenCalledWith({
-      model: InferenceServiceModel,
-      queryOptions: {
-        name: modelName,
-        ns: namespace,
-      },
-    });
-    expect(mockGetResource).toHaveBeenCalledTimes(1);
-    expect(result).toStrictEqual(mockInferenceService);
-  });
-
-  it('should handle errors when fetching a specific deployed model', async () => {
-    const namespace = 'test-project';
-    const modelName = 'test-model';
-    mockGetResource.mockRejectedValue(new Error('error1'));
-
-    await expect(getDeployedModel(modelName, namespace)).rejects.toThrow('error1');
-    expect(mockGetResource).toHaveBeenCalledTimes(1);
-    expect(mockGetResource).toHaveBeenCalledWith({
-      model: InferenceServiceModel,
-      queryOptions: {
-        name: modelName,
-        ns: namespace,
-      },
-    });
-  });
-});
 
 describe('listModelEvaluations', () => {
   it('should fetch and return list of model evaluations', async () => {
