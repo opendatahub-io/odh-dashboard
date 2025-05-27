@@ -6,6 +6,7 @@ import { TemplateKind } from '~/k8sTypes';
 import ResourceNameTooltip from '~/components/ResourceNameTooltip';
 import CustomServingRuntimePlatformsLabelGroup from '~/pages/modelServing/customServingRuntimes/CustomServingRuntimePlatformsLabelGroup';
 import { isOOTB, PreInstalledName } from '~/concepts/k8s/utils';
+import ServingRuntimeVersionLabel from '~/pages/modelServing/screens/ServingRuntimeVersionLabel';
 import CustomServingRuntimeEnabledToggle from './CustomServingRuntimeEnabledToggle';
 import {
   getServingRuntimeDisplayNameFromTemplate,
@@ -48,14 +49,16 @@ const CustomServingRuntimeTableRow: React.FC<CustomServingRuntimeTableRowProps> 
           {getServingRuntimeDisplayNameFromTemplate(template)}
         </ResourceNameTooltip>
         <Split hasGutter>
-          <SplitItem>
-            {templateOOTB && <Label data-testid="pre-installed-label">{PreInstalledName}</Label>}
-          </SplitItem>
+          {templateOOTB && (
+            <SplitItem>
+              <Label data-testid="pre-installed-label">{PreInstalledName}</Label>
+            </SplitItem>
+          )}
           {getServingRuntimeVersionFromTemplate(template) && (
             <SplitItem>
-              <Label data-testid="serving-runtime-version-label" color="blue">
-                {getServingRuntimeVersionFromTemplate(template)}
-              </Label>
+              <ServingRuntimeVersionLabel
+                version={getServingRuntimeVersionFromTemplate(template)}
+              />
             </SplitItem>
           )}
         </Split>

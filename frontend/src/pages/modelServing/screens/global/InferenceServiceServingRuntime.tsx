@@ -8,6 +8,7 @@ import {
   getServingRuntimeVersionFromTemplate,
 } from '~/pages/modelServing/customServingRuntimes/utils';
 import { SERVING_RUNTIME_SCOPE } from '~/pages/modelServing/screens/const';
+import ServingRuntimeVersionLabel from '~/pages/modelServing/screens/ServingRuntimeVersionLabel';
 
 type Props = {
   servingRuntime?: ServingRuntimeKind;
@@ -22,14 +23,10 @@ const InferenceServiceServingRuntime: React.FC<Props> = ({ servingRuntime, isPro
         <Split hasGutter>
           {getServingRuntimeVersionFromTemplate(servingRuntime) && (
             <SplitItem>
-              <Label
-                variant="filled"
-                color="blue"
-                data-testid="serving-runtime-version-label"
+              <ServingRuntimeVersionLabel
+                version={getServingRuntimeVersionFromTemplate(servingRuntime)}
                 isCompact
-              >
-                {getServingRuntimeVersionFromTemplate(servingRuntime)}
-              </Label>
+              />
             </SplitItem>
           )}
           {isProjectScoped &&
