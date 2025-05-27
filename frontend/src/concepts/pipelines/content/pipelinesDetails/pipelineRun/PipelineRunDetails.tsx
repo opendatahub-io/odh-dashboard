@@ -154,7 +154,7 @@ const PipelineRunDetails: React.FC<
             run={run}
             onDelete={() => setDeleting(true)}
             onArchive={() => setArchiving(true)}
-            isPipelineSupported={!isArgoWorkflow(version?.pipeline_spec)}
+            isPipelineSupported={!isInvalidPipelineVersion}
           />
         }
         empty={false}
@@ -165,7 +165,7 @@ const PipelineRunDetails: React.FC<
           <PipelineRunDetailsTabs
             run={run}
             versionError={versionError}
-            pipelineSpec={version?.pipeline_spec}
+            pipelineSpec={pipelineSpec}
             graphContent={
               <PipelineTopology
                 nodes={nodes}
