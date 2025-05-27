@@ -110,6 +110,7 @@ const PipelineSection: React.FC<PipelineSectionProps> = ({
                 onCreate={(value) => {
                   onVersionChange({ value, versionToUse: PipelineVersionToUse.PROVIDED });
                 }}
+                redirectAfterImport={false}
               />
             </StackItem>
           </Stack>

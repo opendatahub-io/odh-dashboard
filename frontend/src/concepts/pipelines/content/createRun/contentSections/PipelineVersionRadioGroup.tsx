@@ -124,6 +124,7 @@ const PipelineVersionRadioGroup: React.FC<PipelineVersionRadioGroupProps> = ({
                           refreshAllAPI();
                         }
                       }}
+                      redirectAfterImport={false}
                     />
                   )}
                 </>
@@ -171,6 +172,7 @@ const PipelineVersionRadioGroup: React.FC<PipelineVersionRadioGroupProps> = ({
                             versionToUse: PipelineVersionToUse.PROVIDED,
                           });
                         }}
+                        redirectAfterImport={false}
                       />
                     </StackItem>
                   </Stack>
@@ -201,6 +203,7 @@ const PipelineVersionRadioGroup: React.FC<PipelineVersionRadioGroupProps> = ({
               onCreate={(value) => {
                 onVersionChange({ value, versionToUse: PipelineVersionToUse.PROVIDED });
               }}
+              redirectAfterImport={false}
             />
           </StackItem>
         </Stack>

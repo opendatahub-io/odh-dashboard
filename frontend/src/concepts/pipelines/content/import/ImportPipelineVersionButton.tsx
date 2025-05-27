@@ -7,12 +7,14 @@ import PipelineVersionImportModal from '~/concepts/pipelines/content/import/Pipe
 type ImportPipelineVersionButtonProps = {
   selectedPipeline: PipelineKF | null;
   onCreate?: (pipelineVersion: PipelineVersionKF, pipeline?: PipelineKF | null) => void;
+  redirectAfterImport?: boolean;
 } & Omit<React.ComponentProps<typeof Button>, 'onClick'>;
 
 const ImportPipelineVersionButton: React.FC<ImportPipelineVersionButtonProps> = ({
   selectedPipeline,
   onCreate,
   children,
+  redirectAfterImport = true,
   ...buttonProps
 }) => {
   const { apiAvailable, refreshAllAPI } = usePipelinesAPI();
@@ -39,6 +41,7 @@ const ImportPipelineVersionButton: React.FC<ImportPipelineVersionButtonProps> = 
               refreshAllAPI();
             }
           }}
+          redirectAfterImport={redirectAfterImport}
         />
       )}
     </>
