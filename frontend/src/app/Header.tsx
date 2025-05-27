@@ -13,7 +13,7 @@ import { BarsIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router-dom';
 import { ODH_LOGO, ODH_LOGO_DARK, ODH_PRODUCT_NAME } from '~/utilities/const';
 import { useUser } from '~/redux/selectors';
-import { FeatureFlagLauncherProps } from '~/app/featureFlags/FeatureFlagLauncher';
+import { FeatureFlagLauncherProps } from '~/app/FeatureFlags/FeatureFlagLauncher';
 import { useThemeContext } from './ThemeContext';
 import HeaderTools from './HeaderTools';
 

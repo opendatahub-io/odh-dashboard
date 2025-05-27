@@ -2,11 +2,11 @@ import { merge } from 'lodash-es';
 import { act } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { testHook } from '~/__tests__/unit/testUtils/hooks';
-import useDevFeatureFlags from '~/app/featureFlags/useDevFeatureFlags';
 import { allFeatureFlags } from '~/concepts/areas/const';
 import { DashboardCommonConfig, DashboardConfigKind } from '~/k8sTypes';
 import axios from '~/utilities/axios';
 import { useBrowserStorage } from '~/components/browserStorage/BrowserStorageContext';
+import useDevFeatureFlags from '~/app/featureFlags/useDevFeatureFlags';
 
 jest.mock('react-router-dom', () => ({
   useSearchParams: jest.fn(() => [
