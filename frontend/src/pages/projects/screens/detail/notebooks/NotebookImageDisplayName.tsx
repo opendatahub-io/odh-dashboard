@@ -23,10 +23,10 @@ import {
   InfoCircleIcon,
   InProgressIcon,
 } from '@patternfly/react-icons';
-import { ProjectObjectType } from '#~/concepts/design/utils';
+import { NotebookImageAvailability, NotebookImageStatus } from './const';
+import { NotebookImage } from './types';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import { ODH_PRODUCT_NAME } from '#~/utilities/const';
-import TypedObjectIcon from '#~/concepts/design/TypedObjectIcon';
 import {
   getImageVersionBuildDate,
   getImageVersionSoftwareString,
@@ -35,8 +35,7 @@ import {
 import { NotebookState } from '#~/pages/projects/notebook/types';
 import UnderlinedTruncateButton from '#~/components/UnderlinedTruncateButton';
 import { NotebookKind } from '#~/k8sTypes';
-import { NotebookImageAvailability, NotebookImageStatus } from './const';
-import { NotebookImage } from './types';
+import ScopedLabel from '#~/components/ScopedLabel';
 
 type NotebookImageDisplayNameProps = {
   notebook: NotebookKind;
@@ -237,15 +236,9 @@ export const NotebookImageDisplayName = ({
             notebookImage.imageAvailability === NotebookImageAvailability.ENABLED &&
             isProjectScopedAvailable &&
             notebook.metadata.annotations?.['opendatahub.io/workbench-image-namespace'] && (
-              <Label
-                isCompact
-                variant="outline"
-                color="blue"
-                data-testid="project-scoped-label"
-                icon={<TypedObjectIcon alt="" resourceType={ProjectObjectType.project} />}
-              >
+              <ScopedLabel isProject color="blue" isCompact>
                 Project-scoped
-              </Label>
+              </ScopedLabel>
             )}
         </FlexItem>
       </Flex>

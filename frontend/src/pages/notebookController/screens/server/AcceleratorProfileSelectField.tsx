@@ -39,6 +39,7 @@ import useReadAcceleratorState, {
 import NumberInputWrapper from '#~/components/NumberInputWrapper';
 import TypedObjectIcon from '#~/concepts/design/TypedObjectIcon';
 import useAcceleratorCountWarning from './useAcceleratorCountWarning';
+import ScopedLabel from '~/components/ScopedLabel';
 
 type AcceleratorProfileSelectFieldProps = {
   currentProject?: string;
@@ -383,27 +384,13 @@ const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps
                       <FlexItem>{formData.profile.spec.displayName}</FlexItem>
                       <FlexItem>
                         {formData.profile.metadata.namespace === currentProject ? (
-                          <Label
-                            variant="outline"
-                            color="blue"
-                            data-testid="project-scoped-label"
-                            isCompact
-                            icon={
-                              <TypedObjectIcon alt="" resourceType={ProjectObjectType.project} />
-                            }
-                          >
+                          <ScopedLabel isProject color="blue" isCompact>
                             Project-scoped
-                          </Label>
+                          </ScopedLabel>
                         ) : (
-                          <Label
-                            variant="outline"
-                            color="blue"
-                            data-testid="global-scoped-label"
-                            isCompact
-                            icon={<GlobalIcon />}
-                          >
+                          <ScopedLabel isProject={false} color="blue" isCompact>
                             Global-scoped
-                          </Label>
+                          </ScopedLabel>
                         )}
                       </FlexItem>
                     </Flex>

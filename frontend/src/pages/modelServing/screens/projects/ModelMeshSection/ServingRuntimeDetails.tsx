@@ -6,7 +6,6 @@ import {
   DescriptionListTerm,
   Flex,
   FlexItem,
-  Label,
   List,
   ListItem,
 } from '@patternfly/react-core';
@@ -17,8 +16,7 @@ import { getResourceSize } from '#~/pages/modelServing/utils';
 import { formatMemory } from '#~/utilities/valueUnits';
 import { useModelServingPodSpecOptionsState } from '#~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
 import { useIsAreaAvailable, SupportedArea } from '#~/concepts/areas';
-import TypedObjectIcon from '#~/concepts/design/TypedObjectIcon';
-import { ProjectObjectType } from '#~/concepts/design/utils';
+import ScopedLabel from '#~/components/ScopedLabel.tsx';
 
 type ServingRuntimeDetailsProps = {
   project?: string;
@@ -81,15 +79,9 @@ const ServingRuntimeDetails: React.FC<ServingRuntimeDetailsProps> = ({ project, 
                 <FlexItem>
                   {isProjectScopedAvailable &&
                     hardwareProfile.initialHardwareProfile.metadata.namespace === project && (
-                      <Label
-                        variant="outline"
-                        color="blue"
-                        data-testid="project-scoped-label"
-                        isCompact
-                        icon={<TypedObjectIcon alt="" resourceType={ProjectObjectType.project} />}
-                      >
+                      <ScopedLabel isProject color="blue" isCompact>
                         Project-scoped
-                      </Label>
+                      </ScopedLabel>
                     )}
                 </FlexItem>
                 <Flex>
@@ -116,15 +108,9 @@ const ServingRuntimeDetails: React.FC<ServingRuntimeDetailsProps> = ({ project, 
                       project && (
                       <>
                         {' '}
-                        <Label
-                          variant="outline"
-                          color="blue"
-                          data-testid="project-scoped-label"
-                          isCompact
-                          icon={<TypedObjectIcon alt="" resourceType={ProjectObjectType.project} />}
-                        >
+                        <ScopedLabel isProject color="blue" isCompact>
                           Project-scoped
-                        </Label>
+                        </ScopedLabel>
                       </>
                     )}
                   {!initialAcceleratorProfileState.acceleratorProfile.spec.enabled && ' (disabled)'}
