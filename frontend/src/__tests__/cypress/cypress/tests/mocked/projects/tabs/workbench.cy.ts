@@ -112,6 +112,7 @@ const initIntercepts = ({
           },
           annotations: {
             'opendatahub.io/image-display-name': 'Outdated image',
+            'notebooks.opendatahub.io/last-image-version-git-commit-selection': '1234',
           },
         },
       },
@@ -129,6 +130,7 @@ const initIntercepts = ({
           },
           annotations: {
             'opendatahub.io/image-display-name': 'Latest image',
+            'notebooks.opendatahub.io/last-image-version-git-commit-selection': '12345',
           },
         },
       },
@@ -935,7 +937,7 @@ describe('Workbench page', () => {
     notebookImageUpdateModal.findLatestVersionOption().click();
 
     cy.interceptK8s('PATCH', NotebookModel, {
-      delay: 500,
+      delay: 500, //TODO: Remove the delay when we add support for loading states
       body: mockNotebookK8sResource({
         name: 'outdated-notebook',
         displayName: 'Outdated Notebook (updated)',
