@@ -8,9 +8,6 @@ import { InferenceServiceModel, LMEvalModel } from '~/api/models';
 import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
 import { kindApiVersion, translateDisplayNameForK8s } from '~/concepts/k8s/utils';
 
-/**
- * List all deployed models that can be evaluated
- */
 export const listDeployedModels = async (namespace: string): Promise<InferenceServiceKind[]> =>
   k8sListResource<InferenceServiceKind>({
     model: InferenceServiceModel,
@@ -19,18 +16,12 @@ export const listDeployedModels = async (namespace: string): Promise<InferenceSe
     },
   }).then((listResource) => listResource.items);
 
-/**
- * Get a specific deployed model by name
- */
 export const getDeployedModel = (name: string, namespace: string): Promise<InferenceServiceKind> =>
   k8sGetResource<InferenceServiceKind>({
     model: InferenceServiceModel,
     queryOptions: { name, ns: namespace },
   });
 
-/**
- * List all model evaluations
- */
 export const listModelEvaluations = async (namespace: string): Promise<LMEvaluationKind[]> =>
   k8sListResource<LMEvaluationKind>({
     model: LMEvalModel,
@@ -39,9 +30,6 @@ export const listModelEvaluations = async (namespace: string): Promise<LMEvaluat
     },
   }).then((listResource) => listResource.items);
 
-/**
- * Assembles an evaluation request for a deployed model
- */
 const assembleModelEvaluation = (
   modelName: string,
   evalConfig: {
@@ -68,9 +56,6 @@ const assembleModelEvaluation = (
   },
 });
 
-/**
- * Create a new model evaluation
- */
 export const createModelEvaluation = (
   modelName: string,
   evalConfig: {
@@ -94,9 +79,6 @@ export const createModelEvaluation = (
   );
 };
 
-/**
- * Get evaluation results for a model
- */
 export const getModelEvaluationResult = (
   name: string,
   namespace: string,
