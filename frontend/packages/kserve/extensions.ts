@@ -1,10 +1,10 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
+// eslint-disable-next-line no-restricted-syntax
 import { NamespaceApplicationCase } from '@odh-dashboard/internal/pages/projects/types';
 import type {
   ModelServingPlatformExtension,
   ModelServingDeploymentsTableExtension,
 } from '@odh-dashboard/model-serving/extension-points';
-import { KServeDeployment } from './src/deployments';
+import type { KServeDeployment } from './src/deployments';
 
 export const KSERVE_ID = 'kserve';
 

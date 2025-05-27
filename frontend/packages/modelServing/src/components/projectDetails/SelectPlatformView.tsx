@@ -16,11 +16,8 @@ import {
   Button,
   ContentVariants,
 } from '@patternfly/react-core';
-// eslint-disable-next-line import/no-extraneous-dependencies
 import EmptyDetailsView from '@odh-dashboard/internal/components/EmptyDetailsView';
-// eslint-disable-next-line import/no-extraneous-dependencies
 import { ProjectObjectType, typedEmptyImage } from '@odh-dashboard/internal/concepts/design/utils';
-// eslint-disable-next-line import/no-extraneous-dependencies
 import EmptyModelServingPlatform from '@odh-dashboard/internal/pages/modelServing/screens/projects/EmptyModelServingPlatform';
 import { ModelServingPlatform } from '../../concepts/modelServingPlatforms';
 

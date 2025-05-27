@@ -1,5 +1,4 @@
 import React from 'react';
-// eslint-disable-next-line import/no-extraneous-dependencies
 import { ProjectDetailsContext } from '@odh-dashboard/internal/pages/projects/ProjectDetailsContext';
 import type { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
 import { useResolvedExtensions } from '@odh-dashboard/plugin-core';

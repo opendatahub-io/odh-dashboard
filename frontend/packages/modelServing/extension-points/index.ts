@@ -1,11 +1,8 @@
-import { Extension, CodeRef } from '@openshift/dynamic-plugin-sdk';
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { NamespaceApplicationCase } from '@odh-dashboard/internal/pages/projects/types';
-import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { SortableData } from '@odh-dashboard/internal/components/table/types';
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { K8sAPIOptions, ProjectKind } from '@odh-dashboard/internal/k8sTypes';
+import type { Extension, CodeRef } from '@openshift/dynamic-plugin-sdk';
+import type { NamespaceApplicationCase } from '@odh-dashboard/internal/pages/projects/types';
+import type { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
+import type { SortableData } from '@odh-dashboard/internal/components/table/types';
+import type { K8sAPIOptions, ProjectKind } from '@odh-dashboard/internal/k8sTypes';
 
 //// Model serving platform extension
 

@@ -1,5 +1,4 @@
 import React from 'react';
-// eslint-disable-next-line import/no-extraneous-dependencies
 import type { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
 import { ModelServingPlatform } from './modelServingPlatforms';
 import { Deployment } from '../../extension-points';

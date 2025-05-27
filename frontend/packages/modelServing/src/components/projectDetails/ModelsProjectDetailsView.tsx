@@ -1,13 +1,9 @@
 import React from 'react';
-// eslint-disable-next-line import/no-extraneous-dependencies
 import DetailsSection from '@odh-dashboard/internal/pages/projects/screens/detail/DetailsSection';
-// eslint-disable-next-line import/no-extraneous-dependencies
 import { ProjectSectionID } from '@odh-dashboard/internal/pages/projects/screens/detail/types';
 import { Button, Flex, Label, Popover } from '@patternfly/react-core';
-// eslint-disable-next-line import/no-extraneous-dependencies
 import DashboardPopupIconButton from '@odh-dashboard/internal/concepts/dashboard/DashboardPopupIconButton';
 import { OutlinedQuestionCircleIcon, PencilAltIcon } from '@patternfly/react-icons';
-// eslint-disable-next-line import/no-extraneous-dependencies
 import { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
 import { SelectPlatformView } from './SelectPlatformView';
 import { NoModelsView } from './NoModelsView';
