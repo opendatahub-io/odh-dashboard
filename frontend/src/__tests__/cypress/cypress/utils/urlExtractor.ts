@@ -38,7 +38,7 @@ type YamlArray = YamlValue[];
  */
 function extractUrlsFromValue(value: YamlValue, urlSet: Set<string>): void {
   if (typeof value === 'string') {
-    const urlRegex = /https?:\/\/[^\s\](),"'}*]*(?=[\s\](),"'}*]|$)/g; // Matches both HTTP and HTTPS
+    const urlRegex = /^(?:https?:\/\/)[^\s\](),"'}*]*(?=[\s\](),"'}*]|$)/g; // Matches only http:// or https:// exactly
     const matches = value.match(urlRegex);
     if (matches) {
       matches.forEach((url) => {
