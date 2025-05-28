@@ -36,6 +36,7 @@ import { NotebookState } from '#~/pages/projects/notebook/types';
 import UnderlinedTruncateButton from '#~/components/UnderlinedTruncateButton';
 import { NotebookKind } from '#~/k8sTypes';
 import ScopedLabel from '#~/components/ScopedLabel';
+import { ScopedType } from '#~/pages/modelServing/screens/const';
 
 type NotebookImageDisplayNameProps = {
   notebook: NotebookKind;
@@ -237,7 +238,7 @@ export const NotebookImageDisplayName = ({
             isProjectScopedAvailable &&
             notebook.metadata.annotations?.['opendatahub.io/workbench-image-namespace'] && (
               <ScopedLabel isProject color="blue" isCompact>
-                Project-scoped
+                {ScopedType.Project}
               </ScopedLabel>
             )}
         </FlexItem>

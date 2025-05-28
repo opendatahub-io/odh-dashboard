@@ -16,7 +16,8 @@ import { getResourceSize } from '#~/pages/modelServing/utils';
 import { formatMemory } from '#~/utilities/valueUnits';
 import { useModelServingPodSpecOptionsState } from '#~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
 import { useIsAreaAvailable, SupportedArea } from '#~/concepts/areas';
-import ScopedLabel from '#~/components/ScopedLabel.tsx';
+import ScopedLabel from '#~/components/ScopedLabel';
+import { ScopedType } from '#~/pages/modelServing/screens/const';
 
 type ServingRuntimeDetailsProps = {
   project?: string;
@@ -80,7 +81,7 @@ const ServingRuntimeDetails: React.FC<ServingRuntimeDetailsProps> = ({ project, 
                   {isProjectScopedAvailable &&
                     hardwareProfile.initialHardwareProfile.metadata.namespace === project && (
                       <ScopedLabel isProject color="blue" isCompact>
-                        Project-scoped
+                        {ScopedType.Project}
                       </ScopedLabel>
                     )}
                 </FlexItem>
@@ -109,7 +110,7 @@ const ServingRuntimeDetails: React.FC<ServingRuntimeDetailsProps> = ({ project, 
                       <>
                         {' '}
                         <ScopedLabel isProject color="blue" isCompact>
-                          Project-scoped
+                          {ScopedType.Project}
                         </ScopedLabel>
                       </>
                     )}

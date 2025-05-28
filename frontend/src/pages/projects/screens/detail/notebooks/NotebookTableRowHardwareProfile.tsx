@@ -3,6 +3,7 @@ import React from 'react';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import { HardwareProfileKind } from '#~/k8sTypes';
 import ScopedLabel from '#~/components/ScopedLabel';
+import { ScopedType } from '#~/pages/modelServing/screens/const';
 
 type NotebookTableRowHardwareProfileProps = {
   namespace: string;
@@ -35,7 +36,7 @@ const NotebookTableRowHardwareProfile: React.FC<NotebookTableRowHardwareProfileP
       {hardwareProfile?.spec.displayName ?? <i>Custom</i>}{' '}
       {isProjectScoped && hardwareProfile?.metadata.namespace === namespace && (
         <ScopedLabel isProject color="blue" isCompact>
-          Project-scoped
+          {ScopedType.Project}
         </ScopedLabel>
       )}
     </>
