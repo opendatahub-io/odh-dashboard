@@ -50,7 +50,7 @@ export const mockLMEvaluation = (config: MockLMEvaluationConfigType = {}): LMEva
   } = config;
 
   return {
-    apiVersion: 'lmeval.opendatahub.io/v1alpha1',
+    apiVersion: 'trustyai.opendatahub.io/v1alpha1',
     kind: 'LMEvalJob',
     metadata: {
       name,
