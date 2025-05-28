@@ -36,38 +36,46 @@ const NotebookServer: React.FC = () => {
         requestNotebookRefresh();
         navigate(`/notebookController/spawner`);
       } else {
+        setShowModal(false);
         setNotebooksToStop([]);
       }
     },
     [requestNotebookRefresh, navigate],
   );
 
-  const handleStopWorkbenches = React.useCallback(() => {
-    setIsDeleting(true);
-    stopWorkbenches(notebooksToStop, isAdmin)
-      .then(() => {
-        setIsDeleting(false);
-        onNotebooksStop(true);
-        setShowModal(false);
-      })
-      .catch((e) => {
-        setIsDeleting(false);
-        notification.error(
-          `Error stopping workbench${notebooksToStop.length > 1 ? 's' : ''}`,
-          e.message,
-        );
-      });
-  }, [isAdmin, notebooksToStop, notification, onNotebooksStop]);
+  const handleStopWorkbenches = React.useCallback(
+    (workbenches: Notebook[]) => {
+      setIsDeleting(true);
+      stopWorkbenches(workbenches, isAdmin)
+        .then(() => {
+          setIsDeleting(false);
+          onNotebooksStop(true);
+          setShowModal(false);
+        })
+        .catch((e) => {
+          setIsDeleting(false);
+          notification.error(
+            `Error stopping workbench${workbenches.length > 1 ? 's' : ''}`,
+            e.message,
+          );
+        });
+    },
+    [isAdmin, notification, onNotebooksStop],
+  );
 
   const link = currentUserNotebookLink || '#';
 
-  React.useEffect(() => {
-    if (notebooksToStop.length && !showModal && dontShowModalValue) {
-      handleStopWorkbenches();
-    } else if (notebooksToStop.length && !dontShowModalValue) {
-      setShowModal(true);
-    }
-  }, [notebooksToStop.length, showModal, handleStopWorkbenches, dontShowModalValue]);
+  const onStop = React.useCallback(
+    (notebooks: Notebook[]) => {
+      if (dontShowModalValue) {
+        handleStopWorkbenches(notebooks);
+      } else {
+        setNotebooksToStop(notebooks);
+        setShowModal(true);
+      }
+    },
+    [dontShowModalValue, handleStopWorkbenches],
+  );
 
   return (
     <>
@@ -83,16 +91,15 @@ const NotebookServer: React.FC = () => {
         {notebook && (
           <Stack hasGutter>
             <StackItem>
-              {notebooksToStop.length && showModal ? (
+              {showModal && (
                 <StopServerModal
                   notebooksToStop={notebooksToStop}
                   isDeleting={isDeleting}
-                  handleStopWorkbenches={handleStopWorkbenches}
+                  handleStopSingleWorkbench={handleStopWorkbenches}
                   link={link}
-                  setShowModal={setShowModal}
                   onNotebooksStop={onNotebooksStop}
                 />
-              ) : null}
+              )}
               <ActionList>
                 <ActionListItem
                   onClick={(e) => {
@@ -109,7 +116,11 @@ const NotebookServer: React.FC = () => {
                     Access workbench
                   </Button>
                 </ActionListItem>
-                <ActionListItem onClick={() => setNotebooksToStop([notebook])}>
+                <ActionListItem
+                  onClick={() => {
+                    onStop([notebook]);
+                  }}
+                >
                   <Button data-testid="stop-wb-button" variant="secondary">
                     Stop workbench
                   </Button>

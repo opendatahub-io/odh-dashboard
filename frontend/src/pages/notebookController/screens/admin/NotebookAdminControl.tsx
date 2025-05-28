@@ -12,18 +12,19 @@ import { Td, Tr } from '@patternfly/react-table';
 import { Table } from '#~/components/table';
 import ExternalLink from '#~/components/ExternalLink';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
-import StopServerModal from '#~/pages/notebookController/screens/server/StopServerModal';
 import { Notebook } from '#~/types';
 import { ODH_PRODUCT_NAME } from '#~/utilities/const';
 import useStopNotebookModalAvailability from '#~/pages/projects/notebook/useStopNotebookModalAvailability';
 import { useUser } from '#~/redux/selectors';
 import useNotification from '#~/utilities/useNotification';
 import { stopWorkbenches } from '#~/pages/notebookController/utils';
+import { StopAdminWorkbenchModalProps } from '#~/pages/projects/screens/detail/notebooks/types';
 import { columns } from './data';
 import StopAllServersButton from './StopAllServersButton';
 import UserTableCellTransform from './UserTableCellTransform';
 import useAdminUsers from './useAdminUsers';
 import { NotebookAdminContext } from './NotebookAdminContext';
+import { ServerStatus } from './types';
 
 const NotebookAdminControl: React.FC = () => {
   const [users, loaded, loadError] = useAdminUsers();
@@ -35,49 +36,67 @@ const NotebookAdminControl: React.FC = () => {
   const [isDeleting, setIsDeleting] = React.useState(false);
 
   const onNotebooksStop = React.useCallback(
-    (didStop: boolean) => {
+    (didStop: boolean, serverStatusesArr?: ServerStatus[]) => {
       if (didStop) {
-        serverStatuses.forEach((serverStatus) => {
+        (serverStatusesArr ?? serverStatuses).forEach((serverStatus) => {
           serverStatus.forceRefresh();
         });
       }
+      setShowModal(false);
       setServerStatuses([]);
     },
     [serverStatuses, setServerStatuses],
   );
 
-  const notebooksToStop = React.useMemo(
-    () =>
-      serverStatuses
-        .map((serverStatus) => serverStatus.notebook)
-        .filter((notebook): notebook is Notebook => !!notebook),
-    [serverStatuses],
+  const getNotebooksToStop = (serverStatusesArr: ServerStatus[]) =>
+    serverStatusesArr
+      .map((serverStatus) => serverStatus.notebook)
+      .filter((notebook): notebook is Notebook => !!notebook);
+
+  const notebooksToStop = React.useMemo(() => getNotebooksToStop(serverStatuses), [serverStatuses]);
+
+  const handleStopWorkbenches = React.useCallback(
+    (serverStatusesArr: ServerStatus[]) => {
+      const stoppedWorkbenches = getNotebooksToStop(serverStatusesArr);
+      setIsDeleting(true);
+      stopWorkbenches(stoppedWorkbenches, isAdmin)
+        .then(() => {
+          setIsDeleting(false);
+          onNotebooksStop(true, serverStatusesArr);
+          setShowModal(false);
+        })
+        .catch((e) => {
+          setIsDeleting(false);
+          notification.error(
+            `Error stopping workbench${stoppedWorkbenches.length > 1 ? 's' : ''}`,
+            e.message,
+          );
+        });
+    },
+    [isAdmin, notification, onNotebooksStop],
   );
 
-  const handleStopWorkbenches = React.useCallback(() => {
-    setIsDeleting(true);
-    stopWorkbenches(notebooksToStop, isAdmin)
-      .then(() => {
-        setIsDeleting(false);
-        onNotebooksStop(true);
-        setShowModal(false);
-      })
-      .catch((e) => {
-        setIsDeleting(false);
-        notification.error(
-          `Error stopping workbench${notebooksToStop.length > 1 ? 's' : ''}`,
-          e.message,
-        );
-      });
-  }, [isAdmin, notebooksToStop, notification, onNotebooksStop]);
+  const onStop = React.useCallback(
+    (activeServers: ServerStatus[]) => {
+      setServerStatuses(activeServers);
+      if (dontShowModalValue) {
+        handleStopWorkbenches(activeServers);
+      } else {
+        setShowModal(true);
+      }
+    },
+    [dontShowModalValue, handleStopWorkbenches, setServerStatuses],
+  );
 
-  React.useEffect(() => {
-    if (notebooksToStop.length && !showModal && dontShowModalValue) {
-      handleStopWorkbenches();
-    } else if (notebooksToStop.length && !dontShowModalValue) {
-      setShowModal(true);
-    }
-  }, [notebooksToStop.length, showModal, handleStopWorkbenches, dontShowModalValue]);
+  const stopAdminWorkbenchModalProps: StopAdminWorkbenchModalProps = {
+    notebooksToStop,
+    isDeleting,
+    showModal,
+    link: '#',
+    handleStopWorkbenches,
+    onNotebooksStop,
+    onStop,
+  };
 
   return (
     <ApplicationsPage
@@ -97,7 +116,12 @@ const NotebookAdminControl: React.FC = () => {
       }
       loadError={loadError}
       empty={false}
-      headerAction={<StopAllServersButton users={users} />}
+      headerAction={
+        <StopAllServersButton
+          users={users}
+          stopAdminWorkbenchModalProps={stopAdminWorkbenchModalProps}
+        />
+      }
     >
       <Stack hasGutter>
         <StackItem>
@@ -133,7 +157,11 @@ const NotebookAdminControl: React.FC = () => {
                     dataLabel={column.field}
                     isActionCell={column.field === 'actions'}
                   >
-                    <UserTableCellTransform user={user} userProperty={column.field} />
+                    <UserTableCellTransform
+                      user={user}
+                      userProperty={column.field}
+                      stopAdminWorkbenchModalProps={stopAdminWorkbenchModalProps}
+                    />
                   </Td>
                 ))}
               </Tr>
@@ -141,16 +169,6 @@ const NotebookAdminControl: React.FC = () => {
           />
         </StackItem>
       </Stack>
-      {notebooksToStop.length && showModal ? (
-        <StopServerModal
-          notebooksToStop={notebooksToStop}
-          isDeleting={isDeleting}
-          handleStopWorkbenches={handleStopWorkbenches}
-          link="#"
-          setShowModal={setShowModal}
-          onNotebooksStop={onNotebooksStop}
-        />
-      ) : null}
     </ApplicationsPage>
   );
 };

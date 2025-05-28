@@ -3,25 +3,28 @@ import { Button } from '@patternfly/react-core';
 import { Notebook } from '#~/types';
 import StopWorkbenchModal from '#~/pages/projects/notebook/StopWorkbenchModal';
 import useStopNotebookModalAvailability from '#~/pages/projects/notebook/useStopNotebookModalAvailability';
+import { ServerStatus } from '#~/pages/notebookController/screens/admin/types';
+import { NotebookAdminContext } from '#~/pages/notebookController/screens/admin/NotebookAdminContext';
 
 type StopServerModalProps = {
   notebooksToStop: Notebook[];
   link: string;
   isDeleting: boolean;
-  setShowModal: (showModal: boolean) => void;
-  handleStopWorkbenches: () => void;
   onNotebooksStop: (didStop: boolean) => void;
+  handleStopSingleWorkbench?: (workbenches: Notebook[]) => void;
+  handleStopWorkbenches?: (serverStatusesArr: ServerStatus[]) => void;
 };
 
 const StopServerModal: React.FC<StopServerModalProps> = ({
   notebooksToStop,
   link,
   isDeleting,
-  setShowModal,
-  handleStopWorkbenches,
   onNotebooksStop,
+  handleStopSingleWorkbench,
+  handleStopWorkbenches,
 }) => {
   const [, setDontShowModalValue] = useStopNotebookModalAvailability();
+  const { serverStatuses } = React.useContext(NotebookAdminContext);
 
   if (!notebooksToStop.length) {
     return null;
@@ -63,9 +66,10 @@ const StopServerModal: React.FC<StopServerModalProps> = ({
     if (!confirmStatus) {
       setDontShowModalValue(false);
       onNotebooksStop(false);
-      setShowModal(false);
-    } else {
-      handleStopWorkbenches();
+    } else if (handleStopSingleWorkbench) {
+      handleStopSingleWorkbench(notebooksToStop);
+    } else if (handleStopWorkbenches) {
+      handleStopWorkbenches(serverStatuses);
     }
   };
 
