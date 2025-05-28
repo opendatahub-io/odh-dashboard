@@ -7,7 +7,7 @@ import {
   mockSecretK8sResource,
 } from '~/__mocks__';
 import { mockDsciStatus } from '~/__mocks__/mockDsciStatus';
-import { StackCapability, StackComponent } from '~/concepts/areas/types';
+import { StackComponent } from '~/concepts/areas/types';
 import { ProjectModel, SecretModel, ServiceModel } from '~/__tests__/cypress/cypress/utils/models';
 import {
   FormFieldSelector,
@@ -46,12 +46,7 @@ const initIntercepts = () => {
       },
     }),
   );
-  cy.interceptOdh(
-    'GET /api/dsci/status',
-    mockDsciStatus({
-      requiredCapabilities: [StackCapability.SERVICE_MESH, StackCapability.SERVICE_MESH_AUTHZ],
-    }),
-  );
+  cy.interceptOdh('GET /api/dsci/status', mockDsciStatus({}));
   cy.interceptK8sList(
     ProjectModel,
     mockK8sResourceList([
