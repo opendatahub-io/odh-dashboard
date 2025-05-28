@@ -69,6 +69,7 @@ const PipelineSection: React.FC<PipelineSectionProps> = ({
           </StackItem>
           <StackItem>
             <ImportPipelineButton
+              data-testid="import-pipeline-version-button"
               variant="link"
               icon={<PlusCircleIcon />}
               onCreate={onPipelineChange}
