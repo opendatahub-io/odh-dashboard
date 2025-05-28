@@ -1,15 +1,6 @@
+import { FormGroup, MenuItem } from '@patternfly/react-core';
 import * as React from 'react';
-import {
-  Divider,
-  Flex,
-  FlexItem,
-  FormGroup,
-  Label,
-  MenuGroup,
-  MenuItem,
-  Split,
-  SplitItem,
-} from '@patternfly/react-core';
+import ProjectScopedPopover from '#~/components/ProjectScopedPopover';
 import { BuildStatus } from '#~/pages/projects/screens/spawner/types';
 import {
   checkImageStreamAvailability,
@@ -21,11 +12,14 @@ import {
 import { ImageStreamKind } from '#~/k8sTypes';
 import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
 import { useIsAreaAvailable, SupportedArea } from '#~/concepts/areas';
-import GlobalIcon from '#~/images/icons/GlobalIcon';
-import { ProjectObjectType } from '#~/concepts/design/utils';
-import SearchSelector from '#~/components/searchSelector/SearchSelector';
-import ProjectScopedPopover from '#~/components/ProjectScopedPopover';
-import TypedObjectIcon from '#~/concepts/design/TypedObjectIcon';
+import ProjectScopedIcon from '#~/components/searchSelector/ProjectScopedIcon.tsx';
+import { ImageStreamDropdownLabel } from '#~/pages/projects/screens/spawner/imageSelector/ImageStreamDropdownLabel';
+import {
+  ProjectScopedGroupLabel,
+  ProjectScopedSearchDropdown,
+} from '#~/components/searchSelector/ProjectScopedSearchDropdown';
+import ProjectScopedToggleContent from '#~/components/searchSelector/ProjectScopedToggleContent';
+import { ScopedType } from '#~/pages/modelServing/screens/const.ts';
 
 type ImageStreamSelectorProps = {
   currentProjectStreams?: ImageStreamKind[];
@@ -50,156 +44,60 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
   const isProjectScopedAvailable = useIsAreaAvailable(SupportedArea.DS_PROJECT_SCOPED).status;
   const [searchImageStreamName, setSearchImageStreamName] = React.useState('');
 
-  const getFilteredImageStreams = () => {
-    const filteredCurrentImageStreams =
-      currentProjectStreams?.filter((imageStream) =>
-        imageStream.metadata.name.toLowerCase().includes(searchImageStreamName.toLowerCase()),
-      ) || [];
-    const filteredImageStreams = imageStreams.filter((imageStream) =>
+  const filteredCurrentImageStreams =
+    currentProjectStreams?.filter((imageStream) =>
       imageStream.metadata.name.toLowerCase().includes(searchImageStreamName.toLowerCase()),
-    );
+    ) || [];
+  const filteredImageStreams = imageStreams.filter((imageStream) =>
+    imageStream.metadata.name.toLowerCase().includes(searchImageStreamName.toLowerCase()),
+  );
 
-    return (
-      <>
-        {filteredCurrentImageStreams.length > 0 && (
-          <MenuGroup
-            data-testid="project-scoped-notebook-images"
-            label={
-              <Flex
-                spaceItems={{ default: 'spaceItemsXs' }}
-                alignItems={{ default: 'alignItemsCenter' }}
-                style={{ paddingBottom: '5px' }}
-              >
-                <FlexItem style={{ display: 'flex', paddingLeft: '12px' }}>
-                  <TypedObjectIcon
-                    style={{ height: '12px', width: '12px' }}
-                    alt=""
-                    resourceType={ProjectObjectType.project}
-                  />
-                </FlexItem>
-                <FlexItem>Project-scoped images</FlexItem>
-              </Flex>
-            }
-          >
-            {filteredCurrentImageStreams.map((imageStream, index) => (
-              <MenuItem
-                key={`imageStream-${index}`}
-                isSelected={
-                  selectedImageStream &&
-                  getImageStreamDisplayName(selectedImageStream) ===
-                    getImageStreamDisplayName(imageStream) &&
-                  selectedImageStream.metadata.namespace === imageStream.metadata.namespace
-                }
-                onClick={() => onImageStreamSelect(imageStream)}
-              >
-                <Flex
-                  spaceItems={{ default: 'spaceItemsXs' }}
-                  alignItems={{ default: 'alignItemsCenter' }}
-                >
-                  <FlexItem>
-                    <TypedObjectIcon alt="" resourceType={ProjectObjectType.project} />
-                  </FlexItem>
-                  <FlexItem>{getImageStreamDisplayName(imageStream)}</FlexItem>
-                  <FlexItem align={{ default: 'alignRight' }}>
-                    {compatibleIdentifiers?.some((identifier) =>
-                      isCompatibleWithIdentifier(identifier, imageStream),
-                    ) && (
-                      <Label color="blue">
-                        Compatible with
-                        {isHardwareProfilesAvailable ? ' hardware profile' : ' accelerator'}
-                      </Label>
-                    )}
-                  </FlexItem>
-                </Flex>
-              </MenuItem>
-            ))}
-          </MenuGroup>
-        )}
-        {filteredCurrentImageStreams.length > 0 && filteredImageStreams.length > 0 && (
-          <Divider component="li" />
-        )}
-        {filteredImageStreams.length > 0 && (
-          <MenuGroup
-            data-testid="global-scoped-notebook-images"
-            label={
-              <Flex
-                spaceItems={{ default: 'spaceItemsXs' }}
-                alignItems={{ default: 'alignItemsCenter' }}
-              >
-                <FlexItem style={{ display: 'flex', paddingLeft: '12px' }}>
-                  <GlobalIcon style={{ height: '12px', width: '12px' }} />
-                </FlexItem>
-                <FlexItem> Global images </FlexItem>
-              </Flex>
-            }
-          >
-            {filteredImageStreams.map((imageStream, index) => (
-              <MenuItem
-                key={`imageStream-global-${index}`}
-                isSelected={
-                  selectedImageStream &&
-                  getImageStreamDisplayName(selectedImageStream) ===
-                    getImageStreamDisplayName(imageStream) &&
-                  selectedImageStream.metadata.namespace === imageStream.metadata.namespace
-                }
-                onClick={() => onImageStreamSelect(imageStream)}
-              >
-                <Flex
-                  spaceItems={{ default: 'spaceItemsXs' }}
-                  alignItems={{ default: 'alignItemsCenter' }}
-                >
-                  <FlexItem>
-                    <GlobalIcon />
-                  </FlexItem>
-                  <FlexItem>{getImageStreamDisplayName(imageStream)}</FlexItem>
-                  <FlexItem align={{ default: 'alignRight' }}>
-                    {compatibleIdentifiers?.some((identifier) =>
-                      isCompatibleWithIdentifier(identifier, imageStream),
-                    ) && (
-                      <Label color="blue">
-                        Compatible with
-                        {isHardwareProfilesAvailable ? ' hardware profile' : ' accelerator'}
-                      </Label>
-                    )}
-                  </FlexItem>
-                </Flex>
-              </MenuItem>
-            ))}
-          </MenuGroup>
-        )}
-        {filteredCurrentImageStreams.length === 0 && filteredImageStreams.length === 0 && (
-          <MenuItem isDisabled>No results found</MenuItem>
-        )}
-      </>
-    );
-  };
+  const renderMenuItem = (
+    imageStream: ImageStreamKind,
+    index: number,
+    scope: 'project' | 'global',
+  ) => (
+    <MenuItem
+      key={`${index}-${scope}-imageStream-${imageStream.metadata.name}`}
+      isSelected={
+        selectedImageStream &&
+        getImageStreamDisplayName(selectedImageStream) === getImageStreamDisplayName(imageStream) &&
+        selectedImageStream.metadata.namespace === imageStream.metadata.namespace
+      }
+      onClick={() => onImageStreamSelect(imageStream)}
+      icon={<ProjectScopedIcon isProject={scope === 'project'} alt="" />}
+    >
+      <ImageStreamDropdownLabel
+        displayName={getImageStreamDisplayName(imageStream)}
+        compatible={
+          !!compatibleIdentifiers?.some((identifier) =>
+            isCompatibleWithIdentifier(identifier, imageStream),
+          )
+        }
+        content={isHardwareProfilesAvailable ? 'hardware profile' : 'accelerator'}
+      />
+    </MenuItem>
+  );
 
   const options = imageStreams
     .toSorted(compareImageStreamOrder)
     .map((imageStream): SimpleSelectOption => {
       const description = getRelatedVersionDescription(imageStream);
       const displayName = getImageStreamDisplayName(imageStream);
-
+      const compatible = !!compatibleIdentifiers?.some((identifier) =>
+        isCompatibleWithIdentifier(identifier, imageStream),
+      );
       return {
         key: imageStream.metadata.name,
         label: displayName,
         description,
         isDisabled: !checkImageStreamAvailability(imageStream, buildStatuses),
         dropdownLabel: (
-          <Split>
-            <SplitItem>{displayName}</SplitItem>
-            <SplitItem isFilled />
-            <SplitItem>
-              {compatibleIdentifiers?.some((identifier) =>
-                isCompatibleWithIdentifier(identifier, imageStream),
-              ) && (
-                <Label color="blue">
-                  Compatible with{' '}
-                  {isHardwareProfilesAvailable ? ' hardware profile' : ' accelerator'}
-                </Label>
-              )}
-            </SplitItem>
-          </Split>
+          <ImageStreamDropdownLabel
+            displayName={displayName}
+            compatible={compatible}
+            content={isHardwareProfilesAvailable ? 'hardware profile' : 'accelerator'}
+          />
         ),
       };
     });
@@ -216,47 +114,39 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
       }
     >
       {isProjectScopedAvailable && currentProjectStreams && currentProjectStreams.length > 0 ? (
-        <SearchSelector
-          isFullWidth
-          dataTestId="image-stream-selector"
-          onSearchChange={(newValue) => setSearchImageStreamName(newValue)}
-          onSearchClear={() => setSearchImageStreamName('')}
+        <ProjectScopedSearchDropdown
+          projectScopedItems={filteredCurrentImageStreams}
+          globalScopedItems={filteredImageStreams}
+          renderMenuItem={renderMenuItem}
           searchValue={searchImageStreamName}
+          onSearchChange={setSearchImageStreamName}
+          onSearchClear={() => setSearchImageStreamName('')}
           toggleContent={
-            selectedImageStream ? (
-              <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-                <FlexItem>{getImageStreamDisplayName(selectedImageStream)}</FlexItem>
-                <FlexItem>
-                  {selectedImageStream.metadata.namespace === currentProject ? (
-                    <Label
-                      isCompact
-                      variant="outline"
-                      color="blue"
-                      data-testid="project-scoped-label"
-                      icon={<TypedObjectIcon alt="" resourceType={ProjectObjectType.project} />}
-                    >
-                      Project-scoped
-                    </Label>
-                  ) : (
-                    <Label
-                      isCompact
-                      variant="outline"
-                      data-testid="global-scoped-label"
-                      color="blue"
-                      icon={<GlobalIcon />}
-                    >
-                      Global-scoped
-                    </Label>
-                  )}
-                </FlexItem>
-              </Flex>
-            ) : (
-              'Select one'
-            )
+            <ProjectScopedToggleContent
+              displayName={
+                selectedImageStream ? getImageStreamDisplayName(selectedImageStream) : undefined
+              }
+              isProject={
+                selectedImageStream
+                  ? selectedImageStream.metadata.namespace === currentProject
+                  : false
+              }
+              projectLabel={ScopedType.Project}
+              globalLabel={ScopedType.Global}
+              fallback="Select one"
+            />
           }
-        >
-          {getFilteredImageStreams()}
-        </SearchSelector>
+          projectGroupLabel={
+            <ProjectScopedGroupLabel isProject>{ScopedType.Project} images</ProjectScopedGroupLabel>
+          }
+          globalGroupLabel={
+            <ProjectScopedGroupLabel isProject={false}>
+              {ScopedType.Global} images
+            </ProjectScopedGroupLabel>
+          }
+          dataTestId="image-stream-selector"
+          isFullWidth
+        />
       ) : (
         <SimpleSelect
           isScrollable
