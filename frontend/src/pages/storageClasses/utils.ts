@@ -56,7 +56,7 @@ export const getSupportedAccessModesForProvisioner = (
     return provisionerAccessModes[provisionerString];
   }
 
-  // If it's a provisioner not in the StorageProvisioner then return RWO
+  // If it's a provisioner not in the StorageProvisioner enum then return RWO
   return [AccessMode.RWO];
 };
 
