@@ -49,7 +49,7 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
   const {
     currentProject,
     inferenceServices: {
-      data: inferenceServices,
+      data: { items: inferenceServices },
       loaded: inferenceServicesLoaded,
       error: inferenceServicesLoadError,
     },

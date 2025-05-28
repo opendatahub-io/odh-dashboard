@@ -1,5 +1,5 @@
-import { Extension } from '@openshift/dynamic-plugin-sdk';
-import { ComponentCodeRef } from './types';
+import type { Extension } from '@openshift/dynamic-plugin-sdk';
+import type { ComponentCodeRef } from './types';
 
 export type ProjectDetailsTab = Extension<
   'app.project-details/tab',

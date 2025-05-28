@@ -22,7 +22,7 @@ const AddExistingStorageField: React.FC<AddExistingStorageFieldProps> = ({
   existingStorageNames,
 }) => {
   const { currentProject } = React.useContext(ProjectDetailsContext);
-  const [storages, loaded, loadError] = useProjectPvcs(currentProject.metadata.name);
+  const { data: storages, loaded, error } = useProjectPvcs(currentProject.metadata.name);
 
   const selectDescription = (size: string, description?: string) => (
     <div>
@@ -52,10 +52,10 @@ const AddExistingStorageField: React.FC<AddExistingStorageFieldProps> = ({
     [existingStorageNames, loaded, storages],
   );
 
-  if (loadError) {
+  if (error) {
     return (
       <Alert title="Error loading pvcs" variant="danger">
-        {loadError.message}
+        {error.message}
       </Alert>
     );
   }

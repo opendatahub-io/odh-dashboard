@@ -133,6 +133,8 @@ export const testHook =
   };
 
 /**
+ * @deprecated use useFetch instead of useFetchState, and standardUseFetchStateObject instead of standardUseFetchState
+ *
  * A helper function for asserting the return value of hooks based on `useFetchState`.
  *
  * eg.
@@ -154,6 +156,33 @@ export const standardUseFetchState = <D>(
   loadError: Error | undefined,
   refresh: () => Promise<D | undefined>,
 ] => [data, loaded, error, expect.any(Function)];
+
+/**
+ * A helper function for asserting the return value of hooks based on `useFetch`.
+ *
+ * eg.
+ * ```
+ * expect(renderResult).hookToStrictEqual(standardUseFetchState('test value', true))
+ * ```
+ * is equivalent to:
+ * ```
+ * expect(renderResult).hookToStrictEqual({ data: 'test value', loaded: true, error: undefined, refresh: expect.any(Function) })
+ * ```
+ */
+export const standardUseFetchStateObject = <D>({
+  data,
+  loaded = false,
+  error,
+}: {
+  data: D;
+  loaded?: boolean;
+  error?: Error;
+}): {
+  data: D;
+  loaded: boolean;
+  error: Error | undefined;
+  refresh: () => Promise<D | undefined>;
+} => ({ data, loaded, error, refresh: expect.any(Function) });
 
 // create a new asymmetric matcher that matches everything
 const everything = () => {

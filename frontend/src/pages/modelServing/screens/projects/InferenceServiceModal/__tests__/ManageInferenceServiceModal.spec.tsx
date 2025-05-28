@@ -29,15 +29,18 @@ const useAppContextMock = jest.mocked(useAppContext);
 
 describe('ManageInferenceServiceModal', () => {
   it('should not re-render serving runtime selection', async () => {
-    useServingRuntimesMock.mockReturnValue([
-      [
-        mockServingRuntimeK8sResource({ name: 'runtime1', displayName: 'Runtime 1' }),
-        mockServingRuntimeK8sResource({ name: 'runtime2' }),
-      ],
-      true,
-      undefined,
-      jest.fn(),
-    ]);
+    useServingRuntimesMock.mockReturnValue({
+      data: {
+        items: [
+          mockServingRuntimeK8sResource({ name: 'runtime1', displayName: 'Runtime 1' }),
+          mockServingRuntimeK8sResource({ name: 'runtime2' }),
+        ],
+        hasNonDashboardItems: false,
+      },
+      loaded: true,
+      error: undefined,
+      refresh: jest.fn(),
+    });
 
     useAppContextMock.mockReturnValue({
       buildStatuses: [],
