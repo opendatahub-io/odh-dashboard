@@ -58,7 +58,7 @@ export const TrustyAIApplicationsModel: K8sModelCommon = {
 
 export const LMEvalModel: K8sModelCommon = {
   apiVersion: 'v1alpha1',
-  apiGroup: 'lmeval.opendatahub.io',
-  kind: 'LMEvaluation',
+  apiGroup: 'trustyai.opendatahub.io',
+  kind: 'LMEvalJob',
   plural: 'lmevaluations',
 };

@@ -142,7 +142,7 @@ describe('createModelEvaluation', () => {
 
     const expectedResource: LMEvaluationKind = {
       apiVersion: 'lmeval.opendatahub.io/v1alpha1',
-      kind: 'LMEvaluation',
+      kind: 'LMEvalJob',
       metadata: {
         name: 'eval-test-model',
         namespace,
@@ -185,7 +185,7 @@ describe('createModelEvaluation', () => {
 
     const expectedResource: LMEvaluationKind = {
       apiVersion: 'lmeval.opendatahub.io/v1alpha1',
-      kind: 'LMEvaluation',
+      kind: 'LMEvalJob',
       metadata: {
         name: 'eval-my-test-model',
         namespace,
@@ -225,7 +225,7 @@ describe('createModelEvaluation', () => {
 
     const expectedResource: LMEvaluationKind = {
       apiVersion: 'lmeval.opendatahub.io/v1alpha1',
-      kind: 'LMEvaluation',
+      kind: 'LMEvalJob',
       metadata: {
         name: 'eval-minimal-model',
         namespace,
@@ -265,7 +265,7 @@ describe('createModelEvaluation', () => {
 
     const expectedResource: LMEvaluationKind = {
       apiVersion: 'lmeval.opendatahub.io/v1alpha1',
-      kind: 'LMEvaluation',
+      kind: 'LMEvalJob',
       metadata: {
         name: 'eval-comprehensive-model',
         namespace,
@@ -305,7 +305,7 @@ describe('createModelEvaluation', () => {
 
     const expectedResource: LMEvaluationKind = {
       apiVersion: 'lmeval.opendatahub.io/v1alpha1',
-      kind: 'LMEvaluation',
+      kind: 'LMEvalJob',
       metadata: {
         name: 'eval-model/with-special_chars@123',
         namespace,
@@ -398,7 +398,7 @@ describe('createModelEvaluation', () => {
       },
       resource: {
         apiVersion: 'lmeval.opendatahub.io/v1alpha1',
-        kind: 'LMEvaluation',
+        kind: 'LMEvalJob',
         metadata: {
           name: 'eval-test-model',
           namespace,
@@ -424,7 +424,7 @@ describe('createModelEvaluation', () => {
 
     const expectedResource: LMEvaluationKind = {
       apiVersion: 'lmeval.opendatahub.io/v1alpha1',
-      kind: 'LMEvaluation',
+      kind: 'LMEvalJob',
       metadata: {
         name: 'eval-test-model',
         namespace,
