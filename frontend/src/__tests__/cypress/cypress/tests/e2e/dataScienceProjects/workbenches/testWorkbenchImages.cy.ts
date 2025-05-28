@@ -8,10 +8,7 @@ import {
   getNotebookImageNames,
   type NotebookImageInfo,
 } from '~/__tests__/cypress/cypress/utils/notebookImageUtils';
-import {
-  retryableBefore,
-  wasSetupPerformed,
-} from '~/__tests__/cypress/cypress/utils/retryableHooks';
+import { retryableBefore } from '~/__tests__/cypress/cypress/utils/retryableHooks';
 import { generateTestUUID } from '~/__tests__/cypress/cypress/utils/uuidGenerator';
 import { deleteOpenShiftProject } from '~/__tests__/cypress/cypress/utils/oc_commands/project';
 
@@ -35,13 +32,10 @@ describe('Workbenches - image/version tests', () => {
   });
 
   after(() => {
-    //Check if the Before Method was executed to perform the setup
-    if (!wasSetupPerformed()) return;
-
     // Delete provisioned Project
     if (projectName) {
       cy.log(`Deleting Project ${projectName} after the test has finished.`);
-      deleteOpenShiftProject(projectName, { wait: false });
+      deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
     }
   });
 

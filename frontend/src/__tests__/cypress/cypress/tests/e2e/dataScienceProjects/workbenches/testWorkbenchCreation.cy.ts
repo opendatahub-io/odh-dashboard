@@ -16,10 +16,7 @@ import {
   deleteOpenShiftProject,
   addUserToProject,
 } from '~/__tests__/cypress/cypress/utils/oc_commands/project';
-import {
-  retryableBefore,
-  wasSetupPerformed,
-} from '~/__tests__/cypress/cypress/utils/retryableHooks';
+import { retryableBefore } from '~/__tests__/cypress/cypress/utils/retryableHooks';
 import { addConnectionModal, connectionsPage } from '~/__tests__/cypress/cypress/pages/connections';
 import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
 import { AWS_BUCKETS } from '~/__tests__/cypress/cypress/utils/s3Buckets';
@@ -74,13 +71,10 @@ describe('Create, Delete and Edit - Workbench Tests', () => {
       });
   });
   after(() => {
-    //Check if the Before Method was executed to perform the setup
-    if (!wasSetupPerformed()) return;
-
     // Delete provisioned Project
     if (editTestNamespace) {
       cy.log(`Deleting Project ${editTestNamespace} after the test has finished.`);
-      deleteOpenShiftProject(editTestNamespace);
+      deleteOpenShiftProject(editTestNamespace, { wait: false, ignoreNotFound: true });
     }
   });
 

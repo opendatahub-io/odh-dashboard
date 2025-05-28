@@ -10,10 +10,7 @@ import { loadWBTolerationsFixture } from '~/__tests__/cypress/cypress/utils/data
 import { createCleanProject } from '~/__tests__/cypress/cypress/utils/projectChecker';
 import { deleteOpenShiftProject } from '~/__tests__/cypress/cypress/utils/oc_commands/project';
 import { validateWorkbenchTolerations } from '~/__tests__/cypress/cypress/utils/oc_commands/workbench';
-import {
-  retryableBefore,
-  wasSetupPerformed,
-} from '~/__tests__/cypress/cypress/utils/retryableHooks';
+import { retryableBefore } from '~/__tests__/cypress/cypress/utils/retryableHooks';
 import {
   cleanupHardwareProfiles,
   createCleanHardwareProfile,
@@ -56,9 +53,6 @@ describe('Workbenches - tolerations tests', () => {
 
   // Cleanup: Delete Hardware Profile and the associated Project
   after(() => {
-    // Check if the Before Method was executed to perform the setup
-    if (!wasSetupPerformed()) return;
-
     // Load Hardware Profile
     cy.log(`Loaded Hardware Profile Name: ${hardwareProfileResourceName}`);
 
@@ -67,7 +61,7 @@ describe('Workbenches - tolerations tests', () => {
       // Delete provisioned Project
       if (projectName) {
         cy.log(`Deleting Project ${projectName} after the test has finished.`);
-        deleteOpenShiftProject(projectName, { wait: false });
+        deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
       }
     });
   });

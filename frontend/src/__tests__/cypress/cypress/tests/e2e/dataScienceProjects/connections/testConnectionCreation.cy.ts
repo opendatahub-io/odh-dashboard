@@ -7,10 +7,7 @@ import { loadDSPFixture } from '~/__tests__/cypress/cypress/utils/dataLoader';
 import { createCleanProject } from '~/__tests__/cypress/cypress/utils/projectChecker';
 import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
 import { AWS_BUCKETS } from '~/__tests__/cypress/cypress/utils/s3Buckets';
-import {
-  retryableBefore,
-  wasSetupPerformed,
-} from '~/__tests__/cypress/cypress/utils/retryableHooks';
+import { retryableBefore } from '~/__tests__/cypress/cypress/utils/retryableHooks';
 import { generateTestUUID } from '~/__tests__/cypress/cypress/utils/uuidGenerator';
 
 describe('Verify Connections - Creation and Deletion', () => {
@@ -52,13 +49,10 @@ describe('Verify Connections - Creation and Deletion', () => {
       });
   });
   after(() => {
-    //Check if the Before Method was executed to perform the setup
-    if (!wasSetupPerformed()) return;
-
     // Delete provisioned Project
     if (projectName) {
       cy.log(`Deleting Project ${projectName} after the test has finished.`);
-      deleteOpenShiftProject(projectName, { wait: false });
+      deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
     }
   });
 

@@ -6,10 +6,7 @@ import { loadWBVariablesFixture } from '~/__tests__/cypress/cypress/utils/dataLo
 import { createCleanProject } from '~/__tests__/cypress/cypress/utils/projectChecker';
 import { deleteOpenShiftProject } from '~/__tests__/cypress/cypress/utils/oc_commands/project';
 import { validateWorkbenchEnvironmentVariables } from '~/__tests__/cypress/cypress/utils/oc_commands/workbench';
-import {
-  retryableBeforeEach,
-  wasSetupPerformed,
-} from '~/__tests__/cypress/cypress/utils/retryableHooks';
+import { retryableBeforeEach } from '~/__tests__/cypress/cypress/utils/retryableHooks';
 import { generateTestUUID } from '~/__tests__/cypress/cypress/utils/uuidGenerator';
 
 describe('Workbenches - variable tests', () => {
@@ -37,13 +34,10 @@ describe('Workbenches - variable tests', () => {
       });
   });
   after(() => {
-    //Check if the Before Method was executed to perform the setup
-    if (!wasSetupPerformed()) return;
-
     // Delete provisioned Project
     if (projectName) {
       cy.log(`Deleting Project ${projectName} after the test has finished.`);
-      deleteOpenShiftProject(projectName, { wait: false });
+      deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
     }
   });
   it(

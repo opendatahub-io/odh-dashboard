@@ -37,12 +37,20 @@ describe('Verify Data Science Project - Creation and Deletion', () => {
         // Clean up existing project if it exists
         if (exists) {
           cy.log(`Project ${projectName} exists. Deleting before test.`);
-          return deleteOpenShiftProject(projectName, { wait: false });
+          return deleteOpenShiftProject(projectName);
         }
         cy.log(`Project ${projectName} does not exist. Proceeding with test.`);
         // Return a resolved promise to ensure a value is always returned
         return cy.wrap(null);
       });
+  });
+
+  after(() => {
+    // Delete provisioned Project
+    if (projectName) {
+      cy.log(`Deleting Project ${projectName} after the test has finished.`);
+      deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
+    }
   });
 
   it(

@@ -1,10 +1,7 @@
 import { deleteOpenShiftProject } from '~/__tests__/cypress/cypress/utils/oc_commands/project';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
 import { projectDetails, projectListPage } from '~/__tests__/cypress/cypress/pages/projects';
-import {
-  retryableBefore,
-  wasSetupPerformed,
-} from '~/__tests__/cypress/cypress/utils/retryableHooks';
+import { retryableBefore } from '~/__tests__/cypress/cypress/utils/retryableHooks';
 import { createCleanProject } from '~/__tests__/cypress/cypress/utils/projectChecker';
 import { addConnectionModal, connectionsPage } from '~/__tests__/cypress/cypress/pages/connections';
 import {
@@ -50,11 +47,8 @@ describe(
     });
 
     after(() => {
-      //Check if the Before Method was executed to perform the setup
-      if (!wasSetupPerformed()) return;
-
-      // Delete provisioned Project - 5 min timeout to accomadate increased time to delete a project with a model
-      deleteOpenShiftProject(projectName, { wait: false });
+      // Delete provisioned Project
+      deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
     });
 
     it(
