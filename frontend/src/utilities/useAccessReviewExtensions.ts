@@ -23,6 +23,8 @@ export const useAccessReviewExtensions = <TExtension extends LoadedExtension<Ext
     extension: TExtension,
   ) => AccessReviewResourceAttributes | null | undefined, // Allow callback to signal skipping
 ): [filteredExtensions: TExtension[], isLoaded: boolean] => {
+  const getResourceAttributesRef = React.useRef(getResourceAttributes);
+  getResourceAttributesRef.current = getResourceAttributes;
   const { canIAccess, accessReviewCache, genKey } = React.useContext(AccessReviewContext);
 
   const [filteredExtensions, setFilteredExtensions] = React.useState<TExtension[]>([]);
@@ -45,7 +47,7 @@ export const useAccessReviewExtensions = <TExtension extends LoadedExtension<Ext
     extensions.forEach((extension) => {
       let attributes: AccessReviewResourceAttributes | null | undefined;
       try {
-        attributes = getResourceAttributes(extension);
+        attributes = getResourceAttributesRef.current(extension);
       } catch (error) {
         // eslint-disable-next-line no-console
         console.error(`Error calling getResourceAttributes for extension ${extension.uid}`, error);
@@ -83,7 +85,7 @@ export const useAccessReviewExtensions = <TExtension extends LoadedExtension<Ext
       setIsLoaded(true);
     }
     // Otherwise, isLoaded remains false, and filteredExtensions remains the empty array set at the start of the effect.
-  }, [extensions, getResourceAttributes, genKey, canIAccess, accessReviewCache]);
+  }, [extensions, genKey, canIAccess, accessReviewCache]);
 
   return [filteredExtensions, isLoaded];
 };

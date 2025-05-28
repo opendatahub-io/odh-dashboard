@@ -43,10 +43,7 @@ export const NavSection: React.FC<Props> = ({
 
   const [accessReviewExtensions, isAccessReviewExtensionsLoaded] = useAccessReviewExtensions(
     navExtensions,
-    React.useCallback(
-      (e) => (isHrefNavItemExtension(e) ? e.properties.accessReview : undefined),
-      [],
-    ),
+    (e) => (isHrefNavItemExtension(e) ? e.properties.accessReview : undefined),
   );
 
   const navExtensionIsActive = React.useCallback(
