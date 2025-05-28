@@ -5,7 +5,7 @@ import {
   getDisplayNameFromServingRuntimeTemplate,
   getServingRuntimeVersionFromTemplate,
 } from '~/pages/modelServing/customServingRuntimes/utils';
-import { SERVING_RUNTIME_SCOPE } from '~/pages/modelServing/screens/const';
+import { ScopedType, SERVING_RUNTIME_SCOPE } from '~/pages/modelServing/screens/const';
 
 type Props = {
   servingRuntime?: ServingRuntimeKind;
@@ -37,7 +37,7 @@ const InferenceServiceServingRuntime: React.FC<Props> = ({ servingRuntime, isPro
             <>
               {' '}
               <ScopedLabel isProject color="blue" isCompact>
-                Project-scoped
+                {ScopedType.Project}
               </ScopedLabel>
             </>
           )}

@@ -28,6 +28,7 @@ import {
 } from '~/pages/projects/screens/detail/notebooks/const';
 import ScopedLabel from '~/components/ScopedLabel';
 import { NotebookImage } from '~/pages/projects/screens/detail/notebooks/types';
+import { ScopedType } from '~/pages/modelServing/screens/const';
 
 type NotebookImageDisplayNameProps = {
   isImageStreamProjectScoped: boolean;
@@ -191,7 +192,7 @@ export const NotebookImageDisplayName = ({
             isProjectScopedAvailable &&
             isImageStreamProjectScoped && (
               <ScopedLabel isProject color="blue" isCompact>
-                Project-scoped
+                {ScopedType.Project}
               </ScopedLabel>
             )}
         </FlexItem>
