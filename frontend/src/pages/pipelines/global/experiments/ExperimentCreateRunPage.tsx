@@ -26,8 +26,7 @@ const ExperimentCreateRunPageInner: React.FC<PathProps & { runType: RunTypeOptio
         <BreadcrumbItem isActive key="experiment" style={{ maxWidth: 300 }}>
           {experiment ? (
             <Link to={redirectLink}>
-              {/* TODO: Remove the custom className after upgrading to PFv6 */}
-              <Truncate content={experiment.display_name} className="truncate-no-min-width" />
+              <Truncate content={experiment.display_name} />
             </Link>
           ) : (
             'Loading...'

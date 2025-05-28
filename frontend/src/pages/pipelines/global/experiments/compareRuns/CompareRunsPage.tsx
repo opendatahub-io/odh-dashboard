@@ -1,5 +1,5 @@
 import React from 'react';
-import { Breadcrumb, BreadcrumbItem, Stack, StackItem, Truncate } from '@patternfly/react-core';
+import { BreadcrumbItem, Stack, StackItem, Truncate } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import { PathProps } from '#~/concepts/pipelines/content/types';
@@ -9,6 +9,7 @@ import CompareRunsRunList from '#~/concepts/pipelines/content/compareRuns/Compar
 import { ExperimentContext } from '#~/pages/pipelines/global/experiments/ExperimentContext';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { experimentRunsRoute } from '#~/routes/pipelines/experiments';
+import PipelineContextBreadcrumb from '#~/concepts/pipelines/content/PipelineContextBreadcrumb';
 import { CompareRunMetricsSection } from './CompareRunsMetricsSection';
 import { CompareRunParamsSection } from './CompareRunParamsSection';
 
@@ -25,14 +26,13 @@ const CompareRunsPage: React.FC<PathProps> = ({ breadcrumbPath }) => {
     <ApplicationsPage
       data-testid="compare-runs-page"
       breadcrumb={
-        <Breadcrumb>
+        <PipelineContextBreadcrumb>
           {breadcrumbPath}
           {experiment ? (
             <BreadcrumbItem key="experiment">
               {experiment.display_name ? (
                 <Link to={experimentRunsRoute(namespace, experiment.experiment_id)}>
-                  {/* TODO: Remove the custom className after upgrading to PFv6 */}
-                  <Truncate content={experiment.display_name} className="truncate-no-min-width" />
+                  <Truncate content={experiment.display_name} />
                 </Link>
               ) : (
                 'Loading...'
@@ -40,7 +40,7 @@ const CompareRunsPage: React.FC<PathProps> = ({ breadcrumbPath }) => {
             </BreadcrumbItem>
           ) : null}
           <BreadcrumbItem isActive>Compare runs</BreadcrumbItem>
-        </Breadcrumb>
+        </PipelineContextBreadcrumb>
       }
       provideChildrenPadding
       loaded={loaded}

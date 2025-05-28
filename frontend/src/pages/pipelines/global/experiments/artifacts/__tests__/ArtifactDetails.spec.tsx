@@ -204,7 +204,7 @@ describe('ArtifactDetails', () => {
     const breadcrumb = screen.getByRole('navigation', { name: 'Breadcrumb' });
 
     expect(
-      within(breadcrumb).getByRole('link', { name: 'Artifacts - Test namespace' }),
+      within(breadcrumb).getByRole('link', { name: 'Artifacts in Test namespace' }),
     ).toBeVisible();
     expect(within(breadcrumb).getByText('vertex_model')).toBeVisible();
   });

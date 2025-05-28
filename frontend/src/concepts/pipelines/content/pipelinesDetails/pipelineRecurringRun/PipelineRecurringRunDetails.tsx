@@ -1,6 +1,5 @@
 import * as React from 'react';
 import {
-  Breadcrumb,
   BreadcrumbItem,
   Bullseye,
   EmptyState,
@@ -26,6 +25,7 @@ import PipelineNotSupported from '#~/concepts/pipelines/content/pipelinesDetails
 import { isArgoWorkflow } from '#~/concepts/pipelines/content/tables/utils';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
+import PipelineContextBreadcrumb from '#~/concepts/pipelines/content/PipelineContextBreadcrumb';
 import PipelineRecurringRunDetailsActions from './PipelineRecurringRunDetailsActions';
 
 const PipelineRecurringRunDetails: PipelineCoreDetailsPageComponent = ({
@@ -98,10 +98,10 @@ const PipelineRecurringRunDetails: PipelineCoreDetailsPageComponent = ({
         loaded={loaded}
         loadError={error}
         breadcrumb={
-          <Breadcrumb>
+          <PipelineContextBreadcrumb>
             {breadcrumbPath}
             <BreadcrumbItem isActive>{recurringRun?.display_name ?? 'Loading...'}</BreadcrumbItem>
-          </Breadcrumb>
+          </PipelineContextBreadcrumb>
         }
         headerAction={
           loaded && (
