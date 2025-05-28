@@ -2,9 +2,6 @@ import * as React from 'react';
 import {
   Alert,
   AlertVariant,
-  Divider,
-  Flex,
-  FlexItem,
   FormGroup,
   HelperText,
   HelperTextItem,
@@ -13,8 +10,6 @@ import {
   Label,
   List,
   ListItem,
-  MenuGroup,
-  MenuItem,
   Popover,
   Skeleton,
   Split,
@@ -22,24 +17,24 @@ import {
   Stack,
   StackItem,
   Truncate,
+  MenuItem,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
+import useAcceleratorCountWarning from './useAcceleratorCountWarning';
 import { AcceleratorProfileKind } from '#~/k8sTypes';
 import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
 import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
 import { AcceleratorProfileFormData } from '#~/utilities/useAcceleratorProfileFormState';
 import ProjectScopedPopover from '#~/components/ProjectScopedPopover';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
-import SearchSelector from '#~/components/searchSelector/SearchSelector';
-import { ProjectObjectType } from '#~/concepts/design/utils';
-import GlobalIcon from '#~/images/icons/GlobalIcon';
 import useReadAcceleratorState, {
   AcceleratorProfileState,
 } from '#~/utilities/useReadAcceleratorState';
 import NumberInputWrapper from '#~/components/NumberInputWrapper';
-import TypedObjectIcon from '#~/concepts/design/TypedObjectIcon';
-import useAcceleratorCountWarning from './useAcceleratorCountWarning';
-import ScopedLabel from '~/components/ScopedLabel';
+import ProjectScopedIcon from '#~/components/searchSelector/ProjectScopedIcon';
+import { ProjectScopedGroupLabel, ProjectScopedSearchDropdown } from '#~/components/searchSelector/ProjectScopedSearchDropdown';
+import ProjectScopedToggleContent from '#~/components/searchSelector/ProjectScopedToggleContent';
+import { ScopedType } from '#~/pages/modelServing/screens/const';
 
 type AcceleratorProfileSelectFieldProps = {
   currentProject?: string;
@@ -107,7 +102,7 @@ const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps
     };
   };
 
-  const getAcceleratorProfiles = () =>
+  const getProjectScopedAcceleratorProfiles = () =>
     currentProjectAcceleratorProfiles
       .filter((ac) => ac.spec.enabled)
       .toSorted((a, b) => {
@@ -125,49 +120,10 @@ const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps
         profile.spec.displayName
           .toLocaleLowerCase()
           .includes(searchAcceleratorProfile.toLocaleLowerCase()),
-      )
-      .map((profile, index) => (
-        <MenuItem
-          key={`${index}-project-scoped`}
-          isSelected={
-            formData.profile?.metadata.name === profile.metadata.name &&
-            formData.profile.metadata.namespace === profile.metadata.namespace
-          }
-          description={
-            <Stack style={{ marginLeft: '23px' }}>
-              {profile.spec.description && (
-                <StackItem>
-                  <Truncate content={profile.spec.description} />
-                </StackItem>
-              )}
-              {profile.spec.identifier && (
-                <StackItem>
-                  <Truncate content={profile.spec.identifier} />
-                </StackItem>
-              )}
-            </Stack>
-          }
-          onClick={() => {
-            setFormData('profile', profile);
-          }}
-        >
-          <Flex
-            spaceItems={{ default: 'spaceItemsXs' }}
-            alignItems={{ default: 'alignItemsCenter' }}
-          >
-            <FlexItem>
-              <TypedObjectIcon alt="" resourceType={ProjectObjectType.project} />
-            </FlexItem>
-            <FlexItem>{profile.spec.displayName} </FlexItem>
-            <FlexItem align={{ default: 'alignRight' }}>
-              {isAcceleratorProfileSupported(profile) && <Label color="blue">Compatible</Label>}
-            </FlexItem>
-          </Flex>
-        </MenuItem>
-      ));
+      );
 
-  const getDashboardAcceleratorProfiles = () => {
-    const profileItems = enabledAcceleratorProfiles
+  const getGlobalAcceleratorProfiles = () =>
+    enabledAcceleratorProfiles
       .filter((ac) => ac.spec.enabled && ac.metadata.namespace !== currentProject)
       .toSorted((a, b) => {
         const aSupported = isAcceleratorProfileSupported(a);
@@ -184,48 +140,48 @@ const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps
         profile.spec.displayName
           .toLocaleLowerCase()
           .includes(searchAcceleratorProfile.toLocaleLowerCase()),
-      )
-      .map((profile, index) => (
-        <MenuItem
-          key={`${index}-global`}
-          description={
-            <Stack style={{ marginLeft: '23px' }}>
-              {profile.spec.description && (
-                <StackItem>
-                  <Truncate content={profile.spec.description} />
-                </StackItem>
-              )}
-              {profile.spec.identifier && (
-                <StackItem>
-                  <Truncate content={profile.spec.identifier} />
-                </StackItem>
-              )}
-            </Stack>
-          }
-          isSelected={
-            formData.profile?.metadata.name === profile.metadata.name &&
-            formData.profile.metadata.namespace === profile.metadata.namespace
-          }
-          onClick={() => {
-            setFormData('profile', profile);
-          }}
-        >
-          <Flex
-            spaceItems={{ default: 'spaceItemsXs' }}
-            alignItems={{ default: 'alignItemsCenter' }}
-          >
-            <FlexItem>
-              <GlobalIcon />
-            </FlexItem>
-            <FlexItem>{profile.spec.displayName}</FlexItem>
-            <FlexItem align={{ default: 'alignRight' }}>
-              {isAcceleratorProfileSupported(profile) && <Label color="blue">Compatible</Label>}
-            </FlexItem>
-          </Flex>
-        </MenuItem>
-      ));
+      );
 
-    profileItems.push(
+  const renderMenuItem = (
+    profile: AcceleratorProfileKind,
+    index: number,
+    scope: 'project' | 'global',
+  ) => (
+    <MenuItem
+      key={`${index}-${scope}-accelerator-profile-${profile.metadata.name}`}
+      isSelected={
+        formData.profile?.metadata.name === profile.metadata.name &&
+        formData.profile.metadata.namespace === profile.metadata.namespace
+      }
+      onClick={() => setFormData('profile', profile)}
+      icon={<ProjectScopedIcon isProject={scope === 'project'} alt="" />}
+      description={
+        <Stack style={{ marginLeft: '19px' }}>
+          {profile.spec.description && (
+            <StackItem>
+              <Truncate content={profile.spec.description} />
+            </StackItem>
+          )}
+          {profile.spec.identifier && (
+            <StackItem>
+              <Truncate content={profile.spec.identifier} />
+            </StackItem>
+          )}
+        </Stack>
+      }
+    >
+      <Split>
+        <SplitItem>{profile.spec.displayName}</SplitItem>
+        <SplitItem isFilled />
+        <SplitItem>
+          {isAcceleratorProfileSupported(profile) && <Label color="blue">Compatible</Label>}
+        </SplitItem>
+      </Split>
+    </MenuItem>
+  );
+
+  const extraMenuItems = (
+    <>
       <MenuItem
         key="none"
         isSelected={!formData.profile}
@@ -234,11 +190,8 @@ const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps
         }}
       >
         None
-      </MenuItem>,
-    );
-
-    if (initialState.unknownProfileDetected) {
-      profileItems.push(
+      </MenuItem>
+      {initialState.unknownProfileDetected ? (
         <MenuItem
           key="unknown-existing"
           description="Use the existing accelerator settings from the notebook server"
@@ -248,10 +201,8 @@ const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps
           }}
         >
           Existing settings
-        </MenuItem>,
-      );
-    } else if (formData.profile && !formData.profile.spec.enabled) {
-      profileItems.push(
+        </MenuItem>
+      ) : formData.profile && !formData.profile.spec.enabled ? (
         <MenuItem
           key={formData.profile.metadata.name}
           description={formData.profile.spec.description}
@@ -261,12 +212,15 @@ const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps
           }}
         >
           {formData.profile.spec.displayName}
-        </MenuItem>,
-      );
-    }
+        </MenuItem>
+      ) : null}
+    </>
+  );
 
-    return profileItems;
-  };
+  const filteredProjectAcceleratorProfiles = getProjectScopedAcceleratorProfiles();
+  const filteredGlobalAcceleratorProfiles = getGlobalAcceleratorProfiles();
+  const hasProjectScopedAccelerators =
+    isProjectScopedAvailable && currentProjectAcceleratorProfiles.length > 0;
 
   if (isProjectScopedAvailable && !currentProjectAcceleratorProfilesLoaded) {
     return <Skeleton />;
@@ -317,23 +271,6 @@ const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps
     options.push(formatOption(formData.profile));
   }
 
-  const filteredAcceleratorProfiles = getAcceleratorProfiles();
-  const filteredDashboardAcceleratorProfiles = getDashboardAcceleratorProfiles();
-  const hasProjectScopedAccelerators =
-    isProjectScopedAvailable && currentProjectAcceleratorProfiles.length > 0;
-
-  // if there is more than a none option, show the dropdown
-  if (!isProjectScopedAvailable && options.length === 1) {
-    return null;
-  }
-  if (
-    isProjectScopedAvailable &&
-    filteredAcceleratorProfiles.length === 0 &&
-    filteredDashboardAcceleratorProfiles.length === 1
-  ) {
-    return null;
-  }
-
   return (
     <Stack hasGutter>
       <StackItem>
@@ -372,94 +309,40 @@ const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps
         >
           {isProjectScopedAvailable && currentProjectAcceleratorProfiles.length > 0 ? (
             <>
-              <SearchSelector
-                isFullWidth
-                dataTestId="accelerator-profile-selection"
-                onSearchChange={(newValue) => setSearchAcceleratorProfile(newValue)}
-                onSearchClear={() => setSearchAcceleratorProfile('')}
+              <ProjectScopedSearchDropdown
+                projectScopedItems={filteredProjectAcceleratorProfiles}
+                globalScopedItems={filteredGlobalAcceleratorProfiles}
+                renderMenuItem={renderMenuItem}
                 searchValue={searchAcceleratorProfile}
+                onSearchChange={setSearchAcceleratorProfile}
+                onSearchClear={() => setSearchAcceleratorProfile('')}
                 toggleContent={
-                  formData.profile?.spec.displayName ? (
-                    <Flex gap={{ default: 'gapSm' }}>
-                      <FlexItem>{formData.profile.spec.displayName}</FlexItem>
-                      <FlexItem>
-                        {formData.profile.metadata.namespace === currentProject ? (
-                          <ScopedLabel isProject color="blue" isCompact>
-                            Project-scoped
-                          </ScopedLabel>
-                        ) : (
-                          <ScopedLabel isProject={false} color="blue" isCompact>
-                            Global-scoped
-                          </ScopedLabel>
-                        )}
-                      </FlexItem>
-                    </Flex>
-                  ) : formData.useExistingSettings ? (
-                    'Existing settings'
-                  ) : (
-                    !formData.profile && 'None'
-                  )
+                  <ProjectScopedToggleContent
+                    displayName={formData.profile?.spec.displayName}
+                    isProject={formData.profile?.metadata.namespace === currentProject}
+                    projectLabel={ScopedType.Project}
+                    globalLabel={ScopedType.Global}
+                    fallback={
+                      formData.useExistingSettings
+                        ? 'Existing settings'
+                        : !formData.profile && 'None'
+                    }
+                  />
                 }
-              >
-                <>
-                  {filteredAcceleratorProfiles.length > 0 && (
-                    <>
-                      <MenuGroup
-                        key="project-scoped"
-                        data-testid="project-scoped-accelerator-profiles"
-                        label={
-                          <Flex
-                            spaceItems={{ default: 'spaceItemsXs' }}
-                            alignItems={{ default: 'alignItemsCenter' }}
-                          >
-                            <FlexItem style={{ display: 'flex', paddingLeft: '12px' }}>
-                              <TypedObjectIcon
-                                style={{ height: '12px', width: '12px' }}
-                                alt=""
-                                resourceType={ProjectObjectType.project}
-                              />
-                            </FlexItem>
-                            <FlexItem>Project-scoped accelerator profiles</FlexItem>
-                          </Flex>
-                        }
-                      >
-                        {filteredAcceleratorProfiles}
-                      </MenuGroup>
-                    </>
-                  )}
-                  {filteredDashboardAcceleratorProfiles.length > 0 &&
-                    filteredAcceleratorProfiles.length > 0 && <Divider component="li" />}
-                  {filteredDashboardAcceleratorProfiles.length > 0 && (
-                    <>
-                      <MenuGroup
-                        key="global-scoped"
-                        data-testid="global-scoped-accelerator-profiles"
-                        label={
-                          <Flex
-                            spaceItems={{ default: 'spaceItemsXs' }}
-                            alignItems={{ default: 'alignItemsCenter' }}
-                            style={{ paddingBottom: '5px' }}
-                          >
-                            <FlexItem
-                              style={{ display: 'flex', paddingLeft: '12px' }}
-                              data-testid="ds-project-image"
-                            >
-                              <GlobalIcon style={{ height: '12px', width: '12px' }} />
-                            </FlexItem>
-                            <FlexItem>Global accelerator profiles</FlexItem>
-                          </Flex>
-                        }
-                      >
-                        {filteredDashboardAcceleratorProfiles}
-                      </MenuGroup>
-                    </>
-                  )}
-                  {filteredAcceleratorProfiles.length === 0 &&
-                    filteredDashboardAcceleratorProfiles.length === 0 && (
-                      <MenuItem isDisabled>No results found</MenuItem>
-                    )}
-                </>
-              </SearchSelector>
+                projectGroupLabel={
+                  <ProjectScopedGroupLabel isProject>
+                    {ScopedType.Project} accelerator profiles
+                  </ProjectScopedGroupLabel>
+                }
+                globalGroupLabel={
+                  <ProjectScopedGroupLabel isProject={false}>
+                    {ScopedType.Global} accelerator profiles
+                  </ProjectScopedGroupLabel>
+                }
+                dataTestId="accelerator-profile-selection"
+                isFullWidth
+                extraMenuItems={extraMenuItems}
+              />
               {initialState.unknownProfileDetected
                 ? 'Use existing resource requests/limits, tolerations, and node selectors.'
                 : null}
