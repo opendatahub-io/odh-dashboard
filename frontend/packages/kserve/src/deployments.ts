@@ -1,21 +1,16 @@
 import React from 'react';
-// eslint-disable-next-line import/no-extraneous-dependencies
 import {
   InferenceServiceKind,
   K8sAPIOptions,
   ProjectKind,
   ServingRuntimeKind,
 } from '@odh-dashboard/internal/k8sTypes';
-// eslint-disable-next-line import/no-extraneous-dependencies
 import useK8sWatchResourceList from '@odh-dashboard/internal/utilities/useK8sWatchResourceList';
-// eslint-disable-next-line import/no-extraneous-dependencies
 import { groupVersionKind } from '@odh-dashboard/internal/api/k8sUtils';
-// eslint-disable-next-line import/no-extraneous-dependencies
 import {
   InferenceServiceModel,
   ServingRuntimeModel,
 } from '@odh-dashboard/internal/api/models/kserve';
-// eslint-disable-next-line import/no-extraneous-dependencies
 import { CustomWatchK8sResult } from '@odh-dashboard/internal/types';
 import { Deployment } from '@odh-dashboard/model-serving/extension-points';
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';

@@ -1,11 +1,9 @@
 import React from 'react';
-// eslint-disable-next-line import/no-extraneous-dependencies
 import {
   SortableData,
   Table,
   TableRowTitleDescription,
 } from '@odh-dashboard/internal/components/table/index';
-// eslint-disable-next-line import/no-extraneous-dependencies
 import ResourceTr from '@odh-dashboard/internal/components/ResourceTr';
 import { ActionsColumn, Td } from '@patternfly/react-table';
 import { useResolvedPlatformExtension } from '../../concepts/extensionUtils';

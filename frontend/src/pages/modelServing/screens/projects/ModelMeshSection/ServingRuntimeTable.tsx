@@ -24,10 +24,16 @@ const ServingRuntimeTable: React.FC = () => {
   const [expandedServingRuntimeName, setExpandedServingRuntimeName] = React.useState<string>();
 
   const {
-    servingRuntimes: { data: modelServers, refresh: refreshServingRuntime },
+    servingRuntimes: {
+      data: { items: modelServers },
+      refresh: refreshServingRuntime,
+    },
     serverSecrets: { refresh: refreshTokens },
     connections: { data: connections, refresh: refreshConnections },
-    inferenceServices: { data: inferenceServices, refresh: refreshInferenceServices },
+    inferenceServices: {
+      data: { items: inferenceServices },
+      refresh: refreshInferenceServices,
+    },
     filterTokens,
     currentProject,
   } = React.useContext(ProjectDetailsContext);

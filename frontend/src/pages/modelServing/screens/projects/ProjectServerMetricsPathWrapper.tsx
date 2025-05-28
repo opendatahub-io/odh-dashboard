@@ -17,7 +17,10 @@ const ProjectServerMetricsPathWrapper: React.FC<ProjectServerMetricsPathWrapperP
   }>();
   const {
     currentProject,
-    servingRuntimes: { data: servers, loaded },
+    servingRuntimes: {
+      data: { items: servers },
+      loaded,
+    },
   } = React.useContext(ProjectDetailsContext);
   const servingRuntime = servers.find((server) => server.metadata.name === serverName);
   if (!loaded) {

@@ -31,7 +31,7 @@ const useProjectErrorForPrefilledModel = (
 
   // If the platform is MULTI but it doesn't have a server
   if (platform === ServingRuntimePlatform.MULTI) {
-    if (loaded && servingRuntimes.length === 0) {
+    if (loaded && servingRuntimes.items.length === 0) {
       return {
         loaded,
         error: new Error('To deploy a model, you must first configure a model server.'),
