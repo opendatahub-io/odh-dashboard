@@ -1,11 +1,15 @@
-import type { AreaExtension, ProjectDetailsTab } from '@odh-dashboard/plugin-core/extension-points';
+import type {
+  HrefNavItemExtension,
+  ProjectDetailsTab,
+  AreaExtension,
+} from '@odh-dashboard/plugin-core/extension-points';
 // Allow this import as it consists of types and enums only.
 // eslint-disable-next-line no-restricted-syntax
 import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
 
 const PLUGIN_MODEL_SERVING = 'model-serving-plugin';
 
-const extensions: (AreaExtension | ProjectDetailsTab)[] = [
+const extensions: (AreaExtension | ProjectDetailsTab | HrefNavItemExtension)[] = [
   {
     type: 'app.area',
     properties: {
@@ -23,6 +27,19 @@ const extensions: (AreaExtension | ProjectDetailsTab)[] = [
     },
     flags: {
       required: [PLUGIN_MODEL_SERVING],
+    },
+  },
+  {
+    type: 'app.navigation/href',
+    flags: {
+      required: [PLUGIN_MODEL_SERVING],
+    },
+    properties: {
+      id: 'modelServing',
+      title: 'Model deployments',
+      href: '/modelServing',
+      section: 'models',
+      path: '/modelServing/*',
     },
   },
 ];

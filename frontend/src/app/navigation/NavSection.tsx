@@ -14,12 +14,40 @@ import { useExtensions } from '@odh-dashboard/plugin-core';
 import { useAccessReviewExtensions } from '@odh-dashboard/internal/utilities/useAccessReviewExtensions';
 import { StatusReportIcon } from '~/app/status-provider/StatusReportIcon';
 import { getStatusReportSummary } from '~/app/status-provider/utils';
+import { SupportedArea } from '~/concepts/areas/types';
 import { NavItem } from './NavItem';
 import { NavItemTitle } from './NavItemTitle';
 import { compareNavItemGroups } from './utils';
 
 type Props = {
   extension: NavSectionExtension;
+};
+
+const filterNavExtensions = (
+  extensions: LoadedExtension<NavExtension>[],
+  sectionId: string,
+): LoadedExtension<NavExtension>[] => {
+  const idMap = new Map<string, LoadedExtension<NavExtension>>();
+
+  extensions
+    .filter(
+      (extension) =>
+        !isNavSectionExtension(extension) && sectionId === extension.properties.section,
+    )
+    .forEach((extension) => {
+      if (isHrefNavItemExtension(extension)) {
+        const currentExtension = idMap.get(extension.properties.id);
+        if (
+          !currentExtension ||
+          (!currentExtension.flags?.required?.includes(SupportedArea.PLUGIN_MODEL_SERVING) &&
+            extension.flags?.required?.includes(SupportedArea.PLUGIN_MODEL_SERVING))
+        ) {
+          idMap.set(extension.properties.id, extension);
+        }
+      }
+    });
+
+  return Array.from(idMap.values()).toSorted(compareNavItemGroups);
 };
 
 export const NavSection: React.FC<Props> = ({
@@ -31,15 +59,7 @@ export const NavSection: React.FC<Props> = ({
   const { pathname } = useLocation();
   const extensions = useExtensions(isNavExtension);
 
-  const navExtensions = React.useMemo(
-    () =>
-      extensions
-        .filter(
-          (extension) => !isNavSectionExtension(extension) && id === extension.properties.section,
-        )
-        .toSorted(compareNavItemGroups),
-    [id, extensions],
-  );
+  const navExtensions = React.useMemo(() => filterNavExtensions(extensions, id), [id, extensions]);
 
   const [accessReviewExtensions, isAccessReviewExtensionsLoaded] = useAccessReviewExtensions(
     navExtensions,

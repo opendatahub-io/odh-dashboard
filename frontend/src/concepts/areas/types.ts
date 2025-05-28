@@ -73,7 +73,8 @@ export enum SupportedArea {
   MODEL_CATALOG = 'model-catalog',
 
   /* Plugins */
-  PLUGIN_MODEL_SERVING = 'plugin-model-serving',
+  PLUGIN_MODEL_SERVING = 'model-serving-plugin',
+  //PLUGIN_MODEL_SERVING = 'plugin-model-serving',
 
   /* RAG & Agentic */
   LLAMA_STACK_CHAT_BOT = 'llama-stack-chat-bot',
