@@ -20,7 +20,7 @@ jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
 }));
 
 jest.mock('~/concepts/k8s/utils', () => ({
-  kindApiVersion: jest.fn(() => 'lmeval.opendatahub.io/v1alpha1'),
+  kindApiVersion: jest.fn(() => 'trustyai.opendatahub.io/v1alpha1'),
   translateDisplayNameForK8s: jest.fn((name) => name.toLowerCase().replace(/\s+/g, '-')),
 }));
 
@@ -141,7 +141,7 @@ describe('createModelEvaluation', () => {
     };
 
     const expectedResource: LMEvaluationKind = {
-      apiVersion: 'lmeval.opendatahub.io/v1alpha1',
+      apiVersion: 'trustyai.opendatahub.io/v1alpha1',
       kind: 'LMEvalJob',
       metadata: {
         name: 'eval-test-model',
@@ -184,7 +184,7 @@ describe('createModelEvaluation', () => {
     };
 
     const expectedResource: LMEvaluationKind = {
-      apiVersion: 'lmeval.opendatahub.io/v1alpha1',
+      apiVersion: 'trustyai.opendatahub.io/v1alpha1',
       kind: 'LMEvalJob',
       metadata: {
         name: 'eval-my-test-model',
@@ -224,7 +224,7 @@ describe('createModelEvaluation', () => {
     };
 
     const expectedResource: LMEvaluationKind = {
-      apiVersion: 'lmeval.opendatahub.io/v1alpha1',
+      apiVersion: 'trustyai.opendatahub.io/v1alpha1',
       kind: 'LMEvalJob',
       metadata: {
         name: 'eval-minimal-model',
@@ -264,7 +264,7 @@ describe('createModelEvaluation', () => {
     };
 
     const expectedResource: LMEvaluationKind = {
-      apiVersion: 'lmeval.opendatahub.io/v1alpha1',
+      apiVersion: 'trustyai.opendatahub.io/v1alpha1',
       kind: 'LMEvalJob',
       metadata: {
         name: 'eval-comprehensive-model',
@@ -304,7 +304,7 @@ describe('createModelEvaluation', () => {
     };
 
     const expectedResource: LMEvaluationKind = {
-      apiVersion: 'lmeval.opendatahub.io/v1alpha1',
+      apiVersion: 'trustyai.opendatahub.io/v1alpha1',
       kind: 'LMEvalJob',
       metadata: {
         name: 'eval-model/with-special_chars@123',
@@ -397,7 +397,7 @@ describe('createModelEvaluation', () => {
         },
       },
       resource: {
-        apiVersion: 'lmeval.opendatahub.io/v1alpha1',
+        apiVersion: 'trustyai.opendatahub.io/v1alpha1',
         kind: 'LMEvalJob',
         metadata: {
           name: 'eval-test-model',
@@ -423,7 +423,7 @@ describe('createModelEvaluation', () => {
     };
 
     const expectedResource: LMEvaluationKind = {
-      apiVersion: 'lmeval.opendatahub.io/v1alpha1',
+      apiVersion: 'trustyai.opendatahub.io/v1alpha1',
       kind: 'LMEvalJob',
       metadata: {
         name: 'eval-test-model',
