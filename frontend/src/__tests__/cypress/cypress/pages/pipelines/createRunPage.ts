@@ -1,6 +1,7 @@
 /* eslint-disable camelcase */
 import type {
   ArgoWorkflowPipelineVersion,
+  CreatePipelineVersionKFData,
   ExperimentKF,
   PipelineKF,
   PipelineRecurringRunKF,
@@ -328,13 +329,23 @@ export class CreateRunPage {
     );
   }
 
-  mockCreatePipelineVersion(namespace: string, pipelineId: string): Cypress.Chainable<null> {
+  mockCreatePipelineVersion(
+    namespace: string,
+    params: CreatePipelineVersionKFData,
+  ): Cypress.Chainable<null> {
     return cy.interceptOdh(
-      'POST /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId/versions',
-      { path: { namespace, serviceName: 'dspa', pipelineId }, times: 1 },
-      (req) => {
-        req.reply(buildMockPipelineVersion({ pipeline_id: pipelineId }));
+      'POST /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/upload_version',
+      {
+        path: { namespace, serviceName: 'dspa' },
+        query: {
+          pipelineid: params.pipeline_id,
+          name: params.display_name,
+          description: params.description,
+        },
+        times: 1,
       },
+
+      buildMockPipelineVersion(params),
     );
   }
 

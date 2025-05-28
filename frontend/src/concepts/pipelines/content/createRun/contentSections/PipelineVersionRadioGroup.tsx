@@ -124,7 +124,6 @@ const PipelineVersionRadioGroup: React.FC<PipelineVersionRadioGroupProps> = ({
                           refreshAllAPI();
                         }
                       }}
-                      redirectAfterImport={false}
                     />
                   )}
                 </>
@@ -163,6 +162,7 @@ const PipelineVersionRadioGroup: React.FC<PipelineVersionRadioGroupProps> = ({
                     </StackItem>
                     <StackItem>
                       <ImportPipelineVersionButton
+                        data-testid="import-pipeline-version-radio-button"
                         selectedPipeline={pipeline}
                         variant="link"
                         icon={<PlusCircleIcon />}
@@ -172,7 +172,6 @@ const PipelineVersionRadioGroup: React.FC<PipelineVersionRadioGroupProps> = ({
                             versionToUse: PipelineVersionToUse.PROVIDED,
                           });
                         }}
-                        redirectAfterImport={false}
                       />
                     </StackItem>
                   </Stack>
@@ -196,14 +195,13 @@ const PipelineVersionRadioGroup: React.FC<PipelineVersionRadioGroupProps> = ({
           </StackItem>
           <StackItem>
             <ImportPipelineVersionButton
-              data-testid="import-pipeline-version-button"
+              data-testid="import-pipeline-version-radio-none-available-button"
               selectedPipeline={pipeline}
               variant="link"
               icon={<PlusCircleIcon />}
               onCreate={(value) => {
                 onVersionChange({ value, versionToUse: PipelineVersionToUse.PROVIDED });
               }}
-              redirectAfterImport={false}
             />
           </StackItem>
         </Stack>
