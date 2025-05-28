@@ -31,9 +31,7 @@ import useDeployButtonState from '~/pages/modelServing/screens/projects/useDeplo
 import { isOciModelUri } from '~/pages/modelServing/utils';
 import { ModelRegistriesContext } from '~/concepts/modelRegistry/context/ModelRegistriesContext';
 import { ModelRegistryPageContext } from '~/concepts/modelRegistry/context/ModelRegistryPageContext';
-import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
-import { getServerAddress } from '~/pages/modelRegistry/screens/utils';
-
+import { getModelVersionTuningData } from '~/concepts/modelRegistry/utils/getModelVersionTuningData';
 
 interface ModelVersionsDetailsHeaderActionsProps {
   mv: ModelVersion;
@@ -55,9 +53,8 @@ const ModelVersionsDetailsHeaderActions: React.FC<ModelVersionsDetailsHeaderActi
   modelArtifactsLoadError,
 }) => {
   const { apiState } = React.useContext(ModelRegistryPageContext);
-  const { preferredModelRegistry, modelRegistryServices } = React.useContext(
-    ModelRegistriesContext,
-  );
+  const { preferredModelRegistry, modelRegistryServices } =
+    React.useContext(ModelRegistriesContext);
   const navigate = useNavigate();
   const [isOpenActionDropdown, setOpenActionDropdown] = React.useState(false);
   const [isArchiveModalOpen, setIsArchiveModalOpen] = React.useState(false);
@@ -67,52 +64,31 @@ const ModelVersionsDetailsHeaderActions: React.FC<ModelVersionsDetailsHeaderActi
 
   const isFineTuningEnabled = useIsAreaAvailable(SupportedArea.FINE_TUNING).status;
 
-  const { inputModelLocationUri, modelRegistryDisplayName, outputModelRegistryApiUrl } =
-    React.useMemo(() => {
-      const registryService = modelRegistryServices.find(
-        (s) => s.metadata.name === preferredModelRegistry?.metadata.name,
-      );
-      return {
-        inputModelLocationUri: modelArtifacts.items[0]?.uri,
-        modelRegistryDisplayName: registryService
-          ? getDisplayNameFromK8sResource(registryService)
-          : '',
-        outputModelRegistryApiUrl: registryService
-          ? `https://${getServerAddress(registryService)}`
-          : '',
-      };
-    }, [modelRegistryServices, preferredModelRegistry?.metadata.name, modelArtifacts.items]);
+  const tuningData = React.useMemo(
+    () =>
+      getModelVersionTuningData(
+        mv,
+        registeredModel,
+        modelArtifacts,
+        modelRegistryServices,
+        preferredModelRegistry,
+      ),
+    [mv, registeredModel, modelArtifacts, modelRegistryServices, preferredModelRegistry],
+  );
 
-  const isOciModel = isOciModelUri(modelArtifacts.items[0]?.uri);
+  const isOciModel = isOciModelUri(tuningData?.inputModelLocationUri);
   const deployButtonState = useDeployButtonState(isOciModel);
 
   const handleLabTuneSubmit = React.useCallback(
     (selectedProject: string) => {
-      if (!preferredModelRegistry) {
+      if (!preferredModelRegistry || !tuningData) {
         return;
       }
       navigate(getModelCustomizationPath(selectedProject), {
-        state: {
-          modelRegistryName: preferredModelRegistry.metadata.name,
-          modelRegistryDisplayName,
-          registeredModelId: mv.registeredModelId,
-          registeredModelName: registeredModel?.name || '',
-          modelVersionId: mv.id,
-          modelVersionName: mv.name,
-          inputModelLocationUri,
-          outputModelRegistryApiUrl,
-        },
+        state: tuningData,
       });
     },
-    [
-      navigate,
-      preferredModelRegistry,
-      modelRegistryDisplayName,
-      mv,
-      registeredModel?.name,
-      inputModelLocationUri,
-      outputModelRegistryApiUrl,
-    ],
+    [navigate, preferredModelRegistry, tuningData],
   );
 
   const handleDeploySubmit = React.useCallback(() => {
