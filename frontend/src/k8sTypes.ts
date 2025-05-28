@@ -1228,7 +1228,6 @@ export type DashboardCommonConfig = {
   disableNIMModelServing: boolean;
   disableAdminConnectionTypes: boolean;
   disableFineTuning: boolean;
-  disableModelServingPlugin: boolean;
   disableLlamaStackChatBot: boolean;
   disableLMEval: boolean;
 };

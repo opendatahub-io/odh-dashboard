@@ -5,15 +5,16 @@
 import { K8sResourceCommon, WatchK8sResult } from '@openshift/dynamic-plugin-sdk-utils';
 import { AxiosError } from 'axios';
 import { EnvironmentFromVariable } from '~/pages/projects/types';
-import { DashboardCommonConfig, ImageStreamKind, ImageStreamSpecTagType } from './k8sTypes';
+import { FeatureFlag } from '~/concepts/areas/types';
+import { ImageStreamKind, ImageStreamSpecTagType } from './k8sTypes';
 import { EitherNotBoth } from './typeHelpers';
 import { NotebookPodSpecOptions } from './concepts/hardwareProfiles/useNotebookPodSpecOptionsState';
 import { FetchStateObject } from './utilities/useFetch';
 
 export type DevFeatureFlags = {
-  devFeatureFlags: Partial<DashboardCommonConfig> | null;
-  setDevFeatureFlag: (flag: keyof DashboardCommonConfig, value: boolean) => void;
-  resetDevFeatureFlags: () => void;
+  devFeatureFlags: Record<FeatureFlag | string, boolean | undefined> | null;
+  setDevFeatureFlag: (flag: FeatureFlag | string, value: boolean) => void;
+  resetDevFeatureFlags: (turnOff: boolean) => void;
   setDevFeatureFlagQueryVisible: (visible: boolean) => void;
 };
 
