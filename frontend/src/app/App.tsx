@@ -27,6 +27,7 @@ import { NotificationWatcherContextProvider } from '~/concepts/notificationWatch
 import { AccessReviewProvider } from '~/concepts/userSSAR';
 import { ExtensibilityContextProvider } from '~/plugins/ExtensibilityContext';
 import useFetchDscStatus from '~/concepts/areas/useFetchDscStatus';
+import { PluginStoreAreaFlagsProvider } from '~/plugins/PluginStoreAreaFlagsProvider';
 import { OdhPlatformType } from '~/types';
 import useDevFeatureFlags from './useDevFeatureFlags';
 import Header from './Header';
@@ -118,59 +119,66 @@ const App: React.FC = () => {
   // Waiting on the API to finish
   const loading = !username || !configLoaded || !dashboardConfig || !contextValue;
 
+  if (loading) {
+    return (
+      <Bullseye>
+        <Spinner />
+      </Bullseye>
+    );
+  }
+
   return (
-    <AreaContextProvider>
-      {loading ? (
-        <Bullseye>
-          <Spinner />
-        </Bullseye>
-      ) : (
-        <AppContext.Provider value={contextValue}>
-          <AccessReviewProvider>
-            <ExtensibilityContextProvider>
-              <Page
-                className="odh-dashboard"
-                isManagedSidebar
-                isContentFilled
-                masthead={
-                  <Header onNotificationsClick={() => setNotificationsOpen(!notificationsOpen)} />
-                }
-                sidebar={isAllowed ? <NavSidebar /> : undefined}
-                notificationDrawer={
-                  <AppNotificationDrawer onClose={() => setNotificationsOpen(false)} />
-                }
-                isNotificationDrawerExpanded={notificationsOpen}
-                mainContainerId={DASHBOARD_MAIN_CONTAINER_ID}
-                data-testid={DASHBOARD_MAIN_CONTAINER_ID}
-                banner={
-                  <DevFeatureFlagsBanner
-                    dashboardConfig={dashboardConfig.spec.dashboardConfig}
-                    {...devFeatureFlagsProps}
-                  />
-                }
-              >
-                <ErrorBoundary>
-                  <NimContextProvider>
-                    <ProjectsContextProvider>
-                      <ModelRegistriesContextProvider>
-                        <QuickStarts>
-                          <NotificationWatcherContextProvider>
-                            <AppRoutes />
-                          </NotificationWatcherContextProvider>
-                        </QuickStarts>
-                      </ModelRegistriesContextProvider>
-                    </ProjectsContextProvider>
-                  </NimContextProvider>
-                  <ToastNotifications />
-                  <TelemetrySetup />
-                </ErrorBoundary>
-              </Page>
-            </ExtensibilityContextProvider>
-          </AccessReviewProvider>
-        </AppContext.Provider>
-      )}
-    </AreaContextProvider>
+    <AppContext.Provider value={contextValue}>
+      <AreaContextProvider flags={devFeatureFlagsProps.devFeatureFlags}>
+        <PluginStoreAreaFlagsProvider />
+        <AccessReviewProvider>
+          <Page
+            className="odh-dashboard"
+            isManagedSidebar
+            isContentFilled
+            masthead={
+              <Header onNotificationsClick={() => setNotificationsOpen(!notificationsOpen)} />
+            }
+            sidebar={isAllowed ? <NavSidebar /> : undefined}
+            notificationDrawer={
+              <AppNotificationDrawer onClose={() => setNotificationsOpen(false)} />
+            }
+            isNotificationDrawerExpanded={notificationsOpen}
+            mainContainerId={DASHBOARD_MAIN_CONTAINER_ID}
+            data-testid={DASHBOARD_MAIN_CONTAINER_ID}
+            banner={
+              <DevFeatureFlagsBanner
+                dashboardConfig={dashboardConfig.spec.dashboardConfig}
+                {...devFeatureFlagsProps}
+              />
+            }
+          >
+            <ErrorBoundary>
+              <NimContextProvider>
+                <ProjectsContextProvider>
+                  <ModelRegistriesContextProvider>
+                    <QuickStarts>
+                      <NotificationWatcherContextProvider>
+                        <AppRoutes />
+                      </NotificationWatcherContextProvider>
+                    </QuickStarts>
+                  </ModelRegistriesContextProvider>
+                </ProjectsContextProvider>
+              </NimContextProvider>
+              <ToastNotifications />
+              <TelemetrySetup />
+            </ErrorBoundary>
+          </Page>
+        </AccessReviewProvider>
+      </AreaContextProvider>
+    </AppContext.Provider>
   );
 };
 
-export default App;
+const AppWrapper: React.FC = () => (
+  <ExtensibilityContextProvider>
+    <App />
+  </ExtensibilityContextProvider>
+);
+
+export default AppWrapper;

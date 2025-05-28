@@ -232,7 +232,6 @@ export const mockDashboardConfig = ({
       disableNIMModelServing,
       disableAdminConnectionTypes: false,
       disableFineTuning,
-      disableModelServingPlugin: true,
       disableLlamaStackChatBot,
       disableLMEval,
     },

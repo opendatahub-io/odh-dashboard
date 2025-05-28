@@ -1,3 +1,4 @@
+export * from './areas';
 export * from './navigation';
 export * from './routes';
 export * from './status-provider';
