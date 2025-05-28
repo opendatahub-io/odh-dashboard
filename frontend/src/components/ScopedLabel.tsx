@@ -1,8 +1,6 @@
 import * as React from 'react';
 import { Label } from '@patternfly/react-core';
-import TypedObjectIcon from '~/concepts/design/TypedObjectIcon';
-import GlobalIcon from '~/images/icons/GlobalIcon';
-import { ProjectObjectType } from '~/concepts/design/utils';
+import ProjectScopedIcon from '~/components/searchSelector/ProjectScopedIcon';
 
 export type ScopedLabelColor =
   | 'blue'
@@ -39,13 +37,7 @@ const ScopedLabel: React.FC<ScopedLabelProps> = ({
     color={color}
     data-testid={dataTestId || (isProject ? 'project-scoped-label' : 'global-scoped-label')}
     isCompact={isCompact}
-    icon={
-      isProject ? (
-        <TypedObjectIcon alt="" resourceType={ProjectObjectType.project} />
-      ) : (
-        <GlobalIcon />
-      )
-    }
+    icon={<ProjectScopedIcon isProject={isProject} alt="" />}
     style={style}
   >
     {children}
