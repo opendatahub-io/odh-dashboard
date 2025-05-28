@@ -25,11 +25,23 @@ class RegisterModelPage {
     this.wait();
   }
 
+  visitWithRegistry(registryName: string) {
+    cy.visitWithLogin(`/modelRegistry/${registryName}/registerModel`);
+    this.waitWithRegistry(registryName);
+  }
+
   private wait() {
     const preferredModelRegistry = 'modelregistry-sample';
     cy.findByTestId('app-page-title').should('exist');
     cy.findByTestId('app-page-title').contains('Register model');
     cy.findByText(`Model registry - ${preferredModelRegistry}`).should('exist');
+    cy.testA11y();
+  }
+
+  private waitWithRegistry(registryName: string) {
+    cy.findByTestId('app-page-title').should('exist');
+    cy.findByTestId('app-page-title').contains('Register model');
+    cy.findByText(`Model registry - ${registryName}`).should('exist');
     cy.testA11y();
   }
 
