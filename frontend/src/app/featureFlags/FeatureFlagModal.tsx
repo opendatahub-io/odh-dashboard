@@ -18,7 +18,7 @@ type Props = FeatureFlagLauncherProps & { onClose: () => void };
 
 const FeatureFlagModal: React.FC<Props> = ({
   dashboardConfig,
-  devFeatureFlags = {},
+  devFeatureFlags,
   setDevFeatureFlag,
   resetDevFeatureFlags,
   onClose,
