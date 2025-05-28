@@ -23,11 +23,13 @@ import { NotebookControllerContext } from '~/pages/notebookController/NotebookCo
 import { formatMemory } from '~/utilities/valueUnits';
 import { useNotebookPodSpecOptionsState } from '~/concepts/hardwareProfiles/useNotebookPodSpecOptionsState';
 import { useIsAreaAvailable, SupportedArea } from '~/concepts/areas';
+import { useDashboardNamespace } from '~/redux/selectors';
 import { getNotebookSizes } from './usePreferredNotebookSize';
 
 const NotebookServerDetails: React.FC = () => {
   const { currentUserNotebook: notebook } = React.useContext(NotebookControllerContext);
-  const { images, loaded } = useWatchImages();
+  const { dashboardNamespace } = useDashboardNamespace();
+  const { images, loaded } = useWatchImages(dashboardNamespace);
   const [isExpanded, setExpanded] = React.useState(false);
   const { dashboardConfig } = useAppContext();
   const {

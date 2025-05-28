@@ -7,7 +7,7 @@ import {
   isInvalidBYONImageStream,
 } from '~/pages/projects/screens/spawner/spawnerUtils';
 import { ImageStreamAndVersion } from '~/types';
-import useImageStreams from '~/pages/projects/screens/spawner/useImageStreams';
+import { useImageStreams } from '~/utilities/useImageStreams';
 import { useDashboardNamespace } from '~/redux/selectors';
 import useBuildStatuses from '~/pages/projects/screens/spawner/useBuildStatuses';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';

@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { ImageStreamKind, ImageStreamSpecTagType, NotebookKind } from '~/k8sTypes';
 import useNamespaces from '~/pages/notebookController/useNamespaces';
-import useImageStreams from '~/pages/projects/screens/spawner/useImageStreams';
+import { useImageStreams } from '~/utilities/useImageStreams';
 import { PodContainer } from '~/types';
 import {
   getImageStreamDisplayName,
@@ -79,12 +79,10 @@ export const getNotebookImageData = (
 const useNotebookImageData = (project: string, notebook?: NotebookKind): NotebookImageData => {
   const { dashboardNamespace } = useNamespaces();
 
-  const [dashboardImages, dashboardLoaded, dashboardLoadError] = useImageStreams(
-    dashboardNamespace,
-    true,
-  );
+  const [dashboardImages, dashboardLoaded, dashboardLoadError] =
+    useImageStreams(dashboardNamespace);
 
-  const [projectImages, projectLoaded, projectLoadError] = useImageStreams(project, true);
+  const [projectImages, projectLoaded, projectLoadError] = useImageStreams(project);
 
   return React.useMemo(() => {
     if (!notebook || !dashboardLoaded || !projectLoaded) {

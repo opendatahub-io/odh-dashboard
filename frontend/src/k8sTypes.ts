@@ -237,19 +237,28 @@ export type ImageStreamKind = K8sResourceCommon & {
   metadata: {
     annotations?: ImageStreamAnnotations;
     name: string;
+    namespace?: string;
+    labels?: { [key: string]: string };
+    creationTimestamp?: string;
+    uid?: string;
   };
   spec: {
     tags?: ImageStreamSpecTagType[];
+    lookupPolicy?: {
+      local: boolean;
+    };
   };
   status?: {
     dockerImageRepository?: string;
     publicDockerImageRepository?: string;
-    tags?: {
-      tag: string;
-      items: ImageStreamStatusTagItem[] | null;
-      conditions?: ImageStreamStatusTagCondition[];
-    }[];
+    tags?: ImageStreamStatusTag[];
   };
+};
+
+export type ImageStreamStatusTag = {
+  tag: string;
+  items: ImageStreamStatusTagItem[] | null;
+  conditions?: ImageStreamStatusTagCondition[];
 };
 
 export type ImageStreamSpecTagType = {

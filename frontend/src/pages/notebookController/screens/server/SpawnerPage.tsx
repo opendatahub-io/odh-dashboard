@@ -48,6 +48,7 @@ import useAdminDefaultStorageClass from '~/pages/projects/screens/spawner/storag
 import HardwareProfileFormSection from '~/concepts/hardwareProfiles/HardwareProfileFormSection';
 import { useNotebookPodSpecOptionsState } from '~/concepts/hardwareProfiles/useNotebookPodSpecOptionsState';
 import { HardwareProfileFeatureVisibility } from '~/k8sTypes';
+import { useDashboardNamespace } from '~/redux/selectors';
 import SizeSelectField from './SizeSelectField';
 import useSpawnerNotebookModalState from './useSpawnerNotebookModalState';
 import BrowserTabPreferenceCheckbox from './BrowserTabPreferenceCheckbox';
@@ -63,7 +64,8 @@ const SpawnerPage: React.FC = () => {
   const notification = useNotification();
   const isHomeAvailable = useIsAreaAvailable(SupportedArea.HOME).status;
   const isHardwareProfilesAvailable = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;
-  const { images, loaded, loadError } = useWatchImages();
+  const { dashboardNamespace } = useDashboardNamespace();
+  const { images, loaded, loadError } = useWatchImages(dashboardNamespace);
   const { buildStatuses } = useAppContext();
   const { currentUserNotebook, requestNotebookRefresh, impersonatedUsername, setImpersonating } =
     React.useContext(NotebookControllerContext);

@@ -1,10 +1,14 @@
 import * as React from 'react';
 import { ImageInfo } from '~/types';
-import { fetchImages } from '~/services/imagesService';
-import { POLL_INTERVAL } from './const';
-import { useDeepCompareMemoize } from './useDeepCompareMemoize';
+import { listImageStreams } from '~/api';
+import { ImageStreamKind } from '~/k8sTypes';
+import { mapImageStreamToImageInfo } from '~/utilities/imageStreamUtils';
+import { POLL_INTERVAL } from '~/utilities/const';
+import { useDeepCompareMemoize } from '~/utilities/useDeepCompareMemoize';
 
-export const useWatchImages = (): {
+export const useWatchImages = (
+  namespace: string,
+): {
   images: ImageInfo[];
   loaded: boolean;
   loadError: Error | undefined;
@@ -17,14 +21,14 @@ export const useWatchImages = (): {
     let watchHandle: ReturnType<typeof setTimeout>;
     let cancelled = false;
     const watchImages = () => {
-      fetchImages()
-        .then((data: ImageInfo[]) => {
+      listImageStreams(namespace, 'jupyter')
+        .then((data: ImageStreamKind[]) => {
           if (cancelled) {
             return;
           }
           setLoaded(true);
           setLoadError(undefined);
-          setImages(data);
+          setImages(data.map(mapImageStreamToImageInfo));
         })
         .catch((e) => {
           if (cancelled) {
@@ -40,7 +44,7 @@ export const useWatchImages = (): {
       cancelled = true;
       clearTimeout(watchHandle);
     };
-  }, []);
+  }, [namespace]);
 
   const retImages = useDeepCompareMemoize<ImageInfo[]>(images);
 
