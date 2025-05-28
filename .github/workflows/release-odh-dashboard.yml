@@ -6,7 +6,7 @@ on:
         description: The release version in format vX.YY.Z
 
 env:
-  QUAY_ODH_DASHBOARD_IMAGE_REPO: quay.io/opendatahub-io/odh-dashboard
+  QUAY_ODH_DASHBOARD_IMAGE_REPO: quay.io/opendatahub/odh-dashboard
 
 jobs:
   Setup:
@@ -58,7 +58,7 @@ jobs:
       - name: Retrieve latest SHA from ${{ github.event.inputs.RELEASE_VERSION }}-odh-release branch
         shell: bash
         run: |
-          echo "SHORT_SHA=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+          echo "SHORT_SHA=$(git rev-parse --short=7 HEAD)" >> $GITHUB_ENV
       - name: Pull Quay repository
         shell: bash
         run: |
