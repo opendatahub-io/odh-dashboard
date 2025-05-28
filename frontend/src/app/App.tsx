@@ -136,7 +136,6 @@ const App: React.FC = () => {
                   <Header
                     dashboardConfig={dashboardConfig.spec.dashboardConfig}
                     {...devFeatureFlagsProps}
-                    devFeatureFlags={devFeatureFlagsProps.devFeatureFlags ?? {}}
                     onNotificationsClick={() => setNotificationsOpen(!notificationsOpen)}
                   />
                 }
