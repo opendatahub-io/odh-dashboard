@@ -48,7 +48,7 @@ describe(
 
     after(() => {
       // Delete provisioned Project
-      deleteOpenShiftProject(projectName, { wait:false, ignoreNotFound: true  });
+      deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
     });
 
     it(

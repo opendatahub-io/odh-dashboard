@@ -42,7 +42,7 @@ describe('Start, Stop, Launch and Delete a Workbench in RHOAI', () => {
     // Delete provisioned Project
     if (controlSuiteTestNamespace) {
       cy.log(`Deleting Project ${controlSuiteTestNamespace} after the test has finished.`);
-      deleteOpenShiftProject(controlSuiteTestNamespace, { wait:false, ignoreNotFound: true  });
+      deleteOpenShiftProject(controlSuiteTestNamespace, { wait: false, ignoreNotFound: true });
     }
   });
 

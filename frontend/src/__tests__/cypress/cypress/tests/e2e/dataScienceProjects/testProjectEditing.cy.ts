@@ -36,7 +36,7 @@ describe('Verify Data Science Project - Editing', () => {
     // Delete provisioned Project
     if (projectName) {
       cy.log(`Deleting Project ${projectName} after the test has finished.`);
-      deleteOpenShiftProject(projectName, { wait:false, ignoreNotFound: true  });
+      deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
     }
   });
 

@@ -37,7 +37,7 @@ describe('Workbenches - variable tests', () => {
     // Delete provisioned Project
     if (projectName) {
       cy.log(`Deleting Project ${projectName} after the test has finished.`);
-      deleteOpenShiftProject(projectName, { wait:false, ignoreNotFound: true  });
+      deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
     }
   });
   it(

@@ -74,7 +74,7 @@ describe('Create, Delete and Edit - Workbench Tests', () => {
     // Delete provisioned Project
     if (editTestNamespace) {
       cy.log(`Deleting Project ${editTestNamespace} after the test has finished.`);
-      deleteOpenShiftProject(editTestNamespace, { wait:false, ignoreNotFound: true  });
+      deleteOpenShiftProject(editTestNamespace, { wait: false, ignoreNotFound: true });
     }
   });
 

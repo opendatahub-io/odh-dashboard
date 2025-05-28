@@ -55,7 +55,7 @@ describe('Verify Admin Multi Model Creation and Validation using the UI', () => 
     );
   });
   after(() => {
-    deleteOpenShiftProject(projectName, { wait:false, ignoreNotFound: true  });
+    deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
   });
 
   it(
