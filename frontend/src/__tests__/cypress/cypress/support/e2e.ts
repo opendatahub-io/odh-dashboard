@@ -378,18 +378,3 @@ after(() => {
     }
   });
 });
-
-// Override Mocha's global after() to skip spec-level after hooks when using grepTags
-const origAfter = (window as Window & typeof globalThis).after;
-(window as Window & typeof globalThis).after = function afterOverride(
-  nameOrFn: string | Mocha.Func,
-  fn?: Mocha.Func,
-): void {
-  if (Cypress.env('grepTags')) {
-    return; // do not register after hooks when filtering specs
-  }
-  if (fn) {
-    return (origAfter as Mocha.HookFunction).call(this, nameOrFn as string, fn as Mocha.AsyncFunc);
-  }
-  return (origAfter as Mocha.HookFunction).call(this, nameOrFn as string);
-};

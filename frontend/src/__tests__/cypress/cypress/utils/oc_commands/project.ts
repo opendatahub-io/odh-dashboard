@@ -34,15 +34,17 @@ export const createOpenShiftProject = (
  * @param options Configuration options for the delete operation
  * @param options.timeout Timeout in milliseconds for the command (only used when wait is true)
  * @param options.wait Whether to wait for the deletion to complete (default: true)
+ * @param options.ignoreNotFound Whether to ignore if the project doesn't exist (default: false)
  * @returns Result Object of the operation
  */
 export const deleteOpenShiftProject = (
   projectName: string,
-  options: { timeout?: number; wait?: boolean } = {},
+  options: { timeout?: number; wait?: boolean; ignoreNotFound?: boolean } = {},
 ): Cypress.Chainable<CommandLineResult> => {
-  const { timeout, wait = true } = options;
+  const { timeout, wait = true, ignoreNotFound = false } = options;
   const waitFlag = wait ? '' : '--wait=false';
-  const ocCommand = `oc delete project ${projectName} ${waitFlag}`.trim();
+  const ignoreNotFoundFlag = ignoreNotFound ? '--ignore-not-found' : '';
+  const ocCommand = `oc delete project ${projectName} ${waitFlag} ${ignoreNotFoundFlag}`.trim();
 
   // Only apply timeout if we're waiting for the deletion
   const execOptions = {
