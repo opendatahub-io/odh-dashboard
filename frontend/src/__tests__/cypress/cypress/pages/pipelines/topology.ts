@@ -184,6 +184,10 @@ class PipelineDetails extends PipelinesTopology {
       .click();
   }
 
+  findProjectNavigatorLink() {
+    return cy.findByTestId('project-navigator-link');
+  }
+
   findYamlTab() {
     return cy.findByTestId('pipeline-yaml-tab');
   }
@@ -267,6 +271,10 @@ class PipelineRecurringRunDetails extends RunDetails {
     this.wait();
   }
 
+  findProjectNavigatorLink() {
+    return cy.findByTestId('project-navigator-link');
+  }
+
   findActionsDropdown() {
     return cy.findByTestId('pipeline-recurring-run-details-actions');
   }
@@ -311,6 +319,10 @@ class PipelineRunDetails extends RunDetails {
   visit(namespace: string, runId = '') {
     cy.visitWithLogin(`/pipelineRuns/${namespace}/runs/${runId}`);
     this.wait();
+  }
+
+  findProjectNavigatorLink() {
+    return cy.findByTestId('project-navigator-link');
   }
 
   findActionsDropdown() {

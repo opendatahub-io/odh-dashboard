@@ -1,0 +1,18 @@
+// This is a hack to make the link button with an icon work in the breadcrumb
+// Because the PF link button doesn't have an underline below the icon
+// We can remove this once https://github.com/patternfly/patternfly/issues/7554 is fixed
+.link-button-with-icon {
+  position: relative;
+  overflow: hidden;
+
+  &::after {
+    content: "\00A0";
+    position: absolute;
+    text-decoration: underline;
+    right: 0;
+    left: 0;
+    bottom: 0;
+    top: 0;
+    letter-spacing: 1000px;
+  }
+}

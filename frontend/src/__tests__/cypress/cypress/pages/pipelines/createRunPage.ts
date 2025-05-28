@@ -55,6 +55,10 @@ export class CreateRunPage {
     return cy.findByTestId('run-description');
   }
 
+  findProjectNavigatorLink(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('project-navigator-link');
+  }
+
   findRunTypeSwitchLink(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().findByTestId('run-type-section-alert-link');
   }
