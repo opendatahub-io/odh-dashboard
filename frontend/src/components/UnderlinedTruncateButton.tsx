@@ -3,26 +3,26 @@ import {
   Button,
   ButtonProps,
   Content,
-  ContentVariants,
-  TooltipPosition,
+  ContentProps,
   Truncate,
+  TruncateProps,
 } from '@patternfly/react-core';
 import { t_global_spacer_xs as ExtraSmallSpacerSize } from '@patternfly/react-tokens';
 
 type UnderlinedTruncateButtonProps = ButtonProps & {
   content: string;
-  textDecoration?: string;
   color?: string;
-  contentSize?: ContentVariants;
-  tooltipPosition?: TooltipPosition;
+  textDecoration?: string;
+  contentProps?: ContentProps;
+  truncateProps?: Partial<TruncateProps>;
 };
 
 const UnderlinedTruncateButton: React.FC<UnderlinedTruncateButtonProps> = ({
   content,
   color = 'grey',
-  textDecoration,
-  contentSize,
-  tooltipPosition,
+  textDecoration = 'underline dashed',
+  contentProps,
+  truncateProps,
   ...props
 }) => {
   const truncateStyle = {
@@ -33,8 +33,8 @@ const UnderlinedTruncateButton: React.FC<UnderlinedTruncateButtonProps> = ({
 
   return (
     <Button variant="link" isInline {...props}>
-      <Content component={contentSize}>
-        <Truncate content={content} style={truncateStyle} tooltipPosition={tooltipPosition} />
+      <Content {...contentProps}>
+        <Truncate content={content} style={truncateStyle} {...truncateProps} />
       </Content>
     </Button>
   );

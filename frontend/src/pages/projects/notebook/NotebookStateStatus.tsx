@@ -35,8 +35,8 @@ const getNotebookStatusTextDecoration = (
   isStarting ||
   notebookStatus?.currentStatus === EventStatus.ERROR ||
   notebookStatus?.currentStatus === EventStatus.WARNING
-    ? 'underline dashed'
-    : undefined;
+    ? undefined
+    : 'none';
 
 const NotebookStateStatus: React.FC<NotebookStateStatusProps> = ({
   notebookState,

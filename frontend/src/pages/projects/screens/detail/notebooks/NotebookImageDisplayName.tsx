@@ -292,10 +292,9 @@ export const NotebookImageDisplayName = ({
             >
               <UnderlinedTruncateButton
                 content={versionDisplayString}
-                tooltipPosition={TooltipPosition.left}
-                contentSize={ContentVariants.small}
+                truncateProps={{ tooltipPosition: TooltipPosition.left }}
+                contentProps={{ component: ContentVariants.small }}
                 data-testid="notebook-image-version-link"
-                textDecoration="underline dashed"
               />
             </Popover>
           </FlexItem>
