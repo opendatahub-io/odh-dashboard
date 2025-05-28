@@ -195,7 +195,7 @@ const PipelineVersionRadioGroup: React.FC<PipelineVersionRadioGroupProps> = ({
           </StackItem>
           <StackItem>
             <ImportPipelineVersionButton
-              data-testid="import-pipeline-version-radio-none-available-button"
+              data-testid="import-pipeline-version-button"
               selectedPipeline={pipeline}
               variant="link"
               icon={<PlusCircleIcon />}
