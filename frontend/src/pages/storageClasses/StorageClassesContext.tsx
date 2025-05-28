@@ -4,7 +4,12 @@ import { MetadataAnnotation, StorageClassConfig, StorageClassKind } from '~/k8sT
 import { FetchStateRefreshPromise } from '~/utilities/useFetchState';
 import { allSettledPromises } from '~/utilities/allSettledPromises';
 import { updateStorageClassConfig } from '~/api';
-import { getStorageClassConfig, isOpenshiftDefaultStorageClass } from './utils';
+import {
+  getStorageClassConfig,
+  isOpenshiftDefaultStorageClass,
+  getSupportedAccessModesForProvisioner,
+  getDefaultAccessModeSettings,
+} from './utils';
 
 export interface StorageClassContextProps {
   storageClasses: StorageClassKind[];
@@ -70,6 +75,7 @@ export const StorageClassContextProvider: React.FC<StorageClassContextProviderPr
     const updateRequests = storageClasses.reduce(
       (acc: Promise<StorageClassConfig>[], storageClass, index) => {
         const { name } = storageClass.metadata;
+        const { provisioner } = storageClass;
         let config;
         if (storageClass.metadata.annotations?.[MetadataAnnotation.OdhStorageClassConfig]) {
           try {
@@ -96,11 +102,18 @@ export const StorageClassContextProvider: React.FC<StorageClassContextProviderPr
             isEnabled = true;
           }
 
+          const supportedAccessModesForProvisioner =
+            getSupportedAccessModesForProvisioner(provisioner);
+          const accessModeSettings = getDefaultAccessModeSettings(
+            supportedAccessModesForProvisioner,
+          );
+
           acc.push(
             updateStorageClassConfig(name, {
               isDefault,
               isEnabled,
               displayName: name,
+              accessModeSettings,
             }),
           );
         }
