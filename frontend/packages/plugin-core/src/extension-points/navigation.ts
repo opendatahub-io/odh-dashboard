@@ -1,6 +1,9 @@
 import type { Extension } from '@openshift/dynamic-plugin-sdk';
 import type { AccessReviewResourceAttributes } from '@odh-dashboard/internal/k8sTypes';
 
+/**
+ * Adds a navigation item to the host application.
+ */
 export type HrefNavItemExtension = Extension<
   'app.navigation/href',
   NavItemProperties & {
@@ -20,6 +23,9 @@ export type HrefNavItemExtension = Extension<
   }
 >;
 
+/**
+ * Adds a navigation section to the host application.
+ */
 export type NavSectionExtension = Extension<
   'app.navigation/section',
   Omit<NavItemProperties, 'section'>

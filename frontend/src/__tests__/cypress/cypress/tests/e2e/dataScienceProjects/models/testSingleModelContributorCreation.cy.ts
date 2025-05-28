@@ -15,10 +15,7 @@ import {
   checkInferenceServiceState,
   provisionProjectForModelServing,
 } from '~/__tests__/cypress/cypress/utils/oc_commands/modelServing';
-import {
-  retryableBefore,
-  wasSetupPerformed,
-} from '~/__tests__/cypress/cypress/utils/retryableHooks';
+import { retryableBefore } from '~/__tests__/cypress/cypress/utils/retryableHooks';
 import { attemptToClickTooltip } from '~/__tests__/cypress/cypress/utils/models';
 import { generateTestUUID } from '~/__tests__/cypress/cypress/utils/uuidGenerator';
 
@@ -62,11 +59,8 @@ describe('Verify Model Creation and Validation using the UI', () => {
     );
   });
   after(() => {
-    //Check if the Before Method was executed to perform the setup
-    if (!wasSetupPerformed()) return;
-
-    // Delete provisioned Project - 5 min timeout to accomadate increased time to delete a project with a model
-    deleteOpenShiftProject(projectName, { wait: false });
+    // Delete provisioned Project
+    deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
   });
 
   it(

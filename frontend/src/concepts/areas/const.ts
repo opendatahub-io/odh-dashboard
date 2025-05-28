@@ -7,7 +7,7 @@ import {
   DataScienceStackComponent,
 } from './types';
 
-export const allFeatureFlags: string[] = Object.keys({
+export const definedFeatureFlags: string[] = Object.keys({
   enablement: false,
   disableInfo: false,
   disableSupport: false,
@@ -42,8 +42,8 @@ export const allFeatureFlags: string[] = Object.keys({
   disableNIMModelServing: false,
   disableAdminConnectionTypes: false,
   disableFineTuning: true,
-  disableModelServingPlugin: true, // internal dev only
   disableLlamaStackChatBot: true, // internal dev only
+  disableLMEval: true, // internal dev only
 } satisfies DashboardCommonConfig);
 
 export const SupportedAreasStateMap: SupportedAreasState = {
@@ -169,14 +169,14 @@ export const SupportedAreasStateMap: SupportedAreasState = {
       SupportedArea.MODEL_REGISTRY,
     ],
   },
-  [SupportedArea.PLUGIN_MODEL_SERVING]: {
-    featureFlags: ['disableModelServingPlugin'],
-    reliantAreas: [SupportedArea.MODEL_SERVING],
-  },
   [SupportedArea.LLAMA_STACK_CHAT_BOT]: {
     featureFlags: ['disableLlamaStackChatBot'],
     reliantAreas: [SupportedArea.MODEL_SERVING],
     //TODO: Add Llama Stack component when details known.
+  },
+  [SupportedArea.LM_EVAL]: {
+    featureFlags: ['disableLMEval'],
+    reliantAreas: [SupportedArea.MODEL_REGISTRY, SupportedArea.MODEL_SERVING],
   },
 };
 

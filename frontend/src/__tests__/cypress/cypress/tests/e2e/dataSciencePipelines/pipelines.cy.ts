@@ -8,10 +8,7 @@ import {
   pipelineRunDetails,
 } from '~/__tests__/cypress/cypress/pages/pipelines/topology';
 import { provisionProjectForPipelines } from '~/__tests__/cypress/cypress/utils/pipelines';
-import {
-  retryableBefore,
-  wasSetupPerformed,
-} from '~/__tests__/cypress/cypress/utils/retryableHooks';
+import { retryableBefore } from '~/__tests__/cypress/cypress/utils/retryableHooks';
 import { generateTestUUID } from '~/__tests__/cypress/cypress/utils/uuidGenerator';
 
 const uuid = generateTestUUID();
@@ -31,11 +28,8 @@ describe(
     });
 
     after(() => {
-      //Check if the Before Method was executed to perform the setup
-      if (!wasSetupPerformed()) return;
-
       // Delete provisioned Project
-      deleteOpenShiftProject(projectName, { wait: false });
+      deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
     });
 
     it(

@@ -10,10 +10,9 @@ import {
 } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { Navigate, useParams } from 'react-router';
-import { KnownLabels, ModelRegistryKind, RoleBindingKind } from '~/k8sTypes';
+import { KnownLabels, ModelRegistryKind } from '~/k8sTypes';
 import { useGroups } from '~/api';
 import RoleBindingPermissions from '~/concepts/roleBinding/RoleBindingPermissions';
-import { useContextResourceData } from '~/utilities/useContextResourceData';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import { SupportedArea } from '~/concepts/areas';
 import { RoleBindingPermissionsRoleType } from '~/concepts/roleBinding/types';
@@ -33,7 +32,7 @@ const ModelRegistriesManagePermissions: React.FC = () => {
   const [activeTabKey, setActiveTabKey] = React.useState('users');
   const [ownerReference, setOwnerReference] = React.useState<ModelRegistryKind>();
   const [groups] = useGroups();
-  const roleBindings = useContextResourceData<RoleBindingKind>(useModelRegistryRoleBindings());
+  const roleBindings = useModelRegistryRoleBindings();
   const { mrName } = useParams<{ mrName: string }>();
   const state = useModelRegistryNamespaceCR(modelRegistryNamespace, mrName || '');
   const [modelRegistryCR, crLoaded] = state;

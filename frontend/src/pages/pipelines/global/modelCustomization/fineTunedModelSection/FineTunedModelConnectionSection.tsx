@@ -26,9 +26,11 @@ const FineTunedModelConnectionSection: React.FC<FineTunedModelConnectionSectionP
   connectionTypes,
 }) => {
   const { project } = usePipelinesAPI();
-  const [fetchedConnections, connectionsLoaded, connectionsLoadError] = useConnections(
-    project.metadata.name,
-  );
+  const {
+    data: fetchedConnections,
+    loaded: connectionsLoaded,
+    error: connectionsLoadError,
+  } = useConnections(project.metadata.name);
   const ociConnections: Connection[] = React.useMemo(
     () =>
       fetchedConnections.filter((c) =>

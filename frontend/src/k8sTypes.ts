@@ -1228,8 +1228,8 @@ export type DashboardCommonConfig = {
   disableNIMModelServing: boolean;
   disableAdminConnectionTypes: boolean;
   disableFineTuning: boolean;
-  disableModelServingPlugin: boolean;
   disableLlamaStackChatBot: boolean;
+  disableLMEval: boolean;
 };
 
 export type DashboardConfigKind = K8sResourceCommon & {
