@@ -10,11 +10,15 @@ import { EitherNotBoth } from './typeHelpers';
 import { NotebookPodSpecOptions } from './concepts/hardwareProfiles/useNotebookPodSpecOptionsState';
 import { FetchStateObject } from './utilities/useFetch';
 
-export type DevFeatureFlags = {
+export type FeatureFlagProps = {
   devFeatureFlags: Partial<DashboardCommonConfig> | null;
   setDevFeatureFlag: (flag: keyof DashboardCommonConfig, value: boolean) => void;
   resetDevFeatureFlags: () => void;
+};
+
+export type DevFeatureFlags = FeatureFlagProps & {
   setDevFeatureFlagQueryVisible: (visible: boolean) => void;
+  isBannerVisible: boolean;
 };
 
 export type PrometheusQueryResponse<TResultExtraProps extends object = object> = {

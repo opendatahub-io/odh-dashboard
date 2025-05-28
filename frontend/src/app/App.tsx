@@ -28,7 +28,7 @@ import { AccessReviewProvider } from '~/concepts/userSSAR';
 import { ExtensibilityContextProvider } from '~/plugins/ExtensibilityContext';
 import useFetchDscStatus from '~/concepts/areas/useFetchDscStatus';
 import { OdhPlatformType } from '~/types';
-import useDevFeatureFlags from './useDevFeatureFlags';
+import useDevFeatureFlags from './featureFlags/useDevFeatureFlags';
 import Header from './Header';
 import AppRoutes from './AppRoutes';
 import NavSidebar from './NavSidebar';
@@ -38,7 +38,7 @@ import { useApplicationSettings } from './useApplicationSettings';
 import TelemetrySetup from './TelemetrySetup';
 import { logout } from './appUtils';
 import QuickStarts from './QuickStarts';
-import DevFeatureFlagsBanner from './DevFeatureFlagsBanner';
+import DevFeatureFlagsBanner from './featureFlags/DevFeatureFlagsBanner';
 import SessionExpiredModal from './SessionExpiredModal';
 
 import './App.scss';
@@ -133,7 +133,11 @@ const App: React.FC = () => {
                 isManagedSidebar
                 isContentFilled
                 masthead={
-                  <Header onNotificationsClick={() => setNotificationsOpen(!notificationsOpen)} />
+                  <Header
+                    dashboardConfig={dashboardConfig.spec.dashboardConfig}
+                    {...devFeatureFlagsProps}
+                    onNotificationsClick={() => setNotificationsOpen(!notificationsOpen)}
+                  />
                 }
                 sidebar={isAllowed ? <NavSidebar /> : undefined}
                 notificationDrawer={

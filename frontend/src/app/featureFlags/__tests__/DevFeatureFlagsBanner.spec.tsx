@@ -2,7 +2,7 @@ import * as React from 'react';
 import { act } from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import DevFeatureFlagsBanner from '~/app/DevFeatureFlagsBanner';
+import DevFeatureFlagsBanner from '~/app/featureFlags/DevFeatureFlagsBanner';
 
 describe('DevFeatureFlagsBanner', () => {
   it('should not render if no feature flags are overridden', () => {
@@ -13,6 +13,7 @@ describe('DevFeatureFlagsBanner', () => {
         resetDevFeatureFlags={() => undefined}
         devFeatureFlags={null}
         setDevFeatureFlagQueryVisible={() => undefined}
+        isBannerVisible
       />,
     );
     expect(result.container).toBeEmptyDOMElement();
@@ -28,6 +29,7 @@ describe('DevFeatureFlagsBanner', () => {
         resetDevFeatureFlags={resetFn}
         setDevFeatureFlagQueryVisible={visibleFn}
         devFeatureFlags={{}}
+        isBannerVisible
       />,
     );
     expect(result.container).not.toBeEmptyDOMElement();
@@ -55,6 +57,7 @@ describe('DevFeatureFlagsBanner', () => {
         devFeatureFlags={{
           disableHome: true,
         }}
+        isBannerVisible
       />,
     );
     expect(result.container).not.toBeEmptyDOMElement();
