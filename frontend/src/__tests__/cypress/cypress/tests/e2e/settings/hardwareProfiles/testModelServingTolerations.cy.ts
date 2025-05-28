@@ -16,10 +16,7 @@ import {
   provisionProjectForModelServing,
   validateInferenceServiceTolerations,
 } from '~/__tests__/cypress/cypress/utils/oc_commands/modelServing';
-import {
-  retryableBefore,
-  wasSetupPerformed,
-} from '~/__tests__/cypress/cypress/utils/retryableHooks';
+import { retryableBefore } from '~/__tests__/cypress/cypress/utils/retryableHooks';
 import { attemptToClickTooltip } from '~/__tests__/cypress/cypress/utils/models';
 import {
   cleanupHardwareProfiles,
@@ -84,9 +81,6 @@ describe('Notebooks - tolerations tests', () => {
 
   //Cleanup: Delete Hardware Profile and the associated Project
   after(() => {
-    // Check if the Before Method was executed to perform the setup
-    if (!wasSetupPerformed()) return;
-
     // Load Hardware Profile
     cy.log(`Loaded Hardware Profile Name: ${hardwareProfileResourceName}`);
 
@@ -95,7 +89,7 @@ describe('Notebooks - tolerations tests', () => {
       // Delete provisioned Project
       if (projectName) {
         cy.log(`Deleting Project ${projectName} after the test has finished.`);
-        deleteOpenShiftProject(projectName, { wait: false });
+        deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
       }
     });
   });
