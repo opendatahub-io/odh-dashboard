@@ -8,10 +8,7 @@ import {
 } from '~/__tests__/cypress/cypress/utils/e2eUsers';
 import { loadDSPFixture } from '~/__tests__/cypress/cypress/utils/dataLoader';
 import { createCleanProject } from '~/__tests__/cypress/cypress/utils/projectChecker';
-import {
-  retryableBefore,
-  wasSetupPerformed,
-} from '~/__tests__/cypress/cypress/utils/retryableHooks';
+import { retryableBefore } from '~/__tests__/cypress/cypress/utils/retryableHooks';
 import { generateTestUUID } from '~/__tests__/cypress/cypress/utils/uuidGenerator';
 
 describe('Verify that users can provide contributor project permissions to non-admin users', () => {
@@ -36,13 +33,10 @@ describe('Verify that users can provide contributor project permissions to non-a
       });
   });
   after(() => {
-    //Check if the Before Method was executed to perform the setup
-    if (!wasSetupPerformed()) return;
-
     // Delete provisioned Project
     if (projectName) {
       cy.log(`Deleting Project ${projectName} after the test has finished.`);
-      deleteOpenShiftProject(projectName, { wait: false });
+      deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
     }
   });
 

@@ -14,10 +14,7 @@ import {
   provisionProjectForModelServing,
   modelExternalTester,
 } from '~/__tests__/cypress/cypress/utils/oc_commands/modelServing';
-import {
-  retryableBefore,
-  wasSetupPerformed,
-} from '~/__tests__/cypress/cypress/utils/retryableHooks';
+import { retryableBefore } from '~/__tests__/cypress/cypress/utils/retryableHooks';
 import { attemptToClickTooltip } from '~/__tests__/cypress/cypress/utils/models';
 import { generateTestUUID } from '~/__tests__/cypress/cypress/utils/uuidGenerator';
 
@@ -58,10 +55,7 @@ describe('Verify Admin Multi Model Creation and Validation using the UI', () => 
     );
   });
   after(() => {
-    //Check if the Before Method was executed to perform the setup
-    if (!wasSetupPerformed()) return;
-
-    deleteOpenShiftProject(projectName, { wait: false });
+    deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
   });
 
   it(

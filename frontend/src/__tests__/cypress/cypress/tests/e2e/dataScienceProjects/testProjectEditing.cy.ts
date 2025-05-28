@@ -8,10 +8,7 @@ import { HTPASSWD_CLUSTER_ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e
 import { loadDSPFixture } from '~/__tests__/cypress/cypress/utils/dataLoader';
 import { createCleanProject } from '~/__tests__/cypress/cypress/utils/projectChecker';
 import { deleteOpenShiftProject } from '~/__tests__/cypress/cypress/utils/oc_commands/project';
-import {
-  retryableBefore,
-  wasSetupPerformed,
-} from '~/__tests__/cypress/cypress/utils/retryableHooks';
+import { retryableBefore } from '~/__tests__/cypress/cypress/utils/retryableHooks';
 import { generateTestUUID } from '~/__tests__/cypress/cypress/utils/uuidGenerator';
 
 describe('Verify Data Science Project - Editing', () => {
@@ -36,13 +33,10 @@ describe('Verify Data Science Project - Editing', () => {
       });
   });
   after(() => {
-    //Check if the Before Method was executed to perform the setup
-    if (!wasSetupPerformed()) return;
-
     // Delete provisioned Project
     if (projectName) {
       cy.log(`Deleting Project ${projectName} after the test has finished.`);
-      deleteOpenShiftProject(projectName, { wait: false });
+      deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
     }
   });
 
