@@ -11,7 +11,6 @@ import { Toleration } from '~/types';
 import { mockNotebookK8sResource } from '~/__mocks__/mockNotebookK8sResource';
 import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
 import { mock200Status } from '~/__mocks__/mockK8sStatus';
-import { mockRoleBindingK8sResource } from '~/__mocks__/mockRoleBindingK8sResource';
 import { mockStartNotebookData } from '~/__mocks__/mockStartNotebookData';
 
 import {
@@ -35,7 +34,6 @@ import {
 } from '~/api/k8s/notebooks';
 
 import {
-  createElyraServiceAccountRoleBinding,
   getPipelineVolumePatch,
   getPipelineVolumeMountPatch,
   ELYRA_VOLUME_NAME,
@@ -62,7 +60,6 @@ jest.mock('~/concepts/pipelines/elyra/utils', () => {
   const originalModule = jest.requireActual('~/concepts/pipelines/elyra/utils');
   return {
     ...originalModule,
-    createElyraServiceAccountRoleBinding: jest.fn(),
   };
 });
 
@@ -72,7 +69,6 @@ const k8sPatchResourceMock = jest.mocked(k8sPatchResource<NotebookKind>);
 const k8sListResourceMock = jest.mocked(k8sListResource<NotebookKind>);
 const k8sMergePatchResourceMock = jest.mocked(k8sMergePatchResource<NotebookKind>);
 const k8sDeleteResourceMock = jest.mocked(k8sDeleteResource<NotebookKind, K8sStatus>);
-const createElyraServiceAccountRoleBindingMock = jest.mocked(createElyraServiceAccountRoleBinding);
 
 global.structuredClone = (val: unknown) => JSON.parse(JSON.stringify(val));
 
@@ -368,7 +364,6 @@ describe('createNotebook', () => {
 
     const renderResult = await createNotebook(mockStartNotebookData({}), username, false);
 
-    expect(createElyraServiceAccountRoleBinding).not.toHaveBeenCalled();
     expect(k8sCreateResourceMock).toHaveBeenCalledWith({
       fetchOptions: { requestInit: {} },
       model: NotebookModel,
@@ -496,7 +491,6 @@ describe('startNotebook', () => {
         getPipelineVolumeMountPatch(),
       ],
     });
-    expect(createElyraServiceAccountRoleBinding).toHaveBeenCalledWith(mockNotebook);
     expect(k8sPatchResourceMock).toHaveBeenCalledTimes(1);
     expect(renderResult).toStrictEqual(mockNotebook);
   });
@@ -522,7 +516,6 @@ describe('startNotebook', () => {
         getPipelineVolumeMountPatch(),
       ],
     });
-    expect(createElyraServiceAccountRoleBinding).toHaveBeenCalledWith(mockNotebook);
     expect(k8sPatchResourceMock).toHaveBeenCalledTimes(1);
     expect(renderResult).toStrictEqual(mockNotebook);
   });
@@ -548,7 +541,6 @@ describe('startNotebook', () => {
         getPipelineVolumeMountPatch(),
       ],
     });
-    expect(createElyraServiceAccountRoleBinding).toHaveBeenCalledWith(mockNotebook);
     expect(k8sPatchResourceMock).toHaveBeenCalledTimes(1);
     expect(renderResult).toStrictEqual(mockNotebook);
   });
@@ -571,7 +563,6 @@ describe('startNotebook', () => {
     });
 
     expect(k8sPatchResourceMock).toHaveBeenCalledTimes(1);
-    expect(createElyraServiceAccountRoleBinding).not.toHaveBeenCalled();
     expect(renderResult).toStrictEqual(mockNotebook);
   });
   it('should handle errors and rethrow', async () => {
