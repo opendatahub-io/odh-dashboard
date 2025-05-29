@@ -32,45 +32,31 @@ const ServingRuntimeSizeExpandedField = ({
       },
     });
   };
-  const setInitialValue = (
-    type: ContainerResourceAttributes,
-    variant: ResourceKeys,
-  ): string | number => {
-    if (data.resources[variant]?.[type] === undefined) {
-      handleChange(type, variant, '1');
-      return '1';
-    }
-    return data.resources[variant][type];
-  };
 
   return (
     <Grid hasGutter md={6}>
       <FormGroup label="CPUs requested">
         <CPUField
           onChange={(value) => handleChange(ContainerResourceAttributes.CPU, 'requests', value)}
-          value={setInitialValue(ContainerResourceAttributes.CPU, 'requests')}
-          dataTestId="cpu-request"
+          value={data.resources.requests?.cpu}
         />
       </FormGroup>
       <FormGroup label="Memory requested">
         <MemoryField
           onChange={(value) => handleChange(ContainerResourceAttributes.MEMORY, 'requests', value)}
-          value={setInitialValue(ContainerResourceAttributes.MEMORY, 'requests')}
-          dataTestId="memory-request"
+          value={data.resources.requests?.memory}
         />
       </FormGroup>
       <FormGroup label="CPU limit">
         <CPUField
           onChange={(value) => handleChange(ContainerResourceAttributes.CPU, 'limits', value)}
-          value={setInitialValue(ContainerResourceAttributes.CPU, 'limits')}
-          dataTestId="cpu-limit"
+          value={data.resources.limits?.cpu}
         />
       </FormGroup>
       <FormGroup label="Memory limit">
         <MemoryField
           onChange={(value) => handleChange(ContainerResourceAttributes.MEMORY, 'limits', value)}
-          value={setInitialValue(ContainerResourceAttributes.MEMORY, 'limits')}
-          dataTestId="memory-limit"
+          value={data.resources.limits?.memory}
         />
       </FormGroup>
     </Grid>

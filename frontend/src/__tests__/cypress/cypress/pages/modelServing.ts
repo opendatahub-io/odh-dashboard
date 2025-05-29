@@ -456,26 +456,6 @@ class ServingRuntimeModal extends Modal {
     return this.find().findByTestId('model-server-size-selection');
   }
 
-  findModelServerSizeSelectOption(name: string) {
-    return cy.findByTestId(`model-server-size-select-option-${name}`);
-  }
-
-  findCPURequestInput() {
-    return this.find().findByTestId('cpu-request-input');
-  }
-
-  findCPULimitInput() {
-    return this.find().findByTestId('cpu-limit-input');
-  }
-
-  findMemoryRequestInput() {
-    return this.find().findByTestId('memory-request-input');
-  }
-
-  findMemoryLimitInput() {
-    return this.find().findByTestId('memory-limit-input');
-  }
-
   findDeployedModelRouteCheckbox() {
     return this.find().findByTestId('alt-form-checkbox-route');
   }
