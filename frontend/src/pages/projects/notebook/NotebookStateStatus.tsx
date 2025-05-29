@@ -1,10 +1,9 @@
 import * as React from 'react';
-import { Button, Flex, FlexItem, Truncate } from '@patternfly/react-core';
+import { Button, Flex, FlexItem } from '@patternfly/react-core';
 import {
   t_global_text_color_regular as RegularColor,
   t_global_text_color_status_danger_default as DangerColor,
   t_global_text_color_status_warning_default as WarningColor,
-  t_global_spacer_xs as ExtraSmallSpacerSize,
 } from '@patternfly/react-tokens';
 import { useNavigate } from 'react-router-dom';
 import { EventStatus, NotebookStatus } from '~/types';
@@ -12,6 +11,7 @@ import { useDeepCompareMemoize } from '~/utilities/useDeepCompareMemoize';
 import { useNotebookStatus } from '~/utilities/notebookControllerUtils';
 import StartNotebookModal from '~/concepts/notebooks/StartNotebookModal';
 import NotebookStatusLabel from '~/concepts/notebooks/NotebookStatusLabel';
+import UnderlinedTruncateButton from '~/components/UnderlinedTruncateButton';
 import { NotebookState } from './types';
 
 type NotebookStateStatusProps = {
@@ -21,21 +21,22 @@ type NotebookStateStatusProps = {
   isVertical?: boolean;
 };
 
-const getNotebookStatusStyles = (notebookStatus?: NotebookStatus | null, isStarting?: boolean) => ({
-  color:
-    notebookStatus?.currentStatus === EventStatus.ERROR
-      ? DangerColor.var
-      : notebookStatus?.currentStatus === EventStatus.WARNING
-      ? WarningColor.var
-      : RegularColor.var,
-  textDecoration:
-    isStarting ||
-    notebookStatus?.currentStatus === EventStatus.ERROR ||
-    notebookStatus?.currentStatus === EventStatus.WARNING
-      ? 'underline dashed'
-      : undefined,
-  textUnderlineOffset: ExtraSmallSpacerSize.var,
-});
+const getNotebookStatusColor = (notebookStatus?: NotebookStatus | null) =>
+  notebookStatus?.currentStatus === EventStatus.ERROR
+    ? DangerColor.var
+    : notebookStatus?.currentStatus === EventStatus.WARNING
+    ? WarningColor.var
+    : RegularColor.var;
+
+const getNotebookStatusTextDecoration = (
+  notebookStatus?: NotebookStatus | null,
+  isStarting?: boolean,
+) =>
+  isStarting ||
+  notebookStatus?.currentStatus === EventStatus.ERROR ||
+  notebookStatus?.currentStatus === EventStatus.WARNING
+    ? undefined
+    : 'none';
 
 const NotebookStateStatus: React.FC<NotebookStateStatusProps> = ({
   notebookState,
@@ -74,14 +75,12 @@ const NotebookStateStatus: React.FC<NotebookStateStatusProps> = ({
           />
         </FlexItem>
         {isStarting ? (
-          <Button variant="link" isInline onClick={() => setStartModalOpen(true)}>
-            <FlexItem>
-              <Truncate
-                content={notebookStatus?.currentEvent || 'Waiting for server request to start...'}
-                style={getNotebookStatusStyles(notebookStatus, isStarting)}
-              />
-            </FlexItem>
-          </Button>
+          <UnderlinedTruncateButton
+            content={notebookStatus?.currentEvent || 'Waiting for server request to start...'}
+            color={getNotebookStatusColor(notebookStatus)}
+            textDecoration={getNotebookStatusTextDecoration(notebookStatus, isStarting)}
+            onClick={() => setStartModalOpen(true)}
+          />
         ) : null}
       </Flex>
       {isStartModalOpen ? (

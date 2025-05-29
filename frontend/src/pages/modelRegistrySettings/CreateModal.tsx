@@ -181,6 +181,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
           },
         },
         spec: {
+          oauthProxy: {},
           mysql: {
             host,
             port: Number(port),
@@ -226,14 +227,9 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
           },
         },
         spec: {
+          oauthProxy: {},
           grpc: {},
           rest: {},
-          istio: {
-            gateway: {
-              grpc: { tls: {} },
-              rest: { tls: {} },
-            },
-          },
           mysql: {
             host,
             port: Number(port),
