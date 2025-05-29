@@ -59,6 +59,14 @@ class WorkbenchPage {
   findCreateButton() {
     return cy.findByTestId('create-workbench-button');
   }
+
+  findUpdatingImageIcon() {
+    return cy.findByTestId('updating-image-icon');
+  }
+
+  findUpdatingImageIconTooltip() {
+    return cy.findByTestId('updating-image-icon-tooltip');
+  }
 }
 
 class EnvironmentVariableTypeField extends Contextual<HTMLElement> {
@@ -159,6 +167,24 @@ class NotebookImageUpdateModal {
   }
 }
 
+class NotebookImageVersionPopover extends Contextual<HTMLElement> {
+  findImageVersionName() {
+    return cy.findByTestId('notebook-image-version-name');
+  }
+
+  findImageVersionBuildCommit() {
+    return cy.findByTestId('notebook-image-version-build-commit');
+  }
+
+  findImageVersionBuildDate() {
+    return cy.findByTestId('notebook-image-version-build-date');
+  }
+
+  findImageVersionSoftware() {
+    return cy.findByTestId('notebook-image-version-software');
+  }
+}
+
 class NotebookRow extends TableRow {
   shouldHaveNotebookImageName(name: string) {
     return this.find().findByTestId('image-display-name').should('contain.text', name);
@@ -234,6 +260,16 @@ class NotebookRow extends TableRow {
 
   findNotebookImageLabel() {
     return this.find().findByTestId('notebook-image-availability');
+  }
+
+  findNotebookImageVersionLink() {
+    return this.find().findByTestId('notebook-image-version-link');
+  }
+
+  findNotebookImageVersionPopover() {
+    return new NotebookImageVersionPopover(() =>
+      cy.findByTestId('notebook-image-version-popover').click(),
+    );
   }
 }
 
@@ -320,6 +356,17 @@ class StorageTable {
 }
 
 class NotebookImageGroup extends Contextual<HTMLElement> {}
+
+class NotebookImageVersionDropdown extends Contextual<HTMLElement> {
+  findNotebookImageLabel() {
+    return this.find().findByTestId('notebook-image-availability');
+  }
+
+  findImageVersionButton(name: string) {
+    return this.find().findByRole('option', { name });
+  }
+}
+
 class CreateSpawnerPage {
   k8sNameDescription = new K8sNameDescriptionField('workbench');
 
@@ -446,8 +493,17 @@ class CreateSpawnerPage {
     return new NotebookImageGroup(() => cy.findByTestId('global-scoped-notebook-images'));
   }
 
+  findNotebookImageDropdown() {
+    return new NotebookImageVersionDropdown(() =>
+      cy.findByTestId('workbench-image-version-dropdown'),
+    );
+  }
+
+  findNotebookImageVersionSelector() {
+    return cy.findByTestId('workbench-image-version-selection');
+  }
+
   findNotebookVersion(version: string): Cypress.Chainable<JQuery<HTMLElement>> {
-    cy.findByTestId('workbench-image-version-selection').click();
     return cy.get(`[data-testid$="-${version}"]`).click();
   }
 

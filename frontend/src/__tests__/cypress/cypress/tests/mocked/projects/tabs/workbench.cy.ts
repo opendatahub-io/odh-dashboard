@@ -112,6 +112,7 @@ const initIntercepts = ({
           },
           annotations: {
             'opendatahub.io/image-display-name': 'Outdated image',
+            'notebooks.opendatahub.io/last-image-version-git-commit-selection': '1234',
           },
         },
       },
@@ -129,6 +130,7 @@ const initIntercepts = ({
           },
           annotations: {
             'opendatahub.io/image-display-name': 'Latest image',
+            'notebooks.opendatahub.io/last-image-version-git-commit-selection': '12345',
           },
         },
       },
@@ -278,6 +280,72 @@ const initIntercepts = ({
         namespace: 'opendatahub',
         name: 'test-8',
         displayName: 'Test image 8',
+        opts: {
+          spec: {
+            tags: [
+              {
+                name: '2023.1',
+                annotations: {
+                  'opendatahub.io/workbench-image-recommended': 'false',
+                  'opendatahub.io/notebook-python-dependencies':
+                    '[{"name":"JupyterLab","version": "3.2"}, {"name": "Notebook","version": "6.4"}]',
+                  'opendatahub.io/notebook-software': '[{"name":"Python","version":"v3.8"}]',
+                  'opendatahub.io/notebook-build-commit': '1234',
+                },
+                from: {
+                  kind: 'DockerImage',
+                  name: 'quay.io/opendatahub/notebooks@sha256:a138838e1c9acd7708462e420bf939e03296b97e9cf6c0aa0fd9a5d20361ab75',
+                },
+              },
+              {
+                name: '2024.2',
+                annotations: {
+                  'opendatahub.io/workbench-image-recommended': 'true',
+                  'opendatahub.io/notebook-python-dependencies':
+                    '[{"name":"JupyterLab","version": "3.2"}, {"name": "Notebook","version": "6.4"}]',
+                  'opendatahub.io/notebook-software': '[{"name":"Python","version":"v3.8"}]',
+                  'opendatahub.io/notebook-build-commit': '12345',
+                },
+                from: {
+                  kind: 'DockerImage',
+                  name: 'quay.io/opendatahub/notebooks@sha256:a138838e1c9acd7708462e420bf939e03296b97e9cf6c0aa0fd9a5d20361ab75',
+                },
+              },
+            ],
+          },
+          status: {
+            dockerImageRepository:
+              'image-registry.openshift-image-registry.svc:5000/opendatahub/jupyter-minimal-notebook',
+            tags: [
+              {
+                tag: '2023.1',
+                items: [
+                  {
+                    created: '2023-06-30T15:07:36Z',
+                    dockerImageReference:
+                      'quay.io/opendatahub/notebooks@sha256:a138838e1c9acd7708462e420bf939e03296b97e9cf6c0aa0fd9a5d20361ab75',
+                    image:
+                      'quay.io/opendatahub/notebooks@sha256:a138838e1c9acd7708462e420bf939e03296b97e9cf6c0aa0fd9a5d20361ab75',
+                    generation: 2,
+                  },
+                ],
+              },
+              {
+                tag: '2024.2',
+                items: [
+                  {
+                    created: '2023-06-30T15:07:36Z',
+                    dockerImageReference:
+                      'quay.io/opendatahub/notebooks@sha256:a138838e1c9acd7708462e420bf939e03296b97e9cf6c0aa0fd9a5d20361ab75',
+                    image:
+                      'quay.io/opendatahub/notebooks@sha256:a138838e1c9acd7708462e420bf939e03296b97e9cf6c0aa0fd9a5d20361ab75',
+                    generation: 2,
+                  },
+                ],
+              },
+            ],
+          },
+        },
       }),
       mockImageStreamK8sResource({
         namespace: 'opendatahub',
@@ -313,6 +381,7 @@ const initIntercepts = ({
                   'opendatahub.io/notebook-python-dependencies':
                     '[{"name":"JupyterLab","version": "3.2"}, {"name": "Notebook","version": "6.4"}]',
                   'opendatahub.io/notebook-software': '[{"name":"Python","version":"v3.8"}]',
+                  'opendatahub.io/notebook-build-commit': '12345',
                 },
                 from: {
                   kind: 'DockerImage',
@@ -494,7 +563,16 @@ describe('Workbench page', () => {
     createSpawnerPage.k8sNameDescription.findDescriptionInput().fill('test-description');
     //to check scrollable dropdown selection
     createSpawnerPage.findNotebookImageSelector().should('contain.text', 'Select one');
-    createSpawnerPage.findNotebookImage('test-9').click();
+    createSpawnerPage.findNotebookImage('test-8').click();
+    createSpawnerPage.findNotebookImageVersionSelector().click();
+    cy.findByTestId('workbench-image-version-dropdown').should('be.visible');
+    const notebookImageVersionDropdown = createSpawnerPage.findNotebookImageDropdown();
+    notebookImageVersionDropdown.findNotebookImageLabel().should('be.visible');
+    notebookImageVersionDropdown
+      .findImageVersionButton(
+        '2024.2 (12345) Latest Software: Python v3.8 Build date: 6/30/2023, 3:07:36 PM UTC',
+      )
+      .click();
     createSpawnerPage.selectContainerSize(
       'XSmall Limits: 0.5 CPU, 500MiB Memory Requests: 0.1 CPU, 100MiB Memory',
     );
@@ -846,31 +924,36 @@ describe('Workbench page', () => {
     initIntercepts({});
     cy.interceptK8sList(
       PVCModel,
-      mockK8sResourceList([mockPVCK8sResource({ name: 'outdated-notebook' })]),
+      mockK8sResourceList([
+        mockPVCK8sResource({ name: 'outdated-notebook', displayName: 'Outdated Notebook' }),
+      ]),
     );
     cy.interceptK8s(RouteModel, mockRouteK8sResource({ notebookName: 'outdated-notebook' }));
+    cy.interceptK8sList(PodModel, mockK8sResourceList([mockPodK8sResource({ isRunning: true })]));
     workbenchPage.visit('test-project');
     workbenchPage.getNotebookRow('Outdated Notebook').findNotebookImageLabel().click();
     notebookImageUpdateModal.findUpdateImageButton().click();
     notebookImageUpdateModal.findSubmitUpdateImageButton().should('be.disabled');
     notebookImageUpdateModal.findLatestVersionOption().click();
-    cy.interceptK8s(
-      'PATCH',
-      NotebookModel,
-      mockNotebookK8sResource({
+
+    cy.interceptK8s('PATCH', NotebookModel, {
+      delay: 500, //TODO: Remove the delay when we add support for loading states
+      body: mockNotebookK8sResource({
         name: 'outdated-notebook',
+        displayName: 'Outdated Notebook (updated)',
       }),
-    ).as('updateNotebookImage');
+    }).as('updateNotebookImage');
+
     cy.interceptK8s(
       'GET',
       NotebookModel,
       mockNotebookK8sResource({
         name: 'outdated-notebook',
+        displayName: 'Outdated Notebook',
       }),
-    ).as('getWorkbench');
-
+    );
     notebookImageUpdateModal.findSubmitUpdateImageButton().click();
-
+    workbenchPage.findUpdatingImageIcon().should('be.visible');
     cy.wait('@updateNotebookImage');
   });
 
@@ -884,6 +967,23 @@ describe('Workbench page', () => {
     workbenchPage.visit('test-project');
     workbenchPage.getNotebookRow('Latest Notebook').findNotebookImageLabel().click();
     cy.contains('Latest image version');
+  });
+
+  it('Shows popover with version details', () => {
+    initIntercepts({});
+    cy.interceptK8sList(
+      PVCModel,
+      mockK8sResourceList([mockPVCK8sResource({ name: 'latest-notebook' })]),
+    );
+    cy.interceptK8s(RouteModel, mockRouteK8sResource({ notebookName: 'latest-notebook' }));
+    workbenchPage.visit('test-project');
+    const notebookRow = workbenchPage.getNotebookRow('Latest Notebook');
+    notebookRow.findNotebookImageVersionLink().click();
+    const popover = notebookRow.findNotebookImageVersionPopover();
+    popover.findImageVersionName().contains('Version: 2024.2');
+    popover.findImageVersionBuildCommit().contains('Build Commit: 12345');
+    popover.findImageVersionBuildDate().contains('Build Date: 6/30/2023, 3:07:36 PM UTC');
+    popover.findImageVersionSoftware().contains('Software: Python v3.8');
   });
 
   it('Shows deleted image label for commit mismatch', () => {
