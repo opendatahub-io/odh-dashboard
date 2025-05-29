@@ -21,7 +21,7 @@ spec:
     - odh-notebook-controller
     - notebook-images
   support: red hat
-  provider: Jupyter
+  provider: ''
   docsLink: 'https://jupyter.org'
   quickStart: create-jupyter-notebook
   getStartedMarkDown: >-
