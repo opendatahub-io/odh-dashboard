@@ -1,5 +1,5 @@
-import { InputDefinitionParameterType } from '~/concepts/pipelines/kfTypes';
-import { KnownFineTuningPipelineParameters } from '~/pages/pipelines/global/modelCustomization/const';
+import { InputDefinitionParameterType } from '#~/concepts/pipelines/kfTypes';
+import { KnownFineTuningPipelineParameters } from '#~/pages/pipelines/global/modelCustomization/const';
 
 export const mockIlabPipelineVersionParameters = {
   [KnownFineTuningPipelineParameters.EVAL_GPU_IDENTIFIER]: {

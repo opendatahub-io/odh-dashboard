@@ -7,7 +7,7 @@ import {
   PlayIcon,
   SyncAltIcon,
 } from '@patternfly/react-icons';
-import { EventStatus, NotebookStatus } from '~/types';
+import { EventStatus, NotebookStatus } from '#~/types';
 
 type NotebookStateStatusProps = {
   isStarting: boolean;

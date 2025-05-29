@@ -2,7 +2,7 @@ import {
   verifyOpenShiftProjectExists,
   deleteOpenShiftProject,
   createOpenShiftProject,
-} from '~/__tests__/cypress/cypress/utils/oc_commands/project';
+} from '#~/__tests__/cypress/cypress/utils/oc_commands/project';
 
 export const createAndVerifyProject = (projectName: string): void => {
   createOpenShiftProject(projectName).then((result) => {

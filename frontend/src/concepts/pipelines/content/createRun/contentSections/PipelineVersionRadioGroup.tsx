@@ -11,12 +11,12 @@ import {
   StackItem,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
-import { PipelineVersionToUse } from '~/concepts/pipelines/content/createRun/types';
-import ImportPipelineVersionButton from '~/concepts/pipelines/content/import/ImportPipelineVersionButton';
-import PipelineVersionImportModal from '~/concepts/pipelines/content/import/PipelineVersionImportModal';
-import PipelineVersionSelector from '~/concepts/pipelines/content/pipelineSelector/PipelineVersionSelector';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
+import { PipelineVersionToUse } from '#~/concepts/pipelines/content/createRun/types';
+import ImportPipelineVersionButton from '#~/concepts/pipelines/content/import/ImportPipelineVersionButton';
+import PipelineVersionImportModal from '#~/concepts/pipelines/content/import/PipelineVersionImportModal';
+import PipelineVersionSelector from '#~/concepts/pipelines/content/pipelineSelector/PipelineVersionSelector';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+import { PipelineKF, PipelineVersionKF } from '#~/concepts/pipelines/kfTypes';
 
 type PipelineVersionRadioGroupProps = {
   pipeline: PipelineKF | null;

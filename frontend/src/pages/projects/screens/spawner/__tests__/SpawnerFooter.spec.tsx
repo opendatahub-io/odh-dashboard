@@ -2,33 +2,33 @@ import React, { act } from 'react';
 import { fireEvent, render } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { k8sCreateResource, k8sGetResource } from '@openshift/dynamic-plugin-sdk-utils';
-import { useUser } from '~/redux/selectors';
-import SpawnerFooter from '~/pages/projects/screens/spawner/SpawnerFooter';
+import { useUser } from '#~/redux/selectors';
+import SpawnerFooter from '#~/pages/projects/screens/spawner/SpawnerFooter';
 import {
   mockEnvVariables,
   mockStartNotebookData,
   mockStorageData,
-} from '~/__mocks__/mockStartNotebookData';
-import { useAppContext } from '~/app/AppContext';
-import { mockDashboardConfig, mockNotebookK8sResource } from '~/__mocks__';
+} from '#~/__mocks__/mockStartNotebookData';
+import { useAppContext } from '#~/app/AppContext';
+import { mockDashboardConfig, mockNotebookK8sResource } from '#~/__mocks__';
 import {
   ConfigMapKind,
   NotebookKind,
   PersistentVolumeClaimKind,
   RoleBindingKind,
   SecretKind,
-} from '~/k8sTypes';
-import { ConfigMapModel, NotebookModel, PVCModel, RoleBindingModel, SecretModel } from '~/api';
-import { mockPVCK8sResource } from '~/__mocks__/mockPVCK8sResource';
-import { mockConnection } from '~/__mocks__/mockConnection';
+} from '#~/k8sTypes';
+import { ConfigMapModel, NotebookModel, PVCModel, RoleBindingModel, SecretModel } from '#~/api';
+import { mockPVCK8sResource } from '#~/__mocks__/mockPVCK8sResource';
+import { mockConnection } from '#~/__mocks__/mockConnection';
 
-jest.mock('~/app/AppContext', () => ({
+jest.mock('#~/app/AppContext', () => ({
   __esModule: true,
   useAppContext: jest.fn(),
 }));
 
-jest.mock('~/redux/selectors', () => ({
-  ...jest.requireActual('~/redux/selectors'),
+jest.mock('#~/redux/selectors', () => ({
+  ...jest.requireActual('#~/redux/selectors'),
   useUser: jest.fn(),
   useClusterInfo: jest.fn(),
 }));

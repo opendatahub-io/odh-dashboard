@@ -1,5 +1,5 @@
-import { SortableData, kebabTableColumn } from '~/components/table';
-import { StorageData } from '~/pages/projects/types';
+import { SortableData, kebabTableColumn } from '#~/components/table';
+import { StorageData } from '#~/pages/projects/types';
 import { MOUNT_PATH_PREFIX } from './const';
 
 export const clusterStorageTableColumns: SortableData<StorageData>[] = [

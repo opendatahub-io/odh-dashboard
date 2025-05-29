@@ -1,13 +1,13 @@
 import * as React from 'react';
 import { Td, Tr } from '@patternfly/react-table';
 import { Timestamp } from '@patternfly/react-core';
-import { WorkloadKind } from '~/k8sTypes';
+import { WorkloadKind } from '#~/k8sTypes';
 import {
   WorkloadStatusInfo,
   getWorkloadStatusMessage,
   getWorkloadName,
-} from '~/concepts/distributedWorkloads/utils';
-import { WorkloadStatusLabel } from '~/pages/distributedWorkloads/components/WorkloadStatusLabel';
+} from '#~/concepts/distributedWorkloads/utils';
+import { WorkloadStatusLabel } from '#~/pages/distributedWorkloads/components/WorkloadStatusLabel';
 
 type DWWorkloadsTableRowProps = {
   workload: WorkloadKind;

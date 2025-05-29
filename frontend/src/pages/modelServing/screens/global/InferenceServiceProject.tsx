@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { HelperText, HelperTextItem, Label, Skeleton } from '@patternfly/react-core';
-import { InferenceServiceKind } from '~/k8sTypes';
-import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
-import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
-import { isProjectNIMSupported } from '~/pages/modelServing/screens/projects/nimUtils';
+import { InferenceServiceKind } from '#~/k8sTypes';
+import { byName, ProjectsContext } from '#~/concepts/projects/ProjectsContext';
+import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
+import { isProjectNIMSupported } from '#~/pages/modelServing/screens/projects/nimUtils';
 
 type InferenceServiceProjectProps = {
   inferenceService: InferenceServiceKind;

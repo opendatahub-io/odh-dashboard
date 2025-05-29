@@ -1,7 +1,7 @@
 import * as React from 'react';
-import { PipelineCoreResourceKF } from '~/concepts/pipelines/kfTypes';
-import useNotification from '~/utilities/useNotification';
-import { PipelineRunType } from '~/pages/pipelines/global/runs/types';
+import { PipelineCoreResourceKF } from '#~/concepts/pipelines/kfTypes';
+import useNotification from '#~/utilities/useNotification';
+import { PipelineRunType } from '#~/pages/pipelines/global/runs/types';
 import { getPipelineResourceUniqueID } from './utils';
 
 type DeleteStatusesProps = {

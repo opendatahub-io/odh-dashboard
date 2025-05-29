@@ -25,16 +25,16 @@ import {
   WorkloadCondition,
   WorkloadKind,
   WorkloadOwnerType,
-} from '~/k8sTypes';
-import { ContainerResourceAttributes } from '~/types';
+} from '#~/k8sTypes';
+import { ContainerResourceAttributes } from '#~/types';
 import {
   CPU_UNITS,
   MEMORY_UNITS_FOR_PARSING,
   UnitOption,
   convertToUnit,
-} from '~/utilities/valueUnits';
-import { WorkloadWithUsage } from '~/api';
-import { isEnumMember } from '~/utilities/utils';
+} from '#~/utilities/valueUnits';
+import { WorkloadWithUsage } from '#~/api';
+import { isEnumMember } from '#~/utilities/utils';
 
 export enum WorkloadStatusType {
   Pending = 'Pending',

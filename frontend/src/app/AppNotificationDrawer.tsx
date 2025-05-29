@@ -18,10 +18,10 @@ import {
   StackItem,
 } from '@patternfly/react-core';
 import { TimesIcon } from '@patternfly/react-icons';
-import { AppNotification } from '~/redux/types';
-import { ackNotification, removeNotification } from '~/redux/actions/actions';
-import { calculateRelativeTime } from '~/utilities/utils';
-import { useAppDispatch, useAppSelector } from '~/redux/hooks';
+import { AppNotification } from '#~/redux/types';
+import { ackNotification, removeNotification } from '#~/redux/actions/actions';
+import { calculateRelativeTime } from '#~/utilities/utils';
+import { useAppDispatch, useAppSelector } from '#~/redux/hooks';
 
 interface AppNotificationDrawerProps {
   onClose: () => void;

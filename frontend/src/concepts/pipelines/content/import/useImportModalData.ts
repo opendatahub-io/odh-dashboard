@@ -2,9 +2,9 @@ import React from 'react';
 import {
   PipelineUploadOption,
   generatePipelineVersionName,
-} from '~/concepts/pipelines/content/import/utils';
-import { PipelineKF } from '~/concepts/pipelines/kfTypes';
-import useGenericObjectState, { GenericObjectState } from '~/utilities/useGenericObjectState';
+} from '#~/concepts/pipelines/content/import/utils';
+import { PipelineKF } from '#~/concepts/pipelines/kfTypes';
+import useGenericObjectState, { GenericObjectState } from '#~/utilities/useGenericObjectState';
 
 export type PipelineImportData = {
   name: string;

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
+import { PipelineKF, PipelineVersionKF } from '#~/concepts/pipelines/kfTypes';
 
 type PipelineAndVersionContextType = {
   pipelineDataSelector: () => {

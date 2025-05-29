@@ -8,18 +8,18 @@ import {
   ModalHeader,
   ModalFooter,
 } from '@patternfly/react-core';
-import { getPipelinesCR, toggleInstructLabState } from '~/api';
-import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
+import { getPipelinesCR, toggleInstructLabState } from '#~/api';
+import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
 import {
   NotificationResponseStatus,
   NotificationWatcherContext,
   NotificationWatcherResponse,
-} from '~/concepts/notificationWatcher/NotificationWatcherContext';
-import InstructLabPipelineEnablement from '~/concepts/pipelines/content/configurePipelinesServer/InstructLabPipelineEnablement';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { DSPipelineManagedPipelinesKind } from '~/k8sTypes';
-import { ILAB_PIPELINE_NAME } from '~/pages/pipelines/global/modelCustomization/const';
-import useNotification from '~/utilities/useNotification';
+} from '#~/concepts/notificationWatcher/NotificationWatcherContext';
+import InstructLabPipelineEnablement from '#~/concepts/pipelines/content/configurePipelinesServer/InstructLabPipelineEnablement';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+import { DSPipelineManagedPipelinesKind } from '#~/k8sTypes';
+import { ILAB_PIPELINE_NAME } from '#~/pages/pipelines/global/modelCustomization/const';
+import useNotification from '#~/utilities/useNotification';
 
 type ManageSamplePipelinesModalProps = {
   onClose: () => void;

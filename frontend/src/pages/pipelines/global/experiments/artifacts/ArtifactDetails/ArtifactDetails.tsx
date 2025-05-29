@@ -16,15 +16,15 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 
-import { PipelineCoreDetailsPageComponent } from '~/concepts/pipelines/content/types';
-import ApplicationsPage from '~/pages/ApplicationsPage';
+import { PipelineCoreDetailsPageComponent } from '#~/concepts/pipelines/content/types';
+import ApplicationsPage from '#~/pages/ApplicationsPage';
 import {
   getArtifactName,
   getIsArtifactModelRegistered,
-} from '~/pages/pipelines/global/experiments/artifacts/utils';
-import { ArtifactDetailsTabKey } from '~/pages/pipelines/global/experiments/artifacts/constants';
-import { useGetArtifactById } from '~/concepts/pipelines/apiHooks/mlmd/useGetArtifactById';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+} from '#~/pages/pipelines/global/experiments/artifacts/utils';
+import { ArtifactDetailsTabKey } from '#~/pages/pipelines/global/experiments/artifacts/constants';
+import { useGetArtifactById } from '#~/concepts/pipelines/apiHooks/mlmd/useGetArtifactById';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import { ArtifactOverviewDetails } from './ArtifactOverviewDetails';
 import ArtifactDetailsTitle from './ArtifactDetailsTitle';
 

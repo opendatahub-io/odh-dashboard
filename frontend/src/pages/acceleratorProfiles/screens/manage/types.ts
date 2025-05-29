@@ -1,4 +1,4 @@
-import { AcceleratorProfileKind } from '~/k8sTypes';
+import { AcceleratorProfileKind } from '#~/k8sTypes';
 
 export enum ManageAcceleratorProfileSectionID {
   DETAILS = 'details',

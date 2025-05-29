@@ -4,11 +4,11 @@ import {
   resourcesArePositive,
   setUpTokenAuth,
   isOciModelUri,
-} from '~/pages/modelServing/utils';
-import { mockServingRuntimeK8sResource } from '~/__mocks__/mockServingRuntimeK8sResource';
-import { ContainerResources } from '~/types';
-import { mockServiceAccountK8sResource } from '~/__mocks__/mockServiceAccountK8sResource';
-import { mockRoleBindingK8sResource } from '~/__mocks__/mockRoleBindingK8sResource';
+} from '#~/pages/modelServing/utils';
+import { mockServingRuntimeK8sResource } from '#~/__mocks__/mockServingRuntimeK8sResource';
+import { ContainerResources } from '#~/types';
+import { mockServiceAccountK8sResource } from '#~/__mocks__/mockServiceAccountK8sResource';
+import { mockRoleBindingK8sResource } from '#~/__mocks__/mockRoleBindingK8sResource';
 import {
   createRole,
   createRoleBinding,
@@ -17,13 +17,13 @@ import {
   getRole,
   getRoleBinding,
   getServiceAccount,
-} from '~/api';
-import { mock404Error } from '~/__mocks__/mockK8sStatus';
-import { mockInferenceServiceK8sResource } from '~/__mocks__/mockInferenceServiceK8sResource';
-import { mockRoleK8sResource } from '~/__mocks__/mockRoleK8sResource';
+} from '#~/api';
+import { mock404Error } from '#~/__mocks__/mockK8sStatus';
+import { mockInferenceServiceK8sResource } from '#~/__mocks__/mockInferenceServiceK8sResource';
+import { mockRoleK8sResource } from '#~/__mocks__/mockRoleK8sResource';
 
-jest.mock('~/api', () => ({
-  ...jest.requireActual('~/api'),
+jest.mock('#~/api', () => ({
+  ...jest.requireActual('#~/api'),
   getServiceAccount: jest.fn(),
   createServiceAccount: jest.fn(),
   getRoleBinding: jest.fn(),

@@ -1,4 +1,4 @@
-import { PrometheusQueryResponse } from '~/types';
+import { PrometheusQueryResponse } from '#~/types';
 
 type MockPrometheusQueryVectorResponseType<TResultExtraProps extends object = object> = {
   result?: PrometheusQueryResponse<TResultExtraProps>['data']['result'];

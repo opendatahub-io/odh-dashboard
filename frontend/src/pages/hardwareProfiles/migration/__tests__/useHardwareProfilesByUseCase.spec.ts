@@ -1,14 +1,14 @@
-import { testHook } from '~/__tests__/unit/testUtils/hooks';
-import { mockHardwareProfile } from '~/__mocks__/mockHardwareProfile';
-import { HardwareProfileFeatureVisibility } from '~/k8sTypes';
-import useMigratedHardwareProfiles from '~/pages/hardwareProfiles/migration/useMigratedHardwareProfiles';
-import { useHardwareProfilesByFeatureVisibility } from '~/pages/hardwareProfiles/migration/useHardwareProfilesByFeatureVisibility';
-import { useWatchHardwareProfiles } from '~/utilities/useWatchHardwareProfiles';
-import { useDashboardNamespace } from '~/redux/selectors';
+import { testHook } from '#~/__tests__/unit/testUtils/hooks';
+import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile';
+import { HardwareProfileFeatureVisibility } from '#~/k8sTypes';
+import useMigratedHardwareProfiles from '#~/pages/hardwareProfiles/migration/useMigratedHardwareProfiles';
+import { useHardwareProfilesByFeatureVisibility } from '#~/pages/hardwareProfiles/migration/useHardwareProfilesByFeatureVisibility';
+import { useWatchHardwareProfiles } from '#~/utilities/useWatchHardwareProfiles';
+import { useDashboardNamespace } from '#~/redux/selectors';
 
 jest.mock('../useMigratedHardwareProfiles');
-jest.mock('~/utilities/useWatchHardwareProfiles');
-jest.mock('~/redux/selectors');
+jest.mock('#~/utilities/useWatchHardwareProfiles');
+jest.mock('#~/redux/selectors');
 
 const mockUseMigratedHardwareProfiles = jest.mocked(useMigratedHardwareProfiles);
 const mockUseWatchHardwareProfiles = jest.mocked(useWatchHardwareProfiles);

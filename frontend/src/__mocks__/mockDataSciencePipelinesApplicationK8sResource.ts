@@ -1,4 +1,4 @@
-import { DSPipelineKind } from '~/k8sTypes';
+import { DSPipelineKind } from '#~/k8sTypes';
 
 type MockResourceConfigType = {
   name?: string;

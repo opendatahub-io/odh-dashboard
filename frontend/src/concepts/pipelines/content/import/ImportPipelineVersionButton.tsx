@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { Button } from '@patternfly/react-core';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
-import PipelineVersionImportModal from '~/concepts/pipelines/content/import/PipelineVersionImportModal';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+import { PipelineKF, PipelineVersionKF } from '#~/concepts/pipelines/kfTypes';
+import PipelineVersionImportModal from '#~/concepts/pipelines/content/import/PipelineVersionImportModal';
 
 type ImportPipelineVersionButtonProps = {
   selectedPipeline: PipelineKF | null;

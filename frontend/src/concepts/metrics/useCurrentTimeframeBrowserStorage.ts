@@ -1,8 +1,8 @@
 import {
   SetBrowserStorageHook,
   useBrowserStorage,
-} from '~/components/browserStorage/BrowserStorageContext';
-import { TimeframeTitle } from '~/concepts/metrics/types';
+} from '#~/components/browserStorage/BrowserStorageContext';
+import { TimeframeTitle } from '#~/concepts/metrics/types';
 
 const useCurrentTimeframeBrowserStorage = (): [
   TimeframeTitle,

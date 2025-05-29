@@ -1,24 +1,24 @@
-import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
-import { mockDataSciencePipelineApplicationK8sResource } from '~/__mocks__/mockDataSciencePipelinesApplicationK8sResource';
-import { mockDscStatus } from '~/__mocks__/mockDscStatus';
-import { mockImageStreamK8sResource } from '~/__mocks__/mockImageStreamK8sResource';
-import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
-import { mockNotebookK8sResource } from '~/__mocks__/mockNotebookK8sResource';
-import { mockPVCK8sResource } from '~/__mocks__/mockPVCK8sResource';
-import { mockPipelineKF } from '~/__mocks__/mockPipelineKF';
-import { buildMockPipelines } from '~/__mocks__/mockPipelinesProxy';
-import { mockPodK8sResource } from '~/__mocks__/mockPodK8sResource';
-import { mockServiceAccountK8sResource } from '~/__mocks__/mockServiceAccountK8sResource';
-import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
-import { mockRouteK8sResource } from '~/__mocks__/mockRouteK8sResource';
-import { mockSecretK8sResource } from '~/__mocks__/mockSecretK8sResource';
-import { mockServingRuntimeTemplateK8sResource } from '~/__mocks__/mockServingRuntimeTemplateK8sResource';
+import { mockDashboardConfig } from '#~/__mocks__/mockDashboardConfig';
+import { mockDataSciencePipelineApplicationK8sResource } from '#~/__mocks__/mockDataSciencePipelinesApplicationK8sResource';
+import { mockDscStatus } from '#~/__mocks__/mockDscStatus';
+import { mockImageStreamK8sResource } from '#~/__mocks__/mockImageStreamK8sResource';
+import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
+import { mockNotebookK8sResource } from '#~/__mocks__/mockNotebookK8sResource';
+import { mockPVCK8sResource } from '#~/__mocks__/mockPVCK8sResource';
+import { mockPipelineKF } from '#~/__mocks__/mockPipelineKF';
+import { buildMockPipelines } from '#~/__mocks__/mockPipelinesProxy';
+import { mockPodK8sResource } from '#~/__mocks__/mockPodK8sResource';
+import { mockServiceAccountK8sResource } from '#~/__mocks__/mockServiceAccountK8sResource';
+import { mockProjectK8sResource } from '#~/__mocks__/mockProjectK8sResource';
+import { mockRouteK8sResource } from '#~/__mocks__/mockRouteK8sResource';
+import { mockSecretK8sResource } from '#~/__mocks__/mockSecretK8sResource';
+import { mockServingRuntimeTemplateK8sResource } from '#~/__mocks__/mockServingRuntimeTemplateK8sResource';
 import {
   deleteProjectModal,
   editProjectModal,
   projectDetails,
-} from '~/__tests__/cypress/cypress/pages/projects';
-import { ServingRuntimePlatform } from '~/types';
+} from '#~/__tests__/cypress/cypress/pages/projects';
+import { ServingRuntimePlatform } from '#~/types';
 import {
   DataSciencePipelineApplicationModel,
   ImageStreamModel,
@@ -33,15 +33,18 @@ import {
   ServiceAccountModel,
   ServingRuntimeModel,
   TemplateModel,
-} from '~/__tests__/cypress/cypress/utils/models';
-import { mockServingRuntimeK8sResource } from '~/__mocks__/mockServingRuntimeK8sResource';
-import { mockInferenceServiceK8sResource } from '~/__mocks__/mockInferenceServiceK8sResource';
-import { asProjectAdminUser, asProjectEditUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
-import { NamespaceApplicationCase } from '~/pages/projects/types';
-import { mockNimServingRuntimeTemplate } from '~/__mocks__/mockNimResource';
-import { mockNimAccount } from '~/__mocks__/mockNimAccount';
-import { mockOdhApplication } from '~/__mocks__/mockOdhApplication';
-import type { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
+} from '#~/__tests__/cypress/cypress/utils/models';
+import { mockServingRuntimeK8sResource } from '#~/__mocks__/mockServingRuntimeK8sResource';
+import { mockInferenceServiceK8sResource } from '#~/__mocks__/mockInferenceServiceK8sResource';
+import {
+  asProjectAdminUser,
+  asProjectEditUser,
+} from '#~/__tests__/cypress/cypress/utils/mockUsers';
+import { NamespaceApplicationCase } from '#~/pages/projects/types';
+import { mockNimServingRuntimeTemplate } from '#~/__mocks__/mockNimResource';
+import { mockNimAccount } from '#~/__mocks__/mockNimAccount';
+import { mockOdhApplication } from '#~/__mocks__/mockOdhApplication';
+import type { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
 
 type HandlersProps = {
   isEmpty?: boolean;

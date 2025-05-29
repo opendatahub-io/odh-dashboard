@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Bullseye, EmptyState, EmptyStateBody, Spinner } from '@patternfly/react-core';
 import { Route, Routes } from 'react-router-dom';
-import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
+import { ProjectsContext } from '#~/concepts/projects/ProjectsContext';
 
 type ProjectsRoutesProps = {
   children: React.ReactNode;

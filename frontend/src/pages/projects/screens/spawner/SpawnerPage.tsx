@@ -13,42 +13,42 @@ import {
   StackItem,
   Truncate,
 } from '@patternfly/react-core';
-import ApplicationsPage from '~/pages/ApplicationsPage';
-import { ImageStreamAndVersion } from '~/types';
-import ExtendedButton from '~/components/ExtendedButton';
-import GenericSidebar from '~/components/GenericSidebar';
-import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import { HardwareProfileKind, HardwareProfileFeatureVisibility, NotebookKind } from '~/k8sTypes';
-import useNotebookImageData from '~/pages/projects/screens/detail/notebooks/useNotebookImageData';
-import NotebookRestartAlert from '~/pages/projects/components/NotebookRestartAlert';
-import useWillNotebooksRestart from '~/pages/projects/notebook/useWillNotebooksRestart';
-import CanEnableElyraPipelinesCheck from '~/concepts/pipelines/elyra/CanEnableElyraPipelinesCheck';
-import AcceleratorProfileSelectField from '~/pages/notebookController/screens/server/AcceleratorProfileSelectField';
+import ApplicationsPage from '#~/pages/ApplicationsPage';
+import { ImageStreamAndVersion } from '#~/types';
+import ExtendedButton from '#~/components/ExtendedButton';
+import GenericSidebar from '#~/components/GenericSidebar';
+import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
+import { HardwareProfileKind, HardwareProfileFeatureVisibility, NotebookKind } from '#~/k8sTypes';
+import useNotebookImageData from '#~/pages/projects/screens/detail/notebooks/useNotebookImageData';
+import NotebookRestartAlert from '#~/pages/projects/components/NotebookRestartAlert';
+import useWillNotebooksRestart from '#~/pages/projects/notebook/useWillNotebooksRestart';
+import CanEnableElyraPipelinesCheck from '#~/concepts/pipelines/elyra/CanEnableElyraPipelinesCheck';
+import AcceleratorProfileSelectField from '#~/pages/notebookController/screens/server/AcceleratorProfileSelectField';
 import {
   NotebookImageAvailability,
   NotebookImageStatus,
-} from '~/pages/projects/screens/detail/notebooks/const';
-import useProjectPvcs from '~/pages/projects/screens/detail/storage/useProjectPvcs';
+} from '#~/pages/projects/screens/detail/notebooks/const';
+import useProjectPvcs from '#~/pages/projects/screens/detail/storage/useProjectPvcs';
 import {
   getDisplayNameFromK8sResource,
   getResourceNameFromK8sResource,
-} from '~/concepts/k8s/utils';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+} from '#~/concepts/k8s/utils';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
-} from '~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
-import { LimitNameResourceType } from '~/concepts/k8s/K8sNameDescriptionField/utils';
-import { Connection } from '~/concepts/connectionTypes/types';
-import { StorageData, StorageType } from '~/pages/projects/types';
-import useNotebookPVCItems from '~/pages/projects/pvc/useNotebookPVCItems';
-import { getNotebookPVCMountPathMap } from '~/pages/projects/notebook/utils';
-import { getNotebookPVCNames } from '~/pages/projects/pvc/utils';
-import HardwareProfileFormSection from '~/concepts/hardwareProfiles/HardwareProfileFormSection';
+} from '#~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
+import { LimitNameResourceType } from '#~/concepts/k8s/K8sNameDescriptionField/utils';
+import { Connection } from '#~/concepts/connectionTypes/types';
+import { StorageData, StorageType } from '#~/pages/projects/types';
+import useNotebookPVCItems from '#~/pages/projects/pvc/useNotebookPVCItems';
+import { getNotebookPVCMountPathMap } from '#~/pages/projects/notebook/utils';
+import { getNotebookPVCNames } from '#~/pages/projects/pvc/utils';
+import HardwareProfileFormSection from '#~/concepts/hardwareProfiles/HardwareProfileFormSection';
 import {
   useProfileIdentifiers,
   doesImageStreamSupportHardwareProfile,
-} from '~/concepts/hardwareProfiles/utils';
-import { useNotebookKindPodSpecOptionsState } from '~/concepts/hardwareProfiles/useNotebookPodSpecOptionsState';
+} from '#~/concepts/hardwareProfiles/utils';
+import { useNotebookKindPodSpecOptionsState } from '#~/concepts/hardwareProfiles/useNotebookPodSpecOptionsState';
 import { SpawnerPageSectionID } from './types';
 import {
   K8_NOTEBOOK_RESOURCE_NAME_VALIDATOR,

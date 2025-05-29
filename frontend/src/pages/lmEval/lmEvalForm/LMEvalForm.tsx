@@ -18,9 +18,9 @@ import {
   Truncate,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
-import { LmEvalFormData, LmModelArgument } from '~/pages/lmEval/types';
-import LMEvalApplicationPage from '~/pages/lmEval/components/LMEvalApplicationPage';
-import useLMGenericObjectState from '~/pages/lmEval/utilities/useLMGenericObjectState';
+import { LmEvalFormData, LmModelArgument } from '#~/pages/lmEval/types';
+import LMEvalApplicationPage from '#~/pages/lmEval/components/LMEvalApplicationPage';
+import useLMGenericObjectState from '#~/pages/lmEval/utilities/useLMGenericObjectState';
 import LmEvaluationFormFooter from './LMEvalFormFooter';
 import LmEvaluationTaskSection from './LMEvalTaskSection';
 import LmEvaluationSecuritySection from './LMEvalSecuritySection';

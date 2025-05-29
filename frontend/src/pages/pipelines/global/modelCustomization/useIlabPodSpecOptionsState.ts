@@ -1,15 +1,15 @@
 import React from 'react';
-import { useIsAreaAvailable, SupportedArea } from '~/concepts/areas';
-import { ContainerResources, NodeSelector, Toleration } from '~/types';
+import { useIsAreaAvailable, SupportedArea } from '#~/concepts/areas';
+import { ContainerResources, NodeSelector, Toleration } from '#~/types';
 import {
   AcceleratorProfileKind,
   HardwareProfileFeatureVisibility,
   HardwareProfileKind,
-} from '~/k8sTypes';
-import useAcceleratorProfileFormState from '~/utilities/useAcceleratorProfileFormState';
-import { useHardwareProfileConfig } from '~/concepts/hardwareProfiles/useHardwareProfileConfig';
-import { PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
-import { HardwareFormData } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/validationUtils';
+} from '#~/k8sTypes';
+import useAcceleratorProfileFormState from '#~/utilities/useAcceleratorProfileFormState';
+import { useHardwareProfileConfig } from '#~/concepts/hardwareProfiles/useHardwareProfileConfig';
+import { PipelineVersionKF } from '#~/concepts/pipelines/kfTypes';
+import { HardwareFormData } from '#~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/validationUtils';
 import { CONTAINER_RESOURCE_DEFAULT, KnownFineTuningPipelineParameters } from './const';
 import { getParamsValueFromPipelineInput } from './utils';
 

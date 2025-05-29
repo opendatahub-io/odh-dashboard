@@ -1,11 +1,11 @@
 import React from 'react';
-import { getHardwareProfile } from '~/api';
-import { HardwareProfileKind } from '~/k8sTypes';
+import { getHardwareProfile } from '#~/api';
+import { HardwareProfileKind } from '#~/k8sTypes';
 import useFetchState, {
   FetchState,
   FetchStateCallbackPromise,
   NotReadyError,
-} from '~/utilities/useFetchState';
+} from '#~/utilities/useFetchState';
 
 const useHardwareProfile = (
   namespace: string,

@@ -11,8 +11,8 @@ import {
   Truncate,
 } from '@patternfly/react-core';
 import { QuestionCircleIcon } from '@patternfly/react-icons';
-import { Toleration, NodeSelector, ContainerResources } from '~/types';
-import { HardwareProfileKind } from '~/k8sTypes';
+import { Toleration, NodeSelector, ContainerResources } from '#~/types';
+import { HardwareProfileKind } from '#~/k8sTypes';
 import { formatToleration, formatNodeSelector, formatResource, formatResourceValue } from './utils';
 
 type HardwareProfileDetailsPopoverProps = {

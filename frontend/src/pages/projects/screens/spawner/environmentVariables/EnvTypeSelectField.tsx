@@ -1,10 +1,10 @@
 import * as React from 'react';
 import { Button, FormGroup, Split, SplitItem, Stack, StackItem } from '@patternfly/react-core';
 import { MinusCircleIcon } from '@patternfly/react-icons';
-import { EnvironmentVariableType, EnvVariable } from '~/pages/projects/types';
-import IndentSection from '~/pages/projects/components/IndentSection';
-import { asEnumMember, getDashboardMainContainer } from '~/utilities/utils';
-import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
+import { EnvironmentVariableType, EnvVariable } from '#~/pages/projects/types';
+import IndentSection from '#~/pages/projects/components/IndentSection';
+import { asEnumMember, getDashboardMainContainer } from '#~/utilities/utils';
+import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
 import EnvTypeSwitch from './EnvTypeSwitch';
 
 type EnvTypeSelectFieldProps = {

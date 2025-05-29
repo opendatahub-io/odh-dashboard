@@ -1,7 +1,7 @@
-import { InferenceServiceKind, ProjectKind, PodKind } from '~/k8sTypes';
-import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
-import { InferenceServiceModelState, ModelStatus } from '~/pages/modelServing/screens/types';
-import { asEnumMember } from '~/utilities/utils';
+import { InferenceServiceKind, ProjectKind, PodKind } from '#~/k8sTypes';
+import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
+import { InferenceServiceModelState, ModelStatus } from '#~/pages/modelServing/screens/types';
+import { asEnumMember } from '#~/utilities/utils';
 
 export const getInferenceServiceModelState = (
   is: InferenceServiceKind,

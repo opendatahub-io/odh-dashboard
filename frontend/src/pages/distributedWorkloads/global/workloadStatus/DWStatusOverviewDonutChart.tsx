@@ -1,14 +1,14 @@
 import * as React from 'react';
 import { ChartDonut, ChartLegend, ChartContainer } from '@patternfly/react-charts/victory';
-import EmptyStateErrorMessage from '~/components/EmptyStateErrorMessage';
-import { DistributedWorkloadsContext } from '~/concepts/distributedWorkloads/DistributedWorkloadsContext';
+import EmptyStateErrorMessage from '#~/components/EmptyStateErrorMessage';
+import { DistributedWorkloadsContext } from '#~/concepts/distributedWorkloads/DistributedWorkloadsContext';
 import {
   WorkloadStatusColorAndIcon,
   WorkloadStatusType,
   getStatusCounts,
-} from '~/concepts/distributedWorkloads/utils';
-import { LoadingState } from '~/pages/distributedWorkloads/components/LoadingState';
-import { NoWorkloadState } from '~/pages/distributedWorkloads/components/NoWorkloadState';
+} from '#~/concepts/distributedWorkloads/utils';
+import { LoadingState } from '#~/pages/distributedWorkloads/components/LoadingState';
+import { NoWorkloadState } from '#~/pages/distributedWorkloads/components/NoWorkloadState';
 
 export const DWStatusOverviewDonutChart: React.FC = () => {
   const { workloads } = React.useContext(DistributedWorkloadsContext);

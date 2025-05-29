@@ -3,15 +3,15 @@ import {
   k8sGetResource,
   k8sListResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { mockLMEvaluation } from '~/__mocks__/mockLMEvaluation';
-import { LMEvalModel } from '~/api/models';
-import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
+import { mockLMEvaluation } from '#~/__mocks__/mockLMEvaluation';
+import { LMEvalModel } from '#~/api/models';
+import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
 import {
   listModelEvaluations,
   createModelEvaluation,
   getModelEvaluationResult,
-} from '~/api/k8s/lmEval';
-import { LMEvaluationKind } from '~/k8sTypes';
+} from '#~/api/k8s/lmEval';
+import { LMEvaluationKind } from '#~/k8sTypes';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sListResource: jest.fn(),
@@ -19,7 +19,7 @@ jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sCreateResource: jest.fn(),
 }));
 
-jest.mock('~/concepts/k8s/utils', () => ({
+jest.mock('#~/concepts/k8s/utils', () => ({
   kindApiVersion: jest.fn(() => 'trustyai.opendatahub.io/v1alpha1'),
   translateDisplayNameForK8s: jest.fn((name) => name.toLowerCase().replace(/\s+/g, '-')),
 }));

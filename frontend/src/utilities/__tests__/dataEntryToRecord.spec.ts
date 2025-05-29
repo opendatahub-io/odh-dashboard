@@ -1,4 +1,4 @@
-import { dataEntryToRecord } from '~/utilities/dataEntryToRecord';
+import { dataEntryToRecord } from '#~/utilities/dataEntryToRecord';
 
 describe('dataEntryToRecord', () => {
   it('should convert data entry to record', () => {

@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { InputGroup, SearchInput, InputGroupItem } from '@patternfly/react-core';
 import { FilterIcon } from '@patternfly/react-icons';
-import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
-import { asEnumMember } from '~/utilities/utils';
+import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
+import { asEnumMember } from '#~/utilities/utils';
 
 // List all the possible search fields here
 export enum SearchType {

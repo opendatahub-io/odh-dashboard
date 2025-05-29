@@ -1,13 +1,13 @@
-import { LDAP_CONTRIBUTOR_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
+import { LDAP_CONTRIBUTOR_USER } from '#~/__tests__/cypress/cypress/utils/e2eUsers';
 import {
   provisionClusterStorageSCFeature,
   tearDownClusterStorageSCFeature,
-} from '~/__tests__/cypress/cypress/utils/storageClass';
-import { addClusterStorageModal } from '~/__tests__/cypress/cypress/pages/clusterStorage';
-import { projectDetails, projectListPage } from '~/__tests__/cypress/cypress/pages/projects';
-import { findAddClusterStorageButton } from '~/__tests__/cypress/cypress/utils/clusterStorage';
-import { disableNonDefaultStorageClasses } from '~/__tests__/cypress/cypress/utils/oc_commands/storageClass';
-import { retryableBefore } from '~/__tests__/cypress/cypress/utils/retryableHooks';
+} from '#~/__tests__/cypress/cypress/utils/storageClass';
+import { addClusterStorageModal } from '#~/__tests__/cypress/cypress/pages/clusterStorage';
+import { projectDetails, projectListPage } from '#~/__tests__/cypress/cypress/pages/projects';
+import { findAddClusterStorageButton } from '#~/__tests__/cypress/cypress/utils/clusterStorage';
+import { disableNonDefaultStorageClasses } from '#~/__tests__/cypress/cypress/utils/oc_commands/storageClass';
+import { retryableBefore } from '#~/__tests__/cypress/cypress/utils/retryableHooks';
 
 const dspName = 'qe-cluster-storage-sc-dsp';
 

@@ -14,7 +14,7 @@ import {
 } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
-import { CUSTOM_VARIABLE, EMPTY_KEY, ENV_VAR_NAME_REGEX } from '~/pages/notebookController/const';
+import { CUSTOM_VARIABLE, EMPTY_KEY, ENV_VAR_NAME_REGEX } from '#~/pages/notebookController/const';
 import {
   ConfigMap,
   EnvVarResourceType,
@@ -24,30 +24,30 @@ import {
   NotebookState,
   Secret,
   VariableRow,
-} from '~/types';
-import { checkOrder, getDefaultTag, isImageTagBuildValid } from '~/utilities/imageUtils';
-import { enableNotebook, stopNotebook } from '~/services/notebookService';
+} from '#~/types';
+import { checkOrder, getDefaultTag, isImageTagBuildValid } from '#~/utilities/imageUtils';
+import { enableNotebook, stopNotebook } from '#~/services/notebookService';
 import {
   classifyEnvVars,
   generateEnvVarFileNameFromUsername,
   useNotebookUserState,
   verifyResource,
-} from '~/utilities/notebookControllerUtils';
-import { useAppContext } from '~/app/AppContext';
-import { useWatchImages } from '~/utilities/useWatchImages';
-import ApplicationsPage from '~/pages/ApplicationsPage';
-import useNotification from '~/utilities/useNotification';
-import { NotebookControllerContext } from '~/pages/notebookController/NotebookControllerContext';
-import ImpersonateAlert from '~/pages/notebookController/screens/admin/ImpersonateAlert';
-import useNamespaces from '~/pages/notebookController/useNamespaces';
-import { getEnvConfigMap, getEnvSecret } from '~/services/envService';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
-import useAdminDefaultStorageClass from '~/pages/projects/screens/spawner/storage/useAdminDefaultStorageClass';
-import HardwareProfileFormSection from '~/concepts/hardwareProfiles/HardwareProfileFormSection';
-import { useNotebookPodSpecOptionsState } from '~/concepts/hardwareProfiles/useNotebookPodSpecOptionsState';
-import { HardwareProfileFeatureVisibility } from '~/k8sTypes';
+} from '#~/utilities/notebookControllerUtils';
+import { useAppContext } from '#~/app/AppContext';
+import { useWatchImages } from '#~/utilities/useWatchImages';
+import ApplicationsPage from '#~/pages/ApplicationsPage';
+import useNotification from '#~/utilities/useNotification';
+import { NotebookControllerContext } from '#~/pages/notebookController/NotebookControllerContext';
+import ImpersonateAlert from '#~/pages/notebookController/screens/admin/ImpersonateAlert';
+import useNamespaces from '#~/pages/notebookController/useNamespaces';
+import { getEnvConfigMap, getEnvSecret } from '#~/services/envService';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
+import useAdminDefaultStorageClass from '#~/pages/projects/screens/spawner/storage/useAdminDefaultStorageClass';
+import HardwareProfileFormSection from '#~/concepts/hardwareProfiles/HardwareProfileFormSection';
+import { useNotebookPodSpecOptionsState } from '#~/concepts/hardwareProfiles/useNotebookPodSpecOptionsState';
+import { HardwareProfileFeatureVisibility } from '#~/k8sTypes';
 import SizeSelectField from './SizeSelectField';
 import useSpawnerNotebookModalState from './useSpawnerNotebookModalState';
 import BrowserTabPreferenceCheckbox from './BrowserTabPreferenceCheckbox';
@@ -56,7 +56,7 @@ import ImageSelector from './ImageSelector';
 import StartServerModal from './StartServerModal';
 import AcceleratorProfileSelectField from './AcceleratorProfileSelectField';
 
-import '~/pages/notebookController/NotebookController.scss';
+import '#~/pages/notebookController/NotebookController.scss';
 
 const SpawnerPage: React.FC = () => {
   const navigate = useNavigate();

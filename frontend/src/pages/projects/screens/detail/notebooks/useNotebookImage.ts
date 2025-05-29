@@ -1,9 +1,9 @@
-import { NotebookKind } from '~/k8sTypes';
+import { NotebookKind } from '#~/k8sTypes';
 import {
   getImageStreamDisplayName,
   getImageVersionDependencies,
   getImageVersionSoftwareString,
-} from '~/pages/projects/screens/spawner/spawnerUtils';
+} from '#~/pages/projects/screens/spawner/spawnerUtils';
 import useNotebookImageData from './useNotebookImageData';
 import { NotebookImageStatus } from './const';
 import { NotebookImage } from './types';

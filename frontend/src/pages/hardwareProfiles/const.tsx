@@ -1,11 +1,11 @@
 import React from 'react';
-import { SortableData } from '~/components/table';
-import { HardwareProfileKind } from '~/k8sTypes';
+import { SortableData } from '#~/components/table';
+import { HardwareProfileKind } from '#~/k8sTypes';
 import {
   ManageHardwareProfileSectionID,
   ManageHardwareProfileSectionTitlesType,
-} from '~/pages/hardwareProfiles/manage/types';
-import { IdentifierResourceType } from '~/types';
+} from '#~/pages/hardwareProfiles/manage/types';
+import { IdentifierResourceType } from '#~/types';
 
 export const hardwareProfileColumns: SortableData<HardwareProfileKind>[] = [
   {

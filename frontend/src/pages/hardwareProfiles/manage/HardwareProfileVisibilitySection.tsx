@@ -1,9 +1,9 @@
 import { FormGroup, Radio } from '@patternfly/react-core';
 import React from 'react';
-import { HardwareProfileFeatureVisibility } from '~/k8sTypes';
-import { MultiSelection, type SelectionOptions } from '~/components/MultiSelection';
-import DashboardHelpTooltip from '~/concepts/dashboard/DashboardHelpTooltip';
-import { ManageHardwareProfileSectionTitles } from '~/pages/hardwareProfiles/const';
+import { HardwareProfileFeatureVisibility } from '#~/k8sTypes';
+import { MultiSelection, type SelectionOptions } from '#~/components/MultiSelection';
+import DashboardHelpTooltip from '#~/concepts/dashboard/DashboardHelpTooltip';
+import { ManageHardwareProfileSectionTitles } from '#~/pages/hardwareProfiles/const';
 import { ManageHardwareProfileSectionID } from './types';
 import { HardwareProfileFeatureVisibilityTitles } from './const';
 

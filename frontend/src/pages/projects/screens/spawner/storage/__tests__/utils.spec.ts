@@ -3,17 +3,17 @@ import {
   useCreateStorageObject,
   useMountPathFormat,
   validateMountPath,
-} from '~/pages/projects/screens/spawner/storage/utils';
-import { MountPathFormat } from '~/pages/projects/screens/spawner/storage/types';
-import { MOUNT_PATH_PREFIX } from '~/pages/projects/screens/spawner/storage/const';
-import { PersistentVolumeClaimKind } from '~/k8sTypes';
+} from '#~/pages/projects/screens/spawner/storage/utils';
+import { MountPathFormat } from '#~/pages/projects/screens/spawner/storage/types';
+import { MOUNT_PATH_PREFIX } from '#~/pages/projects/screens/spawner/storage/const';
+import { PersistentVolumeClaimKind } from '#~/k8sTypes';
 
-jest.mock('~/pages/projects/screens/spawner/storage/useDefaultPvcSize.ts', () => ({
+jest.mock('#~/pages/projects/screens/spawner/storage/useDefaultPvcSize.ts', () => ({
   __esModule: true,
   default: jest.fn().mockReturnValue('1Gi'), // Set the default PVC size to 1Gi
 }));
 
-jest.mock('~/concepts/k8s/utils', () => ({
+jest.mock('#~/concepts/k8s/utils', () => ({
   getDisplayNameFromK8sResource: jest.fn(
     (data) => data?.metadata.annotations?.['openshift.io/display-name'] || '',
   ),

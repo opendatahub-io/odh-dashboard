@@ -1,12 +1,12 @@
 import React from 'react';
-import { HardwareProfileKind, HardwareProfileFeatureVisibility } from '~/k8sTypes';
-import { deleteAcceleratorProfile, patchModelServingSizes, patchNotebookSizes } from '~/api';
-import useAcceleratorProfiles from '~/pages/notebookController/screens/server/useAcceleratorProfiles';
-import { Toleration, TolerationEffect, TolerationOperator } from '~/types';
-import { DEFAULT_NOTEBOOK_SIZES } from '~/pages/notebookController/const';
-import { DEFAULT_MODEL_SERVER_SIZES } from '~/pages/modelServing/screens/const';
+import { HardwareProfileKind, HardwareProfileFeatureVisibility } from '#~/k8sTypes';
+import { deleteAcceleratorProfile, patchModelServingSizes, patchNotebookSizes } from '#~/api';
+import useAcceleratorProfiles from '#~/pages/notebookController/screens/server/useAcceleratorProfiles';
+import { Toleration, TolerationEffect, TolerationOperator } from '#~/types';
+import { DEFAULT_NOTEBOOK_SIZES } from '#~/pages/notebookController/const';
+import { DEFAULT_MODEL_SERVER_SIZES } from '#~/pages/modelServing/screens/const';
 
-import { useApplicationSettings } from '~/app/useApplicationSettings';
+import { useApplicationSettings } from '#~/app/useApplicationSettings';
 import {
   getMinMaxResourceSize,
   createAcceleratorHardwareProfiles,

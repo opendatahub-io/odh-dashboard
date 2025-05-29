@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { AppContext } from '~/app/AppContext';
+import { AppContext } from '#~/app/AppContext';
 
 const useDefaultPvcSize = (): string => {
   const {

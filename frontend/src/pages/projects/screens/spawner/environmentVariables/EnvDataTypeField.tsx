@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { Stack, StackItem } from '@patternfly/react-core';
-import IndentSection from '~/pages/projects/components/IndentSection';
-import { getDashboardMainContainer } from '~/utilities/utils';
-import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
+import IndentSection from '#~/pages/projects/components/IndentSection';
+import { getDashboardMainContainer } from '#~/utilities/utils';
+import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
 
 type EnvDataTypeFieldProps = {
   options: { [value: string]: { label: string; render: React.ReactNode } };

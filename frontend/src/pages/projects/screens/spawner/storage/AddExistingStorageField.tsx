@@ -1,10 +1,10 @@
 import * as React from 'react';
 import { Alert, FormGroup } from '@patternfly/react-core';
-import { ExistingStorageObject } from '~/pages/projects/types';
-import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
-import TypeaheadSelect, { TypeaheadSelectOption } from '~/components/TypeaheadSelect';
-import useProjectPvcs from '~/pages/projects/screens/detail/storage/useProjectPvcs';
+import { ExistingStorageObject } from '#~/pages/projects/types';
+import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
+import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
+import TypeaheadSelect, { TypeaheadSelectOption } from '#~/components/TypeaheadSelect';
+import useProjectPvcs from '#~/pages/projects/screens/detail/storage/useProjectPvcs';
 
 type AddExistingStorageFieldProps = {
   data: ExistingStorageObject;

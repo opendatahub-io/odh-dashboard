@@ -6,10 +6,10 @@ import {
   ValidatedOptions,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
-import { NumericField } from '~/concepts/connectionTypes/types';
-import NumberInputWrapper from '~/components/NumberInputWrapper';
-import { FieldProps } from '~/concepts/connectionTypes/fields/types';
-import DefaultValueTextRenderer from '~/concepts/connectionTypes/fields/DefaultValueTextRenderer';
+import { NumericField } from '#~/concepts/connectionTypes/types';
+import NumberInputWrapper from '#~/components/NumberInputWrapper';
+import { FieldProps } from '#~/concepts/connectionTypes/fields/types';
+import DefaultValueTextRenderer from '#~/concepts/connectionTypes/fields/DefaultValueTextRenderer';
 
 const rangeString = (min?: number, max?: number) => {
   if (min !== undefined && max !== undefined) {

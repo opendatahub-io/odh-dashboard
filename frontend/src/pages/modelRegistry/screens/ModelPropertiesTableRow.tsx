@@ -12,8 +12,8 @@ import {
   Truncate,
 } from '@patternfly/react-core';
 import { CheckIcon, ExternalLinkAltIcon, TimesIcon } from '@patternfly/react-icons';
-import { KeyValuePair } from '~/types';
-import { EitherNotBoth } from '~/typeHelpers';
+import { KeyValuePair } from '#~/types';
+import { EitherNotBoth } from '#~/typeHelpers';
 import { isValidHttpUrl } from './utils';
 
 type ModelPropertiesTableRowProps = {

@@ -19,9 +19,9 @@ import {
   ModalFooter,
 } from '@patternfly/react-core';
 
-import { StorageClassKind } from '~/k8sTypes';
-import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
-import { updateStorageClassConfig } from '~/api';
+import { StorageClassKind } from '#~/k8sTypes';
+import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
+import { updateStorageClassConfig } from '#~/api';
 import { getStorageClassConfig, isOpenshiftDefaultStorageClass, isValidConfigValue } from './utils';
 import { OpenshiftDefaultLabel } from './OpenshiftDefaultLabel';
 

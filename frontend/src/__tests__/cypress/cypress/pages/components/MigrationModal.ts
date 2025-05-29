@@ -1,5 +1,5 @@
 import type { ByRoleOptions } from '@testing-library/react';
-import { Modal } from '~/__tests__/cypress/cypress/pages/components/Modal';
+import { Modal } from '#~/__tests__/cypress/cypress/pages/components/Modal';
 
 export class MigrationModal extends Modal {
   constructor(title: ByRoleOptions['name'] = /Migrate hardware profile/) {

@@ -1,8 +1,8 @@
 import React from 'react';
 import { Stack, StackItem } from '@patternfly/react-core';
-import { deleteHardwareProfile } from '~/api';
-import { HardwareProfileKind } from '~/k8sTypes';
-import DeleteModal from '~/pages/projects/components/DeleteModal';
+import { deleteHardwareProfile } from '#~/api';
+import { HardwareProfileKind } from '#~/k8sTypes';
+import DeleteModal from '#~/pages/projects/components/DeleteModal';
 import { MigrationAction } from './migration/types';
 import { MIGRATION_SOURCE_TYPE_LABELS } from './migration/const';
 

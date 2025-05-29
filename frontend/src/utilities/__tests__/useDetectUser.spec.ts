@@ -1,17 +1,17 @@
 import { act } from 'react';
 import { waitFor, renderHook } from '@testing-library/react';
-import axios from '~/utilities/axios';
-import { StatusResponse } from '~/redux/types';
-import { useAppDispatch } from '~/redux/hooks';
-import useDetectUser from '~/utilities/useDetectUser';
-import { getUserFulfilled, getUserPending, getUserRejected } from '~/redux/actions/actions';
-import { testHook } from '~/__tests__/unit/testUtils/hooks';
+import axios from '#~/utilities/axios';
+import { StatusResponse } from '#~/redux/types';
+import { useAppDispatch } from '#~/redux/hooks';
+import useDetectUser from '#~/utilities/useDetectUser';
+import { getUserFulfilled, getUserPending, getUserRejected } from '#~/redux/actions/actions';
+import { testHook } from '#~/__tests__/unit/testUtils/hooks';
 
 // Mock Axios
-jest.mock('~/utilities/axios');
+jest.mock('#~/utilities/axios');
 
 // Mock the useDispatch hook
-jest.mock('~/redux/hooks', () => ({
+jest.mock('#~/redux/hooks', () => ({
   useAppDispatch: jest.fn(),
 }));
 

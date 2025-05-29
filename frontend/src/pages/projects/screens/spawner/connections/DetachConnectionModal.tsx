@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button, Modal, ModalBody, ModalHeader, ModalFooter } from '@patternfly/react-core';
-import { Connection } from '~/concepts/connectionTypes/types';
-import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
+import { Connection } from '#~/concepts/connectionTypes/types';
+import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 
 type Props = {
   connection: Connection;

@@ -1,5 +1,5 @@
-import { ConsoleLinkKind } from '~/k8sTypes';
-import { MOCK_ODH_ICON } from '~/__mocks__/mockIcon';
+import { ConsoleLinkKind } from '#~/k8sTypes';
+import { MOCK_ODH_ICON } from '#~/__mocks__/mockIcon';
 
 export type ConsoleLinkData = {
   name: string;

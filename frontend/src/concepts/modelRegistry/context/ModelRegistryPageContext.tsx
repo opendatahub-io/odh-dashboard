@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { SupportedArea, conditionalArea } from '~/concepts/areas';
+import { SupportedArea, conditionalArea } from '#~/concepts/areas';
 import useModelRegistryAPIState, { ModelRegistryAPIState } from './useModelRegistryAPIState';
 
 export type ModelRegistryPageContextType = {

@@ -1,5 +1,5 @@
-import { BuildPhase, ImageStreamKind, ImageStreamSpecTagType } from '~/k8sTypes';
-import { ImageStreamStatusTag } from '~/types';
+import { BuildPhase, ImageStreamKind, ImageStreamSpecTagType } from '#~/k8sTypes';
+import { ImageStreamStatusTag } from '#~/types';
 
 export enum SpawnerPageSectionID {
   NAME_DESCRIPTION = 'name-and-description',

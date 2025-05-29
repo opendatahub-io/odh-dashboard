@@ -1,14 +1,14 @@
 import * as React from 'react';
-import { getSecretsByLabel } from '~/api';
+import { getSecretsByLabel } from '#~/api';
 import useFetch, {
   FetchOptions,
   FetchStateObject,
   FetchStateCallbackPromise,
   NotReadyError,
-} from '~/utilities/useFetch';
-import { Connection } from '~/concepts/connectionTypes/types';
-import { LABEL_SELECTOR_DASHBOARD_RESOURCE } from '~/const';
-import { isConnection } from '~/concepts/connectionTypes/utils';
+} from '#~/utilities/useFetch';
+import { Connection } from '#~/concepts/connectionTypes/types';
+import { LABEL_SELECTOR_DASHBOARD_RESOURCE } from '#~/const';
+import { isConnection } from '#~/concepts/connectionTypes/utils';
 
 const useConnections = (
   namespace?: string,

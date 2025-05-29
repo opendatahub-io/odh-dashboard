@@ -1,9 +1,9 @@
 import React from 'react';
 
-import { MetadataAnnotation, StorageClassConfig, StorageClassKind } from '~/k8sTypes';
-import { FetchStateRefreshPromise } from '~/utilities/useFetchState';
-import { allSettledPromises } from '~/utilities/allSettledPromises';
-import { updateStorageClassConfig } from '~/api';
+import { MetadataAnnotation, StorageClassConfig, StorageClassKind } from '#~/k8sTypes';
+import { FetchStateRefreshPromise } from '#~/utilities/useFetchState';
+import { allSettledPromises } from '#~/utilities/allSettledPromises';
+import { updateStorageClassConfig } from '#~/api';
 import {
   getStorageClassConfig,
   isOpenshiftDefaultStorageClass,

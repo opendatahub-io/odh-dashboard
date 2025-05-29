@@ -1,7 +1,7 @@
 import React from 'react';
-import FormSection from '~/components/pf-overrides/FormSection';
-import { PipelineServerConfigType } from '~/concepts/pipelines/content/configurePipelinesServer/types';
-import InstructLabPipelineEnablement from '~/concepts/pipelines/content/configurePipelinesServer/InstructLabPipelineEnablement';
+import FormSection from '#~/components/pf-overrides/FormSection';
+import { PipelineServerConfigType } from '#~/concepts/pipelines/content/configurePipelinesServer/types';
+import InstructLabPipelineEnablement from '#~/concepts/pipelines/content/configurePipelinesServer/InstructLabPipelineEnablement';
 
 type SamplePipelineSettingsSectionProps = {
   setConfig: (config: PipelineServerConfigType) => void;

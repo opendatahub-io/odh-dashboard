@@ -1,8 +1,8 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { ModelCustomizationEndpointType } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/types';
-import TeacherModelSection from '~/pages/pipelines/global/modelCustomization/teacherJudgeSection/TeacherModelSection';
+import { ModelCustomizationEndpointType } from '#~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/types';
+import TeacherModelSection from '#~/pages/pipelines/global/modelCustomization/teacherJudgeSection/TeacherModelSection';
 
 // judge model section is doing exact the same thing as teacher model section
 // skip judge model test to avoid to many duplicated tests

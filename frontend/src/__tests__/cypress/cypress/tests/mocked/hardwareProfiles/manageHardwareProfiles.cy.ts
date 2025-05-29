@@ -1,12 +1,12 @@
-import { IdentifierResourceType, TolerationEffect, TolerationOperator } from '~/types';
-import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
+import { IdentifierResourceType, TolerationEffect, TolerationOperator } from '#~/types';
+import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
 import {
   HardwareProfileModel,
   AcceleratorProfileModel,
-} from '~/__tests__/cypress/cypress/utils/models';
-import { asProductAdminUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
-import { mockHardwareProfile } from '~/__mocks__/mockHardwareProfile';
-import { mockAcceleratorProfile } from '~/__mocks__/mockAcceleratorProfile';
+} from '#~/__tests__/cypress/cypress/utils/models';
+import { asProductAdminUser } from '#~/__tests__/cypress/cypress/utils/mockUsers';
+import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile';
+import { mockAcceleratorProfile } from '#~/__mocks__/mockAcceleratorProfile';
 import {
   createHardwareProfile,
   createNodeResourceModal,
@@ -19,9 +19,9 @@ import {
   editTolerationModal,
   hardwareProfile,
   legacyHardwareProfile,
-} from '~/__tests__/cypress/cypress/pages/hardwareProfile';
-import { migrationModal } from '~/__tests__/cypress/cypress/pages/components/MigrationModal';
-import { mock200Status, mockDashboardConfig } from '~/__mocks__';
+} from '#~/__tests__/cypress/cypress/pages/hardwareProfile';
+import { migrationModal } from '#~/__tests__/cypress/cypress/pages/components/MigrationModal';
+import { mock200Status, mockDashboardConfig } from '#~/__mocks__';
 
 type HandlersProps = {
   isPresent?: boolean;

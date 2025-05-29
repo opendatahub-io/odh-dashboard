@@ -11,21 +11,21 @@ import {
 } from '@patternfly/react-core';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ExclamationCircleIcon } from '@patternfly/react-icons/dist/esm/icons/exclamation-circle-icon';
-import ApplicationsPage from '~/pages/ApplicationsPage';
-import { usePipelineTaskTopology } from '~/concepts/pipelines/topology';
-import { PipelineTopology } from '~/concepts/topology';
-import MarkdownView from '~/components/MarkdownView';
-import { PipelineCoreDetailsPageComponent } from '~/concepts/pipelines/content/types';
-import DeletePipelineRunsModal from '~/concepts/pipelines/content/DeletePipelineRunsModal';
-import usePipelineVersionById from '~/concepts/pipelines/apiHooks/usePipelineVersionById';
-import { PipelineRunType } from '~/pages/pipelines/global/runs/types';
-import SelectedTaskDrawerContent from '~/concepts/pipelines/content/pipelinesDetails/pipeline/SelectedTaskDrawerContent';
-import { PipelineRunDetailsTabs } from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDetailsTabs';
-import usePipelineRecurringRunById from '~/concepts/pipelines/apiHooks/usePipelineRecurringRunById';
-import PipelineNotSupported from '~/concepts/pipelines/content/pipelinesDetails/pipeline/PipelineNotSupported';
-import { isArgoWorkflow } from '~/concepts/pipelines/content/tables/utils';
-import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
+import ApplicationsPage from '#~/pages/ApplicationsPage';
+import { usePipelineTaskTopology } from '#~/concepts/pipelines/topology';
+import { PipelineTopology } from '#~/concepts/topology';
+import MarkdownView from '#~/components/MarkdownView';
+import { PipelineCoreDetailsPageComponent } from '#~/concepts/pipelines/content/types';
+import DeletePipelineRunsModal from '#~/concepts/pipelines/content/DeletePipelineRunsModal';
+import usePipelineVersionById from '#~/concepts/pipelines/apiHooks/usePipelineVersionById';
+import { PipelineRunType } from '#~/pages/pipelines/global/runs/types';
+import SelectedTaskDrawerContent from '#~/concepts/pipelines/content/pipelinesDetails/pipeline/SelectedTaskDrawerContent';
+import { PipelineRunDetailsTabs } from '#~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDetailsTabs';
+import usePipelineRecurringRunById from '#~/concepts/pipelines/apiHooks/usePipelineRecurringRunById';
+import PipelineNotSupported from '#~/concepts/pipelines/content/pipelinesDetails/pipeline/PipelineNotSupported';
+import { isArgoWorkflow } from '#~/concepts/pipelines/content/tables/utils';
+import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
 import PipelineRecurringRunDetailsActions from './PipelineRecurringRunDetailsActions';
 
 const PipelineRecurringRunDetails: PipelineCoreDetailsPageComponent = ({

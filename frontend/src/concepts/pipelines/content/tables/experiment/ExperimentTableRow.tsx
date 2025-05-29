@@ -2,10 +2,10 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { ActionsColumn, IAction, Td, Tr } from '@patternfly/react-table';
 import { Truncate } from '@patternfly/react-core';
-import { ExperimentKF, StorageStateKF } from '~/concepts/pipelines/kfTypes';
-import { CheckboxTd, TableRowTitleDescription } from '~/components/table';
-import { experimentArchivedRunsRoute, experimentRunsRoute } from '~/routes/pipelines/experiments';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
+import { ExperimentKF, StorageStateKF } from '#~/concepts/pipelines/kfTypes';
+import { CheckboxTd, TableRowTitleDescription } from '#~/components/table';
+import { experimentArchivedRunsRoute, experimentRunsRoute } from '#~/routes/pipelines/experiments';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { ExperimentCreated, LastExperimentRuns, LastExperimentRunsStarted } from './renderUtils';
 
 type ExperimentTableRowProps = {

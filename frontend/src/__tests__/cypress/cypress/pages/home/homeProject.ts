@@ -1,4 +1,4 @@
-import { Contextual } from '~/__tests__/cypress/cypress/pages/components/Contextual';
+import { Contextual } from '#~/__tests__/cypress/cypress/pages/components/Contextual';
 
 export class HomeProject extends Contextual<HTMLElement> {
   findEmptyProjectCard(): Cypress.Chainable<JQuery<HTMLElement>> {

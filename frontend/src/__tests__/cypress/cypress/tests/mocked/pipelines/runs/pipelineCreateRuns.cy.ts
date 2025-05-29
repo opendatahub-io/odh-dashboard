@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
-import type { PipelineRecurringRunKF, PipelineRunKF } from '~/concepts/pipelines/kfTypes';
-import { InputDefinitionParameterType, StorageStateKF } from '~/concepts/pipelines/kfTypes';
+import type { PipelineRecurringRunKF, PipelineRunKF } from '#~/concepts/pipelines/kfTypes';
+import { InputDefinitionParameterType, StorageStateKF } from '#~/concepts/pipelines/kfTypes';
 import {
   buildMockRunKF,
   buildMockPipeline,
@@ -8,7 +8,7 @@ import {
   buildMockRecurringRunKF,
   buildMockExperimentKF,
   mockArgoWorkflowPipelineVersion,
-} from '~/__mocks__';
+} from '#~/__mocks__';
 import {
   createRunPage,
   duplicateRunPage,
@@ -18,14 +18,14 @@ import {
   createSchedulePage,
   duplicateSchedulePage,
   pipelineVersionImportModal,
-} from '~/__tests__/cypress/cypress/pages/pipelines';
-import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url';
-import { getCorePipelineSpec } from '~/concepts/pipelines/getCorePipelineSpec';
+} from '#~/__tests__/cypress/cypress/pages/pipelines';
+import { verifyRelativeURL } from '#~/__tests__/cypress/cypress/utils/url';
+import { getCorePipelineSpec } from '#~/concepts/pipelines/getCorePipelineSpec';
 import {
   configIntercept,
   dspaIntercepts,
   projectsIntercept,
-} from '~/__tests__/cypress/cypress/tests/mocked/pipelines/intercepts';
+} from '#~/__tests__/cypress/cypress/tests/mocked/pipelines/intercepts';
 
 const projectName = 'test-project-name';
 const mockPipeline = buildMockPipeline();

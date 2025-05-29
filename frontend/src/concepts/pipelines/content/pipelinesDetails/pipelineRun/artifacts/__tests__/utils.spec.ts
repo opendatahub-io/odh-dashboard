@@ -1,8 +1,8 @@
-import { Artifact, Value } from '~/third_party/mlmd';
+import { Artifact, Value } from '#~/third_party/mlmd';
 import {
   getArtifactModelData,
   getArtifactProperties,
-} from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/artifacts/utils';
+} from '#~/concepts/pipelines/content/pipelinesDetails/pipelineRun/artifacts/utils';
 
 describe('getArtifactProperties', () => {
   const mockArtifact = new Artifact();

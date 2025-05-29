@@ -1,12 +1,12 @@
 import * as React from 'react';
-import { ImageStreamKind, ImageStreamSpecTagType, NotebookKind } from '~/k8sTypes';
-import useNamespaces from '~/pages/notebookController/useNamespaces';
-import useImageStreams from '~/pages/projects/screens/spawner/useImageStreams';
-import { PodContainer } from '~/types';
+import { ImageStreamKind, ImageStreamSpecTagType, NotebookKind } from '#~/k8sTypes';
+import useNamespaces from '#~/pages/notebookController/useNamespaces';
+import useImageStreams from '#~/pages/projects/screens/spawner/useImageStreams';
+import { PodContainer } from '#~/types';
 import {
   getImageStreamDisplayName,
   isBYONImageStream,
-} from '~/pages/projects/screens/spawner/spawnerUtils';
+} from '#~/pages/projects/screens/spawner/spawnerUtils';
 import { NotebookImageAvailability, NotebookImageStatus } from './const';
 import { NotebookImageData } from './types';
 

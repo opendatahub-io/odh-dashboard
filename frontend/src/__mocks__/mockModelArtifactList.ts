@@ -1,5 +1,5 @@
 /* eslint-disable camelcase */
-import { ModelArtifactList } from '~/concepts/modelRegistry/types';
+import { ModelArtifactList } from '#~/concepts/modelRegistry/types';
 import { mockModelArtifact } from './mockModelArtifact';
 
 export const mockModelArtifactList = ({

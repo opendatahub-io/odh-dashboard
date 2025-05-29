@@ -10,7 +10,7 @@ import {
   TextInput,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
-import { LmModelArgument } from '~/pages/lmEval/types';
+import { LmModelArgument } from '#~/pages/lmEval/types';
 
 type LmEvalModelArgumentSectionProps = {
   modelArgument: LmModelArgument;

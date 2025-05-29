@@ -1,16 +1,16 @@
 import type { Interception } from 'cypress/types/net-stubbing';
-import { mockGetEventsByArtifactIDs } from '~/__mocks__/mlmd/mockGetEventsByArtifactIDs';
-import { mockGetArtifactTypes } from '~/__mocks__/mlmd/mockGetArtifactTypes';
-import { mockGetArtifactsByContext } from '~/__mocks__/mlmd/mockGetArtifactsByContext';
-import { mockGetContextByTypeAndName } from '~/__mocks__/mlmd/mockGetContextByTypeAndName';
-import { mockGetEventsByExecutionIDs } from '~/__mocks__/mlmd/mockGetEventsByExecutionIDs';
-import { mockGetExecutions, mockGetNoExecutions } from '~/__mocks__/mlmd/mockGetExecutions';
-import { mockGetExecutionsByContext } from '~/__mocks__/mlmd/mockGetExecutionsByContext';
-import { mockGetExecutionsByID } from '~/__mocks__/mlmd/mockGetExecutionsByID';
-import { GetExecutionsRequest } from '~/__mocks__/third_party/mlmd';
-import { mockGetContextsByExecution } from '~/__mocks__/mlmd/mockGetContextsByExecution';
-import { mockGetContextType } from '~/__mocks__/mlmd/mockGetContextType';
-import { mockGetContextsByType } from '~/__mocks__/mlmd/mockGetContextsByType';
+import { mockGetEventsByArtifactIDs } from '#~/__mocks__/mlmd/mockGetEventsByArtifactIDs';
+import { mockGetArtifactTypes } from '#~/__mocks__/mlmd/mockGetArtifactTypes';
+import { mockGetArtifactsByContext } from '#~/__mocks__/mlmd/mockGetArtifactsByContext';
+import { mockGetContextByTypeAndName } from '#~/__mocks__/mlmd/mockGetContextByTypeAndName';
+import { mockGetEventsByExecutionIDs } from '#~/__mocks__/mlmd/mockGetEventsByExecutionIDs';
+import { mockGetExecutions, mockGetNoExecutions } from '#~/__mocks__/mlmd/mockGetExecutions';
+import { mockGetExecutionsByContext } from '#~/__mocks__/mlmd/mockGetExecutionsByContext';
+import { mockGetExecutionsByID } from '#~/__mocks__/mlmd/mockGetExecutionsByID';
+import { GetExecutionsRequest } from '#~/__mocks__/third_party/mlmd';
+import { mockGetContextsByExecution } from '#~/__mocks__/mlmd/mockGetContextsByExecution';
+import { mockGetContextType } from '#~/__mocks__/mlmd/mockGetContextType';
+import { mockGetContextsByType } from '#~/__mocks__/mlmd/mockGetContextsByType';
 
 export const initMlmdIntercepts = (
   projectName: string,

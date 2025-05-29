@@ -1,15 +1,15 @@
 import * as React from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { Button, ActionList, ActionListItem, Stack, StackItem } from '@patternfly/react-core';
-import { Notebook } from '~/types';
-import ApplicationsPage from '~/pages/ApplicationsPage';
-import { NotebookControllerContext } from '~/pages/notebookController/NotebookControllerContext';
-import ImpersonateAlert from '~/pages/notebookController/screens/admin/ImpersonateAlert';
-import useNotification from '~/utilities/useNotification';
+import { Notebook } from '#~/types';
+import ApplicationsPage from '#~/pages/ApplicationsPage';
+import { NotebookControllerContext } from '#~/pages/notebookController/NotebookControllerContext';
+import ImpersonateAlert from '#~/pages/notebookController/screens/admin/ImpersonateAlert';
+import useNotification from '#~/utilities/useNotification';
 import NotebookServerDetails from './NotebookServerDetails';
 import StopServerModal from './StopServerModal';
 
-import '~/pages/notebookController/NotebookController.scss';
+import '#~/pages/notebookController/NotebookController.scss';
 
 const NotebookServer: React.FC = () => {
   const navigate = useNavigate();

@@ -1,5 +1,5 @@
-import { Artifact } from '~/third_party/mlmd';
-import { ArtifactType } from '~/concepts/pipelines/kfTypes';
+import { Artifact } from '#~/third_party/mlmd';
+import { ArtifactType } from '#~/concepts/pipelines/kfTypes';
 import { ArtifactProperty, PipelineRunArtifactModelData } from './types';
 
 export const getArtifactProperties = (artifact: Artifact): ArtifactProperty[] =>

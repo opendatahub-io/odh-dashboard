@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Tooltip } from '@patternfly/react-core';
-import { ImageVersionDependencyType } from '~/pages/projects/screens/spawner/types';
-import NotebookImagePackageDetails from '~/pages/projects/notebook/NotebookImagePackageDetails';
+import { ImageVersionDependencyType } from '#~/pages/projects/screens/spawner/types';
+import NotebookImagePackageDetails from '#~/pages/projects/notebook/NotebookImagePackageDetails';
 
 type ImageVersionTooltipProps = {
   dependencies: ImageVersionDependencyType[];

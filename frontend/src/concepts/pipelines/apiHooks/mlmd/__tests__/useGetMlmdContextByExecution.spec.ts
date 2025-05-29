@@ -1,27 +1,27 @@
-import { testHook, standardUseFetchState } from '~/__tests__/unit/testUtils/hooks';
+import { testHook, standardUseFetchState } from '#~/__tests__/unit/testUtils/hooks';
 import {
   MetadataStoreServicePromiseClient,
   Execution,
   Context,
   ContextType,
-} from '~/third_party/mlmd';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { useGetMlmdContextType } from '~/concepts/pipelines/apiHooks/mlmd/useGetMlmdContextType';
-import { useGetPipelineRunContextByExecution } from '~/concepts/pipelines/apiHooks/mlmd/useGetMlmdContextByExecution';
-import { GetContextsByExecutionResponse } from '~/third_party/mlmd/generated/ml_metadata/proto/metadata_store_service_pb';
+} from '#~/third_party/mlmd';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+import { useGetMlmdContextType } from '#~/concepts/pipelines/apiHooks/mlmd/useGetMlmdContextType';
+import { useGetPipelineRunContextByExecution } from '#~/concepts/pipelines/apiHooks/mlmd/useGetMlmdContextByExecution';
+import { GetContextsByExecutionResponse } from '#~/third_party/mlmd/generated/ml_metadata/proto/metadata_store_service_pb';
 
 // Mock the usePipelinesAPI and useGetMlmdContextType hooks
-jest.mock('~/concepts/pipelines/context', () => ({
+jest.mock('#~/concepts/pipelines/context', () => ({
   usePipelinesAPI: jest.fn(),
 }));
 
-jest.mock('~/concepts/pipelines/apiHooks/mlmd/useGetMlmdContextType', () => ({
+jest.mock('#~/concepts/pipelines/apiHooks/mlmd/useGetMlmdContextType', () => ({
   useGetMlmdContextType: jest.fn(),
 }));
 
 // Mock the MetadataStoreServicePromiseClient
-jest.mock('~/third_party/mlmd', () => {
-  const originalModule = jest.requireActual('~/third_party/mlmd');
+jest.mock('#~/third_party/mlmd', () => {
+  const originalModule = jest.requireActual('#~/third_party/mlmd');
   return {
     ...originalModule,
     MetadataStoreServicePromiseClient: jest.fn().mockImplementation(() => ({

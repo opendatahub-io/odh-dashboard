@@ -1,6 +1,6 @@
 import * as _ from 'lodash-es';
-import { ImageStreamKind } from '~/k8sTypes';
-import { RecursivePartial } from '~/typeHelpers';
+import { ImageStreamKind } from '#~/k8sTypes';
+import { RecursivePartial } from '#~/typeHelpers';
 
 type MockResourceConfigType = {
   name?: string;

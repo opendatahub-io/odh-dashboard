@@ -1,13 +1,13 @@
 import React from 'react';
 import { BreadcrumbItem, Truncate } from '@patternfly/react-core';
 import { Link, useParams } from 'react-router-dom';
-import PipelineRunDetails from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDetails';
-import { PipelineCoreDetailsPageComponent } from '~/concepts/pipelines/content/types';
-import { ExperimentContext } from '~/pages/pipelines/global/experiments/ExperimentContext';
-import { experimentArchivedRunsRoute, experimentRunsRoute } from '~/routes/pipelines/experiments';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import usePipelineRunById from '~/concepts/pipelines/apiHooks/usePipelineRunById';
-import { StorageStateKF } from '~/concepts/pipelines/kfTypes';
+import PipelineRunDetails from '#~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDetails';
+import { PipelineCoreDetailsPageComponent } from '#~/concepts/pipelines/content/types';
+import { ExperimentContext } from '#~/pages/pipelines/global/experiments/ExperimentContext';
+import { experimentArchivedRunsRoute, experimentRunsRoute } from '#~/routes/pipelines/experiments';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+import usePipelineRunById from '#~/concepts/pipelines/apiHooks/usePipelineRunById';
+import { StorageStateKF } from '#~/concepts/pipelines/kfTypes';
 
 const ExperimentPipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) => {
   const { runId } = useParams();

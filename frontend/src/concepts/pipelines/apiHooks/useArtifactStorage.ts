@@ -1,6 +1,6 @@
 import React from 'react';
-import { Artifact } from '~/third_party/mlmd';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
+import { Artifact } from '#~/third_party/mlmd';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 
 export type ArtifactType = {
   getStorageObjectSize: (artifact: Artifact) => Promise<number>;

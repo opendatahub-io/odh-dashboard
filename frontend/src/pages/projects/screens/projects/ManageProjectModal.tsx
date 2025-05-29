@@ -10,20 +10,20 @@ import {
   ModalHeader,
   ModalFooter,
 } from '@patternfly/react-core';
-import { createProject, updateProject } from '~/api';
-import { useUser } from '~/redux/selectors';
-import { ProjectKind } from '~/k8sTypes';
-import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
-import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
+import { createProject, updateProject } from '#~/api';
+import { useUser } from '#~/redux/selectors';
+import { ProjectKind } from '#~/k8sTypes';
+import { ProjectsContext } from '#~/concepts/projects/ProjectsContext';
+import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 
-import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
+import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
-} from '~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
+} from '#~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import {
   isK8sNameDescriptionDataValid,
   LimitNameResourceType,
-} from '~/concepts/k8s/K8sNameDescriptionField/utils';
+} from '#~/concepts/k8s/K8sNameDescriptionField/utils';
 
 type ManageProjectModalProps = {
   editProjectData?: ProjectKind;

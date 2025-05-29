@@ -1,4 +1,4 @@
-import { K8sCondition, ModelRegistryKind } from '~/k8sTypes';
+import { K8sCondition, ModelRegistryKind } from '#~/k8sTypes';
 
 type MockModelRegistryType = {
   name?: string;

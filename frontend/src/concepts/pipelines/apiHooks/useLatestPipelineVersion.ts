@@ -1,12 +1,12 @@
 import React from 'react';
 
-import { PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
+import { PipelineVersionKF } from '#~/concepts/pipelines/kfTypes';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import useFetchState, {
   FetchState,
   FetchStateCallbackPromise,
   NotReadyError,
-} from '~/utilities/useFetchState';
+} from '#~/utilities/useFetchState';
 
 /**
  * Based on the pipeline associated with the provided pipelineId,

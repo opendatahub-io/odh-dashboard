@@ -7,12 +7,12 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import { ContainerResources } from '~/types';
-import MemoryField from '~/components/MemoryField';
-import CPUField from '~/components/CPUField';
-import { ZodErrorHelperText } from '~/components/ZodErrorFormHelperText';
-import { useZodFormValidation } from '~/hooks/useZodFormValidation';
-import { podSpecSizeSchema } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/validationUtils';
+import { ContainerResources } from '#~/types';
+import MemoryField from '#~/components/MemoryField';
+import CPUField from '#~/components/CPUField';
+import { ZodErrorHelperText } from '#~/components/ZodErrorFormHelperText';
+import { useZodFormValidation } from '#~/hooks/useZodFormValidation';
+import { podSpecSizeSchema } from '#~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/validationUtils';
 
 type ContainerCustomSizeProps = {
   resources: ContainerResources;

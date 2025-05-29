@@ -10,22 +10,22 @@ import {
   Split,
   SplitItem,
 } from '@patternfly/react-core';
-import { BuildStatus } from '~/pages/projects/screens/spawner/types';
+import { BuildStatus } from '#~/pages/projects/screens/spawner/types';
 import {
   checkImageStreamAvailability,
   compareImageStreamOrder,
   getImageStreamDisplayName,
   getRelatedVersionDescription,
   isCompatibleWithIdentifier,
-} from '~/pages/projects/screens/spawner/spawnerUtils';
-import { ImageStreamKind } from '~/k8sTypes';
-import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
-import { useIsAreaAvailable, SupportedArea } from '~/concepts/areas';
-import GlobalIcon from '~/images/icons/GlobalIcon';
-import { ProjectObjectType } from '~/concepts/design/utils';
-import SearchSelector from '~/components/searchSelector/SearchSelector';
-import ProjectScopedPopover from '~/components/ProjectScopedPopover';
-import TypedObjectIcon from '~/concepts/design/TypedObjectIcon';
+} from '#~/pages/projects/screens/spawner/spawnerUtils';
+import { ImageStreamKind } from '#~/k8sTypes';
+import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
+import { useIsAreaAvailable, SupportedArea } from '#~/concepts/areas';
+import GlobalIcon from '#~/images/icons/GlobalIcon';
+import { ProjectObjectType } from '#~/concepts/design/utils';
+import SearchSelector from '#~/components/searchSelector/SearchSelector';
+import ProjectScopedPopover from '#~/components/ProjectScopedPopover';
+import TypedObjectIcon from '#~/concepts/design/TypedObjectIcon';
 
 type ImageStreamSelectorProps = {
   currentProjectStreams?: ImageStreamKind[];

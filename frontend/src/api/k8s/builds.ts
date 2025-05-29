@@ -1,6 +1,6 @@
 import { k8sListResource } from '@openshift/dynamic-plugin-sdk-utils';
-import { BuildConfigModel, BuildModel } from '~/api/models';
-import { BuildConfigKind, BuildKind } from '~/k8sTypes';
+import { BuildConfigModel, BuildModel } from '#~/api/models';
+import { BuildConfigKind, BuildKind } from '#~/k8sTypes';
 
 export const getNotebookBuildConfigs = (namespace: string): Promise<BuildConfigKind[]> =>
   k8sListResource<BuildConfigKind>({

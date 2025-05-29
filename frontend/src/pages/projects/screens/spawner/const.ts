@@ -1,4 +1,4 @@
-import { BuildPhase } from '~/k8sTypes';
+import { BuildPhase } from '#~/k8sTypes';
 import { SpawnerPageSectionID, SpawnerPageSectionTitlesType } from './types';
 
 export const SpawnerPageSectionTitles: SpawnerPageSectionTitlesType = {

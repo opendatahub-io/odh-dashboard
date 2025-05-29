@@ -1,4 +1,4 @@
-import { K8sVerb, SelfSubjectAccessReviewKind } from '~/k8sTypes';
+import { K8sVerb, SelfSubjectAccessReviewKind } from '#~/k8sTypes';
 
 type MockResourceConfigType = {
   verb?: K8sVerb;

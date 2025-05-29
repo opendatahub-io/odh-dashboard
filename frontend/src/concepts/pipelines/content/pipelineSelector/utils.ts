@@ -2,8 +2,8 @@ import * as React from 'react';
 import usePipelineFilter, {
   FilterOptions,
   getDataValue,
-} from '~/concepts/pipelines/content/tables/usePipelineFilter';
-import { PipelinesFilter } from '~/concepts/pipelines/types';
+} from '#~/concepts/pipelines/content/tables/usePipelineFilter';
+import { PipelinesFilter } from '#~/concepts/pipelines/types';
 
 type SelectorSearchProps = {
   setFilter: (filter?: PipelinesFilter) => void;

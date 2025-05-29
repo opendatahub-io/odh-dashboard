@@ -1,8 +1,8 @@
 /* eslint-disable cypress/no-unnecessary-waiting */
-import { createDataConnection } from '~/__tests__/cypress/cypress/utils/oc_commands/dataConnection';
-import { AWS_BUCKETS } from '~/__tests__/cypress/cypress/utils/s3Buckets';
-import type { DataConnectionReplacements } from '~/__tests__/cypress/cypress/types';
-import { createCleanProject } from '~/__tests__/cypress/cypress/utils/projectChecker';
+import { createDataConnection } from '#~/__tests__/cypress/cypress/utils/oc_commands/dataConnection';
+import { AWS_BUCKETS } from '#~/__tests__/cypress/cypress/utils/s3Buckets';
+import type { DataConnectionReplacements } from '#~/__tests__/cypress/cypress/types';
+import { createCleanProject } from '#~/__tests__/cypress/cypress/utils/projectChecker';
 
 /**
  * Provision (using oc) a Project in order to make it usable with model seving

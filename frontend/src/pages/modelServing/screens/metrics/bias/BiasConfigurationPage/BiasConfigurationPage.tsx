@@ -1,15 +1,15 @@
 import * as React from 'react';
 import { Breadcrumb, Button, EmptyStateVariant, PageSection } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
-import ApplicationsPage from '~/pages/ApplicationsPage';
-import { BreadcrumbItemType } from '~/types';
-import { useModelBiasData } from '~/concepts/trustyai/context/useModelBiasData';
-import { InferenceServiceKind } from '~/k8sTypes';
-import { getBreadcrumbItemComponents } from '~/pages/modelServing/screens/metrics/utils';
-import ManageBiasConfigurationModal from '~/pages/modelServing/screens/metrics/bias/BiasConfigurationPage/BiasConfigurationModal/ManageBiasConfigurationModal';
-import { MetricsTabKeys } from '~/pages/modelServing/screens/metrics/types';
-import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
-import { TrustyInstallState } from '~/concepts/trustyai/types';
+import ApplicationsPage from '#~/pages/ApplicationsPage';
+import { BreadcrumbItemType } from '#~/types';
+import { useModelBiasData } from '#~/concepts/trustyai/context/useModelBiasData';
+import { InferenceServiceKind } from '#~/k8sTypes';
+import { getBreadcrumbItemComponents } from '#~/pages/modelServing/screens/metrics/utils';
+import ManageBiasConfigurationModal from '#~/pages/modelServing/screens/metrics/bias/BiasConfigurationPage/BiasConfigurationModal/ManageBiasConfigurationModal';
+import { MetricsTabKeys } from '#~/pages/modelServing/screens/metrics/types';
+import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
+import { TrustyInstallState } from '#~/concepts/trustyai/types';
 import BiasConfigurationTable from './BiasConfigurationTable';
 import BiasConfigurationEmptyState from './BiasConfigurationEmptyState';
 

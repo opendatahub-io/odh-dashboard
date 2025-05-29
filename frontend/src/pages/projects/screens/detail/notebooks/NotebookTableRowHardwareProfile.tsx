@@ -1,9 +1,9 @@
 import { HelperText, HelperTextItem, Label, Spinner } from '@patternfly/react-core';
 import React from 'react';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import TypedObjectIcon from '~/concepts/design/TypedObjectIcon';
-import { ProjectObjectType } from '~/concepts/design/utils';
-import { HardwareProfileKind } from '~/k8sTypes';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import TypedObjectIcon from '#~/concepts/design/TypedObjectIcon';
+import { ProjectObjectType } from '#~/concepts/design/utils';
+import { HardwareProfileKind } from '#~/k8sTypes';
 
 type NotebookTableRowHardwareProfileProps = {
   namespace: string;

@@ -1,17 +1,17 @@
-import { loadResourcesFixture } from '~/__tests__/cypress/cypress/utils/dataLoader';
-import type { ResourcesData } from '~/__tests__/cypress/cypress/types';
-import { HTPASSWD_CLUSTER_ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
-import { resources } from '~/__tests__/cypress/cypress/pages/resources';
+import { loadResourcesFixture } from '#~/__tests__/cypress/cypress/utils/dataLoader';
+import type { ResourcesData } from '#~/__tests__/cypress/cypress/types';
+import { HTPASSWD_CLUSTER_ADMIN_USER } from '#~/__tests__/cypress/cypress/utils/e2eUsers';
+import { resources } from '#~/__tests__/cypress/cypress/pages/resources';
 import {
   setupCustomResources,
   getResourceValues,
   cleanupCustomResources,
-} from '~/__tests__/cypress/cypress/utils/resourceUtils';
-import { checkResources } from '~/__tests__/cypress/cypress/utils/resourceCheckUtils';
+} from '#~/__tests__/cypress/cypress/utils/resourceUtils';
+import { checkResources } from '#~/__tests__/cypress/cypress/utils/resourceCheckUtils';
 import {
   retryableBefore,
   wasSetupPerformed,
-} from '~/__tests__/cypress/cypress/utils/retryableHooks';
+} from '#~/__tests__/cypress/cypress/utils/retryableHooks';
 
 describe('Create a custom resource Quickstart by using Dashboard CRDs', () => {
   let resourcesData: ResourcesData;

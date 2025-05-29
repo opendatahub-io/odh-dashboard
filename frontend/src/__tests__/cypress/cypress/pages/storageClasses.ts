@@ -1,8 +1,8 @@
-import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
-import { TableRow } from '~/__tests__/cypress/cypress/pages/components/table';
-import { mockStorageClassList } from '~/__mocks__';
-import type { StorageClassKind } from '~/k8sTypes';
-import { StorageClassModel } from '~/__tests__/cypress/cypress/utils/models';
+import { appChrome } from '#~/__tests__/cypress/cypress/pages/appChrome';
+import { TableRow } from '#~/__tests__/cypress/cypress/pages/components/table';
+import { mockStorageClassList } from '#~/__mocks__';
+import type { StorageClassKind } from '#~/k8sTypes';
+import { StorageClassModel } from '#~/__tests__/cypress/cypress/utils/models';
 import { Modal } from './components/Modal';
 import { TableToolbar } from './components/TableToolbar';
 

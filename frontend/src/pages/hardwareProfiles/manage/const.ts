@@ -1,4 +1,4 @@
-import { HardwareProfileFeatureVisibility } from '~/k8sTypes';
+import { HardwareProfileFeatureVisibility } from '#~/k8sTypes';
 
 export const HardwareProfileFeatureVisibilityTitles: Record<
   HardwareProfileFeatureVisibility,

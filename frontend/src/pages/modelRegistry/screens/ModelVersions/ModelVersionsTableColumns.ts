@@ -1,5 +1,5 @@
-import { SortableData } from '~/components/table';
-import { ModelVersion } from '~/concepts/modelRegistry/types';
+import { SortableData } from '#~/components/table';
+import { ModelVersion } from '#~/concepts/modelRegistry/types';
 
 export const mvColumns: SortableData<ModelVersion>[] = [
   {

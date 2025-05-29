@@ -12,14 +12,14 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 
-import { usePipelineActiveRunsTable } from '~/concepts/pipelines/content/tables/pipelineRun/usePipelineRunTable';
-import { CompareRunsSearchParam, PathProps } from '~/concepts/pipelines/content/types';
-import { compareRunsRoute, createRunRoute } from '~/routes/pipelines/runs';
-import { experimentRunsRoute } from '~/routes/pipelines/experiments';
-import ApplicationsPage from '~/pages/ApplicationsPage';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { ExperimentContext } from '~/pages/pipelines/global/experiments/ExperimentContext';
-import { EmptyRunsState } from '~/concepts/pipelines/content/tables/pipelineRun/EmptyRunsState';
+import { usePipelineActiveRunsTable } from '#~/concepts/pipelines/content/tables/pipelineRun/usePipelineRunTable';
+import { CompareRunsSearchParam, PathProps } from '#~/concepts/pipelines/content/types';
+import { compareRunsRoute, createRunRoute } from '#~/routes/pipelines/runs';
+import { experimentRunsRoute } from '#~/routes/pipelines/experiments';
+import ApplicationsPage from '#~/pages/ApplicationsPage';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+import { ExperimentContext } from '#~/pages/pipelines/global/experiments/ExperimentContext';
+import { EmptyRunsState } from '#~/concepts/pipelines/content/tables/pipelineRun/EmptyRunsState';
 import { ManageRunsTable } from './ManageRunsTable';
 
 const ManageRunsPage: React.FC<PathProps> = ({ breadcrumbPath }) => {

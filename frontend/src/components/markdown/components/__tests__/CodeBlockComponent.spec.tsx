@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import CodeBlockComponent from '~/components/markdown/components/CodeBlockComponent';
+import CodeBlockComponent from '#~/components/markdown/components/CodeBlockComponent';
 
 describe('CodeBlockComponent', () => {
   it('renders code content correctly', () => {

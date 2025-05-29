@@ -1,10 +1,10 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FilterSidePanelCategory } from '@patternfly/react-catalog-view-extension';
-import FilterSidePanelCategoryItem from '~/components/FilterSidePanelCategoryItem';
-import { OdhDocument, OdhDocumentType } from '~/types';
-import { removeQueryArgument, setQueryArgument } from '~/utilities/router';
-import { asEnumMember, enumIterator } from '~/utilities/utils';
+import FilterSidePanelCategoryItem from '#~/components/FilterSidePanelCategoryItem';
+import { OdhDocument, OdhDocumentType } from '#~/types';
+import { removeQueryArgument, setQueryArgument } from '#~/utilities/router';
+import { asEnumMember, enumIterator } from '#~/utilities/utils';
 import { DOC_TYPE_FILTER_KEY } from './const';
 import { useQueryFilters } from './useQueryFilters';
 

@@ -10,15 +10,15 @@ import {
   List,
   ListItem,
 } from '@patternfly/react-core';
-import { AppContext } from '~/app/AppContext';
-import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
-import { getServingRuntimeSizes } from '~/pages/modelServing/screens/projects/utils';
-import { getResourceSize } from '~/pages/modelServing/utils';
-import { formatMemory } from '~/utilities/valueUnits';
-import { useModelServingPodSpecOptionsState } from '~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
-import { useIsAreaAvailable, SupportedArea } from '~/concepts/areas';
-import TypedObjectIcon from '~/concepts/design/TypedObjectIcon';
-import { ProjectObjectType } from '~/concepts/design/utils';
+import { AppContext } from '#~/app/AppContext';
+import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
+import { getServingRuntimeSizes } from '#~/pages/modelServing/screens/projects/utils';
+import { getResourceSize } from '#~/pages/modelServing/utils';
+import { formatMemory } from '#~/utilities/valueUnits';
+import { useModelServingPodSpecOptionsState } from '#~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
+import { useIsAreaAvailable, SupportedArea } from '#~/concepts/areas';
+import TypedObjectIcon from '#~/concepts/design/TypedObjectIcon';
+import { ProjectObjectType } from '#~/concepts/design/utils';
 
 type ServingRuntimeDetailsProps = {
   project?: string;

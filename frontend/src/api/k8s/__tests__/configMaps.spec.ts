@@ -5,17 +5,17 @@ import {
   k8sGetResource,
   k8sUpdateResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { mockConfigMap } from '~/__mocks__/mockConfigMap';
-import { mock200Status, mock404Error } from '~/__mocks__/mockK8sStatus';
+import { mockConfigMap } from '#~/__mocks__/mockConfigMap';
+import { mock200Status, mock404Error } from '#~/__mocks__/mockK8sStatus';
 import {
   assembleConfigMap,
   createConfigMap,
   deleteConfigMap,
   getConfigMap,
   replaceConfigMap,
-} from '~/api/k8s/configMaps';
-import { ConfigMapModel } from '~/api/models';
-import { ConfigMapKind } from '~/k8sTypes';
+} from '#~/api/k8s/configMaps';
+import { ConfigMapModel } from '#~/api/models';
+import { ConfigMapKind } from '#~/k8sTypes';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sGetResource: jest.fn(),

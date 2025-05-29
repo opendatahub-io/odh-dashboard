@@ -13,10 +13,10 @@ import {
   EmptyStateFooter,
 } from '@patternfly/react-core';
 import { SearchIcon } from '@patternfly/react-icons';
-import { OdhDocument } from '~/types';
-import { removeQueryArgument } from '~/utilities/router';
-import OdhDocCard from '~/components/OdhDocCard';
-import OdhDocListItem from '~/components/OdhDocListItem';
+import { OdhDocument } from '#~/types';
+import { removeQueryArgument } from '#~/utilities/router';
+import OdhDocCard from '#~/components/OdhDocCard';
+import OdhDocListItem from '#~/components/OdhDocListItem';
 import {
   LIST_VIEW,
   ENABLED_FILTER_KEY,

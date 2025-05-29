@@ -8,8 +8,8 @@ import {
   Icon,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon, InfoCircleIcon } from '@patternfly/react-icons';
-import { FileField } from '~/concepts/connectionTypes/types';
-import { FieldProps } from '~/concepts/connectionTypes/fields/types';
+import { FileField } from '#~/concepts/connectionTypes/types';
+import { FieldProps } from '#~/concepts/connectionTypes/fields/types';
 import { EXTENSION_REGEX, isDuplicateExtension } from './fieldUtils';
 
 const MAX_SIZE = 1024 * 1024; // 1 MB as bytes

@@ -12,13 +12,13 @@ import {
   DescriptionListDescription,
 } from '@patternfly/react-core';
 
-import { Artifact } from '~/third_party/mlmd';
-import { artifactsDetailsRoute } from '~/routes/pipelines/artifacts';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { getArtifactName } from '~/pages/pipelines/global/experiments/artifacts/utils';
-import PipelinesTableRowTime from '~/concepts/pipelines/content/tables/PipelinesTableRowTime';
-import PipelineRunDrawerRightContent from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDrawerRightContent';
-import { ArtifactUriLink } from '~/concepts/pipelines/content/artifacts/ArtifactUriLink';
+import { Artifact } from '#~/third_party/mlmd';
+import { artifactsDetailsRoute } from '#~/routes/pipelines/artifacts';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+import { getArtifactName } from '#~/pages/pipelines/global/experiments/artifacts/utils';
+import PipelinesTableRowTime from '#~/concepts/pipelines/content/tables/PipelinesTableRowTime';
+import PipelineRunDrawerRightContent from '#~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDrawerRightContent';
+import { ArtifactUriLink } from '#~/concepts/pipelines/content/artifacts/ArtifactUriLink';
 
 type ArtifactNodeDetailsProps = Pick<
   React.ComponentProps<typeof PipelineRunDrawerRightContent>,

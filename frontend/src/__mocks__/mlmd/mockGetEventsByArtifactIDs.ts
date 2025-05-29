@@ -1,4 +1,4 @@
-import { GetEventsByArtifactIDsResponse } from '~/__mocks__/third_party/mlmd';
+import { GetEventsByArtifactIDsResponse } from '#~/__mocks__/third_party/mlmd';
 import createGrpcResponse, { GrpcResponse } from './utils';
 
 const mockedEventsByArtifactIdsResponse: GetEventsByArtifactIDsResponse = {

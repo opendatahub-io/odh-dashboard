@@ -1,17 +1,20 @@
-import { mockDscStatus, mockK8sResourceList, mockProjectK8sResource } from '~/__mocks__';
-import { mock200Status } from '~/__mocks__/mockK8sStatus';
-import { mockRoleBindingK8sResource } from '~/__mocks__/mockRoleBindingK8sResource';
-import { be } from '~/__tests__/cypress/cypress/utils/should';
+import { mockDscStatus, mockK8sResourceList, mockProjectK8sResource } from '#~/__mocks__';
+import { mock200Status } from '#~/__mocks__/mockK8sStatus';
+import { mockRoleBindingK8sResource } from '#~/__mocks__/mockRoleBindingK8sResource';
+import { be } from '#~/__tests__/cypress/cypress/utils/should';
 import {
   GroupModel,
   ModelRegistryModel,
   ProjectModel,
-} from '~/__tests__/cypress/cypress/utils/models';
-import type { RoleBindingSubject } from '~/k8sTypes';
-import { asProductAdminUser, asProjectEditUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
-import { mockModelRegistry } from '~/__mocks__/mockModelRegistry';
-import { mockGroup } from '~/__mocks__/mockGroup';
-import { modelRegistryPermissions } from '~/__tests__/cypress/cypress/pages/modelRegistryPermissions';
+} from '#~/__tests__/cypress/cypress/utils/models';
+import type { RoleBindingSubject } from '#~/k8sTypes';
+import {
+  asProductAdminUser,
+  asProjectEditUser,
+} from '#~/__tests__/cypress/cypress/utils/mockUsers';
+import { mockModelRegistry } from '#~/__mocks__/mockModelRegistry';
+import { mockGroup } from '#~/__mocks__/mockGroup';
+import { modelRegistryPermissions } from '#~/__tests__/cypress/cypress/pages/modelRegistryPermissions';
 
 const MODEL_REGISTRY_DEFAULT_NAMESPACE = 'odh-model-registries';
 

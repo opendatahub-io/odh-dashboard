@@ -1,9 +1,9 @@
 import * as React from 'react';
-import { useUser } from '~/redux/selectors';
-import useWatchNotebooksForUsers from '~/utilities/useWatchNotebooksForUsers';
-import { NotebookRunningState } from '~/types';
-import { NotebookControllerContext } from '~/pages/notebookController/NotebookControllerContext';
-import useNamespaces from '~/pages/notebookController/useNamespaces';
+import { useUser } from '#~/redux/selectors';
+import useWatchNotebooksForUsers from '#~/utilities/useWatchNotebooksForUsers';
+import { NotebookRunningState } from '#~/types';
+import { NotebookControllerContext } from '#~/pages/notebookController/NotebookControllerContext';
+import useNamespaces from '#~/pages/notebookController/useNamespaces';
 import { AdminViewUserData, ServerStatus } from './types';
 import useCheckForAllowedUsers from './useCheckForAllowedUsers';
 

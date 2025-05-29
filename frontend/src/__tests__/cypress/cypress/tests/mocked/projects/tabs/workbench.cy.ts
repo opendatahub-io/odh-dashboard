@@ -8,11 +8,11 @@ import {
   mockRouteK8sResource,
   mockSecretK8sResource,
   mockStorageClassList,
-} from '~/__mocks__';
-import { mockConfigMap } from '~/__mocks__/mockConfigMap';
-import { mockImageStreamK8sResource } from '~/__mocks__/mockImageStreamK8sResource';
-import { mockPVCK8sResource } from '~/__mocks__/mockPVCK8sResource';
-import { mockPodK8sResource } from '~/__mocks__/mockPodK8sResource';
+} from '#~/__mocks__';
+import { mockConfigMap } from '#~/__mocks__/mockConfigMap';
+import { mockImageStreamK8sResource } from '#~/__mocks__/mockImageStreamK8sResource';
+import { mockPVCK8sResource } from '#~/__mocks__/mockPVCK8sResource';
+import { mockPodK8sResource } from '#~/__mocks__/mockPodK8sResource';
 import {
   attachConnectionModal,
   createSpawnerPage,
@@ -21,10 +21,10 @@ import {
   notebookConfirmModal,
   notebookImageUpdateModal,
   workbenchPage,
-} from '~/__tests__/cypress/cypress/pages/workbench';
-import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url';
-import { be } from '~/__tests__/cypress/cypress/utils/should';
-import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
+} from '#~/__tests__/cypress/cypress/pages/workbench';
+import { verifyRelativeURL } from '#~/__tests__/cypress/cypress/utils/url';
+import { be } from '#~/__tests__/cypress/cypress/utils/should';
+import { deleteModal } from '#~/__tests__/cypress/cypress/pages/components/DeleteModal';
 import {
   ConfigMapModel,
   ImageStreamModel,
@@ -36,19 +36,19 @@ import {
   SecretModel,
   StorageClassModel,
   AcceleratorProfileModel,
-} from '~/__tests__/cypress/cypress/utils/models';
-import { mock200Status, mock404Error } from '~/__mocks__/mockK8sStatus';
-import type { NotebookSize } from '~/types';
+} from '#~/__tests__/cypress/cypress/utils/models';
+import { mock200Status, mock404Error } from '#~/__mocks__/mockK8sStatus';
+import type { NotebookSize } from '#~/types';
 import {
   mockAcceleratorProfile,
   mockGlobalScopedAcceleratorProfiles,
   mockProjectScopedAcceleratorProfiles,
-} from '~/__mocks__/mockAcceleratorProfile';
-import { mockConnectionTypeConfigMap } from '~/__mocks__/mockConnectionType';
-import type { NotebookKind, PodKind } from '~/k8sTypes';
-import type { EnvironmentFromVariable } from '~/pages/projects/types';
-import { SpawnerPageSectionID } from '~/pages/projects/screens/spawner/types';
-import { acceleratorProfileSection } from '~/__tests__/cypress/cypress/pages/components/subComponents/AcceleratorProfileSection';
+} from '#~/__mocks__/mockAcceleratorProfile';
+import { mockConnectionTypeConfigMap } from '#~/__mocks__/mockConnectionType';
+import type { NotebookKind, PodKind } from '#~/k8sTypes';
+import type { EnvironmentFromVariable } from '#~/pages/projects/types';
+import { SpawnerPageSectionID } from '#~/pages/projects/screens/spawner/types';
+import { acceleratorProfileSection } from '#~/__tests__/cypress/cypress/pages/components/subComponents/AcceleratorProfileSection';
 
 const configYamlPath = '../../__mocks__/mock-upload-configmap.yaml';
 

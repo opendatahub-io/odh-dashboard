@@ -1,7 +1,7 @@
 import React from 'react';
-import { deleteBYONImage } from '~/services/imagesService';
-import { BYONImage } from '~/types';
-import DeleteModal from '~/pages/projects/components/DeleteModal';
+import { deleteBYONImage } from '#~/services/imagesService';
+import { BYONImage } from '#~/types';
+import DeleteModal from '#~/pages/projects/components/DeleteModal';
 
 export type DeleteBYONImageModalProps = {
   image: BYONImage;

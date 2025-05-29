@@ -1,6 +1,6 @@
 import { FormSection, Flex, FlexItem, Button } from '@patternfly/react-core';
 import React from 'react';
-import { Toleration } from '~/types';
+import { Toleration } from '#~/types';
 import { ManageAcceleratorProfileSectionTitles } from './const';
 import ManageTolerationModal from './tolerations/ManageTolerationModal';
 import { TolerationsTable } from './tolerations/TolerationsTable';

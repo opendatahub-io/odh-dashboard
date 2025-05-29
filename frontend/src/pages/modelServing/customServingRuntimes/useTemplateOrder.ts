@@ -1,8 +1,8 @@
 import * as React from 'react';
-import { getDashboardConfigTemplateOrder } from '~/api';
-import useCustomServingRuntimesEnabled from '~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
-import { getDashboardConfigTemplateOrderBackend } from '~/services/dashboardService';
-import useFetch, { FetchOptions, FetchStateObject, NotReadyError } from '~/utilities/useFetch';
+import { getDashboardConfigTemplateOrder } from '#~/api';
+import useCustomServingRuntimesEnabled from '#~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
+import { getDashboardConfigTemplateOrderBackend } from '#~/services/dashboardService';
+import useFetch, { FetchOptions, FetchStateObject, NotReadyError } from '#~/utilities/useFetch';
 
 const useTemplateOrder = (
   namespace?: string,

@@ -8,8 +8,8 @@ import {
   Popover,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
-import { ConnectionTypeDataField } from '~/concepts/connectionTypes/types';
-import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
+import { ConnectionTypeDataField } from '#~/concepts/connectionTypes/types';
+import DashboardPopupIconButton from '#~/concepts/dashboard/DashboardPopupIconButton';
 
 type Props = {
   field: ConnectionTypeDataField;

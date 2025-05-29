@@ -1,4 +1,4 @@
-import { HardwareProfileKind } from '~/k8sTypes';
+import { HardwareProfileKind } from '#~/k8sTypes';
 
 export enum ManageHardwareProfileSectionID {
   DETAILS = 'details',

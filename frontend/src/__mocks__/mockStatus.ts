@@ -1,4 +1,4 @@
-import { StatusResponse } from '~/redux/types';
+import { StatusResponse } from '#~/redux/types';
 
 export const mockStatus = (options?: {
   isAdmin?: boolean;

@@ -1,8 +1,8 @@
 import React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { experimentsRootPath } from '~/routes/pipelines/experiments';
-import useExperimentById from '~/concepts/pipelines/apiHooks/useExperimentById';
-import { ExperimentKF } from '~/concepts/pipelines/kfTypes';
+import { experimentsRootPath } from '#~/routes/pipelines/experiments';
+import useExperimentById from '#~/concepts/pipelines/apiHooks/useExperimentById';
+import { ExperimentKF } from '#~/concepts/pipelines/kfTypes';
 
 export const useExperimentByParams = (): {
   experiment: ExperimentKF | null;

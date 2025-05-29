@@ -19,10 +19,10 @@ import {
   TimesIcon,
   OutlinedQuestionCircleIcon,
 } from '@patternfly/react-icons';
-import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
+import DashboardPopupIconButton from '#~/concepts/dashboard/DashboardPopupIconButton';
 
 import './DashboardDescriptionListGroup.scss';
-import { useBrowserUnloadBlocker } from '~/utilities/useBrowserUnloadBlocker';
+import { useBrowserUnloadBlocker } from '#~/utilities/useBrowserUnloadBlocker';
 import NavigationBlockerModal from './NavigationBlockerModal';
 
 type EditableProps = {

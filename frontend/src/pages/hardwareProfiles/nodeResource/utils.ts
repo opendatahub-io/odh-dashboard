@@ -1,7 +1,7 @@
 import { z, ZodIssue } from 'zod';
-import { HardwareProfileWarningType } from '~/concepts/hardwareProfiles/types';
-import { Identifier } from '~/types';
-import { isLarger, splitValueUnit, UnitOption } from '~/utilities/valueUnits';
+import { HardwareProfileWarningType } from '#~/concepts/hardwareProfiles/types';
+import { Identifier } from '#~/types';
+import { isLarger, splitValueUnit, UnitOption } from '#~/utilities/valueUnits';
 
 const defaultCountSchema = (identifier: Identifier, unitOptions?: UnitOption[]) =>
   z.union([z.string(), z.number()]).superRefine((defaultCount, ctx) => {

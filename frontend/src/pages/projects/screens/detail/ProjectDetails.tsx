@@ -1,19 +1,22 @@
 import * as React from 'react';
 import { Breadcrumb, BreadcrumbItem, Flex, FlexItem, Truncate } from '@patternfly/react-core';
 import { Link, useSearchParams } from 'react-router-dom';
-import { useModelServingTab } from '~/concepts/projects/projectDetails/useModelServingTab';
-import ApplicationsPage from '~/pages/ApplicationsPage';
-import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import GenericHorizontalBar from '~/pages/projects/components/GenericHorizontalBar';
-import ProjectSharing from '~/pages/projects/projectSharing/ProjectSharing';
-import ProjectSettingsPage from '~/pages/projects/projectSettings/ProjectSettingsPage';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import { ProjectObjectType, SectionType } from '~/concepts/design/utils';
-import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
-import { getDescriptionFromK8sResource, getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
-import ResourceNameTooltip from '~/components/ResourceNameTooltip';
-import HeaderIcon from '~/concepts/design/HeaderIcon';
-import { useProjectPermissionsTabVisible } from '~/concepts/projects/accessChecks';
+import { useModelServingTab } from '#~/concepts/projects/projectDetails/useModelServingTab';
+import ApplicationsPage from '#~/pages/ApplicationsPage';
+import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
+import GenericHorizontalBar from '#~/pages/projects/components/GenericHorizontalBar';
+import ProjectSharing from '#~/pages/projects/projectSharing/ProjectSharing';
+import ProjectSettingsPage from '#~/pages/projects/projectSettings/ProjectSettingsPage';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { ProjectObjectType, SectionType } from '#~/concepts/design/utils';
+import { ProjectSectionID } from '#~/pages/projects/screens/detail/types';
+import {
+  getDescriptionFromK8sResource,
+  getDisplayNameFromK8sResource,
+} from '#~/concepts/k8s/utils';
+import ResourceNameTooltip from '#~/components/ResourceNameTooltip';
+import HeaderIcon from '#~/concepts/design/HeaderIcon';
+import { useProjectPermissionsTabVisible } from '#~/concepts/projects/accessChecks';
 import useCheckLogoutParams from './useCheckLogoutParams';
 import ProjectOverview from './overview/ProjectOverview';
 import NotebookList from './notebooks/NotebookList';

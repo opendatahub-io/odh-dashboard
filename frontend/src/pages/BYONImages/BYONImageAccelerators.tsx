@@ -10,10 +10,10 @@ import {
 import { PlusIcon } from '@patternfly/react-icons';
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { BYONImage } from '~/types';
-import { AcceleratorProfileKind } from '~/k8sTypes';
-import { FetchState } from '~/utilities/useFetchState';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+import { BYONImage } from '#~/types';
+import { AcceleratorProfileKind } from '#~/k8sTypes';
+import { FetchState } from '#~/utilities/useFetchState';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 
 type BYONImageAcceleratorsProps = {
   image: BYONImage;

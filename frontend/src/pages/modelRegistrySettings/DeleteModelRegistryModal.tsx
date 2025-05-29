@@ -9,11 +9,11 @@ import {
   ModalHeader,
   ModalFooter,
 } from '@patternfly/react-core';
-import { ModelRegistryKind } from '~/k8sTypes';
-import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
-import { deleteModelRegistryBackend } from '~/services/modelRegistrySettingsService';
-import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
+import { ModelRegistryKind } from '#~/k8sTypes';
+import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
+import { deleteModelRegistryBackend } from '#~/services/modelRegistrySettingsService';
+import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
 
 type DeleteModelRegistryModalProps = {
   modelRegistry: ModelRegistryKind;

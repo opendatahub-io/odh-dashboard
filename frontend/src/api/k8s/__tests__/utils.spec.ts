@@ -1,4 +1,4 @@
-import { getshmVolume, getshmVolumeMount, parseCommandLine } from '~/api/k8s/utils';
+import { getshmVolume, getshmVolumeMount, parseCommandLine } from '#~/api/k8s/utils';
 
 global.structuredClone = (val: unknown) => JSON.parse(JSON.stringify(val));
 

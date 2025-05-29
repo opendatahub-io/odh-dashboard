@@ -13,20 +13,20 @@ import {
   TabTitleText,
   Truncate,
 } from '@patternfly/react-core';
-import ApplicationsPage from '~/pages/ApplicationsPage';
-import { usePipelineTaskTopology } from '~/concepts/pipelines/topology';
-import { PipelineTopology, PipelineTopologyEmpty } from '~/concepts/topology';
-import MarkdownView from '~/components/MarkdownView';
-import PipelineDetailsYAML from '~/concepts/pipelines/content/pipelinesDetails/PipelineDetailsYAML';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { PipelineCoreDetailsPageComponent } from '~/concepts/pipelines/content/types';
-import usePipelineVersionById from '~/concepts/pipelines/apiHooks/usePipelineVersionById';
-import usePipelineById from '~/concepts/pipelines/apiHooks/usePipelineById';
-import PipelineVersionSelector from '~/concepts/pipelines/content/pipelineSelector/PipelineVersionSelector';
-import DeletePipelinesModal from '~/concepts/pipelines/content/DeletePipelinesModal';
-import { pipelineVersionDetailsRoute, pipelinesBaseRoute } from '~/routes/pipelines/global';
-import { getCorePipelineSpec } from '~/concepts/pipelines/getCorePipelineSpec';
-import { isArgoWorkflow } from '~/concepts/pipelines/content/tables/utils';
+import ApplicationsPage from '#~/pages/ApplicationsPage';
+import { usePipelineTaskTopology } from '#~/concepts/pipelines/topology';
+import { PipelineTopology, PipelineTopologyEmpty } from '#~/concepts/topology';
+import MarkdownView from '#~/components/MarkdownView';
+import PipelineDetailsYAML from '#~/concepts/pipelines/content/pipelinesDetails/PipelineDetailsYAML';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+import { PipelineCoreDetailsPageComponent } from '#~/concepts/pipelines/content/types';
+import usePipelineVersionById from '#~/concepts/pipelines/apiHooks/usePipelineVersionById';
+import usePipelineById from '#~/concepts/pipelines/apiHooks/usePipelineById';
+import PipelineVersionSelector from '#~/concepts/pipelines/content/pipelineSelector/PipelineVersionSelector';
+import DeletePipelinesModal from '#~/concepts/pipelines/content/DeletePipelinesModal';
+import { pipelineVersionDetailsRoute, pipelinesBaseRoute } from '#~/routes/pipelines/global';
+import { getCorePipelineSpec } from '#~/concepts/pipelines/getCorePipelineSpec';
+import { isArgoWorkflow } from '#~/concepts/pipelines/content/tables/utils';
 import PipelineDetailsActions from './PipelineDetailsActions';
 import SelectedTaskDrawerContent from './SelectedTaskDrawerContent';
 import PipelineNotFound from './PipelineNotFound';

@@ -1,4 +1,4 @@
-import { Notebook, UsernameMap } from '~/types';
+import { Notebook, UsernameMap } from '#~/types';
 
 export enum PrivilegeState {
   ADMIN = 'Admin',

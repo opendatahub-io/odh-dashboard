@@ -8,11 +8,11 @@ import {
   FlexItem,
 } from '@patternfly/react-core';
 import { useNavigate } from 'react-router';
-import { ArchiveRegisteredModelModal } from '~/pages/modelRegistry/screens/components/ArchiveRegisteredModelModal';
-import { registeredModelsRoute } from '~/routes/modelRegistry/registeredModels';
-import { RegisteredModel, ModelState } from '~/concepts/modelRegistry/types';
-import { ModelRegistriesContext } from '~/concepts/modelRegistry/context/ModelRegistriesContext';
-import { ModelRegistryPageContext } from '~/concepts/modelRegistry/context/ModelRegistryPageContext';
+import { ArchiveRegisteredModelModal } from '#~/pages/modelRegistry/screens/components/ArchiveRegisteredModelModal';
+import { registeredModelsRoute } from '#~/routes/modelRegistry/registeredModels';
+import { RegisteredModel, ModelState } from '#~/concepts/modelRegistry/types';
+import { ModelRegistriesContext } from '#~/concepts/modelRegistry/context/ModelRegistriesContext';
+import { ModelRegistryPageContext } from '#~/concepts/modelRegistry/context/ModelRegistryPageContext';
 
 interface ModelVersionsHeaderActionsProps {
   rm: RegisteredModel;

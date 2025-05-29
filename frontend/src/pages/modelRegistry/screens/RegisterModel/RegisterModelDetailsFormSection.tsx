@@ -8,8 +8,8 @@ import {
   TextInput,
 } from '@patternfly/react-core';
 import React from 'react';
-import FormSection from '~/components/pf-overrides/FormSection';
-import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
+import FormSection from '#~/components/pf-overrides/FormSection';
+import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
 import { MR_CHARACTER_LIMIT } from './const';
 import { RegisterModelFormData } from './useRegisterModelData';
 

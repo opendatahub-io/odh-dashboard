@@ -1,5 +1,5 @@
-import { FieldOptions } from '~/components/FieldList';
-import { AWSDataEntry } from '~/pages/projects/types';
+import { FieldOptions } from '#~/components/FieldList';
+import { AWSDataEntry } from '#~/pages/projects/types';
 
 export enum AwsKeys {
   NAME = 'Name',

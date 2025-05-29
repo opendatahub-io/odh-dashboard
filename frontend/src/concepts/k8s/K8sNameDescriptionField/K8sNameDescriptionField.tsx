@@ -12,10 +12,10 @@ import {
   K8sNameDescriptionFieldUpdateFunction,
   UseK8sNameDescriptionDataConfiguration,
   UseK8sNameDescriptionFieldData,
-} from '~/concepts/k8s/K8sNameDescriptionField/types';
-import ResourceNameDefinitionTooltip from '~/concepts/k8s/ResourceNameDefinitionTooltip';
-import { handleUpdateLogic, setupDefaults } from '~/concepts/k8s/K8sNameDescriptionField/utils';
-import ResourceNameField from '~/concepts/k8s/K8sNameDescriptionField/ResourceNameField';
+} from '#~/concepts/k8s/K8sNameDescriptionField/types';
+import ResourceNameDefinitionTooltip from '#~/concepts/k8s/ResourceNameDefinitionTooltip';
+import { handleUpdateLogic, setupDefaults } from '#~/concepts/k8s/K8sNameDescriptionField/utils';
+import ResourceNameField from '#~/concepts/k8s/K8sNameDescriptionField/ResourceNameField';
 
 /** Companion data hook */
 export const useK8sNameDescriptionFieldData = (

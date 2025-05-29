@@ -9,7 +9,7 @@ import {
   withPanZoom,
   withSelection,
 } from '@patternfly/react-topology';
-import StandardTaskNode from '~/concepts/topology/customNodes/StandardTaskNode';
+import StandardTaskNode from '#~/concepts/topology/customNodes/StandardTaskNode';
 import { ICON_TASK_NODE_TYPE } from './utils';
 import ArtifactTaskNode from './customNodes/ArtifactTaskNode';
 import PipelineTaskEdge from './PipelineTaskEdge';

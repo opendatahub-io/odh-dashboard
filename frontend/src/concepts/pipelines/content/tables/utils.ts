@@ -2,7 +2,7 @@ import {
   PipelineRecurringRunKF,
   PipelineRunKF,
   PipelineSpecVariable,
-} from '~/concepts/pipelines/kfTypes';
+} from '#~/concepts/pipelines/kfTypes';
 
 export const getRunDuration = (run: PipelineRunKF): number => {
   const finishedDate = new Date(run.finished_at);

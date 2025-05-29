@@ -1,34 +1,34 @@
 /* eslint-disable camelcase */
-import { mockDataSciencePipelineApplicationK8sResource } from '~/__mocks__/mockDataSciencePipelinesApplicationK8sResource';
-import { mockDscStatus } from '~/__mocks__/mockDscStatus';
-import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
-import { mockNotebookK8sResource } from '~/__mocks__/mockNotebookK8sResource';
-import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
-import { mockRouteK8sResource } from '~/__mocks__/mockRouteK8sResource';
-import { mockSecretK8sResource } from '~/__mocks__/mockSecretK8sResource';
-import { buildMockRunKF } from '~/__mocks__/mockRunKF';
+import { mockDataSciencePipelineApplicationK8sResource } from '#~/__mocks__/mockDataSciencePipelinesApplicationK8sResource';
+import { mockDscStatus } from '#~/__mocks__/mockDscStatus';
+import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
+import { mockNotebookK8sResource } from '#~/__mocks__/mockNotebookK8sResource';
+import { mockProjectK8sResource } from '#~/__mocks__/mockProjectK8sResource';
+import { mockRouteK8sResource } from '#~/__mocks__/mockRouteK8sResource';
+import { mockSecretK8sResource } from '#~/__mocks__/mockSecretK8sResource';
+import { buildMockRunKF } from '#~/__mocks__/mockRunKF';
 import {
   pipelineRecurringRunTable,
   pipelineRunsGlobal,
   archivedRunsTable,
   runsDeleteModal,
   schedulesDeleteModal,
-} from '~/__tests__/cypress/cypress/pages/pipelines';
+} from '#~/__tests__/cypress/cypress/pages/pipelines';
 import {
   DataSciencePipelineApplicationModel,
   NotebookModel,
   ProjectModel,
   RouteModel,
   SecretModel,
-} from '~/__tests__/cypress/cypress/utils/models';
-import { mockSuccessGoogleRpcStatus } from '~/__mocks__/mockGoogleRpcStatusKF';
+} from '#~/__tests__/cypress/cypress/utils/models';
+import { mockSuccessGoogleRpcStatus } from '#~/__mocks__/mockGoogleRpcStatusKF';
 import {
   buildMockPipeline,
   buildMockPipelines,
   buildMockPipelineVersion,
   buildMockPipelineVersions,
   buildMockRecurringRunKF,
-} from '~/__mocks__';
+} from '#~/__mocks__';
 
 const initIntercepts = () => {
   cy.interceptOdh(

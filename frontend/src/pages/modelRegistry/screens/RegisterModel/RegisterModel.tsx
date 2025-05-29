@@ -10,14 +10,14 @@ import {
 import spacing from '@patternfly/react-styles/css/utilities/Spacing/spacing';
 import { useParams, useNavigate } from 'react-router';
 import { Link } from 'react-router-dom';
-import ApplicationsPage from '~/pages/ApplicationsPage';
-import { modelRegistryRoute } from '~/routes/modelRegistry/registryBase';
-import { registeredModelRoute } from '~/routes/modelRegistry/registeredModels';
-import { useAppSelector } from '~/redux/hooks';
-import useRegisteredModels from '~/concepts/modelRegistry/apiHooks/useRegisteredModels';
-import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
-import { ModelRegistryPageContext } from '~/concepts/modelRegistry/context/ModelRegistryPageContext';
+import ApplicationsPage from '#~/pages/ApplicationsPage';
+import { modelRegistryRoute } from '#~/routes/modelRegistry/registryBase';
+import { registeredModelRoute } from '#~/routes/modelRegistry/registeredModels';
+import { useAppSelector } from '#~/redux/hooks';
+import useRegisteredModels from '#~/concepts/modelRegistry/apiHooks/useRegisteredModels';
+import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
+import { ModelRegistryPageContext } from '#~/concepts/modelRegistry/context/ModelRegistryPageContext';
 import { useRegisterModelData } from './useRegisterModelData';
 import {
   isModelNameExisting,

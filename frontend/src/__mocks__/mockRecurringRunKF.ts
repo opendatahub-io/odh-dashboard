@@ -3,7 +3,7 @@ import {
   PipelineRecurringRunKF,
   RecurringRunMode,
   RecurringRunStatus,
-} from '~/concepts/pipelines/kfTypes';
+} from '#~/concepts/pipelines/kfTypes';
 
 export const buildMockRecurringRunKF = (
   recurringRun?: Partial<PipelineRecurringRunKF>,

@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { validateNotebookNamespaceRoleBinding } from '~/utilities/notebookControllerUtils';
-import ApplicationsPage from '~/pages/ApplicationsPage';
+import { validateNotebookNamespaceRoleBinding } from '#~/utilities/notebookControllerUtils';
+import ApplicationsPage from '#~/pages/ApplicationsPage';
 import useNamespaces from './useNamespaces';
 
 type ValidateNotebookNamespaceProps = {

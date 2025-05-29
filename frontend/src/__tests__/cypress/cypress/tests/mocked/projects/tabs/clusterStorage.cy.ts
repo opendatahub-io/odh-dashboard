@@ -6,28 +6,28 @@ import {
   mockProjectK8sResource,
   mockStorageClasses,
   mockStorageClassList,
-} from '~/__mocks__';
+} from '#~/__mocks__';
 
-import { mockClusterSettings } from '~/__mocks__/mockClusterSettings';
-import { mockPVCK8sResource } from '~/__mocks__/mockPVCK8sResource';
-import { mockPodK8sResource } from '~/__mocks__/mockPodK8sResource';
+import { mockClusterSettings } from '#~/__mocks__/mockClusterSettings';
+import { mockPVCK8sResource } from '#~/__mocks__/mockPVCK8sResource';
+import { mockPodK8sResource } from '#~/__mocks__/mockPodK8sResource';
 import {
   clusterStorage,
   addClusterStorageModal,
   updateClusterStorageModal,
-} from '~/__tests__/cypress/cypress/pages/clusterStorage';
-import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
-import { be } from '~/__tests__/cypress/cypress/utils/should';
+} from '#~/__tests__/cypress/cypress/pages/clusterStorage';
+import { deleteModal } from '#~/__tests__/cypress/cypress/pages/components/DeleteModal';
+import { be } from '#~/__tests__/cypress/cypress/utils/should';
 import {
   NotebookModel,
   PVCModel,
   PodModel,
   ProjectModel,
   StorageClassModel,
-} from '~/__tests__/cypress/cypress/utils/models';
-import { mock200Status } from '~/__mocks__/mockK8sStatus';
-import { mockPrometheusQueryResponse } from '~/__mocks__/mockPrometheusQueryResponse';
-import { storageClassesPage } from '~/__tests__/cypress/cypress/pages/storageClasses';
+} from '#~/__tests__/cypress/cypress/utils/models';
+import { mock200Status } from '#~/__mocks__/mockK8sStatus';
+import { mockPrometheusQueryResponse } from '#~/__mocks__/mockPrometheusQueryResponse';
+import { storageClassesPage } from '#~/__tests__/cypress/cypress/pages/storageClasses';
 
 type HandlersProps = {
   isEmpty?: boolean;

@@ -1,16 +1,16 @@
 import React, { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { Button, Flex, FlexItem, Label, Truncate } from '@patternfly/react-core';
-import ApplicationsPage from '~/pages/ApplicationsPage';
-import { registeredModelRoute } from '~/routes/modelRegistry/registeredModels';
-import useRegisteredModelById from '~/concepts/modelRegistry/apiHooks/useRegisteredModelById';
-import { ModelState } from '~/concepts/modelRegistry/types';
-import { RestoreRegisteredModelModal } from '~/pages/modelRegistry/screens/components/RestoreRegisteredModel';
-import ModelVersionsTabs from '~/pages/modelRegistry/screens/ModelVersions/ModelVersionsTabs';
-import { ModelVersionsTab } from '~/pages/modelRegistry/screens/ModelVersions/const';
-import useModelVersionsByRegisteredModel from '~/concepts/modelRegistry/apiHooks/useModelVersionsByRegisteredModel';
-import { ModelRegistriesContext } from '~/concepts/modelRegistry/context/ModelRegistriesContext';
-import { ModelRegistryPageContext } from '~/concepts/modelRegistry/context/ModelRegistryPageContext';
+import ApplicationsPage from '#~/pages/ApplicationsPage';
+import { registeredModelRoute } from '#~/routes/modelRegistry/registeredModels';
+import useRegisteredModelById from '#~/concepts/modelRegistry/apiHooks/useRegisteredModelById';
+import { ModelState } from '#~/concepts/modelRegistry/types';
+import { RestoreRegisteredModelModal } from '#~/pages/modelRegistry/screens/components/RestoreRegisteredModel';
+import ModelVersionsTabs from '#~/pages/modelRegistry/screens/ModelVersions/ModelVersionsTabs';
+import { ModelVersionsTab } from '#~/pages/modelRegistry/screens/ModelVersions/const';
+import useModelVersionsByRegisteredModel from '#~/concepts/modelRegistry/apiHooks/useModelVersionsByRegisteredModel';
+import { ModelRegistriesContext } from '#~/concepts/modelRegistry/context/ModelRegistriesContext';
+import { ModelRegistryPageContext } from '#~/concepts/modelRegistry/context/ModelRegistryPageContext';
 import RegisteredModelArchiveDetailsBreadcrumb from './RegisteredModelArchiveDetailsBreadcrumb';
 
 type RegisteredModelsArchiveDetailsProps = {

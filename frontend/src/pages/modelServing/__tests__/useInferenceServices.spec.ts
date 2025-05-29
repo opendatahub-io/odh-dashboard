@@ -1,12 +1,12 @@
 import { act } from 'react';
 import { k8sListResource } from '@openshift/dynamic-plugin-sdk-utils';
-import { standardUseFetchStateObject, testHook } from '~/__tests__/unit/testUtils/hooks';
-import useModelServingEnabled from '~/pages/modelServing/useModelServingEnabled';
-import useInferenceServices from '~/pages/modelServing/useInferenceServices';
-import { useAccessReview } from '~/api';
-import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
-import { mockInferenceServiceK8sResource } from '~/__mocks__/mockInferenceServiceK8sResource';
-import { InferenceServiceKind, KnownLabels } from '~/k8sTypes';
+import { standardUseFetchStateObject, testHook } from '#~/__tests__/unit/testUtils/hooks';
+import useModelServingEnabled from '#~/pages/modelServing/useModelServingEnabled';
+import useInferenceServices from '#~/pages/modelServing/useInferenceServices';
+import { useAccessReview } from '#~/api';
+import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
+import { mockInferenceServiceK8sResource } from '#~/__mocks__/mockInferenceServiceK8sResource';
+import { InferenceServiceKind, KnownLabels } from '#~/k8sTypes';
 
 const mockInferenceServices = [
   mockInferenceServiceK8sResource({ name: 'item-1' }),
@@ -42,12 +42,12 @@ jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
 }));
 
 // Mock the API functions
-jest.mock('~/api', () => ({
-  ...jest.requireActual('~/api'),
+jest.mock('#~/api', () => ({
+  ...jest.requireActual('#~/api'),
   useAccessReview: jest.fn(),
 }));
 
-jest.mock('~/pages/modelServing/useModelServingEnabled', () => ({
+jest.mock('#~/pages/modelServing/useModelServingEnabled', () => ({
   __esModule: true,
   default: jest.fn(),
 }));

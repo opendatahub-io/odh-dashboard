@@ -1,6 +1,6 @@
 import React from 'react';
 import { SearchInput } from '@patternfly/react-core';
-import FilterToolbar from '~/components/FilterToolbar';
+import FilterToolbar from '#~/components/FilterToolbar';
 import {
   StorageClassFilterData,
   StorageClassFilterOption,

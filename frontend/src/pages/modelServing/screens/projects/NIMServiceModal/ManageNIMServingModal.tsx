@@ -17,7 +17,7 @@ import {
   getSubmitServingRuntimeResourcesFn,
   useCreateInferenceServiceObject,
   useCreateServingRuntimeObject,
-} from '~/pages/modelServing/screens/projects/utils';
+} from '#~/pages/modelServing/screens/projects/utils';
 import {
   AccessReviewResourceAttributes,
   InferenceServiceKind,
@@ -25,40 +25,40 @@ import {
   ProjectKind,
   SecretKind,
   ServingRuntimeKind,
-} from '~/k8sTypes';
-import { requestsUnderLimits, resourcesArePositive } from '~/pages/modelServing/utils';
-import useCustomServingRuntimesEnabled from '~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
-import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
-import { ModelServingSize, ServingRuntimeEditInfo } from '~/pages/modelServing/screens/types';
-import ServingRuntimeSizeSection from '~/pages/modelServing/screens/projects/ServingRuntimeModal/ServingRuntimeSizeSection';
-import NIMModelListSection from '~/pages/modelServing/screens/projects/NIMServiceModal/NIMModelListSection';
-import NIMModelDeploymentNameSection from '~/pages/modelServing/screens/projects/NIMServiceModal/NIMModelDeploymentNameSection';
-import ProjectSection from '~/pages/modelServing/screens/projects/InferenceServiceModal/ProjectSection';
-import { NamespaceApplicationCase } from '~/pages/projects/types';
+} from '#~/k8sTypes';
+import { requestsUnderLimits, resourcesArePositive } from '#~/pages/modelServing/utils';
+import useCustomServingRuntimesEnabled from '#~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
+import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
+import { ModelServingSize, ServingRuntimeEditInfo } from '#~/pages/modelServing/screens/types';
+import ServingRuntimeSizeSection from '#~/pages/modelServing/screens/projects/ServingRuntimeModal/ServingRuntimeSizeSection';
+import NIMModelListSection from '#~/pages/modelServing/screens/projects/NIMServiceModal/NIMModelListSection';
+import NIMModelDeploymentNameSection from '#~/pages/modelServing/screens/projects/NIMServiceModal/NIMModelDeploymentNameSection';
+import ProjectSection from '#~/pages/modelServing/screens/projects/InferenceServiceModal/ProjectSection';
+import { NamespaceApplicationCase } from '#~/pages/projects/types';
 import {
   getDisplayNameFromK8sResource,
   translateDisplayNameForK8s,
   translateDisplayNameForK8sAndReport,
-} from '~/concepts/k8s/utils';
-import { getSecret, updatePvc, useAccessReview } from '~/api';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import KServeAutoscalerReplicaSection from '~/pages/modelServing/screens/projects/kServeModal/KServeAutoscalerReplicaSection';
-import NIMPVCSizeSection from '~/pages/modelServing/screens/projects/NIMServiceModal/NIMPVCSizeSection';
+} from '#~/concepts/k8s/utils';
+import { getSecret, updatePvc, useAccessReview } from '#~/api';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import KServeAutoscalerReplicaSection from '#~/pages/modelServing/screens/projects/kServeModal/KServeAutoscalerReplicaSection';
+import NIMPVCSizeSection from '#~/pages/modelServing/screens/projects/NIMServiceModal/NIMPVCSizeSection';
 import {
   getNIMServingRuntimeTemplate,
   updateServingRuntimeTemplate,
-} from '~/pages/modelServing/screens/projects/nimUtils';
-import { useDashboardNamespace } from '~/redux/selectors';
-import { getServingRuntimeFromTemplate } from '~/pages/modelServing/customServingRuntimes/utils';
-import { useNIMPVC } from '~/pages/modelServing/screens/projects/NIMServiceModal/useNIMPVC';
-import AuthServingRuntimeSection from '~/pages/modelServing/screens/projects/ServingRuntimeModal/AuthServingRuntimeSection';
-import { useNIMTemplateName } from '~/pages/modelServing/screens/projects/useNIMTemplateName';
-import { KServeDeploymentModeDropdown } from '~/pages/modelServing/screens/projects/kServeModal/KServeDeploymentModeDropdown';
-import { useModelServingPodSpecOptionsState } from '~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
-import { useKServeDeploymentMode } from '~/pages/modelServing/useKServeDeploymentMode';
-import StorageClassSelect from '~/pages/projects/screens/spawner/storage/StorageClassSelect';
-import useAdminDefaultStorageClass from '~/pages/projects/screens/spawner/storage/useAdminDefaultStorageClass';
-import { useModelDeploymentNotification } from '~/pages/modelServing/screens/projects/useModelDeploymentNotification';
+} from '#~/pages/modelServing/screens/projects/nimUtils';
+import { useDashboardNamespace } from '#~/redux/selectors';
+import { getServingRuntimeFromTemplate } from '#~/pages/modelServing/customServingRuntimes/utils';
+import { useNIMPVC } from '#~/pages/modelServing/screens/projects/NIMServiceModal/useNIMPVC';
+import AuthServingRuntimeSection from '#~/pages/modelServing/screens/projects/ServingRuntimeModal/AuthServingRuntimeSection';
+import { useNIMTemplateName } from '#~/pages/modelServing/screens/projects/useNIMTemplateName';
+import { KServeDeploymentModeDropdown } from '#~/pages/modelServing/screens/projects/kServeModal/KServeDeploymentModeDropdown';
+import { useModelServingPodSpecOptionsState } from '#~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
+import { useKServeDeploymentMode } from '#~/pages/modelServing/useKServeDeploymentMode';
+import StorageClassSelect from '#~/pages/projects/screens/spawner/storage/StorageClassSelect';
+import useAdminDefaultStorageClass from '#~/pages/projects/screens/spawner/storage/useAdminDefaultStorageClass';
+import { useModelDeploymentNotification } from '#~/pages/modelServing/screens/projects/useModelDeploymentNotification';
 import { NoAuthAlert } from './NoAuthAlert';
 
 const NIM_SECRET_NAME = 'nvidia-nim-secrets';

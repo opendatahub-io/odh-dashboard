@@ -1,13 +1,13 @@
-import { userManagement } from '~/__tests__/cypress/cypress/pages/userManagement';
+import { userManagement } from '#~/__tests__/cypress/cypress/pages/userManagement';
 import {
   asProductAdminUser,
   asProjectAdminUser,
-} from '~/__tests__/cypress/cypress/utils/mockUsers';
-import { pageNotfound } from '~/__tests__/cypress/cypress/pages/pageNotFound';
-import { AuthModel, GroupModel } from '~/__tests__/cypress/cypress/utils/models';
-import { mockAuth } from '~/__mocks__/mockAuth';
-import { mockGroup } from '~/__mocks__/mockGroup';
-import { mockK8sResourceList } from '~/__mocks__';
+} from '#~/__tests__/cypress/cypress/utils/mockUsers';
+import { pageNotfound } from '#~/__tests__/cypress/cypress/pages/pageNotFound';
+import { AuthModel, GroupModel } from '#~/__tests__/cypress/cypress/utils/models';
+import { mockAuth } from '#~/__mocks__/mockAuth';
+import { mockGroup } from '#~/__mocks__/mockGroup';
+import { mockK8sResourceList } from '#~/__mocks__';
 
 it('Cluster settings should not be available for non product admins', () => {
   asProjectAdminUser();

@@ -1,15 +1,15 @@
 import * as React from 'react';
 import { PageSection, Content, ContentVariants } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
-import CollapsibleSection from '~/concepts/design/CollapsibleSection';
-import { ProjectObjectType, SectionType, sectionTypeBorderColor } from '~/concepts/design/utils';
-import DividedGallery from '~/concepts/design/DividedGallery';
-import { useUser } from '~/redux/selectors';
-import InfoGalleryItem from '~/concepts/design/InfoGalleryItem';
-import { useBrowserStorage } from '~/components/browserStorage/BrowserStorageContext';
-import { SupportedArea } from '~/concepts/areas';
-import useIsAreaAvailable from '~/concepts/areas/useIsAreaAvailable';
-import { fireLinkTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
+import CollapsibleSection from '#~/concepts/design/CollapsibleSection';
+import { ProjectObjectType, SectionType, sectionTypeBorderColor } from '#~/concepts/design/utils';
+import DividedGallery from '#~/concepts/design/DividedGallery';
+import { useUser } from '#~/redux/selectors';
+import InfoGalleryItem from '#~/concepts/design/InfoGalleryItem';
+import { useBrowserStorage } from '#~/components/browserStorage/BrowserStorageContext';
+import { SupportedArea } from '#~/concepts/areas';
+import useIsAreaAvailable from '#~/concepts/areas/useIsAreaAvailable';
+import { fireLinkTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 
 export const useEnableTeamSection = (): React.ReactNode => {
   const navigate = useNavigate();

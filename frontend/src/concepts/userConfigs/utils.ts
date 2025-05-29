@@ -1,5 +1,5 @@
-import { AuthKind, GroupKind } from '~/k8sTypes';
-import { getAuth, patchAuth } from '~/api';
+import { AuthKind, GroupKind } from '#~/k8sTypes';
+import { getAuth, patchAuth } from '#~/api';
 import { GroupsConfig } from './groupTypes';
 
 const ALL_USERS = 'system:authenticated';

@@ -1,8 +1,8 @@
 import React from 'react';
-import DeleteModal from '~/pages/projects/components/DeleteModal';
-import { AcceleratorProfileKind } from '~/k8sTypes';
-import { deleteAcceleratorProfile } from '~/api';
-import { useDashboardNamespace } from '~/redux/selectors';
+import DeleteModal from '#~/pages/projects/components/DeleteModal';
+import { AcceleratorProfileKind } from '#~/k8sTypes';
+import { deleteAcceleratorProfile } from '#~/api';
+import { useDashboardNamespace } from '#~/redux/selectors';
 
 type DeleteAcceleratorProfileModalProps = {
   acceleratorProfile: AcceleratorProfileKind;

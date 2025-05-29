@@ -3,24 +3,24 @@ import { BrowserRouter } from 'react-router-dom';
 import { render, screen, within } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { act } from 'react';
-import { Artifact } from '~/third_party/mlmd';
-import { artifactsBaseRoute } from '~/routes/pipelines/artifacts';
-import { ArtifactDetails } from '~/pages/pipelines/global/experiments/artifacts/ArtifactDetails/ArtifactDetails';
-import GlobalPipelineCoreDetails from '~/pages/pipelines/global/GlobalPipelineCoreDetails';
-import * as useGetArtifactById from '~/concepts/pipelines/apiHooks/mlmd/useGetArtifactById';
-import * as useArtifactStorage from '~/concepts/pipelines/apiHooks/useArtifactStorage';
+import { Artifact } from '#~/third_party/mlmd';
+import { artifactsBaseRoute } from '#~/routes/pipelines/artifacts';
+import { ArtifactDetails } from '#~/pages/pipelines/global/experiments/artifacts/ArtifactDetails/ArtifactDetails';
+import GlobalPipelineCoreDetails from '#~/pages/pipelines/global/GlobalPipelineCoreDetails';
+import * as useGetArtifactById from '#~/concepts/pipelines/apiHooks/mlmd/useGetArtifactById';
+import * as useArtifactStorage from '#~/concepts/pipelines/apiHooks/useArtifactStorage';
 
 // Mock the useDispatch hook
-jest.mock('~/redux/hooks', () => ({
+jest.mock('#~/redux/hooks', () => ({
   useAppDispatch: jest.fn(),
 }));
 
-jest.mock('~/redux/selectors', () => ({
-  ...jest.requireActual('~/redux/selectors'),
+jest.mock('#~/redux/selectors', () => ({
+  ...jest.requireActual('#~/redux/selectors'),
   useUser: jest.fn(() => ({ isAdmin: true })),
 }));
 
-jest.mock('~/concepts/areas/useIsAreaAvailable', () => () => ({
+jest.mock('#~/concepts/areas/useIsAreaAvailable', () => () => ({
   status: true,
   featureFlags: {},
   reliantAreas: {},
@@ -29,7 +29,7 @@ jest.mock('~/concepts/areas/useIsAreaAvailable', () => () => ({
   customCondition: jest.fn(),
 }));
 
-jest.mock('~/concepts/pipelines/context/PipelinesContext', () => ({
+jest.mock('#~/concepts/pipelines/context/PipelinesContext', () => ({
   usePipelinesAPI: jest.fn(() => ({
     pipelinesServer: {
       initializing: false,
@@ -55,7 +55,7 @@ jest.mock('~/concepts/pipelines/context/PipelinesContext', () => ({
   })),
 }));
 
-jest.mock('~/concepts/pipelines/apiHooks/useArtifactStorage');
+jest.mock('#~/concepts/pipelines/apiHooks/useArtifactStorage');
 
 describe('ArtifactDetails', () => {
   const useGetArtifactByIdSpy = jest.spyOn(useGetArtifactById, 'useGetArtifactById');

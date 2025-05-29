@@ -1,11 +1,11 @@
-import { Identifier } from '~/types';
+import { Identifier } from '#~/types';
 import {
   getValidationMessage,
   validateDefaultCount,
   validateMaxCount,
   validateMinCount,
-} from '~/pages/hardwareProfiles/nodeResource/utils';
-import { CPU_UNITS, MEMORY_UNITS_FOR_SELECTION } from '~/utilities/valueUnits';
+} from '#~/pages/hardwareProfiles/nodeResource/utils';
+import { CPU_UNITS, MEMORY_UNITS_FOR_SELECTION } from '#~/utilities/valueUnits';
 
 const memoryIdentifier: Identifier = {
   displayName: 'test',

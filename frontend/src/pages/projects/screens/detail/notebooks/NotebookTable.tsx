@@ -1,12 +1,12 @@
 import * as React from 'react';
-import { Table } from '~/components/table';
-import { NotebookKind } from '~/k8sTypes';
-import DeleteNotebookModal from '~/pages/projects/notebook/DeleteNotebookModal';
-import { NotebookState } from '~/pages/projects/notebook/types';
-import CanEnableElyraPipelinesCheck from '~/concepts/pipelines/elyra/CanEnableElyraPipelinesCheck';
-import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import { ElyraInvalidVersionAlerts } from '~/concepts/pipelines/elyra/ElyraInvalidVersionAlerts';
-import { useIsAreaAvailable, SupportedArea } from '~/concepts/areas';
+import { Table } from '#~/components/table';
+import { NotebookKind } from '#~/k8sTypes';
+import DeleteNotebookModal from '#~/pages/projects/notebook/DeleteNotebookModal';
+import { NotebookState } from '#~/pages/projects/notebook/types';
+import CanEnableElyraPipelinesCheck from '#~/concepts/pipelines/elyra/CanEnableElyraPipelinesCheck';
+import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
+import { ElyraInvalidVersionAlerts } from '#~/concepts/pipelines/elyra/ElyraInvalidVersionAlerts';
+import { useIsAreaAvailable, SupportedArea } from '#~/concepts/areas';
 import NotebookTableRow from './NotebookTableRow';
 import { columns } from './data';
 

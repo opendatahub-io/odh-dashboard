@@ -6,7 +6,7 @@ import {
   InputOutputDefinition,
   PipelineKFCallCommon,
   PipelineVersionKF,
-} from '~/concepts/pipelines/kfTypes';
+} from '#~/concepts/pipelines/kfTypes';
 
 export type BuildMockPipelinveVersionsType = PipelineKFCallCommon<{
   pipeline_versions: (PipelineVersionKF | ArgoWorkflowPipelineVersion)[];

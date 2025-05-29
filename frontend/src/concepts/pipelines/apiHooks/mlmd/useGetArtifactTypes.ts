@@ -1,7 +1,7 @@
 import React from 'react';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { ArtifactType, GetArtifactTypesRequest } from '~/third_party/mlmd';
-import useFetchState, { FetchState, FetchStateCallbackPromise } from '~/utilities/useFetchState';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+import { ArtifactType, GetArtifactTypesRequest } from '#~/third_party/mlmd';
+import useFetchState, { FetchState, FetchStateCallbackPromise } from '#~/utilities/useFetchState';
 
 export const useGetArtifactTypes = (): FetchState<ArtifactType[]> => {
   const { metadataStoreServiceClient } = usePipelinesAPI();

@@ -1,7 +1,7 @@
 import type { NavExtension } from '@odh-dashboard/plugin-core/extension-points';
 // Allow this import as it consists of types and enums only.
 // eslint-disable-next-line no-restricted-syntax
-import { SupportedArea } from '~/concepts/areas/types';
+import { SupportedArea } from '#~/concepts/areas/types';
 
 const ADMIN_USER = 'ADMIN_USER';
 

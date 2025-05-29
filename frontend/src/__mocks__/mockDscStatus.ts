@@ -1,6 +1,6 @@
-import { DataScienceClusterKindStatus, K8sCondition } from '~/k8sTypes';
-import { DataScienceStackComponent, StackComponent } from '~/concepts/areas/types';
-import { DataScienceStackComponentMap } from '~/concepts/areas/const';
+import { DataScienceClusterKindStatus, K8sCondition } from '#~/k8sTypes';
+import { DataScienceStackComponent, StackComponent } from '#~/concepts/areas/types';
+import { DataScienceStackComponentMap } from '#~/concepts/areas/const';
 
 export type MockDscStatus = {
   components?: DataScienceClusterKindStatus['components'];

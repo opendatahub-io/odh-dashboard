@@ -1,14 +1,17 @@
 import * as React from 'react';
-import BooleanFormField from '~/concepts/connectionTypes/fields/BooleanFormField';
-import DropdownFormField from '~/concepts/connectionTypes/fields/DropdownFormField';
-import FileFormField from '~/concepts/connectionTypes/fields/FileFormField';
-import HiddenFormField from '~/concepts/connectionTypes/fields/HiddenFormField';
-import NumericFormField from '~/concepts/connectionTypes/fields/NumericFormField';
-import TextFormField from '~/concepts/connectionTypes/fields/TextFormField';
-import ShortTextFormField from '~/concepts/connectionTypes/fields/ShortTextFormField';
-import UriFormField from '~/concepts/connectionTypes/fields/UriFormField';
-import { ConnectionTypeDataField, ConnectionTypeFieldType } from '~/concepts/connectionTypes/types';
-import { FieldProps } from '~/concepts/connectionTypes/fields/types';
+import BooleanFormField from '#~/concepts/connectionTypes/fields/BooleanFormField';
+import DropdownFormField from '#~/concepts/connectionTypes/fields/DropdownFormField';
+import FileFormField from '#~/concepts/connectionTypes/fields/FileFormField';
+import HiddenFormField from '#~/concepts/connectionTypes/fields/HiddenFormField';
+import NumericFormField from '#~/concepts/connectionTypes/fields/NumericFormField';
+import TextFormField from '#~/concepts/connectionTypes/fields/TextFormField';
+import ShortTextFormField from '#~/concepts/connectionTypes/fields/ShortTextFormField';
+import UriFormField from '#~/concepts/connectionTypes/fields/UriFormField';
+import {
+  ConnectionTypeDataField,
+  ConnectionTypeFieldType,
+} from '#~/concepts/connectionTypes/types';
+import { FieldProps } from '#~/concepts/connectionTypes/fields/types';
 
 const components = {
   [ConnectionTypeFieldType.ShortText]: ShortTextFormField,

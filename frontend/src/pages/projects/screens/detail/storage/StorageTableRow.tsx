@@ -10,14 +10,17 @@ import {
   Tooltip,
 } from '@patternfly/react-core';
 import { ExclamationTriangleIcon, HddIcon } from '@patternfly/react-icons';
-import { PersistentVolumeClaimKind } from '~/k8sTypes';
-import StorageSizeBar from '~/pages/projects/components/StorageSizeBars';
-import ConnectedNotebookNames from '~/pages/projects/notebook/ConnectedNotebookNames';
-import { ConnectedNotebookContext } from '~/pages/projects/notebook/useRelatedNotebooks';
-import { TableRowTitleDescription } from '~/components/table';
-import { getDescriptionFromK8sResource, getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import { getStorageClassConfig } from '~/pages/storageClasses/utils';
+import { PersistentVolumeClaimKind } from '#~/k8sTypes';
+import StorageSizeBar from '#~/pages/projects/components/StorageSizeBars';
+import ConnectedNotebookNames from '#~/pages/projects/notebook/ConnectedNotebookNames';
+import { ConnectedNotebookContext } from '#~/pages/projects/notebook/useRelatedNotebooks';
+import { TableRowTitleDescription } from '#~/components/table';
+import {
+  getDescriptionFromK8sResource,
+  getDisplayNameFromK8sResource,
+} from '#~/concepts/k8s/utils';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { getStorageClassConfig } from '#~/pages/storageClasses/utils';
 import useIsRootVolume from './useIsRootVolume';
 import StorageWarningStatus from './StorageWarningStatus';
 import { StorageTableData } from './types';

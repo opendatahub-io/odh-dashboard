@@ -3,10 +3,10 @@ import {
   k8sListResource,
   k8sCreateResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { K8sAPIOptions, LMEvaluationKind } from '~/k8sTypes';
-import { LMEvalModel } from '~/api/models';
-import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
-import { kindApiVersion, translateDisplayNameForK8s } from '~/concepts/k8s/utils';
+import { K8sAPIOptions, LMEvaluationKind } from '#~/k8sTypes';
+import { LMEvalModel } from '#~/api/models';
+import { applyK8sAPIOptions } from '#~/api/apiMergeUtils';
+import { kindApiVersion, translateDisplayNameForK8s } from '#~/concepts/k8s/utils';
 
 export const listModelEvaluations = async (namespace: string): Promise<LMEvaluationKind[]> =>
   k8sListResource<LMEvaluationKind>({

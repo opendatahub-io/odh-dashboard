@@ -6,26 +6,26 @@ import {
   mockModelRegistryService,
   mockModelVersion,
   mockRegisteredModel,
-} from '~/__mocks__';
+} from '#~/__mocks__';
 import {
   mockModelCatalogConfigMap,
   mockUnmanagedModelCatalogConfigMap,
-} from '~/__mocks__/mockModelCatalogConfigMap';
-import { ConfigMapModel, ServiceModel } from '~/__tests__/cypress/cypress/utils/models';
-import type { ServiceKind } from '~/k8sTypes';
-import { mockModelArtifact } from '~/__mocks__/mockModelArtifact';
-import type { ModelArtifact, ModelVersion, RegisteredModel } from '~/concepts/modelRegistry/types';
+} from '#~/__mocks__/mockModelCatalogConfigMap';
+import { ConfigMapModel, ServiceModel } from '#~/__tests__/cypress/cypress/utils/models';
+import type { ServiceKind } from '#~/k8sTypes';
+import { mockModelArtifact } from '#~/__mocks__/mockModelArtifact';
+import type { ModelArtifact, ModelVersion, RegisteredModel } from '#~/concepts/modelRegistry/types';
 import {
   ModelArtifactState,
   ModelRegistryMetadataType,
   ModelState,
-} from '~/concepts/modelRegistry/types';
-import { mockRegisteredModelList } from '~/__mocks__/mockRegisteredModelsList';
-import { registerCatalogModelPage } from '~/__tests__/cypress/cypress/pages/modelCatalog/registerCatalogModel';
+} from '#~/concepts/modelRegistry/types';
+import { mockRegisteredModelList } from '#~/__mocks__/mockRegisteredModelsList';
+import { registerCatalogModelPage } from '#~/__tests__/cypress/cypress/pages/modelCatalog/registerCatalogModel';
 import {
   FormFieldSelector,
   registerModelPage,
-} from '~/__tests__/cypress/cypress/pages/modelRegistry/registerModelPage';
+} from '#~/__tests__/cypress/cypress/pages/modelRegistry/registerModelPage';
 
 const existingModelName = 'model1';
 const MODEL_REGISTRY_API_VERSION = 'v1alpha3';

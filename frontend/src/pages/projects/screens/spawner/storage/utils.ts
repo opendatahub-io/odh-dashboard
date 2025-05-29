@@ -4,14 +4,17 @@ import {
   ExistingStorageObjectForNotebook,
   StorageData,
   UpdateObjectAtPropAndValue,
-} from '~/pages/projects/types';
-import { PersistentVolumeClaimKind } from '~/k8sTypes';
+} from '#~/pages/projects/types';
+import { PersistentVolumeClaimKind } from '#~/k8sTypes';
 import {
   useRelatedNotebooks,
   ConnectedNotebookContext,
-} from '~/pages/projects/notebook/useRelatedNotebooks';
-import useGenericObjectState from '~/utilities/useGenericObjectState';
-import { getDescriptionFromK8sResource, getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
+} from '#~/pages/projects/notebook/useRelatedNotebooks';
+import useGenericObjectState from '#~/utilities/useGenericObjectState';
+import {
+  getDescriptionFromK8sResource,
+  getDisplayNameFromK8sResource,
+} from '#~/concepts/k8s/utils';
 import useDefaultPvcSize from './useDefaultPvcSize';
 import { MountPathFormat } from './types';
 import { MOUNT_PATH_PREFIX } from './const';

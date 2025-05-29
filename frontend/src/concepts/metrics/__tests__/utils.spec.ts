@@ -1,4 +1,4 @@
-import { isRefreshIntervalTitle, isTimeframeTitle } from '~/concepts/metrics/utils';
+import { isRefreshIntervalTitle, isTimeframeTitle } from '#~/concepts/metrics/utils';
 
 describe('isTimeframeTitle', () => {
   it('works in the true case', () => {

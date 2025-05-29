@@ -1,9 +1,9 @@
 import React from 'react';
-import { NimMetricGraphDefinition } from '~/concepts/metrics/kserve/types';
-import { useFetchNimRequestsOutcomesData } from '~/api';
-import MetricsChart from '~/pages/modelServing/screens/metrics/MetricsChart';
-import { TimeframeTitle } from '~/concepts/metrics/types';
-import { MetricsChartTypes } from '~/pages/modelServing/screens/metrics/types';
+import { NimMetricGraphDefinition } from '#~/concepts/metrics/kserve/types';
+import { useFetchNimRequestsOutcomesData } from '#~/api';
+import MetricsChart from '#~/pages/modelServing/screens/metrics/MetricsChart';
+import { TimeframeTitle } from '#~/concepts/metrics/types';
+import { MetricsChartTypes } from '#~/pages/modelServing/screens/metrics/types';
 
 type NimRequestsOutcomesGraphProps = {
   graphDefinition: NimMetricGraphDefinition;

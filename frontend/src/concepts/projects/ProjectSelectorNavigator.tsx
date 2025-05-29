@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
+import { byName, ProjectsContext } from '#~/concepts/projects/ProjectsContext';
 import ProjectSelector from './ProjectSelector';
 
 type ProjectSelectorProps = {

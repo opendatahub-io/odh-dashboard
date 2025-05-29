@@ -1,5 +1,5 @@
 import React from 'react';
-import { AccessReviewResourceAttributes } from '~/k8sTypes';
+import { AccessReviewResourceAttributes } from '#~/k8sTypes';
 import { useAccessAllowed } from './useAccessAllowed';
 
 type AccessAllowedProps = {

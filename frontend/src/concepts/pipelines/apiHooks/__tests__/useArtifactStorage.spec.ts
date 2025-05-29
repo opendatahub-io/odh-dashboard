@@ -1,13 +1,13 @@
 /* eslint-disable camelcase */
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { Artifact } from '~/third_party/mlmd';
-import { testHook } from '~/__tests__/unit/testUtils/hooks';
-import { useArtifactStorage } from '~/concepts/pipelines/apiHooks/useArtifactStorage';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+import { Artifact } from '#~/third_party/mlmd';
+import { testHook } from '#~/__tests__/unit/testUtils/hooks';
+import { useArtifactStorage } from '#~/concepts/pipelines/apiHooks/useArtifactStorage';
 
 global.fetch = jest.fn();
 const mockFetch = jest.mocked(global.fetch);
 
-jest.mock('~/concepts/pipelines/context', () => ({
+jest.mock('#~/concepts/pipelines/context', () => ({
   usePipelinesAPI: jest.fn(),
 }));
 

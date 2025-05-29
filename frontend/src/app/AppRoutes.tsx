@@ -2,15 +2,15 @@ import React from 'react';
 import { Route, Routes } from 'react-router-dom';
 import { isRouteExtension } from '@odh-dashboard/plugin-core/extension-points';
 import { LazyCodeRefComponent, useExtensions } from '@odh-dashboard/plugin-core';
-import { InvalidArgoDeploymentAlert } from '~/concepts/pipelines/content/InvalidArgoDeploymentAlert';
-import ApplicationsPage from '~/pages/ApplicationsPage';
-import UnauthorizedError from '~/pages/UnauthorizedError';
-import { useUser } from '~/redux/selectors';
+import { InvalidArgoDeploymentAlert } from '#~/concepts/pipelines/content/InvalidArgoDeploymentAlert';
+import ApplicationsPage from '#~/pages/ApplicationsPage';
+import UnauthorizedError from '#~/pages/UnauthorizedError';
+import { useUser } from '#~/redux/selectors';
 
 const NotFound = React.lazy(() => import('../pages/NotFound'));
 
 const DependencyMissingPage = React.lazy(
-  () => import('~/pages/dependencies/DependencyMissingPage'),
+  () => import('#~/pages/dependencies/DependencyMissingPage'),
 );
 
 const fallback = <ApplicationsPage title="" description="" loaded={false} empty />;

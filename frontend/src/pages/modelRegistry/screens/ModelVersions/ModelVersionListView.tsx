@@ -16,20 +16,20 @@ import {
 } from '@patternfly/react-core';
 import { EllipsisVIcon, FilterIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router';
-import { SearchType } from '~/concepts/dashboard/DashboardSearchField';
-import { ModelVersion, RegisteredModel } from '~/concepts/modelRegistry/types';
-import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
-import EmptyModelRegistryState from '~/pages/modelRegistry/screens/components/EmptyModelRegistryState';
+import { SearchType } from '#~/concepts/dashboard/DashboardSearchField';
+import { ModelVersion, RegisteredModel } from '#~/concepts/modelRegistry/types';
+import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
+import EmptyModelRegistryState from '#~/pages/modelRegistry/screens/components/EmptyModelRegistryState';
 import {
   filterModelVersions,
   sortModelVersionsByCreateTime,
-} from '~/pages/modelRegistry/screens/utils';
-import { modelVersionArchiveRoute } from '~/routes/modelRegistry/modelVersionArchive';
-import { registerVersionForModelRoute } from '~/routes/modelRegistry/register';
-import { asEnumMember } from '~/utilities/utils';
-import { ProjectObjectType, typedEmptyImage } from '~/concepts/design/utils';
-import { filterArchiveVersions, filterLiveVersions } from '~/concepts/modelRegistry/utils';
-import { ModelRegistriesContext } from '~/concepts/modelRegistry/context/ModelRegistriesContext';
+} from '#~/pages/modelRegistry/screens/utils';
+import { modelVersionArchiveRoute } from '#~/routes/modelRegistry/modelVersionArchive';
+import { registerVersionForModelRoute } from '#~/routes/modelRegistry/register';
+import { asEnumMember } from '#~/utilities/utils';
+import { ProjectObjectType, typedEmptyImage } from '#~/concepts/design/utils';
+import { filterArchiveVersions, filterLiveVersions } from '#~/concepts/modelRegistry/utils';
+import { ModelRegistriesContext } from '#~/concepts/modelRegistry/context/ModelRegistriesContext';
 import ModelVersionsTable from './ModelVersionsTable';
 
 type ModelVersionListViewProps = {

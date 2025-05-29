@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Gallery } from '@patternfly/react-core';
-import CollapsibleSection from '~/concepts/design/CollapsibleSection';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+import CollapsibleSection from '#~/concepts/design/CollapsibleSection';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import PipelinesCard from './PipelinesCard';
 import NotebooksCard from './NotebooksCard';
 

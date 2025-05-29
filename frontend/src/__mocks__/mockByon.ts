@@ -1,8 +1,8 @@
 /* eslint-disable camelcase */
 import * as _ from 'lodash-es';
 
-import { RecursivePartial } from '~/typeHelpers';
-import { BYONImage } from '~/types';
+import { RecursivePartial } from '#~/typeHelpers';
+import { BYONImage } from '#~/types';
 
 export const mockByon = (opts?: RecursivePartial<BYONImage[]>): BYONImage[] =>
   _.merge(

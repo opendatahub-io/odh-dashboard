@@ -9,11 +9,11 @@ import {
   createServiceAccount,
   deleteServiceAccount,
   getServiceAccount,
-} from '~/api/k8s/serviceAccounts';
-import { ServiceAccountKind } from '~/k8sTypes';
-import { mockServiceAccountK8sResource } from '~/__mocks__/mockServiceAccountK8sResource';
-import { ServiceAccountModel } from '~/api/models';
-import { mock200Status, mock404Error } from '~/__mocks__/mockK8sStatus';
+} from '#~/api/k8s/serviceAccounts';
+import { ServiceAccountKind } from '#~/k8sTypes';
+import { mockServiceAccountK8sResource } from '#~/__mocks__/mockServiceAccountK8sResource';
+import { ServiceAccountModel } from '#~/api/models';
+import { mock200Status, mock404Error } from '#~/__mocks__/mockK8sStatus';
 
 const name = 'test';
 const namespace = 'test-project';

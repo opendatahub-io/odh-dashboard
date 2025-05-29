@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { render } from '@testing-library/react';
-import InferenceServiceServingRuntime from '~/pages/modelServing/screens/global/InferenceServiceServingRuntime';
-import { mockServingRuntimeK8sResource } from '~/__mocks__/mockServingRuntimeK8sResource';
+import InferenceServiceServingRuntime from '#~/pages/modelServing/screens/global/InferenceServiceServingRuntime';
+import { mockServingRuntimeK8sResource } from '#~/__mocks__/mockServingRuntimeK8sResource';
 
 describe('InferenceServiceServingRuntime', () => {
   it('should handle undefined serving runtime', () => {

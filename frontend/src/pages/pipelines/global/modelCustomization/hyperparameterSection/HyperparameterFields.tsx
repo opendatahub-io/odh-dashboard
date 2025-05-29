@@ -1,13 +1,13 @@
 import { Grid, GridItem } from '@patternfly/react-core';
 import * as React from 'react';
-import ParamsDefaultFields from '~/components/ParamsDefaultFields';
-import { ParametersKF, RuntimeConfigParamValue } from '~/concepts/pipelines/kfTypes';
+import ParamsDefaultFields from '#~/components/ParamsDefaultFields';
+import { ParametersKF, RuntimeConfigParamValue } from '#~/concepts/pipelines/kfTypes';
 import {
   createHyperParametersSchema,
   HyperParametersFormData,
-} from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/hyperparameterValidationUtils';
-import { useZodFormValidation } from '~/hooks/useZodFormValidation';
-import { HYPERPARAMETER_MAP } from '~/pages/pipelines/global/modelCustomization/hyperparameterSection/HyperparameterFieldsUtils';
+} from '#~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/hyperparameterValidationUtils';
+import { useZodFormValidation } from '#~/hooks/useZodFormValidation';
+import { HYPERPARAMETER_MAP } from '#~/pages/pipelines/global/modelCustomization/hyperparameterSection/HyperparameterFieldsUtils';
 
 type HyperparameterFieldsDisplayProps = {
   hyperparameters: ParametersKF;

@@ -1,4 +1,4 @@
-import { setServingRuntimeTemplate } from '~/pages/modelServing/customServingRuntimes/utils';
+import { setServingRuntimeTemplate } from '#~/pages/modelServing/customServingRuntimes/utils';
 
 describe('setServingRuntimeTemplate', () => {
   const mockSetData = jest.fn();

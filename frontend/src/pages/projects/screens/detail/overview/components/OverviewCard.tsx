@@ -1,10 +1,10 @@
 import * as React from 'react';
 import { CardHeader, Flex, FlexItem, Popover, Content } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
-import { ProjectObjectType, SectionType } from '~/concepts/design/utils';
-import HeaderIcon from '~/concepts/design/HeaderIcon';
-import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
-import TypeBorderedCard from '~/concepts/design/TypeBorderedCard';
+import { ProjectObjectType, SectionType } from '#~/concepts/design/utils';
+import HeaderIcon from '#~/concepts/design/HeaderIcon';
+import DashboardPopupIconButton from '#~/concepts/dashboard/DashboardPopupIconButton';
+import TypeBorderedCard from '#~/concepts/design/TypeBorderedCard';
 
 type OverviewCardProps = {
   objectType: ProjectObjectType;

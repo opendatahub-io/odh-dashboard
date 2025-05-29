@@ -14,12 +14,12 @@ import {
   RoleBindingKind,
   RoleBindingRoleRef,
   RoleBindingSubject,
-} from '~/k8sTypes';
-import { RoleBindingModel } from '~/api/models';
-import { genRandomChars } from '~/utilities/string';
-import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
-import { RoleBindingPermissionsRoleType } from '~/concepts/roleBinding/types';
-import { addOwnerReference } from '~/api/k8sUtils';
+} from '#~/k8sTypes';
+import { RoleBindingModel } from '#~/api/models';
+import { genRandomChars } from '#~/utilities/string';
+import { applyK8sAPIOptions } from '#~/api/apiMergeUtils';
+import { RoleBindingPermissionsRoleType } from '#~/concepts/roleBinding/types';
+import { addOwnerReference } from '#~/api/k8sUtils';
 
 export const generateRoleBindingServiceAccount = (
   name: string,

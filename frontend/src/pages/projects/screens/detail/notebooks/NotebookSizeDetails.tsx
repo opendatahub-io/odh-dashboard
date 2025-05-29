@@ -12,11 +12,11 @@ import {
   Tooltip,
 } from '@patternfly/react-core';
 import { ExclamationTriangleIcon, OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
-import { NotebookSize } from '~/types';
-import { formatMemory } from '~/utilities/valueUnits';
-import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
-import useAcceleratorCountWarning from '~/pages/notebookController/screens/server/useAcceleratorCountWarning';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+import { NotebookSize } from '#~/types';
+import { formatMemory } from '#~/utilities/valueUnits';
+import DashboardPopupIconButton from '#~/concepts/dashboard/DashboardPopupIconButton';
+import useAcceleratorCountWarning from '#~/pages/notebookController/screens/server/useAcceleratorCountWarning';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import { AcceleratorResources } from './utils';
 
 type NotebookSizeDetailsProps = {

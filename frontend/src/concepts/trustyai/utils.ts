@@ -1,13 +1,13 @@
-import { BaseMetricListResponse } from '~/api';
+import { BaseMetricListResponse } from '#~/api';
 import {
   BiasMetricConfig,
   TrustyInstallState,
   TrustyStatusStates,
-} from '~/concepts/trustyai/types';
-import { FetchState } from '~/utilities/useFetchState';
-import { TrustyAIKind } from '~/k8sTypes';
-import { getConditionForType } from '~/concepts/k8s/utils';
-import { UseTrustyBrowserStorage } from '~/concepts/trustyai/content/useTrustyBrowserStorage';
+} from '#~/concepts/trustyai/types';
+import { FetchState } from '#~/utilities/useFetchState';
+import { TrustyAIKind } from '#~/k8sTypes';
+import { getConditionForType } from '#~/concepts/k8s/utils';
+import { UseTrustyBrowserStorage } from '#~/concepts/trustyai/content/useTrustyBrowserStorage';
 
 export const formatListResponse = (x: BaseMetricListResponse): BiasMetricConfig[] =>
   x.requests.map((m) => ({

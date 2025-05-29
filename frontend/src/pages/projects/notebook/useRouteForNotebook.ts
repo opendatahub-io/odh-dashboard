@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { getRoute } from '~/api';
-import { FAST_POLL_INTERVAL } from '~/utilities/const';
+import { getRoute } from '#~/api';
+import { FAST_POLL_INTERVAL } from '#~/utilities/const';
 
 const useRouteForNotebook = (
   notebookName?: string,

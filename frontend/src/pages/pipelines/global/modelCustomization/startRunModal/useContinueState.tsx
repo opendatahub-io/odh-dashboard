@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { useIlabPipeline } from '~/concepts/pipelines/content/modelCustomizationForm/useIlabPipeline';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
+import { useIlabPipeline } from '#~/concepts/pipelines/content/modelCustomizationForm/useIlabPipeline';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 
 export type ContinueCondition =
   | 'ilabPipelineInstalled'

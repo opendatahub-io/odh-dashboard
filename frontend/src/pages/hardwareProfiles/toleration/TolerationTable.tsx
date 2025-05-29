@@ -1,8 +1,8 @@
 import React from 'react';
-import { TableBase } from '~/components/table';
-import { Toleration } from '~/types';
-import TolerationTableRow from '~/pages/hardwareProfiles/toleration/TolerationTableRow';
-import ManageTolerationModal from '~/pages/hardwareProfiles/toleration/ManageTolerationModal';
+import { TableBase } from '#~/components/table';
+import { Toleration } from '#~/types';
+import TolerationTableRow from '#~/pages/hardwareProfiles/toleration/TolerationTableRow';
+import ManageTolerationModal from '#~/pages/hardwareProfiles/toleration/ManageTolerationModal';
 import { tolerationColumns } from './const';
 
 type TolerationTableProps = {

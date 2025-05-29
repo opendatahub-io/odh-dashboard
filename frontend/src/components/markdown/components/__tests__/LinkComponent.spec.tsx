@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import LinkComponent from '~/components/markdown/components/LinkComponent';
+import LinkComponent from '#~/components/markdown/components/LinkComponent';
 
 describe('LinkComponent', () => {
   const originalOpen = window.open;

@@ -10,8 +10,8 @@ import {
   ModalHeader,
   ModalFooter,
 } from '@patternfly/react-core';
-import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
-import { ConnectionTypeField, SectionField } from '~/concepts/connectionTypes/types';
+import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
+import { ConnectionTypeField, SectionField } from '#~/concepts/connectionTypes/types';
 
 type Props = {
   field: SectionField;

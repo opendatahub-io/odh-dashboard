@@ -1,10 +1,10 @@
 import * as React from 'react';
-import { PrometheusQueryResponse } from '~/types';
-import { FetchStateObject } from '~/utilities/useFetch';
-import { useMakeFetchObject } from '~/utilities/useMakeFetchObject';
-import { DEFAULT_VALUE_FETCH_STATE } from '~/utilities/const';
-import { WorkloadKind, WorkloadOwnerType } from '~/k8sTypes';
-import { TopWorkloadUsageType, getWorkloadOwner } from '~/concepts/distributedWorkloads/utils';
+import { PrometheusQueryResponse } from '#~/types';
+import { FetchStateObject } from '#~/utilities/useFetch';
+import { useMakeFetchObject } from '#~/utilities/useMakeFetchObject';
+import { DEFAULT_VALUE_FETCH_STATE } from '#~/utilities/const';
+import { WorkloadKind, WorkloadOwnerType } from '#~/k8sTypes';
+import { TopWorkloadUsageType, getWorkloadOwner } from '#~/concepts/distributedWorkloads/utils';
 import usePrometheusQuery from './usePrometheusQuery';
 
 export type WorkloadMetricIndexedByOwner = Record<

@@ -1,8 +1,8 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { FineTuneTaxonomySection } from '~/pages/pipelines/global/modelCustomization/taxonomySection/FineTuneTaxonomySection';
-import { FineTuneTaxonomyType } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/types';
+import { FineTuneTaxonomySection } from '#~/pages/pipelines/global/modelCustomization/taxonomySection/FineTuneTaxonomySection';
+import { FineTuneTaxonomyType } from '#~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/types';
 
 describe('FineTuneTaxonomySection', () => {
   const defaultProps = {

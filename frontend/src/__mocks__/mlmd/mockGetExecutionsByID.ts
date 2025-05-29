@@ -1,5 +1,5 @@
 /* eslint-disable camelcase */
-import { GetExecutionsResponse } from '~/__mocks__/third_party/mlmd';
+import { GetExecutionsResponse } from '#~/__mocks__/third_party/mlmd';
 import createGrpcResponse, { GrpcResponse } from './utils';
 
 const mockedGetExecutionsByID: GetExecutionsResponse = {

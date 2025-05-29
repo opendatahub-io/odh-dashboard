@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { AxiosError } from 'axios';
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
-import { createRoleBinding, getRoleBinding } from '~/services/roleBindingService';
+import { createRoleBinding, getRoleBinding } from '#~/services/roleBindingService';
 import {
   AssociatedSteps,
   EnvVarReducedTypeKeyValues,
@@ -16,15 +16,15 @@ import {
   ResourceCreator,
   ResourceGetter,
   VariableRow,
-} from '~/types';
-import { NotebookControllerContext } from '~/pages/notebookController/NotebookControllerContext';
-import { useUser } from '~/redux/selectors';
-import { EMPTY_USER_STATE } from '~/pages/notebookController/const';
-import useNamespaces from '~/pages/notebookController/useNamespaces';
-import { useAppContext } from '~/app/AppContext';
-import { getRoute } from '~/services/routeService';
-import { EventKind, NotebookKind, RoleBindingKind } from '~/k8sTypes';
-import { useWatchNotebookEvents } from '~/api';
+} from '#~/types';
+import { NotebookControllerContext } from '#~/pages/notebookController/NotebookControllerContext';
+import { useUser } from '#~/redux/selectors';
+import { EMPTY_USER_STATE } from '#~/pages/notebookController/const';
+import useNamespaces from '#~/pages/notebookController/useNamespaces';
+import { useAppContext } from '#~/app/AppContext';
+import { getRoute } from '#~/services/routeService';
+import { EventKind, NotebookKind, RoleBindingKind } from '#~/k8sTypes';
+import { useWatchNotebookEvents } from '#~/api';
 import { useDeepCompareMemoize } from './useDeepCompareMemoize';
 
 export const usernameTranslate = (username: string): string => {

@@ -3,9 +3,9 @@ import useFetchState, {
   FetchState,
   FetchStateCallbackPromise,
   NotReadyError,
-} from '~/utilities/useFetchState';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { ExperimentKF } from '~/concepts/pipelines/kfTypes';
+} from '#~/utilities/useFetchState';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+import { ExperimentKF } from '#~/concepts/pipelines/kfTypes';
 
 const useExperimentById = (experimentId?: string): FetchState<ExperimentKF | null> => {
   const { api } = usePipelinesAPI();

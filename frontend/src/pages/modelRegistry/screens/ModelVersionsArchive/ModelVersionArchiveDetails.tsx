@@ -1,20 +1,20 @@
 import React, { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { Button, Flex, FlexItem, Label, Truncate } from '@patternfly/react-core';
-import ApplicationsPage from '~/pages/ApplicationsPage';
-import useModelVersionById from '~/concepts/modelRegistry/apiHooks/useModelVersionById';
-import { archiveModelVersionDetailsRoute } from '~/routes/modelRegistry/modelArchive';
-import { modelVersionRoute } from '~/routes/modelRegistry/modelVersions';
-import useRegisteredModelById from '~/concepts/modelRegistry/apiHooks/useRegisteredModelById';
-import { ModelVersionDetailsTab } from '~/pages/modelRegistry/screens/ModelVersionDetails/const';
-import ModelVersionDetailsTabs from '~/pages/modelRegistry/screens/ModelVersionDetails/ModelVersionDetailsTabs';
-import { RestoreModelVersionModal } from '~/pages/modelRegistry/screens/components/RestoreModelVersionModal';
-import { ModelState } from '~/concepts/modelRegistry/types';
-import useInferenceServices from '~/pages/modelServing/useInferenceServices';
-import useServingRuntimes from '~/pages/modelServing/useServingRuntimes';
-import { ModelRegistriesContext } from '~/concepts/modelRegistry/context/ModelRegistriesContext';
-import { ModelRegistryPageContext } from '~/concepts/modelRegistry/context/ModelRegistryPageContext';
-import useModelArtifactsByVersionId from '~/concepts/modelRegistry/apiHooks/useModelArtifactsByVersionId';
+import ApplicationsPage from '#~/pages/ApplicationsPage';
+import useModelVersionById from '#~/concepts/modelRegistry/apiHooks/useModelVersionById';
+import { archiveModelVersionDetailsRoute } from '#~/routes/modelRegistry/modelArchive';
+import { modelVersionRoute } from '#~/routes/modelRegistry/modelVersions';
+import useRegisteredModelById from '#~/concepts/modelRegistry/apiHooks/useRegisteredModelById';
+import { ModelVersionDetailsTab } from '#~/pages/modelRegistry/screens/ModelVersionDetails/const';
+import ModelVersionDetailsTabs from '#~/pages/modelRegistry/screens/ModelVersionDetails/ModelVersionDetailsTabs';
+import { RestoreModelVersionModal } from '#~/pages/modelRegistry/screens/components/RestoreModelVersionModal';
+import { ModelState } from '#~/concepts/modelRegistry/types';
+import useInferenceServices from '#~/pages/modelServing/useInferenceServices';
+import useServingRuntimes from '#~/pages/modelServing/useServingRuntimes';
+import { ModelRegistriesContext } from '#~/concepts/modelRegistry/context/ModelRegistriesContext';
+import { ModelRegistryPageContext } from '#~/concepts/modelRegistry/context/ModelRegistryPageContext';
+import useModelArtifactsByVersionId from '#~/concepts/modelRegistry/apiHooks/useModelArtifactsByVersionId';
 import ModelVersionArchiveDetailsBreadcrumb from './ModelVersionArchiveDetailsBreadcrumb';
 
 type ModelVersionsArchiveDetailsProps = {

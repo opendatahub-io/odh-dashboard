@@ -1,18 +1,18 @@
 import * as React from 'react';
 import { ButtonVariant, Popover } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
-import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
-import { ProjectSectionTitles } from '~/pages/projects/screens/detail/const';
-import { PipelineServerTimedOut, usePipelinesAPI } from '~/concepts/pipelines/context';
-import ImportPipelineSplitButton from '~/concepts/pipelines/content/import/ImportPipelineSplitButton';
-import PipelinesList from '~/pages/projects/screens/detail/pipelines/PipelinesList';
-import PipelineServerActions from '~/concepts/pipelines/content/PipelineServerActions';
-import DetailsSection from '~/pages/projects/screens/detail/DetailsSection';
-import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
-import { ProjectObjectType } from '~/concepts/design/utils';
-import NoPipelineServer from '~/concepts/pipelines/NoPipelineServer';
-import PipelineAndVersionContextProvider from '~/concepts/pipelines/content/PipelineAndVersionContext';
-import EnsureCompatiblePipelineServer from '~/concepts/pipelines/EnsureCompatiblePipelineServer';
+import { ProjectSectionID } from '#~/pages/projects/screens/detail/types';
+import { ProjectSectionTitles } from '#~/pages/projects/screens/detail/const';
+import { PipelineServerTimedOut, usePipelinesAPI } from '#~/concepts/pipelines/context';
+import ImportPipelineSplitButton from '#~/concepts/pipelines/content/import/ImportPipelineSplitButton';
+import PipelinesList from '#~/pages/projects/screens/detail/pipelines/PipelinesList';
+import PipelineServerActions from '#~/concepts/pipelines/content/PipelineServerActions';
+import DetailsSection from '#~/pages/projects/screens/detail/DetailsSection';
+import DashboardPopupIconButton from '#~/concepts/dashboard/DashboardPopupIconButton';
+import { ProjectObjectType } from '#~/concepts/design/utils';
+import NoPipelineServer from '#~/concepts/pipelines/NoPipelineServer';
+import PipelineAndVersionContextProvider from '#~/concepts/pipelines/content/PipelineAndVersionContext';
+import EnsureCompatiblePipelineServer from '#~/concepts/pipelines/EnsureCompatiblePipelineServer';
 
 const PipelinesSection: React.FC = () => {
   const {

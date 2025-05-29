@@ -9,11 +9,11 @@ import {
   AlertActionCloseButton,
   EmptyStateFooter,
 } from '@patternfly/react-core';
-import { ProjectObjectType, typedEmptyImage } from '~/concepts/design/utils';
-import ApplicationsPage from '~/pages/ApplicationsPage';
-import useStorageClasses from '~/concepts/k8s/useStorageClasses';
-import WhosMyAdministrator from '~/components/WhosMyAdministrator';
-import TitleWithIcon from '~/concepts/design/TitleWithIcon';
+import { ProjectObjectType, typedEmptyImage } from '#~/concepts/design/utils';
+import ApplicationsPage from '#~/pages/ApplicationsPage';
+import useStorageClasses from '#~/concepts/k8s/useStorageClasses';
+import WhosMyAdministrator from '#~/components/WhosMyAdministrator';
+import TitleWithIcon from '#~/concepts/design/TitleWithIcon';
 import { StorageClassesTable } from './StorageClassesTable';
 import { StorageClassContextProvider, useStorageClassContext } from './StorageClassesContext';
 

@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { Switch } from '@patternfly/react-core';
-import { TemplateKind } from '~/k8sTypes';
-import useNotification from '~/utilities/useNotification';
-import { useDashboardNamespace } from '~/redux/selectors';
-import { patchDashboardConfigTemplateDisablementBackend } from '~/services/dashboardService';
+import { TemplateKind } from '#~/k8sTypes';
+import useNotification from '#~/utilities/useNotification';
+import { useDashboardNamespace } from '#~/redux/selectors';
+import { patchDashboardConfigTemplateDisablementBackend } from '#~/services/dashboardService';
 import { getTemplateEnabled, setListDisabled } from './utils';
 import { CustomServingRuntimeContext } from './CustomServingRuntimeContext';
 

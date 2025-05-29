@@ -1,5 +1,5 @@
-import { mockProjectK8sResource } from '~/__mocks__';
-import * as stringUtils from '~/utilities/string';
+import { mockProjectK8sResource } from '#~/__mocks__';
+import * as stringUtils from '#~/utilities/string';
 import {
   getDescriptionFromK8sResource,
   getDisplayNameFromK8sResource,
@@ -7,8 +7,8 @@ import {
   kindApiVersion,
   translateDisplayNameForK8s,
   translateDisplayNameForK8sAndReport,
-} from '~/concepts/k8s/utils';
-import { K8_NOTEBOOK_RESOURCE_NAME_VALIDATOR } from '~/pages/projects/screens/spawner/const';
+} from '#~/concepts/k8s/utils';
+import { K8_NOTEBOOK_RESOURCE_NAME_VALIDATOR } from '#~/pages/projects/screens/spawner/const';
 
 describe('getDisplayNameFromK8sResource', () => {
   it('gets the display name when present', () => {

@@ -1,11 +1,11 @@
 import * as React from 'react';
 import { render } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { mockInferenceServiceK8sResource } from '~/__mocks__/mockInferenceServiceK8sResource';
-import InferenceServiceProject from '~/pages/modelServing/screens/global/InferenceServiceProject';
-import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
-import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
-import { ProjectKind } from '~/k8sTypes';
+import { mockInferenceServiceK8sResource } from '#~/__mocks__/mockInferenceServiceK8sResource';
+import InferenceServiceProject from '#~/pages/modelServing/screens/global/InferenceServiceProject';
+import { ProjectsContext } from '#~/concepts/projects/ProjectsContext';
+import { mockProjectK8sResource } from '#~/__mocks__/mockProjectK8sResource';
+import { ProjectKind } from '#~/k8sTypes';
 
 describe('InferenceServiceProject', () => {
   it('should render error if loading fails', () => {

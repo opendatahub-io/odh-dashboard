@@ -1,7 +1,7 @@
 import React from 'react';
-import useFetchState, { FetchState, NotReadyError } from '~/utilities/useFetchState';
-import { ListConfigSecretsResponse } from '~/k8sTypes';
-import { listModelRegistryCertificateNames } from '~/services/modelRegistrySettingsService';
+import useFetchState, { FetchState, NotReadyError } from '#~/utilities/useFetchState';
+import { ListConfigSecretsResponse } from '#~/k8sTypes';
+import { listModelRegistryCertificateNames } from '#~/services/modelRegistrySettingsService';
 
 const useModelRegistryCertificateNames = (
   isDisabled?: boolean,

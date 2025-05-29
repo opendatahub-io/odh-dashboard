@@ -1,7 +1,7 @@
 import {
   globalDistributedWorkloads,
   projectMetricsTab,
-} from '~/__tests__/cypress/cypress/pages/distributedWorkloads';
+} from '#~/__tests__/cypress/cypress/pages/distributedWorkloads';
 
 /**
  * Retrieves the list of available refresh interval options.

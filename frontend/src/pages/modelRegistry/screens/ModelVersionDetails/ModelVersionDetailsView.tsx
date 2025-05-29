@@ -10,22 +10,22 @@ import {
   Spinner,
   Alert,
 } from '@patternfly/react-core';
-import { ModelVersion, ModelArtifactList } from '~/concepts/modelRegistry/types';
-import DashboardDescriptionListGroup from '~/components/DashboardDescriptionListGroup';
-import EditableTextDescriptionListGroup from '~/components/EditableTextDescriptionListGroup';
-import { EditableLabelsDescriptionListGroup } from '~/components/EditableLabelsDescriptionListGroup';
-import ModelPropertiesDescriptionListGroup from '~/pages/modelRegistry/screens/ModelPropertiesDescriptionListGroup';
-import { getLabels, mergeUpdatedLabels } from '~/pages/modelRegistry/screens/utils';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import ModelTimestamp from '~/pages/modelRegistry/screens/components/ModelTimestamp';
-import { uriToModelLocation } from '~/concepts/modelRegistry/utils';
-import InlineTruncatedClipboardCopy from '~/components/InlineTruncatedClipboardCopy';
+import { ModelVersion, ModelArtifactList } from '#~/concepts/modelRegistry/types';
+import DashboardDescriptionListGroup from '#~/components/DashboardDescriptionListGroup';
+import EditableTextDescriptionListGroup from '#~/components/EditableTextDescriptionListGroup';
+import { EditableLabelsDescriptionListGroup } from '#~/components/EditableLabelsDescriptionListGroup';
+import ModelPropertiesDescriptionListGroup from '#~/pages/modelRegistry/screens/ModelPropertiesDescriptionListGroup';
+import { getLabels, mergeUpdatedLabels } from '#~/pages/modelRegistry/screens/utils';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import ModelTimestamp from '#~/pages/modelRegistry/screens/components/ModelTimestamp';
+import { uriToModelLocation } from '#~/concepts/modelRegistry/utils';
+import InlineTruncatedClipboardCopy from '#~/components/InlineTruncatedClipboardCopy';
 import {
   bumpBothTimestamps,
   bumpRegisteredModelTimestamp,
-} from '~/concepts/modelRegistry/utils/updateTimestamps';
-import useRegisteredModelById from '~/concepts/modelRegistry/apiHooks/useRegisteredModelById';
-import { ModelRegistryPageContext } from '~/concepts/modelRegistry/context/ModelRegistryPageContext';
+} from '#~/concepts/modelRegistry/utils/updateTimestamps';
+import useRegisteredModelById from '#~/concepts/modelRegistry/apiHooks/useRegisteredModelById';
+import { ModelRegistryPageContext } from '#~/concepts/modelRegistry/context/ModelRegistryPageContext';
 import ModelVersionRegisteredFromLink from './ModelVersionRegisteredFromLink';
 
 type ModelVersionDetailsViewProps = {

@@ -7,17 +7,17 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
+import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
 import {
   PeriodicOptions,
   RunTypeScheduledData,
   ScheduledType,
-} from '~/concepts/pipelines/content/createRun/types';
+} from '#~/concepts/pipelines/content/createRun/types';
 import {
   DEFAULT_CRON_STRING,
   DEFAULT_PERIODIC_OPTION,
-} from '~/concepts/pipelines/content/createRun/const';
-import NumberInputWrapper from '~/components/NumberInputWrapper';
+} from '#~/concepts/pipelines/content/createRun/const';
+import NumberInputWrapper from '#~/components/NumberInputWrapper';
 import { extractNumberAndTimeUnit } from './utils';
 
 type TriggerTypeFieldProps = {

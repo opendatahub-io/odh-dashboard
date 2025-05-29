@@ -1,4 +1,4 @@
-import { setQueryArgument, removeQueryArgument } from '~/utilities/router';
+import { setQueryArgument, removeQueryArgument } from '#~/utilities/router';
 
 // Mock the NavigateFunction
 const navigate = jest.fn();

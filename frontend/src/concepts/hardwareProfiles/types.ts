@@ -1,6 +1,6 @@
-import { AcceleratorProfileKind, HardwareProfileKind } from '~/k8sTypes';
-import { ContainerResources, Toleration, NodeSelector } from '~/types';
-import useAcceleratorProfileFormState from '~/utilities/useAcceleratorProfileFormState';
+import { AcceleratorProfileKind, HardwareProfileKind } from '#~/k8sTypes';
+import { ContainerResources, Toleration, NodeSelector } from '#~/types';
+import useAcceleratorProfileFormState from '#~/utilities/useAcceleratorProfileFormState';
 import { useHardwareProfileConfig } from './useHardwareProfileConfig';
 
 export type WarningNotification = {

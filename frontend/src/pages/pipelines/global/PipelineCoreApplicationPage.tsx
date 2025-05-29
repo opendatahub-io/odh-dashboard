@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { ButtonVariant } from '@patternfly/react-core';
-import ApplicationsPage from '~/pages/ApplicationsPage';
-import NoPipelineServer from '~/concepts/pipelines/NoPipelineServer';
-import PipelineCoreProjectSelector from '~/pages/pipelines/global/PipelineCoreProjectSelector';
-import { PipelineServerTimedOut, usePipelinesAPI } from '~/concepts/pipelines/context';
+import ApplicationsPage from '#~/pages/ApplicationsPage';
+import NoPipelineServer from '#~/concepts/pipelines/NoPipelineServer';
+import PipelineCoreProjectSelector from '#~/pages/pipelines/global/PipelineCoreProjectSelector';
+import { PipelineServerTimedOut, usePipelinesAPI } from '#~/concepts/pipelines/context';
 
 export type PipelineCoreApplicationPageProps = {
   children: React.ReactNode;

@@ -5,7 +5,7 @@ import {
   RunTypeOption,
   SafeRunFormData,
   ScheduledType,
-} from '~/concepts/pipelines/content/createRun/types';
+} from '#~/concepts/pipelines/content/createRun/types';
 import {
   CreatePipelineRecurringRunKFData,
   CreatePipelineRunKFData,
@@ -17,13 +17,13 @@ import {
   RecurringRunMode,
   RuntimeConfigParameters,
   StorageStateKF,
-} from '~/concepts/pipelines/kfTypes';
-import { PipelineAPIs } from '~/concepts/pipelines/types';
+} from '#~/concepts/pipelines/kfTypes';
+import { PipelineAPIs } from '#~/concepts/pipelines/types';
 import {
   getInputDefinitionParams,
   isFilledRunFormData,
-} from '~/concepts/pipelines/content/createRun/utils';
-import { convertPeriodicTimeToSeconds, convertToDate } from '~/utilities/time';
+} from '#~/concepts/pipelines/content/createRun/utils';
+import { convertPeriodicTimeToSeconds, convertToDate } from '#~/utilities/time';
 
 const createRun = async (
   formData: SafeRunFormData,

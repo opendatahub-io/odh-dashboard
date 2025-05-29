@@ -1,6 +1,6 @@
 /** URI related utils source: https://github.com/kubeflow/pipelines/blob/master/frontend/src/lib/Utils.tsx */
-import { getArtifactModelData } from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/artifacts/utils';
-import { Artifact } from '~/third_party/mlmd';
+import { getArtifactModelData } from '#~/concepts/pipelines/content/pipelinesDetails/pipelineRun/artifacts/utils';
+import { Artifact } from '#~/third_party/mlmd';
 
 export const getArtifactName = (artifact: Artifact | undefined): string => {
   const artifactObject = artifact?.toObject();

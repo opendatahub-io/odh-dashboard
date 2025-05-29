@@ -2,9 +2,9 @@ import React from 'react';
 import { Tooltip, Icon, Skeleton } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router';
-import { experimentRunDetailsRoute } from '~/routes/pipelines/experiments';
-import usePipelineRunById from '~/concepts/pipelines/apiHooks/usePipelineRunById';
-import { useGetPipelineRunContextByExecution } from '~/concepts/pipelines/apiHooks/mlmd/useGetMlmdContextByExecution';
+import { experimentRunDetailsRoute } from '#~/routes/pipelines/experiments';
+import usePipelineRunById from '#~/concepts/pipelines/apiHooks/usePipelineRunById';
+import { useGetPipelineRunContextByExecution } from '#~/concepts/pipelines/apiHooks/mlmd/useGetMlmdContextByExecution';
 
 type ExperimentPipelineRunLinkProps = {
   executionId: number | undefined;

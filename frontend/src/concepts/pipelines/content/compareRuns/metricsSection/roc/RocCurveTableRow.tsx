@@ -1,12 +1,12 @@
 import React from 'react';
 import { Td, Tr } from '@patternfly/react-table';
 import { ChartLegend } from '@patternfly/react-charts/victory';
-import { CheckboxTd } from '~/components/table';
-import { RocCurveChartColorScale } from '~/concepts/pipelines/content/artifacts/charts/ROCCurve';
+import { CheckboxTd } from '#~/components/table';
+import { RocCurveChartColorScale } from '#~/concepts/pipelines/content/artifacts/charts/ROCCurve';
 import {
   getFullArtifactPathLabel,
   getLinkedArtifactId,
-} from '~/concepts/pipelines/content/compareRuns/metricsSection/utils';
+} from '#~/concepts/pipelines/content/compareRuns/metricsSection/utils';
 import { FullArtifactPathsAndConfig } from './types';
 
 type RocCurveTableRowProps = {

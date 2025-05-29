@@ -16,12 +16,12 @@ import {
   ToggleGroupItem,
 } from '@patternfly/react-core';
 import { QuestionCircleIcon, MoonIcon, SunIcon } from '@patternfly/react-icons';
-import { COMMUNITY_LINK, DOC_LINK, SUPPORT_LINK, DEV_MODE, EXT_CLUSTER } from '~/utilities/const';
-import useNotification from '~/utilities/useNotification';
-import { updateImpersonateSettings } from '~/services/impersonateService';
-import { AppNotification } from '~/redux/types';
-import { useAppSelector } from '~/redux/hooks';
-import AboutDialog from '~/app/AboutDialog';
+import { COMMUNITY_LINK, DOC_LINK, SUPPORT_LINK, DEV_MODE, EXT_CLUSTER } from '#~/utilities/const';
+import useNotification from '#~/utilities/useNotification';
+import { updateImpersonateSettings } from '#~/services/impersonateService';
+import { AppNotification } from '#~/redux/types';
+import { useAppSelector } from '#~/redux/hooks';
+import AboutDialog from '#~/app/AboutDialog';
 import AppLauncher from './AppLauncher';
 import { useAppContext } from './AppContext';
 import { useThemeContext } from './ThemeContext';

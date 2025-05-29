@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { relativeTime } from '~/utilities/time';
+import { relativeTime } from '#~/utilities/time';
 import { isField, AdminViewUserData } from './types';
 import ServerStatus from './ServerStatus';
 import NotebookActions from './NotebookActions';

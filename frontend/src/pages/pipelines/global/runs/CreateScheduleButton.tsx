@@ -1,12 +1,12 @@
 import React from 'react';
 import { Button, Tooltip } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
-import { createRecurringRunRoute } from '~/routes/pipelines/runs';
+import { createRecurringRunRoute } from '#~/routes/pipelines/runs';
 import {
   ExperimentContext,
   useContextExperimentArchivedOrDeleted,
-} from '~/pages/pipelines/global/experiments/ExperimentContext';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
+} from '#~/pages/pipelines/global/experiments/ExperimentContext';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 
 const CreateScheduleButton: React.FC = () => {
   const navigate = useNavigate();

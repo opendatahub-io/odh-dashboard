@@ -1,9 +1,9 @@
 import React from 'react';
 import { Split, SplitItem } from '@patternfly/react-core';
-import { ExperimentKF } from '~/concepts/pipelines/kfTypes';
-import PipelinesTableRowTime from '~/concepts/pipelines/content/tables/PipelinesTableRowTime';
-import { usePipelineRunsByExperiment } from '~/concepts/pipelines/apiHooks/usePipelineRuns';
-import { RunStatus } from '~/concepts/pipelines/content/tables/renderUtils';
+import { ExperimentKF } from '#~/concepts/pipelines/kfTypes';
+import PipelinesTableRowTime from '#~/concepts/pipelines/content/tables/PipelinesTableRowTime';
+import { usePipelineRunsByExperiment } from '#~/concepts/pipelines/apiHooks/usePipelineRuns';
+import { RunStatus } from '#~/concepts/pipelines/content/tables/renderUtils';
 
 type ExperimentUtil<P = Record<string, unknown>> = React.FC<{ experiment: ExperimentKF } & P>;
 

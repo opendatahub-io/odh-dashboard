@@ -1,17 +1,17 @@
 import React from 'react';
-import { PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import usePipelineQuery from '~/concepts/pipelines/apiHooks/usePipelineQuery';
+import { PipelineVersionKF } from '#~/concepts/pipelines/kfTypes';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+import usePipelineQuery from '#~/concepts/pipelines/apiHooks/usePipelineQuery';
 import {
   ListPipelineVersions,
   PipelineListPaged,
   PipelineOptions,
   PipelineParams,
-} from '~/concepts/pipelines/types';
-import { FetchState, NotReadyError } from '~/utilities/useFetchState';
-import { useAllPipelines } from '~/concepts/pipelines/apiHooks/usePipelines';
-import { useDeepCompareMemoize } from '~/utilities/useDeepCompareMemoize';
-import { K8sAPIOptions } from '~/k8sTypes';
+} from '#~/concepts/pipelines/types';
+import { FetchState, NotReadyError } from '#~/utilities/useFetchState';
+import { useAllPipelines } from '#~/concepts/pipelines/apiHooks/usePipelines';
+import { useDeepCompareMemoize } from '#~/utilities/useDeepCompareMemoize';
+import { K8sAPIOptions } from '#~/k8sTypes';
 
 /**
  * Recursively fetch each pipeline version page when a next_page_token exists.

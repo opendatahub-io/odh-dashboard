@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { ImageInfo } from '~/types';
-import { fetchImages } from '~/services/imagesService';
+import { ImageInfo } from '#~/types';
+import { fetchImages } from '#~/services/imagesService';
 import { POLL_INTERVAL } from './const';
 import { useDeepCompareMemoize } from './useDeepCompareMemoize';
 

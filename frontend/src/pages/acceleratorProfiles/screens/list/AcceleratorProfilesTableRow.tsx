@@ -2,10 +2,10 @@ import * as React from 'react';
 import { Timestamp, TimestampTooltipVariant, Truncate } from '@patternfly/react-core';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
 import { useNavigate } from 'react-router-dom';
-import { AcceleratorProfileKind } from '~/k8sTypes';
-import AcceleratorProfileEnableToggle from '~/pages/acceleratorProfiles/screens/list/AcceleratorProfileEnableToggle';
-import { relativeTime } from '~/utilities/time';
-import { TableRowTitleDescription } from '~/components/table';
+import { AcceleratorProfileKind } from '#~/k8sTypes';
+import AcceleratorProfileEnableToggle from '#~/pages/acceleratorProfiles/screens/list/AcceleratorProfileEnableToggle';
+import { relativeTime } from '#~/utilities/time';
+import { TableRowTitleDescription } from '#~/components/table';
 
 type AcceleratorProfilesTableRowType = {
   acceleratorProfile: AcceleratorProfileKind;

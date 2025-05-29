@@ -1,19 +1,19 @@
-import type { DataScienceProjectData, DashboardConfig } from '~/__tests__/cypress/cypress/types';
+import type { DataScienceProjectData, DashboardConfig } from '#~/__tests__/cypress/cypress/types';
 // eslint-disable-next-line no-restricted-syntax
-import { DEFAULT_PVC_SIZE } from '~/pages/clusterSettings/const';
-import { projectDetails, projectListPage } from '~/__tests__/cypress/cypress/pages/projects';
-import { HTPASSWD_CLUSTER_ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
-import { loadDSPFixture } from '~/__tests__/cypress/cypress/utils/dataLoader';
-import { createCleanProject } from '~/__tests__/cypress/cypress/utils/projectChecker';
-import { deleteOpenShiftProject } from '~/__tests__/cypress/cypress/utils/oc_commands/project';
+import { DEFAULT_PVC_SIZE } from '#~/pages/clusterSettings/const';
+import { projectDetails, projectListPage } from '#~/__tests__/cypress/cypress/pages/projects';
+import { HTPASSWD_CLUSTER_ADMIN_USER } from '#~/__tests__/cypress/cypress/utils/e2eUsers';
+import { loadDSPFixture } from '#~/__tests__/cypress/cypress/utils/dataLoader';
+import { createCleanProject } from '#~/__tests__/cypress/cypress/utils/projectChecker';
+import { deleteOpenShiftProject } from '#~/__tests__/cypress/cypress/utils/oc_commands/project';
 import {
   clusterStorage,
   addClusterStorageModal,
   updateClusterStorageModal,
-} from '~/__tests__/cypress/cypress/pages/clusterStorage';
-import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
-import { retryableBefore } from '~/__tests__/cypress/cypress/utils/retryableHooks';
-import { generateTestUUID } from '~/__tests__/cypress/cypress/utils/uuidGenerator';
+} from '#~/__tests__/cypress/cypress/pages/clusterStorage';
+import { deleteModal } from '#~/__tests__/cypress/cypress/pages/components/DeleteModal';
+import { retryableBefore } from '#~/__tests__/cypress/cypress/utils/retryableHooks';
+import { generateTestUUID } from '#~/__tests__/cypress/cypress/utils/uuidGenerator';
 
 describe('Verify Cluster Storage - Creating, Editing and Deleting', () => {
   let testData: DataScienceProjectData;

@@ -1,12 +1,12 @@
-import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
-import { mockDscStatus } from '~/__mocks__/mockDscStatus';
-import { mockInferenceServiceK8sResource } from '~/__mocks__/mockInferenceServiceK8sResource';
-import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
-import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
+import { mockDashboardConfig } from '#~/__mocks__/mockDashboardConfig';
+import { mockDscStatus } from '#~/__mocks__/mockDscStatus';
+import { mockInferenceServiceK8sResource } from '#~/__mocks__/mockInferenceServiceK8sResource';
+import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
+import { mockProjectK8sResource } from '#~/__mocks__/mockProjectK8sResource';
 import {
   mockCustomSecretK8sResource,
   mockSecretK8sResource,
-} from '~/__mocks__/mockSecretK8sResource';
+} from '#~/__mocks__/mockSecretK8sResource';
 import {
   configureBiasMetricModal,
   modelMetricsBias,
@@ -15,26 +15,26 @@ import {
   modelMetricsKserveNim,
   modelMetricsPerformance,
   serverMetrics,
-} from '~/__tests__/cypress/cypress/pages/modelMetrics';
+} from '#~/__tests__/cypress/cypress/pages/modelMetrics';
 import type {
   InferenceServiceKind,
   SecretKind,
   ServingRuntimeKind,
   TrustyAIKind,
-} from '~/k8sTypes';
-import { mockPrometheusServing } from '~/__mocks__/mockPrometheusServing';
-import { mockPrometheusBias } from '~/__mocks__/mockPrometheusBias';
-import { mockMetricsRequest } from '~/__mocks__/mockMetricsRequests';
-import { mockTrustyAIServiceForDbK8sResource } from '~/__mocks__/mockTrustyAIServiceK8sResource';
-import { mockRouteK8sResource } from '~/__mocks__/mockRouteK8sResource';
-import { projectDetailsSettingsTab } from '~/__tests__/cypress/cypress/pages/projects';
-import { mockServingRuntimeK8sResource } from '~/__mocks__/mockServingRuntimeK8sResource';
+} from '#~/k8sTypes';
+import { mockPrometheusServing } from '#~/__mocks__/mockPrometheusServing';
+import { mockPrometheusBias } from '#~/__mocks__/mockPrometheusBias';
+import { mockMetricsRequest } from '#~/__mocks__/mockMetricsRequests';
+import { mockTrustyAIServiceForDbK8sResource } from '#~/__mocks__/mockTrustyAIServiceK8sResource';
+import { mockRouteK8sResource } from '#~/__mocks__/mockRouteK8sResource';
+import { projectDetailsSettingsTab } from '#~/__tests__/cypress/cypress/pages/projects';
+import { mockServingRuntimeK8sResource } from '#~/__mocks__/mockServingRuntimeK8sResource';
 import {
   mockInvalidTemplateK8sResource,
   mockServingRuntimeTemplateK8sResource,
-} from '~/__mocks__/mockServingRuntimeTemplateK8sResource';
-import { ServingRuntimePlatform } from '~/types';
-import { mock403Error, mock404Error } from '~/__mocks__/mockK8sStatus';
+} from '#~/__mocks__/mockServingRuntimeTemplateK8sResource';
+import { ServingRuntimePlatform } from '#~/types';
+import { mock403Error, mock404Error } from '#~/__mocks__/mockK8sStatus';
 import {
   ConfigMapModel,
   InferenceServiceModel,
@@ -44,7 +44,7 @@ import {
   ServingRuntimeModel,
   TemplateModel,
   TrustyAIApplicationsModel,
-} from '~/__tests__/cypress/cypress/utils/models';
+} from '#~/__tests__/cypress/cypress/utils/models';
 import {
   MOCK_KSERVE_METRICS_CONFIG_2,
   MOCK_KSERVE_METRICS_CONFIG_3,
@@ -55,8 +55,8 @@ import {
   MOCK_NIM_METRICS_CONFIG_MISSING_QUERY_3,
   mockKserveMetricsConfigMap,
   mockNimMetricsConfigMap,
-} from '~/__mocks__/mockKserveMetricsConfigMap';
-import { mockOdhApplication } from '~/__mocks__/mockOdhApplication';
+} from '#~/__mocks__/mockKserveMetricsConfigMap';
+import { mockOdhApplication } from '#~/__mocks__/mockOdhApplication';
 
 type HandlersProps = {
   disablePerformanceMetrics?: boolean;

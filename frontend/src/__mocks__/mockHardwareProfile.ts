@@ -1,4 +1,4 @@
-import { HardwareProfileKind } from '~/k8sTypes';
+import { HardwareProfileKind } from '#~/k8sTypes';
 import {
   Identifier,
   IdentifierResourceType,
@@ -6,8 +6,8 @@ import {
   Toleration,
   TolerationEffect,
   TolerationOperator,
-} from '~/types';
-import { WarningNotification } from '~/concepts/hardwareProfiles/types';
+} from '#~/types';
+import { WarningNotification } from '#~/concepts/hardwareProfiles/types';
 import { genUID } from './mockUtils';
 
 type MockResourceConfigType = {

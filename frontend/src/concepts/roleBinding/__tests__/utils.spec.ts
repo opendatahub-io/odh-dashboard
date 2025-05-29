@@ -1,14 +1,14 @@
-import { mockRoleBindingK8sResource } from '~/__mocks__/mockRoleBindingK8sResource';
+import { mockRoleBindingK8sResource } from '#~/__mocks__/mockRoleBindingK8sResource';
 import {
   castRoleBindingPermissionsRoleType,
   isCurrentUserChanging,
   tryPatchRoleBinding,
-} from '~/concepts/roleBinding/utils';
-import { patchRoleBindingSubjects } from '~/api';
-import { RoleBindingPermissionsRoleType } from '~/concepts/roleBinding/types';
+} from '#~/concepts/roleBinding/utils';
+import { patchRoleBindingSubjects } from '#~/api';
+import { RoleBindingPermissionsRoleType } from '#~/concepts/roleBinding/types';
 
 // Mock the patchRoleBindingSubjects function
-jest.mock('~/api', () => ({
+jest.mock('#~/api', () => ({
   patchRoleBindingSubjects: jest.fn(),
 }));
 

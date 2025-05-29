@@ -1,9 +1,9 @@
 import * as React from 'react';
-import { Table } from '~/components/table';
-import { RegisteredModel } from '~/concepts/modelRegistry/types';
-import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
-import { rmColumns } from '~/pages/modelRegistry/screens/RegisteredModels/RegisteredModelsTableColumns';
-import RegisteredModelTableRow from '~/pages/modelRegistry/screens/RegisteredModels/RegisteredModelTableRow';
+import { Table } from '#~/components/table';
+import { RegisteredModel } from '#~/concepts/modelRegistry/types';
+import DashboardEmptyTableView from '#~/concepts/dashboard/DashboardEmptyTableView';
+import { rmColumns } from '#~/pages/modelRegistry/screens/RegisteredModels/RegisteredModelsTableColumns';
+import RegisteredModelTableRow from '#~/pages/modelRegistry/screens/RegisteredModels/RegisteredModelTableRow';
 
 type RegisteredModelsArchiveTableProps = {
   clearFilters: () => void;

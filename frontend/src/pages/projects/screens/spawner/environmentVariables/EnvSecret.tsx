@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { EnvironmentVariableType, EnvVariableData, SecretCategory } from '~/pages/projects/types';
-import { asEnumMember } from '~/utilities/utils';
+import { EnvironmentVariableType, EnvVariableData, SecretCategory } from '#~/pages/projects/types';
+import { asEnumMember } from '#~/utilities/utils';
 import EnvDataTypeField from './EnvDataTypeField';
 import GenericKeyValuePairField from './GenericKeyValuePairField';
 import { EMPTY_KEY_VALUE_PAIR } from './const';

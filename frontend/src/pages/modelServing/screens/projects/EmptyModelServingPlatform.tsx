@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { EmptyState, EmptyStateBody, EmptyStateFooter } from '@patternfly/react-core';
-import gearsImg from '~/images/gears.svg';
-import WhosMyAdministrator from '~/components/WhosMyAdministrator';
+import gearsImg from '#~/images/gears.svg';
+import WhosMyAdministrator from '#~/components/WhosMyAdministrator';
 
 const EmptyModelServingPlatform: React.FC = () => (
   <EmptyState

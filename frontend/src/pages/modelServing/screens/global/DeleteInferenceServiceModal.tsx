@@ -1,13 +1,13 @@
 import * as React from 'react';
-import DeleteModal from '~/pages/projects/components/DeleteModal';
-import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
-import { deleteInferenceService, deleteServingRuntime } from '~/api';
-import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
-import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
+import DeleteModal from '#~/pages/projects/components/DeleteModal';
+import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
+import { deleteInferenceService, deleteServingRuntime } from '#~/api';
+import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
+import { byName, ProjectsContext } from '#~/concepts/projects/ProjectsContext';
 import {
   getNIMResourcesToDelete,
   isProjectNIMSupported,
-} from '~/pages/modelServing/screens/projects/nimUtils';
+} from '#~/pages/modelServing/screens/projects/nimUtils';
 
 type DeleteInferenceServiceModalProps = {
   inferenceService?: InferenceServiceKind;

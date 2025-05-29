@@ -1,6 +1,6 @@
-import axios from '~/utilities/axios';
-import useFetchState, { FetchState } from '~/utilities/useFetchState';
-import { DataScienceClusterInitializationKindStatus } from '~/k8sTypes';
+import axios from '#~/utilities/axios';
+import useFetchState, { FetchState } from '#~/utilities/useFetchState';
+import { DataScienceClusterInitializationKindStatus } from '#~/k8sTypes';
 
 /**
  * Should only return `null` when on v1 Operator.

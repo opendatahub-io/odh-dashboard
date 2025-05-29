@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { fetchBYONImages } from '~/services/imagesService';
-import { BYONImage } from '~/types';
+import { fetchBYONImages } from '#~/services/imagesService';
+import { BYONImage } from '#~/types';
 import useFetchState, { FetchState } from './useFetchState';
 import { POLL_INTERVAL } from './const';
 

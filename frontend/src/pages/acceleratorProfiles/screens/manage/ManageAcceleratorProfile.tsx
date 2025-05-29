@@ -1,15 +1,15 @@
 import * as React from 'react';
 import { Link } from 'react-router-dom';
 import { Breadcrumb, BreadcrumbItem, Form, FormSection, PageSection } from '@patternfly/react-core';
-import ApplicationsPage from '~/pages/ApplicationsPage';
-import useGenericObjectState from '~/utilities/useGenericObjectState';
-import GenericSidebar from '~/components/GenericSidebar';
+import ApplicationsPage from '#~/pages/ApplicationsPage';
+import useGenericObjectState from '#~/utilities/useGenericObjectState';
+import GenericSidebar from '#~/components/GenericSidebar';
 
-import { AcceleratorProfileKind } from '~/k8sTypes';
+import { AcceleratorProfileKind } from '#~/k8sTypes';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
-} from '~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
-import { isK8sNameDescriptionDataValid } from '~/concepts/k8s/K8sNameDescriptionField/utils';
+} from '#~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
+import { isK8sNameDescriptionDataValid } from '#~/concepts/k8s/K8sNameDescriptionField/utils';
 import { ManageAcceleratorProfileFooter } from './ManageAcceleratorProfileFooter';
 import { ManageAcceleratorProfileTolerationsSection } from './ManageAcceleratorProfileTolerationsSection';
 import { AcceleratorProfileFormData, ManageAcceleratorProfileSectionID } from './types';

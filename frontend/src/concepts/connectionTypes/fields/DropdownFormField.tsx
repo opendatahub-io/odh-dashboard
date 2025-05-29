@@ -17,9 +17,9 @@ import {
   SelectOption,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
-import { DropdownField } from '~/concepts/connectionTypes/types';
-import { FieldProps } from '~/concepts/connectionTypes/fields/types';
-import DefaultValueTextRenderer from '~/concepts/connectionTypes/fields/DefaultValueTextRenderer';
+import { DropdownField } from '#~/concepts/connectionTypes/types';
+import { FieldProps } from '#~/concepts/connectionTypes/fields/types';
+import DefaultValueTextRenderer from '#~/concepts/connectionTypes/fields/DefaultValueTextRenderer';
 
 const DropdownFormField: React.FC<FieldProps<DropdownField>> = ({
   id,

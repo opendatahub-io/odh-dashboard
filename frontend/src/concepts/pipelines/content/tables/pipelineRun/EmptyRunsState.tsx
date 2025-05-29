@@ -10,7 +10,7 @@ import {
 } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
 
-import { PipelineRunTabTitle } from '~/pages/pipelines/global/runs/types';
+import { PipelineRunTabTitle } from '#~/pages/pipelines/global/runs/types';
 
 interface EmptyRunsStateProps {
   createRunRoute: string;

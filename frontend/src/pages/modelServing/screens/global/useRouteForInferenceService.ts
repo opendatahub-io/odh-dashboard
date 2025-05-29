@@ -1,8 +1,8 @@
 import * as React from 'react';
-import { InferenceServiceKind } from '~/k8sTypes';
-import { getRoute } from '~/api';
-import { getUrlFromKserveInferenceService } from '~/pages/modelServing/screens/projects/utils';
-import { InferenceServiceModelState } from '~/pages/modelServing/screens/types';
+import { InferenceServiceKind } from '#~/k8sTypes';
+import { getRoute } from '#~/api';
+import { getUrlFromKserveInferenceService } from '#~/pages/modelServing/screens/projects/utils';
+import { InferenceServiceModelState } from '#~/pages/modelServing/screens/types';
 import { getInferenceServiceModelState } from './utils';
 
 const useRouteForInferenceService = (

@@ -1,7 +1,7 @@
 /* eslint-disable camelcase */
 
-import { type ExperimentKF } from '~/concepts/pipelines/kfTypes';
-import { TableRow } from '~/__tests__/cypress/cypress/pages/components/table';
+import { type ExperimentKF } from '#~/concepts/pipelines/kfTypes';
+import { TableRow } from '#~/__tests__/cypress/cypress/pages/components/table';
 
 class ExperimentsTabs {
   visit(namespace?: string, tab?: string) {

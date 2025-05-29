@@ -1,7 +1,7 @@
 import React from 'react';
-import { checkAccess } from '~/api';
-import { AccessReviewResourceAttributes } from '~/k8sTypes';
-import useNamespaces from '~/pages/notebookController/useNamespaces';
+import { checkAccess } from '#~/api';
+import { AccessReviewResourceAttributes } from '#~/k8sTypes';
+import useNamespaces from '#~/pages/notebookController/useNamespaces';
 
 type AccessReviewCacheData = {
   isLoading: boolean;

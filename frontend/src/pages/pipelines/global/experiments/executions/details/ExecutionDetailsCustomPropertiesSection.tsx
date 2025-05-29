@@ -8,9 +8,9 @@ import {
   StackItem,
   Title,
 } from '@patternfly/react-core';
-import { Execution } from '~/third_party/mlmd';
-import ExecutionDetailsPropertiesValue from '~/pages/pipelines/global/experiments/executions/details/ExecutionDetailsPropertiesValue';
-import { getMlmdMetadataValue } from '~/pages/pipelines/global/experiments/executions/utils';
+import { Execution } from '#~/third_party/mlmd';
+import ExecutionDetailsPropertiesValue from '#~/pages/pipelines/global/experiments/executions/details/ExecutionDetailsPropertiesValue';
+import { getMlmdMetadataValue } from '#~/pages/pipelines/global/experiments/executions/utils';
 
 type ExecutionDetailsCustomPropertiesSectionProps = {
   execution: Execution;

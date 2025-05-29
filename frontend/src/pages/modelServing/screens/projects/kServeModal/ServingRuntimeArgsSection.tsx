@@ -13,8 +13,8 @@ import {
   Tooltip,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
-import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
-import { CreatingInferenceServiceObject } from '~/pages/modelServing/screens/types';
+import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
+import { CreatingInferenceServiceObject } from '#~/pages/modelServing/screens/types';
 
 type ServingRuntimeArgsSectionType = {
   predefinedArgs?: string[];

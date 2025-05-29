@@ -24,20 +24,20 @@ import {
   Truncate,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
-import { AcceleratorProfileKind } from '~/k8sTypes';
-import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
-import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
-import { AcceleratorProfileFormData } from '~/utilities/useAcceleratorProfileFormState';
-import ProjectScopedPopover from '~/components/ProjectScopedPopover';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import SearchSelector from '~/components/searchSelector/SearchSelector';
-import { ProjectObjectType } from '~/concepts/design/utils';
-import GlobalIcon from '~/images/icons/GlobalIcon';
+import { AcceleratorProfileKind } from '#~/k8sTypes';
+import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
+import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
+import { AcceleratorProfileFormData } from '#~/utilities/useAcceleratorProfileFormState';
+import ProjectScopedPopover from '#~/components/ProjectScopedPopover';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import SearchSelector from '#~/components/searchSelector/SearchSelector';
+import { ProjectObjectType } from '#~/concepts/design/utils';
+import GlobalIcon from '#~/images/icons/GlobalIcon';
 import useReadAcceleratorState, {
   AcceleratorProfileState,
-} from '~/utilities/useReadAcceleratorState';
-import NumberInputWrapper from '~/components/NumberInputWrapper';
-import TypedObjectIcon from '~/concepts/design/TypedObjectIcon';
+} from '#~/utilities/useReadAcceleratorState';
+import NumberInputWrapper from '#~/components/NumberInputWrapper';
+import TypedObjectIcon from '#~/concepts/design/TypedObjectIcon';
 import useAcceleratorCountWarning from './useAcceleratorCountWarning';
 
 type AcceleratorProfileSelectFieldProps = {

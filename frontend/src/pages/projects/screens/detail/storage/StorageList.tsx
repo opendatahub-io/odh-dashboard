@@ -1,13 +1,13 @@
 import * as React from 'react';
 import { Button, Popover } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
-import EmptyDetailsView from '~/components/EmptyDetailsView';
-import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
-import { ProjectSectionTitles } from '~/pages/projects/screens/detail/const';
-import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import DetailsSection from '~/pages/projects/screens/detail/DetailsSection';
-import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
-import { ProjectObjectType, typedEmptyImage } from '~/concepts/design/utils';
+import EmptyDetailsView from '#~/components/EmptyDetailsView';
+import { ProjectSectionID } from '#~/pages/projects/screens/detail/types';
+import { ProjectSectionTitles } from '#~/pages/projects/screens/detail/const';
+import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
+import DetailsSection from '#~/pages/projects/screens/detail/DetailsSection';
+import DashboardPopupIconButton from '#~/concepts/dashboard/DashboardPopupIconButton';
+import { ProjectObjectType, typedEmptyImage } from '#~/concepts/design/utils';
 import StorageTable from './StorageTable';
 import ClusterStorageModal from './ClusterStorageModal';
 

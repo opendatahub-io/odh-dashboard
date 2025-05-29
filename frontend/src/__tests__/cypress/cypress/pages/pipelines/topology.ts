@@ -1,11 +1,11 @@
-import { Contextual } from '~/__tests__/cypress/cypress/pages/components/Contextual';
-import { DashboardCodeEditor } from '~/__tests__/cypress/cypress/pages/components/DashboardCodeEditor';
+import { Contextual } from '#~/__tests__/cypress/cypress/pages/components/Contextual';
+import { DashboardCodeEditor } from '#~/__tests__/cypress/cypress/pages/components/DashboardCodeEditor';
 import type {
   PipelineKF,
   PipelineRecurringRunKF,
   PipelineVersionKF,
-} from '~/concepts/pipelines/kfTypes';
-import { SearchSelector } from '~/__tests__/cypress/cypress/pages/components/subComponents/SearchSelector';
+} from '#~/concepts/pipelines/kfTypes';
+import { SearchSelector } from '#~/__tests__/cypress/cypress/pages/components/subComponents/SearchSelector';
 
 class TaskDrawer extends Contextual<HTMLElement> {
   findInputArtifacts() {

@@ -2,11 +2,11 @@ import {
   ConnectionTypeConfigMap,
   ConnectionTypeConfigMapObj,
   ConnectionTypeField,
-} from '~/concepts/connectionTypes/types';
+} from '#~/concepts/connectionTypes/types';
 import {
   toConnectionTypeConfigMap,
   toConnectionTypeConfigMapObj,
-} from '~/concepts/connectionTypes/utils';
+} from '#~/concepts/connectionTypes/utils';
 
 type MockConnectionTypeConfigMap = {
   name?: string;

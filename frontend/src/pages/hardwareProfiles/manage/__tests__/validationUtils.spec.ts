@@ -1,8 +1,8 @@
-import { TolerationOperator, TolerationEffect, IdentifierResourceType } from '~/types';
+import { TolerationOperator, TolerationEffect, IdentifierResourceType } from '#~/types';
 import {
   manageHardwareProfileValidationSchema,
   nodeSelectorSchema,
-} from '~/pages/hardwareProfiles/manage/validationUtils';
+} from '#~/pages/hardwareProfiles/manage/validationUtils';
 
 describe('manageHardwareProfileValidationSchema', () => {
   const validData = {

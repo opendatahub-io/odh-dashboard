@@ -1,4 +1,4 @@
-import { BaseMetricListResponse } from '~/api';
+import { BaseMetricListResponse } from '#~/api';
 
 type MockMetricsRequestType = {
   modelName?: string;

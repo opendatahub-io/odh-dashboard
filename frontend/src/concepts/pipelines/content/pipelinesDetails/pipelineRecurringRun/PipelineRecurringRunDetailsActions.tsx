@@ -9,16 +9,16 @@ import {
   MenuToggle,
   Spinner,
 } from '@patternfly/react-core';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import {
   PipelineRecurringRunKF,
   RecurringRunStatus,
   StorageStateKF,
-} from '~/concepts/pipelines/kfTypes';
-import { duplicateRecurringRunRoute } from '~/routes/pipelines/runs';
-import { getDashboardMainContainer } from '~/utilities/utils';
-import { ExperimentContext } from '~/pages/pipelines/global/experiments/ExperimentContext';
-import useExperimentById from '~/concepts/pipelines/apiHooks/useExperimentById';
+} from '#~/concepts/pipelines/kfTypes';
+import { duplicateRecurringRunRoute } from '#~/routes/pipelines/runs';
+import { getDashboardMainContainer } from '#~/utilities/utils';
+import { ExperimentContext } from '#~/pages/pipelines/global/experiments/ExperimentContext';
+import useExperimentById from '#~/concepts/pipelines/apiHooks/useExperimentById';
 
 type PipelineRecurringRunDetailsActionsProps = {
   recurringRun?: PipelineRecurringRunKF;

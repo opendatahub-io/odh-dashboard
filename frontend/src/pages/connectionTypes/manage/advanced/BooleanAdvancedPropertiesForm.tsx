@@ -1,7 +1,7 @@
 import { FormGroup, TextInput } from '@patternfly/react-core';
 import * as React from 'react';
-import { BooleanField } from '~/concepts/connectionTypes/types';
-import { AdvancedFieldProps } from '~/pages/connectionTypes/manage/advanced/types';
+import { BooleanField } from '#~/concepts/connectionTypes/types';
+import { AdvancedFieldProps } from '#~/pages/connectionTypes/manage/advanced/types';
 
 const BooleanAdvancedPropertiesForm: React.FC<AdvancedFieldProps<BooleanField>> = ({
   properties,

@@ -1,5 +1,5 @@
-import { mockDscStatus } from '~/__mocks__/mockDscStatus';
-import { homePage } from '~/__tests__/cypress/cypress/pages/home/home';
+import { mockDscStatus } from '#~/__mocks__/mockDscStatus';
+import { homePage } from '#~/__tests__/cypress/cypress/pages/home/home';
 
 describe('Home page AI Flows', () => {
   const homeAISection = homePage.getHomeAISection();

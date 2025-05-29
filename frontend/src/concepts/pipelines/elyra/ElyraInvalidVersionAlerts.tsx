@@ -8,15 +8,15 @@ import {
   AlertActionCloseButton,
 } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
-import { NotebookKind } from '~/k8sTypes';
-import useNamespaces from '~/pages/notebookController/useNamespaces';
-import { NotebookImageStatus } from '~/pages/projects/screens/detail/notebooks/const';
-import { getNotebookImageData } from '~/pages/projects/screens/detail/notebooks/useNotebookImageData';
-import useImageStreams from '~/pages/projects/screens/spawner/useImageStreams';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { useBrowserStorage } from '~/components/browserStorage/BrowserStorageContext';
-import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
+import { NotebookKind } from '#~/k8sTypes';
+import useNamespaces from '#~/pages/notebookController/useNamespaces';
+import { NotebookImageStatus } from '#~/pages/projects/screens/detail/notebooks/const';
+import { getNotebookImageData } from '#~/pages/projects/screens/detail/notebooks/useNotebookImageData';
+import useImageStreams from '#~/pages/projects/screens/spawner/useImageStreams';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+import { useBrowserStorage } from '#~/components/browserStorage/BrowserStorageContext';
+import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
+import { ProjectSectionID } from '#~/pages/projects/screens/detail/types';
 import { isElyraVersionOutOfDate, isElyraVersionUpToDate } from './utils';
 
 type ElyraInvalidVersionProps = {

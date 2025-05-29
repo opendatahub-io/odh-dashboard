@@ -3,8 +3,8 @@ import {
   BaseMetricListResponse,
   BaseMetricRequest,
   BiasMetricType,
-} from '~/api';
-import { K8sAPIOptions } from '~/k8sTypes';
+} from '#~/api';
+import { K8sAPIOptions } from '#~/k8sTypes';
 
 export enum TrustyInstallState {
   UNINSTALLING = 'uninstalling',

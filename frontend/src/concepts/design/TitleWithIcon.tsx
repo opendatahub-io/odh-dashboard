@@ -1,7 +1,11 @@
 import * as React from 'react';
 import { Flex, FlexItem } from '@patternfly/react-core';
-import { ProjectObjectType, typedBackgroundColor, typedObjectImage } from '~/concepts/design/utils';
-import TypedObjectIcon from '~/concepts/design/TypedObjectIcon';
+import {
+  ProjectObjectType,
+  typedBackgroundColor,
+  typedObjectImage,
+} from '#~/concepts/design/utils';
+import TypedObjectIcon from '#~/concepts/design/TypedObjectIcon';
 
 interface TitleWithIconProps {
   title: React.ReactNode;

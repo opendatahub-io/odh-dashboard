@@ -10,9 +10,9 @@ import {
   SecretKind,
   ServingContainer,
   ServingRuntimeKind,
-} from '~/k8sTypes';
-import { NamespaceApplicationCase, UpdateObjectAtPropAndValue } from '~/pages/projects/types';
-import useGenericObjectState from '~/utilities/useGenericObjectState';
+} from '#~/k8sTypes';
+import { NamespaceApplicationCase, UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
+import useGenericObjectState from '#~/utilities/useGenericObjectState';
 import {
   CreatingInferenceServiceObject,
   CreatingServingRuntimeObject,
@@ -20,14 +20,14 @@ import {
   ModelServingSize,
   ServingPlatformStatuses,
   ServingRuntimeEditInfo,
-} from '~/pages/modelServing/screens/types';
-import { ServingRuntimePlatform } from '~/types';
-import { DEFAULT_MODEL_SERVER_SIZES, platformKeyMap } from '~/pages/modelServing/screens/const';
-import { useDeepCompareMemoize } from '~/utilities/useDeepCompareMemoize';
-import { EMPTY_AWS_SECRET_DATA } from '~/pages/projects/dataConnections/const';
-import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
-import { getDisplayNameFromServingRuntimeTemplate } from '~/pages/modelServing/customServingRuntimes/utils';
-import { getServingRuntimeTokens, setUpTokenAuth } from '~/pages/modelServing/utils';
+} from '#~/pages/modelServing/screens/types';
+import { ServingRuntimePlatform } from '#~/types';
+import { DEFAULT_MODEL_SERVER_SIZES, platformKeyMap } from '#~/pages/modelServing/screens/const';
+import { useDeepCompareMemoize } from '#~/utilities/useDeepCompareMemoize';
+import { EMPTY_AWS_SECRET_DATA } from '#~/pages/projects/dataConnections/const';
+import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
+import { getDisplayNameFromServingRuntimeTemplate } from '#~/pages/modelServing/customServingRuntimes/utils';
+import { getServingRuntimeTokens, setUpTokenAuth } from '#~/pages/modelServing/utils';
 import {
   addSupportServingPlatformProject,
   createInferenceService,
@@ -37,16 +37,16 @@ import {
   getInferenceServiceContext,
   updateInferenceService,
   updateServingRuntime,
-} from '~/api';
-import { containsOnlySlashes, isS3PathValid, removeLeadingSlash } from '~/utilities/string';
-import { getNIMData, getNIMResource } from '~/pages/modelServing/screens/projects/nimUtils';
-import { useKServeDeploymentMode } from '~/pages/modelServing/useKServeDeploymentMode';
-import { Connection } from '~/concepts/connectionTypes/types';
-import { ModelServingPodSpecOptions } from '~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
+} from '#~/api';
+import { containsOnlySlashes, isS3PathValid, removeLeadingSlash } from '#~/utilities/string';
+import { getNIMData, getNIMResource } from '#~/pages/modelServing/screens/projects/nimUtils';
+import { useKServeDeploymentMode } from '#~/pages/modelServing/useKServeDeploymentMode';
+import { Connection } from '#~/concepts/connectionTypes/types';
+import { ModelServingPodSpecOptions } from '#~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
 import {
   isModelServingCompatible,
   ModelServingCompatibleTypes,
-} from '~/concepts/connectionTypes/utils';
+} from '#~/concepts/connectionTypes/utils';
 import { ModelDeployPrefillInfo } from './usePrefillModelDeployModal';
 
 export const getServingRuntimeSizes = (config: DashboardConfigKind): ModelServingSize[] => {

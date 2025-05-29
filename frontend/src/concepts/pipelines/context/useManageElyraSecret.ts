@@ -1,15 +1,15 @@
 import * as React from 'react';
-import useElyraSecret from '~/concepts/pipelines/elyra/useElyraSecret';
-import { createSecret, replaceSecret } from '~/api';
-import { DSPipelineKind } from '~/k8sTypes';
-import { generateElyraSecret } from '~/concepts/pipelines/elyra/utils';
+import useElyraSecret from '#~/concepts/pipelines/elyra/useElyraSecret';
+import { createSecret, replaceSecret } from '#~/api';
+import { DSPipelineKind } from '#~/k8sTypes';
+import { generateElyraSecret } from '#~/concepts/pipelines/elyra/utils';
 import {
   ELYRA_SECRET_DATA_ENDPOINT,
   ELYRA_SECRET_DATA_KEY,
   ELYRA_SECRET_DATA_TYPE,
-} from '~/concepts/pipelines/elyra/const';
-import useExternalStorageSecret from '~/concepts/secrets/apiHooks/useExternalStorageSecret';
-import useNotification from '~/utilities/useNotification';
+} from '#~/concepts/pipelines/elyra/const';
+import useExternalStorageSecret from '#~/concepts/secrets/apiHooks/useExternalStorageSecret';
+import useNotification from '#~/utilities/useNotification';
 
 const useManageElyraSecret = (
   namespace: string,

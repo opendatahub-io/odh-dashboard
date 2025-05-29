@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
-import { ModelRegistriesContext } from '~/concepts/modelRegistry/context/ModelRegistriesContext';
-import { ModelRegistryPageContextProvider } from '~/concepts/modelRegistry/context/ModelRegistryPageContext';
+import { ModelRegistriesContext } from '#~/concepts/modelRegistry/context/ModelRegistriesContext';
+import { ModelRegistryPageContextProvider } from '#~/concepts/modelRegistry/context/ModelRegistryPageContext';
 import ModelCatalogCoreLoader from './ModelCatalogCoreLoader';
 import ModelDetailsPage from './screens/ModelDetailsPage';
 import ModelCatalog from './screens/ModelCatalog';

@@ -1,7 +1,7 @@
 import React from 'react';
 import { usePluginStore, FeatureFlags } from '@openshift/dynamic-plugin-sdk';
-import { AreaContext } from '~/concepts/areas/AreaContext';
-import { useUser } from '~/redux/selectors';
+import { AreaContext } from '#~/concepts/areas/AreaContext';
+import { useUser } from '#~/redux/selectors';
 
 // TODO remove use of deprecated API
 // Used to define the ADMIN_USER flag currently relied upon in some extensions

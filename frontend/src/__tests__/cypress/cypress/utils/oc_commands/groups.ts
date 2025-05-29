@@ -1,4 +1,4 @@
-import type { CommandLineResult } from '~/__tests__/cypress/cypress/types';
+import type { CommandLineResult } from '#~/__tests__/cypress/cypress/types';
 
 /**
  * Creates a new OpenShift group

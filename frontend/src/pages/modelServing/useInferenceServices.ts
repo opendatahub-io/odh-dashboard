@@ -1,15 +1,15 @@
 import * as React from 'react';
-import { getInferenceServiceContext, listInferenceService, useAccessReview } from '~/api';
-import { AccessReviewResourceAttributes, InferenceServiceKind, KnownLabels } from '~/k8sTypes';
-import { ListWithNonDashboardPresence } from '~/types';
+import { getInferenceServiceContext, listInferenceService, useAccessReview } from '#~/api';
+import { AccessReviewResourceAttributes, InferenceServiceKind, KnownLabels } from '#~/k8sTypes';
+import { ListWithNonDashboardPresence } from '#~/types';
 import useFetch, {
   FetchOptions,
   FetchStateObject,
   FetchStateCallbackPromise,
   NotReadyError,
-} from '~/utilities/useFetch';
-import useModelServingEnabled from '~/pages/modelServing/useModelServingEnabled';
-import { DEFAULT_LIST_WITH_NON_DASHBOARD_PRESENCE } from '~/utilities/const';
+} from '#~/utilities/useFetch';
+import useModelServingEnabled from '#~/pages/modelServing/useModelServingEnabled';
+import { DEFAULT_LIST_WITH_NON_DASHBOARD_PRESENCE } from '#~/utilities/const';
 
 const accessReviewResource: AccessReviewResourceAttributes = {
   group: 'serving.kserve.io',

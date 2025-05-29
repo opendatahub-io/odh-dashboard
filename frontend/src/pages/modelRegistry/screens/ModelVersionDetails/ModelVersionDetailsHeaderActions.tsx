@@ -12,26 +12,26 @@ import {
   Tooltip,
 } from '@patternfly/react-core';
 import { useNavigate } from 'react-router';
-import { ArchiveModelVersionModal } from '~/pages/modelRegistry/screens/components/ArchiveModelVersionModal';
+import { ArchiveModelVersionModal } from '#~/pages/modelRegistry/screens/components/ArchiveModelVersionModal';
 import {
   ModelVersion,
   ModelState,
   RegisteredModel,
   ModelArtifactList,
-} from '~/concepts/modelRegistry/types';
+} from '#~/concepts/modelRegistry/types';
 import {
   modelVersionDeploymentsRoute,
   modelVersionListRoute,
-} from '~/routes/modelRegistry/modelVersions';
-import DeployRegisteredVersionModal from '~/pages/modelRegistry/screens/components/DeployRegisteredVersionModal';
-import { useIsAreaAvailable, SupportedArea } from '~/concepts/areas';
-import StartRunModal from '~/pages/pipelines/global/modelCustomization/startRunModal/StartRunModal';
-import { getModelCustomizationPath } from '~/routes/pipelines/modelCustomization';
-import useDeployButtonState from '~/pages/modelServing/screens/projects/useDeployButtonState';
-import { isOciModelUri } from '~/pages/modelServing/utils';
-import { ModelRegistriesContext } from '~/concepts/modelRegistry/context/ModelRegistriesContext';
-import { ModelRegistryPageContext } from '~/concepts/modelRegistry/context/ModelRegistryPageContext';
-import { getModelVersionTuningData } from '~/concepts/modelRegistry/utils/getModelVersionTuningData';
+} from '#~/routes/modelRegistry/modelVersions';
+import DeployRegisteredVersionModal from '#~/pages/modelRegistry/screens/components/DeployRegisteredVersionModal';
+import { useIsAreaAvailable, SupportedArea } from '#~/concepts/areas';
+import StartRunModal from '#~/pages/pipelines/global/modelCustomization/startRunModal/StartRunModal';
+import { getModelCustomizationPath } from '#~/routes/pipelines/modelCustomization';
+import useDeployButtonState from '#~/pages/modelServing/screens/projects/useDeployButtonState';
+import { isOciModelUri } from '#~/pages/modelServing/utils';
+import { ModelRegistriesContext } from '#~/concepts/modelRegistry/context/ModelRegistriesContext';
+import { ModelRegistryPageContext } from '#~/concepts/modelRegistry/context/ModelRegistryPageContext';
+import { getModelVersionTuningData } from '#~/concepts/modelRegistry/utils/getModelVersionTuningData';
 
 interface ModelVersionsDetailsHeaderActionsProps {
   mv: ModelVersion;

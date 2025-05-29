@@ -1,11 +1,11 @@
-import { NotebookSize } from '~/types';
-import { HardwareProfileFeatureVisibility } from '~/k8sTypes';
+import { NotebookSize } from '#~/types';
+import { HardwareProfileFeatureVisibility } from '#~/k8sTypes';
 import {
   getMinMaxResourceSize,
   createAcceleratorHardwareProfiles,
   transformContainerSizeToHardwareProfile,
-} from '~/pages/hardwareProfiles/migration/utils';
-import { mockAcceleratorProfile } from '~/__mocks__/mockAcceleratorProfile';
+} from '#~/pages/hardwareProfiles/migration/utils';
+import { mockAcceleratorProfile } from '#~/__mocks__/mockAcceleratorProfile';
 
 describe('getMinMaxResourceSize', () => {
   it('should calculate min and max resources correctly', () => {

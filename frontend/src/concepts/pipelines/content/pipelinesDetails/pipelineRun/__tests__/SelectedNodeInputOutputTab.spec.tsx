@@ -4,15 +4,15 @@ import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
 import { BrowserRouter } from 'react-router-dom';
-import SelectedNodeInputOutputTab from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/SelectedNodeInputOutputTab';
-import { InputDefinitionParameterType } from '~/concepts/pipelines/kfTypes';
-import { Execution } from '~/third_party/mlmd';
+import SelectedNodeInputOutputTab from '#~/concepts/pipelines/content/pipelinesDetails/pipelineRun/SelectedNodeInputOutputTab';
+import { InputDefinitionParameterType } from '#~/concepts/pipelines/kfTypes';
+import { Execution } from '#~/third_party/mlmd';
 
-jest.mock('~/components/MaxHeightCodeEditor', () => ({
+jest.mock('#~/components/MaxHeightCodeEditor', () => ({
   MaxHeightCodeEditor: ({ code }: { code: string }) => JSON.stringify(JSON.parse(code)),
 }));
 
-jest.mock('~/concepts/areas/useIsAreaAvailable', () => () => ({
+jest.mock('#~/concepts/areas/useIsAreaAvailable', () => () => ({
   status: true,
   featureFlags: {},
   reliantAreas: {},
