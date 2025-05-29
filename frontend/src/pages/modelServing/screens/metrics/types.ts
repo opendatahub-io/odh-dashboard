@@ -59,6 +59,7 @@ export enum MetricsTabKeys {
   PERFORMANCE = 'performance',
   BIAS = 'bias',
   NIM = 'nim',
+  LM_EVAL = 'lmEval',
 }
 
 export type BiasChartConfig = {

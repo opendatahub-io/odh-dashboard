@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Breadcrumb, Button } from '@patternfly/react-core';
+import { Breadcrumb, Button, Flex, FlexItem } from '@patternfly/react-core';
 import { useNavigate, useParams } from 'react-router-dom';
 import { CogIcon } from '@patternfly/react-icons';
 import { BreadcrumbItemType } from '~/types';
@@ -34,16 +34,28 @@ const MetricsPage: React.FC<MetricsPageProps> = ({ title, breadcrumbItems, type,
       description={null}
       empty={false}
       headerAction={
-        tab === MetricsTabKeys.BIAS && (
-          <Button
-            isDisabled={statusState.type !== TrustyInstallState.INSTALLED}
-            variant="link"
-            icon={<CogIcon />}
-            onClick={() => navigate('../configure', { replace: true })}
-          >
-            Configure
-          </Button>
-        )
+        <Flex>
+          <FlexItem>
+            {tab === MetricsTabKeys.BIAS && (
+              <Button
+                isDisabled={statusState.type !== TrustyInstallState.INSTALLED}
+                variant="link"
+                icon={<CogIcon />}
+                onClick={() => navigate('../configure', { replace: true })}
+              >
+                Configure
+              </Button>
+            )}
+          </FlexItem>
+          <FlexItem>
+            <Button
+              variant="primary"
+              onClick={() => navigate('/lmEval/evaluate', { replace: true })}
+            >
+              Evaluate
+            </Button>
+          </FlexItem>
+        </Flex>
       }
     >
       {type === PerformanceMetricType.SERVER ? (

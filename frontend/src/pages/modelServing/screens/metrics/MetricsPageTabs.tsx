@@ -12,6 +12,7 @@ import './MetricsPageTabs.scss';
 import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformStatuses';
 import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
 import { isProjectNIMSupported } from '~/pages/modelServing/screens/projects/nimUtils';
+import LMEvalTab from '~/pages/lmEval/LMEvalTab';
 import useMetricsPageEnabledTabs from './useMetricsPageEnabledTabs';
 import BiasConfigurationAlertPopover from './bias/BiasConfigurationPage/BiasConfigurationAlertPopover';
 import PerformanceTab from './performance/PerformanceTab';
@@ -37,6 +38,7 @@ const MetricsPageTabs: React.FC<MetricsPageTabsProps> = ({ model }) => {
   ).status;
   const { tab } = useParams<{ tab: MetricsTabKeys }>();
   const navigate = useNavigate();
+  const isLmEvalAvailable = useIsAreaAvailable(SupportedArea.LM_EVAL).status;
 
   if (!tab) {
     return <Navigate to={`./${enabledTabs[0]}`} replace />;
@@ -123,6 +125,18 @@ const MetricsPageTabs: React.FC<MetricsPageTabsProps> = ({ model }) => {
           }
         >
           <BiasTab />
+        </Tab>
+      )}
+
+      {isLmEvalAvailable && (
+        <Tab
+          eventKey={MetricsTabKeys.LM_EVAL}
+          title={<TabTitleText>LM Eval</TabTitleText>}
+          aria-label="LM Eval tab"
+          className="odh-metrics-page-tabs__content"
+          data-testid="lm-eval-tab"
+        >
+          <LMEvalTab />
         </Tab>
       )}
     </Tabs>

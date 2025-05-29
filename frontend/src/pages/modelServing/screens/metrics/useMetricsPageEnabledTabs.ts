@@ -11,6 +11,8 @@ const useMetricsPageEnabledTabs = (): MetricsTabKeys[] => {
   ).status;
   //check availability of NIM metrics
   const nimMetricsAreaAvailable = useIsAreaAvailable(SupportedArea.NIM_MODEL).status;
+  //check availability of LM Eval
+  const lmEvalAreaAvailable = useIsAreaAvailable(SupportedArea.LM_EVAL).status;
   if (performanceMetricsAreaAvailable) {
     enabledTabs.push(MetricsTabKeys.PERFORMANCE);
   }
@@ -19,6 +21,9 @@ const useMetricsPageEnabledTabs = (): MetricsTabKeys[] => {
   }
   if (nimMetricsAreaAvailable) {
     enabledTabs.push(MetricsTabKeys.NIM);
+  }
+  if (lmEvalAreaAvailable) {
+    enabledTabs.push(MetricsTabKeys.LM_EVAL);
   }
   return enabledTabs;
 };
