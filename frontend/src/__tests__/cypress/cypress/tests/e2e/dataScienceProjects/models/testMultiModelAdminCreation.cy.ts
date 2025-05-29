@@ -14,10 +14,7 @@ import {
   provisionProjectForModelServing,
   modelExternalTester,
 } from '~/__tests__/cypress/cypress/utils/oc_commands/modelServing';
-import {
-  retryableBefore,
-  wasSetupPerformed,
-} from '~/__tests__/cypress/cypress/utils/retryableHooks';
+import { retryableBefore } from '~/__tests__/cypress/cypress/utils/retryableHooks';
 import { attemptToClickTooltip } from '~/__tests__/cypress/cypress/utils/models';
 import { generateTestUUID } from '~/__tests__/cypress/cypress/utils/uuidGenerator';
 
@@ -58,11 +55,7 @@ describe('Verify Admin Multi Model Creation and Validation using the UI', () => 
     );
   });
   after(() => {
-    //Check if the Before Method was executed to perform the setup
-    if (!wasSetupPerformed()) return;
-
-    // Delete provisioned Project - 5 min timeout to accomadate increased time to delete a project with a model
-    deleteOpenShiftProject(projectName, { timeout: 300000 });
+    deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
   });
 
   it(
@@ -139,6 +132,10 @@ describe('Verify Admin Multi Model Creation and Validation using the UI', () => 
         checkReady: true,
         checkLatestDeploymentReady: false,
       });
+      // Usually it takes a little longer to load the status tooltip, so it's faster to Reload the page
+      cy.reload();
+      modelMeshRow.findDeployedModelExpansionButton().click();
+      // Click the status tooltip
       attemptToClickTooltip();
 
       //Verify the Model is accessible externally
