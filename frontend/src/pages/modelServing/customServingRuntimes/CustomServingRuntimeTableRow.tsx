@@ -2,7 +2,7 @@ import * as React from 'react';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
 import { useNavigate } from 'react-router-dom';
 import { Label, LabelGroup } from '@patternfly/react-core';
-import { TemplateKind } from '~/k8sTypes';
+import { ServingRuntimeKind, TemplateKind } from '~/k8sTypes';
 import ResourceNameTooltip from '~/components/ResourceNameTooltip';
 import CustomServingRuntimePlatformsLabelGroup from '~/pages/modelServing/customServingRuntimes/CustomServingRuntimePlatformsLabelGroup';
 import { isOOTB, PreInstalledName } from '~/concepts/k8s/utils';
@@ -10,8 +10,9 @@ import ServingRuntimeVersionLabel from '~/pages/modelServing/screens/ServingRunt
 import CustomServingRuntimeEnabledToggle from './CustomServingRuntimeEnabledToggle';
 import {
   getServingRuntimeDisplayNameFromTemplate,
+  getServingRuntimeFromTemplate,
   getServingRuntimeNameFromTemplate,
-  getServingRuntimeVersionFromTemplate,
+  getServingRuntimeVersion,
 } from './utils';
 import CustomServingRuntimeAPIProtocolLabel from './CustomServingRuntimeAPIProtocolLabel';
 
@@ -30,7 +31,8 @@ const CustomServingRuntimeTableRow: React.FC<CustomServingRuntimeTableRowProps> 
   const navigate = useNavigate();
   const servingRuntimeName = getServingRuntimeNameFromTemplate(template);
   const templateOOTB = isOOTB(template);
-
+  const sr: ServingRuntimeKind | undefined = getServingRuntimeFromTemplate(template);
+  const srVersion: string | undefined = getServingRuntimeVersion(sr);
   return (
     <Tr
       key={rowIndex}
@@ -50,9 +52,7 @@ const CustomServingRuntimeTableRow: React.FC<CustomServingRuntimeTableRowProps> 
         </ResourceNameTooltip>
         <LabelGroup>
           {templateOOTB && <Label data-testid="pre-installed-label">{PreInstalledName}</Label>}
-          {getServingRuntimeVersionFromTemplate(template) && (
-            <ServingRuntimeVersionLabel version={getServingRuntimeVersionFromTemplate(template)} />
-          )}
+          {srVersion && <ServingRuntimeVersionLabel version={srVersion} />}
         </LabelGroup>
       </Td>
       <Td dataLabel="Enabled">

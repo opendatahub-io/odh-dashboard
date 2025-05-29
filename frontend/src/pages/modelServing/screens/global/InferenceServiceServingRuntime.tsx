@@ -5,7 +5,7 @@ import { ProjectObjectType } from '~/concepts/design/utils';
 import { ServingRuntimeKind } from '~/k8sTypes';
 import {
   getDisplayNameFromServingRuntimeTemplate,
-  getServingRuntimeVersionFromTemplate,
+  getServingRuntimeVersion,
 } from '~/pages/modelServing/customServingRuntimes/utils';
 import { SERVING_RUNTIME_SCOPE } from '~/pages/modelServing/screens/const';
 import ServingRuntimeVersionLabel from '~/pages/modelServing/screens/ServingRuntimeVersionLabel';
@@ -21,9 +21,9 @@ const InferenceServiceServingRuntime: React.FC<Props> = ({ servingRuntime, isPro
       <>
         {getDisplayNameFromServingRuntimeTemplate(servingRuntime)}
         <LabelGroup>
-          {getServingRuntimeVersionFromTemplate(servingRuntime) && (
+          {getServingRuntimeVersion(servingRuntime) && (
             <ServingRuntimeVersionLabel
-              version={getServingRuntimeVersionFromTemplate(servingRuntime)}
+              version={getServingRuntimeVersion(servingRuntime)}
               isCompact
             />
           )}

@@ -126,9 +126,12 @@ export const getDisplayNameFromServingRuntimeTemplate = (resource: ServingRuntim
   return templateName || legacyTemplateName || 'Unknown Serving Runtime';
 };
 
-export const getServingRuntimeVersionFromTemplate = (
-  resource: ServingRuntimeKind | TemplateKind,
+export const getServingRuntimeVersion = (
+  resource: ServingRuntimeKind | TemplateKind | undefined,
 ): string | undefined => {
+  if (!resource) {
+    return undefined;
+  }
   if (isTemplateKind(resource)) {
     return (
       resource.objects[0].metadata.annotations?.['opendatahub.io/runtime-version'] || undefined

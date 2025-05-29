@@ -6,7 +6,7 @@ import { ServingRuntimeKind } from '~/k8sTypes';
 import {
   getDisplayNameFromServingRuntimeTemplate,
   getEnabledPlatformsFromTemplate,
-  getServingRuntimeVersionFromTemplate,
+  getServingRuntimeVersion,
   getTemplateEnabledForPlatform,
   isTemplateKind,
 } from '~/pages/modelServing/customServingRuntimes/utils';
@@ -121,12 +121,12 @@ describe('getServingRuntimeVersionFromTemplate', () => {
     servingRuntime.metadata.annotations = {
       'opendatahub.io/runtime-version': '1.0.0',
     };
-    expect(getServingRuntimeVersionFromTemplate(servingRuntime)).toBe('1.0.0');
+    expect(getServingRuntimeVersion(servingRuntime)).toBe('1.0.0');
   });
 
   it('should return empty string if annotation is not present', () => {
     const servingRuntime = mockServingRuntimeK8sResource({});
-    expect(getServingRuntimeVersionFromTemplate(servingRuntime)).toBe(undefined);
+    expect(getServingRuntimeVersion(servingRuntime)).toBe(undefined);
   });
 });
 
