@@ -1,9 +1,10 @@
-import { k8sListResourceItems } from '@openshift/dynamic-plugin-sdk-utils';
 import { act } from 'react';
+import { k8sListResourceItems } from '@openshift/dynamic-plugin-sdk-utils';
 import { mockImageStreamK8sResource } from '~/__mocks__/mockImageStreamK8sResource';
-import { standardUseFetchState, testHook } from '~/__tests__/unit/testUtils/hooks';
+import { testHook, standardUseFetchState } from '~/__tests__/unit/testUtils/hooks';
 import { ImageStreamKind } from '~/k8sTypes';
-import useImageStreams from '~/pages/projects/screens/spawner/useImageStreams';
+import { mapImageStreamToBYONImage } from '~/utilities/imageStreamUtils';
+import { useWatchBYONImages } from '~/utilities/useWatchBYONImages';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sListResourceItems: jest.fn(),
@@ -11,47 +12,59 @@ jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
 
 const k8sListResourceItemsMock = jest.mocked(k8sListResourceItems<ImageStreamKind>);
 
-describe('useImageStreams', () => {
-  it('should return notebook image streams', async () => {
-    const mockedImageStreams = [mockImageStreamK8sResource({})];
-    k8sListResourceItemsMock.mockResolvedValue(mockedImageStreams);
+const defaultBYONLabel = {
+  labels: {
+    'app.kubernetes.io/created-by': 'byon',
+    'opendatahub.io/notebook-image': 'true',
+  },
+};
 
-    const renderResult = testHook(useImageStreams)('namespace');
-    expect(k8sListResourceItemsMock).toHaveBeenCalledTimes(1);
+describe('useWatchBYONImages', () => {
+  afterEach(() => {
+    jest.resetAllMocks();
+  });
+
+  it('should return BYON image steams', async () => {
+    const mockResource = mockImageStreamK8sResource({
+      name: 'byon-image',
+      displayName: 'Custom Image',
+      opts: { metadata: defaultBYONLabel },
+    });
+    const mapped = mapImageStreamToBYONImage(mockResource);
+
+    k8sListResourceItemsMock.mockResolvedValue([mockResource]);
+
+    const renderResult = testHook(useWatchBYONImages)('namespace');
     expect(renderResult).hookToStrictEqual(standardUseFetchState([]));
     expect(renderResult).hookToHaveUpdateCount(1);
 
-    // wait for update
     await renderResult.waitForNextUpdate();
     expect(k8sListResourceItemsMock).toHaveBeenCalledTimes(1);
-    expect(renderResult).hookToStrictEqual(standardUseFetchState(mockedImageStreams, true));
+    expect(renderResult).hookToStrictEqual(standardUseFetchState([mapped], true));
     expect(renderResult).hookToHaveUpdateCount(2);
     expect(renderResult).hookToBeStable([false, false, true, true]);
 
-    // refresh
     k8sListResourceItemsMock.mockResolvedValue([]);
     await act(() => renderResult.result.current[3]());
     expect(k8sListResourceItemsMock).toHaveBeenCalledTimes(2);
+    expect(renderResult).hookToStrictEqual(standardUseFetchState([], true));
     expect(renderResult).hookToHaveUpdateCount(3);
     expect(renderResult).hookToBeStable([false, true, true, true]);
   });
 
-  it('should handle errors and rethrow', async () => {
+  it('handles errors from API', async () => {
     k8sListResourceItemsMock.mockRejectedValue(new Error('error1'));
 
-    const renderResult = testHook(useImageStreams)('namespace');
-    expect(k8sListResourceItemsMock).toHaveBeenCalledTimes(1);
+    const renderResult = testHook(useWatchBYONImages)('namespace');
     expect(renderResult).hookToStrictEqual(standardUseFetchState([]));
     expect(renderResult).hookToHaveUpdateCount(1);
 
-    // wait for update
     await renderResult.waitForNextUpdate();
     expect(k8sListResourceItemsMock).toHaveBeenCalledTimes(1);
     expect(renderResult).hookToStrictEqual(standardUseFetchState([], false, new Error('error1')));
     expect(renderResult).hookToHaveUpdateCount(2);
     expect(renderResult).hookToBeStable([true, true, false, true]);
 
-    // refresh
     k8sListResourceItemsMock.mockRejectedValue(new Error('error2'));
     await act(() => renderResult.result.current[3]());
     expect(k8sListResourceItemsMock).toHaveBeenCalledTimes(2);

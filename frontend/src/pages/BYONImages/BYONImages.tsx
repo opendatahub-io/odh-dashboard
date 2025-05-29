@@ -1,13 +1,15 @@
 import * as React from 'react';
 import ApplicationsPage from '~/pages/ApplicationsPage';
-import { useWatchBYONImages } from '~/utilities/useWatchBYONImages';
 import TitleWithIcon from '~/concepts/design/TitleWithIcon';
 import { ProjectObjectType } from '~/concepts/design/utils';
-import { BYONImagesTable } from './BYONImagesTable';
+import { useDashboardNamespace } from '~/redux/selectors';
+import { useWatchBYONImages } from '~/utilities/useWatchBYONImages';
 import EmptyBYONImages from './EmptyBYONImages';
+import { BYONImagesTable } from './BYONImagesTable';
 
 const BYONImages: React.FC = () => {
-  const [images, loaded, loadError, refresh] = useWatchBYONImages();
+  const { dashboardNamespace } = useDashboardNamespace();
+  const [images, loaded, loadError, refresh] = useWatchBYONImages(dashboardNamespace);
 
   return (
     <ApplicationsPage
