@@ -12,91 +12,14 @@ import { Td, Tr } from '@patternfly/react-table';
 import { Table } from '#~/components/table';
 import ExternalLink from '#~/components/ExternalLink';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
-import { Notebook } from '#~/types';
 import { ODH_PRODUCT_NAME } from '#~/utilities/const';
-import useStopNotebookModalAvailability from '#~/pages/projects/notebook/useStopNotebookModalAvailability';
-import { useUser } from '#~/redux/selectors';
-import useNotification from '#~/utilities/useNotification';
-import { stopWorkbenches } from '#~/pages/notebookController/utils';
-import { StopAdminWorkbenchModalProps } from '#~/pages/projects/screens/detail/notebooks/types';
 import { columns } from './data';
 import StopAllServersButton from './StopAllServersButton';
 import UserTableCellTransform from './UserTableCellTransform';
 import useAdminUsers from './useAdminUsers';
-import { NotebookAdminContext } from './NotebookAdminContext';
-import { ServerStatus } from './types';
 
 const NotebookAdminControl: React.FC = () => {
   const [users, loaded, loadError] = useAdminUsers();
-  const { serverStatuses, setServerStatuses } = React.useContext(NotebookAdminContext);
-  const [dontShowModalValue] = useStopNotebookModalAvailability();
-  const [showModal, setShowModal] = React.useState(!dontShowModalValue);
-  const { isAdmin } = useUser();
-  const notification = useNotification();
-  const [isDeleting, setIsDeleting] = React.useState(false);
-
-  const onNotebooksStop = React.useCallback(
-    (didStop: boolean, serverStatusesArr?: ServerStatus[]) => {
-      if (didStop) {
-        (serverStatusesArr ?? serverStatuses).forEach((serverStatus) => {
-          serverStatus.forceRefresh();
-        });
-      }
-      setShowModal(false);
-      setServerStatuses([]);
-    },
-    [serverStatuses, setServerStatuses],
-  );
-
-  const getNotebooksToStop = (serverStatusesArr: ServerStatus[]) =>
-    serverStatusesArr
-      .map((serverStatus) => serverStatus.notebook)
-      .filter((notebook): notebook is Notebook => !!notebook);
-
-  const notebooksToStop = React.useMemo(() => getNotebooksToStop(serverStatuses), [serverStatuses]);
-
-  const handleStopWorkbenches = React.useCallback(
-    (serverStatusesArr: ServerStatus[]) => {
-      const stoppedWorkbenches = getNotebooksToStop(serverStatusesArr);
-      setIsDeleting(true);
-      stopWorkbenches(stoppedWorkbenches, isAdmin)
-        .then(() => {
-          setIsDeleting(false);
-          onNotebooksStop(true, serverStatusesArr);
-          setShowModal(false);
-        })
-        .catch((e) => {
-          setIsDeleting(false);
-          notification.error(
-            `Error stopping workbench${stoppedWorkbenches.length > 1 ? 's' : ''}`,
-            e.message,
-          );
-        });
-    },
-    [isAdmin, notification, onNotebooksStop],
-  );
-
-  const onStop = React.useCallback(
-    (activeServers: ServerStatus[]) => {
-      setServerStatuses(activeServers);
-      if (dontShowModalValue) {
-        handleStopWorkbenches(activeServers);
-      } else {
-        setShowModal(true);
-      }
-    },
-    [dontShowModalValue, handleStopWorkbenches, setServerStatuses],
-  );
-
-  const stopAdminWorkbenchModalProps: StopAdminWorkbenchModalProps = {
-    notebooksToStop,
-    isDeleting,
-    showModal,
-    link: '#',
-    handleStopWorkbenches,
-    onNotebooksStop,
-    onStop,
-  };
 
   return (
     <ApplicationsPage
@@ -116,12 +39,7 @@ const NotebookAdminControl: React.FC = () => {
       }
       loadError={loadError}
       empty={false}
-      headerAction={
-        <StopAllServersButton
-          users={users}
-          stopAdminWorkbenchModalProps={stopAdminWorkbenchModalProps}
-        />
-      }
+      headerAction={<StopAllServersButton users={users} />}
     >
       <Stack hasGutter>
         <StackItem>
@@ -157,11 +75,7 @@ const NotebookAdminControl: React.FC = () => {
                     dataLabel={column.field}
                     isActionCell={column.field === 'actions'}
                   >
-                    <UserTableCellTransform
-                      user={user}
-                      userProperty={column.field}
-                      stopAdminWorkbenchModalProps={stopAdminWorkbenchModalProps}
-                    />
+                    <UserTableCellTransform user={user} userProperty={column.field} />
                   </Td>
                 ))}
               </Tr>

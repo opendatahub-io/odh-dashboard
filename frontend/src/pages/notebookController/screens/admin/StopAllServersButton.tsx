@@ -1,39 +1,60 @@
 import * as React from 'react';
 import { Button } from '@patternfly/react-core';
 import StopServerModal from '~/pages/notebookController/screens/server/StopServerModal';
-import { StopAdminWorkbenchModalProps } from '~/pages/projects/screens/detail/notebooks/types';
+import { Notebook } from '~/types';
+import { useStopWorkbenchModal } from '~/concepts/notebooks/useStopWorkbenchModal';
 import { AdminViewUserData } from './types';
 
 type StopAllServersButtonProps = {
   users: AdminViewUserData[];
-  stopAdminWorkbenchModalProps: StopAdminWorkbenchModalProps;
 };
 
-const StopAllServersButton: React.FC<StopAllServersButtonProps> = ({
-  users,
-  stopAdminWorkbenchModalProps,
-}) => {
-  const activeServers = users
-    .filter((user) => user.serverStatus.isNotebookRunning)
-    .map((user) => user.serverStatus);
+const StopAllServersButton: React.FC<StopAllServersButtonProps> = ({ users }) => {
+  const activeServers = React.useMemo(
+    () =>
+      users.filter((user) => user.serverStatus.isNotebookRunning).map((user) => user.serverStatus),
+    [users],
+  );
   const serverCount = activeServers.length;
-  const { showModal, onStop, ...modalProps } = stopAdminWorkbenchModalProps;
+
+  const notebooksToStop = React.useMemo(
+    () =>
+      activeServers
+        .map((server) => server.notebook)
+        .filter((notebook): notebook is Notebook => !!notebook),
+    [activeServers],
+  );
+
+  const { showModal, isDeleting, onStop, onNotebooksStop } = useStopWorkbenchModal({
+    notebooksToStop,
+    refresh: () => {
+      activeServers.forEach((server) => {
+        server.forceRefresh();
+      });
+    },
+  });
 
   return (
     <>
       <Button
-        data-id="stop-all-servers-button"
         data-testid="stop-all-servers-button"
         variant="secondary"
         isDanger
         isDisabled={serverCount === 0}
         onClick={() => {
-          onStop(activeServers);
+          onStop();
         }}
       >
         Stop all workbenches ({serverCount})
       </Button>
-      {showModal && <StopServerModal {...modalProps} />}
+      {showModal && (
+        <StopServerModal
+          notebooksToStop={notebooksToStop}
+          link="#"
+          isDeleting={isDeleting}
+          onNotebooksStop={onNotebooksStop}
+        />
+      )}
     </>
   );
 };

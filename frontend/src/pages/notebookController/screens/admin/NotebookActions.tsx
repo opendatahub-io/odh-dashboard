@@ -1,16 +1,22 @@
 import * as React from 'react';
 import { ActionsColumn, IAction } from '@patternfly/react-table';
 import StopServerModal from '~/pages/notebookController/screens/server/StopServerModal';
-import { StopAdminWorkbenchModalProps } from '~/pages/projects/screens/detail/notebooks/types';
+import { useStopWorkbenchModal } from '~/concepts/notebooks/useStopWorkbenchModal';
 import { AdminViewUserData } from './types';
 
 type ServerStatusProps = {
   data: AdminViewUserData['actions'];
-  stopAdminWorkbenchModalProps: StopAdminWorkbenchModalProps;
 };
 
-const NotebookActions: React.FC<ServerStatusProps> = ({ data, stopAdminWorkbenchModalProps }) => {
-  const { showModal, onStop, ...modalProps } = stopAdminWorkbenchModalProps;
+const NotebookActions: React.FC<ServerStatusProps> = ({ data }) => {
+  const notebooksToStop = React.useMemo(() => (data.notebook ? [data.notebook] : []), [data]);
+
+  const { showModal, isDeleting, onStop, onNotebooksStop } = useStopWorkbenchModal({
+    notebooksToStop,
+    refresh: () => {
+      data.forceRefresh();
+    },
+  });
 
   if (!data.isNotebookRunning) {
     return null;
@@ -20,7 +26,7 @@ const NotebookActions: React.FC<ServerStatusProps> = ({ data, stopAdminWorkbench
     {
       title: 'Stop workbench',
       onClick: () => {
-        onStop([data]);
+        onStop();
       },
     },
   ];
@@ -28,7 +34,14 @@ const NotebookActions: React.FC<ServerStatusProps> = ({ data, stopAdminWorkbench
   return (
     <>
       <ActionsColumn items={rowActions} />
-      {showModal && <StopServerModal {...modalProps} />}
+      {showModal && (
+        <StopServerModal
+          notebooksToStop={notebooksToStop}
+          link="#"
+          isDeleting={isDeleting}
+          onNotebooksStop={onNotebooksStop}
+        />
+      )}
     </>
   );
 };

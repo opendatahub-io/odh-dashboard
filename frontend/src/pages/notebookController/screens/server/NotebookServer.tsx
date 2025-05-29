@@ -1,14 +1,11 @@
 import * as React from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { Button, ActionList, ActionListItem, Stack, StackItem } from '@patternfly/react-core';
-import { Notebook } from '#~/types';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import { NotebookControllerContext } from '#~/pages/notebookController/NotebookControllerContext';
 import ImpersonateAlert from '#~/pages/notebookController/screens/admin/ImpersonateAlert';
 import useNotification from '#~/utilities/useNotification';
-import { stopWorkbenches } from '#~/pages/notebookController/utils';
-import { useUser } from '#~/redux/selectors';
-import useStopNotebookModalAvailability from '#~/pages/projects/notebook/useStopNotebookModalAvailability';
+import { useStopWorkbenchModal } from '#~/concepts/notebooks/useStopWorkbenchModal';
 import NotebookServerDetails from './NotebookServerDetails';
 import StopServerModal from './StopServerModal';
 
@@ -23,59 +20,17 @@ const NotebookServer: React.FC = () => {
     currentUserNotebookLink,
     requestNotebookRefresh,
   } = React.useContext(NotebookControllerContext);
-  const [notebooksToStop, setNotebooksToStop] = React.useState<Notebook[]>([]);
-  const [dontShowModalValue] = useStopNotebookModalAvailability();
-  const [showModal, setShowModal] = React.useState(!dontShowModalValue);
-  const { isAdmin } = useUser();
-  const [isDeleting, setIsDeleting] = React.useState(false);
-
-  const onNotebooksStop = React.useCallback(
-    (didStop: boolean) => {
-      if (didStop) {
-        // Refresh the context so the spawner page knows the full state
-        requestNotebookRefresh();
-        navigate(`/notebookController/spawner`);
-      } else {
-        setShowModal(false);
-        setNotebooksToStop([]);
-      }
-    },
-    [requestNotebookRefresh, navigate],
-  );
-
-  const handleStopWorkbenches = React.useCallback(
-    (workbenches: Notebook[]) => {
-      setIsDeleting(true);
-      stopWorkbenches(workbenches, isAdmin)
-        .then(() => {
-          setIsDeleting(false);
-          onNotebooksStop(true);
-          setShowModal(false);
-        })
-        .catch((e) => {
-          setIsDeleting(false);
-          notification.error(
-            `Error stopping workbench${workbenches.length > 1 ? 's' : ''}`,
-            e.message,
-          );
-        });
-    },
-    [isAdmin, notification, onNotebooksStop],
-  );
+  const notebooksToStop = React.useMemo(() => (notebook ? [notebook] : []), [notebook]);
 
   const link = currentUserNotebookLink || '#';
 
-  const onStop = React.useCallback(
-    (notebooks: Notebook[]) => {
-      if (dontShowModalValue) {
-        handleStopWorkbenches(notebooks);
-      } else {
-        setNotebooksToStop(notebooks);
-        setShowModal(true);
-      }
+  const { showModal, isDeleting, onStop, onNotebooksStop } = useStopWorkbenchModal({
+    notebooksToStop,
+    refresh: () => {
+      requestNotebookRefresh();
+      navigate(`/notebookController/spawner`);
     },
-    [dontShowModalValue, handleStopWorkbenches],
-  );
+  });
 
   return (
     <>
@@ -95,7 +50,6 @@ const NotebookServer: React.FC = () => {
                 <StopServerModal
                   notebooksToStop={notebooksToStop}
                   isDeleting={isDeleting}
-                  handleStopSingleWorkbench={handleStopWorkbenches}
                   link={link}
                   onNotebooksStop={onNotebooksStop}
                 />
@@ -118,7 +72,7 @@ const NotebookServer: React.FC = () => {
                 </ActionListItem>
                 <ActionListItem
                   onClick={() => {
-                    onStop([notebook]);
+                    onStop();
                   }}
                 >
                   <Button data-testid="stop-wb-button" variant="secondary">
