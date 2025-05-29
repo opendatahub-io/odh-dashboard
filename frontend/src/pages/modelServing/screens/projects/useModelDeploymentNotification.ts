@@ -10,7 +10,7 @@ import { InferenceServiceModelState } from '#~/pages/modelServing/screens/types'
 import {
   getInferenceServiceLastFailureReason,
   getInferenceServiceModelState,
-} from '#~/pages/modelServing/screens/global/utils';
+} from '#~/concepts/modelServingKServe/kserveStatusUtils';
 import { useModelStatus } from '#~/pages/modelServing/screens/global/useModelStatus';
 
 type ModelDeploymentNotification = {

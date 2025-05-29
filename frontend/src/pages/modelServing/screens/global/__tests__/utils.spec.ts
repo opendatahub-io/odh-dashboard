@@ -2,7 +2,7 @@ import {
   checkModelStatus,
   getInferenceServiceStatusMessage,
   getInferenceServiceLastFailureReason,
-} from '#~/pages/modelServing/screens/global/utils';
+} from '#~/concepts/modelServingKServe/kserveStatusUtils';
 import { mockPodK8sResource } from '#~/__mocks__/mockPodK8sResource';
 import { mockInferenceServiceK8sResource } from '#~/__mocks__';
 

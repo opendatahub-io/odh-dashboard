@@ -18,7 +18,7 @@ import { getPodsForKserve, getPodsForModelMesh } from '#~/api';
 import {
   checkModelStatus,
   getInferenceServiceModelState,
-} from '#~/pages/modelServing/screens/global/utils';
+} from '#~/concepts/modelServingKServe/kserveStatusUtils';
 import { InferenceServiceModelState, ModelStatus } from '#~/pages/modelServing/screens/types';
 import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
 import DeployedModelCard from './DeployedModelCard';

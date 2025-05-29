@@ -3,6 +3,18 @@ import type { NamespaceApplicationCase } from '@odh-dashboard/internal/pages/pro
 import type { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import type { SortableData } from '@odh-dashboard/internal/components/table/types';
 import type { K8sAPIOptions, ProjectKind } from '@odh-dashboard/internal/k8sTypes';
+// eslint-disable-next-line no-restricted-syntax, @typescript-eslint/consistent-type-imports
+import { InferenceServiceModelState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
+
+export type DeploymentStatus = {
+  state: InferenceServiceModelState;
+  message?: string;
+};
+
+export type DeploymentEndpoint = {
+  name: string;
+  url: string;
+};
 
 //// Model serving platform extension
 
@@ -13,10 +25,8 @@ export type Deployment<
   modelServingPlatformId: string;
   model: M;
   server?: S;
-  status?: {
-    state?: string;
-    message?: string;
-  };
+  status?: DeploymentStatus;
+  endpoints?: DeploymentEndpoint[];
 };
 
 export type ModelServingPlatformExtension<D extends Deployment = Deployment> = Extension<

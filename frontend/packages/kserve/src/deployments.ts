@@ -1,20 +1,19 @@
 import React from 'react';
+import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import {
   InferenceServiceKind,
   K8sAPIOptions,
   ProjectKind,
   ServingRuntimeKind,
 } from '@odh-dashboard/internal/k8sTypes';
-import useK8sWatchResourceList from '@odh-dashboard/internal/utilities/useK8sWatchResourceList';
-import { groupVersionKind } from '@odh-dashboard/internal/api/k8sUtils';
-import {
-  InferenceServiceModel,
-  ServingRuntimeModel,
-} from '@odh-dashboard/internal/api/models/kserve';
-import { CustomWatchK8sResult } from '@odh-dashboard/internal/types';
 import { Deployment } from '@odh-dashboard/model-serving/extension-points';
-import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import { deleteInferenceService, deleteServingRuntime } from '@odh-dashboard/internal/api/index';
+import {
+  useWatchDeploymentPods,
+  useWatchServingRuntimeList,
+  useWatchInferenceServiceList,
+} from './api';
+import { getKServeDeploymentStatus } from './deploymentStatus';
 import { KSERVE_ID } from '../extensions';
 
 export type KServeDeployment = Deployment<InferenceServiceKind, ServingRuntimeKind>;
@@ -26,27 +25,12 @@ export const useWatchDeployments = (
   project: ProjectKind,
   opts?: K8sAPIOptions,
 ): [KServeDeployment[] | undefined, boolean, Error | undefined] => {
-  const [inferenceServiceList, inferenceServiceLoaded, inferenceServiceError]: CustomWatchK8sResult<
-    InferenceServiceKind[]
-  > = useK8sWatchResourceList<InferenceServiceKind[]>(
-    {
-      isList: true,
-      groupVersionKind: groupVersionKind(InferenceServiceModel),
-      namespace: project.metadata.name,
-    },
-    InferenceServiceModel,
-    opts,
-  );
-
-  const [servingRuntimeList, servingRuntimeLoaded, servingRuntimeError]: CustomWatchK8sResult<
-    ServingRuntimeKind[]
-  > = useK8sWatchResourceList<ServingRuntimeKind[]>(
-    {
-      isList: true,
-      groupVersionKind: groupVersionKind(ServingRuntimeModel),
-      namespace: project.metadata.name,
-    },
-    ServingRuntimeModel,
+  const [inferenceServiceList, inferenceServiceLoaded, inferenceServiceError] =
+    useWatchInferenceServiceList(project, opts);
+  const [servingRuntimeList, servingRuntimeLoaded, servingRuntimeError] =
+    useWatchServingRuntimeList(project, opts);
+  const [deploymentPods, deploymentPodsLoaded, deploymentPodsError] = useWatchDeploymentPods(
+    project,
     opts,
   );
 
@@ -59,14 +43,15 @@ export const useWatchDeployments = (
           (servingRuntime) =>
             servingRuntime.metadata.name === inferenceService.spec.predictor.model?.runtime,
         ),
+        status: getKServeDeploymentStatus(inferenceService, deploymentPods),
       })),
-    [inferenceServiceList, servingRuntimeList],
+    [inferenceServiceList, servingRuntimeList, deploymentPods],
   );
 
   return [
     deployments,
-    inferenceServiceLoaded && servingRuntimeLoaded,
-    inferenceServiceError || servingRuntimeError,
+    inferenceServiceLoaded && servingRuntimeLoaded && deploymentPodsLoaded,
+    inferenceServiceError || servingRuntimeError || deploymentPodsError,
   ];
 };
 
