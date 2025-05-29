@@ -420,7 +420,11 @@ declare global {
         ) => Cypress.Chainable<null>) &
         ((
           type: `POST /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/upload_version`,
-          options: { path: { namespace: string; serviceName: string }; times?: number },
+          options: {
+            path: { namespace: string; serviceName: string };
+            query?: { pipelineid: string; name: string; description?: string };
+            times?: number;
+          },
           response: OdhResponse<PipelineVersionKF | GoogleRpcStatusKF>,
         ) => Cypress.Chainable<null>) &
         ((

@@ -1,6 +1,7 @@
 /* eslint-disable camelcase */
 import type {
   ArgoWorkflowPipelineVersion,
+  CreatePipelineVersionKFData,
   ExperimentKF,
   PipelineKF,
   PipelineRecurringRunKF,
@@ -9,7 +10,10 @@ import type {
 } from '~/concepts/pipelines/kfTypes';
 import { buildMockRunKF } from '~/__mocks__';
 import { buildMockPipelines } from '~/__mocks__/mockPipelinesProxy';
-import { buildMockPipelineVersions } from '~/__mocks__/mockPipelineVersionsProxy';
+import {
+  buildMockPipelineVersion,
+  buildMockPipelineVersions,
+} from '~/__mocks__/mockPipelineVersionsProxy';
 import { Contextual } from '~/__tests__/cypress/cypress/pages/components/Contextual';
 import { buildMockRecurringRunKF } from '~/__mocks__/mockRecurringRunKF';
 import { SearchSelector } from '~/__tests__/cypress/cypress/pages/components/subComponents/SearchSelector';
@@ -61,6 +65,10 @@ export class CreateRunPage {
       .findByTestId('pipeline-version-selector-table-list')
       .find('td')
       .contains(name);
+  }
+
+  findPipelineCreateVersionButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('import-pipeline-version-button');
   }
 
   findScheduledRunTypeSelector(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -318,6 +326,26 @@ export class CreateRunPage {
         );
         req.reply(buildMockRecurringRunKF({ ...data, recurring_run_id }));
       },
+    );
+  }
+
+  mockCreatePipelineVersion(
+    namespace: string,
+    params: CreatePipelineVersionKFData,
+  ): Cypress.Chainable<null> {
+    return cy.interceptOdh(
+      'POST /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/upload_version',
+      {
+        path: { namespace, serviceName: 'dspa' },
+        query: {
+          pipelineid: params.pipeline_id,
+          name: params.display_name,
+          description: params.description,
+        },
+        times: 1,
+      },
+
+      buildMockPipelineVersion(params),
     );
   }
 
