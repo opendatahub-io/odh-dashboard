@@ -57,7 +57,7 @@ const ImageLocationField: React.FC<ImageLocationFieldProps> = ({
     <FormHelperText>
       <HelperText>
         <HelperTextItem>
-          The address where the notebook image is located. See the help icon for examples.
+          The address where the workbench image is located. See the help icon for examples.
         </HelperTextItem>
       </HelperText>
     </FormHelperText>
