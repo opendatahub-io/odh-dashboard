@@ -5,7 +5,7 @@ metadata:
   annotations:
     opendatahub.io/categories: 'Getting started,Notebook environments'
 spec:
-  displayName: Creating a Jupyter notebook
+  displayName: Creating a basic workbench
   appName: jupyter
   durationMinutes: 10
   icon: 'images/jupyter.svg'
@@ -18,7 +18,7 @@ spec:
 
     We just know you will absolutely love this amazing environment.  This quick start gets you working in a workbench in just a few minutes.
   tasks:
-    - title: Launch a workbench
+    - title: Create a basic workbench
       description: |-
         ### Prerequisites
         - You have logged in to Open Data Hub.
@@ -36,11 +36,11 @@ spec:
            b) If the notebook image contains multiple versions, select the version of the notebook image from the **Versions** section.
            c) Select the **Container size** for your workbench.
         4. (Optional) Select the **Number of Accelerators** for your workbench.
-        5. (Optional) Select and specify values for any new **Environment variables**.  
+        5. (Optional) Select and specify values for any new **Environment variables**.
            The interface stores these variables so that you need to enter them only once. Example variable names for common environment variables are automatically provided for frequently integrated environments and frameworks, such as Amazon Web Services (AWS).
         6. Click **Start workbench**.
-           The **Starting workbench** progress indicator appears. 
-        7. (Optional) Click **Expand event log** to view additional information on the workbench creation process. 
+           The **Starting workbench** progress indicator appears.
+        7. (Optional) Click **Expand event log** to view additional information on the workbench creation process.
            Depending on the deployment size and resources you requested, starting the workbench can take up to several minutes. After the workbench starts, the JupyterLab interface opens.
       review:
         instructions: |-
