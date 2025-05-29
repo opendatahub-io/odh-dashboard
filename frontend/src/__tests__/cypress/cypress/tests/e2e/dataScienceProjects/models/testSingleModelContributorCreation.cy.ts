@@ -94,6 +94,7 @@ describe('Verify Model Creation and Validation using the UI', () => {
 
       inferenceServiceModal.findLocationPathInput().type(modelFilePath);
       inferenceServiceModal.findSubmitButton().click();
+      inferenceServiceModal.shouldBeOpen(false);
       modelServingSection.findModelServerName(testData.singleModelName);
 
       //Verify the model created
