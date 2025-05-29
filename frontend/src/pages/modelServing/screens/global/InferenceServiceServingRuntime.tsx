@@ -1,13 +1,11 @@
-import { Label } from '@patternfly/react-core';
 import * as React from 'react';
-import TypedObjectIcon from '~/concepts/design/TypedObjectIcon';
-import { ProjectObjectType } from '~/concepts/design/utils';
+import ScopedLabel from '~/components/ScopedLabel';
 import { ServingRuntimeKind } from '~/k8sTypes';
 import {
   getDisplayNameFromServingRuntimeTemplate,
   getServingRuntimeVersionFromTemplate,
 } from '~/pages/modelServing/customServingRuntimes/utils';
-import { SERVING_RUNTIME_SCOPE } from '~/pages/modelServing/screens/const';
+import { ScopedType, SERVING_RUNTIME_SCOPE } from '~/pages/modelServing/screens/const';
 
 type Props = {
   servingRuntime?: ServingRuntimeKind;
@@ -22,14 +20,15 @@ const InferenceServiceServingRuntime: React.FC<Props> = ({ servingRuntime, isPro
         {getServingRuntimeVersionFromTemplate(servingRuntime) && (
           <>
             {' '}
-            <Label
-              variant="filled"
+            <ScopedLabel
+              isProject={false}
               color="grey"
-              data-testid="serving-runtime-version-label"
               isCompact
+              variant="filled"
+              dataTestId="serving-runtime-version-label"
             >
               {getServingRuntimeVersionFromTemplate(servingRuntime)}
-            </Label>
+            </ScopedLabel>
           </>
         )}
         {isProjectScoped &&
@@ -37,15 +36,9 @@ const InferenceServiceServingRuntime: React.FC<Props> = ({ servingRuntime, isPro
             SERVING_RUNTIME_SCOPE.Project && (
             <>
               {' '}
-              <Label
-                variant="outline"
-                color="blue"
-                data-testid="project-scoped-label"
-                isCompact
-                icon={<TypedObjectIcon alt="" resourceType={ProjectObjectType.project} />}
-              >
-                Project-scoped
-              </Label>
+              <ScopedLabel isProject color="blue" isCompact>
+                {ScopedType.Project}
+              </ScopedLabel>
             </>
           )}
       </>
