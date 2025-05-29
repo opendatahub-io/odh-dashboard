@@ -24,11 +24,12 @@ import { ProjectObjectType } from '~/concepts/design/utils';
 import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
 import { ODH_PRODUCT_NAME } from '~/utilities/const';
 import TypedObjectIcon from '~/concepts/design/TypedObjectIcon';
+import { NotebookKind } from '~/k8sTypes';
 import { NotebookImageAvailability, NotebookImageStatus } from './const';
 import { NotebookImage } from './types';
 
 type NotebookImageDisplayNameProps = {
-  isImageStreamProjectScoped: boolean;
+  notebook: NotebookKind;
   notebookImage: NotebookImage | null;
   loaded: boolean;
   loadError?: Error;
@@ -37,7 +38,7 @@ type NotebookImageDisplayNameProps = {
 };
 
 export const NotebookImageDisplayName = ({
-  isImageStreamProjectScoped,
+  notebook,
   notebookImage,
   loaded,
   loadError,
@@ -187,7 +188,7 @@ export const NotebookImageDisplayName = ({
           {notebookImage.imageStatus !== NotebookImageStatus.DELETED &&
             notebookImage.imageAvailability === NotebookImageAvailability.ENABLED &&
             isProjectScopedAvailable &&
-            isImageStreamProjectScoped && (
+            notebook.metadata.annotations?.['opendatahub.io/workbench-image-namespace'] && (
               <Label
                 isCompact
                 variant="outline"
