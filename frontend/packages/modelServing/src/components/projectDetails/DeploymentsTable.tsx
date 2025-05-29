@@ -1,20 +1,13 @@
 import React from 'react';
-import {
-  SortableData,
-  Table,
-  TableRowTitleDescription,
-} from '@odh-dashboard/internal/components/table/index';
-import ResourceTr from '@odh-dashboard/internal/components/ResourceTr';
-import { ActionsColumn, Td } from '@patternfly/react-table';
+import { Spinner, Bullseye } from '@patternfly/react-core';
+import { SortableData, Table } from '@odh-dashboard/internal/components/table/index';
+import { DeploymentRow } from './DeploymentsTableRow';
+import { deploymentNameSort } from '../../concepts/deploymentUtils';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
 import { useResolvedPlatformExtension } from '../../concepts/extensionUtils';
 import { ModelServingPlatform } from '../../concepts/modelServingPlatforms';
-import {
-  Deployment,
-  DeploymentsTableColumn,
-  isModelServingDeploymentsTableExtension,
-} from '../../../extension-points';
+import { Deployment, isModelServingDeploymentsTableExtension } from '../../../extension-points';
 import DeleteModelServingModal from '../deleteModal/DeleteModelServingModal';
 
 const genericColumns: SortableData<Deployment>[] = [
@@ -27,7 +20,7 @@ const genericColumns: SortableData<Deployment>[] = [
   {
     label: 'Model deployment name',
     field: 'name',
-    sortable: true,
+    sortable: deploymentNameSort,
   },
   // Platform specific columns go here
   {
@@ -85,7 +78,7 @@ const DeploymentsTable: React.FC<{
   modelServingPlatform: ModelServingPlatform;
   deployments: Deployment[] | undefined;
 }> = ({ modelServingPlatform, deployments }) => {
-  const tableExtension = useResolvedPlatformExtension(
+  const [tableExtension, tableExtensionLoaded] = useResolvedPlatformExtension(
     isModelServingDeploymentsTableExtension,
     modelServingPlatform,
   );
@@ -100,6 +93,14 @@ const DeploymentsTable: React.FC<{
     () => [genericColumns[0], ...platformColumns, ...genericColumns.slice(1)],
     [platformColumns],
   );
+
+  if (!tableExtensionLoaded) {
+    return (
+      <Bullseye>
+        <Spinner />
+      </Bullseye>
+    );
+  }
 
   return (
     <>
