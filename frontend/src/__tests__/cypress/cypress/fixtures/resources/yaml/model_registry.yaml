@@ -1,0 +1,36 @@
+apiVersion: modelregistry.opendatahub.io/v1alpha1
+kind: ModelRegistry
+metadata:
+  name: {{REGISTRY_NAME}}
+  namespace: {{NAMESPACE}}
+  annotations:
+    openshift.io/display-name: {{REGISTRY_NAME}}
+    openshift.io/description: E2E test model registry
+spec:
+  grpc:
+    port: 9090
+  rest:
+    port: 8080
+    serviceRoute: disabled
+  istio:
+    gateway:
+      grpc:
+        gatewayRoute: enabled
+        port: 443
+        tls:
+          mode: SIMPLE
+      rest:
+        gatewayRoute: enabled
+        port: 443
+        tls:
+          mode: SIMPLE
+    tlsMode: ISTIO_MUTUAL
+  mysql:
+    host: model-registry-db
+    port: 3306
+    database: model_registry
+    username: mlmduser
+    skipDBCreation: false
+    passwordSecret:
+      name: model-registry-db
+      key: database-password 
