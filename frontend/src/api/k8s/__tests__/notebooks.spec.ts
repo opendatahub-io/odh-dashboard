@@ -303,10 +303,6 @@ describe('assembleNotebook', () => {
     const notebook = assembleNotebook(startNotebookDataMock, username, true);
     k8sCreateResourceMock.mockResolvedValue(mockNotebookK8sResource({ uid: 'test' }));
 
-    createElyraServiceAccountRoleBindingMock.mockResolvedValue(
-      mockRoleBindingK8sResource({ uid: 'test' }),
-    );
-
     const renderResult = await createNotebook(startNotebookDataMock, username, true);
 
     expect(k8sCreateResourceMock).toHaveBeenCalledWith({
@@ -317,11 +313,6 @@ describe('assembleNotebook', () => {
         queryParams: {},
       },
     });
-    expect(createElyraServiceAccountRoleBindingMock).toHaveBeenCalledWith(
-      mockNotebookK8sResource({ uid: 'test' }),
-      undefined,
-    );
-    expect(createElyraServiceAccountRoleBindingMock).toHaveBeenCalledTimes(1);
     expect(k8sCreateResourceMock).toHaveBeenCalledTimes(1);
     expect(renderResult).toStrictEqual(mockNotebookK8sResource({ uid: 'test' }));
   });
@@ -331,10 +322,6 @@ describe('assembleNotebook', () => {
     startNotebookMock.volumeMounts = undefined;
     const notebook = assembleNotebook(startNotebookMock, username, false);
     k8sCreateResourceMock.mockResolvedValue(mockNotebookK8sResource({ uid: 'test' }));
-
-    createElyraServiceAccountRoleBindingMock.mockResolvedValue(
-      mockRoleBindingK8sResource({ uid: 'test' }),
-    );
 
     const renderResult = await createNotebook(startNotebookMock, username, false);
 
@@ -346,7 +333,6 @@ describe('assembleNotebook', () => {
         queryParams: {},
       },
     });
-    expect(createElyraServiceAccountRoleBindingMock).toHaveBeenCalledTimes(0);
     expect(k8sCreateResourceMock).toHaveBeenCalledTimes(1);
     expect(renderResult).toStrictEqual(mockNotebookK8sResource({ uid: 'test' }));
   });
@@ -379,8 +365,6 @@ describe('createNotebook', () => {
     const notebook = assembleNotebook(mockStartNotebookData({}), username, true);
     k8sCreateResourceMock.mockResolvedValue(mockNotebookK8sResource({ uid }));
 
-    createElyraServiceAccountRoleBindingMock.mockResolvedValue(mockRoleBindingK8sResource({ uid }));
-
     const renderResult = await createNotebook(mockStartNotebookData({}), username, true);
 
     expect(k8sCreateResourceMock).toHaveBeenCalledWith({
@@ -391,7 +375,6 @@ describe('createNotebook', () => {
         queryParams: {},
       },
     });
-    expect(createElyraServiceAccountRoleBindingMock).toHaveBeenCalledTimes(1);
     expect(k8sCreateResourceMock).toHaveBeenCalledTimes(1);
     expect(renderResult).toStrictEqual(mockNotebookK8sResource({ uid }));
   });
