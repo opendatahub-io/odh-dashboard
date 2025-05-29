@@ -1,11 +1,11 @@
 import { testHook, standardUseFetchState } from '~/__tests__/unit/testUtils/hooks';
 import useModelArtifactsByVersionId from '~/concepts/modelRegistry/apiHooks/useModelArtifactsByVersionId';
 import { ModelArtifactList } from '~/concepts/modelRegistry/types';
-import { useModelRegistryAPI } from '~/concepts/modelRegistry/context/ModelRegistryContext';
 import { mockModelArtifactList } from '~/__mocks__/mockModelArtifactList';
+import { useModelRegistryAPI } from '~/concepts/modelRegistry/context/ModelRegistryPageContext';
 
 // Mock the useModelRegistryAPI hook
-jest.mock('~/concepts/modelRegistry/context/ModelRegistryContext', () => ({
+jest.mock('~/concepts/modelRegistry/context/ModelRegistryPageContext', () => ({
   useModelRegistryAPI: jest.fn(),
 }));
 

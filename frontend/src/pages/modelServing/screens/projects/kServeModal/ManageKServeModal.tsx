@@ -15,6 +15,7 @@ import {
   getSubmitServingRuntimeResourcesFn,
   useCreateInferenceServiceObject,
   useCreateServingRuntimeObject,
+  validateEnvVarName,
 } from '~/pages/modelServing/screens/projects/utils';
 import {
   TemplateKind,
@@ -58,7 +59,6 @@ import K8sNameDescriptionField, {
 import { isK8sNameDescriptionDataValid } from '~/concepts/k8s/K8sNameDescriptionField/utils';
 import { useProfileIdentifiers } from '~/concepts/hardwareProfiles/utils';
 import { useModelServingPodSpecOptionsState } from '~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
-import { validateEnvVarName } from '~/concepts/connectionTypes/utils';
 import usePrefillModelDeployModal, {
   ModelDeployPrefillInfo,
 } from '~/pages/modelServing/screens/projects/usePrefillModelDeployModal';
@@ -413,9 +413,15 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
                 {isRawAvailable && isServerlessAvailable && (
                   <KServeDeploymentModeDropdown
                     isRaw={!!createDataInferenceService.isKServeRawDeployment}
-                    setIsRaw={(isRaw) =>
-                      setCreateDataInferenceService('isKServeRawDeployment', isRaw)
-                    }
+                    setIsRaw={(isRaw) => {
+                      setCreateDataInferenceService('isKServeRawDeployment', isRaw);
+                      if (isRaw) {
+                        setCreateDataInferenceService(
+                          'maxReplicas',
+                          createDataInferenceService.minReplicas,
+                        );
+                      }
+                    }}
                     isDisabled={!!editInfo}
                   />
                 )}

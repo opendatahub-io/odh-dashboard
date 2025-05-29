@@ -2,6 +2,7 @@ import { K8sResourceCommon, MatchExpression } from '@openshift/dynamic-plugin-sd
 import { EitherNotBoth } from '@openshift/dynamic-plugin-sdk';
 import { AwsKeys } from '~/pages/projects/dataConnections/const';
 import { DataScienceStackComponent, StackComponent } from '~/concepts/areas/types';
+import { AccessMode } from '~/pages/storageClasses/storageEnums';
 import {
   ContainerResourceAttributes,
   ContainerResources,
@@ -56,6 +57,7 @@ export type StorageClassConfig = {
   isDefault: boolean;
   lastModified: string;
   description?: string;
+  accessModeSettings: Partial<Record<AccessMode, boolean>>;
 };
 
 export enum MetadataAnnotation {
@@ -561,6 +563,9 @@ export type InferenceServiceKind = K8sResourceCommon & {
     };
   };
 };
+
+export const isInferenceServiceKind = (obj: K8sResourceCommon): obj is InferenceServiceKind =>
+  obj.kind === 'InferenceService';
 
 export type RoleBindingSubject = {
   kind: string;
@@ -1225,8 +1230,8 @@ export type DashboardCommonConfig = {
   disableNIMModelServing: boolean;
   disableAdminConnectionTypes: boolean;
   disableFineTuning: boolean;
-  disableModelServingPlugin: boolean;
   disableLlamaStackChatBot: boolean;
+  disableLMEval: boolean;
 };
 
 export type DashboardConfigKind = K8sResourceCommon & {

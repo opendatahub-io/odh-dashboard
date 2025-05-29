@@ -1,5 +1,5 @@
 import React from 'react';
-import { FetchStateObject } from '~/types';
+import { FetchStateObject } from '~/utilities/useFetch';
 import { ModelCatalogSource } from '~/concepts/modelCatalog/types';
 import { useModelCatalogSources } from '~/concepts/modelCatalog/useModelCatalogSources';
 import { DEFAULT_LIST_FETCH_STATE } from '~/utilities/const';

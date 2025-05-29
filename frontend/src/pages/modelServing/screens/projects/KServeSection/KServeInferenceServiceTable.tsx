@@ -36,7 +36,10 @@ const KServeInferenceServiceTable: React.FC = () => {
   const {
     servingRuntimes: { refresh: refreshServingRuntime },
     connections: { refresh: refreshConnections },
-    inferenceServices: { data: inferenceServices, refresh: refreshInferenceServices },
+    inferenceServices: {
+      data: { items: inferenceServices },
+      refresh: refreshInferenceServices,
+    },
     serverSecrets: { refresh: refreshServerSecrets },
     filterTokens,
   } = React.useContext(ProjectDetailsContext);
@@ -89,7 +92,9 @@ const KServeInferenceServiceTable: React.FC = () => {
               secrets: [],
             },
             inferenceServiceEditInfo: editKserveResources.inferenceService,
-            secrets: filterTokens(editKserveResources.inferenceService.metadata.name),
+            secrets: filterTokens(
+              editKserveResources.inferenceService.spec.predictor.model?.runtime,
+            ),
           }}
           onClose={(submit: boolean) => {
             setEditKServeResources(undefined);

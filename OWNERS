@@ -1,4 +1,5 @@
 approvers:
+- openshift-cherrypick-robot
 - andrewballantyne
 - lucferbux
 - alexcreasy

@@ -37,6 +37,8 @@ export class PluginStore implements PluginStoreInterface {
     Object.values(PluginEventType).forEach((t) => {
       this.listeners.set(t, new Set());
     });
+
+    this.updateExtensions();
   }
 
   get sdkVersion(): string {

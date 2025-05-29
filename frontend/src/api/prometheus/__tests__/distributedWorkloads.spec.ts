@@ -462,7 +462,7 @@ describe('useDWProjectCurrentMetrics', () => {
     renderResult.result.current.refresh();
     await renderResult.waitForNextUpdate();
     expect(mockAxios).toHaveBeenCalledTimes(6);
-    expect(renderResult).hookToHaveUpdateCount(4);
+    expect(renderResult).hookToHaveUpdateCount(5);
   });
 
   it('should handle errors and return first error found', async () => {

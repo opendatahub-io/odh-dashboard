@@ -44,8 +44,14 @@ const DeployedModelsSection: React.FC<DeployedModelsSectionProps> = ({ isMultiPl
   const [queryParams, setQueryParams] = useSearchParams();
   const { currentProject } = React.useContext(ProjectDetailsContext);
   const {
-    inferenceServices: { data: inferenceServices, loaded: inferenceServicesLoaded },
-    servingRuntimes: { data: modelServers, loaded: modelServersLoaded },
+    inferenceServices: {
+      data: { items: inferenceServices },
+      loaded: inferenceServicesLoaded,
+    },
+    servingRuntimes: {
+      data: { items: modelServers },
+      loaded: modelServersLoaded,
+    },
   } = React.useContext(ProjectDetailsContext);
 
   const servingPlatformStatuses = useServingPlatformStatuses();

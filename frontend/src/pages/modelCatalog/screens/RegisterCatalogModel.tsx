@@ -13,7 +13,6 @@ import {
 import React from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import spacing from '@patternfly/react-styles/css/utilities/Spacing/spacing';
-import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import {
   ModelLocationType,
@@ -48,13 +47,14 @@ import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUti
 import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
 import useRegisteredModels from '~/concepts/modelRegistry/apiHooks/useRegisteredModels';
 import { catalogParamsToModelSourceProperties } from '~/concepts/modelRegistry/utils';
+import { ModelRegistriesContext } from '~/concepts/modelRegistry/context/ModelRegistriesContext';
 
 const RegisterCatalogModel: React.FC = () => {
   const navigate = useNavigate();
   const params = useParams<CatalogModelDetailsParams>();
   const decodedParams = React.useMemo(() => decodeParams(params), [params]);
 
-  const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
+  const { preferredModelRegistry } = React.useContext(ModelRegistriesContext);
   const { modelCatalogSources } = React.useContext(ModelCatalogContext);
 
   const [registeredModels, registeredModelsLoaded, registeredModelsLoadError] =

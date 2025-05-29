@@ -219,6 +219,22 @@ function markSuiteAsSkipped(suite: Mocha.Suite) {
 // Event Handlers
 // ============================
 
+// Print Cypress 'step', 'exec' and 'log' commands to terminal
+let stepCounter: number;
+beforeEach(() => {
+  stepCounter = 0;
+});
+Cypress.on('command:enqueued', (command) => {
+  if (command.name === 'step') {
+    stepCounter++;
+    cy.task('log', `[STEP ${stepCounter}] ${command.args[0]}`);
+  } else if (command.name === 'exec') {
+    cy.task('log', `[EXEC] ${command.args[0]}`);
+  } else if (command.name === 'log') {
+    cy.task('log', `${command.args[0]}`);
+  }
+});
+
 // Track test execution
 Cypress.on('test:before:run', (test) => {
   // Set the flag to indicate a test is running
@@ -362,18 +378,3 @@ after(() => {
     }
   });
 });
-
-// Override Mocha's global after() to skip spec-level after hooks when using grepTags
-const origAfter = (window as Window & typeof globalThis).after;
-(window as Window & typeof globalThis).after = function afterOverride(
-  nameOrFn: string | Mocha.Func,
-  fn?: Mocha.Func,
-): void {
-  if (Cypress.env('grepTags')) {
-    return; // do not register after hooks when filtering specs
-  }
-  if (fn) {
-    return (origAfter as Mocha.HookFunction).call(this, nameOrFn as string, fn as Mocha.AsyncFunc);
-  }
-  return (origAfter as Mocha.HookFunction).call(this, nameOrFn as string);
-};

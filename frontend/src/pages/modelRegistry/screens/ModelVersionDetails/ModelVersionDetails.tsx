@@ -4,7 +4,6 @@ import { Breadcrumb, BreadcrumbItem, Flex, FlexItem, Truncate } from '@patternfl
 import { Link } from 'react-router-dom';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import useModelVersionById from '~/concepts/modelRegistry/apiHooks/useModelVersionById';
-import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
 import { archiveModelVersionDetailsRoute } from '~/routes/modelRegistry/modelArchive';
 import { modelVersionArchiveDetailsRoute } from '~/routes/modelRegistry/modelVersionArchive';
 import { modelVersionRoute } from '~/routes/modelRegistry/modelVersions';
@@ -12,8 +11,8 @@ import { registeredModelRoute } from '~/routes/modelRegistry/registeredModels';
 import useRegisteredModelById from '~/concepts/modelRegistry/apiHooks/useRegisteredModelById';
 import useInferenceServices from '~/pages/modelServing/useInferenceServices';
 import useServingRuntimes from '~/pages/modelServing/useServingRuntimes';
-import { useMakeFetchObject } from '~/utilities/useMakeFetchObject';
 import { ModelState } from '~/concepts/modelRegistry/types';
+import { ModelRegistriesContext } from '~/concepts/modelRegistry/context/ModelRegistriesContext';
 import { ModelVersionDetailsTab } from './const';
 import ModelVersionsDetailsHeaderActions from './ModelVersionDetailsHeaderActions';
 import ModelVersionDetailsTabs from './ModelVersionDetailsTabs';
@@ -29,20 +28,18 @@ type ModelVersionsDetailProps = {
 const ModelVersionsDetails: React.FC<ModelVersionsDetailProps> = ({ tab, ...pageProps }) => {
   const navigate = useNavigate();
 
-  const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
+  const { preferredModelRegistry } = React.useContext(ModelRegistriesContext);
 
   const { modelVersionId: mvId, registeredModelId: rmId } = useParams();
   const [rm] = useRegisteredModelById(rmId);
   const [mv, mvLoaded, mvLoadError, refreshModelVersion] = useModelVersionById(mvId);
-  const inferenceServices = useMakeFetchObject(
-    useInferenceServices(
-      undefined,
-      mv?.registeredModelId,
-      mv?.id,
-      preferredModelRegistry?.metadata.name,
-    ),
+  const inferenceServices = useInferenceServices(
+    undefined,
+    mv?.registeredModelId,
+    mv?.id,
+    preferredModelRegistry?.metadata.name,
   );
-  const servingRuntimes = useMakeFetchObject(useServingRuntimes());
+  const servingRuntimes = useServingRuntimes();
 
   const refresh = React.useCallback(() => {
     refreshModelVersion();
@@ -128,7 +125,7 @@ const ModelVersionsDetails: React.FC<ModelVersionsDetailProps> = ({ tab, ...page
               <ModelVersionsDetailsHeaderActions
                 mv={mv}
                 registeredModel={rm}
-                hasDeployment={inferenceServices.data.length > 0}
+                hasDeployment={inferenceServices.data.items.length > 0}
                 refresh={refresh}
               />
             </FlexItem>

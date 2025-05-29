@@ -45,6 +45,14 @@ describe('Verify Data Science Project - Creation and Deletion', () => {
       });
   });
 
+  after(() => {
+    // Delete provisioned Project
+    if (projectName) {
+      cy.log(`Deleting Project ${projectName} after the test has finished.`);
+      deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
+    }
+  });
+
   it(
     'Create and Delete a Data Science Project in RHOAI',
     { tags: ['@Smoke', '@SmokeSet2', '@ODS-1875', '@ODS-1783', '@ODS-1775', '@Dashboard'] },

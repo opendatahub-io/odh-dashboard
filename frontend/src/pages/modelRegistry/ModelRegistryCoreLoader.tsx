@@ -2,11 +2,11 @@ import * as React from 'react';
 import { Navigate, Outlet, useParams } from 'react-router';
 import { Bullseye } from '@patternfly/react-core';
 import { conditionalArea, SupportedArea } from '~/concepts/areas';
-import { ModelRegistryContextProvider } from '~/concepts/modelRegistry/context/ModelRegistryContext';
+import { ModelRegistryPageContextProvider } from '~/concepts/modelRegistry/context/ModelRegistryPageContext';
 import ApplicationsPage from '~/pages/ApplicationsPage';
 import TitleWithIcon from '~/concepts/design/TitleWithIcon';
 import { ProjectObjectType, typedEmptyImage } from '~/concepts/design/utils';
-import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
+import { ModelRegistriesContext } from '~/concepts/modelRegistry/context/ModelRegistriesContext';
 import WhosMyAdministrator from '~/components/WhosMyAdministrator';
 import { modelRegistryRoute } from '~/routes/modelRegistry/registryBase';
 import RedirectErrorState from '~/pages/external/RedirectErrorState';
@@ -37,7 +37,7 @@ const ModelRegistryCoreLoader: React.FC<ModelRegistryCoreLoaderProps> =
       modelRegistryServices,
       preferredModelRegistry,
       updatePreferredModelRegistry,
-    } = React.useContext(ModelRegistrySelectorContext);
+    } = React.useContext(ModelRegistriesContext);
     const modelRegistryFromRoute = modelRegistryServices.find(
       (mr) => mr.metadata.name === modelRegistry,
     );
@@ -93,9 +93,9 @@ const ModelRegistryCoreLoader: React.FC<ModelRegistryCoreLoaderProps> =
       if (foundModelRegistry) {
         // Render the content
         return (
-          <ModelRegistryContextProvider modelRegistryName={modelRegistry}>
+          <ModelRegistryPageContextProvider modelRegistryName={modelRegistry}>
             <Outlet />
-          </ModelRegistryContextProvider>
+          </ModelRegistryPageContextProvider>
         );
       }
 

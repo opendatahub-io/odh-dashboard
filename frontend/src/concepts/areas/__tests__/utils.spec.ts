@@ -255,5 +255,27 @@ describe('isAreaAvailable', () => {
         });
       });
     });
+
+    describe('devFlags', () => {
+      it('should enable area if dev flag is true', () => {
+        const testDevArea = 'TestDevArea';
+        const testDevFlag = 'disableTestDevArea';
+
+        const mockAreasStateMap = {
+          [testDevArea]: {
+            devFlags: [testDevFlag],
+          },
+        };
+
+        const isAvailable = isAreaAvailable(testDevArea, mockDashboardConfig({}).spec, null, null, {
+          internalStateMap: mockAreasStateMap,
+          // set to false since the flag is inverted because it starts with 'disable'
+          flagState: { [testDevFlag]: false },
+        });
+
+        expect(isAvailable.status).toBe(true);
+        expect(isAvailable.devFlags).toEqual({ [testDevFlag]: 'on' });
+      });
+    });
   });
 });

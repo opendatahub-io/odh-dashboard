@@ -16,14 +16,14 @@ export const HookNotify = <H extends (...args: any) => any>({
   onUnmount,
   args,
 }: {
-  onNotify: (value: ReturnType<H> | undefined) => void;
+  onNotify?: (value: ReturnType<H> | undefined) => void;
   useHook: H;
   args?: Parameters<H>;
   onUnmount?: () => void;
 }): null => {
   const value = useHook(...(args ?? []));
   React.useEffect(() => {
-    onNotify(value);
+    onNotify?.(value);
     // only run when value changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value]);

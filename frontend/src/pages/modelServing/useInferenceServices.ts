@@ -1,13 +1,15 @@
 import * as React from 'react';
 import { getInferenceServiceContext, listInferenceService, useAccessReview } from '~/api';
 import { AccessReviewResourceAttributes, InferenceServiceKind, KnownLabels } from '~/k8sTypes';
-import useFetchState, {
-  FetchState,
+import { ListWithNonDashboardPresence } from '~/types';
+import useFetch, {
+  FetchOptions,
+  FetchStateObject,
   FetchStateCallbackPromise,
   NotReadyError,
-} from '~/utilities/useFetchState';
+} from '~/utilities/useFetch';
 import useModelServingEnabled from '~/pages/modelServing/useModelServingEnabled';
-import { LABEL_SELECTOR_DASHBOARD_RESOURCE } from '~/const';
+import { DEFAULT_LIST_WITH_NON_DASHBOARD_PRESENCE } from '~/utilities/const';
 
 const accessReviewResource: AccessReviewResourceAttributes = {
   group: 'serving.kserve.io',
@@ -20,15 +22,18 @@ const useInferenceServices = (
   registeredModelId?: string,
   modelVersionId?: string,
   mrName?: string,
-): FetchState<InferenceServiceKind[]> => {
+  fetchOptions?: Partial<FetchOptions>,
+): FetchStateObject<ListWithNonDashboardPresence<InferenceServiceKind>> => {
   const modelServingEnabled = useModelServingEnabled();
 
   const [allowCreate, rbacLoaded] = useAccessReview({
     ...accessReviewResource,
   });
 
-  const callback = React.useCallback<FetchStateCallbackPromise<InferenceServiceKind[]>>(
-    (opts) => {
+  const callback = React.useCallback<
+    FetchStateCallbackPromise<ListWithNonDashboardPresence<InferenceServiceKind>>
+  >(
+    async (opts) => {
       if (!modelServingEnabled) {
         return Promise.reject(new NotReadyError('Model serving is not enabled'));
       }
@@ -39,10 +44,9 @@ const useInferenceServices = (
 
       const getInferenceServices = allowCreate ? listInferenceService : getInferenceServiceContext;
 
-      const inferenceServiceList = getInferenceServices(
+      let inferenceServiceList = await getInferenceServices(
         namespace,
         [
-          LABEL_SELECTOR_DASHBOARD_RESOURCE,
           ...(registeredModelId ? [`${KnownLabels.REGISTERED_MODEL_ID}=${registeredModelId}`] : []),
           ...(modelVersionId ? [`${KnownLabels.MODEL_VERSION_ID}=${modelVersionId}`] : []),
         ].join(','),
@@ -50,16 +54,20 @@ const useInferenceServices = (
       );
 
       if (mrName) {
-        return inferenceServiceList.then((inferenceServices) =>
-          inferenceServices.filter(
-            (inferenceService) =>
-              inferenceService.metadata.labels?.[KnownLabels.MODEL_REGISTRY_NAME] === mrName ||
-              !inferenceService.metadata.labels?.[KnownLabels.MODEL_REGISTRY_NAME],
-          ),
+        inferenceServiceList = inferenceServiceList.filter(
+          (inferenceService) =>
+            inferenceService.metadata.labels?.[KnownLabels.MODEL_REGISTRY_NAME] === mrName ||
+            !inferenceService.metadata.labels?.[KnownLabels.MODEL_REGISTRY_NAME],
         );
       }
 
-      return inferenceServiceList;
+      const dashboardInferenceServices = inferenceServiceList.filter(
+        ({ metadata: { labels } }) => labels?.[KnownLabels.DASHBOARD_RESOURCE] === 'true',
+      );
+      return {
+        items: dashboardInferenceServices,
+        hasNonDashboardItems: inferenceServiceList.length > dashboardInferenceServices.length,
+      };
     },
     [
       modelServingEnabled,
@@ -72,8 +80,9 @@ const useInferenceServices = (
     ],
   );
 
-  return useFetchState(callback, [], {
+  return useFetch(callback, DEFAULT_LIST_WITH_NON_DASHBOARD_PRESENCE, {
     initialPromisePurity: true,
+    ...fetchOptions,
   });
 };
 
