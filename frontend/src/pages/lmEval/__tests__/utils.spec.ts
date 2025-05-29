@@ -1,9 +1,9 @@
-import { LmEvaluationFormData } from '~/pages/lmEvaluations/types';
-import { isFilledLmEvaluationFormData } from '~/pages/lmEvaluations/utils';
+import { LmEvalFormData } from '~/pages/lmEval/types';
+import { isFilledLmEvalFormData } from '~/pages/lmEval/utils';
 
 describe('isFilledLmEvaluationFormData', () => {
   it('should return true when all required fields are filled', () => {
-    const validData: LmEvaluationFormData = {
+    const validData: LmEvalFormData = {
       deployedModelName: 'test-model',
       evaluationName: 'test-evaluation',
       tasks: ['task1', 'task2'],
@@ -18,11 +18,11 @@ describe('isFilledLmEvaluationFormData', () => {
       },
     };
 
-    expect(isFilledLmEvaluationFormData(validData)).toBe(true);
+    expect(isFilledLmEvalFormData(validData)).toBe(true);
   });
 
   it('should return false when tasks array is empty', () => {
-    const invalidData: LmEvaluationFormData = {
+    const invalidData: LmEvalFormData = {
       deployedModelName: 'test-model',
       evaluationName: 'test-evaluation',
       tasks: [],
@@ -37,11 +37,11 @@ describe('isFilledLmEvaluationFormData', () => {
       },
     };
 
-    expect(isFilledLmEvaluationFormData(invalidData)).toBe(false);
+    expect(isFilledLmEvalFormData(invalidData)).toBe(false);
   });
 
   it('should return false when model name is empty', () => {
-    const invalidData: LmEvaluationFormData = {
+    const invalidData: LmEvalFormData = {
       deployedModelName: 'test-model',
       evaluationName: 'test-evaluation',
       tasks: ['task1'],
@@ -56,11 +56,11 @@ describe('isFilledLmEvaluationFormData', () => {
       },
     };
 
-    expect(isFilledLmEvaluationFormData(invalidData)).toBe(false);
+    expect(isFilledLmEvalFormData(invalidData)).toBe(false);
   });
 
   it('should return false when model url is empty', () => {
-    const invalidData: LmEvaluationFormData = {
+    const invalidData: LmEvalFormData = {
       deployedModelName: 'test-model',
       evaluationName: 'test-evaluation',
       tasks: ['task1'],
@@ -75,11 +75,11 @@ describe('isFilledLmEvaluationFormData', () => {
       },
     };
 
-    expect(isFilledLmEvaluationFormData(invalidData)).toBe(false);
+    expect(isFilledLmEvalFormData(invalidData)).toBe(false);
   });
 
   it('should return false when model tokenizer is empty', () => {
-    const invalidData: LmEvaluationFormData = {
+    const invalidData: LmEvalFormData = {
       deployedModelName: 'test-model',
       evaluationName: 'test-evaluation',
       tasks: ['task1'],
@@ -94,6 +94,6 @@ describe('isFilledLmEvaluationFormData', () => {
       },
     };
 
-    expect(isFilledLmEvaluationFormData(invalidData)).toBe(false);
+    expect(isFilledLmEvalFormData(invalidData)).toBe(false);
   });
 });

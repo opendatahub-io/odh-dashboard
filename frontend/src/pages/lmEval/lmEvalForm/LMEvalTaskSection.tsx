@@ -10,16 +10,16 @@ import {
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { MultiTypeaheadSelect, MultiTypeaheadSelectOption } from '@patternfly/react-templates';
 import * as React from 'react';
-import { lmEvaluationTasks } from './data';
+import { lmEvalTasks } from './data';
 
-type LmEvaluationTaskSectionProps = {
+type LmEvalTaskSectionProps = {
   tasks: string[];
   setTasks: (tasks: string[]) => void;
 };
 
-const LmEvaluationTaskSection: React.FC<LmEvaluationTaskSectionProps> = ({ tasks, setTasks }) => {
+const LmEvalTaskSection: React.FC<LmEvalTaskSectionProps> = ({ tasks, setTasks }) => {
   const initialOptions = React.useMemo<MultiTypeaheadSelectOption[]>(
-    () => lmEvaluationTasks.map((o) => ({ ...o, selected: tasks.includes(o.value) })),
+    () => lmEvalTasks.map((o) => ({ ...o, selected: tasks.includes(o.value) })),
     [tasks],
   );
   const taskHelperText =
@@ -65,4 +65,4 @@ const LmEvaluationTaskSection: React.FC<LmEvaluationTaskSectionProps> = ({ tasks
   );
 };
 
-export default LmEvaluationTaskSection;
+export default LmEvalTaskSection;

@@ -7,23 +7,23 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import { isFilledLmEvaluationFormData } from '~/pages/lmEvaluations/utils';
-import { LmEvaluationFormData } from '~/pages/lmEvaluations/types';
+import { isFilledLmEvalFormData } from '~/pages/lmEval/utils';
+import { LmEvalFormData } from '~/pages/lmEval/types';
 
-type LmEvaluationFormFooterProps = {
-  data: LmEvaluationFormData;
+type LMEvalFormFooterProps = {
+  data: LmEvalFormData;
 };
 
-const LmEvaluationFormFooter: React.FC<LmEvaluationFormFooterProps> = ({ data }) => {
+const LMEvalFormFooter: React.FC<LMEvalFormFooterProps> = ({ data }) => {
   const [error, setError] = React.useState<Error | null>(null);
   const [isSubmitting, setSubmitting] = React.useState(false);
-  const canSubmit = isFilledLmEvaluationFormData(data);
+  const canSubmit = isFilledLmEvalFormData(data);
 
   return (
     <Stack hasGutter>
       {error && (
         <StackItem>
-          <Alert isInline variant="danger" title="Error starting InstructLab run ">
+          <Alert isInline variant="danger" title="Error creating evaluation">
             {error.message}
           </Alert>
         </StackItem>
@@ -69,4 +69,4 @@ const LmEvaluationFormFooter: React.FC<LmEvaluationFormFooterProps> = ({ data })
     </Stack>
   );
 };
-export default LmEvaluationFormFooter;
+export default LMEvalFormFooter;

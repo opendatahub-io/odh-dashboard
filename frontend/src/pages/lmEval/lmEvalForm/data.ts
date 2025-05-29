@@ -1,4 +1,4 @@
-export const lmEvaluationTasks = [
+export const lmEvalTasks = [
   { value: '20_newsgroups', content: '20 Newsgroups' },
   { value: 'AraDiCE', content: 'AraDiCE' },
   { value: 'AraDiCE_ArabicMMLU_egy', content: 'AraDiCE Arabic MMLU (Egyptian)' },

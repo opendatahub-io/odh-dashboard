@@ -5,7 +5,7 @@ export type LmModelArgument = {
   tokenizer: string;
 };
 
-export type LmEvaluationFormData = {
+export type LmEvalFormData = {
   deployedModelName: string;
   evaluationName: string;
   tasks: string[];

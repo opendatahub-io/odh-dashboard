@@ -18,16 +18,17 @@ import {
   Truncate,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
-import { LmEvaluationFormData, LmModelArgument } from '~/pages/lmEvaluations/types';
-import LMEvaluationApplicationPage from '~/pages/lmEvaluations/components/LMEvaluationApplicationPage';
-import useLMGenericObjectState from '~/pages/lmEvaluations/utilities/useLMGenericObjectState';
-import LmEvaluationFormFooter from './LMEvaluationFormFooter';
-import LmEvaluationTaskSection from './LMEvaluationTaskSection';
-import LmEvaluationSecuritySection from './LMEvaluationSecuritySection';
-import LmModelArgumentSection from './LmModelArgumentSection';
+import { LmEvalFormData, LmModelArgument } from '~/pages/lmEval/types';
+import LMEvalApplicationPage from '~/pages/lmEval/components/LMEvalApplicationPage';
+import useLMGenericObjectState from '~/pages/lmEval/utilities/useLMGenericObjectState';
+import LmEvaluationFormFooter from './LMEvalFormFooter';
+import LmEvaluationTaskSection from './LMEvalTaskSection';
+import LmEvaluationSecuritySection from './LMEvalSecuritySection';
+import LmModelArgumentSection from './LMEvalModelArgumentSection';
+import { modelTypeOptions } from './const';
 
-const LmEvaluationForm: React.FC = () => {
-  const [data, setData] = useLMGenericObjectState<LmEvaluationFormData>({
+const LMEvalForm: React.FC = () => {
+  const [data, setData] = useLMGenericObjectState<LmEvalFormData>({
     deployedModelName: '',
     evaluationName: '',
     tasks: [],
@@ -42,26 +43,12 @@ const LmEvaluationForm: React.FC = () => {
     },
   });
   const [open, setOpen] = React.useState(false);
-  const modelTypeOptions = [
-    {
-      key: 'local-chat-completion',
-      label: 'Local chat completion',
-      description: 'This is a description',
-      endpoint: '/v1/chat/completions',
-    },
-    {
-      key: 'local-completion',
-      label: 'local-completion',
-      description: 'This is a description',
-      endpoint: '/v1/completions',
-    },
-  ];
 
   const findOptionForKey = (key: string) => modelTypeOptions.find((option) => option.key === key);
   const selectedOption = data.modelType ? findOptionForKey(data.modelType) : undefined;
   const selectedLabel = selectedOption?.label ?? 'Select type a model';
   return (
-    <LMEvaluationApplicationPage
+    <LMEvalApplicationPage
       loaded
       title="Evaluate model"
       description={
@@ -171,8 +158,8 @@ const LmEvaluationForm: React.FC = () => {
           </FormSection>
         </Form>
       </PageSection>
-    </LMEvaluationApplicationPage>
+    </LMEvalApplicationPage>
   );
 };
 
-export default LmEvaluationForm;
+export default LMEvalForm;

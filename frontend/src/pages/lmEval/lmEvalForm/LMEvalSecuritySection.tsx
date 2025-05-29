@@ -1,3 +1,4 @@
+import React from 'react';
 import {
   Button,
   Content,
@@ -10,53 +11,24 @@ import {
   Skeleton,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
-import React, { useEffect, useState } from 'react';
-import { getConfigMap } from '~/api';
-import { useLMDashboardNamespace } from '~/pages/lmEvaluations/utilities/useLMDashboardNamespace';
+import useTrustyAIConfigMap from './useTrustyAIConfigMap';
 
-type LmEvaluationSecuritySectionProps = {
+type LMEvalSecuritySectionProps = {
   allowRemoteCode: boolean;
   allowOnline: boolean;
   setAllowRemoteCode: (allowRemoteCode: boolean) => void;
   setAllowOnline: (allowOnline: boolean) => void;
 };
 
-const LmEvaluationSecuritySection: React.FC<LmEvaluationSecuritySectionProps> = ({
+const LMEvalSecuritySection: React.FC<LMEvalSecuritySectionProps> = ({
   allowRemoteCode,
   allowOnline,
   setAllowRemoteCode,
   setAllowOnline,
 }) => {
-  const [isOnlineDisabled, setIsOnlineDisabled] = useState(false);
-  const [isRemoteCodeDisabled, setIsRemoteCodeDisabled] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const { dashboardNamespace } = useLMDashboardNamespace();
-
-  useEffect(() => {
-    const fetchConfigMap = async () => {
-      try {
-        setIsLoading(true);
-        const configMap = await getConfigMap(
-          dashboardNamespace,
-          'trustyai-service-operator-config',
-        );
-        const isOnlineAllowed = configMap.data?.['lmes-allow-online'] === 'true';
-        const isRemoteCodeAllowed = configMap.data?.['lmes-allow-code-execution'] === 'true';
-        setIsRemoteCodeDisabled(!isRemoteCodeAllowed);
-        setIsOnlineDisabled(!isOnlineAllowed);
-        if (!isOnlineAllowed) {
-          setAllowOnline(false);
-        }
-      } catch (error) {
-        setAllowOnline(false);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchConfigMap();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const { data: trustyAIConfigMap, loaded: trustyAIConfigMapLoaded } = useTrustyAIConfigMap();
+  const isOnlineDisabled = !trustyAIConfigMap?.data?.['lmes-allow-online'];
+  const isRemoteCodeDisabled = !trustyAIConfigMap?.data?.['lmes-allow-code-execution'];
 
   return (
     <FormFieldGroupExpandable
@@ -96,7 +68,7 @@ const LmEvaluationSecuritySection: React.FC<LmEvaluationSecuritySectionProps> = 
             </Popover>
           }
         >
-          {!isLoading ? (
+          {trustyAIConfigMapLoaded ? (
             <>
               <Radio
                 name="allow-online-true-radio"
@@ -104,7 +76,7 @@ const LmEvaluationSecuritySection: React.FC<LmEvaluationSecuritySectionProps> = 
                 label="True"
                 isChecked={allowOnline}
                 onChange={() => setAllowOnline(true)}
-                isDisabled={isOnlineDisabled}
+                isDisabled={!!isOnlineDisabled}
               />
               <Radio
                 name="allow-online-false-radio"
@@ -137,7 +109,7 @@ const LmEvaluationSecuritySection: React.FC<LmEvaluationSecuritySectionProps> = 
             </Popover>
           }
         >
-          {!isLoading ? (
+          {trustyAIConfigMapLoaded ? (
             <>
               <Radio
                 name="trust-remote-code-true-radio"
@@ -165,4 +137,4 @@ const LmEvaluationSecuritySection: React.FC<LmEvaluationSecuritySectionProps> = 
   );
 };
 
-export default LmEvaluationSecuritySection;
+export default LMEvalSecuritySection;
