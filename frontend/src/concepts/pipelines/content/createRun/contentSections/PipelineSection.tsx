@@ -104,12 +104,14 @@ const PipelineSection: React.FC<PipelineSectionProps> = ({
             </StackItem>
             <StackItem>
               <ImportPipelineVersionButton
+                data-testid="import-pipeline-version-button"
                 selectedPipeline={pipeline}
                 variant="link"
                 icon={<PlusCircleIcon />}
                 onCreate={(value) => {
                   onVersionChange({ value, versionToUse: PipelineVersionToUse.PROVIDED });
                 }}
+                redirectAfterImport={false}
               />
             </StackItem>
           </Stack>

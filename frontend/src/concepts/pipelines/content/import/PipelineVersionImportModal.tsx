@@ -16,12 +16,15 @@ import PipelineImportBase from './PipelineImportBase';
 type PipelineVersionImportModalProps = {
   existingPipeline?: PipelineKF | null;
   onClose: (pipelineVersion?: PipelineVersionKF, pipeline?: PipelineKF | null) => void;
+  redirectAfterImport?: boolean;
 };
 
 const eventName = 'Pipeline Version Updated';
+
 const PipelineVersionImportModal: React.FC<PipelineVersionImportModalProps> = ({
   existingPipeline,
   onClose,
+  redirectAfterImport = true,
 }) => {
   const { api, namespace } = usePipelinesAPI();
   const navigate = useNavigate();
@@ -35,14 +38,20 @@ const PipelineVersionImportModal: React.FC<PipelineVersionImportModalProps> = ({
 
       if (result && 'pipeline_version_id' in result && pipeline) {
         onClose(result, pipeline);
-        navigate(
-          pipelineVersionDetailsRoute(namespace, pipeline.pipeline_id, result.pipeline_version_id),
-        );
+        if (redirectAfterImport) {
+          navigate(
+            pipelineVersionDetailsRoute(
+              namespace,
+              pipeline.pipeline_id,
+              result.pipeline_version_id,
+            ),
+          );
+        }
       } else {
         onClose();
       }
     },
-    [namespace, navigate, onClose],
+    [namespace, navigate, onClose, redirectAfterImport],
   );
 
   const checkForDuplicateName = React.useCallback(
