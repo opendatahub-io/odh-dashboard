@@ -221,13 +221,29 @@ function markSuiteAsSkipped(suite: Mocha.Suite) {
 
 // Print Cypress 'step', 'exec' and 'log' commands to terminal
 let stepCounter: number;
+let commandStack: string[] = [];
+
 beforeEach(() => {
   stepCounter = 0;
+  commandStack = [];
 });
+
+Cypress.on('command:start', (command) => {
+  commandStack.push(command.name);
+});
+
+Cypress.on('command:end', () => {
+  commandStack.pop();
+});
+
 Cypress.on('command:enqueued', (command) => {
   if (command.name === 'step') {
-    stepCounter++;
-    cy.task('log', `[STEP ${stepCounter}] ${command.args[0]}`);
+    if (commandStack.length === 0) {
+      stepCounter++;
+      cy.task('log', `[STEP ${stepCounter}] ${command.args[0]}`);
+    } else {
+      cy.task('log', `${command.args[0]}`);
+    }
   } else if (command.name === 'exec') {
     cy.task('log', `[EXEC] ${command.args[0]}`);
   } else if (command.name === 'log') {
@@ -378,3 +394,28 @@ after(() => {
     }
   });
 });
+
+// Prevent after() calls for skipped tests to avoid unnecessary tests teardown
+const origAfter = (window as Window & typeof globalThis).after;
+(window as Window & typeof globalThis).after = function afterOverride(
+  this: Mocha.Context,
+  nameOrFn: string | Mocha.Func,
+  fn?: Mocha.Func,
+): void {
+  // Skip if context is invalid or test should be skipped
+  if (
+    !(this as unknown) ||
+    (Cypress.env('grepTags') &&
+      this.currentTest &&
+      shouldSkipTest(Cypress.testTags[this.currentTest.title] ?? []))
+  ) {
+    return;
+  }
+
+  // Call original after hook
+  return (origAfter as Mocha.HookFunction).call(
+    this,
+    nameOrFn as string,
+    fn as Mocha.AsyncFunc | undefined,
+  );
+};
