@@ -126,37 +126,37 @@ module.exports = {
         ],
         patterns: [
           {
-            group: ['~/api/**'],
-            message: "Import from '~/api' instead.",
+            group: ['#~/api/**'],
+            message: "Import from '#~/api' instead.",
           },
           {
-            group: ['~/components/table/**', '!~/components/table/useTableColumnSort'],
-            message: "Import from '~/components/table' instead.",
+            group: ['#~/components/table/**', '!~/components/table/useTableColumnSort'],
+            message: "Import from '#~/components/table' instead.",
           },
           {
-            group: ['~/concepts/area/**'],
-            message: "Import from '~/concepts/area' instead.",
+            group: ['#~/concepts/area/**'],
+            message: "Import from '#~/concepts/area' instead.",
           },
           {
-            group: ['~/components/table/useTableColumnSort'],
+            group: ['#~/components/table/useTableColumnSort'],
             message:
-              "The data will be sorted in the table, don't use this hook outside of '~/components/table' repo. For more information, please check the props of the Table component.",
+              "The data will be sorted in the table, don't use this hook outside of '#~/components/table' repo. For more information, please check the props of the Table component.",
           },
           {
-            group: ['~/__mocks__/third_party/mlmd', '~/__mocks__/third_party/mlmd/*'],
+            group: ['#~/__mocks__/third_party/mlmd', '#~/__mocks__/third_party/mlmd/*'],
             message:
-              "Importing from '~/__mocks__/third_party/mlmd/' is restricted to '~/__mocks__/mlmd/'.",
+              "Importing from '#~/__mocks__/third_party/mlmd/' is restricted to '#~/__mocks__/mlmd/'.",
           },
           {
             group: ['@patternfly/react-core'],
             importNames: ['Select'],
             message:
-              "Import 'SimpleSelect', 'MultiSelection' or 'TypeaheadSelect' from '~/components' instead.",
+              "Import 'SimpleSelect', 'MultiSelection' or 'TypeaheadSelect' from '#~/components' instead.",
           },
           {
             group: ['@patternfly/react-core'],
             importNames: ['NumberInput'],
-            message: "Import 'NumberInputWrapper' from '~/components' instead.",
+            message: "Import 'NumberInputWrapper' from '#~/components' instead.",
           },
         ],
       },
@@ -299,7 +299,7 @@ module.exports = {
         'no-restricted-imports': [
           'off',
           {
-            patterns: ['~/api/**'],
+            patterns: ['#~/api/**'],
           },
         ],
       },
@@ -435,7 +435,7 @@ module.exports = {
           {
             selector: "ImportDeclaration[importKind!='type']",
             message:
-              "Must use 'import type' when importing. Use dynamic imports for code references (eg. `() => import('~/Test')`).",
+              "Must use 'import type' when importing. Use dynamic imports for code references (eg. `() => import('#~/Test')`).",
           },
         ],
       },

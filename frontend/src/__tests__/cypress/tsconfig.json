@@ -5,8 +5,7 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "cypress/*": ["../../../node_modules/cypress/*"],
-      "~/*": ["../../*"]
+      "cypress/*": ["../../../node_modules/cypress/*"]
     },
     "moduleResolution": "bundler",
     "types": ["node", "cypress", "@testing-library/cypress", "cypress-axe", "cypress-plugin-steps", "@cypress/grep"]
