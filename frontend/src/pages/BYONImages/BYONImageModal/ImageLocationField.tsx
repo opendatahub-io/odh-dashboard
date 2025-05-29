@@ -5,6 +5,8 @@ import {
   HelperText,
   HelperTextItem,
   Popover,
+  Stack,
+  StackItem,
   TextInput,
 } from '@patternfly/react-core';
 import { HelpIcon } from '@patternfly/react-icons';
@@ -27,14 +29,19 @@ const ImageLocationField: React.FC<ImageLocationFieldProps> = ({
     labelHelp={
       <Popover
         aria-label="Image location help popover"
-        headerContent="Location examples"
         hasAutoWidth
         bodyContent={
-          <>
-            <p>quay.io/my-repo/my-image:tag</p>
-            <p>quay.io/my-repo/my-image@sha256:xxxxxxxxxxxxx</p>
-            <p>docker.io/my-repo/my-image:tag</p>
-          </>
+          <Stack hasGutter>
+            <StackItem>
+              <p>The image location is the URL where the workbench image is hosted or stored.</p>
+              <p>This should be a valid web address such as:</p>
+            </StackItem>
+            <StackItem>
+              <p>quay.io/my-repo/my-image:tag</p>
+              <p>quay.io/my-repo/my-image@sha256:xxxxxxxxxxxxx</p>
+              <p>docker.io/my-repo/my-image:tag</p>
+            </StackItem>
+          </Stack>
         }
       >
         <HelpIcon />
@@ -54,13 +61,13 @@ const ImageLocationField: React.FC<ImageLocationFieldProps> = ({
       }}
       isDisabled={isDisabled}
     />
-    <FormHelperText>
-      <HelperText>
-        <HelperTextItem>
-          The address where the workbench image is located. See the help icon for examples.
-        </HelperTextItem>
-      </HelperText>
-    </FormHelperText>
+    {/* <FormHelperText> */}
+    {/*   <HelperText> */}
+    {/*     <HelperTextItem> */}
+    {/*       The address where the workbench image is located. See the help icon for examples. */}
+    {/*     </HelperTextItem> */}
+    {/*   </HelperText> */}
+    {/* </FormHelperText> */}
   </FormGroup>
 );
 
