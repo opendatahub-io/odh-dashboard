@@ -97,6 +97,7 @@ describe('Verify Admin Single Model Creation and Validation using the UI', () =>
       inferenceServiceModal.findTokenAuthenticationCheckbox().should('not.be.checked');
       inferenceServiceModal.findLocationPathInput().type(modelFilePath);
       inferenceServiceModal.findSubmitButton().click();
+      inferenceServiceModal.shouldBeOpen(false);
       modelServingSection.findModelServerName(testData.singleModelAdminName);
 
       //Verify the model created
