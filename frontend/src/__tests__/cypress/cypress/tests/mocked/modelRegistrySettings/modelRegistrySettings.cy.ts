@@ -5,7 +5,7 @@ import {
   mockK8sResourceList,
 } from '~/__mocks__';
 import { mockDsciStatus } from '~/__mocks__/mockDsciStatus';
-import { StackCapability, StackComponent } from '~/concepts/areas/types';
+import { StackComponent } from '~/concepts/areas/types';
 import {
   FormFieldSelector,
   modelRegistrySettings,
@@ -63,12 +63,7 @@ const setupMocksForMRSettingAccess = ({
       },
     }),
   );
-  cy.interceptOdh(
-    'GET /api/dsci/status',
-    mockDsciStatus({
-      requiredCapabilities: [StackCapability.SERVICE_MESH, StackCapability.SERVICE_MESH_AUTHZ],
-    }),
-  );
+  cy.interceptOdh('GET /api/dsci/status', mockDsciStatus({}));
   cy.interceptOdh('POST /api/modelRegistries', mockModelRegistry({})).as('createModelRegistry');
   cy.interceptOdh(
     'GET /api/modelRegistries',

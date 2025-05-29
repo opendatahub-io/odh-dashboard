@@ -41,12 +41,7 @@ export const mockModelRegistry = ({
     spec: {
       grpc: {},
       rest: {},
-      istio: {
-        gateway: {
-          grpc: { tls: {} },
-          rest: { tls: {} },
-        },
-      },
+      oauthProxy: {},
       mysql: {
         database: 'model-registry',
         host: 'model-registry-db',

@@ -1446,16 +1446,7 @@ export type ModelRegistryKind = K8sResourceCommon & {
   spec: {
     grpc: Record<string, never>; // Empty object at create time, properties here aren't used by the UI
     rest: Record<string, never>; // Empty object at create time, properties here aren't used by the UI
-    istio: {
-      gateway: {
-        grpc: {
-          tls: Record<string, never>; // Empty object at create time, properties here aren't used by the UI
-        };
-        rest: {
-          tls: Record<string, never>; // Empty object at create time, properties here aren't used by the UI
-        };
-      };
-    };
+    oauthProxy: Record<string, never>; // Empty object at create time, properties here aren't used by the UI
   } & EitherNotBoth<
     {
       mysql?: {
