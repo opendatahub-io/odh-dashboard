@@ -70,6 +70,7 @@ const extensions: NavExtension[] = [
     type: 'app.navigation/href',
     flags: {
       required: [SupportedArea.MODEL_SERVING],
+      disallowed: [SupportedArea.PLUGIN_MODEL_SERVING],
     },
     properties: {
       id: 'modelServing',

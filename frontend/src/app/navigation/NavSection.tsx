@@ -14,6 +14,8 @@ import { useExtensions } from '@odh-dashboard/plugin-core';
 import { useAccessReviewExtensions } from '@odh-dashboard/internal/utilities/useAccessReviewExtensions';
 import { StatusReportIcon } from '~/app/status-provider/StatusReportIcon';
 import { getStatusReportSummary } from '~/app/status-provider/utils';
+import { SupportedArea } from '~/concepts/areas/types';
+import { useIsAreaAvailable } from '~/concepts/areas';
 import { NavItem } from './NavItem';
 import { NavItemTitle } from './NavItemTitle';
 import { compareNavItemGroups } from './utils';
@@ -23,21 +25,34 @@ type Props = {
 };
 
 const filterNavExtensions = (
-  extensions: LoadedExtension<NavExtension>[],
+  allExtensions: LoadedExtension<NavExtension>[],
   sectionId: string,
+  activeAreas: SupportedArea[],
 ): LoadedExtension<NavExtension>[] => {
   const idMap = new Map<string, LoadedExtension<NavExtension>>();
 
-  extensions
+  allExtensions
     .filter(
       (extension) =>
         !isNavSectionExtension(extension) && sectionId === extension.properties.section,
     )
-    .forEach((extension) => {
-      if (isHrefNavItemExtension(extension)) {
-        const currentExtension = idMap.get(extension.properties.id);
-        if (!currentExtension) {
-          idMap.set(extension.properties.id, extension);
+    .forEach((extensionToAdd) => {
+      if (isHrefNavItemExtension(extensionToAdd)) {
+        let isDisallowed = false;
+        if (extensionToAdd.flags?.disallowed) {
+          isDisallowed = extensionToAdd.flags.disallowed.some((disallowedFlag) =>
+            activeAreas.some((activeArea) => activeArea === disallowedFlag),
+          );
+        }
+
+        if (isDisallowed) {
+          return;
+        }
+
+        const currentExtensionInMap = idMap.get(extensionToAdd.properties.id);
+
+        if (!currentExtensionInMap) {
+          idMap.set(extensionToAdd.properties.id, extensionToAdd);
         }
       }
     });
@@ -52,9 +67,22 @@ export const NavSection: React.FC<Props> = ({
 }) => {
   const [status, setStatus] = React.useState<Record<string, StatusReport | undefined>>({});
   const { pathname } = useLocation();
-  const extensions = useExtensions(isNavExtension);
+  const allExtensions = useExtensions(isNavExtension);
 
-  const navExtensions = React.useMemo(() => filterNavExtensions(extensions, id), [id, extensions]);
+  const pluginModelServingEnabled = useIsAreaAvailable(SupportedArea.PLUGIN_MODEL_SERVING).status;
+
+  const enabledAreas = React.useMemo(() => {
+    const areas: SupportedArea[] = [];
+    if (pluginModelServingEnabled) {
+      areas.push(SupportedArea.PLUGIN_MODEL_SERVING);
+    }
+    return areas;
+  }, [pluginModelServingEnabled]);
+
+  const navExtensions = React.useMemo(
+    () => filterNavExtensions(allExtensions, id, enabledAreas),
+    [id, allExtensions, enabledAreas],
+  );
 
   const [accessReviewExtensions, isAccessReviewExtensionsLoaded] = useAccessReviewExtensions(
     navExtensions,

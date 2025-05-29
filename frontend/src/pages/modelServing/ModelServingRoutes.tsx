@@ -9,12 +9,10 @@ import GlobalModelMetricsPage from './screens/metrics/GlobalModelMetricsPage';
 import GlobalModelMetricsWrapper from './screens/metrics/GlobalModelMetricsWrapper';
 import ModelServingGlobal from './screens/global/ModelServingGlobal';
 import useModelMetricsEnabled from './useModelMetricsEnabled';
-import GlobalModelsPage from '../../../packages/modelServing/src/ModelServingGlobalPlugin';
 
 const ModelServingRoutes: React.FC = () => {
   const [modelMetricsEnabled] = useModelMetricsEnabled();
   const biasMetricsAreaAvailable = useIsAreaAvailable(SupportedArea.BIAS_METRICS).status;
-  const isPluginModelServingEnabled = useIsAreaAvailable(SupportedArea.PLUGIN_MODEL_SERVING).status;
 
   return (
     <ProjectsRoutes>
@@ -26,10 +24,7 @@ const ModelServingRoutes: React.FC = () => {
           />
         }
       >
-        <Route
-          index
-          element={isPluginModelServingEnabled ? <GlobalModelsPage /> : <ModelServingGlobal />}
-        />
+        <Route index element={<ModelServingGlobal />} />
         {modelMetricsEnabled && (
           <Route path="metrics" element={<ModelServingExplainabilityWrapper />}>
             <Route index element={<Navigate to=".." />} />
