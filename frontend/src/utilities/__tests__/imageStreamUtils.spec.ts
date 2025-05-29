@@ -75,6 +75,22 @@ describe('imageStreamUtils', () => {
     expect(result.display_name).toBe('User Display');
   });
 
+  it('uses metdata name when display annotations are missing', () => {
+    const image = mockImageStreamK8sResource({
+      opts: {
+        metadata: {
+          name: 'user-display',
+        },
+      },
+    });
+    if (image.metadata.annotations) {
+      delete image.metadata.annotations[ImageStreamAnnotation.DISP_NAME];
+      delete image.metadata.annotations[DisplayNameAnnotation.DISP_NAME];
+    }
+    const result = mapImageStreamToBYONImage(image);
+    expect(result.display_name).toBe('user-display');
+  });
+
   it('visible field is set to false when notebook-image label is set to false', () => {
     const image = mockImageStreamK8sResource({
       opts: {
