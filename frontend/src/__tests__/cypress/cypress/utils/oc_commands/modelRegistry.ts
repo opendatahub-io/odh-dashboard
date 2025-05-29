@@ -60,9 +60,11 @@ export const checkModelRegistryAvailable = (registryName: string): Cypress.Chain
 /**
  * Create a model registry using YAML fixtures
  * @param registryName Name of the model registry to create
- * @returns Cypress.Chainable<void>
+ * @returns Cypress.Chainable<CommandLineResult>
  */
-export const createModelRegistryViaYAML = (registryName: string): Cypress.Chainable<void> => {
+export const createModelRegistryViaYAML = (
+  registryName: string,
+): Cypress.Chainable<CommandLineResult> => {
   const targetNamespace = getModelRegistryNamespace();
 
   const registryReplacements = {
@@ -83,25 +85,23 @@ export const createModelRegistryViaYAML = (registryName: string): Cypress.Chaina
       );
       return applyOpenShiftYaml(modifiedRegistryYaml);
     })
-    .then(() => {
-      cy.log(`Model registry ${registryName} created successfully in namespace ${targetNamespace}`);
+    .then((result: CommandLineResult) => {
+      return result;
     });
 };
 
 /**
  * Delete a model registry
  * @param registryName Name of the model registry to delete
- * @returns Cypress.Chainable<void>
+ * @returns Cypress.Chainable<CommandLineResult>
  */
-export const deleteModelRegistry = (registryName: string): Cypress.Chainable<void> => {
+export const deleteModelRegistry = (registryName: string): Cypress.Chainable<CommandLineResult> => {
   const targetNamespace = getModelRegistryNamespace();
   const registryCommand = `oc delete modelregistry.modelregistry.opendatahub.io ${registryName} -n ${targetNamespace}`;
 
   cy.log(`Deleting model registry ${registryName} from namespace ${targetNamespace}`);
 
-  return cy.exec(registryCommand, { failOnNonZeroExit: false }).then(() => {
-    cy.log(`Model registry ${registryName} deleted from namespace ${targetNamespace}`);
-  });
+  return cy.exec(registryCommand, { failOnNonZeroExit: false });
 };
 
 /**
@@ -117,38 +117,38 @@ export const cleanupRegisteredModelsFromDatabase = (
   // Find MySQL pod
   const findPodCommand = `oc get pods -n ${targetNamespace} -o name | grep model-registry-db | head -1 | cut -d'/' -f2`;
 
-  return cy
-    .exec(findPodCommand, { failOnNonZeroExit: false })
-    .then((podResult: CommandLineResult) => {
-      if (podResult.code !== 0 || !podResult.stdout.trim()) {
-        cy.log('No MySQL pod found, skipping database cleanup');
-        return;
-      }
+  cy.exec(findPodCommand, { failOnNonZeroExit: false }).then((podResult: CommandLineResult) => {
+    if (podResult.code !== 0 || !podResult.stdout.trim()) {
+      cy.log('No MySQL pod found, skipping database cleanup');
+      return cy.wrap(undefined);
+    }
 
-      const podName = podResult.stdout.trim();
+    const podName = podResult.stdout.trim();
 
-      // SQL commands to clean up contexts for the specified registeredmodels
-      const modelNamesStr = modelNames.map((name) => `'${name}'`).join(', ');
-      const sqlCommands = [
-        `DELETE cp FROM ContextProperty cp JOIN Context c ON cp.context_id = c.id WHERE c.name IN (${modelNamesStr});`,
-        `DELETE pc FROM ParentContext pc JOIN Context c ON pc.context_id = c.id OR pc.parent_context_id = c.id WHERE c.name IN (${modelNamesStr});`,
-        `DELETE a FROM Association a JOIN Context c ON a.context_id = c.id WHERE c.name IN (${modelNamesStr});`,
-        `DELETE at FROM Attribution at JOIN Context c ON at.context_id = c.id WHERE c.name IN (${modelNamesStr});`,
-        `DELETE FROM Context WHERE name IN (${modelNamesStr});`,
-      ].join(' ');
+    // SQL commands to clean up contexts for the specified registeredmodels
+    const modelNamesStr = modelNames.map((name) => `'${name}'`).join(', ');
+    const sqlCommands = [
+      `DELETE cp FROM ContextProperty cp JOIN Context c ON cp.context_id = c.id WHERE c.name IN (${modelNamesStr});`,
+      `DELETE pc FROM ParentContext pc JOIN Context c ON pc.context_id = c.id OR pc.parent_context_id = c.id WHERE c.name IN (${modelNamesStr});`,
+      `DELETE a FROM Association a JOIN Context c ON a.context_id = c.id WHERE c.name IN (${modelNamesStr});`,
+      `DELETE at FROM Attribution at JOIN Context c ON at.context_id = c.id WHERE c.name IN (${modelNamesStr});`,
+      `DELETE FROM Context WHERE name IN (${modelNamesStr});`,
+    ].join(' ');
 
-      const cleanupCommand = `oc exec ${podName} -n ${targetNamespace} -- mysql -u mlmduser -pTheBlurstOfTimes model_registry -e "${sqlCommands}"`;
+    const cleanupCommand = `oc exec ${podName} -n ${targetNamespace} -- mysql -u mlmduser -pTheBlurstOfTimes model_registry -e "${sqlCommands}"`;
 
-      cy.log(`Cleaning up registered models: ${modelNames.join(', ')}`);
+    cy.log(`Cleaning up registered models: ${modelNames.join(', ')}`);
 
-      return cy
-        .exec(cleanupCommand, { failOnNonZeroExit: false })
-        .then((cleanupResult: CommandLineResult) => {
-          if (cleanupResult.code === 0) {
-            cy.log('Database cleanup completed successfully');
-          } else {
-            cy.log(`Database cleanup failed: ${cleanupResult.stderr}`);
-          }
-        });
-    });
+    cy.exec(cleanupCommand, { failOnNonZeroExit: false }).then(
+      (cleanupResult: CommandLineResult) => {
+        if (cleanupResult.code === 0) {
+          cy.log('Database cleanup completed successfully');
+        } else {
+          cy.log(`Database cleanup failed: ${cleanupResult.stderr}`);
+        }
+      },
+    );
+  });
+
+  return cy.wrap(undefined);
 };
