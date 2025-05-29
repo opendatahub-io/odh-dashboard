@@ -23,7 +23,6 @@ import { ROOT_MOUNT_PATH } from '#~/pages/projects/pvc/const';
 import { getTolerationPatch, TolerationChanges } from '#~/utilities/tolerations';
 import { applyK8sAPIOptions } from '#~/api/apiMergeUtils';
 import {
-  createElyraServiceAccountRoleBinding,
   ELYRA_VOLUME_NAME,
   getElyraVolume,
   getElyraVolumeMount,
@@ -255,7 +254,6 @@ export const startNotebook = async (
   if (enablePipelines) {
     patches.push(getPipelineVolumePatch());
     patches.push(getPipelineVolumeMountPatch());
-    await createElyraServiceAccountRoleBinding(notebook);
   }
 
   return k8sPatchResource<NotebookKind>({
@@ -284,13 +282,7 @@ export const createNotebook = (
       ),
     )
       .then((fetchedNotebook) => {
-        if (canEnablePipelines) {
-          createElyraServiceAccountRoleBinding(fetchedNotebook, opts)
-            .then(() => resolve(fetchedNotebook))
-            .catch(reject);
-        } else {
-          resolve(fetchedNotebook);
-        }
+        resolve(fetchedNotebook);
       })
       .catch(reject);
   });
