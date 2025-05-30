@@ -4,17 +4,18 @@ import { useNavigate } from 'react-router';
 import { ProjectKind } from '~/k8sTypes';
 import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
 import { ProjectIconWithSize } from '~/concepts/projects/ProjectIconWithSize';
+import { FontSize, IconSize } from '~/types';
 
 type ProjectNavigatorLinkProps = {
   project?: ProjectKind;
-  fontSize?: 'default' | 'sm' | 'lg';
-  iconSize?: 'sm' | 'md' | 'lg';
+  fontSize?: FontSize;
+  iconSize?: IconSize;
 };
 
 const ProjectNavigatorLink: React.FC<ProjectNavigatorLinkProps> = ({
   project,
-  iconSize = 'lg',
-  fontSize = 'default',
+  iconSize = IconSize.LG,
+  fontSize = FontSize.DEFAULT,
 }) => {
   const navigate = useNavigate();
 

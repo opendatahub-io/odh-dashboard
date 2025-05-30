@@ -2,6 +2,7 @@ import { Divider, Flex } from '@patternfly/react-core';
 import React from 'react';
 import ProjectNavigatorLink from '~/concepts/projects/ProjectNavigatorLink';
 import { ProjectKind } from '~/k8sTypes';
+import { FontSize, IconSize } from '~/types';
 
 type ComponentWithProjectLinkProps = {
   children: React.ReactNode;
@@ -20,7 +21,7 @@ const ComponentWithProjectLink: React.FC<ComponentWithProjectLinkProps> = ({
       }}
       style={{ height: '1rem', alignSelf: 'center', marginRight: 0 }}
     />
-    <ProjectNavigatorLink project={project} iconSize="md" fontSize="sm" />
+    <ProjectNavigatorLink project={project} iconSize={IconSize.MD} fontSize={FontSize.SM} />
   </Flex>
 );
 

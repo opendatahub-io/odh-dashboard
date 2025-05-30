@@ -755,3 +755,17 @@ export enum OdhPlatformType {
 } // Reference: https://github.com/red-hat-data-services/rhods-operator/blob/main/pkg/cluster/const.go
 
 export type TypedPromiseRejectedResult<R> = Omit<PromiseRejectedResult, 'reason'> & { reason: R };
+
+export enum IconSize {
+  SM = 'sm',
+  MD = 'md',
+  LG = 'lg',
+  XL = 'xl',
+  XXL = 'xxl',
+}
+
+export enum FontSize {
+  DEFAULT = 'default',
+  SM = 'sm',
+  LG = 'lg',
+}
