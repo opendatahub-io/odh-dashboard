@@ -262,7 +262,9 @@ describe('Experiments', () => {
 
     it('navigates to the runs page when clicking an experiment name', () => {
       verifyRelativeURL(`/experiments/${projectName}/${mockExperiment.experiment_id}/runs`);
-      cy.findByLabelText('Breadcrumb').findByText(`Experiments - ${projectName}`);
+      cy.findByLabelText('Breadcrumb').findByRole('link', {
+        name: `Experiments in ${projectName}`,
+      });
     });
 
     it('has "Experiment" value pre-filled when on the "Create run" page', () => {
@@ -307,8 +309,11 @@ describe('Experiments', () => {
 
     it('navigates back to experiments from "Create run" page breadcrumb', () => {
       pipelineRunsGlobal.findCreateRunButton().click();
-      cy.findByLabelText('Breadcrumb').findByText(`Experiments - ${projectName}`).click();
+      cy.findByLabelText('Breadcrumb')
+        .findByRole('link', { name: `Experiments in ${projectName}` })
+        .click();
       verifyRelativeURL(`/experiments/${projectName}`);
+      pipelineRunsGlobal.findProjectNavigatorLink().should('exist');
     });
 
     it('navigates back to experiment runs page from "Create run" page breadcrumb', () => {
@@ -371,7 +376,7 @@ describe('Runs page for archived experiment', () => {
     verifyRelativeURL(
       `/experiments/${projectName}/${mockArchivedExperiment.experiment_id}/runs/archived`,
     );
-    cy.findByLabelText('Breadcrumb').findByText(`Experiments - ${projectName}`);
+    cy.findByLabelText('Breadcrumb').findByRole('link', { name: `Experiments in ${projectName}` });
   });
 
   it('has empty state on active runs tab', () => {

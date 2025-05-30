@@ -102,6 +102,10 @@ class ArtifactDetails {
     cy.testA11y();
   }
 
+  findProjectNavigatorLink() {
+    return cy.findByTestId('project-navigator-link');
+  }
+
   shouldFailToLoadRun() {
     cy.findByTestId('error-icon').should('exist');
     return this;
