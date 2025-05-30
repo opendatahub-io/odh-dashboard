@@ -6,7 +6,7 @@ import {
   InProgressIcon,
   OutlinedQuestionCircleIcon,
 } from '@patternfly/react-icons';
-import { InferenceServiceModelState } from '~/pages/modelServing/screens/types';
+import { InferenceServiceModelState } from '#~/pages/modelServing/screens/types';
 
 type ModelStatusIconProps = {
   state: InferenceServiceModelState;
