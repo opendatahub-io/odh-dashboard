@@ -340,6 +340,8 @@ const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps
                   </ProjectScopedGroupLabel>
                 }
                 dataTestId="accelerator-profile-selection"
+                projectGroupTestId="project-scoped-accelerator-profiles"
+                globalGroupTestId="global-scoped-accelerator-profiles"
                 isFullWidth
                 extraMenuItems={extraMenuItems}
               />

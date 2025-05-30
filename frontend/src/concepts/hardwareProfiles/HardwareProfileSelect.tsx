@@ -282,6 +282,8 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
                   </ProjectScopedGroupLabel>
                 }
                 dataTestId="hardware-profile-selection"
+                projectGroupTestId="project-scoped-hardware-profiles"
+                globalGroupTestId="global-scoped-hardware-profiles"
                 isFullWidth
               />
               {previewDescription &&

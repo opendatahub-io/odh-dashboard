@@ -21,6 +21,8 @@ export type ProjectScopedSearchDropdownProps<T> = {
   projectGroupLabel?: React.ReactNode;
   globalGroupLabel?: React.ReactNode;
   dataTestId?: string;
+  projectGroupTestId?: string;
+  globalGroupTestId?: string;
   isFullWidth?: boolean;
   isDisabled?: boolean;
   minWidth?: string;
@@ -117,6 +119,8 @@ function ProjectScopedSearchDropdown<T>({
   projectGroupLabel,
   globalGroupLabel,
   dataTestId = 'project-scoped-search-dropdown',
+  projectGroupTestId,
+  globalGroupTestId,
   isFullWidth,
   isDisabled,
   minWidth,
@@ -141,6 +145,7 @@ function ProjectScopedSearchDropdown<T>({
                 <ProjectScopedGroupLabel isProject>Project-scoped</ProjectScopedGroupLabel>
               )
             }
+            data-testid={projectGroupTestId}
           >
             {projectScopedItems.map((item, idx) => renderMenuItem(item, idx, 'project'))}
           </MenuGroup>
@@ -155,6 +160,7 @@ function ProjectScopedSearchDropdown<T>({
                 <ProjectScopedGroupLabel isProject={false}>Global-scoped</ProjectScopedGroupLabel>
               )
             }
+            data-testid={globalGroupTestId}
           >
             {globalScopedItems.map((item, idx) => renderMenuItem(item, idx, 'global'))}
           </MenuGroup>
