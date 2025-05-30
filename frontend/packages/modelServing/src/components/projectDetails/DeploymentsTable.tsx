@@ -1,10 +1,10 @@
 import React from 'react';
 import { Spinner, Bullseye } from '@patternfly/react-core';
 import { SortableData, Table } from '@odh-dashboard/internal/components/table/index';
-import { DeploymentRow } from './DeploymentsTableRow';
-import { deploymentNameSort } from '../../concepts/deploymentUtils';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
+import { DeploymentRow } from './DeploymentsTableRow';
+import { deploymentNameSort } from '../../concepts/deploymentUtils';
 import { useResolvedPlatformExtension } from '../../concepts/extensionUtils';
 import { ModelServingPlatform } from '../../concepts/modelServingPlatforms';
 import { Deployment, isModelServingDeploymentsTableExtension } from '../../../extension-points';
@@ -39,40 +39,6 @@ const genericColumns: SortableData<Deployment>[] = [
     sortable: false,
   },
 ];
-
-const DeploymentRow: React.FC<{
-  deployment: Deployment;
-  platformColumns: DeploymentsTableColumn[];
-  onDelete: (deployment: Deployment) => void;
-}> = ({ deployment, platformColumns, onDelete }) => (
-  <ResourceTr resource={deployment.model}>
-    <Td dataLabel="Name">
-      <TableRowTitleDescription
-        title={deployment.model.metadata?.name}
-        resource={deployment.model}
-      />
-    </Td>
-    {platformColumns.map((column) => (
-      <Td key={column.field} dataLabel={column.label}>
-        {column.cellRenderer(deployment, column.field)}
-      </Td>
-    ))}
-    <Td dataLabel="Inference endpoint">-</Td>
-    <Td dataLabel="Status">-</Td>
-    <Td isActionCell>
-      <ActionsColumn
-        items={[
-          {
-            title: 'Delete',
-            onClick: () => {
-              onDelete(deployment);
-            },
-          },
-        ]}
-      />
-    </Td>
-  </ResourceTr>
-);
 
 const DeploymentsTable: React.FC<{
   modelServingPlatform: ModelServingPlatform;

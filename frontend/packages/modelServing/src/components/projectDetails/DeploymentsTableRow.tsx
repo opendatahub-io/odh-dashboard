@@ -9,7 +9,8 @@ import { Deployment, DeploymentsTableColumn } from '../../../extension-points';
 export const DeploymentRow: React.FC<{
   deployment: Deployment;
   platformColumns: DeploymentsTableColumn[];
-}> = ({ deployment, platformColumns }) => (
+  onDelete: (deployment: Deployment) => void;
+}> = ({ deployment, platformColumns, onDelete }) => (
   <ResourceTr resource={deployment.model}>
     <Td dataLabel="Name">
       <TableRowTitleDescription
@@ -31,7 +32,16 @@ export const DeploymentRow: React.FC<{
       />
     </Td>
     <Td isActionCell>
-      <ActionsColumn isDisabled items={[]} />
+      <ActionsColumn
+        items={[
+          {
+            title: 'Delete',
+            onClick: () => {
+              onDelete(deployment);
+            },
+          },
+        ]}
+      />
     </Td>
   </ResourceTr>
 );
