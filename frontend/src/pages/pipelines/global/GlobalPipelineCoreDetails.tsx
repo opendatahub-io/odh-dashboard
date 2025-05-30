@@ -10,8 +10,9 @@ import { pipelinesBaseRoute } from '#~/routes/pipelines/global';
 import EnsureCompatiblePipelineServer from '#~/concepts/pipelines/EnsureCompatiblePipelineServer';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import { ProjectIconWithSize } from '#~/concepts/projects/ProjectIconWithSize';
+import { IconSize } from '#~/types';
+
 import './GlobalPipelineCoreDetails.scss';
-import { IconSize } from '~/types';
 
 export type GlobalPipelineCoreDetailsProps = {
   pageName: string;

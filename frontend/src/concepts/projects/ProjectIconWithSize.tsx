@@ -1,6 +1,6 @@
 import React from 'react';
-import { ProjectIcon } from '~/images/icons';
-import { IconSize } from '~/types';
+import { ProjectIcon } from '#~/images/icons';
+import { IconSize } from '#~/types';
 
 export const ProjectIconWithSize: React.FC<{ size: IconSize }> = ({ size }) => (
   <ProjectIcon
