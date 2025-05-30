@@ -12,16 +12,19 @@ export const getKServeDeploymentStatus = (
   deploymentPods: PodKind[],
 ): DeploymentStatus => {
   const deploymentPod = deploymentPods.find(
-    (pod) => pod.metadata.name === inferenceService.metadata.name,
+    (pod) =>
+      pod.metadata.labels?.['serving.kserve.io/inferenceservice'] ===
+      inferenceService.metadata.name,
   );
   const modelPodStatus = deploymentPod ? checkModelStatus(deploymentPod) : null;
 
-  return {
-    state: modelPodStatus?.failedToSchedule
-      ? InferenceServiceModelState.FAILED_TO_LOAD
-      : getInferenceServiceModelState(inferenceService),
-    message: modelPodStatus?.failedToSchedule
-      ? modelPodStatus.failureMessage || 'Insufficient resources'
-      : getInferenceServiceStatusMessage(inferenceService),
-  };
+  const state = modelPodStatus?.failedToSchedule
+    ? InferenceServiceModelState.FAILED_TO_LOAD
+    : getInferenceServiceModelState(inferenceService);
+
+  const message = modelPodStatus?.failedToSchedule
+    ? modelPodStatus.failureMessage || 'Insufficient resources'
+    : getInferenceServiceStatusMessage(inferenceService);
+
+  return { state, message };
 };
