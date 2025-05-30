@@ -32,7 +32,7 @@ const OdhExploreCard: React.FC<OdhExploreCardProps> = ({
   const { dashboardConfig } = useAppContext();
   React.useEffect(() => {
     if (isSelected) {
-      // makeCardVisible(odhApp.metadata.name);
+      makeCardVisible(odhApp.metadata.name);
     }
   }, [odhApp.metadata.name, isSelected]);
   const disabled = odhApp.spec.comingSoon || disableInfo;

@@ -20,7 +20,6 @@ const QuickStarts: React.FC<QuickStartsProps> = ({ children }) => {
     allQuickStartStates,
     setAllQuickStartStates,
   };
-
   return <QuickStartContainer {...valuesForQuickStartContext}>{children}</QuickStartContainer>;
 };
 

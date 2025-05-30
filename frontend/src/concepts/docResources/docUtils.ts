@@ -11,7 +11,7 @@ export const updateDocToComponent = (
   const updatedDoc = _.cloneDeep(odhDoc);
   if (odhApp) {
     combineCategoryAnnotations(odhDoc, odhApp);
-    updatedDoc.spec.appDisplayName = odhApp.spec.displayName;
+    updatedDoc.spec.appDisplayName = odhApp.spec.provider;
     updatedDoc.spec.appEnabled = odhApp.spec.isEnabled ?? false;
     updatedDoc.spec.img = odhDoc.spec.img || odhApp.spec.img;
     updatedDoc.spec.description = odhDoc.spec.description || odhApp.spec.description;

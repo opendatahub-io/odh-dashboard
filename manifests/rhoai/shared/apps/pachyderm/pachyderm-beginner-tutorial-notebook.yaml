@@ -28,7 +28,7 @@ spec:
         failedTaskHelp: This task is not verified yet. Try the task again.
       summary:
         success: You have a workbench up and running.
-        failed: Review the "Creating a Jupyter notebook" quick start for additional help.
+        failed: Review the "Creating a basic workbench" quick start for additional help.
     - title: Loading Pachyderm beginner tutorial notebook
       description: |-
         ### Load the beginner tutorial notebook

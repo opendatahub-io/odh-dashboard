@@ -210,7 +210,7 @@ describe('Resources page', () => {
   it('Search functionality for card view', () => {
     const resourcesToolbar = resources.getLearningCenterToolbar();
 
-    resourcesToolbar.findSearchInput().fill('Creating a Jupyter notebook');
+    resourcesToolbar.findSearchInput().fill('Creating a basic workbench');
     cardView.findCardItems().should('have.length', 1);
     cardView.getCard('create-jupyter-notebook').find().should('exist');
 
@@ -227,7 +227,7 @@ describe('Resources page', () => {
     const resourcesToolbar = resources.getLearningCenterToolbar();
     resourcesToolbar.findListToggleButton().click();
 
-    resourcesToolbar.findSearchInput().fill('Creating a Jupyter notebook');
+    resourcesToolbar.findSearchInput().fill('Creating a basic workbench');
     listView.findListItems().should('have.length', 1);
     listView.findList('create-jupyter-notebook').should('exist');
 

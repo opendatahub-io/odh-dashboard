@@ -1,14 +1,5 @@
 import * as React from 'react';
-import {
-  FormGroup,
-  FormHelperText,
-  HelperText,
-  HelperTextItem,
-  Popover,
-  Stack,
-  StackItem,
-  TextInput,
-} from '@patternfly/react-core';
+import { FormGroup, Popover, Stack, StackItem, TextInput } from '@patternfly/react-core';
 import { HelpIcon } from '@patternfly/react-icons';
 
 type ImageLocationFieldProps = {
