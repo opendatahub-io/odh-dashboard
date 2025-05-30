@@ -6,8 +6,9 @@ import { ServingRuntimeKind } from '~/k8sTypes';
 import {
   getDisplayNameFromServingRuntimeTemplate,
   getEnabledPlatformsFromTemplate,
-  getServingRuntimeVersionFromTemplate,
+  getServingRuntimeVersion,
   getTemplateEnabledForPlatform,
+  isTemplateKind,
 } from '~/pages/modelServing/customServingRuntimes/utils';
 import { ServingRuntimePlatform } from '~/types';
 import { mockServingRuntimeTemplateK8sResource } from '~/__mocks__/mockServingRuntimeTemplateK8sResource';
@@ -120,11 +121,22 @@ describe('getServingRuntimeVersionFromTemplate', () => {
     servingRuntime.metadata.annotations = {
       'opendatahub.io/runtime-version': '1.0.0',
     };
-    expect(getServingRuntimeVersionFromTemplate(servingRuntime)).toBe('1.0.0');
+    expect(getServingRuntimeVersion(servingRuntime)).toBe('1.0.0');
   });
 
   it('should return empty string if annotation is not present', () => {
     const servingRuntime = mockServingRuntimeK8sResource({});
-    expect(getServingRuntimeVersionFromTemplate(servingRuntime)).toBe(undefined);
+    expect(getServingRuntimeVersion(servingRuntime)).toBe(undefined);
+  });
+});
+
+describe('isTemplateKind', () => {
+  it('should return true if the resource is a template', () => {
+    const template = mockServingRuntimeTemplateK8sResource({});
+    expect(isTemplateKind(template)).toBe(true);
+  });
+  it('should return false if the resource is not a template', () => {
+    const servingRuntime = mockServingRuntimeK8sResource({});
+    expect(isTemplateKind(servingRuntime)).toBe(false);
   });
 });

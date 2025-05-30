@@ -36,6 +36,10 @@ class ServingRuntimeRow {
     this.find().find('[data-label="API protocol"]').should('include.text', apiProtocol);
     return this;
   }
+
+  findServingRuntimeVersionLabel() {
+    return this.find().findByTestId('serving-runtime-version-label');
+  }
 }
 
 class ServingRuntimes {
