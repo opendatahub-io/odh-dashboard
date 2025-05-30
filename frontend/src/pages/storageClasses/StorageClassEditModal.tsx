@@ -1,24 +1,30 @@
-import React from 'react';
-
 import {
   Form,
   FormGroup,
   TextInput,
   Alert,
+  AlertProps,
+  Checkbox,
   DescriptionList,
+  DescriptionListDescription,
   DescriptionListGroup,
   DescriptionListTerm,
-  DescriptionListDescription,
-  TextArea,
   Flex,
   FlexItem,
-  AlertProps,
   Modal,
   ModalBody,
-  ModalHeader,
   ModalFooter,
+  ModalHeader,
+  Stack,
+  StackItem,
+  TextArea,
+  Tooltip,
 } from '@patternfly/react-core';
 
+import React from 'react';
+import { AccessMode } from '#~/pages/storageClasses/storageEnums';
+import FieldGroupHelpLabelIcon from '#~/components/FieldGroupHelpLabelIcon';
+import { accessModeDescriptions } from '#~/pages/storageClasses/constants';
 import { StorageClassKind } from '#~/k8sTypes';
 import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
 import { updateStorageClassConfig } from '#~/api';
@@ -50,6 +56,11 @@ export const StorageClassEditModal: React.FC<StorageClassEditModalProps> = ({
       ? storageClassConfig?.description
       : '',
   );
+  const [accessModeSettings, setAccessModeSettings] = React.useState(
+    storageClassConfig?.accessModeSettings ?? {},
+  );
+  const [showAccessModeAlert, setShowAccessModeAlert] = React.useState(false);
+
   const [updateError, setUpdateError] = React.useState<Error>();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
@@ -62,6 +73,7 @@ export const StorageClassEditModal: React.FC<StorageClassEditModalProps> = ({
         description,
         ...(storageClassConfig?.isDefault === undefined && { isDefault: false }),
         ...(storageClassConfig?.isEnabled === undefined && { isEnabled: false }),
+        accessModeSettings,
       });
       await onSuccess();
       onClose();
@@ -132,6 +144,76 @@ export const StorageClassEditModal: React.FC<StorageClassEditModalProps> = ({
               data-testid="edit-sc-description"
             />
           </FormGroup>
+
+          <FormGroup
+            label="Access mode enablement"
+            labelHelp={
+              <FieldGroupHelpLabelIcon
+                content={
+                  <Stack hasGutter>
+                    <StackItem>
+                      Access mode is a Kubernetes concept that determines how nodes can interact
+                      with the volume.
+                    </StackItem>
+                    <StackItem>
+                      Users can create storage using enabled access modes. The OpenShift storage
+                      class determines which access modes (RWO, RWX, ROX and RWOP) are supported by
+                      default.
+                    </StackItem>
+                  </Stack>
+                }
+              />
+            }
+            fieldId="edit-sc-access-mode"
+            isStack
+          >
+            {Object.entries(AccessMode).map(([modeLabel, modeName]) => (
+              <Tooltip
+                content="This mode is not available in this class."
+                key={`${modeLabel}-tooltip`}
+                hidden={modeName in accessModeSettings}
+                position="top-start"
+                data-testid={`edit-sc-access-mode-tooltip-${modeLabel.toLowerCase()}`}
+              >
+                <Checkbox
+                  label={`${modeName} (${modeLabel})`}
+                  description={accessModeDescriptions[modeName]}
+                  isDisabled={!(modeName in accessModeSettings)}
+                  isChecked={modeName in accessModeSettings && accessModeSettings[modeName]}
+                  aria-label={modeLabel}
+                  key={modeLabel}
+                  id={`edit-sc-access-mode-${modeLabel.toLowerCase()}`}
+                  data-testid={`edit-sc-access-mode-checkbox-${modeLabel.toLowerCase()}`}
+                  onChange={(_, enabled) => {
+                    if (modeName !== AccessMode.RWO) {
+                      if (
+                        modeName === AccessMode.RWX &&
+                        !enabled &&
+                        storageClassConfig?.accessModeSettings[AccessMode.RWX]
+                      ) {
+                        setShowAccessModeAlert(true);
+                      } else if (modeName === AccessMode.RWX && enabled) {
+                        setShowAccessModeAlert(false);
+                      }
+                      setAccessModeSettings((prev) => ({
+                        ...prev,
+                        [modeName]: enabled,
+                      }));
+                    }
+                  }}
+                />
+              </Tooltip>
+            ))}
+          </FormGroup>
+          {showAccessModeAlert && (
+            <Alert
+              variant="warning"
+              title="Disabling the RWX access mode will prevent new storage of this class from using
+               this access mode. Existing storage will be unaffected."
+              isInline
+              data-testid="edit-sc-access-mode-alert"
+            />
+          )}
         </Form>
       </ModalBody>
       <ModalFooter>
