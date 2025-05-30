@@ -1,12 +1,5 @@
-<<<<<<< HEAD
 import { ImageVersionDependencyType } from '#~/pages/projects/screens/spawner/types';
 import { ImageStreamKind, ImageStreamSpecTagType } from '#~/k8sTypes';
-=======
-import { ImageVersionDependencyType } from '~/pages/projects/screens/spawner/types';
-import { ImageStreamKind, ImageStreamSpecTagType } from '~/k8sTypes';
-import { Notebook } from '~/types';
-import { ServerStatus } from '~/pages/notebookController/screens/admin/types';
->>>>>>> bea129c4f (minimized use of hooks)
 import { NotebookImageAvailability, NotebookImageStatus } from './const';
 
 export type NotebookImage =
@@ -48,13 +41,3 @@ export type NotebookImageData =
       loaded: true,
       loadError: undefined,
     ];
-
-export type StopAdminWorkbenchModalProps = {
-  notebooksToStop: Notebook[];
-  isDeleting: boolean;
-  showModal: boolean;
-  link: string;
-  handleStopWorkbenches: (serverStatusesArr: ServerStatus[]) => void;
-  onNotebooksStop: (didStop: boolean) => void;
-  onStop: (activeServers: ServerStatus[]) => void;
-};

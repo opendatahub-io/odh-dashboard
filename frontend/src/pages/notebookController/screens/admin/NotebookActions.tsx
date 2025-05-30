@@ -9,7 +9,7 @@ type ServerStatusProps = {
 };
 
 const NotebookActions: React.FC<ServerStatusProps> = ({ data }) => {
-  const notebooksToStop = React.useMemo(() => (data.notebook ? [data.notebook] : []), [data]);
+  const notebooksToStop = data.notebook ? [data.notebook] : [];
 
   const { showModal, isDeleting, onStop, onNotebooksStop } = useStopWorkbenchModal({
     notebooksToStop,

@@ -25,38 +25,35 @@ export const useStopWorkbenchModal = ({
   const notification = useNotification();
   const { isAdmin } = useUser();
 
-  const onNotebooksStop = React.useCallback(
-    (didStop: boolean) => {
-      if (didStop) {
-        setIsDeleting(true);
-        stopWorkbenches(notebooksToStop, isAdmin)
-          .then(() => {
-            refresh();
-            setShowModal(false);
-          })
-          .catch((e) => {
-            notification.error(
-              `Error stopping workbench${notebooksToStop.length > 1 ? 's' : ''}`,
-              e.message,
-            );
-          })
-          .finally(() => {
-            setIsDeleting(false);
-          });
-      } else {
-        setShowModal(false);
-      }
-    },
-    [notebooksToStop, isAdmin, refresh, notification],
-  );
+  const onNotebooksStop = (didStop: boolean) => {
+    if (didStop) {
+      setIsDeleting(true);
+      stopWorkbenches(notebooksToStop, isAdmin)
+        .then(() => {
+          refresh();
+          setShowModal(false);
+        })
+        .catch((e) => {
+          notification.error(
+            `Error stopping workbench${notebooksToStop.length > 1 ? 's' : ''}`,
+            e.message,
+          );
+        })
+        .finally(() => {
+          setIsDeleting(false);
+        });
+    } else {
+      setShowModal(false);
+    }
+  };
 
-  const onStop = React.useCallback(() => {
+  const onStop = () => {
     if (dontShowModalValue) {
       onNotebooksStop(true);
     } else {
       setShowModal(true);
     }
-  }, [dontShowModalValue, onNotebooksStop]);
+  };
 
   return { showModal, isDeleting, onStop, onNotebooksStop };
 };

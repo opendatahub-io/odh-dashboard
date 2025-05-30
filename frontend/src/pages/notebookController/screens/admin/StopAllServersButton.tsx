@@ -10,20 +10,15 @@ type StopAllServersButtonProps = {
 };
 
 const StopAllServersButton: React.FC<StopAllServersButtonProps> = ({ users }) => {
-  const activeServers = React.useMemo(
-    () =>
-      users.filter((user) => user.serverStatus.isNotebookRunning).map((user) => user.serverStatus),
-    [users],
-  );
+  const activeServers = users
+    .filter((user) => user.serverStatus.isNotebookRunning)
+    .map((user) => user.serverStatus);
+
   const serverCount = activeServers.length;
 
-  const notebooksToStop = React.useMemo(
-    () =>
-      activeServers
-        .map((server) => server.notebook)
-        .filter((notebook): notebook is Notebook => !!notebook),
-    [activeServers],
-  );
+  const notebooksToStop = activeServers
+    .map((server) => server.notebook)
+    .filter((notebook): notebook is Notebook => !!notebook);
 
   const { showModal, isDeleting, onStop, onNotebooksStop } = useStopWorkbenchModal({
     notebooksToStop,
