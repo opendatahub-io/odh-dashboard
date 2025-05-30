@@ -126,10 +126,23 @@ export const getDisplayNameFromServingRuntimeTemplate = (resource: ServingRuntim
   return templateName || legacyTemplateName || 'Unknown Serving Runtime';
 };
 
-export const getServingRuntimeVersionFromTemplate = (
-  resource: ServingRuntimeKind,
-): string | undefined =>
-  resource.metadata.annotations?.['opendatahub.io/runtime-version'] || undefined;
+export const getServingRuntimeVersion = (
+  resource: ServingRuntimeKind | TemplateKind | undefined,
+): string | undefined => {
+  if (!resource) {
+    return undefined;
+  }
+  if (isTemplateKind(resource)) {
+    return (
+      resource.objects[0].metadata.annotations?.['opendatahub.io/runtime-version'] || undefined
+    );
+  }
+  return resource.metadata.annotations?.['opendatahub.io/runtime-version'] || undefined;
+};
+
+export const isTemplateKind = (
+  resource: ServingRuntimeKind | TemplateKind,
+): resource is TemplateKind => resource.kind === 'Template';
 
 export const getEnabledPlatformsFromTemplate = (
   template: TemplateKind,

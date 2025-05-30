@@ -33,6 +33,13 @@ describe('Custom serving runtimes', () => {
     servingRuntimes.shouldBeSingleModel(true).shouldBeMultiModel(true);
   });
 
+  it('should display serving runtime version label', () => {
+    servingRuntimes.getRowById('template-1').findServingRuntimeVersionLabel().should('exist');
+    servingRuntimes.getRowById('template-2').findServingRuntimeVersionLabel().should('exist');
+    servingRuntimes.getRowById('template-3').findServingRuntimeVersionLabel().should('not.exist');
+    servingRuntimes.getRowById('template-4').findServingRuntimeVersionLabel().should('exist');
+  });
+
   it('should test pre-installed label', () => {
     servingRuntimes.getRowById('template-3').shouldHavePreInstalledLabel();
     servingRuntimes.getRowById('template-3').find().findKebabAction('Edit').should('not.exist');
