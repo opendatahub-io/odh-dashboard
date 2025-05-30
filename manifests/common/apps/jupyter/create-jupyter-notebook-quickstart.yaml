@@ -9,9 +9,9 @@ spec:
   appName: jupyter
   durationMinutes: 10
   icon: 'images/jupyter.svg'
-  description: This quick start walks you through creating a Jupyter notebook.
+  description: This quick start walks you through creating a basic workbench.
   introduction: |-
-    ### This quick start shows you how to create a Jupyter notebook.
+    ### This quick start shows you how to create a basic workbench.
     Open Data Hub lets you run Jupyter notebooks in a scalable OpenShift hybrid cloud environment.
 
     The Jupyter spawner supports your Data Scientist explorations and model deployments.
@@ -44,12 +44,12 @@ spec:
            Depending on the deployment size and resources you requested, starting the workbench can take up to several minutes. After the workbench starts, the JupyterLab interface opens.
       review:
         instructions: |-
-          #### Verify that your Jupyter notebook launched:
+          #### Verify that your workbench launched:
           Does an untitled Jupyter notebook open in JupyterLab?
         failedTaskHelp:
           This task is not verified yet. Try the task again.
       summary:
-        success: You have created a Jupyter notebook!
+        success: You have created a basic workbench!
         failed: Try the steps again.
-  conclusion: Now you can launch Jupyter notebooks and write Python code.  If you want to learn how to deploy a model written in Python, take the next quick start.
+  conclusion: Now you can launch basic workbenches and write Python code.  If you want to learn how to deploy a model written in Python, take the next quick start.
   nextQuickStart: [deploy-python-model]
