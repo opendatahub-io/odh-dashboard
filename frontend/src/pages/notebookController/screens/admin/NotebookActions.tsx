@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { ActionsColumn, IAction } from '@patternfly/react-table';
-import StopServerModal from '~/pages/notebookController/screens/server/StopServerModal';
-import { useStopWorkbenchModal } from '~/concepts/notebooks/useStopWorkbenchModal';
+import StopServerModal from '#~/pages/notebookController/screens/server/StopServerModal';
+import { useStopWorkbenchModal } from '#~/concepts/notebooks/useStopWorkbenchModal';
 import { AdminViewUserData } from './types';
 
 type ServerStatusProps = {

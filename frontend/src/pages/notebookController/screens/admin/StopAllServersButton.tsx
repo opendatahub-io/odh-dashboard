@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { Button } from '@patternfly/react-core';
-import StopServerModal from '~/pages/notebookController/screens/server/StopServerModal';
-import { Notebook } from '~/types';
-import { useStopWorkbenchModal } from '~/concepts/notebooks/useStopWorkbenchModal';
+import StopServerModal from '#~/pages/notebookController/screens/server/StopServerModal';
+import { Notebook } from '#~/types';
+import { useStopWorkbenchModal } from '#~/concepts/notebooks/useStopWorkbenchModal';
 import { AdminViewUserData } from './types';
 
 type StopAllServersButtonProps = {
