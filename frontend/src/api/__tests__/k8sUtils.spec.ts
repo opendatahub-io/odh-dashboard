@@ -1,6 +1,6 @@
 import { mockProjectK8sResource } from '#~/__mocks__/mockProjectK8sResource';
 import { mockSecretK8sResource } from '#~/__mocks__/mockSecretK8sResource';
-import { addOwnerReference } from '#~/api/k8sUtils';
+import { addOwnerReference, deepReplaceUndefinedWithNull } from '#~/api/k8sUtils';
 
 const resource = mockSecretK8sResource({});
 
@@ -94,5 +94,37 @@ describe('addOwnerReference', () => {
         ],
       },
     });
+  });
+});
+
+describe('deepReplaceUndefinedWithNull', () => {
+  it('replaces undefined with null in object properties', () => {
+    expect(deepReplaceUndefinedWithNull({ a: 1, b: undefined })).toEqual({ a: 1, b: null });
+    expect(deepReplaceUndefinedWithNull({ a: { b: undefined } })).toEqual({ a: { b: null } });
+  });
+
+  it('does not replace undefined with null in arrays', () => {
+    expect(deepReplaceUndefinedWithNull([1, undefined, 3])).toEqual([1, undefined, 3]);
+    expect(deepReplaceUndefinedWithNull([undefined, undefined])).toEqual([undefined, undefined]);
+  });
+
+  it('recurses into objects inside arrays', () => {
+    expect(deepReplaceUndefinedWithNull([{ a: undefined }, 2])).toEqual([{ a: null }, 2]);
+    expect(deepReplaceUndefinedWithNull([1, { b: undefined }, 3])).toEqual([1, { b: null }, 3]);
+  });
+
+  it('leaves primitives, null, false, 0, and empty string unchanged', () => {
+    expect(deepReplaceUndefinedWithNull(5)).toBe(5);
+    expect(deepReplaceUndefinedWithNull('test')).toBe('test');
+    expect(deepReplaceUndefinedWithNull(null)).toBe(null);
+    expect(deepReplaceUndefinedWithNull(false)).toBe(false);
+    expect(deepReplaceUndefinedWithNull(0)).toBe(0);
+    expect(deepReplaceUndefinedWithNull('')).toBe('');
+  });
+
+  it('handles deeply nested structures', () => {
+    const input = { a: [{ b: undefined }, { c: [undefined, 2] }], d: undefined };
+    const expected = { a: [{ b: null }, { c: [undefined, 2] }], d: null };
+    expect(deepReplaceUndefinedWithNull(input)).toEqual(expected);
   });
 });
