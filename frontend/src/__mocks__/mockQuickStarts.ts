@@ -92,7 +92,7 @@ export const mockQuickStarts = (): OdhQuickStart[] => [
       icon: 'images/jupyterhub.svg',
       introduction:
         '### This quick start shows you how to deploy a Python model.\nOpen Data Hub lets you run Jupyter notebooks in a scalable OpenShift hybrid cloud environment.\n\nThis quick start shows you how to take your model out of a Jupyter notebook and put it into a Flask application running on OpenShift Dedicated, for use as a development sandbox.',
-      nextQuickStart: [],
+      nextQuickStart: [''],
       prerequisites: ['You completed the "Create a Jupyter notebook" quick start.'],
       tasks: [
         {
