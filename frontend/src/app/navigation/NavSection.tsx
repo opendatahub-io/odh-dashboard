@@ -38,7 +38,7 @@ export const NavSection: React.FC<Props> = ({
           (extension) => !isNavSectionExtension(extension) && id === extension.properties.section,
         )
         .toSorted(compareNavItemGroups),
-    [extensions, id],
+    [id, extensions],
   );
 
   const [accessReviewExtensions, isAccessReviewExtensionsLoaded] = useAccessReviewExtensions(
