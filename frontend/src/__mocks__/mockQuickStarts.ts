@@ -18,7 +18,7 @@ export const mockQuickStarts = (): OdhQuickStart[] => [
       conclusion:
         'You are now able to launch Jupyter notebooks and write Python code.  If you want to learn how to deploy a model written in Python, take the next quick start.',
       description: 'This quick start will walk you through creating a Jupyter notebook.',
-      displayName: 'Creating a Jupyter notebook',
+      displayName: 'Creating a basic workbench',
       durationMinutes: 5,
       icon: 'images/jupyterhub.svg',
       introduction:
