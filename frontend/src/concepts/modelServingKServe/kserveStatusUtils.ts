@@ -1,6 +1,6 @@
-import { InferenceServiceKind, PodKind } from '~/k8sTypes';
-import { asEnumMember } from '~/utilities/utils';
-import { InferenceServiceModelState, ModelStatus } from '~/pages/modelServing/screens/types';
+import { InferenceServiceKind, PodKind } from '#~/k8sTypes';
+import { InferenceServiceModelState, ModelStatus } from '#~/pages/modelServing/screens/types';
+import { asEnumMember } from '#~/utilities/utils';
 
 export const getInferenceServiceModelState = (
   is: InferenceServiceKind,
