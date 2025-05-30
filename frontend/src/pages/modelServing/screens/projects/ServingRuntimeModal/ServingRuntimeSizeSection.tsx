@@ -38,16 +38,36 @@ const ServingRuntimeSizeSection = ({
 
   const gpuDisabled = servingRuntimeSelected ? isGpuDisabled(servingRuntimeSelected) : false;
 
-  const customResources = customDefaults
-    ? customDefaults.resources
-    : podSpecOptionState.modelSize.sizes[0].resources;
+  const customResources = customDefaults ? customDefaults.resources : undefined;
 
   const sizeCustom = [
-    ...podSpecOptionState.modelSize.sizes,
-    {
-      name: 'Custom',
-      resources: customResources,
-    },
+    ...podSpecOptionState.modelSize.sizes.filter(
+      (size) =>
+        size.resources.limits &&
+        size.resources.requests &&
+        size.resources.limits.cpu &&
+        size.resources.limits.memory &&
+        size.resources.requests.cpu &&
+        size.resources.requests.memory,
+    ),
+    customResources
+      ? {
+          name: 'Custom',
+          resources: customResources,
+        }
+      : {
+          name: 'Custom',
+          resources: {
+            requests: {
+              cpu: '1',
+              memory: '1Gi',
+            },
+            limits: {
+              cpu: '1',
+              memory: '1Gi',
+            },
+          },
+        },
   ];
 
   const sizeOptions = () =>
