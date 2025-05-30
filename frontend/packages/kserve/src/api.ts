@@ -14,7 +14,7 @@ import {
 } from '@odh-dashboard/internal/api/models/kserve';
 import { CustomWatchK8sResult } from '@odh-dashboard/internal/types';
 
-export const useWatchInferenceServiceList = (
+export const useWatchInferenceServices = (
   project: ProjectKind,
   opts?: K8sAPIOptions,
 ): CustomWatchK8sResult<InferenceServiceKind[]> =>
@@ -28,7 +28,7 @@ export const useWatchInferenceServiceList = (
     opts,
   );
 
-export const useWatchServingRuntimeList = (
+export const useWatchServingRuntimes = (
   project: ProjectKind,
   opts?: K8sAPIOptions,
 ): CustomWatchK8sResult<ServingRuntimeKind[]> =>

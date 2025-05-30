@@ -8,11 +8,7 @@ import {
 } from '@odh-dashboard/internal/k8sTypes';
 import { Deployment } from '@odh-dashboard/model-serving/extension-points';
 import { deleteInferenceService, deleteServingRuntime } from '@odh-dashboard/internal/api/index';
-import {
-  useWatchDeploymentPods,
-  useWatchServingRuntimeList,
-  useWatchInferenceServiceList,
-} from './api';
+import { useWatchDeploymentPods, useWatchServingRuntimes, useWatchInferenceServices } from './api';
 import { getKServeDeploymentStatus } from './deploymentStatus';
 import { KSERVE_ID } from '../extensions';
 
@@ -25,10 +21,12 @@ export const useWatchDeployments = (
   project: ProjectKind,
   opts?: K8sAPIOptions,
 ): [KServeDeployment[] | undefined, boolean, Error | undefined] => {
-  const [inferenceServiceList, inferenceServiceLoaded, inferenceServiceError] =
-    useWatchInferenceServiceList(project, opts);
-  const [servingRuntimeList, servingRuntimeLoaded, servingRuntimeError] =
-    useWatchServingRuntimeList(project, opts);
+  const [inferenceServices, inferenceServiceLoaded, inferenceServiceError] =
+    useWatchInferenceServices(project, opts);
+  const [servingRuntimes, servingRuntimeLoaded, servingRuntimeError] = useWatchServingRuntimes(
+    project,
+    opts,
+  );
   const [deploymentPods, deploymentPodsLoaded, deploymentPodsError] = useWatchDeploymentPods(
     project,
     opts,
@@ -36,16 +34,16 @@ export const useWatchDeployments = (
 
   const deployments: KServeDeployment[] = React.useMemo(
     () =>
-      inferenceServiceList.map((inferenceService) => ({
+      inferenceServices.map((inferenceService) => ({
         modelServingPlatformId: KSERVE_ID,
         model: inferenceService,
-        server: servingRuntimeList.find(
+        server: servingRuntimes.find(
           (servingRuntime) =>
             servingRuntime.metadata.name === inferenceService.spec.predictor.model?.runtime,
         ),
         status: getKServeDeploymentStatus(inferenceService, deploymentPods),
       })),
-    [inferenceServiceList, servingRuntimeList, deploymentPods],
+    [inferenceServices, servingRuntimes, deploymentPods],
   );
 
   return [
