@@ -8,27 +8,33 @@ import {
 } from '~/concepts/analyticsTracking/trackingProperties';
 import { NotebookKind, ImageStreamSpecTagType, ImageStreamKind } from '~/k8sTypes';
 import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
+import { NotebookState } from '~/pages/projects/notebook/types';
 import { NotebookImage } from './types';
 import { NotebookImageStatus } from './const';
 
 type NotebookUpdateImageModalFooterProps = {
+  notebookState: NotebookState;
   notebook: NotebookKind;
   notebookImage: NotebookImage;
   imageCard: string;
   currentImageCard: string;
   onModalClose: () => void;
+  setIsUpdating: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
 const NotebookUpdateImageModalFooter: React.FC<NotebookUpdateImageModalFooterProps> = ({
+  notebookState,
   notebook,
   notebookImage,
   imageCard,
   currentImageCard,
   onModalClose,
+  setIsUpdating,
 }) => {
   const [error, setError] = React.useState<K8sStatusError>();
   const [createInProgress, setCreateInProgress] = React.useState(false);
   const isButtonDisabled = createInProgress || imageCard === currentImageCard;
+  const { isStopped } = notebookState;
 
   const {
     notebooks: { data: notebooks },
@@ -59,6 +65,9 @@ const NotebookUpdateImageModalFooter: React.FC<NotebookUpdateImageModalFooterPro
       };
       fireFormTrackingEvent('Workbench image updated', tep);
       notebooks.find((x) => x.notebook.metadata.name === notebook.metadata.name)?.refresh();
+    }
+    if (!isStopped) {
+      setIsUpdating(true);
     }
     onModalClose();
   };

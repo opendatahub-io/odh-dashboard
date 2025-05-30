@@ -123,6 +123,7 @@ describe('Verify Admin Multi Model Creation and Validation using the UI', () => 
       inferenceServiceModal.findOpenVinoIROpSet1().click();
       inferenceServiceModal.findLocationPathInput().type(modelFilePath);
       inferenceServiceModal.findSubmitButton().click();
+      inferenceServiceModal.shouldBeOpen(false);
 
       //Verify the Model was created successfully
       cy.step('Verify that the Model is created Successfully on the backend and frontend');
