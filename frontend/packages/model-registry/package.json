@@ -1,0 +1,14 @@
+{
+  "private": true,
+  "name": "@odh-dashboard/model-registry",
+  "description": "Model registry plugin.",
+  "version": "0.0.0",
+  "scripts": {
+    "update-subtree": "../../scripts/package-subtree.sh model-registry"
+  },
+  "subtree": {
+    "repo": "https://github.com/kubeflow/model-registry.git",
+    "src": "clients/ui",
+    "target": "upstream"
+  }
+}
