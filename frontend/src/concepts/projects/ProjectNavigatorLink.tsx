@@ -1,10 +1,10 @@
 import React from 'react';
 import { Button, Flex, FlexItem } from '@patternfly/react-core';
 import { useNavigate } from 'react-router';
-import { ProjectKind } from '~/k8sTypes';
-import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
-import { ProjectIconWithSize } from '~/concepts/projects/ProjectIconWithSize';
-import { FontSize, IconSize } from '~/types';
+import { ProjectKind } from '#~/k8sTypes';
+import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
+import { ProjectIconWithSize } from '#~/concepts/projects/ProjectIconWithSize';
+import { FontSize, IconSize } from '#~/types';
 
 type ProjectNavigatorLinkProps = {
   project?: ProjectKind;

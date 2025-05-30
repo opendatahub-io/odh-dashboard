@@ -1,7 +1,7 @@
 import { Breadcrumb } from '@patternfly/react-core';
 import React from 'react';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import ComponentWithProjectLink from '~/concepts/projects/ComponentWithProjectLink';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+import ComponentWithProjectLink from '#~/concepts/projects/ComponentWithProjectLink';
 
 type PipelineContextBreadcrumbProps = {
   children: React.ReactNode;
