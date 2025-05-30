@@ -13,6 +13,7 @@ import useInferenceServices from '~/pages/modelServing/useInferenceServices';
 import useServingRuntimes from '~/pages/modelServing/useServingRuntimes';
 import { ModelState } from '~/concepts/modelRegistry/types';
 import { ModelRegistriesContext } from '~/concepts/modelRegistry/context/ModelRegistriesContext';
+import useModelArtifactsByVersionId from '~/concepts/modelRegistry/apiHooks/useModelArtifactsByVersionId';
 import { ModelVersionDetailsTab } from './const';
 import ModelVersionsDetailsHeaderActions from './ModelVersionDetailsHeaderActions';
 import ModelVersionDetailsTabs from './ModelVersionDetailsTabs';
@@ -39,13 +40,17 @@ const ModelVersionsDetails: React.FC<ModelVersionsDetailProps> = ({ tab, ...page
     mv?.id,
     preferredModelRegistry?.metadata.name,
   );
+  const [modelArtifacts, modelArtifactsLoaded, modelArtifactsLoadError, refreshModelArtifacts] =
+    useModelArtifactsByVersionId(mvId);
+
   const servingRuntimes = useServingRuntimes();
 
   const refresh = React.useCallback(() => {
     refreshModelVersion();
+    refreshModelArtifacts();
     inferenceServices.refresh();
     servingRuntimes.refresh();
-  }, [inferenceServices, servingRuntimes, refreshModelVersion]);
+  }, [inferenceServices, servingRuntimes, refreshModelVersion, refreshModelArtifacts]);
 
   useEffect(() => {
     if (rm?.state === ModelState.ARCHIVED && mv?.id) {
@@ -127,6 +132,9 @@ const ModelVersionsDetails: React.FC<ModelVersionsDetailProps> = ({ tab, ...page
                 registeredModel={rm}
                 hasDeployment={inferenceServices.data.items.length > 0}
                 refresh={refresh}
+                modelArtifacts={modelArtifacts}
+                modelArtifactsLoaded={modelArtifactsLoaded}
+                modelArtifactsLoadError={modelArtifactsLoadError}
               />
             </FlexItem>
           </Flex>
@@ -144,6 +152,9 @@ const ModelVersionsDetails: React.FC<ModelVersionsDetailProps> = ({ tab, ...page
           inferenceServices={inferenceServices}
           servingRuntimes={servingRuntimes}
           refresh={refresh}
+          modelArtifacts={modelArtifacts}
+          modelArtifactsLoaded={modelArtifactsLoaded}
+          modelArtifactsLoadError={modelArtifactsLoadError}
         />
       )}
     </ApplicationsPage>

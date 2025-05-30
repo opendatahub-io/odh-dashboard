@@ -11,6 +11,7 @@ import useServingRuntimes from '~/pages/modelServing/useServingRuntimes';
 import { ModelState } from '~/concepts/modelRegistry/types';
 import { modelVersionRoute } from '~/routes/modelRegistry/modelVersions';
 import { ModelRegistriesContext } from '~/concepts/modelRegistry/context/ModelRegistriesContext';
+import useModelArtifactsByVersionId from '~/concepts/modelRegistry/apiHooks/useModelArtifactsByVersionId';
 import ArchiveModelVersionDetailsBreadcrumb from './ArchiveModelVersionDetailsBreadcrumb';
 
 type ArchiveModelVersionDetailsProps = {
@@ -34,9 +35,16 @@ const ArchiveModelVersionDetails: React.FC<ArchiveModelVersionDetailsProps> = ({
     mv?.id,
     preferredModelRegistry?.metadata.name,
   );
+  const [modelArtifacts, modelArtifactsLoaded, modelArtifactsLoadError, refreshModelArtifacts] =
+    useModelArtifactsByVersionId(mvId);
 
   const navigate = useNavigate();
   const servingRuntimes = useServingRuntimes();
+
+  const refresh = React.useCallback(() => {
+    refreshModelVersion();
+    refreshModelArtifacts();
+  }, [refreshModelVersion, refreshModelArtifacts]);
 
   useEffect(() => {
     if (rm?.state === ModelState.LIVE && mv?.id) {
@@ -83,7 +91,10 @@ const ArchiveModelVersionDetails: React.FC<ArchiveModelVersionDetailsProps> = ({
           modelVersion={mv}
           inferenceServices={inferenceServices}
           servingRuntimes={servingRuntimes}
-          refresh={refreshModelVersion}
+          refresh={refresh}
+          modelArtifacts={modelArtifacts}
+          modelArtifactsLoaded={modelArtifactsLoaded}
+          modelArtifactsLoadError={modelArtifactsLoadError}
         />
       )}
     </ApplicationsPage>
