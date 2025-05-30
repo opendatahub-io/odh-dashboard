@@ -75,14 +75,3 @@ body,
     overflow: hidden;
   }
 }
-
-// TODO: Remove when PF bug is fixed.
-// https://issues.redhat.com/browse/RHOAIENG-23580
-// https://github.com/patternfly/patternfly/issues/7452
-.pf-v6-c-page {
-  --pf-v6-c-page__sidebar--Width: 0;
-
-  &:has(.pf-v6-c-page__sidebar) {
-    --pf-v6-c-page__sidebar--Width: 18.125rem;
-  }
-}
