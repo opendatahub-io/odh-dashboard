@@ -57,7 +57,7 @@ spec:
         failedTaskHelp: This task is not verified yet. Try the task again.
       summary:
         success: You have a workbench
-        failed: Review the "Creating a Jupyter notebook" quick start for additional help.
+        failed: Review the "Creating a basic workbench" quick start for additional help.
     - title: Review the Intel® oneAPI AI Analytics Toolkit Welcome Message
       description: |-
         ### Review the Intel® oneAPI AI Analytics Toolkit Welcome Message

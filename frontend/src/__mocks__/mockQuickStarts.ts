@@ -16,13 +16,13 @@ export const mockQuickStarts = (): OdhQuickStart[] => [
     spec: {
       appName: 'jupyter',
       conclusion:
-        'You are now able to launch Jupyter notebooks and write Python code.  If you want to learn how to deploy a model written in Python, take the next quick start.',
-      description: 'This quick start will walk you through creating a Jupyter notebook.',
-      displayName: 'Creating a Jupyter notebook',
+        'You are now able to launch basic workbenches and write Python code.  If you want to learn how to deploy a model written in Python, take the next quick start.',
+      description: 'This quick start will walk you through creating a basic workbench.',
+      displayName: 'Creating a basic workbench',
       durationMinutes: 5,
       icon: 'images/jupyterhub.svg',
       introduction:
-        '### This quick start shows you how to create a Jupyter notebook.\nOpen Data Hub lets you run Jupyter notebooks in a scalable OpenShift hybrid cloud environment.\n\nWe have configured the JupyterHub spawner to support your amazing Data Scientist explorations and model deployments.\n\nWe just know you will absolutely love this amazing environment.  This quick start will get you working in a notebook in just a few minutes.',
+        '### This quick start shows you how to create a basic workbench.\nOpen Data Hub lets you run Jupyter notebooks in a scalable OpenShift hybrid cloud environment.\n\nWe have configured the JupyterHub spawner to support your amazing Data Scientist explorations and model deployments.\n\nWe just know you will absolutely love this amazing environment.  This quick start will get you working in a notebook in just a few minutes.',
       nextQuickStart: ['deploy-python-model'],
       tasks: [
         {
@@ -60,11 +60,11 @@ export const mockQuickStarts = (): OdhQuickStart[] => [
           review: {
             failedTaskHelp: 'This task is not verified yet. Try the task again.',
             instructions:
-              '#### Verify that your Jupyter notebook launched with a Python 3 kernel:\nIs `Python 3` displaying in the upper right notification bar of your notebook?',
+              '#### Verify that your basic workbench launched with a Python 3 kernel:\nIs `Python 3` displaying in the upper right notification bar of your notebook?',
           },
           summary: {
             failed: 'Try the steps again.',
-            success: 'You have created a Jupyter notebook with a Python 3 kernel!',
+            success: 'You have created a basic workbench with a Python 3 kernel!',
           },
           title: 'Create your first notebook',
         },
