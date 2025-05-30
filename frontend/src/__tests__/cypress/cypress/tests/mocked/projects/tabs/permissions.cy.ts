@@ -1,14 +1,14 @@
-import { mockK8sResourceList, mockProjectK8sResource } from '~/__mocks__';
-import { mock200Status } from '~/__mocks__/mockK8sStatus';
-import { mockRoleBindingK8sResource } from '~/__mocks__/mockRoleBindingK8sResource';
+import { mockK8sResourceList, mockProjectK8sResource } from '#~/__mocks__';
+import { mock200Status } from '#~/__mocks__/mockK8sStatus';
+import { mockRoleBindingK8sResource } from '#~/__mocks__/mockRoleBindingK8sResource';
 import {
   permissions,
   roleBindingPermissionsChangeModal,
-} from '~/__tests__/cypress/cypress/pages/permissions';
-import { be } from '~/__tests__/cypress/cypress/utils/should';
-import { ProjectModel, RoleBindingModel } from '~/__tests__/cypress/cypress/utils/models';
-import type { RoleBindingSubject } from '~/k8sTypes';
-import { asProjectEditUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
+} from '#~/__tests__/cypress/cypress/pages/permissions';
+import { be } from '#~/__tests__/cypress/cypress/utils/should';
+import { ProjectModel, RoleBindingModel } from '#~/__tests__/cypress/cypress/utils/models';
+import type { RoleBindingSubject } from '#~/k8sTypes';
+import { asProjectEditUser } from '#~/__tests__/cypress/cypress/utils/mockUsers';
 
 const userSubjects: RoleBindingSubject[] = [
   {

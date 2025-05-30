@@ -1,8 +1,8 @@
 import { AlertVariant } from '@patternfly/react-core';
 import * as React from 'react';
-import { addNotification } from '~/redux/actions/actions';
-import { useAppDispatch } from '~/redux/hooks';
-import { AppNotificationAction } from '~/redux/types';
+import { addNotification } from '#~/redux/actions/actions';
+import { useAppDispatch } from '#~/redux/hooks';
+import { AppNotificationAction } from '#~/redux/types';
 
 type NotificationProps = (
   title: string,

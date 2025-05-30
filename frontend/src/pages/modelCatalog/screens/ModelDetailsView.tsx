@@ -9,15 +9,15 @@ import {
   SidebarPanel,
 } from '@patternfly/react-core';
 import text from '@patternfly/react-styles/css/utilities/Text/text';
-import InlineTruncatedClipboardCopy from '~/components/InlineTruncatedClipboardCopy';
-import DashboardDescriptionListGroup from '~/components/DashboardDescriptionListGroup';
-import { CatalogModel } from '~/concepts/modelCatalog/types';
-import ModelTimestamp from '~/pages/modelRegistry/screens/components/ModelTimestamp';
-import { getTagFromModel } from '~/pages/modelCatalog/utils';
-import ExternalLink from '~/components/ExternalLink';
-import { RhUiTagIcon } from '~/images/icons';
-import { ModelCatalogLabels } from '~/concepts/modelCatalog/content/ModelCatalogLabels';
-import MarkdownComponent from '~/components/markdown/MarkdownComponent';
+import InlineTruncatedClipboardCopy from '#~/components/InlineTruncatedClipboardCopy';
+import DashboardDescriptionListGroup from '#~/components/DashboardDescriptionListGroup';
+import { CatalogModel } from '#~/concepts/modelCatalog/types';
+import ModelTimestamp from '#~/pages/modelRegistry/screens/components/ModelTimestamp';
+import { getTagFromModel } from '#~/pages/modelCatalog/utils';
+import ExternalLink from '#~/components/ExternalLink';
+import { RhUiTagIcon } from '#~/images/icons';
+import { ModelCatalogLabels } from '#~/concepts/modelCatalog/content/ModelCatalogLabels';
+import MarkdownComponent from '#~/components/markdown/MarkdownComponent';
 
 type ModelDetailsViewProps = {
   model: CatalogModel;

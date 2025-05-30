@@ -1,12 +1,12 @@
 import React from 'react';
-import { MlmdContext } from '~/concepts/pipelines/apiHooks/mlmd/types';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { Execution, GetExecutionsByContextRequest } from '~/third_party/mlmd';
+import { MlmdContext } from '#~/concepts/pipelines/apiHooks/mlmd/types';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+import { Execution, GetExecutionsByContextRequest } from '#~/third_party/mlmd';
 import useFetchState, {
   FetchState,
   FetchStateCallbackPromise,
   NotReadyError,
-} from '~/utilities/useFetchState';
+} from '#~/utilities/useFetchState';
 
 export const useExecutionsFromMlmdContext = (
   context: MlmdContext | null,

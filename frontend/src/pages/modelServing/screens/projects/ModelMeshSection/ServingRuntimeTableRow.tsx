@@ -4,20 +4,20 @@ import { Button, Icon, Skeleton, Tooltip, Truncate } from '@patternfly/react-cor
 import { ActionsColumn, Tbody, Td, Tr } from '@patternfly/react-table';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { KnownLabels, ServingRuntimeKind } from '~/k8sTypes';
-import SimpleMenuActions from '~/components/SimpleMenuActions';
-import EmptyTableCellForAlignment from '~/pages/projects/components/EmptyTableCellForAlignment';
-import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import { ServingRuntimeTableTabs } from '~/pages/modelServing/screens/types';
-import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
-import { getDisplayNameFromServingRuntimeTemplate } from '~/pages/modelServing/customServingRuntimes/utils';
-import { modelVersionRoute } from '~/routes/modelRegistry/modelVersions';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+import { KnownLabels, ServingRuntimeKind } from '#~/k8sTypes';
+import SimpleMenuActions from '#~/components/SimpleMenuActions';
+import EmptyTableCellForAlignment from '#~/pages/projects/components/EmptyTableCellForAlignment';
+import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
+import { ServingRuntimeTableTabs } from '#~/pages/modelServing/screens/types';
+import { ProjectSectionID } from '#~/pages/projects/screens/detail/types';
+import { getDisplayNameFromServingRuntimeTemplate } from '#~/pages/modelServing/customServingRuntimes/utils';
+import { modelVersionRoute } from '#~/routes/modelRegistry/modelVersions';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 
 import {
   getInferenceServiceFromServingRuntime,
   isServingRuntimeTokenEnabled,
-} from '~/pages/modelServing/screens/projects/utils';
+} from '#~/pages/modelServing/screens/projects/utils';
 import ServingRuntimeTableExpandedSection from './ServingRuntimeTableExpandedSection';
 
 type ServingRuntimeTableRowProps = {

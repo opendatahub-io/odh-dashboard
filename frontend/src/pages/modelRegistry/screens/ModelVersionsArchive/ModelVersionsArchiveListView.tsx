@@ -8,12 +8,12 @@ import {
   ToolbarToggleGroup,
 } from '@patternfly/react-core';
 import { FilterIcon, SearchIcon } from '@patternfly/react-icons';
-import { SearchType } from '~/concepts/dashboard/DashboardSearchField';
-import { ModelVersion, RegisteredModel } from '~/concepts/modelRegistry/types';
-import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
-import { filterModelVersions } from '~/pages/modelRegistry/screens/utils';
-import EmptyModelRegistryState from '~/pages/modelRegistry/screens/components/EmptyModelRegistryState';
-import { asEnumMember } from '~/utilities/utils';
+import { SearchType } from '#~/concepts/dashboard/DashboardSearchField';
+import { ModelVersion, RegisteredModel } from '#~/concepts/modelRegistry/types';
+import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
+import { filterModelVersions } from '#~/pages/modelRegistry/screens/utils';
+import EmptyModelRegistryState from '#~/pages/modelRegistry/screens/components/EmptyModelRegistryState';
+import { asEnumMember } from '#~/utilities/utils';
 import ModelVersionsArchiveTable from './ModelVersionsArchiveTable';
 
 type ModelVersionsArchiveListViewProps = {

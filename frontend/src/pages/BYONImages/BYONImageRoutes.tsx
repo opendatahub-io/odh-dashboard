@@ -1,8 +1,8 @@
 import React from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
-import ManageAcceleratorProfile from '~/pages/acceleratorProfiles/screens/manage/ManageAcceleratorProfile';
-import BYONImages from '~/pages/BYONImages/BYONImages';
-import ManageHardwareProfile from '~/pages/hardwareProfiles/manage/ManageHardwareProfile';
+import ManageAcceleratorProfile from '#~/pages/acceleratorProfiles/screens/manage/ManageAcceleratorProfile';
+import BYONImages from '#~/pages/BYONImages/BYONImages';
+import ManageHardwareProfile from '#~/pages/hardwareProfiles/manage/ManageHardwareProfile';
 
 const BYONImageRoutes: React.FC = () => (
   <Routes>

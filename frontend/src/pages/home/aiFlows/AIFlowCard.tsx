@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Bullseye, CardBody, CardHeader, CardProps, Stack, Content } from '@patternfly/react-core';
-import TypeBorderedCard from '~/concepts/design/TypeBorderedCard';
-import { SectionType } from '~/concepts/design/utils';
+import TypeBorderedCard from '#~/concepts/design/TypeBorderedCard';
+import { SectionType } from '#~/concepts/design/utils';
 
 type AIFlowCardProps = {
   title: string;

@@ -20,30 +20,30 @@ import {
 } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
-import ApplicationsPage from '~/pages/ApplicationsPage';
-import { ProjectObjectType, typedEmptyImage } from '~/concepts/design/utils';
-import { conditionalArea, SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import { ModelCatalogContext } from '~/concepts/modelCatalog/context/ModelCatalogContext';
-import { CatalogModel } from '~/concepts/modelCatalog/types';
-import EmptyModelCatalogState from '~/pages/modelCatalog/EmptyModelCatalogState';
+import ApplicationsPage from '#~/pages/ApplicationsPage';
+import { ProjectObjectType, typedEmptyImage } from '#~/concepts/design/utils';
+import { conditionalArea, SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { ModelCatalogContext } from '#~/concepts/modelCatalog/context/ModelCatalogContext';
+import { CatalogModel } from '#~/concepts/modelCatalog/types';
+import EmptyModelCatalogState from '#~/pages/modelCatalog/EmptyModelCatalogState';
 import {
   decodeParams,
   findModelFromModelCatalogSources,
   getTagFromModel,
   isLabBase,
-} from '~/pages/modelCatalog/utils';
-import PopoverListContent from '~/components/PopoverListContent';
-import { FindAdministratorOptions } from '~/pages/projects/screens/projects/const';
-import { RhUiTagIcon } from '~/images/icons';
-import { modelCustomizationRootPath } from '~/routes/pipelines/modelCustomization';
-import { getRegisterCatalogModelRoute } from '~/routes/modelCatalog/catalogModelRegister';
-import RhUiControlsIcon from '~/images/icons/RhUiControlsIcon';
-import { CatalogModelDetailsParams } from '~/pages/modelCatalog/types';
-import { ODH_PRODUCT_NAME } from '~/utilities/const';
-import ScrollViewOnMount from '~/components/ScrollViewOnMount';
-import { isOciModelUri } from '~/pages/modelServing/utils';
-import useDeployButtonState from '~/pages/modelServing/screens/projects/useDeployButtonState';
-import { ModelRegistriesContext } from '~/concepts/modelRegistry/context/ModelRegistriesContext';
+} from '#~/pages/modelCatalog/utils';
+import PopoverListContent from '#~/components/PopoverListContent';
+import { FindAdministratorOptions } from '#~/pages/projects/screens/projects/const';
+import { RhUiTagIcon } from '#~/images/icons';
+import { modelCustomizationRootPath } from '#~/routes/pipelines/modelCustomization';
+import { getRegisterCatalogModelRoute } from '#~/routes/modelCatalog/catalogModelRegister';
+import RhUiControlsIcon from '#~/images/icons/RhUiControlsIcon';
+import { CatalogModelDetailsParams } from '#~/pages/modelCatalog/types';
+import { ODH_PRODUCT_NAME } from '#~/utilities/const';
+import ScrollViewOnMount from '#~/components/ScrollViewOnMount';
+import { isOciModelUri } from '#~/pages/modelServing/utils';
+import useDeployButtonState from '#~/pages/modelServing/screens/projects/useDeployButtonState';
+import { ModelRegistriesContext } from '#~/concepts/modelRegistry/context/ModelRegistriesContext';
 import ModelDetailsView from './ModelDetailsView';
 import DeployCatalogModelModal from './DeployCatalogModelModal';
 

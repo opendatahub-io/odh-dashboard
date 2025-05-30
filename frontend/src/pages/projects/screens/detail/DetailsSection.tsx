@@ -12,10 +12,10 @@ import {
   Content,
   Title,
 } from '@patternfly/react-core';
-import { ProjectObjectType } from '~/concepts/design/utils';
-import HeaderIcon from '~/concepts/design/HeaderIcon';
-import { getGenericErrorCode } from '~/api';
-import UnauthorizedError from '~/pages/UnauthorizedError';
+import { ProjectObjectType } from '#~/concepts/design/utils';
+import HeaderIcon from '#~/concepts/design/HeaderIcon';
+import { getGenericErrorCode } from '#~/api';
+import UnauthorizedError from '#~/pages/UnauthorizedError';
 import { ProjectSectionID } from './types';
 
 type DetailsSectionProps = {

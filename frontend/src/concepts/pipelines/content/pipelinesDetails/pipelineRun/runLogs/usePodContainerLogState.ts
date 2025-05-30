@@ -1,13 +1,13 @@
 import * as React from 'react';
-import { PodContainer } from '~/types';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import usePod from '~/concepts/k8s/pods/usePod';
-import { getPodContainers } from '~/concepts/k8s/pods/utils';
-import { PodContainerStatus, PodKind } from '~/k8sTypes';
+import { PodContainer } from '#~/types';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+import usePod from '#~/concepts/k8s/pods/usePod';
+import { getPodContainers } from '#~/concepts/k8s/pods/utils';
+import { PodContainerStatus, PodKind } from '#~/k8sTypes';
 import {
   checkPodContainersStatus,
   PodStatus,
-} from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/utils';
+} from '#~/concepts/pipelines/content/pipelinesDetails/pipelineRun/utils';
 
 const usePodContainerLogState = (
   podName: string,

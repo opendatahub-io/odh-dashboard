@@ -1,5 +1,5 @@
-import { SortableData } from '~/components/table';
-import { ExperimentKF } from '~/concepts/pipelines/kfTypes';
+import { SortableData } from '#~/components/table';
+import { ExperimentKF } from '#~/concepts/pipelines/kfTypes';
 
 export const experimentSelectorColumns: SortableData<ExperimentKF>[] = [
   {

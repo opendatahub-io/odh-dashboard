@@ -1,12 +1,12 @@
 import React from 'react';
 import { BreadcrumbItem, Truncate } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
-import { PathProps } from '~/concepts/pipelines/content/types';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { ExperimentContext } from '~/pages/pipelines/global/experiments/ExperimentContext';
-import { experimentRunsRoute } from '~/routes/pipelines/experiments';
-import { runDetailsRoute } from '~/routes/pipelines/runs';
-import DuplicateRunPage from '~/concepts/pipelines/content/createRun/DuplicateRunPage';
+import { PathProps } from '#~/concepts/pipelines/content/types';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+import { ExperimentContext } from '#~/pages/pipelines/global/experiments/ExperimentContext';
+import { experimentRunsRoute } from '#~/routes/pipelines/experiments';
+import { runDetailsRoute } from '#~/routes/pipelines/runs';
+import DuplicateRunPage from '#~/concepts/pipelines/content/createRun/DuplicateRunPage';
 
 const ExperimentDuplicateRunPage: React.FC<PathProps> = ({ breadcrumbPath }) => {
   const { experiment } = React.useContext(ExperimentContext);

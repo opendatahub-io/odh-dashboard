@@ -8,7 +8,7 @@ import {
 } from '@patternfly/react-core';
 import React from 'react';
 import { ErrorCode } from 'react-dropzone';
-import { MAX_SIZE, MAX_SIZE_AS_MB } from '~/concepts/pipelines/content/const';
+import { MAX_SIZE, MAX_SIZE_AS_MB } from '#~/concepts/pipelines/content/const';
 
 type SshKeyFileUploadProps = {
   onChange: (value: string) => void;

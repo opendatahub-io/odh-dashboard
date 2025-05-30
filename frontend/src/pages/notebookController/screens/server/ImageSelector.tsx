@@ -1,17 +1,17 @@
 import * as React from 'react';
 import { Flex, FlexItem, Radio } from '@patternfly/react-core';
-import { ImageInfo, ImageTagInfo } from '~/types';
+import { ImageInfo, ImageTagInfo } from '#~/types';
 import {
   getDescriptionForTag,
   getImageTagVersion,
   getTagForImage,
   isImageTagBuildValid,
-} from '~/utilities/imageUtils';
-import { useAppContext } from '~/app/AppContext';
+} from '#~/utilities/imageUtils';
+import { useAppContext } from '#~/app/AppContext';
 import ImageTagPopover from './ImageTagPopover';
 import ImageVersions from './ImageVersions';
 
-import '~/pages/notebookController/NotebookController.scss';
+import '#~/pages/notebookController/NotebookController.scss';
 
 type ImageSelectorProps = {
   image: ImageInfo;

@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { Button, ButtonProps, Tooltip } from '@patternfly/react-core';
 import { PencilAltIcon } from '@patternfly/react-icons';
-import { NamespaceApplicationCase } from '~/pages/projects/types';
-import { addSupportServingPlatformProject } from '~/api';
-import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
+import { NamespaceApplicationCase } from '#~/pages/projects/types';
+import { addSupportServingPlatformProject } from '#~/api';
+import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 
 type ModelServingPlatformSelectButtonProps = ButtonProps & {
   namespace: string;

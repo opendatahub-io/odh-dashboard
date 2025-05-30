@@ -11,9 +11,9 @@ import {
   Title,
 } from '@patternfly/react-core';
 import { K8sResourceCommon, K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
-import { RoleBindingKind, RoleBindingRoleRef, RoleBindingSubject } from '~/k8sTypes';
-import HeaderIcon from '~/concepts/design/HeaderIcon';
-import { ProjectObjectType } from '~/concepts/design/utils';
+import { RoleBindingKind, RoleBindingRoleRef, RoleBindingSubject } from '#~/k8sTypes';
+import HeaderIcon from '#~/concepts/design/HeaderIcon';
+import { ProjectObjectType } from '#~/concepts/design/utils';
 import RoleBindingPermissionsTable from './RoleBindingPermissionsTable';
 import { RoleBindingPermissionsRBType, RoleBindingPermissionsRoleType } from './types';
 

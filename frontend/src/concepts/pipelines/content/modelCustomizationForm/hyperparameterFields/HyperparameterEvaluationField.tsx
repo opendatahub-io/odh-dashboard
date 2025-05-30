@@ -9,8 +9,8 @@ import {
 } from '@patternfly/react-core';
 import * as React from 'react';
 import { ZodIssue } from 'zod';
-import { ZodErrorHelperText } from '~/components/ZodErrorFormHelperText';
-import { NumberInputParam } from '~/concepts/pipelines/content/createRun/contentSections/ParamsSection/NumberInputParam';
+import { ZodErrorHelperText } from '#~/components/ZodErrorFormHelperText';
+import { NumberInputParam } from '#~/concepts/pipelines/content/createRun/contentSections/ParamsSection/NumberInputParam';
 
 type HyperparameterEvaluationFieldProps = {
   onChange: (hyperparameter: string, hyperparameterValue: string | number) => void;

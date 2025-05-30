@@ -15,11 +15,11 @@ import {
 } from '@patternfly/react-core';
 import { OptimizeIcon } from '@patternfly/react-icons';
 import spacing from '@patternfly/react-styles/css/utilities/Spacing/spacing';
-import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
-import FormSection from '~/components/pf-overrides/FormSection';
-import { ModelVersion } from '~/concepts/modelRegistry/types';
-import { convertObjectStorageSecretData } from '~/concepts/connectionTypes/utils';
-import { Connection } from '~/concepts/connectionTypes/types';
+import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
+import FormSection from '#~/components/pf-overrides/FormSection';
+import { ModelVersion } from '#~/concepts/modelRegistry/types';
+import { convertObjectStorageSecretData } from '#~/concepts/connectionTypes/utils';
+import { Connection } from '#~/concepts/connectionTypes/types';
 import { ModelLocationType, RegistrationCommonFormData } from './useRegisterModelData';
 import { ConnectionModal } from './ConnectionModal';
 import { MR_CHARACTER_LIMIT } from './const';

@@ -2,7 +2,7 @@ import {
   DashboardConfigKind,
   DataScienceClusterInitializationKindStatus,
   DataScienceClusterKindStatus,
-} from '~/k8sTypes';
+} from '#~/k8sTypes';
 import { IsAreaAvailableStatus, FeatureFlag, SupportedAreaType } from './types';
 import { definedFeatureFlags, SupportedAreasStateMap } from './const';
 

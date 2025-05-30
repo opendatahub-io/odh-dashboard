@@ -1,7 +1,7 @@
 import * as React from 'react';
-import { AppNotification } from '~/redux/types';
-import useNotification from '~/utilities/useNotification';
-import { POLL_INTERVAL } from '~/utilities/const';
+import { AppNotification } from '#~/redux/types';
+import useNotification from '#~/utilities/useNotification';
+import { POLL_INTERVAL } from '#~/utilities/const';
 
 export type NotificationWatcherContextType = {
   registerNotification: (item: NotificationWatcherItem) => void;

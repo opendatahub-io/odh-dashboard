@@ -8,11 +8,11 @@ import {
   ModelVersion,
   RegisteredModelList,
   RegisteredModel,
-} from '~/concepts/modelRegistry/types';
-import { MODEL_REGISTRY_API_VERSION } from '~/concepts/modelRegistry/const';
-import { bumpRegisteredModelTimestamp } from '~/concepts/modelRegistry/utils/updateTimestamps';
-import { proxyCREATE, proxyGET, proxyPATCH } from '~/api/proxyUtils';
-import { K8sAPIOptions } from '~/k8sTypes';
+} from '#~/concepts/modelRegistry/types';
+import { MODEL_REGISTRY_API_VERSION } from '#~/concepts/modelRegistry/const';
+import { bumpRegisteredModelTimestamp } from '#~/concepts/modelRegistry/utils/updateTimestamps';
+import { proxyCREATE, proxyGET, proxyPATCH } from '#~/api/proxyUtils';
+import { K8sAPIOptions } from '#~/k8sTypes';
 import { handleModelRegistryFailures } from './errorUtils';
 
 export const createRegisteredModel =

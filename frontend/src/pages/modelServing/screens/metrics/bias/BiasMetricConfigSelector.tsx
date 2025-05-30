@@ -1,8 +1,8 @@
 import React from 'react';
-import { useModelBiasData } from '~/concepts/trustyai/context/useModelBiasData';
-import { BiasMetricConfig, TrustyInstallState } from '~/concepts/trustyai/types';
-import { BiasMetricType } from '~/api';
-import { MultiSelection, SelectionOptions } from '~/components/MultiSelection';
+import { useModelBiasData } from '#~/concepts/trustyai/context/useModelBiasData';
+import { BiasMetricConfig, TrustyInstallState } from '#~/concepts/trustyai/types';
+import { BiasMetricType } from '#~/api';
+import { MultiSelection, SelectionOptions } from '#~/components/MultiSelection';
 
 type BiasMetricConfigSelectorProps = {
   onChange: (x: BiasMetricConfig[]) => void;

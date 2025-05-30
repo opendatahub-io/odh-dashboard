@@ -6,7 +6,7 @@ const extensions: StatusProviderExtension[] = [
     properties: {
       id: 'hardware-profiles.status',
       statusProviderHook: () =>
-        import('~/concepts/hardwareProfiles/useHardwareProfilesStatusProvider').then(
+        import('#~/concepts/hardwareProfiles/useHardwareProfilesStatusProvider').then(
           (m) => m.useHardwareProfilesStatusProvider,
         ),
     },

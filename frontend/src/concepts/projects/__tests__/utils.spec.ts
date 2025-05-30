@@ -1,10 +1,13 @@
-import { mockProjectK8sResource } from '~/__mocks__';
-import { getDescriptionFromK8sResource, getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
+import { mockProjectK8sResource } from '#~/__mocks__';
+import {
+  getDescriptionFromK8sResource,
+  getDisplayNameFromK8sResource,
+} from '#~/concepts/k8s/utils';
 import {
   isAvailableProject,
   getProjectOwner,
   getProjectCreationTime,
-} from '~/concepts/projects/utils';
+} from '#~/concepts/projects/utils';
 
 const mockDashboardNamespace = 'mock-opendatahub';
 

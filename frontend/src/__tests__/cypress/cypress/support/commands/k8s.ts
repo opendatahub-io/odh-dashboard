@@ -10,11 +10,11 @@ import type {
   RouteHandlerController,
   RouteMatcherOptions,
 } from 'cypress/types/net-stubbing';
-import type { QueryOptions } from '~/__tests__/cypress/cypress/utils/k8s';
+import type { QueryOptions } from '#~/__tests__/cypress/cypress/utils/k8s';
 import {
   getK8sAPIResourceURL,
   getK8sWebSocketResourceURL,
-} from '~/__tests__/cypress/cypress/utils/k8s';
+} from '#~/__tests__/cypress/cypress/utils/k8s';
 
 type WsOptions = {
   model: K8sModelCommon;

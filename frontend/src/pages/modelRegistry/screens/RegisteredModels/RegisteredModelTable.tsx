@@ -1,10 +1,10 @@
 import * as React from 'react';
 import { useParams } from 'react-router-dom';
-import { Table } from '~/components/table';
-import { RegisteredModel } from '~/concepts/modelRegistry/types';
-import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
-import useInferenceServices from '~/pages/modelServing/useInferenceServices';
-import { KnownLabels } from '~/k8sTypes';
+import { Table } from '#~/components/table';
+import { RegisteredModel } from '#~/concepts/modelRegistry/types';
+import DashboardEmptyTableView from '#~/concepts/dashboard/DashboardEmptyTableView';
+import useInferenceServices from '#~/pages/modelServing/useInferenceServices';
+import { KnownLabels } from '#~/k8sTypes';
 import RegisteredModelTableRow from './RegisteredModelTableRow';
 import { rmColumns } from './RegisteredModelsTableColumns';
 

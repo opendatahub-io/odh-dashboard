@@ -1,16 +1,16 @@
 import * as React from 'react';
 import { Td, Tr } from '@patternfly/react-table';
-import { WorkloadKind } from '~/k8sTypes';
+import { WorkloadKind } from '#~/k8sTypes';
 import {
   WorkloadRequestedResources,
   WorkloadStatusType,
   getStatusInfo,
   getWorkloadName,
-} from '~/concepts/distributedWorkloads/utils';
-import { WorkloadResourceUsageBar } from '~/pages/distributedWorkloads/components/WorkloadResourceUsageBar';
-import { WorkloadStatusLabel } from '~/pages/distributedWorkloads/components/WorkloadStatusLabel';
-import { bytesAsPreciseGiB } from '~/utilities/number';
-import { WorkloadCurrentUsage } from '~/api';
+} from '#~/concepts/distributedWorkloads/utils';
+import { WorkloadResourceUsageBar } from '#~/pages/distributedWorkloads/components/WorkloadResourceUsageBar';
+import { WorkloadStatusLabel } from '#~/pages/distributedWorkloads/components/WorkloadStatusLabel';
+import { bytesAsPreciseGiB } from '#~/utilities/number';
+import { WorkloadCurrentUsage } from '#~/api';
 
 type WorkloadResourceMetricsTableRowProps = {
   workload: WorkloadKind;

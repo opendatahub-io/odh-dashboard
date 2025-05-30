@@ -1,7 +1,7 @@
 import * as React from 'react';
-import { getSecret } from '~/api';
-import { EnvVariable, EnvironmentVariableType, SecretCategory } from '~/pages/projects/types';
-import useFetchState, { FetchState } from '~/utilities/useFetchState';
+import { getSecret } from '#~/api';
+import { EnvVariable, EnvironmentVariableType, SecretCategory } from '#~/pages/projects/types';
+import useFetchState, { FetchState } from '#~/utilities/useFetchState';
 
 const useNamespaceSecret = (
   namespace: string,

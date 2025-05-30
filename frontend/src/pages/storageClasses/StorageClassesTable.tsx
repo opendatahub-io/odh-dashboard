@@ -1,7 +1,7 @@
 import React from 'react';
 
-import { Table } from '~/components/table';
-import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
+import { Table } from '#~/components/table';
+import DashboardEmptyTableView from '#~/concepts/dashboard/DashboardEmptyTableView';
 import { columns, initialScFilterData, StorageClassFilterData } from './constants';
 import { isValidConfigValue } from './utils';
 import { StorageClassesTableRow } from './StorageClassesTableRow';

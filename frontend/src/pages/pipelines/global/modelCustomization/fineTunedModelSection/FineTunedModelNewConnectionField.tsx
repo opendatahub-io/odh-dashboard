@@ -1,11 +1,11 @@
 import React from 'react';
-import ConnectionTypeForm from '~/concepts/connectionTypes/ConnectionTypeForm';
-import { ConnectionTypeConfigMapObj } from '~/concepts/connectionTypes/types';
+import ConnectionTypeForm from '#~/concepts/connectionTypes/ConnectionTypeForm';
+import { ConnectionTypeConfigMapObj } from '#~/concepts/connectionTypes/types';
 import {
   getModelServingConnectionTypeName,
   ModelServingCompatibleTypes,
-} from '~/concepts/connectionTypes/utils';
-import { FineTunedModelNewConnectionContext } from '~/pages/pipelines/global/modelCustomization/fineTunedModelSection/FineTunedModelNewConnectionContext';
+} from '#~/concepts/connectionTypes/utils';
+import { FineTunedModelNewConnectionContext } from '#~/pages/pipelines/global/modelCustomization/fineTunedModelSection/FineTunedModelNewConnectionContext';
 
 type FineTunedModelNewConnectionFieldProps = {
   connectionTypes: ConnectionTypeConfigMapObj[];

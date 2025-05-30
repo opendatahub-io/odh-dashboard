@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { Table, TableText, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import { Content, Stack, StackItem } from '@patternfly/react-core';
-import { PipelineRunExperimentsContext } from '~/pages/pipelines/global/runs/PipelineRunExperimentsContext';
-import { ExperimentKF, PipelineRunKF } from '~/concepts/pipelines/kfTypes';
+import { PipelineRunExperimentsContext } from '#~/pages/pipelines/global/runs/PipelineRunExperimentsContext';
+import { ExperimentKF, PipelineRunKF } from '#~/concepts/pipelines/kfTypes';
 import { getGroupRunsByExperiment } from './utils';
 import RestoreRunsTableRowExperiment from './RestoreRunsTableRowExperiment';
 import { RestoreRunsStatusIcon } from './RestoreRunsStatusIcon';

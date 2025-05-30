@@ -1,6 +1,6 @@
 import React from 'react';
-import { TableBase } from '~/components/table';
-import { Identifier, IdentifierResourceType } from '~/types';
+import { TableBase } from '#~/components/table';
+import { Identifier, IdentifierResourceType } from '#~/types';
 import { nodeResourceColumns, DEFAULT_CPU_IDENTIFIER, DEFAULT_MEMORY_IDENTIFIER } from './const';
 import NodeResourceTableRow from './NodeResourceTableRow';
 import ManageNodeResourceModal from './ManageNodeResourceModal';

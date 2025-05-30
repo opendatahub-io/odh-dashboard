@@ -1,7 +1,7 @@
 import * as React from 'react';
-import { EnvVariableDataEntry } from '~/pages/projects/types';
-import FieldList from '~/components/FieldList';
-import { getAdditionalRequiredAWSFields } from '~/pages/projects/screens/spawner/spawnerUtils';
+import { EnvVariableDataEntry } from '#~/pages/projects/types';
+import FieldList from '#~/components/FieldList';
+import { getAdditionalRequiredAWSFields } from '#~/pages/projects/screens/spawner/spawnerUtils';
 
 type AWSFieldProps = {
   values: EnvVariableDataEntry[];

@@ -1,10 +1,10 @@
 import React from 'react';
-import { getConfigMap, isK8sStatus } from '~/api';
-import useNamespaces from '~/pages/notebookController/useNamespaces';
-import { useIsAreaAvailable } from '~/concepts/areas';
-import { SupportedArea } from '~/concepts/areas/types';
-import { allSettledPromises } from '~/utilities/allSettledPromises';
-import useFetchState, { NotReadyError, FetchState } from '~/utilities/useFetchState';
+import { getConfigMap, isK8sStatus } from '#~/api';
+import useNamespaces from '#~/pages/notebookController/useNamespaces';
+import { useIsAreaAvailable } from '#~/concepts/areas';
+import { SupportedArea } from '#~/concepts/areas/types';
+import { allSettledPromises } from '#~/utilities/allSettledPromises';
+import useFetchState, { NotReadyError, FetchState } from '#~/utilities/useFetchState';
 import { ModelCatalogSource, ModelCatalogSourcesObject } from './types';
 import {
   MODEL_CATALOG_SOURCES_CONFIGMAP,

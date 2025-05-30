@@ -13,8 +13,8 @@ import {
   StorageStateKF,
   RuntimeStateKF,
   runtimeStateLabels,
-} from '~/concepts/pipelines/kfTypes';
-import { computeRunStatus } from '~/concepts/pipelines/content/utils';
+} from '#~/concepts/pipelines/kfTypes';
+import { computeRunStatus } from '#~/concepts/pipelines/content/utils';
 
 const run: PipelineRunKF = {
   created_at: '2023-09-05T16:23:25Z',

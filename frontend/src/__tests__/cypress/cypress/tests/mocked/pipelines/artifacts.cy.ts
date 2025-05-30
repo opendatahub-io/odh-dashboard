@@ -3,22 +3,22 @@ import {
   artifactDetails,
   artifactsGlobal,
   artifactsTable,
-} from '~/__tests__/cypress/cypress/pages/pipelines/artifacts';
+} from '#~/__tests__/cypress/cypress/pages/pipelines/artifacts';
 import {
   mockGetArtifactsById,
   mockGetArtifactsResponse,
   mockedArtifactsResponse,
-} from '~/__mocks__/mlmd/mockGetArtifacts';
+} from '#~/__mocks__/mlmd/mockGetArtifacts';
 import {
   buildMockPipeline,
   buildMockRunKF,
   mockMetricsVisualizationRun,
   mockMetricsVisualizationVersion,
-} from '~/__mocks__';
-import { pipelineRunDetails } from '~/__tests__/cypress/cypress/pages/pipelines';
-import { mockArtifactStorage } from '~/__mocks__/mockArtifactStorage';
-import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url';
-import { RuntimeStateKF } from '~/concepts/pipelines/kfTypes';
+} from '#~/__mocks__';
+import { pipelineRunDetails } from '#~/__tests__/cypress/cypress/pages/pipelines';
+import { mockArtifactStorage } from '#~/__mocks__/mockArtifactStorage';
+import { verifyRelativeURL } from '#~/__tests__/cypress/cypress/utils/url';
+import { RuntimeStateKF } from '#~/concepts/pipelines/kfTypes';
 import { configIntercept, dspaIntercepts, projectsIntercept } from './intercepts';
 import { initMlmdIntercepts } from './mlmdUtils';
 

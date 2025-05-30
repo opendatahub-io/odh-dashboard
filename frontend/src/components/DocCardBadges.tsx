@@ -2,11 +2,11 @@ import React from 'react';
 import { Label, LabelGroup, Tooltip } from '@patternfly/react-core';
 import { SyncAltIcon, CheckCircleIcon, ExclamationCircleIcon } from '@patternfly/react-icons';
 import { QuickStartContext, QuickStartContextValues } from '@patternfly/quickstarts';
-import { OdhDocument, OdhDocumentType } from '~/types';
-import { getQuickStartCompletionStatus, CompletionStatusEnum } from '~/utilities/quickStartUtils';
-import { DOC_TYPE_TOOLTIPS } from '~/utilities/const';
-import { getLabelColorForDocType, getDuration, asEnumMember } from '~/utilities/utils';
-import { DOC_TYPE_LABEL } from '~/pages/learningCenter/const';
+import { OdhDocument, OdhDocumentType } from '#~/types';
+import { getQuickStartCompletionStatus, CompletionStatusEnum } from '#~/utilities/quickStartUtils';
+import { DOC_TYPE_TOOLTIPS } from '#~/utilities/const';
+import { getLabelColorForDocType, getDuration, asEnumMember } from '#~/utilities/utils';
+import { DOC_TYPE_LABEL } from '#~/pages/learningCenter/const';
 
 import './OdhCard.scss';
 

@@ -6,7 +6,7 @@ import {
   containsMultipleSlashesPattern,
   triggerFileDownload,
   joinWithCommaAnd,
-} from '~/utilities/string';
+} from '#~/utilities/string';
 
 global.URL.createObjectURL = jest.fn(() => 'test-url');
 

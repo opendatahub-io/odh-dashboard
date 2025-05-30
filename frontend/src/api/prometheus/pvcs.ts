@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { PersistentVolumeClaimKind } from '~/k8sTypes';
-import { POLL_INTERVAL } from '~/utilities/const';
+import { PersistentVolumeClaimKind } from '#~/k8sTypes';
+import { POLL_INTERVAL } from '#~/utilities/const';
 import usePrometheusQuery from './usePrometheusQuery';
 
 export const usePVCFreeAmount = (

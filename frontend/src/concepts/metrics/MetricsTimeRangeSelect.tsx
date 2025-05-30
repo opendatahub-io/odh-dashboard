@@ -1,9 +1,9 @@
 import * as React from 'react';
-import { MetricsCommonContext } from '~/concepts/metrics/MetricsCommonContext';
-import { TimeframeTitle } from '~/concepts/metrics/types';
-import { isTimeframeTitle } from '~/concepts/metrics/utils';
-import { asEnumMember, enumIterator } from '~/utilities/utils';
-import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
+import { MetricsCommonContext } from '#~/concepts/metrics/MetricsCommonContext';
+import { TimeframeTitle } from '#~/concepts/metrics/types';
+import { isTimeframeTitle } from '#~/concepts/metrics/utils';
+import { asEnumMember, enumIterator } from '#~/utilities/utils';
+import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
 
 export const MetricsTimeRangeSelect: React.FC = () => {
   const { currentTimeframe, setCurrentTimeframe } = React.useContext(MetricsCommonContext);

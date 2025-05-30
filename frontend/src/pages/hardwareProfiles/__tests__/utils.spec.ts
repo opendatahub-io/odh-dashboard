@@ -1,12 +1,12 @@
-import { mockHardwareProfile } from '~/__mocks__/mockHardwareProfile';
-import { Identifier, IdentifierResourceType } from '~/types';
+import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile';
+import { Identifier, IdentifierResourceType } from '#~/types';
 import {
   determineIdentifierUnit,
   isHardwareProfileIdentifierValid,
   validateProfileWarning,
-} from '~/pages/hardwareProfiles/utils';
-import { HardwareProfileWarningType } from '~/concepts/hardwareProfiles/types';
-import { CPU_UNITS, MEMORY_UNITS_FOR_SELECTION, OTHER } from '~/utilities/valueUnits';
+} from '#~/pages/hardwareProfiles/utils';
+import { HardwareProfileWarningType } from '#~/concepts/hardwareProfiles/types';
+import { CPU_UNITS, MEMORY_UNITS_FOR_SELECTION, OTHER } from '#~/utilities/valueUnits';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sListResource: jest.fn(),

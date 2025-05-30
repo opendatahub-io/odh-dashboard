@@ -1,7 +1,7 @@
 import React from 'react';
 import { Gallery, GalleryItem, Title, Stack, StackItem } from '@patternfly/react-core';
-import { CatalogModel, ModelCatalogSource } from '~/concepts/modelCatalog/types';
-import { ModelCatalogCard } from '~/concepts/modelCatalog/content/ModelCatalogCard';
+import { CatalogModel, ModelCatalogSource } from '#~/concepts/modelCatalog/types';
+import { ModelCatalogCard } from '#~/concepts/modelCatalog/content/ModelCatalogCard';
 
 const ModelCatalogSection: React.FC<{ source: ModelCatalogSource }> = ({ source }) => (
   <Stack hasGutter>

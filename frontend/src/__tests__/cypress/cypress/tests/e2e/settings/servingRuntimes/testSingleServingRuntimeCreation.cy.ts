@@ -1,9 +1,9 @@
-import { servingRuntimes } from '~/__tests__/cypress/cypress/pages/servingRuntimes';
-import { HTPASSWD_CLUSTER_ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
-import { getSingleModelPath } from '~/__tests__/cypress/cypress/utils/fileImportUtils';
-import { getSingleModelServingRuntimeInfo } from '~/__tests__/cypress/cypress/utils/fileParserUtil';
-import { cleanupTemplates } from '~/__tests__/cypress/cypress/utils/oc_commands/templates';
-import { retryableBefore } from '~/__tests__/cypress/cypress/utils/retryableHooks';
+import { servingRuntimes } from '#~/__tests__/cypress/cypress/pages/servingRuntimes';
+import { HTPASSWD_CLUSTER_ADMIN_USER } from '#~/__tests__/cypress/cypress/utils/e2eUsers';
+import { getSingleModelPath } from '#~/__tests__/cypress/cypress/utils/fileImportUtils';
+import { getSingleModelServingRuntimeInfo } from '#~/__tests__/cypress/cypress/utils/fileParserUtil';
+import { cleanupTemplates } from '#~/__tests__/cypress/cypress/utils/oc_commands/templates';
+import { retryableBefore } from '#~/__tests__/cypress/cypress/utils/retryableHooks';
 
 let modelServingSingleName: string;
 let metadataSingleDisplayName: string;

@@ -6,9 +6,9 @@ import remarkGfm from 'remark-gfm';
 import rehypeSanitize from 'rehype-sanitize';
 import rehypeRaw from 'rehype-raw';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
-import LinkComponent from '~/components/markdown/components/LinkComponent';
-import DetailsComponent from '~/components/markdown/components/DetailsComponent';
-import CodeBlockComponent from '~/components/markdown/components/CodeBlockComponent';
+import LinkComponent from '#~/components/markdown/components/LinkComponent';
+import DetailsComponent from '#~/components/markdown/components/DetailsComponent';
+import CodeBlockComponent from '#~/components/markdown/components/CodeBlockComponent';
 import './MarkdownComponent.scss';
 import { shiftHeadingLevel } from './utils';
 

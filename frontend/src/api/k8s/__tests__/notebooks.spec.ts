@@ -6,13 +6,13 @@ import {
   k8sDeleteResource,
   K8sStatus,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { NotebookKind } from '~/k8sTypes';
-import { Toleration } from '~/types';
-import { mockNotebookK8sResource } from '~/__mocks__/mockNotebookK8sResource';
-import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
-import { mock200Status } from '~/__mocks__/mockK8sStatus';
-import { mockRoleBindingK8sResource } from '~/__mocks__/mockRoleBindingK8sResource';
-import { mockStartNotebookData } from '~/__mocks__/mockStartNotebookData';
+import { NotebookKind } from '#~/k8sTypes';
+import { Toleration } from '#~/types';
+import { mockNotebookK8sResource } from '#~/__mocks__/mockNotebookK8sResource';
+import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
+import { mock200Status } from '#~/__mocks__/mockK8sStatus';
+import { mockRoleBindingK8sResource } from '#~/__mocks__/mockRoleBindingK8sResource';
+import { mockStartNotebookData } from '#~/__mocks__/mockStartNotebookData';
 
 import {
   assembleNotebook,
@@ -32,19 +32,19 @@ import {
   mergePatchUpdateNotebook,
   restartNotebook,
   patchNotebookImage,
-} from '~/api/k8s/notebooks';
+} from '#~/api/k8s/notebooks';
 
 import {
   createElyraServiceAccountRoleBinding,
   getPipelineVolumePatch,
   getPipelineVolumeMountPatch,
   ELYRA_VOLUME_NAME,
-} from '~/concepts/pipelines/elyra/utils';
+} from '#~/concepts/pipelines/elyra/utils';
 
-import { TolerationChanges, getTolerationPatch } from '~/utilities/tolerations';
-import { NotebookModel } from '~/api/models';
-import { k8sMergePatchResource } from '~/api/k8sUtils';
-import { mockImageStreamK8sResource } from '~/__mocks__/mockImageStreamK8sResource';
+import { TolerationChanges, getTolerationPatch } from '#~/utilities/tolerations';
+import { NotebookModel } from '#~/api/models';
+import { k8sMergePatchResource } from '#~/api/k8sUtils';
+import { mockImageStreamK8sResource } from '#~/__mocks__/mockImageStreamK8sResource';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sCreateResource: jest.fn(),
@@ -54,12 +54,12 @@ jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sPatchResource: jest.fn(),
 }));
 
-jest.mock('~/api/k8sUtils', () => ({
+jest.mock('#~/api/k8sUtils', () => ({
   k8sMergePatchResource: jest.fn(),
 }));
 
-jest.mock('~/concepts/pipelines/elyra/utils', () => {
-  const originalModule = jest.requireActual('~/concepts/pipelines/elyra/utils');
+jest.mock('#~/concepts/pipelines/elyra/utils', () => {
+  const originalModule = jest.requireActual('#~/concepts/pipelines/elyra/utils');
   return {
     ...originalModule,
     createElyraServiceAccountRoleBinding: jest.fn(),

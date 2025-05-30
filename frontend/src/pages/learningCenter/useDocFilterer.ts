@@ -1,7 +1,7 @@
 import * as React from 'react';
-import { useQueryParams } from '~/utilities/useQueryParams';
-import { OdhDocument } from '~/types';
-import { matchesCategories, matchesSearch } from '~/utilities/utils';
+import { useQueryParams } from '#~/utilities/useQueryParams';
+import { OdhDocument } from '#~/types';
+import { matchesCategories, matchesSearch } from '#~/utilities/utils';
 import {
   APPLICATION_FILTER_KEY,
   CATEGORY_FILTER_KEY,

@@ -14,24 +14,24 @@ import {
   getCreateInferenceServiceLabels,
   submitInferenceServiceResourceWithDryRun,
   useCreateInferenceServiceObject,
-} from '~/pages/modelServing/screens/projects/utils';
-import { InferenceServiceKind, ProjectKind, ServingRuntimeKind } from '~/k8sTypes';
-import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
-import { InferenceServiceStorageType } from '~/pages/modelServing/screens/types';
-import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
-import { Connection } from '~/concepts/connectionTypes/types';
+} from '#~/pages/modelServing/screens/projects/utils';
+import { InferenceServiceKind, ProjectKind, ServingRuntimeKind } from '#~/k8sTypes';
+import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
+import { InferenceServiceStorageType } from '#~/pages/modelServing/screens/types';
+import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
+import { Connection } from '#~/concepts/connectionTypes/types';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
-} from '~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
-import { isK8sNameDescriptionDataValid } from '~/concepts/k8s/K8sNameDescriptionField/utils';
+} from '#~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
+import { isK8sNameDescriptionDataValid } from '#~/concepts/k8s/K8sNameDescriptionField/utils';
 import usePrefillModelDeployModal, {
   ModelDeployPrefillInfo,
-} from '~/pages/modelServing/screens/projects/usePrefillModelDeployModal';
+} from '#~/pages/modelServing/screens/projects/usePrefillModelDeployModal';
 import {
   isModelServingCompatible,
   ModelServingCompatibleTypes,
-} from '~/concepts/connectionTypes/utils';
-import { useModelDeploymentNotification } from '~/pages/modelServing/screens/projects/useModelDeploymentNotification';
+} from '#~/concepts/connectionTypes/utils';
+import { useModelDeploymentNotification } from '#~/pages/modelServing/screens/projects/useModelDeploymentNotification';
 import ProjectSection from './ProjectSection';
 import InferenceServiceFrameworkSection from './InferenceServiceFrameworkSection';
 import InferenceServiceServingRuntimeSection from './InferenceServiceServingRuntimeSection';

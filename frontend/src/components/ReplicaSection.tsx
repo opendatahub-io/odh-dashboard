@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { FormGroup, Popover, Icon, Flex, FlexItem } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
-import NumberInputWrapper from '~/components/NumberInputWrapper';
-import { normalizeBetween } from '~/utilities/utils';
+import NumberInputWrapper from '#~/components/NumberInputWrapper';
+import { normalizeBetween } from '#~/utilities/utils';
 
 const lowerLimit = 0;
 const upperLimit = 99;

@@ -3,22 +3,22 @@ import {
   mockDashboardConfig,
   mockDscStatus,
   mockK8sResourceList,
-} from '~/__mocks__';
-import { mockDsciStatus } from '~/__mocks__/mockDsciStatus';
-import { StackComponent } from '~/concepts/areas/types';
+} from '#~/__mocks__';
+import { mockDsciStatus } from '#~/__mocks__/mockDsciStatus';
+import { StackComponent } from '#~/concepts/areas/types';
 import {
   FormFieldSelector,
   modelRegistrySettings,
-} from '~/__tests__/cypress/cypress/pages/modelRegistrySettings';
-import { pageNotfound } from '~/__tests__/cypress/cypress/pages/pageNotFound';
+} from '#~/__tests__/cypress/cypress/pages/modelRegistrySettings';
+import { pageNotfound } from '#~/__tests__/cypress/cypress/pages/pageNotFound';
 import {
   asProductAdminUser,
   asProjectAdminUser,
-} from '~/__tests__/cypress/cypress/utils/mockUsers';
-import { mockModelRegistry } from '~/__mocks__/mockModelRegistry';
-import type { ConfigSecretItem, RoleBindingSubject } from '~/k8sTypes';
-import { mockRoleBindingK8sResource } from '~/__mocks__/mockRoleBindingK8sResource';
-import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url';
+} from '#~/__tests__/cypress/cypress/utils/mockUsers';
+import { mockModelRegistry } from '#~/__mocks__/mockModelRegistry';
+import type { ConfigSecretItem, RoleBindingSubject } from '#~/k8sTypes';
+import { mockRoleBindingK8sResource } from '#~/__mocks__/mockRoleBindingK8sResource';
+import { verifyRelativeURL } from '#~/__tests__/cypress/cypress/utils/url';
 
 const groupSubjects: RoleBindingSubject[] = [
   {

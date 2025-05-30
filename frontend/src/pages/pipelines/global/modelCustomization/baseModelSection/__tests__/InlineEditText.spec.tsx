@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import InlineEditText from '~/pages/pipelines/global/modelCustomization/baseModelSection/InlineEditText';
+import InlineEditText from '#~/pages/pipelines/global/modelCustomization/baseModelSection/InlineEditText';
 import '@testing-library/jest-dom';
 
 describe('InlineEditText', () => {

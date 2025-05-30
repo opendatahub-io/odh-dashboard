@@ -18,15 +18,15 @@ import {
   ModalFooter,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
-import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
-import { Toleration, TolerationEffect, TolerationOperator } from '~/types';
-import useGenericObjectState from '~/utilities/useGenericObjectState';
-import SimpleSelect from '~/components/SimpleSelect';
-import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
-import NumberInputWrapper from '~/components/NumberInputWrapper';
-import { asEnumMember } from '~/utilities/utils';
-import { useValidation } from '~/utilities/useValidation';
-import { tolerationSchema } from '~/pages/hardwareProfiles/manage/validationUtils';
+import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
+import { Toleration, TolerationEffect, TolerationOperator } from '#~/types';
+import useGenericObjectState from '#~/utilities/useGenericObjectState';
+import SimpleSelect from '#~/components/SimpleSelect';
+import DashboardPopupIconButton from '#~/concepts/dashboard/DashboardPopupIconButton';
+import NumberInputWrapper from '#~/components/NumberInputWrapper';
+import { asEnumMember } from '#~/utilities/utils';
+import { useValidation } from '#~/utilities/useValidation';
+import { tolerationSchema } from '#~/pages/hardwareProfiles/manage/validationUtils';
 import { effectDropdownOptions, EMPTY_TOLERATION, operatorDropdownOptions } from './const';
 
 type ManageTolerationModalProps = {

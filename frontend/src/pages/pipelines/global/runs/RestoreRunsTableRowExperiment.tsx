@@ -1,7 +1,7 @@
 import { Flex, FlexItem, Label } from '@patternfly/react-core';
 import React from 'react';
 import { TableText } from '@patternfly/react-table';
-import { ExperimentKF } from '~/concepts/pipelines/kfTypes';
+import { ExperimentKF } from '#~/concepts/pipelines/kfTypes';
 
 import { RestoreRunsStatusIcon } from './RestoreRunsStatusIcon';
 import { StatusEntry } from './types';

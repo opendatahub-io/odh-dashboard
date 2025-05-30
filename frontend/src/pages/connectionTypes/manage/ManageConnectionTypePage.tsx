@@ -15,37 +15,37 @@ import {
 } from '@patternfly/react-core';
 import { useNavigate } from 'react-router';
 import { OpenDrawerRightIcon, OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
-import { useUser } from '~/redux/selectors';
+import { useUser } from '#~/redux/selectors';
 import {
   ConnectionTypeConfigMapObj,
   ConnectionTypeFormData,
-} from '~/concepts/connectionTypes/types';
-import ConnectionTypePreviewDrawer from '~/concepts/connectionTypes/ConnectionTypePreviewDrawer';
+} from '#~/concepts/connectionTypes/types';
+import ConnectionTypePreviewDrawer from '#~/concepts/connectionTypes/ConnectionTypePreviewDrawer';
 import {
   createConnectionTypeObj,
   extractConnectionTypeFromMap,
-} from '~/concepts/connectionTypes/createConnectionTypeUtils';
+} from '#~/concepts/connectionTypes/createConnectionTypeUtils';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
-} from '~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
-import { isK8sNameDescriptionDataValid } from '~/concepts/k8s/K8sNameDescriptionField/utils';
-import ApplicationsPage from '~/pages/ApplicationsPage';
-import { MultiSelection, SelectionOptions } from '~/components/MultiSelection';
-import { categoryOptions } from '~/pages/connectionTypes/const';
-import useGenericObjectState from '~/utilities/useGenericObjectState';
-import { useValidation, ValidationContext } from '~/utilities/useValidation';
+} from '#~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
+import { isK8sNameDescriptionDataValid } from '#~/concepts/k8s/K8sNameDescriptionField/utils';
+import ApplicationsPage from '#~/pages/ApplicationsPage';
+import { MultiSelection, SelectionOptions } from '#~/components/MultiSelection';
+import { categoryOptions } from '#~/pages/connectionTypes/const';
+import useGenericObjectState from '#~/utilities/useGenericObjectState';
+import { useValidation, ValidationContext } from '#~/utilities/useValidation';
 import {
   connectionTypeFormSchema,
   ValidationErrorCodes,
-} from '~/concepts/connectionTypes/validationUtils';
-import { useWatchConnectionTypes } from '~/utilities/useWatchConnectionTypes';
+} from '#~/concepts/connectionTypes/validationUtils';
+import { useWatchConnectionTypes } from '#~/utilities/useWatchConnectionTypes';
 import {
   filterModelServingConnectionTypes,
   getModelServingCompatibility,
-} from '~/concepts/connectionTypes/utils';
-import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
-import SimpleMenuActions from '~/components/SimpleMenuActions';
-import { joinWithCommaAnd } from '~/utilities/string';
+} from '#~/concepts/connectionTypes/utils';
+import DashboardPopupIconButton from '#~/concepts/dashboard/DashboardPopupIconButton';
+import SimpleMenuActions from '#~/components/SimpleMenuActions';
+import { joinWithCommaAnd } from '#~/utilities/string';
 import CreateConnectionTypeFooter from './ManageConnectionTypeFooter';
 import ManageConnectionTypeFieldsTable from './ManageConnectionTypeFieldsTable';
 import ManageConnectionTypeBreadcrumbs from './ManageConnectionTypeBreadcrumbs';

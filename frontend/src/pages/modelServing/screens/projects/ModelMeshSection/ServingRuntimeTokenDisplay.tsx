@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { HelperText, HelperTextItem, Skeleton } from '@patternfly/react-core';
-import { SecretKind } from '~/k8sTypes';
-import InlineTruncatedClipboardCopy from '~/components/InlineTruncatedClipboardCopy';
+import { SecretKind } from '#~/k8sTypes';
+import InlineTruncatedClipboardCopy from '#~/components/InlineTruncatedClipboardCopy';
 
 type ServingRuntimeTokenDisplayProps = {
   token: SecretKind;

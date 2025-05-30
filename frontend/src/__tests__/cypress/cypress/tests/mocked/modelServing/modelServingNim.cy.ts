@@ -1,14 +1,14 @@
-import { initInterceptsToEnableNim } from '~/__tests__/cypress/cypress/utils/nimUtils';
-import { mockNimInferenceService, mockNimServingRuntime } from '~/__mocks__/mockNimResource';
+import { initInterceptsToEnableNim } from '#~/__tests__/cypress/cypress/utils/nimUtils';
+import { mockNimInferenceService, mockNimServingRuntime } from '#~/__mocks__/mockNimResource';
 import {
   InferenceServiceModel,
   ServingRuntimeModel,
-} from '~/__tests__/cypress/cypress/utils/models';
-import { mockK8sResourceList } from '~/__mocks__';
+} from '#~/__tests__/cypress/cypress/utils/models';
+import { mockK8sResourceList } from '#~/__mocks__';
 import {
   modelServingGlobal,
   modelServingSection,
-} from '~/__tests__/cypress/cypress/pages/modelServing';
+} from '#~/__tests__/cypress/cypress/pages/modelServing';
 
 describe('NIM Models Deployments', () => {
   it('should be listed in the global models list', () => {

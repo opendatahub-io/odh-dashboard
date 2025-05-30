@@ -1,13 +1,13 @@
 import React from 'react';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { PipelineRunKF } from '~/concepts/pipelines/kfTypes';
-import useFetchState, { FetchState, FetchStateCallbackPromise } from '~/utilities/useFetchState';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+import { PipelineRunKF } from '#~/concepts/pipelines/kfTypes';
+import useFetchState, { FetchState, FetchStateCallbackPromise } from '#~/utilities/useFetchState';
 import {
   GetArtifactsByContextRequest,
   GetEventsByExecutionIDsRequest,
   GetExecutionsByContextRequest,
-} from '~/third_party/mlmd/generated/ml_metadata/proto/metadata_store_service_pb';
-import { Context } from '~/third_party/mlmd';
+} from '#~/third_party/mlmd/generated/ml_metadata/proto/metadata_store_service_pb';
+import { Context } from '#~/third_party/mlmd';
 import { PipelineRunRelatedMlmd } from './types';
 
 const useMlmdPackagesForPipelineRuns = (

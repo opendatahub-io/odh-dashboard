@@ -1,21 +1,21 @@
 import type { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
-import { homePage } from '~/__tests__/cypress/cypress/pages/home/home';
+import { homePage } from '#~/__tests__/cypress/cypress/pages/home/home';
 import {
   mockConfigMap404Response,
   mockManagedModelCatalogConfigMap,
   mockModelCatalogConfigMap,
   mockUnmanagedModelCatalogConfigMap,
-} from '~/__mocks__/mockModelCatalogConfigMap';
-import type { ModelCatalogSource } from '~/concepts/modelCatalog/types';
-import { ConfigMapModel, ServiceModel } from '~/__tests__/cypress/cypress/utils/models';
-import { mockModelCatalogSource } from '~/__mocks__/mockModelCatalogSource';
+} from '#~/__mocks__/mockModelCatalogConfigMap';
+import type { ModelCatalogSource } from '#~/concepts/modelCatalog/types';
+import { ConfigMapModel, ServiceModel } from '#~/__tests__/cypress/cypress/utils/models';
+import { mockModelCatalogSource } from '#~/__mocks__/mockModelCatalogSource';
 import {
   mockDashboardConfig,
   mockDscStatus,
   mockK8sResourceList,
   mockModelRegistryService,
-} from '~/__mocks__';
-import { mockCatalogModel } from '~/__mocks__/mockCatalogModel';
+} from '#~/__mocks__';
+import { mockCatalogModel } from '#~/__mocks__/mockCatalogModel';
 
 type HandlersProps = {
   modelRegistries?: K8sResourceCommon[];

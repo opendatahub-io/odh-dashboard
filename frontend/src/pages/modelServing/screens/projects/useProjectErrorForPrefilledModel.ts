@@ -1,6 +1,6 @@
 import React from 'react';
-import { ServingRuntimePlatform } from '~/types';
-import { ModelServingContext } from '~/pages/modelServing/ModelServingContext';
+import { ServingRuntimePlatform } from '#~/types';
+import { ModelServingContext } from '#~/pages/modelServing/ModelServingContext';
 
 const useProjectErrorForPrefilledModel = (
   projectName?: string,

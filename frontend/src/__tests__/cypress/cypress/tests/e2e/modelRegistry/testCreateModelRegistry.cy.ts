@@ -1,10 +1,10 @@
-import { HTPASSWD_CLUSTER_ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
+import { HTPASSWD_CLUSTER_ADMIN_USER } from '#~/__tests__/cypress/cypress/utils/e2eUsers';
 import {
   FormFieldSelector,
   modelRegistrySettings,
-} from '~/__tests__/cypress/cypress/pages/modelRegistrySettings';
-import { retryableBeforeEach } from '~/__tests__/cypress/cypress/utils/retryableHooks';
-import { checkModelRegistry } from '~/__tests__/cypress/cypress/utils/oc_commands/modelRegistry';
+} from '#~/__tests__/cypress/cypress/pages/modelRegistrySettings';
+import { retryableBeforeEach } from '#~/__tests__/cypress/cypress/utils/retryableHooks';
+import { checkModelRegistry } from '#~/__tests__/cypress/cypress/utils/oc_commands/modelRegistry';
 
 describe('Verify a model registry can be created and deleted', () => {
   const registryName = `e2e-test-registry`;

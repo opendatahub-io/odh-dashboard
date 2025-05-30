@@ -1,6 +1,6 @@
 import React from 'react';
-import { RegisteredModel } from '~/concepts/modelRegistry/types';
-import TypeaheadSelect, { TypeaheadSelectOption } from '~/components/TypeaheadSelect';
+import { RegisteredModel } from '#~/concepts/modelRegistry/types';
+import TypeaheadSelect, { TypeaheadSelectOption } from '#~/components/TypeaheadSelect';
 
 type RegisteredModelSelectorProps = {
   registeredModels: RegisteredModel[];

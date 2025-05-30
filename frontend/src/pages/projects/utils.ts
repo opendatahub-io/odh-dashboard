@@ -1,6 +1,6 @@
-import { NotebookKind, PersistentVolumeClaimKind } from '~/k8sTypes';
-import { NotebookSize } from '~/types';
-import { formatMemory } from '~/utilities/valueUnits';
+import { NotebookKind, PersistentVolumeClaimKind } from '#~/k8sTypes';
+import { NotebookSize } from '#~/types';
+import { formatMemory } from '#~/utilities/valueUnits';
 import { NotebookState } from './notebook/types';
 
 export const getNotebookStatusPriority = (notebookState: NotebookState): number =>

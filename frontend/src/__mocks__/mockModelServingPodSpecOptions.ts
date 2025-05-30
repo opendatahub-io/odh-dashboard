@@ -1,4 +1,4 @@
-import { ModelServingPodSpecOptions } from '~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
+import { ModelServingPodSpecOptions } from '#~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
 
 type MockResourceConfigType = Partial<ModelServingPodSpecOptions>;
 

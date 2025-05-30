@@ -1,7 +1,7 @@
 import React from 'react';
 import { Label, Tooltip } from '@patternfly/react-core';
-import { PipelineRunLabels } from '~/concepts/pipelines/content/tables/utils';
-import { PipelineRecurringRunKF, PipelineRunKF } from '~/concepts/pipelines/kfTypes';
+import { PipelineRunLabels } from '#~/concepts/pipelines/content/tables/utils';
+import { PipelineRecurringRunKF, PipelineRunKF } from '#~/concepts/pipelines/kfTypes';
 
 type PipelineRunTypeLabelProps = {
   run: PipelineRunKF | PipelineRecurringRunKF;

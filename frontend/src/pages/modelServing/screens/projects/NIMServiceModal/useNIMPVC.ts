@@ -1,6 +1,6 @@
 import React from 'react';
-import { PersistentVolumeClaimKind, ServingRuntimeKind } from '~/k8sTypes';
-import { getPvc } from '~/api';
+import { PersistentVolumeClaimKind, ServingRuntimeKind } from '#~/k8sTypes';
+import { getPvc } from '#~/api';
 
 type NIMPVCState = {
   pvcSize: string;

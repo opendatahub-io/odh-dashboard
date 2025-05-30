@@ -6,10 +6,10 @@ import {
   k8sCreateResource,
   k8sUpdateResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { AcceleratorProfileKind, K8sAPIOptions } from '~/k8sTypes';
-import { AcceleratorProfileModel } from '~/api/models';
-import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
-import { kindApiVersion, translateDisplayNameForK8s } from '~/concepts/k8s/utils';
+import { AcceleratorProfileKind, K8sAPIOptions } from '#~/k8sTypes';
+import { AcceleratorProfileModel } from '#~/api/models';
+import { applyK8sAPIOptions } from '#~/api/apiMergeUtils';
+import { kindApiVersion, translateDisplayNameForK8s } from '#~/concepts/k8s/utils';
 
 export const listAcceleratorProfiles = async (
   namespace: string,

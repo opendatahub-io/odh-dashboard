@@ -1,4 +1,4 @@
-import type { ExperimentKF } from '~/concepts/pipelines/kfTypes';
+import type { ExperimentKF } from '#~/concepts/pipelines/kfTypes';
 
 class PipelineFilterBar {
   find() {

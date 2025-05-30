@@ -1,9 +1,9 @@
-import { replacePlaceholdersInYaml } from '~/__tests__/cypress/cypress/utils/yaml_files';
+import { replacePlaceholdersInYaml } from '#~/__tests__/cypress/cypress/utils/yaml_files';
 import type {
   DspaSecretReplacements,
   DspaReplacements,
   CommandLineResult,
-} from '~/__tests__/cypress/cypress/types';
+} from '#~/__tests__/cypress/cypress/types';
 import { applyOpenShiftYaml } from './baseCommands';
 
 /**

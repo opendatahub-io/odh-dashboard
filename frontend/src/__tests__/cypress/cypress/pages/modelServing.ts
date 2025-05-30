@@ -1,8 +1,8 @@
-import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
-import { Modal } from '~/__tests__/cypress/cypress/pages/components/Modal';
-import { TableRow } from '~/__tests__/cypress/cypress/pages/components/table';
-import { mixin } from '~/__tests__/cypress/cypress/utils/mixin';
-import { K8sNameDescriptionField } from '~/__tests__/cypress/cypress/pages/components/subComponents/K8sNameDescriptionField';
+import { appChrome } from '#~/__tests__/cypress/cypress/pages/appChrome';
+import { Modal } from '#~/__tests__/cypress/cypress/pages/components/Modal';
+import { TableRow } from '#~/__tests__/cypress/cypress/pages/components/table';
+import { mixin } from '#~/__tests__/cypress/cypress/utils/mixin';
+import { K8sNameDescriptionField } from '#~/__tests__/cypress/cypress/pages/components/subComponents/K8sNameDescriptionField';
 import { Contextual } from './components/Contextual';
 
 class ModelServingToolbar extends Contextual<HTMLElement> {

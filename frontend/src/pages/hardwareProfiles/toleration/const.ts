@@ -1,6 +1,6 @@
-import { SimpleSelectOption } from '~/components/SimpleSelect';
-import { SortableData } from '~/components/table';
-import { Toleration, TolerationEffect, TolerationOperator } from '~/types';
+import { SimpleSelectOption } from '#~/components/SimpleSelect';
+import { SortableData } from '#~/components/table';
+import { Toleration, TolerationEffect, TolerationOperator } from '#~/types';
 
 export const tolerationColumns: SortableData<Toleration>[] = [
   {

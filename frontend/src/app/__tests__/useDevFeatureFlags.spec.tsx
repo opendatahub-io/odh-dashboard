@@ -4,12 +4,12 @@ import { useSearchParams } from 'react-router-dom';
 import { PluginStoreProvider } from '@openshift/dynamic-plugin-sdk';
 import { PluginStore } from '@odh-dashboard/plugin-core';
 import { RenderOptions } from '@testing-library/react';
-import { renderHook } from '~/__tests__/unit/testUtils/hooks';
-import useDevFeatureFlags from '~/app/useDevFeatureFlags';
-import { useBrowserStorage } from '~/components/browserStorage/BrowserStorageContext';
-import { definedFeatureFlags } from '~/concepts/areas/const';
-import { DashboardConfigKind } from '~/k8sTypes';
-import axios from '~/utilities/axios';
+import { renderHook } from '#~/__tests__/unit/testUtils/hooks';
+import useDevFeatureFlags from '#~/app/useDevFeatureFlags';
+import { useBrowserStorage } from '#~/components/browserStorage/BrowserStorageContext';
+import { definedFeatureFlags } from '#~/concepts/areas/const';
+import { DashboardConfigKind } from '#~/k8sTypes';
+import axios from '#~/utilities/axios';
 
 jest.mock('react-router-dom', () => ({
   useSearchParams: jest.fn(() => [
@@ -17,10 +17,10 @@ jest.mock('react-router-dom', () => ({
     jest.fn(),
   ]),
 }));
-jest.mock('~/components/browserStorage/BrowserStorageContext', () => ({
+jest.mock('#~/components/browserStorage/BrowserStorageContext', () => ({
   useBrowserStorage: jest.fn(() => [null, jest.fn()]),
 }));
-jest.mock('~/utilities/axios', () => ({
+jest.mock('#~/utilities/axios', () => ({
   __esModule: true,
   default: {
     defaults: {

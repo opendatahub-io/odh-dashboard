@@ -1,17 +1,17 @@
 import * as React from 'react';
-import { PrometheusQueryRangeResponseDataResult, PrometheusQueryRangeResultValue } from '~/types';
-import { FetchStateObject } from '~/utilities/useFetch';
+import { PrometheusQueryRangeResponseDataResult, PrometheusQueryRangeResultValue } from '#~/types';
+import { FetchStateObject } from '#~/utilities/useFetch';
 import {
   ModelMetricType,
   ServerMetricType,
-} from '~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
-import { PerformanceMetricType } from '~/pages/modelServing/screens/types';
-import { RefreshIntervalTitle, TimeframeTitle } from '~/concepts/metrics/types';
-import { RefreshIntervalValue } from '~/concepts/metrics/const';
-import useRefreshInterval from '~/utilities/useRefreshInterval';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import { PROMETHEUS_BIAS_PATH } from '~/api/prometheus/const';
-import { EitherNotBoth } from '~/typeHelpers';
+} from '#~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
+import { PerformanceMetricType } from '#~/pages/modelServing/screens/types';
+import { RefreshIntervalTitle, TimeframeTitle } from '#~/concepts/metrics/types';
+import { RefreshIntervalValue } from '#~/concepts/metrics/const';
+import useRefreshInterval from '#~/utilities/useRefreshInterval';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { PROMETHEUS_BIAS_PATH } from '#~/api/prometheus/const';
+import { EitherNotBoth } from '#~/typeHelpers';
 import useQueryRangeResourceData from './useQueryRangeResourceData';
 import {
   defaultResponsePredicate,

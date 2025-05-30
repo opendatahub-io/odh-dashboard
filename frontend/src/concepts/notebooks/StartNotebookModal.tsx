@@ -35,13 +35,13 @@ import {
   t_global_text_color_status_warning_default as WarningColor,
 } from '@patternfly/react-tokens';
 import { InfoCircleIcon, InProgressIcon } from '@patternfly/react-icons';
-import { EventStatus, NotebookStatus, ProgressionStepTitles } from '~/types';
-import { EventKind, NotebookKind } from '~/k8sTypes';
+import { EventStatus, NotebookStatus, ProgressionStepTitles } from '#~/types';
+import { EventKind, NotebookKind } from '#~/k8sTypes';
 import {
   getEventFullMessage,
   getEventTimestamp,
   useNotebookProgress,
-} from '~/utilities/notebookControllerUtils';
+} from '#~/utilities/notebookControllerUtils';
 import NotebookStatusLabel from './NotebookStatusLabel';
 
 const PROGRESS_TAB = 'Progress';

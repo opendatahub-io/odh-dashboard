@@ -1,6 +1,6 @@
 import React from 'react';
 import { FormGroup, ExpandableSection, Radio } from '@patternfly/react-core';
-import FormSection from '~/components/pf-overrides/FormSection';
+import FormSection from '#~/components/pf-overrides/FormSection';
 import DatabaseConnectionField from './DatabaseConnectionField';
 import { PipelineServerConfigType } from './types';
 

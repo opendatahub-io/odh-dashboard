@@ -232,9 +232,6 @@ module.exports = (env) => ({
   ],
   resolve: {
     extensions: ['.js', '.ts', '.tsx', '.jsx'],
-    alias: {
-      '~': path.resolve(SRC_DIR),
-    },
     symlinks: true,
     cacheWithContext: false,
   },

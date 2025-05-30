@@ -1,11 +1,11 @@
-import { getGroupsConfig } from '~/__tests__/cypress/cypress/utils/oc_commands/groupConfig';
+import { getGroupsConfig } from '#~/__tests__/cypress/cypress/utils/oc_commands/groupConfig';
 import {
   HTPASSWD_CLUSTER_ADMIN_USER,
   LDAP_CONTRIBUTOR_USER,
-} from '~/__tests__/cypress/cypress/utils/e2eUsers';
-import { userManagement } from '~/__tests__/cypress/cypress/pages/userManagement';
-import { retryableBeforeEach } from '~/__tests__/cypress/cypress/utils/retryableHooks';
-import { notFoundPage } from '~/__tests__/cypress/cypress/pages/notFound';
+} from '#~/__tests__/cypress/cypress/utils/e2eUsers';
+import { userManagement } from '#~/__tests__/cypress/cypress/pages/userManagement';
+import { retryableBeforeEach } from '#~/__tests__/cypress/cypress/utils/retryableHooks';
+import { notFoundPage } from '#~/__tests__/cypress/cypress/pages/notFound';
 
 describe('Settings - User Management - Unauthorized Permission Change', () => {
   retryableBeforeEach(() => {

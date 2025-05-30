@@ -1,13 +1,13 @@
 import * as React from 'react';
 import { TextInput, ToolbarItem } from '@patternfly/react-core';
-import PipelineFilterBar from '~/concepts/pipelines/content/tables/PipelineFilterBar';
-import { FilterOptions } from '~/concepts/pipelines/content/tables/usePipelineFilter';
-import DashboardDatePicker from '~/components/DashboardDatePicker';
-import ImportPipelineSplitButton from '~/concepts/pipelines/content/import/ImportPipelineSplitButton';
-import SimpleMenuActions from '~/components/SimpleMenuActions';
-import DeletePipelinesModal from '~/concepts/pipelines/content/DeletePipelinesModal';
-import { PipelineAndVersionContext } from '~/concepts/pipelines/content/PipelineAndVersionContext';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
+import PipelineFilterBar from '#~/concepts/pipelines/content/tables/PipelineFilterBar';
+import { FilterOptions } from '#~/concepts/pipelines/content/tables/usePipelineFilter';
+import DashboardDatePicker from '#~/components/DashboardDatePicker';
+import ImportPipelineSplitButton from '#~/concepts/pipelines/content/import/ImportPipelineSplitButton';
+import SimpleMenuActions from '#~/components/SimpleMenuActions';
+import DeletePipelinesModal from '#~/concepts/pipelines/content/DeletePipelinesModal';
+import { PipelineAndVersionContext } from '#~/concepts/pipelines/content/PipelineAndVersionContext';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 
 const options = {
   [FilterOptions.NAME]: 'Pipeline name',

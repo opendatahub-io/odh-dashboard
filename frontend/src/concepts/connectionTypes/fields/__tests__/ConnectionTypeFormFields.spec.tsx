@@ -1,8 +1,8 @@
 import * as React from 'react';
 import '@testing-library/jest-dom';
 import { render, within } from '@testing-library/react';
-import { ConnectionTypeField } from '~/concepts/connectionTypes/types';
-import ConnectionTypeFormFields from '~/concepts/connectionTypes/fields/ConnectionTypeFormFields';
+import { ConnectionTypeField } from '#~/concepts/connectionTypes/types';
+import ConnectionTypeFormFields from '#~/concepts/connectionTypes/fields/ConnectionTypeFormFields';
 
 const testFields: ConnectionTypeField[] = [
   {

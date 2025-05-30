@@ -8,11 +8,11 @@ import {
   MenuToggle,
 } from '@patternfly/react-core';
 import { ThIcon } from '@patternfly/react-icons';
-import openshiftLogo from '~/images/openshift.svg';
-import { useWatchConsoleLinks } from '~/utilities/useWatchConsoleLinks';
-import { getOpenShiftConsoleServerURL } from '~/utilities/clusterUtils';
-import { useClusterInfo } from '~/redux/selectors/clusterInfo';
-import { ApplicationAction, Section } from '~/types';
+import openshiftLogo from '#~/images/openshift.svg';
+import { useWatchConsoleLinks } from '#~/utilities/useWatchConsoleLinks';
+import { getOpenShiftConsoleServerURL } from '#~/utilities/clusterUtils';
+import { useClusterInfo } from '#~/redux/selectors/clusterInfo';
+import { ApplicationAction, Section } from '#~/types';
 import { useAppContext } from './AppContext';
 import './AppLauncher.scss';
 

@@ -9,8 +9,8 @@ import {
 } from '@patternfly/react-core';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import { MinusCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
-import { BYONImagePackage } from '~/types';
-import useDraggableTableControlled from '~/utilities/useDraggableTableControlled';
+import { BYONImagePackage } from '#~/types';
+import useDraggableTableControlled from '#~/utilities/useDraggableTableControlled';
 import { DisplayedContentTab } from './ManageBYONImageModal';
 import { getColumns } from './tableData';
 

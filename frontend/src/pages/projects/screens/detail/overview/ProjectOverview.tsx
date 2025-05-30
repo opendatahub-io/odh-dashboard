@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { PageSection, Stack } from '@patternfly/react-core';
-import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
-import PipelineAndVersionContextProvider from '~/concepts/pipelines/content/PipelineAndVersionContext';
-import useModelServingEnabled from '~/pages/modelServing/useModelServingEnabled';
+import { ProjectSectionID } from '#~/pages/projects/screens/detail/types';
+import PipelineAndVersionContextProvider from '#~/concepts/pipelines/content/PipelineAndVersionContext';
+import useModelServingEnabled from '#~/pages/modelServing/useModelServingEnabled';
 import TrainModelsSection from './trainModels/TrainModelsSection';
 import ServeModelsSection from './serverModels/ServeModelsSection';
 import ConfigurationSection from './configuration/ConfigurationSection';

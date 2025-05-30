@@ -1,9 +1,9 @@
 import * as React from 'react';
-import { PipelineRunKF } from '~/concepts/pipelines/kfTypes';
-import { FetchState } from '~/utilities/useFetchState';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import usePipelineQuery from '~/concepts/pipelines/apiHooks/usePipelineQuery';
-import { PipelineListPaged, PipelineRunOptions } from '~/concepts/pipelines/types';
+import { PipelineRunKF } from '#~/concepts/pipelines/kfTypes';
+import { FetchState } from '#~/utilities/useFetchState';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+import usePipelineQuery from '#~/concepts/pipelines/apiHooks/usePipelineQuery';
+import { PipelineListPaged, PipelineRunOptions } from '#~/concepts/pipelines/types';
 
 export const usePipelineActiveRuns = (
   options?: PipelineRunOptions,

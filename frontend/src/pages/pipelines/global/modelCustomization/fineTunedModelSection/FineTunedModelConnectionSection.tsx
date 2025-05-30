@@ -1,18 +1,18 @@
 import React from 'react';
 import { Alert, Radio, Skeleton, Stack, StackItem } from '@patternfly/react-core';
-import { getResourceNameFromK8sResource } from '~/concepts/k8s/utils';
-import { Connection, ConnectionTypeConfigMapObj } from '~/concepts/connectionTypes/types';
-import { InferenceServiceStorageType } from '~/pages/modelServing/screens/types';
-import useConnections from '~/pages/projects/screens/detail/connections/useConnections';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { ConnectionFormData } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/validationUtils';
-import FineTunedModelExistingConnectionField from '~/pages/pipelines/global/modelCustomization/fineTunedModelSection/FineTunedModelExistingConnectionField';
+import { getResourceNameFromK8sResource } from '#~/concepts/k8s/utils';
+import { Connection, ConnectionTypeConfigMapObj } from '#~/concepts/connectionTypes/types';
+import { InferenceServiceStorageType } from '#~/pages/modelServing/screens/types';
+import useConnections from '#~/pages/projects/screens/detail/connections/useConnections';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+import { ConnectionFormData } from '#~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/validationUtils';
+import FineTunedModelExistingConnectionField from '#~/pages/pipelines/global/modelCustomization/fineTunedModelSection/FineTunedModelExistingConnectionField';
 import {
   isModelServingCompatible,
   ModelServingCompatibleTypes,
-} from '~/concepts/connectionTypes/utils';
-import { FineTunedModelNewConnectionField } from '~/pages/pipelines/global/modelCustomization/fineTunedModelSection/FineTunedModelNewConnectionField';
-import FineTunedModelOciPathField from '~/pages/pipelines/global/modelCustomization/fineTunedModelSection/FineTunedModelOciPathField';
+} from '#~/concepts/connectionTypes/utils';
+import { FineTunedModelNewConnectionField } from '#~/pages/pipelines/global/modelCustomization/fineTunedModelSection/FineTunedModelNewConnectionField';
+import FineTunedModelOciPathField from '#~/pages/pipelines/global/modelCustomization/fineTunedModelSection/FineTunedModelOciPathField';
 
 type FineTunedModelConnectionSectionProps = {
   data: ConnectionFormData;

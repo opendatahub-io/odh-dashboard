@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { OdhDocument, OdhDocumentType } from '~/types';
-import { fetchDocs } from '~/services/docsService';
+import { OdhDocument, OdhDocumentType } from '#~/types';
+import { fetchDocs } from '#~/services/docsService';
 import { POLL_INTERVAL } from './const';
 import { useDeepCompareMemoize } from './useDeepCompareMemoize';
 

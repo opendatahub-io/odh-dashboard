@@ -1,15 +1,15 @@
 import * as React from 'react';
 import { TableVariant } from '@patternfly/react-table';
-import { TableBase, getTableColumnSort } from '~/components/table';
-import { PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
-import { pipelineVersionColumns } from '~/concepts/pipelines/content/tables/columns';
-import PipelineVersionTableRow from '~/concepts/pipelines/content/tables/pipelineVersion/PipelineVersionTableRow';
-import { usePipelineVersionLoadMore } from '~/concepts/pipelines/content/tables/usePipelineLoadMore';
-import PipelineViewMoreFooterRow from '~/concepts/pipelines/content/tables/PipelineViewMoreFooterRow';
-import { PipelineAndVersionContext } from '~/concepts/pipelines/content/PipelineAndVersionContext';
-import usePipelineVersionsCheckboxTable from '~/concepts/pipelines/content/tables/pipelineVersion/usePipelineVersionsCheckboxTable';
-import DeletePipelinesModal from '~/concepts/pipelines/content/DeletePipelinesModal';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
+import { TableBase, getTableColumnSort } from '#~/components/table';
+import { PipelineKF, PipelineVersionKF } from '#~/concepts/pipelines/kfTypes';
+import { pipelineVersionColumns } from '#~/concepts/pipelines/content/tables/columns';
+import PipelineVersionTableRow from '#~/concepts/pipelines/content/tables/pipelineVersion/PipelineVersionTableRow';
+import { usePipelineVersionLoadMore } from '#~/concepts/pipelines/content/tables/usePipelineLoadMore';
+import PipelineViewMoreFooterRow from '#~/concepts/pipelines/content/tables/PipelineViewMoreFooterRow';
+import { PipelineAndVersionContext } from '#~/concepts/pipelines/content/PipelineAndVersionContext';
+import usePipelineVersionsCheckboxTable from '#~/concepts/pipelines/content/tables/pipelineVersion/usePipelineVersionsCheckboxTable';
+import DeletePipelinesModal from '#~/concepts/pipelines/content/DeletePipelinesModal';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 
 type PipelineVersionTableProps = {
   pipeline: PipelineKF;

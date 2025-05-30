@@ -1,5 +1,5 @@
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
-import { LimitNameResourceType } from '~/concepts/k8s/K8sNameDescriptionField/utils';
+import { LimitNameResourceType } from '#~/concepts/k8s/K8sNameDescriptionField/utils';
 
 export type K8sNameDescriptionFieldData = {
   name: string;

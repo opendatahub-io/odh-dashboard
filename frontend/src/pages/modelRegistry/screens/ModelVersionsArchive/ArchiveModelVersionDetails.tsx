@@ -1,17 +1,17 @@
 import React, { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { Button, Flex, FlexItem, Label, Tooltip, Truncate } from '@patternfly/react-core';
-import ApplicationsPage from '~/pages/ApplicationsPage';
-import useModelVersionById from '~/concepts/modelRegistry/apiHooks/useModelVersionById';
-import useRegisteredModelById from '~/concepts/modelRegistry/apiHooks/useRegisteredModelById';
-import { ModelVersionDetailsTab } from '~/pages/modelRegistry/screens/ModelVersionDetails/const';
-import ModelVersionDetailsTabs from '~/pages/modelRegistry/screens/ModelVersionDetails/ModelVersionDetailsTabs';
-import useInferenceServices from '~/pages/modelServing/useInferenceServices';
-import useServingRuntimes from '~/pages/modelServing/useServingRuntimes';
-import { ModelState } from '~/concepts/modelRegistry/types';
-import { modelVersionRoute } from '~/routes/modelRegistry/modelVersions';
-import { ModelRegistriesContext } from '~/concepts/modelRegistry/context/ModelRegistriesContext';
-import useModelArtifactsByVersionId from '~/concepts/modelRegistry/apiHooks/useModelArtifactsByVersionId';
+import ApplicationsPage from '#~/pages/ApplicationsPage';
+import useModelVersionById from '#~/concepts/modelRegistry/apiHooks/useModelVersionById';
+import useRegisteredModelById from '#~/concepts/modelRegistry/apiHooks/useRegisteredModelById';
+import { ModelVersionDetailsTab } from '#~/pages/modelRegistry/screens/ModelVersionDetails/const';
+import ModelVersionDetailsTabs from '#~/pages/modelRegistry/screens/ModelVersionDetails/ModelVersionDetailsTabs';
+import useInferenceServices from '#~/pages/modelServing/useInferenceServices';
+import useServingRuntimes from '#~/pages/modelServing/useServingRuntimes';
+import { ModelState } from '#~/concepts/modelRegistry/types';
+import { modelVersionRoute } from '#~/routes/modelRegistry/modelVersions';
+import { ModelRegistriesContext } from '#~/concepts/modelRegistry/context/ModelRegistriesContext';
+import useModelArtifactsByVersionId from '#~/concepts/modelRegistry/apiHooks/useModelArtifactsByVersionId';
 import ArchiveModelVersionDetailsBreadcrumb from './ArchiveModelVersionDetailsBreadcrumb';
 
 type ArchiveModelVersionDetailsProps = {

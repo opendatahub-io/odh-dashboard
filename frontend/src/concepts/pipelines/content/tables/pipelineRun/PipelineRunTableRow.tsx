@@ -1,32 +1,32 @@
 import * as React from 'react';
 import { ActionsColumn, IAction, Td, Tr } from '@patternfly/react-table';
 import { useNavigate } from 'react-router-dom';
-import { PipelineRunKF, RuntimeStateKF } from '~/concepts/pipelines/kfTypes';
-import { CheckboxTd } from '~/components/table';
+import { PipelineRunKF, RuntimeStateKF } from '#~/concepts/pipelines/kfTypes';
+import { CheckboxTd } from '#~/components/table';
 import {
   RunCreated,
   RunDuration,
   RunStatus,
-} from '~/concepts/pipelines/content/tables/renderUtils';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import PipelineRunTableRowTitle from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableRowTitle';
-import useNotification from '~/utilities/useNotification';
-import usePipelineRunVersionInfo from '~/concepts/pipelines/content/tables/usePipelineRunVersionInfo';
-import { PipelineVersionLink } from '~/concepts/pipelines/content/PipelineVersionLink';
-import { PipelineRunType } from '~/pages/pipelines/global/runs/types';
-import { RestoreRunModal } from '~/pages/pipelines/global/runs/RestoreRunModal';
-import { compareRunsRoute, duplicateRunRoute } from '~/routes/pipelines/runs';
-import { ArchiveRunModal } from '~/pages/pipelines/global/runs/ArchiveRunModal';
-import PipelineRunTableRowExperiment from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableRowExperiment';
+} from '#~/concepts/pipelines/content/tables/renderUtils';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+import PipelineRunTableRowTitle from '#~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableRowTitle';
+import useNotification from '#~/utilities/useNotification';
+import usePipelineRunVersionInfo from '#~/concepts/pipelines/content/tables/usePipelineRunVersionInfo';
+import { PipelineVersionLink } from '#~/concepts/pipelines/content/PipelineVersionLink';
+import { PipelineRunType } from '#~/pages/pipelines/global/runs/types';
+import { RestoreRunModal } from '#~/pages/pipelines/global/runs/RestoreRunModal';
+import { compareRunsRoute, duplicateRunRoute } from '#~/routes/pipelines/runs';
+import { ArchiveRunModal } from '#~/pages/pipelines/global/runs/ArchiveRunModal';
+import PipelineRunTableRowExperiment from '#~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableRowExperiment';
 import {
   ExperimentContext,
   useContextExperimentArchivedOrDeleted,
-} from '~/pages/pipelines/global/experiments/ExperimentContext';
-import { getDashboardMainContainer } from '~/utilities/utils';
-import usePipelineRunExperimentInfo from '~/concepts/pipelines/content/tables/usePipelineRunExperimentInfo';
-import RestoreRunWithArchivedExperimentModal from '~/pages/pipelines/global/runs/RestoreRunWithArchivedExperimentModal';
-import { useFetchRunArtifact } from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/useFetchRunArtifact';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+} from '#~/pages/pipelines/global/experiments/ExperimentContext';
+import { getDashboardMainContainer } from '#~/utilities/utils';
+import usePipelineRunExperimentInfo from '#~/concepts/pipelines/content/tables/usePipelineRunExperimentInfo';
+import RestoreRunWithArchivedExperimentModal from '#~/pages/pipelines/global/runs/RestoreRunWithArchivedExperimentModal';
+import { useFetchRunArtifact } from '#~/concepts/pipelines/content/pipelinesDetails/pipelineRun/useFetchRunArtifact';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import { isPipelineRunRegistered } from './utils';
 
 type PipelineRunTableRowProps = {

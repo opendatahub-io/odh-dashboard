@@ -1,10 +1,10 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { NotebookControllerContext } from '~/pages/notebookController/NotebookControllerContext';
-import { FAST_POLL_INTERVAL } from '~/utilities/const';
-import { NotebookControllerContextProps } from '~/pages/notebookController/notebookControllerContextTypes';
-import { stopNotebook } from '~/services/notebookService';
-import useNamespaces from '~/pages/notebookController/useNamespaces';
+import { NotebookControllerContext } from '#~/pages/notebookController/NotebookControllerContext';
+import { FAST_POLL_INTERVAL } from '#~/utilities/const';
+import { NotebookControllerContextProps } from '#~/pages/notebookController/notebookControllerContextTypes';
+import { stopNotebook } from '#~/services/notebookService';
+import useNamespaces from '#~/pages/notebookController/useNamespaces';
 
 const useRefreshNotebookAndCleanup = (startShown: boolean) => {
   const { requestNotebookRefresh } = React.useContext(NotebookControllerContext);

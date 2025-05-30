@@ -1,5 +1,5 @@
 import { renderHook } from '@testing-library/react';
-import { useBrowserUnloadBlocker } from '~/utilities/useBrowserUnloadBlocker';
+import { useBrowserUnloadBlocker } from '#~/utilities/useBrowserUnloadBlocker';
 
 describe('useBrowserUnloadBlocker', () => {
   let addEventListenerSpy: jest.SpyInstance;

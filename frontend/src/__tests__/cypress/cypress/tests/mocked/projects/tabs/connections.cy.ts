@@ -4,16 +4,16 @@ import {
   mockK8sResourceList,
   mockProjectK8sResource,
   mockSecretK8sResource,
-} from '~/__mocks__';
+} from '#~/__mocks__';
 import {
   mockConnectionTypeConfigMap,
   mockModelServingFields,
-} from '~/__mocks__/mockConnectionType';
-import { projectDetails } from '~/__tests__/cypress/cypress/pages/projects';
-import { ProjectModel, SecretModel } from '~/__tests__/cypress/cypress/utils/models';
-import { connectionsPage } from '~/__tests__/cypress/cypress/pages/connections';
-import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
-import { ConnectionTypeFieldType } from '~/concepts/connectionTypes/types';
+} from '#~/__mocks__/mockConnectionType';
+import { projectDetails } from '#~/__tests__/cypress/cypress/pages/projects';
+import { ProjectModel, SecretModel } from '#~/__tests__/cypress/cypress/utils/models';
+import { connectionsPage } from '#~/__tests__/cypress/cypress/pages/connections';
+import { deleteModal } from '#~/__tests__/cypress/cypress/pages/components/DeleteModal';
+import { ConnectionTypeFieldType } from '#~/concepts/connectionTypes/types';
 
 const initIntercepts = ({ isEmpty = false }) => {
   cy.interceptK8sList(

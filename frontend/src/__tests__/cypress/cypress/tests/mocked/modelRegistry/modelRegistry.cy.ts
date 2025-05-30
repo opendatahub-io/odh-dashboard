@@ -1,28 +1,28 @@
 /* eslint-disable camelcase */
-import { mockDscStatus, mockK8sResourceList } from '~/__mocks__';
-import { mockComponents } from '~/__mocks__/mockComponents';
-import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
-import { mockRegisteredModelList } from '~/__mocks__/mockRegisteredModelsList';
-import { labelModal, modelRegistry } from '~/__tests__/cypress/cypress/pages/modelRegistry';
-import { be } from '~/__tests__/cypress/cypress/utils/should';
+import { mockDscStatus, mockK8sResourceList } from '#~/__mocks__';
+import { mockComponents } from '#~/__mocks__/mockComponents';
+import { mockDashboardConfig } from '#~/__mocks__/mockDashboardConfig';
+import { mockRegisteredModelList } from '#~/__mocks__/mockRegisteredModelsList';
+import { labelModal, modelRegistry } from '#~/__tests__/cypress/cypress/pages/modelRegistry';
+import { be } from '#~/__tests__/cypress/cypress/utils/should';
 import {
   SelfSubjectAccessReviewModel,
   SelfSubjectRulesReviewModel,
   ServiceModel,
-} from '~/__tests__/cypress/cypress/utils/models';
-import { mockModelVersionList } from '~/__mocks__/mockModelVersionList';
-import { mockModelVersion } from '~/__mocks__/mockModelVersion';
-import { mockRegisteredModel } from '~/__mocks__/mockRegisteredModel';
-import { mockModelRegistryService } from '~/__mocks__/mockModelRegistryService';
-import { asProjectEditUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
-import { mockSelfSubjectRulesReview } from '~/__mocks__/mockSelfSubjectRulesReview';
-import { mockSelfSubjectAccessReview } from '~/__mocks__/mockSelfSubjectAccessReview';
+} from '#~/__tests__/cypress/cypress/utils/models';
+import { mockModelVersionList } from '#~/__mocks__/mockModelVersionList';
+import { mockModelVersion } from '#~/__mocks__/mockModelVersion';
+import { mockRegisteredModel } from '#~/__mocks__/mockRegisteredModel';
+import { mockModelRegistryService } from '#~/__mocks__/mockModelRegistryService';
+import { asProjectEditUser } from '#~/__tests__/cypress/cypress/utils/mockUsers';
+import { mockSelfSubjectRulesReview } from '#~/__mocks__/mockSelfSubjectRulesReview';
+import { mockSelfSubjectAccessReview } from '#~/__mocks__/mockSelfSubjectAccessReview';
 import {
   ModelRegistryMetadataType,
   type ModelVersion,
   type RegisteredModel,
-} from '~/concepts/modelRegistry/types';
-import type { ServiceKind } from '~/k8sTypes';
+} from '#~/concepts/modelRegistry/types';
+import type { ServiceKind } from '#~/k8sTypes';
 
 const MODEL_REGISTRY_API_VERSION = 'v1alpha3';
 

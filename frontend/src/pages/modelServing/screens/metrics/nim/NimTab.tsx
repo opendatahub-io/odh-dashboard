@@ -1,7 +1,7 @@
 import React from 'react';
 import { PageSection, Stack, StackItem } from '@patternfly/react-core';
-import { InferenceServiceKind } from '~/k8sTypes';
-import MetricsPageToolbar from '~/concepts/metrics/MetricsPageToolbar';
+import { InferenceServiceKind } from '#~/k8sTypes';
+import MetricsPageToolbar from '#~/concepts/metrics/MetricsPageToolbar';
 import NimMetrics from './NimMetrics';
 
 type NIMTabProps = {

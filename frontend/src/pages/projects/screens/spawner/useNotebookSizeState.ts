@@ -1,8 +1,8 @@
 import React from 'react';
-import useNotebookDeploymentSize from '~/pages/projects/screens/detail/notebooks/useNotebookDeploymentSize';
-import { NotebookKind } from '~/k8sTypes';
-import { NotebookSize } from '~/types';
-import { getCustomNotebookSize } from '~/pages/projects/utils';
+import useNotebookDeploymentSize from '#~/pages/projects/screens/detail/notebooks/useNotebookDeploymentSize';
+import { NotebookKind } from '#~/k8sTypes';
+import { NotebookSize } from '#~/types';
+import { getCustomNotebookSize } from '#~/pages/projects/utils';
 import { useNotebookSize } from './useNotebookSize';
 
 export const useNotebookSizeState = (

@@ -10,7 +10,7 @@ import type {
   TestConfig,
   AWSS3BucketDetails,
   AWSS3Buckets,
-} from '~/__tests__/cypress/cypress/types';
+} from '#~/__tests__/cypress/cypress/types';
 
 [
   `.env.cypress${env.CY_MOCK ? '.mock' : ''}.local`,

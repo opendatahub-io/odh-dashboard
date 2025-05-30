@@ -1,7 +1,7 @@
 import { K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
-import { DeploymentMode, InferenceServiceKind, KnownLabels } from '~/k8sTypes';
-import { genUID } from '~/__mocks__/mockUtils';
-import { ContainerResources, NodeSelector, Toleration } from '~/types';
+import { DeploymentMode, InferenceServiceKind, KnownLabels } from '#~/k8sTypes';
+import { genUID } from '#~/__mocks__/mockUtils';
+import { ContainerResources, NodeSelector, Toleration } from '#~/types';
 
 type MockResourceConfigType = {
   name?: string;

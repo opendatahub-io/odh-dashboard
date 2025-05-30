@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { AreaContext } from '~/concepts/areas/AreaContext';
+import { AreaContext } from '#~/concepts/areas/AreaContext';
 import { IsAreaAvailableStatus, SupportedArea } from './types';
 
 const useIsAreaAvailable = (area: SupportedArea): IsAreaAvailableStatus =>

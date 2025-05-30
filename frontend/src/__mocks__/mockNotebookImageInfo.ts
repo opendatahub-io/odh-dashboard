@@ -1,5 +1,5 @@
 /* eslint-disable camelcase */
-import { ImageInfo } from '~/types';
+import { ImageInfo } from '#~/types';
 
 export const mockNotebookImageInfo = (): ImageInfo[] => [
   {

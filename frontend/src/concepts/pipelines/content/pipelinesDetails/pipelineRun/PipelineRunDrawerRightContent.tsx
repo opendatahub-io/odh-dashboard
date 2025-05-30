@@ -9,12 +9,12 @@ import {
   Title,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
-import PipelineRunDrawerRightTabs from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDrawerRightTabs';
+import PipelineRunDrawerRightTabs from '#~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDrawerRightTabs';
 import './PipelineRunDrawer.scss';
-import { PipelineTask } from '~/concepts/pipelines/topology';
-import { Execution } from '~/third_party/mlmd';
-import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
-import InlineTruncatedClipboardCopy from '~/components/InlineTruncatedClipboardCopy';
+import { PipelineTask } from '#~/concepts/pipelines/topology';
+import { Execution } from '#~/third_party/mlmd';
+import DashboardPopupIconButton from '#~/concepts/dashboard/DashboardPopupIconButton';
+import InlineTruncatedClipboardCopy from '#~/components/InlineTruncatedClipboardCopy';
 import { ArtifactNodeDrawerContent } from './artifacts';
 
 type PipelineRunDrawerRightContentProps = {

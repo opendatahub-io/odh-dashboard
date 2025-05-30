@@ -1,7 +1,7 @@
 import React from 'react';
 import { Content, ContentVariants } from '@patternfly/react-core';
-import { getPipelineRecurringRunExecutionCount } from '~/concepts/pipelines/content/tables/utils';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
+import { getPipelineRecurringRunExecutionCount } from '#~/concepts/pipelines/content/tables/utils';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 
 type PipelineRecurringRunReferenceNameProps = {
   runName: string;

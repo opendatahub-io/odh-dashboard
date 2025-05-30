@@ -12,17 +12,17 @@ import {
   ContentVariants,
 } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
-import { ProjectObjectType } from '~/concepts/design/utils';
-import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
-import InferenceServiceStatus from '~/pages/modelServing/screens/global/InferenceServiceStatus';
-import { isModelMesh } from '~/pages/modelServing/utils';
-import ResourceNameTooltip from '~/components/ResourceNameTooltip';
-import useModelMetricsEnabled from '~/pages/modelServing/useModelMetricsEnabled';
-import InferenceServiceServingRuntime from '~/pages/modelServing/screens/global/InferenceServiceServingRuntime';
-import InferenceServiceEndpoint from '~/pages/modelServing/screens/global/InferenceServiceEndpoint';
-import TypeBorderedCard from '~/concepts/design/TypeBorderedCard';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas/';
-import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
+import { ProjectObjectType } from '#~/concepts/design/utils';
+import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
+import InferenceServiceStatus from '#~/pages/modelServing/screens/global/InferenceServiceStatus';
+import { isModelMesh } from '#~/pages/modelServing/utils';
+import ResourceNameTooltip from '#~/components/ResourceNameTooltip';
+import useModelMetricsEnabled from '#~/pages/modelServing/useModelMetricsEnabled';
+import InferenceServiceServingRuntime from '#~/pages/modelServing/screens/global/InferenceServiceServingRuntime';
+import InferenceServiceEndpoint from '#~/pages/modelServing/screens/global/InferenceServiceEndpoint';
+import TypeBorderedCard from '#~/concepts/design/TypeBorderedCard';
+import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 
 interface DeployedModelCardProps {
   inferenceService: InferenceServiceKind;

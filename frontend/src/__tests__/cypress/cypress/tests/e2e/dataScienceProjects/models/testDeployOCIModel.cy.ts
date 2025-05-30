@@ -1,18 +1,21 @@
-import { deleteOpenShiftProject } from '~/__tests__/cypress/cypress/utils/oc_commands/project';
-import { HTPASSWD_CLUSTER_ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
-import { projectDetails, projectListPage } from '~/__tests__/cypress/cypress/pages/projects';
-import { retryableBefore } from '~/__tests__/cypress/cypress/utils/retryableHooks';
-import { createCleanProject } from '~/__tests__/cypress/cypress/utils/projectChecker';
-import { addConnectionModal, connectionsPage } from '~/__tests__/cypress/cypress/pages/connections';
+import { deleteOpenShiftProject } from '#~/__tests__/cypress/cypress/utils/oc_commands/project';
+import { HTPASSWD_CLUSTER_ADMIN_USER } from '#~/__tests__/cypress/cypress/utils/e2eUsers';
+import { projectDetails, projectListPage } from '#~/__tests__/cypress/cypress/pages/projects';
+import { retryableBefore } from '#~/__tests__/cypress/cypress/utils/retryableHooks';
+import { createCleanProject } from '#~/__tests__/cypress/cypress/utils/projectChecker';
+import {
+  addConnectionModal,
+  connectionsPage,
+} from '#~/__tests__/cypress/cypress/pages/connections';
 import {
   inferenceServiceModal,
   modelServingGlobal,
   modelServingSection,
-} from '~/__tests__/cypress/cypress/pages/modelServing';
-import { checkInferenceServiceState } from '~/__tests__/cypress/cypress/utils/oc_commands/modelServing';
-import type { DeployOCIModelData } from '~/__tests__/cypress/cypress/types';
-import { loadDeployOCIModelFixture } from '~/__tests__/cypress/cypress/utils/dataLoader';
-import { generateTestUUID } from '~/__tests__/cypress/cypress/utils/uuidGenerator';
+} from '#~/__tests__/cypress/cypress/pages/modelServing';
+import { checkInferenceServiceState } from '#~/__tests__/cypress/cypress/utils/oc_commands/modelServing';
+import type { DeployOCIModelData } from '#~/__tests__/cypress/cypress/types';
+import { loadDeployOCIModelFixture } from '#~/__tests__/cypress/cypress/utils/dataLoader';
+import { generateTestUUID } from '#~/__tests__/cypress/cypress/utils/uuidGenerator';
 
 let projectName: string;
 let connectionName: string;

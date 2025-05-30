@@ -1,5 +1,5 @@
 /* eslint-disable camelcase */
-import { ModelVersionList } from '~/concepts/modelRegistry/types';
+import { ModelVersionList } from '#~/concepts/modelRegistry/types';
 
 export const mockModelVersionList = ({
   items = [],

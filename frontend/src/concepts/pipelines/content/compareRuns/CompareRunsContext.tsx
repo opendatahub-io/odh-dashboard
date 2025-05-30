@@ -1,12 +1,12 @@
 import * as React from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { conditionalArea, SupportedArea } from '~/concepts/areas';
-import { PipelineRunKF } from '~/concepts/pipelines/kfTypes';
-import { CompareRunsSearchParam } from '~/concepts/pipelines/content/types';
-import useNotification from '~/utilities/useNotification';
-import { allSettledPromises } from '~/utilities/allSettledPromises';
-import useFetchState, { FetchStateCallbackPromise } from '~/utilities/useFetchState';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
+import { conditionalArea, SupportedArea } from '#~/concepts/areas';
+import { PipelineRunKF } from '#~/concepts/pipelines/kfTypes';
+import { CompareRunsSearchParam } from '#~/concepts/pipelines/content/types';
+import useNotification from '#~/utilities/useNotification';
+import { allSettledPromises } from '#~/utilities/allSettledPromises';
+import useFetchState, { FetchStateCallbackPromise } from '#~/utilities/useFetchState';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 
 type CompareRunsContextType = {
   runs: PipelineRunKF[];

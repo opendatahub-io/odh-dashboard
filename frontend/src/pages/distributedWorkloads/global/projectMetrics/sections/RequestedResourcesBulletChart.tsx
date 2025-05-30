@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { capitalize } from '@patternfly/react-core';
 import { ChartBullet } from '@patternfly/react-charts/victory';
-import { DistributedWorkloadsContext } from '~/concepts/distributedWorkloads/DistributedWorkloadsContext';
-import { roundNumber } from '~/utilities/number';
+import { DistributedWorkloadsContext } from '#~/concepts/distributedWorkloads/DistributedWorkloadsContext';
+import { roundNumber } from '#~/utilities/number';
 
 type RequestedResourcesBulletChartProps = {
   metricLabel: string;

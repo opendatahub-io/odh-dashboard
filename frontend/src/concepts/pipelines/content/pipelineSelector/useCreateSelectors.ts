@@ -1,22 +1,22 @@
 import {
   useSelectorSearch,
   UseSelectorSearchValue,
-} from '~/concepts/pipelines/content/pipelineSelector/utils';
-import { useActiveExperimentTable } from '~/concepts/pipelines/content/tables/experiment/useExperimentTable';
-import usePipelinesTable from '~/concepts/pipelines/content/tables/pipeline/usePipelinesTable';
+} from '#~/concepts/pipelines/content/pipelineSelector/utils';
+import { useActiveExperimentTable } from '#~/concepts/pipelines/content/tables/experiment/useExperimentTable';
+import usePipelinesTable from '#~/concepts/pipelines/content/tables/pipeline/usePipelinesTable';
 import {
   LoadMoreProps,
   useActiveExperimentLoadMore,
   usePipelineLoadMore,
-} from '~/concepts/pipelines/content/tables/usePipelineLoadMore';
+} from '#~/concepts/pipelines/content/tables/usePipelineLoadMore';
 import {
   TableProps,
   TableSortProps,
   getTableSortProps,
-} from '~/concepts/pipelines/content/tables/usePipelineTable';
-import { ExperimentKF, PipelineCoreResourceKF, PipelineKF } from '~/concepts/pipelines/kfTypes';
-import { PipelineListPaged } from '~/concepts/pipelines/types';
-import { FetchState } from '~/utilities/useFetchState';
+} from '#~/concepts/pipelines/content/tables/usePipelineTable';
+import { ExperimentKF, PipelineCoreResourceKF, PipelineKF } from '#~/concepts/pipelines/kfTypes';
+import { PipelineListPaged } from '#~/concepts/pipelines/types';
+import { FetchState } from '#~/utilities/useFetchState';
 
 type UseLoadMoreFunc<T> = [T[], () => Promise<void>];
 type UsePipelineSelectorData<DataType> = {

@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Icon, Tooltip } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
-import { BYONImage } from '~/types';
+import { BYONImage } from '#~/types';
 
 type ImageErrorStatusProps = {
   image: BYONImage;

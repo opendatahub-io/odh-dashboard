@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useParams } from 'react-router-dom';
-import NotFound from '~/pages/NotFound';
+import NotFound from '#~/pages/NotFound';
 
 const DependencyMissingPage: React.FC = () => {
   const { area } = useParams();

@@ -1,22 +1,22 @@
 /* eslint-disable camelcase */
-import { mockDscStatus, mockK8sResourceList } from '~/__mocks__';
-import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
-import { mockRegisteredModelList } from '~/__mocks__/mockRegisteredModelsList';
-import { ServiceModel } from '~/__tests__/cypress/cypress/utils/models';
-import { mockModelVersion } from '~/__mocks__/mockModelVersion';
-import type { ModelVersion, RegisteredModel } from '~/concepts/modelRegistry/types';
-import { ModelRegistryMetadataType, ModelState } from '~/concepts/modelRegistry/types';
-import { mockRegisteredModel } from '~/__mocks__/mockRegisteredModel';
-import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url';
-import { labelModal, modelRegistry } from '~/__tests__/cypress/cypress/pages/modelRegistry';
+import { mockDscStatus, mockK8sResourceList } from '#~/__mocks__';
+import { mockDashboardConfig } from '#~/__mocks__/mockDashboardConfig';
+import { mockRegisteredModelList } from '#~/__mocks__/mockRegisteredModelsList';
+import { ServiceModel } from '#~/__tests__/cypress/cypress/utils/models';
+import { mockModelVersion } from '#~/__mocks__/mockModelVersion';
+import type { ModelVersion, RegisteredModel } from '#~/concepts/modelRegistry/types';
+import { ModelRegistryMetadataType, ModelState } from '#~/concepts/modelRegistry/types';
+import { mockRegisteredModel } from '#~/__mocks__/mockRegisteredModel';
+import { verifyRelativeURL } from '#~/__tests__/cypress/cypress/utils/url';
+import { labelModal, modelRegistry } from '#~/__tests__/cypress/cypress/pages/modelRegistry';
 import {
   archiveModelModal,
   registeredModelArchive,
   restoreModelModal,
-} from '~/__tests__/cypress/cypress/pages/modelRegistry/registeredModelArchive';
-import { mockModelVersionList } from '~/__mocks__/mockModelVersionList';
-import { mockModelRegistryService } from '~/__mocks__/mockModelRegistryService';
-import { be } from '~/__tests__/cypress/cypress/utils/should';
+} from '#~/__tests__/cypress/cypress/pages/modelRegistry/registeredModelArchive';
+import { mockModelVersionList } from '#~/__mocks__/mockModelVersionList';
+import { mockModelRegistryService } from '#~/__mocks__/mockModelRegistryService';
+import { be } from '#~/__tests__/cypress/cypress/utils/should';
 
 const MODEL_REGISTRY_API_VERSION = 'v1alpha3';
 

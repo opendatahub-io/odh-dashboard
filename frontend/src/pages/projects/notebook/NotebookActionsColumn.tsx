@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { ActionsColumn } from '@patternfly/react-table';
 import { useNavigate } from 'react-router-dom';
-import { NotebookKind, ProjectKind } from '~/k8sTypes';
-import { NotebookState } from '~/pages/projects/notebook/types';
+import { NotebookKind, ProjectKind } from '#~/k8sTypes';
+import { NotebookState } from '#~/pages/projects/notebook/types';
 
 type Props = {
   project: ProjectKind;

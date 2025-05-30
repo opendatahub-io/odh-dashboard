@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import DetailsComponent from '~/components/markdown/components/DetailsComponent';
+import DetailsComponent from '#~/components/markdown/components/DetailsComponent';
 
 describe('DetailsComponent', () => {
   it('renders in initial collapsed state', () => {

@@ -1,14 +1,14 @@
 import * as React from 'react';
 import { Button, FormGroup } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
-import { FileField } from '~/concepts/connectionTypes/types';
+import { FileField } from '#~/concepts/connectionTypes/types';
 import {
   EXTENSION_REGEX,
   isDuplicateExtension,
-} from '~/concepts/connectionTypes/fields/fieldUtils';
-import { AdvancedFieldProps } from '~/pages/connectionTypes/manage/advanced/types';
-import ExpandableFormSection from '~/components/ExpandableFormSection';
-import FileUploadExtensionRow from '~/pages/connectionTypes/manage/advanced/FileUploadExtensionRow';
+} from '#~/concepts/connectionTypes/fields/fieldUtils';
+import { AdvancedFieldProps } from '#~/pages/connectionTypes/manage/advanced/types';
+import ExpandableFormSection from '#~/components/ExpandableFormSection';
+import FileUploadExtensionRow from '#~/pages/connectionTypes/manage/advanced/FileUploadExtensionRow';
 
 const FileUploadAdvancedPropertiesForm: React.FC<AdvancedFieldProps<FileField>> = ({
   properties,

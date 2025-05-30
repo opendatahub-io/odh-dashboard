@@ -9,29 +9,29 @@ import {
   SecretKind,
   ServingRuntimeKind,
   TemplateKind,
-} from '~/k8sTypes';
+} from '#~/k8sTypes';
 import {
   DEFAULT_LIST_FETCH_STATE,
   DEFAULT_LIST_WATCH_RESULT,
   DEFAULT_LIST_WITH_NON_DASHBOARD_PRESENCE_FETCH_STATE,
   POLL_INTERVAL,
-} from '~/utilities/const';
-import useServingRuntimes from '~/pages/modelServing/useServingRuntimes';
-import useInferenceServices from '~/pages/modelServing/useInferenceServices';
-import { CustomWatchK8sResult, ListWithNonDashboardPresence } from '~/types';
-import { FetchStateObject } from '~/utilities/useFetch';
-import useServingRuntimeSecrets from '~/pages/modelServing/screens/projects/useServingRuntimeSecrets';
-import { PipelineContextProvider } from '~/concepts/pipelines/context';
-import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
-import InvalidProject from '~/concepts/projects/InvalidProject';
-import useSyncPreferredProject from '~/concepts/projects/useSyncPreferredProject';
-import useTemplateOrder from '~/pages/modelServing/customServingRuntimes/useTemplateOrder';
-import useTemplateDisablement from '~/pages/modelServing/customServingRuntimes/useTemplateDisablement';
-import { useDashboardNamespace } from '~/redux/selectors';
-import { getTokenNames } from '~/pages/modelServing/utils';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import { Connection } from '~/concepts/connectionTypes/types';
-import { useGroups, useTemplates } from '~/api';
+} from '#~/utilities/const';
+import useServingRuntimes from '#~/pages/modelServing/useServingRuntimes';
+import useInferenceServices from '#~/pages/modelServing/useInferenceServices';
+import { CustomWatchK8sResult, ListWithNonDashboardPresence } from '#~/types';
+import { FetchStateObject } from '#~/utilities/useFetch';
+import useServingRuntimeSecrets from '#~/pages/modelServing/screens/projects/useServingRuntimeSecrets';
+import { PipelineContextProvider } from '#~/concepts/pipelines/context';
+import { byName, ProjectsContext } from '#~/concepts/projects/ProjectsContext';
+import InvalidProject from '#~/concepts/projects/InvalidProject';
+import useSyncPreferredProject from '#~/concepts/projects/useSyncPreferredProject';
+import useTemplateOrder from '#~/pages/modelServing/customServingRuntimes/useTemplateOrder';
+import useTemplateDisablement from '#~/pages/modelServing/customServingRuntimes/useTemplateDisablement';
+import { useDashboardNamespace } from '#~/redux/selectors';
+import { getTokenNames } from '#~/pages/modelServing/utils';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { Connection } from '#~/concepts/connectionTypes/types';
+import { useGroups, useTemplates } from '#~/api';
 import { NotebookState } from './notebook/types';
 import useProjectNotebookStates from './notebook/useProjectNotebookStates';
 import useProjectPvcs from './screens/detail/storage/useProjectPvcs';

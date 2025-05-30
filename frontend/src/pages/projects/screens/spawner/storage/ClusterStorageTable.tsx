@@ -4,9 +4,9 @@ import { Flex, FlexItem, Icon, Popover, Truncate } from '@patternfly/react-core'
 import { Tr, Td, ActionsColumn } from '@patternfly/react-table';
 import { InfoCircleIcon } from '@patternfly/react-icons';
 
-import { Table } from '~/components/table';
-import { StorageData, StorageType } from '~/pages/projects/types';
-import { formatMemory } from '~/utilities/valueUnits';
+import { Table } from '#~/components/table';
+import { StorageData, StorageType } from '#~/pages/projects/types';
+import { formatMemory } from '#~/utilities/valueUnits';
 import { clusterStorageTableColumns } from './constants';
 import { ClusterStorageDetachModal } from './ClusterStorageDetachModal';
 import WorkbenchStorageModal from './WorkbenchStorageModal';

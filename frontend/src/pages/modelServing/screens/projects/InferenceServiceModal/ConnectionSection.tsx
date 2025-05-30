@@ -14,31 +14,31 @@ import {
   Connection,
   ConnectionTypeConfigMapObj,
   ConnectionTypeValueType,
-} from '~/concepts/connectionTypes/types';
-import { getResourceNameFromK8sResource } from '~/concepts/k8s/utils';
+} from '#~/concepts/connectionTypes/types';
+import { getResourceNameFromK8sResource } from '#~/concepts/k8s/utils';
 import {
   getConnectionTypeRef,
   isModelServingCompatible,
   ModelServingCompatibleTypes,
   S3ConnectionTypeKeys,
   withRequiredFields,
-} from '~/concepts/connectionTypes/utils';
-import { useWatchConnectionTypes } from '~/utilities/useWatchConnectionTypes';
+} from '#~/concepts/connectionTypes/utils';
+import { useWatchConnectionTypes } from '#~/utilities/useWatchConnectionTypes';
 import {
   CreatingInferenceServiceObject,
   InferenceServiceStorageType,
   LabeledConnection,
-} from '~/pages/modelServing/screens/types';
-import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
-import { ExistingConnectionField } from '~/concepts/connectionTypes/ExistingConnectionField';
+} from '#~/pages/modelServing/screens/types';
+import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
+import { ExistingConnectionField } from '#~/concepts/connectionTypes/ExistingConnectionField';
 import {
   NewConnectionField,
   useNewConnectionField,
   UseNewConnectionFieldData,
-} from '~/concepts/connectionTypes/NewConnectionField';
-import { isModelPathValid } from '~/pages/modelServing/screens/projects/utils';
-import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
-import { AccessTypes } from '~/pages/projects/dataConnections/const';
+} from '#~/concepts/connectionTypes/NewConnectionField';
+import { isModelPathValid } from '#~/pages/modelServing/screens/projects/utils';
+import DashboardPopupIconButton from '#~/concepts/dashboard/DashboardPopupIconButton';
+import { AccessTypes } from '#~/pages/projects/dataConnections/const';
 import ConnectionS3FolderPathField from './ConnectionS3FolderPathField';
 import ConnectionOciPathField from './ConnectionOciPathField';
 import { ConnectionOciAlert } from './ConnectionOciAlert';

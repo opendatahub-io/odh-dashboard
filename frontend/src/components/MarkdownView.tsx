@@ -1,6 +1,6 @@
 import React from 'react';
 import classNames from 'classnames';
-import { markdownConverter } from '~/utilities/markdown';
+import { markdownConverter } from '#~/utilities/markdown';
 
 import './MarkdownView.scss';
 

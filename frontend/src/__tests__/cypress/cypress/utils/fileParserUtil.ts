@@ -2,7 +2,7 @@ import * as yaml from 'js-yaml';
 import {
   getMultiModelPath,
   getSingleModelPath,
-} from '~/__tests__/cypress/cypress/utils/fileImportUtils';
+} from '#~/__tests__/cypress/cypress/utils/fileImportUtils';
 
 // Define interfaces for the parsed YAML structure
 interface Metadata {

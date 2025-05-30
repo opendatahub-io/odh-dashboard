@@ -2,6 +2,16 @@
   "name": "@odh-dashboard/internal",
   "version": "0.0.0",
   "private": true,
+  "imports": {
+    "#~/*": [
+      "./*",
+      "./*.ts",
+      "./*.d.ts",
+      "./*.tsx",
+      "./*/index.ts",
+      "./*/index.tsx"
+    ]
+  },
   "exports": {
     "./*": [
       "./*",

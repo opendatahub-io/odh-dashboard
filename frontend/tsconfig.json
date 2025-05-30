@@ -5,7 +5,6 @@
     "outDir": "public",
     "baseUrl": "./src",
     "paths": {
-      "~/*": ["./*"],
       "@mf/*": ["../@mf-types/@mf/*"]
     }
   },

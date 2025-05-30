@@ -1,26 +1,26 @@
-import { testHook } from '~/__tests__/unit/testUtils/hooks';
-import { postValidateIsv } from '~/services/validateIsvService';
+import { testHook } from '#~/__tests__/unit/testUtils/hooks';
+import { postValidateIsv } from '#~/services/validateIsvService';
 import {
   enableIntegrationApp,
   getIntegrationAppEnablementStatus,
-} from '~/services/integrationAppService';
-import * as reduxHooks from '~/redux/hooks';
-import { VariablesValidationStatus } from '~/types';
-import { EnableApplicationStatus, useEnableApplication } from '~/utilities/useEnableApplication';
-import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformStatuses';
+} from '#~/services/integrationAppService';
+import * as reduxHooks from '#~/redux/hooks';
+import { VariablesValidationStatus } from '#~/types';
+import { EnableApplicationStatus, useEnableApplication } from '#~/utilities/useEnableApplication';
+import useServingPlatformStatuses from '#~/pages/modelServing/useServingPlatformStatuses';
 
-jest.mock('~/pages/modelServing/useServingPlatformStatuses');
+jest.mock('#~/pages/modelServing/useServingPlatformStatuses');
 
-jest.mock('~/services/validateIsvService', () => ({
+jest.mock('#~/services/validateIsvService', () => ({
   postValidateIsv: jest.fn(),
 }));
 
-jest.mock('~/services/integrationAppService', () => ({
+jest.mock('#~/services/integrationAppService', () => ({
   enableIntegrationApp: jest.fn(),
   getIntegrationAppEnablementStatus: jest.fn(),
 }));
 
-jest.mock('~/redux/hooks', () => ({
+jest.mock('#~/redux/hooks', () => ({
   useAppDispatch: jest.fn(),
 }));
 

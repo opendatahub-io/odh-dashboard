@@ -1,7 +1,7 @@
 import * as React from 'react';
-import { CreatePipelineServerButton, usePipelinesAPI } from '~/concepts/pipelines/context';
-import EmptyDetailsView from '~/components/EmptyDetailsView';
-import { ProjectObjectType, typedEmptyImage } from '~/concepts/design/utils';
+import { CreatePipelineServerButton, usePipelinesAPI } from '#~/concepts/pipelines/context';
+import EmptyDetailsView from '#~/components/EmptyDetailsView';
+import { ProjectObjectType, typedEmptyImage } from '#~/concepts/design/utils';
 import ImportPipelineButton from './content/import/ImportPipelineButton';
 
 type NoPipelineServerProps = {

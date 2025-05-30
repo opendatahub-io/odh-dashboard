@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
-import { modelRegistryRoute } from '~/routes/modelRegistry/registryBase';
+import { modelRegistryRoute } from '#~/routes/modelRegistry/registryBase';
 import ModelRegistryCoreLoader from './ModelRegistryCoreLoader';
 import ModelRegistry from './screens/ModelRegistry';
 import { ModelVersionsTab } from './screens/ModelVersions/const';

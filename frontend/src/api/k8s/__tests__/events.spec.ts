@@ -1,7 +1,7 @@
 import { k8sListResourceItems } from '@openshift/dynamic-plugin-sdk-utils';
-import { getNotebookEvents } from '~/api';
-import { EventKind } from '~/k8sTypes';
-import { EventModel } from '~/api/models';
+import { getNotebookEvents } from '#~/api';
+import { EventKind } from '#~/k8sTypes';
+import { EventModel } from '#~/api/models';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sListResourceItems: jest.fn(),

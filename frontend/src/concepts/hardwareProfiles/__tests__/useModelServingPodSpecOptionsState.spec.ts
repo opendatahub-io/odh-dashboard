@@ -1,12 +1,12 @@
-import { testHook } from '~/__tests__/unit/testUtils/hooks';
-import { mockHardwareProfile } from '~/__mocks__/mockHardwareProfile';
-import { mockDashboardConfig, mockServingRuntimeK8sResource } from '~/__mocks__';
-import * as areasUtils from '~/concepts/areas';
-import * as appContext from '~/app/AppContext';
-import useServingHardwareProfileConfig from '~/concepts/hardwareProfiles/useServingHardwareProfileConfig';
-import useServingAcceleratorProfileFormState from '~/pages/modelServing/screens/projects/useServingAcceleratorProfileFormState';
-import { useModelServingPodSpecOptionsState } from '~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
-import { ModelServingSize } from '~/pages/modelServing/screens/types';
+import { testHook } from '#~/__tests__/unit/testUtils/hooks';
+import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile';
+import { mockDashboardConfig, mockServingRuntimeK8sResource } from '#~/__mocks__';
+import * as areasUtils from '#~/concepts/areas';
+import * as appContext from '#~/app/AppContext';
+import useServingHardwareProfileConfig from '#~/concepts/hardwareProfiles/useServingHardwareProfileConfig';
+import useServingAcceleratorProfileFormState from '#~/pages/modelServing/screens/projects/useServingAcceleratorProfileFormState';
+import { useModelServingPodSpecOptionsState } from '#~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
+import { ModelServingSize } from '#~/pages/modelServing/screens/types';
 
 global.structuredClone = (val: unknown) => JSON.parse(JSON.stringify(val));
 
@@ -27,21 +27,21 @@ const DEFAULT_MODEL_SIZES: ModelServingSize[] = [
   },
 ];
 
-jest.mock('~/concepts/areas', () => ({
-  ...jest.requireActual('~/concepts/areas'),
+jest.mock('#~/concepts/areas', () => ({
+  ...jest.requireActual('#~/concepts/areas'),
   useIsAreaAvailable: jest.fn(),
 }));
 
-jest.mock('~/app/AppContext', () => ({
+jest.mock('#~/app/AppContext', () => ({
   useAppContext: jest.fn(),
 }));
 
-jest.mock('~/concepts/hardwareProfiles/useServingHardwareProfileConfig', () => ({
+jest.mock('#~/concepts/hardwareProfiles/useServingHardwareProfileConfig', () => ({
   __esModule: true,
   default: jest.fn(),
 }));
 
-jest.mock('~/pages/modelServing/screens/projects/useServingAcceleratorProfileFormState', () => ({
+jest.mock('#~/pages/modelServing/screens/projects/useServingAcceleratorProfileFormState', () => ({
   __esModule: true,
   default: jest.fn(),
 }));

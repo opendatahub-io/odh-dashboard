@@ -1,4 +1,4 @@
-import { OdhQuickStart } from '~/k8sTypes';
+import { OdhQuickStart } from '#~/k8sTypes';
 
 export const mockQuickStarts = (): OdhQuickStart[] => [
   {

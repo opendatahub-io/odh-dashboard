@@ -1,8 +1,8 @@
 import { k8sListResource } from '@openshift/dynamic-plugin-sdk-utils';
-import { BuildConfigModel, BuildModel } from '~/api/models';
-import { getBuildsForBuildConfig, getNotebookBuildConfigs } from '~/api/k8s/builds';
-import { BuildConfigKind, BuildKind } from '~/k8sTypes';
-import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
+import { BuildConfigModel, BuildModel } from '#~/api/models';
+import { getBuildsForBuildConfig, getNotebookBuildConfigs } from '#~/api/k8s/builds';
+import { BuildConfigKind, BuildKind } from '#~/k8sTypes';
+import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sListResource: jest.fn(),

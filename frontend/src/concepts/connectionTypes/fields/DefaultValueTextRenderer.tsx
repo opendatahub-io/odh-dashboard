@@ -1,9 +1,9 @@
 import * as React from 'react';
-import FormGroupText from '~/components/FormGroupText';
-import { FieldMode } from '~/concepts/connectionTypes/fields/types';
-import UnspecifiedValue from '~/concepts/connectionTypes/fields/UnspecifiedValue';
-import { ConnectionTypeDataField } from '~/concepts/connectionTypes/types';
-import { defaultValueToString } from '~/concepts/connectionTypes/utils';
+import FormGroupText from '#~/components/FormGroupText';
+import { FieldMode } from '#~/concepts/connectionTypes/fields/types';
+import UnspecifiedValue from '#~/concepts/connectionTypes/fields/UnspecifiedValue';
+import { ConnectionTypeDataField } from '#~/concepts/connectionTypes/types';
+import { defaultValueToString } from '#~/concepts/connectionTypes/utils';
 
 type Props = {
   id: string;

@@ -1,8 +1,8 @@
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
 import useAcceleratorProfileFormState, {
   UseAcceleratorProfileFormResult,
-} from '~/utilities/useAcceleratorProfileFormState';
+} from '#~/utilities/useAcceleratorProfileFormState';
 
 const useServingAcceleratorProfileFormState = (
   servingRuntime?: ServingRuntimeKind | null,

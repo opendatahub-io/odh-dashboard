@@ -1,7 +1,7 @@
 import * as React from 'react';
-import { getNotebookBuildConfigs, getBuildsForBuildConfig } from '~/api';
-import useNotification from '~/utilities/useNotification';
-import { BuildConfigKind, BuildPhase } from '~/k8sTypes';
+import { getNotebookBuildConfigs, getBuildsForBuildConfig } from '#~/api';
+import useNotification from '#~/utilities/useNotification';
+import { BuildConfigKind, BuildPhase } from '#~/k8sTypes';
 import { BuildStatus } from './types';
 import { compareBuilds } from './spawnerUtils';
 

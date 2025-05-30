@@ -1,11 +1,11 @@
 import * as React from 'react';
 import { Alert, AlertActionCloseButton } from '@patternfly/react-core';
-import { Table } from '~/components/table';
-import { PersistentVolumeClaimKind } from '~/k8sTypes';
-import DeletePVCModal from '~/pages/projects/pvc/DeletePVCModal';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import { getStorageClassConfig } from '~/pages/storageClasses/utils';
-import useStorageClasses from '~/concepts/k8s/useStorageClasses';
+import { Table } from '#~/components/table';
+import { PersistentVolumeClaimKind } from '#~/k8sTypes';
+import DeletePVCModal from '#~/pages/projects/pvc/DeletePVCModal';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { getStorageClassConfig } from '#~/pages/storageClasses/utils';
+import useStorageClasses from '#~/concepts/k8s/useStorageClasses';
 import StorageTableRow from './StorageTableRow';
 import { columns } from './data';
 import { StorageTableData } from './types';

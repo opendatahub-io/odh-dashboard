@@ -1,11 +1,11 @@
 import { waitFor } from '@testing-library/dom';
-import { mockConnection } from '~/__mocks__/mockConnection';
-import useConnections from '~/pages/projects/screens/detail/connections/useConnections';
-import { testHook } from '~/__tests__/unit/testUtils/hooks';
-import usePipelinesConnections from '~/pages/projects/screens/detail/connections/usePipelinesConnections';
-import useServingConnections from '~/pages/projects/screens/detail/connections/useServingConnections';
+import { mockConnection } from '#~/__mocks__/mockConnection';
+import useConnections from '#~/pages/projects/screens/detail/connections/useConnections';
+import { testHook } from '#~/__tests__/unit/testUtils/hooks';
+import usePipelinesConnections from '#~/pages/projects/screens/detail/connections/usePipelinesConnections';
+import useServingConnections from '#~/pages/projects/screens/detail/connections/useServingConnections';
 
-jest.mock('~/pages/projects/screens/detail/connections/useConnections');
+jest.mock('#~/pages/projects/screens/detail/connections/useConnections');
 const mockUseConnections = jest.mocked(useConnections);
 
 describe('useServingConnections', () => {

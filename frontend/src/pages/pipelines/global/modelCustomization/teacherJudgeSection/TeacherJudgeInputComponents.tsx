@@ -1,6 +1,6 @@
 import React from 'react';
 import { FormGroup, TextInput, TextInputProps } from '@patternfly/react-core';
-import PasswordInput from '~/components/PasswordInput';
+import PasswordInput from '#~/components/PasswordInput';
 
 type TeacherJudgeInputBaseProps = TeacherJudgeInputProps & {
   label: string;

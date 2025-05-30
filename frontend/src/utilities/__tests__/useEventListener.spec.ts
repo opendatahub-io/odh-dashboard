@@ -1,5 +1,5 @@
-import { useEventListener } from '~/utilities/useEventListener';
-import { testHook } from '~/__tests__/unit/testUtils/hooks';
+import { useEventListener } from '#~/utilities/useEventListener';
+import { testHook } from '#~/__tests__/unit/testUtils/hooks';
 
 describe('useEventListener', () => {
   it('should add and remove event listener', () => {

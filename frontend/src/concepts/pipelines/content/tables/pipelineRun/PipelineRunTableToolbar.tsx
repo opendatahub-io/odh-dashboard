@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { ToolbarItem } from '@patternfly/react-core';
-import { FilterOptions } from '~/concepts/pipelines/content/tables/usePipelineFilter';
-import { ExperimentContext } from '~/pages/pipelines/global/experiments/ExperimentContext';
+import { FilterOptions } from '#~/concepts/pipelines/content/tables/usePipelineFilter';
+import { ExperimentContext } from '#~/pages/pipelines/global/experiments/ExperimentContext';
 import PipelineRunTableToolbarBase, { FilterProps } from './PipelineRunTableToolbarBase';
 
 interface PipelineRunTableToolbarProps extends FilterProps {

@@ -1,11 +1,11 @@
-import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
-import { mockDashboardConfig, mockDscStatus, dataScienceStackComponentMap } from '~/__mocks__';
-import { asDisallowedUser, asProductAdminUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
-import { aboutDialog } from '~/__tests__/cypress/cypress/pages/aboutDialog';
-import { mockConsoleLinks } from '~/__mocks__/mockConsoleLinks';
-import { loginDialog } from '~/__tests__/cypress/cypress/pages/loginDialog';
-import { DataScienceStackComponent } from '~/concepts/areas/types';
-import { OdhPlatformType } from '~/types';
+import { appChrome } from '#~/__tests__/cypress/cypress/pages/appChrome';
+import { mockDashboardConfig, mockDscStatus, dataScienceStackComponentMap } from '#~/__mocks__';
+import { asDisallowedUser, asProductAdminUser } from '#~/__tests__/cypress/cypress/utils/mockUsers';
+import { aboutDialog } from '#~/__tests__/cypress/cypress/pages/aboutDialog';
+import { mockConsoleLinks } from '#~/__mocks__/mockConsoleLinks';
+import { loginDialog } from '#~/__tests__/cypress/cypress/pages/loginDialog';
+import { DataScienceStackComponent } from '#~/concepts/areas/types';
+import { OdhPlatformType } from '#~/types';
 
 describe('Application', () => {
   it('should disallow access to the dashboard', () => {

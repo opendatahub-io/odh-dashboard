@@ -1,10 +1,10 @@
 import * as React from 'react';
 import { Content } from '@patternfly/react-core';
-import { ProjectObjectType, SectionType } from '~/concepts/design/utils';
-import InfoGalleryItem from '~/concepts/design/InfoGalleryItem';
-import { SupportedArea } from '~/concepts/areas';
-import useIsAreaAvailable from '~/concepts/areas/useIsAreaAvailable';
-import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformStatuses';
+import { ProjectObjectType, SectionType } from '#~/concepts/design/utils';
+import InfoGalleryItem from '#~/concepts/design/InfoGalleryItem';
+import { SupportedArea } from '#~/concepts/areas';
+import useIsAreaAvailable from '#~/concepts/areas/useIsAreaAvailable';
+import useServingPlatformStatuses from '#~/pages/modelServing/useServingPlatformStatuses';
 import InfoGallery from './InfoGallery';
 
 const ProjectsGallery: React.FC<{ onClose: () => void }> = ({ onClose }) => {

@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { List, ListComponent, ListItem, OrderType } from '@patternfly/react-core';
-import { BaseSection } from '~/pages/pipelines/global/modelCustomization/landingPage/BaseSection';
+import { BaseSection } from '#~/pages/pipelines/global/modelCustomization/landingPage/BaseSection';
 import './LabMethodDescriptionSection.scss';
 
 export const LabMethodDescriptionSection: React.FC = () => (

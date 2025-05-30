@@ -5,8 +5,8 @@ import {
   OdhDocument,
   OdhDocumentType,
   OdhIntegrationApplication,
-} from '~/types';
-import { AcceleratorProfileKind } from '~/k8sTypes';
+} from '#~/types';
+import { AcceleratorProfileKind } from '#~/k8sTypes';
 import { CATEGORY_ANNOTATION, DASHBOARD_MAIN_CONTAINER_ID, ODH_PRODUCT_NAME } from './const';
 
 export const makeCardVisible = (id: string): void => {

@@ -1,7 +1,7 @@
-import { PodKind, PodContainerStatus } from '~/k8sTypes';
-import { PodContainer } from '~/types';
-import { getPodContainerLogText } from '~/api';
-import { downloadString } from '~/utilities/string';
+import { PodKind, PodContainerStatus } from '#~/k8sTypes';
+import { PodContainer } from '#~/types';
+import { getPodContainerLogText } from '#~/api';
+import { downloadString } from '#~/utilities/string';
 
 const currentTimeStamp = new Date().toISOString();
 

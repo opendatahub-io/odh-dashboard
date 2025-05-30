@@ -2,7 +2,7 @@ import React from 'react';
 import { CodeEditor } from '@patternfly/react-code-editor';
 import * as monaco from 'monaco-editor';
 import { loader } from '@monaco-editor/react';
-import { useThemeContext } from '~/app/ThemeContext';
+import { useThemeContext } from '#~/app/ThemeContext';
 
 loader.config({ monaco });
 

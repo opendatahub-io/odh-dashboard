@@ -1,5 +1,5 @@
-import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
-import { Modal } from '~/__tests__/cypress/cypress/pages/components/Modal';
+import { appChrome } from '#~/__tests__/cypress/cypress/pages/appChrome';
+import { Modal } from '#~/__tests__/cypress/cypress/pages/components/Modal';
 import { TableRow } from './components/table';
 import { TableToolbar } from './components/TableToolbar';
 import { Contextual } from './components/Contextual';

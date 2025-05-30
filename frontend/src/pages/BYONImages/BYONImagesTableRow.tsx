@@ -6,14 +6,14 @@ import {
   TimestampTooltipVariant,
   Truncate,
 } from '@patternfly/react-core';
-import { BYONImage } from '~/types';
-import { relativeTime } from '~/utilities/time';
-import { AcceleratorProfileKind } from '~/k8sTypes';
-import { FetchState } from '~/utilities/useFetchState';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import BYONImageHardwareProfiles from '~/pages/BYONImages/BYONImageHardwareProfiles';
-import { TableRowTitleDescription } from '~/components/table';
-import { useHardwareProfilesByFeatureVisibility } from '~/pages/hardwareProfiles/migration/useHardwareProfilesByFeatureVisibility';
+import { BYONImage } from '#~/types';
+import { relativeTime } from '#~/utilities/time';
+import { AcceleratorProfileKind } from '#~/k8sTypes';
+import { FetchState } from '#~/utilities/useFetchState';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import BYONImageHardwareProfiles from '#~/pages/BYONImages/BYONImageHardwareProfiles';
+import { TableRowTitleDescription } from '#~/components/table';
+import { useHardwareProfilesByFeatureVisibility } from '#~/pages/hardwareProfiles/migration/useHardwareProfilesByFeatureVisibility';
 import ImageErrorStatus from './ImageErrorStatus';
 import BYONImageStatusToggle from './BYONImageStatusToggle';
 import { convertBYONImageToK8sResource } from './utils';

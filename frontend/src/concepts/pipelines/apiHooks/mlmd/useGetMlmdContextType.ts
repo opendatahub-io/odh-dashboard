@@ -1,12 +1,12 @@
 import React from 'react';
-import { MlmdContextType, MlmdContextTypes } from '~/concepts/pipelines/apiHooks/mlmd/types';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { GetContextTypeRequest } from '~/third_party/mlmd';
+import { MlmdContextType, MlmdContextTypes } from '#~/concepts/pipelines/apiHooks/mlmd/types';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+import { GetContextTypeRequest } from '#~/third_party/mlmd';
 import useFetchState, {
   FetchState,
   FetchStateCallbackPromise,
   NotReadyError,
-} from '~/utilities/useFetchState';
+} from '#~/utilities/useFetchState';
 
 export const useGetMlmdContextType = (
   type?: MlmdContextTypes,

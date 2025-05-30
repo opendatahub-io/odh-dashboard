@@ -1,17 +1,17 @@
 import React from 'react';
 import { Alert, Form, Modal, ModalBody, ModalHeader, ModalFooter } from '@patternfly/react-core';
-import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
-import ConnectionTypeForm from '~/concepts/connectionTypes/ConnectionTypeForm';
+import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
+import ConnectionTypeForm from '#~/concepts/connectionTypes/ConnectionTypeForm';
 import {
   Connection,
   ConnectionTypeConfigMapObj,
   ConnectionTypeFieldType,
   ConnectionTypeValueType,
-} from '~/concepts/connectionTypes/types';
-import { ProjectKind, SecretKind } from '~/k8sTypes';
-import { K8sNameDescriptionFieldData } from '~/concepts/k8s/K8sNameDescriptionField/types';
-import { isK8sNameDescriptionDataValid } from '~/concepts/k8s/K8sNameDescriptionField/utils';
-import { useK8sNameDescriptionFieldData } from '~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
+} from '#~/concepts/connectionTypes/types';
+import { ProjectKind, SecretKind } from '#~/k8sTypes';
+import { K8sNameDescriptionFieldData } from '#~/concepts/k8s/K8sNameDescriptionField/types';
+import { isK8sNameDescriptionDataValid } from '#~/concepts/k8s/K8sNameDescriptionField/utils';
+import { useK8sNameDescriptionFieldData } from '#~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import {
   assembleConnectionSecret,
   filterEnabledConnectionTypes,
@@ -19,7 +19,7 @@ import {
   getDefaultValues,
   isConnectionTypeDataField,
   parseConnectionSecretValues,
-} from '~/concepts/connectionTypes/utils';
+} from '#~/concepts/connectionTypes/utils';
 import usePersistentData from './usePersistentData';
 
 type Props = {

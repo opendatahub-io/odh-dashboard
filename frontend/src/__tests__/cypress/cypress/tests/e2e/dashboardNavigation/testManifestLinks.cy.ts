@@ -1,5 +1,5 @@
 import * as yaml from 'js-yaml';
-import { isUrlExcluded } from '~/__tests__/cypress/cypress/utils/urlExtractor';
+import { isUrlExcluded } from '#~/__tests__/cypress/cypress/utils/urlExtractor';
 
 /**
  * Type definitions for URL validation results

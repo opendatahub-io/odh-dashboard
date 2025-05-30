@@ -1,10 +1,10 @@
-import { mock403Error, mockDashboardConfig, mockStatus } from '~/__mocks__';
-import { mockSelfSubjectAccessReview } from '~/__mocks__/mockSelfSubjectAccessReview';
+import { mock403Error, mockDashboardConfig, mockStatus } from '#~/__mocks__';
+import { mockSelfSubjectAccessReview } from '#~/__mocks__/mockSelfSubjectAccessReview';
 import {
   ODHDashboardConfigModel,
   SelfSubjectAccessReviewModel,
-} from '~/__tests__/cypress/cypress/utils/models';
-import type { AccessReviewResourceAttributes } from '~/k8sTypes';
+} from '#~/__tests__/cypress/cypress/utils/models';
+import type { AccessReviewResourceAttributes } from '#~/k8sTypes';
 
 // Establish a user before applying any test specific intercepts.
 

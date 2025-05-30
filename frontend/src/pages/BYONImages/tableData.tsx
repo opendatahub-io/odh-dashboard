@@ -1,5 +1,5 @@
-import { SortableData } from '~/components/table';
-import { BYONImage } from '~/types';
+import { SortableData } from '#~/components/table';
+import { BYONImage } from '#~/types';
 import { getEnabledStatus } from './utils';
 
 export const columns: SortableData<BYONImage>[] = [

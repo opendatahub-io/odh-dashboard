@@ -23,7 +23,7 @@ import {
   Flex,
 } from '@patternfly/react-core';
 import { TimesIcon } from '@patternfly/react-icons';
-import TruncatedText from '~/components/TruncatedText';
+import TruncatedText from '#~/components/TruncatedText';
 
 export interface TypeaheadSelectOption extends Omit<SelectOptionProps, 'content' | 'isSelected'> {
   /** Content of the select option. */

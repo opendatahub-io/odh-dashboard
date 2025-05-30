@@ -1,10 +1,10 @@
 import React from 'react';
-import { NimMetricGraphDefinition } from '~/concepts/metrics/kserve/types';
-import { TimeframeTitle } from '~/concepts/metrics/types';
-import MetricsChart from '~/pages/modelServing/screens/metrics/MetricsChart';
-import { useFetchNimTimePerOutputTokenData } from '~/api';
-import { convertPrometheusNaNToZero } from '~/pages/modelServing/screens/metrics/utils';
-import { MetricsChartTypes } from '~/pages/modelServing/screens/metrics/types';
+import { NimMetricGraphDefinition } from '#~/concepts/metrics/kserve/types';
+import { TimeframeTitle } from '#~/concepts/metrics/types';
+import MetricsChart from '#~/pages/modelServing/screens/metrics/MetricsChart';
+import { useFetchNimTimePerOutputTokenData } from '#~/api';
+import { convertPrometheusNaNToZero } from '#~/pages/modelServing/screens/metrics/utils';
+import { MetricsChartTypes } from '#~/pages/modelServing/screens/metrics/types';
 
 type NimTimePerOutputTokenGraphProps = {
   graphDefinition: NimMetricGraphDefinition; // Contains query and title

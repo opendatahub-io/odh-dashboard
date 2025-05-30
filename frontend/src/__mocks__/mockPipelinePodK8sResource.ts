@@ -1,6 +1,6 @@
-import { KnownLabels, PodKind } from '~/k8sTypes';
-import { genUID } from '~/__mocks__/mockUtils';
-import { TolerationEffect, TolerationOperator } from '~/types';
+import { KnownLabels, PodKind } from '#~/k8sTypes';
+import { genUID } from '#~/__mocks__/mockUtils';
+import { TolerationEffect, TolerationOperator } from '#~/types';
 
 type MockResourceConfigType = {
   user?: string;

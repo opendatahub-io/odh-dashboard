@@ -4,19 +4,19 @@ import {
   Connection,
   ConnectionTypeConfigMapObj,
   ConnectionTypeValueType,
-} from '~/concepts/connectionTypes/types';
-import { ProjectKind } from '~/k8sTypes';
+} from '#~/concepts/connectionTypes/types';
+import { ProjectKind } from '#~/k8sTypes';
 import {
   CreatingInferenceServiceObject,
   InferenceServiceStorageType,
-} from '~/pages/modelServing/screens/types';
+} from '#~/pages/modelServing/screens/types';
 import {
   AccessTypes,
   AwsKeys,
   EMPTY_AWS_SECRET_DATA,
-} from '~/pages/projects/dataConnections/const';
-import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
-import { isRedHatRegistryUri } from '~/pages/modelRegistry/screens/utils';
+} from '#~/pages/projects/dataConnections/const';
+import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
+import { isRedHatRegistryUri } from '#~/pages/modelRegistry/screens/utils';
 import {
   getMRConnectionValues,
   OCIAccessTypeKey,
@@ -24,11 +24,11 @@ import {
   S3ConnectionTypeKeys,
   URIConnectionTypeKeys,
   withRequiredFields,
-} from '~/concepts/connectionTypes/utils';
-import { useWatchConnectionTypes } from '~/utilities/useWatchConnectionTypes';
-import { getResourceNameFromK8sResource } from '~/concepts/k8s/utils';
-import { PrefilledConnection } from '~/concepts/modelRegistry/utils';
-import useServingConnections from '~/pages/projects/screens/detail/connections/useServingConnections';
+} from '#~/concepts/connectionTypes/utils';
+import { useWatchConnectionTypes } from '#~/utilities/useWatchConnectionTypes';
+import { getResourceNameFromK8sResource } from '#~/concepts/k8s/utils';
+import { PrefilledConnection } from '#~/concepts/modelRegistry/utils';
+import useServingConnections from '#~/pages/projects/screens/detail/connections/useServingConnections';
 import useLabeledConnections from './useLabeledConnections';
 
 export type ModelDeployPrefillInfo = {

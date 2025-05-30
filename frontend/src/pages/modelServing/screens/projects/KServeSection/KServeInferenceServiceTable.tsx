@@ -1,17 +1,17 @@
 import * as React from 'react';
 import { useParams } from 'react-router-dom';
-import { Table } from '~/components/table';
-import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
-import { getKServeInferenceServiceColumns } from '~/pages/modelServing/screens/global/data';
-import KServeInferenceServiceTableRow from '~/pages/modelServing/screens/projects/KServeSection/KServeInferenceServiceTableRow';
-import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import ManageKServeModal from '~/pages/modelServing/screens/projects/kServeModal/ManageKServeModal';
-import DeleteInferenceServiceModal from '~/pages/modelServing/screens/global/DeleteInferenceServiceModal';
-import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
-import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
-import { isProjectNIMSupported } from '~/pages/modelServing/screens/projects/nimUtils';
-import ManageNIMServingModal from '~/pages/modelServing/screens/projects/NIMServiceModal/ManageNIMServingModal';
+import { Table } from '#~/components/table';
+import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
+import { getKServeInferenceServiceColumns } from '#~/pages/modelServing/screens/global/data';
+import KServeInferenceServiceTableRow from '#~/pages/modelServing/screens/projects/KServeSection/KServeInferenceServiceTableRow';
+import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
+import ManageKServeModal from '#~/pages/modelServing/screens/projects/kServeModal/ManageKServeModal';
+import DeleteInferenceServiceModal from '#~/pages/modelServing/screens/global/DeleteInferenceServiceModal';
+import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
+import { byName, ProjectsContext } from '#~/concepts/projects/ProjectsContext';
+import { isProjectNIMSupported } from '#~/pages/modelServing/screens/projects/nimUtils';
+import ManageNIMServingModal from '#~/pages/modelServing/screens/projects/NIMServiceModal/ManageNIMServingModal';
 
 const KServeInferenceServiceTable: React.FC = () => {
   const { projects } = React.useContext(ProjectsContext);

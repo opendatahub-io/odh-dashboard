@@ -1,8 +1,8 @@
 import React from 'react';
 import { Button, Toolbar, ToolbarContent, ToolbarItem } from '@patternfly/react-core';
-import { Table } from '~/components/table';
-import { ModelRegistryKind, RoleBindingKind } from '~/k8sTypes';
-import { FetchStateObject } from '~/utilities/useFetch';
+import { Table } from '#~/components/table';
+import { ModelRegistryKind, RoleBindingKind } from '#~/k8sTypes';
+import { FetchStateObject } from '#~/utilities/useFetch';
 import { modelRegistryColumns } from './columns';
 import ModelRegistriesTableRow from './ModelRegistriesTableRow';
 import DeleteModelRegistryModal from './DeleteModelRegistryModal';

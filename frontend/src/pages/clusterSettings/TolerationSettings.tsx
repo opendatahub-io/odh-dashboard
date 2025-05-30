@@ -10,8 +10,8 @@ import {
   TextInput,
   ValidatedOptions,
 } from '@patternfly/react-core';
-import SettingSection from '~/components/SettingSection';
-import { NotebookTolerationFormSettings } from '~/types';
+import SettingSection from '#~/components/SettingSection';
+import { NotebookTolerationFormSettings } from '#~/types';
 import { DEFAULT_TOLERATION_VALUE, TOLERATION_FORMAT, TOLERATION_FORMAT_ERROR } from './const';
 
 type TolerationSettingsProps = {

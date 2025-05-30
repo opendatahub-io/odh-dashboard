@@ -1,14 +1,14 @@
 import React from 'react';
 import { TextInput } from '@patternfly/react-core';
-import FilterToolbar from '~/components/FilterToolbar';
+import FilterToolbar from '#~/components/FilterToolbar';
 import {
   FilterOptions,
   getMlmdExecutionState,
   options,
-} from '~/pages/pipelines/global/experiments/executions/const';
-import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
-import { ExecutionStatus, ExecutionType } from '~/concepts/pipelines/kfTypes';
-import { useMlmdListContext } from '~/concepts/pipelines/context';
+} from '#~/pages/pipelines/global/experiments/executions/const';
+import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
+import { ExecutionStatus, ExecutionType } from '#~/concepts/pipelines/kfTypes';
+import { useMlmdListContext } from '#~/concepts/pipelines/context';
 
 type ExecutionsTableToolbarProps = {
   filterData: Record<FilterOptions, string | undefined>;

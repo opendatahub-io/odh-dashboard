@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { OdhDocument } from '~/types';
-import { useDocResources } from '~/concepts/docResources/useDocResources';
+import { OdhDocument } from '#~/types';
+import { useDocResources } from '#~/concepts/docResources/useDocResources';
 
 export const useSpecifiedResources = (
   specifiedDocs: { name: string; kind: string }[],

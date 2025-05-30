@@ -24,20 +24,20 @@ import {
   updatePipelineRecurringRun,
   uploadPipeline,
   uploadPipelineVersion,
-} from '~/api/pipelines/custom';
-import { handlePipelineFailures } from '~/api/pipelines/errorUtils';
-import { proxyCREATE, proxyDELETE, proxyENDPOINT, proxyFILE, proxyGET } from '~/api/proxyUtils';
+} from '#~/api/pipelines/custom';
+import { handlePipelineFailures } from '#~/api/pipelines/errorUtils';
+import { proxyCREATE, proxyDELETE, proxyENDPOINT, proxyFILE, proxyGET } from '#~/api/proxyUtils';
 import {
   CreateExperimentKFData,
   CreatePipelineRecurringRunKFData,
   CreatePipelineRunKFData,
   RecurringRunMode,
-} from '~/concepts/pipelines/kfTypes';
-import { PipelineParams } from '~/concepts/pipelines/types';
+} from '#~/concepts/pipelines/kfTypes';
+import { PipelineParams } from '#~/concepts/pipelines/types';
 
 const mockProxyPromise = Promise.resolve();
 
-jest.mock('~/api/proxyUtils', () => ({
+jest.mock('#~/api/proxyUtils', () => ({
   proxyCREATE: jest.fn(() => mockProxyPromise),
   proxyGET: jest.fn(() => mockProxyPromise),
   proxyDELETE: jest.fn(() => mockProxyPromise),
@@ -47,7 +47,7 @@ jest.mock('~/api/proxyUtils', () => ({
 
 const mockResultPromise = Promise.resolve();
 
-jest.mock('~/api/pipelines/errorUtils', () => ({
+jest.mock('#~/api/pipelines/errorUtils', () => ({
   handlePipelineFailures: jest.fn(() => mockResultPromise),
 }));
 

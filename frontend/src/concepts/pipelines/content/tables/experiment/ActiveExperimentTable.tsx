@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { ExperimentKF } from '~/concepts/pipelines/kfTypes';
-import { ArchiveExperimentModal } from '~/pages/pipelines/global/experiments/ArchiveExperimentModal';
+import { ExperimentKF } from '#~/concepts/pipelines/kfTypes';
+import { ArchiveExperimentModal } from '#~/pages/pipelines/global/experiments/ArchiveExperimentModal';
 import ExperimentTableBase from './ExperimentTableBase';
 import { ActiveExperimentTableToolbar } from './ExperimentTableToolbar';
 

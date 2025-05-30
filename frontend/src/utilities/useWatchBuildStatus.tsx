@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { AlertVariant, List, ListItem, Stack, StackItem } from '@patternfly/react-core';
-import { BuildPhase, BuildStatus } from '~/types';
-import { fetchBuildStatuses } from '~/services/buildsService';
-import { addNotification } from '~/redux/actions/actions';
-import { useAppDispatch } from '~/redux/hooks';
+import { BuildPhase, BuildStatus } from '#~/types';
+import { fetchBuildStatuses } from '#~/services/buildsService';
+import { addNotification } from '#~/redux/actions/actions';
+import { useAppDispatch } from '#~/redux/hooks';
 import { useDeepCompareMemoize } from './useDeepCompareMemoize';
 import { POLL_INTERVAL } from './const';
 

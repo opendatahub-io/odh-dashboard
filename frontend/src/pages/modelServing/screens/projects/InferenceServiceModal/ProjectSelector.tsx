@@ -1,11 +1,11 @@
 import React from 'react';
 import { Alert, FormGroup, MenuItem, Stack, StackItem, Truncate } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
-import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
-import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
-import { KnownLabels, ProjectKind } from '~/k8sTypes';
-import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
-import SearchSelector from '~/components/searchSelector/SearchSelector';
+import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
+import { ProjectsContext } from '#~/concepts/projects/ProjectsContext';
+import { KnownLabels, ProjectKind } from '#~/k8sTypes';
+import { ProjectSectionID } from '#~/pages/projects/screens/detail/types';
+import SearchSelector from '#~/components/searchSelector/SearchSelector';
 
 type ProjectSelectorProps = {
   selectedProject: ProjectKind | null;

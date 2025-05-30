@@ -1,10 +1,10 @@
 import * as React from 'react';
 import { Navigate, Outlet, useParams } from 'react-router-dom';
-import ApplicationsPage from '~/pages/ApplicationsPage';
-import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
-import PipelineCoreNoProjects from '~/pages/pipelines/global/PipelineCoreNoProjects';
-import { PipelineContextProvider } from '~/concepts/pipelines/context';
-import InvalidProject from '~/concepts/projects/InvalidProject';
+import ApplicationsPage from '#~/pages/ApplicationsPage';
+import { byName, ProjectsContext } from '#~/concepts/projects/ProjectsContext';
+import PipelineCoreNoProjects from '#~/pages/pipelines/global/PipelineCoreNoProjects';
+import { PipelineContextProvider } from '#~/concepts/pipelines/context';
+import InvalidProject from '#~/concepts/projects/InvalidProject';
 import PipelineCoreProjectSelector from './PipelineCoreProjectSelector';
 
 type ApplicationPageProps = React.ComponentProps<typeof ApplicationsPage>;

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Form, Modal, ModalBody, ModalHeader } from '@patternfly/react-core';
-import ConnectionTypeForm from '~/concepts/connectionTypes/ConnectionTypeForm';
-import { ConnectionTypeConfigMapObj } from '~/concepts/connectionTypes/types';
+import ConnectionTypeForm from '#~/concepts/connectionTypes/ConnectionTypeForm';
+import { ConnectionTypeConfigMapObj } from '#~/concepts/connectionTypes/types';
 
 type Props = {
   onClose: () => void;

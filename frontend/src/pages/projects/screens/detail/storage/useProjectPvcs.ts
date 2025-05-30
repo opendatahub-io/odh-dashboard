@@ -1,7 +1,7 @@
 import * as React from 'react';
-import { getDashboardPvcs } from '~/api';
-import { PersistentVolumeClaimKind } from '~/k8sTypes';
-import useFetch, { FetchOptions, FetchStateObject, NotReadyError } from '~/utilities/useFetch';
+import { getDashboardPvcs } from '#~/api';
+import { PersistentVolumeClaimKind } from '#~/k8sTypes';
+import useFetch, { FetchOptions, FetchStateObject, NotReadyError } from '#~/utilities/useFetch';
 
 const useProjectPvcs = (
   namespace?: string,

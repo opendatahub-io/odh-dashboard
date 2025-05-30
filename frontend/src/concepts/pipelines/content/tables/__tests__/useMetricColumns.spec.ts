@@ -1,5 +1,5 @@
-import { testHook } from '~/__tests__/unit/testUtils/hooks';
-import { useMetricColumnNames } from '~/concepts/pipelines/content/tables/pipelineRun/useMetricColumns';
+import { testHook } from '#~/__tests__/unit/testUtils/hooks';
+import { useMetricColumnNames } from '#~/concepts/pipelines/content/tables/pipelineRun/useMetricColumns';
 
 describe('useMetricColumnNames', () => {
   const experimentId = 'test-experiment-id';

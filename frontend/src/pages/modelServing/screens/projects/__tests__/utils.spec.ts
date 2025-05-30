@@ -1,4 +1,4 @@
-import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
+import { mockProjectK8sResource } from '#~/__mocks__/mockProjectK8sResource';
 import {
   createNIMPVC,
   createNIMSecret,
@@ -8,27 +8,27 @@ import {
   getUrlFromKserveInferenceService,
   isCurrentServingPlatformEnabled,
   isValueFromEnvVar,
-} from '~/pages/modelServing/screens/projects/utils';
-import { ServingPlatformStatuses } from '~/pages/modelServing/screens/types';
-import { ServingRuntimePlatform } from '~/types';
-import { mockInferenceServiceK8sResource } from '~/__mocks__/mockInferenceServiceK8sResource';
-import { createPvc, createSecret } from '~/api';
-import { PersistentVolumeClaimKind, ServingRuntimeKind } from '~/k8sTypes';
+} from '#~/pages/modelServing/screens/projects/utils';
+import { ServingPlatformStatuses } from '#~/pages/modelServing/screens/types';
+import { ServingRuntimePlatform } from '#~/types';
+import { mockInferenceServiceK8sResource } from '#~/__mocks__/mockInferenceServiceK8sResource';
+import { createPvc, createSecret } from '#~/api';
+import { PersistentVolumeClaimKind, ServingRuntimeKind } from '#~/k8sTypes';
 import {
   getNIMData,
   getNIMResource,
   updateServingRuntimeTemplate,
-} from '~/pages/modelServing/screens/projects/nimUtils';
+} from '#~/pages/modelServing/screens/projects/nimUtils';
 
-jest.mock('~/api', () => ({
+jest.mock('#~/api', () => ({
   getSecret: jest.fn(),
   createSecret: jest.fn(),
   createPvc: jest.fn(),
   getInferenceServiceContext: jest.fn(),
 }));
 
-jest.mock('~/pages/modelServing/screens/projects/nimUtils', () => ({
-  ...jest.requireActual('~/pages/modelServing/screens/projects/nimUtils'),
+jest.mock('#~/pages/modelServing/screens/projects/nimUtils', () => ({
+  ...jest.requireActual('#~/pages/modelServing/screens/projects/nimUtils'),
   getNIMData: jest.fn(),
   getNIMResource: jest.fn(),
 }));

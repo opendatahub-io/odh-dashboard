@@ -1,5 +1,5 @@
-import { standardUseFetchState, testHook } from '~/__tests__/unit/testUtils/hooks';
-import usePipelineQuery from '~/concepts/pipelines/apiHooks/usePipelineQuery';
+import { standardUseFetchState, testHook } from '#~/__tests__/unit/testUtils/hooks';
+import usePipelineQuery from '#~/concepts/pipelines/apiHooks/usePipelineQuery';
 
 describe('usePipelineQuery', () => {
   it('should return an error', async () => {

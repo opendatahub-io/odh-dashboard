@@ -1,12 +1,12 @@
 import * as React from 'react';
 import { Stack, StackItem } from '@patternfly/react-core';
-import { RunTypeScheduledData } from '~/concepts/pipelines/content/createRun/types';
-import RunTypeSectionDateTime from '~/concepts/pipelines/content/createRun/contentSections/RunTypeSectionDateTime';
-import EndDateBeforeStartDateError from '~/concepts/pipelines/content/createRun/contentSections/EndDateBeforeStartDateError';
-import CatchUp from '~/concepts/pipelines/content/createRun/contentSections/CatchUp';
-import MaxConcurrencyField from '~/concepts/pipelines/content/createRun/contentSections/MaxConcurrencyField';
-import TriggerTypeField from '~/concepts/pipelines/content/createRun/contentSections/TriggerTypeField';
-import { convertToDate } from '~/utilities/time';
+import { RunTypeScheduledData } from '#~/concepts/pipelines/content/createRun/types';
+import RunTypeSectionDateTime from '#~/concepts/pipelines/content/createRun/contentSections/RunTypeSectionDateTime';
+import EndDateBeforeStartDateError from '#~/concepts/pipelines/content/createRun/contentSections/EndDateBeforeStartDateError';
+import CatchUp from '#~/concepts/pipelines/content/createRun/contentSections/CatchUp';
+import MaxConcurrencyField from '#~/concepts/pipelines/content/createRun/contentSections/MaxConcurrencyField';
+import TriggerTypeField from '#~/concepts/pipelines/content/createRun/contentSections/TriggerTypeField';
+import { convertToDate } from '#~/utilities/time';
 
 type RunTypeSectionScheduledProps = {
   data: RunTypeScheduledData;

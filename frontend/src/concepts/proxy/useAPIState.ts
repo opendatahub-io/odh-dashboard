@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { APIState } from '~/concepts/proxy/types';
+import { APIState } from '#~/concepts/proxy/types';
 
 const useAPIState = <T>(
   hostPath: string | null,

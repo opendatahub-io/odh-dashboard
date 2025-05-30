@@ -10,7 +10,7 @@ import {
   mock404Error,
   buildMockPipeline,
   buildMockPipelines,
-} from '~/__mocks__';
+} from '#~/__mocks__';
 import {
   pipelinesTable,
   configurePipelineServerModal,
@@ -18,17 +18,17 @@ import {
   PipelineSort,
   pipelinesGlobal,
   viewPipelineServerModal,
-} from '~/__tests__/cypress/cypress/pages/pipelines';
-import { pipelinesSection } from '~/__tests__/cypress/cypress/pages/pipelines/pipelinesSection';
-import { projectDetails } from '~/__tests__/cypress/cypress/pages/projects';
+} from '#~/__tests__/cypress/cypress/pages/pipelines';
+import { pipelinesSection } from '#~/__tests__/cypress/cypress/pages/pipelines/pipelinesSection';
+import { projectDetails } from '#~/__tests__/cypress/cypress/pages/projects';
 import {
   DataSciencePipelineApplicationModel,
   ProjectModel,
   RouteModel,
   SecretModel,
-} from '~/__tests__/cypress/cypress/utils/models';
-import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url';
-import type { PipelineKF } from '~/concepts/pipelines/kfTypes';
+} from '#~/__tests__/cypress/cypress/utils/models';
+import { verifyRelativeURL } from '#~/__tests__/cypress/cypress/utils/url';
+import type { PipelineKF } from '#~/concepts/pipelines/kfTypes';
 
 const projectName = 'test-project-name';
 const initialMockPipeline = buildMockPipeline({ display_name: 'Test pipeline' });

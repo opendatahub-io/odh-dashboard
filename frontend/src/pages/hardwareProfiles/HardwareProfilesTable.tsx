@@ -1,17 +1,17 @@
 import * as React from 'react';
-import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
-import { Table } from '~/components/table';
-import { HardwareProfileKind } from '~/k8sTypes';
+import DashboardEmptyTableView from '#~/concepts/dashboard/DashboardEmptyTableView';
+import { Table } from '#~/components/table';
+import { HardwareProfileKind } from '#~/k8sTypes';
 import {
   hardwareProfileColumns,
   HardwareProfileEnableType,
   HardwareProfileFilterDataType,
   initialHardwareProfileFilterData,
-} from '~/pages/hardwareProfiles/const';
-import HardwareProfilesTableRow from '~/pages/hardwareProfiles/HardwareProfilesTableRow';
-import DeleteHardwareProfileModal from '~/pages/hardwareProfiles/DeleteHardwareProfileModal';
-import HardwareProfilesToolbar from '~/pages/hardwareProfiles/HardwareProfilesToolbar';
-import { createHardwareProfileFromResource } from '~/api';
+} from '#~/pages/hardwareProfiles/const';
+import HardwareProfilesTableRow from '#~/pages/hardwareProfiles/HardwareProfilesTableRow';
+import DeleteHardwareProfileModal from '#~/pages/hardwareProfiles/DeleteHardwareProfileModal';
+import HardwareProfilesToolbar from '#~/pages/hardwareProfiles/HardwareProfilesToolbar';
+import { createHardwareProfileFromResource } from '#~/api';
 import { MigrationAction } from './migration/types';
 import MigrationModal from './migration/MigrationModal';
 

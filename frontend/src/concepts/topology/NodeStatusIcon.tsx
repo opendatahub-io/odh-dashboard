@@ -8,7 +8,7 @@ import {
   PendingIcon,
 } from '@patternfly/react-icons';
 import { Icon, Tooltip } from '@patternfly/react-core';
-import { RuntimeStateKF, runtimeStateLabels } from '~/concepts/pipelines/kfTypes';
+import { RuntimeStateKF, runtimeStateLabels } from '#~/concepts/pipelines/kfTypes';
 
 const NodeStatusIcon: React.FC<{ runStatus: RuntimeStateKF | string }> = ({ runStatus }) => {
   let icon: React.ReactNode;

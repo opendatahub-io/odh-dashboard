@@ -13,11 +13,11 @@ import {
   HelperTextItem,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon, EyeIcon, EyeSlashIcon } from '@patternfly/react-icons';
-import { CUSTOM_VARIABLE, EMPTY_KEY } from '~/pages/notebookController/const';
-import { EnvVarType, VariableRow } from '~/types';
+import { CUSTOM_VARIABLE, EMPTY_KEY } from '#~/pages/notebookController/const';
+import { EnvVarType, VariableRow } from '#~/types';
 
-import '~/pages/notebookController/NotebookController.scss';
-import { asEnumMember } from '~/utilities/utils';
+import '#~/pages/notebookController/NotebookController.scss';
+import { asEnumMember } from '#~/utilities/utils';
 
 type EnvironmentVariablesFieldProps = {
   fieldIndex: string;

@@ -1,8 +1,8 @@
 import React from 'react';
-import { ConnectionTypeConfigMapObj } from '~/concepts/connectionTypes/types';
-import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
-import DeleteModal from '~/pages/projects/components/DeleteModal';
-import { deleteConnectionType } from '~/services/connectionTypesService';
+import { ConnectionTypeConfigMapObj } from '#~/concepts/connectionTypes/types';
+import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
+import DeleteModal from '#~/pages/projects/components/DeleteModal';
+import { deleteConnectionType } from '#~/services/connectionTypesService';
 
 type DeleteConnectionTypeModalProps = {
   connectionType: ConnectionTypeConfigMapObj;

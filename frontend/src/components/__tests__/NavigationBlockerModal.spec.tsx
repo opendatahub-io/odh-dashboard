@@ -3,7 +3,7 @@ import * as ReactRouterDom from 'react-router-dom';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import type { Location, Blocker } from 'react-router-dom';
-import NavigationBlockerModal from '~/components/NavigationBlockerModal';
+import NavigationBlockerModal from '#~/components/NavigationBlockerModal';
 
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),

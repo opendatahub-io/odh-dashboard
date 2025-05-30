@@ -8,11 +8,11 @@ import {
   EmptyStateFooter,
   Bullseye,
 } from '@patternfly/react-core';
-import { PipelineKF } from '~/concepts/pipelines/kfTypes';
-import PipelineVersionTable from '~/concepts/pipelines/content/tables/pipelineVersion/PipelineVersionTable';
-import usePipelineVersionsTable from '~/concepts/pipelines/content/tables/pipelineVersion/usePipelineVersionsTable';
-import { getTableSortProps } from '~/concepts/pipelines/content/tables/usePipelineTable';
-import ImportPipelineVersionButton from '~/concepts/pipelines/content/import/ImportPipelineVersionButton';
+import { PipelineKF } from '#~/concepts/pipelines/kfTypes';
+import PipelineVersionTable from '#~/concepts/pipelines/content/tables/pipelineVersion/PipelineVersionTable';
+import usePipelineVersionsTable from '#~/concepts/pipelines/content/tables/pipelineVersion/usePipelineVersionsTable';
+import { getTableSortProps } from '#~/concepts/pipelines/content/tables/usePipelineTable';
+import ImportPipelineVersionButton from '#~/concepts/pipelines/content/import/ImportPipelineVersionButton';
 
 type PipelinesTableExpandedRowProps = {
   pipeline: PipelineKF;

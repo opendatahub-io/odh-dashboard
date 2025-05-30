@@ -1,4 +1,4 @@
-import { SortableData } from '~/components/table';
+import { SortableData } from '#~/components/table';
 import { AdminViewUserData } from './types';
 
 export const columns: SortableData<AdminViewUserData>[] = [

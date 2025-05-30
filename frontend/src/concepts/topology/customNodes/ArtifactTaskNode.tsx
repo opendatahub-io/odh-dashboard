@@ -20,8 +20,8 @@ import {
 import { ListIcon, MonitoringIcon } from '@patternfly/react-icons';
 import { TaskNodeProps } from '@patternfly/react-topology/dist/esm/pipelines/components/nodes/TaskNode';
 import { css } from '@patternfly/react-styles';
-import { StandardTaskNodeData } from '~/concepts/topology/types';
-import { isMetricsArtifactType } from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/artifacts/utils';
+import { StandardTaskNodeData } from '#~/concepts/topology/types';
+import { isMetricsArtifactType } from '#~/concepts/pipelines/content/pipelinesDetails/pipelineRun/artifacts/utils';
 
 const ICON_PADDING = 8;
 

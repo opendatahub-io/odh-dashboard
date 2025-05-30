@@ -9,12 +9,12 @@ import {
   ModalBody,
   ModalHeader,
 } from '@patternfly/react-core';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import PasswordHiddenText from '~/components/PasswordHiddenText';
-import { dataEntryToRecord } from '~/utilities/dataEntryToRecord';
-import useNamespaceSecret from '~/concepts/projects/apiHooks/useNamespaceSecret';
-import { ExternalDatabaseSecret } from '~/concepts/pipelines/content/configurePipelinesServer/const';
-import { DSPipelineKind } from '~/k8sTypes';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+import PasswordHiddenText from '#~/components/PasswordHiddenText';
+import { dataEntryToRecord } from '#~/utilities/dataEntryToRecord';
+import useNamespaceSecret from '#~/concepts/projects/apiHooks/useNamespaceSecret';
+import { ExternalDatabaseSecret } from '#~/concepts/pipelines/content/configurePipelinesServer/const';
+import { DSPipelineKind } from '#~/k8sTypes';
 
 type ViewPipelineServerModalProps = {
   onClose: () => void;

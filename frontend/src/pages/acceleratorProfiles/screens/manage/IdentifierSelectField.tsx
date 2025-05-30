@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { TextInput } from '@patternfly/react-core';
-import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
+import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
 
 type IdentifierSelectFieldProps = {
   value: string;

@@ -1,8 +1,8 @@
 import { Button } from '@patternfly/react-core';
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import ApplicationsPage from '~/pages/ApplicationsPage';
-import RedirectErrorState from '~/pages/external/RedirectErrorState';
+import ApplicationsPage from '#~/pages/ApplicationsPage';
+import RedirectErrorState from '#~/pages/external/RedirectErrorState';
 
 const ExternalRedirectNotFound: React.FC = () => {
   const navigate = useNavigate();

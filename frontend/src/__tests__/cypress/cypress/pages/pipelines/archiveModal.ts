@@ -1,4 +1,4 @@
-import { Modal } from '~/__tests__/cypress/cypress/pages/components/Modal';
+import { Modal } from '#~/__tests__/cypress/cypress/pages/components/Modal';
 
 class ArchiveModal extends Modal {
   protected testId: string;

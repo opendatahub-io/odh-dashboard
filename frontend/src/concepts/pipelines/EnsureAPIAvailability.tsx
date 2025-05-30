@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Bullseye, Spinner } from '@patternfly/react-core';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 
 type EnsureAPIAvailabilityProps = {
   children: React.ReactNode;

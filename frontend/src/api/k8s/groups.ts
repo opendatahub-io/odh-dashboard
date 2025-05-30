@@ -1,11 +1,11 @@
 import React from 'react';
 import { WatchK8sResource } from '@openshift/dynamic-plugin-sdk-utils';
-import { AccessReviewResourceAttributes, GroupKind } from '~/k8sTypes';
-import { GroupModel } from '~/api/models';
-import { groupVersionKind } from '~/api/k8sUtils';
-import { useAccessReview } from '~/api/useAccessReview';
-import useK8sWatchResourceList from '~/utilities/useK8sWatchResourceList';
-import { CustomWatchK8sResult } from '~/types';
+import { AccessReviewResourceAttributes, GroupKind } from '#~/k8sTypes';
+import { GroupModel } from '#~/api/models';
+import { groupVersionKind } from '#~/api/k8sUtils';
+import { useAccessReview } from '#~/api/useAccessReview';
+import useK8sWatchResourceList from '#~/utilities/useK8sWatchResourceList';
+import { CustomWatchK8sResult } from '#~/types';
 
 const accessReviewResource: AccessReviewResourceAttributes = {
   group: 'user.openshift.io',

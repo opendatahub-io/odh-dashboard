@@ -1,4 +1,4 @@
-import { K8sCondition, NIMAccountKind } from '~/k8sTypes';
+import { K8sCondition, NIMAccountKind } from '#~/k8sTypes';
 
 type MockResourceConfigType = {
   name?: string;

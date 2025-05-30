@@ -1,11 +1,11 @@
-import { HTPASSWD_CLUSTER_ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
-import { retryableBeforeEach } from '~/__tests__/cypress/cypress/utils/retryableHooks';
+import { HTPASSWD_CLUSTER_ADMIN_USER } from '#~/__tests__/cypress/cypress/utils/e2eUsers';
+import { retryableBeforeEach } from '#~/__tests__/cypress/cypress/utils/retryableHooks';
 import {
   createGroup,
   deleteGroup,
   groupExists,
-} from '~/__tests__/cypress/cypress/utils/oc_commands/groups';
-import { userManagement } from '~/__tests__/cypress/cypress/pages/userManagement';
+} from '#~/__tests__/cypress/cypress/utils/oc_commands/groups';
+import { userManagement } from '#~/__tests__/cypress/cypress/pages/userManagement';
 
 describe('Verify a notification is shown when a user group is removed', () => {
   const GROUP_NAME = 'test-admin-group';

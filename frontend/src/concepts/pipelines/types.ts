@@ -1,4 +1,4 @@
-import { K8sAPIOptions } from '~/k8sTypes';
+import { K8sAPIOptions } from '#~/k8sTypes';
 import {
   ListPipelineRunsResourceKF,
   ListPipelineRecurringRunsResourceKF,

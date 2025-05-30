@@ -6,7 +6,7 @@ import {
   DrawerPanelBody,
   Title,
 } from '@patternfly/react-core';
-import { PipelineTask } from '~/concepts/pipelines/topology';
+import { PipelineTask } from '#~/concepts/pipelines/topology';
 import PipelineTaskDetails from './PipelineTaskDetails';
 
 type SelectedTaskDrawerContentProps = {

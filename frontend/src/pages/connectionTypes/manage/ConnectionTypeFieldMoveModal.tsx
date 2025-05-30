@@ -7,9 +7,9 @@ import {
   ModalHeader,
   ModalFooter,
 } from '@patternfly/react-core';
-import { ConnectionTypeField, ConnectionTypeFieldType } from '~/concepts/connectionTypes/types';
-import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
-import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
+import { ConnectionTypeField, ConnectionTypeFieldType } from '#~/concepts/connectionTypes/types';
+import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
+import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
 
 type Props = {
   row: { field: ConnectionTypeField; index: number };

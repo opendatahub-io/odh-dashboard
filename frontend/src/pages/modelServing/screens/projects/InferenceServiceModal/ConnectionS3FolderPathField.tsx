@@ -7,9 +7,9 @@ import {
   HelperTextItem,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons/dist/esm/icons/exclamation-circle-icon';
-import { containsOnlySlashes, isS3PathValid } from '~/utilities/string';
-import useDebounceCallback from '~/utilities/useDebounceCallback';
-import { trimInputOnBlur, trimInputOnPaste } from '~/concepts/connectionTypes/utils';
+import { containsOnlySlashes, isS3PathValid } from '#~/utilities/string';
+import useDebounceCallback from '#~/utilities/useDebounceCallback';
+import { trimInputOnBlur, trimInputOnPaste } from '#~/concepts/connectionTypes/utils';
 
 type ConnectionFolderPathFieldProps = {
   folderPath: string;

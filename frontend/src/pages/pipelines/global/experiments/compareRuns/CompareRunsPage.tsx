@@ -1,14 +1,14 @@
 import React from 'react';
 import { Breadcrumb, BreadcrumbItem, Stack, StackItem, Truncate } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
-import ApplicationsPage from '~/pages/ApplicationsPage';
-import { PathProps } from '~/concepts/pipelines/content/types';
-import { useCompareRuns } from '~/concepts/pipelines/content/compareRuns/CompareRunsContext';
-import { CompareRunsInvalidRunCount } from '~/concepts/pipelines/content/compareRuns/CompareRunInvalidRunCount';
-import CompareRunsRunList from '~/concepts/pipelines/content/compareRuns/CompareRunsRunList';
-import { ExperimentContext } from '~/pages/pipelines/global/experiments/ExperimentContext';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { experimentRunsRoute } from '~/routes/pipelines/experiments';
+import ApplicationsPage from '#~/pages/ApplicationsPage';
+import { PathProps } from '#~/concepts/pipelines/content/types';
+import { useCompareRuns } from '#~/concepts/pipelines/content/compareRuns/CompareRunsContext';
+import { CompareRunsInvalidRunCount } from '#~/concepts/pipelines/content/compareRuns/CompareRunInvalidRunCount';
+import CompareRunsRunList from '#~/concepts/pipelines/content/compareRuns/CompareRunsRunList';
+import { ExperimentContext } from '#~/pages/pipelines/global/experiments/ExperimentContext';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+import { experimentRunsRoute } from '#~/routes/pipelines/experiments';
 import { CompareRunMetricsSection } from './CompareRunsMetricsSection';
 import { CompareRunParamsSection } from './CompareRunParamsSection';
 

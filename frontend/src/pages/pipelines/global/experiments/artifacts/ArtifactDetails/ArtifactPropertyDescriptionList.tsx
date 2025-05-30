@@ -7,8 +7,8 @@ import {
   DescriptionListDescription,
 } from '@patternfly/react-core';
 
-import { Value } from '~/third_party/mlmd';
-import { MlmdPropertyDetailsValue } from '~/pages/pipelines/global/experiments/MlmdPropertyValue';
+import { Value } from '#~/third_party/mlmd';
+import { MlmdPropertyDetailsValue } from '#~/pages/pipelines/global/experiments/MlmdPropertyValue';
 
 interface ArtifactPropertyDescriptionListProps {
   testId: string;

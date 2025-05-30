@@ -2,11 +2,11 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Bullseye, Spinner, Stack, StackItem, Title } from '@patternfly/react-core';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
-import { Event } from '~/third_party/mlmd';
-import { useGetLinkedArtifactsByEvents } from '~/concepts/pipelines/apiHooks/mlmd/useGetLinkedArtifactsByEvents';
-import { getArtifactNameFromEvent } from '~/pages/pipelines/global/experiments/executions/utils';
-import { artifactsDetailsRoute } from '~/routes/pipelines/artifacts';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
+import { Event } from '#~/third_party/mlmd';
+import { useGetLinkedArtifactsByEvents } from '#~/concepts/pipelines/apiHooks/mlmd/useGetLinkedArtifactsByEvents';
+import { getArtifactNameFromEvent } from '#~/pages/pipelines/global/experiments/executions/utils';
+import { artifactsDetailsRoute } from '#~/routes/pipelines/artifacts';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 
 type ExecutionDetailsInputOutputSectionProps = {
   isLoaded: boolean;

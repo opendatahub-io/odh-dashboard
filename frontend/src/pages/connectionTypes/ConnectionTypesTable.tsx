@@ -1,17 +1,17 @@
 import * as React from 'react';
-import { FilterDataType, initialFilterData } from '~/pages/connectionTypes/const';
-import { connectionTypeColumns } from '~/pages/connectionTypes/columns';
-import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
-import ConnectionTypesTableRow from '~/pages/connectionTypes/ConnectionTypesTableRow';
-import ConnectionTypesTableToolbar from '~/pages/connectionTypes/ConnectionTypesTableToolbar';
-import { ConnectionTypeConfigMapObj } from '~/concepts/connectionTypes/types';
-import { Table } from '~/components/table';
-import DeleteConnectionTypeModal from '~/pages/connectionTypes/DeleteConnectionTypeModal';
+import { FilterDataType, initialFilterData } from '#~/pages/connectionTypes/const';
+import { connectionTypeColumns } from '#~/pages/connectionTypes/columns';
+import DashboardEmptyTableView from '#~/concepts/dashboard/DashboardEmptyTableView';
+import ConnectionTypesTableRow from '#~/pages/connectionTypes/ConnectionTypesTableRow';
+import ConnectionTypesTableToolbar from '#~/pages/connectionTypes/ConnectionTypesTableToolbar';
+import { ConnectionTypeConfigMapObj } from '#~/concepts/connectionTypes/types';
+import { Table } from '#~/components/table';
+import DeleteConnectionTypeModal from '#~/pages/connectionTypes/DeleteConnectionTypeModal';
 import {
   getCreatorFromK8sResource,
   getDescriptionFromK8sResource,
   getDisplayNameFromK8sResource,
-} from '~/concepts/k8s/utils';
+} from '#~/concepts/k8s/utils';
 
 type Props = {
   connectionTypes: ConnectionTypeConfigMapObj[];

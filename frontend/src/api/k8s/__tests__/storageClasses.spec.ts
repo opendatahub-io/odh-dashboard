@@ -3,15 +3,15 @@ import {
   k8sListResource,
   k8sPatchResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
-import { MetadataAnnotation, StorageClassKind } from '~/k8sTypes';
-import { StorageClassModel } from '~/api/models';
-import { mockStorageClasses } from '~/__mocks__';
+import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
+import { MetadataAnnotation, StorageClassKind } from '#~/k8sTypes';
+import { StorageClassModel } from '#~/api/models';
+import { mockStorageClasses } from '#~/__mocks__';
 import {
   getStorageClass,
   getStorageClasses,
   updateStorageClassConfig,
-} from '~/api/k8s/storageClasses';
+} from '#~/api/k8s/storageClasses';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sListResource: jest.fn(),

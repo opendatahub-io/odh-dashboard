@@ -1,9 +1,9 @@
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import { NotebookKind } from '~/k8sTypes';
-import { Notebook } from '~/types';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { NotebookKind } from '#~/k8sTypes';
+import { Notebook } from '#~/types';
 import useAcceleratorProfileFormState, {
   UseAcceleratorProfileFormResult,
-} from '~/utilities/useAcceleratorProfileFormState';
+} from '#~/utilities/useAcceleratorProfileFormState';
 
 const useNotebookAcceleratorProfileFormState = (
   notebook?: NotebookKind | Notebook | null,

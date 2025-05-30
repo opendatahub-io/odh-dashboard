@@ -5,16 +5,16 @@ import {
   HardwareProfileKind,
   HardwareProfileFeatureVisibility,
   ServingRuntimeKind,
-} from '~/k8sTypes';
-import { isGpuDisabled } from '~/pages/modelServing/screens/projects/utils';
-import AcceleratorProfileSelectField from '~/pages/notebookController/screens/server/AcceleratorProfileSelectField';
-import { getCompatibleIdentifiers } from '~/pages/projects/screens/spawner/spawnerUtils';
-import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
-import { formatMemory } from '~/utilities/valueUnits';
-import { ModelServingPodSpecOptionsState } from '~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import HardwareProfileFormSection from '~/concepts/hardwareProfiles/HardwareProfileFormSection';
-import { ModelServingSize } from '~/pages/modelServing/screens/types';
+} from '#~/k8sTypes';
+import { isGpuDisabled } from '#~/pages/modelServing/screens/projects/utils';
+import AcceleratorProfileSelectField from '#~/pages/notebookController/screens/server/AcceleratorProfileSelectField';
+import { getCompatibleIdentifiers } from '#~/pages/projects/screens/spawner/spawnerUtils';
+import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
+import { formatMemory } from '#~/utilities/valueUnits';
+import { ModelServingPodSpecOptionsState } from '#~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import HardwareProfileFormSection from '#~/concepts/hardwareProfiles/HardwareProfileFormSection';
+import { ModelServingSize } from '#~/pages/modelServing/screens/types';
 import ServingRuntimeSizeExpandedField from './ServingRuntimeSizeExpandedField';
 
 type ServingRuntimeSizeSectionProps = {

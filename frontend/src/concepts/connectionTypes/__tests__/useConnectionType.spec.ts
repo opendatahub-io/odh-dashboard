@@ -1,10 +1,10 @@
 import { act } from 'react';
-import { standardUseFetchState, testHook } from '~/__tests__/unit/testUtils/hooks';
-import { fetchConnectionType } from '~/services/connectionTypesService';
-import { useConnectionType } from '~/concepts/connectionTypes/useConnectionType';
-import { mockConnectionTypeConfigMapObj } from '~/__mocks__/mockConnectionType';
+import { standardUseFetchState, testHook } from '#~/__tests__/unit/testUtils/hooks';
+import { fetchConnectionType } from '#~/services/connectionTypesService';
+import { useConnectionType } from '#~/concepts/connectionTypes/useConnectionType';
+import { mockConnectionTypeConfigMapObj } from '#~/__mocks__/mockConnectionType';
 
-jest.mock('~/services/connectionTypesService', () => ({
+jest.mock('#~/services/connectionTypesService', () => ({
   fetchConnectionType: jest.fn(),
 }));
 

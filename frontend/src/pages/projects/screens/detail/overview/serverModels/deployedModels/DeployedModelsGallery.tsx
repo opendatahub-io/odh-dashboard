@@ -11,16 +11,16 @@ import {
 } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import { SearchIcon } from '@patternfly/react-icons';
-import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
-import { isModelMesh } from '~/pages/modelServing/utils';
-import { getPodsForKserve, getPodsForModelMesh } from '~/api';
+import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
+import { ProjectSectionID } from '#~/pages/projects/screens/detail/types';
+import { isModelMesh } from '#~/pages/modelServing/utils';
+import { getPodsForKserve, getPodsForModelMesh } from '#~/api';
 import {
   checkModelStatus,
   getInferenceServiceModelState,
-} from '~/pages/modelServing/screens/global/utils';
-import { InferenceServiceModelState, ModelStatus } from '~/pages/modelServing/screens/types';
-import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
+} from '#~/pages/modelServing/screens/global/utils';
+import { InferenceServiceModelState, ModelStatus } from '#~/pages/modelServing/screens/types';
+import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
 import DeployedModelCard from './DeployedModelCard';
 
 const SUCCESS_STATUSES = [InferenceServiceModelState.LOADED, InferenceServiceModelState.STANDBY];

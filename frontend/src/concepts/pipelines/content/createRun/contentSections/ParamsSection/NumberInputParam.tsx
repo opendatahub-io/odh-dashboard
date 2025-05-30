@@ -1,6 +1,6 @@
 import { TextInput } from '@patternfly/react-core';
 import React, { ComponentProps, useRef } from 'react';
-import NumberInputWrapper from '~/components/NumberInputWrapper';
+import NumberInputWrapper from '#~/components/NumberInputWrapper';
 import { InputParamProps } from './types';
 
 interface NumberInputParamProps extends InputParamProps {

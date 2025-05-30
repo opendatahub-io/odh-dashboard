@@ -1,10 +1,10 @@
 import { DEFAULT_TASK_NODE_TYPE } from '@patternfly/react-topology';
-import { testHook } from '~/__tests__/unit/testUtils/hooks';
-import { usePipelineTaskTopology } from '~/concepts/pipelines/topology';
-import { mockLargePipelineSpec } from '~/concepts/pipelines/topology/__tests__/mockPipelineSpec';
-import { ICON_TASK_NODE_TYPE } from '~/concepts/topology/utils';
-import { EXECUTION_TASK_NODE_TYPE } from '~/concepts/topology/const';
-import { PipelineNodeModelExpanded } from '~/concepts/topology/types';
+import { testHook } from '#~/__tests__/unit/testUtils/hooks';
+import { usePipelineTaskTopology } from '#~/concepts/pipelines/topology';
+import { mockLargePipelineSpec } from '#~/concepts/pipelines/topology/__tests__/mockPipelineSpec';
+import { ICON_TASK_NODE_TYPE } from '#~/concepts/topology/utils';
+import { EXECUTION_TASK_NODE_TYPE } from '#~/concepts/topology/const';
+import { PipelineNodeModelExpanded } from '#~/concepts/topology/types';
 
 describe('usePipelineTaskTopology', () => {
   beforeEach(() => {

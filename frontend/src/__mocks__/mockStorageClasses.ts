@@ -3,7 +3,7 @@ import {
   MetadataAnnotation,
   StorageClassConfig,
   StorageClassKind,
-} from '~/k8sTypes';
+} from '#~/k8sTypes';
 
 export const mockStorageClassList = (
   storageClasses: StorageClassKind[] = mockStorageClasses,

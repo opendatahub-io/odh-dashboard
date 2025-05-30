@@ -1,19 +1,19 @@
 import * as React from 'react';
 import { Bullseye, Divider, Flex, FlexItem, Spinner } from '@patternfly/react-core';
-import { PipelineRunKF } from '~/concepts/pipelines/kfTypes';
-import { RunArtifact } from '~/concepts/pipelines/apiHooks/mlmd/types';
+import { PipelineRunKF } from '#~/concepts/pipelines/kfTypes';
+import { RunArtifact } from '#~/concepts/pipelines/apiHooks/mlmd/types';
 
-import { FullArtifactPath } from '~/concepts/pipelines/content/compareRuns/metricsSection/types';
+import { FullArtifactPath } from '#~/concepts/pipelines/content/compareRuns/metricsSection/types';
 import {
   getFullArtifactPaths,
   getFullArtifactPathLabel,
-} from '~/concepts/pipelines/content/compareRuns/metricsSection/utils';
-import { CompareRunsEmptyState } from '~/concepts/pipelines/content/compareRuns/CompareRunsEmptyState';
-import { PipelineRunArtifactSelect } from '~/concepts/pipelines/content/compareRuns/metricsSection/PipelineRunArtifactSelect';
-import { ConfusionMatrixConfig } from '~/concepts/pipelines/content/artifacts/charts/confusionMatrix/types';
-import { buildConfusionMatrixConfig } from '~/concepts/pipelines/content/artifacts/charts/confusionMatrix/utils';
-import ConfusionMatrix from '~/concepts/pipelines/content/artifacts/charts/confusionMatrix/ConfusionMatrix';
-import { CompareRunsNoMetrics } from '~/concepts/pipelines/content/compareRuns/CompareRunsNoMetrics';
+} from '#~/concepts/pipelines/content/compareRuns/metricsSection/utils';
+import { CompareRunsEmptyState } from '#~/concepts/pipelines/content/compareRuns/CompareRunsEmptyState';
+import { PipelineRunArtifactSelect } from '#~/concepts/pipelines/content/compareRuns/metricsSection/PipelineRunArtifactSelect';
+import { ConfusionMatrixConfig } from '#~/concepts/pipelines/content/artifacts/charts/confusionMatrix/types';
+import { buildConfusionMatrixConfig } from '#~/concepts/pipelines/content/artifacts/charts/confusionMatrix/utils';
+import ConfusionMatrix from '#~/concepts/pipelines/content/artifacts/charts/confusionMatrix/ConfusionMatrix';
+import { CompareRunsNoMetrics } from '#~/concepts/pipelines/content/compareRuns/CompareRunsNoMetrics';
 import { isConfusionMatrix } from './utils';
 import { ConfusionMatrixConfigAndTitle } from './types';
 

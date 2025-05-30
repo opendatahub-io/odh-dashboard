@@ -1,5 +1,5 @@
-import { ConfigMapKind } from '~/k8sTypes';
-import { KserveMetricsGraphTypes, NimMetricsGraphTypes } from '~/concepts/metrics/kserve/const';
+import { ConfigMapKind } from '#~/k8sTypes';
+import { KserveMetricsGraphTypes, NimMetricsGraphTypes } from '#~/concepts/metrics/kserve/const';
 
 export type KserveMetricsConfigMapKind = ConfigMapKind & {
   data: {

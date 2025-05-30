@@ -11,7 +11,7 @@ import {
   FormSection,
   Alert,
 } from '@patternfly/react-core';
-import { trimInputOnPaste } from '~/concepts/connectionTypes/utils';
+import { trimInputOnPaste } from '#~/concepts/connectionTypes/utils';
 
 type ConnectionOciPathFieldProps = {
   ociHost?: string;

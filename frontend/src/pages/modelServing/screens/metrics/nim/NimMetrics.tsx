@@ -1,7 +1,7 @@
 import * as React from 'react';
-import { ModelServingMetricsContext } from '~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
-import { NimMetricsContextProvider } from '~/concepts/metrics/kserve/NimMetricsContext';
-import NimMetricsContent from '~/concepts/metrics/kserve/content/NimMetricsContent';
+import { ModelServingMetricsContext } from '#~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
+import { NimMetricsContextProvider } from '#~/concepts/metrics/kserve/NimMetricsContext';
+import NimMetricsContent from '#~/concepts/metrics/kserve/content/NimMetricsContent';
 
 type NimMetricsProps = {
   modelName: string;

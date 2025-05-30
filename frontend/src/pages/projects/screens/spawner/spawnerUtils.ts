@@ -1,18 +1,18 @@
 import compareVersions from 'compare-versions';
-import type { ImageStreamStatusTag } from '~/types';
-import { NotebookSize, Volume, VolumeMount } from '~/types';
-import { BuildKind, ImageStreamKind, ImageStreamSpecTagType, K8sDSGResource } from '~/k8sTypes';
+import type { ImageStreamStatusTag } from '#~/types';
+import { NotebookSize, Volume, VolumeMount } from '#~/types';
+import { BuildKind, ImageStreamKind, ImageStreamSpecTagType, K8sDSGResource } from '#~/k8sTypes';
 import {
   ConfigMapCategory,
   EnvVariable,
   EnvVariableDataEntry,
   SecretCategory,
   StartNotebookData,
-} from '~/pages/projects/types';
-import { AWS_FIELDS } from '~/pages/projects/dataConnections/const';
-import { FieldOptions } from '~/components/FieldList';
-import { isK8sNameDescriptionDataValid } from '~/concepts/k8s/K8sNameDescriptionField/utils';
-import { formatMemory } from '~/utilities/valueUnits';
+} from '#~/pages/projects/types';
+import { AWS_FIELDS } from '#~/pages/projects/dataConnections/const';
+import { FieldOptions } from '#~/components/FieldList';
+import { isK8sNameDescriptionDataValid } from '#~/concepts/k8s/K8sNameDescriptionField/utils';
+import { formatMemory } from '#~/utilities/valueUnits';
 import {
   BuildStatus,
   ImageVersionDependencyType,

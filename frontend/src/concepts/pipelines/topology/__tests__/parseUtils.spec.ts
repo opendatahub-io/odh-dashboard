@@ -12,7 +12,7 @@ import {
   parseRuntimeInfoFromExecutions,
   parseVolumeMounts,
   getExecutionLinkedArtifactMap,
-} from '~/concepts/pipelines/topology/parseUtils';
+} from '#~/concepts/pipelines/topology/parseUtils';
 import {
   ArtifactStateKF,
   ArtifactType,
@@ -25,8 +25,8 @@ import {
   TaskDetailKF,
   TaskKF,
   TriggerStrategy,
-} from '~/concepts/pipelines/kfTypes';
-import { Artifact, Execution, Value, Event } from '~/third_party/mlmd';
+} from '#~/concepts/pipelines/kfTypes';
+import { Artifact, Execution, Value, Event } from '#~/third_party/mlmd';
 
 describe('pipeline topology parseUtils', () => {
   describe('parseInputOutput', () => {

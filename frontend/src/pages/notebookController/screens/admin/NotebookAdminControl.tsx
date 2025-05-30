@@ -9,12 +9,12 @@ import {
   Title,
 } from '@patternfly/react-core';
 import { Td, Tr } from '@patternfly/react-table';
-import { Table } from '~/components/table';
-import ExternalLink from '~/components/ExternalLink';
-import ApplicationsPage from '~/pages/ApplicationsPage';
-import StopServerModal from '~/pages/notebookController/screens/server/StopServerModal';
-import { Notebook } from '~/types';
-import { ODH_PRODUCT_NAME } from '~/utilities/const';
+import { Table } from '#~/components/table';
+import ExternalLink from '#~/components/ExternalLink';
+import ApplicationsPage from '#~/pages/ApplicationsPage';
+import StopServerModal from '#~/pages/notebookController/screens/server/StopServerModal';
+import { Notebook } from '#~/types';
+import { ODH_PRODUCT_NAME } from '#~/utilities/const';
 import { columns } from './data';
 import StopAllServersButton from './StopAllServersButton';
 import UserTableCellTransform from './UserTableCellTransform';

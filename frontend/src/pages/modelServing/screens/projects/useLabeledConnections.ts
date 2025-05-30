@@ -1,9 +1,9 @@
 import React from 'react';
-import { Connection } from '~/concepts/connectionTypes/types';
-import { convertObjectStorageSecretData } from '~/concepts/connectionTypes/utils';
-import { ModelLocation, uriToModelLocation } from '~/concepts/modelRegistry/utils';
-import { LabeledConnection } from '~/pages/modelServing/screens/types';
-import { AwsKeys, AccessTypes } from '~/pages/projects/dataConnections/const';
+import { Connection } from '#~/concepts/connectionTypes/types';
+import { convertObjectStorageSecretData } from '#~/concepts/connectionTypes/utils';
+import { ModelLocation, uriToModelLocation } from '#~/concepts/modelRegistry/utils';
+import { LabeledConnection } from '#~/pages/modelServing/screens/types';
+import { AwsKeys, AccessTypes } from '#~/pages/projects/dataConnections/const';
 
 const useLabeledConnections = (
   modelArtifactUri: string | undefined,

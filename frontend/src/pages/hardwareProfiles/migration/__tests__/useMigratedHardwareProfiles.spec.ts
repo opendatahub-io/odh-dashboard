@@ -1,20 +1,20 @@
-import { mockAcceleratorProfile } from '~/__mocks__/mockAcceleratorProfile';
-import { mockDashboardConfig } from '~/__mocks__';
-import { testHook } from '~/__tests__/unit/testUtils/hooks';
-import { useWatchHardwareProfiles } from '~/utilities/useWatchHardwareProfiles';
-import useAcceleratorProfiles from '~/pages/notebookController/screens/server/useAcceleratorProfiles';
-import { useDashboardNamespace } from '~/redux/selectors';
-import { DEFAULT_NOTEBOOK_SIZES } from '~/pages/notebookController/const';
-import useMigratedHardwareProfiles from '~/pages/hardwareProfiles/migration/useMigratedHardwareProfiles';
-import { MigrationSourceType } from '~/pages/hardwareProfiles/migration/types';
-import { useApplicationSettings } from '~/app/useApplicationSettings';
+import { mockAcceleratorProfile } from '#~/__mocks__/mockAcceleratorProfile';
+import { mockDashboardConfig } from '#~/__mocks__';
+import { testHook } from '#~/__tests__/unit/testUtils/hooks';
+import { useWatchHardwareProfiles } from '#~/utilities/useWatchHardwareProfiles';
+import useAcceleratorProfiles from '#~/pages/notebookController/screens/server/useAcceleratorProfiles';
+import { useDashboardNamespace } from '#~/redux/selectors';
+import { DEFAULT_NOTEBOOK_SIZES } from '#~/pages/notebookController/const';
+import useMigratedHardwareProfiles from '#~/pages/hardwareProfiles/migration/useMigratedHardwareProfiles';
+import { MigrationSourceType } from '#~/pages/hardwareProfiles/migration/types';
+import { useApplicationSettings } from '#~/app/useApplicationSettings';
 
 global.structuredClone = (val: unknown) => JSON.parse(JSON.stringify(val));
 
-jest.mock('~/utilities/useWatchHardwareProfiles');
-jest.mock('~/pages/notebookController/screens/server/useAcceleratorProfiles');
-jest.mock('~/app/useApplicationSettings');
-jest.mock('~/redux/selectors');
+jest.mock('#~/utilities/useWatchHardwareProfiles');
+jest.mock('#~/pages/notebookController/screens/server/useAcceleratorProfiles');
+jest.mock('#~/app/useApplicationSettings');
+jest.mock('#~/redux/selectors');
 
 const mockUseWatchHardwareProfiles = jest.mocked(useWatchHardwareProfiles);
 const mockUseAcceleratorProfiles = jest.mocked(useAcceleratorProfiles);

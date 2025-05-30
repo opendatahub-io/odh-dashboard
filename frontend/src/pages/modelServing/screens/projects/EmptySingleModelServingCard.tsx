@@ -8,9 +8,9 @@ import {
   Content,
   ContentVariants,
 } from '@patternfly/react-core';
-import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import ModelServingPlatformSelectButton from '~/pages/modelServing/screens/projects/ModelServingPlatformSelectButton';
-import { NamespaceApplicationCase } from '~/pages/projects/types';
+import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
+import ModelServingPlatformSelectButton from '#~/pages/modelServing/screens/projects/ModelServingPlatformSelectButton';
+import { NamespaceApplicationCase } from '#~/pages/projects/types';
 
 type EmptySingleModelServingCardProps = {
   setErrorSelectingPlatform: (e?: Error) => void;

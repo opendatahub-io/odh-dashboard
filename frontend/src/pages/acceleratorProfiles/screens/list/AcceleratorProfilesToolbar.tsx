@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SearchInput, ToolbarGroup, ToolbarItem, Button } from '@patternfly/react-core';
-import FilterToolbar from '~/components/FilterToolbar';
+import FilterToolbar from '#~/components/FilterToolbar';
 import {
   acceleratorProfilesFilterOptions,
   AcceleratorProfilesToolbarFilterOptions,

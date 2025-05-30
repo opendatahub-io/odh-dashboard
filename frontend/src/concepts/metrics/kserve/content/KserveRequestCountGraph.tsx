@@ -1,8 +1,8 @@
 import React from 'react';
-import { KserveMetricGraphDefinition } from '~/concepts/metrics/kserve/types';
-import { useFetchKserveRequestCountData } from '~/api';
-import MetricsChart from '~/pages/modelServing/screens/metrics/MetricsChart';
-import { TimeframeTitle } from '~/concepts/metrics/types';
+import { KserveMetricGraphDefinition } from '#~/concepts/metrics/kserve/types';
+import { useFetchKserveRequestCountData } from '#~/api';
+import MetricsChart from '#~/pages/modelServing/screens/metrics/MetricsChart';
+import { TimeframeTitle } from '#~/concepts/metrics/types';
 
 type KserveRequestCountGraphProps = {
   graphDefinition: KserveMetricGraphDefinition;

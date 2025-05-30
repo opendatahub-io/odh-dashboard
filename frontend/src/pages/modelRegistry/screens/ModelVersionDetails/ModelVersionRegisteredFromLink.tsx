@@ -2,19 +2,19 @@ import React from 'react';
 import { Button, Content, Flex, FlexItem, Popover, Stack, StackItem } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
-import TypedObjectIcon from '~/concepts/design/TypedObjectIcon';
-import { ProjectObjectType } from '~/concepts/design/utils';
-import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
-import { FindAdministratorOptions } from '~/pages/projects/screens/projects/const';
-import PopoverListContent from '~/components/PopoverListContent';
-import { globalPipelineRunDetailsRoute } from '~/routes/pipelines/runs';
-import { getCatalogModelDetailsRoute } from '~/routes/modelCatalog/catalogModelDetails';
-import { ModelArtifact } from '~/concepts/modelRegistry/types';
-import DashboardDescriptionListGroup from '~/components/DashboardDescriptionListGroup';
+import TypedObjectIcon from '#~/concepts/design/TypedObjectIcon';
+import { ProjectObjectType } from '#~/concepts/design/utils';
+import { ProjectsContext } from '#~/concepts/projects/ProjectsContext';
+import { FindAdministratorOptions } from '#~/pages/projects/screens/projects/const';
+import PopoverListContent from '#~/components/PopoverListContent';
+import { globalPipelineRunDetailsRoute } from '#~/routes/pipelines/runs';
+import { getCatalogModelDetailsRoute } from '#~/routes/modelCatalog/catalogModelDetails';
+import { ModelArtifact } from '#~/concepts/modelRegistry/types';
+import DashboardDescriptionListGroup from '#~/components/DashboardDescriptionListGroup';
 import {
   modelSourcePropertiesToCatalogParams,
   modelSourcePropertiesToPipelineRunRef,
-} from '~/concepts/modelRegistry/utils';
+} from '#~/concepts/modelRegistry/utils';
 
 type ModelVersionRegisteredFromLinkProps = {
   modelArtifact: ModelArtifact;

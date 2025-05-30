@@ -1,6 +1,6 @@
-import { SortableData } from '~/components/table';
-import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
-import { NotebookState } from '~/pages/projects/notebook/types';
+import { SortableData } from '#~/components/table';
+import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
+import { NotebookState } from '#~/pages/projects/notebook/types';
 
 const getNotebookStatusValue = (notebookState: NotebookState): number => {
   if (notebookState.isRunning) {

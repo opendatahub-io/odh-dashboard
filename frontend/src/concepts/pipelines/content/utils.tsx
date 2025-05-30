@@ -15,8 +15,8 @@ import {
   PipelineRunKF,
   RuntimeStateKF,
   runtimeStateLabels,
-} from '~/concepts/pipelines/kfTypes';
-import { relativeTime } from '~/utilities/time';
+} from '#~/concepts/pipelines/kfTypes';
+import { relativeTime } from '#~/utilities/time';
 
 export type RunStatusDetails = {
   icon: React.ReactNode;

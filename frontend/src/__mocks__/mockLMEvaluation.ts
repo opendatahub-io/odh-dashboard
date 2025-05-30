@@ -1,4 +1,4 @@
-import { LMEvaluationKind } from '~/k8sTypes';
+import { LMEvaluationKind } from '#~/k8sTypes';
 
 type MockLMEvaluationConfigType = {
   name?: string;

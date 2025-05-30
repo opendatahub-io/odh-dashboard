@@ -1,17 +1,17 @@
 import * as React from 'react';
 import { Accordion, Button, Title } from '@patternfly/react-core';
-import { ODH_PRODUCT_NAME } from '~/utilities/const';
-import { ModelCustomizationAccordionItem } from '~/pages/pipelines/global/modelCustomization/landingPage/ModelCustomizationAccordionItem';
-import { BaseSection } from '~/pages/pipelines/global/modelCustomization/landingPage/BaseSection';
-import { useToggleAccordion } from '~/pages/pipelines/global/modelCustomization/landingPage/useToggleAccordion';
-import { ModelCustomizationDrawerContentArgs } from '~/pages/pipelines/global/modelCustomization/landingPage/ModelCustomizationDrawerContent';
-import MarkdownView from '~/components/MarkdownView';
+import { ODH_PRODUCT_NAME } from '#~/utilities/const';
+import { ModelCustomizationAccordionItem } from '#~/pages/pipelines/global/modelCustomization/landingPage/ModelCustomizationAccordionItem';
+import { BaseSection } from '#~/pages/pipelines/global/modelCustomization/landingPage/BaseSection';
+import { useToggleAccordion } from '#~/pages/pipelines/global/modelCustomization/landingPage/useToggleAccordion';
+import { ModelCustomizationDrawerContentArgs } from '#~/pages/pipelines/global/modelCustomization/landingPage/ModelCustomizationDrawerContent';
+import MarkdownView from '#~/components/MarkdownView';
 import {
   taxonomyMarkdownContent,
   taxonomyMarkdownTitle,
   teacherJudgeMarkdownContent,
   teacherJudgeMarkdownTitle,
-} from '~/pages/pipelines/global/modelCustomization/const';
+} from '#~/pages/pipelines/global/modelCustomization/const';
 
 type PrerequisitesSectionProps = {
   handleOpenDrawer: (contentArgs: ModelCustomizationDrawerContentArgs) => void;

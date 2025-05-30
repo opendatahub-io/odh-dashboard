@@ -1,14 +1,14 @@
-import { buildMockPipelineVersion } from '~/__mocks__';
+import { buildMockPipelineVersion } from '#~/__mocks__';
 
-import { ModelCustomizationEndpointType } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/types';
+import { ModelCustomizationEndpointType } from '#~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/types';
 import {
   pipelineParameterSchema,
   TeacherJudgeFormData,
   teacherJudgeModel,
-} from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/validationUtils';
-import { InputDefinitionParameterType } from '~/concepts/pipelines/kfTypes';
-import { createHyperParametersSchema } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/hyperparameterValidationUtils';
-import { mockIlabPipelineVersionParameters } from '~/__mocks__/mockIlabPipelineVersionParameters';
+} from '#~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/validationUtils';
+import { InputDefinitionParameterType } from '#~/concepts/pipelines/kfTypes';
+import { createHyperParametersSchema } from '#~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/hyperparameterValidationUtils';
+import { mockIlabPipelineVersionParameters } from '#~/__mocks__/mockIlabPipelineVersionParameters';
 
 describe('TeacherJudgeSchema', () => {
   it('should validate when it is public without token', () => {

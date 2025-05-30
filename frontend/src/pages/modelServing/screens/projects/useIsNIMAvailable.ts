@@ -1,8 +1,8 @@
 import * as React from 'react';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import { getIntegrationAppEnablementStatus } from '~/services/integrationAppService';
-import { fetchComponents } from '~/services/componentsServices';
-import useFetchState from '~/utilities/useFetchState';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { getIntegrationAppEnablementStatus } from '#~/services/integrationAppService';
+import { fetchComponents } from '#~/services/componentsServices';
+import useFetchState from '#~/utilities/useFetchState';
 
 export const useIsNIMAvailable = (): [
   boolean,

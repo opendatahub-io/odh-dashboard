@@ -1,7 +1,7 @@
 import * as React from 'react';
 import '@testing-library/jest-dom';
 import { render, screen } from '@testing-library/react';
-import ResourceNameField from '~/concepts/k8s/K8sNameDescriptionField/ResourceNameField';
+import ResourceNameField from '#~/concepts/k8s/K8sNameDescriptionField/ResourceNameField';
 
 describe('ResourceNameField', () => {
   it('should render immutable name', () => {

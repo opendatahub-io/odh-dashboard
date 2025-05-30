@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { FormGroup, Grid } from '@patternfly/react-core';
-import { ContainerResourceAttributes, ContainerResources } from '~/types';
-import CPUField from '~/components/CPUField';
-import MemoryField from '~/components/MemoryField';
-import { ModelServingSize } from '~/pages/modelServing/screens/types';
+import { ContainerResourceAttributes, ContainerResources } from '#~/types';
+import CPUField from '#~/components/CPUField';
+import MemoryField from '#~/components/MemoryField';
+import { ModelServingSize } from '#~/pages/modelServing/screens/types';
 
 type ServingRuntimeSizeExpandedFieldProps = {
   data: ModelServingSize;

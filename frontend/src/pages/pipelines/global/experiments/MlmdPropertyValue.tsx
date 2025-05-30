@@ -1,7 +1,7 @@
 import React from 'react';
-import { Value } from '~/third_party/mlmd';
-import { MaxHeightCodeEditor } from '~/components/MaxHeightCodeEditor';
-import { NoValue } from '~/components/NoValue';
+import { Value } from '#~/third_party/mlmd';
+import { MaxHeightCodeEditor } from '#~/components/MaxHeightCodeEditor';
+import { NoValue } from '#~/components/NoValue';
 
 interface MlmdPropertyValueProps {
   values: Value.AsObject;

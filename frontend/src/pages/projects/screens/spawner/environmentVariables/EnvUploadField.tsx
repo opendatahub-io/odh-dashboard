@@ -8,7 +8,7 @@ import {
 } from '@patternfly/react-core';
 import { parse } from 'yaml';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
-import { EnvironmentVariableType, EnvVariableDataEntry } from '~/pages/projects/types';
+import { EnvironmentVariableType, EnvVariableDataEntry } from '#~/pages/projects/types';
 import { isConfigMapKind, isSecretKind, isStringKeyValuePairObject } from './utils';
 
 type EnvUploadFieldProps = {

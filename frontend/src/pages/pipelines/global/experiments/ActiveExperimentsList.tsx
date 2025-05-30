@@ -7,11 +7,11 @@ import {
   Spinner,
 } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
-import createUsePipelineTable from '~/concepts/pipelines/content/tables/usePipelineTable';
-import { useActiveExperiments } from '~/concepts/pipelines/apiHooks/useExperiments';
-import ActiveExperimentTable from '~/concepts/pipelines/content/tables/experiment/ActiveExperimentTable';
-import CreateExperimentButton from '~/concepts/pipelines/content/experiment/CreateExperimentButton';
-import ExperimentLoadingError from '~/concepts/pipelines/content/experiments/ExperimentLoadingError';
+import createUsePipelineTable from '#~/concepts/pipelines/content/tables/usePipelineTable';
+import { useActiveExperiments } from '#~/concepts/pipelines/apiHooks/useExperiments';
+import ActiveExperimentTable from '#~/concepts/pipelines/content/tables/experiment/ActiveExperimentTable';
+import CreateExperimentButton from '#~/concepts/pipelines/content/experiment/CreateExperimentButton';
+import ExperimentLoadingError from '#~/concepts/pipelines/content/experiments/ExperimentLoadingError';
 
 const ActiveExperimentsList: React.FC = () => {
   const [[{ items: experiments, totalSize }, loaded, error], { initialLoaded, ...tableProps }] =

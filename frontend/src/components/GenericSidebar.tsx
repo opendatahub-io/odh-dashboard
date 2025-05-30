@@ -6,7 +6,7 @@ import {
   SidebarContent,
   SidebarPanel,
 } from '@patternfly/react-core';
-import { DASHBOARD_SCROLL_CONTAINER_SELECTOR } from '~/utilities/const';
+import { DASHBOARD_SCROLL_CONTAINER_SELECTOR } from '#~/utilities/const';
 
 type GenericSidebarProps = {
   sections: string[];

@@ -1,11 +1,11 @@
-import { createDataConnection } from '~/__tests__/cypress/cypress/utils/oc_commands/dataConnection';
-import { createDSPASecret, createDSPA } from '~/__tests__/cypress/cypress/utils/oc_commands/dspa';
-import { AWS_BUCKETS } from '~/__tests__/cypress/cypress/utils/s3Buckets';
+import { createDataConnection } from '#~/__tests__/cypress/cypress/utils/oc_commands/dataConnection';
+import { createDSPASecret, createDSPA } from '#~/__tests__/cypress/cypress/utils/oc_commands/dspa';
+import { AWS_BUCKETS } from '#~/__tests__/cypress/cypress/utils/s3Buckets';
 import type {
   DataConnectionReplacements,
   DspaSecretReplacements,
   DspaReplacements,
-} from '~/__tests__/cypress/cypress/types';
+} from '#~/__tests__/cypress/cypress/types';
 import { createCleanProject } from './projectChecker';
 
 /**

@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowsAltVIcon, LongArrowAltDownIcon, LongArrowAltUpIcon } from '@patternfly/react-icons';
-import { setQueryArgument } from '~/utilities/router';
-import { useQueryParams } from '~/utilities/useQueryParams';
+import { setQueryArgument } from '#~/utilities/router';
+import { useQueryParams } from '#~/utilities/useQueryParams';
 import {
   DOC_SORT_KEY,
   DOC_SORT_ORDER_KEY,

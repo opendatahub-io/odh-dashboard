@@ -11,18 +11,18 @@ import {
   Content,
   ContentVariants,
 } from '@patternfly/react-core';
-import { PodContainer } from '~/types';
+import { PodContainer } from '#~/types';
 import {
   getDescriptionForTag,
   getImageTagByContainer,
   getNameVersionString,
-} from '~/utilities/imageUtils';
-import { useAppContext } from '~/app/AppContext';
-import { useWatchImages } from '~/utilities/useWatchImages';
-import { NotebookControllerContext } from '~/pages/notebookController/NotebookControllerContext';
-import { formatMemory } from '~/utilities/valueUnits';
-import { useNotebookPodSpecOptionsState } from '~/concepts/hardwareProfiles/useNotebookPodSpecOptionsState';
-import { useIsAreaAvailable, SupportedArea } from '~/concepts/areas';
+} from '#~/utilities/imageUtils';
+import { useAppContext } from '#~/app/AppContext';
+import { useWatchImages } from '#~/utilities/useWatchImages';
+import { NotebookControllerContext } from '#~/pages/notebookController/NotebookControllerContext';
+import { formatMemory } from '#~/utilities/valueUnits';
+import { useNotebookPodSpecOptionsState } from '#~/concepts/hardwareProfiles/useNotebookPodSpecOptionsState';
+import { useIsAreaAvailable, SupportedArea } from '#~/concepts/areas';
 import { getNotebookSizes } from './usePreferredNotebookSize';
 
 const NotebookServerDetails: React.FC = () => {

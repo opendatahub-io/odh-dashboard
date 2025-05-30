@@ -13,9 +13,9 @@ import {
   StackItem,
 } from '@patternfly/react-core';
 import { InfoCircleIcon } from '@patternfly/react-icons';
-import '~/pages/notebookController/NotebookController.scss';
+import '#~/pages/notebookController/NotebookController.scss';
 import { useState } from 'react';
-import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
+import DashboardPopupIconButton from '#~/concepts/dashboard/DashboardPopupIconButton';
 import { MigrationAction } from './types';
 import { MIGRATION_SOURCE_TYPE_LABELS } from './const';
 

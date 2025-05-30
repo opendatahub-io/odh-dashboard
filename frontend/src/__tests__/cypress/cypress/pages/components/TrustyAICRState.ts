@@ -1,5 +1,5 @@
-import { DeleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
-import { Modal } from '~/__tests__/cypress/cypress/pages/components/Modal';
+import { DeleteModal } from '#~/__tests__/cypress/cypress/pages/components/DeleteModal';
+import { Modal } from '#~/__tests__/cypress/cypress/pages/components/Modal';
 
 /** Duped to avoid importing code from the app into tests (and breaking webpack) */
 const TRUSTYAI_INSTALL_MODAL_TEST_ID = 'trusty-db-config';
