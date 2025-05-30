@@ -145,6 +145,8 @@ const ImageStreamSelector: React.FC<ImageStreamSelectorProps> = ({
             </ProjectScopedGroupLabel>
           }
           dataTestId="image-stream-selector"
+          projectGroupTestId="project-scoped-notebook-images"
+          globalGroupTestId="global-scoped-notebook-images"
           isFullWidth
         />
       ) : (

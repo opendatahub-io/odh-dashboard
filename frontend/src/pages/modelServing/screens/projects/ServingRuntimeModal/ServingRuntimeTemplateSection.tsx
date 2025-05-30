@@ -207,6 +207,8 @@ const ServingRuntimeTemplateSection: React.FC<ServingRuntimeTemplateSectionProps
             </ProjectScopedGroupLabel>
           }
           dataTestId="serving-runtime-template-selection"
+          projectGroupTestId="project-scoped-serving-runtimes"
+          globalGroupTestId="global-scoped-serving-runtimes"
           isFullWidth
         />
       ) : (
