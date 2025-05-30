@@ -1,4 +1,4 @@
-import { isCommonStateError } from '~/utilities/useFetchState';
+import { isCommonStateError } from '#~/utilities/useFetchState';
 
 type ErrorKF = {
   error: string;

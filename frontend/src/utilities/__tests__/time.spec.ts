@@ -1,4 +1,4 @@
-import { RunDateTime } from '~/concepts/pipelines/content/createRun/types';
+import { RunDateTime } from '#~/concepts/pipelines/content/createRun/types';
 import {
   convertPeriodicTimeToSeconds,
   convertSecondsToPeriodicTime,
@@ -10,7 +10,7 @@ import {
   relativeTime,
   convertToTwentyFourHourTime,
   convertToDate,
-} from '~/utilities/time';
+} from '#~/utilities/time';
 
 describe('relativeDuration', () => {
   it('should convert milliseconds to minutes and seconds', () => {

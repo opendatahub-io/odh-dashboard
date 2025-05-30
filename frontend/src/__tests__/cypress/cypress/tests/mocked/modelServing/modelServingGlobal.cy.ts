@@ -1,16 +1,16 @@
-import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
-import { mockDscStatus } from '~/__mocks__/mockDscStatus';
-import { mockInferenceServiceK8sResource } from '~/__mocks__/mockInferenceServiceK8sResource';
-import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
-import { mock200Status } from '~/__mocks__/mockK8sStatus';
-import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
-import { mockSecretK8sResource } from '~/__mocks__/mockSecretK8sResource';
-import { mockServingRuntimeK8sResource } from '~/__mocks__/mockServingRuntimeK8sResource';
+import { mockDashboardConfig } from '#~/__mocks__/mockDashboardConfig';
+import { mockDscStatus } from '#~/__mocks__/mockDscStatus';
+import { mockInferenceServiceK8sResource } from '#~/__mocks__/mockInferenceServiceK8sResource';
+import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
+import { mock200Status } from '#~/__mocks__/mockK8sStatus';
+import { mockProjectK8sResource } from '#~/__mocks__/mockProjectK8sResource';
+import { mockSecretK8sResource } from '#~/__mocks__/mockSecretK8sResource';
+import { mockServingRuntimeK8sResource } from '#~/__mocks__/mockServingRuntimeK8sResource';
 import {
   mockInvalidTemplateK8sResource,
   mockServingRuntimeTemplateK8sResource,
-} from '~/__mocks__/mockServingRuntimeTemplateK8sResource';
-import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
+} from '#~/__mocks__/mockServingRuntimeTemplateK8sResource';
+import { deleteModal } from '#~/__tests__/cypress/cypress/pages/components/DeleteModal';
 import {
   inferenceServiceModal,
   inferenceServiceModalEdit,
@@ -18,7 +18,7 @@ import {
   kserveModalEdit,
   modelServingGlobal,
   modelServingSection,
-} from '~/__tests__/cypress/cypress/pages/modelServing';
+} from '#~/__tests__/cypress/cypress/pages/modelServing';
 import {
   AcceleratorProfileModel,
   HardwareProfileModel,
@@ -27,29 +27,29 @@ import {
   SecretModel,
   ServingRuntimeModel,
   TemplateModel,
-} from '~/__tests__/cypress/cypress/utils/models';
-import { DeploymentMode, type InferenceServiceKind, type ServingRuntimeKind } from '~/k8sTypes';
-import { ServingRuntimePlatform } from '~/types';
-import { be } from '~/__tests__/cypress/cypress/utils/should';
-import { asClusterAdminUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
-import { testPagination } from '~/__tests__/cypress/cypress/utils/pagination';
+} from '#~/__tests__/cypress/cypress/utils/models';
+import { DeploymentMode, type InferenceServiceKind, type ServingRuntimeKind } from '#~/k8sTypes';
+import { ServingRuntimePlatform } from '#~/types';
+import { be } from '#~/__tests__/cypress/cypress/utils/should';
+import { asClusterAdminUser } from '#~/__tests__/cypress/cypress/utils/mockUsers';
+import { testPagination } from '#~/__tests__/cypress/cypress/utils/pagination';
 import {
   mockConnectionTypeConfigMap,
   mockModelServingFields,
   mockOciConnectionTypeConfigMap,
-} from '~/__mocks__/mockConnectionType';
-import { hardwareProfileSection } from '~/__tests__/cypress/cypress/pages/components/HardwareProfileSection';
+} from '#~/__mocks__/mockConnectionType';
+import { hardwareProfileSection } from '#~/__tests__/cypress/cypress/pages/components/HardwareProfileSection';
 import {
   mockGlobalScopedHardwareProfiles,
   mockProjectScopedHardwareProfiles,
-} from '~/__mocks__/mockHardwareProfile';
-import { initInterceptsForAllProjects } from '~/__tests__/cypress/cypress/utils/servingUtils';
-import { nimDeployModal } from '~/__tests__/cypress/cypress/pages/components/NIMDeployModal';
+} from '#~/__mocks__/mockHardwareProfile';
+import { initInterceptsForAllProjects } from '#~/__tests__/cypress/cypress/utils/servingUtils';
+import { nimDeployModal } from '#~/__tests__/cypress/cypress/pages/components/NIMDeployModal';
 import {
   mockGlobalScopedAcceleratorProfiles,
   mockProjectScopedAcceleratorProfiles,
-} from '~/__mocks__/mockAcceleratorProfile';
-import { acceleratorProfileSection } from '~/__tests__/cypress/cypress/pages/components/subComponents/AcceleratorProfileSection';
+} from '#~/__mocks__/mockAcceleratorProfile';
+import { acceleratorProfileSection } from '#~/__tests__/cypress/cypress/pages/components/subComponents/AcceleratorProfileSection';
 
 type HandlersProps = {
   disableKServeConfig?: boolean;

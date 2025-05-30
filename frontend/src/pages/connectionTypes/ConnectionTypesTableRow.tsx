@@ -9,22 +9,22 @@ import {
   TimestampTooltipVariant,
   Truncate,
 } from '@patternfly/react-core';
-import { ConnectionTypeConfigMapObj } from '~/concepts/connectionTypes/types';
-import { relativeTime } from '~/utilities/time';
-import { updateConnectionTypeEnabled } from '~/services/connectionTypesService';
-import useNotification from '~/utilities/useNotification';
-import { TableRowTitleDescription } from '~/components/table';
+import { ConnectionTypeConfigMapObj } from '#~/concepts/connectionTypes/types';
+import { relativeTime } from '#~/utilities/time';
+import { updateConnectionTypeEnabled } from '#~/services/connectionTypesService';
+import useNotification from '#~/utilities/useNotification';
+import { TableRowTitleDescription } from '#~/components/table';
 import {
   getCreatorFromK8sResource,
   getDescriptionFromK8sResource,
   getDisplayNameFromK8sResource,
   isOOTB,
-} from '~/concepts/k8s/utils';
-import { connectionTypeColumns } from '~/pages/connectionTypes/columns';
-import CategoryLabel from '~/concepts/connectionTypes/CategoryLabel';
-import { getModelServingCompatibility } from '~/concepts/connectionTypes/utils';
-import CompatibilityLabel from '~/concepts/connectionTypes/CompatibilityLabel';
-import ConnectionTypePreviewModal from '~/concepts/connectionTypes/ConnectionTypePreviewModal';
+} from '#~/concepts/k8s/utils';
+import { connectionTypeColumns } from '#~/pages/connectionTypes/columns';
+import CategoryLabel from '#~/concepts/connectionTypes/CategoryLabel';
+import { getModelServingCompatibility } from '#~/concepts/connectionTypes/utils';
+import CompatibilityLabel from '#~/concepts/connectionTypes/CompatibilityLabel';
+import ConnectionTypePreviewModal from '#~/concepts/connectionTypes/ConnectionTypePreviewModal';
 
 type ConnectionTypesTableRowProps = {
   obj: ConnectionTypeConfigMapObj;

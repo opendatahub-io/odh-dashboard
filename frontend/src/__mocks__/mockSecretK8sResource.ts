@@ -1,5 +1,5 @@
-import { KnownLabels, SecretKind } from '~/k8sTypes';
-import { genUID } from '~/__mocks__/mockUtils';
+import { KnownLabels, SecretKind } from '#~/k8sTypes';
+import { genUID } from '#~/__mocks__/mockUtils';
 
 type MockCustomSecretData = {
   name: string;

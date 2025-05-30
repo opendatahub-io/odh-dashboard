@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { TextInput } from '@patternfly/react-core';
-import { ShortTextField } from '~/concepts/connectionTypes/types';
-import { FieldProps } from '~/concepts/connectionTypes/fields/types';
-import DefaultValueTextRenderer from '~/concepts/connectionTypes/fields/DefaultValueTextRenderer';
-import { trimInputOnBlur, trimInputOnPaste } from '~/concepts/connectionTypes/utils';
+import { ShortTextField } from '#~/concepts/connectionTypes/types';
+import { FieldProps } from '#~/concepts/connectionTypes/fields/types';
+import DefaultValueTextRenderer from '#~/concepts/connectionTypes/fields/DefaultValueTextRenderer';
+import { trimInputOnBlur, trimInputOnPaste } from '#~/concepts/connectionTypes/utils';
 
 const ShortTextFormField: React.FC<FieldProps<ShortTextField>> = ({
   id,

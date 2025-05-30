@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { ComponentProps } from 'react';
-import { CPU_UNITS } from '~/utilities/valueUnits';
+import { CPU_UNITS } from '#~/utilities/valueUnits';
 import ValueUnitField from './ValueUnitField';
 
 type CPUFieldProps = {

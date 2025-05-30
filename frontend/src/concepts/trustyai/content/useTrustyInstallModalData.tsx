@@ -1,8 +1,8 @@
 import * as React from 'react';
-import useGenericObjectState from '~/utilities/useGenericObjectState';
-import { TrustyDBData } from '~/concepts/trustyai/types';
-import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
-import { getSecret } from '~/api';
+import useGenericObjectState from '#~/utilities/useGenericObjectState';
+import { TrustyDBData } from '#~/concepts/trustyai/types';
+import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
+import { getSecret } from '#~/api';
 
 export enum TrustyInstallModalFormType {
   EXISTING = 'existing',

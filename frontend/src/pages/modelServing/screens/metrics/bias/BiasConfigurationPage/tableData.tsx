@@ -1,5 +1,5 @@
-import { BiasMetricConfig } from '~/concepts/trustyai/types';
-import { SortableData } from '~/components/table';
+import { BiasMetricConfig } from '#~/concepts/trustyai/types';
+import { SortableData } from '#~/components/table';
 
 export const columns: SortableData<BiasMetricConfig>[] = [
   {

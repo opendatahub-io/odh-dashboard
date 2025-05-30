@@ -1,14 +1,14 @@
 import * as React from 'react';
 
 import { PageSection } from '@patternfly/react-core';
-import ApplicationsPage from '~/pages/ApplicationsPage';
-import TitleWithIcon from '~/concepts/design/TitleWithIcon';
-import { ProjectObjectType } from '~/concepts/design/utils';
-import { conditionalArea, SupportedArea } from '~/concepts/areas';
-import EmptyModelCatalogState from '~/pages/modelCatalog/EmptyModelCatalogState';
-import { ModelCatalogContext } from '~/concepts/modelCatalog/context/ModelCatalogContext';
-import { ModelCatalogCards } from '~/pages/modelCatalog/components/ModelCatalogCards';
-import ScrollViewOnMount from '~/components/ScrollViewOnMount';
+import ApplicationsPage from '#~/pages/ApplicationsPage';
+import TitleWithIcon from '#~/concepts/design/TitleWithIcon';
+import { ProjectObjectType } from '#~/concepts/design/utils';
+import { conditionalArea, SupportedArea } from '#~/concepts/areas';
+import EmptyModelCatalogState from '#~/pages/modelCatalog/EmptyModelCatalogState';
+import { ModelCatalogContext } from '#~/concepts/modelCatalog/context/ModelCatalogContext';
+import { ModelCatalogCards } from '#~/pages/modelCatalog/components/ModelCatalogCards';
+import ScrollViewOnMount from '#~/components/ScrollViewOnMount';
 
 const ModelCatalog: React.FC = conditionalArea(
   SupportedArea.MODEL_CATALOG,

@@ -11,9 +11,9 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { K8sResourceCommon, K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
-import { GroupKind, RoleBindingKind, RoleBindingRoleRef } from '~/k8sTypes';
-import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
-import { FetchStateObject } from '~/utilities/useFetch';
+import { GroupKind, RoleBindingKind, RoleBindingRoleRef } from '#~/k8sTypes';
+import { ProjectSectionID } from '#~/pages/projects/screens/detail/types';
+import { FetchStateObject } from '#~/utilities/useFetch';
 import RoleBindingPermissionsTableSection from './RoleBindingPermissionsTableSection';
 import { RoleBindingPermissionsRBType, RoleBindingPermissionsRoleType } from './types';
 import { filterRoleBindingSubjects } from './utils';

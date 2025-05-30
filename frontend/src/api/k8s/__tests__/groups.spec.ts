@@ -1,16 +1,16 @@
-import { groupVersionKind, useAccessReview, useGroups } from '~/api';
-import { testHook } from '~/__tests__/unit/testUtils/hooks';
-import { GroupModel } from '~/api/models';
-import { mockGroup } from '~/__mocks__/mockGroup';
-import useK8sWatchResourceList from '~/utilities/useK8sWatchResourceList';
-import { GroupKind } from '~/k8sTypes';
+import { groupVersionKind, useAccessReview, useGroups } from '#~/api';
+import { testHook } from '#~/__tests__/unit/testUtils/hooks';
+import { GroupModel } from '#~/api/models';
+import { mockGroup } from '#~/__mocks__/mockGroup';
+import useK8sWatchResourceList from '#~/utilities/useK8sWatchResourceList';
+import { GroupKind } from '#~/k8sTypes';
 
-jest.mock('~/utilities/useK8sWatchResourceList', () => ({
+jest.mock('#~/utilities/useK8sWatchResourceList', () => ({
   __esModule: true,
   default: jest.fn(),
 }));
 
-jest.mock('~/api/useAccessReview', () => ({
+jest.mock('#~/api/useAccessReview', () => ({
   useAccessReview: jest.fn(),
 }));
 

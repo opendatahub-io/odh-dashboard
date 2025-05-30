@@ -10,7 +10,7 @@ import {
   EmptyStateFooter,
 } from '@patternfly/react-core';
 import { LockIcon } from '@patternfly/react-icons';
-import { ODH_PRODUCT_NAME } from '~/utilities/const';
+import { ODH_PRODUCT_NAME } from '#~/utilities/const';
 
 type UnauthorizedErrorProps = {
   variant?: PageSectionVariants;

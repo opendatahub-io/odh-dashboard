@@ -1,10 +1,10 @@
-import { mockNotebookK8sResource } from '~/__mocks__';
-import { mockImageStreamK8sResource } from '~/__mocks__/mockImageStreamK8sResource';
-import { getNotebookImageData } from '~/pages/projects/screens/detail/notebooks/useNotebookImageData';
+import { mockNotebookK8sResource } from '#~/__mocks__';
+import { mockImageStreamK8sResource } from '#~/__mocks__/mockImageStreamK8sResource';
+import { getNotebookImageData } from '#~/pages/projects/screens/detail/notebooks/useNotebookImageData';
 import {
   NotebookImageAvailability,
   NotebookImageStatus,
-} from '~/pages/projects/screens/detail/notebooks/const';
+} from '#~/pages/projects/screens/detail/notebooks/const';
 
 describe('getNotebookImageData', () => {
   it('should return image data when image stream exists and image version exists with internal registry', () => {

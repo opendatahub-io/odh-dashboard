@@ -1,7 +1,7 @@
 /* eslint-disable camelcase */
-import { mockModelVersion } from '~/__mocks__/mockModelVersion';
-import { mockRegisteredModel } from '~/__mocks__/mockRegisteredModel';
-import { mockModelArtifact } from '~/__mocks__/mockModelArtifact';
+import { mockModelVersion } from '#~/__mocks__/mockModelVersion';
+import { mockRegisteredModel } from '#~/__mocks__/mockRegisteredModel';
+import { mockModelArtifact } from '#~/__mocks__/mockModelArtifact';
 import {
   ModelRegistryCustomProperties,
   ModelRegistryStringCustomProperties,
@@ -10,7 +10,7 @@ import {
   ModelVersion,
   ModelState,
   ModelSourceKind,
-} from '~/concepts/modelRegistry/types';
+} from '#~/concepts/modelRegistry/types';
 import {
   filterModelVersions,
   getLabels,
@@ -22,9 +22,9 @@ import {
   isValidHttpUrl,
   isRedHatRegistryUri,
   getCustomPropString,
-} from '~/pages/modelRegistry/screens/utils';
-import { SearchType } from '~/concepts/dashboard/DashboardSearchField';
-import { modelSourcePropertiesToCatalogParams } from '~/concepts/modelRegistry/utils';
+} from '#~/pages/modelRegistry/screens/utils';
+import { SearchType } from '#~/concepts/dashboard/DashboardSearchField';
+import { modelSourcePropertiesToCatalogParams } from '#~/concepts/modelRegistry/utils';
 
 describe('getLabels', () => {
   it('should return an empty array when customProperties is empty', () => {

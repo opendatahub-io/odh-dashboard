@@ -1,5 +1,5 @@
-import { TableRow } from '~/__tests__/cypress/cypress/pages/components/table';
-import { Contextual } from '~/__tests__/cypress/cypress/pages/components/Contextual';
+import { TableRow } from '#~/__tests__/cypress/cypress/pages/components/table';
+import { Contextual } from '#~/__tests__/cypress/cypress/pages/components/Contextual';
 
 class CompareRunsGlobal {
   visit(projectName: string, experimentId: string, runIds: string[] = []) {

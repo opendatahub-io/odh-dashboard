@@ -13,22 +13,22 @@ import {
   Tooltip,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
-import { printSeconds, relativeDuration, relativeTime } from '~/utilities/time';
+import { printSeconds, relativeDuration, relativeTime } from '#~/utilities/time';
 import {
   PipelineRunKF,
   runtimeStateLabels,
   PipelineRecurringRunKF,
   RecurringRunStatus as RecurringRunStatusType,
   ExperimentKF,
-} from '~/concepts/pipelines/kfTypes';
+} from '#~/concepts/pipelines/kfTypes';
 import {
   getRunDuration,
   getPipelineRecurringRunScheduledState,
   ScheduledState,
-} from '~/concepts/pipelines/content/tables/utils';
-import { computeRunStatus } from '~/concepts/pipelines/content/utils';
-import PipelinesTableRowTime from '~/concepts/pipelines/content/tables/PipelinesTableRowTime';
-import { useContextExperimentArchivedOrDeleted as useIsExperimentArchived } from '~/pages/pipelines/global/experiments/ExperimentContext';
+} from '#~/concepts/pipelines/content/tables/utils';
+import { computeRunStatus } from '#~/concepts/pipelines/content/utils';
+import PipelinesTableRowTime from '#~/concepts/pipelines/content/tables/PipelinesTableRowTime';
+import { useContextExperimentArchivedOrDeleted as useIsExperimentArchived } from '#~/pages/pipelines/global/experiments/ExperimentContext';
 
 export const NoRunContent = (): React.JSX.Element => <>-</>;
 

@@ -1,11 +1,11 @@
 import * as React from 'react';
-import { useAppContext } from '~/app/AppContext';
-import { useNotebookUserState } from '~/utilities/notebookControllerUtils';
-import { DEFAULT_NOTEBOOK_SIZES } from '~/pages/notebookController/const';
-import { DashboardConfigKind } from '~/k8sTypes';
-import { NotebookSize } from '~/types';
-import useNotification from '~/utilities/useNotification';
-import { useDeepCompareMemoize } from '~/utilities/useDeepCompareMemoize';
+import { useAppContext } from '#~/app/AppContext';
+import { useNotebookUserState } from '#~/utilities/notebookControllerUtils';
+import { DEFAULT_NOTEBOOK_SIZES } from '#~/pages/notebookController/const';
+import { DashboardConfigKind } from '#~/k8sTypes';
+import { NotebookSize } from '#~/types';
+import useNotification from '#~/utilities/useNotification';
+import { useDeepCompareMemoize } from '#~/utilities/useDeepCompareMemoize';
 
 export const getNotebookSizes = (config: DashboardConfigKind): NotebookSize[] => {
   let sizes = config.spec.notebookSizes || [];

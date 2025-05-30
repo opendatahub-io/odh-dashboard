@@ -4,9 +4,9 @@ import { QuestionCircleIcon } from '@patternfly/react-icons';
 import {
   getImageStreamDescription,
   getImageVersionDependencies,
-} from '~/pages/projects/screens/spawner/spawnerUtils';
-import { ImageStreamAndVersion } from '~/types';
-import NotebookImagePackageDetails from '~/pages/projects/notebook/NotebookImagePackageDetails';
+} from '#~/pages/projects/screens/spawner/spawnerUtils';
+import { ImageStreamAndVersion } from '#~/types';
+import NotebookImagePackageDetails from '#~/pages/projects/notebook/NotebookImagePackageDetails';
 
 type ImageStreamPopoverProps = {
   selectedImage: ImageStreamAndVersion;

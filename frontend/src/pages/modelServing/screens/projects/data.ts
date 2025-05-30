@@ -1,5 +1,5 @@
-import { ServingRuntimeKind } from '~/k8sTypes';
-import { SortableData } from '~/components/table';
+import { ServingRuntimeKind } from '#~/k8sTypes';
+import { SortableData } from '#~/components/table';
 
 export const columns: SortableData<ServingRuntimeKind>[] = [
   {

@@ -2,27 +2,27 @@ import * as React from 'react';
 import { ActionsColumn, IAction, Td, Tr } from '@patternfly/react-table';
 import { Content, ContentVariants, Truncate, FlexItem } from '@patternfly/react-core';
 import { Link, useNavigate } from 'react-router-dom';
-import { ModelVersion, ModelState, RegisteredModel } from '~/concepts/modelRegistry/types';
-import ModelLabels from '~/pages/modelRegistry/screens/components/ModelLabels';
-import ModelTimestamp from '~/pages/modelRegistry/screens/components/ModelTimestamp';
+import { ModelVersion, ModelState, RegisteredModel } from '#~/concepts/modelRegistry/types';
+import ModelLabels from '#~/pages/modelRegistry/screens/components/ModelLabels';
+import ModelTimestamp from '#~/pages/modelRegistry/screens/components/ModelTimestamp';
 import {
   modelVersionDeploymentsRoute,
   modelVersionRoute,
-} from '~/routes/modelRegistry/modelVersions';
-import { archiveModelVersionDetailsRoute } from '~/routes/modelRegistry/modelArchive';
-import { modelVersionArchiveDetailsRoute } from '~/routes/modelRegistry/modelVersionArchive';
-import { ArchiveModelVersionModal } from '~/pages/modelRegistry/screens/components/ArchiveModelVersionModal';
-import { RestoreModelVersionModal } from '~/pages/modelRegistry/screens/components/RestoreModelVersionModal';
-import DeployRegisteredVersionModal from '~/pages/modelRegistry/screens/components/DeployRegisteredVersionModal';
-import { useIsAreaAvailable, SupportedArea } from '~/concepts/areas';
-import StartRunModal from '~/pages/pipelines/global/modelCustomization/startRunModal/StartRunModal';
-import { getModelCustomizationPath } from '~/routes/pipelines/modelCustomization';
-import { isOciModelUri } from '~/pages/modelServing/utils';
-import useModelArtifactsByVersionId from '~/concepts/modelRegistry/apiHooks/useModelArtifactsByVersionId';
-import useDeployButtonState from '~/pages/modelServing/screens/projects/useDeployButtonState';
-import { ModelRegistryPageContext } from '~/concepts/modelRegistry/context/ModelRegistryPageContext';
-import { ModelRegistriesContext } from '~/concepts/modelRegistry/context/ModelRegistriesContext';
-import { getModelVersionTuningData } from '~/concepts/modelRegistry/utils/getModelVersionTuningData';
+} from '#~/routes/modelRegistry/modelVersions';
+import { archiveModelVersionDetailsRoute } from '#~/routes/modelRegistry/modelArchive';
+import { modelVersionArchiveDetailsRoute } from '#~/routes/modelRegistry/modelVersionArchive';
+import { ArchiveModelVersionModal } from '#~/pages/modelRegistry/screens/components/ArchiveModelVersionModal';
+import { RestoreModelVersionModal } from '#~/pages/modelRegistry/screens/components/RestoreModelVersionModal';
+import DeployRegisteredVersionModal from '#~/pages/modelRegistry/screens/components/DeployRegisteredVersionModal';
+import { useIsAreaAvailable, SupportedArea } from '#~/concepts/areas';
+import StartRunModal from '#~/pages/pipelines/global/modelCustomization/startRunModal/StartRunModal';
+import { getModelCustomizationPath } from '#~/routes/pipelines/modelCustomization';
+import { isOciModelUri } from '#~/pages/modelServing/utils';
+import useModelArtifactsByVersionId from '#~/concepts/modelRegistry/apiHooks/useModelArtifactsByVersionId';
+import useDeployButtonState from '#~/pages/modelServing/screens/projects/useDeployButtonState';
+import { ModelRegistryPageContext } from '#~/concepts/modelRegistry/context/ModelRegistryPageContext';
+import { ModelRegistriesContext } from '#~/concepts/modelRegistry/context/ModelRegistriesContext';
+import { getModelVersionTuningData } from '#~/concepts/modelRegistry/utils/getModelVersionTuningData';
 
 type ModelVersionsTableRowProps = {
   modelVersion: ModelVersion;

@@ -4,8 +4,8 @@ import type {
   PipelineRecurringRunKF,
   PipelineRunKF,
   PipelineVersionKF,
-} from '~/concepts/pipelines/kfTypes';
-import { CreateRunPage } from '~/__tests__/cypress/cypress/pages/pipelines/createRunPage';
+} from '#~/concepts/pipelines/kfTypes';
+import { CreateRunPage } from '#~/__tests__/cypress/cypress/pages/pipelines/createRunPage';
 
 class DuplicateRunPage extends CreateRunPage {
   protected testId = 'duplicate-run-page';

@@ -1,20 +1,20 @@
 import {
   useSelectorSearch,
   UseSelectorSearchValue,
-} from '~/concepts/pipelines/content/pipelineSelector/utils';
-import usePipelineVersionsTable from '~/concepts/pipelines/content/tables/pipelineVersion/usePipelineVersionsTable';
+} from '#~/concepts/pipelines/content/pipelineSelector/utils';
+import usePipelineVersionsTable from '#~/concepts/pipelines/content/tables/pipelineVersion/usePipelineVersionsTable';
 import {
   LoadMoreProps,
   usePipelineVersionLoadMore,
-} from '~/concepts/pipelines/content/tables/usePipelineLoadMore';
+} from '#~/concepts/pipelines/content/tables/usePipelineLoadMore';
 import {
   TableProps,
   TableSortProps,
   getTableSortProps,
-} from '~/concepts/pipelines/content/tables/usePipelineTable';
-import { PipelineCoreResourceKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
-import { PipelineListPaged } from '~/concepts/pipelines/types';
-import { FetchState } from '~/utilities/useFetchState';
+} from '#~/concepts/pipelines/content/tables/usePipelineTable';
+import { PipelineCoreResourceKF, PipelineVersionKF } from '#~/concepts/pipelines/kfTypes';
+import { PipelineListPaged } from '#~/concepts/pipelines/types';
+import { FetchState } from '#~/utilities/useFetchState';
 
 type UseLoadMoreFunc<T> = [T[], () => Promise<void>];
 type UsePipelineSelectorData<DataType> = {

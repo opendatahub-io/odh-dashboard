@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
-import { Context } from '~/__mocks__/third_party/mlmd';
-import { GetContextsByTypeResponse } from '~/__mocks__/third_party/mlmd/generated/ml_metadata/proto/metadata_store_service';
+import { Context } from '#~/__mocks__/third_party/mlmd';
+import { GetContextsByTypeResponse } from '#~/__mocks__/third_party/mlmd/generated/ml_metadata/proto/metadata_store_service';
 import createGrpcResponse, { GrpcResponse } from './utils';
 
 const mockedContext: Context[] = [

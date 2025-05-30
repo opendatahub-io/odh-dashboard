@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { Stack, StackItem, Tooltip } from '@patternfly/react-core';
 import { Td, Tr } from '@patternfly/react-table';
-import { ExperimentKF, PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
-import { relativeTime } from '~/utilities/time';
+import { ExperimentKF, PipelineKF, PipelineVersionKF } from '#~/concepts/pipelines/kfTypes';
+import { relativeTime } from '#~/utilities/time';
 
 type PipelineSelectorTableRowProps = {
   obj: PipelineKF | PipelineVersionKF | ExperimentKF;

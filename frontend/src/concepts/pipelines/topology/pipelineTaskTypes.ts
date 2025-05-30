@@ -4,9 +4,9 @@ import {
   ExecutionStateKF,
   InputDefinitionParameterType,
   RuntimeStateKF,
-} from '~/concepts/pipelines/kfTypes';
-import { Artifact } from '~/third_party/mlmd';
-import { VolumeMount } from '~/types';
+} from '#~/concepts/pipelines/kfTypes';
+import { Artifact } from '#~/third_party/mlmd';
+import { VolumeMount } from '#~/types';
 
 export type PipelineTaskParam = {
   label: string;

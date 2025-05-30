@@ -1,6 +1,6 @@
-import { NotebookState } from '~/pages/projects/notebook/types';
-import { EventStatus, NotebookStatus } from '~/types';
-import { EventKind, NotebookKind } from '~/k8sTypes';
+import { NotebookState } from '#~/pages/projects/notebook/types';
+import { EventStatus, NotebookStatus } from '#~/types';
+import { EventKind, NotebookKind } from '#~/k8sTypes';
 
 const fauxRefresh = (): Promise<void> =>
   new Promise((resolve) => {

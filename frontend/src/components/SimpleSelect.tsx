@@ -14,7 +14,7 @@ import {
   HelperTextItem,
   Skeleton,
 } from '@patternfly/react-core';
-import TruncatedText from '~/components/TruncatedText';
+import TruncatedText from '#~/components/TruncatedText';
 
 import './SimpleSelect.scss';
 

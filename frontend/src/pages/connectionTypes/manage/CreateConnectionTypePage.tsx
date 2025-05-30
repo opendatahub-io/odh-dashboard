@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { createConnectionType } from '~/services/connectionTypesService';
-import { ConnectionTypeConfigMapObj } from '~/concepts/connectionTypes/types';
+import { createConnectionType } from '#~/services/connectionTypesService';
+import { ConnectionTypeConfigMapObj } from '#~/concepts/connectionTypes/types';
 import ManageConnectionTypePage from './ManageConnectionTypePage';
 
 type Props = {

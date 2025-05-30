@@ -1,6 +1,6 @@
 import React from 'react';
-import { AccessReviewResourceAttributes } from '~/k8sTypes';
-import { AccessReviewContext } from '~/concepts/userSSAR/AccessReviewContext';
+import { AccessReviewResourceAttributes } from '#~/k8sTypes';
+import { AccessReviewContext } from '#~/concepts/userSSAR/AccessReviewContext';
 
 /**
  * Check if the user has access to the provided resource attributes.

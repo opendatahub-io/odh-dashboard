@@ -9,11 +9,11 @@ import {
 } from '@patternfly/react-core';
 import React from 'react';
 import { EyeIcon, EyeSlashIcon, OptimizeIcon } from '@patternfly/react-icons';
-import { AWSDataEntry } from '~/pages/projects/types';
-import { PIPELINE_AWS_KEY } from '~/pages/projects/dataConnections/const';
-import { Connection } from '~/concepts/connectionTypes/types';
-import { convertObjectStorageSecretData } from '~/concepts/connectionTypes/utils';
-import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
+import { AWSDataEntry } from '#~/pages/projects/types';
+import { PIPELINE_AWS_KEY } from '#~/pages/projects/dataConnections/const';
+import { Connection } from '#~/concepts/connectionTypes/types';
+import { convertObjectStorageSecretData } from '#~/concepts/connectionTypes/utils';
+import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import { PipelineServerConfigType } from './types';
 import { getLabelName } from './utils';
 

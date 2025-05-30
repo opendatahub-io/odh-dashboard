@@ -9,8 +9,8 @@ import {
   Flex,
   FlexItem,
 } from '@patternfly/react-core';
-import { NotebookKind } from '~/k8sTypes';
-import { NotebookState } from '~/pages/projects/notebook/types';
+import { NotebookKind } from '#~/k8sTypes';
+import { NotebookState } from '#~/pages/projects/notebook/types';
 import { NotebookUpdateImageCard } from './NotebookUpdateImageCard';
 import NotebookUpdateImageModalFooter from './NotebookUpdateImageModalFooter';
 import { NotebookImage } from './types';

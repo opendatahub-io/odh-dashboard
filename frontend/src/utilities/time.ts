@@ -2,7 +2,7 @@ import {
   PeriodicOptions,
   RunDateTime,
   periodicOptionAsSeconds,
-} from '~/concepts/pipelines/content/createRun/types';
+} from '#~/concepts/pipelines/content/createRun/types';
 
 const printAgo = (time: number, unit: string) => `${time} ${unit}${time > 1 ? 's' : ''} ago`;
 const printIn = (time: number, unit: string) => `in ${time} ${unit}${time > 1 ? 's' : ''}`;

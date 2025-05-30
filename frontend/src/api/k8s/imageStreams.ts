@@ -1,6 +1,6 @@
 import { k8sListResourceItems } from '@openshift/dynamic-plugin-sdk-utils';
-import { ImageStreamModel } from '~/api/models';
-import { ImageStreamKind } from '~/k8sTypes';
+import { ImageStreamModel } from '#~/api/models';
+import { ImageStreamKind } from '#~/k8sTypes';
 
 export const getNotebookImageStreams = (
   namespace: string,

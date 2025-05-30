@@ -14,8 +14,8 @@ import {
   EmptyStateVariant,
 } from '@patternfly/react-core';
 
-import PipelineRunDrawerRightContent from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDrawerRightContent';
-import { isMetricsArtifactType } from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/artifacts/utils';
+import PipelineRunDrawerRightContent from '#~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDrawerRightContent';
+import { isMetricsArtifactType } from '#~/concepts/pipelines/content/pipelinesDetails/pipelineRun/artifacts/utils';
 import { ArtifactNodeDetails } from './ArtifactNodeDetails';
 import { ArtifactVisualization } from './ArtifactVisualization';
 

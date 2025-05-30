@@ -11,15 +11,15 @@ import {
   Stack,
   Content,
 } from '@patternfly/react-core';
-import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
+import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import {
   CreatePipelineServerButton,
   PipelineServerTimedOut,
   usePipelinesAPI,
-} from '~/concepts/pipelines/context';
-import { useSafePipelines } from '~/concepts/pipelines/apiHooks/usePipelines';
-import EnsureAPIAvailability from '~/concepts/pipelines/EnsureAPIAvailability';
-import EnsureCompatiblePipelineServer from '~/concepts/pipelines/EnsureCompatiblePipelineServer';
+} from '#~/concepts/pipelines/context';
+import { useSafePipelines } from '#~/concepts/pipelines/apiHooks/usePipelines';
+import EnsureAPIAvailability from '#~/concepts/pipelines/EnsureAPIAvailability';
+import EnsureCompatiblePipelineServer from '#~/concepts/pipelines/EnsureCompatiblePipelineServer';
 import PipelinesOverviewCard from './PipelinesOverviewCard';
 import PipelinesCardMetrics from './PipelinesCardMetrics';
 

@@ -1,5 +1,5 @@
-import { mockModelVersion } from '~/__mocks__/mockModelVersion';
-import { mockRegisteredModel } from '~/__mocks__/mockRegisteredModel';
+import { mockModelVersion } from '#~/__mocks__/mockModelVersion';
+import { mockRegisteredModel } from '#~/__mocks__/mockRegisteredModel';
 import {
   filterArchiveModels,
   filterArchiveVersions,
@@ -12,13 +12,13 @@ import {
   modelSourcePropertiesToCatalogParams,
   catalogParamsToModelSourceProperties,
   modelSourcePropertiesToPipelineRunRef,
-} from '~/concepts/modelRegistry/utils';
+} from '#~/concepts/modelRegistry/utils';
 import {
   RegisteredModel,
   ModelState,
   ModelVersion,
   ModelSourceKind,
-} from '~/concepts/modelRegistry/types';
+} from '#~/concepts/modelRegistry/types';
 
 describe('objectStorageFieldsToUri', () => {
   it('converts fields to URI with all fields present', () => {

@@ -1,31 +1,31 @@
 import {
   mockAcceleratorProfile,
   mockProjectScopedAcceleratorProfiles,
-} from '~/__mocks__/mockAcceleratorProfile';
-import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
-import { mockDscStatus } from '~/__mocks__/mockDscStatus';
-import { mockInferenceServiceK8sResource } from '~/__mocks__/mockInferenceServiceK8sResource';
-import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
-import { mock200Status, mock404Error, mock409Error } from '~/__mocks__/mockK8sStatus';
-import { mockNotebookK8sResource } from '~/__mocks__/mockNotebookK8sResource';
-import { mockPVCK8sResource } from '~/__mocks__/mockPVCK8sResource';
-import { mockPodK8sResource } from '~/__mocks__/mockPodK8sResource';
-import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
-import { mockRoleBindingK8sResource } from '~/__mocks__/mockRoleBindingK8sResource';
+} from '#~/__mocks__/mockAcceleratorProfile';
+import { mockDashboardConfig } from '#~/__mocks__/mockDashboardConfig';
+import { mockDscStatus } from '#~/__mocks__/mockDscStatus';
+import { mockInferenceServiceK8sResource } from '#~/__mocks__/mockInferenceServiceK8sResource';
+import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
+import { mock200Status, mock404Error, mock409Error } from '#~/__mocks__/mockK8sStatus';
+import { mockNotebookK8sResource } from '#~/__mocks__/mockNotebookK8sResource';
+import { mockPVCK8sResource } from '#~/__mocks__/mockPVCK8sResource';
+import { mockPodK8sResource } from '#~/__mocks__/mockPodK8sResource';
+import { mockProjectK8sResource } from '#~/__mocks__/mockProjectK8sResource';
+import { mockRoleBindingK8sResource } from '#~/__mocks__/mockRoleBindingK8sResource';
 import {
   mockRouteK8sResource,
   mockRouteK8sResourceModelServing,
-} from '~/__mocks__/mockRouteK8sResource';
-import { mockSecretK8sResource } from '~/__mocks__/mockSecretK8sResource';
-import { mockServiceAccountK8sResource } from '~/__mocks__/mockServiceAccountK8sResource';
+} from '#~/__mocks__/mockRouteK8sResource';
+import { mockSecretK8sResource } from '#~/__mocks__/mockSecretK8sResource';
+import { mockServiceAccountK8sResource } from '#~/__mocks__/mockServiceAccountK8sResource';
 import {
   mockServingRuntimeK8sResource,
   mockServingRuntimeK8sResourceLegacy,
-} from '~/__mocks__/mockServingRuntimeK8sResource';
+} from '#~/__mocks__/mockServingRuntimeK8sResource';
 import {
   mockInvalidTemplateK8sResource,
   mockServingRuntimeTemplateK8sResource,
-} from '~/__mocks__/mockServingRuntimeTemplateK8sResource';
+} from '#~/__mocks__/mockServingRuntimeTemplateK8sResource';
 import {
   createServingRuntimeModal,
   editServingRuntimeModal,
@@ -34,19 +34,19 @@ import {
   kserveModal,
   kserveModalEdit,
   modelServingSection,
-} from '~/__tests__/cypress/cypress/pages/modelServing';
-import { projectDetails } from '~/__tests__/cypress/cypress/pages/projects';
-import { be } from '~/__tests__/cypress/cypress/utils/should';
+} from '#~/__tests__/cypress/cypress/pages/modelServing';
+import { projectDetails } from '#~/__tests__/cypress/cypress/pages/projects';
+import { be } from '#~/__tests__/cypress/cypress/utils/should';
 import type {
   DataScienceClusterKindStatus,
   InferenceServiceKind,
   ServingRuntimeKind,
-} from '~/k8sTypes';
-import { DeploymentMode } from '~/k8sTypes';
-import { ServingRuntimePlatform, TolerationEffect, TolerationOperator } from '~/types';
-import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
-import { StackCapability } from '~/concepts/areas/types';
-import { mockDsciStatus } from '~/__mocks__/mockDsciStatus';
+} from '#~/k8sTypes';
+import { DeploymentMode } from '#~/k8sTypes';
+import { ServingRuntimePlatform, TolerationEffect, TolerationOperator } from '#~/types';
+import { deleteModal } from '#~/__tests__/cypress/cypress/pages/components/DeleteModal';
+import { StackCapability } from '#~/concepts/areas/types';
+import { mockDsciStatus } from '#~/__mocks__/mockDsciStatus';
 import {
   AcceleratorProfileModel,
   HardwareProfileModel,
@@ -63,15 +63,15 @@ import {
   ServiceAccountModel,
   ServingRuntimeModel,
   TemplateModel,
-} from '~/__tests__/cypress/cypress/utils/models';
-import { mockRoleK8sResource } from '~/__mocks__/mockRoleK8sResource';
-import { mockConnectionTypeConfigMap } from '~/__mocks__/mockConnectionType';
+} from '#~/__tests__/cypress/cypress/utils/models';
+import { mockRoleK8sResource } from '#~/__mocks__/mockRoleK8sResource';
+import { mockConnectionTypeConfigMap } from '#~/__mocks__/mockConnectionType';
 import {
   mockGlobalScopedHardwareProfiles,
   mockProjectScopedHardwareProfiles,
-} from '~/__mocks__/mockHardwareProfile';
-import { hardwareProfileSection } from '~/__tests__/cypress/cypress/pages/components/HardwareProfileSection';
-import { acceleratorProfileSection } from '~/__tests__/cypress/cypress/pages/components/subComponents/AcceleratorProfileSection';
+} from '#~/__mocks__/mockHardwareProfile';
+import { hardwareProfileSection } from '#~/__tests__/cypress/cypress/pages/components/HardwareProfileSection';
+import { acceleratorProfileSection } from '#~/__tests__/cypress/cypress/pages/components/subComponents/AcceleratorProfileSection';
 
 type HandlersProps = {
   disableKServeConfig?: boolean;

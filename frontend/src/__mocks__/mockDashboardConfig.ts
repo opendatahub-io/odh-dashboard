@@ -1,6 +1,6 @@
-import { DashboardConfigKind, KnownLabels } from '~/k8sTypes';
-import { ModelServingSize } from '~/pages/modelServing/screens/types';
-import { NotebookSize } from '~/types';
+import { DashboardConfigKind, KnownLabels } from '#~/k8sTypes';
+import { ModelServingSize } from '#~/pages/modelServing/screens/types';
+import { NotebookSize } from '#~/types';
 
 export type MockDashboardConfigType = {
   disableInfo?: boolean;

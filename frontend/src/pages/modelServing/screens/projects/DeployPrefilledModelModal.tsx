@@ -10,21 +10,21 @@ import {
   ModalHeader,
   ModalFooter,
 } from '@patternfly/react-core';
-import { ProjectKind } from '~/k8sTypes';
-import useProjectErrorForPrefilledModel from '~/pages/modelServing/screens/projects/useProjectErrorForPrefilledModel';
-import ProjectSelector from '~/pages/modelServing/screens/projects/InferenceServiceModal/ProjectSelector';
-import ManageKServeModal from '~/pages/modelServing/screens/projects/kServeModal/ManageKServeModal';
-import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformStatuses';
-import { getProjectModelServingPlatform } from '~/pages/modelServing/screens/projects/utils';
-import { ServingRuntimePlatform } from '~/types';
-import ManageInferenceServiceModal from '~/pages/modelServing/screens/projects/InferenceServiceModal/ManageInferenceServiceModal';
+import { ProjectKind } from '#~/k8sTypes';
+import useProjectErrorForPrefilledModel from '#~/pages/modelServing/screens/projects/useProjectErrorForPrefilledModel';
+import ProjectSelector from '#~/pages/modelServing/screens/projects/InferenceServiceModal/ProjectSelector';
+import ManageKServeModal from '#~/pages/modelServing/screens/projects/kServeModal/ManageKServeModal';
+import useServingPlatformStatuses from '#~/pages/modelServing/useServingPlatformStatuses';
+import { getProjectModelServingPlatform } from '#~/pages/modelServing/screens/projects/utils';
+import { ServingRuntimePlatform } from '#~/types';
+import ManageInferenceServiceModal from '#~/pages/modelServing/screens/projects/InferenceServiceModal/ManageInferenceServiceModal';
 import ModelServingContextProvider, {
   ModelServingContext,
-} from '~/pages/modelServing/ModelServingContext';
-import { getKServeTemplates } from '~/pages/modelServing/customServingRuntimes/utils';
-import { isRedHatRegistryUri } from '~/pages/modelRegistry/screens/utils';
-import useServingConnections from '~/pages/projects/screens/detail/connections/useServingConnections';
-import { isOciModelUri } from '~/pages/modelServing/utils';
+} from '#~/pages/modelServing/ModelServingContext';
+import { getKServeTemplates } from '#~/pages/modelServing/customServingRuntimes/utils';
+import { isRedHatRegistryUri } from '#~/pages/modelRegistry/screens/utils';
+import useServingConnections from '#~/pages/projects/screens/detail/connections/useServingConnections';
+import { isOciModelUri } from '#~/pages/modelServing/utils';
 import { ModelDeployPrefillInfo } from './usePrefillModelDeployModal';
 
 interface DeployPrefilledModelModalProps {

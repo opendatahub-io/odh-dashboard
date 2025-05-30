@@ -16,17 +16,17 @@ import {
 
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import { Link } from 'react-router-dom';
-import { Artifact } from '~/third_party/mlmd';
-import { ArtifactUriLink } from '~/concepts/pipelines/content/artifacts/ArtifactUriLink';
-import { useGetEventByArtifactId } from '~/concepts/pipelines/apiHooks/mlmd/useGetEventByArtifactId';
-import { executionDetailsRoute } from '~/routes/pipelines/executions';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { useGetExecutionById } from '~/concepts/pipelines/apiHooks/mlmd/useGetExecutionById';
-import { getOriginalExecutionId } from '~/pages/pipelines/global/experiments/executions/utils';
-import PipelineRunRegisteredModelDetails from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunRegisteredModelDetails';
-import { getArtifactModelData } from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/artifacts/utils';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import ExperimentPipelineRunLink from '~/pages/pipelines/global/experiments/ExperimentPipelineRunLink';
+import { Artifact } from '#~/third_party/mlmd';
+import { ArtifactUriLink } from '#~/concepts/pipelines/content/artifacts/ArtifactUriLink';
+import { useGetEventByArtifactId } from '#~/concepts/pipelines/apiHooks/mlmd/useGetEventByArtifactId';
+import { executionDetailsRoute } from '#~/routes/pipelines/executions';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+import { useGetExecutionById } from '#~/concepts/pipelines/apiHooks/mlmd/useGetExecutionById';
+import { getOriginalExecutionId } from '#~/pages/pipelines/global/experiments/executions/utils';
+import PipelineRunRegisteredModelDetails from '#~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunRegisteredModelDetails';
+import { getArtifactModelData } from '#~/concepts/pipelines/content/pipelinesDetails/pipelineRun/artifacts/utils';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import ExperimentPipelineRunLink from '#~/pages/pipelines/global/experiments/ExperimentPipelineRunLink';
 import { ArtifactPropertyDescriptionList } from './ArtifactPropertyDescriptionList';
 
 interface ArtifactOverviewDetailsProps {

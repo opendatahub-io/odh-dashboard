@@ -1,15 +1,15 @@
-import { deleteOpenShiftProject } from '~/__tests__/cypress/cypress/utils/oc_commands/project';
-import { HTPASSWD_CLUSTER_ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
-import { projectListPage, projectDetails } from '~/__tests__/cypress/cypress/pages/projects';
-import { pipelineImportModal } from '~/__tests__/cypress/cypress/pages/pipelines/pipelineImportModal';
-import { createRunPage } from '~/__tests__/cypress/cypress/pages/pipelines/createRunPage';
+import { deleteOpenShiftProject } from '#~/__tests__/cypress/cypress/utils/oc_commands/project';
+import { HTPASSWD_CLUSTER_ADMIN_USER } from '#~/__tests__/cypress/cypress/utils/e2eUsers';
+import { projectListPage, projectDetails } from '#~/__tests__/cypress/cypress/pages/projects';
+import { pipelineImportModal } from '#~/__tests__/cypress/cypress/pages/pipelines/pipelineImportModal';
+import { createRunPage } from '#~/__tests__/cypress/cypress/pages/pipelines/createRunPage';
 import {
   pipelineDetails,
   pipelineRunDetails,
-} from '~/__tests__/cypress/cypress/pages/pipelines/topology';
-import { provisionProjectForPipelines } from '~/__tests__/cypress/cypress/utils/pipelines';
-import { retryableBefore } from '~/__tests__/cypress/cypress/utils/retryableHooks';
-import { generateTestUUID } from '~/__tests__/cypress/cypress/utils/uuidGenerator';
+} from '#~/__tests__/cypress/cypress/pages/pipelines/topology';
+import { provisionProjectForPipelines } from '#~/__tests__/cypress/cypress/utils/pipelines';
+import { retryableBefore } from '#~/__tests__/cypress/cypress/utils/retryableHooks';
+import { generateTestUUID } from '#~/__tests__/cypress/cypress/utils/uuidGenerator';
 
 const uuid = generateTestUUID();
 const projectName = `test-pipelines-prj-${uuid}`;

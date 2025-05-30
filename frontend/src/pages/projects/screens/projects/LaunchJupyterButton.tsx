@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { Button, ButtonVariant, Tooltip } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
-import { useCheckJupyterEnabled } from '~/utilities/notebookControllerUtils';
-import { useIsAreaAvailable, SupportedArea } from '~/concepts/areas';
+import { useCheckJupyterEnabled } from '#~/utilities/notebookControllerUtils';
+import { useIsAreaAvailable, SupportedArea } from '#~/concepts/areas';
 
 const LaunchJupyterButton: React.FC = () => {
   const navigate = useNavigate();

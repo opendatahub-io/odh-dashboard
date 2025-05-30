@@ -1,6 +1,6 @@
 import * as _ from 'lodash-es';
-import { KnownLabels, NotebookKind } from '~/k8sTypes';
-import { DEFAULT_NOTEBOOK_SIZES } from '~/pages/projects/screens/spawner/const';
+import { KnownLabels, NotebookKind } from '#~/k8sTypes';
+import { DEFAULT_NOTEBOOK_SIZES } from '#~/pages/projects/screens/spawner/const';
 import {
   ContainerResources,
   EnvironmentVariable,
@@ -8,10 +8,10 @@ import {
   TolerationOperator,
   Volume,
   VolumeMount,
-} from '~/types';
-import { genUID } from '~/__mocks__/mockUtils';
-import { RecursivePartial } from '~/typeHelpers';
-import { EnvironmentFromVariable } from '~/pages/projects/types';
+} from '#~/types';
+import { genUID } from '#~/__mocks__/mockUtils';
+import { RecursivePartial } from '#~/typeHelpers';
+import { EnvironmentFromVariable } from '#~/pages/projects/types';
 
 type MockResourceConfigType = {
   name?: string;

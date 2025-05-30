@@ -12,9 +12,9 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import React from 'react';
-import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
-import useStorageClasses from '~/concepts/k8s/useStorageClasses';
-import { getStorageClassConfig } from '~/pages/storageClasses/utils';
+import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
+import useStorageClasses from '#~/concepts/k8s/useStorageClasses';
+import { getStorageClassConfig } from '#~/pages/storageClasses/utils';
 import useAdminDefaultStorageClass from './useAdminDefaultStorageClass';
 
 type StorageClassSelectProps = {

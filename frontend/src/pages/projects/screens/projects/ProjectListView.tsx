@@ -1,18 +1,18 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Table } from '~/components/table';
-import { ProjectKind } from '~/k8sTypes';
-import { getProjectOwner } from '~/concepts/projects/utils';
-import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
-import ProjectTableRow from '~/pages/projects/screens/projects/ProjectTableRow';
-import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
-import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
-import ProjectsToolbar from '~/pages/projects/screens/projects/ProjectsToolbar';
+import { Table } from '#~/components/table';
+import { ProjectKind } from '#~/k8sTypes';
+import { getProjectOwner } from '#~/concepts/projects/utils';
+import { ProjectsContext } from '#~/concepts/projects/ProjectsContext';
+import ProjectTableRow from '#~/pages/projects/screens/projects/ProjectTableRow';
+import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
+import DashboardEmptyTableView from '#~/concepts/dashboard/DashboardEmptyTableView';
+import ProjectsToolbar from '#~/pages/projects/screens/projects/ProjectsToolbar';
 import {
   initialProjectsFilterData,
   ProjectsFilterDataType,
-} from '~/pages/projects/screens/projects/const';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+} from '#~/pages/projects/screens/projects/const';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import { columns } from './tableData';
 import DeleteProjectModal from './DeleteProjectModal';
 import ManageProjectModal from './ManageProjectModal';

@@ -1,7 +1,7 @@
 import * as React from 'react';
-import { KnownLabels, SecretKind } from '~/k8sTypes';
-import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '~/concepts/k8s/utils';
-import { K8sNameDescriptionFieldData } from '~/concepts/k8s/K8sNameDescriptionField/types';
+import { KnownLabels, SecretKind } from '#~/k8sTypes';
+import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '#~/concepts/k8s/utils';
+import { K8sNameDescriptionFieldData } from '#~/concepts/k8s/K8sNameDescriptionField/types';
 import {
   Connection,
   ConnectionTypeConfigMap,
@@ -13,11 +13,11 @@ import {
   ConnectionTypeFieldType,
   ConnectionTypeFieldTypeUnion,
   ConnectionTypeValueType,
-} from '~/concepts/connectionTypes/types';
-import { enumIterator } from '~/utilities/utils';
-import { AWSDataEntry, EnvVariableDataEntry } from '~/pages/projects/types';
-import { AwsKeys } from '~/pages/projects/dataConnections/const';
-import { isSecretKind } from '~/pages/projects/screens/spawner/environmentVariables/utils';
+} from '#~/concepts/connectionTypes/types';
+import { enumIterator } from '#~/utilities/utils';
+import { AWSDataEntry, EnvVariableDataEntry } from '#~/pages/projects/types';
+import { AwsKeys } from '#~/pages/projects/dataConnections/const';
+import { isSecretKind } from '#~/pages/projects/screens/spawner/environmentVariables/utils';
 
 export const isConnectionTypeDataFieldType = (
   type: ConnectionTypeFieldTypeUnion | string,

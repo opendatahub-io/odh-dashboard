@@ -1,7 +1,7 @@
 import React from 'react';
-import { AcceleratorProfileKind } from '~/k8sTypes';
-import { ContainerResources, Toleration } from '~/types';
-import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
+import { AcceleratorProfileKind } from '#~/k8sTypes';
+import { ContainerResources, Toleration } from '#~/types';
+import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
 import useGenericObjectState from './useGenericObjectState';
 import useReadAcceleratorState, { AcceleratorProfileState } from './useReadAcceleratorState';
 

@@ -1,4 +1,4 @@
-import { Actions, AppState, GetUserAction } from '~/redux/types';
+import { Actions, AppState, GetUserAction } from '#~/redux/types';
 
 const initialState: AppState = {
   userLoading: false,

@@ -1,11 +1,11 @@
 import React from 'react';
 import { useParams } from 'react-router-dom';
-import PipelineRunDetails from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDetails';
-import { BreadcrumbDetailsComponentProps } from '~/concepts/pipelines/content/types';
-import { globalArchivedPipelineRunsRoute, globalPipelineRunsRoute } from '~/routes/pipelines/runs';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import usePipelineRunById from '~/concepts/pipelines/apiHooks/usePipelineRunById';
-import { StorageStateKF } from '~/concepts/pipelines/kfTypes';
+import PipelineRunDetails from '#~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDetails';
+import { BreadcrumbDetailsComponentProps } from '#~/concepts/pipelines/content/types';
+import { globalArchivedPipelineRunsRoute, globalPipelineRunsRoute } from '#~/routes/pipelines/runs';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+import usePipelineRunById from '#~/concepts/pipelines/apiHooks/usePipelineRunById';
+import { StorageStateKF } from '#~/concepts/pipelines/kfTypes';
 
 const GlobalPipelineRunDetails: BreadcrumbDetailsComponentProps = ({
   breadcrumbPath,

@@ -1,10 +1,10 @@
-import { EitherOrBoth } from '~/typeHelpers';
+import { EitherOrBoth } from '#~/typeHelpers';
 import {
   DashboardCommonConfig,
   DashboardConfigKind,
   DataScienceClusterInitializationKindStatus,
   DataScienceClusterKindStatus,
-} from '~/k8sTypes';
+} from '#~/k8sTypes';
 
 export type FeatureFlag = keyof DashboardCommonConfig;
 

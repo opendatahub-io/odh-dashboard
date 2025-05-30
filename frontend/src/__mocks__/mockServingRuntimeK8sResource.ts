@@ -1,5 +1,5 @@
-import { KnownLabels, ServingRuntimeKind } from '~/k8sTypes';
-import { ServingRuntimeAPIProtocol, ContainerResources, NodeSelector, Toleration } from '~/types';
+import { KnownLabels, ServingRuntimeKind } from '#~/k8sTypes';
+import { ServingRuntimeAPIProtocol, ContainerResources, NodeSelector, Toleration } from '#~/types';
 
 type MockResourceConfigType = {
   name?: string;

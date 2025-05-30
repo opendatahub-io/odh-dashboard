@@ -8,8 +8,8 @@ import {
   ModalFooter,
 } from '@patternfly/react-core';
 import React from 'react';
-import { ExistingStorageObject, MountPath } from '~/pages/projects/types';
-import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
+import { ExistingStorageObject, MountPath } from '#~/pages/projects/types';
+import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
 import SpawnerMountPathField from './SpawnerMountPathField';
 import AddExistingStorageField from './AddExistingStorageField';
 import { MOUNT_PATH_PREFIX } from './const';

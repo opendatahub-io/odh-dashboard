@@ -11,7 +11,7 @@ import {
   ModalHeader,
   ModalFooter,
 } from '@patternfly/react-core';
-import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
+import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import NotebookRouteLink from './NotebookRouteLink';
 import useStopNotebookModalAvailability from './useStopNotebookModalAvailability';
 import { NotebookState } from './types';

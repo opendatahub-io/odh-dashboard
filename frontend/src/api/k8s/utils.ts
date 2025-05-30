@@ -1,4 +1,4 @@
-import { VolumeMount, Volume } from '~/types';
+import { VolumeMount, Volume } from '#~/types';
 
 export const getshmVolumeMount = (): VolumeMount => ({
   name: 'shm',

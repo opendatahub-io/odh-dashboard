@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { FormSection } from '@patternfly/react-core';
-import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
-import { CreatingServingRuntimeObject } from '~/pages/modelServing/screens/types';
-import ReplicaSection from '~/components/ReplicaSection';
+import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
+import { CreatingServingRuntimeObject } from '#~/pages/modelServing/screens/types';
+import ReplicaSection from '#~/components/ReplicaSection';
 
 type ServingRuntimeReplicaSectionProps = {
   data: CreatingServingRuntimeObject;

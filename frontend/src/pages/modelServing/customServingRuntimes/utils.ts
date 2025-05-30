@@ -1,9 +1,9 @@
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
-import { ServingRuntimeKind, TemplateKind } from '~/k8sTypes';
-import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
-import { ServingRuntimeAPIProtocol, ServingRuntimePlatform } from '~/types';
-import { asEnumMember } from '~/utilities/utils';
-import { CreatingServingRuntimeObject } from '~/pages/modelServing/screens/types';
+import { ServingRuntimeKind, TemplateKind } from '#~/k8sTypes';
+import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
+import { ServingRuntimeAPIProtocol, ServingRuntimePlatform } from '#~/types';
+import { asEnumMember } from '#~/utilities/utils';
+import { CreatingServingRuntimeObject } from '#~/pages/modelServing/screens/types';
 
 type DataKeys = keyof CreatingServingRuntimeObject;
 

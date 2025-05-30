@@ -1,7 +1,7 @@
 import { capitalize } from '@patternfly/react-core';
-import { ProjectKind, RoleBindingKind } from '~/k8sTypes';
-import { namespaceToProjectDisplayName } from '~/concepts/projects/utils';
-import { patchRoleBindingSubjects } from '~/api';
+import { ProjectKind, RoleBindingKind } from '#~/k8sTypes';
+import { namespaceToProjectDisplayName } from '#~/concepts/projects/utils';
+import { patchRoleBindingSubjects } from '#~/api';
 import { RoleBindingPermissionsRBType, RoleBindingPermissionsRoleType } from './types';
 
 export const filterRoleBindingSubjects = (

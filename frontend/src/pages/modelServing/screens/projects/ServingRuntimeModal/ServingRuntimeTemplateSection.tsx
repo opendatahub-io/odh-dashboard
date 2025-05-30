@@ -16,25 +16,25 @@ import {
   SplitItem,
   Truncate,
 } from '@patternfly/react-core';
-import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
-import { CreatingServingRuntimeObject } from '~/pages/modelServing/screens/types';
-import { TemplateKind } from '~/k8sTypes';
+import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
+import { CreatingServingRuntimeObject } from '#~/pages/modelServing/screens/types';
+import { TemplateKind } from '#~/k8sTypes';
 import {
   getServingRuntimeDisplayNameFromTemplate,
   getServingRuntimeNameFromTemplate,
   setServingRuntimeTemplate,
   isServingRuntimeKind,
-} from '~/pages/modelServing/customServingRuntimes/utils';
-import { isCompatibleWithIdentifier } from '~/pages/projects/screens/spawner/spawnerUtils';
-import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import SearchSelector from '~/components/searchSelector/SearchSelector';
-import { ProjectObjectType } from '~/concepts/design/utils';
-import GlobalIcon from '~/images/icons/GlobalIcon';
-import { CustomWatchK8sResult } from '~/types';
-import { SERVING_RUNTIME_SCOPE } from '~/pages/modelServing/screens/const';
-import ProjectScopedPopover from '~/components/ProjectScopedPopover';
-import TypedObjectIcon from '~/concepts/design/TypedObjectIcon';
+} from '#~/pages/modelServing/customServingRuntimes/utils';
+import { isCompatibleWithIdentifier } from '#~/pages/projects/screens/spawner/spawnerUtils';
+import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import SearchSelector from '#~/components/searchSelector/SearchSelector';
+import { ProjectObjectType } from '#~/concepts/design/utils';
+import GlobalIcon from '#~/images/icons/GlobalIcon';
+import { CustomWatchK8sResult } from '#~/types';
+import { SERVING_RUNTIME_SCOPE } from '#~/pages/modelServing/screens/const';
+import ProjectScopedPopover from '#~/components/ProjectScopedPopover';
+import TypedObjectIcon from '#~/concepts/design/TypedObjectIcon';
 
 type ServingRuntimeTemplateSectionProps = {
   data: CreatingServingRuntimeObject;

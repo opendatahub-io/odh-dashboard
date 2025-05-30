@@ -1,7 +1,7 @@
 import * as React from 'react';
-import { StackComponent, SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import { ServingPlatformStatuses } from '~/pages/modelServing/screens/types';
-import { NIMAvailabilityContext } from '~/concepts/nimServing/NIMAvailabilityContext';
+import { StackComponent, SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { ServingPlatformStatuses } from '#~/pages/modelServing/screens/types';
+import { NIMAvailabilityContext } from '#~/concepts/nimServing/NIMAvailabilityContext';
 
 const useServingPlatformStatuses = (
   shouldRefreshNimAvailability = false,

@@ -8,14 +8,14 @@ import {
   ModalHeader,
   ModalFooter,
 } from '@patternfly/react-core';
-import { PersistentVolumeClaimKind } from '~/k8sTypes';
-import CreateNewStorageSection from '~/pages/projects/screens/spawner/storage/CreateNewStorageSection';
-import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import usePreferredStorageClass from '~/pages/projects/screens/spawner/storage/usePreferredStorageClass';
-import useAdminDefaultStorageClass from '~/pages/projects/screens/spawner/storage/useAdminDefaultStorageClass';
-import { useCreateStorageObject } from '~/pages/projects/screens/spawner/storage/utils';
-import { StorageData } from '~/pages/projects/types';
+import { PersistentVolumeClaimKind } from '#~/k8sTypes';
+import CreateNewStorageSection from '#~/pages/projects/screens/spawner/storage/CreateNewStorageSection';
+import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import usePreferredStorageClass from '#~/pages/projects/screens/spawner/storage/usePreferredStorageClass';
+import useAdminDefaultStorageClass from '#~/pages/projects/screens/spawner/storage/useAdminDefaultStorageClass';
+import { useCreateStorageObject } from '#~/pages/projects/screens/spawner/storage/utils';
+import { StorageData } from '#~/pages/projects/types';
 
 type CreateStorageObjectData = Pick<
   StorageData,

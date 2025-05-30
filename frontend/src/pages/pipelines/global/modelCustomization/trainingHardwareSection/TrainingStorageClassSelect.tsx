@@ -1,10 +1,10 @@
 import React from 'react';
-import { ZodErrorHelperText } from '~/components/ZodErrorFormHelperText';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import { storageClassSchema } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/validationUtils';
-import { useZodFormValidation } from '~/hooks/useZodFormValidation';
-import StorageClassSelect from '~/pages/projects/screens/spawner/storage/StorageClassSelect';
-import usePreferredStorageClass from '~/pages/projects/screens/spawner/storage/usePreferredStorageClass';
+import { ZodErrorHelperText } from '#~/components/ZodErrorFormHelperText';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { storageClassSchema } from '#~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/validationUtils';
+import { useZodFormValidation } from '#~/hooks/useZodFormValidation';
+import StorageClassSelect from '#~/pages/projects/screens/spawner/storage/StorageClassSelect';
+import usePreferredStorageClass from '#~/pages/projects/screens/spawner/storage/usePreferredStorageClass';
 
 type TrainingStorageClassSelectProps = {
   data: string;

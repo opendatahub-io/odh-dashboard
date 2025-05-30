@@ -1,6 +1,6 @@
-import { explorePage } from '~/__tests__/cypress/cypress/pages/explore';
-import { mockComponents } from '~/__mocks__/mockComponents';
-import { jupyterCard } from '~/__tests__/cypress/cypress/pages/components/JupyterCard';
+import { explorePage } from '#~/__tests__/cypress/cypress/pages/explore';
+import { mockComponents } from '#~/__mocks__/mockComponents';
+import { jupyterCard } from '#~/__tests__/cypress/cypress/pages/components/JupyterCard';
 
 describe('Explore Page', () => {
   beforeEach(() => {

@@ -1,14 +1,14 @@
 import { Label, LabelGroup, Stack, StackItem } from '@patternfly/react-core';
 import * as React from 'react';
-import TypedObjectIcon from '~/concepts/design/TypedObjectIcon';
-import { ProjectObjectType } from '~/concepts/design/utils';
-import { ServingRuntimeKind } from '~/k8sTypes';
+import TypedObjectIcon from '#~/concepts/design/TypedObjectIcon';
+import { ProjectObjectType } from '#~/concepts/design/utils';
+import { ServingRuntimeKind } from '#~/k8sTypes';
 import {
   getDisplayNameFromServingRuntimeTemplate,
   getServingRuntimeVersion,
-} from '~/pages/modelServing/customServingRuntimes/utils';
-import { SERVING_RUNTIME_SCOPE } from '~/pages/modelServing/screens/const';
-import ServingRuntimeVersionLabel from '~/pages/modelServing/screens/ServingRuntimeVersionLabel';
+} from '#~/pages/modelServing/customServingRuntimes/utils';
+import { SERVING_RUNTIME_SCOPE } from '#~/pages/modelServing/screens/const';
+import ServingRuntimeVersionLabel from '#~/pages/modelServing/screens/ServingRuntimeVersionLabel';
 
 type Props = {
   servingRuntime?: ServingRuntimeKind;

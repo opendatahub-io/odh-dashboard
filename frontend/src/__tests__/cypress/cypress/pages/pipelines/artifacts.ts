@@ -1,5 +1,5 @@
-import type { GrpcResponse } from '~/__mocks__/mlmd/utils';
-import { Contextual } from '~/__tests__/cypress/cypress/pages/components/Contextual';
+import type { GrpcResponse } from '#~/__mocks__/mlmd/utils';
+import { Contextual } from '#~/__tests__/cypress/cypress/pages/components/Contextual';
 
 class ArtifactsGlobal {
   visit(projectName: string) {

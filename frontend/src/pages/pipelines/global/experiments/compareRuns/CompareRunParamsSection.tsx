@@ -3,11 +3,11 @@ import React from 'react';
 import { ExpandableSection, Flex, Switch } from '@patternfly/react-core';
 import { InnerScrollContainer, TableVariant, Td, Tr } from '@patternfly/react-table';
 
-import { SortableData, Table } from '~/components/table';
-import { useCompareRuns } from '~/concepts/pipelines/content/compareRuns/CompareRunsContext';
-import { RuntimeConfigParamValue } from '~/concepts/pipelines/kfTypes';
-import { normalizeInputParamValue } from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/utils';
-import { CompareRunsEmptyState } from '~/concepts/pipelines/content/compareRuns/CompareRunsEmptyState';
+import { SortableData, Table } from '#~/components/table';
+import { useCompareRuns } from '#~/concepts/pipelines/content/compareRuns/CompareRunsContext';
+import { RuntimeConfigParamValue } from '#~/concepts/pipelines/kfTypes';
+import { normalizeInputParamValue } from '#~/concepts/pipelines/content/pipelinesDetails/pipelineRun/utils';
+import { CompareRunsEmptyState } from '#~/concepts/pipelines/content/compareRuns/CompareRunsEmptyState';
 
 export const CompareRunParamsSection: React.FunctionComponent = () => {
   const { loaded, selectedRuns } = useCompareRuns();

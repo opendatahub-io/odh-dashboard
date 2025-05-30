@@ -1,11 +1,11 @@
 import * as React from 'react';
 import { Bullseye, EmptyState, EmptyStateBody, Spinner } from '@patternfly/react-core';
 import { CubesIcon } from '@patternfly/react-icons';
-import createUsePipelineTable from '~/concepts/pipelines/content/tables/usePipelineTable';
-import { useArchivedExperiments } from '~/concepts/pipelines/apiHooks/useExperiments';
-import ArchivedExperimentTable from '~/concepts/pipelines/content/tables/experiment/ArchivedExperimentTable';
-import { ExperimentListTabTitle } from '~/pages/pipelines/global/experiments/const';
-import ExperimentLoadingError from '~/concepts/pipelines/content/experiments/ExperimentLoadingError';
+import createUsePipelineTable from '#~/concepts/pipelines/content/tables/usePipelineTable';
+import { useArchivedExperiments } from '#~/concepts/pipelines/apiHooks/useExperiments';
+import ArchivedExperimentTable from '#~/concepts/pipelines/content/tables/experiment/ArchivedExperimentTable';
+import { ExperimentListTabTitle } from '#~/pages/pipelines/global/experiments/const';
+import ExperimentLoadingError from '#~/concepts/pipelines/content/experiments/ExperimentLoadingError';
 
 const ArchivedExperimentsList: React.FC = () => {
   const [[{ items: experiments, totalSize }, loaded, error], { initialLoaded, ...tableProps }] =

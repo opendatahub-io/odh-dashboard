@@ -1,5 +1,5 @@
-import { Contextual } from '~/__tests__/cypress/cypress/pages/components/Contextual';
-import { AcceleratorProfileSection } from '~/__tests__/cypress/cypress/pages/components/subComponents/AcceleratorProfileSection';
+import { Contextual } from '#~/__tests__/cypress/cypress/pages/components/Contextual';
+import { AcceleratorProfileSection } from '#~/__tests__/cypress/cypress/pages/components/subComponents/AcceleratorProfileSection';
 
 class ModelCustomizationFormGlobal {
   visit(projectName: string, empty = false) {

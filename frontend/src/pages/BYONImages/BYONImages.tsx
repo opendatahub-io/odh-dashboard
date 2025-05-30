@@ -1,8 +1,8 @@
 import * as React from 'react';
-import ApplicationsPage from '~/pages/ApplicationsPage';
-import { useWatchBYONImages } from '~/utilities/useWatchBYONImages';
-import TitleWithIcon from '~/concepts/design/TitleWithIcon';
-import { ProjectObjectType } from '~/concepts/design/utils';
+import ApplicationsPage from '#~/pages/ApplicationsPage';
+import { useWatchBYONImages } from '#~/utilities/useWatchBYONImages';
+import TitleWithIcon from '#~/concepts/design/TitleWithIcon';
+import { ProjectObjectType } from '#~/concepts/design/utils';
 import { BYONImagesTable } from './BYONImagesTable';
 import EmptyBYONImages from './EmptyBYONImages';
 

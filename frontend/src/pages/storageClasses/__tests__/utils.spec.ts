@@ -2,11 +2,11 @@ import {
   AccessMode,
   StorageProvisioner,
   provisionerAccessModes,
-} from '~/pages/storageClasses/storageEnums';
+} from '#~/pages/storageClasses/storageEnums';
 import {
   getSupportedAccessModesForProvisioner,
   getDefaultAccessModeSettings,
-} from '~/pages/storageClasses/utils';
+} from '#~/pages/storageClasses/utils';
 
 describe('getSupportedAccessModesForProvisioner', () => {
   it('should return correct access modes for a known provisioner', () => {

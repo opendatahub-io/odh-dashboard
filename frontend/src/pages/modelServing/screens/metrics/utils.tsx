@@ -3,17 +3,17 @@ import { ReactElement } from 'react';
 import * as _ from 'lodash-es';
 import { BreadcrumbItem } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
-import { TimeframeTitle } from '~/concepts/metrics/types';
-import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
-import { BreadcrumbItemType, PrometheusQueryRangeResultValue } from '~/types';
-import { BaseMetricRequest, BaseMetricRequestInput, BiasMetricType } from '~/api';
-import { BiasMetricConfig } from '~/concepts/trustyai/types';
+import { TimeframeTitle } from '#~/concepts/metrics/types';
+import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
+import { BreadcrumbItemType, PrometheusQueryRangeResultValue } from '#~/types';
+import { BaseMetricRequest, BaseMetricRequestInput, BiasMetricType } from '#~/api';
+import { BiasMetricConfig } from '#~/concepts/trustyai/types';
 import {
   BIAS_CHART_CONFIGS,
   BIAS_THRESHOLD_COLOR,
-} from '~/pages/modelServing/screens/metrics/const';
-import { PROMETHEUS_REQUEST_RESOLUTION } from '~/concepts/metrics/const';
-import { isEnumMember } from '~/utilities/utils';
+} from '#~/pages/modelServing/screens/metrics/const';
+import { PROMETHEUS_REQUEST_RESOLUTION } from '#~/concepts/metrics/const';
+import { isEnumMember } from '#~/utilities/utils';
 import {
   BiasSelectOption,
   DomainCalculator,

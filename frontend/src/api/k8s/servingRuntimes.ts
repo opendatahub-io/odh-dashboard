@@ -6,23 +6,23 @@ import {
   k8sListResource,
   k8sUpdateResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { ServingRuntimeModel } from '~/api/models';
+import { ServingRuntimeModel } from '#~/api/models';
 import {
   K8sAPIOptions,
   ServingContainer,
   ServingRuntimeAnnotations,
   ServingRuntimeKind,
-} from '~/k8sTypes';
+} from '#~/k8sTypes';
 import {
   CreatingServingRuntimeObject,
   SupportedModelFormatsInfo,
-} from '~/pages/modelServing/screens/types';
-import { getModelServingRuntimeName } from '~/pages/modelServing/utils';
-import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '~/concepts/k8s/utils';
-import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
-import { getModelServingProjects } from '~/api/k8s/projects';
-import { getshmVolume, getshmVolumeMount } from '~/api/k8s/utils';
-import { ModelServingPodSpecOptions } from '~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
+} from '#~/pages/modelServing/screens/types';
+import { getModelServingRuntimeName } from '#~/pages/modelServing/utils';
+import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '#~/concepts/k8s/utils';
+import { applyK8sAPIOptions } from '#~/api/apiMergeUtils';
+import { getModelServingProjects } from '#~/api/k8s/projects';
+import { getshmVolume, getshmVolumeMount } from '#~/api/k8s/utils';
+import { ModelServingPodSpecOptions } from '#~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
 
 export const assembleServingRuntime = (
   data: CreatingServingRuntimeObject,

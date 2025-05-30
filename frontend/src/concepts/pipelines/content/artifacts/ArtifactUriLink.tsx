@@ -1,11 +1,11 @@
 import React from 'react';
 import { Button, Flex, FlexItem, Truncate } from '@patternfly/react-core';
 import { DownloadIcon, ExternalLinkAltIcon } from '@patternfly/react-icons';
-import { ArtifactType } from '~/concepts/pipelines/kfTypes';
-import { useArtifactStorage } from '~/concepts/pipelines/apiHooks/useArtifactStorage';
-import { Artifact } from '~/third_party/mlmd';
-import { triggerFileDownload } from '~/utilities/string';
-import useNotification from '~/utilities/useNotification';
+import { ArtifactType } from '#~/concepts/pipelines/kfTypes';
+import { useArtifactStorage } from '#~/concepts/pipelines/apiHooks/useArtifactStorage';
+import { Artifact } from '#~/third_party/mlmd';
+import { triggerFileDownload } from '#~/utilities/string';
+import useNotification from '#~/utilities/useNotification';
 
 interface ArtifactUriLinkProps {
   artifact: Artifact;

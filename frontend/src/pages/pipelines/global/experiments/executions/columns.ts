@@ -1,5 +1,5 @@
-import { SortableData } from '~/components/table';
-import { Execution } from '~/third_party/mlmd';
+import { SortableData } from '#~/components/table';
+import { Execution } from '#~/third_party/mlmd';
 
 export const executionColumns: SortableData<Execution>[] = [
   {

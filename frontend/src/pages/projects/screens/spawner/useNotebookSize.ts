@@ -1,9 +1,9 @@
 import * as React from 'react';
-import { useAppContext } from '~/app/AppContext';
-import { DashboardConfigKind } from '~/k8sTypes';
-import { NotebookSize } from '~/types';
-import useNotification from '~/utilities/useNotification';
-import { useDeepCompareMemoize } from '~/utilities/useDeepCompareMemoize';
+import { useAppContext } from '#~/app/AppContext';
+import { DashboardConfigKind } from '#~/k8sTypes';
+import { NotebookSize } from '#~/types';
+import useNotification from '#~/utilities/useNotification';
+import { useDeepCompareMemoize } from '#~/utilities/useDeepCompareMemoize';
 import { DEFAULT_NOTEBOOK_SIZES } from './const';
 
 export const getNotebookSizes = (config: DashboardConfigKind): NotebookSize[] => {

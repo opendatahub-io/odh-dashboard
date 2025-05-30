@@ -1,5 +1,5 @@
-import { K8sDSGResource, SupportedModelFormats, TemplateKind } from '~/k8sTypes';
-import { ServingRuntimeAPIProtocol, ServingRuntimePlatform } from '~/types';
+import { K8sDSGResource, SupportedModelFormats, TemplateKind } from '#~/k8sTypes';
+import { ServingRuntimeAPIProtocol, ServingRuntimePlatform } from '#~/types';
 
 type MockResourceConfigType = {
   name?: string;

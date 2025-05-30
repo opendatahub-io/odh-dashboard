@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Button, Divider } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
-import { EnvVariable } from '~/pages/projects/types';
+import { EnvVariable } from '#~/pages/projects/types';
 import EnvTypeSelectField from './EnvTypeSelectField';
 
 type EnvironmentVariablesProps = {

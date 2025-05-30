@@ -13,20 +13,20 @@ import {
 } from '@patternfly/react-core';
 import { TableVariant, Td, Tr } from '@patternfly/react-table';
 
-import { Artifact } from '~/third_party/mlmd';
-import { Table } from '~/components/table';
-import { ArtifactType } from '~/concepts/pipelines/kfTypes';
+import { Artifact } from '#~/third_party/mlmd';
+import { Table } from '#~/components/table';
+import { ArtifactType } from '#~/concepts/pipelines/kfTypes';
 import {
   buildRocCurveConfig,
   isConfidenceMetric,
-} from '~/concepts/pipelines/content/compareRuns/metricsSection/roc/utils';
-import ROCCurve from '~/concepts/pipelines/content/artifacts/charts/ROCCurve';
-import ConfusionMatrix from '~/concepts/pipelines/content/artifacts/charts/confusionMatrix/ConfusionMatrix';
-import { buildConfusionMatrixConfig } from '~/concepts/pipelines/content/artifacts/charts/confusionMatrix/utils';
-import { isConfusionMatrix } from '~/concepts/pipelines/content/compareRuns/metricsSection/confusionMatrix/utils';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { useArtifactStorage } from '~/concepts/pipelines/apiHooks/useArtifactStorage';
-import { useDeepCompareMemoize } from '~/utilities/useDeepCompareMemoize';
+} from '#~/concepts/pipelines/content/compareRuns/metricsSection/roc/utils';
+import ROCCurve from '#~/concepts/pipelines/content/artifacts/charts/ROCCurve';
+import ConfusionMatrix from '#~/concepts/pipelines/content/artifacts/charts/confusionMatrix/ConfusionMatrix';
+import { buildConfusionMatrixConfig } from '#~/concepts/pipelines/content/artifacts/charts/confusionMatrix/utils';
+import { isConfusionMatrix } from '#~/concepts/pipelines/content/compareRuns/metricsSection/confusionMatrix/utils';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+import { useArtifactStorage } from '#~/concepts/pipelines/apiHooks/useArtifactStorage';
+import { useDeepCompareMemoize } from '#~/utilities/useDeepCompareMemoize';
 import { getArtifactProperties } from './utils';
 
 interface ArtifactVisualizationProps {

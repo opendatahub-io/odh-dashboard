@@ -2,14 +2,14 @@ import {
   buildMockStorageClass,
   buildMockStorageClassConfig,
   mockStorageClasses,
-} from '~/__mocks__';
-import { asProductAdminUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
-import { pageNotfound } from '~/__tests__/cypress/cypress/pages/pageNotFound';
+} from '#~/__mocks__';
+import { asProductAdminUser } from '#~/__tests__/cypress/cypress/utils/mockUsers';
+import { pageNotfound } from '#~/__tests__/cypress/cypress/pages/pageNotFound';
 import {
   storageClassEditModal,
   storageClassesPage,
   storageClassesTable,
-} from '~/__tests__/cypress/cypress/pages/storageClasses';
+} from '#~/__tests__/cypress/cypress/pages/storageClasses';
 
 describe('Storage classes', () => {
   it('shows "page not found" and does not show nav item as a non-admin user', () => {

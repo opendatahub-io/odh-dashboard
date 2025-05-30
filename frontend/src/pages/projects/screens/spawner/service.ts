@@ -11,8 +11,8 @@ import {
   replaceConfigMap,
   replaceSecret,
   updatePvc,
-} from '~/api';
-import { Volume, VolumeMount } from '~/types';
+} from '#~/api';
+import { Volume, VolumeMount } from '#~/types';
 import {
   ConfigMapCategory,
   EnvironmentFromVariable,
@@ -20,11 +20,11 @@ import {
   SecretCategory,
   StorageData,
   StorageType,
-} from '~/pages/projects/types';
-import { ROOT_MOUNT_PATH } from '~/pages/projects/pvc/const';
-import { Connection } from '~/concepts/connectionTypes/types';
-import { ConfigMapKind, NotebookKind, PersistentVolumeClaimKind, SecretKind } from '~/k8sTypes';
-import { isPvcUpdateRequired } from '~/pages/projects/screens/detail/storage/utils';
+} from '#~/pages/projects/types';
+import { ROOT_MOUNT_PATH } from '#~/pages/projects/pvc/const';
+import { Connection } from '#~/concepts/connectionTypes/types';
+import { ConfigMapKind, NotebookKind, PersistentVolumeClaimKind, SecretKind } from '#~/k8sTypes';
+import { isPvcUpdateRequired } from '#~/pages/projects/screens/detail/storage/utils';
 import { fetchNotebookEnvVariables } from './environmentVariables/useNotebookEnvVariables';
 import { getDeletedConfigMapOrSecretVariables } from './environmentVariables/utils';
 

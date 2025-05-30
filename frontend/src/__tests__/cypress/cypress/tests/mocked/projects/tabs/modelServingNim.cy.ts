@@ -1,21 +1,21 @@
-import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
-import { mockNimInferenceService, mockNimServingRuntime } from '~/__mocks__/mockNimResource';
+import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
+import { mockNimInferenceService, mockNimServingRuntime } from '#~/__mocks__/mockNimResource';
 import {
   InferenceServiceModel,
   ServingRuntimeModel,
-} from '~/__tests__/cypress/cypress/utils/models';
+} from '#~/__tests__/cypress/cypress/utils/models';
 import {
   projectDetails,
   projectDetailsOverviewTab,
-} from '~/__tests__/cypress/cypress/pages/projects';
-import { nimDeployModal } from '~/__tests__/cypress/cypress/pages/components/NIMDeployModal';
+} from '#~/__tests__/cypress/cypress/pages/projects';
+import { nimDeployModal } from '#~/__tests__/cypress/cypress/pages/components/NIMDeployModal';
 import {
   initInterceptorsValidatingNimEnablement,
   initInterceptsForDeleteModel,
   initInterceptsToDeployModel,
   initInterceptsToEnableNim,
-} from '~/__tests__/cypress/cypress/utils/nimUtils';
-import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
+} from '#~/__tests__/cypress/cypress/utils/nimUtils';
+import { deleteModal } from '#~/__tests__/cypress/cypress/pages/components/DeleteModal';
 
 describe('NIM Model Serving', () => {
   describe('Deploying a model from an existing Project', () => {

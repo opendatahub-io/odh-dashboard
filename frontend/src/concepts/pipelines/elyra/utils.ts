@@ -7,19 +7,19 @@ import {
   NotebookKind,
   RoleBindingKind,
   SecretKind,
-} from '~/k8sTypes';
+} from '#~/k8sTypes';
 import {
   ELYRA_ROLE_NAME,
   ELYRA_SECRET_DATA_ENDPOINT,
   ELYRA_SECRET_DATA_KEY,
   ELYRA_SECRET_DATA_TYPE,
   ELYRA_SECRET_NAME,
-} from '~/concepts/pipelines/elyra/const';
-import { Volume, VolumeMount } from '~/types';
-import { RUNTIME_MOUNT_PATH } from '~/pages/projects/pvc/const';
-import { createRoleBinding, getRoleBinding, patchRoleBindingOwnerRef } from '~/api';
-import { experimentsBaseRoute } from '~/routes/pipelines/experiments';
-import { getImageVersionDependencies } from '~/pages/projects/screens/spawner/spawnerUtils';
+} from '#~/concepts/pipelines/elyra/const';
+import { Volume, VolumeMount } from '#~/types';
+import { RUNTIME_MOUNT_PATH } from '#~/pages/projects/pvc/const';
+import { createRoleBinding, getRoleBinding, patchRoleBindingOwnerRef } from '#~/api';
+import { experimentsBaseRoute } from '#~/routes/pipelines/experiments';
+import { getImageVersionDependencies } from '#~/pages/projects/screens/spawner/spawnerUtils';
 
 type ElyraRoleBindingOwnerRef = {
   apiVersion: string;

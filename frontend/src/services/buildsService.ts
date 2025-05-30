@@ -1,5 +1,5 @@
-import axios from '~/utilities/axios';
-import { BuildStatus } from '~/types';
+import axios from '#~/utilities/axios';
+import { BuildStatus } from '#~/types';
 
 export const fetchBuildStatuses = (): Promise<BuildStatus[]> => {
   const url = '/api/builds';

@@ -11,7 +11,7 @@ import {
   mockSecretK8sResource,
   mockSuccessGoogleRpcStatus,
   mockArgoWorkflowPipelineVersion,
-} from '~/__mocks__';
+} from '#~/__mocks__';
 import {
   pipelinesGlobal,
   pipelinesTable,
@@ -22,19 +22,19 @@ import {
   viewPipelineServerModal,
   PipelineSort,
   pipelineDetails,
-} from '~/__tests__/cypress/cypress/pages/pipelines';
-import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
+} from '#~/__tests__/cypress/cypress/pages/pipelines';
+import { deleteModal } from '#~/__tests__/cypress/cypress/pages/components/DeleteModal';
 import {
   DataSciencePipelineApplicationModel,
   ProjectModel,
   RouteModel,
   SecretModel,
-} from '~/__tests__/cypress/cypress/utils/models';
-import type { PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
-import { tablePagination } from '~/__tests__/cypress/cypress/pages/components/Pagination';
-import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url';
-import { pipelineRunsGlobal } from '~/__tests__/cypress/cypress/pages/pipelines/pipelineRunsGlobal';
-import { argoAlert } from '~/__tests__/cypress/cypress/pages/pipelines/argoAlert';
+} from '#~/__tests__/cypress/cypress/utils/models';
+import type { PipelineKF, PipelineVersionKF } from '#~/concepts/pipelines/kfTypes';
+import { tablePagination } from '#~/__tests__/cypress/cypress/pages/components/Pagination';
+import { verifyRelativeURL } from '#~/__tests__/cypress/cypress/utils/url';
+import { pipelineRunsGlobal } from '#~/__tests__/cypress/cypress/pages/pipelines/pipelineRunsGlobal';
+import { argoAlert } from '#~/__tests__/cypress/cypress/pages/pipelines/argoAlert';
 
 const projectName = 'test-project-name';
 const initialMockPipeline = buildMockPipeline({ display_name: 'Test pipeline' });

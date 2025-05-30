@@ -1,16 +1,16 @@
 import React from 'react';
-import { AcceleratorProfileKind } from '~/k8sTypes';
-import useAcceleratorProfiles from '~/pages/notebookController/screens/server/useAcceleratorProfiles';
-import { useDashboardNamespace } from '~/redux/selectors';
+import { AcceleratorProfileKind } from '#~/k8sTypes';
+import useAcceleratorProfiles from '#~/pages/notebookController/screens/server/useAcceleratorProfiles';
+import { useDashboardNamespace } from '#~/redux/selectors';
 import {
   ContainerResourceAttributes,
   ContainerResources,
   Toleration,
   TolerationEffect,
   TolerationOperator,
-} from '~/types';
-import { getAcceleratorProfileCount, isEnumMember } from '~/utilities/utils';
-import useFetchState, { FetchState } from '~/utilities/useFetchState';
+} from '#~/types';
+import { getAcceleratorProfileCount, isEnumMember } from '#~/utilities/utils';
+import useFetchState, { FetchState } from '#~/utilities/useFetchState';
 
 export type AcceleratorProfileState = {
   acceleratorProfiles: AcceleratorProfileKind[];

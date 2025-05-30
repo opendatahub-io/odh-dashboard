@@ -1,8 +1,8 @@
 import * as React from 'react';
 import '@testing-library/jest-dom';
 import { fireEvent, render, screen } from '@testing-library/react';
-import { UriField } from '~/concepts/connectionTypes/types';
-import UriFormField from '~/concepts/connectionTypes/fields/UriFormField';
+import { UriField } from '#~/concepts/connectionTypes/types';
+import UriFormField from '#~/concepts/connectionTypes/fields/UriFormField';
 
 describe('UriFormField', () => {
   it('should render editable field', () => {

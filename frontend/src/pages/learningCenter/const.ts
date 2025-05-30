@@ -1,4 +1,4 @@
-import { OdhDocumentType } from '~/types';
+import { OdhDocumentType } from '#~/types';
 
 export const FAVORITE_RESOURCES = 'odh.dashboard.resources.favorites';
 

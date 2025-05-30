@@ -23,17 +23,17 @@ import {
   InfoCircleIcon,
   InProgressIcon,
 } from '@patternfly/react-icons';
-import { ProjectObjectType } from '~/concepts/design/utils';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import { ODH_PRODUCT_NAME } from '~/utilities/const';
-import TypedObjectIcon from '~/concepts/design/TypedObjectIcon';
+import { ProjectObjectType } from '#~/concepts/design/utils';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { ODH_PRODUCT_NAME } from '#~/utilities/const';
+import TypedObjectIcon from '#~/concepts/design/TypedObjectIcon';
 import {
   getImageVersionBuildDate,
   getImageVersionSoftwareString,
   getMatchingImageStreamStatusTag,
-} from '~/pages/projects/screens/spawner/spawnerUtils';
-import { NotebookState } from '~/pages/projects/notebook/types';
-import UnderlinedTruncateButton from '~/components/UnderlinedTruncateButton';
+} from '#~/pages/projects/screens/spawner/spawnerUtils';
+import { NotebookState } from '#~/pages/projects/notebook/types';
+import UnderlinedTruncateButton from '#~/components/UnderlinedTruncateButton';
 import { NotebookImageAvailability, NotebookImageStatus } from './const';
 import { NotebookImage } from './types';
 

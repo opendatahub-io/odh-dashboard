@@ -1,17 +1,17 @@
-import { HTPASSWD_CLUSTER_ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
+import { HTPASSWD_CLUSTER_ADMIN_USER } from '#~/__tests__/cypress/cypress/utils/e2eUsers';
 import {
   verifyStorageClassConfig,
   provisionStorageClassFeature,
   tearDownStorageClassFeature,
-} from '~/__tests__/cypress/cypress/utils/storageClass';
+} from '#~/__tests__/cypress/cypress/utils/storageClass';
 import {
   storageClassesPage,
   storageClassesTable,
-} from '~/__tests__/cypress/cypress/pages/storageClasses';
+} from '#~/__tests__/cypress/cypress/pages/storageClasses';
 import {
   retryableBefore,
   wasSetupPerformed,
-} from '~/__tests__/cypress/cypress/utils/retryableHooks';
+} from '#~/__tests__/cypress/cypress/utils/retryableHooks';
 
 const scName = 'qe-settings-sc';
 

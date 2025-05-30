@@ -2,7 +2,7 @@ import React from 'react';
 import { useLocalStorage, QuickStartContainer } from '@patternfly/quickstarts';
 import '@patternfly/react-catalog-view-extension/dist/css/react-catalog-view-extension.css';
 import '@patternfly/quickstarts/dist/quickstarts.min.css';
-import { useWatchQuickStarts } from '~/utilities/useWatchQuickStarts';
+import { useWatchQuickStarts } from '#~/utilities/useWatchQuickStarts';
 
 type QuickStartsProps = {
   children: React.ReactNode;

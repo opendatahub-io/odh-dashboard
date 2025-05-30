@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Card, CardTitle, CardHeader, Divider, Flex } from '@patternfly/react-core';
-import DashboardHelpTooltip from '~/concepts/dashboard/DashboardHelpTooltip';
+import DashboardHelpTooltip from '#~/concepts/dashboard/DashboardHelpTooltip';
 
 export const DWSectionCard: React.FC<{
   title: string;

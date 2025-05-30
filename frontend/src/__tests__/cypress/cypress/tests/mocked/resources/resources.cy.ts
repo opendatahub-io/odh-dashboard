@@ -1,7 +1,7 @@
-import { mockDocs } from '~/__mocks__/mockDocs';
-import { mockComponents } from '~/__mocks__/mockComponents';
-import { mockQuickStarts } from '~/__mocks__/mockQuickStarts';
-import { resources } from '~/__tests__/cypress/cypress/pages/resources';
+import { mockDocs } from '#~/__mocks__/mockDocs';
+import { mockComponents } from '#~/__mocks__/mockComponents';
+import { mockQuickStarts } from '#~/__mocks__/mockQuickStarts';
+import { resources } from '#~/__tests__/cypress/cypress/pages/resources';
 
 const listView = resources.getListView();
 const cardView = resources.getCardView();

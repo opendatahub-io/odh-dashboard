@@ -1,6 +1,6 @@
 import React from 'react';
-import { APIState } from '~/concepts/proxy/types';
-import { ModelRegistryAPIs } from '~/concepts/modelRegistry/types';
+import { APIState } from '#~/concepts/proxy/types';
+import { ModelRegistryAPIs } from '#~/concepts/modelRegistry/types';
 import {
   createModelArtifact,
   createModelArtifactForModelVersion,
@@ -18,8 +18,8 @@ import {
   patchModelArtifact,
   patchModelVersion,
   patchRegisteredModel,
-} from '~/api';
-import useAPIState from '~/concepts/proxy/useAPIState';
+} from '#~/api';
+import useAPIState from '#~/concepts/proxy/useAPIState';
 
 export type ModelRegistryAPIState = APIState<ModelRegistryAPIs>;
 

@@ -9,15 +9,15 @@ import {
   ModalHeader,
   ModalFooter,
 } from '@patternfly/react-core';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { createPipelinesCR, deleteSecret } from '~/api';
-import { EMPTY_AWS_PIPELINE_DATA } from '~/pages/projects/dataConnections/const';
-import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
-import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
-import SamplePipelineSettingsSection from '~/concepts/pipelines/content/configurePipelinesServer/SamplePipelineSettingsSection';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import usePipelinesConnections from '~/pages/projects/screens/detail/connections/usePipelinesConnections';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+import { createPipelinesCR, deleteSecret } from '#~/api';
+import { EMPTY_AWS_PIPELINE_DATA } from '#~/pages/projects/dataConnections/const';
+import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
+import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
+import SamplePipelineSettingsSection from '#~/concepts/pipelines/content/configurePipelinesServer/SamplePipelineSettingsSection';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import usePipelinesConnections from '#~/pages/projects/screens/detail/connections/usePipelinesConnections';
 import { PipelinesDatabaseSection } from './PipelinesDatabaseSection';
 import { ObjectStorageSection } from './ObjectStorageSection';
 import {

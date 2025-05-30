@@ -1,4 +1,4 @@
-import { ConnectionTypeConfigMapObj, ConnectionTypeField } from '~/concepts/connectionTypes/types';
+import { ConnectionTypeConfigMapObj, ConnectionTypeField } from '#~/concepts/connectionTypes/types';
 
 export const extractConnectionTypeFromMap = (
   configMap?: ConnectionTypeConfigMapObj,

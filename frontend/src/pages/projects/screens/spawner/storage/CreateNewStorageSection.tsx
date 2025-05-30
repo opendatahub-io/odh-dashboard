@@ -1,17 +1,17 @@
 import * as React from 'react';
 import { Alert, FormSection, HelperTextItem } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
-import { StorageData, UpdateObjectAtPropAndValue } from '~/pages/projects/types';
-import PVSizeField from '~/pages/projects/components/PVSizeField';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import { PersistentVolumeClaimKind } from '~/k8sTypes';
+import { StorageData, UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
+import PVSizeField from '#~/pages/projects/components/PVSizeField';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { PersistentVolumeClaimKind } from '#~/k8sTypes';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
-} from '~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
+} from '#~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import {
   isK8sNameDescriptionDataValid,
   LimitNameResourceType,
-} from '~/concepts/k8s/K8sNameDescriptionField/utils';
+} from '#~/concepts/k8s/K8sNameDescriptionField/utils';
 import StorageClassSelect from './StorageClassSelect';
 
 type CreateNewStorageSectionProps<D extends StorageData> = {

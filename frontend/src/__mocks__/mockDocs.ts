@@ -1,4 +1,4 @@
-import { OdhDocument } from '~/types';
+import { OdhDocument } from '#~/types';
 
 export const mockDocs = (): OdhDocument[] => [
   {

@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { Flex, FlexItem, Stack, StackItem } from '@patternfly/react-core';
-import TaskDetailsSection from '~/concepts/pipelines/content/pipelinesDetails/taskDetails/TaskDetailsSection';
-import TaskDetailsCodeBlock from '~/concepts/pipelines/content/pipelinesDetails/taskDetails/TaskDetailsCodeBlock';
-import TaskDetailsInputOutput from '~/concepts/pipelines/content/pipelinesDetails/taskDetails/TaskDetailsInputOutput';
-import { PipelineTask } from '~/concepts/pipelines/topology';
+import TaskDetailsSection from '#~/concepts/pipelines/content/pipelinesDetails/taskDetails/TaskDetailsSection';
+import TaskDetailsCodeBlock from '#~/concepts/pipelines/content/pipelinesDetails/taskDetails/TaskDetailsCodeBlock';
+import TaskDetailsInputOutput from '#~/concepts/pipelines/content/pipelinesDetails/taskDetails/TaskDetailsInputOutput';
+import { PipelineTask } from '#~/concepts/pipelines/topology';
 
 type TaskDetailsProps = {
   task: PipelineTask;

@@ -1,6 +1,6 @@
-import { SortableData } from '~/components/table';
-import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
-import { getStorageClassConfig } from '~/pages/storageClasses/utils';
+import { SortableData } from '#~/components/table';
+import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
+import { getStorageClassConfig } from '#~/pages/storageClasses/utils';
 import { StorageTableData } from './types';
 
 export const columns: SortableData<StorageTableData>[] = [

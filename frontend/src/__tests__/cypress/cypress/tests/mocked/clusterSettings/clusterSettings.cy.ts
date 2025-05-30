@@ -1,5 +1,5 @@
-import { mockClusterSettings } from '~/__mocks__/mockClusterSettings';
-import { mockDscStatus } from '~/__mocks__/mockDscStatus';
+import { mockClusterSettings } from '#~/__mocks__/mockClusterSettings';
+import { mockDscStatus } from '#~/__mocks__/mockDscStatus';
 import {
   clusterSettings,
   cullerSettings,
@@ -7,18 +7,18 @@ import {
   notebookTolerationSettings,
   pvcSizeSettings,
   telemetrySettings,
-} from '~/__tests__/cypress/cypress/pages/clusterSettings';
-import { pageNotfound } from '~/__tests__/cypress/cypress/pages/pageNotFound';
-import { be } from '~/__tests__/cypress/cypress/utils/should';
+} from '#~/__tests__/cypress/cypress/pages/clusterSettings';
+import { pageNotfound } from '#~/__tests__/cypress/cypress/pages/pageNotFound';
+import { be } from '#~/__tests__/cypress/cypress/utils/should';
 import {
   asClusterAdminUser,
   asProjectAdminUser,
-} from '~/__tests__/cypress/cypress/utils/mockUsers';
-import { DataScienceStackComponent, StackComponent } from '~/concepts/areas/types';
-import { DeploymentMode } from '~/k8sTypes';
-import { mockDashboardConfig, mockK8sResourceList } from '~/__mocks__';
-import { DataScienceClusterModel } from '~/__tests__/cypress/cypress/utils/models';
-import { mockDsc } from '~/__mocks__/mockDsc';
+} from '#~/__tests__/cypress/cypress/utils/mockUsers';
+import { DataScienceStackComponent, StackComponent } from '#~/concepts/areas/types';
+import { DeploymentMode } from '#~/k8sTypes';
+import { mockDashboardConfig, mockK8sResourceList } from '#~/__mocks__';
+import { DataScienceClusterModel } from '#~/__tests__/cypress/cypress/utils/models';
+import { mockDsc } from '#~/__mocks__/mockDsc';
 
 it('Cluster settings should not be available for non product admins', () => {
   asProjectAdminUser();

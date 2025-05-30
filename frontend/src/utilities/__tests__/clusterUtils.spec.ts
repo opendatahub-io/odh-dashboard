@@ -1,6 +1,6 @@
-import { useClusterInfo } from '~/redux/selectors/clusterInfo';
-import { getOpenShiftConsoleServerURL, useOpenShiftURL } from '~/utilities/clusterUtils';
-import { testHook } from '~/__tests__/unit/testUtils/hooks';
+import { useClusterInfo } from '#~/redux/selectors/clusterInfo';
+import { getOpenShiftConsoleServerURL, useOpenShiftURL } from '#~/utilities/clusterUtils';
+import { testHook } from '#~/__tests__/unit/testUtils/hooks';
 
 const originalLocation = window.location;
 
@@ -11,19 +11,19 @@ const setupWindowLocation = (hostname: string, protocol: string, port: string) =
   });
 };
 
-jest.mock('~/utilities/const', () => ({
+jest.mock('#~/utilities/const', () => ({
   get DEV_MODE() {
     return false;
   },
 }));
 
-jest.mock('~/redux/selectors/clusterInfo', () => ({
-  ...jest.requireActual('~/redux/selectors/clusterInfo'),
+jest.mock('#~/redux/selectors/clusterInfo', () => ({
+  ...jest.requireActual('#~/redux/selectors/clusterInfo'),
   useClusterInfo: jest.fn(),
 }));
 
 const useClusterInfoMock = jest.mocked(useClusterInfo);
-const devModeMock = jest.spyOn(jest.requireMock('~/utilities/const'), 'DEV_MODE', 'get');
+const devModeMock = jest.spyOn(jest.requireMock('#~/utilities/const'), 'DEV_MODE', 'get');
 
 describe('getOpenShiftConsoleServerURL', () => {
   it('should construct URL based on window location when no apiURL is provided', () => {

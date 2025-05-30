@@ -5,22 +5,22 @@ import {
   fineTunePageSectionTitles,
   teacherJudgeMarkdownContent,
   teacherJudgeMarkdownTitle,
-} from '~/pages/pipelines/global/modelCustomization/const';
-import { ModelCustomizationEndpointType } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/types';
+} from '#~/pages/pipelines/global/modelCustomization/const';
+import { ModelCustomizationEndpointType } from '#~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/types';
 import {
   TeacherEndpointInput,
   TeacherModelNameInput,
   TeacherTokenInput,
-} from '~/pages/pipelines/global/modelCustomization/teacherJudgeSection/TeacherJudgeInputComponents';
+} from '#~/pages/pipelines/global/modelCustomization/teacherJudgeSection/TeacherJudgeInputComponents';
 import {
   TeacherJudgeFormData,
   teacherJudgeModel,
-} from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/validationUtils';
-import { ModelCustomizationDrawerContentArgs } from '~/pages/pipelines/global/modelCustomization/landingPage/ModelCustomizationDrawerContent';
-import MarkdownView from '~/components/MarkdownView';
-import { ZodErrorHelperText } from '~/components/ZodErrorFormHelperText';
-import FormSection from '~/components/pf-overrides/FormSection';
-import { useZodFormValidation } from '~/hooks/useZodFormValidation';
+} from '#~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/validationUtils';
+import { ModelCustomizationDrawerContentArgs } from '#~/pages/pipelines/global/modelCustomization/landingPage/ModelCustomizationDrawerContent';
+import MarkdownView from '#~/components/MarkdownView';
+import { ZodErrorHelperText } from '#~/components/ZodErrorFormHelperText';
+import FormSection from '#~/components/pf-overrides/FormSection';
+import { useZodFormValidation } from '#~/hooks/useZodFormValidation';
 
 type TeacherModelSectionProps = {
   data: TeacherJudgeFormData;

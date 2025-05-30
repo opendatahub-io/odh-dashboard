@@ -18,7 +18,8 @@
         "importHelpers": true,
         "skipLibCheck": true,
         "noErrorTruncation": true,
-        "baseUrl": "${configDir}/src"
+        "baseUrl": "${configDir}/src",
+        "noEmit": true
     },
     "include": ["${configDir}/**/*.ts", "${configDir}/**/*.tsx", "${configDir}/**/*.jsx", "${configDir}/**/*.js"],
     "exclude": ["node_modules"]

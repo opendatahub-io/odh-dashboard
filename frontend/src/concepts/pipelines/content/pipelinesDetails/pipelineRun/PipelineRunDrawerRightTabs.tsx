@@ -1,11 +1,11 @@
 import * as React from 'react';
 import { DrawerPanelBody, Tab, TabContent, TabContentBody, Tabs } from '@patternfly/react-core';
-import SelectedNodeDetailsTab from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/SelectedNodeDetailsTab';
-import SelectedNodeInputOutputTab from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/SelectedNodeInputOutputTab';
-import LogsTab from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/runLogs/LogsTab';
+import SelectedNodeDetailsTab from '#~/concepts/pipelines/content/pipelinesDetails/pipelineRun/SelectedNodeDetailsTab';
+import SelectedNodeInputOutputTab from '#~/concepts/pipelines/content/pipelinesDetails/pipelineRun/SelectedNodeInputOutputTab';
+import LogsTab from '#~/concepts/pipelines/content/pipelinesDetails/pipelineRun/runLogs/LogsTab';
 import './PipelineRunDrawer.scss';
-import { PipelineTask } from '~/concepts/pipelines/topology';
-import { Execution } from '~/third_party/mlmd';
+import { PipelineTask } from '#~/concepts/pipelines/topology';
+import { Execution } from '#~/third_party/mlmd';
 import { renderDetailItems } from './utils';
 
 enum PipelineRunNodeTab {

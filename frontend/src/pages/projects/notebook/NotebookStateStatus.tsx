@@ -6,12 +6,12 @@ import {
   t_global_text_color_status_warning_default as WarningColor,
 } from '@patternfly/react-tokens';
 import { useNavigate } from 'react-router-dom';
-import { EventStatus, NotebookStatus } from '~/types';
-import { useDeepCompareMemoize } from '~/utilities/useDeepCompareMemoize';
-import { useNotebookStatus } from '~/utilities/notebookControllerUtils';
-import StartNotebookModal from '~/concepts/notebooks/StartNotebookModal';
-import NotebookStatusLabel from '~/concepts/notebooks/NotebookStatusLabel';
-import UnderlinedTruncateButton from '~/components/UnderlinedTruncateButton';
+import { EventStatus, NotebookStatus } from '#~/types';
+import { useDeepCompareMemoize } from '#~/utilities/useDeepCompareMemoize';
+import { useNotebookStatus } from '#~/utilities/notebookControllerUtils';
+import StartNotebookModal from '#~/concepts/notebooks/StartNotebookModal';
+import NotebookStatusLabel from '#~/concepts/notebooks/NotebookStatusLabel';
+import UnderlinedTruncateButton from '#~/components/UnderlinedTruncateButton';
 import { NotebookState } from './types';
 
 type NotebookStateStatusProps = {

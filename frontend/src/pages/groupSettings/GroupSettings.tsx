@@ -8,14 +8,14 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import ApplicationsPage from '~/pages/ApplicationsPage';
-import { isGroupEmpty } from '~/utilities/utils';
-import SettingSection from '~/components/SettingSection';
-import { MultiSelection, SelectionOptions } from '~/components/MultiSelection';
-import { useWatchGroups } from '~/concepts/userConfigs/useWatchGroups';
-import TitleWithIcon from '~/concepts/design/TitleWithIcon';
-import { ProjectObjectType } from '~/concepts/design/utils';
-import { GroupsConfigField } from '~/concepts/userConfigs/groupTypes';
+import ApplicationsPage from '#~/pages/ApplicationsPage';
+import { isGroupEmpty } from '#~/utilities/utils';
+import SettingSection from '#~/components/SettingSection';
+import { MultiSelection, SelectionOptions } from '#~/components/MultiSelection';
+import { useWatchGroups } from '#~/concepts/userConfigs/useWatchGroups';
+import TitleWithIcon from '#~/concepts/design/TitleWithIcon';
+import { ProjectObjectType } from '#~/concepts/design/utils';
+import { GroupsConfigField } from '#~/concepts/userConfigs/groupTypes';
 
 const GroupSettings: React.FC = () => {
   const {

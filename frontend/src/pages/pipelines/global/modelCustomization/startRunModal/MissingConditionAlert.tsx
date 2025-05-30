@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router';
 import {
   useContinueState,
   ContinueCondition,
-} from '~/pages/pipelines/global/modelCustomization/startRunModal/useContinueState';
+} from '#~/pages/pipelines/global/modelCustomization/startRunModal/useContinueState';
 
 type MissingConditionAlertProps = {
   selectedProject: string;

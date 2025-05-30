@@ -1,4 +1,4 @@
-import { Contextual } from '~/__tests__/cypress/cypress/pages/components/Contextual';
+import { Contextual } from '#~/__tests__/cypress/cypress/pages/components/Contextual';
 
 class AcceleratorProfileGroup extends Contextual<HTMLElement> {}
 

@@ -1,5 +1,5 @@
 /* eslint-disable camelcase */
-import { mockIlabPipelineVersionParameters } from '~/__mocks__/mockIlabPipelineVersionParameters';
+import { mockIlabPipelineVersionParameters } from '#~/__mocks__/mockIlabPipelineVersionParameters';
 import {
   judgeModelSection,
   modelCustomizationFormGlobal,
@@ -11,7 +11,7 @@ import {
   pipelineSection,
   hyperparameterSection,
   acceleratorProfileSectionModelCustomization,
-} from '~/__tests__/cypress/cypress/pages/pipelines/modelCustomizationForm';
+} from '#~/__tests__/cypress/cypress/pages/pipelines/modelCustomizationForm';
 import {
   buildMockPipeline,
   buildMockPipelines,
@@ -30,7 +30,7 @@ import {
   mockRouteK8sResource,
   mockSecretK8sResource,
   mockStorageClassList,
-} from '~/__mocks__';
+} from '#~/__mocks__';
 import {
   AcceleratorProfileModel,
   DataSciencePipelineApplicationModel,
@@ -40,16 +40,16 @@ import {
   SecretModel,
   ServiceModel,
   StorageClassModel,
-} from '~/__tests__/cypress/cypress/utils/models';
+} from '#~/__tests__/cypress/cypress/utils/models';
 import {
   mockGlobalScopedHardwareProfiles,
   mockProjectScopedHardwareProfiles,
-} from '~/__mocks__/mockHardwareProfile';
-import { hardwareProfileSection } from '~/__tests__/cypress/cypress/pages/components/HardwareProfileSection';
+} from '#~/__mocks__/mockHardwareProfile';
+import { hardwareProfileSection } from '#~/__tests__/cypress/cypress/pages/components/HardwareProfileSection';
 import {
   mockGlobalScopedAcceleratorProfiles,
   mockProjectScopedAcceleratorProfiles,
-} from '~/__mocks__/mockAcceleratorProfile';
+} from '#~/__mocks__/mockAcceleratorProfile';
 
 const projectName = 'test-project-name-2';
 const MODEL_REGISTRY_API_VERSION = 'v1alpha3';

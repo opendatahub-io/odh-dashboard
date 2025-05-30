@@ -8,14 +8,14 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import { DeploymentMode, InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
-import InferenceServiceTableRow from '~/pages/modelServing/screens/global/InferenceServiceTableRow';
-import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import ServingRuntimeDetails from '~/pages/modelServing/screens/projects/ModelMeshSection/ServingRuntimeDetails';
-import ResourceTr from '~/components/ResourceTr';
-import ServingRuntimeTokensTable from '~/pages/modelServing/screens/projects/ModelMeshSection/ServingRuntimeTokensTable';
-import { isInferenceServiceTokenEnabled } from '~/pages/modelServing/screens/projects/utils';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+import { DeploymentMode, InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
+import InferenceServiceTableRow from '#~/pages/modelServing/screens/global/InferenceServiceTableRow';
+import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
+import ServingRuntimeDetails from '#~/pages/modelServing/screens/projects/ModelMeshSection/ServingRuntimeDetails';
+import ResourceTr from '#~/components/ResourceTr';
+import ServingRuntimeTokensTable from '#~/pages/modelServing/screens/projects/ModelMeshSection/ServingRuntimeTokensTable';
+import { isInferenceServiceTokenEnabled } from '#~/pages/modelServing/screens/projects/utils';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 
 type KServeInferenceServiceTableRowProps = {
   project?: string;

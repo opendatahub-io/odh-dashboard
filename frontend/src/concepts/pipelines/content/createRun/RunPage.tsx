@@ -1,28 +1,28 @@
 import React from 'react';
 import { useLocation } from 'react-router-dom';
 import { PageSection } from '@patternfly/react-core';
-import { ExperimentKF, PipelineRecurringRunKF, PipelineRunKF } from '~/concepts/pipelines/kfTypes';
-import GenericSidebar from '~/components/GenericSidebar';
+import { ExperimentKF, PipelineRecurringRunKF, PipelineRunKF } from '#~/concepts/pipelines/kfTypes';
+import GenericSidebar from '#~/components/GenericSidebar';
 import {
   CreateRunPageSections,
   DEFAULT_PERIODIC_DATA,
   runPageSectionTitles,
-} from '~/concepts/pipelines/content/createRun/const';
-import RunForm from '~/concepts/pipelines/content/createRun/RunForm';
-import useRunFormData from '~/concepts/pipelines/content/createRun/useRunFormData';
-import RunPageFooter from '~/concepts/pipelines/content/createRun/RunPageFooter';
+} from '#~/concepts/pipelines/content/createRun/const';
+import RunForm from '#~/concepts/pipelines/content/createRun/RunForm';
+import useRunFormData from '#~/concepts/pipelines/content/createRun/useRunFormData';
+import RunPageFooter from '#~/concepts/pipelines/content/createRun/RunPageFooter';
 import {
   PipelineVersionToUse,
   RunFormData,
   RunType,
   RunTypeOption,
   ScheduledType,
-} from '~/concepts/pipelines/content/createRun/types';
-import { ValueOf } from '~/typeHelpers';
-import { useGetSearchParamValues } from '~/utilities/useGetSearchParamValues';
-import { PipelineRunSearchParam } from '~/concepts/pipelines/content/types';
-import { asEnumMember } from '~/utilities/utils';
-import useDefaultExperiment from '~/pages/pipelines/global/experiments/useDefaultExperiment';
+} from '#~/concepts/pipelines/content/createRun/types';
+import { ValueOf } from '#~/typeHelpers';
+import { useGetSearchParamValues } from '#~/utilities/useGetSearchParamValues';
+import { PipelineRunSearchParam } from '#~/concepts/pipelines/content/types';
+import { asEnumMember } from '#~/utilities/utils';
+import useDefaultExperiment from '#~/pages/pipelines/global/experiments/useDefaultExperiment';
 
 type RunPageProps = {
   duplicateRun?: PipelineRunKF | PipelineRecurringRunKF | null;

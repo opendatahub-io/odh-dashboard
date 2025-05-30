@@ -1,5 +1,5 @@
-import { ContextType } from '~/__mocks__/third_party/mlmd';
-import { GetContextTypeResponse } from '~/__mocks__/third_party/mlmd/generated/ml_metadata/proto/metadata_store_service';
+import { ContextType } from '#~/__mocks__/third_party/mlmd';
+import { GetContextTypeResponse } from '#~/__mocks__/third_party/mlmd/generated/ml_metadata/proto/metadata_store_service';
 import createGrpcResponse, { GrpcResponse } from './utils';
 
 const mockedContextType: ContextType = {

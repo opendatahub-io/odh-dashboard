@@ -1,10 +1,10 @@
 import * as React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getNotebook } from '~/services/notebookService';
-import ApplicationsPage from '~/pages/ApplicationsPage';
-import useNotification from '~/utilities/useNotification';
-import useRouteForNotebook from '~/pages/projects/notebook/useRouteForNotebook';
-import { getRoute } from '~/services/routeService';
+import { getNotebook } from '#~/services/notebookService';
+import ApplicationsPage from '#~/pages/ApplicationsPage';
+import useNotification from '#~/utilities/useNotification';
+import useRouteForNotebook from '#~/pages/projects/notebook/useRouteForNotebook';
+import { getRoute } from '#~/services/routeService';
 import useNamespaces from './useNamespaces';
 
 const NotebookLogoutRedirect: React.FC = () => {

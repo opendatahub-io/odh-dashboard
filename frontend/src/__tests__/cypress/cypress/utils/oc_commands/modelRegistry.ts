@@ -2,9 +2,9 @@
  * Utility functions for Model Registry OC commands
  */
 
-import type { CommandLineResult } from '~/__tests__/cypress/cypress/types';
-import { applyOpenShiftYaml } from '~/__tests__/cypress/cypress/utils/oc_commands/baseCommands';
-import { replacePlaceholdersInYaml } from '~/__tests__/cypress/cypress/utils/yaml_files';
+import type { CommandLineResult } from '#~/__tests__/cypress/cypress/types';
+import { applyOpenShiftYaml } from '#~/__tests__/cypress/cypress/utils/oc_commands/baseCommands';
+import { replacePlaceholdersInYaml } from '#~/__tests__/cypress/cypress/utils/yaml_files';
 
 /**
  * Get the model registry namespace based on the environment

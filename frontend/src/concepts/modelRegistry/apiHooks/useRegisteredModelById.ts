@@ -3,9 +3,9 @@ import useFetchState, {
   FetchState,
   FetchStateCallbackPromise,
   NotReadyError,
-} from '~/utilities/useFetchState';
-import { RegisteredModel } from '~/concepts/modelRegistry/types';
-import { ModelRegistryPageContext } from '~/concepts/modelRegistry/context/ModelRegistryPageContext';
+} from '#~/utilities/useFetchState';
+import { RegisteredModel } from '#~/concepts/modelRegistry/types';
+import { ModelRegistryPageContext } from '#~/concepts/modelRegistry/context/ModelRegistryPageContext';
 
 const useRegisteredModelById = (registeredModel?: string): FetchState<RegisteredModel | null> => {
   const { apiState } = React.useContext(ModelRegistryPageContext);
