@@ -52,13 +52,6 @@ const ImageLocationField: React.FC<ImageLocationFieldProps> = ({
       }}
       isDisabled={isDisabled}
     />
-    {/* <FormHelperText> */}
-    {/*   <HelperText> */}
-    {/*     <HelperTextItem> */}
-    {/*       The address where the workbench image is located. See the help icon for examples. */}
-    {/*     </HelperTextItem> */}
-    {/*   </HelperText> */}
-    {/* </FormHelperText> */}
   </FormGroup>
 );
 
