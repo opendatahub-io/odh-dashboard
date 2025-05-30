@@ -79,10 +79,10 @@ const usePrefillModelDeployModal = (
       message:
         'The selected project does not have a connection that matches the model location. You can create a matching connection by using the data in the autopopulated fields, or edit the fields to create a different connection. Alternatively, click Existing connection to select an existing non-matching connection.',
     };
-    if (modelDeployPrefillInfo?.modelArtifactUri && loaded && !hasPrefilledRef.current) {
-      // Mark as prefilled to prevent future prefills
-      hasPrefilledRef.current = true;
 
+    // Only run this effect if we have modelDeployPrefillInfo and haven't prefilled yet
+    if (modelDeployPrefillInfo?.modelArtifactUri && loaded && !hasPrefilledRef.current) {
+      hasPrefilledRef.current = true;
       setCreateData('name', modelDeployPrefillInfo.modelName);
       const recommendedConnections = connections.filter(
         (dataConnection) => dataConnection.isRecommended,
