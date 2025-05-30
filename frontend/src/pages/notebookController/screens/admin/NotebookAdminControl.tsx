@@ -12,38 +12,14 @@ import { Td, Tr } from '@patternfly/react-table';
 import { Table } from '#~/components/table';
 import ExternalLink from '#~/components/ExternalLink';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
-import StopServerModal from '#~/pages/notebookController/screens/server/StopServerModal';
-import { Notebook } from '#~/types';
 import { ODH_PRODUCT_NAME } from '#~/utilities/const';
 import { columns } from './data';
 import StopAllServersButton from './StopAllServersButton';
 import UserTableCellTransform from './UserTableCellTransform';
 import useAdminUsers from './useAdminUsers';
-import { NotebookAdminContext } from './NotebookAdminContext';
 
 const NotebookAdminControl: React.FC = () => {
   const [users, loaded, loadError] = useAdminUsers();
-  const { serverStatuses, setServerStatuses } = React.useContext(NotebookAdminContext);
-
-  const onNotebooksStop = React.useCallback(
-    (didStop: boolean) => {
-      if (didStop) {
-        serverStatuses.forEach((serverStatus) => {
-          serverStatus.forceRefresh();
-        });
-      }
-      setServerStatuses([]);
-    },
-    [serverStatuses, setServerStatuses],
-  );
-
-  const notebooksToStop = React.useMemo(
-    () =>
-      serverStatuses
-        .map((serverStatus) => serverStatus.notebook)
-        .filter((notebook): notebook is Notebook => !!notebook),
-    [serverStatuses],
-  );
 
   return (
     <ApplicationsPage
@@ -107,13 +83,6 @@ const NotebookAdminControl: React.FC = () => {
           />
         </StackItem>
       </Stack>
-      {notebooksToStop.length ? (
-        <StopServerModal
-          notebooksToStop={notebooksToStop}
-          onNotebooksStop={onNotebooksStop}
-          link="#"
-        />
-      ) : null}
     </ApplicationsPage>
   );
 };
