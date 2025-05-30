@@ -11,6 +11,7 @@ import EnsureCompatiblePipelineServer from '#~/concepts/pipelines/EnsureCompatib
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import { ProjectIconWithSize } from '#~/concepts/projects/ProjectIconWithSize';
 import './GlobalPipelineCoreDetails.scss';
+import { IconSize } from '~/types';
 
 export type GlobalPipelineCoreDetailsProps = {
   pageName: string;
@@ -48,7 +49,7 @@ const GlobalPipelineCoreDetailsInner: React.FC<GlobalPipelineCoreDetailsProps> =
                 spaceItems={{ default: 'spaceItemsXs' }}
               >
                 <FlexItem>{pageName} in</FlexItem>
-                <ProjectIconWithSize size="md" />
+                <ProjectIconWithSize size={IconSize.MD} />
                 <FlexItem>{getDisplayNameFromK8sResource(project)}</FlexItem>
               </Flex>
             </Link>

@@ -6,6 +6,7 @@ import SearchSelector from '#~/components/searchSelector/SearchSelector';
 import { ProjectKind } from '#~/k8sTypes';
 import ProjectNavigatorLink from '#~/concepts/projects/ProjectNavigatorLink';
 import { ProjectIconWithSize } from '#~/concepts/projects/ProjectIconWithSize';
+import { IconSize } from '#~/types';
 
 type ProjectSelectorProps = {
   onSelection: (projectName: string) => void;
@@ -106,7 +107,7 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
   if (showTitle) {
     return (
       <Flex spaceItems={{ default: 'spaceItemsXs' }} alignItems={{ default: 'alignItemsCenter' }}>
-        <ProjectIconWithSize size="2xl" />
+        <ProjectIconWithSize size={IconSize.XXL} />
         <Flex
           spaceItems={{ default: 'spaceItemsSm' }}
           alignItems={{ default: 'alignItemsCenter' }}
