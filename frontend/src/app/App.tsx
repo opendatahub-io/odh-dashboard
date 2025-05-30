@@ -90,7 +90,10 @@ const App: React.FC = () => {
 
     // Default error handling for other cases
     return (
-      <Page>
+      // TODO: Remove when PF breaking-change issue is fixed.
+      // https://github.com/patternfly/patternfly-react/issues/11797
+      // https://issues.redhat.com/browse/RHOAIENG-24716
+      <Page sidebar={null}>
         <PageSection hasBodyWrapper={false}>
           <Stack hasGutter>
             <StackItem>

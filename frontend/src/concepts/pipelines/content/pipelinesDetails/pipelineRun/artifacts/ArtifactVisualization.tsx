@@ -132,7 +132,9 @@ export const ArtifactVisualization: React.FC<ArtifactVisualizationProps> = ({ ar
             rowRenderer={(scalarMetric) => (
               <Tr>
                 <Td dataLabel="name">{scalarMetric.name}</Td>
-                <Td dataLabel="value">{scalarMetric.value}</Td>
+                <Td dataLabel="value" modifier="breakWord">
+                  {scalarMetric.value}
+                </Td>
               </Tr>
             )}
             variant={TableVariant.compact}
@@ -147,7 +149,7 @@ export const ArtifactVisualization: React.FC<ArtifactVisualizationProps> = ({ ar
   if (artifactType === ArtifactType.MARKDOWN || artifactType === ArtifactType.HTML) {
     if (loading) {
       return (
-        <Bullseye>
+        <Bullseye className="pf-v6-u-pt-lg">
           <Spinner />
         </Bullseye>
       );
