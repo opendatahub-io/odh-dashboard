@@ -13,7 +13,7 @@ import type {
   DeployOCIModelData,
   ModelTolerationsTestData,
   RegisterModelTestData,
-} from '~/__tests__/cypress/cypress/types';
+} from '#~/__tests__/cypress/cypress/types';
 
 // Load fixture function that returns DataScienceProjectData
 export const loadDSPFixture = (fixturePath: string): Cypress.Chainable<DataScienceProjectData> => {

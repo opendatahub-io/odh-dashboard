@@ -1,7 +1,7 @@
 import * as React from 'react';
-import { getPodsForKserve, getPodsForModelMesh } from '~/api';
-import useFetchState, { FetchState } from '~/utilities/useFetchState';
-import { ModelStatus } from '~/pages/modelServing/screens/types';
+import { getPodsForKserve, getPodsForModelMesh } from '#~/api';
+import useFetchState, { FetchState } from '#~/utilities/useFetchState';
+import { ModelStatus } from '#~/pages/modelServing/screens/types';
 import { checkModelStatus } from './utils';
 
 export const useModelStatus = (

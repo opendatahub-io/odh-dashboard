@@ -1,15 +1,15 @@
 import * as React from 'react';
-import { FetchState, NotReadyError } from '~/utilities/useFetchState';
-import { PipelineKF } from '~/concepts/pipelines/kfTypes';
-import usePipelineQuery from '~/concepts/pipelines/apiHooks/usePipelineQuery';
+import { FetchState, NotReadyError } from '#~/utilities/useFetchState';
+import { PipelineKF } from '#~/concepts/pipelines/kfTypes';
+import usePipelineQuery from '#~/concepts/pipelines/apiHooks/usePipelineQuery';
 import {
   ListPipelines,
   PipelineListPaged,
   PipelineOptions,
   PipelineParams,
-} from '~/concepts/pipelines/types';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { K8sAPIOptions } from '~/k8sTypes';
+} from '#~/concepts/pipelines/types';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+import { K8sAPIOptions } from '#~/k8sTypes';
 
 const usePipelines = (
   options?: PipelineOptions,

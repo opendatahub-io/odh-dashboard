@@ -1,13 +1,13 @@
 import React from 'react';
 import { TextInput } from '@patternfly/react-core';
 import { TableVariant } from '@patternfly/react-table';
-import { Artifact } from '~/third_party/mlmd';
-import { TableBase } from '~/components/table';
-import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
-import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
-import { ArtifactType } from '~/concepts/pipelines/kfTypes';
-import { useMlmdListContext } from '~/concepts/pipelines/context';
-import FilterToolbar from '~/components/FilterToolbar';
+import { Artifact } from '#~/third_party/mlmd';
+import { TableBase } from '#~/components/table';
+import DashboardEmptyTableView from '#~/concepts/dashboard/DashboardEmptyTableView';
+import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
+import { ArtifactType } from '#~/concepts/pipelines/kfTypes';
+import { useMlmdListContext } from '#~/concepts/pipelines/context';
+import FilterToolbar from '#~/components/FilterToolbar';
 import { FilterOptions, columns, initialFilterData, options } from './constants';
 import ArtifactsTableRow from './ArtifactsTableRow';
 

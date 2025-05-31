@@ -7,7 +7,7 @@ import {
   ImageTag,
   ImageTagInfo,
   PodContainer,
-} from '~/types';
+} from '#~/types';
 
 const PENDING_PHASES = [
   BuildPhase.new,

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import DividedGallery from '~/concepts/design/DividedGallery';
+import DividedGallery from '#~/concepts/design/DividedGallery';
 
 type InfoGalleryProps = {
   infoItems: React.ReactNode[];

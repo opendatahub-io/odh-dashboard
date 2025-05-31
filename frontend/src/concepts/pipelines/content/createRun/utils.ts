@@ -4,11 +4,11 @@ import {
   RunTypeOption,
   SafeRunFormData,
   ScheduledType,
-} from '~/concepts/pipelines/content/createRun/types';
-import { ParametersKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
-import { getCorePipelineSpec } from '~/concepts/pipelines/getCorePipelineSpec';
-import { convertToDate } from '~/utilities/time';
-import { isArgoWorkflow } from '~/concepts/pipelines/content/tables/utils';
+} from '#~/concepts/pipelines/content/createRun/types';
+import { ParametersKF, PipelineVersionKF } from '#~/concepts/pipelines/kfTypes';
+import { getCorePipelineSpec } from '#~/concepts/pipelines/getCorePipelineSpec';
+import { convertToDate } from '#~/utilities/time';
+import { isArgoWorkflow } from '#~/concepts/pipelines/content/tables/utils';
 
 const runTypeSafeData = (runType: RunFormData['runType']): boolean =>
   runType.type !== RunTypeOption.SCHEDULED ||

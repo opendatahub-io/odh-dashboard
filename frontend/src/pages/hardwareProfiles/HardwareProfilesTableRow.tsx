@@ -17,19 +17,19 @@ import {
 import { ActionsColumn, ExpandableRowContent, Tbody, Td, Tr } from '@patternfly/react-table';
 import { useNavigate } from 'react-router-dom';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
-import { relativeTime } from '~/utilities/time';
-import { TableRowTitleDescription } from '~/components/table';
-import HardwareProfileEnableToggle from '~/pages/hardwareProfiles/HardwareProfileEnableToggle';
-import { HardwareProfileKind, HardwareProfileFeatureVisibility } from '~/k8sTypes';
-import NodeResourceTable from '~/pages/hardwareProfiles/nodeResource/NodeResourceTable';
-import NodeSelectorTable from '~/pages/hardwareProfiles/nodeSelector/NodeSelectorTable';
-import TolerationTable from '~/pages/hardwareProfiles/toleration/TolerationTable';
-import { useKebabAccessAllowed, verbModelAccess } from '~/concepts/userSSAR';
+import { relativeTime } from '#~/utilities/time';
+import { TableRowTitleDescription } from '#~/components/table';
+import HardwareProfileEnableToggle from '#~/pages/hardwareProfiles/HardwareProfileEnableToggle';
+import { HardwareProfileKind, HardwareProfileFeatureVisibility } from '#~/k8sTypes';
+import NodeResourceTable from '#~/pages/hardwareProfiles/nodeResource/NodeResourceTable';
+import NodeSelectorTable from '#~/pages/hardwareProfiles/nodeSelector/NodeSelectorTable';
+import TolerationTable from '#~/pages/hardwareProfiles/toleration/TolerationTable';
+import { useKebabAccessAllowed, verbModelAccess } from '#~/concepts/userSSAR';
 import {
   createHardwareProfileWarningTitle,
   validateProfileWarning,
-} from '~/pages/hardwareProfiles/utils';
-import { HardwareProfileModel } from '~/api';
+} from '#~/pages/hardwareProfiles/utils';
+import { HardwareProfileModel } from '#~/api';
 import { MigrationAction } from './migration/types';
 import { HardwareProfileFeatureVisibilityTitles } from './manage/const';
 import { MIGRATION_SOURCE_TYPE_LABELS } from './migration/const';

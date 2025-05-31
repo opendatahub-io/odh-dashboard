@@ -3,12 +3,12 @@ import { isEqual } from 'lodash-es';
 import { useSearchParams } from 'react-router-dom';
 import { useExtensions } from '@odh-dashboard/plugin-core';
 import { isAreaExtension } from '@odh-dashboard/plugin-core/extension-points';
-import { useBrowserStorage } from '~/components/browserStorage/BrowserStorageContext';
-import { definedFeatureFlags, SupportedAreasStateMap } from '~/concepts/areas/const';
-import { DashboardCommonConfig, DashboardConfigKind } from '~/k8sTypes';
-import { DevFeatureFlags } from '~/types';
-import axios from '~/utilities/axios';
-import { isDefinedFeatureFlag } from '~/concepts/areas/utils';
+import { useBrowserStorage } from '#~/components/browserStorage/BrowserStorageContext';
+import { definedFeatureFlags, SupportedAreasStateMap } from '#~/concepts/areas/const';
+import { DashboardCommonConfig, DashboardConfigKind } from '#~/k8sTypes';
+import { DevFeatureFlags } from '#~/types';
+import axios from '#~/utilities/axios';
+import { isDefinedFeatureFlag } from '#~/concepts/areas/utils';
 
 const PARAM_NAME = 'devFeatureFlags';
 const SESSION_KEY = 'odh-feature-flags';

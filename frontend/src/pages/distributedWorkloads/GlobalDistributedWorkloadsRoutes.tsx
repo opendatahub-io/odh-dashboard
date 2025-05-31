@@ -1,10 +1,10 @@
 import * as React from 'react';
 import { Navigate, Route } from 'react-router-dom';
-import ProjectsRoutes from '~/concepts/projects/ProjectsRoutes';
+import ProjectsRoutes from '#~/concepts/projects/ProjectsRoutes';
 
-import { useDistributedWorkloadsTabs } from '~/pages/distributedWorkloads/global/useDistributedWorkloadsTabs';
-import GlobalDistributedWorkloads from '~/pages/distributedWorkloads/global/GlobalDistributedWorkloads';
-import NotFound from '~/pages/NotFound';
+import { useDistributedWorkloadsTabs } from '#~/pages/distributedWorkloads/global/useDistributedWorkloadsTabs';
+import GlobalDistributedWorkloads from '#~/pages/distributedWorkloads/global/GlobalDistributedWorkloads';
+import NotFound from '#~/pages/NotFound';
 
 const GlobalDistributedWorkloadsRoutes: React.FC = () => {
   const tabs = useDistributedWorkloadsTabs();

@@ -10,7 +10,7 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
-import { useDashboardNamespace } from '~/redux/selectors';
+import { useDashboardNamespace } from '#~/redux/selectors';
 import useAcceleratorProfile from './useAcceleratorProfile';
 import ManageAcceleratorProfile from './ManageAcceleratorProfile';
 

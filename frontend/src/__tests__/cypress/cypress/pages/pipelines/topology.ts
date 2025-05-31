@@ -1,35 +1,41 @@
-import { Contextual } from '~/__tests__/cypress/cypress/pages/components/Contextual';
-import { DashboardCodeEditor } from '~/__tests__/cypress/cypress/pages/components/DashboardCodeEditor';
+import { Contextual } from '#~/__tests__/cypress/cypress/pages/components/Contextual';
+import { DashboardCodeEditor } from '#~/__tests__/cypress/cypress/pages/components/DashboardCodeEditor';
 import type {
   PipelineKF,
   PipelineRecurringRunKF,
   PipelineVersionKF,
-} from '~/concepts/pipelines/kfTypes';
-import { SearchSelector } from '~/__tests__/cypress/cypress/pages/components/subComponents/SearchSelector';
+} from '#~/concepts/pipelines/kfTypes';
+import { SearchSelector } from '#~/__tests__/cypress/cypress/pages/components/subComponents/SearchSelector';
 
 class TaskDrawer extends Contextual<HTMLElement> {
+  private findTaskDrawer() {
+    return this.find().findByTestId('task-drawer');
+  }
+
   findInputArtifacts() {
-    return this.find().findByTestId('Input-artifacts');
+    return this.findTaskDrawer().findByTestId('Input-artifacts');
   }
 
   findCommandCodeBlock() {
-    return this.find().findByTestId('command-task-detail-code-block').findByRole('code');
+    return this.findTaskDrawer().findByTestId('command-task-detail-code-block').findByRole('code');
   }
 
   findTaskImage() {
-    return this.find().findByTestId('task-detail-image');
+    return this.findTaskDrawer().findByTestId('task-detail-image');
   }
 
   findArgumentCodeBlock() {
-    return this.find().findByTestId('arguments-task-detail-code-block').findByRole('code');
+    return this.findTaskDrawer()
+      .findByTestId('arguments-task-detail-code-block')
+      .findByRole('code');
   }
 
   findOutputArtifacts() {
-    return this.find().findByTestId('Output-artifacts');
+    return this.findTaskDrawer().findByTestId('Output-artifacts');
   }
 
   findOutputParameters() {
-    return this.find().findByTestId('Output-parameters');
+    return this.findTaskDrawer().findByTestId('Output-parameters');
   }
 
   findCloseDrawerButton() {
@@ -191,7 +197,7 @@ class PipelineDetails extends PipelinesTopology {
   }
 
   getTaskDrawer() {
-    return new TaskDrawer(() => cy.findByTestId('task-drawer'));
+    return new TaskDrawer(() => cy.findByTestId('pipeline-topology-drawer'));
   }
 
   private findActionsDropdown() {

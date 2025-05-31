@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Checkbox } from '@patternfly/react-core';
-import { BooleanField } from '~/concepts/connectionTypes/types';
-import { FieldProps } from '~/concepts/connectionTypes/fields/types';
+import { BooleanField } from '#~/concepts/connectionTypes/types';
+import { FieldProps } from '#~/concepts/connectionTypes/fields/types';
 
 const BooleanFormField: React.FC<FieldProps<BooleanField>> = ({
   id,

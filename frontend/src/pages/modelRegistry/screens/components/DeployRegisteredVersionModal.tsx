@@ -1,11 +1,11 @@
 import React from 'react';
-import { ModelVersion } from '~/concepts/modelRegistry/types';
-import useRegisteredModelDeployPrefillInfo from '~/pages/modelRegistry/screens/RegisteredModels/useRegisteredModelDeployPrefillInfo';
-import { bumpBothTimestamps } from '~/concepts/modelRegistry/utils/updateTimestamps';
-import useRegisteredModelById from '~/concepts/modelRegistry/apiHooks/useRegisteredModelById';
-import DeployPrefilledModelModal from '~/pages/modelServing/screens/projects/DeployPrefilledModelModal';
-import { ModelRegistriesContext } from '~/concepts/modelRegistry/context/ModelRegistriesContext';
-import { useModelRegistryAPI } from '~/concepts/modelRegistry/context/ModelRegistryPageContext';
+import { ModelVersion } from '#~/concepts/modelRegistry/types';
+import useRegisteredModelDeployPrefillInfo from '#~/pages/modelRegistry/screens/RegisteredModels/useRegisteredModelDeployPrefillInfo';
+import { bumpBothTimestamps } from '#~/concepts/modelRegistry/utils/updateTimestamps';
+import useRegisteredModelById from '#~/concepts/modelRegistry/apiHooks/useRegisteredModelById';
+import DeployPrefilledModelModal from '#~/pages/modelServing/screens/projects/DeployPrefilledModelModal';
+import { ModelRegistriesContext } from '#~/concepts/modelRegistry/context/ModelRegistriesContext';
+import { useModelRegistryAPI } from '#~/concepts/modelRegistry/context/ModelRegistryPageContext';
 
 interface DeployRegisteredVersionModalProps {
   modelVersion: ModelVersion;

@@ -1,8 +1,8 @@
 import type {
   DataConnectionReplacements,
   CommandLineResult,
-} from '~/__tests__/cypress/cypress/types';
-import { replacePlaceholdersInYaml } from '~/__tests__/cypress/cypress/utils/yaml_files';
+} from '#~/__tests__/cypress/cypress/types';
+import { replacePlaceholdersInYaml } from '#~/__tests__/cypress/cypress/utils/yaml_files';
 import { applyOpenShiftYaml } from './baseCommands';
 
 /**

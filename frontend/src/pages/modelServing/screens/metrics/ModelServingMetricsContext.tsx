@@ -1,10 +1,10 @@
 import * as React from 'react';
-import { useModelServingMetrics } from '~/api';
-import { PrometheusQueryRangeResponseDataResult, PrometheusQueryRangeResultValue } from '~/types';
-import { FetchStateObject } from '~/utilities/useFetch';
-import { DEFAULT_LIST_FETCH_STATE } from '~/utilities/const';
-import { PerformanceMetricType } from '~/pages/modelServing/screens/types';
-import { MetricsCommonContext } from '~/concepts/metrics/MetricsCommonContext';
+import { useModelServingMetrics } from '#~/api';
+import { PrometheusQueryRangeResponseDataResult, PrometheusQueryRangeResultValue } from '#~/types';
+import { FetchStateObject } from '#~/utilities/useFetch';
+import { DEFAULT_LIST_FETCH_STATE } from '#~/utilities/const';
+import { PerformanceMetricType } from '#~/pages/modelServing/screens/types';
+import { MetricsCommonContext } from '#~/concepts/metrics/MetricsCommonContext';
 
 export enum ServerMetricType {
   AVG_RESPONSE_TIME = 'runtime_avg-response-time',

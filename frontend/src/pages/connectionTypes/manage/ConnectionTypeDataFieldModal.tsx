@@ -15,25 +15,25 @@ import {
   ModalFooter,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon, WarningTriangleIcon } from '@patternfly/react-icons';
-import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
+import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
 import {
   ConnectionTypeDataField,
   connectionTypeDataFields,
   ConnectionTypeField,
   ConnectionTypeFieldType,
-} from '~/concepts/connectionTypes/types';
+} from '#~/concepts/connectionTypes/types';
 import {
   fieldNameToEnvVar,
   fieldTypeToString,
   isConnectionTypeDataField,
   isValidEnvVar,
-} from '~/concepts/connectionTypes/utils';
-import { isEnumMember } from '~/utilities/utils';
-import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
-import DataFieldPropertiesForm from '~/pages/connectionTypes/manage/DataFieldPropertiesForm';
-import { prepareFieldForSave } from '~/pages/connectionTypes/manage/manageFieldUtils';
-import useGenericObjectState from '~/utilities/useGenericObjectState';
-import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
+} from '#~/concepts/connectionTypes/utils';
+import { isEnumMember } from '#~/utilities/utils';
+import DashboardPopupIconButton from '#~/concepts/dashboard/DashboardPopupIconButton';
+import DataFieldPropertiesForm from '#~/pages/connectionTypes/manage/DataFieldPropertiesForm';
+import { prepareFieldForSave } from '#~/pages/connectionTypes/manage/manageFieldUtils';
+import useGenericObjectState from '#~/utilities/useGenericObjectState';
+import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
 
 const isConnectionTypeFieldType = (
   fieldType: string | number | undefined,

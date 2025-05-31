@@ -5,9 +5,9 @@ import {
   t_global_font_size_body_default as DefaultFontSize,
   t_global_font_size_body_sm as SmallFontSize,
 } from '@patternfly/react-tokens';
-import { NotebookKind } from '~/k8sTypes';
-import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
-import { fireMiscTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
+import { NotebookKind } from '#~/k8sTypes';
+import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
+import { fireMiscTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import useRouteForNotebook from './useRouteForNotebook';
 import { hasStopAnnotation } from './utils';
 

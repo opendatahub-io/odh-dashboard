@@ -10,7 +10,7 @@ import {
   mockRouteK8sResource,
   buildMockRunKF,
   buildMockRecurringRunKF,
-} from '~/__mocks__';
+} from '#~/__mocks__';
 import {
   activeRunsTable,
   archivedRunsTable,
@@ -21,15 +21,15 @@ import {
   pipelineRecurringRunTable,
   pipelineRunsGlobal,
   restoreExperimentModal,
-} from '~/__tests__/cypress/cypress/pages/pipelines';
-import { experimentsTabs } from '~/__tests__/cypress/cypress/pages/pipelines/experiments';
-import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url';
+} from '#~/__tests__/cypress/cypress/pages/pipelines';
+import { experimentsTabs } from '#~/__tests__/cypress/cypress/pages/pipelines/experiments';
+import { verifyRelativeURL } from '#~/__tests__/cypress/cypress/utils/url';
 import {
   DataSciencePipelineApplicationModel,
   ProjectModel,
   RouteModel,
-} from '~/__tests__/cypress/cypress/utils/models';
-import { RecurringRunStatus, RuntimeStateKF, StorageStateKF } from '~/concepts/pipelines/kfTypes';
+} from '#~/__tests__/cypress/cypress/utils/models';
+import { RecurringRunStatus, RuntimeStateKF, StorageStateKF } from '#~/concepts/pipelines/kfTypes';
 
 const projectName = 'test-project-name';
 const initialMockPipeline = buildMockPipeline({ display_name: 'Test pipeline' });

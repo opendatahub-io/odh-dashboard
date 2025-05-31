@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Label, LabelGroup, Spinner } from '@patternfly/react-core';
-import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
+import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import { useRelatedNotebooks, ConnectedNotebookContext } from './useRelatedNotebooks';
 
 type ConnectedNotebookNamesProps = {

@@ -5,7 +5,7 @@ import {
   isCpuLimitLarger,
   isMemoryResourceEqual,
   isMemoryLimitLarger,
-} from '~/utilities/valueUnits';
+} from '#~/utilities/valueUnits';
 import {
   assembleSecretSA,
   createRoleBinding,
@@ -21,7 +21,7 @@ import {
   getServiceAccount,
   getRole,
   createRole,
-} from '~/api';
+} from '#~/api';
 import {
   SecretKind,
   K8sAPIOptions,
@@ -32,17 +32,17 @@ import {
   RoleKind,
   ServingContainer,
   DeploymentMode,
-} from '~/k8sTypes';
-import { ContainerResources } from '~/types';
-import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '~/concepts/k8s/utils';
+} from '#~/k8sTypes';
+import { ContainerResources } from '#~/types';
+import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '#~/concepts/k8s/utils';
 import {
   CreatingInferenceServiceObject,
   CreatingServingRuntimeObject,
   ServingRuntimeEditInfo,
   ModelServingSize,
   ServingRuntimeToken,
-} from '~/pages/modelServing/screens/types';
-import { ModelServingPodSpecOptionsState } from '~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
+} from '#~/pages/modelServing/screens/types';
+import { ModelServingPodSpecOptionsState } from '#~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
 
 type TokenNames = {
   serviceAccountName: string;

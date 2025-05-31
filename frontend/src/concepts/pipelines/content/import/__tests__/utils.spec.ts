@@ -1,4 +1,4 @@
-import { extractKindFromPipelineYAML } from '~/concepts/pipelines/content/import/utils';
+import { extractKindFromPipelineYAML } from '#~/concepts/pipelines/content/import/utils';
 
 describe('extractKindFromPipelineYAML', () => {
   test('should return kind when kind field is present', () => {

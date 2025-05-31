@@ -1,4 +1,4 @@
-import { ContainerResources, TolerationSettings, Toleration, PodAffinity } from '~/types';
+import { ContainerResources, TolerationSettings, Toleration, PodAffinity } from '#~/types';
 import { determineTolerations } from './tolerations';
 import { AcceleratorProfileFormData } from './useAcceleratorProfileFormState';
 import { AcceleratorProfileState } from './useReadAcceleratorState';

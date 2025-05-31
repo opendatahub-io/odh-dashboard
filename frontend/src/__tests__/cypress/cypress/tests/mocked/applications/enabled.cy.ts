@@ -1,9 +1,9 @@
-import type { RoleBindingSubject } from '~/k8sTypes';
-import { mockComponents } from '~/__mocks__/mockComponents';
-import { enabledPage } from '~/__tests__/cypress/cypress/pages/enabled';
-import { jupyterCard } from '~/__tests__/cypress/cypress/pages/components/JupyterCard';
-import { mockDashboardConfig, mockK8sResourceList } from '~/__mocks__';
-import { mockRoleBindingK8sResource } from '~/__mocks__/mockRoleBindingK8sResource';
+import type { RoleBindingSubject } from '#~/k8sTypes';
+import { mockComponents } from '#~/__mocks__/mockComponents';
+import { enabledPage } from '#~/__tests__/cypress/cypress/pages/enabled';
+import { jupyterCard } from '#~/__tests__/cypress/cypress/pages/components/JupyterCard';
+import { mockDashboardConfig, mockK8sResourceList } from '#~/__mocks__';
+import { mockRoleBindingK8sResource } from '#~/__mocks__/mockRoleBindingK8sResource';
 
 describe('Enabled Page', () => {
   beforeEach(() => {

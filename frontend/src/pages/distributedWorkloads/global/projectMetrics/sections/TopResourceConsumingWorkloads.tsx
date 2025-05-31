@@ -7,18 +7,18 @@ import {
   ChartThemeColor,
   ChartTooltip,
 } from '@patternfly/react-charts/victory';
-import { DistributedWorkloadsContext } from '~/concepts/distributedWorkloads/DistributedWorkloadsContext';
+import { DistributedWorkloadsContext } from '#~/concepts/distributedWorkloads/DistributedWorkloadsContext';
 import {
   TopWorkloadUsageType,
   WorkloadStatusType,
   getStatusInfo,
   getWorkloadName,
-} from '~/concepts/distributedWorkloads/utils';
-import EmptyStateErrorMessage from '~/components/EmptyStateErrorMessage';
-import { LoadingState } from '~/pages/distributedWorkloads/components/LoadingState';
-import { NoWorkloadState } from '~/pages/distributedWorkloads/components/NoWorkloadState';
-import { truncateString } from '~/utilities/string';
-import { bytesAsPreciseGiB, roundNumber } from '~/utilities/number';
+} from '#~/concepts/distributedWorkloads/utils';
+import EmptyStateErrorMessage from '#~/components/EmptyStateErrorMessage';
+import { LoadingState } from '#~/pages/distributedWorkloads/components/LoadingState';
+import { NoWorkloadState } from '#~/pages/distributedWorkloads/components/NoWorkloadState';
+import { truncateString } from '#~/utilities/string';
+import { bytesAsPreciseGiB, roundNumber } from '#~/utilities/number';
 
 interface TopResourceConsumingWorkloadsChartProps {
   metricLabel: string;

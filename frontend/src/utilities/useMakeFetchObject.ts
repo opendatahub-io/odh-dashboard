@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { FetchStateObject } from '~/utilities/useFetch';
-import { FetchState } from '~/utilities/useFetchState';
+import { FetchStateObject } from '#~/utilities/useFetch';
+import { FetchState } from '#~/utilities/useFetchState';
 
 /**
  * @deprecated Use useFetch instead of useFetchState and you won't need this helper.

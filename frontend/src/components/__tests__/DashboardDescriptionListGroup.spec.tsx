@@ -1,10 +1,10 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import * as BrowserUnloadBlocker from '~/utilities/useBrowserUnloadBlocker';
-import DashboardDescriptionListGroup from '~/components/DashboardDescriptionListGroup';
+import * as BrowserUnloadBlocker from '#~/utilities/useBrowserUnloadBlocker';
+import DashboardDescriptionListGroup from '#~/components/DashboardDescriptionListGroup';
 import '@testing-library/jest-dom';
 
-jest.mock('~/components/NavigationBlockerModal', () => ({
+jest.mock('#~/components/NavigationBlockerModal', () => ({
   __esModule: true,
   default: jest
     .fn()
@@ -15,7 +15,7 @@ jest.mock('~/components/NavigationBlockerModal', () => ({
     ),
 }));
 
-jest.mock('~/utilities/useBrowserUnloadBlocker', () => ({
+jest.mock('#~/utilities/useBrowserUnloadBlocker', () => ({
   useBrowserUnloadBlocker: jest.fn(),
 }));
 

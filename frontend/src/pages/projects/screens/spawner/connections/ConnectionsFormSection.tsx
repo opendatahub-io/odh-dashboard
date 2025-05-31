@@ -8,23 +8,23 @@ import {
   FormSection,
 } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
-import ExtendedButton from '~/components/ExtendedButton';
-import { SortableData, Table } from '~/components/table';
-import { createSecret, replaceSecret } from '~/api';
-import { NotebookKind, ProjectKind } from '~/k8sTypes';
-import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
-import { Connection, ConnectionTypeConfigMapObj } from '~/concepts/connectionTypes/types';
+import ExtendedButton from '#~/components/ExtendedButton';
+import { SortableData, Table } from '#~/components/table';
+import { createSecret, replaceSecret } from '#~/api';
+import { NotebookKind, ProjectKind } from '#~/k8sTypes';
+import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
+import { Connection, ConnectionTypeConfigMapObj } from '#~/concepts/connectionTypes/types';
 import {
   filterEnabledConnectionTypes,
   getConnectionTypeDisplayName,
   isConnection,
-} from '~/concepts/connectionTypes/utils';
-import { useWatchConnectionTypes } from '~/utilities/useWatchConnectionTypes';
-import { useNotebooksStates } from '~/pages/projects/notebook/useNotebooksStates';
-import { SpawnerPageSectionTitles } from '~/pages/projects/screens/spawner/const';
-import { SpawnerPageSectionID } from '~/pages/projects/screens/spawner/types';
-import { ManageConnectionModal } from '~/pages/projects/screens/detail/connections/ManageConnectionsModal';
-import ConnectionsTableRow from '~/pages/projects/screens/detail/connections/ConnectionsTableRow';
+} from '#~/concepts/connectionTypes/utils';
+import { useWatchConnectionTypes } from '#~/utilities/useWatchConnectionTypes';
+import { useNotebooksStates } from '#~/pages/projects/notebook/useNotebooksStates';
+import { SpawnerPageSectionTitles } from '#~/pages/projects/screens/spawner/const';
+import { SpawnerPageSectionID } from '#~/pages/projects/screens/spawner/types';
+import { ManageConnectionModal } from '#~/pages/projects/screens/detail/connections/ManageConnectionsModal';
+import ConnectionsTableRow from '#~/pages/projects/screens/detail/connections/ConnectionsTableRow';
 import { SelectConnectionsModal } from './SelectConnectionsModal';
 import { connectionEnvVarConflicts, DuplicateEnvVarWarning } from './DuplicateEnvVarsWarning';
 import { DetachConnectionModal } from './DetachConnectionModal';

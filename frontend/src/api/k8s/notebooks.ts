@@ -9,19 +9,19 @@ import {
   k8sUpdateResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import * as _ from 'lodash-es';
-import { NotebookModel } from '~/api/models';
+import { NotebookModel } from '#~/api/models';
 import {
   ImageStreamKind,
   ImageStreamSpecTagType,
   K8sAPIOptions,
   KnownLabels,
   NotebookKind,
-} from '~/k8sTypes';
-import { usernameTranslate } from '~/utilities/notebookControllerUtils';
-import { EnvironmentFromVariable, StartNotebookData } from '~/pages/projects/types';
-import { ROOT_MOUNT_PATH } from '~/pages/projects/pvc/const';
-import { getTolerationPatch, TolerationChanges } from '~/utilities/tolerations';
-import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
+} from '#~/k8sTypes';
+import { usernameTranslate } from '#~/utilities/notebookControllerUtils';
+import { EnvironmentFromVariable, StartNotebookData } from '#~/pages/projects/types';
+import { ROOT_MOUNT_PATH } from '#~/pages/projects/pvc/const';
+import { getTolerationPatch, TolerationChanges } from '#~/utilities/tolerations';
+import { applyK8sAPIOptions } from '#~/api/apiMergeUtils';
 import {
   createElyraServiceAccountRoleBinding,
   ELYRA_VOLUME_NAME,
@@ -29,11 +29,11 @@ import {
   getElyraVolumeMount,
   getPipelineVolumeMountPatch,
   getPipelineVolumePatch,
-} from '~/concepts/pipelines/elyra/utils';
-import { Volume, VolumeMount } from '~/types';
-import { getImageStreamDisplayName } from '~/pages/projects/screens/spawner/spawnerUtils';
-import { k8sMergePatchResource } from '~/api/k8sUtils';
-import { getshmVolume, getshmVolumeMount } from '~/api/k8s/utils';
+} from '#~/concepts/pipelines/elyra/utils';
+import { Volume, VolumeMount } from '#~/types';
+import { getImageStreamDisplayName } from '#~/pages/projects/screens/spawner/spawnerUtils';
+import { k8sMergePatchResource } from '#~/api/k8sUtils';
+import { getshmVolume, getshmVolumeMount } from '#~/api/k8s/utils';
 
 export const assembleNotebook = (
   data: StartNotebookData,

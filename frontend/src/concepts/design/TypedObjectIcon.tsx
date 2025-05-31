@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { SVGIconProps } from '@patternfly/react-icons/dist/esm/createIcon';
-import { ProjectObjectType, typedColor } from '~/concepts/design/utils';
+import { ProjectObjectType, typedColor } from '#~/concepts/design/utils';
 import {
   BuildIcon,
   NotebookIcon,
@@ -34,7 +34,7 @@ import {
   ModelCatalogIcon,
   ModelRegistrySelectIcon,
   LabTuningIcon,
-} from '~/images/icons';
+} from '#~/images/icons';
 
 type TypedObjectIconProps = SVGIconProps & {
   resourceType: ProjectObjectType;

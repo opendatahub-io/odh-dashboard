@@ -11,14 +11,14 @@ import {
 import { Value as ProtoValue } from 'google-protobuf/google/protobuf/struct_pb';
 
 import { Link } from 'react-router-dom';
-import { Execution } from '~/third_party/mlmd';
-import TaskDetailsInputOutput from '~/concepts/pipelines/content/pipelinesDetails/taskDetails/TaskDetailsInputOutput';
-import { PipelineTask, PipelineTaskParam } from '~/concepts/pipelines/topology';
-import { ExecutionDetailsPropertiesValueCode } from '~/pages/pipelines/global/experiments/executions/details/ExecutionDetailsPropertiesValue';
-import { InputDefinitionParameterType } from '~/concepts/pipelines/kfTypes';
-import { NoValue } from '~/components/NoValue';
-import { executionDetailsRoute } from '~/routes/pipelines/executions';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
+import { Execution } from '#~/third_party/mlmd';
+import TaskDetailsInputOutput from '#~/concepts/pipelines/content/pipelinesDetails/taskDetails/TaskDetailsInputOutput';
+import { PipelineTask, PipelineTaskParam } from '#~/concepts/pipelines/topology';
+import { ExecutionDetailsPropertiesValueCode } from '#~/pages/pipelines/global/experiments/executions/details/ExecutionDetailsPropertiesValue';
+import { InputDefinitionParameterType } from '#~/concepts/pipelines/kfTypes';
+import { NoValue } from '#~/components/NoValue';
+import { executionDetailsRoute } from '#~/routes/pipelines/executions';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 
 type SelectedNodeInputOutputTabProps = {
   task: PipelineTask;

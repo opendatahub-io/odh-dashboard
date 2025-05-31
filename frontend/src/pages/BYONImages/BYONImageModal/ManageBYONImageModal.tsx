@@ -12,19 +12,19 @@ import {
   ModalFooter,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
-import { importBYONImage, updateBYONImage } from '~/services/imagesService';
-import { ResponseStatus, BYONImagePackage, BYONImage } from '~/types';
-import { useAppSelector } from '~/redux/hooks';
-import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
-import { filterBlankPackages } from '~/pages/BYONImages/utils';
-import { AcceleratorIdentifierMultiselect } from '~/pages/BYONImages/BYONImageModal/AcceleratorIdentifierMultiselect';
-import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
+import { importBYONImage, updateBYONImage } from '#~/services/imagesService';
+import { ResponseStatus, BYONImagePackage, BYONImage } from '#~/types';
+import { useAppSelector } from '#~/redux/hooks';
+import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
+import { filterBlankPackages } from '#~/pages/BYONImages/utils';
+import { AcceleratorIdentifierMultiselect } from '#~/pages/BYONImages/BYONImageModal/AcceleratorIdentifierMultiselect';
+import DashboardPopupIconButton from '#~/concepts/dashboard/DashboardPopupIconButton';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
-} from '~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
-import { isK8sNameDescriptionDataValid } from '~/concepts/k8s/K8sNameDescriptionField/utils';
-import { HardwareProfileIdentifierMultiselect } from '~/pages/BYONImages/BYONImageModal/HardwareProfileIdentifierMultiselect';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+} from '#~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
+import { isK8sNameDescriptionDataValid } from '#~/concepts/k8s/K8sNameDescriptionField/utils';
+import { HardwareProfileIdentifierMultiselect } from '#~/pages/BYONImages/BYONImageModal/HardwareProfileIdentifierMultiselect';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import ImageLocationField from './ImageLocationField';
 import DisplayedContentTabContent from './DisplayedContentTabContent';
 

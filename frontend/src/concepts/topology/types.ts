@@ -1,5 +1,5 @@
 import { PipelineNodeModel, RunStatus } from '@patternfly/react-topology';
-import { PipelineTask } from '~/concepts/pipelines/topology';
+import { PipelineTask } from '#~/concepts/pipelines/topology';
 
 export type StandardTaskNodeData = {
   pipelineTask: PipelineTask;

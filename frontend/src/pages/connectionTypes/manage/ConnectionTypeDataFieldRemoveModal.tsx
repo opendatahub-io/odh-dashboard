@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Modal, ModalBody, ModalHeader, ModalFooter } from '@patternfly/react-core';
-import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
-import { ConnectionTypeDataField } from '~/concepts/connectionTypes/types';
+import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
+import { ConnectionTypeDataField } from '#~/concepts/connectionTypes/types';
 
 type Props = {
   field: ConnectionTypeDataField;

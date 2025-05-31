@@ -1,10 +1,10 @@
 import React, { act } from 'react';
 import '@testing-library/jest-dom';
 import { fireEvent, render, screen } from '@testing-library/react';
-import { ManageConnectionModal } from '~/pages/projects/screens/detail/connections/ManageConnectionsModal';
-import { mockConnectionTypeConfigMapObj } from '~/__mocks__/mockConnectionType';
-import { mockProjectK8sResource } from '~/__mocks__';
-import { mockConnection } from '~/__mocks__/mockConnection';
+import { ManageConnectionModal } from '#~/pages/projects/screens/detail/connections/ManageConnectionsModal';
+import { mockConnectionTypeConfigMapObj } from '#~/__mocks__/mockConnectionType';
+import { mockProjectK8sResource } from '#~/__mocks__';
+import { mockConnection } from '#~/__mocks__/mockConnection';
 
 describe('Create connection modal', () => {
   const onCloseMock = jest.fn();

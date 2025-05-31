@@ -1,5 +1,5 @@
-import { Artifact, Context, ContextType, Event, Execution } from '~/third_party/mlmd';
-import { PipelineRunKF } from '~/concepts/pipelines/kfTypes';
+import { Artifact, Context, ContextType, Event, Execution } from '#~/third_party/mlmd';
+import { PipelineRunKF } from '#~/concepts/pipelines/kfTypes';
 
 export type MlmdContext = Context;
 

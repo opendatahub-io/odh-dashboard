@@ -1,16 +1,16 @@
 /* eslint-disable camelcase */
-import { mockK8sResourceList } from '~/__mocks__';
-import { ConfigMapModel, ServingRuntimeModel } from '~/__tests__/cypress/cypress/utils/models';
-import { modelDetailsPage } from '~/__tests__/cypress/cypress/pages/modelCatalog/modelDetailsPage';
-import { kserveModal } from '~/__tests__/cypress/cypress/pages/modelServing';
-import { initDeployPrefilledModelIntercepts } from '~/__tests__/cypress/cypress/utils/modelServingUtils';
-import type { ModelCatalogSource } from '~/concepts/modelCatalog/types';
-import { mockModelCatalogSource } from '~/__mocks__/mockModelCatalogSource';
+import { mockK8sResourceList } from '#~/__mocks__';
+import { ConfigMapModel, ServingRuntimeModel } from '#~/__tests__/cypress/cypress/utils/models';
+import { modelDetailsPage } from '#~/__tests__/cypress/cypress/pages/modelCatalog/modelDetailsPage';
+import { kserveModal } from '#~/__tests__/cypress/cypress/pages/modelServing';
+import { initDeployPrefilledModelIntercepts } from '#~/__tests__/cypress/cypress/utils/modelServingUtils';
+import type { ModelCatalogSource } from '#~/concepts/modelCatalog/types';
+import { mockModelCatalogSource } from '#~/__mocks__/mockModelCatalogSource';
 import {
   mockModelCatalogConfigMap,
   mockUnmanagedModelCatalogConfigMap,
-} from '~/__mocks__/mockModelCatalogConfigMap';
-import { modelCatalogDeployModal } from '~/__tests__/cypress/cypress/pages/modelCatalog/modelCatalogDeployModal';
+} from '#~/__mocks__/mockModelCatalogConfigMap';
+import { modelCatalogDeployModal } from '#~/__tests__/cypress/cypress/pages/modelCatalog/modelCatalogDeployModal';
 
 type HandlersProps = {
   catalogModels?: ModelCatalogSource[];

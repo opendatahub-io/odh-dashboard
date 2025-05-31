@@ -1,5 +1,5 @@
 /* eslint-disable camelcase */
-import { GetArtifactsResponse, GetArtifactsByIDResponse } from '~/__mocks__/third_party/mlmd';
+import { GetArtifactsResponse, GetArtifactsByIDResponse } from '#~/__mocks__/third_party/mlmd';
 import createGrpcResponse, { GrpcResponse } from './utils';
 
 export const mockedArtifactsResponse: GetArtifactsResponse = {

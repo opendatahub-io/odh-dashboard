@@ -1,5 +1,5 @@
-import { ImageVersionDependencyType } from '~/pages/projects/screens/spawner/types';
-import { ImageStreamKind, ImageStreamSpecTagType } from '~/k8sTypes';
+import { ImageVersionDependencyType } from '#~/pages/projects/screens/spawner/types';
+import { ImageStreamKind, ImageStreamSpecTagType } from '#~/k8sTypes';
 import { NotebookImageAvailability, NotebookImageStatus } from './const';
 
 export type NotebookImage =

@@ -13,17 +13,17 @@ import React from 'react';
 import {
   RoleBindingPermissionsRBType,
   RoleBindingPermissionsRoleType,
-} from '~/concepts/roleBinding/types';
-import { filterRoleBindingSubjects, removePrefix } from '~/concepts/roleBinding/utils';
-import { RoleBindingKind, RoleBindingRoleRef } from '~/k8sTypes';
-import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
-import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
-import RoleBindingPermissionsTableSection from '~/concepts/roleBinding/RoleBindingPermissionsTableSection';
+} from '#~/concepts/roleBinding/types';
+import { filterRoleBindingSubjects, removePrefix } from '#~/concepts/roleBinding/utils';
+import { RoleBindingKind, RoleBindingRoleRef } from '#~/k8sTypes';
+import { ProjectsContext } from '#~/concepts/projects/ProjectsContext';
+import { ProjectSectionID } from '#~/pages/projects/screens/detail/types';
+import RoleBindingPermissionsTableSection from '#~/concepts/roleBinding/RoleBindingPermissionsTableSection';
 import {
   createModelRegistryRoleBinding,
   deleteModelRegistryRoleBinding,
-} from '~/services/modelRegistrySettingsService';
-import { FetchStateObject } from '~/utilities/useFetch';
+} from '#~/services/modelRegistrySettingsService';
+import { FetchStateObject } from '#~/utilities/useFetch';
 
 type RoleBindingProjectPermissionsProps = {
   ownerReference?: K8sResourceCommon;

@@ -1,6 +1,6 @@
-import { proxyCREATE, proxyDELETE, proxyENDPOINT, proxyFILE, proxyGET } from '~/api/proxyUtils';
-import { PipelinesFilterOp, StorageStateKF } from '~/concepts/pipelines/kfTypes';
-import { PipelineParams } from '~/concepts/pipelines/types';
+import { proxyCREATE, proxyDELETE, proxyENDPOINT, proxyFILE, proxyGET } from '#~/api/proxyUtils';
+import { PipelinesFilterOp, StorageStateKF } from '#~/concepts/pipelines/kfTypes';
+import { PipelineParams } from '#~/concepts/pipelines/types';
 import {
   GetPipelineAPI,
   DeletePipelineAPI,

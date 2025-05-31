@@ -1,5 +1,5 @@
-import { ConfigMapKind } from '~/k8sTypes';
-import { mockConfigMap } from '~/__mocks__/mockConfigMap';
+import { ConfigMapKind } from '#~/k8sTypes';
+import { mockConfigMap } from '#~/__mocks__/mockConfigMap';
 
 type MockKserveMetricsConfigMapType = {
   namespace?: string;

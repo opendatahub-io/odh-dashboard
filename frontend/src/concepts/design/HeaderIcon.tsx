@@ -6,8 +6,8 @@ import {
   SectionType,
   sectionTypeIconColor,
   typedIconColor,
-} from '~/concepts/design/utils';
-import TypedObjectIcon from '~/concepts/design/TypedObjectIcon';
+} from '#~/concepts/design/utils';
+import TypedObjectIcon from '#~/concepts/design/TypedObjectIcon';
 
 interface HeaderIconProps {
   size?: number;

@@ -1,15 +1,15 @@
 /* eslint-disable camelcase */
 import React, { act } from 'react';
 import { MemoryRouter, useLocation } from 'react-router-dom';
-import { buildMockExperimentKF, buildMockPipelineVersion } from '~/__mocks__';
-import { renderHook } from '~/__tests__/unit/testUtils/hooks';
+import { buildMockExperimentKF, buildMockPipelineVersion } from '#~/__mocks__';
+import { renderHook } from '#~/__tests__/unit/testUtils/hooks';
 import usePipelineFilter, {
   FilterOptions,
   usePipelineFilterSearchParams,
-} from '~/concepts/pipelines/content/tables/usePipelineFilter';
-import { PipelinesFilterOp } from '~/concepts/pipelines/kfTypes';
-import { PipelineRunExperimentsContext } from '~/pages/pipelines/global/runs/PipelineRunExperimentsContext';
-import { PipelineRunVersionsContext } from '~/pages/pipelines/global/runs/PipelineRunVersionsContext';
+} from '#~/concepts/pipelines/content/tables/usePipelineFilter';
+import { PipelinesFilterOp } from '#~/concepts/pipelines/kfTypes';
+import { PipelineRunExperimentsContext } from '#~/pages/pipelines/global/runs/PipelineRunExperimentsContext';
+import { PipelineRunVersionsContext } from '#~/pages/pipelines/global/runs/PipelineRunVersionsContext';
 
 describe('usePipelineFilter', () => {
   const wrapper = ({ children }: { children: React.ReactNode }) => (

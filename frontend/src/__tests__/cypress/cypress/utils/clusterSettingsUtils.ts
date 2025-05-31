@@ -4,11 +4,11 @@ import {
   cullerSettings,
   notebookTolerationSettings,
   clusterSettings,
-} from '~/__tests__/cypress/cypress/pages/clusterSettings';
+} from '#~/__tests__/cypress/cypress/pages/clusterSettings';
 import type {
   DashboardConfig,
   NotebookControllerCullerConfig,
-} from '~/__tests__/cypress/cypress/types';
+} from '#~/__tests__/cypress/cypress/types';
 
 /**
  * Validates the visibility and state of Model Serving Platform checkboxes

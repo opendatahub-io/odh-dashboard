@@ -1,11 +1,11 @@
 import * as React from 'react';
 import { PageSection, Stack, Content } from '@patternfly/react-core';
-import { SectionType, sectionTypeBorderColor } from '~/concepts/design/utils';
-import useIsAreaAvailable from '~/concepts/areas/useIsAreaAvailable';
-import { SupportedArea } from '~/concepts/areas';
-import EvenlySpacedGallery from '~/components/EvenlySpacedGallery';
-import { CreateAndTrainIcon, ModelIcon, ProjectIcon } from '~/images/icons';
-import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformStatuses';
+import { SectionType, sectionTypeBorderColor } from '#~/concepts/design/utils';
+import useIsAreaAvailable from '#~/concepts/areas/useIsAreaAvailable';
+import { SupportedArea } from '#~/concepts/areas';
+import EvenlySpacedGallery from '#~/components/EvenlySpacedGallery';
+import { CreateAndTrainIcon, ModelIcon, ProjectIcon } from '#~/images/icons';
+import useServingPlatformStatuses from '#~/pages/modelServing/useServingPlatformStatuses';
 import ProjectsGallery from './ProjectsGallery';
 import CreateAndTrainGallery from './CreateAndTrainGallery';
 import DeployAndMonitorGallery from './DeployAndMonitorGallery';

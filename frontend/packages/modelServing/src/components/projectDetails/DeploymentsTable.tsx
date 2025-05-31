@@ -6,6 +6,8 @@ import {
 } from '@odh-dashboard/internal/components/table/index';
 import ResourceTr from '@odh-dashboard/internal/components/ResourceTr';
 import { ActionsColumn, Td } from '@patternfly/react-table';
+import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
 import { useResolvedPlatformExtension } from '../../concepts/extensionUtils';
 import { ModelServingPlatform } from '../../concepts/modelServingPlatforms';
 import {
@@ -13,6 +15,7 @@ import {
   DeploymentsTableColumn,
   isModelServingDeploymentsTableExtension,
 } from '../../../extension-points';
+import DeleteModelServingModal from '../deleteModal/DeleteModelServingModal';
 
 const genericColumns: SortableData<Deployment>[] = [
   // Platform can enable expanded view of the deployment
@@ -47,7 +50,8 @@ const genericColumns: SortableData<Deployment>[] = [
 const DeploymentRow: React.FC<{
   deployment: Deployment;
   platformColumns: DeploymentsTableColumn[];
-}> = ({ deployment, platformColumns }) => (
+  onDelete: (deployment: Deployment) => void;
+}> = ({ deployment, platformColumns, onDelete }) => (
   <ResourceTr resource={deployment.model}>
     <Td dataLabel="Name">
       <TableRowTitleDescription
@@ -63,7 +67,16 @@ const DeploymentRow: React.FC<{
     <Td dataLabel="Inference endpoint">-</Td>
     <Td dataLabel="Status">-</Td>
     <Td isActionCell>
-      <ActionsColumn isDisabled items={[]} />
+      <ActionsColumn
+        items={[
+          {
+            title: 'Delete',
+            onClick: () => {
+              onDelete(deployment);
+            },
+          },
+        ]}
+      />
     </Td>
   </ResourceTr>
 );
@@ -77,6 +90,8 @@ const DeploymentsTable: React.FC<{
     modelServingPlatform,
   );
 
+  const [deleteDeployment, setDeleteDeployment] = React.useState<Deployment | undefined>(undefined);
+
   const platformColumns = React.useMemo(
     () => tableExtension?.properties.columns() ?? [],
     [tableExtension],
@@ -87,17 +102,33 @@ const DeploymentsTable: React.FC<{
   );
 
   return (
-    <Table
-      columns={allColumns}
-      data={deployments ?? []}
-      rowRenderer={(row: Deployment) => (
-        <DeploymentRow
-          key={row.model.metadata?.name}
-          deployment={row}
-          platformColumns={platformColumns}
+    <>
+      <Table
+        columns={allColumns}
+        data={deployments ?? []}
+        rowRenderer={(row: Deployment) => (
+          <DeploymentRow
+            key={row.model.metadata?.name}
+            deployment={row}
+            platformColumns={platformColumns}
+            onDelete={() => setDeleteDeployment(row)}
+          />
+        )}
+      />
+      {deleteDeployment && (
+        <DeleteModelServingModal
+          deployment={deleteDeployment}
+          servingPlatform={modelServingPlatform}
+          onClose={(deleted: boolean) => {
+            fireFormTrackingEvent('Model Deleted', {
+              outcome: deleted ? TrackingOutcome.submit : TrackingOutcome.cancel,
+              type: 'single',
+            });
+            setDeleteDeployment(undefined);
+          }}
         />
       )}
-    />
+    </>
   );
 };
 

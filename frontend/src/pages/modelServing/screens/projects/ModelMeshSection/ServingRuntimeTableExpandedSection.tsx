@@ -1,15 +1,15 @@
 import * as React from 'react';
 import { ExpandableRowContent, Td } from '@patternfly/react-table';
-import { ServingRuntimeKind } from '~/k8sTypes';
-import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import InferenceServiceTable from '~/pages/modelServing/screens/global/InferenceServiceTable';
-import { ServingRuntimeTableTabs } from '~/pages/modelServing/screens/types';
-import ScrollViewOnMount from '~/components/ScrollViewOnMount';
-import ServingRuntimeTokensTable from '~/pages/modelServing/screens/projects/ModelMeshSection/ServingRuntimeTokensTable';
+import { ServingRuntimeKind } from '#~/k8sTypes';
+import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
+import InferenceServiceTable from '#~/pages/modelServing/screens/global/InferenceServiceTable';
+import { ServingRuntimeTableTabs } from '#~/pages/modelServing/screens/types';
+import ScrollViewOnMount from '#~/components/ScrollViewOnMount';
+import ServingRuntimeTokensTable from '#~/pages/modelServing/screens/projects/ModelMeshSection/ServingRuntimeTokensTable';
 import {
   getInferenceServiceFromServingRuntime,
   isServingRuntimeTokenEnabled,
-} from '~/pages/modelServing/screens/projects/utils';
+} from '#~/pages/modelServing/screens/projects/utils';
 import ServingRuntimeDetails from './ServingRuntimeDetails';
 
 type ServingRuntimeTableExpandedSectionProps = {

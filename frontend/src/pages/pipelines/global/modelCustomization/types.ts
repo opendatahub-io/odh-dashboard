@@ -1,4 +1,4 @@
-import { ContainerResources } from '~/types';
+import { ContainerResources } from '#~/types';
 
 export type ContainerSize = {
   name: string;

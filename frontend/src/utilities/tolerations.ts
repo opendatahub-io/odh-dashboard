@@ -1,7 +1,7 @@
 import { Patch } from '@openshift/dynamic-plugin-sdk-utils';
 import * as _ from 'lodash-es';
-import { Toleration, TolerationEffect, TolerationOperator, TolerationSettings } from '~/types';
-import { DashboardConfigKind, NotebookKind } from '~/k8sTypes';
+import { Toleration, TolerationEffect, TolerationOperator, TolerationSettings } from '#~/types';
+import { DashboardConfigKind, NotebookKind } from '#~/k8sTypes';
 import { AcceleratorProfileState } from './useReadAcceleratorState';
 import { AcceleratorProfileFormData } from './useAcceleratorProfileFormState';
 

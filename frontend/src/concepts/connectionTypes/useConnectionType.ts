@@ -1,11 +1,11 @@
 import * as React from 'react';
-import { ConnectionTypeConfigMapObj } from '~/concepts/connectionTypes/types';
-import { fetchConnectionType } from '~/services/connectionTypesService';
+import { ConnectionTypeConfigMapObj } from '#~/concepts/connectionTypes/types';
+import { fetchConnectionType } from '#~/services/connectionTypesService';
 import useFetchState, {
   FetchState,
   FetchStateCallbackPromise,
   NotReadyError,
-} from '~/utilities/useFetchState';
+} from '#~/utilities/useFetchState';
 
 export const useConnectionType = (
   name?: string,

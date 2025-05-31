@@ -1,23 +1,23 @@
 import {
   HTPASSWD_CLUSTER_ADMIN_USER,
   LDAP_CONTRIBUTOR_USER,
-} from '~/__tests__/cypress/cypress/utils/e2eUsers';
+} from '#~/__tests__/cypress/cypress/utils/e2eUsers';
 // eslint-disable-next-line no-restricted-syntax
-import { DEFAULT_PVC_SIZE } from '~/pages/clusterSettings/const';
-import { clusterSettings } from '~/__tests__/cypress/cypress/pages/clusterSettings';
-import { pageNotfound } from '~/__tests__/cypress/cypress/pages/pageNotFound';
+import { DEFAULT_PVC_SIZE } from '#~/pages/clusterSettings/const';
+import { clusterSettings } from '#~/__tests__/cypress/cypress/pages/clusterSettings';
+import { pageNotfound } from '#~/__tests__/cypress/cypress/pages/pageNotFound';
 import type {
   DashboardConfig,
   NotebookControllerConfig,
   NotebookControllerCullerConfig,
-} from '~/__tests__/cypress/cypress/types';
+} from '#~/__tests__/cypress/cypress/types';
 import {
   validateModelServingPlatforms,
   validatePVCSize,
   validateStopIdleNotebooks,
   validateNotebookPodTolerations,
-} from '~/__tests__/cypress/cypress/utils/clusterSettingsUtils';
-import { retryableBefore } from '~/__tests__/cypress/cypress/utils/retryableHooks';
+} from '#~/__tests__/cypress/cypress/utils/clusterSettingsUtils';
+import { retryableBefore } from '#~/__tests__/cypress/cypress/utils/retryableHooks';
 
 describe('Verify that only the Cluster Admin can access Cluster Settings', () => {
   let dashboardConfig: DashboardConfig;

@@ -1,11 +1,11 @@
 import * as React from 'react';
-import { DrawerPanelBody, Tab, TabContent, TabContentBody, Tabs } from '@patternfly/react-core';
-import SelectedNodeDetailsTab from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/SelectedNodeDetailsTab';
-import SelectedNodeInputOutputTab from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/SelectedNodeInputOutputTab';
-import LogsTab from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/runLogs/LogsTab';
+import { Tab, TabContent, TabContentBody, Tabs } from '@patternfly/react-core';
+import SelectedNodeDetailsTab from '#~/concepts/pipelines/content/pipelinesDetails/pipelineRun/SelectedNodeDetailsTab';
+import SelectedNodeInputOutputTab from '#~/concepts/pipelines/content/pipelinesDetails/pipelineRun/SelectedNodeInputOutputTab';
+import LogsTab from '#~/concepts/pipelines/content/pipelinesDetails/pipelineRun/runLogs/LogsTab';
 import './PipelineRunDrawer.scss';
-import { PipelineTask } from '~/concepts/pipelines/topology';
-import { Execution } from '~/third_party/mlmd';
+import { PipelineTask } from '#~/concepts/pipelines/topology';
+import { Execution } from '#~/third_party/mlmd';
 import { renderDetailItems } from './utils';
 
 enum PipelineRunNodeTab {
@@ -76,18 +76,18 @@ const PipelineRunDrawerRightTabs: React.FC<PipelineRunDrawerRightTabsProps> = ({
           />
         ))}
       </Tabs>
-      <DrawerPanelBody className="pipeline-run__drawer-panel-body pf-v6-u-px-sm">
-        {!tabs[selection].isDisabled && (
-          <TabContent
-            id={selection}
-            eventKey={selection}
-            activeKey={selection}
-            style={{ flex: '1 1 auto' }}
-          >
-            <TabContentBody hasPadding>{tabs[selection].content}</TabContentBody>
-          </TabContent>
-        )}
-      </DrawerPanelBody>
+      {!tabs[selection].isDisabled && (
+        <TabContent
+          id={selection}
+          eventKey={selection}
+          activeKey={selection}
+          style={{ flex: '1 1 auto' }}
+        >
+          <TabContentBody className="pf-v6-u-pl-sm pf-v6-u-pt-lg">
+            {tabs[selection].content}
+          </TabContentBody>
+        </TabContent>
+      )}
     </>
   );
 };

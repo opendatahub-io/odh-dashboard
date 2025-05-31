@@ -13,15 +13,15 @@
 // https://on.cypress.io/configuration
 // ***********************************************************
 
-import '~/types';
+import '#~/types';
 import '@cypress/grep';
 import chaiSubset from 'chai-subset';
 import '@cypress/code-coverage/support';
 import 'cypress-mochawesome-reporter/register';
 import 'cypress-plugin-steps';
 import './commands';
-import { asProjectAdminUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
-import { mockDscStatus } from '~/__mocks__/mockDscStatus';
+import { asProjectAdminUser } from '#~/__tests__/cypress/cypress/utils/mockUsers';
+import { mockDscStatus } from '#~/__mocks__/mockDscStatus';
 import { addCommands as webSocketsAddCommands } from './websockets';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires

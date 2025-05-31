@@ -12,29 +12,29 @@ import {
   mockInferenceServiceK8sResource,
   mockProjectK8sResource,
   mockDscStatus,
-} from '~/__mocks__';
-import { mockModelArtifact } from '~/__mocks__/mockModelArtifact';
+} from '#~/__mocks__';
+import { mockModelArtifact } from '#~/__mocks__/mockModelArtifact';
 
 import {
   InferenceServiceModel,
   ProjectModel,
   ServiceModel,
   ServingRuntimeModel,
-} from '~/__tests__/cypress/cypress/utils/models';
-import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url';
+} from '#~/__tests__/cypress/cypress/utils/models';
+import { verifyRelativeURL } from '#~/__tests__/cypress/cypress/utils/url';
 import {
   modelVersionDetails,
   navigationBlockerModal,
-} from '~/__tests__/cypress/cypress/pages/modelRegistry/modelVersionDetails';
-import { InferenceServiceModelState } from '~/pages/modelServing/screens/types';
-import { modelServingGlobal } from '~/__tests__/cypress/cypress/pages/modelServing';
+} from '#~/__tests__/cypress/cypress/pages/modelRegistry/modelVersionDetails';
+import { InferenceServiceModelState } from '#~/pages/modelServing/screens/types';
+import { modelServingGlobal } from '#~/__tests__/cypress/cypress/pages/modelServing';
 import {
   ModelRegistryMetadataType,
   ModelState,
   ModelSourceKind,
-} from '~/concepts/modelRegistry/types';
-import { KnownLabels } from '~/k8sTypes';
-import { asProjectEditUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
+} from '#~/concepts/modelRegistry/types';
+import { KnownLabels } from '#~/k8sTypes';
+import { asProjectEditUser } from '#~/__tests__/cypress/cypress/utils/mockUsers';
 
 const MODEL_REGISTRY_API_VERSION = 'v1alpha3';
 const mockModelVersions = mockModelVersion({

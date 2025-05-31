@@ -1,20 +1,20 @@
 import * as React from 'react';
 import { Bullseye, Alert, Spinner } from '@patternfly/react-core';
-import { ClusterQueueKind, LocalQueueKind, WorkloadKind } from '~/k8sTypes';
-import { FetchStateObject } from '~/utilities/useFetch';
-import { DEFAULT_LIST_FETCH_STATE } from '~/utilities/const';
-import { SupportedArea, conditionalArea } from '~/concepts/areas';
-import useSyncPreferredProject from '~/concepts/projects/useSyncPreferredProject';
-import { ProjectsContext, byName } from '~/concepts/projects/ProjectsContext';
-import { useMakeFetchObject } from '~/utilities/useMakeFetchObject';
+import { ClusterQueueKind, LocalQueueKind, WorkloadKind } from '#~/k8sTypes';
+import { FetchStateObject } from '#~/utilities/useFetch';
+import { DEFAULT_LIST_FETCH_STATE } from '#~/utilities/const';
+import { SupportedArea, conditionalArea } from '#~/concepts/areas';
+import useSyncPreferredProject from '#~/concepts/projects/useSyncPreferredProject';
+import { ProjectsContext, byName } from '#~/concepts/projects/ProjectsContext';
+import { useMakeFetchObject } from '#~/utilities/useMakeFetchObject';
 import {
   DEFAULT_DW_PROJECT_CURRENT_METRICS,
   DWProjectCurrentMetrics,
   useDWProjectCurrentMetrics,
-} from '~/api';
-import { RefreshIntervalValue } from '~/concepts/metrics/const';
-import { MetricsCommonContext } from '~/concepts/metrics/MetricsCommonContext';
-import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
+} from '#~/api';
+import { RefreshIntervalValue } from '#~/concepts/metrics/const';
+import { MetricsCommonContext } from '#~/concepts/metrics/MetricsCommonContext';
+import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import useClusterQueues from './useClusterQueues';
 import useLocalQueues from './useLocalQueues';
 import useWorkloads from './useWorkloads';

@@ -1,27 +1,27 @@
 import React, { act } from 'react';
 import '@testing-library/jest-dom';
 import { fireEvent, render, screen } from '@testing-library/react';
-import { ConnectionsDeleteModal } from '~/pages/projects/screens/detail/connections/ConnectionsDeleteModal';
-import { mockConnection } from '~/__mocks__/mockConnection';
-import { useRelatedNotebooks } from '~/pages/projects/notebook/useRelatedNotebooks';
+import { ConnectionsDeleteModal } from '#~/pages/projects/screens/detail/connections/ConnectionsDeleteModal';
+import { mockConnection } from '#~/__mocks__/mockConnection';
+import { useRelatedNotebooks } from '#~/pages/projects/notebook/useRelatedNotebooks';
 import {
   mockInferenceServiceK8sResource,
   mockNotebookK8sResource,
   mockNotebookState,
-} from '~/__mocks__';
-import { useNotebooksStates } from '~/pages/projects/notebook/useNotebooksStates';
-import { useInferenceServicesForConnection } from '~/pages/projects/useInferenceServicesForConnection';
+} from '#~/__mocks__';
+import { useNotebooksStates } from '#~/pages/projects/notebook/useNotebooksStates';
+import { useInferenceServicesForConnection } from '#~/pages/projects/useInferenceServicesForConnection';
 
-jest.mock('~/pages/projects/notebook/useRelatedNotebooks', () => ({
-  ...jest.requireActual('~/pages/projects/notebook/useRelatedNotebooks'),
+jest.mock('#~/pages/projects/notebook/useRelatedNotebooks', () => ({
+  ...jest.requireActual('#~/pages/projects/notebook/useRelatedNotebooks'),
   useRelatedNotebooks: jest.fn(),
 }));
 
-jest.mock('~/pages/projects/notebook/useNotebooksStates', () => ({
+jest.mock('#~/pages/projects/notebook/useNotebooksStates', () => ({
   useNotebooksStates: jest.fn(),
 }));
 
-jest.mock('~/pages/projects/useInferenceServicesForConnection', () => ({
+jest.mock('#~/pages/projects/useInferenceServicesForConnection', () => ({
   useInferenceServicesForConnection: jest.fn(),
 }));
 

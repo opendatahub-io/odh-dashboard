@@ -1,4 +1,4 @@
-import { Notebook } from '~/types';
+import { Notebook } from '#~/types';
 import { SetImpersonating } from './useImpersonationForContext';
 import { NotebookControllerTabTypes } from './const';
 import { SetCurrentAdminTab } from './useAdminTabState';

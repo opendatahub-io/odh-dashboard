@@ -1,5 +1,5 @@
-import { LmEvalFormData } from '~/pages/lmEval/types';
-import { isFilledLmEvalFormData } from '~/pages/lmEval/utils';
+import { LmEvalFormData } from '#~/pages/lmEval/types';
+import { isFilledLmEvalFormData } from '#~/pages/lmEval/utils';
 
 describe('isFilledLmEvaluationFormData', () => {
   it('should return true when all required fields are filled', () => {

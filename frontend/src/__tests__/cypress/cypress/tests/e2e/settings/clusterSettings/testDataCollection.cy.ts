@@ -1,10 +1,10 @@
-import { HTPASSWD_CLUSTER_ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
+import { HTPASSWD_CLUSTER_ADMIN_USER } from '#~/__tests__/cypress/cypress/utils/e2eUsers';
 import {
   clusterSettings,
   telemetrySettings,
-} from '~/__tests__/cypress/cypress/pages/clusterSettings';
-import { getCustomResource } from '~/__tests__/cypress/cypress/utils/oc_commands/customResources';
-import { retryableBefore } from '~/__tests__/cypress/cypress/utils/retryableHooks';
+} from '#~/__tests__/cypress/cypress/pages/clusterSettings';
+import { getCustomResource } from '#~/__tests__/cypress/cypress/utils/oc_commands/customResources';
+import { retryableBefore } from '#~/__tests__/cypress/cypress/utils/retryableHooks';
 
 describe('Verify That Usage Data Collection Can Be Set In Cluster Settings', () => {
   let skipTest = false;

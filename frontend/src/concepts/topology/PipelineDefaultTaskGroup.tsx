@@ -17,9 +17,9 @@ import {
 } from '@patternfly/react-topology';
 import { Flex, FlexItem, Popover, Stack, StackItem } from '@patternfly/react-core';
 import { BanIcon } from '@patternfly/react-icons';
-import { PipelineNodeModelExpanded, StandardTaskNodeData } from '~/concepts/topology/types';
-import NodeStatusIcon from '~/concepts/topology/NodeStatusIcon';
-import { ExecutionStateKF } from '~/concepts/pipelines/kfTypes';
+import { PipelineNodeModelExpanded, StandardTaskNodeData } from '#~/concepts/topology/types';
+import NodeStatusIcon from '#~/concepts/topology/NodeStatusIcon';
+import { ExecutionStateKF } from '#~/concepts/pipelines/kfTypes';
 import { NODE_HEIGHT, NODE_WIDTH } from './const';
 
 const MAX_TIP_ITEMS = 6;

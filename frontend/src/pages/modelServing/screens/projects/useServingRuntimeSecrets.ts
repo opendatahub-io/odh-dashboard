@@ -1,9 +1,9 @@
 import * as React from 'react';
-import { getSecretsByLabel } from '~/api';
-import { SecretKind } from '~/k8sTypes';
-import useModelServingEnabled from '~/pages/modelServing/useModelServingEnabled';
-import useFetch, { FetchOptions, FetchStateObject, NotReadyError } from '~/utilities/useFetch';
-import { LABEL_SELECTOR_DASHBOARD_RESOURCE } from '~/const';
+import { getSecretsByLabel } from '#~/api';
+import { SecretKind } from '#~/k8sTypes';
+import useModelServingEnabled from '#~/pages/modelServing/useModelServingEnabled';
+import useFetch, { FetchOptions, FetchStateObject, NotReadyError } from '#~/utilities/useFetch';
+import { LABEL_SELECTOR_DASHBOARD_RESOURCE } from '#~/const';
 
 const useServingRuntimeSecrets = (
   namespace?: string,

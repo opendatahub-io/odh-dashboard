@@ -1,4 +1,4 @@
-import { PrometheusQueryResponse } from '~/types';
+import { PrometheusQueryResponse } from '#~/types';
 
 type MockPrometheusQueryResponseType = {
   value?: [number, string];

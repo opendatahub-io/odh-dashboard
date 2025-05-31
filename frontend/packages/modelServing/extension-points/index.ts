@@ -70,3 +70,18 @@ export const isModelServingDeploymentsTableExtension = <D extends Deployment = D
   extension: Extension,
 ): extension is ModelServingDeploymentsTableExtension<D> =>
   extension.type === 'model-serving.deployments-table';
+
+export type ModelServingDeleteModal<D extends Deployment = Deployment> = Extension<
+  'model-serving.platform/delete-modal',
+  {
+    platform: string;
+    onDelete: CodeRef<(deployment: D) => Promise<void>>;
+    title: string;
+    submitButtonLabel: string;
+  }
+>;
+
+export const isModelServingDeleteModal = <D extends Deployment = Deployment>(
+  extension: Extension,
+): extension is ModelServingDeleteModal<D> =>
+  extension.type === 'model-serving.platform/delete-modal';

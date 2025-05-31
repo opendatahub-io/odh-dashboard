@@ -1,16 +1,16 @@
 import * as React from 'react';
 import { Alert, Skeleton } from '@patternfly/react-core';
-import { ImageStreamKind } from '~/k8sTypes';
+import { ImageStreamKind } from '#~/k8sTypes';
 import {
   getDefaultVersionForImageStream,
   getExistingVersionsForImageStream,
   isInvalidBYONImageStream,
-} from '~/pages/projects/screens/spawner/spawnerUtils';
-import { ImageStreamAndVersion } from '~/types';
-import useImageStreams from '~/pages/projects/screens/spawner/useImageStreams';
-import { useDashboardNamespace } from '~/redux/selectors';
-import useBuildStatuses from '~/pages/projects/screens/spawner/useBuildStatuses';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+} from '#~/pages/projects/screens/spawner/spawnerUtils';
+import { ImageStreamAndVersion } from '#~/types';
+import useImageStreams from '#~/pages/projects/screens/spawner/useImageStreams';
+import { useDashboardNamespace } from '#~/redux/selectors';
+import useBuildStatuses from '#~/pages/projects/screens/spawner/useBuildStatuses';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import ImageStreamPopover from './ImageStreamPopover';
 import ImageVersionSelector from './ImageVersionSelector';
 import ImageStreamSelector from './ImageStreamSelector';

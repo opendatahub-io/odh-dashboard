@@ -1,7 +1,7 @@
-import { ImageStreamAndVersion, KeyValuePair, Volume, VolumeMount } from '~/types';
-import { PersistentVolumeClaimKind } from '~/k8sTypes';
-import { K8sNameDescriptionFieldData } from '~/concepts/k8s/K8sNameDescriptionField/types';
-import { NotebookPodSpecOptions } from '~/concepts/hardwareProfiles/useNotebookPodSpecOptionsState';
+import { ImageStreamAndVersion, KeyValuePair, Volume, VolumeMount } from '#~/types';
+import { PersistentVolumeClaimKind } from '#~/k8sTypes';
+import { K8sNameDescriptionFieldData } from '#~/concepts/k8s/K8sNameDescriptionField/types';
+import { NotebookPodSpecOptions } from '#~/concepts/hardwareProfiles/useNotebookPodSpecOptionsState';
 import { AwsKeys } from './dataConnections/const';
 
 export type UpdateObjectAtPropAndValue<T> = <K extends keyof T>(

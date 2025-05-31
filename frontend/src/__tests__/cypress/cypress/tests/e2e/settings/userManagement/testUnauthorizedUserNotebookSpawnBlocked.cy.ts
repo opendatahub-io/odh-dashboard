@@ -1,9 +1,9 @@
 import {
   HTPASSWD_CLUSTER_ADMIN_USER,
   LDAP_CONTRIBUTOR_USER,
-} from '~/__tests__/cypress/cypress/utils/e2eUsers';
-import { userManagement } from '~/__tests__/cypress/cypress/pages/userManagement';
-import { header } from '~/__tests__/cypress/cypress/pages/components/Header';
+} from '#~/__tests__/cypress/cypress/utils/e2eUsers';
+import { userManagement } from '#~/__tests__/cypress/cypress/pages/userManagement';
+import { header } from '#~/__tests__/cypress/cypress/pages/components/Header';
 
 after(() => {
   // Clear cookies and local storage

@@ -1,11 +1,11 @@
 import React from 'react';
 import { FormSection, Button, Flex, FlexItem } from '@patternfly/react-core';
 import { AddCircleOIcon } from '@patternfly/react-icons';
-import { Toleration } from '~/types';
-import ManageTolerationModal from '~/pages/hardwareProfiles/toleration/ManageTolerationModal';
-import TolerationTable from '~/pages/hardwareProfiles/toleration/TolerationTable';
-import { ManageHardwareProfileSectionTitles } from '~/pages/hardwareProfiles/const';
-import { ManageHardwareProfileSectionID } from '~/pages/hardwareProfiles/manage/types';
+import { Toleration } from '#~/types';
+import ManageTolerationModal from '#~/pages/hardwareProfiles/toleration/ManageTolerationModal';
+import TolerationTable from '#~/pages/hardwareProfiles/toleration/TolerationTable';
+import { ManageHardwareProfileSectionTitles } from '#~/pages/hardwareProfiles/const';
+import { ManageHardwareProfileSectionID } from '#~/pages/hardwareProfiles/manage/types';
 
 type ManageTolerationSectionProps = {
   tolerations: Toleration[];

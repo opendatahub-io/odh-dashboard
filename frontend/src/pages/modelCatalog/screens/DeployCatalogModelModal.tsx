@@ -1,10 +1,10 @@
 import React from 'react';
-import { CatalogModel } from '~/concepts/modelCatalog/types';
-import { ModelDeployPrefillInfo } from '~/pages/modelServing/screens/projects/usePrefillModelDeployModal';
-import DeployPrefilledModelModal from '~/pages/modelServing/screens/projects/DeployPrefilledModelModal';
-import { ProjectKind } from '~/k8sTypes';
-import { uriToConnectionTypeName } from '~/concepts/modelRegistry/utils';
-import { getTagFromModel } from '~/pages/modelCatalog/utils';
+import { CatalogModel } from '#~/concepts/modelCatalog/types';
+import { ModelDeployPrefillInfo } from '#~/pages/modelServing/screens/projects/usePrefillModelDeployModal';
+import DeployPrefilledModelModal from '#~/pages/modelServing/screens/projects/DeployPrefilledModelModal';
+import { ProjectKind } from '#~/k8sTypes';
+import { uriToConnectionTypeName } from '#~/concepts/modelRegistry/utils';
+import { getTagFromModel } from '#~/pages/modelCatalog/utils';
 
 interface DeployCatalogModelModalProps {
   model: CatalogModel;

@@ -1,5 +1,5 @@
-import axios from '~/utilities/axios';
-import { DetectedAccelerators } from '~/types';
+import axios from '#~/utilities/axios';
+import { DetectedAccelerators } from '#~/types';
 
 export const getDetectedAccelerators = (): Promise<DetectedAccelerators> => {
   const url = '/api/accelerators';

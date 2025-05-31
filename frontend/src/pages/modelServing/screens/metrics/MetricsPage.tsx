@@ -2,15 +2,15 @@ import * as React from 'react';
 import { Breadcrumb, Button } from '@patternfly/react-core';
 import { useNavigate, useParams } from 'react-router-dom';
 import { CogIcon } from '@patternfly/react-icons';
-import { BreadcrumbItemType } from '~/types';
-import ApplicationsPage from '~/pages/ApplicationsPage';
-import MetricsPageTabs from '~/pages/modelServing/screens/metrics/MetricsPageTabs';
-import { MetricsTabKeys } from '~/pages/modelServing/screens/metrics/types';
-import { PerformanceMetricType } from '~/pages/modelServing/screens/types';
-import { TrustyAIContext } from '~/concepts/trustyai/context/TrustyAIContext';
-import ServerMetricsPage from '~/pages/modelServing/screens/metrics/performance/ServerMetricsPage';
-import { InferenceServiceKind } from '~/k8sTypes';
-import { TrustyInstallState } from '~/concepts/trustyai/types';
+import { BreadcrumbItemType } from '#~/types';
+import ApplicationsPage from '#~/pages/ApplicationsPage';
+import MetricsPageTabs from '#~/pages/modelServing/screens/metrics/MetricsPageTabs';
+import { MetricsTabKeys } from '#~/pages/modelServing/screens/metrics/types';
+import { PerformanceMetricType } from '#~/pages/modelServing/screens/types';
+import { TrustyAIContext } from '#~/concepts/trustyai/context/TrustyAIContext';
+import ServerMetricsPage from '#~/pages/modelServing/screens/metrics/performance/ServerMetricsPage';
+import { InferenceServiceKind } from '#~/k8sTypes';
+import { TrustyInstallState } from '#~/concepts/trustyai/types';
 import { getBreadcrumbItemComponents } from './utils';
 
 type MetricsPageProps = {

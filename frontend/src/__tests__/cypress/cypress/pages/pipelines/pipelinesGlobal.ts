@@ -1,7 +1,7 @@
-import { DeleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
-import { Modal } from '~/__tests__/cypress/cypress/pages/components/Modal';
-import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
-import { SearchSelector } from '~/__tests__/cypress/cypress/pages/components/subComponents/SearchSelector';
+import { DeleteModal } from '#~/__tests__/cypress/cypress/pages/components/DeleteModal';
+import { Modal } from '#~/__tests__/cypress/cypress/pages/components/Modal';
+import { appChrome } from '#~/__tests__/cypress/cypress/pages/appChrome';
+import { SearchSelector } from '#~/__tests__/cypress/cypress/pages/components/subComponents/SearchSelector';
 
 class PipelinesGlobal {
   projectDropdown = new SearchSelector('project-selector');

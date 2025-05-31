@@ -1,6 +1,6 @@
 import * as React from 'react';
-import EmptyStateErrorMessage from '~/components/EmptyStateErrorMessage';
-import ProjectSelectorNavigator from '~/concepts/projects/ProjectSelectorNavigator';
+import EmptyStateErrorMessage from '#~/components/EmptyStateErrorMessage';
+import ProjectSelectorNavigator from '#~/concepts/projects/ProjectSelectorNavigator';
 
 type InvalidProjectProps = {
   title?: string;

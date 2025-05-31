@@ -1,6 +1,6 @@
-import { useIsAreaAvailable, SupportedArea } from '~/concepts/areas';
-import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformStatuses';
-import { getDeployButtonState } from '~/pages/modelCatalog/utils';
+import { useIsAreaAvailable, SupportedArea } from '#~/concepts/areas';
+import useServingPlatformStatuses from '#~/pages/modelServing/useServingPlatformStatuses';
+import { getDeployButtonState } from '#~/pages/modelCatalog/utils';
 
 /**
  * Returns the deploy button state (visible, enabled, tooltip) for model deploy actions.

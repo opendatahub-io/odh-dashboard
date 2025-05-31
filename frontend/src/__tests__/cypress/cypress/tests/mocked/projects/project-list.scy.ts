@@ -1,7 +1,7 @@
 import type { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
-import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
-import { createProjectModal, projectListPage } from '~/__tests__/cypress/cypress/pages/projects';
-import { failEarly } from '~/__tests__/cypress/cypress/utils/failEarly';
+import { deleteModal } from '#~/__tests__/cypress/cypress/pages/components/DeleteModal';
+import { createProjectModal, projectListPage } from '#~/__tests__/cypress/cypress/pages/projects';
+import { failEarly } from '#~/__tests__/cypress/cypress/utils/failEarly';
 
 describe('Data Science Projects', { testIsolation: false }, () => {
   // tests run in sequence and should fail if the one before it fails

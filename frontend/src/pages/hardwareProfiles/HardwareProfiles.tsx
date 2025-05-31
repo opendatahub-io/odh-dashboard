@@ -16,15 +16,15 @@ import {
 } from '@patternfly/react-core';
 import { BanIcon, PlusCircleIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
-import ApplicationsPage from '~/pages/ApplicationsPage';
-import HardwareProfilesTable from '~/pages/hardwareProfiles/HardwareProfilesTable';
-import { useAccessAllowed, verbModelAccess } from '~/concepts/userSSAR';
-import { HardwareProfileModel } from '~/api';
-import { generateWarningForHardwareProfiles } from '~/pages/hardwareProfiles/utils';
-import { useWatchHardwareProfiles } from '~/utilities/useWatchHardwareProfiles';
-import { useDashboardNamespace } from '~/redux/selectors';
-import { ProjectObjectType } from '~/concepts/design/utils';
-import TitleWithIcon from '~/concepts/design/TitleWithIcon';
+import ApplicationsPage from '#~/pages/ApplicationsPage';
+import HardwareProfilesTable from '#~/pages/hardwareProfiles/HardwareProfilesTable';
+import { useAccessAllowed, verbModelAccess } from '#~/concepts/userSSAR';
+import { HardwareProfileModel } from '#~/api';
+import { generateWarningForHardwareProfiles } from '#~/pages/hardwareProfiles/utils';
+import { useWatchHardwareProfiles } from '#~/utilities/useWatchHardwareProfiles';
+import { useDashboardNamespace } from '#~/redux/selectors';
+import { ProjectObjectType } from '#~/concepts/design/utils';
+import TitleWithIcon from '#~/concepts/design/TitleWithIcon';
 import useMigratedHardwareProfiles from './migration/useMigratedHardwareProfiles';
 
 const description =

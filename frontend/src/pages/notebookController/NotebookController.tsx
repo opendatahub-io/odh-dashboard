@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Navigate } from 'react-router-dom';
-import { useUser } from '~/redux/selectors';
-import { useCheckJupyterEnabled } from '~/utilities/notebookControllerUtils';
+import { useUser } from '#~/redux/selectors';
+import { useCheckJupyterEnabled } from '#~/utilities/notebookControllerUtils';
 import NotebookServerRoutes from './screens/server/NotebookServerRoutes';
 import NotebookControllerTabs from './screens/admin/NotebookControllerTabs';
 import { NotebookControllerContextProvider } from './NotebookControllerContext';

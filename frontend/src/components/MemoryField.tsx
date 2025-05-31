@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { ComponentProps } from 'react';
-import { MEMORY_UNITS_FOR_SELECTION } from '~/utilities/valueUnits';
+import { MEMORY_UNITS_FOR_SELECTION } from '#~/utilities/valueUnits';
 import ValueUnitField from './ValueUnitField';
 
 type MemoryFieldProps = {

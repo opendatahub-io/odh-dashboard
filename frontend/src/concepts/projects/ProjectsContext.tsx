@@ -1,9 +1,9 @@
 import * as React from 'react';
-import { useProjects } from '~/api';
-import { FetchState } from '~/utilities/useFetchState';
-import { KnownLabels, ProjectKind } from '~/k8sTypes';
-import { useDashboardNamespace } from '~/redux/selectors';
-import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
+import { useProjects } from '#~/api';
+import { FetchState } from '#~/utilities/useFetchState';
+import { KnownLabels, ProjectKind } from '#~/k8sTypes';
+import { useDashboardNamespace } from '#~/redux/selectors';
+import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import { isAvailableProject } from './utils';
 
 const projectSorter = (projectA: ProjectKind, projectB: ProjectKind) =>

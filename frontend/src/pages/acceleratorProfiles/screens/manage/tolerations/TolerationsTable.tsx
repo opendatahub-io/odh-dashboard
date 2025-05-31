@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { EmptyState, EmptyStateBody } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
-import { Table } from '~/components/table';
-import { Toleration } from '~/types';
+import { Table } from '#~/components/table';
+import { Toleration } from '#~/types';
 import { columns } from './const';
 import TolerationRow from './TolerationRow';
 import ManageTolerationModal from './ManageTolerationModal';

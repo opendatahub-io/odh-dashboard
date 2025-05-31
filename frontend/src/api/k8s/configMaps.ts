@@ -5,10 +5,10 @@ import {
   k8sUpdateResource,
   K8sStatus,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { ConfigMapKind, K8sAPIOptions, KnownLabels } from '~/k8sTypes';
-import { ConfigMapModel } from '~/api/models';
-import { genRandomChars } from '~/utilities/string';
-import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
+import { ConfigMapKind, K8sAPIOptions, KnownLabels } from '#~/k8sTypes';
+import { ConfigMapModel } from '#~/api/models';
+import { genRandomChars } from '#~/utilities/string';
+import { applyK8sAPIOptions } from '#~/api/apiMergeUtils';
 
 export const CONFIGMAP_PREFIX = 'configmap-';
 

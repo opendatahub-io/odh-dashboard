@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useQueryParams } from '~/utilities/useQueryParams';
+import { useQueryParams } from '#~/utilities/useQueryParams';
 
 export const useQueryFilters = (key: string): string[] => {
   const queryParams = useQueryParams();

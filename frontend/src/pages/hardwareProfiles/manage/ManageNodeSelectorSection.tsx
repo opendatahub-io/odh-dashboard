@@ -1,11 +1,11 @@
 import React from 'react';
 import { FormSection, Button, Flex, FlexItem } from '@patternfly/react-core';
 import { AddCircleOIcon } from '@patternfly/react-icons';
-import { NodeSelector } from '~/types';
-import ManageNodeSelectorModal from '~/pages/hardwareProfiles/nodeSelector/ManageNodeSelectorModal';
-import NodeSelectorTable from '~/pages/hardwareProfiles/nodeSelector/NodeSelectorTable';
-import { ManageHardwareProfileSectionTitles } from '~/pages/hardwareProfiles/const';
-import { ManageHardwareProfileSectionID } from '~/pages/hardwareProfiles/manage/types';
+import { NodeSelector } from '#~/types';
+import ManageNodeSelectorModal from '#~/pages/hardwareProfiles/nodeSelector/ManageNodeSelectorModal';
+import NodeSelectorTable from '#~/pages/hardwareProfiles/nodeSelector/NodeSelectorTable';
+import { ManageHardwareProfileSectionTitles } from '#~/pages/hardwareProfiles/const';
+import { ManageHardwareProfileSectionID } from '#~/pages/hardwareProfiles/manage/types';
 
 type ManageNodeSelectorSectionProps = {
   nodeSelector: NodeSelector;

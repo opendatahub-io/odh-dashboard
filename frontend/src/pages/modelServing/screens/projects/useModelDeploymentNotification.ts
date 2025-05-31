@@ -1,17 +1,17 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
-import useNotification from '~/utilities/useNotification';
+import useNotification from '#~/utilities/useNotification';
 import {
   NotificationResponseStatus,
   NotificationWatcherContext,
-} from '~/concepts/notificationWatcher/NotificationWatcherContext';
-import { getInferenceService } from '~/api';
-import { InferenceServiceModelState } from '~/pages/modelServing/screens/types';
+} from '#~/concepts/notificationWatcher/NotificationWatcherContext';
+import { getInferenceService } from '#~/api';
+import { InferenceServiceModelState } from '#~/pages/modelServing/screens/types';
 import {
   getInferenceServiceLastFailureReason,
   getInferenceServiceModelState,
-} from '~/pages/modelServing/screens/global/utils';
-import { useModelStatus } from '~/pages/modelServing/screens/global/useModelStatus';
+} from '#~/pages/modelServing/screens/global/utils';
+import { useModelStatus } from '#~/pages/modelServing/screens/global/useModelStatus';
 
 type ModelDeploymentNotification = {
   watchDeployment: () => void;

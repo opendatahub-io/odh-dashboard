@@ -13,9 +13,9 @@ import {
 } from '@patternfly/react-core';
 import { EllipsisVIcon, FilterIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router';
-import { registerModelRoute, registerVersionRoute } from '~/routes/modelRegistry/register';
-import { registeredModelArchiveRoute } from '~/routes/modelRegistry/modelArchive';
-import { ModelRegistriesContext } from '~/concepts/modelRegistry/context/ModelRegistriesContext';
+import { registerModelRoute, registerVersionRoute } from '#~/routes/modelRegistry/register';
+import { registeredModelArchiveRoute } from '#~/routes/modelRegistry/modelArchive';
+import { ModelRegistriesContext } from '#~/concepts/modelRegistry/context/ModelRegistriesContext';
 
 type RegisteredModelsTableToolbarProps = {
   toggleGroupItems?: React.ReactNode;

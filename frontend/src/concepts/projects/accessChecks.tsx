@@ -1,6 +1,6 @@
-import { K8sVerb } from '~/k8sTypes';
-import { useAccessReview } from '~/api';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+import { K8sVerb } from '#~/k8sTypes';
+import { useAccessReview } from '#~/api';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 
 /**
  * Effectively this check is equivalent to checking if a user is a project admin, specifically on the verb passed.

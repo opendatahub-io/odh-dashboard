@@ -1,11 +1,11 @@
 import React from 'react';
-import { BreadcrumbDetailsComponentProps } from '~/concepts/pipelines/content/types';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
+import { BreadcrumbDetailsComponentProps } from '#~/concepts/pipelines/content/types';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import {
   globalPipelineRecurringRunDetailsRoute,
   globalPipelineRecurringRunsRoute,
-} from '~/routes/pipelines/runs';
-import DuplicateRecurringRunPage from '~/concepts/pipelines/content/createRun/DuplicateRecurringRunPage';
+} from '#~/routes/pipelines/runs';
+import DuplicateRecurringRunPage from '#~/concepts/pipelines/content/createRun/DuplicateRecurringRunPage';
 
 const GlobalPipelineDuplicateRecurringRunPage: BreadcrumbDetailsComponentProps = ({
   breadcrumbPath,

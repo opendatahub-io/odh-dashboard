@@ -1,5 +1,5 @@
-import type { CommandLineResult, DashboardConfig } from '~/__tests__/cypress/cypress/types';
-import { handleOCCommandResult } from '~/__tests__/cypress/cypress/utils/errorHandling';
+import type { CommandLineResult, DashboardConfig } from '#~/__tests__/cypress/cypress/types';
+import { handleOCCommandResult } from '#~/__tests__/cypress/cypress/utils/errorHandling';
 
 /**
  * Create an OpenShift Project

@@ -1,5 +1,5 @@
-import { SortableData, kebabTableColumn } from '~/components/table';
-import { StorageClassKind } from '~/k8sTypes';
+import { SortableData, kebabTableColumn } from '#~/components/table';
+import { StorageClassKind } from '#~/k8sTypes';
 import { getStorageClassConfig } from './utils';
 
 export enum ColumnLabel {

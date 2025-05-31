@@ -1,4 +1,4 @@
-import { Artifact, GetArtifactsByContextResponse } from '~/__mocks__/third_party/mlmd';
+import { Artifact, GetArtifactsByContextResponse } from '#~/__mocks__/third_party/mlmd';
 import createGrpcResponse, { GrpcResponse } from './utils';
 
 const mockedScalarMetricArtifact = (noMetrics?: boolean): Artifact => ({

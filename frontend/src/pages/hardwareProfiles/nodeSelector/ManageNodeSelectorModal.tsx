@@ -8,10 +8,10 @@ import {
   ModalHeader,
   ModalFooter,
 } from '@patternfly/react-core';
-import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
-import useGenericObjectState from '~/utilities/useGenericObjectState';
-import { useValidation } from '~/utilities/useValidation';
-import { nodeSelectorSchema } from '~/pages/hardwareProfiles/manage/validationUtils';
+import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
+import useGenericObjectState from '#~/utilities/useGenericObjectState';
+import { useValidation } from '#~/utilities/useValidation';
+import { nodeSelectorSchema } from '#~/pages/hardwareProfiles/manage/validationUtils';
 import { EMPTY_NODE_SELECTOR, NodeSelectorRow } from './const';
 
 type ManageNodeSelectorModalProps = {

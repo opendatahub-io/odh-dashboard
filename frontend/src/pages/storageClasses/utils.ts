@@ -1,5 +1,5 @@
 import { isValidDate } from '@patternfly/react-core';
-import { MetadataAnnotation, StorageClassConfig, StorageClassKind } from '~/k8sTypes';
+import { MetadataAnnotation, StorageClassConfig, StorageClassKind } from '#~/k8sTypes';
 import { AccessMode, StorageProvisioner, provisionerAccessModes } from './storageEnums';
 
 export const getStorageClassConfig = (

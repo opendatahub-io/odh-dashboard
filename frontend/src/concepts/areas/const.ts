@@ -1,4 +1,4 @@
-import { DashboardCommonConfig } from '~/k8sTypes';
+import { DashboardCommonConfig } from '#~/k8sTypes';
 import {
   StackCapability,
   StackComponent,

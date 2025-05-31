@@ -1,15 +1,15 @@
-import { mockAcceleratorProfile } from '~/__mocks__/mockAcceleratorProfile';
+import { mockAcceleratorProfile } from '#~/__mocks__/mockAcceleratorProfile';
 import {
   editTolerationModal,
   createAcceleratorProfile,
   createTolerationModal,
   editAcceleratorProfile,
   identifierAcceleratorProfile,
-} from '~/__tests__/cypress/cypress/pages/acceleratorProfile';
-import { TolerationEffect, TolerationOperator } from '~/types';
-import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
-import { AcceleratorProfileModel } from '~/__tests__/cypress/cypress/utils/models';
-import { asProductAdminUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
+} from '#~/__tests__/cypress/cypress/pages/acceleratorProfile';
+import { TolerationEffect, TolerationOperator } from '#~/types';
+import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
+import { AcceleratorProfileModel } from '#~/__tests__/cypress/cypress/utils/models';
+import { asProductAdminUser } from '#~/__tests__/cypress/cypress/utils/mockUsers';
 
 type HandlersProps = {
   isPresent?: boolean;

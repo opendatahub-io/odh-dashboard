@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { useParams } from 'react-router-dom';
 import { Bullseye, Spinner } from '@patternfly/react-core';
-import NotFound from '~/pages/NotFound';
-import { InferenceServiceKind, ProjectKind } from '~/k8sTypes';
-import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
+import NotFound from '#~/pages/NotFound';
+import { InferenceServiceKind, ProjectKind } from '#~/k8sTypes';
+import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 
 type ProjectModelMetricsPathWrapperProps = {
   children: (

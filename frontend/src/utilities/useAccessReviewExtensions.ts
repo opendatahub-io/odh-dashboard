@@ -1,7 +1,7 @@
 import * as React from 'react';
 import type { Extension, LoadedExtension } from '@openshift/dynamic-plugin-sdk';
-import type { AccessReviewResourceAttributes } from '~/k8sTypes';
-import { AccessReviewContext } from '~/concepts/userSSAR/AccessReviewContext';
+import type { AccessReviewResourceAttributes } from '#~/k8sTypes';
+import { AccessReviewContext } from '#~/concepts/userSSAR/AccessReviewContext';
 
 /**
  * React hook that filters a list of resolved extensions based on user access review.

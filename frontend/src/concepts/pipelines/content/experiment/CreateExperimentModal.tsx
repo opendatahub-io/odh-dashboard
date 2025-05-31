@@ -12,17 +12,17 @@ import {
   ModalHeader,
   ModalFooter,
 } from '@patternfly/react-core';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import useCreateExperimentData from '~/concepts/pipelines/content/experiment/useCreateExperimentData';
-import { ExperimentKF } from '~/concepts/pipelines/kfTypes';
-import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+import useCreateExperimentData from '#~/concepts/pipelines/content/experiment/useCreateExperimentData';
+import { ExperimentKF } from '#~/concepts/pipelines/kfTypes';
+import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import {
   DESCRIPTION_CHARACTER_LIMIT,
   NAME_CHARACTER_LIMIT,
-} from '~/concepts/pipelines/content/const';
-import { CharLimitHelperText } from '~/components/CharLimitHelperText';
-import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
+} from '#~/concepts/pipelines/content/const';
+import { CharLimitHelperText } from '#~/components/CharLimitHelperText';
+import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
 
 type CreateExperimentModalProps = {
   onClose: (experiment?: ExperimentKF) => void;

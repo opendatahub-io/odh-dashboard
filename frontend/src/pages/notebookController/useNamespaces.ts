@@ -1,5 +1,5 @@
-import { useAppContext } from '~/app/AppContext';
-import { useDashboardNamespace } from '~/redux/selectors';
+import { useAppContext } from '#~/app/AppContext';
+import { useDashboardNamespace } from '#~/redux/selectors';
 
 const useNamespaces = (): {
   /** @deprecated - all new functionality should use project creation under DSG */

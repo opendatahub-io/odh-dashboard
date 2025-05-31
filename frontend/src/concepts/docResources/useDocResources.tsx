@@ -1,8 +1,8 @@
 import React from 'react';
 import { QuickStartContext, QuickStartContextValues } from '@patternfly/quickstarts';
-import { useWatchDocs } from '~/utilities/useWatchDocs';
-import { useWatchComponents } from '~/utilities/useWatchComponents';
-import { OdhDocument, OdhDocumentType } from '~/types';
+import { useWatchDocs } from '#~/utilities/useWatchDocs';
+import { useWatchComponents } from '#~/utilities/useWatchComponents';
+import { OdhDocument, OdhDocumentType } from '#~/types';
 import { getQuickStartDocs, updateDocToComponent } from './docUtils';
 
 export const useDocResources = (): { docs: OdhDocument[]; loaded: boolean; loadError?: Error } => {

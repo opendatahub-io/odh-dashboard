@@ -3,18 +3,18 @@ import {
   mockDscStatus,
   mockK8sResourceList,
   mockModelRegistryService,
-} from '~/__mocks__';
+} from '#~/__mocks__';
 import {
   mockModelCatalogConfigMap,
   mockUnmanagedModelCatalogConfigMap,
-} from '~/__mocks__/mockModelCatalogConfigMap';
-import { modelDetailsPage } from '~/__tests__/cypress/cypress/pages/modelCatalog/modelDetailsPage';
-import { ConfigMapModel, ServiceModel } from '~/__tests__/cypress/cypress/utils/models';
-import type { ServiceKind } from '~/k8sTypes';
-import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url';
-import { mockCatalogModel } from '~/__mocks__/mockCatalogModel';
-import { mockModelCatalogSource } from '~/__mocks__/mockModelCatalogSource';
-import type { ModelCatalogSource } from '~/concepts/modelCatalog/types';
+} from '#~/__mocks__/mockModelCatalogConfigMap';
+import { modelDetailsPage } from '#~/__tests__/cypress/cypress/pages/modelCatalog/modelDetailsPage';
+import { ConfigMapModel, ServiceModel } from '#~/__tests__/cypress/cypress/utils/models';
+import type { ServiceKind } from '#~/k8sTypes';
+import { verifyRelativeURL } from '#~/__tests__/cypress/cypress/utils/url';
+import { mockCatalogModel } from '#~/__mocks__/mockCatalogModel';
+import { mockModelCatalogSource } from '#~/__mocks__/mockModelCatalogSource';
+import type { ModelCatalogSource } from '#~/concepts/modelCatalog/types';
 
 type HandlersProps = {
   modelRegistries?: ServiceKind[];

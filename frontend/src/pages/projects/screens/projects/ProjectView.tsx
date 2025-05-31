@@ -1,12 +1,12 @@
 import * as React from 'react';
-import ApplicationsPage from '~/pages/ApplicationsPage';
-import { useAccessReview } from '~/api';
-import { AccessReviewResourceAttributes } from '~/k8sTypes';
-import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
-import { ProjectObjectType } from '~/concepts/design/utils';
-import TitleWithIcon from '~/concepts/design/TitleWithIcon';
-import LaunchJupyterButton from '~/pages/projects/screens/projects/LaunchJupyterButton';
-import { useAppContext } from '~/app/AppContext';
+import ApplicationsPage from '#~/pages/ApplicationsPage';
+import { useAccessReview } from '#~/api';
+import { AccessReviewResourceAttributes } from '#~/k8sTypes';
+import { ProjectsContext } from '#~/concepts/projects/ProjectsContext';
+import { ProjectObjectType } from '#~/concepts/design/utils';
+import TitleWithIcon from '#~/concepts/design/TitleWithIcon';
+import LaunchJupyterButton from '#~/pages/projects/screens/projects/LaunchJupyterButton';
+import { useAppContext } from '#~/app/AppContext';
 import EmptyProjects from './EmptyProjects';
 import ProjectListView from './ProjectListView';
 

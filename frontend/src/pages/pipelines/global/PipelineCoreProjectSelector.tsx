@@ -1,5 +1,5 @@
 import * as React from 'react';
-import ProjectSelectorNavigator from '~/concepts/projects/ProjectSelectorNavigator';
+import ProjectSelectorNavigator from '#~/concepts/projects/ProjectSelectorNavigator';
 
 type PipelineCoreProjectSelectorProps = {
   getRedirectPath: (namespace: string) => string;

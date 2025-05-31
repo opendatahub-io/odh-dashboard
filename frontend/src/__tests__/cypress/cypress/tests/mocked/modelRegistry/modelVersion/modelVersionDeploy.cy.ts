@@ -4,32 +4,32 @@ import {
   mockDashboardConfig,
   mockK8sResourceList,
   mockSecretK8sResource,
-} from '~/__mocks__';
-import { mockRegisteredModelList } from '~/__mocks__/mockRegisteredModelsList';
+} from '#~/__mocks__';
+import { mockRegisteredModelList } from '#~/__mocks__/mockRegisteredModelsList';
 import {
   AcceleratorProfileModel,
   SecretModel,
   ServiceModel,
   ServingRuntimeModel,
-} from '~/__tests__/cypress/cypress/utils/models';
-import { mockModelVersionList } from '~/__mocks__/mockModelVersionList';
-import { mockModelVersion } from '~/__mocks__/mockModelVersion';
-import type { ModelVersion } from '~/concepts/modelRegistry/types';
-import { ModelState } from '~/concepts/modelRegistry/types';
-import { mockRegisteredModel } from '~/__mocks__/mockRegisteredModel';
-import { modelRegistry } from '~/__tests__/cypress/cypress/pages/modelRegistry';
-import { mockModelRegistryService } from '~/__mocks__/mockModelRegistryService';
-import { modelVersionDeployModal } from '~/__tests__/cypress/cypress/pages/modelRegistry/modelVersionDeployModal';
-import { mockModelArtifactList } from '~/__mocks__/mockModelArtifactList';
-import { kserveModal } from '~/__tests__/cypress/cypress/pages/modelServing';
-import { mockModelArtifact } from '~/__mocks__/mockModelArtifact';
-import { initDeployPrefilledModelIntercepts } from '~/__tests__/cypress/cypress/utils/modelServingUtils';
-import { hardwareProfileSection } from '~/__tests__/cypress/cypress/pages/components/HardwareProfileSection';
+} from '#~/__tests__/cypress/cypress/utils/models';
+import { mockModelVersionList } from '#~/__mocks__/mockModelVersionList';
+import { mockModelVersion } from '#~/__mocks__/mockModelVersion';
+import type { ModelVersion } from '#~/concepts/modelRegistry/types';
+import { ModelState } from '#~/concepts/modelRegistry/types';
+import { mockRegisteredModel } from '#~/__mocks__/mockRegisteredModel';
+import { modelRegistry } from '#~/__tests__/cypress/cypress/pages/modelRegistry';
+import { mockModelRegistryService } from '#~/__mocks__/mockModelRegistryService';
+import { modelVersionDeployModal } from '#~/__tests__/cypress/cypress/pages/modelRegistry/modelVersionDeployModal';
+import { mockModelArtifactList } from '#~/__mocks__/mockModelArtifactList';
+import { kserveModal } from '#~/__tests__/cypress/cypress/pages/modelServing';
+import { mockModelArtifact } from '#~/__mocks__/mockModelArtifact';
+import { initDeployPrefilledModelIntercepts } from '#~/__tests__/cypress/cypress/utils/modelServingUtils';
+import { hardwareProfileSection } from '#~/__tests__/cypress/cypress/pages/components/HardwareProfileSection';
 import {
   mockGlobalScopedAcceleratorProfiles,
   mockProjectScopedAcceleratorProfiles,
-} from '~/__mocks__/mockAcceleratorProfile';
-import { acceleratorProfileSection } from '~/__tests__/cypress/cypress/pages/components/subComponents/AcceleratorProfileSection';
+} from '#~/__mocks__/mockAcceleratorProfile';
+import { acceleratorProfileSection } from '#~/__tests__/cypress/cypress/pages/components/subComponents/AcceleratorProfileSection';
 
 const MODEL_REGISTRY_API_VERSION = 'v1alpha3';
 

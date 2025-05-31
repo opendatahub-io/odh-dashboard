@@ -10,7 +10,7 @@ import {
   PageSection,
 } from '@patternfly/react-core';
 import { TimesIcon } from '@patternfly/react-icons';
-import { useBrowserStorage } from '~/components/browserStorage/BrowserStorageContext';
+import { useBrowserStorage } from '#~/components/browserStorage/BrowserStorageContext';
 
 type HomeHintProps = {
   title: React.ReactNode;

@@ -14,6 +14,7 @@ import {
 import { CustomWatchK8sResult } from '@odh-dashboard/internal/types';
 import { Deployment } from '@odh-dashboard/model-serving/extension-points';
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
+import { deleteInferenceService, deleteServingRuntime } from '@odh-dashboard/internal/api/index';
 import { KSERVE_ID } from '../extensions';
 
 export type KServeDeployment = Deployment<InferenceServiceKind, ServingRuntimeKind>;
@@ -67,4 +68,18 @@ export const useWatchDeployments = (
     inferenceServiceLoaded && servingRuntimeLoaded,
     inferenceServiceError || servingRuntimeError,
   ];
+};
+
+export const deleteDeployment = async (deployment: KServeDeployment): Promise<void> => {
+  await Promise.all([
+    deleteInferenceService(deployment.model.metadata.name, deployment.model.metadata.namespace),
+    ...(deployment.server
+      ? [
+          deleteServingRuntime(
+            deployment.server.metadata.name,
+            deployment.server.metadata.namespace,
+          ),
+        ]
+      : []),
+  ]);
 };

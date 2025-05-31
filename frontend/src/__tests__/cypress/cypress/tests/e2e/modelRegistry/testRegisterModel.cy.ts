@@ -1,21 +1,21 @@
-import { HTPASSWD_CLUSTER_ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
+import { HTPASSWD_CLUSTER_ADMIN_USER } from '#~/__tests__/cypress/cypress/utils/e2eUsers';
 import {
   FormFieldSelector,
   registerModelPage,
-} from '~/__tests__/cypress/cypress/pages/modelRegistry/registerModelPage';
-import { modelRegistry } from '~/__tests__/cypress/cypress/pages/modelRegistry';
-import { retryableBeforeEach } from '~/__tests__/cypress/cypress/utils/retryableHooks';
+} from '#~/__tests__/cypress/cypress/pages/modelRegistry/registerModelPage';
+import { modelRegistry } from '#~/__tests__/cypress/cypress/pages/modelRegistry';
+import { retryableBeforeEach } from '#~/__tests__/cypress/cypress/utils/retryableHooks';
 import {
   checkModelRegistry,
   checkModelRegistryAvailable,
   cleanupRegisteredModelsFromDatabase,
   createModelRegistryViaYAML,
   deleteModelRegistry,
-} from '~/__tests__/cypress/cypress/utils/oc_commands/modelRegistry';
-import { loadRegisterModelFixture } from '~/__tests__/cypress/cypress/utils/dataLoader';
-import { generateTestUUID } from '~/__tests__/cypress/cypress/utils/uuidGenerator';
-import type { RegisterModelTestData } from '~/__tests__/cypress/cypress/types';
-import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
+} from '#~/__tests__/cypress/cypress/utils/oc_commands/modelRegistry';
+import { loadRegisterModelFixture } from '#~/__tests__/cypress/cypress/utils/dataLoader';
+import { generateTestUUID } from '#~/__tests__/cypress/cypress/utils/uuidGenerator';
+import type { RegisterModelTestData } from '#~/__tests__/cypress/cypress/types';
+import { appChrome } from '#~/__tests__/cypress/cypress/pages/appChrome';
 
 describe('Verify models can be registered in a model registry', () => {
   let testData: RegisterModelTestData;

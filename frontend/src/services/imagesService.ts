@@ -1,5 +1,5 @@
-import axios from '~/utilities/axios';
-import { BYONImage, ImageInfo, ResponseStatus } from '~/types';
+import axios from '#~/utilities/axios';
+import { BYONImage, ImageInfo, ResponseStatus } from '#~/types';
 
 export const fetchImages = (): Promise<ImageInfo[]> => {
   const url = `/api/images/jupyter`;

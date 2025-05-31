@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Button } from '@patternfly/react-core';
-import InstallTrustyModal from '~/concepts/trustyai/content/InstallTrustyModal';
-import { UseManageTrustyAICRReturnType } from '~/concepts/trustyai/useManageTrustyAICR';
+import InstallTrustyModal from '#~/concepts/trustyai/content/InstallTrustyModal';
+import { UseManageTrustyAICRReturnType } from '#~/concepts/trustyai/useManageTrustyAICR';
 
 type TrustyAIUninstalledStateProps = {
   namespace: string;

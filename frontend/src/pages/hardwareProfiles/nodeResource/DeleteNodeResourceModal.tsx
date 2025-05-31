@@ -9,8 +9,8 @@ import {
   ModalBody,
   ModalFooter,
 } from '@patternfly/react-core';
-import { Identifier } from '~/types';
-import { CPU_MEMORY_MISSING_WARNING } from '~/pages/hardwareProfiles/const';
+import { Identifier } from '#~/types';
+import { CPU_MEMORY_MISSING_WARNING } from '#~/pages/hardwareProfiles/const';
 
 type DeleteNodeResourceModalProps = {
   identifier: Identifier;

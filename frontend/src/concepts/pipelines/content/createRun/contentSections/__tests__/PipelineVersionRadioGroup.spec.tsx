@@ -2,12 +2,12 @@
 import React, { act } from 'react';
 import '@testing-library/jest-dom';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { PipelineVersionToUse } from '~/concepts/pipelines/content/createRun/types';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import PipelineVersionRadioGroup from '~/concepts/pipelines/content/createRun/contentSections/PipelineVersionRadioGroup';
-import { buildMockPipeline, buildMockPipelineVersion } from '~/__mocks__';
+import { PipelineVersionToUse } from '#~/concepts/pipelines/content/createRun/types';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+import PipelineVersionRadioGroup from '#~/concepts/pipelines/content/createRun/contentSections/PipelineVersionRadioGroup';
+import { buildMockPipeline, buildMockPipelineVersion } from '#~/__mocks__';
 
-jest.mock('~/concepts/pipelines/context', () => ({
+jest.mock('#~/concepts/pipelines/context', () => ({
   usePipelinesAPI: jest.fn(),
 }));
 

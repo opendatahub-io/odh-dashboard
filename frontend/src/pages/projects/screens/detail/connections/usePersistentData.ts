@@ -2,8 +2,8 @@ import React, { useCallback } from 'react';
 import {
   ConnectionTypeConfigMapObj,
   ConnectionTypeValueType,
-} from '~/concepts/connectionTypes/types';
-import { getDefaultValues } from '~/concepts/connectionTypes/utils';
+} from '#~/concepts/connectionTypes/types';
+import { getDefaultValues } from '#~/concepts/connectionTypes/utils';
 
 type UsePersistentDataProps = {
   setConnectionValues: (name: { [key: string]: ConnectionTypeValueType }) => void;

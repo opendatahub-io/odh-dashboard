@@ -1,6 +1,6 @@
-import type { SCReplacements, CommandLineResult } from '~/__tests__/cypress/cypress/types';
-import { replacePlaceholdersInYaml } from '~/__tests__/cypress/cypress/utils/yaml_files';
-import { MetadataAnnotation } from '~/k8sTypes';
+import type { SCReplacements, CommandLineResult } from '#~/__tests__/cypress/cypress/types';
+import { replacePlaceholdersInYaml } from '#~/__tests__/cypress/cypress/utils/yaml_files';
+import { MetadataAnnotation } from '#~/k8sTypes';
 import { applyOpenShiftYaml, patchOpenShiftResource } from './baseCommands';
 
 /**

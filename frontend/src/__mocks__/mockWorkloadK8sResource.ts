@@ -1,6 +1,6 @@
-import { genUID } from '~/__mocks__/mockUtils';
-import { WorkloadStatusType } from '~/concepts/distributedWorkloads/utils';
-import { WorkloadCondition, WorkloadKind, WorkloadOwnerType, WorkloadPodSet } from '~/k8sTypes';
+import { genUID } from '#~/__mocks__/mockUtils';
+import { WorkloadStatusType } from '#~/concepts/distributedWorkloads/utils';
+import { WorkloadCondition, WorkloadKind, WorkloadOwnerType, WorkloadPodSet } from '#~/k8sTypes';
 
 const mockWorkloadStatusConditions: Record<WorkloadStatusType, WorkloadCondition[]> = {
   Pending: [

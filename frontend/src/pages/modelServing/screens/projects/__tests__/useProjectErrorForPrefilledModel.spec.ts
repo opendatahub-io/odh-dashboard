@@ -1,30 +1,30 @@
 import React from 'react';
-import { mockDashboardConfig } from '~/__mocks__';
-import { mockServingRuntimeK8sResource } from '~/__mocks__/mockServingRuntimeK8sResource';
-import { testHook } from '~/__tests__/unit/testUtils/hooks';
-import { useAccessReview } from '~/api';
-import { useAppContext } from '~/app/AppContext';
-import { ServingRuntimeKind } from '~/k8sTypes';
-import { ModelServingContextType } from '~/pages/modelServing/ModelServingContext';
-import useProjectErrorForPrefilledModel from '~/pages/modelServing/screens/projects/useProjectErrorForPrefilledModel';
-import { ServingRuntimePlatform } from '~/types';
+import { mockDashboardConfig } from '#~/__mocks__';
+import { mockServingRuntimeK8sResource } from '#~/__mocks__/mockServingRuntimeK8sResource';
+import { testHook } from '#~/__tests__/unit/testUtils/hooks';
+import { useAccessReview } from '#~/api';
+import { useAppContext } from '#~/app/AppContext';
+import { ServingRuntimeKind } from '#~/k8sTypes';
+import { ModelServingContextType } from '#~/pages/modelServing/ModelServingContext';
+import useProjectErrorForPrefilledModel from '#~/pages/modelServing/screens/projects/useProjectErrorForPrefilledModel';
+import { ServingRuntimePlatform } from '#~/types';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sListResource: jest.fn(),
 }));
 
 // Mock the API functions
-jest.mock('~/api', () => ({
-  ...jest.requireActual('~/api'),
+jest.mock('#~/api', () => ({
+  ...jest.requireActual('#~/api'),
   useAccessReview: jest.fn(),
 }));
 
-jest.mock('~/pages/modelServing/useServingPlatformStatuses', () => ({
+jest.mock('#~/pages/modelServing/useServingPlatformStatuses', () => ({
   __esModule: true,
   default: jest.fn(),
 }));
 
-jest.mock('~/app/AppContext', () => ({
+jest.mock('#~/app/AppContext', () => ({
   __esModule: true,
   useAppContext: jest.fn(),
 }));

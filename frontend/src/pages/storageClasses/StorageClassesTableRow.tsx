@@ -14,11 +14,11 @@ import {
 import { Tr, Td, ActionsColumn, TableText } from '@patternfly/react-table';
 import { PencilAltIcon, OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 
-import { MetadataAnnotation, StorageClassConfig, StorageClassKind } from '~/k8sTypes';
-import { TableRowTitleDescription } from '~/components/table';
-import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
-import { NoValue } from '~/components/NoValue';
-import { updateStorageClassConfig } from '~/api';
+import { MetadataAnnotation, StorageClassConfig, StorageClassKind } from '#~/k8sTypes';
+import { TableRowTitleDescription } from '#~/components/table';
+import DashboardPopupIconButton from '#~/concepts/dashboard/DashboardPopupIconButton';
+import { NoValue } from '#~/components/NoValue';
+import { updateStorageClassConfig } from '#~/api';
 import { ColumnLabel } from './constants';
 import { isOpenshiftDefaultStorageClass, isValidConfigValue } from './utils';
 import { StorageClassEnableSwitch } from './StorageClassEnableSwitch';

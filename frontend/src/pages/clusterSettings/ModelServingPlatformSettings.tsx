@@ -11,16 +11,16 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import SettingSection from '~/components/SettingSection';
-import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
-import { ModelServingPlatformEnabled } from '~/types';
-import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformStatuses';
-import { useKServeDeploymentMode } from '~/pages/modelServing/useKServeDeploymentMode';
-import { DataScienceClusterModel } from '~/api';
-import { DeploymentMode } from '~/k8sTypes';
-import { useOpenShiftURL } from '~/utilities/clusterUtils';
-import DashboardHelpTooltip from '~/concepts/dashboard/DashboardHelpTooltip';
-import { useAccessAllowed, verbModelAccess } from '~/concepts/userSSAR';
+import SettingSection from '#~/components/SettingSection';
+import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
+import { ModelServingPlatformEnabled } from '#~/types';
+import useServingPlatformStatuses from '#~/pages/modelServing/useServingPlatformStatuses';
+import { useKServeDeploymentMode } from '#~/pages/modelServing/useKServeDeploymentMode';
+import { DataScienceClusterModel } from '#~/api';
+import { DeploymentMode } from '#~/k8sTypes';
+import { useOpenShiftURL } from '#~/utilities/clusterUtils';
+import DashboardHelpTooltip from '#~/concepts/dashboard/DashboardHelpTooltip';
+import { useAccessAllowed, verbModelAccess } from '#~/concepts/userSSAR';
 
 type ModelServingPlatformSettingsProps = {
   initialValue: ModelServingPlatformEnabled;

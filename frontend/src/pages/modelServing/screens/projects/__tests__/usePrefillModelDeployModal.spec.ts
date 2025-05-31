@@ -1,16 +1,16 @@
 import { waitFor } from '@testing-library/dom';
-import { ProjectKind } from '~/k8sTypes';
-import { mockInferenceServiceModalData } from '~/__mocks__/mockInferenceServiceModalData';
-import { testHook } from '~/__tests__/unit/testUtils/hooks';
-import useConnections from '~/pages/projects/screens/detail/connections/useConnections';
-import { useWatchConnectionTypes } from '~/utilities/useWatchConnectionTypes';
-import { mockConnection } from '~/__mocks__/mockConnection';
-import { mockConnectionTypeConfigMapObj } from '~/__mocks__/mockConnectionType';
+import { ProjectKind } from '#~/k8sTypes';
+import { mockInferenceServiceModalData } from '#~/__mocks__/mockInferenceServiceModalData';
+import { testHook } from '#~/__tests__/unit/testUtils/hooks';
+import useConnections from '#~/pages/projects/screens/detail/connections/useConnections';
+import { useWatchConnectionTypes } from '#~/utilities/useWatchConnectionTypes';
+import { mockConnection } from '#~/__mocks__/mockConnection';
+import { mockConnectionTypeConfigMapObj } from '#~/__mocks__/mockConnectionType';
 import usePrefillModelDeployModal, {
   ModelDeployPrefillInfo,
-} from '~/pages/modelServing/screens/projects/usePrefillModelDeployModal';
+} from '#~/pages/modelServing/screens/projects/usePrefillModelDeployModal';
 
-jest.mock('~/concepts/areas/useIsAreaAvailable', () => () => ({
+jest.mock('#~/concepts/areas/useIsAreaAvailable', () => () => ({
   status: true,
   featureFlags: {},
   reliantAreas: {},
@@ -33,8 +33,8 @@ const mockProjectContext = {
 
 const data = mockInferenceServiceModalData({});
 const mockSetCreateData = jest.fn();
-jest.mock('~/pages/projects/screens/detail/connections/useConnections');
-jest.mock('~/utilities/useWatchConnectionTypes');
+jest.mock('#~/pages/projects/screens/detail/connections/useConnections');
+jest.mock('#~/utilities/useWatchConnectionTypes');
 const mockUseConnections = jest.mocked(useConnections);
 const mockuseWatchConnectionTypes = jest.mocked(useWatchConnectionTypes);
 
