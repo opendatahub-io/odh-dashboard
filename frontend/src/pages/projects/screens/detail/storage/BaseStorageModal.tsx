@@ -73,7 +73,11 @@ const BaseStorageModal: React.FC<BaseStorageModalProps> = ({
     setCreateData,
   ]);
 
-  const canCreate = !actionInProgress && nameDescValid && isValid;
+  const canCreate =
+    !actionInProgress &&
+    nameDescValid &&
+    isValid &&
+    (createData.accessMode || existingPvc?.spec.accessModes[0]);
 
   const submit = () => {
     setError(undefined);
@@ -109,6 +113,7 @@ const BaseStorageModal: React.FC<BaseStorageModalProps> = ({
                 hasDuplicateName={hasDuplicateName}
                 disableStorageClassSelect={!!existingPvc}
                 editableK8sName={!existingPvc}
+                existingAccessMode={existingPvc?.spec.accessModes[0]}
               />
             </StackItem>
             {children}

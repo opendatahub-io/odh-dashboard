@@ -16,14 +16,17 @@ import { useGetStorageClassConfig } from './useGetStorageClassConfig';
 import AccessModeRadio from './AccessModeRadio';
 
 type AccessModeFieldProps = {
+  currentAccessMode?: AccessMode;
   storageClassName?: string;
   existingAccessMode?: AccessMode;
-  // onChange: (value: AccessMode) => void;
+  setAccessMode: (value: AccessMode) => void;
 };
 
 const AccessModeField: React.FC<AccessModeFieldProps> = ({
+  currentAccessMode,
   storageClassName,
   existingAccessMode,
+  setAccessMode,
 }) => {
   const { storageClassesLoaded, adminSupportedAccessModes, openshiftSupportedAccessModes } =
     useGetStorageClassConfig(storageClassName);
@@ -39,15 +42,17 @@ const AccessModeField: React.FC<AccessModeFieldProps> = ({
 
   const getDefaultAccessMode = () => {
     if (hasRWO) {
+      setAccessMode(AccessMode.RWO);
       return AccessMode.RWO;
     }
     if (adminSupportedAccessModes.length > 0) {
+      setAccessMode(adminSupportedAccessModes[0]);
       return adminSupportedAccessModes[0];
     }
     return undefined;
   };
 
-  const [checkedItem, setCheckedItem] = React.useState(getDefaultAccessMode());
+  const checkedItem = currentAccessMode || getDefaultAccessMode();
   const labelHelpRef = React.useRef(null);
 
   if (!storageClassesLoaded) {
@@ -113,7 +118,7 @@ const AccessModeField: React.FC<AccessModeFieldProps> = ({
                   name="access-mode-rwo"
                   isDisabled={!hasRWO}
                   isChecked={checkedItem === AccessMode.RWO}
-                  onChange={() => setCheckedItem(AccessMode.RWO)}
+                  onChange={() => setAccessMode(AccessMode.RWO)}
                   accessMode={AccessMode.RWO}
                 />
               </FlexItem>
@@ -124,7 +129,7 @@ const AccessModeField: React.FC<AccessModeFieldProps> = ({
                 name="access-mode-rwx"
                 isDisabled={!hasRWX}
                 isChecked={checkedItem === AccessMode.RWX}
-                onChange={() => setCheckedItem(AccessMode.RWX)}
+                onChange={() => setAccessMode(AccessMode.RWX)}
                 accessMode={AccessMode.RWX}
               />
             </FlexItem>
@@ -135,7 +140,7 @@ const AccessModeField: React.FC<AccessModeFieldProps> = ({
                   name="access-mode-rox"
                   isDisabled={!hasROX}
                   isChecked={checkedItem === AccessMode.ROX}
-                  onChange={() => setCheckedItem(AccessMode.ROX)}
+                  onChange={() => setAccessMode(AccessMode.ROX)}
                   accessMode={AccessMode.ROX}
                 />
               </FlexItem>
@@ -147,7 +152,7 @@ const AccessModeField: React.FC<AccessModeFieldProps> = ({
                   name="access-mode-rwop"
                   isDisabled={!hasRWOP}
                   isChecked={checkedItem === AccessMode.RWOP}
-                  onChange={() => setCheckedItem(AccessMode.RWOP)}
+                  onChange={() => setAccessMode(AccessMode.RWOP)}
                   accessMode={AccessMode.RWOP}
                 />
               </FlexItem>

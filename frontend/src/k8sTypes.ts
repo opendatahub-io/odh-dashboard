@@ -309,7 +309,7 @@ export type PersistentVolumeClaimKind = K8sResourceCommon & {
     namespace: string;
   };
   spec: {
-    accessModes: string[];
+    accessModes: AccessMode[];
     resources: {
       requests: {
         storage: string;
