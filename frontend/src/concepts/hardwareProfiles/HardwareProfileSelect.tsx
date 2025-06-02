@@ -16,9 +16,6 @@ import {
   FormHelperText,
 } from '@patternfly/react-core';
 import * as React from 'react';
-import HardwareProfileDetailsPopover from './HardwareProfileDetailsPopover';
-import { HardwareProfileConfig } from './useHardwareProfileConfig';
-import { formatResource, formatResourceValue, getProfileScore } from './utils';
 import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
 import { HardwareProfileKind } from '#~/k8sTypes';
 import SearchSelector from '#~/components/searchSelector/SearchSelector';
@@ -26,6 +23,9 @@ import { ProjectObjectType } from '#~/concepts/design/utils';
 import GlobalIcon from '#~/images/icons/GlobalIcon';
 import TruncatedText from '#~/components/TruncatedText';
 import TypedObjectIcon from '#~/concepts/design/TypedObjectIcon';
+import HardwareProfileDetailsPopover from './HardwareProfileDetailsPopover';
+import { HardwareProfileConfig } from './useHardwareProfileConfig';
+import { formatResource, formatResourceValue, getProfileScore } from './utils';
 
 type HardwareProfileSelectProps = {
   initialHardwareProfile?: HardwareProfileKind;
