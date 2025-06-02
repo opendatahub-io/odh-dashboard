@@ -7,8 +7,10 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import { isFilledLmEvalFormData } from '#~/pages/lmEval/lmEvalForm/utils';
+import { useNavigate } from 'react-router';
+import { isFilledLmEvalFormData } from '#~/pages/lmEval/utils';
 import { LmEvalFormData } from '#~/pages/lmEval/types';
+import { createModelEvaluation } from '#~/api';
 
 type LMEvalFormFooterProps = {
   data: LmEvalFormData;
@@ -18,6 +20,22 @@ const LMEvalFormFooter: React.FC<LMEvalFormFooterProps> = ({ data }) => {
   const [error, setError] = React.useState<Error | null>(null);
   const [isSubmitting, setSubmitting] = React.useState(false);
   const canSubmit = isFilledLmEvalFormData(data);
+  const navigate = useNavigate();
+
+  const onCreatelmEval = async () => {
+    setSubmitting(true);
+    setError(null);
+    createModelEvaluation(data)
+      .then(() => {
+        navigate('/lmEval');
+      })
+      .catch((err) => {
+        setError(err);
+      })
+      .finally(() => {
+        setSubmitting(false);
+      });
+  };
 
   return (
     <Stack hasGutter>
@@ -35,19 +53,7 @@ const LMEvalFormFooter: React.FC<LMEvalFormFooterProps> = ({ data }) => {
               variant="primary"
               data-testid="lm-evaluation-submit-button"
               isDisabled={isSubmitting || !canSubmit}
-              onClick={() => {
-                setSubmitting(true);
-                setError(null);
-                //TODO: Implement submit function
-                try {
-                  // TODO: Implement submit function
-                  // await submitEvaluation(data);
-                } catch (err) {
-                  // TODO: Implement error handling
-                } finally {
-                  setSubmitting(false);
-                }
-              }}
+              onClick={onCreatelmEval}
               isLoading={isSubmitting}
             >
               Evaluate
