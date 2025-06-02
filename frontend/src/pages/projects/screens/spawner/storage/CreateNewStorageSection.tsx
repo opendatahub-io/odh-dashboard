@@ -13,6 +13,7 @@ import {
   LimitNameResourceType,
 } from '#~/concepts/k8s/K8sNameDescriptionField/utils';
 import StorageClassSelect from './StorageClassSelect';
+import AccessModeField from './AccessModeField';
 
 type CreateNewStorageSectionProps<D extends StorageData> = {
   data: D;
@@ -92,6 +93,7 @@ const CreateNewStorageSection = <D extends StorageData>({
           menuAppendTo={menuAppendTo}
         />
       )}
+      {isStorageClassesAvailable && <AccessModeField storageClassName={data.storageClassName} />}
       <PVSizeField
         fieldID="create-new-storage-size"
         currentStatus={currentStatus}

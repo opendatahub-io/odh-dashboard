@@ -9,13 +9,15 @@ import {
   Skeleton,
   ValidatedOptions,
   MenuToggleProps,
+  LabelGroup,
 } from '@patternfly/react-core';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import React from 'react';
 import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
-import useStorageClasses from '#~/concepts/k8s/useStorageClasses';
 import { getStorageClassConfig } from '#~/pages/storageClasses/utils';
+import { AccessMode, AccessModeLabelMap } from '#~/pages/storageClasses/storageEnums';
 import useAdminDefaultStorageClass from './useAdminDefaultStorageClass';
+import { useGetStorageClassConfig } from './useGetStorageClassConfig';
 
 type StorageClassSelectProps = {
   storageClassName?: string;
@@ -36,9 +38,19 @@ const StorageClassSelect: React.FC<StorageClassSelectProps> = ({
   menuAppendTo,
   validated,
 }) => {
-  const [storageClasses, storageClassesLoaded] = useStorageClasses();
+  const {
+    storageClasses,
+    storageClassesLoaded,
+    selectedStorageClassConfig,
+    adminSupportedAccessModes,
+    openshiftSupportedAccessModes,
+  } = useGetStorageClassConfig(storageClassName);
   const hasStorageClassConfigs = storageClasses.some((sc) => !!getStorageClassConfig(sc));
   const [defaultSc] = useAdminDefaultStorageClass();
+  const displayedAccessModes = adminSupportedAccessModes.filter(
+    (accessMode) =>
+      openshiftSupportedAccessModes.includes(accessMode) && accessMode !== AccessMode.RWO,
+  );
 
   const enabledStorageClasses = storageClasses
     .filter((sc) => getStorageClassConfig(sc)?.isEnabled === true)
@@ -55,11 +67,6 @@ const StorageClassSelect: React.FC<StorageClassSelectProps> = ({
         bConfig?.displayName || b.metadata.name,
       );
     });
-
-  const selectedStorageClass = storageClasses.find((sc) => sc.metadata.name === storageClassName);
-  const selectedStorageClassConfig = selectedStorageClass
-    ? getStorageClassConfig(selectedStorageClass)
-    : undefined;
 
   const options: SimpleSelectOption[] = (
     disableStorageClassSelect ? storageClasses : enabledStorageClasses
@@ -84,11 +91,18 @@ const StorageClassSelect: React.FC<StorageClassSelectProps> = ({
           <SplitItem>
             {/* If multiple storage classes have `isDefault` set to true,
             prioritize the one returned by useAdminDefaultStorageClass() as the default class */}
-            {sc.metadata.name === defaultSc?.metadata.name && (
-              <Label isCompact color="green" data-testid="is-default-label">
-                Default class
-              </Label>
-            )}
+            <LabelGroup>
+              {displayedAccessModes.map((accessMode, index) => (
+                <Label key={index} isCompact data-testid="is-default-label">
+                  {AccessModeLabelMap[accessMode]}
+                </Label>
+              ))}
+              {sc.metadata.name === defaultSc?.metadata.name && (
+                <Label isCompact color="green" data-testid="is-default-label">
+                  Default class
+                </Label>
+              )}
+            </LabelGroup>
           </SplitItem>
         </Split>
       ),

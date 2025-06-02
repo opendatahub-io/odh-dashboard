@@ -1,6 +1,7 @@
 import { SortableData, kebabTableColumn } from '#~/components/table';
 import { AccessModeColumnInfo } from '#~/pages/projects/screens/detail/storage/AccessModeLabel.tsx';
 import { StorageData } from '#~/pages/projects/types';
+import { AccessMode } from '#~/pages/storageClasses/storageEnums';
 import { MOUNT_PATH_PREFIX } from './const';
 
 export const clusterStorageTableColumns: SortableData<StorageData>[] = [
@@ -47,4 +48,11 @@ export const defaultClusterStorage = {
   size: '20Gi',
   mountPath: MOUNT_PATH_PREFIX,
   accessMode: 'ReadWriteOnce',
+};
+
+export const ACCESS_MODE_RADIO_NAMES: Record<AccessMode, string> = {
+  [AccessMode.RWO]: 'ReadWriteOnce (RWO)',
+  [AccessMode.RWX]: 'ReadWriteMany (RWX)',
+  [AccessMode.ROX]: 'ReadOnlyMany (ROX)',
+  [AccessMode.RWOP]: 'ReadWriteOncePod (RWOP)',
 };
