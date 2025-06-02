@@ -32,7 +32,7 @@ const assembleModelEvaluation = (
   spec: {
     allowCodeExecution: data.allowRemoteCode,
     allowOnline: data.allowOnline,
-    batchSize,
+    ...(batchSize && { batchSize }),
     logSamples: true,
     model: data.modelType,
     modelArgs: convertModelArgs(data.model),
