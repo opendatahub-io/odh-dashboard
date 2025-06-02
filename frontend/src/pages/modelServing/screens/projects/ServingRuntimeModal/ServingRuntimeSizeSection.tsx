@@ -38,37 +38,42 @@ const ServingRuntimeSizeSection = ({
 
   const gpuDisabled = servingRuntimeSelected ? isGpuDisabled(servingRuntimeSelected) : false;
 
-  const customResources = customDefaults ? customDefaults.resources : undefined;
+  const [lastEditedCustomResources, setLastEditedCustomResources] = React.useState<
+    ModelServingSize['resources'] | undefined
+  >(customDefaults?.resources);
 
-  const sizeCustom = [
-    ...podSpecOptionState.modelSize.sizes.filter(
-      (size) =>
-        size.resources.limits &&
-        size.resources.requests &&
-        size.resources.limits.cpu &&
-        size.resources.limits.memory &&
-        size.resources.requests.cpu &&
-        size.resources.requests.memory,
-    ),
-    customResources
-      ? {
-          name: 'Custom',
-          resources: customResources,
-        }
-      : {
-          name: 'Custom',
-          resources: {
-            requests: {
-              cpu: '1',
-              memory: '1Gi',
-            },
-            limits: {
-              cpu: '1',
-              memory: '1Gi',
-            },
-          },
-        },
-  ];
+  React.useEffect(() => {
+    if (podSpecOptionState.modelSize.selectedSize.name === 'Custom') {
+      if (
+        JSON.stringify(podSpecOptionState.modelSize.selectedSize.resources) !==
+        JSON.stringify(lastEditedCustomResources)
+      ) {
+        setLastEditedCustomResources(podSpecOptionState.modelSize.selectedSize.resources);
+      }
+    }
+  }, [podSpecOptionState.modelSize.selectedSize, lastEditedCustomResources]);
+
+  const getLatestCustomResources = (): ModelServingSize['resources'] =>
+    lastEditedCustomResources ||
+    customDefaults?.resources || {
+      requests: { cpu: '1', memory: '1Gi' },
+      limits: { cpu: '1', memory: '1Gi' },
+    };
+
+  const baseSizes = podSpecOptionState.modelSize.sizes.filter(
+    (size) =>
+      size.resources.limits?.cpu &&
+      size.resources.limits.memory &&
+      size.resources.requests?.cpu &&
+      size.resources.requests.memory,
+  );
+
+  const currentCustomSizeObject: ModelServingSize = {
+    name: 'Custom',
+    resources: getLatestCustomResources(),
+  };
+
+  const sizeCustom = [...baseSizes, currentCustomSizeObject];
 
   const sizeOptions = () =>
     sizeCustom.map((size) => {
