@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Label } from '@patternfly/react-core';
-import ProjectScopedIcon from '~/components/searchSelector/ProjectScopedIcon';
+import ProjectScopedIcon from '#~/components/searchSelector/ProjectScopedIcon';
 
 export type ScopedLabelColor =
   | 'blue'

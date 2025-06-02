@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Flex, FlexItem } from '@patternfly/react-core';
-import ScopedLabel, { ScopedLabelColor } from '~/components/ScopedLabel';
-import { ScopedType } from '~/pages/modelServing/screens/const';
+import ScopedLabel, { ScopedLabelColor } from '#~/components/ScopedLabel';
+import { ScopedType } from '#~/pages/modelServing/screens/const';
 
 export type ProjectScopedToggleContentProps = {
   displayName?: string;

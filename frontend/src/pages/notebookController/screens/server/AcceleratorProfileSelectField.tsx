@@ -20,7 +20,7 @@ import {
   MenuItem,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
-import useAcceleratorCountWarning from './useAcceleratorCountWarning';
+import useAcceleratorCountWarning from '#~/pages/notebookController/screens/server/useAcceleratorCountWarning';
 import { AcceleratorProfileKind } from '#~/k8sTypes';
 import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
 import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
@@ -32,7 +32,10 @@ import useReadAcceleratorState, {
 } from '#~/utilities/useReadAcceleratorState';
 import NumberInputWrapper from '#~/components/NumberInputWrapper';
 import ProjectScopedIcon from '#~/components/searchSelector/ProjectScopedIcon';
-import { ProjectScopedGroupLabel, ProjectScopedSearchDropdown } from '#~/components/searchSelector/ProjectScopedSearchDropdown';
+import {
+  ProjectScopedGroupLabel,
+  ProjectScopedSearchDropdown,
+} from '#~/components/searchSelector/ProjectScopedSearchDropdown';
 import ProjectScopedToggleContent from '#~/components/searchSelector/ProjectScopedToggleContent';
 import { ScopedType } from '#~/pages/modelServing/screens/const';
 

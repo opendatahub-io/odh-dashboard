@@ -1,7 +1,7 @@
 import * as React from 'react';
-import TypedObjectIcon from '~/concepts/design/TypedObjectIcon';
-import GlobalIcon from '~/images/icons/GlobalIcon';
-import { ProjectObjectType } from '~/concepts/design/utils';
+import TypedObjectIcon from '#~/concepts/design/TypedObjectIcon';
+import GlobalIcon from '#~/images/icons/GlobalIcon';
+import { ProjectObjectType } from '#~/concepts/design/utils';
 
 export type ProjectScopedIconProps = {
   isProject: boolean;

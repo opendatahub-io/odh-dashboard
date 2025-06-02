@@ -23,8 +23,11 @@ import {
   InfoCircleIcon,
   InProgressIcon,
 } from '@patternfly/react-icons';
-import { NotebookImageAvailability, NotebookImageStatus } from './const';
-import { NotebookImage } from './types';
+import {
+  NotebookImageAvailability,
+  NotebookImageStatus,
+} from '#~/pages/projects/screens/detail/notebooks/const';
+import { NotebookImage } from '#~/pages/projects/screens/detail/notebooks/types';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import { ODH_PRODUCT_NAME } from '#~/utilities/const';
 import {

@@ -1,10 +1,10 @@
 import * as React from 'react';
 import { Divider, MenuGroup, MenuItem, Flex, FlexItem } from '@patternfly/react-core';
-import { ProjectObjectType } from '~/concepts/design/utils';
-import SearchSelector from '~/components/searchSelector/SearchSelector';
-import ScopedLabel, { ScopedLabelColor } from '~/components/ScopedLabel';
-import TypedObjectIcon from '~/concepts/design/TypedObjectIcon';
-import GlobalIcon from '~/images/icons/GlobalIcon';
+import { ProjectObjectType } from '#~/concepts/design/utils';
+import SearchSelector from '#~/components/searchSelector/SearchSelector';
+import ScopedLabel, { ScopedLabelColor } from '#~/components/ScopedLabel';
+import TypedObjectIcon from '#~/concepts/design/TypedObjectIcon';
+import GlobalIcon from '#~/images/icons/GlobalIcon';
 
 type WithNamespace = { metadata: { namespace: string } };
 
