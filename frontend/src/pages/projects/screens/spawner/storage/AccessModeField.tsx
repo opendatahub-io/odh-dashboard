@@ -74,25 +74,25 @@ const AccessModeField: React.FC<AccessModeFieldProps> = ({
               </div>
               <br />
               <List>
-                {showRWO && hasRWO && (
+                {((showRWO && hasRWO) || existingAccessMode === AccessMode.RWO) && (
                   <ListItem>
                     <b>{ACCESS_MODE_RADIO_NAMES[AccessMode.RWO]}</b> means that the storage can be
                     attached to a single workbench at a given time.
                   </ListItem>
                 )}
-                {showRWX && hasRWX && (
+                {((showRWX && hasRWX) || existingAccessMode === AccessMode.RWX) && (
                   <ListItem>
                     <b>{ACCESS_MODE_RADIO_NAMES[AccessMode.RWX]}</b> means that the storage can be
                     attached to many workbenches simultaneously.
                   </ListItem>
                 )}
-                {showROX && hasROX && (
+                {((showROX && hasROX) || existingAccessMode === AccessMode.ROX) && (
                   <ListItem>
                     <b>{ACCESS_MODE_RADIO_NAMES[AccessMode.ROX]}</b> means that the storage can be
                     attached to many workbenches as read-only.
                   </ListItem>
                 )}
-                {showRWOP && hasRWOP && (
+                {((showRWOP && hasRWOP) || existingAccessMode === AccessMode.RWOP) && (
                   <ListItem>
                     <b>{ACCESS_MODE_RADIO_NAMES[AccessMode.RWOP]}</b> means that the storage can be
                     attached to a single pod on a single node as read-write.
