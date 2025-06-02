@@ -1,10 +1,5 @@
 import * as React from 'react';
 import { FormGroup, Stack, StackItem, ExpandableSection } from '@patternfly/react-core';
-import { hardwareProfileValidationSchema } from './validationUtils';
-import HardwareProfileSelect from './HardwareProfileSelect';
-import HardwareProfileCustomize from './HardwareProfileCustomize';
-import { PodSpecOptionsState, PodSpecOptions } from './types';
-import { getContainerResourcesFromHardwareProfile } from './utils';
 import { HardwareProfileKind, HardwareProfileFeatureVisibility } from '#~/k8sTypes';
 import { useValidation, ValidationContext } from '#~/utilities/useValidation';
 import { ContainerResources } from '#~/types';
@@ -12,6 +7,11 @@ import { useHardwareProfilesByFeatureVisibility } from '#~/pages/hardwareProfile
 import { ZodErrorHelperText } from '#~/components/ZodErrorFormHelperText';
 import ProjectScopedPopover from '#~/components/ProjectScopedPopover';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { hardwareProfileValidationSchema } from './validationUtils';
+import HardwareProfileSelect from './HardwareProfileSelect';
+import HardwareProfileCustomize from './HardwareProfileCustomize';
+import { PodSpecOptionsState, PodSpecOptions } from './types';
+import { getContainerResourcesFromHardwareProfile } from './utils';
 
 type HardwareProfileFormSectionProps<T extends PodSpecOptions> = {
   isEditing: boolean;
