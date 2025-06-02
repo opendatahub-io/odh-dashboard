@@ -2,7 +2,6 @@ import { Patch } from '@openshift/dynamic-plugin-sdk-utils';
 import {
   DSPipelineExternalStorageKind,
   ImageStreamSpecTagType,
-  K8sAPIOptions,
   KnownLabels,
   NotebookKind,
   RoleBindingKind,
@@ -17,7 +16,6 @@ import {
 } from '#~/concepts/pipelines/elyra/const';
 import { Volume, VolumeMount } from '#~/types';
 import { RUNTIME_MOUNT_PATH } from '#~/pages/projects/pvc/const';
-import { createRoleBinding, getRoleBinding, patchRoleBindingOwnerRef } from '#~/api';
 import { experimentsBaseRoute } from '#~/routes/pipelines/experiments';
 import { getImageVersionDependencies } from '#~/pages/projects/screens/spawner/spawnerUtils';
 
