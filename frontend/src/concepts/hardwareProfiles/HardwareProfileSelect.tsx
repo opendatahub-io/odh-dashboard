@@ -105,7 +105,7 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
           <Stack>
             {profile.spec.description && (
               <StackItem>
-                <Truncate content={profile.spec.description} />
+                <TruncatedText maxLines={1} content={profile.spec.description} />
               </StackItem>
             )}
             {profile.spec.identifiers && (
@@ -195,7 +195,7 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
               <Stack style={{ marginLeft: '19px' }}>
                 {profile.spec.description && (
                   <StackItem>
-                    <Truncate content={profile.spec.description} />
+                    <TruncatedText maxLines={1} content={profile.spec.description} />
                   </StackItem>
                 )}
                 {profile.spec.identifiers && (
@@ -283,7 +283,7 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
             <Stack style={{ marginLeft: '23px' }}>
               {profile.spec.description && (
                 <StackItem>
-                  <Truncate content={profile.spec.description} />
+                  <TruncatedText maxLines={1} content={profile.spec.description} />
                 </StackItem>
               )}
               {profile.spec.identifiers && (
