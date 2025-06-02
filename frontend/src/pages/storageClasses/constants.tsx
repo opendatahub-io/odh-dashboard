@@ -1,3 +1,4 @@
+import React from 'react';
 import { SortableData, kebabTableColumn } from '#~/components/table';
 import { StorageClassKind } from '#~/k8sTypes';
 import { AccessMode } from '#~/pages/storageClasses/storageEnums';
@@ -10,6 +11,19 @@ export enum ColumnLabel {
   Default = 'Default',
   LastModified = 'Last modified',
 }
+
+const displayNameInfoObject = {
+  popoverProps: { headerContent: 'Display name' },
+  popover: (
+    <>
+      The display name identifies a storage class within OpenShift AI, and can be edited.
+      <br />
+      <br />
+      If the display name is followed by RWX, ROX or RWOP label, it means that the class enables the
+      corresponding access mode. RWO is enabled by default.
+    </>
+  ),
+};
 
 export const columns: SortableData<StorageClassKind>[] = [
   {
@@ -25,11 +39,7 @@ export const columns: SortableData<StorageClassKind>[] = [
 
       return -1;
     },
-    info: {
-      popoverProps: { headerContent: 'Display name' },
-      popover:
-        'The display name identifies a storage class within OpenShift AI, and can be edited.',
-    },
+    info: displayNameInfoObject,
   },
   {
     field: 'storageClassName',
@@ -64,7 +74,7 @@ export const columns: SortableData<StorageClassKind>[] = [
   {
     field: 'lastModified',
     label: ColumnLabel.LastModified,
-    sortable: (a, b) =>
+    sortable: (a: StorageClassKind, b: StorageClassKind) =>
       new Date(getStorageClassConfig(a)?.lastModified || '').getTime() -
       new Date(getStorageClassConfig(b)?.lastModified || '').getTime(),
   },
