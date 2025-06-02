@@ -22,6 +22,6 @@
         "noEmit": true,
         "allowImportingTsExtensions": true
     },
-    "include": ["${configDir}/**/*.ts", "${configDir}/**/*.tsx", "${configDir}/**/*.jsx", "${configDir}/**/*.js"],
+    "include": ["${configDir}/**/*.ts", "${configDir}/**/*.tsx", "${configDir}/**/*.jsx", "${configDir}/**/**.js"],
     "exclude": ["node_modules"]
 }
