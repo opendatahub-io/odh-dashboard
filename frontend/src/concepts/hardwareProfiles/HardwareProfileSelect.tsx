@@ -16,6 +16,9 @@ import {
   FormHelperText,
 } from '@patternfly/react-core';
 import * as React from 'react';
+import HardwareProfileDetailsPopover from './HardwareProfileDetailsPopover';
+import { HardwareProfileConfig } from './useHardwareProfileConfig';
+import { formatResource, formatResourceValue, getProfileScore } from './utils';
 import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
 import { HardwareProfileKind } from '#~/k8sTypes';
 import SearchSelector from '#~/components/searchSelector/SearchSelector';
@@ -23,9 +26,6 @@ import { ProjectObjectType } from '#~/concepts/design/utils';
 import GlobalIcon from '#~/images/icons/GlobalIcon';
 import TruncatedText from '#~/components/TruncatedText';
 import TypedObjectIcon from '#~/concepts/design/TypedObjectIcon';
-import HardwareProfileDetailsPopover from './HardwareProfileDetailsPopover';
-import { HardwareProfileConfig } from './useHardwareProfileConfig';
-import { formatResource, formatResourceValue, getProfileScore } from './utils';
 
 type HardwareProfileSelectProps = {
   initialHardwareProfile?: HardwareProfileKind;
@@ -105,7 +105,7 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
           <Stack>
             {profile.spec.description && (
               <StackItem>
-                <Truncate content={profile.spec.description} />
+                <TruncatedText maxLines={1} content={profile.spec.description} />
               </StackItem>
             )}
             {profile.spec.identifiers && (
@@ -195,7 +195,7 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
               <Stack style={{ marginLeft: '19px' }}>
                 {profile.spec.description && (
                   <StackItem>
-                    <Truncate content={profile.spec.description} />
+                    <TruncatedText maxLines={1} content={profile.spec.description} />
                   </StackItem>
                 )}
                 {profile.spec.identifiers && (
