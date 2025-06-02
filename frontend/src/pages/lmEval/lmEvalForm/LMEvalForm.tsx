@@ -38,7 +38,10 @@ import LmEvaluationTaskSection from './LMEvalTaskSection';
 import LmEvaluationSecuritySection from './LMEvalSecuritySection';
 import LmModelArgumentSection from './LMEvalModelArgumentSection';
 import { modelTypeOptions } from './const';
-import LMEvalFormFooter from './LMEvalFormFooter';
+import useLMGenericObjectState from '#~/pages/lmEval/utilities/useLMGenericObjectState';
+import LMEvalApplicationPage from '#~/pages/lmEval/components/LMEvalApplicationPage';
+import { LmEvalFormData, LmModelArgument } from '#~/pages/lmEval/types';
+import '~/components/pf-overrides/FormSection.scss';
 
 const LMEvalForm: React.FC = () => {
   const { project } = React.useContext(LMEvalContext);
@@ -46,6 +49,7 @@ const LMEvalForm: React.FC = () => {
 
   const [data, setData] = useLMGenericObjectState<LmEvalFormData>({
     deployedModelName: '',
+    deploymentNamespace: '',
     evaluationName: '',
     tasks: [],
     modelType: '',
