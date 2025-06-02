@@ -86,6 +86,14 @@ describe('Compare runs', () => {
     initIntercepts({});
   });
 
+  it('renders the project navigator link', () => {
+    compareRunsGlobal.visit(projectName, mockExperiment.experiment_id, [
+      mockRun.run_id,
+      mockRun2.run_id,
+    ]);
+    compareRunsGlobal.findProjectNavigatorLink().should('exist');
+  });
+
   it('zero runs in url', () => {
     compareRunsGlobal.visit(projectName, mockExperiment.experiment_id);
     compareRunsGlobal.findInvalidRunsError().should('exist');

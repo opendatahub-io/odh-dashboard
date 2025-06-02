@@ -29,8 +29,7 @@ const ExperimentPipelineRunDetails: PipelineCoreDetailsPageComponent = ({ breadc
                   : experimentRunsRoute(namespace, experiment.experiment_id)
               }
             >
-              {/* TODO: Remove the custom className after upgrading to PFv6 */}
-              <Truncate content={experiment.display_name} className="truncate-no-min-width" />
+              <Truncate content={experiment.display_name} />
             </Link>
           ) : (
             'Loading...'

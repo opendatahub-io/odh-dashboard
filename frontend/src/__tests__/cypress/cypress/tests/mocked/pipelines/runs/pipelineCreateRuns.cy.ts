@@ -125,6 +125,16 @@ describe('Pipeline create runs', () => {
   });
 
   describe('Runs', () => {
+    it('renders the project navigator link', () => {
+      pipelineRunsGlobal.visit(projectName);
+      pipelineRunsGlobal.findProjectNavigatorLink().should('exist');
+
+      // Navigate to the 'Create run' page
+      pipelineRunsGlobal.findCreateRunButton().click();
+      createRunPage.find();
+      createRunPage.findProjectNavigatorLink().should('exist');
+    });
+
     it('switches to scheduled runs from triggered', () => {
       pipelineRunsGlobal.visit(projectName);
 

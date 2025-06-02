@@ -1,12 +1,12 @@
 import React from 'react';
-import { Breadcrumb, BreadcrumbItem, Truncate } from '@patternfly/react-core';
-
+import { BreadcrumbItem, Truncate } from '@patternfly/react-core';
 import { useParams, Link } from 'react-router-dom';
 import RunPage from '#~/concepts/pipelines/content/createRun/RunPage';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import { PathProps } from '#~/concepts/pipelines/content/types';
 import { ExperimentKF } from '#~/concepts/pipelines/kfTypes';
 import usePipelineRunById from '#~/concepts/pipelines/apiHooks/usePipelineRunById';
+import PipelineContextBreadcrumb from '#~/concepts/pipelines/content/PipelineContextBreadcrumb';
 import { RunTypeOption } from './types';
 
 type DuplicateRunPageProps = {
@@ -27,20 +27,19 @@ const DuplicateRunPage: React.FC<PathProps & DuplicateRunPageProps> = ({
     <ApplicationsPage
       title="Duplicate run"
       breadcrumb={
-        <Breadcrumb>
+        <PipelineContextBreadcrumb>
           {breadcrumbPath}
           <BreadcrumbItem isActive style={{ maxWidth: 300 }}>
             {run ? (
               <Link to={detailsRedirect(run.run_id)}>
-                {/* TODO: Remove the custom className after upgrading to PFv6 */}
-                <Truncate content={run.display_name} className="truncate-no-min-width" />
+                <Truncate content={run.display_name} />
               </Link>
             ) : (
               'Loading...'
             )}
           </BreadcrumbItem>
           <BreadcrumbItem isActive>Duplicate run</BreadcrumbItem>
-        </Breadcrumb>
+        </PipelineContextBreadcrumb>
       }
       loaded={loaded}
       loadError={error}

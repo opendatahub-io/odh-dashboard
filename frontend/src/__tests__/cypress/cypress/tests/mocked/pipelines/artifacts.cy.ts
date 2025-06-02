@@ -171,6 +171,18 @@ describe('Artifacts', () => {
   });
 
   describe('details', () => {
+    it('renders the project navigator link', () => {
+      artifactDetails.mockGetArtifactById(
+        projectName,
+        mockGetArtifactsById({
+          artifacts: [mockedArtifactsResponse.artifacts[0]],
+          artifactTypes: [],
+        }),
+      );
+      artifactDetails.visit(projectName, 'metrics', '1');
+      artifactDetails.findProjectNavigatorLink().should('exist');
+    });
+
     it('shows empty state for properties and custom properties', () => {
       artifactDetails.mockGetArtifactById(
         projectName,

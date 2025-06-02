@@ -2,7 +2,6 @@ import React from 'react';
 import { useParams } from 'react-router';
 
 import {
-  Breadcrumb,
   BreadcrumbItem,
   Bullseye,
   EmptyState,
@@ -25,6 +24,7 @@ import {
 import { ArtifactDetailsTabKey } from '#~/pages/pipelines/global/experiments/artifacts/constants';
 import { useGetArtifactById } from '#~/concepts/pipelines/apiHooks/mlmd/useGetArtifactById';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import PipelineContextBreadcrumb from '#~/concepts/pipelines/content/PipelineContextBreadcrumb';
 import { ArtifactOverviewDetails } from './ArtifactOverviewDetails';
 import ArtifactDetailsTitle from './ArtifactDetailsTitle';
 
@@ -69,12 +69,12 @@ export const ArtifactDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPa
       loaded={isArtifactLoaded}
       loadError={artifactError}
       breadcrumb={
-        <Breadcrumb>
+        <PipelineContextBreadcrumb>
           {breadcrumbPath}
           <BreadcrumbItem isActive style={{ maxWidth: 300 }}>
             <Truncate content={artifactName} />
           </BreadcrumbItem>
-        </Breadcrumb>
+        </PipelineContextBreadcrumb>
       }
       empty={false}
       provideChildrenPadding
