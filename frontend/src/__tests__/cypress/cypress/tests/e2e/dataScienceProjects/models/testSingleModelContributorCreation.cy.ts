@@ -99,7 +99,7 @@ describe('Verify Model Creation and Validation using the UI', () => {
 
       //Verify the model created
       cy.step('Verify that the Model is created Successfully on the backend and frontend');
-      checkInferenceServiceState(testData.singleModelName, {
+      checkInferenceServiceState(testData.singleModelName, projectName, {
         checkReady: true,
         checkLatestDeploymentReady: true,
       });

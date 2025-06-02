@@ -102,7 +102,7 @@ describe('Verify Admin Single Model Creation and Validation using the UI', () =>
 
       //Verify the model created
       cy.step('Verify that the Model is created Successfully on the backend and frontend');
-      checkInferenceServiceState(testData.singleModelAdminName, {
+      checkInferenceServiceState(testData.singleModelAdminName, projectName, {
         checkReady: true,
         checkLatestDeploymentReady: true,
       });
@@ -113,7 +113,7 @@ describe('Verify Admin Single Model Creation and Validation using the UI', () =>
 
       //Verify the Model is accessible externally
       cy.step('Verify the model is accessible externally');
-      modelExternalTester(modelName).then(({ url, response }) => {
+      modelExternalTester(modelName, projectName).then(({ url, response }) => {
         expect(response.status).to.equal(200);
 
         //verify the External URL Matches the Backend

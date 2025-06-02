@@ -89,7 +89,7 @@ describe(
         inferenceServiceModal.findOpenVinoOnnx().click();
         inferenceServiceModal.findOCIModelURI().type(modelDeploymentURI);
         inferenceServiceModal.findSubmitButton().focus().click();
-        checkInferenceServiceState(modelDeploymentName);
+        checkInferenceServiceState(modelDeploymentName, projectName);
         modelServingSection.findModelServerName(modelDeploymentName);
         // Note reload is required as status tooltip was not found due to a stale element
         cy.reload();
