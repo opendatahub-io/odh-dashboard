@@ -174,6 +174,7 @@ const ServingRuntimeTemplateSection: React.FC<ServingRuntimeTemplateSectionProps
       filterProjectScopedTemplates &&
       filterProjectScopedTemplates.length > 0 ? (
         <ProjectScopedSearchDropdown
+          isDisabled={isEditing}
           projectScopedItems={filteredProjectScopedTemplates}
           globalScopedItems={filteredScopedTemplates}
           renderMenuItem={renderMenuItem}

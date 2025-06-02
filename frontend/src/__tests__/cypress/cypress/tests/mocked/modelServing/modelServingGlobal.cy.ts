@@ -725,7 +725,7 @@ describe('Model Serving Global', () => {
     kserveModalEdit.findServingRuntimeTemplateSearchSelector().should('be.disabled');
     kserveModalEdit
       .findServingRuntimeTemplateSearchSelector()
-      .should('have.text', 'test-project-scoped-sr Project-scoped');
+      .should('have.text', 'test-project-scoped-srProject-scoped');
     kserveModalEdit.findProjectScopedLabel().should('exist');
     kserveModalEdit.findModelFrameworkSelect().should('have.text', 'onnx - 1');
   });
@@ -866,7 +866,7 @@ describe('Model Serving Global', () => {
     kserveModalEdit.findServingRuntimeTemplateSearchSelector().should('be.disabled');
     kserveModalEdit
       .findServingRuntimeTemplateSearchSelector()
-      .should('have.text', 'OpenVINO Serving Runtime (Supports GPUs) Global-scoped');
+      .should('have.text', 'OpenVINO Serving Runtime (Supports GPUs)Global-scoped');
     kserveModalEdit.findGlobalScopedLabel().should('exist');
     kserveModalEdit.findModelFrameworkSelect().should('have.text', 'onnx - 1');
   });

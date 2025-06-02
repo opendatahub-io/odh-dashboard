@@ -118,7 +118,7 @@ function ProjectScopedSearchDropdown<T>({
   loading,
   projectGroupLabel,
   globalGroupLabel,
-  dataTestId = 'project-scoped-search-dropdown',
+  dataTestId = '',
   projectGroupTestId,
   globalGroupTestId,
   isFullWidth,
