@@ -89,14 +89,16 @@ const safeString = (value: string | undefined | null): string => value ?? '';
  * Check InferenceService active model state and additional conditions
  *
  * @param serviceName InferenceService name
+ * @param namespace The namespace where the InferenceService is deployed
  * @param options Optional configuration for condition checks
  * @returns Result Object of the operation
  */
 export const checkInferenceServiceState = (
   serviceName: string,
+  namespace: string,
   options: ConditionCheckOptions = {},
 ): Cypress.Chainable<Cypress.Exec> => {
-  const ocCommand = `oc get inferenceService ${serviceName} -o json`;
+  const ocCommand = `oc get inferenceService ${serviceName} -n ${namespace} -o json`;
   const maxAttempts = 96; // 8 minutes / 5 seconds = 96 attempts
   let attempts = 0;
 
@@ -257,11 +259,13 @@ export const checkInferenceServiceState = (
  * Retries the request every 5 seconds for up to 30 seconds if the initial request fails.
  *
  * @param modelName - The name of the InferenceService/model to test.
+ * @param namespace - The namespace where the InferenceService is deployed.
  */
 export const modelExternalTester = (
   modelName: string,
+  namespace: string,
 ): Cypress.Chainable<{ url: string; response: Cypress.Response<unknown> }> => {
-  return cy.exec(`oc get inferenceService ${modelName} -o json`).then((result) => {
+  return cy.exec(`oc get inferenceService ${modelName} -n ${namespace} -o json`).then((result) => {
     const inferenceService = JSON.parse(result.stdout);
     const { url } = inferenceService.status;
 
