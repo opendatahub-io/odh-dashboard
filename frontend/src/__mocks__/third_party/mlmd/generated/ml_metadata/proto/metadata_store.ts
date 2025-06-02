@@ -5,12 +5,12 @@
 // source: ml_metadata/proto/metadata_store.proto
 
 /* eslint-disable */
-import Long from "long";
-import _m0 from "protobufjs/minimal";
-import { Any } from "../../google/protobuf/any";
-import { Struct } from "../../google/protobuf/struct";
+import Long from 'long';
+import _m0 from 'protobufjs/minimal';
+import { Any } from '../../google/protobuf/any';
+import { Struct } from '../../google/protobuf/struct';
 
-export const protobufPackage = "ml_metadata";
+export const protobufPackage = 'ml_metadata';
 
 /**
  * Copyright 2019 Google LLC
@@ -48,28 +48,28 @@ export enum PropertyType {
 export function propertyTypeFromJSON(object: any): PropertyType {
   switch (object) {
     case 0:
-    case "UNKNOWN":
+    case 'UNKNOWN':
       return PropertyType.UNKNOWN;
     case 1:
-    case "INT":
+    case 'INT':
       return PropertyType.INT;
     case 2:
-    case "DOUBLE":
+    case 'DOUBLE':
       return PropertyType.DOUBLE;
     case 3:
-    case "STRING":
+    case 'STRING':
       return PropertyType.STRING;
     case 4:
-    case "STRUCT":
+    case 'STRUCT':
       return PropertyType.STRUCT;
     case 5:
-    case "PROTO":
+    case 'PROTO':
       return PropertyType.PROTO;
     case 6:
-    case "BOOLEAN":
+    case 'BOOLEAN':
       return PropertyType.BOOLEAN;
     case -1:
-    case "UNRECOGNIZED":
+    case 'UNRECOGNIZED':
     default:
       return PropertyType.UNRECOGNIZED;
   }
@@ -78,22 +78,22 @@ export function propertyTypeFromJSON(object: any): PropertyType {
 export function propertyTypeToJSON(object: PropertyType): string {
   switch (object) {
     case PropertyType.UNKNOWN:
-      return "UNKNOWN";
+      return 'UNKNOWN';
     case PropertyType.INT:
-      return "INT";
+      return 'INT';
     case PropertyType.DOUBLE:
-      return "DOUBLE";
+      return 'DOUBLE';
     case PropertyType.STRING:
-      return "STRING";
+      return 'STRING';
     case PropertyType.STRUCT:
-      return "STRUCT";
+      return 'STRUCT';
     case PropertyType.PROTO:
-      return "PROTO";
+      return 'PROTO';
     case PropertyType.BOOLEAN:
-      return "BOOLEAN";
+      return 'BOOLEAN';
     case PropertyType.UNRECOGNIZED:
     default:
-      return "UNRECOGNIZED";
+      return 'UNRECOGNIZED';
   }
 }
 
@@ -114,42 +114,30 @@ export interface Value {
 
 export interface Artifact {
   /** Output only. The unique server generated id of the artifact. */
-  id?:
-    | number
-    | undefined;
+  id?: number | undefined;
   /**
    * The client provided name of the artifact. This field is optional. If set,
    * it must be unique among all the artifacts of the same artifact type within
    * a database instance and cannot be changed once set.
    */
-  name?:
-    | string
-    | undefined;
+  name?: string | undefined;
   /**
    * The id of an ArtifactType. This needs to be specified when an artifact is
    * created, and it cannot be changed.
    */
-  typeId?:
-    | number
-    | undefined;
+  typeId?: number | undefined;
   /** Output only. The name of an ArtifactType. */
-  type?:
-    | string
-    | undefined;
+  type?: string | undefined;
   /**
    * The uniform resource identifier of the physical artifact.
    * May be empty if there is no physical artifact.
    */
-  uri?:
-    | string
-    | undefined;
+  uri?: string | undefined;
   /**
    * The external id that come from the clients’ system. This field is optional.
    * If set, it must be unique among all artifacts within a database instance.
    */
-  externalId?:
-    | string
-    | undefined;
+  externalId?: string | undefined;
   /**
    * Properties of the artifact.
    * Properties must be specified in the ArtifactType.
@@ -158,20 +146,14 @@ export interface Artifact {
   /** User provided custom properties which are not defined by its type. */
   customProperties: { [key: string]: Value };
   /** The state of the artifact known to the system. */
-  state?:
-    | Artifact_State
-    | undefined;
+  state?: Artifact_State | undefined;
   /** Output only. Create time of the artifact in millisecond since epoch. */
-  createTimeSinceEpoch?:
-    | number
-    | undefined;
+  createTimeSinceEpoch?: number | undefined;
   /**
    * Output only. Last update time of the artifact since epoch in millisecond
    * since epoch.
    */
-  lastUpdateTimeSinceEpoch?:
-    | number
-    | undefined;
+  lastUpdateTimeSinceEpoch?: number | undefined;
   /** Output only. */
   systemMetadata?: Any | undefined;
 }
@@ -210,28 +192,28 @@ export enum Artifact_State {
 export function artifact_StateFromJSON(object: any): Artifact_State {
   switch (object) {
     case 0:
-    case "UNKNOWN":
+    case 'UNKNOWN':
       return Artifact_State.UNKNOWN;
     case 1:
-    case "PENDING":
+    case 'PENDING':
       return Artifact_State.PENDING;
     case 2:
-    case "LIVE":
+    case 'LIVE':
       return Artifact_State.LIVE;
     case 3:
-    case "MARKED_FOR_DELETION":
+    case 'MARKED_FOR_DELETION':
       return Artifact_State.MARKED_FOR_DELETION;
     case 4:
-    case "DELETED":
+    case 'DELETED':
       return Artifact_State.DELETED;
     case 5:
-    case "ABANDONED":
+    case 'ABANDONED':
       return Artifact_State.ABANDONED;
     case 6:
-    case "REFERENCE":
+    case 'REFERENCE':
       return Artifact_State.REFERENCE;
     case -1:
-    case "UNRECOGNIZED":
+    case 'UNRECOGNIZED':
     default:
       return Artifact_State.UNRECOGNIZED;
   }
@@ -240,22 +222,22 @@ export function artifact_StateFromJSON(object: any): Artifact_State {
 export function artifact_StateToJSON(object: Artifact_State): string {
   switch (object) {
     case Artifact_State.UNKNOWN:
-      return "UNKNOWN";
+      return 'UNKNOWN';
     case Artifact_State.PENDING:
-      return "PENDING";
+      return 'PENDING';
     case Artifact_State.LIVE:
-      return "LIVE";
+      return 'LIVE';
     case Artifact_State.MARKED_FOR_DELETION:
-      return "MARKED_FOR_DELETION";
+      return 'MARKED_FOR_DELETION';
     case Artifact_State.DELETED:
-      return "DELETED";
+      return 'DELETED';
     case Artifact_State.ABANDONED:
-      return "ABANDONED";
+      return 'ABANDONED';
     case Artifact_State.REFERENCE:
-      return "REFERENCE";
+      return 'REFERENCE';
     case Artifact_State.UNRECOGNIZED:
     default:
-      return "UNRECOGNIZED";
+      return 'UNRECOGNIZED';
   }
 }
 
@@ -271,32 +253,22 @@ export interface Artifact_CustomPropertiesEntry {
 
 export interface ArtifactType {
   /** The id of the type. 1-1 relationship between type names and IDs. */
-  id?:
-    | number
-    | undefined;
+  id?: number | undefined;
   /**
    * The name of the type. It must be unique among ArtifactTypes within a
    * database instance.
    */
-  name?:
-    | string
-    | undefined;
+  name?: string | undefined;
   /** An optional version of the type. An empty string is treated as unset. */
-  version?:
-    | string
-    | undefined;
+  version?: string | undefined;
   /** An optional description about the type. */
-  description?:
-    | string
-    | undefined;
+  description?: string | undefined;
   /**
    * The external id that come from the clients’ system. This field is optional.
    * If set, it must be unique among all artifact types within a database
    * instance.
    */
-  externalId?:
-    | string
-    | undefined;
+  externalId?: string | undefined;
   /**
    * The schema of the type.
    * Properties are always optional in the artifact.
@@ -322,45 +294,49 @@ export enum ArtifactType_SystemDefinedBaseType {
   UNRECOGNIZED = -1,
 }
 
-export function artifactType_SystemDefinedBaseTypeFromJSON(object: any): ArtifactType_SystemDefinedBaseType {
+export function artifactType_SystemDefinedBaseTypeFromJSON(
+  object: any,
+): ArtifactType_SystemDefinedBaseType {
   switch (object) {
     case 0:
-    case "UNSET":
+    case 'UNSET':
       return ArtifactType_SystemDefinedBaseType.UNSET;
     case 1:
-    case "DATASET":
+    case 'DATASET':
       return ArtifactType_SystemDefinedBaseType.DATASET;
     case 2:
-    case "MODEL":
+    case 'MODEL':
       return ArtifactType_SystemDefinedBaseType.MODEL;
     case 3:
-    case "METRICS":
+    case 'METRICS':
       return ArtifactType_SystemDefinedBaseType.METRICS;
     case 4:
-    case "STATISTICS":
+    case 'STATISTICS':
       return ArtifactType_SystemDefinedBaseType.STATISTICS;
     case -1:
-    case "UNRECOGNIZED":
+    case 'UNRECOGNIZED':
     default:
       return ArtifactType_SystemDefinedBaseType.UNRECOGNIZED;
   }
 }
 
-export function artifactType_SystemDefinedBaseTypeToJSON(object: ArtifactType_SystemDefinedBaseType): string {
+export function artifactType_SystemDefinedBaseTypeToJSON(
+  object: ArtifactType_SystemDefinedBaseType,
+): string {
   switch (object) {
     case ArtifactType_SystemDefinedBaseType.UNSET:
-      return "UNSET";
+      return 'UNSET';
     case ArtifactType_SystemDefinedBaseType.DATASET:
-      return "DATASET";
+      return 'DATASET';
     case ArtifactType_SystemDefinedBaseType.MODEL:
-      return "MODEL";
+      return 'MODEL';
     case ArtifactType_SystemDefinedBaseType.METRICS:
-      return "METRICS";
+      return 'METRICS';
     case ArtifactType_SystemDefinedBaseType.STATISTICS:
-      return "STATISTICS";
+      return 'STATISTICS';
     case ArtifactType_SystemDefinedBaseType.UNRECOGNIZED:
     default:
-      return "UNRECOGNIZED";
+      return 'UNRECOGNIZED';
   }
 }
 
@@ -461,31 +437,21 @@ export interface Event {
    * The artifact id is required for an event, and should refer to an
    * existing artifact.
    */
-  artifactId?:
-    | number
-    | undefined;
+  artifactId?: number | undefined;
   /**
    * The execution_id is required for an event, and should refer to an
    * existing execution.
    */
-  executionId?:
-    | number
-    | undefined;
+  executionId?: number | undefined;
   /** The path in an artifact struct, or the name of an artifact. */
-  path?:
-    | Event_Path
-    | undefined;
+  path?: Event_Path | undefined;
   /** The type of an event. */
-  type?:
-    | Event_Type
-    | undefined;
+  type?: Event_Type | undefined;
   /**
    * Time the event occurred
    * Epoch is Jan 1, 1970, UTC
    */
-  millisecondsSinceEpoch?:
-    | number
-    | undefined;
+  millisecondsSinceEpoch?: number | undefined;
   /** Output only. */
   systemMetadata?: Any | undefined;
 }
@@ -518,31 +484,31 @@ export enum Event_Type {
 export function event_TypeFromJSON(object: any): Event_Type {
   switch (object) {
     case 0:
-    case "UNKNOWN":
+    case 'UNKNOWN':
       return Event_Type.UNKNOWN;
     case 1:
-    case "DECLARED_OUTPUT":
+    case 'DECLARED_OUTPUT':
       return Event_Type.DECLARED_OUTPUT;
     case 2:
-    case "DECLARED_INPUT":
+    case 'DECLARED_INPUT':
       return Event_Type.DECLARED_INPUT;
     case 3:
-    case "INPUT":
+    case 'INPUT':
       return Event_Type.INPUT;
     case 4:
-    case "OUTPUT":
+    case 'OUTPUT':
       return Event_Type.OUTPUT;
     case 5:
-    case "INTERNAL_INPUT":
+    case 'INTERNAL_INPUT':
       return Event_Type.INTERNAL_INPUT;
     case 6:
-    case "INTERNAL_OUTPUT":
+    case 'INTERNAL_OUTPUT':
       return Event_Type.INTERNAL_OUTPUT;
     case 7:
-    case "PENDING_OUTPUT":
+    case 'PENDING_OUTPUT':
       return Event_Type.PENDING_OUTPUT;
     case -1:
-    case "UNRECOGNIZED":
+    case 'UNRECOGNIZED':
     default:
       return Event_Type.UNRECOGNIZED;
   }
@@ -551,24 +517,24 @@ export function event_TypeFromJSON(object: any): Event_Type {
 export function event_TypeToJSON(object: Event_Type): string {
   switch (object) {
     case Event_Type.UNKNOWN:
-      return "UNKNOWN";
+      return 'UNKNOWN';
     case Event_Type.DECLARED_OUTPUT:
-      return "DECLARED_OUTPUT";
+      return 'DECLARED_OUTPUT';
     case Event_Type.DECLARED_INPUT:
-      return "DECLARED_INPUT";
+      return 'DECLARED_INPUT';
     case Event_Type.INPUT:
-      return "INPUT";
+      return 'INPUT';
     case Event_Type.OUTPUT:
-      return "OUTPUT";
+      return 'OUTPUT';
     case Event_Type.INTERNAL_INPUT:
-      return "INTERNAL_INPUT";
+      return 'INTERNAL_INPUT';
     case Event_Type.INTERNAL_OUTPUT:
-      return "INTERNAL_OUTPUT";
+      return 'INTERNAL_OUTPUT';
     case Event_Type.PENDING_OUTPUT:
-      return "PENDING_OUTPUT";
+      return 'PENDING_OUTPUT';
     case Event_Type.UNRECOGNIZED:
     default:
-      return "UNRECOGNIZED";
+      return 'UNRECOGNIZED';
   }
 }
 
@@ -591,40 +557,28 @@ export interface Event_Path_Step {
 
 export interface Execution {
   /** Output only. The unique server generated id of the execution. */
-  id?:
-    | number
-    | undefined;
+  id?: number | undefined;
   /**
    * The client provided name of the execution. This field is optional. If set,
    * it must be unique among all the executions of the same execution type
    * within a database instance and cannot be changed once set.
    */
-  name?:
-    | string
-    | undefined;
+  name?: string | undefined;
   /**
    * The id of an ExecutionType. This needs to be specified when an execution is
    * created, and it cannot be changed.
    * The id of an ExecutionType.
    */
-  typeId?:
-    | number
-    | undefined;
+  typeId?: number | undefined;
   /** Output only. The name of an ExecutionType. */
-  type?:
-    | string
-    | undefined;
+  type?: string | undefined;
   /**
    * The external id that come from the clients’ system. This field is optional.
    * If set, it must be unique among all executions within a database instance.
    */
-  externalId?:
-    | string
-    | undefined;
+  externalId?: string | undefined;
   /** The last known state of an execution in the system. */
-  lastKnownState?:
-    | Execution_State
-    | undefined;
+  lastKnownState?: Execution_State | undefined;
   /**
    * Properties of the Execution.
    * Properties must be specified in the ExecutionType.
@@ -633,13 +587,9 @@ export interface Execution {
   /** User provided custom properties which are not defined by its type. */
   customProperties: { [key: string]: Value };
   /** Output only. Create time of the execution in millisecond since epoch. */
-  createTimeSinceEpoch?:
-    | number
-    | undefined;
+  createTimeSinceEpoch?: number | undefined;
   /** Output only. Last update time of the execution in millisecond since epoch. */
-  lastUpdateTimeSinceEpoch?:
-    | number
-    | undefined;
+  lastUpdateTimeSinceEpoch?: number | undefined;
   /** Output only. */
   systemMetadata?: Any | undefined;
 }
@@ -667,28 +617,28 @@ export enum Execution_State {
 export function execution_StateFromJSON(object: any): Execution_State {
   switch (object) {
     case 0:
-    case "UNKNOWN":
+    case 'UNKNOWN':
       return Execution_State.UNKNOWN;
     case 1:
-    case "NEW":
+    case 'NEW':
       return Execution_State.NEW;
     case 2:
-    case "RUNNING":
+    case 'RUNNING':
       return Execution_State.RUNNING;
     case 3:
-    case "COMPLETE":
+    case 'COMPLETE':
       return Execution_State.COMPLETE;
     case 4:
-    case "FAILED":
+    case 'FAILED':
       return Execution_State.FAILED;
     case 5:
-    case "CACHED":
+    case 'CACHED':
       return Execution_State.CACHED;
     case 6:
-    case "CANCELED":
+    case 'CANCELED':
       return Execution_State.CANCELED;
     case -1:
-    case "UNRECOGNIZED":
+    case 'UNRECOGNIZED':
     default:
       return Execution_State.UNRECOGNIZED;
   }
@@ -697,22 +647,22 @@ export function execution_StateFromJSON(object: any): Execution_State {
 export function execution_StateToJSON(object: Execution_State): string {
   switch (object) {
     case Execution_State.UNKNOWN:
-      return "UNKNOWN";
+      return 'UNKNOWN';
     case Execution_State.NEW:
-      return "NEW";
+      return 'NEW';
     case Execution_State.RUNNING:
-      return "RUNNING";
+      return 'RUNNING';
     case Execution_State.COMPLETE:
-      return "COMPLETE";
+      return 'COMPLETE';
     case Execution_State.FAILED:
-      return "FAILED";
+      return 'FAILED';
     case Execution_State.CACHED:
-      return "CACHED";
+      return 'CACHED';
     case Execution_State.CANCELED:
-      return "CANCELED";
+      return 'CANCELED';
     case Execution_State.UNRECOGNIZED:
     default:
-      return "UNRECOGNIZED";
+      return 'UNRECOGNIZED';
   }
 }
 
@@ -728,32 +678,22 @@ export interface Execution_CustomPropertiesEntry {
 
 export interface ExecutionType {
   /** The id of the type. 1-1 relationship between type names and IDs. */
-  id?:
-    | number
-    | undefined;
+  id?: number | undefined;
   /**
    * The name of the type. It must be unique among ExecutionTypes within a
    * database instance.
    */
-  name?:
-    | string
-    | undefined;
+  name?: string | undefined;
   /** An optional version of the type. An empty string is treated as unset. */
-  version?:
-    | string
-    | undefined;
+  version?: string | undefined;
   /** An optional description about the type. */
-  description?:
-    | string
-    | undefined;
+  description?: string | undefined;
   /**
    * The external id that come from the clients’ system. This field is optional.
    * If set, it must be unique among all execution types within a database
    * instance.
    */
-  externalId?:
-    | string
-    | undefined;
+  externalId?: string | undefined;
   /**
    * The schema of the type.
    * Properties are always optional in the execution.
@@ -778,16 +718,12 @@ export interface ExecutionType {
    * }
    * That would be an optional schema field with a required data field.
    */
-  inputType?:
-    | ArtifactStructType
-    | undefined;
+  inputType?: ArtifactStructType | undefined;
   /**
    * The ArtifactStructType of the output.
    * For example {"simple":{...stats gen output type...}}
    */
-  outputType?:
-    | ArtifactStructType
-    | undefined;
+  outputType?: ArtifactStructType | undefined;
   /**
    * An optional system defined base_type expressing the intent of the current
    * type. This field is useful for the tool builders to utilize the stored MLMD
@@ -807,50 +743,54 @@ export enum ExecutionType_SystemDefinedBaseType {
   UNRECOGNIZED = -1,
 }
 
-export function executionType_SystemDefinedBaseTypeFromJSON(object: any): ExecutionType_SystemDefinedBaseType {
+export function executionType_SystemDefinedBaseTypeFromJSON(
+  object: any,
+): ExecutionType_SystemDefinedBaseType {
   switch (object) {
     case 0:
-    case "UNSET":
+    case 'UNSET':
       return ExecutionType_SystemDefinedBaseType.UNSET;
     case 1:
-    case "TRAIN":
+    case 'TRAIN':
       return ExecutionType_SystemDefinedBaseType.TRAIN;
     case 2:
-    case "TRANSFORM":
+    case 'TRANSFORM':
       return ExecutionType_SystemDefinedBaseType.TRANSFORM;
     case 3:
-    case "PROCESS":
+    case 'PROCESS':
       return ExecutionType_SystemDefinedBaseType.PROCESS;
     case 4:
-    case "EVALUATE":
+    case 'EVALUATE':
       return ExecutionType_SystemDefinedBaseType.EVALUATE;
     case 5:
-    case "DEPLOY":
+    case 'DEPLOY':
       return ExecutionType_SystemDefinedBaseType.DEPLOY;
     case -1:
-    case "UNRECOGNIZED":
+    case 'UNRECOGNIZED':
     default:
       return ExecutionType_SystemDefinedBaseType.UNRECOGNIZED;
   }
 }
 
-export function executionType_SystemDefinedBaseTypeToJSON(object: ExecutionType_SystemDefinedBaseType): string {
+export function executionType_SystemDefinedBaseTypeToJSON(
+  object: ExecutionType_SystemDefinedBaseType,
+): string {
   switch (object) {
     case ExecutionType_SystemDefinedBaseType.UNSET:
-      return "UNSET";
+      return 'UNSET';
     case ExecutionType_SystemDefinedBaseType.TRAIN:
-      return "TRAIN";
+      return 'TRAIN';
     case ExecutionType_SystemDefinedBaseType.TRANSFORM:
-      return "TRANSFORM";
+      return 'TRANSFORM';
     case ExecutionType_SystemDefinedBaseType.PROCESS:
-      return "PROCESS";
+      return 'PROCESS';
     case ExecutionType_SystemDefinedBaseType.EVALUATE:
-      return "EVALUATE";
+      return 'EVALUATE';
     case ExecutionType_SystemDefinedBaseType.DEPLOY:
-      return "DEPLOY";
+      return 'DEPLOY';
     case ExecutionType_SystemDefinedBaseType.UNRECOGNIZED:
     default:
-      return "UNRECOGNIZED";
+      return 'UNRECOGNIZED';
   }
 }
 
@@ -861,32 +801,22 @@ export interface ExecutionType_PropertiesEntry {
 
 export interface ContextType {
   /** The id of the type. 1-1 relationship between type names and IDs. */
-  id?:
-    | number
-    | undefined;
+  id?: number | undefined;
   /**
    * The name of the type, e.g., Pipeline, Task, Session, User, etc. It must be
    * unique among ContextTypes within a database instance.
    */
-  name?:
-    | string
-    | undefined;
+  name?: string | undefined;
   /** An optional version of the type. An empty string is treated as unset. */
-  version?:
-    | string
-    | undefined;
+  version?: string | undefined;
   /** An optional description about the type. */
-  description?:
-    | string
-    | undefined;
+  description?: string | undefined;
   /**
    * The external id that come from the clients’ system. This field is optional.
    * If set, it must be unique among all context types within a database
    * instance.
    */
-  externalId?:
-    | string
-    | undefined;
+  externalId?: string | undefined;
   /**
    * The schema of the type, e.g., name: string, owner: string
    * Properties are always optional in the context.
@@ -909,25 +839,29 @@ export enum ContextType_SystemDefinedBaseType {
   UNRECOGNIZED = -1,
 }
 
-export function contextType_SystemDefinedBaseTypeFromJSON(object: any): ContextType_SystemDefinedBaseType {
+export function contextType_SystemDefinedBaseTypeFromJSON(
+  object: any,
+): ContextType_SystemDefinedBaseType {
   switch (object) {
     case 0:
-    case "UNSET":
+    case 'UNSET':
       return ContextType_SystemDefinedBaseType.UNSET;
     case -1:
-    case "UNRECOGNIZED":
+    case 'UNRECOGNIZED':
     default:
       return ContextType_SystemDefinedBaseType.UNRECOGNIZED;
   }
 }
 
-export function contextType_SystemDefinedBaseTypeToJSON(object: ContextType_SystemDefinedBaseType): string {
+export function contextType_SystemDefinedBaseTypeToJSON(
+  object: ContextType_SystemDefinedBaseType,
+): string {
   switch (object) {
     case ContextType_SystemDefinedBaseType.UNSET:
-      return "UNSET";
+      return 'UNSET';
     case ContextType_SystemDefinedBaseType.UNRECOGNIZED:
     default:
-      return "UNRECOGNIZED";
+      return 'UNRECOGNIZED';
   }
 }
 
@@ -938,46 +872,32 @@ export interface ContextType_PropertiesEntry {
 
 export interface Context {
   /** Output Only. The unique server generated id of the context. */
-  id?:
-    | number
-    | undefined;
+  id?: number | undefined;
   /**
    * The client provided name of the context. It must be unique within a
    * database instance.
    */
-  name?:
-    | string
-    | undefined;
+  name?: string | undefined;
   /**
    * The id of a ContextType. This needs to be specified when a context is
    * created, and it cannot be changed.
    */
-  typeId?:
-    | number
-    | undefined;
+  typeId?: number | undefined;
   /** Output only. The name of a ContextType. */
-  type?:
-    | string
-    | undefined;
+  type?: string | undefined;
   /**
    * The external id that come from the clients’ system. This field is optional.
    * If set, it must be unique among all contexts within a virtual database.
    */
-  externalId?:
-    | string
-    | undefined;
+  externalId?: string | undefined;
   /** Values of the properties, which must be specified in the ContextType. */
   properties: { [key: string]: Value };
   /** User provided custom properties which are not defined by its type. */
   customProperties: { [key: string]: Value };
   /** Output only. Create time of the context in millisecond since epoch. */
-  createTimeSinceEpoch?:
-    | number
-    | undefined;
+  createTimeSinceEpoch?: number | undefined;
   /** Output only. Last update time of the context in millisecond since epoch. */
-  lastUpdateTimeSinceEpoch?:
-    | number
-    | undefined;
+  lastUpdateTimeSinceEpoch?: number | undefined;
   /** Output only system metadata. */
   systemMetadata?: Any | undefined;
 }
@@ -1120,12 +1040,10 @@ export interface ListArtifactStructType {
  *     }
  * };
  */
-export interface NoneArtifactStructType {
-}
+export interface NoneArtifactStructType {}
 
 /** Every ArtifactStruct is a member of this type. */
-export interface AnyArtifactStructType {
-}
+export interface AnyArtifactStructType {}
 
 /**
  * An ordered list of heterogeneous artifact structs.
@@ -1147,9 +1065,7 @@ export interface DictArtifactStructType {
    * If true, then if properties["foo"] can be None, then that key is not
    * required.
    */
-  noneTypeNotRequired?:
-    | boolean
-    | undefined;
+  noneTypeNotRequired?: boolean | undefined;
   /**
    * Extra keys are allowed that are not specified in properties. These
    * keys must have the type specified below.
@@ -1168,8 +1084,7 @@ export interface DictArtifactStructType_PropertiesEntry {
  * This database is an in-memory SQLite database that lives only as
  * long as the associated object lives.
  */
-export interface FakeDatabaseConfig {
-}
+export interface FakeDatabaseConfig {}
 
 export interface MySQLDatabaseConfig {
   /**
@@ -1179,51 +1094,37 @@ export interface MySQLDatabaseConfig {
    * * Otherwise, TCP/IP is used.
    * Currently a replicated MYSQL backend is not supported.
    */
-  host?:
-    | string
-    | undefined;
+  host?: string | undefined;
   /**
    * The TCP Port number that the MYSQL server accepts connections on.
    * If unspecified, the default MYSQL port (3306) is used.
    */
-  port?:
-    | number
-    | undefined;
+  port?: number | undefined;
   /**
    * The database to connect to. Must be specified.
    * After connecting to the MYSQL server, this database is created if not
    * already present unless skip_db_creation is set.
    * All queries after Connect() are assumed to be for this database.
    */
-  database?:
-    | string
-    | undefined;
+  database?: string | undefined;
   /** The MYSQL login id. If empty, the current user is assumed. */
-  user?:
-    | string
-    | undefined;
+  user?: string | undefined;
   /**
    * The password to use for `user`. If empty, only MYSQL user ids that don't
    * have a password set are allowed to connect.
    */
-  password?:
-    | string
-    | undefined;
+  password?: string | undefined;
   /**
    * The Unix socket to use to connect to the server. If unspecified, a
    * `host` must be provided.
    */
-  socket?:
-    | string
-    | undefined;
+  socket?: string | undefined;
   /**
    * If the field is set, the ssl options are set in mysql_options before
    * establishing a connection. It is ignored if the mysql server does not
    * enable SSL.
    */
-  sslOptions?:
-    | MySQLDatabaseConfig_SSLOptions
-    | undefined;
+  sslOptions?: MySQLDatabaseConfig_SSLOptions | undefined;
   /**
    * A config to skip the database creation if not exist when connecting the
    * db instance. It is useful when the db creation is handled by an admin
@@ -1235,25 +1136,15 @@ export interface MySQLDatabaseConfig {
 /** The options to establish encrypted connections to MySQL using SSL. */
 export interface MySQLDatabaseConfig_SSLOptions {
   /** The path name of the client private key file. */
-  key?:
-    | string
-    | undefined;
+  key?: string | undefined;
   /** The path name of the client public key certificate file. */
-  cert?:
-    | string
-    | undefined;
+  cert?: string | undefined;
   /** The path name of the CA certificate file. */
-  ca?:
-    | string
-    | undefined;
+  ca?: string | undefined;
   /** The path name of the directory that contains trusted SSL CA certificates. */
-  capath?:
-    | string
-    | undefined;
+  capath?: string | undefined;
   /** The list of permissible ciphers for SSL encryption. */
-  cipher?:
-    | string
-    | undefined;
+  cipher?: string | undefined;
   /**
    * If set, enable verification of the server certificate against the host
    * name used when connecting to the server.
@@ -1274,9 +1165,7 @@ export interface SqliteMetadataSourceConfig {
    * If not given, a in-memory sqlite3 database is used, and destroyed when
    * disconnecting the metadata source.
    */
-  filenameUri?:
-    | string
-    | undefined;
+  filenameUri?: string | undefined;
   /**
    * A flag specifying the connection mode. If not given, default connection
    * mode is set to READWRITE_OPENCREATE.
@@ -1311,19 +1200,19 @@ export function sqliteMetadataSourceConfig_ConnectionModeFromJSON(
 ): SqliteMetadataSourceConfig_ConnectionMode {
   switch (object) {
     case 0:
-    case "UNKNOWN":
+    case 'UNKNOWN':
       return SqliteMetadataSourceConfig_ConnectionMode.UNKNOWN;
     case 1:
-    case "READONLY":
+    case 'READONLY':
       return SqliteMetadataSourceConfig_ConnectionMode.READONLY;
     case 2:
-    case "READWRITE":
+    case 'READWRITE':
       return SqliteMetadataSourceConfig_ConnectionMode.READWRITE;
     case 3:
-    case "READWRITE_OPENCREATE":
+    case 'READWRITE_OPENCREATE':
       return SqliteMetadataSourceConfig_ConnectionMode.READWRITE_OPENCREATE;
     case -1:
-    case "UNRECOGNIZED":
+    case 'UNRECOGNIZED':
     default:
       return SqliteMetadataSourceConfig_ConnectionMode.UNRECOGNIZED;
   }
@@ -1334,16 +1223,16 @@ export function sqliteMetadataSourceConfig_ConnectionModeToJSON(
 ): string {
   switch (object) {
     case SqliteMetadataSourceConfig_ConnectionMode.UNKNOWN:
-      return "UNKNOWN";
+      return 'UNKNOWN';
     case SqliteMetadataSourceConfig_ConnectionMode.READONLY:
-      return "READONLY";
+      return 'READONLY';
     case SqliteMetadataSourceConfig_ConnectionMode.READWRITE:
-      return "READWRITE";
+      return 'READWRITE';
     case SqliteMetadataSourceConfig_ConnectionMode.READWRITE_OPENCREATE:
-      return "READWRITE_OPENCREATE";
+      return 'READWRITE_OPENCREATE';
     case SqliteMetadataSourceConfig_ConnectionMode.UNRECOGNIZED:
     default:
-      return "UNRECOGNIZED";
+      return 'UNRECOGNIZED';
   }
 }
 
@@ -1356,42 +1245,28 @@ export interface PostgreSQLDatabaseConfig {
    * Name of host to connect to. If the host name starts with /, it is taken as
    * a Unix-domain socket in the abstract namespace.
    */
-  host?:
-    | string
-    | undefined;
+  host?: string | undefined;
   /**
    * Numeric IP address of host to connect to. If this field is provided, `host`
    * field is ignored.
    */
-  hostaddr?:
-    | string
-    | undefined;
+  hostaddr?: string | undefined;
   /**
    * Port number to connect to at the server host, or socket file name extension
    * for Unix-domain connections.
    */
-  port?:
-    | string
-    | undefined;
+  port?: string | undefined;
   /**
    * PostgreSQL user name to connect as. Defaults to be the same as the
    * operating system name of the user running the application.
    */
-  user?:
-    | string
-    | undefined;
+  user?: string | undefined;
   /** Password to be used if the server demands password authentication. */
-  password?:
-    | string
-    | undefined;
+  password?: string | undefined;
   /** Specifies the name of the file used to store passwords. */
-  passfile?:
-    | string
-    | undefined;
+  passfile?: string | undefined;
   /** The database name. Defaults to be the same as the user name. */
-  dbname?:
-    | string
-    | undefined;
+  dbname?: string | undefined;
   /**
    * A config to skip the database creation if not exist when connecting the
    * db instance. It is useful when the db creation is handled by an admin
@@ -1406,35 +1281,27 @@ export interface PostgreSQLDatabaseConfig_SSLOptions {
    * disable, allow, verify-ca, verify-full, etc. Reference:
    * https://www.postgresql.org/docs/current/libpq-connect.html
    */
-  sslmode?:
-    | string
-    | undefined;
+  sslmode?: string | undefined;
   /**
    * This parameter specifies the file name of the client SSL certificate,
    * replacing the default ~/.postgresql/postgresql.crt. This parameter is
    * ignored if an SSL connection is not made.
    */
-  sslcert?:
-    | string
-    | undefined;
+  sslcert?: string | undefined;
   /**
    * This parameter specifies the location for the secret key used for the
    * client certificate. It can either specify a file name that will be used
    * instead of the default ~/.postgresql/postgresql.key, this parameter is
    * ignored if an SSL connection is not made.
    */
-  sslkey?:
-    | string
-    | undefined;
+  sslkey?: string | undefined;
   /**
    * This parameter specifies the password for the secret key specified in
    * sslkey, allowing client certificate private keys to be stored in
    * encrypted form on disk even when interactive passphrase input is not
    * practical.
    */
-  sslpassword?:
-    | string
-    | undefined;
+  sslpassword?: string | undefined;
   /**
    * This parameter specifies the name of a file containing SSL certificate
    * authority (CA) certificate(s). If the file exists, the server's
@@ -1454,9 +1321,7 @@ export interface MigrationOptions {
    * Schema migration should not be run concurrently with multiple clients to
    * prevent data races.
    */
-  enableUpgradeMigration?:
-    | boolean
-    | undefined;
+  enableUpgradeMigration?: boolean | undefined;
   /**
    * Downgrade the given database to the specified schema version.
    * For v0.13.2 release, the schema_version is 0.
@@ -1481,13 +1346,9 @@ export interface RetryOptions {
 export interface ConnectionConfig {
   fakeDatabase?: FakeDatabaseConfig | undefined;
   mysql?: MySQLDatabaseConfig | undefined;
-  sqlite?:
-    | SqliteMetadataSourceConfig
-    | undefined;
+  sqlite?: SqliteMetadataSourceConfig | undefined;
   /** PostgreSQL database connection config. */
-  postgresql?:
-    | PostgreSQLDatabaseConfig
-    | undefined;
+  postgresql?: PostgreSQLDatabaseConfig | undefined;
   /**
    * Options for overwriting the default retry setting when MLMD transactions
    * returning Aborted error.
@@ -1503,9 +1364,7 @@ export interface ConnectionConfig {
  */
 export interface GrpcChannelArguments {
   /** Maximum message length in bytes per response that the channel can receive. */
-  maxReceiveMessageLength?:
-    | number
-    | undefined;
+  maxReceiveMessageLength?: number | undefined;
   /**
    * Maximum misbehaving pings the server can bear before sending goaway and
    * closing the transport? (0 indicates infinite number of misbehaving pings)
@@ -1516,27 +1375,19 @@ export interface GrpcChannelArguments {
 /** Configuration for the gRPC metadata store client. */
 export interface MetadataStoreClientConfig {
   /** The hostname or IP address of the gRPC server. Must be specified. */
-  host?:
-    | string
-    | undefined;
+  host?: string | undefined;
   /**
    * The TCP Port number that the gRPC server accepts connections on.
    * Must be specified.
    */
-  port?:
-    | number
-    | undefined;
+  port?: number | undefined;
   /**
    * Configuration for a secure gRPC channel.
    * If not given, insecure connection is used.
    */
-  sslConfig?:
-    | MetadataStoreClientConfig_SSLConfig
-    | undefined;
+  sslConfig?: MetadataStoreClientConfig_SSLConfig | undefined;
   /** GRPC channel creation arguments. */
-  channelArguments?:
-    | GrpcChannelArguments
-    | undefined;
+  channelArguments?: GrpcChannelArguments | undefined;
   /**
    * Time duration that a client is willing to wait for a reply from the server.
    * If unset, the timeout is considered infinite. When the field is specified,
@@ -1551,16 +1402,12 @@ export interface MetadataStoreClientConfig_SSLConfig {
    * The PEM-encoded private key as a byte string, or Empty if no private key
    * should be used.
    */
-  clientKey?:
-    | string
-    | undefined;
+  clientKey?: string | undefined;
   /**
    * The PEM-encoded certificate chain as a byte string to use or or Empty if
    * no certificate chain should be used.
    */
-  serverCert?:
-    | string
-    | undefined;
+  serverCert?: string | undefined;
   /**
    * The PEM-encoded root certificates as a byte string, or Empty to retrieve
    * them from a default location chosen by gRPC runtime.
@@ -1571,13 +1418,9 @@ export interface MetadataStoreClientConfig_SSLConfig {
 /** Configuration for the gRPC metadata store server. */
 export interface MetadataStoreServerConfig {
   /** Configuration to connect the metadata source backend. */
-  connectionConfig?:
-    | ConnectionConfig
-    | undefined;
+  connectionConfig?: ConnectionConfig | undefined;
   /** Configuration for upgrade and downgrade migrations the metadata source. */
-  migrationOptions?:
-    | MigrationOptions
-    | undefined;
+  migrationOptions?: MigrationOptions | undefined;
   /**
    * Configuration for a secure gRPC channel.
    * If not given, insecure connection is used.
@@ -1587,17 +1430,11 @@ export interface MetadataStoreServerConfig {
 
 export interface MetadataStoreServerConfig_SSLConfig {
   /** Private server key for SSL */
-  serverKey?:
-    | string
-    | undefined;
+  serverKey?: string | undefined;
   /** Public server certificate */
-  serverCert?:
-    | string
-    | undefined;
+  serverCert?: string | undefined;
   /** Custom certificate authority */
-  customCa?:
-    | string
-    | undefined;
+  customCa?: string | undefined;
   /** Valid client certificate required? */
   clientVerify?: boolean | undefined;
 }
@@ -1613,17 +1450,11 @@ export interface ListOperationOptions {
    * The API implementation also enforces an upper-bound of 100, and picks the
    * minimum between this value and the one specified here.
    */
-  maxResultSize?:
-    | number
-    | undefined;
+  maxResultSize?: number | undefined;
   /** Ordering field. */
-  orderByField?:
-    | ListOperationOptions_OrderByField
-    | undefined;
+  orderByField?: ListOperationOptions_OrderByField | undefined;
   /** Identifies the next page of results. */
-  nextPageToken?:
-    | string
-    | undefined;
+  nextPageToken?: string | undefined;
   /**
    * A boolean expression in SQL syntax that is used to specify the conditions
    * on node attributes and directly connected assets.
@@ -1753,9 +1584,7 @@ export interface ListOperationOptions {
 
 export interface ListOperationOptions_OrderByField {
   /** Field to order. */
-  field?:
-    | ListOperationOptions_OrderByField_Field
-    | undefined;
+  field?: ListOperationOptions_OrderByField_Field | undefined;
   /** Direction of ordering. */
   isAsc?: boolean | undefined;
 }
@@ -1769,40 +1598,44 @@ export enum ListOperationOptions_OrderByField_Field {
   UNRECOGNIZED = -1,
 }
 
-export function listOperationOptions_OrderByField_FieldFromJSON(object: any): ListOperationOptions_OrderByField_Field {
+export function listOperationOptions_OrderByField_FieldFromJSON(
+  object: any,
+): ListOperationOptions_OrderByField_Field {
   switch (object) {
     case 0:
-    case "FIELD_UNSPECIFIED":
+    case 'FIELD_UNSPECIFIED':
       return ListOperationOptions_OrderByField_Field.FIELD_UNSPECIFIED;
     case 1:
-    case "CREATE_TIME":
+    case 'CREATE_TIME':
       return ListOperationOptions_OrderByField_Field.CREATE_TIME;
     case 2:
-    case "LAST_UPDATE_TIME":
+    case 'LAST_UPDATE_TIME':
       return ListOperationOptions_OrderByField_Field.LAST_UPDATE_TIME;
     case 3:
-    case "ID":
+    case 'ID':
       return ListOperationOptions_OrderByField_Field.ID;
     case -1:
-    case "UNRECOGNIZED":
+    case 'UNRECOGNIZED':
     default:
       return ListOperationOptions_OrderByField_Field.UNRECOGNIZED;
   }
 }
 
-export function listOperationOptions_OrderByField_FieldToJSON(object: ListOperationOptions_OrderByField_Field): string {
+export function listOperationOptions_OrderByField_FieldToJSON(
+  object: ListOperationOptions_OrderByField_Field,
+): string {
   switch (object) {
     case ListOperationOptions_OrderByField_Field.FIELD_UNSPECIFIED:
-      return "FIELD_UNSPECIFIED";
+      return 'FIELD_UNSPECIFIED';
     case ListOperationOptions_OrderByField_Field.CREATE_TIME:
-      return "CREATE_TIME";
+      return 'CREATE_TIME';
     case ListOperationOptions_OrderByField_Field.LAST_UPDATE_TIME:
-      return "LAST_UPDATE_TIME";
+      return 'LAST_UPDATE_TIME';
     case ListOperationOptions_OrderByField_Field.ID:
-      return "ID";
+      return 'ID';
     case ListOperationOptions_OrderByField_Field.UNRECOGNIZED:
     default:
-      return "UNRECOGNIZED";
+      return 'UNRECOGNIZED';
   }
 }
 
@@ -1819,24 +1652,18 @@ export interface ListOperationNextPageToken {
    * ordering, id offset is used.
    * This field is currently only set whe order_by field is CREATE_TIME.
    */
-  idOffset?:
-    | number
-    | undefined;
+  idOffset?: number | undefined;
   /**
    * Offset value of the order by field. If ID is used this value is same as
    * id_offset.
    */
-  fieldOffset?:
-    | number
-    | undefined;
+  fieldOffset?: number | undefined;
   /**
    * Options set in the first call to ListOperation. This ensures that if
    * next_page_token is set by the caller then ListPipelineJobs API will always
    * use options set in the first call.
    */
-  setOptions?:
-    | ListOperationOptions
-    | undefined;
+  setOptions?: ListOperationOptions | undefined;
   /**
    * List of ids that have the same order_by field values. This is used to
    * ensure List Operation does not return duplicate entries for nodes that have
@@ -1866,16 +1693,12 @@ export interface TransactionOptions {
  * in the subgraph.
  */
 export interface LineageGraphQueryOptions {
-  artifactsOptions?:
-    | ListOperationOptions
-    | undefined;
+  artifactsOptions?: ListOperationOptions | undefined;
   /**
    * A constraint option to define the filtering rules when querying a lineage
    * graph.
    */
-  stopConditions?:
-    | LineageGraphQueryOptions_BoundaryConstraint
-    | undefined;
+  stopConditions?: LineageGraphQueryOptions_BoundaryConstraint | undefined;
   /**
    * Maximum total number of artifacts and executions in the whole returned
    * lineage graph.
@@ -1899,9 +1722,7 @@ export interface LineageGraphQueryOptions_BoundaryConstraint {
    * `max_num_hops` should be non-negative.
    * When its value is set to 0, only the `query_nodes` are returned.
    */
-  maxNumHops?:
-    | number
-    | undefined;
+  maxNumHops?: number | undefined;
   /**
    * Filtering conditions for retrieving the lineage graph.
    * Please refer to `ListOperationOptions.filter_query` for the syntax.
@@ -1942,9 +1763,7 @@ export interface LineageGraphQueryOptions_BoundaryConstraint {
    *           \/ \/
    *            e_2
    */
-  boundaryArtifacts?:
-    | string
-    | undefined;
+  boundaryArtifacts?: string | undefined;
   /**
    * If set, the `boundary_executions` defines which executions to keep in the
    * returned lineage graph during the graph search.
@@ -1996,9 +1815,7 @@ export interface LineageGraphQueryOptions_BoundaryConstraint {
 /** The query options for lineage graph tracing from a list of interested nodes. */
 export interface LineageSubgraphQueryOptions {
   startingArtifacts?: LineageSubgraphQueryOptions_StartingNodes | undefined;
-  startingExecutions?:
-    | LineageSubgraphQueryOptions_StartingNodes
-    | undefined;
+  startingExecutions?: LineageSubgraphQueryOptions_StartingNodes | undefined;
   /**
    * The maximum number of hops from the `starting_nodes` to traverse.
    * A hop is defined as a jump to the next node following the path of
@@ -2008,9 +1825,7 @@ export interface LineageSubgraphQueryOptions {
    * `max_num_hops` should be non-negative.
    * When its value is set to 0, only the `starting_nodes` are returned.
    */
-  maxNumHops?:
-    | number
-    | undefined;
+  maxNumHops?: number | undefined;
   /**
    * The direction of lineage graph tracing, which means the direction of all
    * hops in the tracing.
@@ -2040,40 +1855,44 @@ export enum LineageSubgraphQueryOptions_Direction {
   UNRECOGNIZED = -1,
 }
 
-export function lineageSubgraphQueryOptions_DirectionFromJSON(object: any): LineageSubgraphQueryOptions_Direction {
+export function lineageSubgraphQueryOptions_DirectionFromJSON(
+  object: any,
+): LineageSubgraphQueryOptions_Direction {
   switch (object) {
     case 0:
-    case "DIRECTION_UNSPECIFIED":
+    case 'DIRECTION_UNSPECIFIED':
       return LineageSubgraphQueryOptions_Direction.DIRECTION_UNSPECIFIED;
     case 1:
-    case "UPSTREAM":
+    case 'UPSTREAM':
       return LineageSubgraphQueryOptions_Direction.UPSTREAM;
     case 2:
-    case "DOWNSTREAM":
+    case 'DOWNSTREAM':
       return LineageSubgraphQueryOptions_Direction.DOWNSTREAM;
     case 3:
-    case "BIDIRECTIONAL":
+    case 'BIDIRECTIONAL':
       return LineageSubgraphQueryOptions_Direction.BIDIRECTIONAL;
     case -1:
-    case "UNRECOGNIZED":
+    case 'UNRECOGNIZED':
     default:
       return LineageSubgraphQueryOptions_Direction.UNRECOGNIZED;
   }
 }
 
-export function lineageSubgraphQueryOptions_DirectionToJSON(object: LineageSubgraphQueryOptions_Direction): string {
+export function lineageSubgraphQueryOptions_DirectionToJSON(
+  object: LineageSubgraphQueryOptions_Direction,
+): string {
   switch (object) {
     case LineageSubgraphQueryOptions_Direction.DIRECTION_UNSPECIFIED:
-      return "DIRECTION_UNSPECIFIED";
+      return 'DIRECTION_UNSPECIFIED';
     case LineageSubgraphQueryOptions_Direction.UPSTREAM:
-      return "UPSTREAM";
+      return 'UPSTREAM';
     case LineageSubgraphQueryOptions_Direction.DOWNSTREAM:
-      return "DOWNSTREAM";
+      return 'DOWNSTREAM';
     case LineageSubgraphQueryOptions_Direction.BIDIRECTIONAL:
-      return "BIDIRECTIONAL";
+      return 'BIDIRECTIONAL';
     case LineageSubgraphQueryOptions_Direction.UNRECOGNIZED:
     default:
-      return "UNRECOGNIZED";
+      return 'UNRECOGNIZED';
   }
 }
 
@@ -2091,12 +1910,12 @@ export interface LineageSubgraphQueryOptions_StartingNodes {
 }
 
 function createBaseSystemTypeExtension(): SystemTypeExtension {
-  return { typeName: "" };
+  return { typeName: '' };
 }
 
 export const SystemTypeExtension = {
   encode(message: SystemTypeExtension, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.typeName !== undefined && message.typeName !== "") {
+    if (message.typeName !== undefined && message.typeName !== '') {
       writer.uint32(10).string(message.typeName);
     }
     return writer;
@@ -2126,12 +1945,12 @@ export const SystemTypeExtension = {
   },
 
   fromJSON(object: any): SystemTypeExtension {
-    return { typeName: isSet(object.typeName) ? globalThis.String(object.typeName) : "" };
+    return { typeName: isSet(object.typeName) ? globalThis.String(object.typeName) : '' };
   },
 
   toJSON(message: SystemTypeExtension): unknown {
     const obj: any = {};
-    if (message.typeName !== undefined && message.typeName !== "") {
+    if (message.typeName !== undefined && message.typeName !== '') {
       obj.typeName = message.typeName;
     }
     return obj;
@@ -2140,9 +1959,11 @@ export const SystemTypeExtension = {
   create<I extends Exact<DeepPartial<SystemTypeExtension>, I>>(base?: I): SystemTypeExtension {
     return SystemTypeExtension.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<SystemTypeExtension>, I>>(object: I): SystemTypeExtension {
+  fromPartial<I extends Exact<DeepPartial<SystemTypeExtension>, I>>(
+    object: I,
+  ): SystemTypeExtension {
     const message = createBaseSystemTypeExtension();
-    message.typeName = object.typeName ?? "";
+    message.typeName = object.typeName ?? '';
     return message;
   },
 };
@@ -2282,9 +2103,10 @@ export const Value = {
     message.doubleValue = object.doubleValue ?? undefined;
     message.stringValue = object.stringValue ?? undefined;
     message.structValue = object.structValue ?? undefined;
-    message.protoValue = (object.protoValue !== undefined && object.protoValue !== null)
-      ? Any.fromPartial(object.protoValue)
-      : undefined;
+    message.protoValue =
+      object.protoValue !== undefined && object.protoValue !== null
+        ? Any.fromPartial(object.protoValue)
+        : undefined;
     message.boolValue = object.boolValue ?? undefined;
     return message;
   },
@@ -2293,11 +2115,11 @@ export const Value = {
 function createBaseArtifact(): Artifact {
   return {
     id: 0,
-    name: "",
+    name: '',
     typeId: 0,
-    type: "",
-    uri: "",
-    externalId: "",
+    type: '',
+    uri: '',
+    externalId: '',
     properties: {},
     customProperties: {},
     state: 0,
@@ -2312,26 +2134,32 @@ export const Artifact = {
     if (message.id !== undefined && message.id !== 0) {
       writer.uint32(8).int64(message.id);
     }
-    if (message.name !== undefined && message.name !== "") {
+    if (message.name !== undefined && message.name !== '') {
       writer.uint32(58).string(message.name);
     }
     if (message.typeId !== undefined && message.typeId !== 0) {
       writer.uint32(16).int64(message.typeId);
     }
-    if (message.type !== undefined && message.type !== "") {
+    if (message.type !== undefined && message.type !== '') {
       writer.uint32(66).string(message.type);
     }
-    if (message.uri !== undefined && message.uri !== "") {
+    if (message.uri !== undefined && message.uri !== '') {
       writer.uint32(26).string(message.uri);
     }
-    if (message.externalId !== undefined && message.externalId !== "") {
+    if (message.externalId !== undefined && message.externalId !== '') {
       writer.uint32(90).string(message.externalId);
     }
     Object.entries(message.properties).forEach(([key, value]) => {
-      Artifact_PropertiesEntry.encode({ key: key as any, value }, writer.uint32(34).fork()).ldelim();
+      Artifact_PropertiesEntry.encode(
+        { key: key as any, value },
+        writer.uint32(34).fork(),
+      ).ldelim();
     });
     Object.entries(message.customProperties).forEach(([key, value]) => {
-      Artifact_CustomPropertiesEntry.encode({ key: key as any, value }, writer.uint32(42).fork()).ldelim();
+      Artifact_CustomPropertiesEntry.encode(
+        { key: key as any, value },
+        writer.uint32(42).fork(),
+      ).ldelim();
     });
     if (message.state !== undefined && message.state !== 0) {
       writer.uint32(48).int32(message.state);
@@ -2457,29 +2285,39 @@ export const Artifact = {
   fromJSON(object: any): Artifact {
     return {
       id: isSet(object.id) ? globalThis.Number(object.id) : 0,
-      name: isSet(object.name) ? globalThis.String(object.name) : "",
+      name: isSet(object.name) ? globalThis.String(object.name) : '',
       typeId: isSet(object.typeId) ? globalThis.Number(object.typeId) : 0,
-      type: isSet(object.type) ? globalThis.String(object.type) : "",
-      uri: isSet(object.uri) ? globalThis.String(object.uri) : "",
-      externalId: isSet(object.externalId) ? globalThis.String(object.externalId) : "",
+      type: isSet(object.type) ? globalThis.String(object.type) : '',
+      uri: isSet(object.uri) ? globalThis.String(object.uri) : '',
+      externalId: isSet(object.externalId) ? globalThis.String(object.externalId) : '',
       properties: isObject(object.properties)
-        ? Object.entries(object.properties).reduce<{ [key: string]: Value }>((acc, [key, value]) => {
-          acc[key] = Value.fromJSON(value);
-          return acc;
-        }, {})
+        ? Object.entries(object.properties).reduce<{ [key: string]: Value }>(
+            (acc, [key, value]) => {
+              acc[key] = Value.fromJSON(value);
+              return acc;
+            },
+            {},
+          )
         : {},
       customProperties: isObject(object.customProperties)
-        ? Object.entries(object.customProperties).reduce<{ [key: string]: Value }>((acc, [key, value]) => {
-          acc[key] = Value.fromJSON(value);
-          return acc;
-        }, {})
+        ? Object.entries(object.customProperties).reduce<{ [key: string]: Value }>(
+            (acc, [key, value]) => {
+              acc[key] = Value.fromJSON(value);
+              return acc;
+            },
+            {},
+          )
         : {},
       state: isSet(object.state) ? artifact_StateFromJSON(object.state) : 0,
-      createTimeSinceEpoch: isSet(object.createTimeSinceEpoch) ? globalThis.Number(object.createTimeSinceEpoch) : 0,
+      createTimeSinceEpoch: isSet(object.createTimeSinceEpoch)
+        ? globalThis.Number(object.createTimeSinceEpoch)
+        : 0,
       lastUpdateTimeSinceEpoch: isSet(object.lastUpdateTimeSinceEpoch)
         ? globalThis.Number(object.lastUpdateTimeSinceEpoch)
         : 0,
-      systemMetadata: isSet(object.systemMetadata) ? Any.fromJSON(object.systemMetadata) : undefined,
+      systemMetadata: isSet(object.systemMetadata)
+        ? Any.fromJSON(object.systemMetadata)
+        : undefined,
     };
   },
 
@@ -2488,19 +2326,19 @@ export const Artifact = {
     if (message.id !== undefined && message.id !== 0) {
       obj.id = Math.round(message.id);
     }
-    if (message.name !== undefined && message.name !== "") {
+    if (message.name !== undefined && message.name !== '') {
       obj.name = message.name;
     }
     if (message.typeId !== undefined && message.typeId !== 0) {
       obj.typeId = Math.round(message.typeId);
     }
-    if (message.type !== undefined && message.type !== "") {
+    if (message.type !== undefined && message.type !== '') {
       obj.type = message.type;
     }
-    if (message.uri !== undefined && message.uri !== "") {
+    if (message.uri !== undefined && message.uri !== '') {
       obj.uri = message.uri;
     }
-    if (message.externalId !== undefined && message.externalId !== "") {
+    if (message.externalId !== undefined && message.externalId !== '') {
       obj.externalId = message.externalId;
     }
     if (message.properties) {
@@ -2542,11 +2380,11 @@ export const Artifact = {
   fromPartial<I extends Exact<DeepPartial<Artifact>, I>>(object: I): Artifact {
     const message = createBaseArtifact();
     message.id = object.id ?? 0;
-    message.name = object.name ?? "";
+    message.name = object.name ?? '';
     message.typeId = object.typeId ?? 0;
-    message.type = object.type ?? "";
-    message.uri = object.uri ?? "";
-    message.externalId = object.externalId ?? "";
+    message.type = object.type ?? '';
+    message.uri = object.uri ?? '';
+    message.externalId = object.externalId ?? '';
     message.properties = Object.entries(object.properties ?? {}).reduce<{ [key: string]: Value }>(
       (acc, [key, value]) => {
         if (value !== undefined) {
@@ -2556,32 +2394,32 @@ export const Artifact = {
       },
       {},
     );
-    message.customProperties = Object.entries(object.customProperties ?? {}).reduce<{ [key: string]: Value }>(
-      (acc, [key, value]) => {
-        if (value !== undefined) {
-          acc[key] = Value.fromPartial(value);
-        }
-        return acc;
-      },
-      {},
-    );
+    message.customProperties = Object.entries(object.customProperties ?? {}).reduce<{
+      [key: string]: Value;
+    }>((acc, [key, value]) => {
+      if (value !== undefined) {
+        acc[key] = Value.fromPartial(value);
+      }
+      return acc;
+    }, {});
     message.state = object.state ?? 0;
     message.createTimeSinceEpoch = object.createTimeSinceEpoch ?? 0;
     message.lastUpdateTimeSinceEpoch = object.lastUpdateTimeSinceEpoch ?? 0;
-    message.systemMetadata = (object.systemMetadata !== undefined && object.systemMetadata !== null)
-      ? Any.fromPartial(object.systemMetadata)
-      : undefined;
+    message.systemMetadata =
+      object.systemMetadata !== undefined && object.systemMetadata !== null
+        ? Any.fromPartial(object.systemMetadata)
+        : undefined;
     return message;
   },
 };
 
 function createBaseArtifact_PropertiesEntry(): Artifact_PropertiesEntry {
-  return { key: "", value: undefined };
+  return { key: '', value: undefined };
 }
 
 export const Artifact_PropertiesEntry = {
   encode(message: Artifact_PropertiesEntry, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.key !== "") {
+    if (message.key !== '') {
       writer.uint32(10).string(message.key);
     }
     if (message.value !== undefined) {
@@ -2622,14 +2460,14 @@ export const Artifact_PropertiesEntry = {
 
   fromJSON(object: any): Artifact_PropertiesEntry {
     return {
-      key: isSet(object.key) ? globalThis.String(object.key) : "",
+      key: isSet(object.key) ? globalThis.String(object.key) : '',
       value: isSet(object.value) ? Value.fromJSON(object.value) : undefined,
     };
   },
 
   toJSON(message: Artifact_PropertiesEntry): unknown {
     const obj: any = {};
-    if (message.key !== "") {
+    if (message.key !== '') {
       obj.key = message.key;
     }
     if (message.value !== undefined) {
@@ -2638,24 +2476,34 @@ export const Artifact_PropertiesEntry = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<Artifact_PropertiesEntry>, I>>(base?: I): Artifact_PropertiesEntry {
+  create<I extends Exact<DeepPartial<Artifact_PropertiesEntry>, I>>(
+    base?: I,
+  ): Artifact_PropertiesEntry {
     return Artifact_PropertiesEntry.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<Artifact_PropertiesEntry>, I>>(object: I): Artifact_PropertiesEntry {
+  fromPartial<I extends Exact<DeepPartial<Artifact_PropertiesEntry>, I>>(
+    object: I,
+  ): Artifact_PropertiesEntry {
     const message = createBaseArtifact_PropertiesEntry();
-    message.key = object.key ?? "";
-    message.value = (object.value !== undefined && object.value !== null) ? Value.fromPartial(object.value) : undefined;
+    message.key = object.key ?? '';
+    message.value =
+      object.value !== undefined && object.value !== null
+        ? Value.fromPartial(object.value)
+        : undefined;
     return message;
   },
 };
 
 function createBaseArtifact_CustomPropertiesEntry(): Artifact_CustomPropertiesEntry {
-  return { key: "", value: undefined };
+  return { key: '', value: undefined };
 }
 
 export const Artifact_CustomPropertiesEntry = {
-  encode(message: Artifact_CustomPropertiesEntry, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.key !== "") {
+  encode(
+    message: Artifact_CustomPropertiesEntry,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
+    if (message.key !== '') {
       writer.uint32(10).string(message.key);
     }
     if (message.value !== undefined) {
@@ -2696,14 +2544,14 @@ export const Artifact_CustomPropertiesEntry = {
 
   fromJSON(object: any): Artifact_CustomPropertiesEntry {
     return {
-      key: isSet(object.key) ? globalThis.String(object.key) : "",
+      key: isSet(object.key) ? globalThis.String(object.key) : '',
       value: isSet(object.value) ? Value.fromJSON(object.value) : undefined,
     };
   },
 
   toJSON(message: Artifact_CustomPropertiesEntry): unknown {
     const obj: any = {};
-    if (message.key !== "") {
+    if (message.key !== '') {
       obj.key = message.key;
     }
     if (message.value !== undefined) {
@@ -2712,21 +2560,34 @@ export const Artifact_CustomPropertiesEntry = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<Artifact_CustomPropertiesEntry>, I>>(base?: I): Artifact_CustomPropertiesEntry {
+  create<I extends Exact<DeepPartial<Artifact_CustomPropertiesEntry>, I>>(
+    base?: I,
+  ): Artifact_CustomPropertiesEntry {
     return Artifact_CustomPropertiesEntry.fromPartial(base ?? ({} as any));
   },
   fromPartial<I extends Exact<DeepPartial<Artifact_CustomPropertiesEntry>, I>>(
     object: I,
   ): Artifact_CustomPropertiesEntry {
     const message = createBaseArtifact_CustomPropertiesEntry();
-    message.key = object.key ?? "";
-    message.value = (object.value !== undefined && object.value !== null) ? Value.fromPartial(object.value) : undefined;
+    message.key = object.key ?? '';
+    message.value =
+      object.value !== undefined && object.value !== null
+        ? Value.fromPartial(object.value)
+        : undefined;
     return message;
   },
 };
 
 function createBaseArtifactType(): ArtifactType {
-  return { id: 0, name: "", version: "", description: "", externalId: "", properties: {}, baseType: 0 };
+  return {
+    id: 0,
+    name: '',
+    version: '',
+    description: '',
+    externalId: '',
+    properties: {},
+    baseType: 0,
+  };
 }
 
 export const ArtifactType = {
@@ -2734,20 +2595,23 @@ export const ArtifactType = {
     if (message.id !== undefined && message.id !== 0) {
       writer.uint32(8).int64(message.id);
     }
-    if (message.name !== undefined && message.name !== "") {
+    if (message.name !== undefined && message.name !== '') {
       writer.uint32(18).string(message.name);
     }
-    if (message.version !== undefined && message.version !== "") {
+    if (message.version !== undefined && message.version !== '') {
       writer.uint32(34).string(message.version);
     }
-    if (message.description !== undefined && message.description !== "") {
+    if (message.description !== undefined && message.description !== '') {
       writer.uint32(42).string(message.description);
     }
-    if (message.externalId !== undefined && message.externalId !== "") {
+    if (message.externalId !== undefined && message.externalId !== '') {
       writer.uint32(58).string(message.externalId);
     }
     Object.entries(message.properties).forEach(([key, value]) => {
-      ArtifactType_PropertiesEntry.encode({ key: key as any, value }, writer.uint32(26).fork()).ldelim();
+      ArtifactType_PropertiesEntry.encode(
+        { key: key as any, value },
+        writer.uint32(26).fork(),
+      ).ldelim();
     });
     if (message.baseType !== undefined && message.baseType !== 0) {
       writer.uint32(48).int32(message.baseType);
@@ -2826,17 +2690,22 @@ export const ArtifactType = {
   fromJSON(object: any): ArtifactType {
     return {
       id: isSet(object.id) ? globalThis.Number(object.id) : 0,
-      name: isSet(object.name) ? globalThis.String(object.name) : "",
-      version: isSet(object.version) ? globalThis.String(object.version) : "",
-      description: isSet(object.description) ? globalThis.String(object.description) : "",
-      externalId: isSet(object.externalId) ? globalThis.String(object.externalId) : "",
+      name: isSet(object.name) ? globalThis.String(object.name) : '',
+      version: isSet(object.version) ? globalThis.String(object.version) : '',
+      description: isSet(object.description) ? globalThis.String(object.description) : '',
+      externalId: isSet(object.externalId) ? globalThis.String(object.externalId) : '',
       properties: isObject(object.properties)
-        ? Object.entries(object.properties).reduce<{ [key: string]: PropertyType }>((acc, [key, value]) => {
-          acc[key] = propertyTypeFromJSON(value);
-          return acc;
-        }, {})
+        ? Object.entries(object.properties).reduce<{ [key: string]: PropertyType }>(
+            (acc, [key, value]) => {
+              acc[key] = propertyTypeFromJSON(value);
+              return acc;
+            },
+            {},
+          )
         : {},
-      baseType: isSet(object.baseType) ? artifactType_SystemDefinedBaseTypeFromJSON(object.baseType) : 0,
+      baseType: isSet(object.baseType)
+        ? artifactType_SystemDefinedBaseTypeFromJSON(object.baseType)
+        : 0,
     };
   },
 
@@ -2845,16 +2714,16 @@ export const ArtifactType = {
     if (message.id !== undefined && message.id !== 0) {
       obj.id = Math.round(message.id);
     }
-    if (message.name !== undefined && message.name !== "") {
+    if (message.name !== undefined && message.name !== '') {
       obj.name = message.name;
     }
-    if (message.version !== undefined && message.version !== "") {
+    if (message.version !== undefined && message.version !== '') {
       obj.version = message.version;
     }
-    if (message.description !== undefined && message.description !== "") {
+    if (message.description !== undefined && message.description !== '') {
       obj.description = message.description;
     }
-    if (message.externalId !== undefined && message.externalId !== "") {
+    if (message.externalId !== undefined && message.externalId !== '') {
       obj.externalId = message.externalId;
     }
     if (message.properties) {
@@ -2878,31 +2747,33 @@ export const ArtifactType = {
   fromPartial<I extends Exact<DeepPartial<ArtifactType>, I>>(object: I): ArtifactType {
     const message = createBaseArtifactType();
     message.id = object.id ?? 0;
-    message.name = object.name ?? "";
-    message.version = object.version ?? "";
-    message.description = object.description ?? "";
-    message.externalId = object.externalId ?? "";
-    message.properties = Object.entries(object.properties ?? {}).reduce<{ [key: string]: PropertyType }>(
-      (acc, [key, value]) => {
-        if (value !== undefined) {
-          acc[key] = value as PropertyType;
-        }
-        return acc;
-      },
-      {},
-    );
+    message.name = object.name ?? '';
+    message.version = object.version ?? '';
+    message.description = object.description ?? '';
+    message.externalId = object.externalId ?? '';
+    message.properties = Object.entries(object.properties ?? {}).reduce<{
+      [key: string]: PropertyType;
+    }>((acc, [key, value]) => {
+      if (value !== undefined) {
+        acc[key] = value as PropertyType;
+      }
+      return acc;
+    }, {});
     message.baseType = object.baseType ?? 0;
     return message;
   },
 };
 
 function createBaseArtifactType_PropertiesEntry(): ArtifactType_PropertiesEntry {
-  return { key: "", value: 0 };
+  return { key: '', value: 0 };
 }
 
 export const ArtifactType_PropertiesEntry = {
-  encode(message: ArtifactType_PropertiesEntry, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.key !== "") {
+  encode(
+    message: ArtifactType_PropertiesEntry,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
+    if (message.key !== '') {
       writer.uint32(10).string(message.key);
     }
     if (message.value !== 0) {
@@ -2943,14 +2814,14 @@ export const ArtifactType_PropertiesEntry = {
 
   fromJSON(object: any): ArtifactType_PropertiesEntry {
     return {
-      key: isSet(object.key) ? globalThis.String(object.key) : "",
+      key: isSet(object.key) ? globalThis.String(object.key) : '',
       value: isSet(object.value) ? propertyTypeFromJSON(object.value) : 0,
     };
   },
 
   toJSON(message: ArtifactType_PropertiesEntry): unknown {
     const obj: any = {};
-    if (message.key !== "") {
+    if (message.key !== '') {
       obj.key = message.key;
     }
     if (message.value !== 0) {
@@ -2959,12 +2830,16 @@ export const ArtifactType_PropertiesEntry = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<ArtifactType_PropertiesEntry>, I>>(base?: I): ArtifactType_PropertiesEntry {
+  create<I extends Exact<DeepPartial<ArtifactType_PropertiesEntry>, I>>(
+    base?: I,
+  ): ArtifactType_PropertiesEntry {
     return ArtifactType_PropertiesEntry.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<ArtifactType_PropertiesEntry>, I>>(object: I): ArtifactType_PropertiesEntry {
+  fromPartial<I extends Exact<DeepPartial<ArtifactType_PropertiesEntry>, I>>(
+    object: I,
+  ): ArtifactType_PropertiesEntry {
     const message = createBaseArtifactType_PropertiesEntry();
-    message.key = object.key ?? "";
+    message.key = object.key ?? '';
     message.value = object.value ?? 0;
     return message;
   },
@@ -3071,7 +2946,9 @@ export const Event = {
       millisecondsSinceEpoch: isSet(object.millisecondsSinceEpoch)
         ? globalThis.Number(object.millisecondsSinceEpoch)
         : 0,
-      systemMetadata: isSet(object.systemMetadata) ? Any.fromJSON(object.systemMetadata) : undefined,
+      systemMetadata: isSet(object.systemMetadata)
+        ? Any.fromJSON(object.systemMetadata)
+        : undefined,
     };
   },
 
@@ -3105,14 +2982,16 @@ export const Event = {
     const message = createBaseEvent();
     message.artifactId = object.artifactId ?? 0;
     message.executionId = object.executionId ?? 0;
-    message.path = (object.path !== undefined && object.path !== null)
-      ? Event_Path.fromPartial(object.path)
-      : undefined;
+    message.path =
+      object.path !== undefined && object.path !== null
+        ? Event_Path.fromPartial(object.path)
+        : undefined;
     message.type = object.type ?? 0;
     message.millisecondsSinceEpoch = object.millisecondsSinceEpoch ?? 0;
-    message.systemMetadata = (object.systemMetadata !== undefined && object.systemMetadata !== null)
-      ? Any.fromPartial(object.systemMetadata)
-      : undefined;
+    message.systemMetadata =
+      object.systemMetadata !== undefined && object.systemMetadata !== null
+        ? Any.fromPartial(object.systemMetadata)
+        : undefined;
     return message;
   },
 };
@@ -3154,7 +3033,9 @@ export const Event_Path = {
 
   fromJSON(object: any): Event_Path {
     return {
-      steps: globalThis.Array.isArray(object?.steps) ? object.steps.map((e: any) => Event_Path_Step.fromJSON(e)) : [],
+      steps: globalThis.Array.isArray(object?.steps)
+        ? object.steps.map((e: any) => Event_Path_Step.fromJSON(e))
+        : [],
     };
   },
 
@@ -3253,10 +3134,10 @@ export const Event_Path_Step = {
 function createBaseExecution(): Execution {
   return {
     id: 0,
-    name: "",
+    name: '',
     typeId: 0,
-    type: "",
-    externalId: "",
+    type: '',
+    externalId: '',
     lastKnownState: 0,
     properties: {},
     customProperties: {},
@@ -3271,26 +3152,32 @@ export const Execution = {
     if (message.id !== undefined && message.id !== 0) {
       writer.uint32(8).int64(message.id);
     }
-    if (message.name !== undefined && message.name !== "") {
+    if (message.name !== undefined && message.name !== '') {
       writer.uint32(50).string(message.name);
     }
     if (message.typeId !== undefined && message.typeId !== 0) {
       writer.uint32(16).int64(message.typeId);
     }
-    if (message.type !== undefined && message.type !== "") {
+    if (message.type !== undefined && message.type !== '') {
       writer.uint32(58).string(message.type);
     }
-    if (message.externalId !== undefined && message.externalId !== "") {
+    if (message.externalId !== undefined && message.externalId !== '') {
       writer.uint32(82).string(message.externalId);
     }
     if (message.lastKnownState !== undefined && message.lastKnownState !== 0) {
       writer.uint32(24).int32(message.lastKnownState);
     }
     Object.entries(message.properties).forEach(([key, value]) => {
-      Execution_PropertiesEntry.encode({ key: key as any, value }, writer.uint32(34).fork()).ldelim();
+      Execution_PropertiesEntry.encode(
+        { key: key as any, value },
+        writer.uint32(34).fork(),
+      ).ldelim();
     });
     Object.entries(message.customProperties).forEach(([key, value]) => {
-      Execution_CustomPropertiesEntry.encode({ key: key as any, value }, writer.uint32(42).fork()).ldelim();
+      Execution_CustomPropertiesEntry.encode(
+        { key: key as any, value },
+        writer.uint32(42).fork(),
+      ).ldelim();
     });
     if (message.createTimeSinceEpoch !== undefined && message.createTimeSinceEpoch !== 0) {
       writer.uint32(64).int64(message.createTimeSinceEpoch);
@@ -3406,28 +3293,40 @@ export const Execution = {
   fromJSON(object: any): Execution {
     return {
       id: isSet(object.id) ? globalThis.Number(object.id) : 0,
-      name: isSet(object.name) ? globalThis.String(object.name) : "",
+      name: isSet(object.name) ? globalThis.String(object.name) : '',
       typeId: isSet(object.typeId) ? globalThis.Number(object.typeId) : 0,
-      type: isSet(object.type) ? globalThis.String(object.type) : "",
-      externalId: isSet(object.externalId) ? globalThis.String(object.externalId) : "",
-      lastKnownState: isSet(object.lastKnownState) ? execution_StateFromJSON(object.lastKnownState) : 0,
+      type: isSet(object.type) ? globalThis.String(object.type) : '',
+      externalId: isSet(object.externalId) ? globalThis.String(object.externalId) : '',
+      lastKnownState: isSet(object.lastKnownState)
+        ? execution_StateFromJSON(object.lastKnownState)
+        : 0,
       properties: isObject(object.properties)
-        ? Object.entries(object.properties).reduce<{ [key: string]: Value }>((acc, [key, value]) => {
-          acc[key] = Value.fromJSON(value);
-          return acc;
-        }, {})
+        ? Object.entries(object.properties).reduce<{ [key: string]: Value }>(
+            (acc, [key, value]) => {
+              acc[key] = Value.fromJSON(value);
+              return acc;
+            },
+            {},
+          )
         : {},
       customProperties: isObject(object.customProperties)
-        ? Object.entries(object.customProperties).reduce<{ [key: string]: Value }>((acc, [key, value]) => {
-          acc[key] = Value.fromJSON(value);
-          return acc;
-        }, {})
+        ? Object.entries(object.customProperties).reduce<{ [key: string]: Value }>(
+            (acc, [key, value]) => {
+              acc[key] = Value.fromJSON(value);
+              return acc;
+            },
+            {},
+          )
         : {},
-      createTimeSinceEpoch: isSet(object.createTimeSinceEpoch) ? globalThis.Number(object.createTimeSinceEpoch) : 0,
+      createTimeSinceEpoch: isSet(object.createTimeSinceEpoch)
+        ? globalThis.Number(object.createTimeSinceEpoch)
+        : 0,
       lastUpdateTimeSinceEpoch: isSet(object.lastUpdateTimeSinceEpoch)
         ? globalThis.Number(object.lastUpdateTimeSinceEpoch)
         : 0,
-      systemMetadata: isSet(object.systemMetadata) ? Any.fromJSON(object.systemMetadata) : undefined,
+      systemMetadata: isSet(object.systemMetadata)
+        ? Any.fromJSON(object.systemMetadata)
+        : undefined,
     };
   },
 
@@ -3436,16 +3335,16 @@ export const Execution = {
     if (message.id !== undefined && message.id !== 0) {
       obj.id = Math.round(message.id);
     }
-    if (message.name !== undefined && message.name !== "") {
+    if (message.name !== undefined && message.name !== '') {
       obj.name = message.name;
     }
     if (message.typeId !== undefined && message.typeId !== 0) {
       obj.typeId = Math.round(message.typeId);
     }
-    if (message.type !== undefined && message.type !== "") {
+    if (message.type !== undefined && message.type !== '') {
       obj.type = message.type;
     }
-    if (message.externalId !== undefined && message.externalId !== "") {
+    if (message.externalId !== undefined && message.externalId !== '') {
       obj.externalId = message.externalId;
     }
     if (message.lastKnownState !== undefined && message.lastKnownState !== 0) {
@@ -3487,10 +3386,10 @@ export const Execution = {
   fromPartial<I extends Exact<DeepPartial<Execution>, I>>(object: I): Execution {
     const message = createBaseExecution();
     message.id = object.id ?? 0;
-    message.name = object.name ?? "";
+    message.name = object.name ?? '';
     message.typeId = object.typeId ?? 0;
-    message.type = object.type ?? "";
-    message.externalId = object.externalId ?? "";
+    message.type = object.type ?? '';
+    message.externalId = object.externalId ?? '';
     message.lastKnownState = object.lastKnownState ?? 0;
     message.properties = Object.entries(object.properties ?? {}).reduce<{ [key: string]: Value }>(
       (acc, [key, value]) => {
@@ -3501,31 +3400,31 @@ export const Execution = {
       },
       {},
     );
-    message.customProperties = Object.entries(object.customProperties ?? {}).reduce<{ [key: string]: Value }>(
-      (acc, [key, value]) => {
-        if (value !== undefined) {
-          acc[key] = Value.fromPartial(value);
-        }
-        return acc;
-      },
-      {},
-    );
+    message.customProperties = Object.entries(object.customProperties ?? {}).reduce<{
+      [key: string]: Value;
+    }>((acc, [key, value]) => {
+      if (value !== undefined) {
+        acc[key] = Value.fromPartial(value);
+      }
+      return acc;
+    }, {});
     message.createTimeSinceEpoch = object.createTimeSinceEpoch ?? 0;
     message.lastUpdateTimeSinceEpoch = object.lastUpdateTimeSinceEpoch ?? 0;
-    message.systemMetadata = (object.systemMetadata !== undefined && object.systemMetadata !== null)
-      ? Any.fromPartial(object.systemMetadata)
-      : undefined;
+    message.systemMetadata =
+      object.systemMetadata !== undefined && object.systemMetadata !== null
+        ? Any.fromPartial(object.systemMetadata)
+        : undefined;
     return message;
   },
 };
 
 function createBaseExecution_PropertiesEntry(): Execution_PropertiesEntry {
-  return { key: "", value: undefined };
+  return { key: '', value: undefined };
 }
 
 export const Execution_PropertiesEntry = {
   encode(message: Execution_PropertiesEntry, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.key !== "") {
+    if (message.key !== '') {
       writer.uint32(10).string(message.key);
     }
     if (message.value !== undefined) {
@@ -3566,14 +3465,14 @@ export const Execution_PropertiesEntry = {
 
   fromJSON(object: any): Execution_PropertiesEntry {
     return {
-      key: isSet(object.key) ? globalThis.String(object.key) : "",
+      key: isSet(object.key) ? globalThis.String(object.key) : '',
       value: isSet(object.value) ? Value.fromJSON(object.value) : undefined,
     };
   },
 
   toJSON(message: Execution_PropertiesEntry): unknown {
     const obj: any = {};
-    if (message.key !== "") {
+    if (message.key !== '') {
       obj.key = message.key;
     }
     if (message.value !== undefined) {
@@ -3582,24 +3481,34 @@ export const Execution_PropertiesEntry = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<Execution_PropertiesEntry>, I>>(base?: I): Execution_PropertiesEntry {
+  create<I extends Exact<DeepPartial<Execution_PropertiesEntry>, I>>(
+    base?: I,
+  ): Execution_PropertiesEntry {
     return Execution_PropertiesEntry.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<Execution_PropertiesEntry>, I>>(object: I): Execution_PropertiesEntry {
+  fromPartial<I extends Exact<DeepPartial<Execution_PropertiesEntry>, I>>(
+    object: I,
+  ): Execution_PropertiesEntry {
     const message = createBaseExecution_PropertiesEntry();
-    message.key = object.key ?? "";
-    message.value = (object.value !== undefined && object.value !== null) ? Value.fromPartial(object.value) : undefined;
+    message.key = object.key ?? '';
+    message.value =
+      object.value !== undefined && object.value !== null
+        ? Value.fromPartial(object.value)
+        : undefined;
     return message;
   },
 };
 
 function createBaseExecution_CustomPropertiesEntry(): Execution_CustomPropertiesEntry {
-  return { key: "", value: undefined };
+  return { key: '', value: undefined };
 }
 
 export const Execution_CustomPropertiesEntry = {
-  encode(message: Execution_CustomPropertiesEntry, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.key !== "") {
+  encode(
+    message: Execution_CustomPropertiesEntry,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
+    if (message.key !== '') {
       writer.uint32(10).string(message.key);
     }
     if (message.value !== undefined) {
@@ -3640,14 +3549,14 @@ export const Execution_CustomPropertiesEntry = {
 
   fromJSON(object: any): Execution_CustomPropertiesEntry {
     return {
-      key: isSet(object.key) ? globalThis.String(object.key) : "",
+      key: isSet(object.key) ? globalThis.String(object.key) : '',
       value: isSet(object.value) ? Value.fromJSON(object.value) : undefined,
     };
   },
 
   toJSON(message: Execution_CustomPropertiesEntry): unknown {
     const obj: any = {};
-    if (message.key !== "") {
+    if (message.key !== '') {
       obj.key = message.key;
     }
     if (message.value !== undefined) {
@@ -3656,15 +3565,20 @@ export const Execution_CustomPropertiesEntry = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<Execution_CustomPropertiesEntry>, I>>(base?: I): Execution_CustomPropertiesEntry {
+  create<I extends Exact<DeepPartial<Execution_CustomPropertiesEntry>, I>>(
+    base?: I,
+  ): Execution_CustomPropertiesEntry {
     return Execution_CustomPropertiesEntry.fromPartial(base ?? ({} as any));
   },
   fromPartial<I extends Exact<DeepPartial<Execution_CustomPropertiesEntry>, I>>(
     object: I,
   ): Execution_CustomPropertiesEntry {
     const message = createBaseExecution_CustomPropertiesEntry();
-    message.key = object.key ?? "";
-    message.value = (object.value !== undefined && object.value !== null) ? Value.fromPartial(object.value) : undefined;
+    message.key = object.key ?? '';
+    message.value =
+      object.value !== undefined && object.value !== null
+        ? Value.fromPartial(object.value)
+        : undefined;
     return message;
   },
 };
@@ -3672,10 +3586,10 @@ export const Execution_CustomPropertiesEntry = {
 function createBaseExecutionType(): ExecutionType {
   return {
     id: 0,
-    name: "",
-    version: "",
-    description: "",
-    externalId: "",
+    name: '',
+    version: '',
+    description: '',
+    externalId: '',
     properties: {},
     inputType: undefined,
     outputType: undefined,
@@ -3688,20 +3602,23 @@ export const ExecutionType = {
     if (message.id !== undefined && message.id !== 0) {
       writer.uint32(8).int64(message.id);
     }
-    if (message.name !== undefined && message.name !== "") {
+    if (message.name !== undefined && message.name !== '') {
       writer.uint32(18).string(message.name);
     }
-    if (message.version !== undefined && message.version !== "") {
+    if (message.version !== undefined && message.version !== '') {
       writer.uint32(50).string(message.version);
     }
-    if (message.description !== undefined && message.description !== "") {
+    if (message.description !== undefined && message.description !== '') {
       writer.uint32(58).string(message.description);
     }
-    if (message.externalId !== undefined && message.externalId !== "") {
+    if (message.externalId !== undefined && message.externalId !== '') {
       writer.uint32(74).string(message.externalId);
     }
     Object.entries(message.properties).forEach(([key, value]) => {
-      ExecutionType_PropertiesEntry.encode({ key: key as any, value }, writer.uint32(26).fork()).ldelim();
+      ExecutionType_PropertiesEntry.encode(
+        { key: key as any, value },
+        writer.uint32(26).fork(),
+      ).ldelim();
     });
     if (message.inputType !== undefined) {
       ArtifactStructType.encode(message.inputType, writer.uint32(34).fork()).ldelim();
@@ -3800,19 +3717,28 @@ export const ExecutionType = {
   fromJSON(object: any): ExecutionType {
     return {
       id: isSet(object.id) ? globalThis.Number(object.id) : 0,
-      name: isSet(object.name) ? globalThis.String(object.name) : "",
-      version: isSet(object.version) ? globalThis.String(object.version) : "",
-      description: isSet(object.description) ? globalThis.String(object.description) : "",
-      externalId: isSet(object.externalId) ? globalThis.String(object.externalId) : "",
+      name: isSet(object.name) ? globalThis.String(object.name) : '',
+      version: isSet(object.version) ? globalThis.String(object.version) : '',
+      description: isSet(object.description) ? globalThis.String(object.description) : '',
+      externalId: isSet(object.externalId) ? globalThis.String(object.externalId) : '',
       properties: isObject(object.properties)
-        ? Object.entries(object.properties).reduce<{ [key: string]: PropertyType }>((acc, [key, value]) => {
-          acc[key] = propertyTypeFromJSON(value);
-          return acc;
-        }, {})
+        ? Object.entries(object.properties).reduce<{ [key: string]: PropertyType }>(
+            (acc, [key, value]) => {
+              acc[key] = propertyTypeFromJSON(value);
+              return acc;
+            },
+            {},
+          )
         : {},
-      inputType: isSet(object.inputType) ? ArtifactStructType.fromJSON(object.inputType) : undefined,
-      outputType: isSet(object.outputType) ? ArtifactStructType.fromJSON(object.outputType) : undefined,
-      baseType: isSet(object.baseType) ? executionType_SystemDefinedBaseTypeFromJSON(object.baseType) : 0,
+      inputType: isSet(object.inputType)
+        ? ArtifactStructType.fromJSON(object.inputType)
+        : undefined,
+      outputType: isSet(object.outputType)
+        ? ArtifactStructType.fromJSON(object.outputType)
+        : undefined,
+      baseType: isSet(object.baseType)
+        ? executionType_SystemDefinedBaseTypeFromJSON(object.baseType)
+        : 0,
     };
   },
 
@@ -3821,16 +3747,16 @@ export const ExecutionType = {
     if (message.id !== undefined && message.id !== 0) {
       obj.id = Math.round(message.id);
     }
-    if (message.name !== undefined && message.name !== "") {
+    if (message.name !== undefined && message.name !== '') {
       obj.name = message.name;
     }
-    if (message.version !== undefined && message.version !== "") {
+    if (message.version !== undefined && message.version !== '') {
       obj.version = message.version;
     }
-    if (message.description !== undefined && message.description !== "") {
+    if (message.description !== undefined && message.description !== '') {
       obj.description = message.description;
     }
-    if (message.externalId !== undefined && message.externalId !== "") {
+    if (message.externalId !== undefined && message.externalId !== '') {
       obj.externalId = message.externalId;
     }
     if (message.properties) {
@@ -3860,37 +3786,41 @@ export const ExecutionType = {
   fromPartial<I extends Exact<DeepPartial<ExecutionType>, I>>(object: I): ExecutionType {
     const message = createBaseExecutionType();
     message.id = object.id ?? 0;
-    message.name = object.name ?? "";
-    message.version = object.version ?? "";
-    message.description = object.description ?? "";
-    message.externalId = object.externalId ?? "";
-    message.properties = Object.entries(object.properties ?? {}).reduce<{ [key: string]: PropertyType }>(
-      (acc, [key, value]) => {
-        if (value !== undefined) {
-          acc[key] = value as PropertyType;
-        }
-        return acc;
-      },
-      {},
-    );
-    message.inputType = (object.inputType !== undefined && object.inputType !== null)
-      ? ArtifactStructType.fromPartial(object.inputType)
-      : undefined;
-    message.outputType = (object.outputType !== undefined && object.outputType !== null)
-      ? ArtifactStructType.fromPartial(object.outputType)
-      : undefined;
+    message.name = object.name ?? '';
+    message.version = object.version ?? '';
+    message.description = object.description ?? '';
+    message.externalId = object.externalId ?? '';
+    message.properties = Object.entries(object.properties ?? {}).reduce<{
+      [key: string]: PropertyType;
+    }>((acc, [key, value]) => {
+      if (value !== undefined) {
+        acc[key] = value as PropertyType;
+      }
+      return acc;
+    }, {});
+    message.inputType =
+      object.inputType !== undefined && object.inputType !== null
+        ? ArtifactStructType.fromPartial(object.inputType)
+        : undefined;
+    message.outputType =
+      object.outputType !== undefined && object.outputType !== null
+        ? ArtifactStructType.fromPartial(object.outputType)
+        : undefined;
     message.baseType = object.baseType ?? 0;
     return message;
   },
 };
 
 function createBaseExecutionType_PropertiesEntry(): ExecutionType_PropertiesEntry {
-  return { key: "", value: 0 };
+  return { key: '', value: 0 };
 }
 
 export const ExecutionType_PropertiesEntry = {
-  encode(message: ExecutionType_PropertiesEntry, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.key !== "") {
+  encode(
+    message: ExecutionType_PropertiesEntry,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
+    if (message.key !== '') {
       writer.uint32(10).string(message.key);
     }
     if (message.value !== 0) {
@@ -3931,14 +3861,14 @@ export const ExecutionType_PropertiesEntry = {
 
   fromJSON(object: any): ExecutionType_PropertiesEntry {
     return {
-      key: isSet(object.key) ? globalThis.String(object.key) : "",
+      key: isSet(object.key) ? globalThis.String(object.key) : '',
       value: isSet(object.value) ? propertyTypeFromJSON(object.value) : 0,
     };
   },
 
   toJSON(message: ExecutionType_PropertiesEntry): unknown {
     const obj: any = {};
-    if (message.key !== "") {
+    if (message.key !== '') {
       obj.key = message.key;
     }
     if (message.value !== 0) {
@@ -3947,21 +3877,31 @@ export const ExecutionType_PropertiesEntry = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<ExecutionType_PropertiesEntry>, I>>(base?: I): ExecutionType_PropertiesEntry {
+  create<I extends Exact<DeepPartial<ExecutionType_PropertiesEntry>, I>>(
+    base?: I,
+  ): ExecutionType_PropertiesEntry {
     return ExecutionType_PropertiesEntry.fromPartial(base ?? ({} as any));
   },
   fromPartial<I extends Exact<DeepPartial<ExecutionType_PropertiesEntry>, I>>(
     object: I,
   ): ExecutionType_PropertiesEntry {
     const message = createBaseExecutionType_PropertiesEntry();
-    message.key = object.key ?? "";
+    message.key = object.key ?? '';
     message.value = object.value ?? 0;
     return message;
   },
 };
 
 function createBaseContextType(): ContextType {
-  return { id: 0, name: "", version: "", description: "", externalId: "", properties: {}, baseType: 0 };
+  return {
+    id: 0,
+    name: '',
+    version: '',
+    description: '',
+    externalId: '',
+    properties: {},
+    baseType: 0,
+  };
 }
 
 export const ContextType = {
@@ -3969,20 +3909,23 @@ export const ContextType = {
     if (message.id !== undefined && message.id !== 0) {
       writer.uint32(8).int64(message.id);
     }
-    if (message.name !== undefined && message.name !== "") {
+    if (message.name !== undefined && message.name !== '') {
       writer.uint32(18).string(message.name);
     }
-    if (message.version !== undefined && message.version !== "") {
+    if (message.version !== undefined && message.version !== '') {
       writer.uint32(34).string(message.version);
     }
-    if (message.description !== undefined && message.description !== "") {
+    if (message.description !== undefined && message.description !== '') {
       writer.uint32(42).string(message.description);
     }
-    if (message.externalId !== undefined && message.externalId !== "") {
+    if (message.externalId !== undefined && message.externalId !== '') {
       writer.uint32(58).string(message.externalId);
     }
     Object.entries(message.properties).forEach(([key, value]) => {
-      ContextType_PropertiesEntry.encode({ key: key as any, value }, writer.uint32(26).fork()).ldelim();
+      ContextType_PropertiesEntry.encode(
+        { key: key as any, value },
+        writer.uint32(26).fork(),
+      ).ldelim();
     });
     if (message.baseType !== undefined && message.baseType !== 0) {
       writer.uint32(48).int32(message.baseType);
@@ -4061,17 +4004,22 @@ export const ContextType = {
   fromJSON(object: any): ContextType {
     return {
       id: isSet(object.id) ? globalThis.Number(object.id) : 0,
-      name: isSet(object.name) ? globalThis.String(object.name) : "",
-      version: isSet(object.version) ? globalThis.String(object.version) : "",
-      description: isSet(object.description) ? globalThis.String(object.description) : "",
-      externalId: isSet(object.externalId) ? globalThis.String(object.externalId) : "",
+      name: isSet(object.name) ? globalThis.String(object.name) : '',
+      version: isSet(object.version) ? globalThis.String(object.version) : '',
+      description: isSet(object.description) ? globalThis.String(object.description) : '',
+      externalId: isSet(object.externalId) ? globalThis.String(object.externalId) : '',
       properties: isObject(object.properties)
-        ? Object.entries(object.properties).reduce<{ [key: string]: PropertyType }>((acc, [key, value]) => {
-          acc[key] = propertyTypeFromJSON(value);
-          return acc;
-        }, {})
+        ? Object.entries(object.properties).reduce<{ [key: string]: PropertyType }>(
+            (acc, [key, value]) => {
+              acc[key] = propertyTypeFromJSON(value);
+              return acc;
+            },
+            {},
+          )
         : {},
-      baseType: isSet(object.baseType) ? contextType_SystemDefinedBaseTypeFromJSON(object.baseType) : 0,
+      baseType: isSet(object.baseType)
+        ? contextType_SystemDefinedBaseTypeFromJSON(object.baseType)
+        : 0,
     };
   },
 
@@ -4080,16 +4028,16 @@ export const ContextType = {
     if (message.id !== undefined && message.id !== 0) {
       obj.id = Math.round(message.id);
     }
-    if (message.name !== undefined && message.name !== "") {
+    if (message.name !== undefined && message.name !== '') {
       obj.name = message.name;
     }
-    if (message.version !== undefined && message.version !== "") {
+    if (message.version !== undefined && message.version !== '') {
       obj.version = message.version;
     }
-    if (message.description !== undefined && message.description !== "") {
+    if (message.description !== undefined && message.description !== '') {
       obj.description = message.description;
     }
-    if (message.externalId !== undefined && message.externalId !== "") {
+    if (message.externalId !== undefined && message.externalId !== '') {
       obj.externalId = message.externalId;
     }
     if (message.properties) {
@@ -4113,31 +4061,33 @@ export const ContextType = {
   fromPartial<I extends Exact<DeepPartial<ContextType>, I>>(object: I): ContextType {
     const message = createBaseContextType();
     message.id = object.id ?? 0;
-    message.name = object.name ?? "";
-    message.version = object.version ?? "";
-    message.description = object.description ?? "";
-    message.externalId = object.externalId ?? "";
-    message.properties = Object.entries(object.properties ?? {}).reduce<{ [key: string]: PropertyType }>(
-      (acc, [key, value]) => {
-        if (value !== undefined) {
-          acc[key] = value as PropertyType;
-        }
-        return acc;
-      },
-      {},
-    );
+    message.name = object.name ?? '';
+    message.version = object.version ?? '';
+    message.description = object.description ?? '';
+    message.externalId = object.externalId ?? '';
+    message.properties = Object.entries(object.properties ?? {}).reduce<{
+      [key: string]: PropertyType;
+    }>((acc, [key, value]) => {
+      if (value !== undefined) {
+        acc[key] = value as PropertyType;
+      }
+      return acc;
+    }, {});
     message.baseType = object.baseType ?? 0;
     return message;
   },
 };
 
 function createBaseContextType_PropertiesEntry(): ContextType_PropertiesEntry {
-  return { key: "", value: 0 };
+  return { key: '', value: 0 };
 }
 
 export const ContextType_PropertiesEntry = {
-  encode(message: ContextType_PropertiesEntry, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.key !== "") {
+  encode(
+    message: ContextType_PropertiesEntry,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
+    if (message.key !== '') {
       writer.uint32(10).string(message.key);
     }
     if (message.value !== 0) {
@@ -4178,14 +4128,14 @@ export const ContextType_PropertiesEntry = {
 
   fromJSON(object: any): ContextType_PropertiesEntry {
     return {
-      key: isSet(object.key) ? globalThis.String(object.key) : "",
+      key: isSet(object.key) ? globalThis.String(object.key) : '',
       value: isSet(object.value) ? propertyTypeFromJSON(object.value) : 0,
     };
   },
 
   toJSON(message: ContextType_PropertiesEntry): unknown {
     const obj: any = {};
-    if (message.key !== "") {
+    if (message.key !== '') {
       obj.key = message.key;
     }
     if (message.value !== 0) {
@@ -4194,12 +4144,16 @@ export const ContextType_PropertiesEntry = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<ContextType_PropertiesEntry>, I>>(base?: I): ContextType_PropertiesEntry {
+  create<I extends Exact<DeepPartial<ContextType_PropertiesEntry>, I>>(
+    base?: I,
+  ): ContextType_PropertiesEntry {
     return ContextType_PropertiesEntry.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<ContextType_PropertiesEntry>, I>>(object: I): ContextType_PropertiesEntry {
+  fromPartial<I extends Exact<DeepPartial<ContextType_PropertiesEntry>, I>>(
+    object: I,
+  ): ContextType_PropertiesEntry {
     const message = createBaseContextType_PropertiesEntry();
-    message.key = object.key ?? "";
+    message.key = object.key ?? '';
     message.value = object.value ?? 0;
     return message;
   },
@@ -4208,10 +4162,10 @@ export const ContextType_PropertiesEntry = {
 function createBaseContext(): Context {
   return {
     id: 0,
-    name: "",
+    name: '',
     typeId: 0,
-    type: "",
-    externalId: "",
+    type: '',
+    externalId: '',
     properties: {},
     customProperties: {},
     createTimeSinceEpoch: 0,
@@ -4225,23 +4179,26 @@ export const Context = {
     if (message.id !== undefined && message.id !== 0) {
       writer.uint32(8).int64(message.id);
     }
-    if (message.name !== undefined && message.name !== "") {
+    if (message.name !== undefined && message.name !== '') {
       writer.uint32(26).string(message.name);
     }
     if (message.typeId !== undefined && message.typeId !== 0) {
       writer.uint32(16).int64(message.typeId);
     }
-    if (message.type !== undefined && message.type !== "") {
+    if (message.type !== undefined && message.type !== '') {
       writer.uint32(50).string(message.type);
     }
-    if (message.externalId !== undefined && message.externalId !== "") {
+    if (message.externalId !== undefined && message.externalId !== '') {
       writer.uint32(74).string(message.externalId);
     }
     Object.entries(message.properties).forEach(([key, value]) => {
       Context_PropertiesEntry.encode({ key: key as any, value }, writer.uint32(34).fork()).ldelim();
     });
     Object.entries(message.customProperties).forEach(([key, value]) => {
-      Context_CustomPropertiesEntry.encode({ key: key as any, value }, writer.uint32(42).fork()).ldelim();
+      Context_CustomPropertiesEntry.encode(
+        { key: key as any, value },
+        writer.uint32(42).fork(),
+      ).ldelim();
     });
     if (message.createTimeSinceEpoch !== undefined && message.createTimeSinceEpoch !== 0) {
       writer.uint32(56).int64(message.createTimeSinceEpoch);
@@ -4350,27 +4307,37 @@ export const Context = {
   fromJSON(object: any): Context {
     return {
       id: isSet(object.id) ? globalThis.Number(object.id) : 0,
-      name: isSet(object.name) ? globalThis.String(object.name) : "",
+      name: isSet(object.name) ? globalThis.String(object.name) : '',
       typeId: isSet(object.typeId) ? globalThis.Number(object.typeId) : 0,
-      type: isSet(object.type) ? globalThis.String(object.type) : "",
-      externalId: isSet(object.externalId) ? globalThis.String(object.externalId) : "",
+      type: isSet(object.type) ? globalThis.String(object.type) : '',
+      externalId: isSet(object.externalId) ? globalThis.String(object.externalId) : '',
       properties: isObject(object.properties)
-        ? Object.entries(object.properties).reduce<{ [key: string]: Value }>((acc, [key, value]) => {
-          acc[key] = Value.fromJSON(value);
-          return acc;
-        }, {})
+        ? Object.entries(object.properties).reduce<{ [key: string]: Value }>(
+            (acc, [key, value]) => {
+              acc[key] = Value.fromJSON(value);
+              return acc;
+            },
+            {},
+          )
         : {},
       customProperties: isObject(object.customProperties)
-        ? Object.entries(object.customProperties).reduce<{ [key: string]: Value }>((acc, [key, value]) => {
-          acc[key] = Value.fromJSON(value);
-          return acc;
-        }, {})
+        ? Object.entries(object.customProperties).reduce<{ [key: string]: Value }>(
+            (acc, [key, value]) => {
+              acc[key] = Value.fromJSON(value);
+              return acc;
+            },
+            {},
+          )
         : {},
-      createTimeSinceEpoch: isSet(object.createTimeSinceEpoch) ? globalThis.Number(object.createTimeSinceEpoch) : 0,
+      createTimeSinceEpoch: isSet(object.createTimeSinceEpoch)
+        ? globalThis.Number(object.createTimeSinceEpoch)
+        : 0,
       lastUpdateTimeSinceEpoch: isSet(object.lastUpdateTimeSinceEpoch)
         ? globalThis.Number(object.lastUpdateTimeSinceEpoch)
         : 0,
-      systemMetadata: isSet(object.systemMetadata) ? Any.fromJSON(object.systemMetadata) : undefined,
+      systemMetadata: isSet(object.systemMetadata)
+        ? Any.fromJSON(object.systemMetadata)
+        : undefined,
     };
   },
 
@@ -4379,16 +4346,16 @@ export const Context = {
     if (message.id !== undefined && message.id !== 0) {
       obj.id = Math.round(message.id);
     }
-    if (message.name !== undefined && message.name !== "") {
+    if (message.name !== undefined && message.name !== '') {
       obj.name = message.name;
     }
     if (message.typeId !== undefined && message.typeId !== 0) {
       obj.typeId = Math.round(message.typeId);
     }
-    if (message.type !== undefined && message.type !== "") {
+    if (message.type !== undefined && message.type !== '') {
       obj.type = message.type;
     }
-    if (message.externalId !== undefined && message.externalId !== "") {
+    if (message.externalId !== undefined && message.externalId !== '') {
       obj.externalId = message.externalId;
     }
     if (message.properties) {
@@ -4427,10 +4394,10 @@ export const Context = {
   fromPartial<I extends Exact<DeepPartial<Context>, I>>(object: I): Context {
     const message = createBaseContext();
     message.id = object.id ?? 0;
-    message.name = object.name ?? "";
+    message.name = object.name ?? '';
     message.typeId = object.typeId ?? 0;
-    message.type = object.type ?? "";
-    message.externalId = object.externalId ?? "";
+    message.type = object.type ?? '';
+    message.externalId = object.externalId ?? '';
     message.properties = Object.entries(object.properties ?? {}).reduce<{ [key: string]: Value }>(
       (acc, [key, value]) => {
         if (value !== undefined) {
@@ -4440,31 +4407,31 @@ export const Context = {
       },
       {},
     );
-    message.customProperties = Object.entries(object.customProperties ?? {}).reduce<{ [key: string]: Value }>(
-      (acc, [key, value]) => {
-        if (value !== undefined) {
-          acc[key] = Value.fromPartial(value);
-        }
-        return acc;
-      },
-      {},
-    );
+    message.customProperties = Object.entries(object.customProperties ?? {}).reduce<{
+      [key: string]: Value;
+    }>((acc, [key, value]) => {
+      if (value !== undefined) {
+        acc[key] = Value.fromPartial(value);
+      }
+      return acc;
+    }, {});
     message.createTimeSinceEpoch = object.createTimeSinceEpoch ?? 0;
     message.lastUpdateTimeSinceEpoch = object.lastUpdateTimeSinceEpoch ?? 0;
-    message.systemMetadata = (object.systemMetadata !== undefined && object.systemMetadata !== null)
-      ? Any.fromPartial(object.systemMetadata)
-      : undefined;
+    message.systemMetadata =
+      object.systemMetadata !== undefined && object.systemMetadata !== null
+        ? Any.fromPartial(object.systemMetadata)
+        : undefined;
     return message;
   },
 };
 
 function createBaseContext_PropertiesEntry(): Context_PropertiesEntry {
-  return { key: "", value: undefined };
+  return { key: '', value: undefined };
 }
 
 export const Context_PropertiesEntry = {
   encode(message: Context_PropertiesEntry, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.key !== "") {
+    if (message.key !== '') {
       writer.uint32(10).string(message.key);
     }
     if (message.value !== undefined) {
@@ -4505,14 +4472,14 @@ export const Context_PropertiesEntry = {
 
   fromJSON(object: any): Context_PropertiesEntry {
     return {
-      key: isSet(object.key) ? globalThis.String(object.key) : "",
+      key: isSet(object.key) ? globalThis.String(object.key) : '',
       value: isSet(object.value) ? Value.fromJSON(object.value) : undefined,
     };
   },
 
   toJSON(message: Context_PropertiesEntry): unknown {
     const obj: any = {};
-    if (message.key !== "") {
+    if (message.key !== '') {
       obj.key = message.key;
     }
     if (message.value !== undefined) {
@@ -4521,24 +4488,34 @@ export const Context_PropertiesEntry = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<Context_PropertiesEntry>, I>>(base?: I): Context_PropertiesEntry {
+  create<I extends Exact<DeepPartial<Context_PropertiesEntry>, I>>(
+    base?: I,
+  ): Context_PropertiesEntry {
     return Context_PropertiesEntry.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<Context_PropertiesEntry>, I>>(object: I): Context_PropertiesEntry {
+  fromPartial<I extends Exact<DeepPartial<Context_PropertiesEntry>, I>>(
+    object: I,
+  ): Context_PropertiesEntry {
     const message = createBaseContext_PropertiesEntry();
-    message.key = object.key ?? "";
-    message.value = (object.value !== undefined && object.value !== null) ? Value.fromPartial(object.value) : undefined;
+    message.key = object.key ?? '';
+    message.value =
+      object.value !== undefined && object.value !== null
+        ? Value.fromPartial(object.value)
+        : undefined;
     return message;
   },
 };
 
 function createBaseContext_CustomPropertiesEntry(): Context_CustomPropertiesEntry {
-  return { key: "", value: undefined };
+  return { key: '', value: undefined };
 }
 
 export const Context_CustomPropertiesEntry = {
-  encode(message: Context_CustomPropertiesEntry, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.key !== "") {
+  encode(
+    message: Context_CustomPropertiesEntry,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
+    if (message.key !== '') {
       writer.uint32(10).string(message.key);
     }
     if (message.value !== undefined) {
@@ -4579,14 +4556,14 @@ export const Context_CustomPropertiesEntry = {
 
   fromJSON(object: any): Context_CustomPropertiesEntry {
     return {
-      key: isSet(object.key) ? globalThis.String(object.key) : "",
+      key: isSet(object.key) ? globalThis.String(object.key) : '',
       value: isSet(object.value) ? Value.fromJSON(object.value) : undefined,
     };
   },
 
   toJSON(message: Context_CustomPropertiesEntry): unknown {
     const obj: any = {};
-    if (message.key !== "") {
+    if (message.key !== '') {
       obj.key = message.key;
     }
     if (message.value !== undefined) {
@@ -4595,15 +4572,20 @@ export const Context_CustomPropertiesEntry = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<Context_CustomPropertiesEntry>, I>>(base?: I): Context_CustomPropertiesEntry {
+  create<I extends Exact<DeepPartial<Context_CustomPropertiesEntry>, I>>(
+    base?: I,
+  ): Context_CustomPropertiesEntry {
     return Context_CustomPropertiesEntry.fromPartial(base ?? ({} as any));
   },
   fromPartial<I extends Exact<DeepPartial<Context_CustomPropertiesEntry>, I>>(
     object: I,
   ): Context_CustomPropertiesEntry {
     const message = createBaseContext_CustomPropertiesEntry();
-    message.key = object.key ?? "";
-    message.value = (object.value !== undefined && object.value !== null) ? Value.fromPartial(object.value) : undefined;
+    message.key = object.key ?? '';
+    message.value =
+      object.value !== undefined && object.value !== null
+        ? Value.fromPartial(object.value)
+        : undefined;
     return message;
   },
 };
@@ -4975,7 +4957,9 @@ export const LineageGraph = {
       contexts: globalThis.Array.isArray(object?.contexts)
         ? object.contexts.map((e: any) => Context.fromJSON(e))
         : [],
-      events: globalThis.Array.isArray(object?.events) ? object.events.map((e: any) => Event.fromJSON(e)) : [],
+      events: globalThis.Array.isArray(object?.events)
+        ? object.events.map((e: any) => Event.fromJSON(e))
+        : [],
       attributions: globalThis.Array.isArray(object?.attributions)
         ? object.attributions.map((e: any) => Attribution.fromJSON(e))
         : [],
@@ -5057,7 +5041,10 @@ export const ArtifactStructType = {
       UnionArtifactStructType.encode(message.unionType, writer.uint32(18).fork()).ldelim();
     }
     if (message.intersection !== undefined) {
-      IntersectionArtifactStructType.encode(message.intersection, writer.uint32(26).fork()).ldelim();
+      IntersectionArtifactStructType.encode(
+        message.intersection,
+        writer.uint32(26).fork(),
+      ).ldelim();
     }
     if (message.list !== undefined) {
       ListArtifactStructType.encode(message.list, writer.uint32(34).fork()).ldelim();
@@ -5152,7 +5139,9 @@ export const ArtifactStructType = {
   fromJSON(object: any): ArtifactStructType {
     return {
       simple: isSet(object.simple) ? ArtifactType.fromJSON(object.simple) : undefined,
-      unionType: isSet(object.unionType) ? UnionArtifactStructType.fromJSON(object.unionType) : undefined,
+      unionType: isSet(object.unionType)
+        ? UnionArtifactStructType.fromJSON(object.unionType)
+        : undefined,
       intersection: isSet(object.intersection)
         ? IntersectionArtifactStructType.fromJSON(object.intersection)
         : undefined,
@@ -5198,30 +5187,38 @@ export const ArtifactStructType = {
   },
   fromPartial<I extends Exact<DeepPartial<ArtifactStructType>, I>>(object: I): ArtifactStructType {
     const message = createBaseArtifactStructType();
-    message.simple = (object.simple !== undefined && object.simple !== null)
-      ? ArtifactType.fromPartial(object.simple)
-      : undefined;
-    message.unionType = (object.unionType !== undefined && object.unionType !== null)
-      ? UnionArtifactStructType.fromPartial(object.unionType)
-      : undefined;
-    message.intersection = (object.intersection !== undefined && object.intersection !== null)
-      ? IntersectionArtifactStructType.fromPartial(object.intersection)
-      : undefined;
-    message.list = (object.list !== undefined && object.list !== null)
-      ? ListArtifactStructType.fromPartial(object.list)
-      : undefined;
-    message.none = (object.none !== undefined && object.none !== null)
-      ? NoneArtifactStructType.fromPartial(object.none)
-      : undefined;
-    message.any = (object.any !== undefined && object.any !== null)
-      ? AnyArtifactStructType.fromPartial(object.any)
-      : undefined;
-    message.tuple = (object.tuple !== undefined && object.tuple !== null)
-      ? TupleArtifactStructType.fromPartial(object.tuple)
-      : undefined;
-    message.dict = (object.dict !== undefined && object.dict !== null)
-      ? DictArtifactStructType.fromPartial(object.dict)
-      : undefined;
+    message.simple =
+      object.simple !== undefined && object.simple !== null
+        ? ArtifactType.fromPartial(object.simple)
+        : undefined;
+    message.unionType =
+      object.unionType !== undefined && object.unionType !== null
+        ? UnionArtifactStructType.fromPartial(object.unionType)
+        : undefined;
+    message.intersection =
+      object.intersection !== undefined && object.intersection !== null
+        ? IntersectionArtifactStructType.fromPartial(object.intersection)
+        : undefined;
+    message.list =
+      object.list !== undefined && object.list !== null
+        ? ListArtifactStructType.fromPartial(object.list)
+        : undefined;
+    message.none =
+      object.none !== undefined && object.none !== null
+        ? NoneArtifactStructType.fromPartial(object.none)
+        : undefined;
+    message.any =
+      object.any !== undefined && object.any !== null
+        ? AnyArtifactStructType.fromPartial(object.any)
+        : undefined;
+    message.tuple =
+      object.tuple !== undefined && object.tuple !== null
+        ? TupleArtifactStructType.fromPartial(object.tuple)
+        : undefined;
+    message.dict =
+      object.dict !== undefined && object.dict !== null
+        ? DictArtifactStructType.fromPartial(object.dict)
+        : undefined;
     return message;
   },
 };
@@ -5277,10 +5274,14 @@ export const UnionArtifactStructType = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<UnionArtifactStructType>, I>>(base?: I): UnionArtifactStructType {
+  create<I extends Exact<DeepPartial<UnionArtifactStructType>, I>>(
+    base?: I,
+  ): UnionArtifactStructType {
     return UnionArtifactStructType.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<UnionArtifactStructType>, I>>(object: I): UnionArtifactStructType {
+  fromPartial<I extends Exact<DeepPartial<UnionArtifactStructType>, I>>(
+    object: I,
+  ): UnionArtifactStructType {
     const message = createBaseUnionArtifactStructType();
     message.candidates = object.candidates?.map((e) => ArtifactStructType.fromPartial(e)) || [];
     return message;
@@ -5292,7 +5293,10 @@ function createBaseIntersectionArtifactStructType(): IntersectionArtifactStructT
 }
 
 export const IntersectionArtifactStructType = {
-  encode(message: IntersectionArtifactStructType, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    message: IntersectionArtifactStructType,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
     for (const v of message.constraints) {
       ArtifactStructType.encode(v!, writer.uint32(10).fork()).ldelim();
     }
@@ -5338,7 +5342,9 @@ export const IntersectionArtifactStructType = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<IntersectionArtifactStructType>, I>>(base?: I): IntersectionArtifactStructType {
+  create<I extends Exact<DeepPartial<IntersectionArtifactStructType>, I>>(
+    base?: I,
+  ): IntersectionArtifactStructType {
     return IntersectionArtifactStructType.fromPartial(base ?? ({} as any));
   },
   fromPartial<I extends Exact<DeepPartial<IntersectionArtifactStructType>, I>>(
@@ -5386,7 +5392,9 @@ export const ListArtifactStructType = {
   },
 
   fromJSON(object: any): ListArtifactStructType {
-    return { element: isSet(object.element) ? ArtifactStructType.fromJSON(object.element) : undefined };
+    return {
+      element: isSet(object.element) ? ArtifactStructType.fromJSON(object.element) : undefined,
+    };
   },
 
   toJSON(message: ListArtifactStructType): unknown {
@@ -5397,14 +5405,19 @@ export const ListArtifactStructType = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<ListArtifactStructType>, I>>(base?: I): ListArtifactStructType {
+  create<I extends Exact<DeepPartial<ListArtifactStructType>, I>>(
+    base?: I,
+  ): ListArtifactStructType {
     return ListArtifactStructType.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<ListArtifactStructType>, I>>(object: I): ListArtifactStructType {
+  fromPartial<I extends Exact<DeepPartial<ListArtifactStructType>, I>>(
+    object: I,
+  ): ListArtifactStructType {
     const message = createBaseListArtifactStructType();
-    message.element = (object.element !== undefined && object.element !== null)
-      ? ArtifactStructType.fromPartial(object.element)
-      : undefined;
+    message.element =
+      object.element !== undefined && object.element !== null
+        ? ArtifactStructType.fromPartial(object.element)
+        : undefined;
     return message;
   },
 };
@@ -5443,10 +5456,14 @@ export const NoneArtifactStructType = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<NoneArtifactStructType>, I>>(base?: I): NoneArtifactStructType {
+  create<I extends Exact<DeepPartial<NoneArtifactStructType>, I>>(
+    base?: I,
+  ): NoneArtifactStructType {
     return NoneArtifactStructType.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<NoneArtifactStructType>, I>>(_: I): NoneArtifactStructType {
+  fromPartial<I extends Exact<DeepPartial<NoneArtifactStructType>, I>>(
+    _: I,
+  ): NoneArtifactStructType {
     const message = createBaseNoneArtifactStructType();
     return message;
   },
@@ -5546,10 +5563,14 @@ export const TupleArtifactStructType = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<TupleArtifactStructType>, I>>(base?: I): TupleArtifactStructType {
+  create<I extends Exact<DeepPartial<TupleArtifactStructType>, I>>(
+    base?: I,
+  ): TupleArtifactStructType {
     return TupleArtifactStructType.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<TupleArtifactStructType>, I>>(object: I): TupleArtifactStructType {
+  fromPartial<I extends Exact<DeepPartial<TupleArtifactStructType>, I>>(
+    object: I,
+  ): TupleArtifactStructType {
     const message = createBaseTupleArtifactStructType();
     message.elements = object.elements?.map((e) => ArtifactStructType.fromPartial(e)) || [];
     return message;
@@ -5563,7 +5584,10 @@ function createBaseDictArtifactStructType(): DictArtifactStructType {
 export const DictArtifactStructType = {
   encode(message: DictArtifactStructType, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
     Object.entries(message.properties).forEach(([key, value]) => {
-      DictArtifactStructType_PropertiesEntry.encode({ key: key as any, value }, writer.uint32(10).fork()).ldelim();
+      DictArtifactStructType_PropertiesEntry.encode(
+        { key: key as any, value },
+        writer.uint32(10).fork(),
+      ).ldelim();
     });
     if (message.noneTypeNotRequired !== undefined && message.noneTypeNotRequired !== false) {
       writer.uint32(16).bool(message.noneTypeNotRequired);
@@ -5617,12 +5641,17 @@ export const DictArtifactStructType = {
   fromJSON(object: any): DictArtifactStructType {
     return {
       properties: isObject(object.properties)
-        ? Object.entries(object.properties).reduce<{ [key: string]: ArtifactStructType }>((acc, [key, value]) => {
-          acc[key] = ArtifactStructType.fromJSON(value);
-          return acc;
-        }, {})
+        ? Object.entries(object.properties).reduce<{ [key: string]: ArtifactStructType }>(
+            (acc, [key, value]) => {
+              acc[key] = ArtifactStructType.fromJSON(value);
+              return acc;
+            },
+            {},
+          )
         : {},
-      noneTypeNotRequired: isSet(object.noneTypeNotRequired) ? globalThis.Boolean(object.noneTypeNotRequired) : false,
+      noneTypeNotRequired: isSet(object.noneTypeNotRequired)
+        ? globalThis.Boolean(object.noneTypeNotRequired)
+        : false,
       extraPropertiesType: isSet(object.extraPropertiesType)
         ? ArtifactStructType.fromJSON(object.extraPropertiesType)
         : undefined,
@@ -5649,35 +5678,42 @@ export const DictArtifactStructType = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<DictArtifactStructType>, I>>(base?: I): DictArtifactStructType {
+  create<I extends Exact<DeepPartial<DictArtifactStructType>, I>>(
+    base?: I,
+  ): DictArtifactStructType {
     return DictArtifactStructType.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<DictArtifactStructType>, I>>(object: I): DictArtifactStructType {
+  fromPartial<I extends Exact<DeepPartial<DictArtifactStructType>, I>>(
+    object: I,
+  ): DictArtifactStructType {
     const message = createBaseDictArtifactStructType();
-    message.properties = Object.entries(object.properties ?? {}).reduce<{ [key: string]: ArtifactStructType }>(
-      (acc, [key, value]) => {
-        if (value !== undefined) {
-          acc[key] = ArtifactStructType.fromPartial(value);
-        }
-        return acc;
-      },
-      {},
-    );
+    message.properties = Object.entries(object.properties ?? {}).reduce<{
+      [key: string]: ArtifactStructType;
+    }>((acc, [key, value]) => {
+      if (value !== undefined) {
+        acc[key] = ArtifactStructType.fromPartial(value);
+      }
+      return acc;
+    }, {});
     message.noneTypeNotRequired = object.noneTypeNotRequired ?? false;
-    message.extraPropertiesType = (object.extraPropertiesType !== undefined && object.extraPropertiesType !== null)
-      ? ArtifactStructType.fromPartial(object.extraPropertiesType)
-      : undefined;
+    message.extraPropertiesType =
+      object.extraPropertiesType !== undefined && object.extraPropertiesType !== null
+        ? ArtifactStructType.fromPartial(object.extraPropertiesType)
+        : undefined;
     return message;
   },
 };
 
 function createBaseDictArtifactStructType_PropertiesEntry(): DictArtifactStructType_PropertiesEntry {
-  return { key: "", value: undefined };
+  return { key: '', value: undefined };
 }
 
 export const DictArtifactStructType_PropertiesEntry = {
-  encode(message: DictArtifactStructType_PropertiesEntry, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.key !== "") {
+  encode(
+    message: DictArtifactStructType_PropertiesEntry,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
+    if (message.key !== '') {
       writer.uint32(10).string(message.key);
     }
     if (message.value !== undefined) {
@@ -5718,14 +5754,14 @@ export const DictArtifactStructType_PropertiesEntry = {
 
   fromJSON(object: any): DictArtifactStructType_PropertiesEntry {
     return {
-      key: isSet(object.key) ? globalThis.String(object.key) : "",
+      key: isSet(object.key) ? globalThis.String(object.key) : '',
       value: isSet(object.value) ? ArtifactStructType.fromJSON(object.value) : undefined,
     };
   },
 
   toJSON(message: DictArtifactStructType_PropertiesEntry): unknown {
     const obj: any = {};
-    if (message.key !== "") {
+    if (message.key !== '') {
       obj.key = message.key;
     }
     if (message.value !== undefined) {
@@ -5743,10 +5779,11 @@ export const DictArtifactStructType_PropertiesEntry = {
     object: I,
   ): DictArtifactStructType_PropertiesEntry {
     const message = createBaseDictArtifactStructType_PropertiesEntry();
-    message.key = object.key ?? "";
-    message.value = (object.value !== undefined && object.value !== null)
-      ? ArtifactStructType.fromPartial(object.value)
-      : undefined;
+    message.key = object.key ?? '';
+    message.value =
+      object.value !== undefined && object.value !== null
+        ? ArtifactStructType.fromPartial(object.value)
+        : undefined;
     return message;
   },
 };
@@ -5796,12 +5833,12 @@ export const FakeDatabaseConfig = {
 
 function createBaseMySQLDatabaseConfig(): MySQLDatabaseConfig {
   return {
-    host: "",
+    host: '',
     port: 0,
-    database: "",
-    user: "",
-    password: "",
-    socket: "",
+    database: '',
+    user: '',
+    password: '',
+    socket: '',
     sslOptions: undefined,
     skipDbCreation: false,
   };
@@ -5809,22 +5846,22 @@ function createBaseMySQLDatabaseConfig(): MySQLDatabaseConfig {
 
 export const MySQLDatabaseConfig = {
   encode(message: MySQLDatabaseConfig, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.host !== undefined && message.host !== "") {
+    if (message.host !== undefined && message.host !== '') {
       writer.uint32(10).string(message.host);
     }
     if (message.port !== undefined && message.port !== 0) {
       writer.uint32(16).int64(message.port);
     }
-    if (message.database !== undefined && message.database !== "") {
+    if (message.database !== undefined && message.database !== '') {
       writer.uint32(26).string(message.database);
     }
-    if (message.user !== undefined && message.user !== "") {
+    if (message.user !== undefined && message.user !== '') {
       writer.uint32(34).string(message.user);
     }
-    if (message.password !== undefined && message.password !== "") {
+    if (message.password !== undefined && message.password !== '') {
       writer.uint32(42).string(message.password);
     }
-    if (message.socket !== undefined && message.socket !== "") {
+    if (message.socket !== undefined && message.socket !== '') {
       writer.uint32(50).string(message.socket);
     }
     if (message.sslOptions !== undefined) {
@@ -5910,35 +5947,39 @@ export const MySQLDatabaseConfig = {
 
   fromJSON(object: any): MySQLDatabaseConfig {
     return {
-      host: isSet(object.host) ? globalThis.String(object.host) : "",
+      host: isSet(object.host) ? globalThis.String(object.host) : '',
       port: isSet(object.port) ? globalThis.Number(object.port) : 0,
-      database: isSet(object.database) ? globalThis.String(object.database) : "",
-      user: isSet(object.user) ? globalThis.String(object.user) : "",
-      password: isSet(object.password) ? globalThis.String(object.password) : "",
-      socket: isSet(object.socket) ? globalThis.String(object.socket) : "",
-      sslOptions: isSet(object.sslOptions) ? MySQLDatabaseConfig_SSLOptions.fromJSON(object.sslOptions) : undefined,
-      skipDbCreation: isSet(object.skipDbCreation) ? globalThis.Boolean(object.skipDbCreation) : false,
+      database: isSet(object.database) ? globalThis.String(object.database) : '',
+      user: isSet(object.user) ? globalThis.String(object.user) : '',
+      password: isSet(object.password) ? globalThis.String(object.password) : '',
+      socket: isSet(object.socket) ? globalThis.String(object.socket) : '',
+      sslOptions: isSet(object.sslOptions)
+        ? MySQLDatabaseConfig_SSLOptions.fromJSON(object.sslOptions)
+        : undefined,
+      skipDbCreation: isSet(object.skipDbCreation)
+        ? globalThis.Boolean(object.skipDbCreation)
+        : false,
     };
   },
 
   toJSON(message: MySQLDatabaseConfig): unknown {
     const obj: any = {};
-    if (message.host !== undefined && message.host !== "") {
+    if (message.host !== undefined && message.host !== '') {
       obj.host = message.host;
     }
     if (message.port !== undefined && message.port !== 0) {
       obj.port = Math.round(message.port);
     }
-    if (message.database !== undefined && message.database !== "") {
+    if (message.database !== undefined && message.database !== '') {
       obj.database = message.database;
     }
-    if (message.user !== undefined && message.user !== "") {
+    if (message.user !== undefined && message.user !== '') {
       obj.user = message.user;
     }
-    if (message.password !== undefined && message.password !== "") {
+    if (message.password !== undefined && message.password !== '') {
       obj.password = message.password;
     }
-    if (message.socket !== undefined && message.socket !== "") {
+    if (message.socket !== undefined && message.socket !== '') {
       obj.socket = message.socket;
     }
     if (message.sslOptions !== undefined) {
@@ -5953,41 +5994,47 @@ export const MySQLDatabaseConfig = {
   create<I extends Exact<DeepPartial<MySQLDatabaseConfig>, I>>(base?: I): MySQLDatabaseConfig {
     return MySQLDatabaseConfig.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<MySQLDatabaseConfig>, I>>(object: I): MySQLDatabaseConfig {
+  fromPartial<I extends Exact<DeepPartial<MySQLDatabaseConfig>, I>>(
+    object: I,
+  ): MySQLDatabaseConfig {
     const message = createBaseMySQLDatabaseConfig();
-    message.host = object.host ?? "";
+    message.host = object.host ?? '';
     message.port = object.port ?? 0;
-    message.database = object.database ?? "";
-    message.user = object.user ?? "";
-    message.password = object.password ?? "";
-    message.socket = object.socket ?? "";
-    message.sslOptions = (object.sslOptions !== undefined && object.sslOptions !== null)
-      ? MySQLDatabaseConfig_SSLOptions.fromPartial(object.sslOptions)
-      : undefined;
+    message.database = object.database ?? '';
+    message.user = object.user ?? '';
+    message.password = object.password ?? '';
+    message.socket = object.socket ?? '';
+    message.sslOptions =
+      object.sslOptions !== undefined && object.sslOptions !== null
+        ? MySQLDatabaseConfig_SSLOptions.fromPartial(object.sslOptions)
+        : undefined;
     message.skipDbCreation = object.skipDbCreation ?? false;
     return message;
   },
 };
 
 function createBaseMySQLDatabaseConfig_SSLOptions(): MySQLDatabaseConfig_SSLOptions {
-  return { key: "", cert: "", ca: "", capath: "", cipher: "", verifyServerCert: false };
+  return { key: '', cert: '', ca: '', capath: '', cipher: '', verifyServerCert: false };
 }
 
 export const MySQLDatabaseConfig_SSLOptions = {
-  encode(message: MySQLDatabaseConfig_SSLOptions, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.key !== undefined && message.key !== "") {
+  encode(
+    message: MySQLDatabaseConfig_SSLOptions,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
+    if (message.key !== undefined && message.key !== '') {
       writer.uint32(10).string(message.key);
     }
-    if (message.cert !== undefined && message.cert !== "") {
+    if (message.cert !== undefined && message.cert !== '') {
       writer.uint32(18).string(message.cert);
     }
-    if (message.ca !== undefined && message.ca !== "") {
+    if (message.ca !== undefined && message.ca !== '') {
       writer.uint32(26).string(message.ca);
     }
-    if (message.capath !== undefined && message.capath !== "") {
+    if (message.capath !== undefined && message.capath !== '') {
       writer.uint32(34).string(message.capath);
     }
-    if (message.cipher !== undefined && message.cipher !== "") {
+    if (message.cipher !== undefined && message.cipher !== '') {
       writer.uint32(42).string(message.cipher);
     }
     if (message.verifyServerCert !== undefined && message.verifyServerCert !== false) {
@@ -6056,30 +6103,32 @@ export const MySQLDatabaseConfig_SSLOptions = {
 
   fromJSON(object: any): MySQLDatabaseConfig_SSLOptions {
     return {
-      key: isSet(object.key) ? globalThis.String(object.key) : "",
-      cert: isSet(object.cert) ? globalThis.String(object.cert) : "",
-      ca: isSet(object.ca) ? globalThis.String(object.ca) : "",
-      capath: isSet(object.capath) ? globalThis.String(object.capath) : "",
-      cipher: isSet(object.cipher) ? globalThis.String(object.cipher) : "",
-      verifyServerCert: isSet(object.verifyServerCert) ? globalThis.Boolean(object.verifyServerCert) : false,
+      key: isSet(object.key) ? globalThis.String(object.key) : '',
+      cert: isSet(object.cert) ? globalThis.String(object.cert) : '',
+      ca: isSet(object.ca) ? globalThis.String(object.ca) : '',
+      capath: isSet(object.capath) ? globalThis.String(object.capath) : '',
+      cipher: isSet(object.cipher) ? globalThis.String(object.cipher) : '',
+      verifyServerCert: isSet(object.verifyServerCert)
+        ? globalThis.Boolean(object.verifyServerCert)
+        : false,
     };
   },
 
   toJSON(message: MySQLDatabaseConfig_SSLOptions): unknown {
     const obj: any = {};
-    if (message.key !== undefined && message.key !== "") {
+    if (message.key !== undefined && message.key !== '') {
       obj.key = message.key;
     }
-    if (message.cert !== undefined && message.cert !== "") {
+    if (message.cert !== undefined && message.cert !== '') {
       obj.cert = message.cert;
     }
-    if (message.ca !== undefined && message.ca !== "") {
+    if (message.ca !== undefined && message.ca !== '') {
       obj.ca = message.ca;
     }
-    if (message.capath !== undefined && message.capath !== "") {
+    if (message.capath !== undefined && message.capath !== '') {
       obj.capath = message.capath;
     }
-    if (message.cipher !== undefined && message.cipher !== "") {
+    if (message.cipher !== undefined && message.cipher !== '') {
       obj.cipher = message.cipher;
     }
     if (message.verifyServerCert !== undefined && message.verifyServerCert !== false) {
@@ -6088,30 +6137,35 @@ export const MySQLDatabaseConfig_SSLOptions = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<MySQLDatabaseConfig_SSLOptions>, I>>(base?: I): MySQLDatabaseConfig_SSLOptions {
+  create<I extends Exact<DeepPartial<MySQLDatabaseConfig_SSLOptions>, I>>(
+    base?: I,
+  ): MySQLDatabaseConfig_SSLOptions {
     return MySQLDatabaseConfig_SSLOptions.fromPartial(base ?? ({} as any));
   },
   fromPartial<I extends Exact<DeepPartial<MySQLDatabaseConfig_SSLOptions>, I>>(
     object: I,
   ): MySQLDatabaseConfig_SSLOptions {
     const message = createBaseMySQLDatabaseConfig_SSLOptions();
-    message.key = object.key ?? "";
-    message.cert = object.cert ?? "";
-    message.ca = object.ca ?? "";
-    message.capath = object.capath ?? "";
-    message.cipher = object.cipher ?? "";
+    message.key = object.key ?? '';
+    message.cert = object.cert ?? '';
+    message.ca = object.ca ?? '';
+    message.capath = object.capath ?? '';
+    message.cipher = object.cipher ?? '';
     message.verifyServerCert = object.verifyServerCert ?? false;
     return message;
   },
 };
 
 function createBaseSqliteMetadataSourceConfig(): SqliteMetadataSourceConfig {
-  return { filenameUri: "", connectionMode: 0 };
+  return { filenameUri: '', connectionMode: 0 };
 }
 
 export const SqliteMetadataSourceConfig = {
-  encode(message: SqliteMetadataSourceConfig, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.filenameUri !== undefined && message.filenameUri !== "") {
+  encode(
+    message: SqliteMetadataSourceConfig,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
+    if (message.filenameUri !== undefined && message.filenameUri !== '') {
       writer.uint32(10).string(message.filenameUri);
     }
     if (message.connectionMode !== undefined && message.connectionMode !== 0) {
@@ -6152,7 +6206,7 @@ export const SqliteMetadataSourceConfig = {
 
   fromJSON(object: any): SqliteMetadataSourceConfig {
     return {
-      filenameUri: isSet(object.filenameUri) ? globalThis.String(object.filenameUri) : "",
+      filenameUri: isSet(object.filenameUri) ? globalThis.String(object.filenameUri) : '',
       connectionMode: isSet(object.connectionMode)
         ? sqliteMetadataSourceConfig_ConnectionModeFromJSON(object.connectionMode)
         : 0,
@@ -6161,7 +6215,7 @@ export const SqliteMetadataSourceConfig = {
 
   toJSON(message: SqliteMetadataSourceConfig): unknown {
     const obj: any = {};
-    if (message.filenameUri !== undefined && message.filenameUri !== "") {
+    if (message.filenameUri !== undefined && message.filenameUri !== '') {
       obj.filenameUri = message.filenameUri;
     }
     if (message.connectionMode !== undefined && message.connectionMode !== 0) {
@@ -6170,12 +6224,16 @@ export const SqliteMetadataSourceConfig = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<SqliteMetadataSourceConfig>, I>>(base?: I): SqliteMetadataSourceConfig {
+  create<I extends Exact<DeepPartial<SqliteMetadataSourceConfig>, I>>(
+    base?: I,
+  ): SqliteMetadataSourceConfig {
     return SqliteMetadataSourceConfig.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<SqliteMetadataSourceConfig>, I>>(object: I): SqliteMetadataSourceConfig {
+  fromPartial<I extends Exact<DeepPartial<SqliteMetadataSourceConfig>, I>>(
+    object: I,
+  ): SqliteMetadataSourceConfig {
     const message = createBaseSqliteMetadataSourceConfig();
-    message.filenameUri = object.filenameUri ?? "";
+    message.filenameUri = object.filenameUri ?? '';
     message.connectionMode = object.connectionMode ?? 0;
     return message;
   },
@@ -6183,13 +6241,13 @@ export const SqliteMetadataSourceConfig = {
 
 function createBasePostgreSQLDatabaseConfig(): PostgreSQLDatabaseConfig {
   return {
-    host: "",
-    hostaddr: "",
-    port: "",
-    user: "",
-    password: "",
-    passfile: "",
-    dbname: "",
+    host: '',
+    hostaddr: '',
+    port: '',
+    user: '',
+    password: '',
+    passfile: '',
+    dbname: '',
     skipDbCreation: false,
     ssloption: undefined,
   };
@@ -6197,32 +6255,35 @@ function createBasePostgreSQLDatabaseConfig(): PostgreSQLDatabaseConfig {
 
 export const PostgreSQLDatabaseConfig = {
   encode(message: PostgreSQLDatabaseConfig, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.host !== undefined && message.host !== "") {
+    if (message.host !== undefined && message.host !== '') {
       writer.uint32(10).string(message.host);
     }
-    if (message.hostaddr !== undefined && message.hostaddr !== "") {
+    if (message.hostaddr !== undefined && message.hostaddr !== '') {
       writer.uint32(18).string(message.hostaddr);
     }
-    if (message.port !== undefined && message.port !== "") {
+    if (message.port !== undefined && message.port !== '') {
       writer.uint32(26).string(message.port);
     }
-    if (message.user !== undefined && message.user !== "") {
+    if (message.user !== undefined && message.user !== '') {
       writer.uint32(34).string(message.user);
     }
-    if (message.password !== undefined && message.password !== "") {
+    if (message.password !== undefined && message.password !== '') {
       writer.uint32(42).string(message.password);
     }
-    if (message.passfile !== undefined && message.passfile !== "") {
+    if (message.passfile !== undefined && message.passfile !== '') {
       writer.uint32(50).string(message.passfile);
     }
-    if (message.dbname !== undefined && message.dbname !== "") {
+    if (message.dbname !== undefined && message.dbname !== '') {
       writer.uint32(58).string(message.dbname);
     }
     if (message.skipDbCreation !== undefined && message.skipDbCreation !== false) {
       writer.uint32(64).bool(message.skipDbCreation);
     }
     if (message.ssloption !== undefined) {
-      PostgreSQLDatabaseConfig_SSLOptions.encode(message.ssloption, writer.uint32(74).fork()).ldelim();
+      PostgreSQLDatabaseConfig_SSLOptions.encode(
+        message.ssloption,
+        writer.uint32(74).fork(),
+      ).ldelim();
     }
     return writer;
   },
@@ -6308,39 +6369,43 @@ export const PostgreSQLDatabaseConfig = {
 
   fromJSON(object: any): PostgreSQLDatabaseConfig {
     return {
-      host: isSet(object.host) ? globalThis.String(object.host) : "",
-      hostaddr: isSet(object.hostaddr) ? globalThis.String(object.hostaddr) : "",
-      port: isSet(object.port) ? globalThis.String(object.port) : "",
-      user: isSet(object.user) ? globalThis.String(object.user) : "",
-      password: isSet(object.password) ? globalThis.String(object.password) : "",
-      passfile: isSet(object.passfile) ? globalThis.String(object.passfile) : "",
-      dbname: isSet(object.dbname) ? globalThis.String(object.dbname) : "",
-      skipDbCreation: isSet(object.skipDbCreation) ? globalThis.Boolean(object.skipDbCreation) : false,
-      ssloption: isSet(object.ssloption) ? PostgreSQLDatabaseConfig_SSLOptions.fromJSON(object.ssloption) : undefined,
+      host: isSet(object.host) ? globalThis.String(object.host) : '',
+      hostaddr: isSet(object.hostaddr) ? globalThis.String(object.hostaddr) : '',
+      port: isSet(object.port) ? globalThis.String(object.port) : '',
+      user: isSet(object.user) ? globalThis.String(object.user) : '',
+      password: isSet(object.password) ? globalThis.String(object.password) : '',
+      passfile: isSet(object.passfile) ? globalThis.String(object.passfile) : '',
+      dbname: isSet(object.dbname) ? globalThis.String(object.dbname) : '',
+      skipDbCreation: isSet(object.skipDbCreation)
+        ? globalThis.Boolean(object.skipDbCreation)
+        : false,
+      ssloption: isSet(object.ssloption)
+        ? PostgreSQLDatabaseConfig_SSLOptions.fromJSON(object.ssloption)
+        : undefined,
     };
   },
 
   toJSON(message: PostgreSQLDatabaseConfig): unknown {
     const obj: any = {};
-    if (message.host !== undefined && message.host !== "") {
+    if (message.host !== undefined && message.host !== '') {
       obj.host = message.host;
     }
-    if (message.hostaddr !== undefined && message.hostaddr !== "") {
+    if (message.hostaddr !== undefined && message.hostaddr !== '') {
       obj.hostaddr = message.hostaddr;
     }
-    if (message.port !== undefined && message.port !== "") {
+    if (message.port !== undefined && message.port !== '') {
       obj.port = message.port;
     }
-    if (message.user !== undefined && message.user !== "") {
+    if (message.user !== undefined && message.user !== '') {
       obj.user = message.user;
     }
-    if (message.password !== undefined && message.password !== "") {
+    if (message.password !== undefined && message.password !== '') {
       obj.password = message.password;
     }
-    if (message.passfile !== undefined && message.passfile !== "") {
+    if (message.passfile !== undefined && message.passfile !== '') {
       obj.passfile = message.passfile;
     }
-    if (message.dbname !== undefined && message.dbname !== "") {
+    if (message.dbname !== undefined && message.dbname !== '') {
       obj.dbname = message.dbname;
     }
     if (message.skipDbCreation !== undefined && message.skipDbCreation !== false) {
@@ -6352,45 +6417,53 @@ export const PostgreSQLDatabaseConfig = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<PostgreSQLDatabaseConfig>, I>>(base?: I): PostgreSQLDatabaseConfig {
+  create<I extends Exact<DeepPartial<PostgreSQLDatabaseConfig>, I>>(
+    base?: I,
+  ): PostgreSQLDatabaseConfig {
     return PostgreSQLDatabaseConfig.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<PostgreSQLDatabaseConfig>, I>>(object: I): PostgreSQLDatabaseConfig {
+  fromPartial<I extends Exact<DeepPartial<PostgreSQLDatabaseConfig>, I>>(
+    object: I,
+  ): PostgreSQLDatabaseConfig {
     const message = createBasePostgreSQLDatabaseConfig();
-    message.host = object.host ?? "";
-    message.hostaddr = object.hostaddr ?? "";
-    message.port = object.port ?? "";
-    message.user = object.user ?? "";
-    message.password = object.password ?? "";
-    message.passfile = object.passfile ?? "";
-    message.dbname = object.dbname ?? "";
+    message.host = object.host ?? '';
+    message.hostaddr = object.hostaddr ?? '';
+    message.port = object.port ?? '';
+    message.user = object.user ?? '';
+    message.password = object.password ?? '';
+    message.passfile = object.passfile ?? '';
+    message.dbname = object.dbname ?? '';
     message.skipDbCreation = object.skipDbCreation ?? false;
-    message.ssloption = (object.ssloption !== undefined && object.ssloption !== null)
-      ? PostgreSQLDatabaseConfig_SSLOptions.fromPartial(object.ssloption)
-      : undefined;
+    message.ssloption =
+      object.ssloption !== undefined && object.ssloption !== null
+        ? PostgreSQLDatabaseConfig_SSLOptions.fromPartial(object.ssloption)
+        : undefined;
     return message;
   },
 };
 
 function createBasePostgreSQLDatabaseConfig_SSLOptions(): PostgreSQLDatabaseConfig_SSLOptions {
-  return { sslmode: "", sslcert: "", sslkey: "", sslpassword: "", sslrootcert: "" };
+  return { sslmode: '', sslcert: '', sslkey: '', sslpassword: '', sslrootcert: '' };
 }
 
 export const PostgreSQLDatabaseConfig_SSLOptions = {
-  encode(message: PostgreSQLDatabaseConfig_SSLOptions, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.sslmode !== undefined && message.sslmode !== "") {
+  encode(
+    message: PostgreSQLDatabaseConfig_SSLOptions,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
+    if (message.sslmode !== undefined && message.sslmode !== '') {
       writer.uint32(10).string(message.sslmode);
     }
-    if (message.sslcert !== undefined && message.sslcert !== "") {
+    if (message.sslcert !== undefined && message.sslcert !== '') {
       writer.uint32(18).string(message.sslcert);
     }
-    if (message.sslkey !== undefined && message.sslkey !== "") {
+    if (message.sslkey !== undefined && message.sslkey !== '') {
       writer.uint32(26).string(message.sslkey);
     }
-    if (message.sslpassword !== undefined && message.sslpassword !== "") {
+    if (message.sslpassword !== undefined && message.sslpassword !== '') {
       writer.uint32(34).string(message.sslpassword);
     }
-    if (message.sslrootcert !== undefined && message.sslrootcert !== "") {
+    if (message.sslrootcert !== undefined && message.sslrootcert !== '') {
       writer.uint32(42).string(message.sslrootcert);
     }
     return writer;
@@ -6449,29 +6522,29 @@ export const PostgreSQLDatabaseConfig_SSLOptions = {
 
   fromJSON(object: any): PostgreSQLDatabaseConfig_SSLOptions {
     return {
-      sslmode: isSet(object.sslmode) ? globalThis.String(object.sslmode) : "",
-      sslcert: isSet(object.sslcert) ? globalThis.String(object.sslcert) : "",
-      sslkey: isSet(object.sslkey) ? globalThis.String(object.sslkey) : "",
-      sslpassword: isSet(object.sslpassword) ? globalThis.String(object.sslpassword) : "",
-      sslrootcert: isSet(object.sslrootcert) ? globalThis.String(object.sslrootcert) : "",
+      sslmode: isSet(object.sslmode) ? globalThis.String(object.sslmode) : '',
+      sslcert: isSet(object.sslcert) ? globalThis.String(object.sslcert) : '',
+      sslkey: isSet(object.sslkey) ? globalThis.String(object.sslkey) : '',
+      sslpassword: isSet(object.sslpassword) ? globalThis.String(object.sslpassword) : '',
+      sslrootcert: isSet(object.sslrootcert) ? globalThis.String(object.sslrootcert) : '',
     };
   },
 
   toJSON(message: PostgreSQLDatabaseConfig_SSLOptions): unknown {
     const obj: any = {};
-    if (message.sslmode !== undefined && message.sslmode !== "") {
+    if (message.sslmode !== undefined && message.sslmode !== '') {
       obj.sslmode = message.sslmode;
     }
-    if (message.sslcert !== undefined && message.sslcert !== "") {
+    if (message.sslcert !== undefined && message.sslcert !== '') {
       obj.sslcert = message.sslcert;
     }
-    if (message.sslkey !== undefined && message.sslkey !== "") {
+    if (message.sslkey !== undefined && message.sslkey !== '') {
       obj.sslkey = message.sslkey;
     }
-    if (message.sslpassword !== undefined && message.sslpassword !== "") {
+    if (message.sslpassword !== undefined && message.sslpassword !== '') {
       obj.sslpassword = message.sslpassword;
     }
-    if (message.sslrootcert !== undefined && message.sslrootcert !== "") {
+    if (message.sslrootcert !== undefined && message.sslrootcert !== '') {
       obj.sslrootcert = message.sslrootcert;
     }
     return obj;
@@ -6486,11 +6559,11 @@ export const PostgreSQLDatabaseConfig_SSLOptions = {
     object: I,
   ): PostgreSQLDatabaseConfig_SSLOptions {
     const message = createBasePostgreSQLDatabaseConfig_SSLOptions();
-    message.sslmode = object.sslmode ?? "";
-    message.sslcert = object.sslcert ?? "";
-    message.sslkey = object.sslkey ?? "";
-    message.sslpassword = object.sslpassword ?? "";
-    message.sslrootcert = object.sslrootcert ?? "";
+    message.sslmode = object.sslmode ?? '';
+    message.sslcert = object.sslcert ?? '';
+    message.sslkey = object.sslkey ?? '';
+    message.sslpassword = object.sslpassword ?? '';
+    message.sslrootcert = object.sslrootcert ?? '';
     return message;
   },
 };
@@ -6609,7 +6682,9 @@ export const RetryOptions = {
   },
 
   fromJSON(object: any): RetryOptions {
-    return { maxNumRetries: isSet(object.maxNumRetries) ? globalThis.Number(object.maxNumRetries) : 0 };
+    return {
+      maxNumRetries: isSet(object.maxNumRetries) ? globalThis.Number(object.maxNumRetries) : 0,
+    };
   },
 
   toJSON(message: RetryOptions): unknown {
@@ -6713,11 +6788,17 @@ export const ConnectionConfig = {
 
   fromJSON(object: any): ConnectionConfig {
     return {
-      fakeDatabase: isSet(object.fakeDatabase) ? FakeDatabaseConfig.fromJSON(object.fakeDatabase) : undefined,
+      fakeDatabase: isSet(object.fakeDatabase)
+        ? FakeDatabaseConfig.fromJSON(object.fakeDatabase)
+        : undefined,
       mysql: isSet(object.mysql) ? MySQLDatabaseConfig.fromJSON(object.mysql) : undefined,
       sqlite: isSet(object.sqlite) ? SqliteMetadataSourceConfig.fromJSON(object.sqlite) : undefined,
-      postgresql: isSet(object.postgresql) ? PostgreSQLDatabaseConfig.fromJSON(object.postgresql) : undefined,
-      retryOptions: isSet(object.retryOptions) ? RetryOptions.fromJSON(object.retryOptions) : undefined,
+      postgresql: isSet(object.postgresql)
+        ? PostgreSQLDatabaseConfig.fromJSON(object.postgresql)
+        : undefined,
+      retryOptions: isSet(object.retryOptions)
+        ? RetryOptions.fromJSON(object.retryOptions)
+        : undefined,
     };
   },
 
@@ -6746,21 +6827,26 @@ export const ConnectionConfig = {
   },
   fromPartial<I extends Exact<DeepPartial<ConnectionConfig>, I>>(object: I): ConnectionConfig {
     const message = createBaseConnectionConfig();
-    message.fakeDatabase = (object.fakeDatabase !== undefined && object.fakeDatabase !== null)
-      ? FakeDatabaseConfig.fromPartial(object.fakeDatabase)
-      : undefined;
-    message.mysql = (object.mysql !== undefined && object.mysql !== null)
-      ? MySQLDatabaseConfig.fromPartial(object.mysql)
-      : undefined;
-    message.sqlite = (object.sqlite !== undefined && object.sqlite !== null)
-      ? SqliteMetadataSourceConfig.fromPartial(object.sqlite)
-      : undefined;
-    message.postgresql = (object.postgresql !== undefined && object.postgresql !== null)
-      ? PostgreSQLDatabaseConfig.fromPartial(object.postgresql)
-      : undefined;
-    message.retryOptions = (object.retryOptions !== undefined && object.retryOptions !== null)
-      ? RetryOptions.fromPartial(object.retryOptions)
-      : undefined;
+    message.fakeDatabase =
+      object.fakeDatabase !== undefined && object.fakeDatabase !== null
+        ? FakeDatabaseConfig.fromPartial(object.fakeDatabase)
+        : undefined;
+    message.mysql =
+      object.mysql !== undefined && object.mysql !== null
+        ? MySQLDatabaseConfig.fromPartial(object.mysql)
+        : undefined;
+    message.sqlite =
+      object.sqlite !== undefined && object.sqlite !== null
+        ? SqliteMetadataSourceConfig.fromPartial(object.sqlite)
+        : undefined;
+    message.postgresql =
+      object.postgresql !== undefined && object.postgresql !== null
+        ? PostgreSQLDatabaseConfig.fromPartial(object.postgresql)
+        : undefined;
+    message.retryOptions =
+      object.retryOptions !== undefined && object.retryOptions !== null
+        ? RetryOptions.fromPartial(object.retryOptions)
+        : undefined;
     return message;
   },
 };
@@ -6815,7 +6901,9 @@ export const GrpcChannelArguments = {
       maxReceiveMessageLength: isSet(object.maxReceiveMessageLength)
         ? globalThis.Number(object.maxReceiveMessageLength)
         : 0,
-      http2MaxPingStrikes: isSet(object.http2MaxPingStrikes) ? globalThis.Number(object.http2MaxPingStrikes) : 0,
+      http2MaxPingStrikes: isSet(object.http2MaxPingStrikes)
+        ? globalThis.Number(object.http2MaxPingStrikes)
+        : 0,
     };
   },
 
@@ -6833,7 +6921,9 @@ export const GrpcChannelArguments = {
   create<I extends Exact<DeepPartial<GrpcChannelArguments>, I>>(base?: I): GrpcChannelArguments {
     return GrpcChannelArguments.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GrpcChannelArguments>, I>>(object: I): GrpcChannelArguments {
+  fromPartial<I extends Exact<DeepPartial<GrpcChannelArguments>, I>>(
+    object: I,
+  ): GrpcChannelArguments {
     const message = createBaseGrpcChannelArguments();
     message.maxReceiveMessageLength = object.maxReceiveMessageLength ?? 0;
     message.http2MaxPingStrikes = object.http2MaxPingStrikes ?? 0;
@@ -6842,19 +6932,28 @@ export const GrpcChannelArguments = {
 };
 
 function createBaseMetadataStoreClientConfig(): MetadataStoreClientConfig {
-  return { host: "", port: 0, sslConfig: undefined, channelArguments: undefined, clientTimeoutSec: 0 };
+  return {
+    host: '',
+    port: 0,
+    sslConfig: undefined,
+    channelArguments: undefined,
+    clientTimeoutSec: 0,
+  };
 }
 
 export const MetadataStoreClientConfig = {
   encode(message: MetadataStoreClientConfig, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.host !== undefined && message.host !== "") {
+    if (message.host !== undefined && message.host !== '') {
       writer.uint32(10).string(message.host);
     }
     if (message.port !== undefined && message.port !== 0) {
       writer.uint32(16).int64(message.port);
     }
     if (message.sslConfig !== undefined) {
-      MetadataStoreClientConfig_SSLConfig.encode(message.sslConfig, writer.uint32(26).fork()).ldelim();
+      MetadataStoreClientConfig_SSLConfig.encode(
+        message.sslConfig,
+        writer.uint32(26).fork(),
+      ).ldelim();
     }
     if (message.channelArguments !== undefined) {
       GrpcChannelArguments.encode(message.channelArguments, writer.uint32(34).fork()).ldelim();
@@ -6918,19 +7017,23 @@ export const MetadataStoreClientConfig = {
 
   fromJSON(object: any): MetadataStoreClientConfig {
     return {
-      host: isSet(object.host) ? globalThis.String(object.host) : "",
+      host: isSet(object.host) ? globalThis.String(object.host) : '',
       port: isSet(object.port) ? globalThis.Number(object.port) : 0,
-      sslConfig: isSet(object.sslConfig) ? MetadataStoreClientConfig_SSLConfig.fromJSON(object.sslConfig) : undefined,
+      sslConfig: isSet(object.sslConfig)
+        ? MetadataStoreClientConfig_SSLConfig.fromJSON(object.sslConfig)
+        : undefined,
       channelArguments: isSet(object.channelArguments)
         ? GrpcChannelArguments.fromJSON(object.channelArguments)
         : undefined,
-      clientTimeoutSec: isSet(object.clientTimeoutSec) ? globalThis.Number(object.clientTimeoutSec) : 0,
+      clientTimeoutSec: isSet(object.clientTimeoutSec)
+        ? globalThis.Number(object.clientTimeoutSec)
+        : 0,
     };
   },
 
   toJSON(message: MetadataStoreClientConfig): unknown {
     const obj: any = {};
-    if (message.host !== undefined && message.host !== "") {
+    if (message.host !== undefined && message.host !== '') {
       obj.host = message.host;
     }
     if (message.port !== undefined && message.port !== 0) {
@@ -6948,37 +7051,46 @@ export const MetadataStoreClientConfig = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<MetadataStoreClientConfig>, I>>(base?: I): MetadataStoreClientConfig {
+  create<I extends Exact<DeepPartial<MetadataStoreClientConfig>, I>>(
+    base?: I,
+  ): MetadataStoreClientConfig {
     return MetadataStoreClientConfig.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<MetadataStoreClientConfig>, I>>(object: I): MetadataStoreClientConfig {
+  fromPartial<I extends Exact<DeepPartial<MetadataStoreClientConfig>, I>>(
+    object: I,
+  ): MetadataStoreClientConfig {
     const message = createBaseMetadataStoreClientConfig();
-    message.host = object.host ?? "";
+    message.host = object.host ?? '';
     message.port = object.port ?? 0;
-    message.sslConfig = (object.sslConfig !== undefined && object.sslConfig !== null)
-      ? MetadataStoreClientConfig_SSLConfig.fromPartial(object.sslConfig)
-      : undefined;
-    message.channelArguments = (object.channelArguments !== undefined && object.channelArguments !== null)
-      ? GrpcChannelArguments.fromPartial(object.channelArguments)
-      : undefined;
+    message.sslConfig =
+      object.sslConfig !== undefined && object.sslConfig !== null
+        ? MetadataStoreClientConfig_SSLConfig.fromPartial(object.sslConfig)
+        : undefined;
+    message.channelArguments =
+      object.channelArguments !== undefined && object.channelArguments !== null
+        ? GrpcChannelArguments.fromPartial(object.channelArguments)
+        : undefined;
     message.clientTimeoutSec = object.clientTimeoutSec ?? 0;
     return message;
   },
 };
 
 function createBaseMetadataStoreClientConfig_SSLConfig(): MetadataStoreClientConfig_SSLConfig {
-  return { clientKey: "", serverCert: "", customCa: "" };
+  return { clientKey: '', serverCert: '', customCa: '' };
 }
 
 export const MetadataStoreClientConfig_SSLConfig = {
-  encode(message: MetadataStoreClientConfig_SSLConfig, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.clientKey !== undefined && message.clientKey !== "") {
+  encode(
+    message: MetadataStoreClientConfig_SSLConfig,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
+    if (message.clientKey !== undefined && message.clientKey !== '') {
       writer.uint32(10).string(message.clientKey);
     }
-    if (message.serverCert !== undefined && message.serverCert !== "") {
+    if (message.serverCert !== undefined && message.serverCert !== '') {
       writer.uint32(18).string(message.serverCert);
     }
-    if (message.customCa !== undefined && message.customCa !== "") {
+    if (message.customCa !== undefined && message.customCa !== '') {
       writer.uint32(26).string(message.customCa);
     }
     return writer;
@@ -7023,21 +7135,21 @@ export const MetadataStoreClientConfig_SSLConfig = {
 
   fromJSON(object: any): MetadataStoreClientConfig_SSLConfig {
     return {
-      clientKey: isSet(object.clientKey) ? globalThis.String(object.clientKey) : "",
-      serverCert: isSet(object.serverCert) ? globalThis.String(object.serverCert) : "",
-      customCa: isSet(object.customCa) ? globalThis.String(object.customCa) : "",
+      clientKey: isSet(object.clientKey) ? globalThis.String(object.clientKey) : '',
+      serverCert: isSet(object.serverCert) ? globalThis.String(object.serverCert) : '',
+      customCa: isSet(object.customCa) ? globalThis.String(object.customCa) : '',
     };
   },
 
   toJSON(message: MetadataStoreClientConfig_SSLConfig): unknown {
     const obj: any = {};
-    if (message.clientKey !== undefined && message.clientKey !== "") {
+    if (message.clientKey !== undefined && message.clientKey !== '') {
       obj.clientKey = message.clientKey;
     }
-    if (message.serverCert !== undefined && message.serverCert !== "") {
+    if (message.serverCert !== undefined && message.serverCert !== '') {
       obj.serverCert = message.serverCert;
     }
-    if (message.customCa !== undefined && message.customCa !== "") {
+    if (message.customCa !== undefined && message.customCa !== '') {
       obj.customCa = message.customCa;
     }
     return obj;
@@ -7052,9 +7164,9 @@ export const MetadataStoreClientConfig_SSLConfig = {
     object: I,
   ): MetadataStoreClientConfig_SSLConfig {
     const message = createBaseMetadataStoreClientConfig_SSLConfig();
-    message.clientKey = object.clientKey ?? "";
-    message.serverCert = object.serverCert ?? "";
-    message.customCa = object.customCa ?? "";
+    message.clientKey = object.clientKey ?? '';
+    message.serverCert = object.serverCert ?? '';
+    message.customCa = object.customCa ?? '';
     return message;
   },
 };
@@ -7072,7 +7184,10 @@ export const MetadataStoreServerConfig = {
       MigrationOptions.encode(message.migrationOptions, writer.uint32(26).fork()).ldelim();
     }
     if (message.sslConfig !== undefined) {
-      MetadataStoreServerConfig_SSLConfig.encode(message.sslConfig, writer.uint32(18).fork()).ldelim();
+      MetadataStoreServerConfig_SSLConfig.encode(
+        message.sslConfig,
+        writer.uint32(18).fork(),
+      ).ldelim();
     }
     return writer;
   },
@@ -7116,9 +7231,15 @@ export const MetadataStoreServerConfig = {
 
   fromJSON(object: any): MetadataStoreServerConfig {
     return {
-      connectionConfig: isSet(object.connectionConfig) ? ConnectionConfig.fromJSON(object.connectionConfig) : undefined,
-      migrationOptions: isSet(object.migrationOptions) ? MigrationOptions.fromJSON(object.migrationOptions) : undefined,
-      sslConfig: isSet(object.sslConfig) ? MetadataStoreServerConfig_SSLConfig.fromJSON(object.sslConfig) : undefined,
+      connectionConfig: isSet(object.connectionConfig)
+        ? ConnectionConfig.fromJSON(object.connectionConfig)
+        : undefined,
+      migrationOptions: isSet(object.migrationOptions)
+        ? MigrationOptions.fromJSON(object.migrationOptions)
+        : undefined,
+      sslConfig: isSet(object.sslConfig)
+        ? MetadataStoreServerConfig_SSLConfig.fromJSON(object.sslConfig)
+        : undefined,
     };
   },
 
@@ -7136,37 +7257,47 @@ export const MetadataStoreServerConfig = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<MetadataStoreServerConfig>, I>>(base?: I): MetadataStoreServerConfig {
+  create<I extends Exact<DeepPartial<MetadataStoreServerConfig>, I>>(
+    base?: I,
+  ): MetadataStoreServerConfig {
     return MetadataStoreServerConfig.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<MetadataStoreServerConfig>, I>>(object: I): MetadataStoreServerConfig {
+  fromPartial<I extends Exact<DeepPartial<MetadataStoreServerConfig>, I>>(
+    object: I,
+  ): MetadataStoreServerConfig {
     const message = createBaseMetadataStoreServerConfig();
-    message.connectionConfig = (object.connectionConfig !== undefined && object.connectionConfig !== null)
-      ? ConnectionConfig.fromPartial(object.connectionConfig)
-      : undefined;
-    message.migrationOptions = (object.migrationOptions !== undefined && object.migrationOptions !== null)
-      ? MigrationOptions.fromPartial(object.migrationOptions)
-      : undefined;
-    message.sslConfig = (object.sslConfig !== undefined && object.sslConfig !== null)
-      ? MetadataStoreServerConfig_SSLConfig.fromPartial(object.sslConfig)
-      : undefined;
+    message.connectionConfig =
+      object.connectionConfig !== undefined && object.connectionConfig !== null
+        ? ConnectionConfig.fromPartial(object.connectionConfig)
+        : undefined;
+    message.migrationOptions =
+      object.migrationOptions !== undefined && object.migrationOptions !== null
+        ? MigrationOptions.fromPartial(object.migrationOptions)
+        : undefined;
+    message.sslConfig =
+      object.sslConfig !== undefined && object.sslConfig !== null
+        ? MetadataStoreServerConfig_SSLConfig.fromPartial(object.sslConfig)
+        : undefined;
     return message;
   },
 };
 
 function createBaseMetadataStoreServerConfig_SSLConfig(): MetadataStoreServerConfig_SSLConfig {
-  return { serverKey: "", serverCert: "", customCa: "", clientVerify: false };
+  return { serverKey: '', serverCert: '', customCa: '', clientVerify: false };
 }
 
 export const MetadataStoreServerConfig_SSLConfig = {
-  encode(message: MetadataStoreServerConfig_SSLConfig, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.serverKey !== undefined && message.serverKey !== "") {
+  encode(
+    message: MetadataStoreServerConfig_SSLConfig,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
+    if (message.serverKey !== undefined && message.serverKey !== '') {
       writer.uint32(10).string(message.serverKey);
     }
-    if (message.serverCert !== undefined && message.serverCert !== "") {
+    if (message.serverCert !== undefined && message.serverCert !== '') {
       writer.uint32(18).string(message.serverCert);
     }
-    if (message.customCa !== undefined && message.customCa !== "") {
+    if (message.customCa !== undefined && message.customCa !== '') {
       writer.uint32(26).string(message.customCa);
     }
     if (message.clientVerify !== undefined && message.clientVerify !== false) {
@@ -7221,22 +7352,22 @@ export const MetadataStoreServerConfig_SSLConfig = {
 
   fromJSON(object: any): MetadataStoreServerConfig_SSLConfig {
     return {
-      serverKey: isSet(object.serverKey) ? globalThis.String(object.serverKey) : "",
-      serverCert: isSet(object.serverCert) ? globalThis.String(object.serverCert) : "",
-      customCa: isSet(object.customCa) ? globalThis.String(object.customCa) : "",
+      serverKey: isSet(object.serverKey) ? globalThis.String(object.serverKey) : '',
+      serverCert: isSet(object.serverCert) ? globalThis.String(object.serverCert) : '',
+      customCa: isSet(object.customCa) ? globalThis.String(object.customCa) : '',
       clientVerify: isSet(object.clientVerify) ? globalThis.Boolean(object.clientVerify) : false,
     };
   },
 
   toJSON(message: MetadataStoreServerConfig_SSLConfig): unknown {
     const obj: any = {};
-    if (message.serverKey !== undefined && message.serverKey !== "") {
+    if (message.serverKey !== undefined && message.serverKey !== '') {
       obj.serverKey = message.serverKey;
     }
-    if (message.serverCert !== undefined && message.serverCert !== "") {
+    if (message.serverCert !== undefined && message.serverCert !== '') {
       obj.serverCert = message.serverCert;
     }
-    if (message.customCa !== undefined && message.customCa !== "") {
+    if (message.customCa !== undefined && message.customCa !== '') {
       obj.customCa = message.customCa;
     }
     if (message.clientVerify !== undefined && message.clientVerify !== false) {
@@ -7254,16 +7385,16 @@ export const MetadataStoreServerConfig_SSLConfig = {
     object: I,
   ): MetadataStoreServerConfig_SSLConfig {
     const message = createBaseMetadataStoreServerConfig_SSLConfig();
-    message.serverKey = object.serverKey ?? "";
-    message.serverCert = object.serverCert ?? "";
-    message.customCa = object.customCa ?? "";
+    message.serverKey = object.serverKey ?? '';
+    message.serverCert = object.serverCert ?? '';
+    message.customCa = object.customCa ?? '';
     message.clientVerify = object.clientVerify ?? false;
     return message;
   },
 };
 
 function createBaseListOperationOptions(): ListOperationOptions {
-  return { maxResultSize: 20, orderByField: undefined, nextPageToken: "", filterQuery: "" };
+  return { maxResultSize: 20, orderByField: undefined, nextPageToken: '', filterQuery: '' };
 }
 
 export const ListOperationOptions = {
@@ -7272,12 +7403,15 @@ export const ListOperationOptions = {
       writer.uint32(8).int32(message.maxResultSize);
     }
     if (message.orderByField !== undefined) {
-      ListOperationOptions_OrderByField.encode(message.orderByField, writer.uint32(18).fork()).ldelim();
+      ListOperationOptions_OrderByField.encode(
+        message.orderByField,
+        writer.uint32(18).fork(),
+      ).ldelim();
     }
-    if (message.nextPageToken !== undefined && message.nextPageToken !== "") {
+    if (message.nextPageToken !== undefined && message.nextPageToken !== '') {
       writer.uint32(26).string(message.nextPageToken);
     }
-    if (message.filterQuery !== undefined && message.filterQuery !== "") {
+    if (message.filterQuery !== undefined && message.filterQuery !== '') {
       writer.uint32(34).string(message.filterQuery);
     }
     return writer;
@@ -7333,8 +7467,8 @@ export const ListOperationOptions = {
       orderByField: isSet(object.orderByField)
         ? ListOperationOptions_OrderByField.fromJSON(object.orderByField)
         : undefined,
-      nextPageToken: isSet(object.nextPageToken) ? globalThis.String(object.nextPageToken) : "",
-      filterQuery: isSet(object.filterQuery) ? globalThis.String(object.filterQuery) : "",
+      nextPageToken: isSet(object.nextPageToken) ? globalThis.String(object.nextPageToken) : '',
+      filterQuery: isSet(object.filterQuery) ? globalThis.String(object.filterQuery) : '',
     };
   },
 
@@ -7346,10 +7480,10 @@ export const ListOperationOptions = {
     if (message.orderByField !== undefined) {
       obj.orderByField = ListOperationOptions_OrderByField.toJSON(message.orderByField);
     }
-    if (message.nextPageToken !== undefined && message.nextPageToken !== "") {
+    if (message.nextPageToken !== undefined && message.nextPageToken !== '') {
       obj.nextPageToken = message.nextPageToken;
     }
-    if (message.filterQuery !== undefined && message.filterQuery !== "") {
+    if (message.filterQuery !== undefined && message.filterQuery !== '') {
       obj.filterQuery = message.filterQuery;
     }
     return obj;
@@ -7358,14 +7492,17 @@ export const ListOperationOptions = {
   create<I extends Exact<DeepPartial<ListOperationOptions>, I>>(base?: I): ListOperationOptions {
     return ListOperationOptions.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<ListOperationOptions>, I>>(object: I): ListOperationOptions {
+  fromPartial<I extends Exact<DeepPartial<ListOperationOptions>, I>>(
+    object: I,
+  ): ListOperationOptions {
     const message = createBaseListOperationOptions();
     message.maxResultSize = object.maxResultSize ?? 20;
-    message.orderByField = (object.orderByField !== undefined && object.orderByField !== null)
-      ? ListOperationOptions_OrderByField.fromPartial(object.orderByField)
-      : undefined;
-    message.nextPageToken = object.nextPageToken ?? "";
-    message.filterQuery = object.filterQuery ?? "";
+    message.orderByField =
+      object.orderByField !== undefined && object.orderByField !== null
+        ? ListOperationOptions_OrderByField.fromPartial(object.orderByField)
+        : undefined;
+    message.nextPageToken = object.nextPageToken ?? '';
+    message.filterQuery = object.filterQuery ?? '';
     return message;
   },
 };
@@ -7375,7 +7512,10 @@ function createBaseListOperationOptions_OrderByField(): ListOperationOptions_Ord
 }
 
 export const ListOperationOptions_OrderByField = {
-  encode(message: ListOperationOptions_OrderByField, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    message: ListOperationOptions_OrderByField,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
     if (message.field !== undefined && message.field !== 3) {
       writer.uint32(8).int32(message.field);
     }
@@ -7417,7 +7557,9 @@ export const ListOperationOptions_OrderByField = {
 
   fromJSON(object: any): ListOperationOptions_OrderByField {
     return {
-      field: isSet(object.field) ? listOperationOptions_OrderByField_FieldFromJSON(object.field) : 3,
+      field: isSet(object.field)
+        ? listOperationOptions_OrderByField_FieldFromJSON(object.field)
+        : 3,
       isAsc: isSet(object.isAsc) ? globalThis.Boolean(object.isAsc) : true,
     };
   },
@@ -7453,7 +7595,10 @@ function createBaseListOperationNextPageToken(): ListOperationNextPageToken {
 }
 
 export const ListOperationNextPageToken = {
-  encode(message: ListOperationNextPageToken, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    message: ListOperationNextPageToken,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
     if (message.idOffset !== undefined && message.idOffset !== 0) {
       writer.uint32(8).int64(message.idOffset);
     }
@@ -7529,7 +7674,9 @@ export const ListOperationNextPageToken = {
     return {
       idOffset: isSet(object.idOffset) ? globalThis.Number(object.idOffset) : 0,
       fieldOffset: isSet(object.fieldOffset) ? globalThis.Number(object.fieldOffset) : 0,
-      setOptions: isSet(object.setOptions) ? ListOperationOptions.fromJSON(object.setOptions) : undefined,
+      setOptions: isSet(object.setOptions)
+        ? ListOperationOptions.fromJSON(object.setOptions)
+        : undefined,
       listedIds: globalThis.Array.isArray(object?.listedIds)
         ? object.listedIds.map((e: any) => globalThis.Number(e))
         : [],
@@ -7553,28 +7700,33 @@ export const ListOperationNextPageToken = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<ListOperationNextPageToken>, I>>(base?: I): ListOperationNextPageToken {
+  create<I extends Exact<DeepPartial<ListOperationNextPageToken>, I>>(
+    base?: I,
+  ): ListOperationNextPageToken {
     return ListOperationNextPageToken.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<ListOperationNextPageToken>, I>>(object: I): ListOperationNextPageToken {
+  fromPartial<I extends Exact<DeepPartial<ListOperationNextPageToken>, I>>(
+    object: I,
+  ): ListOperationNextPageToken {
     const message = createBaseListOperationNextPageToken();
     message.idOffset = object.idOffset ?? 0;
     message.fieldOffset = object.fieldOffset ?? 0;
-    message.setOptions = (object.setOptions !== undefined && object.setOptions !== null)
-      ? ListOperationOptions.fromPartial(object.setOptions)
-      : undefined;
+    message.setOptions =
+      object.setOptions !== undefined && object.setOptions !== null
+        ? ListOperationOptions.fromPartial(object.setOptions)
+        : undefined;
     message.listedIds = object.listedIds?.map((e) => e) || [];
     return message;
   },
 };
 
 function createBaseTransactionOptions(): TransactionOptions {
-  return { tag: "" };
+  return { tag: '' };
 }
 
 export const TransactionOptions = {
   encode(message: TransactionOptions, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.tag !== undefined && message.tag !== "") {
+    if (message.tag !== undefined && message.tag !== '') {
       writer.uint32(10).string(message.tag);
     }
     return writer;
@@ -7604,12 +7756,12 @@ export const TransactionOptions = {
   },
 
   fromJSON(object: any): TransactionOptions {
-    return { tag: isSet(object.tag) ? globalThis.String(object.tag) : "" };
+    return { tag: isSet(object.tag) ? globalThis.String(object.tag) : '' };
   },
 
   toJSON(message: TransactionOptions): unknown {
     const obj: any = {};
-    if (message.tag !== undefined && message.tag !== "") {
+    if (message.tag !== undefined && message.tag !== '') {
       obj.tag = message.tag;
     }
     return obj;
@@ -7620,7 +7772,7 @@ export const TransactionOptions = {
   },
   fromPartial<I extends Exact<DeepPartial<TransactionOptions>, I>>(object: I): TransactionOptions {
     const message = createBaseTransactionOptions();
-    message.tag = object.tag ?? "";
+    message.tag = object.tag ?? '';
     return message;
   },
 };
@@ -7635,7 +7787,10 @@ export const LineageGraphQueryOptions = {
       ListOperationOptions.encode(message.artifactsOptions, writer.uint32(10).fork()).ldelim();
     }
     if (message.stopConditions !== undefined) {
-      LineageGraphQueryOptions_BoundaryConstraint.encode(message.stopConditions, writer.uint32(18).fork()).ldelim();
+      LineageGraphQueryOptions_BoundaryConstraint.encode(
+        message.stopConditions,
+        writer.uint32(18).fork(),
+      ).ldelim();
     }
     if (message.maxNodeSize !== undefined && message.maxNodeSize !== 20) {
       writer.uint32(24).int64(message.maxNodeSize);
@@ -7662,7 +7817,10 @@ export const LineageGraphQueryOptions = {
             break;
           }
 
-          message.stopConditions = LineageGraphQueryOptions_BoundaryConstraint.decode(reader, reader.uint32());
+          message.stopConditions = LineageGraphQueryOptions_BoundaryConstraint.decode(
+            reader,
+            reader.uint32(),
+          );
           continue;
         case 3:
           if (tag !== 24) {
@@ -7698,7 +7856,9 @@ export const LineageGraphQueryOptions = {
       obj.artifactsOptions = ListOperationOptions.toJSON(message.artifactsOptions);
     }
     if (message.stopConditions !== undefined) {
-      obj.stopConditions = LineageGraphQueryOptions_BoundaryConstraint.toJSON(message.stopConditions);
+      obj.stopConditions = LineageGraphQueryOptions_BoundaryConstraint.toJSON(
+        message.stopConditions,
+      );
     }
     if (message.maxNodeSize !== undefined && message.maxNodeSize !== 20) {
       obj.maxNodeSize = Math.round(message.maxNodeSize);
@@ -7706,41 +7866,53 @@ export const LineageGraphQueryOptions = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<LineageGraphQueryOptions>, I>>(base?: I): LineageGraphQueryOptions {
+  create<I extends Exact<DeepPartial<LineageGraphQueryOptions>, I>>(
+    base?: I,
+  ): LineageGraphQueryOptions {
     return LineageGraphQueryOptions.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<LineageGraphQueryOptions>, I>>(object: I): LineageGraphQueryOptions {
+  fromPartial<I extends Exact<DeepPartial<LineageGraphQueryOptions>, I>>(
+    object: I,
+  ): LineageGraphQueryOptions {
     const message = createBaseLineageGraphQueryOptions();
-    message.artifactsOptions = (object.artifactsOptions !== undefined && object.artifactsOptions !== null)
-      ? ListOperationOptions.fromPartial(object.artifactsOptions)
-      : undefined;
-    message.stopConditions = (object.stopConditions !== undefined && object.stopConditions !== null)
-      ? LineageGraphQueryOptions_BoundaryConstraint.fromPartial(object.stopConditions)
-      : undefined;
+    message.artifactsOptions =
+      object.artifactsOptions !== undefined && object.artifactsOptions !== null
+        ? ListOperationOptions.fromPartial(object.artifactsOptions)
+        : undefined;
+    message.stopConditions =
+      object.stopConditions !== undefined && object.stopConditions !== null
+        ? LineageGraphQueryOptions_BoundaryConstraint.fromPartial(object.stopConditions)
+        : undefined;
     message.maxNodeSize = object.maxNodeSize ?? 20;
     return message;
   },
 };
 
 function createBaseLineageGraphQueryOptions_BoundaryConstraint(): LineageGraphQueryOptions_BoundaryConstraint {
-  return { maxNumHops: 0, boundaryArtifacts: "", boundaryExecutions: "" };
+  return { maxNumHops: 0, boundaryArtifacts: '', boundaryExecutions: '' };
 }
 
 export const LineageGraphQueryOptions_BoundaryConstraint = {
-  encode(message: LineageGraphQueryOptions_BoundaryConstraint, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    message: LineageGraphQueryOptions_BoundaryConstraint,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
     if (message.maxNumHops !== undefined && message.maxNumHops !== 0) {
       writer.uint32(8).int64(message.maxNumHops);
     }
-    if (message.boundaryArtifacts !== undefined && message.boundaryArtifacts !== "") {
+    if (message.boundaryArtifacts !== undefined && message.boundaryArtifacts !== '') {
       writer.uint32(18).string(message.boundaryArtifacts);
     }
-    if (message.boundaryExecutions !== undefined && message.boundaryExecutions !== "") {
+    if (message.boundaryExecutions !== undefined && message.boundaryExecutions !== '') {
       writer.uint32(26).string(message.boundaryExecutions);
     }
     return writer;
   },
 
-  decode(input: _m0.Reader | Uint8Array, length?: number): LineageGraphQueryOptions_BoundaryConstraint {
+  decode(
+    input: _m0.Reader | Uint8Array,
+    length?: number,
+  ): LineageGraphQueryOptions_BoundaryConstraint {
     const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
     let end = length === undefined ? reader.len : reader.pos + length;
     const message = createBaseLineageGraphQueryOptions_BoundaryConstraint();
@@ -7780,8 +7952,12 @@ export const LineageGraphQueryOptions_BoundaryConstraint = {
   fromJSON(object: any): LineageGraphQueryOptions_BoundaryConstraint {
     return {
       maxNumHops: isSet(object.maxNumHops) ? globalThis.Number(object.maxNumHops) : 0,
-      boundaryArtifacts: isSet(object.boundaryArtifacts) ? globalThis.String(object.boundaryArtifacts) : "",
-      boundaryExecutions: isSet(object.boundaryExecutions) ? globalThis.String(object.boundaryExecutions) : "",
+      boundaryArtifacts: isSet(object.boundaryArtifacts)
+        ? globalThis.String(object.boundaryArtifacts)
+        : '',
+      boundaryExecutions: isSet(object.boundaryExecutions)
+        ? globalThis.String(object.boundaryExecutions)
+        : '',
     };
   },
 
@@ -7790,10 +7966,10 @@ export const LineageGraphQueryOptions_BoundaryConstraint = {
     if (message.maxNumHops !== undefined && message.maxNumHops !== 0) {
       obj.maxNumHops = Math.round(message.maxNumHops);
     }
-    if (message.boundaryArtifacts !== undefined && message.boundaryArtifacts !== "") {
+    if (message.boundaryArtifacts !== undefined && message.boundaryArtifacts !== '') {
       obj.boundaryArtifacts = message.boundaryArtifacts;
     }
-    if (message.boundaryExecutions !== undefined && message.boundaryExecutions !== "") {
+    if (message.boundaryExecutions !== undefined && message.boundaryExecutions !== '') {
       obj.boundaryExecutions = message.boundaryExecutions;
     }
     return obj;
@@ -7809,23 +7985,37 @@ export const LineageGraphQueryOptions_BoundaryConstraint = {
   ): LineageGraphQueryOptions_BoundaryConstraint {
     const message = createBaseLineageGraphQueryOptions_BoundaryConstraint();
     message.maxNumHops = object.maxNumHops ?? 0;
-    message.boundaryArtifacts = object.boundaryArtifacts ?? "";
-    message.boundaryExecutions = object.boundaryExecutions ?? "";
+    message.boundaryArtifacts = object.boundaryArtifacts ?? '';
+    message.boundaryExecutions = object.boundaryExecutions ?? '';
     return message;
   },
 };
 
 function createBaseLineageSubgraphQueryOptions(): LineageSubgraphQueryOptions {
-  return { startingArtifacts: undefined, startingExecutions: undefined, maxNumHops: 0, direction: 0 };
+  return {
+    startingArtifacts: undefined,
+    startingExecutions: undefined,
+    maxNumHops: 0,
+    direction: 0,
+  };
 }
 
 export const LineageSubgraphQueryOptions = {
-  encode(message: LineageSubgraphQueryOptions, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    message: LineageSubgraphQueryOptions,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
     if (message.startingArtifacts !== undefined) {
-      LineageSubgraphQueryOptions_StartingNodes.encode(message.startingArtifacts, writer.uint32(10).fork()).ldelim();
+      LineageSubgraphQueryOptions_StartingNodes.encode(
+        message.startingArtifacts,
+        writer.uint32(10).fork(),
+      ).ldelim();
     }
     if (message.startingExecutions !== undefined) {
-      LineageSubgraphQueryOptions_StartingNodes.encode(message.startingExecutions, writer.uint32(18).fork()).ldelim();
+      LineageSubgraphQueryOptions_StartingNodes.encode(
+        message.startingExecutions,
+        writer.uint32(18).fork(),
+      ).ldelim();
     }
     if (message.maxNumHops !== undefined && message.maxNumHops !== 0) {
       writer.uint32(24).int64(message.maxNumHops);
@@ -7848,14 +8038,20 @@ export const LineageSubgraphQueryOptions = {
             break;
           }
 
-          message.startingArtifacts = LineageSubgraphQueryOptions_StartingNodes.decode(reader, reader.uint32());
+          message.startingArtifacts = LineageSubgraphQueryOptions_StartingNodes.decode(
+            reader,
+            reader.uint32(),
+          );
           continue;
         case 2:
           if (tag !== 18) {
             break;
           }
 
-          message.startingExecutions = LineageSubgraphQueryOptions_StartingNodes.decode(reader, reader.uint32());
+          message.startingExecutions = LineageSubgraphQueryOptions_StartingNodes.decode(
+            reader,
+            reader.uint32(),
+          );
           continue;
         case 3:
           if (tag !== 24) {
@@ -7889,17 +8085,23 @@ export const LineageSubgraphQueryOptions = {
         ? LineageSubgraphQueryOptions_StartingNodes.fromJSON(object.startingExecutions)
         : undefined,
       maxNumHops: isSet(object.maxNumHops) ? globalThis.Number(object.maxNumHops) : 0,
-      direction: isSet(object.direction) ? lineageSubgraphQueryOptions_DirectionFromJSON(object.direction) : 0,
+      direction: isSet(object.direction)
+        ? lineageSubgraphQueryOptions_DirectionFromJSON(object.direction)
+        : 0,
     };
   },
 
   toJSON(message: LineageSubgraphQueryOptions): unknown {
     const obj: any = {};
     if (message.startingArtifacts !== undefined) {
-      obj.startingArtifacts = LineageSubgraphQueryOptions_StartingNodes.toJSON(message.startingArtifacts);
+      obj.startingArtifacts = LineageSubgraphQueryOptions_StartingNodes.toJSON(
+        message.startingArtifacts,
+      );
     }
     if (message.startingExecutions !== undefined) {
-      obj.startingExecutions = LineageSubgraphQueryOptions_StartingNodes.toJSON(message.startingExecutions);
+      obj.startingExecutions = LineageSubgraphQueryOptions_StartingNodes.toJSON(
+        message.startingExecutions,
+      );
     }
     if (message.maxNumHops !== undefined && message.maxNumHops !== 0) {
       obj.maxNumHops = Math.round(message.maxNumHops);
@@ -7910,17 +8112,23 @@ export const LineageSubgraphQueryOptions = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<LineageSubgraphQueryOptions>, I>>(base?: I): LineageSubgraphQueryOptions {
+  create<I extends Exact<DeepPartial<LineageSubgraphQueryOptions>, I>>(
+    base?: I,
+  ): LineageSubgraphQueryOptions {
     return LineageSubgraphQueryOptions.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<LineageSubgraphQueryOptions>, I>>(object: I): LineageSubgraphQueryOptions {
+  fromPartial<I extends Exact<DeepPartial<LineageSubgraphQueryOptions>, I>>(
+    object: I,
+  ): LineageSubgraphQueryOptions {
     const message = createBaseLineageSubgraphQueryOptions();
-    message.startingArtifacts = (object.startingArtifacts !== undefined && object.startingArtifacts !== null)
-      ? LineageSubgraphQueryOptions_StartingNodes.fromPartial(object.startingArtifacts)
-      : undefined;
-    message.startingExecutions = (object.startingExecutions !== undefined && object.startingExecutions !== null)
-      ? LineageSubgraphQueryOptions_StartingNodes.fromPartial(object.startingExecutions)
-      : undefined;
+    message.startingArtifacts =
+      object.startingArtifacts !== undefined && object.startingArtifacts !== null
+        ? LineageSubgraphQueryOptions_StartingNodes.fromPartial(object.startingArtifacts)
+        : undefined;
+    message.startingExecutions =
+      object.startingExecutions !== undefined && object.startingExecutions !== null
+        ? LineageSubgraphQueryOptions_StartingNodes.fromPartial(object.startingExecutions)
+        : undefined;
     message.maxNumHops = object.maxNumHops ?? 0;
     message.direction = object.direction ?? 0;
     return message;
@@ -7928,18 +8136,24 @@ export const LineageSubgraphQueryOptions = {
 };
 
 function createBaseLineageSubgraphQueryOptions_StartingNodes(): LineageSubgraphQueryOptions_StartingNodes {
-  return { filterQuery: "" };
+  return { filterQuery: '' };
 }
 
 export const LineageSubgraphQueryOptions_StartingNodes = {
-  encode(message: LineageSubgraphQueryOptions_StartingNodes, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.filterQuery !== undefined && message.filterQuery !== "") {
+  encode(
+    message: LineageSubgraphQueryOptions_StartingNodes,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
+    if (message.filterQuery !== undefined && message.filterQuery !== '') {
       writer.uint32(10).string(message.filterQuery);
     }
     return writer;
   },
 
-  decode(input: _m0.Reader | Uint8Array, length?: number): LineageSubgraphQueryOptions_StartingNodes {
+  decode(
+    input: _m0.Reader | Uint8Array,
+    length?: number,
+  ): LineageSubgraphQueryOptions_StartingNodes {
     const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
     let end = length === undefined ? reader.len : reader.pos + length;
     const message = createBaseLineageSubgraphQueryOptions_StartingNodes();
@@ -7963,12 +8177,12 @@ export const LineageSubgraphQueryOptions_StartingNodes = {
   },
 
   fromJSON(object: any): LineageSubgraphQueryOptions_StartingNodes {
-    return { filterQuery: isSet(object.filterQuery) ? globalThis.String(object.filterQuery) : "" };
+    return { filterQuery: isSet(object.filterQuery) ? globalThis.String(object.filterQuery) : '' };
   },
 
   toJSON(message: LineageSubgraphQueryOptions_StartingNodes): unknown {
     const obj: any = {};
-    if (message.filterQuery !== undefined && message.filterQuery !== "") {
+    if (message.filterQuery !== undefined && message.filterQuery !== '') {
       obj.filterQuery = message.filterQuery;
     }
     return obj;
@@ -7983,29 +8197,34 @@ export const LineageSubgraphQueryOptions_StartingNodes = {
     object: I,
   ): LineageSubgraphQueryOptions_StartingNodes {
     const message = createBaseLineageSubgraphQueryOptions_StartingNodes();
-    message.filterQuery = object.filterQuery ?? "";
+    message.filterQuery = object.filterQuery ?? '';
     return message;
   },
 };
 
 type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
 
-export type DeepPartial<T> = T extends Builtin ? T
-  : T extends globalThis.Array<infer U> ? globalThis.Array<DeepPartial<U>>
-  : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
-  : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }
+export type DeepPartial<T> = T extends Builtin
+  ? T
+  : T extends globalThis.Array<infer U>
+  ? globalThis.Array<DeepPartial<U>>
+  : T extends ReadonlyArray<infer U>
+  ? ReadonlyArray<DeepPartial<U>>
+  : T extends {}
+  ? { [K in keyof T]?: DeepPartial<T[K]> }
   : Partial<T>;
 
 type KeysOfUnion<T> = T extends T ? keyof T : never;
-export type Exact<P, I extends P> = P extends Builtin ? P
+export type Exact<P, I extends P> = P extends Builtin
+  ? P
   : P & { [K in keyof P]: Exact<P[K], I[K]> } & { [K in Exclude<keyof I, KeysOfUnion<P>>]: never };
 
 function longToNumber(long: Long): number {
   if (long.gt(globalThis.Number.MAX_SAFE_INTEGER)) {
-    throw new globalThis.Error("Value is larger than Number.MAX_SAFE_INTEGER");
+    throw new globalThis.Error('Value is larger than Number.MAX_SAFE_INTEGER');
   }
   if (long.lt(globalThis.Number.MIN_SAFE_INTEGER)) {
-    throw new globalThis.Error("Value is smaller than Number.MIN_SAFE_INTEGER");
+    throw new globalThis.Error('Value is smaller than Number.MIN_SAFE_INTEGER');
   }
   return long.toNumber();
 }
@@ -8016,7 +8235,7 @@ if (_m0.util.Long !== Long) {
 }
 
 function isObject(value: any): boolean {
-  return typeof value === "object" && value !== null;
+  return typeof value === 'object' && value !== null;
 }
 
 function isSet(value: any): boolean {

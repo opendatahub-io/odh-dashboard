@@ -5,9 +5,9 @@
 // source: ml_metadata/proto/metadata_store_service.proto
 
 /* eslint-disable */
-import Long from "long";
-import _m0 from "protobufjs/minimal";
-import { FieldMask } from "../../google/protobuf/field_mask";
+import Long from 'long';
+import _m0 from 'protobufjs/minimal';
+import { FieldMask } from '../../google/protobuf/field_mask';
 import {
   Artifact,
   ArtifactType,
@@ -24,9 +24,9 @@ import {
   ListOperationOptions,
   ParentContext,
   TransactionOptions,
-} from "./metadata_store";
+} from './metadata_store';
 
-export const protobufPackage = "ml_metadata";
+export const protobufPackage = 'ml_metadata';
 
 /** An artifact and type pair. Part of an artifact struct. */
 export interface ArtifactAndType {
@@ -67,13 +67,9 @@ export interface ArtifactStruct {
 export interface PutArtifactsRequest {
   artifacts: Artifact[];
   /** Additional options to change the behavior of the method. */
-  options?:
-    | PutArtifactsRequest_Options
-    | undefined;
+  options?: PutArtifactsRequest_Options | undefined;
   /** Options regarding transactions. */
-  transactionOptions?:
-    | TransactionOptions
-    | undefined;
+  transactionOptions?: TransactionOptions | undefined;
   /**
    * FieldMask for artifacts in the PUT update
    * If `artifact.id` is not specified, it means a new artifact will be created
@@ -191,38 +187,28 @@ export interface PutArtifactTypeRequest {
    * with the same name exists in the database, it updates the existing type,
    * otherwise it creates a new type.
    */
-  artifactType?:
-    | ArtifactType
-    | undefined;
+  artifactType?: ArtifactType | undefined;
   /**
    * If true then allows adding properties to an existing stored type.
    * If false, then type update is not allowed and it raises AlreadyExists
    * error if the given type has any new property that is not defined in the
    * stored type.
    */
-  canAddFields?:
-    | boolean
-    | undefined;
+  canAddFields?: boolean | undefined;
   /**
    * If true then allows omitting properties of an existing stored type.
    * If false, then no properties of the stored type can be omitted in the
    * given type, otherwise it raises AlreadyExists error.
    */
-  canOmitFields?:
-    | boolean
-    | undefined;
+  canOmitFields?: boolean | undefined;
   /**
    * Deprecated fields.
    *
    * @deprecated
    */
-  canDeleteFields?:
-    | boolean
-    | undefined;
+  canDeleteFields?: boolean | undefined;
   /** @deprecated */
-  allFieldsMatch?:
-    | boolean
-    | undefined;
+  allFieldsMatch?: boolean | undefined;
   /** Options regarding transactions. */
   transactionOptions?: TransactionOptions | undefined;
 }
@@ -235,9 +221,7 @@ export interface PutArtifactTypeResponse {
 export interface PutExecutionsRequest {
   executions: Execution[];
   /** Options regarding transactions. */
-  transactionOptions?:
-    | TransactionOptions
-    | undefined;
+  transactionOptions?: TransactionOptions | undefined;
   /**
    * FieldMask for executions in the PUT update
    * If `execution.id` is not specified, it means a new execution will be
@@ -290,38 +274,28 @@ export interface PutExecutionTypeRequest {
    * with the same name exists in the database, it updates the existing type,
    * otherwise it creates a new type.
    */
-  executionType?:
-    | ExecutionType
-    | undefined;
+  executionType?: ExecutionType | undefined;
   /**
    * If true then allows adding properties to an existing stored type.
    * If false, then type update is not allowed and it raises AlreadyExists
    * error if the given type has any new property that is not defined in the
    * stored type.
    */
-  canAddFields?:
-    | boolean
-    | undefined;
+  canAddFields?: boolean | undefined;
   /**
    * If true then allows omitting properties of an existing stored type.
    * If false, then no properties of the stored type can be omitted in the
    * given type, otherwise it raises AlreadyExists error.
    */
-  canOmitFields?:
-    | boolean
-    | undefined;
+  canOmitFields?: boolean | undefined;
   /**
    * Deprecated fields.
    *
    * @deprecated
    */
-  canDeleteFields?:
-    | boolean
-    | undefined;
+  canDeleteFields?: boolean | undefined;
   /** @deprecated */
-  allFieldsMatch?:
-    | boolean
-    | undefined;
+  allFieldsMatch?: boolean | undefined;
   /** Options regarding transactions. */
   transactionOptions?: TransactionOptions | undefined;
 }
@@ -337,14 +311,11 @@ export interface PutEventsRequest {
   transactionOptions?: TransactionOptions | undefined;
 }
 
-export interface PutEventsResponse {
-}
+export interface PutEventsResponse {}
 
 export interface PutExecutionRequest {
   /** The execution that produces many artifact and event pairs. */
-  execution?:
-    | Execution
-    | undefined;
+  execution?: Execution | undefined;
   /** The list of artifact and event pairs. */
   artifactEventPairs: PutExecutionRequest_ArtifactAndEvent[];
   /**
@@ -357,9 +328,7 @@ export interface PutExecutionRequest {
    */
   contexts: Context[];
   /** Additional options to change the behavior of the method. */
-  options?:
-    | PutExecutionRequest_Options
-    | undefined;
+  options?: PutExecutionRequest_Options | undefined;
   /** Options regarding transactions. */
   transactionOptions?: TransactionOptions | undefined;
 }
@@ -374,9 +343,7 @@ export interface PutExecutionRequest_ArtifactAndEvent {
    * The pair may have an artifact. If present and no artifact.id is given,
    * then it inserts the artifact, otherwise it updates the artifact.
    */
-  artifact?:
-    | Artifact
-    | undefined;
+  artifact?: Artifact | undefined;
   /**
    * The pair may have an event. Providing event.artifact_id or
    * event.execution_id is optional. If the ids are given, it must align with
@@ -394,9 +361,7 @@ export interface PutExecutionRequest_Options {
    * the API will reuse the stored context in the transaction and perform
    * an update.
    */
-  reuseContextIfAlreadyExist?:
-    | boolean
-    | undefined;
+  reuseContextIfAlreadyExist?: boolean | undefined;
   /**
    * When there's a race to publish executions with a new artifact with the
    * same artifact.external_id, by default there'll be one writer succeeds and
@@ -411,9 +376,7 @@ export interface PutExecutionRequest_Options {
 
 export interface PutExecutionResponse {
   /** An execution id of the `execution` in PutExecutionRequest. */
-  executionId?:
-    | number
-    | undefined;
+  executionId?: number | undefined;
   /**
    * A list of artifact ids index-aligned with `artifact_event_pairs` in the
    * PutExecutionRequest.
@@ -437,9 +400,7 @@ export interface PutLineageSubgraphRequest {
 
 export interface PutLineageSubgraphRequest_EventEdge {
   /** Index in the array of executions. */
-  executionIndex?:
-    | number
-    | undefined;
+  executionIndex?: number | undefined;
   /** Index in the array of artifacts. */
   artifactIndex?: number | undefined;
   event?: Event | undefined;
@@ -453,9 +414,7 @@ export interface PutLineageSubgraphRequest_Options {
    * the API will reuse the stored context in the transaction and perform
    * an update.
    */
-  reuseContextIfAlreadyExist?:
-    | boolean
-    | undefined;
+  reuseContextIfAlreadyExist?: boolean | undefined;
   /**
    * When there's a race to publish executions with a new artifact with the
    * same artifact.external_id, by default there'll be one writer succeeds and
@@ -487,29 +446,21 @@ export interface PutTypesRequest {
    * error if the given type has any new property that is not defined in the
    * stored type.
    */
-  canAddFields?:
-    | boolean
-    | undefined;
+  canAddFields?: boolean | undefined;
   /**
    * If true then allows omitting properties of an existing stored type.
    * If false, then no properties of the stored type can be omitted in the
    * given type, otherwise it raises AlreadyExists error.
    */
-  canOmitFields?:
-    | boolean
-    | undefined;
+  canOmitFields?: boolean | undefined;
   /**
    * Deprecated fields.
    *
    * @deprecated
    */
-  canDeleteFields?:
-    | boolean
-    | undefined;
+  canDeleteFields?: boolean | undefined;
   /** @deprecated */
-  allFieldsMatch?:
-    | boolean
-    | undefined;
+  allFieldsMatch?: boolean | undefined;
   /** Options regarding transactions. */
   transactionOptions?: TransactionOptions | undefined;
 }
@@ -530,38 +481,28 @@ export interface PutContextTypeRequest {
    * with the same name exists in the database, it updates the existing type,
    * otherwise it creates a new type.
    */
-  contextType?:
-    | ContextType
-    | undefined;
+  contextType?: ContextType | undefined;
   /**
    * If true then allows adding properties to an existing stored type.
    * If false, then type update is not allowed and it raises AlreadyExists
    * error if the given type has any new property that is not defined in the
    * stored type.
    */
-  canAddFields?:
-    | boolean
-    | undefined;
+  canAddFields?: boolean | undefined;
   /**
    * If true then allows omitting properties of an existing stored type.
    * If false, then no properties of the stored type can be omitted in the
    * given type, otherwise it raises AlreadyExists error.
    */
-  canOmitFields?:
-    | boolean
-    | undefined;
+  canOmitFields?: boolean | undefined;
   /**
    * Deprecated fields.
    *
    * @deprecated
    */
-  canDeleteFields?:
-    | boolean
-    | undefined;
+  canDeleteFields?: boolean | undefined;
   /** @deprecated */
-  allFieldsMatch?:
-    | boolean
-    | undefined;
+  allFieldsMatch?: boolean | undefined;
   /** Options regarding transactions. */
   transactionOptions?: TransactionOptions | undefined;
 }
@@ -574,9 +515,7 @@ export interface PutContextTypeResponse {
 export interface PutContextsRequest {
   contexts: Context[];
   /** Options regarding transactions. */
-  transactionOptions?:
-    | TransactionOptions
-    | undefined;
+  transactionOptions?: TransactionOptions | undefined;
   /**
    * FieldMask for contexts in the PUT update
    * If `context.id` is not specified, it means a new context will be
@@ -629,8 +568,7 @@ export interface PutAttributionsAndAssociationsRequest {
   transactionOptions?: TransactionOptions | undefined;
 }
 
-export interface PutAttributionsAndAssociationsResponse {
-}
+export interface PutAttributionsAndAssociationsResponse {}
 
 export interface PutParentContextsRequest {
   parentContexts: ParentContext[];
@@ -638,17 +576,12 @@ export interface PutParentContextsRequest {
   transactionOptions?: TransactionOptions | undefined;
 }
 
-export interface PutParentContextsResponse {
-}
+export interface PutParentContextsResponse {}
 
 export interface GetArtifactsByTypeRequest {
-  typeName?:
-    | string
-    | undefined;
+  typeName?: string | undefined;
   /** If not set, it looks for the type with type_name with default type_version. */
-  typeVersion?:
-    | string
-    | undefined;
+  typeVersion?: string | undefined;
   /**
    * Specify List options.
    * Currently supports:
@@ -661,9 +594,7 @@ export interface GetArtifactsByTypeRequest {
    * Higher-level APIs may only use the functionalies partially.
    * Please reference the API documentation for the API behaviors.
    */
-  options?:
-    | ListOperationOptions
-    | undefined;
+  options?: ListOperationOptions | undefined;
   /** Options regarding transactions. */
   transactionOptions?: TransactionOptions | undefined;
 }
@@ -678,17 +609,13 @@ export interface GetArtifactsByTypeResponse {
 }
 
 export interface GetArtifactByTypeAndNameRequest {
-  typeName?:
-    | string
-    | undefined;
+  typeName?: string | undefined;
   /**
    * If not set, it looks for the type with type_name and artifact_name with
    * default type_version.
    */
   typeVersion?: string | undefined;
-  artifactName?:
-    | string
-    | undefined;
+  artifactName?: string | undefined;
   /** Options regarding transactions. */
   transactionOptions?: TransactionOptions | undefined;
 }
@@ -713,9 +640,7 @@ export interface GetArtifactsByIDRequest {
    *   The response will contain an artifact with id = 101 and an artifact type
    *   with id = artifact.type_id().
    */
-  populateArtifactTypes?:
-    | boolean
-    | undefined;
+  populateArtifactTypes?: boolean | undefined;
   /** Options regarding transactions. */
   transactionOptions?: TransactionOptions | undefined;
 }
@@ -743,9 +668,7 @@ export interface GetArtifactsRequest {
    * Please refer to the documentation of ListOperationOptions for the supported
    * functionalities.
    */
-  options?:
-    | ListOperationOptions
-    | undefined;
+  options?: ListOperationOptions | undefined;
   /** Options regarding transactions. */
   transactionOptions?: TransactionOptions | undefined;
 }
@@ -781,9 +704,7 @@ export interface GetExecutionsRequest {
    * Please refer to the documentation of ListOperationOptions for the supported
    * functionalities.
    */
-  options?:
-    | ListOperationOptions
-    | undefined;
+  options?: ListOperationOptions | undefined;
   /** Options regarding transactions. */
   transactionOptions?: TransactionOptions | undefined;
 }
@@ -799,13 +720,9 @@ export interface GetExecutionsResponse {
 }
 
 export interface GetArtifactTypeRequest {
-  typeName?:
-    | string
-    | undefined;
+  typeName?: string | undefined;
   /** If not set, it looks for the type with type_name with default type_version. */
-  typeVersion?:
-    | string
-    | undefined;
+  typeVersion?: string | undefined;
   /** Options regarding transactions. */
   transactionOptions?: TransactionOptions | undefined;
 }
@@ -903,13 +820,9 @@ export interface GetContextTypesByExternalIdsResponse {
 }
 
 export interface GetExecutionsByTypeRequest {
-  typeName?:
-    | string
-    | undefined;
+  typeName?: string | undefined;
   /** If not set, it looks for the type with type_name with default type_version. */
-  typeVersion?:
-    | string
-    | undefined;
+  typeVersion?: string | undefined;
   /**
    * Specify List options.
    * Currently supports:
@@ -922,9 +835,7 @@ export interface GetExecutionsByTypeRequest {
    * Higher-level APIs may only use the functionalies partially.
    * Please reference the API documentation for the API behaviors.
    */
-  options?:
-    | ListOperationOptions
-    | undefined;
+  options?: ListOperationOptions | undefined;
   /** Options regarding transactions. */
   transactionOptions?: TransactionOptions | undefined;
 }
@@ -939,17 +850,13 @@ export interface GetExecutionsByTypeResponse {
 }
 
 export interface GetExecutionByTypeAndNameRequest {
-  typeName?:
-    | string
-    | undefined;
+  typeName?: string | undefined;
   /**
    * If not set, it looks for the type with type_name and execution_name with
    * default type_version.
    */
   typeVersion?: string | undefined;
-  executionName?:
-    | string
-    | undefined;
+  executionName?: string | undefined;
   /** Options regarding transactions. */
   transactionOptions?: TransactionOptions | undefined;
 }
@@ -974,13 +881,9 @@ export interface GetExecutionsByIDResponse {
 }
 
 export interface GetExecutionTypeRequest {
-  typeName?:
-    | string
-    | undefined;
+  typeName?: string | undefined;
   /** If not set, it looks for the type with type_name with default type_version. */
-  typeVersion?:
-    | string
-    | undefined;
+  typeVersion?: string | undefined;
   /** Options regarding transactions. */
   transactionOptions?: TransactionOptions | undefined;
 }
@@ -1040,13 +943,9 @@ export interface GetExecutionTypesByIDResponse {
 }
 
 export interface GetContextTypeRequest {
-  typeName?:
-    | string
-    | undefined;
+  typeName?: string | undefined;
   /** If not set, it looks for the type with type_name with default type_version. */
-  typeVersion?:
-    | string
-    | undefined;
+  typeVersion?: string | undefined;
   /** Options regarding transactions. */
   transactionOptions?: TransactionOptions | undefined;
 }
@@ -1080,9 +979,7 @@ export interface GetContextsRequest {
    * Please refer to the documentation of ListOperationOptions for the supported
    * functionalities.
    */
-  options?:
-    | ListOperationOptions
-    | undefined;
+  options?: ListOperationOptions | undefined;
   /** Options regarding transactions. */
   transactionOptions?: TransactionOptions | undefined;
 }
@@ -1098,9 +995,7 @@ export interface GetContextsResponse {
 }
 
 export interface GetContextsByTypeRequest {
-  typeName?:
-    | string
-    | undefined;
+  typeName?: string | undefined;
   /**
    * Specify options.
    * Currently supports:
@@ -1113,16 +1008,12 @@ export interface GetContextsByTypeRequest {
    * Higher-level APIs may only use the functionalies partially.
    * Please reference the API documentation for the API behaviors.
    */
-  options?:
-    | ListOperationOptions
-    | undefined;
+  options?: ListOperationOptions | undefined;
   /**
    * If not set, it looks for the type with type_name and options with default
    * type_version.
    */
-  typeVersion?:
-    | string
-    | undefined;
+  typeVersion?: string | undefined;
   /** Options regarding transactions. */
   transactionOptions?: TransactionOptions | undefined;
 }
@@ -1137,17 +1028,13 @@ export interface GetContextsByTypeResponse {
 }
 
 export interface GetContextByTypeAndNameRequest {
-  typeName?:
-    | string
-    | undefined;
+  typeName?: string | undefined;
   /**
    * If not set, it looks for the type with type_name and context_name with
    * default type_version.
    */
   typeVersion?: string | undefined;
-  contextName?:
-    | string
-    | undefined;
+  contextName?: string | undefined;
   /** Options regarding transactions. */
   transactionOptions?: TransactionOptions | undefined;
 }
@@ -1172,9 +1059,7 @@ export interface GetContextsByIDResponse {
 }
 
 export interface GetContextsByArtifactRequest {
-  artifactId?:
-    | number
-    | undefined;
+  artifactId?: number | undefined;
   /** Options regarding transactions. */
   transactionOptions?: TransactionOptions | undefined;
 }
@@ -1184,9 +1069,7 @@ export interface GetContextsByArtifactResponse {
 }
 
 export interface GetContextsByExecutionRequest {
-  executionId?:
-    | number
-    | undefined;
+  executionId?: number | undefined;
   /** Options regarding transactions. */
   transactionOptions?: TransactionOptions | undefined;
 }
@@ -1196,9 +1079,7 @@ export interface GetContextsByExecutionResponse {
 }
 
 export interface GetParentContextsByContextRequest {
-  contextId?:
-    | number
-    | undefined;
+  contextId?: number | undefined;
   /** Options regarding transactions. */
   transactionOptions?: TransactionOptions | undefined;
 }
@@ -1208,9 +1089,7 @@ export interface GetParentContextsByContextResponse {
 }
 
 export interface GetChildrenContextsByContextRequest {
-  contextId?:
-    | number
-    | undefined;
+  contextId?: number | undefined;
   /** Options regarding transactions. */
   transactionOptions?: TransactionOptions | undefined;
 }
@@ -1258,18 +1137,14 @@ export interface GetChildrenContextsByContextsResponse_ContextsEntry {
 }
 
 export interface GetArtifactsByContextRequest {
-  contextId?:
-    | number
-    | undefined;
+  contextId?: number | undefined;
   /**
    * Specify List options.
    * Currently supports:
    *   1. Field to order the results.
    *   2. Page size.
    */
-  options?:
-    | ListOperationOptions
-    | undefined;
+  options?: ListOperationOptions | undefined;
   /** Options regarding transactions. */
   transactionOptions?: TransactionOptions | undefined;
 }
@@ -1284,18 +1159,14 @@ export interface GetArtifactsByContextResponse {
 }
 
 export interface GetExecutionsByContextRequest {
-  contextId?:
-    | number
-    | undefined;
+  contextId?: number | undefined;
   /**
    * Specify List options.
    * Currently supports:
    *   1. Field to order the results.
    *   2. Page size.
    */
-  options?:
-    | ListOperationOptions
-    | undefined;
+  options?: ListOperationOptions | undefined;
   /** Options regarding transactions. */
   transactionOptions?: TransactionOptions | undefined;
 }
@@ -1306,9 +1177,7 @@ export interface GetExecutionsByContextResponse {
    * Token to use to retrieve next page of results if list options are used in
    * the request.
    */
-  nextPageToken?:
-    | string
-    | undefined;
+  nextPageToken?: string | undefined;
   /** Options regarding transactions. */
   transactionOptions?: TransactionOptions | undefined;
 }
@@ -1320,9 +1189,7 @@ export interface GetExecutionsByContextResponse {
  * boundary conditions for pruning the returned graph.
  */
 export interface GetLineageGraphRequest {
-  options?:
-    | LineageGraphQueryOptions
-    | undefined;
+  options?: LineageGraphQueryOptions | undefined;
   /** Options regarding transactions. */
   transactionOptions?: TransactionOptions | undefined;
 }
@@ -1343,9 +1210,7 @@ export interface GetLineageSubgraphRequest {
    * will be returned. Please refer to `LineageSubgraphQueryOptions` for more
    * details.
    */
-  lineageSubgraphQueryOptions?:
-    | LineageSubgraphQueryOptions
-    | undefined;
+  lineageSubgraphQueryOptions?: LineageSubgraphQueryOptions | undefined;
   /**
    * `read_mask` contains user specified paths of fields that should be included
    * in the returned lineage subgraph.
@@ -1447,12 +1312,14 @@ export const ArtifactAndType = {
   },
   fromPartial<I extends Exact<DeepPartial<ArtifactAndType>, I>>(object: I): ArtifactAndType {
     const message = createBaseArtifactAndType();
-    message.artifact = (object.artifact !== undefined && object.artifact !== null)
-      ? Artifact.fromPartial(object.artifact)
-      : undefined;
-    message.type = (object.type !== undefined && object.type !== null)
-      ? ArtifactType.fromPartial(object.type)
-      : undefined;
+    message.artifact =
+      object.artifact !== undefined && object.artifact !== null
+        ? Artifact.fromPartial(object.artifact)
+        : undefined;
+    message.type =
+      object.type !== undefined && object.type !== null
+        ? ArtifactType.fromPartial(object.type)
+        : undefined;
     return message;
   },
 };
@@ -1464,7 +1331,10 @@ function createBaseArtifactStructMap(): ArtifactStructMap {
 export const ArtifactStructMap = {
   encode(message: ArtifactStructMap, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
     Object.entries(message.properties).forEach(([key, value]) => {
-      ArtifactStructMap_PropertiesEntry.encode({ key: key as any, value }, writer.uint32(10).fork()).ldelim();
+      ArtifactStructMap_PropertiesEntry.encode(
+        { key: key as any, value },
+        writer.uint32(10).fork(),
+      ).ldelim();
     });
     return writer;
   },
@@ -1498,10 +1368,13 @@ export const ArtifactStructMap = {
   fromJSON(object: any): ArtifactStructMap {
     return {
       properties: isObject(object.properties)
-        ? Object.entries(object.properties).reduce<{ [key: string]: ArtifactStruct }>((acc, [key, value]) => {
-          acc[key] = ArtifactStruct.fromJSON(value);
-          return acc;
-        }, {})
+        ? Object.entries(object.properties).reduce<{ [key: string]: ArtifactStruct }>(
+            (acc, [key, value]) => {
+              acc[key] = ArtifactStruct.fromJSON(value);
+              return acc;
+            },
+            {},
+          )
         : {},
     };
   },
@@ -1525,26 +1398,28 @@ export const ArtifactStructMap = {
   },
   fromPartial<I extends Exact<DeepPartial<ArtifactStructMap>, I>>(object: I): ArtifactStructMap {
     const message = createBaseArtifactStructMap();
-    message.properties = Object.entries(object.properties ?? {}).reduce<{ [key: string]: ArtifactStruct }>(
-      (acc, [key, value]) => {
-        if (value !== undefined) {
-          acc[key] = ArtifactStruct.fromPartial(value);
-        }
-        return acc;
-      },
-      {},
-    );
+    message.properties = Object.entries(object.properties ?? {}).reduce<{
+      [key: string]: ArtifactStruct;
+    }>((acc, [key, value]) => {
+      if (value !== undefined) {
+        acc[key] = ArtifactStruct.fromPartial(value);
+      }
+      return acc;
+    }, {});
     return message;
   },
 };
 
 function createBaseArtifactStructMap_PropertiesEntry(): ArtifactStructMap_PropertiesEntry {
-  return { key: "", value: undefined };
+  return { key: '', value: undefined };
 }
 
 export const ArtifactStructMap_PropertiesEntry = {
-  encode(message: ArtifactStructMap_PropertiesEntry, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.key !== "") {
+  encode(
+    message: ArtifactStructMap_PropertiesEntry,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
+    if (message.key !== '') {
       writer.uint32(10).string(message.key);
     }
     if (message.value !== undefined) {
@@ -1585,14 +1460,14 @@ export const ArtifactStructMap_PropertiesEntry = {
 
   fromJSON(object: any): ArtifactStructMap_PropertiesEntry {
     return {
-      key: isSet(object.key) ? globalThis.String(object.key) : "",
+      key: isSet(object.key) ? globalThis.String(object.key) : '',
       value: isSet(object.value) ? ArtifactStruct.fromJSON(object.value) : undefined,
     };
   },
 
   toJSON(message: ArtifactStructMap_PropertiesEntry): unknown {
     const obj: any = {};
-    if (message.key !== "") {
+    if (message.key !== '') {
       obj.key = message.key;
     }
     if (message.value !== undefined) {
@@ -1610,10 +1485,11 @@ export const ArtifactStructMap_PropertiesEntry = {
     object: I,
   ): ArtifactStructMap_PropertiesEntry {
     const message = createBaseArtifactStructMap_PropertiesEntry();
-    message.key = object.key ?? "";
-    message.value = (object.value !== undefined && object.value !== null)
-      ? ArtifactStruct.fromPartial(object.value)
-      : undefined;
+    message.key = object.key ?? '';
+    message.value =
+      object.value !== undefined && object.value !== null
+        ? ArtifactStruct.fromPartial(object.value)
+        : undefined;
     return message;
   },
 };
@@ -1761,21 +1637,29 @@ export const ArtifactStruct = {
   },
   fromPartial<I extends Exact<DeepPartial<ArtifactStruct>, I>>(object: I): ArtifactStruct {
     const message = createBaseArtifactStruct();
-    message.artifact = (object.artifact !== undefined && object.artifact !== null)
-      ? ArtifactAndType.fromPartial(object.artifact)
-      : undefined;
-    message.map = (object.map !== undefined && object.map !== null)
-      ? ArtifactStructMap.fromPartial(object.map)
-      : undefined;
-    message.list = (object.list !== undefined && object.list !== null)
-      ? ArtifactStructList.fromPartial(object.list)
-      : undefined;
+    message.artifact =
+      object.artifact !== undefined && object.artifact !== null
+        ? ArtifactAndType.fromPartial(object.artifact)
+        : undefined;
+    message.map =
+      object.map !== undefined && object.map !== null
+        ? ArtifactStructMap.fromPartial(object.map)
+        : undefined;
+    message.list =
+      object.list !== undefined && object.list !== null
+        ? ArtifactStructList.fromPartial(object.list)
+        : undefined;
     return message;
   },
 };
 
 function createBasePutArtifactsRequest(): PutArtifactsRequest {
-  return { artifacts: [], options: undefined, transactionOptions: undefined, updateMask: undefined };
+  return {
+    artifacts: [],
+    options: undefined,
+    transactionOptions: undefined,
+    updateMask: undefined,
+  };
 }
 
 export const PutArtifactsRequest = {
@@ -1844,11 +1728,15 @@ export const PutArtifactsRequest = {
       artifacts: globalThis.Array.isArray(object?.artifacts)
         ? object.artifacts.map((e: any) => Artifact.fromJSON(e))
         : [],
-      options: isSet(object.options) ? PutArtifactsRequest_Options.fromJSON(object.options) : undefined,
+      options: isSet(object.options)
+        ? PutArtifactsRequest_Options.fromJSON(object.options)
+        : undefined,
       transactionOptions: isSet(object.transactionOptions)
         ? TransactionOptions.fromJSON(object.transactionOptions)
         : undefined,
-      updateMask: isSet(object.updateMask) ? FieldMask.unwrap(FieldMask.fromJSON(object.updateMask)) : undefined,
+      updateMask: isSet(object.updateMask)
+        ? FieldMask.unwrap(FieldMask.fromJSON(object.updateMask))
+        : undefined,
     };
   },
 
@@ -1872,15 +1760,19 @@ export const PutArtifactsRequest = {
   create<I extends Exact<DeepPartial<PutArtifactsRequest>, I>>(base?: I): PutArtifactsRequest {
     return PutArtifactsRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<PutArtifactsRequest>, I>>(object: I): PutArtifactsRequest {
+  fromPartial<I extends Exact<DeepPartial<PutArtifactsRequest>, I>>(
+    object: I,
+  ): PutArtifactsRequest {
     const message = createBasePutArtifactsRequest();
     message.artifacts = object.artifacts?.map((e) => Artifact.fromPartial(e)) || [];
-    message.options = (object.options !== undefined && object.options !== null)
-      ? PutArtifactsRequest_Options.fromPartial(object.options)
-      : undefined;
-    message.transactionOptions = (object.transactionOptions !== undefined && object.transactionOptions !== null)
-      ? TransactionOptions.fromPartial(object.transactionOptions)
-      : undefined;
+    message.options =
+      object.options !== undefined && object.options !== null
+        ? PutArtifactsRequest_Options.fromPartial(object.options)
+        : undefined;
+    message.transactionOptions =
+      object.transactionOptions !== undefined && object.transactionOptions !== null
+        ? TransactionOptions.fromPartial(object.transactionOptions)
+        : undefined;
     message.updateMask = object.updateMask ?? undefined;
     return message;
   },
@@ -1891,8 +1783,14 @@ function createBasePutArtifactsRequest_Options(): PutArtifactsRequest_Options {
 }
 
 export const PutArtifactsRequest_Options = {
-  encode(message: PutArtifactsRequest_Options, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.abortIfLatestUpdatedTimeChanged !== undefined && message.abortIfLatestUpdatedTimeChanged !== false) {
+  encode(
+    message: PutArtifactsRequest_Options,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
+    if (
+      message.abortIfLatestUpdatedTimeChanged !== undefined &&
+      message.abortIfLatestUpdatedTimeChanged !== false
+    ) {
       writer.uint32(8).bool(message.abortIfLatestUpdatedTimeChanged);
     }
     return writer;
@@ -1931,16 +1829,23 @@ export const PutArtifactsRequest_Options = {
 
   toJSON(message: PutArtifactsRequest_Options): unknown {
     const obj: any = {};
-    if (message.abortIfLatestUpdatedTimeChanged !== undefined && message.abortIfLatestUpdatedTimeChanged !== false) {
+    if (
+      message.abortIfLatestUpdatedTimeChanged !== undefined &&
+      message.abortIfLatestUpdatedTimeChanged !== false
+    ) {
       obj.abortIfLatestUpdatedTimeChanged = message.abortIfLatestUpdatedTimeChanged;
     }
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<PutArtifactsRequest_Options>, I>>(base?: I): PutArtifactsRequest_Options {
+  create<I extends Exact<DeepPartial<PutArtifactsRequest_Options>, I>>(
+    base?: I,
+  ): PutArtifactsRequest_Options {
     return PutArtifactsRequest_Options.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<PutArtifactsRequest_Options>, I>>(object: I): PutArtifactsRequest_Options {
+  fromPartial<I extends Exact<DeepPartial<PutArtifactsRequest_Options>, I>>(
+    object: I,
+  ): PutArtifactsRequest_Options {
     const message = createBasePutArtifactsRequest_Options();
     message.abortIfLatestUpdatedTimeChanged = object.abortIfLatestUpdatedTimeChanged ?? false;
     return message;
@@ -2013,7 +1918,9 @@ export const PutArtifactsResponse = {
   create<I extends Exact<DeepPartial<PutArtifactsResponse>, I>>(base?: I): PutArtifactsResponse {
     return PutArtifactsResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<PutArtifactsResponse>, I>>(object: I): PutArtifactsResponse {
+  fromPartial<I extends Exact<DeepPartial<PutArtifactsResponse>, I>>(
+    object: I,
+  ): PutArtifactsResponse {
     const message = createBasePutArtifactsResponse();
     message.artifactIds = object.artifactIds?.map((e) => e) || [];
     return message;
@@ -2114,11 +2021,17 @@ export const PutArtifactTypeRequest = {
 
   fromJSON(object: any): PutArtifactTypeRequest {
     return {
-      artifactType: isSet(object.artifactType) ? ArtifactType.fromJSON(object.artifactType) : undefined,
+      artifactType: isSet(object.artifactType)
+        ? ArtifactType.fromJSON(object.artifactType)
+        : undefined,
       canAddFields: isSet(object.canAddFields) ? globalThis.Boolean(object.canAddFields) : false,
       canOmitFields: isSet(object.canOmitFields) ? globalThis.Boolean(object.canOmitFields) : false,
-      canDeleteFields: isSet(object.canDeleteFields) ? globalThis.Boolean(object.canDeleteFields) : false,
-      allFieldsMatch: isSet(object.allFieldsMatch) ? globalThis.Boolean(object.allFieldsMatch) : true,
+      canDeleteFields: isSet(object.canDeleteFields)
+        ? globalThis.Boolean(object.canDeleteFields)
+        : false,
+      allFieldsMatch: isSet(object.allFieldsMatch)
+        ? globalThis.Boolean(object.allFieldsMatch)
+        : true,
       transactionOptions: isSet(object.transactionOptions)
         ? TransactionOptions.fromJSON(object.transactionOptions)
         : undefined,
@@ -2148,21 +2061,27 @@ export const PutArtifactTypeRequest = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<PutArtifactTypeRequest>, I>>(base?: I): PutArtifactTypeRequest {
+  create<I extends Exact<DeepPartial<PutArtifactTypeRequest>, I>>(
+    base?: I,
+  ): PutArtifactTypeRequest {
     return PutArtifactTypeRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<PutArtifactTypeRequest>, I>>(object: I): PutArtifactTypeRequest {
+  fromPartial<I extends Exact<DeepPartial<PutArtifactTypeRequest>, I>>(
+    object: I,
+  ): PutArtifactTypeRequest {
     const message = createBasePutArtifactTypeRequest();
-    message.artifactType = (object.artifactType !== undefined && object.artifactType !== null)
-      ? ArtifactType.fromPartial(object.artifactType)
-      : undefined;
+    message.artifactType =
+      object.artifactType !== undefined && object.artifactType !== null
+        ? ArtifactType.fromPartial(object.artifactType)
+        : undefined;
     message.canAddFields = object.canAddFields ?? false;
     message.canOmitFields = object.canOmitFields ?? false;
     message.canDeleteFields = object.canDeleteFields ?? false;
     message.allFieldsMatch = object.allFieldsMatch ?? true;
-    message.transactionOptions = (object.transactionOptions !== undefined && object.transactionOptions !== null)
-      ? TransactionOptions.fromPartial(object.transactionOptions)
-      : undefined;
+    message.transactionOptions =
+      object.transactionOptions !== undefined && object.transactionOptions !== null
+        ? TransactionOptions.fromPartial(object.transactionOptions)
+        : undefined;
     return message;
   },
 };
@@ -2214,10 +2133,14 @@ export const PutArtifactTypeResponse = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<PutArtifactTypeResponse>, I>>(base?: I): PutArtifactTypeResponse {
+  create<I extends Exact<DeepPartial<PutArtifactTypeResponse>, I>>(
+    base?: I,
+  ): PutArtifactTypeResponse {
     return PutArtifactTypeResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<PutArtifactTypeResponse>, I>>(object: I): PutArtifactTypeResponse {
+  fromPartial<I extends Exact<DeepPartial<PutArtifactTypeResponse>, I>>(
+    object: I,
+  ): PutArtifactTypeResponse {
     const message = createBasePutArtifactTypeResponse();
     message.typeId = object.typeId ?? 0;
     return message;
@@ -2287,7 +2210,9 @@ export const PutExecutionsRequest = {
       transactionOptions: isSet(object.transactionOptions)
         ? TransactionOptions.fromJSON(object.transactionOptions)
         : undefined,
-      updateMask: isSet(object.updateMask) ? FieldMask.unwrap(FieldMask.fromJSON(object.updateMask)) : undefined,
+      updateMask: isSet(object.updateMask)
+        ? FieldMask.unwrap(FieldMask.fromJSON(object.updateMask))
+        : undefined,
     };
   },
 
@@ -2308,12 +2233,15 @@ export const PutExecutionsRequest = {
   create<I extends Exact<DeepPartial<PutExecutionsRequest>, I>>(base?: I): PutExecutionsRequest {
     return PutExecutionsRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<PutExecutionsRequest>, I>>(object: I): PutExecutionsRequest {
+  fromPartial<I extends Exact<DeepPartial<PutExecutionsRequest>, I>>(
+    object: I,
+  ): PutExecutionsRequest {
     const message = createBasePutExecutionsRequest();
     message.executions = object.executions?.map((e) => Execution.fromPartial(e)) || [];
-    message.transactionOptions = (object.transactionOptions !== undefined && object.transactionOptions !== null)
-      ? TransactionOptions.fromPartial(object.transactionOptions)
-      : undefined;
+    message.transactionOptions =
+      object.transactionOptions !== undefined && object.transactionOptions !== null
+        ? TransactionOptions.fromPartial(object.transactionOptions)
+        : undefined;
     message.updateMask = object.updateMask ?? undefined;
     return message;
   },
@@ -2385,7 +2313,9 @@ export const PutExecutionsResponse = {
   create<I extends Exact<DeepPartial<PutExecutionsResponse>, I>>(base?: I): PutExecutionsResponse {
     return PutExecutionsResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<PutExecutionsResponse>, I>>(object: I): PutExecutionsResponse {
+  fromPartial<I extends Exact<DeepPartial<PutExecutionsResponse>, I>>(
+    object: I,
+  ): PutExecutionsResponse {
     const message = createBasePutExecutionsResponse();
     message.executionIds = object.executionIds?.map((e) => e) || [];
     return message;
@@ -2486,11 +2416,17 @@ export const PutExecutionTypeRequest = {
 
   fromJSON(object: any): PutExecutionTypeRequest {
     return {
-      executionType: isSet(object.executionType) ? ExecutionType.fromJSON(object.executionType) : undefined,
+      executionType: isSet(object.executionType)
+        ? ExecutionType.fromJSON(object.executionType)
+        : undefined,
       canAddFields: isSet(object.canAddFields) ? globalThis.Boolean(object.canAddFields) : false,
       canOmitFields: isSet(object.canOmitFields) ? globalThis.Boolean(object.canOmitFields) : false,
-      canDeleteFields: isSet(object.canDeleteFields) ? globalThis.Boolean(object.canDeleteFields) : false,
-      allFieldsMatch: isSet(object.allFieldsMatch) ? globalThis.Boolean(object.allFieldsMatch) : true,
+      canDeleteFields: isSet(object.canDeleteFields)
+        ? globalThis.Boolean(object.canDeleteFields)
+        : false,
+      allFieldsMatch: isSet(object.allFieldsMatch)
+        ? globalThis.Boolean(object.allFieldsMatch)
+        : true,
       transactionOptions: isSet(object.transactionOptions)
         ? TransactionOptions.fromJSON(object.transactionOptions)
         : undefined,
@@ -2520,21 +2456,27 @@ export const PutExecutionTypeRequest = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<PutExecutionTypeRequest>, I>>(base?: I): PutExecutionTypeRequest {
+  create<I extends Exact<DeepPartial<PutExecutionTypeRequest>, I>>(
+    base?: I,
+  ): PutExecutionTypeRequest {
     return PutExecutionTypeRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<PutExecutionTypeRequest>, I>>(object: I): PutExecutionTypeRequest {
+  fromPartial<I extends Exact<DeepPartial<PutExecutionTypeRequest>, I>>(
+    object: I,
+  ): PutExecutionTypeRequest {
     const message = createBasePutExecutionTypeRequest();
-    message.executionType = (object.executionType !== undefined && object.executionType !== null)
-      ? ExecutionType.fromPartial(object.executionType)
-      : undefined;
+    message.executionType =
+      object.executionType !== undefined && object.executionType !== null
+        ? ExecutionType.fromPartial(object.executionType)
+        : undefined;
     message.canAddFields = object.canAddFields ?? false;
     message.canOmitFields = object.canOmitFields ?? false;
     message.canDeleteFields = object.canDeleteFields ?? false;
     message.allFieldsMatch = object.allFieldsMatch ?? true;
-    message.transactionOptions = (object.transactionOptions !== undefined && object.transactionOptions !== null)
-      ? TransactionOptions.fromPartial(object.transactionOptions)
-      : undefined;
+    message.transactionOptions =
+      object.transactionOptions !== undefined && object.transactionOptions !== null
+        ? TransactionOptions.fromPartial(object.transactionOptions)
+        : undefined;
     return message;
   },
 };
@@ -2586,10 +2528,14 @@ export const PutExecutionTypeResponse = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<PutExecutionTypeResponse>, I>>(base?: I): PutExecutionTypeResponse {
+  create<I extends Exact<DeepPartial<PutExecutionTypeResponse>, I>>(
+    base?: I,
+  ): PutExecutionTypeResponse {
     return PutExecutionTypeResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<PutExecutionTypeResponse>, I>>(object: I): PutExecutionTypeResponse {
+  fromPartial<I extends Exact<DeepPartial<PutExecutionTypeResponse>, I>>(
+    object: I,
+  ): PutExecutionTypeResponse {
     const message = createBasePutExecutionTypeResponse();
     message.typeId = object.typeId ?? 0;
     return message;
@@ -2643,7 +2589,9 @@ export const PutEventsRequest = {
 
   fromJSON(object: any): PutEventsRequest {
     return {
-      events: globalThis.Array.isArray(object?.events) ? object.events.map((e: any) => Event.fromJSON(e)) : [],
+      events: globalThis.Array.isArray(object?.events)
+        ? object.events.map((e: any) => Event.fromJSON(e))
+        : [],
       transactionOptions: isSet(object.transactionOptions)
         ? TransactionOptions.fromJSON(object.transactionOptions)
         : undefined,
@@ -2667,9 +2615,10 @@ export const PutEventsRequest = {
   fromPartial<I extends Exact<DeepPartial<PutEventsRequest>, I>>(object: I): PutEventsRequest {
     const message = createBasePutEventsRequest();
     message.events = object.events?.map((e) => Event.fromPartial(e)) || [];
-    message.transactionOptions = (object.transactionOptions !== undefined && object.transactionOptions !== null)
-      ? TransactionOptions.fromPartial(object.transactionOptions)
-      : undefined;
+    message.transactionOptions =
+      object.transactionOptions !== undefined && object.transactionOptions !== null
+        ? TransactionOptions.fromPartial(object.transactionOptions)
+        : undefined;
     return message;
   },
 };
@@ -2766,7 +2715,9 @@ export const PutExecutionRequest = {
             break;
           }
 
-          message.artifactEventPairs.push(PutExecutionRequest_ArtifactAndEvent.decode(reader, reader.uint32()));
+          message.artifactEventPairs.push(
+            PutExecutionRequest_ArtifactAndEvent.decode(reader, reader.uint32()),
+          );
           continue;
         case 3:
           if (tag !== 26) {
@@ -2802,10 +2753,16 @@ export const PutExecutionRequest = {
     return {
       execution: isSet(object.execution) ? Execution.fromJSON(object.execution) : undefined,
       artifactEventPairs: globalThis.Array.isArray(object?.artifactEventPairs)
-        ? object.artifactEventPairs.map((e: any) => PutExecutionRequest_ArtifactAndEvent.fromJSON(e))
+        ? object.artifactEventPairs.map((e: any) =>
+            PutExecutionRequest_ArtifactAndEvent.fromJSON(e),
+          )
         : [],
-      contexts: globalThis.Array.isArray(object?.contexts) ? object.contexts.map((e: any) => Context.fromJSON(e)) : [],
-      options: isSet(object.options) ? PutExecutionRequest_Options.fromJSON(object.options) : undefined,
+      contexts: globalThis.Array.isArray(object?.contexts)
+        ? object.contexts.map((e: any) => Context.fromJSON(e))
+        : [],
+      options: isSet(object.options)
+        ? PutExecutionRequest_Options.fromJSON(object.options)
+        : undefined,
       transactionOptions: isSet(object.transactionOptions)
         ? TransactionOptions.fromJSON(object.transactionOptions)
         : undefined,
@@ -2818,7 +2775,9 @@ export const PutExecutionRequest = {
       obj.execution = Execution.toJSON(message.execution);
     }
     if (message.artifactEventPairs?.length) {
-      obj.artifactEventPairs = message.artifactEventPairs.map((e) => PutExecutionRequest_ArtifactAndEvent.toJSON(e));
+      obj.artifactEventPairs = message.artifactEventPairs.map((e) =>
+        PutExecutionRequest_ArtifactAndEvent.toJSON(e),
+      );
     }
     if (message.contexts?.length) {
       obj.contexts = message.contexts.map((e) => Context.toJSON(e));
@@ -2835,20 +2794,26 @@ export const PutExecutionRequest = {
   create<I extends Exact<DeepPartial<PutExecutionRequest>, I>>(base?: I): PutExecutionRequest {
     return PutExecutionRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<PutExecutionRequest>, I>>(object: I): PutExecutionRequest {
+  fromPartial<I extends Exact<DeepPartial<PutExecutionRequest>, I>>(
+    object: I,
+  ): PutExecutionRequest {
     const message = createBasePutExecutionRequest();
-    message.execution = (object.execution !== undefined && object.execution !== null)
-      ? Execution.fromPartial(object.execution)
-      : undefined;
+    message.execution =
+      object.execution !== undefined && object.execution !== null
+        ? Execution.fromPartial(object.execution)
+        : undefined;
     message.artifactEventPairs =
-      object.artifactEventPairs?.map((e) => PutExecutionRequest_ArtifactAndEvent.fromPartial(e)) || [];
+      object.artifactEventPairs?.map((e) => PutExecutionRequest_ArtifactAndEvent.fromPartial(e)) ||
+      [];
     message.contexts = object.contexts?.map((e) => Context.fromPartial(e)) || [];
-    message.options = (object.options !== undefined && object.options !== null)
-      ? PutExecutionRequest_Options.fromPartial(object.options)
-      : undefined;
-    message.transactionOptions = (object.transactionOptions !== undefined && object.transactionOptions !== null)
-      ? TransactionOptions.fromPartial(object.transactionOptions)
-      : undefined;
+    message.options =
+      object.options !== undefined && object.options !== null
+        ? PutExecutionRequest_Options.fromPartial(object.options)
+        : undefined;
+    message.transactionOptions =
+      object.transactionOptions !== undefined && object.transactionOptions !== null
+        ? TransactionOptions.fromPartial(object.transactionOptions)
+        : undefined;
     return message;
   },
 };
@@ -2858,7 +2823,10 @@ function createBasePutExecutionRequest_ArtifactAndEvent(): PutExecutionRequest_A
 }
 
 export const PutExecutionRequest_ArtifactAndEvent = {
-  encode(message: PutExecutionRequest_ArtifactAndEvent, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    message: PutExecutionRequest_ArtifactAndEvent,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
     if (message.artifact !== undefined) {
       Artifact.encode(message.artifact, writer.uint32(10).fork()).ldelim();
     }
@@ -2925,10 +2893,14 @@ export const PutExecutionRequest_ArtifactAndEvent = {
     object: I,
   ): PutExecutionRequest_ArtifactAndEvent {
     const message = createBasePutExecutionRequest_ArtifactAndEvent();
-    message.artifact = (object.artifact !== undefined && object.artifact !== null)
-      ? Artifact.fromPartial(object.artifact)
-      : undefined;
-    message.event = (object.event !== undefined && object.event !== null) ? Event.fromPartial(object.event) : undefined;
+    message.artifact =
+      object.artifact !== undefined && object.artifact !== null
+        ? Artifact.fromPartial(object.artifact)
+        : undefined;
+    message.event =
+      object.event !== undefined && object.event !== null
+        ? Event.fromPartial(object.event)
+        : undefined;
     return message;
   },
 };
@@ -2938,8 +2910,14 @@ function createBasePutExecutionRequest_Options(): PutExecutionRequest_Options {
 }
 
 export const PutExecutionRequest_Options = {
-  encode(message: PutExecutionRequest_Options, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.reuseContextIfAlreadyExist !== undefined && message.reuseContextIfAlreadyExist !== false) {
+  encode(
+    message: PutExecutionRequest_Options,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
+    if (
+      message.reuseContextIfAlreadyExist !== undefined &&
+      message.reuseContextIfAlreadyExist !== false
+    ) {
       writer.uint32(8).bool(message.reuseContextIfAlreadyExist);
     }
     if (
@@ -2994,7 +2972,10 @@ export const PutExecutionRequest_Options = {
 
   toJSON(message: PutExecutionRequest_Options): unknown {
     const obj: any = {};
-    if (message.reuseContextIfAlreadyExist !== undefined && message.reuseContextIfAlreadyExist !== false) {
+    if (
+      message.reuseContextIfAlreadyExist !== undefined &&
+      message.reuseContextIfAlreadyExist !== false
+    ) {
       obj.reuseContextIfAlreadyExist = message.reuseContextIfAlreadyExist;
     }
     if (
@@ -3006,13 +2987,18 @@ export const PutExecutionRequest_Options = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<PutExecutionRequest_Options>, I>>(base?: I): PutExecutionRequest_Options {
+  create<I extends Exact<DeepPartial<PutExecutionRequest_Options>, I>>(
+    base?: I,
+  ): PutExecutionRequest_Options {
     return PutExecutionRequest_Options.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<PutExecutionRequest_Options>, I>>(object: I): PutExecutionRequest_Options {
+  fromPartial<I extends Exact<DeepPartial<PutExecutionRequest_Options>, I>>(
+    object: I,
+  ): PutExecutionRequest_Options {
     const message = createBasePutExecutionRequest_Options();
     message.reuseContextIfAlreadyExist = object.reuseContextIfAlreadyExist ?? false;
-    message.reuseArtifactIfAlreadyExistByExternalId = object.reuseArtifactIfAlreadyExistByExternalId ?? false;
+    message.reuseArtifactIfAlreadyExistByExternalId =
+      object.reuseArtifactIfAlreadyExistByExternalId ?? false;
     return message;
   },
 };
@@ -3125,7 +3111,9 @@ export const PutExecutionResponse = {
   create<I extends Exact<DeepPartial<PutExecutionResponse>, I>>(base?: I): PutExecutionResponse {
     return PutExecutionResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<PutExecutionResponse>, I>>(object: I): PutExecutionResponse {
+  fromPartial<I extends Exact<DeepPartial<PutExecutionResponse>, I>>(
+    object: I,
+  ): PutExecutionResponse {
     const message = createBasePutExecutionResponse();
     message.executionId = object.executionId ?? 0;
     message.artifactIds = object.artifactIds?.map((e) => e) || [];
@@ -3201,7 +3189,9 @@ export const PutLineageSubgraphRequest = {
             break;
           }
 
-          message.eventEdges.push(PutLineageSubgraphRequest_EventEdge.decode(reader, reader.uint32()));
+          message.eventEdges.push(
+            PutLineageSubgraphRequest_EventEdge.decode(reader, reader.uint32()),
+          );
           continue;
         case 5:
           if (tag !== 42) {
@@ -3234,11 +3224,15 @@ export const PutLineageSubgraphRequest = {
       artifacts: globalThis.Array.isArray(object?.artifacts)
         ? object.artifacts.map((e: any) => Artifact.fromJSON(e))
         : [],
-      contexts: globalThis.Array.isArray(object?.contexts) ? object.contexts.map((e: any) => Context.fromJSON(e)) : [],
+      contexts: globalThis.Array.isArray(object?.contexts)
+        ? object.contexts.map((e: any) => Context.fromJSON(e))
+        : [],
       eventEdges: globalThis.Array.isArray(object?.eventEdges)
         ? object.eventEdges.map((e: any) => PutLineageSubgraphRequest_EventEdge.fromJSON(e))
         : [],
-      options: isSet(object.options) ? PutLineageSubgraphRequest_Options.fromJSON(object.options) : undefined,
+      options: isSet(object.options)
+        ? PutLineageSubgraphRequest_Options.fromJSON(object.options)
+        : undefined,
       transactionOptions: isSet(object.transactionOptions)
         ? TransactionOptions.fromJSON(object.transactionOptions)
         : undefined,
@@ -3268,21 +3262,28 @@ export const PutLineageSubgraphRequest = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<PutLineageSubgraphRequest>, I>>(base?: I): PutLineageSubgraphRequest {
+  create<I extends Exact<DeepPartial<PutLineageSubgraphRequest>, I>>(
+    base?: I,
+  ): PutLineageSubgraphRequest {
     return PutLineageSubgraphRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<PutLineageSubgraphRequest>, I>>(object: I): PutLineageSubgraphRequest {
+  fromPartial<I extends Exact<DeepPartial<PutLineageSubgraphRequest>, I>>(
+    object: I,
+  ): PutLineageSubgraphRequest {
     const message = createBasePutLineageSubgraphRequest();
     message.executions = object.executions?.map((e) => Execution.fromPartial(e)) || [];
     message.artifacts = object.artifacts?.map((e) => Artifact.fromPartial(e)) || [];
     message.contexts = object.contexts?.map((e) => Context.fromPartial(e)) || [];
-    message.eventEdges = object.eventEdges?.map((e) => PutLineageSubgraphRequest_EventEdge.fromPartial(e)) || [];
-    message.options = (object.options !== undefined && object.options !== null)
-      ? PutLineageSubgraphRequest_Options.fromPartial(object.options)
-      : undefined;
-    message.transactionOptions = (object.transactionOptions !== undefined && object.transactionOptions !== null)
-      ? TransactionOptions.fromPartial(object.transactionOptions)
-      : undefined;
+    message.eventEdges =
+      object.eventEdges?.map((e) => PutLineageSubgraphRequest_EventEdge.fromPartial(e)) || [];
+    message.options =
+      object.options !== undefined && object.options !== null
+        ? PutLineageSubgraphRequest_Options.fromPartial(object.options)
+        : undefined;
+    message.transactionOptions =
+      object.transactionOptions !== undefined && object.transactionOptions !== null
+        ? TransactionOptions.fromPartial(object.transactionOptions)
+        : undefined;
     return message;
   },
 };
@@ -3292,7 +3293,10 @@ function createBasePutLineageSubgraphRequest_EventEdge(): PutLineageSubgraphRequ
 }
 
 export const PutLineageSubgraphRequest_EventEdge = {
-  encode(message: PutLineageSubgraphRequest_EventEdge, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    message: PutLineageSubgraphRequest_EventEdge,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
     if (message.executionIndex !== undefined && message.executionIndex !== 0) {
       writer.uint32(8).int32(message.executionIndex);
     }
@@ -3375,7 +3379,10 @@ export const PutLineageSubgraphRequest_EventEdge = {
     const message = createBasePutLineageSubgraphRequest_EventEdge();
     message.executionIndex = object.executionIndex ?? 0;
     message.artifactIndex = object.artifactIndex ?? 0;
-    message.event = (object.event !== undefined && object.event !== null) ? Event.fromPartial(object.event) : undefined;
+    message.event =
+      object.event !== undefined && object.event !== null
+        ? Event.fromPartial(object.event)
+        : undefined;
     return message;
   },
 };
@@ -3385,8 +3392,14 @@ function createBasePutLineageSubgraphRequest_Options(): PutLineageSubgraphReques
 }
 
 export const PutLineageSubgraphRequest_Options = {
-  encode(message: PutLineageSubgraphRequest_Options, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.reuseContextIfAlreadyExist !== undefined && message.reuseContextIfAlreadyExist !== false) {
+  encode(
+    message: PutLineageSubgraphRequest_Options,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
+    if (
+      message.reuseContextIfAlreadyExist !== undefined &&
+      message.reuseContextIfAlreadyExist !== false
+    ) {
       writer.uint32(8).bool(message.reuseContextIfAlreadyExist);
     }
     if (
@@ -3441,7 +3454,10 @@ export const PutLineageSubgraphRequest_Options = {
 
   toJSON(message: PutLineageSubgraphRequest_Options): unknown {
     const obj: any = {};
-    if (message.reuseContextIfAlreadyExist !== undefined && message.reuseContextIfAlreadyExist !== false) {
+    if (
+      message.reuseContextIfAlreadyExist !== undefined &&
+      message.reuseContextIfAlreadyExist !== false
+    ) {
       obj.reuseContextIfAlreadyExist = message.reuseContextIfAlreadyExist;
     }
     if (
@@ -3463,7 +3479,8 @@ export const PutLineageSubgraphRequest_Options = {
   ): PutLineageSubgraphRequest_Options {
     const message = createBasePutLineageSubgraphRequest_Options();
     message.reuseContextIfAlreadyExist = object.reuseContextIfAlreadyExist ?? false;
-    message.reuseArtifactIfAlreadyExistByExternalId = object.reuseArtifactIfAlreadyExistByExternalId ?? false;
+    message.reuseArtifactIfAlreadyExistByExternalId =
+      object.reuseArtifactIfAlreadyExistByExternalId ?? false;
     return message;
   },
 };
@@ -3473,7 +3490,10 @@ function createBasePutLineageSubgraphResponse(): PutLineageSubgraphResponse {
 }
 
 export const PutLineageSubgraphResponse = {
-  encode(message: PutLineageSubgraphResponse, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    message: PutLineageSubgraphResponse,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
     writer.uint32(10).fork();
     for (const v of message.executionIds) {
       writer.int64(v);
@@ -3587,10 +3607,14 @@ export const PutLineageSubgraphResponse = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<PutLineageSubgraphResponse>, I>>(base?: I): PutLineageSubgraphResponse {
+  create<I extends Exact<DeepPartial<PutLineageSubgraphResponse>, I>>(
+    base?: I,
+  ): PutLineageSubgraphResponse {
     return PutLineageSubgraphResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<PutLineageSubgraphResponse>, I>>(object: I): PutLineageSubgraphResponse {
+  fromPartial<I extends Exact<DeepPartial<PutLineageSubgraphResponse>, I>>(
+    object: I,
+  ): PutLineageSubgraphResponse {
     const message = createBasePutLineageSubgraphResponse();
     message.executionIds = object.executionIds?.map((e) => e) || [];
     message.artifactIds = object.artifactIds?.map((e) => e) || [];
@@ -3726,8 +3750,12 @@ export const PutTypesRequest = {
         : [],
       canAddFields: isSet(object.canAddFields) ? globalThis.Boolean(object.canAddFields) : false,
       canOmitFields: isSet(object.canOmitFields) ? globalThis.Boolean(object.canOmitFields) : false,
-      canDeleteFields: isSet(object.canDeleteFields) ? globalThis.Boolean(object.canDeleteFields) : false,
-      allFieldsMatch: isSet(object.allFieldsMatch) ? globalThis.Boolean(object.allFieldsMatch) : true,
+      canDeleteFields: isSet(object.canDeleteFields)
+        ? globalThis.Boolean(object.canDeleteFields)
+        : false,
+      allFieldsMatch: isSet(object.allFieldsMatch)
+        ? globalThis.Boolean(object.allFieldsMatch)
+        : true,
       transactionOptions: isSet(object.transactionOptions)
         ? TransactionOptions.fromJSON(object.transactionOptions)
         : undefined,
@@ -3775,9 +3803,10 @@ export const PutTypesRequest = {
     message.canOmitFields = object.canOmitFields ?? false;
     message.canDeleteFields = object.canDeleteFields ?? false;
     message.allFieldsMatch = object.allFieldsMatch ?? true;
-    message.transactionOptions = (object.transactionOptions !== undefined && object.transactionOptions !== null)
-      ? TransactionOptions.fromPartial(object.transactionOptions)
-      : undefined;
+    message.transactionOptions =
+      object.transactionOptions !== undefined && object.transactionOptions !== null
+        ? TransactionOptions.fromPartial(object.transactionOptions)
+        : undefined;
     return message;
   },
 };
@@ -4010,8 +4039,12 @@ export const PutContextTypeRequest = {
       contextType: isSet(object.contextType) ? ContextType.fromJSON(object.contextType) : undefined,
       canAddFields: isSet(object.canAddFields) ? globalThis.Boolean(object.canAddFields) : false,
       canOmitFields: isSet(object.canOmitFields) ? globalThis.Boolean(object.canOmitFields) : false,
-      canDeleteFields: isSet(object.canDeleteFields) ? globalThis.Boolean(object.canDeleteFields) : false,
-      allFieldsMatch: isSet(object.allFieldsMatch) ? globalThis.Boolean(object.allFieldsMatch) : true,
+      canDeleteFields: isSet(object.canDeleteFields)
+        ? globalThis.Boolean(object.canDeleteFields)
+        : false,
+      allFieldsMatch: isSet(object.allFieldsMatch)
+        ? globalThis.Boolean(object.allFieldsMatch)
+        : true,
       transactionOptions: isSet(object.transactionOptions)
         ? TransactionOptions.fromJSON(object.transactionOptions)
         : undefined,
@@ -4044,18 +4077,22 @@ export const PutContextTypeRequest = {
   create<I extends Exact<DeepPartial<PutContextTypeRequest>, I>>(base?: I): PutContextTypeRequest {
     return PutContextTypeRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<PutContextTypeRequest>, I>>(object: I): PutContextTypeRequest {
+  fromPartial<I extends Exact<DeepPartial<PutContextTypeRequest>, I>>(
+    object: I,
+  ): PutContextTypeRequest {
     const message = createBasePutContextTypeRequest();
-    message.contextType = (object.contextType !== undefined && object.contextType !== null)
-      ? ContextType.fromPartial(object.contextType)
-      : undefined;
+    message.contextType =
+      object.contextType !== undefined && object.contextType !== null
+        ? ContextType.fromPartial(object.contextType)
+        : undefined;
     message.canAddFields = object.canAddFields ?? false;
     message.canOmitFields = object.canOmitFields ?? false;
     message.canDeleteFields = object.canDeleteFields ?? false;
     message.allFieldsMatch = object.allFieldsMatch ?? true;
-    message.transactionOptions = (object.transactionOptions !== undefined && object.transactionOptions !== null)
-      ? TransactionOptions.fromPartial(object.transactionOptions)
-      : undefined;
+    message.transactionOptions =
+      object.transactionOptions !== undefined && object.transactionOptions !== null
+        ? TransactionOptions.fromPartial(object.transactionOptions)
+        : undefined;
     return message;
   },
 };
@@ -4107,10 +4144,14 @@ export const PutContextTypeResponse = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<PutContextTypeResponse>, I>>(base?: I): PutContextTypeResponse {
+  create<I extends Exact<DeepPartial<PutContextTypeResponse>, I>>(
+    base?: I,
+  ): PutContextTypeResponse {
     return PutContextTypeResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<PutContextTypeResponse>, I>>(object: I): PutContextTypeResponse {
+  fromPartial<I extends Exact<DeepPartial<PutContextTypeResponse>, I>>(
+    object: I,
+  ): PutContextTypeResponse {
     const message = createBasePutContextTypeResponse();
     message.typeId = object.typeId ?? 0;
     return message;
@@ -4174,11 +4215,15 @@ export const PutContextsRequest = {
 
   fromJSON(object: any): PutContextsRequest {
     return {
-      contexts: globalThis.Array.isArray(object?.contexts) ? object.contexts.map((e: any) => Context.fromJSON(e)) : [],
+      contexts: globalThis.Array.isArray(object?.contexts)
+        ? object.contexts.map((e: any) => Context.fromJSON(e))
+        : [],
       transactionOptions: isSet(object.transactionOptions)
         ? TransactionOptions.fromJSON(object.transactionOptions)
         : undefined,
-      updateMask: isSet(object.updateMask) ? FieldMask.unwrap(FieldMask.fromJSON(object.updateMask)) : undefined,
+      updateMask: isSet(object.updateMask)
+        ? FieldMask.unwrap(FieldMask.fromJSON(object.updateMask))
+        : undefined,
     };
   },
 
@@ -4202,9 +4247,10 @@ export const PutContextsRequest = {
   fromPartial<I extends Exact<DeepPartial<PutContextsRequest>, I>>(object: I): PutContextsRequest {
     const message = createBasePutContextsRequest();
     message.contexts = object.contexts?.map((e) => Context.fromPartial(e)) || [];
-    message.transactionOptions = (object.transactionOptions !== undefined && object.transactionOptions !== null)
-      ? TransactionOptions.fromPartial(object.transactionOptions)
-      : undefined;
+    message.transactionOptions =
+      object.transactionOptions !== undefined && object.transactionOptions !== null
+        ? TransactionOptions.fromPartial(object.transactionOptions)
+        : undefined;
     message.updateMask = object.updateMask ?? undefined;
     return message;
   },
@@ -4276,7 +4322,9 @@ export const PutContextsResponse = {
   create<I extends Exact<DeepPartial<PutContextsResponse>, I>>(base?: I): PutContextsResponse {
     return PutContextsResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<PutContextsResponse>, I>>(object: I): PutContextsResponse {
+  fromPartial<I extends Exact<DeepPartial<PutContextsResponse>, I>>(
+    object: I,
+  ): PutContextsResponse {
     const message = createBasePutContextsResponse();
     message.contextIds = object.contextIds?.map((e) => e) || [];
     return message;
@@ -4288,7 +4336,10 @@ function createBasePutAttributionsAndAssociationsRequest(): PutAttributionsAndAs
 }
 
 export const PutAttributionsAndAssociationsRequest = {
-  encode(message: PutAttributionsAndAssociationsRequest, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    message: PutAttributionsAndAssociationsRequest,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
     for (const v of message.attributions) {
       Attribution.encode(v!, writer.uint32(10).fork()).ldelim();
     }
@@ -4377,9 +4428,10 @@ export const PutAttributionsAndAssociationsRequest = {
     const message = createBasePutAttributionsAndAssociationsRequest();
     message.attributions = object.attributions?.map((e) => Attribution.fromPartial(e)) || [];
     message.associations = object.associations?.map((e) => Association.fromPartial(e)) || [];
-    message.transactionOptions = (object.transactionOptions !== undefined && object.transactionOptions !== null)
-      ? TransactionOptions.fromPartial(object.transactionOptions)
-      : undefined;
+    message.transactionOptions =
+      object.transactionOptions !== undefined && object.transactionOptions !== null
+        ? TransactionOptions.fromPartial(object.transactionOptions)
+        : undefined;
     return message;
   },
 };
@@ -4389,7 +4441,10 @@ function createBasePutAttributionsAndAssociationsResponse(): PutAttributionsAndA
 }
 
 export const PutAttributionsAndAssociationsResponse = {
-  encode(_: PutAttributionsAndAssociationsResponse, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    _: PutAttributionsAndAssociationsResponse,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
     return writer;
   },
 
@@ -4498,15 +4553,20 @@ export const PutParentContextsRequest = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<PutParentContextsRequest>, I>>(base?: I): PutParentContextsRequest {
+  create<I extends Exact<DeepPartial<PutParentContextsRequest>, I>>(
+    base?: I,
+  ): PutParentContextsRequest {
     return PutParentContextsRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<PutParentContextsRequest>, I>>(object: I): PutParentContextsRequest {
+  fromPartial<I extends Exact<DeepPartial<PutParentContextsRequest>, I>>(
+    object: I,
+  ): PutParentContextsRequest {
     const message = createBasePutParentContextsRequest();
     message.parentContexts = object.parentContexts?.map((e) => ParentContext.fromPartial(e)) || [];
-    message.transactionOptions = (object.transactionOptions !== undefined && object.transactionOptions !== null)
-      ? TransactionOptions.fromPartial(object.transactionOptions)
-      : undefined;
+    message.transactionOptions =
+      object.transactionOptions !== undefined && object.transactionOptions !== null
+        ? TransactionOptions.fromPartial(object.transactionOptions)
+        : undefined;
     return message;
   },
 };
@@ -4545,25 +4605,29 @@ export const PutParentContextsResponse = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<PutParentContextsResponse>, I>>(base?: I): PutParentContextsResponse {
+  create<I extends Exact<DeepPartial<PutParentContextsResponse>, I>>(
+    base?: I,
+  ): PutParentContextsResponse {
     return PutParentContextsResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<PutParentContextsResponse>, I>>(_: I): PutParentContextsResponse {
+  fromPartial<I extends Exact<DeepPartial<PutParentContextsResponse>, I>>(
+    _: I,
+  ): PutParentContextsResponse {
     const message = createBasePutParentContextsResponse();
     return message;
   },
 };
 
 function createBaseGetArtifactsByTypeRequest(): GetArtifactsByTypeRequest {
-  return { typeName: "", typeVersion: "", options: undefined, transactionOptions: undefined };
+  return { typeName: '', typeVersion: '', options: undefined, transactionOptions: undefined };
 }
 
 export const GetArtifactsByTypeRequest = {
   encode(message: GetArtifactsByTypeRequest, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.typeName !== undefined && message.typeName !== "") {
+    if (message.typeName !== undefined && message.typeName !== '') {
       writer.uint32(10).string(message.typeName);
     }
-    if (message.typeVersion !== undefined && message.typeVersion !== "") {
+    if (message.typeVersion !== undefined && message.typeVersion !== '') {
       writer.uint32(18).string(message.typeVersion);
     }
     if (message.options !== undefined) {
@@ -4621,8 +4685,8 @@ export const GetArtifactsByTypeRequest = {
 
   fromJSON(object: any): GetArtifactsByTypeRequest {
     return {
-      typeName: isSet(object.typeName) ? globalThis.String(object.typeName) : "",
-      typeVersion: isSet(object.typeVersion) ? globalThis.String(object.typeVersion) : "",
+      typeName: isSet(object.typeName) ? globalThis.String(object.typeName) : '',
+      typeVersion: isSet(object.typeVersion) ? globalThis.String(object.typeVersion) : '',
       options: isSet(object.options) ? ListOperationOptions.fromJSON(object.options) : undefined,
       transactionOptions: isSet(object.transactionOptions)
         ? TransactionOptions.fromJSON(object.transactionOptions)
@@ -4632,10 +4696,10 @@ export const GetArtifactsByTypeRequest = {
 
   toJSON(message: GetArtifactsByTypeRequest): unknown {
     const obj: any = {};
-    if (message.typeName !== undefined && message.typeName !== "") {
+    if (message.typeName !== undefined && message.typeName !== '') {
       obj.typeName = message.typeName;
     }
-    if (message.typeVersion !== undefined && message.typeVersion !== "") {
+    if (message.typeVersion !== undefined && message.typeVersion !== '') {
       obj.typeVersion = message.typeVersion;
     }
     if (message.options !== undefined) {
@@ -4647,33 +4711,42 @@ export const GetArtifactsByTypeRequest = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetArtifactsByTypeRequest>, I>>(base?: I): GetArtifactsByTypeRequest {
+  create<I extends Exact<DeepPartial<GetArtifactsByTypeRequest>, I>>(
+    base?: I,
+  ): GetArtifactsByTypeRequest {
     return GetArtifactsByTypeRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetArtifactsByTypeRequest>, I>>(object: I): GetArtifactsByTypeRequest {
+  fromPartial<I extends Exact<DeepPartial<GetArtifactsByTypeRequest>, I>>(
+    object: I,
+  ): GetArtifactsByTypeRequest {
     const message = createBaseGetArtifactsByTypeRequest();
-    message.typeName = object.typeName ?? "";
-    message.typeVersion = object.typeVersion ?? "";
-    message.options = (object.options !== undefined && object.options !== null)
-      ? ListOperationOptions.fromPartial(object.options)
-      : undefined;
-    message.transactionOptions = (object.transactionOptions !== undefined && object.transactionOptions !== null)
-      ? TransactionOptions.fromPartial(object.transactionOptions)
-      : undefined;
+    message.typeName = object.typeName ?? '';
+    message.typeVersion = object.typeVersion ?? '';
+    message.options =
+      object.options !== undefined && object.options !== null
+        ? ListOperationOptions.fromPartial(object.options)
+        : undefined;
+    message.transactionOptions =
+      object.transactionOptions !== undefined && object.transactionOptions !== null
+        ? TransactionOptions.fromPartial(object.transactionOptions)
+        : undefined;
     return message;
   },
 };
 
 function createBaseGetArtifactsByTypeResponse(): GetArtifactsByTypeResponse {
-  return { artifacts: [], nextPageToken: "" };
+  return { artifacts: [], nextPageToken: '' };
 }
 
 export const GetArtifactsByTypeResponse = {
-  encode(message: GetArtifactsByTypeResponse, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    message: GetArtifactsByTypeResponse,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
     for (const v of message.artifacts) {
       Artifact.encode(v!, writer.uint32(10).fork()).ldelim();
     }
-    if (message.nextPageToken !== undefined && message.nextPageToken !== "") {
+    if (message.nextPageToken !== undefined && message.nextPageToken !== '') {
       writer.uint32(18).string(message.nextPageToken);
     }
     return writer;
@@ -4714,7 +4787,7 @@ export const GetArtifactsByTypeResponse = {
       artifacts: globalThis.Array.isArray(object?.artifacts)
         ? object.artifacts.map((e: any) => Artifact.fromJSON(e))
         : [],
-      nextPageToken: isSet(object.nextPageToken) ? globalThis.String(object.nextPageToken) : "",
+      nextPageToken: isSet(object.nextPageToken) ? globalThis.String(object.nextPageToken) : '',
     };
   },
 
@@ -4723,36 +4796,43 @@ export const GetArtifactsByTypeResponse = {
     if (message.artifacts?.length) {
       obj.artifacts = message.artifacts.map((e) => Artifact.toJSON(e));
     }
-    if (message.nextPageToken !== undefined && message.nextPageToken !== "") {
+    if (message.nextPageToken !== undefined && message.nextPageToken !== '') {
       obj.nextPageToken = message.nextPageToken;
     }
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetArtifactsByTypeResponse>, I>>(base?: I): GetArtifactsByTypeResponse {
+  create<I extends Exact<DeepPartial<GetArtifactsByTypeResponse>, I>>(
+    base?: I,
+  ): GetArtifactsByTypeResponse {
     return GetArtifactsByTypeResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetArtifactsByTypeResponse>, I>>(object: I): GetArtifactsByTypeResponse {
+  fromPartial<I extends Exact<DeepPartial<GetArtifactsByTypeResponse>, I>>(
+    object: I,
+  ): GetArtifactsByTypeResponse {
     const message = createBaseGetArtifactsByTypeResponse();
     message.artifacts = object.artifacts?.map((e) => Artifact.fromPartial(e)) || [];
-    message.nextPageToken = object.nextPageToken ?? "";
+    message.nextPageToken = object.nextPageToken ?? '';
     return message;
   },
 };
 
 function createBaseGetArtifactByTypeAndNameRequest(): GetArtifactByTypeAndNameRequest {
-  return { typeName: "", typeVersion: "", artifactName: "", transactionOptions: undefined };
+  return { typeName: '', typeVersion: '', artifactName: '', transactionOptions: undefined };
 }
 
 export const GetArtifactByTypeAndNameRequest = {
-  encode(message: GetArtifactByTypeAndNameRequest, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.typeName !== undefined && message.typeName !== "") {
+  encode(
+    message: GetArtifactByTypeAndNameRequest,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
+    if (message.typeName !== undefined && message.typeName !== '') {
       writer.uint32(10).string(message.typeName);
     }
-    if (message.typeVersion !== undefined && message.typeVersion !== "") {
+    if (message.typeVersion !== undefined && message.typeVersion !== '') {
       writer.uint32(26).string(message.typeVersion);
     }
-    if (message.artifactName !== undefined && message.artifactName !== "") {
+    if (message.artifactName !== undefined && message.artifactName !== '') {
       writer.uint32(18).string(message.artifactName);
     }
     if (message.transactionOptions !== undefined) {
@@ -4807,9 +4887,9 @@ export const GetArtifactByTypeAndNameRequest = {
 
   fromJSON(object: any): GetArtifactByTypeAndNameRequest {
     return {
-      typeName: isSet(object.typeName) ? globalThis.String(object.typeName) : "",
-      typeVersion: isSet(object.typeVersion) ? globalThis.String(object.typeVersion) : "",
-      artifactName: isSet(object.artifactName) ? globalThis.String(object.artifactName) : "",
+      typeName: isSet(object.typeName) ? globalThis.String(object.typeName) : '',
+      typeVersion: isSet(object.typeVersion) ? globalThis.String(object.typeVersion) : '',
+      artifactName: isSet(object.artifactName) ? globalThis.String(object.artifactName) : '',
       transactionOptions: isSet(object.transactionOptions)
         ? TransactionOptions.fromJSON(object.transactionOptions)
         : undefined,
@@ -4818,13 +4898,13 @@ export const GetArtifactByTypeAndNameRequest = {
 
   toJSON(message: GetArtifactByTypeAndNameRequest): unknown {
     const obj: any = {};
-    if (message.typeName !== undefined && message.typeName !== "") {
+    if (message.typeName !== undefined && message.typeName !== '') {
       obj.typeName = message.typeName;
     }
-    if (message.typeVersion !== undefined && message.typeVersion !== "") {
+    if (message.typeVersion !== undefined && message.typeVersion !== '') {
       obj.typeVersion = message.typeVersion;
     }
-    if (message.artifactName !== undefined && message.artifactName !== "") {
+    if (message.artifactName !== undefined && message.artifactName !== '') {
       obj.artifactName = message.artifactName;
     }
     if (message.transactionOptions !== undefined) {
@@ -4833,19 +4913,22 @@ export const GetArtifactByTypeAndNameRequest = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetArtifactByTypeAndNameRequest>, I>>(base?: I): GetArtifactByTypeAndNameRequest {
+  create<I extends Exact<DeepPartial<GetArtifactByTypeAndNameRequest>, I>>(
+    base?: I,
+  ): GetArtifactByTypeAndNameRequest {
     return GetArtifactByTypeAndNameRequest.fromPartial(base ?? ({} as any));
   },
   fromPartial<I extends Exact<DeepPartial<GetArtifactByTypeAndNameRequest>, I>>(
     object: I,
   ): GetArtifactByTypeAndNameRequest {
     const message = createBaseGetArtifactByTypeAndNameRequest();
-    message.typeName = object.typeName ?? "";
-    message.typeVersion = object.typeVersion ?? "";
-    message.artifactName = object.artifactName ?? "";
-    message.transactionOptions = (object.transactionOptions !== undefined && object.transactionOptions !== null)
-      ? TransactionOptions.fromPartial(object.transactionOptions)
-      : undefined;
+    message.typeName = object.typeName ?? '';
+    message.typeVersion = object.typeVersion ?? '';
+    message.artifactName = object.artifactName ?? '';
+    message.transactionOptions =
+      object.transactionOptions !== undefined && object.transactionOptions !== null
+        ? TransactionOptions.fromPartial(object.transactionOptions)
+        : undefined;
     return message;
   },
 };
@@ -4855,7 +4938,10 @@ function createBaseGetArtifactByTypeAndNameResponse(): GetArtifactByTypeAndNameR
 }
 
 export const GetArtifactByTypeAndNameResponse = {
-  encode(message: GetArtifactByTypeAndNameResponse, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    message: GetArtifactByTypeAndNameResponse,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
     if (message.artifact !== undefined) {
       Artifact.encode(message.artifact, writer.uint32(10).fork()).ldelim();
     }
@@ -4906,9 +4992,10 @@ export const GetArtifactByTypeAndNameResponse = {
     object: I,
   ): GetArtifactByTypeAndNameResponse {
     const message = createBaseGetArtifactByTypeAndNameResponse();
-    message.artifact = (object.artifact !== undefined && object.artifact !== null)
-      ? Artifact.fromPartial(object.artifact)
-      : undefined;
+    message.artifact =
+      object.artifact !== undefined && object.artifact !== null
+        ? Artifact.fromPartial(object.artifact)
+        : undefined;
     return message;
   },
 };
@@ -5008,16 +5095,21 @@ export const GetArtifactsByIDRequest = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetArtifactsByIDRequest>, I>>(base?: I): GetArtifactsByIDRequest {
+  create<I extends Exact<DeepPartial<GetArtifactsByIDRequest>, I>>(
+    base?: I,
+  ): GetArtifactsByIDRequest {
     return GetArtifactsByIDRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetArtifactsByIDRequest>, I>>(object: I): GetArtifactsByIDRequest {
+  fromPartial<I extends Exact<DeepPartial<GetArtifactsByIDRequest>, I>>(
+    object: I,
+  ): GetArtifactsByIDRequest {
     const message = createBaseGetArtifactsByIDRequest();
     message.artifactIds = object.artifactIds?.map((e) => e) || [];
     message.populateArtifactTypes = object.populateArtifactTypes ?? false;
-    message.transactionOptions = (object.transactionOptions !== undefined && object.transactionOptions !== null)
-      ? TransactionOptions.fromPartial(object.transactionOptions)
-      : undefined;
+    message.transactionOptions =
+      object.transactionOptions !== undefined && object.transactionOptions !== null
+        ? TransactionOptions.fromPartial(object.transactionOptions)
+        : undefined;
     return message;
   },
 };
@@ -5089,10 +5181,14 @@ export const GetArtifactsByIDResponse = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetArtifactsByIDResponse>, I>>(base?: I): GetArtifactsByIDResponse {
+  create<I extends Exact<DeepPartial<GetArtifactsByIDResponse>, I>>(
+    base?: I,
+  ): GetArtifactsByIDResponse {
     return GetArtifactsByIDResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetArtifactsByIDResponse>, I>>(object: I): GetArtifactsByIDResponse {
+  fromPartial<I extends Exact<DeepPartial<GetArtifactsByIDResponse>, I>>(
+    object: I,
+  ): GetArtifactsByIDResponse {
     const message = createBaseGetArtifactsByIDResponse();
     message.artifacts = object.artifacts?.map((e) => Artifact.fromPartial(e)) || [];
     message.artifactTypes = object.artifactTypes?.map((e) => ArtifactType.fromPartial(e)) || [];
@@ -5168,20 +5264,24 @@ export const GetArtifactsRequest = {
   create<I extends Exact<DeepPartial<GetArtifactsRequest>, I>>(base?: I): GetArtifactsRequest {
     return GetArtifactsRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetArtifactsRequest>, I>>(object: I): GetArtifactsRequest {
+  fromPartial<I extends Exact<DeepPartial<GetArtifactsRequest>, I>>(
+    object: I,
+  ): GetArtifactsRequest {
     const message = createBaseGetArtifactsRequest();
-    message.options = (object.options !== undefined && object.options !== null)
-      ? ListOperationOptions.fromPartial(object.options)
-      : undefined;
-    message.transactionOptions = (object.transactionOptions !== undefined && object.transactionOptions !== null)
-      ? TransactionOptions.fromPartial(object.transactionOptions)
-      : undefined;
+    message.options =
+      object.options !== undefined && object.options !== null
+        ? ListOperationOptions.fromPartial(object.options)
+        : undefined;
+    message.transactionOptions =
+      object.transactionOptions !== undefined && object.transactionOptions !== null
+        ? TransactionOptions.fromPartial(object.transactionOptions)
+        : undefined;
     return message;
   },
 };
 
 function createBaseGetArtifactsResponse(): GetArtifactsResponse {
-  return { artifacts: [], nextPageToken: "" };
+  return { artifacts: [], nextPageToken: '' };
 }
 
 export const GetArtifactsResponse = {
@@ -5189,7 +5289,7 @@ export const GetArtifactsResponse = {
     for (const v of message.artifacts) {
       Artifact.encode(v!, writer.uint32(10).fork()).ldelim();
     }
-    if (message.nextPageToken !== undefined && message.nextPageToken !== "") {
+    if (message.nextPageToken !== undefined && message.nextPageToken !== '') {
       writer.uint32(18).string(message.nextPageToken);
     }
     return writer;
@@ -5230,7 +5330,7 @@ export const GetArtifactsResponse = {
       artifacts: globalThis.Array.isArray(object?.artifacts)
         ? object.artifacts.map((e: any) => Artifact.fromJSON(e))
         : [],
-      nextPageToken: isSet(object.nextPageToken) ? globalThis.String(object.nextPageToken) : "",
+      nextPageToken: isSet(object.nextPageToken) ? globalThis.String(object.nextPageToken) : '',
     };
   },
 
@@ -5239,7 +5339,7 @@ export const GetArtifactsResponse = {
     if (message.artifacts?.length) {
       obj.artifacts = message.artifacts.map((e) => Artifact.toJSON(e));
     }
-    if (message.nextPageToken !== undefined && message.nextPageToken !== "") {
+    if (message.nextPageToken !== undefined && message.nextPageToken !== '') {
       obj.nextPageToken = message.nextPageToken;
     }
     return obj;
@@ -5248,10 +5348,12 @@ export const GetArtifactsResponse = {
   create<I extends Exact<DeepPartial<GetArtifactsResponse>, I>>(base?: I): GetArtifactsResponse {
     return GetArtifactsResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetArtifactsResponse>, I>>(object: I): GetArtifactsResponse {
+  fromPartial<I extends Exact<DeepPartial<GetArtifactsResponse>, I>>(
+    object: I,
+  ): GetArtifactsResponse {
     const message = createBaseGetArtifactsResponse();
     message.artifacts = object.artifacts?.map((e) => Artifact.fromPartial(e)) || [];
-    message.nextPageToken = object.nextPageToken ?? "";
+    message.nextPageToken = object.nextPageToken ?? '';
     return message;
   },
 };
@@ -5303,7 +5405,9 @@ export const GetArtifactsByURIRequest = {
 
   fromJSON(object: any): GetArtifactsByURIRequest {
     return {
-      uris: globalThis.Array.isArray(object?.uris) ? object.uris.map((e: any) => globalThis.String(e)) : [],
+      uris: globalThis.Array.isArray(object?.uris)
+        ? object.uris.map((e: any) => globalThis.String(e))
+        : [],
       transactionOptions: isSet(object.transactionOptions)
         ? TransactionOptions.fromJSON(object.transactionOptions)
         : undefined,
@@ -5321,15 +5425,20 @@ export const GetArtifactsByURIRequest = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetArtifactsByURIRequest>, I>>(base?: I): GetArtifactsByURIRequest {
+  create<I extends Exact<DeepPartial<GetArtifactsByURIRequest>, I>>(
+    base?: I,
+  ): GetArtifactsByURIRequest {
     return GetArtifactsByURIRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetArtifactsByURIRequest>, I>>(object: I): GetArtifactsByURIRequest {
+  fromPartial<I extends Exact<DeepPartial<GetArtifactsByURIRequest>, I>>(
+    object: I,
+  ): GetArtifactsByURIRequest {
     const message = createBaseGetArtifactsByURIRequest();
     message.uris = object.uris?.map((e) => e) || [];
-    message.transactionOptions = (object.transactionOptions !== undefined && object.transactionOptions !== null)
-      ? TransactionOptions.fromPartial(object.transactionOptions)
-      : undefined;
+    message.transactionOptions =
+      object.transactionOptions !== undefined && object.transactionOptions !== null
+        ? TransactionOptions.fromPartial(object.transactionOptions)
+        : undefined;
     return message;
   },
 };
@@ -5385,10 +5494,14 @@ export const GetArtifactsByURIResponse = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetArtifactsByURIResponse>, I>>(base?: I): GetArtifactsByURIResponse {
+  create<I extends Exact<DeepPartial<GetArtifactsByURIResponse>, I>>(
+    base?: I,
+  ): GetArtifactsByURIResponse {
     return GetArtifactsByURIResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetArtifactsByURIResponse>, I>>(object: I): GetArtifactsByURIResponse {
+  fromPartial<I extends Exact<DeepPartial<GetArtifactsByURIResponse>, I>>(
+    object: I,
+  ): GetArtifactsByURIResponse {
     const message = createBaseGetArtifactsByURIResponse();
     message.artifacts = object.artifacts?.map((e) => Artifact.fromPartial(e)) || [];
     return message;
@@ -5463,20 +5576,24 @@ export const GetExecutionsRequest = {
   create<I extends Exact<DeepPartial<GetExecutionsRequest>, I>>(base?: I): GetExecutionsRequest {
     return GetExecutionsRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetExecutionsRequest>, I>>(object: I): GetExecutionsRequest {
+  fromPartial<I extends Exact<DeepPartial<GetExecutionsRequest>, I>>(
+    object: I,
+  ): GetExecutionsRequest {
     const message = createBaseGetExecutionsRequest();
-    message.options = (object.options !== undefined && object.options !== null)
-      ? ListOperationOptions.fromPartial(object.options)
-      : undefined;
-    message.transactionOptions = (object.transactionOptions !== undefined && object.transactionOptions !== null)
-      ? TransactionOptions.fromPartial(object.transactionOptions)
-      : undefined;
+    message.options =
+      object.options !== undefined && object.options !== null
+        ? ListOperationOptions.fromPartial(object.options)
+        : undefined;
+    message.transactionOptions =
+      object.transactionOptions !== undefined && object.transactionOptions !== null
+        ? TransactionOptions.fromPartial(object.transactionOptions)
+        : undefined;
     return message;
   },
 };
 
 function createBaseGetExecutionsResponse(): GetExecutionsResponse {
-  return { executions: [], nextPageToken: "" };
+  return { executions: [], nextPageToken: '' };
 }
 
 export const GetExecutionsResponse = {
@@ -5484,7 +5601,7 @@ export const GetExecutionsResponse = {
     for (const v of message.executions) {
       Execution.encode(v!, writer.uint32(10).fork()).ldelim();
     }
-    if (message.nextPageToken !== undefined && message.nextPageToken !== "") {
+    if (message.nextPageToken !== undefined && message.nextPageToken !== '') {
       writer.uint32(18).string(message.nextPageToken);
     }
     return writer;
@@ -5525,7 +5642,7 @@ export const GetExecutionsResponse = {
       executions: globalThis.Array.isArray(object?.executions)
         ? object.executions.map((e: any) => Execution.fromJSON(e))
         : [],
-      nextPageToken: isSet(object.nextPageToken) ? globalThis.String(object.nextPageToken) : "",
+      nextPageToken: isSet(object.nextPageToken) ? globalThis.String(object.nextPageToken) : '',
     };
   },
 
@@ -5534,7 +5651,7 @@ export const GetExecutionsResponse = {
     if (message.executions?.length) {
       obj.executions = message.executions.map((e) => Execution.toJSON(e));
     }
-    if (message.nextPageToken !== undefined && message.nextPageToken !== "") {
+    if (message.nextPageToken !== undefined && message.nextPageToken !== '') {
       obj.nextPageToken = message.nextPageToken;
     }
     return obj;
@@ -5543,24 +5660,26 @@ export const GetExecutionsResponse = {
   create<I extends Exact<DeepPartial<GetExecutionsResponse>, I>>(base?: I): GetExecutionsResponse {
     return GetExecutionsResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetExecutionsResponse>, I>>(object: I): GetExecutionsResponse {
+  fromPartial<I extends Exact<DeepPartial<GetExecutionsResponse>, I>>(
+    object: I,
+  ): GetExecutionsResponse {
     const message = createBaseGetExecutionsResponse();
     message.executions = object.executions?.map((e) => Execution.fromPartial(e)) || [];
-    message.nextPageToken = object.nextPageToken ?? "";
+    message.nextPageToken = object.nextPageToken ?? '';
     return message;
   },
 };
 
 function createBaseGetArtifactTypeRequest(): GetArtifactTypeRequest {
-  return { typeName: "", typeVersion: "", transactionOptions: undefined };
+  return { typeName: '', typeVersion: '', transactionOptions: undefined };
 }
 
 export const GetArtifactTypeRequest = {
   encode(message: GetArtifactTypeRequest, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.typeName !== undefined && message.typeName !== "") {
+    if (message.typeName !== undefined && message.typeName !== '') {
       writer.uint32(10).string(message.typeName);
     }
-    if (message.typeVersion !== undefined && message.typeVersion !== "") {
+    if (message.typeVersion !== undefined && message.typeVersion !== '') {
       writer.uint32(18).string(message.typeVersion);
     }
     if (message.transactionOptions !== undefined) {
@@ -5608,8 +5727,8 @@ export const GetArtifactTypeRequest = {
 
   fromJSON(object: any): GetArtifactTypeRequest {
     return {
-      typeName: isSet(object.typeName) ? globalThis.String(object.typeName) : "",
-      typeVersion: isSet(object.typeVersion) ? globalThis.String(object.typeVersion) : "",
+      typeName: isSet(object.typeName) ? globalThis.String(object.typeName) : '',
+      typeVersion: isSet(object.typeVersion) ? globalThis.String(object.typeVersion) : '',
       transactionOptions: isSet(object.transactionOptions)
         ? TransactionOptions.fromJSON(object.transactionOptions)
         : undefined,
@@ -5618,10 +5737,10 @@ export const GetArtifactTypeRequest = {
 
   toJSON(message: GetArtifactTypeRequest): unknown {
     const obj: any = {};
-    if (message.typeName !== undefined && message.typeName !== "") {
+    if (message.typeName !== undefined && message.typeName !== '') {
       obj.typeName = message.typeName;
     }
-    if (message.typeVersion !== undefined && message.typeVersion !== "") {
+    if (message.typeVersion !== undefined && message.typeVersion !== '') {
       obj.typeVersion = message.typeVersion;
     }
     if (message.transactionOptions !== undefined) {
@@ -5630,16 +5749,21 @@ export const GetArtifactTypeRequest = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetArtifactTypeRequest>, I>>(base?: I): GetArtifactTypeRequest {
+  create<I extends Exact<DeepPartial<GetArtifactTypeRequest>, I>>(
+    base?: I,
+  ): GetArtifactTypeRequest {
     return GetArtifactTypeRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetArtifactTypeRequest>, I>>(object: I): GetArtifactTypeRequest {
+  fromPartial<I extends Exact<DeepPartial<GetArtifactTypeRequest>, I>>(
+    object: I,
+  ): GetArtifactTypeRequest {
     const message = createBaseGetArtifactTypeRequest();
-    message.typeName = object.typeName ?? "";
-    message.typeVersion = object.typeVersion ?? "";
-    message.transactionOptions = (object.transactionOptions !== undefined && object.transactionOptions !== null)
-      ? TransactionOptions.fromPartial(object.transactionOptions)
-      : undefined;
+    message.typeName = object.typeName ?? '';
+    message.typeVersion = object.typeVersion ?? '';
+    message.transactionOptions =
+      object.transactionOptions !== undefined && object.transactionOptions !== null
+        ? TransactionOptions.fromPartial(object.transactionOptions)
+        : undefined;
     return message;
   },
 };
@@ -5680,7 +5804,11 @@ export const GetArtifactTypeResponse = {
   },
 
   fromJSON(object: any): GetArtifactTypeResponse {
-    return { artifactType: isSet(object.artifactType) ? ArtifactType.fromJSON(object.artifactType) : undefined };
+    return {
+      artifactType: isSet(object.artifactType)
+        ? ArtifactType.fromJSON(object.artifactType)
+        : undefined,
+    };
   },
 
   toJSON(message: GetArtifactTypeResponse): unknown {
@@ -5691,14 +5819,19 @@ export const GetArtifactTypeResponse = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetArtifactTypeResponse>, I>>(base?: I): GetArtifactTypeResponse {
+  create<I extends Exact<DeepPartial<GetArtifactTypeResponse>, I>>(
+    base?: I,
+  ): GetArtifactTypeResponse {
     return GetArtifactTypeResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetArtifactTypeResponse>, I>>(object: I): GetArtifactTypeResponse {
+  fromPartial<I extends Exact<DeepPartial<GetArtifactTypeResponse>, I>>(
+    object: I,
+  ): GetArtifactTypeResponse {
     const message = createBaseGetArtifactTypeResponse();
-    message.artifactType = (object.artifactType !== undefined && object.artifactType !== null)
-      ? ArtifactType.fromPartial(object.artifactType)
-      : undefined;
+    message.artifactType =
+      object.artifactType !== undefined && object.artifactType !== null
+        ? ArtifactType.fromPartial(object.artifactType)
+        : undefined;
     return message;
   },
 };
@@ -5754,14 +5887,19 @@ export const GetArtifactTypesRequest = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetArtifactTypesRequest>, I>>(base?: I): GetArtifactTypesRequest {
+  create<I extends Exact<DeepPartial<GetArtifactTypesRequest>, I>>(
+    base?: I,
+  ): GetArtifactTypesRequest {
     return GetArtifactTypesRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetArtifactTypesRequest>, I>>(object: I): GetArtifactTypesRequest {
+  fromPartial<I extends Exact<DeepPartial<GetArtifactTypesRequest>, I>>(
+    object: I,
+  ): GetArtifactTypesRequest {
     const message = createBaseGetArtifactTypesRequest();
-    message.transactionOptions = (object.transactionOptions !== undefined && object.transactionOptions !== null)
-      ? TransactionOptions.fromPartial(object.transactionOptions)
-      : undefined;
+    message.transactionOptions =
+      object.transactionOptions !== undefined && object.transactionOptions !== null
+        ? TransactionOptions.fromPartial(object.transactionOptions)
+        : undefined;
     return message;
   },
 };
@@ -5817,10 +5955,14 @@ export const GetArtifactTypesResponse = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetArtifactTypesResponse>, I>>(base?: I): GetArtifactTypesResponse {
+  create<I extends Exact<DeepPartial<GetArtifactTypesResponse>, I>>(
+    base?: I,
+  ): GetArtifactTypesResponse {
     return GetArtifactTypesResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetArtifactTypesResponse>, I>>(object: I): GetArtifactTypesResponse {
+  fromPartial<I extends Exact<DeepPartial<GetArtifactTypesResponse>, I>>(
+    object: I,
+  ): GetArtifactTypesResponse {
     const message = createBaseGetArtifactTypesResponse();
     message.artifactTypes = object.artifactTypes?.map((e) => ArtifactType.fromPartial(e)) || [];
     return message;
@@ -5878,14 +6020,19 @@ export const GetExecutionTypesRequest = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetExecutionTypesRequest>, I>>(base?: I): GetExecutionTypesRequest {
+  create<I extends Exact<DeepPartial<GetExecutionTypesRequest>, I>>(
+    base?: I,
+  ): GetExecutionTypesRequest {
     return GetExecutionTypesRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetExecutionTypesRequest>, I>>(object: I): GetExecutionTypesRequest {
+  fromPartial<I extends Exact<DeepPartial<GetExecutionTypesRequest>, I>>(
+    object: I,
+  ): GetExecutionTypesRequest {
     const message = createBaseGetExecutionTypesRequest();
-    message.transactionOptions = (object.transactionOptions !== undefined && object.transactionOptions !== null)
-      ? TransactionOptions.fromPartial(object.transactionOptions)
-      : undefined;
+    message.transactionOptions =
+      object.transactionOptions !== undefined && object.transactionOptions !== null
+        ? TransactionOptions.fromPartial(object.transactionOptions)
+        : undefined;
     return message;
   },
 };
@@ -5941,10 +6088,14 @@ export const GetExecutionTypesResponse = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetExecutionTypesResponse>, I>>(base?: I): GetExecutionTypesResponse {
+  create<I extends Exact<DeepPartial<GetExecutionTypesResponse>, I>>(
+    base?: I,
+  ): GetExecutionTypesResponse {
     return GetExecutionTypesResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetExecutionTypesResponse>, I>>(object: I): GetExecutionTypesResponse {
+  fromPartial<I extends Exact<DeepPartial<GetExecutionTypesResponse>, I>>(
+    object: I,
+  ): GetExecutionTypesResponse {
     const message = createBaseGetExecutionTypesResponse();
     message.executionTypes = object.executionTypes?.map((e) => ExecutionType.fromPartial(e)) || [];
     return message;
@@ -6002,14 +6153,19 @@ export const GetContextTypesRequest = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetContextTypesRequest>, I>>(base?: I): GetContextTypesRequest {
+  create<I extends Exact<DeepPartial<GetContextTypesRequest>, I>>(
+    base?: I,
+  ): GetContextTypesRequest {
     return GetContextTypesRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetContextTypesRequest>, I>>(object: I): GetContextTypesRequest {
+  fromPartial<I extends Exact<DeepPartial<GetContextTypesRequest>, I>>(
+    object: I,
+  ): GetContextTypesRequest {
     const message = createBaseGetContextTypesRequest();
-    message.transactionOptions = (object.transactionOptions !== undefined && object.transactionOptions !== null)
-      ? TransactionOptions.fromPartial(object.transactionOptions)
-      : undefined;
+    message.transactionOptions =
+      object.transactionOptions !== undefined && object.transactionOptions !== null
+        ? TransactionOptions.fromPartial(object.transactionOptions)
+        : undefined;
     return message;
   },
 };
@@ -6065,10 +6221,14 @@ export const GetContextTypesResponse = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetContextTypesResponse>, I>>(base?: I): GetContextTypesResponse {
+  create<I extends Exact<DeepPartial<GetContextTypesResponse>, I>>(
+    base?: I,
+  ): GetContextTypesResponse {
     return GetContextTypesResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetContextTypesResponse>, I>>(object: I): GetContextTypesResponse {
+  fromPartial<I extends Exact<DeepPartial<GetContextTypesResponse>, I>>(
+    object: I,
+  ): GetContextTypesResponse {
     const message = createBaseGetContextTypesResponse();
     message.contextTypes = object.contextTypes?.map((e) => ContextType.fromPartial(e)) || [];
     return message;
@@ -6080,7 +6240,10 @@ function createBaseGetArtifactsByExternalIdsRequest(): GetArtifactsByExternalIds
 }
 
 export const GetArtifactsByExternalIdsRequest = {
-  encode(message: GetArtifactsByExternalIdsRequest, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    message: GetArtifactsByExternalIdsRequest,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
     for (const v of message.externalIds) {
       writer.uint32(10).string(v!);
     }
@@ -6152,9 +6315,10 @@ export const GetArtifactsByExternalIdsRequest = {
   ): GetArtifactsByExternalIdsRequest {
     const message = createBaseGetArtifactsByExternalIdsRequest();
     message.externalIds = object.externalIds?.map((e) => e) || [];
-    message.transactionOptions = (object.transactionOptions !== undefined && object.transactionOptions !== null)
-      ? TransactionOptions.fromPartial(object.transactionOptions)
-      : undefined;
+    message.transactionOptions =
+      object.transactionOptions !== undefined && object.transactionOptions !== null
+        ? TransactionOptions.fromPartial(object.transactionOptions)
+        : undefined;
     return message;
   },
 };
@@ -6164,7 +6328,10 @@ function createBaseGetArtifactsByExternalIdsResponse(): GetArtifactsByExternalId
 }
 
 export const GetArtifactsByExternalIdsResponse = {
-  encode(message: GetArtifactsByExternalIdsResponse, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    message: GetArtifactsByExternalIdsResponse,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
     for (const v of message.artifacts) {
       Artifact.encode(v!, writer.uint32(10).fork()).ldelim();
     }
@@ -6229,7 +6396,10 @@ function createBaseGetExecutionsByExternalIdsRequest(): GetExecutionsByExternalI
 }
 
 export const GetExecutionsByExternalIdsRequest = {
-  encode(message: GetExecutionsByExternalIdsRequest, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    message: GetExecutionsByExternalIdsRequest,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
     for (const v of message.externalIds) {
       writer.uint32(10).string(v!);
     }
@@ -6301,9 +6471,10 @@ export const GetExecutionsByExternalIdsRequest = {
   ): GetExecutionsByExternalIdsRequest {
     const message = createBaseGetExecutionsByExternalIdsRequest();
     message.externalIds = object.externalIds?.map((e) => e) || [];
-    message.transactionOptions = (object.transactionOptions !== undefined && object.transactionOptions !== null)
-      ? TransactionOptions.fromPartial(object.transactionOptions)
-      : undefined;
+    message.transactionOptions =
+      object.transactionOptions !== undefined && object.transactionOptions !== null
+        ? TransactionOptions.fromPartial(object.transactionOptions)
+        : undefined;
     return message;
   },
 };
@@ -6313,7 +6484,10 @@ function createBaseGetExecutionsByExternalIdsResponse(): GetExecutionsByExternal
 }
 
 export const GetExecutionsByExternalIdsResponse = {
-  encode(message: GetExecutionsByExternalIdsResponse, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    message: GetExecutionsByExternalIdsResponse,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
     for (const v of message.executions) {
       Execution.encode(v!, writer.uint32(10).fork()).ldelim();
     }
@@ -6378,7 +6552,10 @@ function createBaseGetContextsByExternalIdsRequest(): GetContextsByExternalIdsRe
 }
 
 export const GetContextsByExternalIdsRequest = {
-  encode(message: GetContextsByExternalIdsRequest, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    message: GetContextsByExternalIdsRequest,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
     for (const v of message.externalIds) {
       writer.uint32(10).string(v!);
     }
@@ -6440,7 +6617,9 @@ export const GetContextsByExternalIdsRequest = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetContextsByExternalIdsRequest>, I>>(base?: I): GetContextsByExternalIdsRequest {
+  create<I extends Exact<DeepPartial<GetContextsByExternalIdsRequest>, I>>(
+    base?: I,
+  ): GetContextsByExternalIdsRequest {
     return GetContextsByExternalIdsRequest.fromPartial(base ?? ({} as any));
   },
   fromPartial<I extends Exact<DeepPartial<GetContextsByExternalIdsRequest>, I>>(
@@ -6448,9 +6627,10 @@ export const GetContextsByExternalIdsRequest = {
   ): GetContextsByExternalIdsRequest {
     const message = createBaseGetContextsByExternalIdsRequest();
     message.externalIds = object.externalIds?.map((e) => e) || [];
-    message.transactionOptions = (object.transactionOptions !== undefined && object.transactionOptions !== null)
-      ? TransactionOptions.fromPartial(object.transactionOptions)
-      : undefined;
+    message.transactionOptions =
+      object.transactionOptions !== undefined && object.transactionOptions !== null
+        ? TransactionOptions.fromPartial(object.transactionOptions)
+        : undefined;
     return message;
   },
 };
@@ -6460,7 +6640,10 @@ function createBaseGetContextsByExternalIdsResponse(): GetContextsByExternalIdsR
 }
 
 export const GetContextsByExternalIdsResponse = {
-  encode(message: GetContextsByExternalIdsResponse, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    message: GetContextsByExternalIdsResponse,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
     for (const v of message.contexts) {
       Context.encode(v!, writer.uint32(10).fork()).ldelim();
     }
@@ -6492,7 +6675,9 @@ export const GetContextsByExternalIdsResponse = {
 
   fromJSON(object: any): GetContextsByExternalIdsResponse {
     return {
-      contexts: globalThis.Array.isArray(object?.contexts) ? object.contexts.map((e: any) => Context.fromJSON(e)) : [],
+      contexts: globalThis.Array.isArray(object?.contexts)
+        ? object.contexts.map((e: any) => Context.fromJSON(e))
+        : [],
     };
   },
 
@@ -6523,7 +6708,10 @@ function createBaseGetArtifactTypesByExternalIdsRequest(): GetArtifactTypesByExt
 }
 
 export const GetArtifactTypesByExternalIdsRequest = {
-  encode(message: GetArtifactTypesByExternalIdsRequest, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    message: GetArtifactTypesByExternalIdsRequest,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
     for (const v of message.externalIds) {
       writer.uint32(10).string(v!);
     }
@@ -6595,9 +6783,10 @@ export const GetArtifactTypesByExternalIdsRequest = {
   ): GetArtifactTypesByExternalIdsRequest {
     const message = createBaseGetArtifactTypesByExternalIdsRequest();
     message.externalIds = object.externalIds?.map((e) => e) || [];
-    message.transactionOptions = (object.transactionOptions !== undefined && object.transactionOptions !== null)
-      ? TransactionOptions.fromPartial(object.transactionOptions)
-      : undefined;
+    message.transactionOptions =
+      object.transactionOptions !== undefined && object.transactionOptions !== null
+        ? TransactionOptions.fromPartial(object.transactionOptions)
+        : undefined;
     return message;
   },
 };
@@ -6607,7 +6796,10 @@ function createBaseGetArtifactTypesByExternalIdsResponse(): GetArtifactTypesByEx
 }
 
 export const GetArtifactTypesByExternalIdsResponse = {
-  encode(message: GetArtifactTypesByExternalIdsResponse, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    message: GetArtifactTypesByExternalIdsResponse,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
     for (const v of message.artifactTypes) {
       ArtifactType.encode(v!, writer.uint32(10).fork()).ldelim();
     }
@@ -6672,7 +6864,10 @@ function createBaseGetExecutionTypesByExternalIdsRequest(): GetExecutionTypesByE
 }
 
 export const GetExecutionTypesByExternalIdsRequest = {
-  encode(message: GetExecutionTypesByExternalIdsRequest, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    message: GetExecutionTypesByExternalIdsRequest,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
     for (const v of message.externalIds) {
       writer.uint32(10).string(v!);
     }
@@ -6744,9 +6939,10 @@ export const GetExecutionTypesByExternalIdsRequest = {
   ): GetExecutionTypesByExternalIdsRequest {
     const message = createBaseGetExecutionTypesByExternalIdsRequest();
     message.externalIds = object.externalIds?.map((e) => e) || [];
-    message.transactionOptions = (object.transactionOptions !== undefined && object.transactionOptions !== null)
-      ? TransactionOptions.fromPartial(object.transactionOptions)
-      : undefined;
+    message.transactionOptions =
+      object.transactionOptions !== undefined && object.transactionOptions !== null
+        ? TransactionOptions.fromPartial(object.transactionOptions)
+        : undefined;
     return message;
   },
 };
@@ -6756,7 +6952,10 @@ function createBaseGetExecutionTypesByExternalIdsResponse(): GetExecutionTypesBy
 }
 
 export const GetExecutionTypesByExternalIdsResponse = {
-  encode(message: GetExecutionTypesByExternalIdsResponse, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    message: GetExecutionTypesByExternalIdsResponse,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
     for (const v of message.executionTypes) {
       ExecutionType.encode(v!, writer.uint32(10).fork()).ldelim();
     }
@@ -6821,7 +7020,10 @@ function createBaseGetContextTypesByExternalIdsRequest(): GetContextTypesByExter
 }
 
 export const GetContextTypesByExternalIdsRequest = {
-  encode(message: GetContextTypesByExternalIdsRequest, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    message: GetContextTypesByExternalIdsRequest,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
     for (const v of message.externalIds) {
       writer.uint32(10).string(v!);
     }
@@ -6893,9 +7095,10 @@ export const GetContextTypesByExternalIdsRequest = {
   ): GetContextTypesByExternalIdsRequest {
     const message = createBaseGetContextTypesByExternalIdsRequest();
     message.externalIds = object.externalIds?.map((e) => e) || [];
-    message.transactionOptions = (object.transactionOptions !== undefined && object.transactionOptions !== null)
-      ? TransactionOptions.fromPartial(object.transactionOptions)
-      : undefined;
+    message.transactionOptions =
+      object.transactionOptions !== undefined && object.transactionOptions !== null
+        ? TransactionOptions.fromPartial(object.transactionOptions)
+        : undefined;
     return message;
   },
 };
@@ -6905,7 +7108,10 @@ function createBaseGetContextTypesByExternalIdsResponse(): GetContextTypesByExte
 }
 
 export const GetContextTypesByExternalIdsResponse = {
-  encode(message: GetContextTypesByExternalIdsResponse, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    message: GetContextTypesByExternalIdsResponse,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
     for (const v of message.contextTypes) {
       ContextType.encode(v!, writer.uint32(10).fork()).ldelim();
     }
@@ -6966,15 +7172,18 @@ export const GetContextTypesByExternalIdsResponse = {
 };
 
 function createBaseGetExecutionsByTypeRequest(): GetExecutionsByTypeRequest {
-  return { typeName: "", typeVersion: "", options: undefined, transactionOptions: undefined };
+  return { typeName: '', typeVersion: '', options: undefined, transactionOptions: undefined };
 }
 
 export const GetExecutionsByTypeRequest = {
-  encode(message: GetExecutionsByTypeRequest, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.typeName !== undefined && message.typeName !== "") {
+  encode(
+    message: GetExecutionsByTypeRequest,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
+    if (message.typeName !== undefined && message.typeName !== '') {
       writer.uint32(10).string(message.typeName);
     }
-    if (message.typeVersion !== undefined && message.typeVersion !== "") {
+    if (message.typeVersion !== undefined && message.typeVersion !== '') {
       writer.uint32(18).string(message.typeVersion);
     }
     if (message.options !== undefined) {
@@ -7032,8 +7241,8 @@ export const GetExecutionsByTypeRequest = {
 
   fromJSON(object: any): GetExecutionsByTypeRequest {
     return {
-      typeName: isSet(object.typeName) ? globalThis.String(object.typeName) : "",
-      typeVersion: isSet(object.typeVersion) ? globalThis.String(object.typeVersion) : "",
+      typeName: isSet(object.typeName) ? globalThis.String(object.typeName) : '',
+      typeVersion: isSet(object.typeVersion) ? globalThis.String(object.typeVersion) : '',
       options: isSet(object.options) ? ListOperationOptions.fromJSON(object.options) : undefined,
       transactionOptions: isSet(object.transactionOptions)
         ? TransactionOptions.fromJSON(object.transactionOptions)
@@ -7043,10 +7252,10 @@ export const GetExecutionsByTypeRequest = {
 
   toJSON(message: GetExecutionsByTypeRequest): unknown {
     const obj: any = {};
-    if (message.typeName !== undefined && message.typeName !== "") {
+    if (message.typeName !== undefined && message.typeName !== '') {
       obj.typeName = message.typeName;
     }
-    if (message.typeVersion !== undefined && message.typeVersion !== "") {
+    if (message.typeVersion !== undefined && message.typeVersion !== '') {
       obj.typeVersion = message.typeVersion;
     }
     if (message.options !== undefined) {
@@ -7058,33 +7267,42 @@ export const GetExecutionsByTypeRequest = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetExecutionsByTypeRequest>, I>>(base?: I): GetExecutionsByTypeRequest {
+  create<I extends Exact<DeepPartial<GetExecutionsByTypeRequest>, I>>(
+    base?: I,
+  ): GetExecutionsByTypeRequest {
     return GetExecutionsByTypeRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetExecutionsByTypeRequest>, I>>(object: I): GetExecutionsByTypeRequest {
+  fromPartial<I extends Exact<DeepPartial<GetExecutionsByTypeRequest>, I>>(
+    object: I,
+  ): GetExecutionsByTypeRequest {
     const message = createBaseGetExecutionsByTypeRequest();
-    message.typeName = object.typeName ?? "";
-    message.typeVersion = object.typeVersion ?? "";
-    message.options = (object.options !== undefined && object.options !== null)
-      ? ListOperationOptions.fromPartial(object.options)
-      : undefined;
-    message.transactionOptions = (object.transactionOptions !== undefined && object.transactionOptions !== null)
-      ? TransactionOptions.fromPartial(object.transactionOptions)
-      : undefined;
+    message.typeName = object.typeName ?? '';
+    message.typeVersion = object.typeVersion ?? '';
+    message.options =
+      object.options !== undefined && object.options !== null
+        ? ListOperationOptions.fromPartial(object.options)
+        : undefined;
+    message.transactionOptions =
+      object.transactionOptions !== undefined && object.transactionOptions !== null
+        ? TransactionOptions.fromPartial(object.transactionOptions)
+        : undefined;
     return message;
   },
 };
 
 function createBaseGetExecutionsByTypeResponse(): GetExecutionsByTypeResponse {
-  return { executions: [], nextPageToken: "" };
+  return { executions: [], nextPageToken: '' };
 }
 
 export const GetExecutionsByTypeResponse = {
-  encode(message: GetExecutionsByTypeResponse, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    message: GetExecutionsByTypeResponse,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
     for (const v of message.executions) {
       Execution.encode(v!, writer.uint32(10).fork()).ldelim();
     }
-    if (message.nextPageToken !== undefined && message.nextPageToken !== "") {
+    if (message.nextPageToken !== undefined && message.nextPageToken !== '') {
       writer.uint32(18).string(message.nextPageToken);
     }
     return writer;
@@ -7125,7 +7343,7 @@ export const GetExecutionsByTypeResponse = {
       executions: globalThis.Array.isArray(object?.executions)
         ? object.executions.map((e: any) => Execution.fromJSON(e))
         : [],
-      nextPageToken: isSet(object.nextPageToken) ? globalThis.String(object.nextPageToken) : "",
+      nextPageToken: isSet(object.nextPageToken) ? globalThis.String(object.nextPageToken) : '',
     };
   },
 
@@ -7134,36 +7352,43 @@ export const GetExecutionsByTypeResponse = {
     if (message.executions?.length) {
       obj.executions = message.executions.map((e) => Execution.toJSON(e));
     }
-    if (message.nextPageToken !== undefined && message.nextPageToken !== "") {
+    if (message.nextPageToken !== undefined && message.nextPageToken !== '') {
       obj.nextPageToken = message.nextPageToken;
     }
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetExecutionsByTypeResponse>, I>>(base?: I): GetExecutionsByTypeResponse {
+  create<I extends Exact<DeepPartial<GetExecutionsByTypeResponse>, I>>(
+    base?: I,
+  ): GetExecutionsByTypeResponse {
     return GetExecutionsByTypeResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetExecutionsByTypeResponse>, I>>(object: I): GetExecutionsByTypeResponse {
+  fromPartial<I extends Exact<DeepPartial<GetExecutionsByTypeResponse>, I>>(
+    object: I,
+  ): GetExecutionsByTypeResponse {
     const message = createBaseGetExecutionsByTypeResponse();
     message.executions = object.executions?.map((e) => Execution.fromPartial(e)) || [];
-    message.nextPageToken = object.nextPageToken ?? "";
+    message.nextPageToken = object.nextPageToken ?? '';
     return message;
   },
 };
 
 function createBaseGetExecutionByTypeAndNameRequest(): GetExecutionByTypeAndNameRequest {
-  return { typeName: "", typeVersion: "", executionName: "", transactionOptions: undefined };
+  return { typeName: '', typeVersion: '', executionName: '', transactionOptions: undefined };
 }
 
 export const GetExecutionByTypeAndNameRequest = {
-  encode(message: GetExecutionByTypeAndNameRequest, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.typeName !== undefined && message.typeName !== "") {
+  encode(
+    message: GetExecutionByTypeAndNameRequest,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
+    if (message.typeName !== undefined && message.typeName !== '') {
       writer.uint32(10).string(message.typeName);
     }
-    if (message.typeVersion !== undefined && message.typeVersion !== "") {
+    if (message.typeVersion !== undefined && message.typeVersion !== '') {
       writer.uint32(26).string(message.typeVersion);
     }
-    if (message.executionName !== undefined && message.executionName !== "") {
+    if (message.executionName !== undefined && message.executionName !== '') {
       writer.uint32(18).string(message.executionName);
     }
     if (message.transactionOptions !== undefined) {
@@ -7218,9 +7443,9 @@ export const GetExecutionByTypeAndNameRequest = {
 
   fromJSON(object: any): GetExecutionByTypeAndNameRequest {
     return {
-      typeName: isSet(object.typeName) ? globalThis.String(object.typeName) : "",
-      typeVersion: isSet(object.typeVersion) ? globalThis.String(object.typeVersion) : "",
-      executionName: isSet(object.executionName) ? globalThis.String(object.executionName) : "",
+      typeName: isSet(object.typeName) ? globalThis.String(object.typeName) : '',
+      typeVersion: isSet(object.typeVersion) ? globalThis.String(object.typeVersion) : '',
+      executionName: isSet(object.executionName) ? globalThis.String(object.executionName) : '',
       transactionOptions: isSet(object.transactionOptions)
         ? TransactionOptions.fromJSON(object.transactionOptions)
         : undefined,
@@ -7229,13 +7454,13 @@ export const GetExecutionByTypeAndNameRequest = {
 
   toJSON(message: GetExecutionByTypeAndNameRequest): unknown {
     const obj: any = {};
-    if (message.typeName !== undefined && message.typeName !== "") {
+    if (message.typeName !== undefined && message.typeName !== '') {
       obj.typeName = message.typeName;
     }
-    if (message.typeVersion !== undefined && message.typeVersion !== "") {
+    if (message.typeVersion !== undefined && message.typeVersion !== '') {
       obj.typeVersion = message.typeVersion;
     }
-    if (message.executionName !== undefined && message.executionName !== "") {
+    if (message.executionName !== undefined && message.executionName !== '') {
       obj.executionName = message.executionName;
     }
     if (message.transactionOptions !== undefined) {
@@ -7253,12 +7478,13 @@ export const GetExecutionByTypeAndNameRequest = {
     object: I,
   ): GetExecutionByTypeAndNameRequest {
     const message = createBaseGetExecutionByTypeAndNameRequest();
-    message.typeName = object.typeName ?? "";
-    message.typeVersion = object.typeVersion ?? "";
-    message.executionName = object.executionName ?? "";
-    message.transactionOptions = (object.transactionOptions !== undefined && object.transactionOptions !== null)
-      ? TransactionOptions.fromPartial(object.transactionOptions)
-      : undefined;
+    message.typeName = object.typeName ?? '';
+    message.typeVersion = object.typeVersion ?? '';
+    message.executionName = object.executionName ?? '';
+    message.transactionOptions =
+      object.transactionOptions !== undefined && object.transactionOptions !== null
+        ? TransactionOptions.fromPartial(object.transactionOptions)
+        : undefined;
     return message;
   },
 };
@@ -7268,7 +7494,10 @@ function createBaseGetExecutionByTypeAndNameResponse(): GetExecutionByTypeAndNam
 }
 
 export const GetExecutionByTypeAndNameResponse = {
-  encode(message: GetExecutionByTypeAndNameResponse, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    message: GetExecutionByTypeAndNameResponse,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
     if (message.execution !== undefined) {
       Execution.encode(message.execution, writer.uint32(10).fork()).ldelim();
     }
@@ -7299,7 +7528,9 @@ export const GetExecutionByTypeAndNameResponse = {
   },
 
   fromJSON(object: any): GetExecutionByTypeAndNameResponse {
-    return { execution: isSet(object.execution) ? Execution.fromJSON(object.execution) : undefined };
+    return {
+      execution: isSet(object.execution) ? Execution.fromJSON(object.execution) : undefined,
+    };
   },
 
   toJSON(message: GetExecutionByTypeAndNameResponse): unknown {
@@ -7319,9 +7550,10 @@ export const GetExecutionByTypeAndNameResponse = {
     object: I,
   ): GetExecutionByTypeAndNameResponse {
     const message = createBaseGetExecutionByTypeAndNameResponse();
-    message.execution = (object.execution !== undefined && object.execution !== null)
-      ? Execution.fromPartial(object.execution)
-      : undefined;
+    message.execution =
+      object.execution !== undefined && object.execution !== null
+        ? Execution.fromPartial(object.execution)
+        : undefined;
     return message;
   },
 };
@@ -7405,15 +7637,20 @@ export const GetExecutionsByIDRequest = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetExecutionsByIDRequest>, I>>(base?: I): GetExecutionsByIDRequest {
+  create<I extends Exact<DeepPartial<GetExecutionsByIDRequest>, I>>(
+    base?: I,
+  ): GetExecutionsByIDRequest {
     return GetExecutionsByIDRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetExecutionsByIDRequest>, I>>(object: I): GetExecutionsByIDRequest {
+  fromPartial<I extends Exact<DeepPartial<GetExecutionsByIDRequest>, I>>(
+    object: I,
+  ): GetExecutionsByIDRequest {
     const message = createBaseGetExecutionsByIDRequest();
     message.executionIds = object.executionIds?.map((e) => e) || [];
-    message.transactionOptions = (object.transactionOptions !== undefined && object.transactionOptions !== null)
-      ? TransactionOptions.fromPartial(object.transactionOptions)
-      : undefined;
+    message.transactionOptions =
+      object.transactionOptions !== undefined && object.transactionOptions !== null
+        ? TransactionOptions.fromPartial(object.transactionOptions)
+        : undefined;
     return message;
   },
 };
@@ -7469,10 +7706,14 @@ export const GetExecutionsByIDResponse = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetExecutionsByIDResponse>, I>>(base?: I): GetExecutionsByIDResponse {
+  create<I extends Exact<DeepPartial<GetExecutionsByIDResponse>, I>>(
+    base?: I,
+  ): GetExecutionsByIDResponse {
     return GetExecutionsByIDResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetExecutionsByIDResponse>, I>>(object: I): GetExecutionsByIDResponse {
+  fromPartial<I extends Exact<DeepPartial<GetExecutionsByIDResponse>, I>>(
+    object: I,
+  ): GetExecutionsByIDResponse {
     const message = createBaseGetExecutionsByIDResponse();
     message.executions = object.executions?.map((e) => Execution.fromPartial(e)) || [];
     return message;
@@ -7480,15 +7721,15 @@ export const GetExecutionsByIDResponse = {
 };
 
 function createBaseGetExecutionTypeRequest(): GetExecutionTypeRequest {
-  return { typeName: "", typeVersion: "", transactionOptions: undefined };
+  return { typeName: '', typeVersion: '', transactionOptions: undefined };
 }
 
 export const GetExecutionTypeRequest = {
   encode(message: GetExecutionTypeRequest, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.typeName !== undefined && message.typeName !== "") {
+    if (message.typeName !== undefined && message.typeName !== '') {
       writer.uint32(10).string(message.typeName);
     }
-    if (message.typeVersion !== undefined && message.typeVersion !== "") {
+    if (message.typeVersion !== undefined && message.typeVersion !== '') {
       writer.uint32(18).string(message.typeVersion);
     }
     if (message.transactionOptions !== undefined) {
@@ -7536,8 +7777,8 @@ export const GetExecutionTypeRequest = {
 
   fromJSON(object: any): GetExecutionTypeRequest {
     return {
-      typeName: isSet(object.typeName) ? globalThis.String(object.typeName) : "",
-      typeVersion: isSet(object.typeVersion) ? globalThis.String(object.typeVersion) : "",
+      typeName: isSet(object.typeName) ? globalThis.String(object.typeName) : '',
+      typeVersion: isSet(object.typeVersion) ? globalThis.String(object.typeVersion) : '',
       transactionOptions: isSet(object.transactionOptions)
         ? TransactionOptions.fromJSON(object.transactionOptions)
         : undefined,
@@ -7546,10 +7787,10 @@ export const GetExecutionTypeRequest = {
 
   toJSON(message: GetExecutionTypeRequest): unknown {
     const obj: any = {};
-    if (message.typeName !== undefined && message.typeName !== "") {
+    if (message.typeName !== undefined && message.typeName !== '') {
       obj.typeName = message.typeName;
     }
-    if (message.typeVersion !== undefined && message.typeVersion !== "") {
+    if (message.typeVersion !== undefined && message.typeVersion !== '') {
       obj.typeVersion = message.typeVersion;
     }
     if (message.transactionOptions !== undefined) {
@@ -7558,16 +7799,21 @@ export const GetExecutionTypeRequest = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetExecutionTypeRequest>, I>>(base?: I): GetExecutionTypeRequest {
+  create<I extends Exact<DeepPartial<GetExecutionTypeRequest>, I>>(
+    base?: I,
+  ): GetExecutionTypeRequest {
     return GetExecutionTypeRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetExecutionTypeRequest>, I>>(object: I): GetExecutionTypeRequest {
+  fromPartial<I extends Exact<DeepPartial<GetExecutionTypeRequest>, I>>(
+    object: I,
+  ): GetExecutionTypeRequest {
     const message = createBaseGetExecutionTypeRequest();
-    message.typeName = object.typeName ?? "";
-    message.typeVersion = object.typeVersion ?? "";
-    message.transactionOptions = (object.transactionOptions !== undefined && object.transactionOptions !== null)
-      ? TransactionOptions.fromPartial(object.transactionOptions)
-      : undefined;
+    message.typeName = object.typeName ?? '';
+    message.typeVersion = object.typeVersion ?? '';
+    message.transactionOptions =
+      object.transactionOptions !== undefined && object.transactionOptions !== null
+        ? TransactionOptions.fromPartial(object.transactionOptions)
+        : undefined;
     return message;
   },
 };
@@ -7608,7 +7854,11 @@ export const GetExecutionTypeResponse = {
   },
 
   fromJSON(object: any): GetExecutionTypeResponse {
-    return { executionType: isSet(object.executionType) ? ExecutionType.fromJSON(object.executionType) : undefined };
+    return {
+      executionType: isSet(object.executionType)
+        ? ExecutionType.fromJSON(object.executionType)
+        : undefined,
+    };
   },
 
   toJSON(message: GetExecutionTypeResponse): unknown {
@@ -7619,14 +7869,19 @@ export const GetExecutionTypeResponse = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetExecutionTypeResponse>, I>>(base?: I): GetExecutionTypeResponse {
+  create<I extends Exact<DeepPartial<GetExecutionTypeResponse>, I>>(
+    base?: I,
+  ): GetExecutionTypeResponse {
     return GetExecutionTypeResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetExecutionTypeResponse>, I>>(object: I): GetExecutionTypeResponse {
+  fromPartial<I extends Exact<DeepPartial<GetExecutionTypeResponse>, I>>(
+    object: I,
+  ): GetExecutionTypeResponse {
     const message = createBaseGetExecutionTypeResponse();
-    message.executionType = (object.executionType !== undefined && object.executionType !== null)
-      ? ExecutionType.fromPartial(object.executionType)
-      : undefined;
+    message.executionType =
+      object.executionType !== undefined && object.executionType !== null
+        ? ExecutionType.fromPartial(object.executionType)
+        : undefined;
     return message;
   },
 };
@@ -7636,7 +7891,10 @@ function createBaseGetEventsByExecutionIDsRequest(): GetEventsByExecutionIDsRequ
 }
 
 export const GetEventsByExecutionIDsRequest = {
-  encode(message: GetEventsByExecutionIDsRequest, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    message: GetEventsByExecutionIDsRequest,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
     writer.uint32(10).fork();
     for (const v of message.executionIds) {
       writer.int64(v);
@@ -7710,7 +7968,9 @@ export const GetEventsByExecutionIDsRequest = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetEventsByExecutionIDsRequest>, I>>(base?: I): GetEventsByExecutionIDsRequest {
+  create<I extends Exact<DeepPartial<GetEventsByExecutionIDsRequest>, I>>(
+    base?: I,
+  ): GetEventsByExecutionIDsRequest {
     return GetEventsByExecutionIDsRequest.fromPartial(base ?? ({} as any));
   },
   fromPartial<I extends Exact<DeepPartial<GetEventsByExecutionIDsRequest>, I>>(
@@ -7718,9 +7978,10 @@ export const GetEventsByExecutionIDsRequest = {
   ): GetEventsByExecutionIDsRequest {
     const message = createBaseGetEventsByExecutionIDsRequest();
     message.executionIds = object.executionIds?.map((e) => e) || [];
-    message.transactionOptions = (object.transactionOptions !== undefined && object.transactionOptions !== null)
-      ? TransactionOptions.fromPartial(object.transactionOptions)
-      : undefined;
+    message.transactionOptions =
+      object.transactionOptions !== undefined && object.transactionOptions !== null
+        ? TransactionOptions.fromPartial(object.transactionOptions)
+        : undefined;
     return message;
   },
 };
@@ -7730,7 +7991,10 @@ function createBaseGetEventsByExecutionIDsResponse(): GetEventsByExecutionIDsRes
 }
 
 export const GetEventsByExecutionIDsResponse = {
-  encode(message: GetEventsByExecutionIDsResponse, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    message: GetEventsByExecutionIDsResponse,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
     for (const v of message.events) {
       Event.encode(v!, writer.uint32(10).fork()).ldelim();
     }
@@ -7761,7 +8025,11 @@ export const GetEventsByExecutionIDsResponse = {
   },
 
   fromJSON(object: any): GetEventsByExecutionIDsResponse {
-    return { events: globalThis.Array.isArray(object?.events) ? object.events.map((e: any) => Event.fromJSON(e)) : [] };
+    return {
+      events: globalThis.Array.isArray(object?.events)
+        ? object.events.map((e: any) => Event.fromJSON(e))
+        : [],
+    };
   },
 
   toJSON(message: GetEventsByExecutionIDsResponse): unknown {
@@ -7772,7 +8040,9 @@ export const GetEventsByExecutionIDsResponse = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetEventsByExecutionIDsResponse>, I>>(base?: I): GetEventsByExecutionIDsResponse {
+  create<I extends Exact<DeepPartial<GetEventsByExecutionIDsResponse>, I>>(
+    base?: I,
+  ): GetEventsByExecutionIDsResponse {
     return GetEventsByExecutionIDsResponse.fromPartial(base ?? ({} as any));
   },
   fromPartial<I extends Exact<DeepPartial<GetEventsByExecutionIDsResponse>, I>>(
@@ -7789,7 +8059,10 @@ function createBaseGetEventsByArtifactIDsRequest(): GetEventsByArtifactIDsReques
 }
 
 export const GetEventsByArtifactIDsRequest = {
-  encode(message: GetEventsByArtifactIDsRequest, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    message: GetEventsByArtifactIDsRequest,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
     writer.uint32(10).fork();
     for (const v of message.artifactIds) {
       writer.int64(v);
@@ -7863,7 +8136,9 @@ export const GetEventsByArtifactIDsRequest = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetEventsByArtifactIDsRequest>, I>>(base?: I): GetEventsByArtifactIDsRequest {
+  create<I extends Exact<DeepPartial<GetEventsByArtifactIDsRequest>, I>>(
+    base?: I,
+  ): GetEventsByArtifactIDsRequest {
     return GetEventsByArtifactIDsRequest.fromPartial(base ?? ({} as any));
   },
   fromPartial<I extends Exact<DeepPartial<GetEventsByArtifactIDsRequest>, I>>(
@@ -7871,9 +8146,10 @@ export const GetEventsByArtifactIDsRequest = {
   ): GetEventsByArtifactIDsRequest {
     const message = createBaseGetEventsByArtifactIDsRequest();
     message.artifactIds = object.artifactIds?.map((e) => e) || [];
-    message.transactionOptions = (object.transactionOptions !== undefined && object.transactionOptions !== null)
-      ? TransactionOptions.fromPartial(object.transactionOptions)
-      : undefined;
+    message.transactionOptions =
+      object.transactionOptions !== undefined && object.transactionOptions !== null
+        ? TransactionOptions.fromPartial(object.transactionOptions)
+        : undefined;
     return message;
   },
 };
@@ -7883,7 +8159,10 @@ function createBaseGetEventsByArtifactIDsResponse(): GetEventsByArtifactIDsRespo
 }
 
 export const GetEventsByArtifactIDsResponse = {
-  encode(message: GetEventsByArtifactIDsResponse, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    message: GetEventsByArtifactIDsResponse,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
     for (const v of message.events) {
       Event.encode(v!, writer.uint32(10).fork()).ldelim();
     }
@@ -7914,7 +8193,11 @@ export const GetEventsByArtifactIDsResponse = {
   },
 
   fromJSON(object: any): GetEventsByArtifactIDsResponse {
-    return { events: globalThis.Array.isArray(object?.events) ? object.events.map((e: any) => Event.fromJSON(e)) : [] };
+    return {
+      events: globalThis.Array.isArray(object?.events)
+        ? object.events.map((e: any) => Event.fromJSON(e))
+        : [],
+    };
   },
 
   toJSON(message: GetEventsByArtifactIDsResponse): unknown {
@@ -7925,7 +8208,9 @@ export const GetEventsByArtifactIDsResponse = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetEventsByArtifactIDsResponse>, I>>(base?: I): GetEventsByArtifactIDsResponse {
+  create<I extends Exact<DeepPartial<GetEventsByArtifactIDsResponse>, I>>(
+    base?: I,
+  ): GetEventsByArtifactIDsResponse {
     return GetEventsByArtifactIDsResponse.fromPartial(base ?? ({} as any));
   },
   fromPartial<I extends Exact<DeepPartial<GetEventsByArtifactIDsResponse>, I>>(
@@ -7942,7 +8227,10 @@ function createBaseGetArtifactTypesByIDRequest(): GetArtifactTypesByIDRequest {
 }
 
 export const GetArtifactTypesByIDRequest = {
-  encode(message: GetArtifactTypesByIDRequest, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    message: GetArtifactTypesByIDRequest,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
     writer.uint32(10).fork();
     for (const v of message.typeIds) {
       writer.int64(v);
@@ -7996,7 +8284,9 @@ export const GetArtifactTypesByIDRequest = {
 
   fromJSON(object: any): GetArtifactTypesByIDRequest {
     return {
-      typeIds: globalThis.Array.isArray(object?.typeIds) ? object.typeIds.map((e: any) => globalThis.Number(e)) : [],
+      typeIds: globalThis.Array.isArray(object?.typeIds)
+        ? object.typeIds.map((e: any) => globalThis.Number(e))
+        : [],
       transactionOptions: isSet(object.transactionOptions)
         ? TransactionOptions.fromJSON(object.transactionOptions)
         : undefined,
@@ -8014,15 +8304,20 @@ export const GetArtifactTypesByIDRequest = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetArtifactTypesByIDRequest>, I>>(base?: I): GetArtifactTypesByIDRequest {
+  create<I extends Exact<DeepPartial<GetArtifactTypesByIDRequest>, I>>(
+    base?: I,
+  ): GetArtifactTypesByIDRequest {
     return GetArtifactTypesByIDRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetArtifactTypesByIDRequest>, I>>(object: I): GetArtifactTypesByIDRequest {
+  fromPartial<I extends Exact<DeepPartial<GetArtifactTypesByIDRequest>, I>>(
+    object: I,
+  ): GetArtifactTypesByIDRequest {
     const message = createBaseGetArtifactTypesByIDRequest();
     message.typeIds = object.typeIds?.map((e) => e) || [];
-    message.transactionOptions = (object.transactionOptions !== undefined && object.transactionOptions !== null)
-      ? TransactionOptions.fromPartial(object.transactionOptions)
-      : undefined;
+    message.transactionOptions =
+      object.transactionOptions !== undefined && object.transactionOptions !== null
+        ? TransactionOptions.fromPartial(object.transactionOptions)
+        : undefined;
     return message;
   },
 };
@@ -8032,7 +8327,10 @@ function createBaseGetArtifactTypesByIDResponse(): GetArtifactTypesByIDResponse 
 }
 
 export const GetArtifactTypesByIDResponse = {
-  encode(message: GetArtifactTypesByIDResponse, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    message: GetArtifactTypesByIDResponse,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
     for (const v of message.artifactTypes) {
       ArtifactType.encode(v!, writer.uint32(10).fork()).ldelim();
     }
@@ -8078,10 +8376,14 @@ export const GetArtifactTypesByIDResponse = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetArtifactTypesByIDResponse>, I>>(base?: I): GetArtifactTypesByIDResponse {
+  create<I extends Exact<DeepPartial<GetArtifactTypesByIDResponse>, I>>(
+    base?: I,
+  ): GetArtifactTypesByIDResponse {
     return GetArtifactTypesByIDResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetArtifactTypesByIDResponse>, I>>(object: I): GetArtifactTypesByIDResponse {
+  fromPartial<I extends Exact<DeepPartial<GetArtifactTypesByIDResponse>, I>>(
+    object: I,
+  ): GetArtifactTypesByIDResponse {
     const message = createBaseGetArtifactTypesByIDResponse();
     message.artifactTypes = object.artifactTypes?.map((e) => ArtifactType.fromPartial(e)) || [];
     return message;
@@ -8093,7 +8395,10 @@ function createBaseGetExecutionTypesByIDRequest(): GetExecutionTypesByIDRequest 
 }
 
 export const GetExecutionTypesByIDRequest = {
-  encode(message: GetExecutionTypesByIDRequest, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    message: GetExecutionTypesByIDRequest,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
     writer.uint32(10).fork();
     for (const v of message.typeIds) {
       writer.int64(v);
@@ -8147,7 +8452,9 @@ export const GetExecutionTypesByIDRequest = {
 
   fromJSON(object: any): GetExecutionTypesByIDRequest {
     return {
-      typeIds: globalThis.Array.isArray(object?.typeIds) ? object.typeIds.map((e: any) => globalThis.Number(e)) : [],
+      typeIds: globalThis.Array.isArray(object?.typeIds)
+        ? object.typeIds.map((e: any) => globalThis.Number(e))
+        : [],
       transactionOptions: isSet(object.transactionOptions)
         ? TransactionOptions.fromJSON(object.transactionOptions)
         : undefined,
@@ -8165,15 +8472,20 @@ export const GetExecutionTypesByIDRequest = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetExecutionTypesByIDRequest>, I>>(base?: I): GetExecutionTypesByIDRequest {
+  create<I extends Exact<DeepPartial<GetExecutionTypesByIDRequest>, I>>(
+    base?: I,
+  ): GetExecutionTypesByIDRequest {
     return GetExecutionTypesByIDRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetExecutionTypesByIDRequest>, I>>(object: I): GetExecutionTypesByIDRequest {
+  fromPartial<I extends Exact<DeepPartial<GetExecutionTypesByIDRequest>, I>>(
+    object: I,
+  ): GetExecutionTypesByIDRequest {
     const message = createBaseGetExecutionTypesByIDRequest();
     message.typeIds = object.typeIds?.map((e) => e) || [];
-    message.transactionOptions = (object.transactionOptions !== undefined && object.transactionOptions !== null)
-      ? TransactionOptions.fromPartial(object.transactionOptions)
-      : undefined;
+    message.transactionOptions =
+      object.transactionOptions !== undefined && object.transactionOptions !== null
+        ? TransactionOptions.fromPartial(object.transactionOptions)
+        : undefined;
     return message;
   },
 };
@@ -8183,7 +8495,10 @@ function createBaseGetExecutionTypesByIDResponse(): GetExecutionTypesByIDRespons
 }
 
 export const GetExecutionTypesByIDResponse = {
-  encode(message: GetExecutionTypesByIDResponse, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    message: GetExecutionTypesByIDResponse,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
     for (const v of message.executionTypes) {
       ExecutionType.encode(v!, writer.uint32(10).fork()).ldelim();
     }
@@ -8229,7 +8544,9 @@ export const GetExecutionTypesByIDResponse = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetExecutionTypesByIDResponse>, I>>(base?: I): GetExecutionTypesByIDResponse {
+  create<I extends Exact<DeepPartial<GetExecutionTypesByIDResponse>, I>>(
+    base?: I,
+  ): GetExecutionTypesByIDResponse {
     return GetExecutionTypesByIDResponse.fromPartial(base ?? ({} as any));
   },
   fromPartial<I extends Exact<DeepPartial<GetExecutionTypesByIDResponse>, I>>(
@@ -8242,15 +8559,15 @@ export const GetExecutionTypesByIDResponse = {
 };
 
 function createBaseGetContextTypeRequest(): GetContextTypeRequest {
-  return { typeName: "", typeVersion: "", transactionOptions: undefined };
+  return { typeName: '', typeVersion: '', transactionOptions: undefined };
 }
 
 export const GetContextTypeRequest = {
   encode(message: GetContextTypeRequest, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.typeName !== undefined && message.typeName !== "") {
+    if (message.typeName !== undefined && message.typeName !== '') {
       writer.uint32(10).string(message.typeName);
     }
-    if (message.typeVersion !== undefined && message.typeVersion !== "") {
+    if (message.typeVersion !== undefined && message.typeVersion !== '') {
       writer.uint32(18).string(message.typeVersion);
     }
     if (message.transactionOptions !== undefined) {
@@ -8298,8 +8615,8 @@ export const GetContextTypeRequest = {
 
   fromJSON(object: any): GetContextTypeRequest {
     return {
-      typeName: isSet(object.typeName) ? globalThis.String(object.typeName) : "",
-      typeVersion: isSet(object.typeVersion) ? globalThis.String(object.typeVersion) : "",
+      typeName: isSet(object.typeName) ? globalThis.String(object.typeName) : '',
+      typeVersion: isSet(object.typeVersion) ? globalThis.String(object.typeVersion) : '',
       transactionOptions: isSet(object.transactionOptions)
         ? TransactionOptions.fromJSON(object.transactionOptions)
         : undefined,
@@ -8308,10 +8625,10 @@ export const GetContextTypeRequest = {
 
   toJSON(message: GetContextTypeRequest): unknown {
     const obj: any = {};
-    if (message.typeName !== undefined && message.typeName !== "") {
+    if (message.typeName !== undefined && message.typeName !== '') {
       obj.typeName = message.typeName;
     }
-    if (message.typeVersion !== undefined && message.typeVersion !== "") {
+    if (message.typeVersion !== undefined && message.typeVersion !== '') {
       obj.typeVersion = message.typeVersion;
     }
     if (message.transactionOptions !== undefined) {
@@ -8323,13 +8640,16 @@ export const GetContextTypeRequest = {
   create<I extends Exact<DeepPartial<GetContextTypeRequest>, I>>(base?: I): GetContextTypeRequest {
     return GetContextTypeRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetContextTypeRequest>, I>>(object: I): GetContextTypeRequest {
+  fromPartial<I extends Exact<DeepPartial<GetContextTypeRequest>, I>>(
+    object: I,
+  ): GetContextTypeRequest {
     const message = createBaseGetContextTypeRequest();
-    message.typeName = object.typeName ?? "";
-    message.typeVersion = object.typeVersion ?? "";
-    message.transactionOptions = (object.transactionOptions !== undefined && object.transactionOptions !== null)
-      ? TransactionOptions.fromPartial(object.transactionOptions)
-      : undefined;
+    message.typeName = object.typeName ?? '';
+    message.typeVersion = object.typeVersion ?? '';
+    message.transactionOptions =
+      object.transactionOptions !== undefined && object.transactionOptions !== null
+        ? TransactionOptions.fromPartial(object.transactionOptions)
+        : undefined;
     return message;
   },
 };
@@ -8370,7 +8690,9 @@ export const GetContextTypeResponse = {
   },
 
   fromJSON(object: any): GetContextTypeResponse {
-    return { contextType: isSet(object.contextType) ? ContextType.fromJSON(object.contextType) : undefined };
+    return {
+      contextType: isSet(object.contextType) ? ContextType.fromJSON(object.contextType) : undefined,
+    };
   },
 
   toJSON(message: GetContextTypeResponse): unknown {
@@ -8381,14 +8703,19 @@ export const GetContextTypeResponse = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetContextTypeResponse>, I>>(base?: I): GetContextTypeResponse {
+  create<I extends Exact<DeepPartial<GetContextTypeResponse>, I>>(
+    base?: I,
+  ): GetContextTypeResponse {
     return GetContextTypeResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetContextTypeResponse>, I>>(object: I): GetContextTypeResponse {
+  fromPartial<I extends Exact<DeepPartial<GetContextTypeResponse>, I>>(
+    object: I,
+  ): GetContextTypeResponse {
     const message = createBaseGetContextTypeResponse();
-    message.contextType = (object.contextType !== undefined && object.contextType !== null)
-      ? ContextType.fromPartial(object.contextType)
-      : undefined;
+    message.contextType =
+      object.contextType !== undefined && object.contextType !== null
+        ? ContextType.fromPartial(object.contextType)
+        : undefined;
     return message;
   },
 };
@@ -8398,7 +8725,10 @@ function createBaseGetContextTypesByIDRequest(): GetContextTypesByIDRequest {
 }
 
 export const GetContextTypesByIDRequest = {
-  encode(message: GetContextTypesByIDRequest, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    message: GetContextTypesByIDRequest,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
     writer.uint32(10).fork();
     for (const v of message.typeIds) {
       writer.int64(v);
@@ -8452,7 +8782,9 @@ export const GetContextTypesByIDRequest = {
 
   fromJSON(object: any): GetContextTypesByIDRequest {
     return {
-      typeIds: globalThis.Array.isArray(object?.typeIds) ? object.typeIds.map((e: any) => globalThis.Number(e)) : [],
+      typeIds: globalThis.Array.isArray(object?.typeIds)
+        ? object.typeIds.map((e: any) => globalThis.Number(e))
+        : [],
       transactionOptions: isSet(object.transactionOptions)
         ? TransactionOptions.fromJSON(object.transactionOptions)
         : undefined,
@@ -8470,15 +8802,20 @@ export const GetContextTypesByIDRequest = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetContextTypesByIDRequest>, I>>(base?: I): GetContextTypesByIDRequest {
+  create<I extends Exact<DeepPartial<GetContextTypesByIDRequest>, I>>(
+    base?: I,
+  ): GetContextTypesByIDRequest {
     return GetContextTypesByIDRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetContextTypesByIDRequest>, I>>(object: I): GetContextTypesByIDRequest {
+  fromPartial<I extends Exact<DeepPartial<GetContextTypesByIDRequest>, I>>(
+    object: I,
+  ): GetContextTypesByIDRequest {
     const message = createBaseGetContextTypesByIDRequest();
     message.typeIds = object.typeIds?.map((e) => e) || [];
-    message.transactionOptions = (object.transactionOptions !== undefined && object.transactionOptions !== null)
-      ? TransactionOptions.fromPartial(object.transactionOptions)
-      : undefined;
+    message.transactionOptions =
+      object.transactionOptions !== undefined && object.transactionOptions !== null
+        ? TransactionOptions.fromPartial(object.transactionOptions)
+        : undefined;
     return message;
   },
 };
@@ -8488,7 +8825,10 @@ function createBaseGetContextTypesByIDResponse(): GetContextTypesByIDResponse {
 }
 
 export const GetContextTypesByIDResponse = {
-  encode(message: GetContextTypesByIDResponse, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    message: GetContextTypesByIDResponse,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
     for (const v of message.contextTypes) {
       ContextType.encode(v!, writer.uint32(10).fork()).ldelim();
     }
@@ -8534,10 +8874,14 @@ export const GetContextTypesByIDResponse = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetContextTypesByIDResponse>, I>>(base?: I): GetContextTypesByIDResponse {
+  create<I extends Exact<DeepPartial<GetContextTypesByIDResponse>, I>>(
+    base?: I,
+  ): GetContextTypesByIDResponse {
     return GetContextTypesByIDResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetContextTypesByIDResponse>, I>>(object: I): GetContextTypesByIDResponse {
+  fromPartial<I extends Exact<DeepPartial<GetContextTypesByIDResponse>, I>>(
+    object: I,
+  ): GetContextTypesByIDResponse {
     const message = createBaseGetContextTypesByIDResponse();
     message.contextTypes = object.contextTypes?.map((e) => ContextType.fromPartial(e)) || [];
     return message;
@@ -8614,18 +8958,20 @@ export const GetContextsRequest = {
   },
   fromPartial<I extends Exact<DeepPartial<GetContextsRequest>, I>>(object: I): GetContextsRequest {
     const message = createBaseGetContextsRequest();
-    message.options = (object.options !== undefined && object.options !== null)
-      ? ListOperationOptions.fromPartial(object.options)
-      : undefined;
-    message.transactionOptions = (object.transactionOptions !== undefined && object.transactionOptions !== null)
-      ? TransactionOptions.fromPartial(object.transactionOptions)
-      : undefined;
+    message.options =
+      object.options !== undefined && object.options !== null
+        ? ListOperationOptions.fromPartial(object.options)
+        : undefined;
+    message.transactionOptions =
+      object.transactionOptions !== undefined && object.transactionOptions !== null
+        ? TransactionOptions.fromPartial(object.transactionOptions)
+        : undefined;
     return message;
   },
 };
 
 function createBaseGetContextsResponse(): GetContextsResponse {
-  return { contexts: [], nextPageToken: "" };
+  return { contexts: [], nextPageToken: '' };
 }
 
 export const GetContextsResponse = {
@@ -8633,7 +8979,7 @@ export const GetContextsResponse = {
     for (const v of message.contexts) {
       Context.encode(v!, writer.uint32(10).fork()).ldelim();
     }
-    if (message.nextPageToken !== undefined && message.nextPageToken !== "") {
+    if (message.nextPageToken !== undefined && message.nextPageToken !== '') {
       writer.uint32(18).string(message.nextPageToken);
     }
     return writer;
@@ -8671,8 +9017,10 @@ export const GetContextsResponse = {
 
   fromJSON(object: any): GetContextsResponse {
     return {
-      contexts: globalThis.Array.isArray(object?.contexts) ? object.contexts.map((e: any) => Context.fromJSON(e)) : [],
-      nextPageToken: isSet(object.nextPageToken) ? globalThis.String(object.nextPageToken) : "",
+      contexts: globalThis.Array.isArray(object?.contexts)
+        ? object.contexts.map((e: any) => Context.fromJSON(e))
+        : [],
+      nextPageToken: isSet(object.nextPageToken) ? globalThis.String(object.nextPageToken) : '',
     };
   },
 
@@ -8681,7 +9029,7 @@ export const GetContextsResponse = {
     if (message.contexts?.length) {
       obj.contexts = message.contexts.map((e) => Context.toJSON(e));
     }
-    if (message.nextPageToken !== undefined && message.nextPageToken !== "") {
+    if (message.nextPageToken !== undefined && message.nextPageToken !== '') {
       obj.nextPageToken = message.nextPageToken;
     }
     return obj;
@@ -8690,27 +9038,29 @@ export const GetContextsResponse = {
   create<I extends Exact<DeepPartial<GetContextsResponse>, I>>(base?: I): GetContextsResponse {
     return GetContextsResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetContextsResponse>, I>>(object: I): GetContextsResponse {
+  fromPartial<I extends Exact<DeepPartial<GetContextsResponse>, I>>(
+    object: I,
+  ): GetContextsResponse {
     const message = createBaseGetContextsResponse();
     message.contexts = object.contexts?.map((e) => Context.fromPartial(e)) || [];
-    message.nextPageToken = object.nextPageToken ?? "";
+    message.nextPageToken = object.nextPageToken ?? '';
     return message;
   },
 };
 
 function createBaseGetContextsByTypeRequest(): GetContextsByTypeRequest {
-  return { typeName: "", options: undefined, typeVersion: "", transactionOptions: undefined };
+  return { typeName: '', options: undefined, typeVersion: '', transactionOptions: undefined };
 }
 
 export const GetContextsByTypeRequest = {
   encode(message: GetContextsByTypeRequest, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.typeName !== undefined && message.typeName !== "") {
+    if (message.typeName !== undefined && message.typeName !== '') {
       writer.uint32(10).string(message.typeName);
     }
     if (message.options !== undefined) {
       ListOperationOptions.encode(message.options, writer.uint32(18).fork()).ldelim();
     }
-    if (message.typeVersion !== undefined && message.typeVersion !== "") {
+    if (message.typeVersion !== undefined && message.typeVersion !== '') {
       writer.uint32(26).string(message.typeVersion);
     }
     if (message.transactionOptions !== undefined) {
@@ -8765,9 +9115,9 @@ export const GetContextsByTypeRequest = {
 
   fromJSON(object: any): GetContextsByTypeRequest {
     return {
-      typeName: isSet(object.typeName) ? globalThis.String(object.typeName) : "",
+      typeName: isSet(object.typeName) ? globalThis.String(object.typeName) : '',
       options: isSet(object.options) ? ListOperationOptions.fromJSON(object.options) : undefined,
-      typeVersion: isSet(object.typeVersion) ? globalThis.String(object.typeVersion) : "",
+      typeVersion: isSet(object.typeVersion) ? globalThis.String(object.typeVersion) : '',
       transactionOptions: isSet(object.transactionOptions)
         ? TransactionOptions.fromJSON(object.transactionOptions)
         : undefined,
@@ -8776,13 +9126,13 @@ export const GetContextsByTypeRequest = {
 
   toJSON(message: GetContextsByTypeRequest): unknown {
     const obj: any = {};
-    if (message.typeName !== undefined && message.typeName !== "") {
+    if (message.typeName !== undefined && message.typeName !== '') {
       obj.typeName = message.typeName;
     }
     if (message.options !== undefined) {
       obj.options = ListOperationOptions.toJSON(message.options);
     }
-    if (message.typeVersion !== undefined && message.typeVersion !== "") {
+    if (message.typeVersion !== undefined && message.typeVersion !== '') {
       obj.typeVersion = message.typeVersion;
     }
     if (message.transactionOptions !== undefined) {
@@ -8791,25 +9141,31 @@ export const GetContextsByTypeRequest = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetContextsByTypeRequest>, I>>(base?: I): GetContextsByTypeRequest {
+  create<I extends Exact<DeepPartial<GetContextsByTypeRequest>, I>>(
+    base?: I,
+  ): GetContextsByTypeRequest {
     return GetContextsByTypeRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetContextsByTypeRequest>, I>>(object: I): GetContextsByTypeRequest {
+  fromPartial<I extends Exact<DeepPartial<GetContextsByTypeRequest>, I>>(
+    object: I,
+  ): GetContextsByTypeRequest {
     const message = createBaseGetContextsByTypeRequest();
-    message.typeName = object.typeName ?? "";
-    message.options = (object.options !== undefined && object.options !== null)
-      ? ListOperationOptions.fromPartial(object.options)
-      : undefined;
-    message.typeVersion = object.typeVersion ?? "";
-    message.transactionOptions = (object.transactionOptions !== undefined && object.transactionOptions !== null)
-      ? TransactionOptions.fromPartial(object.transactionOptions)
-      : undefined;
+    message.typeName = object.typeName ?? '';
+    message.options =
+      object.options !== undefined && object.options !== null
+        ? ListOperationOptions.fromPartial(object.options)
+        : undefined;
+    message.typeVersion = object.typeVersion ?? '';
+    message.transactionOptions =
+      object.transactionOptions !== undefined && object.transactionOptions !== null
+        ? TransactionOptions.fromPartial(object.transactionOptions)
+        : undefined;
     return message;
   },
 };
 
 function createBaseGetContextsByTypeResponse(): GetContextsByTypeResponse {
-  return { contexts: [], nextPageToken: "" };
+  return { contexts: [], nextPageToken: '' };
 }
 
 export const GetContextsByTypeResponse = {
@@ -8817,7 +9173,7 @@ export const GetContextsByTypeResponse = {
     for (const v of message.contexts) {
       Context.encode(v!, writer.uint32(10).fork()).ldelim();
     }
-    if (message.nextPageToken !== undefined && message.nextPageToken !== "") {
+    if (message.nextPageToken !== undefined && message.nextPageToken !== '') {
       writer.uint32(18).string(message.nextPageToken);
     }
     return writer;
@@ -8855,8 +9211,10 @@ export const GetContextsByTypeResponse = {
 
   fromJSON(object: any): GetContextsByTypeResponse {
     return {
-      contexts: globalThis.Array.isArray(object?.contexts) ? object.contexts.map((e: any) => Context.fromJSON(e)) : [],
-      nextPageToken: isSet(object.nextPageToken) ? globalThis.String(object.nextPageToken) : "",
+      contexts: globalThis.Array.isArray(object?.contexts)
+        ? object.contexts.map((e: any) => Context.fromJSON(e))
+        : [],
+      nextPageToken: isSet(object.nextPageToken) ? globalThis.String(object.nextPageToken) : '',
     };
   },
 
@@ -8865,36 +9223,43 @@ export const GetContextsByTypeResponse = {
     if (message.contexts?.length) {
       obj.contexts = message.contexts.map((e) => Context.toJSON(e));
     }
-    if (message.nextPageToken !== undefined && message.nextPageToken !== "") {
+    if (message.nextPageToken !== undefined && message.nextPageToken !== '') {
       obj.nextPageToken = message.nextPageToken;
     }
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetContextsByTypeResponse>, I>>(base?: I): GetContextsByTypeResponse {
+  create<I extends Exact<DeepPartial<GetContextsByTypeResponse>, I>>(
+    base?: I,
+  ): GetContextsByTypeResponse {
     return GetContextsByTypeResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetContextsByTypeResponse>, I>>(object: I): GetContextsByTypeResponse {
+  fromPartial<I extends Exact<DeepPartial<GetContextsByTypeResponse>, I>>(
+    object: I,
+  ): GetContextsByTypeResponse {
     const message = createBaseGetContextsByTypeResponse();
     message.contexts = object.contexts?.map((e) => Context.fromPartial(e)) || [];
-    message.nextPageToken = object.nextPageToken ?? "";
+    message.nextPageToken = object.nextPageToken ?? '';
     return message;
   },
 };
 
 function createBaseGetContextByTypeAndNameRequest(): GetContextByTypeAndNameRequest {
-  return { typeName: "", typeVersion: "", contextName: "", transactionOptions: undefined };
+  return { typeName: '', typeVersion: '', contextName: '', transactionOptions: undefined };
 }
 
 export const GetContextByTypeAndNameRequest = {
-  encode(message: GetContextByTypeAndNameRequest, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.typeName !== undefined && message.typeName !== "") {
+  encode(
+    message: GetContextByTypeAndNameRequest,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
+    if (message.typeName !== undefined && message.typeName !== '') {
       writer.uint32(10).string(message.typeName);
     }
-    if (message.typeVersion !== undefined && message.typeVersion !== "") {
+    if (message.typeVersion !== undefined && message.typeVersion !== '') {
       writer.uint32(26).string(message.typeVersion);
     }
-    if (message.contextName !== undefined && message.contextName !== "") {
+    if (message.contextName !== undefined && message.contextName !== '') {
       writer.uint32(18).string(message.contextName);
     }
     if (message.transactionOptions !== undefined) {
@@ -8949,9 +9314,9 @@ export const GetContextByTypeAndNameRequest = {
 
   fromJSON(object: any): GetContextByTypeAndNameRequest {
     return {
-      typeName: isSet(object.typeName) ? globalThis.String(object.typeName) : "",
-      typeVersion: isSet(object.typeVersion) ? globalThis.String(object.typeVersion) : "",
-      contextName: isSet(object.contextName) ? globalThis.String(object.contextName) : "",
+      typeName: isSet(object.typeName) ? globalThis.String(object.typeName) : '',
+      typeVersion: isSet(object.typeVersion) ? globalThis.String(object.typeVersion) : '',
+      contextName: isSet(object.contextName) ? globalThis.String(object.contextName) : '',
       transactionOptions: isSet(object.transactionOptions)
         ? TransactionOptions.fromJSON(object.transactionOptions)
         : undefined,
@@ -8960,13 +9325,13 @@ export const GetContextByTypeAndNameRequest = {
 
   toJSON(message: GetContextByTypeAndNameRequest): unknown {
     const obj: any = {};
-    if (message.typeName !== undefined && message.typeName !== "") {
+    if (message.typeName !== undefined && message.typeName !== '') {
       obj.typeName = message.typeName;
     }
-    if (message.typeVersion !== undefined && message.typeVersion !== "") {
+    if (message.typeVersion !== undefined && message.typeVersion !== '') {
       obj.typeVersion = message.typeVersion;
     }
-    if (message.contextName !== undefined && message.contextName !== "") {
+    if (message.contextName !== undefined && message.contextName !== '') {
       obj.contextName = message.contextName;
     }
     if (message.transactionOptions !== undefined) {
@@ -8975,19 +9340,22 @@ export const GetContextByTypeAndNameRequest = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetContextByTypeAndNameRequest>, I>>(base?: I): GetContextByTypeAndNameRequest {
+  create<I extends Exact<DeepPartial<GetContextByTypeAndNameRequest>, I>>(
+    base?: I,
+  ): GetContextByTypeAndNameRequest {
     return GetContextByTypeAndNameRequest.fromPartial(base ?? ({} as any));
   },
   fromPartial<I extends Exact<DeepPartial<GetContextByTypeAndNameRequest>, I>>(
     object: I,
   ): GetContextByTypeAndNameRequest {
     const message = createBaseGetContextByTypeAndNameRequest();
-    message.typeName = object.typeName ?? "";
-    message.typeVersion = object.typeVersion ?? "";
-    message.contextName = object.contextName ?? "";
-    message.transactionOptions = (object.transactionOptions !== undefined && object.transactionOptions !== null)
-      ? TransactionOptions.fromPartial(object.transactionOptions)
-      : undefined;
+    message.typeName = object.typeName ?? '';
+    message.typeVersion = object.typeVersion ?? '';
+    message.contextName = object.contextName ?? '';
+    message.transactionOptions =
+      object.transactionOptions !== undefined && object.transactionOptions !== null
+        ? TransactionOptions.fromPartial(object.transactionOptions)
+        : undefined;
     return message;
   },
 };
@@ -8997,7 +9365,10 @@ function createBaseGetContextByTypeAndNameResponse(): GetContextByTypeAndNameRes
 }
 
 export const GetContextByTypeAndNameResponse = {
-  encode(message: GetContextByTypeAndNameResponse, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    message: GetContextByTypeAndNameResponse,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
     if (message.context !== undefined) {
       Context.encode(message.context, writer.uint32(10).fork()).ldelim();
     }
@@ -9039,16 +9410,19 @@ export const GetContextByTypeAndNameResponse = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetContextByTypeAndNameResponse>, I>>(base?: I): GetContextByTypeAndNameResponse {
+  create<I extends Exact<DeepPartial<GetContextByTypeAndNameResponse>, I>>(
+    base?: I,
+  ): GetContextByTypeAndNameResponse {
     return GetContextByTypeAndNameResponse.fromPartial(base ?? ({} as any));
   },
   fromPartial<I extends Exact<DeepPartial<GetContextByTypeAndNameResponse>, I>>(
     object: I,
   ): GetContextByTypeAndNameResponse {
     const message = createBaseGetContextByTypeAndNameResponse();
-    message.context = (object.context !== undefined && object.context !== null)
-      ? Context.fromPartial(object.context)
-      : undefined;
+    message.context =
+      object.context !== undefined && object.context !== null
+        ? Context.fromPartial(object.context)
+        : undefined;
     return message;
   },
 };
@@ -9132,15 +9506,20 @@ export const GetContextsByIDRequest = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetContextsByIDRequest>, I>>(base?: I): GetContextsByIDRequest {
+  create<I extends Exact<DeepPartial<GetContextsByIDRequest>, I>>(
+    base?: I,
+  ): GetContextsByIDRequest {
     return GetContextsByIDRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetContextsByIDRequest>, I>>(object: I): GetContextsByIDRequest {
+  fromPartial<I extends Exact<DeepPartial<GetContextsByIDRequest>, I>>(
+    object: I,
+  ): GetContextsByIDRequest {
     const message = createBaseGetContextsByIDRequest();
     message.contextIds = object.contextIds?.map((e) => e) || [];
-    message.transactionOptions = (object.transactionOptions !== undefined && object.transactionOptions !== null)
-      ? TransactionOptions.fromPartial(object.transactionOptions)
-      : undefined;
+    message.transactionOptions =
+      object.transactionOptions !== undefined && object.transactionOptions !== null
+        ? TransactionOptions.fromPartial(object.transactionOptions)
+        : undefined;
     return message;
   },
 };
@@ -9182,7 +9561,9 @@ export const GetContextsByIDResponse = {
 
   fromJSON(object: any): GetContextsByIDResponse {
     return {
-      contexts: globalThis.Array.isArray(object?.contexts) ? object.contexts.map((e: any) => Context.fromJSON(e)) : [],
+      contexts: globalThis.Array.isArray(object?.contexts)
+        ? object.contexts.map((e: any) => Context.fromJSON(e))
+        : [],
     };
   },
 
@@ -9194,10 +9575,14 @@ export const GetContextsByIDResponse = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetContextsByIDResponse>, I>>(base?: I): GetContextsByIDResponse {
+  create<I extends Exact<DeepPartial<GetContextsByIDResponse>, I>>(
+    base?: I,
+  ): GetContextsByIDResponse {
     return GetContextsByIDResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetContextsByIDResponse>, I>>(object: I): GetContextsByIDResponse {
+  fromPartial<I extends Exact<DeepPartial<GetContextsByIDResponse>, I>>(
+    object: I,
+  ): GetContextsByIDResponse {
     const message = createBaseGetContextsByIDResponse();
     message.contexts = object.contexts?.map((e) => Context.fromPartial(e)) || [];
     return message;
@@ -9209,7 +9594,10 @@ function createBaseGetContextsByArtifactRequest(): GetContextsByArtifactRequest 
 }
 
 export const GetContextsByArtifactRequest = {
-  encode(message: GetContextsByArtifactRequest, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    message: GetContextsByArtifactRequest,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
     if (message.artifactId !== undefined && message.artifactId !== 0) {
       writer.uint32(8).int64(message.artifactId);
     }
@@ -9269,15 +9657,20 @@ export const GetContextsByArtifactRequest = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetContextsByArtifactRequest>, I>>(base?: I): GetContextsByArtifactRequest {
+  create<I extends Exact<DeepPartial<GetContextsByArtifactRequest>, I>>(
+    base?: I,
+  ): GetContextsByArtifactRequest {
     return GetContextsByArtifactRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetContextsByArtifactRequest>, I>>(object: I): GetContextsByArtifactRequest {
+  fromPartial<I extends Exact<DeepPartial<GetContextsByArtifactRequest>, I>>(
+    object: I,
+  ): GetContextsByArtifactRequest {
     const message = createBaseGetContextsByArtifactRequest();
     message.artifactId = object.artifactId ?? 0;
-    message.transactionOptions = (object.transactionOptions !== undefined && object.transactionOptions !== null)
-      ? TransactionOptions.fromPartial(object.transactionOptions)
-      : undefined;
+    message.transactionOptions =
+      object.transactionOptions !== undefined && object.transactionOptions !== null
+        ? TransactionOptions.fromPartial(object.transactionOptions)
+        : undefined;
     return message;
   },
 };
@@ -9287,7 +9680,10 @@ function createBaseGetContextsByArtifactResponse(): GetContextsByArtifactRespons
 }
 
 export const GetContextsByArtifactResponse = {
-  encode(message: GetContextsByArtifactResponse, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    message: GetContextsByArtifactResponse,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
     for (const v of message.contexts) {
       Context.encode(v!, writer.uint32(10).fork()).ldelim();
     }
@@ -9319,7 +9715,9 @@ export const GetContextsByArtifactResponse = {
 
   fromJSON(object: any): GetContextsByArtifactResponse {
     return {
-      contexts: globalThis.Array.isArray(object?.contexts) ? object.contexts.map((e: any) => Context.fromJSON(e)) : [],
+      contexts: globalThis.Array.isArray(object?.contexts)
+        ? object.contexts.map((e: any) => Context.fromJSON(e))
+        : [],
     };
   },
 
@@ -9331,7 +9729,9 @@ export const GetContextsByArtifactResponse = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetContextsByArtifactResponse>, I>>(base?: I): GetContextsByArtifactResponse {
+  create<I extends Exact<DeepPartial<GetContextsByArtifactResponse>, I>>(
+    base?: I,
+  ): GetContextsByArtifactResponse {
     return GetContextsByArtifactResponse.fromPartial(base ?? ({} as any));
   },
   fromPartial<I extends Exact<DeepPartial<GetContextsByArtifactResponse>, I>>(
@@ -9348,7 +9748,10 @@ function createBaseGetContextsByExecutionRequest(): GetContextsByExecutionReques
 }
 
 export const GetContextsByExecutionRequest = {
-  encode(message: GetContextsByExecutionRequest, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    message: GetContextsByExecutionRequest,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
     if (message.executionId !== undefined && message.executionId !== 0) {
       writer.uint32(8).int64(message.executionId);
     }
@@ -9408,7 +9811,9 @@ export const GetContextsByExecutionRequest = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetContextsByExecutionRequest>, I>>(base?: I): GetContextsByExecutionRequest {
+  create<I extends Exact<DeepPartial<GetContextsByExecutionRequest>, I>>(
+    base?: I,
+  ): GetContextsByExecutionRequest {
     return GetContextsByExecutionRequest.fromPartial(base ?? ({} as any));
   },
   fromPartial<I extends Exact<DeepPartial<GetContextsByExecutionRequest>, I>>(
@@ -9416,9 +9821,10 @@ export const GetContextsByExecutionRequest = {
   ): GetContextsByExecutionRequest {
     const message = createBaseGetContextsByExecutionRequest();
     message.executionId = object.executionId ?? 0;
-    message.transactionOptions = (object.transactionOptions !== undefined && object.transactionOptions !== null)
-      ? TransactionOptions.fromPartial(object.transactionOptions)
-      : undefined;
+    message.transactionOptions =
+      object.transactionOptions !== undefined && object.transactionOptions !== null
+        ? TransactionOptions.fromPartial(object.transactionOptions)
+        : undefined;
     return message;
   },
 };
@@ -9428,7 +9834,10 @@ function createBaseGetContextsByExecutionResponse(): GetContextsByExecutionRespo
 }
 
 export const GetContextsByExecutionResponse = {
-  encode(message: GetContextsByExecutionResponse, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    message: GetContextsByExecutionResponse,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
     for (const v of message.contexts) {
       Context.encode(v!, writer.uint32(10).fork()).ldelim();
     }
@@ -9460,7 +9869,9 @@ export const GetContextsByExecutionResponse = {
 
   fromJSON(object: any): GetContextsByExecutionResponse {
     return {
-      contexts: globalThis.Array.isArray(object?.contexts) ? object.contexts.map((e: any) => Context.fromJSON(e)) : [],
+      contexts: globalThis.Array.isArray(object?.contexts)
+        ? object.contexts.map((e: any) => Context.fromJSON(e))
+        : [],
     };
   },
 
@@ -9472,7 +9883,9 @@ export const GetContextsByExecutionResponse = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetContextsByExecutionResponse>, I>>(base?: I): GetContextsByExecutionResponse {
+  create<I extends Exact<DeepPartial<GetContextsByExecutionResponse>, I>>(
+    base?: I,
+  ): GetContextsByExecutionResponse {
     return GetContextsByExecutionResponse.fromPartial(base ?? ({} as any));
   },
   fromPartial<I extends Exact<DeepPartial<GetContextsByExecutionResponse>, I>>(
@@ -9489,7 +9902,10 @@ function createBaseGetParentContextsByContextRequest(): GetParentContextsByConte
 }
 
 export const GetParentContextsByContextRequest = {
-  encode(message: GetParentContextsByContextRequest, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    message: GetParentContextsByContextRequest,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
     if (message.contextId !== undefined && message.contextId !== 0) {
       writer.uint32(8).int64(message.contextId);
     }
@@ -9559,9 +9975,10 @@ export const GetParentContextsByContextRequest = {
   ): GetParentContextsByContextRequest {
     const message = createBaseGetParentContextsByContextRequest();
     message.contextId = object.contextId ?? 0;
-    message.transactionOptions = (object.transactionOptions !== undefined && object.transactionOptions !== null)
-      ? TransactionOptions.fromPartial(object.transactionOptions)
-      : undefined;
+    message.transactionOptions =
+      object.transactionOptions !== undefined && object.transactionOptions !== null
+        ? TransactionOptions.fromPartial(object.transactionOptions)
+        : undefined;
     return message;
   },
 };
@@ -9571,7 +9988,10 @@ function createBaseGetParentContextsByContextResponse(): GetParentContextsByCont
 }
 
 export const GetParentContextsByContextResponse = {
-  encode(message: GetParentContextsByContextResponse, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    message: GetParentContextsByContextResponse,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
     for (const v of message.contexts) {
       Context.encode(v!, writer.uint32(10).fork()).ldelim();
     }
@@ -9603,7 +10023,9 @@ export const GetParentContextsByContextResponse = {
 
   fromJSON(object: any): GetParentContextsByContextResponse {
     return {
-      contexts: globalThis.Array.isArray(object?.contexts) ? object.contexts.map((e: any) => Context.fromJSON(e)) : [],
+      contexts: globalThis.Array.isArray(object?.contexts)
+        ? object.contexts.map((e: any) => Context.fromJSON(e))
+        : [],
     };
   },
 
@@ -9634,7 +10056,10 @@ function createBaseGetChildrenContextsByContextRequest(): GetChildrenContextsByC
 }
 
 export const GetChildrenContextsByContextRequest = {
-  encode(message: GetChildrenContextsByContextRequest, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    message: GetChildrenContextsByContextRequest,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
     if (message.contextId !== undefined && message.contextId !== 0) {
       writer.uint32(8).int64(message.contextId);
     }
@@ -9704,9 +10129,10 @@ export const GetChildrenContextsByContextRequest = {
   ): GetChildrenContextsByContextRequest {
     const message = createBaseGetChildrenContextsByContextRequest();
     message.contextId = object.contextId ?? 0;
-    message.transactionOptions = (object.transactionOptions !== undefined && object.transactionOptions !== null)
-      ? TransactionOptions.fromPartial(object.transactionOptions)
-      : undefined;
+    message.transactionOptions =
+      object.transactionOptions !== undefined && object.transactionOptions !== null
+        ? TransactionOptions.fromPartial(object.transactionOptions)
+        : undefined;
     return message;
   },
 };
@@ -9716,7 +10142,10 @@ function createBaseGetChildrenContextsByContextResponse(): GetChildrenContextsBy
 }
 
 export const GetChildrenContextsByContextResponse = {
-  encode(message: GetChildrenContextsByContextResponse, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    message: GetChildrenContextsByContextResponse,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
     for (const v of message.contexts) {
       Context.encode(v!, writer.uint32(10).fork()).ldelim();
     }
@@ -9748,7 +10177,9 @@ export const GetChildrenContextsByContextResponse = {
 
   fromJSON(object: any): GetChildrenContextsByContextResponse {
     return {
-      contexts: globalThis.Array.isArray(object?.contexts) ? object.contexts.map((e: any) => Context.fromJSON(e)) : [],
+      contexts: globalThis.Array.isArray(object?.contexts)
+        ? object.contexts.map((e: any) => Context.fromJSON(e))
+        : [],
     };
   },
 
@@ -9779,7 +10210,10 @@ function createBaseGetParentContextsByContextsRequest(): GetParentContextsByCont
 }
 
 export const GetParentContextsByContextsRequest = {
-  encode(message: GetParentContextsByContextsRequest, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    message: GetParentContextsByContextsRequest,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
     writer.uint32(10).fork();
     for (const v of message.contextIds) {
       writer.int64(v);
@@ -9863,9 +10297,10 @@ export const GetParentContextsByContextsRequest = {
   ): GetParentContextsByContextsRequest {
     const message = createBaseGetParentContextsByContextsRequest();
     message.contextIds = object.contextIds?.map((e) => e) || [];
-    message.transactionOptions = (object.transactionOptions !== undefined && object.transactionOptions !== null)
-      ? TransactionOptions.fromPartial(object.transactionOptions)
-      : undefined;
+    message.transactionOptions =
+      object.transactionOptions !== undefined && object.transactionOptions !== null
+        ? TransactionOptions.fromPartial(object.transactionOptions)
+        : undefined;
     return message;
   },
 };
@@ -9875,10 +10310,15 @@ function createBaseGetParentContextsByContextsResponse(): GetParentContextsByCon
 }
 
 export const GetParentContextsByContextsResponse = {
-  encode(message: GetParentContextsByContextsResponse, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    message: GetParentContextsByContextsResponse,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
     Object.entries(message.contexts).forEach(([key, value]) => {
-      GetParentContextsByContextsResponse_ContextsEntry.encode({ key: key as any, value }, writer.uint32(18).fork())
-        .ldelim();
+      GetParentContextsByContextsResponse_ContextsEntry.encode(
+        { key: key as any, value },
+        writer.uint32(18).fork(),
+      ).ldelim();
     });
     return writer;
   },
@@ -9895,7 +10335,10 @@ export const GetParentContextsByContextsResponse = {
             break;
           }
 
-          const entry2 = GetParentContextsByContextsResponse_ContextsEntry.decode(reader, reader.uint32());
+          const entry2 = GetParentContextsByContextsResponse_ContextsEntry.decode(
+            reader,
+            reader.uint32(),
+          );
           if (entry2.value !== undefined) {
             message.contexts[entry2.key] = entry2.value;
           }
@@ -9912,12 +10355,13 @@ export const GetParentContextsByContextsResponse = {
   fromJSON(object: any): GetParentContextsByContextsResponse {
     return {
       contexts: isObject(object.contexts)
-        ? Object.entries(object.contexts).reduce<
-          { [key: number]: GetParentContextsByContextsResponse_ParentContextsPerChild }
-        >((acc, [key, value]) => {
-          acc[globalThis.Number(key)] = GetParentContextsByContextsResponse_ParentContextsPerChild.fromJSON(value);
-          return acc;
-        }, {})
+        ? Object.entries(object.contexts).reduce<{
+            [key: number]: GetParentContextsByContextsResponse_ParentContextsPerChild;
+          }>((acc, [key, value]) => {
+            acc[globalThis.Number(key)] =
+              GetParentContextsByContextsResponse_ParentContextsPerChild.fromJSON(value);
+            return acc;
+          }, {})
         : {},
     };
   },
@@ -9945,11 +10389,12 @@ export const GetParentContextsByContextsResponse = {
     object: I,
   ): GetParentContextsByContextsResponse {
     const message = createBaseGetParentContextsByContextsResponse();
-    message.contexts = Object.entries(object.contexts ?? {}).reduce<
-      { [key: number]: GetParentContextsByContextsResponse_ParentContextsPerChild }
-    >((acc, [key, value]) => {
+    message.contexts = Object.entries(object.contexts ?? {}).reduce<{
+      [key: number]: GetParentContextsByContextsResponse_ParentContextsPerChild;
+    }>((acc, [key, value]) => {
       if (value !== undefined) {
-        acc[globalThis.Number(key)] = GetParentContextsByContextsResponse_ParentContextsPerChild.fromPartial(value);
+        acc[globalThis.Number(key)] =
+          GetParentContextsByContextsResponse_ParentContextsPerChild.fromPartial(value);
       }
       return acc;
     }, {});
@@ -9972,7 +10417,10 @@ export const GetParentContextsByContextsResponse_ParentContextsPerChild = {
     return writer;
   },
 
-  decode(input: _m0.Reader | Uint8Array, length?: number): GetParentContextsByContextsResponse_ParentContextsPerChild {
+  decode(
+    input: _m0.Reader | Uint8Array,
+    length?: number,
+  ): GetParentContextsByContextsResponse_ParentContextsPerChild {
     const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
     let end = length === undefined ? reader.len : reader.pos + length;
     const message = createBaseGetParentContextsByContextsResponse_ParentContextsPerChild();
@@ -10011,14 +10459,16 @@ export const GetParentContextsByContextsResponse_ParentContextsPerChild = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetParentContextsByContextsResponse_ParentContextsPerChild>, I>>(
-    base?: I,
-  ): GetParentContextsByContextsResponse_ParentContextsPerChild {
-    return GetParentContextsByContextsResponse_ParentContextsPerChild.fromPartial(base ?? ({} as any));
+  create<
+    I extends Exact<DeepPartial<GetParentContextsByContextsResponse_ParentContextsPerChild>, I>,
+  >(base?: I): GetParentContextsByContextsResponse_ParentContextsPerChild {
+    return GetParentContextsByContextsResponse_ParentContextsPerChild.fromPartial(
+      base ?? ({} as any),
+    );
   },
-  fromPartial<I extends Exact<DeepPartial<GetParentContextsByContextsResponse_ParentContextsPerChild>, I>>(
-    object: I,
-  ): GetParentContextsByContextsResponse_ParentContextsPerChild {
+  fromPartial<
+    I extends Exact<DeepPartial<GetParentContextsByContextsResponse_ParentContextsPerChild>, I>,
+  >(object: I): GetParentContextsByContextsResponse_ParentContextsPerChild {
     const message = createBaseGetParentContextsByContextsResponse_ParentContextsPerChild();
     message.parentContexts = object.parentContexts?.map((e) => Context.fromPartial(e)) || [];
     return message;
@@ -10038,13 +10488,18 @@ export const GetParentContextsByContextsResponse_ContextsEntry = {
       writer.uint32(8).int64(message.key);
     }
     if (message.value !== undefined) {
-      GetParentContextsByContextsResponse_ParentContextsPerChild.encode(message.value, writer.uint32(18).fork())
-        .ldelim();
+      GetParentContextsByContextsResponse_ParentContextsPerChild.encode(
+        message.value,
+        writer.uint32(18).fork(),
+      ).ldelim();
     }
     return writer;
   },
 
-  decode(input: _m0.Reader | Uint8Array, length?: number): GetParentContextsByContextsResponse_ContextsEntry {
+  decode(
+    input: _m0.Reader | Uint8Array,
+    length?: number,
+  ): GetParentContextsByContextsResponse_ContextsEntry {
     const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
     let end = length === undefined ? reader.len : reader.pos + length;
     const message = createBaseGetParentContextsByContextsResponse_ContextsEntry();
@@ -10063,7 +10518,10 @@ export const GetParentContextsByContextsResponse_ContextsEntry = {
             break;
           }
 
-          message.value = GetParentContextsByContextsResponse_ParentContextsPerChild.decode(reader, reader.uint32());
+          message.value = GetParentContextsByContextsResponse_ParentContextsPerChild.decode(
+            reader,
+            reader.uint32(),
+          );
           continue;
       }
       if ((tag & 7) === 4 || tag === 0) {
@@ -10104,9 +10562,10 @@ export const GetParentContextsByContextsResponse_ContextsEntry = {
   ): GetParentContextsByContextsResponse_ContextsEntry {
     const message = createBaseGetParentContextsByContextsResponse_ContextsEntry();
     message.key = object.key ?? 0;
-    message.value = (object.value !== undefined && object.value !== null)
-      ? GetParentContextsByContextsResponse_ParentContextsPerChild.fromPartial(object.value)
-      : undefined;
+    message.value =
+      object.value !== undefined && object.value !== null
+        ? GetParentContextsByContextsResponse_ParentContextsPerChild.fromPartial(object.value)
+        : undefined;
     return message;
   },
 };
@@ -10116,7 +10575,10 @@ function createBaseGetChildrenContextsByContextsRequest(): GetChildrenContextsBy
 }
 
 export const GetChildrenContextsByContextsRequest = {
-  encode(message: GetChildrenContextsByContextsRequest, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    message: GetChildrenContextsByContextsRequest,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
     writer.uint32(10).fork();
     for (const v of message.contextIds) {
       writer.int64(v);
@@ -10200,9 +10662,10 @@ export const GetChildrenContextsByContextsRequest = {
   ): GetChildrenContextsByContextsRequest {
     const message = createBaseGetChildrenContextsByContextsRequest();
     message.contextIds = object.contextIds?.map((e) => e) || [];
-    message.transactionOptions = (object.transactionOptions !== undefined && object.transactionOptions !== null)
-      ? TransactionOptions.fromPartial(object.transactionOptions)
-      : undefined;
+    message.transactionOptions =
+      object.transactionOptions !== undefined && object.transactionOptions !== null
+        ? TransactionOptions.fromPartial(object.transactionOptions)
+        : undefined;
     return message;
   },
 };
@@ -10212,10 +10675,15 @@ function createBaseGetChildrenContextsByContextsResponse(): GetChildrenContextsB
 }
 
 export const GetChildrenContextsByContextsResponse = {
-  encode(message: GetChildrenContextsByContextsResponse, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    message: GetChildrenContextsByContextsResponse,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
     Object.entries(message.contexts).forEach(([key, value]) => {
-      GetChildrenContextsByContextsResponse_ContextsEntry.encode({ key: key as any, value }, writer.uint32(18).fork())
-        .ldelim();
+      GetChildrenContextsByContextsResponse_ContextsEntry.encode(
+        { key: key as any, value },
+        writer.uint32(18).fork(),
+      ).ldelim();
     });
     return writer;
   },
@@ -10232,7 +10700,10 @@ export const GetChildrenContextsByContextsResponse = {
             break;
           }
 
-          const entry2 = GetChildrenContextsByContextsResponse_ContextsEntry.decode(reader, reader.uint32());
+          const entry2 = GetChildrenContextsByContextsResponse_ContextsEntry.decode(
+            reader,
+            reader.uint32(),
+          );
           if (entry2.value !== undefined) {
             message.contexts[entry2.key] = entry2.value;
           }
@@ -10249,12 +10720,13 @@ export const GetChildrenContextsByContextsResponse = {
   fromJSON(object: any): GetChildrenContextsByContextsResponse {
     return {
       contexts: isObject(object.contexts)
-        ? Object.entries(object.contexts).reduce<
-          { [key: number]: GetChildrenContextsByContextsResponse_ChildrenContextsPerParent }
-        >((acc, [key, value]) => {
-          acc[globalThis.Number(key)] = GetChildrenContextsByContextsResponse_ChildrenContextsPerParent.fromJSON(value);
-          return acc;
-        }, {})
+        ? Object.entries(object.contexts).reduce<{
+            [key: number]: GetChildrenContextsByContextsResponse_ChildrenContextsPerParent;
+          }>((acc, [key, value]) => {
+            acc[globalThis.Number(key)] =
+              GetChildrenContextsByContextsResponse_ChildrenContextsPerParent.fromJSON(value);
+            return acc;
+          }, {})
         : {},
     };
   },
@@ -10266,7 +10738,8 @@ export const GetChildrenContextsByContextsResponse = {
       if (entries.length > 0) {
         obj.contexts = {};
         entries.forEach(([k, v]) => {
-          obj.contexts[k] = GetChildrenContextsByContextsResponse_ChildrenContextsPerParent.toJSON(v);
+          obj.contexts[k] =
+            GetChildrenContextsByContextsResponse_ChildrenContextsPerParent.toJSON(v);
         });
       }
     }
@@ -10282,13 +10755,12 @@ export const GetChildrenContextsByContextsResponse = {
     object: I,
   ): GetChildrenContextsByContextsResponse {
     const message = createBaseGetChildrenContextsByContextsResponse();
-    message.contexts = Object.entries(object.contexts ?? {}).reduce<
-      { [key: number]: GetChildrenContextsByContextsResponse_ChildrenContextsPerParent }
-    >((acc, [key, value]) => {
+    message.contexts = Object.entries(object.contexts ?? {}).reduce<{
+      [key: number]: GetChildrenContextsByContextsResponse_ChildrenContextsPerParent;
+    }>((acc, [key, value]) => {
       if (value !== undefined) {
-        acc[globalThis.Number(key)] = GetChildrenContextsByContextsResponse_ChildrenContextsPerParent.fromPartial(
-          value,
-        );
+        acc[globalThis.Number(key)] =
+          GetChildrenContextsByContextsResponse_ChildrenContextsPerParent.fromPartial(value);
       }
       return acc;
     }, {});
@@ -10353,14 +10825,22 @@ export const GetChildrenContextsByContextsResponse_ChildrenContextsPerParent = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetChildrenContextsByContextsResponse_ChildrenContextsPerParent>, I>>(
-    base?: I,
-  ): GetChildrenContextsByContextsResponse_ChildrenContextsPerParent {
-    return GetChildrenContextsByContextsResponse_ChildrenContextsPerParent.fromPartial(base ?? ({} as any));
+  create<
+    I extends Exact<
+      DeepPartial<GetChildrenContextsByContextsResponse_ChildrenContextsPerParent>,
+      I
+    >,
+  >(base?: I): GetChildrenContextsByContextsResponse_ChildrenContextsPerParent {
+    return GetChildrenContextsByContextsResponse_ChildrenContextsPerParent.fromPartial(
+      base ?? ({} as any),
+    );
   },
-  fromPartial<I extends Exact<DeepPartial<GetChildrenContextsByContextsResponse_ChildrenContextsPerParent>, I>>(
-    object: I,
-  ): GetChildrenContextsByContextsResponse_ChildrenContextsPerParent {
+  fromPartial<
+    I extends Exact<
+      DeepPartial<GetChildrenContextsByContextsResponse_ChildrenContextsPerParent>,
+      I
+    >,
+  >(object: I): GetChildrenContextsByContextsResponse_ChildrenContextsPerParent {
     const message = createBaseGetChildrenContextsByContextsResponse_ChildrenContextsPerParent();
     message.childrenContexts = object.childrenContexts?.map((e) => Context.fromPartial(e)) || [];
     return message;
@@ -10380,13 +10860,18 @@ export const GetChildrenContextsByContextsResponse_ContextsEntry = {
       writer.uint32(8).int64(message.key);
     }
     if (message.value !== undefined) {
-      GetChildrenContextsByContextsResponse_ChildrenContextsPerParent.encode(message.value, writer.uint32(18).fork())
-        .ldelim();
+      GetChildrenContextsByContextsResponse_ChildrenContextsPerParent.encode(
+        message.value,
+        writer.uint32(18).fork(),
+      ).ldelim();
     }
     return writer;
   },
 
-  decode(input: _m0.Reader | Uint8Array, length?: number): GetChildrenContextsByContextsResponse_ContextsEntry {
+  decode(
+    input: _m0.Reader | Uint8Array,
+    length?: number,
+  ): GetChildrenContextsByContextsResponse_ContextsEntry {
     const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
     let end = length === undefined ? reader.len : reader.pos + length;
     const message = createBaseGetChildrenContextsByContextsResponse_ContextsEntry();
@@ -10434,7 +10919,9 @@ export const GetChildrenContextsByContextsResponse_ContextsEntry = {
       obj.key = Math.round(message.key);
     }
     if (message.value !== undefined) {
-      obj.value = GetChildrenContextsByContextsResponse_ChildrenContextsPerParent.toJSON(message.value);
+      obj.value = GetChildrenContextsByContextsResponse_ChildrenContextsPerParent.toJSON(
+        message.value,
+      );
     }
     return obj;
   },
@@ -10449,9 +10936,10 @@ export const GetChildrenContextsByContextsResponse_ContextsEntry = {
   ): GetChildrenContextsByContextsResponse_ContextsEntry {
     const message = createBaseGetChildrenContextsByContextsResponse_ContextsEntry();
     message.key = object.key ?? 0;
-    message.value = (object.value !== undefined && object.value !== null)
-      ? GetChildrenContextsByContextsResponse_ChildrenContextsPerParent.fromPartial(object.value)
-      : undefined;
+    message.value =
+      object.value !== undefined && object.value !== null
+        ? GetChildrenContextsByContextsResponse_ChildrenContextsPerParent.fromPartial(object.value)
+        : undefined;
     return message;
   },
 };
@@ -10461,7 +10949,10 @@ function createBaseGetArtifactsByContextRequest(): GetArtifactsByContextRequest 
 }
 
 export const GetArtifactsByContextRequest = {
-  encode(message: GetArtifactsByContextRequest, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    message: GetArtifactsByContextRequest,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
     if (message.contextId !== undefined && message.contextId !== 0) {
       writer.uint32(8).int64(message.contextId);
     }
@@ -10535,32 +11026,41 @@ export const GetArtifactsByContextRequest = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetArtifactsByContextRequest>, I>>(base?: I): GetArtifactsByContextRequest {
+  create<I extends Exact<DeepPartial<GetArtifactsByContextRequest>, I>>(
+    base?: I,
+  ): GetArtifactsByContextRequest {
     return GetArtifactsByContextRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetArtifactsByContextRequest>, I>>(object: I): GetArtifactsByContextRequest {
+  fromPartial<I extends Exact<DeepPartial<GetArtifactsByContextRequest>, I>>(
+    object: I,
+  ): GetArtifactsByContextRequest {
     const message = createBaseGetArtifactsByContextRequest();
     message.contextId = object.contextId ?? 0;
-    message.options = (object.options !== undefined && object.options !== null)
-      ? ListOperationOptions.fromPartial(object.options)
-      : undefined;
-    message.transactionOptions = (object.transactionOptions !== undefined && object.transactionOptions !== null)
-      ? TransactionOptions.fromPartial(object.transactionOptions)
-      : undefined;
+    message.options =
+      object.options !== undefined && object.options !== null
+        ? ListOperationOptions.fromPartial(object.options)
+        : undefined;
+    message.transactionOptions =
+      object.transactionOptions !== undefined && object.transactionOptions !== null
+        ? TransactionOptions.fromPartial(object.transactionOptions)
+        : undefined;
     return message;
   },
 };
 
 function createBaseGetArtifactsByContextResponse(): GetArtifactsByContextResponse {
-  return { artifacts: [], nextPageToken: "" };
+  return { artifacts: [], nextPageToken: '' };
 }
 
 export const GetArtifactsByContextResponse = {
-  encode(message: GetArtifactsByContextResponse, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    message: GetArtifactsByContextResponse,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
     for (const v of message.artifacts) {
       Artifact.encode(v!, writer.uint32(10).fork()).ldelim();
     }
-    if (message.nextPageToken !== undefined && message.nextPageToken !== "") {
+    if (message.nextPageToken !== undefined && message.nextPageToken !== '') {
       writer.uint32(18).string(message.nextPageToken);
     }
     return writer;
@@ -10601,7 +11101,7 @@ export const GetArtifactsByContextResponse = {
       artifacts: globalThis.Array.isArray(object?.artifacts)
         ? object.artifacts.map((e: any) => Artifact.fromJSON(e))
         : [],
-      nextPageToken: isSet(object.nextPageToken) ? globalThis.String(object.nextPageToken) : "",
+      nextPageToken: isSet(object.nextPageToken) ? globalThis.String(object.nextPageToken) : '',
     };
   },
 
@@ -10610,13 +11110,15 @@ export const GetArtifactsByContextResponse = {
     if (message.artifacts?.length) {
       obj.artifacts = message.artifacts.map((e) => Artifact.toJSON(e));
     }
-    if (message.nextPageToken !== undefined && message.nextPageToken !== "") {
+    if (message.nextPageToken !== undefined && message.nextPageToken !== '') {
       obj.nextPageToken = message.nextPageToken;
     }
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetArtifactsByContextResponse>, I>>(base?: I): GetArtifactsByContextResponse {
+  create<I extends Exact<DeepPartial<GetArtifactsByContextResponse>, I>>(
+    base?: I,
+  ): GetArtifactsByContextResponse {
     return GetArtifactsByContextResponse.fromPartial(base ?? ({} as any));
   },
   fromPartial<I extends Exact<DeepPartial<GetArtifactsByContextResponse>, I>>(
@@ -10624,7 +11126,7 @@ export const GetArtifactsByContextResponse = {
   ): GetArtifactsByContextResponse {
     const message = createBaseGetArtifactsByContextResponse();
     message.artifacts = object.artifacts?.map((e) => Artifact.fromPartial(e)) || [];
-    message.nextPageToken = object.nextPageToken ?? "";
+    message.nextPageToken = object.nextPageToken ?? '';
     return message;
   },
 };
@@ -10634,7 +11136,10 @@ function createBaseGetExecutionsByContextRequest(): GetExecutionsByContextReques
 }
 
 export const GetExecutionsByContextRequest = {
-  encode(message: GetExecutionsByContextRequest, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    message: GetExecutionsByContextRequest,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
     if (message.contextId !== undefined && message.contextId !== 0) {
       writer.uint32(8).int64(message.contextId);
     }
@@ -10708,7 +11213,9 @@ export const GetExecutionsByContextRequest = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetExecutionsByContextRequest>, I>>(base?: I): GetExecutionsByContextRequest {
+  create<I extends Exact<DeepPartial<GetExecutionsByContextRequest>, I>>(
+    base?: I,
+  ): GetExecutionsByContextRequest {
     return GetExecutionsByContextRequest.fromPartial(base ?? ({} as any));
   },
   fromPartial<I extends Exact<DeepPartial<GetExecutionsByContextRequest>, I>>(
@@ -10716,26 +11223,31 @@ export const GetExecutionsByContextRequest = {
   ): GetExecutionsByContextRequest {
     const message = createBaseGetExecutionsByContextRequest();
     message.contextId = object.contextId ?? 0;
-    message.options = (object.options !== undefined && object.options !== null)
-      ? ListOperationOptions.fromPartial(object.options)
-      : undefined;
-    message.transactionOptions = (object.transactionOptions !== undefined && object.transactionOptions !== null)
-      ? TransactionOptions.fromPartial(object.transactionOptions)
-      : undefined;
+    message.options =
+      object.options !== undefined && object.options !== null
+        ? ListOperationOptions.fromPartial(object.options)
+        : undefined;
+    message.transactionOptions =
+      object.transactionOptions !== undefined && object.transactionOptions !== null
+        ? TransactionOptions.fromPartial(object.transactionOptions)
+        : undefined;
     return message;
   },
 };
 
 function createBaseGetExecutionsByContextResponse(): GetExecutionsByContextResponse {
-  return { executions: [], nextPageToken: "", transactionOptions: undefined };
+  return { executions: [], nextPageToken: '', transactionOptions: undefined };
 }
 
 export const GetExecutionsByContextResponse = {
-  encode(message: GetExecutionsByContextResponse, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    message: GetExecutionsByContextResponse,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
     for (const v of message.executions) {
       Execution.encode(v!, writer.uint32(10).fork()).ldelim();
     }
-    if (message.nextPageToken !== undefined && message.nextPageToken !== "") {
+    if (message.nextPageToken !== undefined && message.nextPageToken !== '') {
       writer.uint32(18).string(message.nextPageToken);
     }
     if (message.transactionOptions !== undefined) {
@@ -10786,7 +11298,7 @@ export const GetExecutionsByContextResponse = {
       executions: globalThis.Array.isArray(object?.executions)
         ? object.executions.map((e: any) => Execution.fromJSON(e))
         : [],
-      nextPageToken: isSet(object.nextPageToken) ? globalThis.String(object.nextPageToken) : "",
+      nextPageToken: isSet(object.nextPageToken) ? globalThis.String(object.nextPageToken) : '',
       transactionOptions: isSet(object.transactionOptions)
         ? TransactionOptions.fromJSON(object.transactionOptions)
         : undefined,
@@ -10798,7 +11310,7 @@ export const GetExecutionsByContextResponse = {
     if (message.executions?.length) {
       obj.executions = message.executions.map((e) => Execution.toJSON(e));
     }
-    if (message.nextPageToken !== undefined && message.nextPageToken !== "") {
+    if (message.nextPageToken !== undefined && message.nextPageToken !== '') {
       obj.nextPageToken = message.nextPageToken;
     }
     if (message.transactionOptions !== undefined) {
@@ -10807,7 +11319,9 @@ export const GetExecutionsByContextResponse = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetExecutionsByContextResponse>, I>>(base?: I): GetExecutionsByContextResponse {
+  create<I extends Exact<DeepPartial<GetExecutionsByContextResponse>, I>>(
+    base?: I,
+  ): GetExecutionsByContextResponse {
     return GetExecutionsByContextResponse.fromPartial(base ?? ({} as any));
   },
   fromPartial<I extends Exact<DeepPartial<GetExecutionsByContextResponse>, I>>(
@@ -10815,10 +11329,11 @@ export const GetExecutionsByContextResponse = {
   ): GetExecutionsByContextResponse {
     const message = createBaseGetExecutionsByContextResponse();
     message.executions = object.executions?.map((e) => Execution.fromPartial(e)) || [];
-    message.nextPageToken = object.nextPageToken ?? "";
-    message.transactionOptions = (object.transactionOptions !== undefined && object.transactionOptions !== null)
-      ? TransactionOptions.fromPartial(object.transactionOptions)
-      : undefined;
+    message.nextPageToken = object.nextPageToken ?? '';
+    message.transactionOptions =
+      object.transactionOptions !== undefined && object.transactionOptions !== null
+        ? TransactionOptions.fromPartial(object.transactionOptions)
+        : undefined;
     return message;
   },
 };
@@ -10870,7 +11385,9 @@ export const GetLineageGraphRequest = {
 
   fromJSON(object: any): GetLineageGraphRequest {
     return {
-      options: isSet(object.options) ? LineageGraphQueryOptions.fromJSON(object.options) : undefined,
+      options: isSet(object.options)
+        ? LineageGraphQueryOptions.fromJSON(object.options)
+        : undefined,
       transactionOptions: isSet(object.transactionOptions)
         ? TransactionOptions.fromJSON(object.transactionOptions)
         : undefined,
@@ -10888,17 +11405,23 @@ export const GetLineageGraphRequest = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetLineageGraphRequest>, I>>(base?: I): GetLineageGraphRequest {
+  create<I extends Exact<DeepPartial<GetLineageGraphRequest>, I>>(
+    base?: I,
+  ): GetLineageGraphRequest {
     return GetLineageGraphRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetLineageGraphRequest>, I>>(object: I): GetLineageGraphRequest {
+  fromPartial<I extends Exact<DeepPartial<GetLineageGraphRequest>, I>>(
+    object: I,
+  ): GetLineageGraphRequest {
     const message = createBaseGetLineageGraphRequest();
-    message.options = (object.options !== undefined && object.options !== null)
-      ? LineageGraphQueryOptions.fromPartial(object.options)
-      : undefined;
-    message.transactionOptions = (object.transactionOptions !== undefined && object.transactionOptions !== null)
-      ? TransactionOptions.fromPartial(object.transactionOptions)
-      : undefined;
+    message.options =
+      object.options !== undefined && object.options !== null
+        ? LineageGraphQueryOptions.fromPartial(object.options)
+        : undefined;
+    message.transactionOptions =
+      object.transactionOptions !== undefined && object.transactionOptions !== null
+        ? TransactionOptions.fromPartial(object.transactionOptions)
+        : undefined;
     return message;
   },
 };
@@ -10939,7 +11462,9 @@ export const GetLineageGraphResponse = {
   },
 
   fromJSON(object: any): GetLineageGraphResponse {
-    return { subgraph: isSet(object.subgraph) ? LineageGraph.fromJSON(object.subgraph) : undefined };
+    return {
+      subgraph: isSet(object.subgraph) ? LineageGraph.fromJSON(object.subgraph) : undefined,
+    };
   },
 
   toJSON(message: GetLineageGraphResponse): unknown {
@@ -10950,26 +11475,38 @@ export const GetLineageGraphResponse = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetLineageGraphResponse>, I>>(base?: I): GetLineageGraphResponse {
+  create<I extends Exact<DeepPartial<GetLineageGraphResponse>, I>>(
+    base?: I,
+  ): GetLineageGraphResponse {
     return GetLineageGraphResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetLineageGraphResponse>, I>>(object: I): GetLineageGraphResponse {
+  fromPartial<I extends Exact<DeepPartial<GetLineageGraphResponse>, I>>(
+    object: I,
+  ): GetLineageGraphResponse {
     const message = createBaseGetLineageGraphResponse();
-    message.subgraph = (object.subgraph !== undefined && object.subgraph !== null)
-      ? LineageGraph.fromPartial(object.subgraph)
-      : undefined;
+    message.subgraph =
+      object.subgraph !== undefined && object.subgraph !== null
+        ? LineageGraph.fromPartial(object.subgraph)
+        : undefined;
     return message;
   },
 };
 
 function createBaseGetLineageSubgraphRequest(): GetLineageSubgraphRequest {
-  return { lineageSubgraphQueryOptions: undefined, readMask: undefined, transactionOptions: undefined };
+  return {
+    lineageSubgraphQueryOptions: undefined,
+    readMask: undefined,
+    transactionOptions: undefined,
+  };
 }
 
 export const GetLineageSubgraphRequest = {
   encode(message: GetLineageSubgraphRequest, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
     if (message.lineageSubgraphQueryOptions !== undefined) {
-      LineageSubgraphQueryOptions.encode(message.lineageSubgraphQueryOptions, writer.uint32(10).fork()).ldelim();
+      LineageSubgraphQueryOptions.encode(
+        message.lineageSubgraphQueryOptions,
+        writer.uint32(10).fork(),
+      ).ldelim();
     }
     if (message.readMask !== undefined) {
       FieldMask.encode(FieldMask.wrap(message.readMask), writer.uint32(26).fork()).ldelim();
@@ -10992,7 +11529,10 @@ export const GetLineageSubgraphRequest = {
             break;
           }
 
-          message.lineageSubgraphQueryOptions = LineageSubgraphQueryOptions.decode(reader, reader.uint32());
+          message.lineageSubgraphQueryOptions = LineageSubgraphQueryOptions.decode(
+            reader,
+            reader.uint32(),
+          );
           continue;
         case 3:
           if (tag !== 26) {
@@ -11022,7 +11562,9 @@ export const GetLineageSubgraphRequest = {
       lineageSubgraphQueryOptions: isSet(object.lineageSubgraphQueryOptions)
         ? LineageSubgraphQueryOptions.fromJSON(object.lineageSubgraphQueryOptions)
         : undefined,
-      readMask: isSet(object.readMask) ? FieldMask.unwrap(FieldMask.fromJSON(object.readMask)) : undefined,
+      readMask: isSet(object.readMask)
+        ? FieldMask.unwrap(FieldMask.fromJSON(object.readMask))
+        : undefined,
       transactionOptions: isSet(object.transactionOptions)
         ? TransactionOptions.fromJSON(object.transactionOptions)
         : undefined,
@@ -11032,7 +11574,9 @@ export const GetLineageSubgraphRequest = {
   toJSON(message: GetLineageSubgraphRequest): unknown {
     const obj: any = {};
     if (message.lineageSubgraphQueryOptions !== undefined) {
-      obj.lineageSubgraphQueryOptions = LineageSubgraphQueryOptions.toJSON(message.lineageSubgraphQueryOptions);
+      obj.lineageSubgraphQueryOptions = LineageSubgraphQueryOptions.toJSON(
+        message.lineageSubgraphQueryOptions,
+      );
     }
     if (message.readMask !== undefined) {
       obj.readMask = FieldMask.toJSON(FieldMask.wrap(message.readMask));
@@ -11043,19 +11587,25 @@ export const GetLineageSubgraphRequest = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetLineageSubgraphRequest>, I>>(base?: I): GetLineageSubgraphRequest {
+  create<I extends Exact<DeepPartial<GetLineageSubgraphRequest>, I>>(
+    base?: I,
+  ): GetLineageSubgraphRequest {
     return GetLineageSubgraphRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetLineageSubgraphRequest>, I>>(object: I): GetLineageSubgraphRequest {
+  fromPartial<I extends Exact<DeepPartial<GetLineageSubgraphRequest>, I>>(
+    object: I,
+  ): GetLineageSubgraphRequest {
     const message = createBaseGetLineageSubgraphRequest();
     message.lineageSubgraphQueryOptions =
-      (object.lineageSubgraphQueryOptions !== undefined && object.lineageSubgraphQueryOptions !== null)
+      object.lineageSubgraphQueryOptions !== undefined &&
+      object.lineageSubgraphQueryOptions !== null
         ? LineageSubgraphQueryOptions.fromPartial(object.lineageSubgraphQueryOptions)
         : undefined;
     message.readMask = object.readMask ?? undefined;
-    message.transactionOptions = (object.transactionOptions !== undefined && object.transactionOptions !== null)
-      ? TransactionOptions.fromPartial(object.transactionOptions)
-      : undefined;
+    message.transactionOptions =
+      object.transactionOptions !== undefined && object.transactionOptions !== null
+        ? TransactionOptions.fromPartial(object.transactionOptions)
+        : undefined;
     return message;
   },
 };
@@ -11065,7 +11615,10 @@ function createBaseGetLineageSubgraphResponse(): GetLineageSubgraphResponse {
 }
 
 export const GetLineageSubgraphResponse = {
-  encode(message: GetLineageSubgraphResponse, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+  encode(
+    message: GetLineageSubgraphResponse,
+    writer: _m0.Writer = _m0.Writer.create(),
+  ): _m0.Writer {
     if (message.lineageSubgraph !== undefined) {
       LineageGraph.encode(message.lineageSubgraph, writer.uint32(10).fork()).ldelim();
     }
@@ -11097,7 +11650,9 @@ export const GetLineageSubgraphResponse = {
 
   fromJSON(object: any): GetLineageSubgraphResponse {
     return {
-      lineageSubgraph: isSet(object.lineageSubgraph) ? LineageGraph.fromJSON(object.lineageSubgraph) : undefined,
+      lineageSubgraph: isSet(object.lineageSubgraph)
+        ? LineageGraph.fromJSON(object.lineageSubgraph)
+        : undefined,
     };
   },
 
@@ -11109,14 +11664,19 @@ export const GetLineageSubgraphResponse = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetLineageSubgraphResponse>, I>>(base?: I): GetLineageSubgraphResponse {
+  create<I extends Exact<DeepPartial<GetLineageSubgraphResponse>, I>>(
+    base?: I,
+  ): GetLineageSubgraphResponse {
     return GetLineageSubgraphResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetLineageSubgraphResponse>, I>>(object: I): GetLineageSubgraphResponse {
+  fromPartial<I extends Exact<DeepPartial<GetLineageSubgraphResponse>, I>>(
+    object: I,
+  ): GetLineageSubgraphResponse {
     const message = createBaseGetLineageSubgraphResponse();
-    message.lineageSubgraph = (object.lineageSubgraph !== undefined && object.lineageSubgraph !== null)
-      ? LineageGraph.fromPartial(object.lineageSubgraph)
-      : undefined;
+    message.lineageSubgraph =
+      object.lineageSubgraph !== undefined && object.lineageSubgraph !== null
+        ? LineageGraph.fromPartial(object.lineageSubgraph)
+        : undefined;
     return message;
   },
 };
@@ -11358,7 +11918,9 @@ export interface MetadataStoreService {
    * Gets a list of execution types by ID.
    * If no execution types with an ID exists, the execution type is skipped.
    */
-  GetExecutionTypesByID(request: GetExecutionTypesByIDRequest): Promise<GetExecutionTypesByIDResponse>;
+  GetExecutionTypesByID(
+    request: GetExecutionTypesByIDRequest,
+  ): Promise<GetExecutionTypesByIDResponse>;
   /** Gets a list of all execution types. */
   GetExecutionTypes(request: GetExecutionTypesRequest): Promise<GetExecutionTypesResponse>;
   /** Gets a context type. Returns a NOT_FOUND error if the type does not exist. */
@@ -11413,23 +11975,39 @@ export interface MetadataStoreService {
   /** Gets all the contexts of a given type. */
   GetContextsByType(request: GetContextsByTypeRequest): Promise<GetContextsByTypeResponse>;
   /** Gets the artifact of the given type and artifact name. */
-  GetArtifactByTypeAndName(request: GetArtifactByTypeAndNameRequest): Promise<GetArtifactByTypeAndNameResponse>;
+  GetArtifactByTypeAndName(
+    request: GetArtifactByTypeAndNameRequest,
+  ): Promise<GetArtifactByTypeAndNameResponse>;
   /** Gets the execution of the given type and execution name. */
-  GetExecutionByTypeAndName(request: GetExecutionByTypeAndNameRequest): Promise<GetExecutionByTypeAndNameResponse>;
+  GetExecutionByTypeAndName(
+    request: GetExecutionByTypeAndNameRequest,
+  ): Promise<GetExecutionByTypeAndNameResponse>;
   /** Gets the context of the given type and context name. */
-  GetContextByTypeAndName(request: GetContextByTypeAndNameRequest): Promise<GetContextByTypeAndNameResponse>;
+  GetContextByTypeAndName(
+    request: GetContextByTypeAndNameRequest,
+  ): Promise<GetContextByTypeAndNameResponse>;
   /** Gets all the artifacts with matching uris. */
   GetArtifactsByURI(request: GetArtifactsByURIRequest): Promise<GetArtifactsByURIResponse>;
   /** Gets all events with matching execution ids. */
-  GetEventsByExecutionIDs(request: GetEventsByExecutionIDsRequest): Promise<GetEventsByExecutionIDsResponse>;
+  GetEventsByExecutionIDs(
+    request: GetEventsByExecutionIDsRequest,
+  ): Promise<GetEventsByExecutionIDsResponse>;
   /** Gets all events with matching artifact ids. */
-  GetEventsByArtifactIDs(request: GetEventsByArtifactIDsRequest): Promise<GetEventsByArtifactIDsResponse>;
+  GetEventsByArtifactIDs(
+    request: GetEventsByArtifactIDsRequest,
+  ): Promise<GetEventsByArtifactIDsResponse>;
   /** Gets all the artifacts with matching external ids. */
-  GetArtifactsByExternalIds(request: GetArtifactsByExternalIdsRequest): Promise<GetArtifactsByExternalIdsResponse>;
+  GetArtifactsByExternalIds(
+    request: GetArtifactsByExternalIdsRequest,
+  ): Promise<GetArtifactsByExternalIdsResponse>;
   /** Gets all the artifacts with matching external ids. */
-  GetExecutionsByExternalIds(request: GetExecutionsByExternalIdsRequest): Promise<GetExecutionsByExternalIdsResponse>;
+  GetExecutionsByExternalIds(
+    request: GetExecutionsByExternalIdsRequest,
+  ): Promise<GetExecutionsByExternalIdsResponse>;
   /** Gets all the artifacts with matching external ids. */
-  GetContextsByExternalIds(request: GetContextsByExternalIdsRequest): Promise<GetContextsByExternalIdsResponse>;
+  GetContextsByExternalIds(
+    request: GetContextsByExternalIdsRequest,
+  ): Promise<GetContextsByExternalIdsResponse>;
   /** Gets all the artifacts with matching external ids. */
   GetArtifactTypesByExternalIds(
     request: GetArtifactTypesByExternalIdsRequest,
@@ -11443,11 +12021,17 @@ export interface MetadataStoreService {
     request: GetContextTypesByExternalIdsRequest,
   ): Promise<GetContextTypesByExternalIdsResponse>;
   /** Gets all context that an artifact is attributed to. */
-  GetContextsByArtifact(request: GetContextsByArtifactRequest): Promise<GetContextsByArtifactResponse>;
+  GetContextsByArtifact(
+    request: GetContextsByArtifactRequest,
+  ): Promise<GetContextsByArtifactResponse>;
   /** Gets all context that an execution is associated with. */
-  GetContextsByExecution(request: GetContextsByExecutionRequest): Promise<GetContextsByExecutionResponse>;
+  GetContextsByExecution(
+    request: GetContextsByExecutionRequest,
+  ): Promise<GetContextsByExecutionResponse>;
   /** Gets all parent contexts that a context is related. */
-  GetParentContextsByContext(request: GetParentContextsByContextRequest): Promise<GetParentContextsByContextResponse>;
+  GetParentContextsByContext(
+    request: GetParentContextsByContextRequest,
+  ): Promise<GetParentContextsByContextResponse>;
   /** Gets all children contexts that a context is related. */
   GetChildrenContextsByContext(
     request: GetChildrenContextsByContextRequest,
@@ -11464,9 +12048,13 @@ export interface MetadataStoreService {
     request: GetChildrenContextsByContextsRequest,
   ): Promise<GetChildrenContextsByContextsResponse>;
   /** Gets all direct artifacts that a context attributes to. */
-  GetArtifactsByContext(request: GetArtifactsByContextRequest): Promise<GetArtifactsByContextResponse>;
+  GetArtifactsByContext(
+    request: GetArtifactsByContextRequest,
+  ): Promise<GetArtifactsByContextResponse>;
   /** Gets all direct executions that a context associates with. */
-  GetExecutionsByContext(request: GetExecutionsByContextRequest): Promise<GetExecutionsByContextResponse>;
+  GetExecutionsByContext(
+    request: GetExecutionsByContextRequest,
+  ): Promise<GetExecutionsByContextResponse>;
   /**
    * TODO(b/283852485): Deprecate GetLineageGraph API after migration to
    * GetLineageSubgraph API.
@@ -11484,7 +12072,7 @@ export interface MetadataStoreService {
   GetLineageSubgraph(request: GetLineageSubgraphRequest): Promise<GetLineageSubgraphResponse>;
 }
 
-export const MetadataStoreServiceServiceName = "ml_metadata.MetadataStoreService";
+export const MetadataStoreServiceServiceName = 'ml_metadata.MetadataStoreService';
 export class MetadataStoreServiceClientImpl implements MetadataStoreService {
   private readonly rpc: Rpc;
   private readonly service: string;
@@ -11546,61 +12134,61 @@ export class MetadataStoreServiceClientImpl implements MetadataStoreService {
   }
   PutArtifactType(request: PutArtifactTypeRequest): Promise<PutArtifactTypeResponse> {
     const data = PutArtifactTypeRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "PutArtifactType", data);
+    const promise = this.rpc.request(this.service, 'PutArtifactType', data);
     return promise.then((data) => PutArtifactTypeResponse.decode(_m0.Reader.create(data)));
   }
 
   PutExecutionType(request: PutExecutionTypeRequest): Promise<PutExecutionTypeResponse> {
     const data = PutExecutionTypeRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "PutExecutionType", data);
+    const promise = this.rpc.request(this.service, 'PutExecutionType', data);
     return promise.then((data) => PutExecutionTypeResponse.decode(_m0.Reader.create(data)));
   }
 
   PutContextType(request: PutContextTypeRequest): Promise<PutContextTypeResponse> {
     const data = PutContextTypeRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "PutContextType", data);
+    const promise = this.rpc.request(this.service, 'PutContextType', data);
     return promise.then((data) => PutContextTypeResponse.decode(_m0.Reader.create(data)));
   }
 
   PutTypes(request: PutTypesRequest): Promise<PutTypesResponse> {
     const data = PutTypesRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "PutTypes", data);
+    const promise = this.rpc.request(this.service, 'PutTypes', data);
     return promise.then((data) => PutTypesResponse.decode(_m0.Reader.create(data)));
   }
 
   PutArtifacts(request: PutArtifactsRequest): Promise<PutArtifactsResponse> {
     const data = PutArtifactsRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "PutArtifacts", data);
+    const promise = this.rpc.request(this.service, 'PutArtifacts', data);
     return promise.then((data) => PutArtifactsResponse.decode(_m0.Reader.create(data)));
   }
 
   PutExecutions(request: PutExecutionsRequest): Promise<PutExecutionsResponse> {
     const data = PutExecutionsRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "PutExecutions", data);
+    const promise = this.rpc.request(this.service, 'PutExecutions', data);
     return promise.then((data) => PutExecutionsResponse.decode(_m0.Reader.create(data)));
   }
 
   PutEvents(request: PutEventsRequest): Promise<PutEventsResponse> {
     const data = PutEventsRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "PutEvents", data);
+    const promise = this.rpc.request(this.service, 'PutEvents', data);
     return promise.then((data) => PutEventsResponse.decode(_m0.Reader.create(data)));
   }
 
   PutExecution(request: PutExecutionRequest): Promise<PutExecutionResponse> {
     const data = PutExecutionRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "PutExecution", data);
+    const promise = this.rpc.request(this.service, 'PutExecution', data);
     return promise.then((data) => PutExecutionResponse.decode(_m0.Reader.create(data)));
   }
 
   PutLineageSubgraph(request: PutLineageSubgraphRequest): Promise<PutLineageSubgraphResponse> {
     const data = PutLineageSubgraphRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "PutLineageSubgraph", data);
+    const promise = this.rpc.request(this.service, 'PutLineageSubgraph', data);
     return promise.then((data) => PutLineageSubgraphResponse.decode(_m0.Reader.create(data)));
   }
 
   PutContexts(request: PutContextsRequest): Promise<PutContextsResponse> {
     const data = PutContextsRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "PutContexts", data);
+    const promise = this.rpc.request(this.service, 'PutContexts', data);
     return promise.then((data) => PutContextsResponse.decode(_m0.Reader.create(data)));
   }
 
@@ -11608,175 +12196,203 @@ export class MetadataStoreServiceClientImpl implements MetadataStoreService {
     request: PutAttributionsAndAssociationsRequest,
   ): Promise<PutAttributionsAndAssociationsResponse> {
     const data = PutAttributionsAndAssociationsRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "PutAttributionsAndAssociations", data);
-    return promise.then((data) => PutAttributionsAndAssociationsResponse.decode(_m0.Reader.create(data)));
+    const promise = this.rpc.request(this.service, 'PutAttributionsAndAssociations', data);
+    return promise.then((data) =>
+      PutAttributionsAndAssociationsResponse.decode(_m0.Reader.create(data)),
+    );
   }
 
   PutParentContexts(request: PutParentContextsRequest): Promise<PutParentContextsResponse> {
     const data = PutParentContextsRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "PutParentContexts", data);
+    const promise = this.rpc.request(this.service, 'PutParentContexts', data);
     return promise.then((data) => PutParentContextsResponse.decode(_m0.Reader.create(data)));
   }
 
   GetArtifactType(request: GetArtifactTypeRequest): Promise<GetArtifactTypeResponse> {
     const data = GetArtifactTypeRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "GetArtifactType", data);
+    const promise = this.rpc.request(this.service, 'GetArtifactType', data);
     return promise.then((data) => GetArtifactTypeResponse.decode(_m0.Reader.create(data)));
   }
 
-  GetArtifactTypesByID(request: GetArtifactTypesByIDRequest): Promise<GetArtifactTypesByIDResponse> {
+  GetArtifactTypesByID(
+    request: GetArtifactTypesByIDRequest,
+  ): Promise<GetArtifactTypesByIDResponse> {
     const data = GetArtifactTypesByIDRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "GetArtifactTypesByID", data);
+    const promise = this.rpc.request(this.service, 'GetArtifactTypesByID', data);
     return promise.then((data) => GetArtifactTypesByIDResponse.decode(_m0.Reader.create(data)));
   }
 
   GetArtifactTypes(request: GetArtifactTypesRequest): Promise<GetArtifactTypesResponse> {
     const data = GetArtifactTypesRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "GetArtifactTypes", data);
+    const promise = this.rpc.request(this.service, 'GetArtifactTypes', data);
     return promise.then((data) => GetArtifactTypesResponse.decode(_m0.Reader.create(data)));
   }
 
   GetExecutionType(request: GetExecutionTypeRequest): Promise<GetExecutionTypeResponse> {
     const data = GetExecutionTypeRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "GetExecutionType", data);
+    const promise = this.rpc.request(this.service, 'GetExecutionType', data);
     return promise.then((data) => GetExecutionTypeResponse.decode(_m0.Reader.create(data)));
   }
 
-  GetExecutionTypesByID(request: GetExecutionTypesByIDRequest): Promise<GetExecutionTypesByIDResponse> {
+  GetExecutionTypesByID(
+    request: GetExecutionTypesByIDRequest,
+  ): Promise<GetExecutionTypesByIDResponse> {
     const data = GetExecutionTypesByIDRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "GetExecutionTypesByID", data);
+    const promise = this.rpc.request(this.service, 'GetExecutionTypesByID', data);
     return promise.then((data) => GetExecutionTypesByIDResponse.decode(_m0.Reader.create(data)));
   }
 
   GetExecutionTypes(request: GetExecutionTypesRequest): Promise<GetExecutionTypesResponse> {
     const data = GetExecutionTypesRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "GetExecutionTypes", data);
+    const promise = this.rpc.request(this.service, 'GetExecutionTypes', data);
     return promise.then((data) => GetExecutionTypesResponse.decode(_m0.Reader.create(data)));
   }
 
   GetContextType(request: GetContextTypeRequest): Promise<GetContextTypeResponse> {
     const data = GetContextTypeRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "GetContextType", data);
+    const promise = this.rpc.request(this.service, 'GetContextType', data);
     return promise.then((data) => GetContextTypeResponse.decode(_m0.Reader.create(data)));
   }
 
   GetContextTypesByID(request: GetContextTypesByIDRequest): Promise<GetContextTypesByIDResponse> {
     const data = GetContextTypesByIDRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "GetContextTypesByID", data);
+    const promise = this.rpc.request(this.service, 'GetContextTypesByID', data);
     return promise.then((data) => GetContextTypesByIDResponse.decode(_m0.Reader.create(data)));
   }
 
   GetContextTypes(request: GetContextTypesRequest): Promise<GetContextTypesResponse> {
     const data = GetContextTypesRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "GetContextTypes", data);
+    const promise = this.rpc.request(this.service, 'GetContextTypes', data);
     return promise.then((data) => GetContextTypesResponse.decode(_m0.Reader.create(data)));
   }
 
   GetArtifacts(request: GetArtifactsRequest): Promise<GetArtifactsResponse> {
     const data = GetArtifactsRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "GetArtifacts", data);
+    const promise = this.rpc.request(this.service, 'GetArtifacts', data);
     return promise.then((data) => GetArtifactsResponse.decode(_m0.Reader.create(data)));
   }
 
   GetExecutions(request: GetExecutionsRequest): Promise<GetExecutionsResponse> {
     const data = GetExecutionsRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "GetExecutions", data);
+    const promise = this.rpc.request(this.service, 'GetExecutions', data);
     return promise.then((data) => GetExecutionsResponse.decode(_m0.Reader.create(data)));
   }
 
   GetContexts(request: GetContextsRequest): Promise<GetContextsResponse> {
     const data = GetContextsRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "GetContexts", data);
+    const promise = this.rpc.request(this.service, 'GetContexts', data);
     return promise.then((data) => GetContextsResponse.decode(_m0.Reader.create(data)));
   }
 
   GetArtifactsByID(request: GetArtifactsByIDRequest): Promise<GetArtifactsByIDResponse> {
     const data = GetArtifactsByIDRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "GetArtifactsByID", data);
+    const promise = this.rpc.request(this.service, 'GetArtifactsByID', data);
     return promise.then((data) => GetArtifactsByIDResponse.decode(_m0.Reader.create(data)));
   }
 
   GetExecutionsByID(request: GetExecutionsByIDRequest): Promise<GetExecutionsByIDResponse> {
     const data = GetExecutionsByIDRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "GetExecutionsByID", data);
+    const promise = this.rpc.request(this.service, 'GetExecutionsByID', data);
     return promise.then((data) => GetExecutionsByIDResponse.decode(_m0.Reader.create(data)));
   }
 
   GetContextsByID(request: GetContextsByIDRequest): Promise<GetContextsByIDResponse> {
     const data = GetContextsByIDRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "GetContextsByID", data);
+    const promise = this.rpc.request(this.service, 'GetContextsByID', data);
     return promise.then((data) => GetContextsByIDResponse.decode(_m0.Reader.create(data)));
   }
 
   GetArtifactsByType(request: GetArtifactsByTypeRequest): Promise<GetArtifactsByTypeResponse> {
     const data = GetArtifactsByTypeRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "GetArtifactsByType", data);
+    const promise = this.rpc.request(this.service, 'GetArtifactsByType', data);
     return promise.then((data) => GetArtifactsByTypeResponse.decode(_m0.Reader.create(data)));
   }
 
   GetExecutionsByType(request: GetExecutionsByTypeRequest): Promise<GetExecutionsByTypeResponse> {
     const data = GetExecutionsByTypeRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "GetExecutionsByType", data);
+    const promise = this.rpc.request(this.service, 'GetExecutionsByType', data);
     return promise.then((data) => GetExecutionsByTypeResponse.decode(_m0.Reader.create(data)));
   }
 
   GetContextsByType(request: GetContextsByTypeRequest): Promise<GetContextsByTypeResponse> {
     const data = GetContextsByTypeRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "GetContextsByType", data);
+    const promise = this.rpc.request(this.service, 'GetContextsByType', data);
     return promise.then((data) => GetContextsByTypeResponse.decode(_m0.Reader.create(data)));
   }
 
-  GetArtifactByTypeAndName(request: GetArtifactByTypeAndNameRequest): Promise<GetArtifactByTypeAndNameResponse> {
+  GetArtifactByTypeAndName(
+    request: GetArtifactByTypeAndNameRequest,
+  ): Promise<GetArtifactByTypeAndNameResponse> {
     const data = GetArtifactByTypeAndNameRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "GetArtifactByTypeAndName", data);
+    const promise = this.rpc.request(this.service, 'GetArtifactByTypeAndName', data);
     return promise.then((data) => GetArtifactByTypeAndNameResponse.decode(_m0.Reader.create(data)));
   }
 
-  GetExecutionByTypeAndName(request: GetExecutionByTypeAndNameRequest): Promise<GetExecutionByTypeAndNameResponse> {
+  GetExecutionByTypeAndName(
+    request: GetExecutionByTypeAndNameRequest,
+  ): Promise<GetExecutionByTypeAndNameResponse> {
     const data = GetExecutionByTypeAndNameRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "GetExecutionByTypeAndName", data);
-    return promise.then((data) => GetExecutionByTypeAndNameResponse.decode(_m0.Reader.create(data)));
+    const promise = this.rpc.request(this.service, 'GetExecutionByTypeAndName', data);
+    return promise.then((data) =>
+      GetExecutionByTypeAndNameResponse.decode(_m0.Reader.create(data)),
+    );
   }
 
-  GetContextByTypeAndName(request: GetContextByTypeAndNameRequest): Promise<GetContextByTypeAndNameResponse> {
+  GetContextByTypeAndName(
+    request: GetContextByTypeAndNameRequest,
+  ): Promise<GetContextByTypeAndNameResponse> {
     const data = GetContextByTypeAndNameRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "GetContextByTypeAndName", data);
+    const promise = this.rpc.request(this.service, 'GetContextByTypeAndName', data);
     return promise.then((data) => GetContextByTypeAndNameResponse.decode(_m0.Reader.create(data)));
   }
 
   GetArtifactsByURI(request: GetArtifactsByURIRequest): Promise<GetArtifactsByURIResponse> {
     const data = GetArtifactsByURIRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "GetArtifactsByURI", data);
+    const promise = this.rpc.request(this.service, 'GetArtifactsByURI', data);
     return promise.then((data) => GetArtifactsByURIResponse.decode(_m0.Reader.create(data)));
   }
 
-  GetEventsByExecutionIDs(request: GetEventsByExecutionIDsRequest): Promise<GetEventsByExecutionIDsResponse> {
+  GetEventsByExecutionIDs(
+    request: GetEventsByExecutionIDsRequest,
+  ): Promise<GetEventsByExecutionIDsResponse> {
     const data = GetEventsByExecutionIDsRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "GetEventsByExecutionIDs", data);
+    const promise = this.rpc.request(this.service, 'GetEventsByExecutionIDs', data);
     return promise.then((data) => GetEventsByExecutionIDsResponse.decode(_m0.Reader.create(data)));
   }
 
-  GetEventsByArtifactIDs(request: GetEventsByArtifactIDsRequest): Promise<GetEventsByArtifactIDsResponse> {
+  GetEventsByArtifactIDs(
+    request: GetEventsByArtifactIDsRequest,
+  ): Promise<GetEventsByArtifactIDsResponse> {
     const data = GetEventsByArtifactIDsRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "GetEventsByArtifactIDs", data);
+    const promise = this.rpc.request(this.service, 'GetEventsByArtifactIDs', data);
     return promise.then((data) => GetEventsByArtifactIDsResponse.decode(_m0.Reader.create(data)));
   }
 
-  GetArtifactsByExternalIds(request: GetArtifactsByExternalIdsRequest): Promise<GetArtifactsByExternalIdsResponse> {
+  GetArtifactsByExternalIds(
+    request: GetArtifactsByExternalIdsRequest,
+  ): Promise<GetArtifactsByExternalIdsResponse> {
     const data = GetArtifactsByExternalIdsRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "GetArtifactsByExternalIds", data);
-    return promise.then((data) => GetArtifactsByExternalIdsResponse.decode(_m0.Reader.create(data)));
+    const promise = this.rpc.request(this.service, 'GetArtifactsByExternalIds', data);
+    return promise.then((data) =>
+      GetArtifactsByExternalIdsResponse.decode(_m0.Reader.create(data)),
+    );
   }
 
-  GetExecutionsByExternalIds(request: GetExecutionsByExternalIdsRequest): Promise<GetExecutionsByExternalIdsResponse> {
+  GetExecutionsByExternalIds(
+    request: GetExecutionsByExternalIdsRequest,
+  ): Promise<GetExecutionsByExternalIdsResponse> {
     const data = GetExecutionsByExternalIdsRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "GetExecutionsByExternalIds", data);
-    return promise.then((data) => GetExecutionsByExternalIdsResponse.decode(_m0.Reader.create(data)));
+    const promise = this.rpc.request(this.service, 'GetExecutionsByExternalIds', data);
+    return promise.then((data) =>
+      GetExecutionsByExternalIdsResponse.decode(_m0.Reader.create(data)),
+    );
   }
 
-  GetContextsByExternalIds(request: GetContextsByExternalIdsRequest): Promise<GetContextsByExternalIdsResponse> {
+  GetContextsByExternalIds(
+    request: GetContextsByExternalIdsRequest,
+  ): Promise<GetContextsByExternalIdsResponse> {
     const data = GetContextsByExternalIdsRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "GetContextsByExternalIds", data);
+    const promise = this.rpc.request(this.service, 'GetContextsByExternalIds', data);
     return promise.then((data) => GetContextsByExternalIdsResponse.decode(_m0.Reader.create(data)));
   }
 
@@ -11784,89 +12400,113 @@ export class MetadataStoreServiceClientImpl implements MetadataStoreService {
     request: GetArtifactTypesByExternalIdsRequest,
   ): Promise<GetArtifactTypesByExternalIdsResponse> {
     const data = GetArtifactTypesByExternalIdsRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "GetArtifactTypesByExternalIds", data);
-    return promise.then((data) => GetArtifactTypesByExternalIdsResponse.decode(_m0.Reader.create(data)));
+    const promise = this.rpc.request(this.service, 'GetArtifactTypesByExternalIds', data);
+    return promise.then((data) =>
+      GetArtifactTypesByExternalIdsResponse.decode(_m0.Reader.create(data)),
+    );
   }
 
   GetExecutionTypesByExternalIds(
     request: GetExecutionTypesByExternalIdsRequest,
   ): Promise<GetExecutionTypesByExternalIdsResponse> {
     const data = GetExecutionTypesByExternalIdsRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "GetExecutionTypesByExternalIds", data);
-    return promise.then((data) => GetExecutionTypesByExternalIdsResponse.decode(_m0.Reader.create(data)));
+    const promise = this.rpc.request(this.service, 'GetExecutionTypesByExternalIds', data);
+    return promise.then((data) =>
+      GetExecutionTypesByExternalIdsResponse.decode(_m0.Reader.create(data)),
+    );
   }
 
   GetContextTypesByExternalIds(
     request: GetContextTypesByExternalIdsRequest,
   ): Promise<GetContextTypesByExternalIdsResponse> {
     const data = GetContextTypesByExternalIdsRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "GetContextTypesByExternalIds", data);
-    return promise.then((data) => GetContextTypesByExternalIdsResponse.decode(_m0.Reader.create(data)));
+    const promise = this.rpc.request(this.service, 'GetContextTypesByExternalIds', data);
+    return promise.then((data) =>
+      GetContextTypesByExternalIdsResponse.decode(_m0.Reader.create(data)),
+    );
   }
 
-  GetContextsByArtifact(request: GetContextsByArtifactRequest): Promise<GetContextsByArtifactResponse> {
+  GetContextsByArtifact(
+    request: GetContextsByArtifactRequest,
+  ): Promise<GetContextsByArtifactResponse> {
     const data = GetContextsByArtifactRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "GetContextsByArtifact", data);
+    const promise = this.rpc.request(this.service, 'GetContextsByArtifact', data);
     return promise.then((data) => GetContextsByArtifactResponse.decode(_m0.Reader.create(data)));
   }
 
-  GetContextsByExecution(request: GetContextsByExecutionRequest): Promise<GetContextsByExecutionResponse> {
+  GetContextsByExecution(
+    request: GetContextsByExecutionRequest,
+  ): Promise<GetContextsByExecutionResponse> {
     const data = GetContextsByExecutionRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "GetContextsByExecution", data);
+    const promise = this.rpc.request(this.service, 'GetContextsByExecution', data);
     return promise.then((data) => GetContextsByExecutionResponse.decode(_m0.Reader.create(data)));
   }
 
-  GetParentContextsByContext(request: GetParentContextsByContextRequest): Promise<GetParentContextsByContextResponse> {
+  GetParentContextsByContext(
+    request: GetParentContextsByContextRequest,
+  ): Promise<GetParentContextsByContextResponse> {
     const data = GetParentContextsByContextRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "GetParentContextsByContext", data);
-    return promise.then((data) => GetParentContextsByContextResponse.decode(_m0.Reader.create(data)));
+    const promise = this.rpc.request(this.service, 'GetParentContextsByContext', data);
+    return promise.then((data) =>
+      GetParentContextsByContextResponse.decode(_m0.Reader.create(data)),
+    );
   }
 
   GetChildrenContextsByContext(
     request: GetChildrenContextsByContextRequest,
   ): Promise<GetChildrenContextsByContextResponse> {
     const data = GetChildrenContextsByContextRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "GetChildrenContextsByContext", data);
-    return promise.then((data) => GetChildrenContextsByContextResponse.decode(_m0.Reader.create(data)));
+    const promise = this.rpc.request(this.service, 'GetChildrenContextsByContext', data);
+    return promise.then((data) =>
+      GetChildrenContextsByContextResponse.decode(_m0.Reader.create(data)),
+    );
   }
 
   GetParentContextsByContexts(
     request: GetParentContextsByContextsRequest,
   ): Promise<GetParentContextsByContextsResponse> {
     const data = GetParentContextsByContextsRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "GetParentContextsByContexts", data);
-    return promise.then((data) => GetParentContextsByContextsResponse.decode(_m0.Reader.create(data)));
+    const promise = this.rpc.request(this.service, 'GetParentContextsByContexts', data);
+    return promise.then((data) =>
+      GetParentContextsByContextsResponse.decode(_m0.Reader.create(data)),
+    );
   }
 
   GetChildrenContextsByContexts(
     request: GetChildrenContextsByContextsRequest,
   ): Promise<GetChildrenContextsByContextsResponse> {
     const data = GetChildrenContextsByContextsRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "GetChildrenContextsByContexts", data);
-    return promise.then((data) => GetChildrenContextsByContextsResponse.decode(_m0.Reader.create(data)));
+    const promise = this.rpc.request(this.service, 'GetChildrenContextsByContexts', data);
+    return promise.then((data) =>
+      GetChildrenContextsByContextsResponse.decode(_m0.Reader.create(data)),
+    );
   }
 
-  GetArtifactsByContext(request: GetArtifactsByContextRequest): Promise<GetArtifactsByContextResponse> {
+  GetArtifactsByContext(
+    request: GetArtifactsByContextRequest,
+  ): Promise<GetArtifactsByContextResponse> {
     const data = GetArtifactsByContextRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "GetArtifactsByContext", data);
+    const promise = this.rpc.request(this.service, 'GetArtifactsByContext', data);
     return promise.then((data) => GetArtifactsByContextResponse.decode(_m0.Reader.create(data)));
   }
 
-  GetExecutionsByContext(request: GetExecutionsByContextRequest): Promise<GetExecutionsByContextResponse> {
+  GetExecutionsByContext(
+    request: GetExecutionsByContextRequest,
+  ): Promise<GetExecutionsByContextResponse> {
     const data = GetExecutionsByContextRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "GetExecutionsByContext", data);
+    const promise = this.rpc.request(this.service, 'GetExecutionsByContext', data);
     return promise.then((data) => GetExecutionsByContextResponse.decode(_m0.Reader.create(data)));
   }
 
   GetLineageGraph(request: GetLineageGraphRequest): Promise<GetLineageGraphResponse> {
     const data = GetLineageGraphRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "GetLineageGraph", data);
+    const promise = this.rpc.request(this.service, 'GetLineageGraph', data);
     return promise.then((data) => GetLineageGraphResponse.decode(_m0.Reader.create(data)));
   }
 
   GetLineageSubgraph(request: GetLineageSubgraphRequest): Promise<GetLineageSubgraphResponse> {
     const data = GetLineageSubgraphRequest.encode(request).finish();
-    const promise = this.rpc.request(this.service, "GetLineageSubgraph", data);
+    const promise = this.rpc.request(this.service, 'GetLineageSubgraph', data);
     return promise.then((data) => GetLineageSubgraphResponse.decode(_m0.Reader.create(data)));
   }
 }
@@ -11877,22 +12517,27 @@ interface Rpc {
 
 type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
 
-export type DeepPartial<T> = T extends Builtin ? T
-  : T extends globalThis.Array<infer U> ? globalThis.Array<DeepPartial<U>>
-  : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
-  : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }
+export type DeepPartial<T> = T extends Builtin
+  ? T
+  : T extends globalThis.Array<infer U>
+  ? globalThis.Array<DeepPartial<U>>
+  : T extends ReadonlyArray<infer U>
+  ? ReadonlyArray<DeepPartial<U>>
+  : T extends {}
+  ? { [K in keyof T]?: DeepPartial<T[K]> }
   : Partial<T>;
 
 type KeysOfUnion<T> = T extends T ? keyof T : never;
-export type Exact<P, I extends P> = P extends Builtin ? P
+export type Exact<P, I extends P> = P extends Builtin
+  ? P
   : P & { [K in keyof P]: Exact<P[K], I[K]> } & { [K in Exclude<keyof I, KeysOfUnion<P>>]: never };
 
 function longToNumber(long: Long): number {
   if (long.gt(globalThis.Number.MAX_SAFE_INTEGER)) {
-    throw new globalThis.Error("Value is larger than Number.MAX_SAFE_INTEGER");
+    throw new globalThis.Error('Value is larger than Number.MAX_SAFE_INTEGER');
   }
   if (long.lt(globalThis.Number.MIN_SAFE_INTEGER)) {
-    throw new globalThis.Error("Value is smaller than Number.MIN_SAFE_INTEGER");
+    throw new globalThis.Error('Value is smaller than Number.MIN_SAFE_INTEGER');
   }
   return long.toNumber();
 }
@@ -11903,7 +12548,7 @@ if (_m0.util.Long !== Long) {
 }
 
 function isObject(value: any): boolean {
-  return typeof value === "object" && value !== null;
+  return typeof value === 'object' && value !== null;
 }
 
 function isSet(value: any): boolean {

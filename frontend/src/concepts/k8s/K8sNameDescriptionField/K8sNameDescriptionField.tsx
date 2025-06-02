@@ -16,6 +16,7 @@ import {
 import ResourceNameDefinitionTooltip from '~/concepts/k8s/ResourceNameDefinitionTooltip';
 import { handleUpdateLogic, setupDefaults } from '~/concepts/k8s/K8sNameDescriptionField/utils';
 import ResourceNameField from '~/concepts/k8s/K8sNameDescriptionField/ResourceNameField';
+import { CharLimitHelperText } from '~/components/CharLimitHelperText';
 
 /** Companion data hook */
 export const useK8sNameDescriptionFieldData = (
@@ -41,6 +42,9 @@ type K8sNameDescriptionFieldProps = {
   nameHelperText?: React.ReactNode;
   onDataChange?: UseK8sNameDescriptionFieldData['onDataChange'];
   hideDescription?: boolean;
+  maxLength?: number;
+  maxLengthDesc?: number;
+  hideCharacterCount?: boolean;
 };
 
 /**
@@ -56,10 +60,16 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
   nameLabel = 'Name',
   nameHelperText,
   hideDescription,
+  maxLength,
+  maxLengthDesc,
+  hideCharacterCount,
 }) => {
   const [showK8sField, setShowK8sField] = React.useState(false);
 
   const { name, description, k8sName } = data;
+
+  const showNameWarning = maxLength && name.length > maxLength - 10;
+  const showDescWarning = maxLengthDesc && description.length > maxLengthDesc - 250;
 
   return (
     <>
@@ -73,8 +83,16 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
           isRequired
           value={name}
           onChange={(event, value) => onDataChange?.('name', value)}
+          maxLength={maxLength}
         />
-        {nameHelperText || (!showK8sField && !k8sName.state.immutable) ? (
+        {showNameWarning && (
+          <HelperText>
+            <HelperTextItem>
+              Cannot exceed {maxLength} characters ({maxLength - name.length} remaining)
+            </HelperTextItem>
+          </HelperText>
+        )}
+        {(nameHelperText || (!showK8sField && !k8sName.state.immutable)) && (
           <HelperText>
             {nameHelperText && <HelperTextItem>{nameHelperText}</HelperTextItem>}
             {!showK8sField && !k8sName.state.immutable && (
@@ -98,7 +116,8 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
               </>
             )}
           </HelperText>
-        ) : null}
+        )}
+        {!hideCharacterCount && maxLength && <CharLimitHelperText limit={maxLength} />}
       </FormGroup>
       <ResourceNameField
         allowEdit={showK8sField}
@@ -116,7 +135,17 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
             value={description}
             onChange={(event, value) => onDataChange?.('description', value)}
             resizeOrientation="vertical"
+            maxLength={maxLengthDesc}
           />
+          {showDescWarning && (
+            <HelperText>
+              <HelperTextItem>
+                Cannot exceed {maxLengthDesc} characters ({maxLengthDesc - description.length}{' '}
+                remaining)
+              </HelperTextItem>
+            </HelperText>
+          )}
+          {!hideCharacterCount && maxLengthDesc && <CharLimitHelperText limit={maxLengthDesc} />}
         </FormGroup>
       ) : null}
     </>

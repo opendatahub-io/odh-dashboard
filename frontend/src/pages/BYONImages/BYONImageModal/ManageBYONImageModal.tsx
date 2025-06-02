@@ -136,6 +136,9 @@ const ManageBYONImageModal: React.FC<ManageBYONImageModalProps> = ({ existingIma
             data={byonNameDesc}
             onDataChange={setByonNameDesc}
             dataTestId="byon-image"
+            maxLength={250}
+            maxLengthDesc={5500}
+            hideCharacterCount
           />
           {isHardwareProfileAvailable ? (
             <FormGroup
