@@ -39,6 +39,7 @@ type K8sNameDescriptionFieldProps = {
   descriptionLabel?: string;
   nameLabel?: string;
   nameHelperText?: React.ReactNode;
+  descriptionHelperText?: React.ReactNode;
   onDataChange?: UseK8sNameDescriptionFieldData['onDataChange'];
   hideDescription?: boolean;
 };
@@ -55,6 +56,7 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
   onDataChange,
   nameLabel = 'Name',
   nameHelperText,
+  descriptionHelperText,
   hideDescription,
 }) => {
   const [showK8sField, setShowK8sField] = React.useState(false);
@@ -117,6 +119,11 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
             onChange={(event, value) => onDataChange?.('description', value)}
             resizeOrientation="vertical"
           />
+          {descriptionHelperText && (
+            <HelperText>
+              <HelperTextItem>{descriptionHelperText}</HelperTextItem>
+            </HelperText>
+          )}
         </FormGroup>
       ) : null}
     </>

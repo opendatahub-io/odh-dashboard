@@ -102,7 +102,7 @@ const RunPage: React.FC<RunPageProps> = ({
     experiment: locationExperiment || contextExperiment || defaultExperiment,
   });
 
-  const [isNameValid, setIsNameValid] = React.useState(true);
+  const [isValid, setIsValid] = React.useState(false);
 
   const onValueChange = React.useCallback(
     (key: keyof RunFormData, value: ValueOf<RunFormData>) => setFormDataValue(key, value),
@@ -117,12 +117,12 @@ const RunPage: React.FC<RunPageProps> = ({
             isDuplicated={!!duplicateRun}
             data={formData}
             onValueChange={onValueChange}
-            onValidationChange={setIsNameValid}
+            onValidationChange={setIsValid}
           />
         </GenericSidebar>
       </PageSection>
       <PageSection hasBodyWrapper={false} stickyOnBreakpoint={{ default: 'bottom' }}>
-        <RunPageFooter data={formData} contextPath={contextPath} isCreateDisabled={!isNameValid} />
+        <RunPageFooter data={formData} contextPath={contextPath} isValid={isValid} />
       </PageSection>
     </div>
   );

@@ -32,16 +32,20 @@ export enum LimitNameResourceType {
   WORKBENCH,
   // TODO: Support Model Serving?
   PVC,
+  /** Pipeline runs have a max length of 255 characters */
+  PIPELINE_RUN,
 }
 /** K8s max DNS subdomain name length */
 const MAX_RESOURCE_NAME_LENGTH = 253;
 
 const MAX_PVC_NAME_LENGTH = 63;
+const MAX_PIPELINE_RUN_NAME_LENGTH = 255;
 
 export const resourceTypeLimits: Record<LimitNameResourceType, number> = {
   [LimitNameResourceType.PROJECT]: ROUTE_BASED_NAME_LENGTH,
   [LimitNameResourceType.WORKBENCH]: ROUTE_BASED_NAME_LENGTH,
   [LimitNameResourceType.PVC]: MAX_PVC_NAME_LENGTH,
+  [LimitNameResourceType.PIPELINE_RUN]: MAX_PIPELINE_RUN_NAME_LENGTH,
 };
 
 export const isK8sNameDescriptionType = (

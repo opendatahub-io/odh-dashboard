@@ -15,18 +15,18 @@ import {
 type RunPageFooterProps = {
   data: RunFormData;
   contextPath: string;
-  isCreateDisabled?: boolean;
+  isValid?: boolean;
 };
 
 const eventName = 'Pipeline Run Triggered';
-const RunPageFooter: React.FC<RunPageFooterProps> = ({ data, contextPath, isCreateDisabled }) => {
+const RunPageFooter: React.FC<RunPageFooterProps> = ({ data, contextPath, isValid = true }) => {
   const { api } = usePipelinesAPI();
   const runType = data.runType.type;
   const navigate = useNavigate();
   const [isSubmitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState<Error | null>(null);
 
-  const canSubmit = isFilledRunFormData(data);
+  const canSubmit = isFilledRunFormData(data) && isValid;
 
   return (
     <Stack hasGutter>
@@ -43,7 +43,7 @@ const RunPageFooter: React.FC<RunPageFooterProps> = ({ data, contextPath, isCrea
             <Button
               variant="primary"
               data-testid="run-page-submit-button"
-              isDisabled={!canSubmit || isSubmitting || isCreateDisabled}
+              isDisabled={!canSubmit || isSubmitting}
               onClick={() => {
                 setSubmitting(true);
                 setError(null);

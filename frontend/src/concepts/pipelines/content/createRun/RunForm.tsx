@@ -1,5 +1,13 @@
 import * as React from 'react';
-import { Form, FormSection } from '@patternfly/react-core';
+import { Form, FormSection, HelperText, HelperTextItem } from '@patternfly/react-core';
+import { ExclamationCircleIcon } from '@patternfly/react-icons';
+import K8sNameDescriptionField, {
+  useK8sNameDescriptionFieldData,
+} from '#~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
+import {
+  LimitNameResourceType,
+  isK8sNameDescriptionDataValid,
+} from '#~/concepts/k8s/K8sNameDescriptionField/utils';
 import {
   PipelineVersionToUse,
   RunFormData,
@@ -22,21 +30,17 @@ import { DuplicateNameHelperText } from '#~/concepts/pipelines/content/Duplicate
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import useDebounceCallback from '#~/utilities/useDebounceCallback';
 import { isArgoWorkflow } from '#~/concepts/pipelines/content/tables/utils';
-import {
-  NAME_CHARACTER_LIMIT,
-  DESCRIPTION_CHARACTER_LIMIT,
-} from '~/concepts/pipelines/content/const';
-import K8sNameDescriptionField from '~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
+import { CharLimitHelperText } from '#~/components/CharLimitHelperText';
+import { getInputDefinitionParams } from './utils';
+import { CreateRunPageSections, runPageSectionTitles } from './const';
 import PipelineSection from './contentSections/PipelineSection';
 import { RunTypeSection } from './contentSections/RunTypeSection';
-import { CreateRunPageSections, runPageSectionTitles } from './const';
-import { getInputDefinitionParams } from './utils';
 
 type RunFormProps = {
   data: RunFormData;
   onValueChange: (key: keyof RunFormData, value: ValueOf<RunFormData>) => void;
   isDuplicated: boolean;
-  onValidationChange?: (isValid: boolean) => void;
+  onValidationChange: (isValid: boolean) => void;
 };
 
 const RunForm: React.FC<RunFormProps> = ({
@@ -60,8 +64,27 @@ const RunForm: React.FC<RunFormProps> = ({
 
   const paramsRef = React.useRef(data.params);
   const isSchedule = data.runType.type === RunTypeOption.SCHEDULED;
-  const { name } = data.nameDesc;
   const [hasDuplicateName, setHasDuplicateName] = React.useState(false);
+
+  const { data: nameDescData, onDataChange: setNameDescData } = useK8sNameDescriptionFieldData({
+    initialData: {
+      name: data.nameDesc.name,
+      description: data.nameDesc.description,
+    },
+    limitNameResourceType: LimitNameResourceType.PIPELINE_RUN,
+  });
+
+  const nameDesc = React.useMemo(
+    () => ({
+      name: nameDescData.name,
+      description: nameDescData.description,
+    }),
+    [nameDescData],
+  );
+
+  React.useEffect(() => {
+    onValueChange('nameDesc', nameDesc);
+  }, [nameDesc, onValueChange]);
 
   const checkForDuplicateName = useDebounceCallback(
     React.useCallback(
@@ -113,6 +136,19 @@ const RunForm: React.FC<RunFormProps> = ({
     }
   }, [initialLoadedState, latestVersion, onValueChange, updateInputParams]);
 
+  const isValid = React.useMemo(
+    () =>
+      isK8sNameDescriptionDataValid(nameDescData) &&
+      !hasDuplicateName &&
+      nameDescData.name.length <= nameDescData.k8sName.state.maxLength &&
+      nameDescData.description.length <= nameDescData.k8sName.state.maxLength,
+    [nameDescData, hasDuplicateName],
+  );
+
+  React.useEffect(() => {
+    onValidationChange(isValid);
+  }, [isValid, onValidationChange]);
+
   return (
     <Form onSubmit={(e) => e.preventDefault()} maxWidth="500px">
       <RunTypeSection data={data} isDuplicated={isDuplicated} />
@@ -133,34 +169,35 @@ const RunForm: React.FC<RunFormProps> = ({
       >
         <K8sNameDescriptionField
           dataTestId="run"
-          data={{
-            name: data.nameDesc.name,
-            description: data.nameDesc.description,
-            k8sName: {
-              value: data.nameDesc.name,
-              state: {
-                immutable: false,
-                invalidCharacters: false,
-                invalidLength: false,
-                maxLength: NAME_CHARACTER_LIMIT,
-                touched: false,
-              },
-            },
-          }}
+          data={nameDescData}
           onDataChange={(key, value) => {
+            setNameDescData(key, value);
             if (key === 'name') {
               setHasDuplicateName(false);
               checkForDuplicateName(value);
             }
-            onValueChange('nameDesc', {
-              ...data.nameDesc,
-              [key]: value,
-            });
           }}
-          maxLengthName={NAME_CHARACTER_LIMIT}
-          maxLengthDesc={DESCRIPTION_CHARACTER_LIMIT}
-          onValidationChange={onValidationChange}
-          nameHelperText={hasDuplicateName ? <DuplicateNameHelperText name={name} /> : undefined}
+          nameHelperText={
+            <>
+              {hasDuplicateName && <DuplicateNameHelperText name={nameDescData.name} />}
+              {nameDescData.name.length > nameDescData.k8sName.state.maxLength && (
+                <HelperText>
+                  <HelperTextItem variant="error" icon={<ExclamationCircleIcon />}>
+                    <CharLimitHelperText limit={nameDescData.k8sName.state.maxLength} />
+                  </HelperTextItem>
+                </HelperText>
+              )}
+            </>
+          }
+          descriptionHelperText={
+            nameDescData.description.length > nameDescData.k8sName.state.maxLength && (
+              <HelperText>
+                <HelperTextItem variant="error" icon={<ExclamationCircleIcon />}>
+                  <CharLimitHelperText limit={nameDescData.k8sName.state.maxLength} />
+                </HelperTextItem>
+              </HelperText>
+            )
+          }
         />
 
         {isSchedule && data.runType.type === RunTypeOption.SCHEDULED && (
