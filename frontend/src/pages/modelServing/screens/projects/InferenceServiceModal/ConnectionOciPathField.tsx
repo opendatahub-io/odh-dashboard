@@ -73,7 +73,7 @@ const ConnectionOciPathField: React.FC<ConnectionOciPathFieldProps> = ({
                   setModelUri(value);
                 }}
                 onBlur={() => {
-                  setModelUri(addUriPrefix(modelUri));
+                  setModelUri(addUriPrefix(hideUriPrefix(modelUri)));
                 }}
               />
             </InputGroupItem>
