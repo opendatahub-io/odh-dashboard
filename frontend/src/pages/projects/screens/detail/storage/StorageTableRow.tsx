@@ -22,7 +22,6 @@ import {
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import { getStorageClassConfig } from '#~/pages/storageClasses/utils';
 import AccessModeLabel from '#~/pages/projects/screens/detail/storage/AccessModeLabel';
-import { AccessMode } from '#~/pages/storageClasses/storageEnums';
 import useIsRootVolume from './useIsRootVolume';
 import StorageWarningStatus from './StorageWarningStatus';
 import { StorageTableData } from './types';
