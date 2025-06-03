@@ -130,32 +130,32 @@ export const StorageClassesTableRow: React.FC<StorageClassesTableRowProps> = ({ 
     <Tr>
       <Td modifier="truncate" dataLabel={ColumnLabel.DisplayName}>
         {hasReadableConfig ? (
-          <StrorageClassConfigValue
-            alert={
-              <CorruptedMetadataAlert
-                popoverText="Edit the invalid field(s) and save your changes to correct the corrupted metadata."
-                action={
-                  <Button
-                    icon={<PencilAltIcon />}
-                    variant="plain"
-                    aria-label="Corrupt metadata name/description edit button"
-                    onClick={() => {
-                      editModalAlertRef.current = {
-                        title:
-                          'Edit the invalid field(s) and save your changes to correct the corrupted metadata.',
-                      };
-                      setIsEditModalOpen(true);
-                    }}
+          <Flex spaceItems={{ default: 'spaceItemsNone' }}>
+            <FlexItem flex={{ default: 'flex_1' }}>
+              <StrorageClassConfigValue
+                alert={
+                  <CorruptedMetadataAlert
+                    popoverText="Edit the invalid field(s) and save your changes to correct the corrupted metadata."
+                    action={
+                      <Button
+                        icon={<PencilAltIcon />}
+                        variant="plain"
+                        aria-label="Corrupt metadata name/description edit button"
+                        onClick={() => {
+                          editModalAlertRef.current = {
+                            title:
+                              'Edit the invalid field(s) and save your changes to correct the corrupted metadata.',
+                          };
+                          setIsEditModalOpen(true);
+                        }}
+                      />
+                    }
                   />
                 }
-              />
-            }
-          >
-            <Flex>
-              {isValidConfigValue('displayName', storageClassConfig.displayName) &&
-                (!storageClassConfig.description ||
-                  isValidConfigValue('description', storageClassConfig.description)) && (
-                  <FlexItem flex={{ default: 'flex_1' }}>
+              >
+                {isValidConfigValue('displayName', storageClassConfig.displayName) &&
+                  (!storageClassConfig.description ||
+                    isValidConfigValue('description', storageClassConfig.description)) && (
                     <TableRowTitleDescription
                       title={<TableText>{storageClassConfig.displayName}</TableText>}
                       description={
@@ -164,33 +164,36 @@ export const StorageClassesTableRow: React.FC<StorageClassesTableRowProps> = ({ 
                         )
                       }
                     />
-                  </FlexItem>
-                )}
-              <FlexItem>
-                <LabelGroup>
-                  {Object.values(AccessMode)
-                    .filter(
-                      (modeValue) =>
-                        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-                        storageClassConfig.accessModeSettings && // This check is necessary for runtime safety
-                        storageClassConfig.accessModeSettings[modeValue] &&
-                        modeValue !== AccessMode.RWO,
-                    )
-                    .map((modeValue) => (
-                      <Label
-                        key={modeValue}
-                        color="blue"
-                        isCompact
-                        variant="outline"
-                        data-testid="access-label"
-                      >
-                        {AccessModeLabelMap[modeValue]}
-                      </Label>
-                    ))}
-                </LabelGroup>
-              </FlexItem>
-            </Flex>
-          </StrorageClassConfigValue>
+                  )}
+              </StrorageClassConfigValue>
+            </FlexItem>
+            {
+              // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+              storageClassConfig.accessModeSettings && ( // This check is necessary for runtime safety
+                <FlexItem>
+                  <LabelGroup>
+                    {Object.values(AccessMode)
+                      .filter(
+                        (modeValue) =>
+                          storageClassConfig.accessModeSettings[modeValue] &&
+                          modeValue !== AccessMode.RWO,
+                      )
+                      .map((modeValue) => (
+                        <Label
+                          key={modeValue}
+                          color="blue"
+                          isCompact
+                          variant="outline"
+                          data-testid="access-label"
+                        >
+                          {AccessModeLabelMap[modeValue]}
+                        </Label>
+                      ))}
+                  </LabelGroup>
+                </FlexItem>
+              )
+            }
+          </Flex>
         ) : (
           '-'
         )}
