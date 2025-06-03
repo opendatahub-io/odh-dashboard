@@ -75,7 +75,7 @@ const DeploymentsTable: React.FC<{
         data={deployments ?? []}
         rowRenderer={(row: Deployment) => (
           <DeploymentRow
-            key={row.model.metadata?.name}
+            key={row.model.metadata.name}
             deployment={row}
             platformColumns={platformColumns}
             onDelete={() => setDeleteDeployment(row)}

@@ -4,6 +4,7 @@ import ResourceTr from '@odh-dashboard/internal/components/ResourceTr';
 import { ModelStatusIcon } from '@odh-dashboard/internal/concepts/modelServing/ModelStatusIcon';
 import { TableRowTitleDescription } from '@odh-dashboard/internal/components/table/index';
 import { InferenceServiceModelState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
+import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils.js';
 import { Deployment, DeploymentsTableColumn } from '../../../extension-points';
 
 export const DeploymentRow: React.FC<{
@@ -14,7 +15,7 @@ export const DeploymentRow: React.FC<{
   <ResourceTr resource={deployment.model}>
     <Td dataLabel="Name">
       <TableRowTitleDescription
-        title={deployment.model.metadata?.name}
+        title={getDisplayNameFromK8sResource(deployment.model)}
         resource={deployment.model}
       />
     </Td>

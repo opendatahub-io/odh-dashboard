@@ -28,7 +28,7 @@ const DeleteModelServingModal: React.FC<DeleteModelServingModalProps> = ({
   );
 
   const onDelete = async () => {
-    if (!deployment.model.metadata?.name) {
+    if (!deployment.model.metadata.name) {
       return;
     }
 
@@ -57,7 +57,7 @@ const DeleteModelServingModal: React.FC<DeleteModelServingModalProps> = ({
       <Spinner />
     </Bullseye>
   ) : (
-    deployment.model.metadata?.name && (
+    deployment.model.metadata.name && (
       <DeleteModal
         title={deleteModal.properties.title}
         onClose={() => onBeforeClose(false)}
