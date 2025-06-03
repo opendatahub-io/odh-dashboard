@@ -47,7 +47,7 @@ export const defaultClusterStorage = {
   description: '',
   size: '20Gi',
   mountPath: MOUNT_PATH_PREFIX,
-  accessMode: 'ReadWriteOnce',
+  accessMode: AccessMode.RWO,
 };
 
 export const ACCESS_MODE_RADIO_NAMES: Record<AccessMode, string> = {
