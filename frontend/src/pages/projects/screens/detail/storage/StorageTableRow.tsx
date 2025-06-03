@@ -21,6 +21,8 @@ import {
 } from '#~/concepts/k8s/utils';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import { getStorageClassConfig } from '#~/pages/storageClasses/utils';
+import AccessModeLabel from '#~/pages/projects/screens/detail/storage/AccessModeLabel';
+import { AccessMode } from '#~/pages/storageClasses/storageEnums';
 import useIsRootVolume from './useIsRootVolume';
 import StorageWarningStatus from './StorageWarningStatus';
 import { StorageTableData } from './types';
@@ -43,7 +45,6 @@ const StorageTableRow: React.FC<StorageTableRowProps> = ({
   onAddPVC,
 }) => {
   const isRootVolume = useIsRootVolume(obj.pvc);
-
   const isStorageClassesAvailable = useIsAreaAvailable(SupportedArea.STORAGE_CLASSES).status;
   const workbenchEnabled = useIsAreaAvailable(SupportedArea.WORKBENCHES).status;
   const storageClassConfig = obj.storageClass && getStorageClassConfig(obj.storageClass);
@@ -139,6 +140,13 @@ const StorageTableRow: React.FC<StorageTableRowProps> = ({
           </Content>
         </Td>
       )}
+      <Td dataLabel="Access Mode">
+        <Content component="p">
+          <Flex>
+            <AccessModeLabel accessModeString={obj.accessModes?.[0]} />
+          </Flex>
+        </Content>
+      </Td>
       <Td dataLabel="Type">
         <Content component="p">
           <Flex>

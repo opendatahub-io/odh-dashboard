@@ -65,6 +65,7 @@ export type StorageData = {
   existingName?: string;
   existingPvc?: PersistentVolumeClaimKind;
   id?: number;
+  accessMode?: string;
 };
 
 export type StartNotebookData = {

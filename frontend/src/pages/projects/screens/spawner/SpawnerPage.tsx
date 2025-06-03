@@ -140,6 +140,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
             size: defaultClusterStorage.size || defaultNotebookSize,
             storageClassName: defaultStorageClassName,
             mountPath: defaultClusterStorage.mountPath,
+            accessMode: defaultClusterStorage.accessMode,
           },
         ],
   );
