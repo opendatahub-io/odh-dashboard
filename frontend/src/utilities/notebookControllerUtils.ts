@@ -190,6 +190,19 @@ export const validateNotebookNamespaceRoleBinding = async (
   );
 };
 
+export const getNotebookRedirectLink = async (
+  notebookNamespace: string,
+  routeName: string,
+): Promise<string | undefined> => {
+  try {
+    const route = await getRoute(notebookNamespace, routeName);
+    return `https://${route.spec.host}/notebook/${notebookNamespace}/${routeName}`;
+  } catch (e) {
+    // console.warn('Unable to get the route for notebook redirect link', e);
+    return undefined;
+  }
+};
+
 export const useNotebookRedirectLink = (): (() => Promise<string>) => {
   const { currentUserNotebook, currentUserNotebookLink } =
     React.useContext(NotebookControllerContext);
