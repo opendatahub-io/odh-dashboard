@@ -1,4 +1,4 @@
-import { LMEvaluationKind } from '#~/k8sTypes';
+import { LMEvalKind } from '#~/k8sTypes';
 
 type MockLMEvaluationConfigType = {
   name?: string;
@@ -20,7 +20,7 @@ type MockLMEvaluationConfigType = {
   lastScheduleTime?: string;
 };
 
-export const mockLMEvaluation = (config: MockLMEvaluationConfigType = {}): LMEvaluationKind => {
+export const mockLMEvaluation = (config: MockLMEvaluationConfigType = {}): LMEvalKind => {
   const {
     name = 'test-lm-evaluation',
     namespace = 'test-project',
