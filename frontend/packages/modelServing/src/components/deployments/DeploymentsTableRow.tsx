@@ -4,7 +4,7 @@ import ResourceTr from '@odh-dashboard/internal/components/ResourceTr';
 import { ModelStatusIcon } from '@odh-dashboard/internal/concepts/modelServing/ModelStatusIcon';
 import { TableRowTitleDescription } from '@odh-dashboard/internal/components/table/index';
 import { InferenceServiceModelState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
-import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils.js';
+import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
 import { Deployment, DeploymentsTableColumn } from '../../../extension-points';
 
 export const DeploymentRow: React.FC<{
