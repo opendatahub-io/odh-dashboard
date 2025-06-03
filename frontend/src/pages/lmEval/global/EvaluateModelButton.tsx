@@ -12,10 +12,10 @@ const EvaluateModelButton: React.FC = () => {
 
   const deployButton = (
     <Button
-      data-testid="deploy-button"
+      data-testid="evaluate-model-button"
       variant="primary"
       isAriaDisabled={!project}
-      onClick={() => project && navigate(`/lmEval/${project.metadata.name}/evaluate`)}
+      onClick={() => project && navigate(`/modelEvaluations/${project.metadata.name}/evaluate`)}
     >
       Evaluate model
     </Button>
