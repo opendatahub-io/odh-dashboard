@@ -492,12 +492,7 @@ describe('Storage classes', () => {
       storageClassesPage.visit();
       storageClassesTable.getRowByConfigName('Test SC 1').findKebabAction('Edit').click();
 
-      storageClassEditModal
-        .findAccessModeCheckbox('rwo')
-        .should('be.enabled')
-        .and('be.checked')
-        .click()
-        .should('be.checked');
+      storageClassEditModal.findAccessModeCheckbox('rwo').should('be.disabled').and('be.checked');
 
       storageClassEditModal
         .findAccessModeCheckbox('rwx')

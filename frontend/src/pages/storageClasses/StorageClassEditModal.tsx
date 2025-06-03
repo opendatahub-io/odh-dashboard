@@ -57,7 +57,7 @@ export const StorageClassEditModal: React.FC<StorageClassEditModalProps> = ({
       : '',
   );
   const [accessModeSettings, setAccessModeSettings] = React.useState(
-    storageClassConfig?.accessModeSettings ?? {},
+    storageClassConfig?.accessModeSettings ?? { [AccessMode.RWO]: true },
   );
   const [showAccessModeAlert, setShowAccessModeAlert] = React.useState(false);
 
@@ -167,43 +167,48 @@ export const StorageClassEditModal: React.FC<StorageClassEditModalProps> = ({
             fieldId="edit-sc-access-mode"
             isStack
           >
-            {Object.entries(AccessMode).map(([modeLabel, modeName]) => (
-              <Tooltip
-                content="This mode is not available in this class."
-                key={`${modeLabel}-tooltip`}
-                hidden={modeName in accessModeSettings}
-                position="top-start"
-                data-testid={`edit-sc-access-mode-tooltip-${modeLabel.toLowerCase()}`}
-              >
+            {Object.entries(AccessMode).map(([modeLabel, modeName]) => {
+              const isSupported = modeName in accessModeSettings;
+              const checkbox = (
                 <Checkbox
                   label={`${modeName} (${modeLabel})`}
                   description={accessModeDescriptions[modeName]}
-                  isDisabled={!(modeName in accessModeSettings)}
-                  isChecked={modeName in accessModeSettings && accessModeSettings[modeName]}
+                  isDisabled={!isSupported || modeName === AccessMode.RWO}
+                  isChecked={isSupported && accessModeSettings[modeName]}
                   aria-label={modeLabel}
                   key={modeLabel}
                   id={`edit-sc-access-mode-${modeLabel.toLowerCase()}`}
                   data-testid={`edit-sc-access-mode-checkbox-${modeLabel.toLowerCase()}`}
                   onChange={(_, enabled) => {
-                    if (modeName !== AccessMode.RWO) {
-                      if (
-                        modeName === AccessMode.RWX &&
-                        !enabled &&
-                        storageClassConfig?.accessModeSettings[AccessMode.RWX]
-                      ) {
+                    if (modeName === AccessMode.RWX) {
+                      if (!enabled && storageClassConfig?.accessModeSettings[AccessMode.RWX]) {
                         setShowAccessModeAlert(true);
-                      } else if (modeName === AccessMode.RWX && enabled) {
+                      } else {
                         setShowAccessModeAlert(false);
                       }
-                      setAccessModeSettings((prev) => ({
-                        ...prev,
-                        [modeName]: enabled,
-                      }));
                     }
+                    setAccessModeSettings((prev) => ({
+                      ...prev,
+                      [modeName]: enabled,
+                    }));
                   }}
                 />
-              </Tooltip>
-            ))}
+              );
+
+              if (!isSupported) {
+                return (
+                  <Tooltip
+                    content="This mode is not available in this class."
+                    key={`${modeLabel}-tooltip`}
+                    position="top-start"
+                  >
+                    {checkbox}
+                  </Tooltip>
+                );
+              }
+
+              return checkbox;
+            })}
           </FormGroup>
           {showAccessModeAlert && (
             <Alert
