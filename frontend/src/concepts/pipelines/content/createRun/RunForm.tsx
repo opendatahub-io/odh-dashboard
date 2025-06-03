@@ -23,7 +23,7 @@ import {
   RuntimeConfigParameters,
 } from '#~/concepts/pipelines/kfTypes';
 import ProjectAndExperimentSection from '#~/concepts/pipelines/content/createRun/contentSections/ProjectAndExperimentSection';
-import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
+import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '#~/concepts/k8s/utils';
 import { useLatestPipelineVersion } from '#~/concepts/pipelines/apiHooks/useLatestPipelineVersion';
 import { getNameEqualsFilter } from '#~/concepts/pipelines/utils';
 import { DuplicateNameHelperText } from '#~/concepts/pipelines/content/DuplicateNameHelperText';
@@ -70,6 +70,7 @@ const RunForm: React.FC<RunFormProps> = ({
     initialData: {
       name: data.nameDesc.name,
       description: data.nameDesc.description,
+      k8sName: translateDisplayNameForK8s(data.nameDesc.name),
     },
     limitNameResourceType: LimitNameResourceType.PIPELINE_RUN,
   });

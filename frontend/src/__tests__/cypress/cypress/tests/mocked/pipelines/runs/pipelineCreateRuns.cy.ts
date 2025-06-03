@@ -99,12 +99,14 @@ const initialMockRuns = [
   buildMockRunKF({
     pipeline_version_reference: pipelineVersionRef,
     experiment_id: 'experiment-1',
+    description: 'Duplicate run description',
   }),
 ];
 const initialMockRecurringRuns = [
   buildMockRecurringRunKF({
     pipeline_version_reference: pipelineVersionRef,
     experiment_id: 'experiment-1',
+    description: 'Duplicate schedule description',
   }),
 ];
 const mockPipelineYamlPath = `./cypress/tests/mocked/pipelines/mock-upload-pipeline.yaml`;
@@ -305,6 +307,7 @@ describe('Pipeline create runs', () => {
       cy.wait('@duplicateRun').then((interception) => {
         expect(interception.request.body).to.eql({
           display_name: 'Duplicate of Test run',
+          description: 'Duplicate run description',
           pipeline_version_reference: {
             pipeline_id: 'test-pipeline',
             pipeline_version_id: 'test-pipeline-version',
@@ -855,6 +858,7 @@ describe('Pipeline create runs', () => {
       cy.wait('@duplicateSchedule').then((interception) => {
         expect(interception.request.body).to.eql({
           display_name: 'Duplicate of Test recurring run',
+          description: 'Duplicate schedule description',
           pipeline_version_reference: {
             pipeline_id: 'test-pipeline',
             pipeline_version_id: 'test-pipeline-version',
@@ -1195,14 +1199,82 @@ const initIntercepts = () => {
     {
       path: { namespace: projectName, serviceName: 'dspa' },
     },
-    { recurringRuns: initialMockRecurringRuns, total_size: initialMockRecurringRuns.length },
+    (req) => {
+      const { filter } = req.query;
+      if (filter && typeof filter === 'string') {
+        const decodedFilter = decodeURIComponent(filter);
+        const { predicates } = JSON.parse(decodedFilter);
+        const nameFilter = predicates.find(
+          (p: { key: string; operation: string }) => p.key === 'name' && p.operation === 'EQUALS',
+        );
+        if (nameFilter) {
+          // Check if the name matches any of our mock runs
+          const matchingRun = initialMockRecurringRuns.find(
+            (run) => run.display_name === nameFilter.string_value,
+          );
+          if (matchingRun) {
+            // This is a duplicate name check - return the matching run
+            req.reply({
+              recurringRuns: [matchingRun],
+              total_size: 1,
+            });
+            return;
+          }
+          // No matching run found - return empty list
+          req.reply({
+            recurringRuns: [],
+            total_size: 0,
+          });
+          return;
+        }
+      }
+      // For regular requests, return the mock data
+      req.reply({
+        recurringRuns: initialMockRecurringRuns,
+        total_size: initialMockRecurringRuns.length,
+      });
+    },
   );
   cy.interceptOdh(
     'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs',
     {
       path: { namespace: projectName, serviceName: 'dspa' },
     },
-    { runs: initialMockRuns, total_size: initialMockRuns.length },
+    (req) => {
+      const { filter } = req.query;
+      if (filter && typeof filter === 'string') {
+        const decodedFilter = decodeURIComponent(filter);
+        const { predicates } = JSON.parse(decodedFilter);
+        const nameFilter = predicates.find(
+          (p: { key: string; operation: string }) => p.key === 'name' && p.operation === 'EQUALS',
+        );
+        if (nameFilter) {
+          // Check if the name matches any of our mock runs
+          const matchingRun = initialMockRuns.find(
+            (run) => run.display_name === nameFilter.string_value,
+          );
+          if (matchingRun) {
+            // This is a duplicate name check - return the matching run
+            req.reply({
+              runs: [matchingRun],
+              total_size: 1,
+            });
+            return;
+          }
+          // No matching run found - return empty list
+          req.reply({
+            runs: [],
+            total_size: 0,
+          });
+          return;
+        }
+      }
+      // For regular requests, return the mock data
+      req.reply({
+        runs: initialMockRuns,
+        total_size: initialMockRuns.length,
+      });
+    },
   );
   cy.interceptOdh(
     'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/:pipelineId',
