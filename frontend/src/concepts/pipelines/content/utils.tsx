@@ -9,6 +9,7 @@ import {
   SyncAltIcon,
 } from '@patternfly/react-icons';
 import { Icon, LabelProps } from '@patternfly/react-core';
+import { RunStatus } from '@patternfly/react-topology/dist/esm/pipelines/types';
 import {
   PipelineCoreResourceKF,
   PipelineRecurringRunKF,
@@ -17,7 +18,6 @@ import {
   runtimeStateLabels,
 } from '#~/concepts/pipelines/kfTypes';
 import { getTimeRangeCategory, relativeTime } from '#~/utilities/time';
-import { StatusType } from '#~/concepts/pipelines/content/StatusIcon.tsx';
 import { K8sCondition } from '#~/k8sTypes.ts';
 
 export type RunStatusDetails = {
@@ -110,25 +110,24 @@ export const isPipelineRecurringRun = (
   resource: PipelineCoreResourceKF,
 ): resource is PipelineRecurringRunKF => 'recurring_run_id' in resource && !('run_id' in resource);
 
-export const getStatusFromCondition = (condition: K8sCondition): StatusType => {
+export const getStatusFromCondition = (condition: K8sCondition): RunStatus => {
   const { reason, status, lastTransitionTime } = condition;
-  console.log('condition to test.....', condition);
   if (reason === 'Deploying' && status === 'False') {
-    return 'in-progress';
+    return RunStatus.InProgress;
   }
   if (status === 'True') {
-    return 'success';
+    return RunStatus.Succeeded;
   }
   if (reason === 'FailingToDeploy') {
-    const rangeType = getTimeRangeCategory(lastTransitionTime);
+    const rangeType = getTimeRangeCategory(lastTransitionTime ?? '');
     switch (rangeType) {
       case 'shortRange':
-        return 'pending';
+        return RunStatus.Pending;
       case 'mediumRange':
-        return 'warning';
+        return RunStatus.Cancelled;
       case 'longRange':
-        return 'error;';
+        return RunStatus.Failed;
     }
   }
-  return 'pending';
+  return RunStatus.Pending;
 };
