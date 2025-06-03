@@ -6,8 +6,10 @@ import {
 } from '#~/pages/projects/screens/spawner/storage/utils';
 import { MountPathFormat } from '#~/pages/projects/screens/spawner/storage/types';
 import { MOUNT_PATH_PREFIX } from '#~/pages/projects/screens/spawner/storage/const';
-import { PersistentVolumeClaimKind } from '#~/k8sTypes';
+import { PersistentVolumeClaimKind, MetadataAnnotation } from '#~/k8sTypes';
 import { AccessMode } from '#~/pages/storageClasses/storageEnums';
+import { getPossibleStorageClassAccessModes } from '#~/pages/storageClasses/utils';
+import { mockStorageClasses } from '#~/__mocks__/mockStorageClasses';
 
 jest.mock('#~/pages/projects/screens/spawner/storage/useDefaultPvcSize.ts', () => ({
   __esModule: true,
@@ -154,5 +156,46 @@ describe('useMountPathFormat', () => {
 
     // Format should update to STANDARD
     expect(result.current[0]).toBe(MountPathFormat.STANDARD);
+  });
+});
+
+describe('getPossibleStorageClassAccessModes', () => {
+  it('returns empty arrays if no storageClass is provided', () => {
+    const result = getPossibleStorageClassAccessModes();
+    expect(result.openshiftSupportedAccessModes).toEqual([]);
+    expect(result.adminSupportedAccessModes).toEqual([]);
+    expect(result.selectedStorageClassConfig).toBeUndefined();
+  });
+
+  it('returns correct adminSupportedAccessModes from config', () => {
+    const storageClass = mockStorageClasses[1];
+    const result = getPossibleStorageClassAccessModes(storageClass);
+    expect(result.openshiftSupportedAccessModes).toEqual([
+      AccessMode.RWO,
+      AccessMode.RWX,
+      AccessMode.ROX,
+      AccessMode.RWOP,
+    ]);
+    expect(result.adminSupportedAccessModes).toEqual([AccessMode.RWO, AccessMode.RWX]);
+  });
+
+  it('filters out RWO if excludeRWO is true', () => {
+    const storageClass = mockStorageClasses[1];
+    const result = getPossibleStorageClassAccessModes(storageClass, { excludeRWO: true });
+    expect(result.adminSupportedAccessModes).toEqual([AccessMode.RWX]);
+  });
+
+  it('returns empty adminSupportedAccessModes if config accessModeSettings is empty', () => {
+    const storageClass = {
+      ...mockStorageClasses[0],
+      metadata: {
+        ...mockStorageClasses[0].metadata,
+        annotations: {
+          [MetadataAnnotation.OdhStorageClassConfig]: JSON.stringify({ accessModeSettings: {} }),
+        },
+      },
+    };
+    const result = getPossibleStorageClassAccessModes(storageClass);
+    expect(result.adminSupportedAccessModes).toEqual([]);
   });
 });

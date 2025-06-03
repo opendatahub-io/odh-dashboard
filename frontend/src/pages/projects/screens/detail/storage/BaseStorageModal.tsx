@@ -16,6 +16,11 @@ import usePreferredStorageClass from '#~/pages/projects/screens/spawner/storage/
 import useAdminDefaultStorageClass from '#~/pages/projects/screens/spawner/storage/useAdminDefaultStorageClass';
 import { useCreateStorageObject } from '#~/pages/projects/screens/spawner/storage/utils';
 import { StorageData } from '#~/pages/projects/types';
+import {
+  getDefaultAccessMode,
+  getPossibleStorageClassAccessModes,
+} from '#~/pages/storageClasses/utils';
+import useStorageClasses from '#~/concepts/k8s/useStorageClasses';
 
 type CreateStorageObjectData = Pick<
   StorageData,
@@ -49,21 +54,19 @@ const BaseStorageModal: React.FC<BaseStorageModalProps> = ({
   onClose,
   onNameChange,
 }) => {
-  const [createData, setCreateData] = useCreateStorageObject(existingPvc, existingData);
-  const [nameDescValid, setNameDescValid] = React.useState<boolean>();
   const isStorageClassesAvailable = useIsAreaAvailable(SupportedArea.STORAGE_CLASSES).status;
   const preferredStorageClass = usePreferredStorageClass();
   const [defaultStorageClass] = useAdminDefaultStorageClass();
+  const [createData, setCreateData] = useCreateStorageObject(existingPvc, existingData);
+  const [nameDescValid, setNameDescValid] = React.useState<boolean>();
   const [error, setError] = React.useState<Error | undefined>();
   const [actionInProgress, setActionInProgress] = React.useState(false);
+  const [storageClasses] = useStorageClasses();
 
   React.useEffect(() => {
     if (!existingPvc) {
-      if (isStorageClassesAvailable) {
-        setCreateData('storageClassName', defaultStorageClass?.metadata.name);
-      } else {
-        setCreateData('storageClassName', preferredStorageClass?.metadata.name);
-      }
+      const storageClass = isStorageClassesAvailable ? defaultStorageClass : preferredStorageClass;
+      setCreateData('storageClassName', storageClass?.metadata.name);
     }
   }, [
     isStorageClassesAvailable,
@@ -72,6 +75,20 @@ const BaseStorageModal: React.FC<BaseStorageModalProps> = ({
     existingPvc,
     setCreateData,
   ]);
+
+  React.useEffect(() => {
+    if (!existingPvc && createData.storageClassName) {
+      const storageClass = storageClasses.find(
+        (sc) => sc.metadata.name === createData.storageClassName,
+      );
+      setCreateData(
+        'accessMode',
+        getDefaultAccessMode(
+          getPossibleStorageClassAccessModes(storageClass).adminSupportedAccessModes,
+        ),
+      );
+    }
+  }, [createData.storageClassName, setCreateData, storageClasses, existingPvc]);
 
   const canCreate =
     !actionInProgress &&
@@ -113,7 +130,6 @@ const BaseStorageModal: React.FC<BaseStorageModalProps> = ({
                 hasDuplicateName={hasDuplicateName}
                 disableStorageClassSelect={!!existingPvc}
                 editableK8sName={!existingPvc}
-                existingAccessMode={existingPvc?.spec.accessModes[0]}
               />
             </StackItem>
             {children}

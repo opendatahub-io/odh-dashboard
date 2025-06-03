@@ -12,7 +12,6 @@ import {
   isK8sNameDescriptionDataValid,
   LimitNameResourceType,
 } from '#~/concepts/k8s/K8sNameDescriptionField/utils';
-import { AccessMode } from '#~/pages/storageClasses/storageEnums';
 import StorageClassSelect from './StorageClassSelect';
 import AccessModeField from './AccessModeField';
 
@@ -27,7 +26,6 @@ type CreateNewStorageSectionProps<D extends StorageData> = {
   setValid?: (isValid: boolean) => void;
   hasDuplicateName?: boolean;
   editableK8sName?: boolean;
-  existingAccessMode?: AccessMode;
 };
 
 const CreateNewStorageSection = <D extends StorageData>({
@@ -41,7 +39,6 @@ const CreateNewStorageSection = <D extends StorageData>({
   setValid,
   hasDuplicateName,
   editableK8sName,
-  existingAccessMode,
 }: CreateNewStorageSectionProps<D>): React.ReactNode => {
   const isStorageClassesAvailable = useIsAreaAvailable(SupportedArea.STORAGE_CLASSES).status;
   const { data: clusterStorageNameDesc, onDataChange: setClusterNameDesc } =
@@ -99,7 +96,8 @@ const CreateNewStorageSection = <D extends StorageData>({
       {isStorageClassesAvailable && (
         <AccessModeField
           storageClassName={data.storageClassName}
-          existingAccessMode={existingAccessMode}
+          currentAccessMode={data.accessMode}
+          canEditAccessMode={editableK8sName}
           setAccessMode={(accessMode) => setData('accessMode', accessMode)}
         />
       )}

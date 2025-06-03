@@ -14,8 +14,11 @@ import {
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import React from 'react';
 import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
-import { getStorageClassConfig } from '#~/pages/storageClasses/utils';
-import { AccessMode, AccessModeLabelMap } from '#~/pages/storageClasses/storageEnums';
+import {
+  getPossibleStorageClassAccessModes,
+  getStorageClassConfig,
+} from '#~/pages/storageClasses/utils';
+import { AccessModeLabelMap } from '#~/pages/storageClasses/storageEnums';
 import useAdminDefaultStorageClass from './useAdminDefaultStorageClass';
 import { useGetStorageClassConfig } from './useGetStorageClassConfig';
 
@@ -38,19 +41,10 @@ const StorageClassSelect: React.FC<StorageClassSelectProps> = ({
   menuAppendTo,
   validated,
 }) => {
-  const {
-    storageClasses,
-    storageClassesLoaded,
-    selectedStorageClassConfig,
-    adminSupportedAccessModes,
-    openshiftSupportedAccessModes,
-  } = useGetStorageClassConfig(storageClassName);
+  const { storageClasses, storageClassesLoaded, selectedStorageClassConfig } =
+    useGetStorageClassConfig(storageClassName);
   const hasStorageClassConfigs = storageClasses.some((sc) => !!getStorageClassConfig(sc));
   const [defaultSc] = useAdminDefaultStorageClass();
-  const displayedAccessModes = adminSupportedAccessModes.filter(
-    (accessMode) =>
-      openshiftSupportedAccessModes.includes(accessMode) && accessMode !== AccessMode.RWO,
-  );
 
   const enabledStorageClasses = storageClasses
     .filter((sc) => getStorageClassConfig(sc)?.isEnabled === true)
@@ -92,8 +86,10 @@ const StorageClassSelect: React.FC<StorageClassSelectProps> = ({
             {/* If multiple storage classes have `isDefault` set to true,
             prioritize the one returned by useAdminDefaultStorageClass() as the default class */}
             <LabelGroup>
-              {displayedAccessModes.map((accessMode, index) => (
-                <Label key={index} isCompact data-testid="is-default-label">
+              {getPossibleStorageClassAccessModes(sc, {
+                excludeRWO: true,
+              }).adminSupportedAccessModes.map((accessMode, index) => (
+                <Label key={index} isCompact data-testid={`${accessMode}-label`}>
                   {AccessModeLabelMap[accessMode]}
                 </Label>
               ))}

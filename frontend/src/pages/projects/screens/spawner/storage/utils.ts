@@ -33,7 +33,7 @@ export const useCreateStorageObject = (
     size: formData?.size || (existingData ? existingData.spec.resources.requests.storage : size),
     storageClassName: formData?.storageClassName || existingData?.spec.storageClassName,
     existingPvc: existingData,
-    accessMode: existingData?.spec.accessModes[0] || formData?.accessMode,
+    accessMode: formData?.accessMode || existingData?.spec.accessModes[0],
   };
 
   const [data, setData] = useGenericObjectState<StorageData>(createStorageData);

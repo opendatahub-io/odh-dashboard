@@ -1,3 +1,4 @@
+import type { AccessMode } from '#~/__tests__/cypress/cypress/types';
 import { Modal } from './components/Modal';
 import { TableRow } from './components/table';
 
@@ -59,6 +60,20 @@ class ClusterStorageRow extends TableRow {
         'have.text',
         'To complete the storage size update, you must connect and run a workbench.',
       );
+  }
+}
+
+class SelectStorageClass {
+  find() {
+    return cy.findByTestId('storage-classes-selector');
+  }
+
+  selectStorageClassSelectOption(name: string | RegExp) {
+    cy.findByRole('option', { name, hidden: true }).click();
+  }
+
+  findSelectStorageClassLabel(name: string | RegExp, accessMode: AccessMode) {
+    return cy.findByRole('option', { name, hidden: true }).findByTestId(`${accessMode}-label`);
   }
 }
 
@@ -175,16 +190,7 @@ class ClusterStorageModal extends Modal {
   }
 
   findStorageClassSelect() {
-    return this.find().findByTestId('storage-classes-selector');
-  }
-
-  selectStorageClassSelectOption(name: string | RegExp) {
-    this.findStorageClassSelect().click();
-    cy.findByRole('option', { name, hidden: true }).click();
-  }
-
-  findStorageClassOption(name: string) {
-    return cy.get('#storage-classes-selector').findByText(name);
+    return new SelectStorageClass();
   }
 
   findStorageClassDeprecatedWarning() {

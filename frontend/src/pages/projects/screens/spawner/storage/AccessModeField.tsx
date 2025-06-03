@@ -18,14 +18,14 @@ import AccessModeRadio from './AccessModeRadio';
 type AccessModeFieldProps = {
   currentAccessMode?: AccessMode;
   storageClassName?: string;
-  existingAccessMode?: AccessMode;
+  canEditAccessMode?: boolean;
   setAccessMode: (value: AccessMode) => void;
 };
 
 const AccessModeField: React.FC<AccessModeFieldProps> = ({
   currentAccessMode,
   storageClassName,
-  existingAccessMode,
+  canEditAccessMode,
   setAccessMode,
 }) => {
   const { storageClassesLoaded, adminSupportedAccessModes, openshiftSupportedAccessModes } =
@@ -40,19 +40,6 @@ const AccessModeField: React.FC<AccessModeFieldProps> = ({
   const hasROX = adminSupportedAccessModes.includes(AccessMode.ROX);
   const hasRWOP = adminSupportedAccessModes.includes(AccessMode.RWOP);
 
-  const getDefaultAccessMode = () => {
-    if (hasRWO) {
-      setAccessMode(AccessMode.RWO);
-      return AccessMode.RWO;
-    }
-    if (adminSupportedAccessModes.length > 0) {
-      setAccessMode(adminSupportedAccessModes[0]);
-      return adminSupportedAccessModes[0];
-    }
-    return undefined;
-  };
-
-  const checkedItem = currentAccessMode || getDefaultAccessMode();
   const labelHelpRef = React.useRef(null);
 
   if (!storageClassesLoaded) {
@@ -72,27 +59,34 @@ const AccessModeField: React.FC<AccessModeFieldProps> = ({
                 Access mode is a Kubernetes concept that determines how nodes can interact with the
                 volume.
               </div>
-              <br />
+              {((showRWO && hasRWO) ||
+                (showRWX && hasRWX) ||
+                (showROX && hasROX) ||
+                (showRWOP && hasRWOP)) && <br />}
               <List>
-                {((showRWO && hasRWO) || existingAccessMode === AccessMode.RWO) && (
+                {((showRWO && hasRWO && canEditAccessMode) ||
+                  currentAccessMode === AccessMode.RWO) && (
                   <ListItem>
                     <b>{ACCESS_MODE_RADIO_NAMES[AccessMode.RWO]}</b> means that the storage can be
                     attached to a single workbench at a given time.
                   </ListItem>
                 )}
-                {((showRWX && hasRWX) || existingAccessMode === AccessMode.RWX) && (
+                {((showRWX && hasRWX && canEditAccessMode) ||
+                  currentAccessMode === AccessMode.RWX) && (
                   <ListItem>
                     <b>{ACCESS_MODE_RADIO_NAMES[AccessMode.RWX]}</b> means that the storage can be
                     attached to many workbenches simultaneously.
                   </ListItem>
                 )}
-                {((showROX && hasROX) || existingAccessMode === AccessMode.ROX) && (
+                {((showROX && hasROX && canEditAccessMode) ||
+                  currentAccessMode === AccessMode.ROX) && (
                   <ListItem>
                     <b>{ACCESS_MODE_RADIO_NAMES[AccessMode.ROX]}</b> means that the storage can be
                     attached to many workbenches as read-only.
                   </ListItem>
                 )}
-                {((showRWOP && hasRWOP) || existingAccessMode === AccessMode.RWOP) && (
+                {((showRWOP && hasRWOP && canEditAccessMode) ||
+                  currentAccessMode === AccessMode.RWOP) && (
                   <ListItem>
                     <b>{ACCESS_MODE_RADIO_NAMES[AccessMode.RWOP]}</b> means that the storage can be
                     attached to a single pod on a single node as read-write.
@@ -106,9 +100,7 @@ const AccessModeField: React.FC<AccessModeFieldProps> = ({
         </Popover>
       }
     >
-      {existingAccessMode ? (
-        <>{ACCESS_MODE_RADIO_NAMES[existingAccessMode]}</>
-      ) : (
+      {canEditAccessMode ? (
         <>
           <Flex>
             {showRWO && (
@@ -117,7 +109,7 @@ const AccessModeField: React.FC<AccessModeFieldProps> = ({
                   id="access-mode-rwo"
                   name="access-mode-rwo"
                   isDisabled={!hasRWO}
-                  isChecked={checkedItem === AccessMode.RWO}
+                  isChecked={currentAccessMode === AccessMode.RWO}
                   onChange={() => setAccessMode(AccessMode.RWO)}
                   accessMode={AccessMode.RWO}
                 />
@@ -129,7 +121,7 @@ const AccessModeField: React.FC<AccessModeFieldProps> = ({
                   id="access-mode-rwx"
                   name="access-mode-rwx"
                   isDisabled={!hasRWX}
-                  isChecked={checkedItem === AccessMode.RWX}
+                  isChecked={currentAccessMode === AccessMode.RWX}
                   onChange={() => setAccessMode(AccessMode.RWX)}
                   accessMode={AccessMode.RWX}
                 />
@@ -141,7 +133,7 @@ const AccessModeField: React.FC<AccessModeFieldProps> = ({
                   id="access-mode-rox"
                   name="access-mode-rox"
                   isDisabled={!hasROX}
-                  isChecked={checkedItem === AccessMode.ROX}
+                  isChecked={currentAccessMode === AccessMode.ROX}
                   onChange={() => setAccessMode(AccessMode.ROX)}
                   accessMode={AccessMode.ROX}
                 />
@@ -153,7 +145,7 @@ const AccessModeField: React.FC<AccessModeFieldProps> = ({
                   id="access-mode-rwop"
                   name="access-mode-rwop"
                   isDisabled={!hasRWOP}
-                  isChecked={checkedItem === AccessMode.RWOP}
+                  isChecked={currentAccessMode === AccessMode.RWOP}
                   onChange={() => setAccessMode(AccessMode.RWOP)}
                   accessMode={AccessMode.RWOP}
                 />
@@ -169,6 +161,8 @@ const AccessModeField: React.FC<AccessModeFieldProps> = ({
             />
           </FormHelperText>
         </>
+      ) : (
+        <>{ACCESS_MODE_RADIO_NAMES[currentAccessMode || AccessMode.RWO]}</>
       )}
     </FormGroup>
   );

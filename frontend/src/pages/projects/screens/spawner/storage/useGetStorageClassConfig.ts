@@ -1,14 +1,11 @@
 import { StorageClassKind, StorageClassConfig } from '#~/k8sTypes';
 import useStorageClasses from '#~/concepts/k8s/useStorageClasses';
-import {
-  getAccessModeSettings,
-  getStorageClassConfig,
-  getSupportedAccessModesForProvisioner,
-} from '#~/pages/storageClasses/utils';
-import { AccessMode } from '#~/pages/storageClasses/storageEnums.js';
+import { getPossibleStorageClassAccessModes } from '#~/pages/storageClasses/utils';
+import { AccessMode } from '#~/pages/storageClasses/storageEnums';
 
 export const useGetStorageClassConfig = (
   storageClassName?: string,
+  opts?: { excludeRWO: boolean },
 ): {
   storageClasses: StorageClassKind[];
   storageClassesLoaded: boolean;
@@ -19,18 +16,8 @@ export const useGetStorageClassConfig = (
   const [storageClasses, storageClassesLoaded] = useStorageClasses();
   const selectedStorageClass = storageClasses.find((sc) => sc.metadata.name === storageClassName);
 
-  const openshiftSupportedAccessModes = getSupportedAccessModesForProvisioner(
-    selectedStorageClass?.provisioner,
-  );
-
-  const selectedStorageClassConfig = selectedStorageClass
-    ? getStorageClassConfig(selectedStorageClass)
-    : undefined;
-
-  const adminSupportedAccessModes = getAccessModeSettings(
-    openshiftSupportedAccessModes,
-    selectedStorageClassConfig?.accessModeSettings,
-  );
+  const { selectedStorageClassConfig, openshiftSupportedAccessModes, adminSupportedAccessModes } =
+    getPossibleStorageClassAccessModes(selectedStorageClass, opts);
 
   return {
     storageClasses,

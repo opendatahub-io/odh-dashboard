@@ -28,6 +28,7 @@ import {
 import { mock200Status } from '#~/__mocks__/mockK8sStatus';
 import { mockPrometheusQueryResponse } from '#~/__mocks__/mockPrometheusQueryResponse';
 import { storageClassesPage } from '#~/__tests__/cypress/cypress/pages/storageClasses';
+import { AccessMode } from '#~/__tests__/cypress/cypress/types';
 
 type HandlersProps = {
   isEmpty?: boolean;
@@ -204,7 +205,10 @@ describe('ClusterStorage', () => {
     addClusterStorageModal.find().findByText('openshift-default-sc').should('exist');
 
     // select storage class
-    addClusterStorageModal.selectStorageClassSelectOption(/Test SC 1/);
+    const storageClassSelect = addClusterStorageModal.findStorageClassSelect();
+    storageClassSelect.find().click();
+    storageClassSelect.findSelectStorageClassLabel(/Test SC 1/, AccessMode.RWX).should('exist');
+    storageClassSelect.selectStorageClassSelectOption(/Test SC 1/);
     addClusterStorageModal.findSubmitButton().should('be.enabled');
     addClusterStorageModal.findDescriptionInput().fill('description');
     addClusterStorageModal.findPVSizeMinusButton().click();
