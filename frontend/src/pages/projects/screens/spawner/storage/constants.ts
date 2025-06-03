@@ -1,5 +1,5 @@
 import { SortableData, kebabTableColumn } from '#~/components/table';
-import { AccessModeColumnInfo } from '#~/pages/projects/screens/detail/storage/data';
+import { AccessModeColumnInfo } from '#~/pages/projects/screens/detail/storage/AccessModeLabel.tsx';
 import { StorageData } from '#~/pages/projects/types';
 import { MOUNT_PATH_PREFIX } from './const';
 
