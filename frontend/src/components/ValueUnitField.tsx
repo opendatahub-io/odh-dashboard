@@ -66,13 +66,16 @@ const ValueUnitField: React.FC<ValueUnitFieldProps> = ({
             })
           }
           onChange={(value) => {
-            const newValue = value ?? 0;
-            if (!Number.isNaN(newValue)) {
+            if (value === undefined) {
+              onChange(`${''}${currentUnitOption.unit}`);
+              return;
+            }
+            if (!Number.isNaN(value)) {
               if (
-                (minAsNumber === undefined || newValue >= minAsNumber) &&
-                (maxAsNumber === undefined || newValue <= maxAsNumber)
+                (minAsNumber === undefined || Number(value) >= minAsNumber) &&
+                (maxAsNumber === undefined || Number(value) <= maxAsNumber)
               ) {
-                onChange(`${newValue}${currentUnitOption.unit}`);
+                onChange(`${value}${currentUnitOption.unit}`);
               }
             }
           }}
