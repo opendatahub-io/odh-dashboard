@@ -131,6 +131,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
           size: existingPvc.spec.resources.requests.storage,
           storageClassName: existingPvc.spec.storageClassName,
           mountPath: getNotebookPVCMountPathMap(existingNotebook)[existingPvc.metadata.name],
+          accessMode: existingPvc.spec.accessModes[0],
         }))
       : [
           {

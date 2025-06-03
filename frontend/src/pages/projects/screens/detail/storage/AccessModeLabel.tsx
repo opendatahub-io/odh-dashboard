@@ -15,7 +15,7 @@ const ACCESS_MODE_MAP: Record<AccessMode, string> = {
   [AccessMode.RWOP]: 'ReadWriteOncePod (RWOP)',
   [AccessMode.RWX]: 'ReadWriteMany (RWX)',
   [AccessMode.ROX]: 'ReadOnlyMany (ROX)',
-} as const;
+};
 
 type Props = {
   accessModeString: string | undefined;
@@ -23,10 +23,9 @@ type Props = {
 
 const AccessModeLabel: React.FC<Props> = ({ accessModeString }) => {
   const accessMode = toAccessMode(accessModeString);
-  if (accessMode) {
-    return <span className="pf-v5-u-ml-sm">{ACCESS_MODE_MAP[accessMode]}</span>;
-  }
-  return null;
+  const contents = accessMode ? ACCESS_MODE_MAP[accessMode] : '-';
+
+  return <>{contents}</>;
 };
 
 export { ACCESS_MODE_MAP };

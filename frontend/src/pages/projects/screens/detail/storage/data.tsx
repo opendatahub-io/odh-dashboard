@@ -60,7 +60,7 @@ export const columns: SortableData<StorageTableData>[] = [
     field: 'accessMode',
     label: 'Access mode',
     width: 25,
-    sortable: (a, b) => (a.accessModes?.[0] ?? '').localeCompare(b.accessModes?.[0] ?? ''),
+    sortable: (a, b) => (a.pvc.spec.accessModes?.[0] ?? '').localeCompare(b.pvc.spec.accessModes?.[0] ?? ''),
     info: {
       popover: AccessModeColumnInfo,
       popoverProps: {

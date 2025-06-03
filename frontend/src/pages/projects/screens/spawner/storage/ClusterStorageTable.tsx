@@ -119,9 +119,7 @@ export const ClusterStorageTable: React.FC<ClusterStorageTableProps> = ({
               </Flex>
             </Td>
             <Td dataLabel="Access mode">
-              <AccessModeLabel
-                accessModeString={row.existingPvc?.spec.accessModes[0] ?? row.accessMode}
-              />
+              <AccessModeLabel accessModeString={row.accessMode} />
             </Td>
             <Td dataLabel="Storage size">Max {formatMemory(row.size)}</Td>
             <Td dataLabel="Mount path">{row.mountPath}</Td>

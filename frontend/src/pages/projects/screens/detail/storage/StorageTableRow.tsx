@@ -141,9 +141,7 @@ const StorageTableRow: React.FC<StorageTableRowProps> = ({
       )}
       <Td dataLabel="Access Mode">
         <Content component="p">
-          <Flex>
-            <AccessModeLabel accessModeString={obj.accessModes?.[0]} />
-          </Flex>
+          <AccessModeLabel accessModeString={obj.pvc.spec.accessModes[0]} />
         </Content>
       </Td>
       <Td dataLabel="Type">

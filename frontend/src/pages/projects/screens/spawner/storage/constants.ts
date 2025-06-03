@@ -17,7 +17,7 @@ export const clusterStorageTableColumns: SortableData<StorageData>[] = [
   },
   {
     label: 'Access mode',
-    field: 'accessModes',
+    field: 'accessMode',
     sortable: false,
     width: 30,
     info: {

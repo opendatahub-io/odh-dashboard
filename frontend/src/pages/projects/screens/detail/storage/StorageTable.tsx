@@ -26,7 +26,6 @@ const StorageTable: React.FC<StorageTableProps> = ({ pvcs, refresh, onAddPVC }) 
   const storageTableData: StorageTableData[] = pvcs.map((pvc) => ({
     pvc,
     storageClass: storageClasses.find((sc) => sc.metadata.name === pvc.spec.storageClassName),
-    accessModes: pvc.spec.accessModes,
   }));
   const isDeprecatedAlert = React.useMemo(
     () =>
