@@ -10,6 +10,8 @@ import {
   DescriptionListDescription,
   Timestamp,
   Button,
+  Label,
+  LabelGroup,
 } from '@patternfly/react-core';
 import { Tr, Td, ActionsColumn, TableText } from '@patternfly/react-table';
 import { PencilAltIcon, OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
@@ -29,6 +31,7 @@ import { CorruptedMetadataAlert } from './CorruptedMetadataAlert';
 import { ResetCorruptConfigValueAlert } from './ResetCorruptConfigValueAlert';
 import { useStorageClassContext } from './StorageClassesContext';
 import { StrorageClassConfigValue } from './StorageClassConfigValue';
+import { AccessMode, AccessLabelToTextMap } from './storageEnums';
 
 interface StorageClassesTableRowProps {
   storageClass: StorageClassKind;
@@ -152,7 +155,31 @@ export const StorageClassesTableRow: React.FC<StorageClassesTableRowProps> = ({ 
               (!storageClassConfig.description ||
                 isValidConfigValue('description', storageClassConfig.description)) && (
                 <TableRowTitleDescription
-                  title={<TableText>{storageClassConfig.displayName}</TableText>}
+                  title={
+                    <Flex spaceItems={{ default: 'spaceItemsNone' }}>
+                      <FlexItem>
+                        <TableText>{storageClassConfig.displayName}</TableText>
+                      </FlexItem>
+                      <LabelGroup>
+                        {storageClassConfig.accessModeSettings &&
+                          Object.entries(storageClassConfig.accessModeSettings).map(
+                            ([key, value]) =>
+                              value && key !== AccessMode.RWO ? (
+                                <FlexItem key={key} spacer={{ default: 'spacerXs' }}>
+                                  <Label
+                                    color="blue"
+                                    isCompact
+                                    variant="outline"
+                                    data-testid="section-heading"
+                                  >
+                                    {AccessLabelToTextMap[key]}
+                                  </Label>
+                                </FlexItem>
+                              ) : null,
+                          )}
+                      </LabelGroup>
+                    </Flex>
+                  }
                   description={
                     storageClassConfig.description && (
                       <TableText>{storageClassConfig.description}</TableText>
