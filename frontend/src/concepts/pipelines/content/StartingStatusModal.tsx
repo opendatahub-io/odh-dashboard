@@ -1,10 +1,10 @@
 import * as React from 'react';
 import {
+  Bullseye,
   Modal,
   ModalBody,
   ModalHeader,
   ModalFooter,
-  Bullseye,
   Spinner,
   Stack,
   StackItem,
@@ -17,9 +17,9 @@ import {
   ListItem,
   Button,
 } from '@patternfly/react-core';
-import { StatusIcon } from '@patternfly/react-topology';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { getStatusFromCondition } from '#~/concepts/pipelines/content/utils.tsx';
+import K8sStatusIcon from '#~/concepts/pipelines/content/K8sStatusIcon.tsx';
 
 const PROGRESS_TAB = 'Progress';
 const EVENT_LOG_TAB = 'Events log';
@@ -99,7 +99,7 @@ const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose }) =>
               return (
                 <StackItem key={condition.type}>
                   <div>
-                    <StatusIcon status={containerStatus} /> {condition.type}: -
+                    <K8sStatusIcon status={containerStatus} /> {condition.type}: -
                     {condition.message || 'No message'}
                   </div>
                 </StackItem>

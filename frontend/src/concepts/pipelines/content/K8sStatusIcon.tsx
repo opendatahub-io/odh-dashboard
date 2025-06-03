@@ -20,7 +20,7 @@ type StatusIconProps = {
   className?: string;
 };
 
-const StatusIcon: React.FC<StatusIconProps> = ({ status, className }) => {
+const K8sStatusIcon: React.FC<StatusIconProps> = ({ status, className }) => {
   const getIcon = () => {
     switch (status) {
       case 'pending':
@@ -45,4 +45,4 @@ const StatusIcon: React.FC<StatusIconProps> = ({ status, className }) => {
   );
 };
 
-export default StatusIcon;
+export default K8sStatusIcon;

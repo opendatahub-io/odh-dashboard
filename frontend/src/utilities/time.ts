@@ -218,7 +218,7 @@ export const convertSecondsToPeriodicTime = (seconds: number): string => {
 };
 
 export const getTimeRangeCategory = (
-  timestamp: string,
+  timestamp: string | undefined | null,
 ): 'shortRange' | 'mediumRange' | 'longRange' => {
   if (!timestamp) {
     return 'longRange';
