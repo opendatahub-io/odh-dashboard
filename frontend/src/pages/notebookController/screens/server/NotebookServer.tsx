@@ -20,7 +20,7 @@ const NotebookServer: React.FC = () => {
     currentUserNotebookLink,
     requestNotebookRefresh,
   } = React.useContext(NotebookControllerContext);
-  const notebooksToStop = React.useMemo(() => (notebook ? [notebook] : []), [notebook]);
+  const notebooksToStop = notebook ? [notebook] : [];
 
   const link = currentUserNotebookLink || '#';
 
