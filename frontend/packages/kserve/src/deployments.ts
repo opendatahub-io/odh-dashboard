@@ -1,5 +1,4 @@
 import React from 'react';
-import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import {
   InferenceServiceKind,
   K8sAPIOptions,
@@ -13,9 +12,8 @@ import { getKServeDeploymentStatus } from './deploymentStatus';
 import { KSERVE_ID } from '../extensions';
 
 export type KServeDeployment = Deployment<InferenceServiceKind, ServingRuntimeKind>;
-export const isKServeDeployment = (
-  deployment: Deployment<K8sResourceCommon, K8sResourceCommon>,
-): deployment is KServeDeployment => deployment.modelServingPlatformId === KSERVE_ID;
+export const isKServeDeployment = (deployment: Deployment): deployment is KServeDeployment =>
+  deployment.modelServingPlatformId === KSERVE_ID;
 
 export const useWatchDeployments = (
   project: ProjectKind,

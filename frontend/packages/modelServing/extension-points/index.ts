@@ -1,8 +1,7 @@
 import type { Extension, CodeRef } from '@openshift/dynamic-plugin-sdk';
 import type { NamespaceApplicationCase } from '@odh-dashboard/internal/pages/projects/types';
-import type { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import type { SortableData } from '@odh-dashboard/internal/components/table/types';
-import type { K8sAPIOptions, ProjectKind } from '@odh-dashboard/internal/k8sTypes';
+import type { K8sAPIOptions, K8sDSGResource, ProjectKind } from '@odh-dashboard/internal/k8sTypes';
 // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/consistent-type-imports
 import { InferenceServiceModelState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 
@@ -19,8 +18,8 @@ export type DeploymentEndpoint = {
 //// Model serving platform extension
 
 export type Deployment<
-  M extends K8sResourceCommon = K8sResourceCommon,
-  S extends K8sResourceCommon = K8sResourceCommon,
+  M extends K8sDSGResource = K8sDSGResource,
+  S extends K8sDSGResource = K8sDSGResource,
 > = {
   modelServingPlatformId: string;
   model: M;
