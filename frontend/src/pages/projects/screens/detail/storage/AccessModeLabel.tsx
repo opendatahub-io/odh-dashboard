@@ -24,7 +24,7 @@ const ACCESS_MODE_DESCRIPTIONS: Record<AccessMode, string> = {
     'means that the storage can be attached to a single pod on a single node as read-write',
   [AccessMode.RWX]: 'means that the storage can be attached to many workbenches simultaneously.',
   [AccessMode.ROX]: 'means that the storage can be attached to many workbenches as read-only.',
-} as const;
+};
 
 export const AccessModeColumnInfo = (
   <PopoverListContent
