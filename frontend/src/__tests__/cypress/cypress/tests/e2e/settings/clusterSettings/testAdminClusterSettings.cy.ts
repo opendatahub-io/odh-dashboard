@@ -64,8 +64,8 @@ describe('Verify that only the Cluster Admin can access Cluster Settings', () =>
   });
 
   it(
-    'Admin should access Cluster Settings and see UI fields matching OpenShift configurations',
-    { tags: ['@Smoke', '@SmokeSet2', '@ODS-1216', '@Dashboard'] },
+    '[Automation Bug: RHOAIENG-26330] Admin should access Cluster Settings and see UI fields matching OpenShift configurations',
+    { tags: ['@Smoke', '@SmokeSet2', '@ODS-1216', '@Dashboard', '@Maintain'] },
     () => {
       // Authentication and navigation
       cy.step('Log into the application');
