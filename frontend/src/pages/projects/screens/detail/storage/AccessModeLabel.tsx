@@ -57,5 +57,4 @@ const AccessModeLabel: React.FC<Props> = ({ accessModeString }) => {
   return <>{contents}</>;
 };
 
-export { ACCESS_MODE_MAP };
 export default AccessModeLabel;
