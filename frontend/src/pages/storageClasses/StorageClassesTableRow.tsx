@@ -1,37 +1,37 @@
 import React from 'react';
 
 import {
-  Flex,
-  FlexItem,
-  Popover,
+  Button,
   DescriptionList,
+  DescriptionListDescription,
   DescriptionListGroup,
   DescriptionListTerm,
-  DescriptionListDescription,
-  Timestamp,
-  Button,
+  Flex,
+  FlexItem,
   Label,
   LabelGroup,
+  Popover,
+  Timestamp,
 } from '@patternfly/react-core';
-import { Tr, Td, ActionsColumn, TableText } from '@patternfly/react-table';
-import { PencilAltIcon, OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
+import { ActionsColumn, TableText, Td, Tr } from '@patternfly/react-table';
+import { OutlinedQuestionCircleIcon, PencilAltIcon } from '@patternfly/react-icons';
 
-import { MetadataAnnotation, StorageClassConfig, StorageClassKind } from '#~/k8sTypes';
+import { updateStorageClassConfig } from '#~/api';
+import { NoValue } from '#~/components/NoValue';
 import { TableRowTitleDescription } from '#~/components/table';
 import DashboardPopupIconButton from '#~/concepts/dashboard/DashboardPopupIconButton';
-import { NoValue } from '#~/components/NoValue';
-import { updateStorageClassConfig } from '#~/api';
+import { MetadataAnnotation, StorageClassConfig, StorageClassKind } from '#~/k8sTypes';
 import { ColumnLabel } from './constants';
-import { isOpenshiftDefaultStorageClass, isValidConfigValue } from './utils';
-import { StorageClassEnableSwitch } from './StorageClassEnableSwitch';
+import { CorruptedMetadataAlert } from './CorruptedMetadataAlert';
+import { OpenshiftDefaultLabel } from './OpenshiftDefaultLabel';
+import { ResetCorruptConfigValueAlert } from './ResetCorruptConfigValueAlert';
 import { StorageClassDefaultRadio } from './StorageClassDefaultRadio';
 import { StorageClassEditModal } from './StorageClassEditModal';
-import { OpenshiftDefaultLabel } from './OpenshiftDefaultLabel';
-import { CorruptedMetadataAlert } from './CorruptedMetadataAlert';
-import { ResetCorruptConfigValueAlert } from './ResetCorruptConfigValueAlert';
+import { StorageClassEnableSwitch } from './StorageClassEnableSwitch';
 import { useStorageClassContext } from './StorageClassesContext';
 import { StrorageClassConfigValue } from './StorageClassConfigValue';
-import { AccessMode, AccessLabelToTextMap } from './storageEnums';
+import { AccessModeLabelMap, AccessMode } from './storageEnums';
+import { isOpenshiftDefaultStorageClass, isValidConfigValue } from './utils';
 
 interface StorageClassesTableRowProps {
   storageClass: StorageClassKind;
@@ -151,42 +151,45 @@ export const StorageClassesTableRow: React.FC<StorageClassesTableRowProps> = ({ 
               />
             }
           >
-            {isValidConfigValue('displayName', storageClassConfig.displayName) &&
-              (!storageClassConfig.description ||
-                isValidConfigValue('description', storageClassConfig.description)) && (
-                <TableRowTitleDescription
-                  title={
-                    <Flex spaceItems={{ default: 'spaceItemsNone' }}>
-                      <FlexItem>
-                        <TableText>{storageClassConfig.displayName}</TableText>
-                      </FlexItem>
-                      <LabelGroup>
-                        {storageClassConfig.accessModeSettings &&
-                          Object.entries(storageClassConfig.accessModeSettings).map(
-                            ([key, value]) =>
-                              value && key !== AccessMode.RWO ? (
-                                <FlexItem key={key} spacer={{ default: 'spacerXs' }}>
-                                  <Label
-                                    color="blue"
-                                    isCompact
-                                    variant="outline"
-                                    data-testid="section-heading"
-                                  >
-                                    {AccessLabelToTextMap[key]}
-                                  </Label>
-                                </FlexItem>
-                              ) : null,
-                          )}
-                      </LabelGroup>
-                    </Flex>
-                  }
-                  description={
-                    storageClassConfig.description && (
-                      <TableText>{storageClassConfig.description}</TableText>
+            <Flex>
+              {isValidConfigValue('displayName', storageClassConfig.displayName) &&
+                (!storageClassConfig.description ||
+                  isValidConfigValue('description', storageClassConfig.description)) && (
+                  <FlexItem flex={{ default: 'flex_1' }}>
+                    <TableRowTitleDescription
+                      title={<TableText>{storageClassConfig.displayName}</TableText>}
+                      description={
+                        storageClassConfig.description && (
+                          <TableText>{storageClassConfig.description}</TableText>
+                        )
+                      }
+                    />
+                  </FlexItem>
+                )}
+              <FlexItem>
+                <LabelGroup>
+                  {Object.values(AccessMode)
+                    .filter(
+                      (modeValue) =>
+                        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+                        storageClassConfig.accessModeSettings && // This check is necessary for runtime safety
+                        storageClassConfig.accessModeSettings[modeValue] &&
+                        modeValue !== AccessMode.RWO,
                     )
-                  }
-                />
-              )}
+                    .map((modeValue) => (
+                      <Label
+                        key={modeValue}
+                        color="blue"
+                        isCompact
+                        variant="outline"
+                        data-testid="access-label"
+                      >
+                        {AccessModeLabelMap[modeValue]}
+                      </Label>
+                    ))}
+                </LabelGroup>
+              </FlexItem>
+            </Flex>
           </StrorageClassConfigValue>
         ) : (
           '-'
@@ -331,7 +334,7 @@ export const StorageClassesTableRow: React.FC<StorageClassesTableRowProps> = ({ 
                     ? {
                         title: 'Reset the metadata',
                         children:
-                          'Correct any invalid fields and save your changes to reset the corrupted metadata. Upon saving, Display name and Last modified will receive valid values, and the Enable and Default parameters will be reset to their default values.',
+                          'Correct any invalid fields and save your changes to reset the corrupted metadata. Upon saving, Display name and Last modified will receive valid values, and the Enable and Default parameters will be reset to their default values.',
                       }
                     : undefined;
                   setIsEditModalOpen(true);

@@ -35,11 +35,11 @@ export enum AccessMode {
   RWOP = 'ReadWriteOncePod',
 }
 
-export const AccessLabelToTextMap = {
-  ReadWriteOnce: 'RWO',
-  ReadWriteMany: 'RWX',
-  ReadOnlyMany: 'ROX',
-  ReadWriteOncePod: 'RWOP',
+export const AccessModeLabelMap: Record<AccessMode, string> = {
+  [AccessMode.RWO]: 'RWO',
+  [AccessMode.RWX]: 'RWX',
+  [AccessMode.ROX]: 'ROX',
+  [AccessMode.RWOP]: 'RWOP',
 };
 
 // object that maps provisioners to their supported access modes
