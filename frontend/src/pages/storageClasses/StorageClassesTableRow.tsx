@@ -171,7 +171,7 @@ export const StorageClassesTableRow: React.FC<StorageClassesTableRowProps> = ({ 
               // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
               storageClassConfig.accessModeSettings && ( // This check is necessary for runtime safety
                 <FlexItem>
-                  <LabelGroup>
+                  <LabelGroup data-testid="access-mode-label-group">
                     {Object.values(AccessMode)
                       .filter(
                         (modeValue) =>
@@ -179,13 +179,7 @@ export const StorageClassesTableRow: React.FC<StorageClassesTableRowProps> = ({ 
                           modeValue !== AccessMode.RWO,
                       )
                       .map((modeValue) => (
-                        <Label
-                          key={modeValue}
-                          color="blue"
-                          isCompact
-                          variant="outline"
-                          data-testid="access-label"
-                        >
+                        <Label key={modeValue} color="blue" isCompact variant="outline">
                           {AccessModeLabelMap[modeValue]}
                         </Label>
                       ))}
