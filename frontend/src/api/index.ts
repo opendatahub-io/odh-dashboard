@@ -27,6 +27,7 @@ export * from './k8s/clusterQueues';
 export * from './k8s/localQueues';
 export * from './k8s/workloads';
 export * from './k8s/dsc';
+export * from './k8s/lmEval';
 
 // Model registry
 export * from './modelRegistry/custom';

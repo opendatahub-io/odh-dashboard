@@ -1281,7 +1281,7 @@ export type AcceleratorProfileKind = K8sResourceCommon & {
   };
 };
 
-export type LMEvaluationKind = K8sResourceCommon & {
+export type LMEvalKind = K8sResourceCommon & {
   metadata: {
     name: string;
     namespace: string;

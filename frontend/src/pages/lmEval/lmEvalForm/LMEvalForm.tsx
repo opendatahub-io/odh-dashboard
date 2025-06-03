@@ -19,13 +19,13 @@ import {
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { LmEvalFormData, LmModelArgument } from '#~/pages/lmEval/types';
-import LMEvalApplicationPage from '#~/pages/lmEval/components/LMEvalApplicationPage';
 import useLMGenericObjectState from '#~/pages/lmEval/utilities/useLMGenericObjectState';
-import LmEvaluationFormFooter from './LMEvalFormFooter';
+import LMEvalFormApplicationPage from '#~/pages/lmEval/components/LMEvalFormApplicationPage';
 import LmEvaluationTaskSection from './LMEvalTaskSection';
 import LmEvaluationSecuritySection from './LMEvalSecuritySection';
 import LmModelArgumentSection from './LMEvalModelArgumentSection';
 import { modelTypeOptions } from './const';
+import LMEvalFormFooter from './LMEvalFormFooter';
 
 const LMEvalForm: React.FC = () => {
   const [data, setData] = useLMGenericObjectState<LmEvalFormData>({
@@ -48,7 +48,7 @@ const LMEvalForm: React.FC = () => {
   const selectedOption = data.modelType ? findOptionForKey(data.modelType) : undefined;
   const selectedLabel = selectedOption?.label ?? 'Select type a model';
   return (
-    <LMEvalApplicationPage
+    <LMEvalFormApplicationPage
       loaded
       title="Evaluate model"
       description={
@@ -154,11 +154,11 @@ const LMEvalForm: React.FC = () => {
             setModelArgument={(modelArgument: LmModelArgument) => setData('model', modelArgument)}
           />
           <FormSection>
-            <LmEvaluationFormFooter data={data} />
+            <LMEvalFormFooter data={data} />
           </FormSection>
         </Form>
       </PageSection>
-    </LMEvalApplicationPage>
+    </LMEvalFormApplicationPage>
   );
 };
 
