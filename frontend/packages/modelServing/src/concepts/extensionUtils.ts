@@ -28,7 +28,10 @@ export const useResolvedPlatformExtension = <T extends Extension>(
 
   return React.useMemo(
     () => [
-      resolvedExtensions.find((ext) => ext.properties.platform === platform.properties.id) ?? null,
+      !loaded
+        ? undefined
+        : resolvedExtensions.find((ext) => ext.properties.platform === platform.properties.id) ??
+          null,
       loaded,
       errors,
     ],

@@ -2,7 +2,6 @@ import * as React from 'react';
 import { Icon } from '@patternfly/react-core';
 import { InferenceServiceKind } from '#~/k8sTypes';
 import { ModelStatusIcon } from '#~/concepts/modelServing/ModelStatusIcon';
-import { InferenceServiceModelState } from '#~/pages/modelServing/screens/types';
 import {
   getInferenceServiceModelState,
   getInferenceServiceStatusMessage,
@@ -20,19 +19,14 @@ const InferenceServiceStatus: React.FC<InferenceServiceStatusProps> = ({
   isKserve,
   iconSize,
 }) => {
-  const [modelStatus] = useModelStatus(
+  const [modelPodStatus] = useModelStatus(
     inferenceService.metadata.namespace,
     inferenceService.spec.predictor.model?.runtime ?? '',
     isKserve,
   );
 
-  const state = modelStatus?.failedToSchedule
-    ? InferenceServiceModelState.FAILED_TO_LOAD
-    : getInferenceServiceModelState(inferenceService);
-
-  const bodyContent = modelStatus?.failedToSchedule
-    ? modelStatus.failureMessage || 'Insufficient resources'
-    : getInferenceServiceStatusMessage(inferenceService);
+  const state = getInferenceServiceModelState(inferenceService, modelPodStatus);
+  const bodyContent = getInferenceServiceStatusMessage(inferenceService, modelPodStatus);
 
   return (
     <ModelStatusIcon

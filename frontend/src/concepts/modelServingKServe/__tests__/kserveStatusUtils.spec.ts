@@ -1,20 +1,20 @@
 import { mockPodK8sResource } from '#~/__mocks__/mockPodK8sResource';
 import { mockInferenceServiceK8sResource } from '#~/__mocks__';
 import {
-  checkModelStatus,
+  checkModelPodStatus,
   getInferenceServiceStatusMessage,
   getInferenceServiceLastFailureReason,
 } from '#~/concepts/modelServingKServe/kserveStatusUtils';
 
 describe('checkModelStatus', () => {
   it('Should return true when pod fails to schedule due to insufficient resources.', () => {
-    const result = checkModelStatus(mockPodK8sResource({ isPending: true }));
+    const result = checkModelPodStatus(mockPodK8sResource({ isPending: true }));
     expect(result.failedToSchedule).toBe(true);
     expect(result.failureMessage).toMatch(/Insufficient|taint|Preemption/i); // checks if message is informative
   });
 
   it('Should return false when pod is scheduled.', () => {
-    const result = checkModelStatus(mockPodK8sResource({}));
+    const result = checkModelPodStatus(mockPodK8sResource({}));
     expect(result.failedToSchedule).toBe(false);
     expect(result.failureMessage).toBeNull();
   });

@@ -1,10 +1,9 @@
 import { InferenceServiceKind, PodKind } from '@odh-dashboard/internal/k8sTypes';
 import {
-  checkModelStatus,
+  checkModelPodStatus,
   getInferenceServiceModelState,
   getInferenceServiceStatusMessage,
 } from '@odh-dashboard/internal/concepts/modelServingKServe/kserveStatusUtils';
-import { InferenceServiceModelState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import { DeploymentStatus } from '@odh-dashboard/model-serving/extension-points';
 
 export const getKServeDeploymentStatus = (
@@ -16,15 +15,10 @@ export const getKServeDeploymentStatus = (
       pod.metadata.labels?.['serving.kserve.io/inferenceservice'] ===
       inferenceService.metadata.name,
   );
-  const modelPodStatus = deploymentPod ? checkModelStatus(deploymentPod) : null;
+  const modelPodStatus = deploymentPod ? checkModelPodStatus(deploymentPod) : null;
 
-  const state = modelPodStatus?.failedToSchedule
-    ? InferenceServiceModelState.FAILED_TO_LOAD
-    : getInferenceServiceModelState(inferenceService);
-
-  const message = modelPodStatus?.failedToSchedule
-    ? modelPodStatus.failureMessage || 'Insufficient resources'
-    : getInferenceServiceStatusMessage(inferenceService);
+  const state = getInferenceServiceModelState(inferenceService, modelPodStatus);
+  const message = getInferenceServiceStatusMessage(inferenceService, modelPodStatus);
 
   return { state, message };
 };
