@@ -273,7 +273,7 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
         <Td />
         <Td />
       </Tr>
-      {isOpenConfirm ? (
+      {isOpenConfirm && (
         <StopNotebookConfirmModal
           notebookState={obj}
           onClose={(confirmStatus) => {
@@ -283,7 +283,7 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
             setOpenConfirm(false);
           }}
         />
-      ) : null}
+      )}
       {isModalOpen && notebookImage && (
         <NotebookUpdateImageModal
           notebookState={obj}

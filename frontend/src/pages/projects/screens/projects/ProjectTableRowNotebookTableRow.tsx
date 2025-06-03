@@ -95,7 +95,7 @@ const ProjectTableRowNotebookTableRow: React.FC<ProjectTableRowNotebookTableRowP
           onNotebookDelete={onNotebookDelete}
         />
       </Td>
-      {isOpenConfirm ? (
+      {isOpenConfirm && (
         <StopNotebookConfirmModal
           notebookState={notebookState}
           onClose={(confirmStatus) => {
@@ -105,7 +105,7 @@ const ProjectTableRowNotebookTableRow: React.FC<ProjectTableRowNotebookTableRowP
             setOpenConfirm(false);
           }}
         />
-      ) : null}
+      )}
     </Tr>
   );
 };
