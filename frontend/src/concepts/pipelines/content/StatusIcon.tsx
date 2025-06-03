@@ -17,11 +17,10 @@ export type StatusType = 'pending' | 'in-progress' | 'success' | 'warning' | 'er
 
 type StatusIconProps = {
   status: StatusType;
-  size?: 'sm' | 'md' | 'lg' | 'xl';
   className?: string;
 };
 
-const StatusIcon: React.FC<StatusIconProps> = ({ status, size = 'md', className }) => {
+const StatusIcon: React.FC<StatusIconProps> = ({ status, className }) => {
   const getIcon = () => {
     switch (status) {
       case 'pending':

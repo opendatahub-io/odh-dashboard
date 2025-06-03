@@ -107,3 +107,8 @@ export const isPipelineRun = (resource: PipelineCoreResourceKF): resource is Pip
 export const isPipelineRecurringRun = (
   resource: PipelineCoreResourceKF,
 ): resource is PipelineRecurringRunKF => 'recurring_run_id' in resource && !('run_id' in resource);
+
+export const getStatusFromCondition = (condition) => {
+  console.log('condition to test.....');
+  return 'not ready yet';
+};

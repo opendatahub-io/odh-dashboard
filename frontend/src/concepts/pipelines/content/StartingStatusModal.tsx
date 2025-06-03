@@ -85,6 +85,7 @@ const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose }) =>
     ? apiReady
     : spinner;
 
+
   const renderProgress = () => (
     <Stack hasGutter>
       <StackItem>
