@@ -3,13 +3,13 @@ import {
   k8sListResource,
   k8sCreateResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { K8sAPIOptions, LMEvaluationKind } from '#~/k8sTypes';
+import { K8sAPIOptions, LMEvalKind } from '#~/k8sTypes';
 import { LMEvalModel } from '#~/api/models';
 import { applyK8sAPIOptions } from '#~/api/apiMergeUtils';
 import { kindApiVersion, translateDisplayNameForK8s } from '#~/concepts/k8s/utils';
 
-export const listModelEvaluations = async (namespace: string): Promise<LMEvaluationKind[]> =>
-  k8sListResource<LMEvaluationKind>({
+export const listModelEvaluations = async (namespace: string): Promise<LMEvalKind[]> =>
+  k8sListResource<LMEvalKind>({
     model: LMEvalModel,
     queryOptions: {
       ns: namespace,
@@ -27,7 +27,7 @@ const assembleModelEvaluation = (
   },
   namespace: string,
   name?: string,
-): LMEvaluationKind => ({
+): LMEvalKind => ({
   apiVersion: kindApiVersion(LMEvalModel),
   kind: LMEvalModel.kind,
   metadata: {
@@ -51,9 +51,9 @@ export const createModelEvaluation = (
   },
   namespace: string,
   opts?: K8sAPIOptions,
-): Promise<LMEvaluationKind> => {
+): Promise<LMEvalKind> => {
   const resource = assembleModelEvaluation(model, evalConfig, namespace);
-  return k8sCreateResource<LMEvaluationKind>(
+  return k8sCreateResource<LMEvalKind>(
     applyK8sAPIOptions(
       {
         model: LMEvalModel,
@@ -64,11 +64,8 @@ export const createModelEvaluation = (
   );
 };
 
-export const getModelEvaluationResult = (
-  name: string,
-  namespace: string,
-): Promise<LMEvaluationKind> =>
-  k8sGetResource<LMEvaluationKind>({
+export const getModelEvaluationResult = (name: string, namespace: string): Promise<LMEvalKind> =>
+  k8sGetResource<LMEvalKind>({
     model: LMEvalModel,
     queryOptions: { name, ns: namespace },
   });

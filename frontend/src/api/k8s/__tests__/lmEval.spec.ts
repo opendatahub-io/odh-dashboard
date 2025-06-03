@@ -11,7 +11,7 @@ import {
   createModelEvaluation,
   getModelEvaluationResult,
 } from '#~/api/k8s/lmEval';
-import { LMEvaluationKind } from '#~/k8sTypes';
+import { LMEvalKind } from '#~/k8sTypes';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sListResource: jest.fn(),
@@ -26,7 +26,7 @@ jest.mock('#~/concepts/k8s/utils', () => ({
 
 const mockListResource = jest.mocked(k8sListResource);
 const mockGetResource = jest.mocked(k8sGetResource);
-const mockCreateResource = jest.mocked(k8sCreateResource<LMEvaluationKind>);
+const mockCreateResource = jest.mocked(k8sCreateResource<LMEvalKind>);
 
 describe('listModelEvaluations', () => {
   beforeEach(() => {
@@ -140,7 +140,7 @@ describe('createModelEvaluation', () => {
       },
     };
 
-    const expectedResource: LMEvaluationKind = {
+    const expectedResource: LMEvalKind = {
       apiVersion: 'trustyai.opendatahub.io/v1alpha1',
       kind: 'LMEvalJob',
       metadata: {
@@ -183,7 +183,7 @@ describe('createModelEvaluation', () => {
       },
     };
 
-    const expectedResource: LMEvaluationKind = {
+    const expectedResource: LMEvalKind = {
       apiVersion: 'trustyai.opendatahub.io/v1alpha1',
       kind: 'LMEvalJob',
       metadata: {
@@ -223,7 +223,7 @@ describe('createModelEvaluation', () => {
       },
     };
 
-    const expectedResource: LMEvaluationKind = {
+    const expectedResource: LMEvalKind = {
       apiVersion: 'trustyai.opendatahub.io/v1alpha1',
       kind: 'LMEvalJob',
       metadata: {
@@ -263,7 +263,7 @@ describe('createModelEvaluation', () => {
       },
     };
 
-    const expectedResource: LMEvaluationKind = {
+    const expectedResource: LMEvalKind = {
       apiVersion: 'trustyai.opendatahub.io/v1alpha1',
       kind: 'LMEvalJob',
       metadata: {
@@ -303,7 +303,7 @@ describe('createModelEvaluation', () => {
       },
     };
 
-    const expectedResource: LMEvaluationKind = {
+    const expectedResource: LMEvalKind = {
       apiVersion: 'trustyai.opendatahub.io/v1alpha1',
       kind: 'LMEvalJob',
       metadata: {
@@ -422,7 +422,7 @@ describe('createModelEvaluation', () => {
       },
     };
 
-    const expectedResource: LMEvaluationKind = {
+    const expectedResource: LMEvalKind = {
       apiVersion: 'trustyai.opendatahub.io/v1alpha1',
       kind: 'LMEvalJob',
       metadata: {

@@ -7,7 +7,7 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import { isFilledLmEvalFormData } from '#~/pages/lmEval/utils';
+import { isFilledLmEvalFormData } from '#~/pages/lmEval/lmEvalForm/utils';
 import { LmEvalFormData } from '#~/pages/lmEval/types';
 
 type LMEvalFormFooterProps = {
