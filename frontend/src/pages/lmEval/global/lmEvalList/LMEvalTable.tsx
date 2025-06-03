@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { Table } from '#~/components/table';
-import { columns } from '#~/pages/lmEval/const';
 import { LMEvalKind } from '#~/k8sTypes';
 import DashboardEmptyTableView from '#~/concepts/dashboard/DashboardEmptyTableView.tsx';
 import LMEvalTableRow from './LMEvalTableRow';
+import { columns } from './const';
 
 type LMEvalTableProps = {
   lmEval: LMEvalKind[];

@@ -28,12 +28,10 @@ const LMEval = (): React.ReactElement => {
     <EmptyState
       headingLevel="h6"
       icon={SearchIcon}
-      titleText="No evaluations on this model"
+      titleText="No evaluations on this project"
       variant={EmptyStateVariant.lg}
     >
-      <EmptyStateBody>
-        You need to evaluate this model before any results will be shown here.
-      </EmptyStateBody>
+      <EmptyStateBody>No evaluations have been generated within this project</EmptyStateBody>
       <EmptyStateFooter>
         <EmptyStateActions>
           <EvaluateModelButton />
