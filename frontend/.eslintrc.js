@@ -427,7 +427,11 @@ module.exports = {
       },
     },
     {
-      files: ["src/plugins/extensions/**", "packages/**/extensions.ts", "packages/**/extension-points/*.{ts,tsx,js,jsx}"],
+      files: [
+        'src/plugins/extensions/**',
+        'packages/**/extensions.ts',
+        'packages/**/extension-points/*.{ts,tsx,js,jsx}',
+      ],
       rules: {
         '@typescript-eslint/consistent-type-imports': 'error',
         'no-restricted-syntax': [
@@ -458,7 +462,7 @@ function srcRulesOverrides() {
         'import/no-extraneous-dependencies': [
           'error',
           {
-            packageDir: ['.', './src'],
+            packageDir: [__dirname, path.join(__dirname, 'src')],
           },
         ],
       },

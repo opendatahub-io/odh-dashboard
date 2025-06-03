@@ -53,7 +53,7 @@ const formatValidationMessage = (result: UrlValidationResult): string => {
   return error ? `${baseMessage} (Details: ${error})` : baseMessage;
 };
 
-describe('Verify that all the URLs referenced in the Manifest directory are operational', () => {
+describe('[Automation Bug: RHOAIENG-26510] Verify that all the URLs referenced in the Manifest directory are operational', () => {
   let excludedSubstrings: string[] = [];
 
   before(() => {
@@ -75,7 +75,17 @@ describe('Verify that all the URLs referenced in the Manifest directory are oper
 
   it(
     'Reads the manifest directory, filters out test/sample URLs and validates the remaining URLs',
-    { tags: ['@Smoke', '@SmokeSet1', '@ODS-327', '@ODS-492', '@Dashboard', '@RHOAIENG-9235'] },
+    {
+      tags: [
+        '@Smoke',
+        '@SmokeSet1',
+        '@ODS-327',
+        '@ODS-492',
+        '@Dashboard',
+        '@RHOAIENG-9235',
+        '@Maintain',
+      ],
+    },
     () => {
       // Verify that excludedSubstrings is properly initialized
       const manifestsDir = '../../../../manifests';
