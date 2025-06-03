@@ -28,6 +28,7 @@ const AccessModeRadio: React.FC<AccessModeRadioProps> = ({
         <Radio
           id={id}
           name={name}
+          data-testid={id}
           isDisabled={isDisabled}
           isChecked={isChecked}
           onChange={onChange}
@@ -40,6 +41,7 @@ const AccessModeRadio: React.FC<AccessModeRadioProps> = ({
     <Radio
       id={id}
       name={name}
+      data-testid={id}
       isDisabled={isDisabled}
       isChecked={isChecked}
       onChange={onChange}

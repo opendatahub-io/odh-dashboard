@@ -135,7 +135,7 @@ describe('Storage classes', () => {
 
       storageClassesTable.getRowByConfigName('Test SC 1').findKebabAction('Edit').click();
       storageClassEditModal.findOpenshiftScName().should('have.text', 'test-storage-class-1');
-      storageClassEditModal.findProvisioner().should('have.text', 'manila.csi.openstack.org');
+      storageClassEditModal.findProvisioner().should('have.text', 'kubernetes.io/glusterfs');
       storageClassEditModal.findOpenshiftDefaultLabel().should('not.exist');
       storageClassEditModal.fillDisplayNameInput('Updated name');
       storageClassEditModal.fillDescriptionInput('Updated description');

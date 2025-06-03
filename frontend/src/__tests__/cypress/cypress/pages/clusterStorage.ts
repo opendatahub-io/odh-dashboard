@@ -190,6 +190,22 @@ class ClusterStorageModal extends Modal {
   findStorageClassDeprecatedWarning() {
     return this.find().findByTestId('deprecated-storage-warning');
   }
+
+  findRWOAccessMode() {
+    return this.find().findByTestId('access-mode-rwo');
+  }
+
+  findRWXAccessMode() {
+    return this.find().findByTestId('access-mode-rwx');
+  }
+
+  findROXAccessMode() {
+    return this.find().findByTestId('access-mode-rox');
+  }
+
+  findRWOPAccessMode() {
+    return this.find().findByTestId('access-mode-rwop');
+  }
 }
 
 class ClusterStorage {

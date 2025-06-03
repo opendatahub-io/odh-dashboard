@@ -123,16 +123,18 @@ const AccessModeField: React.FC<AccessModeFieldProps> = ({
                 />
               </FlexItem>
             )}
-            <FlexItem>
-              <AccessModeRadio
-                id="access-mode-rwx"
-                name="access-mode-rwx"
-                isDisabled={!hasRWX}
-                isChecked={checkedItem === AccessMode.RWX}
-                onChange={() => setAccessMode(AccessMode.RWX)}
-                accessMode={AccessMode.RWX}
-              />
-            </FlexItem>
+            {showRWX && (
+              <FlexItem>
+                <AccessModeRadio
+                  id="access-mode-rwx"
+                  name="access-mode-rwx"
+                  isDisabled={!hasRWX}
+                  isChecked={checkedItem === AccessMode.RWX}
+                  onChange={() => setAccessMode(AccessMode.RWX)}
+                  accessMode={AccessMode.RWX}
+                />
+              </FlexItem>
+            )}
             {showROX && (
               <FlexItem>
                 <AccessModeRadio

@@ -178,6 +178,17 @@ describe('ClusterStorage', () => {
     clusterStorage.findCreateButton().click();
   });
 
+  it('Determines default access mode if RWO is disabled', () => {
+    initInterceptors({ isEmpty: true });
+    storageClassesPage.mockGetStorageClasses([openshiftDefaultStorageClass]);
+    clusterStorage.visit('test-project');
+    clusterStorage.findCreateButton().click();
+    addClusterStorageModal.findRWOAccessMode().should('be.disabled');
+    addClusterStorageModal.findRWXAccessMode().should('be.checked');
+    addClusterStorageModal.findROXAccessMode().should('be.disabled');
+    addClusterStorageModal.findRWOPAccessMode().should('be.disabled');
+  });
+
   it('Add cluster storage', () => {
     initInterceptors({ isEmpty: true });
     storageClassesPage.mockGetStorageClasses([
@@ -201,6 +212,12 @@ describe('ClusterStorage', () => {
     addClusterStorageModal.findPVSizePlusButton().click();
     addClusterStorageModal.findPVSizeInput().should('have.value', '20');
     addClusterStorageModal.selectPVSize('MiB');
+
+    // select access mode
+    addClusterStorageModal.findRWOAccessMode().should('be.checked');
+    addClusterStorageModal.findRWXAccessMode().click();
+    addClusterStorageModal.findROXAccessMode().should('be.disabled');
+    addClusterStorageModal.findRWOPAccessMode().should('be.disabled');
 
     //connect workbench
     addClusterStorageModal.findAddWorkbenchButton().click();

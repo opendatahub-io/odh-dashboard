@@ -7,6 +7,7 @@ import {
 import { MountPathFormat } from '#~/pages/projects/screens/spawner/storage/types';
 import { MOUNT_PATH_PREFIX } from '#~/pages/projects/screens/spawner/storage/const';
 import { PersistentVolumeClaimKind } from '#~/k8sTypes';
+import { AccessMode } from '#~/pages/storageClasses/storageEnums';
 
 jest.mock('#~/pages/projects/screens/spawner/storage/useDefaultPvcSize.ts', () => ({
   __esModule: true,
@@ -36,7 +37,7 @@ describe('useCreateStorageObject', () => {
       namespace: 'namespace',
     },
     spec: {
-      accessModes: ['ReadWriteOnce'],
+      accessModes: [AccessMode.RWO],
       resources: { requests: { storage: '2Gi' } },
       volumeMode: 'Filesystem',
       storageClassName: 'test-storage-class',
