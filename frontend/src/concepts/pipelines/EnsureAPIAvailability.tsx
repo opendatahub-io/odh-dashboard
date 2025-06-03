@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Bullseye, Spinner } from '@patternfly/react-core';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
-import StartingStatusModal from '#./content/StartingStatusModal';
+import StartingStatusModal from '#~/concepts/pipelines/content/StartingStatusModal.tsx';
 
 type EnsureAPIAvailabilityProps = {
   children: React.ReactNode;
