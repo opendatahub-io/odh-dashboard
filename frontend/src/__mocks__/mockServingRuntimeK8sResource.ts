@@ -21,6 +21,7 @@ type MockResourceConfigType = {
   isProjectScoped?: boolean;
   scope?: string;
   hardwareProfileNamespace?: string;
+  acceleratorProfileNamespace?: string;
   isNonDashboardItem?: boolean;
 };
 
@@ -110,6 +111,7 @@ export const mockServingRuntimeK8sResource = ({
   route = false,
   displayName = 'OVMS Model Serving',
   acceleratorName = '',
+  acceleratorProfileNamespace = undefined,
   hardwareProfileName = '',
   apiProtocol = ServingRuntimeAPIProtocol.REST,
   resources = {
@@ -156,6 +158,7 @@ export const mockServingRuntimeK8sResource = ({
       ...(isProjectScoped && { 'opendatahub.io/serving-runtime-scope': scope }),
       ...(hardwareProfileNamespace && {
         'opendatahub.io/hardware-profile-namespace': hardwareProfileNamespace,
+        'opendatahub.io/accelerator-profile-namespace': acceleratorProfileNamespace,
       }),
     },
     name,

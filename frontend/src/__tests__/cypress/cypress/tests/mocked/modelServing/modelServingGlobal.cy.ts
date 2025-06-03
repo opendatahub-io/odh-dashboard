@@ -838,6 +838,7 @@ describe('Model Serving Global', () => {
       servingRuntimes: [
         mockServingRuntimeK8sResource({
           acceleratorName: 'large-profile-1',
+          acceleratorProfileNamespace: 'test-project',
         }),
       ],
     });

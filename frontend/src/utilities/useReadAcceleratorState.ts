@@ -47,13 +47,13 @@ const useReadAcceleratorState = (
     // Exit early if no resources = not in edit mode
     if (resources) {
       let acceleratorProfile: AcceleratorProfileKind | undefined;
-      if (namespace) {
+      if (namespace && acceleratorProfileNamespace) {
         acceleratorProfile = acceleratorProfiles.find(
           (cr) =>
             cr.metadata.name === existingAcceleratorProfileName &&
             cr.metadata.namespace === acceleratorProfileNamespace,
         );
-      } else {
+      } else if (existingAcceleratorProfileName) {
         acceleratorProfile = acceleratorProfiles.find(
           (cr) => cr.metadata.name === existingAcceleratorProfileName,
         );
@@ -67,11 +67,24 @@ const useReadAcceleratorState = (
           unknownProfileDetected: false,
         });
       }
+
+      // Check if we have an existing profile name but couldn't find the profile
+      // This indicates the profile was deleted
+      if (existingAcceleratorProfileName) {
+        return Promise.resolve({
+          acceleratorProfiles,
+          acceleratorProfile: undefined,
+          count: 1, // Default count since we can't determine from missing resources
+          unknownProfileDetected: true,
+        });
+      }
+
       // check if there is accelerator usage in the container
       // this is to handle the case where the accelerator is disabled, deleted, or empty
       const possibleAcceleratorRequests = Object.entries(resources.requests ?? {})
         .filter(([key]) => !isEnumMember(key, ContainerResourceAttributes))
         .map(([key, value]) => ({ identifier: key, count: value }));
+
       if (possibleAcceleratorRequests.length > 0) {
         // check if they are just using the nvidia.com/gpu
         // if so, lets migrate them over to using the migrated-gpu accelerator profile if it exists

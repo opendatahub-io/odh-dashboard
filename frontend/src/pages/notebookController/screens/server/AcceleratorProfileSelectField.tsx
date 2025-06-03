@@ -187,18 +187,18 @@ const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps
     <>
       <MenuItem
         key="none"
-        isSelected={!formData.profile}
+        isSelected={!formData.profile && !formData.useExistingSettings}
         onClick={() => {
           setFormData('profile', undefined);
         }}
       >
         None
       </MenuItem>
-      {initialState.unknownProfileDetected ? (
+      {formData.useExistingSettings ? (
         <MenuItem
           key="unknown-existing"
           description="Use the existing accelerator settings from the notebook server"
-          isSelected={!formData.profile}
+          isSelected={formData.useExistingSettings}
           onClick={() => {
             setFormData('profile', undefined);
           }}
@@ -348,7 +348,7 @@ const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps
                 isFullWidth
                 extraMenuItems={extraMenuItems}
               />
-              {initialState.unknownProfileDetected
+              {formData.useExistingSettings
                 ? 'Use existing resource requests/limits, tolerations, and node selectors.'
                 : null}
               {currentProjectAcceleratorProfilesError && (
