@@ -11,7 +11,7 @@ type LMEvalToolbarProps = {
 
 const LMEvalToolbar: React.FC<LMEvalToolbarProps> = ({ filterData, onFilterUpdate }) => (
   <FilterToolbar<keyof typeof LMEvalFilterOptions>
-    data-testid="model-serving-table-toolbar"
+    data-testid="lm-eval-table-toolbar"
     filterOptions={LMEvalFilterOptions}
     filterOptionRenders={{
       [LMEvalToolbarFilterOptions.name]: ({ onChange, ...props }) => (

@@ -10,7 +10,7 @@ type MockLMEvaluationConfigType = {
   allowCodeExecution?: boolean;
   allowOnline?: boolean;
   logSamples?: boolean;
-  modelArgs?: string[];
+  modelArgs?: { name: string; value: string }[];
   state?: string;
   message?: string;
   reason?: string;

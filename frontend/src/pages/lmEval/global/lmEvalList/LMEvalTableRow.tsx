@@ -9,7 +9,9 @@ type LMEvalTableRowType = {
 const LMEvalTableRow: React.FC<LMEvalTableRowType> = ({ lmEval }) => (
   <Tr>
     <Td dataLabel="Evaluation">{lmEval.metadata.name}</Td>
-    <Td dataLabel="Model">{lmEval.spec.model}</Td>
+    <Td dataLabel="Model">
+      {lmEval.spec.modelArgs?.find((arg) => arg.name === 'model')?.value || '-'}
+    </Td>
     <Td dataLabel="Date">{lmEval.status?.completeTime}</Td>
     <Td dataLabel="Time">
       {lmEval.status?.completeTime && new Date(lmEval.status.completeTime).toLocaleTimeString()}

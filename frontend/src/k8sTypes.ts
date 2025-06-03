@@ -1292,7 +1292,7 @@ export type LMEvalKind = K8sResourceCommon & {
     batchSize?: string;
     logSamples?: boolean;
     model: string;
-    modelArgs?: string[];
+    modelArgs?: { name: string; value: string }[];
     timeout?: number;
     taskList: {
       taskNames: string[];
