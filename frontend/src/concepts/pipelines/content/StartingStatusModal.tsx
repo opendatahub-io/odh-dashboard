@@ -17,7 +17,9 @@ import {
   ListItem,
   Button,
 } from '@patternfly/react-core';
+import { StatusIcon } from '@patternfly/react-topology';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+import { getStatusFromCondition } from '#~/concepts/pipelines/content/utils.tsx';
 
 const PROGRESS_TAB = 'Progress';
 const EVENT_LOG_TAB = 'Events log';
@@ -85,22 +87,24 @@ const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose }) =>
     ? apiReady
     : spinner;
 
-
   const renderProgress = () => (
     <Stack hasGutter>
       <StackItem>
         <Bullseye style={{ minHeight: 150 }}>
           <Stack hasGutter>
             {upperMessage}
-            {pipelinesServer.crStatus?.conditions?.map((condition) => (
-              <StackItem key={condition.type}>
-                <div>
-                  <p style={{ textAlign: 'center' }}>
-                    {condition.type}: {condition.status} - {condition.message || 'No message'}
-                  </p>
-                </div>
-              </StackItem>
-            ))}
+            {pipelinesServer.crStatus?.conditions?.map((condition) => {
+              const containerStatus = getStatusFromCondition(condition);
+              console.log('88a: condition???', containerStatus);
+              return (
+                <StackItem key={condition.type}>
+                  <div>
+                    <StatusIcon status={containerStatus} /> {condition.type}: -
+                    {condition.message || 'No message'}
+                  </div>
+                </StackItem>
+              );
+            })}
           </Stack>
         </Bullseye>
       </StackItem>

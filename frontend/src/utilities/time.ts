@@ -1,3 +1,4 @@
+import long from 'long';
 import {
   PeriodicOptions,
   RunDateTime,
@@ -214,4 +215,23 @@ export const convertSecondsToPeriodicTime = (seconds: number): string => {
   }
 
   return '';
+};
+
+export const getTimeRangeCategory = (
+  timestamp: string,
+): 'shortRange' | 'mediumRange' | 'longRange' => {
+  if (!timestamp) {
+    return 'longRange';
+  }
+  const now = Date.now();
+  const timestampMs = new Date(timestamp).getTime();
+  const diffMinutes = (now - timestampMs) / (1000 * 60);
+
+  if (diffMinutes > 5) {
+    return 'longRange';
+  }
+  if (diffMinutes >= 3) {
+    return 'mediumRange';
+  }
+  return 'shortRange';
 };
