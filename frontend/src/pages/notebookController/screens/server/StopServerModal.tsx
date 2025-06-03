@@ -117,7 +117,7 @@ const StopServerModal: React.FC<StopServerModalProps> = ({
       isOpen
       onClose={onClose}
     >
-      <ModalHeader title={`Stop ${textToShow}`} />
+      <ModalHeader title={`Stop ${textToShow}?`} />
       <ModalBody>
         <Stack hasGutter>
           <StackItem>Any unsaved changes to the {getWorkbenchName()} will be lost.</StackItem>

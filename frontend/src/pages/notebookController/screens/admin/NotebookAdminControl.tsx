@@ -111,7 +111,7 @@ const NotebookAdminControl: React.FC = () => {
         <StopServerModal
           notebooksToStop={notebooksToStop}
           onNotebooksStop={onNotebooksStop}
-          link="#"
+          link="https://google.com"
         />
       ) : null}
     </ApplicationsPage>
