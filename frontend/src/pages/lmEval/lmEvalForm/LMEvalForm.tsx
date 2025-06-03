@@ -21,6 +21,10 @@ import {
   Truncate,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon, CubesIcon } from '@patternfly/react-icons';
+import { Link } from 'react-router';
+import useLMGenericObjectState from '#~/pages/lmEval/utilities/useLMGenericObjectState';
+import LMEvalApplicationPage from '#~/pages/lmEval/components/LMEvalApplicationPage';
+import { LmEvalFormData, LmModelArgument } from '#~/pages/lmEval/types';
 import { LmEvalFormData, LmModelArgument } from '#~/pages/lmEval/types';
 import useInferenceServices from '#~/pages/modelServing/useInferenceServices';
 import useLMGenericObjectState from '#~/pages/lmEval/utilities/useLMGenericObjectState';
@@ -38,10 +42,7 @@ import LmEvaluationTaskSection from './LMEvalTaskSection';
 import LmEvaluationSecuritySection from './LMEvalSecuritySection';
 import LmModelArgumentSection from './LMEvalModelArgumentSection';
 import { modelTypeOptions } from './const';
-import useLMGenericObjectState from '#~/pages/lmEval/utilities/useLMGenericObjectState';
-import LMEvalApplicationPage from '#~/pages/lmEval/components/LMEvalApplicationPage';
-import { LmEvalFormData, LmModelArgument } from '#~/pages/lmEval/types';
-import '~/components/pf-overrides/FormSection.scss';
+import '#~/components/pf-overrides/FormSection.scss';
 
 const LMEvalForm: React.FC = () => {
   const { project } = React.useContext(LMEvalContext);
@@ -116,7 +117,8 @@ const LMEvalForm: React.FC = () => {
       }
       breadcrumb={
         <Breadcrumb>
-          <BreadcrumbItem>Evaluate</BreadcrumbItem>
+          <BreadcrumbItem render={() => <Link to="/lmEval/">lmEval</Link>} />
+          <BreadcrumbItem isActive>Evaluate model</BreadcrumbItem>
         </Breadcrumb>
       }
       empty={false}

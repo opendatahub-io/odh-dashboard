@@ -9,7 +9,7 @@ import {
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import * as React from 'react';
-import { MultiSelection, type SelectionOptions } from '~/components/MultiSelection';
+import { MultiSelection, type SelectionOptions } from '#~/components/MultiSelection';
 import { lmEvalTasks } from './data';
 
 type LmEvalTaskSectionProps = {
