@@ -13,7 +13,7 @@ const LMEvalNoProjects: React.FC = () => {
         To view model evaluations, first create a data science project.
       </EmptyStateBody>
       <EmptyStateFooter>
-        <NewProjectButton closeOnCreate onProjectCreated={() => navigate('/lmEval')} />
+        <NewProjectButton closeOnCreate onProjectCreated={() => navigate('/modelEvaluations')} />
       </EmptyStateFooter>
     </EmptyState>
   );

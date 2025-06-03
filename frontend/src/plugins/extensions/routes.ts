@@ -245,7 +245,7 @@ const extensions: RouteExtension[] = [
       required: [SupportedArea.LM_EVAL],
     },
     properties: {
-      path: '/lmEval/*',
+      path: '/modelEvaluations/*',
       component: () => import('#~/pages/lmEval/LMEvalRoutes'),
     },
   },
