@@ -21,6 +21,20 @@ import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 
 const PROGRESS_TAB = 'Progress';
 const EVENT_LOG_TAB = 'Events log';
+// const readyText = 'Ready: True - All components are ready.';
+// status: "True"
+// type: "Ready"
+
+// not quite ready yet......
+const notReadySection = (
+  <div>
+    <p style={{ textAlign: 'center' }} />
+    <div>
+      This may take a while. You can close this modal and continue using the application. The
+      pipeline server will be available when initialization is complete.
+    </div>
+  </div>
+);
 
 const CONTENT_HEIGHT = 470;
 
@@ -31,8 +45,11 @@ type StartingStatusModalProps = {
 const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose }) => {
   const { pipelinesServer } = usePipelinesAPI();
   const [activeTab, setActiveTab] = React.useState<string>(PROGRESS_TAB);
-  const isServerReady = pipelinesServer.crStatus?.conditions?.some(
+  const isApiServerReady = pipelinesServer.crStatus?.conditions?.some(
     (c) => c.type === 'APIServerReady' && c.status === 'True',
+  );
+  const isServerReadyAndCompletelyDone = pipelinesServer.crStatus?.conditions?.some(
+    (c) => c.type === 'Ready' && c.status === 'True',
   );
 
   const spinner = (
@@ -44,18 +61,36 @@ const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose }) =>
     </StackItem>
   );
 
-  const ready = (
+  const apiReady = (
     <StackItem>
-      <div>Pipeline Server is Ready to Use</div>
+      <Bullseye>
+        <div>
+          The Pipeline Server API is Ready to Use, although the entire server is still initializing
+        </div>
+      </Bullseye>
     </StackItem>
   );
+
+  const allReady = (
+    <StackItem>
+      <Bullseye>
+        <div> Pipeline Server is all done initializing and ready to use.</div>
+      </Bullseye>
+    </StackItem>
+  );
+
+  const upperMessage = isServerReadyAndCompletelyDone
+    ? allReady
+    : isApiServerReady
+    ? apiReady
+    : spinner;
 
   const renderProgress = () => (
     <Stack hasGutter>
       <StackItem>
         <Bullseye style={{ minHeight: 150 }}>
           <Stack hasGutter>
-            {isServerReady ? ready : spinner}
+            {upperMessage}
             {pipelinesServer.crStatus?.conditions?.map((condition) => (
               <StackItem key={condition.type}>
                 <div>
@@ -68,14 +103,8 @@ const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose }) =>
           </Stack>
         </Bullseye>
       </StackItem>
-      <StackItem>
-        <div>
-          <p style={{ textAlign: 'center' }}>
-            This may take a while. You can close this modal and continue using the application. The
-            pipeline server will be available when initialization is complete.
-          </p>
-        </div>
-      </StackItem>
+      <StackItem />
+      {!isServerReadyAndCompletelyDone && notReadySection}
     </Stack>
   );
 
@@ -114,7 +143,7 @@ const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose }) =>
       <ModalHeader
         title="Initializing Pipeline Server"
         description={
-          isServerReady
+          isServerReadyAndCompletelyDone
             ? 'The pipeline server has been successfully initialized and is ready to use.'
             : 'The pipeline server is currently being initialized. This process may take a few minutes.'
         }
