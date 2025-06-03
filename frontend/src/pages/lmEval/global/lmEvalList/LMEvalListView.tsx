@@ -1,6 +1,5 @@
 import * as React from 'react';
 import { LMEvalKind, ProjectKind } from '#~/k8sTypes';
-import { ProjectsContext } from '#~/concepts/projects/ProjectsContext';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import LMEvalTable from './LMEvalTable';
 import { initialLMEvalFilterData, LMEvalFilterDataType } from './const';
@@ -19,7 +18,6 @@ export const getLMEvalProjectDisplayName = (
 };
 
 const LMEvalListView: React.FC<LMEvalListViewProps> = ({ lmEval: unfilteredLMEval }) => {
-  const { projects } = React.useContext(ProjectsContext);
   const [filterData, setFilterData] = React.useState<LMEvalFilterDataType>(initialLMEvalFilterData);
 
   const onClearFilters = React.useCallback(
@@ -31,7 +29,7 @@ const LMEvalListView: React.FC<LMEvalListViewProps> = ({ lmEval: unfilteredLMEva
     () =>
       unfilteredLMEval.filter((project) => {
         const nameFilter = filterData.Name?.toLowerCase();
-        const projectFilter = filterData.Project?.toLowerCase();
+        const modelFilter = filterData.Model?.toLowerCase();
 
         if (
           nameFilter &&
@@ -41,11 +39,14 @@ const LMEvalListView: React.FC<LMEvalListViewProps> = ({ lmEval: unfilteredLMEva
         }
 
         return (
-          !projectFilter ||
-          getLMEvalProjectDisplayName(project, projects).toLowerCase().includes(projectFilter)
+          !modelFilter ||
+          project.spec.modelArgs
+            ?.find((arg) => arg.name === 'model')
+            ?.value.toLowerCase()
+            .includes(modelFilter)
         );
       }),
-    [projects, filterData, unfilteredLMEval],
+    [filterData, unfilteredLMEval],
   );
 
   const onFilterUpdate = React.useCallback(

@@ -22,11 +22,11 @@ const LMEvalToolbar: React.FC<LMEvalToolbarProps> = ({ filterData, onFilterUpdat
           onChange={(_event, value) => onChange(value)}
         />
       ),
-      [LMEvalToolbarFilterOptions.project]: ({ onChange, ...props }) => (
+      [LMEvalToolbarFilterOptions.model]: ({ onChange, ...props }) => (
         <SearchInput
           {...props}
-          aria-label="Filter by project"
-          placeholder="Filter by project"
+          aria-label="Filter by model"
+          placeholder="Filter by model"
           onChange={(_event, value) => onChange(value)}
         />
       ),
