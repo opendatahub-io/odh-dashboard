@@ -13,7 +13,6 @@ import { Table } from '#~/components/table';
 import ExternalLink from '#~/components/ExternalLink';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import { ODH_PRODUCT_NAME } from '#~/utilities/const';
-import useRouteForNotebook from '#~/pages/projects/notebook/useRouteForNotebook.ts';
 import { columns } from './data';
 import StopAllServersButton from './StopAllServersButton';
 import UserTableCellTransform from './UserTableCellTransform';
@@ -21,38 +20,6 @@ import useAdminUsers from './useAdminUsers';
 
 const NotebookAdminControl: React.FC = () => {
   const [users, loaded, loadError] = useAdminUsers();
-  const { serverStatuses, setServerStatuses } = React.useContext(NotebookAdminContext);
-  const [selectedNotebook, setSelectedNotebook] = React.useState<Notebook | undefined>(undefined);
-  const [currentNotebookLink, currentNotebookLinkLoaded, currentNotebookLinkError] =
-    useRouteForNotebook(selectedNotebook?.metadata.name, selectedNotebook?.metadata.namespace);
-
-  const onNotebooksStop = React.useCallback(
-    (didStop: boolean) => {
-      if (didStop) {
-        serverStatuses.forEach((serverStatus) => {
-          serverStatus.forceRefresh();
-        });
-      }
-      setServerStatuses([]);
-    },
-    [serverStatuses, setServerStatuses],
-  );
-
-  const notebooksToStop = React.useMemo(
-    () =>
-      serverStatuses
-        .map((serverStatus) => serverStatus.notebook)
-        .filter((notebook): notebook is Notebook => !!notebook),
-    [serverStatuses],
-  );
-
-  React.useEffect(() => {
-    if (notebooksToStop.length === 1) {
-      setSelectedNotebook(notebooksToStop[0]);
-    } else {
-      setSelectedNotebook(undefined);
-    }
-  }, [notebooksToStop]);
 
   return (
     <ApplicationsPage
@@ -116,13 +83,6 @@ const NotebookAdminControl: React.FC = () => {
           />
         </StackItem>
       </Stack>
-      {(currentNotebookLinkLoaded && notebooksToStop.length === 1) || notebooksToStop.length > 1 ? (
-        <StopServerModal
-          notebooksToStop={notebooksToStop}
-          onNotebooksStop={onNotebooksStop}
-          link={currentNotebookLinkError || !currentNotebookLink ? '#' : currentNotebookLink}
-        />
-      ) : null}
     </ApplicationsPage>
   );
 };
