@@ -7,4 +7,3 @@ jest-coverage
 public
 public-cypress
 node_modules
-.eslintrc*
