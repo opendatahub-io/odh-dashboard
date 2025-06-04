@@ -1,3 +1,4 @@
+import { AccessMode } from '#~/pages/storageClasses/storageEnums';
 import {
   buildMockStorageClass,
   buildMockStorageClassConfig,
@@ -475,6 +476,107 @@ describe('Storage classes', () => {
       storageClassesPage.visit();
 
       storageClassesPage.findNoDefaultAlert().should('exist');
+    });
+
+    it('should show access mode checkboxes with correct enable/disable and checked/unchecked states', () => {
+      const config = {
+        accessModeSettings: {
+          [AccessMode.RWO]: true,
+          [AccessMode.RWX]: false,
+          //ROX missing
+          [AccessMode.RWOP]: true,
+        },
+      };
+      const storageClass = buildMockStorageClass(otherStorageClass, config);
+      storageClassesPage.mockGetStorageClasses([storageClass]);
+      storageClassesPage.visit();
+      storageClassesTable.getRowByConfigName('Test SC 1').findKebabAction('Edit').click();
+
+      storageClassEditModal.findAccessModeCheckbox('rwo').should('be.disabled').and('be.checked');
+
+      storageClassEditModal
+        .findAccessModeCheckbox('rwx')
+        .should('be.enabled')
+        .and('not.be.checked')
+        .click()
+        .should('be.checked');
+
+      storageClassEditModal
+        .findAccessModeCheckbox('rox')
+        .should('be.disabled')
+        .and('not.be.checked');
+
+      storageClassEditModal
+        .findAccessModeCheckbox('rwop')
+        .should('be.enabled')
+        .and('be.checked')
+        .click()
+        .and('not.be.checked');
+    });
+
+    it('should update accessModeSettings and persist changes on save', () => {
+      const oldConfig = {
+        accessModeSettings: {
+          [AccessMode.RWO]: true,
+          [AccessMode.RWX]: true,
+          [AccessMode.RWOP]: false,
+        },
+      };
+
+      const newConfig = {
+        accessModeSettings: {
+          [AccessMode.RWO]: true,
+          [AccessMode.RWX]: false,
+          [AccessMode.RWOP]: true,
+        },
+      };
+
+      const storageClass = buildMockStorageClass(otherStorageClass, oldConfig);
+
+      storageClassesPage.mockGetStorageClasses([storageClass]);
+      storageClassesPage.visit();
+      storageClassesTable.getRowByConfigName('Test SC 1').findKebabAction('Edit').click();
+
+      storageClassEditModal.findAccessModeCheckbox('rwx').click().should('not.be.checked');
+      storageClassEditModal.findAccessModeCheckbox('rwop').click().should('be.checked');
+
+      const newStorageClass = buildMockStorageClass(otherStorageClass, newConfig);
+
+      storageClassEditModal.mockGetStorageClass(newStorageClass);
+      storageClassEditModal.mockPatchStorageClass(newStorageClass).as('patchStorageClass');
+      storageClassesPage.mockGetStorageClasses([newStorageClass]).as('refreshStorageClass');
+
+      storageClassEditModal.findSaveButton().click();
+      cy.wait('@patchStorageClass');
+      cy.wait('@refreshStorageClass');
+
+      storageClassesTable.getRowByConfigName('Test SC 1').findKebabAction('Edit').click();
+      storageClassEditModal.findAccessModeCheckbox('rwo').should('be.checked');
+      storageClassEditModal.findAccessModeCheckbox('rwx').should('not.be.checked');
+      storageClassEditModal
+        .findAccessModeCheckbox('rox')
+        .should('be.disabled')
+        .and('not.be.checked');
+      storageClassEditModal.findAccessModeCheckbox('rwop').should('be.checked');
+    });
+
+    it('should show the alert when RWX is disabled', () => {
+      const config = {
+        accessModeSettings: {
+          ReadWriteOnce: true,
+          ReadWriteMany: true,
+        },
+      };
+      const storageClass = buildMockStorageClass(otherStorageClass, config);
+      storageClassesPage.mockGetStorageClasses([storageClass]);
+      storageClassesPage.visit();
+      storageClassesTable.getRowByConfigName('Test SC 1').findKebabAction('Edit').click();
+
+      storageClassEditModal.findAccessModeCheckbox('rwx').click().should('not.be.checked');
+      storageClassEditModal.findAccessModeAlert().should('be.visible');
+      storageClassEditModal
+        .findAccessModeAlert()
+        .should('contain.text', 'Disabling the RWX access mode will prevent new storage');
     });
   });
 });
