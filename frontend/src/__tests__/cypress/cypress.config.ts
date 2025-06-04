@@ -17,6 +17,7 @@ import { setup as setupWebsockets } from './cypress/support/websockets';
 import { env, cypressEnv, BASE_URL } from './cypress/utils/testConfig';
 import { extractHttpsUrls } from './cypress/utils/urlExtractor';
 import { validateHttpsUrls } from './cypress/utils/urlValidator';
+import { logToConsoleAndStdout } from './cypress/utils/logger';
 
 const resultsDir = `${env.CY_RESULTS_DIR || 'results'}/${env.CY_MOCK ? 'mocked' : 'e2e'}`;
 
@@ -96,19 +97,18 @@ export default defineConfig({
           return validateHttpsUrls(urls);
         },
         log(message) {
-          // eslint-disable-next-line no-console
-          console.log(message);
-          return null;
+          return logToConsoleAndStdout('INFO', message, console.log, process.stdout);
         },
         error(message) {
-          // eslint-disable-next-line no-console
-          console.error(message);
-          return null;
+          return logToConsoleAndStdout('ERROR', message, console.error, process.stderr);
         },
         table(message) {
-          // eslint-disable-next-line no-console
-          console.table(message);
-          return null;
+          return logToConsoleAndStdout(
+            'TABLE',
+            JSON.stringify(message, null, 2),
+            console.table,
+            process.stdout,
+          );
         },
       });
 
