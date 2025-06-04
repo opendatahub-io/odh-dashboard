@@ -154,7 +154,9 @@ const AccessModeField: React.FC<AccessModeFieldProps> = ({
           </FormHelperText>
         </>
       ) : (
-        <>{ACCESS_MODE_RADIO_NAMES[currentAccessMode || AccessMode.RWO]}</>
+        <div data-testid="existing-access-mode">
+          {ACCESS_MODE_RADIO_NAMES[currentAccessMode || AccessMode.RWO]}
+        </div>
       )}
     </FormGroup>
   );

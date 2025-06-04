@@ -212,6 +212,10 @@ class ClusterStorageModal extends Modal {
   findRWOPAccessMode() {
     return this.find().findByTestId('access-mode-rwop');
   }
+
+  findExistingAccessMode() {
+    return this.find().findByTestId('existing-access-mode');
+  }
 }
 
 class ClusterStorage {

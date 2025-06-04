@@ -388,6 +388,7 @@ describe('ClusterStorage', () => {
 
     cy.interceptK8s('PUT', PVCModel, mockPVCK8sResource({})).as('editClusterStorage');
 
+    updateClusterStorageModal.findExistingAccessMode().should('have.text', 'ReadWriteOnce (RWO)');
     updateClusterStorageModal.findSubmitButton().click();
     cy.wait('@editClusterStorage').then((interception) => {
       expect(interception.request.url).to.include('?dryRun=All');
