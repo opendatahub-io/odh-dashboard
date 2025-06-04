@@ -129,7 +129,7 @@ export const StorageClassesTableRow: React.FC<StorageClassesTableRowProps> = ({ 
 
   return (
     <Tr>
-      <Td modifier="truncate" dataLabel={ColumnLabel.DisplayName}>
+      <Td dataLabel={ColumnLabel.DisplayName}>
         {hasReadableConfig ? (
           <StrorageClassConfigValue
             alert={
@@ -179,11 +179,8 @@ export const StorageClassesTableRow: React.FC<StorageClassesTableRowProps> = ({ 
                       }
                     </Flex>
                   }
-                  description={
-                    storageClassConfig.description && (
-                      <TableText>{storageClassConfig.description}</TableText>
-                    )
-                  }
+                  description={storageClassConfig.description}
+                  truncateDescriptionLines={2}
                 />
               )}
           </StrorageClassConfigValue>
