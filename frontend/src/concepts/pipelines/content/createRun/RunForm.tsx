@@ -73,19 +73,8 @@ const RunForm: React.FC<RunFormProps> = ({
       k8sName: translateDisplayNameForK8s(data.nameDesc.name),
     },
     limitNameResourceType: LimitNameResourceType.PIPELINE_RUN,
+    editableK8sName: isDuplicated,
   });
-
-  const nameDesc = React.useMemo(
-    () => ({
-      name: nameDescData.name,
-      description: nameDescData.description,
-    }),
-    [nameDescData],
-  );
-
-  React.useEffect(() => {
-    onValueChange('nameDesc', nameDesc);
-  }, [nameDesc, onValueChange]);
 
   const checkForDuplicateName = useDebounceCallback(
     React.useCallback(
@@ -173,6 +162,10 @@ const RunForm: React.FC<RunFormProps> = ({
           data={nameDescData}
           onDataChange={(key, value) => {
             setNameDescData(key, value);
+            onValueChange('nameDesc', {
+              ...data.nameDesc,
+              [key]: value,
+            });
             if (key === 'name') {
               setHasDuplicateName(false);
               checkForDuplicateName(value);
