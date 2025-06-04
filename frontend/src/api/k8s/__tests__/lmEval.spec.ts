@@ -12,6 +12,7 @@ import {
   getModelEvaluationResult,
 } from '#~/api/k8s/lmEval';
 import { LMEvalKind } from '#~/k8sTypes';
+import { LmEvalFormData } from '#~/pages/lmEval/types';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sListResource: jest.fn(),
@@ -129,7 +130,7 @@ describe('createModelEvaluation', () => {
     jest.clearAllMocks();
   });
 
-  const modelData = (evaluationName = 'test-evaluation') => ({
+  const modelData = (evaluationName = 'test-evaluation'): LmEvalFormData => ({
     deployedModelName: 'test-model',
     evaluationName,
     tasks: ['mmlu', 'hellaswag'],
@@ -142,15 +143,15 @@ describe('createModelEvaluation', () => {
       tokenizedRequest: true,
       tokenizer: 'test-tokenizer',
     },
-    deploymentNamespace: 'test-project',
   });
+  const namespace = 'test-project';
 
-  const expectedResource = (batchSize?: string, evaluationName?: string): LMEvaluationKind => ({
+  const createExpectedResource = (batchSize?: string, evaluationName?: string): LMEvalKind => ({
     apiVersion: 'trustyai.opendatahub.io/v1alpha1',
     kind: 'LMEvalJob',
     metadata: {
       name: evaluationName || modelData().evaluationName,
-      namespace: modelData().deploymentNamespace,
+      namespace,
     },
     spec: {
       allowCodeExecution: modelData().allowRemoteCode,
@@ -189,184 +190,89 @@ describe('createModelEvaluation', () => {
       ],
       outputs: {
         pvcManaged: {
-          size: '5Gi',
+          size: '100Mi',
         },
       },
     },
   });
 
   it('should create a model evaluation with correct structure', async () => {
-    const mockEvaluation = mockLMEvaluation({ name: modelData().evaluationName });
+    const testData = modelData();
+    const mockEvaluation = mockLMEvaluation({ name: testData.evaluationName });
     mockCreateResource.mockResolvedValue(mockEvaluation);
 
-    const result = await createModelEvaluation(modelData(), '1');
+    const result = await createModelEvaluation(testData, namespace, '1');
 
     expect(mockCreateResource).toHaveBeenCalledWith({
       fetchOptions: { requestInit: {} },
       model: LMEvalModel,
       queryOptions: { queryParams: {} },
-      resource: expectedResource('1'),
+      resource: createExpectedResource('1'),
     });
     expect(mockCreateResource).toHaveBeenCalledTimes(1);
     expect(result).toStrictEqual(mockEvaluation);
   });
 
   it('should create a model evaluation with auto-generated name', async () => {
-    const modelName = 'My Test Model';
-    const namespace = 'test-project';
-    const evalConfig = {
-      batchSize: '16',
-      timeout: 7200,
-      taskList: {
-        taskNames: ['arc_easy', 'arc_challenge'],
-      },
-    };
-
-    const expectedResource: LMEvalKind = {
-      apiVersion: 'trustyai.opendatahub.io/v1alpha1',
-      kind: 'LMEvalJob',
-      metadata: {
-        name: 'eval-my-test-model',
-        namespace,
-      },
-      spec: {
-        model: modelName,
-        batchSize: '16',
-        timeout: 7200,
-        taskList: {
-          taskNames: ['arc_easy', 'arc_challenge'],
-        },
-      },
-    };
-
+    const testData = modelData('eval-my-test-model');
     const mockEvaluation = mockLMEvaluation({ name: 'eval-my-test-model' });
     mockCreateResource.mockResolvedValue(mockEvaluation);
 
-    const result = await createModelEvaluation(modelName, evalConfig, namespace);
+    const result = await createModelEvaluation(testData, namespace);
 
     expect(mockCreateResource).toHaveBeenCalledWith({
       fetchOptions: { requestInit: {} },
       model: LMEvalModel,
       queryOptions: { queryParams: {} },
-      resource: expectedResource,
+      resource: createExpectedResource(undefined, 'eval-my-test-model'),
     });
     expect(result).toStrictEqual(mockEvaluation);
   });
 
   it('should create a model evaluation with minimal config', async () => {
-    const modelName = 'minimal-model';
-    const namespace = 'test-project';
-    const evalConfig = {
-      taskList: {
-        taskNames: ['truthfulqa'],
-      },
-    };
-
-    const expectedResource: LMEvalKind = {
-      apiVersion: 'trustyai.opendatahub.io/v1alpha1',
-      kind: 'LMEvalJob',
-      metadata: {
-        name: 'eval-minimal-model',
-        namespace,
-      },
-      spec: {
-        model: modelName,
-        taskList: {
-          taskNames: ['truthfulqa'],
-        },
-      },
-    };
-
+    const testData = modelData('eval-minimal-model');
     const mockEvaluation = mockLMEvaluation({ name: 'eval-minimal-model' });
     mockCreateResource.mockResolvedValue(mockEvaluation);
 
-    const result = await createModelEvaluation(modelData('eval-minimal-model'));
+    const result = await createModelEvaluation(testData, namespace);
 
     expect(mockCreateResource).toHaveBeenCalledWith({
       fetchOptions: { requestInit: {} },
       model: LMEvalModel,
       queryOptions: { queryParams: {} },
-      resource: expectedResource(undefined, 'eval-minimal-model'),
+      resource: createExpectedResource(undefined, 'eval-minimal-model'),
     });
     expect(result).toStrictEqual(mockEvaluation);
   });
 
   it('should create a model evaluation with all optional fields', async () => {
-    const modelName = 'comprehensive-model';
-    const namespace = 'test-project';
-    const evalConfig = {
-      batchSize: '32',
-      timeout: 7200,
-      taskList: {
-        taskNames: ['mmlu', 'hellaswag', 'arc_easy', 'arc_challenge', 'truthfulqa'],
-      },
-    };
-
-    const expectedResource: LMEvalKind = {
-      apiVersion: 'trustyai.opendatahub.io/v1alpha1',
-      kind: 'LMEvalJob',
-      metadata: {
-        name: 'eval-comprehensive-model',
-        namespace,
-      },
-      spec: {
-        model: modelName,
-        batchSize: '32',
-        timeout: 7200,
-        taskList: {
-          taskNames: ['mmlu', 'hellaswag', 'arc_easy', 'arc_challenge', 'truthfulqa'],
-        },
-      },
-    };
-
+    const testData = modelData('eval-comprehensive-model');
     const mockEvaluation = mockLMEvaluation({ name: 'eval-comprehensive-model' });
     mockCreateResource.mockResolvedValue(mockEvaluation);
 
-    const result = await createModelEvaluation(modelData('eval-comprehensive-model'), '1');
+    const result = await createModelEvaluation(testData, namespace, '1');
 
     expect(mockCreateResource).toHaveBeenCalledWith({
       fetchOptions: { requestInit: {} },
       model: LMEvalModel,
       queryOptions: { queryParams: {} },
-      resource: expectedResource('1', 'eval-comprehensive-model'),
+      resource: createExpectedResource('1', 'eval-comprehensive-model'),
     });
     expect(result).toStrictEqual(mockEvaluation);
   });
 
   it('should handle special characters in model names', async () => {
-    const modelName = 'model/with-special_chars@123';
-    const namespace = 'test-project';
-    const evalConfig = {
-      taskList: {
-        taskNames: ['mmlu'],
-      },
-    };
-
-    const expectedResource: LMEvalKind = {
-      apiVersion: 'trustyai.opendatahub.io/v1alpha1',
-      kind: 'LMEvalJob',
-      metadata: {
-        name: 'eval-model/with-special_chars@123',
-        namespace,
-      },
-      spec: {
-        model: modelName,
-        taskList: {
-          taskNames: ['mmlu'],
-        },
-      },
-    };
-
+    const testData = modelData('eval-model/with-special_chars@123');
     const mockEvaluation = mockLMEvaluation({ name: 'eval-model/with-special_chars@123' });
     mockCreateResource.mockResolvedValue(mockEvaluation);
 
-    const result = await createModelEvaluation(modelData('eval-model/with-special_chars@123'));
+    const result = await createModelEvaluation(testData, namespace);
 
     expect(mockCreateResource).toHaveBeenCalledWith({
       fetchOptions: { requestInit: {} },
       model: LMEvalModel,
       queryOptions: { queryParams: {} },
-      resource: expectedResource(undefined, 'eval-model/with-special_chars@123'),
+      resource: createExpectedResource(undefined, 'eval-model/with-special_chars@123'),
     });
     expect(result).toStrictEqual(mockEvaluation);
   });
@@ -374,7 +280,7 @@ describe('createModelEvaluation', () => {
   it('should handle errors and rethrow', async () => {
     mockCreateResource.mockRejectedValue(new Error('Creation failed'));
 
-    await expect(createModelEvaluation(modelData())).rejects.toThrow('Creation failed');
+    await expect(createModelEvaluation(modelData(), namespace)).rejects.toThrow('Creation failed');
 
     expect(mockCreateResource).toHaveBeenCalledTimes(1);
   });
@@ -384,7 +290,9 @@ describe('createModelEvaluation', () => {
     validationError.code = 422;
     mockCreateResource.mockRejectedValue(validationError);
 
-    await expect(createModelEvaluation(modelData())).rejects.toThrow('Invalid task name');
+    await expect(createModelEvaluation(modelData(), namespace)).rejects.toThrow(
+      'Invalid task name',
+    );
 
     expect(mockCreateResource).toHaveBeenCalledTimes(1);
   });
@@ -394,10 +302,11 @@ describe('createModelEvaluation', () => {
       dryRun: true,
     };
 
+    const testData = modelData('eval-test-model');
     const mockEvaluation = mockLMEvaluation({ name: 'eval-test-model' });
     mockCreateResource.mockResolvedValue(mockEvaluation);
 
-    await createModelEvaluation(modelData('eval-test-model'), '1', opts);
+    await createModelEvaluation(testData, namespace, '1', opts);
 
     expect(mockCreateResource).toHaveBeenCalledWith({
       fetchOptions: { requestInit: {} },
@@ -408,25 +317,24 @@ describe('createModelEvaluation', () => {
           dryRun: 'All',
         },
       },
-      resource: expectedResource('1', 'eval-test-model'),
+      resource: createExpectedResource('1', 'eval-test-model'),
     });
   });
 
   it('should handle empty task list', async () => {
-    const mockEvaluation = mockLMEvaluation({ name: 'eval-test-model' });
-    mockCreateResource.mockResolvedValue(mockEvaluation);
-
     const testData = {
       ...modelData('eval-test-model'),
       tasks: [],
     };
+    const mockEvaluation = mockLMEvaluation({ name: 'eval-test-model' });
+    mockCreateResource.mockResolvedValue(mockEvaluation);
 
-    const result = await createModelEvaluation(testData);
+    const result = await createModelEvaluation(testData, namespace);
 
     const expectedResourceWithEmptyTasks = {
-      ...expectedResource(undefined, 'eval-test-model'),
+      ...createExpectedResource(undefined, 'eval-test-model'),
       spec: {
-        ...expectedResource(undefined, 'eval-test-model').spec,
+        ...createExpectedResource(undefined, 'eval-test-model').spec,
         taskList: {
           taskNames: [],
         },

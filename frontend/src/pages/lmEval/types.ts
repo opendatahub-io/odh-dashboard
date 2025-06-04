@@ -13,5 +13,4 @@ export type LmEvalFormData = {
   allowRemoteCode: boolean;
   allowOnline: boolean;
   model: LmModelArgument;
-  deploymentNamespace: string;
 };

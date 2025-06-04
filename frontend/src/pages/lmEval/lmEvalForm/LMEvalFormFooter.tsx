@@ -8,15 +8,16 @@ import {
   StackItem,
 } from '@patternfly/react-core';
 import { useNavigate } from 'react-router';
-import { isFilledLmEvalFormData } from '#~/pages/lmEval/utils';
 import { LmEvalFormData } from '#~/pages/lmEval/types';
 import { createModelEvaluation } from '#~/api';
+import { isFilledLmEvalFormData } from '#~/pages/lmEval/lmEvalForm/utils';
 
 type LMEvalFormFooterProps = {
   data: LmEvalFormData;
+  namespace: string;
 };
 
-const LMEvalFormFooter: React.FC<LMEvalFormFooterProps> = ({ data }) => {
+const LMEvalFormFooter: React.FC<LMEvalFormFooterProps> = ({ data, namespace }) => {
   const [error, setError] = React.useState<Error | null>(null);
   const [isSubmitting, setSubmitting] = React.useState(false);
   const canSubmit = isFilledLmEvalFormData(data);
@@ -25,9 +26,9 @@ const LMEvalFormFooter: React.FC<LMEvalFormFooterProps> = ({ data }) => {
   const onCreatelmEval = async () => {
     setSubmitting(true);
     setError(null);
-    createModelEvaluation(data)
+    createModelEvaluation(data, namespace)
       .then(() => {
-        navigate('/lmEval');
+        navigate('/modelEvaluations');
       })
       .catch((err) => {
         setError(err);
