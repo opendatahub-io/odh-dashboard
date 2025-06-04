@@ -49,10 +49,3 @@ export const defaultClusterStorage = {
   mountPath: MOUNT_PATH_PREFIX,
   accessMode: AccessMode.RWO,
 };
-
-export const ACCESS_MODE_RADIO_NAMES: Record<AccessMode, string> = {
-  [AccessMode.RWO]: 'ReadWriteOnce (RWO)',
-  [AccessMode.RWX]: 'ReadWriteMany (RWX)',
-  [AccessMode.ROX]: 'ReadOnlyMany (ROX)',
-  [AccessMode.RWOP]: 'ReadWriteOncePod (RWOP)',
-};

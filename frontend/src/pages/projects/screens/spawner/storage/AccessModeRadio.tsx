@@ -1,7 +1,7 @@
 import { Radio, Tooltip } from '@patternfly/react-core';
 import * as React from 'react';
 import { AccessMode } from '#~/pages/storageClasses/storageEnums';
-import { ACCESS_MODE_RADIO_NAMES } from './constants';
+import { toAccessModeLabel } from '#~/pages/projects/screens/detail/storage/AccessModeLabel';
 
 type AccessModeRadioProps = {
   id: string;
@@ -23,7 +23,7 @@ const AccessModeRadio: React.FC<AccessModeRadioProps> = ({
   if (isDisabled) {
     return (
       <Tooltip
-        content={`${ACCESS_MODE_RADIO_NAMES[accessMode]} isn't enabled in the selected storage class.`}
+        content={`${toAccessModeLabel(accessMode)} isn't enabled in the selected storage class.`}
       >
         <Radio
           id={id}
@@ -32,7 +32,7 @@ const AccessModeRadio: React.FC<AccessModeRadioProps> = ({
           isDisabled={isDisabled}
           isChecked={isChecked}
           onChange={onChange}
-          label={ACCESS_MODE_RADIO_NAMES[accessMode]}
+          label={toAccessModeLabel(accessMode)}
         />
       </Tooltip>
     );
@@ -45,7 +45,7 @@ const AccessModeRadio: React.FC<AccessModeRadioProps> = ({
       isDisabled={isDisabled}
       isChecked={isChecked}
       onChange={onChange}
-      label={ACCESS_MODE_RADIO_NAMES[accessMode]}
+      label={toAccessModeLabel(accessMode)}
     />
   );
 };

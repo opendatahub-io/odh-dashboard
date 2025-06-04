@@ -5,15 +5,14 @@ import {
   FormGroup,
   FormGroupLabelHelp,
   FormHelperText,
-  List,
-  ListItem,
   Popover,
 } from '@patternfly/react-core';
 import * as React from 'react';
 import { AccessMode } from '#~/pages/storageClasses/storageEnums';
-import { ACCESS_MODE_RADIO_NAMES } from './constants';
+import { toAccessModeLabel } from '#~/pages/projects/screens/detail/storage/AccessModeLabel';
 import { useGetStorageClassConfig } from './useGetStorageClassConfig';
 import AccessModeRadio from './AccessModeRadio';
+import AccessModePopover from './AccessModePopover';
 
 type AccessModeFieldProps = {
   currentAccessMode?: AccessMode;
@@ -50,44 +49,17 @@ const AccessModeField: React.FC<AccessModeFieldProps> = ({
       fieldId="access-mode"
       labelHelp={
         <Popover
-          triggerRef={labelHelpRef}
           bodyContent={
-            <>
-              <div>
-                Access mode is a Kubernetes concept that determines how nodes can interact with the
-                volume.
-              </div>
-              <br />
-              <List>
-                {(canEditAccessMode || currentAccessMode === AccessMode.RWO) && (
-                  <ListItem>
-                    <b>{ACCESS_MODE_RADIO_NAMES[AccessMode.RWO]}</b> means that the storage can be
-                    attached to a single workbench at a given time.
-                  </ListItem>
-                )}
-                {((showRWX && hasRWX && canEditAccessMode) ||
-                  currentAccessMode === AccessMode.RWX) && (
-                  <ListItem>
-                    <b>{ACCESS_MODE_RADIO_NAMES[AccessMode.RWX]}</b> means that the storage can be
-                    attached to many workbenches simultaneously.
-                  </ListItem>
-                )}
-                {((showROX && hasROX && canEditAccessMode) ||
-                  currentAccessMode === AccessMode.ROX) && (
-                  <ListItem>
-                    <b>{ACCESS_MODE_RADIO_NAMES[AccessMode.ROX]}</b> means that the storage can be
-                    attached to many workbenches as read-only.
-                  </ListItem>
-                )}
-                {((showRWOP && hasRWOP && canEditAccessMode) ||
-                  currentAccessMode === AccessMode.RWOP) && (
-                  <ListItem>
-                    <b>{ACCESS_MODE_RADIO_NAMES[AccessMode.RWOP]}</b> means that the storage can be
-                    attached to a single pod on a single node as read-write.
-                  </ListItem>
-                )}
-              </List>
-            </>
+            <AccessModePopover
+              showRWX={showRWX}
+              showROX={showROX}
+              showRWOP={showRWOP}
+              hasRWX={hasRWX}
+              hasROX={hasROX}
+              hasRWOP={hasRWOP}
+              canEditAccessMode={canEditAccessMode}
+              currentAccessMode={currentAccessMode}
+            />
           }
         >
           <FormGroupLabelHelp ref={labelHelpRef} aria-label="More info for access mode field" />
@@ -155,7 +127,7 @@ const AccessModeField: React.FC<AccessModeFieldProps> = ({
         </>
       ) : (
         <div data-testid="existing-access-mode">
-          {ACCESS_MODE_RADIO_NAMES[currentAccessMode || AccessMode.RWO]}
+          {toAccessModeLabel(currentAccessMode || AccessMode.RWO)}
         </div>
       )}
     </FormGroup>
