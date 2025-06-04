@@ -9,7 +9,7 @@ describe('K8sNameDescriptionField', () => {
 
   it('should show warning when name field approaches character limit', () => {
     const testId = 'workbench-name';
-    const longName = 'a'.repeat(50); // Assuming maxLength is 60
+    const longName = 'a'.repeat(240); // Using 250 character limit
     
     getByDataTestId(testId + '-name').type(longName);
     
@@ -20,7 +20,7 @@ describe('K8sNameDescriptionField', () => {
 
   it('should show warning when description field approaches character limit', () => {
     const testId = 'workbench-name';
-    const longDescription = 'a'.repeat(1750); // Assuming maxLengthDesc is 2000
+    const longDescription = 'a'.repeat(5250); // Using 5500 character limit
     
     getByDataTestId(testId + '-description').type(longDescription);
     
