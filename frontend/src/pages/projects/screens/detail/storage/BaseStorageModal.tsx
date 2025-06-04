@@ -77,11 +77,7 @@ const BaseStorageModal: React.FC<BaseStorageModalProps> = ({
     }
   }, [createData.storageClassName, setCreateData, existingPvc]);
 
-  const canCreate =
-    !actionInProgress &&
-    nameDescValid &&
-    isValid &&
-    (createData.accessMode || existingPvc?.spec.accessModes[0]);
+  const canCreate = !actionInProgress && nameDescValid && isValid;
 
   const submit = () => {
     setError(undefined);

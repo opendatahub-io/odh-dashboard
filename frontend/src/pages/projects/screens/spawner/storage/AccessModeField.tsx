@@ -30,12 +30,10 @@ const AccessModeField: React.FC<AccessModeFieldProps> = ({
 }) => {
   const { storageClassesLoaded, adminSupportedAccessModes, openshiftSupportedAccessModes } =
     useGetStorageClassConfig(storageClassName);
-  const showRWO = openshiftSupportedAccessModes.includes(AccessMode.RWO);
   const showRWX = openshiftSupportedAccessModes.includes(AccessMode.RWX);
   const showROX = openshiftSupportedAccessModes.includes(AccessMode.ROX);
   const showRWOP = openshiftSupportedAccessModes.includes(AccessMode.RWOP);
 
-  const hasRWO = adminSupportedAccessModes.includes(AccessMode.RWO);
   const hasRWX = adminSupportedAccessModes.includes(AccessMode.RWX);
   const hasROX = adminSupportedAccessModes.includes(AccessMode.ROX);
   const hasRWOP = adminSupportedAccessModes.includes(AccessMode.RWOP);
@@ -59,13 +57,9 @@ const AccessModeField: React.FC<AccessModeFieldProps> = ({
                 Access mode is a Kubernetes concept that determines how nodes can interact with the
                 volume.
               </div>
-              {((showRWO && hasRWO) ||
-                (showRWX && hasRWX) ||
-                (showROX && hasROX) ||
-                (showRWOP && hasRWOP)) && <br />}
+              <br />
               <List>
-                {((showRWO && hasRWO && canEditAccessMode) ||
-                  currentAccessMode === AccessMode.RWO) && (
+                {(canEditAccessMode || currentAccessMode === AccessMode.RWO) && (
                   <ListItem>
                     <b>{ACCESS_MODE_RADIO_NAMES[AccessMode.RWO]}</b> means that the storage can be
                     attached to a single workbench at a given time.
@@ -103,18 +97,16 @@ const AccessModeField: React.FC<AccessModeFieldProps> = ({
       {canEditAccessMode ? (
         <>
           <Flex>
-            {showRWO && (
-              <FlexItem>
-                <AccessModeRadio
-                  id="access-mode-rwo"
-                  name="access-mode-rwo"
-                  isDisabled={!hasRWO}
-                  isChecked={currentAccessMode === AccessMode.RWO}
-                  onChange={() => setAccessMode(AccessMode.RWO)}
-                  accessMode={AccessMode.RWO}
-                />
-              </FlexItem>
-            )}
+            <FlexItem>
+              <AccessModeRadio
+                id="access-mode-rwo"
+                name="access-mode-rwo"
+                isDisabled={false}
+                isChecked={currentAccessMode === AccessMode.RWO}
+                onChange={() => setAccessMode(AccessMode.RWO)}
+                accessMode={AccessMode.RWO}
+              />
+            </FlexItem>
             {showRWX && (
               <FlexItem>
                 <AccessModeRadio
