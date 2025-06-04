@@ -198,19 +198,19 @@ class ClusterStorageModal extends Modal {
   }
 
   findRWOAccessMode() {
-    return this.find().findByTestId('access-mode-rwo');
+    return this.find().findByTestId('ReadWriteOnce-radio');
   }
 
   findRWXAccessMode() {
-    return this.find().findByTestId('access-mode-rwx');
+    return this.find().findByTestId('ReadWriteMany-radio');
   }
 
   findROXAccessMode() {
-    return this.find().findByTestId('access-mode-rox');
+    return this.find().findByTestId('ReadOnlyMany-radio');
   }
 
   findRWOPAccessMode() {
-    return this.find().findByTestId('access-mode-rwop');
+    return this.find().findByTestId('ReadWriteOncePod-radio');
   }
 
   findExistingAccessMode() {

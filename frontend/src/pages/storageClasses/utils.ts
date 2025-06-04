@@ -17,7 +17,6 @@ export const getStorageClassConfig = (
 
 export const getPossibleStorageClassAccessModes = (
   storageClass?: StorageClassKind | null,
-  opts?: { excludeRWO: boolean },
 ): {
   selectedStorageClassConfig?: StorageClassConfig;
   openshiftSupportedAccessModes: AccessMode[];
@@ -31,15 +30,6 @@ export const getPossibleStorageClassAccessModes = (
     openshiftSupportedAccessModes,
     selectedStorageClassConfig?.accessModeSettings,
   );
-  if (opts?.excludeRWO) {
-    return {
-      selectedStorageClassConfig,
-      openshiftSupportedAccessModes,
-      adminSupportedAccessModes: adminSupportedAccessModes.filter(
-        (accessMode) => accessMode !== AccessMode.RWO,
-      ),
-    };
-  }
   return { selectedStorageClassConfig, openshiftSupportedAccessModes, adminSupportedAccessModes };
 };
 

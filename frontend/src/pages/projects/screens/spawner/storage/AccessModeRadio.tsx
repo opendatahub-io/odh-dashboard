@@ -20,24 +20,7 @@ const AccessModeRadio: React.FC<AccessModeRadioProps> = ({
   isChecked,
   onChange,
 }) => {
-  if (isDisabled) {
-    return (
-      <Tooltip
-        content={`${toAccessModeLabel(accessMode)} isn't enabled in the selected storage class.`}
-      >
-        <Radio
-          id={id}
-          name={name}
-          data-testid={id}
-          isDisabled={isDisabled}
-          isChecked={isChecked}
-          onChange={onChange}
-          label={toAccessModeLabel(accessMode)}
-        />
-      </Tooltip>
-    );
-  }
-  return (
+  const radioField = (
     <Radio
       id={id}
       name={name}
@@ -48,6 +31,16 @@ const AccessModeRadio: React.FC<AccessModeRadioProps> = ({
       label={toAccessModeLabel(accessMode)}
     />
   );
+  if (isDisabled) {
+    return (
+      <Tooltip
+        content={`${toAccessModeLabel(accessMode)} isn't enabled in the selected storage class.`}
+      >
+        {radioField}
+      </Tooltip>
+    );
+  }
+  return radioField;
 };
 
 export default AccessModeRadio;

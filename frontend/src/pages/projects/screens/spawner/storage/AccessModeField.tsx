@@ -1,15 +1,8 @@
-import {
-  Alert,
-  Flex,
-  FlexItem,
-  FormGroup,
-  FormGroupLabelHelp,
-  FormHelperText,
-  Popover,
-} from '@patternfly/react-core';
+import { Alert, Flex, FlexItem, FormGroup, FormHelperText } from '@patternfly/react-core';
 import * as React from 'react';
 import { AccessMode } from '#~/pages/storageClasses/storageEnums';
 import { toAccessModeLabel } from '#~/pages/projects/screens/detail/storage/AccessModeLabel';
+import FieldGroupHelpLabelIcon from '#~/components/FieldGroupHelpLabelIcon';
 import { useGetStorageClassConfig } from './useGetStorageClassConfig';
 import AccessModeRadio from './AccessModeRadio';
 import { getAccessModePopover } from './getAccessModePopover';
@@ -29,15 +22,6 @@ const AccessModeField: React.FC<AccessModeFieldProps> = ({
 }) => {
   const { storageClassesLoaded, adminSupportedAccessModes, openshiftSupportedAccessModes } =
     useGetStorageClassConfig(storageClassName);
-  const showRWX = openshiftSupportedAccessModes.includes(AccessMode.RWX);
-  const showROX = openshiftSupportedAccessModes.includes(AccessMode.ROX);
-  const showRWOP = openshiftSupportedAccessModes.includes(AccessMode.RWOP);
-
-  const hasRWX = adminSupportedAccessModes.includes(AccessMode.RWX);
-  const hasROX = adminSupportedAccessModes.includes(AccessMode.ROX);
-  const hasRWOP = adminSupportedAccessModes.includes(AccessMode.RWOP);
-
-  const labelHelpRef = React.useRef(null);
 
   if (!storageClassesLoaded) {
     return null;
@@ -48,71 +32,38 @@ const AccessModeField: React.FC<AccessModeFieldProps> = ({
       label="Access mode"
       fieldId="access-mode"
       labelHelp={
-        <Popover
-          bodyContent={getAccessModePopover({
-            showRWX,
-            showROX,
-            showRWOP,
-            hasRWX,
-            hasROX,
-            hasRWOP,
+        <FieldGroupHelpLabelIcon
+          content={getAccessModePopover({
+            openshiftSupportedAccessModes,
+            adminSupportedAccessModes,
             canEditAccessMode,
             currentAccessMode,
+            showAllAccessModes: false,
           })}
-        >
-          <FormGroupLabelHelp ref={labelHelpRef} aria-label="More info for access mode field" />
-        </Popover>
+        />
       }
     >
       {canEditAccessMode ? (
         <>
           <Flex>
-            <FlexItem>
-              <AccessModeRadio
-                id="access-mode-rwo"
-                name="access-mode-rwo"
-                isDisabled={false}
-                isChecked={currentAccessMode === AccessMode.RWO}
-                onChange={() => setAccessMode(AccessMode.RWO)}
-                accessMode={AccessMode.RWO}
-              />
-            </FlexItem>
-            {showRWX && (
-              <FlexItem>
-                <AccessModeRadio
-                  id="access-mode-rwx"
-                  name="access-mode-rwx"
-                  isDisabled={!hasRWX}
-                  isChecked={currentAccessMode === AccessMode.RWX}
-                  onChange={() => setAccessMode(AccessMode.RWX)}
-                  accessMode={AccessMode.RWX}
-                />
-              </FlexItem>
-            )}
-            {showROX && (
-              <FlexItem>
-                <AccessModeRadio
-                  id="access-mode-rox"
-                  name="access-mode-rox"
-                  isDisabled={!hasROX}
-                  isChecked={currentAccessMode === AccessMode.ROX}
-                  onChange={() => setAccessMode(AccessMode.ROX)}
-                  accessMode={AccessMode.ROX}
-                />
-              </FlexItem>
-            )}
-            {showRWOP && (
-              <FlexItem>
-                <AccessModeRadio
-                  id="access-mode-rwop"
-                  name="access-mode-rwop"
-                  isDisabled={!hasRWOP}
-                  isChecked={currentAccessMode === AccessMode.RWOP}
-                  onChange={() => setAccessMode(AccessMode.RWOP)}
-                  accessMode={AccessMode.RWOP}
-                />
-              </FlexItem>
-            )}
+            {Object.values(AccessMode).map((accessMode) => {
+              const showAccessMode = openshiftSupportedAccessModes.includes(accessMode);
+              const hasAccessMode = adminSupportedAccessModes.includes(accessMode);
+              return (
+                (showAccessMode || accessMode === AccessMode.RWO) && (
+                  <FlexItem key={accessMode}>
+                    <AccessModeRadio
+                      id={`${accessMode}-radio`}
+                      name={`${accessMode}-radio`}
+                      isDisabled={!hasAccessMode}
+                      isChecked={currentAccessMode === accessMode}
+                      onChange={() => setAccessMode(accessMode)}
+                      accessMode={accessMode}
+                    />
+                  </FlexItem>
+                )
+              );
+            })}
           </Flex>
           <FormHelperText>
             <Alert

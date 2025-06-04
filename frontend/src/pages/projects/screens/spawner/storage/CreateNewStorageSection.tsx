@@ -78,28 +78,28 @@ const CreateNewStorageSection = <D extends StorageData>({
         }
       />
       {isStorageClassesAvailable && (
-        <StorageClassSelect
-          storageClassName={data.storageClassName}
-          setStorageClassName={(name) => setData('storageClassName', name)}
-          additionalHelperText={
-            <Alert
-              variant="info"
-              title="The storage class cannot be changed after creation."
-              isInline
-              isPlain
-            />
-          }
-          disableStorageClassSelect={disableStorageClassSelect}
-          menuAppendTo={menuAppendTo}
-        />
-      )}
-      {isStorageClassesAvailable && (
-        <AccessModeField
-          storageClassName={data.storageClassName}
-          currentAccessMode={data.accessMode}
-          canEditAccessMode={editableK8sName}
-          setAccessMode={(accessMode) => setData('accessMode', accessMode)}
-        />
+        <>
+          <StorageClassSelect
+            storageClassName={data.storageClassName}
+            setStorageClassName={(name) => setData('storageClassName', name)}
+            additionalHelperText={
+              <Alert
+                variant="info"
+                title="The storage class cannot be changed after creation."
+                isInline
+                isPlain
+              />
+            }
+            disableStorageClassSelect={disableStorageClassSelect}
+            menuAppendTo={menuAppendTo}
+          />
+          <AccessModeField
+            storageClassName={data.storageClassName}
+            currentAccessMode={data.accessMode}
+            canEditAccessMode={editableK8sName}
+            setAccessMode={(accessMode) => setData('accessMode', accessMode)}
+          />
+        </>
       )}
       <PVSizeField
         fieldID="create-new-storage-size"

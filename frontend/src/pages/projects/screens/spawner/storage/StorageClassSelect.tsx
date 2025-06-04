@@ -18,7 +18,7 @@ import {
   getPossibleStorageClassAccessModes,
   getStorageClassConfig,
 } from '#~/pages/storageClasses/utils';
-import { AccessModeLabelMap } from '#~/pages/storageClasses/storageEnums';
+import { AccessMode, AccessModeLabelMap } from '#~/pages/storageClasses/storageEnums';
 import useAdminDefaultStorageClass from './useAdminDefaultStorageClass';
 import { useGetStorageClassConfig } from './useGetStorageClassConfig';
 
@@ -86,13 +86,13 @@ const StorageClassSelect: React.FC<StorageClassSelectProps> = ({
             {/* If multiple storage classes have `isDefault` set to true,
             prioritize the one returned by useAdminDefaultStorageClass() as the default class */}
             <LabelGroup>
-              {getPossibleStorageClassAccessModes(sc, {
-                excludeRWO: true,
-              }).adminSupportedAccessModes.map((accessMode, index) => (
-                <Label key={index} isCompact data-testid={`${accessMode}-label`}>
-                  {AccessModeLabelMap[accessMode]}
-                </Label>
-              ))}
+              {getPossibleStorageClassAccessModes(sc)
+                .adminSupportedAccessModes.filter((accessMode) => accessMode !== AccessMode.RWO)
+                .map((accessMode, index) => (
+                  <Label key={index} isCompact data-testid={`${accessMode}-label`}>
+                    {AccessModeLabelMap[accessMode]}
+                  </Label>
+                ))}
               {sc.metadata.name === defaultSc?.metadata.name && (
                 <Label isCompact color="green" data-testid="is-default-label">
                   Default class

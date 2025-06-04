@@ -179,12 +179,6 @@ describe('getPossibleStorageClassAccessModes', () => {
     expect(result.adminSupportedAccessModes).toEqual([AccessMode.RWO, AccessMode.RWX]);
   });
 
-  it('filters out RWO if excludeRWO is true', () => {
-    const storageClass = mockStorageClasses[1];
-    const result = getPossibleStorageClassAccessModes(storageClass, { excludeRWO: true });
-    expect(result.adminSupportedAccessModes).toEqual([AccessMode.RWX]);
-  });
-
   it('returns empty adminSupportedAccessModes if config accessModeSettings is empty', () => {
     const storageClass = {
       ...mockStorageClasses[0],

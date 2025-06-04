@@ -5,7 +5,6 @@ import { AccessMode } from '#~/pages/storageClasses/storageEnums';
 
 export const useGetStorageClassConfig = (
   storageClassName?: string,
-  opts?: { excludeRWO: boolean },
 ): {
   storageClasses: StorageClassKind[];
   storageClassesLoaded: boolean;
@@ -17,7 +16,7 @@ export const useGetStorageClassConfig = (
   const selectedStorageClass = storageClasses.find((sc) => sc.metadata.name === storageClassName);
 
   const { selectedStorageClassConfig, openshiftSupportedAccessModes, adminSupportedAccessModes } =
-    getPossibleStorageClassAccessModes(selectedStorageClass, opts);
+    getPossibleStorageClassAccessModes(selectedStorageClass);
 
   return {
     storageClasses,
