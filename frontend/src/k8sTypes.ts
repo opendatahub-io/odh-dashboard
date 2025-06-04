@@ -113,6 +113,7 @@ export type NotebookAnnotations = Partial<{
   'opendatahub.io/image-display-name': string; // the display name of the image
   'notebooks.opendatahub.io/last-image-version-git-commit-selection': string; // the build commit of the last image they selected
   'opendatahub.io/hardware-profile-namespace': string | null; // the namespace of the hardware profile used
+  'opendatahub.io/workbench-image-namespace': string | null; // namespace of the
 }>;
 
 export type DashboardLabels = {
