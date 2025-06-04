@@ -68,56 +68,39 @@ const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose }) =>
   }, [pipelinesServer.crStatus?.conditions]);
 
   const spinner = (
-    <StackItem>
-      <Bullseye>
-        <Spinner size="lg" />
-        <div className="pf-v6-u-pl-sm">Initializing Pipeline Server </div>
-      </Bullseye>
-    </StackItem>
+    <div className="pf-v6-u-display-flex pf-v6-u-gap-lg">
+      <div>Initializing Pipeline Server</div>
+      <Spinner size="lg" />
+    </div>
   );
 
-  const apiReady = (
-    <StackItem>
-      <Bullseye>
-        <div>
-          The Pipeline Server API is Ready to Use, although the entire server is still initializing
-        </div>
-      </Bullseye>
-    </StackItem>
-  );
+  // const API_READY_MESSAGE =
+  //   'The Pipeline Server API is Ready to Use, although the entire server is still initializing';
+  // const ALL_READY_MESSAGE = 'Pipeline Server is all done initializing and ready to use.';
 
-  const allReady = (
-    <StackItem>
-      <Bullseye>
-        <div> Pipeline Server is all done initializing and ready to use.</div>
-      </Bullseye>
-    </StackItem>
-  );
-
-  const upperMessage = isServerReadyAndCompletelyDone
-    ? allReady
-    : isApiServerReady
-    ? apiReady
-    : spinner;
+  // const upperMessage = isServerReadyAndCompletelyDone ? (
+  //   <div className="pf-v6-u-font-weight-bold pf-v6-u-mb-md">{ALL_READY_MESSAGE}</div>
+  // ) : isApiServerReady ? (
+  //   <div className="pf-v6-u-font-weight-bold pf-v6-u-mb-md">{API_READY_MESSAGE}</div>
+  // ) : (
+  //   spinner
+  // );
 
   const renderProgress = () => (
     <Stack hasGutter>
       <StackItem>
-        <Bullseye style={{ minHeight: 150 }}>
-          <Stack hasGutter>
-            {upperMessage}
-            {pipelinesServer.crStatus?.conditions?.map((condition) => {
-              const containerStatus = getStatusFromCondition(condition);
-              return (
-                <StackItem key={condition.type}>
-                  <div>
-                    <K8sStatusIcon status={containerStatus} /> {condition.type}
-                  </div>
-                </StackItem>
-              );
-            })}
-          </Stack>
-        </Bullseye>
+        <Stack hasGutter>
+          {pipelinesServer.crStatus?.conditions?.map((condition) => {
+            const containerStatus = getStatusFromCondition(condition);
+            return (
+              <StackItem key={condition.type}>
+                <div>
+                  <K8sStatusIcon status={containerStatus} /> {condition.type}
+                </div>
+              </StackItem>
+            );
+          })}
+        </Stack>
       </StackItem>
       <StackItem />
       {!isServerReadyAndCompletelyDone && notReadySection}
@@ -128,7 +111,6 @@ const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose }) =>
     <Panel style={{ overflowY: 'auto', height: '100%' }}>
       <PanelMain>
         <List isPlain isBordered data-id="event-logs">
-          <ListItem>Pipeline server initialization started</ListItem>
           {conditionLog.map((condition, index) => (
             <ListItem key={`pipeline-condition-${condition.type}-${index}`}>
               {condition.type}: {condition.status} - {condition.message || 'No message'}
@@ -149,7 +131,7 @@ const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose }) =>
       disableFocusTrap
     >
       <ModalHeader
-        title="Initializing Pipeline Server"
+        title={isServerReadyAndCompletelyDone ? 'Pipeline Server Initialized' : spinner}
         description={
           isServerReadyAndCompletelyDone
             ? 'The pipeline server has been successfully initialized and is ready to use.'
