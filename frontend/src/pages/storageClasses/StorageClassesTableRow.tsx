@@ -14,7 +14,7 @@ import {
   Timestamp,
   Truncate,
 } from '@patternfly/react-core';
-import { ActionsColumn, Td, Tr, TableText } from '@patternfly/react-table';
+import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
 import { OutlinedQuestionCircleIcon, PencilAltIcon } from '@patternfly/react-icons';
 
 import { updateStorageClassConfig } from '#~/api';
