@@ -22,9 +22,6 @@ import {
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon, CubesIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router';
-import useLMGenericObjectState from '#~/pages/lmEval/utilities/useLMGenericObjectState';
-import LMEvalApplicationPage from '#~/pages/lmEval/components/LMEvalApplicationPage';
-import { LmEvalFormData, LmModelArgument } from '#~/pages/lmEval/types';
 import { LmEvalFormData, LmModelArgument } from '#~/pages/lmEval/types';
 import useInferenceServices from '#~/pages/modelServing/useInferenceServices';
 import useLMGenericObjectState from '#~/pages/lmEval/utilities/useLMGenericObjectState';
@@ -43,6 +40,7 @@ import LmEvaluationSecuritySection from './LMEvalSecuritySection';
 import LmModelArgumentSection from './LMEvalModelArgumentSection';
 import { modelTypeOptions } from './const';
 import '#~/components/pf-overrides/FormSection.scss';
+import LMEvalFormFooter from './LMEvalFormFooter';
 
 const LMEvalForm: React.FC = () => {
   const { project } = React.useContext(LMEvalContext);
@@ -50,7 +48,6 @@ const LMEvalForm: React.FC = () => {
 
   const [data, setData] = useLMGenericObjectState<LmEvalFormData>({
     deployedModelName: '',
-    deploymentNamespace: '',
     evaluationName: '',
     tasks: [],
     modelType: '',
@@ -117,7 +114,7 @@ const LMEvalForm: React.FC = () => {
       }
       breadcrumb={
         <Breadcrumb>
-          <BreadcrumbItem render={() => <Link to="/lmEval/">lmEval</Link>} />
+          <BreadcrumbItem render={() => <Link to="/modelEvaluations">Model evaluations</Link>} />
           <BreadcrumbItem isActive>Evaluate model</BreadcrumbItem>
         </Breadcrumb>
       }
@@ -218,7 +215,6 @@ const LMEvalForm: React.FC = () => {
             }
           >
             <TextInput
-              autoFocus
               aria-label="Evaluation name"
               value={data.evaluationName}
               onChange={(_event, v) => setData('evaluationName', v)}
@@ -280,7 +276,7 @@ const LMEvalForm: React.FC = () => {
             setModelArgument={(modelArgument: LmModelArgument) => setData('model', modelArgument)}
           />
           <FormSection>
-            <LMEvalFormFooter data={data} />
+            <LMEvalFormFooter data={data} namespace={namespace} />
           </FormSection>
         </Form>
       </PageSection>
