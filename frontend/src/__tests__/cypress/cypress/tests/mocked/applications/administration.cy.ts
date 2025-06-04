@@ -182,4 +182,57 @@ describe('Administration Tab', () => {
     notebookController.findAppTitle().should('contain', 'Start a basic workbench');
     notebookController.findAppTitle().should('not.contain', 'Administration');
   });
+
+  it('Validate that clicking on "Stop all workbenches" button will show dialog for stopping multiple workbenches', () => {
+    const allowedUsers = [
+      mockAllowedUsers({ username: 'regularuser2', lastActivity: 'Now' }),
+      mockAllowedUsers({ username: 'regularuser1', lastActivity: 'Now' }),
+    ];
+    initIntercepts({ allowedUsers });
+    cy.interceptK8s(RouteModel, mockRouteK8sResource({})).as('getWorkbenchURL');
+    administration.mockGetNotebookStatus('jupyter-nb-regularuser1');
+    administration.mockGetNotebookStatus('jupyter-nb-regularuser2');
+    cy.interceptOdh('PATCH /api/notebooks', mockStartNotebookData({})).as('stopNotebookServer');
+    notebookController.visit();
+    notebookController.findAdministrationTab().click();
+    notebookController.visit();
+    notebookController.findAdministrationTab().click();
+    administration.findStopAllServersButton().should('be.enabled');
+    administration.findStopAllServersButton().click();
+
+    stopNotebookModal.findStopNotebookServerButton().should('be.enabled');
+    stopNotebookModal.findStopNotebookTitle().should('have.text', 'Stop all workbenches?');
+    stopNotebookModal.findStopNotebookServerButton().click();
+
+    cy.wait('@stopNotebookServer');
+  });
+
+  it('Validate that clicking on "Stop all workbenches" button will display a link if there is only one workbench to stop', () => {
+    const allowedUsers = [mockAllowedUsers({ username: 'regularuser1', lastActivity: 'Now' })];
+
+    initIntercepts({ allowedUsers });
+    cy.interceptOdh('PATCH /api/notebooks', mockStartNotebookData({})).as('stopNotebookServer');
+    administration.mockGetNotebookStatus('jupyter-nb-regularuser1');
+    cy.interceptK8s(RouteModel, mockRouteK8sResource({})).as('getWorkbenchURL');
+
+    notebookController.visit();
+    notebookController.findAdministrationTab().click();
+    notebookController.visit();
+    notebookController.findAdministrationTab().click();
+    administration.findStopAllServersButton().should('be.enabled');
+    administration.findStopAllServersButton().click();
+
+    stopNotebookModal.findStopNotebookServerButton().should('be.enabled');
+    stopNotebookModal.findStopNotebookTitle().should('have.text', 'Stop workbench?');
+    stopNotebookModal
+      .findNotebookRouteLink()
+      .should(
+        'have.attr',
+        'href',
+        `https://${mockRouteK8sResource({}).spec.host}/notebook/test-project/test-notebook`,
+      );
+    stopNotebookModal.findStopNotebookServerButton().click();
+
+    cy.wait('@stopNotebookServer');
+  });
 });

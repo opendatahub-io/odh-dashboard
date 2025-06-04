@@ -38,7 +38,7 @@ const StopWorkbenchModal: React.FC<StopWorkbenchModalProps> = ({
       isOpen
       onClose={() => onBeforeClose(false)}
     >
-      <ModalHeader title={title} />
+      <ModalHeader data-testid="stop-workbench-modal-title" title={title} />
       <ModalBody>
         <Stack hasGutter>
           <StackItem>Any unsaved changes to the {workbenchName} will be lost.</StackItem>
