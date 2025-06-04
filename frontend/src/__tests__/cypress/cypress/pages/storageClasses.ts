@@ -144,6 +144,13 @@ class StorageClassesTable {
   mockPatchStorageClass(storageClass: StorageClassKind, times = 1) {
     return cy.interceptK8s('PATCH', { model: StorageClassModel, times }, storageClass);
   }
+
+  shouldContainAccessModeLabels(labels: string[]) {
+    cy.findByTestId('access-mode-label-group').within(() =>
+      labels.map((label) => cy.contains(label)),
+    );
+    return this;
+  }
 }
 
 class StorageClassEditModal extends Modal {

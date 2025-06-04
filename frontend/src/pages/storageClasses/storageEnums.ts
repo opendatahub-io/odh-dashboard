@@ -35,6 +35,13 @@ export enum AccessMode {
   RWOP = 'ReadWriteOncePod',
 }
 
+export const AccessModeLabelMap: Record<AccessMode, string> = {
+  [AccessMode.RWO]: 'RWO',
+  [AccessMode.RWX]: 'RWX',
+  [AccessMode.ROX]: 'ROX',
+  [AccessMode.RWOP]: 'RWOP',
+};
+
 // object that maps provisioners to their supported access modes
 export const provisionerAccessModes: Record<StorageProvisioner, AccessMode[]> = {
   [StorageProvisioner.NO_PROVISIONER]: [AccessMode.RWO],
