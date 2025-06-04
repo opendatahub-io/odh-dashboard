@@ -50,7 +50,7 @@ const NotebookServer: React.FC = () => {
                 <StopServerModal
                   notebooksToStop={notebooksToStop}
                   isDeleting={isDeleting}
-                  link={link}
+                  link={link !== '#' ? link : undefined}
                   onNotebooksStop={onNotebooksStop}
                 />
               )}
