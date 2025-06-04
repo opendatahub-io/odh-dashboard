@@ -20,6 +20,7 @@ import {
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { getStatusFromCondition } from '#~/concepts/pipelines/content/utils.tsx';
 import K8sStatusIcon from '#~/concepts/pipelines/content/K8sStatusIcon.tsx';
+import { K8sCondition } from '#~/k8sTypes.ts';
 
 const PROGRESS_TAB = 'Progress';
 const EVENT_LOG_TAB = 'Events log';
@@ -53,6 +54,18 @@ const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose }) =>
   const isServerReadyAndCompletelyDone = pipelinesServer.crStatus?.conditions?.some(
     (c) => c.type === 'Ready' && c.status === 'True',
   );
+
+  const [conditionLog, setConditionLog] = React.useState<K8sCondition[]>([]);
+
+  // Update conditionLog whenever conditions change
+  React.useEffect(() => {
+    if (pipelinesServer.crStatus?.conditions) {
+      // Create a new array with reversed conditions
+      const reversedConditions = [...pipelinesServer.crStatus.conditions].reverse();
+      // Add to the top of conditionLog
+      setConditionLog((prevLog) => [...reversedConditions, ...prevLog]);
+    }
+  }, [pipelinesServer.crStatus?.conditions]);
 
   const spinner = (
     <StackItem>
@@ -95,12 +108,10 @@ const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose }) =>
             {upperMessage}
             {pipelinesServer.crStatus?.conditions?.map((condition) => {
               const containerStatus = getStatusFromCondition(condition);
-              console.log('88a: condition???', containerStatus);
               return (
                 <StackItem key={condition.type}>
                   <div>
-                    <K8sStatusIcon status={containerStatus} /> {condition.type}: -
-                    {condition.message || 'No message'}
+                    <K8sStatusIcon status={containerStatus} /> {condition.type}
                   </div>
                 </StackItem>
               );
@@ -113,18 +124,12 @@ const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose }) =>
     </Stack>
   );
 
-  const debugRenderLogs = () => {
-    pipelinesServer.crStatus?.conditions?.forEach((condition, index) => {
-      console.log('condition???', index, condition.type, condition.status, condition);
-    });
-  };
-
   const renderLogs = () => (
     <Panel style={{ overflowY: 'auto', height: '100%' }}>
       <PanelMain>
         <List isPlain isBordered data-id="event-logs">
           <ListItem>Pipeline server initialization started</ListItem>
-          {pipelinesServer.crStatus?.conditions?.map((condition, index) => (
+          {conditionLog.map((condition, index) => (
             <ListItem key={`pipeline-condition-${condition.type}-${index}`}>
               {condition.type}: {condition.status} - {condition.message || 'No message'}
             </ListItem>
@@ -133,8 +138,6 @@ const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose }) =>
       </PanelMain>
     </Panel>
   );
-
-  debugRenderLogs();
 
   return (
     <Modal
