@@ -43,18 +43,6 @@ export const getPossibleStorageClassAccessModes = (
   return { selectedStorageClassConfig, openshiftSupportedAccessModes, adminSupportedAccessModes };
 };
 
-export const getDefaultAccessMode = (
-  adminSupportedAccessModes: AccessMode[],
-): AccessMode | undefined => {
-  if (adminSupportedAccessModes.includes(AccessMode.RWO)) {
-    return AccessMode.RWO;
-  }
-  if (adminSupportedAccessModes.length > 0) {
-    return adminSupportedAccessModes[0];
-  }
-  return undefined;
-};
-
 export const isOpenshiftDefaultStorageClass = (
   storageClass: StorageClassKind | undefined,
 ): boolean =>
