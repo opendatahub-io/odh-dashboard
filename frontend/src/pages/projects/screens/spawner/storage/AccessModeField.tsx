@@ -12,7 +12,7 @@ import { AccessMode } from '#~/pages/storageClasses/storageEnums';
 import { toAccessModeLabel } from '#~/pages/projects/screens/detail/storage/AccessModeLabel';
 import { useGetStorageClassConfig } from './useGetStorageClassConfig';
 import AccessModeRadio from './AccessModeRadio';
-import AccessModePopover from './AccessModePopover';
+import { getAccessModePopover } from './getAccessModePopover';
 
 type AccessModeFieldProps = {
   currentAccessMode?: AccessMode;
@@ -49,18 +49,17 @@ const AccessModeField: React.FC<AccessModeFieldProps> = ({
       fieldId="access-mode"
       labelHelp={
         <Popover
-          bodyContent={
-            <AccessModePopover
-              showRWX={showRWX}
-              showROX={showROX}
-              showRWOP={showRWOP}
-              hasRWX={hasRWX}
-              hasROX={hasROX}
-              hasRWOP={hasRWOP}
-              canEditAccessMode={canEditAccessMode}
-              currentAccessMode={currentAccessMode}
-            />
-          }
+          bodyContent={getAccessModePopover({
+            showRWX,
+            showROX,
+            showRWOP,
+            hasRWX,
+            hasROX,
+            hasRWOP,
+            canEditAccessMode,
+            currentAccessMode,
+            showAllAccessModes: false,
+          })}
         >
           <FormGroupLabelHelp ref={labelHelpRef} aria-label="More info for access mode field" />
         </Popover>

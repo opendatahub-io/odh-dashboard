@@ -7,17 +7,18 @@ import PopoverListContent from '#~/components/PopoverListContent';
 import { AccessMode } from '#~/pages/storageClasses/storageEnums';
 
 type AccessModePopoverProps = {
-  showRWX: boolean;
-  showROX: boolean;
-  showRWOP: boolean;
-  hasRWX: boolean;
-  hasROX: boolean;
-  hasRWOP: boolean;
+  showRWX?: boolean;
+  showROX?: boolean;
+  showRWOP?: boolean;
+  hasRWX?: boolean;
+  hasROX?: boolean;
+  hasRWOP?: boolean;
   canEditAccessMode?: boolean;
   currentAccessMode?: AccessMode;
+  showAllAccessModes?: boolean;
 };
 
-const AccessModePopover: React.FC<AccessModePopoverProps> = ({
+export const getAccessModePopover = ({
   showRWX,
   showROX,
   showRWOP,
@@ -26,36 +27,49 @@ const AccessModePopover: React.FC<AccessModePopoverProps> = ({
   hasRWOP,
   canEditAccessMode,
   currentAccessMode,
-}) => {
+  showAllAccessModes = true,
+}: AccessModePopoverProps): React.ReactNode => {
   const listItems = [];
-  if (canEditAccessMode || currentAccessMode === AccessMode.RWO) {
+  if (canEditAccessMode || showAllAccessModes || currentAccessMode === AccessMode.RWO) {
     listItems.push(
       <React.Fragment key="rwo">
-        <strong>{toAccessModeLabel(AccessMode.RWO)}</strong>{' '}
+        <strong>{toAccessModeLabel(AccessMode.RWO)}:</strong>{' '}
         {ACCESS_MODE_DESCRIPTIONS[AccessMode.RWO]}
       </React.Fragment>,
     );
   }
-  if ((showRWX && hasRWX && canEditAccessMode) || currentAccessMode === AccessMode.RWX) {
+  if (
+    (showRWX && hasRWX && canEditAccessMode) ||
+    showAllAccessModes ||
+    currentAccessMode === AccessMode.RWX
+  ) {
     listItems.push(
       <React.Fragment key="rwx">
-        <strong>{toAccessModeLabel(AccessMode.RWX)}</strong>{' '}
+        <strong>{toAccessModeLabel(AccessMode.RWX)}:</strong>{' '}
         {ACCESS_MODE_DESCRIPTIONS[AccessMode.RWX]}
       </React.Fragment>,
     );
   }
-  if ((showROX && hasROX && canEditAccessMode) || currentAccessMode === AccessMode.ROX) {
+  if (
+    (showROX && hasROX && canEditAccessMode) ||
+    showAllAccessModes ||
+    currentAccessMode === AccessMode.ROX
+  ) {
     listItems.push(
       <React.Fragment key="rox">
-        <strong>{toAccessModeLabel(AccessMode.ROX)}</strong>{' '}
+        <strong>{toAccessModeLabel(AccessMode.ROX)}:</strong>{' '}
         {ACCESS_MODE_DESCRIPTIONS[AccessMode.ROX]}
       </React.Fragment>,
     );
   }
-  if ((showRWOP && hasRWOP && canEditAccessMode) || currentAccessMode === AccessMode.RWOP) {
+  if (
+    (showRWOP && hasRWOP && canEditAccessMode) ||
+    showAllAccessModes ||
+    currentAccessMode === AccessMode.RWOP
+  ) {
     listItems.push(
       <React.Fragment key="rwop">
-        <strong>{toAccessModeLabel(AccessMode.RWOP)}</strong>{' '}
+        <strong>{toAccessModeLabel(AccessMode.RWOP)}:</strong>{' '}
         {ACCESS_MODE_DESCRIPTIONS[AccessMode.RWOP]}
       </React.Fragment>,
     );
@@ -67,5 +81,3 @@ const AccessModePopover: React.FC<AccessModePopoverProps> = ({
     />
   );
 };
-
-export default AccessModePopover;
