@@ -11,7 +11,7 @@ import { AccessMode } from '#~/pages/storageClasses/storageEnums';
 import { getPossibleStorageClassAccessModes } from '#~/pages/storageClasses/utils';
 import { mockStorageClasses } from '#~/__mocks__/mockStorageClasses';
 
-jest.mock('#~/pages/projects/screens/spawner/storage/useDefaultPvcSize.ts', () => ({
+jest.mock('#~/pages/projects/screens/spawner/storage/useDefaultPvcSize', () => ({
   __esModule: true,
   default: jest.fn().mockReturnValue('1Gi'), // Set the default PVC size to 1Gi
 }));
