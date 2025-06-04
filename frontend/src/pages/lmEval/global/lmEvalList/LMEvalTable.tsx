@@ -28,7 +28,7 @@ const LMEvalTable: React.FC<LMEvalTableProps> = ({
     emptyTableView={
       clearFilters ? <DashboardEmptyTableView onClearFilters={clearFilters} /> : undefined
     }
-    rowRenderer={(cr) => <LMEvalTableRow key={cr.metadata.name} lmEval={cr} />}
+    rowRenderer={(cr) => <LMEvalTableRow key={cr.metadata.uid} lmEval={cr} />}
   />
 );
 
