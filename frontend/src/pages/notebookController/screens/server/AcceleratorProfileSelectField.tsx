@@ -205,18 +205,22 @@ const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps
             formData.profile?.metadata.name === profile.metadata.name &&
             formData.profile.metadata.namespace === profile.metadata.namespace
           }
-          icon={<GlobalIcon />}
           onClick={() => {
             setFormData('profile', profile);
           }}
         >
-          <Split>
-            <SplitItem>{profile.spec.displayName}</SplitItem>
-            <SplitItem isFilled />
-            <SplitItem>
+          <Flex
+            spaceItems={{ default: 'spaceItemsXs' }}
+            alignItems={{ default: 'alignItemsCenter' }}
+          >
+            <FlexItem>
+              <GlobalIcon />
+            </FlexItem>
+            <FlexItem>{profile.spec.displayName}</FlexItem>
+            <FlexItem align={{ default: 'alignRight' }}>
               {isAcceleratorProfileSupported(profile) && <Label color="blue">Compatible</Label>}
-            </SplitItem>
-          </Split>
+            </FlexItem>
+          </Flex>
         </MenuItem>
       ));
 

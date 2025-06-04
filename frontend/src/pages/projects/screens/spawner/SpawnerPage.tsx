@@ -29,10 +29,7 @@ import {
   NotebookImageStatus,
 } from '#~/pages/projects/screens/detail/notebooks/const';
 import useProjectPvcs from '#~/pages/projects/screens/detail/storage/useProjectPvcs';
-import {
-  getDisplayNameFromK8sResource,
-  getResourceNameFromK8sResource,
-} from '#~/concepts/k8s/utils';
+import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
@@ -181,10 +178,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
     ...notebooksUsingPVCsWithSizeChanges,
   ]);
 
-  const [data, loaded, loadError] = useNotebookImageData(
-    getResourceNameFromK8sResource(currentProject),
-    existingNotebook,
-  );
+  const [data, loaded, loadError] = useNotebookImageData(existingNotebook);
 
   React.useEffect(() => {
     if (loaded) {

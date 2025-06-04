@@ -40,17 +40,21 @@ const ImageSelectorField: React.FC<ImageSelectorFieldProps> = ({
   const imageStreamsLoaded = isProjectScopedAvailable
     ? loaded && currentProjectImageStreamsLoaded
     : loaded;
+
   const imageVersionData = React.useMemo(() => {
     const { imageStream } = selectedImage;
-    if (!imageStream) {
-      return { buildStatuses, imageStream, imageVersions: [] };
+    if (
+      (!isProjectScopedAvailable && imageStream?.metadata.namespace === currentProject) ||
+      !imageStream
+    ) {
+      return { buildStatuses, imageStream: undefined, imageVersions: [] };
     }
     return {
       buildStatuses,
       imageStream,
       imageVersions: getExistingVersionsForImageStream(imageStream),
     };
-  }, [selectedImage, buildStatuses]);
+  }, [selectedImage, buildStatuses, currentProject, isProjectScopedAvailable]);
 
   const onImageStreamSelect = (newImageStream: ImageStreamKind) => {
     const version = getDefaultVersionForImageStream(newImageStream, buildStatuses);
@@ -97,7 +101,14 @@ const ImageSelectorField: React.FC<ImageSelectorFieldProps> = ({
         }
         selectedImageVersion={selectedImage.imageVersion}
       />
-      <ImageStreamPopover selectedImage={selectedImage} />
+      <ImageStreamPopover
+        selectedImage={
+          !isProjectScopedAvailable &&
+          selectedImage.imageStream?.metadata.namespace === currentProject
+            ? {}
+            : selectedImage
+        }
+      />
     </>
   );
 };
