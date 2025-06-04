@@ -39,24 +39,32 @@ const ServingRuntimeSizeExpandedField = ({
         <CPUField
           onChange={(value) => handleChange(ContainerResourceAttributes.CPU, 'requests', value)}
           value={data.resources.requests?.cpu}
+          max={data.resources.limits?.cpu}
+          dataTestId="cpu-requested"
         />
       </FormGroup>
       <FormGroup label="Memory requested">
         <MemoryField
           onChange={(value) => handleChange(ContainerResourceAttributes.MEMORY, 'requests', value)}
           value={data.resources.requests?.memory}
+          max={data.resources.limits?.memory}
+          dataTestId="memory-requested"
         />
       </FormGroup>
       <FormGroup label="CPU limit">
         <CPUField
           onChange={(value) => handleChange(ContainerResourceAttributes.CPU, 'limits', value)}
           value={data.resources.limits?.cpu}
+          min={data.resources.requests?.cpu}
+          dataTestId="cpu-limit"
         />
       </FormGroup>
       <FormGroup label="Memory limit">
         <MemoryField
           onChange={(value) => handleChange(ContainerResourceAttributes.MEMORY, 'limits', value)}
           value={data.resources.limits?.memory}
+          min={data.resources.requests?.memory}
+          dataTestId="memory-limit"
         />
       </FormGroup>
     </Grid>

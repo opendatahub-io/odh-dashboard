@@ -8,7 +8,8 @@ type CPUFieldProps = {
   value?: string | number;
   validated?: ComponentProps<typeof ValueUnitField>['validated'];
   dataTestId?: string;
-  min?: number;
+  min?: number | string;
+  max?: number | string;
   onBlur?: () => void;
 };
 
@@ -18,10 +19,12 @@ const CPUField: React.FC<CPUFieldProps> = ({
   validated,
   dataTestId,
   min = 1,
+  max,
   onBlur,
 }) => (
   <ValueUnitField
     min={min}
+    max={max}
     onChange={onChange}
     options={CPU_UNITS}
     value={String(value)}
