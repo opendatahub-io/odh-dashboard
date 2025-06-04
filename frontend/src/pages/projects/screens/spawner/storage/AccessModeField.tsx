@@ -58,7 +58,6 @@ const AccessModeField: React.FC<AccessModeFieldProps> = ({
             hasRWOP,
             canEditAccessMode,
             currentAccessMode,
-            showAllAccessModes: false,
           })}
         >
           <FormGroupLabelHelp ref={labelHelpRef} aria-label="More info for access mode field" />

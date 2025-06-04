@@ -22,9 +22,7 @@ export const clusterStorageTableColumns: SortableData<StorageData>[] = [
     sortable: false,
     width: 30,
     info: {
-      popover: getAccessModePopover({
-        showAllAccessModes: true,
-      }),
+      popover: getAccessModePopover({}),
       popoverProps: {
         showClose: true,
         maxWidth: '500px',

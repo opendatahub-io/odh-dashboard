@@ -15,22 +15,20 @@ type AccessModePopoverProps = {
   hasRWOP?: boolean;
   canEditAccessMode?: boolean;
   currentAccessMode?: AccessMode;
-  showAllAccessModes?: boolean;
 };
 
 export const getAccessModePopover = ({
-  showRWX,
-  showROX,
-  showRWOP,
-  hasRWX,
-  hasROX,
-  hasRWOP,
-  canEditAccessMode,
+  showRWX = true,
+  showROX = true,
+  showRWOP = true,
+  hasRWX = true,
+  hasROX = true,
+  hasRWOP = true,
+  canEditAccessMode = true,
   currentAccessMode,
-  showAllAccessModes = true,
 }: AccessModePopoverProps): React.ReactNode => {
   const listItems = [];
-  if (canEditAccessMode || showAllAccessModes || currentAccessMode === AccessMode.RWO) {
+  if (canEditAccessMode || currentAccessMode === AccessMode.RWO) {
     listItems.push(
       <React.Fragment key="rwo">
         <strong>{toAccessModeLabel(AccessMode.RWO)}:</strong>{' '}
@@ -38,11 +36,7 @@ export const getAccessModePopover = ({
       </React.Fragment>,
     );
   }
-  if (
-    (showRWX && hasRWX && canEditAccessMode) ||
-    showAllAccessModes ||
-    currentAccessMode === AccessMode.RWX
-  ) {
+  if ((showRWX && hasRWX && canEditAccessMode) || currentAccessMode === AccessMode.RWX) {
     listItems.push(
       <React.Fragment key="rwx">
         <strong>{toAccessModeLabel(AccessMode.RWX)}:</strong>{' '}
@@ -50,11 +44,7 @@ export const getAccessModePopover = ({
       </React.Fragment>,
     );
   }
-  if (
-    (showROX && hasROX && canEditAccessMode) ||
-    showAllAccessModes ||
-    currentAccessMode === AccessMode.ROX
-  ) {
+  if ((showROX && hasROX && canEditAccessMode) || currentAccessMode === AccessMode.ROX) {
     listItems.push(
       <React.Fragment key="rox">
         <strong>{toAccessModeLabel(AccessMode.ROX)}:</strong>{' '}
@@ -62,11 +52,7 @@ export const getAccessModePopover = ({
       </React.Fragment>,
     );
   }
-  if (
-    (showRWOP && hasRWOP && canEditAccessMode) ||
-    showAllAccessModes ||
-    currentAccessMode === AccessMode.RWOP
-  ) {
+  if ((showRWOP && hasRWOP && canEditAccessMode) || currentAccessMode === AccessMode.RWOP) {
     listItems.push(
       <React.Fragment key="rwop">
         <strong>{toAccessModeLabel(AccessMode.RWOP)}:</strong>{' '}

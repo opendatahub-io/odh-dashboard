@@ -33,9 +33,7 @@ export const columns: SortableData<StorageTableData>[] = [
     sortable: (a, b) =>
       (a.pvc.spec.accessModes[0] ?? '').localeCompare(b.pvc.spec.accessModes[0] ?? ''),
     info: {
-      popover: getAccessModePopover({
-        showAllAccessModes: true,
-      }),
+      popover: getAccessModePopover({}),
       popoverProps: {
         showClose: true,
         maxWidth: '500px',
