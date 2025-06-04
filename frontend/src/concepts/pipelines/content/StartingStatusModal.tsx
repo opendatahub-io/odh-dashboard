@@ -68,8 +68,8 @@ const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose }) =>
   }, [pipelinesServer.crStatus?.conditions]);
 
   const spinner = (
-    <div className="pf-v6-u-display-flex pf-v6-u-gap-lg">
-      <div>Initializing Pipeline Server</div>
+    <div className="pf-v6-u-display-flex">
+      <div className="pf-v6-u-mr-md">Initializing Pipeline Server</div>
       <Spinner size="lg" />
     </div>
   );
