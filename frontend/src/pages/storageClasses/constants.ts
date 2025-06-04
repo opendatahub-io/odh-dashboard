@@ -1,5 +1,6 @@
 import { SortableData, kebabTableColumn } from '#~/components/table';
 import { StorageClassKind } from '#~/k8sTypes';
+import { AccessMode } from '#~/pages/storageClasses/storageEnums';
 import { getStorageClassConfig } from './utils';
 
 export enum ColumnLabel {
@@ -85,4 +86,12 @@ export type StorageClassFilterData = Record<StorageClassFilterOption, string>;
 export const initialScFilterData: StorageClassFilterData = {
   [StorageClassFilterOption.DisplayName]: '',
   [StorageClassFilterOption.OpenshiftScName]: '',
+};
+
+export const accessModeDescriptions: Record<AccessMode, string> = {
+  [AccessMode.RWO]:
+    'Supported by default. The storage can be attached to a single workbench at a given time.',
+  [AccessMode.RWX]: 'The storage can be attached to many workbenches simultaneously.',
+  [AccessMode.ROX]: 'Storage with ROX mode can be mounted as read-only by many workbenches.',
+  [AccessMode.RWOP]: 'The storage can be attached to a single pod on a single node as read-write.',
 };
