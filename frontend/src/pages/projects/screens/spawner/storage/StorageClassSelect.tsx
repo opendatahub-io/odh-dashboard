@@ -18,9 +18,10 @@ import {
   getPossibleStorageClassAccessModes,
   getStorageClassConfig,
 } from '#~/pages/storageClasses/utils';
-import { AccessMode, AccessModeLabelMap } from '#~/pages/storageClasses/storageEnums';
+import { AccessMode } from '#~/pages/storageClasses/storageEnums';
 import useAdminDefaultStorageClass from './useAdminDefaultStorageClass';
 import { useGetStorageClassConfig } from './useGetStorageClassConfig';
+import AccessModeLabel from './AccessModeLabel';
 
 type StorageClassSelectProps = {
   storageClassName?: string;
@@ -89,9 +90,7 @@ const StorageClassSelect: React.FC<StorageClassSelectProps> = ({
               {getPossibleStorageClassAccessModes(sc)
                 .adminSupportedAccessModes.filter((accessMode) => accessMode !== AccessMode.RWO)
                 .map((accessMode, index) => (
-                  <Label key={index} isCompact data-testid={`${accessMode}-label`}>
-                    {AccessModeLabelMap[accessMode]}
-                  </Label>
+                  <AccessModeLabel key={index} accessMode={accessMode} />
                 ))}
               {sc.metadata.name === defaultSc?.metadata.name && (
                 <Label isCompact color="green" data-testid="is-default-label">
