@@ -42,7 +42,7 @@ const ServingRuntimeSizeSection = ({
     ModelServingSize['resources'] | undefined
   >(customDefaults?.resources);
 
-  React.useEffect(() => {
+  React.useMemo(() => {
     if (podSpecOptionState.modelSize.selectedSize.name === 'Custom') {
       if (
         JSON.stringify(podSpecOptionState.modelSize.selectedSize.resources) !==
