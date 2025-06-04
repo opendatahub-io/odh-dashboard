@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import StartingStatusModal from '../StartingStatusModal';
-import { usePipelinesAPI } from '../../context';
 import { K8sCondition } from '#~/k8sTypes';
+import StartingStatusModal from '#~/concepts/pipelines/content/StartingStatusModal';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 
 // Mock the usePipelinesAPI hook
 jest.mock('../../context', () => ({
@@ -36,7 +36,7 @@ describe('StartingStatusModal', () => {
     );
 
     render(<StartingStatusModal onClose={mockOnClose} />);
-    
+
     expect(screen.getByText('Initializing Pipeline Server')).toBeInTheDocument();
     expect(screen.getByRole('progressbar')).toBeInTheDocument();
   });
@@ -50,8 +50,12 @@ describe('StartingStatusModal', () => {
     );
 
     render(<StartingStatusModal onClose={mockOnClose} />);
-    
-    expect(screen.getByText('The Pipeline Server API is Ready to Use, although the entire server is still initializing')).toBeInTheDocument();
+
+    expect(
+      screen.getByText(
+        'The Pipeline Server API is Ready to Use, although the entire server is still initializing',
+      ),
+    ).toBeInTheDocument();
   });
 
   it('should show all ready message when Ready is True', () => {
@@ -63,8 +67,10 @@ describe('StartingStatusModal', () => {
     );
 
     render(<StartingStatusModal onClose={mockOnClose} />);
-    
-    expect(screen.getByText('Pipeline Server is all done initializing and ready to use.')).toBeInTheDocument();
+
+    expect(
+      screen.getByText('Pipeline Server is all done initializing and ready to use.'),
+    ).toBeInTheDocument();
   });
 
   it('should display conditions in the progress tab', () => {
@@ -75,7 +81,7 @@ describe('StartingStatusModal', () => {
     mockUsePipelinesAPI.mockReturnValue(createMockConditions(conditions));
 
     render(<StartingStatusModal onClose={mockOnClose} />);
-    
+
     conditions.forEach((condition) => {
       expect(screen.getByText(condition.type)).toBeInTheDocument();
     });
@@ -89,12 +95,14 @@ describe('StartingStatusModal', () => {
     mockUsePipelinesAPI.mockReturnValue(createMockConditions(conditions));
 
     render(<StartingStatusModal onClose={mockOnClose} />);
-    
+
     // Switch to events log tab
     fireEvent.click(screen.getByText('Events log'));
 
     conditions.forEach((condition) => {
-      expect(screen.getByText(`${condition.type}: ${condition.status} - ${condition.message}`)).toBeInTheDocument();
+      expect(
+        screen.getByText(`${condition.type}: ${condition.status} - ${condition.message}`),
+      ).toBeInTheDocument();
     });
   });
 
@@ -106,8 +114,8 @@ describe('StartingStatusModal', () => {
     );
 
     render(<StartingStatusModal onClose={mockOnClose} />);
-    
+
     fireEvent.click(screen.getByText('Close'));
     expect(mockOnClose).toHaveBeenCalled();
   });
-}); 
+});
