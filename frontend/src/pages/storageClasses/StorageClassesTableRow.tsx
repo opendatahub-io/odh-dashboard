@@ -12,8 +12,9 @@ import {
   LabelGroup,
   Popover,
   Timestamp,
+  Truncate,
 } from '@patternfly/react-core';
-import { ActionsColumn, TableText, Td, Tr } from '@patternfly/react-table';
+import { ActionsColumn, Td, Tr, TableText } from '@patternfly/react-table';
 import { OutlinedQuestionCircleIcon, PencilAltIcon } from '@patternfly/react-icons';
 
 import { updateStorageClassConfig } from '#~/api';
@@ -130,64 +131,62 @@ export const StorageClassesTableRow: React.FC<StorageClassesTableRowProps> = ({ 
     <Tr>
       <Td modifier="truncate" dataLabel={ColumnLabel.DisplayName}>
         {hasReadableConfig ? (
-          <Flex spaceItems={{ default: 'spaceItemsNone' }}>
-            <FlexItem flex={{ default: 'flex_1' }}>
-              <StrorageClassConfigValue
-                alert={
-                  <CorruptedMetadataAlert
-                    popoverText="Edit the invalid field(s) and save your changes to correct the corrupted metadata."
-                    action={
-                      <Button
-                        icon={<PencilAltIcon />}
-                        variant="plain"
-                        aria-label="Corrupt metadata name/description edit button"
-                        onClick={() => {
-                          editModalAlertRef.current = {
-                            title:
-                              'Edit the invalid field(s) and save your changes to correct the corrupted metadata.',
-                          };
-                          setIsEditModalOpen(true);
-                        }}
-                      />
-                    }
+          <StrorageClassConfigValue
+            alert={
+              <CorruptedMetadataAlert
+                popoverText="Edit the invalid field(s) and save your changes to correct the corrupted metadata."
+                action={
+                  <Button
+                    icon={<PencilAltIcon />}
+                    variant="plain"
+                    aria-label="Corrupt metadata name/description edit button"
+                    onClick={() => {
+                      editModalAlertRef.current = {
+                        title:
+                          'Edit the invalid field(s) and save your changes to correct the corrupted metadata.',
+                      };
+                      setIsEditModalOpen(true);
+                    }}
                   />
                 }
-              >
-                {isValidConfigValue('displayName', storageClassConfig.displayName) &&
-                  (!storageClassConfig.description ||
-                    isValidConfigValue('description', storageClassConfig.description)) && (
-                    <TableRowTitleDescription
-                      title={<TableText>{storageClassConfig.displayName}</TableText>}
-                      description={
-                        storageClassConfig.description && (
-                          <TableText>{storageClassConfig.description}</TableText>
+              />
+            }
+          >
+            {isValidConfigValue('displayName', storageClassConfig.displayName) &&
+              (!storageClassConfig.description ||
+                isValidConfigValue('description', storageClassConfig.description)) && (
+                <TableRowTitleDescription
+                  title={
+                    <Flex spaceItems={{ default: 'spaceItemsXs' }}>
+                      <Truncate content={storageClassConfig.displayName} />
+                      {
+                        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+                        storageClassConfig.accessModeSettings && ( // This check is necessary for runtime safety
+                          <LabelGroup data-testid="access-mode-label-group">
+                            {Object.values(AccessMode)
+                              .filter(
+                                (modeValue) =>
+                                  storageClassConfig.accessModeSettings[modeValue] &&
+                                  modeValue !== AccessMode.RWO,
+                              )
+                              .map((modeValue) => (
+                                <Label key={modeValue} color="blue" isCompact variant="outline">
+                                  {AccessModeLabelMap[modeValue]}
+                                </Label>
+                              ))}
+                          </LabelGroup>
                         )
                       }
-                    />
-                  )}
-              </StrorageClassConfigValue>
-            </FlexItem>
-            {
-              // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-              storageClassConfig.accessModeSettings && ( // This check is necessary for runtime safety
-                <FlexItem>
-                  <LabelGroup data-testid="access-mode-label-group">
-                    {Object.values(AccessMode)
-                      .filter(
-                        (modeValue) =>
-                          storageClassConfig.accessModeSettings[modeValue] &&
-                          modeValue !== AccessMode.RWO,
-                      )
-                      .map((modeValue) => (
-                        <Label key={modeValue} color="blue" isCompact variant="outline">
-                          {AccessModeLabelMap[modeValue]}
-                        </Label>
-                      ))}
-                  </LabelGroup>
-                </FlexItem>
-              )
-            }
-          </Flex>
+                    </Flex>
+                  }
+                  description={
+                    storageClassConfig.description && (
+                      <TableText>{storageClassConfig.description}</TableText>
+                    )
+                  }
+                />
+              )}
+          </StrorageClassConfigValue>
         ) : (
           '-'
         )}

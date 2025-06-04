@@ -17,6 +17,7 @@ export const columns: SortableData<StorageClassKind>[] = [
   {
     field: 'displayName',
     label: ColumnLabel.DisplayName,
+    width: 25,
     sortable: (a: StorageClassKind, b: StorageClassKind): number => {
       const configDisplayNameA = getStorageClassConfig(a)?.displayName;
       const configDisplayNameB = getStorageClassConfig(b)?.displayName;
