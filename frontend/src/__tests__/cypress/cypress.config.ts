@@ -97,15 +97,18 @@ export default defineConfig({
           return validateHttpsUrls(urls);
         },
         log(message) {
+          // eslint-disable-next-line no-console
           return logToConsoleAndStdout('INFO', message, console.log, process.stdout);
         },
         error(message) {
+          // eslint-disable-next-line no-console
           return logToConsoleAndStdout('ERROR', message, console.error, process.stderr);
         },
         table(message) {
           return logToConsoleAndStdout(
             'TABLE',
             JSON.stringify(message, null, 2),
+            // eslint-disable-next-line no-console
             console.table,
             process.stdout,
           );
