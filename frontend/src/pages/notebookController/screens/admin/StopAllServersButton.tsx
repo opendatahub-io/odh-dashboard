@@ -52,7 +52,7 @@ const StopAllServersButton: React.FC<StopAllServersButtonProps> = ({ users }) =>
       {showModal && loaded ? (
         <StopServerModal
           notebooksToStop={notebooksToStop}
-          link={loadError || !routeLink ? '#' : routeLink}
+          link={!!loadError || !routeLink ? '#' : routeLink}
           isDeleting={isDeleting}
           onNotebooksStop={onNotebooksStop}
         />
