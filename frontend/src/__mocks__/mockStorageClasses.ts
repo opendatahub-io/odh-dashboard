@@ -59,7 +59,7 @@ export const mockStorageClasses: StorageClassKind[] = [
           displayName: 'openshift-default-sc',
           accessModeSettings: {
             ReadWriteOnce: true,
-            ReadWriteMany: true,
+            ReadWriteMany: false,
             ReadOnlyMany: false,
             ReadWriteOncePod: false,
           },
@@ -105,7 +105,7 @@ export const mockStorageClasses: StorageClassKind[] = [
         },
       ],
     },
-    provisioner: 'kubernetes.io/glusterfs',
+    provisioner: 'cinder.csi.openstack.org',
     reclaimPolicy: 'Delete',
     allowVolumeExpansion: true,
     volumeBindingMode: 'WaitForFirstConsumer',
