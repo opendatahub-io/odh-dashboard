@@ -16,9 +16,9 @@ import { ProjectSectionID } from '#~/pages/projects/screens/detail/types';
 import { isModelMesh } from '#~/pages/modelServing/utils';
 import { getPodsForKserve, getPodsForModelMesh } from '#~/api';
 import {
-  checkModelStatus,
+  checkModelPodStatus,
   getInferenceServiceModelState,
-} from '#~/pages/modelServing/screens/global/utils';
+} from '#~/concepts/modelServingKServe/kserveStatusUtils';
 import { InferenceServiceModelState, ModelStatus } from '#~/pages/modelServing/screens/types';
 import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
 import DeployedModelCard from './DeployedModelCard';
@@ -71,7 +71,7 @@ const DeployedModelsGallery: React.FC<DeployedModelsGalleryProps> = ({
             ? getPodsForKserve
             : getPodsForModelMesh)(namespace, deployedModel.spec.predictor.model?.runtime ?? '');
           if (!canceled) {
-            updateServiceState(deployedModel, checkModelStatus(modelPods[0]));
+            updateServiceState(deployedModel, checkModelPodStatus(modelPods[0]));
           }
         } catch (e) {
           updateServiceState(deployedModel);
