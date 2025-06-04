@@ -22,10 +22,13 @@ const DeleteModelServingModal: React.FC<DeleteModelServingModalProps> = ({
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
 
-  const deleteModal = useResolvedPlatformExtension(isModelServingDeleteModal, servingPlatform);
+  const [deleteModal, deleteModalLoaded] = useResolvedPlatformExtension(
+    isModelServingDeleteModal,
+    servingPlatform,
+  );
 
   const onDelete = async () => {
-    if (!deployment.model.metadata?.name) {
+    if (!deployment.model.metadata.name) {
       return;
     }
 
@@ -49,12 +52,12 @@ const DeleteModelServingModal: React.FC<DeleteModelServingModalProps> = ({
     setError(undefined);
   };
 
-  return !deleteModal ? (
+  return !deleteModalLoaded || !deleteModal ? (
     <Bullseye>
       <Spinner />
     </Bullseye>
   ) : (
-    deployment.model.metadata?.name && (
+    deployment.model.metadata.name && (
       <DeleteModal
         title={deleteModal.properties.title}
         onClose={() => onBeforeClose(false)}

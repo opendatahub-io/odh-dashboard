@@ -3,7 +3,7 @@ import { InferenceServiceKind } from '#~/k8sTypes';
 import { getRoute } from '#~/api';
 import { getUrlFromKserveInferenceService } from '#~/pages/modelServing/screens/projects/utils';
 import { InferenceServiceModelState } from '#~/pages/modelServing/screens/types';
-import { getInferenceServiceModelState } from './utils';
+import { getInferenceServiceModelState } from '#~/concepts/modelServingKServe/kserveStatusUtils';
 
 const useRouteForInferenceService = (
   inferenceService: InferenceServiceKind,
