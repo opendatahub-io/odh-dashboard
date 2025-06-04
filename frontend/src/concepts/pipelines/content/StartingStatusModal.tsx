@@ -60,6 +60,8 @@ const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose }) =>
   // Update conditionLog whenever conditions change
   React.useEffect(() => {
     if (pipelinesServer.crStatus?.conditions) {
+      console.log('new conditions:', JSON.stringify(pipelinesServer.crStatus.conditions, null, 2));
+
       // Create a new array with reversed conditions
       const reversedConditions = [...pipelinesServer.crStatus.conditions].reverse();
       // Add to the top of conditionLog
@@ -73,18 +75,6 @@ const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose }) =>
       <Spinner size="lg" />
     </div>
   );
-
-  // const API_READY_MESSAGE =
-  //   'The Pipeline Server API is Ready to Use, although the entire server is still initializing';
-  // const ALL_READY_MESSAGE = 'Pipeline Server is all done initializing and ready to use.';
-
-  // const upperMessage = isServerReadyAndCompletelyDone ? (
-  //   <div className="pf-v6-u-font-weight-bold pf-v6-u-mb-md">{ALL_READY_MESSAGE}</div>
-  // ) : isApiServerReady ? (
-  //   <div className="pf-v6-u-font-weight-bold pf-v6-u-mb-md">{API_READY_MESSAGE}</div>
-  // ) : (
-  //   spinner
-  // );
 
   const renderProgress = () => (
     <Stack hasGutter>
