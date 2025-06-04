@@ -46,7 +46,7 @@ describe('Storage classes', () => {
       storageClassesPage.visit();
 
       storageClassesTable.findRowByName('Test SC 1').should('be.visible');
-      storageClassesTable.shouldContainAccessModeLabels(['RWX', 'ROX']); // display labels other than ROX label
+      storageClassesTable.shouldContainAccessModeLabels(['RWX']); // display labels other than ROX label
 
       storageClassesTable.findRowByName('openshift-default-sc').should('be.visible');
       storageClassesTable.shouldContainAccessModeLabels([]); // empty because we do not display ROX label
