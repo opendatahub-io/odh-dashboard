@@ -1,7 +1,7 @@
 import { Radio, Tooltip } from '@patternfly/react-core';
 import * as React from 'react';
 import { AccessMode } from '#~/pages/storageClasses/storageEnums';
-import { toAccessModeFullName } from '#~/pages/projects/screens/detail/storage/AccessModeFullName.tsx';
+import { toAccessModeFullName } from '#~/pages/projects/screens/detail/storage/AccessModeFullName';
 
 type AccessModeRadioProps = {
   id: string;

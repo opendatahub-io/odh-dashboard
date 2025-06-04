@@ -2,7 +2,7 @@ import * as React from 'react';
 import {
   ACCESS_MODE_DESCRIPTIONS,
   toAccessModeFullName,
-} from '#~/pages/projects/screens/detail/storage/AccessModeFullName.tsx';
+} from '#~/pages/projects/screens/detail/storage/AccessModeFullName';
 import PopoverListContent from '#~/components/PopoverListContent';
 import { AccessMode } from '#~/pages/storageClasses/storageEnums';
 

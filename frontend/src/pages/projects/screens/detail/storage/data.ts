@@ -1,7 +1,7 @@
 import { SortableData } from '#~/components/table';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import { getStorageClassConfig } from '#~/pages/storageClasses/utils';
-import { getAccessModePopover } from '#~/pages/projects/screens/spawner/storage/getAccessModePopover.tsx';
+import { getAccessModePopover } from '#~/pages/projects/screens/spawner/storage/getAccessModePopover';
 import { StorageTableData } from './types';
 
 export const columns: SortableData<StorageTableData>[] = [

@@ -7,7 +7,7 @@ import { InfoCircleIcon } from '@patternfly/react-icons';
 import { Table } from '#~/components/table';
 import { StorageData, StorageType } from '#~/pages/projects/types';
 import { formatMemory } from '#~/utilities/valueUnits';
-import AccessModeFullName from '#~/pages/projects/screens/detail/storage/AccessModeFullName.tsx';
+import AccessModeFullName from '#~/pages/projects/screens/detail/storage/AccessModeFullName';
 import { clusterStorageTableColumns } from './constants';
 import { ClusterStorageDetachModal } from './ClusterStorageDetachModal';
 import WorkbenchStorageModal from './WorkbenchStorageModal';

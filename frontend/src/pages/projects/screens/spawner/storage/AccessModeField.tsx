@@ -1,7 +1,7 @@
 import { Alert, Flex, FlexItem, FormGroup, FormHelperText } from '@patternfly/react-core';
 import * as React from 'react';
 import { AccessMode } from '#~/pages/storageClasses/storageEnums';
-import { toAccessModeFullName } from '#~/pages/projects/screens/detail/storage/AccessModeFullName.tsx';
+import { toAccessModeFullName } from '#~/pages/projects/screens/detail/storage/AccessModeFullName';
 import FieldGroupHelpLabelIcon from '#~/components/FieldGroupHelpLabelIcon';
 import { useGetStorageClassConfig } from './useGetStorageClassConfig';
 import AccessModeRadio from './AccessModeRadio';

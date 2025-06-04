@@ -21,7 +21,7 @@ import {
 } from '#~/concepts/k8s/utils';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import { getStorageClassConfig } from '#~/pages/storageClasses/utils';
-import AccessModeFullName from '#~/pages/projects/screens/detail/storage/AccessModeFullName.tsx';
+import AccessModeFullName from '#~/pages/projects/screens/detail/storage/AccessModeFullName';
 import useIsRootVolume from './useIsRootVolume';
 import StorageWarningStatus from './StorageWarningStatus';
 import { StorageTableData } from './types';
