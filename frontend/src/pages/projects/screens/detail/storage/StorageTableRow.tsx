@@ -21,7 +21,7 @@ import {
 } from '#~/concepts/k8s/utils';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import { getStorageClassConfig } from '#~/pages/storageClasses/utils';
-import AccessModeLabel from '#~/pages/projects/screens/detail/storage/AccessModeLabel';
+import AccessModeFullName from '#~/pages/projects/screens/detail/storage/AccessModeFullName.tsx';
 import useIsRootVolume from './useIsRootVolume';
 import StorageWarningStatus from './StorageWarningStatus';
 import { StorageTableData } from './types';
@@ -144,7 +144,7 @@ const StorageTableRow: React.FC<StorageTableRowProps> = ({
       )}
       <Td dataLabel="Access Mode">
         <Content component="p">
-          <AccessModeLabel accessModeString={obj.pvc.spec.accessModes[0]} />
+          <AccessModeFullName accessModeString={obj.pvc.spec.accessModes[0]} />
         </Content>
       </Td>
       <Td dataLabel="Type">

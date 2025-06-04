@@ -1,7 +1,7 @@
 import { Alert, Flex, FlexItem, FormGroup, FormHelperText } from '@patternfly/react-core';
 import * as React from 'react';
 import { AccessMode } from '#~/pages/storageClasses/storageEnums';
-import { toAccessModeLabel } from '#~/pages/projects/screens/detail/storage/AccessModeLabel';
+import { toAccessModeFullName } from '#~/pages/projects/screens/detail/storage/AccessModeFullName.tsx';
 import FieldGroupHelpLabelIcon from '#~/components/FieldGroupHelpLabelIcon';
 import { useGetStorageClassConfig } from './useGetStorageClassConfig';
 import AccessModeRadio from './AccessModeRadio';
@@ -76,7 +76,7 @@ const AccessModeField: React.FC<AccessModeFieldProps> = ({
         </>
       ) : (
         <div data-testid="existing-access-mode">
-          {toAccessModeLabel(currentAccessMode || AccessMode.RWO)}
+          {toAccessModeFullName(currentAccessMode || AccessMode.RWO)}
         </div>
       )}
     </FormGroup>

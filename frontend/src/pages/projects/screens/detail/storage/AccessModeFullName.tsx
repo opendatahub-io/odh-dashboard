@@ -10,7 +10,7 @@ export const toAccessMode = (mode: string | undefined): AccessMode | undefined =
   return undefined;
 };
 
-export const toAccessModeLabel = (accessMode: AccessMode | undefined): string => {
+export const toAccessModeFullName = (accessMode: AccessMode | undefined): string => {
   if (accessMode) {
     return ACCESS_MODE_MAP[accessMode];
   }
@@ -36,9 +36,9 @@ type Props = {
   accessModeString: string | undefined;
 };
 
-const AccessModeLabel: React.FC<Props> = ({ accessModeString }) => {
+const AccessModeFullName: React.FC<Props> = ({ accessModeString }) => {
   const accessMode = toAccessMode(accessModeString);
-  return <>{toAccessModeLabel(accessMode)}</>;
+  return <>{toAccessModeFullName(accessMode)}</>;
 };
 
-export default AccessModeLabel;
+export default AccessModeFullName;

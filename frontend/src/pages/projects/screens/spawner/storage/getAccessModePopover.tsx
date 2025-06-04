@@ -1,8 +1,8 @@
 import * as React from 'react';
 import {
   ACCESS_MODE_DESCRIPTIONS,
-  toAccessModeLabel,
-} from '#~/pages/projects/screens/detail/storage/AccessModeLabel';
+  toAccessModeFullName,
+} from '#~/pages/projects/screens/detail/storage/AccessModeFullName.tsx';
 import PopoverListContent from '#~/components/PopoverListContent';
 import { AccessMode } from '#~/pages/storageClasses/storageEnums';
 
@@ -32,7 +32,8 @@ export const getAccessModePopover = ({
     ) {
       listItems.push(
         <React.Fragment key={accessMode}>
-          <strong>{toAccessModeLabel(accessMode)}:</strong> {ACCESS_MODE_DESCRIPTIONS[accessMode]}
+          <strong>{toAccessModeFullName(accessMode)}:</strong>{' '}
+          {ACCESS_MODE_DESCRIPTIONS[accessMode]}
         </React.Fragment>,
       );
     }
