@@ -41,6 +41,17 @@ describe('Storage classes', () => {
       storageClassesTable.findRowByName('openshift-default-sc').should('be.visible');
     });
 
+    it('displays the correct access mode labels', () => {
+      storageClassesPage.mockGetStorageClasses();
+      storageClassesPage.visit();
+
+      storageClassesTable.findRowByName('Test SC 1').should('be.visible');
+      storageClassesTable.shouldContainAccessModeLabels(['RWX', 'ROX']); // display labels other than ROX label
+
+      storageClassesTable.findRowByName('openshift-default-sc').should('be.visible');
+      storageClassesTable.shouldContainAccessModeLabels([]); // empty because we do not display ROX label
+    });
+
     it('table rows allow for toggling of Enable and Default values', () => {
       storageClassesPage.mockGetStorageClasses();
       storageClassesPage.visit();
@@ -180,6 +191,7 @@ describe('Storage classes', () => {
             displayName: 'Readable config',
             isEnabled: false,
             isDefault: false,
+            accessModeSettings: { ReadWriteOnce: true },
           }),
         ])
         .as('updateStorageClass');
