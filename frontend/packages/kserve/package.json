@@ -4,6 +4,6 @@
   "description": "KServe model serving platform extension",
   "version": "0.0.0",
   "exports": {
-    ".": "./extensions.ts"
+    "./extensions": "./extensions.ts"
   }
 }

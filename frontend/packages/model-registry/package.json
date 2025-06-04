@@ -11,5 +11,25 @@
     "src": "clients/ui",
     "target": "upstream",
     "commit": "7eddb4e506c21e3e91159ddb7524cfc6b0517a84"
+  },
+  "module-federation": {
+    "name": "modelRegistry",
+    "remoteEntry": "/remoteEntry.js",
+    "authorize": true,
+    "tls": false,
+    "proxy": [
+      {
+        "path": "/model-registry/api",
+        "pathRewrite": "/api"
+      }
+    ],
+    "local": {
+      "host": "localhost",
+      "port": 9000
+    },
+    "service": {
+      "name": "model-registry-ui-service",
+      "port": 8080
+    }
   }
 }
