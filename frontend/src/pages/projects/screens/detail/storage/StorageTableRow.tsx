@@ -6,8 +6,8 @@ import {
   Label,
   Skeleton,
   Content,
-  ContentVariants,
   Tooltip,
+  Truncate,
 } from '@patternfly/react-core';
 import { ExclamationTriangleIcon, HddIcon } from '@patternfly/react-icons';
 import { PersistentVolumeClaimKind } from '#~/k8sTypes';
@@ -85,7 +85,7 @@ const StorageTableRow: React.FC<StorageTableRowProps> = ({
       </Td>
 
       {isStorageClassesAvailable && (
-        <Td modifier="truncate" dataLabel="Storage class">
+        <Td dataLabel="Storage class">
           <Flex
             spaceItems={{ default: 'spaceItemsSm' }}
             alignItems={{ default: 'alignItemsCenter' }}
@@ -93,12 +93,18 @@ const StorageTableRow: React.FC<StorageTableRowProps> = ({
             <FlexItem>
               <TableRowTitleDescription
                 title={
-                  storageClassConfig?.displayName ??
-                  obj.storageClass?.metadata.name ??
-                  obj.pvc.spec.storageClassName ??
-                  ''
+                  <Truncate
+                    content={
+                      storageClassConfig?.displayName ??
+                      obj.storageClass?.metadata.name ??
+                      obj.pvc.spec.storageClassName ??
+                      ''
+                    }
+                  />
                 }
                 resource={obj.storageClass}
+                description={storageClassesLoaded ? storageClassConfig?.description : <Skeleton />}
+                truncateDescriptionLines={1}
               />
             </FlexItem>
             {storageClassesLoaded && (
@@ -134,9 +140,6 @@ const StorageTableRow: React.FC<StorageTableRowProps> = ({
               </FlexItem>
             )}
           </Flex>
-          <Content component={ContentVariants.small}>
-            {storageClassesLoaded ? storageClassConfig?.description : <Skeleton />}
-          </Content>
         </Td>
       )}
       <Td dataLabel="Access Mode">
