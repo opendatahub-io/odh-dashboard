@@ -16,6 +16,8 @@ import {
 import type { AllowedUser } from '#~/pages/notebookController/screens/admin/types';
 import { testPagination } from '#~/__tests__/cypress/cypress/utils/pagination';
 import { mockStartNotebookData } from '#~/__mocks__/mockStartNotebookData';
+import { mockRouteK8sResource } from '#~/__mocks__/mockRouteK8sResource';
+import { RouteModel } from '#~/__tests__/cypress/cypress/utils/models';
 
 const groupSubjects: RoleBindingSubject[] = [
   {
@@ -123,6 +125,7 @@ describe('Administration Tab', () => {
       mockAllowedUsers({}),
       mockAllowedUsers({ username: 'regularuser1', lastActivity: 'Now' }),
     ];
+    cy.interceptK8s(RouteModel, mockRouteK8sResource({})).as('getWorkbenchURL');
     initIntercepts({ allowedUsers });
     cy.interceptOdh(
       'GET /api/notebooks/openshift-ai-notebooks/:username/status',
@@ -136,6 +139,8 @@ describe('Administration Tab', () => {
     notebookController.visit();
     notebookController.findAdministrationTab().click();
 
+    cy.wait('@getWorkbenchURL');
+
     const userRow = administration.getRow('regularuser1');
     userRow.shouldHavePrivilege('User');
     userRow.shouldHaveLastActivity('Just now');
@@ -143,6 +148,13 @@ describe('Administration Tab', () => {
     userRow.findKebabAction('Stop workbench').click();
 
     stopNotebookModal.findStopNotebookServerButton().should('be.enabled');
+    stopNotebookModal
+      .findNotebookRouteLink()
+      .should(
+        'have.attr',
+        'href',
+        `https://${mockRouteK8sResource({}).spec.host}/notebook/test-project/test-notebook`,
+      );
     stopNotebookModal.findStopNotebookServerButton().click();
 
     cy.wait('@stopNotebookServer').then((interception) => {

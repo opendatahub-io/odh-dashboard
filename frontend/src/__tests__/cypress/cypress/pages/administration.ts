@@ -108,6 +108,10 @@ class StopNotebookModal extends Modal {
   findStopNotebookServerButton() {
     return this.find().findByTestId('stop-workbench-button');
   }
+
+  findNotebookRouteLink() {
+    return this.find().findByTestId('workbench-url');
+  }
 }
 
 export const administration = new AdministrationTab();
