@@ -46,7 +46,7 @@ describe('Storage classes', () => {
       storageClassesPage.visit();
 
       storageClassesTable.findRowByName('Test SC 1').should('be.visible');
-      storageClassesTable.shouldContainAccessModeLabels(['RWX', 'ROX']); // display labels other than ROX label
+      storageClassesTable.shouldContainAccessModeLabels(['RWX']); // display labels other than ROX label
 
       storageClassesTable.findRowByName('openshift-default-sc').should('be.visible');
       storageClassesTable.shouldContainAccessModeLabels([]); // empty because we do not display ROX label
@@ -135,7 +135,7 @@ describe('Storage classes', () => {
 
       storageClassesTable.getRowByConfigName('Test SC 1').findKebabAction('Edit').click();
       storageClassEditModal.findOpenshiftScName().should('have.text', 'test-storage-class-1');
-      storageClassEditModal.findProvisioner().should('have.text', 'manila.csi.openstack.org');
+      storageClassEditModal.findProvisioner().should('have.text', 'kubernetes.io/glusterfs');
       storageClassEditModal.findOpenshiftDefaultLabel().should('not.exist');
       storageClassEditModal.fillDisplayNameInput('Updated name');
       storageClassEditModal.fillDescriptionInput('Updated description');

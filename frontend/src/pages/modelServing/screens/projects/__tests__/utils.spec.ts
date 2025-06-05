@@ -19,6 +19,7 @@ import {
   getNIMResource,
   updateServingRuntimeTemplate,
 } from '#~/pages/modelServing/screens/projects/nimUtils';
+import { AccessMode } from '#~/pages/storageClasses/storageEnums';
 
 jest.mock('#~/api', () => ({
   getSecret: jest.fn(),
@@ -392,7 +393,7 @@ describe('createNIMPVC', () => {
       namespace: projectName,
     },
     spec: {
-      accessModes: ['ReadWriteOnce'],
+      accessModes: [AccessMode.RWO],
       resources: {
         requests: {
           storage: pvcSize,

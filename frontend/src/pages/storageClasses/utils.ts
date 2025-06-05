@@ -9,11 +9,28 @@ export const getStorageClassConfig = (
     const storageClassConfig: StorageClassConfig | undefined = JSON.parse(
       storageClass.metadata.annotations?.[MetadataAnnotation.OdhStorageClassConfig] || '',
     );
-
     return storageClassConfig;
   } catch {
     return undefined;
   }
+};
+
+export const getPossibleStorageClassAccessModes = (
+  storageClass?: StorageClassKind | null,
+): {
+  selectedStorageClassConfig?: StorageClassConfig;
+  openshiftSupportedAccessModes: AccessMode[];
+  adminSupportedAccessModes: AccessMode[];
+} => {
+  const openshiftSupportedAccessModes = getSupportedAccessModesForProvisioner(
+    storageClass?.provisioner,
+  );
+  const selectedStorageClassConfig = storageClass ? getStorageClassConfig(storageClass) : undefined;
+  const adminSupportedAccessModes = getAccessModeSettings(
+    openshiftSupportedAccessModes,
+    selectedStorageClassConfig?.accessModeSettings || { [AccessMode.RWO]: true },
+  );
+  return { selectedStorageClassConfig, openshiftSupportedAccessModes, adminSupportedAccessModes };
 };
 
 export const isOpenshiftDefaultStorageClass = (
@@ -47,8 +64,12 @@ const isStorageProvisioner = (value: string): value is StorageProvisioner =>
   storageProvisionerValuesSet.has(value);
 
 export const getSupportedAccessModesForProvisioner = (
-  provisionerParameter: StorageProvisioner | string,
+  provisionerParameter?: StorageProvisioner | string,
 ): AccessMode[] => {
+  if (!provisionerParameter) {
+    return [];
+  }
+
   const provisionerString = String(provisionerParameter);
   if (isStorageProvisioner(provisionerString)) {
     // Here, provisionerString is confirmed to be of type StorageProvisioner (which is a string enum value)
@@ -60,12 +81,25 @@ export const getSupportedAccessModesForProvisioner = (
   return [AccessMode.RWO];
 };
 
+export const getAccessModeSettings = (
+  supportedAccessModes: AccessMode[],
+  accessModeSettings?: StorageClassConfig['accessModeSettings'],
+): AccessMode[] => {
+  const accessModeSettingsArr = [];
+  for (const accessMode of supportedAccessModes) {
+    if (accessModeSettings?.[accessMode]) {
+      accessModeSettingsArr.push(accessMode);
+    }
+  }
+  return accessModeSettingsArr;
+};
+
 export const getDefaultAccessModeSettings = (
   supportedAccessModes: AccessMode[],
 ): Partial<Record<AccessMode, boolean>> => {
   const initialSettings: Partial<Record<AccessMode, boolean>> = {};
   return supportedAccessModes.reduce((currentSettings, mode) => {
-    // AccessMode.ROW should be set to true, and all other supported access modes should be set to false
+    // AccessMode.RWO should be set to true, and all other supported access modes should be set to false
     const newSetting = mode === AccessMode.RWO;
     return {
       ...currentSettings,

@@ -1,5 +1,6 @@
 import { KnownLabels, PersistentVolumeClaimKind } from '#~/k8sTypes';
 import { genUID } from '#~/__mocks__/mockUtils';
+import { AccessMode } from '#~/pages/storageClasses/storageEnums';
 
 type MockResourceConfigType = {
   name?: string;
@@ -41,7 +42,7 @@ export const mockPVCK8sResource = ({
     uid,
   },
   spec: {
-    accessModes: ['ReadWriteOnce'],
+    accessModes: [AccessMode.RWO],
     resources: {
       requests: {
         storage,
