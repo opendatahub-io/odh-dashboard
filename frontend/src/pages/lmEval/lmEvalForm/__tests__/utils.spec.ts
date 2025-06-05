@@ -13,7 +13,7 @@ describe('isFilledLmEvaluationFormData', () => {
       model: {
         name: 'test-model',
         url: 'http://test.com',
-        tokenizedRequest: false,
+        tokenizedRequest: 'False',
         tokenizer: 'test-tokenizer',
       },
     };
@@ -32,7 +32,7 @@ describe('isFilledLmEvaluationFormData', () => {
       model: {
         name: 'test-model',
         url: 'http://test.com',
-        tokenizedRequest: false,
+        tokenizedRequest: 'False',
         tokenizer: 'test-tokenizer',
       },
     };
@@ -51,7 +51,7 @@ describe('isFilledLmEvaluationFormData', () => {
       model: {
         name: '',
         url: 'http://test.com',
-        tokenizedRequest: false,
+        tokenizedRequest: 'False',
         tokenizer: 'test-tokenizer',
       },
     };
@@ -70,7 +70,7 @@ describe('isFilledLmEvaluationFormData', () => {
       model: {
         name: 'test-model',
         url: '',
-        tokenizedRequest: false,
+        tokenizedRequest: 'False',
         tokenizer: 'test-tokenizer',
       },
     };
@@ -89,7 +89,7 @@ describe('isFilledLmEvaluationFormData', () => {
       model: {
         name: 'test-model',
         url: 'http://test.com',
-        tokenizedRequest: false,
+        tokenizedRequest: 'False',
         tokenizer: '',
       },
     };

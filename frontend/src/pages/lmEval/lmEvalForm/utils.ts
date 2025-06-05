@@ -13,6 +13,6 @@ export const convertModelArgs = (modelArgs: LmModelArgument): { name: string; va
   { name: 'base_url', value: modelArgs.url },
   { name: 'num_concurrent', value: '1' },
   { name: 'max_retries', value: '3' },
-  { name: 'tokenized_requests', value: modelArgs.tokenizedRequest.toString() },
+  { name: 'tokenized_requests', value: modelArgs.tokenizedRequest },
   { name: 'tokenizer', value: modelArgs.tokenizer },
 ];

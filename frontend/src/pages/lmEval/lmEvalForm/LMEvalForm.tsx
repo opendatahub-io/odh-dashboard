@@ -56,7 +56,7 @@ const LMEvalForm: React.FC = () => {
     model: {
       name: '',
       url: '',
-      tokenizedRequest: false,
+      tokenizedRequest: 'False',
       tokenizer: '',
     },
   });

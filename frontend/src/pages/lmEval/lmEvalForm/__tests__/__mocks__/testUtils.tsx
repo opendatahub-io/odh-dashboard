@@ -58,7 +58,7 @@ export const defaultLMEvalFormState = {
   model: {
     name: '',
     url: '',
-    tokenizedRequest: false,
+    tokenizedRequest: 'False',
     tokenizer: '',
   },
 };

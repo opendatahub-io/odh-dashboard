@@ -1,7 +1,7 @@
 export type LmModelArgument = {
   name: string;
   url: string;
-  tokenizedRequest: boolean;
+  tokenizedRequest: string;
   tokenizer: string;
 };
 
