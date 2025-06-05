@@ -44,7 +44,7 @@ const NotebookActions: React.FC<ServerStatusProps> = ({ data }) => {
       {showModal && notebookLinkLoaded && (
         <StopServerModal
           notebooksToStop={notebooksToStop}
-          link={!!notebookLinkError || !notebookLink ? '#' : notebookLink}
+          link={!!notebookLinkError || !notebookLink ? undefined : notebookLink}
           isDeleting={isDeleting}
           onNotebooksStop={onNotebooksStop}
         />
