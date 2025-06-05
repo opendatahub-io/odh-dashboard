@@ -65,7 +65,7 @@ const extensions: (
     type: 'app.route',
     properties: {
       path: '/modelServing/*',
-      component: () => import('./src/ModelServingGlobalPlugin'),
+      component: () => import('./src/GlobalModelsPage'),
     },
     flags: {
       required: [PLUGIN_MODEL_SERVING],

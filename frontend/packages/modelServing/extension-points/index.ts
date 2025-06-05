@@ -64,7 +64,7 @@ export type ModelServingPlatformExtension<D extends Deployment = Deployment> = E
     deployments: {
       watch: CodeRef<
         (
-          project: ProjectKind,
+          project?: ProjectKind,
           opts?: K8sAPIOptions,
         ) => [D[] | undefined, boolean, Error | undefined]
       >;
