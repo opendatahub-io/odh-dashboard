@@ -149,7 +149,7 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
     return formattedOptions;
   }, [hardwareProfiles, initialHardwareProfile, allowExistingSettings, isHardwareProfileSupported]);
 
-  const getHardwareProfiles = () => {
+  const getProjectHardwareProfiles = () => {
     const currentProjectEnabledProfiles = currentProjectHardwareProfiles
       .filter((hp) => hp.spec.enabled)
       .toSorted((a, b) => {
@@ -303,18 +303,22 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
               )}
             </Stack>
           }
-          icon={<GlobalIcon />}
           onClick={() => {
             onChange(profile);
           }}
         >
-          <Split>
-            <SplitItem>{displayName}</SplitItem>
-            <SplitItem isFilled />
-            <SplitItem>
+          <Flex
+            spaceItems={{ default: 'spaceItemsXs' }}
+            alignItems={{ default: 'alignItemsCenter' }}
+          >
+            <FlexItem>
+              <GlobalIcon />
+            </FlexItem>
+            <FlexItem>{displayName}</FlexItem>
+            <FlexItem align={{ default: 'alignRight' }}>
               {isHardwareProfileSupported(profile) && <Label color="blue">Compatible</Label>}
-            </SplitItem>
-          </Split>
+            </FlexItem>
+          </Flex>
         </MenuItem>
       );
     });
@@ -341,7 +345,7 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
     return <Skeleton />;
   }
 
-  const filteredHardwareProfiles = getHardwareProfiles();
+  const filteredHardwareProfiles = getProjectHardwareProfiles();
   const filteredDashboardHardwareProfiles = getDashboardHardwareProfiles();
 
   return (

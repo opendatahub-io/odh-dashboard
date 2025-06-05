@@ -118,7 +118,7 @@ const ServingRuntimeTemplateSection: React.FC<ServingRuntimeTemplateSectionProps
           .toLocaleLowerCase()
           .includes(searchServingRuntime.toLocaleLowerCase()),
       ) || [];
-    const filteredScopedTemplates = filteredTemplates.filter((template) =>
+    const filteredGlobalScopedTemplates = filteredTemplates.filter((template) =>
       getServingRuntimeDisplayNameFromTemplate(template)
         .toLocaleLowerCase()
         .includes(searchServingRuntime.toLocaleLowerCase()),
@@ -170,7 +170,7 @@ const ServingRuntimeTemplateSection: React.FC<ServingRuntimeTemplateSectionProps
                   spaceItems={{ default: 'spaceItemsXs' }}
                   alignItems={{ default: 'alignItemsCenter' }}
                 >
-                  <FlexItem style={{ display: 'flex' }}>
+                  <FlexItem>
                     <TypedObjectIcon alt="" resourceType={ProjectObjectType.project} />
                   </FlexItem>
                   <FlexItem>
@@ -191,10 +191,10 @@ const ServingRuntimeTemplateSection: React.FC<ServingRuntimeTemplateSectionProps
             ))}
           </MenuGroup>
         )}
-        {filteredProjectScopedTemplates.length > 0 && filteredScopedTemplates.length > 0 && (
+        {filteredProjectScopedTemplates.length > 0 && filteredGlobalScopedTemplates.length > 0 && (
           <Divider component="li" />
         )}
-        {filteredScopedTemplates.length > 0 && (
+        {filteredGlobalScopedTemplates.length > 0 && (
           <MenuGroup
             data-testid="global-scoped-serving-runtimes"
             label={
@@ -213,7 +213,7 @@ const ServingRuntimeTemplateSection: React.FC<ServingRuntimeTemplateSectionProps
               </Flex>
             }
           >
-            {filteredScopedTemplates.map((template, index) => (
+            {filteredGlobalScopedTemplates.map((template, index) => (
               <MenuItem
                 key={`servingRuntime-${index}`}
                 data-testid={`servingRuntime ${getServingRuntimeNameFromTemplate(template)}`}
@@ -232,13 +232,18 @@ const ServingRuntimeTemplateSection: React.FC<ServingRuntimeTemplateSectionProps
                     resetModelFormat,
                   })
                 }
-                icon={<GlobalIcon />}
               >
-                <Split>
-                  <SplitItem isFilled>
+                <Flex
+                  spaceItems={{ default: 'spaceItemsXs' }}
+                  alignItems={{ default: 'alignItemsCenter' }}
+                >
+                  <FlexItem>
+                    <GlobalIcon />
+                  </FlexItem>
+                  <FlexItem>
                     <Truncate content={getServingRuntimeDisplayNameFromTemplate(template)} />
-                  </SplitItem>
-                  <SplitItem>
+                  </FlexItem>
+                  <FlexItem align={{ default: 'alignRight' }}>
                     {compatibleIdentifiers?.some((identifier) =>
                       isCompatibleWithIdentifier(identifier, template.objects[0]),
                     ) && (
@@ -247,15 +252,16 @@ const ServingRuntimeTemplateSection: React.FC<ServingRuntimeTemplateSectionProps
                         {isHardwareProfilesAvailable ? 'hardware profile' : 'accelerator'}
                       </Label>
                     )}
-                  </SplitItem>
-                </Split>
+                  </FlexItem>
+                </Flex>
               </MenuItem>
             ))}
           </MenuGroup>
         )}
-        {filteredProjectScopedTemplates.length === 0 && filteredScopedTemplates.length === 0 && (
-          <MenuItem isDisabled>No results found</MenuItem>
-        )}
+        {filteredProjectScopedTemplates.length === 0 &&
+          filteredGlobalScopedTemplates.length === 0 && (
+            <MenuItem isDisabled>No results found</MenuItem>
+          )}
       </>
     );
   };

@@ -514,6 +514,38 @@ class KServeModal extends InferenceServiceModal {
   findMaxReplicasMinusButton() {
     return this.find().findByTestId('max-replicas').findByRole('button', { name: 'Minus' });
   }
+
+  findCPURequestedInput() {
+    return this.find().findByTestId('cpu-requested-input').find('input');
+  }
+
+  findCPURequestedButton(type: 'Plus' | 'Minus') {
+    return this.find().findByTestId('cpu-requested-input').findByRole('button', { name: type });
+  }
+
+  findCPULimitInput() {
+    return this.find().findByTestId('cpu-limit-input').find('input');
+  }
+
+  findCPULimitButton(type: 'Plus' | 'Minus') {
+    return this.find().findByTestId('cpu-limit-input').findByRole('button', { name: type });
+  }
+
+  findMemoryRequestedInput() {
+    return this.find().findByTestId('memory-requested-input').find('input');
+  }
+
+  findMemoryRequestedButton(type: 'Plus' | 'Minus') {
+    return this.find().findByTestId('memory-requested-input').findByRole('button', { name: type });
+  }
+
+  findMemoryLimitInput() {
+    return this.find().findByTestId('memory-limit-input').find('input');
+  }
+
+  findMemoryLimitButton(type: 'Plus' | 'Minus') {
+    return this.find().findByTestId('memory-limit-input').findByRole('button', { name: type });
+  }
 }
 mixin(KServeModal, [ServingRuntimeModal, InferenceServiceModal]);
 

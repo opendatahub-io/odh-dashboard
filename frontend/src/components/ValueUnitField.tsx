@@ -66,7 +66,18 @@ const ValueUnitField: React.FC<ValueUnitFieldProps> = ({
             })
           }
           onChange={(value) => {
-            onChange(`${value ?? ''}${currentUnitOption.unit}`);
+            if (value === undefined) {
+              onChange(`${''}${currentUnitOption.unit}`);
+              return;
+            }
+            if (!Number.isNaN(value)) {
+              if (
+                (minAsNumber === undefined || Number(value) >= minAsNumber) &&
+                (maxAsNumber === undefined || Number(value) <= maxAsNumber)
+              ) {
+                onChange(`${value}${currentUnitOption.unit}`);
+              }
+            }
           }}
           isDisabled={isDisabled}
           data-testid={dataTestId ? `${dataTestId}-input` : undefined}

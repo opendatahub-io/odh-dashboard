@@ -894,6 +894,37 @@ describe('Serving Runtime List', () => {
       kserveModal.findServingRuntimeEnvVarsSectionAddButton().click();
       kserveModal.findServingRuntimeEnvVarsName('0').type('test-name');
       kserveModal.findServingRuntimeEnvVarsValue('0').type('test-value');
+
+      // Checking model server custom size input min/max values
+      kserveModal.findModelServerSizeSelect().findSelectOption('Custom').click();
+
+      kserveModal.findCPURequestedInput().clear().type('1');
+      kserveModal.findCPULimitInput().clear().type('1');
+      kserveModal.findMemoryRequestedInput().clear().type('1');
+      kserveModal.findMemoryLimitInput().clear().type('1');
+      kserveModal.findCPURequestedButton('Minus').should('be.disabled');
+      kserveModal.findCPULimitButton('Minus').should('be.disabled');
+      kserveModal.findMemoryRequestedButton('Minus').should('be.disabled');
+      kserveModal.findMemoryLimitButton('Minus').should('be.disabled');
+
+      kserveModal.findCPURequestedButton('Plus').should('be.disabled');
+      kserveModal.findCPULimitButton('Plus').click();
+      kserveModal.findCPURequestedButton('Plus').should('be.enabled');
+      kserveModal.findMemoryRequestedButton('Plus').should('be.disabled');
+      kserveModal.findMemoryLimitButton('Plus').click();
+      kserveModal.findMemoryRequestedButton('Plus').should('be.enabled');
+
+      kserveModal.findMemoryRequestedInput().clear().type('3');
+      kserveModal.findMemoryRequestedInput().should('have.value', '2');
+      kserveModal.findCPURequestedInput().clear().type('3');
+      kserveModal.findCPURequestedInput().should('have.value', '2');
+
+      kserveModal.findCPULimitInput().clear().type('1');
+      kserveModal.findCPULimitInput().should('have.value', '2');
+      kserveModal.findMemoryLimitInput().clear().type('1');
+      kserveModal.findMemoryLimitInput().should('have.value', '2');
+
+      kserveModal.findModelServerSizeSelect().findSelectOption(/Small/).click();
       kserveModal.findSubmitButton().should('be.enabled');
 
       // test submitting form, the modal should close to indicate success.
