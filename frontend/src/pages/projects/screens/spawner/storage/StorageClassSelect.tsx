@@ -19,11 +19,14 @@ import {
   getStorageClassConfig,
 } from '#~/pages/storageClasses/utils';
 import { AccessMode } from '#~/pages/storageClasses/storageEnums';
+import { StorageClassConfig, StorageClassKind } from '#~/k8sTypes';
 import useAdminDefaultStorageClass from './useAdminDefaultStorageClass';
-import { useGetStorageClassConfig } from './useGetStorageClassConfig';
 import AccessModeLabel from './AccessModeLabel';
 
 type StorageClassSelectProps = {
+  storageClasses: StorageClassKind[];
+  storageClassesLoaded: boolean;
+  selectedStorageClassConfig?: StorageClassConfig;
   storageClassName?: string;
   setStorageClassName: (name: string) => void;
   isRequired?: boolean;
@@ -34,6 +37,9 @@ type StorageClassSelectProps = {
 };
 
 const StorageClassSelect: React.FC<StorageClassSelectProps> = ({
+  storageClasses,
+  storageClassesLoaded,
+  selectedStorageClassConfig,
   storageClassName,
   additionalHelperText,
   setStorageClassName,
@@ -42,8 +48,6 @@ const StorageClassSelect: React.FC<StorageClassSelectProps> = ({
   menuAppendTo,
   validated,
 }) => {
-  const { storageClasses, storageClassesLoaded, selectedStorageClassConfig } =
-    useGetStorageClassConfig(storageClassName);
   const hasStorageClassConfigs = storageClasses.some((sc) => !!getStorageClassConfig(sc));
   const [defaultSc] = useAdminDefaultStorageClass();
 

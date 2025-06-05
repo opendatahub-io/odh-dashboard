@@ -1,30 +1,30 @@
-import { Alert, Flex, FlexItem, FormGroup, FormHelperText } from '@patternfly/react-core';
+import { Alert, Flex, FlexItem, FormGroup, FormHelperText, Spinner } from '@patternfly/react-core';
 import * as React from 'react';
 import { AccessMode } from '#~/pages/storageClasses/storageEnums';
 import { toAccessModeFullName } from '#~/pages/projects/screens/detail/storage/AccessModeFullName';
 import FieldGroupHelpLabelIcon from '#~/components/FieldGroupHelpLabelIcon';
-import { useGetStorageClassConfig } from './useGetStorageClassConfig';
 import AccessModeRadio from './AccessModeRadio';
 import { getAccessModePopover } from './getAccessModePopover';
 
 type AccessModeFieldProps = {
   currentAccessMode?: AccessMode;
-  storageClassName?: string;
   canEditAccessMode?: boolean;
+  storageClassesLoaded: boolean;
+  adminSupportedAccessModes: AccessMode[];
+  openshiftSupportedAccessModes: AccessMode[];
   setAccessMode: (value: AccessMode) => void;
 };
 
 const AccessModeField: React.FC<AccessModeFieldProps> = ({
   currentAccessMode,
-  storageClassName,
   canEditAccessMode,
   setAccessMode,
+  storageClassesLoaded,
+  adminSupportedAccessModes,
+  openshiftSupportedAccessModes,
 }) => {
-  const { storageClassesLoaded, adminSupportedAccessModes, openshiftSupportedAccessModes } =
-    useGetStorageClassConfig(storageClassName);
-
   if (!storageClassesLoaded) {
-    return null;
+    return <Spinner />;
   }
 
   return (

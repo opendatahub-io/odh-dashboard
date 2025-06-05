@@ -28,7 +28,7 @@ export const getPossibleStorageClassAccessModes = (
   const selectedStorageClassConfig = storageClass ? getStorageClassConfig(storageClass) : undefined;
   const adminSupportedAccessModes = getAccessModeSettings(
     openshiftSupportedAccessModes,
-    selectedStorageClassConfig?.accessModeSettings,
+    selectedStorageClassConfig?.accessModeSettings || { [AccessMode.RWO]: true },
   );
   return { selectedStorageClassConfig, openshiftSupportedAccessModes, adminSupportedAccessModes };
 };
@@ -83,7 +83,7 @@ export const getSupportedAccessModesForProvisioner = (
 
 export const getAccessModeSettings = (
   supportedAccessModes: AccessMode[],
-  accessModeSettings?: Partial<Record<AccessMode, boolean>>,
+  accessModeSettings?: StorageClassConfig['accessModeSettings'],
 ): AccessMode[] => {
   const accessModeSettingsArr = [];
   for (const accessMode of supportedAccessModes) {

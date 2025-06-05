@@ -14,6 +14,7 @@ import {
 } from '#~/concepts/k8s/K8sNameDescriptionField/utils';
 import StorageClassSelect from './StorageClassSelect';
 import AccessModeField from './AccessModeField';
+import { useGetStorageClassConfig } from './useGetStorageClassConfig';
 
 type CreateNewStorageSectionProps<D extends StorageData> = {
   data: D;
@@ -52,6 +53,14 @@ const CreateNewStorageSection = <D extends StorageData>({
       editableK8sName,
     });
 
+  const {
+    storageClasses,
+    storageClassesLoaded,
+    selectedStorageClassConfig,
+    adminSupportedAccessModes,
+    openshiftSupportedAccessModes,
+  } = useGetStorageClassConfig(data.storageClassName);
+
   React.useEffect(() => {
     setData('name', clusterStorageNameDesc.name);
     setData('k8sName', clusterStorageNameDesc.k8sName.value);
@@ -80,6 +89,9 @@ const CreateNewStorageSection = <D extends StorageData>({
       {isStorageClassesAvailable && (
         <>
           <StorageClassSelect
+            storageClasses={storageClasses}
+            storageClassesLoaded={storageClassesLoaded}
+            selectedStorageClassConfig={selectedStorageClassConfig}
             storageClassName={data.storageClassName}
             setStorageClassName={(name) => setData('storageClassName', name)}
             additionalHelperText={
@@ -94,7 +106,9 @@ const CreateNewStorageSection = <D extends StorageData>({
             menuAppendTo={menuAppendTo}
           />
           <AccessModeField
-            storageClassName={data.storageClassName}
+            storageClassesLoaded={storageClassesLoaded}
+            adminSupportedAccessModes={adminSupportedAccessModes}
+            openshiftSupportedAccessModes={openshiftSupportedAccessModes}
             currentAccessMode={data.accessMode}
             canEditAccessMode={editableK8sName}
             setAccessMode={(accessMode) => setData('accessMode', accessMode)}
