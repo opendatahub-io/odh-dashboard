@@ -122,8 +122,10 @@ describe('Notebooks - tolerations tests', () => {
         'Launch a Single Serving Model using Caikit TGIS ServingRuntime for KServe and by selecting the Hardware Profile',
       );
       inferenceServiceModal.findModelNameInput().type(modelName);
-      inferenceServiceModal.findServingRuntimeTemplate().click();
-      inferenceServiceModal.findCalkitTGISServingRuntime().click();
+      inferenceServiceModal.findServingRuntimeTemplateSearchSelector().click();
+      inferenceServiceModal
+        .findGlobalScopedTemplateOption('Caikit TGIS ServingRuntime for KServe')
+        .click();
 
       inferenceServiceModal.selectPotentiallyDisabledProfile(
         testData.hardwareProfileDeploymentSize,

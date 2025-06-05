@@ -89,18 +89,9 @@ describe('Verify Admin Multi Model Creation and Validation using the UI', () => 
       modelServingGlobal.findMultiModelButton().click();
       modelServingSection.findAddModelServerButton().click();
       createServingRuntimeModal.findModelServerName().type(testData.multiModelAdminName);
-      // Check if Serving Runtime is selectable, if it is then select OpenVino Model Server
-      createServingRuntimeModal
-        .findServingRuntimeTemplateDropdown()
-        .should('be.visible')
-        .then(($element) => {
-          if ($element.is(':visible') && !$element.prop('disabled')) {
-            cy.wrap($element).click();
-            createServingRuntimeModal.findOpenVinoModelServer().click();
-          } else {
-            cy.log('Serving Runtime Template dropdown is not clickable. Skipping this step.');
-          }
-        });
+      // Select the OpenVino serving runtime template
+      createServingRuntimeModal.findServingRuntimeTemplateSearchSelector().click();
+      createServingRuntimeModal.findGlobalScopedTemplateOption('OpenVINO Model Server').click();
 
       // Click the deployed model route checkbox and confirm it's checked
       cy.step('Allow Model to be accessed from an External route without Authentication');
