@@ -1,4 +1,3 @@
-import long from 'long';
 import {
   PeriodicOptions,
   RunDateTime,

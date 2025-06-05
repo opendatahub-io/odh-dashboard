@@ -27,7 +27,7 @@ const EnsureAPIAvailability: React.FC<EnsureAPIAvailabilityProps> = ({
       <Bullseye style={{ minHeight: 150 }} data-testid="pipelines-api-not-available">
         <div>
           Initializing Pipeline Server
-          <Spinner />{' '}
+          <Spinner />
         </div>
       </Bullseye>
       This may take a while

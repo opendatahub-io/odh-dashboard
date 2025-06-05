@@ -23,11 +23,7 @@ import { K8sCondition } from '#~/k8sTypes.ts';
 
 const PROGRESS_TAB = 'Progress';
 const EVENT_LOG_TAB = 'Events log';
-// const readyText = 'Ready: True - All components are ready.';
-// status: "True"
-// type: "Ready"
 
-// not quite ready yet......
 const notReadySection = (
   <div>
     <p style={{ textAlign: 'center' }} />
