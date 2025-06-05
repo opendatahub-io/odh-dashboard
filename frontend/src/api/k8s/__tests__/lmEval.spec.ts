@@ -140,7 +140,7 @@ describe('createModelEvaluation', () => {
     model: {
       name: 'test-model',
       url: 'https://test-model.com',
-      tokenizedRequest: true,
+      tokenizedRequest: 'True',
       tokenizer: 'test-tokenizer',
     },
   });
@@ -156,6 +156,7 @@ describe('createModelEvaluation', () => {
     spec: {
       allowCodeExecution: modelData().allowRemoteCode,
       allowOnline: modelData().allowOnline,
+      batchSize: '1',
       taskList: {
         taskNames: modelData().tasks,
       },
@@ -181,7 +182,7 @@ describe('createModelEvaluation', () => {
         },
         {
           name: 'tokenized_requests',
-          value: 'true',
+          value: 'True',
         },
         {
           name: 'tokenizer',

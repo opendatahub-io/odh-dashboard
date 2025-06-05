@@ -259,14 +259,14 @@ describe('LMEvalForm', () => {
     expect(mockSetData).toHaveBeenCalledWith('model', {
       name: 'Model One',
       url: 'https://model-1.apps.example.com',
-      tokenizedRequest: false,
+      tokenizedRequest: 'False',
       tokenizer: '',
     });
   });
 
   it('should populate model name and URL with endpoint when model type is already selected', async () => {
     const mockSetData = setupLMGenericObjectStateMock({
-      modelType: 'local-chat-completion',
+      modelType: 'local-chat-completions',
     });
     const mockServicesWithUrls = createMockServicesWithUrls();
     setupInferenceServicesMock(mockServicesWithUrls as typeof mockInferenceServices);
@@ -278,7 +278,7 @@ describe('LMEvalForm', () => {
     expect(mockSetData).toHaveBeenCalledWith('model', {
       name: 'Model One',
       url: 'https://model-1.apps.example.com/v1/chat/completions',
-      tokenizedRequest: false,
+      tokenizedRequest: 'False',
       tokenizer: '',
     });
   });
@@ -289,7 +289,7 @@ describe('LMEvalForm', () => {
       model: {
         name: 'Model One',
         url: 'https://model-1.apps.example.com',
-        tokenizedRequest: false,
+        tokenizedRequest: 'False',
         tokenizer: '',
       },
     });
@@ -302,7 +302,7 @@ describe('LMEvalForm', () => {
     expect(mockSetData).toHaveBeenCalledWith('model', {
       name: '',
       url: '',
-      tokenizedRequest: false,
+      tokenizedRequest: 'False',
       tokenizer: '',
     });
   });
@@ -313,7 +313,7 @@ describe('LMEvalForm', () => {
       model: {
         name: 'Model One',
         url: 'https://model-1.apps.example.com',
-        tokenizedRequest: false,
+        tokenizedRequest: 'False',
         tokenizer: '',
       },
     });
@@ -323,13 +323,13 @@ describe('LMEvalForm', () => {
     selectModelType('Local-chat-completion');
 
     // Verify setData was called to update model type
-    expect(mockSetData).toHaveBeenCalledWith('modelType', 'local-chat-completion');
+    expect(mockSetData).toHaveBeenCalledWith('modelType', 'local-chat-completions');
 
     // Verify setData was called to update URL with endpoint
     expect(mockSetData).toHaveBeenCalledWith('model', {
       name: 'Model One',
       url: 'https://model-1.apps.example.com/v1/chat/completions',
-      tokenizedRequest: false,
+      tokenizedRequest: 'False',
       tokenizer: '',
     });
   });
