@@ -13,7 +13,8 @@ import {
   t_global_text_color_100 as BlackColor,
 } from '@patternfly/react-tokens';
 
-export type StatusType = 'pending' | 'in-progress' | 'success' | 'warning' | 'error';
+export type StatusType = 'pending' | 'in-progress' | 'success' | 'warning' | 'error';530711
+
 
 type StatusIconProps = {
   status: StatusType;

@@ -111,6 +111,16 @@ const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose }) =>
     </Panel>
   );
 
+  const successDesc = (
+    <span data-testid="successDescription">
+      The pipeline server has been successfully initialized and is ready to use.
+    </span>
+  );
+  const inProgressDesc = (
+    <span data-testid="inProgressDescription">
+      The pipeline server has been successfully initialized and is ready to use.
+    </span>
+  );
   return (
     <Modal
       data-testid="pipeline-server-starting-modal"
@@ -122,11 +132,7 @@ const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose }) =>
     >
       <ModalHeader
         title={isServerReadyAndCompletelyDone ? 'Pipeline Server Initialized' : spinner}
-        description={
-          isServerReadyAndCompletelyDone
-            ? 'The pipeline server has been successfully initialized and is ready to use.'
-            : 'The pipeline server is currently being initialized. This process may take a few minutes.'
-        }
+        description={isServerReadyAndCompletelyDone ? successDesc : inProgressDesc}
       />
       <ModalBody style={{ height: CONTENT_HEIGHT, overflowY: 'hidden' }}>
         <Stack hasGutter>

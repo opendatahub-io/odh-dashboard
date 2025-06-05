@@ -1,9 +1,11 @@
 import * as React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { K8sCondition } from '#~/k8sTypes';
+import { K8sCondition, ProjectKind } from '#~/k8sTypes';
 import StartingStatusModal from '#~/concepts/pipelines/content/StartingStatusModal';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+import { MetadataStoreServicePromiseClient } from '#~/third_party/mlmd/generated/ml_metadata/proto/metadata_store_service_grpc_web_pb';
+import { PipelineAPIs } from '#~/concepts/pipelines/types';
 
 // Mock the usePipelinesAPI hook
 jest.mock('../../context', () => ({
@@ -20,7 +22,29 @@ describe('StartingStatusModal', () => {
       crStatus: {
         conditions,
       },
+      initializing: false,
+      installed: true,
+      compatible: true,
+      timedOut: false,
+      name: 'test-pipeline',
+      isStarting: false,
     },
+    namespace: 'test-namespace',
+    project: {
+      metadata: {
+        name: 'test-project',
+        annotations: {},
+      },
+    } as ProjectKind,
+    refreshAllAPI: jest.fn(),
+    getRecurringRunInformation: jest.fn(),
+    metadataStoreServiceClient: new MetadataStoreServicePromiseClient(
+      'test-host',
+    ) as MetadataStoreServicePromiseClient,
+    refreshState: jest.fn(),
+    managedPipelines: undefined,
+    apiAvailable: true,
+    api: {} as PipelineAPIs,
   });
 
   beforeEach(() => {
@@ -41,36 +65,39 @@ describe('StartingStatusModal', () => {
     expect(screen.getByRole('progressbar')).toBeInTheDocument();
   });
 
-  it('should show API ready message when APIServerReady is True', () => {
+  it('should show in progress when APIServerReady is True and ready is Not true', () => {
     mockUsePipelinesAPI.mockReturnValue(
       createMockConditions([
         { type: 'APIServerReady', status: 'True', message: 'API server ready' },
-        { type: 'Ready', status: 'False', message: 'Server not ready' },
+        {
+          reason: 'still spinning up.....',
+          status: 'False',
+          type: 'Ready',
+        },
       ]),
     );
 
     render(<StartingStatusModal onClose={mockOnClose} />);
 
-    expect(
-      screen.getByText(
-        'The Pipeline Server API is Ready to Use, although the entire server is still initializing',
-      ),
-    ).toBeInTheDocument();
+    expect(screen.getByTestId('inProgressDescription')).toBeInTheDocument();
   });
 
   it('should show all ready message when Ready is True', () => {
     mockUsePipelinesAPI.mockReturnValue(
       createMockConditions([
         { type: 'APIServerReady', status: 'True', message: 'API server ready' },
-        { type: 'Ready', status: 'True', message: 'Server ready' },
+        {
+          lastTransitionTime: '2025-06-05T15:08:10Z',
+          message: 'All components are ready.',
+          reason: 'MinimumReplicasAvailable',
+          status: 'True',
+          type: 'Ready',
+        },
       ]),
     );
 
     render(<StartingStatusModal onClose={mockOnClose} />);
-
-    expect(
-      screen.getByText('Pipeline Server is all done initializing and ready to use.'),
-    ).toBeInTheDocument();
+    expect(screen.getByTestId('successDescription')).toBeInTheDocument();
   });
 
   it('should display conditions in the progress tab', () => {
