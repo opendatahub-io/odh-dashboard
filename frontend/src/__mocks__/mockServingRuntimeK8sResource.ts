@@ -158,6 +158,8 @@ export const mockServingRuntimeK8sResource = ({
       ...(isProjectScoped && { 'opendatahub.io/serving-runtime-scope': scope }),
       ...(hardwareProfileNamespace && {
         'opendatahub.io/hardware-profile-namespace': hardwareProfileNamespace,
+      }),
+      ...(acceleratorProfileNamespace && {
         'opendatahub.io/accelerator-profile-namespace': acceleratorProfileNamespace,
       }),
     },
