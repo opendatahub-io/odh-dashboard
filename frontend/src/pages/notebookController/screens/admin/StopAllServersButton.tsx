@@ -56,7 +56,7 @@ const StopAllServersButton: React.FC<StopAllServersButtonProps> = ({ users }) =>
           isDeleting={isDeleting}
           onNotebooksStop={onNotebooksStop}
         />
-      ) : null}
+      )}
     </>
   );
 };
