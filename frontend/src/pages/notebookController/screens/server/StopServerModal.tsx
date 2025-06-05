@@ -63,7 +63,7 @@ const StopServerModal: React.FC<StopServerModalProps> = ({
   };
 
   const displayLink = () => {
-    if (!!link && link !== '#' && notebooksToStop.length === 1) {
+    if (!!link && notebooksToStop.length === 1) {
       return (
         <>
           <Button data-testid="workbench-url" component="a" href={link} variant="link" isInline>
