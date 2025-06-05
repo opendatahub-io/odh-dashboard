@@ -49,7 +49,7 @@ const StopAllServersButton: React.FC<StopAllServersButtonProps> = ({ users }) =>
       >
         Stop all workbenches ({serverCount})
       </Button>
-      {showModal && loaded ? (
+      {showModal && loaded && (
         <StopServerModal
           notebooksToStop={notebooksToStop}
           link={!!loadError || !routeLink ? undefined : routeLink}
