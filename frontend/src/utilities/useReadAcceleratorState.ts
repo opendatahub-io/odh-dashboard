@@ -47,13 +47,13 @@ const useReadAcceleratorState = (
     // Exit early if no resources = not in edit mode
     if (resources) {
       let acceleratorProfile: AcceleratorProfileKind | undefined;
-      if (namespace && acceleratorProfileNamespace) {
+      if (namespace) {
         acceleratorProfile = acceleratorProfiles.find(
           (cr) =>
             cr.metadata.name === existingAcceleratorProfileName &&
             cr.metadata.namespace === acceleratorProfileNamespace,
         );
-      } else if (existingAcceleratorProfileName) {
+      } else {
         acceleratorProfile = acceleratorProfiles.find(
           (cr) => cr.metadata.name === existingAcceleratorProfileName,
         );
@@ -65,17 +65,6 @@ const useReadAcceleratorState = (
           acceleratorProfile,
           count: getAcceleratorProfileCount(acceleratorProfile, resources),
           unknownProfileDetected: false,
-        });
-      }
-
-      // Check if we have an existing profile name but couldn't find the profile
-      // This indicates the profile was deleted
-      if (existingAcceleratorProfileName) {
-        return Promise.resolve({
-          acceleratorProfiles,
-          acceleratorProfile: undefined,
-          count: 1, // Default count since we can't determine from missing resources
-          unknownProfileDetected: true,
         });
       }
 

@@ -46,6 +46,26 @@ const useAcceleratorProfileFormState = (
     : globalScopedLoadError;
 
   const initialState = React.useMemo(() => {
+    // Check if project-scoped feature flag is off but workbench has project-scoped profile
+    // Only apply this if acceleratorProfileNamespace is NOT the global dashboard namespace
+    if (
+      !namespace &&
+      existingAcceleratorProfileName &&
+      acceleratorProfileNamespace &&
+      acceleratorProfileNamespace !==
+        globalScopedInitialState.acceleratorProfiles[0]?.metadata.namespace
+    ) {
+      // Feature flag is off (no namespace) but workbench has project-scoped profile
+      // Show "Existing settings" instead of searching for global profile with same name
+      const state: AcceleratorProfileState = {
+        acceleratorProfiles: globalScopedInitialState.acceleratorProfiles,
+        acceleratorProfile: undefined,
+        count: 1,
+        unknownProfileDetected: true,
+      };
+      return state;
+    }
+
     // If we have a namespace, use project-scoped state but include global profiles
     if (namespace) {
       // Keep project and global profiles separate
