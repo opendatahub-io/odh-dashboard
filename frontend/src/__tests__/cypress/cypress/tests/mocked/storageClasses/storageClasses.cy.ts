@@ -495,8 +495,8 @@ describe('Storage classes', () => {
         accessModeSettings: {
           [AccessMode.RWO]: true,
           [AccessMode.RWX]: false,
-          //ROX missing
-          [AccessMode.RWOP]: true,
+          [AccessMode.ROX]: true,
+          // RWOP missing
         },
       };
       const storageClass = buildMockStorageClass(otherStorageClass, config);
@@ -515,14 +515,49 @@ describe('Storage classes', () => {
 
       storageClassEditModal
         .findAccessModeCheckbox('rox')
-        .should('be.disabled')
+        .should('be.enabled')
+        .and('be.checked')
+        .click()
         .and('not.be.checked');
 
       storageClassEditModal
         .findAccessModeCheckbox('rwop')
+        .should('be.disabled')
+        .and('not.be.checked');
+    });
+
+    it('should show access mode checkboxes with default values when config is invalid', () => {
+      const config = {
+        accessModeSettings: {
+          [AccessMode.RWO]: true,
+          [AccessMode.RWX]: true,
+          // ROX missing
+        },
+      };
+      const storageClass = buildMockStorageClass(otherStorageClass, config);
+      storageClassesPage.mockGetStorageClasses([storageClass]);
+      storageClassesPage.visit();
+      storageClassesTable.getRowByConfigName('Test SC 1').findKebabAction('Edit').click();
+
+      storageClassEditModal.findAccessModeCheckbox('rwo').should('be.disabled').and('be.checked');
+
+      storageClassEditModal
+        .findAccessModeCheckbox('rwx')
         .should('be.enabled')
-        .and('be.checked')
+        .and('not.be.checked')
         .click()
+        .should('be.checked');
+
+      storageClassEditModal
+        .findAccessModeCheckbox('rox')
+        .should('be.enabled')
+        .and('not.be.checked')
+        .click()
+        .and('be.checked');
+
+      storageClassEditModal
+        .findAccessModeCheckbox('rwop')
+        .should('be.disabled')
         .and('not.be.checked');
     });
 
@@ -531,7 +566,7 @@ describe('Storage classes', () => {
         accessModeSettings: {
           [AccessMode.RWO]: true,
           [AccessMode.RWX]: true,
-          [AccessMode.RWOP]: false,
+          [AccessMode.ROX]: false,
         },
       };
 
@@ -539,7 +574,7 @@ describe('Storage classes', () => {
         accessModeSettings: {
           [AccessMode.RWO]: true,
           [AccessMode.RWX]: false,
-          [AccessMode.RWOP]: true,
+          [AccessMode.ROX]: true,
         },
       };
 
@@ -550,7 +585,7 @@ describe('Storage classes', () => {
       storageClassesTable.getRowByConfigName('Test SC 1').findKebabAction('Edit').click();
 
       storageClassEditModal.findAccessModeCheckbox('rwx').click().should('not.be.checked');
-      storageClassEditModal.findAccessModeCheckbox('rwop').click().should('be.checked');
+      storageClassEditModal.findAccessModeCheckbox('rox').click().should('be.checked');
 
       const newStorageClass = buildMockStorageClass(otherStorageClass, newConfig);
 
@@ -566,17 +601,18 @@ describe('Storage classes', () => {
       storageClassEditModal.findAccessModeCheckbox('rwo').should('be.checked');
       storageClassEditModal.findAccessModeCheckbox('rwx').should('not.be.checked');
       storageClassEditModal
-        .findAccessModeCheckbox('rox')
+        .findAccessModeCheckbox('rwop')
         .should('be.disabled')
         .and('not.be.checked');
-      storageClassEditModal.findAccessModeCheckbox('rwop').should('be.checked');
+      storageClassEditModal.findAccessModeCheckbox('rox').should('be.checked');
     });
 
     it('should show the alert when RWX is disabled', () => {
       const config = {
         accessModeSettings: {
-          ReadWriteOnce: true,
-          ReadWriteMany: true,
+          [AccessMode.RWO]: true,
+          [AccessMode.RWX]: true,
+          [AccessMode.ROX]: true,
         },
       };
       const storageClass = buildMockStorageClass(otherStorageClass, config);

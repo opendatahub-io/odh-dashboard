@@ -28,7 +28,13 @@ import { accessModeDescriptions } from '#~/pages/storageClasses/constants';
 import { StorageClassKind } from '#~/k8sTypes';
 import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
 import { updateStorageClassConfig } from '#~/api';
-import { getStorageClassConfig, isOpenshiftDefaultStorageClass, isValidConfigValue } from './utils';
+import {
+  getStorageClassConfig,
+  getStorageClassDefaultAccessModeSettings,
+  isOpenshiftDefaultStorageClass,
+  isValidAccessModeSettings,
+  isValidConfigValue,
+} from './utils';
 import { OpenshiftDefaultLabel } from './OpenshiftDefaultLabel';
 
 interface StorageClassEditModalProps {
@@ -56,8 +62,13 @@ export const StorageClassEditModal: React.FC<StorageClassEditModalProps> = ({
       ? storageClassConfig?.description
       : '',
   );
+
+  const defaultAccessModeSettings = getStorageClassDefaultAccessModeSettings(storageClass);
+
   const [accessModeSettings, setAccessModeSettings] = React.useState(
-    storageClassConfig?.accessModeSettings ?? { [AccessMode.RWO]: true },
+    isValidAccessModeSettings(storageClass, storageClassConfig?.accessModeSettings)
+      ? storageClassConfig?.accessModeSettings ?? defaultAccessModeSettings
+      : defaultAccessModeSettings,
   );
   const [showAccessModeAlert, setShowAccessModeAlert] = React.useState(false);
 
@@ -174,7 +185,7 @@ export const StorageClassEditModal: React.FC<StorageClassEditModalProps> = ({
                   label={`${modeName} (${modeLabel})`}
                   description={accessModeDescriptions[modeName]}
                   isDisabled={!isSupported || modeName === AccessMode.RWO}
-                  isChecked={isSupported && accessModeSettings[modeName]}
+                  isChecked={isSupported && accessModeSettings[modeName] === true}
                   aria-label={modeLabel}
                   key={modeLabel}
                   id={`edit-sc-access-mode-${modeLabel.toLowerCase()}`}

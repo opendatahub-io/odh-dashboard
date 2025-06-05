@@ -56,6 +56,33 @@ export const isValidConfigValue = (
   }
 };
 
+export const isValidAccessModeSettings = (
+  storageClass: StorageClassKind,
+  value: string | boolean | undefined | Partial<Record<AccessMode, boolean | string>>,
+): boolean => {
+  if (!value || typeof value !== 'object' || Object.keys(value).length === 0) {
+    return false;
+  }
+
+  const supportedAccessModes = getSupportedAccessModesForProvisioner(storageClass.provisioner);
+
+  // Check if all supported access modes are boolean
+  for (const mode of supportedAccessModes) {
+    if (typeof value[mode] !== 'boolean') {
+      return false;
+    }
+  }
+
+  // Check if there are any extra access modes in value that are not supported
+  for (const mode of Object.keys(value)) {
+    if (!supportedAccessModes.some((m) => m === mode)) {
+      return false;
+    }
+  }
+
+  return true;
+};
+
 // Create a Set of StorageProvisioner values for efficient lookup in the type guard
 const storageProvisionerValuesSet = new Set<string>(Object.values(StorageProvisioner));
 
@@ -106,4 +133,13 @@ export const getDefaultAccessModeSettings = (
       [mode]: newSetting,
     };
   }, initialSettings);
+};
+
+export const getStorageClassDefaultAccessModeSettings = (
+  storageClass: StorageClassKind,
+): Partial<Record<AccessMode, boolean>> => {
+  const supportedAccessModesForProvisioner = getSupportedAccessModesForProvisioner(
+    storageClass.provisioner,
+  );
+  return getDefaultAccessModeSettings(supportedAccessModesForProvisioner);
 };

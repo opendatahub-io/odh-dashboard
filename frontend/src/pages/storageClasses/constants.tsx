@@ -3,6 +3,7 @@ import React from 'react';
 import { SortableData, kebabTableColumn } from '#~/components/table';
 import { StorageClassKind } from '#~/k8sTypes';
 import { AccessMode } from '#~/pages/storageClasses/storageEnums';
+import { ODH_PRODUCT_NAME } from '#~/utilities/const';
 import { getStorageClassConfig } from './utils';
 
 export enum ColumnLabel {
@@ -23,7 +24,7 @@ export const columns: SortableData<StorageClassKind>[] = [
       const configDisplayNameB = getStorageClassConfig(b)?.displayName;
 
       if (configDisplayNameA && configDisplayNameB) {
-        return configDisplayNameA.localeCompare(configDisplayNameB);
+        return String(configDisplayNameA).localeCompare(String(configDisplayNameB));
       }
 
       return -1;
@@ -32,7 +33,7 @@ export const columns: SortableData<StorageClassKind>[] = [
       popoverProps: { headerContent: 'Display name' },
       popover: (
         <>
-          The display name identifies a storage class within OpenShift AI, and can be edited.
+          The display name identifies a storage class within {ODH_PRODUCT_NAME}, and can be edited.
           <br />
           <br />
           If the display name is followed by RWX, ROX or RWOP label, it means that the class enables
@@ -47,8 +48,7 @@ export const columns: SortableData<StorageClassKind>[] = [
     sortable: false,
     info: {
       popoverProps: { headerContent: 'OpenShift storage class' },
-      popover:
-        'Storage classes are defined and supported by OpenShift. Their details can be edited for use in OpenShift AI.',
+      popover: `Storage classes are defined and supported by OpenShift. Their details can be edited for use in ${ODH_PRODUCT_NAME}.`,
     },
   },
   {
@@ -67,8 +67,7 @@ export const columns: SortableData<StorageClassKind>[] = [
     sortable: false,
     info: {
       popoverProps: { headerContent: 'Default' },
-      popover:
-        'The default storage class is automatically selected for OpenShift AI users when creating new cluster storage.',
+      popover: `The default storage class is automatically selected for ${ODH_PRODUCT_NAME} users when creating new cluster storage.`,
     },
   },
   {

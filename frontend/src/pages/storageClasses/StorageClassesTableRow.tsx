@@ -8,13 +8,19 @@ import {
   DescriptionListTerm,
   Flex,
   FlexItem,
+  Icon,
   LabelGroup,
   Popover,
   Timestamp,
+  Tooltip,
   Truncate,
 } from '@patternfly/react-core';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
-import { OutlinedQuestionCircleIcon, PencilAltIcon } from '@patternfly/react-icons';
+import {
+  ExclamationTriangleIcon,
+  OutlinedQuestionCircleIcon,
+  PencilAltIcon,
+} from '@patternfly/react-icons';
 
 import { updateStorageClassConfig } from '#~/api';
 import { NoValue } from '#~/components/NoValue';
@@ -30,9 +36,13 @@ import { StorageClassDefaultRadio } from './StorageClassDefaultRadio';
 import { StorageClassEditModal } from './StorageClassEditModal';
 import { StorageClassEnableSwitch } from './StorageClassEnableSwitch';
 import { useStorageClassContext } from './StorageClassesContext';
-import { StrorageClassConfigValue } from './StorageClassConfigValue';
+import { StorageClassConfigValue } from './StorageClassConfigValue';
 import { AccessMode } from './storageEnums';
-import { isOpenshiftDefaultStorageClass, isValidConfigValue } from './utils';
+import {
+  isOpenshiftDefaultStorageClass,
+  isValidAccessModeSettings,
+  isValidConfigValue,
+} from './utils';
 
 interface StorageClassesTableRowProps {
   storageClass: StorageClassKind;
@@ -131,7 +141,7 @@ export const StorageClassesTableRow: React.FC<StorageClassesTableRowProps> = ({ 
     <Tr>
       <Td dataLabel={ColumnLabel.DisplayName}>
         {hasReadableConfig ? (
-          <StrorageClassConfigValue
+          <StorageClassConfigValue
             alert={
               <CorruptedMetadataAlert
                 popoverText="Edit the invalid field(s) and save your changes to correct the corrupted metadata."
@@ -159,29 +169,35 @@ export const StorageClassesTableRow: React.FC<StorageClassesTableRowProps> = ({ 
                   title={
                     <Flex spaceItems={{ default: 'spaceItemsXs' }}>
                       <Truncate content={storageClassConfig.displayName} />
-                      {
-                        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-                        storageClassConfig.accessModeSettings && ( // This check is necessary for runtime safety
-                          <LabelGroup data-testid="access-mode-label-group">
-                            {Object.values(AccessMode)
-                              .filter(
-                                (modeValue) =>
-                                  storageClassConfig.accessModeSettings[modeValue] &&
-                                  modeValue !== AccessMode.RWO,
-                              )
-                              .map((modeValue) => (
-                                <AccessModeLabel key={modeValue} accessMode={modeValue} />
-                              ))}
-                          </LabelGroup>
-                        )
-                      }
+                      {isValidAccessModeSettings(
+                        storageClass,
+                        storageClassConfig.accessModeSettings,
+                      ) ? (
+                        <LabelGroup data-testid="access-mode-label-group">
+                          {Object.values(AccessMode)
+                            .filter(
+                              (modeValue) =>
+                                storageClassConfig.accessModeSettings[modeValue] &&
+                                modeValue !== AccessMode.RWO,
+                            )
+                            .map((modeValue) => (
+                              <AccessModeLabel key={modeValue} accessMode={modeValue} />
+                            ))}
+                        </LabelGroup>
+                      ) : (
+                        <Tooltip content="Edit the access mode settings and save your changes to correct the corrupted metadata.">
+                          <Icon status="warning">
+                            <ExclamationTriangleIcon />
+                          </Icon>
+                        </Tooltip>
+                      )}
                     </Flex>
                   }
                   description={storageClassConfig.description}
                   truncateDescriptionLines={2}
                 />
               )}
-          </StrorageClassConfigValue>
+          </StorageClassConfigValue>
         ) : (
           '-'
         )}
@@ -226,7 +242,7 @@ export const StorageClassesTableRow: React.FC<StorageClassesTableRowProps> = ({ 
 
       <Td dataLabel={ColumnLabel.Enable}>
         {hasReadableConfig ? (
-          <StrorageClassConfigValue
+          <StorageClassConfigValue
             alert={
               <ResetCorruptConfigValueAlert
                 storageClassName={metadata.name}
@@ -248,7 +264,7 @@ export const StorageClassesTableRow: React.FC<StorageClassesTableRowProps> = ({ 
                 onChange={onEnableSwitchChange}
               />
             )}
-          </StrorageClassConfigValue>
+          </StorageClassConfigValue>
         ) : (
           '-'
         )}
@@ -256,7 +272,7 @@ export const StorageClassesTableRow: React.FC<StorageClassesTableRowProps> = ({ 
 
       <Td dataLabel={ColumnLabel.Default}>
         {hasReadableConfig ? (
-          <StrorageClassConfigValue
+          <StorageClassConfigValue
             alert={
               <ResetCorruptConfigValueAlert
                 storageClassName={metadata.name}
@@ -276,7 +292,7 @@ export const StorageClassesTableRow: React.FC<StorageClassesTableRowProps> = ({ 
                 onChange={onDefaultRadioChange}
               />
             )}
-          </StrorageClassConfigValue>
+          </StorageClassConfigValue>
         ) : (
           '-'
         )}
@@ -284,7 +300,7 @@ export const StorageClassesTableRow: React.FC<StorageClassesTableRowProps> = ({ 
 
       <Td dataLabel={ColumnLabel.LastModified}>
         {hasReadableConfig ? (
-          <StrorageClassConfigValue
+          <StorageClassConfigValue
             alert={
               <ResetCorruptConfigValueAlert
                 storageClassName={metadata.name}
@@ -296,7 +312,7 @@ export const StorageClassesTableRow: React.FC<StorageClassesTableRowProps> = ({ 
             {isValidConfigValue('lastModified', storageClassConfig.lastModified) && (
               <Timestamp date={new Date(storageClassConfig.lastModified)} />
             )}
-          </StrorageClassConfigValue>
+          </StorageClassConfigValue>
         ) : (
           '-'
         )}

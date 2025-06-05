@@ -4,11 +4,11 @@ import { MetadataAnnotation, StorageClassConfig, StorageClassKind } from '#~/k8s
 import { FetchStateRefreshPromise } from '#~/utilities/useFetchState';
 import { allSettledPromises } from '#~/utilities/allSettledPromises';
 import { updateStorageClassConfig } from '#~/api';
+import { AccessMode } from '#~/pages/storageClasses/storageEnums.ts';
 import {
   getStorageClassConfig,
   isOpenshiftDefaultStorageClass,
-  getSupportedAccessModesForProvisioner,
-  getDefaultAccessModeSettings,
+  getStorageClassDefaultAccessModeSettings,
 } from './utils';
 
 export interface StorageClassContextProps {
@@ -75,7 +75,6 @@ export const StorageClassContextProvider: React.FC<StorageClassContextProviderPr
     const updateRequests = storageClasses.reduce(
       (acc: Promise<StorageClassConfig>[], storageClass, index) => {
         const { name } = storageClass.metadata;
-        const { provisioner } = storageClass;
         let config;
         if (storageClass.metadata.annotations?.[MetadataAnnotation.OdhStorageClassConfig]) {
           try {
@@ -92,6 +91,8 @@ export const StorageClassContextProvider: React.FC<StorageClassContextProviderPr
         const isFirstConfig = index === 0;
         const isOpenshiftDefault = openshiftDefaultScName === name;
 
+        const accessModeSettings = getStorageClassDefaultAccessModeSettings(storageClass);
+
         // Add a default config annotation when one doesn't exist
         if (!config) {
           let isDefault = isOpenshiftDefault;
@@ -101,12 +102,6 @@ export const StorageClassContextProvider: React.FC<StorageClassContextProviderPr
             isDefault = isFirstConfig;
             isEnabled = true;
           }
-
-          const supportedAccessModesForProvisioner =
-            getSupportedAccessModesForProvisioner(provisioner);
-          const accessModeSettings = getDefaultAccessModeSettings(
-            supportedAccessModesForProvisioner,
-          );
 
           acc.push(
             updateStorageClassConfig(name, {
@@ -147,6 +142,26 @@ export const StorageClassContextProvider: React.FC<StorageClassContextProviderPr
             acc.push(
               updateStorageClassConfig(defaultStorageClassName, {
                 isEnabled: true,
+              }),
+            );
+          }
+
+          if (!config.accessModeSettings) {
+            acc.push(
+              updateStorageClassConfig(name, {
+                accessModeSettings,
+              }),
+            );
+          }
+
+          // If the RWO access mode is not set, or it's set to false, or it's not a boolean, reset it to true
+          if (
+            typeof config.accessModeSettings?.[AccessMode.RWO] !== 'boolean' ||
+            !config.accessModeSettings?.[AccessMode.RWO]
+          ) {
+            acc.push(
+              updateStorageClassConfig(name, {
+                accessModeSettings: { ...config.accessModeSettings, [AccessMode.RWO]: true },
               }),
             );
           }
