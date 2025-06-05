@@ -93,6 +93,19 @@ const extensions: NavExtension[] = [
       path: '/modelCustomization/*',
     },
   },
+  {
+    type: 'app.navigation/href',
+    flags: {
+      required: [SupportedArea.LM_EVAL],
+    },
+    properties: {
+      id: 'lm-eval',
+      title: 'Model evaluations',
+      href: '/modelEvaluations',
+      section: 'models',
+      path: '/modelEvaluations/*',
+    },
+  },
 
   {
     type: 'app.navigation/section',
@@ -187,19 +200,6 @@ const extensions: NavExtension[] = [
       title: 'Distributed workloads',
       href: '/distributedWorkloads',
       path: '/distributedWorkloads/*',
-    },
-  },
-
-  {
-    type: 'app.navigation/href',
-    flags: {
-      required: [SupportedArea.LM_EVAL],
-    },
-    properties: {
-      id: 'lm-eval',
-      title: 'Model evaluations',
-      href: '/modelEvaluations',
-      path: '/modelEvaluations/*',
     },
   },
 
