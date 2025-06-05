@@ -11,19 +11,21 @@ export type DeploymentStatus = {
 };
 
 export type DeploymentEndpoint = {
-  name: string;
+  type: 'internal' | 'external';
+  name?: string;
   url: string;
+  error?: string;
 };
 
 //// Model serving platform extension
 
 export type Deployment<
-  M extends K8sDSGResource = K8sDSGResource,
-  S extends K8sDSGResource = K8sDSGResource,
+  ModelResource extends K8sDSGResource = K8sDSGResource,
+  ServerResource extends K8sDSGResource = K8sDSGResource,
 > = {
   modelServingPlatformId: string;
-  model: M;
-  server?: S;
+  model: ModelResource;
+  server?: ServerResource;
   status?: DeploymentStatus;
   endpoints?: DeploymentEndpoint[];
 };

@@ -7,6 +7,7 @@ import {
 } from '@odh-dashboard/internal/k8sTypes';
 import { Deployment } from '@odh-dashboard/model-serving/extension-points';
 import { deleteInferenceService, deleteServingRuntime } from '@odh-dashboard/internal/api/index';
+import { getKServeDeploymentEndpoints } from './deploymentEndpoints';
 import { useWatchDeploymentPods, useWatchServingRuntimes, useWatchInferenceServices } from './api';
 import { getKServeDeploymentStatus } from './deploymentStatus';
 import { KSERVE_ID } from '../extensions';
@@ -40,6 +41,7 @@ export const useWatchDeployments = (
             servingRuntime.metadata.name === inferenceService.spec.predictor.model?.runtime,
         ),
         status: getKServeDeploymentStatus(inferenceService, deploymentPods),
+        endpoints: getKServeDeploymentEndpoints(inferenceService),
       })),
     [inferenceServices, servingRuntimes, deploymentPods],
   );
