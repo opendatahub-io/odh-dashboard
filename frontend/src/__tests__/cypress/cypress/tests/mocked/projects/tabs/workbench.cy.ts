@@ -694,7 +694,7 @@ describe('Workbench page', () => {
     createSpawnerPage.findNotebookImageSearchSelector().should('contain.text', 'Select one');
     createSpawnerPage.findNotebookImageSearchSelector().click();
     cy.contains('Project-scoped images').should('be.visible');
-    cy.contains('Global images').should('be.visible');
+    cy.contains('Global-scoped images').should('be.visible');
 
     // Search for a value that exists in Global images but not in Project-scoped images
     createSpawnerPage.findNotebookImageSearchInput().should('be.visible').type('9');
