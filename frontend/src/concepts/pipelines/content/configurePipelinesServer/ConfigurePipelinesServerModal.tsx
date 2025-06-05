@@ -9,7 +9,6 @@ import {
   ModalHeader,
   ModalFooter,
 } from '@patternfly/react-core';
-import { JILL_EMPTY_AWS_PIPELINE_DATA } from '#~/pages/projects/dataConnections/privateConst';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { createPipelinesCR, deleteSecret } from '#~/api';
 import { EMPTY_AWS_PIPELINE_DATA } from '#~/pages/projects/dataConnections/const';
@@ -35,7 +34,7 @@ type ConfigurePipelinesServerModalProps = {
 
 const FORM_DEFAULTS: PipelineServerConfigType = {
   database: { useDefault: true, value: EMPTY_DATABASE_CONNECTION },
-  objectStorage: { newValue: JILL_EMPTY_AWS_PIPELINE_DATA },
+  objectStorage: { newValue: EMPTY_AWS_PIPELINE_DATA },
   enableInstructLab: false,
 };
 
