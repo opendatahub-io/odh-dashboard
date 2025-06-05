@@ -92,10 +92,8 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
 
     configureDSPipelineResourceSpec(configureConfig, project.metadata.name)
       .then((spec) => {
-        console.log('44a (pipeline modal) spec', spec);
         createPipelinesCR(namespace, spec)
           .then(() => {
-            console.log('44a (pipeline modal) createPipelinesCR success', namespace, spec);
             onBeforeClose();
             fireFormTrackingEvent(serverConfiguredEvent, {
               outcome: TrackingOutcome.submit,

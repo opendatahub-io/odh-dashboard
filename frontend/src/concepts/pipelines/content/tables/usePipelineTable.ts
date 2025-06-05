@@ -83,7 +83,6 @@ const createUsePipelineTable =
       filter,
     });
 
-    console.log('44a state', state);
     const loaded = state[1];
     // Track the first load so that the full page spinner is first shown.
     React.useEffect(() => {

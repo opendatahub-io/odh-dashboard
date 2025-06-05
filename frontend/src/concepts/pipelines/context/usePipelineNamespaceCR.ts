@@ -37,7 +37,6 @@ const usePipelineNamespaceCR = (namespace: string): FetchStateWithStarting<State
     (opts) => {
       if (name) {
         return getPipelinesCR(namespace, name, opts).catch((e) => {
-          console.log('frust: 44a: getPipelinesCR error', e);
           if (e.statusObject?.code === 404) {
             setName(undefined);
             return null;
@@ -48,7 +47,6 @@ const usePipelineNamespaceCR = (namespace: string): FetchStateWithStarting<State
       }
 
       return listPipelinesCR(namespace, opts).then((r) => {
-        console.log('frust: 44a: listPipelinesCR (r)', r);
         if (r.length > 0) {
           setName(r[0].metadata.name);
           return r[0];
@@ -75,11 +73,6 @@ const usePipelineNamespaceCR = (namespace: string): FetchStateWithStarting<State
     setIsStarting(resourceLoaded && !pipelineApiServerReady);
   }, [pipelineApiServerReady, resourceLoaded]);
 
-  console.log('bar-45a: is it starting???', isStarting);
-
-  console.log('foo-45a: has status???', pipelineApiServerReady);
-
-  console.log('45a: state', state);
   return [...state, isStarting];
 };
 

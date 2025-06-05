@@ -89,13 +89,7 @@ export const PipelineContextProvider = conditionalArea<PipelineContextProviderPr
   useSyncPreferredProject(project);
 
   const state = usePipelineNamespaceCR(namespace);
-  console.log(
-    '(avo)frust: 44a: state (this is what i want to use here! jill ACK)',
-    namespace,
-    state,
-  );
   const [pipelineNamespaceCR, crLoaded, crLoadError, refreshCR, isStarting] = state;
-  console.log('45a: is crLoaded at all???', crLoaded);
   const isCRReady = dspaLoaded(state);
   const [disableTimeout, setDisableTimeout] = React.useState(false);
   const serverTimedOut = !disableTimeout && hasServerTimedOut(state, isCRReady);

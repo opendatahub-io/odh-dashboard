@@ -15,15 +15,11 @@ const EnsureAPIAvailability: React.FC<EnsureAPIAvailabilityProps> = ({
 }) => {
   const { apiAvailable, pipelinesServer } = usePipelinesAPI();
   const [showModal, setShowModal] = React.useState(false);
-  console.log('46a: hi there');
   // Show modal when starting begins
   React.useEffect(() => {
-    console.log('46a in useEffect; ', pipelinesServer.isStarting);
     if (pipelinesServer.isStarting) {
-      console.log('46a showing modal!');
       setShowModal(true);
     }
-    console.log('yawn 46a');
   }, [pipelinesServer.isStarting]);
 
   const pipelineSpinner = (
@@ -53,7 +49,6 @@ const EnsureAPIAvailability: React.FC<EnsureAPIAvailabilityProps> = ({
     }
     return children;
   };
-  console.log('46a showing modal???', showModal);
   return (
     <>
       {getMainComponent()}

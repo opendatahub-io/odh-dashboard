@@ -16,15 +16,10 @@ const usePipelines = (
   refreshRate?: number,
 ): FetchState<PipelineListPaged<PipelineKF>> => {
   const { api } = usePipelinesAPI();
-  console.log('44a api', api);
   return usePipelineQuery<PipelineKF>(
     React.useCallback(
       (opts, params) =>
-        api.listPipelines(opts, params).then((result) => {
-          console.log('44a listing pipelines', result);
-
-          return { ...result, items: result.pipelines };
-        }),
+        api.listPipelines(opts, params).then((result) => ({ ...result, items: result.pipelines })),
       [api],
     ),
     options,

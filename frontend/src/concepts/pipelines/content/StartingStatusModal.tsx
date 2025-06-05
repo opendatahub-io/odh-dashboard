@@ -1,6 +1,5 @@
 import * as React from 'react';
 import {
-  Bullseye,
   Modal,
   ModalBody,
   ModalHeader,
@@ -48,9 +47,6 @@ type StartingStatusModalProps = {
 const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose }) => {
   const { pipelinesServer } = usePipelinesAPI();
   const [activeTab, setActiveTab] = React.useState<string>(PROGRESS_TAB);
-  const isApiServerReady = pipelinesServer.crStatus?.conditions?.some(
-    (c) => c.type === 'APIServerReady' && c.status === 'True',
-  );
   const isServerReadyAndCompletelyDone = pipelinesServer.crStatus?.conditions?.some(
     (c) => c.type === 'Ready' && c.status === 'True',
   );
@@ -60,8 +56,6 @@ const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose }) =>
   // Update conditionLog whenever conditions change
   React.useEffect(() => {
     if (pipelinesServer.crStatus?.conditions) {
-      console.log('new conditions:', JSON.stringify(pipelinesServer.crStatus.conditions, null, 2));
-
       // Create a new array with reversed conditions
       const reversedConditions = [...pipelinesServer.crStatus.conditions].reverse();
       // Add to the top of conditionLog
