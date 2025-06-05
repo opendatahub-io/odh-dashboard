@@ -1035,31 +1035,33 @@ describe('Workbench page', () => {
       ],
       notebooks: [
         mockNotebookK8sResource({
-          imageDisplayName: 'Project-scoped test image',
-          displayName: 'Test project-scoped notebook',
-          lastImageSelection: 'test-10stream:1.2',
-          image: 'image-registry.openshift-image-registry.svc:5000/test-project/test-10stream:1.22',
-          additionalEnvs: [
-            {
-              name: 'JUPYTER_IMAGE',
-              value:
-                'image-registry.openshift-image-registry.svc:5000/test-project/test-10stream:1.22',
-            },
-          ],
+          workbenchImageNamespace: 'test-project',
           opts: {
             metadata: {
               name: 'test-notebook',
               labels: {
                 'opendatahub.io/notebook-image': 'true',
               },
+              annotations: {
+                'opendatahub.io/image-display-name': 'Test image',
+              },
             },
           },
         }),
       ],
     });
+
+    cy.interceptK8sList(
+      ImageStreamModel,
+      mockK8sResourceList([
+        mockImageStreamK8sResource({
+          namespace: 'test-project',
+        }),
+      ]),
+    );
     workbenchPage.visit('test-project');
-    const notebookRow = workbenchPage.getNotebookRow('Test project-scoped notebook');
-    notebookRow.find().findByText('Project-scoped test image').should('exist');
+    const notebookRow = workbenchPage.getNotebookRow('Test Notebook');
+    notebookRow.find().findByText('Test Image').should('exist');
     notebookRow.findProjectScopedLabel().should('exist');
     notebookRow.shouldHaveContainerSize('Small');
     notebookRow.findHaveNotebookStatusText().should('have.text', 'Running');
@@ -1311,6 +1313,128 @@ describe('Workbench page', () => {
         },
       });
     });
+    // Actual request
+    cy.wait('@editWorkbench').then((interception) => {
+      expect(interception.request.url).not.to.include('?dryRun=All');
+    });
+  });
+
+  it('Edit workbench with project-scoped images', () => {
+    initIntercepts({
+      disableProjectScoped: false,
+      notebookSizes: [
+        {
+          name: 'XSmall',
+          resources: {
+            limits: {
+              cpu: '0.5',
+              memory: '500Mi',
+            },
+            requests: {
+              cpu: '0.1',
+              memory: '100Mi',
+            },
+          },
+        },
+        {
+          name: 'Small',
+          resources: {
+            limits: {
+              cpu: '2',
+              memory: '8Gi',
+            },
+            requests: {
+              cpu: '1',
+              memory: '8Gi',
+            },
+          },
+        },
+      ],
+    });
+
+    cy.interceptK8sList(
+      ImageStreamModel,
+      mockK8sResourceList([
+        mockImageStreamK8sResource({
+          name: 'project scoped test image',
+          displayName: 'Project scoped test image',
+          namespace: 'test-project',
+        }),
+      ]),
+    );
+    cy.interceptK8sList(
+      PVCModel,
+      mockK8sResourceList([mockPVCK8sResource({ name: 'test-notebook' })]),
+    );
+
+    editSpawnerPage.visit('test-notebook');
+    editSpawnerPage.findAlertMessage().should('not.exist');
+    editSpawnerPage.k8sNameDescription.findDisplayNameInput().should('have.value', 'Test Notebook');
+    editSpawnerPage.k8sNameDescription.findDisplayNameInput().fill('Updated Notebook');
+
+    // update notebook image
+    editSpawnerPage
+      .findNotebookImageSearchSelector()
+      .should('have.text', 'Test ImageGlobal-scoped');
+    editSpawnerPage.findNotebookImageSearchSelector().click();
+
+    // Search for a value that exists in Global images but not in Project-scoped images
+    editSpawnerPage.findNotebookImageSearchInput().should('be.visible').type('Project');
+    editSpawnerPage.findNotebookImageSearchInput().clear();
+
+    // Check for project specific serving runtimes
+    const projectScopedNotebookImage = editSpawnerPage.getProjectScopedNotebookImages();
+    projectScopedNotebookImage
+      .find()
+      .findByRole('menuitem', { name: 'Project scoped test image', hidden: true })
+      .click();
+    editSpawnerPage.findProjectScopedLabel().should('exist');
+    editSpawnerPage.selectContainerSize(
+      'XSmall Limits: 0.5 CPU, 500MiB Memory Requests: 0.1 CPU, 100MiB Memory',
+    );
+
+    cy.interceptK8s('PUT', NotebookModel, mockNotebookK8sResource({})).as('editWorkbenchDryRun');
+    cy.interceptK8s('PATCH', NotebookModel, mockNotebookK8sResource({})).as('editWorkbench');
+
+    editSpawnerPage.findSubmitButton().click();
+
+    cy.wait('@editWorkbenchDryRun').then((interception) => {
+      expect(interception.request.url).to.include('?dryRun=All');
+      expect(interception.request.body).to.containSubset({
+        metadata: {
+          annotations: {
+            'openshift.io/display-name': 'Updated Notebook',
+            'opendatahub.io/image-display-name': 'Project scoped test image',
+            'opendatahub.io/workbench-image-namespace': 'test-project',
+          },
+          name: 'test-notebook',
+          namespace: 'test-project',
+        },
+        spec: {
+          template: {
+            spec: {
+              containers: [
+                {
+                  envFrom: [
+                    {
+                      secretRef: {
+                        name: 'secret',
+                      },
+                    },
+                  ],
+
+                  name: 'test-notebook',
+                },
+              ],
+              volumes: [
+                { name: 'test-notebook', persistentVolumeClaim: { claimName: 'test-notebook' } },
+              ],
+            },
+          },
+        },
+      });
+    });
+
     // Actual request
     cy.wait('@editWorkbench').then((interception) => {
       expect(interception.request.url).not.to.include('?dryRun=All');

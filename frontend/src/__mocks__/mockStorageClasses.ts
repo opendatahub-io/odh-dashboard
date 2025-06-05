@@ -56,7 +56,7 @@ export const mockStorageClasses: StorageClassKind[] = [
       creationTimestamp: '2024-07-04T09:20:40Z',
       annotations: {
         'opendatahub.io/sc-config':
-          '{"displayName":"openshift-default-sc","isDefault":true,"isEnabled":true,"lastModified":"2024-08-22T15:42:53.101Z"}',
+          '{"displayName":"openshift-default-sc","isDefault":true,"isEnabled":true,"accessModeSettings":{"ReadWriteOnce":true},"lastModified":"2024-08-22T15:42:53.101Z"}',
         'storageclass.kubernetes.io/is-default-class': 'true',
       },
       managedFields: [
@@ -110,7 +110,7 @@ export const mockStorageClasses: StorageClassKind[] = [
       creationTimestamp: '2024-07-04T09:21:40Z',
       annotations: {
         'opendatahub.io/sc-config':
-          '{"displayName":"Test SC 1","isDefault":false,"isEnabled":false,"lastModified":"2024-08-22T15:42:53.100Z"}',
+          '{"displayName":"Test SC 1","isDefault":false,"isEnabled":false,"accessModeSettings":{"ReadWriteOnce":true,"ReadWriteMany":true,"ReadOnlyMany":true},"lastModified":"2024-08-22T15:42:53.100Z"}',
       },
       managedFields: [
         {

@@ -23,11 +23,18 @@ export const usePlatformExtension = <T extends Extension>(
 export const useResolvedPlatformExtension = <T extends Extension>(
   extensionPredicate: ExtensionPredicate<T>,
   platform: ModelServingPlatform,
-): ResolvedExtension<T> | undefined => {
-  const [resolvedExtensions] = useResolvedExtensions<T>(extensionPredicate);
+): [ResolvedExtension<T> | undefined | null, boolean, unknown[]] => {
+  const [resolvedExtensions, loaded, errors] = useResolvedExtensions<T>(extensionPredicate);
 
   return React.useMemo(
-    () => resolvedExtensions.find((ext) => ext.properties.platform === platform.properties.id),
-    [resolvedExtensions, platform],
+    () => [
+      !loaded
+        ? undefined
+        : resolvedExtensions.find((ext) => ext.properties.platform === platform.properties.id) ??
+          null,
+      loaded,
+      errors,
+    ],
+    [resolvedExtensions, platform, loaded, errors],
   );
 };

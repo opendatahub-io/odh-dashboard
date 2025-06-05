@@ -7,7 +7,7 @@ import { OutlinedQuestionCircleIcon, PencilAltIcon } from '@patternfly/react-ico
 import { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
 import { SelectPlatformView } from './SelectPlatformView';
 import { NoModelsView } from './NoModelsView';
-import DeploymentsTable from './DeploymentsTable';
+import DeploymentsTable from '../deployments/DeploymentsTable';
 import { ModelDeploymentsContext } from '../../concepts/ModelDeploymentsContext';
 import { DeployButton } from '../deploy/DeployButton';
 import { ModelServingPlatformContext } from '../../concepts/ModelServingPlatformContext';

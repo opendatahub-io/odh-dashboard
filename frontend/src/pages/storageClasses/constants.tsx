@@ -1,5 +1,8 @@
+import React from 'react';
+
 import { SortableData, kebabTableColumn } from '#~/components/table';
 import { StorageClassKind } from '#~/k8sTypes';
+import { AccessMode } from '#~/pages/storageClasses/storageEnums';
 import { getStorageClassConfig } from './utils';
 
 export enum ColumnLabel {
@@ -14,6 +17,7 @@ export const columns: SortableData<StorageClassKind>[] = [
   {
     field: 'displayName',
     label: ColumnLabel.DisplayName,
+    width: 25,
     sortable: (a: StorageClassKind, b: StorageClassKind): number => {
       const configDisplayNameA = getStorageClassConfig(a)?.displayName;
       const configDisplayNameB = getStorageClassConfig(b)?.displayName;
@@ -26,8 +30,15 @@ export const columns: SortableData<StorageClassKind>[] = [
     },
     info: {
       popoverProps: { headerContent: 'Display name' },
-      popover:
-        'The display name identifies a storage class within OpenShift AI, and can be edited.',
+      popover: (
+        <>
+          The display name identifies a storage class within OpenShift AI, and can be edited.
+          <br />
+          <br />
+          If the display name is followed by RWX, ROX or RWOP label, it means that the class enables
+          the corresponding access mode. RWO is enabled by default.
+        </>
+      ),
     },
   },
   {
@@ -63,7 +74,7 @@ export const columns: SortableData<StorageClassKind>[] = [
   {
     field: 'lastModified',
     label: ColumnLabel.LastModified,
-    sortable: (a, b) =>
+    sortable: (a: StorageClassKind, b: StorageClassKind) =>
       new Date(getStorageClassConfig(a)?.lastModified || '').getTime() -
       new Date(getStorageClassConfig(b)?.lastModified || '').getTime(),
   },
@@ -85,4 +96,12 @@ export type StorageClassFilterData = Record<StorageClassFilterOption, string>;
 export const initialScFilterData: StorageClassFilterData = {
   [StorageClassFilterOption.DisplayName]: '',
   [StorageClassFilterOption.OpenshiftScName]: '',
+};
+
+export const accessModeDescriptions: Record<AccessMode, string> = {
+  [AccessMode.RWO]:
+    'Supported by default. The storage can be attached to a single workbench at a given time.',
+  [AccessMode.RWX]: 'The storage can be attached to many workbenches simultaneously.',
+  [AccessMode.ROX]: 'Storage with ROX mode can be mounted as read-only by many workbenches.',
+  [AccessMode.RWOP]: 'The storage can be attached to a single pod on a single node as read-write.',
 };
