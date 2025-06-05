@@ -83,8 +83,8 @@ describe(
         modelServingGlobal.findSingleServingModelButton().click();
         modelServingGlobal.findDeployModelButton().click();
         inferenceServiceModal.findModelNameInput().type(modelDeploymentName);
-        inferenceServiceModal.findServingRuntimeTemplate().click();
-        inferenceServiceModal.findOpenVinoServingRuntime().click();
+        inferenceServiceModal.findServingRuntimeTemplateSearchSelector().click();
+        inferenceServiceModal.findGlobalScopedTemplateOption('OpenVINO Model Server').click();
         inferenceServiceModal.findModelFrameworkSelect().click();
         inferenceServiceModal.findOpenVinoOnnx().click();
         inferenceServiceModal.findOCIModelURI().type(modelDeploymentURI);

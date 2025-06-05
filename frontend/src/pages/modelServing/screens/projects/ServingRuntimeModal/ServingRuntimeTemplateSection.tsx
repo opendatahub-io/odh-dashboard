@@ -1,6 +1,8 @@
 import * as React from 'react';
 import {
   Button,
+  Flex,
+  FlexItem,
   FormGroup,
   FormHelperText,
   HelperText,
@@ -8,8 +10,6 @@ import {
   Label,
   MenuItem,
   Skeleton,
-  Split,
-  SplitItem,
   Truncate,
 } from '@patternfly/react-core';
 import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
@@ -20,9 +20,9 @@ import {
   getServingRuntimeNameFromTemplate,
   setServingRuntimeTemplate,
   isServingRuntimeKind,
+  getServingRuntimeVersion,
 } from '#~/pages/modelServing/customServingRuntimes/utils';
 import { isCompatibleWithIdentifier } from '#~/pages/projects/screens/spawner/spawnerUtils';
-import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import { CustomWatchK8sResult } from '#~/types';
 import { ScopedType, SERVING_RUNTIME_SCOPE } from '#~/pages/modelServing/screens/const';
@@ -33,6 +33,7 @@ import {
   ProjectScopedSearchDropdown,
 } from '#~/components/searchSelector/ProjectScopedSearchDropdown';
 import ProjectScopedToggleContent from '#~/components/searchSelector/ProjectScopedToggleContent';
+import ServingRuntimeVersionLabel from '#~/pages/modelServing/screens/ServingRuntimeVersionLabel';
 
 type ServingRuntimeTemplateSectionProps = {
   data: CreatingServingRuntimeObject;
@@ -85,13 +86,28 @@ const ServingRuntimeTemplateSection: React.FC<ServingRuntimeTemplateSectionProps
     [projectSpecificTemplates],
   );
 
+  const selectedTemplate = React.useMemo(
+    () =>
+      templates
+        .concat(filterProjectScopedTemplates || [])
+        .find(
+          (template) =>
+            getServingRuntimeNameFromTemplate(template) === data.servingRuntimeTemplateName,
+        ),
+    [templates, data.servingRuntimeTemplateName, filterProjectScopedTemplates],
+  );
+
   const getServingRuntimeDropdownLabel = (template: TemplateKind) => (
     <>
-      <SplitItem>
+      <FlexItem>
         <Truncate content={getServingRuntimeDisplayNameFromTemplate(template)} />
-      </SplitItem>
-      <SplitItem isFilled />
-      <SplitItem>
+      </FlexItem>
+      {getServingRuntimeVersion(template) && (
+        <FlexItem>
+          <ServingRuntimeVersionLabel version={getServingRuntimeVersion(template)} isCompact />
+        </FlexItem>
+      )}
+      <FlexItem align={{ default: 'alignRight' }}>
         {compatibleIdentifiers?.some((identifier) =>
           isCompatibleWithIdentifier(identifier, template.objects[0]),
         ) && (
@@ -99,16 +115,8 @@ const ServingRuntimeTemplateSection: React.FC<ServingRuntimeTemplateSectionProps
             Compatible with {isHardwareProfilesAvailable ? 'hardware profile' : 'accelerator'}
           </Label>
         )}
-      </SplitItem>
+      </FlexItem>
     </>
-  );
-
-  const options = filteredTemplates.map(
-    (template): SimpleSelectOption => ({
-      key: getServingRuntimeNameFromTemplate(template),
-      label: getServingRuntimeDisplayNameFromTemplate(template),
-      dropdownLabel: <Split> {getServingRuntimeDropdownLabel(template)} </Split>,
-    }),
   );
 
   const renderMenuItem = (template: TemplateKind, index: number, scope: 'project' | 'global') => (
@@ -133,7 +141,9 @@ const ServingRuntimeTemplateSection: React.FC<ServingRuntimeTemplateSectionProps
       }
       icon={<ProjectScopedIcon isProject={scope === 'project'} alt="" />}
     >
-      <Split>{getServingRuntimeDropdownLabel(template)}</Split>
+      <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+        {getServingRuntimeDropdownLabel(template)}
+      </Flex>
     </MenuItem>
   );
 
@@ -170,73 +180,53 @@ const ServingRuntimeTemplateSection: React.FC<ServingRuntimeTemplateSectionProps
         ) : undefined
       }
     >
-      {isProjectScoped &&
-      filterProjectScopedTemplates &&
-      filterProjectScopedTemplates.length > 0 ? (
-        <ProjectScopedSearchDropdown
-          isDisabled={isEditing}
-          projectScopedItems={filteredProjectScopedTemplates}
-          globalScopedItems={filteredScopedTemplates}
-          renderMenuItem={renderMenuItem}
-          searchValue={searchServingRuntime}
-          onSearchChange={setSearchServingRuntime}
-          onSearchClear={() => setSearchServingRuntime('')}
-          toggleContent={
-            <ProjectScopedToggleContent
-              displayName={isEditing ? data.servingRuntimeTemplateName : servingRuntimeDisplayName}
-              isProject={data.scope === SERVING_RUNTIME_SCOPE.Project}
-              projectLabel={ScopedType.Project}
-              globalLabel={ScopedType.Global}
-              isEditing={isEditing}
-              style={
-                isEditing
-                  ? { border: 'var( --pf-t--global--border--color--disabled) 1px solid' }
-                  : undefined
-              }
-              color={isEditing ? 'grey' : 'blue'}
-              fallback="Select one"
-            />
-          }
-          projectGroupLabel={
-            <ProjectScopedGroupLabel isProject>
-              Project-scoped serving runtimes
-            </ProjectScopedGroupLabel>
-          }
-          globalGroupLabel={
-            <ProjectScopedGroupLabel isProject={false}>
-              Global serving runtimes
-            </ProjectScopedGroupLabel>
-          }
-          dataTestId="serving-runtime-template-selection"
-          projectGroupTestId="project-scoped-serving-runtimes"
-          globalGroupTestId="global-scoped-serving-runtimes"
-          isFullWidth
-        />
-      ) : (
-        <SimpleSelect
-          isFullWidth
-          isDisabled={isEditing}
-          dataTestId="serving-runtime-template-selection"
-          aria-label="Select a template"
-          options={options}
-          placeholder={
-            isEditing || filteredTemplates.length === 0
-              ? data.servingRuntimeTemplateName
-              : 'Select one'
-          }
-          toggleProps={{ id: 'serving-runtime-template-selection' }}
-          value={data.servingRuntimeTemplateName}
-          onChange={(name) => {
-            if (name !== data.servingRuntimeTemplateName) {
-              setData('servingRuntimeTemplateName', name);
-              if (resetModelFormat) {
-                resetModelFormat();
-              }
+      <ProjectScopedSearchDropdown
+        isDisabled={isEditing}
+        projectScopedItems={filteredProjectScopedTemplates}
+        globalScopedItems={filteredScopedTemplates}
+        renderMenuItem={renderMenuItem}
+        searchValue={searchServingRuntime}
+        onSearchChange={setSearchServingRuntime}
+        onSearchClear={() => setSearchServingRuntime('')}
+        toggleContent={
+          <ProjectScopedToggleContent
+            displayName={isEditing ? data.servingRuntimeTemplateName : servingRuntimeDisplayName}
+            isProject={data.scope === SERVING_RUNTIME_SCOPE.Project}
+            projectLabel={ScopedType.Project}
+            globalLabel={ScopedType.Global}
+            isEditing={isEditing}
+            style={
+              isEditing
+                ? { border: 'var( --pf-t--global--border--color--disabled) 1px solid' }
+                : undefined
             }
-          }}
-          popperProps={{ appendTo: 'inline' }}
-        />
-      )}
+            color={isEditing ? 'grey' : 'blue'}
+            fallback="Select one"
+            additionalContent={
+              getServingRuntimeVersion(selectedTemplate) && (
+                <ServingRuntimeVersionLabel
+                  version={getServingRuntimeVersion(selectedTemplate)}
+                  isCompact
+                />
+              )
+            }
+          />
+        }
+        projectGroupLabel={
+          <ProjectScopedGroupLabel isProject>
+            Project-scoped serving runtimes
+          </ProjectScopedGroupLabel>
+        }
+        globalGroupLabel={
+          <ProjectScopedGroupLabel isProject={false}>
+            Global serving runtimes
+          </ProjectScopedGroupLabel>
+        }
+        dataTestId="serving-runtime-template-selection"
+        projectGroupTestId="project-scoped-serving-runtimes"
+        globalGroupTestId="global-scoped-serving-runtimes"
+        isFullWidth
+      />
       {data.servingRuntimeTemplateName && onConfigureParamsClick && (
         <FormHelperText>
           <HelperText>
