@@ -28,6 +28,7 @@ export type Deployment<
   server?: ServerResource;
   status?: DeploymentStatus;
   endpoints?: DeploymentEndpoint[];
+  apiProtocol?: 'REST' | 'gRPC'; // Seems silly to not make this part of the server or the endpoint, but we can revisit this later
 };
 
 export type ModelServingPlatformExtension<D extends Deployment = Deployment> = Extension<

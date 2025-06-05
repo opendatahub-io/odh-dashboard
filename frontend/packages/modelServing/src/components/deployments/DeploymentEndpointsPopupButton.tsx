@@ -50,6 +50,7 @@ export const DeploymentEndpointsPopupButton: React.FC<DeploymentEndpointsPopupBu
   }
 
   if (!endpoints || endpoints.length === 0) {
+    // This assumes a model will always have atleast one endpoint (which is true for now)
     return (
       <HelperText>
         <HelperTextItem variant="warning">

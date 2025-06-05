@@ -29,6 +29,11 @@ const genericColumns: SortableData<Deployment>[] = [
     sortable: false,
   },
   {
+    label: 'API protocol',
+    field: 'apiProtocol',
+    sortable: false,
+  },
+  {
     label: 'Status',
     field: 'status',
     sortable: false,

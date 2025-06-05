@@ -1,5 +1,6 @@
 import React from 'react';
 import { Td, ActionsColumn } from '@patternfly/react-table';
+import { Label, Content, ContentVariants } from '@patternfly/react-core';
 import ResourceTr from '@odh-dashboard/internal/components/ResourceTr';
 import { ModelStatusIcon } from '@odh-dashboard/internal/concepts/modelServing/ModelStatusIcon';
 import { TableRowTitleDescription } from '@odh-dashboard/internal/components/table/index';
@@ -28,8 +29,15 @@ export const DeploymentRow: React.FC<{
     <Td dataLabel="Inference endpoint">
       <DeploymentEndpointsPopupButton
         endpoints={deployment.endpoints}
-        loading={deployment.status?.state !== InferenceServiceModelState.LOADED}
+        loading={deployment.status?.state === InferenceServiceModelState.LOADING} // Not sure which states we need to show loading
       />
+    </Td>
+    <Td dataLabel="API protocol">
+      {deployment.apiProtocol ? (
+        <Label color="yellow">{deployment.apiProtocol}</Label>
+      ) : (
+        <Content component={ContentVariants.small}>Not defined</Content>
+      )}
     </Td>
     <Td dataLabel="Status">
       <ModelStatusIcon
