@@ -1,13 +1,15 @@
+// Tests for K8sNameDescriptionField component's character limit warnings
 import { getByDataTestId } from '~/__tests__/cypress/cypress/utils/utils';
 
 describe('K8sNameDescriptionField', () => {
+
   beforeEach(() => {
     cy.visit('/workbenches/create');
   });
 
   it('should show warning when name field approaches character limit', () => {
     const testId = 'workbench-name';
-    const longName = 'a'.repeat(240); // Using 250 character limit
+    const longName = 'a'.repeat(240); 
 
     getByDataTestId(`${testId}-name`).type(longName);
 
