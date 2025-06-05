@@ -2,14 +2,13 @@
 import { getByDataTestId } from '~/__tests__/cypress/cypress/utils/utils';
 
 describe('K8sNameDescriptionField', () => {
-
   beforeEach(() => {
     cy.visit('/workbenches/create');
   });
 
   it('should show warning when name field approaches character limit', () => {
     const testId = 'workbench-name';
-    const longName = 'a'.repeat(240); 
+    const longName = 'a'.repeat(240);
 
     getByDataTestId(`${testId}-name`).type(longName);
 
@@ -20,7 +19,7 @@ describe('K8sNameDescriptionField', () => {
 
   it('should show warning when description field approaches character limit', () => {
     const testId = 'workbench-name';
-    const longDescription = 'a'.repeat(5250); // Using 5500 character limit
+    const longDescription = 'a'.repeat(5250);
 
     getByDataTestId(`${testId}-description`).type(longDescription);
 
