@@ -38,23 +38,12 @@ const ServingRuntimeSizeSection = ({
 
   const gpuDisabled = servingRuntimeSelected ? isGpuDisabled(servingRuntimeSelected) : false;
 
-  const [lastEditedCustomResources, setLastEditedCustomResources] = React.useState<
-    ModelServingSize['resources'] | undefined
-  >(customDefaults?.resources);
-
-  React.useMemo(() => {
-    if (podSpecOptionState.modelSize.selectedSize.name === 'Custom') {
-      if (
-        JSON.stringify(podSpecOptionState.modelSize.selectedSize.resources) !==
-        JSON.stringify(lastEditedCustomResources)
-      ) {
-        setLastEditedCustomResources(podSpecOptionState.modelSize.selectedSize.resources);
-      }
-    }
-  }, [podSpecOptionState.modelSize.selectedSize, lastEditedCustomResources]);
+  const lastEditedCustomResourcesRef = React.useRef<ModelServingSize['resources'] | undefined>(
+    customDefaults?.resources,
+  );
 
   const getLatestCustomResources = (): ModelServingSize['resources'] =>
-    lastEditedCustomResources ||
+    lastEditedCustomResourcesRef.current ||
     customDefaults?.resources || {
       requests: { cpu: '1', memory: '1Gi' },
       limits: { cpu: '1', memory: '1Gi' },
@@ -155,7 +144,12 @@ const ServingRuntimeSizeSection = ({
               <StackItem>
                 <ServingRuntimeSizeExpandedField
                   data={podSpecOptionState.modelSize.selectedSize}
-                  setData={podSpecOptionState.modelSize.setSelectedSize}
+                  setData={(value) => {
+                    podSpecOptionState.modelSize.setSelectedSize(value);
+                    if (value.name === 'Custom') {
+                      lastEditedCustomResourcesRef.current = value.resources;
+                    }
+                  }}
                 />
               </StackItem>
             )}
