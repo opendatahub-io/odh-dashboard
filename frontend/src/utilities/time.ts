@@ -232,7 +232,7 @@ export const getTimeRangeCategory = (
   if (diffMinutes > mediumTimeRangeMinuteLimit) {
     return 'longRange';
   }
-  if (diffMinutes >= shortTimeRangeMinuteLimit) {
+  if (diffMinutes > shortTimeRangeMinuteLimit) {
     return 'mediumRange';
   }
   return 'shortRange';

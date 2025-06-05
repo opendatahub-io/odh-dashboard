@@ -191,16 +191,16 @@ describe('getStatusFromCondition', () => {
     expect(getStatusFromCondition(condition)).toBe('error');
   });
 
-  it('should return pending for FailingToDeploy at exactly 3 minutes', () => {
+  it('should return warning for FailingToDeploy at 3 minutes 15 seconds', () => {
     const condition: K8sCondition = {
-      lastTransitionTime: new Date(Date.now() - 1000 * 60 * 3).toISOString(), // exactly 3 minutes ago
+      lastTransitionTime: new Date(Date.now() - 1000 * 60 * 3 - 1000 * 15).toISOString(), // exactly 3 minutes ago
       message: 'Component failed to deploy',
       reason: 'FailingToDeploy',
       status: 'False',
       type: 'APIServerReady',
     };
 
-    expect(getStatusFromCondition(condition)).toBe('pending');
+    expect(getStatusFromCondition(condition)).toBe('warning');
   });
 
   it('should return error for FailingToDeploy at exactly 10 minutes', () => {
