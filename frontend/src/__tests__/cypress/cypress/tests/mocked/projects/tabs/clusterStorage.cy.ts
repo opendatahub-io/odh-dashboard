@@ -28,6 +28,7 @@ import {
 import { mock200Status } from '#~/__mocks__/mockK8sStatus';
 import { mockPrometheusQueryResponse } from '#~/__mocks__/mockPrometheusQueryResponse';
 import { storageClassesPage } from '#~/__tests__/cypress/cypress/pages/storageClasses';
+import { AccessMode } from '#~/__tests__/cypress/cypress/types';
 
 type HandlersProps = {
   isEmpty?: boolean;
@@ -193,7 +194,10 @@ describe('ClusterStorage', () => {
     addClusterStorageModal.find().findByText('openshift-default-sc').should('exist');
 
     // select storage class
-    addClusterStorageModal.selectStorageClassSelectOption(/Test SC 1/);
+    const storageClassSelect = addClusterStorageModal.findStorageClassSelect();
+    storageClassSelect.find().click();
+    storageClassSelect.findSelectStorageClassLabel(/Test SC 1/, AccessMode.RWX).should('exist');
+    storageClassSelect.selectStorageClassSelectOption(/Test SC 1/);
     addClusterStorageModal.findSubmitButton().should('be.enabled');
     addClusterStorageModal.findDescriptionInput().fill('description');
     addClusterStorageModal.findPVSizeMinusButton().click();
@@ -201,6 +205,12 @@ describe('ClusterStorage', () => {
     addClusterStorageModal.findPVSizePlusButton().click();
     addClusterStorageModal.findPVSizeInput().should('have.value', '20');
     addClusterStorageModal.selectPVSize('MiB');
+
+    // select access mode
+    addClusterStorageModal.findRWOAccessMode().should('be.checked');
+    addClusterStorageModal.findRWXAccessMode().click();
+    addClusterStorageModal.findROXAccessMode().should('be.disabled');
+    addClusterStorageModal.findRWOPAccessMode().should('be.disabled');
 
     //connect workbench
     addClusterStorageModal.findAddWorkbenchButton().click();
@@ -378,6 +388,7 @@ describe('ClusterStorage', () => {
 
     cy.interceptK8s('PUT', PVCModel, mockPVCK8sResource({})).as('editClusterStorage');
 
+    updateClusterStorageModal.findExistingAccessMode().should('have.text', 'ReadWriteOnce (RWO)');
     updateClusterStorageModal.findSubmitButton().click();
     cy.wait('@editClusterStorage').then((interception) => {
       expect(interception.request.url).to.include('?dryRun=All');

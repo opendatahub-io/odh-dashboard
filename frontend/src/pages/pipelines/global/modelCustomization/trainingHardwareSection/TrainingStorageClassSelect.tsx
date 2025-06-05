@@ -5,6 +5,7 @@ import { storageClassSchema } from '#~/concepts/pipelines/content/modelCustomiza
 import { useZodFormValidation } from '#~/hooks/useZodFormValidation';
 import StorageClassSelect from '#~/pages/projects/screens/spawner/storage/StorageClassSelect';
 import usePreferredStorageClass from '#~/pages/projects/screens/spawner/storage/usePreferredStorageClass';
+import { useGetStorageClassConfig } from '#~/pages/projects/screens/spawner/storage/useGetStorageClassConfig';
 
 type TrainingStorageClassSelectProps = {
   data: string;
@@ -21,6 +22,8 @@ const TrainingStorageClassSelect: React.FC<TrainingStorageClassSelectProps> = ({
     storageClassSchema,
   );
   const preferredStorageClass = usePreferredStorageClass();
+  const { storageClasses, storageClassesLoaded, selectedStorageClassConfig } =
+    useGetStorageClassConfig();
 
   // when storageClass is unavailable
   React.useEffect(() => {
@@ -37,6 +40,9 @@ const TrainingStorageClassSelect: React.FC<TrainingStorageClassSelectProps> = ({
   return (
     <>
       <StorageClassSelect
+        storageClasses={storageClasses}
+        storageClassesLoaded={storageClassesLoaded}
+        selectedStorageClassConfig={selectedStorageClassConfig}
         isRequired
         storageClassName={data}
         setStorageClassName={(name) => {

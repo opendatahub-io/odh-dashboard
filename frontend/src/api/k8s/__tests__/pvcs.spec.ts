@@ -19,6 +19,7 @@ import {
 import { PVCModel } from '#~/api/models/k8s';
 import { PersistentVolumeClaimKind } from '#~/k8sTypes';
 import { StorageData } from '#~/pages/projects/types';
+import { AccessMode } from '#~/pages/storageClasses/storageEnums';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sGetResource: jest.fn(),
@@ -54,7 +55,7 @@ const assemblePvcResult: PersistentVolumeClaimKind = {
     namespace: 'namespace',
   },
   spec: {
-    accessModes: ['ReadWriteOnce'],
+    accessModes: [AccessMode.RWO],
     resources: { requests: { storage: '5Gi' } },
     volumeMode: 'Filesystem',
     storageClassName: undefined,
@@ -79,6 +80,15 @@ describe('assemblePvc', () => {
     expect(result).toStrictEqual({
       ...assemblePvcResult,
       metadata: { ...assemblePvcResult.metadata, name: 'editName' },
+    });
+  });
+
+  it('should assemble pvc with non defaultaccessMode', () => {
+    const result = assemblePvc({ ...data, accessMode: AccessMode.RWOP }, 'namespace', 'editName');
+    expect(result).toStrictEqual({
+      ...assemblePvcResult,
+      metadata: { ...assemblePvcResult.metadata, name: 'editName' },
+      spec: { ...assemblePvcResult.spec, accessModes: [AccessMode.RWOP] },
     });
   });
 });
