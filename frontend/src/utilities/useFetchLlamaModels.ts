@@ -1,6 +1,6 @@
 import * as React from 'react';
 import type { Model as LlamaModel } from 'llama-stack-client/resources/models';
-import { listModels } from '~/services/llamaStackService';
+import { listModels } from '#~/services/llamaStackService';
 
 const useFetchLlamaModels = (): {
   models: LlamaModel[];

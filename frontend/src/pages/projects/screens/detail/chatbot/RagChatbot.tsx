@@ -12,12 +12,12 @@ import {
   ChatbotHeader,
   ChatbotHeaderActions,
 } from '@patternfly/chatbot';
-import { completeChat } from '~/services/llamaStackService';
-import useFetchLlamaModels from '~/utilities/useFetchLlamaModels';
-import chatbotUserIcon from '~/images/UI_icon-Red_Hat-User-Avatar.svg';
-import chatbotAvatar from '~/images/UI_icon-Red_Hat-Patternfly-Avatar.jpg';
-import RagChatbotMessagesList from './RagChatbotMessagesList';
+import { completeChat } from '#~/services/llamaStackService';
+import useFetchLlamaModels from '#~/utilities/useFetchLlamaModels';
+import chatbotUserIcon from '#~/images/UI_icon-Red_Hat-User-Avatar.svg';
+import chatbotAvatar from '#~/images/UI_icon-Red_Hat-Patternfly-Avatar.jpg';
 import '@patternfly/chatbot/dist/css/main.css';
+import RagChatbotMessagesList from './RagChatbotMessagesList';
 
 type ChatMessage = {
   role: 'user' | 'assistant';
