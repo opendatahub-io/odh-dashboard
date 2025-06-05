@@ -117,6 +117,13 @@ describe('StartingStatusModal', () => {
   it('should display conditions in the events log tab', () => {
     const conditions = [
       { type: 'APIServerReady', status: 'False', message: 'API server not ready' },
+      {
+        lastTransitionTime: '2025-06-05T15:07:33Z',
+        message: 'Component [ds-pipeline-dspa] is deploying.',
+        reason: 'MinimumReplicasAvailable',
+        status: 'False',
+        type: 'Ready',
+      },
       { type: 'Ready', status: 'False', message: 'Server not ready' },
     ];
     mockUsePipelinesAPI.mockReturnValue(createMockConditions(conditions));
