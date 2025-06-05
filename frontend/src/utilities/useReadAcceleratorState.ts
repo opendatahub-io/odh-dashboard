@@ -68,6 +68,17 @@ const useReadAcceleratorState = (
         });
       }
 
+      // Check if we have a profile name reference but can't find the profile
+      // This indicates the profile was deleted
+      if (existingAcceleratorProfileName) {
+        return Promise.resolve({
+          acceleratorProfiles,
+          acceleratorProfile: undefined,
+          count: 1, // Default count when profile is missing
+          unknownProfileDetected: true,
+        });
+      }
+
       // check if there is accelerator usage in the container
       // this is to handle the case where the accelerator is disabled, deleted, or empty
       const possibleAcceleratorRequests = Object.entries(resources.requests ?? {})

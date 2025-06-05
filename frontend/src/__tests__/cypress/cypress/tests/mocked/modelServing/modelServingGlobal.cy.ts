@@ -850,6 +850,24 @@ describe('Model Serving Global', () => {
     kserveModalEdit.findProjectScopedLabel().should('exist');
   });
 
+  it('Display Existing settings for deleted accelerator profile selection on Edit', () => {
+    initIntercepts({
+      projectEnableModelMesh: false,
+      disableServingRuntimeParamsConfig: false,
+      disableProjectScoped: false,
+      servingRuntimes: [
+        mockServingRuntimeK8sResource({
+          acceleratorName: 'large-profile-2',
+        }),
+      ],
+    });
+    modelServingGlobal.visit('test-project');
+    modelServingGlobal.getModelRow('Test Inference Service').findKebabAction('Edit').click();
+    acceleratorProfileSection
+      .findAcceleratorProfileSearchSelector()
+      .should('contain.text', 'Existing settings');
+  });
+
   it('Display global scoped label on serving runtime selection', () => {
     initIntercepts({
       projectEnableModelMesh: false,
