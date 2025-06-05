@@ -14,3 +14,10 @@ export type LmEvalFormData = {
   allowOnline: boolean;
   model: LmModelArgument;
 };
+
+export enum LMEvalState {
+  PENDING = 'Pending',
+  RUNNING = 'Running',
+  COMPLETE = 'Complete',
+  FAILED = 'Failed',
+}
