@@ -28,11 +28,12 @@ import { accessModeDescriptions } from '#~/pages/storageClasses/constants';
 import { StorageClassKind } from '#~/k8sTypes';
 import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
 import { updateStorageClassConfig } from '#~/api';
+import { toAccessModeFullName } from '#~/pages/projects/screens/detail/storage/AccessModeFullName.tsx';
 import {
+  getSupportedAccessModesForProvisioner,
   getStorageClassConfig,
   getStorageClassDefaultAccessModeSettings,
   isOpenshiftDefaultStorageClass,
-  isValidAccessModeSettings,
   isValidConfigValue,
 } from './utils';
 import { OpenshiftDefaultLabel } from './OpenshiftDefaultLabel';
@@ -66,8 +67,8 @@ export const StorageClassEditModal: React.FC<StorageClassEditModalProps> = ({
   const defaultAccessModeSettings = getStorageClassDefaultAccessModeSettings(storageClass);
 
   const [accessModeSettings, setAccessModeSettings] = React.useState(
-    isValidAccessModeSettings(storageClass, storageClassConfig?.accessModeSettings)
-      ? storageClassConfig?.accessModeSettings ?? defaultAccessModeSettings
+    isValidConfigValue('accessModeSettings', storageClassConfig?.accessModeSettings)
+      ? storageClassConfig?.accessModeSettings
       : defaultAccessModeSettings,
   );
   const [showAccessModeAlert, setShowAccessModeAlert] = React.useState(false);
@@ -178,18 +179,29 @@ export const StorageClassEditModal: React.FC<StorageClassEditModalProps> = ({
             fieldId="edit-sc-access-mode"
             isStack
           >
-            {Object.entries(AccessMode).map(([modeLabel, modeName]) => {
-              const isSupported = modeName in accessModeSettings;
+            {Object.values(AccessMode).map((modeName) => {
+              const modeLabel = toAccessModeFullName(modeName);
+
+              const supportedAccessModes = getSupportedAccessModesForProvisioner(
+                storageClass.provisioner,
+              );
+              const isSupported = supportedAccessModes.includes(modeName);
+
               const checkbox = (
                 <Checkbox
-                  label={`${modeName} (${modeLabel})`}
+                  label={modeLabel}
                   description={accessModeDescriptions[modeName]}
-                  isDisabled={!isSupported || modeName === AccessMode.RWO}
-                  isChecked={isSupported && accessModeSettings[modeName] === true}
+                  // RWO is not allowed to be disabled, and if it's not supported, it should be disabled
+                  isDisabled={modeName === AccessMode.RWO || !isSupported}
+                  // RWO is always enabled, and if it's supported, it should be checked
+                  isChecked={
+                    (isSupported && accessModeSettings?.[modeName] === true) ||
+                    modeName === AccessMode.RWO
+                  }
                   aria-label={modeLabel}
-                  key={modeLabel}
-                  id={`edit-sc-access-mode-${modeLabel.toLowerCase()}`}
-                  data-testid={`edit-sc-access-mode-checkbox-${modeLabel.toLowerCase()}`}
+                  key={modeName}
+                  id={`edit-sc-access-mode-${modeName.toLowerCase()}`}
+                  data-testid={`edit-sc-access-mode-checkbox-${modeName.toLowerCase()}`}
                   onChange={(_, enabled) => {
                     if (modeName === AccessMode.RWX) {
                       if (!enabled && storageClassConfig?.accessModeSettings[AccessMode.RWX]) {
@@ -210,7 +222,7 @@ export const StorageClassEditModal: React.FC<StorageClassEditModalProps> = ({
                 return (
                   <Tooltip
                     content="This mode is not available in this class."
-                    key={`${modeLabel}-tooltip`}
+                    key={`${modeName}-tooltip`}
                     position="top-start"
                   >
                     {checkbox}

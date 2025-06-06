@@ -4,7 +4,6 @@ import { MetadataAnnotation, StorageClassConfig, StorageClassKind } from '#~/k8s
 import { FetchStateRefreshPromise } from '#~/utilities/useFetchState';
 import { allSettledPromises } from '#~/utilities/allSettledPromises';
 import { updateStorageClassConfig } from '#~/api';
-import { AccessMode } from '#~/pages/storageClasses/storageEnums.ts';
 import {
   getStorageClassConfig,
   isOpenshiftDefaultStorageClass,
@@ -150,18 +149,6 @@ export const StorageClassContextProvider: React.FC<StorageClassContextProviderPr
             acc.push(
               updateStorageClassConfig(name, {
                 accessModeSettings,
-              }),
-            );
-          }
-
-          // If the RWO access mode is not set, or it's set to false, or it's not a boolean, reset it to true
-          if (
-            typeof config.accessModeSettings?.[AccessMode.RWO] !== 'boolean' ||
-            !config.accessModeSettings?.[AccessMode.RWO]
-          ) {
-            acc.push(
-              updateStorageClassConfig(name, {
-                accessModeSettings: { ...config.accessModeSettings, [AccessMode.RWO]: true },
               }),
             );
           }

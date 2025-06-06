@@ -39,6 +39,7 @@ import { useStorageClassContext } from './StorageClassesContext';
 import { StorageClassConfigValue } from './StorageClassConfigValue';
 import { AccessMode } from './storageEnums';
 import {
+  getSupportedAccessModesForProvisioner,
   isOpenshiftDefaultStorageClass,
   isValidAccessModeSettings,
   isValidConfigValue,
@@ -174,10 +175,10 @@ export const StorageClassesTableRow: React.FC<StorageClassesTableRowProps> = ({ 
                         storageClassConfig.accessModeSettings,
                       ) ? (
                         <LabelGroup data-testid="access-mode-label-group">
-                          {Object.values(AccessMode)
+                          {getSupportedAccessModesForProvisioner(storageClass.provisioner)
                             .filter(
                               (modeValue) =>
-                                storageClassConfig.accessModeSettings[modeValue] &&
+                                storageClassConfig.accessModeSettings[modeValue] === true &&
                                 modeValue !== AccessMode.RWO,
                             )
                             .map((modeValue) => (
@@ -185,6 +186,8 @@ export const StorageClassesTableRow: React.FC<StorageClassesTableRowProps> = ({ 
                             ))}
                         </LabelGroup>
                       ) : (
+                        // only show tooltip if the access mode settings are not valid
+                        // which means that the supported access modes are not set to a boolean
                         <Tooltip content="Edit the access mode settings and save your changes to correct the corrupted metadata.">
                           <Icon status="warning">
                             <ExclamationTriangleIcon />

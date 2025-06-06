@@ -1,5 +1,10 @@
 import { isValidDate } from '@patternfly/react-core';
-import { MetadataAnnotation, StorageClassConfig, StorageClassKind } from '#~/k8sTypes';
+import {
+  AccessModeSettings,
+  MetadataAnnotation,
+  StorageClassConfig,
+  StorageClassKind,
+} from '#~/k8sTypes';
 import { AccessMode, StorageProvisioner, provisionerAccessModes } from './storageEnums';
 
 export const getStorageClassConfig = (
@@ -26,10 +31,18 @@ export const getPossibleStorageClassAccessModes = (
     storageClass?.provisioner,
   );
   const selectedStorageClassConfig = storageClass ? getStorageClassConfig(storageClass) : undefined;
-  const adminSupportedAccessModes = getAccessModeSettings(
-    openshiftSupportedAccessModes,
-    selectedStorageClassConfig?.accessModeSettings || { [AccessMode.RWO]: true },
-  );
+
+  // RWO is always supported
+  const adminSupportedAccessModes: AccessMode[] = [AccessMode.RWO];
+  for (const accessMode of openshiftSupportedAccessModes) {
+    if (
+      selectedStorageClassConfig?.accessModeSettings &&
+      selectedStorageClassConfig.accessModeSettings[accessMode] === true &&
+      accessMode !== AccessMode.RWO
+    ) {
+      adminSupportedAccessModes.push(accessMode);
+    }
+  }
   return { selectedStorageClassConfig, openshiftSupportedAccessModes, adminSupportedAccessModes };
 };
 
@@ -40,7 +53,7 @@ export const isOpenshiftDefaultStorageClass = (
 
 export const isValidConfigValue = (
   configKey: keyof StorageClassConfig,
-  value: string | boolean | undefined,
+  value: string | boolean | undefined | AccessModeSettings,
 ): boolean => {
   switch (configKey) {
     case 'displayName':
@@ -51,6 +64,8 @@ export const isValidConfigValue = (
       return typeof value === 'boolean';
     case 'lastModified':
       return typeof value === 'string' && isValidDate(new Date(value));
+    case 'accessModeSettings':
+      return typeof value === 'object';
     default:
       return false;
   }
@@ -58,9 +73,9 @@ export const isValidConfigValue = (
 
 export const isValidAccessModeSettings = (
   storageClass: StorageClassKind,
-  value: string | boolean | undefined | Partial<Record<AccessMode, boolean | string>>,
+  value: string | boolean | undefined | AccessModeSettings,
 ): boolean => {
-  if (!value || typeof value !== 'object' || Object.keys(value).length === 0) {
+  if (typeof value !== 'object') {
     return false;
   }
 
@@ -68,14 +83,7 @@ export const isValidAccessModeSettings = (
 
   // Check if all supported access modes are boolean
   for (const mode of supportedAccessModes) {
-    if (typeof value[mode] !== 'boolean') {
-      return false;
-    }
-  }
-
-  // Check if there are any extra access modes in value that are not supported
-  for (const mode of Object.keys(value)) {
-    if (!supportedAccessModes.some((m) => m === mode)) {
+    if (value[mode] !== undefined && typeof value[mode] !== 'boolean') {
       return false;
     }
   }
@@ -110,21 +118,21 @@ export const getSupportedAccessModesForProvisioner = (
 
 export const getAccessModeSettings = (
   supportedAccessModes: AccessMode[],
-  accessModeSettings?: StorageClassConfig['accessModeSettings'],
+  accessModeSettings?: AccessModeSettings,
 ): AccessMode[] => {
   const accessModeSettingsArr = [];
   for (const accessMode of supportedAccessModes) {
-    if (accessModeSettings?.[accessMode]) {
+    if (accessModeSettings?.[accessMode] === true) {
       accessModeSettingsArr.push(accessMode);
     }
   }
   return accessModeSettingsArr;
 };
 
-export const getDefaultAccessModeSettings = (
+export const getAdminDefaultAccessModeSettings = (
   supportedAccessModes: AccessMode[],
-): Partial<Record<AccessMode, boolean>> => {
-  const initialSettings: Partial<Record<AccessMode, boolean>> = {};
+): AccessModeSettings => {
+  const initialSettings: AccessModeSettings = {};
   return supportedAccessModes.reduce((currentSettings, mode) => {
     // AccessMode.RWO should be set to true, and all other supported access modes should be set to false
     const newSetting = mode === AccessMode.RWO;
@@ -137,9 +145,9 @@ export const getDefaultAccessModeSettings = (
 
 export const getStorageClassDefaultAccessModeSettings = (
   storageClass: StorageClassKind,
-): Partial<Record<AccessMode, boolean>> => {
+): AccessModeSettings => {
   const supportedAccessModesForProvisioner = getSupportedAccessModesForProvisioner(
     storageClass.provisioner,
   );
-  return getDefaultAccessModeSettings(supportedAccessModesForProvisioner);
+  return getAdminDefaultAccessModeSettings(supportedAccessModesForProvisioner);
 };

@@ -160,10 +160,10 @@ describe('useMountPathFormat', () => {
 });
 
 describe('getPossibleStorageClassAccessModes', () => {
-  it('returns empty arrays if no storageClass is provided', () => {
+  it('returns RWO as the only supported access mode if no storageClass is provided', () => {
     const result = getPossibleStorageClassAccessModes();
     expect(result.openshiftSupportedAccessModes).toEqual([]);
-    expect(result.adminSupportedAccessModes).toEqual([]);
+    expect(result.adminSupportedAccessModes).toEqual([AccessMode.RWO]);
     expect(result.selectedStorageClassConfig).toBeUndefined();
   });
 
@@ -179,7 +179,7 @@ describe('getPossibleStorageClassAccessModes', () => {
     expect(result.adminSupportedAccessModes).toEqual([AccessMode.RWO, AccessMode.RWX]);
   });
 
-  it('returns empty adminSupportedAccessModes if config accessModeSettings is empty', () => {
+  it('returns RWO as the only supported access mode if config accessModeSettings is empty', () => {
     const storageClass = {
       ...mockStorageClasses[0],
       metadata: {
@@ -190,6 +190,6 @@ describe('getPossibleStorageClassAccessModes', () => {
       },
     };
     const result = getPossibleStorageClassAccessModes(storageClass);
-    expect(result.adminSupportedAccessModes).toEqual([]);
+    expect(result.adminSupportedAccessModes).toEqual([AccessMode.RWO]);
   });
 });

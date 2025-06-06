@@ -1,3 +1,4 @@
+import { AccessModeSettings } from '#~/k8sTypes.ts';
 import {
   AccessMode,
   StorageProvisioner,
@@ -5,7 +6,7 @@ import {
 } from '#~/pages/storageClasses/storageEnums';
 import {
   getSupportedAccessModesForProvisioner,
-  getDefaultAccessModeSettings,
+  getAdminDefaultAccessModeSettings,
   isValidAccessModeSettings,
 } from '#~/pages/storageClasses/utils';
 
@@ -27,7 +28,7 @@ describe('getSupportedAccessModesForProvisioner', () => {
   });
 });
 
-describe('getDefaultAccessModeSettings', () => {
+describe('getAdminDefaultAccessModeSettings', () => {
   it('should set RWO to true and other supported modes to false', () => {
     const supportedModes = [AccessMode.RWO, AccessMode.RWX, AccessMode.ROX, AccessMode.RWOP];
     const expectedSettings = {
@@ -36,7 +37,7 @@ describe('getDefaultAccessModeSettings', () => {
       [AccessMode.ROX]: false,
       [AccessMode.RWOP]: false,
     };
-    expect(getDefaultAccessModeSettings(supportedModes)).toEqual(expectedSettings);
+    expect(getAdminDefaultAccessModeSettings(supportedModes)).toEqual(expectedSettings);
   });
 
   it('should handle a mix of modes correctly', () => {
@@ -45,45 +46,45 @@ describe('getDefaultAccessModeSettings', () => {
       [AccessMode.RWO]: true,
       [AccessMode.ROX]: false,
     };
-    expect(getDefaultAccessModeSettings(supportedModes)).toEqual(expectedSettings);
+    expect(getAdminDefaultAccessModeSettings(supportedModes)).toEqual(expectedSettings);
   });
 });
 
 describe('isValidAccessModeSettings', () => {
   it('returns true for valid settings (all supported, correct types, RWO true)', () => {
     const sc = mockStorageClass(StorageProvisioner.AWS_EBS);
-    const value: Partial<Record<AccessMode, boolean>> = {
+    const value: AccessModeSettings = {
       [AccessMode.RWO]: true,
       [AccessMode.RWOP]: false,
     };
     expect(isValidAccessModeSettings(sc, value)).toBe(true);
   });
-  it('returns false if a supported mode is missing', () => {
+  it('returns true if a supported mode is missing', () => {
     const sc = mockStorageClass(StorageProvisioner.AWS_EBS);
-    const value: Partial<Record<AccessMode, boolean>> = {
+    const value: AccessModeSettings = {
       [AccessMode.RWO]: true,
       // RWOP missing
     };
-    expect(isValidAccessModeSettings(sc, value)).toBe(false);
+    expect(isValidAccessModeSettings(sc, value)).toBe(true);
   });
 
   it('returns false if a mode is not boolean', () => {
     const sc = mockStorageClass(StorageProvisioner.AWS_EBS);
-    const value: Partial<Record<AccessMode, boolean | string>> = {
+    const value = {
       [AccessMode.RWO]: true,
       [AccessMode.RWOP]: 'notBoolean',
     };
-    expect(isValidAccessModeSettings(sc, value)).toBe(false);
+    expect(isValidAccessModeSettings(sc, value as unknown as AccessModeSettings)).toBe(false);
   });
 
-  it('returns false if extra unsupported mode is present', () => {
+  it('returns true if extra unsupported mode is present', () => {
     const sc = mockStorageClass(StorageProvisioner.AWS_EBS);
-    const value: Partial<Record<AccessMode, boolean>> = {
+    const value: AccessModeSettings = {
       [AccessMode.RWO]: true,
       [AccessMode.RWOP]: false,
       [AccessMode.RWX]: true,
     };
-    expect(isValidAccessModeSettings(sc, value)).toBe(false);
+    expect(isValidAccessModeSettings(sc, value)).toBe(true);
   });
 
   it('returns false if value is not an object', () => {
@@ -94,15 +95,9 @@ describe('isValidAccessModeSettings', () => {
     expect(isValidAccessModeSettings(sc, 'random string')).toBe(false);
   });
 
-  it('returns false if value is an empty object', () => {
+  it('returns true if value is an empty object', () => {
     const sc = mockStorageClass(StorageProvisioner.AWS_EBS);
     const value = {};
-    expect(isValidAccessModeSettings(sc, value)).toBe(false);
-  });
-
-  it('returns true for provisioner not in enum (should only require RWO)', () => {
-    const sc = mockStorageClass('custom-provisioner');
-    const value = { [AccessMode.RWO]: true };
-    expect(isValidAccessModeSettings(sc, value as Partial<Record<AccessMode, boolean>>)).toBe(true);
+    expect(isValidAccessModeSettings(sc, value)).toBe(true);
   });
 });
