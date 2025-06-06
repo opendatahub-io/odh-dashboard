@@ -869,7 +869,8 @@ describe('Serving Runtime List', () => {
 
       // test filling in minimum required fields
       kserveModal.findModelNameInput().type('Test Name');
-      kserveModal.findServingRuntimeTemplateDropdown().findSelectOption('Caikit').click();
+      kserveModal.findServingRuntimeTemplateSearchSelector().click();
+      kserveModal.findGlobalScopedTemplateOption('Caikit').click();
       kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
       kserveModal.findSubmitButton().should('be.disabled');
       // check external route, token should be checked and no alert
@@ -1056,7 +1057,8 @@ describe('Serving Runtime List', () => {
 
       // test filling in minimum required fields
       kserveModal.findModelNameInput().type('Test Name');
-      kserveModal.findServingRuntimeTemplateDropdown().findSelectOption('Caikit').click();
+      kserveModal.findServingRuntimeTemplateSearchSelector().click();
+      kserveModal.findGlobalScopedTemplateOption('Caikit').click();
       kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
       kserveModal.findSubmitButton().should('be.disabled');
       // check external route, token should be checked and no alert
@@ -1142,7 +1144,8 @@ describe('Serving Runtime List', () => {
 
       // test filling in minimum required fields
       kserveModal.findModelNameInput().type('Test Name');
-      kserveModal.findServingRuntimeTemplateDropdown().findSelectOption('Caikit').click();
+      kserveModal.findServingRuntimeTemplateSearchSelector().click();
+      kserveModal.findGlobalScopedTemplateOption('Caikit').click();
       kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
       kserveModal.findExistingConnectionSelect().should('have.attr', 'disabled');
       kserveModal.findNewConnectionOption().click();
@@ -1419,7 +1422,8 @@ describe('Serving Runtime List', () => {
 
       // test filling in minimum required fields
       kserveModal.findModelNameInput().type('Test Name');
-      kserveModal.findServingRuntimeTemplateDropdown().findSelectOption('Caikit').click();
+      kserveModal.findServingRuntimeTemplateSearchSelector().click();
+      kserveModal.findGlobalScopedTemplateOption('Caikit').click();
       kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
       kserveModal.findSubmitButton().should('be.disabled');
       kserveModal.findNewConnectionOption().click();
@@ -1516,7 +1520,8 @@ describe('Serving Runtime List', () => {
 
       // test filling in minimum required fields
       kserveModal.findModelNameInput().type('Test Name');
-      kserveModal.findServingRuntimeTemplateDropdown().findSelectOption('Caikit').click();
+      kserveModal.findServingRuntimeTemplateSearchSelector().click();
+      kserveModal.findGlobalScopedTemplateOption('Caikit').click();
       kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
       kserveModal.findSubmitButton().should('be.disabled');
       // misc.
@@ -1679,7 +1684,8 @@ describe('Serving Runtime List', () => {
 
       // test filling in minimum required fields
       kserveModal.findModelNameInput().type('Test Name');
-      kserveModal.findServingRuntimeTemplateDropdown().findSelectOption('Caikit').click();
+      kserveModal.findServingRuntimeTemplateSearchSelector().click();
+      kserveModal.findGlobalScopedTemplateOption('Caikit').click();
       kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
       kserveModal.findSubmitButton().should('be.disabled');
       // misc.
@@ -1816,7 +1822,8 @@ describe('Serving Runtime List', () => {
       kserveModal.shouldBeOpen();
 
       kserveModal.findModelNameInput().type('Test Name');
-      kserveModal.findServingRuntimeTemplateDropdown().findSelectOption('Caikit').click();
+      kserveModal.findServingRuntimeTemplateSearchSelector().click();
+      kserveModal.findGlobalScopedTemplateOption('Caikit').click();
       kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
       kserveModal.findExistingConnectionOption().click();
       kserveModal.findLocationPathInput().type('test-model/');
@@ -1884,10 +1891,8 @@ describe('Serving Runtime List', () => {
 
       // test filling in minimum required fields
       createServingRuntimeModal.k8sNameDescription.findDisplayNameInput().type('Test Name');
-      createServingRuntimeModal
-        .findServingRuntimeTemplateDropdown()
-        .findSelectOption('New OVMS Server')
-        .click();
+      createServingRuntimeModal.findServingRuntimeTemplateSearchSelector().click();
+      createServingRuntimeModal.findGlobalScopedTemplateOption('New OVMS Server').click();
       createServingRuntimeModal.findSubmitButton().should('be.enabled');
 
       // test invalid resource name
@@ -2309,10 +2314,8 @@ describe('Serving Runtime List', () => {
 
       // fill in minimum required fields
       createServingRuntimeModal.k8sNameDescription.findDisplayNameInput().type('Test Name');
-      createServingRuntimeModal
-        .findServingRuntimeTemplateDropdown()
-        .findSelectOption('New OVMS Server')
-        .click();
+      createServingRuntimeModal.findServingRuntimeTemplateSearchSelector().click();
+      createServingRuntimeModal.findGlobalScopedTemplateOption('New OVMS Server').click();
       createServingRuntimeModal.findSubmitButton().should('be.enabled');
 
       // test submitting form, the modal should close to indicate success.
@@ -2363,10 +2366,8 @@ describe('Serving Runtime List', () => {
 
       // fill in minimum required fields
       createServingRuntimeModal.k8sNameDescription.findDisplayNameInput().type('Test Name');
-      createServingRuntimeModal
-        .findServingRuntimeTemplateDropdown()
-        .findSelectOption('New OVMS Server')
-        .click();
+      createServingRuntimeModal.findServingRuntimeTemplateSearchSelector().click();
+      createServingRuntimeModal.findGlobalScopedTemplateOption('New OVMS Server').click();
       createServingRuntimeModal.findSubmitButton().should('be.enabled');
 
       // test submitting form, an error should appear
@@ -2413,10 +2414,8 @@ describe('Serving Runtime List', () => {
 
       // fill in minimum required fields
       createServingRuntimeModal.k8sNameDescription.findDisplayNameInput().type('Test Name');
-      createServingRuntimeModal
-        .findServingRuntimeTemplateDropdown()
-        .findSelectOption('New OVMS Server')
-        .click();
+      createServingRuntimeModal.findServingRuntimeTemplateSearchSelector().click();
+      createServingRuntimeModal.findGlobalScopedTemplateOption('New OVMS Server').click();
       createServingRuntimeModal.findSubmitButton().should('be.enabled');
 
       // test submitting form, the modal should close to indicate success.
@@ -2476,10 +2475,8 @@ describe('Serving Runtime List', () => {
 
       // fill in minimum required fields
       createServingRuntimeModal.k8sNameDescription.findDisplayNameInput().type('Test Name');
-      createServingRuntimeModal
-        .findServingRuntimeTemplateDropdown()
-        .findSelectOption('New OVMS Server')
-        .click();
+      createServingRuntimeModal.findServingRuntimeTemplateSearchSelector().click();
+      createServingRuntimeModal.findGlobalScopedTemplateOption('New OVMS Server').click();
       createServingRuntimeModal.findSubmitButton().should('be.enabled');
 
       // enable auth
@@ -2550,10 +2547,8 @@ describe('Serving Runtime List', () => {
 
       // fill in minimum required fields
       createServingRuntimeModal.k8sNameDescription.findDisplayNameInput().type('Test Name');
-      createServingRuntimeModal
-        .findServingRuntimeTemplateDropdown()
-        .findSelectOption('New OVMS Server')
-        .click();
+      createServingRuntimeModal.findServingRuntimeTemplateSearchSelector().click();
+      createServingRuntimeModal.findGlobalScopedTemplateOption('New OVMS Server').click();
       createServingRuntimeModal.findSubmitButton().should('be.enabled');
 
       // enable auth
@@ -2858,7 +2853,8 @@ describe('Serving Runtime List', () => {
 
       // test filling in minimum required fields
       kserveModal.findModelNameInput().type('Test Name');
-      kserveModal.findServingRuntimeTemplateDropdown().findSelectOption('Caikit').click();
+      kserveModal.findServingRuntimeTemplateSearchSelector().click();
+      kserveModal.findGlobalScopedTemplateOption('Caikit').click();
       kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
       kserveModal.findSubmitButton().should('be.disabled');
       kserveModal.findExistingConnectionOption().click();
@@ -2897,7 +2893,8 @@ describe('Serving Runtime List', () => {
 
       // test filling in minimum required fields
       kserveModal.findModelNameInput().type('Test Name');
-      kserveModal.findServingRuntimeTemplateDropdown().findSelectOption('Caikit').click();
+      kserveModal.findServingRuntimeTemplateSearchSelector().click();
+      kserveModal.findGlobalScopedTemplateOption('Caikit').click();
       kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
       kserveModal.findSubmitButton().should('be.disabled');
       kserveModal.findExistingConnectionOption().click();
@@ -3183,6 +3180,47 @@ describe('Serving Runtime List', () => {
         .findInternalServicePopover()
         .findByText('Could not find any internal service enabled')
         .should('exist');
+    });
+  });
+  describe('Serving Runtime Template Selection', () => {
+    it('displays label in search selector when multi-model serving is selected', () => {
+      initIntercepts({
+        projectEnableModelMesh: true,
+        disableKServeConfig: false,
+        disableModelMeshConfig: false,
+      });
+
+      projectDetails.visitSection('test-project', 'model-server');
+      modelServingSection.findAddModelServerButton().click();
+      createServingRuntimeModal.findServingRuntimeTemplateSearchSelector().should('exist');
+      createServingRuntimeModal.findServingRuntimeTemplateSearchSelector().click();
+      createServingRuntimeModal.findGlobalScopedTemplateOption('Multi Platform').within(() => {
+        createServingRuntimeModal.findServingRuntimeVersionLabel().should('exist');
+      });
+      createServingRuntimeModal.findGlobalScopedTemplateOption('Multi Platform').click();
+      createServingRuntimeModal.findServingRuntimeTemplateSearchSelector().within(() => {
+        createServingRuntimeModal.findServingRuntimeVersionLabel().should('exist');
+      });
+    });
+
+    it('displays label in search selector when single-model serving is selected', () => {
+      initIntercepts({
+        projectEnableModelMesh: false,
+        disableKServeConfig: false,
+        disableModelMeshConfig: false,
+      });
+
+      projectDetails.visitSection('test-project', 'model-server');
+      modelServingSection.findDeployModelButton().click();
+      kserveModal.findServingRuntimeTemplateSearchSelector().should('exist');
+      kserveModal.findServingRuntimeTemplateSearchSelector().click();
+      kserveModal.findGlobalScopedTemplateOption('Multi Platform').within(() => {
+        kserveModal.findServingRuntimeVersionLabel().should('exist');
+      });
+      kserveModal.findGlobalScopedTemplateOption('Multi Platform').click();
+      kserveModal.findServingRuntimeTemplateSearchSelector().within(() => {
+        kserveModal.findServingRuntimeVersionLabel().should('exist');
+      });
     });
   });
 });

@@ -1,7 +1,7 @@
 import { SortableData } from '#~/components/table';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
-import { AccessModeColumnInfo } from '#~/pages/projects/screens/detail/storage/AccessModeLabel.tsx';
 import { getStorageClassConfig } from '#~/pages/storageClasses/utils';
+import { getAccessModePopover } from '#~/pages/projects/screens/spawner/storage/getAccessModePopover';
 import { StorageTableData } from './types';
 
 export const columns: SortableData<StorageTableData>[] = [
@@ -33,7 +33,7 @@ export const columns: SortableData<StorageTableData>[] = [
     sortable: (a, b) =>
       (a.pvc.spec.accessModes[0] ?? '').localeCompare(b.pvc.spec.accessModes[0] ?? ''),
     info: {
-      popover: AccessModeColumnInfo,
+      popover: getAccessModePopover({}),
       popoverProps: {
         showClose: true,
         maxWidth: '500px',

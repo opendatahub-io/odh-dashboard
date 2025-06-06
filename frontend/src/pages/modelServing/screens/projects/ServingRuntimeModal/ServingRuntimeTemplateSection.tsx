@@ -1,7 +1,6 @@
 import * as React from 'react';
 import {
   Button,
-  Divider,
   Flex,
   FlexItem,
   FormGroup,
@@ -9,11 +8,8 @@ import {
   HelperText,
   HelperTextItem,
   Label,
-  MenuGroup,
   MenuItem,
   Skeleton,
-  Split,
-  SplitItem,
   Truncate,
 } from '@patternfly/react-core';
 import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
@@ -24,17 +20,20 @@ import {
   getServingRuntimeNameFromTemplate,
   setServingRuntimeTemplate,
   isServingRuntimeKind,
+  getServingRuntimeVersion,
 } from '#~/pages/modelServing/customServingRuntimes/utils';
 import { isCompatibleWithIdentifier } from '#~/pages/projects/screens/spawner/spawnerUtils';
-import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
-import SearchSelector from '#~/components/searchSelector/SearchSelector';
-import { ProjectObjectType } from '#~/concepts/design/utils';
-import GlobalIcon from '#~/images/icons/GlobalIcon';
 import { CustomWatchK8sResult } from '#~/types';
-import { SERVING_RUNTIME_SCOPE } from '#~/pages/modelServing/screens/const';
+import { ScopedType, SERVING_RUNTIME_SCOPE } from '#~/pages/modelServing/screens/const';
 import ProjectScopedPopover from '#~/components/ProjectScopedPopover';
-import TypedObjectIcon from '#~/concepts/design/TypedObjectIcon';
+import ProjectScopedIcon from '#~/components/searchSelector/ProjectScopedIcon.tsx';
+import {
+  ProjectScopedGroupLabel,
+  ProjectScopedSearchDropdown,
+} from '#~/components/searchSelector/ProjectScopedSearchDropdown';
+import ProjectScopedToggleContent from '#~/components/searchSelector/ProjectScopedToggleContent';
+import ServingRuntimeVersionLabel from '#~/pages/modelServing/screens/ServingRuntimeVersionLabel';
 
 type ServingRuntimeTemplateSectionProps = {
   data: CreatingServingRuntimeObject;
@@ -87,184 +86,78 @@ const ServingRuntimeTemplateSection: React.FC<ServingRuntimeTemplateSectionProps
     [projectSpecificTemplates],
   );
 
-  const options = filteredTemplates.map(
-    (template): SimpleSelectOption => ({
-      key: getServingRuntimeNameFromTemplate(template),
-      label: getServingRuntimeDisplayNameFromTemplate(template),
-      dropdownLabel: (
-        <Split>
-          <SplitItem>
-            <Truncate content={getServingRuntimeDisplayNameFromTemplate(template)} />
-          </SplitItem>
-          <SplitItem isFilled />
-          <SplitItem>
-            {compatibleIdentifiers?.some((identifier) =>
-              isCompatibleWithIdentifier(identifier, template.objects[0]),
-            ) && (
-              <Label color="blue">
-                Compatible with {isHardwareProfilesAvailable ? 'hardware profile' : 'accelerator'}
-              </Label>
-            )}
-          </SplitItem>
-        </Split>
-      ),
-    }),
+  const selectedTemplate = React.useMemo(
+    () =>
+      templates
+        .concat(filterProjectScopedTemplates || [])
+        .find(
+          (template) =>
+            getServingRuntimeNameFromTemplate(template) === data.servingRuntimeTemplateName,
+        ),
+    [templates, data.servingRuntimeTemplateName, filterProjectScopedTemplates],
   );
 
-  const getServingRuntime = () => {
-    const filteredProjectScopedTemplates =
-      filterProjectScopedTemplates?.filter((template) =>
-        getServingRuntimeDisplayNameFromTemplate(template)
-          .toLocaleLowerCase()
-          .includes(searchServingRuntime.toLocaleLowerCase()),
-      ) || [];
-    const filteredGlobalScopedTemplates = filteredTemplates.filter((template) =>
+  const getServingRuntimeDropdownLabel = (template: TemplateKind) => (
+    <>
+      <FlexItem>
+        <Truncate content={getServingRuntimeDisplayNameFromTemplate(template)} />
+      </FlexItem>
+      {getServingRuntimeVersion(template) && (
+        <FlexItem>
+          <ServingRuntimeVersionLabel version={getServingRuntimeVersion(template)} isCompact />
+        </FlexItem>
+      )}
+      <FlexItem align={{ default: 'alignRight' }}>
+        {compatibleIdentifiers?.some((identifier) =>
+          isCompatibleWithIdentifier(identifier, template.objects[0]),
+        ) && (
+          <Label color="blue">
+            Compatible with {isHardwareProfilesAvailable ? 'hardware profile' : 'accelerator'}
+          </Label>
+        )}
+      </FlexItem>
+    </>
+  );
+
+  const renderMenuItem = (template: TemplateKind, index: number, scope: 'project' | 'global') => (
+    <MenuItem
+      key={`${index}-${scope}-serving-runtime-${getServingRuntimeNameFromTemplate(template)}`}
+      data-testid={`servingRuntime ${getServingRuntimeNameFromTemplate(template)}`}
+      isSelected={
+        data.servingRuntimeTemplateName === getServingRuntimeNameFromTemplate(template) &&
+        data.scope ===
+          (scope === 'project' ? SERVING_RUNTIME_SCOPE.Project : SERVING_RUNTIME_SCOPE.Global)
+      }
+      onClick={() =>
+        setServingRuntimeTemplate({
+          template,
+          scope: scope === 'project' ? SERVING_RUNTIME_SCOPE.Project : SERVING_RUNTIME_SCOPE.Global,
+          currentScope: data.scope ?? '',
+          currentTemplateName: data.servingRuntimeTemplateName,
+          setData,
+          setDisplayName: setServingRuntimeDisplayName,
+          resetModelFormat,
+        })
+      }
+      icon={<ProjectScopedIcon isProject={scope === 'project'} alt="" />}
+    >
+      <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+        {getServingRuntimeDropdownLabel(template)}
+      </Flex>
+    </MenuItem>
+  );
+
+  const filteredProjectScopedTemplates =
+    filterProjectScopedTemplates?.filter((template) =>
       getServingRuntimeDisplayNameFromTemplate(template)
         .toLocaleLowerCase()
         .includes(searchServingRuntime.toLocaleLowerCase()),
-    );
-
-    return (
-      <>
-        {filteredProjectScopedTemplates.length > 0 && (
-          <MenuGroup
-            data-testid="project-scoped-serving-runtimes"
-            label={
-              <Flex
-                spaceItems={{ default: 'spaceItemsXs' }}
-                alignItems={{ default: 'alignItemsCenter' }}
-                style={{ paddingBottom: '5px' }}
-              >
-                <FlexItem style={{ display: 'flex', paddingLeft: '12px' }}>
-                  <TypedObjectIcon
-                    style={{ height: '12px', width: '12px' }}
-                    alt=""
-                    resourceType={ProjectObjectType.project}
-                  />
-                </FlexItem>
-                <FlexItem>Project-scoped serving runtimes</FlexItem>
-              </Flex>
-            }
-          >
-            {filteredProjectScopedTemplates.map((template, index) => (
-              <MenuItem
-                key={`servingRuntime-${index}`}
-                data-testid={`servingRuntime ${getServingRuntimeNameFromTemplate(template)}`}
-                isSelected={
-                  data.servingRuntimeTemplateName === getServingRuntimeNameFromTemplate(template) &&
-                  data.scope === SERVING_RUNTIME_SCOPE.Project
-                }
-                onClick={() =>
-                  setServingRuntimeTemplate({
-                    template,
-                    scope: SERVING_RUNTIME_SCOPE.Project,
-                    currentScope: data.scope ?? '',
-                    currentTemplateName: data.servingRuntimeTemplateName,
-                    setData,
-                    setDisplayName: setServingRuntimeDisplayName,
-                    resetModelFormat,
-                  })
-                }
-              >
-                <Flex
-                  spaceItems={{ default: 'spaceItemsXs' }}
-                  alignItems={{ default: 'alignItemsCenter' }}
-                >
-                  <FlexItem>
-                    <TypedObjectIcon alt="" resourceType={ProjectObjectType.project} />
-                  </FlexItem>
-                  <FlexItem>
-                    <Truncate content={getServingRuntimeDisplayNameFromTemplate(template)} />
-                  </FlexItem>
-                  <FlexItem align={{ default: 'alignRight' }}>
-                    {compatibleIdentifiers?.some((identifier) =>
-                      isCompatibleWithIdentifier(identifier, template.objects[0]),
-                    ) && (
-                      <Label color="blue">
-                        Compatible with{' '}
-                        {isHardwareProfilesAvailable ? 'hardware profile' : 'accelerator'}
-                      </Label>
-                    )}
-                  </FlexItem>
-                </Flex>
-              </MenuItem>
-            ))}
-          </MenuGroup>
-        )}
-        {filteredProjectScopedTemplates.length > 0 && filteredGlobalScopedTemplates.length > 0 && (
-          <Divider component="li" />
-        )}
-        {filteredGlobalScopedTemplates.length > 0 && (
-          <MenuGroup
-            data-testid="global-scoped-serving-runtimes"
-            label={
-              <Flex
-                spaceItems={{ default: 'spaceItemsXs' }}
-                alignItems={{ default: 'alignItemsCenter' }}
-                style={{ paddingBottom: '5px' }}
-              >
-                <FlexItem
-                  style={{ display: 'flex', paddingLeft: '12px' }}
-                  data-testid="ds-project-image"
-                >
-                  <GlobalIcon style={{ height: '12px', width: '12px' }} />
-                </FlexItem>
-                <FlexItem>Global serving runtimes</FlexItem>
-              </Flex>
-            }
-          >
-            {filteredGlobalScopedTemplates.map((template, index) => (
-              <MenuItem
-                key={`servingRuntime-${index}`}
-                data-testid={`servingRuntime ${getServingRuntimeNameFromTemplate(template)}`}
-                isSelected={
-                  data.servingRuntimeTemplateName === getServingRuntimeNameFromTemplate(template) &&
-                  data.scope === SERVING_RUNTIME_SCOPE.Global
-                }
-                onClick={() =>
-                  setServingRuntimeTemplate({
-                    template,
-                    scope: SERVING_RUNTIME_SCOPE.Global,
-                    currentScope: data.scope ?? '',
-                    currentTemplateName: data.servingRuntimeTemplateName,
-                    setData,
-                    setDisplayName: setServingRuntimeDisplayName,
-                    resetModelFormat,
-                  })
-                }
-              >
-                <Flex
-                  spaceItems={{ default: 'spaceItemsXs' }}
-                  alignItems={{ default: 'alignItemsCenter' }}
-                >
-                  <FlexItem>
-                    <GlobalIcon />
-                  </FlexItem>
-                  <FlexItem>
-                    <Truncate content={getServingRuntimeDisplayNameFromTemplate(template)} />
-                  </FlexItem>
-                  <FlexItem align={{ default: 'alignRight' }}>
-                    {compatibleIdentifiers?.some((identifier) =>
-                      isCompatibleWithIdentifier(identifier, template.objects[0]),
-                    ) && (
-                      <Label color="blue">
-                        Compatible with{' '}
-                        {isHardwareProfilesAvailable ? 'hardware profile' : 'accelerator'}
-                      </Label>
-                    )}
-                  </FlexItem>
-                </Flex>
-              </MenuItem>
-            ))}
-          </MenuGroup>
-        )}
-        {filteredProjectScopedTemplates.length === 0 &&
-          filteredGlobalScopedTemplates.length === 0 && (
-            <MenuItem isDisabled>No results found</MenuItem>
-          )}
-      </>
-    );
-  };
+    ) || [];
+  const filteredScopedTemplates = filteredTemplates.filter((template) =>
+    getServingRuntimeDisplayNameFromTemplate(template)
+      .toLocaleLowerCase()
+      .includes(searchServingRuntime.toLocaleLowerCase()),
+  );
 
   if (isProjectScoped && projectSpecificTemplates && !projectSpecificTemplates[1]) {
     return (
@@ -287,92 +180,53 @@ const ServingRuntimeTemplateSection: React.FC<ServingRuntimeTemplateSectionProps
         ) : undefined
       }
     >
-      {isProjectScoped &&
-      filterProjectScopedTemplates &&
-      filterProjectScopedTemplates.length > 0 ? (
-        <SearchSelector
-          isFullWidth
-          isDisabled={isEditing}
-          dataTestId="serving-runtime-template-selection"
-          onSearchChange={(newValue) => setSearchServingRuntime(newValue)}
-          onSearchClear={() => setSearchServingRuntime('')}
-          searchValue={searchServingRuntime}
-          toggleContent={
-            data.servingRuntimeTemplateName ? (
-              <Flex gap={{ default: 'gapSm' }}>
-                <FlexItem>
-                  {isEditing ? data.servingRuntimeTemplateName : servingRuntimeDisplayName}{' '}
-                </FlexItem>
-                <FlexItem>
-                  {data.scope === SERVING_RUNTIME_SCOPE.Project && (
-                    <Label
-                      variant={isEditing ? 'filled' : 'outline'}
-                      style={{
-                        border: isEditing
-                          ? 'var( --pf-t--global--border--color--disabled) 1px solid'
-                          : undefined,
-                      }}
-                      color={isEditing ? 'grey' : 'blue'}
-                      data-testid="project-scoped-label"
-                      isCompact
-                      icon={<TypedObjectIcon alt="" resourceType={ProjectObjectType.project} />}
-                    >
-                      Project-scoped
-                    </Label>
-                  )}
-                  {data.scope === SERVING_RUNTIME_SCOPE.Global && (
-                    <Label
-                      variant={isEditing ? 'filled' : 'outline'}
-                      style={{
-                        border: isEditing
-                          ? 'var( --pf-t--global--border--color--disabled) 1px solid'
-                          : undefined,
-                      }}
-                      color={isEditing ? 'grey' : 'blue'}
-                      isCompact
-                      icon={<GlobalIcon />}
-                      data-testid="global-scoped-label"
-                    >
-                      Global-scoped
-                    </Label>
-                  )}
-                </FlexItem>
-              </Flex>
-            ) : (
-              'Select one'
-            )
-          }
-        >
-          {getServingRuntime()}
-        </SearchSelector>
-      ) : (
-        <SimpleSelect
-          isFullWidth
-          isDisabled={isEditing}
-          dataTestId="serving-runtime-template-selection"
-          aria-label="Select a template"
-          options={options}
-          placeholder={
-            isEditing || filteredTemplates.length === 0
-              ? data.servingRuntimeTemplateName
-              : 'Select one'
-          }
-          toggleProps={{ id: 'serving-runtime-template-selection' }}
-          value={data.servingRuntimeTemplateName}
-          onChange={(name) => {
-            // Avoid onChange function is called twice
-            // In KServe modal, it would set the model framework field to empty if there is only one option
-            if (name !== data.servingRuntimeTemplateName) {
-              setData('servingRuntimeTemplateName', name);
-              // Reset model framework selection when changing the template in KServe modal only
-              if (resetModelFormat) {
-                resetModelFormat();
-              }
+      <ProjectScopedSearchDropdown
+        isDisabled={isEditing}
+        projectScopedItems={filteredProjectScopedTemplates}
+        globalScopedItems={filteredScopedTemplates}
+        renderMenuItem={renderMenuItem}
+        searchValue={searchServingRuntime}
+        onSearchChange={setSearchServingRuntime}
+        onSearchClear={() => setSearchServingRuntime('')}
+        toggleContent={
+          <ProjectScopedToggleContent
+            displayName={isEditing ? data.servingRuntimeTemplateName : servingRuntimeDisplayName}
+            isProject={data.scope === SERVING_RUNTIME_SCOPE.Project}
+            projectLabel={ScopedType.Project}
+            globalLabel={ScopedType.Global}
+            isEditing={isEditing}
+            style={
+              isEditing
+                ? { border: 'var( --pf-t--global--border--color--disabled) 1px solid' }
+                : undefined
             }
-          }}
-          popperProps={{ appendTo: 'inline' }}
-        />
-      )}
+            color={isEditing ? 'grey' : 'blue'}
+            fallback="Select one"
+            additionalContent={
+              getServingRuntimeVersion(selectedTemplate) && (
+                <ServingRuntimeVersionLabel
+                  version={getServingRuntimeVersion(selectedTemplate)}
+                  isCompact
+                />
+              )
+            }
+          />
+        }
+        projectGroupLabel={
+          <ProjectScopedGroupLabel isProject>
+            Project-scoped serving runtimes
+          </ProjectScopedGroupLabel>
+        }
+        globalGroupLabel={
+          <ProjectScopedGroupLabel isProject={false}>
+            Global serving runtimes
+          </ProjectScopedGroupLabel>
+        }
+        dataTestId="serving-runtime-template-selection"
+        projectGroupTestId="project-scoped-serving-runtimes"
+        globalGroupTestId="global-scoped-serving-runtimes"
+        isFullWidth
+      />
       {data.servingRuntimeTemplateName && onConfigureParamsClick && (
         <FormHelperText>
           <HelperText>
