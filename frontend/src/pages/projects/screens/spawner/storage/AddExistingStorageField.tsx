@@ -111,6 +111,7 @@ const AddExistingStorageField: React.FC<AddExistingStorageFieldProps> = ({
         popperProps={{ direction: selectDirection, appendTo: menuAppendTo }}
         isDisabled={!loaded}
         data-testid="persistent-storage-typeahead"
+        isScrollable
       />
       <FormHelperText>
         <Alert
