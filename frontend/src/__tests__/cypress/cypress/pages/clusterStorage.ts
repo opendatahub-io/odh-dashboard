@@ -190,7 +190,7 @@ class ClusterStorageModal extends Modal {
   }
 
   findStorageClassSelect() {
-    return new SelectStorageClass();
+    return cy.findByTestId('storage-classes-selector');
   }
 
   findStorageClassDeprecatedWarning() {
