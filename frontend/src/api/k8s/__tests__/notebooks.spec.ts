@@ -54,6 +54,8 @@ jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
 
 jest.mock('#~/api/k8sUtils', () => ({
   k8sMergePatchResource: jest.fn(),
+  deepReplaceEmptyStringWithNull: jest.fn(),
+  deepReplaceUndefinedWithNull: jest.fn(),
 }));
 
 jest.mock('#~/concepts/pipelines/elyra/utils', () => {
@@ -618,6 +620,7 @@ describe('updateNotebook', () => {
     k8sMergePatchResourceMock.mockResolvedValue(existingNotebook);
 
     const renderResult = await mergePatchUpdateNotebook(
+      existingNotebook,
       mockStartNotebookData({ notebookId: existingNotebook.metadata.name }),
       username,
     );
@@ -643,6 +646,7 @@ describe('updateNotebook', () => {
     k8sMergePatchResourceMock.mockRejectedValue(new Error('error1'));
     await expect(
       mergePatchUpdateNotebook(
+        existingNotebook,
         mockStartNotebookData({ notebookId: existingNotebook.metadata.name }),
         username,
       ),
