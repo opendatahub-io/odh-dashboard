@@ -1,6 +1,7 @@
 import { SortableData } from '#~/components/table';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import { getStorageClassConfig } from '#~/pages/storageClasses/utils';
+import { getPvcAccessMode } from '#~/pages/projects/utils.ts';
 import { getAccessModePopover } from '#~/pages/projects/screens/spawner/storage/getAccessModePopover';
 import { StorageTableData } from './types';
 
@@ -30,8 +31,7 @@ export const columns: SortableData<StorageTableData>[] = [
     field: 'accessMode',
     label: 'Access mode',
     width: 25,
-    sortable: (a, b) =>
-      (a.pvc.spec.accessModes[0] ?? '').localeCompare(b.pvc.spec.accessModes[0] ?? ''),
+    sortable: (a, b) => getPvcAccessMode(a.pvc).localeCompare(getPvcAccessMode(b.pvc)),
     info: {
       popover: getAccessModePopover({}),
       popoverProps: {

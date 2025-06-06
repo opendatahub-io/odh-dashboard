@@ -46,6 +46,7 @@ import {
   doesImageStreamSupportHardwareProfile,
 } from '#~/concepts/hardwareProfiles/utils';
 import { useNotebookKindPodSpecOptionsState } from '#~/concepts/hardwareProfiles/useNotebookPodSpecOptionsState';
+import { getPvcAccessMode } from '#~/pages/projects/utils.ts';
 import { SpawnerPageSectionID } from './types';
 import {
   K8_NOTEBOOK_RESOURCE_NAME_VALIDATOR,
@@ -128,7 +129,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
           size: existingPvc.spec.resources.requests.storage,
           storageClassName: existingPvc.spec.storageClassName,
           mountPath: getNotebookPVCMountPathMap(existingNotebook)[existingPvc.metadata.name],
-          accessMode: existingPvc.spec.accessModes[0],
+          accessMode: getPvcAccessMode(existingPvc),
         }))
       : [
           {
@@ -441,6 +442,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                     description: attachData.pvc?.metadata.annotations?.['openshift.io/description'],
                     size: attachData.pvc?.spec.resources.requests.storage,
                     storageClassName: attachData.pvc?.spec.storageClassName,
+                    accessMode: attachData.pvc ? getPvcAccessMode(attachData.pvc) : undefined,
                   },
                 ]),
               );
