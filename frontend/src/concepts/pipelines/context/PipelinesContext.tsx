@@ -46,6 +46,7 @@ type PipelineContext = {
   apiState: PipelineAPIState;
   metadataStoreServiceClient: MetadataStoreServicePromiseClient;
   managedPipelines: DSPipelineManagedPipelinesKind | undefined;
+  isStarting?: boolean;
 };
 
 const PipelinesContext = React.createContext<PipelineContext>({
@@ -70,6 +71,7 @@ const PipelinesContext = React.createContext<PipelineContext>({
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   metadataStoreServiceClient: null as unknown as MetadataStoreServicePromiseClient,
   managedPipelines: undefined,
+  isStarting: false,
 });
 
 type PipelineContextProviderProps = {
@@ -87,7 +89,7 @@ export const PipelineContextProvider = conditionalArea<PipelineContextProviderPr
   useSyncPreferredProject(project);
 
   const state = usePipelineNamespaceCR(namespace);
-  const [pipelineNamespaceCR, crLoaded, crLoadError, refreshCR] = state;
+  const [pipelineNamespaceCR, crLoaded, crLoadError, refreshCR, isStarting] = state;
   const isCRReady = dspaLoaded(state);
   const [disableTimeout, setDisableTimeout] = React.useState(false);
   const serverTimedOut = !disableTimeout && hasServerTimedOut(state, isCRReady);
@@ -159,6 +161,7 @@ export const PipelineContextProvider = conditionalArea<PipelineContextProviderPr
         getRecurringRunInformation,
         metadataStoreServiceClient,
         managedPipelines: pipelineNamespaceCR?.spec.apiServer?.managedPipelines,
+        isStarting,
       }}
     >
       {children}
@@ -178,6 +181,8 @@ type UsePipelinesAPI = PipelineAPIState & {
     timedOut: boolean;
     compatible: boolean;
     name: string;
+    crStatus: DSPipelineKind['status'];
+    isStarting: boolean | undefined;
   };
   /**
    * Allows agnostic functionality to request all watched API to be reacquired.
@@ -205,6 +210,8 @@ export const usePipelinesAPI = (): UsePipelinesAPI => {
     metadataStoreServiceClient,
     managedPipelines,
     refreshState,
+    crStatus,
+    isStarting,
   } = React.useContext(PipelinesContext);
 
   const pipelinesServer: UsePipelinesAPI['pipelinesServer'] = {
@@ -213,6 +220,8 @@ export const usePipelinesAPI = (): UsePipelinesAPI => {
     compatible: hasCompatibleVersion,
     timedOut: serverTimedOut,
     name: crName,
+    crStatus,
+    isStarting,
   };
 
   return {
