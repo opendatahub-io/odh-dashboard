@@ -1,9 +1,10 @@
 import * as React from 'react';
 import { Alert, FormGroup, FormHelperText, Label, SelectOption } from '@patternfly/react-core';
+import { TypeaheadSelectOption } from '@patternfly/react-templates';
 import { ExistingStorageObject } from '#~/pages/projects/types';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
-import TypeaheadSelect, { TypeaheadSelectGroupOption } from '#~/components/TypeaheadSelect';
+import TypeaheadSelect from '#~/components/TypeaheadSelect';
 import useProjectPvcs from '#~/pages/projects/screens/detail/storage/useProjectPvcs';
 import { AccessMode } from '#~/pages/storageClasses/storageEnums';
 import { PersistentVolumeClaimKind } from '#~/k8sTypes';
@@ -40,7 +41,7 @@ const AddExistingStorageField: React.FC<AddExistingStorageFieldProps> = ({
     }
     const isPvcAvailable = (pvc: PersistentVolumeClaimKind) =>
       !existingStorageNames?.includes(getDisplayNameFromK8sResource(pvc));
-    const groups: TypeaheadSelectGroupOption[] = [];
+    const groups: TypeaheadSelectOption[] = [];
     Object.entries(AccessMode).forEach(([label, mode]) => {
       const groupModePvc = storages.filter(
         (pvc) => getPvcAccessMode(pvc) === mode && isPvcAvailable(pvc),
@@ -58,12 +59,12 @@ const AddExistingStorageField: React.FC<AddExistingStorageFieldProps> = ({
               {`${mode} (${label})`}
             </Label>
           ),
+          group: {
+            groupName: label,
+            groupLabel: <SelectOption isDisabled>{`${mode} (${label}) storage`}</SelectOption>,
+          },
         }));
-        groups.push({
-          groupOptions,
-          label: <SelectOption isDisabled>{`${mode} (${label}) storage`}</SelectOption>,
-          groupLabel: label,
-        });
+        groups.push(...groupOptions);
       }
     });
     return groups;

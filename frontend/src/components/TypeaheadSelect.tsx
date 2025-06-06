@@ -1,28 +1,27 @@
 import React from 'react';
 import {
-  Button,
-  Flex,
-  FlexItem,
-  FormHelperText,
-  HelperText,
-  HelperTextItem,
-  MenuToggle,
-  MenuToggleElement,
-  MenuToggleProps,
   /**
    * The Select component is used to build another generic component here
    */
   // eslint-disable-next-line no-restricted-imports
   Select,
-  SelectGroup,
-  SelectGroupProps,
-  SelectList,
   SelectOption,
+  SelectList,
   SelectOptionProps,
-  SelectProps,
+  MenuToggle,
+  MenuToggleElement,
   TextInputGroup,
   TextInputGroupMain,
   TextInputGroupUtilities,
+  Button,
+  MenuToggleProps,
+  SelectProps,
+  FormHelperText,
+  HelperTextItem,
+  HelperText,
+  FlexItem,
+  Flex,
+  SelectGroup,
 } from '@patternfly/react-core';
 import { TimesIcon } from '@patternfly/react-icons';
 import TruncatedText from '#~/components/TruncatedText';
@@ -36,16 +35,15 @@ export interface TypeaheadSelectOption extends Omit<SelectOptionProps, 'content'
   isSelected?: boolean;
   dropdownLabel?: React.ReactNode;
   selectedLabel?: React.ReactNode;
-}
-
-export interface TypeaheadSelectGroupOption extends Omit<SelectGroupProps, 'children'> {
-  groupOptions: TypeaheadSelectOption[];
-  groupLabel: string;
+  group?: {
+    groupName: string;
+    groupLabel: React.ReactNode;
+  };
 }
 
 export interface TypeaheadSelectProps extends Omit<SelectProps, 'toggle' | 'onSelect'> {
   /** Options of the select */
-  selectOptions: (TypeaheadSelectOption | TypeaheadSelectGroupOption)[];
+  selectOptions: TypeaheadSelectOption[];
   /** Callback triggered on selection. */
   onSelect?: (
     _event:
@@ -98,40 +96,6 @@ const defaultCreateOptionMessage = (newValue: string) => `Create "${newValue}"`;
 const defaultFilterFunction = (filterValue: string, options: TypeaheadSelectOption[]) =>
   options.filter((o) => String(o.content).toLowerCase().includes(filterValue.toLowerCase()));
 
-const isGroupSelectOption = (options: TypeaheadSelectOption | TypeaheadSelectGroupOption) =>
-  'groupOptions' in options;
-
-const groupFilterFunction = (
-  filterValue: string,
-  options: (TypeaheadSelectOption | TypeaheadSelectGroupOption)[],
-  filterFunction: (
-    filterValue: string,
-    options: TypeaheadSelectOption[],
-  ) => TypeaheadSelectOption[] = defaultFilterFunction,
-) => {
-  const result: (TypeaheadSelectOption | TypeaheadSelectGroupOption)[] = [];
-  options.forEach((option) => {
-    if (isGroupSelectOption(option)) {
-      const filteredOptions = filterFunction(filterValue, option.groupOptions);
-      if (filteredOptions.length > 0) {
-        const filteredGroup: TypeaheadSelectGroupOption = {
-          ...option,
-          groupOptions: filteredOptions,
-        };
-        result.push(filteredGroup);
-      }
-    } else if (filterFunction(filterValue, [option]).length > 0) {
-      result.push(option);
-    }
-  });
-  return result;
-};
-
-const flattenGroupOptions = (
-  options: (TypeaheadSelectOption | TypeaheadSelectGroupOption)[],
-): TypeaheadSelectOption[] =>
-  options.flatMap((option) => ('groupOptions' in option ? option.groupOptions : option));
-
 const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
   innerRef,
   selectOptions,
@@ -163,32 +127,22 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
 
   const NO_RESULTS = 'no results';
 
-  const flattenedOptions = React.useMemo(() => flattenGroupOptions(selectOptions), [selectOptions]);
-
   const selected = React.useMemo(
-    () => flattenedOptions.find((o) => o.value === props.selected || o.isSelected),
-    [flattenedOptions, props.selected],
+    () => selectOptions.find((option) => option.value === props.selected || option.isSelected),
+    [props.selected, selectOptions],
   );
 
   const filteredSelections = React.useMemo(() => {
-    let newSelectOptions: (TypeaheadSelectOption | TypeaheadSelectGroupOption)[] = selectOptions;
+    let newSelectOptions: TypeaheadSelectOption[] = selectOptions;
 
     // Filter menu items based on the text input value when one exists
     if (isFiltering && filterValue) {
-      const containsGroups = selectOptions.some(isGroupSelectOption);
-      if (!containsGroups) {
-        newSelectOptions = filterFunction(filterValue, flattenedOptions);
-      } else {
-        newSelectOptions = groupFilterFunction(filterValue, selectOptions, filterFunction);
-      }
-
-      const contentMatch = (option: TypeaheadSelectOption) =>
-        String(option.content).toLowerCase() === filterValue.toLowerCase();
+      newSelectOptions = filterFunction(filterValue, selectOptions);
 
       if (
         isCreatable &&
         filterValue.trim() &&
-        !flattenGroupOptions(newSelectOptions).some(contentMatch)
+        !newSelectOptions.find((o) => String(o.content).toLowerCase() === filterValue.toLowerCase())
       ) {
         const createOption = {
           content:
@@ -236,9 +190,8 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
     selectOptions,
     noOptionsFoundMessage,
     isCreatable,
-    flattenedOptions,
-    createOptionMessage,
     isCreateOptionOnTop,
+    createOptionMessage,
     noOptionsAvailableMessage,
   ]);
 
@@ -252,7 +205,7 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
 
   const setActiveAndFocusedItem = (itemIndex: number) => {
     setFocusedItemIndex(itemIndex);
-    const focusedItem = flattenedOptions[itemIndex];
+    const focusedItem = selectOptions[itemIndex];
     setActiveItemId(String(focusedItem.value));
   };
 
@@ -304,8 +257,8 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
 
   const notAllowEmpty = !isCreatable && isRequired;
   // Only when the field is required, not creatable and there is one option, we auto select the first option
-  const isSingleOption = flattenedOptions.length === 1 && notAllowEmpty;
-  const singleOptionValue = isSingleOption ? flattenedOptions[0].value : null;
+  const isSingleOption = selectOptions.length === 1 && notAllowEmpty;
+  const singleOptionValue = isSingleOption ? selectOptions[0].value : null;
   // If there is only one option, call the onChange function
   React.useEffect(() => {
     if (singleOptionValue && onSelect) {
@@ -320,7 +273,7 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
     value: string | number | undefined,
   ) => {
     if (value && value !== NO_RESULTS) {
-      const optionToSelect = flattenedOptions.find((option) => option.value === value);
+      const optionToSelect = selectOptions.find((option) => option.value === value);
       if (optionToSelect) {
         selectOption(_event, optionToSelect);
       } else if (isCreatable) {
@@ -340,44 +293,43 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
   };
 
   const handleMenuArrowKeys = (key: string) => {
-    const flatFilteredSelects = flattenGroupOptions(filteredSelections);
     let indexToFocus = 0;
 
     openMenu();
 
-    if (flatFilteredSelects.every((option) => option.isDisabled)) {
+    if (filteredSelections.every((option) => option.isDisabled)) {
       return;
     }
 
     if (key === 'ArrowUp') {
       // When no index is set or at the first index, focus to the last, otherwise decrement focus index
       if (focusedItemIndex === null || focusedItemIndex === 0) {
-        indexToFocus = flatFilteredSelects.length - 1;
+        indexToFocus = filteredSelections.length - 1;
       } else {
         indexToFocus = focusedItemIndex - 1;
       }
 
       // Skip disabled options
-      while (flatFilteredSelects[indexToFocus].isDisabled) {
+      while (filteredSelections[indexToFocus].isDisabled) {
         indexToFocus--;
         if (indexToFocus === -1) {
-          indexToFocus = flatFilteredSelects.length - 1;
+          indexToFocus = filteredSelections.length - 1;
         }
       }
     }
 
     if (key === 'ArrowDown') {
       // When no index is set or at the last index, focus to the first, otherwise increment focus index
-      if (focusedItemIndex === null || focusedItemIndex === flatFilteredSelects.length - 1) {
+      if (focusedItemIndex === null || focusedItemIndex === filteredSelections.length - 1) {
         indexToFocus = 0;
       } else {
         indexToFocus = focusedItemIndex + 1;
       }
 
       // Skip disabled options
-      while (flatFilteredSelects[indexToFocus].isDisabled) {
+      while (filteredSelections[indexToFocus].isDisabled) {
         indexToFocus++;
-        if (indexToFocus === flatFilteredSelects.length) {
+        if (indexToFocus === filteredSelections.length) {
           indexToFocus = 0;
         }
       }
@@ -387,8 +339,8 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
   };
 
   const onInputKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    const focusedItem =
-      focusedItemIndex !== null ? flattenGroupOptions(filteredSelections)[focusedItemIndex] : null;
+    const focusedItem = focusedItemIndex !== null ? filteredSelections[focusedItemIndex] : null;
+
     switch (event.key) {
       case 'Enter':
         if (
@@ -448,7 +400,7 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
       data-testid="typeahead-menu-toggle"
       onClick={onToggleClick}
       isExpanded={isOpen}
-      isDisabled={isDisabled || (flattenedOptions.length <= 1 && notAllowEmpty)}
+      isDisabled={isDisabled || (selectOptions.length <= 1 && notAllowEmpty)}
       isFullWidth
       style={{ width: toggleWidth }}
       {...toggleProps}
@@ -488,10 +440,41 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
     </MenuToggle>
   );
 
-  const tSelectOption = (option: TypeaheadSelectOption) => {
-    const { content, dropdownLabel, value, ...optProps } = option;
+  const groupedSelections = React.useMemo(() => {
+    const group: Record<string, { groupLabel: React.ReactNode; options: TypeaheadSelectOption[] }> =
+      {};
+    const noGroup: TypeaheadSelectOption[] = [];
+
+    filteredSelections.forEach((option) => {
+      if (option.group) {
+        const { groupName } = option.group;
+        const { groupLabel } = option.group;
+
+        if (groupName in group) {
+          group[groupName].options.push(option);
+        } else {
+          group[groupName] = {
+            groupLabel,
+            options: [option],
+          };
+        }
+      } else {
+        noGroup.push(option);
+      }
+    });
+
+    return { group, noGroup };
+  }, [filteredSelections]);
+
+  const tSelectOption = (option: TypeaheadSelectOption, index: number) => {
+    const { content, value, dropdownLabel, ...optionProps } = option;
     return (
-      <SelectOption key={value} value={value} {...optProps}>
+      <SelectOption
+        key={value}
+        value={value}
+        isFocused={focusedItemIndex === index}
+        {...optionProps}
+      >
         {dropdownLabel ? (
           <Flex>
             <FlexItem>{content}</FlexItem>
@@ -504,18 +487,24 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
     );
   };
 
-  const tGroupOption = (group: TypeaheadSelectGroupOption) => {
-    const { label, groupLabel, groupOptions, ...grpProps } = group;
-    return (
-      <SelectGroup
-        key={`${groupLabel}`}
-        label={label}
-        {...grpProps}
-        data-testid={`typeahead-group-${groupLabel.toLowerCase()}`}
-      >
-        {groupOptions.map((opt) => tSelectOption(opt))}
-      </SelectGroup>
-    );
+  const tGroupOption = (
+    groupName: string,
+    group: { groupLabel: React.ReactNode; options: TypeaheadSelectOption[] },
+    startingIndex: number,
+  ): { node: React.ReactNode; nextIndex: number } => {
+    let index = startingIndex;
+    return {
+      node: (
+        <SelectGroup
+          key={groupName}
+          label={group.groupLabel}
+          data-testid={`typeahead-group-${groupName.toLowerCase()}`}
+        >
+          {group.options.map((opt) => tSelectOption(opt, index++))}
+        </SelectGroup>
+      ),
+      nextIndex: index,
+    };
   };
 
   return (
@@ -531,9 +520,21 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
         {...props}
       >
         <SelectList>
-          {filteredSelections.map((option) =>
-            isGroupSelectOption(option) ? tGroupOption(option) : tSelectOption(option),
-          )}
+          {(() => {
+            let idx = 0;
+            const groupOpts = Object.entries(groupedSelections.group).map(([groupName, group]) => {
+              const { node, nextIndex } = tGroupOption(groupName, group, idx);
+              idx = nextIndex;
+              return node;
+            });
+            const selectOpts = groupedSelections.noGroup.map((opt) => tSelectOption(opt, idx++));
+            return (
+              <>
+                {groupOpts}
+                {selectOpts}
+              </>
+            );
+          })()}
         </SelectList>
       </Select>
       {previewDescription && isSingleOption && selected?.description ? (
