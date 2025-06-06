@@ -7,6 +7,7 @@ export type LmModelArgument = {
 
 export type LmEvalFormData = {
   deployedModelName: string;
+  k8sName?: string;
   evaluationName: string;
   tasks: string[];
   modelType: string;

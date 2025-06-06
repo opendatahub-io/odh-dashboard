@@ -1283,6 +1283,9 @@ export type AcceleratorProfileKind = K8sResourceCommon & {
 
 export type LMEvalKind = K8sResourceCommon & {
   metadata: {
+    annotations?: Partial<{
+      'opendatahub.io/display-name': string;
+    }>;
     name: string;
     namespace: string;
   };

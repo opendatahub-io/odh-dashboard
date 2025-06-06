@@ -29,6 +29,7 @@ const initIntercepts = (disableLMEval = false) => {
     mockK8sResourceList([
       mockLMEvaluation({
         name: 'Evaluating granite model',
+        state: 'Complete',
         modelArgs: [{ name: 'model', value: 'granite' }],
       }),
       mockLMEvaluation({
