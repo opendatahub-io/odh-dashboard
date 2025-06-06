@@ -36,10 +36,7 @@ export interface TypeaheadSelectOption extends Omit<SelectOptionProps, 'content'
   isSelected?: boolean;
   dropdownLabel?: React.ReactNode;
   selectedLabel?: React.ReactNode;
-  group?: {
-    groupName: string;
-    groupLabel: React.ReactNode;
-  };
+  group?: string;
 }
 
 export interface TypeaheadSelectProps extends Omit<SelectProps, 'toggle' | 'onSelect'> {
@@ -442,22 +439,15 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
   );
 
   const groupedSelections = React.useMemo(() => {
-    const group: Record<string, { groupLabel: React.ReactNode; options: TypeaheadSelectOption[] }> =
-      {};
+    const group: Record<string, TypeaheadSelectOption[]> = {};
     const noGroup: TypeaheadSelectOption[] = [];
 
     filteredSelections.forEach((option) => {
       if (option.group) {
-        const { groupName } = option.group;
-        const { groupLabel } = option.group;
-
-        if (groupName in group) {
-          group[groupName].options.push(option);
+        if (option.group in group) {
+          group[option.group].push(option);
         } else {
-          group[groupName] = {
-            groupLabel,
-            options: [option],
-          };
+          group[option.group] = [option];
         }
       } else {
         noGroup.push(option);
@@ -489,21 +479,21 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
   };
 
   const tGroupOption = (
-    groupName: string,
-    group: { groupLabel: React.ReactNode; options: TypeaheadSelectOption[] },
+    group: string,
+    groupOptions: TypeaheadSelectOption[],
     optionIdx: number,
     addDivider: boolean,
   ): { node: React.ReactNode; nextIndex: number } => {
     let index = optionIdx;
+    const testId = `typeahead-group-${group
+      .toLowerCase()
+      .replace(/\s+/g, '-')
+      .replace(/[()]/g, '')}`;
     return {
       node: (
         <>
-          <SelectGroup
-            key={groupName}
-            label={group.groupLabel}
-            data-testid={`typeahead-group-${groupName.toLowerCase()}`}
-          >
-            {group.options.map((opt) => tSelectOption(opt, index++))}
+          <SelectGroup key={group} label={group} data-testid={testId}>
+            {groupOptions.map((opt) => tSelectOption(opt, index++))}
           </SelectGroup>
           {addDivider && <Divider />}
         </>

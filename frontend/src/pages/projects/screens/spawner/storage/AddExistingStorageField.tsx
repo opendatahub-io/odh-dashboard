@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Alert, FormGroup, FormHelperText, Label, SelectOption } from '@patternfly/react-core';
+import { Alert, FormGroup, FormHelperText, Label } from '@patternfly/react-core';
 import { TypeaheadSelectOption } from '@patternfly/react-templates';
 import { ExistingStorageObject } from '#~/pages/projects/types';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
@@ -59,10 +59,7 @@ const AddExistingStorageField: React.FC<AddExistingStorageFieldProps> = ({
               {`${mode} (${label})`}
             </Label>
           ),
-          group: {
-            groupName: label,
-            groupLabel: <SelectOption isDisabled>{`${mode} (${label}) storage`}</SelectOption>,
-          },
+          group: `${mode} (${label}) storage`,
         }));
         groups.push(...groupOptions);
       }

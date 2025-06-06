@@ -1782,15 +1782,25 @@ describe('Workbench page', () => {
       createSpawnerPage.findAttachExistingStorageButton().click();
       attachExistingStorageModal.findExistingStorageField().findByRole('button').click();
 
-      attachExistingStorageModal.findTypeaheadGroup('rwo').should('exist');
-      attachExistingStorageModal.findTypeaheadGroup('rwx').should('exist');
-      attachExistingStorageModal.findTypeaheadGroup('rox').should('exist');
-      attachExistingStorageModal.findTypeaheadGroup('rwop').should('exist');
+      attachExistingStorageModal.findTypeaheadGroup('readwriteonce-rwo-storage').should('exist');
+      attachExistingStorageModal.findTypeaheadGroup('readwritemany-rwx-storage').should('exist');
+      attachExistingStorageModal.findTypeaheadGroup('readonlymany-rox-storage').should('exist');
+      attachExistingStorageModal
+        .findTypeaheadGroup('readwriteoncepod-rwop-storage')
+        .should('exist');
 
-      attachExistingStorageModal.findTypeaheadOptionUnderGroup('rwo', 'pvc-rwo').should('exist');
-      attachExistingStorageModal.findTypeaheadOptionUnderGroup('rwx', 'pvc-rwx').should('exist');
-      attachExistingStorageModal.findTypeaheadOptionUnderGroup('rox', 'pvc-rox').should('exist');
-      attachExistingStorageModal.findTypeaheadOptionUnderGroup('rwop', 'pvc-rwop').should('exist');
+      attachExistingStorageModal
+        .findTypeaheadOptionUnderGroup('readwriteonce-rwo-storage', 'pvc-rwo')
+        .should('exist');
+      attachExistingStorageModal
+        .findTypeaheadOptionUnderGroup('readwritemany-rwx-storage', 'pvc-rwx')
+        .should('exist');
+      attachExistingStorageModal
+        .findTypeaheadOptionUnderGroup('readonlymany-rox-storage', 'pvc-rox')
+        .should('exist');
+      attachExistingStorageModal
+        .findTypeaheadOptionUnderGroup('readwriteoncepod-rwop-storage', 'pvc-rwop')
+        .should('exist');
 
       attachExistingStorageModal.selectExistingPersistentStorage('pvc-rwx');
       attachExistingStorageModal.verifyPSDropdownText('pvc-rwx');
