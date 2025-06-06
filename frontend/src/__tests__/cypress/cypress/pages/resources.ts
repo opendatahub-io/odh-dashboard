@@ -39,7 +39,7 @@ class Resources {
   }
 
   getQuickStartDrawer() {
-    return new QuickStartDrawer(() => cy.findByTestId('qs-drawer-creatingAJupyterNotebook'));
+    return new QuickStartDrawer(() => cy.findByTestId('qs-drawer-creatingABasicWorkbench'));
   }
 
   findLeaveQuickStartDialogue() {
