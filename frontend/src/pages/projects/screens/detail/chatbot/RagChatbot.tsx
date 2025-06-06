@@ -169,7 +169,7 @@ const RagChatbot: React.FC = () => {
                 color="blue"
                 style={{ marginLeft: 'var(--pf-t--global--spacer--sm)' }}
               >
-                Llama 3.2 3B Instruct
+                {modelId}
               </Label>
             </ChatbotHeaderTitle>
           </ChatbotHeaderMain>
