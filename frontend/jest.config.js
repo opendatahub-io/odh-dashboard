@@ -8,6 +8,9 @@ module.exports = {
     '**/__tests__/?(*.)+(spec|test).ts?(x)',
   ],
 
+  // Ignore tests in the upstream directory
+  modulePathIgnorePatterns: ['/upstream/'],
+
   // Automatically clear mock calls and instances between every test
   clearMocks: true,
 
@@ -39,7 +42,8 @@ module.exports = {
 
   collectCoverageFrom: [
     '<rootDir>/src/**/*.{ts,tsx}',
-    '<rootDir>/packages/**/src/**/*.{ts,tsx}',
+    '<rootDir>/packages/*/src/**/*.{ts,tsx}',
+    '!<rootDir>/packages/*/upstream/**',
     '!<rootDir>/src/third_party/**',
     '!<rootDir>/src/__tests__/**',
     '!<rootDir>/src/__mocks__/**',

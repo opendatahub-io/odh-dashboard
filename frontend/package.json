@@ -61,11 +61,13 @@
     "test:cypress:e2e:open": "cd src/__tests__/cypress && npx cypress open --env grepTags=\"${CY_TEST_TAGS}\",skipTags=\"${CY_SKIP_TAGS}\""
   },
   "dependencies": {
+    "@module-federation/runtime": "^0.14.3",
     "@monaco-editor/react": "^4.6.0",
     "@odh-dashboard/internal": "0.0.0",
+    "@odh-dashboard/kserve": "0.0.0",
+    "@odh-dashboard/model-registry": "0.0.0",
     "@odh-dashboard/model-serving": "0.0.0",
     "@odh-dashboard/plugin-core": "0.0.0",
-    "@odh-dashboard/kserve": "0.0.0",
     "@openshift/dynamic-plugin-sdk": "^5.0.1",
     "@openshift/dynamic-plugin-sdk-utils": "^5.0.1",
     "@patternfly/chatbot": "^2.2.1",
