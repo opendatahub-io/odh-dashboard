@@ -31,18 +31,13 @@ import {
 } from '#~/concepts/pipelines/elyra/utils';
 import { NodeSelector, Volume, VolumeMount } from '#~/types';
 import { getImageStreamDisplayName } from '#~/pages/projects/screens/spawner/spawnerUtils';
-import {
-  deepReplaceEmptyStringWithNull,
-  deepReplaceUndefinedWithNull,
-  k8sMergePatchResource,
-} from '#~/api/k8sUtils';
+import { k8sMergePatchResource } from '#~/api/k8sUtils';
 import { getshmVolume, getshmVolumeMount } from '#~/api/k8s/utils';
 
 export const assembleNotebook = (
   data: StartNotebookData,
   username: string,
   canEnablePipelines?: boolean,
-  existingNotebook?: NotebookKind,
 ): NotebookKind => {
   const {
     projectName,
@@ -54,7 +49,7 @@ export const assembleNotebook = (
     podSpecOptions: {
       resources,
       tolerations,
-      nodeSelector: nodeSelectorFromForm,
+      nodeSelector,
       lastSizeSelection,
       selectedAcceleratorProfile,
       selectedHardwareProfile,
@@ -98,18 +93,6 @@ export const assembleNotebook = (
   if (!volumeMounts.find((volumeMount) => volumeMount.name === 'shm')) {
     volumeMounts.push(getshmVolumeMount());
   }
-
-  // Remove old node selector keys in merge patch
-  const oldNodeSelectorToRemove: NodeSelector = {};
-  for (const key of Object.keys(existingNotebook?.spec.template.spec.nodeSelector || {})) {
-    oldNodeSelectorToRemove[key] = '';
-  }
-  const oldNodeSelectorToRemoveWithNulls = deepReplaceEmptyStringWithNull(oldNodeSelectorToRemove);
-
-  // Add new node selector keys in merge patch
-  const nodeSelectorWithNulls = deepReplaceUndefinedWithNull({
-    nodeSelector: { ...oldNodeSelectorToRemoveWithNulls, ...nodeSelectorFromForm },
-  });
 
   const hardwareProfileNamespace: Record<string, string | null> | null =
     selectedHardwareProfile?.metadata.namespace === projectName
@@ -208,7 +191,7 @@ export const assembleNotebook = (
           ],
           volumes,
           tolerations,
-          ...nodeSelectorWithNulls,
+          nodeSelector,
         },
       },
     },
@@ -340,16 +323,44 @@ export const mergePatchUpdateNotebook = (
   assignableData: StartNotebookData,
   username: string,
   opts?: K8sAPIOptions,
-): Promise<NotebookKind> =>
-  k8sMergePatchResource<NotebookKind>(
+): Promise<NotebookKind> => {
+  const notebook = assembleNotebook(assignableData, username, undefined);
+
+  // Remove old node selector keys in merge patch
+  const oldNodeSelectorToRemove: Record<string, string | null> = {};
+  for (const key of Object.keys(existingNotebook.spec.template.spec.nodeSelector || {})) {
+    oldNodeSelectorToRemove[key] = null;
+  }
+
+  const resource: NotebookKind = {
+    ...notebook,
+    spec: {
+      ...notebook.spec,
+      template: {
+        ...notebook.spec.template,
+        spec: {
+          ...notebook.spec.template.spec,
+          // Null values are required for merge patch
+          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+          nodeSelector: {
+            ...oldNodeSelectorToRemove,
+            ...notebook.spec.template.spec.nodeSelector,
+          } as NodeSelector,
+        },
+      },
+    },
+  };
+
+  return k8sMergePatchResource<NotebookKind>(
     applyK8sAPIOptions(
       {
         model: NotebookModel,
-        resource: assembleNotebook(assignableData, username, undefined, existingNotebook),
+        resource,
       },
       opts,
     ),
   );
+};
 
 export const patchNotebookImage = (
   existingNotebook: NotebookKind,

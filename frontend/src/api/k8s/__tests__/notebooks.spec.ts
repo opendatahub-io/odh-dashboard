@@ -54,8 +54,6 @@ jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
 
 jest.mock('#~/api/k8sUtils', () => ({
   k8sMergePatchResource: jest.fn(),
-  deepReplaceEmptyStringWithNull: jest.fn(),
-  deepReplaceUndefinedWithNull: jest.fn(),
 }));
 
 jest.mock('#~/concepts/pipelines/elyra/utils', () => {
