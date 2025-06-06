@@ -19,6 +19,7 @@ import chaiSubset from 'chai-subset';
 import '@cypress/code-coverage/support';
 import 'cypress-mochawesome-reporter/register';
 import 'cypress-plugin-steps';
+import 'sealights-cypress-plugin/support';
 import './commands';
 import { asProjectAdminUser } from '#~/__tests__/cypress/cypress/utils/mockUsers';
 import { mockDscStatus } from '#~/__mocks__/mockDscStatus';
