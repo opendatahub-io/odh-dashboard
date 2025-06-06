@@ -15,7 +15,6 @@ import DeletePipelineServerModal from '#~/concepts/pipelines/content/DeletePipel
 import { ConfigurePipelinesServerModal } from '#~/concepts/pipelines/content/configurePipelinesServer/ConfigurePipelinesServerModal';
 import ViewPipelineServerModal from '#~/concepts/pipelines/content/ViewPipelineServerModal';
 import useSyncPreferredProject from '#~/concepts/projects/useSyncPreferredProject';
-import useManageElyraSecret from '#~/concepts/pipelines/context/useManageElyraSecret';
 import { conditionalArea, SupportedArea } from '#~/concepts/areas';
 import { DEV_MODE } from '#~/utilities/const';
 import { MetadataStoreServicePromiseClient } from '#~/third_party/mlmd';
@@ -95,16 +94,14 @@ export const PipelineContextProvider = conditionalArea<PipelineContextProviderPr
     setDisableTimeout(true);
   }, []);
   const dspaName = pipelineNamespaceCR?.metadata.name;
-  const [pipelineAPIRouteHost, routeLoaded, routeLoadError, refreshRoute] = usePipelinesAPIRoute(
+  const [, routeLoaded, routeLoadError, refreshRoute] = usePipelinesAPIRoute(
     isCRReady,
     dspaName ?? '',
     namespace,
   );
 
-  const routeHost = routeLoaded && pipelineAPIRouteHost ? pipelineAPIRouteHost : null;
   const hostPath =
     routeLoaded && namespace && dspaName ? `/api/service/pipelines/${namespace}/${dspaName}` : null;
-  useManageElyraSecret(namespace, pipelineNamespaceCR, routeHost);
 
   const refreshState = React.useCallback(
     () => Promise.all([refreshCR(), refreshRoute()]).then(() => undefined),
