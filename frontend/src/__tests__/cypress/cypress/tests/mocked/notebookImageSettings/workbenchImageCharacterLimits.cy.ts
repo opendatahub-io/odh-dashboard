@@ -30,7 +30,6 @@ describe('Workbench Image Form Character Limits', () => {
     const repeatingPart = 'A'.repeat(52);
     const longDescription = repeatingPart.repeat(101); // 52 * 101 = 5252 characters exactly
     cy.log(`Description length: ${longDescription.length} characters`); // Should log 5252
-
     // Type into description field
     cy.findByTestId('byon-image-description').clear();
     cy.findByTestId('byon-image-description').type(longDescription, { delay: 0 });
