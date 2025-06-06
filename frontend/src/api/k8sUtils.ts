@@ -8,19 +8,6 @@ import {
   K8sResourceUpdateOptions,
 } from '@openshift/dynamic-plugin-sdk-utils';
 
-// Utility type: requires identifier fields, rest is partial
-export type K8sResourcePatchIdentifier = {
-  apiVersion: string;
-  kind: string;
-  metadata: {
-    name: string;
-    namespace?: string;
-    [key: string]: unknown;
-  };
-};
-
-export type K8sMergePatch<T> = K8sResourcePatchIdentifier & Partial<T>;
-
 export const addOwnerReference = <R extends K8sResourceCommon>(
   resource: R,
   owner?: K8sResourceCommon,
