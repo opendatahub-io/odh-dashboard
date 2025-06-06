@@ -618,6 +618,7 @@ describe('updateNotebook', () => {
     k8sMergePatchResourceMock.mockResolvedValue(existingNotebook);
 
     const renderResult = await mergePatchUpdateNotebook(
+      existingNotebook,
       mockStartNotebookData({ notebookId: existingNotebook.metadata.name }),
       username,
     );
@@ -643,6 +644,7 @@ describe('updateNotebook', () => {
     k8sMergePatchResourceMock.mockRejectedValue(new Error('error1'));
     await expect(
       mergePatchUpdateNotebook(
+        existingNotebook,
         mockStartNotebookData({ notebookId: existingNotebook.metadata.name }),
         username,
       ),
