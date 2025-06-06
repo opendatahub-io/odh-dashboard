@@ -79,10 +79,11 @@ describe('isValidAccessModeSettings', () => {
 
   it('returns true if extra unsupported mode is present', () => {
     const sc = mockStorageClass(StorageProvisioner.AWS_EBS);
-    const value: AccessModeSettings = {
+    const value = {
       [AccessMode.RWO]: true,
       [AccessMode.RWOP]: false,
       [AccessMode.RWX]: true,
+      randomString: true,
     };
     expect(isValidAccessModeSettings(sc, value)).toBe(true);
   });

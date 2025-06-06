@@ -33,16 +33,15 @@ export const getPossibleStorageClassAccessModes = (
   const selectedStorageClassConfig = storageClass ? getStorageClassConfig(storageClass) : undefined;
 
   // RWO is always supported
-  const adminSupportedAccessModes: AccessMode[] = [AccessMode.RWO];
-  for (const accessMode of openshiftSupportedAccessModes) {
-    if (
-      selectedStorageClassConfig?.accessModeSettings &&
-      selectedStorageClassConfig.accessModeSettings[accessMode] === true &&
-      accessMode !== AccessMode.RWO
-    ) {
-      adminSupportedAccessModes.push(accessMode);
-    }
-  }
+  const adminSupportedAccessModes: AccessMode[] = [
+    AccessMode.RWO,
+    ...openshiftSupportedAccessModes.filter(
+      (accessMode) =>
+        accessMode !== AccessMode.RWO &&
+        selectedStorageClassConfig?.accessModeSettings &&
+        selectedStorageClassConfig.accessModeSettings[accessMode] === true,
+    ),
+  ];
   return { selectedStorageClassConfig, openshiftSupportedAccessModes, adminSupportedAccessModes };
 };
 
@@ -81,11 +80,12 @@ export const isValidAccessModeSettings = (
 
   const supportedAccessModes = getSupportedAccessModesForProvisioner(storageClass.provisioner);
 
-  // Check if all supported access modes are boolean
-  for (const mode of supportedAccessModes) {
-    if (value[mode] !== undefined && typeof value[mode] !== 'boolean') {
-      return false;
-    }
+  if (
+    !supportedAccessModes.every(
+      (mode) => value[mode] === undefined || typeof value[mode] === 'boolean',
+    )
+  ) {
+    return false;
   }
 
   return true;
