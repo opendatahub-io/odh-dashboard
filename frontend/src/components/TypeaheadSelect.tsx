@@ -22,6 +22,7 @@ import {
   FlexItem,
   Flex,
   SelectGroup,
+  Divider,
 } from '@patternfly/react-core';
 import { TimesIcon } from '@patternfly/react-icons';
 import TruncatedText from '#~/components/TruncatedText';
@@ -490,18 +491,22 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
   const tGroupOption = (
     groupName: string,
     group: { groupLabel: React.ReactNode; options: TypeaheadSelectOption[] },
-    startingIndex: number,
+    optionIdx: number,
+    addDivider: boolean,
   ): { node: React.ReactNode; nextIndex: number } => {
-    let index = startingIndex;
+    let index = optionIdx;
     return {
       node: (
-        <SelectGroup
-          key={groupName}
-          label={group.groupLabel}
-          data-testid={`typeahead-group-${groupName.toLowerCase()}`}
-        >
-          {group.options.map((opt) => tSelectOption(opt, index++))}
-        </SelectGroup>
+        <>
+          <SelectGroup
+            key={groupName}
+            label={group.groupLabel}
+            data-testid={`typeahead-group-${groupName.toLowerCase()}`}
+          >
+            {group.options.map((opt) => tSelectOption(opt, index++))}
+          </SelectGroup>
+          {addDivider && <Divider />}
+        </>
       ),
       nextIndex: index,
     };
@@ -509,8 +514,14 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
 
   const renderOptions = (): React.ReactNode => {
     let idx = 0;
-    const groupOpts = Object.entries(groupedSelections.group).map(([groupName, group]) => {
-      const { node, nextIndex } = tGroupOption(groupName, group, idx);
+    const groupEntries = Object.entries(groupedSelections.group);
+    const groupOpts = groupEntries.map(([groupName, group], groupIndex) => {
+      const { node, nextIndex } = tGroupOption(
+        groupName,
+        group,
+        idx,
+        groupIndex !== groupEntries.length - 1,
+      );
       idx = nextIndex;
       return node;
     });
@@ -518,6 +529,7 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
     return (
       <>
         {groupOpts}
+        {selectOpts.length > 0 && <Divider />}
         {selectOpts}
       </>
     );
