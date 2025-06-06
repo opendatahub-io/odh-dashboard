@@ -2,10 +2,10 @@ import React, { act } from 'react';
 import '@testing-library/jest-dom';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { InferenceServiceModelState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
-import { Deployment, type DeploymentStatus } from '../../../../extension-points';
+import { Deployment } from '../../../../extension-points';
 import { DeploymentRow } from '../DeploymentsTableRow';
 
-const mockDeployment = ({ status }: { status?: DeploymentStatus }): Deployment => ({
+const mockDeployment = (partial: Partial<Deployment> = {}) => ({
   modelServingPlatformId: 'test-platform',
   model: {
     apiVersion: 'v1',
@@ -14,7 +14,9 @@ const mockDeployment = ({ status }: { status?: DeploymentStatus }): Deployment =
       name: 'test-deployment',
     },
   },
-  status,
+  status: partial.status,
+  endpoints: partial.endpoints,
+  apiProtocol: partial.apiProtocol,
 });
 
 describe('DeploymentsTableRow', () => {
@@ -33,8 +35,15 @@ describe('DeploymentsTableRow', () => {
       </table>,
     );
 
+    // Name Column
     expect(screen.getByRole('cell', { name: 'test-deployment' })).toBeInTheDocument();
+    // Name Column - More info button
     expect(screen.getByRole('button', { name: 'More info' })).toBeInTheDocument();
+    // Inference endpoint Column
+    expect(screen.getByText('Failed to get endpoint for this deployed model.')).toBeInTheDocument();
+    // API protocol Column
+    expect(screen.getByText('Not defined')).toBeInTheDocument();
+    // Status Column
     expect(screen.getByRole('button', { name: 'warning status' })).toBeInTheDocument();
 
     await act(async () => {
@@ -42,6 +51,29 @@ describe('DeploymentsTableRow', () => {
     });
     fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }));
     expect(onDelete).toHaveBeenCalled();
+  });
+
+  it('should render with platform columns', () => {
+    render(
+      <table>
+        <tbody>
+          <DeploymentRow
+            deployment={mockDeployment({})}
+            platformColumns={[
+              {
+                label: 'Platform',
+                field: 'platform',
+                sortable: false,
+                cellRenderer: () => 'test-data',
+              },
+            ]}
+            onDelete={onDelete}
+          />
+        </tbody>
+      </table>,
+    );
+
+    expect(screen.getByText('test-data')).toBeInTheDocument();
   });
 
   it('should render the row with a status', () => {
@@ -60,5 +92,118 @@ describe('DeploymentsTableRow', () => {
     );
 
     expect(screen.getByRole('button', { name: 'success status' })).toBeInTheDocument();
+  });
+
+  describe('Inference endpoints', () => {
+    it('should render the row with internal inference endpoint', async () => {
+      render(
+        <table>
+          <tbody>
+            <DeploymentRow
+              deployment={mockDeployment({
+                endpoints: [
+                  {
+                    type: 'internal',
+                    name: 'test-endpoint',
+                    url: 'https://internal-endpoint.com',
+                  },
+                ],
+              })}
+              platformColumns={[]}
+              onDelete={onDelete}
+            />
+          </tbody>
+        </table>,
+      );
+
+      const button = screen.getByRole('button', { name: 'Internal endpoint details' });
+      expect(button).toBeInTheDocument();
+      await act(async () => {
+        fireEvent.click(button);
+      });
+      expect(screen.getByText('https://internal-endpoint.com')).toBeInTheDocument();
+    });
+
+    it('should render the row with external inference endpoint', async () => {
+      render(
+        <table>
+          <tbody>
+            <DeploymentRow
+              deployment={mockDeployment({
+                endpoints: [
+                  {
+                    type: 'external',
+                    name: 'test-endpoint',
+                    url: 'https://external-endpoint.com',
+                  },
+                ],
+              })}
+              platformColumns={[]}
+              onDelete={onDelete}
+            />
+          </tbody>
+        </table>,
+      );
+
+      const button = screen.getByRole('button', { name: 'Internal and external endpoint details' });
+      expect(button).toBeInTheDocument();
+      await act(async () => {
+        fireEvent.click(button);
+      });
+      expect(screen.getByText('https://external-endpoint.com')).toBeInTheDocument();
+    });
+
+    it('should render the row with multiple inference endpoints', async () => {
+      render(
+        <table>
+          <tbody>
+            <DeploymentRow
+              deployment={mockDeployment({
+                endpoints: [
+                  {
+                    type: 'internal',
+                    name: 'test-endpoint',
+                    url: 'https://internal-endpoint.com',
+                  },
+                  {
+                    type: 'external',
+                    name: 'test-endpoint',
+                    url: 'https://external-endpoint.com',
+                  },
+                ],
+              })}
+              platformColumns={[]}
+              onDelete={onDelete}
+            />
+          </tbody>
+        </table>,
+      );
+
+      const button = screen.getByRole('button', { name: 'Internal and external endpoint details' });
+      expect(button).toBeInTheDocument();
+      await act(async () => {
+        fireEvent.click(button);
+      });
+      expect(screen.getByText('https://internal-endpoint.com')).toBeInTheDocument();
+      expect(screen.getByText('https://external-endpoint.com')).toBeInTheDocument();
+    });
+  });
+
+  it('should render the row with an api protocol', () => {
+    render(
+      <table>
+        <tbody>
+          <DeploymentRow
+            deployment={mockDeployment({
+              apiProtocol: 'REST',
+            })}
+            platformColumns={[]}
+            onDelete={onDelete}
+          />
+        </tbody>
+      </table>,
+    );
+
+    expect(screen.getByText('REST')).toBeInTheDocument();
   });
 });
