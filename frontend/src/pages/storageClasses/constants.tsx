@@ -35,8 +35,8 @@ export const columns: SortableData<StorageClassKind>[] = [
           The display name identifies a storage class within OpenShift AI, and can be edited.
           <br />
           <br />
-          If the display name is followed by RWX, ROX or RWOP label, it means that the class enables
-          the corresponding access mode. RWO is enabled by default.
+          If the display name is followed by a label, the storage class enables the RWX, ROX or RWOP
+          access modes. RWO is enabled by default.
         </>
       ),
     },
@@ -102,6 +102,6 @@ export const accessModeDescriptions: Record<AccessMode, string> = {
   [AccessMode.RWO]:
     'Supported by default. The storage can be attached to a single workbench at a given time.',
   [AccessMode.RWX]: 'The storage can be attached to many workbenches simultaneously.',
-  [AccessMode.ROX]: 'Storage with ROX mode can be mounted as read-only by many workbenches.',
+  [AccessMode.ROX]: 'The storage can be attached to many workbenches as read-only.',
   [AccessMode.RWOP]: 'The storage can be attached to a single pod on a single node as read-write.',
 };
