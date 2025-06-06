@@ -507,6 +507,22 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
     };
   };
 
+  const renderOptions = (): React.ReactNode => {
+    let idx = 0;
+    const groupOpts = Object.entries(groupedSelections.group).map(([groupName, group]) => {
+      const { node, nextIndex } = tGroupOption(groupName, group, idx);
+      idx = nextIndex;
+      return node;
+    });
+    const selectOpts = groupedSelections.noGroup.map((opt) => tSelectOption(opt, idx++));
+    return (
+      <>
+        {groupOpts}
+        {selectOpts}
+      </>
+    );
+  };
+
   return (
     <>
       <Select
@@ -519,23 +535,7 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
         ref={innerRef}
         {...props}
       >
-        <SelectList>
-          {(() => {
-            let idx = 0;
-            const groupOpts = Object.entries(groupedSelections.group).map(([groupName, group]) => {
-              const { node, nextIndex } = tGroupOption(groupName, group, idx);
-              idx = nextIndex;
-              return node;
-            });
-            const selectOpts = groupedSelections.noGroup.map((opt) => tSelectOption(opt, idx++));
-            return (
-              <>
-                {groupOpts}
-                {selectOpts}
-              </>
-            );
-          })()}
-        </SelectList>
+        <SelectList>{renderOptions()}</SelectList>
       </Select>
       {previewDescription && isSingleOption && selected?.description ? (
         <FormHelperText>
