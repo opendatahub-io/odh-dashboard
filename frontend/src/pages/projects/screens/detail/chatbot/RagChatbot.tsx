@@ -1,5 +1,5 @@
 import React from 'react';
-import { Alert, Label, Spinner } from '@patternfly/react-core';
+import { Alert, Button, Label, Spinner, Title } from '@patternfly/react-core';
 import {
   ChatbotFooter,
   ChatbotFootnote,
@@ -11,13 +11,18 @@ import {
   MessageProps,
   ChatbotHeader,
   ChatbotHeaderActions,
+  MessageBox,
+  ChatbotHeaderMain,
+  ChatbotHeaderTitle,
 } from '@patternfly/chatbot';
+import { ShareSquareIcon } from '@patternfly/react-icons';
 import { completeChat } from '#~/services/llamaStackService';
 import useFetchLlamaModels from '#~/utilities/useFetchLlamaModels';
 import chatbotUserIcon from '#~/images/UI_icon-Red_Hat-User-Avatar.svg';
-import chatbotAvatar from '#~/images/UI_icon-Red_Hat-Patternfly-Avatar.jpg';
-import '@patternfly/chatbot/dist/css/main.css';
+import chatbotAvatar from '#~/images/UI_icon-Red_Hat-Chatbot-Avatar.svg';
 import RagChatbotMessagesList from './RagChatbotMessagesList';
+import RagChatbotShareModal from './RagChatbotShareModal';
+import '@patternfly/chatbot/dist/css/main.css';
 
 type ChatMessage = {
   role: 'user' | 'assistant';
@@ -30,6 +35,7 @@ const RagChatbot: React.FC = () => {
   const [isMessageSendButtonDisabled, setIsMessageSendButtonDisabled] = React.useState(false);
   const [messages, setMessages] = React.useState<MessageProps[]>([]);
   const [showPopover, setShowPopover] = React.useState(true);
+  const [isShareChatbotOpen, setIsShareChatbotOpen] = React.useState(false);
   const scrollToBottomRef = React.useRef<HTMLDivElement>(null);
   const { models, loading, error, fetchLlamaModels } = useFetchLlamaModels();
 
@@ -37,7 +43,7 @@ const RagChatbot: React.FC = () => {
   const modelId = models[1]?.identifier;
 
   const footnoteProps = {
-    label: 'ChatBot uses AI. Check for mistakes.',
+    label: 'Always review AI generated content prior to use.',
     popover: {
       title: 'Verify information',
       description:
@@ -140,24 +146,45 @@ const RagChatbot: React.FC = () => {
 
   return (
     <div style={{ height: '95%' }}>
+      {isShareChatbotOpen && (
+        <RagChatbotShareModal onToggle={() => setIsShareChatbotOpen(!isShareChatbotOpen)} />
+      )}
       <Chatbot displayMode={displayMode} data-testid="chatbot">
         <ChatbotHeader>
+          <ChatbotHeaderMain>
+            <ChatbotHeaderTitle>
+              <Title headingLevel="h1" size="xl" style={{ fontWeight: 'bold' }}>
+                Chatbot
+              </Title>
+              <Label
+                variant="outline"
+                color="blue"
+                style={{ marginLeft: 'var(--pf-t--global--spacer--sm)' }}
+              >
+                Llama 3.2 3B Instruct
+              </Label>
+            </ChatbotHeaderTitle>
+          </ChatbotHeaderMain>
           <ChatbotHeaderActions>
-            <Label variant="outline" color="blue">
-              {modelId}
-            </Label>
+            <Button
+              icon={<ShareSquareIcon />}
+              variant="plain"
+              aria-label="Share chatbot"
+              data-testid="share-chatbot-button"
+              onClick={() => {
+                setIsShareChatbotOpen(!isShareChatbotOpen);
+              }}
+            />
           </ChatbotHeaderActions>
         </ChatbotHeader>
-        <ChatbotContent
-          style={{ maxHeight: '59vh', overflowY: 'auto', marginLeft: '10px', marginRight: '10px' }}
-        >
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '15px' }}>
+        <ChatbotContent>
+          <MessageBox position="bottom">
             <ChatbotWelcomePrompt
-              title="Hi, Llama Stack User!"
-              description="How may I help you today?"
+              title="Hello, User!"
+              description="Ask a question to chat with your model"
             />
             <RagChatbotMessagesList messageList={messages} scrollRef={scrollToBottomRef} />
-          </div>
+          </MessageBox>
         </ChatbotContent>
         <ChatbotFooter>
           <MessageBar
