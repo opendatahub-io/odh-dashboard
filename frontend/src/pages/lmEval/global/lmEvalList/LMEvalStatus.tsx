@@ -49,6 +49,7 @@ const LMEvalStatus: React.FC<LMEvalStatusProps> = ({ status, iconSize = 'sm' }) 
     return (
       <Button
         variant="link"
+        aria-label={`Evaluation status ${currentState}`}
         isInline
         data-testid="status-tooltip"
         icon={

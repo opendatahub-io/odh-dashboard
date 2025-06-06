@@ -156,6 +156,9 @@ describe('createModelEvaluation', () => {
     apiVersion: 'trustyai.opendatahub.io/v1alpha1',
     kind: 'LMEvalJob',
     metadata: {
+      annotations: {
+        'openshift.io/display-name': evaluationName?.trim() || modelData().evaluationName.trim(),
+      },
       name: evaluationName || modelData().evaluationName,
       namespace,
     },

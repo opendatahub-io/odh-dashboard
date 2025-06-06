@@ -4,6 +4,7 @@ import { Timestamp } from '@patternfly/react-core';
 import { LMEvalKind } from '#~/k8sTypes';
 import { downloadString } from '#~/utilities/string';
 import { LMEvalState } from '#~/pages/lmEval/types';
+import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils.ts';
 import LMEvalStatus from './LMEvalStatus';
 
 type LMEvalTableRowType = {
@@ -17,7 +18,7 @@ const LMEvalTableRow: React.FC<LMEvalTableRowType> = ({ lmEval, onDeleteLMEval }
   };
   return (
     <Tr>
-      <Td dataLabel="Evaluation">{lmEval.metadata.name}</Td>
+      <Td dataLabel="Evaluation">{getDisplayNameFromK8sResource(lmEval)}</Td>
       <Td dataLabel="Model">
         {lmEval.spec.modelArgs?.find((arg) => arg.name === 'model')?.value || '-'}
       </Td>
@@ -35,9 +36,9 @@ const LMEvalTableRow: React.FC<LMEvalTableRowType> = ({ lmEval, onDeleteLMEval }
         <ActionsColumn
           items={[
             ...(lmEval.status?.state === LMEvalState.COMPLETE && lmEval.status.results
-              ? [{ title: 'Download JSON', onClick: handleDownload }]
+              ? [{ title: 'Download JSON', itemKey: 'download-json', onClick: handleDownload }]
               : []),
-            { title: 'Delete', onClick: () => onDeleteLMEval(lmEval) },
+            { title: 'Delete', itemKey: 'lm-eval-delete', onClick: () => onDeleteLMEval(lmEval) },
           ]}
         />
       </Td>
