@@ -30,10 +30,18 @@ type ChatMessage = {
   stop_reason?: string;
 };
 
+const initialBotMessage: MessageProps = {
+  id: crypto.randomUUID(),
+  role: 'bot',
+  content: 'Hello! Ask a question to test out your AI system',
+  name: 'Bot',
+  avatar: chatbotAvatar,
+};
+
 const RagChatbot: React.FC = () => {
   const displayMode = ChatbotDisplayMode.embedded;
   const [isMessageSendButtonDisabled, setIsMessageSendButtonDisabled] = React.useState(false);
-  const [messages, setMessages] = React.useState<MessageProps[]>([]);
+  const [messages, setMessages] = React.useState<MessageProps[]>([initialBotMessage]);
   const [showPopover, setShowPopover] = React.useState(true);
   const [isShareChatbotOpen, setIsShareChatbotOpen] = React.useState(false);
   const scrollToBottomRef = React.useRef<HTMLDivElement>(null);
