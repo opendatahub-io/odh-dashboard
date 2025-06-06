@@ -3,8 +3,8 @@ import { Button } from '@patternfly/react-core';
 import StopServerModal from '#~/pages/notebookController/screens/server/StopServerModal';
 import { Notebook } from '#~/types';
 import { useStopWorkbenchModal } from '#~/concepts/notebooks/useStopWorkbenchModal';
-import useRouteForNotebook from '#~/pages/projects/notebook/useRouteForNotebook.ts';
 import { AdminViewUserData } from './types';
+import useRouteForNotebook from './useRouteForNotebook';
 
 type StopAllServersButtonProps = {
   users: AdminViewUserData[];
