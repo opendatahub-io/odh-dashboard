@@ -1,6 +1,7 @@
 import { NotebookKind, PersistentVolumeClaimKind } from '#~/k8sTypes';
 import { NotebookSize } from '#~/types';
 import { formatMemory } from '#~/utilities/valueUnits';
+import { AccessMode } from '#~/pages/storageClasses/storageEnums.ts';
 import { NotebookState } from './notebook/types';
 
 export const getNotebookStatusPriority = (notebookState: NotebookState): number =>
@@ -21,3 +22,6 @@ export const getCustomNotebookSize = (
     requests: {},
   },
 });
+
+export const getPvcAccessMode = (pvc: PersistentVolumeClaimKind): AccessMode =>
+  pvc.spec.accessModes[0];

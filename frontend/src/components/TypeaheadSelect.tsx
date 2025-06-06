@@ -1,26 +1,28 @@
 import React from 'react';
 import {
+  Button,
+  Flex,
+  FlexItem,
+  FormHelperText,
+  HelperText,
+  HelperTextItem,
+  MenuToggle,
+  MenuToggleElement,
+  MenuToggleProps,
   /**
    * The Select component is used to build another generic component here
    */
   // eslint-disable-next-line no-restricted-imports
   Select,
-  SelectOption,
+  SelectGroup,
+  SelectGroupProps,
   SelectList,
+  SelectOption,
   SelectOptionProps,
-  MenuToggle,
-  MenuToggleElement,
+  SelectProps,
   TextInputGroup,
   TextInputGroupMain,
   TextInputGroupUtilities,
-  Button,
-  MenuToggleProps,
-  SelectProps,
-  FormHelperText,
-  HelperTextItem,
-  HelperText,
-  FlexItem,
-  Flex,
 } from '@patternfly/react-core';
 import { TimesIcon } from '@patternfly/react-icons';
 import TruncatedText from '#~/components/TruncatedText';
@@ -33,11 +35,17 @@ export interface TypeaheadSelectOption extends Omit<SelectOptionProps, 'content'
   /** Indicator for option being selected */
   isSelected?: boolean;
   dropdownLabel?: React.ReactNode;
+  selectedLabel?: React.ReactNode;
+}
+
+export interface TypeaheadSelectGroupOption extends Omit<SelectGroupProps, 'children'> {
+  groupOptions: TypeaheadSelectOption[];
+  groupLabel: string;
 }
 
 export interface TypeaheadSelectProps extends Omit<SelectProps, 'toggle' | 'onSelect'> {
   /** Options of the select */
-  selectOptions: TypeaheadSelectOption[];
+  selectOptions: (TypeaheadSelectOption | TypeaheadSelectGroupOption)[];
   /** Callback triggered on selection. */
   onSelect?: (
     _event:
@@ -90,6 +98,40 @@ const defaultCreateOptionMessage = (newValue: string) => `Create "${newValue}"`;
 const defaultFilterFunction = (filterValue: string, options: TypeaheadSelectOption[]) =>
   options.filter((o) => String(o.content).toLowerCase().includes(filterValue.toLowerCase()));
 
+const isGroupSelectOption = (options: TypeaheadSelectOption | TypeaheadSelectGroupOption) =>
+  'groupOptions' in options;
+
+const groupFilterFunction = (
+  filterValue: string,
+  options: (TypeaheadSelectOption | TypeaheadSelectGroupOption)[],
+  filterFunction: (
+    filterValue: string,
+    options: TypeaheadSelectOption[],
+  ) => TypeaheadSelectOption[] = defaultFilterFunction,
+) => {
+  const result: (TypeaheadSelectOption | TypeaheadSelectGroupOption)[] = [];
+  options.forEach((option) => {
+    if (isGroupSelectOption(option)) {
+      const filteredOptions = filterFunction(filterValue, option.groupOptions);
+      if (filteredOptions.length > 0) {
+        const filteredGroup: TypeaheadSelectGroupOption = {
+          ...option,
+          groupOptions: filteredOptions,
+        };
+        result.push(filteredGroup);
+      }
+    } else if (filterFunction(filterValue, [option]).length > 0) {
+      result.push(option);
+    }
+  });
+  return result;
+};
+
+const flattenGroupOptions = (
+  options: (TypeaheadSelectOption | TypeaheadSelectGroupOption)[],
+): TypeaheadSelectOption[] =>
+  options.flatMap((option) => ('groupOptions' in option ? option.groupOptions : option));
+
 const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
   innerRef,
   selectOptions,
@@ -121,22 +163,32 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
 
   const NO_RESULTS = 'no results';
 
+  const flattenedOptions = React.useMemo(() => flattenGroupOptions(selectOptions), [selectOptions]);
+
   const selected = React.useMemo(
-    () => selectOptions.find((option) => option.value === props.selected || option.isSelected),
-    [props.selected, selectOptions],
+    () => flattenedOptions.find((o) => o.value === props.selected || o.isSelected),
+    [flattenedOptions, props.selected],
   );
 
   const filteredSelections = React.useMemo(() => {
-    let newSelectOptions: TypeaheadSelectOption[] = selectOptions;
+    let newSelectOptions: (TypeaheadSelectOption | TypeaheadSelectGroupOption)[] = selectOptions;
 
     // Filter menu items based on the text input value when one exists
     if (isFiltering && filterValue) {
-      newSelectOptions = filterFunction(filterValue, selectOptions);
+      const containsGroups = selectOptions.some(isGroupSelectOption);
+      if (!containsGroups) {
+        newSelectOptions = filterFunction(filterValue, flattenedOptions);
+      } else {
+        newSelectOptions = groupFilterFunction(filterValue, selectOptions, filterFunction);
+      }
+
+      const contentMatch = (option: TypeaheadSelectOption) =>
+        String(option.content).toLowerCase() === filterValue.toLowerCase();
 
       if (
         isCreatable &&
         filterValue.trim() &&
-        !newSelectOptions.find((o) => String(o.content).toLowerCase() === filterValue.toLowerCase())
+        !flattenGroupOptions(newSelectOptions).some(contentMatch)
       ) {
         const createOption = {
           content:
@@ -184,8 +236,9 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
     selectOptions,
     noOptionsFoundMessage,
     isCreatable,
-    isCreateOptionOnTop,
+    flattenedOptions,
     createOptionMessage,
+    isCreateOptionOnTop,
     noOptionsAvailableMessage,
   ]);
 
@@ -199,7 +252,7 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
 
   const setActiveAndFocusedItem = (itemIndex: number) => {
     setFocusedItemIndex(itemIndex);
-    const focusedItem = selectOptions[itemIndex];
+    const focusedItem = flattenedOptions[itemIndex];
     setActiveItemId(String(focusedItem.value));
   };
 
@@ -251,8 +304,8 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
 
   const notAllowEmpty = !isCreatable && isRequired;
   // Only when the field is required, not creatable and there is one option, we auto select the first option
-  const isSingleOption = selectOptions.length === 1 && notAllowEmpty;
-  const singleOptionValue = isSingleOption ? selectOptions[0].value : null;
+  const isSingleOption = flattenedOptions.length === 1 && notAllowEmpty;
+  const singleOptionValue = isSingleOption ? flattenedOptions[0].value : null;
   // If there is only one option, call the onChange function
   React.useEffect(() => {
     if (singleOptionValue && onSelect) {
@@ -267,7 +320,7 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
     value: string | number | undefined,
   ) => {
     if (value && value !== NO_RESULTS) {
-      const optionToSelect = selectOptions.find((option) => option.value === value);
+      const optionToSelect = flattenedOptions.find((option) => option.value === value);
       if (optionToSelect) {
         selectOption(_event, optionToSelect);
       } else if (isCreatable) {
@@ -287,43 +340,44 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
   };
 
   const handleMenuArrowKeys = (key: string) => {
+    const flatFilteredSelects = flattenGroupOptions(filteredSelections);
     let indexToFocus = 0;
 
     openMenu();
 
-    if (filteredSelections.every((option) => option.isDisabled)) {
+    if (flatFilteredSelects.every((option) => option.isDisabled)) {
       return;
     }
 
     if (key === 'ArrowUp') {
       // When no index is set or at the first index, focus to the last, otherwise decrement focus index
       if (focusedItemIndex === null || focusedItemIndex === 0) {
-        indexToFocus = filteredSelections.length - 1;
+        indexToFocus = flatFilteredSelects.length - 1;
       } else {
         indexToFocus = focusedItemIndex - 1;
       }
 
       // Skip disabled options
-      while (filteredSelections[indexToFocus].isDisabled) {
+      while (flatFilteredSelects[indexToFocus].isDisabled) {
         indexToFocus--;
         if (indexToFocus === -1) {
-          indexToFocus = filteredSelections.length - 1;
+          indexToFocus = flatFilteredSelects.length - 1;
         }
       }
     }
 
     if (key === 'ArrowDown') {
       // When no index is set or at the last index, focus to the first, otherwise increment focus index
-      if (focusedItemIndex === null || focusedItemIndex === filteredSelections.length - 1) {
+      if (focusedItemIndex === null || focusedItemIndex === flatFilteredSelects.length - 1) {
         indexToFocus = 0;
       } else {
         indexToFocus = focusedItemIndex + 1;
       }
 
       // Skip disabled options
-      while (filteredSelections[indexToFocus].isDisabled) {
+      while (flatFilteredSelects[indexToFocus].isDisabled) {
         indexToFocus++;
-        if (indexToFocus === filteredSelections.length) {
+        if (indexToFocus === flatFilteredSelects.length) {
           indexToFocus = 0;
         }
       }
@@ -333,8 +387,8 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
   };
 
   const onInputKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    const focusedItem = focusedItemIndex !== null ? filteredSelections[focusedItemIndex] : null;
-
+    const focusedItem =
+      focusedItemIndex !== null ? flattenGroupOptions(filteredSelections)[focusedItemIndex] : null;
     switch (event.key) {
       case 'Enter':
         if (
@@ -394,38 +448,75 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
       data-testid="typeahead-menu-toggle"
       onClick={onToggleClick}
       isExpanded={isOpen}
-      isDisabled={isDisabled || (selectOptions.length <= 1 && notAllowEmpty)}
+      isDisabled={isDisabled || (flattenedOptions.length <= 1 && notAllowEmpty)}
       isFullWidth
       style={{ width: toggleWidth }}
       {...toggleProps}
     >
       <TextInputGroup isPlain>
-        <TextInputGroupMain
-          value={isFiltering ? filterValue : selected?.content ?? ''}
-          onClick={onInputClick}
-          onChange={onTextInputChange}
-          onKeyDown={onInputKeyDown}
-          autoComplete="off"
-          innerRef={textInputRef}
-          placeholder={placeholder}
-          {...(activeItemId && { 'aria-activedescendant': activeItemId })}
-          role="combobox"
-          isExpanded={isOpen}
-          aria-controls="select-typeahead-listbox"
-        />
-        {(isFiltering && filterValue) || (allowClear && selected) ? (
-          <TextInputGroupUtilities>
-            <Button
-              icon={<TimesIcon aria-hidden />}
-              variant="plain"
-              onClick={onClearButtonClick}
-              aria-label="Clear input value"
+        <Flex alignItems={{ default: 'alignItemsCenter' }} style={{ width: '100%' }}>
+          <FlexItem style={{ flex: 1 }}>
+            <TextInputGroupMain
+              value={isFiltering ? filterValue : selected?.content ?? ''}
+              onClick={onInputClick}
+              onChange={onTextInputChange}
+              onKeyDown={onInputKeyDown}
+              autoComplete="off"
+              innerRef={textInputRef}
+              placeholder={placeholder}
+              {...(activeItemId && { 'aria-activedescendant': activeItemId })}
+              role="combobox"
+              isExpanded={isOpen}
+              aria-controls="select-typeahead-listbox"
             />
-          </TextInputGroupUtilities>
-        ) : null}
+          </FlexItem>
+          {selected && selected.selectedLabel && <FlexItem>{selected.selectedLabel}</FlexItem>}
+          {(isFiltering && filterValue) || (allowClear && selected) ? (
+            <FlexItem>
+              <TextInputGroupUtilities>
+                <Button
+                  icon={<TimesIcon aria-hidden />}
+                  variant="plain"
+                  onClick={onClearButtonClick}
+                  aria-label="Clear input value"
+                />
+              </TextInputGroupUtilities>
+            </FlexItem>
+          ) : null}
+        </Flex>
       </TextInputGroup>
     </MenuToggle>
   );
+
+  const tSelectOption = (option: TypeaheadSelectOption) => {
+    const { content, dropdownLabel, value, ...optProps } = option;
+    return (
+      <SelectOption key={value} value={value} {...optProps}>
+        {dropdownLabel ? (
+          <Flex>
+            <FlexItem>{content}</FlexItem>
+            <FlexItem>{dropdownLabel}</FlexItem>
+          </Flex>
+        ) : (
+          content
+        )}
+      </SelectOption>
+    );
+  };
+
+  const tGroupOption = (group: TypeaheadSelectGroupOption) => {
+    const { label, groupLabel, groupOptions, ...grpProps } = group;
+    return (
+      <SelectGroup
+        key={`${groupLabel}`}
+        label={label}
+        {...grpProps}
+        data-testid={`typeahead-group-${groupLabel.toLowerCase()}`}
+      >
+        {groupOptions.map((opt) => tSelectOption(opt))}
+      </SelectGroup>
+    );
+  };
 
   return (
     <>
@@ -440,26 +531,9 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
         {...props}
       >
         <SelectList>
-          {filteredSelections.map((option, index) => {
-            const { content, value, dropdownLabel, ...optionProps } = option;
-            return (
-              <SelectOption
-                key={value}
-                value={value}
-                isFocused={focusedItemIndex === index}
-                {...optionProps}
-              >
-                {dropdownLabel ? (
-                  <Flex>
-                    <FlexItem>{content}</FlexItem>
-                    <FlexItem>{dropdownLabel}</FlexItem>
-                  </Flex>
-                ) : (
-                  content
-                )}
-              </SelectOption>
-            );
-          })}
+          {filteredSelections.map((option) =>
+            isGroupSelectOption(option) ? tGroupOption(option) : tSelectOption(option),
+          )}
         </SelectList>
       </Select>
       {previewDescription && isSingleOption && selected?.description ? (
