@@ -34,7 +34,6 @@ import {
   verifyResource,
 } from '#~/utilities/notebookControllerUtils';
 import { useAppContext } from '#~/app/AppContext';
-import { useWatchImages } from '#~/utilities/useWatchImages';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import useNotification from '#~/utilities/useNotification';
 import { NotebookControllerContext } from '#~/pages/notebookController/NotebookControllerContext';
@@ -48,6 +47,9 @@ import useAdminDefaultStorageClass from '#~/pages/projects/screens/spawner/stora
 import HardwareProfileFormSection from '#~/concepts/hardwareProfiles/HardwareProfileFormSection';
 import { useNotebookPodSpecOptionsState } from '#~/concepts/hardwareProfiles/useNotebookPodSpecOptionsState';
 import { HardwareProfileFeatureVisibility } from '#~/k8sTypes';
+import { useDashboardNamespace } from '#~/redux/selectors';
+import { useImageStreams } from '#~/utilities/useImageStreams';
+import { mapImageStreamToImageInfo } from '#~/utilities/imageStreamUtils';
 import SizeSelectField from './SizeSelectField';
 import useSpawnerNotebookModalState from './useSpawnerNotebookModalState';
 import BrowserTabPreferenceCheckbox from './BrowserTabPreferenceCheckbox';
@@ -63,7 +65,9 @@ const SpawnerPage: React.FC = () => {
   const notification = useNotification();
   const isHomeAvailable = useIsAreaAvailable(SupportedArea.HOME).status;
   const isHardwareProfilesAvailable = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;
-  const { images, loaded, loadError } = useWatchImages();
+  const { dashboardNamespace } = useDashboardNamespace();
+  const [imageStreams, loaded, loadError] = useImageStreams(dashboardNamespace, { enabled: true });
+  const images = React.useMemo(() => imageStreams.map(mapImageStreamToImageInfo), [imageStreams]);
   const { buildStatuses } = useAppContext();
   const { currentUserNotebook, requestNotebookRefresh, impersonatedUsername, setImpersonating } =
     React.useContext(NotebookControllerContext);
@@ -318,7 +322,7 @@ const SpawnerPage: React.FC = () => {
           </EmptyState>
         }
         loadError={loadError}
-        empty={images.length === 0}
+        empty={loaded && images.length === 0}
       >
         <Form maxWidth="1000px" data-testid="notebook-server-form">
           <FormSection title="Workbench image">

@@ -1,14 +1,13 @@
 import { mockRoleBindingK8sResource } from '#~/__mocks__/mockRoleBindingK8sResource';
 import {
+  mockCustomSecretK8sResource,
+  mockDashboardConfig,
   mockK8sResourceList,
   mockNotebookK8sResource,
-  mockDashboardConfig,
   mockStorageClassList,
-  mockCustomSecretK8sResource,
 } from '#~/__mocks__';
 import type { RoleBindingSubject } from '#~/k8sTypes';
 import { mockAllowedUsers } from '#~/__mocks__/mockAllowedUsers';
-import { mockNotebookImageInfo } from '#~/__mocks__/mockNotebookImageInfo';
 import { mockStartNotebookData } from '#~/__mocks__/mockStartNotebookData';
 import { notebookServer } from '#~/__tests__/cypress/cypress/pages/notebookServer';
 import {
@@ -22,11 +21,13 @@ import {
 import { homePage } from '#~/__tests__/cypress/cypress/pages/home/home';
 import {
   AcceleratorProfileModel,
+  ImageStreamModel,
   StorageClassModel,
 } from '#~/__tests__/cypress/cypress/utils/models';
 import { mockAcceleratorProfile } from '#~/__mocks__/mockAcceleratorProfile';
 import type { EnvironmentVariable, NotebookData } from '#~/types';
 import { mockConfigMap } from '#~/__mocks__/mockConfigMap';
+import { mockImageStreamK8sResourceList } from '#~/__mocks__/mockImageStreamK8sResource';
 
 const groupSubjects: RoleBindingSubject[] = [
   {
@@ -47,7 +48,12 @@ const initIntercepts = () => {
       }),
     ]),
   );
-  cy.interceptOdh('GET /api/images/:type', { path: { type: 'jupyter' } }, mockNotebookImageInfo());
+
+  cy.interceptK8sList(
+    { model: ImageStreamModel, ns: 'opendatahub' },
+    mockK8sResourceList(mockImageStreamK8sResourceList()),
+  );
+
   cy.interceptOdh('GET /api/status/openshift-ai-notebooks/allowedUsers', mockAllowedUsers({}));
   cy.interceptOdh(
     'GET /api/config',

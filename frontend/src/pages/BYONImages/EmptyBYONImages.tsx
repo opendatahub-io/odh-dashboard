@@ -9,11 +9,7 @@ import {
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import ImportBYONImageButton from './ImportBYONImageButton';
 
-type EmptyBYONImagesProps = {
-  refresh: () => void;
-};
-
-const EmptyBYONImages: React.FC<EmptyBYONImagesProps> = ({ refresh }) => (
+const EmptyBYONImages: React.FC = () => (
   <PageSection hasBodyWrapper={false} isFilled>
     <EmptyState
       headingLevel="h1"
@@ -24,7 +20,7 @@ const EmptyBYONImages: React.FC<EmptyBYONImagesProps> = ({ refresh }) => (
     >
       <EmptyStateBody>To get started, import a custom workbench image.</EmptyStateBody>
       <EmptyStateFooter>
-        <ImportBYONImageButton refresh={refresh} />
+        <ImportBYONImageButton />
       </EmptyStateFooter>
     </EmptyState>
   </PageSection>
