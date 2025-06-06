@@ -8,7 +8,6 @@ import {
   DescriptionListTerm,
   Flex,
   FlexItem,
-  Label,
   LabelGroup,
   Popover,
   Timestamp,
@@ -22,6 +21,7 @@ import { NoValue } from '#~/components/NoValue';
 import { TableRowTitleDescription } from '#~/components/table';
 import DashboardPopupIconButton from '#~/concepts/dashboard/DashboardPopupIconButton';
 import { MetadataAnnotation, StorageClassConfig, StorageClassKind } from '#~/k8sTypes';
+import AccessModeLabel from '#~/pages/projects/screens/spawner/storage/AccessModeLabel';
 import { ColumnLabel } from './constants';
 import { CorruptedMetadataAlert } from './CorruptedMetadataAlert';
 import { OpenshiftDefaultLabel } from './OpenshiftDefaultLabel';
@@ -31,7 +31,7 @@ import { StorageClassEditModal } from './StorageClassEditModal';
 import { StorageClassEnableSwitch } from './StorageClassEnableSwitch';
 import { useStorageClassContext } from './StorageClassesContext';
 import { StrorageClassConfigValue } from './StorageClassConfigValue';
-import { AccessModeLabelMap, AccessMode } from './storageEnums';
+import { AccessMode } from './storageEnums';
 import { isOpenshiftDefaultStorageClass, isValidConfigValue } from './utils';
 
 interface StorageClassesTableRowProps {
@@ -170,9 +170,7 @@ export const StorageClassesTableRow: React.FC<StorageClassesTableRowProps> = ({ 
                                   modeValue !== AccessMode.RWO,
                               )
                               .map((modeValue) => (
-                                <Label key={modeValue} color="blue" isCompact variant="outline">
-                                  {AccessModeLabelMap[modeValue]}
-                                </Label>
+                                <AccessModeLabel key={modeValue} accessMode={modeValue} />
                               ))}
                           </LabelGroup>
                         )
