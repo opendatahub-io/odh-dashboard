@@ -21,6 +21,7 @@ import {
   notebookConfirmModal,
   notebookImageUpdateModal,
   workbenchPage,
+  attachExistingStorageModal,
 } from '#~/__tests__/cypress/cypress/pages/workbench';
 import { verifyRelativeURL } from '#~/__tests__/cypress/cypress/utils/url';
 import { be } from '#~/__tests__/cypress/cypress/utils/should';
@@ -49,6 +50,7 @@ import type { NotebookKind, PodKind } from '#~/k8sTypes';
 import type { EnvironmentFromVariable } from '#~/pages/projects/types';
 import { SpawnerPageSectionID } from '#~/pages/projects/screens/spawner/types';
 import { acceleratorProfileSection } from '#~/__tests__/cypress/cypress/pages/components/subComponents/AcceleratorProfileSection';
+import { AccessMode } from '#~/pages/storageClasses/storageEnums.ts';
 
 const configYamlPath = '../../__mocks__/mock-upload-configmap.yaml';
 
@@ -1736,5 +1738,122 @@ describe('Workbench page', () => {
     // Verify custom resources were not deleted
     cy.get('@deleteCustomSecret').should('not.have.been.called');
     cy.get('@deleteCustomConfigMap').should('not.have.been.called');
+  });
+
+  describe('Attach existing storage', () => {
+    it('should correctly display grouped PVCs by access mode and update on selection', () => {
+      initIntercepts({
+        isEmpty: true,
+      });
+
+      cy.interceptK8sList(
+        PVCModel,
+        mockK8sResourceList([
+          mockPVCK8sResource({
+            name: 'pvc-rwo',
+            displayName: 'pvc-rwo',
+            accessModes: [AccessMode.RWO],
+            storage: '10Gi',
+          }),
+          mockPVCK8sResource({
+            name: 'pvc-rwx',
+            displayName: 'pvc-rwx',
+            accessModes: [AccessMode.RWX],
+            storage: '5Gi',
+          }),
+          mockPVCK8sResource({
+            name: 'pvc-rox',
+            displayName: 'pvc-rox',
+            accessModes: [AccessMode.ROX],
+            storage: '1Gi',
+          }),
+          mockPVCK8sResource({
+            name: 'pvc-rwop',
+            displayName: 'pvc-rwop',
+            accessModes: [AccessMode.RWOP],
+            storage: '2Gi',
+          }),
+        ]),
+      );
+
+      workbenchPage.visit('test-project');
+      workbenchPage.findCreateButton().click();
+
+      createSpawnerPage.findAttachExistingStorageButton().click();
+      attachExistingStorageModal.findExistingStorageField().findByRole('button').click();
+
+      attachExistingStorageModal.findTypeaheadGroup('readwriteonce-rwo-storage').should('exist');
+      attachExistingStorageModal.findTypeaheadGroup('readwritemany-rwx-storage').should('exist');
+      attachExistingStorageModal.findTypeaheadGroup('readonlymany-rox-storage').should('exist');
+      attachExistingStorageModal
+        .findTypeaheadGroup('readwriteoncepod-rwop-storage')
+        .should('exist');
+
+      attachExistingStorageModal
+        .findTypeaheadOptionUnderGroup('readwriteonce-rwo-storage', 'pvc-rwo')
+        .should('exist');
+      attachExistingStorageModal
+        .findTypeaheadOptionUnderGroup('readwritemany-rwx-storage', 'pvc-rwx')
+        .should('exist');
+      attachExistingStorageModal
+        .findTypeaheadOptionUnderGroup('readonlymany-rox-storage', 'pvc-rox')
+        .should('exist');
+      attachExistingStorageModal
+        .findTypeaheadOptionUnderGroup('readwriteoncepod-rwop-storage', 'pvc-rwop')
+        .should('exist');
+
+      attachExistingStorageModal.selectExistingPersistentStorage('pvc-rwx');
+      attachExistingStorageModal.verifyPSDropdownText('pvc-rwx');
+    });
+
+    it('should not include PVCs that are already attached', () => {
+      initIntercepts({
+        isEmpty: true,
+      });
+
+      const attachedPvcName = 'already-attached-pvc';
+      cy.interceptK8sList(
+        PVCModel,
+        mockK8sResourceList([
+          mockPVCK8sResource({
+            name: attachedPvcName,
+            displayName: attachedPvcName,
+            accessModes: [AccessMode.RWO],
+            storage: '5Gi',
+          }),
+          mockPVCK8sResource({
+            name: 'new-pvc',
+            displayName: 'new-pvc',
+            accessModes: [AccessMode.RWO],
+            storage: '5Gi',
+          }),
+          mockPVCK8sResource({
+            name: 'new-pvc-1',
+            displayName: 'new-pvc-1',
+            accessModes: [AccessMode.RWO],
+            storage: '5Gi',
+          }),
+        ]),
+      );
+
+      workbenchPage.visit('test-project');
+      workbenchPage.findCreateButton().click();
+      createSpawnerPage.findAttachExistingStorageButton().click();
+
+      attachExistingStorageModal.selectExistingPersistentStorage('already-attached-pvc');
+      attachExistingStorageModal.findStandardPathInput().clear().type('mnt/different-path');
+      attachExistingStorageModal.findAttachButton().click();
+
+      createSpawnerPage.findAttachExistingStorageButton().click();
+      attachExistingStorageModal
+        .findExistingStorageField()
+        .findByRole('button')
+        .should('not.be.disabled')
+        .click();
+
+      cy.findAllByRole('option').should('not.contain.text', attachedPvcName);
+      cy.findAllByRole('option').should('contain.text', 'new-pvc');
+      cy.findAllByRole('option').should('contain.text', 'new-pvc-1');
+    });
   });
 });
