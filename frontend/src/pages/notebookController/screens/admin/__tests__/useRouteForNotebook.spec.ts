@@ -28,7 +28,7 @@ describe('useRouteForNotebook', () => {
     ];
 
     expect(getRoute).toHaveBeenCalledWith('test-notebook', 'test-project');
-    expect(route).toBe('https://example.com/notebook/project1/notebook1');
+    expect(route).toBe('https://example.com/notebook/test-project/test-notebook');
     expect(loaded).toBe(true);
     expect(loadError).toBeNull();
   });
