@@ -29,7 +29,7 @@ import {
   getPipelineVolumeMountPatch,
   getPipelineVolumePatch,
 } from '#~/concepts/pipelines/elyra/utils';
-import { Volume, VolumeMount } from '#~/types';
+import { NodeSelector, Volume, VolumeMount } from '#~/types';
 import { getImageStreamDisplayName } from '#~/pages/projects/screens/spawner/spawnerUtils';
 import { k8sMergePatchResource } from '#~/api/k8sUtils';
 import { getshmVolume, getshmVolumeMount } from '#~/api/k8s/utils';
@@ -304,6 +304,7 @@ export const updateNotebook = (
   // clean the resources, affinity and tolerations for accelerator
   oldNotebook.spec.template.spec.tolerations = [];
   oldNotebook.spec.template.spec.affinity = {};
+  oldNotebook.spec.template.spec.nodeSelector = {};
   container.resources = {};
 
   return k8sUpdateResource<NotebookKind>(
@@ -318,19 +319,48 @@ export const updateNotebook = (
 };
 
 export const mergePatchUpdateNotebook = (
+  existingNotebook: NotebookKind,
   assignableData: StartNotebookData,
   username: string,
   opts?: K8sAPIOptions,
-): Promise<NotebookKind> =>
-  k8sMergePatchResource<NotebookKind>(
+): Promise<NotebookKind> => {
+  const notebook = assembleNotebook(assignableData, username, undefined);
+
+  // Remove old node selector keys in merge patch
+  const oldNodeSelectorToRemove: Record<string, string | null> = {};
+  for (const key of Object.keys(existingNotebook.spec.template.spec.nodeSelector || {})) {
+    oldNodeSelectorToRemove[key] = null;
+  }
+
+  const resource: NotebookKind = {
+    ...notebook,
+    spec: {
+      ...notebook.spec,
+      template: {
+        ...notebook.spec.template,
+        spec: {
+          ...notebook.spec.template.spec,
+          // Null values are required for merge patch
+          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+          nodeSelector: {
+            ...oldNodeSelectorToRemove,
+            ...notebook.spec.template.spec.nodeSelector,
+          } as NodeSelector,
+        },
+      },
+    },
+  };
+
+  return k8sMergePatchResource<NotebookKind>(
     applyK8sAPIOptions(
       {
         model: NotebookModel,
-        resource: assembleNotebook(assignableData, username),
+        resource,
       },
       opts,
     ),
   );
+};
 
 export const patchNotebookImage = (
   existingNotebook: NotebookKind,

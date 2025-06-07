@@ -32,8 +32,7 @@ export const getAccessModePopover = ({
     ) {
       listItems.push(
         <React.Fragment key={accessMode}>
-          <strong>{toAccessModeFullName(accessMode)}:</strong>{' '}
-          {ACCESS_MODE_DESCRIPTIONS[accessMode]}
+          <strong>{toAccessModeFullName(accessMode)}</strong> {ACCESS_MODE_DESCRIPTIONS[accessMode]}
         </React.Fragment>,
       );
     }

@@ -10,6 +10,7 @@ type MockResourceConfigType = {
   displayName?: string;
   uid?: string;
   status?: PersistentVolumeClaimKind['status'];
+  accessModes?: AccessMode[];
 };
 
 export const mockPVCK8sResource = ({
@@ -26,6 +27,7 @@ export const mockPVCK8sResource = ({
       storage,
     },
   },
+  accessModes = [AccessMode.RWO],
 }: MockResourceConfigType): PersistentVolumeClaimKind => ({
   kind: 'PersistentVolumeClaim',
   apiVersion: 'v1',
@@ -42,7 +44,7 @@ export const mockPVCK8sResource = ({
     uid,
   },
   spec: {
-    accessModes: [AccessMode.RWO],
+    accessModes,
     resources: {
       requests: {
         storage,

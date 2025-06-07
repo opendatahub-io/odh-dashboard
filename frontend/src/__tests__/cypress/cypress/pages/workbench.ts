@@ -305,6 +305,18 @@ class AttachExistingStorageModal extends Modal {
   findAttachButton() {
     return cy.findByTestId('modal-submit-button');
   }
+
+  findExistingStorageField() {
+    return this.find().findByTestId('persistent-storage-group');
+  }
+
+  findTypeaheadGroup(label: string) {
+    return this.find().get(`[data-testid="typeahead-group-${label}"]`);
+  }
+
+  findTypeaheadOptionUnderGroup(groupLabel: string, optionText: string) {
+    return this.findTypeaheadGroup(groupLabel).contains(optionText);
+  }
 }
 
 class AttachConnectionModal extends Modal {
