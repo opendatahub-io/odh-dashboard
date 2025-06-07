@@ -53,15 +53,15 @@ const LmEvalModelArgumentSection: React.FC<LmEvalModelArgumentSectionProps> = ({
         name="model-tokenized-request-true-radio"
         id="model-tokenized-request-true-radio"
         label="True"
-        isChecked={modelArgument.tokenizedRequest}
-        onChange={() => setModelArgument({ ...modelArgument, tokenizedRequest: true })}
+        isChecked={modelArgument.tokenizedRequest === 'True'}
+        onChange={() => setModelArgument({ ...modelArgument, tokenizedRequest: 'True' })}
       />
       <Radio
         name="model-tokenized-request-false-radio"
         id="model-tokenized-request-false-radio"
         label="False"
-        isChecked={!modelArgument.tokenizedRequest}
-        onChange={() => setModelArgument({ ...modelArgument, tokenizedRequest: false })}
+        isChecked={modelArgument.tokenizedRequest === 'False'}
+        onChange={() => setModelArgument({ ...modelArgument, tokenizedRequest: 'False' })}
       />
     </FormGroup>
     <FormGroup

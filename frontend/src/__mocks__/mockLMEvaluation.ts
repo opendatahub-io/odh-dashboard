@@ -1,4 +1,4 @@
-import { LMEvaluationKind } from '#~/k8sTypes';
+import { LMEvalKind } from '#~/k8sTypes';
 
 type MockLMEvaluationConfigType = {
   name?: string;
@@ -10,7 +10,7 @@ type MockLMEvaluationConfigType = {
   allowCodeExecution?: boolean;
   allowOnline?: boolean;
   logSamples?: boolean;
-  modelArgs?: string[];
+  modelArgs?: { name: string; value: string }[];
   state?: string;
   message?: string;
   reason?: string;
@@ -20,18 +20,17 @@ type MockLMEvaluationConfigType = {
   lastScheduleTime?: string;
 };
 
-export const mockLMEvaluation = (config: MockLMEvaluationConfigType = {}): LMEvaluationKind => {
+export const mockLMEvaluation = (config: MockLMEvaluationConfigType = {}): LMEvalKind => {
   const {
     name = 'test-lm-evaluation',
     namespace = 'test-project',
     model = 'test-model',
     taskNames = ['mmlu', 'hellaswag'],
     batchSize = '8',
-    timeout = 3600,
     allowCodeExecution = false,
     allowOnline = false,
     logSamples = false,
-    modelArgs = [],
+    modelArgs = [{ name: 'model_name', value: 'test-model' }],
     state = 'Pending',
     message = 'Evaluation is pending',
     reason = 'EvaluationPending',
@@ -62,7 +61,6 @@ export const mockLMEvaluation = (config: MockLMEvaluationConfigType = {}): LMEva
         taskNames,
       },
       batchSize,
-      timeout,
       allowCodeExecution,
       allowOnline,
       logSamples,
