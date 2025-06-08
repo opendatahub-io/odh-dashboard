@@ -121,7 +121,6 @@ const InferenceServiceStatus: React.FC<InferenceServiceStatusProps> = ({
     ? modelStatus.failureMessage || 'Insufficient resources'
     : getInferenceServiceStatusMessage(inferenceService);
 
-
   return (
     <Popover
       data-testid="model-status-tooltip"
