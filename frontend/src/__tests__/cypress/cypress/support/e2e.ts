@@ -104,6 +104,14 @@ Cypress.Keyboard.defaults({
   keystrokeDelay: 0,
 });
 
+// Configure grep filtering
+const grepTags = Cypress.env('grepTags') ? Cypress.env('grepTags').split(' ') : [];
+if (grepTags.length > 0) {
+  Cypress.env('grepFilterSpecs', true);
+  Cypress.env('grepOmitFiltered', true);
+  Cypress.env('grepFilterHooks', true);
+}
+
 // eslint-disable-next-line no-console
 console.log(`Support file loaded. \nwatchForFileChanges: ${Cypress.config('watchForFileChanges')}`);
 
@@ -221,34 +229,10 @@ function markSuiteAsSkipped(suite: Mocha.Suite) {
 
 // Print Cypress 'step', 'exec' and 'log' commands to terminal
 let stepCounter: number;
-let commandStack: string[] = [];
+let allTestsPending = false;
 
 beforeEach(() => {
   stepCounter = 0;
-  commandStack = [];
-});
-
-Cypress.on('command:start', (command) => {
-  commandStack.push(command.name);
-});
-
-Cypress.on('command:end', () => {
-  commandStack.pop();
-});
-
-Cypress.on('command:enqueued', (command) => {
-  if (command.name === 'step') {
-    if (commandStack.length === 0) {
-      stepCounter++;
-      cy.task('log', `[STEP ${stepCounter}] ${command.args[0]}`);
-    } else {
-      cy.task('log', `${command.args[0]}`);
-    }
-  } else if (command.name === 'exec') {
-    cy.task('log', `[EXEC] ${command.args[0]}`);
-  } else if (command.name === 'log') {
-    cy.task('log', `${command.args[0]}`);
-  }
 });
 
 // Track test execution
@@ -266,19 +250,24 @@ Cypress.on('suite:start', (suite) => {
     Cypress.suiteTestCount[suite.title] = { total: suite.tests.length, skipped: 0 };
   }
 
-  // Check if we should skip the entire suite
-  if (!suite.title || Cypress.skippedSuites.has(suite.title)) {
+  // Check if all tests in the suite are pending
+  allTestsPending = suite.tests.every((test: { pending: boolean }) => test.pending);
+});
+
+Cypress.on('command:enqueued', (command) => {
+  // Skip all commands if grep tags are active and all tests are pending
+  const grepTags = Cypress.env('grepTags') ? Cypress.env('grepTags').split(' ') : [];
+  if (grepTags.length > 0 && allTestsPending) {
     return;
   }
 
-  // Check if all tests in the suite should be skipped
-  const allTestsShouldBeSkipped = suite.tests.every((test: { title: string }) => {
-    const testTags = Cypress.testTags[test.title];
-    return shouldSkipTest(testTags);
-  });
-
-  if (allTestsShouldBeSkipped) {
-    markSuiteAsSkipped(suite);
+  if (command.name === 'step') {
+    stepCounter++;
+    cy.task('log', `[STEP ${stepCounter}] ${command.args[0]}`);
+  } else if (command.name === 'exec') {
+    cy.task('log', `[EXEC] ${command.args[0]}`);
+  } else if (command.name === 'log') {
+    cy.task('log', `${command.args[0]}`);
   }
 });
 
@@ -287,11 +276,32 @@ Cypress.on('suite:start', (suite) => {
 // ============================
 
 // Global before hook
-before(() => {
+before(function () {
+  // Check if all tests in this suite are pending
+  if (this.test?.parent?.tests.every((t: Mocha.Test) => t.pending)) {
+    cy.log('Skipping setup as all tests are pending');
+    return;
+  }
+
   cy.intercept({ resourceType: /xhr|fetch/ }, { log: false });
 
   if (timeoutSeconds) {
     cy.task('log', `Setting tests timeout to: ${timeoutSeconds} seconds`);
+  }
+});
+
+// Root-level before hook to skip suite if no tests match grep tags
+before(function () {
+  if (grepTags.length > 0) {
+    // Collect all test tags
+    const allTestTags = Object.values(Cypress.testTags).flat();
+    const hasMatchingTest = grepTags.some((tag: string) => {
+      const plainTag = tag.startsWith('@') ? tag.substring(1) : tag;
+      return allTestTags.some((t: string) => t === tag || t === `@${plainTag}`);
+    });
+    if (!hasMatchingTest) {
+      this.skip();
+    }
   }
 });
 
@@ -321,6 +331,17 @@ beforeEach(function beforeEachHook(this: Mocha.Context) {
 
   const skipTags = Cypress.env('skipTags') ? Cypress.env('skipTags').split(' ') : [];
   const grepTags = Cypress.env('grepTags') ? Cypress.env('grepTags').split(' ') : [];
+
+  // Skip test early if grep tags don't match
+  if (grepTags.length > 0) {
+    const shouldRun = grepTags.some((tag: string) => {
+      const plainTag = tag.startsWith('@') ? tag.substring(1) : tag;
+      return mappedTestTags.some((t: string) => t === tag || t === `@${plainTag}`);
+    });
+    if (!shouldRun) {
+      this.skip();
+    }
+  }
 
   // Chain Cypress commands
   cy.task('log', `Test title: ${testTitle}`)
@@ -381,8 +402,14 @@ afterEach(function afterEachHook(this: Mocha.Context) {
   }
 });
 
-// Handle soft assertions in after hook
-after(() => {
+// Global after hook
+after(function () {
+  // Check if all tests in this suite are pending
+  if (this.test?.parent?.tests.every((t: Mocha.Test) => t.pending)) {
+    cy.log('Skipping cleanup as all tests are pending');
+    return;
+  }
+
   // Always run softAssertAll() if any tests were executed
   cy.task('log', 'Checking if any tests were executed...').then(() => {
     if (Cypress.testsExecuted) {
@@ -394,28 +421,3 @@ after(() => {
     }
   });
 });
-
-// Prevent after() calls for skipped tests to avoid unnecessary tests teardown
-const origAfter = (window as Window & typeof globalThis).after;
-(window as Window & typeof globalThis).after = function afterOverride(
-  this: Mocha.Context,
-  nameOrFn: string | Mocha.Func,
-  fn?: Mocha.Func,
-): void {
-  // Skip if context is invalid or test should be skipped
-  if (
-    !(this as unknown) ||
-    (Cypress.env('grepTags') &&
-      this.currentTest &&
-      shouldSkipTest(Cypress.testTags[this.currentTest.title] ?? []))
-  ) {
-    return;
-  }
-
-  // Call original after hook
-  return (origAfter as Mocha.HookFunction).call(
-    this,
-    nameOrFn as string,
-    fn as Mocha.AsyncFunc | undefined,
-  );
-};
