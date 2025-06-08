@@ -142,11 +142,9 @@ export default defineConfig({
         await beforeRunHook(details);
       });
 
-      on('after:run', async (results) => {
+      on('after:run', async () => {
         // cypress-mochawesome-reporter
-        if (results && 'totalTests' in results && results.totalTests > 0) {
-          await afterRunHook();
-        }
+        await afterRunHook();
 
         // merge junit reports into a single report
         const outputFile = path.join(__dirname, resultsDir, 'junit-report.xml');
