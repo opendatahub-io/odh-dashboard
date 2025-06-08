@@ -31,8 +31,12 @@ const LmEvalModelArgumentSection: React.FC<LmEvalModelArgumentSectionProps> = ({
       </>
     }
   >
-    <FormGroup label="Model">{modelArgument.name || '-'}</FormGroup>
-    <FormGroup label="Url">{modelArgument.url || '-'}</FormGroup>
+    <FormGroup label="Model" data-testid="model-argument-name">
+      {modelArgument.name || '-'}
+    </FormGroup>
+    <FormGroup label="Url" data-testid="model-argument-url">
+      {modelArgument.url || '-'}
+    </FormGroup>
     <FormGroup
       label="Tokenized requests"
       labelHelp={
