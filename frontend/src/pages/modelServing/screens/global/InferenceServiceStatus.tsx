@@ -118,8 +118,9 @@ const InferenceServiceStatus: React.FC<InferenceServiceStatusProps> = ({
   };
 
   const bodyContent = modelStatus?.failedToSchedule
-    ? 'Insufficient resources'
+    ? modelStatus.failureMessage || 'Insufficient resources'
     : getInferenceServiceStatusMessage(inferenceService);
+
 
   return (
     <Popover
