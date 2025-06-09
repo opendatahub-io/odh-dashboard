@@ -29,9 +29,11 @@ import type {
  *                        settings related to model serving, model mesh, and KServe.
  */
 export const validateModelServingPlatforms = (dashboardConfig: DashboardConfig): void => {
-  const isModelServingEnabled = dashboardConfig.dashboardConfig.disableModelServing;
-  const isModelMeshEnabled = dashboardConfig.dashboardConfig.disableModelMesh;
-  const isKServeEnabled = dashboardConfig.dashboardConfig.disableKServe;
+  /* eslint-disable @typescript-eslint/no-unnecessary-condition */
+  const isModelServingEnabled = dashboardConfig.dashboardConfig?.disableModelServing;
+  const isModelMeshEnabled = dashboardConfig.dashboardConfig?.disableModelMesh;
+  const isKServeEnabled = dashboardConfig.dashboardConfig?.disableKServe;
+  /* eslint-enable @typescript-eslint/no-unnecessary-condition */
 
   cy.log(`Value of isModelServingEnabled: ${String(isModelServingEnabled)}`);
   cy.log(`Value of isModelMeshEnabled: ${String(isModelMeshEnabled)}`);
@@ -251,6 +253,7 @@ export function restoreTolerationSettings(savedState: {
     }
   });
 }
+
 /**
  * Disables tolerations with a retry mechanism.
  * This function navigates to the cluster settings, finds the enabled checkbox, clicks it, and submits the form.

@@ -104,6 +104,14 @@ Cypress.Keyboard.defaults({
   keystrokeDelay: 0,
 });
 
+// Configure grep filtering
+const grepTags = Cypress.env('grepTags') ? Cypress.env('grepTags').split(' ') : [];
+const skipTags = Cypress.env('skipTags') ? Cypress.env('skipTags').split(' ') : [];
+
+// Helper function to map test tags
+const mapTestTags = (tags: string[]) =>
+  tags.map((tag: string) => (tag.startsWith('@') ? tag : `@${tag}`));
+
 // eslint-disable-next-line no-console
 console.log(`Support file loaded. \nwatchForFileChanges: ${Cypress.config('watchForFileChanges')}`);
 
@@ -159,9 +167,7 @@ setupTestTags();
  * @returns Boolean indicating if the test should be skipped
  */
 function shouldSkipTest(testTags: string[]): boolean {
-  const mappedTestTags = testTags.map((tag: string) => (tag.startsWith('@') ? tag : `@${tag}`));
-  const skipTags = Cypress.env('skipTags') ? Cypress.env('skipTags').split(' ') : [];
-  const grepTags = Cypress.env('grepTags') ? Cypress.env('grepTags').split(' ') : [];
+  const mappedTestTags = mapTestTags(testTags);
 
   // If skip tags are provided and the test has any of them, skip it
   const shouldSkip =
@@ -184,85 +190,39 @@ function shouldSkipTest(testTags: string[]): boolean {
   return shouldSkip || !shouldRun;
 }
 
-/**
- * Marks a suite as skipped by emptying its hooks and updating tracking data
- * @param suite The Mocha suite to skip
- */
-function markSuiteAsSkipped(suite: Mocha.Suite) {
-  // Mark this suite as completely skipped
-  if (suite.title) {
-    Cypress.skippedSuites.add(suite.title);
-  }
-
-  // Skip all tests in the suite
-  suite.tests.forEach((test: { pending: boolean }) => {
-    // Create a copy of the test object with the pending property set to true
-    Object.assign(test, { ...test, pending: true });
-  });
-
-  // Empty all hooks
-  const emptyArray: unknown[] = [];
-  const hooks = ['_beforeAll', '_afterAll', '_beforeEach', '_afterEach'];
-
-  hooks.forEach((hookName) => {
-    if (hookName in suite) {
-      Object.defineProperty(suite, hookName, { value: [...emptyArray] });
-    }
-  });
-
-  if (suite.title) {
-    cy.log(`Skipping entire suite: ${suite.title} as all tests are tagged for skipping`);
-  }
-}
-
 // ============================
 // Event Handlers
 // ============================
 
 // Print Cypress 'step', 'exec' and 'log' commands to terminal
 let stepCounter: number;
+let commandStack: string[] = [];
+
 beforeEach(() => {
   stepCounter = 0;
+  commandStack = [];
 });
+
+Cypress.on('command:start', function handleCommandStart(command) {
+  commandStack.push(command.name);
+});
+
+Cypress.on('command:end', function handleCommandEnd() {
+  commandStack.pop();
+});
+
 Cypress.on('command:enqueued', (command) => {
   if (command.name === 'step') {
-    stepCounter++;
-    cy.task('log', `[STEP ${stepCounter}] ${command.args[0]}`);
+    if (commandStack.length === 0) {
+      stepCounter++;
+      cy.task('log', `[STEP ${stepCounter}] ${command.args[0]}`);
+    } else {
+      cy.task('log', `${command.args[0]}`);
+    }
   } else if (command.name === 'exec') {
     cy.task('log', `[EXEC] ${command.args[0]}`);
   } else if (command.name === 'log') {
     cy.task('log', `${command.args[0]}`);
-  }
-});
-
-// Track test execution
-Cypress.on('test:before:run', (test) => {
-  // Set the flag to indicate a test is running
-  Cypress.testsExecuted = true;
-  // eslint-disable-next-line no-console
-  console.log(`Running test: ${test.title}`);
-});
-
-// Track suites and their tests
-Cypress.on('suite:start', (suite) => {
-  // Initialize suite tracking data
-  if (suite.title) {
-    Cypress.suiteTestCount[suite.title] = { total: suite.tests.length, skipped: 0 };
-  }
-
-  // Check if we should skip the entire suite
-  if (!suite.title || Cypress.skippedSuites.has(suite.title)) {
-    return;
-  }
-
-  // Check if all tests in the suite should be skipped
-  const allTestsShouldBeSkipped = suite.tests.every((test: { title: string }) => {
-    const testTags = Cypress.testTags[test.title];
-    return shouldSkipTest(testTags);
-  });
-
-  if (allTestsShouldBeSkipped) {
-    markSuiteAsSkipped(suite);
   }
 });
 
@@ -271,11 +231,26 @@ Cypress.on('suite:start', (suite) => {
 // ============================
 
 // Global before hook
-before(() => {
+before(function setupGlobalIntercepts() {
   cy.intercept({ resourceType: /xhr|fetch/ }, { log: false });
 
   if (timeoutSeconds) {
     cy.task('log', `Setting tests timeout to: ${timeoutSeconds} seconds`);
+  }
+});
+
+// Root-level before hook to skip suite if no tests match grep tags
+before(function checkGrepTags() {
+  if (grepTags.length > 0) {
+    // Collect all test tags
+    const allTestTags = Object.values(Cypress.testTags).flat();
+    const hasMatchingTest = grepTags.some((tag: string) => {
+      const plainTag = tag.startsWith('@') ? tag.substring(1) : tag;
+      return allTestTags.some((t: string) => t === tag || t === `@${plainTag}`);
+    });
+    if (!hasMatchingTest) {
+      this.skip();
+    }
   }
 });
 
@@ -301,10 +276,7 @@ beforeEach(function beforeEachHook(this: Mocha.Context) {
   }
 
   const testTags = Cypress.testTags[testTitle] ?? [];
-  const mappedTestTags = testTags.map((tag: string) => (tag.startsWith('@') ? tag : `@${tag}`));
-
-  const skipTags = Cypress.env('skipTags') ? Cypress.env('skipTags').split(' ') : [];
-  const grepTags = Cypress.env('grepTags') ? Cypress.env('grepTags').split(' ') : [];
+  const mappedTestTags = mapTestTags(testTags);
 
   // Chain Cypress commands
   cy.task('log', `Test title: ${testTitle}`)
@@ -362,19 +334,18 @@ afterEach(function afterEachHook(this: Mocha.Context) {
       this.currentTest.parent.afterAll(noOpFunction);
       this.currentTest.parent.afterEach(noOpFunction);
     }
+  } else {
+    // If the test wasn't skipped, mark that tests were executed
+    Cypress.testsExecuted = true;
   }
 });
 
 // Handle soft assertions in after hook
 after(() => {
   // Always run softAssertAll() if any tests were executed
-  cy.task('log', 'Checking if any tests were executed...').then(() => {
-    if (Cypress.testsExecuted) {
-      cy.task('log', 'Tests were executed. Running soft assertions...').then(() => {
-        softAssert.softAssertAll();
-      });
-    } else {
-      cy.task('log', 'No tests were executed. Skipping soft assertions.');
-    }
-  });
+  if (Cypress.testsExecuted) {
+    softAssert.softAssertAll();
+  } else {
+    cy.task('log', 'No tests were executed. Skipping soft assertions.');
+  }
 });
