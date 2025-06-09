@@ -3,6 +3,7 @@ export * from './navigation';
 export * from './routes';
 export * from './status-provider';
 export * from './project-details';
+export * from './overview-card.ts';
 
 /**
  * ## Extension Point Definitions

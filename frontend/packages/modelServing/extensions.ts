@@ -3,6 +3,7 @@ import type {
   ProjectDetailsTab,
   AreaExtension,
   RouteExtension,
+  OverviewCardTab,
 } from '@odh-dashboard/plugin-core/extension-points';
 // Allow this import as it consists of types and enums only.
 // eslint-disable-next-line no-restricted-syntax
@@ -10,7 +11,13 @@ import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
 
 const PLUGIN_MODEL_SERVING = 'plugin-model-serving';
 
-const extensions: (AreaExtension | ProjectDetailsTab | HrefNavItemExtension | RouteExtension)[] = [
+const extensions: (
+  | AreaExtension
+  | ProjectDetailsTab
+  | HrefNavItemExtension
+  | RouteExtension
+  | OverviewCardTab
+)[] = [
   {
     type: 'app.area',
     properties: {
@@ -25,6 +32,17 @@ const extensions: (AreaExtension | ProjectDetailsTab | HrefNavItemExtension | Ro
       id: 'model-server', // same value as ProjectSectionID.MODEL_SERVER
       title: 'Models',
       component: () => import('./src/ModelsProjectDetailsTab'),
+    },
+    flags: {
+      required: [PLUGIN_MODEL_SERVING],
+    },
+  },
+  {
+    type: 'app.project-details/overview-section',
+    properties: {
+      id: 'serve-model',
+      title: 'Serve Models',
+      component: () => import('./src/ServeModelsCard'),
     },
     flags: {
       required: [PLUGIN_MODEL_SERVING],
