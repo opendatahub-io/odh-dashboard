@@ -633,7 +633,7 @@ export const ProgressionStepTitles: Record<ProgressionStep, string> = {
   [ProgressionStep.PULLING_NOTEBOOK_IMAGE]: 'Pulling workbench image',
   [ProgressionStep.NOTEBOOK_IMAGE_PULLED]: 'Workbench image pulled',
   [ProgressionStep.NOTEBOOK_CONTAINER_CREATED]: 'Workbench container created',
-  [ProgressionStep.NOTEBOOK_CONTAINER_PROBLEM]: 'There was a problem with the notebook',
+  [ProgressionStep.NOTEBOOK_CONTAINER_PROBLEM]: 'There was a problem with the workbench',
   [ProgressionStep.NOTEBOOK_CONTAINER_STARTED]: 'Workbench container started',
   [ProgressionStep.PULLING_OAUTH]: 'Pulling oauth proxy',
   [ProgressionStep.OAUTH_PULLED]: 'Oauth proxy pulled',

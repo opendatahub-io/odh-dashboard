@@ -7,8 +7,7 @@ import { updateStorageClassConfig } from '#~/api';
 import {
   getStorageClassConfig,
   isOpenshiftDefaultStorageClass,
-  getSupportedAccessModesForProvisioner,
-  getDefaultAccessModeSettings,
+  getStorageClassDefaultAccessModeSettings,
 } from './utils';
 
 export interface StorageClassContextProps {
@@ -75,7 +74,6 @@ export const StorageClassContextProvider: React.FC<StorageClassContextProviderPr
     const updateRequests = storageClasses.reduce(
       (acc: Promise<StorageClassConfig>[], storageClass, index) => {
         const { name } = storageClass.metadata;
-        const { provisioner } = storageClass;
         let config;
         if (storageClass.metadata.annotations?.[MetadataAnnotation.OdhStorageClassConfig]) {
           try {
@@ -92,6 +90,8 @@ export const StorageClassContextProvider: React.FC<StorageClassContextProviderPr
         const isFirstConfig = index === 0;
         const isOpenshiftDefault = openshiftDefaultScName === name;
 
+        const accessModeSettings = getStorageClassDefaultAccessModeSettings(storageClass);
+
         // Add a default config annotation when one doesn't exist
         if (!config) {
           let isDefault = isOpenshiftDefault;
@@ -101,12 +101,6 @@ export const StorageClassContextProvider: React.FC<StorageClassContextProviderPr
             isDefault = isFirstConfig;
             isEnabled = true;
           }
-
-          const supportedAccessModesForProvisioner =
-            getSupportedAccessModesForProvisioner(provisioner);
-          const accessModeSettings = getDefaultAccessModeSettings(
-            supportedAccessModesForProvisioner,
-          );
 
           acc.push(
             updateStorageClassConfig(name, {
@@ -147,6 +141,14 @@ export const StorageClassContextProvider: React.FC<StorageClassContextProviderPr
             acc.push(
               updateStorageClassConfig(defaultStorageClassName, {
                 isEnabled: true,
+              }),
+            );
+          }
+
+          if (!config.accessModeSettings) {
+            acc.push(
+              updateStorageClassConfig(name, {
+                accessModeSettings,
               }),
             );
           }

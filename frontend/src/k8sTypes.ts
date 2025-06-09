@@ -51,13 +51,15 @@ export type DisplayNameAnnotations = Partial<{
   'openshift.io/display-name': string; // the name provided by the user
 }>;
 
+export type AccessModeSettings = Partial<Record<AccessMode, boolean>>;
+
 export type StorageClassConfig = {
   displayName: string;
   isEnabled: boolean;
   isDefault: boolean;
   lastModified: string;
   description?: string;
-  accessModeSettings: Partial<Record<AccessMode, boolean>>;
+  accessModeSettings: AccessModeSettings;
 };
 
 export enum MetadataAnnotation {
