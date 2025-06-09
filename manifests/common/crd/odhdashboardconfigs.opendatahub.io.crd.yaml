@@ -93,6 +93,8 @@ spec:
                       type: boolean
                     disableFineTuning:
                       type: boolean
+                    disableKueue:
+                      type: boolean
                 # TODO: Remove before going to v1
                 groupsConfig:
                   description: 'Ignored -- See "Auth" Resource'

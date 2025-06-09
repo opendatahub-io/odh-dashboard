@@ -44,6 +44,7 @@ export const definedFeatureFlags: string[] = Object.keys({
   disableFineTuning: true,
   disableLlamaStackChatBot: true, // internal dev only
   disableLMEval: true, // internal dev only
+  disableKueue: true,
 } satisfies DashboardCommonConfig);
 
 export const SupportedAreasStateMap: SupportedAreasState = {
