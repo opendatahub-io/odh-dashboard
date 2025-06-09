@@ -44,7 +44,7 @@ type StartingStatusModalProps = {
 // because you can close and re-open this modal; and the 'status' tab only needs to show the current conditions;
 // but the 'event log' tab should show everything (from before the user opens the modal)
 // need to get the events from the parent that already/always exists.
-// (this component only exists when it is open): eslint rules do not allow this component to exist if it not open
+// (this component only exists when it is open): eslint rules do not allow this component to exist if it is not open
 const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose, conditionLog }) => {
   const { pipelinesServer } = usePipelinesAPI();
   const [activeTab, setActiveTab] = React.useState<string>(PROGRESS_TAB);
@@ -63,10 +63,10 @@ const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose, cond
     <Stack hasGutter>
       <StackItem>
         <Stack hasGutter>
-          {pipelinesServer.crStatus?.conditions?.map((condition) => {
+          {pipelinesServer.crStatus?.conditions?.map((condition, index) => {
             const containerStatus = getStatusFromCondition(condition);
             return (
-              <StackItem key={condition.type}>
+              <StackItem key={`${condition.type}-${index}`}>
                 <div>
                   <K8sStatusIcon status={containerStatus} /> {condition.type}
                 </div>
