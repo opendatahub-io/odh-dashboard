@@ -32,10 +32,10 @@ class LMEvalFormPage {
   }
 
   shouldHaveFormSections() {
-    cy.get('label').contains('Model Name').should('be.visible');
-    cy.get('label').contains('Evaluation name').should('be.visible');
-    cy.get('label').contains('Tasks').should('be.visible');
-    cy.get('label').contains('Model type').should('be.visible');
+    cy.findByTestId('model-name-form-group').should('be.visible');
+    cy.findByTestId('evaluation-name-form-group').should('be.visible');
+    cy.findByTestId('tasks-form-group').should('be.visible');
+    cy.findByTestId('model-type-form-group').should('be.visible');
     return this;
   }
 
@@ -65,7 +65,7 @@ class LMEvalFormPage {
   }
 
   private findSecuritySection() {
-    return cy.contains('.pf-v6-c-form__section-title', 'Security settings').parent();
+    return cy.findByTestId('lm-eval-security-section');
   }
 
   findAvailableOnlineTrueRadio() {
@@ -106,6 +106,27 @@ class LMEvalFormPage {
     cy.findByText(modelName).should('be.visible').click();
     // Wait for the model arguments to update by checking that the model name is no longer empty
     this.findModelArgumentName().should('not.contain.text', '-');
+    return this;
+  }
+
+  trySelectModelFromDropdown(modelName: string) {
+    this.findModelNameDropdown().click();
+
+    // Check if the model option exists in the dropdown
+    cy.get('[role="option"]').then(($options) => {
+      const modelExists = $options
+        .toArray()
+        .some((option) => option.textContent?.includes(modelName));
+
+      if (modelExists) {
+        cy.findByText(modelName).click();
+        cy.log(`Successfully selected model: ${modelName}`);
+      } else {
+        // Close dropdown by pressing Escape
+        cy.get('body').type('{esc}');
+        cy.log(`Model "${modelName}" not found in dropdown`);
+      }
+    });
     return this;
   }
 
@@ -194,8 +215,10 @@ class LMEvalFormPage {
 
   shouldHaveSecuritySectionVisible() {
     this.findSecuritySection().should('be.visible');
-    cy.contains('label', 'Available online').should('be.visible');
-    cy.contains('label', 'Trust remote code').should('be.visible');
+    this.findSecuritySection().within(() => {
+      cy.contains('label', 'Available online').should('be.visible');
+      cy.contains('label', 'Trust remote code').should('be.visible');
+    });
     return this;
   }
 

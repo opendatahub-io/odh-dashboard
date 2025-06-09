@@ -122,7 +122,7 @@ const LMEvalForm: React.FC = () => {
     >
       <PageSection hasBodyWrapper={false} isFilled>
         <Form data-testid="lmEvaluationForm" maxWidth="800px">
-          <FormGroup label="Model Name" isRequired>
+          <FormGroup label="Model Name" isRequired data-testid="model-name-form-group">
             <Select
               isOpen={openModelName}
               selected={data.deployedModelName}
@@ -200,6 +200,7 @@ const LMEvalForm: React.FC = () => {
           <FormGroup
             label="Evaluation name"
             isRequired
+            data-testid="evaluation-name-form-group"
             labelHelp={
               <Popover bodyContent={<></>}>
                 <Button
@@ -224,7 +225,7 @@ const LMEvalForm: React.FC = () => {
             tasks={data.tasks}
             setTasks={(selectedTasks: string[]) => setData('tasks', selectedTasks)}
           />
-          <FormGroup label="Model type" isRequired>
+          <FormGroup label="Model type" isRequired data-testid="model-type-form-group">
             <Select
               isOpen={open}
               selected={data.modelType}
