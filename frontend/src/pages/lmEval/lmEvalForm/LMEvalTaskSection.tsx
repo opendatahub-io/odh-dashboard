@@ -41,6 +41,7 @@ const LMEvalTaskSection: React.FC<LmEvalTaskSectionProps> = ({ tasks, setTasks }
     <FormGroup
       label="Tasks"
       isRequired
+      data-testid="tasks-form-group"
       labelHelp={
         <Popover bodyContent={<></>}>
           <Button

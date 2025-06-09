@@ -139,15 +139,10 @@ describe('LMEval Form', () => {
       .shouldHaveSubmitButtonDisabled(); // Still disabled - other required fields missing
 
     // Try model selection for validation
-    lmEvalFormPage.findModelNameDropdown().click();
-    cy.get('body').then(($body) => {
-      if ($body.find(':contains("Granite 8B Code Instruct")').length > 0) {
-        cy.findByText('Granite 8B Code Instruct').click();
-        lmEvalFormPage.checkSubmitButtonState();
-      } else {
-        lmEvalFormPage.shouldHaveSubmitButtonDisabled();
-      }
-    });
+    lmEvalFormPage.trySelectModelFromDropdown('Granite 8B Code Instruct');
+
+    // Check the final button state after the attempt
+    lmEvalFormPage.checkSubmitButtonState();
   });
 
   it('should handle edge cases correctly', () => {
