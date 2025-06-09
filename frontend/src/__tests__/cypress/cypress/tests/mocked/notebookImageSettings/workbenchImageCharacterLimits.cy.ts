@@ -1,6 +1,6 @@
-import { mockByon } from '~/__mocks__/mockByon';
-import { asProductAdminUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
-import { notebookImageSettings } from '~/__tests__/cypress/cypress/pages/notebookImageSettings';
+import { mockByon } from '#~/__mocks__/mockByon';
+import { asProductAdminUser } from '#~/__tests__/cypress/cypress/utils/mockUsers';
+import { notebookImageSettings } from '#~/__tests__/cypress/cypress/pages/notebookImageSettings';
 
 describe('Workbench Image Form Character Limits', () => {
   beforeEach(() => {
