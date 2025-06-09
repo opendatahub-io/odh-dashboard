@@ -60,8 +60,8 @@ const LMEvalCoreLoader: React.FC<LMEvalCoreLoaderProps> = ({ getInvalidRedirectP
   return (
     <ApplicationsPage
       {...renderStateProps}
-      title="Model deployments"
-      description="Manage and view the health and performance of your deployed models."
+      title="Model evaluations"
+      description="Evaluate your model"
       loaded
       headerContent={<LMEvalProjectSelector getRedirectPath={getInvalidRedirectPath} />}
       provideChildrenPadding

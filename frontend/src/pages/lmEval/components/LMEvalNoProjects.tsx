@@ -8,8 +8,13 @@ const LMEvalNoProjects: React.FC = () => {
   const navigate = useNavigate();
 
   return (
-    <EmptyState headingLevel="h4" icon={WrenchIcon} titleText="No data science projects">
-      <EmptyStateBody>
+    <EmptyState
+      headingLevel="h4"
+      icon={WrenchIcon}
+      titleText="No data science projects"
+      data-testid="empty-state-title"
+    >
+      <EmptyStateBody data-testid="empty-state-body">
         To view model evaluations, first create a data science project.
       </EmptyStateBody>
       <EmptyStateFooter>
