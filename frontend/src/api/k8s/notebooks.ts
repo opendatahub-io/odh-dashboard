@@ -94,14 +94,14 @@ export const assembleNotebook = (
     volumeMounts.push(getshmVolumeMount());
   }
 
-  const hardwareProfileNamespace: Record<string, string | null> | null =
+  const hardwareProfileNamespace: Record<string, string | null> =
     selectedHardwareProfile?.metadata.namespace === projectName
       ? { 'opendatahub.io/hardware-profile-namespace': projectName }
       : {
           'opendatahub.io/hardware-profile-namespace': null,
         };
 
-  let acceleratorProfileNamespace: Record<string, string | null> | null = {
+  let acceleratorProfileNamespace: Record<string, string | null> = {
     'opendatahub.io/accelerator-profile-namespace': null,
   };
   if (selectedAcceleratorProfile?.metadata.namespace === projectName) {

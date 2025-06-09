@@ -77,16 +77,14 @@ const useAcceleratorProfileFormState = (
       let acceleratorProfile: AcceleratorProfileKind | undefined;
       if (existingAcceleratorProfileName && acceleratorProfileNamespace) {
         // Look for the profile by both name and namespace in all available profiles
-        acceleratorProfile = allProfiles.find(
+        acceleratorProfile = projectProfiles.find(
           (ap) =>
             ap.metadata.name === existingAcceleratorProfileName &&
             ap.metadata.namespace === acceleratorProfileNamespace,
         );
       } else if (existingAcceleratorProfileName) {
         // Fallback: look by name only if no namespace is specified
-        acceleratorProfile =
-          projectScopedInitialState.acceleratorProfile ||
-          globalScopedInitialState.acceleratorProfile;
+        acceleratorProfile = globalScopedInitialState.acceleratorProfile;
       }
 
       // Check for deleted profile: we have profile reference but can't find it
