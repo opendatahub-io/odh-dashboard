@@ -6,6 +6,7 @@ import { ModelStatusIcon } from '@odh-dashboard/internal/concepts/modelServing/M
 import { TableRowTitleDescription } from '@odh-dashboard/internal/components/table/index';
 import { InferenceServiceModelState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
+import { getServerApiProtocol } from 'concepts/deploymentUtils';
 import { DeploymentEndpointsPopupButton } from './DeploymentEndpointsPopupButton';
 import { Deployment, DeploymentsTableColumn } from '../../../extension-points';
 
@@ -29,12 +30,12 @@ export const DeploymentRow: React.FC<{
     <Td dataLabel="Inference endpoint">
       <DeploymentEndpointsPopupButton
         endpoints={deployment.endpoints}
-        loading={deployment.status?.state === InferenceServiceModelState.LOADING} // Not sure which states we need to show loading
+        loading={deployment.status?.state === InferenceServiceModelState.LOADING}
       />
     </Td>
     <Td dataLabel="API protocol">
-      {deployment.apiProtocol ? (
-        <Label color="yellow">{deployment.apiProtocol}</Label>
+      {getServerApiProtocol(deployment) ? (
+        <Label color="yellow">{getServerApiProtocol(deployment)}</Label>
       ) : (
         <Content component={ContentVariants.small}>Not defined</Content>
       )}
