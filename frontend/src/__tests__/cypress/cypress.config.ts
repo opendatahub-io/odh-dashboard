@@ -97,15 +97,12 @@ export default defineConfig({
           return validateHttpsUrls(urls);
         },
         log(message) {
-          // eslint-disable-next-line no-console
           return logToConsole(LogLevel.INFO, message);
         },
         error(message) {
-          // eslint-disable-next-line no-console
           return logToConsole(LogLevel.ERROR, message);
         },
         table(message) {
-          // eslint-disable-next-line no-console
           return logToConsole(LogLevel.TABLE, message);
         },
       });
