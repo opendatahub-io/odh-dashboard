@@ -30,8 +30,11 @@ const LMEval = (): React.ReactElement => {
       icon={SearchIcon}
       titleText="No evaluations on this project"
       variant={EmptyStateVariant.lg}
+      data-testid="empty-state-title"
     >
-      <EmptyStateBody>No evaluations have been generated within this project</EmptyStateBody>
+      <EmptyStateBody data-testid="empty-state-body">
+        No evaluations have been generated within this project
+      </EmptyStateBody>
       <EmptyStateFooter>
         <EmptyStateActions>
           <EvaluateModelButton />
