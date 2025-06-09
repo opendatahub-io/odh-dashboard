@@ -4,7 +4,6 @@ import { notebookImageSettings } from '~/__tests__/cypress/cypress/pages/noteboo
 
 describe('Workbench Image Form Character Limits', () => {
   beforeEach(() => {
-    // Set up as product admin
     asProductAdminUser();
     cy.interceptOdh('GET /api/images/byon', mockByon([]));
     notebookImageSettings.visit();
