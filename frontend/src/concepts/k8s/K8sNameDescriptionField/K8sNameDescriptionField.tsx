@@ -41,6 +41,8 @@ type K8sNameDescriptionFieldProps = {
   nameHelperText?: React.ReactNode;
   onDataChange?: UseK8sNameDescriptionFieldData['onDataChange'];
   hideDescription?: boolean;
+  maxLength?: number;
+  maxLengthDesc?: number;
 };
 
 /**
@@ -56,10 +58,15 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
   nameLabel = 'Name',
   nameHelperText,
   hideDescription,
+  maxLength,
+  maxLengthDesc,
 }) => {
   const [showK8sField, setShowK8sField] = React.useState(false);
 
   const { name, description, k8sName } = data;
+
+  const showNameWarning = maxLength && name.length > maxLength - 10;
+  const showDescWarning = maxLengthDesc && description.length > maxLengthDesc - 250;
 
   return (
     <>
@@ -73,7 +80,15 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
           isRequired
           value={name}
           onChange={(event, value) => onDataChange?.('name', value)}
+          maxLength={maxLength}
         />
+        {showNameWarning && (
+          <HelperText>
+            <HelperTextItem>
+              Cannot exceed {maxLength} characters ({maxLength - name.length} remaining)
+            </HelperTextItem>
+          </HelperText>
+        )}
         {nameHelperText || (!showK8sField && !k8sName.state.immutable) ? (
           <HelperText>
             {nameHelperText && <HelperTextItem>{nameHelperText}</HelperTextItem>}
@@ -116,7 +131,16 @@ const K8sNameDescriptionField: React.FC<K8sNameDescriptionFieldProps> = ({
             value={description}
             onChange={(event, value) => onDataChange?.('description', value)}
             resizeOrientation="vertical"
+            maxLength={maxLengthDesc}
           />
+          {showDescWarning && (
+            <HelperText>
+              <HelperTextItem>
+                Cannot exceed {maxLengthDesc} characters ({maxLengthDesc - description.length}{' '}
+                remaining)
+              </HelperTextItem>
+            </HelperText>
+          )}
         </FormGroup>
       ) : null}
     </>
