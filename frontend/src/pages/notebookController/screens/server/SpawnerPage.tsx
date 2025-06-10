@@ -67,7 +67,7 @@ const SpawnerPage: React.FC = () => {
   const { buildStatuses } = useAppContext();
   const { currentUserNotebook, requestNotebookRefresh, impersonatedUsername, setImpersonating } =
     React.useContext(NotebookControllerContext);
-  const { notebookNamespace: projectName } = useNamespaces();
+  const { workbenchNamespace } = useNamespaces();
   const currentUserState = useNotebookUserState();
   const username = currentUserState.user;
   const [createInProgress, setCreateInProgress] = React.useState(false);
@@ -134,7 +134,7 @@ const SpawnerPage: React.FC = () => {
       const envVarFileName = generateEnvVarFileNameFromUsername(username);
       const response = await verifyResource<ConfigMap | Secret>(
         envVarFileName,
-        projectName,
+        workbenchNamespace,
         fetchFunc,
       );
       if (response && response.data) {
@@ -160,7 +160,7 @@ const SpawnerPage: React.FC = () => {
       }
       return fetchedVariableRows;
     },
-    [username, projectName],
+    [username, workbenchNamespace],
   );
 
   React.useEffect(() => {
