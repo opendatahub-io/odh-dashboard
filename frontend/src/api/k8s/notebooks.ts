@@ -94,12 +94,21 @@ export const assembleNotebook = (
     volumeMounts.push(getshmVolumeMount());
   }
 
-  const hardwareProfileNamespace: Record<string, string | null> | null =
+  const hardwareProfileNamespace: Record<string, string | null> =
     selectedHardwareProfile?.metadata.namespace === projectName
       ? { 'opendatahub.io/hardware-profile-namespace': projectName }
       : {
           'opendatahub.io/hardware-profile-namespace': null,
         };
+
+  let acceleratorProfileNamespace: Record<string, string | null> = {
+    'opendatahub.io/accelerator-profile-namespace': null,
+  };
+  if (selectedAcceleratorProfile?.metadata.namespace === projectName) {
+    acceleratorProfileNamespace = {
+      'opendatahub.io/accelerator-profile-namespace': data.projectName,
+    };
+  }
 
   const resource: NotebookKind = {
     apiVersion: 'kubeflow.org/v1',
@@ -113,6 +122,7 @@ export const assembleNotebook = (
       },
       annotations: {
         ...hardwareProfileNamespace,
+        ...acceleratorProfileNamespace,
         'openshift.io/display-name': notebookName.trim(),
         'openshift.io/description': description || '',
         'notebooks.opendatahub.io/oauth-logout-url': `${origin}/projects/${projectName}?notebookLogout=${notebookId}`,
