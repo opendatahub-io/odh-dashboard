@@ -18,7 +18,9 @@ import { DeploymentEndpoint } from '../../../extension-points';
 const EndpointListItem: React.FC<{ endpoint: DeploymentEndpoint }> = ({ endpoint }) => (
   <DescriptionListGroup key={endpoint.name}>
     {endpoint.name && <DescriptionListTerm>{endpoint.name}</DescriptionListTerm>}
-    <DescriptionListDescription style={{ paddingLeft: 'var(--pf-t--global--spacer--md)' }}>
+    <DescriptionListDescription
+      style={!endpoint.name ? { paddingLeft: 'var(--pf-t--global--spacer--md)' } : undefined} //keep old indent styling
+    >
       {endpoint.error ? (
         <HelperText>
           <HelperTextItem variant="warning">{endpoint.error}</HelperTextItem>
