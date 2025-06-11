@@ -49,6 +49,7 @@ const useDevFeatureFlags = (
 ): {
   dashboardConfig: DashboardConfigKind | null;
 } & DevFeatureFlags => {
+  console.log('46a dashboardConfig???', dashboardConfig);
   const [isDevFeatureFlagQueryVisible, setDevFeatureFlagQueryVisible] = React.useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const [sessionFlags, setSessionFlags] = useBrowserStorage<Record<string, boolean> | null>(
@@ -59,8 +60,9 @@ const useDevFeatureFlags = (
   );
 
   const devFlags = useDevFlags();
+  console.log('46b devFlags/definedFeatureFlags???', devFlags, definedFeatureFlags);
   const combinedFlags = React.useMemo(() => [...definedFeatureFlags, ...devFlags], [devFlags]);
-
+  console.log('46c combinedFlags???', combinedFlags);
   const isFlag = React.useCallback((key: string) => combinedFlags.includes(key), [combinedFlags]);
 
   // only keep valid feature flags
@@ -85,7 +87,7 @@ const useDevFeatureFlags = (
     }
     return null;
   }, [sessionFlags, isFlag]);
-
+  console.log('46d sanitizedSessionFlags???', sanitizedSessionFlags);
   // read from query string at first then fallback to session
   const firstLoad = React.useRef(true);
   const devFeatureFlags =
@@ -156,6 +158,7 @@ const useDevFeatureFlags = (
     }
   }, [devFeatureFlags, sessionFlags, setSessionFlags]);
 
+  console.log('46e devFeatureFlags???', devFeatureFlags);
   // construct the new dashbaord config by merging in the dev feature flags
   const newDashboardConfig = React.useMemo<DashboardConfigKind | null>(() => {
     if (dashboardConfig && devFeatureFlags) {

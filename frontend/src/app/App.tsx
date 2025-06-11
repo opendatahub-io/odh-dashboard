@@ -58,6 +58,8 @@ const App: React.FC = () => {
   const { dashboardConfig, ...devFeatureFlagsProps } =
     useDevFeatureFlags(dashboardConfigFromServer);
 
+  console.log('arghh: devFeatureFlags (use)....', devFeatureFlagsProps, dashboardConfig);
+
   const [storageClasses] = useStorageClasses();
 
   useDetectUser();

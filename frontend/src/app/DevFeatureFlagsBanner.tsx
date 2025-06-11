@@ -35,35 +35,47 @@ const DevFeatureFlagsBanner: React.FC<Props> = ({
   const [isBannerHidden, setBannerHidden] = React.useState(false);
   const [isModalOpen, setModalOpen] = React.useState(false);
 
+  // here jill
+  console.log(
+    '77a: about to render flags in banner.... (defined flags/fallback flags/devFeatureFlags)',
+    definedFeatureFlags,
+    dashboardConfig,
+    devFeatureFlags,
+  );
   if (!devFeatureFlags || isBannerHidden) {
     return null;
   }
 
-  const renderFlags = (flags: string[], fallbackFlags?: Record<string, boolean | undefined>) => (
-    <Grid hasGutter span={6} md={3}>
-      {flags.toSorted().map((key) => {
-        const value = devFeatureFlags[key] ?? fallbackFlags?.[key];
-        return (
-          <React.Fragment key={key}>
-            <GridItem>
-              <Checkbox
-                id={key}
-                data-testid={`${key}-checkbox`}
-                label={key}
-                isChecked={value ?? null}
-                onChange={(_, checked) => {
-                  setDevFeatureFlag(key, checked);
-                }}
-              />
-            </GridItem>
-            <GridItem data-testid={`${key}-value`}>{`${value ?? ''}${
-              key in devFeatureFlags ? ' (overridden)' : ''
-            }`}</GridItem>
-          </React.Fragment>
-        );
-      })}
-    </Grid>
-  );
+  const renderFlags = (flags: string[], fallbackFlags?: Record<string, boolean | undefined>) => {
+    console.log('889: flags????', flags, fallbackFlags, definedFeatureFlags);
+
+    return (
+      <Grid hasGutter span={6} md={3}>
+        {flags.toSorted().map((key) => {
+          const value = devFeatureFlags[key] ?? fallbackFlags?.[key];
+          return (
+            <React.Fragment key={key}>
+              <GridItem>
+                <Checkbox
+                  id={key}
+                  data-testid={`${key}-checkbox`}
+                  label={key}
+                  isChecked={value ?? null}
+                  onChange={(_, checked) => {
+                    setDevFeatureFlag(key, checked);
+                  }}
+                />
+              </GridItem>
+              <GridItem data-testid={`${key}-value`}>{`${value ?? ''}${
+                key in devFeatureFlags ? ' (overridden)' : ''
+              }`}</GridItem>
+            </React.Fragment>
+          );
+        })}
+      </Grid>
+    );
+  };
+
   return (
     <>
       <Banner color="blue">
@@ -122,6 +134,7 @@ const DevFeatureFlagsBanner: React.FC<Props> = ({
             <Content component="p">
               Feature flags default to the values defined in the dashboard config.
             </Content>
+
             {renderFlags(definedFeatureFlags, dashboardConfig)}
 
             {devFlags.length > 0 ? (
