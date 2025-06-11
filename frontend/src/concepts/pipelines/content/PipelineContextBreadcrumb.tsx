@@ -12,8 +12,7 @@ import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { IconSize } from '#~/types.ts';
 import { ProjectIconWithSize } from '#~/concepts/projects/ProjectIconWithSize.tsx';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils.ts';
-
-import './PipelineContextBreadcrumb.scss';
+import '#~/pages/pipelines/global/GlobalPipelineCoreDetails.scss';
 
 type PipelineContextBreadcrumbProps = {
   children: React.ReactNode;
