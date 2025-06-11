@@ -1,15 +1,66 @@
+const { execSync } = require('child_process');
 const { ModuleFederationPlugin } = require('@module-federation/enhanced/webpack');
 const deps = require('../package.json').dependencies;
 
 const updateTypes = !!process.env.MF_UPDATE_TYPES;
-let mfConfig = [];
-if (process.env.MODULE_FEDERATION_CONFIG) {
+
+/**
+ * Get all workspace packages using npm query
+ * @returns {Array} Array of workspace package objects
+ */
+function getWorkspacePackages() {
   try {
-    mfConfig = JSON.parse(process.env.MODULE_FEDERATION_CONFIG);
-    console.log('Federated modules:', mfConfig.map((c) => c.name).join(', '));
-  } catch (e) {
-    console.error('Failed to parse module federation config', e);
+    const stdout = execSync('npm query .workspace --json', {
+      encoding: 'utf8',
+      cwd: process.cwd(),
+    });
+    return JSON.parse(stdout);
+  } catch (error) {
+    console.warn('Error querying workspaces with npm query:', error.message);
+    return [];
   }
+}
+
+// Function to read module federation config from workspace packages
+const readModuleFederationConfigFromPackages = () => {
+  const configs = [];
+
+  try {
+    const workspacePackages = getWorkspacePackages();
+
+    for (const pkg of workspacePackages) {
+      const federatedConfigProperty = pkg['module-federation'];
+      if (federatedConfigProperty) {
+        configs.push(federatedConfigProperty);
+      }
+    }
+  } catch (e) {
+    console.error('Failed to process workspace packages for module federation.', e);
+  }
+
+  return configs;
+};
+
+const getModuleFederationConfig = () => {
+  if (process.env.MODULE_FEDERATION_CONFIG) {
+    try {
+      return JSON.parse(process.env.MODULE_FEDERATION_CONFIG);
+    } catch (e) {
+      console.log.error('Failed to parse module federation config from ENV', e);
+    }
+  } else {
+    // read the module federation config from the workspace packages
+    return readModuleFederationConfigFromPackages();
+  }
+  return [];
+};
+
+const mfConfig = getModuleFederationConfig();
+if (mfConfig.length > 0) {
+  console.log(
+    'Federated modules:',
+    mfConfig.map((c) => c.name),
+  );
 }
 
 module.exports = {
@@ -40,17 +91,25 @@ module.exports = {
                   return acc;
                 }, {}),
             shared: {
-              react: { singleton: true, eager: true, requiredVersion: deps.react },
-              'react-dom': { singleton: true, eager: true, requiredVersion: deps['react-dom'] },
+              react: { singleton: true, requiredVersion: deps.react },
+              'react-dom': { singleton: true, requiredVersion: deps['react-dom'] },
               'react-router': {
                 singleton: true,
-                eager: true,
                 requiredVersion: deps['react-router'],
               },
               'react-router-dom': {
                 singleton: true,
-                eager: true,
                 requiredVersion: deps['react-router-dom'],
+              },
+              '@patternfly/react-core': {
+                requiredVersion: deps['@patternfly/react-core'],
+              },
+              '@patternfly/react-icons': {
+                requiredVersion: deps['@patternfly/react-icons'],
+              },
+              '@odh-dashboard/plugin-core': {
+                singleton: true,
+                requiredVersion: '0.0.0',
               },
             },
             exposes: {},
