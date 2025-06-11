@@ -209,6 +209,7 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
                 setData={setCreateData}
                 templates={servingRuntimeTemplates || []}
                 isEditing={!!editInfo}
+                servingRuntimeSelected={servingRuntimeSelected}
                 compatibleIdentifiers={profileIdentifiers}
               />
             </StackItem>

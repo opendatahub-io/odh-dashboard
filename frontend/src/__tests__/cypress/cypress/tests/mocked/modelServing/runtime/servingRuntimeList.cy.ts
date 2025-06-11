@@ -118,6 +118,7 @@ const initIntercepts = ({
       route: true,
       tolerations: [],
       nodeSelector: {},
+      version: 'v1.0.0',
     }),
   ],
   inferenceServices = [
@@ -3344,6 +3345,17 @@ describe('Serving Runtime List', () => {
       createServingRuntimeModal.findServingRuntimeTemplateSearchSelector().within(() => {
         createServingRuntimeModal.findServingRuntimeVersionLabel().should('exist');
       });
+      createServingRuntimeModal.findCloseButton().click();
+
+      // Check that the label is displayed when editing
+      modelServingSection
+        .getModelMeshRow('OVMS Model Serving')
+        .find()
+        .findKebabAction('Edit model server')
+        .click();
+      editServingRuntimeModal.findServingRuntimeTemplateSearchSelector().within(() => {
+        editServingRuntimeModal.findServingRuntimeVersionLabel().should('exist');
+      });
     });
 
     it('displays label in search selector when single-model serving is selected', () => {
@@ -3363,6 +3375,13 @@ describe('Serving Runtime List', () => {
       kserveModal.findGlobalScopedTemplateOption('Multi Platform').click();
       kserveModal.findServingRuntimeTemplateSearchSelector().within(() => {
         kserveModal.findServingRuntimeVersionLabel().should('exist');
+      });
+      kserveModal.findCloseButton().click();
+
+      // Check that the label is displayed when editing
+      modelServingSection.getKServeRow('Llama Caikit').find().findKebabAction('Edit').click();
+      kserveModalEdit.findServingRuntimeTemplateSearchSelector().within(() => {
+        kserveModalEdit.findServingRuntimeVersionLabel().should('exist');
       });
     });
   });
