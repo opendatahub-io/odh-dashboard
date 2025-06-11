@@ -34,11 +34,6 @@ import {
   mockModelServingFields,
   mockOciConnectionTypeConfigMap,
 } from '~/__mocks__/mockConnectionType';
-import { hardwareProfileSection } from '~/__tests__/cypress/cypress/pages/components/HardwareProfileSection';
-import {
-  mockGlobalScopedHardwareProfiles,
-  mockProjectScopedHardwareProfiles,
-} from '~/__mocks__/mockHardwareProfile';
 import { initInterceptsForAllProjects } from '~/__tests__/cypress/cypress/utils/servingUtils';
 import { nimDeployModal } from '~/__tests__/cypress/cypress/pages/components/NIMDeployModal';
 
