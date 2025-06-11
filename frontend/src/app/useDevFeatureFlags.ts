@@ -60,6 +60,7 @@ const useDevFeatureFlags = (
 
   const devFlags = useDevFlags();
   const combinedFlags = React.useMemo(() => [...definedFeatureFlags, ...devFlags], [devFlags]);
+
   const isFlag = React.useCallback((key: string) => combinedFlags.includes(key), [combinedFlags]);
 
   // only keep valid feature flags

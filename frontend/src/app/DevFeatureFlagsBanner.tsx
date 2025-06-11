@@ -64,7 +64,6 @@ const DevFeatureFlagsBanner: React.FC<Props> = ({
       })}
     </Grid>
   );
-
   return (
     <>
       <Banner color="blue">
@@ -123,7 +122,6 @@ const DevFeatureFlagsBanner: React.FC<Props> = ({
             <Content component="p">
               Feature flags default to the values defined in the dashboard config.
             </Content>
-
             {renderFlags(definedFeatureFlags, dashboardConfig)}
 
             {devFlags.length > 0 ? (
