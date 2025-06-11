@@ -3,7 +3,6 @@
 // FIXME: We can remove this once https://github.com/patternfly/patternfly/issues/7554 is fixed.
 .link-button-with-icon {
   position: relative;
-  overflow: hidden;
   text-decoration: none;
 
   &::after {
@@ -15,5 +14,6 @@
     bottom: 0;
     top: 2px;
     letter-spacing: 1000px;
+    overflow: hidden;
   }
 }

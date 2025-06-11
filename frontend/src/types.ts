@@ -763,9 +763,3 @@ export enum IconSize {
   XL = 'xl',
   XXL = 'xxl',
 }
-
-export enum FontSize {
-  DEFAULT = 'default',
-  SM = 'sm',
-  LG = 'lg',
-}
