@@ -1,11 +1,11 @@
 import * as React from 'react';
 import { FormGroup, FormSection, Stack, StackItem, Content } from '@patternfly/react-core';
-import { ExperimentKF } from '~/concepts/pipelines/kfTypes';
+import { ExperimentKF } from '#~/concepts/pipelines/kfTypes';
 import {
   CreateRunPageSections,
   runPageSectionTitles,
-} from '~/concepts/pipelines/content/createRun/const';
-import { ActiveExperimentSelector } from '~/concepts/pipelines/content/experiment/ExperimentSelector';
+} from '#~/concepts/pipelines/content/createRun/const';
+import { ActiveExperimentSelector } from '#~/concepts/pipelines/content/experiment/ExperimentSelector';
 
 
 type ProjectAndExperimentSectionProps = {
