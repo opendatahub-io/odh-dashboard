@@ -48,6 +48,8 @@ import { useNIMTemplateName } from '~/pages/modelServing/screens/projects/useNIM
 import { KServeDeploymentModeDropdown } from '~/pages/modelServing/screens/projects/kServeModal/KServeDeploymentModeDropdown';
 import { useModelServingPodSpecOptionsState } from '~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
 import { useKServeDeploymentMode } from '~/pages/modelServing/useKServeDeploymentMode';
+import StorageClassSelect from '~/pages/projects/screens/spawner/storage/StorageClassSelect';
+import useDefaultStorageClass from '~/pages/projects/screens/spawner/storage/useDefaultStorageClass';
 import { NoAuthAlert } from './NoAuthAlert';
 
 const NIM_SECRET_NAME = 'nvidia-nim-secrets';
@@ -125,6 +127,26 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
     editInfo?.inferenceServiceEditInfo?.metadata.namespace,
     editInfo?.servingRuntimeEditInfo?.servingRuntime,
   );
+
+  const isStorageClassesAvailable = useIsAreaAvailable(SupportedArea.STORAGE_CLASSES).status;
+  const [defaultSc] = useDefaultStorageClass();
+  const defaultStorageClassName = defaultSc?.metadata.name || '';
+  const deployedStorageClassName = pvc?.spec.storageClassName || '';
+  const [storageClassName, setStorageClassName] = React.useState(
+    deployedStorageClassName || defaultStorageClassName,
+  );
+
+  React.useEffect(() => {
+    if (pvc?.spec.storageClassName) {
+      // If a deployed storage class exists, use it.
+      if (storageClassName !== pvc.spec.storageClassName) {
+        setStorageClassName(pvc.spec.storageClassName);
+      }
+    } else if (defaultStorageClassName && storageClassName === '') {
+      // Otherwise, if the default storage class is available and state is empty, use it.
+      setStorageClassName(defaultStorageClassName);
+    }
+  }, [pvc, defaultStorageClassName, storageClassName]);
 
   React.useEffect(() => {
     if (currentProjectName) {
@@ -277,7 +299,7 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
           if (await isSecretNeeded(namespace, NIM_NGC_SECRET_NAME)) {
             promises.push(createNIMSecret(namespace, 'nimPullSecret', true, false));
           }
-          promises.push(createNIMPVC(namespace, nimPVCName, pvcSize, false));
+          promises.push(createNIMPVC(namespace, nimPVCName, pvcSize, false, storageClassName));
         } else if (pvc && pvc.spec.resources.requests.storage !== pvcSize) {
           const updatePvcData = {
             size: pvcSize, // New size
@@ -349,6 +371,16 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
                 isEditing={!!editInfo}
               />
             </StackItem>
+          </StackItem>
+          <StackItem>
+            {isStorageClassesAvailable && (
+              <StorageClassSelect
+                storageClassName={storageClassName}
+                setStorageClassName={setStorageClassName}
+                isRequired
+                disableStorageClassSelect={!!editInfo}
+              />
+            )}
           </StackItem>
           <StackItem>
             <NIMPVCSizeSection pvcSize={pvcSize} setPvcSize={setPvcSize} />
