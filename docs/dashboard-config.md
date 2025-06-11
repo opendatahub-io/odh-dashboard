@@ -27,7 +27,7 @@ The following are a list of features that are supported, along with their defaul
 | disableProjectSharing        | false   | Disables Project Sharing from Data Science Projects.                                                 |
 | disableCustomServingRuntimes | false   | Disables Custom Serving Runtimes from the Admin Panel.                                               |
 | disableKServe                | false   | Disables the ability to select KServe as a Serving Platform.                                         |
-| disableKueue                 | true    | Disables the integration with Kueue; which enables management and scheduling of  AI/ML workloads     |
+| disableKueue                 | true    | Disables the integration with Kueue; which enables management and scheduling of AI/ML workloads     |
 | disableKServeAuth            | false   | Disables the ability to use auth in KServe.                                                          |
 | disableKServeMetrics         | false   | Disables the ability to see KServe Metrics.                                                          |
 | disableKServeRaw             | false   | Disables the option to deploy in raw instead of serverless.                                          |
