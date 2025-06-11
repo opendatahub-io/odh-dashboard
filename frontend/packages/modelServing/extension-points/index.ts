@@ -118,3 +118,15 @@ export const isModelServingDeleteModal = <D extends Deployment = Deployment>(
   extension: Extension,
 ): extension is ModelServingDeleteModal<D> =>
   extension.type === 'model-serving.platform/delete-modal';
+
+export type ModelServingMetricsExtension = Extension<
+  'model-serving.metrics',
+  {
+    platform: string;
+    useIsMetricsSupported: CodeRef<() => boolean>;
+  }
+>;
+
+export const isModelServingMetricsExtension = (
+  extension: Extension,
+): extension is ModelServingMetricsExtension => extension.type === 'model-serving.metrics';

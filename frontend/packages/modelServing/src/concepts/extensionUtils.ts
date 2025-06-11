@@ -7,6 +7,7 @@ import {
   useExtensions,
 } from '@openshift/dynamic-plugin-sdk';
 import { ModelServingPlatform } from './modelServingPlatforms';
+import { Deployment } from '../../extension-points';
 
 export const usePlatformExtension = <T extends Extension>(
   extensionPredicate: ExtensionPredicate<T>,
@@ -33,5 +34,25 @@ export const useResolvedPlatformExtension = <T extends Extension>(
       errors,
     ],
     [resolvedExtensions, platform, loaded, errors],
+  );
+};
+
+export const useResolvedDeploymentExtension = <T extends Extension>(
+  extensionPredicate: ExtensionPredicate<T>,
+  deployment: Deployment,
+): [ResolvedExtension<T> | undefined | null, boolean, unknown[]] => {
+  const [resolvedExtensions, loaded, errors] = useResolvedExtensions<T>(extensionPredicate);
+
+  return React.useMemo(
+    () => [
+      !loaded
+        ? undefined
+        : resolvedExtensions.find(
+            (ext) => ext.properties.platform === deployment.modelServingPlatformId,
+          ) ?? null,
+      loaded,
+      errors,
+    ],
+    [resolvedExtensions, deployment.modelServingPlatformId, loaded, errors],
   );
 };
