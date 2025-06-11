@@ -58,12 +58,12 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
   const databaseIsValid = config.database.useDefault
     ? true
     : config.database.value.every(({ key, value }) =>
-      DATABASE_CONNECTION_FIELDS.filter((field) => field.isRequired)
-        .map((field) => field.key)
-        .includes(key)
-        ? !!value
-        : true,
-    );
+        DATABASE_CONNECTION_FIELDS.filter((field) => field.isRequired)
+          .map((field) => field.key)
+          .includes(key)
+          ? !!value
+          : true,
+      );
 
   const objectIsValid = objectStorageIsValid(config.objectStorage.newValue);
   const canSubmit = databaseIsValid && objectIsValid;
@@ -81,7 +81,7 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
   };
 
   const pollStatus = (pipelineNamespace: string) => {
-    const createTime = new Date(Date.now()).getTime();
+    const createTime = Date.now();
 
     const getStatus = async () => {
       try {
@@ -91,7 +91,6 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
         }
 
         const response = await listPipelinesCR(pipelineNamespace);
-        console.log(response);
 
         // if we find an APIServerReady true condition, we know the pipeline server is ready
         if (
@@ -102,8 +101,8 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
           clearInterval(pollInterval);
           notification.success(`Pipeline server for ${pipelineNamespace} is ready.`, null, [
             {
-              title: pipelineNamespace,
-              onClick: () => <Navigate to={pipelinesBaseRoute(pipelineNamespace)} />,
+              title: `${pipelineNamespace} pipeline server`,
+              onClick: () => navigate(pipelinesBaseRoute(pipelineNamespace)),
             },
           ]);
         }
@@ -121,8 +120,8 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
           <>{e instanceof Error ? e.message : 'Unknown error'}</>,
           [
             {
-              title: pipelineNamespace,
-              onClick: () => Navigate />,
+              title: `${pipelineNamespace} pipeline server`,
+              onClick: () => navigate(pipelinesBaseRoute(pipelineNamespace)),
             },
           ],
         );
