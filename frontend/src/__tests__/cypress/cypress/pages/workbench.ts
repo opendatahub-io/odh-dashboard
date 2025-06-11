@@ -242,12 +242,8 @@ class NotebookRow extends TableRow {
     this.findHaveNotebookStatusText(timeout).should('have.text', statusValue);
   }
 
-  findNotebookStart() {
-    return this.find().findByTestId('notebook-start-action');
-  }
-
-  findNotebookStop() {
-    return this.find().findByTestId('notebook-stop-action');
+  findNotebookStopToggle() {
+    return this.find().findByTestId('state-action-toggle');
   }
 
   findNotebookStatusModal() {
