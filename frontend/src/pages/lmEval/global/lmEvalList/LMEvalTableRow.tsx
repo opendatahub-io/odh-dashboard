@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
-import { Timestamp } from '@patternfly/react-core';
+import { Button, Timestamp } from '@patternfly/react-core';
+import { useNavigate } from 'react-router';
 import { LMEvalKind } from '#~/k8sTypes';
 import { downloadString } from '#~/utilities/string';
 import { LMEvalState } from '#~/pages/lmEval/types';
@@ -12,13 +13,24 @@ type LMEvalTableRowType = {
   onDeleteLMEval: (lmEval: LMEvalKind) => void;
 };
 
-const LMEvalTableRow: React.FC<LMEvalTableRowType> = ({ lmEval, onDeleteLMEval }) => {
+const LMEvalTableRow: React.FC<LMEvalTableRowType> = ({ lmEval }) => {
+  const navigate = useNavigate();
   const handleDownload = () => {
     downloadString(`${lmEval.metadata.name}.json`, lmEval.status?.results || '{}');
   };
   return (
     <Tr>
-      <Td dataLabel="Evaluation">{getDisplayNameFromK8sResource(lmEval)}</Td>
+      <Td dataLabel="Evaluation">
+        <Button
+          variant="link"
+          data-testid="lm-evaluation-cancel-button"
+          onClick={() => {
+            navigate(`result/${lmEval.metadata.name}`);
+          }}
+        >
+          {lmEval.metadata.name}{' '}
+        </Button>
+      </Td>
       <Td dataLabel="Model">
         {lmEval.spec.modelArgs?.find((arg) => arg.name === 'model')?.value || '-'}
       </Td>
