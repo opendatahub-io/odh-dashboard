@@ -303,3 +303,16 @@ export type NotebookTolerationsTestData = {
   tolerationValue: string;
   hardwareProfileDeploymentSize: string;
 };
+
+export type RegisterModelTestData = {
+  registryNamePrefix: string;
+  objectStorageModelName: string;
+  uriModelName: string;
+};
+
+export enum AccessMode {
+  RWO = 'ReadWriteOnce',
+  RWX = 'ReadWriteMany',
+  ROX = 'ReadOnlyMany',
+  RWOP = 'ReadWriteOncePod',
+}

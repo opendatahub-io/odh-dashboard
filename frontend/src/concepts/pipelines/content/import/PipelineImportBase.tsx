@@ -9,22 +9,22 @@ import {
   ModalHeader,
   ModalFooter,
 } from '@patternfly/react-core';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
-import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
-import { DuplicateNameHelperText } from '~/concepts/pipelines/content/DuplicateNameHelperText';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+import { PipelineKF, PipelineVersionKF } from '#~/concepts/pipelines/kfTypes';
+import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
+import { DuplicateNameHelperText } from '#~/concepts/pipelines/content/DuplicateNameHelperText';
 import {
   PIPELINE_IMPORT_ARGO_ERROR_TEXT,
   PIPELINE_ARGO_ERROR,
   NAME_CHARACTER_LIMIT,
   DESCRIPTION_CHARACTER_LIMIT,
   PIPELINE_IMPORT_V1_ERROR_TEXT,
-} from '~/concepts/pipelines/content/const';
-import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
-import useDebounceCallback from '~/utilities/useDebounceCallback';
-import NameDescriptionField from '~/concepts/k8s/NameDescriptionField';
-import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
-import PipelineMigrationNoteLinks from '~/concepts/pipelines/content/PipelineMigrationNoteLinks';
+} from '#~/concepts/pipelines/content/const';
+import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
+import useDebounceCallback from '#~/utilities/useDebounceCallback';
+import NameDescriptionField from '#~/concepts/k8s/NameDescriptionField';
+import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
+import PipelineMigrationNoteLinks from '#~/concepts/pipelines/content/PipelineMigrationNoteLinks';
 import { PipelineUploadOption, extractKindFromPipelineYAML, isYAMLPipelineV1 } from './utils';
 import PipelineUploadRadio from './PipelineUploadRadio';
 import { PipelineImportData } from './useImportModalData';

@@ -1,32 +1,32 @@
-import { testHook } from '~/__tests__/unit/testUtils/hooks';
-import { mockHardwareProfile } from '~/__mocks__/mockHardwareProfile';
-import { mockDashboardConfig, mockNotebookK8sResource } from '~/__mocks__';
-import { DEFAULT_NOTEBOOK_SIZES } from '~/pages/projects/screens/spawner/const';
-import { Notebook } from '~/types';
-import * as areasUtils from '~/concepts/areas';
-import * as appContext from '~/app/AppContext';
-import { useNotebookSizeState } from '~/pages/projects/screens/spawner/useNotebookSizeState';
-import { usePreferredNotebookSize } from '~/pages/notebookController/screens/server/usePreferredNotebookSize';
-import useNotebookAcceleratorProfileFormState from '~/pages/projects/screens/detail/notebooks/useNotebookAcceleratorProfileFormState';
-import { useNotebookPodSpecOptionsState } from '~/concepts/hardwareProfiles/useNotebookPodSpecOptionsState';
-import useNotebookHardwareProfileConfig from '~/concepts/hardwareProfiles/useNotebookHardwareProfileConfig';
+import { testHook } from '#~/__tests__/unit/testUtils/hooks';
+import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile';
+import { mockDashboardConfig, mockNotebookK8sResource } from '#~/__mocks__';
+import { DEFAULT_NOTEBOOK_SIZES } from '#~/pages/projects/screens/spawner/const';
+import { Notebook } from '#~/types';
+import * as areasUtils from '#~/concepts/areas';
+import * as appContext from '#~/app/AppContext';
+import { useNotebookSizeState } from '#~/pages/projects/screens/spawner/useNotebookSizeState';
+import { usePreferredNotebookSize } from '#~/pages/notebookController/screens/server/usePreferredNotebookSize';
+import useNotebookAcceleratorProfileFormState from '#~/pages/projects/screens/detail/notebooks/useNotebookAcceleratorProfileFormState';
+import { useNotebookPodSpecOptionsState } from '#~/concepts/hardwareProfiles/useNotebookPodSpecOptionsState';
+import useNotebookHardwareProfileConfig from '#~/concepts/hardwareProfiles/useNotebookHardwareProfileConfig';
 
 global.structuredClone = (val: unknown) => JSON.parse(JSON.stringify(val));
 
-jest.mock('~/concepts/areas', () => ({
-  ...jest.requireActual('~/concepts/areas'),
+jest.mock('#~/concepts/areas', () => ({
+  ...jest.requireActual('#~/concepts/areas'),
   useIsAreaAvailable: jest.fn(),
 }));
 
-jest.mock('~/app/AppContext', () => ({
+jest.mock('#~/app/AppContext', () => ({
   useAppContext: jest.fn(),
 }));
 
-jest.mock('~/pages/projects/screens/spawner/useNotebookSizeState', () => ({
+jest.mock('#~/pages/projects/screens/spawner/useNotebookSizeState', () => ({
   useNotebookSizeState: jest.fn(),
 }));
 
-jest.mock('~/pages/notebookController/screens/server/usePreferredNotebookSize', () => ({
+jest.mock('#~/pages/notebookController/screens/server/usePreferredNotebookSize', () => ({
   usePreferredNotebookSize: jest.fn(),
 }));
 
@@ -36,7 +36,7 @@ jest.mock('../useNotebookHardwareProfileConfig', () => ({
 }));
 
 jest.mock(
-  '~/pages/projects/screens/detail/notebooks/useNotebookAcceleratorProfileFormState',
+  '#~/pages/projects/screens/detail/notebooks/useNotebookAcceleratorProfileFormState',
   () => ({
     __esModule: true,
     default: jest.fn(),
@@ -56,6 +56,7 @@ describe('useNotebookPodSpecOptionsState', () => {
   beforeEach(() => {
     mockUseIsAreaAvailable.mockReturnValue({
       status: true,
+      devFlags: {},
       featureFlags: {},
       reliantAreas: {},
       requiredComponents: {},
@@ -227,6 +228,7 @@ describe('useNotebookPodSpecOptionsState', () => {
   it('should use legacy pod spec options when hardware profiles are not available', () => {
     mockUseIsAreaAvailable.mockReturnValue({
       status: false,
+      devFlags: {},
       featureFlags: {},
       reliantAreas: {},
       requiredComponents: {},

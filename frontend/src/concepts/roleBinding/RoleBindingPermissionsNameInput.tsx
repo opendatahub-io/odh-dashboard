@@ -1,9 +1,9 @@
 import React from 'react';
 import { TextInput } from '@patternfly/react-core';
-import { RoleBindingSubject } from '~/k8sTypes';
-import { namespaceToProjectDisplayName } from '~/concepts/projects/utils';
-import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
-import TypeaheadSelect from '~/components/TypeaheadSelect';
+import { RoleBindingSubject } from '#~/k8sTypes';
+import { namespaceToProjectDisplayName } from '#~/concepts/projects/utils';
+import { ProjectsContext } from '#~/concepts/projects/ProjectsContext';
+import TypeaheadSelect from '#~/components/TypeaheadSelect';
 import { RoleBindingPermissionsRBType } from './types';
 
 type RoleBindingPermissionsNameInputProps = {

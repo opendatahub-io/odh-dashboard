@@ -1,5 +1,5 @@
 /* eslint-disable camelcase */
-import { ArtifactStorage } from '~/concepts/pipelines/types';
+import { ArtifactStorage } from '#~/concepts/pipelines/types';
 
 type MockArtifactStorageType = {
   namespace?: string;

@@ -3,9 +3,9 @@ import { z } from 'zod';
 import {
   EXTENSION_REGEX,
   isDuplicateExtension,
-} from '~/concepts/connectionTypes/fields/fieldUtils';
-import { ConnectionTypeFieldType } from '~/concepts/connectionTypes/types';
-import { isConnectionTypeDataField } from '~/concepts/connectionTypes/utils';
+} from '#~/concepts/connectionTypes/fields/fieldUtils';
+import { ConnectionTypeFieldType } from '#~/concepts/connectionTypes/types';
+import { isConnectionTypeDataField } from '#~/concepts/connectionTypes/utils';
 
 const baseFieldSchema = z.object({
   name: z.string().min(1, { message: 'Name is required' }),

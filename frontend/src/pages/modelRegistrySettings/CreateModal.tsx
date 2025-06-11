@@ -14,33 +14,33 @@ import {
   ModalHeader,
   ModalFooter,
 } from '@patternfly/react-core';
-import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
-import { ModelRegistryKind } from '~/k8sTypes';
-import { ModelRegistryModel } from '~/api';
+import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
+import { ModelRegistryKind } from '#~/k8sTypes';
+import { ModelRegistryModel } from '#~/api';
 import {
   createModelRegistryBackend,
   updateModelRegistryBackend,
-} from '~/services/modelRegistrySettingsService';
-import { isValidK8sName, kindApiVersion, translateDisplayNameForK8s } from '~/concepts/k8s/utils';
-import FormSection from '~/components/pf-overrides/FormSection';
-import { AreaContext } from '~/concepts/areas/AreaContext';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+} from '#~/services/modelRegistrySettingsService';
+import { isValidK8sName, kindApiVersion, translateDisplayNameForK8s } from '#~/concepts/k8s/utils';
+import FormSection from '#~/components/pf-overrides/FormSection';
+import { AreaContext } from '#~/concepts/areas/AreaContext';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
-} from '~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
-import useModelRegistryCertificateNames from '~/concepts/modelRegistrySettings/useModelRegistryCertificateNames';
+} from '#~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
+import useModelRegistryCertificateNames from '#~/concepts/modelRegistrySettings/useModelRegistryCertificateNames';
 import {
   constructRequestBody,
   findConfigMap,
   findSecureDBType,
   isClusterWideCABundleEnabled,
   isOpenshiftCAbundleEnabled,
-} from '~/pages/modelRegistrySettings/utils';
-import { RecursivePartial } from '~/typeHelpers';
-import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
-import ApplicationsPage from '~/pages/ApplicationsPage';
-import RedirectErrorState from '~/pages/external/RedirectErrorState';
+} from '#~/pages/modelRegistrySettings/utils';
+import { RecursivePartial } from '#~/typeHelpers';
+import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
+import ApplicationsPage from '#~/pages/ApplicationsPage';
+import RedirectErrorState from '#~/pages/external/RedirectErrorState';
 import { CreateMRSecureDBSection, SecureDBInfo } from './CreateMRSecureDBSection';
 import ModelRegistryDatabasePassword from './ModelRegistryDatabasePassword';
 import { ResourceType, SecureDBRType } from './const';
@@ -181,6 +181,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
           },
         },
         spec: {
+          oauthProxy: {},
           mysql: {
             host,
             port: Number(port),
@@ -226,14 +227,9 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
           },
         },
         spec: {
+          oauthProxy: {},
           grpc: {},
           rest: {},
-          istio: {
-            gateway: {
-              grpc: { tls: {} },
-              rest: { tls: {} },
-            },
-          },
           mysql: {
             host,
             port: Number(port),

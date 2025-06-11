@@ -1,14 +1,17 @@
 import React from 'react';
-import { useIsAreaAvailable, SupportedArea } from '~/concepts/areas';
-import { ContainerResources } from '~/types';
-import { assemblePodSpecOptions } from '~/utilities/podSpec';
-import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
-import useServingAcceleratorProfileFormState from '~/pages/modelServing/screens/projects/useServingAcceleratorProfileFormState';
-import { useAppContext } from '~/app/AppContext';
-import { getServingRuntimeSizes, isGpuDisabled } from '~/pages/modelServing/screens/projects/utils';
-import { useDeepCompareMemoize } from '~/utilities/useDeepCompareMemoize';
-import { ModelServingSize } from '~/pages/modelServing/screens/types';
-import { getInferenceServiceSize } from '~/pages/modelServing/utils';
+import { useIsAreaAvailable, SupportedArea } from '#~/concepts/areas';
+import { ContainerResources } from '#~/types';
+import { assemblePodSpecOptions } from '#~/utilities/podSpec';
+import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
+import useServingAcceleratorProfileFormState from '#~/pages/modelServing/screens/projects/useServingAcceleratorProfileFormState';
+import { useAppContext } from '#~/app/AppContext';
+import {
+  getServingRuntimeSizes,
+  isGpuDisabled,
+} from '#~/pages/modelServing/screens/projects/utils';
+import { useDeepCompareMemoize } from '#~/utilities/useDeepCompareMemoize';
+import { ModelServingSize } from '#~/pages/modelServing/screens/types';
+import { getInferenceServiceSize } from '#~/pages/modelServing/utils';
 import useServingHardwareProfileConfig from './useServingHardwareProfileConfig';
 import { PodSpecOptions, PodSpecOptionsState } from './types';
 

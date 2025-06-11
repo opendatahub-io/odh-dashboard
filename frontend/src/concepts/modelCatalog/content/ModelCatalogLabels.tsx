@@ -1,7 +1,7 @@
 import React from 'react';
 import { Label, LabelGroup } from '@patternfly/react-core';
-import { getILabLabels, removeILabLabels } from '~/pages/modelCatalog/utils';
-import { ReservedILabLabel } from '~/pages/modelCatalog/const';
+import { getILabLabels, removeILabLabels } from '#~/pages/modelCatalog/utils';
+import { ReservedILabLabel } from '#~/pages/modelCatalog/const';
 
 export const ModelCatalogLabels: React.FC<{
   labels?: string[];

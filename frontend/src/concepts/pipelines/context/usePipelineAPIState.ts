@@ -35,10 +35,10 @@ import {
   getArtifact,
   listArtifacts,
   getPipelineByName,
-} from '~/api';
-import { PipelineAPIs } from '~/concepts/pipelines/types';
-import { APIState } from '~/concepts/proxy/types';
-import useAPIState from '~/concepts/proxy/useAPIState';
+} from '#~/api';
+import { PipelineAPIs } from '#~/concepts/pipelines/types';
+import { APIState } from '#~/concepts/proxy/types';
+import useAPIState from '#~/concepts/proxy/useAPIState';
 
 export type PipelineAPIState = APIState<PipelineAPIs>;
 

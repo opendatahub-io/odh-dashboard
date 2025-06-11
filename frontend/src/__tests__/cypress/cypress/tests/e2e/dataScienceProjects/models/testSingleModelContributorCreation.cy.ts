@@ -1,23 +1,23 @@
-import type { DataScienceProjectData } from '~/__tests__/cypress/cypress/types';
+import type { DataScienceProjectData } from '#~/__tests__/cypress/cypress/types';
 import {
   addUserToProject,
   deleteOpenShiftProject,
-} from '~/__tests__/cypress/cypress/utils/oc_commands/project';
-import { loadDSPFixture } from '~/__tests__/cypress/cypress/utils/dataLoader';
-import { LDAP_CONTRIBUTOR_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
-import { projectListPage, projectDetails } from '~/__tests__/cypress/cypress/pages/projects';
+} from '#~/__tests__/cypress/cypress/utils/oc_commands/project';
+import { loadDSPFixture } from '#~/__tests__/cypress/cypress/utils/dataLoader';
+import { LDAP_CONTRIBUTOR_USER } from '#~/__tests__/cypress/cypress/utils/e2eUsers';
+import { projectListPage, projectDetails } from '#~/__tests__/cypress/cypress/pages/projects';
 import {
   modelServingGlobal,
   inferenceServiceModal,
   modelServingSection,
-} from '~/__tests__/cypress/cypress/pages/modelServing';
+} from '#~/__tests__/cypress/cypress/pages/modelServing';
 import {
   checkInferenceServiceState,
   provisionProjectForModelServing,
-} from '~/__tests__/cypress/cypress/utils/oc_commands/modelServing';
-import { retryableBefore } from '~/__tests__/cypress/cypress/utils/retryableHooks';
-import { attemptToClickTooltip } from '~/__tests__/cypress/cypress/utils/models';
-import { generateTestUUID } from '~/__tests__/cypress/cypress/utils/uuidGenerator';
+} from '#~/__tests__/cypress/cypress/utils/oc_commands/modelServing';
+import { retryableBefore } from '#~/__tests__/cypress/cypress/utils/retryableHooks';
+import { attemptToClickTooltip } from '#~/__tests__/cypress/cypress/utils/models';
+import { generateTestUUID } from '#~/__tests__/cypress/cypress/utils/uuidGenerator';
 
 let testData: DataScienceProjectData;
 let projectName: string;
@@ -89,16 +89,19 @@ describe('Verify Model Creation and Validation using the UI', () => {
       // Launch a Single Serving Model and select the required entries
       cy.step('Launch a Single Serving Model using Caikit TGIS ServingRuntime for KServe');
       inferenceServiceModal.findModelNameInput().type(testData.singleModelName);
-      inferenceServiceModal.findServingRuntimeTemplate().click();
-      inferenceServiceModal.findCalkitTGISServingRuntime().click();
+      inferenceServiceModal.findServingRuntimeTemplateSearchSelector().click();
+      inferenceServiceModal
+        .findGlobalScopedTemplateOption('Caikit TGIS ServingRuntime for KServe')
+        .click();
 
       inferenceServiceModal.findLocationPathInput().type(modelFilePath);
       inferenceServiceModal.findSubmitButton().click();
+      inferenceServiceModal.shouldBeOpen(false);
       modelServingSection.findModelServerName(testData.singleModelName);
 
       //Verify the model created
       cy.step('Verify that the Model is created Successfully on the backend and frontend');
-      checkInferenceServiceState(testData.singleModelName, {
+      checkInferenceServiceState(testData.singleModelName, projectName, {
         checkReady: true,
         checkLatestDeploymentReady: true,
       });

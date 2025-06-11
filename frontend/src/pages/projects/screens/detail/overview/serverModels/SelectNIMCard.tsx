@@ -1,10 +1,10 @@
 import * as React from 'react';
 import { CardBody, CardFooter, Content } from '@patternfly/react-core';
-import { ProjectObjectType, SectionType } from '~/concepts/design/utils';
-import OverviewCard from '~/pages/projects/screens/detail/overview/components/OverviewCard';
-import ModelServingPlatformSelectButton from '~/pages/modelServing/screens/projects/ModelServingPlatformSelectButton';
-import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import { NamespaceApplicationCase } from '~/pages/projects/types';
+import { ProjectObjectType, SectionType } from '#~/concepts/design/utils';
+import OverviewCard from '#~/pages/projects/screens/detail/overview/components/OverviewCard';
+import ModelServingPlatformSelectButton from '#~/pages/modelServing/screens/projects/ModelServingPlatformSelectButton';
+import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
+import { NamespaceApplicationCase } from '#~/pages/projects/types';
 
 type SelectNIMCardProps = {
   setErrorSelectingPlatform: (e?: Error) => void;

@@ -4,8 +4,8 @@ import { Table, Tbody, Th, Thead, Tr } from '@patternfly/react-table';
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import text from '@patternfly/react-styles/css/utilities/Text/text';
 import spacing from '@patternfly/react-styles/css/utilities/Spacing/spacing';
-import DashboardDescriptionListGroup from '~/components/DashboardDescriptionListGroup';
-import { ModelRegistryCustomProperties } from '~/concepts/modelRegistry/types';
+import DashboardDescriptionListGroup from '#~/components/DashboardDescriptionListGroup';
+import { ModelRegistryCustomProperties } from '#~/concepts/modelRegistry/types';
 import ModelPropertiesTableRow from './ModelPropertiesTableRow';
 import { getProperties, mergeUpdatedProperty } from './utils';
 

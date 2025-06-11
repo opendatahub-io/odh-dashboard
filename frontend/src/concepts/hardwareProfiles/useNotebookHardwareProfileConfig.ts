@@ -1,6 +1,6 @@
-import { HardwareProfileFeatureVisibility, NotebookKind } from '~/k8sTypes';
-import { Notebook } from '~/types';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+import { HardwareProfileFeatureVisibility, NotebookKind } from '#~/k8sTypes';
+import { Notebook } from '#~/types';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import {
   useHardwareProfileConfig,
   UseHardwareProfileConfigResult,

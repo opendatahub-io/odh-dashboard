@@ -1,10 +1,10 @@
 import * as React from 'react';
 import { Button, Flex } from '@patternfly/react-core';
 import { MinusCircleIcon } from '@patternfly/react-icons';
-import { CUSTOM_VARIABLE, EMPTY_KEY } from '~/pages/notebookController/const';
-import { EnvVarCategoryType, EnvVarType, VariableRow } from '~/types';
-import { getDashboardMainContainer } from '~/utilities/utils';
-import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
+import { CUSTOM_VARIABLE, EMPTY_KEY } from '#~/pages/notebookController/const';
+import { EnvVarCategoryType, EnvVarType, VariableRow } from '#~/types';
+import { getDashboardMainContainer } from '#~/utilities/utils';
+import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
 import EnvironmentVariablesField from './EnvironmentVariablesField';
 
 type EnvironmentVariablesRowProps = {

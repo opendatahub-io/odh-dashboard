@@ -1,9 +1,9 @@
-import { mockProjectK8sResource, mockProjectsK8sList } from '~/__mocks__/mockProjectK8sResource';
-import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
-import { createProjectModal, projectListPage } from '~/__tests__/cypress/cypress/pages/projects';
-import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
-import type { ProjectKind } from '~/k8sTypes';
-import { incrementResourceVersion } from '~/__mocks__/mockUtils';
+import { mockProjectK8sResource, mockProjectsK8sList } from '#~/__mocks__/mockProjectK8sResource';
+import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
+import { createProjectModal, projectListPage } from '#~/__tests__/cypress/cypress/pages/projects';
+import { deleteModal } from '#~/__tests__/cypress/cypress/pages/components/DeleteModal';
+import type { ProjectKind } from '#~/k8sTypes';
+import { incrementResourceVersion } from '#~/__mocks__/mockUtils';
 import {
   NotebookModel,
   PodModel,
@@ -11,14 +11,14 @@ import {
   ProjectRequestModel,
   RouteModel,
   SelfSubjectAccessReviewModel,
-} from '~/__tests__/cypress/cypress/utils/models';
-import { mock200Status } from '~/__mocks__/mockK8sStatus';
-import { mockDscStatus, mockNotebookK8sResource, mockRouteK8sResource } from '~/__mocks__';
-import { mockPodK8sResource } from '~/__mocks__/mockPodK8sResource';
-import { mockSelfSubjectAccessReview } from '~/__mocks__/mockSelfSubjectAccessReview';
-import { asProjectAdminUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
-import { notebookConfirmModal } from '~/__tests__/cypress/cypress/pages/workbench';
-import { testPagination } from '~/__tests__/cypress/cypress/utils/pagination';
+} from '#~/__tests__/cypress/cypress/utils/models';
+import { mock200Status } from '#~/__mocks__/mockK8sStatus';
+import { mockDscStatus, mockNotebookK8sResource, mockRouteK8sResource } from '#~/__mocks__';
+import { mockPodK8sResource } from '#~/__mocks__/mockPodK8sResource';
+import { mockSelfSubjectAccessReview } from '#~/__mocks__/mockSelfSubjectAccessReview';
+import { asProjectAdminUser } from '#~/__tests__/cypress/cypress/utils/mockUsers';
+import { notebookConfirmModal } from '#~/__tests__/cypress/cypress/pages/workbench';
+import { testPagination } from '#~/__tests__/cypress/cypress/utils/pagination';
 
 const mockProject = mockProjectK8sResource({ description: 'Mock description' });
 const initIntercepts = () => {

@@ -4,17 +4,17 @@ import { useNavigate } from 'react-router-dom';
 import { Button, Flex, ToolbarGroup, ToolbarItem, Tooltip } from '@patternfly/react-core';
 import { TableVariant } from '@patternfly/react-table';
 
-import { TableBase, getTableColumnSort, useCheckboxTable } from '~/components/table';
-import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
-import { pipelineRunColumns } from '~/concepts/pipelines/content/tables/columns';
-import PipelineRunTable from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTable';
-import PipelineRunTableRow from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableRow';
-import PipelineRunTableToolbar from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableToolbar';
-import { PipelineRunKF } from '~/concepts/pipelines/kfTypes';
-import { compareRunsRoute } from '~/routes/pipelines/runs';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { ExperimentContext } from '~/pages/pipelines/global/experiments/ExperimentContext';
-import { usePipelineFilterSearchParams } from '~/concepts/pipelines/content/tables/usePipelineFilter';
+import { TableBase, getTableColumnSort, useCheckboxTable } from '#~/components/table';
+import DashboardEmptyTableView from '#~/concepts/dashboard/DashboardEmptyTableView';
+import { pipelineRunColumns } from '#~/concepts/pipelines/content/tables/columns';
+import PipelineRunTable from '#~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTable';
+import PipelineRunTableRow from '#~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableRow';
+import PipelineRunTableToolbar from '#~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableToolbar';
+import { PipelineRunKF } from '#~/concepts/pipelines/kfTypes';
+import { compareRunsRoute } from '#~/routes/pipelines/runs';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+import { ExperimentContext } from '#~/pages/pipelines/global/experiments/ExperimentContext';
+import { usePipelineFilterSearchParams } from '#~/concepts/pipelines/content/tables/usePipelineFilter';
 
 type ManageRunsTableProps = Omit<React.ComponentProps<typeof PipelineRunTable>, 'runType'> & {
   selectedRunIds: string[];

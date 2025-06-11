@@ -8,11 +8,11 @@ import {
   Tooltip,
 } from '@patternfly/react-core';
 import { EllipsisVIcon } from '@patternfly/react-icons';
-import { DeleteServerModal, usePipelinesAPI, ViewServerModal } from '~/concepts/pipelines/context';
-import { PipelineAndVersionContext } from '~/concepts/pipelines/content/PipelineAndVersionContext';
-import DeletePipelinesModal from '~/concepts/pipelines/content/DeletePipelinesModal';
-import { getDashboardMainContainer } from '~/utilities/utils';
-import { fireSimpleTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
+import { DeleteServerModal, usePipelinesAPI, ViewServerModal } from '#~/concepts/pipelines/context';
+import { PipelineAndVersionContext } from '#~/concepts/pipelines/content/PipelineAndVersionContext';
+import DeletePipelinesModal from '#~/concepts/pipelines/content/DeletePipelinesModal';
+import { getDashboardMainContainer } from '#~/utilities/utils';
+import { fireSimpleTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 
 type PipelineServerActionsProps = {
   variant?: 'kebab' | 'dropdown';

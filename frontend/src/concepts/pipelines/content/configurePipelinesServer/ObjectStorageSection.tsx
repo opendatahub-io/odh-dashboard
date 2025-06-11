@@ -11,10 +11,10 @@ import {
   FlexItem,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
-import { Connection } from '~/concepts/connectionTypes/types';
-import { AwsKeys, PIPELINE_AWS_FIELDS } from '~/pages/projects/dataConnections/const';
-import { FieldListField } from '~/components/FieldList';
-import FormSection from '~/components/pf-overrides/FormSection';
+import { Connection } from '#~/concepts/connectionTypes/types';
+import { AwsKeys, PIPELINE_AWS_FIELDS } from '#~/pages/projects/dataConnections/const';
+import { FieldListField } from '#~/components/FieldList';
+import FormSection from '#~/components/pf-overrides/FormSection';
 import { PipelineDropdown } from './PipelineDropdown';
 import { PipelineServerConfigType } from './types';
 

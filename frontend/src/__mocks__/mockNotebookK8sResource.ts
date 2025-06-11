@@ -1,6 +1,6 @@
 import * as _ from 'lodash-es';
-import { KnownLabels, NotebookKind } from '~/k8sTypes';
-import { DEFAULT_NOTEBOOK_SIZES } from '~/pages/projects/screens/spawner/const';
+import { KnownLabels, NotebookKind } from '#~/k8sTypes';
+import { DEFAULT_NOTEBOOK_SIZES } from '#~/pages/projects/screens/spawner/const';
 import {
   ContainerResources,
   EnvironmentVariable,
@@ -8,10 +8,10 @@ import {
   TolerationOperator,
   Volume,
   VolumeMount,
-} from '~/types';
-import { genUID } from '~/__mocks__/mockUtils';
-import { RecursivePartial } from '~/typeHelpers';
-import { EnvironmentFromVariable } from '~/pages/projects/types';
+} from '#~/types';
+import { genUID } from '#~/__mocks__/mockUtils';
+import { RecursivePartial } from '#~/typeHelpers';
+import { EnvironmentFromVariable } from '#~/pages/projects/types';
 
 type MockResourceConfigType = {
   name?: string;
@@ -31,6 +31,7 @@ type MockResourceConfigType = {
   additionalVolumes?: Volume[];
   hardwareProfileName?: string;
   hardwareProfileNamespace?: string | null;
+  workbenchImageNamespace?: string | null;
 };
 
 export const mockNotebookK8sResource = ({
@@ -57,6 +58,7 @@ export const mockNotebookK8sResource = ({
   additionalVolumes = [],
   hardwareProfileName = '',
   hardwareProfileNamespace = null,
+  workbenchImageNamespace = null,
 }: MockResourceConfigType): NotebookKind =>
   _.merge(
     {
@@ -76,6 +78,7 @@ export const mockNotebookK8sResource = ({
           'openshift.io/display-name': displayName,
           'opendatahub.io/hardware-profile-name': hardwareProfileName,
           'opendatahub.io/hardware-profile-namespace': hardwareProfileNamespace,
+          'opendatahub.io/workbench-image-namespace': workbenchImageNamespace,
         },
         creationTimestamp: '2023-02-14T21:44:13Z',
         generation: 4,

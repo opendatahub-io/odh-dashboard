@@ -1,4 +1,4 @@
-import { GroupKind } from '~/k8sTypes';
+import { GroupKind } from '#~/k8sTypes';
 
 type MockGroupType = {
   name?: string;

@@ -1,5 +1,5 @@
-import { SortableData } from '~/components/table';
-import { ClusterStorageNotebookSelection } from '~/pages/projects/types';
+import { SortableData } from '#~/components/table';
+import { ClusterStorageNotebookSelection } from '#~/pages/projects/types';
 
 export const storageColumns: SortableData<ClusterStorageNotebookSelection>[] = [
   {

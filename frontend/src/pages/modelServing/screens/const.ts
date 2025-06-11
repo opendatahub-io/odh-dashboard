@@ -67,3 +67,8 @@ export const DEPLOY_BUTTON_TOOLTIP = {
   ENABLE_MODEL_SERVING_PLATFORM:
     'To enable model serving, an administrator must first select a model serving platform in the cluster settings.',
 };
+
+export enum ScopedType {
+  Project = 'Project-scoped',
+  Global = 'Global-scoped',
+}

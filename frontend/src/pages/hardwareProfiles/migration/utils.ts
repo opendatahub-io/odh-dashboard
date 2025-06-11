@@ -4,11 +4,11 @@ import {
   AcceleratorProfileKind,
   HardwareProfileKind,
   HardwareProfileFeatureVisibility,
-} from '~/k8sTypes';
-import { IdentifierResourceType, Toleration, Identifier, NotebookSize } from '~/types';
-import { isCpuLarger, isMemoryLarger } from '~/utilities/valueUnits';
-import { HardwareProfileModel } from '~/api';
-import { kindApiVersion, translateDisplayNameForK8s } from '~/concepts/k8s/utils';
+} from '#~/k8sTypes';
+import { IdentifierResourceType, Toleration, Identifier, NotebookSize } from '#~/types';
+import { isCpuLarger, isMemoryLarger } from '#~/utilities/valueUnits';
+import { HardwareProfileModel } from '#~/api';
+import { kindApiVersion, translateDisplayNameForK8s } from '#~/concepts/k8s/utils';
 import { ContainerSizeLimits } from './types';
 
 export const getMinMaxResourceSize = (containerSizes: NotebookSize[]): ContainerSizeLimits => {

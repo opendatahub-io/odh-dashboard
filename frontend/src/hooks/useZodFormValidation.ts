@@ -1,7 +1,7 @@
 import { ValidatedOptions } from '@patternfly/react-core';
 import { useState } from 'react';
 import { ZodIssue, ZodType } from 'zod';
-import { useValidation } from '~/utilities/useValidation';
+import { useValidation } from '#~/utilities/useValidation';
 
 export type FieldValidationProps = {
   validated: ValidatedOptions.error | ValidatedOptions.default;

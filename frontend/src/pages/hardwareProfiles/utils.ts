@@ -1,13 +1,16 @@
-import { HardwareProfileKind } from '~/k8sTypes';
-import { Identifier, IdentifierResourceType } from '~/types';
-import { HardwareProfileWarningType, WarningNotification } from '~/concepts/hardwareProfiles/types';
+import { HardwareProfileKind } from '#~/k8sTypes';
+import { Identifier, IdentifierResourceType } from '#~/types';
+import {
+  HardwareProfileWarningType,
+  WarningNotification,
+} from '#~/concepts/hardwareProfiles/types';
 import {
   CPU_UNITS,
   MEMORY_UNITS_FOR_SELECTION,
   OTHER,
   splitValueUnit,
   UnitOption,
-} from '~/utilities/valueUnits';
+} from '#~/utilities/valueUnits';
 import { DEFAULT_CPU_IDENTIFIER, DEFAULT_MEMORY_IDENTIFIER } from './nodeResource/const';
 import { hasCPUandMemory } from './manage/ManageNodeResourceSection';
 import { createHardwareProfileWarningSchema } from './manage/validationUtils';

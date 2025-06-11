@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { ProjectObjectType, SectionType } from '~/concepts/design/utils';
-import OverviewCard from '~/pages/projects/screens/detail/overview/components/OverviewCard';
+import { ProjectObjectType, SectionType } from '#~/concepts/design/utils';
+import OverviewCard from '#~/pages/projects/screens/detail/overview/components/OverviewCard';
 
 type PipelinesOverviewCardProps = {
   children: React.ReactNode;

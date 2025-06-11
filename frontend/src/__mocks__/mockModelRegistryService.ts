@@ -1,4 +1,4 @@
-import { ServiceKind } from '~/k8sTypes';
+import { ServiceKind } from '#~/k8sTypes';
 
 type MockServiceType = {
   name?: string;

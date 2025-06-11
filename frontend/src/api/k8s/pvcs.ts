@@ -7,12 +7,13 @@ import {
   K8sStatus,
   k8sUpdateResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { K8sAPIOptions, KnownLabels, PersistentVolumeClaimKind } from '~/k8sTypes';
-import { PVCModel } from '~/api/models';
-import { translateDisplayNameForK8s } from '~/concepts/k8s/utils';
-import { LABEL_SELECTOR_DASHBOARD_RESOURCE } from '~/const';
-import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
-import { StorageData } from '~/pages/projects/types';
+import { K8sAPIOptions, KnownLabels, PersistentVolumeClaimKind } from '#~/k8sTypes';
+import { PVCModel } from '#~/api/models';
+import { translateDisplayNameForK8s } from '#~/concepts/k8s/utils';
+import { LABEL_SELECTOR_DASHBOARD_RESOURCE } from '#~/const';
+import { applyK8sAPIOptions } from '#~/api/apiMergeUtils';
+import { StorageData } from '#~/pages/projects/types';
+import { AccessMode } from '#~/pages/storageClasses/storageEnums';
 
 export const assemblePvc = (
   data: StorageData,
@@ -20,7 +21,7 @@ export const assemblePvc = (
   editName?: string,
   hideFromUI?: boolean,
 ): PersistentVolumeClaimKind => {
-  const { name: pvcName, description, size, storageClassName } = data;
+  const { name: pvcName, description, size, storageClassName, accessMode } = data;
   const name = editName || data.k8sName || translateDisplayNameForK8s(pvcName);
 
   return {
@@ -40,7 +41,7 @@ export const assemblePvc = (
       },
     },
     spec: {
-      accessModes: ['ReadWriteOnce'],
+      accessModes: [accessMode ?? AccessMode.RWO],
       resources: {
         requests: {
           storage: String(size),

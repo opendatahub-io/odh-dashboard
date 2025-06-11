@@ -1,13 +1,13 @@
 import * as React from 'react';
-import { getNotebook, getNotebooks } from '~/api';
+import { getNotebook, getNotebooks } from '#~/api';
 import useFetch, {
   AdHocUpdate,
   FetchOptions,
   FetchStateObject,
   FetchStateCallbackPromiseAdHoc,
   NotReadyError,
-} from '~/utilities/useFetch';
-import { NotebookKind } from '~/k8sTypes';
+} from '#~/utilities/useFetch';
+import { NotebookKind } from '#~/k8sTypes';
 import { NotebookDataState, NotebookState } from './types';
 import { getNotebooksStatus, getNotebookStatus } from './service';
 

@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { Checkbox, FormGroup, HelperText, HelperTextItem } from '@patternfly/react-core';
-import { ConnectionTypeDataField } from '~/concepts/connectionTypes/types';
-import ConnectionTypeDataFormField from '~/concepts/connectionTypes/fields/ConnectionTypeDataFormField';
-import DataFieldAdvancedPropertiesForm from '~/pages/connectionTypes/manage/advanced/DataFieldAdvancedPropertiesForm';
+import { ConnectionTypeDataField } from '#~/concepts/connectionTypes/types';
+import ConnectionTypeDataFormField from '#~/concepts/connectionTypes/fields/ConnectionTypeDataFormField';
+import DataFieldAdvancedPropertiesForm from '#~/pages/connectionTypes/manage/advanced/DataFieldAdvancedPropertiesForm';
 
 type Props<T extends ConnectionTypeDataField> = {
   field: T;

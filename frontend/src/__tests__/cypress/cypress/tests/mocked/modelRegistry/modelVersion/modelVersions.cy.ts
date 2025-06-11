@@ -1,17 +1,17 @@
 /* eslint-disable camelcase */
-import { mockDscStatus, mockK8sResourceList } from '~/__mocks__';
-import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
-import { mockModelVersionList } from '~/__mocks__/mockModelVersionList';
-import { mockRegisteredModelList } from '~/__mocks__/mockRegisteredModelsList';
-import { labelModal, modelRegistry } from '~/__tests__/cypress/cypress/pages/modelRegistry';
-import { be } from '~/__tests__/cypress/cypress/utils/should';
-import { ServiceModel } from '~/__tests__/cypress/cypress/utils/models';
-import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url';
-import { mockRegisteredModel } from '~/__mocks__/mockRegisteredModel';
-import { ModelRegistryMetadataType, type ModelVersion } from '~/concepts/modelRegistry/types';
-import { mockModelVersion } from '~/__mocks__/mockModelVersion';
-import { mockModelRegistryService } from '~/__mocks__/mockModelRegistryService';
-import type { ServiceKind } from '~/k8sTypes';
+import { mockDscStatus, mockK8sResourceList } from '#~/__mocks__';
+import { mockDashboardConfig } from '#~/__mocks__/mockDashboardConfig';
+import { mockModelVersionList } from '#~/__mocks__/mockModelVersionList';
+import { mockRegisteredModelList } from '#~/__mocks__/mockRegisteredModelsList';
+import { labelModal, modelRegistry } from '#~/__tests__/cypress/cypress/pages/modelRegistry';
+import { be } from '#~/__tests__/cypress/cypress/utils/should';
+import { ServiceModel } from '#~/__tests__/cypress/cypress/utils/models';
+import { verifyRelativeURL } from '#~/__tests__/cypress/cypress/utils/url';
+import { mockRegisteredModel } from '#~/__mocks__/mockRegisteredModel';
+import { ModelRegistryMetadataType, type ModelVersion } from '#~/concepts/modelRegistry/types';
+import { mockModelVersion } from '#~/__mocks__/mockModelVersion';
+import { mockModelRegistryService } from '#~/__mocks__/mockModelRegistryService';
+import type { ServiceKind } from '#~/k8sTypes';
 
 const MODEL_REGISTRY_API_VERSION = 'v1alpha3';
 

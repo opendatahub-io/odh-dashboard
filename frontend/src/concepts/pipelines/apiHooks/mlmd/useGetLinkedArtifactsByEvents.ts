@@ -1,8 +1,8 @@
 import React from 'react';
-import { LinkedArtifact } from '~/concepts/pipelines/apiHooks/mlmd/types';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { Artifact, Event, GetArtifactsByIDRequest } from '~/third_party/mlmd';
-import useFetchState, { FetchState, FetchStateCallbackPromise } from '~/utilities/useFetchState';
+import { LinkedArtifact } from '#~/concepts/pipelines/apiHooks/mlmd/types';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+import { Artifact, Event, GetArtifactsByIDRequest } from '#~/third_party/mlmd';
+import useFetchState, { FetchState, FetchStateCallbackPromise } from '#~/utilities/useFetchState';
 
 export const useGetLinkedArtifactsByEvents = (events: Event[]): FetchState<LinkedArtifact[]> => {
   const { metadataStoreServiceClient } = usePipelinesAPI();

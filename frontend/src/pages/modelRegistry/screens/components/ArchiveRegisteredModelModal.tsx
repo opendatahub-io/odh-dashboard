@@ -10,10 +10,10 @@ import {
   ModalHeader,
   ModalFooter,
 } from '@patternfly/react-core';
-import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
-import useNotification from '~/utilities/useNotification';
-import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
+import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
+import useNotification from '#~/utilities/useNotification';
+import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
 
 interface ArchiveRegisteredModelModalProps {
   onCancel: () => void;

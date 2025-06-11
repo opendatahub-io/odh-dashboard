@@ -1,7 +1,7 @@
 import React from 'react';
 import { AlertGroup } from '@patternfly/react-core';
-import { useAppSelector } from '~/redux/hooks';
-import { AppNotification } from '~/redux/types';
+import { useAppSelector } from '#~/redux/hooks';
+import { AppNotification } from '#~/redux/types';
 import ToastNotification from './ToastNotification';
 
 const ToastNotifications: React.FC = () => {

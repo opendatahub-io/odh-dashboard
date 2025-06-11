@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { HelperTextItem } from '@patternfly/react-core';
-import { K8sNameDescriptionFieldData } from '~/concepts/k8s/K8sNameDescriptionField/types';
+import { K8sNameDescriptionFieldData } from '#~/concepts/k8s/K8sNameDescriptionField/types';
 
 type Variants = React.ComponentProps<typeof HelperTextItem>['variant'];
 

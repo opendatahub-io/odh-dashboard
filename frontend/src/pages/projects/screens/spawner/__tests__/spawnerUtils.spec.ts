@@ -2,9 +2,9 @@ import {
   getExistingVersionsForImageStream,
   checkVersionRecommended,
   getVersion,
-} from '~/pages/projects/screens/spawner/spawnerUtils';
-import { mockImageStreamK8sResource } from '~/__mocks__/mockImageStreamK8sResource';
-import { IMAGE_ANNOTATIONS } from '~/pages/projects/screens/spawner/const';
+} from '#~/pages/projects/screens/spawner/spawnerUtils';
+import { mockImageStreamK8sResource } from '#~/__mocks__/mockImageStreamK8sResource';
+import { IMAGE_ANNOTATIONS } from '#~/pages/projects/screens/spawner/const';
 
 describe('getExistingVersionsForImageStream', () => {
   it('should handle no image tags', () => {

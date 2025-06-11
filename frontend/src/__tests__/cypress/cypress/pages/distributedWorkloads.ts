@@ -1,6 +1,6 @@
-import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
-import type { RefreshIntervalTitle } from '~/concepts/metrics/types';
-import { SearchSelector } from '~/__tests__/cypress/cypress/pages/components/subComponents/SearchSelector';
+import { appChrome } from '#~/__tests__/cypress/cypress/pages/appChrome';
+import type { RefreshIntervalTitle } from '#~/concepts/metrics/types';
+import { SearchSelector } from '#~/__tests__/cypress/cypress/pages/components/subComponents/SearchSelector';
 
 class GlobalDistributedWorkloads {
   projectDropdown = new SearchSelector('project-selector');

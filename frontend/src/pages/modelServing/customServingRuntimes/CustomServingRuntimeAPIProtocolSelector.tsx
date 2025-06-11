@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { FormGroup } from '@patternfly/react-core';
-import { ServingRuntimeAPIProtocol, ServingRuntimePlatform } from '~/types';
-import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
-import { asEnumMember } from '~/utilities/utils';
+import { ServingRuntimeAPIProtocol, ServingRuntimePlatform } from '#~/types';
+import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
+import { asEnumMember } from '#~/utilities/utils';
 
 type CustomServingRuntimeAPIProtocolSelectorProps = {
   selectedAPIProtocol: ServingRuntimeAPIProtocol | undefined;

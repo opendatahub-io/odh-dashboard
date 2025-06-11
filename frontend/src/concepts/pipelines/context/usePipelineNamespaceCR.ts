@@ -1,8 +1,8 @@
 import * as React from 'react';
-import { DSPipelineKind } from '~/k8sTypes';
-import { getPipelinesCR, listPipelinesCR } from '~/api';
-import useFetchState, { FetchState, FetchStateCallbackPromise } from '~/utilities/useFetchState';
-import { FAST_POLL_INTERVAL, SERVER_TIMEOUT } from '~/utilities/const';
+import { DSPipelineKind } from '#~/k8sTypes';
+import { getPipelinesCR, listPipelinesCR } from '#~/api';
+import useFetchState, { FetchState, FetchStateCallbackPromise } from '#~/utilities/useFetchState';
+import { FAST_POLL_INTERVAL, SERVER_TIMEOUT } from '#~/utilities/const';
 
 type State = DSPipelineKind | null;
 

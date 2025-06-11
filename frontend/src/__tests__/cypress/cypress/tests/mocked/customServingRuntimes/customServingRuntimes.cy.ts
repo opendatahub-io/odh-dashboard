@@ -1,15 +1,15 @@
-import { mockServingRuntimeTemplateK8sResource } from '~/__mocks__/mockServingRuntimeTemplateK8sResource';
-import { servingRuntimes } from '~/__tests__/cypress/cypress/pages/servingRuntimes';
-import { ServingRuntimeAPIProtocol, ServingRuntimePlatform } from '~/types';
-import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
-import { mockServingRuntimeK8sResource } from '~/__mocks__/mockServingRuntimeK8sResource';
+import { mockServingRuntimeTemplateK8sResource } from '#~/__mocks__/mockServingRuntimeTemplateK8sResource';
+import { servingRuntimes } from '#~/__tests__/cypress/cypress/pages/servingRuntimes';
+import { ServingRuntimeAPIProtocol, ServingRuntimePlatform } from '#~/types';
+import { deleteModal } from '#~/__tests__/cypress/cypress/pages/components/DeleteModal';
+import { mockServingRuntimeK8sResource } from '#~/__mocks__/mockServingRuntimeK8sResource';
 import {
   asProductAdminUser,
   asProjectAdminUser,
-} from '~/__tests__/cypress/cypress/utils/mockUsers';
-import { pageNotfound } from '~/__tests__/cypress/cypress/pages/pageNotFound';
-import { customServingRuntimesIntercept } from '~/__tests__/cypress/cypress/tests/mocked/customServingRuntimes/customServingRuntimesUtils';
-import { TemplateModel } from '~/__tests__/cypress/cypress/utils/models';
+} from '#~/__tests__/cypress/cypress/utils/mockUsers';
+import { pageNotfound } from '#~/__tests__/cypress/cypress/pages/pageNotFound';
+import { customServingRuntimesIntercept } from '#~/__tests__/cypress/cypress/tests/mocked/customServingRuntimes/customServingRuntimesUtils';
+import { TemplateModel } from '#~/__tests__/cypress/cypress/utils/models';
 
 const addfilePath = '../../__mocks__/mock-custom-serving-runtime-add.yaml';
 const editfilePath = '../../__mocks__/mock-custom-serving-runtime-edit.yaml';
@@ -31,6 +31,13 @@ describe('Custom serving runtimes', () => {
 
   it('should display platform labels', () => {
     servingRuntimes.shouldBeSingleModel(true).shouldBeMultiModel(true);
+  });
+
+  it('should display serving runtime version label', () => {
+    servingRuntimes.getRowById('template-1').findServingRuntimeVersionLabel().should('exist');
+    servingRuntimes.getRowById('template-2').findServingRuntimeVersionLabel().should('exist');
+    servingRuntimes.getRowById('template-3').findServingRuntimeVersionLabel().should('not.exist');
+    servingRuntimes.getRowById('template-4').findServingRuntimeVersionLabel().should('exist');
   });
 
   it('should test pre-installed label', () => {

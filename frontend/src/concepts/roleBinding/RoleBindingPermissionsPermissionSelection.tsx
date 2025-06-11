@@ -1,5 +1,5 @@
 import React from 'react';
-import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
+import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
 import { RoleBindingPermissionsRoleType } from './types';
 import { castRoleBindingPermissionsRoleType, roleLabel } from './utils';
 

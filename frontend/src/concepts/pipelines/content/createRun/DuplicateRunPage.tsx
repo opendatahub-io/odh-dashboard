@@ -2,11 +2,11 @@ import React from 'react';
 import { Breadcrumb, BreadcrumbItem, Truncate } from '@patternfly/react-core';
 
 import { useParams, Link } from 'react-router-dom';
-import RunPage from '~/concepts/pipelines/content/createRun/RunPage';
-import ApplicationsPage from '~/pages/ApplicationsPage';
-import { PathProps } from '~/concepts/pipelines/content/types';
-import { ExperimentKF } from '~/concepts/pipelines/kfTypes';
-import usePipelineRunById from '~/concepts/pipelines/apiHooks/usePipelineRunById';
+import RunPage from '#~/concepts/pipelines/content/createRun/RunPage';
+import ApplicationsPage from '#~/pages/ApplicationsPage';
+import { PathProps } from '#~/concepts/pipelines/content/types';
+import { ExperimentKF } from '#~/concepts/pipelines/kfTypes';
+import usePipelineRunById from '#~/concepts/pipelines/apiHooks/usePipelineRunById';
 import { RunTypeOption } from './types';
 
 type DuplicateRunPageProps = {

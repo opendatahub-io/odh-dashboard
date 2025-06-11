@@ -1,4 +1,4 @@
-import { resources } from '~/__tests__/cypress/cypress/pages/resources';
+import { resources } from '#~/__tests__/cypress/cypress/pages/resources';
 
 interface ResourceInfo {
   name: string;

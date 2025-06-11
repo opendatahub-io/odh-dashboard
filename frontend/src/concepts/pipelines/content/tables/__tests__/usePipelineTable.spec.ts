@@ -1,10 +1,10 @@
 import { act } from 'react';
 import * as React from 'react';
-import { testHook } from '~/__tests__/unit/testUtils/hooks';
-import createUsePipelineTable from '~/concepts/pipelines/content/tables/usePipelineTable';
-import { PipelineCoreResourceKF, PipelineRunKF } from '~/concepts/pipelines/kfTypes';
-import { PipelineListPaged, PipelineOptions } from '~/concepts/pipelines/types';
-import { FetchState } from '~/utilities/useFetchState';
+import { testHook } from '#~/__tests__/unit/testUtils/hooks';
+import createUsePipelineTable from '#~/concepts/pipelines/content/tables/usePipelineTable';
+import { PipelineCoreResourceKF, PipelineRunKF } from '#~/concepts/pipelines/kfTypes';
+import { PipelineListPaged, PipelineOptions } from '#~/concepts/pipelines/types';
+import { FetchState } from '#~/utilities/useFetchState';
 
 describe('usePipelineTable', () => {
   it('should indicate initialLoaded after first load', async () => {

@@ -3,15 +3,15 @@ import { Alert, Flex, FlexItem, FormGroup } from '@patternfly/react-core';
 import {
   BaseModelFormData,
   baseModelSchema,
-} from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/validationUtils';
+} from '#~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/validationUtils';
 import {
   FineTunePageSections,
   fineTunePageSectionTitles,
-} from '~/pages/pipelines/global/modelCustomization/const';
-import { ODH_PRODUCT_NAME } from '~/utilities/const';
-import { ZodErrorHelperText } from '~/components/ZodErrorFormHelperText';
-import FormSection from '~/components/pf-overrides/FormSection';
-import { useZodFormValidation } from '~/hooks/useZodFormValidation';
+} from '#~/pages/pipelines/global/modelCustomization/const';
+import { ODH_PRODUCT_NAME } from '#~/utilities/const';
+import { ZodErrorHelperText } from '#~/components/ZodErrorFormHelperText';
+import FormSection from '#~/components/pf-overrides/FormSection';
+import { useZodFormValidation } from '#~/hooks/useZodFormValidation';
 import InlineEditText from './InlineEditText';
 
 const RED_HAT_REGISTRY_PREFIX = 'registry.redhat.io';

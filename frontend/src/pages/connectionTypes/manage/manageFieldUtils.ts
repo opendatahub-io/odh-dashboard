@@ -3,7 +3,7 @@ import {
   ConnectionTypeFieldType,
   DropdownField,
   FileField,
-} from '~/concepts/connectionTypes/types';
+} from '#~/concepts/connectionTypes/types';
 
 const cleanupFileUploadField = (field: FileField): FileField => ({
   ...field,

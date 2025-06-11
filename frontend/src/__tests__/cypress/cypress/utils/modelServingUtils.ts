@@ -3,28 +3,28 @@ import {
   mockDscStatus,
   mockK8sResourceList,
   mockProjectK8sResource,
-} from '~/__mocks__';
+} from '#~/__mocks__';
 import {
   mockConnectionTypeConfigMap,
   mockModelServingFields,
-} from '~/__mocks__/mockConnectionType';
+} from '#~/__mocks__/mockConnectionType';
 import {
   mockGlobalScopedHardwareProfiles,
   mockProjectScopedHardwareProfiles,
-} from '~/__mocks__/mockHardwareProfile';
-import { mockNimAccount } from '~/__mocks__/mockNimAccount';
+} from '#~/__mocks__/mockHardwareProfile';
+import { mockNimAccount } from '#~/__mocks__/mockNimAccount';
 import {
   mockServingRuntimeTemplateK8sResource,
   mockInvalidTemplateK8sResource,
-} from '~/__mocks__/mockServingRuntimeTemplateK8sResource';
+} from '#~/__mocks__/mockServingRuntimeTemplateK8sResource';
 import {
   HardwareProfileModel,
   NIMAccountModel,
   ProjectModel,
   TemplateModel,
-} from '~/__tests__/cypress/cypress/utils/models';
-import { ConnectionTypeFieldType } from '~/concepts/connectionTypes/types';
-import { ServingRuntimePlatform } from '~/types';
+} from '#~/__tests__/cypress/cypress/utils/models';
+import { ConnectionTypeFieldType } from '#~/concepts/connectionTypes/types';
+import { ServingRuntimePlatform } from '#~/types';
 
 export const initDeployPrefilledModelIntercepts = ({
   modelMeshInstalled = true,

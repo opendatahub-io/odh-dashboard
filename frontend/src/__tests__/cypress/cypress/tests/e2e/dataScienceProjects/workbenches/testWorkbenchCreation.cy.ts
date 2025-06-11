@@ -1,27 +1,30 @@
-import type { WBEditTestData, AWSS3BucketDetails } from '~/__tests__/cypress/cypress/types';
-import { projectDetails, projectListPage } from '~/__tests__/cypress/cypress/pages/projects';
+import type { WBEditTestData, AWSS3BucketDetails } from '#~/__tests__/cypress/cypress/types';
+import { projectDetails, projectListPage } from '#~/__tests__/cypress/cypress/pages/projects';
 import {
   workbenchPage,
   createSpawnerPage,
   notebookConfirmModal,
   workbenchStatusModal,
-} from '~/__tests__/cypress/cypress/pages/workbench';
+} from '#~/__tests__/cypress/cypress/pages/workbench';
 import {
   HTPASSWD_CLUSTER_ADMIN_USER,
   LDAP_CONTRIBUTOR_USER,
-} from '~/__tests__/cypress/cypress/utils/e2eUsers';
-import { loadPVCEditFixture } from '~/__tests__/cypress/cypress/utils/dataLoader';
-import { createCleanProject } from '~/__tests__/cypress/cypress/utils/projectChecker';
+} from '#~/__tests__/cypress/cypress/utils/e2eUsers';
+import { loadPVCEditFixture } from '#~/__tests__/cypress/cypress/utils/dataLoader';
+import { createCleanProject } from '#~/__tests__/cypress/cypress/utils/projectChecker';
 import {
   deleteOpenShiftProject,
   addUserToProject,
-} from '~/__tests__/cypress/cypress/utils/oc_commands/project';
-import { retryableBefore } from '~/__tests__/cypress/cypress/utils/retryableHooks';
-import { addConnectionModal, connectionsPage } from '~/__tests__/cypress/cypress/pages/connections';
-import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
-import { AWS_BUCKETS } from '~/__tests__/cypress/cypress/utils/s3Buckets';
-import { clusterStorage } from '~/__tests__/cypress/cypress/pages/clusterStorage';
-import { generateTestUUID } from '~/__tests__/cypress/cypress/utils/uuidGenerator';
+} from '#~/__tests__/cypress/cypress/utils/oc_commands/project';
+import { retryableBefore } from '#~/__tests__/cypress/cypress/utils/retryableHooks';
+import {
+  addConnectionModal,
+  connectionsPage,
+} from '#~/__tests__/cypress/cypress/pages/connections';
+import { deleteModal } from '#~/__tests__/cypress/cypress/pages/components/DeleteModal';
+import { AWS_BUCKETS } from '#~/__tests__/cypress/cypress/utils/s3Buckets';
+import { clusterStorage } from '#~/__tests__/cypress/cypress/pages/clusterStorage';
+import { generateTestUUID } from '#~/__tests__/cypress/cypress/utils/uuidGenerator';
 
 describe('Create, Delete and Edit - Workbench Tests', () => {
   let editTestNamespace: string;

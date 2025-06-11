@@ -1,11 +1,11 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { TooltipProps } from '@patternfly/react-core';
-import { ProjectKind } from '~/k8sTypes';
+import { ProjectKind } from '#~/k8sTypes';
 import {
   useProjectAccessReview,
   useProjectPermissionsAccessReview,
-} from '~/concepts/projects/accessChecks';
+} from '#~/concepts/projects/accessChecks';
 
 type KebabItem = {
   title?: string;

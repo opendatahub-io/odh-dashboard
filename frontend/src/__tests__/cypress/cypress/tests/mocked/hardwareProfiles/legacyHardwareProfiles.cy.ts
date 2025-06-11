@@ -1,21 +1,21 @@
 import {
   editHardwareProfile,
   legacyHardwareProfile,
-} from '~/__tests__/cypress/cypress/pages/hardwareProfile';
-import { mockHardwareProfile } from '~/__mocks__/mockHardwareProfile';
+} from '#~/__tests__/cypress/cypress/pages/hardwareProfile';
+import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile';
 import {
   AcceleratorProfileModel,
   HardwareProfileModel,
   ODHDashboardConfigModel,
-} from '~/__tests__/cypress/cypress/utils/models';
-import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
-import { migrationModal } from '~/__tests__/cypress/cypress/pages/components/MigrationModal';
-import { mock200Status, mockDashboardConfig, mockK8sResourceList } from '~/__mocks__';
-import { be } from '~/__tests__/cypress/cypress/utils/should';
-import { asProductAdminUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
-import { testPagination } from '~/__tests__/cypress/cypress/utils/pagination';
-import { mockAcceleratorProfile } from '~/__mocks__/mockAcceleratorProfile';
-import { IdentifierResourceType, TolerationEffect, TolerationOperator } from '~/types';
+} from '#~/__tests__/cypress/cypress/utils/models';
+import { deleteModal } from '#~/__tests__/cypress/cypress/pages/components/DeleteModal';
+import { migrationModal } from '#~/__tests__/cypress/cypress/pages/components/MigrationModal';
+import { mock200Status, mockDashboardConfig, mockK8sResourceList } from '#~/__mocks__';
+import { be } from '#~/__tests__/cypress/cypress/utils/should';
+import { asProductAdminUser } from '#~/__tests__/cypress/cypress/utils/mockUsers';
+import { testPagination } from '#~/__tests__/cypress/cypress/utils/pagination';
+import { mockAcceleratorProfile } from '#~/__mocks__/mockAcceleratorProfile';
+import { IdentifierResourceType, TolerationEffect, TolerationOperator } from '#~/types';
 
 const initIntercepts = () => {
   cy.interceptOdh(

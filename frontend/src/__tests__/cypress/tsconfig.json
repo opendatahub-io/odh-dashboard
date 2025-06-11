@@ -1,9 +1,13 @@
 {
   "extends": "../../../tsconfig.json",
   "include": ["./**/*.ts"],
-  "exclude": ["node_modules", "public", "coverage", ".nyc_output"],
+  "exclude": ["node_modules", "results", "coverage", ".nyc_output"],
   "compilerOptions": {
-    "moduleResolution": "node",
+    "baseUrl": ".",
+    "paths": {
+      "cypress/*": ["../../../node_modules/cypress/*"]
+    },
+    "moduleResolution": "bundler",
     "types": ["node", "cypress", "@testing-library/cypress", "cypress-axe", "cypress-plugin-steps", "@cypress/grep"]
   }
 }

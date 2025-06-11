@@ -1,5 +1,5 @@
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
-import { genRandomChars } from '~/utilities/string';
+import { genRandomChars } from '#~/utilities/string';
 
 export const genUID = (name: string): string => `test-uid_${name}_${genRandomChars()}`;
 

@@ -1,4 +1,4 @@
-import { asEnumMember, enumIterator, isEnumMember, safeExecute } from '~/utilities/utils';
+import { asEnumMember, enumIterator, isEnumMember, safeExecute } from '#~/utilities/utils';
 
 enum Test {
   first = '1st',

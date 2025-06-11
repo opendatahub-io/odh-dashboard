@@ -1,12 +1,12 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageSection, Tab, Tabs, TabTitleText } from '@patternfly/react-core';
-import '~/pages/pipelines/global/runs/GlobalPipelineRunsTabs.scss';
-import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
-import { ModelVersion } from '~/concepts/modelRegistry/types';
-import { ListWithNonDashboardPresence } from '~/types';
-import { FetchStateObject } from '~/utilities/useFetch';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+import '#~/pages/pipelines/global/runs/GlobalPipelineRunsTabs.scss';
+import { ModelVersion, ModelArtifactList } from '#~/concepts/modelRegistry/types';
+import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
+import { ListWithNonDashboardPresence } from '#~/types';
+import { FetchStateObject } from '#~/utilities/useFetch';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import { ModelVersionDetailsTabTitle, ModelVersionDetailsTab } from './const';
 import ModelVersionDetailsView from './ModelVersionDetailsView';
 import ModelVersionRegisteredDeploymentsView from './ModelVersionRegisteredDeploymentsView';
@@ -18,6 +18,9 @@ type ModelVersionDetailTabsProps = {
   servingRuntimes: FetchStateObject<ListWithNonDashboardPresence<ServingRuntimeKind>>;
   isArchiveVersion?: boolean;
   refresh: () => void;
+  modelArtifacts: ModelArtifactList;
+  modelArtifactsLoaded: boolean;
+  modelArtifactsLoadError: Error | undefined;
 };
 
 const ModelVersionDetailsTabs: React.FC<ModelVersionDetailTabsProps> = ({
@@ -27,6 +30,9 @@ const ModelVersionDetailsTabs: React.FC<ModelVersionDetailTabsProps> = ({
   servingRuntimes,
   isArchiveVersion,
   refresh,
+  modelArtifacts,
+  modelArtifactsLoaded,
+  modelArtifactsLoadError,
 }) => {
   const navigate = useNavigate();
   const { status: isModelServingEnabled } = useIsAreaAvailable(SupportedArea.MODEL_SERVING);
@@ -54,6 +60,9 @@ const ModelVersionDetailsTabs: React.FC<ModelVersionDetailTabsProps> = ({
             modelVersion={mv}
             refresh={refresh}
             isArchiveVersion={isArchiveVersion}
+            modelArtifacts={modelArtifacts}
+            modelArtifactsLoaded={modelArtifactsLoaded}
+            modelArtifactsLoadError={modelArtifactsLoadError}
           />
         </PageSection>
       </Tab>

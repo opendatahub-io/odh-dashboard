@@ -1,7 +1,7 @@
 import React from 'react';
-import { APIState } from '~/concepts/proxy/types';
-import { ExplainabilityAPI } from '~/concepts/trustyai/types';
-import useAPIState from '~/concepts/proxy/useAPIState';
+import { APIState } from '#~/concepts/proxy/types';
+import { ExplainabilityAPI } from '#~/concepts/trustyai/types';
+import useAPIState from '#~/concepts/proxy/useAPIState';
 import {
   createDirRequest,
   createSpdRequest,
@@ -10,7 +10,7 @@ import {
   getAllBiasRequests,
   getDirRequests,
   getSpdRequests,
-} from '~/api';
+} from '#~/api';
 
 export type TrustyAPIState = APIState<ExplainabilityAPI>;
 

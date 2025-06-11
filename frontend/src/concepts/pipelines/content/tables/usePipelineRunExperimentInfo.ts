@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { ExperimentKF, PipelineRecurringRunKF, PipelineRunKF } from '~/concepts/pipelines/kfTypes';
-import { PipelineRunExperimentsContext } from '~/pages/pipelines/global/runs/PipelineRunExperimentsContext';
+import { ExperimentKF, PipelineRecurringRunKF, PipelineRunKF } from '#~/concepts/pipelines/kfTypes';
+import { PipelineRunExperimentsContext } from '#~/pages/pipelines/global/runs/PipelineRunExperimentsContext';
 
 const usePipelineRunExperimentInfo = (
   run: PipelineRunKF | PipelineRecurringRunKF | null,

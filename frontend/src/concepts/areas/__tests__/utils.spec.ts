@@ -1,9 +1,9 @@
-import { mockDscStatus } from '~/__mocks__/mockDscStatus';
-import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
-import { StackCapability, StackComponent, SupportedArea } from '~/concepts/areas/types';
-import { SupportedAreasStateMap } from '~/concepts/areas/const';
-import { mockDsciStatus } from '~/__mocks__/mockDsciStatus';
-import { isAreaAvailable } from '~/concepts/areas/utils';
+import { mockDscStatus } from '#~/__mocks__/mockDscStatus';
+import { mockDashboardConfig } from '#~/__mocks__/mockDashboardConfig';
+import { StackCapability, StackComponent, SupportedArea } from '#~/concepts/areas/types';
+import { SupportedAreasStateMap } from '#~/concepts/areas/const';
+import { mockDsciStatus } from '#~/__mocks__/mockDsciStatus';
+import { isAreaAvailable } from '#~/concepts/areas/utils';
 
 describe('isAreaAvailable', () => {
   describe('v1 Operator (deprecated)', () => {
@@ -253,6 +253,28 @@ describe('isAreaAvailable', () => {
           [StackCapability.SERVICE_MESH]: true,
           [StackCapability.SERVICE_MESH_AUTHZ]: false,
         });
+      });
+    });
+
+    describe('devFlags', () => {
+      it('should enable area if dev flag is true', () => {
+        const testDevArea = 'TestDevArea';
+        const testDevFlag = 'disableTestDevArea';
+
+        const mockAreasStateMap = {
+          [testDevArea]: {
+            devFlags: [testDevFlag],
+          },
+        };
+
+        const isAvailable = isAreaAvailable(testDevArea, mockDashboardConfig({}).spec, null, null, {
+          internalStateMap: mockAreasStateMap,
+          // set to false since the flag is inverted because it starts with 'disable'
+          flagState: { [testDevFlag]: false },
+        });
+
+        expect(isAvailable.status).toBe(true);
+        expect(isAvailable.devFlags).toEqual({ [testDevFlag]: 'on' });
       });
     });
   });

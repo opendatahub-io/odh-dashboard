@@ -1,8 +1,8 @@
 import { k8sListResourceItems } from '@openshift/dynamic-plugin-sdk-utils';
-import { mockLocalQueueK8sResource } from '~/__mocks__/mockLocalQueueK8sResource';
-import { LocalQueueKind } from '~/k8sTypes';
-import { listLocalQueues } from '~/api/k8s/localQueues';
-import { LocalQueueModel } from '~/api/models/kueue';
+import { mockLocalQueueK8sResource } from '#~/__mocks__/mockLocalQueueK8sResource';
+import { LocalQueueKind } from '#~/k8sTypes';
+import { listLocalQueues } from '#~/api/k8s/localQueues';
+import { LocalQueueModel } from '#~/api/models/kueue';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sListResourceItems: jest.fn(),

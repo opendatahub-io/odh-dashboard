@@ -1,10 +1,10 @@
 import { act } from 'react';
-import { standardUseFetchStateObject, testHook } from '~/__tests__/unit/testUtils/hooks';
-import useConnections from '~/pages/projects/screens/detail/connections/useConnections';
-import { getSecretsByLabel } from '~/api';
-import { mockConnection } from '~/__mocks__/mockConnection';
+import { standardUseFetchStateObject, testHook } from '#~/__tests__/unit/testUtils/hooks';
+import useConnections from '#~/pages/projects/screens/detail/connections/useConnections';
+import { getSecretsByLabel } from '#~/api';
+import { mockConnection } from '#~/__mocks__/mockConnection';
 
-jest.mock('~/api', () => ({
+jest.mock('#~/api', () => ({
   getSecretsByLabel: jest.fn(),
 }));
 

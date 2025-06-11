@@ -1,5 +1,5 @@
-import type { NotebookImageInfo } from '~/__tests__/cypress/cypress/utils/oc_commands/imageStreams';
-import { workbenchPage } from '~/__tests__/cypress/cypress/pages/workbench';
+import type { NotebookImageInfo } from '#~/__tests__/cypress/cypress/utils/oc_commands/imageStreams';
+import { workbenchPage } from '#~/__tests__/cypress/cypress/pages/workbench';
 
 /**
  * Verifies notebook images and their versions

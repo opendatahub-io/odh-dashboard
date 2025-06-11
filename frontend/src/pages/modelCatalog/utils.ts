@@ -1,12 +1,12 @@
-import { CatalogArtifacts, CatalogModel, ModelCatalogSource } from '~/concepts/modelCatalog/types';
+import { CatalogArtifacts, CatalogModel, ModelCatalogSource } from '#~/concepts/modelCatalog/types';
 import {
   EMPTY_CUSTOM_PROPERTY_STRING,
   RESERVED_ILAB_LABELS,
   ReservedILabLabel,
-} from '~/pages/modelCatalog/const';
-import { ModelRegistryCustomProperties } from '~/concepts/modelRegistry/types';
-import { CatalogModelDetailsParams } from '~/pages/modelCatalog/types';
-import { DEPLOY_BUTTON_TOOLTIP } from '~/pages/modelServing/screens/const';
+} from '#~/pages/modelCatalog/const';
+import { ModelRegistryCustomProperties } from '#~/concepts/modelRegistry/types';
+import { CatalogModelDetailsParams } from '#~/pages/modelCatalog/types';
+import { DEPLOY_BUTTON_TOOLTIP } from '#~/pages/modelServing/screens/const';
 
 export const findModelFromModelCatalogSources = (
   modelCatalogSources: ModelCatalogSource[],

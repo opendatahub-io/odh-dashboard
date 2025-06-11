@@ -14,22 +14,22 @@ import {
   SecretKind,
   ServingRuntimeKind,
   TemplateKind,
-} from '~/k8sTypes';
+} from '#~/k8sTypes';
 import {
   DEFAULT_LIST_FETCH_STATE,
   DEFAULT_LIST_WATCH_RESULT,
   DEFAULT_LIST_WITH_NON_DASHBOARD_PRESENCE_FETCH_STATE,
   POLL_INTERVAL,
-} from '~/utilities/const';
-import { CustomWatchK8sResult, ListWithNonDashboardPresence } from '~/types';
-import { FetchStateObject } from '~/utilities/useFetch';
-import { useDashboardNamespace } from '~/redux/selectors';
-import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
-import { conditionalArea, SupportedArea } from '~/concepts/areas';
-import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformStatuses';
-import { useTemplates } from '~/api';
-import { Connection } from '~/concepts/connectionTypes/types';
-import useConnections from '~/pages/projects/screens/detail/connections/useConnections';
+} from '#~/utilities/const';
+import { CustomWatchK8sResult, ListWithNonDashboardPresence } from '#~/types';
+import { FetchStateObject } from '#~/utilities/useFetch';
+import { useDashboardNamespace } from '#~/redux/selectors';
+import { byName, ProjectsContext } from '#~/concepts/projects/ProjectsContext';
+import { conditionalArea, SupportedArea } from '#~/concepts/areas';
+import useServingPlatformStatuses from '#~/pages/modelServing/useServingPlatformStatuses';
+import { useTemplates } from '#~/api';
+import { Connection } from '#~/concepts/connectionTypes/types';
+import useConnections from '#~/pages/projects/screens/detail/connections/useConnections';
 import useInferenceServices from './useInferenceServices';
 import useServingRuntimes from './useServingRuntimes';
 import useTemplateOrder from './customServingRuntimes/useTemplateOrder';

@@ -1,5 +1,5 @@
 import type { Extension } from '@openshift/dynamic-plugin-sdk';
-import { ComponentCodeRef } from './types';
+import type { ComponentCodeRef } from './types';
 
 /**
  * Adds a route to the host application.

@@ -10,7 +10,10 @@ import {
   Popover,
 } from '@patternfly/react-core';
 import { InfoCircleIcon } from '@patternfly/react-icons';
-import { getDescriptionFromK8sResource, getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
+import {
+  getDescriptionFromK8sResource,
+  getDisplayNameFromK8sResource,
+} from '#~/concepts/k8s/utils';
 import { Connection, ConnectionTypeConfigMapObj } from './types';
 import { getConnectionTypeDisplayName, parseConnectionSecretValues } from './utils';
 

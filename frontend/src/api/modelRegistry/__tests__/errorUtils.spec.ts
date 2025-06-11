@@ -1,7 +1,7 @@
-import { NotReadyError } from '~/utilities/useFetchState';
-import { handleModelRegistryFailures } from '~/api/modelRegistry/errorUtils';
-import { mockRegisteredModel } from '~/__mocks__/mockRegisteredModel';
-import { ModelRegistryError } from '~/concepts/modelRegistry/types';
+import { NotReadyError } from '#~/utilities/useFetchState';
+import { handleModelRegistryFailures } from '#~/api/modelRegistry/errorUtils';
+import { mockRegisteredModel } from '#~/__mocks__/mockRegisteredModel';
+import { ModelRegistryError } from '#~/concepts/modelRegistry/types';
 
 describe('handleModelRegistryFailures', () => {
   it('should successfully return registered models', async () => {

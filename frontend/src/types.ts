@@ -4,16 +4,17 @@
 
 import { K8sResourceCommon, WatchK8sResult } from '@openshift/dynamic-plugin-sdk-utils';
 import { AxiosError } from 'axios';
-import { EnvironmentFromVariable } from '~/pages/projects/types';
-import { DashboardCommonConfig, ImageStreamKind, ImageStreamSpecTagType } from './k8sTypes';
+import { EnvironmentFromVariable } from '#~/pages/projects/types';
+import { FeatureFlag } from '#~/concepts/areas/types';
+import { ImageStreamKind, ImageStreamSpecTagType } from './k8sTypes';
 import { EitherNotBoth } from './typeHelpers';
 import { NotebookPodSpecOptions } from './concepts/hardwareProfiles/useNotebookPodSpecOptionsState';
 import { FetchStateObject } from './utilities/useFetch';
 
 export type DevFeatureFlags = {
-  devFeatureFlags: Partial<DashboardCommonConfig> | null;
-  setDevFeatureFlag: (flag: keyof DashboardCommonConfig, value: boolean) => void;
-  resetDevFeatureFlags: () => void;
+  devFeatureFlags: Record<FeatureFlag | string, boolean | undefined> | null;
+  setDevFeatureFlag: (flag: FeatureFlag | string, value: boolean) => void;
+  resetDevFeatureFlags: (turnOff: boolean) => void;
   setDevFeatureFlagQueryVisible: (visible: boolean) => void;
 };
 
@@ -632,7 +633,7 @@ export const ProgressionStepTitles: Record<ProgressionStep, string> = {
   [ProgressionStep.PULLING_NOTEBOOK_IMAGE]: 'Pulling workbench image',
   [ProgressionStep.NOTEBOOK_IMAGE_PULLED]: 'Workbench image pulled',
   [ProgressionStep.NOTEBOOK_CONTAINER_CREATED]: 'Workbench container created',
-  [ProgressionStep.NOTEBOOK_CONTAINER_PROBLEM]: 'There was a problem with the notebook',
+  [ProgressionStep.NOTEBOOK_CONTAINER_PROBLEM]: 'There was a problem with the workbench',
   [ProgressionStep.NOTEBOOK_CONTAINER_STARTED]: 'Workbench container started',
   [ProgressionStep.PULLING_OAUTH]: 'Pulling oauth proxy',
   [ProgressionStep.OAUTH_PULLED]: 'Oauth proxy pulled',
@@ -752,3 +753,5 @@ export enum OdhPlatformType {
   SELF_MANAGED_RHOAI = 'OpenShift AI Self-Managed',
   MANAGED_RHOAI = 'OpenShift AI Cloud Service',
 } // Reference: https://github.com/red-hat-data-services/rhods-operator/blob/main/pkg/cluster/const.go
+
+export type TypedPromiseRejectedResult<R> = Omit<PromiseRejectedResult, 'reason'> & { reason: R };

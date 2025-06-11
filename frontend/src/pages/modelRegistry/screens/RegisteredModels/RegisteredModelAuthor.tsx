@@ -1,6 +1,6 @@
 import { Skeleton, Content } from '@patternfly/react-core';
 import React from 'react';
-import useModelVersionsByRegisteredModel from '~/concepts/modelRegistry/apiHooks/useModelVersionsByRegisteredModel';
+import useModelVersionsByRegisteredModel from '#~/concepts/modelRegistry/apiHooks/useModelVersionsByRegisteredModel';
 
 type RegisteredModelAuthorProps = {
   registeredModelId: string;

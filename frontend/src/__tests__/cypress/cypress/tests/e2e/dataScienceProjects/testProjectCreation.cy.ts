@@ -1,18 +1,18 @@
 import yaml from 'js-yaml';
-import { HTPASSWD_CLUSTER_ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
+import { HTPASSWD_CLUSTER_ADMIN_USER } from '#~/__tests__/cypress/cypress/utils/e2eUsers';
 import {
   projectListPage,
   createProjectModal,
   projectDetails,
-} from '~/__tests__/cypress/cypress/pages/projects';
+} from '#~/__tests__/cypress/cypress/pages/projects';
 import {
   verifyOpenShiftProjectExists,
   deleteOpenShiftProject,
-} from '~/__tests__/cypress/cypress/utils/oc_commands/project';
-import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
-import type { DataScienceProjectData } from '~/__tests__/cypress/cypress/types';
-import { retryableBefore } from '~/__tests__/cypress/cypress/utils/retryableHooks';
-import { generateTestUUID } from '~/__tests__/cypress/cypress/utils/uuidGenerator';
+} from '#~/__tests__/cypress/cypress/utils/oc_commands/project';
+import { deleteModal } from '#~/__tests__/cypress/cypress/pages/components/DeleteModal';
+import type { DataScienceProjectData } from '#~/__tests__/cypress/cypress/types';
+import { retryableBefore } from '#~/__tests__/cypress/cypress/utils/retryableHooks';
+import { generateTestUUID } from '#~/__tests__/cypress/cypress/utils/uuidGenerator';
 
 describe('Verify Data Science Project - Creation and Deletion', () => {
   let testData: DataScienceProjectData;

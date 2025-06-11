@@ -1,4 +1,4 @@
-import useGenericObjectState, { GenericObjectState } from '~/utilities/useGenericObjectState';
+import useGenericObjectState, { GenericObjectState } from '#~/utilities/useGenericObjectState';
 
 export type CreateExperimentData = {
   name: string;

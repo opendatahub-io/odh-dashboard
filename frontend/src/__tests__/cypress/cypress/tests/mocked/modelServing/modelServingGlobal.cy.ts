@@ -1,16 +1,16 @@
-import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
-import { mockDscStatus } from '~/__mocks__/mockDscStatus';
-import { mockInferenceServiceK8sResource } from '~/__mocks__/mockInferenceServiceK8sResource';
-import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
-import { mock200Status } from '~/__mocks__/mockK8sStatus';
-import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
-import { mockSecretK8sResource } from '~/__mocks__/mockSecretK8sResource';
-import { mockServingRuntimeK8sResource } from '~/__mocks__/mockServingRuntimeK8sResource';
+import { mockDashboardConfig } from '#~/__mocks__/mockDashboardConfig';
+import { mockDscStatus } from '#~/__mocks__/mockDscStatus';
+import { mockInferenceServiceK8sResource } from '#~/__mocks__/mockInferenceServiceK8sResource';
+import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
+import { mock200Status } from '#~/__mocks__/mockK8sStatus';
+import { mockProjectK8sResource } from '#~/__mocks__/mockProjectK8sResource';
+import { mockSecretK8sResource } from '#~/__mocks__/mockSecretK8sResource';
+import { mockServingRuntimeK8sResource } from '#~/__mocks__/mockServingRuntimeK8sResource';
 import {
   mockInvalidTemplateK8sResource,
   mockServingRuntimeTemplateK8sResource,
-} from '~/__mocks__/mockServingRuntimeTemplateK8sResource';
-import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
+} from '#~/__mocks__/mockServingRuntimeTemplateK8sResource';
+import { deleteModal } from '#~/__tests__/cypress/cypress/pages/components/DeleteModal';
 import {
   inferenceServiceModal,
   inferenceServiceModalEdit,
@@ -18,7 +18,7 @@ import {
   kserveModalEdit,
   modelServingGlobal,
   modelServingSection,
-} from '~/__tests__/cypress/cypress/pages/modelServing';
+} from '#~/__tests__/cypress/cypress/pages/modelServing';
 import {
   AcceleratorProfileModel,
   HardwareProfileModel,
@@ -27,29 +27,29 @@ import {
   SecretModel,
   ServingRuntimeModel,
   TemplateModel,
-} from '~/__tests__/cypress/cypress/utils/models';
-import { DeploymentMode, type InferenceServiceKind, type ServingRuntimeKind } from '~/k8sTypes';
-import { ServingRuntimePlatform } from '~/types';
-import { be } from '~/__tests__/cypress/cypress/utils/should';
-import { asClusterAdminUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
-import { testPagination } from '~/__tests__/cypress/cypress/utils/pagination';
+} from '#~/__tests__/cypress/cypress/utils/models';
+import { DeploymentMode, type InferenceServiceKind, type ServingRuntimeKind } from '#~/k8sTypes';
+import { ServingRuntimePlatform } from '#~/types';
+import { be } from '#~/__tests__/cypress/cypress/utils/should';
+import { asClusterAdminUser } from '#~/__tests__/cypress/cypress/utils/mockUsers';
+import { testPagination } from '#~/__tests__/cypress/cypress/utils/pagination';
 import {
   mockConnectionTypeConfigMap,
   mockModelServingFields,
   mockOciConnectionTypeConfigMap,
-} from '~/__mocks__/mockConnectionType';
-import { hardwareProfileSection } from '~/__tests__/cypress/cypress/pages/components/HardwareProfileSection';
+} from '#~/__mocks__/mockConnectionType';
+import { hardwareProfileSection } from '#~/__tests__/cypress/cypress/pages/components/HardwareProfileSection';
 import {
   mockGlobalScopedHardwareProfiles,
   mockProjectScopedHardwareProfiles,
-} from '~/__mocks__/mockHardwareProfile';
-import { initInterceptsForAllProjects } from '~/__tests__/cypress/cypress/utils/servingUtils';
-import { nimDeployModal } from '~/__tests__/cypress/cypress/pages/components/NIMDeployModal';
+} from '#~/__mocks__/mockHardwareProfile';
+import { initInterceptsForAllProjects } from '#~/__tests__/cypress/cypress/utils/servingUtils';
+import { nimDeployModal } from '#~/__tests__/cypress/cypress/pages/components/NIMDeployModal';
 import {
   mockGlobalScopedAcceleratorProfiles,
   mockProjectScopedAcceleratorProfiles,
-} from '~/__mocks__/mockAcceleratorProfile';
-import { acceleratorProfileSection } from '~/__tests__/cypress/cypress/pages/components/subComponents/AcceleratorProfileSection';
+} from '#~/__mocks__/mockAcceleratorProfile';
+import { acceleratorProfileSection } from '#~/__tests__/cypress/cypress/pages/components/subComponents/AcceleratorProfileSection';
 
 type HandlersProps = {
   disableKServeConfig?: boolean;
@@ -662,7 +662,8 @@ describe('Model Serving Global', () => {
 
     kserveModal.shouldBeOpen();
     kserveModal.findServingRuntimeTemplateHelptext().should('not.exist');
-    kserveModal.findServingRuntimeTemplateDropdown().findSelectOption('Caikit').click();
+    kserveModal.findServingRuntimeTemplateSearchSelector().click();
+    kserveModal.findGlobalScopedTemplateOption('Caikit').click();
     kserveModal.findServingRuntimeTemplateHelptext().should('exist');
   });
 
@@ -680,29 +681,27 @@ describe('Model Serving Global', () => {
 
     // Check for project specific serving runtimes
     kserveModal.findServingRuntimeTemplateSearchSelector().click();
-    const projectScopedSR = kserveModal.getProjectScopedServingRuntime();
-    projectScopedSR.find().findByRole('menuitem', { name: 'Multi Platform', hidden: true }).click();
+    kserveModal.findProjectScopedTemplateOption('Multi Platform').click();
     kserveModal.findProjectScopedLabel().should('exist');
 
     // Check for global specific serving runtimes
     kserveModal.findServingRuntimeTemplateSearchSelector().click();
-    const globalScopedSR = kserveModal.getGlobalScopedServingRuntime();
-    globalScopedSR.find().findByRole('menuitem', { name: 'Multi Platform', hidden: true }).click();
+    kserveModal.findGlobalScopedTemplateOption('Multi Platform').click();
     kserveModal.findGlobalScopedLabel().should('exist');
     kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
 
     // check model framework selection when serving runtime changes
     kserveModal.findServingRuntimeTemplateSearchSelector().click();
-    globalScopedSR.find().findByRole('menuitem', { name: 'Multi Platform', hidden: true }).click();
+    kserveModal.findGlobalScopedTemplateOption('Multi Platform').click();
     kserveModal.findModelFrameworkSelect().should('have.text', 'onnx - 1');
 
     kserveModal.findServingRuntimeTemplateSearchSelector().click();
-    globalScopedSR.find().findByRole('menuitem', { name: 'Caikit', hidden: true }).click();
+    kserveModal.findGlobalScopedTemplateOption('Caikit').click();
     kserveModal.findModelFrameworkSelect().should('be.enabled');
     kserveModal.findModelFrameworkSelect().should('have.text', 'Select a framework');
 
     kserveModal.findServingRuntimeTemplateSearchSelector().click();
-    projectScopedSR.find().findByRole('menuitem', { name: 'Caikit', hidden: true }).click();
+    kserveModal.findProjectScopedTemplateOption('Caikit').click();
     kserveModal.findModelFrameworkSelect().should('be.disabled');
     kserveModal.findModelFrameworkSelect().should('have.text', 'openvino_ir - opset1');
   });
@@ -725,7 +724,7 @@ describe('Model Serving Global', () => {
     kserveModalEdit.findServingRuntimeTemplateSearchSelector().should('be.disabled');
     kserveModalEdit
       .findServingRuntimeTemplateSearchSelector()
-      .should('have.text', 'test-project-scoped-sr Project-scoped');
+      .should('have.text', 'test-project-scoped-srProject-scoped');
     kserveModalEdit.findProjectScopedLabel().should('exist');
     kserveModalEdit.findModelFrameworkSelect().should('have.text', 'onnx - 1');
   });
@@ -838,6 +837,7 @@ describe('Model Serving Global', () => {
       servingRuntimes: [
         mockServingRuntimeK8sResource({
           acceleratorName: 'large-profile-1',
+          acceleratorProfileNamespace: 'test-project',
         }),
       ],
     });
@@ -847,6 +847,24 @@ describe('Model Serving Global', () => {
       .findAcceleratorProfileSearchSelector()
       .should('contain.text', 'Large Profile-1');
     kserveModalEdit.findProjectScopedLabel().should('exist');
+  });
+
+  it('Display Existing settings for deleted accelerator profile selection on Edit', () => {
+    initIntercepts({
+      projectEnableModelMesh: false,
+      disableServingRuntimeParamsConfig: false,
+      disableProjectScoped: false,
+      servingRuntimes: [
+        mockServingRuntimeK8sResource({
+          acceleratorName: 'large-profile-2',
+        }),
+      ],
+    });
+    modelServingGlobal.visit('test-project');
+    modelServingGlobal.getModelRow('Test Inference Service').findKebabAction('Edit').click();
+    acceleratorProfileSection
+      .findAcceleratorProfileSearchSelector()
+      .should('contain.text', 'Existing settings');
   });
 
   it('Display global scoped label on serving runtime selection', () => {
@@ -866,7 +884,7 @@ describe('Model Serving Global', () => {
     kserveModalEdit.findServingRuntimeTemplateSearchSelector().should('be.disabled');
     kserveModalEdit
       .findServingRuntimeTemplateSearchSelector()
-      .should('have.text', 'OpenVINO Serving Runtime (Supports GPUs) Global-scoped');
+      .should('have.text', 'OpenVINO Serving Runtime (Supports GPUs)Global-scoped');
     kserveModalEdit.findGlobalScopedLabel().should('exist');
     kserveModalEdit.findModelFrameworkSelect().should('have.text', 'onnx - 1');
   });
@@ -884,7 +902,8 @@ describe('Model Serving Global', () => {
     kserveModal.findPredefinedArgsButton().click();
     kserveModal.findPredefinedArgsList().should('not.exist');
     kserveModal.findPredefinedArgsTooltip().should('exist');
-    kserveModal.findServingRuntimeTemplateDropdown().findSelectOption('Caikit').click();
+    kserveModal.findServingRuntimeTemplateSearchSelector().click();
+    kserveModal.findGlobalScopedTemplateOption('Caikit').click();
     kserveModal.findPredefinedArgsButton().click();
     kserveModal.findPredefinedArgsList().should('exist');
     kserveModal.findPredefinedArgsTooltip().should('not.exist');
@@ -904,7 +923,8 @@ describe('Model Serving Global', () => {
     kserveModal.findPredefinedVarsButton().click();
     kserveModal.findPredefinedVarsList().should('not.exist');
     kserveModal.findPredefinedVarsTooltip().should('exist');
-    kserveModal.findServingRuntimeTemplateDropdown().findSelectOption('Caikit').click();
+    kserveModal.findServingRuntimeTemplateSearchSelector().click();
+    kserveModal.findGlobalScopedTemplateOption('Caikit').click();
     kserveModal.findPredefinedVarsButton().click();
     kserveModal.findPredefinedVarsList().should('exist');
     kserveModal.findPredefinedVarsTooltip().should('not.exist');

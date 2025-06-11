@@ -1,7 +1,7 @@
 import React from 'react';
-import { MlmdMetadataValueType } from '~/pages/pipelines/global/experiments/executions/utils';
-import { MaxHeightCodeEditor } from '~/components/MaxHeightCodeEditor';
-import { NoValue } from '~/components/NoValue';
+import { MlmdMetadataValueType } from '#~/pages/pipelines/global/experiments/executions/utils';
+import { MaxHeightCodeEditor } from '#~/components/MaxHeightCodeEditor';
+import { NoValue } from '#~/components/NoValue';
 
 type ExecutionDetailsPropertiesValueProps = {
   value: MlmdMetadataValueType;

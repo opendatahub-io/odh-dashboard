@@ -1,10 +1,10 @@
 import React from 'react';
-import { NimMetricGraphDefinition } from '~/concepts/metrics/kserve/types';
-import { TimeframeTitle } from '~/concepts/metrics/types';
-import { useFetchNimTokensCountData } from '~/api';
-import MetricsChart from '~/pages/modelServing/screens/metrics/MetricsChart';
-import { MetricsChartTypes } from '~/pages/modelServing/screens/metrics/types';
-import { convertPrometheusNaNToZero } from '~/pages/modelServing/screens/metrics/utils';
+import { NimMetricGraphDefinition } from '#~/concepts/metrics/kserve/types';
+import { TimeframeTitle } from '#~/concepts/metrics/types';
+import { useFetchNimTokensCountData } from '#~/api';
+import MetricsChart from '#~/pages/modelServing/screens/metrics/MetricsChart';
+import { MetricsChartTypes } from '#~/pages/modelServing/screens/metrics/types';
+import { convertPrometheusNaNToZero } from '#~/pages/modelServing/screens/metrics/utils';
 
 // Graph #3 - Total Prompt Token Count and Total Generation Token Count
 type NimTokensCountGraphProps = {

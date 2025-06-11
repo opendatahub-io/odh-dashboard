@@ -1,13 +1,13 @@
 import React from 'react';
 import '@testing-library/jest-dom';
 import { render, screen } from '@testing-library/react';
-import StartNotebookModal from '~/concepts/notebooks/StartNotebookModal';
+import StartNotebookModal from '#~/concepts/notebooks/StartNotebookModal';
 import {
   mockCompletedStates,
   mockFailedStates,
   mockInitialStates,
   mockInProgressStates,
-} from '~/concepts/__tests__/mockNotebookStates';
+} from '#~/concepts/__tests__/mockNotebookStates';
 
 describe('Start Notebook modal', () => {
   it('should show initial notebook startup status', async () => {

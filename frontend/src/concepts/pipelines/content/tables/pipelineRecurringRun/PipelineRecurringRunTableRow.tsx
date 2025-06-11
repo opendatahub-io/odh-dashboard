@@ -1,21 +1,21 @@
 import * as React from 'react';
 import { ActionsColumn, TableText, Td, Tr } from '@patternfly/react-table';
 import { Link, useNavigate } from 'react-router-dom';
-import { PipelineRecurringRunKF } from '~/concepts/pipelines/kfTypes';
-import { TableRowTitleDescription, CheckboxTd } from '~/components/table';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import usePipelineRunVersionInfo from '~/concepts/pipelines/content/tables/usePipelineRunVersionInfo';
-import { PipelineVersionLink } from '~/concepts/pipelines/content/PipelineVersionLink';
-import { duplicateRecurringRunRoute, recurringRunDetailsRoute } from '~/routes/pipelines/runs';
+import { PipelineRecurringRunKF } from '#~/concepts/pipelines/kfTypes';
+import { TableRowTitleDescription, CheckboxTd } from '#~/components/table';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+import usePipelineRunVersionInfo from '#~/concepts/pipelines/content/tables/usePipelineRunVersionInfo';
+import { PipelineVersionLink } from '#~/concepts/pipelines/content/PipelineVersionLink';
+import { duplicateRecurringRunRoute, recurringRunDetailsRoute } from '#~/routes/pipelines/runs';
 import {
   RecurringRunCreated,
   RecurringRunScheduled,
   RecurringRunStatus,
   RecurringRunTrigger,
-} from '~/concepts/pipelines/content/tables/renderUtils';
-import PipelineRunTableRowExperiment from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableRowExperiment';
-import usePipelineRunExperimentInfo from '~/concepts/pipelines/content/tables/usePipelineRunExperimentInfo';
-import { ExperimentContext } from '~/pages/pipelines/global/experiments/ExperimentContext';
+} from '#~/concepts/pipelines/content/tables/renderUtils';
+import PipelineRunTableRowExperiment from '#~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableRowExperiment';
+import usePipelineRunExperimentInfo from '#~/concepts/pipelines/content/tables/usePipelineRunExperimentInfo';
+import { ExperimentContext } from '#~/pages/pipelines/global/experiments/ExperimentContext';
 
 type PipelineRecurringRunTableRowProps = {
   isChecked: boolean;

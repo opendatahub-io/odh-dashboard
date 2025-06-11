@@ -1,7 +1,7 @@
 import { act } from 'react';
 import { waitFor } from '@testing-library/react';
-import useFetch, { FetchStateObject } from '~/utilities/useFetch';
-import { testHook, standardUseFetchStateObject } from '~/__tests__/unit/testUtils/hooks';
+import useFetch, { FetchStateObject } from '#~/utilities/useFetch';
+import { testHook, standardUseFetchStateObject } from '#~/__tests__/unit/testUtils/hooks';
 
 // These tests are based on the original tests for useFetchState, updated to use the new useFetch hook.
 

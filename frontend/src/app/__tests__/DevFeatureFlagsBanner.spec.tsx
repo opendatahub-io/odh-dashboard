@@ -1,8 +1,17 @@
 import * as React from 'react';
 import { act } from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, RenderOptions, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import DevFeatureFlagsBanner from '~/app/DevFeatureFlagsBanner';
+import { PluginStoreProvider } from '@openshift/dynamic-plugin-sdk';
+import { PluginStore } from '@odh-dashboard/plugin-core';
+import DevFeatureFlagsBanner from '#~/app/DevFeatureFlagsBanner';
+
+const renderOptions = (): RenderOptions => {
+  const store = new PluginStore([]);
+  return {
+    wrapper: ({ children }) => <PluginStoreProvider store={store}>{children}</PluginStoreProvider>,
+  };
+};
 
 describe('DevFeatureFlagsBanner', () => {
   it('should not render if no feature flags are overridden', () => {
@@ -14,6 +23,7 @@ describe('DevFeatureFlagsBanner', () => {
         devFeatureFlags={null}
         setDevFeatureFlagQueryVisible={() => undefined}
       />,
+      renderOptions(),
     );
     expect(result.container).toBeEmptyDOMElement();
   });
@@ -29,6 +39,7 @@ describe('DevFeatureFlagsBanner', () => {
         setDevFeatureFlagQueryVisible={visibleFn}
         devFeatureFlags={{}}
       />,
+      renderOptions(),
     );
     expect(result.container).not.toBeEmptyDOMElement();
     act(() => result.getByTestId('override-feature-flags-button').click());
@@ -56,6 +67,7 @@ describe('DevFeatureFlagsBanner', () => {
           disableHome: true,
         }}
       />,
+      renderOptions(),
     );
     expect(result.container).not.toBeEmptyDOMElement();
     act(() => result.getByTestId('override-feature-flags-button').click());

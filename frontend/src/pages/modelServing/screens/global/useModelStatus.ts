@@ -1,8 +1,8 @@
 import * as React from 'react';
-import { getPodsForKserve, getPodsForModelMesh } from '~/api';
-import useFetchState, { FetchState } from '~/utilities/useFetchState';
-import { ModelStatus } from '~/pages/modelServing/screens/types';
-import { checkModelStatus } from './utils';
+import { getPodsForKserve, getPodsForModelMesh } from '#~/api';
+import useFetchState, { FetchState } from '#~/utilities/useFetchState';
+import { ModelStatus } from '#~/pages/modelServing/screens/types';
+import { checkModelPodStatus } from '#~/concepts/modelServingKServe/kserveStatusUtils';
 
 export const useModelStatus = (
   namespace: string,
@@ -12,7 +12,7 @@ export const useModelStatus = (
   const fetchSecret = React.useCallback<() => Promise<ModelStatus | null>>(() => {
     const fetchFunction = isKserve ? getPodsForKserve : getPodsForModelMesh;
     return fetchFunction(namespace, name)
-      .then((model) => checkModelStatus(model[0]))
+      .then((model) => checkModelPodStatus(model[0]))
       .catch((e) => {
         if (e.statusObject?.code === 404) {
           throw new Error(`Pod ${name} not found`);

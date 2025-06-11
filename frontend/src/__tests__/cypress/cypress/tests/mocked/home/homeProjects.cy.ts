@@ -1,15 +1,15 @@
-import { mockSelfSubjectAccessReview } from '~/__mocks__/mockSelfSubjectAccessReview';
+import { mockSelfSubjectAccessReview } from '#~/__mocks__/mockSelfSubjectAccessReview';
 import {
   createProjectModal,
   projectDetails,
   projectListPage,
-} from '~/__tests__/cypress/cypress/pages/projects';
+} from '#~/__tests__/cypress/cypress/pages/projects';
 import {
   ProjectModel,
   SelfSubjectAccessReviewModel,
-} from '~/__tests__/cypress/cypress/utils/models';
-import { mockProjectsK8sList } from '~/__mocks__';
-import { homePage } from '~/__tests__/cypress/cypress/pages/home/home';
+} from '#~/__tests__/cypress/cypress/utils/models';
+import { mockProjectsK8sList } from '#~/__mocks__';
+import { homePage } from '#~/__tests__/cypress/cypress/pages/home/home';
 
 const interceptAccessReview = (allowed: boolean) => {
   cy.interceptK8s(

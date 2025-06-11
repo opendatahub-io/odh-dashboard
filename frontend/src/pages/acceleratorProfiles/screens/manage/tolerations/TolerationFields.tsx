@@ -13,10 +13,10 @@ import {
   Popover,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
-import { Toleration, TolerationEffect, TolerationOperator } from '~/types';
-import SimpleSelect from '~/components/SimpleSelect';
-import NumberInputWrapper from '~/components/NumberInputWrapper';
-import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
+import { Toleration, TolerationEffect, TolerationOperator } from '#~/types';
+import SimpleSelect from '#~/components/SimpleSelect';
+import NumberInputWrapper from '#~/components/NumberInputWrapper';
+import DashboardPopupIconButton from '#~/concepts/dashboard/DashboardPopupIconButton';
 import { effectDropdownOptions, operatorDropdownOptions } from './const';
 
 type TolerationFieldsProps = {

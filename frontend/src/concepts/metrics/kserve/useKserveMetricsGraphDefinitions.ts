@@ -2,8 +2,8 @@ import React from 'react';
 import {
   KserveMetricsConfigMapKind,
   KserveMetricsDefinition,
-} from '~/concepts/metrics/kserve/types';
-import { isValidKserveMetricsDataObject } from '~/concepts/metrics/kserve/utils';
+} from '#~/concepts/metrics/kserve/types';
+import { isValidKserveMetricsDataObject } from '#~/concepts/metrics/kserve/utils';
 
 const useKserveMetricsGraphDefinitions = (
   kserveMetricsConfigMap: KserveMetricsConfigMapKind | null,

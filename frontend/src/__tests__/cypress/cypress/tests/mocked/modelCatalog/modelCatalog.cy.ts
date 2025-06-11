@@ -1,24 +1,24 @@
 /* eslint-disable camelcase */
 import type { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
-import { mockDscStatus } from '~/__mocks__';
-import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
-import { modelCatalog } from '~/__tests__/cypress/cypress/pages/modelCatalog/modelCatalog';
-import { ConfigMapModel, ServiceModel } from '~/__tests__/cypress/cypress/utils/models';
-import { mockModelCatalogSource } from '~/__mocks__/mockModelCatalogSource';
+import { mockDscStatus } from '#~/__mocks__';
+import { mockDashboardConfig } from '#~/__mocks__/mockDashboardConfig';
+import { modelCatalog } from '#~/__tests__/cypress/cypress/pages/modelCatalog/modelCatalog';
+import { ConfigMapModel, ServiceModel } from '#~/__tests__/cypress/cypress/utils/models';
+import { mockModelCatalogSource } from '#~/__mocks__/mockModelCatalogSource';
 import {
   mockRedHatModel,
   mockThirdPartyModel,
   mockCatalogModel,
-} from '~/__mocks__/mockCatalogModel';
+} from '#~/__mocks__/mockCatalogModel';
 import {
   mockManagedModelCatalogConfigMap,
   mockUnmanagedModelCatalogConfigMap,
   mockConfigMap404Response,
   mockModelCatalogConfigMap,
-} from '~/__mocks__/mockModelCatalogConfigMap';
-import { mockModelRegistryService } from '~/__mocks__/mockModelRegistryService';
-import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
-import type { ModelCatalogSource } from '~/concepts/modelCatalog/types';
+} from '#~/__mocks__/mockModelCatalogConfigMap';
+import { mockModelRegistryService } from '#~/__mocks__/mockModelRegistryService';
+import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
+import type { ModelCatalogSource } from '#~/concepts/modelCatalog/types';
 
 type HandlersProps = {
   modelRegistries?: K8sResourceCommon[];

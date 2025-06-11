@@ -1,15 +1,16 @@
+import { AccessMode } from '#~/pages/storageClasses/storageEnums';
 import {
   buildMockStorageClass,
   buildMockStorageClassConfig,
   mockStorageClasses,
-} from '~/__mocks__';
-import { asProductAdminUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
-import { pageNotfound } from '~/__tests__/cypress/cypress/pages/pageNotFound';
+} from '#~/__mocks__';
+import { asProductAdminUser } from '#~/__tests__/cypress/cypress/utils/mockUsers';
+import { pageNotfound } from '#~/__tests__/cypress/cypress/pages/pageNotFound';
 import {
   storageClassEditModal,
   storageClassesPage,
   storageClassesTable,
-} from '~/__tests__/cypress/cypress/pages/storageClasses';
+} from '#~/__tests__/cypress/cypress/pages/storageClasses';
 
 describe('Storage classes', () => {
   it('shows "page not found" and does not show nav item as a non-admin user', () => {
@@ -38,6 +39,17 @@ describe('Storage classes', () => {
 
       storageClassesTable.findRowByName('Test SC 1').should('be.visible');
       storageClassesTable.findRowByName('openshift-default-sc').should('be.visible');
+    });
+
+    it('displays the correct access mode labels', () => {
+      storageClassesPage.mockGetStorageClasses();
+      storageClassesPage.visit();
+
+      storageClassesTable.findRowByName('Test SC 1').should('be.visible');
+      storageClassesTable.shouldContainAccessModeLabels(['RWX']); // display labels other than ROX label
+
+      storageClassesTable.findRowByName('openshift-default-sc').should('be.visible');
+      storageClassesTable.shouldContainAccessModeLabels([]); // empty because we do not display ROX label
     });
 
     it('table rows allow for toggling of Enable and Default values', () => {
@@ -123,7 +135,7 @@ describe('Storage classes', () => {
 
       storageClassesTable.getRowByConfigName('Test SC 1').findKebabAction('Edit').click();
       storageClassEditModal.findOpenshiftScName().should('have.text', 'test-storage-class-1');
-      storageClassEditModal.findProvisioner().should('have.text', 'manila.csi.openstack.org');
+      storageClassEditModal.findProvisioner().should('have.text', 'kubernetes.io/glusterfs');
       storageClassEditModal.findOpenshiftDefaultLabel().should('not.exist');
       storageClassEditModal.fillDisplayNameInput('Updated name');
       storageClassEditModal.fillDescriptionInput('Updated description');
@@ -179,6 +191,7 @@ describe('Storage classes', () => {
             displayName: 'Readable config',
             isEnabled: false,
             isDefault: false,
+            accessModeSettings: { ReadWriteOnce: true },
           }),
         ])
         .as('updateStorageClass');
@@ -475,6 +488,263 @@ describe('Storage classes', () => {
       storageClassesPage.visit();
 
       storageClassesPage.findNoDefaultAlert().should('exist');
+    });
+
+    it('should show access mode checkboxes with correct enable/disable and checked/unchecked states', () => {
+      const config = {
+        accessModeSettings: {
+          [AccessMode.RWO]: true,
+          [AccessMode.RWX]: false,
+          [AccessMode.ROX]: true,
+          [AccessMode.RWOP]: false,
+        },
+      };
+      const storageClass = buildMockStorageClass(otherStorageClass, config);
+      storageClassesPage.mockGetStorageClasses([storageClass]);
+      storageClassesPage.visit();
+      storageClassesTable.getRowByConfigName('Test SC 1').findKebabAction('Edit').click();
+
+      storageClassEditModal
+        .findAccessModeCheckbox(AccessMode.RWO)
+        .should('be.disabled')
+        .and('be.checked');
+
+      storageClassEditModal
+        .findAccessModeCheckbox(AccessMode.RWX)
+        .should('be.enabled')
+        .and('not.be.checked')
+        .click()
+        .should('be.checked');
+
+      storageClassEditModal
+        .findAccessModeCheckbox(AccessMode.ROX)
+        .should('be.enabled')
+        .and('be.checked')
+        .click()
+        .and('not.be.checked');
+
+      storageClassEditModal
+        .findAccessModeCheckbox(AccessMode.RWOP)
+        .should('be.enabled')
+        .and('not.be.checked')
+        .click()
+        .and('be.checked');
+    });
+
+    it('should show access mode checkboxes with disabled state for missing access modes', () => {
+      const config = {
+        accessModeSettings: {
+          [AccessMode.RWO]: true,
+          [AccessMode.RWX]: true,
+          // ROX missing
+          // RWOP missing
+        },
+      };
+      const storageClass = buildMockStorageClass(otherStorageClass, config);
+      storageClassesPage.mockGetStorageClasses([storageClass]);
+      storageClassesPage.visit();
+      storageClassesTable.getRowByConfigName('Test SC 1').findKebabAction('Edit').click();
+
+      storageClassEditModal
+        .findAccessModeCheckbox(AccessMode.RWO)
+        .should('be.disabled')
+        .and('be.checked');
+
+      storageClassEditModal
+        .findAccessModeCheckbox(AccessMode.RWX)
+        .should('be.enabled')
+        .and('be.checked')
+        .click()
+        .should('not.be.checked');
+
+      storageClassEditModal
+        .findAccessModeCheckbox(AccessMode.ROX)
+        .should('be.enabled')
+        .and('not.be.checked')
+        .click()
+        .and('be.checked');
+
+      storageClassEditModal
+        .findAccessModeCheckbox(AccessMode.RWOP)
+        .should('be.enabled')
+        .and('not.be.checked')
+        .click()
+        .and('be.checked');
+    });
+
+    it('should show access mode checkboxes with disabled state for supported access modes and extra keys', () => {
+      const config = {
+        accessModeSettings: {
+          [AccessMode.RWO]: true,
+          [AccessMode.RWX]: true,
+          [AccessMode.ROX]: true,
+          [AccessMode.RWOP]: true,
+          AnyKey: true,
+        },
+      };
+      const storageClass = buildMockStorageClass(openshiftDefaultStorageClass, config);
+      storageClassesPage.mockGetStorageClasses([storageClass]);
+      storageClassesPage.visit();
+      storageClassesTable
+        .getRowByConfigName('openshift-default-sc')
+        .findKebabAction('Edit')
+        .click();
+
+      storageClassEditModal
+        .findAccessModeCheckbox(AccessMode.RWO)
+        .should('be.disabled')
+        .and('be.checked');
+
+      storageClassEditModal
+        .findAccessModeCheckbox(AccessMode.RWX)
+        .should('be.disabled')
+        .and('not.be.checked');
+
+      storageClassEditModal
+        .findAccessModeCheckbox(AccessMode.ROX)
+        .should('be.disabled')
+        .and('not.be.checked');
+
+      storageClassEditModal
+        .findAccessModeCheckbox(AccessMode.RWOP)
+        .should('be.disabled')
+        .and('not.be.checked');
+    });
+
+    it('should show access mode checkboxes with empty access mode settings', () => {
+      const config = {
+        accessModeSettings: {},
+      };
+      const storageClass = buildMockStorageClass(openshiftDefaultStorageClass, config);
+      storageClassesPage.mockGetStorageClasses([storageClass]);
+      storageClassesPage.visit();
+      storageClassesTable
+        .getRowByConfigName('openshift-default-sc')
+        .findKebabAction('Edit')
+        .click();
+
+      storageClassEditModal
+        .findAccessModeCheckbox(AccessMode.RWO)
+        .should('be.disabled')
+        .and('be.checked');
+
+      storageClassEditModal
+        .findAccessModeCheckbox(AccessMode.RWX)
+        .should('be.disabled')
+        .and('not.be.checked');
+
+      storageClassEditModal
+        .findAccessModeCheckbox(AccessMode.ROX)
+        .should('be.disabled')
+        .and('not.be.checked');
+
+      storageClassEditModal
+        .findAccessModeCheckbox(AccessMode.RWOP)
+        .should('be.disabled')
+        .and('not.be.checked');
+    });
+
+    it('should show RWO enabled even if the key is disabled', () => {
+      const config = {
+        accessModeSettings: {
+          [AccessMode.RWO]: false,
+          [AccessMode.RWX]: true,
+          [AccessMode.ROX]: true,
+          [AccessMode.RWOP]: true,
+        },
+      };
+      const storageClass = buildMockStorageClass(otherStorageClass, config);
+      storageClassesPage.mockGetStorageClasses([storageClass]);
+      storageClassesPage.visit();
+      storageClassesTable.getRowByConfigName('Test SC 1').findKebabAction('Edit').click();
+
+      storageClassEditModal
+        .findAccessModeCheckbox(AccessMode.RWO)
+        .should('be.disabled')
+        .and('be.checked');
+
+      storageClassEditModal
+        .findAccessModeCheckbox(AccessMode.RWX)
+        .should('be.enabled')
+        .and('be.checked');
+
+      storageClassEditModal
+        .findAccessModeCheckbox(AccessMode.ROX)
+        .should('be.enabled')
+        .and('be.checked');
+
+      storageClassEditModal
+        .findAccessModeCheckbox(AccessMode.RWOP)
+        .should('be.enabled')
+        .and('be.checked');
+    });
+
+    it('should update accessModeSettings and persist changes on save', () => {
+      const oldConfig = {
+        accessModeSettings: {
+          [AccessMode.RWO]: true,
+          [AccessMode.RWX]: true,
+          [AccessMode.ROX]: false,
+        },
+      };
+
+      const newConfig = {
+        accessModeSettings: {
+          [AccessMode.RWO]: true,
+          [AccessMode.RWX]: false,
+          [AccessMode.ROX]: true,
+          [AccessMode.RWOP]: true,
+        },
+      };
+
+      const storageClass = buildMockStorageClass(otherStorageClass, oldConfig);
+
+      storageClassesPage.mockGetStorageClasses([storageClass]);
+      storageClassesPage.visit();
+      storageClassesTable.getRowByConfigName('Test SC 1').findKebabAction('Edit').click();
+
+      storageClassEditModal.findAccessModeCheckbox(AccessMode.RWX).click().should('not.be.checked');
+      storageClassEditModal.findAccessModeCheckbox(AccessMode.ROX).click().should('be.checked');
+      storageClassEditModal.findAccessModeCheckbox(AccessMode.RWOP).click().should('be.checked');
+
+      const newStorageClass = buildMockStorageClass(otherStorageClass, newConfig);
+
+      storageClassEditModal.mockGetStorageClass(newStorageClass);
+      storageClassEditModal.mockPatchStorageClass(newStorageClass).as('patchStorageClass');
+      storageClassesPage.mockGetStorageClasses([newStorageClass]).as('refreshStorageClass');
+
+      storageClassEditModal.findSaveButton().click();
+      cy.wait('@patchStorageClass');
+      cy.wait('@refreshStorageClass');
+
+      storageClassesTable.getRowByConfigName('Test SC 1').findKebabAction('Edit').click();
+      storageClassEditModal.findAccessModeCheckbox(AccessMode.RWO).should('be.checked');
+      storageClassEditModal.findAccessModeCheckbox(AccessMode.RWX).should('not.be.checked');
+      storageClassEditModal
+        .findAccessModeCheckbox(AccessMode.RWOP)
+        .should('be.enabled')
+        .and('be.checked');
+      storageClassEditModal.findAccessModeCheckbox(AccessMode.ROX).should('be.checked');
+    });
+
+    it('should show the alert when RWX is disabled', () => {
+      const config = {
+        accessModeSettings: {
+          [AccessMode.RWO]: true,
+          [AccessMode.RWX]: true,
+          [AccessMode.ROX]: true,
+        },
+      };
+      const storageClass = buildMockStorageClass(otherStorageClass, config);
+      storageClassesPage.mockGetStorageClasses([storageClass]);
+      storageClassesPage.visit();
+      storageClassesTable.getRowByConfigName('Test SC 1').findKebabAction('Edit').click();
+
+      storageClassEditModal.findAccessModeCheckbox(AccessMode.RWX).click().should('not.be.checked');
+      storageClassEditModal.findAccessModeAlert().should('be.visible');
+      storageClassEditModal
+        .findAccessModeAlert()
+        .should('contain.text', 'Disabling the RWX access mode will prevent new storage');
     });
   });
 });

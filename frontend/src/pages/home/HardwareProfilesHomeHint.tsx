@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { Content } from '@patternfly/react-core';
-import TitleWithIcon from '~/concepts/design/TitleWithIcon';
-import { ProjectObjectType } from '~/concepts/design/utils';
-import ExternalLink from '~/components/ExternalLink';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+import TitleWithIcon from '#~/concepts/design/TitleWithIcon';
+import { ProjectObjectType } from '#~/concepts/design/utils';
+import ExternalLink from '#~/components/ExternalLink';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import HomeHint from './HomeHint';
 
 const HardwareProfilesHomeHint: React.FC = () => {

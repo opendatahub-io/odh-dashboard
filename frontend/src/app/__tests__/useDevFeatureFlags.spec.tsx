@@ -1,12 +1,15 @@
 import { merge } from 'lodash-es';
-import { act } from 'react';
+import React, { act } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { testHook } from '~/__tests__/unit/testUtils/hooks';
-import useDevFeatureFlags from '~/app/useDevFeatureFlags';
-import { useBrowserStorage } from '~/components/browserStorage/BrowserStorageContext';
-import { allFeatureFlags } from '~/concepts/areas/const';
-import { DashboardCommonConfig, DashboardConfigKind } from '~/k8sTypes';
-import axios from '~/utilities/axios';
+import { PluginStoreProvider } from '@openshift/dynamic-plugin-sdk';
+import { PluginStore } from '@odh-dashboard/plugin-core';
+import { RenderOptions } from '@testing-library/react';
+import { renderHook } from '#~/__tests__/unit/testUtils/hooks';
+import useDevFeatureFlags from '#~/app/useDevFeatureFlags';
+import { useBrowserStorage } from '#~/components/browserStorage/BrowserStorageContext';
+import { definedFeatureFlags } from '#~/concepts/areas/const';
+import { DashboardConfigKind } from '#~/k8sTypes';
+import axios from '#~/utilities/axios';
 
 jest.mock('react-router-dom', () => ({
   useSearchParams: jest.fn(() => [
@@ -14,10 +17,10 @@ jest.mock('react-router-dom', () => ({
     jest.fn(),
   ]),
 }));
-jest.mock('~/components/browserStorage/BrowserStorageContext', () => ({
+jest.mock('#~/components/browserStorage/BrowserStorageContext', () => ({
   useBrowserStorage: jest.fn(() => [null, jest.fn()]),
 }));
-jest.mock('~/utilities/axios', () => ({
+jest.mock('#~/utilities/axios', () => ({
   __esModule: true,
   default: {
     defaults: {
@@ -32,9 +35,10 @@ const axiosMock = jest.mocked(axios);
 const useSearchParamsMock = jest.mocked(useSearchParams);
 const useBrowserStorageMock = jest.mocked(useBrowserStorage);
 
-const mockSession = (sessionFlags: Partial<DashboardCommonConfig> | null) => {
-  const setSessionFn = jest.fn();
-  useBrowserStorageMock.mockReturnValue([sessionFlags, setSessionFn]);
+const mockSession = (initialSessionFlags: Record<string, boolean> | null) => {
+  let sessionFlags: Record<string, boolean> | null = initialSessionFlags;
+  const setSessionFn = jest.fn().mockImplementation((value) => (sessionFlags = value));
+  useBrowserStorageMock.mockImplementation(() => [sessionFlags, setSessionFn]);
   return { sessionFlags, setSessionFn };
 };
 
@@ -66,12 +70,19 @@ const mockUseSearchParams = (queryFlags: { [key in string]: boolean } | null | b
   return { queryFlags, searchParams, setSearchParamsFn };
 };
 
+const renderOptions = (): RenderOptions => {
+  const store = new PluginStore([]);
+  return {
+    wrapper: ({ children }) => <PluginStoreProvider store={store}>{children}</PluginStoreProvider>,
+  };
+};
+
 describe('useDevFeatureFlags', () => {
   it('should pass through dashboardConfig if no dev feature flags set', () => {
     const dashboardConfig = {
       spec: { dashboardConfig: { disableAppLauncher: true } },
     } as DashboardConfigKind;
-    const renderResult = testHook(useDevFeatureFlags)(dashboardConfig);
+    const renderResult = renderHook(() => useDevFeatureFlags(dashboardConfig), renderOptions());
     expect(renderResult.result.current.dashboardConfig).toBe(dashboardConfig);
     expect(renderResult.result.current).toEqual({
       dashboardConfig,
@@ -90,7 +101,7 @@ describe('useDevFeatureFlags', () => {
     const dashboardConfig = {
       spec: { dashboardConfig: { enablement: true } },
     } as DashboardConfigKind;
-    const renderResult = testHook(useDevFeatureFlags)(dashboardConfig);
+    const renderResult = renderHook(() => useDevFeatureFlags(dashboardConfig), renderOptions());
     expect(renderResult.result.current).toEqual({
       dashboardConfig: merge({}, dashboardConfig, { spec: { dashboardConfig: sessionFlags } }),
       devFeatureFlags: sessionFlags,
@@ -106,7 +117,7 @@ describe('useDevFeatureFlags', () => {
       }),
     );
 
-    act(() => renderResult.result.current.resetDevFeatureFlags());
+    act(() => renderResult.result.current.resetDevFeatureFlags(true));
     expect(setSessionFn).toHaveBeenCalledWith(null);
     act(() => renderResult.result.current.setDevFeatureFlag('disableInfo', false));
     expect(setSessionFn).toHaveBeenLastCalledWith({
@@ -127,7 +138,7 @@ describe('useDevFeatureFlags', () => {
     const dashboardConfig = {
       spec: { dashboardConfig: { disableAppLauncher: true } },
     } as DashboardConfigKind;
-    const renderResult = testHook(useDevFeatureFlags)(dashboardConfig);
+    const renderResult = renderHook(() => useDevFeatureFlags(dashboardConfig), renderOptions());
     expect(renderResult.result.current).toEqual({
       dashboardConfig: merge({}, dashboardConfig, {
         spec: {
@@ -166,8 +177,8 @@ describe('useDevFeatureFlags', () => {
     const dashboardConfig = {
       spec: { dashboardConfig: { disableAppLauncher: true } },
     } as DashboardConfigKind;
-    const renderResult = testHook(useDevFeatureFlags)(dashboardConfig);
-    const expectedDevFeatureFlags = allFeatureFlags.reduce<{ [key: string]: boolean }>(
+    const renderResult = renderHook(() => useDevFeatureFlags(dashboardConfig), renderOptions());
+    const expectedDevFeatureFlags = definedFeatureFlags.reduce<{ [key: string]: boolean }>(
       (acc, flag) => {
         acc[flag] = false;
         return acc;
@@ -187,13 +198,13 @@ describe('useDevFeatureFlags', () => {
     });
   });
 
-  it('should load flags from query string with true', () => {
+  it('should load flags from query string with false', () => {
     mockUseSearchParams(false);
     const dashboardConfig = {
       spec: { dashboardConfig: { disableAppLauncher: false } },
     } as DashboardConfigKind;
-    const renderResult = testHook(useDevFeatureFlags)(dashboardConfig);
-    const expectedDevFeatureFlags = allFeatureFlags.reduce<{ [key: string]: boolean }>(
+    const renderResult = renderHook(() => useDevFeatureFlags(dashboardConfig), renderOptions());
+    const expectedDevFeatureFlags = definedFeatureFlags.reduce<{ [key: string]: boolean }>(
       (acc, flag) => {
         acc[flag] = true;
         return acc;

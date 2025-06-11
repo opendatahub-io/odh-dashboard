@@ -1,8 +1,8 @@
-import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
-import { Modal } from '~/__tests__/cypress/cypress/pages/components/Modal';
-import { TableRow } from '~/__tests__/cypress/cypress/pages/components/table';
-import { mixin } from '~/__tests__/cypress/cypress/utils/mixin';
-import { K8sNameDescriptionField } from '~/__tests__/cypress/cypress/pages/components/subComponents/K8sNameDescriptionField';
+import { appChrome } from '#~/__tests__/cypress/cypress/pages/appChrome';
+import { Modal } from '#~/__tests__/cypress/cypress/pages/components/Modal';
+import { TableRow } from '#~/__tests__/cypress/cypress/pages/components/table';
+import { mixin } from '#~/__tests__/cypress/cypress/utils/mixin';
+import { K8sNameDescriptionField } from '#~/__tests__/cypress/cypress/pages/components/subComponents/K8sNameDescriptionField';
 import { Contextual } from './components/Contextual';
 
 class ModelServingToolbar extends Contextual<HTMLElement> {
@@ -116,41 +116,25 @@ class ModelServingGlobal {
 
 class ServingRuntimeGroup extends Contextual<HTMLElement> {}
 
-class InferenceServiceModal extends Modal {
-  k8sNameDescription = new K8sNameDescriptionField('inference-service');
-
-  constructor(private edit = false) {
-    super(`${edit ? 'Edit' : 'Deploy'} model`);
-  }
-
-  findConnectionType(name: string | RegExp) {
-    return this.findExistingConnectionSelect()
-      .findByRole('button', { name: 'Typeahead menu toggle' })
-      .findSelectOption(name);
-  }
-
-  findSubmitButton() {
-    return this.findFooter().findByTestId('modal-submit-button');
-  }
-
-  findModelNameInput() {
-    return this.k8sNameDescription.findDisplayNameInput();
-  }
-
-  findSpinner() {
-    return this.find().findByTestId('spinner');
-  }
-
-  findServingRuntimeSelect() {
-    return this.find().findByTestId('inference-service-model-selection');
-  }
-
+class ServingModal extends Modal {
   findServingRuntimeTemplateSearchSelector() {
     return this.find().findByTestId('serving-runtime-template-selection-toggle');
   }
 
   findServingRuntimeTemplateSearchInput() {
     return cy.findByTestId('serving-runtime-template-selection-search').find('input');
+  }
+
+  findGlobalScopedTemplateOption(name: string) {
+    return this.getGlobalScopedServingRuntime()
+      .find()
+      .findByRole('menuitem', { name: new RegExp(name), hidden: true });
+  }
+
+  findProjectScopedTemplateOption(name: string) {
+    return this.getProjectScopedServingRuntime()
+      .find()
+      .findByRole('menuitem', { name: new RegExp(name), hidden: true });
   }
 
   getGlobalServingRuntimesLabel() {
@@ -177,20 +161,38 @@ class InferenceServiceModal extends Modal {
     return new ServingRuntimeGroup(() => cy.findByTestId('global-scoped-serving-runtimes'));
   }
 
-  findServingRuntimeTemplate() {
-    return this.find().findByTestId('serving-runtime-template-selection');
+  findServingRuntimeVersionLabel() {
+    return cy.findByTestId('serving-runtime-version-label');
+  }
+}
+
+class InferenceServiceModal extends ServingModal {
+  k8sNameDescription = new K8sNameDescriptionField('inference-service');
+
+  constructor(private edit = false) {
+    super(`${edit ? 'Edit' : 'Deploy'} model`);
   }
 
-  findCalkitStandaloneServingRuntime() {
-    return this.find().findByTestId('caikit-standalone-runtime');
+  findConnectionType(name: string | RegExp) {
+    return this.findExistingConnectionSelect()
+      .findByRole('button', { name: 'Typeahead menu toggle' })
+      .findSelectOption(name);
   }
 
-  findCalkitTGISServingRuntime() {
-    return this.find().findByTestId('caikit-tgis-runtime');
+  findSubmitButton() {
+    return this.findFooter().findByTestId('modal-submit-button');
   }
 
-  findOpenVinoServingRuntime() {
-    return this.find().findByTestId('kserve-ovms');
+  findModelNameInput() {
+    return this.k8sNameDescription.findDisplayNameInput();
+  }
+
+  findSpinner() {
+    return this.find().findByTestId('spinner');
+  }
+
+  findServingRuntimeSelect() {
+    return this.find().findByTestId('inference-service-model-selection');
   }
 
   findModelFrameworkSelect() {
@@ -373,7 +375,7 @@ class InferenceServiceModal extends Modal {
   }
 }
 
-class ServingRuntimeModal extends Modal {
+class ServingRuntimeModal extends ServingModal {
   k8sNameDescription = new K8sNameDescriptionField('serving-runtime');
 
   constructor(private edit = false) {
@@ -398,14 +400,6 @@ class ServingRuntimeModal extends Modal {
 
   findServingRuntimeTemplateHelptext() {
     return this.find().findByTestId('serving-runtime-template-helptext');
-  }
-
-  findServingRuntimeTemplateDropdown() {
-    return this.find().findByTestId('serving-runtime-template-selection');
-  }
-
-  findOpenVinoModelServer() {
-    return this.find().findByTestId('ovms');
   }
 
   findPredefinedArgsButton() {
@@ -513,6 +507,38 @@ class KServeModal extends InferenceServiceModal {
 
   findMaxReplicasMinusButton() {
     return this.find().findByTestId('max-replicas').findByRole('button', { name: 'Minus' });
+  }
+
+  findCPURequestedInput() {
+    return this.find().findByTestId('cpu-requested-input').find('input');
+  }
+
+  findCPURequestedButton(type: 'Plus' | 'Minus') {
+    return this.find().findByTestId('cpu-requested-input').findByRole('button', { name: type });
+  }
+
+  findCPULimitInput() {
+    return this.find().findByTestId('cpu-limit-input').find('input');
+  }
+
+  findCPULimitButton(type: 'Plus' | 'Minus') {
+    return this.find().findByTestId('cpu-limit-input').findByRole('button', { name: type });
+  }
+
+  findMemoryRequestedInput() {
+    return this.find().findByTestId('memory-requested-input').find('input');
+  }
+
+  findMemoryRequestedButton(type: 'Plus' | 'Minus') {
+    return this.find().findByTestId('memory-requested-input').findByRole('button', { name: type });
+  }
+
+  findMemoryLimitInput() {
+    return this.find().findByTestId('memory-limit-input').find('input');
+  }
+
+  findMemoryLimitButton(type: 'Plus' | 'Minus') {
+    return this.find().findByTestId('memory-limit-input').findByRole('button', { name: type });
   }
 }
 mixin(KServeModal, [ServingRuntimeModal, InferenceServiceModal]);

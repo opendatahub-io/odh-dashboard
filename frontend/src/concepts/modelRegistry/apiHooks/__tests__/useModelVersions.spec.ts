@@ -1,8 +1,8 @@
 import { renderHook, act } from '@testing-library/react';
-import { useModelRegistryAPI } from '~/concepts/modelRegistry/context/ModelRegistryPageContext';
-import useModelVersions from '~/concepts/modelRegistry/apiHooks/useModelVersions';
+import { useModelRegistryAPI } from '#~/concepts/modelRegistry/context/ModelRegistryPageContext';
+import useModelVersions from '#~/concepts/modelRegistry/apiHooks/useModelVersions';
 
-jest.mock('~/concepts/modelRegistry/context/ModelRegistryPageContext');
+jest.mock('#~/concepts/modelRegistry/context/ModelRegistryPageContext');
 
 describe('useModelVersions', () => {
   const mockListModelVersions = jest.fn();

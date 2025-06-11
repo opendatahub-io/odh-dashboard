@@ -1,10 +1,10 @@
 import * as React from 'react';
 import { Bullseye, Divider, Flex, FlexItem, MenuItem, Truncate } from '@patternfly/react-core';
-import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
-import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
-import SearchSelector from '~/components/searchSelector/SearchSelector';
-import { ProjectKind } from '~/k8sTypes';
-import { ProjectIcon } from '~/images/icons';
+import { byName, ProjectsContext } from '#~/concepts/projects/ProjectsContext';
+import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
+import SearchSelector from '#~/components/searchSelector/SearchSelector';
+import { ProjectKind } from '#~/k8sTypes';
+import { ProjectIcon } from '#~/images/icons';
 
 type ProjectSelectorProps = {
   onSelection: (projectName: string) => void;

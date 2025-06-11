@@ -12,19 +12,19 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import { Identifier, IdentifierResourceType } from '~/types';
-import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
-import { UnitOption } from '~/utilities/valueUnits';
-import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
-import { asEnumMember } from '~/utilities/utils';
+import { Identifier, IdentifierResourceType } from '#~/types';
+import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
+import { UnitOption } from '#~/utilities/valueUnits';
+import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
+import { asEnumMember } from '#~/utilities/utils';
 import {
   DEFAULT_ACCELERATOR_SIZE,
   DEFAULT_CPU_SIZE,
   DEFAULT_MEMORY_SIZE,
   EMPTY_IDENTIFIER,
   HARDWARE_PROFILE_COLUMN_HELP_TOOLTIP,
-} from '~/pages/hardwareProfiles/nodeResource/const';
-import DashboardHelpTooltip from '~/concepts/dashboard/DashboardHelpTooltip';
+} from '#~/pages/hardwareProfiles/nodeResource/const';
+import DashboardHelpTooltip from '#~/concepts/dashboard/DashboardHelpTooltip';
 import {
   getValidationMessage,
   validateDefaultCount,

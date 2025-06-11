@@ -1,6 +1,6 @@
-import { HTPASSWD_CLUSTER_ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
-import { resources } from '~/__tests__/cypress/cypress/pages/resources';
-import { verifyResourcesForFilter } from '~/__tests__/cypress/cypress/utils/resourceUtils';
+import { HTPASSWD_CLUSTER_ADMIN_USER } from '#~/__tests__/cypress/cypress/utils/e2eUsers';
+import { resources } from '#~/__tests__/cypress/cypress/pages/resources';
+import { verifyResourcesForFilter } from '#~/__tests__/cypress/cypress/utils/resourceUtils';
 
 const listView = resources.getListView();
 const cardView = resources.getCardView();

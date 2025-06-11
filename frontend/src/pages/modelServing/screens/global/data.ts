@@ -1,6 +1,6 @@
-import { InferenceServiceKind, ProjectKind, SecretKind } from '~/k8sTypes';
-import { SortableData } from '~/components/table';
-import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
+import { InferenceServiceKind, ProjectKind, SecretKind } from '#~/k8sTypes';
+import { SortableData } from '#~/components/table';
+import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 
 export enum ColumnField {
   Expand = 'expand',

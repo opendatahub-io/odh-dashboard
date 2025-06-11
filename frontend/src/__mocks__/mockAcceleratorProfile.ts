@@ -1,5 +1,5 @@
-import { AcceleratorProfileKind } from '~/k8sTypes';
-import { Toleration, TolerationEffect, TolerationOperator } from '~/types';
+import { AcceleratorProfileKind } from '#~/k8sTypes';
+import { Toleration, TolerationEffect, TolerationOperator } from '#~/types';
 import { genUID } from './mockUtils';
 
 type MockResourceConfigType = {

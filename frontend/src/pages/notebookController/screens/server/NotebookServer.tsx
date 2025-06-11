@@ -1,15 +1,15 @@
 import * as React from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { Button, ActionList, ActionListItem, Stack, StackItem } from '@patternfly/react-core';
-import { Notebook } from '~/types';
-import ApplicationsPage from '~/pages/ApplicationsPage';
-import { NotebookControllerContext } from '~/pages/notebookController/NotebookControllerContext';
-import ImpersonateAlert from '~/pages/notebookController/screens/admin/ImpersonateAlert';
-import useNotification from '~/utilities/useNotification';
+import ApplicationsPage from '#~/pages/ApplicationsPage';
+import { NotebookControllerContext } from '#~/pages/notebookController/NotebookControllerContext';
+import ImpersonateAlert from '#~/pages/notebookController/screens/admin/ImpersonateAlert';
+import useNotification from '#~/utilities/useNotification';
+import { useStopWorkbenchModal } from '#~/concepts/notebooks/useStopWorkbenchModal';
 import NotebookServerDetails from './NotebookServerDetails';
 import StopServerModal from './StopServerModal';
 
-import '~/pages/notebookController/NotebookController.scss';
+import '#~/pages/notebookController/NotebookController.scss';
 
 const NotebookServer: React.FC = () => {
   const navigate = useNavigate();
@@ -20,22 +20,17 @@ const NotebookServer: React.FC = () => {
     currentUserNotebookLink,
     requestNotebookRefresh,
   } = React.useContext(NotebookControllerContext);
-  const [notebooksToStop, setNotebooksToStop] = React.useState<Notebook[]>([]);
-
-  const onNotebooksStop = React.useCallback(
-    (didStop: boolean) => {
-      if (didStop) {
-        // Refresh the context so the spawner page knows the full state
-        requestNotebookRefresh();
-        navigate(`/notebookController/spawner`);
-      } else {
-        setNotebooksToStop([]);
-      }
-    },
-    [requestNotebookRefresh, navigate],
-  );
+  const notebooksToStop = notebook ? [notebook] : [];
 
   const link = currentUserNotebookLink || '#';
+
+  const { showModal, isDeleting, onStop, onNotebooksStop } = useStopWorkbenchModal({
+    notebooksToStop,
+    refresh: () => {
+      requestNotebookRefresh();
+      navigate(`/notebookController/spawner`);
+    },
+  });
 
   return (
     <>
@@ -51,13 +46,14 @@ const NotebookServer: React.FC = () => {
         {notebook && (
           <Stack hasGutter>
             <StackItem>
-              {notebooksToStop.length ? (
+              {showModal && (
                 <StopServerModal
                   notebooksToStop={notebooksToStop}
-                  onNotebooksStop={onNotebooksStop}
+                  isDeleting={isDeleting}
                   link={link}
+                  onNotebooksStop={onNotebooksStop}
                 />
-              ) : null}
+              )}
               <ActionList>
                 <ActionListItem
                   onClick={(e) => {
@@ -74,7 +70,11 @@ const NotebookServer: React.FC = () => {
                     Access workbench
                   </Button>
                 </ActionListItem>
-                <ActionListItem onClick={() => setNotebooksToStop([notebook])}>
+                <ActionListItem
+                  onClick={() => {
+                    onStop();
+                  }}
+                >
                   <Button data-testid="stop-wb-button" variant="secondary">
                     Stop workbench
                   </Button>

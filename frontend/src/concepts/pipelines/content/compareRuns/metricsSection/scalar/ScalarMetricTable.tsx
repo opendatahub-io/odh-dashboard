@@ -1,10 +1,10 @@
 import * as React from 'react';
 import { InnerScrollContainer, TableVariant, Td, Tr } from '@patternfly/react-table';
 import { Bullseye, Flex, Spinner, Switch } from '@patternfly/react-core';
-import { Table } from '~/components/table';
-import { RunArtifact } from '~/concepts/pipelines/apiHooks/mlmd/types';
-import { CompareRunsEmptyState } from '~/concepts/pipelines/content/compareRuns/CompareRunsEmptyState';
-import { CompareRunsNoMetrics } from '~/concepts/pipelines/content/compareRuns/CompareRunsNoMetrics';
+import { Table } from '#~/components/table';
+import { RunArtifact } from '#~/concepts/pipelines/apiHooks/mlmd/types';
+import { CompareRunsEmptyState } from '#~/concepts/pipelines/content/compareRuns/CompareRunsEmptyState';
+import { CompareRunsNoMetrics } from '#~/concepts/pipelines/content/compareRuns/CompareRunsNoMetrics';
 import { ScalarTableData } from './types';
 import { generateTableStructure } from './utils';
 

@@ -1,25 +1,25 @@
 import { renderHook, act } from '@testing-library/react';
-import { getConfigMap } from '~/api';
-import { useIsAreaAvailable } from '~/concepts/areas';
-import useNamespaces from '~/pages/notebookController/useNamespaces';
-import { useModelCatalogSources } from '~/concepts/modelCatalog/useModelCatalogSources';
+import { getConfigMap } from '#~/api';
+import { useIsAreaAvailable } from '#~/concepts/areas';
+import useNamespaces from '#~/pages/notebookController/useNamespaces';
+import { useModelCatalogSources } from '#~/concepts/modelCatalog/useModelCatalogSources';
 import {
   MODEL_CATALOG_SOURCES_CONFIGMAP,
   MODEL_CATALOG_UNMANAGED_SOURCES_CONFIGMAP,
-} from '~/concepts/modelCatalog/const';
+} from '#~/concepts/modelCatalog/const';
 
 // Mock the dependencies
-jest.mock('~/api', () => ({
+jest.mock('#~/api', () => ({
   getConfigMap: jest.fn(),
   isK8sStatus: jest.fn().mockReturnValue(true),
 }));
 
-jest.mock('~/pages/notebookController/useNamespaces', () => ({
+jest.mock('#~/pages/notebookController/useNamespaces', () => ({
   __esModule: true,
   default: jest.fn(),
 }));
 
-jest.mock('~/concepts/areas', () => ({
+jest.mock('#~/concepts/areas', () => ({
   useIsAreaAvailable: jest.fn(),
 }));
 

@@ -1,17 +1,17 @@
 import { z, ZodEffects } from 'zod';
-import { IdentifierResourceType, TolerationEffect, TolerationOperator } from '~/types';
+import { IdentifierResourceType, TolerationEffect, TolerationOperator } from '#~/types';
 import {
   validateDefaultCount,
   validateMaxCount,
   validateMinCount,
-} from '~/pages/hardwareProfiles/nodeResource/utils';
-import { splitValueUnit } from '~/utilities/valueUnits';
-import { HardwareProfileWarningType } from '~/concepts/hardwareProfiles/types';
+} from '#~/pages/hardwareProfiles/nodeResource/utils';
+import { splitValueUnit } from '#~/utilities/valueUnits';
+import { HardwareProfileWarningType } from '#~/concepts/hardwareProfiles/types';
 import {
   createIdentifierWarningMessage,
   determineIdentifierUnit,
-} from '~/pages/hardwareProfiles/utils';
-import { HARDWARE_PROFILES_MISSING_CPU_MEMORY_MESSAGE } from '~/concepts/hardwareProfiles/const';
+} from '#~/pages/hardwareProfiles/utils';
+import { HARDWARE_PROFILES_MISSING_CPU_MEMORY_MESSAGE } from '#~/concepts/hardwareProfiles/const';
 import { hasCPUandMemory } from './ManageNodeResourceSection';
 
 const k8sNameRegex = /^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/;

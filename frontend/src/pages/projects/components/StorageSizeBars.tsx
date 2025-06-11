@@ -1,12 +1,12 @@
 import * as React from 'react';
 import { Popover, Spinner, Content, Tooltip, Flex, ContentVariants } from '@patternfly/react-core';
 import { ExclamationCircleIcon, ExclamationTriangleIcon } from '@patternfly/react-icons';
-import { PersistentVolumeClaimKind } from '~/k8sTypes';
-import { getPvcRequestSize, getPvcTotalSize } from '~/pages/projects/utils';
-import { usePVCFreeAmount } from '~/api';
-import { bytesAsRoundedGiB } from '~/utilities/number';
-import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
-import ProgressBarWithLabels from '~/components/ProgressBarWithLabels';
+import { PersistentVolumeClaimKind } from '#~/k8sTypes';
+import { getPvcRequestSize, getPvcTotalSize } from '#~/pages/projects/utils';
+import { usePVCFreeAmount } from '#~/api';
+import { bytesAsRoundedGiB } from '#~/utilities/number';
+import DashboardPopupIconButton from '#~/concepts/dashboard/DashboardPopupIconButton';
+import ProgressBarWithLabels from '#~/components/ProgressBarWithLabels';
 
 type StorageSizeBarProps = {
   pvc: PersistentVolumeClaimKind;

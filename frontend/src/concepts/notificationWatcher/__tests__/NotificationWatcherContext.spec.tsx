@@ -6,10 +6,10 @@ import {
   NotificationWatcherContext,
   NotificationWatcherContextProvider,
   NotificationWatcherResponse,
-} from '~/concepts/notificationWatcher/NotificationWatcherContext';
-import useNotification from '~/utilities/useNotification';
+} from '#~/concepts/notificationWatcher/NotificationWatcherContext';
+import useNotification from '#~/utilities/useNotification';
 
-jest.mock('~/utilities/useNotification', () => {
+jest.mock('#~/utilities/useNotification', () => {
   const mock = {
     success: jest.fn(),
     error: jest.fn(),

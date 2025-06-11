@@ -1,10 +1,10 @@
 import * as React from 'react';
 import { Button, TextInput, ToolbarItem } from '@patternfly/react-core';
-import PipelineFilterBar from '~/concepts/pipelines/content/tables/PipelineFilterBar';
-import { FilterOptions } from '~/concepts/pipelines/content/tables/usePipelineFilter';
-import DashboardDatePicker from '~/components/DashboardDatePicker';
-import SimpleMenuActions from '~/components/SimpleMenuActions';
-import CreateExperimentButton from '~/concepts/pipelines/content/experiment/CreateExperimentButton';
+import PipelineFilterBar from '#~/concepts/pipelines/content/tables/PipelineFilterBar';
+import { FilterOptions } from '#~/concepts/pipelines/content/tables/usePipelineFilter';
+import DashboardDatePicker from '#~/components/DashboardDatePicker';
+import SimpleMenuActions from '#~/components/SimpleMenuActions';
+import CreateExperimentButton from '#~/concepts/pipelines/content/experiment/CreateExperimentButton';
 
 const options = {
   [FilterOptions.NAME]: 'Experiment',

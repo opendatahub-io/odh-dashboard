@@ -1,4 +1,4 @@
-import { mockDashboardConfig } from '~/__mocks__';
+import { mockDashboardConfig } from '#~/__mocks__';
 import { navSidebar } from './navSidebar';
 
 describe('Nav Sidebar model section', () => {

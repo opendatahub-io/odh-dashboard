@@ -1,0 +1,5 @@
+# Test data for model registry registration tests
+registryNamePrefix: "test-model-registry"
+objectStorageModelName: "test-object-storage-model"
+uriModelName: "test-uri-model"
+  
