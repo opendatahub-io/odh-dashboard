@@ -32,7 +32,7 @@ const ProjectAndExperimentSection: React.FC<ProjectAndExperimentSectionProps> = 
         <StackItem>
           <ActiveExperimentSelector selection={value?.display_name} onSelect={onChange} />
         </StackItem>
-        <StackItem>
+        {/* <StackItem>
           <CreateExperimentButton
             variant="link"
             icon={<PlusCircleIcon />}
@@ -40,7 +40,7 @@ const ProjectAndExperimentSection: React.FC<ProjectAndExperimentSectionProps> = 
           >
             Create new experiment
           </CreateExperimentButton>
-        </StackItem>
+        </StackItem> */}
       </Stack>
     </FormGroup>
   </FormSection>

@@ -11,6 +11,7 @@ import { useActiveExperimentSelector } from '~/concepts/pipelines/content/pipeli
 import { experimentSelectorColumns } from '~/concepts/pipelines/content/experiment/columns';
 import SearchSelector from '~/components/searchSelector/SearchSelector';
 import CreateExperimentModal from '~/concepts/pipelines/content/experiment/CreateExperimentModal';
+import { usePipelinesAPI } from '~/concepts/pipelines/context';
 
 type ExperimentSelectorProps = {
   selection?: string;
@@ -33,6 +34,7 @@ const InnerExperimentSelector: React.FC<
   onSelect,
 }) => {
   const [isModalOpen, setIsModalOpen] = React.useState(false);
+  const { refreshAllAPI } = usePipelinesAPI();
 
   return (
     <>
@@ -99,6 +101,7 @@ const InnerExperimentSelector: React.FC<
                         menuClose();
                         setIsModalOpen(true);
                       }}
+                      style={{ paddingLeft: '16px' }}
                     >
                       Create new experiment
                     </Button>
@@ -114,6 +117,7 @@ const InnerExperimentSelector: React.FC<
           onClose={(experiment) => {
             setIsModalOpen(false);
             if (experiment) {
+              refreshAllAPI();
               onSelect(experiment);
             }
           }}
