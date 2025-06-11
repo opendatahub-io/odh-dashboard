@@ -70,7 +70,7 @@ const LMEval = (): React.ReactElement => {
         )
       }
     >
-      <LMEvalListView lmEval={lmEval.data} />
+      <LMEvalListView lmEval={lmEval.data} lmEvalRefresh={lmEval.refresh} />
     </ApplicationsPage>
   );
 };

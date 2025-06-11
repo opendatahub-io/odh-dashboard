@@ -2,14 +2,18 @@ import {
   k8sCreateResource,
   k8sGetResource,
   k8sListResource,
+  k8sDeleteResource,
+  K8sStatus,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import { mockLMEvaluation } from '#~/__mocks__/mockLMEvaluation';
 import { LMEvalModel } from '#~/api/models';
 import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
+import { mock200Status, mock404Error } from '#~/__mocks__/mockK8sStatus';
 import {
   listModelEvaluations,
   createModelEvaluation,
   getModelEvaluationResult,
+  deleteModelEvaluation,
 } from '#~/api/k8s/lmEval';
 import { LMEvalKind } from '#~/k8sTypes';
 import { LmEvalFormData } from '#~/pages/lmEval/types';
@@ -18,6 +22,7 @@ jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sListResource: jest.fn(),
   k8sGetResource: jest.fn(),
   k8sCreateResource: jest.fn(),
+  k8sDeleteResource: jest.fn(),
 }));
 
 jest.mock('#~/concepts/k8s/utils', () => ({
@@ -28,6 +33,7 @@ jest.mock('#~/concepts/k8s/utils', () => ({
 const mockListResource = jest.mocked(k8sListResource);
 const mockGetResource = jest.mocked(k8sGetResource);
 const mockCreateResource = jest.mocked(k8sCreateResource<LMEvalKind>);
+const mockDeleteResource = jest.mocked(k8sDeleteResource<LMEvalKind, K8sStatus>);
 
 describe('listModelEvaluations', () => {
   beforeEach(() => {
@@ -450,5 +456,69 @@ describe('mockLMEvaluation status fields', () => {
     expect(mockEvaluation.status?.lastScheduleTime).toBeUndefined();
     expect(mockEvaluation.status?.state).toBe('Pending');
     expect(mockEvaluation.status?.message).toBe('Evaluation is pending');
+  });
+});
+
+describe('deleteModelEvaluation', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('should delete model evaluation successfully', async () => {
+    const name = 'test-evaluation';
+    const namespace = 'test-project';
+    const mockStatus = mock200Status({});
+    mockDeleteResource.mockResolvedValue(mockStatus);
+
+    const result = await deleteModelEvaluation(name, namespace);
+    expect(result).toStrictEqual(mockStatus);
+    expect(mockDeleteResource).toHaveBeenCalledTimes(1);
+    expect(mockDeleteResource).toHaveBeenCalledWith({
+      fetchOptions: { requestInit: {} },
+      model: LMEvalModel,
+      queryOptions: {
+        name,
+        ns: namespace,
+        queryParams: {},
+      },
+    });
+  });
+
+  it('should return failure status when unsuccessful', async () => {
+    const name = 'test-evaluation';
+    const namespace = 'test-project';
+    const mockStatus = mock404Error({});
+    mockDeleteResource.mockResolvedValue(mockStatus);
+
+    const result = await deleteModelEvaluation(name, namespace);
+    expect(result).toStrictEqual(mockStatus);
+    expect(mockDeleteResource).toHaveBeenCalledTimes(1);
+    expect(mockDeleteResource).toHaveBeenCalledWith({
+      fetchOptions: { requestInit: {} },
+      model: LMEvalModel,
+      queryOptions: {
+        name,
+        ns: namespace,
+        queryParams: {},
+      },
+    });
+  });
+
+  it('should handle errors and rethrow', async () => {
+    const name = 'test-evaluation';
+    const namespace = 'test-project';
+    mockDeleteResource.mockRejectedValue(new Error('Deletion failed'));
+
+    await expect(deleteModelEvaluation(name, namespace)).rejects.toThrow('Deletion failed');
+    expect(mockDeleteResource).toHaveBeenCalledTimes(1);
+    expect(mockDeleteResource).toHaveBeenCalledWith({
+      fetchOptions: { requestInit: {} },
+      model: LMEvalModel,
+      queryOptions: {
+        name,
+        ns: namespace,
+        queryParams: {},
+      },
+    });
   });
 });

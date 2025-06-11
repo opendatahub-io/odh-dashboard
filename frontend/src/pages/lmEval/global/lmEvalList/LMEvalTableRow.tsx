@@ -3,18 +3,18 @@ import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
 import { Timestamp } from '@patternfly/react-core';
 import { LMEvalKind } from '#~/k8sTypes';
 import { downloadString } from '#~/utilities/string';
+import { LMEvalState } from '#~/pages/lmEval/types';
 import LMEvalStatus from './LMEvalStatus';
 
 type LMEvalTableRowType = {
   lmEval: LMEvalKind;
+  onDeleteLMEval: (lmEval: LMEvalKind) => void;
 };
 
-const LMEvalTableRow: React.FC<LMEvalTableRowType> = ({ lmEval }) => {
+const LMEvalTableRow: React.FC<LMEvalTableRowType> = ({ lmEval, onDeleteLMEval }) => {
   const handleDownload = () => {
-    const rawData = JSON.stringify(lmEval);
-    downloadString(`${lmEval.metadata.name}.json`, rawData);
+    downloadString(`${lmEval.metadata.name}.json`, lmEval.status?.results || '{}');
   };
-
   return (
     <Tr>
       <Td dataLabel="Evaluation">{lmEval.metadata.name}</Td>
@@ -34,10 +34,10 @@ const LMEvalTableRow: React.FC<LMEvalTableRowType> = ({ lmEval }) => {
       <Td isActionCell>
         <ActionsColumn
           items={[
-            {
-              title: 'Download JSON',
-              onClick: handleDownload,
-            },
+            ...(lmEval.status?.state === LMEvalState.COMPLETE && lmEval.status.results
+              ? [{ title: 'Download JSON', onClick: handleDownload }]
+              : []),
+            { title: 'Delete', onClick: () => onDeleteLMEval(lmEval) },
           ]}
         />
       </Td>
