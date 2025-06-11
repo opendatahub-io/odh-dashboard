@@ -210,7 +210,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
     if (dryRun) {
       return updateNotebook(editNotebook, newStartNotebookData, username, { dryRun });
     }
-    return mergePatchUpdateNotebook(newStartNotebookData, username);
+    return mergePatchUpdateNotebook(editNotebook, newStartNotebookData, username);
   };
 
   const onUpdateNotebook = async () => {
