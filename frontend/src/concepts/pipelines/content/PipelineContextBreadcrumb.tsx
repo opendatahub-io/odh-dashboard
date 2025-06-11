@@ -5,6 +5,7 @@ import {
   Flex,
   FlexItem,
   Content,
+  BreadcrumbItem,
 } from '@patternfly/react-core';
 import React from 'react';
 import { Link } from 'react-router';
@@ -26,11 +27,11 @@ const PipelineContextBreadcrumb: React.FC<PipelineContextBreadcrumbProps> = ({
   const { project } = usePipelinesAPI();
 
   return (
-    <Breadcrumb data-testid={dataTestId}>
-      {children}
+    <Flex>
+      <Breadcrumb data-testid={dataTestId}>{children}</Breadcrumb>
       <Flex>
         <Divider orientation={{ default: 'vertical' }} />
-        <FlexItem data-testid="project-navigator-link">
+        <FlexItem data-testid="project-navigator-link-in-breadcrumb">
           <Content component={ContentVariants.small}>
             <Link to={`/projects/${project.metadata.name}`} className="link-button-with-icon">
               <Flex
@@ -47,7 +48,7 @@ const PipelineContextBreadcrumb: React.FC<PipelineContextBreadcrumbProps> = ({
           </Content>
         </FlexItem>
       </Flex>
-    </Breadcrumb>
+    </Flex>
   );
 };
 

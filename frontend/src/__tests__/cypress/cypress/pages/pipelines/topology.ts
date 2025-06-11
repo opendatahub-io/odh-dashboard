@@ -185,7 +185,7 @@ class PipelineDetails extends PipelinesTopology {
   }
 
   findProjectNavigatorLink() {
-    return cy.findByTestId('project-navigator-link');
+    return cy.findByTestId('project-navigator-link-in-breadcrumb');
   }
 
   findYamlTab() {
@@ -272,7 +272,7 @@ class PipelineRecurringRunDetails extends RunDetails {
   }
 
   findProjectNavigatorLink() {
-    return cy.findByTestId('project-navigator-link');
+    return cy.findByTestId('project-navigator-link-in-breadcrumb');
   }
 
   findActionsDropdown() {
@@ -322,7 +322,7 @@ class PipelineRunDetails extends RunDetails {
   }
 
   findProjectNavigatorLink() {
-    return cy.findByTestId('project-navigator-link');
+    return cy.findByTestId('project-navigator-link-in-breadcrumb');
   }
 
   findActionsDropdown() {

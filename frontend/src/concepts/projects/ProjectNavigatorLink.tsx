@@ -24,6 +24,7 @@ const ProjectNavigatorLink: React.FC<ProjectNavigatorLinkProps> = ({ project }) 
       onClick={() => {
         navigate(`/projects/${project.metadata.name}`);
       }}
+      data-testid="project-navigator-link"
     >
       <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsXs' }}>
         <FlexItem>Go to</FlexItem>
