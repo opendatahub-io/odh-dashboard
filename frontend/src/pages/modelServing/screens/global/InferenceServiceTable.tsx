@@ -84,6 +84,7 @@ const InferenceServiceTable: React.FC<InferenceServiceTableProps> = ({
               columnNames={mappedColumns.map((column) => column.field)}
               onDeleteInferenceService={setDeleteInferenceService}
               onEditInferenceService={setEditInferenceService}
+              refresh={refresh}
             />
           </ResourceTr>
         )}

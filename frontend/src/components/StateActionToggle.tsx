@@ -1,22 +1,22 @@
 import * as React from 'react';
 import { Button } from '@patternfly/react-core';
-import { NotebookState } from './types';
+import { NotebookState } from '#~/pages/projects/notebook/types';
+import { ModelServingState } from '#~/pages/modelServing/screens/types.ts';
 
 type Props = {
-  notebookState: NotebookState;
+  currentState: NotebookState | ModelServingState;
   onStart: () => void;
   onStop: () => void;
   isDisabled?: boolean;
 };
 
-const NotebookStateAction: React.FC<Props> = ({ notebookState, onStart, onStop, isDisabled }) => {
-  const { isStarting, isRunning, isStopping } = notebookState;
-
-  const actionDisabled = isDisabled || isStopping;
+const StateActionToggle: React.FC<Props> = ({ currentState, onStart, onStop, isDisabled }) => {
+  const { isStarting, isRunning, isStopping } = currentState;
+  const actionDisabled = isDisabled || isStopping || isStarting;
 
   return isStarting || isRunning ? (
     <Button
-      data-testid="notebook-stop-action"
+      data-testid="stop-action-toggle"
       variant="link"
       isDisabled={actionDisabled}
       onClick={onStop}
@@ -26,7 +26,7 @@ const NotebookStateAction: React.FC<Props> = ({ notebookState, onStart, onStop, 
     </Button>
   ) : (
     <Button
-      data-testid="notebook-start-action"
+      data-testid="start-action-toggle"
       variant="link"
       isDisabled={actionDisabled}
       onClick={onStart}
@@ -37,4 +37,4 @@ const NotebookStateAction: React.FC<Props> = ({ notebookState, onStart, onStop, 
   );
 };
 
-export default NotebookStateAction;
+export default StateActionToggle;

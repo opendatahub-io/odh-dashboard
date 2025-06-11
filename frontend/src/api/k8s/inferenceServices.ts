@@ -14,6 +14,7 @@ import { applyK8sAPIOptions } from '#~/api/apiMergeUtils';
 import { getInferenceServiceDeploymentMode } from '#~/pages/modelServing/screens/projects/utils';
 import { parseCommandLine } from '#~/api/k8s/utils';
 import { ModelServingPodSpecOptions } from '#~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
+import { k8sMergePatchResource } from '#~/api/k8sUtils';
 import { getModelServingProjects } from './projects';
 
 const applyAuthToInferenceService = (
@@ -361,3 +362,21 @@ export const deleteInferenceService = (
       opts,
     ),
   );
+
+export const patchInferenceServiceStatus = (
+  inferenceService: InferenceServiceKind,
+  status: 'true' | 'false',
+): Promise<InferenceServiceKind> =>
+  k8sMergePatchResource({
+    model: InferenceServiceModel,
+    resource: {
+      ...inferenceService,
+      metadata: {
+        ...inferenceService.metadata,
+        annotations: {
+          ...inferenceService.metadata.annotations,
+          'serving.kserve.io/stop': status,
+        },
+      },
+    },
+  });

@@ -1324,6 +1324,75 @@ describe('Serving Runtime List', () => {
         .should(be.sortDescending);
     });
 
+    it('Stop and start model', () => {
+      initIntercepts({
+        projectEnableModelMesh: false,
+        disableKServeConfig: false,
+        disableModelMeshConfig: true,
+        inferenceServices: [
+          mockInferenceServiceK8sResource({
+            name: 'test-model',
+            displayName: 'test-model',
+            modelName: 'test-model',
+            isModelMesh: false,
+            activeModelState: 'Loaded',
+          }),
+        ],
+      });
+      projectDetails.visitSection('test-project', 'model-server');
+
+      const kserveRow = modelServingSection.getKServeRow('test-model');
+
+      const stoppedInferenceService = mockInferenceServiceK8sResource({
+        name: 'test-model',
+        displayName: 'test-model',
+        modelName: 'test-model',
+        isModelMesh: false,
+        activeModelState: 'Unknown',
+      });
+      stoppedInferenceService.metadata.annotations = { 'serving.kserve.io/stop': 'true' };
+
+      cy.intercept(
+        'PATCH',
+        '/api/k8s/apis/serving.kserve.io/v1beta1/namespaces/test-project/inferenceservices/test-model',
+        (req) => {
+          expect(req.body.metadata.annotations['serving.kserve.io/stop']).to.equal('true');
+          req.reply(stoppedInferenceService);
+        },
+      ).as('stopModelPatch');
+      cy.interceptK8sList(InferenceServiceModel, mockK8sResourceList([stoppedInferenceService])).as(
+        'getStoppedModel',
+      );
+
+      kserveRow.findStateActionToggle('stop').click();
+      cy.wait(['@stopModelPatch', '@getStoppedModel']);
+      kserveRow.findStateActionToggle('start').should('exist');
+
+      const runningInferenceService = mockInferenceServiceK8sResource({
+        name: 'test-model',
+        displayName: 'test-model',
+        modelName: 'test-model',
+        isModelMesh: false,
+        activeModelState: 'Loaded',
+      });
+
+      cy.intercept(
+        'PATCH',
+        '/api/k8s/apis/serving.kserve.io/v1beta1/namespaces/test-project/inferenceservices/test-model',
+        (req) => {
+          expect(req.body.metadata.annotations['serving.kserve.io/stop']).to.equal('false');
+          req.reply(runningInferenceService);
+        },
+      ).as('startModelPatch');
+      cy.interceptK8sList(InferenceServiceModel, mockK8sResourceList([runningInferenceService])).as(
+        'getStartedModel',
+      );
+
+      kserveRow.findStateActionToggle('start').click();
+      cy.wait(['@startModelPatch', '@getStartedModel']);
+      kserveRow.findStateActionToggle('stop').should('exist');
+    });
+
     it('Check number of replicas of model', () => {
       initIntercepts({
         projectEnableModelMesh: false,
