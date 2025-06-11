@@ -3,7 +3,7 @@ import { PageSection, Stack } from '@patternfly/react-core';
 import { ProjectSectionID } from '#~/pages/projects/screens/detail/types';
 import PipelineAndVersionContextProvider from '#~/concepts/pipelines/content/PipelineAndVersionContext';
 import useModelServingEnabled from '#~/pages/modelServing/useModelServingEnabled';
-import ServeModelsCard from '#~/concepts/projects/overviewTab/serveModels.tsx';
+import OverviewModelsSection from '#~/concepts/projects/overviewTab/ServeModels';
 import TrainModelsSection from './trainModels/TrainModelsSection';
 import ConfigurationSection from './configuration/ConfigurationSection';
 
@@ -21,7 +21,7 @@ const ProjectOverview: React.FC = () => {
         <PipelineAndVersionContextProvider>
           <TrainModelsSection />
         </PipelineAndVersionContextProvider>
-        {modelServingEnabled && <ServeModelsCard />}
+        {modelServingEnabled && <OverviewModelsSection />}
         <ConfigurationSection />
       </Stack>
     </PageSection>

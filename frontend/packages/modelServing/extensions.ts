@@ -42,7 +42,7 @@ const extensions: (
     properties: {
       id: 'model-server',
       title: 'Serve Models',
-      component: () => import('./src/ServeModelsCard'),
+      component: () => import('./src/ServeModelsSection'),
     },
     flags: {
       required: [PLUGIN_MODEL_SERVING],

@@ -4,7 +4,7 @@ import { isOverviewSectionExtension } from '@odh-dashboard/plugin-core/extension
 import { ProjectSectionID } from '#~/pages/projects/screens/detail/types';
 import ServeModelsSection from '#~/pages/projects/screens/detail/overview/serverModels/ServeModelsSection.tsx';
 
-const ServeModelsCard: React.FC = () => {
+const OverviewModelsSection: React.FC = () => {
   const serveModelsCardExtensions = useExtensions(isOverviewSectionExtension);
   const serveModelsCard = serveModelsCardExtensions.find(
     (tab) => tab.properties.id === ProjectSectionID.MODEL_SERVER,
@@ -17,4 +17,4 @@ const ServeModelsCard: React.FC = () => {
   );
 };
 
-export default ServeModelsCard;
+export default OverviewModelsSection;
