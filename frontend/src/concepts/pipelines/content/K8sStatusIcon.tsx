@@ -38,12 +38,11 @@ const K8sStatusIcon: React.FC<StatusIconProps> = ({ status, className }) => {
     }
   };
 
-  const statusTitle = status ?? 'pending';
   return (
     <span
       className={className}
       style={{ display: 'inline-flex', alignItems: 'center' }}
-      title={statusTitle}
+      title={status}
     >
       {getIcon()}
     </span>

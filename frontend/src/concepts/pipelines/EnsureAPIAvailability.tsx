@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Bullseye, Spinner, Button, Tooltip, Stack, StackItem } from '@patternfly/react-core';
+import { Bullseye, Spinner, Button, Stack, StackItem } from '@patternfly/react-core';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import StartingStatusModal from '#~/concepts/pipelines/content/StartingStatusModal.tsx';
 import { K8sCondition } from '#~/k8sTypes.ts';
