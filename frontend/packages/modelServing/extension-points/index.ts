@@ -150,3 +150,14 @@ export const isModelServingDeleteModal = <D extends Deployment = Deployment>(
   extension: Extension,
 ): extension is ModelServingDeleteModal<D> =>
   extension.type === 'model-serving.platform/delete-modal';
+
+export type ModelServingMetricsExtension<D extends Deployment = Deployment> = Extension<
+  'model-serving.metrics',
+  {
+    platform: D['modelServingPlatformId'];
+  }
+>;
+
+export const isModelServingMetricsExtension = <D extends Deployment = Deployment>(
+  extension: Extension,
+): extension is ModelServingMetricsExtension<D> => extension.type === 'model-serving.metrics';
