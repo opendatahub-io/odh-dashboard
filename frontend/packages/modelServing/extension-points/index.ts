@@ -72,6 +72,7 @@ export type ModelServingPlatformExtension<D extends Deployment = Deployment> = E
       startHintDescription: string;
       deployButtonText: string;
     };
+    useIsMetricsSupported: CodeRef<() => boolean>;
   }
 >;
 export const isModelServingPlatformExtension = <D extends Deployment = Deployment>(

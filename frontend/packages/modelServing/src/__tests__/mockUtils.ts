@@ -14,6 +14,7 @@ export const mockModelServingPlatform = ({
   startHintTitle = 'KServe',
   startHintDescription = 'KServe',
   deployButtonText = 'Deploy',
+  useIsMetricsSupported = () => true,
 }: {
   id?: string;
   namespaceApplicationCase?: NamespaceApplicationCase;
@@ -26,6 +27,7 @@ export const mockModelServingPlatform = ({
   startHintTitle?: string;
   startHintDescription?: string;
   deployButtonText?: string;
+  useIsMetricsSupported?: () => boolean;
 }): ModelServingPlatform => ({
   type: 'model-serving.platform',
   properties: {
@@ -46,6 +48,7 @@ export const mockModelServingPlatform = ({
       startHintDescription,
       deployButtonText,
     },
+    useIsMetricsSupported,
   },
 });
 

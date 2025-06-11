@@ -54,6 +54,8 @@ const DeploymentsTable: React.FC<{
     modelServingPlatform,
   );
 
+  const isMetricsSupported = modelServingPlatform.properties.useIsMetricsSupported();
+
   const [deleteDeployment, setDeleteDeployment] = React.useState<Deployment | undefined>(undefined);
 
   const platformColumns = React.useMemo(
@@ -84,6 +86,7 @@ const DeploymentsTable: React.FC<{
             deployment={row}
             platformColumns={platformColumns}
             onDelete={() => setDeleteDeployment(row)}
+            isMetricsSupported={isMetricsSupported}
           />
         )}
       />
