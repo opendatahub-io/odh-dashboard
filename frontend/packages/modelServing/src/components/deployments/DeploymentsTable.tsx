@@ -3,11 +3,16 @@ import { Spinner, Bullseye } from '@patternfly/react-core';
 import { SortableData, Table } from '@odh-dashboard/internal/components/table/index';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
+import { useExtensions } from '@openshift/dynamic-plugin-sdk';
 import { DeploymentRow } from './DeploymentsTableRow';
 import { deploymentNameSort } from '../../concepts/deploymentUtils';
 import { useResolvedPlatformExtension } from '../../concepts/extensionUtils';
 import { ModelServingPlatform } from '../../concepts/useProjectServingPlatform';
-import { Deployment, isModelServingDeploymentsTableExtension } from '../../../extension-points';
+import {
+  Deployment,
+  isModelServingDeploymentsTableExtension,
+  isModelServingMetricsExtension,
+} from '../../../extension-points';
 import DeleteModelServingModal from '../deleteModal/DeleteModelServingModal';
 
 const genericColumns: SortableData<Deployment>[] = [
@@ -54,6 +59,8 @@ const DeploymentsTable: React.FC<{
     modelServingPlatform,
   );
 
+  const metricsExtensions = useExtensions(isModelServingMetricsExtension);
+
   const [deleteDeployment, setDeleteDeployment] = React.useState<Deployment | undefined>(undefined);
 
   const platformColumns = React.useMemo(
@@ -84,6 +91,9 @@ const DeploymentsTable: React.FC<{
             deployment={row}
             platformColumns={platformColumns}
             onDelete={() => setDeleteDeployment(row)}
+            metricsExtension={metricsExtensions.find(
+              (ext) => ext.properties.platform === row.modelServingPlatformId,
+            )}
           />
         )}
       />
