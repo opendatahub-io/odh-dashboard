@@ -9,6 +9,7 @@
   "subtree": {
     "repo": "https://github.com/kubeflow/model-registry.git",
     "src": "clients/ui",
-    "target": "upstream"
+    "target": "upstream",
+    "commit": "aa34fd59ad066781b236634cbb2ff00b4bb01127"
   }
 }
