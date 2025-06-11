@@ -398,6 +398,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
                   }
                   setData={setCreateDataServingRuntime}
                   templates={servingRuntimeTemplates || []}
+                  servingRuntimeSelected={servingRuntimeSelected}
                   projectSpecificTemplates={projectTemplates}
                   isEditing={!!editInfo}
                   compatibleIdentifiers={profileIdentifiers}

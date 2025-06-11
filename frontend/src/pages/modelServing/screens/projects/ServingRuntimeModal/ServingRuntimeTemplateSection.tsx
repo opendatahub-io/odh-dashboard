@@ -14,7 +14,7 @@ import {
 } from '@patternfly/react-core';
 import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
 import { CreatingServingRuntimeObject } from '#~/pages/modelServing/screens/types';
-import { TemplateKind } from '#~/k8sTypes';
+import { ServingRuntimeKind, TemplateKind } from '#~/k8sTypes';
 import {
   getServingRuntimeDisplayNameFromTemplate,
   getServingRuntimeNameFromTemplate,
@@ -43,6 +43,7 @@ type ServingRuntimeTemplateSectionProps = {
   projectSpecificTemplates?: CustomWatchK8sResult<TemplateKind[]>;
   isEditing?: boolean;
   compatibleIdentifiers?: string[];
+  servingRuntimeSelected?: ServingRuntimeKind;
   resetModelFormat?: () => void;
 };
 
@@ -54,6 +55,7 @@ const ServingRuntimeTemplateSection: React.FC<ServingRuntimeTemplateSectionProps
   projectSpecificTemplates,
   isEditing,
   compatibleIdentifiers,
+  servingRuntimeSelected,
   resetModelFormat,
 }) => {
   const isHardwareProfilesAvailable = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;
@@ -203,10 +205,11 @@ const ServingRuntimeTemplateSection: React.FC<ServingRuntimeTemplateSectionProps
             color={isEditing ? 'grey' : 'blue'}
             fallback="Select one"
             additionalContent={
-              getServingRuntimeVersion(selectedTemplate) && (
+              getServingRuntimeVersion(servingRuntimeSelected || selectedTemplate) && (
                 <ServingRuntimeVersionLabel
-                  version={getServingRuntimeVersion(selectedTemplate)}
+                  version={getServingRuntimeVersion(servingRuntimeSelected || selectedTemplate)}
                   isCompact
+                  isEditing={isEditing}
                 />
               )
             }
