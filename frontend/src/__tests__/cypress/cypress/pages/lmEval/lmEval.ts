@@ -45,7 +45,7 @@ class LMEvalFormPage {
   }
 
   findEvaluationNameInput() {
-    return cy.findByLabelText('Evaluation name');
+    return cy.findByTestId('lm-eval-name');
   }
 
   findSubmitButton() {

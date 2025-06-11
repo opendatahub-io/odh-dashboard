@@ -17,7 +17,6 @@ import {
   SelectList,
   SelectOption,
   Skeleton,
-  TextInput,
   Truncate,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon, CubesIcon } from '@patternfly/react-icons';
@@ -35,6 +34,9 @@ import {
   handleModelSelection,
   handleModelTypeSelection,
 } from '#~/pages/lmEval/utilities/modelUtils';
+import K8sNameDescriptionField, {
+  useK8sNameDescriptionFieldData,
+} from '#~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField.tsx';
 import LmEvaluationTaskSection from './LMEvalTaskSection';
 import LmEvaluationSecuritySection from './LMEvalSecuritySection';
 import LmModelArgumentSection from './LMEvalModelArgumentSection';
@@ -48,6 +50,7 @@ const LMEvalForm: React.FC = () => {
 
   const [data, setData] = useLMGenericObjectState<LmEvalFormData>({
     deployedModelName: '',
+    k8sName: '',
     evaluationName: '',
     tasks: [],
     modelType: '',
@@ -73,6 +76,8 @@ const LMEvalForm: React.FC = () => {
     return generateModelOptions(filteredServices);
   }, [inferenceServices.loaded, inferenceServices.error, inferenceServices.data.items, namespace]);
 
+  const { data: lmEvalName, onDataChange: setLmEvalName } = useK8sNameDescriptionFieldData({});
+
   React.useEffect(() => {
     if (namespace && data.deployedModelName) {
       const isModelInNamespace = modelOptions.some(
@@ -88,6 +93,13 @@ const LMEvalForm: React.FC = () => {
       }
     }
   }, [namespace, modelOptions, data.deployedModelName, setData, data.model]);
+
+  React.useEffect(() => {
+    setData('evaluationName', lmEvalName.name);
+    setData('k8sName', lmEvalName.k8sName.value);
+    // only update if the name changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lmEvalName]);
 
   const findOptionForKey = (key: string): ModelTypeOption | undefined =>
     modelTypeOptions.find((option) => option.key === key);
@@ -215,10 +227,11 @@ const LMEvalForm: React.FC = () => {
               </Popover>
             }
           >
-            <TextInput
-              aria-label="Evaluation name"
-              value={data.evaluationName}
-              onChange={(_event, v) => setData('evaluationName', v)}
+            <K8sNameDescriptionField
+              data={lmEvalName}
+              onDataChange={setLmEvalName}
+              dataTestId="lm-eval"
+              hideDescription
             />
           </FormGroup>
           <LmEvaluationTaskSection

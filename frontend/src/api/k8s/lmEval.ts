@@ -28,7 +28,10 @@ const assembleModelEvaluation = (
   apiVersion: kindApiVersion(LMEvalModel),
   kind: LMEvalModel.kind,
   metadata: {
-    name: data.evaluationName || `eval-${translateDisplayNameForK8s(data.model.name)}`,
+    annotations: {
+      'openshift.io/display-name': data.evaluationName.trim(),
+    },
+    name: data.k8sName || translateDisplayNameForK8s(data.evaluationName),
     namespace,
   },
   spec: {
