@@ -5,6 +5,7 @@ import * as fs from 'fs';
 import registerCypressGrep from '@cypress/grep/src/plugin';
 import { defineConfig } from 'cypress';
 import coverage from '@cypress/code-coverage/task';
+import registerSealightsTasks from 'sealights-cypress-plugin';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore no types available
 import cypressHighResolution from 'cypress-high-resolution';
@@ -71,7 +72,9 @@ export default defineConfig({
       ? `cypress/tests/mocked/**/*.scy.ts`
       : `cypress/tests/e2e/**/*.cy.ts`,
     experimentalInteractiveRunEvents: true,
+    testIsolation: false,
     setupNodeEvents(on, config) {
+      registerSealightsTasks(on, config);
       registerCypressGrep(config);
       cypressHighResolution(on, config);
       coverage(on, config);
