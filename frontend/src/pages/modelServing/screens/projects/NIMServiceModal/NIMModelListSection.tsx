@@ -85,26 +85,32 @@ const NIMModelListSection: React.FC<NIMModelListSectionProps> = ({
     getModelNames();
   }, [isEditing, inferenceServiceData.format.name]);
 
-  const getSupportedModelFormatsInfo = (key: string) => {
-    const lastHyphenIndex = key.lastIndexOf('-');
-    if (lastHyphenIndex === -1) {
+  const extractModelAndVersion = (key: string) => {
+    const matchedModelsInfo = modelList.filter((model) => key.startsWith(`${model.name}-`));
+
+    if (matchedModelsInfo.length === 0) {
       return null;
     }
-    const name = key.slice(0, lastHyphenIndex);
-    const version = key.slice(lastHyphenIndex + 1);
-    const modelInfo = modelList.find((model) => model.name === name);
-    return modelInfo ? { name: modelInfo.name, version } : null;
+
+    const modelInfo = matchedModelsInfo.reduce((longest, current) =>
+      current.name.length > longest.name.length ? current : longest,
+    );
+
+    const { name } = modelInfo;
+    const version = key.slice(name.length + 1);
+    return { modelInfo, version };
+  };
+
+  const getSupportedModelFormatsInfo = (key: string) => {
+    const result = extractModelAndVersion(key);
+    return result ? { name: result.modelInfo.name, version: result.version } : null;
   };
 
   const getNIMImageName = (key: string) => {
-    const lastHyphenIndex = key.lastIndexOf('-');
-    if (lastHyphenIndex === -1) {
-      return '';
-    }
-    const name = key.slice(0, lastHyphenIndex);
-    const version = key.slice(lastHyphenIndex + 1);
-    const imageInfo = modelList.find((model) => model.name === name);
-    return imageInfo ? `nvcr.io/${imageInfo.namespace}/${name}:${version}` : '';
+    const result = extractModelAndVersion(key);
+    return result
+      ? `nvcr.io/${result.modelInfo.namespace}/${result.modelInfo.name}:${result.version}`
+      : '';
   };
 
   const onSelect = (
