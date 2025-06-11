@@ -7,6 +7,8 @@ import {
 } from '@odh-dashboard/internal/k8sTypes';
 import { Deployment } from '@odh-dashboard/model-serving/extension-points';
 import { deleteInferenceService, deleteServingRuntime } from '@odh-dashboard/internal/api/index';
+import { getAPIProtocolFromServingRuntime } from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/utils';
+import { getKServeDeploymentEndpoints } from './deploymentEndpoints';
 import { useWatchDeploymentPods, useWatchServingRuntimes, useWatchInferenceServices } from './api';
 import { getKServeDeploymentStatus } from './deploymentStatus';
 import { KSERVE_ID } from '../extensions';
@@ -32,15 +34,21 @@ export const useWatchDeployments = (
 
   const deployments: KServeDeployment[] = React.useMemo(
     () =>
-      inferenceServices.map((inferenceService) => ({
-        modelServingPlatformId: KSERVE_ID,
-        model: inferenceService,
-        server: servingRuntimes.find(
-          (servingRuntime) =>
-            servingRuntime.metadata.name === inferenceService.spec.predictor.model?.runtime,
-        ),
-        status: getKServeDeploymentStatus(inferenceService, deploymentPods),
-      })),
+      inferenceServices.map((inferenceService) => {
+        const servingRuntime = servingRuntimes.find(
+          (sr) => sr.metadata.name === inferenceService.spec.predictor.model?.runtime,
+        );
+        return {
+          modelServingPlatformId: KSERVE_ID,
+          model: inferenceService,
+          server: servingRuntime,
+          status: getKServeDeploymentStatus(inferenceService, deploymentPods),
+          endpoints: getKServeDeploymentEndpoints(inferenceService),
+          apiProtocol: servingRuntime
+            ? getAPIProtocolFromServingRuntime(servingRuntime)
+            : undefined,
+        };
+      }),
     [inferenceServices, servingRuntimes, deploymentPods],
   );
 
