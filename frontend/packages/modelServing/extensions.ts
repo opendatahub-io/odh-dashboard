@@ -40,7 +40,7 @@ const extensions: (
   {
     type: 'app.project-details/overview-section',
     properties: {
-      id: 'serve-model',
+      id: 'model-server',
       title: 'Serve Models',
       component: () => import('./src/ServeModelsCard'),
     },
