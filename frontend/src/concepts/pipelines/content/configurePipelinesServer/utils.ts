@@ -1,17 +1,18 @@
-import { createSecret, assembleSecret, deleteSecret } from '#~/api';
+import { createSecret, assembleSecret, deleteSecret, listPipelinesCR } from '#~/api';
 import { DSPipelineKind } from '#~/k8sTypes';
 import { AwsKeys, PIPELINE_AWS_FIELDS } from '#~/pages/projects/dataConnections/const';
 import { dataEntryToRecord } from '#~/utilities/dataEntryToRecord';
 import { EnvVariableDataEntry } from '#~/pages/projects/types';
 import { DSPA_SECRET_NAME, DatabaseConnectionKeys, ExternalDatabaseSecret } from './const';
 import { PipelineServerConfigType } from './types';
+import { SERVER_TIMEOUT } from '#~/utilities/const.ts';
 
 type SecretsResponse = [
   (
     | {
-        key: string;
-        name: string;
-      }
+      key: string;
+      name: string;
+    }
     | undefined
   ),
   {
@@ -25,9 +26,9 @@ const createDatabaseSecret = (
   dryRun: boolean,
 ): Promise<
   | {
-      key: string;
-      name: string;
-    }
+    key: string;
+    name: string;
+  }
   | undefined
 > => {
   if (!databaseConfig.useDefault) {
@@ -171,3 +172,32 @@ export const getLabelName = (index: string): string => {
 };
 
 const cleanupEndpointHost = (endpoint: string): string => endpoint.replace(/\/$/, '') || '';
+
+const pollStatus = (permNamespace: string) => {
+  const createTime = new Date(Date.now()).getTime();
+  const getStatus = async () => {
+    try {
+      if (Date.now() - createTime > SERVER_TIMEOUT) {
+        throw Error('Pipeline server resources creation timed out.');
+      }
+      const response = await listPipelinesCR(permNamespace);
+      if (
+        response[0].status?.conditions?.find(
+          (c) => c.type === 'APIServerReady' && c.status === 'True',
+        )
+      ) {
+        clearInterval(pollInterval);
+        notification.success(`Pipeline server resources for ${permNamespace} are ready.`);
+      }
+    } catch (e) {
+      notification.error(
+        `Error configuring pipeline server: ${e instanceof Error ? e.message : 'Unknown error'}`,
+      );
+      clearInterval(pollInterval);
+    }
+  };
+
+  const pollInterval = setInterval(getStatus, FAST_POLL_INTERVAL);
+
+  return () => clearInterval(pollInterval);
+};

@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useNavigate } from 'react-router';
 import {
   Alert,
   Form,
@@ -9,8 +10,9 @@ import {
   ModalHeader,
   ModalFooter,
 } from '@patternfly/react-core';
+import useNotification from '#~/utilities/useNotification.ts';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
-import { createPipelinesCR, deleteSecret } from '#~/api';
+import { createPipelinesCR, deleteSecret, listPipelinesCR } from '#~/api';
 import { EMPTY_AWS_PIPELINE_DATA } from '#~/pages/projects/dataConnections/const';
 import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
@@ -18,6 +20,8 @@ import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingPropertie
 import SamplePipelineSettingsSection from '#~/concepts/pipelines/content/configurePipelinesServer/SamplePipelineSettingsSection';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import usePipelinesConnections from '#~/pages/projects/screens/detail/connections/usePipelinesConnections';
+import { FAST_POLL_INTERVAL, SERVER_TIMEOUT } from '#~/utilities/const.ts';
+import { pipelinesBaseRoute } from '#~/routes/pipelines/global.ts';
 import { PipelinesDatabaseSection } from './PipelinesDatabaseSection';
 import { ObjectStorageSection } from './ObjectStorageSection';
 import {
@@ -48,16 +52,18 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
   const [error, setError] = React.useState<Error>();
   const [config, setConfig] = React.useState<PipelineServerConfigType>(FORM_DEFAULTS);
   const isFineTuningAvailable = useIsAreaAvailable(SupportedArea.FINE_TUNING).status;
+  const notification = useNotification();
+  const navigate = useNavigate();
 
   const databaseIsValid = config.database.useDefault
     ? true
     : config.database.value.every(({ key, value }) =>
-        DATABASE_CONNECTION_FIELDS.filter((field) => field.isRequired)
-          .map((field) => field.key)
-          .includes(key)
-          ? !!value
-          : true,
-      );
+      DATABASE_CONNECTION_FIELDS.filter((field) => field.isRequired)
+        .map((field) => field.key)
+        .includes(key)
+        ? !!value
+        : true,
+    );
 
   const objectIsValid = objectStorageIsValid(config.objectStorage.newValue);
   const canSubmit = databaseIsValid && objectIsValid;
@@ -72,6 +78,62 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
   const onCancel = () => {
     onBeforeClose();
     fireFormTrackingEvent(serverConfiguredEvent, { outcome: TrackingOutcome.cancel });
+  };
+
+  const pollStatus = (pipelineNamespace: string) => {
+    const createTime = new Date(Date.now()).getTime();
+
+    const getStatus = async () => {
+      try {
+        // check if polling for too long
+        if (Date.now() - createTime > SERVER_TIMEOUT) {
+          throw Error('Pipeline server resources creation timed out.');
+        }
+
+        const response = await listPipelinesCR(pipelineNamespace);
+        console.log(response);
+
+        // if we find an APIServerReady true condition, we know the pipeline server is ready
+        if (
+          response[0].status?.conditions?.find(
+            (c) => c.type === 'APIServerReady' && c.status === 'True',
+          )
+        ) {
+          clearInterval(pollInterval);
+          notification.success(`Pipeline server for ${pipelineNamespace} is ready.`, null, [
+            {
+              title: pipelineNamespace,
+              onClick: () => <Navigate to={pipelinesBaseRoute(pipelineNamespace)} />,
+            },
+          ]);
+        }
+
+        // if we find a FailingToDeploy, return the message associated with it and stop polling
+        // const failToDeployCondition = response[0].status?.conditions?.find(
+        //   (c) => c.reason === 'FailingToDeploy',
+        // );
+        // if (failToDeployCondition) {
+        //   throw Error(failToDeployCondition.message || 'Pipeline server failed to deploy.');
+        // }
+      } catch (e) {
+        notification.error(
+          `Error configuring pipeline server for ${pipelineNamespace}}`,
+          <>{e instanceof Error ? e.message : 'Unknown error'}</>,
+          [
+            {
+              title: pipelineNamespace,
+              onClick: () => Navigate />,
+            },
+          ],
+        );
+
+        clearInterval(pollInterval);
+      }
+    };
+
+    const pollInterval = setInterval(getStatus, FAST_POLL_INTERVAL);
+
+    return () => clearInterval(pollInterval);
   };
 
   const submit = () => {
@@ -94,6 +156,8 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
         createPipelinesCR(namespace, spec)
           .then(() => {
             onBeforeClose();
+            notification.info(`Waiting on pipeline server resources for ${namespace}...`);
+            pollStatus(namespace);
             fireFormTrackingEvent(serverConfiguredEvent, {
               outcome: TrackingOutcome.submit,
               success: true,
