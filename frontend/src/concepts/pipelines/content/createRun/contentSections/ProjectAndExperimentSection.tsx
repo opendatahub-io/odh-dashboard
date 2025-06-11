@@ -1,13 +1,11 @@
 import * as React from 'react';
 import { FormGroup, FormSection, Stack, StackItem, Content } from '@patternfly/react-core';
-import { PlusCircleIcon } from '@patternfly/react-icons';
 import { ExperimentKF } from '~/concepts/pipelines/kfTypes';
 import {
   CreateRunPageSections,
   runPageSectionTitles,
 } from '~/concepts/pipelines/content/createRun/const';
 import { ActiveExperimentSelector } from '~/concepts/pipelines/content/experiment/ExperimentSelector';
-import CreateExperimentButton from '~/concepts/pipelines/content/experiment/CreateExperimentButton';
 
 type ProjectAndExperimentSectionProps = {
   projectName: string;
@@ -32,15 +30,6 @@ const ProjectAndExperimentSection: React.FC<ProjectAndExperimentSectionProps> = 
         <StackItem>
           <ActiveExperimentSelector selection={value?.display_name} onSelect={onChange} />
         </StackItem>
-        {/* <StackItem>
-          <CreateExperimentButton
-            variant="link"
-            icon={<PlusCircleIcon />}
-            onCreate={(experiment) => onChange(experiment)}
-          >
-            Create new experiment
-          </CreateExperimentButton>
-        </StackItem> */}
       </Stack>
     </FormGroup>
   </FormSection>
