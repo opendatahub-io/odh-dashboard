@@ -1,6 +1,5 @@
 import { EvaluationResult } from './LMEvalResultTable';
 
-// Helper function to parse evaluation results
 export const parseEvaluationResults = (resultsString: string): EvaluationResult[] => {
   try {
     const parsedResults = JSON.parse(resultsString);
