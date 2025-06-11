@@ -30,7 +30,7 @@ const PipelineContextBreadcrumb: React.FC<PipelineContextBreadcrumbProps> = ({
       {children}
       <Flex>
         <Divider orientation={{ default: 'vertical' }} />
-        <FlexItem>
+        <FlexItem data-testid="project-navigator-link">
           <Content component={ContentVariants.small}>
             <Link to={`/projects/${project.metadata.name}`} className="link-button-with-icon">
               <Flex

@@ -8,13 +8,9 @@ import { IconSize } from '#~/types';
 
 type ProjectNavigatorLinkProps = {
   project?: ProjectKind;
-  iconSize?: IconSize;
 };
 
-const ProjectNavigatorLink: React.FC<ProjectNavigatorLinkProps> = ({
-  project,
-  iconSize = IconSize.LG,
-}) => {
+const ProjectNavigatorLink: React.FC<ProjectNavigatorLinkProps> = ({ project }) => {
   const navigate = useNavigate();
 
   if (!project) {
@@ -28,13 +24,12 @@ const ProjectNavigatorLink: React.FC<ProjectNavigatorLinkProps> = ({
       onClick={() => {
         navigate(`/projects/${project.metadata.name}`);
       }}
-      data-testid="project-navigator-link"
     >
       <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsXs' }}>
         <FlexItem>Go to</FlexItem>
-        <ProjectIconWithSize size={iconSize} />
+        <ProjectIconWithSize size={IconSize.LG} />
         <FlexItem>
-          <b>{getDisplayNameFromK8sResource(project)}</b>
+          <strong>{getDisplayNameFromK8sResource(project)}</strong>
         </FlexItem>
       </Flex>
     </Button>
