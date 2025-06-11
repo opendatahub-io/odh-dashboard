@@ -3,7 +3,7 @@ import type {
   ProjectDetailsTab,
   AreaExtension,
   RouteExtension,
-  OverviewCardTab,
+  OverviewSectionExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
 // Allow this import as it consists of types and enums only.
 // eslint-disable-next-line no-restricted-syntax
@@ -16,7 +16,7 @@ const extensions: (
   | ProjectDetailsTab
   | HrefNavItemExtension
   | RouteExtension
-  | OverviewCardTab
+  | OverviewSectionExtension
 )[] = [
   {
     type: 'app.area',

@@ -2,11 +2,10 @@ import React from 'react';
 import { LazyCodeRefComponent, useExtensions } from '@odh-dashboard/plugin-core';
 import { isProjectDetailsTab } from '@odh-dashboard/plugin-core/extension-points';
 import useModelServingEnabled from '#~/pages/modelServing/useModelServingEnabled';
-import { SectionDefinition } from '#~/pages/projects/components/GenericHorizontalBar';
 import { ProjectSectionID } from '#~/pages/projects/screens/detail/types';
-import ModelServingPlatform from '#~/pages/modelServing/screens/projects/ModelServingPlatform';
+import ServeModelsSection from '#~/pages/projects/screens/detail/overview/serverModels/ServeModelsSection.tsx';
 
-export const useServeModelsCard = (): SectionDefinition[] => {
+const ServeModelsCard: React.FC = () => {
   const modelServingEnabled = useModelServingEnabled();
 
   const serveModelsCardExtensions = useExtensions(isProjectDetailsTab);
@@ -14,19 +13,15 @@ export const useServeModelsCard = (): SectionDefinition[] => {
     (tab) => tab.properties.id === ProjectSectionID.MODEL_SERVER,
   )?.properties.component;
 
-  const tab: SectionDefinition[] = modelServingEnabled
-    ? [
-        {
-          id: ProjectSectionID.MODEL_SERVER,
-          title: 'Serve Models',
-          component: serveModelsCard ? (
-            <LazyCodeRefComponent component={serveModelsCard} />
-          ) : (
-            <ModelServingPlatform />
-          ),
-        },
-      ]
-    : [];
+  if (!modelServingEnabled) {
+    return null;
+  }
 
-  return tab;
+  return serveModelsCard ? (
+    <LazyCodeRefComponent component={serveModelsCard} />
+  ) : (
+    <ServeModelsSection />
+  );
 };
+
+export default ServeModelsCard;

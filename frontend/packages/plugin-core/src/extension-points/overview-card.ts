@@ -1,7 +1,7 @@
 import type { Extension } from '@openshift/dynamic-plugin-sdk';
 import type { ComponentCodeRef } from './types';
 
-export type OverviewCardTab = Extension<
+export type OverviewSectionExtension = Extension<
   'app.project-details/overview-section',
   {
     id: string;
@@ -9,5 +9,8 @@ export type OverviewCardTab = Extension<
     component: ComponentCodeRef;
   }
 >;
-export const isOverviewCardTab = (extension: Extension): extension is OverviewCardTab =>
+
+export const isOverviewSectionExtension = (
+  extension: Extension,
+): extension is OverviewSectionExtension =>
   extension.type === 'app.project-details/overview-section';
