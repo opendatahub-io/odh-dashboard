@@ -1,18 +1,17 @@
-import { createSecret, assembleSecret, deleteSecret, listPipelinesCR } from '#~/api';
+import { createSecret, assembleSecret, deleteSecret } from '#~/api';
 import { DSPipelineKind } from '#~/k8sTypes';
 import { AwsKeys, PIPELINE_AWS_FIELDS } from '#~/pages/projects/dataConnections/const';
 import { dataEntryToRecord } from '#~/utilities/dataEntryToRecord';
 import { EnvVariableDataEntry } from '#~/pages/projects/types';
-import { SERVER_TIMEOUT } from '#~/utilities/const.ts';
 import { DSPA_SECRET_NAME, DatabaseConnectionKeys, ExternalDatabaseSecret } from './const';
 import { PipelineServerConfigType } from './types';
 
 type SecretsResponse = [
   (
     | {
-      key: string;
-      name: string;
-    }
+        key: string;
+        name: string;
+      }
     | undefined
   ),
   {
@@ -26,9 +25,9 @@ const createDatabaseSecret = (
   dryRun: boolean,
 ): Promise<
   | {
-    key: string;
-    name: string;
-  }
+      key: string;
+      name: string;
+    }
   | undefined
 > => {
   if (!databaseConfig.useDefault) {
@@ -128,17 +127,17 @@ export const createDSPipelineResourceSpec = (
     },
     database: databaseSecret
       ? {
-        externalDB: {
-          host: databaseRecord[DatabaseConnectionKeys.HOST],
-          passwordSecret: {
-            key: databaseSecret.key,
-            name: databaseSecret.name,
+          externalDB: {
+            host: databaseRecord[DatabaseConnectionKeys.HOST],
+            passwordSecret: {
+              key: databaseSecret.key,
+              name: databaseSecret.name,
+            },
+            pipelineDBName: databaseRecord[DatabaseConnectionKeys.DATABASE],
+            port: databaseRecord[DatabaseConnectionKeys.PORT],
+            username: databaseRecord[DatabaseConnectionKeys.USERNAME],
           },
-          pipelineDBName: databaseRecord[DatabaseConnectionKeys.DATABASE],
-          port: databaseRecord[DatabaseConnectionKeys.PORT],
-          username: databaseRecord[DatabaseConnectionKeys.USERNAME],
-        },
-      }
+        }
       : undefined,
     apiServer: {
       enableSamplePipeline: false,
