@@ -3,6 +3,7 @@ import { LMEvalKind } from '#~/k8sTypes';
 type MockLMEvaluationConfigType = {
   name?: string;
   namespace?: string;
+  creationTimestamp?: string;
   model?: string;
   taskNames?: string[];
   batchSize?: string;
@@ -24,13 +25,14 @@ export const mockLMEvaluation = (config: MockLMEvaluationConfigType = {}): LMEva
   const {
     name = 'test-lm-evaluation',
     namespace = 'test-project',
+    creationTimestamp = '2024-01-15T10:00:00Z',
     model = 'test-model',
     taskNames = ['mmlu', 'hellaswag'],
     batchSize = '8',
     allowCodeExecution = false,
     allowOnline = false,
     logSamples = false,
-    modelArgs = [{ name: 'model_name', value: 'test-model' }],
+    modelArgs = [{ name: 'model', value: 'test-model' }],
     state = 'Pending',
     message = 'Evaluation is pending',
     reason = 'EvaluationPending',
@@ -54,6 +56,7 @@ export const mockLMEvaluation = (config: MockLMEvaluationConfigType = {}): LMEva
     metadata: {
       name,
       namespace,
+      creationTimestamp,
     },
     spec: {
       model,
