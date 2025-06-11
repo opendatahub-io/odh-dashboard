@@ -11,11 +11,10 @@ import './EnableModal.scss';
 
 type EnableModalProps = {
   selectedApp: OdhApplication;
-  shown: boolean;
   onClose: () => void;
 };
 
-const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, shown, onClose }) => {
+const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, onClose }) => {
   const [postError, setPostError] = React.useState('');
   const [validationInProgress, setValidationInProgress] = React.useState(false);
   const [enableValues, setEnableValues] = React.useState<{ [key: string]: string }>({});
@@ -60,13 +59,6 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, shown, onClose }
     onClose();
   }, [onClose, enableValues]);
 
-  // Managing validation state after the modal closes
-  React.useEffect(() => {
-    if (!shown) {
-      setValidationInProgress(false);
-    }
-  }, [shown]);
-
   React.useEffect(() => {
     if (validationInProgress && validationStatus === EnableApplicationStatus.SUCCESS) {
       setValidationInProgress(false);
@@ -90,17 +82,7 @@ const EnableModal: React.FC<EnableModalProps> = ({ selectedApp, shown, onClose }
     validationStatus,
   ]);
 
-  React.useEffect(() => {
-    if (shown) {
-      if (!validationInProgress) {
-        setPostError('');
-      }
-    }
-    // Only update when shown is updated to true
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shown]);
-
-  if (!selectedApp.spec.enable || !shown) {
+  if (!selectedApp.spec.enable) {
     return null;
   }
   const { enable } = selectedApp.spec;
