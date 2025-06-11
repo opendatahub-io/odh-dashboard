@@ -5,7 +5,6 @@ import {
   Flex,
   FlexItem,
   Content,
-  BreadcrumbItem,
 } from '@patternfly/react-core';
 import React from 'react';
 import { Link } from 'react-router';
