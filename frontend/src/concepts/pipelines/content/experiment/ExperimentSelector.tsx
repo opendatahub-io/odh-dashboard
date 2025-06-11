@@ -2,16 +2,16 @@ import * as React from 'react';
 import { EmptyStateVariant, Button } from '@patternfly/react-core';
 import { TableVariant } from '@patternfly/react-table';
 import { PlusCircleIcon } from '@patternfly/react-icons';
-import PipelineSelectorTableRow from '~/concepts/pipelines/content/pipelineSelector/PipelineSelectorTableRow';
-import { TableBase, getTableColumnSort } from '~/components/table';
-import { ExperimentKF } from '~/concepts/pipelines/kfTypes';
-import PipelineViewMoreFooterRow from '~/concepts/pipelines/content/tables/PipelineViewMoreFooterRow';
-import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
-import { useActiveExperimentSelector } from '~/concepts/pipelines/content/pipelineSelector/useCreateSelectors';
-import { experimentSelectorColumns } from '~/concepts/pipelines/content/experiment/columns';
-import SearchSelector from '~/components/searchSelector/SearchSelector';
-import CreateExperimentModal from '~/concepts/pipelines/content/experiment/CreateExperimentModal';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
+import PipelineSelectorTableRow from '#~/concepts/pipelines/content/pipelineSelector/PipelineSelectorTableRow';
+import { TableBase, getTableColumnSort } from '#~/components/table';
+import { ExperimentKF } from '#~/concepts/pipelines/kfTypes';
+import PipelineViewMoreFooterRow from '#~/concepts/pipelines/content/tables/PipelineViewMoreFooterRow';
+import DashboardEmptyTableView from '#~/concepts/dashboard/DashboardEmptyTableView';
+import { useActiveExperimentSelector } from '#~/concepts/pipelines/content/pipelineSelector/useCreateSelectors';
+import { experimentSelectorColumns } from '#~/concepts/pipelines/content/experiment/columns';
+import SearchSelector from '#~/components/searchSelector/SearchSelector';
+import CreateExperimentModal from '#~/concepts/pipelines/content/experiment/CreateExperimentModal';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 
 
 type ExperimentSelectorProps = {
@@ -102,7 +102,7 @@ const InnerExperimentSelector: React.FC<
                         menuClose();
                         setIsModalOpen(true);
                       }}
-                      style={{ paddingLeft: '16px' }}
+                      style={{ paddingLeft: '20px' }}
                     >
                       Create new experiment
                     </Button>
