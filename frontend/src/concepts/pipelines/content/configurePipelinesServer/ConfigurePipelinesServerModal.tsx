@@ -94,7 +94,7 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
 
         // if we find an APIServerReady true condition, we know the pipeline server is ready
         if (
-          response[0].status?.conditions?.find(
+          response[0]?.status?.conditions?.find(
             (c) => c.type === 'APIServerReady' && c.status === 'True',
           )
         ) {
