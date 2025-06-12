@@ -1,26 +1,57 @@
-import React, { useState } from 'react';
-import { Label } from '@patternfly/react-core';
+import React from 'react';
+import { Alert, Button, Label, Spinner, Title } from '@patternfly/react-core';
 import {
-  ChatbotHeader,
   ChatbotFooter,
-  ChatbotHeaderActions,
   ChatbotFootnote,
   ChatbotContent,
-  MessageBox,
   ChatbotWelcomePrompt,
   MessageBar,
   ChatbotDisplayMode,
   Chatbot,
+  MessageProps,
+  ChatbotHeader,
+  ChatbotHeaderActions,
+  MessageBox,
+  ChatbotHeaderMain,
+  ChatbotHeaderTitle,
 } from '@patternfly/chatbot';
+import { ShareSquareIcon } from '@patternfly/react-icons';
+import { completeChat } from '#~/services/llamaStackService';
+import useFetchLlamaModels from '#~/utilities/useFetchLlamaModels';
+import chatbotUserIcon from '#~/images/UI_icon-Red_Hat-User-Avatar.svg';
+import chatbotAvatar from '#~/images/UI_icon-Red_Hat-Chatbot-Avatar.svg';
+import RagChatbotMessagesList from './RagChatbotMessagesList';
+import RagChatbotShareModal from './RagChatbotShareModal';
 import '@patternfly/chatbot/dist/css/main.css';
+
+type ChatMessage = {
+  role: 'user' | 'assistant';
+  content: string;
+  stop_reason?: string;
+};
+
+const initialBotMessage: MessageProps = {
+  id: crypto.randomUUID(),
+  role: 'bot',
+  content: 'Hello! Ask a question to test out your AI system',
+  name: 'Bot',
+  avatar: chatbotAvatar,
+};
 
 const RagChatbot: React.FC = () => {
   const displayMode = ChatbotDisplayMode.embedded;
-  const [showPopover, setShowPopover] = useState(true);
+  const [isMessageSendButtonDisabled, setIsMessageSendButtonDisabled] = React.useState(false);
+  const [messages, setMessages] = React.useState<MessageProps[]>([initialBotMessage]);
+  const [showPopover, setShowPopover] = React.useState(true);
+  const [isShareChatbotOpen, setIsShareChatbotOpen] = React.useState(false);
+  const scrollToBottomRef = React.useRef<HTMLDivElement>(null);
+  const { models, loading, error, fetchLlamaModels } = useFetchLlamaModels();
 
-  const model = 'Llama 3.2';
+  const generateId = () => crypto.randomUUID();
+  const modelId = models[1]?.identifier;
+
   const footnoteProps = {
-    label: 'ChatBot uses AI. Check for mistakes.',
+    label: 'Always review AI generated content prior to use.',
     popover: {
       title: 'Verify information',
       description:
@@ -41,30 +72,138 @@ const RagChatbot: React.FC = () => {
     },
   };
 
+  React.useEffect(() => {
+    const fetchModels = async () => {
+      await fetchLlamaModels();
+    };
+
+    fetchModels();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  React.useEffect(() => {
+    if (scrollToBottomRef.current) {
+      scrollToBottomRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages]);
+
+  if (loading) {
+    return <Spinner size="sm" />;
+  }
+  if (error) {
+    <Alert variant="warning" isInline title="Cannot fetch models">
+      {error}
+    </Alert>;
+  }
+
+  const handleMessageSend = async (userInput: string) => {
+    if (!userInput || !modelId) {
+      return;
+    }
+
+    setIsMessageSendButtonDisabled(true);
+
+    const userMessage: MessageProps = {
+      id: generateId(),
+      role: 'user',
+      content: userInput,
+      name: 'User',
+      avatar: chatbotUserIcon,
+    };
+
+    const updatedMessages = [...messages, userMessage];
+
+    const transformMessage: ChatMessage[] = updatedMessages.map((msg) => ({
+      role: msg.role === 'bot' ? 'assistant' : 'user',
+      content: msg.content ?? '',
+      // eslint-disable-next-line camelcase
+      stop_reason: 'end_of_message',
+    }));
+
+    setMessages(updatedMessages);
+
+    try {
+      const response = await completeChat(transformMessage, modelId);
+      const responseObject = JSON.parse(response);
+      const completion = responseObject?.completion_message;
+
+      const assistantMessage: MessageProps = {
+        id: generateId(),
+        role: 'bot',
+        content: completion?.content ?? 'Error receiving response',
+        name: 'Bot',
+        avatar: chatbotAvatar,
+      };
+
+      setMessages((prev) => [...prev, assistantMessage]);
+    } catch (err) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: generateId(),
+          role: 'bot',
+          content: 'An error occurred while generating a response.',
+          name: 'Bot',
+          avatar: chatbotAvatar,
+        },
+      ]);
+    } finally {
+      setIsMessageSendButtonDisabled(false);
+    }
+  };
+
   return (
     <div style={{ height: '95%' }}>
+      {isShareChatbotOpen && (
+        <RagChatbotShareModal onToggle={() => setIsShareChatbotOpen(!isShareChatbotOpen)} />
+      )}
       <Chatbot displayMode={displayMode} data-testid="chatbot">
         <ChatbotHeader>
+          <ChatbotHeaderMain>
+            <ChatbotHeaderTitle>
+              <Title headingLevel="h1" size="xl" style={{ fontWeight: 'bold' }}>
+                Chatbot
+              </Title>
+              <Label
+                variant="outline"
+                color="blue"
+                style={{ marginLeft: 'var(--pf-t--global--spacer--sm)' }}
+              >
+                {modelId}
+              </Label>
+            </ChatbotHeaderTitle>
+          </ChatbotHeaderMain>
           <ChatbotHeaderActions>
-            <Label variant="outline" color="blue">
-              {model}
-            </Label>
+            <Button
+              icon={<ShareSquareIcon />}
+              variant="plain"
+              aria-label="Share chatbot"
+              data-testid="share-chatbot-button"
+              onClick={() => {
+                setIsShareChatbotOpen(!isShareChatbotOpen);
+              }}
+            />
           </ChatbotHeaderActions>
         </ChatbotHeader>
-        <ChatbotContent style={{ maxHeight: '59vh' }}>
-          <MessageBox announcement="">
+        <ChatbotContent>
+          <MessageBox position="bottom">
             <ChatbotWelcomePrompt
-              title="Hi, Llama Stack User!"
-              description="How can I help you today?"
+              title="Hello, User!"
+              description="Ask a question to chat with your model"
             />
+            <RagChatbotMessagesList messageList={messages} scrollRef={scrollToBottomRef} />
           </MessageBox>
         </ChatbotContent>
         <ChatbotFooter>
           <MessageBar
-            onSendMessage={() => {
-              // TODO: implement message sending
+            onSendMessage={(message) => {
+              if (typeof message === 'string') {
+                handleMessageSend(message);
+              }
             }}
-            hasMicrophoneButton
+            hasAttachButton={false}
+            isSendButtonDisabled={isMessageSendButtonDisabled}
+            data-testid="chatbot-message-bar"
           />
           <ChatbotFootnote {...footnoteProps} />
         </ChatbotFooter>
