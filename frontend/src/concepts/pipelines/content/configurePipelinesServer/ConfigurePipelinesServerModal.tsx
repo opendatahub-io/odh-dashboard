@@ -114,7 +114,7 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
                 try {
                   // check if polling for too long
                   if (Date.now() - startTime > SERVER_TIMEOUT) {
-                    throw Error(`${pipelineNamespace} pipeline server timed out`);
+                    throw Error(`${pipelineNamespace} pipeline server creation timed out`);
                   }
 
                   const response = await listPipelinesCR(pipelineNamespace, { signal });
