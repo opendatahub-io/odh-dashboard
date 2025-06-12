@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { NavigateFunction, useNavigate } from 'react-router';
+import { useNavigate } from 'react-router';
 import {
   Alert,
   Form,
@@ -63,12 +63,12 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
   const databaseIsValid = config.database.useDefault
     ? true
     : config.database.value.every(({ key, value }) =>
-      DATABASE_CONNECTION_FIELDS.filter((field) => field.isRequired)
-        .map((field) => field.key)
-        .includes(key)
-        ? !!value
-        : true,
-    );
+        DATABASE_CONNECTION_FIELDS.filter((field) => field.isRequired)
+          .map((field) => field.key)
+          .includes(key)
+          ? !!value
+          : true,
+      );
 
   const objectIsValid = objectStorageIsValid(config.objectStorage.newValue);
   const canSubmit = databaseIsValid && objectIsValid;
