@@ -16,10 +16,9 @@ import { initialBYONImagesFilterData, BYONImagesFilterDataType } from './const';
 
 export type BYONImagesTableProps = {
   images: BYONImage[];
-  refresh: () => void;
 };
 
-export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images, refresh }) => {
+export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images }) => {
   const [filterData, setFilterData] = React.useState<BYONImagesFilterDataType>(
     initialBYONImagesFilterData,
   );
@@ -89,30 +88,20 @@ export const BYONImagesTable: React.FC<BYONImagesTableProps> = ({ images, refres
         )}
         onClearFilters={onClearFilters}
         toolbarContent={
-          <BYONImagesToolbar
-            refresh={refresh}
-            filterData={filterData}
-            onFilterUpdate={onFilterUpdate}
-          />
+          <BYONImagesToolbar filterData={filterData} onFilterUpdate={onFilterUpdate} />
         }
       />
       {deleteImage ? (
         <DeleteBYONImageModal
           image={deleteImage}
-          onClose={(deleted) => {
-            if (deleted) {
-              refresh();
-            }
+          onClose={() => {
             setDeleteImage(undefined);
           }}
         />
       ) : null}
       {editImage ? (
         <ManageBYONImageModal
-          onClose={(updated) => {
-            if (updated) {
-              refresh();
-            }
+          onClose={() => {
             setEditImage(undefined);
           }}
           existingImage={editImage}

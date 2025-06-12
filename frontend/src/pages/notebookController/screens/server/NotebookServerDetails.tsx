@@ -2,14 +2,14 @@ import * as React from 'react';
 import * as _ from 'lodash-es';
 import {
   Alert,
+  Content,
+  ContentVariants,
   DescriptionList,
   DescriptionListDescription,
   DescriptionListGroup,
   DescriptionListTerm,
   ExpandableSection,
   Spinner,
-  Content,
-  ContentVariants,
 } from '@patternfly/react-core';
 import { PodContainer } from '#~/types';
 import {
@@ -18,16 +18,20 @@ import {
   getNameVersionString,
 } from '#~/utilities/imageUtils';
 import { useAppContext } from '#~/app/AppContext';
-import { useWatchImages } from '#~/utilities/useWatchImages';
 import { NotebookControllerContext } from '#~/pages/notebookController/NotebookControllerContext';
 import { formatMemory } from '#~/utilities/valueUnits';
 import { useNotebookPodSpecOptionsState } from '#~/concepts/hardwareProfiles/useNotebookPodSpecOptionsState';
-import { useIsAreaAvailable, SupportedArea } from '#~/concepts/areas';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { useDashboardNamespace } from '#~/redux/selectors';
+import { useImageStreams } from '#~/utilities/useImageStreams';
+import { mapImageStreamToImageInfo } from '#~/utilities/imageStreamUtils';
 import { getNotebookSizes } from './usePreferredNotebookSize';
 
 const NotebookServerDetails: React.FC = () => {
   const { currentUserNotebook: notebook } = React.useContext(NotebookControllerContext);
-  const { images, loaded } = useWatchImages();
+  const { dashboardNamespace } = useDashboardNamespace();
+  const [imageStreams, loaded] = useImageStreams(dashboardNamespace, { enabled: true });
+  const images = React.useMemo(() => imageStreams.map(mapImageStreamToImageInfo), [imageStreams]);
   const [isExpanded, setExpanded] = React.useState(false);
   const { dashboardConfig } = useAppContext();
   const {

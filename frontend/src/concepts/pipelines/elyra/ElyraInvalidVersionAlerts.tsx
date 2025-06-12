@@ -12,7 +12,7 @@ import { NotebookKind } from '#~/k8sTypes';
 import useNamespaces from '#~/pages/notebookController/useNamespaces';
 import { NotebookImageStatus } from '#~/pages/projects/screens/detail/notebooks/const';
 import { getNotebookImageData } from '#~/pages/projects/screens/detail/notebooks/useNotebookImageData';
-import useImageStreams from '#~/pages/projects/screens/spawner/useImageStreams';
+import { useImageStreams } from '#~/utilities/useImageStreams';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { useBrowserStorage } from '#~/components/browserStorage/BrowserStorageContext';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
@@ -29,7 +29,7 @@ export const ElyraInvalidVersionAlerts: React.FC<ElyraInvalidVersionProps> = ({
   children,
 }) => {
   const { dashboardNamespace } = useNamespaces();
-  const [images, loaded, loadError] = useImageStreams(dashboardNamespace, true);
+  const [images, loaded, loadError] = useImageStreams(dashboardNamespace);
   const navigate = useNavigate();
   const { currentProject } = React.useContext(ProjectDetailsContext);
   const { pipelinesServer } = usePipelinesAPI();

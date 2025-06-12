@@ -2,11 +2,7 @@ import * as React from 'react';
 import { Button } from '@patternfly/react-core';
 import ManageBYONImageModal from './BYONImageModal/ManageBYONImageModal';
 
-type ImportBYONImageButtonProps = {
-  refresh: () => void;
-};
-
-const ImportBYONImageButton: React.FC<ImportBYONImageButtonProps> = ({ refresh }) => {
+const ImportBYONImageButton: React.FC = () => {
   const [isOpen, setOpen] = React.useState(false);
   return (
     <>
@@ -20,10 +16,7 @@ const ImportBYONImageButton: React.FC<ImportBYONImageButtonProps> = ({ refresh }
       </Button>
       {isOpen ? (
         <ManageBYONImageModal
-          onClose={(imported) => {
-            if (imported) {
-              refresh();
-            }
+          onClose={() => {
             setOpen(false);
           }}
         />
