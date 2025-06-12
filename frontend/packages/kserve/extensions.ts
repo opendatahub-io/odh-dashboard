@@ -4,6 +4,7 @@ import type {
   ModelServingPlatformExtension,
   ModelServingDeploymentsTableExtension,
   ModelServingDeleteModal,
+  ModelServingMetricsExtension,
 } from '@odh-dashboard/model-serving/extension-points';
 import type { KServeDeployment } from './src/deployments';
 
@@ -13,6 +14,7 @@ const extensions: (
   | ModelServingPlatformExtension<KServeDeployment>
   | ModelServingDeploymentsTableExtension<KServeDeployment>
   | ModelServingDeleteModal<KServeDeployment>
+  | ModelServingMetricsExtension
 )[] = [
   {
     type: 'model-serving.platform',
@@ -54,6 +56,14 @@ const extensions: (
       onDelete: () => import('./src/deployments').then((m) => m.deleteDeployment),
       title: 'Delete deployed model?',
       submitButtonLabel: 'Delete deployed model',
+    },
+  },
+  {
+    type: 'model-serving.metrics',
+    properties: {
+      platform: KSERVE_ID,
+      useIsMetricsSupported: () =>
+        import('./src/metrics').then((m) => m.useIsKServeMetricsSupported),
     },
   },
 ];
