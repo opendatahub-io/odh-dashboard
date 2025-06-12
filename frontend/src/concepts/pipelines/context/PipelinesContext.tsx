@@ -89,6 +89,8 @@ export const PipelineContextProvider = conditionalArea<PipelineContextProviderPr
 
   const state = usePipelineNamespaceCR(namespace);
   const [pipelineNamespaceCR, crLoaded, crLoadError, refreshCR, isStarting] = state;
+  console.log('44a: is crLoaded???', crLoaded);
+
   const isCRReady = dspaLoaded(state);
   const [disableTimeout, setDisableTimeout] = React.useState(false);
   const serverTimedOut = !disableTimeout && hasServerTimedOut(state, isCRReady);
@@ -139,6 +141,10 @@ export const PipelineContextProvider = conditionalArea<PipelineContextProviderPr
       </Bullseye>
     );
   }
+
+  const hasCr = !!pipelineNamespaceCR;
+  console.log('45a: hasCr?', hasCr); // (and &&) hasCr and an new isdspaAllLoaded (Ready === true);
+  console.log('44a: is crLoaded???', crLoaded);
 
   return (
     <PipelinesContext.Provider

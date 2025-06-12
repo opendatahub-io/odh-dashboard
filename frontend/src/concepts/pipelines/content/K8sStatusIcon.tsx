@@ -48,10 +48,9 @@ const STATUS_CONFIG: Record<StatusType, StatusConfig> = {
 
 type StatusIconProps = {
   status: StatusType;
-  className?: string;
 };
 
-const K8sStatusIcon: React.FC<StatusIconProps> = ({ status, className }) => {
+const K8sStatusIcon: React.FC<StatusIconProps> = ({ status }) => {
   const config = STATUS_CONFIG[status];
   const IconComponent = config.icon;
 
