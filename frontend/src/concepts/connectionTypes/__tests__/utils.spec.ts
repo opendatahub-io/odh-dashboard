@@ -1,15 +1,15 @@
 import * as React from 'react';
-import { mockConnection } from '~/__mocks__/mockConnection';
+import { mockConnection } from '#~/__mocks__/mockConnection';
 import {
   mockConnectionTypeConfigMapObj,
   mockModelServingFields,
-} from '~/__mocks__/mockConnectionType';
+} from '#~/__mocks__/mockConnectionType';
 import {
   ConnectionTypeFieldType,
   DropdownField,
   HiddenField,
   TextField,
-} from '~/concepts/connectionTypes/types';
+} from '#~/concepts/connectionTypes/types';
 import {
   defaultValueToString,
   fieldNameToEnvVar,
@@ -22,7 +22,7 @@ import {
   toConnectionTypeConfigMapObj,
   trimInputOnBlur,
   trimInputOnPaste,
-} from '~/concepts/connectionTypes/utils';
+} from '#~/concepts/connectionTypes/utils';
 
 describe('toConnectionTypeConfigMap / toConnectionTypeConfigMapObj', () => {
   it('should serialize / deserialize connection type fields', () => {

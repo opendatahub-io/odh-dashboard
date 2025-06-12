@@ -1,29 +1,32 @@
-import { mockRoleBindingK8sResource } from '~/__mocks__/mockRoleBindingK8sResource';
+import { mockRoleBindingK8sResource } from '#~/__mocks__/mockRoleBindingK8sResource';
 import {
   mockK8sResourceList,
   mockNotebookK8sResource,
   mockDashboardConfig,
   mockStorageClassList,
   mockCustomSecretK8sResource,
-} from '~/__mocks__';
-import type { RoleBindingSubject } from '~/k8sTypes';
-import { mockAllowedUsers } from '~/__mocks__/mockAllowedUsers';
-import { mockNotebookImageInfo } from '~/__mocks__/mockNotebookImageInfo';
-import { mockStartNotebookData } from '~/__mocks__/mockStartNotebookData';
-import { notebookServer } from '~/__tests__/cypress/cypress/pages/notebookServer';
-import { asClusterAdminUser, asProjectEditUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
+} from '#~/__mocks__';
+import type { RoleBindingSubject } from '#~/k8sTypes';
+import { mockAllowedUsers } from '#~/__mocks__/mockAllowedUsers';
+import { mockNotebookImageInfo } from '#~/__mocks__/mockNotebookImageInfo';
+import { mockStartNotebookData } from '#~/__mocks__/mockStartNotebookData';
+import { notebookServer } from '#~/__tests__/cypress/cypress/pages/notebookServer';
+import {
+  asClusterAdminUser,
+  asProjectEditUser,
+} from '#~/__tests__/cypress/cypress/utils/mockUsers';
 import {
   notebookController,
   stopNotebookModal,
-} from '~/__tests__/cypress/cypress/pages/administration';
-import { homePage } from '~/__tests__/cypress/cypress/pages/home/home';
+} from '#~/__tests__/cypress/cypress/pages/administration';
+import { homePage } from '#~/__tests__/cypress/cypress/pages/home/home';
 import {
   AcceleratorProfileModel,
   StorageClassModel,
-} from '~/__tests__/cypress/cypress/utils/models';
-import { mockAcceleratorProfile } from '~/__mocks__/mockAcceleratorProfile';
-import type { EnvironmentVariable, NotebookData } from '~/types';
-import { mockConfigMap } from '~/__mocks__/mockConfigMap';
+} from '#~/__tests__/cypress/cypress/utils/models';
+import { mockAcceleratorProfile } from '#~/__mocks__/mockAcceleratorProfile';
+import type { EnvironmentVariable, NotebookData } from '#~/types';
+import { mockConfigMap } from '#~/__mocks__/mockConfigMap';
 
 const groupSubjects: RoleBindingSubject[] = [
   {

@@ -1,4 +1,4 @@
-import { OdhApplication, OdhApplicationCategory } from '~/types';
+import { OdhApplication, OdhApplicationCategory } from '#~/types';
 
 type MockOdhApplicationConfig = {
   name?: string;

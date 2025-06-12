@@ -13,14 +13,14 @@ import {
 } from '@patternfly/react-core';
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { QuickStartContextValues } from '@patternfly/quickstarts';
-import { OdhDocument, OdhDocumentType } from '~/types';
+import { OdhDocument, OdhDocumentType } from '#~/types';
 import {
   getLaunchStatus,
   getQuickStartLabel,
   launchQuickStart,
   LaunchStatusEnum,
-} from '~/utilities/quickStartUtils';
-import { fireMiscTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
+} from '#~/utilities/quickStartUtils';
+import { fireMiscTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import BrandImage from './BrandImage';
 import DocCardBadges from './DocCardBadges';
 import { useQuickStartCardSelected } from './useQuickStartCardSelected';
@@ -181,12 +181,14 @@ const OdhDocCard: React.FC<OdhDocCardProps> = ({
         <Content>
           {odhDoc.spec.displayName}
           {/* Override the bold font in the title, make the subtitle lighter */}
-          <Content
-            component="small"
-            style={{ fontWeight: 'var(--pf-t--global--font--weight--body--default)' }}
-          >
-            by {odhDoc.spec.appDisplayName}
-          </Content>
+          {odhDoc.spec.appDisplayName && (
+            <Content
+              component="small"
+              style={{ fontWeight: 'var(--pf-t--global--font--weight--body--default)' }}
+            >
+              by {odhDoc.spec.appDisplayName}
+            </Content>
+          )}
         </Content>
       </CardTitle>
       <CardBody>

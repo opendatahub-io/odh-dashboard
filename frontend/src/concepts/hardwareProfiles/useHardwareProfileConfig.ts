@@ -1,11 +1,11 @@
 import React, { useRef } from 'react';
-import { HardwareProfileKind, HardwareProfileFeatureVisibility } from '~/k8sTypes';
-import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
-import useGenericObjectState from '~/utilities/useGenericObjectState';
-import { ContainerResources, NodeSelector, Toleration } from '~/types';
-import { isCpuLimitLarger, isMemoryLimitLarger } from '~/utilities/valueUnits';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import { useHardwareProfilesByFeatureVisibility } from '~/pages/hardwareProfiles/migration/useHardwareProfilesByFeatureVisibility';
+import { HardwareProfileKind, HardwareProfileFeatureVisibility } from '#~/k8sTypes';
+import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
+import useGenericObjectState from '#~/utilities/useGenericObjectState';
+import { ContainerResources, NodeSelector, Toleration } from '#~/types';
+import { isCpuLimitLarger, isMemoryLimitLarger } from '#~/utilities/valueUnits';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { useHardwareProfilesByFeatureVisibility } from '#~/pages/hardwareProfiles/migration/useHardwareProfilesByFeatureVisibility';
 import { isHardwareProfileConfigValid } from './validationUtils';
 import { getContainerResourcesFromHardwareProfile } from './utils';
 

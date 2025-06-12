@@ -13,16 +13,16 @@ import {
 import { Language } from '@patternfly/react-code-editor';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import YAML from 'yaml';
-import ApplicationsPage from '~/pages/ApplicationsPage';
-import { TemplateKind } from '~/k8sTypes';
-import { useDashboardNamespace } from '~/redux/selectors';
-import DashboardCodeEditor from '~/concepts/dashboard/codeEditor/DashboardCodeEditor';
+import ApplicationsPage from '#~/pages/ApplicationsPage';
+import { TemplateKind } from '#~/k8sTypes';
+import { useDashboardNamespace } from '#~/redux/selectors';
+import DashboardCodeEditor from '#~/concepts/dashboard/codeEditor/DashboardCodeEditor';
 import {
   createServingRuntimeTemplateBackend,
   updateServingRuntimeTemplateBackend,
-} from '~/services/templateService';
-import { ServingRuntimeAPIProtocol, ServingRuntimePlatform } from '~/types';
-import CustomServingRuntimePlatformsSelector from '~/pages/modelServing/customServingRuntimes/CustomServingRuntimePlatformsSelector';
+} from '#~/services/templateService';
+import { ServingRuntimeAPIProtocol, ServingRuntimePlatform } from '#~/types';
+import CustomServingRuntimePlatformsSelector from '#~/pages/modelServing/customServingRuntimes/CustomServingRuntimePlatformsSelector';
 import {
   getAPIProtocolFromTemplate,
   getEnabledPlatformsFromTemplate,

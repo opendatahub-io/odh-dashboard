@@ -1,5 +1,5 @@
-import { mockCatalogModel } from '~/__mocks__/mockCatalogModel';
-import { mockModelCatalogSource } from '~/__mocks__/mockModelCatalogSource';
+import { mockCatalogModel } from '#~/__mocks__/mockCatalogModel';
+import { mockModelCatalogSource } from '#~/__mocks__/mockModelCatalogSource';
 import {
   createCustomPropertiesFromModel,
   decodeParams,
@@ -10,9 +10,9 @@ import {
   isLabBase,
   removeILabLabels,
   getDeployButtonState,
-} from '~/pages/modelCatalog/utils';
-import { EMPTY_CUSTOM_PROPERTY_STRING } from '~/pages/modelCatalog/const';
-import { DEPLOY_BUTTON_TOOLTIP } from '~/pages/modelServing/screens/const';
+} from '#~/pages/modelCatalog/utils';
+import { EMPTY_CUSTOM_PROPERTY_STRING } from '#~/pages/modelCatalog/const';
+import { DEPLOY_BUTTON_TOOLTIP } from '#~/pages/modelServing/screens/const';
 
 describe('findModelFromModelCatalogSources', () => {
   const catalogModelMock = [mockModelCatalogSource({})];

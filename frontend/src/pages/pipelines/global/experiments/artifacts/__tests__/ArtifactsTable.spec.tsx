@@ -3,24 +3,24 @@ import { BrowserRouter } from 'react-router-dom';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { act } from 'react';
-import { Artifact } from '~/third_party/mlmd';
-import * as useGetArtifactsList from '~/concepts/pipelines/apiHooks/mlmd/useGetArtifactsList';
-import * as MlmdListContext from '~/concepts/pipelines/context/MlmdListContext';
-import EnsureAPIAvailability from '~/concepts/pipelines/EnsureAPIAvailability';
-import EnsureCompatiblePipelineServer from '~/concepts/pipelines/EnsureCompatiblePipelineServer';
-import { ArtifactsList } from '~/pages/pipelines/global/experiments/artifacts/ArtifactsList';
+import { Artifact } from '#~/third_party/mlmd';
+import * as useGetArtifactsList from '#~/concepts/pipelines/apiHooks/mlmd/useGetArtifactsList';
+import * as MlmdListContext from '#~/concepts/pipelines/context/MlmdListContext';
+import EnsureAPIAvailability from '#~/concepts/pipelines/EnsureAPIAvailability';
+import EnsureCompatiblePipelineServer from '#~/concepts/pipelines/EnsureCompatiblePipelineServer';
+import { ArtifactsList } from '#~/pages/pipelines/global/experiments/artifacts/ArtifactsList';
 
 // Mock the useDispatch hook
-jest.mock('~/redux/hooks', () => ({
+jest.mock('#~/redux/hooks', () => ({
   useAppDispatch: jest.fn(),
 }));
 
-jest.mock('~/redux/selectors', () => ({
-  ...jest.requireActual('~/redux/selectors'),
+jest.mock('#~/redux/selectors', () => ({
+  ...jest.requireActual('#~/redux/selectors'),
   useUser: jest.fn(() => ({ isAdmin: true })),
 }));
 
-jest.mock('~/concepts/areas/useIsAreaAvailable', () => () => ({
+jest.mock('#~/concepts/areas/useIsAreaAvailable', () => () => ({
   status: true,
   featureFlags: {},
   reliantAreas: {},
@@ -29,7 +29,7 @@ jest.mock('~/concepts/areas/useIsAreaAvailable', () => () => ({
   customCondition: jest.fn(),
 }));
 
-jest.mock('~/concepts/pipelines/context/PipelinesContext', () => ({
+jest.mock('#~/concepts/pipelines/context/PipelinesContext', () => ({
   usePipelinesAPI: jest.fn(() => ({
     pipelinesServer: {
       initializing: false,

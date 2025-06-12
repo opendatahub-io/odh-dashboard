@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { Connection, ConnectionTypeConfigMapObj } from '~/concepts/connectionTypes/types';
-import { Table } from '~/components/table';
+import { Connection, ConnectionTypeConfigMapObj } from '#~/concepts/connectionTypes/types';
+import { Table } from '#~/components/table';
 import ConnectionsTableRow from './ConnectionsTableRow';
 import { getColumns } from './connectionsTableColumns';
 import { ConnectionsDeleteModal } from './ConnectionsDeleteModal';

@@ -1,4 +1,4 @@
-import { isEnumMember } from '~/utilities/utils';
+import { isEnumMember } from '#~/utilities/utils';
 
 /**
  * The type `{}` doesn't mean "any empty object", it means "any non-nullish value".

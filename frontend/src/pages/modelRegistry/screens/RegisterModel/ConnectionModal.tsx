@@ -10,8 +10,8 @@ import {
   ModalHeader,
   ModalFooter,
 } from '@patternfly/react-core';
-import ProjectSelector from '~/concepts/projects/ProjectSelector';
-import { Connection } from '~/concepts/connectionTypes/types';
+import ProjectSelector from '#~/concepts/projects/ProjectSelector';
+import { Connection } from '#~/concepts/connectionTypes/types';
 import { ConnectionDropdown } from './ConnectionDropdown';
 import { ModelLocationType } from './useRegisterModelData';
 

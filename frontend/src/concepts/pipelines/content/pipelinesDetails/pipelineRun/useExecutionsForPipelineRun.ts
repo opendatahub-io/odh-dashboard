@@ -1,9 +1,9 @@
-import { useExecutionsFromMlmdContext } from '~/concepts/pipelines/apiHooks/mlmd/useExecutionsFromMlmdContext';
-import { usePipelineRunMlmdContext } from '~/concepts/pipelines/apiHooks/mlmd/usePipelineRunMlmdContext';
-import { isPipelineRunFinished } from '~/concepts/pipelines/apiHooks/usePipelineRunById';
-import { PipelineRunKF } from '~/concepts/pipelines/kfTypes';
-import { Execution } from '~/third_party/mlmd';
-import { FAST_POLL_INTERVAL } from '~/utilities/const';
+import { useExecutionsFromMlmdContext } from '#~/concepts/pipelines/apiHooks/mlmd/useExecutionsFromMlmdContext';
+import { usePipelineRunMlmdContext } from '#~/concepts/pipelines/apiHooks/mlmd/usePipelineRunMlmdContext';
+import { isPipelineRunFinished } from '#~/concepts/pipelines/apiHooks/usePipelineRunById';
+import { PipelineRunKF } from '#~/concepts/pipelines/kfTypes';
+import { Execution } from '#~/third_party/mlmd';
+import { FAST_POLL_INTERVAL } from '#~/utilities/const';
 
 const useExecutionsForPipelineRun = (
   run: PipelineRunKF | null,

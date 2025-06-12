@@ -10,38 +10,41 @@ import {
   Spinner,
   Alert,
 } from '@patternfly/react-core';
-import { ModelVersion } from '~/concepts/modelRegistry/types';
-import DashboardDescriptionListGroup from '~/components/DashboardDescriptionListGroup';
-import EditableTextDescriptionListGroup from '~/components/EditableTextDescriptionListGroup';
-import { EditableLabelsDescriptionListGroup } from '~/components/EditableLabelsDescriptionListGroup';
-import ModelPropertiesDescriptionListGroup from '~/pages/modelRegistry/screens/ModelPropertiesDescriptionListGroup';
-import { getLabels, mergeUpdatedLabels } from '~/pages/modelRegistry/screens/utils';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import useModelArtifactsByVersionId from '~/concepts/modelRegistry/apiHooks/useModelArtifactsByVersionId';
-import ModelTimestamp from '~/pages/modelRegistry/screens/components/ModelTimestamp';
-import { uriToModelLocation } from '~/concepts/modelRegistry/utils';
-import InlineTruncatedClipboardCopy from '~/components/InlineTruncatedClipboardCopy';
+import { ModelVersion, ModelArtifactList } from '#~/concepts/modelRegistry/types';
+import DashboardDescriptionListGroup from '#~/components/DashboardDescriptionListGroup';
+import EditableTextDescriptionListGroup from '#~/components/EditableTextDescriptionListGroup';
+import { EditableLabelsDescriptionListGroup } from '#~/components/EditableLabelsDescriptionListGroup';
+import ModelPropertiesDescriptionListGroup from '#~/pages/modelRegistry/screens/ModelPropertiesDescriptionListGroup';
+import { getLabels, mergeUpdatedLabels } from '#~/pages/modelRegistry/screens/utils';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import ModelTimestamp from '#~/pages/modelRegistry/screens/components/ModelTimestamp';
+import { uriToModelLocation } from '#~/concepts/modelRegistry/utils';
+import InlineTruncatedClipboardCopy from '#~/components/InlineTruncatedClipboardCopy';
 import {
   bumpBothTimestamps,
   bumpRegisteredModelTimestamp,
-} from '~/concepts/modelRegistry/utils/updateTimestamps';
-import useRegisteredModelById from '~/concepts/modelRegistry/apiHooks/useRegisteredModelById';
-import { ModelRegistryPageContext } from '~/concepts/modelRegistry/context/ModelRegistryPageContext';
+} from '#~/concepts/modelRegistry/utils/updateTimestamps';
+import useRegisteredModelById from '#~/concepts/modelRegistry/apiHooks/useRegisteredModelById';
+import { ModelRegistryPageContext } from '#~/concepts/modelRegistry/context/ModelRegistryPageContext';
 import ModelVersionRegisteredFromLink from './ModelVersionRegisteredFromLink';
 
 type ModelVersionDetailsViewProps = {
   modelVersion: ModelVersion;
   isArchiveVersion?: boolean;
   refresh: () => void;
+  modelArtifacts: ModelArtifactList;
+  modelArtifactsLoaded: boolean;
+  modelArtifactsLoadError: Error | undefined;
 };
 
 const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
   modelVersion: mv,
   isArchiveVersion,
   refresh,
+  modelArtifacts,
+  modelArtifactsLoaded,
+  modelArtifactsLoadError,
 }) => {
-  const [modelArtifacts, modelArtifactsLoaded, modelArtifactsLoadError, refreshModelArtifacts] =
-    useModelArtifactsByVersionId(mv.id);
   const modelArtifact = modelArtifacts.items.length ? modelArtifacts.items[0] : null;
   const modelCatalogAvailable = useIsAreaAvailable(SupportedArea.MODEL_CATALOG).status;
   const { apiState } = React.useContext(ModelRegistryPageContext);
@@ -51,7 +54,7 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
   const loaded = modelArtifactsLoaded && registeredModelLoaded;
   const loadError = modelArtifactsLoadError || registeredModelLoadError;
   const refreshBoth = () => {
-    refreshModelArtifacts();
+    refresh();
     refreshRegisteredModel();
   };
 

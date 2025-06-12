@@ -5,7 +5,7 @@ import {
   VisualizationProvider,
 } from '@patternfly/react-topology';
 import { Bullseye, Spinner } from '@patternfly/react-core';
-import PipelineVersionError from '~/concepts/pipelines/content/pipelinesDetails/PipelineVersionError';
+import PipelineVersionError from '#~/concepts/pipelines/content/pipelinesDetails/PipelineVersionError';
 import PipelineTopologyEmpty from './PipelineTopologyEmpty';
 import useTopologyController from './useTopologyController';
 import PipelineVisualizationSurface from './PipelineVisualizationSurface';

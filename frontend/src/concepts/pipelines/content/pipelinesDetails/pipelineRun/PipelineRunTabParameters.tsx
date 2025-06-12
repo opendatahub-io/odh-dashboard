@@ -5,13 +5,13 @@ import {
   PipelineRecurringRunKF,
   PipelineRunKF,
   PipelineSpecVariable,
-} from '~/concepts/pipelines/kfTypes';
+} from '#~/concepts/pipelines/kfTypes';
 import {
   DetailItem,
   renderDetailItems,
-} from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/utils';
-import { ExecutionDetailsPropertiesValueCode } from '~/pages/pipelines/global/experiments/executions/details/ExecutionDetailsPropertiesValue';
-import { NoValue } from '~/components/NoValue';
+} from '#~/concepts/pipelines/content/pipelinesDetails/pipelineRun/utils';
+import { ExecutionDetailsPropertiesValueCode } from '#~/pages/pipelines/global/experiments/executions/details/ExecutionDetailsPropertiesValue';
+import { NoValue } from '#~/components/NoValue';
 
 type PipelineRunTabParametersProps = {
   run: PipelineRecurringRunKF | PipelineRunKF | null;

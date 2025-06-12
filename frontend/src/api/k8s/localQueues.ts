@@ -1,6 +1,6 @@
 import { k8sListResourceItems } from '@openshift/dynamic-plugin-sdk-utils';
-import { LocalQueueKind } from '~/k8sTypes';
-import { LocalQueueModel } from '~/api/models/kueue';
+import { LocalQueueKind } from '#~/k8sTypes';
+import { LocalQueueModel } from '#~/api/models/kueue';
 
 export const listLocalQueues = async (
   namespace?: string,

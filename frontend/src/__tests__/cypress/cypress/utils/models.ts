@@ -1,10 +1,10 @@
 /* eslint-disable no-barrel-files/no-barrel-files */
 
-import { modelServingSection } from '~/__tests__/cypress/cypress/pages/modelServing';
+import { modelServingSection } from '#~/__tests__/cypress/cypress/pages/modelServing';
 // Re-exports all api/models to allow tests to reference models.
 
 // eslint-disable-next-line no-restricted-imports
-export * from '~/api/models';
+export * from '#~/api/models';
 
 const maxAttempts = 5;
 let attempts = 0;

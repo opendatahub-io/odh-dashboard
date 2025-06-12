@@ -1,31 +1,34 @@
 import {
   mockAcceleratorProfile,
   mockProjectScopedAcceleratorProfiles,
-} from '~/__mocks__/mockAcceleratorProfile';
-import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
-import { mockDscStatus } from '~/__mocks__/mockDscStatus';
-import { mockInferenceServiceK8sResource } from '~/__mocks__/mockInferenceServiceK8sResource';
-import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
-import { mock200Status, mock404Error, mock409Error } from '~/__mocks__/mockK8sStatus';
-import { mockNotebookK8sResource } from '~/__mocks__/mockNotebookK8sResource';
-import { mockPVCK8sResource } from '~/__mocks__/mockPVCK8sResource';
-import { mockPodK8sResource } from '~/__mocks__/mockPodK8sResource';
-import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
-import { mockRoleBindingK8sResource } from '~/__mocks__/mockRoleBindingK8sResource';
+} from '#~/__mocks__/mockAcceleratorProfile';
+import { mockDashboardConfig } from '#~/__mocks__/mockDashboardConfig';
+import { mockDscStatus } from '#~/__mocks__/mockDscStatus';
+import { mockInferenceServiceK8sResource } from '#~/__mocks__/mockInferenceServiceK8sResource';
+import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
+import { mock200Status, mock404Error, mock409Error } from '#~/__mocks__/mockK8sStatus';
+import { mockNotebookK8sResource } from '#~/__mocks__/mockNotebookK8sResource';
+import { mockPVCK8sResource } from '#~/__mocks__/mockPVCK8sResource';
+import { mockPodK8sResource } from '#~/__mocks__/mockPodK8sResource';
+import { mockProjectK8sResource } from '#~/__mocks__/mockProjectK8sResource';
+import { mockRoleBindingK8sResource } from '#~/__mocks__/mockRoleBindingK8sResource';
 import {
   mockRouteK8sResource,
   mockRouteK8sResourceModelServing,
-} from '~/__mocks__/mockRouteK8sResource';
-import { mockSecretK8sResource } from '~/__mocks__/mockSecretK8sResource';
-import { mockServiceAccountK8sResource } from '~/__mocks__/mockServiceAccountK8sResource';
+} from '#~/__mocks__/mockRouteK8sResource';
+import {
+  mockCustomSecretK8sResource,
+  mockSecretK8sResource,
+} from '#~/__mocks__/mockSecretK8sResource';
+import { mockServiceAccountK8sResource } from '#~/__mocks__/mockServiceAccountK8sResource';
 import {
   mockServingRuntimeK8sResource,
   mockServingRuntimeK8sResourceLegacy,
-} from '~/__mocks__/mockServingRuntimeK8sResource';
+} from '#~/__mocks__/mockServingRuntimeK8sResource';
 import {
   mockInvalidTemplateK8sResource,
   mockServingRuntimeTemplateK8sResource,
-} from '~/__mocks__/mockServingRuntimeTemplateK8sResource';
+} from '#~/__mocks__/mockServingRuntimeTemplateK8sResource';
 import {
   createServingRuntimeModal,
   editServingRuntimeModal,
@@ -34,19 +37,19 @@ import {
   kserveModal,
   kserveModalEdit,
   modelServingSection,
-} from '~/__tests__/cypress/cypress/pages/modelServing';
-import { projectDetails } from '~/__tests__/cypress/cypress/pages/projects';
-import { be } from '~/__tests__/cypress/cypress/utils/should';
+} from '#~/__tests__/cypress/cypress/pages/modelServing';
+import { projectDetails } from '#~/__tests__/cypress/cypress/pages/projects';
+import { be } from '#~/__tests__/cypress/cypress/utils/should';
 import type {
   DataScienceClusterKindStatus,
   InferenceServiceKind,
   ServingRuntimeKind,
-} from '~/k8sTypes';
-import { DeploymentMode } from '~/k8sTypes';
-import { ServingRuntimePlatform, TolerationEffect, TolerationOperator } from '~/types';
-import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
-import { StackCapability } from '~/concepts/areas/types';
-import { mockDsciStatus } from '~/__mocks__/mockDsciStatus';
+} from '#~/k8sTypes';
+import { DeploymentMode } from '#~/k8sTypes';
+import { ServingRuntimePlatform, TolerationEffect, TolerationOperator } from '#~/types';
+import { deleteModal } from '#~/__tests__/cypress/cypress/pages/components/DeleteModal';
+import { StackCapability } from '#~/concepts/areas/types';
+import { mockDsciStatus } from '#~/__mocks__/mockDsciStatus';
 import {
   AcceleratorProfileModel,
   HardwareProfileModel,
@@ -63,15 +66,15 @@ import {
   ServiceAccountModel,
   ServingRuntimeModel,
   TemplateModel,
-} from '~/__tests__/cypress/cypress/utils/models';
-import { mockRoleK8sResource } from '~/__mocks__/mockRoleK8sResource';
-import { mockConnectionTypeConfigMap } from '~/__mocks__/mockConnectionType';
+} from '#~/__tests__/cypress/cypress/utils/models';
+import { mockRoleK8sResource } from '#~/__mocks__/mockRoleK8sResource';
+import { mockConnectionTypeConfigMap } from '#~/__mocks__/mockConnectionType';
 import {
   mockGlobalScopedHardwareProfiles,
   mockProjectScopedHardwareProfiles,
-} from '~/__mocks__/mockHardwareProfile';
-import { hardwareProfileSection } from '~/__tests__/cypress/cypress/pages/components/HardwareProfileSection';
-import { acceleratorProfileSection } from '~/__tests__/cypress/cypress/pages/components/subComponents/AcceleratorProfileSection';
+} from '#~/__mocks__/mockHardwareProfile';
+import { hardwareProfileSection } from '#~/__tests__/cypress/cypress/pages/components/HardwareProfileSection';
+import { acceleratorProfileSection } from '#~/__tests__/cypress/cypress/pages/components/subComponents/AcceleratorProfileSection';
 
 type HandlersProps = {
   disableKServeConfig?: boolean;
@@ -115,6 +118,7 @@ const initIntercepts = ({
       route: true,
       tolerations: [],
       nodeSelector: {},
+      version: 'v1.0.0',
     }),
   ],
   inferenceServices = [
@@ -869,7 +873,8 @@ describe('Serving Runtime List', () => {
 
       // test filling in minimum required fields
       kserveModal.findModelNameInput().type('Test Name');
-      kserveModal.findServingRuntimeTemplateDropdown().findSelectOption('Caikit').click();
+      kserveModal.findServingRuntimeTemplateSearchSelector().click();
+      kserveModal.findGlobalScopedTemplateOption('Caikit').click();
       kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
       kserveModal.findSubmitButton().should('be.disabled');
       // check external route, token should be checked and no alert
@@ -894,6 +899,37 @@ describe('Serving Runtime List', () => {
       kserveModal.findServingRuntimeEnvVarsSectionAddButton().click();
       kserveModal.findServingRuntimeEnvVarsName('0').type('test-name');
       kserveModal.findServingRuntimeEnvVarsValue('0').type('test-value');
+
+      // Checking model server custom size input min/max values
+      kserveModal.findModelServerSizeSelect().findSelectOption('Custom').click();
+
+      kserveModal.findCPURequestedInput().clear().type('1');
+      kserveModal.findCPULimitInput().clear().type('1');
+      kserveModal.findMemoryRequestedInput().clear().type('1');
+      kserveModal.findMemoryLimitInput().clear().type('1');
+      kserveModal.findCPURequestedButton('Minus').should('be.disabled');
+      kserveModal.findCPULimitButton('Minus').should('be.disabled');
+      kserveModal.findMemoryRequestedButton('Minus').should('be.disabled');
+      kserveModal.findMemoryLimitButton('Minus').should('be.disabled');
+
+      kserveModal.findCPURequestedButton('Plus').should('be.disabled');
+      kserveModal.findCPULimitButton('Plus').click();
+      kserveModal.findCPURequestedButton('Plus').should('be.enabled');
+      kserveModal.findMemoryRequestedButton('Plus').should('be.disabled');
+      kserveModal.findMemoryLimitButton('Plus').click();
+      kserveModal.findMemoryRequestedButton('Plus').should('be.enabled');
+
+      kserveModal.findMemoryRequestedInput().clear().type('3');
+      kserveModal.findMemoryRequestedInput().should('have.value', '2');
+      kserveModal.findCPURequestedInput().clear().type('3');
+      kserveModal.findCPURequestedInput().should('have.value', '2');
+
+      kserveModal.findCPULimitInput().clear().type('1');
+      kserveModal.findCPULimitInput().should('have.value', '2');
+      kserveModal.findMemoryLimitInput().clear().type('1');
+      kserveModal.findMemoryLimitInput().should('have.value', '2');
+
+      kserveModal.findModelServerSizeSelect().findSelectOption(/Small/).click();
       kserveModal.findSubmitButton().should('be.enabled');
 
       // test submitting form, the modal should close to indicate success.
@@ -1025,7 +1061,8 @@ describe('Serving Runtime List', () => {
 
       // test filling in minimum required fields
       kserveModal.findModelNameInput().type('Test Name');
-      kserveModal.findServingRuntimeTemplateDropdown().findSelectOption('Caikit').click();
+      kserveModal.findServingRuntimeTemplateSearchSelector().click();
+      kserveModal.findGlobalScopedTemplateOption('Caikit').click();
       kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
       kserveModal.findSubmitButton().should('be.disabled');
       // check external route, token should be checked and no alert
@@ -1111,7 +1148,8 @@ describe('Serving Runtime List', () => {
 
       // test filling in minimum required fields
       kserveModal.findModelNameInput().type('Test Name');
-      kserveModal.findServingRuntimeTemplateDropdown().findSelectOption('Caikit').click();
+      kserveModal.findServingRuntimeTemplateSearchSelector().click();
+      kserveModal.findGlobalScopedTemplateOption('Caikit').click();
       kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
       kserveModal.findExistingConnectionSelect().should('have.attr', 'disabled');
       kserveModal.findNewConnectionOption().click();
@@ -1388,7 +1426,8 @@ describe('Serving Runtime List', () => {
 
       // test filling in minimum required fields
       kserveModal.findModelNameInput().type('Test Name');
-      kserveModal.findServingRuntimeTemplateDropdown().findSelectOption('Caikit').click();
+      kserveModal.findServingRuntimeTemplateSearchSelector().click();
+      kserveModal.findGlobalScopedTemplateOption('Caikit').click();
       kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
       kserveModal.findSubmitButton().should('be.disabled');
       kserveModal.findNewConnectionOption().click();
@@ -1485,7 +1524,8 @@ describe('Serving Runtime List', () => {
 
       // test filling in minimum required fields
       kserveModal.findModelNameInput().type('Test Name');
-      kserveModal.findServingRuntimeTemplateDropdown().findSelectOption('Caikit').click();
+      kserveModal.findServingRuntimeTemplateSearchSelector().click();
+      kserveModal.findGlobalScopedTemplateOption('Caikit').click();
       kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
       kserveModal.findSubmitButton().should('be.disabled');
       // misc.
@@ -1648,7 +1688,8 @@ describe('Serving Runtime List', () => {
 
       // test filling in minimum required fields
       kserveModal.findModelNameInput().type('Test Name');
-      kserveModal.findServingRuntimeTemplateDropdown().findSelectOption('Caikit').click();
+      kserveModal.findServingRuntimeTemplateSearchSelector().click();
+      kserveModal.findGlobalScopedTemplateOption('Caikit').click();
       kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
       kserveModal.findSubmitButton().should('be.disabled');
       // misc.
@@ -1785,7 +1826,8 @@ describe('Serving Runtime List', () => {
       kserveModal.shouldBeOpen();
 
       kserveModal.findModelNameInput().type('Test Name');
-      kserveModal.findServingRuntimeTemplateDropdown().findSelectOption('Caikit').click();
+      kserveModal.findServingRuntimeTemplateSearchSelector().click();
+      kserveModal.findGlobalScopedTemplateOption('Caikit').click();
       kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
       kserveModal.findExistingConnectionOption().click();
       kserveModal.findLocationPathInput().type('test-model/');
@@ -1818,6 +1860,146 @@ describe('Serving Runtime List', () => {
         'false',
       );
       kserveModal.findSubmitButton().should('be.enabled');
+    });
+
+    it('Deploy OCI Model and check paste functionality', () => {
+      initIntercepts({
+        disableModelMeshConfig: false,
+        disableKServeConfig: false,
+        disableServingRuntimeParams: false,
+        servingRuntimes: [],
+        requiredCapabilities: [StackCapability.SERVICE_MESH, StackCapability.SERVICE_MESH_AUTHZ],
+        projectEnableModelMesh: false,
+      });
+
+      cy.interceptK8sList(
+        SecretModel,
+        mockK8sResourceList([
+          mockCustomSecretK8sResource({
+            type: 'kubernetes.io/dockerconfigjson',
+            namespace: 'test-project',
+            name: 'test-secret',
+            annotations: {
+              'opendatahub.io/connection-type': 'oci-v1',
+              'openshift.io/display-name': 'Test Secret',
+            },
+            data: {
+              '.dockerconfigjson':
+                'eyJhdXRocyI6IHsidGVzdC5pbyI6IHsiYXV0aCI6ICJibGFoYmxhaGJsYWgifX19Cg==',
+              OCI_HOST: 'dGVzdC5pby9vcmdhbml6YXRpb24K',
+              ACCESS_TYPE: 'WyJQdWxsIl0',
+            },
+          }),
+        ]),
+      );
+
+      projectDetails.visitSection('test-project', 'model-server');
+
+      modelServingSection.findDeployModelButton().click();
+
+      kserveModal.shouldBeOpen();
+
+      // test that you can not submit on empty
+      kserveModal.findSubmitButton().should('be.disabled');
+
+      // test filling in minimum required fields
+      kserveModal.findModelNameInput().type('Test Name');
+      kserveModal.findServingRuntimeTemplateSearchSelector().click();
+      kserveModal.findGlobalScopedTemplateOption('Caikit').click();
+      kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
+      kserveModal.findSubmitButton().should('be.disabled');
+
+      kserveModal.findExistingConnectionOption().click();
+      kserveModal
+        .findExistingConnectionSelect()
+        .findByRole('combobox')
+        .should('have.value', 'Test Secret');
+      kserveModal.findOCIModelURI().click();
+      kserveModal.findOCIModelURI().trigger('paste', {
+        clipboardData: {
+          getData: () => 'https://test.io/organization/test-model:latest',
+        },
+      });
+      kserveModal.findOCIModelURI().blur();
+      kserveModal.findSubmitButton().should('be.enabled');
+
+      // test submitting form, the modal should close to indicate success.
+      kserveModal.findSubmitButton().click();
+      kserveModal.shouldBeOpen(false);
+
+      // dry run request
+      cy.wait('@createServingRuntime').then((interception) => {
+        expect(interception.request.url).to.include('?dryRun=All');
+        expect(interception.request.body).to.containSubset({
+          metadata: {
+            name: 'test-name',
+            annotations: {
+              'openshift.io/display-name': 'test-name',
+              'opendatahub.io/apiProtocol': 'REST',
+              'opendatahub.io/template-name': 'template-2',
+              'opendatahub.io/template-display-name': 'Caikit',
+              'opendatahub.io/accelerator-name': '',
+            },
+            namespace: 'test-project',
+          },
+          spec: {
+            protocolVersions: ['grpc-v1'],
+            supportedModelFormats: [
+              { autoSelect: true, name: 'openvino_ir', version: 'opset1' },
+              { autoSelect: true, name: 'onnx', version: '1' },
+            ],
+          },
+        });
+      });
+
+      // Actual request
+      cy.wait('@createServingRuntime').then((interception) => {
+        expect(interception.request.url).not.to.include('?dryRun=All');
+      });
+
+      // the serving runtime should have been created
+      cy.get('@createServingRuntime.all').then((interceptions) => {
+        expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
+      });
+
+      cy.wait('@createInferenceService').then((interception) => {
+        expect(interception.request.url).to.include('?dryRun=All');
+        expect(interception.request.body).to.containSubset({
+          apiVersion: 'serving.kserve.io/v1beta1',
+          kind: 'InferenceService',
+          metadata: {
+            name: 'test-name',
+            namespace: 'test-project',
+            annotations: {
+              'openshift.io/display-name': 'Test Name',
+              'serving.kserve.io/deploymentMode': DeploymentMode.Serverless,
+              'serving.knative.openshift.io/enablePassthrough': 'true',
+              'sidecar.istio.io/inject': 'true',
+              'sidecar.istio.io/rewriteAppHTTPProbers': 'true',
+            },
+            labels: {
+              'opendatahub.io/dashboard': 'true',
+              'networking.knative.dev/visibility': 'cluster-local',
+            },
+          },
+          spec: {
+            predictor: {
+              minReplicas: 1,
+              maxReplicas: 1,
+              imagePullSecrets: [{ name: 'test-secret' }],
+              model: {
+                modelFormat: { name: 'onnx', version: '1' },
+                runtime: 'test-name',
+                storageUri: 'oci://test.io/organization/test-model:latest',
+                resources: {
+                  requests: { cpu: '1', memory: '4Gi' },
+                  limits: { cpu: '2', memory: '8Gi' },
+                },
+              },
+            },
+          },
+        });
+      });
     });
   });
 
@@ -1853,10 +2035,8 @@ describe('Serving Runtime List', () => {
 
       // test filling in minimum required fields
       createServingRuntimeModal.k8sNameDescription.findDisplayNameInput().type('Test Name');
-      createServingRuntimeModal
-        .findServingRuntimeTemplateDropdown()
-        .findSelectOption('New OVMS Server')
-        .click();
+      createServingRuntimeModal.findServingRuntimeTemplateSearchSelector().click();
+      createServingRuntimeModal.findGlobalScopedTemplateOption('New OVMS Server').click();
       createServingRuntimeModal.findSubmitButton().should('be.enabled');
 
       // test invalid resource name
@@ -2278,10 +2458,8 @@ describe('Serving Runtime List', () => {
 
       // fill in minimum required fields
       createServingRuntimeModal.k8sNameDescription.findDisplayNameInput().type('Test Name');
-      createServingRuntimeModal
-        .findServingRuntimeTemplateDropdown()
-        .findSelectOption('New OVMS Server')
-        .click();
+      createServingRuntimeModal.findServingRuntimeTemplateSearchSelector().click();
+      createServingRuntimeModal.findGlobalScopedTemplateOption('New OVMS Server').click();
       createServingRuntimeModal.findSubmitButton().should('be.enabled');
 
       // test submitting form, the modal should close to indicate success.
@@ -2332,10 +2510,8 @@ describe('Serving Runtime List', () => {
 
       // fill in minimum required fields
       createServingRuntimeModal.k8sNameDescription.findDisplayNameInput().type('Test Name');
-      createServingRuntimeModal
-        .findServingRuntimeTemplateDropdown()
-        .findSelectOption('New OVMS Server')
-        .click();
+      createServingRuntimeModal.findServingRuntimeTemplateSearchSelector().click();
+      createServingRuntimeModal.findGlobalScopedTemplateOption('New OVMS Server').click();
       createServingRuntimeModal.findSubmitButton().should('be.enabled');
 
       // test submitting form, an error should appear
@@ -2382,10 +2558,8 @@ describe('Serving Runtime List', () => {
 
       // fill in minimum required fields
       createServingRuntimeModal.k8sNameDescription.findDisplayNameInput().type('Test Name');
-      createServingRuntimeModal
-        .findServingRuntimeTemplateDropdown()
-        .findSelectOption('New OVMS Server')
-        .click();
+      createServingRuntimeModal.findServingRuntimeTemplateSearchSelector().click();
+      createServingRuntimeModal.findGlobalScopedTemplateOption('New OVMS Server').click();
       createServingRuntimeModal.findSubmitButton().should('be.enabled');
 
       // test submitting form, the modal should close to indicate success.
@@ -2445,10 +2619,8 @@ describe('Serving Runtime List', () => {
 
       // fill in minimum required fields
       createServingRuntimeModal.k8sNameDescription.findDisplayNameInput().type('Test Name');
-      createServingRuntimeModal
-        .findServingRuntimeTemplateDropdown()
-        .findSelectOption('New OVMS Server')
-        .click();
+      createServingRuntimeModal.findServingRuntimeTemplateSearchSelector().click();
+      createServingRuntimeModal.findGlobalScopedTemplateOption('New OVMS Server').click();
       createServingRuntimeModal.findSubmitButton().should('be.enabled');
 
       // enable auth
@@ -2519,10 +2691,8 @@ describe('Serving Runtime List', () => {
 
       // fill in minimum required fields
       createServingRuntimeModal.k8sNameDescription.findDisplayNameInput().type('Test Name');
-      createServingRuntimeModal
-        .findServingRuntimeTemplateDropdown()
-        .findSelectOption('New OVMS Server')
-        .click();
+      createServingRuntimeModal.findServingRuntimeTemplateSearchSelector().click();
+      createServingRuntimeModal.findGlobalScopedTemplateOption('New OVMS Server').click();
       createServingRuntimeModal.findSubmitButton().should('be.enabled');
 
       // enable auth
@@ -2827,7 +2997,8 @@ describe('Serving Runtime List', () => {
 
       // test filling in minimum required fields
       kserveModal.findModelNameInput().type('Test Name');
-      kserveModal.findServingRuntimeTemplateDropdown().findSelectOption('Caikit').click();
+      kserveModal.findServingRuntimeTemplateSearchSelector().click();
+      kserveModal.findGlobalScopedTemplateOption('Caikit').click();
       kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
       kserveModal.findSubmitButton().should('be.disabled');
       kserveModal.findExistingConnectionOption().click();
@@ -2866,7 +3037,8 @@ describe('Serving Runtime List', () => {
 
       // test filling in minimum required fields
       kserveModal.findModelNameInput().type('Test Name');
-      kserveModal.findServingRuntimeTemplateDropdown().findSelectOption('Caikit').click();
+      kserveModal.findServingRuntimeTemplateSearchSelector().click();
+      kserveModal.findGlobalScopedTemplateOption('Caikit').click();
       kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
       kserveModal.findSubmitButton().should('be.disabled');
       kserveModal.findExistingConnectionOption().click();
@@ -3152,6 +3324,65 @@ describe('Serving Runtime List', () => {
         .findInternalServicePopover()
         .findByText('Could not find any internal service enabled')
         .should('exist');
+    });
+  });
+  describe('Serving Runtime Template Selection', () => {
+    it('displays label in search selector when multi-model serving is selected', () => {
+      initIntercepts({
+        projectEnableModelMesh: true,
+        disableKServeConfig: false,
+        disableModelMeshConfig: false,
+      });
+
+      projectDetails.visitSection('test-project', 'model-server');
+      modelServingSection.findAddModelServerButton().click();
+      createServingRuntimeModal.findServingRuntimeTemplateSearchSelector().should('exist');
+      createServingRuntimeModal.findServingRuntimeTemplateSearchSelector().click();
+      createServingRuntimeModal.findGlobalScopedTemplateOption('Multi Platform').within(() => {
+        createServingRuntimeModal.findServingRuntimeVersionLabel().should('exist');
+      });
+      createServingRuntimeModal.findGlobalScopedTemplateOption('Multi Platform').click();
+      createServingRuntimeModal.findServingRuntimeTemplateSearchSelector().within(() => {
+        createServingRuntimeModal.findServingRuntimeVersionLabel().should('exist');
+      });
+      createServingRuntimeModal.findCloseButton().click();
+
+      // Check that the label is displayed when editing
+      modelServingSection
+        .getModelMeshRow('OVMS Model Serving')
+        .find()
+        .findKebabAction('Edit model server')
+        .click();
+      editServingRuntimeModal.findServingRuntimeTemplateSearchSelector().within(() => {
+        editServingRuntimeModal.findServingRuntimeVersionLabel().should('exist');
+      });
+    });
+
+    it('displays label in search selector when single-model serving is selected', () => {
+      initIntercepts({
+        projectEnableModelMesh: false,
+        disableKServeConfig: false,
+        disableModelMeshConfig: false,
+      });
+
+      projectDetails.visitSection('test-project', 'model-server');
+      modelServingSection.findDeployModelButton().click();
+      kserveModal.findServingRuntimeTemplateSearchSelector().should('exist');
+      kserveModal.findServingRuntimeTemplateSearchSelector().click();
+      kserveModal.findGlobalScopedTemplateOption('Multi Platform').within(() => {
+        kserveModal.findServingRuntimeVersionLabel().should('exist');
+      });
+      kserveModal.findGlobalScopedTemplateOption('Multi Platform').click();
+      kserveModal.findServingRuntimeTemplateSearchSelector().within(() => {
+        kserveModal.findServingRuntimeVersionLabel().should('exist');
+      });
+      kserveModal.findCloseButton().click();
+
+      // Check that the label is displayed when editing
+      modelServingSection.getKServeRow('Llama Caikit').find().findKebabAction('Edit').click();
+      kserveModalEdit.findServingRuntimeTemplateSearchSelector().within(() => {
+        kserveModalEdit.findServingRuntimeVersionLabel().should('exist');
+      });
     });
   });
 });

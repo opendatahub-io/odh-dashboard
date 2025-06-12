@@ -5,8 +5,8 @@ import type {
   HrefNavItemExtension,
   StatusReport,
 } from '@odh-dashboard/plugin-core/extension-points';
-import { StatusReportLoader } from '~/app/status-provider/StatusReportLoader';
-import { StatusReportIcon } from '~/app/status-provider/StatusReportIcon';
+import { StatusReportLoader } from '#~/app/status-provider/StatusReportLoader';
+import { StatusReportIcon } from '#~/app/status-provider/StatusReportIcon';
 import { NavItemTitle } from './NavItemTitle';
 
 type Props = {

@@ -1,4 +1,4 @@
-import { roundNumber, bytesAsRoundedGiB, bytesAsPreciseGiB } from '~/utilities/number';
+import { roundNumber, bytesAsRoundedGiB, bytesAsPreciseGiB } from '#~/utilities/number';
 
 describe('roundNumber', () => {
   it('should return 0 for NaN input', () => {

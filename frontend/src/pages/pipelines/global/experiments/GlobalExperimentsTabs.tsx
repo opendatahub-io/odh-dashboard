@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { PageSection, Tab, Tabs, TabTitleText } from '@patternfly/react-core';
 import { useNavigate } from 'react-router';
-import '~/pages/pipelines/global/runs/GlobalPipelineRunsTabs.scss';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { experimentsTabRoute } from '~/routes/pipelines/experiments';
+import '#~/pages/pipelines/global/runs/GlobalPipelineRunsTabs.scss';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+import { experimentsTabRoute } from '#~/routes/pipelines/experiments';
 import { ExperimentListTabs, ExperimentListTabTitle } from './const';
 import ActiveExperimentsList from './ActiveExperimentsList';
 import ArchivedExperimentsList from './ArchivedExperimentsList';

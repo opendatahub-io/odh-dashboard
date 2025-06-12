@@ -1,15 +1,15 @@
 import { renderHook } from '@testing-library/react';
-import useDeployButtonState from '~/pages/modelServing/screens/projects/useDeployButtonState';
-import { DEPLOY_BUTTON_TOOLTIP } from '~/pages/modelServing/screens/const';
+import useDeployButtonState from '#~/pages/modelServing/screens/projects/useDeployButtonState';
+import { DEPLOY_BUTTON_TOOLTIP } from '#~/pages/modelServing/screens/const';
 
-jest.mock('~/concepts/areas', () => ({
+jest.mock('#~/concepts/areas', () => ({
   useIsAreaAvailable: jest.fn(),
   SupportedArea: { MODEL_SERVING: 'MODEL_SERVING' },
 }));
-jest.mock('~/pages/modelServing/useServingPlatformStatuses', () => jest.fn());
+jest.mock('#~/pages/modelServing/useServingPlatformStatuses', () => jest.fn());
 
-const mockUseIsAreaAvailable = require('~/concepts/areas').useIsAreaAvailable;
-const mockUseServingPlatformStatuses = require('~/pages/modelServing/useServingPlatformStatuses');
+const mockUseIsAreaAvailable = require('#~/concepts/areas').useIsAreaAvailable;
+const mockUseServingPlatformStatuses = require('#~/pages/modelServing/useServingPlatformStatuses');
 
 describe('useDeployButtonState', () => {
   afterEach(() => {

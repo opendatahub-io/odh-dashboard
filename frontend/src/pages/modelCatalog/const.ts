@@ -1,7 +1,7 @@
 import {
   ModelRegistryCustomProperty,
   ModelRegistryMetadataType,
-} from '~/concepts/modelRegistry/types';
+} from '#~/concepts/modelRegistry/types';
 
 export enum ReservedILabLabel {
   LabBase = 'lab-base',

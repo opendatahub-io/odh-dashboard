@@ -1,5 +1,5 @@
 import React from 'react';
-import DeleteModal from '~/pages/projects/components/DeleteModal';
+import DeleteModal from '#~/pages/projects/components/DeleteModal';
 
 type DeleteTrustyAIModalProps = {
   onDelete: () => Promise<unknown>;

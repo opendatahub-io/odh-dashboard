@@ -10,22 +10,22 @@ import {
   mockProjectK8sResource,
   mockRouteK8sResource,
   buildMockRunKF,
-} from '~/__mocks__';
-import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url';
+} from '#~/__mocks__';
+import { verifyRelativeURL } from '#~/__tests__/cypress/cypress/utils/url';
 import {
   DataSciencePipelineApplicationModel,
   ProjectModel,
   RouteModel,
-} from '~/__tests__/cypress/cypress/utils/models';
+} from '#~/__tests__/cypress/cypress/utils/models';
 import {
   compareRunsGlobal,
   compareRunsListTable,
   compareRunParamsTable,
   compareRunsMetricsContent,
-} from '~/__tests__/cypress/cypress/pages/pipelines/compareRuns';
-import { mockCancelledGoogleRpcStatus } from '~/__mocks__/mockGoogleRpcStatusKF';
-import { mockArtifactStorage } from '~/__mocks__/mockArtifactStorage';
-import { initMlmdIntercepts } from '~/__tests__/cypress/cypress/tests/mocked/pipelines/mlmdUtils';
+} from '#~/__tests__/cypress/cypress/pages/pipelines/compareRuns';
+import { mockCancelledGoogleRpcStatus } from '#~/__mocks__/mockGoogleRpcStatusKF';
+import { mockArtifactStorage } from '#~/__mocks__/mockArtifactStorage';
+import { initMlmdIntercepts } from '#~/__tests__/cypress/cypress/tests/mocked/pipelines/mlmdUtils';
 
 const projectName = 'test-project-name';
 const initialMockPipeline = buildMockPipeline({ display_name: 'Test pipeline' });

@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { useAllPipelineVersions } from '~/concepts/pipelines/apiHooks/useAllPipelineVersions';
-import { PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
+import { useAllPipelineVersions } from '#~/concepts/pipelines/apiHooks/useAllPipelineVersions';
+import { PipelineVersionKF } from '#~/concepts/pipelines/kfTypes';
 
 type PipelineRunVersionsContextState = {
   versions: PipelineVersionKF[];

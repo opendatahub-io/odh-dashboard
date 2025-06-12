@@ -2,7 +2,7 @@ import React from 'react';
 import { Td, Tr } from '@patternfly/react-table';
 import { ActionList, ActionListItem, Button, Truncate } from '@patternfly/react-core';
 import { MinusCircleIcon, PencilAltIcon } from '@patternfly/react-icons';
-import { Toleration } from '~/types';
+import { Toleration } from '#~/types';
 
 type TolerationTableRowProps = {
   toleration: Toleration;

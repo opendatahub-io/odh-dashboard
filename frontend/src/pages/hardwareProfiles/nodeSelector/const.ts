@@ -1,5 +1,5 @@
-import { SortableData } from '~/components/table';
-import { NodeSelector } from '~/types';
+import { SortableData } from '#~/components/table';
+import { NodeSelector } from '#~/types';
 
 export const nodeSelectorColumns: SortableData<NodeSelector>[] = [
   {

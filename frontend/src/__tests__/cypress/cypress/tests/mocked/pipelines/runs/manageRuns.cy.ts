@@ -6,17 +6,17 @@ import {
   buildMockPipelineVersions,
   buildMockPipelines,
   buildMockRunKF,
-} from '~/__mocks__';
-import type { PipelineRunKF } from '~/concepts/pipelines/kfTypes';
+} from '#~/__mocks__';
+import type { PipelineRunKF } from '#~/concepts/pipelines/kfTypes';
 import {
   manageRunsPage,
   manageRunsTable,
-} from '~/__tests__/cypress/cypress/pages/pipelines/manageRuns';
+} from '#~/__tests__/cypress/cypress/pages/pipelines/manageRuns';
 import {
   configIntercept,
   dspaIntercepts,
   projectsIntercept,
-} from '~/__tests__/cypress/cypress/tests/mocked/pipelines/intercepts';
+} from '#~/__tests__/cypress/cypress/tests/mocked/pipelines/intercepts';
 
 const projectName = 'test-project-name';
 const pipelineVersionId = 'test-version-id';

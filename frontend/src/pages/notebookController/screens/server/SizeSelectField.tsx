@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { FormGroup, FormHelperText, HelperText, HelperTextItem } from '@patternfly/react-core';
-import { NotebookSize } from '~/types';
-import { getDashboardMainContainer } from '~/utilities/utils';
-import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
-import { formatMemory } from '~/utilities/valueUnits';
+import { NotebookSize } from '#~/types';
+import { getDashboardMainContainer } from '#~/utilities/utils';
+import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
+import { formatMemory } from '#~/utilities/valueUnits';
 
 type SizeSelectFieldProps = {
   value: NotebookSize;

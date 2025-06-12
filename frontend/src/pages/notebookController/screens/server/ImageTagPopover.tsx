@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { Button, Popover } from '@patternfly/react-core';
 import { HelpIcon } from '@patternfly/react-icons';
-import { ImageTagInfo } from '~/types';
-import { getNameVersionString } from '~/utilities/imageUtils';
-import '~/pages/notebookController/NotebookController.scss';
+import { ImageTagInfo } from '#~/types';
+import { getNameVersionString } from '#~/utilities/imageUtils';
+import '#~/pages/notebookController/NotebookController.scss';
 
 type ImageTagPopoverProps = {
   tag?: ImageTagInfo;

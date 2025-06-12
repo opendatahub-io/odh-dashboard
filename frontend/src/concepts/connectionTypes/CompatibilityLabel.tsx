@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Label } from '@patternfly/react-core';
-import { ModelServingCompatibleTypes } from '~/concepts/connectionTypes/utils';
+import { ModelServingCompatibleTypes } from '#~/concepts/connectionTypes/utils';
 
 type Props = {
   type: ModelServingCompatibleTypes;

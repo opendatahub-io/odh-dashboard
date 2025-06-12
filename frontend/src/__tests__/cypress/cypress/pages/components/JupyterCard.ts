@@ -1,4 +1,4 @@
-import { Card } from '~/__tests__/cypress/cypress/pages/components/Card';
+import { Card } from '#~/__tests__/cypress/cypress/pages/components/Card';
 
 export class JupyterCard extends Card {
   constructor() {

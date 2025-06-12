@@ -1,7 +1,7 @@
 import {
   externalRedirect,
   pipelinesSdkRedirect,
-} from '~/__tests__/cypress/cypress/pages/externalRedirect';
+} from '#~/__tests__/cypress/cypress/pages/externalRedirect';
 
 describe('External Redirects', () => {
   describe('Pipeline SDK Redirects', () => {

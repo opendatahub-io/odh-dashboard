@@ -6,19 +6,19 @@ import {
   K8sStatus,
   k8sUpdateResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
-import { HardwareProfileFeatureVisibility, HardwareProfileKind } from '~/k8sTypes';
-import { HardwareProfileModel } from '~/api/models';
+import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
+import { HardwareProfileFeatureVisibility, HardwareProfileKind } from '#~/k8sTypes';
+import { HardwareProfileModel } from '#~/api/models';
 import {
   createHardwareProfile,
   deleteHardwareProfile,
   getHardwareProfile,
   listHardwareProfiles,
   updateHardwareProfile,
-} from '~/api/k8s/hardwareProfiles';
-import { mockHardwareProfile } from '~/__mocks__/mockHardwareProfile';
-import { IdentifierResourceType, TolerationEffect, TolerationOperator } from '~/types';
-import { mock200Status, mock404Error } from '~/__mocks__';
+} from '#~/api/k8s/hardwareProfiles';
+import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile';
+import { IdentifierResourceType, TolerationEffect, TolerationOperator } from '#~/types';
+import { mock200Status, mock404Error } from '#~/__mocks__';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sListResource: jest.fn(),

@@ -1,16 +1,16 @@
 import React from 'react';
 import { act, render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import EmptyProjects from '~/pages/projects/screens/projects/EmptyProjects';
-import { useUser } from '~/redux/selectors';
+import EmptyProjects from '#~/pages/projects/screens/projects/EmptyProjects';
+import { useUser } from '#~/redux/selectors';
 
-jest.mock('~/app/AppContext', () => ({
+jest.mock('#~/app/AppContext', () => ({
   __esModule: true,
   useAppContext: jest.fn(),
 }));
 
-jest.mock('~/redux/selectors', () => ({
-  ...jest.requireActual('~/redux/selectors'),
+jest.mock('#~/redux/selectors', () => ({
+  ...jest.requireActual('#~/redux/selectors'),
   useUser: jest.fn(),
   useClusterInfo: jest.fn(),
 }));

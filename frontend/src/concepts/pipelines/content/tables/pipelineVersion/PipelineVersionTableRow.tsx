@@ -2,22 +2,22 @@ import * as React from 'react';
 import { ActionsColumn, TableText, Td, Tr } from '@patternfly/react-table';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@patternfly/react-core';
-import { PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
-import { CheckboxTd, TableRowTitleDescription } from '~/components/table';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import PipelinesTableRowTime from '~/concepts/pipelines/content/tables/PipelinesTableRowTime';
+import { PipelineKF, PipelineVersionKF } from '#~/concepts/pipelines/kfTypes';
+import { CheckboxTd, TableRowTitleDescription } from '#~/components/table';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+import PipelinesTableRowTime from '#~/concepts/pipelines/content/tables/PipelinesTableRowTime';
 import {
   createRecurringRunRoute,
   createRunRoute,
   globalPipelineRecurringRunsVersionRoute,
   globalPipelineRunsVersionRoute,
-} from '~/routes/pipelines/runs';
-import { pipelineVersionDetailsRoute } from '~/routes/pipelines/global';
-import { isArgoWorkflow } from '~/concepts/pipelines/content/tables/utils';
+} from '#~/routes/pipelines/runs';
+import { pipelineVersionDetailsRoute } from '#~/routes/pipelines/global';
+import { isArgoWorkflow } from '#~/concepts/pipelines/content/tables/utils';
 import {
   PIPELINE_CREATE_RUN_TOOLTIP_ARGO_ERROR,
   PIPELINE_CREATE_SCHEDULE_TOOLTIP_ARGO_ERROR,
-} from '~/concepts/pipelines/content/const';
+} from '#~/concepts/pipelines/content/const';
 
 type PipelineVersionTableRowProps = {
   isChecked: boolean;

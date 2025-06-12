@@ -1,18 +1,21 @@
-import { mockRoleBindingK8sResource } from '~/__mocks__/mockRoleBindingK8sResource';
-import { mockK8sResourceList, mockNotebookK8sResource } from '~/__mocks__';
-import type { RoleBindingSubject } from '~/k8sTypes';
-import { mockAllowedUsers } from '~/__mocks__/mockAllowedUsers';
-import { mockNotebookImageInfo } from '~/__mocks__/mockNotebookImageInfo';
+import { mockRoleBindingK8sResource } from '#~/__mocks__/mockRoleBindingK8sResource';
+import { mockK8sResourceList, mockNotebookK8sResource } from '#~/__mocks__';
+import type { RoleBindingSubject } from '#~/k8sTypes';
+import { mockAllowedUsers } from '#~/__mocks__/mockAllowedUsers';
+import { mockNotebookImageInfo } from '#~/__mocks__/mockNotebookImageInfo';
 import {
   administration,
   notebookController,
   stopNotebookModal,
-} from '~/__tests__/cypress/cypress/pages/administration';
-import { be } from '~/__tests__/cypress/cypress/utils/should';
-import { asProductAdminUser, asProjectEditUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
-import type { AllowedUser } from '~/pages/notebookController/screens/admin/types';
-import { testPagination } from '~/__tests__/cypress/cypress/utils/pagination';
-import { mockStartNotebookData } from '~/__mocks__/mockStartNotebookData';
+} from '#~/__tests__/cypress/cypress/pages/administration';
+import { be } from '#~/__tests__/cypress/cypress/utils/should';
+import {
+  asProductAdminUser,
+  asProjectEditUser,
+} from '#~/__tests__/cypress/cypress/utils/mockUsers';
+import type { AllowedUser } from '#~/pages/notebookController/screens/admin/types';
+import { testPagination } from '#~/__tests__/cypress/cypress/utils/pagination';
+import { mockStartNotebookData } from '#~/__mocks__/mockStartNotebookData';
 
 const groupSubjects: RoleBindingSubject[] = [
   {

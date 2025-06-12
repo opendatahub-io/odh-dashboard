@@ -1,7 +1,7 @@
 import * as React from 'react';
-import { InferenceServiceKind } from '~/k8sTypes';
-import { Connection } from '~/concepts/connectionTypes/types';
-import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
+import { InferenceServiceKind } from '#~/k8sTypes';
+import { Connection } from '#~/concepts/connectionTypes/types';
+import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 
 export const useInferenceServicesForConnection = (
   connection: Connection,

@@ -1,8 +1,8 @@
 import { debounce, FormGroup, TextInput } from '@patternfly/react-core';
 import * as React from 'react';
 import { ZodIssue } from 'zod';
-import { ZodErrorHelperText } from '~/components/ZodErrorFormHelperText';
-import { RuntimeConfigParamValue } from '~/concepts/pipelines/kfTypes';
+import { ZodErrorHelperText } from '#~/components/ZodErrorFormHelperText';
+import { RuntimeConfigParamValue } from '#~/concepts/pipelines/kfTypes';
 
 type HyperparameterLongNumberFieldProps = {
   onChange: (hyperparameter: string, hyperparameterValue?: RuntimeConfigParamValue) => void;

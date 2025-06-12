@@ -1,9 +1,9 @@
 import React from 'react';
-import { TimeframeTitle } from '~/concepts/metrics/types';
-import { TimeframeStep, TimeframeTimeRange } from '~/concepts/metrics/const';
-import { PendingContextResourceData, PrometheusQueryRangeResultValue } from '~/types';
-import { FetchOptions } from '~/utilities/useFetchState';
-import { useMakeFetchObject } from '~/utilities/useMakeFetchObject';
+import { TimeframeTitle } from '#~/concepts/metrics/types';
+import { TimeframeStep, TimeframeTimeRange } from '#~/concepts/metrics/const';
+import { PendingContextResourceData, PrometheusQueryRangeResultValue } from '#~/types';
+import { FetchOptions } from '#~/utilities/useFetchState';
+import { useMakeFetchObject } from '#~/utilities/useMakeFetchObject';
 import usePrometheusQueryRange, { ResponsePredicate } from './usePrometheusQueryRange';
 
 const useQueryRangeResourceData = <T = PrometheusQueryRangeResultValue>(

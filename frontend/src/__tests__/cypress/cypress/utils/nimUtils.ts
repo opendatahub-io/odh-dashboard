@@ -1,4 +1,4 @@
-import type { MockDashboardConfigType } from '~/__mocks__';
+import type { MockDashboardConfigType } from '#~/__mocks__';
 import {
   mock200Status,
   mockDashboardConfig,
@@ -6,7 +6,7 @@ import {
   mockK8sResourceList,
   mockProjectK8sResource,
   mockSecretK8sResource,
-} from '~/__mocks__';
+} from '#~/__mocks__';
 import {
   AcceleratorProfileModel,
   ConfigMapModel,
@@ -17,7 +17,7 @@ import {
   SecretModel,
   ServingRuntimeModel,
   TemplateModel,
-} from '~/__tests__/cypress/cypress/utils/models';
+} from '#~/__tests__/cypress/cypress/utils/models';
 import {
   mockNimImages,
   mockNimInferenceService,
@@ -28,11 +28,11 @@ import {
   mockNimServingRuntimeTemplate,
   mockNvidiaNimAccessSecret,
   mockNvidiaNimImagePullSecret,
-} from '~/__mocks__/mockNimResource';
-import { mockAcceleratorProfile } from '~/__mocks__/mockAcceleratorProfile';
-import type { InferenceServiceKind } from '~/k8sTypes';
-import { mockNimAccount } from '~/__mocks__/mockNimAccount';
-import { mockOdhApplication } from '~/__mocks__/mockOdhApplication';
+} from '#~/__mocks__/mockNimResource';
+import { mockAcceleratorProfile } from '#~/__mocks__/mockAcceleratorProfile';
+import type { InferenceServiceKind } from '#~/k8sTypes';
+import { mockNimAccount } from '#~/__mocks__/mockNimAccount';
+import { mockOdhApplication } from '#~/__mocks__/mockOdhApplication';
 
 /* ###################################################
    ###### Interception Initialization Utilities ######

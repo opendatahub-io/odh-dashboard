@@ -1,24 +1,24 @@
 import React from 'react';
 import * as _ from 'lodash-es';
 import { ExpandableSection, Tab, TabContentBody, TabTitleText, Tabs } from '@patternfly/react-core';
-import { useCompareRuns } from '~/concepts/pipelines/content/compareRuns/CompareRunsContext';
-import { useGetArtifactTypes } from '~/concepts/pipelines/apiHooks/mlmd/useGetArtifactTypes';
-import { MlmdContextTypes, RunArtifact } from '~/concepts/pipelines/apiHooks/mlmd/types';
+import { useCompareRuns } from '#~/concepts/pipelines/content/compareRuns/CompareRunsContext';
+import { useGetArtifactTypes } from '#~/concepts/pipelines/apiHooks/mlmd/useGetArtifactTypes';
+import { MlmdContextTypes, RunArtifact } from '#~/concepts/pipelines/apiHooks/mlmd/types';
 import {
   MetricSectionTabLabels,
   MetricsType,
-} from '~/concepts/pipelines/content/compareRuns/metricsSection/const';
+} from '#~/concepts/pipelines/content/compareRuns/metricsSection/const';
 import {
   filterRunArtifactsByType,
   getRunArtifacts,
-} from '~/concepts/pipelines/content/compareRuns/metricsSection/utils';
-import useMlmdPackagesForPipelineRuns from '~/concepts/pipelines/content/compareRuns/metricsSection/useMlmdPackagesForPipelineRuns';
-import ScalarMetricTable from '~/concepts/pipelines/content/compareRuns/metricsSection/scalar/ScalarMetricTable';
-import RocCurveCompare from '~/concepts/pipelines/content/compareRuns/metricsSection/roc/RocCurveCompare';
-import ConfusionMatrixCompare from '~/concepts/pipelines/content/compareRuns/metricsSection/confusionMatrix/ConfusionMatrixCompare';
-import MarkdownCompare from '~/concepts/pipelines/content/compareRuns/metricsSection/markdown/MarkdownCompare';
-import useFetchMarkdownMaps from '~/concepts/pipelines/content/compareRuns/metricsSection/markdown/useFetchMarkdownMaps';
-import { useMlmdContextsByType } from '~/concepts/pipelines/apiHooks/mlmd/useMlmdContextsByType';
+} from '#~/concepts/pipelines/content/compareRuns/metricsSection/utils';
+import useMlmdPackagesForPipelineRuns from '#~/concepts/pipelines/content/compareRuns/metricsSection/useMlmdPackagesForPipelineRuns';
+import ScalarMetricTable from '#~/concepts/pipelines/content/compareRuns/metricsSection/scalar/ScalarMetricTable';
+import RocCurveCompare from '#~/concepts/pipelines/content/compareRuns/metricsSection/roc/RocCurveCompare';
+import ConfusionMatrixCompare from '#~/concepts/pipelines/content/compareRuns/metricsSection/confusionMatrix/ConfusionMatrixCompare';
+import MarkdownCompare from '#~/concepts/pipelines/content/compareRuns/metricsSection/markdown/MarkdownCompare';
+import useFetchMarkdownMaps from '#~/concepts/pipelines/content/compareRuns/metricsSection/markdown/useFetchMarkdownMaps';
+import { useMlmdContextsByType } from '#~/concepts/pipelines/apiHooks/mlmd/useMlmdContextsByType';
 
 export const CompareRunMetricsSection: React.FunctionComponent = () => {
   const { runs, selectedRuns } = useCompareRuns();

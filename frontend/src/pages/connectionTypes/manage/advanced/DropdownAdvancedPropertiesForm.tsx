@@ -13,10 +13,10 @@ import {
 import { ExclamationCircleIcon, MinusCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import text from '@patternfly/react-styles/css/utilities/Text/text';
-import useDraggableTableControlled from '~/utilities/useDraggableTableControlled';
-import { DropdownField } from '~/concepts/connectionTypes/types';
-import { AdvancedFieldProps } from '~/pages/connectionTypes/manage/advanced/types';
-import ExpandableFormSection from '~/components/ExpandableFormSection';
+import useDraggableTableControlled from '#~/utilities/useDraggableTableControlled';
+import { DropdownField } from '#~/concepts/connectionTypes/types';
+import { AdvancedFieldProps } from '#~/pages/connectionTypes/manage/advanced/types';
+import ExpandableFormSection from '#~/components/ExpandableFormSection';
 
 const DropdownAdvancedPropertiesForm: React.FC<AdvancedFieldProps<DropdownField>> = ({
   properties,

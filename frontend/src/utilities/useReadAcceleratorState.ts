@@ -1,16 +1,16 @@
 import React from 'react';
-import { AcceleratorProfileKind } from '~/k8sTypes';
-import useAcceleratorProfiles from '~/pages/notebookController/screens/server/useAcceleratorProfiles';
-import { useDashboardNamespace } from '~/redux/selectors';
+import { AcceleratorProfileKind } from '#~/k8sTypes';
+import useAcceleratorProfiles from '#~/pages/notebookController/screens/server/useAcceleratorProfiles';
+import { useDashboardNamespace } from '#~/redux/selectors';
 import {
   ContainerResourceAttributes,
   ContainerResources,
   Toleration,
   TolerationEffect,
   TolerationOperator,
-} from '~/types';
-import { getAcceleratorProfileCount, isEnumMember } from '~/utilities/utils';
-import useFetchState, { FetchState } from '~/utilities/useFetchState';
+} from '#~/types';
+import { getAcceleratorProfileCount, isEnumMember } from '#~/utilities/utils';
+import useFetchState, { FetchState } from '#~/utilities/useFetchState';
 
 export type AcceleratorProfileState = {
   acceleratorProfiles: AcceleratorProfileKind[];
@@ -28,6 +28,7 @@ const useReadAcceleratorState = (
   tolerations?: Toleration[],
   existingAcceleratorProfileName?: string,
   namespace?: string,
+  acceleratorProfileNamespace?: string,
 ): FetchState<AcceleratorProfileState> => {
   const { dashboardNamespace } = useDashboardNamespace();
   const [acceleratorProfiles, loaded, loadError] = useAcceleratorProfiles(
@@ -45,9 +46,18 @@ const useReadAcceleratorState = (
     }
     // Exit early if no resources = not in edit mode
     if (resources) {
-      const acceleratorProfile = acceleratorProfiles.find(
-        (cr) => cr.metadata.name === existingAcceleratorProfileName,
-      );
+      let acceleratorProfile: AcceleratorProfileKind | undefined;
+      if (namespace) {
+        acceleratorProfile = acceleratorProfiles.find(
+          (cr) =>
+            cr.metadata.name === existingAcceleratorProfileName &&
+            cr.metadata.namespace === acceleratorProfileNamespace,
+        );
+      } else {
+        acceleratorProfile = acceleratorProfiles.find(
+          (cr) => cr.metadata.name === existingAcceleratorProfileName,
+        );
+      }
 
       if (acceleratorProfile) {
         return Promise.resolve({
@@ -57,11 +67,24 @@ const useReadAcceleratorState = (
           unknownProfileDetected: false,
         });
       }
+
+      // Check if we have a profile name reference but can't find the profile
+      // This indicates the profile was deleted
+      if (existingAcceleratorProfileName) {
+        return Promise.resolve({
+          acceleratorProfiles,
+          acceleratorProfile: undefined,
+          count: 1, // Default count when profile is missing
+          unknownProfileDetected: true,
+        });
+      }
+
       // check if there is accelerator usage in the container
       // this is to handle the case where the accelerator is disabled, deleted, or empty
       const possibleAcceleratorRequests = Object.entries(resources.requests ?? {})
         .filter(([key]) => !isEnumMember(key, ContainerResourceAttributes))
         .map(([key, value]) => ({ identifier: key, count: value }));
+
       if (possibleAcceleratorRequests.length > 0) {
         // check if they are just using the nvidia.com/gpu
         // if so, lets migrate them over to using the migrated-gpu accelerator profile if it exists
@@ -139,7 +162,9 @@ const useReadAcceleratorState = (
     loadError,
     resources,
     acceleratorProfiles,
+    namespace,
     existingAcceleratorProfileName,
+    acceleratorProfileNamespace,
     tolerations,
     dashboardNamespace,
   ]);

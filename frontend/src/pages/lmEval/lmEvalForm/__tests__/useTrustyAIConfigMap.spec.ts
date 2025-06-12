@@ -1,16 +1,16 @@
 import { act } from 'react';
-import { getConfigMap } from '~/api';
-import { mockConfigMap } from '~/__mocks__/mockConfigMap';
-import { standardUseFetchStateObject, testHook } from '~/__tests__/unit/testUtils/hooks';
-import { useLMDashboardNamespace } from '~/pages/lmEval/utilities/useLMDashboardNamespace';
-import useTrustyAIConfigMap from '~/pages/lmEval/lmEvalForm/useTrustyAIConfigMap';
+import { getConfigMap } from '#~/api';
+import { mockConfigMap } from '#~/__mocks__/mockConfigMap';
+import { standardUseFetchStateObject, testHook } from '#~/__tests__/unit/testUtils/hooks';
+import { useLMDashboardNamespace } from '#~/pages/lmEval/utilities/useLMDashboardNamespace';
+import useTrustyAIConfigMap from '#~/pages/lmEval/lmEvalForm/useTrustyAIConfigMap';
 
 // Mock the dependencies
-jest.mock('~/api', () => ({
+jest.mock('#~/api', () => ({
   getConfigMap: jest.fn(),
 }));
 
-jest.mock('~/pages/lmEval/utilities/useLMDashboardNamespace', () => ({
+jest.mock('#~/pages/lmEval/utilities/useLMDashboardNamespace', () => ({
   useLMDashboardNamespace: jest.fn(),
 }));
 

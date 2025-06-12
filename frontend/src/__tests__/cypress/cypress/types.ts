@@ -309,3 +309,10 @@ export type RegisterModelTestData = {
   objectStorageModelName: string;
   uriModelName: string;
 };
+
+export enum AccessMode {
+  RWO = 'ReadWriteOnce',
+  RWX = 'ReadWriteMany',
+  ROX = 'ReadOnlyMany',
+  RWOP = 'ReadWriteOncePod',
+}

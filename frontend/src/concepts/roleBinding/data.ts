@@ -1,5 +1,5 @@
-import { RoleBindingKind } from '~/k8sTypes';
-import { SortableData } from '~/components/table';
+import { RoleBindingKind } from '#~/k8sTypes';
+import { SortableData } from '#~/components/table';
 import { firstSubject } from './utils';
 
 export const columnsRoleBindingPermissions: SortableData<RoleBindingKind>[] = [

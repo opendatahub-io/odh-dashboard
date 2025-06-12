@@ -1,6 +1,6 @@
 import React from 'react';
-import AcceleratorProfileSelectField from '~/pages/notebookController/screens/server/AcceleratorProfileSelectField';
-import { IlabPodSpecOptionsState } from '~/pages/pipelines/global/modelCustomization/useIlabPodSpecOptionsState';
+import AcceleratorProfileSelectField from '#~/pages/notebookController/screens/server/AcceleratorProfileSelectField';
+import { IlabPodSpecOptionsState } from '#~/pages/pipelines/global/modelCustomization/useIlabPodSpecOptionsState';
 import { ContainerCustomSize } from './ContainerCustomSize';
 
 type TrainingAcceleratorSectionProps = {

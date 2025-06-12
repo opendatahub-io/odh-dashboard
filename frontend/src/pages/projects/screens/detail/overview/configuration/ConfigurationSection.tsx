@@ -1,15 +1,15 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Content } from '@patternfly/react-core';
-import { useAccessReview } from '~/api';
-import { AccessReviewResourceAttributes } from '~/k8sTypes';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import { ProjectObjectType, SectionType, sectionTypeBorderColor } from '~/concepts/design/utils';
-import CollapsibleSection from '~/concepts/design/CollapsibleSection';
-import DividedGallery from '~/concepts/design/DividedGallery';
-import InfoGalleryItem from '~/concepts/design/InfoGalleryItem';
-import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
-import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
+import { useAccessReview } from '#~/api';
+import { AccessReviewResourceAttributes } from '#~/k8sTypes';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { ProjectObjectType, SectionType, sectionTypeBorderColor } from '#~/concepts/design/utils';
+import CollapsibleSection from '#~/concepts/design/CollapsibleSection';
+import DividedGallery from '#~/concepts/design/DividedGallery';
+import InfoGalleryItem from '#~/concepts/design/InfoGalleryItem';
+import { ProjectSectionID } from '#~/pages/projects/screens/detail/types';
+import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 
 const accessReviewResource: AccessReviewResourceAttributes = {
   group: 'rbac.authorization.k8s.io',

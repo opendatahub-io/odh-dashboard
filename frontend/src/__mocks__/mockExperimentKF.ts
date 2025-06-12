@@ -1,5 +1,5 @@
 /* eslint-disable camelcase */
-import { ExperimentKF, StorageStateKF } from '~/concepts/pipelines/kfTypes';
+import { ExperimentKF, StorageStateKF } from '#~/concepts/pipelines/kfTypes';
 
 export const buildMockExperimentKF = (experiment?: Partial<ExperimentKF>): ExperimentKF => ({
   experiment_id: 'a9947051-ead5-480c-acca-fd26ae14b81b',

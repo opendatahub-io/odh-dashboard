@@ -4,11 +4,11 @@ import {
   k8sGetResource,
   K8sStatus,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { K8sAPIOptions, TrustyAIKind } from '~/k8sTypes';
-import { TRUSTYAI_DEFINITION_NAME } from '~/concepts/trustyai/const';
-import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
-import { TrustyAIApplicationsModel } from '~/api/models/odh';
-import { kindApiVersion } from '~/concepts/k8s/utils';
+import { K8sAPIOptions, TrustyAIKind } from '#~/k8sTypes';
+import { TRUSTYAI_DEFINITION_NAME } from '#~/concepts/trustyai/const';
+import { applyK8sAPIOptions } from '#~/api/apiMergeUtils';
+import { TrustyAIApplicationsModel } from '#~/api/models/odh';
+import { kindApiVersion } from '#~/concepts/k8s/utils';
 
 export const getTrustyAICR = async (
   namespace: string,

@@ -1,6 +1,6 @@
-import type { CreatePipelineAndVersionKFData, PipelineKF } from '~/concepts/pipelines/kfTypes';
-import { buildMockPipeline } from '~/__mocks__/mockPipelinesProxy';
-import { Modal } from '~/__tests__/cypress/cypress/pages/components/Modal';
+import type { CreatePipelineAndVersionKFData, PipelineKF } from '#~/concepts/pipelines/kfTypes';
+import { buildMockPipeline } from '#~/__mocks__/mockPipelinesProxy';
+import { Modal } from '#~/__tests__/cypress/cypress/pages/components/Modal';
 
 class PipelineImportModal extends Modal {
   constructor() {

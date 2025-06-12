@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
 import startCase from 'lodash-es/startCase';
-import { RuntimeStateKF, runtimeStateLabels, StorageStateKF } from '~/concepts/pipelines/kfTypes';
+import { RuntimeStateKF, runtimeStateLabels, StorageStateKF } from '#~/concepts/pipelines/kfTypes';
 import {
   mockK8sResourceList,
   mockProjectK8sResource,
@@ -12,7 +12,7 @@ import {
   buildMockExperimentKF,
   buildMockRecurringRunKF,
   buildMockExperiments,
-} from '~/__mocks__';
+} from '#~/__mocks__';
 import {
   activeRunsTable,
   pipelineRunsGlobal,
@@ -27,16 +27,16 @@ import {
   duplicateSchedulePage,
   bulkRestoreRunWithArchivedExperimentModal,
   restoreRunWithArchivedExperimentModal,
-} from '~/__tests__/cypress/cypress/pages/pipelines';
-import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url';
-import { be } from '~/__tests__/cypress/cypress/utils/should';
-import { ProjectModel } from '~/__tests__/cypress/cypress/utils/models';
-import { tablePagination } from '~/__tests__/cypress/cypress/pages/components/Pagination';
-import { dspaIntercepts } from '~/__tests__/cypress/cypress/tests/mocked/pipelines/intercepts';
+} from '#~/__tests__/cypress/cypress/pages/pipelines';
+import { verifyRelativeURL } from '#~/__tests__/cypress/cypress/utils/url';
+import { be } from '#~/__tests__/cypress/cypress/utils/should';
+import { ProjectModel } from '#~/__tests__/cypress/cypress/utils/models';
+import { tablePagination } from '#~/__tests__/cypress/cypress/pages/components/Pagination';
+import { dspaIntercepts } from '#~/__tests__/cypress/cypress/tests/mocked/pipelines/intercepts';
 import {
   mockedArtifactsResponse,
   mockGetArtifactsResponse,
-} from '~/__mocks__/mlmd/mockGetArtifacts';
+} from '#~/__mocks__/mlmd/mockGetArtifacts';
 
 const projectName = 'test-project-filters';
 const pipelineId = 'test-pipeline';

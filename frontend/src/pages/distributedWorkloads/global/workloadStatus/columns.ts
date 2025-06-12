@@ -1,6 +1,6 @@
-import { SortableData } from '~/components/table';
-import { getStatusInfo } from '~/concepts/distributedWorkloads/utils';
-import { WorkloadKind } from '~/k8sTypes';
+import { SortableData } from '#~/components/table';
+import { getStatusInfo } from '#~/concepts/distributedWorkloads/utils';
+import { WorkloadKind } from '#~/k8sTypes';
 
 export const DWWorkloadsTableColumns: SortableData<WorkloadKind>[] = [
   {

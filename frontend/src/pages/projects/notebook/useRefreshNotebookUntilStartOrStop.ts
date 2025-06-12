@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { FAST_POLL_INTERVAL } from '~/utilities/const';
+import { FAST_POLL_INTERVAL } from '#~/utilities/const';
 import { NotebookState } from './types';
 
 const useRefreshNotebookUntilStartOrStop = (

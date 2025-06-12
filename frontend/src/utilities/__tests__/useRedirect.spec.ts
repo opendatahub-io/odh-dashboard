@@ -1,5 +1,5 @@
-import { testHook } from '~/__tests__/unit/testUtils/hooks';
-import { useRedirect } from '~/utilities/useRedirect';
+import { testHook } from '#~/__tests__/unit/testUtils/hooks';
+import { useRedirect } from '#~/utilities/useRedirect';
 
 const mockNavigate = jest.fn();
 jest.mock('react-router-dom', () => ({

@@ -12,30 +12,30 @@ import { EitherOrNone } from '@openshift/dynamic-plugin-sdk';
 import {
   submitServingRuntimeResourcesWithDryRun,
   useCreateServingRuntimeObject,
-} from '~/pages/modelServing/screens/projects/utils';
-import { TemplateKind, ProjectKind, AccessReviewResourceAttributes } from '~/k8sTypes';
+} from '#~/pages/modelServing/screens/projects/utils';
+import { TemplateKind, ProjectKind, AccessReviewResourceAttributes } from '#~/k8sTypes';
 import {
   isModelServerEditInfoChanged,
   requestsUnderLimits,
   resourcesArePositive,
-} from '~/pages/modelServing/utils';
-import useCustomServingRuntimesEnabled from '~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
-import { getServingRuntimeFromName } from '~/pages/modelServing/customServingRuntimes/utils';
-import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
-import { NamespaceApplicationCase } from '~/pages/projects/types';
-import { ServingRuntimeEditInfo } from '~/pages/modelServing/screens/types';
-import { useAccessReview } from '~/api';
-import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
+} from '#~/pages/modelServing/utils';
+import useCustomServingRuntimesEnabled from '#~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
+import { getServingRuntimeFromName } from '#~/pages/modelServing/customServingRuntimes/utils';
+import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
+import { NamespaceApplicationCase } from '#~/pages/projects/types';
+import { ServingRuntimeEditInfo } from '#~/pages/modelServing/screens/types';
+import { useAccessReview } from '#~/api';
+import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import {
   FormTrackingEventProperties,
   TrackingOutcome,
-} from '~/concepts/analyticsTracking/trackingProperties';
+} from '#~/concepts/analyticsTracking/trackingProperties';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
-} from '~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
-import { isK8sNameDescriptionDataValid } from '~/concepts/k8s/K8sNameDescriptionField/utils';
-import { useProfileIdentifiers } from '~/concepts/hardwareProfiles/utils';
-import { useModelServingPodSpecOptionsState } from '~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
+} from '#~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
+import { isK8sNameDescriptionDataValid } from '#~/concepts/k8s/K8sNameDescriptionField/utils';
+import { useProfileIdentifiers } from '#~/concepts/hardwareProfiles/utils';
+import { useModelServingPodSpecOptionsState } from '#~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
 import ServingRuntimeReplicaSection from './ServingRuntimeReplicaSection';
 import ServingRuntimeSizeSection from './ServingRuntimeSizeSection';
 import ServingRuntimeTemplateSection from './ServingRuntimeTemplateSection';
@@ -209,6 +209,7 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
                 setData={setCreateData}
                 templates={servingRuntimeTemplates || []}
                 isEditing={!!editInfo}
+                servingRuntimeSelected={servingRuntimeSelected}
                 compatibleIdentifiers={profileIdentifiers}
               />
             </StackItem>

@@ -1,15 +1,15 @@
 /* eslint-disable camelcase */
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
-import { mockByon } from '~/__mocks__/mockByon';
-import { mockHardwareProfile } from '~/__mocks__/mockHardwareProfile';
-import { HardwareProfileKind } from '~/k8sTypes';
+import { mockByon } from '#~/__mocks__/mockByon';
+import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile';
+import { HardwareProfileKind } from '#~/k8sTypes';
 import {
   convertBYONImageToK8sResource,
   filterBlankPackages,
   filterHardwareProfilesByRecommendedIdentifiers,
   getEnabledStatus,
-} from '~/pages/BYONImages/utils';
-import { BYONImage, BYONImagePackage } from '~/types';
+} from '#~/pages/BYONImages/utils';
+import { BYONImage, BYONImagePackage } from '#~/types';
 
 describe('convertBYONImageToK8sResource', () => {
   it('should convert BYONImage to K8sResourceCommon', () => {

@@ -1,4 +1,4 @@
-import { CompareRunsSearchParam } from '~/concepts/pipelines/content/types';
+import { CompareRunsSearchParam } from '#~/concepts/pipelines/content/types';
 
 export const experimentsRootPath = '/experiments';
 export const globExperimentsAll = `${experimentsRootPath}/*`;

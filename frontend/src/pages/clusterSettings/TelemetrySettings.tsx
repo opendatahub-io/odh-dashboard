@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Checkbox } from '@patternfly/react-core';
-import SettingSection from '~/components/SettingSection';
+import SettingSection from '#~/components/SettingSection';
 
 type TelemetrySettingsProps = {
   initialValue: boolean;

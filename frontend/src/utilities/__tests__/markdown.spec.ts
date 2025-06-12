@@ -1,4 +1,4 @@
-import { markdownConverter } from '~/utilities/markdown';
+import { markdownConverter } from '#~/utilities/markdown';
 
 describe('markdownConverter', () => {
   // Helper function to convert HTML string to a DOM node

@@ -1,10 +1,10 @@
-import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
-import { TableRow } from '~/__tests__/cypress/cypress/pages/components/table';
-import { mockStorageClassList } from '~/__mocks__';
-import type { StorageClassKind } from '~/k8sTypes';
-import { StorageClassModel } from '~/__tests__/cypress/cypress/utils/models';
-import { Modal } from './components/Modal';
+import { appChrome } from '#~/__tests__/cypress/cypress/pages/appChrome';
+import { TableRow } from '#~/__tests__/cypress/cypress/pages/components/table';
+import { mockStorageClassList } from '#~/__mocks__';
+import type { StorageClassKind } from '#~/k8sTypes';
+import { StorageClassModel } from '#~/__tests__/cypress/cypress/utils/models';
 import { TableToolbar } from './components/TableToolbar';
+import { Modal } from './components/Modal';
 
 class StorageClassesPage {
   visit() {
@@ -144,6 +144,13 @@ class StorageClassesTable {
   mockPatchStorageClass(storageClass: StorageClassKind, times = 1) {
     return cy.interceptK8s('PATCH', { model: StorageClassModel, times }, storageClass);
   }
+
+  shouldContainAccessModeLabels(labels: string[]) {
+    cy.findByTestId('access-mode-label-group').within(() =>
+      labels.map((label) => cy.contains(label)),
+    );
+    return this;
+  }
 }
 
 class StorageClassEditModal extends Modal {
@@ -193,6 +200,15 @@ class StorageClassEditModal extends Modal {
 
   findInfoAlert() {
     return this.find().findByTestId('edit-sc-modal-info-alert');
+  }
+
+  findAccessModeCheckbox(mode: string) {
+    //mode: rwo, rwx, rox, rwop
+    return this.find().findByTestId(`edit-sc-access-mode-checkbox-${mode.toLowerCase()}`);
+  }
+
+  findAccessModeAlert() {
+    return this.find().findByTestId('edit-sc-access-mode-alert');
   }
 
   mockGetStorageClass(storageClass: StorageClassKind, times = 1) {

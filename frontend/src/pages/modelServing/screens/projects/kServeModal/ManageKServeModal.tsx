@@ -16,55 +16,55 @@ import {
   useCreateInferenceServiceObject,
   useCreateServingRuntimeObject,
   validateEnvVarName,
-} from '~/pages/modelServing/screens/projects/utils';
+} from '#~/pages/modelServing/screens/projects/utils';
 import {
   TemplateKind,
   ProjectKind,
   InferenceServiceKind,
   AccessReviewResourceAttributes,
   SecretKind,
-} from '~/k8sTypes';
+} from '#~/k8sTypes';
 import {
   getKServeContainerArgs,
   getKServeContainerEnvVarStrs,
   requestsUnderLimits,
   resourcesArePositive,
-} from '~/pages/modelServing/utils';
-import useCustomServingRuntimesEnabled from '~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
-import { getServingRuntimeFromName } from '~/pages/modelServing/customServingRuntimes/utils';
-import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
+} from '#~/pages/modelServing/utils';
+import useCustomServingRuntimesEnabled from '#~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
+import { getServingRuntimeFromName } from '#~/pages/modelServing/customServingRuntimes/utils';
+import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
 import {
   InferenceServiceStorageType,
   ServingRuntimeEditInfo,
-} from '~/pages/modelServing/screens/types';
-import ServingRuntimeSizeSection from '~/pages/modelServing/screens/projects/ServingRuntimeModal/ServingRuntimeSizeSection';
-import ServingRuntimeTemplateSection from '~/pages/modelServing/screens/projects/ServingRuntimeModal/ServingRuntimeTemplateSection';
-import ProjectSection from '~/pages/modelServing/screens/projects/InferenceServiceModal/ProjectSection';
-import { NamespaceApplicationCase } from '~/pages/projects/types';
-import InferenceServiceFrameworkSection from '~/pages/modelServing/screens/projects/InferenceServiceModal/InferenceServiceFrameworkSection';
-import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
-import AuthServingRuntimeSection from '~/pages/modelServing/screens/projects/ServingRuntimeModal/AuthServingRuntimeSection';
-import { useAccessReview, useTemplates } from '~/api';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
+} from '#~/pages/modelServing/screens/types';
+import ServingRuntimeSizeSection from '#~/pages/modelServing/screens/projects/ServingRuntimeModal/ServingRuntimeSizeSection';
+import ServingRuntimeTemplateSection from '#~/pages/modelServing/screens/projects/ServingRuntimeModal/ServingRuntimeTemplateSection';
+import ProjectSection from '#~/pages/modelServing/screens/projects/InferenceServiceModal/ProjectSection';
+import { NamespaceApplicationCase } from '#~/pages/projects/types';
+import InferenceServiceFrameworkSection from '#~/pages/modelServing/screens/projects/InferenceServiceModal/InferenceServiceFrameworkSection';
+import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
+import AuthServingRuntimeSection from '#~/pages/modelServing/screens/projects/ServingRuntimeModal/AuthServingRuntimeSection';
+import { useAccessReview, useTemplates } from '#~/api';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import {
   FormTrackingEventProperties,
   TrackingOutcome,
-} from '~/concepts/analyticsTracking/trackingProperties';
-import { Connection } from '~/concepts/connectionTypes/types';
-import { ConnectionSection } from '~/pages/modelServing/screens/projects/InferenceServiceModal/ConnectionSection';
+} from '#~/concepts/analyticsTracking/trackingProperties';
+import { Connection } from '#~/concepts/connectionTypes/types';
+import { ConnectionSection } from '#~/pages/modelServing/screens/projects/InferenceServiceModal/ConnectionSection';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
-} from '~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
-import { isK8sNameDescriptionDataValid } from '~/concepts/k8s/K8sNameDescriptionField/utils';
-import { useProfileIdentifiers } from '~/concepts/hardwareProfiles/utils';
-import { useModelServingPodSpecOptionsState } from '~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
+} from '#~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
+import { isK8sNameDescriptionDataValid } from '#~/concepts/k8s/K8sNameDescriptionField/utils';
+import { useProfileIdentifiers } from '#~/concepts/hardwareProfiles/utils';
+import { useModelServingPodSpecOptionsState } from '#~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
 import usePrefillModelDeployModal, {
   ModelDeployPrefillInfo,
-} from '~/pages/modelServing/screens/projects/usePrefillModelDeployModal';
-import { useKServeDeploymentMode } from '~/pages/modelServing/useKServeDeploymentMode';
-import { SERVING_RUNTIME_SCOPE } from '~/pages/modelServing/screens/const';
-import { useModelDeploymentNotification } from '~/pages/modelServing/screens/projects/useModelDeploymentNotification';
+} from '#~/pages/modelServing/screens/projects/usePrefillModelDeployModal';
+import { useKServeDeploymentMode } from '#~/pages/modelServing/useKServeDeploymentMode';
+import { SERVING_RUNTIME_SCOPE } from '#~/pages/modelServing/screens/const';
+import { useModelDeploymentNotification } from '#~/pages/modelServing/screens/projects/useModelDeploymentNotification';
 import KServeAutoscalerReplicaSection from './KServeAutoscalerReplicaSection';
 import EnvironmentVariablesSection from './EnvironmentVariablesSection';
 import ServingRuntimeArgsSection from './ServingRuntimeArgsSection';
@@ -398,6 +398,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
                   }
                   setData={setCreateDataServingRuntime}
                   templates={servingRuntimeTemplates || []}
+                  servingRuntimeSelected={servingRuntimeSelected}
                   projectSpecificTemplates={projectTemplates}
                   isEditing={!!editInfo}
                   compatibleIdentifiers={profileIdentifiers}

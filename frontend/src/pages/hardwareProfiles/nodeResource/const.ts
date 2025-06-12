@@ -1,5 +1,5 @@
-import { SortableData } from '~/components/table';
-import { Identifier } from '~/types';
+import { SortableData } from '#~/components/table';
+import { Identifier } from '#~/types';
 
 export const HARDWARE_PROFILE_COLUMN_HELP_TOOLTIP = {
   minCount: 'The minimum number of resources that users can define for requests.',

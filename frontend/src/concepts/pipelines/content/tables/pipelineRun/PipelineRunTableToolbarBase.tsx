@@ -1,16 +1,16 @@
 import * as React from 'react';
 import { TextInput } from '@patternfly/react-core';
-import PipelineFilterBar from '~/concepts/pipelines/content/tables/PipelineFilterBar';
-import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
-import { FilterOptions } from '~/concepts/pipelines/content/tables/usePipelineFilter';
-import { RuntimeStateKF, runtimeStateLabels } from '~/concepts/pipelines/kfTypes';
-import DashboardDatePicker from '~/components/DashboardDatePicker';
-import { PipelineRunVersionsContext } from '~/pages/pipelines/global/runs/PipelineRunVersionsContext';
-import { PipelineRunExperimentsContext } from '~/pages/pipelines/global/runs/PipelineRunExperimentsContext';
+import PipelineFilterBar from '#~/concepts/pipelines/content/tables/PipelineFilterBar';
+import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
+import { FilterOptions } from '#~/concepts/pipelines/content/tables/usePipelineFilter';
+import { RuntimeStateKF, runtimeStateLabels } from '#~/concepts/pipelines/kfTypes';
+import DashboardDatePicker from '#~/components/DashboardDatePicker';
+import { PipelineRunVersionsContext } from '#~/pages/pipelines/global/runs/PipelineRunVersionsContext';
+import { PipelineRunExperimentsContext } from '#~/pages/pipelines/global/runs/PipelineRunExperimentsContext';
 import {
   ExperimentFilterSelector,
   PipelineVersionFilterSelector,
-} from '~/concepts/pipelines/content/pipelineSelector/CustomPipelineRunToolbarSelect';
+} from '#~/concepts/pipelines/content/pipelineSelector/CustomPipelineRunToolbarSelect';
 
 export type FilterProps = Pick<
   React.ComponentProps<typeof PipelineFilterBar>,

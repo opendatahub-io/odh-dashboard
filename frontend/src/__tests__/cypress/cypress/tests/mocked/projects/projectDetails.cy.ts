@@ -1,24 +1,25 @@
-import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
-import { mockDataSciencePipelineApplicationK8sResource } from '~/__mocks__/mockDataSciencePipelinesApplicationK8sResource';
-import { mockDscStatus } from '~/__mocks__/mockDscStatus';
-import { mockImageStreamK8sResource } from '~/__mocks__/mockImageStreamK8sResource';
-import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
-import { mockNotebookK8sResource } from '~/__mocks__/mockNotebookK8sResource';
-import { mockPVCK8sResource } from '~/__mocks__/mockPVCK8sResource';
-import { mockPipelineKF } from '~/__mocks__/mockPipelineKF';
-import { buildMockPipelines } from '~/__mocks__/mockPipelinesProxy';
-import { mockPodK8sResource } from '~/__mocks__/mockPodK8sResource';
-import { mockServiceAccountK8sResource } from '~/__mocks__/mockServiceAccountK8sResource';
-import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
-import { mockRouteK8sResource } from '~/__mocks__/mockRouteK8sResource';
-import { mockSecretK8sResource } from '~/__mocks__/mockSecretK8sResource';
-import { mockServingRuntimeTemplateK8sResource } from '~/__mocks__/mockServingRuntimeTemplateK8sResource';
+/* eslint-disable camelcase */
+import { mockDashboardConfig } from '#~/__mocks__/mockDashboardConfig';
+import { mockDataSciencePipelineApplicationK8sResource } from '#~/__mocks__/mockDataSciencePipelinesApplicationK8sResource';
+import { mockDscStatus } from '#~/__mocks__/mockDscStatus';
+import { mockImageStreamK8sResource } from '#~/__mocks__/mockImageStreamK8sResource';
+import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
+import { mockNotebookK8sResource } from '#~/__mocks__/mockNotebookK8sResource';
+import { mockPVCK8sResource } from '#~/__mocks__/mockPVCK8sResource';
+import { mockPipelineKF } from '#~/__mocks__/mockPipelineKF';
+import { buildMockPipelines } from '#~/__mocks__/mockPipelinesProxy';
+import { mockPodK8sResource } from '#~/__mocks__/mockPodK8sResource';
+import { mockServiceAccountK8sResource } from '#~/__mocks__/mockServiceAccountK8sResource';
+import { mockProjectK8sResource } from '#~/__mocks__/mockProjectK8sResource';
+import { mockRouteK8sResource } from '#~/__mocks__/mockRouteK8sResource';
+import { mockSecretK8sResource } from '#~/__mocks__/mockSecretK8sResource';
+import { mockServingRuntimeTemplateK8sResource } from '#~/__mocks__/mockServingRuntimeTemplateK8sResource';
 import {
   deleteProjectModal,
   editProjectModal,
   projectDetails,
-} from '~/__tests__/cypress/cypress/pages/projects';
-import { ServingRuntimePlatform } from '~/types';
+} from '#~/__tests__/cypress/cypress/pages/projects';
+import { ServingRuntimePlatform } from '#~/types';
 import {
   DataSciencePipelineApplicationModel,
   ImageStreamModel,
@@ -33,15 +34,18 @@ import {
   ServiceAccountModel,
   ServingRuntimeModel,
   TemplateModel,
-} from '~/__tests__/cypress/cypress/utils/models';
-import { mockServingRuntimeK8sResource } from '~/__mocks__/mockServingRuntimeK8sResource';
-import { mockInferenceServiceK8sResource } from '~/__mocks__/mockInferenceServiceK8sResource';
-import { asProjectAdminUser, asProjectEditUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
-import { NamespaceApplicationCase } from '~/pages/projects/types';
-import { mockNimServingRuntimeTemplate } from '~/__mocks__/mockNimResource';
-import { mockNimAccount } from '~/__mocks__/mockNimAccount';
-import { mockOdhApplication } from '~/__mocks__/mockOdhApplication';
-import type { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
+} from '#~/__tests__/cypress/cypress/utils/models';
+import { mockServingRuntimeK8sResource } from '#~/__mocks__/mockServingRuntimeK8sResource';
+import { mockInferenceServiceK8sResource } from '#~/__mocks__/mockInferenceServiceK8sResource';
+import {
+  asProjectAdminUser,
+  asProjectEditUser,
+} from '#~/__tests__/cypress/cypress/utils/mockUsers';
+import { NamespaceApplicationCase } from '#~/pages/projects/types';
+import { mockNimServingRuntimeTemplate } from '#~/__mocks__/mockNimResource';
+import { mockNimAccount } from '#~/__mocks__/mockNimAccount';
+import { mockOdhApplication } from '#~/__mocks__/mockOdhApplication';
+import type { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
 
 type HandlersProps = {
   isEmpty?: boolean;
@@ -582,6 +586,67 @@ describe('Project Details', () => {
       cy.findByTestId('chatbot-tab').should('exist');
       cy.findByRole('tab', { name: 'Chatbot' }).click();
       cy.findByTestId('chatbot').should('exist');
+    });
+
+    it('Checks that the chatbot sends messages correctly', () => {
+      initIntercepts({
+        disableLlamaStackChatBot: false,
+      });
+      cy.intercept('GET', '/api/llama-stack/models/list', (req) => {
+        req.reply({
+          statusCode: 200,
+          body: [
+            {
+              identifier: 'all-MiniLM-L6-v2',
+              provider_resource_id: 'all-minilm:latest',
+              provider_id: 'ollama',
+              type: 'model',
+              metadata: { embedding_dimension: 384 },
+              model_type: 'embedding',
+            },
+            {
+              identifier: 'llama3.2:latest',
+              provider_resource_id: 'llama3.2:latest',
+              provider_id: 'ollama',
+              type: 'model',
+              metadata: {},
+              model_type: 'llm',
+            },
+          ],
+        });
+      }).as('getModels');
+
+      cy.intercept('POST', '/api/llama-stack/chat/complete', (req) => {
+        expect(req.body.model_id).to.eq('llama3.2:latest');
+        expect(req.body.messages[0].content).to.match(/hello/i);
+        req.reply({
+          statusCode: 200,
+          body: {
+            completion_message: {
+              role: 'assistant',
+              content: 'Hello from bot!',
+              stop_reason: 'end_of_turn',
+              tool_calls: [],
+            },
+            metrics: [],
+            logprobs: null,
+          },
+        });
+      }).as('sendChatMessage');
+
+      projectDetails.visit('test-project');
+
+      cy.findByTestId('chatbot-tab').click();
+      cy.findByTestId('chatbot').should('exist');
+
+      cy.wait('@getModels');
+
+      cy.findByTestId('chatbot-message-bar').should('be.visible').click();
+      cy.findByTestId('chatbot-message-bar').type('hello{enter}');
+
+      cy.wait('@sendChatMessage');
+
+      cy.contains('Hello from bot!').should('exist');
     });
 
     it('Notebook with outdated Elyra image shows alert and v2 pipeline server', () => {

@@ -1,4 +1,4 @@
-import { ArtifactsProtocol, CatalogModel } from '~/concepts/modelCatalog/types';
+import { ArtifactsProtocol, CatalogModel } from '#~/concepts/modelCatalog/types';
 
 export const mockCatalogModel = (partial?: Partial<CatalogModel>): CatalogModel => ({
   repository: 'rhelai1',

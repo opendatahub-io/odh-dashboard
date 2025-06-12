@@ -13,8 +13,8 @@ import {
   Form,
   DrawerPanelBody,
 } from '@patternfly/react-core';
-import ConnectionTypeForm from '~/concepts/connectionTypes/ConnectionTypeForm';
-import { ConnectionTypeConfigMapObj } from '~/concepts/connectionTypes/types';
+import ConnectionTypeForm from '#~/concepts/connectionTypes/ConnectionTypeForm';
+import { ConnectionTypeConfigMapObj } from '#~/concepts/connectionTypes/types';
 
 type Props = {
   children?: React.ReactNode;

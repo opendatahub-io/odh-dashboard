@@ -1,9 +1,9 @@
 import * as React from 'react';
-import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformStatuses';
-import { getProjectModelServingPlatform } from '~/pages/modelServing/screens/projects/utils';
-import { ServingRuntimePlatform } from '~/types';
-import NoProjectServingEnabledSection from '~/pages/projects/screens/detail/overview/serverModels/NoProjectServingEnabledSection';
+import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
+import useServingPlatformStatuses from '#~/pages/modelServing/useServingPlatformStatuses';
+import { getProjectModelServingPlatform } from '#~/pages/modelServing/screens/projects/utils';
+import { ServingRuntimePlatform } from '#~/types';
+import NoProjectServingEnabledSection from '#~/pages/projects/screens/detail/overview/serverModels/NoProjectServingEnabledSection';
 import PlatformSelectSection from './PlatformSelectSection';
 import DeployedModelsSection from './deployedModels/DeployedModelsSection';
 

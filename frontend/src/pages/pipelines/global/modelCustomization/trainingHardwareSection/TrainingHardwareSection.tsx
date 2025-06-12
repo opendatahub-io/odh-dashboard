@@ -1,15 +1,15 @@
 import React from 'react';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import {
   FineTunePageSections,
   fineTunePageSectionTitles,
-} from '~/pages/pipelines/global/modelCustomization/const';
-import { useIlabPodSpecOptionsState } from '~/pages/pipelines/global/modelCustomization/useIlabPodSpecOptionsState';
-import { PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
-import FormSection from '~/components/pf-overrides/FormSection';
-import { HardwareFormData } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/validationUtils';
-import TrainingNodeInput from '~/pages/pipelines/global/modelCustomization/trainingHardwareSection/TrainingNodeInput';
-import TrainingStorageClassSelect from '~/pages/pipelines/global/modelCustomization/trainingHardwareSection/TrainingStorageClassSelect';
+} from '#~/pages/pipelines/global/modelCustomization/const';
+import { useIlabPodSpecOptionsState } from '#~/pages/pipelines/global/modelCustomization/useIlabPodSpecOptionsState';
+import { PipelineVersionKF } from '#~/concepts/pipelines/kfTypes';
+import FormSection from '#~/components/pf-overrides/FormSection';
+import { HardwareFormData } from '#~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/validationUtils';
+import TrainingNodeInput from '#~/pages/pipelines/global/modelCustomization/trainingHardwareSection/TrainingNodeInput';
+import TrainingStorageClassSelect from '#~/pages/pipelines/global/modelCustomization/trainingHardwareSection/TrainingStorageClassSelect';
 import TrainingHardwareProfileFormSection from './TrainingHardwareProfileFormSection';
 import { TrainingAcceleratorFormSection } from './TrainingAcceleratorFormSection';
 

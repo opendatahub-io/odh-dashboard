@@ -1,16 +1,16 @@
-import { hardwareProfile } from '~/__tests__/cypress/cypress/pages/hardwareProfile';
-import { mockHardwareProfile } from '~/__mocks__/mockHardwareProfile';
-import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
+import { hardwareProfile } from '#~/__tests__/cypress/cypress/pages/hardwareProfile';
+import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile';
+import { deleteModal } from '#~/__tests__/cypress/cypress/pages/components/DeleteModal';
 import {
   HardwareProfileModel,
   SelfSubjectAccessReviewModel,
-} from '~/__tests__/cypress/cypress/utils/models';
-import { mock200Status, mockDashboardConfig, mockK8sResourceList } from '~/__mocks__';
-import { be } from '~/__tests__/cypress/cypress/utils/should';
-import { asProductAdminUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
-import { testPagination } from '~/__tests__/cypress/cypress/utils/pagination';
-import { IdentifierResourceType } from '~/types';
-import { mockSelfSubjectAccessReview } from '~/__mocks__/mockSelfSubjectAccessReview';
+} from '#~/__tests__/cypress/cypress/utils/models';
+import { mock200Status, mockDashboardConfig, mockK8sResourceList } from '#~/__mocks__';
+import { be } from '#~/__tests__/cypress/cypress/utils/should';
+import { asProductAdminUser } from '#~/__tests__/cypress/cypress/utils/mockUsers';
+import { testPagination } from '#~/__tests__/cypress/cypress/utils/pagination';
+import { IdentifierResourceType } from '#~/types';
+import { mockSelfSubjectAccessReview } from '#~/__mocks__/mockSelfSubjectAccessReview';
 
 const initIntercepts = () => {
   cy.interceptOdh(

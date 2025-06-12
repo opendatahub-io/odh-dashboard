@@ -8,8 +8,8 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import { ProjectKind } from '~/k8sTypes';
-import useTrustyCRState from '~/concepts/trustyai/content/useTrustyCRState';
+import { ProjectKind } from '#~/k8sTypes';
+import useTrustyCRState from '#~/concepts/trustyai/content/useTrustyCRState';
 
 type ModelBiasSettingsCardProps = {
   project: ProjectKind;

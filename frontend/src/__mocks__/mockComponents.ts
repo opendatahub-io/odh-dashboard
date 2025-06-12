@@ -1,4 +1,4 @@
-import { OdhApplication } from '~/types';
+import { OdhApplication } from '#~/types';
 
 export const mockComponents = (): OdhApplication[] => [
   {

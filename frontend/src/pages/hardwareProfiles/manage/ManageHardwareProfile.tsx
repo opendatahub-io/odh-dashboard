@@ -1,22 +1,22 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Breadcrumb, BreadcrumbItem, Form, FormSection, PageSection } from '@patternfly/react-core';
-import ApplicationsPage from '~/pages/ApplicationsPage';
-import useGenericObjectState from '~/utilities/useGenericObjectState';
-import { HardwareProfileKind } from '~/k8sTypes';
+import ApplicationsPage from '#~/pages/ApplicationsPage';
+import useGenericObjectState from '#~/utilities/useGenericObjectState';
+import { HardwareProfileKind } from '#~/k8sTypes';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
-} from '~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
+} from '#~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import {
   DEFAULT_HARDWARE_PROFILE_SPEC,
   ManageHardwareProfileSectionTitles,
-} from '~/pages/hardwareProfiles/const';
-import ManageNodeSelectorSection from '~/pages/hardwareProfiles/manage/ManageNodeSelectorSection';
-import ManageTolerationSection from '~/pages/hardwareProfiles/manage/ManageTolerationSection';
-import ManageHardwareProfileFooter from '~/pages/hardwareProfiles/manage/ManageHardwareProfileFooter';
-import ManageNodeResourceSection from '~/pages/hardwareProfiles/manage/ManageNodeResourceSection';
-import { MigrationAction } from '~/pages/hardwareProfiles/migration/types';
-import { useValidation, ValidationContext } from '~/utilities/useValidation';
+} from '#~/pages/hardwareProfiles/const';
+import ManageNodeSelectorSection from '#~/pages/hardwareProfiles/manage/ManageNodeSelectorSection';
+import ManageTolerationSection from '#~/pages/hardwareProfiles/manage/ManageTolerationSection';
+import ManageHardwareProfileFooter from '#~/pages/hardwareProfiles/manage/ManageHardwareProfileFooter';
+import ManageNodeResourceSection from '#~/pages/hardwareProfiles/manage/ManageNodeResourceSection';
+import { MigrationAction } from '#~/pages/hardwareProfiles/migration/types';
+import { useValidation, ValidationContext } from '#~/utilities/useValidation';
 import { HardwareProfileFormData, ManageHardwareProfileSectionID } from './types';
 import { HardwareProfileVisibilitySection } from './HardwareProfileVisibilitySection';
 import { manageHardwareProfileValidationSchema } from './validationUtils';

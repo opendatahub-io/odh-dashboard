@@ -1,28 +1,28 @@
-import { mockByon } from '~/__mocks__/mockByon';
-import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
+import { mockByon } from '#~/__mocks__/mockByon';
+import { deleteModal } from '#~/__tests__/cypress/cypress/pages/components/DeleteModal';
 import {
   importNotebookImageModal,
   notebookImageDeleteModal,
   notebookImageSettings,
   updateNotebookImageModal,
-} from '~/__tests__/cypress/cypress/pages/notebookImageSettings';
-import { pageNotfound } from '~/__tests__/cypress/cypress/pages/pageNotFound';
-import { projectListPage } from '~/__tests__/cypress/cypress/pages/projects';
-import { be } from '~/__tests__/cypress/cypress/utils/should';
+} from '#~/__tests__/cypress/cypress/pages/notebookImageSettings';
+import { pageNotfound } from '#~/__tests__/cypress/cypress/pages/pageNotFound';
+import { projectListPage } from '#~/__tests__/cypress/cypress/pages/projects';
+import { be } from '#~/__tests__/cypress/cypress/utils/should';
 import {
   asProductAdminUser,
   asProjectAdminUser,
-} from '~/__tests__/cypress/cypress/utils/mockUsers';
-import { testPagination } from '~/__tests__/cypress/cypress/utils/pagination';
+} from '#~/__tests__/cypress/cypress/utils/mockUsers';
+import { testPagination } from '#~/__tests__/cypress/cypress/utils/pagination';
 import {
   AcceleratorProfileModel,
   HardwareProfileModel,
-} from '~/__tests__/cypress/cypress/utils/models';
-import { mockDashboardConfig, mockK8sResourceList } from '~/__mocks__';
-import { mockHardwareProfile } from '~/__mocks__/mockHardwareProfile';
-import { mockAcceleratorProfile } from '~/__mocks__/mockAcceleratorProfile';
-import { IdentifierResourceType } from '~/types';
-import { HardwareProfileFeatureVisibility } from '~/k8sTypes';
+} from '#~/__tests__/cypress/cypress/utils/models';
+import { mockDashboardConfig, mockK8sResourceList } from '#~/__mocks__';
+import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile';
+import { mockAcceleratorProfile } from '#~/__mocks__/mockAcceleratorProfile';
+import { IdentifierResourceType } from '#~/types';
+import { HardwareProfileFeatureVisibility } from '#~/k8sTypes';
 
 it('Workbench image settings should not be available for non product admins', () => {
   asProjectAdminUser();

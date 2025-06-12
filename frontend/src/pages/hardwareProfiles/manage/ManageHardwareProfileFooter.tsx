@@ -8,18 +8,18 @@ import {
 } from '@patternfly/react-core';
 import React from 'react';
 import { useNavigate } from 'react-router';
-import { HardwareProfileKind } from '~/k8sTypes';
-import { HardwareProfileFormData } from '~/pages/hardwareProfiles/manage/types';
+import { HardwareProfileKind } from '#~/k8sTypes';
+import { HardwareProfileFormData } from '#~/pages/hardwareProfiles/manage/types';
 import {
   createHardwareProfile,
   createHardwareProfileFromResource,
   updateHardwareProfile,
-} from '~/api';
-import useNotification from '~/utilities/useNotification';
-import { MigrationAction, MigrationSourceType } from '~/pages/hardwareProfiles/migration/types';
-import { useDashboardNamespace } from '~/redux/selectors';
-import MigrationModal from '~/pages/hardwareProfiles/migration/MigrationModal';
-import { MIGRATION_SOURCE_TYPE_LABELS } from '~/pages/hardwareProfiles/migration/const';
+} from '#~/api';
+import useNotification from '#~/utilities/useNotification';
+import { MigrationAction, MigrationSourceType } from '#~/pages/hardwareProfiles/migration/types';
+import { useDashboardNamespace } from '#~/redux/selectors';
+import MigrationModal from '#~/pages/hardwareProfiles/migration/MigrationModal';
+import { MIGRATION_SOURCE_TYPE_LABELS } from '#~/pages/hardwareProfiles/migration/const';
 
 type ManageHardwareProfileFooterProps = {
   state: HardwareProfileFormData;

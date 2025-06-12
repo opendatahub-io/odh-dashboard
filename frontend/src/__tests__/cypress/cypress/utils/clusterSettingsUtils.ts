@@ -4,11 +4,11 @@ import {
   cullerSettings,
   notebookTolerationSettings,
   clusterSettings,
-} from '~/__tests__/cypress/cypress/pages/clusterSettings';
+} from '#~/__tests__/cypress/cypress/pages/clusterSettings';
 import type {
   DashboardConfig,
   NotebookControllerCullerConfig,
-} from '~/__tests__/cypress/cypress/types';
+} from '#~/__tests__/cypress/cypress/types';
 
 /**
  * Validates the visibility and state of Model Serving Platform checkboxes
@@ -29,9 +29,11 @@ import type {
  *                        settings related to model serving, model mesh, and KServe.
  */
 export const validateModelServingPlatforms = (dashboardConfig: DashboardConfig): void => {
-  const isModelServingEnabled = dashboardConfig.dashboardConfig.disableModelServing;
-  const isModelMeshEnabled = dashboardConfig.dashboardConfig.disableModelMesh;
-  const isKServeEnabled = dashboardConfig.dashboardConfig.disableKServe;
+  /* eslint-disable @typescript-eslint/no-unnecessary-condition */
+  const isModelServingEnabled = dashboardConfig.dashboardConfig?.disableModelServing;
+  const isModelMeshEnabled = dashboardConfig.dashboardConfig?.disableModelMesh;
+  const isKServeEnabled = dashboardConfig.dashboardConfig?.disableKServe;
+  /* eslint-enable @typescript-eslint/no-unnecessary-condition */
 
   cy.log(`Value of isModelServingEnabled: ${String(isModelServingEnabled)}`);
   cy.log(`Value of isModelMeshEnabled: ${String(isModelMeshEnabled)}`);
@@ -251,6 +253,7 @@ export function restoreTolerationSettings(savedState: {
     }
   });
 }
+
 /**
  * Disables tolerations with a retry mechanism.
  * This function navigates to the cluster settings, finds the enabled checkbox, clicks it, and submits the form.

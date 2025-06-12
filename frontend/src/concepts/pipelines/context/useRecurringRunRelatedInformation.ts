@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { PipelineRecurringRunKF } from '~/concepts/pipelines/kfTypes';
-import { PipelineAPIState } from '~/concepts/pipelines/context/usePipelineAPIState';
+import { PipelineRecurringRunKF } from '#~/concepts/pipelines/kfTypes';
+import { PipelineAPIState } from '#~/concepts/pipelines/context/usePipelineAPIState';
 
 type RecurringRunStatus = {
   loading: boolean;

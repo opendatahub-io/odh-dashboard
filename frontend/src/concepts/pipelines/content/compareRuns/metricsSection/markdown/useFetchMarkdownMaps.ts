@@ -1,13 +1,13 @@
 import React from 'react';
-import { RunArtifact } from '~/concepts/pipelines/apiHooks/mlmd/types';
-import { useArtifactStorage } from '~/concepts/pipelines/apiHooks/useArtifactStorage';
-import { MarkdownAndTitle } from '~/concepts/pipelines/content/compareRuns/metricsSection/markdown/MarkdownCompare';
+import { RunArtifact } from '#~/concepts/pipelines/apiHooks/mlmd/types';
+import { useArtifactStorage } from '#~/concepts/pipelines/apiHooks/useArtifactStorage';
+import { MarkdownAndTitle } from '#~/concepts/pipelines/content/compareRuns/metricsSection/markdown/MarkdownCompare';
 import {
   getFullArtifactPathLabel,
   getFullArtifactPaths,
-} from '~/concepts/pipelines/content/compareRuns/metricsSection/utils';
-import { ArtifactType, PipelineRunKF } from '~/concepts/pipelines/kfTypes';
-import { allSettledPromises } from '~/utilities/allSettledPromises';
+} from '#~/concepts/pipelines/content/compareRuns/metricsSection/utils';
+import { ArtifactType, PipelineRunKF } from '#~/concepts/pipelines/kfTypes';
+import { allSettledPromises } from '#~/utilities/allSettledPromises';
 
 const useFetchMarkdownMaps = (
   markdownArtifacts?: RunArtifact[],

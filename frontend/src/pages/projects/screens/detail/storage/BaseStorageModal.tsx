@@ -8,14 +8,15 @@ import {
   ModalHeader,
   ModalFooter,
 } from '@patternfly/react-core';
-import { PersistentVolumeClaimKind } from '~/k8sTypes';
-import CreateNewStorageSection from '~/pages/projects/screens/spawner/storage/CreateNewStorageSection';
-import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import usePreferredStorageClass from '~/pages/projects/screens/spawner/storage/usePreferredStorageClass';
-import useAdminDefaultStorageClass from '~/pages/projects/screens/spawner/storage/useAdminDefaultStorageClass';
-import { useCreateStorageObject } from '~/pages/projects/screens/spawner/storage/utils';
-import { StorageData } from '~/pages/projects/types';
+import { PersistentVolumeClaimKind } from '#~/k8sTypes';
+import CreateNewStorageSection from '#~/pages/projects/screens/spawner/storage/CreateNewStorageSection';
+import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import usePreferredStorageClass from '#~/pages/projects/screens/spawner/storage/usePreferredStorageClass';
+import useAdminDefaultStorageClass from '#~/pages/projects/screens/spawner/storage/useAdminDefaultStorageClass';
+import { useCreateStorageObject } from '#~/pages/projects/screens/spawner/storage/utils';
+import { StorageData } from '#~/pages/projects/types';
+import { AccessMode } from '#~/pages/storageClasses/storageEnums';
 
 type CreateStorageObjectData = Pick<
   StorageData,
@@ -49,21 +50,18 @@ const BaseStorageModal: React.FC<BaseStorageModalProps> = ({
   onClose,
   onNameChange,
 }) => {
-  const [createData, setCreateData] = useCreateStorageObject(existingPvc, existingData);
-  const [nameDescValid, setNameDescValid] = React.useState<boolean>();
   const isStorageClassesAvailable = useIsAreaAvailable(SupportedArea.STORAGE_CLASSES).status;
   const preferredStorageClass = usePreferredStorageClass();
   const [defaultStorageClass] = useAdminDefaultStorageClass();
+  const [createData, setCreateData] = useCreateStorageObject(existingPvc, existingData);
+  const [nameDescValid, setNameDescValid] = React.useState<boolean>();
   const [error, setError] = React.useState<Error | undefined>();
   const [actionInProgress, setActionInProgress] = React.useState(false);
 
   React.useEffect(() => {
     if (!existingPvc) {
-      if (isStorageClassesAvailable) {
-        setCreateData('storageClassName', defaultStorageClass?.metadata.name);
-      } else {
-        setCreateData('storageClassName', preferredStorageClass?.metadata.name);
-      }
+      const storageClass = isStorageClassesAvailable ? defaultStorageClass : preferredStorageClass;
+      setCreateData('storageClassName', storageClass?.metadata.name);
     }
   }, [
     isStorageClassesAvailable,
@@ -72,6 +70,12 @@ const BaseStorageModal: React.FC<BaseStorageModalProps> = ({
     existingPvc,
     setCreateData,
   ]);
+
+  React.useEffect(() => {
+    if (!existingPvc && createData.storageClassName) {
+      setCreateData('accessMode', AccessMode.RWO);
+    }
+  }, [createData.storageClassName, setCreateData, existingPvc]);
 
   const canCreate = !actionInProgress && nameDescValid && isValid;
 

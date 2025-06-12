@@ -1,7 +1,7 @@
 import React from 'react';
-import { Connection } from '~/concepts/connectionTypes/types';
-import { isModelServingCompatible } from '~/concepts/connectionTypes/utils';
-import { FetchState } from '~/utilities/useFetchState';
+import { Connection } from '#~/concepts/connectionTypes/types';
+import { isModelServingCompatible } from '#~/concepts/connectionTypes/utils';
+import { FetchState } from '#~/utilities/useFetchState';
 import useConnections from './useConnections';
 
 const useServingConnections = (namespace?: string): FetchState<Connection[]> => {

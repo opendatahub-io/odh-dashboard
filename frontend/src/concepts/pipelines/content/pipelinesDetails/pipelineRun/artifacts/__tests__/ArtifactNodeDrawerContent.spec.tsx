@@ -6,9 +6,9 @@ import { render, screen, within } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import { act } from 'react';
-import { PipelineTask } from '~/concepts/pipelines/topology';
-import { Artifact, Value } from '~/third_party/mlmd';
-import { ArtifactNodeDrawerContent } from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/artifacts/ArtifactNodeDrawerContent';
+import { PipelineTask } from '#~/concepts/pipelines/topology';
+import { Artifact, Value } from '#~/third_party/mlmd';
+import { ArtifactNodeDrawerContent } from '#~/concepts/pipelines/content/pipelinesDetails/pipelineRun/artifacts/ArtifactNodeDrawerContent';
 
 const task: PipelineTask = {
   type: 'artifact',
@@ -17,28 +17,28 @@ const task: PipelineTask = {
   inputs: { artifacts: [{ label: 'metrics', type: 'system.Metrics (0.0.1)' }] },
 };
 
-jest.mock('~/concepts/pipelines/content/compareRuns/metricsSection/confusionMatrix/utils', () => ({
+jest.mock('#~/concepts/pipelines/content/compareRuns/metricsSection/confusionMatrix/utils', () => ({
   isConfusionMatrix: jest.fn(() => true),
 }));
 
-jest.mock('~/concepts/pipelines/content/compareRuns/metricsSection/roc/utils', () => ({
+jest.mock('#~/concepts/pipelines/content/compareRuns/metricsSection/roc/utils', () => ({
   buildRocCurveConfig: jest.fn(() => ({})),
   isConfidenceMetric: jest.fn(() => true),
 }));
 
 // Mock the useDispatch hook
-jest.mock('~/redux/hooks', () => ({
+jest.mock('#~/redux/hooks', () => ({
   useAppDispatch: jest.fn(),
 }));
 
-jest.mock('~/concepts/pipelines/content/artifacts/charts/confusionMatrix/utils', () => ({
+jest.mock('#~/concepts/pipelines/content/artifacts/charts/confusionMatrix/utils', () => ({
   buildConfusionMatrixConfig: jest.fn(() => ({
     labels: ['Some label'],
     data: [[0]],
   })),
 }));
 
-jest.mock('~/concepts/areas/useIsAreaAvailable', () => () => ({
+jest.mock('#~/concepts/areas/useIsAreaAvailable', () => () => ({
   status: true,
   featureFlags: {},
   reliantAreas: {},
@@ -47,7 +47,7 @@ jest.mock('~/concepts/areas/useIsAreaAvailable', () => () => ({
   customCondition: jest.fn(),
 }));
 
-jest.mock('~/concepts/pipelines/context/PipelinesContext', () => ({
+jest.mock('#~/concepts/pipelines/context/PipelinesContext', () => ({
   usePipelinesAPI: jest.fn(() => ({
     pipelinesServer: {
       initializing: false,

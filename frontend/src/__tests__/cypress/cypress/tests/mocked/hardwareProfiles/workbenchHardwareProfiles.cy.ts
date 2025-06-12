@@ -2,8 +2,8 @@ import {
   mockGlobalScopedHardwareProfiles,
   mockHardwareProfile,
   mockProjectScopedHardwareProfiles,
-} from '~/__mocks__/mockHardwareProfile';
-import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
+} from '#~/__mocks__/mockHardwareProfile';
+import { mockDashboardConfig } from '#~/__mocks__/mockDashboardConfig';
 import {
   HardwareProfileModel,
   ImageStreamModel,
@@ -14,7 +14,7 @@ import {
   RouteModel,
   SecretModel,
   StorageClassModel,
-} from '~/__tests__/cypress/cypress/utils/models';
+} from '#~/__tests__/cypress/cypress/utils/models';
 import {
   mockK8sResourceList,
   mockNotebookK8sResource,
@@ -22,16 +22,16 @@ import {
   mockRouteK8sResource,
   mockSecretK8sResource,
   mockStorageClassList,
-} from '~/__mocks__';
-import { mockPVCK8sResource } from '~/__mocks__/mockPVCK8sResource';
-import { mockPodK8sResource } from '~/__mocks__/mockPodK8sResource';
-import { mockImageStreamK8sResource } from '~/__mocks__/mockImageStreamK8sResource';
-import { asProductAdminUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
-import { projectDetails } from '~/__tests__/cypress/cypress/pages/projects';
-import { workbenchPage, editSpawnerPage } from '~/__tests__/cypress/cypress/pages/workbench';
-import { hardwareProfileSection } from '~/__tests__/cypress/cypress/pages/components/HardwareProfileSection';
-import { mockDscStatus } from '~/__mocks__/mockDscStatus';
-import type { PodKind } from '~/k8sTypes';
+} from '#~/__mocks__';
+import { mockPVCK8sResource } from '#~/__mocks__/mockPVCK8sResource';
+import { mockPodK8sResource } from '#~/__mocks__/mockPodK8sResource';
+import { mockImageStreamK8sResource } from '#~/__mocks__/mockImageStreamK8sResource';
+import { asProductAdminUser } from '#~/__tests__/cypress/cypress/utils/mockUsers';
+import { projectDetails } from '#~/__tests__/cypress/cypress/pages/projects';
+import { workbenchPage, editSpawnerPage } from '#~/__tests__/cypress/cypress/pages/workbench';
+import { hardwareProfileSection } from '#~/__tests__/cypress/cypress/pages/components/HardwareProfileSection';
+import { mockDscStatus } from '#~/__mocks__/mockDscStatus';
+import type { PodKind } from '#~/k8sTypes';
 
 type HandlersProps = {
   isEmpty?: boolean;

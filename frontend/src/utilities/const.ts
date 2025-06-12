@@ -1,5 +1,5 @@
-import { CustomWatchK8sResult, ListWithNonDashboardPresence, OdhDocumentType } from '~/types';
-import { FetchStateObject } from '~/utilities/useFetch';
+import { CustomWatchK8sResult, ListWithNonDashboardPresence, OdhDocumentType } from '#~/types';
+import { FetchStateObject } from '#~/utilities/useFetch';
 
 const WS_HOSTNAME = process.env.WS_HOSTNAME || location.host;
 const DEV_MODE = process.env.APP_ENV === 'development';

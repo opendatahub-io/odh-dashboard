@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { useLocation, useParams } from 'react-router';
-import ApplicationsPage from '~/pages/ApplicationsPage';
-import { useConnectionType } from '~/concepts/connectionTypes/useConnectionType';
-import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
+import ApplicationsPage from '#~/pages/ApplicationsPage';
+import { useConnectionType } from '#~/concepts/connectionTypes/useConnectionType';
+import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import CreateConnectionTypePage from './CreateConnectionTypePage';
 
 const DuplicateConnectionTypePage: React.FC = () => {

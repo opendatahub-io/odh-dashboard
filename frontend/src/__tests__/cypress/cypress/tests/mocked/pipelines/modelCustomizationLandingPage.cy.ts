@@ -1,5 +1,5 @@
-import { mockDashboardConfig } from '~/__mocks__';
-import { modelCustomizationLandingPage } from '~/__tests__/cypress/cypress/pages/pipelines';
+import { mockDashboardConfig } from '#~/__mocks__';
+import { modelCustomizationLandingPage } from '#~/__tests__/cypress/cypress/pages/pipelines';
 
 type HandlersProps = {
   disableFineTuning?: boolean;

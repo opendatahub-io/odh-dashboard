@@ -7,11 +7,11 @@ import {
   ValidatedOptions,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
-import { NumericField } from '~/concepts/connectionTypes/types';
-import { AdvancedFieldProps } from '~/pages/connectionTypes/manage/advanced/types';
-import NumberInputWrapper from '~/components/NumberInputWrapper';
-import TypeaheadSelect, { TypeaheadSelectOption } from '~/components/TypeaheadSelect';
-import ExpandableFormSection from '~/components/ExpandableFormSection';
+import { NumericField } from '#~/concepts/connectionTypes/types';
+import { AdvancedFieldProps } from '#~/pages/connectionTypes/manage/advanced/types';
+import NumberInputWrapper from '#~/components/NumberInputWrapper';
+import TypeaheadSelect, { TypeaheadSelectOption } from '#~/components/TypeaheadSelect';
+import ExpandableFormSection from '#~/components/ExpandableFormSection';
 
 const StandardUnits = ['MiB', 'GiB', 'Hours', 'Minutes', 'Seconds'];
 

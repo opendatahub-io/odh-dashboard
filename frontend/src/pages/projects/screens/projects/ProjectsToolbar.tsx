@@ -1,13 +1,13 @@
 import * as React from 'react';
 import { SearchInput, ToolbarGroup, ToolbarItem } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
-import FilterToolbar from '~/components/FilterToolbar';
+import FilterToolbar from '#~/components/FilterToolbar';
 import {
   ProjectsFilterDataType,
   projectsFilterOptions,
   ProjectsFilterOptions,
-} from '~/pages/projects/screens/projects/const';
-import WhosMyAdministrator from '~/components/WhosMyAdministrator';
+} from '#~/pages/projects/screens/projects/const';
+import WhosMyAdministrator from '#~/components/WhosMyAdministrator';
 import NewProjectButton from './NewProjectButton';
 
 type ProjectsToolbarProps = {

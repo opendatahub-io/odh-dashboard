@@ -1,7 +1,7 @@
 import * as React from 'react';
-import { ImageStreamKind } from '~/k8sTypes';
-import { getNotebookImageStreams } from '~/api';
-import useFetchState, { FetchState } from '~/utilities/useFetchState';
+import { ImageStreamKind } from '#~/k8sTypes';
+import { getNotebookImageStreams } from '#~/api';
+import useFetchState, { FetchState } from '#~/utilities/useFetchState';
 
 const useImageStreams = (
   namespace: string,

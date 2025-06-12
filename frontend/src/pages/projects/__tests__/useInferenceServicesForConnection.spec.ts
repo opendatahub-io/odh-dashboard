@@ -1,9 +1,9 @@
 import React from 'react';
-import { mockInferenceServiceK8sResource } from '~/__mocks__';
-import { testHook } from '~/__tests__/unit/testUtils/hooks';
-import { useInferenceServicesForConnection } from '~/pages/projects/useInferenceServicesForConnection';
-import { ProjectDetailsContextType } from '~/pages/projects/ProjectDetailsContext';
-import { mockConnection } from '~/__mocks__/mockConnection';
+import { mockInferenceServiceK8sResource } from '#~/__mocks__';
+import { testHook } from '#~/__tests__/unit/testUtils/hooks';
+import { useInferenceServicesForConnection } from '#~/pages/projects/useInferenceServicesForConnection';
+import { ProjectDetailsContextType } from '#~/pages/projects/ProjectDetailsContext';
+import { mockConnection } from '#~/__mocks__/mockConnection';
 
 jest.mock('react', () => ({
   ...jest.requireActual('react'),

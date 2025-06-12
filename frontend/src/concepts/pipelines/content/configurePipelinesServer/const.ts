@@ -1,5 +1,5 @@
-import { FieldOptions } from '~/components/FieldList';
-import { EnvVariableDataEntry } from '~/pages/projects/types';
+import { FieldOptions } from '#~/components/FieldList';
+import { EnvVariableDataEntry } from '#~/pages/projects/types';
 
 export const DSPA_SECRET_NAME = 'dashboard-dspa-secret';
 

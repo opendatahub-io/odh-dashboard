@@ -1,8 +1,8 @@
 import * as React from 'react';
-import { ServiceKind } from '~/k8sTypes';
-import useModelRegistryEnabled from '~/concepts/modelRegistry/useModelRegistryEnabled';
-import { useModelRegistryServices } from '~/concepts/modelRegistry/apiHooks/useModelRegistryServices';
-import { AreaContext } from '~/concepts/areas/AreaContext';
+import { ServiceKind } from '#~/k8sTypes';
+import useModelRegistryEnabled from '#~/concepts/modelRegistry/useModelRegistryEnabled';
+import { useModelRegistryServices } from '#~/concepts/modelRegistry/apiHooks/useModelRegistryServices';
+import { AreaContext } from '#~/concepts/areas/AreaContext';
 
 export interface ModelRegistriesContextType {
   modelRegistryServicesLoaded: boolean;

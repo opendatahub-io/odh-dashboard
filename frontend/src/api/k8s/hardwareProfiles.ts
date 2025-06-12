@@ -8,10 +8,10 @@ import {
   K8sStatus,
   k8sUpdateResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { HardwareProfileKind, K8sAPIOptions } from '~/k8sTypes';
-import { HardwareProfileModel } from '~/api/models';
-import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
-import { kindApiVersion, translateDisplayNameForK8s } from '~/concepts/k8s/utils';
+import { HardwareProfileKind, K8sAPIOptions } from '#~/k8sTypes';
+import { HardwareProfileModel } from '#~/api/models';
+import { applyK8sAPIOptions } from '#~/api/apiMergeUtils';
+import { kindApiVersion, translateDisplayNameForK8s } from '#~/concepts/k8s/utils';
 
 export const listHardwareProfiles = async (namespace: string): Promise<HardwareProfileKind[]> =>
   k8sListResource<HardwareProfileKind>({

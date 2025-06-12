@@ -2,7 +2,7 @@ import * as React from 'react';
 import { act } from 'react';
 import '@testing-library/jest-dom';
 import { render, screen } from '@testing-library/react';
-import ErrorBoundary from '~/components/error/ErrorBoundary';
+import ErrorBoundary from '#~/components/error/ErrorBoundary';
 
 class ChunkLoadError extends Error {
   name = 'ChunkLoadError';

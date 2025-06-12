@@ -12,23 +12,23 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import ErrorBoundary from '~/components/error/ErrorBoundary';
-import ToastNotifications from '~/components/ToastNotifications';
-import { useWatchBuildStatus } from '~/utilities/useWatchBuildStatus';
-import { useUser } from '~/redux/selectors';
-import { DASHBOARD_MAIN_CONTAINER_ID } from '~/utilities/const';
-import useDetectUser from '~/utilities/useDetectUser';
-import ProjectsContextProvider from '~/concepts/projects/ProjectsContext';
-import { ModelRegistriesContextProvider } from '~/concepts/modelRegistry/context/ModelRegistriesContext';
-import useStorageClasses from '~/concepts/k8s/useStorageClasses';
-import AreaContextProvider from '~/concepts/areas/AreaContext';
-import { NimContextProvider } from '~/concepts/nimServing/NIMAvailabilityContext';
-import { NotificationWatcherContextProvider } from '~/concepts/notificationWatcher/NotificationWatcherContext';
-import { AccessReviewProvider } from '~/concepts/userSSAR';
-import { ExtensibilityContextProvider } from '~/plugins/ExtensibilityContext';
-import useFetchDscStatus from '~/concepts/areas/useFetchDscStatus';
-import { PluginStoreAreaFlagsProvider } from '~/plugins/PluginStoreAreaFlagsProvider';
-import { OdhPlatformType } from '~/types';
+import ErrorBoundary from '#~/components/error/ErrorBoundary';
+import ToastNotifications from '#~/components/ToastNotifications';
+import { useWatchBuildStatus } from '#~/utilities/useWatchBuildStatus';
+import { useUser } from '#~/redux/selectors';
+import { DASHBOARD_MAIN_CONTAINER_ID } from '#~/utilities/const';
+import useDetectUser from '#~/utilities/useDetectUser';
+import ProjectsContextProvider from '#~/concepts/projects/ProjectsContext';
+import { ModelRegistriesContextProvider } from '#~/concepts/modelRegistry/context/ModelRegistriesContext';
+import useStorageClasses from '#~/concepts/k8s/useStorageClasses';
+import AreaContextProvider from '#~/concepts/areas/AreaContext';
+import { NimContextProvider } from '#~/concepts/nimServing/NIMAvailabilityContext';
+import { NotificationWatcherContextProvider } from '#~/concepts/notificationWatcher/NotificationWatcherContext';
+import { AccessReviewProvider } from '#~/concepts/userSSAR';
+import { ExtensibilityContextProvider } from '#~/plugins/ExtensibilityContext';
+import useFetchDscStatus from '#~/concepts/areas/useFetchDscStatus';
+import { PluginStoreAreaFlagsProvider } from '#~/plugins/PluginStoreAreaFlagsProvider';
+import { OdhPlatformType } from '#~/types';
 import useDevFeatureFlags from './useDevFeatureFlags';
 import Header from './Header';
 import AppRoutes from './AppRoutes';
@@ -90,7 +90,10 @@ const App: React.FC = () => {
 
     // Default error handling for other cases
     return (
-      <Page>
+      // TODO: Remove when PF breaking-change issue is fixed.
+      // https://github.com/patternfly/patternfly-react/issues/11797
+      // https://issues.redhat.com/browse/RHOAIENG-24716
+      <Page sidebar={null}>
         <PageSection hasBodyWrapper={false}>
           <Stack hasGutter>
             <StackItem>

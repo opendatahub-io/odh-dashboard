@@ -1,10 +1,14 @@
 import * as React from 'react';
-import { Alert, FormGroup } from '@patternfly/react-core';
-import { ExistingStorageObject } from '~/pages/projects/types';
-import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
-import TypeaheadSelect, { TypeaheadSelectOption } from '~/components/TypeaheadSelect';
-import useProjectPvcs from '~/pages/projects/screens/detail/storage/useProjectPvcs';
+import { Alert, FormGroup, FormHelperText, Label } from '@patternfly/react-core';
+import { TypeaheadSelectOption } from '@patternfly/react-templates';
+import { ExistingStorageObject } from '#~/pages/projects/types';
+import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
+import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
+import TypeaheadSelect from '#~/components/TypeaheadSelect';
+import useProjectPvcs from '#~/pages/projects/screens/detail/storage/useProjectPvcs';
+import { AccessMode } from '#~/pages/storageClasses/storageEnums';
+import { PersistentVolumeClaimKind } from '#~/k8sTypes';
+import { getPvcAccessMode } from '#~/pages/projects/utils.ts';
 
 type AddExistingStorageFieldProps = {
   data: ExistingStorageObject;
@@ -31,26 +35,37 @@ const AddExistingStorageField: React.FC<AddExistingStorageFieldProps> = ({
     </div>
   );
 
-  const selectOptions = React.useMemo(
-    () =>
-      loaded
-        ? storages.reduce((acc: TypeaheadSelectOption[], pvc) => {
-            if (!existingStorageNames?.includes(getDisplayNameFromK8sResource(pvc))) {
-              acc.push({
-                value: pvc.metadata.name,
-                content: getDisplayNameFromK8sResource(pvc),
-                description: selectDescription(
-                  pvc.spec.resources.requests.storage,
-                  pvc.metadata.annotations?.['openshift.io/description'],
-                ),
-              });
-            }
-
-            return acc;
-          }, [])
-        : [],
-    [existingStorageNames, loaded, storages],
-  );
+  const groupSelectOptions = React.useMemo(() => {
+    if (!loaded) {
+      return [];
+    }
+    const isPvcAvailable = (pvc: PersistentVolumeClaimKind) =>
+      !existingStorageNames?.includes(getDisplayNameFromK8sResource(pvc));
+    const groups: TypeaheadSelectOption[] = [];
+    Object.entries(AccessMode).forEach(([label, mode]) => {
+      const groupModePvc = storages.filter(
+        (pvc) => getPvcAccessMode(pvc) === mode && isPvcAvailable(pvc),
+      );
+      if (groupModePvc.length > 0) {
+        const groupOptions = groupModePvc.map((pvc) => ({
+          value: pvc.metadata.name,
+          content: getDisplayNameFromK8sResource(pvc),
+          description: selectDescription(
+            pvc.spec.resources.requests.storage,
+            pvc.metadata.annotations?.['openshift.io/description'],
+          ),
+          selectedLabel: (
+            <Label key={`access-mode-label-${label}`} isCompact color="blue" variant="outline">
+              {`${mode} (${label})`}
+            </Label>
+          ),
+          group: `${mode} (${label}) storage`,
+        }));
+        groups.push(...groupOptions);
+      }
+    });
+    return groups;
+  }, [existingStorageNames, loaded, storages]);
 
   if (error) {
     return (
@@ -64,7 +79,7 @@ const AddExistingStorageField: React.FC<AddExistingStorageFieldProps> = ({
 
   if (!loaded) {
     placeholderText = 'Loading storages';
-  } else if (selectOptions.length === 0) {
+  } else if (groupSelectOptions.length === 0) {
     placeholderText = 'No existing storages available';
   } else {
     placeholderText = 'Select a persistent storage';
@@ -78,7 +93,7 @@ const AddExistingStorageField: React.FC<AddExistingStorageFieldProps> = ({
       data-testid="persistent-storage-group"
     >
       <TypeaheadSelect
-        selectOptions={selectOptions}
+        selectOptions={groupSelectOptions}
         selected={data.storage}
         onSelect={(_, storage) => {
           const pvc = storages.find((pvcData) => pvcData.metadata.name === storage);
@@ -93,7 +108,16 @@ const AddExistingStorageField: React.FC<AddExistingStorageFieldProps> = ({
         popperProps={{ direction: selectDirection, appendTo: menuAppendTo }}
         isDisabled={!loaded}
         data-testid="persistent-storage-typeahead"
+        isScrollable
       />
+      <FormHelperText>
+        <Alert
+          variant="info"
+          title="RWO and RWOP storage can only be attached to one workbench at a time. If it's already attached elsewhere, attaching it here will disconnect it from the other workbench."
+          isInline
+          isPlain
+        />
+      </FormHelperText>
     </FormGroup>
   );
 };

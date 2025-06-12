@@ -15,21 +15,21 @@ import {
   mergePatchUpdateNotebook,
   restartNotebook,
   updateNotebook,
-} from '~/api';
-import { EnvVariable, StartNotebookData, StorageData } from '~/pages/projects/types';
-import { useUser } from '~/redux/selectors';
-import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
-import { Connection } from '~/concepts/connectionTypes/types';
-import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
+} from '#~/api';
+import { EnvVariable, StartNotebookData, StorageData } from '#~/pages/projects/types';
+import { useUser } from '#~/redux/selectors';
+import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
+import { ProjectSectionID } from '#~/pages/projects/screens/detail/types';
+import { Connection } from '#~/concepts/connectionTypes/types';
+import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import {
   FormTrackingEventProperties,
   TrackingOutcome,
-} from '~/concepts/analyticsTracking/trackingProperties';
-import { NotebookKind } from '~/k8sTypes';
-import { getNotebookPVCNames } from '~/pages/projects/pvc/utils';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import { isHardwareProfileConfigValid } from '~/concepts/hardwareProfiles/validationUtils';
+} from '#~/concepts/analyticsTracking/trackingProperties';
+import { NotebookKind } from '#~/k8sTypes';
+import { getNotebookPVCNames } from '#~/pages/projects/pvc/utils';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { isHardwareProfileConfigValid } from '#~/concepts/hardwareProfiles/validationUtils';
 import {
   createConfigMapsAndSecretsForNotebook,
   createPvcDataForNotebook,
@@ -65,6 +65,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
   );
 
   const hardwareProfilesAvailable = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;
+  const isProjectScopedAvailable = useIsAreaAvailable(SupportedArea.DS_PROJECT_SCOPED).status;
 
   const editNotebook = notebookState?.notebook;
   const { projectName } = startNotebookData;
@@ -80,7 +81,10 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
   const isButtonDisabled =
     createInProgress ||
     !checkRequiredFieldsForNotebookStart(startNotebookData, envVariables) ||
-    !isHardwareProfileValid;
+    !isHardwareProfileValid ||
+    (!isProjectScopedAvailable &&
+      startNotebookData.image.imageStream?.metadata.namespace === projectName);
+
   const { username } = useUser();
 
   const afterStart = (name: string, type: 'created' | 'updated') => {
@@ -190,7 +194,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
     if (dryRun) {
       return updateNotebook(editNotebook, newStartNotebookData, username, { dryRun });
     }
-    return mergePatchUpdateNotebook(newStartNotebookData, username);
+    return mergePatchUpdateNotebook(editNotebook, newStartNotebookData, username);
   };
 
   const onUpdateNotebook = async () => {

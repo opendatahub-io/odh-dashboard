@@ -1,20 +1,20 @@
 import * as React from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button, CardFooter, Flex } from '@patternfly/react-core';
-import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import ModelServingPlatformButtonAction from '~/pages/modelServing/screens/projects/ModelServingPlatformButtonAction';
-import { ServingRuntimePlatform } from '~/types';
+import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
+import ModelServingPlatformButtonAction from '#~/pages/modelServing/screens/projects/ModelServingPlatformButtonAction';
+import { ServingRuntimePlatform } from '#~/types';
 import {
   getSortedTemplates,
   getTemplateEnabled,
   getTemplateEnabledForPlatform,
-} from '~/pages/modelServing/customServingRuntimes/utils';
-import { getProjectModelServingPlatform } from '~/pages/modelServing/screens/projects/utils';
-import ManageServingRuntimeModal from '~/pages/modelServing/screens/projects/ServingRuntimeModal/ManageServingRuntimeModal';
-import ManageKServeModal from '~/pages/modelServing/screens/projects/kServeModal/ManageKServeModal';
-import ManageNIMServingModal from '~/pages/modelServing/screens/projects/NIMServiceModal/ManageNIMServingModal';
-import { modelVersionRoute } from '~/routes/modelRegistry/modelVersions';
-import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformStatuses';
+} from '#~/pages/modelServing/customServingRuntimes/utils';
+import { getProjectModelServingPlatform } from '#~/pages/modelServing/screens/projects/utils';
+import ManageServingRuntimeModal from '#~/pages/modelServing/screens/projects/ServingRuntimeModal/ManageServingRuntimeModal';
+import ManageKServeModal from '#~/pages/modelServing/screens/projects/kServeModal/ManageKServeModal';
+import ManageNIMServingModal from '#~/pages/modelServing/screens/projects/NIMServiceModal/ManageNIMServingModal';
+import { modelVersionRoute } from '#~/routes/modelRegistry/modelVersions';
+import useServingPlatformStatuses from '#~/pages/modelServing/useServingPlatformStatuses';
 
 type AddModelFooterProps = {
   selectedPlatform?: ServingRuntimePlatform;

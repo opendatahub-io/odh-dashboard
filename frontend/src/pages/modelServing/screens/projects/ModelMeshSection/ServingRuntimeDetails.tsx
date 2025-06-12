@@ -6,19 +6,18 @@ import {
   DescriptionListTerm,
   Flex,
   FlexItem,
-  Label,
   List,
   ListItem,
 } from '@patternfly/react-core';
-import { AppContext } from '~/app/AppContext';
-import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
-import { getServingRuntimeSizes } from '~/pages/modelServing/screens/projects/utils';
-import { getResourceSize } from '~/pages/modelServing/utils';
-import { formatMemory } from '~/utilities/valueUnits';
-import { useModelServingPodSpecOptionsState } from '~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
-import { useIsAreaAvailable, SupportedArea } from '~/concepts/areas';
-import TypedObjectIcon from '~/concepts/design/TypedObjectIcon';
-import { ProjectObjectType } from '~/concepts/design/utils';
+import { AppContext } from '#~/app/AppContext';
+import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
+import { getServingRuntimeSizes } from '#~/pages/modelServing/screens/projects/utils';
+import { getResourceSize } from '#~/pages/modelServing/utils';
+import { formatMemory } from '#~/utilities/valueUnits';
+import { useModelServingPodSpecOptionsState } from '#~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
+import { useIsAreaAvailable, SupportedArea } from '#~/concepts/areas';
+import ScopedLabel from '#~/components/ScopedLabel';
+import { ScopedType } from '#~/pages/modelServing/screens/const';
 
 type ServingRuntimeDetailsProps = {
   project?: string;
@@ -81,15 +80,9 @@ const ServingRuntimeDetails: React.FC<ServingRuntimeDetailsProps> = ({ project, 
                 <FlexItem>
                   {isProjectScopedAvailable &&
                     hardwareProfile.initialHardwareProfile.metadata.namespace === project && (
-                      <Label
-                        variant="outline"
-                        color="blue"
-                        data-testid="project-scoped-label"
-                        isCompact
-                        icon={<TypedObjectIcon alt="" resourceType={ProjectObjectType.project} />}
-                      >
-                        Project-scoped
-                      </Label>
+                      <ScopedLabel isProject color="blue" isCompact>
+                        {ScopedType.Project}
+                      </ScopedLabel>
                     )}
                 </FlexItem>
                 <Flex>
@@ -116,15 +109,9 @@ const ServingRuntimeDetails: React.FC<ServingRuntimeDetailsProps> = ({ project, 
                       project && (
                       <>
                         {' '}
-                        <Label
-                          variant="outline"
-                          color="blue"
-                          data-testid="project-scoped-label"
-                          isCompact
-                          icon={<TypedObjectIcon alt="" resourceType={ProjectObjectType.project} />}
-                        >
-                          Project-scoped
-                        </Label>
+                        <ScopedLabel isProject color="blue" isCompact>
+                          {ScopedType.Project}
+                        </ScopedLabel>
                       </>
                     )}
                   {!initialAcceleratorProfileState.acceleratorProfile.spec.enabled && ' (disabled)'}

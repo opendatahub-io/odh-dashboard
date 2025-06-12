@@ -9,31 +9,30 @@ import {
   k8sUpdateResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import * as _ from 'lodash-es';
-import { NotebookModel } from '~/api/models';
+import { NotebookModel } from '#~/api/models';
 import {
   ImageStreamKind,
   ImageStreamSpecTagType,
   K8sAPIOptions,
   KnownLabels,
   NotebookKind,
-} from '~/k8sTypes';
-import { usernameTranslate } from '~/utilities/notebookControllerUtils';
-import { EnvironmentFromVariable, StartNotebookData } from '~/pages/projects/types';
-import { ROOT_MOUNT_PATH } from '~/pages/projects/pvc/const';
-import { getTolerationPatch, TolerationChanges } from '~/utilities/tolerations';
-import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
+} from '#~/k8sTypes';
+import { usernameTranslate } from '#~/utilities/notebookControllerUtils';
+import { EnvironmentFromVariable, StartNotebookData } from '#~/pages/projects/types';
+import { ROOT_MOUNT_PATH } from '#~/pages/projects/pvc/const';
+import { getTolerationPatch, TolerationChanges } from '#~/utilities/tolerations';
+import { applyK8sAPIOptions } from '#~/api/apiMergeUtils';
 import {
-  createElyraServiceAccountRoleBinding,
   ELYRA_VOLUME_NAME,
   getElyraVolume,
   getElyraVolumeMount,
   getPipelineVolumeMountPatch,
   getPipelineVolumePatch,
-} from '~/concepts/pipelines/elyra/utils';
-import { Volume, VolumeMount } from '~/types';
-import { getImageStreamDisplayName } from '~/pages/projects/screens/spawner/spawnerUtils';
-import { k8sMergePatchResource } from '~/api/k8sUtils';
-import { getshmVolume, getshmVolumeMount } from '~/api/k8s/utils';
+} from '#~/concepts/pipelines/elyra/utils';
+import { NodeSelector, Volume, VolumeMount } from '#~/types';
+import { getImageStreamDisplayName } from '#~/pages/projects/screens/spawner/spawnerUtils';
+import { k8sMergePatchResource } from '#~/api/k8sUtils';
+import { getshmVolume, getshmVolumeMount } from '#~/api/k8s/utils';
 
 export const assembleNotebook = (
   data: StartNotebookData,
@@ -95,11 +94,20 @@ export const assembleNotebook = (
     volumeMounts.push(getshmVolumeMount());
   }
 
-  let hardwareProfileNamespace: Record<string, string | null> | null = {
-    'opendatahub.io/hardware-profile-namespace': null,
+  const hardwareProfileNamespace: Record<string, string | null> =
+    selectedHardwareProfile?.metadata.namespace === projectName
+      ? { 'opendatahub.io/hardware-profile-namespace': projectName }
+      : {
+          'opendatahub.io/hardware-profile-namespace': null,
+        };
+
+  let acceleratorProfileNamespace: Record<string, string | null> = {
+    'opendatahub.io/accelerator-profile-namespace': null,
   };
-  if (selectedHardwareProfile?.metadata.namespace === projectName) {
-    hardwareProfileNamespace = { 'opendatahub.io/hardware-profile-namespace': data.projectName };
+  if (selectedAcceleratorProfile?.metadata.namespace === projectName) {
+    acceleratorProfileNamespace = {
+      'opendatahub.io/accelerator-profile-namespace': data.projectName,
+    };
   }
 
   const resource: NotebookKind = {
@@ -114,6 +122,7 @@ export const assembleNotebook = (
       },
       annotations: {
         ...hardwareProfileNamespace,
+        ...acceleratorProfileNamespace,
         'openshift.io/display-name': notebookName.trim(),
         'openshift.io/description': description || '',
         'notebooks.opendatahub.io/oauth-logout-url': `${origin}/projects/${projectName}?notebookLogout=${notebookId}`,
@@ -203,6 +212,8 @@ export const assembleNotebook = (
     resource.metadata.annotations['opendatahub.io/image-display-name'] = getImageStreamDisplayName(
       image.imageStream,
     );
+    resource.metadata.annotations['opendatahub.io/workbench-image-namespace'] =
+      image.imageStream.metadata.namespace === projectName ? projectName : null;
   }
 
   return resource;
@@ -255,7 +266,6 @@ export const startNotebook = async (
   if (enablePipelines) {
     patches.push(getPipelineVolumePatch());
     patches.push(getPipelineVolumeMountPatch());
-    await createElyraServiceAccountRoleBinding(notebook);
   }
 
   return k8sPatchResource<NotebookKind>({
@@ -284,13 +294,7 @@ export const createNotebook = (
       ),
     )
       .then((fetchedNotebook) => {
-        if (canEnablePipelines) {
-          createElyraServiceAccountRoleBinding(fetchedNotebook, opts)
-            .then(() => resolve(fetchedNotebook))
-            .catch(reject);
-        } else {
-          resolve(fetchedNotebook);
-        }
+        resolve(fetchedNotebook);
       })
       .catch(reject);
   });
@@ -310,6 +314,7 @@ export const updateNotebook = (
   // clean the resources, affinity and tolerations for accelerator
   oldNotebook.spec.template.spec.tolerations = [];
   oldNotebook.spec.template.spec.affinity = {};
+  oldNotebook.spec.template.spec.nodeSelector = {};
   container.resources = {};
 
   return k8sUpdateResource<NotebookKind>(
@@ -324,19 +329,48 @@ export const updateNotebook = (
 };
 
 export const mergePatchUpdateNotebook = (
+  existingNotebook: NotebookKind,
   assignableData: StartNotebookData,
   username: string,
   opts?: K8sAPIOptions,
-): Promise<NotebookKind> =>
-  k8sMergePatchResource<NotebookKind>(
+): Promise<NotebookKind> => {
+  const notebook = assembleNotebook(assignableData, username, undefined);
+
+  // Remove old node selector keys in merge patch
+  const oldNodeSelectorToRemove: Record<string, string | null> = {};
+  for (const key of Object.keys(existingNotebook.spec.template.spec.nodeSelector || {})) {
+    oldNodeSelectorToRemove[key] = null;
+  }
+
+  const resource: NotebookKind = {
+    ...notebook,
+    spec: {
+      ...notebook.spec,
+      template: {
+        ...notebook.spec.template,
+        spec: {
+          ...notebook.spec.template.spec,
+          // Null values are required for merge patch
+          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+          nodeSelector: {
+            ...oldNodeSelectorToRemove,
+            ...notebook.spec.template.spec.nodeSelector,
+          } as NodeSelector,
+        },
+      },
+    },
+  };
+
+  return k8sMergePatchResource<NotebookKind>(
     applyK8sAPIOptions(
       {
         model: NotebookModel,
-        resource: assembleNotebook(assignableData, username),
+        resource,
       },
       opts,
     ),
   );
+};
 
 export const patchNotebookImage = (
   existingNotebook: NotebookKind,

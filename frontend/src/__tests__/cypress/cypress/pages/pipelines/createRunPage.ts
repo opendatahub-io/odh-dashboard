@@ -7,16 +7,16 @@ import type {
   PipelineRecurringRunKF,
   PipelineRunKF,
   PipelineVersionKF,
-} from '~/concepts/pipelines/kfTypes';
-import { buildMockRunKF } from '~/__mocks__';
-import { buildMockPipelines } from '~/__mocks__/mockPipelinesProxy';
+} from '#~/concepts/pipelines/kfTypes';
+import { buildMockRunKF } from '#~/__mocks__';
+import { buildMockPipelines } from '#~/__mocks__/mockPipelinesProxy';
 import {
   buildMockPipelineVersion,
   buildMockPipelineVersions,
-} from '~/__mocks__/mockPipelineVersionsProxy';
-import { Contextual } from '~/__tests__/cypress/cypress/pages/components/Contextual';
-import { buildMockRecurringRunKF } from '~/__mocks__/mockRecurringRunKF';
-import { SearchSelector } from '~/__tests__/cypress/cypress/pages/components/subComponents/SearchSelector';
+} from '#~/__mocks__/mockPipelineVersionsProxy';
+import { Contextual } from '#~/__tests__/cypress/cypress/pages/components/Contextual';
+import { buildMockRecurringRunKF } from '#~/__mocks__/mockRecurringRunKF';
+import { SearchSelector } from '#~/__tests__/cypress/cypress/pages/components/subComponents/SearchSelector';
 
 class ParamsSection extends Contextual<HTMLElement> {
   findParamById(id: string): Cypress.Chainable<JQuery<HTMLElement>> {

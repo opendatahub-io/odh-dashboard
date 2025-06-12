@@ -1,7 +1,7 @@
 import { k8sListResourceItems } from '@openshift/dynamic-plugin-sdk-utils';
-import { getNotebookImageStreams } from '~/api/k8s/imageStreams';
-import { ImageStreamModel } from '~/api/models';
-import { ImageStreamKind } from '~/k8sTypes';
+import { getNotebookImageStreams } from '#~/api/k8s/imageStreams';
+import { ImageStreamModel } from '#~/api/models';
+import { ImageStreamKind } from '#~/k8sTypes';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sListResourceItems: jest.fn(),

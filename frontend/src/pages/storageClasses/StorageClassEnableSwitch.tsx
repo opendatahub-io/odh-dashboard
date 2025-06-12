@@ -1,7 +1,7 @@
 import React from 'react';
 import { Flex, FlexItem, Switch, Tooltip } from '@patternfly/react-core';
-import { updateStorageClassConfig } from '~/api';
-import { StorageClassConfig } from '~/k8sTypes';
+import { updateStorageClassConfig } from '#~/api';
+import { StorageClassConfig } from '#~/k8sTypes';
 
 interface StorageClassEnableSwitchProps {
   storageClassName: string;

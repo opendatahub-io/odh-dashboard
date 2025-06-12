@@ -1,13 +1,13 @@
-import { LDAP_CONTRIBUTOR_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
+import { LDAP_CONTRIBUTOR_USER } from '#~/__tests__/cypress/cypress/utils/e2eUsers';
 import {
   provisionClusterStorageSCFeature,
   tearDownClusterStorageSCFeature,
-} from '~/__tests__/cypress/cypress/utils/storageClass';
-import { addClusterStorageModal } from '~/__tests__/cypress/cypress/pages/clusterStorage';
-import { projectDetails, projectListPage } from '~/__tests__/cypress/cypress/pages/projects';
-import { findAddClusterStorageButton } from '~/__tests__/cypress/cypress/utils/clusterStorage';
-import { disableNonDefaultStorageClasses } from '~/__tests__/cypress/cypress/utils/oc_commands/storageClass';
-import { retryableBefore } from '~/__tests__/cypress/cypress/utils/retryableHooks';
+} from '#~/__tests__/cypress/cypress/utils/storageClass';
+import { addClusterStorageModal } from '#~/__tests__/cypress/cypress/pages/clusterStorage';
+import { projectDetails, projectListPage } from '#~/__tests__/cypress/cypress/pages/projects';
+import { findAddClusterStorageButton } from '#~/__tests__/cypress/cypress/utils/clusterStorage';
+import { disableNonDefaultStorageClasses } from '#~/__tests__/cypress/cypress/utils/oc_commands/storageClass';
+import { retryableBefore } from '#~/__tests__/cypress/cypress/utils/retryableHooks';
 
 const dspName = 'qe-cluster-storage-sc-dsp';
 
@@ -42,7 +42,7 @@ describe('Regular Users can make use of the Storage Classes in the Cluster Stora
 
         cy.step('Checking that Storage Classes Dropdown is disabled');
         // Check that the SC Dropdown is disabled
-        addClusterStorageModal.findStorageClassSelect().should('be.disabled');
+        addClusterStorageModal.findStorageClassSelect().find().should('be.disabled');
       });
     },
   );

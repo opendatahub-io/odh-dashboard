@@ -6,10 +6,10 @@ import {
   k8sListResource,
   k8sPatchResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { mockRoleBindingK8sResource } from '~/__mocks__/mockRoleBindingK8sResource';
-import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
-import { mock200Status, mock404Error } from '~/__mocks__/mockK8sStatus';
-import { KnownLabels, RoleBindingKind, RoleBindingSubject } from '~/k8sTypes';
+import { mockRoleBindingK8sResource } from '#~/__mocks__/mockRoleBindingK8sResource';
+import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
+import { mock200Status, mock404Error } from '#~/__mocks__/mockK8sStatus';
+import { KnownLabels, RoleBindingKind, RoleBindingSubject } from '#~/k8sTypes';
 import {
   createRoleBinding,
   deleteRoleBinding,
@@ -19,12 +19,12 @@ import {
   listRoleBindings,
   patchRoleBindingOwnerRef,
   patchRoleBindingSubjects,
-} from '~/api/k8s/roleBindings';
-import { RoleBindingModel } from '~/api/models/k8s';
+} from '#~/api/k8s/roleBindings';
+import { RoleBindingModel } from '#~/api/models/k8s';
 import {
   RoleBindingPermissionsRBType,
   RoleBindingPermissionsRoleType,
-} from '~/concepts/roleBinding/types';
+} from '#~/concepts/roleBinding/types';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sListResource: jest.fn(),
