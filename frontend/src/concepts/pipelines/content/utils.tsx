@@ -113,21 +113,21 @@ export const isPipelineRecurringRun = (
 export const getStatusFromCondition = (condition: K8sCondition): StatusType => {
   const { reason, status, lastTransitionTime } = condition;
   if (reason === 'Deploying' && status === 'False') {
-    return 'in-progress';
+    return StatusType.PENDING;
   }
   if (status === 'True') {
-    return 'success';
+    return StatusType.SUCCESS;
   }
   if (reason === 'FailingToDeploy') {
     const rangeType = getTimeRangeCategory(lastTransitionTime);
     switch (rangeType) {
       case 'shortRange':
-        return 'pending';
+        return StatusType.PENDING;
       case 'mediumRange':
-        return 'warning';
+        return StatusType.WARNING;
       case 'longRange':
-        return 'error';
+        return StatusType.ERROR;
     }
   }
-  return 'pending';
+  return StatusType.PENDING;
 };

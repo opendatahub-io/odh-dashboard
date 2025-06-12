@@ -8,7 +8,7 @@ import { MetadataStoreServicePromiseClient } from '#~/third_party/mlmd/generated
 import { PipelineAPIs } from '#~/concepts/pipelines/types';
 
 // Mock the usePipelinesAPI hook
-jest.mock('../../context', () => ({
+jest.mock('#~/concepts/pipelines/context', () => ({
   usePipelinesAPI: jest.fn(),
 }));
 
