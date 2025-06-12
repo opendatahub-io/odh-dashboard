@@ -6,12 +6,7 @@ import {
   ExclamationTriangleIcon,
   ExclamationCircleIcon,
 } from '@patternfly/react-icons';
-import {
-  t_global_text_color_status_success_default as SuccessColor,
-  t_global_text_color_status_warning_default as WarningColor,
-  t_global_text_color_status_danger_default as DangerColor,
-  t_global_text_color_100 as BlackColor,
-} from '@patternfly/react-tokens';
+import { Icon } from '@patternfly/react-core';
 
 export enum StatusType {
   PENDING = 'pending',
@@ -23,31 +18,31 @@ export enum StatusType {
 
 type StatusConfig = {
   icon: React.ComponentType<{ style?: React.CSSProperties; className?: string }>;
-  color: string;
+  statusColor: 'success' | 'danger' | 'warning' | 'info';
   className?: string;
 };
 
 const STATUS_CONFIG: Record<StatusType, StatusConfig> = {
   [StatusType.PENDING]: {
     icon: PendingIcon,
-    color: BlackColor.var,
+    statusColor: 'info',
   },
   [StatusType.IN_PROGRESS]: {
     icon: InProgressIcon,
-    color: BlackColor.var,
+    statusColor: 'info',
     className: 'odh-u-spin',
   },
   [StatusType.SUCCESS]: {
     icon: CheckCircleIcon,
-    color: SuccessColor.var,
+    statusColor: 'success',
   },
   [StatusType.WARNING]: {
     icon: ExclamationTriangleIcon,
-    color: WarningColor.var,
+    statusColor: 'warning',
   },
   [StatusType.ERROR]: {
     icon: ExclamationCircleIcon,
-    color: DangerColor.var,
+    statusColor: 'danger',
   },
 };
 
@@ -61,13 +56,9 @@ const K8sStatusIcon: React.FC<StatusIconProps> = ({ status, className }) => {
   const IconComponent = config.icon;
 
   return (
-    <span
-      className={className}
-      style={{ display: 'inline-flex', alignItems: 'center' }}
-      title={status}
-    >
-      <IconComponent style={{ color: config.color }} className={config.className} />
-    </span>
+    <Icon status={config.statusColor} title={status} aria-label={status}>
+      <IconComponent className={config.className} />
+    </Icon>
   );
 };
 
