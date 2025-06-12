@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
 import { Timestamp } from '@patternfly/react-core';
+import { Link } from 'react-router-dom';
 import { LMEvalKind } from '#~/k8sTypes';
 import { downloadString } from '#~/utilities/string';
 import { LMEvalState } from '#~/pages/lmEval/types';
@@ -18,7 +19,14 @@ const LMEvalTableRow: React.FC<LMEvalTableRowType> = ({ lmEval }) => {
   };
   return (
     <Tr>
-      <Td dataLabel="Evaluation">{lmEval.metadata.name}</Td>
+      <Td dataLabel="Evaluation">
+        <Link
+          data-testid={`lm-eval-link-${lmEval.metadata.name}`}
+          to={`/modelEvaluation/${lmEval.metadata.namespace}/${lmEval.metadata.name}`}
+        >
+          {getDisplayNameFromK8sResource(lmEval)}
+        </Link>
+      </Td>
       <Td dataLabel="Model">
         {lmEval.spec.modelArgs?.find((arg) => arg.name === 'model')?.value || '-'}
       </Td>
