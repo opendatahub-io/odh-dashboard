@@ -109,11 +109,12 @@ const TriggerTypeField: React.FC<TriggerTypeFieldProps> = ({ data, onChange }) =
             <DashboardHelpTooltip
               content={
                 <>
-                  Periodic: Run triggers at a given interval.
+                  The <strong>periodic</strong> type triggers the run at a regular interval, such as
+                  every 15 minutes.
                   <br />
                   <br />
-                  Cron: Run triggers at a specific time (one-time or repeated) based on a given Cron
-                  expression.
+                  The <strong>Cron</strong> type triggers the run at a specific time defined by a
+                  Cron expression. One-time and recurring schedules are supported.
                 </>
               }
             />
