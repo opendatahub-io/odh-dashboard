@@ -13,7 +13,43 @@ import {
   t_global_text_color_100 as BlackColor,
 } from '@patternfly/react-tokens';
 
-export type StatusType = 'pending' | 'in-progress' | 'success' | 'warning' | 'error';
+export enum StatusType {
+  PENDING = 'pending',
+  IN_PROGRESS = 'in-progress',
+  SUCCESS = 'success',
+  WARNING = 'warning',
+  ERROR = 'error',
+}
+
+type StatusConfig = {
+  icon: React.ComponentType<{ style?: React.CSSProperties; className?: string }>;
+  color: string;
+  className?: string;
+};
+
+const STATUS_CONFIG: Record<StatusType, StatusConfig> = {
+  [StatusType.PENDING]: {
+    icon: PendingIcon,
+    color: BlackColor.var,
+  },
+  [StatusType.IN_PROGRESS]: {
+    icon: InProgressIcon,
+    color: BlackColor.var,
+    className: 'odh-u-spin',
+  },
+  [StatusType.SUCCESS]: {
+    icon: CheckCircleIcon,
+    color: SuccessColor.var,
+  },
+  [StatusType.WARNING]: {
+    icon: ExclamationTriangleIcon,
+    color: WarningColor.var,
+  },
+  [StatusType.ERROR]: {
+    icon: ExclamationCircleIcon,
+    color: DangerColor.var,
+  },
+};
 
 type StatusIconProps = {
   status: StatusType;
@@ -21,22 +57,8 @@ type StatusIconProps = {
 };
 
 const K8sStatusIcon: React.FC<StatusIconProps> = ({ status, className }) => {
-  const getIcon = () => {
-    switch (status) {
-      case 'pending':
-        return <PendingIcon style={{ color: BlackColor.var }} />;
-      case 'in-progress':
-        return <InProgressIcon style={{ color: BlackColor.var }} className="odh-u-spin" />;
-      case 'success':
-        return <CheckCircleIcon style={{ color: SuccessColor.var }} />;
-      case 'warning':
-        return <ExclamationTriangleIcon style={{ color: WarningColor.var }} />;
-      case 'error':
-        return <ExclamationCircleIcon style={{ color: DangerColor.var }} />;
-      default:
-        return <PendingIcon style={{ color: BlackColor.var }} />;
-    }
-  };
+  const config = STATUS_CONFIG[status];
+  const IconComponent = config.icon;
 
   return (
     <span
@@ -44,7 +66,7 @@ const K8sStatusIcon: React.FC<StatusIconProps> = ({ status, className }) => {
       style={{ display: 'inline-flex', alignItems: 'center' }}
       title={status}
     >
-      {getIcon()}
+      <IconComponent style={{ color: config.color }} className={config.className} />
     </span>
   );
 };

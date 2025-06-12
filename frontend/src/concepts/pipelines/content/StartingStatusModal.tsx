@@ -102,7 +102,7 @@ const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose, cond
   const inProgressDesc = (
     <span data-testid="inProgressDescription">
       The pipeline server is currently being initialized. This process may take a few minutes.
-      Closing this dialog will not affect the pipeline server creation; this just shows the status.
+      Closing this dialog will not affect the pipeline server creation.
     </span>
   );
   return (
