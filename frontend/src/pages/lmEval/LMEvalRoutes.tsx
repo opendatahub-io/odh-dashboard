@@ -18,7 +18,7 @@ const LMEvalRoutes: React.FC = () => (
     >
       <Route index element={<LMEval />} />
       <Route path="evaluate" element={<LMEvalForm />} />
-      <Route path="result/:evaluationName" element={<LMEvalResult />} />
+      <Route path=":evaluationName" element={<LMEvalResult />} />
       <Route path="*" element={<Navigate to="." />} />
     </Route>
   </ProjectsRoutes>

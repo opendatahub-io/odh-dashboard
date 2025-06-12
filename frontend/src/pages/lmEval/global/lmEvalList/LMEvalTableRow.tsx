@@ -7,6 +7,7 @@ import { downloadString } from '#~/utilities/string';
 import { LMEvalState } from '#~/pages/lmEval/types';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils.ts';
 import LMEvalStatus from './LMEvalStatus';
+import { getLMEvalState } from './utils';
 
 type LMEvalTableRowType = {
   lmEval: LMEvalKind;
@@ -17,15 +18,20 @@ const LMEvalTableRow: React.FC<LMEvalTableRowType> = ({ lmEval }) => {
   const handleDownload = () => {
     downloadString(`${lmEval.metadata.name}.json`, lmEval.status?.results || '{}');
   };
+  const currentState = getLMEvalState(lmEval.status);
   return (
     <Tr>
       <Td dataLabel="Evaluation">
-        <Link
-          data-testid={`lm-eval-link-${lmEval.metadata.name}`}
-          to={`/modelEvaluation/${lmEval.metadata.namespace}/${lmEval.metadata.name}`}
-        >
-          {getDisplayNameFromK8sResource(lmEval)}
-        </Link>
+        {currentState === LMEvalState.COMPLETE ? (
+          <Link
+            data-testid={`lm-eval-link-${lmEval.metadata.name}`}
+            to={`/modelEvaluations/${lmEval.metadata.namespace}/${lmEval.metadata.name}`}
+          >
+            {getDisplayNameFromK8sResource(lmEval)}
+          </Link>
+        ) : (
+          getDisplayNameFromK8sResource(lmEval)
+        )}
       </Td>
       <Td dataLabel="Model">
         {lmEval.spec.modelArgs?.find((arg) => arg.name === 'model')?.value || '-'}
@@ -43,7 +49,7 @@ const LMEvalTableRow: React.FC<LMEvalTableRowType> = ({ lmEval }) => {
       <Td isActionCell>
         <ActionsColumn
           items={[
-            ...(lmEval.status?.state === LMEvalState.COMPLETE && lmEval.status.results
+            ...(currentState === LMEvalState.COMPLETE && lmEval.status?.results
               ? [{ title: 'Download JSON', itemKey: 'download-json', onClick: handleDownload }]
               : []),
             { title: 'Delete', itemKey: 'lm-eval-delete', onClick: () => onDeleteLMEval(lmEval) },
