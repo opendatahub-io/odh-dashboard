@@ -6,7 +6,7 @@ import {
   Deployment,
 } from '@odh-dashboard/model-serving/extension-points';
 import { useResolvedPlatformExtension } from '../../concepts/extensionUtils';
-import { ModelServingPlatform } from '../../concepts/modelServingPlatforms';
+import { ModelServingPlatform } from '../../concepts/useProjectServingPlatform';
 
 type DeleteModelServingModalProps = {
   onClose: (deleted: boolean) => void;
