@@ -112,7 +112,6 @@ export const mockInferenceServiceK8sResource = ({
   metadata: {
     annotations: {
       'openshift.io/display-name': displayName,
-      'serving.kserve.io/stop': 'false',
       'serving.kserve.io/deploymentMode': isModelMesh
         ? DeploymentMode.ModelMesh
         : isKserveRaw
