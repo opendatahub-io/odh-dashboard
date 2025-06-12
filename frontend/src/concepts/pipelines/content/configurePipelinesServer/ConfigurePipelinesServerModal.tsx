@@ -109,7 +109,7 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
             notification.info(`Waiting on pipeline server resources for ${pipelineNamespace}...`);
             const startTime = Date.now();
             registerNotification({
-              callbackDelay: FAST_POLL_INTERVAL,
+              callbackDelay: FAST_POLL_INTERVAL || 3000,
               callback: async (signal: AbortSignal) => {
                 try {
                   // check if polling for too long
