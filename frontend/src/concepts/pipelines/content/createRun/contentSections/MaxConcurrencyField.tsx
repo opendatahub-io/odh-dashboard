@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { FormGroup } from '@patternfly/react-core';
+import { FormGroup, FormHelperText, HelperText, HelperTextItem } from '@patternfly/react-core';
 import NumberInputWrapper from '#~/components/NumberInputWrapper';
 import DashboardHelpTooltip from '#~/concepts/dashboard/DashboardHelpTooltip';
 
@@ -14,7 +14,7 @@ const MaxConcurrencyField: React.FC<MaxConcurrencyFieldProps> = ({ onChange, val
     isRequired
     fieldId="maxConcurrency"
     labelHelp={
-      <DashboardHelpTooltip content="Specifies how many runs can be executed concurrently. Range [1-10]" />
+      <DashboardHelpTooltip content="Defines how many runs can be executed at the same time." />
     }
   >
     <NumberInputWrapper
@@ -24,6 +24,11 @@ const MaxConcurrencyField: React.FC<MaxConcurrencyFieldProps> = ({ onChange, val
       onChange={(newValue) => onChange(newValue ?? 0)}
       value={value}
     />
+    <FormHelperText>
+      <HelperText>
+        <HelperTextItem>Must be between 1 and 10, inclusive.</HelperTextItem>
+      </HelperText>
+    </FormHelperText>
   </FormGroup>
 );
 
