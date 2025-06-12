@@ -18,7 +18,7 @@ import {
   DEFAULT_PERIODIC_OPTION,
 } from '#~/concepts/pipelines/content/createRun/const';
 import NumberInputWrapper from '#~/components/NumberInputWrapper';
-import DashboardHelpTooltip from '#~/concepts/dashboard/DashboardHelpTooltip.tsx';
+import DashboardHelpTooltip from '#~/concepts/dashboard/DashboardHelpTooltip';
 import { extractNumberAndTimeUnit } from './utils';
 
 type TriggerTypeFieldProps = {
