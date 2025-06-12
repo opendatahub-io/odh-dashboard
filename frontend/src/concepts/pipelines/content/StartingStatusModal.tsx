@@ -20,21 +20,20 @@ import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { getStatusFromCondition } from '#~/concepts/pipelines/content/utils.tsx';
 import K8sStatusIcon from '#~/concepts/pipelines/content/K8sStatusIcon.tsx';
 import { K8sCondition } from '#~/k8sTypes.ts';
+import './StartingStatusModal.scss';
 
 const PROGRESS_TAB = 'Progress';
 const EVENT_LOG_TAB = 'Events log';
 
 const notReadySection = (
-  <div>
-    <p style={{ textAlign: 'center' }} />
+  <div className="pipeline-status-modal__not-ready-section">
+    <p />
     <div>
       This may take a while. You can close this modal and continue using the application. The
       pipeline server will be available when initialization is complete.
     </div>
   </div>
 );
-
-const CONTENT_HEIGHT = 470;
 
 type StartingStatusModalProps = {
   onClose: () => void;
@@ -44,7 +43,7 @@ type StartingStatusModalProps = {
 // because you can close and re-open this modal; and the 'status' tab only needs to show the current conditions;
 // but the 'event log' tab should show everything (from before the user opens the modal)
 // need to get the events from the parent that already/always exists.
-// (this component only exists when it is open): eslint rules do not allow this component to exist if it is not open
+// (this component only exists when it is open): eslint rules do not allow this component to exist if it not open
 const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose, conditionLog }) => {
   const { pipelinesServer } = usePipelinesAPI();
   const [activeTab, setActiveTab] = React.useState<string>(PROGRESS_TAB);
@@ -53,8 +52,8 @@ const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose, cond
   );
 
   const spinner = (
-    <div className="pf-v6-u-display-flex">
-      <div className="pf-v6-u-mr-md">Initializing Pipeline Server</div>
+    <div className="pipeline-status-modal__spinner-container">
+      <div className="pipeline-status-modal__spinner-text">Initializing Pipeline Server</div>
       <Spinner size="lg" />
     </div>
   );
@@ -67,8 +66,9 @@ const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose, cond
             const containerStatus = getStatusFromCondition(condition);
             return (
               <StackItem key={`${condition.type}-${index}`}>
-                <div>
-                  <K8sStatusIcon status={containerStatus} /> {condition.type}
+                <div className="pipeline-status-modal__status-item">
+                  <K8sStatusIcon status={containerStatus} />
+                  <span>{condition.type}</span>
                 </div>
               </StackItem>
             );
@@ -81,9 +81,9 @@ const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose, cond
   );
 
   const renderLogs = () => (
-    <Panel style={{ overflowY: 'auto', height: '100%' }}>
+    <Panel className="pipeline-status-modal__panel">
       <PanelMain>
-        <List isPlain isBordered data-id="event-logs">
+        <List isPlain isBordered data-testid="event-logs">
           {conditionLog.map((condition, index) => (
             <ListItem key={`pipeline-condition-${condition.type}-${index}`}>
               {condition.type}: {condition.status} - {condition.message || 'No message'}
@@ -102,7 +102,7 @@ const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose, cond
   const inProgressDesc = (
     <span data-testid="inProgressDescription">
       The pipeline server is currently being initialized. This process may take a few minutes.
-      Closing this dialog will not affect the pipeline server creation.
+      Closing this dialog will not affect the pipeline server creation; this just shows the status.
     </span>
   );
   return (
@@ -118,7 +118,7 @@ const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose, cond
         title={isServerReadyAndCompletelyDone ? 'Pipeline Server Initialized' : spinner}
         description={isServerReadyAndCompletelyDone ? successDesc : inProgressDesc}
       />
-      <ModalBody style={{ height: CONTENT_HEIGHT, overflowY: 'hidden' }}>
+      <ModalBody className="pipeline-status-modal__content">
         <Stack hasGutter>
           <StackItem>
             <Tabs
