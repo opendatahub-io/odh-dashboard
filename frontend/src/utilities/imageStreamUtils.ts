@@ -11,6 +11,72 @@ import {
 } from '#~/types';
 import { ImageStreamKind, ImageStreamSpecTagType, ImageStreamStatusTag } from '#~/k8sTypes';
 
+export const buildLabelSelector = (labels: Record<string, string> | string): string =>
+  typeof labels === 'string'
+    ? labels
+    : Object.entries(labels)
+        .map(([key, value]) => `${key}=${value}`)
+        .join(',');
+
+export const IMAGE_URL_REGEXP =
+  /^([\w.\-_]+(?::\d+|)(?=\/[a-z0-9._-]+\/[a-z0-9._-]+)|)(?:\/|)([a-z0-9.\-_]+(?:\/[a-z0-9.\-_]+|))(?::([\w.\-_]{1,127})|)/;
+
+export const parseImageURL = (
+  imageString: string,
+): {
+  fullURL: string;
+  host: string | undefined;
+  image: string | undefined;
+  tag: string | undefined;
+} => {
+  const trimmedString = imageString.trim();
+  const result = trimmedString.match(IMAGE_URL_REGEXP);
+  if (!result) {
+    return {
+      fullURL: trimmedString,
+      host: undefined,
+      image: undefined,
+      tag: undefined,
+    };
+  }
+  return {
+    fullURL: trimmedString,
+    host: result[1],
+    image: result[2],
+    tag: result[3],
+  };
+};
+
+export const findNameConflict = (
+  imageStreams: ImageStreamKind[],
+  displayName: string,
+  excludeName?: string,
+): ImageStreamKind | undefined =>
+  imageStreams.find(({ metadata }) => {
+    const name =
+      metadata.annotations?.[ImageStreamAnnotation.DISP_NAME] ??
+      metadata.annotations?.[DisplayNameAnnotation.DISP_NAME] ??
+      metadata.name;
+
+    return name === displayName && metadata.name !== excludeName;
+  });
+
+export const packagesToString = (packages: BYONImagePackage[]): string => {
+  if (packages.length > 0) {
+    let packageAsString = '[';
+    packages.forEach((value, index) => {
+      packageAsString = packageAsString + JSON.stringify(value);
+      if (index !== packages.length - 1) {
+        packageAsString = `${packageAsString},`;
+      } else {
+        packageAsString = `${packageAsString}]`;
+      }
+    });
+    return packageAsString;
+  }
+  return '[]';
+};
+
 export const mapImageStreamToBYONImage = (image: ImageStreamKind): BYONImage => {
   const { metadata, spec } = image;
   const annotations = metadata.annotations ?? {};

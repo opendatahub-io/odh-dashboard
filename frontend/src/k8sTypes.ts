@@ -102,6 +102,7 @@ type ImageStreamSpecTagAnnotations = Partial<{
   'opendatahub.io/default-image': string;
   'opendatahub.io/image-tag-outdated': string;
   'opendatahub.io/notebook-build-commit': string;
+  'openshift.io/imported-from': string;
 }>;
 
 export type NotebookAnnotations = Partial<{
