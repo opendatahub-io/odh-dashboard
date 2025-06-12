@@ -1,0 +1,30 @@
+.pipeline-status-modal {
+  &__content {
+    height: 470px;
+    overflow-y: hidden;
+  }
+
+  &__panel {
+    overflow-y: auto;
+    height: 100%;
+  }
+
+  &__spinner-container {
+    display: flex;
+    align-items: center;
+  }
+
+  &__spinner-text {
+    margin-right: 1rem;
+  }
+
+  &__not-ready-section {
+    text-align: center;
+  }
+
+  &__status-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+} 
