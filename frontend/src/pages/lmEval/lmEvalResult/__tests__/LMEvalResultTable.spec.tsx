@@ -47,8 +47,8 @@ describe('LMEvalResultTable', () => {
       expect(screen.getAllByText('hellaswag')).toHaveLength(2);
       expect(screen.getAllByText('arc_easy')).toHaveLength(2);
       expect(screen.getByText('winogrande')).toBeInTheDocument();
-      expect(screen.getAllByText('acc')).toHaveLength(3);
-      expect(screen.getAllByText('acc_norm')).toHaveLength(2);
+      expect(screen.getAllByText('acc,none')).toHaveLength(3);
+      expect(screen.getAllByText('acc_norm,none')).toHaveLength(2);
 
       // Verify formatted values (5 decimal places)
       ['0.85432', '0.76543', '0.91234', '0.89876', '0.73456'].forEach((value) => {
@@ -126,9 +126,11 @@ describe('LMEvalResultTable', () => {
       expect(screen.getAllByText('-')).toHaveLength(2); // Missing error values
 
       // Verify all tasks render even with missing fields
-      ['test_task', 'empty_task', 'valid_task'].forEach((task) => {
-        expect(screen.getByText(task)).toBeInTheDocument();
-      });
+      // Note: empty string task will render as empty cell, 'empty_task' is actually a metric name
+      expect(screen.getByText('test_task')).toBeInTheDocument();
+      expect(screen.getByText('valid_task')).toBeInTheDocument();
+      // The third task is empty string, so we check for the metric instead
+      expect(screen.getByText('empty_task,none')).toBeInTheDocument();
     });
 
     it('should handle zero values', () => {
