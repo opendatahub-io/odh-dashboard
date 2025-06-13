@@ -1,4 +1,4 @@
-import type { Extension, CodeRef } from '@openshift/dynamic-plugin-sdk';
+import type { Extension, CodeRef, ResolvedExtension } from '@openshift/dynamic-plugin-sdk';
 import type { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import type { NamespaceApplicationCase } from '@odh-dashboard/internal/pages/projects/types';
 import type { SortableData } from '@odh-dashboard/internal/components/table/types';
@@ -55,19 +55,11 @@ export type Deployment<
 export type ModelServingPlatformExtension<D extends Deployment = Deployment> = Extension<
   'model-serving.platform',
   {
-    id: string;
+    id: D['modelServingPlatformId'];
     manage: {
       namespaceApplicationCase: NamespaceApplicationCase;
       enabledLabel: string;
       enabledLabelValue: string;
-    };
-    deployments: {
-      watch: CodeRef<
-        (
-          project: ProjectKind,
-          opts?: K8sAPIOptions,
-        ) => [D[] | undefined, boolean, Error | undefined]
-      >;
     };
     enableCardText: {
       title: string;
@@ -82,9 +74,29 @@ export type ModelServingPlatformExtension<D extends Deployment = Deployment> = E
     };
   }
 >;
-export const isModelServingPlatformExtension = (
+export const isModelServingPlatformExtension = <D extends Deployment = Deployment>(
   extension: Extension,
-): extension is ModelServingPlatformExtension => extension.type === 'model-serving.platform';
+): extension is ModelServingPlatformExtension<D> => extension.type === 'model-serving.platform';
+
+export type ModelServingPlatformWatchDeployments =
+  ResolvedExtension<ModelServingPlatformWatchDeploymentsExtension>;
+export type ModelServingPlatformWatchDeploymentsExtension<D extends Deployment = Deployment> =
+  Extension<
+    'model-serving.platform/watch-deployments',
+    {
+      platform: D['modelServingPlatformId'];
+      watch: CodeRef<
+        (
+          project: ProjectKind,
+          opts?: K8sAPIOptions,
+        ) => [D[] | undefined, boolean, Error | undefined]
+      >;
+    }
+  >;
+export const isModelServingPlatformWatchDeployments = <D extends Deployment = Deployment>(
+  extension: Extension,
+): extension is ModelServingPlatformWatchDeploymentsExtension<D> =>
+  extension.type === 'model-serving.platform/watch-deployments';
 
 // Model serving deployments table extension
 
@@ -95,7 +107,7 @@ export type DeploymentsTableColumn<D extends Deployment = Deployment> = Sortable
 export type ModelServingDeploymentsTableExtension<D extends Deployment = Deployment> = Extension<
   'model-serving.deployments-table',
   {
-    platform: string;
+    platform: D['modelServingPlatformId'];
     columns: CodeRef<() => DeploymentsTableColumn<D>[]>;
   }
 >;
@@ -107,7 +119,7 @@ export const isModelServingDeploymentsTableExtension = <D extends Deployment = D
 export type ModelServingDeleteModal<D extends Deployment = Deployment> = Extension<
   'model-serving.platform/delete-modal',
   {
-    platform: string;
+    platform: D['modelServingPlatformId'];
     onDelete: CodeRef<(deployment: D) => Promise<void>>;
     title: string;
     submitButtonLabel: string;
