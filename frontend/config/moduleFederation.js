@@ -46,7 +46,7 @@ const getModuleFederationConfig = () => {
     try {
       return JSON.parse(process.env.MODULE_FEDERATION_CONFIG);
     } catch (e) {
-      console.log.error('Failed to parse module federation config from ENV', e);
+      console.error('Failed to parse module federation config from ENV', e);
     }
   } else {
     // read the module federation config from the workspace packages
