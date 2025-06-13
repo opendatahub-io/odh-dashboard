@@ -6,7 +6,6 @@ export * from './k8s/auth';
 export * from './k8s/builds';
 export * from './k8s/configMaps';
 export * from './k8s/events';
-export * from './k8s/imageStreams';
 export * from './k8s/inferenceServices';
 export * from './k8s/notebooks';
 export * from './k8s/pods';

@@ -247,16 +247,21 @@ export type ImageStreamKind = K8sResourceCommon & {
   };
   spec: {
     tags?: ImageStreamSpecTagType[];
+    lookupPolicy?: {
+      local: boolean;
+    };
   };
   status?: {
     dockerImageRepository?: string;
     publicDockerImageRepository?: string;
-    tags?: {
-      tag: string;
-      items: ImageStreamStatusTagItem[] | null;
-      conditions?: ImageStreamStatusTagCondition[];
-    }[];
+    tags?: ImageStreamStatusTag[];
   };
+};
+
+export type ImageStreamStatusTag = {
+  tag: string;
+  items: ImageStreamStatusTagItem[] | null;
+  conditions?: ImageStreamStatusTagCondition[];
 };
 
 export type ImageStreamSpecTagType = {

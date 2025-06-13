@@ -18,6 +18,7 @@ import {
   DEFAULT_PERIODIC_OPTION,
 } from '#~/concepts/pipelines/content/createRun/const';
 import NumberInputWrapper from '#~/components/NumberInputWrapper';
+import DashboardHelpTooltip from '#~/concepts/dashboard/DashboardHelpTooltip';
 import { extractNumberAndTimeUnit } from './utils';
 
 type TriggerTypeFieldProps = {
@@ -102,7 +103,23 @@ const TriggerTypeField: React.FC<TriggerTypeFieldProps> = ({ data, onChange }) =
   return (
     <Stack hasGutter>
       <StackItem>
-        <FormGroup label="Trigger type">
+        <FormGroup
+          label="Trigger type"
+          labelHelp={
+            <DashboardHelpTooltip
+              content={
+                <>
+                  The <strong>periodic</strong> type triggers the run at a regular interval, such as
+                  every 15 minutes.
+                  <br />
+                  <br />
+                  The <strong>Cron</strong> type triggers the run at a specific time defined by a
+                  Cron expression. One-time and recurring schedules are supported.
+                </>
+              }
+            />
+          }
+        >
           <SimpleSelect
             dataTestId="triggerTypeSelector"
             isFullWidth
