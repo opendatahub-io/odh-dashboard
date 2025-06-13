@@ -71,7 +71,7 @@ const mockUseSearchParams = (queryFlags: { [key in string]: boolean } | null | b
 };
 
 const renderOptions = (): RenderOptions => {
-  const store = new PluginStore([]);
+  const store = new PluginStore({});
   return {
     wrapper: ({ children }) => <PluginStoreProvider store={store}>{children}</PluginStoreProvider>,
   };

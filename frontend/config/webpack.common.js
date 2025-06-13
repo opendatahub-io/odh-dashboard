@@ -5,6 +5,7 @@ const CopyPlugin = require('copy-webpack-plugin');
 const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
 const { moduleFederationPlugins } = require('./moduleFederation');
 const { setupWebpackDotenvFilesForEnv } = require('./dotenv');
+const GenerateExtensionsPlugin = require('./generateExtensionsPlugin');
 
 const RELATIVE_DIRNAME = process.env._ODH_RELATIVE_DIRNAME;
 const IS_PROJECT_ROOT_DIR = process.env._ODH_IS_PROJECT_ROOT_DIR;
@@ -177,6 +178,10 @@ module.exports = (env) => ({
     chunkFilename: '[name]-[chunkhash].js',
   },
   plugins: [
+    // Generate extensions file before compilation
+    new GenerateExtensionsPlugin({
+      targetFile: path.join(SRC_DIR, 'plugins', 'plugin-extensions.ts'),
+    }),
     ...setupWebpackDotenvFilesForEnv({
       directory: RELATIVE_DIRNAME,
       isRoot: IS_PROJECT_ROOT_DIR,
