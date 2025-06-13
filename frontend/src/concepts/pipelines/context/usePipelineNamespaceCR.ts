@@ -14,14 +14,20 @@ export const dspaLoaded = ([state, loaded]: FetchStateWithStarting<State>): bool
   !!state &&
   !!state.status?.conditions?.find((c) => c.type === 'APIServerReady' && c.status === 'True');
 
+export const isDspaAllReady = (state: State): boolean =>
+  loaded &&
+  !!state &&
+  !!state.status?.conditions?.find((c) => c.type === 'Ready' && c.status === 'True');
+
 export const hasServerTimedOut = (
-  [state, loaded]: FetchStateWithStarting<State>,
+  [state, loaded]: FetchState<State>,
   isDspaLoaded: boolean,
 ): boolean => {
   if (!state || !loaded || isDspaLoaded) {
     return false;
   }
 
+  console.log('29a: state', state);
   const createTime = state.metadata.creationTimestamp;
   if (!createTime) {
     return false;
