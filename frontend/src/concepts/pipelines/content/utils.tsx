@@ -16,7 +16,9 @@ import {
   RuntimeStateKF,
   runtimeStateLabels,
 } from '#~/concepts/pipelines/kfTypes';
-import { relativeTime } from '#~/utilities/time';
+import { getTimeRangeCategory, relativeTime } from '#~/utilities/time';
+import { StatusType } from '#~/concepts/pipelines/content/K8sStatusIcon.tsx';
+import { K8sCondition } from '#~/k8sTypes.ts';
 
 export type RunStatusDetails = {
   icon: React.ReactNode;
@@ -107,3 +109,25 @@ export const isPipelineRun = (resource: PipelineCoreResourceKF): resource is Pip
 export const isPipelineRecurringRun = (
   resource: PipelineCoreResourceKF,
 ): resource is PipelineRecurringRunKF => 'recurring_run_id' in resource && !('run_id' in resource);
+
+export const getStatusFromCondition = (condition: K8sCondition): StatusType => {
+  const { reason, status, lastTransitionTime } = condition;
+  if (reason === 'Deploying' && status === 'False') {
+    return StatusType.PENDING;
+  }
+  if (status === 'True') {
+    return StatusType.SUCCESS;
+  }
+  if (reason === 'FailingToDeploy') {
+    const rangeType = getTimeRangeCategory(lastTransitionTime);
+    switch (rangeType) {
+      case 'shortRange':
+        return StatusType.PENDING;
+      case 'mediumRange':
+        return StatusType.WARNING;
+      case 'longRange':
+        return StatusType.ERROR;
+    }
+  }
+  return StatusType.PENDING;
+};
