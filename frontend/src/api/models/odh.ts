@@ -60,5 +60,5 @@ export const LMEvalModel: K8sModelCommon = {
   apiVersion: 'v1alpha1',
   apiGroup: 'trustyai.opendatahub.io',
   kind: 'LMEvalJob',
-  plural: 'lmevaluations',
+  plural: 'lmevaljobs',
 };

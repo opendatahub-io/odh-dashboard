@@ -1,8 +1,9 @@
-import { LMEvaluationKind } from '#~/k8sTypes';
+import { LMEvalKind } from '#~/k8sTypes';
 
 type MockLMEvaluationConfigType = {
   name?: string;
   namespace?: string;
+  creationTimestamp?: string;
   model?: string;
   taskNames?: string[];
   batchSize?: string;
@@ -10,7 +11,7 @@ type MockLMEvaluationConfigType = {
   allowCodeExecution?: boolean;
   allowOnline?: boolean;
   logSamples?: boolean;
-  modelArgs?: string[];
+  modelArgs?: { name: string; value: string }[];
   state?: string;
   message?: string;
   reason?: string;
@@ -20,18 +21,18 @@ type MockLMEvaluationConfigType = {
   lastScheduleTime?: string;
 };
 
-export const mockLMEvaluation = (config: MockLMEvaluationConfigType = {}): LMEvaluationKind => {
+export const mockLMEvaluation = (config: MockLMEvaluationConfigType = {}): LMEvalKind => {
   const {
     name = 'test-lm-evaluation',
     namespace = 'test-project',
+    creationTimestamp = '2024-01-15T10:00:00Z',
     model = 'test-model',
     taskNames = ['mmlu', 'hellaswag'],
     batchSize = '8',
-    timeout = 3600,
     allowCodeExecution = false,
     allowOnline = false,
     logSamples = false,
-    modelArgs = [],
+    modelArgs = [{ name: 'model', value: 'test-model' }],
     state = 'Pending',
     message = 'Evaluation is pending',
     reason = 'EvaluationPending',
@@ -55,6 +56,7 @@ export const mockLMEvaluation = (config: MockLMEvaluationConfigType = {}): LMEva
     metadata: {
       name,
       namespace,
+      creationTimestamp,
     },
     spec: {
       model,
@@ -62,7 +64,6 @@ export const mockLMEvaluation = (config: MockLMEvaluationConfigType = {}): LMEva
         taskNames,
       },
       batchSize,
-      timeout,
       allowCodeExecution,
       allowOnline,
       logSamples,
