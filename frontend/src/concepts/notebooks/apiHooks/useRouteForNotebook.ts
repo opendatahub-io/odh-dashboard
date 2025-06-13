@@ -56,7 +56,7 @@ const useRouteForNotebook = (
   };
 
   const { data, error } = useFetch<NotebookRouteState>(fetchRoute, initialState, {
-    refreshRate: pollInterval || undefined,
+    refreshRate: pollInterval,
     initialPromisePurity: true,
   });
 

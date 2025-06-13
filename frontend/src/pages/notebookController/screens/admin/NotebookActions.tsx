@@ -13,7 +13,7 @@ const NotebookActions: React.FC<ServerStatusProps> = ({ data }) => {
   const notebookToStop = data.notebook || null;
   const notebooksToStop = notebookToStop ? [notebookToStop] : [];
 
-  const [notebookLink, notebookLinkLoaded, notebookLinkError] = useRouteForNotebook(
+  const [notebookLink, , notebookLinkError] = useRouteForNotebook(
     notebookToStop?.metadata.name,
     notebookToStop?.metadata.namespace,
   );
@@ -41,7 +41,7 @@ const NotebookActions: React.FC<ServerStatusProps> = ({ data }) => {
   return (
     <>
       <ActionsColumn items={rowActions} />
-      {showModal && notebookLinkLoaded && (
+      {showModal && (
         <StopServerModal
           notebooksToStop={notebooksToStop}
           link={!!notebookLinkError || !notebookLink ? undefined : notebookLink}

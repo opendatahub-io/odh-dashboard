@@ -22,7 +22,7 @@ const StopAllServersButton: React.FC<StopAllServersButtonProps> = ({ users }) =>
     .filter((notebook): notebook is Notebook => !!notebook);
 
   // if there is only one notebook to stop
-  const [routeLink, loaded, loadError] = useRouteForNotebook(
+  const [routeLink, , loadError] = useRouteForNotebook(
     notebooksToStop[0]?.metadata.name,
     notebooksToStop[0]?.metadata.namespace,
   );
@@ -49,7 +49,7 @@ const StopAllServersButton: React.FC<StopAllServersButtonProps> = ({ users }) =>
       >
         Stop all workbenches ({serverCount})
       </Button>
-      {showModal && loaded && (
+      {showModal && (
         <StopServerModal
           notebooksToStop={notebooksToStop}
           link={!!loadError || !routeLink ? undefined : routeLink}
