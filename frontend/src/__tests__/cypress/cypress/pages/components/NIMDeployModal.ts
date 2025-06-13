@@ -9,6 +9,10 @@ class NIMDeployModal extends Modal {
     return this.findFooter().findByTestId('modal-submit-button');
   }
 
+  findCancelButton() {
+    return this.findFooter().findByTestId('modal-cancel-button');
+  }
+
   findModelNameInput() {
     return this.find().findByTestId('model-deployment-name-section');
   }
@@ -19,6 +23,10 @@ class NIMDeployModal extends Modal {
 
   findNimStorageSizeInput() {
     return cy.get('[data-testid="pvc-size"] input');
+  }
+
+  findNimStorageSizeUnitSelect() {
+    return this.find().findByTestId('pvc-size').findByTestId('value-unit-select');
   }
 
   findStorageSizeMinusButton() {
