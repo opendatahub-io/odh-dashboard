@@ -125,6 +125,35 @@ describe('Pipeline create runs', () => {
   });
 
   describe('Runs', () => {
+    it('should show create experiment button in dropdown', () => {
+      pipelineRunsGlobal.visit(projectName);
+
+      // Mock experiments for the dropdown
+      createRunPage.mockGetExperiments(projectName, mockExperiments);
+
+      // Navigate to the 'Create run' page
+      pipelineRunsGlobal.findCreateRunButton().click();
+      verifyRelativeURL(`/pipelineRuns/${projectName}/runs/create`);
+
+      // Wait for the page to be loaded
+      createRunPage.find();
+
+      // Wait for the experiment selector to be loaded and enabled
+      createRunPage.experimentSelect
+        .findToggleButton()
+        .should('exist')
+        .and('be.visible')
+        .and('not.be.disabled')
+        .click();
+
+      // Verify the create button exists in the dropdown with correct text and icon
+      cy.findByRole('button', { name: 'Create new experiment' })
+        .should('exist')
+        .and('be.visible')
+        .find('svg')
+        .should('exist');
+    });
+
     it('switches to scheduled runs from triggered', () => {
       pipelineRunsGlobal.visit(projectName);
 
