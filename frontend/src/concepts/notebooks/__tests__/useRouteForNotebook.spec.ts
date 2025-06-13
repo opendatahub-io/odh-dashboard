@@ -1,6 +1,6 @@
 import { testHook } from '#~/__tests__/unit/testUtils/hooks';
 import { getRoute } from '#~/api';
-import useRouteForNotebook from '#~/pages/notebookController/screens/admin/useRouteForNotebook';
+import useRouteForNotebook from '#~/concepts/notebooks/apiHooks/useRouteForNotebook';
 
 jest.mock('#~/api', () => ({
   getRoute: jest.fn(),
@@ -27,7 +27,9 @@ describe('useRouteForNotebook', () => {
       Error | null,
     ];
 
-    expect(getRoute).toHaveBeenCalledWith('test-notebook', 'test-project');
+    expect(getRoute).toHaveBeenCalledWith('test-notebook', 'test-project', {
+      signal: expect.any(AbortSignal),
+    });
     expect(route).toBe('https://example.com/notebook/test-project/test-notebook');
     expect(loaded).toBe(true);
     expect(loadError).toBeNull();
@@ -45,7 +47,9 @@ describe('useRouteForNotebook', () => {
       boolean,
       Error | null,
     ];
-    expect(getRoute).toHaveBeenCalledWith('test-notebook', 'test-project');
+    expect(getRoute).toHaveBeenCalledWith('test-notebook', 'test-project', {
+      signal: expect.any(AbortSignal),
+    });
     expect(loadError).toBe(errorObj);
     expect(route).toBeNull();
     expect(loaded).toBe(false);

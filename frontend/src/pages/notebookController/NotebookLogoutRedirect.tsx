@@ -3,8 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { getNotebook } from '#~/services/notebookService';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import useNotification from '#~/utilities/useNotification';
-import useRouteForNotebook from '#~/pages/projects/notebook/useRouteForNotebook';
+import useRouteForNotebook from '#~/concepts/notebooks/apiHooks/useRouteForNotebook';
 import { getRoute } from '#~/services/routeService';
+import { FAST_POLL_INTERVAL } from '#~/utilities/const';
 import useNamespaces from './useNamespaces';
 
 const NotebookLogoutRedirect: React.FC = () => {
@@ -12,7 +13,12 @@ const NotebookLogoutRedirect: React.FC = () => {
   const notification = useNotification();
   const navigate = useNavigate();
   const { notebookNamespace } = useNamespaces();
-  const [routeLink, loaded, error] = useRouteForNotebook(notebookName, namespace, true);
+  const [routeLink, loaded, error] = useRouteForNotebook(
+    notebookName,
+    namespace,
+    true,
+    FAST_POLL_INTERVAL,
+  );
 
   React.useEffect(() => {
     let cancelled = false;

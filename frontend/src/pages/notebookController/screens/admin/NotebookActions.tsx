@@ -2,8 +2,8 @@ import * as React from 'react';
 import { ActionsColumn, IAction } from '@patternfly/react-table';
 import StopServerModal from '#~/pages/notebookController/screens/server/StopServerModal';
 import { useStopWorkbenchModal } from '#~/concepts/notebooks/useStopWorkbenchModal';
+import useRouteForNotebook from '#~/concepts/notebooks/apiHooks/useRouteForNotebook';
 import { AdminViewUserData } from './types';
-import useRouteForNotebook from './useRouteForNotebook';
 
 type ServerStatusProps = {
   data: AdminViewUserData['actions'];
