@@ -1,6 +1,5 @@
 import * as React from 'react';
 import {
-  Breadcrumb,
   BreadcrumbItem,
   EmptyState,
   EmptyStateVariant,
@@ -34,6 +33,7 @@ import { isPipelineRunRegistered } from '#~/concepts/pipelines/content/tables/pi
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import PipelineContextBreadcrumb from '#~/concepts/pipelines/content/PipelineContextBreadcrumb';
 import { usePipelineRunArtifacts } from './artifacts';
 import { PipelineRunDetailsTabs } from './PipelineRunDetailsTabs';
 
@@ -138,16 +138,12 @@ const PipelineRunDetails: React.FC<
         }
         loaded={loaded}
         breadcrumb={
-          <Breadcrumb>
+          <PipelineContextBreadcrumb>
             {breadcrumbPath}
             <BreadcrumbItem isActive style={{ maxWidth: 300 }}>
-              {/* TODO: Remove the custom className after upgrading to PFv6 */}
-              <Truncate
-                content={run?.display_name ?? 'Loading...'}
-                className="truncate-no-min-width"
-              />
+              <Truncate content={run?.display_name ?? 'Loading...'} />
             </BreadcrumbItem>
-          </Breadcrumb>
+          </PipelineContextBreadcrumb>
         }
         headerAction={
           <PipelineRunDetailsActions

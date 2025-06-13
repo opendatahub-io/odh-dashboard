@@ -202,6 +202,10 @@ describe('Pipeline topology', () => {
       pipelineDetails.visit(projectId, mockVersion.pipeline_id, mockVersion.pipeline_version_id);
     });
     describe('Navigation', () => {
+      it('renders the project navigator link', () => {
+        pipelineDetails.findProjectNavigatorLink().should('exist');
+      });
+
       it('Test pipeline details create run navigation', () => {
         pipelineDetails.selectActionDropdownItem('Create run');
         verifyRelativeURL(`/pipelineRuns/${projectId}/runs/create`);
@@ -332,6 +336,11 @@ describe('Pipeline topology', () => {
     describe('Navigation', () => {
       beforeEach(() => {
         initIntercepts();
+      });
+
+      it('renders the project navigator link', () => {
+        pipelineRunDetails.visit(projectId, mockRun.run_id);
+        pipelineRunDetails.findProjectNavigatorLink().should('exist');
       });
 
       it('Test pipeline run duplicate navigation', () => {
@@ -512,6 +521,11 @@ describe('Pipeline topology', () => {
 
     beforeEach(() => {
       initIntercepts();
+    });
+
+    it('renders the project navigator link', () => {
+      pipelineRecurringRunDetails.visit(projectId, mockRecurringRun.recurring_run_id);
+      pipelineRecurringRunDetails.findProjectNavigatorLink().should('exist');
     });
 
     it('disables recurring run from action dropdown', () => {
