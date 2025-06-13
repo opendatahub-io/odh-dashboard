@@ -1242,6 +1242,7 @@ export type DashboardCommonConfig = {
   disableFineTuning: boolean;
   disableLlamaStackChatBot: boolean;
   disableLMEval: boolean;
+  disableKueue: boolean;
 };
 
 export type DashboardConfigKind = K8sResourceCommon & {
