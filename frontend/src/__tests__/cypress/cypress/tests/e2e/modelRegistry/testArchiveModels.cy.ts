@@ -38,20 +38,22 @@ describe('Verify that models and versions can be archived and restored via model
 
   before(() => {
     cy.step('Load test data from fixture');
-    loadRegisterModelFixture('e2e/modelRegistry/testRegisterModel.yaml').then((fixtureData) => {
-      testData = fixtureData;
-      registryName = `${testData.registryNamePrefix}-${uuid}`;
+    return loadRegisterModelFixture('e2e/modelRegistry/testRegisterModel.yaml').then(
+      (fixtureData) => {
+        testData = fixtureData;
+        registryName = `${testData.registryNamePrefix}-${uuid}`;
 
-      // creates a model registry
-      cy.step('Create a model registry using YAML');
-      createModelRegistryViaYAML(registryName);
+        // creates a model registry
+        cy.step('Create a model registry using YAML');
+        createModelRegistryViaYAML(registryName);
 
-      cy.step('Verify model registry is created');
-      checkModelRegistry(registryName).should('be.true');
+        cy.step('Verify model registry is created');
+        checkModelRegistry(registryName).should('be.true');
 
-      cy.step('Wait for model registry to be in Available state');
-      checkModelRegistryAvailable(registryName).should('be.true');
-    });
+        cy.step('Wait for model registry to be in Available state');
+        checkModelRegistryAvailable(registryName).should('be.true');
+      },
+    );
   });
 
   retryableBeforeEach(() => {
