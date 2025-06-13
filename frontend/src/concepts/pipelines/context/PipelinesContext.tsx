@@ -21,7 +21,11 @@ import { MetadataStoreServicePromiseClient } from '#~/third_party/mlmd';
 import { getGenericErrorCode } from '#~/api';
 import UnauthorizedError from '#~/pages/UnauthorizedError';
 import usePipelineAPIState, { PipelineAPIState } from './usePipelineAPIState';
-import usePipelineNamespaceCR, { dspaLoaded, hasServerTimedOut } from './usePipelineNamespaceCR';
+import usePipelineNamespaceCR, {
+  dspaLoaded,
+  hasServerTimedOut,
+  isDspaAllReady,
+} from './usePipelineNamespaceCR';
 import usePipelinesAPIRoute from './usePipelinesAPIRoute';
 import useRecurringRunRelatedInformation from './useRecurringRunRelatedInformation';
 
@@ -46,6 +50,7 @@ type PipelineContext = {
   metadataStoreServiceClient: MetadataStoreServicePromiseClient;
   managedPipelines: DSPipelineManagedPipelinesKind | undefined;
   isStarting?: boolean;
+  finishedLoading?: boolean;
 };
 
 const PipelinesContext = React.createContext<PipelineContext>({
@@ -89,9 +94,16 @@ export const PipelineContextProvider = conditionalArea<PipelineContextProviderPr
 
   const state = usePipelineNamespaceCR(namespace);
   const [pipelineNamespaceCR, crLoaded, crLoadError, refreshCR, isStarting] = state;
-  console.log('44a: is crLoaded???', crLoaded);
+  console.log('44a: is crLoaded???/namespace', crLoaded, pipelineNamespaceCR);
+
+  const isResourceLoaded = crLoaded && !!pipelineNamespaceCR;
+  const isAllLoaded = isDspaAllReady(state);
+  const isStartingLocal = isResourceLoaded && !isAllLoaded;
+  console.log('89a: is starting (new here!)??', isStartingLocal, isAllLoaded, isResourceLoaded);
 
   const isCRReady = dspaLoaded(state);
+  const isCRAllLoadedAndReady = isDspaAllReady(state);
+
   const [disableTimeout, setDisableTimeout] = React.useState(false);
   const serverTimedOut = !disableTimeout && hasServerTimedOut(state, isCRReady);
   const ignoreTimedOut = React.useCallback(() => {
@@ -165,6 +177,7 @@ export const PipelineContextProvider = conditionalArea<PipelineContextProviderPr
         metadataStoreServiceClient,
         managedPipelines: pipelineNamespaceCR?.spec.apiServer?.managedPipelines,
         isStarting,
+        finishedLoading: isDspaAllReady,
       }}
     >
       {children}
