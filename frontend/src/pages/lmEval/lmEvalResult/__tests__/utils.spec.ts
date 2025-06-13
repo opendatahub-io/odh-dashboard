@@ -1,114 +1,169 @@
+/* eslint-disable camelcase */
 import { parseEvaluationResults } from '#~/pages/lmEval/lmEvalResult/utils';
 import { EvaluationResult } from '#~/pages/lmEval/lmEvalResult/LMEvalResultTable';
 
 describe('parseEvaluationResults', () => {
   const stringifyResults = (data: unknown): string => JSON.stringify(data);
+
   const validResultsData = {
-    task1: {
-      metric1: { value: 0.85, stderr: 0.02 },
-      metric2: { value: 0.73 },
-    },
-    task2: {
-      metric1: { value: 0.91, stderr: 0.01 },
+    results: {
+      arc_challenge: {
+        alias: 'arc_challenge',
+        'acc,none': 0.25,
+        'acc_stderr,none': 0.012653835621466646,
+        'acc_norm,none': 0.2832764505119454,
+        'acc_norm_stderr,none': 0.013167478735134576,
+      },
+      arc_easy: {
+        alias: 'arc_easy',
+        'acc,none': 0.24031986531986532,
+        'acc_stderr,none': 0.008767553284156914,
+        'acc_norm,none': 0.24537037037037038,
+        'acc_norm_stderr,none': 0.008829704691126152,
+      },
     },
   };
+
   const expectedValidResults: EvaluationResult[] = [
-    { task: 'task1', metric: 'metric1', value: 0.85, error: 0.02 },
-    { task: 'task1', metric: 'metric2', value: 0.73, error: undefined },
-    { task: 'task2', metric: 'metric1', value: 0.91, error: 0.01 },
+    { task: 'arc_challenge', metric: 'acc,none', value: 0.25, error: 0.012653835621466646 },
+    {
+      task: 'arc_challenge',
+      metric: 'acc_norm,none',
+      value: 0.2832764505119454,
+      error: 0.013167478735134576,
+    },
+    {
+      task: 'arc_easy',
+      metric: 'acc,none',
+      value: 0.24031986531986532,
+      error: 0.008767553284156914,
+    },
+    {
+      task: 'arc_easy',
+      metric: 'acc_norm,none',
+      value: 0.24537037037037038,
+      error: 0.008829704691126152,
+    },
   ];
 
   describe('valid input parsing', () => {
-    it('should parse evaluation results with value field', () => {
+    it('should parse evaluation results with the new data structure', () => {
       const result = parseEvaluationResults(stringifyResults(validResultsData));
       expect(result).toEqual(expectedValidResults);
     });
 
-    it('should parse evaluation results with score field', () => {
-      const scoreData = {
-        task1: {
-          accuracy: { score: 0.95, error: 0.005 },
+    it('should use alias as task name when available', () => {
+      const aliasData = {
+        results: {
+          task_key: {
+            alias: 'Task Display Name',
+            'metric,none': 0.85,
+            'metric_stderr,none': 0.02,
+          },
         },
       };
       const expected: EvaluationResult[] = [
-        { task: 'task1', metric: 'accuracy', value: 0.95, error: 0.005 },
+        { task: 'Task Display Name', metric: 'metric,none', value: 0.85, error: 0.02 },
       ];
 
-      const result = parseEvaluationResults(stringifyResults(scoreData));
+      const result = parseEvaluationResults(stringifyResults(aliasData));
+      expect(result).toEqual(expected);
+    });
+
+    it('should fall back to task key when alias is not available', () => {
+      const noAliasData = {
+        results: {
+          task_key: {
+            'metric,none': 0.85,
+            'metric_stderr,none': 0.02,
+          },
+        },
+      };
+      const expected: EvaluationResult[] = [
+        { task: 'task_key', metric: 'metric,none', value: 0.85, error: 0.02 },
+      ];
+
+      const result = parseEvaluationResults(stringifyResults(noAliasData));
       expect(result).toEqual(expected);
     });
 
     it('should handle results with no error values', () => {
       const noErrorData = {
-        task1: {
-          metric1: { value: 0.85 },
-          metric2: { score: 0.73 },
+        results: {
+          task1: {
+            alias: 'Task 1',
+            'metric1,none': 0.85,
+            'metric2,none': 0.73,
+          },
         },
       };
       const expected: EvaluationResult[] = [
-        { task: 'task1', metric: 'metric1', value: 0.85, error: undefined },
-        { task: 'task1', metric: 'metric2', value: 0.73, error: undefined },
+        { task: 'Task 1', metric: 'metric1,none', value: 0.85, error: undefined },
+        { task: 'Task 1', metric: 'metric2,none', value: 0.73, error: undefined },
       ];
 
       const result = parseEvaluationResults(stringifyResults(noErrorData));
       expect(result).toEqual(expected);
     });
 
-    it('should convert string error values to numbers and prioritize stderr', () => {
-      const stringErrorData = {
-        task1: {
-          metric1: {
-            value: 0.85,
-            stderr: '0.02',
-            error: '0.03',
+    it('should handle mixed metrics with and without stderr', () => {
+      const mixedData = {
+        results: {
+          task1: {
+            alias: 'Task 1',
+            'metric_with_error,none': 0.85,
+            'metric_with_error_stderr,none': 0.02,
+            'metric_without_error,none': 0.73,
           },
         },
       };
+      const expected: EvaluationResult[] = [
+        { task: 'Task 1', metric: 'metric_with_error,none', value: 0.85, error: 0.02 },
+        { task: 'Task 1', metric: 'metric_without_error,none', value: 0.73, error: undefined },
+      ];
 
-      const result = parseEvaluationResults(stringifyResults(stringErrorData));
-      expect(result).toHaveLength(1);
-      expect(result[0]).toEqual({
-        task: 'task1',
-        metric: 'metric1',
-        value: 0.85,
-        error: 0.02,
-      });
+      const result = parseEvaluationResults(stringifyResults(mixedData));
+      expect(result).toEqual(expected);
     });
   });
 
   describe('invalid data handling', () => {
     it('should handle invalid value types by defaulting to 0', () => {
       const invalidValueData = {
-        task1: {
-          metric1: { value: 'invalid' },
-          metric2: { score: null },
-          metric3: {},
+        results: {
+          task1: {
+            alias: 'Task 1',
+            'metric1,none': 'invalid',
+            'metric2,none': null,
+          },
         },
       };
       const expected: EvaluationResult[] = [
-        { task: 'task1', metric: 'metric1', value: 0, error: undefined },
-        { task: 'task1', metric: 'metric2', value: 0, error: undefined },
-        { task: 'task1', metric: 'metric3', value: 0, error: undefined },
+        { task: 'Task 1', metric: 'metric1,none', value: 0, error: undefined },
+        { task: 'Task 1', metric: 'metric2,none', value: 0, error: undefined },
       ];
 
       const result = parseEvaluationResults(stringifyResults(invalidValueData));
       expect(result).toEqual(expected);
     });
 
-    it('should skip invalid task or metric structures', () => {
+    it('should skip invalid task structures', () => {
       const mixedValidData = {
-        validTask: {
-          validMetric: { value: 0.85 },
-        },
-        invalidTask: 'not an object',
-        anotherValidTask: {
-          validMetric: { score: 0.75 },
-          invalidMetric: 'not an object',
+        results: {
+          validTask: {
+            alias: 'Valid Task',
+            'metric,none': 0.85,
+          },
+          invalidTask: 'not an object',
+          anotherValidTask: {
+            alias: 'Another Valid Task',
+            'metric,none': 0.75,
+          },
         },
       };
       const expected: EvaluationResult[] = [
-        { task: 'validTask', metric: 'validMetric', value: 0.85, error: undefined },
-        { task: 'anotherValidTask', metric: 'validMetric', value: 0.75, error: undefined },
+        { task: 'Valid Task', metric: 'metric,none', value: 0.85, error: undefined },
+        { task: 'Another Valid Task', metric: 'metric,none', value: 0.75, error: undefined },
       ];
 
       const result = parseEvaluationResults(stringifyResults(mixedValidData));
@@ -127,6 +182,22 @@ describe('parseEvaluationResults', () => {
       expect(result).toEqual([]);
     });
 
+    it('should return empty array for missing results property', () => {
+      const noResultsData = {
+        someOtherProperty: 'value',
+      };
+      const result = parseEvaluationResults(stringifyResults(noResultsData));
+      expect(result).toEqual([]);
+    });
+
+    it('should return empty array for non-object results property', () => {
+      const invalidResultsData = {
+        results: 'not an object',
+      };
+      const result = parseEvaluationResults(stringifyResults(invalidResultsData));
+      expect(result).toEqual([]);
+    });
+
     it('should return empty array for non-object JSON types', () => {
       const testCases = [['array', 'instead', 'of', 'object'], null, 'string', 123, true];
 
@@ -134,6 +205,14 @@ describe('parseEvaluationResults', () => {
         const result = parseEvaluationResults(stringifyResults(testCase));
         expect(result).toEqual([]);
       });
+    });
+
+    it('should handle empty results object', () => {
+      const emptyResultsData = {
+        results: {},
+      };
+      const result = parseEvaluationResults(stringifyResults(emptyResultsData));
+      expect(result).toEqual([]);
     });
   });
 });

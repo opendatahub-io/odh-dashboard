@@ -1,16 +1,22 @@
+/* eslint-disable camelcase */
 export const mockCompleteEvaluationResults = {
-  hellaswag: {
-    acc: { value: 0.85432, stderr: 0.02156 },
-    // eslint-disable-next-line camelcase
-    acc_norm: { value: 0.76543 },
-  },
-  // eslint-disable-next-line camelcase
-  arc_easy: {
-    acc: { value: 0.91234, stderr: 0.01234 },
-    // eslint-disable-next-line camelcase
-    acc_norm: { value: 0.89876, stderr: 0.00987 },
-  },
-  winogrande: {
-    acc: { value: 0.73456 },
+  results: {
+    hellaswag: {
+      alias: 'hellaswag',
+      'acc,none': 0.85432,
+      'acc_stderr,none': 0.02156,
+      'acc_norm,none': 0.76543,
+    },
+    arc_easy: {
+      alias: 'arc_easy',
+      'acc,none': 0.91234,
+      'acc_stderr,none': 0.01234,
+      'acc_norm,none': 0.89876,
+      'acc_norm_stderr,none': 0.00987,
+    },
+    winogrande: {
+      alias: 'winogrande',
+      'acc,none': 0.73456,
+    },
   },
 };

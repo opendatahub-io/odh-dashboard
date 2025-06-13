@@ -1,28 +1,27 @@
+/* eslint-disable camelcase */
 import { EvaluationResult } from '#~/pages/lmEval/lmEvalResult/LMEvalResultTable';
 
-// Table mock data (existing)
 export const mockResults: EvaluationResult[] = [
-  { task: 'hellaswag', metric: 'acc', value: 0.85432, error: 0.02156 },
-  { task: 'hellaswag', metric: 'acc_norm', value: 0.76543, error: undefined },
-  { task: 'arc_easy', metric: 'acc', value: 0.91234, error: 0.01234 },
-  { task: 'arc_easy', metric: 'acc_norm', value: 0.89876, error: 0.00987 },
-  { task: 'winogrande', metric: 'acc', value: 0.73456, error: undefined },
+  { task: 'hellaswag', metric: 'acc,none', value: 0.85432, error: 0.02156 },
+  { task: 'hellaswag', metric: 'acc_norm,none', value: 0.76543, error: undefined },
+  { task: 'arc_easy', metric: 'acc,none', value: 0.91234, error: 0.01234 },
+  { task: 'arc_easy', metric: 'acc_norm,none', value: 0.89876, error: 0.00987 },
+  { task: 'winogrande', metric: 'acc,none', value: 0.73456, error: undefined },
 ];
 
 export const incompleteResults: EvaluationResult[] = [
-  { task: 'test_task', metric: 'test_metric', value: 0.5 },
-  { task: '', metric: 'empty_task', value: 0.75, error: 0.01 },
+  { task: 'test_task', metric: 'test_metric,none', value: 0.5 },
+  { task: '', metric: 'empty_task,none', value: 0.75, error: 0.01 },
   { task: 'valid_task', metric: '', value: 0.25, error: undefined },
 ];
 
 export const zeroResults: EvaluationResult[] = [
-  { task: 'zero_task', metric: 'zero_metric', value: 0, error: 0 },
-  { task: 'negative_task', metric: 'negative_metric', value: -0.12345, error: 0.00001 },
+  { task: 'zero_task', metric: 'zero_metric,none', value: 0, error: 0 },
+  { task: 'negative_task', metric: 'negative_metric,none', value: -0.12345, error: 0.00001 },
 ];
 
 export const emptyResults: EvaluationResult[] = [];
 
-// LMEvalResult mock data
 export const mockRefresh = jest.fn().mockResolvedValue(undefined);
 
 export const mockLMEvalContextValue = {
@@ -35,14 +34,18 @@ export const mockLMEvalContextValue = {
         spec: {
           model: 'test-model',
           taskList: {
-            taskNames: ['task1'],
+            taskNames: ['arc_challenge'],
           },
         },
         status: {
           results: JSON.stringify({
-            task1: {
-              metric1: { value: 0.85, stderr: 0.02 },
-              metric2: { value: 0.73 },
+            results: {
+              arc_challenge: {
+                alias: 'arc_challenge',
+                'acc,none': 0.85,
+                'acc_stderr,none': 0.02,
+                'acc_norm,none': 0.73,
+              },
             },
           }),
         },
@@ -54,13 +57,16 @@ export const mockLMEvalContextValue = {
         spec: {
           model: 'another-model',
           taskList: {
-            taskNames: ['task2'],
+            taskNames: ['arc_easy'],
           },
         },
         status: {
           results: JSON.stringify({
-            task2: {
-              metric3: { value: 0.91 },
+            results: {
+              arc_easy: {
+                alias: 'arc_easy',
+                'acc,none': 0.91,
+              },
             },
           }),
         },
@@ -76,8 +82,8 @@ export const mockLMEvalContextValue = {
 };
 
 export const mockParsedResults = [
-  { task: 'task1', metric: 'metric1', value: 0.85, error: 0.02 },
-  { task: 'task1', metric: 'metric2', value: 0.73, error: undefined },
+  { task: 'arc_challenge', metric: 'acc,none', value: 0.85, error: 0.02 },
+  { task: 'arc_challenge', metric: 'acc_norm,none', value: 0.73, error: undefined },
 ];
 
 export const mockLMEvalContextWithNoResults = {

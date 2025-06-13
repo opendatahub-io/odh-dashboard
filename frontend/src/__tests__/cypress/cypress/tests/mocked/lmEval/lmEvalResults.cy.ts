@@ -107,8 +107,8 @@ describe('LM Eval Results', () => {
       table.should('contain', task);
     });
 
-    // Verify metrics
-    ['acc', 'acc_norm'].forEach((metric) => {
+    // Verify metrics (updated to new format with ,none suffix)
+    ['acc,none', 'acc_norm,none'].forEach((metric) => {
       table.should('contain', metric);
     });
 
