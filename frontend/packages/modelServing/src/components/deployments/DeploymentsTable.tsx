@@ -6,7 +6,7 @@ import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTrack
 import { DeploymentRow } from './DeploymentsTableRow';
 import { deploymentNameSort } from '../../concepts/deploymentUtils';
 import { useResolvedPlatformExtension } from '../../concepts/extensionUtils';
-import { ModelServingPlatform } from '../../concepts/modelServingPlatforms';
+import { ModelServingPlatform } from '../../concepts/useProjectServingPlatform';
 import { Deployment, isModelServingDeploymentsTableExtension } from '../../../extension-points';
 import DeleteModelServingModal from '../deleteModal/DeleteModelServingModal';
 
@@ -26,6 +26,11 @@ const genericColumns: SortableData<Deployment>[] = [
   {
     label: 'Inference endpoint',
     field: 'inferenceEndpoint',
+    sortable: false,
+  },
+  {
+    label: 'API protocol',
+    field: 'apiProtocol',
     sortable: false,
   },
   {

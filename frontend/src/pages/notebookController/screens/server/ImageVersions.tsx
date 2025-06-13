@@ -56,7 +56,7 @@ const ImageVersions: React.FC<ImageVersionsProps> = ({ image, tags, selectedTag,
                 {tag.recommended ? (
                   <FlexItem>
                     <Label color="blue" icon={<StarIcon />}>
-                      Recommended
+                      Latest
                     </Label>
                   </FlexItem>
                 ) : null}
