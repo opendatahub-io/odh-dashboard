@@ -18,7 +18,7 @@ export const isKServeDeployment = (deployment: Deployment): deployment is KServe
   deployment.modelServingPlatformId === KSERVE_ID;
 
 export const useWatchDeployments = (
-  project: ProjectKind,
+  project?: ProjectKind,
   opts?: K8sAPIOptions,
 ): [KServeDeployment[] | undefined, boolean, Error | undefined] => {
   const [inferenceServices, inferenceServiceLoaded, inferenceServiceError] =

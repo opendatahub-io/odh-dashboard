@@ -5,7 +5,7 @@ import { ModelDeploymentsProvider } from './concepts/ModelDeploymentsContext';
 import {
   ModelServingPlatformContext,
   ModelServingPlatformProvider,
-} from './concepts/ModelServingPlatformContext';
+} from './concepts/ProjectPlatformContext';
 import ModelsProjectDetailsView from './components/projectDetails/ModelsProjectDetailsView';
 
 const WithDeploymentsData: React.FC = () => {
@@ -18,7 +18,7 @@ const WithDeploymentsData: React.FC = () => {
   // to be always defined and truthy.
   if (activePlatform && currentProject.metadata.name) {
     return (
-      <ModelDeploymentsProvider modelServingPlatform={activePlatform} project={currentProject}>
+      <ModelDeploymentsProvider modelServingPlatform={activePlatform} projects={currentProject}>
         <ModelsProjectDetailsView project={currentProject} />
       </ModelDeploymentsProvider>
     );

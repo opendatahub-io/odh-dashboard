@@ -12,7 +12,7 @@ import { useProjectServingPlatform } from '../../concepts/useProjectServingPlatf
 import DeploymentsTable from '../deployments/DeploymentsTable';
 import { ModelDeploymentsContext } from '../../concepts/ModelDeploymentsContext';
 import { DeployButton } from '../deploy/DeployButton';
-import { ModelServingPlatformContext } from '../../concepts/ModelServingPlatformContext';
+import { ModelServingPlatformContext } from '../../concepts/ProjectPlatformContext';
 
 const ModelsProjectDetailsView: React.FC<{
   project: ProjectKind;

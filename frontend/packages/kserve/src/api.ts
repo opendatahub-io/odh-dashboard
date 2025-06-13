@@ -15,42 +15,42 @@ import {
 import { CustomWatchK8sResult } from '@odh-dashboard/internal/types';
 
 export const useWatchInferenceServices = (
-  project: ProjectKind,
+  project?: ProjectKind,
   opts?: K8sAPIOptions,
 ): CustomWatchK8sResult<InferenceServiceKind[]> =>
   useK8sWatchResourceList<InferenceServiceKind[]>(
     {
       isList: true,
       groupVersionKind: groupVersionKind(InferenceServiceModel),
-      namespace: project.metadata.name,
+      namespace: project?.metadata.name,
     },
     InferenceServiceModel,
     opts,
   );
 
 export const useWatchServingRuntimes = (
-  project: ProjectKind,
+  project?: ProjectKind,
   opts?: K8sAPIOptions,
 ): CustomWatchK8sResult<ServingRuntimeKind[]> =>
   useK8sWatchResourceList<ServingRuntimeKind[]>(
     {
       isList: true,
       groupVersionKind: groupVersionKind(ServingRuntimeModel),
-      namespace: project.metadata.name,
+      namespace: project?.metadata.name,
     },
     ServingRuntimeModel,
     opts,
   );
 
 export const useWatchDeploymentPods = (
-  project: ProjectKind,
+  project?: ProjectKind,
   opts?: K8sAPIOptions,
 ): CustomWatchK8sResult<PodKind[]> =>
   useK8sWatchResourceList<PodKind[]>(
     {
       isList: true,
       groupVersionKind: groupVersionKind(PodModel),
-      namespace: project.metadata.name,
+      namespace: project?.metadata.name,
       selector: {
         matchExpressions: [
           {
