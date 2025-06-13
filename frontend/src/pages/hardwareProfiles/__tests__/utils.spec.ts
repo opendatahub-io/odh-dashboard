@@ -149,6 +149,15 @@ describe('validateProfileWarning', () => {
     const hardwareProfilesResult = validateProfileWarning(hardwareProfileMock);
     expect(hardwareProfilesResult).toEqual([
       {
+        type: HardwareProfileWarningType.OUT_OF_RANGE,
+        message: 'Minimum allowed value cannot exceed the maximum allowed value (if specified).',
+      },
+      {
+        type: HardwareProfileWarningType.OUT_OF_RANGE,
+        message:
+          'Default value must be equal to or between the minimum and maximum allowed limits.',
+      },
+      {
         type: HardwareProfileWarningType.INVALID_UNIT,
         message: `The resource count for ${IdentifierResourceType.MEMORY} has an invalid unit. Edit the profile to make the profile valid.`,
       },
