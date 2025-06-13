@@ -1356,7 +1356,11 @@ describe('Serving Runtime List', () => {
         'PATCH',
         '/api/k8s/apis/serving.kserve.io/v1beta1/namespaces/test-project/inferenceservices/test-model',
         (req) => {
-          expect(req.body.metadata.annotations['serving.kserve.io/stop']).to.equal('true');
+          expect(req.body).to.deep.include({
+            op: 'add',
+            path: '/metadata/annotations/serving.kserve.io~1stop',
+            value: 'true',
+          });
           req.reply(stoppedInferenceService);
         },
       ).as('stopModelPatch');
@@ -1380,7 +1384,11 @@ describe('Serving Runtime List', () => {
         'PATCH',
         '/api/k8s/apis/serving.kserve.io/v1beta1/namespaces/test-project/inferenceservices/test-model',
         (req) => {
-          expect(req.body.metadata.annotations['serving.kserve.io/stop']).to.equal('false');
+          expect(req.body).to.deep.include({
+            op: 'add',
+            path: '/metadata/annotations/serving.kserve.io~1stop',
+            value: 'false',
+          });
           req.reply(runningInferenceService);
         },
       ).as('startModelPatch');
