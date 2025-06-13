@@ -1,4 +1,4 @@
-import { getDashboardConfig } from './resourceUtils';
+import { getClusterStatus, getDashboardConfig } from './resourceUtils';
 import { mergeWith } from 'lodash';
 import {
   ContainerResources,
@@ -36,15 +36,20 @@ export const generatePvcNameFromUsername = (username: string): string =>
 export const generateEnvVarFileNameFromUsername = (username: string): string =>
   `jupyterhub-singleuser-profile-${usernameTranslate(username)}-envs`;
 
+export const getWorkbenchNamespace = (fastify: KubeFastifyInstance): string => {
+  const clusterStatus = getClusterStatus(fastify);
+  return clusterStatus?.components?.workbenches?.workbenchNamespace;
+};
+
 export const getNamespaces = (
   fastify: KubeFastifyInstance,
-): { dashboardNamespace: string; notebookNamespace: string } => {
+): { dashboardNamespace: string; workbenchNamespace: string } => {
   const config = getDashboardConfig();
-  const notebookNamespace = config.spec.notebookController?.notebookNamespace;
+  const workbenchNamespace = getWorkbenchNamespace(fastify);
   const fallbackNamespace = config.metadata.namespace || fastify.kube.namespace;
 
   return {
-    notebookNamespace: notebookNamespace || fallbackNamespace,
+    workbenchNamespace: workbenchNamespace || fallbackNamespace,
     dashboardNamespace: fallbackNamespace,
   };
 };
@@ -346,7 +351,7 @@ export const stopNotebook = async (
 ): Promise<Notebook> => {
   const username = request.body.username || (await getUserInfo(fastify, request)).userName;
   const name = generateNotebookNameFromUsername(username);
-  const { notebookNamespace } = getNamespaces(fastify);
+  const { workbenchNamespace: notebookNamespace } = getNamespaces(fastify);
 
   const dateStr = new Date().toISOString().replace(/\.\d{3}Z/i, 'Z');
   const data: RecursivePartial<Notebook> = {
@@ -557,7 +562,7 @@ const generateNotebookResources = async (
   const name = generateNotebookNameFromUsername(username);
   const pvcName = generatePvcNameFromUsername(username);
   const envName = generateEnvVarFileNameFromUsername(username);
-  const namespace = getNamespaces(fastify).notebookNamespace;
+  const namespace = getNamespaces(fastify).workbenchNamespace;
 
   // generate pvc
   try {

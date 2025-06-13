@@ -193,7 +193,7 @@ export const validateNotebookNamespaceRoleBinding = async (
 export const useNotebookRedirectLink = (): (() => Promise<string>) => {
   const { currentUserNotebook, currentUserNotebookLink } =
     React.useContext(NotebookControllerContext);
-  const { notebookNamespace } = useNamespaces();
+  const { workbenchNamespace } = useNamespaces();
   const fetchCountRef = React.useRef(5); // how many tries to get the Route
 
   const routeName = currentUserNotebook?.metadata.name;
@@ -212,9 +212,9 @@ export const useNotebookRedirectLink = (): (() => Promise<string>) => {
         if (currentUserNotebookLink) {
           resolve(currentUserNotebookLink);
         } else {
-          getRoute(notebookNamespace, routeName)
+          getRoute(workbenchNamespace, routeName)
             .then((route) => {
-              resolve(`https://${route.spec.host}/notebook/${notebookNamespace}/${routeName}`);
+              resolve(`https://${route.spec.host}/notebook/${workbenchNamespace}/${routeName}`);
             })
             .catch((e) => {
               /* eslint-disable-next-line no-console */
@@ -237,7 +237,7 @@ export const useNotebookRedirectLink = (): (() => Promise<string>) => {
         preject();
       });
     });
-  }, [notebookNamespace, routeName, currentUserNotebookLink]);
+  }, [workbenchNamespace, routeName, currentUserNotebookLink]);
 };
 
 export const getEventTimestamp = (event: EventKind): string =>

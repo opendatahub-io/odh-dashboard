@@ -17,10 +17,10 @@ const SetupCurrentNotebook: React.FC<SetupCurrentNotebookProps> = ({
   currentNotebook,
   setNotebookState,
 }) => {
-  const { notebookNamespace } = useNamespaces();
+  const { workbenchNamespace } = useNamespaces();
   const { user: username } = useSpecificNotebookUserState(currentNotebook ?? null);
   const { notebooks, loaded, loadError, forceRefresh, setPollInterval } = useWatchNotebooksForUsers(
-    notebookNamespace,
+    workbenchNamespace,
     [username],
   );
   const notebookRunningState: NotebookRunningState | undefined = loaded
