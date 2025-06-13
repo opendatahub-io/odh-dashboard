@@ -1350,7 +1350,10 @@ describe('Serving Runtime List', () => {
         isModelMesh: false,
         activeModelState: 'Unknown',
       });
-      stoppedInferenceService.metadata.annotations = { 'serving.kserve.io/stop': 'true' };
+      stoppedInferenceService.metadata.annotations = {
+        ...stoppedInferenceService.metadata.annotations,
+        'serving.kserve.io/stop': 'true',
+      };
 
       cy.intercept(
         'PATCH',

@@ -1,16 +1,28 @@
 import * as React from 'react';
 import { Button } from '@patternfly/react-core';
-import { NotebookState } from '#~/pages/projects/notebook/types';
-import { ModelServingState } from '#~/pages/modelServing/screens/types.ts';
 
-type Props = {
-  currentState: NotebookState | ModelServingState;
+// Define a minimal interface for the required state fields
+export interface ToggleState {
+  isStarting: boolean;
+  isStopping: boolean;
+  isRunning: boolean;
+  isStopped: boolean;
+}
+
+// Make the component generic, constrained to ToggleState
+export type StateActionToggleProps<T extends ToggleState> = {
+  currentState: T;
   onStart: () => void;
   onStop: () => void;
   isDisabled?: boolean;
 };
 
-const StateActionToggle: React.FC<Props> = ({ currentState, onStart, onStop, isDisabled }) => {
+const StateActionToggle = <T extends ToggleState>({
+  currentState,
+  onStart,
+  onStop,
+  isDisabled,
+}: StateActionToggleProps<T>): React.ReactElement => {
   const { isStarting, isRunning, isStopping } = currentState;
   const actionDisabled = isDisabled || isStopping || isStarting;
 

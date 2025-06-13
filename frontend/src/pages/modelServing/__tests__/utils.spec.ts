@@ -322,9 +322,8 @@ describe('getModelServingStatus', () => {
 
   it('should return correct status when model is stopped', () => {
     const inferenceService = mockInferenceServiceK8sResource({});
-    if (inferenceService.metadata.annotations) {
-      inferenceService.metadata.annotations['serving.kserve.io/stop'] = 'true';
-    }
+    inferenceService.metadata.annotations ??= {};
+    inferenceService.metadata.annotations['serving.kserve.io/stop'] = 'true';
     expect(getModelServingStatus(inferenceService)).toEqual({
       inferenceService,
       isStopped: true,
