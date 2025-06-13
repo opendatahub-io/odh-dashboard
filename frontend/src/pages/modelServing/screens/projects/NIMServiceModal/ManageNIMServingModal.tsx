@@ -59,6 +59,7 @@ import { useKServeDeploymentMode } from '#~/pages/modelServing/useKServeDeployme
 import StorageClassSelect from '#~/pages/projects/screens/spawner/storage/StorageClassSelect';
 import useAdminDefaultStorageClass from '#~/pages/projects/screens/spawner/storage/useAdminDefaultStorageClass';
 import { useModelDeploymentNotification } from '#~/pages/modelServing/screens/projects/useModelDeploymentNotification';
+import { useGetStorageClassConfig } from '#~/pages/projects/screens/spawner/storage/useGetStorageClassConfig';
 import { NoAuthAlert } from './NoAuthAlert';
 
 const NIM_SECRET_NAME = 'nvidia-nim-secrets';
@@ -93,6 +94,8 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
   editInfo,
 }) => {
   const { isRawAvailable, isServerlessAvailable } = useKServeDeploymentMode();
+  const { storageClasses, storageClassesLoaded, selectedStorageClassConfig } =
+    useGetStorageClassConfig();
 
   const [createDataServingRuntime, setCreateDataServingRuntime, resetDataServingRuntime] =
     useCreateServingRuntimeObject(editInfo?.servingRuntimeEditInfo);
@@ -381,6 +384,9 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
             <StackItem>
               {isStorageClassesAvailable && (
                 <StorageClassSelect
+                  storageClasses={storageClasses}
+                  storageClassesLoaded={storageClassesLoaded}
+                  selectedStorageClassConfig={selectedStorageClassConfig}
                   storageClassName={storageClassName}
                   setStorageClassName={setStorageClassName}
                   isRequired

@@ -7,13 +7,13 @@ import {
   isInvalidBYONImageStream,
 } from '#~/pages/projects/screens/spawner/spawnerUtils';
 import { ImageStreamAndVersion } from '#~/types';
-import useImageStreams from '#~/pages/projects/screens/spawner/useImageStreams';
 import { useDashboardNamespace } from '#~/redux/selectors';
 import useBuildStatuses from '#~/pages/projects/screens/spawner/useBuildStatuses';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
-import ImageStreamPopover from './ImageStreamPopover';
-import ImageVersionSelector from './ImageVersionSelector';
+import { useImageStreams } from '#~/utilities/useImageStreams';
 import ImageStreamSelector from './ImageStreamSelector';
+import ImageVersionSelector from './ImageVersionSelector';
+import ImageStreamPopover from './ImageStreamPopover';
 
 type ImageSelectorFieldProps = {
   currentProject: string;
@@ -40,17 +40,21 @@ const ImageSelectorField: React.FC<ImageSelectorFieldProps> = ({
   const imageStreamsLoaded = isProjectScopedAvailable
     ? loaded && currentProjectImageStreamsLoaded
     : loaded;
+
   const imageVersionData = React.useMemo(() => {
     const { imageStream } = selectedImage;
-    if (!imageStream) {
-      return { buildStatuses, imageStream, imageVersions: [] };
+    if (
+      (!isProjectScopedAvailable && imageStream?.metadata.namespace === currentProject) ||
+      !imageStream
+    ) {
+      return { buildStatuses, imageStream: undefined, imageVersions: [] };
     }
     return {
       buildStatuses,
       imageStream,
       imageVersions: getExistingVersionsForImageStream(imageStream),
     };
-  }, [selectedImage, buildStatuses]);
+  }, [selectedImage, buildStatuses, currentProject, isProjectScopedAvailable]);
 
   const onImageStreamSelect = (newImageStream: ImageStreamKind) => {
     const version = getDefaultVersionForImageStream(newImageStream, buildStatuses);
@@ -97,7 +101,14 @@ const ImageSelectorField: React.FC<ImageSelectorFieldProps> = ({
         }
         selectedImageVersion={selectedImage.imageVersion}
       />
-      <ImageStreamPopover selectedImage={selectedImage} />
+      <ImageStreamPopover
+        selectedImage={
+          !isProjectScopedAvailable &&
+          selectedImage.imageStream?.metadata.namespace === currentProject
+            ? {}
+            : selectedImage
+        }
+      />
     </>
   );
 };

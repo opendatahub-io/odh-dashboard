@@ -55,8 +55,18 @@ export const mockStorageClasses: StorageClassKind[] = [
       resourceVersion: '50902774',
       creationTimestamp: '2024-07-04T09:20:40Z',
       annotations: {
-        'opendatahub.io/sc-config':
-          '{"displayName":"openshift-default-sc","isDefault":true,"isEnabled":true,"lastModified":"2024-08-22T15:42:53.101Z"}',
+        'opendatahub.io/sc-config': JSON.stringify({
+          displayName: 'openshift-default-sc',
+          accessModeSettings: {
+            ReadWriteOnce: true,
+            ReadWriteMany: false,
+            ReadOnlyMany: false,
+            ReadWriteOncePod: false,
+          },
+          isDefault: true,
+          isEnabled: true,
+          lastModified: '2024-08-22T15:42:53.101Z',
+        }),
         'storageclass.kubernetes.io/is-default-class': 'true',
       },
       managedFields: [
@@ -109,8 +119,18 @@ export const mockStorageClasses: StorageClassKind[] = [
       resourceVersion: '50902775',
       creationTimestamp: '2024-07-04T09:21:40Z',
       annotations: {
-        'opendatahub.io/sc-config':
-          '{"displayName":"Test SC 1","isDefault":false,"isEnabled":false,"lastModified":"2024-08-22T15:42:53.100Z"}',
+        'opendatahub.io/sc-config': JSON.stringify({
+          displayName: 'Test SC 1',
+          accessModeSettings: {
+            ReadWriteOnce: true,
+            ReadWriteMany: true,
+            ReadOnlyMany: false,
+            ReadWriteOncePod: false,
+          },
+          isDefault: false,
+          isEnabled: false,
+          lastModified: '2024-08-22T15:42:53.100Z',
+        }),
       },
       managedFields: [
         {
@@ -152,7 +172,7 @@ export const mockStorageClasses: StorageClassKind[] = [
         },
       ],
     },
-    provisioner: 'manila.csi.openstack.org',
+    provisioner: 'kubernetes.io/glusterfs',
     parameters: JSON.stringify({
       'csi.storage.k8s.io/node-publish-secret-name': 'csi-manila-secrets',
       'csi.storage.k8s.io/node-publish-secret-namespace': 'openshift-manila-csi-driver',

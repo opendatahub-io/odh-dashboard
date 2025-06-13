@@ -65,6 +65,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
   );
 
   const hardwareProfilesAvailable = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;
+  const isProjectScopedAvailable = useIsAreaAvailable(SupportedArea.DS_PROJECT_SCOPED).status;
 
   const editNotebook = notebookState?.notebook;
   const { projectName } = startNotebookData;
@@ -80,7 +81,10 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
   const isButtonDisabled =
     createInProgress ||
     !checkRequiredFieldsForNotebookStart(startNotebookData, envVariables) ||
-    !isHardwareProfileValid;
+    !isHardwareProfileValid ||
+    (!isProjectScopedAvailable &&
+      startNotebookData.image.imageStream?.metadata.namespace === projectName);
+
   const { username } = useUser();
 
   const afterStart = (name: string, type: 'created' | 'updated') => {
@@ -190,7 +194,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
     if (dryRun) {
       return updateNotebook(editNotebook, newStartNotebookData, username, { dryRun });
     }
-    return mergePatchUpdateNotebook(newStartNotebookData, username);
+    return mergePatchUpdateNotebook(editNotebook, newStartNotebookData, username);
   };
 
   const onUpdateNotebook = async () => {

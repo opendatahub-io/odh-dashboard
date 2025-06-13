@@ -1,22 +1,55 @@
 import type { Extension, CodeRef } from '@openshift/dynamic-plugin-sdk';
-import type { NamespaceApplicationCase } from '@odh-dashboard/internal/pages/projects/types';
 import type { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
+import type { NamespaceApplicationCase } from '@odh-dashboard/internal/pages/projects/types';
 import type { SortableData } from '@odh-dashboard/internal/components/table/types';
-import type { K8sAPIOptions, ProjectKind } from '@odh-dashboard/internal/k8sTypes';
+import type {
+  DisplayNameAnnotations,
+  K8sAPIOptions,
+  ProjectKind,
+} from '@odh-dashboard/internal/k8sTypes';
+// eslint-disable-next-line no-restricted-syntax, @typescript-eslint/consistent-type-imports
+import { InferenceServiceModelState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
+
+export type DeploymentStatus = {
+  state: InferenceServiceModelState;
+  message?: string;
+};
+
+export type DeploymentEndpoint = {
+  type: 'internal' | 'external';
+  name?: string;
+  url: string;
+  error?: string;
+};
 
 //// Model serving platform extension
 
+export type ServerResourceType = K8sResourceCommon & {
+  metadata: {
+    name: string;
+    annotations?: DisplayNameAnnotations &
+      Partial<{
+        'opendatahub.io/apiProtocol': string;
+      }>;
+  };
+};
+
+export type ModelResourceType = K8sResourceCommon & {
+  metadata: {
+    name: string;
+    annotations?: DisplayNameAnnotations;
+  };
+};
+
 export type Deployment<
-  M extends K8sResourceCommon = K8sResourceCommon,
-  S extends K8sResourceCommon = K8sResourceCommon,
+  ModelResource extends ModelResourceType = ModelResourceType,
+  ServerResource extends ServerResourceType = ServerResourceType,
 > = {
   modelServingPlatformId: string;
-  model: M;
-  server?: S;
-  status?: {
-    state?: string;
-    message?: string;
-  };
+  model: ModelResource;
+  server?: ServerResource;
+  status?: DeploymentStatus;
+  endpoints?: DeploymentEndpoint[];
 };
 
 export type ModelServingPlatformExtension<D extends Deployment = Deployment> = Extension<

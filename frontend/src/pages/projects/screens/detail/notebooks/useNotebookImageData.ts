@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { ImageStreamKind, ImageStreamSpecTagType, NotebookKind } from '#~/k8sTypes';
 import useNamespaces from '#~/pages/notebookController/useNamespaces';
-import useImageStreams from '#~/pages/projects/screens/spawner/useImageStreams';
+import { useImageStreams } from '#~/utilities/useImageStreams';
 import { PodContainer } from '#~/types';
 import {
   getImageStreamDisplayName,
@@ -18,7 +18,6 @@ export const getNotebookImageData = (
     (currentContainer) => currentContainer.name === notebook.metadata.name,
   );
   const imageTag = container?.image.split('/').at(-1)?.split(':');
-
   // if image could not be parsed from the container, consider it deleted because the image tag is invalid
   if (!imageTag || imageTag.length < 2 || !container) {
     return {
@@ -76,38 +75,26 @@ export const getNotebookImageData = (
   };
 };
 
-const useNotebookImageData = (project: string, notebook?: NotebookKind): NotebookImageData => {
+const useNotebookImageData = (notebook?: NotebookKind): NotebookImageData => {
   const { dashboardNamespace } = useNamespaces();
-
-  const [dashboardImages, dashboardLoaded, dashboardLoadError] = useImageStreams(
-    dashboardNamespace,
-    true,
-  );
-
-  const [projectImages, projectLoaded, projectLoadError] = useImageStreams(project, true);
+  const namespace = notebook?.metadata.annotations?.['opendatahub.io/workbench-image-namespace']
+    ? notebook.metadata.annotations['opendatahub.io/workbench-image-namespace']
+    : dashboardNamespace;
+  const [images, loaded, loadError] = useImageStreams(namespace);
 
   return React.useMemo(() => {
-    if (!notebook || !dashboardLoaded || !projectLoaded) {
-      return [null, false, dashboardLoadError || projectLoadError];
+    if (!notebook || !loaded) {
+      return [null, false, loadError];
     }
-    const allImages = [...projectImages, ...dashboardImages];
 
-    const data = getNotebookImageData(notebook, allImages);
+    const data = getNotebookImageData(notebook, images);
 
     if (data === null) {
-      return [null, false, dashboardLoadError || projectLoadError];
+      return [null, false, loadError];
     }
 
     return [data, true, undefined];
-  }, [
-    notebook,
-    dashboardLoaded,
-    projectLoaded,
-    dashboardImages,
-    dashboardLoadError,
-    projectLoadError,
-    projectImages,
-  ]);
+  }, [notebook, loaded, images, loadError]);
 };
 
 const getNotebookImageInternalRegistry = (

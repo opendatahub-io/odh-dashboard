@@ -343,7 +343,7 @@ describe('Model Serving Global', () => {
     modelServingSection
       .getInferenceServiceRow('NIM Model')
       .findServingRuntime()
-      .should('have.text', 'NVIDIA NIM');
+      .should('contain.text', 'NVIDIA NIM');
 
     // Open each modal and make sure it is the correct one
     modelServingGlobal.getModelRow('KServe Model').findKebabAction('Edit').click();
@@ -662,7 +662,8 @@ describe('Model Serving Global', () => {
 
     kserveModal.shouldBeOpen();
     kserveModal.findServingRuntimeTemplateHelptext().should('not.exist');
-    kserveModal.findServingRuntimeTemplateDropdown().findSelectOption('Caikit').click();
+    kserveModal.findServingRuntimeTemplateSearchSelector().click();
+    kserveModal.findGlobalScopedTemplateOption('Caikit').click();
     kserveModal.findServingRuntimeTemplateHelptext().should('exist');
   });
 
@@ -680,29 +681,27 @@ describe('Model Serving Global', () => {
 
     // Check for project specific serving runtimes
     kserveModal.findServingRuntimeTemplateSearchSelector().click();
-    const projectScopedSR = kserveModal.getProjectScopedServingRuntime();
-    projectScopedSR.find().findByRole('menuitem', { name: 'Multi Platform', hidden: true }).click();
+    kserveModal.findProjectScopedTemplateOption('Multi Platform').click();
     kserveModal.findProjectScopedLabel().should('exist');
 
     // Check for global specific serving runtimes
     kserveModal.findServingRuntimeTemplateSearchSelector().click();
-    const globalScopedSR = kserveModal.getGlobalScopedServingRuntime();
-    globalScopedSR.find().findByRole('menuitem', { name: 'Multi Platform', hidden: true }).click();
+    kserveModal.findGlobalScopedTemplateOption('Multi Platform').click();
     kserveModal.findGlobalScopedLabel().should('exist');
     kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
 
     // check model framework selection when serving runtime changes
     kserveModal.findServingRuntimeTemplateSearchSelector().click();
-    globalScopedSR.find().findByRole('menuitem', { name: 'Multi Platform', hidden: true }).click();
+    kserveModal.findGlobalScopedTemplateOption('Multi Platform').click();
     kserveModal.findModelFrameworkSelect().should('have.text', 'onnx - 1');
 
     kserveModal.findServingRuntimeTemplateSearchSelector().click();
-    globalScopedSR.find().findByRole('menuitem', { name: 'Caikit', hidden: true }).click();
+    kserveModal.findGlobalScopedTemplateOption('Caikit').click();
     kserveModal.findModelFrameworkSelect().should('be.enabled');
     kserveModal.findModelFrameworkSelect().should('have.text', 'Select a framework');
 
     kserveModal.findServingRuntimeTemplateSearchSelector().click();
-    projectScopedSR.find().findByRole('menuitem', { name: 'Caikit', hidden: true }).click();
+    kserveModal.findProjectScopedTemplateOption('Caikit').click();
     kserveModal.findModelFrameworkSelect().should('be.disabled');
     kserveModal.findModelFrameworkSelect().should('have.text', 'openvino_ir - opset1');
   });
@@ -725,7 +724,7 @@ describe('Model Serving Global', () => {
     kserveModalEdit.findServingRuntimeTemplateSearchSelector().should('be.disabled');
     kserveModalEdit
       .findServingRuntimeTemplateSearchSelector()
-      .should('have.text', 'test-project-scoped-sr Project-scoped');
+      .should('contain.text', 'test-project-scoped-sr');
     kserveModalEdit.findProjectScopedLabel().should('exist');
     kserveModalEdit.findModelFrameworkSelect().should('have.text', 'onnx - 1');
   });
@@ -838,6 +837,7 @@ describe('Model Serving Global', () => {
       servingRuntimes: [
         mockServingRuntimeK8sResource({
           acceleratorName: 'large-profile-1',
+          acceleratorProfileNamespace: 'test-project',
         }),
       ],
     });
@@ -847,6 +847,24 @@ describe('Model Serving Global', () => {
       .findAcceleratorProfileSearchSelector()
       .should('contain.text', 'Large Profile-1');
     kserveModalEdit.findProjectScopedLabel().should('exist');
+  });
+
+  it('Display Existing settings for deleted accelerator profile selection on Edit', () => {
+    initIntercepts({
+      projectEnableModelMesh: false,
+      disableServingRuntimeParamsConfig: false,
+      disableProjectScoped: false,
+      servingRuntimes: [
+        mockServingRuntimeK8sResource({
+          acceleratorName: 'large-profile-2',
+        }),
+      ],
+    });
+    modelServingGlobal.visit('test-project');
+    modelServingGlobal.getModelRow('Test Inference Service').findKebabAction('Edit').click();
+    acceleratorProfileSection
+      .findAcceleratorProfileSearchSelector()
+      .should('contain.text', 'Existing settings');
   });
 
   it('Display global scoped label on serving runtime selection', () => {
@@ -866,7 +884,7 @@ describe('Model Serving Global', () => {
     kserveModalEdit.findServingRuntimeTemplateSearchSelector().should('be.disabled');
     kserveModalEdit
       .findServingRuntimeTemplateSearchSelector()
-      .should('have.text', 'OpenVINO Serving Runtime (Supports GPUs) Global-scoped');
+      .should('contain.text', 'OpenVINO Serving Runtime (Supports GPUs)');
     kserveModalEdit.findGlobalScopedLabel().should('exist');
     kserveModalEdit.findModelFrameworkSelect().should('have.text', 'onnx - 1');
   });
@@ -884,7 +902,8 @@ describe('Model Serving Global', () => {
     kserveModal.findPredefinedArgsButton().click();
     kserveModal.findPredefinedArgsList().should('not.exist');
     kserveModal.findPredefinedArgsTooltip().should('exist');
-    kserveModal.findServingRuntimeTemplateDropdown().findSelectOption('Caikit').click();
+    kserveModal.findServingRuntimeTemplateSearchSelector().click();
+    kserveModal.findGlobalScopedTemplateOption('Caikit').click();
     kserveModal.findPredefinedArgsButton().click();
     kserveModal.findPredefinedArgsList().should('exist');
     kserveModal.findPredefinedArgsTooltip().should('not.exist');
@@ -904,7 +923,8 @@ describe('Model Serving Global', () => {
     kserveModal.findPredefinedVarsButton().click();
     kserveModal.findPredefinedVarsList().should('not.exist');
     kserveModal.findPredefinedVarsTooltip().should('exist');
-    kserveModal.findServingRuntimeTemplateDropdown().findSelectOption('Caikit').click();
+    kserveModal.findServingRuntimeTemplateSearchSelector().click();
+    kserveModal.findGlobalScopedTemplateOption('Caikit').click();
     kserveModal.findPredefinedVarsButton().click();
     kserveModal.findPredefinedVarsList().should('exist');
     kserveModal.findPredefinedVarsTooltip().should('not.exist');

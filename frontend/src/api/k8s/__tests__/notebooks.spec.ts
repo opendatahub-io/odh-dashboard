@@ -11,7 +11,6 @@ import { Toleration } from '#~/types';
 import { mockNotebookK8sResource } from '#~/__mocks__/mockNotebookK8sResource';
 import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
 import { mock200Status } from '#~/__mocks__/mockK8sStatus';
-import { mockRoleBindingK8sResource } from '#~/__mocks__/mockRoleBindingK8sResource';
 import { mockStartNotebookData } from '#~/__mocks__/mockStartNotebookData';
 
 import {
@@ -35,7 +34,6 @@ import {
 } from '#~/api/k8s/notebooks';
 
 import {
-  createElyraServiceAccountRoleBinding,
   getPipelineVolumePatch,
   getPipelineVolumeMountPatch,
   ELYRA_VOLUME_NAME,
@@ -62,7 +60,6 @@ jest.mock('#~/concepts/pipelines/elyra/utils', () => {
   const originalModule = jest.requireActual('#~/concepts/pipelines/elyra/utils');
   return {
     ...originalModule,
-    createElyraServiceAccountRoleBinding: jest.fn(),
   };
 });
 
@@ -72,7 +69,6 @@ const k8sPatchResourceMock = jest.mocked(k8sPatchResource<NotebookKind>);
 const k8sListResourceMock = jest.mocked(k8sListResource<NotebookKind>);
 const k8sMergePatchResourceMock = jest.mocked(k8sMergePatchResource<NotebookKind>);
 const k8sDeleteResourceMock = jest.mocked(k8sDeleteResource<NotebookKind, K8sStatus>);
-const createElyraServiceAccountRoleBindingMock = jest.mocked(createElyraServiceAccountRoleBinding);
 
 global.structuredClone = (val: unknown) => JSON.parse(JSON.stringify(val));
 
@@ -307,10 +303,6 @@ describe('assembleNotebook', () => {
     const notebook = assembleNotebook(startNotebookDataMock, username, true);
     k8sCreateResourceMock.mockResolvedValue(mockNotebookK8sResource({ uid: 'test' }));
 
-    createElyraServiceAccountRoleBindingMock.mockResolvedValue(
-      mockRoleBindingK8sResource({ uid: 'test' }),
-    );
-
     const renderResult = await createNotebook(startNotebookDataMock, username, true);
 
     expect(k8sCreateResourceMock).toHaveBeenCalledWith({
@@ -321,11 +313,6 @@ describe('assembleNotebook', () => {
         queryParams: {},
       },
     });
-    expect(createElyraServiceAccountRoleBindingMock).toHaveBeenCalledWith(
-      mockNotebookK8sResource({ uid: 'test' }),
-      undefined,
-    );
-    expect(createElyraServiceAccountRoleBindingMock).toHaveBeenCalledTimes(1);
     expect(k8sCreateResourceMock).toHaveBeenCalledTimes(1);
     expect(renderResult).toStrictEqual(mockNotebookK8sResource({ uid: 'test' }));
   });
@@ -335,10 +322,6 @@ describe('assembleNotebook', () => {
     startNotebookMock.volumeMounts = undefined;
     const notebook = assembleNotebook(startNotebookMock, username, false);
     k8sCreateResourceMock.mockResolvedValue(mockNotebookK8sResource({ uid: 'test' }));
-
-    createElyraServiceAccountRoleBindingMock.mockResolvedValue(
-      mockRoleBindingK8sResource({ uid: 'test' }),
-    );
 
     const renderResult = await createNotebook(startNotebookMock, username, false);
 
@@ -350,7 +333,6 @@ describe('assembleNotebook', () => {
         queryParams: {},
       },
     });
-    expect(createElyraServiceAccountRoleBindingMock).toHaveBeenCalledTimes(0);
     expect(k8sCreateResourceMock).toHaveBeenCalledTimes(1);
     expect(renderResult).toStrictEqual(mockNotebookK8sResource({ uid: 'test' }));
   });
@@ -368,7 +350,6 @@ describe('createNotebook', () => {
 
     const renderResult = await createNotebook(mockStartNotebookData({}), username, false);
 
-    expect(createElyraServiceAccountRoleBinding).not.toHaveBeenCalled();
     expect(k8sCreateResourceMock).toHaveBeenCalledWith({
       fetchOptions: { requestInit: {} },
       model: NotebookModel,
@@ -384,8 +365,6 @@ describe('createNotebook', () => {
     const notebook = assembleNotebook(mockStartNotebookData({}), username, true);
     k8sCreateResourceMock.mockResolvedValue(mockNotebookK8sResource({ uid }));
 
-    createElyraServiceAccountRoleBindingMock.mockResolvedValue(mockRoleBindingK8sResource({ uid }));
-
     const renderResult = await createNotebook(mockStartNotebookData({}), username, true);
 
     expect(k8sCreateResourceMock).toHaveBeenCalledWith({
@@ -396,7 +375,6 @@ describe('createNotebook', () => {
         queryParams: {},
       },
     });
-    expect(createElyraServiceAccountRoleBindingMock).toHaveBeenCalledTimes(1);
     expect(k8sCreateResourceMock).toHaveBeenCalledTimes(1);
     expect(renderResult).toStrictEqual(mockNotebookK8sResource({ uid }));
   });
@@ -496,7 +474,6 @@ describe('startNotebook', () => {
         getPipelineVolumeMountPatch(),
       ],
     });
-    expect(createElyraServiceAccountRoleBinding).toHaveBeenCalledWith(mockNotebook);
     expect(k8sPatchResourceMock).toHaveBeenCalledTimes(1);
     expect(renderResult).toStrictEqual(mockNotebook);
   });
@@ -522,7 +499,6 @@ describe('startNotebook', () => {
         getPipelineVolumeMountPatch(),
       ],
     });
-    expect(createElyraServiceAccountRoleBinding).toHaveBeenCalledWith(mockNotebook);
     expect(k8sPatchResourceMock).toHaveBeenCalledTimes(1);
     expect(renderResult).toStrictEqual(mockNotebook);
   });
@@ -548,7 +524,6 @@ describe('startNotebook', () => {
         getPipelineVolumeMountPatch(),
       ],
     });
-    expect(createElyraServiceAccountRoleBinding).toHaveBeenCalledWith(mockNotebook);
     expect(k8sPatchResourceMock).toHaveBeenCalledTimes(1);
     expect(renderResult).toStrictEqual(mockNotebook);
   });
@@ -571,7 +546,6 @@ describe('startNotebook', () => {
     });
 
     expect(k8sPatchResourceMock).toHaveBeenCalledTimes(1);
-    expect(createElyraServiceAccountRoleBinding).not.toHaveBeenCalled();
     expect(renderResult).toStrictEqual(mockNotebook);
   });
   it('should handle errors and rethrow', async () => {
@@ -644,6 +618,7 @@ describe('updateNotebook', () => {
     k8sMergePatchResourceMock.mockResolvedValue(existingNotebook);
 
     const renderResult = await mergePatchUpdateNotebook(
+      existingNotebook,
       mockStartNotebookData({ notebookId: existingNotebook.metadata.name }),
       username,
     );
@@ -669,6 +644,7 @@ describe('updateNotebook', () => {
     k8sMergePatchResourceMock.mockRejectedValue(new Error('error1'));
     await expect(
       mergePatchUpdateNotebook(
+        existingNotebook,
         mockStartNotebookData({ notebookId: existingNotebook.metadata.name }),
         username,
       ),

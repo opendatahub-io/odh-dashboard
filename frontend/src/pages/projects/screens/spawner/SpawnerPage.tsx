@@ -29,10 +29,7 @@ import {
   NotebookImageStatus,
 } from '#~/pages/projects/screens/detail/notebooks/const';
 import useProjectPvcs from '#~/pages/projects/screens/detail/storage/useProjectPvcs';
-import {
-  getDisplayNameFromK8sResource,
-  getResourceNameFromK8sResource,
-} from '#~/concepts/k8s/utils';
+import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
@@ -49,6 +46,7 @@ import {
   doesImageStreamSupportHardwareProfile,
 } from '#~/concepts/hardwareProfiles/utils';
 import { useNotebookKindPodSpecOptionsState } from '#~/concepts/hardwareProfiles/useNotebookPodSpecOptionsState';
+import { getPvcAccessMode } from '#~/pages/projects/utils.ts';
 import { SpawnerPageSectionID } from './types';
 import {
   K8_NOTEBOOK_RESOURCE_NAME_VALIDATOR,
@@ -131,7 +129,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
           size: existingPvc.spec.resources.requests.storage,
           storageClassName: existingPvc.spec.storageClassName,
           mountPath: getNotebookPVCMountPathMap(existingNotebook)[existingPvc.metadata.name],
-          accessMode: existingPvc.spec.accessModes[0],
+          accessMode: getPvcAccessMode(existingPvc),
         }))
       : [
           {
@@ -181,10 +179,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
     ...notebooksUsingPVCsWithSizeChanges,
   ]);
 
-  const [data, loaded, loadError] = useNotebookImageData(
-    getResourceNameFromK8sResource(currentProject),
-    existingNotebook,
-  );
+  const [data, loaded, loadError] = useNotebookImageData(existingNotebook);
 
   React.useEffect(() => {
     if (loaded) {
@@ -447,6 +442,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                     description: attachData.pvc?.metadata.annotations?.['openshift.io/description'],
                     size: attachData.pvc?.spec.resources.requests.storage,
                     storageClassName: attachData.pvc?.spec.storageClassName,
+                    accessMode: attachData.pvc ? getPvcAccessMode(attachData.pvc) : undefined,
                   },
                 ]),
               );

@@ -23,10 +23,13 @@ import {
   InfoCircleIcon,
   InProgressIcon,
 } from '@patternfly/react-icons';
-import { ProjectObjectType } from '#~/concepts/design/utils';
+import {
+  NotebookImageAvailability,
+  NotebookImageStatus,
+} from '#~/pages/projects/screens/detail/notebooks/const';
+import { NotebookImage } from '#~/pages/projects/screens/detail/notebooks/types';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import { ODH_PRODUCT_NAME } from '#~/utilities/const';
-import TypedObjectIcon from '#~/concepts/design/TypedObjectIcon';
 import {
   getImageVersionBuildDate,
   getImageVersionSoftwareString,
@@ -34,11 +37,12 @@ import {
 } from '#~/pages/projects/screens/spawner/spawnerUtils';
 import { NotebookState } from '#~/pages/projects/notebook/types';
 import UnderlinedTruncateButton from '#~/components/UnderlinedTruncateButton';
-import { NotebookImageAvailability, NotebookImageStatus } from './const';
-import { NotebookImage } from './types';
+import { NotebookKind } from '#~/k8sTypes';
+import ScopedLabel from '#~/components/ScopedLabel';
+import { ScopedType } from '#~/pages/modelServing/screens/const';
 
 type NotebookImageDisplayNameProps = {
-  isImageStreamProjectScoped: boolean;
+  notebook: NotebookKind;
   notebookImage: NotebookImage | null;
   notebookState: NotebookState;
   loaded: boolean;
@@ -50,7 +54,7 @@ type NotebookImageDisplayNameProps = {
 };
 
 export const NotebookImageDisplayName = ({
-  isImageStreamProjectScoped,
+  notebook,
   notebookImage,
   notebookState,
   loaded,
@@ -235,16 +239,10 @@ export const NotebookImageDisplayName = ({
           {notebookImage.imageStatus !== NotebookImageStatus.DELETED &&
             notebookImage.imageAvailability === NotebookImageAvailability.ENABLED &&
             isProjectScopedAvailable &&
-            isImageStreamProjectScoped && (
-              <Label
-                isCompact
-                variant="outline"
-                color="blue"
-                data-testid="project-scoped-label"
-                icon={<TypedObjectIcon alt="" resourceType={ProjectObjectType.project} />}
-              >
-                Project-scoped
-              </Label>
+            notebook.metadata.annotations?.['opendatahub.io/workbench-image-namespace'] && (
+              <ScopedLabel isProject color="blue" isCompact>
+                {ScopedType.Project}
+              </ScopedLabel>
             )}
         </FlexItem>
       </Flex>

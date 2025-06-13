@@ -21,6 +21,7 @@ import {
   notebookConfirmModal,
   notebookImageUpdateModal,
   workbenchPage,
+  attachExistingStorageModal,
 } from '#~/__tests__/cypress/cypress/pages/workbench';
 import { verifyRelativeURL } from '#~/__tests__/cypress/cypress/utils/url';
 import { be } from '#~/__tests__/cypress/cypress/utils/should';
@@ -49,6 +50,7 @@ import type { NotebookKind, PodKind } from '#~/k8sTypes';
 import type { EnvironmentFromVariable } from '#~/pages/projects/types';
 import { SpawnerPageSectionID } from '#~/pages/projects/screens/spawner/types';
 import { acceleratorProfileSection } from '#~/__tests__/cypress/cypress/pages/components/subComponents/AcceleratorProfileSection';
+import { AccessMode } from '#~/pages/storageClasses/storageEnums.ts';
 
 const configYamlPath = '../../__mocks__/mock-upload-configmap.yaml';
 
@@ -694,7 +696,7 @@ describe('Workbench page', () => {
     createSpawnerPage.findNotebookImageSearchSelector().should('contain.text', 'Select one');
     createSpawnerPage.findNotebookImageSearchSelector().click();
     cy.contains('Project-scoped images').should('be.visible');
-    cy.contains('Global images').should('be.visible');
+    cy.contains('Global-scoped images').should('be.visible');
 
     // Search for a value that exists in Global images but not in Project-scoped images
     createSpawnerPage.findNotebookImageSearchInput().should('be.visible').type('9');
@@ -1035,31 +1037,33 @@ describe('Workbench page', () => {
       ],
       notebooks: [
         mockNotebookK8sResource({
-          imageDisplayName: 'Project-scoped test image',
-          displayName: 'Test project-scoped notebook',
-          lastImageSelection: 'test-10stream:1.2',
-          image: 'image-registry.openshift-image-registry.svc:5000/test-project/test-10stream:1.22',
-          additionalEnvs: [
-            {
-              name: 'JUPYTER_IMAGE',
-              value:
-                'image-registry.openshift-image-registry.svc:5000/test-project/test-10stream:1.22',
-            },
-          ],
+          workbenchImageNamespace: 'test-project',
           opts: {
             metadata: {
               name: 'test-notebook',
               labels: {
                 'opendatahub.io/notebook-image': 'true',
               },
+              annotations: {
+                'opendatahub.io/image-display-name': 'Test image',
+              },
             },
           },
         }),
       ],
     });
+
+    cy.interceptK8sList(
+      ImageStreamModel,
+      mockK8sResourceList([
+        mockImageStreamK8sResource({
+          namespace: 'test-project',
+        }),
+      ]),
+    );
     workbenchPage.visit('test-project');
-    const notebookRow = workbenchPage.getNotebookRow('Test project-scoped notebook');
-    notebookRow.find().findByText('Project-scoped test image').should('exist');
+    const notebookRow = workbenchPage.getNotebookRow('Test Notebook');
+    notebookRow.find().findByText('Test Image').should('exist');
     notebookRow.findProjectScopedLabel().should('exist');
     notebookRow.shouldHaveContainerSize('Small');
     notebookRow.findHaveNotebookStatusText().should('have.text', 'Running');
@@ -1311,6 +1315,128 @@ describe('Workbench page', () => {
         },
       });
     });
+    // Actual request
+    cy.wait('@editWorkbench').then((interception) => {
+      expect(interception.request.url).not.to.include('?dryRun=All');
+    });
+  });
+
+  it('Edit workbench with project-scoped images', () => {
+    initIntercepts({
+      disableProjectScoped: false,
+      notebookSizes: [
+        {
+          name: 'XSmall',
+          resources: {
+            limits: {
+              cpu: '0.5',
+              memory: '500Mi',
+            },
+            requests: {
+              cpu: '0.1',
+              memory: '100Mi',
+            },
+          },
+        },
+        {
+          name: 'Small',
+          resources: {
+            limits: {
+              cpu: '2',
+              memory: '8Gi',
+            },
+            requests: {
+              cpu: '1',
+              memory: '8Gi',
+            },
+          },
+        },
+      ],
+    });
+
+    cy.interceptK8sList(
+      ImageStreamModel,
+      mockK8sResourceList([
+        mockImageStreamK8sResource({
+          name: 'project scoped test image',
+          displayName: 'Project scoped test image',
+          namespace: 'test-project',
+        }),
+      ]),
+    );
+    cy.interceptK8sList(
+      PVCModel,
+      mockK8sResourceList([mockPVCK8sResource({ name: 'test-notebook' })]),
+    );
+
+    editSpawnerPage.visit('test-notebook');
+    editSpawnerPage.findAlertMessage().should('not.exist');
+    editSpawnerPage.k8sNameDescription.findDisplayNameInput().should('have.value', 'Test Notebook');
+    editSpawnerPage.k8sNameDescription.findDisplayNameInput().fill('Updated Notebook');
+
+    // update notebook image
+    editSpawnerPage
+      .findNotebookImageSearchSelector()
+      .should('have.text', 'Test ImageGlobal-scoped');
+    editSpawnerPage.findNotebookImageSearchSelector().click();
+
+    // Search for a value that exists in Global images but not in Project-scoped images
+    editSpawnerPage.findNotebookImageSearchInput().should('be.visible').type('Project');
+    editSpawnerPage.findNotebookImageSearchInput().clear();
+
+    // Check for project specific serving runtimes
+    const projectScopedNotebookImage = editSpawnerPage.getProjectScopedNotebookImages();
+    projectScopedNotebookImage
+      .find()
+      .findByRole('menuitem', { name: 'Project scoped test image', hidden: true })
+      .click();
+    editSpawnerPage.findProjectScopedLabel().should('exist');
+    editSpawnerPage.selectContainerSize(
+      'XSmall Limits: 0.5 CPU, 500MiB Memory Requests: 0.1 CPU, 100MiB Memory',
+    );
+
+    cy.interceptK8s('PUT', NotebookModel, mockNotebookK8sResource({})).as('editWorkbenchDryRun');
+    cy.interceptK8s('PATCH', NotebookModel, mockNotebookK8sResource({})).as('editWorkbench');
+
+    editSpawnerPage.findSubmitButton().click();
+
+    cy.wait('@editWorkbenchDryRun').then((interception) => {
+      expect(interception.request.url).to.include('?dryRun=All');
+      expect(interception.request.body).to.containSubset({
+        metadata: {
+          annotations: {
+            'openshift.io/display-name': 'Updated Notebook',
+            'opendatahub.io/image-display-name': 'Project scoped test image',
+            'opendatahub.io/workbench-image-namespace': 'test-project',
+          },
+          name: 'test-notebook',
+          namespace: 'test-project',
+        },
+        spec: {
+          template: {
+            spec: {
+              containers: [
+                {
+                  envFrom: [
+                    {
+                      secretRef: {
+                        name: 'secret',
+                      },
+                    },
+                  ],
+
+                  name: 'test-notebook',
+                },
+              ],
+              volumes: [
+                { name: 'test-notebook', persistentVolumeClaim: { claimName: 'test-notebook' } },
+              ],
+            },
+          },
+        },
+      });
+    });
+
     // Actual request
     cy.wait('@editWorkbench').then((interception) => {
       expect(interception.request.url).not.to.include('?dryRun=All');
@@ -1612,5 +1738,122 @@ describe('Workbench page', () => {
     // Verify custom resources were not deleted
     cy.get('@deleteCustomSecret').should('not.have.been.called');
     cy.get('@deleteCustomConfigMap').should('not.have.been.called');
+  });
+
+  describe('Attach existing storage', () => {
+    it('should correctly display grouped PVCs by access mode and update on selection', () => {
+      initIntercepts({
+        isEmpty: true,
+      });
+
+      cy.interceptK8sList(
+        PVCModel,
+        mockK8sResourceList([
+          mockPVCK8sResource({
+            name: 'pvc-rwo',
+            displayName: 'pvc-rwo',
+            accessModes: [AccessMode.RWO],
+            storage: '10Gi',
+          }),
+          mockPVCK8sResource({
+            name: 'pvc-rwx',
+            displayName: 'pvc-rwx',
+            accessModes: [AccessMode.RWX],
+            storage: '5Gi',
+          }),
+          mockPVCK8sResource({
+            name: 'pvc-rox',
+            displayName: 'pvc-rox',
+            accessModes: [AccessMode.ROX],
+            storage: '1Gi',
+          }),
+          mockPVCK8sResource({
+            name: 'pvc-rwop',
+            displayName: 'pvc-rwop',
+            accessModes: [AccessMode.RWOP],
+            storage: '2Gi',
+          }),
+        ]),
+      );
+
+      workbenchPage.visit('test-project');
+      workbenchPage.findCreateButton().click();
+
+      createSpawnerPage.findAttachExistingStorageButton().click();
+      attachExistingStorageModal.findExistingStorageField().findByRole('button').click();
+
+      attachExistingStorageModal.findTypeaheadGroup('readwriteonce-rwo-storage').should('exist');
+      attachExistingStorageModal.findTypeaheadGroup('readwritemany-rwx-storage').should('exist');
+      attachExistingStorageModal.findTypeaheadGroup('readonlymany-rox-storage').should('exist');
+      attachExistingStorageModal
+        .findTypeaheadGroup('readwriteoncepod-rwop-storage')
+        .should('exist');
+
+      attachExistingStorageModal
+        .findTypeaheadOptionUnderGroup('readwriteonce-rwo-storage', 'pvc-rwo')
+        .should('exist');
+      attachExistingStorageModal
+        .findTypeaheadOptionUnderGroup('readwritemany-rwx-storage', 'pvc-rwx')
+        .should('exist');
+      attachExistingStorageModal
+        .findTypeaheadOptionUnderGroup('readonlymany-rox-storage', 'pvc-rox')
+        .should('exist');
+      attachExistingStorageModal
+        .findTypeaheadOptionUnderGroup('readwriteoncepod-rwop-storage', 'pvc-rwop')
+        .should('exist');
+
+      attachExistingStorageModal.selectExistingPersistentStorage('pvc-rwx');
+      attachExistingStorageModal.verifyPSDropdownText('pvc-rwx');
+    });
+
+    it('should not include PVCs that are already attached', () => {
+      initIntercepts({
+        isEmpty: true,
+      });
+
+      const attachedPvcName = 'already-attached-pvc';
+      cy.interceptK8sList(
+        PVCModel,
+        mockK8sResourceList([
+          mockPVCK8sResource({
+            name: attachedPvcName,
+            displayName: attachedPvcName,
+            accessModes: [AccessMode.RWO],
+            storage: '5Gi',
+          }),
+          mockPVCK8sResource({
+            name: 'new-pvc',
+            displayName: 'new-pvc',
+            accessModes: [AccessMode.RWO],
+            storage: '5Gi',
+          }),
+          mockPVCK8sResource({
+            name: 'new-pvc-1',
+            displayName: 'new-pvc-1',
+            accessModes: [AccessMode.RWO],
+            storage: '5Gi',
+          }),
+        ]),
+      );
+
+      workbenchPage.visit('test-project');
+      workbenchPage.findCreateButton().click();
+      createSpawnerPage.findAttachExistingStorageButton().click();
+
+      attachExistingStorageModal.selectExistingPersistentStorage('already-attached-pvc');
+      attachExistingStorageModal.findStandardPathInput().clear().type('mnt/different-path');
+      attachExistingStorageModal.findAttachButton().click();
+
+      createSpawnerPage.findAttachExistingStorageButton().click();
+      attachExistingStorageModal
+        .findExistingStorageField()
+        .findByRole('button')
+        .should('not.be.disabled')
+        .click();
+
+      cy.findAllByRole('option').should('not.contain.text', attachedPvcName);
+      cy.findAllByRole('option').should('contain.text', 'new-pvc');
+      cy.findAllByRole('option').should('contain.text', 'new-pvc-1');
+    });
   });
 });

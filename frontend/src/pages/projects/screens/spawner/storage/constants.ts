@@ -1,6 +1,7 @@
 import { SortableData, kebabTableColumn } from '#~/components/table';
-import { AccessModeColumnInfo } from '#~/pages/projects/screens/detail/storage/AccessModeLabel.tsx';
 import { StorageData } from '#~/pages/projects/types';
+import { AccessMode } from '#~/pages/storageClasses/storageEnums';
+import { getAccessModePopover } from './getAccessModePopover';
 import { MOUNT_PATH_PREFIX } from './const';
 
 export const clusterStorageTableColumns: SortableData<StorageData>[] = [
@@ -21,7 +22,7 @@ export const clusterStorageTableColumns: SortableData<StorageData>[] = [
     sortable: false,
     width: 30,
     info: {
-      popover: AccessModeColumnInfo,
+      popover: getAccessModePopover({}),
       popoverProps: {
         showClose: true,
         maxWidth: '500px',
@@ -46,5 +47,5 @@ export const defaultClusterStorage = {
   description: '',
   size: '20Gi',
   mountPath: MOUNT_PATH_PREFIX,
-  accessMode: 'ReadWriteOnce',
+  accessMode: AccessMode.RWO,
 };

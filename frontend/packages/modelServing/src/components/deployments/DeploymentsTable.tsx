@@ -1,20 +1,13 @@
 import React from 'react';
-import {
-  SortableData,
-  Table,
-  TableRowTitleDescription,
-} from '@odh-dashboard/internal/components/table/index';
-import ResourceTr from '@odh-dashboard/internal/components/ResourceTr';
-import { ActionsColumn, Td } from '@patternfly/react-table';
+import { Spinner, Bullseye } from '@patternfly/react-core';
+import { SortableData, Table } from '@odh-dashboard/internal/components/table/index';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
+import { DeploymentRow } from './DeploymentsTableRow';
+import { deploymentNameSort } from '../../concepts/deploymentUtils';
 import { useResolvedPlatformExtension } from '../../concepts/extensionUtils';
-import { ModelServingPlatform } from '../../concepts/modelServingPlatforms';
-import {
-  Deployment,
-  DeploymentsTableColumn,
-  isModelServingDeploymentsTableExtension,
-} from '../../../extension-points';
+import { ModelServingPlatform } from '../../concepts/useProjectServingPlatform';
+import { Deployment, isModelServingDeploymentsTableExtension } from '../../../extension-points';
 import DeleteModelServingModal from '../deleteModal/DeleteModelServingModal';
 
 const genericColumns: SortableData<Deployment>[] = [
@@ -27,12 +20,17 @@ const genericColumns: SortableData<Deployment>[] = [
   {
     label: 'Model deployment name',
     field: 'name',
-    sortable: true,
+    sortable: deploymentNameSort,
   },
   // Platform specific columns go here
   {
     label: 'Inference endpoint',
     field: 'inferenceEndpoint',
+    sortable: false,
+  },
+  {
+    label: 'API protocol',
+    field: 'apiProtocol',
     sortable: false,
   },
   {
@@ -47,45 +45,11 @@ const genericColumns: SortableData<Deployment>[] = [
   },
 ];
 
-const DeploymentRow: React.FC<{
-  deployment: Deployment;
-  platformColumns: DeploymentsTableColumn[];
-  onDelete: (deployment: Deployment) => void;
-}> = ({ deployment, platformColumns, onDelete }) => (
-  <ResourceTr resource={deployment.model}>
-    <Td dataLabel="Name">
-      <TableRowTitleDescription
-        title={deployment.model.metadata?.name}
-        resource={deployment.model}
-      />
-    </Td>
-    {platformColumns.map((column) => (
-      <Td key={column.field} dataLabel={column.label}>
-        {column.cellRenderer(deployment, column.field)}
-      </Td>
-    ))}
-    <Td dataLabel="Inference endpoint">-</Td>
-    <Td dataLabel="Status">-</Td>
-    <Td isActionCell>
-      <ActionsColumn
-        items={[
-          {
-            title: 'Delete',
-            onClick: () => {
-              onDelete(deployment);
-            },
-          },
-        ]}
-      />
-    </Td>
-  </ResourceTr>
-);
-
 const DeploymentsTable: React.FC<{
   modelServingPlatform: ModelServingPlatform;
   deployments: Deployment[] | undefined;
 }> = ({ modelServingPlatform, deployments }) => {
-  const tableExtension = useResolvedPlatformExtension(
+  const [tableExtension, tableExtensionLoaded] = useResolvedPlatformExtension(
     isModelServingDeploymentsTableExtension,
     modelServingPlatform,
   );
@@ -101,6 +65,14 @@ const DeploymentsTable: React.FC<{
     [platformColumns],
   );
 
+  if (!tableExtensionLoaded) {
+    return (
+      <Bullseye>
+        <Spinner />
+      </Bullseye>
+    );
+  }
+
   return (
     <>
       <Table
@@ -108,7 +80,7 @@ const DeploymentsTable: React.FC<{
         data={deployments ?? []}
         rowRenderer={(row: Deployment) => (
           <DeploymentRow
-            key={row.model.metadata?.name}
+            key={row.model.metadata.name}
             deployment={row}
             platformColumns={platformColumns}
             onDelete={() => setDeleteDeployment(row)}

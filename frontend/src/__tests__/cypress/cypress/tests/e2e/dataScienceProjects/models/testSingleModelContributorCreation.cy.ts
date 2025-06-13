@@ -89,8 +89,10 @@ describe('Verify Model Creation and Validation using the UI', () => {
       // Launch a Single Serving Model and select the required entries
       cy.step('Launch a Single Serving Model using Caikit TGIS ServingRuntime for KServe');
       inferenceServiceModal.findModelNameInput().type(testData.singleModelName);
-      inferenceServiceModal.findServingRuntimeTemplate().click();
-      inferenceServiceModal.findCalkitTGISServingRuntime().click();
+      inferenceServiceModal.findServingRuntimeTemplateSearchSelector().click();
+      inferenceServiceModal
+        .findGlobalScopedTemplateOption('Caikit TGIS ServingRuntime for KServe')
+        .click();
 
       inferenceServiceModal.findLocationPathInput().type(modelFilePath);
       inferenceServiceModal.findSubmitButton().click();

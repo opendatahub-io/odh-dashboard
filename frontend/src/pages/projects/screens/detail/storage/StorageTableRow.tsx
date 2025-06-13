@@ -6,8 +6,8 @@ import {
   Label,
   Skeleton,
   Content,
-  ContentVariants,
   Tooltip,
+  Truncate,
 } from '@patternfly/react-core';
 import { ExclamationTriangleIcon, HddIcon } from '@patternfly/react-icons';
 import { PersistentVolumeClaimKind } from '#~/k8sTypes';
@@ -21,7 +21,8 @@ import {
 } from '#~/concepts/k8s/utils';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import { getStorageClassConfig } from '#~/pages/storageClasses/utils';
-import AccessModeLabel from '#~/pages/projects/screens/detail/storage/AccessModeLabel';
+import { getPvcAccessMode } from '#~/pages/projects/utils.ts';
+import AccessModeFullName from '#~/pages/projects/screens/detail/storage/AccessModeFullName';
 import useIsRootVolume from './useIsRootVolume';
 import StorageWarningStatus from './StorageWarningStatus';
 import { StorageTableData } from './types';
@@ -85,7 +86,7 @@ const StorageTableRow: React.FC<StorageTableRowProps> = ({
       </Td>
 
       {isStorageClassesAvailable && (
-        <Td modifier="truncate" dataLabel="Storage class">
+        <Td dataLabel="Storage class">
           <Flex
             spaceItems={{ default: 'spaceItemsSm' }}
             alignItems={{ default: 'alignItemsCenter' }}
@@ -93,12 +94,18 @@ const StorageTableRow: React.FC<StorageTableRowProps> = ({
             <FlexItem>
               <TableRowTitleDescription
                 title={
-                  storageClassConfig?.displayName ??
-                  obj.storageClass?.metadata.name ??
-                  obj.pvc.spec.storageClassName ??
-                  ''
+                  <Truncate
+                    content={
+                      storageClassConfig?.displayName ??
+                      obj.storageClass?.metadata.name ??
+                      obj.pvc.spec.storageClassName ??
+                      ''
+                    }
+                  />
                 }
                 resource={obj.storageClass}
+                description={storageClassesLoaded ? storageClassConfig?.description : <Skeleton />}
+                truncateDescriptionLines={1}
               />
             </FlexItem>
             {storageClassesLoaded && (
@@ -134,14 +141,11 @@ const StorageTableRow: React.FC<StorageTableRowProps> = ({
               </FlexItem>
             )}
           </Flex>
-          <Content component={ContentVariants.small}>
-            {storageClassesLoaded ? storageClassConfig?.description : <Skeleton />}
-          </Content>
         </Td>
       )}
       <Td dataLabel="Access Mode">
         <Content component="p">
-          <AccessModeLabel accessModeString={obj.pvc.spec.accessModes[0]} />
+          <AccessModeFullName accessModeString={getPvcAccessMode(obj.pvc)} />
         </Content>
       </Td>
       <Td dataLabel="Type">

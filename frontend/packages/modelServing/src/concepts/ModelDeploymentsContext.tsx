@@ -1,6 +1,6 @@
 import React from 'react';
 import type { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
-import { ModelServingPlatform } from './modelServingPlatforms';
+import { ModelServingPlatform } from './useProjectServingPlatform';
 import { Deployment } from '../../extension-points';
 
 type ModelDeploymentsContextType = {
