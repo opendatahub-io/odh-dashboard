@@ -229,6 +229,7 @@ describe('Manage Hardware Profile', () => {
     createHardwareProfile.findNodeResourceDeletionDialog().should('exist');
     createHardwareProfile.findNodeResourceDeletionDialogDeleteButton().click();
     createHardwareProfile.findNodeResourceDeletionDialog().should('not.exist');
+    createHardwareProfile.findSubmitButton().should('be.enabled');
 
     createHardwareProfile.findNodeResourceTableAlert().should('exist');
     createHardwareProfile.findAddNodeResourceButton().click();
@@ -261,6 +262,7 @@ describe('Manage Hardware Profile', () => {
     // now: test deleting the last Memory trigger the alert shown
     createHardwareProfile.getNodeResourceTableRow('memory').findDeleteAction().click();
     createHardwareProfile.findNodeResourceDeletionDialog().should('exist');
+    createHardwareProfile.findSubmitButton().should('be.enabled');
 
     // first; cancel; should be a no-op (row still there, no alert shown)
     createHardwareProfile.findNodeResourceDeletionDialogCancelButton().click();

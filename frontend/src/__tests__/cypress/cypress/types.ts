@@ -308,6 +308,8 @@ export type RegisterModelTestData = {
   registryNamePrefix: string;
   objectStorageModelName: string;
   uriModelName: string;
+  version1Name: string;
+  version2Name: string;
 };
 
 export enum AccessMode {

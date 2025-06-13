@@ -6,7 +6,6 @@ import {
   EmptyState,
   EmptyStateBody,
   Spinner,
-  Breadcrumb,
   BreadcrumbItem,
   Truncate,
 } from '@patternfly/react-core';
@@ -20,6 +19,7 @@ import ApplicationsPage from '#~/pages/ApplicationsPage';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { ExperimentContext } from '#~/pages/pipelines/global/experiments/ExperimentContext';
 import { EmptyRunsState } from '#~/concepts/pipelines/content/tables/pipelineRun/EmptyRunsState';
+import PipelineContextBreadcrumb from '#~/concepts/pipelines/content/PipelineContextBreadcrumb';
 import { ManageRunsTable } from './ManageRunsTable';
 
 const ManageRunsPage: React.FC<PathProps> = ({ breadcrumbPath }) => {
@@ -67,14 +67,13 @@ const ManageRunsPage: React.FC<PathProps> = ({ breadcrumbPath }) => {
       loaded
       empty={!runs}
       breadcrumb={
-        <Breadcrumb data-testid="manage-runs-page-breadcrumb">
+        <PipelineContextBreadcrumb dataTestId="manage-runs-page-breadcrumb">
           {breadcrumbPath}
           {experiment ? (
             <BreadcrumbItem key="experiment">
               {experiment.display_name ? (
                 <Link to={experimentRunsRoute(namespace, experiment.experiment_id)}>
-                  {/* TODO: Remove the custom className after upgrading to PFv6 */}
-                  <Truncate content={experiment.display_name} className="truncate-no-min-width" />
+                  <Truncate content={experiment.display_name} />
                 </Link>
               ) : (
                 'Loading...'
@@ -87,7 +86,7 @@ const ManageRunsPage: React.FC<PathProps> = ({ breadcrumbPath }) => {
             </Link>
           </BreadcrumbItem>
           <BreadcrumbItem key="manage-runs">Manage runs</BreadcrumbItem>
-        </Breadcrumb>
+        </PipelineContextBreadcrumb>
       }
       provideChildrenPadding
       removeChildrenTopPadding

@@ -17,6 +17,10 @@ class ManageRunsPage {
     return cy.findByTestId('app-page-title').contains('Manage runs');
   }
 
+  findProjectNavigatorLink() {
+    return cy.findByTestId('project-navigator-link-in-breadcrumb');
+  }
+
   findBreadcrumb() {
     return this.find()
       .parents('[data-testid="dashboard-page-main"]')
