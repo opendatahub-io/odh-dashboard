@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { Breadcrumb, BreadcrumbItem, Button } from '@patternfly/react-core';
 import { Link } from 'react-router';
 import { downloadString } from '#~/utilities/string';
-import LMEvalResultApplicationPage from '#~/pages/lmEval/components/LMEvalResultApplicationPage';
+import LMEvalFormApplicationPage from '#~/pages/lmEval/components/LMEvalFormApplicationPage';
 import LMEvalResultTable from './LMEvalResultTable';
 import { parseEvaluationResults } from './utils';
 import useLMEvalResult from './useLMEvalResult';
@@ -46,43 +46,28 @@ const LMEvalResult: React.FC = () => {
     }
   }, [evaluation]);
 
-  // Handle evaluation not found
-  if (lmEvalResult.loaded && !evaluation) {
-    return (
-      <LMEvalResultApplicationPage
-        loaded
-        empty
-        emptyMessage={`Evaluation "${evaluationName || 'Unknown'}" not found`}
-        title="Evaluation Results"
-      />
-    );
-  }
+  const isEmpty = lmEvalResult.loaded && (!evaluation || results.length === 0);
 
-  // Handle no results available
-  if (evaluation && results.length === 0) {
-    const emptyMessage = evaluation.status?.results
-      ? 'Unable to parse evaluation results'
-      : 'Evaluation results not yet available';
+  const getEmptyMessage = () => {
+    if (lmEvalResult.loaded && !evaluation) {
+      return `Evaluation "${evaluationName || 'Unknown'}" not found`;
+    }
+    if (evaluation && results.length === 0) {
+      return evaluation.status?.results
+        ? 'Unable to parse evaluation results'
+        : 'Evaluation results not yet available';
+    }
+    return undefined;
+  };
 
-    return (
-      <LMEvalResultApplicationPage
-        loaded={lmEvalResult.loaded}
-        empty
-        emptyMessage={emptyMessage}
-        title={evaluation.metadata.name}
-        breadcrumb={breadcrumb}
-      />
-    );
-  }
-
-  // Show results with download button
   return (
-    <LMEvalResultApplicationPage
+    <LMEvalFormApplicationPage
       loaded={lmEvalResult.loaded}
-      empty={false}
+      empty={isEmpty}
       loadError={lmEvalResult.error}
       title={evaluation?.metadata.name || evaluationName || 'Evaluation Results'}
       breadcrumb={breadcrumb}
+      emptyMessage={getEmptyMessage()}
       headerAction={
         evaluation && (
           <Button variant="primary" onClick={handleDownload}>
@@ -93,7 +78,7 @@ const LMEvalResult: React.FC = () => {
       provideChildrenPadding
     >
       {evaluation && <LMEvalResultTable results={results} />}
-    </LMEvalResultApplicationPage>
+    </LMEvalFormApplicationPage>
   );
 };
 

@@ -48,11 +48,11 @@ jest.mock(
     },
 );
 
-// Mock the LMEvalResultApplicationPage component
+// Mock the LMEvalFormApplicationPage component
 jest.mock(
-  '#~/pages/lmEval/components/LMEvalResultApplicationPage',
+  '#~/pages/lmEval/components/LMEvalFormApplicationPage',
   () =>
-    function MockLMEvalResultApplicationPage({
+    function MockLMEvalFormApplicationPage({
       loaded,
       empty,
       emptyMessage,
@@ -128,7 +128,7 @@ describe('LMEvalResult', () => {
       expect(
         screen.getByText('Empty Message: Evaluation "nonexistent-evaluation" not found'),
       ).toBeInTheDocument();
-      expect(screen.getByText('Title: Evaluation Results')).toBeInTheDocument();
+      expect(screen.getByText('Title: nonexistent-evaluation')).toBeInTheDocument();
     });
 
     it('should render not available message when evaluation has no results', () => {
