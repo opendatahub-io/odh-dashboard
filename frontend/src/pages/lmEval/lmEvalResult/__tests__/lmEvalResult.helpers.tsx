@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { render } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import LMEvalResult from '#~/pages/lmEval/lmEvalResult/LMEvalResult.tsx';
+import LMEvalResult from '#~/pages/lmEval/lmEvalResult/LMEvalResult';
 import { mockLMEvalContextValue, mockParsedResults } from './LMEvalResultMockData';
 
 // Test constants

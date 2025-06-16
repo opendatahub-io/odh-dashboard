@@ -24,7 +24,7 @@ import { Link } from 'react-router';
 import { LmEvalFormData, LmModelArgument } from '#~/pages/lmEval/types';
 import useInferenceServices from '#~/pages/modelServing/useInferenceServices';
 import useLMGenericObjectState from '#~/pages/lmEval/utilities/useLMGenericObjectState';
-import LMEvalApplicationPage from '#~/pages/lmEval/components/LMEvalApplicationPage.tsx';
+import LMEvalApplicationPage from '#~/pages/lmEval/components/LMEvalApplicationPage';
 import { LMEvalContext } from '#~/pages/lmEval/global/LMEvalContext';
 import {
   ModelOption,
