@@ -13,10 +13,10 @@ const NotebookActions: React.FC<ServerStatusProps> = ({ data }) => {
   const notebookToStop = data.notebook || null;
   const notebooksToStop = notebookToStop ? [notebookToStop] : [];
 
-  const [notebookLink, , notebookLinkError] = useRouteForNotebook(
-    notebookToStop?.metadata.name,
-    notebookToStop?.metadata.namespace,
-  );
+  const {
+    data: { route: notebookLink },
+    error: notebookLinkError,
+  } = useRouteForNotebook(notebookToStop?.metadata.name, notebookToStop?.metadata.namespace);
 
   const { showModal, isDeleting, onStop, onNotebooksStop } = useStopWorkbenchModal({
     notebooksToStop,

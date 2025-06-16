@@ -21,18 +21,14 @@ describe('useRouteForNotebook', () => {
 
     const renderResult = testHook(useRouteForNotebook)('test-notebook', 'test-project', true);
     await renderResult.waitForNextUpdate();
-    const [route, loaded, loadError] = renderResult.result.current as [
-      string | null,
-      boolean,
-      Error | null,
-    ];
-
+    const { data, loaded, error } = renderResult.result.current;
+    const { route } = data;
     expect(getRoute).toHaveBeenCalledWith('test-notebook', 'test-project', {
       signal: expect.any(AbortSignal),
     });
     expect(route).toBe('https://example.com/notebook/test-project/test-notebook');
     expect(loaded).toBe(true);
-    expect(loadError).toBeNull();
+    expect(error).toBeNull();
   });
 
   it('should handle error', async () => {
@@ -42,15 +38,12 @@ describe('useRouteForNotebook', () => {
     const renderResult = testHook(useRouteForNotebook)('test-notebook', 'test-project', true);
     await renderResult.waitForNextUpdate();
 
-    const [route, loaded, loadError] = renderResult.result.current as [
-      string | null,
-      boolean,
-      Error | null,
-    ];
+    const { data, loaded, error } = renderResult.result.current;
+    const { route } = data;
     expect(getRoute).toHaveBeenCalledWith('test-notebook', 'test-project', {
       signal: expect.any(AbortSignal),
     });
-    expect(loadError).toBe(errorObj);
+    expect(error).toBe(errorObj);
     expect(route).toBeNull();
     expect(loaded).toBe(false);
   });

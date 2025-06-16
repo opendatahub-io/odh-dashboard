@@ -13,7 +13,7 @@ const NotebookLogoutRedirect: React.FC = () => {
   const notification = useNotification();
   const navigate = useNavigate();
   const { notebookNamespace } = useNamespaces();
-  const [routeLink, loaded, error] = useRouteForNotebook(
+  const { data, loaded, error } = useRouteForNotebook(
     notebookName,
     namespace,
     true,
@@ -55,18 +55,17 @@ const NotebookLogoutRedirect: React.FC = () => {
 
   React.useEffect(() => {
     if (namespace && notebookName && namespace !== notebookNamespace) {
-      if (loaded) {
-        if (error) {
-          notification.error(`Error when logging out ${notebookName}`, error.message);
-          navigate(`/projects/${namespace}`);
-        } else if (routeLink) {
-          const location = new URL(routeLink);
-          window.location.href = `${location.origin}/oauth/sign_out`;
-        }
+      if (error) {
+        notification.error(`Error when logging out ${notebookName}`, error.message);
+        navigate(`/projects/${namespace}`);
+      }
+      if (loaded && data.route) {
+        const location = new URL(data.route);
+        window.location.href = `${location.origin}/oauth/sign_out`;
       }
     }
   }, [
-    routeLink,
+    data.route,
     loaded,
     error,
     notification,

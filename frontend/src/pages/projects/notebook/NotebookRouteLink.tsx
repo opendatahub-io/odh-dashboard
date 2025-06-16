@@ -33,7 +33,11 @@ const NotebookRouteLink: React.FC<NotebookRouteLinkProps> = ({
   isLarge,
   buttonStyle,
 }) => {
-  const [routeLink, loaded, error] = useRouteForNotebook(
+  const {
+    data: { route: routeLink },
+    loaded,
+    error,
+  } = useRouteForNotebook(
     notebook.metadata.name,
     notebook.metadata.namespace,
     isRunning,
