@@ -1,15 +1,16 @@
 import * as React from 'react';
-import { screen } from '@testing-library/react';
+import { screen, render } from '@testing-library/react';
 import '@testing-library/jest-dom';
+import { MemoryRouter } from 'react-router-dom';
+import LMEvalResult from '#~/pages/lmEval/lmEvalResult/LMEvalResult';
 import { EvaluationResult } from '#~/pages/lmEval/lmEvalResult/LMEvalResultTable';
 import {
   defaultParams,
   mockSuccessfulHookResult,
   mockEmptyHookResult,
   createMockEvaluationData,
-  renderComponent,
   createSetupMocks,
-} from './lmEvalResult.helpers';
+} from './utils';
 
 // Create mock functions that can be configured per test
 const mockUseParams = jest.fn();
@@ -90,6 +91,13 @@ describe('LMEvalResult', () => {
     mockUseLMEvalResult,
     mockParseEvaluationResults,
   );
+
+  const renderComponent = (): ReturnType<typeof render> =>
+    render(
+      <MemoryRouter>
+        <LMEvalResult />
+      </MemoryRouter>,
+    );
 
   beforeEach(() => {
     jest.clearAllMocks();

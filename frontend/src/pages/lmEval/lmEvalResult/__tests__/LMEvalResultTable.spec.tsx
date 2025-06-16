@@ -5,7 +5,12 @@ import '@testing-library/jest-dom';
 import LMEvalResultTable, {
   EvaluationResult,
 } from '#~/pages/lmEval/lmEvalResult/LMEvalResultTable';
-import { mockResults, incompleteResults, zeroResults, emptyResults } from './LMEvalResultMockData';
+import {
+  mockResults,
+  incompleteResults,
+  zeroResults,
+  emptyResults,
+} from '#~/__mocks__/mockLMEvaluationResultData';
 
 // Mock DashboardEmptyTableView
 jest.mock(

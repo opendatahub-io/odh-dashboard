@@ -1,8 +1,4 @@
-import * as React from 'react';
-import { render } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
-import LMEvalResult from '#~/pages/lmEval/lmEvalResult/LMEvalResult';
-import { mockLMEvalContextValue, mockParsedResults } from './LMEvalResultMockData';
+import { mockLMEvalContextValue, mockParsedResults } from '#~/__mocks__/mockLMEvaluationResultData';
 
 // Test constants
 export const defaultParams = {
@@ -34,13 +30,6 @@ export const createMockEvaluationData = (
     ...statusOverride,
   },
 });
-
-export const renderComponent = (): ReturnType<typeof render> =>
-  render(
-    <MemoryRouter>
-      <LMEvalResult />
-    </MemoryRouter>,
-  );
 
 export type MockHookResult =
   | typeof mockSuccessfulHookResult
