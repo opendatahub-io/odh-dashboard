@@ -6,7 +6,7 @@ import {
   ResolvedExtension,
   useExtensions,
 } from '@openshift/dynamic-plugin-sdk';
-import { ModelServingPlatform } from './modelServingPlatforms';
+import { ModelServingPlatform } from './useProjectServingPlatform';
 
 export const usePlatformExtension = <T extends Extension>(
   extensionPredicate: ExtensionPredicate<T>,

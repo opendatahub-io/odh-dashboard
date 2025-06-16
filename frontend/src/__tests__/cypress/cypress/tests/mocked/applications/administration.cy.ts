@@ -2,7 +2,6 @@ import { mockRoleBindingK8sResource } from '#~/__mocks__/mockRoleBindingK8sResou
 import { mockK8sResourceList, mockNotebookK8sResource } from '#~/__mocks__';
 import type { RoleBindingSubject } from '#~/k8sTypes';
 import { mockAllowedUsers } from '#~/__mocks__/mockAllowedUsers';
-import { mockNotebookImageInfo } from '#~/__mocks__/mockNotebookImageInfo';
 import {
   administration,
   notebookController,
@@ -16,6 +15,8 @@ import {
 import type { AllowedUser } from '#~/pages/notebookController/screens/admin/types';
 import { testPagination } from '#~/__tests__/cypress/cypress/utils/pagination';
 import { mockStartNotebookData } from '#~/__mocks__/mockStartNotebookData';
+import { mockImageStreamK8sResourceList } from '#~/__mocks__/mockImageStreamK8sResource';
+import { ImageStreamModel } from '#~/__tests__/cypress/cypress/utils/models';
 
 const groupSubjects: RoleBindingSubject[] = [
   {
@@ -43,7 +44,10 @@ const initIntercepts = ({
       }),
     ]),
   );
-  cy.interceptOdh('GET /api/images/:type', { path: { type: 'jupyter' } }, mockNotebookImageInfo());
+  cy.interceptK8sList(
+    { model: ImageStreamModel, ns: 'opendatahub' },
+    mockK8sResourceList(mockImageStreamK8sResourceList()),
+  );
 };
 
 it('Administration tab should not be accessible for non-project admins', () => {

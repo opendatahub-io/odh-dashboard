@@ -49,6 +49,7 @@
     "fastify-plugin": "^4.5.1",
     "http-errors": "^1.8.0",
     "js-yaml": "^4.0.0",
+    "llama-stack-client": "^0.2.7",
     "lodash": "^4.17.21",
     "pino": "^8.11.0",
     "prom-client": "^14.0.1",

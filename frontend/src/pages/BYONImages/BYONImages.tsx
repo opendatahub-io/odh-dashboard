@@ -1,14 +1,17 @@
 import * as React from 'react';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
-import { useWatchBYONImages } from '#~/utilities/useWatchBYONImages';
 import TitleWithIcon from '#~/concepts/design/TitleWithIcon';
 import { ProjectObjectType } from '#~/concepts/design/utils';
+import { useDashboardNamespace } from '#~/redux/selectors';
+import { useImageStreams } from '#~/utilities/useImageStreams';
+import { mapImageStreamToBYONImage } from '#~/utilities/imageStreamUtils';
 import { BYONImagesTable } from './BYONImagesTable';
 import EmptyBYONImages from './EmptyBYONImages';
 
 const BYONImages: React.FC = () => {
-  const [images, loaded, loadError, refresh] = useWatchBYONImages();
-
+  const { dashboardNamespace } = useDashboardNamespace();
+  const [imageStreams, loaded, loadError] = useImageStreams(dashboardNamespace, { type: 'byon' });
+  const images = React.useMemo(() => imageStreams.map(mapImageStreamToBYONImage), [imageStreams]);
   return (
     <ApplicationsPage
       title={
@@ -19,10 +22,10 @@ const BYONImages: React.FC = () => {
       empty={images.length === 0}
       loadError={loadError}
       errorMessage="Unable to load workbench images."
-      emptyStatePage={<EmptyBYONImages refresh={refresh} />}
+      emptyStatePage={<EmptyBYONImages />}
       provideChildrenPadding
     >
-      <BYONImagesTable images={images} refresh={refresh} />
+      <BYONImagesTable images={images} />
     </ApplicationsPage>
   );
 };

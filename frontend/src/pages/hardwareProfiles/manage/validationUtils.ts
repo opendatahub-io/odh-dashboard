@@ -157,26 +157,13 @@ export const tolerationSchema = z.object({
 
 export const nodeSelectorSchema = z.record(z.string().min(1), z.string().min(1));
 
-export const manageHardwareProfileValidationSchema = z
-  .object({
-    displayName: z.string().trim().min(1, 'Display name is required'),
-    enabled: z.boolean(),
-    identifiers: z.array(identifierSchema),
-    tolerations: z.array(tolerationSchema).optional(),
-    nodeSelector: nodeSelectorSchema.optional(),
-    name: z.string().trim().min(1).max(253).regex(k8sNameRegex),
-    description: z.string().optional(),
-    visibility: z.array(z.string()),
-  })
-  .superRefine((data, ctx) => {
-    if (!hasCPUandMemory(data.identifiers)) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: createIdentifierWarningMessage(HARDWARE_PROFILES_MISSING_CPU_MEMORY_MESSAGE),
-        params: {
-          code: HardwareProfileWarningType.HARDWARE_PROFILES_MISSING_CPU_MEMORY,
-        },
-        path: ['identifiers'],
-      });
-    }
-  });
+export const manageHardwareProfileValidationSchema = z.object({
+  displayName: z.string().trim().min(1, 'Display name is required'),
+  enabled: z.boolean(),
+  identifiers: z.array(identifierSchema),
+  tolerations: z.array(tolerationSchema).optional(),
+  nodeSelector: nodeSelectorSchema.optional(),
+  name: z.string().trim().min(1).max(253).regex(k8sNameRegex),
+  description: z.string().optional(),
+  visibility: z.array(z.string()),
+});
