@@ -60,6 +60,18 @@ const initIntercepts = () => {
     { model: LMEvalModel, ns: TEST_PROJECT },
     mockK8sResourceList(mockEvaluations.map(mockLMEvaluation)),
   );
+
+  // Add intercept for individual LM evaluation resource
+  cy.interceptK8s(
+    { model: LMEvalModel, ns: TEST_PROJECT, name: COMPLETE_EVALUATION },
+    mockLMEvaluation({
+      name: COMPLETE_EVALUATION,
+      state: 'Complete',
+      reason: 'NoReason',
+      modelArgs: [{ name: 'model', value: 'granite-7b' }],
+      results: JSON.stringify(mockCompleteEvaluationResults),
+    }),
+  );
 };
 
 describe('LM Eval Results', () => {
