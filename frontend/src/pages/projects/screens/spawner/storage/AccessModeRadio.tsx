@@ -9,6 +9,7 @@ type AccessModeRadioProps = {
   accessMode: AccessMode;
   isDisabled: boolean;
   isChecked: boolean;
+  tooltipContent?: string;
   onChange: () => void;
 };
 
@@ -18,6 +19,7 @@ const AccessModeRadio: React.FC<AccessModeRadioProps> = ({
   accessMode,
   isDisabled,
   isChecked,
+  tooltipContent,
   onChange,
 }) => {
   const radioField = (
@@ -33,9 +35,7 @@ const AccessModeRadio: React.FC<AccessModeRadioProps> = ({
   );
   if (isDisabled) {
     return (
-      <Tooltip content="This access mode is not enabled in the selected storage class.">
-        {radioField}
-      </Tooltip>
+      <>{tooltipContent ? <Tooltip content={tooltipContent}>{radioField}</Tooltip> : radioField}</>
     );
   }
   return radioField;

@@ -54,11 +54,23 @@ const AddExistingStorageField: React.FC<AddExistingStorageFieldProps> = ({
             pvc.spec.resources.requests.storage,
             pvc.metadata.annotations?.['openshift.io/description'],
           ),
-          selectedLabel: (
-            <Label key={`access-mode-label-${label}`} isCompact color="blue" variant="outline">
-              {`${mode} (${label})`}
-            </Label>
-          ),
+          selectedLabel:
+            groupModePvc.length === 1 ? (
+              <Label
+                key={`access-mode-label-${label}`}
+                isCompact
+                isDisabled
+                variant="filled"
+                color="grey"
+                style={{ border: '1px solid var(--pf-t--global--border--color--disabled)' }}
+              >
+                {`${mode} (${label})`}
+              </Label>
+            ) : (
+              <Label key={`access-mode-label-${label}`} isCompact color="blue" variant="outline">
+                {`${mode} (${label})`}
+              </Label>
+            ),
           group: `${mode} (${label}) storage`,
         }));
         groups.push(...groupOptions);
@@ -113,7 +125,7 @@ const AddExistingStorageField: React.FC<AddExistingStorageFieldProps> = ({
       <FormHelperText>
         <Alert
           variant="info"
-          title="RWO and RWOP storage can only be attached to one workbench at a time. If it's already attached elsewhere, attaching it here will disconnect it from the other workbench."
+          title="RWOP storage can be attached to only one workbench at a time. RWO storage can be shared by workbenches on the same node, but attaching it to a workbench on a different node will detach it from the current ones."
           isInline
           isPlain
         />

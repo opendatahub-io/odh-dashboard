@@ -145,10 +145,10 @@ class StorageClassesTable {
     return cy.interceptK8s('PATCH', { model: StorageClassModel, times }, storageClass);
   }
 
-  shouldContainAccessModeLabels(labels: string[]) {
-    cy.findByTestId('access-mode-label-group').within(() =>
-      labels.map((label) => cy.contains(label)),
-    );
+  shouldContainAccessModeLabels(labels: string[], index = 0) {
+    cy.findAllByTestId('access-mode-label-group')
+      .eq(index)
+      .within(() => labels.map((label) => cy.contains(label)));
     return this;
   }
 }

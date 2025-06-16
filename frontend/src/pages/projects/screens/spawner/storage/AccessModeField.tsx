@@ -2,7 +2,7 @@ import { Alert, Flex, FlexItem, FormGroup, FormHelperText, Spinner } from '@patt
 import * as React from 'react';
 import { AccessMode } from '#~/pages/storageClasses/storageEnums';
 import { toAccessModeFullName } from '#~/pages/projects/screens/detail/storage/AccessModeFullName';
-import FieldGroupHelpLabelIcon from '#~/components/FieldGroupHelpLabelIcon';
+import FieldGroupHelpLabelIcon from '#~/components/FieldGroupHelpLabelIcon.tsx';
 import AccessModeRadio from './AccessModeRadio';
 import { getAccessModePopover } from './getAccessModePopover';
 
@@ -27,6 +27,15 @@ const AccessModeField: React.FC<AccessModeFieldProps> = ({
     return <Spinner />;
   }
 
+  const availableAccessModes = Object.values(AccessMode).filter(
+    (accessMode: AccessMode) =>
+      openshiftSupportedAccessModes.includes(accessMode) || accessMode === AccessMode.RWO,
+  );
+
+  const allowedAccessModes = availableAccessModes.filter((accessMode: AccessMode) =>
+    adminSupportedAccessModes.includes(accessMode),
+  );
+
   return (
     <FormGroup
       label="Access mode"
@@ -46,33 +55,37 @@ const AccessModeField: React.FC<AccessModeFieldProps> = ({
       {canEditAccessMode ? (
         <>
           <Flex>
-            {Object.values(AccessMode).map((accessMode) => {
-              const showAccessMode = openshiftSupportedAccessModes.includes(accessMode);
+            {availableAccessModes.map((accessMode) => {
               const hasAccessMode = adminSupportedAccessModes.includes(accessMode);
               return (
-                (showAccessMode || accessMode === AccessMode.RWO) && (
-                  <FlexItem key={accessMode}>
-                    <AccessModeRadio
-                      id={`${accessMode}-radio`}
-                      name={`${accessMode}-radio`}
-                      isDisabled={!hasAccessMode}
-                      isChecked={currentAccessMode === accessMode}
-                      onChange={() => setAccessMode(accessMode)}
-                      accessMode={accessMode}
-                    />
-                  </FlexItem>
-                )
+                <FlexItem key={accessMode}>
+                  <AccessModeRadio
+                    id={`${accessMode}-radio`}
+                    name={`${accessMode}-radio`}
+                    isDisabled={!hasAccessMode || availableAccessModes.length === 1}
+                    tooltipContent={
+                      !hasAccessMode
+                        ? 'Access mode not supported by the selected storage class.'
+                        : undefined
+                    }
+                    isChecked={currentAccessMode === accessMode}
+                    onChange={() => setAccessMode(accessMode)}
+                    accessMode={accessMode}
+                  />
+                </FlexItem>
               );
             })}
           </Flex>
-          <FormHelperText>
-            <Alert
-              variant="info"
-              title="Access mode cannot be changed after creation. The default access mode is determined by the selected storage class."
-              isInline
-              isPlain
-            />
-          </FormHelperText>
+          {allowedAccessModes.length > 1 && (
+            <FormHelperText>
+              <Alert
+                variant="info"
+                title="Access mode cannot be changed after creation. The default access mode is determined by the selected storage class."
+                isInline
+                isPlain
+              />
+            </FormHelperText>
+          )}
         </>
       ) : (
         <div data-testid="existing-access-mode">

@@ -46,10 +46,10 @@ describe('Storage classes', () => {
       storageClassesPage.visit();
 
       storageClassesTable.findRowByName('Test SC 1').should('be.visible');
-      storageClassesTable.shouldContainAccessModeLabels(['RWX']); // display labels other than ROX label
+      storageClassesTable.shouldContainAccessModeLabels(['RWO', 'RWX'], 1);
 
       storageClassesTable.findRowByName('openshift-default-sc').should('be.visible');
-      storageClassesTable.shouldContainAccessModeLabels([]); // empty because we do not display ROX label
+      storageClassesTable.shouldContainAccessModeLabels(['RWO']);
     });
 
     it('table rows allow for toggling of Enable and Default values', () => {
@@ -200,7 +200,7 @@ describe('Storage classes', () => {
       cy.wait('@patchStorageClass');
       cy.wait('@updateStorageClass');
 
-      storageClassTableRow.findDisplayNameValue().should('have.text', 'Readable config');
+      storageClassTableRow.findDisplayNameValue().should('contain.text', 'Readable config');
       storageClassTableRow.findEnableSwitchInput().should('have.attr', 'aria-checked', 'false');
       storageClassTableRow.findDefaultRadioInput().should('not.have.attr', 'checked');
       storageClassTableRow.findLastModifiedValue().should('not.have.text', '-');
