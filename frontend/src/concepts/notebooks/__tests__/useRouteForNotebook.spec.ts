@@ -28,7 +28,7 @@ describe('useRouteForNotebook', () => {
     });
     expect(route).toBe('https://example.com/notebook/test-project/test-notebook');
     expect(loaded).toBe(true);
-    expect(error).toBeNull();
+    expect(error).toBeUndefined();
   });
 
   it('should handle error', async () => {

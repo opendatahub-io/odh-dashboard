@@ -27,13 +27,13 @@ const useRouteForNotebook = (
         }))
         .catch((e) => {
           if (!isRunning && e.statusObject?.code === 404) {
-            return {
+            return Promise.reject({
               route: null,
-            };
+            });
           }
-          return {
+          return Promise.reject({
             route: null,
-          };
+          });
         });
     },
     [notebookName, projectName, isRunning],
