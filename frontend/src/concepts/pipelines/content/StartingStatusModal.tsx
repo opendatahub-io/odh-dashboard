@@ -12,98 +12,112 @@ import {
   TabTitleText,
   Panel,
   PanelMain,
-  List,
-  ListItem,
   Button,
+  Flex,
+  FlexItem,
+  Content,
 } from '@patternfly/react-core';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { getStatusFromCondition } from '#~/concepts/pipelines/content/utils.tsx';
 import K8sStatusIcon from '#~/concepts/pipelines/content/K8sStatusIcon.tsx';
-import { K8sCondition } from '#~/k8sTypes.ts';
-import './StartingStatusModal.scss';
+import {
+  useWatchPodsForPipelineServerEvents,
+  useWatchMultiplePodEvents,
+} from '#~/concepts/pipelines/context/usePipelineEvents.ts';
+import EventLog from '#~/concepts/k8s/EventLog/EventLog';
+import '#~/concepts/dashboard/ModalStyles.scss';
 
 const PROGRESS_TAB = 'Progress';
 const EVENT_LOG_TAB = 'Events log';
 
-const notReadySection = (
-  <div className="pipeline-status-modal__not-ready-section">
-    <p />
-    <div>
-      This may take a while. You can close this modal and continue using the application. The
-      pipeline server will be available when initialization is complete.
-    </div>
-  </div>
-);
-
 type StartingStatusModalProps = {
   onClose: () => void;
-  conditionLog: K8sCondition[];
 };
 
-// because you can close and re-open this modal; and the 'status' tab only needs to show the current conditions;
-// but the 'event log' tab should show everything (from before the user opens the modal)
-// need to get the events from the parent that already/always exists.
-// (this component only exists when it is open): eslint rules do not allow this component to exist if it not open
-const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose, conditionLog }) => {
-  const { pipelinesServer } = usePipelinesAPI();
+const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose }) => {
+  const { pipelinesServer, namespace } = usePipelinesAPI();
   const [activeTab, setActiveTab] = React.useState<string>(PROGRESS_TAB);
   const isServerReadyAndCompletelyDone = pipelinesServer.crStatus?.conditions?.some(
     (c) => c.type === 'Ready' && c.status === 'True',
   );
 
+  const [pods] = useWatchPodsForPipelineServerEvents(namespace);
+  const podUids = pods.map((onePod) => onePod.metadata.uid);
+
+  // Use the custom hook to get all events
+  const allEvents = useWatchMultiplePodEvents(
+    namespace,
+    podUids.filter((uid): uid is string => uid !== undefined),
+  );
+
   const spinner = (
-    <div className="pipeline-status-modal__spinner-container">
-      <div className="pipeline-status-modal__spinner-text">Initializing Pipeline Server</div>
-      <Spinner size="lg" />
-    </div>
+    <Flex>
+      <FlexItem>Initializing Pipeline Server</FlexItem>
+      <FlexItem>
+        <Spinner size="lg" />
+      </FlexItem>
+    </Flex>
   );
 
   const renderProgress = () => (
-    <Stack hasGutter>
-      <StackItem>
+    <Panel className="odh-modal__scrollable-panel">
+      <PanelMain>
         <Stack hasGutter>
-          {pipelinesServer.crStatus?.conditions?.map((condition, index) => {
-            const containerStatus = getStatusFromCondition(condition);
-            return (
-              <StackItem key={`${condition.type}-${index}`}>
-                <div className="pipeline-status-modal__status-item">
-                  <K8sStatusIcon status={containerStatus} />
-                  <span>{condition.type}</span>
-                </div>
-              </StackItem>
-            );
-          })}
+          <StackItem>
+            <Stack hasGutter>
+              {pipelinesServer.crStatus?.conditions?.map((condition, index) => {
+                const containerStatus = getStatusFromCondition(condition);
+                return (
+                  <StackItem key={`${condition.type}-${index}`}>
+                    <Flex>
+                      <FlexItem>
+                        <K8sStatusIcon status={containerStatus} />
+                      </FlexItem>
+                      <FlexItem>
+                        <Content>{condition.type}</Content>
+                      </FlexItem>
+                    </Flex>
+                  </StackItem>
+                );
+              })}
+            </Stack>
+          </StackItem>
+          <StackItem />
+          {!isServerReadyAndCompletelyDone && (
+            <StackItem>
+              <Content>
+                This may take a while. You can close this modal and continue using the application.
+                The pipeline server will be available when initialization is complete.
+              </Content>
+            </StackItem>
+          )}
         </Stack>
-      </StackItem>
-      <StackItem />
-      {!isServerReadyAndCompletelyDone && notReadySection}
-    </Stack>
+      </PanelMain>
+    </Panel>
   );
 
   const renderLogs = () => (
-    <Panel className="pipeline-status-modal__panel">
+    <Panel className="odh-modal__scrollable-panel">
       <PanelMain>
-        <List isPlain isBordered data-testid="event-logs">
-          {conditionLog.map((condition, index) => (
-            <ListItem key={`pipeline-condition-${condition.type}-${index}`}>
-              {condition.type}: {condition.status} - {condition.message || 'No message'}
-            </ListItem>
-          ))}
-        </List>
+        <EventLog
+          events={allEvents}
+          dataTestId="pipeline-event-logs"
+          initialMessage="Initializing Pipeline"
+        />
       </PanelMain>
     </Panel>
   );
 
   const successDesc = (
-    <span data-testid="successDescription">
+    <Content data-testid="successDescription">
       The pipeline server has been successfully initialized and is ready to use.
-    </span>
+    </Content>
   );
   const inProgressDesc = (
-    <span data-testid="inProgressDescription">
+    <Content data-testid="inProgressDescription">
       The pipeline server is currently being initialized. This process may take a few minutes.
-      Closing this dialog will not affect the pipeline server creation; this just shows the status.
-    </span>
+      Closing this dialog will not affect the pipeline server creation.
+    </Content>
   );
   return (
     <Modal
@@ -118,7 +132,7 @@ const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose, cond
         title={isServerReadyAndCompletelyDone ? 'Pipeline Server Initialized' : spinner}
         description={isServerReadyAndCompletelyDone ? successDesc : inProgressDesc}
       />
-      <ModalBody className="pipeline-status-modal__content">
+      <ModalBody className="odh-modal__content-height">
         <Stack hasGutter>
           <StackItem>
             <Tabs
@@ -140,7 +154,7 @@ const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose, cond
               />
             </Tabs>
           </StackItem>
-          <StackItem isFilled style={{ overflowY: 'hidden' }}>
+          <StackItem isFilled className="odh-modal__filled-stack-item">
             {activeTab === PROGRESS_TAB ? renderProgress() : renderLogs()}
           </StackItem>
         </Stack>

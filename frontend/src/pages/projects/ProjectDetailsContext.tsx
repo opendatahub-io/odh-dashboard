@@ -164,6 +164,7 @@ const ProjectDetailsContextProvider: React.FC = () => {
       />
     );
   }
+
   return (
     <ProjectDetailsContext.Provider value={contextValue}>
       {pipelinesEnabled ? (

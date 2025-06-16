@@ -18,18 +18,16 @@ export enum StatusType {
 
 type StatusConfig = {
   icon: React.ComponentType<{ style?: React.CSSProperties; className?: string }>;
-  statusColor: 'success' | 'danger' | 'warning' | 'info';
+  statusColor?: 'success' | 'danger' | 'warning' | 'info';
   className?: string;
 };
 
 const STATUS_CONFIG: Record<StatusType, StatusConfig> = {
   [StatusType.PENDING]: {
     icon: PendingIcon,
-    statusColor: 'info',
   },
   [StatusType.IN_PROGRESS]: {
     icon: InProgressIcon,
-    statusColor: 'info',
     className: 'odh-u-spin',
   },
   [StatusType.SUCCESS]: {
@@ -48,9 +46,10 @@ const STATUS_CONFIG: Record<StatusType, StatusConfig> = {
 
 type StatusIconProps = {
   status: StatusType;
+  className?: string;
 };
 
-const K8sStatusIcon: React.FC<StatusIconProps> = ({ status }) => {
+const K8sStatusIcon: React.FC<StatusIconProps> = ({ status, className }) => {
   const config = STATUS_CONFIG[status];
   const IconComponent = config.icon;
 
