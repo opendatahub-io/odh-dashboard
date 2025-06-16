@@ -6,11 +6,11 @@ aliases:
     - christianvogt
     - lucferbux
 
-  connections
+  connections:
     - @opendatahub-io/odh-dashboard-owners
     - emilys314
 
-  hardware-profiles
+  hardware-profiles:
     - @opendatahub-io/odh-dashboard-owners
     - Gkrumbach07
 
