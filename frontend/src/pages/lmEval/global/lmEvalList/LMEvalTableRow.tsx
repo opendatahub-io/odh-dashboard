@@ -14,7 +14,7 @@ type LMEvalTableRowType = {
   onDeleteLMEval: (lmEval: LMEvalKind) => void;
 };
 
-const LMEvalTableRow: React.FC<LMEvalTableRowType> = ({ lmEval }) => {
+const LMEvalTableRow: React.FC<LMEvalTableRowType> = ({ lmEval, onDeleteLMEval }) => {
   const handleDownload = () => {
     downloadString(`${lmEval.metadata.name}.json`, lmEval.status?.results || '{}');
   };
