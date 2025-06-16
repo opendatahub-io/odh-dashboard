@@ -55,7 +55,7 @@ const AddExistingStorageField: React.FC<AddExistingStorageFieldProps> = ({
             pvc.metadata.annotations?.['openshift.io/description'],
           ),
           selectedLabel:
-            groupModePvc.length === 1 ? (
+            storages.length === 1 ? (
               <Label
                 key={`access-mode-label-${label}`}
                 isCompact
