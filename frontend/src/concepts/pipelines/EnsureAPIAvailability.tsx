@@ -18,17 +18,6 @@ const EnsureAPIAvailability: React.FC<EnsureAPIAvailabilityProps> = ({
 }) => {
   const { apiAvailable, pipelinesServer } = usePipelinesAPI();
   const [showModal, setShowModal] = React.useState(false);
-  const [conditionLog, setConditionLog] = React.useState<K8sCondition[]>([]);
-
-  // Update conditionLog whenever conditions change
-  React.useEffect(() => {
-    if (pipelinesServer.crStatus?.conditions) {
-      // Create a new array with reversed conditions
-      const reversedConditions = [...pipelinesServer.crStatus.conditions].reverse();
-      // Add to the top of conditionLog
-      setConditionLog((prevLog) => [...reversedConditions, ...prevLog]);
-    }
-  }, [pipelinesServer.crStatus?.conditions]);
 
   const modalLink = (
     <Button
@@ -84,9 +73,7 @@ const EnsureAPIAvailability: React.FC<EnsureAPIAvailabilityProps> = ({
   return (
     <>
       {getMainComponent()}
-      {showModal && (
-        <StartingStatusModal onClose={() => setShowModal(false)} conditionLog={conditionLog} />
-      )}
+      {showModal && <StartingStatusModal onClose={() => setShowModal(false)} />}
     </>
   );
 };

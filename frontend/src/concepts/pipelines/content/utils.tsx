@@ -113,7 +113,7 @@ export const isPipelineRecurringRun = (
 export const getStatusFromCondition = (condition: K8sCondition): StatusType => {
   const { reason, status, lastTransitionTime } = condition;
   if (reason === 'Deploying' && status === 'False') {
-    return StatusType.PENDING;
+    return StatusType.IN_PROGRESS;
   }
   if (status === 'True') {
     return StatusType.SUCCESS;

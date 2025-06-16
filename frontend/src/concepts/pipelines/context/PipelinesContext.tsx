@@ -50,7 +50,6 @@ type PipelineContext = {
   metadataStoreServiceClient: MetadataStoreServicePromiseClient;
   managedPipelines: DSPipelineManagedPipelinesKind | undefined;
   isStarting?: boolean;
-  finishedLoading?: boolean;
 };
 
 const PipelinesContext = React.createContext<PipelineContext>({
@@ -93,17 +92,20 @@ export const PipelineContextProvider = conditionalArea<PipelineContextProviderPr
   useSyncPreferredProject(project);
 
   const state = usePipelineNamespaceCR(namespace);
-  const [pipelineNamespaceCR, crLoaded, crLoadError, refreshCR, isStarting] = state;
-  console.log('44a: is crLoaded???/namespace', crLoaded, pipelineNamespaceCR);
+  const [pipelineNamespaceCR, crLoaded, crLoadError, refreshCR] = state;
+  console.log('89a: is crLoaded???/namespace', crLoaded, pipelineNamespaceCR);
 
   const isResourceLoaded = crLoaded && !!pipelineNamespaceCR;
   const isAllLoaded = isDspaAllReady(state);
-  const isStartingLocal = isResourceLoaded && !isAllLoaded;
-  console.log('89a: is starting (new here!)??', isStartingLocal, isAllLoaded, isResourceLoaded);
+  const isStarting = isResourceLoaded && !isAllLoaded;
+  console.log(
+    '89a: is starting (new here!) (isstarting,isallLOaded, isResourceLoaded) ??',
+    isStarting,
+    isAllLoaded,
+    isResourceLoaded,
+  );
 
   const isCRReady = dspaLoaded(state);
-  const isCRAllLoadedAndReady = isDspaAllReady(state);
-
   const [disableTimeout, setDisableTimeout] = React.useState(false);
   const serverTimedOut = !disableTimeout && hasServerTimedOut(state, isCRReady);
   const ignoreTimedOut = React.useCallback(() => {
@@ -154,10 +156,6 @@ export const PipelineContextProvider = conditionalArea<PipelineContextProviderPr
     );
   }
 
-  const hasCr = !!pipelineNamespaceCR;
-  console.log('45a: hasCr?', hasCr); // (and &&) hasCr and an new isdspaAllLoaded (Ready === true);
-  console.log('44a: is crLoaded???', crLoaded);
-
   return (
     <PipelinesContext.Provider
       value={{
@@ -177,7 +175,6 @@ export const PipelineContextProvider = conditionalArea<PipelineContextProviderPr
         metadataStoreServiceClient,
         managedPipelines: pipelineNamespaceCR?.spec.apiServer?.managedPipelines,
         isStarting,
-        finishedLoading: isDspaAllReady,
       }}
     >
       {children}

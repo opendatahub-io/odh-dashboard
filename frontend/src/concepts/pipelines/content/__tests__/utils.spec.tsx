@@ -16,6 +16,7 @@ import {
 } from '#~/concepts/pipelines/kfTypes';
 import { computeRunStatus, getStatusFromCondition } from '#~/concepts/pipelines/content/utils';
 import { K8sCondition } from '#~/k8sTypes';
+import { StatusType } from '#~/concepts/pipelines/content/K8sStatusIcon.tsx';
 
 const run: PipelineRunKF = {
   created_at: '2023-09-05T16:23:25Z',
@@ -114,7 +115,7 @@ describe('getStatusFromCondition', () => {
       type: 'MLMDProxyReady',
     };
 
-    expect(getStatusFromCondition(condition)).toBe('pending');
+    expect(getStatusFromCondition(condition)).toBe(StatusType.PENDING);
   });
 
   it('should return success for ObjectStoreAvailable with True status', () => {
@@ -126,7 +127,7 @@ describe('getStatusFromCondition', () => {
       type: 'ObjectStoreAvailable',
     };
 
-    expect(getStatusFromCondition(condition)).toBe('success');
+    expect(getStatusFromCondition(condition)).toBe(StatusType.SUCCESS);
   });
 
   it('should return error for FailingToDeploy with False status and long transition time', () => {
@@ -139,7 +140,7 @@ describe('getStatusFromCondition', () => {
       type: 'APIServerReady',
     };
 
-    expect(getStatusFromCondition(condition)).toBe('error');
+    expect(getStatusFromCondition(condition)).toBe(StatusType.ERROR);
   });
 
   it('should return in-progress for Deploying with False status', () => {
@@ -151,7 +152,16 @@ describe('getStatusFromCondition', () => {
       type: 'APIServerReady',
     };
 
-    expect(getStatusFromCondition(condition)).toBe('in-progress');
+    expect(getStatusFromCondition(condition)).toBe(StatusType.IN_PROGRESS);
+
+    const condition2: K8sCondition = {
+      lastTransitionTime: '2025-06-16T19:58:10Z',
+      message: 'Component [ds-pipeline-persistenceagent-dspa] is deploying.',
+      reason: 'Deploying',
+      status: 'False',
+      type: 'PersistenceAgentReady',
+    };
+    expect(getStatusFromCondition(condition2)).toBe(StatusType.IN_PROGRESS);
   });
 
   // Additional test cases to cover all branches
@@ -164,7 +174,7 @@ describe('getStatusFromCondition', () => {
       type: 'APIServerReady',
     };
 
-    expect(getStatusFromCondition(condition)).toBe('warning');
+    expect(getStatusFromCondition(condition)).toBe(StatusType.WARNING);
   });
 
   it('should return pending for FailingToDeploy with short transition time (2 minutes)', () => {
@@ -176,7 +186,7 @@ describe('getStatusFromCondition', () => {
       type: 'APIServerReady',
     };
 
-    expect(getStatusFromCondition(condition)).toBe('pending');
+    expect(getStatusFromCondition(condition)).toBe(StatusType.PENDING);
   });
 
   it('should return error for FailingToDeploy with long transition time (11 minutes)', () => {
@@ -188,7 +198,7 @@ describe('getStatusFromCondition', () => {
       type: 'APIServerReady',
     };
 
-    expect(getStatusFromCondition(condition)).toBe('error');
+    expect(getStatusFromCondition(condition)).toBe(StatusType.ERROR);
   });
 
   it('should return warning for FailingToDeploy at 3 minutes 15 seconds', () => {
@@ -200,7 +210,7 @@ describe('getStatusFromCondition', () => {
       type: 'APIServerReady',
     };
 
-    expect(getStatusFromCondition(condition)).toBe('warning');
+    expect(getStatusFromCondition(condition)).toBe(StatusType.WARNING);
   });
 
   it('should return error for FailingToDeploy at exactly 10 minutes', () => {
@@ -212,6 +222,6 @@ describe('getStatusFromCondition', () => {
       type: 'APIServerReady',
     };
 
-    expect(getStatusFromCondition(condition)).toBe('error');
+    expect(getStatusFromCondition(condition)).toBe(StatusType.ERROR);
   });
 });
