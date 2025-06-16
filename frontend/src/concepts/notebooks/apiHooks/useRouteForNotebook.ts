@@ -16,9 +16,7 @@ const useRouteForNotebook = (
   const fetchRoute = React.useCallback<FetchStateCallbackPromise<NotebookRouteState>>(
     (opts: K8sAPIOptions): Promise<NotebookRouteState> => {
       if (!notebookName || !projectName) {
-        return Promise.reject({
-          route: null,
-        });
+        return Promise.reject('Notebook name or project name is not provided');
       }
 
       return getRoute(notebookName, projectName, opts)
@@ -27,13 +25,9 @@ const useRouteForNotebook = (
         }))
         .catch((e) => {
           if (!isRunning && e.statusObject?.code === 404) {
-            return Promise.reject({
-              route: null,
-            });
+            return Promise.reject(e);
           }
-          return Promise.reject({
-            route: null,
-          });
+          return Promise.reject(e);
         });
     },
     [notebookName, projectName, isRunning],
