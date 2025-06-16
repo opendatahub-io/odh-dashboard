@@ -8,41 +8,62 @@ import {
   CardBody,
   Stack,
   Label,
+  GalleryItem,
+  CardFooter,
+  Button,
 } from '@patternfly/react-core';
+import { PencilAltIcon } from '@patternfly/react-icons';
 import CollapsibleSection from '@odh-dashboard/internal/concepts/design/CollapsibleSection';
-import useServingPlatformStatuses from '@odh-dashboard/internal/pages/modelServing/useServingPlatformStatuses';
-import ModelServingPlatformSelectErrorAlert from '@odh-dashboard/internal/pages/modelServing/screens/ModelServingPlatformSelectErrorAlert';
-import SelectSingleModelCard from '@odh-dashboard/internal/pages/projects/screens/detail/overview/serverModels/SelectSingleModelCard';
-import SelectMultiModelCard from '@odh-dashboard/internal/pages/projects/screens/detail/overview/serverModels/SelectMultiModelCard';
-import { ProjectDetailsContext } from '@odh-dashboard/internal/pages/projects/ProjectDetailsContext';
-import { getProjectModelServingPlatform } from '@odh-dashboard/internal/pages/modelServing/screens/projects/utils';
 import { ProjectObjectType, SectionType } from '@odh-dashboard/internal/concepts/design/utils';
 import OverviewCard from '@odh-dashboard/internal/pages/projects/screens/detail/overview/components/OverviewCard';
 import AddModelFooter from '@odh-dashboard/internal/pages/projects/screens/detail/overview/serverModels/AddModelFooter';
-import { ServingRuntimePlatform } from '@odh-dashboard/internal/types';
-import ModelServingPlatformSelectButton from '@odh-dashboard/internal/pages/modelServing/screens/projects/ModelServingPlatformSelectButton';
-import { NamespaceApplicationCase } from '@odh-dashboard/internal/pages/projects/types';
-
-interface ServeModelsCardProps {
-  isMultiPlatform: boolean;
-}
+import {
+  ModelServingPlatformContext,
+  ModelServingPlatformContextType,
+} from './ModelServingPlatformContext';
+import { ModelServingPlatform } from './modelServingPlatforms';
 
 const galleryWidth = {
   minWidths: { default: '100%', lg: 'calc(50% - 1rem / 2)' },
   maxWidths: { default: '100%', lg: 'calc(50% - 1rem / 2)' },
 };
 
-const ServeModelsCard: React.FC<ServeModelsCardProps> = ({ isMultiPlatform }) => {
-  const [errorSelectingPlatform, setErrorSelectingPlatform] = React.useState<Error>();
-  const { currentProject } = React.useContext(ProjectDetailsContext);
-  const servingPlatformStatuses = useServingPlatformStatuses(true);
-  const {
-    kServe: { enabled: kServeEnabled },
-    modelMesh: { enabled: modelMeshEnabled },
-  } = servingPlatformStatuses;
+const PlatformEnablementCard: React.FC<{
+  platform: ModelServingPlatform;
+  onSelect: () => void;
+  loading?: boolean;
+}> = ({ platform, onSelect, loading }) => (
+  <OverviewCard
+    objectType={platform.properties.enableCardText.objectType}
+    sectionType={SectionType.serving}
+    title={platform.properties.enableCardText.title}
+    data-testid={`${platform.properties.id}-platform-card`}
+  >
+    <CardBody>{platform.properties.enableCardText.description}</CardBody>
+    <CardFooter>
+      <Button
+        isLoading={loading}
+        isDisabled={loading}
+        variant="link"
+        isInline
+        onClick={onSelect}
+        data-testid={`${platform.properties.id}-select-button`}
+      >
+        {platform.properties.enableCardText.selectText}
+      </Button>
+    </CardFooter>
+  </OverviewCard>
+);
 
-  const { platform: currentProjectServingPlatform, error: platformError } =
-    getProjectModelServingPlatform(currentProject, servingPlatformStatuses);
+const ModelPlatformSection: React.FC = () => {
+  const {
+    platform: currentProjectServingPlatform,
+    availablePlatforms,
+    setPlatform,
+    newPlatformLoading,
+    platformError,
+    resetPlatform,
+  } = React.useContext<ModelServingPlatformContextType>(ModelServingPlatformContext);
 
   // If no platform is selected -
   if (!currentProjectServingPlatform) {
@@ -61,20 +82,22 @@ const ServeModelsCard: React.FC<ServeModelsCardProps> = ({ isMultiPlatform }) =>
           </FlexItem>
           <FlexItem>
             <Gallery hasGutter {...galleryWidth}>
-              {kServeEnabled && (
-                <SelectSingleModelCard setErrorSelectingPlatform={setErrorSelectingPlatform} />
-              )}
-              {modelMeshEnabled && (
-                <SelectMultiModelCard setErrorSelectingPlatform={setErrorSelectingPlatform} />
-              )}
+              {availablePlatforms?.map((p: ModelServingPlatform) => (
+                <GalleryItem key={p.properties.id}>
+                  <PlatformEnablementCard
+                    platform={p}
+                    onSelect={() => setPlatform(p)}
+                    loading={newPlatformLoading?.properties.id === p.properties.id}
+                  />
+                </GalleryItem>
+              ))}
             </Gallery>
           </FlexItem>
-          {errorSelectingPlatform && (
+          {platformError && (
             <FlexItem>
-              <ModelServingPlatformSelectErrorAlert
-                error={errorSelectingPlatform}
-                clearError={() => setErrorSelectingPlatform(undefined)}
-              />
+              <Alert isInline title="Error" variant="danger">
+                {platformError}
+              </Alert>
             </FlexItem>
           )}
           <FlexItem>
@@ -90,100 +113,49 @@ const ServeModelsCard: React.FC<ServeModelsCardProps> = ({ isMultiPlatform }) =>
   }
 
   // If a platform is selected -
-  let card;
-  if (isMultiPlatform) {
-    card = (
-      <OverviewCard
-        objectType={ProjectObjectType.modelServer}
-        sectionType={SectionType.setup}
-        title="No model servers"
-        headerInfo={
-          <Flex gap={{ default: 'gapSm' }}>
-            <Label>Multi-model serving enabled</Label>
-            {servingPlatformStatuses.platformEnabledCount > 1 && (
-              <ModelServingPlatformSelectButton
-                namespace={currentProject.metadata.name}
-                servingPlatform={NamespaceApplicationCase.RESET_MODEL_SERVING_PLATFORM}
-                setError={setErrorSelectingPlatform}
-                variant="link"
-                isInline
-                data-testid="change-serving-platform-button"
-              />
-            )}
-          </Flex>
-        }
-      >
-        <CardBody>
-          <Stack hasGutter>
-            {errorSelectingPlatform && (
-              <ModelServingPlatformSelectErrorAlert
-                error={errorSelectingPlatform}
-                clearError={() => setErrorSelectingPlatform(undefined)}
-              />
-            )}
-            {platformError ? (
-              <Alert isInline title="Loading error" variant="danger">
-                {platformError.message}
-              </Alert>
-            ) : (
-              <Content component="small">
-                Before deploying a model, you must first add a model server.
-              </Content>
-            )}
-          </Stack>
-        </CardBody>
-        {!platformError ? <AddModelFooter selectedPlatform={ServingRuntimePlatform.MULTI} /> : null}
-      </OverviewCard>
-    );
-  } else {
-    card = (
-      <OverviewCard
-        objectType={ProjectObjectType.deployedModels}
-        sectionType={SectionType.serving}
-        title="Deployed models"
-        headerInfo={
-          <Flex gap={{ default: 'gapSm' }}>
-            <Label>Single-model serving enabled</Label>
-            {servingPlatformStatuses.platformEnabledCount > 1 && (
-              <ModelServingPlatformSelectButton
-                namespace={currentProject.metadata.name}
-                servingPlatform={NamespaceApplicationCase.RESET_MODEL_SERVING_PLATFORM}
-                setError={setErrorSelectingPlatform}
-                variant="link"
-                isInline
-                data-testid="change-serving-platform-button"
-              />
-            )}
-          </Flex>
-        }
-      >
-        <CardBody>
-          <Stack hasGutter>
-            {errorSelectingPlatform && (
-              <ModelServingPlatformSelectErrorAlert
-                error={errorSelectingPlatform}
-                clearError={() => setErrorSelectingPlatform(undefined)}
-              />
-            )}
-            {platformError ? (
-              <Alert isInline title="Loading error" variant="danger">
-                {platformError.message}
-              </Alert>
-            ) : (
-              <Content component="small">Each model is deployed on its own model server.</Content>
-            )}
-          </Stack>
-        </CardBody>
-        {!platformError ? <AddModelFooter /> : null}
-      </OverviewCard>
-    );
-  }
+  const {
+    enableCardText: { enabledText },
+    deployedModelsView: { startHintTitle, startHintDescription },
+  } = currentProjectServingPlatform.properties;
 
   return (
     <CollapsibleSection title="Serve models" data-testid="section-model-server">
-      {card}
+      <OverviewCard
+        objectType={ProjectObjectType.modelServer}
+        sectionType={SectionType.setup}
+        title={startHintTitle}
+        headerInfo={
+          <Flex gap={{ default: 'gapSm' }}>
+            <Label>{enabledText}</Label>
+            {(availablePlatforms?.length ?? 0) > 1 && (
+              <Button
+                data-testid="change-serving-platform-button"
+                variant="link"
+                isInline
+                onClick={resetPlatform}
+                icon={<PencilAltIcon />}
+                isDisabled={!!newPlatformLoading}
+              >
+                Change
+              </Button>
+            )}
+          </Flex>
+        }
+      >
+        <CardBody>
+          <Stack hasGutter>
+            {platformError && (
+              <Alert isInline title="Loading error" variant="danger">
+                {platformError}
+              </Alert>
+            )}
+            <Content component="small">{startHintDescription}</Content>
+          </Stack>
+        </CardBody>
+        <AddModelFooter />
+      </OverviewCard>
     </CollapsibleSection>
   );
 };
 
-export default ServeModelsCard;
+export default ModelPlatformSection;
