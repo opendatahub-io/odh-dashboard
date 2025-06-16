@@ -1,0 +1,8 @@
+options:
+  no_parent_owners: true
+
+approvers:
+  - @connections
+
+reviewers:
+  - @opendatahub-io/odh-dashboard-maintainers

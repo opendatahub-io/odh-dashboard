@@ -15,18 +15,4 @@ approvers:
 - YuliaKrimerman
 
 reviewers:
-- alexcreasy
-- christianvogt
-- Gkrumbach07
-- lucferbux
-- DaoDaoNoCode
-- manaswinidas
-- pnaik1
-- ppadti
-- dpanshug
-- mturley
-- antowaddle
-- manosnoam
-- FedeAlonso
-- Griffin-Sullivan
-- YuliaKrimerman
+- @opendatahub-io/odh-dashboard-maintainers

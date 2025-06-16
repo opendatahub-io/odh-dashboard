@@ -1,0 +1,50 @@
+# @opendatahub-io/odh-dashboard-owners is added to each group to allow future no_parent_owners usage.
+aliases:
+  # General Dashboard infrastructure team
+  platform:
+    - @opendatahub-io/odh-dashboard-owners
+    - christianvogt
+    - lucferbux
+
+  connections
+    - @opendatahub-io/odh-dashboard-owners
+    - emilys314
+
+  hardware-profiles
+    - @opendatahub-io/odh-dashboard-owners
+    - Gkrumbach07
+
+  pipelines:
+    - @opendatahub-io/odh-dashboard-owners
+    - Gkrumbach07
+    - DaoDaoNoCode
+
+  # Model Registry & Model Catalog
+  model-registry-catalog:
+    - @opendatahub-io/odh-dashboard-owners
+    - mturley
+    - YuliaKrimerman
+
+  # Model Serving & Model Metrics
+  model-serving-metrics:
+    - @opendatahub-io/odh-dashboard-owners
+    - Griffin-Sullivan
+    - emilys314
+
+  ai-safety-trusty:
+    - @opendatahub-io/odh-dashboard-owners
+    - alexcreasy
+
+  notebooks-workbenches:
+    - @opendatahub-io/odh-dashboard-owners
+    - Gkrumbach07
+    - DaoDaoNoCode
+
+  agentic-rag:
+    - @opendatahub-io/odh-dashboard-owners
+    - alexcreasy
+
+  quality-e2e-testing:
+    - @opendatahub-io/odh-dashboard-owners
+    - antowaddle
+    - manosnoam
