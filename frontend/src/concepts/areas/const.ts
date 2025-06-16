@@ -42,6 +42,7 @@ export const definedFeatureFlags: string[] = Object.keys({
   disableNIMModelServing: false,
   disableAdminConnectionTypes: false,
   disableFineTuning: true,
+  disableKueue: true,
   disableLlamaStackChatBot: true, // internal dev only
   disableLMEval: true, // internal dev only
 } satisfies DashboardCommonConfig);
@@ -135,6 +136,10 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.DISTRIBUTED_WORKLOADS]: {
     featureFlags: ['disableDistributedWorkloads'],
+    requiredComponents: [StackComponent.KUEUE],
+  },
+  [SupportedArea.KUEUE]: {
+    featureFlags: ['disableKueue'],
     requiredComponents: [StackComponent.KUEUE],
   },
   [SupportedArea.MODEL_CATALOG]: {
