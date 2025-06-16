@@ -4,7 +4,7 @@ import ProjectsRoutes from '#~/concepts/projects/ProjectsRoutes';
 import LMEvalForm from './lmEvalForm/LMEvalForm';
 import LMEvalCoreLoader from './global/LMEvalCoreLoader';
 import LMEval from './global/LMEval';
-import LMEvalResult from './lmEvalResult/lmEvalResult';
+import LMEvalResult from './lmEvalResult/LMEvalResult.tsx';
 
 const LMEvalRoutes: React.FC = () => (
   <ProjectsRoutes>

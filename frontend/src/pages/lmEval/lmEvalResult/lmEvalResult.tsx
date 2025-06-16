@@ -2,21 +2,18 @@ import * as React from 'react';
 import { useParams } from 'react-router-dom';
 import { Breadcrumb, BreadcrumbItem, Button } from '@patternfly/react-core';
 import { Link } from 'react-router';
-import { LMEvalContext } from '#~/pages/lmEval/global/LMEvalContext';
 import { downloadString } from '#~/utilities/string';
 import LMEvalResultApplicationPage from '#~/pages/lmEval/components/LMEvalResultApplicationPage';
 import LMEvalResultTable from './LMEvalResultTable';
 import { parseEvaluationResults } from './utils';
+import useLMEvalResult from './useLMEvalResult';
 
 const LMEvalResult: React.FC = () => {
-  const { evaluationName } = useParams<{ evaluationName: string }>();
-  const { lmEval } = React.useContext(LMEvalContext);
+  const { evaluationName, namespace } = useParams<{ evaluationName: string; namespace: string }>();
+  const lmEvalResult = useLMEvalResult(evaluationName, namespace);
 
-  // Find the specific evaluation by name
-  const evaluation = React.useMemo(
-    () => lmEval.data.find((item) => item.metadata.name === evaluationName),
-    [lmEval.data, evaluationName],
-  );
+  // Get the evaluation from the hook result
+  const evaluation = lmEvalResult.data;
 
   // Parse results only when evaluation or results change
   const results = React.useMemo(
@@ -50,7 +47,7 @@ const LMEvalResult: React.FC = () => {
   }, [evaluation]);
 
   // Handle evaluation not found
-  if (!evaluation) {
+  if (lmEvalResult.loaded && !evaluation) {
     return (
       <LMEvalResultApplicationPage
         loaded
@@ -62,14 +59,14 @@ const LMEvalResult: React.FC = () => {
   }
 
   // Handle no results available
-  if (results.length === 0) {
+  if (evaluation && results.length === 0) {
     const emptyMessage = evaluation.status?.results
       ? 'Unable to parse evaluation results'
       : 'Evaluation results not yet available';
 
     return (
       <LMEvalResultApplicationPage
-        loaded={lmEval.loaded}
+        loaded={lmEvalResult.loaded}
         empty
         emptyMessage={emptyMessage}
         title={evaluation.metadata.name}
@@ -81,19 +78,21 @@ const LMEvalResult: React.FC = () => {
   // Show results with download button
   return (
     <LMEvalResultApplicationPage
-      loaded={lmEval.loaded}
+      loaded={lmEvalResult.loaded}
       empty={false}
-      loadError={lmEval.error}
-      title={evaluation.metadata.name}
+      loadError={lmEvalResult.error}
+      title={evaluation?.metadata.name || evaluationName || 'Evaluation Results'}
       breadcrumb={breadcrumb}
       headerAction={
-        <Button variant="primary" onClick={handleDownload}>
-          Download JSON
-        </Button>
+        evaluation && (
+          <Button variant="primary" onClick={handleDownload}>
+            Download JSON
+          </Button>
+        )
       }
       provideChildrenPadding
     >
-      <LMEvalResultTable results={results} />
+      {evaluation && <LMEvalResultTable results={results} />}
     </LMEvalResultApplicationPage>
   );
 };

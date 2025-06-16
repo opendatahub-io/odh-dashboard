@@ -1,5 +1,22 @@
 import { EvaluationResult } from './LMEvalResultTable';
 
+export type SearchColumn = 'task' | 'metric' | 'value' | 'error';
+
+// Constants for column filter options
+export const COLUMN_FILTER_OPTIONS = [
+  { key: 'task' as const, label: 'Task' },
+  { key: 'metric' as const, label: 'Metric' },
+  { key: 'value' as const, label: 'Value' },
+  { key: 'error' as const, label: 'Error' },
+];
+
+export const SEARCH_PLACEHOLDERS: Record<SearchColumn, string> = {
+  task: 'Find by task name',
+  metric: 'Find by metric name',
+  value: 'Find by value',
+  error: 'Find by error value',
+};
+
 const safeGetProperty = (obj: object, key: string): unknown =>
   Object.prototype.hasOwnProperty.call(obj, key) ? Reflect.get(obj, key) : undefined;
 

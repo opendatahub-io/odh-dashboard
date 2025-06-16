@@ -2,6 +2,7 @@ import * as React from 'react';
 import { SearchInput, Toolbar, ToolbarContent, ToolbarItem } from '@patternfly/react-core';
 import { Table, Thead, Tr, Th, Tbody, Td, TableVariant } from '@patternfly/react-table';
 import SimpleSelect from '#~/components/SimpleSelect';
+import { COLUMN_FILTER_OPTIONS, SEARCH_PLACEHOLDERS, SearchColumn } from './utils';
 
 // Define the structure of a result row based on typical LM evaluation output
 export type EvaluationResult = {
@@ -13,23 +14,6 @@ export type EvaluationResult = {
 
 type LMEvalResultTableProps = {
   results: EvaluationResult[];
-};
-
-type SearchColumn = 'task' | 'metric' | 'value' | 'error';
-
-// Constants for column filter options
-const COLUMN_FILTER_OPTIONS = [
-  { key: 'task' as const, label: 'Task' },
-  { key: 'metric' as const, label: 'Metric' },
-  { key: 'value' as const, label: 'Value' },
-  { key: 'error' as const, label: 'Error' },
-];
-
-const SEARCH_PLACEHOLDERS: Record<SearchColumn, string> = {
-  task: 'Find by task name',
-  metric: 'Find by metric name',
-  value: 'Find by value',
-  error: 'Find by error value',
 };
 
 const LMEvalResultTable: React.FC<LMEvalResultTableProps> = ({ results }) => {
