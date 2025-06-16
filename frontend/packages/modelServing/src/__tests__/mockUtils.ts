@@ -58,6 +58,7 @@ export const mockProjectWithPlatform = (
     metadata: {
       ...project.metadata,
       labels: {
+        ...project.metadata.labels,
         [platform.properties.manage.enabledLabel]: platform.properties.manage.enabledLabelValue,
       },
     },

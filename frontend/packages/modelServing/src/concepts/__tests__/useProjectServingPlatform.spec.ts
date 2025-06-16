@@ -31,8 +31,8 @@ describe('useProjectServingPlatform', () => {
 
     it('return no platform if 2 platforms available', () => {
       const project = mockProjectK8sResource({});
-      const platform1 = mockModelServingPlatform({});
-      const platform2 = mockModelServingPlatform({});
+      const platform1 = mockModelServingPlatform({ id: 'kserve-1' });
+      const platform2 = mockModelServingPlatform({ id: 'kserve-2' });
       const { result } = renderHook(() =>
         useProjectServingPlatform(project, [platform1, platform2]),
       );
@@ -41,8 +41,8 @@ describe('useProjectServingPlatform', () => {
     });
 
     it('return project platform if set', () => {
-      const platform1 = mockModelServingPlatform({});
-      const platform2 = mockModelServingPlatform({});
+      const platform1 = mockModelServingPlatform({ id: 'kserve-1' });
+      const platform2 = mockModelServingPlatform({ id: 'kserve-2' });
       const project = mockProjectWithPlatform(mockProjectK8sResource({}), platform1);
       const { result } = renderHook(() =>
         useProjectServingPlatform(project, [platform1, platform2]),
