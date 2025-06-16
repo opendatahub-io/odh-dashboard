@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { Breadcrumb, BreadcrumbItem, Button } from '@patternfly/react-core';
 import { Link } from 'react-router';
 import { downloadString } from '#~/utilities/string';
-import LMEvalFormApplicationPage from '#~/pages/lmEval/components/LMEvalFormApplicationPage';
+import LMEvalApplicationPage from '#~/pages/lmEval/components/LMEvalApplicationPage.tsx';
 import LMEvalResultTable from './LMEvalResultTable';
 import { parseEvaluationResults } from './utils';
 import useLMEvalResult from './useLMEvalResult';
@@ -61,7 +61,7 @@ const LMEvalResult: React.FC = () => {
   };
 
   return (
-    <LMEvalFormApplicationPage
+    <LMEvalApplicationPage
       loaded={lmEvalResult.loaded}
       empty={isEmpty}
       loadError={lmEvalResult.error}
@@ -78,7 +78,7 @@ const LMEvalResult: React.FC = () => {
       provideChildrenPadding
     >
       {evaluation && <LMEvalResultTable results={results} />}
-    </LMEvalFormApplicationPage>
+    </LMEvalApplicationPage>
   );
 };
 

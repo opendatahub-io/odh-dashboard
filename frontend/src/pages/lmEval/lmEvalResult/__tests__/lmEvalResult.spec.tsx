@@ -48,11 +48,11 @@ jest.mock(
     },
 );
 
-// Mock the LMEvalFormApplicationPage component
+// Mock the LMEvalApplicationPage component
 jest.mock(
-  '#~/pages/lmEval/components/LMEvalFormApplicationPage',
+  '#~/pages/lmEval/components/LMEvalApplicationPage',
   () =>
-    function MockLMEvalFormApplicationPage({
+    function MockLMEvalApplicationPage({
       loaded,
       empty,
       emptyMessage,

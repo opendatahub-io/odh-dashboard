@@ -24,7 +24,7 @@ jest.mock('#~/pages/lmEval/utilities/useLMGenericObjectState', () => ({
 }));
 
 // Mock other components to focus on the dropdown functionality
-jest.mock('#~/pages/lmEval/components/LMEvalFormApplicationPage', () => ({
+jest.mock('#~/pages/lmEval/components/LMEvalApplicationPage', () => ({
   __esModule: true,
   default: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="lm-eval-app-page">{children}</div>
