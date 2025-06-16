@@ -7,6 +7,23 @@ import LMEvalResultTable, {
 } from '#~/pages/lmEval/lmEvalResult/LMEvalResultTable';
 import { mockResults, incompleteResults, zeroResults, emptyResults } from './LMEvalResultMockData';
 
+// Mock DashboardEmptyTableView
+jest.mock(
+  '#~/concepts/dashboard/DashboardEmptyTableView',
+  () =>
+    function MockDashboardEmptyTableView({ onClearFilters }: { onClearFilters: () => void }) {
+      return (
+        <div data-testid="dashboard-empty-table-view">
+          <div>No results found</div>
+          <div>Adjust your filters and try again.</div>
+          <button onClick={onClearFilters} data-testid="clear-filters-button">
+            Clear all filters
+          </button>
+        </div>
+      );
+    },
+);
+
 // Helper functions
 const setupUserAndRender = (results: EvaluationResult[] = mockResults) => {
   const user = userEvent.setup();
@@ -116,7 +133,8 @@ describe('LMEvalResultTable', () => {
     it('should handle empty results array', () => {
       render(<LMEvalResultTable results={emptyResults} />);
       expectTableHeaders();
-      expectRowCount(1); // Only header row
+      expectRowCount(2); // Header row + empty state row
+      expect(screen.getByText('No evaluation results available')).toBeInTheDocument();
     });
 
     it('should handle missing data fields', () => {
@@ -142,6 +160,39 @@ describe('LMEvalResultTable', () => {
 
       // Verify error formatting - 0.00001 gets formatted as ± 0.0000 (rounded to 4 decimal places)
       expect(screen.getByText('± 0.0000')).toBeInTheDocument();
+    });
+
+    it('should show DashboardEmptyTableView when filtering returns no results', async () => {
+      const { user } = setupUserAndRender();
+
+      await searchByText(user, 'nonexistent');
+
+      await waitFor(() => {
+        expect(screen.getByTestId('dashboard-empty-table-view')).toBeInTheDocument();
+        expect(screen.getByText('No results found')).toBeInTheDocument();
+        expect(screen.getByText('Adjust your filters and try again.')).toBeInTheDocument();
+        expect(screen.getByTestId('clear-filters-button')).toBeInTheDocument();
+      });
+    });
+
+    it('should clear search when clear filters button is clicked', async () => {
+      const { user } = setupUserAndRender();
+
+      await searchByText(user, 'nonexistent');
+
+      await waitFor(() => {
+        expect(screen.getByTestId('dashboard-empty-table-view')).toBeInTheDocument();
+      });
+
+      const clearButton = screen.getByTestId('clear-filters-button');
+      await user.click(clearButton);
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('dashboard-empty-table-view')).not.toBeInTheDocument();
+        // Should show the original data again
+        expect(screen.getAllByText('hellaswag')).toHaveLength(2);
+        expect(screen.getAllByText('arc_easy')).toHaveLength(2);
+      });
     });
   });
 });
