@@ -154,42 +154,6 @@ describe('Pipelines', () => {
         },
       });
     });
-
-    // cy.interceptK8sList(
-    //   DataSciencePipelineApplicationModel,
-    //   mockK8sResourceList([
-    //     mockDataSciencePipelineApplicationK8sResource({
-    //       namespace: projectName,
-    //       initializing: true,
-    //     }),
-    //   ]),
-    // ).as('pollUnreadyDSPA');
-
-    // cy.interceptK8sList(
-    //   DataSciencePipelineApplicationModel,
-    //   mockK8sResourceList([
-    //     mockDataSciencePipelineApplicationK8sResource({
-    //       namespace: projectName,
-    //     }),
-    //   ]),
-    // ).as('pollReadyDSPA');
-    //
-    // // cy.wait('@pollUnreadyDSPA');
-    // cy.wait('@pollReadyDSPA');
-    //
-    // cy.interceptK8sList(
-    //   DataSciencePipelineApplicationModel,
-    //   mockK8sResourceList([
-    //     mockDataSciencePipelineApplicationK8sResource({
-    //       namespace: projectName,
-    //     }),
-    //   ]),
-    // ).as('pollReadyDSPA2');
-    //
-    // // cy.wait('@pollUnreadyDSPA');
-    // cy.wait('@pollReadyDSPA2');
-    //
-    // toastNotifications.findToastNotification(1).should('exist');
   });
 
   it('Configure pipeline server when viable connection does not exist', () => {
@@ -1379,10 +1343,10 @@ const initIntercepts = ({
       isEmpty
         ? []
         : [
-            mockDataSciencePipelineApplicationK8sResource({
-              namespace: projectName,
-            }),
-          ],
+          mockDataSciencePipelineApplicationK8sResource({
+            namespace: projectName,
+          }),
+        ],
     ),
   );
   cy.interceptK8s(
