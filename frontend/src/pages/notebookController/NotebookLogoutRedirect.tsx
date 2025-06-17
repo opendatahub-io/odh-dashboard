@@ -13,12 +13,11 @@ const NotebookLogoutRedirect: React.FC = () => {
   const notification = useNotification();
   const navigate = useNavigate();
   const { notebookNamespace } = useNamespaces();
-  const { data, loaded, error } = useRouteForNotebook(
-    notebookName,
-    namespace,
-    true,
-    FAST_POLL_INTERVAL,
-  );
+  const {
+    data: notebookRoute,
+    loaded,
+    error,
+  } = useRouteForNotebook(notebookName, namespace, true, FAST_POLL_INTERVAL);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -59,13 +58,13 @@ const NotebookLogoutRedirect: React.FC = () => {
         notification.error(`Error when logging out ${notebookName}`, error.message);
         navigate(`/projects/${namespace}`);
       }
-      if (loaded && data.route) {
-        const location = new URL(data.route);
+      if (loaded && notebookRoute) {
+        const location = new URL(notebookRoute);
         window.location.href = `${location.origin}/oauth/sign_out`;
       }
     }
   }, [
-    data.route,
+    notebookRoute,
     loaded,
     error,
     notification,

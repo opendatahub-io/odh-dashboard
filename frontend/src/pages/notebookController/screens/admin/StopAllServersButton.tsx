@@ -22,10 +22,7 @@ const StopAllServersButton: React.FC<StopAllServersButtonProps> = ({ users }) =>
     .filter((notebook): notebook is Notebook => !!notebook);
 
   // if there is only one notebook to stop
-  const {
-    data: { route: routeLink },
-    error: loadError,
-  } = useRouteForNotebook(
+  const { data: routeLink, error: loadError } = useRouteForNotebook(
     notebooksToStop[0]?.metadata.name,
     notebooksToStop[0]?.metadata.namespace,
   );

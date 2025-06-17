@@ -34,7 +34,7 @@ const NotebookRouteLink: React.FC<NotebookRouteLinkProps> = ({
   buttonStyle,
 }) => {
   const {
-    data: { route: routeLink },
+    data: routeLink,
     loaded,
     error,
   } = useRouteForNotebook(

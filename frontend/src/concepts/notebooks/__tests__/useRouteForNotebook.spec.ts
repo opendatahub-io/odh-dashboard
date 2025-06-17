@@ -21,8 +21,7 @@ describe('useRouteForNotebook', () => {
 
     const renderResult = testHook(useRouteForNotebook)('test-notebook', 'test-project', true);
     await renderResult.waitForNextUpdate();
-    const { data, loaded, error } = renderResult.result.current;
-    const { route } = data;
+    const { data: route, loaded, error } = renderResult.result.current;
     expect(getRoute).toHaveBeenCalledWith('test-notebook', 'test-project', {
       signal: expect.any(AbortSignal),
     });
@@ -38,8 +37,7 @@ describe('useRouteForNotebook', () => {
     const renderResult = testHook(useRouteForNotebook)('test-notebook', 'test-project', true);
     await renderResult.waitForNextUpdate();
 
-    const { data, loaded, error } = renderResult.result.current;
-    const { route } = data;
+    const { data: route, loaded, error } = renderResult.result.current;
     expect(getRoute).toHaveBeenCalledWith('test-notebook', 'test-project', {
       signal: expect.any(AbortSignal),
     });
