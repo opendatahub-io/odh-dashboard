@@ -35,15 +35,21 @@ aliases:
     - Griffin-Sullivan
     - YuliaKrimerman
 
-  # General Dashboard infrastructure team; Plugins, Core Infrastructure, etc
-  platform-approvers:
+  # Agentic / RAG team
+  agentic-rag-approvers:
     - @opendatahub-io/odh-dashboard-owners
-    - christianvogt
-    - lucferbux
-  platform-reviewers:
+    - alexcreasy
+  agentic-rag-reviewers:
     - @opendatahub-io/odh-dashboard-maintainers
 
-  # Connections team
+  # AI Safety / Trusty team
+  ai-safety-trusty-approvers:
+    - @opendatahub-io/odh-dashboard-owners
+    - alexcreasy
+  ai-safety-trusty-reviewers:
+    - @opendatahub-io/odh-dashboard-maintainers
+
+  # Connections & Connection Types team
   connections-approvers:
     - @opendatahub-io/odh-dashboard-owners
     - Griffin-Sullivan
@@ -56,14 +62,6 @@ aliases:
     - @opendatahub-io/odh-dashboard-owners
     - Gkrumbach07
   hardware-profiles-reviewers:
-    - @opendatahub-io/odh-dashboard-maintainers
-
-  # Pipelines team
-  pipelines-approvers:
-    - @opendatahub-io/odh-dashboard-owners
-    - Gkrumbach07
-    - DaoDaoNoCode
-  pipelines-reviewers:
     - @opendatahub-io/odh-dashboard-maintainers
 
   # Model Registry & Model Catalog team
@@ -82,26 +80,20 @@ aliases:
   model-serving-metrics-reviewers:
     - @opendatahub-io/odh-dashboard-maintainers
 
-  # AI Safety / Trusty team
-  ai-safety-trusty-approvers:
-    - @opendatahub-io/odh-dashboard-owners
-    - alexcreasy
-  ai-safety-trusty-reviewers:
-    - @opendatahub-io/odh-dashboard-maintainers
-
-  # Notebooks / Workbenches team
-  notebooks-workbenches-approvers:
+  # Pipelines team
+  pipelines-approvers:
     - @opendatahub-io/odh-dashboard-owners
     - Gkrumbach07
     - DaoDaoNoCode
-  notebooks-workbenches-reviewers:
+  pipelines-reviewers:
     - @opendatahub-io/odh-dashboard-maintainers
 
-  # Agentic / RAG team
-  agentic-rag-approvers:
+  # General Dashboard infrastructure team; Plugins, Core Infrastructure, etc
+  platform-approvers:
     - @opendatahub-io/odh-dashboard-owners
-    - alexcreasy
-  agentic-rag-reviewers:
+    - christianvogt
+    - lucferbux
+  platform-reviewers:
     - @opendatahub-io/odh-dashboard-maintainers
 
   # Quality / E2E testing team
@@ -110,4 +102,12 @@ aliases:
     - antowaddle
     - manosnoam
   quality-e2e-testing-reviewers:
+    - @opendatahub-io/odh-dashboard-maintainers
+
+  # Workbenches (formerly Notebooks) team
+  workbenches-approvers:
+    - @opendatahub-io/odh-dashboard-owners
+    - Gkrumbach07
+    - DaoDaoNoCode
+  workbenches-reviewers:
     - @opendatahub-io/odh-dashboard-maintainers
