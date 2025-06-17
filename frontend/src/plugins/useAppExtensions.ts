@@ -1,14 +1,9 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
 import React from 'react';
 import { init, loadRemote } from '@module-federation/runtime';
 import type { Extension } from '@openshift/dynamic-plugin-sdk';
-import modelServingExtensions from '@odh-dashboard/model-serving/extensions';
-import kserveExtensions from '@odh-dashboard/kserve/extensions';
 import { allSettledPromises } from '#~/utilities/allSettledPromises';
 import { MF_CONFIG } from '#~/utilities/const';
-import hardwareProfileExtensions from './extensions/hardware-profiles';
-import navigationExtensions from './extensions/navigation';
-import routeExtensions from './extensions/routes';
+import pluginExtensions from './plugin-extensions';
 
 type MFConfig = {
   name: string;
@@ -16,13 +11,7 @@ type MFConfig = {
 };
 
 // static extensions
-export const extensionDeclarations: Extension[] = [
-  ...modelServingExtensions,
-  ...kserveExtensions,
-  ...navigationExtensions,
-  ...hardwareProfileExtensions,
-  ...routeExtensions,
-];
+export const extensionDeclarations = { ...pluginExtensions };
 
 const initRemotes = (remotes: MFConfig[]) => {
   init({
@@ -39,7 +28,7 @@ const loadModuleExtensions = (moduleName: string): Promise<Record<string, Extens
     [moduleName]: result ? result.default : [],
   }));
 
-export const useAppExtensions = (): [Extension[], boolean] => {
+export const useAppExtensions = (): [Record<string, Extension[]>, boolean] => {
   const [appExtensions, setAppExtensions] = React.useState<Record<string, Extension[]>>({});
   const [loaded, setLoaded] = React.useState(!MF_CONFIG);
 
@@ -70,7 +59,7 @@ export const useAppExtensions = (): [Extension[], boolean] => {
   }, []);
 
   const allExtensions = React.useMemo(
-    () => [...extensionDeclarations, ...Object.values(appExtensions).flat()],
+    () => ({ ...pluginExtensions, ...appExtensions }),
     [appExtensions],
   );
 

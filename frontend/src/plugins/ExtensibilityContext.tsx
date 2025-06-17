@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { PluginStoreProvider } from '@openshift/dynamic-plugin-sdk';
 import { PluginStore } from '@odh-dashboard/plugin-core';
-import { useAppExtensions } from './extensions';
+import { useAppExtensions } from './useAppExtensions';
 
 export const ExtensibilityContextProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
   const [appExtensions, loaded] = useAppExtensions();
