@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { EmptyStateVariant, Button } from '@patternfly/react-core';
+import { EmptyStateVariant, Button, Divider } from '@patternfly/react-core';
 import { TableVariant } from '@patternfly/react-table';
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import PipelineSelectorTableRow from '#~/concepts/pipelines/content/pipelineSelector/PipelineSelectorTableRow';
@@ -99,7 +99,15 @@ const InnerExperimentSelector: React.FC<
               />
             </div>
             {loaded && (
-              <div className="pf-v6-c-menu__footer">
+              <div
+                className="pf-v6-c-menu__footer pf-v6-u-box-shadow-sm-top"
+                style={{
+                  position: 'sticky',
+                  bottom: 0,
+                  backgroundColor: 'var(--pf-v6-c-menu--BackgroundColor)',
+                }}
+              >
+                <Divider />
                 <Button
                   variant="link"
                   icon={<PlusCircleIcon />}
