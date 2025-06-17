@@ -2,7 +2,7 @@ import { Alert, Flex, FlexItem, FormGroup, FormHelperText, Spinner } from '@patt
 import * as React from 'react';
 import { AccessMode } from '#~/pages/storageClasses/storageEnums';
 import { toAccessModeFullName } from '#~/pages/projects/screens/detail/storage/AccessModeFullName';
-import FieldGroupHelpLabelIcon from '#~/components/FieldGroupHelpLabelIcon.tsx';
+import FieldGroupHelpLabelIcon from '#~/components/FieldGroupHelpLabelIcon';
 import AccessModeRadio from './AccessModeRadio';
 import { getAccessModePopover } from './getAccessModePopover';
 
@@ -32,8 +32,9 @@ const AccessModeField: React.FC<AccessModeFieldProps> = ({
       openshiftSupportedAccessModes.includes(accessMode) || accessMode === AccessMode.RWO,
   );
 
-  const allowedAccessModes = availableAccessModes.filter((accessMode: AccessMode) =>
-    adminSupportedAccessModes.includes(accessMode),
+  const allowedAccessModes = availableAccessModes.filter(
+    (accessMode: AccessMode) =>
+      adminSupportedAccessModes.includes(accessMode) || accessMode === AccessMode.RWO,
   );
 
   return (

@@ -46,10 +46,14 @@ describe('Storage classes', () => {
       storageClassesPage.visit();
 
       storageClassesTable.findRowByName('Test SC 1').should('be.visible');
-      storageClassesTable.shouldContainAccessModeLabels(['RWO', 'RWX'], 1);
+      storageClassesTable
+        .getRowByConfigName('Test SC 1')
+        .shouldContainAccessModeLabels(['RWO', 'RWX']);
 
       storageClassesTable.findRowByName('openshift-default-sc').should('be.visible');
-      storageClassesTable.shouldContainAccessModeLabels(['RWO']);
+      storageClassesTable
+        .getRowByConfigName('openshift-default-sc')
+        .shouldContainAccessModeLabels(['RWO']);
     });
 
     it('table rows allow for toggling of Enable and Default values', () => {

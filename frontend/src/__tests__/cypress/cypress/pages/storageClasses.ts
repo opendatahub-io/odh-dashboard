@@ -96,6 +96,12 @@ class StorageClassesTableRow extends TableRow {
   findCorruptedMetadataAlert() {
     return cy.findByTestId('corrupted-metadata-alert');
   }
+
+  shouldContainAccessModeLabels(labels: string[]) {
+    return this.find()
+      .findByTestId('access-mode-label-group')
+      .within(() => labels.map((label) => cy.contains(label)));
+  }
 }
 
 class StorageClassesTable {
@@ -143,13 +149,6 @@ class StorageClassesTable {
 
   mockPatchStorageClass(storageClass: StorageClassKind, times = 1) {
     return cy.interceptK8s('PATCH', { model: StorageClassModel, times }, storageClass);
-  }
-
-  shouldContainAccessModeLabels(labels: string[], index = 0) {
-    cy.findAllByTestId('access-mode-label-group')
-      .eq(index)
-      .within(() => labels.map((label) => cy.contains(label)));
-    return this;
   }
 }
 
