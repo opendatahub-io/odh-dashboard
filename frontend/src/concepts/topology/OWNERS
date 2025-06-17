@@ -6,3 +6,6 @@ approvers:
 
 reviewers:
   - @pipelines-reviewers
+
+labels:
+  - area/pipelines

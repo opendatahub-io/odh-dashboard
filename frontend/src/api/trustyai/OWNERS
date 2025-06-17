@@ -6,3 +6,6 @@ approvers:
 
 reviewers:
   - @ai-safety-trusty-reviewers
+
+labels:
+  - area/ai-safety-trusty

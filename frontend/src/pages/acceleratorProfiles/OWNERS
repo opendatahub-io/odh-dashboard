@@ -6,3 +6,6 @@ approvers:
 
 reviewers:
   - @hardware-profiles-reviewers
+
+labels:
+  - area/hardware-profiles

@@ -7,3 +7,6 @@ approvers:
 
 reviewers:
   - @quality-e2e-testing-reviewers
+
+labels:
+  - area/quality

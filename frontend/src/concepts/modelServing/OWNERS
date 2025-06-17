@@ -6,3 +6,6 @@ approvers:
 
 reviewers:
   - @model-serving-metrics-reviewers
+
+labels:
+  - area/model-serving

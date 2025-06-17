@@ -6,3 +6,6 @@ approvers:
 
 reviewers:
   - @connections-reviewers
+
+labels:
+  - area/connections

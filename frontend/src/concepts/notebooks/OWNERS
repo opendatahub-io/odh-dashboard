@@ -2,7 +2,10 @@ options:
   no_parent_owners: true
 
 approvers:
-  - @notebooks-workbenches-approvers
+  - @workbenches-approvers
 
 reviewers:
-  - @notebooks-workbenches-reviewers
+  - @workbenches-reviewers
+
+labels:
+  - area/workbenches

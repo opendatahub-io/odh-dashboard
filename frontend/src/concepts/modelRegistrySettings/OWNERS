@@ -6,3 +6,6 @@ approvers:
 
 reviewers:
   - @model-registry-catalog-reviewers
+
+labels:
+  - area/model-registry
