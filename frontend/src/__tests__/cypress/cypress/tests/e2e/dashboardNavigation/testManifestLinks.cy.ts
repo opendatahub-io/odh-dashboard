@@ -1,63 +1,105 @@
 import * as yaml from 'js-yaml';
 import { isUrlExcluded } from '#~/__tests__/cypress/cypress/utils/urlExtractor';
+import { getErrorType } from '#~/__tests__/cypress/cypress/utils/urlValidator';
 
-/**
- * Type definitions for URL validation results
- */
+interface UrlLocation {
+  url: string;
+  file: string;
+  line: number;
+}
+
 interface UrlValidationResult {
   url: string;
+  originalUrl?: string;
   status: number;
   error?: string;
 }
 
-/**
- * Type definition for the YAML configuration
- */
+interface UrlValidationResultWithLocation extends UrlValidationResult {
+  location?: UrlLocation;
+}
+
 interface ManifestTestConfig {
   excludedSubstrings?: string[];
 }
 
-/**
- * Set of valid HTTP status codes that indicate a successful response
- * 200-204: Success responses
- */
 const VALID_STATUS_CODES = new Set([200, 201, 202, 204]);
 
-/**
- * Error code mappings for better error reporting
- */
-const ERROR_CODES = {
-  [-1]: 'TIMEOUT',
-  [-2]: 'REDIRECT_MAX',
-  [-3]: 'REDIRECT_INVALID',
-  [-4]: 'ABORTED',
-  [-5]: 'NETWORK_ERROR',
-} as const;
-
-/**
- * Formats the validation result message for logging
- * @param result - The URL validation result
- * @returns Formatted log message
- */
-const formatValidationMessage = (result: UrlValidationResult): string => {
-  const { url, status, error } = result;
+const formatValidationMessage = (
+  result: UrlValidationResultWithLocation,
+  allLocations?: Map<string, UrlLocation[]>,
+): string => {
+  const { url, status, error, originalUrl } = result;
   const isValid = VALID_STATUS_CODES.has(status);
 
+  const finalUrlLocationInfo = getLocationInfo(url, allLocations);
+  const originalUrlLocationInfo =
+    originalUrl && originalUrl !== url ? getLocationInfo(originalUrl, allLocations) : '';
+
+  const urlDisplay =
+    originalUrl && originalUrl !== url
+      ? `${originalUrl}${originalUrlLocationInfo} → ${url}${finalUrlLocationInfo}`
+      : `${url}${finalUrlLocationInfo}`;
+
   if (isValid) {
-    return `✅ ${url} - Status: ${status}`;
+    return `✅ ${urlDisplay} - Status: ${status}`;
   }
 
-  const statusKey = status as keyof typeof ERROR_CODES;
-  const errorType = statusKey in ERROR_CODES ? ERROR_CODES[statusKey] : 'UNKNOWN';
-  const baseMessage = `${errorType} ❌ ${url} - Error Code: ${status}`;
+  const errorType = getErrorType(status, error);
+  const baseMessage = `❌ ${urlDisplay} - ${errorType}: ${status}`;
   return error ? `${baseMessage} (Details: ${error})` : baseMessage;
 };
 
-describe('[Automation Bug: RHOAIENG-26510] Verify that all the URLs referenced in the Manifest directory are operational', () => {
+const formatUrlLocation = (urlLocation: UrlLocation): string => {
+  const { url, line } = urlLocation;
+  return `[:${line}] - ${url}`;
+};
+
+const formatUrlLocationsByFile = (urlLocations: UrlLocation[]): string => {
+  const urlsByFile = new Map<string, UrlLocation[]>();
+
+  urlLocations.forEach((location) => {
+    const { file } = location;
+    if (!urlsByFile.has(file)) {
+      urlsByFile.set(file, []);
+    }
+    const fileLocations = urlsByFile.get(file);
+    if (fileLocations) {
+      fileLocations.push(location);
+    }
+  });
+
+  const formattedFiles: string[] = [];
+
+  urlsByFile.forEach((locations, file) => {
+    const filePath = file;
+    const urls = locations.map(formatUrlLocation).join('\n  ');
+    formattedFiles.push(`${filePath}:\n  ${urls}`);
+  });
+
+  return formattedFiles.join('\n\n');
+};
+
+const getLocationInfo = (url: string, allLocations?: Map<string, UrlLocation[]>): string => {
+  if (!allLocations) return '';
+
+  const locations = allLocations.get(url);
+  if (!locations || locations.length === 0) return '';
+
+  const locationInfo = locations
+    .map((loc) => {
+      const fileName = loc.file.split('/').pop() || loc.file;
+      return `${fileName}:${loc.line}`;
+    })
+    .join(', ');
+
+  return ` [${locationInfo}]`;
+};
+
+describe('[Product Bug: RHOAIENG-26510] Verify that all the URLs referenced in the Manifest directory are operational', () => {
   let excludedSubstrings: string[] = [];
 
   before(() => {
-    // Load and parse the YAML configuration
     cy.fixture('e2e/dashboardNavigation/testManifestLinks.yaml').then((yamlString) => {
       try {
         const yamlData = yaml.load(yamlString) as ManifestTestConfig;
@@ -87,37 +129,82 @@ describe('[Automation Bug: RHOAIENG-26510] Verify that all the URLs referenced i
       ],
     },
     () => {
-      // Verify that excludedSubstrings is properly initialized
       const manifestsDir = '../../../../manifests';
       cy.log(`Resolved manifests directory: ${manifestsDir}`);
 
-      cy.task<string[]>('extractHttpsUrls', manifestsDir)
-        .then((urls) => {
-          if (!Array.isArray(urls)) {
+      cy.task<UrlLocation[]>('extractHttpsUrls', manifestsDir)
+        .then((urlLocations) => {
+          if (!Array.isArray(urlLocations)) {
             throw new Error('Failed to extract URLs from manifests directory');
           }
 
-          // Filter out Sample/Test URLs in a single pass
-          const filteredUrls = urls.filter((url) => url && !isUrlExcluded(url, excludedSubstrings));
-
-          cy.log(
-            `Found ${urls.length} total URLs, filtered to ${
-              filteredUrls.length
-            } URLs.\nValid status codes to check: ${Array.from(VALID_STATUS_CODES).join(
-              ', ',
-            )}\n\nURLs to verify:\n${filteredUrls.join('\n')}`,
+          const filteredUrlLocations = urlLocations.filter(
+            (urlLocation) => urlLocation.url && !isUrlExcluded(urlLocation.url, excludedSubstrings),
           );
 
-          return cy.task<UrlValidationResult[]>('validateHttpsUrls', filteredUrls);
+          const filteredUrls = filteredUrlLocations.map((location) => location.url);
+
+          cy.log(
+            `Found ${urlLocations.length} total URLs, filtered to ${
+              filteredUrlLocations.length
+            } URLs.\nValid status codes to check: ${Array.from(VALID_STATUS_CODES).join(
+              ', ',
+            )}\n\nURLs to verify:\n${formatUrlLocationsByFile(filteredUrlLocations)}`,
+          );
+
+          const urlToLocationsMap = new Map<string, UrlLocation[]>();
+          filteredUrlLocations.forEach((location) => {
+            if (!urlToLocationsMap.has(location.url)) {
+              urlToLocationsMap.set(location.url, []);
+            }
+            const locationsForUrl = urlToLocationsMap.get(location.url);
+            if (locationsForUrl) {
+              locationsForUrl.push(location);
+            }
+          });
+
+          return cy
+            .task<UrlValidationResult[]>('validateHttpsUrls', filteredUrls)
+            .then((results) => {
+              const resultsWithLocation: UrlValidationResultWithLocation[] = results.map(
+                (result) => {
+                  const resultWithOriginal = result as UrlValidationResult & {
+                    originalUrl?: string;
+                  };
+
+                  const finalUrlLocations = urlToLocationsMap.get(result.url);
+                  const location =
+                    finalUrlLocations && finalUrlLocations.length > 0
+                      ? finalUrlLocations[0]
+                      : undefined;
+
+                  return {
+                    ...result,
+                    originalUrl: resultWithOriginal.originalUrl,
+                    location,
+                  };
+                },
+              );
+
+              return { resultsWithLocation, urlToLocationsMap };
+            });
         })
-        .then((results) => {
-          if (!Array.isArray(results)) {
+        .then(({ resultsWithLocation, urlToLocationsMap }) => {
+          if (!Array.isArray(resultsWithLocation)) {
             throw new Error('Failed to validate URLs');
           }
 
-          results.forEach((result) => {
+          const loggedUrls = new Set<string>();
+
+          resultsWithLocation.forEach((result) => {
+            if (loggedUrls.has(result.url)) {
+              return;
+            }
+            loggedUrls.add(result.url);
+
             const isValid = VALID_STATUS_CODES.has(result.status);
-            const logMessage = formatValidationMessage(result);
+            const logMessage = formatValidationMessage(result, urlToLocationsMap);
+            const errorType = getErrorType(result.status, result.error);
 
             cy.step(logMessage);
             softTrue(
@@ -125,7 +212,7 @@ describe('[Automation Bug: RHOAIENG-26510] Verify that all the URLs referenced i
               `URL ${result.url} should return one of the valid status codes (${Array.from(
                 VALID_STATUS_CODES,
               ).join(', ')}), but was ${result.status}${
-                result.error ? ` - Details: ${result.error}` : ''
+                result.error ? ` - ${errorType}: ${result.error}` : ''
               }`,
             );
           });

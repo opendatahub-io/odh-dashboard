@@ -15,7 +15,7 @@ import { mergeFiles } from 'junit-report-merger';
 import { interceptSnapshotFile } from './cypress/utils/snapshotUtils';
 import { setup as setupWebsockets } from './cypress/support/websockets';
 import { env, cypressEnv, BASE_URL } from './cypress/utils/testConfig';
-import { extractHttpsUrls } from './cypress/utils/urlExtractor';
+import { extractHttpsUrlsWithLocation } from './cypress/utils/urlExtractor';
 import { validateHttpsUrls } from './cypress/utils/urlValidator';
 import { logToConsole, LogLevel } from './cypress/utils/logger';
 
@@ -91,7 +91,7 @@ export default defineConfig({
           return Promise.resolve({});
         },
         extractHttpsUrls(directory: string) {
-          return extractHttpsUrls(directory);
+          return extractHttpsUrlsWithLocation(directory);
         },
         validateHttpsUrls(urls: string[]) {
           return validateHttpsUrls(urls);
