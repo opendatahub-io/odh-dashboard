@@ -16,12 +16,13 @@ import { PencilAltIcon } from '@patternfly/react-icons';
 import CollapsibleSection from '@odh-dashboard/internal/concepts/design/CollapsibleSection';
 import { ProjectObjectType, SectionType } from '@odh-dashboard/internal/concepts/design/utils';
 import OverviewCard from '@odh-dashboard/internal/pages/projects/screens/detail/overview/components/OverviewCard';
-import AddModelFooter from '@odh-dashboard/internal/pages/projects/screens/detail/overview/serverModels/AddModelFooter';
+import { ProjectDetailsContext } from '@odh-dashboard/internal/pages/projects/ProjectDetailsContext';
 import {
   ModelServingPlatformContext,
   ModelServingPlatformContextType,
 } from './ModelServingPlatformContext';
-import { ModelServingPlatform } from './modelServingPlatforms';
+import { ModelServingPlatform, useProjectServingPlatform } from './useProjectServingPlatform';
+import { DeployButton } from '../components/deploy/DeployButton';
 
 const galleryWidth = {
   minWidths: { default: '100%', lg: 'calc(50% - 1rem / 2)' },
@@ -44,8 +45,7 @@ const PlatformEnablementCard: React.FC<{
       <Button
         isLoading={loading}
         isDisabled={loading}
-        variant="link"
-        isInline
+        variant="secondary"
         onClick={onSelect}
         data-testid={`${platform.properties.id}-select-button`}
       >
@@ -56,17 +56,21 @@ const PlatformEnablementCard: React.FC<{
 );
 
 const ModelPlatformSection: React.FC = () => {
+  const { currentProject } = React.useContext(ProjectDetailsContext);
+  const { availablePlatforms } = React.useContext<ModelServingPlatformContextType>(
+    ModelServingPlatformContext,
+  );
+
   const {
-    platform: currentProjectServingPlatform,
-    availablePlatforms,
-    setPlatform,
-    newPlatformLoading,
-    platformError,
-    resetPlatform,
-  } = React.useContext<ModelServingPlatformContextType>(ModelServingPlatformContext);
+    activePlatform,
+    setProjectPlatform,
+    resetProjectPlatform,
+    newProjectPlatformLoading,
+    projectPlatformError,
+  } = useProjectServingPlatform(currentProject, availablePlatforms);
 
   // If no platform is selected -
-  if (!currentProjectServingPlatform) {
+  if (!activePlatform) {
     return (
       <CollapsibleSection title="Serve models" data-testid="section-model-server">
         <Flex gap={{ default: 'gapMd' }} direction={{ default: 'column' }}>
@@ -86,17 +90,17 @@ const ModelPlatformSection: React.FC = () => {
                 <GalleryItem key={p.properties.id}>
                   <PlatformEnablementCard
                     platform={p}
-                    onSelect={() => setPlatform(p)}
-                    loading={newPlatformLoading?.properties.id === p.properties.id}
+                    onSelect={() => setProjectPlatform(p)}
+                    loading={newProjectPlatformLoading?.properties.id === p.properties.id}
                   />
                 </GalleryItem>
               ))}
             </Gallery>
           </FlexItem>
-          {platformError && (
+          {projectPlatformError && (
             <FlexItem>
               <Alert isInline title="Error" variant="danger">
-                {platformError}
+                {projectPlatformError}
               </Alert>
             </FlexItem>
           )}
@@ -116,13 +120,13 @@ const ModelPlatformSection: React.FC = () => {
   const {
     enableCardText: { enabledText },
     deployedModelsView: { startHintTitle, startHintDescription },
-  } = currentProjectServingPlatform.properties;
+  } = activePlatform.properties;
 
   return (
     <CollapsibleSection title="Serve models" data-testid="section-model-server">
       <OverviewCard
-        objectType={ProjectObjectType.modelServer}
-        sectionType={SectionType.setup}
+        objectType={ProjectObjectType.deployedModels}
+        sectionType={SectionType.serving}
         title={startHintTitle}
         headerInfo={
           <Flex gap={{ default: 'gapSm' }}>
@@ -132,9 +136,9 @@ const ModelPlatformSection: React.FC = () => {
                 data-testid="change-serving-platform-button"
                 variant="link"
                 isInline
-                onClick={resetPlatform}
+                onClick={resetProjectPlatform}
                 icon={<PencilAltIcon />}
-                isDisabled={!!newPlatformLoading}
+                isDisabled={!!newProjectPlatformLoading}
               >
                 Change
               </Button>
@@ -144,15 +148,17 @@ const ModelPlatformSection: React.FC = () => {
       >
         <CardBody>
           <Stack hasGutter>
-            {platformError && (
+            {projectPlatformError && (
               <Alert isInline title="Loading error" variant="danger">
-                {platformError}
+                {projectPlatformError}
               </Alert>
             )}
             <Content component="small">{startHintDescription}</Content>
           </Stack>
         </CardBody>
-        <AddModelFooter />
+        <CardFooter>
+          <DeployButton platform={activePlatform} variant="secondary" />
+        </CardFooter>
       </OverviewCard>
     </CollapsibleSection>
   );
