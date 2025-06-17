@@ -34,9 +34,7 @@ const AccessModeRadio: React.FC<AccessModeRadioProps> = ({
     />
   );
   if (isDisabled) {
-    return (
-      <>{tooltipContent ? <Tooltip content={tooltipContent}>{radioField}</Tooltip> : radioField}</>
-    );
+    return tooltipContent ? <Tooltip content={tooltipContent}>{radioField}</Tooltip> : radioField;
   }
   return radioField;
 };
