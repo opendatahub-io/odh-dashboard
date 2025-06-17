@@ -49,6 +49,7 @@ const KServeInferenceServiceTableRow: React.FC<KServeInferenceServiceTableRowPro
     servingRuntimes: {
       data: { items: servingRuntimes },
     },
+    inferenceServices,
   } = React.useContext(ProjectDetailsContext);
 
   const frameworkName = obj.spec.predictor.model?.modelFormat?.name || '';
@@ -74,6 +75,7 @@ const KServeInferenceServiceTableRow: React.FC<KServeInferenceServiceTableRowPro
           obj={obj}
           columnNames={columnNames}
           servingRuntime={servingRuntime}
+          refresh={inferenceServices.refresh}
           onDeleteInferenceService={() => onDeleteKServe({ inferenceService: obj, servingRuntime })}
           onEditInferenceService={() => onEditKServe({ inferenceService: obj, servingRuntime })}
         />

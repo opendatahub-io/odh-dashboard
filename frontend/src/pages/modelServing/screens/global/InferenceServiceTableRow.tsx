@@ -5,13 +5,15 @@ import ResourceActionsColumn from '#~/components/ResourceActionsColumn';
 import ResourceNameTooltip from '#~/components/ResourceNameTooltip';
 import useModelMetricsEnabled from '#~/pages/modelServing/useModelMetricsEnabled';
 import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
-import { isModelMesh } from '#~/pages/modelServing/utils';
+import { getInferenceServiceStoppedStatus, isModelMesh } from '#~/pages/modelServing/utils';
 import { SupportedArea } from '#~/concepts/areas';
 import useIsAreaAvailable from '#~/concepts/areas/useIsAreaAvailable';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import { byName, ProjectsContext } from '#~/concepts/projects/ProjectsContext';
 import { isProjectNIMSupported } from '#~/pages/modelServing/screens/projects/nimUtils';
 import useServingPlatformStatuses from '#~/pages/modelServing/useServingPlatformStatuses';
+import StateActionToggle from '#~/components/StateActionToggle';
+import { patchInferenceServiceStoppedStatus } from '#~/api/k8s/inferenceServices';
 import InferenceServiceEndpoint from './InferenceServiceEndpoint';
 import InferenceServiceProject from './InferenceServiceProject';
 import InferenceServiceStatus from './InferenceServiceStatus';
@@ -24,6 +26,7 @@ type InferenceServiceTableRowProps = {
   isGlobal?: boolean;
   servingRuntime?: ServingRuntimeKind;
   columnNames: string[];
+  refresh?: () => void;
   onDeleteInferenceService: (obj: InferenceServiceKind) => void;
   onEditInferenceService: (obj: InferenceServiceKind) => void;
 };
@@ -31,6 +34,7 @@ type InferenceServiceTableRowProps = {
 const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
   obj: inferenceService,
   servingRuntime,
+  refresh = () => undefined,
   onDeleteInferenceService,
   onEditInferenceService,
   isGlobal,
@@ -50,6 +54,16 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
   const modelMeshMetricsSupported = modelMetricsEnabled && modelMesh;
   const kserveMetricsSupported = modelMetricsEnabled && kserveMetricsEnabled && !modelMesh;
   const displayName = getDisplayNameFromK8sResource(inferenceService);
+
+  const modelServingStatus = getInferenceServiceStoppedStatus(inferenceService);
+
+  const onStart = React.useCallback(() => {
+    patchInferenceServiceStoppedStatus(inferenceService, 'false').then(refresh);
+  }, [inferenceService, refresh]);
+
+  const onStop = React.useCallback(() => {
+    patchInferenceServiceStoppedStatus(inferenceService, 'true').then(refresh);
+  }, [inferenceService, refresh]);
 
   return (
     <>
@@ -106,6 +120,9 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
 
       <Td dataLabel="Status">
         <InferenceServiceStatus inferenceService={inferenceService} isKserve={!modelMesh} />
+      </Td>
+      <Td>
+        <StateActionToggle currentState={modelServingStatus} onStart={onStart} onStop={onStop} />
       </Td>
 
       {columnNames.includes(ColumnField.Kebab) && (
