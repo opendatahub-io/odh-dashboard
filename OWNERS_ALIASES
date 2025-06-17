@@ -55,7 +55,11 @@ aliases:
     - Griffin-Sullivan
     - emilys314
   connections-reviewers:
-    - @opendatahub-io/odh-dashboard-maintainers
+    - Griffin-Sullivan
+    - emilys314
+    - andrewballantyne
+    - ashley-o0o
+    - katieperry4
 
   # Hardware Profiles team
   hardware-profiles-approvers:
@@ -78,7 +82,11 @@ aliases:
     - Griffin-Sullivan
     - emilys314
   model-serving-metrics-reviewers:
-    - @opendatahub-io/odh-dashboard-maintainers
+    - Griffin-Sullivan
+    - emilys314
+    - andrewballantyne
+    - ashley-o0o
+    - katieperry4
 
   # Pipelines team
   pipelines-approvers:
