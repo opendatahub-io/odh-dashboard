@@ -59,7 +59,7 @@ describe('StartingStatusModal', () => {
       ]),
     );
 
-    render(<StartingStatusModal onClose={mockOnClose} conditionLog={[]} />);
+    render(<StartingStatusModal onClose={mockOnClose} />);
 
     expect(screen.getByText('Initializing Pipeline Server')).toBeInTheDocument();
     expect(screen.getByRole('progressbar')).toBeInTheDocument();
@@ -77,7 +77,7 @@ describe('StartingStatusModal', () => {
       ]),
     );
 
-    render(<StartingStatusModal onClose={mockOnClose} conditionLog={[]} />);
+    render(<StartingStatusModal onClose={mockOnClose} />);
 
     expect(screen.getByTestId('inProgressDescription')).toBeInTheDocument();
   });
@@ -96,7 +96,7 @@ describe('StartingStatusModal', () => {
       ]),
     );
 
-    render(<StartingStatusModal onClose={mockOnClose} conditionLog={[]} />);
+    render(<StartingStatusModal onClose={mockOnClose} />);
     expect(screen.getByTestId('successDescription')).toBeInTheDocument();
   });
 
@@ -107,7 +107,7 @@ describe('StartingStatusModal', () => {
     ];
     mockUsePipelinesAPI.mockReturnValue(createMockConditions(conditions));
 
-    render(<StartingStatusModal onClose={mockOnClose} conditionLog={conditions} />);
+    render(<StartingStatusModal onClose={mockOnClose} />);
 
     conditions.forEach((condition) => {
       expect(screen.getByText(condition.type)).toBeInTheDocument();
@@ -128,7 +128,7 @@ describe('StartingStatusModal', () => {
     ];
     mockUsePipelinesAPI.mockReturnValue(createMockConditions(conditions));
 
-    render(<StartingStatusModal onClose={mockOnClose} conditionLog={conditions} />);
+    render(<StartingStatusModal onClose={mockOnClose} />);
 
     // Switch to events log tab
     fireEvent.click(screen.getByText('Events log'));
@@ -147,7 +147,7 @@ describe('StartingStatusModal', () => {
       ]),
     );
 
-    render(<StartingStatusModal onClose={mockOnClose} conditionLog={[]} />);
+    render(<StartingStatusModal onClose={mockOnClose} />);
 
     fireEvent.click(screen.getByText('Close'));
     expect(mockOnClose).toHaveBeenCalled();
