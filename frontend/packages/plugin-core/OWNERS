@@ -1,0 +1,11 @@
+options:
+  no_parent_owners: true
+
+approvers:
+  - @platform-approvers
+
+reviewers:
+  - @platform-reviewers
+
+labels:
+  - area/platform

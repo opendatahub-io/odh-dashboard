@@ -1,0 +1,113 @@
+## Common conventions for this file
+##
+## - @opendatahub-io/odh-dashboard-owners is added to each approver group
+##     - Has all the Admins of the repo
+##     - This allows future no_parent_owners to have backups if absences
+##     - Avoid removing this group so absences can always be worked through
+## - @opendatahub-io/odh-dashboard-maintainers is added to each reviewer group (by default)
+##     - Has all the primary Dashboard developers
+##     - This allows a default of any reviewer for any PR (only helps with bot auto-reviewer selection)
+##     - You can change this to be a subset if you wish -- enforcing bot auto-reviewers to be specific people with knowledge in the area
+##
+## Rules to follow for usage for optimum experience
+## - OWNERS files are placed on-demand in sub folders
+##     - "options: no_parent_owners: true" is needed to force SMEs in those areas
+##     - Should include one of the repo's "labels" that start with `area/`
+## - Any folder without an OWNERS file works up until it finds one and uses that information
+## - Update any of the appovers & reviewers of your area as you see fit (seek managerial feedback if needed)
+## - Removal of users from approval areas is rarely necessary -- these are not scrum based, they are knowledge based
+
+aliases:
+  # If we need to override sub folders or temporarily grant access to the general approvers
+  # This group is made up of users who have shown good review abilities & have attained good knowledge of the app
+  general-approvers:
+    - andrewballantyne
+    - lucferbux
+    - alexcreasy
+    - christianvogt
+    - mturley
+    - Gkrumbach07
+    - emilys314
+    - DaoDaoNoCode
+    - antowaddle
+    - manosnoam
+    - FedeAlonso
+    - Griffin-Sullivan
+    - YuliaKrimerman
+
+  # Agentic / RAG team
+  agentic-rag-approvers:
+    - @opendatahub-io/odh-dashboard-owners
+    - alexcreasy
+  agentic-rag-reviewers:
+    - @opendatahub-io/odh-dashboard-maintainers
+
+  # AI Safety / Trusty team
+  ai-safety-trusty-approvers:
+    - @opendatahub-io/odh-dashboard-owners
+    - alexcreasy
+  ai-safety-trusty-reviewers:
+    - @opendatahub-io/odh-dashboard-maintainers
+
+  # Connections & Connection Types team
+  connections-approvers:
+    - @opendatahub-io/odh-dashboard-owners
+    - Griffin-Sullivan
+    - emilys314
+  connections-reviewers:
+    - @opendatahub-io/odh-dashboard-maintainers
+
+  # Hardware Profiles team
+  hardware-profiles-approvers:
+    - @opendatahub-io/odh-dashboard-owners
+    - Gkrumbach07
+  hardware-profiles-reviewers:
+    - @opendatahub-io/odh-dashboard-maintainers
+
+  # Model Registry & Model Catalog team
+  model-registry-catalog-approvers:
+    - @opendatahub-io/odh-dashboard-owners
+    - mturley
+    - YuliaKrimerman
+  model-registry-catalog-reviewers:
+    - @opendatahub-io/odh-dashboard-maintainers
+
+  # Model Serving & Model Metrics team
+  model-serving-metrics-approvers:
+    - @opendatahub-io/odh-dashboard-owners
+    - Griffin-Sullivan
+    - emilys314
+  model-serving-metrics-reviewers:
+    - @opendatahub-io/odh-dashboard-maintainers
+
+  # Pipelines team
+  pipelines-approvers:
+    - @opendatahub-io/odh-dashboard-owners
+    - Gkrumbach07
+    - DaoDaoNoCode
+  pipelines-reviewers:
+    - @opendatahub-io/odh-dashboard-maintainers
+
+  # General Dashboard infrastructure team; Plugins, Core Infrastructure, etc
+  platform-approvers:
+    - @opendatahub-io/odh-dashboard-owners
+    - christianvogt
+    - lucferbux
+  platform-reviewers:
+    - @opendatahub-io/odh-dashboard-maintainers
+
+  # Quality / E2E testing team
+  quality-e2e-testing-approvers:
+    - @opendatahub-io/odh-dashboard-owners
+    - antowaddle
+    - manosnoam
+  quality-e2e-testing-reviewers:
+    - @opendatahub-io/odh-dashboard-maintainers
+
+  # Workbenches (formerly Notebooks) team
+  workbenches-approvers:
+    - @opendatahub-io/odh-dashboard-owners
+    - Gkrumbach07
+    - DaoDaoNoCode
+  workbenches-reviewers:
+    - @opendatahub-io/odh-dashboard-maintainers
