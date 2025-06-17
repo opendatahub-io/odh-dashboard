@@ -26,6 +26,7 @@ import {
 } from '#~/concepts/pipelines/context/usePipelineEvents.ts';
 import EventLog from '#~/concepts/k8s/EventLog/EventLog';
 import '#~/concepts/dashboard/ModalStyles.scss';
+import { K8sCondition } from '#~/k8sTypes.ts';
 
 const PROGRESS_TAB = 'Progress';
 const EVENT_LOG_TAB = 'Events log';
@@ -41,6 +42,17 @@ const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose }) =>
     (c) => c.type === 'Ready' && c.status === 'True',
   );
 
+  // debugging/research
+  const allConds: K8sCondition[] = [];
+
+  const myClose = () => {
+    console.log('inside my close....');
+    const reasons = Array.from(new Set(allConds.map((c) => c.reason)));
+    console.log('77bc all the reasons: ', reasons);
+    onClose();
+  };
+
+  console.log('77: frustrated');
   const [pods] = useWatchPodsForPipelineServerEvents(namespace);
   const podUids = pods.map((onePod) => onePod.metadata.uid);
 
@@ -66,6 +78,8 @@ const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose }) =>
           <StackItem>
             <Stack hasGutter>
               {pipelinesServer.crStatus?.conditions?.map((condition, index) => {
+                allConds.push(condition);
+                console.log('77a: condition', JSON.stringify(condition));
                 const containerStatus = getStatusFromCondition(condition);
                 return (
                   <StackItem key={`${condition.type}-${index}`}>
@@ -124,7 +138,7 @@ const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose }) =>
       data-testid="pipeline-server-starting-modal"
       isOpen
       variant="medium"
-      onClose={onClose}
+      onClose={myClose}
       title="Pipeline Server Status"
       disableFocusTrap
     >
