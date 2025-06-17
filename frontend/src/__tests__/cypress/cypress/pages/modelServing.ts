@@ -596,6 +596,10 @@ class KServeRow extends ModelMeshRow {
   findProjectScopedLabel() {
     return this.find().findByTestId('project-scoped-label');
   }
+
+  findStateActionToggle() {
+    return this.find().findByTestId('state-action-toggle');
+  }
 }
 
 class InferenceServiceRow extends TableRow {
