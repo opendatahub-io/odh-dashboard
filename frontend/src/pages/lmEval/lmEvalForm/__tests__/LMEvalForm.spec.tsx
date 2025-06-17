@@ -94,7 +94,7 @@ describe('LMEvalForm', () => {
     renderWithContext();
 
     // Should show model dropdown
-    expect(screen.getByText('Model Name')).toBeInTheDocument();
+    expect(screen.getByText('Model name')).toBeInTheDocument();
     expect(screen.getByText('Select a model')).toBeInTheDocument();
   });
 
@@ -107,7 +107,7 @@ describe('LMEvalForm', () => {
     expect(screen.queryByLabelText('Namespace options menu')).not.toBeInTheDocument();
 
     // Should show model dropdown
-    expect(screen.getByText('Model Name')).toBeInTheDocument();
+    expect(screen.getByText('Model name')).toBeInTheDocument();
     expect(screen.getByText('Select a model')).toBeInTheDocument();
   });
 
