@@ -134,7 +134,7 @@ const LMEvalForm: React.FC = () => {
     >
       <PageSection hasBodyWrapper={false} isFilled>
         <Form data-testid="lmEvaluationForm" maxWidth="800px">
-          <FormGroup label="Model Name" isRequired data-testid="model-name-form-group">
+          <FormGroup label="Model name" isRequired data-testid="model-name-form-group">
             <Select
               isOpen={openModelName}
               selected={data.deployedModelName}
