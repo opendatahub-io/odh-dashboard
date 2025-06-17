@@ -1,0 +1,11 @@
+options:
+  no_parent_owners: true
+
+approvers:
+  - @ai-safety-trusty-approvers
+
+reviewers:
+  - @ai-safety-trusty-reviewers
+
+labels:
+  - area/ai-safety-trusty
