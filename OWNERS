@@ -1,6 +1,32 @@
 approvers:
 - openshift-cherrypick-robot
-- general-approvers
+- andrewballantyne
+- lucferbux
+- alexcreasy
+- christianvogt
+- mturley
+- Gkrumbach07
+- emilys314
+- DaoDaoNoCode
+- antowaddle
+- manosnoam
+- FedeAlonso
+- Griffin-Sullivan
+- YuliaKrimerman
 
 reviewers:
-- @opendatahub-io/odh-dashboard-maintainers
+- alexcreasy
+- christianvogt
+- Gkrumbach07
+- lucferbux
+- DaoDaoNoCode
+- manaswinidas
+- pnaik1
+- ppadti
+- dpanshug
+- mturley
+- antowaddle
+- manosnoam
+- FedeAlonso
+- Griffin-Sullivan
+- YuliaKrimerman
