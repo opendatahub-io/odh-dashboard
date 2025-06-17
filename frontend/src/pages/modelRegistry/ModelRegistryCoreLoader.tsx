@@ -1,6 +1,8 @@
 import * as React from 'react';
 import { Navigate, Outlet, useParams } from 'react-router';
 import { Bullseye } from '@patternfly/react-core';
+import { Link } from 'react-router-dom';
+import { CogIcon } from '@patternfly/react-icons';
 import { conditionalArea, SupportedArea } from '#~/concepts/areas';
 import { ModelRegistryPageContextProvider } from '#~/concepts/modelRegistry/context/ModelRegistryPageContext';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
@@ -10,6 +12,8 @@ import { ModelRegistriesContext } from '#~/concepts/modelRegistry/context/ModelR
 import WhosMyAdministrator from '#~/components/WhosMyAdministrator';
 import { modelRegistryRoute } from '#~/routes/modelRegistry/registryBase';
 import RedirectErrorState from '#~/pages/external/RedirectErrorState';
+import { useAccessAllowed, verbModelAccess } from '#~/concepts/userSSAR';
+import { ModelRegistryModel } from '#~/api/models';
 import InvalidModelRegistry from './screens/InvalidModelRegistry';
 import EmptyModelRegistryState from './screens/components/EmptyModelRegistryState';
 import ModelRegistrySelectorNavigator from './screens/ModelRegistrySelectorNavigator';
@@ -31,6 +35,7 @@ const ModelRegistryCoreLoader: React.FC<ModelRegistryCoreLoaderProps> =
     true,
   )(({ getInvalidRedirectPath }) => {
     const { modelRegistry } = useParams<{ modelRegistry: string }>();
+    const [isAdmin] = useAccessAllowed(verbModelAccess('create', ModelRegistryModel));
     const {
       modelRegistryServicesLoaded,
       modelRegistryServicesLoadError,
@@ -71,17 +76,41 @@ const ModelRegistryCoreLoader: React.FC<ModelRegistryCoreLoaderProps> =
 
     let renderStateProps: ApplicationPageRenderState & { children?: React.ReactNode };
     if (modelRegistryServices.length === 0) {
+      const adminTitle = 'Create a model registry';
+      const adminDescription = (
+        <>
+          No model registries are available to users in your organization. Create a model registry
+          from the <b>Model registry settings</b> page.
+        </>
+      );
+
+      const userTitle = 'Request access to model registries';
+      const userDescription =
+        'To request a new model registry, or to request permission to access an existing model registry, contact your administrator.';
+
       renderStateProps = {
         empty: true,
         emptyStatePage: (
           <EmptyModelRegistryState
             testid="empty-model-registries-state"
-            title="Request access to model registries"
-            description="To request a new model registry, or to request permission to access an existing model registry, contact your administrator."
-            headerIcon={() => (
-              <img src={typedEmptyImage(ProjectObjectType.registeredModels)} alt="" />
-            )}
-            customAction={<WhosMyAdministrator />}
+            title={isAdmin ? adminTitle : userTitle}
+            description={isAdmin ? adminDescription : userDescription}
+            headerIcon={() =>
+              !isAdmin ? (
+                <img src={typedEmptyImage(ProjectObjectType.registeredModels)} alt="" />
+              ) : (
+                <CogIcon />
+              )
+            }
+            customAction={
+              !isAdmin ? (
+                <WhosMyAdministrator />
+              ) : (
+                <Link to="/modelRegistrySettings">
+                  Go to <b>Model registry settings</b>
+                </Link>
+              )
+            }
           />
         ),
         headerContent: null,

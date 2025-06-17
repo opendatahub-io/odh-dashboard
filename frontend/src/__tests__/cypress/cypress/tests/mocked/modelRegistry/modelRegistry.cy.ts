@@ -14,7 +14,10 @@ import { mockModelVersionList } from '#~/__mocks__/mockModelVersionList';
 import { mockModelVersion } from '#~/__mocks__/mockModelVersion';
 import { mockRegisteredModel } from '#~/__mocks__/mockRegisteredModel';
 import { mockModelRegistryService } from '#~/__mocks__/mockModelRegistryService';
-import { asProjectEditUser } from '#~/__tests__/cypress/cypress/utils/mockUsers';
+import {
+  asProjectEditUser,
+  asProductAdminUser,
+} from '#~/__tests__/cypress/cypress/utils/mockUsers';
 import { mockSelfSubjectRulesReview } from '#~/__mocks__/mockSelfSubjectRulesReview';
 import { mockSelfSubjectAccessReview } from '#~/__mocks__/mockSelfSubjectAccessReview';
 import {
@@ -158,16 +161,45 @@ const initIntercepts = ({
 
   cy.interceptK8s(ServiceModel, mockModelRegistryService({ name: 'dallas-mr' }));
 
-  cy.interceptK8s(
-    'POST',
-    SelfSubjectAccessReviewModel,
-    mockSelfSubjectAccessReview({
-      verb: 'list',
-      resource: 'services',
-      group: 'user.openshift.io',
-      allowed,
-    }),
-  );
+  // Handle multiple SelfSubjectAccessReview requests based on request body
+  cy.interceptK8s('POST', SelfSubjectAccessReviewModel, (req) => {
+    const { resourceAttributes } = req.body.spec;
+
+    // Mock for services list permission - always allow for non-admin users to see empty state
+    if (resourceAttributes.resource === 'services' && resourceAttributes.verb === 'list') {
+      req.reply(
+        mockSelfSubjectAccessReview({
+          verb: 'list',
+          resource: 'services',
+          group: 'user.openshift.io',
+          allowed: true, // Always allow listing services to see empty state
+        }),
+      );
+    }
+    // Mock for model registry creation permission - this controls admin vs non-admin behavior
+    else if (
+      resourceAttributes.resource === 'modelregistries' &&
+      resourceAttributes.verb === 'create'
+    ) {
+      req.reply(
+        mockSelfSubjectAccessReview({
+          verb: 'create',
+          resource: 'modelregistries',
+          group: 'modelregistry.opendatahub.io',
+          allowed, // This parameter controls admin access
+        }),
+      );
+    }
+    // Default fallback
+    else {
+      req.reply(
+        mockSelfSubjectAccessReview({
+          ...resourceAttributes,
+          allowed: false,
+        }),
+      );
+    }
+  });
 
   cy.interceptOdh(
     `GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/registered_models`,
@@ -219,6 +251,55 @@ describe('Model Registry core', () => {
     modelRegistry.visit();
     cy.findByRole('button', { name: 'Models' }).should('exist').click();
     modelRegistry.findModelRegistryEmptyState().should('exist');
+  });
+
+  it('Shows admin empty state for users with model registry creation permissions', () => {
+    asProductAdminUser();
+    initIntercepts({
+      disableModelRegistryFeature: false,
+      modelRegistries: [],
+      allowed: true,
+    });
+
+    modelRegistry.visit();
+    cy.findByRole('button', { name: 'Models' }).should('exist').click();
+
+    // Check for admin-specific content
+    modelRegistry.findModelRegistryEmptyState().should('exist');
+    cy.findByTestId('empty-model-registries-state').within(() => {
+      cy.findByText('Create a model registry').should('exist');
+      cy.contains('No model registries are available to users in your organization').should(
+        'exist',
+      );
+      cy.contains('Create a model registry from the').should('exist');
+      cy.contains('Model registry settings').should('exist');
+      cy.findByRole('link', { name: 'Go to Model registry settings' })
+        .should('exist')
+        .and('have.attr', 'href', '/modelRegistrySettings');
+    });
+  });
+
+  it('Shows non-admin empty state for users without model registry creation permissions', () => {
+    asProjectEditUser();
+    initIntercepts({
+      disableModelRegistryFeature: false,
+      modelRegistries: [],
+      allowed: false,
+    });
+
+    modelRegistry.visit();
+    cy.findByRole('button', { name: 'Models' }).should('exist').click();
+
+    // Check for non-admin specific content
+    modelRegistry.findModelRegistryEmptyState().should('exist');
+    cy.findByTestId('empty-model-registries-state').within(() => {
+      cy.findByText('Request access to model registries').should('exist');
+      cy.findByText(
+        'To request a new model registry, or to request permission to access an existing model registry, contact your administrator.',
+      ).should('exist');
+      // Should not show link to model registry settings
+      cy.findByRole('link', { name: 'Go to Model registry settings' }).should('not.exist');
+    });
   });
 
   it('No registered models in the selected Model Registry', () => {
