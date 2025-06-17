@@ -3,6 +3,7 @@ options:
 
 approvers:
   - @quality-e2e-testing-approvers
+  - @general-approvers
 
 reviewers:
   - @quality-e2e-testing-reviewers
