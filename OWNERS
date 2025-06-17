@@ -1,6 +1,6 @@
 approvers:
 - openshift-cherrypick-robot
-- @general-approvers
+- general-approvers
 
 reviewers:
 - @opendatahub-io/odh-dashboard-maintainers
