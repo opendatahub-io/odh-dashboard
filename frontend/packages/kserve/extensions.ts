@@ -4,6 +4,7 @@ import type {
   ModelServingPlatformExtension,
   ModelServingDeploymentsTableExtension,
   ModelServingDeleteModal,
+  ModelServingPlatformWatchDeploymentsExtension,
 } from '@odh-dashboard/model-serving/extension-points';
 import type { KServeDeployment } from './src/deployments';
 
@@ -11,6 +12,7 @@ export const KSERVE_ID = 'kserve';
 
 const extensions: (
   | ModelServingPlatformExtension<KServeDeployment>
+  | ModelServingPlatformWatchDeploymentsExtension<KServeDeployment>
   | ModelServingDeploymentsTableExtension<KServeDeployment>
   | ModelServingDeleteModal<KServeDeployment>
 )[] = [
@@ -22,9 +24,6 @@ const extensions: (
         namespaceApplicationCase: NamespaceApplicationCase.KSERVE_PROMOTION,
         enabledLabel: 'modelmesh-enabled',
         enabledLabelValue: 'false',
-      },
-      deployments: {
-        watch: () => import('./src/deployments').then((m) => m.useWatchDeployments),
       },
       enableCardText: {
         title: 'Single-model serving platform',
@@ -38,6 +37,13 @@ const extensions: (
         startHintDescription: 'Each model is deployed on its own model server',
         deployButtonText: 'Deploy model',
       },
+    },
+  },
+  {
+    type: 'model-serving.platform/watch-deployments',
+    properties: {
+      platform: KSERVE_ID,
+      watch: () => import('./src/deployments').then((m) => m.useWatchDeployments),
     },
   },
   {
