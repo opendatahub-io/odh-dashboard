@@ -3,26 +3,23 @@ import { getRoute } from '#~/api';
 import useFetch, { FetchStateCallbackPromise, FetchStateObject } from '#~/utilities/useFetch';
 import { K8sAPIOptions } from '#~/k8sTypes';
 
-type NotebookRouteState = {
-  route: string | null;
-};
-
 const useRouteForNotebook = (
   notebookName?: string,
   projectName?: string,
   isRunning?: boolean,
   pollInterval?: number,
-): FetchStateObject<NotebookRouteState> => {
-  const fetchRoute = React.useCallback<FetchStateCallbackPromise<NotebookRouteState>>(
-    (opts: K8sAPIOptions): Promise<NotebookRouteState> => {
+): FetchStateObject<string | null> => {
+  const fetchRoute = React.useCallback<FetchStateCallbackPromise<string | null>>(
+    (opts: K8sAPIOptions): Promise<string | null> => {
       if (!notebookName || !projectName) {
         return Promise.reject('Notebook name or project name is not provided');
       }
 
       return getRoute(notebookName, projectName, opts)
-        .then((fetchedRoute) => ({
-          route: `https://${fetchedRoute.spec.host}/notebook/${projectName}/${notebookName}`,
-        }))
+        .then(
+          (fetchedRoute) =>
+            `https://${fetchedRoute.spec.host}/notebook/${projectName}/${notebookName}`,
+        )
         .catch((e) => {
           if (!isRunning && e.statusObject?.code === 404) {
             return Promise.reject(e);
@@ -33,11 +30,7 @@ const useRouteForNotebook = (
     [notebookName, projectName, isRunning],
   );
 
-  const initialState: NotebookRouteState = {
-    route: null,
-  };
-
-  return useFetch<NotebookRouteState>(fetchRoute, initialState, {
+  return useFetch<string | null>(fetchRoute, null, {
     refreshRate: pollInterval,
     initialPromisePurity: true,
   });
