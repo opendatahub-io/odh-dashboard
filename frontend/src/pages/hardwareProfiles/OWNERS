@@ -2,7 +2,7 @@ options:
   no_parent_owners: true
 
 approvers:
-  - @hardware-profiles
+  - @hardware-profiles-approvers
 
 reviewers:
-  - @opendatahub-io/odh-dashboard-maintainers
+  - @hardware-profiles-reviewers

@@ -1,50 +1,86 @@
-# @opendatahub-io/odh-dashboard-owners is added to each group to allow future no_parent_owners usage.
+## Common conventions for this file
+##
+## - @opendatahub-io/odh-dashboard-owners is added to each approver group
+##     - Has all the Admins of the repo
+##     - This allows future no_parent_owners to have backups if absences
+## - @opendatahub-io/odh-dashboard-maintainers is added to each reviewer group (by default)
+##     - Has all the primary Dashboard developers
+##     - This allows a default of any reviewer for any PR (only helps with bot auto-reviewer selection)
+##     - You can change this to be a subset if you wish -- enforcing bot auto-reviewers to be specific people
+
 aliases:
-  # General Dashboard infrastructure team
-  platform:
+  # General Dashboard infrastructure team; Plugins, Core Infrastructure, etc
+  platform-approvers:
     - @opendatahub-io/odh-dashboard-owners
     - christianvogt
     - lucferbux
+  platform-reviewers:
+    - @opendatahub-io/odh-dashboard-maintainers
 
-  connections:
+  # Connections team
+  connections-approvers:
     - @opendatahub-io/odh-dashboard-owners
     - emilys314
+  connections-reviewers:
+    - @opendatahub-io/odh-dashboard-maintainers
 
-  hardware-profiles:
+  # Hardware Profiles team
+  hardware-profiles-approvers:
     - @opendatahub-io/odh-dashboard-owners
     - Gkrumbach07
+  hardware-profiles-reviewers:
+    - @opendatahub-io/odh-dashboard-maintainers
 
-  pipelines:
+  # Pipelines team
+  pipelines-approvers:
     - @opendatahub-io/odh-dashboard-owners
     - Gkrumbach07
     - DaoDaoNoCode
+  pipelines-reviewers:
+    - @opendatahub-io/odh-dashboard-maintainers
 
-  # Model Registry & Model Catalog
-  model-registry-catalog:
+  # Model Registry & Model Catalog team
+  model-registry-catalog-approvers:
     - @opendatahub-io/odh-dashboard-owners
     - mturley
     - YuliaKrimerman
+  model-registry-catalog-reviewers:
+    - @opendatahub-io/odh-dashboard-maintainers
 
-  # Model Serving & Model Metrics
-  model-serving-metrics:
+  # Model Serving & Model Metrics team
+  model-serving-metrics-approvers:
     - @opendatahub-io/odh-dashboard-owners
     - Griffin-Sullivan
     - emilys314
+  model-serving-metrics-reviewers:
+    - @opendatahub-io/odh-dashboard-maintainers
 
-  ai-safety-trusty:
+  # AI Safety / Trusty team
+  ai-safety-trusty-approvers:
     - @opendatahub-io/odh-dashboard-owners
     - alexcreasy
+  ai-safety-trusty-reviewers:
+    - @opendatahub-io/odh-dashboard-maintainers
 
-  notebooks-workbenches:
+  # Notebooks / Workbenches team
+  notebooks-workbenches-approvers:
     - @opendatahub-io/odh-dashboard-owners
     - Gkrumbach07
     - DaoDaoNoCode
+  notebooks-workbenches-reviewers:
+    - @opendatahub-io/odh-dashboard-maintainers
 
-  agentic-rag:
+  # Agentic / RAG team
+  agentic-rag-approvers:
     - @opendatahub-io/odh-dashboard-owners
     - alexcreasy
+  agentic-rag-reviewers:
+    - @opendatahub-io/odh-dashboard-maintainers
 
-  quality-e2e-testing:
+  # Quality / E2E testing team
+  quality-e2e-testing-approvers:
     - @opendatahub-io/odh-dashboard-owners
     - antowaddle
     - manosnoam
+  quality-e2e-testing-reviewers:
+    - @opendatahub-io/odh-dashboard-maintainers

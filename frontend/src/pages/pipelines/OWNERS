@@ -2,7 +2,7 @@ options:
   no_parent_owners: true
 
 approvers:
-  - @pipelines
+  - @pipelines-approvers
 
 reviewers:
-  - @opendatahub-io/odh-dashboard-maintainers
+  - @pipelines-reviewers

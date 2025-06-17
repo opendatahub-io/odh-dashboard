@@ -2,7 +2,7 @@ options:
   no_parent_owners: true
 
 approvers:
-  - @connections-approvers
+  - @platform-approvers
 
 reviewers:
-  - @connections-reviewers
+  - @platform-reviewers

@@ -2,7 +2,7 @@ options:
   no_parent_owners: true
 
 approvers:
-  - @model-serving-metrics
+  - @model-serving-metrics-approvers
 
 reviewers:
-  - @opendatahub-io/odh-dashboard-maintainers
+  - @model-serving-metrics-reviewers

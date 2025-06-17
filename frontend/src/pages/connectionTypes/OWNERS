@@ -2,7 +2,7 @@ options:
   no_parent_owners: true
 
 approvers:
-  - @connections
+  - @connections-approvers
 
 reviewers:
-  - @opendatahub-io/odh-dashboard-maintainers
+  - @connections-reviewers
