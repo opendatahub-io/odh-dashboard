@@ -7,7 +7,6 @@ import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import TypeaheadSelect from '#~/components/TypeaheadSelect';
 import useProjectPvcs from '#~/pages/projects/screens/detail/storage/useProjectPvcs';
 import { AccessMode } from '#~/pages/storageClasses/storageEnums';
-import { PersistentVolumeClaimKind } from '#~/k8sTypes';
 import { getPvcAccessMode } from '#~/pages/projects/utils.ts';
 
 type AddExistingStorageFieldProps = {
@@ -35,17 +34,20 @@ const AddExistingStorageField: React.FC<AddExistingStorageFieldProps> = ({
     </div>
   );
 
+  const availablePvcs = React.useMemo(
+    () =>
+      storages.filter((pvc) => !existingStorageNames?.includes(getDisplayNameFromK8sResource(pvc))),
+    [storages, existingStorageNames],
+  );
+
   const groupSelectOptions = React.useMemo(() => {
     if (!loaded) {
       return [];
     }
-    const isPvcAvailable = (pvc: PersistentVolumeClaimKind) =>
-      !existingStorageNames?.includes(getDisplayNameFromK8sResource(pvc));
+
     const groups: TypeaheadSelectOption[] = [];
     Object.entries(AccessMode).forEach(([label, mode]) => {
-      const groupModePvc = storages.filter(
-        (pvc) => getPvcAccessMode(pvc) === mode && isPvcAvailable(pvc),
-      );
+      const groupModePvc = availablePvcs.filter((pvc) => getPvcAccessMode(pvc) === mode);
       if (groupModePvc.length > 0) {
         const groupOptions = groupModePvc.map((pvc) => ({
           value: pvc.metadata.name,
@@ -55,7 +57,7 @@ const AddExistingStorageField: React.FC<AddExistingStorageFieldProps> = ({
             pvc.metadata.annotations?.['openshift.io/description'],
           ),
           selectedLabel:
-            storages.length === 1 ? (
+            availablePvcs.length === 1 ? (
               <Label
                 key={`access-mode-label-${label}`}
                 isCompact
@@ -77,7 +79,7 @@ const AddExistingStorageField: React.FC<AddExistingStorageFieldProps> = ({
       }
     });
     return groups;
-  }, [existingStorageNames, loaded, storages]);
+  }, [availablePvcs, loaded]);
 
   if (error) {
     return (
