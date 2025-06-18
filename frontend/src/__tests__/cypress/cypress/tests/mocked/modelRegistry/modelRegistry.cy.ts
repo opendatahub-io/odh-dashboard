@@ -202,7 +202,7 @@ const registerIntercepts = () => {
         mockSelfSubjectAccessReview({
           verb: 'list',
           resource: 'services',
-          group: 'user.openshift.io',
+          group: '',
           allowed: true, // Always allow listing services to see empty state
         }),
       );
