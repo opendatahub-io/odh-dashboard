@@ -1,4 +1,3 @@
-import { modelRegistrySettingsRoute } from '#~/routes/modelRegistry/registryBase';
 import { appChrome } from './appChrome';
 import { Contextual } from './components/Contextual';
 import { K8sNameDescriptionField } from './components/subComponents/K8sNameDescriptionField';
@@ -37,7 +36,7 @@ class ModelRegistrySettings {
   keySelect = new SearchSelector('existing-ca-key-selector');
 
   visit(wait = true) {
-    cy.visitWithLogin(modelRegistrySettingsRoute());
+    cy.visitWithLogin('/modelRegistrySettings');
     if (wait) {
       this.wait();
     }

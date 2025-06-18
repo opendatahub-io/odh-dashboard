@@ -26,7 +26,6 @@ import {
   type RegisteredModel,
 } from '#~/concepts/modelRegistry/types';
 import type { ServiceKind } from '#~/k8sTypes';
-import { modelRegistrySettingsRoute } from '#~/routes/modelRegistry/registryBase';
 
 const MODEL_REGISTRY_API_VERSION = 'v1alpha3';
 
@@ -257,12 +256,12 @@ const initIntercepts = (config: HandlersProps) => {
   setInterceptConfig(config);
 };
 
-describe('Model Registry core', () => {
-  beforeEach(() => {
-    // Register intercepts once to prevent stacking across tests
-    registerIntercepts();
-  });
+// Register intercepts once for the entire spec file
+before(() => {
+  registerIntercepts();
+});
 
+describe('Model Registry core', () => {
   it('Model Registry Disabled in the cluster', () => {
     initIntercepts({
       disableModelRegistryFeature: true,
@@ -315,7 +314,7 @@ describe('Model Registry core', () => {
       cy.contains('Model registry settings').should('exist');
       cy.findByRole('link', { name: 'Go to Model registry settings' })
         .should('exist')
-        .and('have.attr', 'href', modelRegistrySettingsRoute());
+        .and('have.attr', 'href', '/modelRegistrySettings');
     });
   });
 
@@ -449,11 +448,6 @@ describe('Model Registry core', () => {
 });
 
 describe('Register Model button', () => {
-  beforeEach(() => {
-    // Register intercepts once to prevent stacking across tests
-    registerIntercepts();
-  });
-
   it('Navigates to register page from empty state', () => {
     initIntercepts({ disableModelRegistryFeature: false, registeredModels: [] });
     modelRegistry.visit();
