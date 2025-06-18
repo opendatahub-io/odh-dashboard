@@ -699,11 +699,13 @@ describe('Serving Runtime List', () => {
         .click();
       modelServingSection.findInferenceServiceTable().should('exist');
       let inferenceServiceRow = modelServingSection.getInferenceServiceRow('OVMS ONNX');
+      inferenceServiceRow.findStatusLabel('Failed');
       inferenceServiceRow.findStatusTooltip();
       inferenceServiceRow.findStatusTooltipValue('Failed to pull model from storage due to error');
 
       // Check status of deployed model which loaded successfully after an error
       inferenceServiceRow = modelServingSection.getInferenceServiceRow('Loaded model');
+      inferenceServiceRow.findStatusLabel('Running');
       inferenceServiceRow.findStatusTooltip().should('be.visible');
       inferenceServiceRow.findStatusTooltipValue('Loaded');
 
@@ -1346,6 +1348,7 @@ describe('Serving Runtime List', () => {
       projectDetails.visitSection('test-project', 'model-server');
 
       const kserveRow = modelServingSection.getKServeRow('test-model');
+      kserveRow.findStatusLabel('Running');
 
       const stoppedInferenceService = mockInferenceServiceK8sResource({
         name: 'test-model',
@@ -1376,6 +1379,7 @@ describe('Serving Runtime List', () => {
       );
 
       kserveRow.findStateActionToggle().should('have.text', 'Stop').click();
+      kserveRow.findStatusLabel('Stopped');
       kserveRow.findConfirmStopModal().should('exist');
       kserveRow.findConfirmStopModalCheckbox().should('exist');
       kserveRow.findConfirmStopModalCheckbox().should('not.be.checked');
@@ -1415,6 +1419,7 @@ describe('Serving Runtime List', () => {
 
       kserveRow.findStateActionToggle().should('have.text', 'Start').click();
       cy.wait(['@startModelPatch', '@getStartedModel']);
+      kserveRow.findStatusLabel('Running');
       kserveRow.findStateActionToggle().should('have.text', 'Stop');
     });
 
