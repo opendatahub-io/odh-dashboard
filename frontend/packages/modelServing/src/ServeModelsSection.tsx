@@ -1,6 +1,6 @@
 import React from 'react';
 import { ModelServingPlatformProvider } from './concepts/ModelServingPlatformContext';
-import ModelPlatformSection from './concepts/ModelPlatformSection';
+import ModelPlatformSection from './components/overview/ModelPlatformSection';
 
 const ServeModelsSection: React.FC = () => (
   <ModelServingPlatformProvider>

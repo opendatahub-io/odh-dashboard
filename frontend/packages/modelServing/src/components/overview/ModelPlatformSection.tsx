@@ -4,11 +4,9 @@ import {
   Content,
   Flex,
   FlexItem,
-  Gallery,
   CardBody,
   Stack,
   Label,
-  GalleryItem,
   CardFooter,
   Button,
 } from '@patternfly/react-core';
@@ -17,49 +15,19 @@ import CollapsibleSection from '@odh-dashboard/internal/concepts/design/Collapsi
 import { ProjectObjectType, SectionType } from '@odh-dashboard/internal/concepts/design/utils';
 import OverviewCard from '@odh-dashboard/internal/pages/projects/screens/detail/overview/components/OverviewCard';
 import { ProjectDetailsContext } from '@odh-dashboard/internal/pages/projects/ProjectDetailsContext';
-import {
-  ModelServingPlatformContext,
-  ModelServingPlatformContextType,
-} from './ModelServingPlatformContext';
-import { ModelServingPlatform, useProjectServingPlatform } from './useProjectServingPlatform';
-import { DeployButton } from '../components/deploy/DeployButton';
+import { ModelServingPlatformContext } from '../../concepts/ModelServingPlatformContext';
+import { useProjectServingPlatform } from '../../concepts/useProjectServingPlatform';
+import { DeployButton } from '../deploy/DeployButton';
+import { PlatformSelectionGallery } from '../platformSelection';
 
 const galleryWidth = {
   minWidths: { default: '100%', lg: 'calc(50% - 1rem / 2)' },
   maxWidths: { default: '100%', lg: 'calc(50% - 1rem / 2)' },
 };
 
-const PlatformEnablementCard: React.FC<{
-  platform: ModelServingPlatform;
-  onSelect: () => void;
-  loading?: boolean;
-}> = ({ platform, onSelect, loading }) => (
-  <OverviewCard
-    objectType={platform.properties.enableCardText.objectType}
-    sectionType={SectionType.serving}
-    title={platform.properties.enableCardText.title}
-    data-testid={`${platform.properties.id}-platform-card`}
-  >
-    <CardBody>{platform.properties.enableCardText.description}</CardBody>
-    <CardFooter>
-      <Button
-        isLoading={loading}
-        isDisabled={loading}
-        variant="secondary"
-        onClick={onSelect}
-        data-testid={`${platform.properties.id}-select-button`}
-      >
-        {platform.properties.enableCardText.selectText}
-      </Button>
-    </CardFooter>
-  </OverviewCard>
-);
-
 const ModelPlatformSection: React.FC = () => {
   const { currentProject } = React.useContext(ProjectDetailsContext);
-  const { availablePlatforms } = React.useContext<ModelServingPlatformContextType>(
-    ModelServingPlatformContext,
-  );
+  const { availablePlatforms } = React.useContext(ModelServingPlatformContext);
 
   const {
     activePlatform,
@@ -85,17 +53,13 @@ const ModelPlatformSection: React.FC = () => {
             </Content>
           </FlexItem>
           <FlexItem>
-            <Gallery hasGutter {...galleryWidth}>
-              {availablePlatforms?.map((p: ModelServingPlatform) => (
-                <GalleryItem key={p.properties.id}>
-                  <PlatformEnablementCard
-                    platform={p}
-                    onSelect={() => setProjectPlatform(p)}
-                    loading={newProjectPlatformLoading?.properties.id === p.properties.id}
-                  />
-                </GalleryItem>
-              ))}
-            </Gallery>
+            <PlatformSelectionGallery
+              platforms={availablePlatforms || []}
+              onSelect={setProjectPlatform}
+              loadingPlatformId={newProjectPlatformLoading?.properties.id}
+              useOverviewCard
+              galleryProps={{ ...galleryWidth }}
+            />
           </FlexItem>
           {projectPlatformError && (
             <FlexItem>

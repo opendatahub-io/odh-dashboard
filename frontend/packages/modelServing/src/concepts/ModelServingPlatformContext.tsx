@@ -13,8 +13,6 @@ export const ModelServingPlatformContext = React.createContext<ModelServingPlatf
   availablePlatformsLoaded: false,
 });
 
-export type { ModelServingPlatformContextType };
-
 type ModelServingPlatformProviderProps = {
   children: React.ReactNode;
 };
