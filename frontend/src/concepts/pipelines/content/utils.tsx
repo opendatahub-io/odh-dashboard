@@ -116,7 +116,6 @@ export const isPipelineRecurringRun = (
 // but we should still timeout everything else
 export const getStatusFromCondition = (condition: K8sCondition): StatusType => {
   const { reason, status, lastTransitionTime } = condition;
-
   if (status === 'True') {
     return StatusType.SUCCESS;
   }
@@ -130,19 +129,17 @@ export const getStatusFromCondition = (condition: K8sCondition): StatusType => {
   ) {
     return StatusType.ERROR;
   }
-  if (
-    reason === K8sDspaConditionReason.FailingToDeploy ||
-    reason === K8sDspaConditionReason.MinimumReplicasAvailable
-  ) {
-    const rangeType = getTimeRangeCategory(lastTransitionTime);
-    switch (rangeType) {
-      case 'shortRange':
-        return StatusType.PENDING;
-      case 'mediumRange':
-        return StatusType.WARNING;
-      case 'longRange':
-        return StatusType.ERROR;
-    }
+  // todo: add test cases!!!!!
+
+  // For all other non-true statuses, apply timeout logic
+  // after bug above is addressed/fixed; add K8sDspaConditionReason.FailingToDeploy to the immediate error clause above
+  const rangeType = getTimeRangeCategory(lastTransitionTime);
+  switch (rangeType) {
+    case 'shortRange':
+      return StatusType.PENDING;
+    case 'mediumRange':
+      return StatusType.WARNING;
+    case 'longRange':
+      return StatusType.ERROR;
   }
-  return StatusType.PENDING;
 };
