@@ -96,7 +96,7 @@ const getLocationInfo = (url: string, allLocations?: Map<string, UrlLocation[]>)
   return ` [${locationInfo}]`;
 };
 
-describe('[Product Bug: RHOAIENG-26510] Verify that all the URLs referenced in the Manifest directory are operational', () => {
+describe('[Product Bug: RHOAIENG-27761] Verify that all the URLs referenced in the Manifest directory are operational', () => {
   let excludedSubstrings: string[] = [];
 
   before(() => {
@@ -125,7 +125,7 @@ describe('[Product Bug: RHOAIENG-26510] Verify that all the URLs referenced in t
         '@ODS-492',
         '@Dashboard',
         '@RHOAIENG-9235',
-        '@Maintain',
+        '@Bug',
       ],
     },
     () => {
