@@ -149,7 +149,11 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
       storageDataEntry.mountPath ? acc.concat(storageDataEntry.mountPath) : acc,
     [],
   );
-  const existingStorageNames = storageData.map((storageDataEntry) => storageDataEntry.name);
+
+  const existingStorageNames = React.useMemo(
+    () => storageData.map((storageDataEntry) => storageDataEntry.name),
+    [storageData],
+  );
 
   const [notebookConnections, setNotebookConnections] = React.useState<Connection[]>(
     existingNotebook ? getConnectionsFromNotebook(existingNotebook, projectConnections) : [],

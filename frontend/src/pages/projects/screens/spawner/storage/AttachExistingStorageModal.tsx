@@ -44,7 +44,7 @@ const AttachExistingStorageModal: React.FC<AttachExistingStorageModalProps> = ({
 
   return (
     <Modal variant="medium" onClose={() => onBeforeClose(false)} isOpen>
-      <ModalHeader title="Attach Existing Storage" />
+      <ModalHeader title="Attach existing storage" />
       <ModalBody>
         <Form
           onSubmit={(e) => {
