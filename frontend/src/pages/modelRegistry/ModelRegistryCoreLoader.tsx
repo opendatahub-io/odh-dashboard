@@ -10,7 +10,10 @@ import TitleWithIcon from '#~/concepts/design/TitleWithIcon';
 import { ProjectObjectType, typedEmptyImage } from '#~/concepts/design/utils';
 import { ModelRegistriesContext } from '#~/concepts/modelRegistry/context/ModelRegistriesContext';
 import WhosMyAdministrator from '#~/components/WhosMyAdministrator';
-import { modelRegistryRoute } from '#~/routes/modelRegistry/registryBase';
+import {
+  modelRegistryRoute,
+  modelRegistrySettingsRoute,
+} from '#~/routes/modelRegistry/registryBase';
 import RedirectErrorState from '#~/pages/external/RedirectErrorState';
 import { useAccessAllowed, verbModelAccess } from '#~/concepts/userSSAR';
 import { ModelRegistryModel } from '#~/api/models';
@@ -35,7 +38,9 @@ const ModelRegistryCoreLoader: React.FC<ModelRegistryCoreLoaderProps> =
     true,
   )(({ getInvalidRedirectPath }) => {
     const { modelRegistry } = useParams<{ modelRegistry: string }>();
-    const [isAdmin] = useAccessAllowed(verbModelAccess('create', ModelRegistryModel));
+    const [isAdmin, isAdminLoaded] = useAccessAllowed(
+      verbModelAccess('create', ModelRegistryModel),
+    );
     const {
       modelRegistryServicesLoaded,
       modelRegistryServicesLoadError,
@@ -70,7 +75,9 @@ const ModelRegistryCoreLoader: React.FC<ModelRegistryCoreLoaderProps> =
         </ApplicationsPage>
       );
     }
-    if (!modelRegistryServicesLoaded) {
+
+    // Wait for both model registry services and admin permissions to load
+    if (!modelRegistryServicesLoaded || !isAdminLoaded) {
       return <Bullseye>Loading model registries...</Bullseye>;
     }
 
@@ -106,7 +113,7 @@ const ModelRegistryCoreLoader: React.FC<ModelRegistryCoreLoaderProps> =
               !isAdmin ? (
                 <WhosMyAdministrator />
               ) : (
-                <Link to="/modelRegistrySettings">
+                <Link to={modelRegistrySettingsRoute()}>
                   Go to <b>Model registry settings</b>
                 </Link>
               )

@@ -26,6 +26,7 @@ import {
   type RegisteredModel,
 } from '#~/concepts/modelRegistry/types';
 import type { ServiceKind } from '#~/k8sTypes';
+import { modelRegistrySettingsRoute } from '#~/routes/modelRegistry/registryBase';
 
 const MODEL_REGISTRY_API_VERSION = 'v1alpha3';
 
@@ -275,7 +276,7 @@ describe('Model Registry core', () => {
       cy.contains('Model registry settings').should('exist');
       cy.findByRole('link', { name: 'Go to Model registry settings' })
         .should('exist')
-        .and('have.attr', 'href', '/modelRegistrySettings');
+        .and('have.attr', 'href', modelRegistrySettingsRoute());
     });
   });
 
