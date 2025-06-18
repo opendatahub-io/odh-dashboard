@@ -37,128 +37,110 @@ type HandlersProps = {
   allowed?: boolean;
 };
 
-// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-const createInterceptConfig = (initial?: HandlersProps) =>
-  ({
-    ...initial,
-  } satisfies HandlersProps);
-
-// Each test keeps its own reference
-let interceptConfig: HandlersProps = createInterceptConfig();
-
-const setInterceptConfig = (config: HandlersProps) => {
-  interceptConfig = {
-    disableModelRegistryFeature: false,
-    modelRegistries: [
-      mockModelRegistryService({ name: 'modelregistry-sample' }),
-      mockModelRegistryService({
-        name: 'modelregistry-sample-2',
-        serverUrl: 'modelregistry-sample-2-rest.com:443',
-        description: '',
-      }),
-    ],
-    registeredModels: [
-      mockRegisteredModel({
-        name: 'Fraud detection model',
-        description:
-          'A machine learning model trained to detect fraudulent transactions in financial data',
-        customProperties: {
-          'Financial data': {
-            metadataType: ModelRegistryMetadataType.STRING,
-            string_value: '',
-          },
-          'Fraud detection': {
-            metadataType: ModelRegistryMetadataType.STRING,
-            string_value: '',
-          },
-          'Test label': {
-            metadataType: ModelRegistryMetadataType.STRING,
-            string_value: '',
-          },
-          'Machine learning': {
-            metadataType: ModelRegistryMetadataType.STRING,
-            string_value: '',
-          },
-          'Next data to be overflow': {
-            metadataType: ModelRegistryMetadataType.STRING,
-            string_value: '',
-          },
+const initIntercepts = ({
+  disableModelRegistryFeature = false,
+  modelRegistries = [
+    mockModelRegistryService({ name: 'modelregistry-sample' }),
+    mockModelRegistryService({
+      name: 'modelregistry-sample-2',
+      serverUrl: 'modelregistry-sample-2-rest.com:443',
+      description: '',
+    }),
+  ],
+  registeredModels = [
+    mockRegisteredModel({
+      name: 'Fraud detection model',
+      description:
+        'A machine learning model trained to detect fraudulent transactions in financial data',
+      customProperties: {
+        'Financial data': {
+          metadataType: ModelRegistryMetadataType.STRING,
+          string_value: '',
         },
-      }),
-      mockRegisteredModel({
-        name: 'Label modal',
-        description:
-          'A machine learning model trained to detect fraudulent transactions in financial data',
-        customProperties: {
-          'Testing label': {
-            metadataType: ModelRegistryMetadataType.STRING,
-            string_value: '',
-          },
-          'Financial data': {
-            metadataType: ModelRegistryMetadataType.STRING,
-            string_value: '',
-          },
-          'Fraud detection': {
-            metadataType: ModelRegistryMetadataType.STRING,
-            string_value: '',
-          },
-          'Long label data to be truncated abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc':
-            {
-              metadataType: ModelRegistryMetadataType.STRING,
-              string_value: '',
-            },
-          'Machine learning': {
-            metadataType: ModelRegistryMetadataType.STRING,
-            string_value: '',
-          },
-          'Next data to be overflow': {
-            metadataType: ModelRegistryMetadataType.STRING,
-            string_value: '',
-          },
-          'Label x': {
-            metadataType: ModelRegistryMetadataType.STRING,
-            string_value: '',
-          },
-          'Label y': {
-            metadataType: ModelRegistryMetadataType.STRING,
-            string_value: '',
-          },
-          'Label z': {
-            metadataType: ModelRegistryMetadataType.STRING,
-            string_value: '',
-          },
+        'Fraud detection': {
+          metadataType: ModelRegistryMetadataType.STRING,
+          string_value: '',
         },
-      }),
-    ],
-    modelVersions: [
-      mockModelVersion({ author: 'Author 1' }),
-      mockModelVersion({ name: 'model version' }),
-    ],
-    allowed: true,
-    ...config,
-  };
-};
-
-// Register all intercepts once to prevent stacking
-const registerIntercepts = () => {
-  cy.interceptOdh('GET /api/dsc/status', (req) => {
-    req.reply(
-      mockDscStatus({
-        installedComponents: {
-          'model-registry-operator': !interceptConfig.disableModelRegistryFeature,
+        'Test label': {
+          metadataType: ModelRegistryMetadataType.STRING,
+          string_value: '',
         },
-      }),
-    );
-  }).as('dscStatus');
+        'Machine learning': {
+          metadataType: ModelRegistryMetadataType.STRING,
+          string_value: '',
+        },
+        'Next data to be overflow': {
+          metadataType: ModelRegistryMetadataType.STRING,
+          string_value: '',
+        },
+      },
+    }),
+    mockRegisteredModel({
+      name: 'Label modal',
+      description:
+        'A machine learning model trained to detect fraudulent transactions in financial data',
+      customProperties: {
+        'Testing label': {
+          metadataType: ModelRegistryMetadataType.STRING,
+          string_value: '',
+        },
+        'Financial data': {
+          metadataType: ModelRegistryMetadataType.STRING,
+          string_value: '',
+        },
+        'Fraud detection': {
+          metadataType: ModelRegistryMetadataType.STRING,
+          string_value: '',
+        },
+        'Long label data to be truncated abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc':
+          {
+            metadataType: ModelRegistryMetadataType.STRING,
+            string_value: '',
+          },
+        'Machine learning': {
+          metadataType: ModelRegistryMetadataType.STRING,
+          string_value: '',
+        },
+        'Next data to be overflow': {
+          metadataType: ModelRegistryMetadataType.STRING,
+          string_value: '',
+        },
+        'Label x': {
+          metadataType: ModelRegistryMetadataType.STRING,
+          string_value: '',
+        },
+        'Label y': {
+          metadataType: ModelRegistryMetadataType.STRING,
+          string_value: '',
+        },
+        'Label z': {
+          metadataType: ModelRegistryMetadataType.STRING,
+          string_value: '',
+        },
+      },
+    }),
+  ],
+  modelVersions = [
+    mockModelVersion({ author: 'Author 1' }),
+    mockModelVersion({ name: 'model version' }),
+  ],
+  allowed = true,
+}: HandlersProps) => {
+  cy.interceptOdh(
+    'GET /api/dsc/status',
+    mockDscStatus({
+      installedComponents: {
+        'model-registry-operator': !disableModelRegistryFeature,
+      },
+    }),
+  );
 
-  cy.interceptOdh('GET /api/config', (req) => {
-    req.reply(
-      mockDashboardConfig({
-        disableModelRegistry: interceptConfig.disableModelRegistryFeature,
-      }),
-    );
-  }).as('config');
-
+  cy.interceptOdh(
+    'GET /api/config',
+    mockDashboardConfig({
+      disableModelRegistry: disableModelRegistryFeature,
+    }),
+  );
   cy.interceptOdh(
     `GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/model_versions`,
     {
@@ -167,30 +149,17 @@ const registerIntercepts = () => {
         apiVersion: MODEL_REGISTRY_API_VERSION,
       },
     },
-    (req) => {
-      req.reply(mockModelVersionList({ items: interceptConfig.modelVersions || [] }));
-    },
-  ).as('modelVersions');
-
-  cy.interceptOdh('GET /api/components', { query: { installed: 'true' } }, mockComponents()).as(
-    'components',
+    mockModelVersionList({ items: modelVersions }),
   );
+  cy.interceptOdh('GET /api/components', { query: { installed: 'true' } }, mockComponents());
 
-  cy.interceptK8s('POST', SelfSubjectRulesReviewModel, mockSelfSubjectRulesReview()).as(
-    'selfSubjectRulesReview',
-  );
+  cy.interceptK8s('POST', SelfSubjectRulesReviewModel, mockSelfSubjectRulesReview());
 
-  cy.interceptK8sList(ServiceModel, (req) => {
-    req.reply(mockK8sResourceList(interceptConfig.modelRegistries || []));
-  }).as('servicesList');
+  cy.interceptK8sList(ServiceModel, mockK8sResourceList(modelRegistries));
 
-  cy.interceptK8s(ServiceModel, mockModelRegistryService({ name: 'modelregistry-sample' })).as(
-    'sampleService',
-  );
+  cy.interceptK8s(ServiceModel, mockModelRegistryService({ name: 'modelregistry-sample' }));
 
-  cy.interceptK8s(ServiceModel, mockModelRegistryService({ name: 'dallas-mr' })).as(
-    'dallasService',
-  );
+  cy.interceptK8s(ServiceModel, mockModelRegistryService({ name: 'dallas-mr' }));
 
   // Handle multiple SelfSubjectAccessReview requests based on request body
   cy.interceptK8s('POST', SelfSubjectAccessReviewModel, (req) => {
@@ -202,7 +171,7 @@ const registerIntercepts = () => {
         mockSelfSubjectAccessReview({
           verb: 'list',
           resource: 'services',
-          group: '',
+          group: 'user.openshift.io',
           allowed: true, // Always allow listing services to see empty state
         }),
       );
@@ -217,7 +186,7 @@ const registerIntercepts = () => {
           verb: 'create',
           resource: 'modelregistries',
           group: 'modelregistry.opendatahub.io',
-          allowed: interceptConfig.allowed ?? true, // This parameter controls admin access
+          allowed, // This parameter controls admin access
         }),
       );
     }
@@ -230,17 +199,15 @@ const registerIntercepts = () => {
         }),
       );
     }
-  }).as('selfSubjectAccessReview');
+  });
 
   cy.interceptOdh(
     `GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/registered_models`,
     {
       path: { serviceName: 'modelregistry-sample', apiVersion: MODEL_REGISTRY_API_VERSION },
     },
-    (req) => {
-      req.reply(mockRegisteredModelList({ items: interceptConfig.registeredModels || [] }));
-    },
-  ).as('registeredModels');
+    mockRegisteredModelList({ items: registeredModels }),
+  );
 
   cy.interceptOdh(
     `GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/registered_models/:registeredModelId/versions`,
@@ -251,21 +218,9 @@ const registerIntercepts = () => {
         registeredModelId: 1,
       },
     },
-    (req) => {
-      req.reply(mockModelVersionList({ items: interceptConfig.modelVersions || [] }));
-    },
-  ).as('registeredModelVersions');
+    mockModelVersionList({ items: modelVersions }),
+  );
 };
-
-// Simplified function to just configure test data
-const initIntercepts = (config: HandlersProps) => {
-  setInterceptConfig(config);
-};
-
-// Register intercepts once for the entire spec file
-before(() => {
-  registerIntercepts();
-});
 
 describe('Model Registry core', () => {
   it('Model Registry Disabled in the cluster', () => {
