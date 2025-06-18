@@ -47,7 +47,7 @@ const LMEval = (): React.ReactElement => {
     <ApplicationsPage
       empty={lmEval.data.length === 0}
       emptyStatePage={emptyState}
-      title={<TitleWithIcon title={title} objectType={ProjectObjectType.acceleratorProfile} />}
+      title={<TitleWithIcon title={title} objectType={ProjectObjectType.modelEvaluation} />}
       description={description}
       loadError={lmEval.error}
       loaded={lmEval.loaded}

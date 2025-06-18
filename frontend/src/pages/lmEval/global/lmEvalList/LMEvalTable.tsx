@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Table } from '#~/components/table';
 import { LMEvalKind } from '#~/k8sTypes';
-import DashboardEmptyTableView from '#~/concepts/dashboard/DashboardEmptyTableView.tsx';
+import DashboardEmptyTableView from '#~/concepts/dashboard/DashboardEmptyTableView';
 import LMEvalTableRow from './LMEvalTableRow';
 import { columns } from './const';
 import DeleteLMEvalModal from './DeleteLMEvalModal';

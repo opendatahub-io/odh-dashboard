@@ -7,7 +7,7 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import { useNavigate } from 'react-router';
+import { useNavigate } from 'react-router-dom';
 import { LmEvalFormData } from '#~/pages/lmEval/types';
 import { createModelEvaluation } from '#~/api';
 import { isFilledLmEvalFormData } from '#~/pages/lmEval/lmEvalForm/utils';

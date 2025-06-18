@@ -24,7 +24,7 @@ jest.mock('#~/pages/lmEval/utilities/useLMGenericObjectState', () => ({
 }));
 
 // Mock other components to focus on the dropdown functionality
-jest.mock('#~/pages/lmEval/components/LMEvalFormApplicationPage', () => ({
+jest.mock('#~/pages/lmEval/components/LMEvalApplicationPage', () => ({
   __esModule: true,
   default: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="lm-eval-app-page">{children}</div>
@@ -94,7 +94,7 @@ describe('LMEvalForm', () => {
     renderWithContext();
 
     // Should show model dropdown
-    expect(screen.getByText('Model Name')).toBeInTheDocument();
+    expect(screen.getByText('Model name')).toBeInTheDocument();
     expect(screen.getByText('Select a model')).toBeInTheDocument();
   });
 
@@ -107,7 +107,7 @@ describe('LMEvalForm', () => {
     expect(screen.queryByLabelText('Namespace options menu')).not.toBeInTheDocument();
 
     // Should show model dropdown
-    expect(screen.getByText('Model Name')).toBeInTheDocument();
+    expect(screen.getByText('Model name')).toBeInTheDocument();
     expect(screen.getByText('Select a model')).toBeInTheDocument();
   });
 

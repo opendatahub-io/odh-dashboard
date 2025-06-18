@@ -24,7 +24,7 @@ import { Link } from 'react-router';
 import { LmEvalFormData, LmModelArgument } from '#~/pages/lmEval/types';
 import useInferenceServices from '#~/pages/modelServing/useInferenceServices';
 import useLMGenericObjectState from '#~/pages/lmEval/utilities/useLMGenericObjectState';
-import LMEvalFormApplicationPage from '#~/pages/lmEval/components/LMEvalFormApplicationPage';
+import LMEvalApplicationPage from '#~/pages/lmEval/components/LMEvalApplicationPage';
 import { LMEvalContext } from '#~/pages/lmEval/global/LMEvalContext';
 import {
   ModelOption,
@@ -115,7 +115,7 @@ const LMEvalForm: React.FC = () => {
     inferenceServices.loaded && !inferenceServices.error && modelOptions.length === 0;
 
   return (
-    <LMEvalFormApplicationPage
+    <LMEvalApplicationPage
       loaded
       title="Evaluate model"
       description={
@@ -134,7 +134,7 @@ const LMEvalForm: React.FC = () => {
     >
       <PageSection hasBodyWrapper={false} isFilled>
         <Form data-testid="lmEvaluationForm" maxWidth="800px">
-          <FormGroup label="Model Name" isRequired data-testid="model-name-form-group">
+          <FormGroup label="Model name" isRequired data-testid="model-name-form-group">
             <Select
               isOpen={openModelName}
               selected={data.deployedModelName}
@@ -294,7 +294,7 @@ const LMEvalForm: React.FC = () => {
           </FormSection>
         </Form>
       </PageSection>
-    </LMEvalFormApplicationPage>
+    </LMEvalApplicationPage>
   );
 };
 

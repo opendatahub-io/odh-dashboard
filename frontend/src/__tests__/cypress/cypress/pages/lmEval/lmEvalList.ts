@@ -19,6 +19,33 @@ class LMEvalRow extends TableRow {
   findModel() {
     return this.find().find(`[data-label=Model]`);
   }
+
+  findEvaluationName() {
+    return this.find().find(`[data-label=Evaluation]`);
+  }
+
+  findEvaluationLink() {
+    return this.findEvaluationName().find('a');
+  }
+
+  findStatus() {
+    return this.find().find(`[data-label=Status]`);
+  }
+
+  shouldHaveClickableLink(evaluationName: string) {
+    this.findEvaluationLink().should('exist');
+    this.findEvaluationLink().should('have.attr', 'href');
+    this.findEvaluationLink().should('contain.text', evaluationName);
+  }
+
+  shouldNotHaveClickableLink(evaluationName: string) {
+    this.findEvaluationName().should('contain.text', evaluationName);
+    this.findEvaluationLink().should('not.exist');
+  }
+
+  clickEvaluationLink() {
+    this.findEvaluationLink().click();
+  }
 }
 
 class LMEvalList {

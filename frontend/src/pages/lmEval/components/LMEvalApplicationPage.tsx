@@ -14,7 +14,7 @@ import {
   FlexItem,
 } from '@patternfly/react-core';
 
-type LMEvalFormApplicationPageProps = {
+type LMEvalApplicationPageProps = {
   title?: React.ReactNode;
   breadcrumb?: React.ReactNode;
   description?: React.ReactNode;
@@ -35,7 +35,7 @@ type LMEvalFormApplicationPageProps = {
   noHeader?: boolean;
 };
 
-const LMEvalFormApplicationPage: React.FC<LMEvalFormApplicationPageProps> = ({
+const LMEvalApplicationPage: React.FC<LMEvalApplicationPageProps> = ({
   title,
   breadcrumb,
   description,
@@ -169,4 +169,4 @@ const LMEvalFormApplicationPage: React.FC<LMEvalFormApplicationPageProps> = ({
   );
 };
 
-export default LMEvalFormApplicationPage;
+export default LMEvalApplicationPage;
