@@ -37,8 +37,14 @@ type HandlersProps = {
   allowed?: boolean;
 };
 
-// Configuration state for intercepts
-let interceptConfig: HandlersProps = {};
+// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
+export const createInterceptConfig = (initial?: HandlersProps) =>
+  ({
+    ...initial,
+  } satisfies HandlersProps);
+
+// Each test keeps its own reference
+let interceptConfig: HandlersProps = createInterceptConfig();
 
 const setInterceptConfig = (config: HandlersProps) => {
   interceptConfig = {
