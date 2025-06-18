@@ -564,6 +564,18 @@ class ModelServingRow extends TableRow {
   findInternalServicePopover() {
     return cy.findByTestId('internal-service-popover');
   }
+
+  findConfirmStopModal() {
+    return cy.findByTestId('stop-model-modal');
+  }
+
+  findConfirmStopModalButton() {
+    return this.findConfirmStopModal().findByTestId('stop-model-button');
+  }
+
+  findConfirmStopModalCheckbox() {
+    return this.findConfirmStopModal().findByTestId('dont-show-again-checkbox');
+  }
 }
 
 class ModelMeshRow extends ModelServingRow {

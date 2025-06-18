@@ -98,6 +98,7 @@ type HandlersProps = {
   disableProjectScoped?: boolean;
   disableHardwareProfiles?: boolean;
 };
+import { STOP_MODAL_PREFERENCE_KEY } from '#~/pages/modelServing/useStopModalPreference';
 
 const initIntercepts = ({
   disableKServeConfig,
@@ -1340,6 +1341,8 @@ describe('Serving Runtime List', () => {
           }),
         ],
       });
+      cy.clearLocalStorage(STOP_MODAL_PREFERENCE_KEY);
+      cy.window().then((win) => win.localStorage.setItem(STOP_MODAL_PREFERENCE_KEY, 'false'));
       projectDetails.visitSection('test-project', 'model-server');
 
       const kserveRow = modelServingSection.getKServeRow('test-model');
@@ -1373,8 +1376,18 @@ describe('Serving Runtime List', () => {
       );
 
       kserveRow.findStateActionToggle().should('have.text', 'Stop').click();
+      kserveRow.findConfirmStopModal().should('exist');
+      kserveRow.findConfirmStopModalCheckbox().should('exist');
+      kserveRow.findConfirmStopModalCheckbox().should('not.be.checked');
+      kserveRow.findConfirmStopModalCheckbox().click();
+      kserveRow.findConfirmStopModalCheckbox().should('be.checked');
+      kserveRow.findConfirmStopModalButton().click();
       cy.wait(['@stopModelPatch', '@getStoppedModel']);
       kserveRow.findStateActionToggle().should('have.text', 'Start');
+      cy.window().then((win) => {
+        const preference = win.localStorage.getItem(STOP_MODAL_PREFERENCE_KEY);
+        expect(preference).to.equal('true');
+      });
 
       const runningInferenceService = mockInferenceServiceK8sResource({
         name: 'test-model',
