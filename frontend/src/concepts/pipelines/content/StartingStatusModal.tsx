@@ -16,6 +16,7 @@ import {
   Flex,
   FlexItem,
   Content,
+  Alert,
 } from '@patternfly/react-core';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { getStatusFromCondition } from '#~/concepts/pipelines/content/utils.tsx';
@@ -26,7 +27,6 @@ import {
 } from '#~/concepts/pipelines/context/usePipelineEvents.ts';
 import EventLog from '#~/concepts/k8s/EventLog/EventLog';
 import '#~/concepts/dashboard/ModalStyles.scss';
-import { K8sCondition } from '#~/k8sTypes.ts';
 
 const PROGRESS_TAB = 'Progress';
 const EVENT_LOG_TAB = 'Events log';
@@ -71,9 +71,26 @@ const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose }) =>
     </Flex>
   );
 
+  // Find all error conditions
+  const errorConditions =
+    pipelinesServer.crStatus?.conditions?.filter(
+      (condition) => getStatusFromCondition(condition) === 'error',
+    ) || [];
+
   const renderProgress = () => (
     <Panel className="odh-modal__scrollable-panel">
       <PanelMain>
+        {/* Render an Alert for each error condition */}
+        {errorConditions.map((condition, idx) => (
+          <Alert
+            key={condition.type + idx}
+            variant="danger"
+            title={condition.reason || 'Error'}
+            style={{ marginBottom: 16 }}
+          >
+            {condition.message || 'An error occurred.'}
+          </Alert>
+        ))}
         <Stack hasGutter>
           <StackItem>
             <Stack hasGutter>
