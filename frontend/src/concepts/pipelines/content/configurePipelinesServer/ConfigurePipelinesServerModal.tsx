@@ -106,7 +106,9 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
         createPipelinesCR(namespace, spec)
           .then((obj: DSPipelineKind) => {
             onBeforeClose();
-            notification.info(`Waiting on pipeline server resources for ${namespace}...`);
+
+            const pollingNamespace = obj.metadata.namespace;
+            notification.info(`Waiting on pipeline server resources for ${pollingNamespace}...`);
             registerNotification({
               callbackDelay: FAST_POLL_INTERVAL || 3000,
               callback: async (signal: AbortSignal) => {
@@ -116,10 +118,10 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
                     Date.now() - new Date(obj.metadata.creationTimestamp || Date.now()).getTime() >
                     SERVER_TIMEOUT
                   ) {
-                    throw Error(`${namespace} pipeline server creation timed out`);
+                    throw Error(`${pollingNamespace} pipeline server creation timed out`);
                   }
 
-                  const response = await listPipelinesCR(namespace, { signal });
+                  const response = await listPipelinesCR(pollingNamespace, { signal });
 
                   // if we find an APIServerReady true condition, we know the pipeline server is ready
                   if (
@@ -129,11 +131,11 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
                   ) {
                     return {
                       status: NotificationResponseStatus.SUCCESS,
-                      title: `Pipeline server for ${namespace} is ready.`,
+                      title: `Pipeline server for ${pollingNamespace} is ready.`,
                       actions: [
                         {
-                          title: `${namespace} pipeline server`,
-                          onClick: () => navigate(pipelinesBaseRoute(namespace)),
+                          title: `${pollingNamespace} pipeline server`,
+                          onClick: () => navigate(pipelinesBaseRoute(pollingNamespace)),
                         },
                       ],
                     };
@@ -146,12 +148,12 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
                 } catch (e) {
                   return {
                     status: NotificationResponseStatus.ERROR,
-                    title: `Error configuring pipeline server for ${namespace}`,
+                    title: `Error configuring pipeline server for ${pollingNamespace}`,
                     message: e instanceof Error ? e.message : 'Unknown error',
                     actions: [
                       {
-                        title: `${namespace} pipeline server`,
-                        onClick: () => navigate(pipelinesBaseRoute(namespace)),
+                        title: `${pollingNamespace} pipeline server`,
+                        onClick: () => navigate(pipelinesBaseRoute(pollingNamespace)),
                       },
                     ],
                   };
