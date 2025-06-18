@@ -18,7 +18,7 @@ import {
 } from '#~/concepts/pipelines/kfTypes';
 import { getTimeRangeCategory, relativeTime } from '#~/utilities/time';
 import { StatusType } from '#~/concepts/pipelines/content/K8sStatusIcon.tsx';
-import { K8sCondition } from '#~/k8sTypes.ts';
+import { K8sCondition, K8sDspaConditionReason } from '#~/k8sTypes.ts';
 
 export type RunStatusDetails = {
   icon: React.ReactNode;
@@ -110,15 +110,30 @@ export const isPipelineRecurringRun = (
   resource: PipelineCoreResourceKF,
 ): resource is PipelineRecurringRunKF => 'recurring_run_id' in resource && !('run_id' in resource);
 
+// workaround until https://issues.redhat.com/browse/RHOAIENG-27727 is fixed
+// after the above ticket is resovled, once 'failingTodeploy' is detected then it is an automatic fail
+// without any need for a timeout.
+// but we should still timeout everything else
 export const getStatusFromCondition = (condition: K8sCondition): StatusType => {
   const { reason, status, lastTransitionTime } = condition;
-  if (reason === 'Deploying' && status === 'False') {
-    return StatusType.IN_PROGRESS;
-  }
+
   if (status === 'True') {
     return StatusType.SUCCESS;
   }
-  if (reason === 'FailingToDeploy') {
+  if (reason === K8sDspaConditionReason.Deploying && status === 'False') {
+    return StatusType.IN_PROGRESS;
+  }
+
+  if (
+    reason === K8sDspaConditionReason.ComponentDeploymentNotFound ||
+    reason === K8sDspaConditionReason.UnsupportedVersion
+  ) {
+    return StatusType.ERROR;
+  }
+  if (
+    reason === K8sDspaConditionReason.FailingToDeploy ||
+    reason === K8sDspaConditionReason.MinimumReplicasAvailable
+  ) {
     const rangeType = getTimeRangeCategory(lastTransitionTime);
     switch (rangeType) {
       case 'shortRange':
