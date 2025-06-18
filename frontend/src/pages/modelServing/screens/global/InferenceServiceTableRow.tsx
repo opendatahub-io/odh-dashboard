@@ -14,6 +14,8 @@ import { isProjectNIMSupported } from '#~/pages/modelServing/screens/projects/ni
 import useServingPlatformStatuses from '#~/pages/modelServing/useServingPlatformStatuses';
 import StateActionToggle from '#~/components/StateActionToggle';
 import { patchInferenceServiceStoppedStatus } from '#~/api/k8s/inferenceServices';
+import useStopModalPreference from '#~/pages/modelServing/useStopModalPreference.ts';
+import ModelServingStopModal from '#~/pages/modelServing/ModelServingStopModal';
 import InferenceServiceEndpoint from './InferenceServiceEndpoint';
 import InferenceServiceProject from './InferenceServiceProject';
 import InferenceServiceStatus from './InferenceServiceStatus';
@@ -40,6 +42,8 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
   isGlobal,
   columnNames,
 }) => {
+  const [dontShowModalValue] = useStopModalPreference();
+  const [isOpenConfirm, setOpenConfirm] = React.useState(false);
   const { projects } = React.useContext(ProjectsContext);
   const project = projects.find(byName(inferenceService.metadata.namespace)) ?? null;
   const isKServeNIMEnabled = project ? isProjectNIMSupported(project) : false;
@@ -62,8 +66,12 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
   }, [inferenceService, refresh]);
 
   const onStop = React.useCallback(() => {
-    patchInferenceServiceStoppedStatus(inferenceService, 'true').then(refresh);
-  }, [inferenceService, refresh]);
+    if (dontShowModalValue) {
+      patchInferenceServiceStoppedStatus(inferenceService, 'true').then(refresh);
+    } else {
+      setOpenConfirm(true);
+    }
+  }, [dontShowModalValue, inferenceService, refresh]);
 
   return (
     <>
@@ -147,6 +155,18 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
             ]}
           />
         </Td>
+      )}
+      {isOpenConfirm && (
+        <ModelServingStopModal
+          modelName={displayName}
+          title="Stop model?"
+          onClose={(confirmStatus) => {
+            if (confirmStatus) {
+              patchInferenceServiceStoppedStatus(inferenceService, 'true').then(refresh);
+            }
+            setOpenConfirm(false);
+          }}
+        />
       )}
     </>
   );
