@@ -163,6 +163,8 @@ const initIntercepts = ({
   cy.interceptK8s(ServiceModel, mockModelRegistryService({ name: 'dallas-mr' }));
 
   // Handle multiple SelfSubjectAccessReview requests based on request body
+  // Using timestamp in alias to ensure uniqueness across test runs
+  const aliasName = `selfSubjectAccessReview-${Date.now()}`;
   cy.interceptK8s('POST', SelfSubjectAccessReviewModel, (req) => {
     const { resourceAttributes } = req.body.spec;
 
@@ -200,7 +202,7 @@ const initIntercepts = ({
         }),
       );
     }
-  });
+  }).as(aliasName);
 
   cy.interceptOdh(
     `GET /api/service/modelregistry/:serviceName/api/model_registry/:apiVersion/registered_models`,
@@ -224,6 +226,11 @@ const initIntercepts = ({
 };
 
 describe('Model Registry core', () => {
+  beforeEach(() => {
+    // Clear any existing sessions to prevent intercept conflicts
+    Cypress.session.clearAllSavedSessions();
+  });
+
   it('Model Registry Disabled in the cluster', () => {
     initIntercepts({
       disableModelRegistryFeature: true,
@@ -410,6 +417,11 @@ describe('Model Registry core', () => {
 });
 
 describe('Register Model button', () => {
+  beforeEach(() => {
+    // Clear any existing sessions to prevent intercept conflicts
+    Cypress.session.clearAllSavedSessions();
+  });
+
   it('Navigates to register page from empty state', () => {
     initIntercepts({ disableModelRegistryFeature: false, registeredModels: [] });
     modelRegistry.visit();
