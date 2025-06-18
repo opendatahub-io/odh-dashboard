@@ -130,7 +130,7 @@ const initIntercepts = ({
     'GET /api/dsc/status',
     mockDscStatus({
       installedComponents: {
-        'model-registry-operator': !disableModelRegistryFeature,
+        'model-registry-operator': true,
       },
     }),
   );
@@ -223,6 +223,12 @@ const initIntercepts = ({
 };
 
 describe('Model Registry core', () => {
+  beforeEach(() => {
+    // Clear any existing intercepts before each test to prevent conflicts
+    cy.clearCookies();
+    cy.clearLocalStorage();
+  });
+
   it('Model Registry Disabled in the cluster', () => {
     initIntercepts({
       disableModelRegistryFeature: true,
@@ -246,6 +252,8 @@ describe('Model Registry core', () => {
     initIntercepts({
       disableModelRegistryFeature: false,
       modelRegistries: [],
+      registeredModels: [],
+      allowed: false, // Non-admin user for this test
     });
 
     modelRegistry.visit();
@@ -258,6 +266,7 @@ describe('Model Registry core', () => {
     initIntercepts({
       disableModelRegistryFeature: false,
       modelRegistries: [],
+      registeredModels: [],
       allowed: true,
     });
 
@@ -284,6 +293,7 @@ describe('Model Registry core', () => {
     initIntercepts({
       disableModelRegistryFeature: false,
       modelRegistries: [],
+      registeredModels: [],
       allowed: false,
     });
 
