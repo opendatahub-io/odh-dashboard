@@ -174,7 +174,7 @@ const ClusterStorageModal: React.FC<ClusterStorageModalProps> = ({ existingPvc, 
                   onClick={addEmptyRow}
                   isInline
                 >
-                  Add Workbench
+                  Add workbench
                 </Button>
               </StackItem>
 

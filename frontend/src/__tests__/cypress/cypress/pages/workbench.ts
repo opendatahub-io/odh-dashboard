@@ -271,7 +271,7 @@ class NotebookRow extends TableRow {
 
 class AttachExistingStorageModal extends Modal {
   constructor() {
-    super('Attach Existing Storage');
+    super('Attach existing storage');
   }
 
   selectExistingPersistentStorage(name: string) {
