@@ -20,7 +20,8 @@ import {
 } from '@patternfly/react-core';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { getStatusFromCondition } from '#~/concepts/pipelines/content/utils.tsx';
-import K8sStatusIcon from '#~/concepts/pipelines/content/K8sStatusIcon.tsx';
+import K8sStatusIcon, { StatusType } from '#~/concepts/pipelines/content/K8sStatusIcon.tsx';
+import { K8sCondition } from '#~/k8sTypes';
 import {
   useWatchPodsForPipelineServerEvents,
   useWatchMultiplePodEvents,
@@ -71,11 +72,18 @@ const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose }) =>
     </Flex>
   );
 
+  const statusConditions: [StatusType, K8sCondition][] | undefined =
+    pipelinesServer.crStatus?.conditions?.map((condition) => {
+      console.log('77a: condition', JSON.stringify(condition));
+      const containerStatus = getStatusFromCondition(condition);
+      return [containerStatus, condition];
+    });
+
   // Find all error conditions
-  const errorConditions =
-    pipelinesServer.crStatus?.conditions?.filter(
-      (condition) => getStatusFromCondition(condition) === 'error',
-    ) || [];
+  const errorConditions: K8sCondition[] =
+    statusConditions
+      ?.filter((contents1) => contents1[0] === StatusType.ERROR)
+      .map((contents) => contents[1]) || [];
 
   const renderProgress = () => (
     <Panel className="odh-modal__scrollable-panel">
@@ -94,23 +102,18 @@ const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose }) =>
         <Stack hasGutter>
           <StackItem>
             <Stack hasGutter>
-              {pipelinesServer.crStatus?.conditions?.map((condition, index) => {
-                allConds.push(condition);
-                console.log('77a: condition', JSON.stringify(condition));
-                const containerStatus = getStatusFromCondition(condition);
-                return (
-                  <StackItem key={`${condition.type}-${index}`}>
-                    <Flex>
-                      <FlexItem>
-                        <K8sStatusIcon status={containerStatus} />
-                      </FlexItem>
-                      <FlexItem>
-                        <Content>{condition.type}</Content>
-                      </FlexItem>
-                    </Flex>
-                  </StackItem>
-                );
-              })}
+              {statusConditions?.map(([containerStatus, condition], index) => (
+                <StackItem key={`${condition.type}-${index}`}>
+                  <Flex>
+                    <FlexItem>
+                      <K8sStatusIcon status={containerStatus} />
+                    </FlexItem>
+                    <FlexItem>
+                      <Content>{condition.type}</Content>
+                    </FlexItem>
+                  </Flex>
+                </StackItem>
+              ))}
             </Stack>
           </StackItem>
           <StackItem />

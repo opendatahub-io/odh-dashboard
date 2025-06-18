@@ -128,6 +128,12 @@ export type ModelServingProjectLabels = {
   [KnownLabels.MODEL_SERVING_PROJECT]: 'true' | 'false';
 };
 
+/* not using K8sDSPAConditionReason because these conditions are not specific to the Data Science Pipelines Operator;
+// they are used all over the code.
+// for example: other values:
+//  'DBConnecting' (used in trustyai utils)
+//  'Unschedulable' (used in kserve status utils)
+//  'TriggeredScaleUp', 'NotTriggerScaleUp', 'FailedScheduling', 'BackOff' (used in notebook controller utils) */
 export type K8sCondition = {
   type: string;
   status: string;
@@ -137,6 +143,15 @@ export type K8sCondition = {
   lastTransitionTime?: string;
   lastHeartbeatTime?: string;
 };
+
+// from: https://github.com/opendatahub-io/data-science-pipelines-operator/blob/9b518e02ee794d0afbe2b9ad35c85be10051ce6e/controllers/config/defaults.go#L127-L138
+export enum K8sDspaConditionReason {
+  MinimumReplicasAvailable = 'MinimumReplicasAvailable',
+  FailingToDeploy = 'FailingToDeploy',
+  ComponentDeploymentNotFound = 'ComponentDeploymentNotFound',
+  UnsupportedVersion = 'UnsupportedVersion',
+  Deploying = 'Deploying',
+}
 
 export type ServingRuntimeAnnotations = Partial<{
   'opendatahub.io/template-name': string;
