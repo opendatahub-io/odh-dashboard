@@ -26,6 +26,7 @@ import {
 import usePipelinesConnections from '#~/pages/projects/screens/detail/connections/usePipelinesConnections';
 import { FAST_POLL_INTERVAL, SERVER_TIMEOUT } from '#~/utilities/const.ts';
 import { pipelinesBaseRoute } from '#~/routes/pipelines/global.ts';
+import { DSPipelineKind } from '#~/k8sTypes.ts';
 import { PipelinesDatabaseSection } from './PipelinesDatabaseSection';
 import { ObjectStorageSection } from './ObjectStorageSection';
 import {
@@ -103,16 +104,18 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
     configureDSPipelineResourceSpec(configureConfig, project.metadata.name)
       .then((spec) => {
         createPipelinesCR(namespace, spec)
-          .then(() => {
+          .then((obj: DSPipelineKind) => {
             onBeforeClose();
             notification.info(`Waiting on pipeline server resources for ${namespace}...`);
-            const startTime = Date.now();
             registerNotification({
               callbackDelay: FAST_POLL_INTERVAL || 3000,
               callback: async (signal: AbortSignal) => {
                 try {
                   // check if polling for too long
-                  if (Date.now() - startTime > SERVER_TIMEOUT) {
+                  if (
+                    Date.now() - new Date(obj.metadata.creationTimestamp || Date.now()).getTime() >
+                    SERVER_TIMEOUT
+                  ) {
                     throw Error(`${namespace} pipeline server creation timed out`);
                   }
 
