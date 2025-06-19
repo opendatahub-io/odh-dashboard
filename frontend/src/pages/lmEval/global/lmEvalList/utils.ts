@@ -1,3 +1,7 @@
+import {
+  t_global_text_color_regular as RegularColor,
+  t_global_text_color_status_danger_default as DangerColor,
+} from '@patternfly/react-tokens';
 import { LMEvalKind } from '#~/k8sTypes.ts';
 import { LMEvalState } from '#~/pages/lmEval/types';
 
@@ -31,10 +35,22 @@ export const getLMEvalState = (status: LMEvalKind['status']): LMEvalState => {
     case 'Scheduled':
       return LMEvalState.PENDING;
     case 'Running':
-      return LMEvalState.RUNNING;
+      return LMEvalState.IN_PROGRESS;
     case 'Complete':
       return status.reason === 'Failed' ? LMEvalState.FAILED : LMEvalState.COMPLETE;
     default:
       return LMEvalState.PENDING;
   }
 };
+
+export const getLMEvalStatusProgress = (status: LMEvalKind['status']): number => {
+  if (!status?.message?.includes('Requesting API:')) {
+    return 0;
+  }
+
+  const match = status.message.match(/Requesting API:\s*(\d+)%/);
+  return match ? Number(match[1]) : 0;
+};
+
+export const getLMEvalStatusColor = (state: LMEvalState): string =>
+  state === LMEvalState.FAILED ? DangerColor.var : RegularColor.var;

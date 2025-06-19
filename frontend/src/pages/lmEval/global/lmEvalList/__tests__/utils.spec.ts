@@ -1,5 +1,9 @@
 import { LMEvalState } from '#~/pages/lmEval/types';
-import { getLMEvalState, getLMEvalStatusMessage } from '#~/pages/lmEval/global/lmEvalList/utils';
+import {
+  getLMEvalState,
+  getLMEvalStatusMessage,
+  getLMEvalStatusProgress,
+} from '#~/pages/lmEval/global/lmEvalList/utils';
 
 describe('getLMEvalStatusMessage', () => {
   it('returns "Failed" if state is Complete and reason is Failed with no message', () => {
@@ -42,8 +46,8 @@ describe('getLMEvalState', () => {
     expect(getLMEvalState({ state: 'Scheduled' })).toBe(LMEvalState.PENDING);
   });
 
-  it('returns RUNNING for Running state', () => {
-    expect(getLMEvalState({ state: 'Running' })).toBe(LMEvalState.RUNNING);
+  it('returns IN_PROGRESS for Running state', () => {
+    expect(getLMEvalState({ state: 'Running' })).toBe(LMEvalState.IN_PROGRESS);
   });
 
   it('returns COMPLETE for Complete with reason not Failed', () => {
@@ -56,5 +60,15 @@ describe('getLMEvalState', () => {
 
   it('returns PENDING for unknown state', () => {
     expect(getLMEvalState({ state: 'Mystery' })).toBe(LMEvalState.PENDING);
+  });
+});
+
+describe('getLMEvalStatusProgress', () => {
+  it('returns 0 if message does not include Requesting API:', () => {
+    expect(getLMEvalStatusProgress({ message: 'Something else' })).toBe(0);
+  });
+
+  it('returns progress if message includes Requesting API:', () => {
+    expect(getLMEvalStatusProgress({ message: 'Requesting API:   1%' })).toBe(1);
   });
 });

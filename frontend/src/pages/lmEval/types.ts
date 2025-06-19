@@ -18,7 +18,7 @@ export type LmEvalFormData = {
 
 export enum LMEvalState {
   PENDING = 'Pending',
-  RUNNING = 'Running',
+  IN_PROGRESS = 'In Progress',
   COMPLETE = 'Complete',
   FAILED = 'Failed',
 }

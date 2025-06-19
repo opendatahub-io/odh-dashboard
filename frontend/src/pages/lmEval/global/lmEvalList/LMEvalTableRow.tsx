@@ -6,7 +6,7 @@ import { LMEvalKind } from '#~/k8sTypes';
 import { downloadString } from '#~/utilities/string';
 import { LMEvalState } from '#~/pages/lmEval/types';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils.ts';
-import LMEvalStatus from './LMEvalStatus';
+import LMEvalStatus from './lmEvalStatus/LMEvalStatus';
 import { getLMEvalState } from './utils';
 
 type LMEvalTableRowType = {
@@ -44,7 +44,7 @@ const LMEvalTableRow: React.FC<LMEvalTableRowType> = ({ lmEval, onDeleteLMEval }
         )}
       </Td>
       <Td dataLabel="Status">
-        <LMEvalStatus status={lmEval.status} />
+        <LMEvalStatus namespace={lmEval.metadata.namespace} name={lmEval.metadata.name} />
       </Td>
       <Td isActionCell>
         <ActionsColumn
