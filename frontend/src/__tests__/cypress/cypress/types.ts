@@ -310,6 +310,8 @@ export type RegisterModelTestData = {
   uriModelName: string;
   version1Name: string;
   version2Name: string;
+  newNameSuffix: string;
+  newDescription: string;
 };
 
 export enum AccessMode {
