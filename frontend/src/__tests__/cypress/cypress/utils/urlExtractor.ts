@@ -1,3 +1,12 @@
+/**
+ * Test utilities to extract URLs from YAML files and Cypress page elements.
+ *
+ * Including:
+ * - extractLauncherUrls(): Extract URLs from Application Launcher dropdown
+ * - extractHttpsUrlsWithLocation(): Extract URLs from YAML files with file/line info
+ * - isUrlExcluded(): Check if URL contains excluded substrings
+ */
+
 import * as fs from 'fs';
 import * as path from 'path';
 import * as yaml from 'js-yaml';
@@ -14,6 +23,7 @@ interface YamlObject {
 }
 type YamlArray = YamlValue[];
 
+// Extract URLs from anchor tags in the Application Launcher dropdown menu
 export function extractLauncherUrls(): Cypress.Chainable<string[]> {
   return cy.get('a').then(($elements) => {
     const extractedUrls: string[] = [];
@@ -27,6 +37,7 @@ export function extractLauncherUrls(): Cypress.Chainable<string[]> {
   });
 }
 
+// Check if URL should be excluded based on common patterns
 function shouldExcludeUrl(url: string): boolean {
   const exclusionPatterns = [
     /localhost/,
@@ -47,6 +58,7 @@ function shouldExcludeUrl(url: string): boolean {
   return exclusionPatterns.some((pattern) => pattern.test(url));
 }
 
+// Recursively extract URLs from YAML values with file location tracking
 function extractUrlsWithLocation(
   value: YamlValue,
   urlLocations: UrlLocation[],
@@ -75,6 +87,7 @@ function extractUrlsWithLocation(
   }
 }
 
+// Scan file content line by line for URL patterns
 function scanFileForUrls(content: string, filePath: string, urlLocations: UrlLocation[]): void {
   const lines = content.split('\n');
   const urlRegex = /https?:\/\/[^\s\](),"'}*]*(?=[\s\](),"'}*]|$)/g;
@@ -103,14 +116,11 @@ function scanFileForUrls(content: string, filePath: string, urlLocations: UrlLoc
   });
 }
 
-export function extractHttpsUrls(directory: string): string[] {
-  const urlLocations = extractHttpsUrlsWithLocation(directory);
-  return urlLocations.map((location) => location.url);
-}
-
+// Extract HTTPS URLs from directory with file and line location information
 export function extractHttpsUrlsWithLocation(directory: string): UrlLocation[] {
   const urlLocations: UrlLocation[] = [];
 
+  // Recursively walk through directory structure
   function walkDir(dir: string): void {
     const files = fs.readdirSync(dir);
     files.forEach((file) => {
@@ -141,6 +151,7 @@ export function extractHttpsUrlsWithLocation(directory: string): UrlLocation[] {
 
   walkDir(directory);
 
+  // Remove duplicate URL locations
   const uniqueUrlLocations = urlLocations.filter(
     (location, index, self) =>
       index ===
@@ -152,6 +163,7 @@ export function extractHttpsUrlsWithLocation(directory: string): UrlLocation[] {
   return uniqueUrlLocations;
 }
 
+// Check if URL contains any excluded substrings
 export const isUrlExcluded = (url: string, excludedSubstrings: string[]): boolean => {
   return excludedSubstrings.some((substring) => url.includes(substring));
 };

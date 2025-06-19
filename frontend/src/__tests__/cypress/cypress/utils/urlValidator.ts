@@ -1,5 +1,9 @@
 /**
- * URL Validator Module - Validates HTTPS URLs with retry logic and error handling
+ * Test utility to validate HTTP and HTTPS URLs with retry logic and error handling.
+ *
+ * Including:
+ * - validateHttpsUrls(): Validate multiple URLs with proxy support and retries
+ * - getErrorType(): Categorize HTTP status codes and network errors
  */
 
 import * as http from 'http';
@@ -7,6 +11,7 @@ import * as https from 'https';
 // eslint-disable-next-line @typescript-eslint/no-var-requires, import/no-extraneous-dependencies
 const HttpsProxyAgent: new (options: string | object) => https.Agent = require('https-proxy-agent');
 
+// Result interface for URL validation responses
 interface UrlValidationResult {
   url: string;
   originalUrl?: string;
@@ -14,6 +19,7 @@ interface UrlValidationResult {
   error?: string;
 }
 
+// Common HTTP request configuration
 const commonUserAgent =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.212 Safari/537.36';
 const maxRedirects = 5;
@@ -21,6 +27,7 @@ const requestTimeout = 3000;
 const maxRetries = 3;
 const initialRetryDelay = 1000;
 
+// Standard headers for HTTP requests
 const commonHeaders = {
   'User-Agent': commonUserAgent,
   Accept:
@@ -29,16 +36,23 @@ const commonHeaders = {
   'Accept-Encoding': 'gzip, deflate, br',
 };
 
+// Utility function to pause execution for specified milliseconds
 const sleep = (ms: number): Promise<void> =>
   new Promise((resolve) => {
     void setTimeout(resolve, ms);
   });
 
+// Check if an error is retryable based on error codes and messages
 const isRetryableError = (error: Error & { code?: string }): boolean => {
   const retryableCodes = ['ENETUNREACH', 'ECONNRESET', 'ETIMEDOUT', 'ECONNREFUSED'];
-  return !error.code || retryableCodes.includes(error.code || '');
+  // Only retry errors with known retryable codes or timeout-related errors without codes
+  return (
+    retryableCodes.includes(error.code || '') ||
+    (!error.code && error.message.includes('timed out'))
+  );
 };
 
+// Make HTTP/HTTPS request with retry logic, redirect handling, and proxy support
 const makeRequest = async (
   urlToTest: string,
   proxyUrlFromTask?: string,
@@ -46,6 +60,7 @@ const makeRequest = async (
   retryCount = 0,
   originalUrl?: string,
 ): Promise<UrlValidationResult> => {
+  // Check for maximum redirect limit
   if (redirectCount > maxRedirects) {
     return {
       url: urlToTest,
@@ -59,6 +74,7 @@ const makeRequest = async (
   const effectiveProxyUrl = proxyUrlFromTask || process.env.https_proxy || process.env.HTTPS_PROXY;
   let agent: http.Agent | undefined;
 
+  // Setup proxy agent for HTTPS requests if proxy is configured
   if (effectiveProxyUrl && urlToTest.startsWith('https')) {
     try {
       agent = new HttpsProxyAgent(effectiveProxyUrl);
@@ -76,6 +92,7 @@ const makeRequest = async (
   const options: http.RequestOptions = { timeout: requestTimeout, headers: commonHeaders, agent };
 
   try {
+    // Make the HTTP request with timeout handling
     const response = await new Promise<http.IncomingMessage>((resolve, reject) => {
       const req = protocol.get(urlToTest, options, resolve);
       req.on('error', reject);
@@ -88,7 +105,7 @@ const makeRequest = async (
     const statusCode = response.statusCode || 0;
     const { location } = response.headers;
 
-    // Handle redirects
+    // Handle HTTP redirects (3xx status codes)
     if (statusCode >= 300 && statusCode < 400 && location) {
       try {
         const currentUrl = new URL(urlToTest);
@@ -110,7 +127,7 @@ const makeRequest = async (
       }
     }
 
-    // Consume response data
+    // Consume response data to properly close the connection
     await new Promise<void>((resolve) => {
       response.on('data', () => undefined);
       response.on('end', resolve);
@@ -120,7 +137,7 @@ const makeRequest = async (
   } catch (err: unknown) {
     const error = err as Error & { code?: string; errors?: Array<Error & { code?: string }> };
 
-    // Retry logic
+    // Implement exponential backoff retry logic for retryable errors
     if (retryCount < maxRetries && isRetryableError(error)) {
       const delay = initialRetryDelay * Math.pow(2, retryCount);
       await sleep(delay);
@@ -133,6 +150,7 @@ const makeRequest = async (
       );
     }
 
+    // Format error message with additional context
     let errorMessage = error.message;
     if (error.code) {
       errorMessage = `Code: ${error.code} - ${error.message}`;
@@ -146,6 +164,7 @@ const makeRequest = async (
   }
 };
 
+// Validate multiple URLs concurrently with proxy support and retry logic
 export async function validateHttpsUrls(
   urls: string[],
   proxyUrlFromTask?: string,
@@ -153,6 +172,7 @@ export async function validateHttpsUrls(
   return Promise.all(urls.map((url) => makeRequest(url, proxyUrlFromTask)));
 }
 
+// Categorize HTTP status codes and network errors into error types
 export const getErrorType = (status: number, error?: string): string => {
   if (status >= 400 && status < 500) return 'CLIENT_ERROR';
   if (status >= 500 && status < 600) return 'SERVER_ERROR';
