@@ -275,7 +275,7 @@ describe('Model Registry core', () => {
 
     // Check for admin-specific content
     modelRegistry.findModelRegistryEmptyState().should('exist');
-    modelRegistry.findEmptyStateContainer().within(() => {
+    modelRegistry.findModelRegistryEmptyState().within(() => {
       modelRegistry.findEmptyStateAdminTitle().should('exist');
       modelRegistry.findEmptyStateAdminDescription().should('exist');
       modelRegistry.findEmptyStateAdminInstructions().should('exist');
@@ -301,11 +301,13 @@ describe('Model Registry core', () => {
 
     // Check for non-admin specific content
     modelRegistry.findModelRegistryEmptyState().should('exist');
-    modelRegistry.findEmptyStateContainer().within(() => {
+    modelRegistry.findModelRegistryEmptyState().within(() => {
       modelRegistry.findEmptyStateNonAdminTitle().should('exist');
       modelRegistry.findEmptyStateNonAdminDescription().should('exist');
       // Should not show link to model registry settings
       modelRegistry.findEmptyStateAdminButton().should('not.exist');
+      // Should show help button for non-admin users
+      modelRegistry.findEmptyStateNonAdminHelpButton().should('exist');
     });
   });
 

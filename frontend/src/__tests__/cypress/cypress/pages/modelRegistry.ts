@@ -240,9 +240,8 @@ class ModelRegistry {
     );
   }
 
-  // Combined empty state element checker
-  findEmptyStateContainer() {
-    return cy.findByTestId('empty-model-registries-state');
+  findEmptyStateNonAdminHelpButton() {
+    return cy.findByRole('button', { name: "Who's my administrator?" });
   }
 }
 
