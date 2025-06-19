@@ -1,13 +1,10 @@
 {
-  "extends": "../../../tsconfig.json",
-  "include": ["./**/*.ts"],
-  "exclude": ["node_modules", "results", "coverage", ".nyc_output"],
+  "extends": "@odh-dashboard/tsconfig/tsconfig.json",
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
       "cypress/*": ["../../../node_modules/cypress/*"]
-    },
-    "moduleResolution": "bundler",
-    "types": ["node", "cypress", "@testing-library/cypress", "cypress-axe", "cypress-plugin-steps", "@cypress/grep"]
-  }
+    }
+  },
+  "files": []
 }
