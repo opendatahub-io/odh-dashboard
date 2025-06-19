@@ -275,14 +275,13 @@ describe('Model Registry core', () => {
 
     // Check for admin-specific content
     modelRegistry.findModelRegistryEmptyState().should('exist');
-    cy.findByTestId('empty-model-registries-state').within(() => {
-      cy.findByText('Create a model registry').should('exist');
-      cy.contains('No model registries are available to users in your organization').should(
-        'exist',
-      );
-      cy.contains('Create a model registry from the').should('exist');
-      cy.contains('Model registry settings').should('exist');
-      cy.findByRole('link', { name: 'Go to Model registry settings' })
+    modelRegistry.findEmptyStateContainer().within(() => {
+      modelRegistry.findEmptyStateAdminTitle().should('exist');
+      modelRegistry.findEmptyStateAdminDescription().should('exist');
+      modelRegistry.findEmptyStateAdminInstructions().should('exist');
+      modelRegistry.findEmptyStateAdminSettingsLink().should('exist');
+      modelRegistry
+        .findEmptyStateAdminButton()
         .should('exist')
         .and('have.attr', 'href', '/modelRegistrySettings');
     });
@@ -302,13 +301,11 @@ describe('Model Registry core', () => {
 
     // Check for non-admin specific content
     modelRegistry.findModelRegistryEmptyState().should('exist');
-    cy.findByTestId('empty-model-registries-state').within(() => {
-      cy.findByText('Request access to model registries').should('exist');
-      cy.findByText(
-        'To request a new model registry, or to request permission to access an existing model registry, contact your administrator.',
-      ).should('exist');
+    modelRegistry.findEmptyStateContainer().within(() => {
+      modelRegistry.findEmptyStateNonAdminTitle().should('exist');
+      modelRegistry.findEmptyStateNonAdminDescription().should('exist');
       // Should not show link to model registry settings
-      cy.findByRole('link', { name: 'Go to Model registry settings' }).should('not.exist');
+      modelRegistry.findEmptyStateAdminButton().should('not.exist');
     });
   });
 
