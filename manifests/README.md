@@ -1,3 +1,5 @@
+<!-- edit -->
+
 # Manifests
 
 The Dashboard manifests run on Kustomize. There are 3 types of deployments for the Dashboard component.
