@@ -126,7 +126,7 @@ class StopNotebookModal extends Modal {
   }
 
   findStopNotebookTitle() {
-    return this.find().findByTestId('stop-workbench-modal-title');
+    return this.find().findByRole('heading');
   }
 }
 
