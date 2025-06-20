@@ -140,6 +140,16 @@ export const getServingRuntimeVersion = (
   return resource.metadata.annotations?.['opendatahub.io/runtime-version'] || undefined;
 };
 
+export const getTemplateNameFromServingRuntime = (
+  resource: ServingRuntimeKind,
+): string | undefined => resource.metadata.annotations?.['opendatahub.io/template-name'];
+
+export const findTemplateByName = (
+  templates: TemplateKind[],
+  templateName: string,
+): TemplateKind | undefined =>
+  templates.find((t) => getServingRuntimeNameFromTemplate(t) === templateName);
+
 export const isTemplateKind = (
   resource: ServingRuntimeKind | TemplateKind,
 ): resource is TemplateKind => resource.kind === 'Template';
