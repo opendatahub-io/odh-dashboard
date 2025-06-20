@@ -108,10 +108,6 @@ class ModelServingGlobal {
   findServingRuntime(name: string) {
     return this.findModelsTable().find(`[data-label=Serving Runtime]`).contains(name);
   }
-
-  findServingRuntimeVersionLabel() {
-    return cy.findByTestId('serving-runtime-version-label');
-  }
 }
 
 class ServingRuntimeGroup extends Contextual<HTMLElement> {}
@@ -615,6 +611,14 @@ class KServeRow extends ModelMeshRow {
 }
 
 class InferenceServiceRow extends TableRow {
+  findServingRuntimeVersionLabel() {
+    return this.find().findByTestId('serving-runtime-version-label');
+  }
+
+  findServingRuntimeVersionStatusLabel() {
+    return this.find().findByTestId('serving-runtime-version-status-label');
+  }
+
   findStatusTooltip() {
     return this.find()
       .findByTestId('status-tooltip')
