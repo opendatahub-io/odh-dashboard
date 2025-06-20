@@ -11,6 +11,13 @@ import {
   useWatchMultiplePodEvents,
 } from '#~/concepts/pipelines/context/usePipelineEvents.ts';
 
+const fullMessage1 =
+  '2025-06-20T20:15:44Z [AddedInterface] [Normal] Add eth0 [10.129.2.134/23] from ovn-kubernetes';
+const fullMessage2 =
+  '2025-06-20T20:15:44Z [Pulling] [Normal] Pulling image "quay.io/opendatahub/ds-pipelines-frontend:latest"';
+const fullMessage3 =
+  '2025-06-20T20:15:44.409955Z [Scheduled] [Normal] Successfully assigned brand-new-one/ds-pipeline-ui-dspa-dbb65fdf6-fnsz7 to ip-10-0-6-114.ec2.internal';
+
 const message1 = 'Add eth0 [10.129.2.134/23] from ovn-kubernetes';
 const message2 = 'Pulling image "quay.io/opendatahub/ds-pipelines-frontend:latest"';
 const message3 =
@@ -196,11 +203,11 @@ describe('StartingStatusModal', () => {
     // Switch to events log tab
     fireEvent.click(screen.getByText('Events log'));
 
+    // const fullMessages = [ack, ack2, ack3];
     // the messages should be in the screen
-    const messages = [message1, message2, message3];
-    messages.forEach((message) => {
-      expect(screen.getByText(message)).toBeInTheDocument();
-    });
+    expect(screen.getByText(fullMessage1)).toBeInTheDocument();
+    expect(screen.getByText(fullMessage2)).toBeInTheDocument();
+    expect(screen.getByText(fullMessage3)).toBeInTheDocument();
   });
 
   it('should call onClose when close button is clicked', () => {
