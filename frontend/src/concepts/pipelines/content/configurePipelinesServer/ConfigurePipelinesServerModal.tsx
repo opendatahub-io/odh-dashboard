@@ -27,7 +27,7 @@ import usePipelinesConnections from '#~/pages/projects/screens/detail/connection
 import { FAST_POLL_INTERVAL } from '#~/utilities/const.ts';
 import { pipelinesBaseRoute } from '#~/routes/pipelines/global.ts';
 import { DSPipelineKind } from '#~/k8sTypes.ts';
-import usePipelineNamespaceCR, {
+import {
   dspaLoaded,
   hasServerTimedOut,
 } from '#~/concepts/pipelines/context/usePipelineNamespaceCR';
