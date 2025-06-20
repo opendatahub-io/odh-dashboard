@@ -93,17 +93,10 @@ export const PipelineContextProvider = conditionalArea<PipelineContextProviderPr
 
   const state = usePipelineNamespaceCR(namespace);
   const [pipelineNamespaceCR, crLoaded, crLoadError, refreshCR] = state;
-  console.log('89a: is crLoaded???/namespace', crLoaded, pipelineNamespaceCR);
 
   const isResourceLoaded = crLoaded && !!pipelineNamespaceCR;
   const isAllLoaded = isDspaAllReady(state);
   const isStarting = isResourceLoaded && !isAllLoaded;
-  console.log(
-    '89a: is starting (new here!) (isstarting,isallLOaded, isResourceLoaded) ??',
-    isStarting,
-    isAllLoaded,
-    isResourceLoaded,
-  );
 
   const isCRReady = dspaLoaded(state);
   const [disableTimeout, setDisableTimeout] = React.useState(false);

@@ -43,17 +43,6 @@ const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose }) =>
     (c) => c.type === 'Ready' && c.status === 'True',
   );
 
-  // debugging/research
-  const allConds: K8sCondition[] = [];
-
-  const myClose = () => {
-    console.log('inside my close....');
-    const reasons = Array.from(new Set(allConds.map((c) => c.reason)));
-    console.log('77bc all the reasons: ', reasons);
-    onClose();
-  };
-
-  console.log('77: frustrated');
   const [pods] = useWatchPodsForPipelineServerEvents(namespace);
   const podUids = pods.map((onePod) => onePod.metadata.uid);
 
@@ -74,7 +63,6 @@ const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose }) =>
 
   const statusConditions: [StatusType, K8sCondition][] | undefined =
     pipelinesServer.crStatus?.conditions?.map((condition) => {
-      console.log('77a: condition', JSON.stringify(condition));
       const containerStatus = getStatusFromCondition(condition);
       return [containerStatus, condition];
     });
@@ -93,7 +81,10 @@ const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose }) =>
           <Alert
             key={condition.type + idx}
             variant="danger"
-            title={condition.reason || 'Error'}
+            title={
+              `$676916
+              {condition.type} - ${condition.reason || 'Unknown'}` || 'Error'
+            }
             style={{ marginBottom: 16 }}
           >
             {condition.message || 'An error occurred.'}
@@ -158,7 +149,7 @@ const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose }) =>
       data-testid="pipeline-server-starting-modal"
       isOpen
       variant="medium"
-      onClose={myClose}
+      onClose={onClose}
       title="Pipeline Server Status"
       disableFocusTrap
     >
