@@ -6,13 +6,13 @@ import { FAST_POLL_INTERVAL, SERVER_TIMEOUT } from '#~/utilities/const';
 
 type State = DSPipelineKind | null;
 
-export const dspaLoaded = ([state, loaded]: FetchState<State>): boolean =>
+export const dspaLoaded = ([state, loaded]: FetchState<State> | [State, boolean]): boolean =>
   loaded &&
   !!state &&
   !!state.status?.conditions?.find((c) => c.type === 'APIServerReady' && c.status === 'True');
 
 export const hasServerTimedOut = (
-  [state, loaded]: FetchState<State>,
+  [state, loaded]: FetchState<State> | [State, boolean],
   isDspaLoaded: boolean,
 ): boolean => {
   if (!state || !loaded || isDspaLoaded) {

@@ -24,9 +24,13 @@ import {
   NotificationWatcherContext,
 } from '#~/concepts/notificationWatcher/NotificationWatcherContext.tsx';
 import usePipelinesConnections from '#~/pages/projects/screens/detail/connections/usePipelinesConnections';
-import { FAST_POLL_INTERVAL, SERVER_TIMEOUT } from '#~/utilities/const.ts';
+import { FAST_POLL_INTERVAL } from '#~/utilities/const.ts';
 import { pipelinesBaseRoute } from '#~/routes/pipelines/global.ts';
 import { DSPipelineKind } from '#~/k8sTypes.ts';
+import usePipelineNamespaceCR, {
+  dspaLoaded,
+  hasServerTimedOut,
+} from '#~/concepts/pipelines/context/usePipelineNamespaceCR';
 import { PipelinesDatabaseSection } from './PipelinesDatabaseSection';
 import { ObjectStorageSection } from './ObjectStorageSection';
 import {
@@ -113,22 +117,14 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
               callbackDelay: FAST_POLL_INTERVAL || 3000,
               callback: async (signal: AbortSignal) => {
                 try {
-                  // check if polling for too long
-                  if (
-                    Date.now() - new Date(obj.metadata.creationTimestamp || Date.now()).getTime() >
-                    SERVER_TIMEOUT
-                  ) {
+                  const response = await listPipelinesCR(pollingNamespace, { signal });
+                  const isCRReady = dspaLoaded([response[0], true]);
+
+                  if (hasServerTimedOut([response[0], true], isCRReady)) {
                     throw Error(`${pollingNamespace} pipeline server creation timed out`);
                   }
 
-                  const response = await listPipelinesCR(pollingNamespace, { signal });
-
-                  // if we find an APIServerReady true condition, we know the pipeline server is ready
-                  if (
-                    response[0]?.status?.conditions?.find(
-                      (c) => c.type === 'APIServerReady' && c.status === 'True',
-                    )
-                  ) {
+                  if (isCRReady) {
                     return {
                       status: NotificationResponseStatus.SUCCESS,
                       title: `Pipeline server for ${pollingNamespace} is ready.`,
