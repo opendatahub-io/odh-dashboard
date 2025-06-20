@@ -2,20 +2,15 @@ import * as React from 'react';
 import { Bullseye, Spinner, Button, Stack, StackItem } from '@patternfly/react-core';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import StartingStatusModal from '#~/concepts/pipelines/content/StartingStatusModal.tsx';
-import { K8sCondition } from '#~/k8sTypes.ts';
 
 type EnsureAPIAvailabilityProps = {
   children: React.ReactNode;
-  isPipeline?: boolean;
 };
 
 const spinningText = 'Initializing Pipeline Server';
 
 // if isInitialized but not ready, show spinner; if isNot initialized then show new status
-const EnsureAPIAvailability: React.FC<EnsureAPIAvailabilityProps> = ({
-  isPipeline = false,
-  children,
-}) => {
+const EnsureAPIAvailability: React.FC<EnsureAPIAvailabilityProps> = ({ children }) => {
   const { apiAvailable, pipelinesServer } = usePipelinesAPI();
   const [showModal, setShowModal] = React.useState(false);
 
@@ -56,11 +51,11 @@ const EnsureAPIAvailability: React.FC<EnsureAPIAvailabilityProps> = ({
 
   const getMainComponent = () => {
     const { isStarting, compatible } = pipelinesServer;
-    if (isPipeline) {
-      if (isStarting || (!apiAvailable && compatible)) {
-        return makePipelineSpinner(!!isStarting);
-      }
+
+    if (isStarting) {
+      return makePipelineSpinner(!!isStarting);
     }
+
     if (!apiAvailable && compatible) {
       return (
         <Bullseye style={{ minHeight: 150 }} data-testid="pipelines-api-not-available">
