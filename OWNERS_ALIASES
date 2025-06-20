@@ -101,6 +101,7 @@ aliases:
   platform-approvers:
     - christianvogt
     - lucferbux
+    - DaoDaoNoCode
   platform-reviewers:
     - christianvogt
     - jenny-s51
