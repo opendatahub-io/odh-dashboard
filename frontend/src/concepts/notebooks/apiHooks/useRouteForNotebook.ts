@@ -22,7 +22,7 @@ const useRouteForNotebook = (
         )
         .catch((e) => {
           if (!isRunning && e.statusObject?.code === 404) {
-            return Promise.reject(e);
+            return null;
           }
           return Promise.reject(e);
         });
