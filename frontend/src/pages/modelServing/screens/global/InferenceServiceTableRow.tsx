@@ -14,7 +14,7 @@ import { isProjectNIMSupported } from '#~/pages/modelServing/screens/projects/ni
 import useServingPlatformStatuses from '#~/pages/modelServing/useServingPlatformStatuses';
 import StateActionToggle from '#~/components/StateActionToggle';
 import { patchInferenceServiceStoppedStatus } from '#~/api/k8s/inferenceServices';
-import useStopModalPreference from '#~/pages/modelServing/useStopModalPreference.ts';
+import useStopModalPreference from '#~/pages/modelServing/useStopModalPreference';
 import ModelServingStopModal from '#~/pages/modelServing/ModelServingStopModal';
 import InferenceServiceEndpoint from './InferenceServiceEndpoint';
 import InferenceServiceProject from './InferenceServiceProject';
