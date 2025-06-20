@@ -65,7 +65,9 @@ export const ConnectionTypeDataFieldModal: React.FC<Props> = ({
         (field.type as ConnectionTypeFieldType)
       : ConnectionTypeFieldType.ShortText,
     required: field?.required,
-    properties: field?.properties || {},
+    properties: field?.properties || {
+      deferInput: field?.type === ConnectionTypeFieldType.Hidden || undefined,
+    },
   });
   const canSubmit = React.useRef(data).current !== data || !isEdit;
   const { name, description, envVar, fieldType, required, properties } = data;
@@ -201,7 +203,13 @@ export const ConnectionTypeDataFieldModal: React.FC<Props> = ({
               onChange={(selection) => {
                 if (isConnectionTypeFieldType(selection)) {
                   setPropertiesValid(true);
-                  setData('properties', {});
+                  setData('properties', {
+                    ...data.properties,
+                    deferInput:
+                      selection === ConnectionTypeFieldType.Hidden
+                        ? true
+                        : data.properties.deferInput,
+                  });
                   // setProperties({});
                   setData('fieldType', selection);
                   // setFieldType(selection);

@@ -286,4 +286,98 @@ describe('ConnectionTypeDataFieldModal', () => {
 
     expect(submitButton).not.toBeDisabled();
   });
+
+  it('should default to deferInput for hidden fields', async () => {
+    render(<ConnectionTypeDataFieldModal onClose={onClose} onSubmit={onSubmit} />);
+    const fieldNameInput = screen.getByTestId('field-name-input');
+    const fieldDescriptionInput = screen.getByTestId('field-description-input');
+    const fieldEnvVarInput = screen.getByTestId('field-env-var-input');
+    const typeSelectGroup = screen.getByTestId('field-type-select');
+    const typeSelectToggle = within(typeSelectGroup).getByRole('button');
+
+    // text hidden field
+    act(() => {
+      fireEvent.change(fieldNameInput, { target: { value: 'hidden-field' } });
+      fireEvent.change(fieldDescriptionInput, { target: { value: 'test description' } });
+      fireEvent.change(fieldEnvVarInput, { target: { value: 'TEST_ENV_VAR' } });
+      typeSelectToggle.click();
+    });
+
+    const hiddenSelect = within(screen.getByTestId('field-hidden-select')).getByRole('option');
+
+    act(() => {
+      hiddenSelect.click();
+    });
+
+    await waitFor(() => expect(typeSelectToggle).toHaveAttribute('aria-expanded', 'false'));
+
+    // deferInput is checked by default and disabled for hidden field
+    const fieldDeferInputCheckbox = screen.getByTestId('field-defer-input-checkbox');
+    expect(fieldDeferInputCheckbox).toBeChecked();
+    expect(fieldDeferInputCheckbox).toBeDisabled();
+    expect(screen.queryByTestId('field-default-value')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('field-default-value-readonly-checkbox')).not.toBeInTheDocument();
+
+    screen.getByTestId('modal-submit-button').click();
+
+    expect(onSubmit).toHaveBeenCalledWith({
+      description: 'test description',
+      envVar: 'TEST_ENV_VAR',
+      name: 'hidden-field',
+      properties: {
+        defaultReadOnly: undefined,
+        defaultValue: undefined,
+        deferInput: true,
+      },
+      required: undefined,
+      type: 'hidden',
+    });
+  });
+
+  it('should remove default value when deferInput is checked', async () => {
+    render(<ConnectionTypeDataFieldModal onClose={onClose} onSubmit={onSubmit} />);
+    const fieldNameInput = screen.getByTestId('field-name-input');
+    const fieldDescriptionInput = screen.getByTestId('field-description-input');
+    const fieldEnvVarInput = screen.getByTestId('field-env-var-input');
+    // const typeSelectGroup = screen.getByTestId('field-type-select');
+    // const typeSelectToggle = within(typeSelectGroup).getByRole('button');
+
+    act(() => {
+      fireEvent.change(fieldNameInput, { target: { value: 'short-text' } });
+      fireEvent.change(fieldDescriptionInput, { target: { value: 'test description' } });
+      fireEvent.change(fieldEnvVarInput, { target: { value: 'TEST_ENV_VAR' } });
+    });
+
+    const fieldDeferInputCheckbox = screen.getByTestId('field-defer-input-checkbox');
+    expect(fieldDeferInputCheckbox).not.toBeChecked();
+    expect(screen.queryByTestId('field-default-value')).toBeInTheDocument();
+    expect(screen.queryByTestId('field-default-value-readonly-checkbox')).toBeInTheDocument();
+
+    const fieldDefaultValueInput = screen.getByTestId('field-default-value');
+    act(() => {
+      fireEvent.change(fieldDefaultValueInput, { target: { value: 'default value' } });
+    });
+
+    act(() => {
+      fireEvent.click(fieldDeferInputCheckbox);
+    });
+    expect(fieldDeferInputCheckbox).toBeChecked();
+    expect(screen.queryByTestId('field-default-value')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('field-default-value-readonly-checkbox')).not.toBeInTheDocument();
+
+    screen.getByTestId('modal-submit-button').click();
+
+    expect(onSubmit).toHaveBeenCalledWith({
+      description: 'test description',
+      envVar: 'TEST_ENV_VAR',
+      name: 'short-text',
+      properties: {
+        defaultReadOnly: undefined,
+        defaultValue: undefined,
+        deferInput: true,
+      },
+      required: undefined,
+      type: 'short-text',
+    });
+  });
 });
