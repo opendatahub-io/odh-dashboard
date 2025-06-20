@@ -58,14 +58,14 @@ const extensions: (
       title: 'Model deployments',
       href: '/modelServing',
       section: 'models',
-      path: '/modelServing/*',
+      path: '/modelServing/:namespace?/*',
     },
   },
   {
     type: 'app.route',
     properties: {
-      path: '/modelServing/*',
-      component: () => import('./src/ModelServingGlobalPlugin'),
+      path: '/modelServing/:namespace?/*',
+      component: () => import('./src/GlobalModelsPage'),
     },
     flags: {
       required: [PLUGIN_MODEL_SERVING],
