@@ -17,6 +17,8 @@ import TitleWithIcon from '#~/concepts/design/TitleWithIcon';
 const GlobalPipelines: React.FC = () => {
   const pipelinesAPI = usePipelinesAPI();
 
+  // problem is that the container here doesn't show the children when the pipeline fails
+  // spend some time working on this monday; if too annoying let's put this in another ticket.
   return (
     <PipelineCoreApplicationPage
       title={<TitleWithIcon title={pipelinesPageTitle} objectType={ProjectObjectType.pipeline} />}
