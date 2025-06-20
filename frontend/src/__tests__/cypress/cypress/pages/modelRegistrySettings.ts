@@ -5,6 +5,7 @@ import { SearchSelector } from './components/subComponents/SearchSelector';
 
 export enum FormFieldSelector {
   NAME = '#mr-name',
+  DESCRIPTION = '#mr-description',
   HOST = '#mr-host',
   PORT = '#mr-port',
   USERNAME = '#mr-username',
@@ -96,6 +97,10 @@ class ModelRegistrySettings {
 
   findSubmitButton() {
     return cy.findByTestId('modal-submit-button');
+  }
+
+  findCancelButton() {
+    return cy.findByTestId('modal-cancel-button');
   }
 
   findManagePermissionsTooltip() {
