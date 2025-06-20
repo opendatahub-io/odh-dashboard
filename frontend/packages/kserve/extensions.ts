@@ -1,5 +1,7 @@
 // eslint-disable-next-line no-restricted-syntax
 import { NamespaceApplicationCase } from '@odh-dashboard/internal/pages/projects/types';
+// eslint-disable-next-line no-restricted-syntax, @typescript-eslint/consistent-type-imports
+import { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
 import type {
   ModelServingPlatformExtension,
   ModelServingDeploymentsTableExtension,
@@ -31,6 +33,7 @@ const extensions: (
           'Each model is deployed on its own model server. Choose this option when you want to deploy a large model such as a large language model (LLM).',
         selectText: 'Select single-model',
         enabledText: 'Single-model serving enabled',
+        objectType: ProjectObjectType.singleModel,
       },
       deployedModelsView: {
         startHintTitle: 'Start by deploying a model',
