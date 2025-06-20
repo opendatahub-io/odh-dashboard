@@ -167,17 +167,13 @@ describe('StartingStatusModal', () => {
     expect(screen.getByTestId('successDescription')).toBeInTheDocument();
   });
 
-  it('should display conditions in the progress tab', () => {
-    const conditions = [
-      { type: 'APIServerReady', status: 'False', message: 'API server not ready' },
-      { type: 'Ready', status: 'False', message: 'Server not ready' },
-    ];
-    mockUsePipelinesAPI.mockReturnValue(createMockConditions(conditions));
-
+  it('should display events in the progress tab', () => {
     render(<StartingStatusModal onClose={mockOnClose} />);
 
-    conditions.forEach((condition) => {
-      expect(screen.getByText(condition.type)).toBeInTheDocument();
+    // the messages should be in the screen
+    const messages = [message1, message2, message3];
+    messages.forEach((message) => {
+      expect(screen.getByText(message)).toBeInTheDocument();
     });
   });
 
