@@ -9,6 +9,7 @@ import type {
 } from '@odh-dashboard/internal/k8sTypes';
 // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/consistent-type-imports
 import { InferenceServiceModelState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
+import type { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
 
 export type DeploymentStatus = {
   state: InferenceServiceModelState;
@@ -66,6 +67,7 @@ export type ModelServingPlatformExtension<D extends Deployment = Deployment> = E
       description: string;
       selectText: string;
       enabledText: string;
+      objectType: ProjectObjectType;
     };
     deployedModelsView: {
       startHintTitle: string;

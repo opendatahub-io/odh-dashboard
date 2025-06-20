@@ -1,5 +1,6 @@
 import { NamespaceApplicationCase } from '@odh-dashboard/internal/pages/projects/types';
 import type { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
+import { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
 import { ModelServingPlatform } from '../concepts/useProjectServingPlatform';
 
 export const mockModelServingPlatform = ({
@@ -40,6 +41,7 @@ export const mockModelServingPlatform = ({
       description,
       selectText,
       enabledText,
+      objectType: ProjectObjectType.singleModel,
     },
     deployedModelsView: {
       startHintTitle,
