@@ -1,4 +1,11 @@
+# Most specific is intended to win
 filters:
+  # Catchall
+  ".*":
+    approvers:
+      - general-approvers
+      - managers-backup-approvers
+
   # Specific filter for Cypress tests
   "frontend/src/__tests__/cypress/.*":
     approvers:
@@ -257,9 +264,3 @@ filters:
       - pipelines-reviewers
     labels:
       - "area/pipelines"
-
-  # Catchall
-  ".*":
-    approvers:
-      - general-approvers
-      - managers-backup-approvers
