@@ -18,11 +18,6 @@ const fullMessage2 =
 const fullMessage3 =
   '2025-06-20T20:15:44.409955Z [Scheduled] [Normal] Successfully assigned brand-new-one/ds-pipeline-ui-dspa-dbb65fdf6-fnsz7 to ip-10-0-6-114.ec2.internal';
 
-const message1 = 'Add eth0 [10.129.2.134/23] from ovn-kubernetes';
-const message2 = 'Pulling image "quay.io/opendatahub/ds-pipelines-frontend:latest"';
-const message3 =
-  'Successfully assigned brand-new-one/ds-pipeline-ui-dspa-dbb65fdf6-fnsz7 to ip-10-0-6-114.ec2.internal';
-
 const mockEvents = [
   {
     apiVersion: 'v1',
@@ -37,7 +32,7 @@ const mockEvents = [
     eventTime: '2025-06-20T20:15:44Z',
     type: 'Normal' as const,
     reason: 'AddedInterface',
-    message: message1,
+    message: 'Add eth0 [10.129.2.134/23] from ovn-kubernetes',
   },
   {
     apiVersion: 'v1',
@@ -52,7 +47,7 @@ const mockEvents = [
     eventTime: '2025-06-20T20:15:44Z',
     type: 'Normal' as const,
     reason: 'Pulling',
-    message: message2,
+    message: 'Pulling image "quay.io/opendatahub/ds-pipelines-frontend:latest"',
   },
   {
     apiVersion: 'v1',
@@ -66,7 +61,8 @@ const mockEvents = [
     eventTime: '2025-06-20T20:15:44.409955Z',
     type: 'Normal' as const,
     reason: 'Scheduled',
-    message: message3,
+    message:
+      'Successfully assigned brand-new-one/ds-pipeline-ui-dspa-dbb65fdf6-fnsz7 to ip-10-0-6-114.ec2.internal',
   },
 ];
 
