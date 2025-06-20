@@ -108,7 +108,7 @@ describe('computeRunStatus', () => {
 describe('getStatusFromCondition', () => {
   it('should return pending for MLMDProxyReady with Unknown status', () => {
     const condition: K8sCondition = {
-      lastTransitionTime: '2025-06-04T19:48:42Z',
+      lastTransitionTime: new Date(Date.now() - 1000 * 60 * 2).toISOString(), // 2 minutes ago
       message: '',
       reason: 'Unknown',
       status: 'Unknown',
@@ -188,7 +188,6 @@ describe('getStatusFromCondition', () => {
 
     expect(getStatusFromCondition(condition)).toBe(StatusType.PENDING);
   });
-
   it('should return error for FailingToDeploy with long transition time (11 minutes)', () => {
     const condition: K8sCondition = {
       lastTransitionTime: new Date(Date.now() - 1000 * 60 * 11).toISOString(), // 11 minutes ago
@@ -218,6 +217,54 @@ describe('getStatusFromCondition', () => {
       lastTransitionTime: new Date(Date.now() - 1000 * 60 * 10).toISOString(), // exactly 10 minutes ago
       message: 'Component failed to deploy',
       reason: 'FailingToDeploy',
+      status: 'False',
+      type: 'APIServerReady',
+    };
+
+    expect(getStatusFromCondition(condition)).toBe(StatusType.ERROR);
+  });
+
+  it('should return error for ComponentDeploymentNotFound regardless of transition time', () => {
+    const condition: K8sCondition = {
+      lastTransitionTime: new Date(Date.now() - 1000 * 60 * 2).toISOString(), // 2 minutes ago
+      message: 'Component deployment not found',
+      reason: 'ComponentDeploymentNotFound',
+      status: 'False',
+      type: 'APIServerReady',
+    };
+
+    expect(getStatusFromCondition(condition)).toBe(StatusType.ERROR);
+  });
+
+  it('should return error for ComponentDeploymentNotFound with long transition time', () => {
+    const condition: K8sCondition = {
+      lastTransitionTime: new Date(Date.now() - 1000 * 60 * 15).toISOString(), // 15 minutes ago
+      message: 'Component deployment not found',
+      reason: 'ComponentDeploymentNotFound',
+      status: 'False',
+      type: 'APIServerReady',
+    };
+
+    expect(getStatusFromCondition(condition)).toBe(StatusType.ERROR);
+  });
+
+  it('should return error for UnsupportedVersion regardless of transition time', () => {
+    const condition: K8sCondition = {
+      lastTransitionTime: new Date(Date.now() - 1000 * 60 * 1).toISOString(), // 1 minute ago
+      message: 'Unsupported version detected',
+      reason: 'UnsupportedVersion',
+      status: 'False',
+      type: 'APIServerReady',
+    };
+
+    expect(getStatusFromCondition(condition)).toBe(StatusType.ERROR);
+  });
+
+  it('should return error for UnsupportedVersion with recent transition time', () => {
+    const condition: K8sCondition = {
+      lastTransitionTime: new Date(Date.now() - 1000 * 30).toISOString(), // 30 seconds ago
+      message: 'Unsupported version detected',
+      reason: 'UnsupportedVersion',
       status: 'False',
       type: 'APIServerReady',
     };
