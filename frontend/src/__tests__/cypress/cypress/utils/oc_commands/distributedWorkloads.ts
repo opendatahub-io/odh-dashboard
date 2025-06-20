@@ -59,9 +59,9 @@ export const deleteKueueResources = (
 ): Cypress.Chainable<CommandLineResult> => {
   // Create the OC command to delete the resources
   const ocCommand = `
-      oc delete LocalQueue ${localQueueName} -n ${projectName} && 
-      oc delete ClusterQueue ${clusterQueueName} && 
-      oc delete ResourceFlavor ${resourceFlavor}
+      oc delete LocalQueue ${localQueueName} -n ${projectName} || : ;
+      oc delete ClusterQueue ${clusterQueueName} || : ;
+      oc delete ResourceFlavor ${resourceFlavor} || : ;
     `;
 
   cy.log(`Executing: ${ocCommand}`);
