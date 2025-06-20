@@ -48,7 +48,7 @@ class ProjectNotebookRow extends TableRow {
   }
 
   findNotebookStop() {
-    return this.find().findByTestId('state-action-toggle');
+    return this.find().findByTestId('notebook-stop-action');
   }
 }
 
