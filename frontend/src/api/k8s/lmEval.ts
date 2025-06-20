@@ -2,14 +2,21 @@ import {
   k8sGetResource,
   k8sListResource,
   k8sCreateResource,
+  k8sDeleteResource,
+  K8sStatus,
+  useK8sWatchResource,
+  WatchK8sResult,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { K8sAPIOptions, LMEvaluationKind } from '#~/k8sTypes';
+import { LmEvalFormData } from '#~/pages/lmEval/types';
+import { K8sAPIOptions, LMEvalKind } from '#~/k8sTypes';
 import { LMEvalModel } from '#~/api/models';
 import { applyK8sAPIOptions } from '#~/api/apiMergeUtils';
 import { kindApiVersion, translateDisplayNameForK8s } from '#~/concepts/k8s/utils';
+import { convertModelArgs } from '#~/pages/lmEval/lmEvalForm/utils.ts';
+import { groupVersionKind } from '#~/api/k8sUtils';
 
-export const listModelEvaluations = async (namespace: string): Promise<LMEvaluationKind[]> =>
-  k8sListResource<LMEvaluationKind>({
+export const listModelEvaluations = async (namespace: string): Promise<LMEvalKind[]> =>
+  k8sListResource<LMEvalKind>({
     model: LMEvalModel,
     queryOptions: {
       ns: namespace,
@@ -17,43 +24,45 @@ export const listModelEvaluations = async (namespace: string): Promise<LMEvaluat
   }).then((listResource) => listResource.items);
 
 const assembleModelEvaluation = (
-  model: string,
-  evalConfig: {
-    batchSize?: string;
-    timeout?: number;
-    taskList: {
-      taskNames: string[];
-    };
-  },
+  data: LmEvalFormData,
   namespace: string,
-  name?: string,
-): LMEvaluationKind => ({
+  batchSize?: string,
+): LMEvalKind => ({
   apiVersion: kindApiVersion(LMEvalModel),
   kind: LMEvalModel.kind,
   metadata: {
-    name: name || `eval-${translateDisplayNameForK8s(model)}`,
+    annotations: {
+      'openshift.io/display-name': data.evaluationName.trim(),
+    },
+    name: data.k8sName || translateDisplayNameForK8s(data.evaluationName),
     namespace,
   },
   spec: {
-    model,
-    ...evalConfig,
+    allowCodeExecution: data.allowRemoteCode,
+    allowOnline: data.allowOnline,
+    batchSize: batchSize ?? '1',
+    logSamples: true,
+    model: data.modelType,
+    modelArgs: convertModelArgs(data.model),
+    taskList: {
+      taskNames: data.tasks,
+    },
+    outputs: {
+      pvcManaged: {
+        size: '100Mi',
+      },
+    },
   },
 });
 
 export const createModelEvaluation = (
-  model: string,
-  evalConfig: {
-    batchSize?: string;
-    timeout?: number;
-    taskList: {
-      taskNames: string[];
-    };
-  },
+  data: LmEvalFormData,
   namespace: string,
+  batchSize?: string,
   opts?: K8sAPIOptions,
-): Promise<LMEvaluationKind> => {
-  const resource = assembleModelEvaluation(model, evalConfig, namespace);
-  return k8sCreateResource<LMEvaluationKind>(
+): Promise<LMEvalKind> => {
+  const resource = assembleModelEvaluation(data, namespace, batchSize);
+  return k8sCreateResource<LMEvalKind>(
     applyK8sAPIOptions(
       {
         model: LMEvalModel,
@@ -64,11 +73,34 @@ export const createModelEvaluation = (
   );
 };
 
-export const getModelEvaluationResult = (
+export const deleteModelEvaluation = (
   name: string,
   namespace: string,
-): Promise<LMEvaluationKind> =>
-  k8sGetResource<LMEvaluationKind>({
+  opts?: K8sAPIOptions,
+): Promise<K8sStatus> =>
+  k8sDeleteResource<LMEvalKind, K8sStatus>(
+    applyK8sAPIOptions(
+      {
+        model: LMEvalModel,
+        queryOptions: { name, ns: namespace },
+      },
+      opts,
+    ),
+  );
+
+export const getModelEvaluationResult = (name: string, namespace: string): Promise<LMEvalKind> =>
+  k8sGetResource<LMEvalKind>({
     model: LMEvalModel,
     queryOptions: { name, ns: namespace },
   });
+
+export const useLMEvalJobStatus = (name: string, namespace: string): WatchK8sResult<LMEvalKind> =>
+  useK8sWatchResource(
+    {
+      isList: false,
+      groupVersionKind: groupVersionKind(LMEvalModel),
+      namespace,
+      name,
+    },
+    LMEvalModel,
+  );

@@ -23,10 +23,12 @@ export * from './k8s/templates';
 export * from './k8s/dashboardConfig';
 export * from './k8s/acceleratorProfiles';
 export * from './k8s/hardwareProfiles';
+export * from './k8s/lmEval';
 export * from './k8s/clusterQueues';
 export * from './k8s/localQueues';
 export * from './k8s/workloads';
 export * from './k8s/dsc';
+export * from './k8s/lmEval';
 
 // Model registry
 export * from './modelRegistry/custom';

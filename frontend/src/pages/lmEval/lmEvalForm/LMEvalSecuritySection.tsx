@@ -32,6 +32,7 @@ const LMEvalSecuritySection: React.FC<LMEvalSecuritySectionProps> = ({
 
   return (
     <FormFieldGroupExpandable
+      data-testid="lm-eval-security-section"
       style={{ border: 0 }}
       isExpanded
       toggleAriaLabel="Details"

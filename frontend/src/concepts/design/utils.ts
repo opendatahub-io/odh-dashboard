@@ -45,6 +45,7 @@ export enum ProjectObjectType {
   pipelineExecution = 'pipeline-execution',
   pipelineArtifact = 'pipeline-artifact',
   modelCustomization = 'model-customization',
+  modelEvaluation = 'model-evaluation',
   labTuning = 'lab-tuning',
   clusterStorage = 'cluster-storage',
   model = 'model',
@@ -127,6 +128,8 @@ export const typedIconColor = (objectType: ProjectObjectType): string => {
     case ProjectObjectType.clusterSettings:
     case ProjectObjectType.acceleratorProfile:
       return 'var(--ai-set-up--IconColor)';
+    case ProjectObjectType.modelEvaluation:
+      return 'var(--ai-model-server--IconColor)';
     case ProjectObjectType.servingRuntime:
       return 'var(--ai-set-up--IconColor)';
     default:
@@ -166,6 +169,7 @@ export const typedBackgroundColor = (objectType: ProjectObjectType): string => {
     case ProjectObjectType.deployingModels:
     case ProjectObjectType.deployedModelsList:
     case ProjectObjectType.modelCustomization:
+    case ProjectObjectType.modelEvaluation:
     case ProjectObjectType.labTuning:
       return 'var(--ai-model-server--BackgroundColor)';
     case ProjectObjectType.modelRegistrySettings:

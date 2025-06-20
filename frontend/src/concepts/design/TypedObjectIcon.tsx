@@ -33,6 +33,7 @@ import {
   ResourcesIcon,
   ModelCatalogIcon,
   ModelRegistrySelectIcon,
+  ModelEvaluationIcon,
   LabTuningIcon,
 } from '#~/images/icons';
 
@@ -153,6 +154,9 @@ const TypedObjectIcon: React.FC<TypedObjectIconProps> = ({
       break;
     case ProjectObjectType.resources:
       Icon = ResourcesIcon;
+      break;
+    case ProjectObjectType.modelEvaluation:
+      Icon = ModelEvaluationIcon;
       break;
     default:
       return null;

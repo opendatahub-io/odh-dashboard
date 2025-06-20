@@ -31,8 +31,12 @@ const LmEvalModelArgumentSection: React.FC<LmEvalModelArgumentSectionProps> = ({
       </>
     }
   >
-    <FormGroup label="Model">{modelArgument.name || '-'}</FormGroup>
-    <FormGroup label="Url">{modelArgument.url || '-'}</FormGroup>
+    <FormGroup label="Model" data-testid="model-argument-name">
+      {modelArgument.name || '-'}
+    </FormGroup>
+    <FormGroup label="Url" data-testid="model-argument-url">
+      {modelArgument.url || '-'}
+    </FormGroup>
     <FormGroup
       label="Tokenized requests"
       labelHelp={
@@ -53,15 +57,15 @@ const LmEvalModelArgumentSection: React.FC<LmEvalModelArgumentSectionProps> = ({
         name="model-tokenized-request-true-radio"
         id="model-tokenized-request-true-radio"
         label="True"
-        isChecked={modelArgument.tokenizedRequest}
-        onChange={() => setModelArgument({ ...modelArgument, tokenizedRequest: true })}
+        isChecked={modelArgument.tokenizedRequest === 'True'}
+        onChange={() => setModelArgument({ ...modelArgument, tokenizedRequest: 'True' })}
       />
       <Radio
         name="model-tokenized-request-false-radio"
         id="model-tokenized-request-false-radio"
         label="False"
-        isChecked={!modelArgument.tokenizedRequest}
-        onChange={() => setModelArgument({ ...modelArgument, tokenizedRequest: false })}
+        isChecked={modelArgument.tokenizedRequest === 'False'}
+        onChange={() => setModelArgument({ ...modelArgument, tokenizedRequest: 'False' })}
       />
     </FormGroup>
     <FormGroup

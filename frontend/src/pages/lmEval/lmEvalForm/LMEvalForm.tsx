@@ -3,6 +3,8 @@ import {
   Breadcrumb,
   BreadcrumbItem,
   Button,
+  EmptyState,
+  EmptyStateBody,
   Form,
   FormGroup,
   FormSection,
@@ -14,22 +16,41 @@ import {
   Select,
   SelectList,
   SelectOption,
-  TextInput,
+  Skeleton,
   Truncate,
 } from '@patternfly/react-core';
-import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
+import { OutlinedQuestionCircleIcon, CubesIcon } from '@patternfly/react-icons';
+import { Link } from 'react-router';
 import { LmEvalFormData, LmModelArgument } from '#~/pages/lmEval/types';
-import LMEvalApplicationPage from '#~/pages/lmEval/components/LMEvalApplicationPage';
+import useInferenceServices from '#~/pages/modelServing/useInferenceServices';
 import useLMGenericObjectState from '#~/pages/lmEval/utilities/useLMGenericObjectState';
-import LmEvaluationFormFooter from './LMEvalFormFooter';
+import LMEvalApplicationPage from '#~/pages/lmEval/components/LMEvalApplicationPage';
+import { LMEvalContext } from '#~/pages/lmEval/global/LMEvalContext';
+import {
+  ModelOption,
+  ModelTypeOption,
+  filterVLLMInference,
+  generateModelOptions,
+  handleModelSelection,
+  handleModelTypeSelection,
+} from '#~/pages/lmEval/utilities/modelUtils';
+import K8sNameDescriptionField, {
+  useK8sNameDescriptionFieldData,
+} from '#~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField.tsx';
 import LmEvaluationTaskSection from './LMEvalTaskSection';
 import LmEvaluationSecuritySection from './LMEvalSecuritySection';
 import LmModelArgumentSection from './LMEvalModelArgumentSection';
 import { modelTypeOptions } from './const';
+import '#~/components/pf-overrides/FormSection.scss';
+import LMEvalFormFooter from './LMEvalFormFooter';
 
 const LMEvalForm: React.FC = () => {
+  const { project } = React.useContext(LMEvalContext);
+  const namespace = project?.metadata.name || 'default';
+
   const [data, setData] = useLMGenericObjectState<LmEvalFormData>({
     deployedModelName: '',
+    k8sName: '',
     evaluationName: '',
     tasks: [],
     modelType: '',
@@ -38,15 +59,61 @@ const LMEvalForm: React.FC = () => {
     model: {
       name: '',
       url: '',
-      tokenizedRequest: false,
+      tokenizedRequest: 'False',
       tokenizer: '',
     },
   });
   const [open, setOpen] = React.useState(false);
+  const [openModelName, setOpenModelName] = React.useState(false);
+  const inferenceServices = useInferenceServices();
 
-  const findOptionForKey = (key: string) => modelTypeOptions.find((option) => option.key === key);
+  const modelOptions = React.useMemo(() => {
+    if (!inferenceServices.loaded || inferenceServices.error || !namespace) {
+      return [];
+    }
+
+    const filteredServices = filterVLLMInference(inferenceServices.data.items, namespace);
+    return generateModelOptions(filteredServices);
+  }, [inferenceServices.loaded, inferenceServices.error, inferenceServices.data.items, namespace]);
+
+  const { data: lmEvalName, onDataChange: setLmEvalName } = useK8sNameDescriptionFieldData({});
+
+  React.useEffect(() => {
+    if (namespace && data.deployedModelName) {
+      const isModelInNamespace = modelOptions.some(
+        (model: ModelOption) => model.value === data.deployedModelName,
+      );
+      if (!isModelInNamespace) {
+        setData('deployedModelName', '');
+        setData('model', {
+          ...data.model,
+          name: '',
+          url: '',
+        });
+      }
+    }
+  }, [namespace, modelOptions, data.deployedModelName, setData, data.model]);
+
+  React.useEffect(() => {
+    setData('evaluationName', lmEvalName.name);
+    setData('k8sName', lmEvalName.k8sName.value);
+    // only update if the name changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lmEvalName]);
+
+  const findOptionForKey = (key: string): ModelTypeOption | undefined =>
+    modelTypeOptions.find((option) => option.key === key);
   const selectedOption = data.modelType ? findOptionForKey(data.modelType) : undefined;
   const selectedLabel = selectedOption?.label ?? 'Select type a model';
+  const selectedModel = modelOptions.find(
+    (model: ModelOption) => model.value === data.deployedModelName,
+  );
+  const selectedModelLabel = selectedModel?.label || 'Select a model';
+
+  const isLoading = !inferenceServices.loaded && !inferenceServices.error;
+  const hasNoModels =
+    inferenceServices.loaded && !inferenceServices.error && modelOptions.length === 0;
+
   return (
     <LMEvalApplicationPage
       loaded
@@ -59,18 +126,93 @@ const LMEvalForm: React.FC = () => {
       }
       breadcrumb={
         <Breadcrumb>
-          <BreadcrumbItem>Evaluate</BreadcrumbItem>
+          <BreadcrumbItem render={() => <Link to="/modelEvaluations">Model evaluations</Link>} />
+          <BreadcrumbItem isActive>Evaluate model</BreadcrumbItem>
         </Breadcrumb>
       }
       empty={false}
     >
       <PageSection hasBodyWrapper={false} isFilled>
         <Form data-testid="lmEvaluationForm" maxWidth="800px">
-          <FormGroup label="Model name">{data.deployedModelName || '-'}</FormGroup>
+          <FormGroup label="Model name" isRequired data-testid="model-name-form-group">
+            <Select
+              isOpen={openModelName}
+              selected={data.deployedModelName}
+              onSelect={(e, selectValue) => {
+                const selectedModelName = String(selectValue);
+                const result = handleModelSelection(
+                  selectedModelName,
+                  modelOptions,
+                  data.model,
+                  data.modelType,
+                  findOptionForKey,
+                );
+
+                setData('deployedModelName', result.deployedModelName);
+                setData('model', result.model);
+                setOpenModelName(false);
+              }}
+              onOpenChange={setOpenModelName}
+              toggle={(toggleRef) => (
+                <MenuToggle
+                  isFullWidth
+                  ref={toggleRef}
+                  aria-label="Model options menu"
+                  onClick={() => setOpenModelName(!openModelName)}
+                  isExpanded={openModelName}
+                  isDisabled={false}
+                >
+                  <Truncate content={selectedModelLabel} className="truncate-no-min-width" />
+                </MenuToggle>
+              )}
+              shouldFocusToggleOnSelect
+            >
+              <SelectList>
+                {isLoading ? (
+                  <>
+                    <SelectOption key="skeleton-1" isDisabled>
+                      <Skeleton width="80%" />
+                    </SelectOption>
+                    <SelectOption key="skeleton-2" isDisabled>
+                      <Skeleton width="60%" />
+                    </SelectOption>
+                    <SelectOption key="skeleton-3" isDisabled>
+                      <Skeleton width="90%" />
+                    </SelectOption>
+                  </>
+                ) : hasNoModels ? (
+                  <div style={{ padding: '1rem' }}>
+                    <EmptyState
+                      headingLevel="h4"
+                      icon={CubesIcon}
+                      titleText="No vLLM models available"
+                      variant="xs"
+                    >
+                      <EmptyStateBody>
+                        No vLLM inference services are available in the &apos;{namespace}&apos;
+                        namespace. Deploy a vLLM model to proceed with evaluation.
+                      </EmptyStateBody>
+                    </EmptyState>
+                  </div>
+                ) : (
+                  modelOptions.map((option: ModelOption) => (
+                    <SelectOption
+                      value={option.value}
+                      key={option.value}
+                      description={`${option.displayName} in ${option.namespace}`}
+                    >
+                      {option.label}
+                    </SelectOption>
+                  ))
+                )}
+              </SelectList>
+            </Select>
+          </FormGroup>
           {/* TODO: add popover content */}
           <FormGroup
             label="Evaluation name"
             isRequired
+            data-testid="evaluation-name-form-group"
             labelHelp={
               <Popover bodyContent={<></>}>
                 <Button
@@ -85,33 +227,27 @@ const LMEvalForm: React.FC = () => {
               </Popover>
             }
           >
-            <TextInput
-              autoFocus
-              aria-label="Evaluation name"
-              value={data.evaluationName}
-              onChange={(_event, v) => setData('evaluationName', v)}
+            <K8sNameDescriptionField
+              data={lmEvalName}
+              onDataChange={setLmEvalName}
+              dataTestId="lm-eval"
+              hideDescription
             />
           </FormGroup>
           <LmEvaluationTaskSection
             tasks={data.tasks}
             setTasks={(selectedTasks: string[]) => setData('tasks', selectedTasks)}
           />
-          <FormGroup label="Model type" isRequired>
+          <FormGroup label="Model type" isRequired data-testid="model-type-form-group">
             <Select
               isOpen={open}
               selected={data.modelType}
               onSelect={(e, selectValue) => {
                 const modelType = String(selectValue);
-                setData('modelType', modelType);
+                const result = handleModelTypeSelection(modelType, data.model, findOptionForKey);
 
-                // Remove any existing endpoint and add the new one
-                const baseUrl = data.model.url.replace(/\/v1\/(chat\/)?completions/, '');
-                const modelOption = findOptionForKey(modelType);
-                const endpoint = modelOption?.endpoint ?? '';
-                setData('model', {
-                  ...data.model,
-                  url: `${baseUrl}${endpoint}`,
-                });
+                setData('modelType', result.modelType);
+                setData('model', result.model);
                 setOpen(false);
               }}
               onOpenChange={setOpen}
@@ -154,7 +290,7 @@ const LMEvalForm: React.FC = () => {
             setModelArgument={(modelArgument: LmModelArgument) => setData('model', modelArgument)}
           />
           <FormSection>
-            <LmEvaluationFormFooter data={data} />
+            <LMEvalFormFooter data={data} namespace={namespace} />
           </FormSection>
         </Form>
       </PageSection>
