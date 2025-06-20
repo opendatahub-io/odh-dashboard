@@ -111,7 +111,7 @@ export const isPipelineRecurringRun = (
 ): resource is PipelineRecurringRunKF => 'recurring_run_id' in resource && !('run_id' in resource);
 
 // workaround until https://issues.redhat.com/browse/RHOAIENG-27727 is fixed
-// after the above ticket is resovled, once 'failingTodeploy' is detected then it is an automatic fail
+// after the above ticket is resolved, once 'failingTodeploy' is detected then it is an automatic fail
 // without any need for a timeout.
 // but we should still timeout everything else
 export const getStatusFromCondition = (condition: K8sCondition): StatusType => {
