@@ -21,6 +21,10 @@ class PipelineRunsGlobal {
     cy.testA11y();
   }
 
+  findProjectNavigatorLink() {
+    return cy.findByTestId('project-navigator-link');
+  }
+
   isApiAvailable() {
     return cy.findByTestId('pipelines-api-not-available').should('not.exist');
   }

@@ -1,35 +1,33 @@
 import React from 'react';
 import { ProjectDetailsContext } from '@odh-dashboard/internal/pages/projects/ProjectDetailsContext';
+import { useExtensions, useResolvedExtensions } from '@odh-dashboard/plugin-core';
 import { useProjectServingPlatform } from './concepts/useProjectServingPlatform';
 import { ModelDeploymentsProvider } from './concepts/ModelDeploymentsContext';
-import {
-  ModelServingPlatformContext,
-  ModelServingPlatformProvider,
-} from './concepts/ModelServingPlatformContext';
+import { ModelServingPlatformProvider } from './concepts/ModelServingPlatformContext';
 import ModelsProjectDetailsView from './components/projectDetails/ModelsProjectDetailsView';
+import {
+  isModelServingPlatformExtension,
+  isModelServingPlatformWatchDeployments,
+} from '../extension-points';
 
-const WithDeploymentsData: React.FC = () => {
+const ModelsProjectDetailsTab: React.FC = () => {
   const { currentProject } = React.useContext(ProjectDetailsContext);
-  const { availablePlatforms } = React.useContext(ModelServingPlatformContext);
+
+  const availablePlatforms = useExtensions(isModelServingPlatformExtension);
+  const [deploymentWatchers] = useResolvedExtensions(isModelServingPlatformWatchDeployments);
 
   const { activePlatform } = useProjectServingPlatform(currentProject, availablePlatforms);
-
-  // Certain platform-specific properties, such as hooks, require the `platform`
-  // to be always defined and truthy.
-  if (activePlatform && currentProject.metadata.name) {
-    return (
-      <ModelDeploymentsProvider modelServingPlatform={activePlatform} project={currentProject}>
+  return (
+    <ModelServingPlatformProvider>
+      <ModelDeploymentsProvider
+        modelServingPlatforms={activePlatform ? [activePlatform] : []}
+        projects={[currentProject]}
+        deploymentWatchers={deploymentWatchers}
+      >
         <ModelsProjectDetailsView project={currentProject} />
       </ModelDeploymentsProvider>
-    );
-  }
-  return <ModelsProjectDetailsView project={currentProject} />;
+    </ModelServingPlatformProvider>
+  );
 };
-
-const ModelsProjectDetailsTab: React.FC = () => (
-  <ModelServingPlatformProvider>
-    <WithDeploymentsData />
-  </ModelServingPlatformProvider>
-);
 
 export default ModelsProjectDetailsTab;

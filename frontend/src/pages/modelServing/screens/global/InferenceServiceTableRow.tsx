@@ -5,13 +5,17 @@ import ResourceActionsColumn from '#~/components/ResourceActionsColumn';
 import ResourceNameTooltip from '#~/components/ResourceNameTooltip';
 import useModelMetricsEnabled from '#~/pages/modelServing/useModelMetricsEnabled';
 import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
-import { isModelMesh } from '#~/pages/modelServing/utils';
+import { getInferenceServiceStoppedStatus, isModelMesh } from '#~/pages/modelServing/utils';
 import { SupportedArea } from '#~/concepts/areas';
 import useIsAreaAvailable from '#~/concepts/areas/useIsAreaAvailable';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import { byName, ProjectsContext } from '#~/concepts/projects/ProjectsContext';
 import { isProjectNIMSupported } from '#~/pages/modelServing/screens/projects/nimUtils';
 import useServingPlatformStatuses from '#~/pages/modelServing/useServingPlatformStatuses';
+import StateActionToggle from '#~/components/StateActionToggle';
+import { patchInferenceServiceStoppedStatus } from '#~/api/k8s/inferenceServices';
+import useStopModalPreference from '#~/pages/modelServing/useStopModalPreference.ts';
+import ModelServingStopModal from '#~/pages/modelServing/ModelServingStopModal';
 import InferenceServiceEndpoint from './InferenceServiceEndpoint';
 import InferenceServiceProject from './InferenceServiceProject';
 import InferenceServiceStatus from './InferenceServiceStatus';
@@ -24,6 +28,7 @@ type InferenceServiceTableRowProps = {
   isGlobal?: boolean;
   servingRuntime?: ServingRuntimeKind;
   columnNames: string[];
+  refresh?: () => void;
   onDeleteInferenceService: (obj: InferenceServiceKind) => void;
   onEditInferenceService: (obj: InferenceServiceKind) => void;
 };
@@ -31,11 +36,14 @@ type InferenceServiceTableRowProps = {
 const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
   obj: inferenceService,
   servingRuntime,
+  refresh = () => undefined,
   onDeleteInferenceService,
   onEditInferenceService,
   isGlobal,
   columnNames,
 }) => {
+  const [dontShowModalValue] = useStopModalPreference();
+  const [isOpenConfirm, setOpenConfirm] = React.useState(false);
   const { projects } = React.useContext(ProjectsContext);
   const project = projects.find(byName(inferenceService.metadata.namespace)) ?? null;
   const isKServeNIMEnabled = project ? isProjectNIMSupported(project) : false;
@@ -50,6 +58,20 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
   const modelMeshMetricsSupported = modelMetricsEnabled && modelMesh;
   const kserveMetricsSupported = modelMetricsEnabled && kserveMetricsEnabled && !modelMesh;
   const displayName = getDisplayNameFromK8sResource(inferenceService);
+
+  const modelServingStatus = getInferenceServiceStoppedStatus(inferenceService);
+
+  const onStart = React.useCallback(() => {
+    patchInferenceServiceStoppedStatus(inferenceService, 'false').then(refresh);
+  }, [inferenceService, refresh]);
+
+  const onStop = React.useCallback(() => {
+    if (dontShowModalValue) {
+      patchInferenceServiceStoppedStatus(inferenceService, 'true').then(refresh);
+    } else {
+      setOpenConfirm(true);
+    }
+  }, [dontShowModalValue, inferenceService, refresh]);
 
   return (
     <>
@@ -107,6 +129,9 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
       <Td dataLabel="Status">
         <InferenceServiceStatus inferenceService={inferenceService} isKserve={!modelMesh} />
       </Td>
+      <Td>
+        <StateActionToggle currentState={modelServingStatus} onStart={onStart} onStop={onStop} />
+      </Td>
 
       {columnNames.includes(ColumnField.Kebab) && (
         <Td isActionCell>
@@ -130,6 +155,18 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
             ]}
           />
         </Td>
+      )}
+      {isOpenConfirm && (
+        <ModelServingStopModal
+          modelName={displayName}
+          title="Stop model?"
+          onClose={(confirmStatus) => {
+            if (confirmStatus) {
+              patchInferenceServiceStoppedStatus(inferenceService, 'true').then(refresh);
+            }
+            setOpenConfirm(false);
+          }}
+        />
       )}
     </>
   );

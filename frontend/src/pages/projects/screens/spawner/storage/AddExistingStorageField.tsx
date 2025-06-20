@@ -7,7 +7,6 @@ import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import TypeaheadSelect from '#~/components/TypeaheadSelect';
 import useProjectPvcs from '#~/pages/projects/screens/detail/storage/useProjectPvcs';
 import { AccessMode } from '#~/pages/storageClasses/storageEnums';
-import { PersistentVolumeClaimKind } from '#~/k8sTypes';
 import { getPvcAccessMode } from '#~/pages/projects/utils.ts';
 
 type AddExistingStorageFieldProps = {
@@ -35,17 +34,20 @@ const AddExistingStorageField: React.FC<AddExistingStorageFieldProps> = ({
     </div>
   );
 
+  const availablePvcs = React.useMemo(
+    () =>
+      storages.filter((pvc) => !existingStorageNames?.includes(getDisplayNameFromK8sResource(pvc))),
+    [storages, existingStorageNames],
+  );
+
   const groupSelectOptions = React.useMemo(() => {
     if (!loaded) {
       return [];
     }
-    const isPvcAvailable = (pvc: PersistentVolumeClaimKind) =>
-      !existingStorageNames?.includes(getDisplayNameFromK8sResource(pvc));
+
     const groups: TypeaheadSelectOption[] = [];
     Object.entries(AccessMode).forEach(([label, mode]) => {
-      const groupModePvc = storages.filter(
-        (pvc) => getPvcAccessMode(pvc) === mode && isPvcAvailable(pvc),
-      );
+      const groupModePvc = availablePvcs.filter((pvc) => getPvcAccessMode(pvc) === mode);
       if (groupModePvc.length > 0) {
         const groupOptions = groupModePvc.map((pvc) => ({
           value: pvc.metadata.name,
@@ -54,18 +56,30 @@ const AddExistingStorageField: React.FC<AddExistingStorageFieldProps> = ({
             pvc.spec.resources.requests.storage,
             pvc.metadata.annotations?.['openshift.io/description'],
           ),
-          selectedLabel: (
-            <Label key={`access-mode-label-${label}`} isCompact color="blue" variant="outline">
-              {`${mode} (${label})`}
-            </Label>
-          ),
+          selectedLabel:
+            availablePvcs.length === 1 ? (
+              <Label
+                key={`access-mode-label-${label}`}
+                isCompact
+                isDisabled
+                variant="filled"
+                color="grey"
+                style={{ border: '1px solid var(--pf-t--global--border--color--disabled)' }}
+              >
+                {`${mode} (${label})`}
+              </Label>
+            ) : (
+              <Label key={`access-mode-label-${label}`} isCompact color="blue" variant="outline">
+                {`${mode} (${label})`}
+              </Label>
+            ),
           group: `${mode} (${label}) storage`,
         }));
         groups.push(...groupOptions);
       }
     });
     return groups;
-  }, [existingStorageNames, loaded, storages]);
+  }, [availablePvcs, loaded]);
 
   if (error) {
     return (
@@ -113,7 +127,7 @@ const AddExistingStorageField: React.FC<AddExistingStorageFieldProps> = ({
       <FormHelperText>
         <Alert
           variant="info"
-          title="RWO and RWOP storage can only be attached to one workbench at a time. If it's already attached elsewhere, attaching it here will disconnect it from the other workbench."
+          title="RWOP storage can be attached to only one workbench at a time. RWO storage can be shared by workbenches on the same node, but attaching it to a workbench on a different node will detach it from the current ones."
           isInline
           isPlain
         />
