@@ -43,21 +43,21 @@ filters:
     reviewers:
       - platform-reviewers
     labels:
-      - "area/platform"
+      - area/platform
   "frontend/packages/template/.*":
     approvers:
       - platform-approvers
     reviewers:
       - platform-reviewers
     labels:
-      - "area/platform"
+      - area/platform
   "frontend/packages/tsconfig/.*":
     approvers:
       - platform-approvers
     reviewers:
       - platform-reviewers
     labels:
-      - "area/platform"
+      - area/platform
 
   # Filters for frontend/src/api/
   "frontend/src/api/modelRegistry/.*":
@@ -145,7 +145,7 @@ filters:
     reviewers:
       - platform-reviewers
     labels:
-      - "area/platform"
+      - area/platform
   "frontend/src/concepts/trustyai/.*":
     approvers:
       - ai-safety-trusty-approvers
@@ -161,7 +161,7 @@ filters:
     reviewers:
       - platform-reviewers
     labels:
-      - "area/platform"
+      - area/platform
   "frontend/src/pages/acceleratorProfiles/.*":
     approvers:
       - hardware-profiles-approvers
@@ -240,7 +240,7 @@ filters:
     reviewers:
       - platform-reviewers
     labels:
-      - "area/platform"
+      - area/platform
 
   # Filters for frontend/src/routes/
   "frontend/src/routes/modelCatalog/.*":
