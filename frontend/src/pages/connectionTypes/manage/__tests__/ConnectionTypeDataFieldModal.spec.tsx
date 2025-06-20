@@ -339,8 +339,6 @@ describe('ConnectionTypeDataFieldModal', () => {
     const fieldNameInput = screen.getByTestId('field-name-input');
     const fieldDescriptionInput = screen.getByTestId('field-description-input');
     const fieldEnvVarInput = screen.getByTestId('field-env-var-input');
-    // const typeSelectGroup = screen.getByTestId('field-type-select');
-    // const typeSelectToggle = within(typeSelectGroup).getByRole('button');
 
     act(() => {
       fireEvent.change(fieldNameInput, { target: { value: 'short-text' } });

@@ -6,7 +6,7 @@ import {
 } from '#~/concepts/connectionTypes/types';
 
 /**
- * Remove spaces and empty values from file extensions
+ * Lowercase and remove spaces from file extensions
  */
 const cleanupFileUploadField = (field: FileField): FileField => ({
   ...field,

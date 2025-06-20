@@ -49,22 +49,20 @@ const HiddenFormField: React.FC<FieldProps<HiddenField>> = ({
           )}
         </FormGroupText>
       ) : (
-        <>
-          <PasswordInput
-            aria-readonly={isPreview}
-            autoComplete="off"
-            isRequired={field.required}
-            id={id}
-            name={id}
-            data-testid={dataTestId}
-            ariaLabelHide="Hide value"
-            ariaLabelShow="Show value"
-            value={(isPreview ? field.properties.defaultValue : value) ?? ''}
-            onChange={isPreview || !onChange ? undefined : (_e, v) => onChange(v)}
-            onBlur={(e) => trimInputOnBlur(value, onChange)(e)}
-            onPaste={(e) => trimInputOnPaste(value, onChange)(e)}
-          />
-        </>
+        <PasswordInput
+          aria-readonly={isPreview}
+          autoComplete="off"
+          isRequired={field.required}
+          id={id}
+          name={id}
+          data-testid={dataTestId}
+          ariaLabelHide="Hide value"
+          ariaLabelShow="Show value"
+          value={(isPreview ? field.properties.defaultValue : value) ?? ''}
+          onChange={isPreview || !onChange ? undefined : (_e, v) => onChange(v)}
+          onBlur={(e) => trimInputOnBlur(value, onChange)(e)}
+          onPaste={(e) => trimInputOnPaste(value, onChange)(e)}
+        />
       )}
       <SensitiveFieldHelperText field={field} mode={mode} />
     </>
