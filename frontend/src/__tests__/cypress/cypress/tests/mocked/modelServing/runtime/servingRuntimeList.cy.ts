@@ -1379,7 +1379,6 @@ describe('Serving Runtime List', () => {
       );
 
       kserveRow.findStateActionToggle().should('have.text', 'Stop').click();
-      kserveRow.findStatusLabel('Stopped');
       kserveRow.findConfirmStopModal().should('exist');
       kserveRow.findConfirmStopModalCheckbox().should('exist');
       kserveRow.findConfirmStopModalCheckbox().should('not.be.checked');
@@ -1387,6 +1386,7 @@ describe('Serving Runtime List', () => {
       kserveRow.findConfirmStopModalCheckbox().should('be.checked');
       kserveRow.findConfirmStopModalButton().click();
       cy.wait(['@stopModelPatch', '@getStoppedModel']);
+      kserveRow.findStatusLabel('Stopped');
       kserveRow.findStateActionToggle().should('have.text', 'Start');
       cy.window().then((win) => {
         const preference = win.localStorage.getItem(STOP_MODAL_PREFERENCE_KEY);
