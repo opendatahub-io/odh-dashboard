@@ -1,0 +1,132 @@
+aliases:
+  # General group of approvers if specifics areas are not preferred instead
+  general-approvers:
+    - andrewballantyne
+    - lucferbux
+    - alexcreasy
+    - christianvogt
+    - mturley
+    - Gkrumbach07
+    - emilys314
+    - DaoDaoNoCode
+    - antowaddle
+    - manosnoam
+    - FedeAlonso
+    - Griffin-Sullivan
+    - YuliaKrimerman
+
+  # Backup alias for managers to help with unblocking during PTO
+  managers-backup-approvers:
+    - dgutride
+    - darachcawley
+    - adnankhan666
+    - bobbravo2
+    - jessiehuff
+
+  # Agentic / RAG team (mapped to Agentic-Rag scrum)
+  agentic-rag-approvers:
+    - alexcreasy
+  agentic-rag-reviewers:
+    - agagancarczyk
+    - alexcreasy
+
+  # AI Safety / Trusty team (mapped to Agentic-Rag scrum)
+  ai-safety-trusty-approvers:
+    - alexcreasy
+  ai-safety-trusty-reviewers:
+    - agagancarczyk
+    - alexcreasy
+
+  # Connections & Connection Types team (mapped to Zaffre scrum)
+  connections-approvers:
+    - emilys314
+    - Griffin-Sullivan
+    - andrewballantyne
+  connections-reviewers:
+    - andrewballantyne
+    - ashley-o0o
+    - emilys314
+    - Griffin-Sullivan
+    - katieperry4
+
+  # Hardware Profiles team (mapped to Razzmatazz scrum)
+  hardware-profiles-approvers:
+    - Gkrumbach07
+    - DaoDaoNoCode
+  hardware-profiles-reviewers:
+    - srtanish1992
+    - d0w
+    - Gkrumbach07
+    - jrenee42
+    - DaoDaoNoCode
+    - nananosirova
+    - rsun19
+
+  # Model Registry & Model Catalog team (mapped to Green scrum)
+  model-registry-catalog-approvers:
+    - mturley
+    - YuliaKrimerman
+  model-registry-catalog-reviewers:
+    - claudialphonse78
+    - manaswinidas
+    - mturley
+    - ppadti
+    - YuliaKrimerman
+
+  # Model Serving & Model Metrics team (mapped to Zaffre scrum)
+  model-serving-metrics-approvers:
+    - emilys314
+    - Griffin-Sullivan
+    - andrewballantyne
+  model-serving-metrics-reviewers:
+    - andrewballantyne
+    - ashley-o0o
+    - emilys314
+    - Griffin-Sullivan
+    - katieperry4
+
+  # Pipelines team (mapped to Razzmatazz scrum)
+  pipelines-approvers:
+    - Gkrumbach07
+    - DaoDaoNoCode
+  pipelines-reviewers:
+    - srtanish1992
+    - d0w
+    - Gkrumbach07
+    - jrenee42
+    - DaoDaoNoCode
+    - nananosirova
+    - rsun19
+
+  # General Dashboard infrastructure team; Plugins, Core Infrastructure, etc (mapped to Monarch scrum)
+  platform-approvers:
+    - christianvogt
+    - lucferbux
+  platform-reviewers:
+    - christianvogt
+    - jenny-s51
+    - lucferbux
+
+  # Quality / E2E testing team (mapped to all QE members)
+  quality-e2e-testing-approvers:
+    - antowaddle
+    - FedeAlonso
+    - manosnoam
+  quality-e2e-testing-reviewers:
+    - ConorOM1
+    - antowaddle
+    - FedeAlonso
+    - manosnoam
+
+  # Workbenches (formerly Notebooks) team (mapped to Razzmatazz scrum)
+  workbenches-approvers:
+    - Gkrumbach07
+    - DaoDaoNoCode
+  workbenches-reviewers:
+    - srtanish1992
+    - d0w
+    - Gkrumbach07
+    - jrenee42
+    - DaoDaoNoCode
+    - nananosirova
+    - rsun19
