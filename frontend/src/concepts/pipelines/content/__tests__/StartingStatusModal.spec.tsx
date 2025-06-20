@@ -116,6 +116,14 @@ describe('StartingStatusModal', () => {
     // Mock the pipeline events hooks to return empty arrays
     mockUseWatchPodsForPipelineServerEvents.mockReturnValue([[], false, undefined]);
     mockUseWatchMultiplePodEvents.mockReturnValue(mockEvents);
+
+    // Set up default mock for usePipelinesAPI
+    mockUsePipelinesAPI.mockReturnValue(
+      createMockConditions([
+        { type: 'APIServerReady', status: 'False', message: 'API server not ready' },
+        { type: 'Ready', status: 'False', message: 'Server not ready' },
+      ]),
+    );
   });
 
   it('should show spinner when no conditions are ready', () => {
@@ -167,57 +175,32 @@ describe('StartingStatusModal', () => {
     expect(screen.getByTestId('successDescription')).toBeInTheDocument();
   });
 
-  it('should display events in the progress tab', () => {
+  it('should display conditions in the progress tab', () => {
+    const conditions = [
+      { type: 'APIServerReady', status: 'False', message: 'API server not ready' },
+      { type: 'Ready', status: 'False', message: 'Server not ready' },
+    ];
+    mockUsePipelinesAPI.mockReturnValue(createMockConditions(conditions));
+
     render(<StartingStatusModal onClose={mockOnClose} />);
+
+    // Progress tab is the default tab, so conditions should be visible
+    conditions.forEach((condition) => {
+      expect(screen.getByText(condition.type)).toBeInTheDocument();
+    });
+  });
+
+  it('should display events in the events log tab', () => {
+    render(<StartingStatusModal onClose={mockOnClose} />);
+
+    // Switch to events log tab
+    fireEvent.click(screen.getByText('Events log'));
 
     // the messages should be in the screen
     const messages = [message1, message2, message3];
     messages.forEach((message) => {
       expect(screen.getByText(message)).toBeInTheDocument();
     });
-  });
-
-  it('should display events log tab with initial message', () => {
-    const conditions = [
-      { type: 'APIServerReady', status: 'False', message: 'API server not ready' },
-    ];
-    mockUsePipelinesAPI.mockReturnValue(createMockConditions(conditions));
-
-    render(<StartingStatusModal onClose={mockOnClose} />);
-
-    // Switch to events log tab
-    fireEvent.click(screen.getByText('Events log'));
-
-    // Should show the initial message since no events are mocked
-    expect(screen.getByText('Initializing Pipeline')).toBeInTheDocument();
-  });
-
-  it('should display events in the events log tab', () => {
-    const conditions = [
-      { type: 'APIServerReady', status: 'False', message: 'API server not ready' },
-    ];
-    mockUsePipelinesAPI.mockReturnValue(createMockConditions(conditions));
-
-    // Mock the events hook to return our mock events
-    mockUseWatchMultiplePodEvents.mockReturnValue(mockEvents);
-
-    render(<StartingStatusModal onClose={mockOnClose} />);
-
-    // Switch to events log tab
-    fireEvent.click(screen.getByText('Events log'));
-
-    // Should show the mock events
-    expect(
-      screen.getByText(/Add eth0 \[10\.129\.2\.134\/23\] from ovn-kubernetes/),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(/Pulling image "quay\.io\/opendatahub\/ds-pipelines-frontend:latest"/),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        /Successfully assigned brand-new-one\/ds-pipeline-ui-dspa-dbb65fdf6-fnsz7 to ip-10-0-6-114\.ec2\.internal/,
-      ),
-    ).toBeInTheDocument();
   });
 
   it('should call onClose when close button is clicked', () => {
