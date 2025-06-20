@@ -6,13 +6,77 @@ import StartingStatusModal from '#~/concepts/pipelines/content/StartingStatusMod
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { MetadataStoreServicePromiseClient } from '#~/third_party/mlmd/generated/ml_metadata/proto/metadata_store_service_grpc_web_pb';
 import { PipelineAPIs } from '#~/concepts/pipelines/types';
+import {
+  useWatchPodsForPipelineServerEvents,
+  useWatchMultiplePodEvents,
+} from '#~/concepts/pipelines/context/usePipelineEvents.ts';
+
+const message1 = 'Add eth0 [10.129.2.134/23] from ovn-kubernetes';
+const message2 = 'Pulling image "quay.io/opendatahub/ds-pipelines-frontend:latest"';
+const message3 =
+  'Successfully assigned brand-new-one/ds-pipeline-ui-dspa-dbb65fdf6-fnsz7 to ip-10-0-6-114.ec2.internal';
+
+const mockEvents = [
+  {
+    apiVersion: 'v1',
+    kind: 'Event',
+    metadata: {
+      uid: 'f74a4da1-2b46-45f0-98e1-d7e844974a19',
+    },
+    involvedObject: {
+      name: 'ds-pipeline-ui-dspa-dbb65fdf6-fnsz7',
+    },
+    lastTimestamp: '2025-06-20T20:15:44Z',
+    eventTime: '2025-06-20T20:15:44Z',
+    type: 'Normal' as const,
+    reason: 'AddedInterface',
+    message: message1,
+  },
+  {
+    apiVersion: 'v1',
+    kind: 'Event',
+    metadata: {
+      uid: '7cf5c6de-802a-41c2-81de-d007a1a1fdb5',
+    },
+    involvedObject: {
+      name: 'ds-pipeline-ui-dspa-dbb65fdf6-fnsz7',
+    },
+    lastTimestamp: '2025-06-20T20:15:44Z',
+    eventTime: '2025-06-20T20:15:44Z',
+    type: 'Normal' as const,
+    reason: 'Pulling',
+    message: message2,
+  },
+  {
+    apiVersion: 'v1',
+    kind: 'Event',
+    metadata: {
+      uid: 'a73aa9ca-628f-4ff9-9087-fc5afdbdfd2e',
+    },
+    involvedObject: {
+      name: 'ds-pipeline-ui-dspa-dbb65fdf6-fnsz7',
+    },
+    eventTime: '2025-06-20T20:15:44.409955Z',
+    type: 'Normal' as const,
+    reason: 'Scheduled',
+    message: message3,
+  },
+];
 
 // Mock the usePipelinesAPI hook
 jest.mock('#~/concepts/pipelines/context', () => ({
   usePipelinesAPI: jest.fn(),
 }));
 
+// Mock the pipeline events hooks that use useK8sWatchResource
+jest.mock('#~/concepts/pipelines/context/usePipelineEvents.ts', () => ({
+  useWatchPodsForPipelineServerEvents: jest.fn(),
+  useWatchMultiplePodEvents: jest.fn(),
+}));
+
 const mockUsePipelinesAPI = jest.mocked(usePipelinesAPI);
+const mockUseWatchPodsForPipelineServerEvents = jest.mocked(useWatchPodsForPipelineServerEvents);
+const mockUseWatchMultiplePodEvents = jest.mocked(useWatchMultiplePodEvents);
 
 describe('StartingStatusModal', () => {
   const mockOnClose = jest.fn();
@@ -49,6 +113,9 @@ describe('StartingStatusModal', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    // Mock the pipeline events hooks to return empty arrays
+    mockUseWatchPodsForPipelineServerEvents.mockReturnValue([[], false, undefined]);
+    mockUseWatchMultiplePodEvents.mockReturnValue(mockEvents);
   });
 
   it('should show spinner when no conditions are ready', () => {
@@ -114,17 +181,9 @@ describe('StartingStatusModal', () => {
     });
   });
 
-  it('should display conditions in the events log tab', () => {
+  it('should display events log tab with initial message', () => {
     const conditions = [
       { type: 'APIServerReady', status: 'False', message: 'API server not ready' },
-      {
-        lastTransitionTime: '2025-06-05T15:07:33Z',
-        message: 'Component [ds-pipeline-dspa] is deploying.',
-        reason: 'MinimumReplicasAvailable',
-        status: 'False',
-        type: 'Ready',
-      },
-      { type: 'Ready', status: 'False', message: 'Server not ready' },
     ];
     mockUsePipelinesAPI.mockReturnValue(createMockConditions(conditions));
 
@@ -133,11 +192,36 @@ describe('StartingStatusModal', () => {
     // Switch to events log tab
     fireEvent.click(screen.getByText('Events log'));
 
-    conditions.forEach((condition) => {
-      expect(
-        screen.getByText(`${condition.type}: ${condition.status} - ${condition.message}`),
-      ).toBeInTheDocument();
-    });
+    // Should show the initial message since no events are mocked
+    expect(screen.getByText('Initializing Pipeline')).toBeInTheDocument();
+  });
+
+  it('should display events in the events log tab', () => {
+    const conditions = [
+      { type: 'APIServerReady', status: 'False', message: 'API server not ready' },
+    ];
+    mockUsePipelinesAPI.mockReturnValue(createMockConditions(conditions));
+
+    // Mock the events hook to return our mock events
+    mockUseWatchMultiplePodEvents.mockReturnValue(mockEvents);
+
+    render(<StartingStatusModal onClose={mockOnClose} />);
+
+    // Switch to events log tab
+    fireEvent.click(screen.getByText('Events log'));
+
+    // Should show the mock events
+    expect(
+      screen.getByText(/Add eth0 \[10\.129\.2\.134\/23\] from ovn-kubernetes/),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Pulling image "quay\.io\/opendatahub\/ds-pipelines-frontend:latest"/),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /Successfully assigned brand-new-one\/ds-pipeline-ui-dspa-dbb65fdf6-fnsz7 to ip-10-0-6-114\.ec2\.internal/,
+      ),
+    ).toBeInTheDocument();
   });
 
   it('should call onClose when close button is clicked', () => {
