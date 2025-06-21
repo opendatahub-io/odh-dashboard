@@ -64,9 +64,12 @@ const RegistrationCommonFormSections = <D extends RegistrationCommonFormData>({
   };
 
   const fillURIByConnection = (connection: Connection) => {
+    if (connection.data?.OCI_HOST) {
+      setData('modelLocationOCI', window.atob(connection.data.OCI_HOST));
+      setData('storageKey', connection.metadata.name);
+    }
     if (connection.data?.URI) {
       setData('modelLocationURI', window.atob(connection.data.URI));
-      // Store the connection name
       setData('storageKey', connection.metadata.name);
     }
   };
@@ -82,8 +85,8 @@ const RegistrationCommonFormSections = <D extends RegistrationCommonFormData>({
     modelLocationRegion,
     modelLocationPath,
     modelLocationURI,
+    modelLocationOCI,
   } = formData;
-
   return (
     <>
       <FormSection
@@ -151,7 +154,7 @@ const RegistrationCommonFormSections = <D extends RegistrationCommonFormData>({
       </FormSection>
       <FormSection
         title="Model location"
-        description="Specify the model location by providing either the object storage details or the URI."
+        description="Specify the model location by providing either the object storage details, a URI, or an OCI connection."
       >
         <Split>
           <SplitItem isFilled>
@@ -274,6 +277,48 @@ const RegistrationCommonFormSections = <D extends RegistrationCommonFormData>({
             <SplitItem>
               <Button
                 data-testid="uri-autofill-button"
+                variant="link"
+                icon={<OptimizeIcon />}
+                onClick={() => setAutofillModalOpen(true)}
+              >
+                Autofill from connection
+              </Button>
+            </SplitItem>
+          )}
+        </Split>
+        <Split>
+          <SplitItem isFilled>
+            <Radio
+              isChecked={modelLocationType === ModelLocationType.OCI}
+              name="location-type-oci"
+              onChange={() => {
+                setData('modelLocationType', ModelLocationType.OCI);
+              }}
+              label="OCI"
+              id="location-type-oci"
+              body={
+                modelLocationType === ModelLocationType.OCI &&
+                (!isCatalogModel ? (
+                  <FormGroup label="OCI URI" isRequired fieldId="location-oci-uri">
+                    <TextInput
+                      isRequired
+                      type="text"
+                      id="location-oci-uri"
+                      name="location-oci-uri"
+                      value={modelLocationOCI}
+                      onChange={(_e, value) => setData('modelLocationURI', value)}
+                    />
+                  </FormGroup>
+                ) : (
+                  formData.modelLocationOCI
+                ))
+              }
+            />
+          </SplitItem>
+          {modelLocationType === ModelLocationType.OCI && !isCatalogModel && (
+            <SplitItem>
+              <Button
+                data-testid="oci-autofill-button"
                 variant="link"
                 icon={<OptimizeIcon />}
                 onClick={() => setAutofillModalOpen(true)}
