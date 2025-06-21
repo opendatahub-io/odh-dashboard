@@ -116,7 +116,7 @@ jobs:
           git add manifests/odh/params.env frontend/.env
           git commit -m "Edit version info for ${{ github.event.inputs.RELEASE_VERSION }}"
           git push origin ${{ github.event.inputs.RELEASE_VERSION }}-PR
-          gh pr create --base main --head ${{ github.event.inputs.RELEASE_VERSION }}-PR \
+          gh pr create --base ${{ github.event.inputs.RELEASE_VERSION }}-odh-release --head ${{ github.event.inputs.RELEASE_VERSION }}-PR \
             --title "Update versions for ${{ github.event.inputs.RELEASE_VERSION }}" \
             --assignee ${GITHUB_ACTOR} \
             --body "Edited the params.env and .env files to use the new release version ${{ github.event.inputs.RELEASE_VERSION }}" \
@@ -134,8 +134,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create "${{ github.event.inputs.RELEASE_VERSION }}" \
+          gh release create "${{ github.event.inputs.RELEASE_VERSION }}-odh" \
               --repo="$GITHUB_REPOSITORY" \
-              --title="${{ github.event.inputs.RELEASE_VERSION }}" \
+              --title="${{ github.event.inputs.RELEASE_VERSION }}-odh" \
+              --target="${{ github.event.inputs.RELEASE_VERSION }}-odh-release" \
               --latest=false \
               --generate-notes
