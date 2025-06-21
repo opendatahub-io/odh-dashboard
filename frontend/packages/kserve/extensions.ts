@@ -40,6 +40,8 @@ const extensions: (
         startHintDescription: 'Each model is deployed on its own model server',
         deployButtonText: 'Deploy model',
       },
+      useIsMetricsSupported: () =>
+        import('./src/metrics').then((m) => m.useIsKServeMetricsSupported),
     },
   },
   {
