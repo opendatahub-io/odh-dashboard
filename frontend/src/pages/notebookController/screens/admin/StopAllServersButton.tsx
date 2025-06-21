@@ -3,6 +3,7 @@ import { Button } from '@patternfly/react-core';
 import StopServerModal from '#~/pages/notebookController/screens/server/StopServerModal';
 import { Notebook } from '#~/types';
 import { useStopWorkbenchModal } from '#~/concepts/notebooks/useStopWorkbenchModal';
+import useRouteForNotebook from '#~/concepts/notebooks/apiHooks/useRouteForNotebook';
 import { AdminViewUserData } from './types';
 
 type StopAllServersButtonProps = {
@@ -19,6 +20,12 @@ const StopAllServersButton: React.FC<StopAllServersButtonProps> = ({ users }) =>
   const notebooksToStop = activeServers
     .map((server) => server.notebook)
     .filter((notebook): notebook is Notebook => !!notebook);
+
+  // if there is only one notebook to stop
+  const { data: routeLink, error: loadError } = useRouteForNotebook(
+    notebooksToStop[0]?.metadata.name,
+    notebooksToStop[0]?.metadata.namespace,
+  );
 
   const { showModal, isDeleting, onStop, onNotebooksStop } = useStopWorkbenchModal({
     notebooksToStop,
@@ -45,7 +52,7 @@ const StopAllServersButton: React.FC<StopAllServersButtonProps> = ({ users }) =>
       {showModal && (
         <StopServerModal
           notebooksToStop={notebooksToStop}
-          link="#"
+          link={!!loadError || !routeLink ? undefined : routeLink}
           isDeleting={isDeleting}
           onNotebooksStop={onNotebooksStop}
         />
