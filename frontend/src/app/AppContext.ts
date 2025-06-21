@@ -5,6 +5,7 @@ import { BuildStatus } from '#~/types';
 type AppContextProps = {
   buildStatuses: BuildStatus[];
   dashboardConfig: DashboardConfigKind;
+  workbenchNamespace?: string;
   storageClasses: StorageClassKind[];
   isRHOAI: boolean;
 };

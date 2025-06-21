@@ -175,8 +175,12 @@ spec:
                   properties:
                     enabled:
                       type: boolean
+                    # TODO: Remove before going to v1
                     notebookNamespace:
                       type: string
+                      x-kubernetes-validations:
+                        - rule: self == oldSelf
+                          message: Can no longer modify notebookNamespace here
                     pvcSize:
                       type: string
                     notebookTolerationSettings:

@@ -68,16 +68,24 @@ const App: React.FC = () => {
       return null;
     }
     const releaseName = dscStatus?.release?.name;
+    const workbenchNamespace = dscStatus?.components?.workbenches?.workbenchNamespace;
 
     return {
       buildStatuses,
       dashboardConfig,
+      workbenchNamespace,
       storageClasses,
       isRHOAI:
         releaseName === OdhPlatformType.SELF_MANAGED_RHOAI ||
         releaseName === OdhPlatformType.MANAGED_RHOAI,
     };
-  }, [buildStatuses, dashboardConfig, storageClasses, dscStatus]);
+  }, [
+    dashboardConfig,
+    dscStatus?.release?.name,
+    dscStatus?.components?.workbenches?.workbenchNamespace,
+    buildStatuses,
+    storageClasses,
+  ]);
 
   const isUnauthorized = fetchConfigError?.request?.status === 403;
 

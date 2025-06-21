@@ -35,7 +35,7 @@ const useSpawnerNotebookModalState = (
 } => {
   const { currentUserNotebook: notebook, currentUserNotebookIsRunning: isNotebookRunning } =
     React.useContext(NotebookControllerContext);
-  const { notebookNamespace } = useNamespaces();
+  const { workbenchNamespace } = useNamespaces();
   const navigate = useNavigate();
   const [startShown, setStartShown] = React.useState(false);
 
@@ -65,7 +65,7 @@ const useSpawnerNotebookModalState = (
         navigate('/notebookController', { replace: true });
       }
     }
-  }, [notebook, navigate, startShown, isNotebookRunning, createInProgress, notebookNamespace]);
+  }, [notebook, navigate, startShown, isNotebookRunning, createInProgress, workbenchNamespace]);
 
   const refreshNotebookForStart = useRefreshNotebookAndCleanup(startShown);
   const hideStartShown = React.useCallback(() => setStartShown(false), []);

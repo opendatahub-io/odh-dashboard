@@ -11,7 +11,7 @@ const useAdminUsers = (): [AdminViewUserData[], boolean, Error | undefined] => {
   const { requestNotebookRefresh } = React.useContext(NotebookControllerContext);
   const { username: loggedInUser } = useUser();
 
-  const { notebookNamespace } = useNamespaces();
+  const { workbenchNamespace } = useNamespaces();
   const [allowedUsers, allowedUsersLoaded, allowedUsersError] = useCheckForAllowedUsers();
 
   const {
@@ -20,7 +20,7 @@ const useAdminUsers = (): [AdminViewUserData[], boolean, Error | undefined] => {
     loadError: notebookError,
     forceRefresh,
   } = useWatchNotebooksForUsers(
-    notebookNamespace,
+    workbenchNamespace,
     allowedUsers.map(({ username }) => username),
   );
 

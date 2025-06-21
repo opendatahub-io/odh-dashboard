@@ -122,7 +122,7 @@ describe('usernameTranslate', () => {
 });
 
 jest.mock('#~/pages/notebookController/useNamespaces', () => () => ({
-  notebookNamespace: 'test-project',
+  workbenchNamespace: 'test-project',
   dashboardNamespace: 'opendatahub',
 }));
 

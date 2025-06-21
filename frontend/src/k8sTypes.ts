@@ -1256,7 +1256,8 @@ export type DashboardConfigKind = K8sResourceCommon & {
       enabled: boolean;
       pvcSize?: string;
       storageClassName?: string;
-      notebookNamespace?: string;
+      // Intentionally disjointed from the CRD, we should move away from this code-wise now; CRD later
+      // notebookNamespace?: string;
       notebookTolerationSettings?: TolerationSettings;
     };
     templateOrder?: string[];
@@ -1427,6 +1428,9 @@ export type DataScienceClusterKindStatus = {
     /** Status of Model Registry, including its namespace configuration. */
     [DataScienceStackComponent.MODEL_REGISTRY]?: DataScienceClusterComponentStatus & {
       registriesNamespace?: string;
+    };
+    [DataScienceStackComponent.WORKBENCHES]?: DataScienceClusterComponentStatus & {
+      workbenchNamespace?: string;
     };
   };
   conditions: K8sCondition[];

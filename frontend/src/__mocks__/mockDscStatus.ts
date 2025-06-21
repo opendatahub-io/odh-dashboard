@@ -36,6 +36,10 @@ export const mockDscStatus = ({
         },
       ],
     },
+    [DataScienceStackComponent.WORKBENCHES]: {
+      workbenchNamespace: 'openshift-ai-notebooks',
+      managementState: 'Managed',
+    },
   },
   installedComponents = Object.values(StackComponent).reduce(
     (acc, component) => ({ ...acc, [component]: true }),
