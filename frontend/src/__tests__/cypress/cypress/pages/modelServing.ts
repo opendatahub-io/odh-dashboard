@@ -612,12 +612,16 @@ class KServeRow extends ModelMeshRow {
   findStateActionToggle() {
     return this.find().findByTestId('state-action-toggle');
   }
+
+  findStatusLabel(label: string) {
+    return this.find().findByTestId('model-status-text').should('include.text', label);
+  }
 }
 
 class InferenceServiceRow extends TableRow {
   findStatusTooltip() {
     return this.find()
-      .findByTestId('status-tooltip')
+      .findByTestId('model-status-text')
       .click()
       .then(() => {
         cy.findByTestId('model-status-tooltip');
@@ -659,6 +663,10 @@ class InferenceServiceRow extends TableRow {
 
   findProject() {
     return this.find().find(`[data-label=Project]`);
+  }
+
+  findStatusLabel(label: string) {
+    return this.find().findByTestId('model-status-text').should('include.text', label);
   }
 }
 

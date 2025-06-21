@@ -14,6 +14,7 @@ import { isProjectNIMSupported } from '#~/pages/modelServing/screens/projects/ni
 import useServingPlatformStatuses from '#~/pages/modelServing/useServingPlatformStatuses';
 import StateActionToggle from '#~/components/StateActionToggle';
 import { patchInferenceServiceStoppedStatus } from '#~/api/k8s/inferenceServices';
+import { getInferenceServiceModelState } from '#~/concepts/modelServingKServe/kserveStatusUtils.ts';
 import useStopModalPreference from '#~/pages/modelServing/useStopModalPreference.ts';
 import ModelServingStopModal from '#~/pages/modelServing/ModelServingStopModal';
 import InferenceServiceEndpoint from './InferenceServiceEndpoint';
@@ -60,10 +61,24 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
   const displayName = getDisplayNameFromK8sResource(inferenceService);
 
   const modelServingStatus = getInferenceServiceStoppedStatus(inferenceService);
+  const [isStarting, setIsStarting] = React.useState(false);
 
   const onStart = React.useCallback(() => {
+    setIsStarting(true);
     patchInferenceServiceStoppedStatus(inferenceService, 'false').then(refresh);
   }, [inferenceService, refresh]);
+
+  React.useEffect(() => {
+    if (!isStarting) {
+      return;
+    }
+    const isStopped = inferenceService.metadata.annotations?.['serving.kserve.io/stop'] === 'true';
+    const currentState = getInferenceServiceModelState(inferenceService);
+
+    if (!isStopped && (currentState === 'Loading' || currentState === 'Pending')) {
+      setIsStarting(false);
+    }
+  }, [isStarting, inferenceService]);
 
   const onStop = React.useCallback(() => {
     if (dontShowModalValue) {
@@ -127,7 +142,11 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
       )}
 
       <Td dataLabel="Status">
-        <InferenceServiceStatus inferenceService={inferenceService} isKserve={!modelMesh} />
+        <InferenceServiceStatus
+          inferenceService={inferenceService}
+          isKserve={!modelMesh}
+          isStarting={isStarting}
+        />
       </Td>
       <Td>
         <StateActionToggle currentState={modelServingStatus} onStart={onStart} onStop={onStop} />
