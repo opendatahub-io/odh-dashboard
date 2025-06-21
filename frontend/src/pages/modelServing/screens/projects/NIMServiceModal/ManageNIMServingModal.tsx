@@ -10,6 +10,7 @@ import {
   ModalHeader,
 } from '@patternfly/react-core';
 import { EitherOrNone } from '@openshift/dynamic-plugin-sdk';
+import { k8sPatchResource, k8sGetResource } from '@openshift/dynamic-plugin-sdk-utils';
 import {
   createNIMPVC,
   createNIMSecret,
@@ -60,6 +61,7 @@ import StorageClassSelect from '#~/pages/projects/screens/spawner/storage/Storag
 import useAdminDefaultStorageClass from '#~/pages/projects/screens/spawner/storage/useAdminDefaultStorageClass';
 import { useModelDeploymentNotification } from '#~/pages/modelServing/screens/projects/useModelDeploymentNotification';
 import { useGetStorageClassConfig } from '#~/pages/projects/screens/spawner/storage/useGetStorageClassConfig';
+import { InferenceServiceModel } from '#~/api/models';
 import { NoAuthAlert } from './NoAuthAlert';
 
 const NIM_SECRET_NAME = 'nvidia-nim-secrets';
@@ -326,6 +328,38 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
             storageClassName: pvc.spec.storageClassName,
           };
           promises.push(updatePvc(updatePvcData, pvc, namespace, { dryRun: false }));
+          const patchInferenceServiceToTriggerRestart = k8sGetResource({
+            model: InferenceServiceModel,
+            queryOptions: {
+              name: editInfo.inferenceServiceEditInfo?.metadata.name,
+              ns: namespace,
+            },
+          })
+            .then((latestISvc) => {
+              const restartAnnotationPatch = [
+                {
+                  op: 'add',
+                  path: '/metadata/annotations/runtimes.opendatahub.io~1force-redeploy',
+                  value: new Date().toISOString(),
+                },
+                {
+                  op: 'add',
+                  path: '/metadata/annotations/runtimes.opendatahub.io~1redeploy-token',
+                  value: Math.random().toString(36).substring(2),
+                },
+              ];
+              return k8sPatchResource({
+                model: InferenceServiceModel,
+                queryOptions: {
+                  name: latestISvc.metadata?.name ?? '',
+                  ns: namespace,
+                },
+                patches: restartAnnotationPatch,
+              });
+            })
+            .then(() => undefined);
+
+          promises.push(patchInferenceServiceToTriggerRestart);
         }
         return Promise.all(promises);
       })
