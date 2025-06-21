@@ -56,6 +56,7 @@ type Field<T extends ConnectionTypeFieldTypeUnion> = {
 export type ConnectionTypeCommonProperties<V = string> = {
   defaultValue?: V;
   defaultReadOnly?: boolean;
+  deferInput?: boolean;
 };
 
 // P default to an empty set of properties
