@@ -96,6 +96,8 @@ const ManageProjectModal: React.FC<ManageProjectModalProps> = ({ editProjectData
               <K8sNameDescriptionField
                 autoFocusName
                 dataTestId="manage-project-modal"
+                maxLength={250}
+                maxLengthDesc={5500}
                 {...k8sNameDescriptionData}
               />
             </Form>

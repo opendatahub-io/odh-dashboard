@@ -1,5 +1,11 @@
 import React from 'react';
+import { ModelServingPlatformProvider } from './concepts/ModelServingPlatformContext';
+import ModelPlatformSection from './components/overview/ModelPlatformSection';
 
-const serveModelsSection: React.FC = () => <>Serve Models</>;
+const ServeModelsSection: React.FC = () => (
+  <ModelServingPlatformProvider>
+    <ModelPlatformSection />
+  </ModelServingPlatformProvider>
+);
 
-export default serveModelsSection;
+export default ServeModelsSection;

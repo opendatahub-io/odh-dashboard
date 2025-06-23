@@ -7,17 +7,36 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import { isFilledLmEvalFormData } from '#~/pages/lmEval/utils';
+import { useNavigate } from 'react-router-dom';
 import { LmEvalFormData } from '#~/pages/lmEval/types';
+import { createModelEvaluation } from '#~/api';
+import { isFilledLmEvalFormData } from '#~/pages/lmEval/lmEvalForm/utils';
 
 type LMEvalFormFooterProps = {
   data: LmEvalFormData;
+  namespace: string;
 };
 
-const LMEvalFormFooter: React.FC<LMEvalFormFooterProps> = ({ data }) => {
+const LMEvalFormFooter: React.FC<LMEvalFormFooterProps> = ({ data, namespace }) => {
   const [error, setError] = React.useState<Error | null>(null);
   const [isSubmitting, setSubmitting] = React.useState(false);
   const canSubmit = isFilledLmEvalFormData(data);
+  const navigate = useNavigate();
+
+  const onCreatelmEval = async () => {
+    setSubmitting(true);
+    setError(null);
+    createModelEvaluation(data, namespace)
+      .then(() => {
+        navigate('/modelEvaluations');
+      })
+      .catch((err) => {
+        setError(err);
+      })
+      .finally(() => {
+        setSubmitting(false);
+      });
+  };
 
   return (
     <Stack hasGutter>
@@ -35,19 +54,7 @@ const LMEvalFormFooter: React.FC<LMEvalFormFooterProps> = ({ data }) => {
               variant="primary"
               data-testid="lm-evaluation-submit-button"
               isDisabled={isSubmitting || !canSubmit}
-              onClick={() => {
-                setSubmitting(true);
-                setError(null);
-                //TODO: Implement submit function
-                try {
-                  // TODO: Implement submit function
-                  // await submitEvaluation(data);
-                } catch (err) {
-                  // TODO: Implement error handling
-                } finally {
-                  setSubmitting(false);
-                }
-              }}
+              onClick={onCreatelmEval}
               isLoading={isSubmitting}
             >
               Evaluate
@@ -58,7 +65,7 @@ const LMEvalFormFooter: React.FC<LMEvalFormFooterProps> = ({ data }) => {
               variant="link"
               data-testid="lm-evaluation-cancel-button"
               onClick={() => {
-                //TODO: Implement cancel function
+                navigate('/modelEvaluations');
               }}
             >
               Cancel
