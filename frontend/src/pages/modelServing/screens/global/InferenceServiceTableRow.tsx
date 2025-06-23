@@ -17,6 +17,7 @@ import { patchInferenceServiceStoppedStatus } from '#~/api/k8s/inferenceServices
 import { getInferenceServiceModelState } from '#~/concepts/modelServingKServe/kserveStatusUtils.ts';
 import useStopModalPreference from '#~/pages/modelServing/useStopModalPreference.ts';
 import ModelServingStopModal from '#~/pages/modelServing/ModelServingStopModal';
+import { InferenceServiceModelState } from '#~/pages/modelServing/screens/types';
 import InferenceServiceEndpoint from './InferenceServiceEndpoint';
 import InferenceServiceProject from './InferenceServiceProject';
 import InferenceServiceStatus from './InferenceServiceStatus';
@@ -77,7 +78,12 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
     const isStopped = inferenceService.metadata.annotations?.['serving.kserve.io/stop'] === 'true';
     const currentState = getInferenceServiceModelState(inferenceService);
 
-    if (!isStopped && ['Running', 'Succeeded', 'Failed', 'Error'].includes(currentState)) {
+    if (
+      !isStopped &&
+      [InferenceServiceModelState.LOADED, InferenceServiceModelState.FAILED_TO_LOAD].includes(
+        currentState,
+      )
+    ) {
       setIsStarting(false);
     }
   }, [isStarting, inferenceService]);
