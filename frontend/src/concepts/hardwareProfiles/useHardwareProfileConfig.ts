@@ -77,7 +77,10 @@ const matchToHardwareProfile = (
       );
     });
 
-    const tolerationsMatch = profile.spec.tolerations?.every((toleration) =>
+    const profileTolerations = profile.spec.scheduling?.node?.tolerations || [];
+    const profileNodeSelector = profile.spec.scheduling?.node?.nodeSelector || {};
+
+    const tolerationsMatch = profileTolerations.every((toleration) =>
       tolerations.some(
         (t) =>
           t.key === toleration.key &&
@@ -88,7 +91,7 @@ const matchToHardwareProfile = (
       ),
     );
 
-    const nodeSelectorMatch = Object.entries(profile.spec.nodeSelector || {}).every(
+    const nodeSelectorMatch = Object.entries(profileNodeSelector).every(
       ([key, value]) => nodeSelector[key] === value,
     );
 

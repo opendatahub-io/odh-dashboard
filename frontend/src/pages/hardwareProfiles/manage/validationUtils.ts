@@ -1,5 +1,10 @@
 import { z, ZodEffects } from 'zod';
-import { IdentifierResourceType, TolerationEffect, TolerationOperator } from '#~/types';
+import {
+  IdentifierResourceType,
+  SchedulingType,
+  TolerationEffect,
+  TolerationOperator,
+} from '#~/types';
 import {
   validateDefaultCount,
   validateMaxCount,
@@ -157,13 +162,31 @@ export const tolerationSchema = z.object({
 
 export const nodeSelectorSchema = z.record(z.string().min(1), z.string().min(1));
 
+export const schedulingSchema = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal(SchedulingType.QUEUE),
+    kueue: z.object({
+      localQueueName: z.string().min(1, 'Local queue name is required'),
+      priorityClass: z.string().optional(),
+    }),
+    node: z.never().optional(),
+  }),
+  z.object({
+    type: z.literal(SchedulingType.NODE),
+    node: z.object({
+      nodeSelector: nodeSelectorSchema.optional(),
+      tolerations: z.array(tolerationSchema).optional(),
+    }),
+    kueue: z.never().optional(),
+  }),
+]);
+
 export const manageHardwareProfileValidationSchema = z.object({
   displayName: z.string().trim().min(1, 'Display name is required'),
   enabled: z.boolean(),
   identifiers: z.array(identifierSchema),
-  tolerations: z.array(tolerationSchema).optional(),
-  nodeSelector: nodeSelectorSchema.optional(),
   name: z.string().trim().min(1).max(253).regex(k8sNameRegex),
   description: z.string().optional(),
   visibility: z.array(z.string()),
+  scheduling: schedulingSchema.optional(),
 });
