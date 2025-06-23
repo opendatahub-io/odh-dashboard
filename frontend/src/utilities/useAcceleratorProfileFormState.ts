@@ -27,11 +27,18 @@ const useAcceleratorProfileFormState = (
   tolerations?: Toleration[],
   existingAcceleratorProfileName?: string,
   namespace?: string,
+  acceleratorProfileNamespace?: string,
 ): UseAcceleratorProfileFormResult => {
   const [globalScopedInitialState, globalScopedLoaded, globalScopedLoadError, refresh] =
     useReadAcceleratorState(resources, tolerations, existingAcceleratorProfileName);
   const [projectScopedInitialState, projectScopedLoaded, projectScopedLoadError] =
-    useReadAcceleratorState(resources, tolerations, existingAcceleratorProfileName, namespace);
+    useReadAcceleratorState(
+      resources,
+      tolerations,
+      existingAcceleratorProfileName,
+      namespace,
+      acceleratorProfileNamespace,
+    );
 
   const loaded = namespace ? projectScopedLoaded && globalScopedLoaded : globalScopedLoaded;
   const loadError = namespace
@@ -39,28 +46,63 @@ const useAcceleratorProfileFormState = (
     : globalScopedLoadError;
 
   const initialState = React.useMemo(() => {
+    // Check if project-scoped feature flag is off but workbench has project-scoped profile
+    // Only apply this if acceleratorProfileNamespace is NOT the global dashboard namespace
+    if (
+      !namespace &&
+      existingAcceleratorProfileName &&
+      acceleratorProfileNamespace &&
+      acceleratorProfileNamespace !==
+        globalScopedInitialState.acceleratorProfiles[0]?.metadata.namespace
+    ) {
+      // Feature flag is off (no namespace) but workbench has project-scoped profile
+      // Show "Existing settings" instead of searching for global profile with same name
+      const state: AcceleratorProfileState = {
+        acceleratorProfiles: globalScopedInitialState.acceleratorProfiles,
+        acceleratorProfile: undefined,
+        count: 1,
+        unknownProfileDetected: true,
+      };
+      return state;
+    }
+
     // If we have a namespace, use project-scoped state but include global profiles
     if (namespace) {
       // Keep project and global profiles separate
       const projectProfiles = [...projectScopedInitialState.acceleratorProfiles];
       const globalProfiles = [...globalScopedInitialState.acceleratorProfiles];
+      const allProfiles = [...projectProfiles, ...globalProfiles];
 
-      // Determine which accelerator profile to use
-      const acceleratorProfile =
-        projectScopedInitialState.acceleratorProfile || globalScopedInitialState.acceleratorProfile;
+      // Search for the existing accelerator profile by both name and namespace
+      let acceleratorProfile: AcceleratorProfileKind | undefined;
+      if (existingAcceleratorProfileName && acceleratorProfileNamespace) {
+        // Look for the profile by both name and namespace in all available profiles
+        acceleratorProfile = projectProfiles.find(
+          (ap) =>
+            ap.metadata.name === existingAcceleratorProfileName &&
+            ap.metadata.namespace === acceleratorProfileNamespace,
+        );
+      } else if (existingAcceleratorProfileName) {
+        // Fallback: look by name only if no namespace is specified
+        acceleratorProfile = globalScopedInitialState.acceleratorProfile;
+      }
 
-      // Check if we have unknown profile detected
-      const unknownProfileDetected =
-        projectScopedInitialState.unknownProfileDetected ||
-        globalScopedInitialState.unknownProfileDetected;
+      // Check for deleted profile: we have profile reference but can't find it
+      const profileWasDeleted =
+        existingAcceleratorProfileName &&
+        !acceleratorProfile &&
+        (projectScopedInitialState.unknownProfileDetected ||
+          globalScopedInitialState.unknownProfileDetected);
+
+      // Check if we have unknown profile detected from either scope or deleted profile
+      const unknownProfileDetected = profileWasDeleted;
 
       // If we have unknown profile detected, we need to return a specific type
       if (unknownProfileDetected) {
         const state: AcceleratorProfileState = {
-          // Keep project and global profiles separate
-          acceleratorProfiles: [...projectProfiles, ...globalProfiles],
+          acceleratorProfiles: allProfiles,
           acceleratorProfile: undefined,
-          count: 0,
+          count: Math.max(projectScopedInitialState.count, globalScopedInitialState.count),
           unknownProfileDetected: true,
         };
         return state;
@@ -68,14 +110,17 @@ const useAcceleratorProfileFormState = (
 
       // If we have a profile, return it with both sets of profiles
       if (acceleratorProfile) {
+        // Determine count from the appropriate scope
+        const count =
+          projectScopedInitialState.acceleratorProfile?.metadata.name ===
+          acceleratorProfile.metadata.name
+            ? projectScopedInitialState.count
+            : globalScopedInitialState.count;
+
         const state: AcceleratorProfileState = {
-          // Keep project and global profiles separate
-          acceleratorProfiles: [...projectProfiles, ...globalProfiles],
+          acceleratorProfiles: allProfiles,
           acceleratorProfile,
-          count:
-            acceleratorProfile === projectScopedInitialState.acceleratorProfile
-              ? projectScopedInitialState.count
-              : globalScopedInitialState.count,
+          count,
           unknownProfileDetected: false,
         };
         return state;
@@ -83,8 +128,7 @@ const useAcceleratorProfileFormState = (
 
       // If no profile is selected
       const state: AcceleratorProfileState = {
-        // Keep project and global profiles separate
-        acceleratorProfiles: [...projectProfiles, ...globalProfiles],
+        acceleratorProfiles: allProfiles,
         acceleratorProfile: undefined,
         count: 0,
         unknownProfileDetected: false,
@@ -94,7 +138,13 @@ const useAcceleratorProfileFormState = (
 
     // If no namespace, just use global scoped state
     return globalScopedInitialState;
-  }, [namespace, projectScopedInitialState, globalScopedInitialState]);
+  }, [
+    namespace,
+    projectScopedInitialState,
+    globalScopedInitialState,
+    existingAcceleratorProfileName,
+    acceleratorProfileNamespace,
+  ]);
 
   const [formData, setFormData, resetFormData] = useGenericObjectState<AcceleratorProfileFormData>({
     profile: undefined,
@@ -106,22 +156,9 @@ const useAcceleratorProfileFormState = (
     if (loaded) {
       setFormData('profile', initialState.acceleratorProfile);
       setFormData('count', initialState.count);
-      setFormData(
-        'useExistingSettings',
-        namespace
-          ? projectScopedInitialState.unknownProfileDetected ||
-              globalScopedInitialState.unknownProfileDetected
-          : globalScopedInitialState.unknownProfileDetected,
-      );
+      setFormData('useExistingSettings', initialState.unknownProfileDetected);
     }
-  }, [
-    loaded,
-    initialState,
-    setFormData,
-    namespace,
-    projectScopedInitialState,
-    globalScopedInitialState,
-  ]);
+  }, [loaded, initialState, setFormData]);
 
   return {
     initialState,

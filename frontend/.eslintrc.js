@@ -430,7 +430,13 @@ module.exports = {
       files: [
         'src/plugins/extensions/**',
         'packages/**/extensions.ts',
+        'packages/**/extensions/**',
         'packages/**/extension-points/*.{ts,tsx,js,jsx}',
+      ],
+      excludedFiles: [
+        'src/plugins/extensions/index.ts',
+        'packages/**/extensions/index.ts',
+        'packages/**/extensions-points/index.ts',
       ],
       rules: {
         '@typescript-eslint/consistent-type-imports': 'error',

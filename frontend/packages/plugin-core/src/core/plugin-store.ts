@@ -27,12 +27,17 @@ export class PluginStore implements PluginStoreInterface {
   /** Feature flags used to determine the availability of extensions. */
   private featureFlags: FeatureFlags = {};
 
-  constructor(extensions: Extension[]) {
-    this.allExtensions = extensions.map((e) => ({
-      ...e,
-      pluginName: 'odh',
-      uid: uuidv4(),
-    }));
+  constructor(extensions: Record<string, Extension[]>) {
+    this.allExtensions = [];
+    Object.entries(extensions).forEach(([pluginName, pluginExtensions]) => {
+      pluginExtensions.forEach((e: Extension) => {
+        this.allExtensions.push({
+          ...e,
+          pluginName,
+          uid: uuidv4(),
+        });
+      });
+    });
 
     Object.values(PluginEventType).forEach((t) => {
       this.listeners.set(t, new Set());

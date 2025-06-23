@@ -1,0 +1,12 @@
+options:
+  no_parent_owners: true
+
+approvers:
+  - quality-e2e-testing-approvers
+  - general-approvers
+
+reviewers:
+  - quality-e2e-testing-reviewers
+
+labels:
+  - area/quality

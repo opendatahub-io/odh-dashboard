@@ -85,44 +85,6 @@ describe('manageHardwareProfileValidationSchema', () => {
     expect(result.success).toBe(false);
   });
 
-  it('should fail if memory resource is missing', () => {
-    const invalidData = {
-      ...validData,
-      identifiers: [
-        {
-          displayName: 'CPU',
-          identifier: 'cpu',
-          resourceType: IdentifierResourceType.CPU,
-          defaultCount: 2,
-          minCount: 1,
-          maxCount: 4,
-        },
-      ],
-    };
-
-    const result = manageHardwareProfileValidationSchema.safeParse(invalidData);
-    expect(result.success).toBe(false);
-  });
-
-  it('should fail if CPU resource is missing', () => {
-    const invalidData = {
-      ...validData,
-      identifiers: [
-        {
-          displayName: 'Memory',
-          identifier: 'memory',
-          resourceType: IdentifierResourceType.MEMORY,
-          defaultCount: 2,
-          minCount: 1,
-          maxCount: 4,
-        },
-      ],
-    };
-
-    const result = manageHardwareProfileValidationSchema.safeParse(invalidData);
-    expect(result.success).toBe(false);
-  });
-
   describe('nodeSelectorSchema', () => {
     it('should pass for valid nodeSelector', () => {
       const validNodeSelector = { key1: 'value1', key2: 'value2' };

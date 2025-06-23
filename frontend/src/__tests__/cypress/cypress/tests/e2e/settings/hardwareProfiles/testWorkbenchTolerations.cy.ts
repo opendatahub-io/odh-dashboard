@@ -135,7 +135,7 @@ describe('Workbenches - tolerations tests', () => {
       // Stop workbench and verify it stops running
       cy.step(`Stop workbench ${testData.workbenchName}`);
       const notebookRow = workbenchPage.getNotebookRow(testData.workbenchName);
-      notebookRow.findNotebookStop().click();
+      notebookRow.findNotebookStopToggle().click();
       notebookConfirmModal.findStopWorkbenchButton().click();
       notebookRow.expectStatusLabelToBe('Stopped', 120000);
       cy.reload();
@@ -175,7 +175,7 @@ describe('Workbenches - tolerations tests', () => {
       // Stop workbench and verify it stops running
       cy.step(`Restart workbench ${testData.workbenchName} and validate it has been started`);
       const notebookRow = workbenchPage.getNotebookRow(testData.workbenchName);
-      notebookRow.findNotebookStart().click();
+      notebookRow.findNotebookStopToggle().click();
       notebookRow.expectStatusLabelToBe('Running', 120000);
       cy.reload();
 

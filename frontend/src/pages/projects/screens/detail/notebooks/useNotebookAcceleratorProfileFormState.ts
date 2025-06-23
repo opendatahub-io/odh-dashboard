@@ -15,11 +15,15 @@ const useNotebookAcceleratorProfileFormState = (
   const tolerations = notebook?.spec.template.spec.tolerations;
   const isProjectScopedAvailable = useIsAreaAvailable(SupportedArea.DS_PROJECT_SCOPED).status;
   const namespace = notebook?.metadata.namespace;
+  const acceleratorProfileNamespace =
+    notebook?.metadata.annotations?.['opendatahub.io/accelerator-profile-namespace'];
+
   return useAcceleratorProfileFormState(
     resources,
     tolerations,
     name,
     isProjectScopedAvailable ? namespace : undefined,
+    acceleratorProfileNamespace,
   );
 };
 

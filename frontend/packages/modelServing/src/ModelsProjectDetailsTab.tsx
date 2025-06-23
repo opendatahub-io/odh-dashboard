@@ -1,30 +1,33 @@
 import React from 'react';
-import ModelsProjectDetailsView from './components/projectDetails/ModelsProjectDetailsView';
+import { ProjectDetailsContext } from '@odh-dashboard/internal/pages/projects/ProjectDetailsContext';
+import { useExtensions, useResolvedExtensions } from '@odh-dashboard/plugin-core';
+import { useProjectServingPlatform } from './concepts/useProjectServingPlatform';
 import { ModelDeploymentsProvider } from './concepts/ModelDeploymentsContext';
+import { ModelServingPlatformProvider } from './concepts/ModelServingPlatformContext';
+import ModelsProjectDetailsView from './components/projectDetails/ModelsProjectDetailsView';
 import {
-  ModelServingPlatformContext,
-  ModelServingPlatformProvider,
-} from './concepts/ModelServingPlatformContext';
+  isModelServingPlatformExtension,
+  isModelServingPlatformWatchDeployments,
+} from '../extension-points';
 
-const WithDeploymentsData: React.FC = () => {
-  const { platform, project } = React.useContext(ModelServingPlatformContext);
+const ModelsProjectDetailsTab: React.FC = () => {
+  const { currentProject } = React.useContext(ProjectDetailsContext);
 
-  // Certain platform-specific properties, such as hooks, require the `platform`
-  // to be always defined and truthy.
-  if (platform && project) {
-    return (
-      <ModelDeploymentsProvider modelServingPlatform={platform} project={project}>
-        <ModelsProjectDetailsView />
+  const availablePlatforms = useExtensions(isModelServingPlatformExtension);
+  const [deploymentWatchers] = useResolvedExtensions(isModelServingPlatformWatchDeployments);
+
+  const { activePlatform } = useProjectServingPlatform(currentProject, availablePlatforms);
+  return (
+    <ModelServingPlatformProvider>
+      <ModelDeploymentsProvider
+        modelServingPlatforms={activePlatform ? [activePlatform] : []}
+        projects={[currentProject]}
+        deploymentWatchers={deploymentWatchers}
+      >
+        <ModelsProjectDetailsView project={currentProject} />
       </ModelDeploymentsProvider>
-    );
-  }
-  return <ModelsProjectDetailsView />;
+    </ModelServingPlatformProvider>
+  );
 };
-
-const ModelsProjectDetailsTab: React.FC = () => (
-  <ModelServingPlatformProvider>
-    <WithDeploymentsData />
-  </ModelServingPlatformProvider>
-);
 
 export default ModelsProjectDetailsTab;

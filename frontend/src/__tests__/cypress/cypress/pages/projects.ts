@@ -47,12 +47,8 @@ class ProjectNotebookRow extends TableRow {
     return this.find().findByTestId('notebook-status-text');
   }
 
-  findNotebookStart() {
-    return this.find().findByTestId('notebook-start-action');
-  }
-
   findNotebookStop() {
-    return this.find().findByTestId('notebook-stop-action');
+    return this.find().findByTestId('state-action-toggle');
   }
 }
 

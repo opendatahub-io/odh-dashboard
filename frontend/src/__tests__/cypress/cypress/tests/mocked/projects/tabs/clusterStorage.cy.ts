@@ -193,8 +193,12 @@ describe('ClusterStorage', () => {
     // default selected
     addClusterStorageModal.find().findByText('openshift-default-sc').should('exist');
 
-    // select storage class
     const storageClassSelect = addClusterStorageModal.findStorageClassSelect();
+
+    // confirm radio not enabled when only one storage access mode
+    addClusterStorageModal.findRWOAccessMode().should('be.checked').should('be.disabled');
+
+    // select storage class
     storageClassSelect.find().click();
     storageClassSelect.findSelectStorageClassLabel(/Test SC 1/, AccessMode.RWX).should('exist');
     storageClassSelect.selectStorageClassSelectOption(/Test SC 1/);

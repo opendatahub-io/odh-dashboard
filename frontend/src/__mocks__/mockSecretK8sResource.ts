@@ -8,6 +8,7 @@ type MockCustomSecretData = {
   labels?: Record<string, string>;
   annotations?: Record<string, string>;
   data: Record<string, string>;
+  type?: string;
 };
 
 export const mockCustomSecretK8sResource = ({
@@ -17,6 +18,7 @@ export const mockCustomSecretK8sResource = ({
   labels = {},
   annotations = {},
   data,
+  type = 'Opaque',
 }: MockCustomSecretData): SecretKind => ({
   kind: 'Secret',
   apiVersion: 'route.openshift.io/v1',
@@ -33,7 +35,7 @@ export const mockCustomSecretK8sResource = ({
     annotations,
   },
   data,
-  type: 'Opaque',
+  type,
 });
 
 type MockResourceConfigType = {

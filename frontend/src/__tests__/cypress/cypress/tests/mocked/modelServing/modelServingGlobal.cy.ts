@@ -343,7 +343,7 @@ describe('Model Serving Global', () => {
     modelServingSection
       .getInferenceServiceRow('NIM Model')
       .findServingRuntime()
-      .should('have.text', 'NVIDIA NIM');
+      .should('contain.text', 'NVIDIA NIM');
 
     // Open each modal and make sure it is the correct one
     modelServingGlobal.getModelRow('KServe Model').findKebabAction('Edit').click();
@@ -724,7 +724,7 @@ describe('Model Serving Global', () => {
     kserveModalEdit.findServingRuntimeTemplateSearchSelector().should('be.disabled');
     kserveModalEdit
       .findServingRuntimeTemplateSearchSelector()
-      .should('have.text', 'test-project-scoped-srProject-scoped');
+      .should('contain.text', 'test-project-scoped-sr');
     kserveModalEdit.findProjectScopedLabel().should('exist');
     kserveModalEdit.findModelFrameworkSelect().should('have.text', 'onnx - 1');
   });
@@ -837,6 +837,7 @@ describe('Model Serving Global', () => {
       servingRuntimes: [
         mockServingRuntimeK8sResource({
           acceleratorName: 'large-profile-1',
+          acceleratorProfileNamespace: 'test-project',
         }),
       ],
     });
@@ -846,6 +847,24 @@ describe('Model Serving Global', () => {
       .findAcceleratorProfileSearchSelector()
       .should('contain.text', 'Large Profile-1');
     kserveModalEdit.findProjectScopedLabel().should('exist');
+  });
+
+  it('Display Existing settings for deleted accelerator profile selection on Edit', () => {
+    initIntercepts({
+      projectEnableModelMesh: false,
+      disableServingRuntimeParamsConfig: false,
+      disableProjectScoped: false,
+      servingRuntimes: [
+        mockServingRuntimeK8sResource({
+          acceleratorName: 'large-profile-2',
+        }),
+      ],
+    });
+    modelServingGlobal.visit('test-project');
+    modelServingGlobal.getModelRow('Test Inference Service').findKebabAction('Edit').click();
+    acceleratorProfileSection
+      .findAcceleratorProfileSearchSelector()
+      .should('contain.text', 'Existing settings');
   });
 
   it('Display global scoped label on serving runtime selection', () => {
@@ -865,7 +884,7 @@ describe('Model Serving Global', () => {
     kserveModalEdit.findServingRuntimeTemplateSearchSelector().should('be.disabled');
     kserveModalEdit
       .findServingRuntimeTemplateSearchSelector()
-      .should('have.text', 'OpenVINO Serving Runtime (Supports GPUs)Global-scoped');
+      .should('contain.text', 'OpenVINO Serving Runtime (Supports GPUs)');
     kserveModalEdit.findGlobalScopedLabel().should('exist');
     kserveModalEdit.findModelFrameworkSelect().should('have.text', 'onnx - 1');
   });

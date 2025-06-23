@@ -16,7 +16,10 @@ import {
   mockRouteK8sResource,
   mockRouteK8sResourceModelServing,
 } from '#~/__mocks__/mockRouteK8sResource';
-import { mockSecretK8sResource } from '#~/__mocks__/mockSecretK8sResource';
+import {
+  mockCustomSecretK8sResource,
+  mockSecretK8sResource,
+} from '#~/__mocks__/mockSecretK8sResource';
 import { mockServiceAccountK8sResource } from '#~/__mocks__/mockServiceAccountK8sResource';
 import {
   mockServingRuntimeK8sResource,
@@ -95,6 +98,7 @@ type HandlersProps = {
   disableProjectScoped?: boolean;
   disableHardwareProfiles?: boolean;
 };
+import { STOP_MODAL_PREFERENCE_KEY } from '#~/pages/modelServing/useStopModalPreference';
 
 const initIntercepts = ({
   disableKServeConfig,
@@ -115,6 +119,7 @@ const initIntercepts = ({
       route: true,
       tolerations: [],
       nodeSelector: {},
+      version: 'v1.0.0',
     }),
   ],
   inferenceServices = [
@@ -1321,6 +1326,98 @@ describe('Serving Runtime List', () => {
         .should(be.sortDescending);
     });
 
+    it('Stop and start model', () => {
+      initIntercepts({
+        projectEnableModelMesh: false,
+        disableKServeConfig: false,
+        disableModelMeshConfig: true,
+        inferenceServices: [
+          mockInferenceServiceK8sResource({
+            name: 'test-model',
+            displayName: 'test-model',
+            modelName: 'test-model',
+            isModelMesh: false,
+            activeModelState: 'Loaded',
+          }),
+        ],
+      });
+      cy.clearLocalStorage(STOP_MODAL_PREFERENCE_KEY);
+      cy.window().then((win) => win.localStorage.setItem(STOP_MODAL_PREFERENCE_KEY, 'false'));
+      projectDetails.visitSection('test-project', 'model-server');
+
+      const kserveRow = modelServingSection.getKServeRow('test-model');
+
+      const stoppedInferenceService = mockInferenceServiceK8sResource({
+        name: 'test-model',
+        displayName: 'test-model',
+        modelName: 'test-model',
+        isModelMesh: false,
+        activeModelState: 'Unknown',
+      });
+      stoppedInferenceService.metadata.annotations = {
+        ...stoppedInferenceService.metadata.annotations,
+        'serving.kserve.io/stop': 'true',
+      };
+
+      cy.intercept(
+        'PATCH',
+        '/api/k8s/apis/serving.kserve.io/v1beta1/namespaces/test-project/inferenceservices/test-model',
+        (req) => {
+          expect(req.body).to.deep.include({
+            op: 'add',
+            path: '/metadata/annotations/serving.kserve.io~1stop',
+            value: 'true',
+          });
+          req.reply(stoppedInferenceService);
+        },
+      ).as('stopModelPatch');
+      cy.interceptK8sList(InferenceServiceModel, mockK8sResourceList([stoppedInferenceService])).as(
+        'getStoppedModel',
+      );
+
+      kserveRow.findStateActionToggle().should('have.text', 'Stop').click();
+      kserveRow.findConfirmStopModal().should('exist');
+      kserveRow.findConfirmStopModalCheckbox().should('exist');
+      kserveRow.findConfirmStopModalCheckbox().should('not.be.checked');
+      kserveRow.findConfirmStopModalCheckbox().click();
+      kserveRow.findConfirmStopModalCheckbox().should('be.checked');
+      kserveRow.findConfirmStopModalButton().click();
+      cy.wait(['@stopModelPatch', '@getStoppedModel']);
+      kserveRow.findStateActionToggle().should('have.text', 'Start');
+      cy.window().then((win) => {
+        const preference = win.localStorage.getItem(STOP_MODAL_PREFERENCE_KEY);
+        expect(preference).to.equal('true');
+      });
+
+      const runningInferenceService = mockInferenceServiceK8sResource({
+        name: 'test-model',
+        displayName: 'test-model',
+        modelName: 'test-model',
+        isModelMesh: false,
+        activeModelState: 'Loaded',
+      });
+
+      cy.intercept(
+        'PATCH',
+        '/api/k8s/apis/serving.kserve.io/v1beta1/namespaces/test-project/inferenceservices/test-model',
+        (req) => {
+          expect(req.body).to.deep.include({
+            op: 'add',
+            path: '/metadata/annotations/serving.kserve.io~1stop',
+            value: 'false',
+          });
+          req.reply(runningInferenceService);
+        },
+      ).as('startModelPatch');
+      cy.interceptK8sList(InferenceServiceModel, mockK8sResourceList([runningInferenceService])).as(
+        'getStartedModel',
+      );
+
+      kserveRow.findStateActionToggle().should('have.text', 'Start').click();
+      cy.wait(['@startModelPatch', '@getStartedModel']);
+      kserveRow.findStateActionToggle().should('have.text', 'Stop');
+    });
+
     it('Check number of replicas of model', () => {
       initIntercepts({
         projectEnableModelMesh: false,
@@ -1856,6 +1953,146 @@ describe('Serving Runtime List', () => {
         'false',
       );
       kserveModal.findSubmitButton().should('be.enabled');
+    });
+
+    it('Deploy OCI Model and check paste functionality', () => {
+      initIntercepts({
+        disableModelMeshConfig: false,
+        disableKServeConfig: false,
+        disableServingRuntimeParams: false,
+        servingRuntimes: [],
+        requiredCapabilities: [StackCapability.SERVICE_MESH, StackCapability.SERVICE_MESH_AUTHZ],
+        projectEnableModelMesh: false,
+      });
+
+      cy.interceptK8sList(
+        SecretModel,
+        mockK8sResourceList([
+          mockCustomSecretK8sResource({
+            type: 'kubernetes.io/dockerconfigjson',
+            namespace: 'test-project',
+            name: 'test-secret',
+            annotations: {
+              'opendatahub.io/connection-type': 'oci-v1',
+              'openshift.io/display-name': 'Test Secret',
+            },
+            data: {
+              '.dockerconfigjson':
+                'eyJhdXRocyI6IHsidGVzdC5pbyI6IHsiYXV0aCI6ICJibGFoYmxhaGJsYWgifX19Cg==',
+              OCI_HOST: 'dGVzdC5pby9vcmdhbml6YXRpb24K',
+              ACCESS_TYPE: 'WyJQdWxsIl0',
+            },
+          }),
+        ]),
+      );
+
+      projectDetails.visitSection('test-project', 'model-server');
+
+      modelServingSection.findDeployModelButton().click();
+
+      kserveModal.shouldBeOpen();
+
+      // test that you can not submit on empty
+      kserveModal.findSubmitButton().should('be.disabled');
+
+      // test filling in minimum required fields
+      kserveModal.findModelNameInput().type('Test Name');
+      kserveModal.findServingRuntimeTemplateSearchSelector().click();
+      kserveModal.findGlobalScopedTemplateOption('Caikit').click();
+      kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
+      kserveModal.findSubmitButton().should('be.disabled');
+
+      kserveModal.findExistingConnectionOption().click();
+      kserveModal
+        .findExistingConnectionSelect()
+        .findByRole('combobox')
+        .should('have.value', 'Test Secret');
+      kserveModal.findOCIModelURI().click();
+      kserveModal.findOCIModelURI().trigger('paste', {
+        clipboardData: {
+          getData: () => 'https://test.io/organization/test-model:latest',
+        },
+      });
+      kserveModal.findOCIModelURI().blur();
+      kserveModal.findSubmitButton().should('be.enabled');
+
+      // test submitting form, the modal should close to indicate success.
+      kserveModal.findSubmitButton().click();
+      kserveModal.shouldBeOpen(false);
+
+      // dry run request
+      cy.wait('@createServingRuntime').then((interception) => {
+        expect(interception.request.url).to.include('?dryRun=All');
+        expect(interception.request.body).to.containSubset({
+          metadata: {
+            name: 'test-name',
+            annotations: {
+              'openshift.io/display-name': 'test-name',
+              'opendatahub.io/apiProtocol': 'REST',
+              'opendatahub.io/template-name': 'template-2',
+              'opendatahub.io/template-display-name': 'Caikit',
+              'opendatahub.io/accelerator-name': '',
+            },
+            namespace: 'test-project',
+          },
+          spec: {
+            protocolVersions: ['grpc-v1'],
+            supportedModelFormats: [
+              { autoSelect: true, name: 'openvino_ir', version: 'opset1' },
+              { autoSelect: true, name: 'onnx', version: '1' },
+            ],
+          },
+        });
+      });
+
+      // Actual request
+      cy.wait('@createServingRuntime').then((interception) => {
+        expect(interception.request.url).not.to.include('?dryRun=All');
+      });
+
+      // the serving runtime should have been created
+      cy.get('@createServingRuntime.all').then((interceptions) => {
+        expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
+      });
+
+      cy.wait('@createInferenceService').then((interception) => {
+        expect(interception.request.url).to.include('?dryRun=All');
+        expect(interception.request.body).to.containSubset({
+          apiVersion: 'serving.kserve.io/v1beta1',
+          kind: 'InferenceService',
+          metadata: {
+            name: 'test-name',
+            namespace: 'test-project',
+            annotations: {
+              'openshift.io/display-name': 'Test Name',
+              'serving.kserve.io/deploymentMode': DeploymentMode.Serverless,
+              'serving.knative.openshift.io/enablePassthrough': 'true',
+              'sidecar.istio.io/inject': 'true',
+              'sidecar.istio.io/rewriteAppHTTPProbers': 'true',
+            },
+            labels: {
+              'opendatahub.io/dashboard': 'true',
+              'networking.knative.dev/visibility': 'cluster-local',
+            },
+          },
+          spec: {
+            predictor: {
+              minReplicas: 1,
+              maxReplicas: 1,
+              imagePullSecrets: [{ name: 'test-secret' }],
+              model: {
+                modelFormat: { name: 'onnx', version: '1' },
+                runtime: 'test-name',
+                storageUri: 'oci://test.io/organization/test-model:latest',
+                resources: {
+                  requests: { cpu: '1', memory: '4Gi' },
+                  limits: { cpu: '2', memory: '8Gi' },
+                },
+              },
+            },
+          },
+        });
+      });
     });
   });
 
@@ -3201,6 +3438,17 @@ describe('Serving Runtime List', () => {
       createServingRuntimeModal.findServingRuntimeTemplateSearchSelector().within(() => {
         createServingRuntimeModal.findServingRuntimeVersionLabel().should('exist');
       });
+      createServingRuntimeModal.findCloseButton().click();
+
+      // Check that the label is displayed when editing
+      modelServingSection
+        .getModelMeshRow('OVMS Model Serving')
+        .find()
+        .findKebabAction('Edit model server')
+        .click();
+      editServingRuntimeModal.findServingRuntimeTemplateSearchSelector().within(() => {
+        editServingRuntimeModal.findServingRuntimeVersionLabel().should('exist');
+      });
     });
 
     it('displays label in search selector when single-model serving is selected', () => {
@@ -3220,6 +3468,13 @@ describe('Serving Runtime List', () => {
       kserveModal.findGlobalScopedTemplateOption('Multi Platform').click();
       kserveModal.findServingRuntimeTemplateSearchSelector().within(() => {
         kserveModal.findServingRuntimeVersionLabel().should('exist');
+      });
+      kserveModal.findCloseButton().click();
+
+      // Check that the label is displayed when editing
+      modelServingSection.getKServeRow('Llama Caikit').find().findKebabAction('Edit').click();
+      kserveModalEdit.findServingRuntimeTemplateSearchSelector().within(() => {
+        kserveModalEdit.findServingRuntimeVersionLabel().should('exist');
       });
     });
   });

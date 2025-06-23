@@ -1,11 +1,11 @@
 import * as React from 'react';
-import { Breadcrumb, BreadcrumbItem } from '@patternfly/react-core';
-
+import { BreadcrumbItem } from '@patternfly/react-core';
 import RunPage from '#~/concepts/pipelines/content/createRun/RunPage';
 import { PathProps } from '#~/concepts/pipelines/content/types';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import { RunTypeOption } from '#~/concepts/pipelines/content/createRun/types';
 import { ExperimentKF } from '#~/concepts/pipelines/kfTypes';
+import PipelineContextBreadcrumb from '#~/concepts/pipelines/content/PipelineContextBreadcrumb';
 
 type CreateRunPageProps = {
   runType: RunTypeOption;
@@ -24,10 +24,10 @@ const CreateRunPage: React.FC<PathProps & CreateRunPageProps> = ({
     <ApplicationsPage
       title={title}
       breadcrumb={
-        <Breadcrumb>
+        <PipelineContextBreadcrumb>
           {breadcrumbPath}
           <BreadcrumbItem isActive>{title}</BreadcrumbItem>
-        </Breadcrumb>
+        </PipelineContextBreadcrumb>
       }
       loaded
       empty={false}
