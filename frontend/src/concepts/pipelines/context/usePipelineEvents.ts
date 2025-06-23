@@ -5,8 +5,10 @@ import { CustomWatchK8sResult } from '#~/types';
 import { EventModel, PodModel } from '#~/api/models/k8s';
 import useK8sWatchResourceList from '#~/utilities/useK8sWatchResourceList';
 
-// want use watch many.........react query supports this and we do not unfortunately
-// want to have one call per pod; and manage them.......
+// ideally ,would use react-query watch many, but that is not available
+//react query supports this and we do not unfortunately
+// need to have one call per pod because react hooks need to be called the same amount of times for each rendering
+// TECH DEBT
 export const useWatchPipelineServerEvents = (
   namespace: string,
   podUid: string,
