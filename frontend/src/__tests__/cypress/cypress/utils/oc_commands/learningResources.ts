@@ -12,24 +12,13 @@ export interface LearningResourceCounts {
 }
 
 /**
- * Basic ODH resource structure
- */
-interface OdhResource {
-  spec?: {
-    type?: string;
-    docsLink?: string;
-    isEnabled?: boolean;
-    [key: string]: unknown;
-  };
-  [key: string]: unknown;
-}
-
-/**
  * Get all ODH documents from the cluster
  * @param namespace - The namespace to search in (default: opendatahub)
  * @returns Cypress chainable with parsed document items
  */
-export const getOdhDocuments = (namespace = 'opendatahub'): Cypress.Chainable<OdhResource[]> => {
+export const getOdhDocuments = (
+  namespace = 'opendatahub',
+): Cypress.Chainable<{ spec?: { type?: string }; [key: string]: unknown }[]> => {
   const ocCommand = `oc get odhdocuments.dashboard.opendatahub.io -n ${namespace} -o json`;
   cy.log(`Executing command: ${ocCommand}`);
 
@@ -48,7 +37,9 @@ export const getOdhDocuments = (namespace = 'opendatahub'): Cypress.Chainable<Od
  * @param namespace - The namespace to search in (default: opendatahub)
  * @returns Cypress chainable with parsed quickstart items
  */
-export const getOdhQuickstarts = (namespace = 'opendatahub'): Cypress.Chainable<OdhResource[]> => {
+export const getOdhQuickstarts = (
+  namespace = 'opendatahub',
+): Cypress.Chainable<{ [key: string]: unknown }[]> => {
   const ocCommand = `oc get odhquickstarts.console.openshift.io -n ${namespace} -o json`;
   cy.log(`Executing command: ${ocCommand}`);
 
@@ -67,7 +58,11 @@ export const getOdhQuickstarts = (namespace = 'opendatahub'): Cypress.Chainable<
  * @param namespace - The namespace to search in (default: opendatahub)
  * @returns Cypress chainable with parsed application items
  */
-export const getOdhApplications = (namespace = 'opendatahub'): Cypress.Chainable<OdhResource[]> => {
+export const getOdhApplications = (
+  namespace = 'opendatahub',
+): Cypress.Chainable<
+  { spec?: { docsLink?: string; isEnabled?: boolean }; [key: string]: unknown }[]
+> => {
   const ocCommand = `oc get odhapplications.dashboard.opendatahub.io -n ${namespace} -o json`;
   cy.log(`Executing command: ${ocCommand}`);
 
@@ -121,11 +116,11 @@ export const getDocumentationResourceCount = (
   return getOdhDocuments(namespace).then((documents) => {
     return getOdhApplications(namespace).then((applications) => {
       const staticDocs = documents.filter(
-        (doc: OdhResource) => doc.spec && doc.spec.type === 'documentation',
+        (doc: { spec?: { type?: string } }) => doc.spec && doc.spec.type === 'documentation',
       ).length;
 
       const dynamicDocs = applications.filter(
-        (app: OdhResource) => app.spec && app.spec.docsLink,
+        (app: { spec?: { docsLink?: string } }) => app.spec && app.spec.docsLink,
       ).length;
 
       const totalDocs = staticDocs + dynamicDocs;
@@ -146,7 +141,7 @@ export const getDocumentationResourceCount = (
 export const getHowToResourceCount = (namespace = 'opendatahub'): Cypress.Chainable<number> => {
   return getOdhDocuments(namespace).then((documents) => {
     const howtoResources = documents.filter(
-      (doc: OdhResource) => doc.spec && doc.spec.type === 'how-to',
+      (doc: { spec?: { type?: string } }) => doc.spec && doc.spec.type === 'how-to',
     );
 
     cy.log(`Backend how-to resources count: ${howtoResources.length}`);
@@ -176,7 +171,7 @@ export const getQuickstartResourceCount = (
 export const getTutorialResourceCount = (namespace = 'opendatahub'): Cypress.Chainable<number> => {
   return getOdhDocuments(namespace).then((documents) => {
     const tutorialResources = documents.filter(
-      (doc: OdhResource) => doc.spec && doc.spec.type === 'tutorial',
+      (doc: { spec?: { type?: string } }) => doc.spec && doc.spec.type === 'tutorial',
     );
 
     cy.log(`Backend tutorial resources count: ${tutorialResources.length}`);
@@ -211,7 +206,7 @@ export const getLearningResourceCounts = (
     return getOdhQuickstarts(namespace).then((quickstarts) => {
       return getOdhApplications(namespace).then((applications) => {
         const dynamicDocs = applications.filter(
-          (app: OdhResource) => app.spec && app.spec.docsLink,
+          (app: { spec?: { docsLink?: string } }) => app.spec && app.spec.docsLink,
         ).length;
 
         const counts: LearningResourceCounts = {
