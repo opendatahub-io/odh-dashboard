@@ -14,8 +14,10 @@ import { isProjectNIMSupported } from '#~/pages/modelServing/screens/projects/ni
 import useServingPlatformStatuses from '#~/pages/modelServing/useServingPlatformStatuses';
 import StateActionToggle from '#~/components/StateActionToggle';
 import { patchInferenceServiceStoppedStatus } from '#~/api/k8s/inferenceServices';
+import { getInferenceServiceModelState } from '#~/concepts/modelServingKServe/kserveStatusUtils.ts';
 import useStopModalPreference from '#~/pages/modelServing/useStopModalPreference.ts';
 import ModelServingStopModal from '#~/pages/modelServing/ModelServingStopModal';
+import { InferenceServiceModelState } from '#~/pages/modelServing/screens/types';
 import InferenceServiceEndpoint from './InferenceServiceEndpoint';
 import InferenceServiceProject from './InferenceServiceProject';
 import InferenceServiceStatus from './InferenceServiceStatus';
@@ -60,10 +62,31 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
   const displayName = getDisplayNameFromK8sResource(inferenceService);
 
   const modelServingStatus = getInferenceServiceStoppedStatus(inferenceService);
+  const [isStarting, setIsStarting] = React.useState(false);
 
   const onStart = React.useCallback(() => {
-    patchInferenceServiceStoppedStatus(inferenceService, 'false').then(refresh);
+    setIsStarting(true);
+    patchInferenceServiceStoppedStatus(inferenceService, 'false')
+      .then(refresh)
+      .catch(() => setIsStarting(false));
   }, [inferenceService, refresh]);
+
+  React.useEffect(() => {
+    if (!isStarting) {
+      return;
+    }
+    const isStopped = inferenceService.metadata.annotations?.['serving.kserve.io/stop'] === 'true';
+    const currentState = getInferenceServiceModelState(inferenceService);
+
+    if (
+      !isStopped &&
+      [InferenceServiceModelState.LOADED, InferenceServiceModelState.FAILED_TO_LOAD].includes(
+        currentState,
+      )
+    ) {
+      setIsStarting(false);
+    }
+  }, [isStarting, inferenceService]);
 
   const onStop = React.useCallback(() => {
     if (dontShowModalValue) {
@@ -127,7 +150,11 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
       )}
 
       <Td dataLabel="Status">
-        <InferenceServiceStatus inferenceService={inferenceService} isKserve={!modelMesh} />
+        <InferenceServiceStatus
+          inferenceService={inferenceService}
+          isKserve={!modelMesh}
+          isStarting={isStarting}
+        />
       </Td>
       <Td>
         <StateActionToggle currentState={modelServingStatus} onStart={onStart} onStop={onStop} />
