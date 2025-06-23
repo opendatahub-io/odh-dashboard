@@ -9,7 +9,7 @@ import { ManageHardwareProfileSectionID } from '#~/pages/hardwareProfiles/manage
 import ManageWorkloadStrategySection from '#~/pages/hardwareProfiles/manage/ManageWorkloadStrategySection.tsx';
 import { NodeSelector, SchedulingType, Toleration } from '#~/types.ts';
 import ManageLocalQueueFieldSection from '#~/pages/hardwareProfiles/manage/ManageLocalQueueFieldSection.tsx';
-import ManageWorkloadPrioritySection from '#~/pages/hardwareProfiles/manage/ManageWorkoadPrioritySection.tsx';
+import ManageWorkloadPrioritySection from '#~/pages/hardwareProfiles/manage/ManageWorkloadPrioritySection.tsx';
 import {
   DEFAULT_LOCAL_QUEUE,
   DEFAULT_PRIORITY_CLASS,

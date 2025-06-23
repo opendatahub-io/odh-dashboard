@@ -11,7 +11,6 @@ import {
 } from '@patternfly/react-core';
 import { AppContext } from '#~/app/AppContext';
 import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
-import { DisplayNameAnnotation } from '#~/types';
 import { getServingRuntimeSizes } from '#~/pages/modelServing/screens/projects/utils';
 import { getResourceSize } from '#~/pages/modelServing/utils';
 import { formatMemory } from '#~/utilities/valueUnits';

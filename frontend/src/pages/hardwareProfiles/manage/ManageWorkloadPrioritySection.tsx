@@ -1,4 +1,4 @@
-import { FormGroup, Split, SplitItem, Stack, StackItem, TextInput } from '@patternfly/react-core';
+import { FormGroup, Stack, StackItem } from '@patternfly/react-core';
 import * as React from 'react';
 import { ManageHardwareProfileSectionTitles } from '#~/pages/hardwareProfiles/const.tsx';
 import { ManageHardwareProfileSectionID } from '#~/pages/hardwareProfiles/manage/types.ts';
@@ -48,11 +48,7 @@ const ManageWorkloadPrioritySection: React.FC<ManageWorkloadPrioritySectionProps
             {priority.value && <StackItem>{`Value: ${priority.value.toString()}`}</StackItem>}
           </Stack>
         ),
-        dropdownLabel: (
-          <Split>
-            <SplitItem>{priority.metadata.name}</SplitItem>
-          </Split>
-        ),
+        dropdownLabel: priority.metadata.name,
       })),
     ];
   }, [workloadPriorityClasses, loaded, error]);

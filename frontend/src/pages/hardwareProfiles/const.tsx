@@ -6,7 +6,7 @@ import {
   ManageHardwareProfileSectionID,
   ManageHardwareProfileSectionTitlesType,
 } from '#~/pages/hardwareProfiles/manage/types';
-import { IdentifierResourceType, SchedulingType } from '#~/types';
+import { IdentifierResourceType } from '#~/types';
 import { getHardwareProfileDisplayName } from './utils';
 
 export const hardwareProfileColumns: SortableData<HardwareProfileKind>[] = [
