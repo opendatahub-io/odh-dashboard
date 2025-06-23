@@ -38,6 +38,7 @@ export const assemblePvc = (
       annotations: {
         'openshift.io/display-name': pvcName.trim(),
         ...(description && { 'openshift.io/description': description }),
+        'runtimes.opendatahub.io/force-redeploy': new Date().toISOString(), // still 1 annotation
       },
     },
     spec: {
