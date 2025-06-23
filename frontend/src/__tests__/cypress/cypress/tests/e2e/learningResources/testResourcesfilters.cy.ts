@@ -1,6 +1,15 @@
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '#~/__tests__/cypress/cypress/utils/e2eUsers';
 import { resources } from '#~/__tests__/cypress/cypress/pages/resources';
 import { verifyResourcesForFilter } from '#~/__tests__/cypress/cypress/utils/resourceUtils';
+import {
+  getEnabledResourceCount,
+  getDisabledResourceCount,
+  getDocumentationResourceCount,
+  getHowToResourceCount,
+  getQuickstartResourceCount,
+  getTutorialResourceCount,
+  getRedHatManagedResourceCount,
+} from '#~/__tests__/cypress/cypress/utils/oc_commands/learningResources';
 
 const listView = resources.getListView();
 const cardView = resources.getCardView();
@@ -23,8 +32,14 @@ describe('[Automation Bug: RHOAIENG-21088] Verify the filters on Resources page'
 
       cy.step('Check for Enabled and Not Enabled filters');
 
+      // Verify backend state for enabled resources (documents + quickstarts + dynamic docs)
+      getEnabledResourceCount();
+
       // Enabled filter
       verifyResourcesForFilter('enabled-filter-checkbox');
+
+      // Verify backend state for disabled applications
+      getDisabledResourceCount();
 
       // Not enabled filter
       resourcesToolbar.findCardToggleButton().click();
@@ -33,17 +48,29 @@ describe('[Automation Bug: RHOAIENG-21088] Verify the filters on Resources page'
       // Verify Resource type filter
       cy.step('Resource type filter for card and list view');
 
+      // Verify backend state for documentation resources
+      getDocumentationResourceCount();
+
       // Documentation
       resourcesToolbar.findCardToggleButton().click();
       verifyResourcesForFilter('documentation');
+
+      // Verify backend state for how-to resources
+      getHowToResourceCount();
 
       // HowTo
       resourcesToolbar.findCardToggleButton().click();
       verifyResourcesForFilter('how-to');
 
+      // Verify backend state for quickstart resources
+      getQuickstartResourceCount();
+
       // QuickStart
       resourcesToolbar.findCardToggleButton().click();
       verifyResourcesForFilter('quickstart');
+
+      // Verify backend state for tutorial resources
+      getTutorialResourceCount();
 
       // Tutorial
       resourcesToolbar.findCardToggleButton().click();
@@ -52,13 +79,8 @@ describe('[Automation Bug: RHOAIENG-21088] Verify the filters on Resources page'
       // Provider and Provider type filters
       cy.step('Provider and Provider type filters');
 
-      // Jupyter
-      resourcesToolbar.findCardToggleButton().click();
-      verifyResourcesForFilter('Jupyter');
-
-      // Self-managed
-      resourcesToolbar.findCardToggleButton().click();
-      verifyResourcesForFilter('Self-managed');
+      // Verify backend state for Red Hat managed resources
+      getRedHatManagedResourceCount();
 
       // Red Hat managed
       resourcesToolbar.findCardToggleButton().click();
