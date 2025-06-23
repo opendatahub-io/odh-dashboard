@@ -1,5 +1,7 @@
 import type { CommandLineResult } from '#~/__tests__/cypress/cypress/types';
 
+const applicationNamespace = Cypress.env('APPLICATIONS_NAMESPACE');
+
 /**
  * Interface for learning resource counts
  */
@@ -13,11 +15,11 @@ export interface LearningResourceCounts {
 
 /**
  * Get all ODH documents from the cluster
- * @param namespace - The namespace to search in (default: opendatahub)
+ * @param namespace - The namespace to search in
  * @returns Cypress chainable with parsed document items
  */
 export const getOdhDocuments = (
-  namespace = 'opendatahub',
+  namespace = applicationNamespace,
 ): Cypress.Chainable<{ spec?: { type?: string }; [key: string]: unknown }[]> => {
   const ocCommand = `oc get odhdocuments.dashboard.opendatahub.io -n ${namespace} -o json`;
   cy.log(`Executing command: ${ocCommand}`);
@@ -34,11 +36,11 @@ export const getOdhDocuments = (
 
 /**
  * Get all ODH quickstarts from the cluster
- * @param namespace - The namespace to search in (default: opendatahub)
+ * @param namespace - The namespace to search in
  * @returns Cypress chainable with parsed quickstart items
  */
 export const getOdhQuickstarts = (
-  namespace = 'opendatahub',
+  namespace = applicationNamespace,
 ): Cypress.Chainable<{ [key: string]: unknown }[]> => {
   const ocCommand = `oc get odhquickstarts.console.openshift.io -n ${namespace} -o json`;
   cy.log(`Executing command: ${ocCommand}`);
@@ -55,11 +57,11 @@ export const getOdhQuickstarts = (
 
 /**
  * Get all ODH applications from the cluster
- * @param namespace - The namespace to search in (default: opendatahub)
+ * @param namespace - The namespace to search in
  * @returns Cypress chainable with parsed application items
  */
 export const getOdhApplications = (
-  namespace = 'opendatahub',
+  namespace = applicationNamespace,
 ): Cypress.Chainable<
   { spec?: { docsLink?: string; isEnabled?: boolean }; [key: string]: unknown }[]
 > => {
@@ -78,10 +80,12 @@ export const getOdhApplications = (
 
 /**
  * Get count of enabled learning resources (all resources show as enabled in UI)
- * @param namespace - The namespace to search in (default: opendatahub)
+ * @param namespace - The namespace to search in
  * @returns Cypress chainable with total enabled resource count
  */
-export const getEnabledResourceCount = (namespace = 'opendatahub'): Cypress.Chainable<number> => {
+export const getEnabledResourceCount = (
+  namespace = applicationNamespace,
+): Cypress.Chainable<number> => {
   return getLearningResourceCounts(namespace).then((counts) => {
     cy.log(`Backend enabled resources count: ${counts.total}`);
     cy.log(`  - Documents: ${counts.documents}`);
@@ -107,11 +111,11 @@ export const getDisabledResourceCount = (): Cypress.Chainable<number> => {
 
 /**
  * Get count of documentation resources (static + dynamic)
- * @param namespace - The namespace to search in (default: opendatahub)
+ * @param namespace - The namespace to search in
  * @returns Cypress chainable with documentation resource count
  */
 export const getDocumentationResourceCount = (
-  namespace = 'opendatahub',
+  namespace = applicationNamespace,
 ): Cypress.Chainable<number> => {
   return getOdhDocuments(namespace).then((documents) => {
     return getOdhApplications(namespace).then((applications) => {
@@ -135,10 +139,12 @@ export const getDocumentationResourceCount = (
 
 /**
  * Get count of how-to resources
- * @param namespace - The namespace to search in (default: opendatahub)
+ * @param namespace - The namespace to search in
  * @returns Cypress chainable with how-to resource count
  */
-export const getHowToResourceCount = (namespace = 'opendatahub'): Cypress.Chainable<number> => {
+export const getHowToResourceCount = (
+  namespace = applicationNamespace,
+): Cypress.Chainable<number> => {
   return getOdhDocuments(namespace).then((documents) => {
     const howtoResources = documents.filter(
       (doc: { spec?: { type?: string } }) => doc.spec && doc.spec.type === 'how-to',
@@ -151,11 +157,11 @@ export const getHowToResourceCount = (namespace = 'opendatahub'): Cypress.Chaina
 
 /**
  * Get count of quickstart resources
- * @param namespace - The namespace to search in (default: opendatahub)
+ * @param namespace - The namespace to search in
  * @returns Cypress chainable with quickstart resource count
  */
 export const getQuickstartResourceCount = (
-  namespace = 'opendatahub',
+  namespace = applicationNamespace,
 ): Cypress.Chainable<number> => {
   return getLearningResourceCounts(namespace).then((counts) => {
     cy.log(`Backend quickstart resources count: ${counts.quickstarts}`);
@@ -165,10 +171,12 @@ export const getQuickstartResourceCount = (
 
 /**
  * Get count of tutorial resources
- * @param namespace - The namespace to search in (default: opendatahub)
+ * @param namespace - The namespace to search in
  * @returns Cypress chainable with tutorial resource count
  */
-export const getTutorialResourceCount = (namespace = 'opendatahub'): Cypress.Chainable<number> => {
+export const getTutorialResourceCount = (
+  namespace = applicationNamespace,
+): Cypress.Chainable<number> => {
   return getOdhDocuments(namespace).then((documents) => {
     const tutorialResources = documents.filter(
       (doc: { spec?: { type?: string } }) => doc.spec && doc.spec.type === 'tutorial',
@@ -181,11 +189,11 @@ export const getTutorialResourceCount = (namespace = 'opendatahub'): Cypress.Cha
 
 /**
  * Get count of Red Hat managed resources (all resources show as Red Hat managed in UI)
- * @param namespace - The namespace to search in (default: opendatahub)
+ * @param namespace - The namespace to search in
  * @returns Cypress chainable with Red Hat managed resource count
  */
 export const getRedHatManagedResourceCount = (
-  namespace = 'opendatahub',
+  namespace = applicationNamespace,
 ): Cypress.Chainable<number> => {
   // Red Hat managed count is identical to enabled count - all resources appear as Red Hat managed
   return getEnabledResourceCount(namespace).then((enabledCount) => {
@@ -196,11 +204,11 @@ export const getRedHatManagedResourceCount = (
 
 /**
  * Get comprehensive learning resource counts
- * @param namespace - The namespace to search in (default: opendatahub)
+ * @param namespace - The namespace to search in
  * @returns Cypress chainable with detailed resource counts
  */
 export const getLearningResourceCounts = (
-  namespace = 'opendatahub',
+  namespace = applicationNamespace,
 ): Cypress.Chainable<LearningResourceCounts> => {
   return getOdhDocuments(namespace).then((documents) => {
     return getOdhQuickstarts(namespace).then((quickstarts) => {
