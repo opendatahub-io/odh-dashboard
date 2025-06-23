@@ -35,6 +35,11 @@ export const ModelStatusIcon: React.FC<ModelStatusIconProps> = ({
     status?: LabelProps['status'];
     icon: React.ReactNode;
   } => {
+    // Highest-priority: service explicitly stopped
+    const isStopped = inferenceService?.metadata.annotations?.['serving.kserve.io/stop'] === 'true';
+    if (isStopped) {
+      return { label: 'Stopped', color: 'grey', icon: <OffIcon /> };
+    }
     // Show 'Starting' for optimistic updates or for loading/pending states from the backend.
     if (
       isStarting ||
@@ -48,34 +53,28 @@ export const ModelStatusIcon: React.FC<ModelStatusIconProps> = ({
       };
     }
 
-    // Check if the service is stopped via annotation
-    const isStopped = inferenceService?.metadata.annotations?.['serving.kserve.io/stop'] === 'true';
-    if (!isStopped) {
-      // Only check the state if not stopped
-      switch (state) {
-        case InferenceServiceModelState.LOADED:
-        case InferenceServiceModelState.STANDBY:
-          return {
-            label: 'Running',
-            status: 'success',
-            icon: <PlayIcon />,
-          };
-        case InferenceServiceModelState.FAILED_TO_LOAD:
-          return {
-            label: 'Failed',
-            status: 'danger',
-            icon: <ExclamationCircleIcon />,
-          };
-        case InferenceServiceModelState.UNKNOWN:
-          return {
-            label: defaultHeaderContent || 'Status',
-            color: 'grey',
-            icon: <OutlinedQuestionCircleIcon />,
-          };
-      }
+    // Only check the state if not stopped
+    switch (state) {
+      case InferenceServiceModelState.LOADED:
+      case InferenceServiceModelState.STANDBY:
+        return {
+          label: 'Running',
+          status: 'success',
+          icon: <PlayIcon />,
+        };
+      case InferenceServiceModelState.FAILED_TO_LOAD:
+        return {
+          label: 'Failed',
+          status: 'danger',
+          icon: <ExclamationCircleIcon />,
+        };
+      case InferenceServiceModelState.UNKNOWN:
+        return {
+          label: defaultHeaderContent || 'Status',
+          color: 'grey',
+          icon: <OutlinedQuestionCircleIcon />,
+        };
     }
-    // If stopped, show stopped state
-    return { label: 'Stopped', color: 'grey', icon: <OffIcon /> };
   }, [state, defaultHeaderContent, inferenceService, isStarting]);
 
   return (

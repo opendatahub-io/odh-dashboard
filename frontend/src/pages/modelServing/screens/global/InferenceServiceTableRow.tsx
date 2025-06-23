@@ -65,7 +65,9 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
 
   const onStart = React.useCallback(() => {
     setIsStarting(true);
-    patchInferenceServiceStoppedStatus(inferenceService, 'false').then(refresh);
+    patchInferenceServiceStoppedStatus(inferenceService, 'false')
+      .then(refresh)
+      .catch(() => setIsStarting(false));
   }, [inferenceService, refresh]);
 
   React.useEffect(() => {
@@ -75,7 +77,7 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
     const isStopped = inferenceService.metadata.annotations?.['serving.kserve.io/stop'] === 'true';
     const currentState = getInferenceServiceModelState(inferenceService);
 
-    if (!isStopped && (currentState === 'Loading' || currentState === 'Pending')) {
+    if (!isStopped && ['Running', 'Succeeded', 'Failed', 'Error'].includes(currentState)) {
       setIsStarting(false);
     }
   }, [isStarting, inferenceService]);
