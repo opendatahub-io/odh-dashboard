@@ -68,11 +68,6 @@ const assemblePvcResult: PersistentVolumeClaimKind = {
 
 const pvcMock = mockPVCK8sResource({});
 
-const createAssemblePvcs = (accessModes: string[]) => ({
-  ...assemblePvcResult,
-  spec: { ...assemblePvcResult.spec, accessModes },
-});
-
 describe('assemblePvc', () => {
   it('should assemble pvc without editName', () => {
     const result = assemblePvc(data, 'namespace');
@@ -254,7 +249,6 @@ describe('updatePvc', () => {
     );
   });
 });
-
 
 describe('deletePvc', () => {
   it('should return status as Success', async () => {
