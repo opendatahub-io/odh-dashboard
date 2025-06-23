@@ -44,7 +44,7 @@ describe('DeploymentsTableRow', () => {
     // API protocol Column
     expect(screen.getByText('Not defined')).toBeInTheDocument();
     // Status Column
-    expect(screen.getByRole('button', { name: 'warning status' })).toBeInTheDocument();
+    expect(screen.getByText('Inference Service Status')).toBeInTheDocument();
 
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Kebab toggle' }));
@@ -91,7 +91,7 @@ describe('DeploymentsTableRow', () => {
       </table>,
     );
 
-    expect(screen.getByRole('button', { name: 'success status' })).toBeInTheDocument();
+    expect(screen.getByText('Running')).toBeInTheDocument();
   });
 
   describe('Inference endpoints', () => {
