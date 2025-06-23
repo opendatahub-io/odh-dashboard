@@ -81,10 +81,7 @@ const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose }) =>
           <Alert
             key={condition.type + idx}
             variant="danger"
-            title={
-              `$676916
-              {condition.type} - ${condition.reason || 'Unknown'}` || 'Error'
-            }
+            title={`${condition.type} - ${condition.reason || 'Unknown'}` || 'Error'}
             style={{ marginBottom: 16 }}
           >
             {condition.message || 'An error occurred.'}
