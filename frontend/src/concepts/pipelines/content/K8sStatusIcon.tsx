@@ -54,7 +54,7 @@ const K8sStatusIcon: React.FC<StatusIconProps> = ({ status }) => {
 
   return (
     <Icon status={config.statusColor} title={status} aria-label={status}>
-      <IconComponent />
+      <IconComponent className={config.className} />
     </Icon>
   );
 };

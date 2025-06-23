@@ -263,7 +263,7 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
           </Flex>
         }
       />
-      <ModalBody className="odh-modal__content-height" style={{ height: '470px' }}>
+      <ModalBody className="odh-modal__content-height">
         <Stack hasGutter>
           {renderLastUpdate()}
           {renderStatus()}
