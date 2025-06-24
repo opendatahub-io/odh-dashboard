@@ -80,14 +80,6 @@ Steps to Configure:
 
 Replace your-custom-domain.com with the specific domain for your OpenShift console
 
-### Configuring a pipeline server
-
-The pipeline server requires an S3 compatible storage backend. You can use your own S3 bucket or use a [local MinIO instance](https://ai-on-openshift.io/tools-and-applications/minio/minio/)
-
-### Configuring a model registry
-
-Please refer to the [model registry documentation](https://github.com/opendatahub-io/model-registry-operator/blob/main/docs/install.md)
-
 ## Deploying the ODH Dashbard
 
 ### Official Image Builds
