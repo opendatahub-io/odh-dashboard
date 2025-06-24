@@ -129,7 +129,6 @@ export const getStatusFromCondition = (condition: K8sCondition): StatusType => {
   ) {
     return StatusType.ERROR;
   }
-  // todo: add test cases!!!!!
 
   // For all other non-true statuses, apply timeout logic
   // after bug above is addressed/fixed; add K8sDspaConditionReason.FailingToDeploy to the immediate error clause above
