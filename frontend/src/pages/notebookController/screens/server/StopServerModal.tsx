@@ -6,7 +6,7 @@ import ConfirmStopModal from '#~/pages/projects/components/ConfirmStopModal.tsx'
 
 type StopServerModalProps = {
   notebooksToStop: Notebook[];
-  link: string;
+  link?: string;
   isDeleting: boolean;
   onNotebooksStop: (didStop: boolean) => void;
 };
@@ -63,10 +63,10 @@ const StopServerModal: React.FC<StopServerModalProps> = ({
   };
 
   const displayLink = () => {
-    if (link !== '#' && notebooksToStop.length === 1) {
+    if (!!link && notebooksToStop.length === 1) {
       return (
         <>
-          <Button component="a" href={link} variant="link" isInline>
+          <Button data-testid="workbench-url" component="a" href={link} variant="link" isInline>
             open the workbench
           </Button>
         </>

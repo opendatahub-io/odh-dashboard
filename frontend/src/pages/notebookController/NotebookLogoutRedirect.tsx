@@ -3,8 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { getNotebook } from '#~/services/notebookService';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import useNotification from '#~/utilities/useNotification';
-import useRouteForNotebook from '#~/pages/projects/notebook/useRouteForNotebook';
+import useRouteForNotebook from '#~/concepts/notebooks/apiHooks/useRouteForNotebook';
 import { getRoute } from '#~/services/routeService';
+import { FAST_POLL_INTERVAL } from '#~/utilities/const';
 import useNamespaces from './useNamespaces';
 
 const NotebookLogoutRedirect: React.FC = () => {
@@ -12,7 +13,11 @@ const NotebookLogoutRedirect: React.FC = () => {
   const notification = useNotification();
   const navigate = useNavigate();
   const { notebookNamespace } = useNamespaces();
-  const [routeLink, loaded, error] = useRouteForNotebook(notebookName, namespace, true);
+  const {
+    data: notebookRoute,
+    loaded,
+    error,
+  } = useRouteForNotebook(notebookName, namespace, true, FAST_POLL_INTERVAL);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -49,18 +54,17 @@ const NotebookLogoutRedirect: React.FC = () => {
 
   React.useEffect(() => {
     if (namespace && notebookName && namespace !== notebookNamespace) {
-      if (loaded) {
-        if (error) {
-          notification.error(`Error when logging out ${notebookName}`, error.message);
-          navigate(`/projects/${namespace}`);
-        } else if (routeLink) {
-          const location = new URL(routeLink);
-          window.location.href = `${location.origin}/oauth/sign_out`;
-        }
+      if (error) {
+        notification.error(`Error when logging out ${notebookName}`, error.message);
+        navigate(`/projects/${namespace}`);
+      }
+      if (loaded && notebookRoute) {
+        const location = new URL(notebookRoute);
+        window.location.href = `${location.origin}/oauth/sign_out`;
       }
     }
   }, [
-    routeLink,
+    notebookRoute,
     loaded,
     error,
     notification,
