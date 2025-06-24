@@ -25,6 +25,7 @@ import { useWatchHardwareProfiles } from '#~/utilities/useWatchHardwareProfiles'
 import { useDashboardNamespace } from '#~/redux/selectors';
 import { ProjectObjectType } from '#~/concepts/design/utils';
 import TitleWithIcon from '#~/concepts/design/TitleWithIcon';
+import { normalizeHardwareProfiles } from '#~/concepts/hardwareProfiles/utils.ts';
 import useMigratedHardwareProfiles from './migration/useMigratedHardwareProfiles';
 
 const description =
@@ -38,8 +39,10 @@ const HardwareProfiles: React.FC = () => {
     loadError: loadErrorMigratedHardwareProfiles,
     getMigrationAction,
   } = useMigratedHardwareProfiles(dashboardNamespace);
-  const [hardwareProfiles, loadedHardwareProfiles, loadErrorHardwareProfiles] =
+  const [rawHardwareProfiles, loadedHardwareProfiles, loadErrorHardwareProfiles] =
     useWatchHardwareProfiles(dashboardNamespace);
+  // Remove once the new HardwareProfile crd is fully rolled out
+  const hardwareProfiles = normalizeHardwareProfiles(rawHardwareProfiles);
 
   const allMigratedHardwareProfiles = React.useMemo(
     () => [...migratedHardwareProfiles, ...hardwareProfiles],

@@ -13,10 +13,15 @@ spec:
     kind: HardwareProfile
     listKind: HardwareProfileList
   versions:
+    # Single schema - supports all required fields and patterns
     - name: v1alpha1
+      served: true
+      storage: true
       schema:
         openAPIV3Schema:
-          description: HardwareProfile is the Schema for the hardwareprofiles API.
+          type: object
+          required:
+            - spec
           properties:
             apiVersion:
               description: |-
@@ -36,8 +41,49 @@ spec:
             metadata:
               type: object
             spec:
-              description: HardwareProfileSpec defines the desired state of HardwareProfile.
+              type: object
               properties:
+                # Basic fields
+                displayName:
+                  type: string
+                  description: 'The display name of the hardware profile.'
+                enabled:
+                  type: boolean
+                  description: 'Indicates whether the hardware profile is available for new resources.'
+                description:
+                  type: string
+                  description: 'A short description of the hardware profile.'
+                tolerations:
+                  type: array
+                  description: 'Any number of Kubernetes toleration values that are added to resources when created or updated to this hardware profile.'
+                  items:
+                    type: object
+                    required:
+                      - key
+                    properties:
+                      key:
+                        type: string
+                        description: 'Taint key. Empty matches all keys.'
+                      operator:
+                        type: string
+                        description: "Relationship with the value. Valid: 'Exists', 'Equal'. Defaults to 'Equal'."
+                      value:
+                        type: string
+                        description: "Tolerance value. If key is empty, use 'Exists' to match all values and keys."
+                      effect:
+                        type: string
+                        description: "Taint effect. Empty matches all effects. Allowed: 'NoSchedule', 'PreferNoSchedule', 'NoExecute'."
+                      tolerationSeconds:
+                        type: integer
+                        description: "Duration in seconds. If effect is 'NoExecute', specifies eviction time. Default is forever."
+                nodeSelector:
+                  type: object
+                  description: 'The node selector available.'
+                  additionalProperties:
+                    type: string
+                    description: 'The value for the node selector key.'
+
+                # Resource identifiers
                 identifiers:
                   description: The array of identifiers
                   items:
@@ -81,6 +127,7 @@ spec:
                       - minCount
                     type: object
                   type: array
+                # Scheduling configuration
                 scheduling:
                   description: SchedulingSpec specifies how workloads using this hardware
                     profile should be scheduled.
@@ -182,14 +229,8 @@ spec:
                         set, and the 'kueue' field must not be set
                       rule: 'self.type == ''Node'' ? (has(self.node) && !has(self.kueue))
                     : true'
-              type: object
             status:
               description: HardwareProfileStatus defines the observed state of HardwareProfile.
               type: object
-          required:
-            - spec
-          type: object
-      served: true
-      storage: true
       subresources:
         status: {}

@@ -3,6 +3,7 @@ import { HardwareProfileKind, HardwareProfileFeatureVisibility } from '#~/k8sTyp
 import { isHardwareProfileValid } from '#~/pages/hardwareProfiles/utils';
 import { useWatchHardwareProfiles } from '#~/utilities/useWatchHardwareProfiles';
 import { useDashboardNamespace } from '#~/redux/selectors';
+import { normalizeHardwareProfiles } from '#~/concepts/hardwareProfiles/utils.ts';
 import useMigratedHardwareProfiles from './useMigratedHardwareProfiles';
 
 export const useHardwareProfilesByFeatureVisibility = (
@@ -23,8 +24,10 @@ export const useHardwareProfilesByFeatureVisibility = (
     refresh,
   } = useMigratedHardwareProfiles(namespace ?? dashboardNamespace);
 
-  const [hardwareProfiles, loadedHardwareProfiles, loadErrorHardwareProfiles] =
+  const [rawHardwareProfiles, loadedHardwareProfiles, loadErrorHardwareProfiles] =
     useWatchHardwareProfiles(namespace ?? dashboardNamespace);
+  // Remove once the new HardwareProfile crd is fully rolled out
+  const hardwareProfiles = normalizeHardwareProfiles(rawHardwareProfiles);
 
   const loaded = loadedMigratedHardwareProfiles && loadedHardwareProfiles;
   const loadError = loadErrorMigratedHardwareProfiles || loadErrorHardwareProfiles;

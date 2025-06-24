@@ -1358,6 +1358,14 @@ export type HardwareProfileKind = K8sResourceCommon & {
     annotations?: HardwareProfileAnnotations;
   };
   spec: {
+    //--- Old HWP fields ---
+    // Remove once the new HardwareProfile crd is fully rolled out
+    displayName?: string;
+    enabled?: boolean;
+    description?: string;
+    tolerations?: Toleration[];
+    nodeSelector?: NodeSelector;
+    //----------------------
     identifiers?: Identifier[];
     scheduling?: HardwareProfileScheduling;
   };

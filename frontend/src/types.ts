@@ -287,7 +287,7 @@ export type NotebookPort = {
 export type HardwareProfileAnnotations = Partial<{
   'opendatahub.io/display-name': string;
   'opendatahub.io/description': string;
-  'opendatahub.io/dashboard-feature-visibility': string;
+  'opendatahub.io/dashboard-feature-visibility': string; // JSON stringified HardwareProfileFeatureVisibility[]
   'opendatahub.io/disabled': string;
 }>;
 
