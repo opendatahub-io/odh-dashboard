@@ -26,7 +26,7 @@ spec:
         - If you want to work with a very large data set, work with your administrator to proactively increase the storage capacity of your workbench.
         ### Launch a workbench
         1. On the **Enabled applications** page, locate the **Start basic workbench** card.
-        2. Click **Launch application**.
+        2. Click **Open application**.
            a) If prompted, select your identity provider.
            b) Enter your credentials and click **Log in** (or equivalent for your identity provider).
            c) If you see an **Access permission needed** message, you are not in the default user group or the default administrator group for Open Data Hub. Contact your administrator so that they can add you to the correct group.

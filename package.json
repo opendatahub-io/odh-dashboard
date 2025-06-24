@@ -40,7 +40,6 @@
     "test:frontend:coverage": "cd ./frontend && npm run test:coverage",
     "test:frontend:unit-coverage": "cd ./frontend && npm run test:unit-coverage",
     "test:backend:unit-coverage": "cd ./backend && npm run test:unit-coverage",
-
     "test:cypress-ci": "cd ./frontend && npm run test:cypress-ci -- ",
     "test:unit": "cd ./frontend && npm run test:unit",
     "lint:frontend:backend": "cd ./backend && npm run test:lint && cd ../frontend && npm run test:lint",
