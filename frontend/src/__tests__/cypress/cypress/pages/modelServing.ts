@@ -704,7 +704,7 @@ class ModelServingSection {
   }
 
   findStatusTooltip() {
-    return this.find().findByTestId('status-tooltip');
+    return this.find().findByTestId('model-status-text');
   }
 
   findKServeTableHeaderButton(name: string) {
