@@ -54,7 +54,7 @@ const HardwareProfileCustomize: React.FC<HardwareProfileCustomizeProps> = ({
 
   const renderField = (identifier: Identifier, type: 'requests' | 'limits') => {
     const value = data[type]?.[identifier.identifier];
-    const onChange = (v: string) =>
+    const onChange = (v: string | undefined) =>
       setData({
         ...data,
         [type]: {
