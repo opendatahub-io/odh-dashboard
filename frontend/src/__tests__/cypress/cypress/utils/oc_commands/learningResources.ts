@@ -5,7 +5,7 @@ const applicationNamespace = Cypress.env('APPLICATIONS_NAMESPACE');
 /**
  * Interface for learning resource counts
  */
-export interface LearningResourceCounts {
+interface LearningResourceCounts {
   documents: number;
   quickstarts: number;
   applications: number;
@@ -87,11 +87,7 @@ export const getEnabledResourceCount = (
   namespace = applicationNamespace,
 ): Cypress.Chainable<number> => {
   return getLearningResourceCounts(namespace).then((counts) => {
-    cy.log(`Backend enabled resources count: ${counts.total}`);
-    cy.log(`  - Documents: ${counts.documents}`);
-    cy.log(`  - Quickstarts: ${counts.quickstarts}`);
-    cy.log(`  - Dynamic docs: ${counts.dynamicDocs}`);
-
+    cy.log(`Enabled resources count: ${counts.total}`);
     return cy.wrap(counts.total);
   });
 };
@@ -105,7 +101,7 @@ export const getDisabledResourceCount = (): Cypress.Chainable<number> => {
   // So disabled count is always 0
   const disabledCount = 0;
 
-  cy.log(`Backend disabled applications count: ${disabledCount}`);
+  cy.log(`Disabled applications count: ${disabledCount}`);
   return cy.wrap(disabledCount);
 };
 
@@ -129,9 +125,7 @@ export const getDocumentationResourceCount = (
 
       const totalDocs = staticDocs + dynamicDocs;
 
-      cy.log(
-        `Backend documentation resources count: ${totalDocs} (${staticDocs} static + ${dynamicDocs} dynamic)`,
-      );
+      cy.log(`Documentation resources count: ${totalDocs}`);
       return cy.wrap(totalDocs);
     });
   });
@@ -150,7 +144,7 @@ export const getHowToResourceCount = (
       (doc: { spec?: { type?: string } }) => doc.spec && doc.spec.type === 'how-to',
     );
 
-    cy.log(`Backend how-to resources count: ${howtoResources.length}`);
+    cy.log(`How-to resources count: ${howtoResources.length}`);
     return cy.wrap(howtoResources.length);
   });
 };
@@ -164,7 +158,7 @@ export const getQuickstartResourceCount = (
   namespace = applicationNamespace,
 ): Cypress.Chainable<number> => {
   return getLearningResourceCounts(namespace).then((counts) => {
-    cy.log(`Backend quickstart resources count: ${counts.quickstarts}`);
+    cy.log(`Quickstart resources count: ${counts.quickstarts}`);
     return cy.wrap(counts.quickstarts);
   });
 };
@@ -182,7 +176,7 @@ export const getTutorialResourceCount = (
       (doc: { spec?: { type?: string } }) => doc.spec && doc.spec.type === 'tutorial',
     );
 
-    cy.log(`Backend tutorial resources count: ${tutorialResources.length}`);
+    cy.log(`Tutorial resources count: ${tutorialResources.length}`);
     return cy.wrap(tutorialResources.length);
   });
 };
@@ -197,7 +191,7 @@ export const getRedHatManagedResourceCount = (
 ): Cypress.Chainable<number> => {
   // Red Hat managed count is identical to enabled count - all resources appear as Red Hat managed
   return getEnabledResourceCount(namespace).then((enabledCount) => {
-    cy.log(`Backend Red Hat managed resources count: ${enabledCount}`);
+    cy.log(`Red Hat managed resources count: ${enabledCount}`);
     return cy.wrap(enabledCount);
   });
 };
@@ -225,9 +219,159 @@ export const getLearningResourceCounts = (
           total: documents.length + quickstarts.length + dynamicDocs,
         };
 
-        cy.log('Learning Resource Counts:', counts);
         return cy.wrap(counts);
       });
     });
+  });
+};
+
+/**
+ * Get count of resources for a specific provider
+ * @param providerName - Name of the provider to count resources for
+ * @param namespace - The namespace to search in
+ * @returns Cypress chainable with resource count for the provider
+ */
+export const getResourceCountByProvider = (
+  providerName: string,
+  namespace = applicationNamespace,
+): Cypress.Chainable<number> => {
+  return getOdhApplications(namespace).then((applications) => {
+    return getOdhDocuments(namespace).then((documents) => {
+      let count = 0;
+
+      // Find applications for this provider
+      const providerApps = applications.filter((app) => {
+        const appSpec = app.spec as { provider?: string };
+        return appSpec.provider === providerName;
+      });
+
+      // Count documents linked to these applications
+      providerApps.forEach((app) => {
+        const appName = (app.metadata as { name?: string }).name;
+        const appSpec = app.spec as { docsLink?: string };
+
+        // Count linked documents
+        const linkedDocs = documents.filter((doc) => {
+          const docSpec = doc.spec as { appName?: string };
+          return docSpec.appName === appName;
+        });
+        count += linkedDocs.length;
+
+        // Count dynamic docs (apps with docsLink)
+        if (appSpec.docsLink) {
+          count += 1;
+        }
+      });
+
+      // Special case: quickstarts are typically associated with Red Hat
+      if (providerName === 'Red Hat') {
+        return getOdhQuickstarts(namespace).then((quickstarts) => {
+          count += quickstarts.length;
+          cy.log(`${providerName} resources count: ${count}`);
+          return cy.wrap(count);
+        });
+      }
+
+      cy.log(`${providerName} resources count: ${count}`);
+      return cy.wrap(count);
+    });
+  });
+};
+
+/**
+ * Get count of Elastic provider resources
+ * @param namespace - The namespace to search in
+ * @returns Cypress chainable with Elastic resource count
+ */
+export const getElasticResourceCount = (
+  namespace = applicationNamespace,
+): Cypress.Chainable<number> => {
+  return getResourceCountByProvider('Elastic', namespace).then((count) => {
+    cy.log(`Elastic resources count: ${count}`);
+    return cy.wrap(count);
+  });
+};
+
+/**
+ * Get count of IBM provider resources
+ * @param namespace - The namespace to search in
+ * @returns Cypress chainable with IBM resource count
+ */
+export const getIBMResourceCount = (
+  namespace = applicationNamespace,
+): Cypress.Chainable<number> => {
+  return getResourceCountByProvider('IBM', namespace).then((count) => {
+    cy.log(`IBM resources count: ${count}`);
+    return cy.wrap(count);
+  });
+};
+
+/**
+ * Get count of Intel® provider resources
+ * @param namespace - The namespace to search in
+ * @returns Cypress chainable with Intel® resource count
+ */
+export const getIntelResourceCount = (
+  namespace = applicationNamespace,
+): Cypress.Chainable<number> => {
+  return getResourceCountByProvider('Intel®', namespace).then((count) => {
+    cy.log(`Intel® resources count: ${count}`);
+    return cy.wrap(count);
+  });
+};
+
+/**
+ * Get count of NVIDIA provider resources
+ * @param namespace - The namespace to search in
+ * @returns Cypress chainable with NVIDIA resource count
+ */
+export const getNVIDIAResourceCount = (
+  namespace = applicationNamespace,
+): Cypress.Chainable<number> => {
+  return getResourceCountByProvider('NVIDIA', namespace).then((count) => {
+    cy.log(`NVIDIA resources count: ${count}`);
+    return cy.wrap(count);
+  });
+};
+
+/**
+ * Get count of Pachyderm provider resources
+ * @param namespace - The namespace to search in
+ * @returns Cypress chainable with Pachyderm resource count
+ */
+export const getPachydermResourceCount = (
+  namespace = applicationNamespace,
+): Cypress.Chainable<number> => {
+  return getResourceCountByProvider('Pachyderm', namespace).then((count) => {
+    cy.log(`Pachyderm resources count: ${count}`);
+    return cy.wrap(count);
+  });
+};
+
+/**
+ * Get count of Red Hat provider resources
+ * @param namespace - The namespace to search in
+ * @returns Cypress chainable with Red Hat resource count
+ */
+export const getRedHatResourceCount = (
+  namespace = applicationNamespace,
+): Cypress.Chainable<number> => {
+  return getResourceCountByProvider('Red Hat', namespace).then((count) => {
+    cy.log(`Red Hat resources count: ${count}`);
+    return cy.wrap(count);
+  });
+};
+
+/**
+ * Get count of Starburst provider resources
+ * @param namespace - The namespace to search in
+ * @returns Cypress chainable with Starburst resource count
+ */
+export const getStarburstResourceCount = (
+  namespace = applicationNamespace,
+): Cypress.Chainable<number> => {
+  return getResourceCountByProvider('Starburst', namespace).then((count) => {
+    cy.log(`Starburst resources count: ${count}`);
+    return cy.wrap(count);
   });
 };

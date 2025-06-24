@@ -9,6 +9,13 @@ import {
   getQuickstartResourceCount,
   getTutorialResourceCount,
   getRedHatManagedResourceCount,
+  getElasticResourceCount,
+  getIBMResourceCount,
+  getIntelResourceCount,
+  getNVIDIAResourceCount,
+  getPachydermResourceCount,
+  getRedHatResourceCount,
+  getStarburstResourceCount,
 } from '#~/__tests__/cypress/cypress/utils/oc_commands/learningResources';
 
 const listView = resources.getListView();
@@ -104,6 +111,77 @@ describe('[Automation Bug: RHOAIENG-21088] Verify the filters on Resources page'
         .then((resourceCount) =>
           listView.findListItems().should('have.length.at.least', resourceCount),
         );
+    },
+  );
+
+  it(
+    'Test RHOAI-specific filters',
+    { tags: ['@Sanity', '@SanitySet1', '@Dashboard', '@Maintain'] },
+    () => {
+      // Skips this test if not running on RHOAI
+      const applicationsNamespace = Cypress.env('APPLICATIONS_NAMESPACE');
+      if (applicationsNamespace === 'opendatahub') {
+        cy.log(
+          `Skipping RHOAI-specific filter test. Applications namespace: ${applicationsNamespace}`,
+        );
+        return;
+      }
+
+      // Navigate to Resources
+      cy.step('Navigate to Resources tab');
+      resources.visit();
+
+      // RHOAI-specific provider filters
+      cy.step('Test RHOAI-specific provider filters');
+
+      // Verify backend state for Elastic resources
+      getElasticResourceCount();
+
+      // Elastic
+      resourcesToolbar.findCardToggleButton().click();
+      verifyResourcesForFilter('Elastic');
+
+      // Verify backend state for IBM resources
+      getIBMResourceCount();
+
+      // IBM
+      resourcesToolbar.findCardToggleButton().click();
+      verifyResourcesForFilter('IBM');
+
+      // Verify backend state for Intel® resources
+      getIntelResourceCount();
+
+      // Intel®
+      resourcesToolbar.findCardToggleButton().click();
+      verifyResourcesForFilter('Intel®');
+
+      // Verify backend state for NVIDIA resources
+      getNVIDIAResourceCount();
+
+      // NVIDIA
+      resourcesToolbar.findCardToggleButton().click();
+      verifyResourcesForFilter('NVIDIA');
+
+      // Verify backend state for Pachyderm resources
+      getPachydermResourceCount();
+
+      // Pachyderm
+      resourcesToolbar.findCardToggleButton().click();
+      verifyResourcesForFilter('Pachyderm');
+
+      // Verify backend state for Red Hat resources
+      getRedHatResourceCount();
+
+      // Red Hat
+      resourcesToolbar.findCardToggleButton().click();
+      verifyResourcesForFilter('Red Hat');
+
+      // Verify backend state for Starburst resources
+      getStarburstResourceCount();
+
+      // Starburst
+      resourcesToolbar.findCardToggleButton().click();
+      verifyResourcesForFilter('Starburst');
     },
   );
 });
