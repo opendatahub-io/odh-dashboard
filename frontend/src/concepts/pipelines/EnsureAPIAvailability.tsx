@@ -2,7 +2,6 @@ import * as React from 'react';
 import { Bullseye, Spinner, Button, Flex, FlexItem } from '@patternfly/react-core';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import StartingStatusModal from '#~/concepts/pipelines/content/StartingStatusModal.tsx';
-import './EnsureAPIAvailability.scss';
 
 type EnsureAPIAvailabilityProps = {
   children: React.ReactNode;
@@ -33,19 +32,18 @@ const EnsureAPIAvailability: React.FC<EnsureAPIAvailabilityProps> = ({ children 
 
     return (
       <div>
-        <Bullseye
-          className="ensure-api-availability__spinner-container"
-          data-testid="pipelines-api-not-available"
-        >
+        <Bullseye data-testid="pipelines-api-not-available">
           <Flex direction={{ default: 'column' }} gap={{ default: 'gapMd' }}>
             <FlexItem>
-              <div className="ensure-api-availability__spinner-content">
-                <Spinner size="md" className="ensure-api-availability__spinner-icon" />
-                {contents}
-              </div>
+              <Flex alignSelf={{ default: 'alignSelfCenter' }} gap={{ default: 'gapSm' }}>
+                <FlexItem>
+                  <Spinner size="md" />
+                </FlexItem>
+                <FlexItem>{contents}</FlexItem>
+              </Flex>
             </FlexItem>
             <FlexItem>
-              <div className="ensure-api-availability__wait-message">This may take a while</div>
+              <div style={{ textAlign: 'center' }}>This may take a while</div>
             </FlexItem>
           </Flex>
         </Bullseye>
@@ -62,10 +60,7 @@ const EnsureAPIAvailability: React.FC<EnsureAPIAvailabilityProps> = ({ children 
 
     if (!apiAvailable && compatible) {
       return (
-        <Bullseye
-          className="ensure-api-availability__spinner-container"
-          data-testid="pipelines-api-not-available"
-        >
+        <Bullseye style={{ minHeight: '150px' }} data-testid="pipelines-api-not-available">
           <Spinner />
         </Bullseye>
       );
