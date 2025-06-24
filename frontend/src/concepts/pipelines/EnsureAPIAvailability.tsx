@@ -2,6 +2,7 @@ import * as React from 'react';
 import { Bullseye, Spinner, Button, Stack, StackItem } from '@patternfly/react-core';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import StartingStatusModal from '#~/concepts/pipelines/content/StartingStatusModal.tsx';
+import './EnsureAPIAvailability.scss';
 
 type EnsureAPIAvailabilityProps = {
   children: React.ReactNode;
@@ -32,16 +33,19 @@ const EnsureAPIAvailability: React.FC<EnsureAPIAvailabilityProps> = ({ children 
 
     return (
       <div>
-        <Bullseye style={{ minHeight: 150 }} data-testid="pipelines-api-not-available">
+        <Bullseye
+          className="ensure-api-availability__spinner-container"
+          data-testid="pipelines-api-not-available"
+        >
           <Stack hasGutter>
             <StackItem>
-              <div className="pf-v6-u-text-align-center">
-                <Spinner size="md" className="pf-v6-u-mr-md" />
+              <div className="ensure-api-availability__spinner-content">
+                <Spinner size="md" className="ensure-api-availability__spinner-icon" />
                 {contents}
               </div>
             </StackItem>
             <StackItem>
-              <div className="pf-v6-u-text-align-center">This may take a while</div>
+              <div className="ensure-api-availability__wait-message">This may take a while</div>
             </StackItem>
           </Stack>
         </Bullseye>
@@ -58,7 +62,10 @@ const EnsureAPIAvailability: React.FC<EnsureAPIAvailabilityProps> = ({ children 
 
     if (!apiAvailable && compatible) {
       return (
-        <Bullseye style={{ minHeight: 150 }} data-testid="pipelines-api-not-available">
+        <Bullseye
+          className="ensure-api-availability__spinner-container"
+          data-testid="pipelines-api-not-available"
+        >
           <Spinner />
         </Bullseye>
       );
