@@ -239,6 +239,16 @@ const extensions: RouteExtension[] = [
       component: () => import('#~/pages/hardwareProfiles/HardwareProfilesRoutes'),
     },
   },
+  {
+    type: 'app.route',
+    flags: {
+      required: [SupportedArea.LM_EVAL],
+    },
+    properties: {
+      path: '/modelEvaluations/*',
+      component: () => import('#~/pages/lmEval/LMEvalRoutes'),
+    },
+  },
 ];
 
 export default extensions;
