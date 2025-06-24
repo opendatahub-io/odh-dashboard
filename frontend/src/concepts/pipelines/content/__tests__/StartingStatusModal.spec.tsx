@@ -8,7 +8,7 @@ import { MetadataStoreServicePromiseClient } from '#~/third_party/mlmd/generated
 import { PipelineAPIs } from '#~/concepts/pipelines/types';
 import {
   useWatchPodsForPipelineServerEvents,
-  useWatchMultiplePodEvents,
+  useWatchAllPodEventsAndFilter,
 } from '#~/concepts/pipelines/context/usePipelineEvents.ts';
 
 const fullMessage1 =
@@ -79,7 +79,7 @@ jest.mock('#~/concepts/pipelines/context/usePipelineEvents.ts', () => ({
 
 const mockUsePipelinesAPI = jest.mocked(usePipelinesAPI);
 const mockUseWatchPodsForPipelineServerEvents = jest.mocked(useWatchPodsForPipelineServerEvents);
-const mockUseWatchMultiplePodEvents = jest.mocked(useWatchMultiplePodEvents);
+const mockUseWatchMultiplePodEvents = jest.mocked(useWatchAllPodEventsAndFilter);
 
 describe('StartingStatusModal', () => {
   const mockOnClose = jest.fn();

@@ -26,7 +26,7 @@ import PipelineComponentStatusIcon, {
 import { K8sCondition } from '#~/k8sTypes';
 import {
   useWatchPodsForPipelineServerEvents,
-  useWatchMultiplePodEvents,
+  useWatchAllPodEventsAndFilter,
 } from '#~/concepts/pipelines/context/usePipelineEvents.ts';
 import EventLog from '#~/concepts/k8s/EventLog/EventLog';
 import '#~/concepts/dashboard/ModalStyles.scss';
@@ -55,7 +55,7 @@ const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose }) =>
   );
 
   // Use the custom hook to get all events
-  const allEvents = useWatchMultiplePodEvents(namespace, podUids);
+  const allEvents = useWatchAllPodEventsAndFilter(namespace, podUids);
 
   const spinner = (
     <Flex>

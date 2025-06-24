@@ -11,14 +11,13 @@ import useK8sWatchResourceList from '#~/utilities/useK8sWatchResourceList';
 // TECH DEBT
 export const useWatchPipelineServerEvents = (
   namespace: string,
-  podUid: string,
 ): CustomWatchK8sResult<EventKind[]> =>
   useK8sWatchResourceList(
     {
       isList: true,
       groupVersionKind: groupVersionKind(EventModel),
       namespace,
-      fieldSelector: `involvedObject.kind=Pod,involvedObject.uid=${podUid}`,
+      fieldSelector: 'involvedObject.kind=Pod',
     },
     EventModel,
   );
@@ -37,91 +36,27 @@ export const useWatchPodsForPipelineServerEvents = (
   );
 
 // Custom hook to watch events for multiple pods dynamically
-export const useWatchMultiplePodEvents = (namespace: string, podUids: string[]): EventKind[] => {
-  // Determine how many pods to watch (up to a reasonable limit to prevent performance issues)
-  const maxPodsToWatch = 20; // Increased from 10 to handle more pods
-  const podsToWatch = Math.min(podUids.length, maxPodsToWatch);
+export const useWatchAllPodEventsAndFilter = (
+  namespace: string,
+  podUids: string[],
+): EventKind[] => {
+  // get ALL the events
+  const [podEvents] = useWatchPipelineServerEvents(namespace);
+  console.log('podEvents-22a', podEvents);
+  const filteredEvents = podEvents.filter(
+    (event) => event.metadata.uid && podUids.includes(event.metadata.uid),
+  );
 
-  // Call hooks at the top level for each possible pod index
-  const pod0Events = useWatchPipelineServerEvents(namespace, podUids[0] ?? '');
-  const pod1Events = useWatchPipelineServerEvents(namespace, podUids[1] ?? '');
-  const pod2Events = useWatchPipelineServerEvents(namespace, podUids[2] ?? '');
-  const pod3Events = useWatchPipelineServerEvents(namespace, podUids[3] ?? '');
-  const pod4Events = useWatchPipelineServerEvents(namespace, podUids[4] ?? '');
-  const pod5Events = useWatchPipelineServerEvents(namespace, podUids[5] ?? '');
-  const pod6Events = useWatchPipelineServerEvents(namespace, podUids[6] ?? '');
-  const pod7Events = useWatchPipelineServerEvents(namespace, podUids[7] ?? '');
-  const pod8Events = useWatchPipelineServerEvents(namespace, podUids[8] ?? '');
-  const pod9Events = useWatchPipelineServerEvents(namespace, podUids[9] ?? '');
-  const pod10Events = useWatchPipelineServerEvents(namespace, podUids[10] ?? '');
-  const pod11Events = useWatchPipelineServerEvents(namespace, podUids[11] ?? '');
-  const pod12Events = useWatchPipelineServerEvents(namespace, podUids[12] ?? '');
-  const pod13Events = useWatchPipelineServerEvents(namespace, podUids[13] ?? '');
-  const pod14Events = useWatchPipelineServerEvents(namespace, podUids[14] ?? '');
-  const pod15Events = useWatchPipelineServerEvents(namespace, podUids[15] ?? '');
-  const pod16Events = useWatchPipelineServerEvents(namespace, podUids[16] ?? '');
-  const pod17Events = useWatchPipelineServerEvents(namespace, podUids[17] ?? '');
-  const pod18Events = useWatchPipelineServerEvents(namespace, podUids[18] ?? '');
-  const pod19Events = useWatchPipelineServerEvents(namespace, podUids[19] ?? '');
+  console.log('filteredEvents-22b', filteredEvents);
 
-  return React.useMemo(() => {
-    // Create an array of all pod event results dynamically
-    const allPodEventResults = [
-      pod0Events,
-      pod1Events,
-      pod2Events,
-      pod3Events,
-      pod4Events,
-      pod5Events,
-      pod6Events,
-      pod7Events,
-      pod8Events,
-      pod9Events,
-      pod10Events,
-      pod11Events,
-      pod12Events,
-      pod13Events,
-      pod14Events,
-      pod15Events,
-      pod16Events,
-      pod17Events,
-      pod18Events,
-      pod19Events,
-    ];
-
-    // Extract the first element (events array) from each pod event result
-    const allPodEventArrays = allPodEventResults.map((podEventResult) => podEventResult[0]);
-
-    // Only use the events for pods that actually exist
-    const validPodEventArrays = allPodEventArrays.slice(0, podsToWatch);
-
-    // Flatten and sort all events by timestamp
-    return validPodEventArrays.flat().toSorted((a, b) => {
-      const timeA = new Date(a.lastTimestamp ?? a.eventTime).getTime();
-      const timeB = new Date(b.lastTimestamp ?? b.eventTime).getTime();
-      return timeA - timeB;
-    });
-  }, [
-    pod0Events,
-    pod1Events,
-    pod2Events,
-    pod3Events,
-    pod4Events,
-    pod5Events,
-    pod6Events,
-    pod7Events,
-    pod8Events,
-    pod9Events,
-    pod10Events,
-    pod11Events,
-    pod12Events,
-    pod13Events,
-    pod14Events,
-    pod15Events,
-    pod16Events,
-    pod17Events,
-    pod18Events,
-    pod19Events,
-    podsToWatch,
-  ]);
+  return React.useMemo(
+    () =>
+      // Sort events by timestamp
+      filteredEvents.toSorted((a, b) => {
+        const timeA = new Date(a.lastTimestamp ?? a.eventTime).getTime();
+        const timeB = new Date(b.lastTimestamp ?? b.eventTime).getTime();
+        return timeA - timeB;
+      }),
+    [filteredEvents],
+  );
 };
