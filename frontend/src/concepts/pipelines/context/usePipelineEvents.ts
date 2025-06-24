@@ -36,10 +36,13 @@ export const useWatchPodsForPipelineServerEvents = (
     PodModel,
   );
 
-// Custom hook to watch events for multiple pods
+// Custom hook to watch events for multiple pods dynamically
 export const useWatchMultiplePodEvents = (namespace: string, podUids: string[]): EventKind[] => {
-  // Always call hooks to maintain consistent order, but use empty string for non-existent pods
-  // This will result in empty event arrays for non-existent pods
+  // Determine how many pods to watch (up to a reasonable limit to prevent performance issues)
+  const maxPodsToWatch = 20; // Increased from 10 to handle more pods
+  const podsToWatch = Math.min(podUids.length, maxPodsToWatch);
+
+  // Call hooks at the top level for each possible pod index
   const pod0Events = useWatchPipelineServerEvents(namespace, podUids[0] ?? '');
   const pod1Events = useWatchPipelineServerEvents(namespace, podUids[1] ?? '');
   const pod2Events = useWatchPipelineServerEvents(namespace, podUids[2] ?? '');
@@ -50,8 +53,19 @@ export const useWatchMultiplePodEvents = (namespace: string, podUids: string[]):
   const pod7Events = useWatchPipelineServerEvents(namespace, podUids[7] ?? '');
   const pod8Events = useWatchPipelineServerEvents(namespace, podUids[8] ?? '');
   const pod9Events = useWatchPipelineServerEvents(namespace, podUids[9] ?? '');
+  const pod10Events = useWatchPipelineServerEvents(namespace, podUids[10] ?? '');
+  const pod11Events = useWatchPipelineServerEvents(namespace, podUids[11] ?? '');
+  const pod12Events = useWatchPipelineServerEvents(namespace, podUids[12] ?? '');
+  const pod13Events = useWatchPipelineServerEvents(namespace, podUids[13] ?? '');
+  const pod14Events = useWatchPipelineServerEvents(namespace, podUids[14] ?? '');
+  const pod15Events = useWatchPipelineServerEvents(namespace, podUids[15] ?? '');
+  const pod16Events = useWatchPipelineServerEvents(namespace, podUids[16] ?? '');
+  const pod17Events = useWatchPipelineServerEvents(namespace, podUids[17] ?? '');
+  const pod18Events = useWatchPipelineServerEvents(namespace, podUids[18] ?? '');
+  const pod19Events = useWatchPipelineServerEvents(namespace, podUids[19] ?? '');
 
   return React.useMemo(() => {
+    // Create an array of all pod event results
     const allPodEventArrays = [
       pod0Events[0],
       pod1Events[0],
@@ -63,9 +77,23 @@ export const useWatchMultiplePodEvents = (namespace: string, podUids: string[]):
       pod7Events[0],
       pod8Events[0],
       pod9Events[0],
+      pod10Events[0],
+      pod11Events[0],
+      pod12Events[0],
+      pod13Events[0],
+      pod14Events[0],
+      pod15Events[0],
+      pod16Events[0],
+      pod17Events[0],
+      pod18Events[0],
+      pod19Events[0],
     ];
 
-    return allPodEventArrays.flat().toSorted((a, b) => {
+    // Only use the events for pods that actually exist
+    const validPodEventArrays = allPodEventArrays.slice(0, podsToWatch);
+
+    // Flatten and sort all events by timestamp
+    return validPodEventArrays.flat().toSorted((a, b) => {
       const timeA = new Date(a.lastTimestamp ?? a.eventTime).getTime();
       const timeB = new Date(b.lastTimestamp ?? b.eventTime).getTime();
       return timeA - timeB;
@@ -81,5 +109,16 @@ export const useWatchMultiplePodEvents = (namespace: string, podUids: string[]):
     pod7Events,
     pod8Events,
     pod9Events,
+    pod10Events,
+    pod11Events,
+    pod12Events,
+    pod13Events,
+    pod14Events,
+    pod15Events,
+    pod16Events,
+    pod17Events,
+    pod18Events,
+    pod19Events,
+    podsToWatch,
   ]);
 };

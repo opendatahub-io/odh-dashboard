@@ -111,6 +111,7 @@ export const isPipelineRecurringRun = (
 ): resource is PipelineRecurringRunKF => 'recurring_run_id' in resource && !('run_id' in resource);
 
 // workaround until https://issues.redhat.com/browse/RHOAIENG-27727 is fixed
+// (created to track the above issue: https://issues.redhat.com/browse/RHOAIENG-28144)
 // after the above ticket is resolved, once 'failingTodeploy' is detected then it is an automatic fail
 // without any need for a timeout.
 // but we should still timeout everything else

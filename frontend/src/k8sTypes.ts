@@ -128,12 +128,6 @@ export type ModelServingProjectLabels = {
   [KnownLabels.MODEL_SERVING_PROJECT]: 'true' | 'false';
 };
 
-/* not using K8sDSPAConditionReason because these conditions are not specific to the Data Science Pipelines Operator;
-// they are used all over the code.
-// for example: other values:
-//  'DBConnecting' (used in trustyai utils)
-//  'Unschedulable' (used in kserve status utils)
-//  'TriggeredScaleUp', 'NotTriggerScaleUp', 'FailedScheduling', 'BackOff' (used in notebook controller utils) */
 export type K8sCondition = {
   type: string;
   status: string;

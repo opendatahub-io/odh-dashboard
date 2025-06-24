@@ -46,13 +46,16 @@ const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose }) =>
   );
 
   const [pods] = useWatchPodsForPipelineServerEvents(namespace);
-  const podUids = pods.map((onePod) => onePod.metadata.uid);
+
+  // Combine map and filter operations into a single useMemo
+  const podUids = React.useMemo(
+    () =>
+      pods.map((onePod) => onePod.metadata.uid).filter((uid): uid is string => uid !== undefined),
+    [pods],
+  );
 
   // Use the custom hook to get all events
-  const allEvents = useWatchMultiplePodEvents(
-    namespace,
-    podUids.filter((uid): uid is string => uid !== undefined),
-  );
+  const allEvents = useWatchMultiplePodEvents(namespace, podUids);
 
   const spinner = (
     <Flex>
