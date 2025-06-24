@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Bullseye, Spinner, Button, Stack, StackItem } from '@patternfly/react-core';
+import { Bullseye, Spinner, Button, Flex, FlexItem } from '@patternfly/react-core';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import StartingStatusModal from '#~/concepts/pipelines/content/StartingStatusModal.tsx';
 import './EnsureAPIAvailability.scss';
@@ -37,17 +37,17 @@ const EnsureAPIAvailability: React.FC<EnsureAPIAvailabilityProps> = ({ children 
           className="ensure-api-availability__spinner-container"
           data-testid="pipelines-api-not-available"
         >
-          <Stack hasGutter>
-            <StackItem>
+          <Flex direction={{ default: 'column' }} gap={{ default: 'gapMd' }}>
+            <FlexItem>
               <div className="ensure-api-availability__spinner-content">
                 <Spinner size="md" className="ensure-api-availability__spinner-icon" />
                 {contents}
               </div>
-            </StackItem>
-            <StackItem>
+            </FlexItem>
+            <FlexItem>
               <div className="ensure-api-availability__wait-message">This may take a while</div>
-            </StackItem>
-          </Stack>
+            </FlexItem>
+          </Flex>
         </Bullseye>
       </div>
     );
