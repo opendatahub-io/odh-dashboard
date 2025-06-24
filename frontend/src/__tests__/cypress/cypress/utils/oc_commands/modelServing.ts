@@ -78,6 +78,8 @@ type ConditionCheck = {
 type ConditionCheckOptions = {
   checkLatestDeploymentReady?: boolean;
   checkReady?: boolean;
+  checkStopped?: boolean;
+  requireLoadedState?: boolean;
 };
 
 /**
@@ -174,6 +176,15 @@ export const checkInferenceServiceState = (
         });
       }
 
+      if (options.checkStopped) {
+        conditionChecks.push({
+          type: 'Stopped',
+          expectedStatus: 'True',
+          check: (condition) => condition.type === 'Stopped' && condition.status === 'True',
+          name: 'Service Stopped',
+        });
+      }
+
       // If no condition checks are specified, skip condition validation
       const shouldValidateConditions = conditionChecks.length > 0;
 
@@ -207,10 +218,12 @@ export const checkInferenceServiceState = (
       // If no condition checks were specified, only check model state
       const allConditionsPassed =
         !shouldValidateConditions || checkedConditions.every((check) => check.isPassed);
+      // If the user does not want to check the loaded state, then we can return if all conditions are met
+      const requireLoaded = options.requireLoadedState !== false;
 
-      if (isModelLoaded && allConditionsPassed) {
+      if ((!requireLoaded || isModelLoaded) && allConditionsPassed) {
         cy.log(
-          `✅ InferenceService ${serviceName} is in "Loaded" state and meets all conditions after ${attempts} attempts`,
+          `✅ InferenceService ${serviceName} meets all conditions after ${attempts} attempts`,
         );
         return cy.wrap(result);
       }
