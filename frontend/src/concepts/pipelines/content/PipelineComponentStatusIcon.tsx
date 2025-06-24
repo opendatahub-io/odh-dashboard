@@ -48,7 +48,7 @@ type StatusIconProps = {
   status: StatusType;
 };
 
-const K8sStatusIcon: React.FC<StatusIconProps> = ({ status }) => {
+const PipelineComponentStatusIcon: React.FC<StatusIconProps> = ({ status }) => {
   const config = STATUS_CONFIG[status];
   const IconComponent = config.icon;
 
@@ -59,4 +59,4 @@ const K8sStatusIcon: React.FC<StatusIconProps> = ({ status }) => {
   );
 };
 
-export default K8sStatusIcon;
+export default PipelineComponentStatusIcon;

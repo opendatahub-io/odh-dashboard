@@ -16,7 +16,7 @@ import {
 } from '#~/concepts/pipelines/kfTypes';
 import { computeRunStatus, getStatusFromCondition } from '#~/concepts/pipelines/content/utils';
 import { K8sCondition } from '#~/k8sTypes';
-import { StatusType } from '#~/concepts/pipelines/content/K8sStatusIcon.tsx';
+import { StatusType } from '#~/concepts/pipelines/content/PipelineComponentStatusIcon.tsx';
 
 const run: PipelineRunKF = {
   created_at: '2023-09-05T16:23:25Z',

@@ -20,7 +20,9 @@ import {
 } from '@patternfly/react-core';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { getStatusFromCondition } from '#~/concepts/pipelines/content/utils.tsx';
-import K8sStatusIcon, { StatusType } from '#~/concepts/pipelines/content/K8sStatusIcon.tsx';
+import PipelineComponentStatusIcon, {
+  StatusType,
+} from '#~/concepts/pipelines/content/PipelineComponentStatusIcon.tsx';
 import { K8sCondition } from '#~/k8sTypes';
 import {
   useWatchPodsForPipelineServerEvents,
@@ -94,7 +96,7 @@ const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose }) =>
                 <StackItem key={`${condition.type}-${index}`}>
                   <Flex>
                     <FlexItem>
-                      <K8sStatusIcon status={containerStatus} />
+                      <PipelineComponentStatusIcon status={containerStatus} />
                     </FlexItem>
                     <FlexItem>
                       <Content>{condition.type}</Content>

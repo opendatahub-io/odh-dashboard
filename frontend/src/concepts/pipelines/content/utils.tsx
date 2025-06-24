@@ -17,7 +17,7 @@ import {
   runtimeStateLabels,
 } from '#~/concepts/pipelines/kfTypes';
 import { getTimeRangeCategory, relativeTime } from '#~/utilities/time';
-import { StatusType } from '#~/concepts/pipelines/content/K8sStatusIcon.tsx';
+import { StatusType } from '#~/concepts/pipelines/content/PipelineComponentStatusIcon.tsx';
 import { K8sCondition, K8sDspaConditionReason } from '#~/k8sTypes.ts';
 
 export type RunStatusDetails = {
