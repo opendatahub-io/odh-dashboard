@@ -86,7 +86,7 @@ The pipeline server requires an S3 compatible storage backend. You can use your 
 
 ### Configuring a model registry
 
-Please refer to the [model registry documentation](https://github.com/opendatahub-io/model-registry-operator/blob/f052f929272cb97d749ad5fc3bf6852401c06cf9/docs/install.md#install-database-skip-if-using-existing-database)
+Please refer to the [model registry documentation](https://github.com/opendatahub-io/model-registry-operator/blob/main/docs/install.md)
 
 ## Deploying the ODH Dashbard
 
