@@ -242,6 +242,8 @@ export type EventKind = K8sResourceCommon & {
   };
   involvedObject: {
     name: string;
+    uid?: string;
+    kind?: string;
   };
   lastTimestamp?: string;
   eventTime: string;

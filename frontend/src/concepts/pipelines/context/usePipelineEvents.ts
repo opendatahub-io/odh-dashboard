@@ -6,9 +6,7 @@ import { EventModel, PodModel } from '#~/api/models/k8s';
 import useK8sWatchResourceList from '#~/utilities/useK8sWatchResourceList';
 
 // ideally ,would use react-query watch many, but that is not available
-//react query supports this and we do not unfortunately
-// need to have one call per pod because react hooks need to be called the same amount of times for each rendering
-// TECH DEBT
+// get all the events for all the pods in the namespace
 export const useWatchPipelineServerEvents = (
   namespace: string,
 ): CustomWatchK8sResult<EventKind[]> =>
@@ -35,19 +33,23 @@ export const useWatchPodsForPipelineServerEvents = (
     PodModel,
   );
 
-// Custom hook to watch events for multiple pods dynamically
+// Custom hook to watch all the events for all the pods and filter out the events for the pods we are interested in
+// this is a workaround to avoid the issue of having to watch multiple pods dynamically; since
+// react necessitates that the number of hooks called is the same for each render
+// we are only getting hundreds of events back; and so the filtering is not excessive and the speed is fine.
 export const useWatchAllPodEventsAndFilter = (
   namespace: string,
   podUids: string[],
 ): EventKind[] => {
   // get ALL the events
   const [podEvents] = useWatchPipelineServerEvents(namespace);
-  console.log('podEvents-22a', podEvents);
-  const filteredEvents = podEvents.filter(
-    (event) => event.metadata.uid && podUids.includes(event.metadata.uid),
-  );
 
-  console.log('filteredEvents-22b', filteredEvents);
+  const filteredEvents = podEvents.filter((event) => {
+    const { involvedObject } = event;
+    return (
+      involvedObject.kind === 'Pod' && involvedObject.uid && podUids.includes(involvedObject.uid)
+    );
+  });
 
   return React.useMemo(
     () =>
