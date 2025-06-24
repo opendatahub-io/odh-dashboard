@@ -55,8 +55,8 @@ describe(
     });
 
     it(
-      'Verify User Can Create an OCI Connection in DS Connections Page And Deploy the Model',
-      { tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@Modelserving', '@NonConcurrent'] },
+      '[Product Bug: RHOAIENG-28128] Verify User Can Create an OCI Connection in DS Connections Page And Deploy the Model',
+      { tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@Modelserving', '@NonConcurrent', '@Bug'] },
       () => {
         cy.step(`Navigate to DS Project ${projectName}`);
         cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
