@@ -117,7 +117,6 @@ The `notebookController` field controls the Notebook Controller options such as 
 notebookController:
   enabled: true
   pvcSize: 20Gi
-  notebookNamespace: odh-notebooks
   notebookTolerationSettings:
     enabled: true
     key: NotebooksOnly
@@ -175,7 +174,6 @@ spec:
     enabled: true
     gpuSetting: autodetect
     pvcSize: 20Gi
-    notebookNamespace: odh-notebooks
   notebookSizes:
     - name: Small
       resources:
