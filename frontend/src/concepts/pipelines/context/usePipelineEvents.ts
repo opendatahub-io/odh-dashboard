@@ -65,29 +65,32 @@ export const useWatchMultiplePodEvents = (namespace: string, podUids: string[]):
   const pod19Events = useWatchPipelineServerEvents(namespace, podUids[19] ?? '');
 
   return React.useMemo(() => {
-    // Create an array of all pod event results
-    const allPodEventArrays = [
-      pod0Events[0],
-      pod1Events[0],
-      pod2Events[0],
-      pod3Events[0],
-      pod4Events[0],
-      pod5Events[0],
-      pod6Events[0],
-      pod7Events[0],
-      pod8Events[0],
-      pod9Events[0],
-      pod10Events[0],
-      pod11Events[0],
-      pod12Events[0],
-      pod13Events[0],
-      pod14Events[0],
-      pod15Events[0],
-      pod16Events[0],
-      pod17Events[0],
-      pod18Events[0],
-      pod19Events[0],
+    // Create an array of all pod event results dynamically
+    const allPodEventResults = [
+      pod0Events,
+      pod1Events,
+      pod2Events,
+      pod3Events,
+      pod4Events,
+      pod5Events,
+      pod6Events,
+      pod7Events,
+      pod8Events,
+      pod9Events,
+      pod10Events,
+      pod11Events,
+      pod12Events,
+      pod13Events,
+      pod14Events,
+      pod15Events,
+      pod16Events,
+      pod17Events,
+      pod18Events,
+      pod19Events,
     ];
+
+    // Extract the first element (events array) from each pod event result
+    const allPodEventArrays = allPodEventResults.map((podEventResult) => podEventResult[0]);
 
     // Only use the events for pods that actually exist
     const validPodEventArrays = allPodEventArrays.slice(0, podsToWatch);
