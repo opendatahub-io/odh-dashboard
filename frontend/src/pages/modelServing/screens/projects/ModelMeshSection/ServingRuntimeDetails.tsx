@@ -20,7 +20,7 @@ import ScopedLabel from '#~/components/ScopedLabel';
 import { ScopedType } from '#~/pages/modelServing/screens/const';
 import {
   getHardwareProfileDisplayName,
-  hardwareProfileEnabled,
+  isHardwareProfileEnabled,
 } from '#~/pages/hardwareProfiles/utils.ts';
 
 type ServingRuntimeDetailsProps = {
@@ -92,7 +92,7 @@ const ServingRuntimeDetails: React.FC<ServingRuntimeDetailsProps> = ({ project, 
                     )}
                 </FlexItem>
                 <Flex>
-                  {!hardwareProfileEnabled(hardwareProfile.initialHardwareProfile)
+                  {!isHardwareProfileEnabled(hardwareProfile.initialHardwareProfile)
                     ? '(disabled)'
                     : ''}
                 </Flex>

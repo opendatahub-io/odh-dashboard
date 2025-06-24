@@ -650,7 +650,6 @@ describe('Manage Hardware Profile', () => {
     cy.wait('@createHardwareProfile').then((interception) => {
       expect(interception.request.body.metadata.annotations).to.contain({
         'opendatahub.io/display-name': 'duplicate hardware profile',
-        'opendatahub.io/description': '',
         'opendatahub.io/disabled': 'false',
       });
       expect(interception.request.body.spec).to.eql({

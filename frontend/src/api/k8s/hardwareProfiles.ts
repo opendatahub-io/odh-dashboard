@@ -39,7 +39,6 @@ export const assembleHardwareProfile = (
   visibility: string[] = [],
 ): HardwareProfileKind => {
   const { displayName, enabled, description, ...spec } = data;
-
   return {
     apiVersion: kindApiVersion(HardwareProfileModel),
     kind: HardwareProfileModel.kind,
@@ -48,7 +47,7 @@ export const assembleHardwareProfile = (
       namespace,
       annotations: {
         [DisplayNameAnnotation.ODH_DISP_NAME]: displayName,
-        [DisplayNameAnnotation.ODH_DESC]: description ?? '',
+        ...(description && { [DisplayNameAnnotation.ODH_DESC]: description }),
         'opendatahub.io/disabled': (!enabled).toString(),
         'opendatahub.io/modified-date': new Date().toISOString(),
         'opendatahub.io/dashboard-feature-visibility': JSON.stringify(visibility),

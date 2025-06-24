@@ -70,10 +70,11 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
 
   const hardwareProfileWarnings = validateProfileWarning(hardwareProfile);
 
-  const localQueueName = hardwareProfile.spec.scheduling?.kueue?.localQueueName;
-  const priorityClass = hardwareProfile.spec.scheduling?.kueue?.priorityClass;
-  const nodeSelector = hardwareProfile.spec.scheduling?.node?.nodeSelector;
-  const tolerations = hardwareProfile.spec.scheduling?.node?.tolerations;
+  const { kueue, node } = hardwareProfile.spec.scheduling ?? {};
+  const localQueueName = kueue?.localQueueName;
+  const priorityClass = kueue?.priorityClass;
+  const nodeSelector = node?.nodeSelector;
+  const tolerations = node?.tolerations;
 
   return (
     <Tbody isExpanded={isExpanded}>

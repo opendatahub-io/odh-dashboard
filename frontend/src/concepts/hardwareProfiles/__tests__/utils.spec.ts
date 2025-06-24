@@ -337,8 +337,8 @@ describe('convertOldToNew', () => {
     const newProfile = convertOldToNew(oldProfile);
 
     // Check that the type and node fields were correctly created
-    expect(newProfile.spec.type).toEqual(SchedulingType.NODE);
-    expect(newProfile.spec.node).toEqual({
+    expect(newProfile.spec.scheduling?.type).toEqual(SchedulingType.NODE);
+    expect(newProfile.spec.scheduling?.node).toEqual({
       nodeSelector: {
         'node-role.kubernetes.io/worker': 'true',
       },
@@ -369,8 +369,7 @@ describe('convertOldToNew', () => {
     const newProfile = convertOldToNew(oldProfile);
 
     // Check that there are no type and node fields
-    expect(newProfile.spec.type).toBeUndefined();
-    expect(newProfile.spec.node).toBeUndefined();
+    expect(newProfile.spec.scheduling).toBeUndefined();
   });
 
   it('should handle empty nodeSelector and tolerations', () => {
@@ -392,8 +391,7 @@ describe('convertOldToNew', () => {
     const newProfile = convertOldToNew(oldProfile);
 
     // Check that there are no type and node fields
-    expect(newProfile.spec.type).toBeUndefined();
-    expect(newProfile.spec.node).toBeUndefined();
+    expect(newProfile.spec.scheduling).toBeUndefined();
   });
 
   it('should handle missing description', () => {

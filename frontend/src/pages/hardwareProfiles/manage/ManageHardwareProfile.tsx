@@ -14,7 +14,7 @@ import {
 import {
   getHardwareProfileDescription,
   getHardwareProfileDisplayName,
-  hardwareProfileEnabled,
+  isHardwareProfileEnabled,
 } from '#~/pages/hardwareProfiles/utils';
 import ManageHardwareProfileFooter from '#~/pages/hardwareProfiles/manage/ManageHardwareProfileFooter';
 import ManageNodeResourceSection from '#~/pages/hardwareProfiles/manage/ManageNodeResourceSection';
@@ -60,7 +60,7 @@ const ManageHardwareProfile: React.FC<ManageHardwareProfileProps> = ({
     (hardwareProfile?: HardwareProfileKind) => {
       if (hardwareProfile) {
         setState('identifiers', hardwareProfile.spec.identifiers);
-        setState('enabled', hardwareProfileEnabled(hardwareProfile));
+        setState('enabled', isHardwareProfileEnabled(hardwareProfile));
         if (hardwareProfile.spec.scheduling) {
           setState('scheduling', hardwareProfile.spec.scheduling);
         }

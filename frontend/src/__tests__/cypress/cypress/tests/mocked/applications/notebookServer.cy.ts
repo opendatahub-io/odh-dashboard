@@ -219,7 +219,11 @@ describe('NotebookServer', () => {
 
       expect(podSpecOptions.selectedAcceleratorProfile).to.eq(undefined);
       expect(podSpecOptions.selectedHardwareProfile).not.to.eq(undefined);
-      expect(podSpecOptions.selectedHardwareProfile?.spec.displayName).to.eq('Large');
+      expect(
+        podSpecOptions.selectedHardwareProfile?.metadata.annotations?.[
+          'opendatahub.io/display-name'
+        ],
+      ).to.eq('Large');
       expect(podSpecOptions.selectedHardwareProfile?.spec.identifiers).to.eql([
         {
           displayName: 'CPU',

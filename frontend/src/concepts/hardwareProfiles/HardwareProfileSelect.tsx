@@ -34,7 +34,7 @@ import { ScopedType } from '#~/pages/modelServing/screens/const';
 import {
   getHardwareProfileDescription,
   getHardwareProfileDisplayName,
-  hardwareProfileEnabled,
+  isHardwareProfileEnabled,
 } from '#~/pages/hardwareProfiles/utils.ts';
 
 type HardwareProfileSelectProps = {
@@ -82,7 +82,7 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
 
   const options = React.useMemo(() => {
     const enabledProfiles = hardwareProfiles
-      .filter((hp) => hardwareProfileEnabled(hp))
+      .filter((hp) => isHardwareProfileEnabled(hp))
       .toSorted((a, b) => {
         // First compare by whether they have extra resources
         const aHasExtra = (a.spec.identifiers ?? []).length > 2;
@@ -99,13 +99,13 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
       });
 
     // allow continued use of already selected profile if it is disabled
-    if (initialHardwareProfile && !hardwareProfileEnabled(initialHardwareProfile)) {
+    if (initialHardwareProfile && !isHardwareProfileEnabled(initialHardwareProfile)) {
       enabledProfiles.push(initialHardwareProfile);
     }
 
     const formattedOptions: SimpleSelectOption[] = enabledProfiles.map((profile) => {
       const displayName = `${getHardwareProfileDisplayName(profile)}${
-        !hardwareProfileEnabled(profile) ? ' (disabled)' : ''
+        !isHardwareProfileEnabled(profile) ? ' (disabled)' : ''
       }`;
       const description = getHardwareProfileDescription(profile);
 
@@ -214,7 +214,7 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
   // Restore filtering and sorting logic for project and global hardware profiles
   const getHardwareProfiles = () => {
     const currentProjectEnabledProfiles = currentProjectHardwareProfiles
-      .filter((hp) => hardwareProfileEnabled(hp))
+      .filter((hp) => isHardwareProfileEnabled(hp))
       .toSorted((a, b) => {
         const aHasExtra = (a.spec.identifiers ?? []).length > 2;
         const bHasExtra = (b.spec.identifiers ?? []).length > 2;
@@ -223,7 +223,7 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
         }
         return getProfileScore(a) - getProfileScore(b);
       });
-    if (initialHardwareProfile && hardwareProfileEnabled(initialHardwareProfile)) {
+    if (initialHardwareProfile && isHardwareProfileEnabled(initialHardwareProfile)) {
       currentProjectEnabledProfiles.push(initialHardwareProfile);
     }
     return currentProjectEnabledProfiles.filter((profile) =>
@@ -235,7 +235,7 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
 
   const getDashboardHardwareProfiles = () => {
     const DashboardEnabledProfiles = hardwareProfiles
-      .filter((hp) => hardwareProfileEnabled(hp))
+      .filter((hp) => isHardwareProfileEnabled(hp))
       .toSorted((a, b) => {
         const aHasExtra = (a.spec.identifiers ?? []).length > 2;
         const bHasExtra = (b.spec.identifiers ?? []).length > 2;
@@ -244,7 +244,7 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
         }
         return getProfileScore(a) - getProfileScore(b);
       });
-    if (initialHardwareProfile && hardwareProfileEnabled(initialHardwareProfile)) {
+    if (initialHardwareProfile && isHardwareProfileEnabled(initialHardwareProfile)) {
       DashboardEnabledProfiles.push(initialHardwareProfile);
     }
     return DashboardEnabledProfiles.filter((profile) =>

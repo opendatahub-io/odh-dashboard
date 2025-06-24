@@ -90,7 +90,7 @@ export const generateWarningForHardwareProfiles = (
       (warning) => warning.type !== HardwareProfileWarningType.HARDWARE_PROFILES_MISSING_CPU_MEMORY,
     );
   });
-  const hasEnabled = hardwareProfiles.some((profile) => hardwareProfileEnabled(profile));
+  const hasEnabled = hardwareProfiles.some((profile) => isHardwareProfileEnabled(profile));
   const allInvalid = hardwareProfiles.every((profile) => {
     const warnings = validateProfileWarning(profile);
     return warnings.some(
@@ -204,5 +204,5 @@ export const getHardwareProfileDescription = (
   hardwareProfile: HardwareProfileKind,
 ): string | undefined => hardwareProfile.metadata.annotations?.[DisplayNameAnnotation.ODH_DESC];
 
-export const hardwareProfileEnabled = (hardwareProfile: HardwareProfileKind): boolean =>
+export const isHardwareProfileEnabled = (hardwareProfile: HardwareProfileKind): boolean =>
   hardwareProfile.metadata.annotations?.['opendatahub.io/disabled'] === 'false';
