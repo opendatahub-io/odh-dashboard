@@ -20,11 +20,13 @@ const GlobalModelsPage: React.FC = () => (
 const GlobalModelsPageCoreLoader: React.FC = () => {
   const availablePlatforms = useExtensions(isModelServingPlatformExtension);
   const [deploymentWatchers] = useResolvedExtensions(isModelServingPlatformWatchDeployments);
+
   const {
     projects,
     loaded: projectsLoaded,
     preferredProject: currentProject,
   } = React.useContext(ProjectsContext);
+
   const selectedProject = currentProject
     ? projects.find((project) => project.metadata.name === currentProject.metadata.name)
     : null;
@@ -34,7 +36,7 @@ const GlobalModelsPageCoreLoader: React.FC = () => {
 
   React.useEffect(() => {
     if (!namespace && currentProject) {
-      navigate(`/modelServing/${currentProject.metadata.name}`, { replace: true });
+      navigate(`/model-serving/${currentProject.metadata.name}`, { replace: true });
     }
   }, [namespace, currentProject, navigate]);
 
@@ -45,9 +47,7 @@ const GlobalModelsPageCoreLoader: React.FC = () => {
       </Bullseye>
     );
   }
-  if (projects.length === 0) {
-    return <div>No projects found component</div>;
-  }
+
   return (
     <ModelDeploymentsProvider
       modelServingPlatforms={availablePlatforms}

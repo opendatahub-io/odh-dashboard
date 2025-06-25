@@ -56,15 +56,15 @@ const extensions: (
     properties: {
       id: 'modelServing',
       title: 'Model deployments',
-      href: '/modelServing',
+      href: '/model-serving',
       section: 'models',
-      path: '/modelServing/:namespace?/*',
+      path: '/model-serving/:namespace?/*',
     },
   },
   {
     type: 'app.route',
     properties: {
-      path: '/modelServing/:namespace?/*',
+      path: '/model-serving/:namespace?/*',
       component: () => import('./src/GlobalModelsPage'),
     },
     flags: {
