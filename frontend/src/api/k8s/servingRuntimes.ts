@@ -48,11 +48,6 @@ export const assembleServingRuntime = (
     : getModelServingRuntimeName(namespace);
   const updatedServingRuntime = { ...servingRuntime };
 
-  const isLegacyHardwareProfile =
-    podSpecOptions.selectedHardwareProfile?.metadata.annotations?.[
-      'opendatahub.io/is-legacy-profile'
-    ] === 'true';
-
   const annotations: ServingRuntimeAnnotations = {
     ...updatedServingRuntime.metadata.annotations,
   };
@@ -104,9 +99,8 @@ export const assembleServingRuntime = (
           'opendatahub.io/template-display-name': getDisplayNameFromK8sResource(servingRuntime),
           'opendatahub.io/accelerator-name':
             podSpecOptions.selectedAcceleratorProfile?.metadata.name || '',
-          'opendatahub.io/hardware-profile-name': isLegacyHardwareProfile
-            ? ''
-            : podSpecOptions.selectedHardwareProfile?.metadata.name || '',
+          'opendatahub.io/hardware-profile-name':
+            podSpecOptions.selectedHardwareProfile?.metadata.name || '',
         }),
       },
     };
@@ -117,9 +111,8 @@ export const assembleServingRuntime = (
         ...annotations,
         'opendatahub.io/accelerator-name':
           podSpecOptions.selectedAcceleratorProfile?.metadata.name || '',
-        'opendatahub.io/hardware-profile-name': isLegacyHardwareProfile
-          ? ''
-          : podSpecOptions.selectedHardwareProfile?.metadata.name || '',
+        'opendatahub.io/hardware-profile-name':
+          podSpecOptions.selectedHardwareProfile?.metadata.name || '',
         ...(isCustomServingRuntimesEnabled && { 'openshift.io/display-name': displayName.trim() }),
       },
     };
@@ -148,7 +141,7 @@ export const assembleServingRuntime = (
 
       return {
         ...containerWithoutResources,
-        ...(isModelMesh && isLegacyHardwareProfile ? { resources } : {}),
+        ...(isModelMesh ? { resources } : {}),
         volumeMounts,
       };
     },
@@ -166,10 +159,10 @@ export const assembleServingRuntime = (
   }
 
   if (isModelMesh) {
-    if (tolerations && isLegacyHardwareProfile) {
+    if (tolerations) {
       updatedServingRuntime.spec.tolerations = tolerations;
     }
-    if (nodeSelector && isLegacyHardwareProfile) {
+    if (nodeSelector) {
       updatedServingRuntime.spec.nodeSelector = nodeSelector;
     }
   }

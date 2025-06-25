@@ -13,6 +13,7 @@ import { mockProjectK8sResource } from '#~/__mocks__/mockProjectK8sResource';
 import { mockServingRuntimeK8sResource } from '#~/__mocks__/mockServingRuntimeK8sResource';
 import { mockServingRuntimeModalData } from '#~/__mocks__/mockServingRuntimeModalData';
 import { mockServingRuntimeTemplateK8sResource } from '#~/__mocks__/mockServingRuntimeTemplateK8sResource';
+import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile';
 import {
   assembleServingRuntime,
   createServingRuntime,
@@ -218,6 +219,82 @@ describe('assembleServingRuntime', () => {
     );
 
     expect(servingRuntime.spec.replicas).toBeUndefined();
+  });
+
+  it('should not set hardware profile annotation for legacy profiles', () => {
+    const podSpecOptions = mockModelServingPodSpecOptions({
+      selectedHardwareProfile: mockHardwareProfile({
+        annotations: { 'opendatahub.io/is-legacy-profile': 'true' },
+      }),
+    });
+    const result = assembleServingRuntime(
+      mockServingRuntimeModalData({}),
+      'test-ns',
+      mockServingRuntimeK8sResource({}),
+      true,
+      podSpecOptions,
+      false,
+      true,
+    );
+    expect(result.metadata.annotations?.['opendatahub.io/hardware-profile-name']).toBe('');
+  });
+
+  it('should set hardware profile annotation for real profiles', () => {
+    const podSpecOptions = mockModelServingPodSpecOptions({
+      selectedHardwareProfile: mockHardwareProfile({
+        name: 'real-profile',
+      }),
+    });
+    const result = assembleServingRuntime(
+      mockServingRuntimeModalData({}),
+      'test-ns',
+      mockServingRuntimeK8sResource({}),
+      true,
+      podSpecOptions,
+      false,
+      true,
+    );
+    expect(result.metadata.annotations?.['opendatahub.io/hardware-profile-name']).toBe(
+      'real-profile',
+    );
+  });
+
+  it('should set pod spec for legacy hardware profiles on modelmesh', () => {
+    const podSpecOptions = mockModelServingPodSpecOptions({
+      selectedHardwareProfile: mockHardwareProfile({
+        annotations: { 'opendatahub.io/is-legacy-profile': 'true' },
+      }),
+    });
+    const result = assembleServingRuntime(
+      mockServingRuntimeModalData({}),
+      'test-ns',
+      mockServingRuntimeK8sResource({}),
+      true,
+      podSpecOptions,
+      false,
+      true,
+    );
+    expect(result.spec.containers[0].resources).toBeDefined();
+    expect(result.spec.tolerations).toBeDefined();
+    expect(result.spec.nodeSelector).toBeDefined();
+  });
+
+  it('should not set pod spec for real hardware profiles on modelmesh', () => {
+    const podSpecOptions = mockModelServingPodSpecOptions({
+      selectedHardwareProfile: mockHardwareProfile({}),
+    });
+    const result = assembleServingRuntime(
+      mockServingRuntimeModalData({}),
+      'test-ns',
+      mockServingRuntimeK8sResource({}),
+      true,
+      podSpecOptions,
+      false,
+      true,
+    );
+    expect(result.spec.containers[0].resources).toBeUndefined();
+    expect(result.spec.tolerations).toBeUndefined();
+    expect(result.spec.nodeSelector).toBeUndefined();
   });
 });
 

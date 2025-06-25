@@ -94,9 +94,6 @@ export const assembleNotebook = (
     volumeMounts.push(getshmVolumeMount());
   }
 
-  const isLegacyHardwareProfile =
-    selectedHardwareProfile?.metadata.annotations?.['opendatahub.io/is-legacy-profile'] === 'true';
-
   const hardwareProfileNamespace: Record<string, string | null> =
     selectedHardwareProfile?.metadata.namespace === projectName
       ? { 'opendatahub.io/hardware-profile-namespace': projectName }
@@ -134,9 +131,7 @@ export const assembleNotebook = (
         'notebooks.opendatahub.io/inject-oauth': 'true',
         'opendatahub.io/username': username,
         'opendatahub.io/accelerator-name': selectedAcceleratorProfile?.metadata.name || '',
-        'opendatahub.io/hardware-profile-name': isLegacyHardwareProfile
-          ? ''
-          : selectedHardwareProfile?.metadata.name || '',
+        'opendatahub.io/hardware-profile-name': selectedHardwareProfile?.metadata.name || '',
         'notebooks.opendatahub.io/last-image-version-git-commit-selection':
           image.imageVersion?.annotations?.['opendatahub.io/notebook-build-commit'] ?? '',
       },
@@ -169,7 +164,7 @@ export const assembleNotebook = (
                 },
               ],
               envFrom,
-              resources: isLegacyHardwareProfile ? resources : undefined,
+              resources,
               volumeMounts,
               ports: [
                 {
@@ -205,8 +200,8 @@ export const assembleNotebook = (
             },
           ],
           volumes,
-          tolerations: isLegacyHardwareProfile ? tolerations : undefined,
-          nodeSelector: isLegacyHardwareProfile ? nodeSelector : undefined,
+          tolerations,
+          nodeSelector,
         },
       },
     },
