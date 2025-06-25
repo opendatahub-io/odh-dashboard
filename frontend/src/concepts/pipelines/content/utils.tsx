@@ -16,7 +16,9 @@ import {
   RuntimeStateKF,
   runtimeStateLabels,
 } from '#~/concepts/pipelines/kfTypes';
-import { relativeTime } from '#~/utilities/time';
+import { getTimeRangeCategory, relativeTime } from '#~/utilities/time';
+import { StatusType } from '#~/concepts/pipelines/content/PipelineComponentStatusIcon.tsx';
+import { K8sCondition, K8sDspaConditionReason } from '#~/k8sTypes.ts';
 
 export type RunStatusDetails = {
   icon: React.ReactNode;
@@ -107,3 +109,37 @@ export const isPipelineRun = (resource: PipelineCoreResourceKF): resource is Pip
 export const isPipelineRecurringRun = (
   resource: PipelineCoreResourceKF,
 ): resource is PipelineRecurringRunKF => 'recurring_run_id' in resource && !('run_id' in resource);
+
+// workaround until https://issues.redhat.com/browse/RHOAIENG-27727 is fixed
+// (created to track the above issue: https://issues.redhat.com/browse/RHOAIENG-28144)
+// after the above ticket is resolved, once 'failingTodeploy' is detected then it is an automatic fail
+// without any need for a timeout.
+// but we should still timeout everything else
+export const getStatusFromCondition = (condition: K8sCondition): StatusType => {
+  const { reason, status, lastTransitionTime } = condition;
+  if (status === 'True') {
+    return StatusType.SUCCESS;
+  }
+  if (reason === K8sDspaConditionReason.Deploying && status === 'False') {
+    return StatusType.IN_PROGRESS;
+  }
+
+  if (
+    reason === K8sDspaConditionReason.ComponentDeploymentNotFound ||
+    reason === K8sDspaConditionReason.UnsupportedVersion
+  ) {
+    return StatusType.ERROR;
+  }
+
+  // For all other non-true statuses, apply timeout logic
+  // after bug above is addressed/fixed; add K8sDspaConditionReason.FailingToDeploy to the immediate error clause above
+  const rangeType = getTimeRangeCategory(lastTransitionTime);
+  switch (rangeType) {
+    case 'shortRange':
+      return StatusType.PENDING;
+    case 'mediumRange':
+      return StatusType.WARNING;
+    case 'longRange':
+      return StatusType.ERROR;
+  }
+};
