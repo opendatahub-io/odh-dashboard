@@ -1,0 +1,13 @@
+options:
+  no_parent_owners: true
+
+filters:
+  # root level files
+  "[^/]+":
+    approvers:
+      - christianvogt
+
+  # soruce files
+  "src/.*":
+    approvers:
+      - DaoDaoNoCode
