@@ -61,6 +61,7 @@ const DeployedModelCard: React.FC<{ deployment: Deployment }> = ({ deployment })
             </FlexItem>
             <FlexItem>
               <ResourceNameTooltip resource={deployment.model}>
+                {/* TODO: Once the Deployed Test metrics page is available, this name should link to it */}
                 <Truncate content={displayName} />
               </ResourceNameTooltip>
             </FlexItem>
@@ -99,11 +100,11 @@ const DeployedModelCard: React.FC<{ deployment: Deployment }> = ({ deployment })
   );
 };
 
-interface DeployedModelsGalleryProps {
+type DeployedModelsGalleryProps = {
   showSuccessful: boolean;
   showFailed: boolean;
   onClearFilters: () => void;
-}
+};
 
 const DeployedModelsGallery: React.FC<DeployedModelsGalleryProps> = ({
   showSuccessful,
