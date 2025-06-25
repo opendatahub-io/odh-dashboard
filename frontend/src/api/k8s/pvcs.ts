@@ -20,9 +20,20 @@ export const assemblePvc = (
   namespace: string,
   editName?: string,
   hideFromUI?: boolean,
+  forceRedeploy?: boolean, // New optional parameter for NIM use case
 ): PersistentVolumeClaimKind => {
   const { name: pvcName, description, size, storageClassName, accessMode } = data;
   const name = editName || data.k8sName || translateDisplayNameForK8s(pvcName);
+
+  const annotations: Record<string, string> = {
+    'openshift.io/display-name': pvcName.trim(),
+    ...(description && { 'openshift.io/description': description }),
+  };
+
+  // Only add the force redeploy annotation when explicitly requested (for NIM)
+  if (forceRedeploy) {
+    annotations['runtimes.opendatahub.io/force-redeploy'] = new Date().toISOString();
+  }
 
   return {
     apiVersion: 'v1',
@@ -35,11 +46,7 @@ export const assemblePvc = (
           [KnownLabels.DASHBOARD_RESOURCE]: 'true',
         },
       }),
-      annotations: {
-        'openshift.io/display-name': pvcName.trim(),
-        ...(description && { 'openshift.io/description': description }),
-        'runtimes.opendatahub.io/force-redeploy': new Date().toISOString(), // still 1 annotation
-      },
+      annotations,
     },
     spec: {
       accessModes: [accessMode ?? AccessMode.RWO],
@@ -71,8 +78,9 @@ export const createPvc = (
   namespace: string,
   opts?: K8sAPIOptions,
   hideFromUI?: boolean,
+  forceRedeploy?: boolean, // New optional parameter
 ): Promise<PersistentVolumeClaimKind> => {
-  const pvc = assemblePvc(data, namespace, undefined, hideFromUI);
+  const pvc = assemblePvc(data, namespace, undefined, hideFromUI, forceRedeploy);
 
   return k8sCreateResource<PersistentVolumeClaimKind>(
     applyK8sAPIOptions({ model: PVCModel, resource: pvc }, opts),
@@ -85,8 +93,9 @@ export const updatePvc = (
   namespace: string,
   opts?: K8sAPIOptions,
   excludeSpec?: boolean,
+  forceRedeploy?: boolean, // New optional parameter
 ): Promise<PersistentVolumeClaimKind> => {
-  const pvc = assemblePvc(data, namespace, existingData.metadata.name);
+  const pvc = assemblePvc(data, namespace, existingData.metadata.name, undefined, forceRedeploy);
   const newData = excludeSpec
     ? {
         ...pvc,
