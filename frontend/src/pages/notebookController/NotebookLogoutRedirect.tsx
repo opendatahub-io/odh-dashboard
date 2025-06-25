@@ -12,7 +12,7 @@ const NotebookLogoutRedirect: React.FC = () => {
   const { namespace, notebookName } = useParams<{ namespace: string; notebookName: string }>();
   const notification = useNotification();
   const navigate = useNavigate();
-  const { notebookNamespace } = useNamespaces();
+  const { workbenchNamespace } = useNamespaces();
   const {
     data: notebookRoute,
     loaded,
@@ -21,16 +21,16 @@ const NotebookLogoutRedirect: React.FC = () => {
 
   React.useEffect(() => {
     let cancelled = false;
-    if (namespace && notebookName && namespace === notebookNamespace) {
+    if (namespace && notebookName && namespace === workbenchNamespace) {
       getNotebook(namespace, notebookName)
         .then(() => {
           if (cancelled) {
             return;
           }
-          getRoute(notebookNamespace, notebookName)
+          getRoute(workbenchNamespace, notebookName)
             .then((route) => {
               const location = new URL(
-                `https://${route.spec.host}/notebook/${notebookNamespace}/${notebookName}`,
+                `https://${route.spec.host}/notebook/${workbenchNamespace}/${notebookName}`,
               );
               window.location.href = `${location.origin}/oauth/sign_out`;
             })
@@ -50,10 +50,10 @@ const NotebookLogoutRedirect: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [namespace, notebookName, navigate, notification, notebookNamespace]);
+  }, [namespace, notebookName, navigate, notification, workbenchNamespace]);
 
   React.useEffect(() => {
-    if (namespace && notebookName && namespace !== notebookNamespace) {
+    if (namespace && notebookName && namespace !== workbenchNamespace) {
       if (error) {
         notification.error(`Error when logging out ${notebookName}`, error.message);
         navigate(`/projects/${namespace}`);
@@ -71,7 +71,7 @@ const NotebookLogoutRedirect: React.FC = () => {
     namespace,
     notebookName,
     navigate,
-    notebookNamespace,
+    workbenchNamespace,
   ]);
 
   return (

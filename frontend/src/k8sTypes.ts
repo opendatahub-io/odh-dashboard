@@ -1245,10 +1245,12 @@ export type DashboardCommonConfig = {
   disableKueue: boolean;
 };
 
+// [1] Intentionally disjointed fields from the CRD in this type definition
+// but still present in the CRD until we upgrade the CRD version.
 export type DashboardConfigKind = K8sResourceCommon & {
   spec: {
     dashboardConfig: DashboardCommonConfig;
-    // Intentionally disjointed from the CRD, we should move away from this code-wise now; CRD later
+    // Intentionally disjointed from the CRD [1]
     // groupsConfig?: {
     notebookSizes?: NotebookSize[];
     modelServerSizes?: ModelServingSize[];
@@ -1256,7 +1258,8 @@ export type DashboardConfigKind = K8sResourceCommon & {
       enabled: boolean;
       pvcSize?: string;
       storageClassName?: string;
-      notebookNamespace?: string;
+      // Intentionally disjointed from the CRD [1]
+      // notebookNamespace?: string;
       notebookTolerationSettings?: TolerationSettings;
     };
     templateOrder?: string[];
@@ -1437,6 +1440,9 @@ export type DataScienceClusterKindStatus = {
     /** Status of Model Registry, including its namespace configuration. */
     [DataScienceStackComponent.MODEL_REGISTRY]?: DataScienceClusterComponentStatus & {
       registriesNamespace?: string;
+    };
+    [DataScienceStackComponent.WORKBENCHES]?: DataScienceClusterComponentStatus & {
+      workbenchNamespace?: string;
     };
   };
   conditions: K8sCondition[];
