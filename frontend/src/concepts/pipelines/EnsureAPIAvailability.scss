@@ -1,0 +1,17 @@
+.ensure-api-availability {
+  &__spinner-container {
+    min-height: 150px;
+  }
+
+  &__spinner-content {
+    text-align: center;
+  }
+
+  &__spinner-icon {
+    margin-right: 0.5rem;
+  }
+
+  &__wait-message {
+    text-align: center;
+  }
+} 

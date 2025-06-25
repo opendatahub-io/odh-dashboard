@@ -26,6 +26,7 @@ export enum KnownLabels {
   MODEL_SERVING_PROJECT = 'modelmesh-enabled',
   DATA_CONNECTION_AWS = 'opendatahub.io/managed',
   LABEL_SELECTOR_MODEL_REGISTRY = 'component=model-registry',
+  LABEL_SELECTOR_DATA_SCIENCE_PIPELINES = 'data-science-pipelines',
   PROJECT_SUBJECT = 'opendatahub.io/rb-project-subject',
   REGISTERED_MODEL_ID = 'modelregistry.opendatahub.io/registered-model-id',
   MODEL_VERSION_ID = 'modelregistry.opendatahub.io/model-version-id',
@@ -137,6 +138,15 @@ export type K8sCondition = {
   lastHeartbeatTime?: string;
 };
 
+// from: https://github.com/opendatahub-io/data-science-pipelines-operator/blob/9b518e02ee794d0afbe2b9ad35c85be10051ce6e/controllers/config/defaults.go#L127-L138
+export enum K8sDspaConditionReason {
+  MinimumReplicasAvailable = 'MinimumReplicasAvailable',
+  FailingToDeploy = 'FailingToDeploy',
+  ComponentDeploymentNotFound = 'ComponentDeploymentNotFound',
+  UnsupportedVersion = 'UnsupportedVersion',
+  Deploying = 'Deploying',
+}
+
 export type ServingRuntimeAnnotations = Partial<{
   'opendatahub.io/template-name': string;
   'opendatahub.io/template-display-name': string;
@@ -232,6 +242,8 @@ export type EventKind = K8sResourceCommon & {
   };
   involvedObject: {
     name: string;
+    uid?: string;
+    kind?: string;
   };
   lastTimestamp?: string;
   eventTime: string;

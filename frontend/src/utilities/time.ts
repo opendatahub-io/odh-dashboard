@@ -215,3 +215,34 @@ export const convertSecondsToPeriodicTime = (seconds: number): string => {
 
   return '';
 };
+
+const shortTimeRangeMinuteLimit = 3;
+const mediumTimeRangeMinuteLimit = 5;
+
+export const getTimeRangeCategory = (
+  timestamp: string | undefined | null,
+): 'shortRange' | 'mediumRange' | 'longRange' => {
+  if (!timestamp) {
+    return 'longRange';
+  }
+  const now = Date.now();
+  const timestampMs = new Date(timestamp).getTime();
+
+  if (Number.isNaN(timestampMs)) {
+    return 'longRange';
+  }
+
+  const diffMinutes = (now - timestampMs) / 60000; // 60 000
+
+  if (diffMinutes < 0) {
+    // Future timestamp – treat as shortest range
+    return 'shortRange';
+  }
+  if (diffMinutes > mediumTimeRangeMinuteLimit) {
+    return 'longRange';
+  }
+  if (diffMinutes > shortTimeRangeMinuteLimit) {
+    return 'mediumRange';
+  }
+  return 'shortRange';
+};
