@@ -63,31 +63,6 @@ const mockEvents = [
   },
 ];
 
-const mockPods = [
-  {
-    apiVersion: 'v1',
-    kind: 'Pod',
-    metadata: {
-      uid: 'pod-uid-1',
-      name: 'ds-pipeline-ui-dspa-dbb65fdf6-fnsz7',
-      namespace: 'test-namespace',
-    },
-    spec: {
-      containers: [
-        {
-          name: 'ds-pipeline-ui',
-          image: 'quay.io/opendatahub/ds-pipelines-frontend:latest',
-          env: [],
-        },
-      ],
-    },
-    status: {
-      phase: 'Running',
-      conditions: [],
-    },
-  },
-];
-
 // Mock the usePipelinesAPI hook
 jest.mock('#~/concepts/pipelines/context', () => ({
   usePipelinesAPI: jest.fn(),
