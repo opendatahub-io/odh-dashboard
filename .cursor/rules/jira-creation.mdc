@@ -73,7 +73,7 @@ The mcp-atlassian server automatically converts markdown to Jira syntax using th
 - Use `[link text](mdc:url)` (converts to `[link text|url]` in Jira)
 
 ### Images
-- **Without alt text**: Use `![]()(url)` (converts to `!url!` in Jira)
+- **Without alt text**: Use `![](url)` (converts to `!url!` in Jira)
 - **With alt text**: Use `![alt text](mdc:url)` (converts to `!url|alt=alt text!` in Jira)
 
 ### Blockquotes
