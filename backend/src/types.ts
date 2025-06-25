@@ -50,6 +50,7 @@ export type DashboardConfig = K8sResourceCommon & {
       disableNIMModelServing: boolean;
       disableAdminConnectionTypes: boolean;
       disableFineTuning: boolean;
+      disableKueue: boolean;
     };
     // Intentionally disjointed from the CRD, we should move away from this code-wise now; CRD later
     // groupsConfig?: {
@@ -991,6 +992,7 @@ export enum KnownLabels {
   DATA_CONNECTION_AWS = 'opendatahub.io/managed',
   CONNECTION_TYPE = 'opendatahub.io/connection-type',
   LABEL_SELECTOR_MODEL_REGISTRY = 'component=model-registry',
+  KUEUE_MANAGED = 'kueue.openshift.io/managed',
 }
 
 type ComponentNames =

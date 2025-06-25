@@ -1127,7 +1127,7 @@ describe('Workbench page', () => {
     const notebookRow = workbenchPage.getNotebookRow('Test Notebook');
 
     //stop Workbench
-    notebookRow.findNotebookStop().click();
+    notebookRow.findNotebookStopToggle().click();
     notebookConfirmModal.findStopWorkbenchButton().should('be.enabled');
     cy.interceptK8s(
       NotebookModel,
@@ -1177,7 +1177,7 @@ describe('Workbench page', () => {
       }),
     );
 
-    notebookRow.findNotebookStart().click();
+    notebookRow.findNotebookStopToggle().click();
     notebookRow.findHaveNotebookStatusText().should('have.text', 'Starting');
     notebookRow.findHaveNotebookStatusText().click();
 
@@ -1219,7 +1219,7 @@ describe('Workbench page', () => {
     const notebookRow = workbenchPage.getNotebookRow('Notebook with deleted image');
     notebookRow.findNotebookImageAvailability().should('have.text', 'Deleted');
     notebookRow.findHaveNotebookStatusText().should('have.text', 'Stopped');
-    notebookRow.findNotebookStart().should('not.be.disabled');
+    notebookRow.findNotebookStopToggle().should('not.be.disabled');
   });
 
   it('Edit workbench', () => {

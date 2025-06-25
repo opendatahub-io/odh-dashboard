@@ -3,6 +3,7 @@ import type {
   ProjectDetailsTab,
   AreaExtension,
   RouteExtension,
+  OverviewSectionExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
 // Allow this import as it consists of types and enums only.
 // eslint-disable-next-line no-restricted-syntax
@@ -10,7 +11,13 @@ import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
 
 const PLUGIN_MODEL_SERVING = 'plugin-model-serving';
 
-const extensions: (AreaExtension | ProjectDetailsTab | HrefNavItemExtension | RouteExtension)[] = [
+const extensions: (
+  | AreaExtension
+  | ProjectDetailsTab
+  | HrefNavItemExtension
+  | RouteExtension
+  | OverviewSectionExtension
+)[] = [
   {
     type: 'app.area',
     properties: {
@@ -31,6 +38,17 @@ const extensions: (AreaExtension | ProjectDetailsTab | HrefNavItemExtension | Ro
     },
   },
   {
+    type: 'app.project-details/overview-section',
+    properties: {
+      id: 'model-server',
+      title: 'Serve Models',
+      component: () => import('./src/ServeModelsSection'),
+    },
+    flags: {
+      required: [PLUGIN_MODEL_SERVING],
+    },
+  },
+  {
     type: 'app.navigation/href',
     flags: {
       required: [PLUGIN_MODEL_SERVING],
@@ -38,16 +56,16 @@ const extensions: (AreaExtension | ProjectDetailsTab | HrefNavItemExtension | Ro
     properties: {
       id: 'modelServing',
       title: 'Model deployments',
-      href: '/modelServing',
+      href: '/model-serving',
       section: 'models',
-      path: '/modelServing/*',
+      path: '/model-serving/:namespace?/*',
     },
   },
   {
     type: 'app.route',
     properties: {
-      path: '/modelServing/*',
-      component: () => import('./src/ModelServingGlobalPlugin'),
+      path: '/model-serving/:namespace?/*',
+      component: () => import('./src/GlobalModelsPage'),
     },
     flags: {
       required: [PLUGIN_MODEL_SERVING],

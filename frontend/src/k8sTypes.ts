@@ -116,6 +116,7 @@ export type NotebookAnnotations = Partial<{
   'notebooks.opendatahub.io/last-image-version-git-commit-selection': string; // the build commit of the last image they selected
   'opendatahub.io/hardware-profile-namespace': string | null; // the namespace of the hardware profile used
   'opendatahub.io/workbench-image-namespace': string | null; // namespace of the
+  'opendatahub.io/accelerator-profile-namespace': string | undefined; // the namespace of the accelerator profile used
 }>;
 
 export type DashboardLabels = {
@@ -145,6 +146,7 @@ export type ServingRuntimeAnnotations = Partial<{
   'opendatahub.io/apiProtocol': string;
   'opendatahub.io/serving-runtime-scope': string;
   'opendatahub.io/hardware-profile-namespace': string | undefined;
+  'opendatahub.io/accelerator-profile-namespace': string | undefined;
   'enable-route': string;
   'enable-auth': string;
   'modelmesh-enabled': 'true' | 'false';
@@ -245,16 +247,21 @@ export type ImageStreamKind = K8sResourceCommon & {
   };
   spec: {
     tags?: ImageStreamSpecTagType[];
+    lookupPolicy?: {
+      local: boolean;
+    };
   };
   status?: {
     dockerImageRepository?: string;
     publicDockerImageRepository?: string;
-    tags?: {
-      tag: string;
-      items: ImageStreamStatusTagItem[] | null;
-      conditions?: ImageStreamStatusTagCondition[];
-    }[];
+    tags?: ImageStreamStatusTag[];
   };
+};
+
+export type ImageStreamStatusTag = {
+  tag: string;
+  items: ImageStreamStatusTagItem[] | null;
+  conditions?: ImageStreamStatusTagCondition[];
 };
 
 export type ImageStreamSpecTagType = {
@@ -1235,6 +1242,7 @@ export type DashboardCommonConfig = {
   disableFineTuning: boolean;
   disableLlamaStackChatBot: boolean;
   disableLMEval: boolean;
+  disableKueue: boolean;
 };
 
 export type DashboardConfigKind = K8sResourceCommon & {
@@ -1274,8 +1282,11 @@ export type AcceleratorProfileKind = K8sResourceCommon & {
   };
 };
 
-export type LMEvaluationKind = K8sResourceCommon & {
+export type LMEvalKind = K8sResourceCommon & {
   metadata: {
+    annotations?: Partial<{
+      'opendatahub.io/display-name': string;
+    }>;
     name: string;
     namespace: string;
   };
@@ -1285,7 +1296,7 @@ export type LMEvaluationKind = K8sResourceCommon & {
     batchSize?: string;
     logSamples?: boolean;
     model: string;
-    modelArgs?: string[];
+    modelArgs?: { name: string; value: string }[];
     timeout?: number;
     taskList: {
       taskNames: string[];
@@ -1299,6 +1310,13 @@ export type LMEvaluationKind = K8sResourceCommon & {
     reason?: string;
     results?: string;
     state?: string;
+    progressBars?: {
+      count: string;
+      elapsedTime: string;
+      message: string;
+      percent: string;
+      remainingTimeEstimate: string;
+    }[];
   };
 };
 

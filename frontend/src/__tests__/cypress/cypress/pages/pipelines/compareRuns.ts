@@ -11,6 +11,10 @@ class CompareRunsGlobal {
   findInvalidRunsError() {
     return cy.findByTestId('compare-runs-invalid-number-runs');
   }
+
+  findProjectNavigatorLink() {
+    return cy.findByTestId('project-navigator-link-in-breadcrumb');
+  }
 }
 
 class CompareRunsListTableRow extends TableRow {

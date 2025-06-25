@@ -21,7 +21,9 @@ type MockResourceConfigType = {
   isProjectScoped?: boolean;
   scope?: string;
   hardwareProfileNamespace?: string;
+  acceleratorProfileNamespace?: string;
   isNonDashboardItem?: boolean;
+  version?: string;
 };
 
 export const mockServingRuntimeK8sResourceLegacy = ({
@@ -110,6 +112,7 @@ export const mockServingRuntimeK8sResource = ({
   route = false,
   displayName = 'OVMS Model Serving',
   acceleratorName = '',
+  acceleratorProfileNamespace = undefined,
   hardwareProfileName = '',
   apiProtocol = ServingRuntimeAPIProtocol.REST,
   resources = {
@@ -132,6 +135,7 @@ export const mockServingRuntimeK8sResource = ({
   scope,
   hardwareProfileNamespace = undefined,
   isNonDashboardItem = false,
+  version,
 }: MockResourceConfigType): ServingRuntimeKind => ({
   apiVersion: 'serving.kserve.io/v1alpha1',
   kind: 'ServingRuntime',
@@ -149,6 +153,9 @@ export const mockServingRuntimeK8sResource = ({
       'opendatahub.io/template-name': 'ovms',
       'openshift.io/display-name': displayName,
       'opendatahub.io/apiProtocol': apiProtocol,
+      ...(version && {
+        'opendatahub.io/runtime-version': version,
+      }),
       ...(!disableModelMeshAnnotations && {
         'enable-auth': auth ? 'true' : 'false',
         'enable-route': route ? 'true' : 'false',
@@ -156,6 +163,9 @@ export const mockServingRuntimeK8sResource = ({
       ...(isProjectScoped && { 'opendatahub.io/serving-runtime-scope': scope }),
       ...(hardwareProfileNamespace && {
         'opendatahub.io/hardware-profile-namespace': hardwareProfileNamespace,
+      }),
+      ...(acceleratorProfileNamespace && {
+        'opendatahub.io/accelerator-profile-namespace': acceleratorProfileNamespace,
       }),
     },
     name,

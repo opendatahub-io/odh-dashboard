@@ -1,12 +1,12 @@
 import * as React from 'react';
 import { Button } from '@patternfly/react-core';
 import { Notebook } from '#~/types';
-import StopWorkbenchModal from '#~/pages/projects/notebook/StopWorkbenchModal';
 import useStopNotebookModalAvailability from '#~/pages/projects/notebook/useStopNotebookModalAvailability';
+import ConfirmStopModal from '#~/pages/projects/components/ConfirmStopModal.tsx';
 
 type StopServerModalProps = {
   notebooksToStop: Notebook[];
-  link: string;
+  link?: string;
   isDeleting: boolean;
   onNotebooksStop: (didStop: boolean) => void;
 };
@@ -17,7 +17,7 @@ const StopServerModal: React.FC<StopServerModalProps> = ({
   isDeleting,
   onNotebooksStop,
 }) => {
-  const [, setDontShowModalValue] = useStopNotebookModalAvailability();
+  const [dontShowModalValue, setDontShowModalValue] = useStopNotebookModalAvailability();
 
   if (!notebooksToStop.length) {
     return null;
@@ -63,10 +63,10 @@ const StopServerModal: React.FC<StopServerModalProps> = ({
   };
 
   const displayLink = () => {
-    if (link !== '#' && notebooksToStop.length === 1) {
+    if (!!link && notebooksToStop.length === 1) {
       return (
         <>
-          <Button component="a" href={link} variant="link" isInline>
+          <Button data-testid="workbench-url" component="a" href={link} variant="link" isInline>
             open the workbench
           </Button>
         </>
@@ -94,13 +94,21 @@ const StopServerModal: React.FC<StopServerModalProps> = ({
   ];
 
   return (
-    <StopWorkbenchModal
-      workbenchName={getWorkbenchName()}
+    <ConfirmStopModal
+      message={
+        <>
+          Any unsaved changes to the <strong>{getWorkbenchName()}</strong> will be lost.
+        </>
+      }
       isRunning
       modalActions={modalActions}
       link={displayLink()}
       onBeforeClose={onBeforeClose}
       title={getWorkbenchModalTitle()}
+      dontShowModalValue={dontShowModalValue}
+      setDontShowModalValue={setDontShowModalValue}
+      saveChanges
+      dataTestId="stop-server-modal"
     />
   );
 };

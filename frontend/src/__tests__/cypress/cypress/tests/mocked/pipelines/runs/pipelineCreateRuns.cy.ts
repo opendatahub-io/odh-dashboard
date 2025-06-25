@@ -663,6 +663,33 @@ describe('Pipeline create runs', () => {
 
       verifyRelativeURL(`/pipelineRuns/${projectName}/runs/${createRunParams.run_id}`);
     });
+
+    it('shows and opens the create new experiment button in the experiment dropdown', () => {
+      pipelineRunsGlobal.visit(projectName);
+      // Mock experiments for the dropdown
+      createRunPage.mockGetExperiments(projectName, mockExperiments);
+      createRunPage.mockGetPipelines(projectName, [mockPipeline]);
+      createRunPage.mockGetPipelineVersions(
+        projectName,
+        [mockPipelineVersion],
+        mockPipelineVersion.pipeline_id,
+      );
+
+      // Navigate to the 'Create run' page
+      pipelineRunsGlobal.findCreateRunButton().click();
+      createRunPage.find();
+
+      // Open the experiment selector dropdown
+      createRunPage.experimentSelect.findToggleButton().should('not.be.disabled').click();
+
+      // The button should be visible in the dropdown
+      cy.findByRole('button', { name: /create new experiment/i })
+        .should('be.visible')
+        .click();
+
+      // The create experiment modal should open
+      cy.findByRole('dialog', { name: /create experiment/i }).should('be.visible');
+    });
   });
 
   describe('Schedules', () => {

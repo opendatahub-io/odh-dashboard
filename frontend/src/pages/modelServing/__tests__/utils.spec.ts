@@ -4,6 +4,7 @@ import {
   resourcesArePositive,
   setUpTokenAuth,
   isOciModelUri,
+  getInferenceServiceStoppedStatus,
 } from '#~/pages/modelServing/utils';
 import { mockServingRuntimeK8sResource } from '#~/__mocks__/mockServingRuntimeK8sResource';
 import { ContainerResources } from '#~/types';
@@ -304,5 +305,31 @@ describe('isOciModelUri', () => {
     expect(isOciModelUri('s3://my-model')).toBe(false);
     expect(isOciModelUri(undefined)).toBe(false);
     expect(isOciModelUri('')).toBe(false);
+  });
+});
+
+describe('getModelServingStatus', () => {
+  it('should return correct status when model is running', () => {
+    const inferenceService = mockInferenceServiceK8sResource({});
+    expect(getInferenceServiceStoppedStatus(inferenceService)).toEqual({
+      inferenceService,
+      isStopped: false,
+      isRunning: true,
+      isStopping: false,
+      isStarting: false,
+    });
+  });
+
+  it('should return correct status when model is stopped', () => {
+    const inferenceService = mockInferenceServiceK8sResource({});
+    inferenceService.metadata.annotations ??= {};
+    inferenceService.metadata.annotations['serving.kserve.io/stop'] = 'true';
+    expect(getInferenceServiceStoppedStatus(inferenceService)).toEqual({
+      inferenceService,
+      isStopped: true,
+      isRunning: false,
+      isStopping: false,
+      isStarting: false,
+    });
   });
 });

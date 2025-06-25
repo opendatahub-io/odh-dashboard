@@ -1,25 +1,10 @@
 import React from 'react';
-import {
-  Gallery,
-  GalleryItem,
-  Content,
-  Flex,
-  FlexItem,
-  Stack,
-  StackItem,
-  Alert,
-  CardTitle,
-  CardBody,
-  CardFooter,
-  Card,
-  Bullseye,
-  Button,
-  ContentVariants,
-} from '@patternfly/react-core';
+import { Content, Flex, FlexItem, Stack, StackItem, Alert } from '@patternfly/react-core';
 import EmptyDetailsView from '@odh-dashboard/internal/components/EmptyDetailsView';
 import { ProjectObjectType, typedEmptyImage } from '@odh-dashboard/internal/concepts/design/utils';
 import EmptyModelServingPlatform from '@odh-dashboard/internal/pages/modelServing/screens/projects/EmptyModelServingPlatform';
-import { ModelServingPlatform } from '../../concepts/modelServingPlatforms';
+import { ModelServingPlatform } from '../../concepts/useProjectServingPlatform';
+import { PlatformSelectionGallery } from '../platformSelection';
 
 export const SelectPlatformView: React.FC<{
   platforms?: ModelServingPlatform[];
@@ -49,41 +34,12 @@ export const SelectPlatformView: React.FC<{
             </Content>
           </StackItem>
           <StackItem>
-            <Gallery hasGutter>
-              {platforms.map((p) => (
-                <GalleryItem key={p.properties.id}>
-                  <Card
-                    style={{
-                      height: '100%',
-                      border: '1px solid var(--pf-t--global--border--color--default)',
-                      borderRadius: 16,
-                    }}
-                    data-testid="single-serving-platform-card"
-                  >
-                    <CardTitle>
-                      <Content component={ContentVariants.h2}>
-                        {p.properties.enableCardText.title}
-                      </Content>
-                    </CardTitle>
-                    <CardBody>{p.properties.enableCardText.description}</CardBody>
-                    <CardFooter>
-                      <Bullseye>
-                        <Button
-                          isLoading={newPlatformLoading?.properties.id === p.properties.id}
-                          isDisabled={newPlatformLoading?.properties.id === p.properties.id}
-                          variant="secondary"
-                          onClick={() => {
-                            setModelServingPlatform(p);
-                          }}
-                        >
-                          {p.properties.enableCardText.selectText}
-                        </Button>
-                      </Bullseye>
-                    </CardFooter>
-                  </Card>
-                </GalleryItem>
-              ))}
-            </Gallery>
+            <PlatformSelectionGallery
+              platforms={platforms}
+              onSelect={setModelServingPlatform}
+              loadingPlatformId={newPlatformLoading?.properties.id}
+              useOverviewCard={false}
+            />
           </StackItem>
           {/* {errorSelectingPlatform && (
             <ModelServingPlatformSelectErrorAlert

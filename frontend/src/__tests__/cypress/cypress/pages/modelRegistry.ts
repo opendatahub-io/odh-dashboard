@@ -207,6 +207,42 @@ class ModelRegistry {
   findRegisterModelButton() {
     return cy.findByRole('button', { name: 'Register model' });
   }
+
+  // Empty state selectors for admin users
+  findEmptyStateAdminTitle() {
+    return cy.findByText('Create a model registry');
+  }
+
+  findEmptyStateAdminDescription() {
+    return cy.contains('No model registries are available to users in your organization');
+  }
+
+  findEmptyStateAdminInstructions() {
+    return cy.contains('Create a model registry from the');
+  }
+
+  findEmptyStateAdminSettingsLink() {
+    return cy.contains('Model registry settings');
+  }
+
+  findEmptyStateAdminButton() {
+    return cy.findByRole('link', { name: 'Go to Model registry settings' });
+  }
+
+  // Empty state selectors for non-admin users
+  findEmptyStateNonAdminTitle() {
+    return cy.findByText('Request access to model registries');
+  }
+
+  findEmptyStateNonAdminDescription() {
+    return cy.findByText(
+      'To request a new model registry, or to request permission to access an existing model registry, contact your administrator.',
+    );
+  }
+
+  findEmptyStateNonAdminHelpButton() {
+    return cy.findByRole('button', { name: "Who's my administrator?" });
+  }
 }
 
 export const modelRegistry = new ModelRegistry();

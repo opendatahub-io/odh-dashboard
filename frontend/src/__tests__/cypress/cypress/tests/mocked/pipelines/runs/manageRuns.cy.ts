@@ -43,6 +43,10 @@ describe('Manage runs', () => {
     manageRunsPage.visit(experimentId, projectName, initialRunIds);
   });
 
+  it('renders the project navigator link', () => {
+    manageRunsPage.findProjectNavigatorLink().should('exist');
+  });
+
   it('renders the page with table data', () => {
     manageRunsTable.getRowByName('Test run 1').find();
   });
@@ -80,7 +84,7 @@ describe('Manage runs', () => {
   it('navigates to experiment list page when the project name breadcrumb is clicked', () => {
     manageRunsPage
       .findBreadcrumb()
-      .findByRole('link', { name: 'Experiments - Test project' })
+      .findByRole('link', { name: 'Experiments in Test project' })
       .click();
     cy.location('pathname').should('equal', `/experiments/${projectName}`);
   });

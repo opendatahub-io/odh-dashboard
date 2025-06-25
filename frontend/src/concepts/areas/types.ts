@@ -64,6 +64,7 @@ export enum SupportedArea {
 
   /* Distributed Workloads areas */
   DISTRIBUTED_WORKLOADS = 'distributed-workloads',
+  KUEUE = 'kueue',
 
   /* Model Registry areas */
   MODEL_REGISTRY = 'model-registry',

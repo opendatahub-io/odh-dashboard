@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/restrict-template-expressions */
 const { execSync } = require('child_process');
 const path = require('path');
+const webpack = require('webpack');
 const { merge } = require('webpack-merge');
 const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
 const ReactRefreshWebpackPlugin = require('@pmmmwh/react-refresh-webpack-plugin');
@@ -11,7 +12,7 @@ const smp = new SpeedMeasurePlugin({ disable: !process.env.MEASURE });
 
 setupDotenvFilesForEnv({ env: 'development' });
 const webpackCommon = require('./webpack.common.js');
-const { moduleFederationConfig } = require('./moduleFederation');
+const { moduleFederationConfig, moduleFederationPlugins } = require('./moduleFederation');
 
 const RELATIVE_DIRNAME = process.env._ODH_RELATIVE_DIRNAME;
 const IS_PROJECT_ROOT_DIR = process.env._ODH_IS_PROJECT_ROOT_DIR;
@@ -23,9 +24,6 @@ const PORT = process.env._ODH_PORT;
 const BACKEND_PORT = process.env._BACKEND_PORT;
 
 const mfProxies = moduleFederationConfig.map((config) => config.proxy.map((p) => p.path)).flat();
-if (mfProxies.length > 0) {
-  mfProxies.push('/_mf/');
-}
 
 module.exports = smp.wrap(
   merge(
@@ -45,6 +43,18 @@ module.exports = smp.wrap(
       optimization: {
         runtimeChunk: 'single',
         removeEmptyChunks: true,
+      },
+      watchOptions: {
+        ignored: [
+          '**/node_modules',
+          '**/dist',
+          '**/public',
+          '**/public-cypress',
+          '**/coverage',
+          '**/jest-coverage',
+          '**/.nyc_output',
+          '**/upstream',
+        ],
       },
       devServer: {
         host: HOST,
@@ -92,7 +102,7 @@ module.exports = smp.wrap(
 
             return [
               {
-                context: ['/api', ...mfProxies],
+                context: ['/api', '/_mf', ...mfProxies],
                 target: `https://${dashboardHost}`,
                 secure: false,
                 changeOrigin: true,
@@ -110,7 +120,7 @@ module.exports = smp.wrap(
           }
           return [
             {
-              context: ['/api', ...mfProxies],
+              context: ['/api', '/_mf', ...mfProxies],
               target: `http://0.0.0.0:${BACKEND_PORT}`,
             },
             {
@@ -156,6 +166,10 @@ module.exports = smp.wrap(
       plugins: [
         new ForkTsCheckerWebpackPlugin(),
         new ReactRefreshWebpackPlugin({ overlay: false }),
+        new webpack.EnvironmentPlugin({
+          MF_CONFIG: JSON.stringify(moduleFederationConfig),
+        }),
+        ...moduleFederationPlugins,
       ],
     },
   ),

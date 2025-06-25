@@ -12,8 +12,8 @@ import useStopNotebookModalAvailability from '#~/pages/projects/notebook/useStop
 import { useAppContext } from '#~/app/AppContext';
 import { fireNotebookTrackingEvent } from '#~/pages/projects/notebook/utils';
 import StopNotebookConfirmModal from '#~/pages/projects/notebook/StopNotebookConfirmModal';
-import NotebookStateAction from '#~/pages/projects/notebook/NotebookStateAction';
 import { useNotebookKindPodSpecOptionsState } from '#~/concepts/hardwareProfiles/useNotebookPodSpecOptionsState';
+import StateActionToggle from '#~/components/StateActionToggle';
 
 type ProjectTableRowNotebookTableRowProps = {
   project: ProjectKind;
@@ -81,8 +81,8 @@ const ProjectTableRowNotebookTableRow: React.FC<ProjectTableRowNotebookTableRowP
         />
       </Td>
       <Td>
-        <NotebookStateAction
-          notebookState={notebookState}
+        <StateActionToggle
+          currentState={notebookState}
           onStart={onStart}
           onStop={onStop}
           isDisabled={inProgress}
