@@ -24,10 +24,7 @@ import PipelineComponentStatusIcon, {
   StatusType,
 } from '#~/concepts/pipelines/content/PipelineComponentStatusIcon.tsx';
 import { K8sCondition } from '#~/k8sTypes';
-import {
-  useWatchPodsForPipelineServerEvents,
-  useWatchAllPodEventsAndFilter,
-} from '#~/concepts/pipelines/context/usePipelineEvents.ts';
+import { useWatchAllPodEventsAndFilter } from '#~/concepts/pipelines/context/usePipelineEvents.ts';
 import EventLog from '#~/concepts/k8s/EventLog/EventLog';
 import '#~/concepts/dashboard/ModalStyles.scss';
 
@@ -45,17 +42,8 @@ const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose }) =>
     (c) => c.type === 'Ready' && c.status === 'True',
   );
 
-  const [pods] = useWatchPodsForPipelineServerEvents(namespace);
-
-  // Combine map and filter operations into a single useMemo
-  const podUids = React.useMemo(
-    () =>
-      pods.map((onePod) => onePod.metadata.uid).filter((uid): uid is string => uid !== undefined),
-    [pods],
-  );
-
   // Use the custom hook to get all events
-  const allEvents = useWatchAllPodEventsAndFilter(namespace, podUids);
+  const allEvents = useWatchAllPodEventsAndFilter(namespace);
 
   const spinner = (
     <Flex>

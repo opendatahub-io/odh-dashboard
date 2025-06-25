@@ -38,3 +38,15 @@ export const useWatchNotebookEvents = (
     },
     EventModel,
   );
+
+// get all the events for all the pods in the namespace
+export const useWatchPodEvents = (namespace: string): CustomWatchK8sResult<EventKind[]> =>
+  useK8sWatchResourceList(
+    {
+      isList: true,
+      groupVersionKind: groupVersionKind(EventModel),
+      namespace,
+      fieldSelector: 'involvedObject.kind=Pod',
+    },
+    EventModel,
+  );

@@ -1,28 +1,16 @@
 import * as React from 'react';
 import { groupVersionKind } from '#~/api/k8sUtils';
-import { EventKind, KnownLabels } from '#~/k8sTypes';
+import { EventKind, KnownLabels, PodKind } from '#~/k8sTypes';
 import { CustomWatchK8sResult } from '#~/types';
-import { EventModel, PodModel } from '#~/api/models/k8s';
+import { PodModel } from '#~/api/models/k8s';
 import useK8sWatchResourceList from '#~/utilities/useK8sWatchResourceList';
+import { useWatchPodEvents } from '#~/api/k8s/events.ts';
 
 // ideally ,would use react-query watch many, but that is not available
-// get all the events for all the pods in the namespace
-export const useWatchPipelineServerEvents = (
-  namespace: string,
-): CustomWatchK8sResult<EventKind[]> =>
-  useK8sWatchResourceList(
-    {
-      isList: true,
-      groupVersionKind: groupVersionKind(EventModel),
-      namespace,
-      fieldSelector: 'involvedObject.kind=Pod',
-    },
-    EventModel,
-  );
 
-export const useWatchPodsForPipelineServerEvents = (
+export const useGetAllPodsForPipelineServerEvents = (
   namespace: string,
-): CustomWatchK8sResult<EventKind[]> =>
+): CustomWatchK8sResult<PodKind[]> =>
   useK8sWatchResourceList(
     {
       isList: true,
@@ -37,19 +25,28 @@ export const useWatchPodsForPipelineServerEvents = (
 // this is a workaround to avoid the issue of having to watch multiple pods dynamically; since
 // react necessitates that the number of hooks called is the same for each render
 // we are only getting hundreds of events back; and so the filtering is not excessive and the speed is fine.
-export const useWatchAllPodEventsAndFilter = (
-  namespace: string,
-  podUids: string[],
-): EventKind[] => {
-  // get ALL the events
-  const [podEvents] = useWatchPipelineServerEvents(namespace);
+export const useWatchAllPodEventsAndFilter = (namespace: string): EventKind[] => {
+  // get all the pods in the namespace
+  const [pods] = useGetAllPodsForPipelineServerEvents(namespace);
 
-  const filteredEvents = podEvents.filter((event) => {
-    const { involvedObject } = event;
-    return (
-      involvedObject.kind === 'Pod' && involvedObject.uid && podUids.includes(involvedObject.uid)
-    );
-  });
+  // get the uids of the pods
+  const podUids = React.useMemo(() => pods.map((pod) => pod.metadata.uid), [pods]);
+
+  // get ALL the events
+  const [podEvents] = useWatchPodEvents(namespace);
+
+  const filteredEvents = React.useMemo(
+    () =>
+      podEvents.filter((event) => {
+        const { involvedObject } = event;
+        return (
+          involvedObject.kind === 'Pod' &&
+          involvedObject.uid &&
+          podUids.includes(involvedObject.uid)
+        );
+      }),
+    [podEvents, podUids],
+  );
 
   return React.useMemo(
     () =>

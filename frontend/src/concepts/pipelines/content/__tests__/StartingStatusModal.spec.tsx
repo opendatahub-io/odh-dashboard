@@ -7,7 +7,7 @@ import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { MetadataStoreServicePromiseClient } from '#~/third_party/mlmd/generated/ml_metadata/proto/metadata_store_service_grpc_web_pb';
 import { PipelineAPIs } from '#~/concepts/pipelines/types';
 import {
-  useWatchPodsForPipelineServerEvents,
+  useGetAllPodsForPipelineServerEvents,
   useWatchAllPodEventsAndFilter,
 } from '#~/concepts/pipelines/context/usePipelineEvents.ts';
 
@@ -66,6 +66,31 @@ const mockEvents = [
   },
 ];
 
+const mockPods = [
+  {
+    apiVersion: 'v1',
+    kind: 'Pod',
+    metadata: {
+      uid: 'pod-uid-1',
+      name: 'ds-pipeline-ui-dspa-dbb65fdf6-fnsz7',
+      namespace: 'test-namespace',
+    },
+    spec: {
+      containers: [
+        {
+          name: 'ds-pipeline-ui',
+          image: 'quay.io/opendatahub/ds-pipelines-frontend:latest',
+          env: [],
+        },
+      ],
+    },
+    status: {
+      phase: 'Running',
+      conditions: [],
+    },
+  },
+];
+
 // Mock the usePipelinesAPI hook
 jest.mock('#~/concepts/pipelines/context', () => ({
   usePipelinesAPI: jest.fn(),
@@ -73,12 +98,12 @@ jest.mock('#~/concepts/pipelines/context', () => ({
 
 // Mock the pipeline events hooks that use useK8sWatchResource
 jest.mock('#~/concepts/pipelines/context/usePipelineEvents.ts', () => ({
-  useWatchPodsForPipelineServerEvents: jest.fn(),
+  useGetAllPodsForPipelineServerEvents: jest.fn(),
   useWatchAllPodEventsAndFilter: jest.fn(),
 }));
 
 const mockUsePipelinesAPI = jest.mocked(usePipelinesAPI);
-const mockUseWatchPodsForPipelineServerEvents = jest.mocked(useWatchPodsForPipelineServerEvents);
+const mockUseGetAllPodsForPipelineServerEvents = jest.mocked(useGetAllPodsForPipelineServerEvents);
 const mockUseWatchAllPodEventsAndFilter = jest.mocked(useWatchAllPodEventsAndFilter);
 
 describe('StartingStatusModal', () => {
@@ -117,7 +142,7 @@ describe('StartingStatusModal', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     // Mock the pipeline events hooks to return empty arrays
-    mockUseWatchPodsForPipelineServerEvents.mockReturnValue([[], false, undefined]);
+    mockUseGetAllPodsForPipelineServerEvents.mockReturnValue([mockPods, false, undefined]);
     mockUseWatchAllPodEventsAndFilter.mockReturnValue(mockEvents);
 
     // Set up default mock for usePipelinesAPI
