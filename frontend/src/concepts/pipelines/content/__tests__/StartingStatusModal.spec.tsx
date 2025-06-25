@@ -74,12 +74,12 @@ jest.mock('#~/concepts/pipelines/context', () => ({
 // Mock the pipeline events hooks that use useK8sWatchResource
 jest.mock('#~/concepts/pipelines/context/usePipelineEvents.ts', () => ({
   useWatchPodsForPipelineServerEvents: jest.fn(),
-  useWatchMultiplePodEvents: jest.fn(),
+  useWatchAllPodEventsAndFilter: jest.fn(),
 }));
 
 const mockUsePipelinesAPI = jest.mocked(usePipelinesAPI);
 const mockUseWatchPodsForPipelineServerEvents = jest.mocked(useWatchPodsForPipelineServerEvents);
-const mockUseWatchMultiplePodEvents = jest.mocked(useWatchAllPodEventsAndFilter);
+const mockUseWatchAllPodEventsAndFilter = jest.mocked(useWatchAllPodEventsAndFilter);
 
 describe('StartingStatusModal', () => {
   const mockOnClose = jest.fn();
@@ -118,7 +118,7 @@ describe('StartingStatusModal', () => {
     jest.clearAllMocks();
     // Mock the pipeline events hooks to return empty arrays
     mockUseWatchPodsForPipelineServerEvents.mockReturnValue([[], false, undefined]);
-    mockUseWatchMultiplePodEvents.mockReturnValue(mockEvents);
+    mockUseWatchAllPodEventsAndFilter.mockReturnValue(mockEvents);
 
     // Set up default mock for usePipelinesAPI
     mockUsePipelinesAPI.mockReturnValue(
