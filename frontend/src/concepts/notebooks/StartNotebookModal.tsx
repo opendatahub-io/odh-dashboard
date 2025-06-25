@@ -186,7 +186,7 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
   };
 
   const renderLogs = () => (
-    <Panel className="odh-modal__scrollable-panel">
+    <Panel isScrollable>
       <PanelMain>
         {(isStopped || isRunning) && events.length === 0 ? (
           <span style={{ color: DisabledColor.var }}>There are no recent events.</span>

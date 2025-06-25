@@ -67,7 +67,7 @@ const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose }) =>
       .map((contents) => contents[1]) || [];
 
   const renderProgress = () => (
-    <Panel className="odh-modal__scrollable-panel">
+    <Panel isScrollable>
       <PanelMain>
         {/* Render an Alert for each error condition */}
         {errorConditions.map((condition, idx) => (
