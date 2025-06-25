@@ -1309,6 +1309,13 @@ export type LMEvalKind = K8sResourceCommon & {
     reason?: string;
     results?: string;
     state?: string;
+    progressBars?: {
+      count: string;
+      elapsedTime: string;
+      message: string;
+      percent: string;
+      remainingTimeEstimate: string;
+    }[];
   };
 };
 

@@ -44,13 +44,11 @@ export const getLMEvalState = (status: LMEvalKind['status']): LMEvalState => {
 };
 
 export const getLMEvalStatusProgress = (status: LMEvalKind['status']): number => {
-  if (!status?.message?.includes('Requesting API:')) {
-    return 0;
-  }
-
-  const match = status.message.match(/Requesting API:\s*(\d+)%/);
+  const percentString = status?.progressBars?.find(
+    (bar) => bar.message === 'Requesting API',
+  )?.percent;
+  const match = percentString?.match(/(\d+)%/);
   return match ? Number(match[1]) : 0;
 };
-
 export const getLMEvalStatusColor = (state: LMEvalState): string =>
   state === LMEvalState.FAILED ? DangerColor.var : RegularColor.var;
