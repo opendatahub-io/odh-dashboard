@@ -216,8 +216,17 @@ export const convertSecondsToPeriodicTime = (seconds: number): string => {
   return '';
 };
 
-const shortTimeRangeMinuteLimit = 3;
-const mediumTimeRangeMinuteLimit = 5;
+// keep this part:
+
+// server timeout is 5 minutes; in src/utilities/const.ts
+// SERVER_TIMEOUT = process.env.SERVER_TIMEOUT ? parseInt(process.env.SERVER_TIMEOUT) : 300000; // 5 minutes
+
+// end of keep this part
+
+// so we are using 60 seconds for now; change back! DANGER WILL ROBINSON!
+// temp change for development; change back! DANGER WILL ROBINSON!
+const shortTimeRangeSecondLimit = 60;
+const mediumTimeRangeSecondLimit = 90;
 
 export const getTimeRangeCategory = (
   timestamp: string | undefined | null,
@@ -232,16 +241,20 @@ export const getTimeRangeCategory = (
     return 'longRange';
   }
 
-  const diffMinutes = (now - timestampMs) / 60000; // 60 000
+  const diffSecs = (now - timestampMs) / 1000; // 60 000
+  // const diffMinutes = (now - timestampMs) / 60000; // 60 000
 
-  if (diffMinutes < 0) {
+  if (diffSecs < 0) {
+    // if (diffMinutes < 0) {
     // Future timestamp – treat as shortest range
     return 'shortRange';
   }
-  if (diffMinutes > mediumTimeRangeMinuteLimit) {
+  if (diffSecs > mediumTimeRangeSecondLimit) {
+    // if (diffMinutes > mediumTimeRangeMinuteLimit) {
     return 'longRange';
   }
-  if (diffMinutes > shortTimeRangeMinuteLimit) {
+  if (diffSecs > shortTimeRangeSecondLimit) {
+    // if (diffMinutes > shortTimeRangeMinuteLimit) {
     return 'mediumRange';
   }
   return 'shortRange';

@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { K8sCondition, ProjectKind } from '#~/k8sTypes';
+import { K8sCondition, ProjectKind, K8sDspaConditionReason } from '#~/k8sTypes';
 import StartingStatusModal from '#~/concepts/pipelines/content/StartingStatusModal';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { MetadataStoreServicePromiseClient } from '#~/third_party/mlmd/generated/ml_metadata/proto/metadata_store_service_grpc_web_pb';
@@ -152,6 +152,30 @@ describe('StartingStatusModal', () => {
     render(<StartingStatusModal onClose={mockOnClose} />);
 
     expect(screen.getByTestId('inProgressDescription')).toBeInTheDocument();
+  });
+  it('should show error message when there is an error', () => {
+    mockUsePipelinesAPI.mockReturnValue(
+      createMockConditions([
+        {
+          type: 'APIServerReady',
+          status: 'False',
+          message: 'API server not ready yet',
+          reason: K8sDspaConditionReason.ComponentDeploymentNotFound,
+        },
+        {
+          reason: 'still spinning up.....',
+          status: 'False',
+          type: 'Ready',
+        },
+      ]),
+    );
+
+    render(<StartingStatusModal onClose={mockOnClose} />);
+
+    // Should show error alert
+    expect(screen.getByTestId('error-0')).toBeInTheDocument();
+    expect(screen.getByText('APIServerReady - ComponentDeploymentNotFound')).toBeInTheDocument();
+    expect(screen.getByText('API server not ready yet')).toBeInTheDocument();
   });
 
   it('should show all ready message when Ready is True', () => {
