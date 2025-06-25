@@ -705,9 +705,9 @@ describe('Serving Runtime List', () => {
 
       // Check status of deployed model which loaded successfully after an error
       inferenceServiceRow = modelServingSection.getInferenceServiceRow('Loaded model');
-      inferenceServiceRow.findStatusLabel('Running');
+      inferenceServiceRow.findStatusLabel('Started');
       inferenceServiceRow.findStatusTooltip().should('be.visible');
-      inferenceServiceRow.findStatusTooltipValue('Loaded');
+      inferenceServiceRow.findStatusTooltipValue('Model is deployed.');
 
       // Check API protocol in row
       inferenceServiceRow.findAPIProtocol().should('have.text', 'REST');
@@ -1348,7 +1348,7 @@ describe('Serving Runtime List', () => {
       projectDetails.visitSection('test-project', 'model-server');
 
       const kserveRow = modelServingSection.getKServeRow('test-model');
-      kserveRow.findStatusLabel('Running');
+      kserveRow.findStatusLabel('Started');
 
       const stoppedInferenceService = mockInferenceServiceK8sResource({
         name: 'test-model',
@@ -1419,7 +1419,7 @@ describe('Serving Runtime List', () => {
 
       kserveRow.findStateActionToggle().should('have.text', 'Start').click();
       cy.wait(['@startModelPatch', '@getStartedModel']);
-      kserveRow.findStatusLabel('Running');
+      kserveRow.findStatusLabel('Started');
       kserveRow.findStateActionToggle().should('have.text', 'Stop');
     });
 
