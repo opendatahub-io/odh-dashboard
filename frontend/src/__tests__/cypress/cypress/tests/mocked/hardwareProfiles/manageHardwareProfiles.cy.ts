@@ -951,7 +951,6 @@ describe('Manage Hardware Profile', () => {
     beforeEach(() => setupIntercepts({ disableKueue: false }));
 
     it('creating a new hardware profile', () => {
-      setupIntercepts();
       createHardwareProfile.visit();
       createHardwareProfile.k8sNameDescription.findDisplayNameInput().fill('Test hardware profile');
 
@@ -1100,20 +1099,14 @@ describe('Manage Hardware Profile', () => {
   });
 
   describe('Kueue disabled', () => {
-    beforeEach(() => setupIntercepts({ disableKueue: true }));
-
     it('creating a new hardware profile', () => {
       setupIntercepts({ disableKueue: true });
       createHardwareProfile.visit();
       createHardwareProfile.k8sNameDescription.findDisplayNameInput().fill('Test hardware profile');
 
-      // The local queue radio button is disabled and a tooltip hover over it
-      createHardwareProfile.findLocalQueueRadio().should('be.disabled');
-      editHardwareProfile.findLocalQueueRadio().trigger('mouseenter', { force: true });
-      editHardwareProfile.findKueueDisabledTooltip().should('be.visible');
-
-      // The node selector and tolerations button should be automatically selected
-      createHardwareProfile.findNodeStrategyRadio().should('be.checked');
+      // The radio options shouldn't be shown
+      createHardwareProfile.findLocalQueueRadio().should('not.exist');
+      createHardwareProfile.findNodeStrategyRadio().should('not.exist');
 
       // Add node selectors and tolerations
       createHardwareProfile.findAddNodeSelectorButton().click();
@@ -1198,13 +1191,8 @@ describe('Manage Hardware Profile', () => {
 
       editHardwareProfile.visit('test-hardware-profile');
 
-      // The local queue radio button is disabled and a tooltip hover over it
-      editHardwareProfile.findLocalQueueRadio().should('be.disabled');
-      editHardwareProfile.findLocalQueueRadio().trigger('mouseenter', { force: true });
-      editHardwareProfile.findKueueDisabledTooltip().should('be.visible');
-
-      // The node selector and tolerations button should be automatically selected
-      editHardwareProfile.findNodeStrategyRadio().should('be.checked');
+      editHardwareProfile.findLocalQueueRadio().should('not.exist');
+      editHardwareProfile.findNodeStrategyRadio().should('not.exist');
 
       // The nodes and tolerations should be preset in the table
       editHardwareProfile.findNodeSelectorTable().should('exist');

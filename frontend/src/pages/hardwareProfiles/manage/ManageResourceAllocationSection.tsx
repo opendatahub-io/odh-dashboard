@@ -82,13 +82,15 @@ const ManageResourceAllocationSection: React.FC<ManageResourceAllocationSectionP
       <ManageWorkloadStrategySection
         schedulingType={selectedStrategy}
         setSchedulingType={setSchedulingType}
-        kueueAvailable={kueueAvailable}
-        queueRadioDisabled={
-          !kueueAvailable && (!existingType || existingType === SchedulingType.NODE)
+        hideQueueOption={!kueueAvailable && (!existingType || existingType === SchedulingType.NODE)}
+        disableQueueOption={
+          !kueueAvailable &&
+          existingType === SchedulingType.QUEUE &&
+          selectedStrategy === SchedulingType.QUEUE
         }
       />
 
-      {schedulingType === SchedulingType.QUEUE || (kueueAvailable && !scheduling) ? (
+      {schedulingType === SchedulingType.QUEUE || (kueueAvailable && !schedulingType) ? (
         <>
           <ManageLocalQueueFieldSection
             localQueueName={localQueueName}
