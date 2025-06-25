@@ -34,15 +34,17 @@ const ManageResourceAllocationSection: React.FC<ManageResourceAllocationSectionP
   } = scheduling ?? {};
 
   const setQueue = React.useCallback(
-    (overrides: Partial<{ localQueueName: string; priorityClass: string }>) =>
+    (overrides: Partial<{ localQueueName: string; priorityClass: string }>) => {
+      const updatedPriorityClass = overrides.priorityClass ?? priorityClass;
       setScheduling({
         ...scheduling,
         type: SchedulingType.QUEUE,
         kueue: {
           localQueueName: overrides.localQueueName ?? localQueueName,
-          priorityClass: overrides.priorityClass ?? priorityClass,
+          ...(updatedPriorityClass !== 'None' && { priorityClass: updatedPriorityClass }),
         },
-      }),
+      });
+    },
     [localQueueName, priorityClass, setScheduling, scheduling],
   );
 

@@ -205,4 +205,5 @@ export const getHardwareProfileDescription = (
 ): string | undefined => hardwareProfile.metadata.annotations?.[DisplayNameAnnotation.ODH_DESC];
 
 export const isHardwareProfileEnabled = (hardwareProfile: HardwareProfileKind): boolean =>
-  hardwareProfile.metadata.annotations?.['opendatahub.io/disabled'] === 'false';
+  hardwareProfile.metadata.annotations?.['opendatahub.io/disabled'] === 'false' ||
+  hardwareProfile.metadata.annotations?.['opendatahub.io/disabled'] === undefined;
