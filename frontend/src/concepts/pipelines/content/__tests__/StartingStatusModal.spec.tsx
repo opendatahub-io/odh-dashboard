@@ -6,10 +6,7 @@ import StartingStatusModal from '#~/concepts/pipelines/content/StartingStatusMod
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { MetadataStoreServicePromiseClient } from '#~/third_party/mlmd/generated/ml_metadata/proto/metadata_store_service_grpc_web_pb';
 import { PipelineAPIs } from '#~/concepts/pipelines/types';
-import {
-  useGetAllPodsForPipelineServerEvents,
-  useWatchAllPodEventsAndFilter,
-} from '#~/concepts/pipelines/context/usePipelineEvents.ts';
+import { useWatchAllPodEventsAndFilter } from '#~/concepts/pipelines/context/usePipelineEvents.ts';
 
 const fullMessage1 =
   '2025-06-20T20:15:44Z [AddedInterface] [Normal] Add eth0 [10.129.2.134/23] from ovn-kubernetes';
@@ -98,12 +95,10 @@ jest.mock('#~/concepts/pipelines/context', () => ({
 
 // Mock the pipeline events hooks that use useK8sWatchResource
 jest.mock('#~/concepts/pipelines/context/usePipelineEvents.ts', () => ({
-  useGetAllPodsForPipelineServerEvents: jest.fn(),
   useWatchAllPodEventsAndFilter: jest.fn(),
 }));
 
 const mockUsePipelinesAPI = jest.mocked(usePipelinesAPI);
-const mockUseGetAllPodsForPipelineServerEvents = jest.mocked(useGetAllPodsForPipelineServerEvents);
 const mockUseWatchAllPodEventsAndFilter = jest.mocked(useWatchAllPodEventsAndFilter);
 
 describe('StartingStatusModal', () => {
@@ -142,7 +137,6 @@ describe('StartingStatusModal', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     // Mock the pipeline events hooks to return empty arrays
-    mockUseGetAllPodsForPipelineServerEvents.mockReturnValue([mockPods, false, undefined]);
     mockUseWatchAllPodEventsAndFilter.mockReturnValue(mockEvents);
 
     // Set up default mock for usePipelinesAPI
