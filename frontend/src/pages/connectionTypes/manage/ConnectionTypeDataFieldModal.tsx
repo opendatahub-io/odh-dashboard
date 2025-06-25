@@ -210,9 +210,7 @@ export const ConnectionTypeDataFieldModal: React.FC<Props> = ({
                         ? true
                         : data.properties.deferInput,
                   });
-                  // setProperties({});
                   setData('fieldType', selection);
-                  // setFieldType(selection);
                 }
               }}
               options={connectionTypeDataFields
