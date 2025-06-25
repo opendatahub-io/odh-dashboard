@@ -104,7 +104,7 @@ The mcp-atlassian server automatically converts markdown to Jira syntax using th
 A defect in the product — e.g., something should be working but it is not. This often time is against requirements, direct ask, or "common sense" breaks.
 * **Bugs are NOT**:
   * New functionality that is unlike existing functionality.
-  * A way to "improve" things outside of "expected functionality" -å e.g., "A form should submit cleanly and report k8s errors on the form" (expected) vs "A form should scroll to where the error is in the form" (new functionality).
+  * A way to "improve" things outside of "expected functionality" - e.g., "A form should submit cleanly and report k8s errors on the form" (expected) vs "A form should scroll to where the error is in the form" (new functionality).
   * Tests that are broken (these should be Tasks).
 
 ### Information Gathering:
