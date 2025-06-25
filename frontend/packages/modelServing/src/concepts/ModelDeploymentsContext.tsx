@@ -7,12 +7,14 @@ type ModelDeploymentsContextType = {
   deployments?: Deployment[];
   loaded: boolean;
   errors?: Error[];
+  projects?: ProjectKind[];
 };
 
 export const ModelDeploymentsContext = React.createContext<ModelDeploymentsContextType>({
   deployments: undefined,
   loaded: false,
   errors: undefined,
+  projects: undefined,
 });
 
 type ProjectDeploymentWatcherProps = {
@@ -95,7 +97,12 @@ export const ModelDeploymentsProvider: React.FC<ModelDeploymentsProviderProps> =
 
     const allLoaded = Object.values(projectDeployments).every((state) => state.loaded);
 
-    return { deployments: allLoaded ? allDeployments : undefined, loaded: allLoaded, errors };
+    return {
+      deployments: allLoaded ? allDeployments : undefined,
+      loaded: allLoaded,
+      errors,
+      projects,
+    };
   }, [projects, projectDeployments]);
 
   return (
