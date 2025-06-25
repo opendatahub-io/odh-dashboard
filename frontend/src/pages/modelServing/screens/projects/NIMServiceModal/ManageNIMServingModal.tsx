@@ -325,7 +325,7 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
             description: pvc.metadata.annotations?.description || '',
             storageClassName: pvc.spec.storageClassName,
           };
-          promises.push(updatePvc(updatePvcData, pvc, namespace, { dryRun: false }));
+          promises.push(updatePvc(updatePvcData, pvc, namespace, { dryRun: false }, false, true)); // Pass forceRedeploy: true for NIM
         }
         return Promise.all(promises);
       })

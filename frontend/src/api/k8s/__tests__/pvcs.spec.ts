@@ -42,17 +42,14 @@ const data: StorageData = {
   size: '5Gi',
 };
 
-const baseAnnotations = {
-  'openshift.io/description': 'Test Storage',
-  'openshift.io/display-name': 'pvc',
-  'runtimes.opendatahub.io/force-redeploy': expect.any(String),
-};
-
 const assemblePvcResult: PersistentVolumeClaimKind = {
   apiVersion: 'v1',
   kind: 'PersistentVolumeClaim',
   metadata: {
-    annotations: baseAnnotations,
+    annotations: {
+      'openshift.io/description': 'Test Storage',
+      'openshift.io/display-name': 'pvc',
+    },
     labels: { 'opendatahub.io/dashboard': 'true' },
     name: 'pvc',
     namespace: 'namespace',
@@ -68,41 +65,31 @@ const assemblePvcResult: PersistentVolumeClaimKind = {
 
 const pvcMock = mockPVCK8sResource({});
 
+const createAssemblePvcs = (accessModes: string[]) => ({
+  ...assemblePvcResult,
+  spec: { ...assemblePvcResult.spec, accessModes },
+});
 describe('assemblePvc', () => {
   it('should assemble pvc without editName', () => {
     const result = assemblePvc(data, 'namespace');
-    expect(result.metadata.annotations).toEqual(
-      expect.objectContaining({
-        'openshift.io/display-name': 'pvc',
-        'openshift.io/description': 'Test Storage',
-        'runtimes.opendatahub.io/force-redeploy': expect.any(String),
-      }),
-    );
-    expect(result.metadata.name).toBe('pvc');
-    expect(result.spec.resources.requests.storage).toBe('5Gi');
+    expect(result).toStrictEqual(assemblePvcResult);
   });
 
   it('should assemble pvc with editName', () => {
     const result = assemblePvc(data, 'namespace', 'editName');
-    expect(result.metadata.name).toBe('editName');
-    expect(result.metadata.annotations).toEqual(
-      expect.objectContaining({
-        'openshift.io/display-name': 'pvc',
-        'openshift.io/description': 'Test Storage',
-        'runtimes.opendatahub.io/force-redeploy': expect.any(String),
-      }),
-    );
+    expect(result).toStrictEqual({
+      ...assemblePvcResult,
+      metadata: { ...assemblePvcResult.metadata, name: 'editName' },
+    });
   });
 
   it('should assemble pvc with non defaultaccessMode', () => {
     const result = assemblePvc({ ...data, accessMode: AccessMode.RWOP }, 'namespace', 'editName');
-    expect(result.metadata.name).toBe('editName');
-    expect(result.spec.accessModes).toEqual([AccessMode.RWOP]);
-    expect(result.metadata.annotations).toEqual(
-      expect.objectContaining({
-        'runtimes.opendatahub.io/force-redeploy': expect.any(String),
-      }),
-    );
+    expect(result).toStrictEqual({
+      ...assemblePvcResult,
+      metadata: { ...assemblePvcResult.metadata, name: 'editName' },
+      spec: { ...assemblePvcResult.spec, accessModes: [AccessMode.RWOP] },
+    });
   });
 });
 
@@ -138,17 +125,26 @@ describe('createPvc', () => {
   it('should create pvc', async () => {
     k8sCreateResourceMock.mockResolvedValue(pvcMock);
     const result = await createPvc(data, 'namespace');
-    expect(k8sCreateResourceMock.mock.calls[0][0].resource.metadata.annotations).toEqual(
-      expect.objectContaining({
-        'runtimes.opendatahub.io/force-redeploy': expect.any(String),
-      }),
-    );
+    expect(k8sCreateResourceMock).toHaveBeenCalledWith({
+      fetchOptions: { requestInit: {} },
+      model: PVCModel,
+      queryOptions: { queryParams: {} },
+      resource: createAssemblePvcs(['ReadWriteOnce']),
+    });
+    expect(k8sCreateResourceMock).toHaveBeenCalledTimes(1);
     expect(result).toStrictEqual(pvcMock);
   });
 
   it('should handle errors and rethrow', async () => {
     k8sCreateResourceMock.mockRejectedValue(new Error('error1'));
     await expect(createPvc(data, 'namespace')).rejects.toThrow('error1');
+    expect(k8sCreateResourceMock).toHaveBeenCalledWith({
+      fetchOptions: { requestInit: {} },
+      model: PVCModel,
+      queryOptions: { queryParams: {} },
+      resource: createAssemblePvcs(['ReadWriteOnce']),
+    });
+    expect(k8sCreateResourceMock).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -156,23 +152,12 @@ describe('updatePvc', () => {
   it('should update pvc', async () => {
     k8sUpdateResourceMock.mockResolvedValue(pvcMock);
     const result = await updatePvc(data, assemblePvcResult, 'namespace');
-
-    expect(k8sUpdateResourceMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        model: PVCModel,
-        fetchOptions: { requestInit: {} },
-        queryOptions: { queryParams: {} },
-        resource: expect.objectContaining({
-          metadata: expect.objectContaining({
-            annotations: expect.objectContaining({
-              'openshift.io/display-name': 'pvc',
-              'openshift.io/description': 'Test Storage',
-              'runtimes.opendatahub.io/force-redeploy': expect.any(String),
-            }),
-          }),
-        }),
-      }),
-    );
+    expect(k8sUpdateResourceMock).toHaveBeenCalledWith({
+      fetchOptions: { requestInit: {} },
+      model: PVCModel,
+      queryOptions: { queryParams: {} },
+      resource: createAssemblePvcs(['ReadWriteOnce']),
+    });
     expect(k8sUpdateResourceMock).toHaveBeenCalledTimes(1);
     expect(result).toStrictEqual(pvcMock);
   });
@@ -181,22 +166,12 @@ describe('updatePvc', () => {
     k8sUpdateResourceMock.mockRejectedValue(new Error('error1'));
     await expect(updatePvc(data, assemblePvcResult, 'namespace')).rejects.toThrow('error1');
     expect(k8sUpdateResourceMock).toHaveBeenCalledTimes(1);
-    expect(k8sUpdateResourceMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        model: PVCModel,
-        fetchOptions: { requestInit: {} },
-        queryOptions: { queryParams: {} },
-        resource: expect.objectContaining({
-          metadata: expect.objectContaining({
-            annotations: expect.objectContaining({
-              'openshift.io/display-name': 'pvc',
-              'openshift.io/description': 'Test Storage',
-              'runtimes.opendatahub.io/force-redeploy': expect.any(String),
-            }),
-          }),
-        }),
-      }),
-    );
+    expect(k8sUpdateResourceMock).toHaveBeenCalledWith({
+      fetchOptions: { requestInit: {} },
+      model: PVCModel,
+      queryOptions: { queryParams: {} },
+      resource: createAssemblePvcs(['ReadWriteOnce']),
+    });
   });
 
   it('should update pvc and remove spec when excludeSpec is true', async () => {
@@ -219,34 +194,36 @@ describe('updatePvc', () => {
 
     await updatePvc(storageData, existingPvc, 'namespace', undefined, true);
 
-    const expectedAnnotations = expect.objectContaining({
-      'openshift.io/display-name': 'Updated name',
-      'openshift.io/description': 'Updated description',
-      'runtimes.opendatahub.io/force-redeploy': expect.any(String),
-    });
+    const expectedPvc = {
+      ...existingPvc,
+      metadata: {
+        ...existingPvc.metadata,
+        annotations: {
+          ...existingPvc.metadata.annotations,
+          'openshift.io/display-name': 'Updated name',
+          'openshift.io/description': 'Updated description',
+        },
+      },
+      spec: {
+        ...existingPvc.spec,
+        resources: {
+          requests: {
+            storage: '10Gi',
+          },
+        },
+      },
+      status: {
+        ...existingPvc.status,
+        phase: 'Pending',
+      },
+    };
 
-    expect(k8sUpdateResourceMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        model: PVCModel,
-        fetchOptions: { requestInit: {} },
-        queryOptions: { queryParams: {} },
-        resource: expect.objectContaining({
-          metadata: expect.objectContaining({
-            annotations: expectedAnnotations,
-          }),
-          spec: expect.objectContaining({
-            resources: {
-              requests: {
-                storage: '10Gi',
-              },
-            },
-          }),
-          status: expect.objectContaining({
-            phase: 'Pending',
-          }),
-        }),
-      }),
-    );
+    expect(k8sUpdateResourceMock).toHaveBeenCalledWith({
+      model: PVCModel,
+      fetchOptions: { requestInit: {} },
+      queryOptions: { queryParams: {} },
+      resource: expectedPvc,
+    });
   });
 });
 
