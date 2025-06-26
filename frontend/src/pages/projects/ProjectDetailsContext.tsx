@@ -14,6 +14,7 @@ import {
   DEFAULT_LIST_FETCH_STATE,
   DEFAULT_LIST_WATCH_RESULT,
   DEFAULT_LIST_WITH_NON_DASHBOARD_PRESENCE_FETCH_STATE,
+  FAST_POLL_INTERVAL,
   POLL_INTERVAL,
 } from '#~/utilities/const';
 import useServingRuntimes from '#~/pages/modelServing/useServingRuntimes';
@@ -85,7 +86,7 @@ const ProjectDetailsContextProvider: React.FC = () => {
   const servingRuntimeTemplateOrder = useTemplateOrder(dashboardNamespace);
   const servingRuntimeTemplateDisablement = useTemplateDisablement(dashboardNamespace);
   const inferenceServices = useInferenceServices(namespace, undefined, undefined, undefined, {
-    refreshRate: POLL_INTERVAL,
+    refreshRate: FAST_POLL_INTERVAL,
   });
   const serverSecrets = useServingRuntimeSecrets(namespace, { refreshRate: POLL_INTERVAL });
   const projectSharingRB = useProjectSharing(namespace, { refreshRate: POLL_INTERVAL });
