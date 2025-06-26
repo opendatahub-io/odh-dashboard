@@ -24,9 +24,14 @@ import {
   NotificationWatcherContext,
 } from '#~/concepts/notificationWatcher/NotificationWatcherContext.tsx';
 import usePipelinesConnections from '#~/pages/projects/screens/detail/connections/usePipelinesConnections';
-import { FAST_POLL_INTERVAL, SERVER_TIMEOUT } from '#~/utilities/const.ts';
+import { FAST_POLL_INTERVAL } from '#~/utilities/const.ts';
 import { pipelinesBaseRoute } from '#~/routes/pipelines/global.ts';
 import { DSPipelineKind } from '#~/k8sTypes.ts';
+import {
+  dspaLoaded,
+  hasServerTimedOut,
+  isDspaAllReady,
+} from '#~/concepts/pipelines/context/usePipelineNamespaceCR';
 import { PipelinesDatabaseSection } from './PipelinesDatabaseSection';
 import { ObjectStorageSection } from './ObjectStorageSection';
 import {
@@ -113,22 +118,27 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
               callbackDelay: FAST_POLL_INTERVAL || 3000,
               callback: async (signal: AbortSignal) => {
                 try {
-                  // check if polling for too long
-                  if (
-                    Date.now() - new Date(obj.metadata.creationTimestamp || Date.now()).getTime() >
-                    SERVER_TIMEOUT
-                  ) {
-                    throw Error(`${pollingNamespace} pipeline server creation timed out`);
+                  // This should emulate the logic in usePipelineNamespaceCR as much as possible
+                  const response = await listPipelinesCR(pollingNamespace, { signal });
+                  const serverLoaded = dspaLoaded([response[0], true]);
+                  const serverAllReady = isDspaAllReady([response[0], true]);
+
+                  if (hasServerTimedOut([response[0], true], serverLoaded)) {
+                    const errorMessage =
+                      response[0]?.status?.conditions?.find(
+                        (condition) => condition.type === 'Ready',
+                      )?.message || `${pollingNamespace} pipeline server creation timed out`;
+                    throw Error(errorMessage);
                   }
 
-                  const response = await listPipelinesCR(pollingNamespace, { signal });
+                  // User deleted pipeline server while waiting
+                  if (response.length === 0) {
+                    return {
+                      status: NotificationResponseStatus.STOP,
+                    };
+                  }
 
-                  // if we find an APIServerReady true condition, we know the pipeline server is ready
-                  if (
-                    response[0]?.status?.conditions?.find(
-                      (c) => c.type === 'APIServerReady' && c.status === 'True',
-                    )
-                  ) {
+                  if (serverLoaded && serverAllReady) {
                     return {
                       status: NotificationResponseStatus.SUCCESS,
                       title: `Pipeline server for ${pollingNamespace} is ready.`,
