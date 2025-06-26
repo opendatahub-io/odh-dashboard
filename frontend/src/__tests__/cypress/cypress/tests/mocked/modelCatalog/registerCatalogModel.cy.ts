@@ -338,4 +338,41 @@ describe('Register catalog model page', () => {
     registerModelPage.findSubmitButton().should('be.disabled');
     registerModelPage.findModelNameError().contains('Model name already exists');
   });
+
+  it('should not reset user input to prefilled values after some time', () => {
+    initIntercepts({});
+    registerCatalogModelPage.visit();
+    registerCatalogModelPage
+      .findModelRegistrySelector()
+      .findSelectOption('modelregistry-sample-2')
+      .click();
+    registerModelPage
+      .findFormField(FormFieldSelector.MODEL_NAME)
+      .should('have.value', 'granite-8b-code-instruct-1.4.0');
+    registerModelPage
+      .findFormField(FormFieldSelector.MODEL_DESCRIPTION)
+      .should(
+        'contain.value',
+        'Granite-8B-Code-Instruct is a 8B parameter model fine tuned from Granite-8B-Code-Base on a combination of permissively licensed instruction data to enhance instruction following capabilities including logical reasoning and problem-solving skills.',
+      );
+    registerModelPage
+      .findFormField(FormFieldSelector.VERSION_NAME)
+      .should('have.value', 'Version 1');
+    // User types new values and assert stability for 30s
+    registerModelPage
+      .findFormField(FormFieldSelector.MODEL_NAME)
+      .clear()
+      .type('user-typed-model')
+      .should('have.value', 'user-typed-model', { timeout: 30000 });
+    registerModelPage
+      .findFormField(FormFieldSelector.MODEL_DESCRIPTION)
+      .clear()
+      .type('user-typed-description')
+      .should('have.value', 'user-typed-description', { timeout: 30000 });
+    registerModelPage
+      .findFormField(FormFieldSelector.VERSION_NAME)
+      .clear()
+      .type('user-typed-version')
+      .should('have.value', 'user-typed-version', { timeout: 30000 });
+  });
 });
