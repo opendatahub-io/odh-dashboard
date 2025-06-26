@@ -17,6 +17,10 @@ import TitleWithIcon from '#~/concepts/design/TitleWithIcon';
 const GlobalPipelines: React.FC = () => {
   const pipelinesAPI = usePipelinesAPI();
 
+  // problem is that the container here doesn't show the children when the pipeline fails,
+  // so the modal auto-closes (since the EnsureApiAvailability is not longer rendered; so the modal
+  // is removed from the DOM)
+  // will address this in a future ticket: https://issues.redhat.com/browse/RHOAIENG-27999
   return (
     <PipelineCoreApplicationPage
       title={<TitleWithIcon title={pipelinesPageTitle} objectType={ProjectObjectType.pipeline} />}

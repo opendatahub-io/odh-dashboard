@@ -9,7 +9,7 @@ jest.mock('#~/redux/actions/actions', () => ({
 }));
 
 jest.mock('#~/pages/notebookController/useNamespaces', () => () => ({
-  notebookNamespace: 'test-project',
+  workbenchNamespace: 'test-project',
   dashboardNamespace: 'opendatahub',
 }));
 

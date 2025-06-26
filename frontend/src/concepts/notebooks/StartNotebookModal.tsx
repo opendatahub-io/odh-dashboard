@@ -5,8 +5,6 @@ import {
   Content,
   Flex,
   FlexItem,
-  List,
-  ListItem,
   Modal,
   ModalBody,
   ModalFooter,
@@ -27,7 +25,6 @@ import {
   t_global_icon_color_brand_default as BrandIconColor,
   t_global_icon_size_font_md as InfoIconSize,
   t_global_spacer_xs as ExtraSmallSpacerSize,
-  t_global_spacer_sm as SmallSpacerSize,
   t_global_text_color_regular as RegularColor,
   t_global_text_color_disabled as DisabledColor,
   t_global_text_color_status_danger_default as DangerColor,
@@ -37,17 +34,13 @@ import {
 import { InfoCircleIcon, InProgressIcon } from '@patternfly/react-icons';
 import { EventStatus, NotebookStatus, ProgressionStepTitles } from '#~/types';
 import { EventKind, NotebookKind } from '#~/k8sTypes';
-import {
-  getEventFullMessage,
-  getEventTimestamp,
-  useNotebookProgress,
-} from '#~/utilities/notebookControllerUtils';
+import { useNotebookProgress } from '#~/utilities/notebookControllerUtils';
+import EventLog from '#~/concepts/k8s/EventLog/EventLog';
 import NotebookStatusLabel from './NotebookStatusLabel';
+import '#~/concepts/dashboard/ModalStyles.scss';
 
 const PROGRESS_TAB = 'Progress';
 const EVENT_LOG_TAB = 'Events log';
-
-const CONTENT_HEIGHT = 470;
 
 const progressVariants = {
   [EventStatus.PENDING]: ProgressStepVariant.pending,
@@ -193,25 +186,12 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
   };
 
   const renderLogs = () => (
-    <Panel style={{ overflowY: 'auto', height: '100%', padding: SmallSpacerSize.var }}>
+    <Panel isScrollable>
       <PanelMain>
         {(isStopped || isRunning) && events.length === 0 ? (
           <span style={{ color: DisabledColor.var }}>There are no recent events.</span>
         ) : (
-          <List isPlain isBordered data-id="event-logs">
-            {events
-              .toSorted(
-                (a, b) =>
-                  new Date(getEventTimestamp(b)).getTime() -
-                  new Date(getEventTimestamp(a)).getTime(),
-              )
-              .map((event, index) => (
-                <ListItem key={`notebook-event-${event.metadata.uid ?? index}`}>
-                  {getEventFullMessage(event)}
-                </ListItem>
-              ))}
-            <ListItem>Server requested</ListItem>
-          </List>
+          <EventLog events={events} initialMessage="Server requested" dataTestId="event-logs" />
         )}
       </PanelMain>
     </Panel>
@@ -235,8 +215,8 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
             />
           </FlexItem>
           <FlexItem>
-            Steps may repeat or occur in any order, depending on the workbench’s priority in the
-            queue and current resource availability.
+            Steps may repeat or occur in any order, depending on the workbench&apos;s priority in
+            the queue and current resource availability.
           </FlexItem>
         </Flex>
       </FlexItem>
@@ -283,7 +263,7 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
           </Flex>
         }
       />
-      <ModalBody style={{ height: CONTENT_HEIGHT, overflowY: 'hidden' }}>
+      <ModalBody className="odh-modal__content-height">
         <Stack hasGutter>
           {renderLastUpdate()}
           {renderStatus()}
@@ -307,7 +287,7 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
               />
             </Tabs>
           </StackItem>
-          <StackItem isFilled style={{ overflowY: 'hidden' }}>
+          <StackItem isFilled className="odh-modal__filled-stack-item">
             {activeTab === PROGRESS_TAB ? renderProgress() : renderLogs()}
           </StackItem>
         </Stack>

@@ -240,7 +240,6 @@ export const mockDashboardConfig = ({
     },
     notebookController: {
       enabled: !disableNotebookController,
-      notebookNamespace: 'openshift-ai-notebooks',
       notebookTolerationSettings: {
         enabled: true,
         key: 'NotebooksOnlyChange',
