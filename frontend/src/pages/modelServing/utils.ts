@@ -373,12 +373,11 @@ export const getInferenceServiceStoppedStatus = (
   inferenceService: InferenceServiceKind,
 ): ModelServingState => {
   const status = inferenceService.metadata.annotations?.['serving.kserve.io/stop'] === 'true';
+
   return {
     inferenceService,
     isStopped: status,
     isRunning: !status,
-    isStopping: false,
-    isStarting: false,
   };
 };
 

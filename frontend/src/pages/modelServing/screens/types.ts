@@ -39,10 +39,6 @@ export enum InferenceServiceModelState {
 
 export type ModelServingState = ToggleState & {
   inferenceService: InferenceServiceKind;
-  isStopped: boolean;
-  isRunning: boolean;
-  isStopping: boolean;
-  isStarting: boolean;
 };
 
 export type ModelStatus = {
