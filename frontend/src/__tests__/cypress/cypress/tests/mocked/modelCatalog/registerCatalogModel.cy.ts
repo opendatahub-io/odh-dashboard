@@ -348,7 +348,7 @@ describe('Register catalog model page', () => {
       .click();
     registerModelPage
       .findFormField(FormFieldSelector.MODEL_NAME)
-      .should('have.value', 'granite-8b-code-instruct-1.4.0');
+      .should('have.value', 'granite-8b-code-instruct-1.3.0');
     registerModelPage
       .findFormField(FormFieldSelector.MODEL_DESCRIPTION)
       .should(
