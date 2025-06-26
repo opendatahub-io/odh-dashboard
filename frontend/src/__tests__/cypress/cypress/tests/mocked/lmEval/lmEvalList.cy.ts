@@ -53,10 +53,10 @@ describe('LMEvalList', () => {
     lmEvalList.getRow('Evaluating llama model').findModel().should('have.text', 'llama');
 
     // sorting
-    lmEvalList.findSortButton('Evaluation').click();
-    lmEvalList.findSortButton('Evaluation').should(be.sortDescending);
-    lmEvalList.findSortButton('Evaluation').click();
-    lmEvalList.findSortButton('Evaluation').should(be.sortAscending);
+    lmEvalList.findSortButton('Name').click();
+    lmEvalList.findSortButton('Name').should(be.sortDescending);
+    lmEvalList.findSortButton('Name').click();
+    lmEvalList.findSortButton('Name').should(be.sortAscending);
 
     // filtering
     const toolbar = lmEvalList.getTableToolbar();
