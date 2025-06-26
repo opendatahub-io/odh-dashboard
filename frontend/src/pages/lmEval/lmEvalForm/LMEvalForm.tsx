@@ -117,12 +117,12 @@ const LMEvalForm: React.FC = () => {
   return (
     <LMEvalApplicationPage
       loaded
-      title="Evaluate model"
+      title="Start an evaluation run"
       description="Configure details for your model evaluation run."
       breadcrumb={
         <Breadcrumb>
           <BreadcrumbItem render={() => <Link to="/modelEvaluations">Model evaluations</Link>} />
-          <BreadcrumbItem isActive>Evaluate model</BreadcrumbItem>
+          <BreadcrumbItem isActive>Start an evaluation run</BreadcrumbItem>
         </Breadcrumb>
       }
       empty={false}
