@@ -6,9 +6,9 @@ import {
   OffIcon,
   OutlinedQuestionCircleIcon,
   PlayIcon,
+  SyncAltIcon,
 } from '@patternfly/react-icons';
 import { InferenceServiceModelState } from '#~/pages/modelServing/screens/types';
-import { InferenceServiceKind } from '#~/k8sTypes';
 
 type ModelStatusIconProps = {
   state: InferenceServiceModelState;
@@ -16,8 +16,9 @@ type ModelStatusIconProps = {
   bodyContent?: string;
   isCompact?: boolean;
   onClick?: LabelProps['onClick'];
-  inferenceService?: InferenceServiceKind;
   isStarting?: boolean;
+  isStopping?: boolean;
+  isStopped?: boolean;
 };
 
 export const ModelStatusIcon: React.FC<ModelStatusIconProps> = ({
@@ -26,8 +27,9 @@ export const ModelStatusIcon: React.FC<ModelStatusIconProps> = ({
   bodyContent = '',
   isCompact,
   onClick,
-  inferenceService,
   isStarting,
+  isStopping,
+  isStopped,
 }) => {
   const statusSettings = React.useMemo((): {
     label: string;
@@ -36,9 +38,16 @@ export const ModelStatusIcon: React.FC<ModelStatusIconProps> = ({
     icon: React.ReactNode;
   } => {
     // Highest-priority: service explicitly stopped
-    const isStopped = inferenceService?.metadata.annotations?.['serving.kserve.io/stop'] === 'true';
     if (isStopped) {
       return { label: 'Stopped', color: 'grey', icon: <OffIcon /> };
+    }
+
+    if (isStopping) {
+      return {
+        label: 'Stopping',
+        color: 'grey',
+        icon: <SyncAltIcon className="odh-u-spin" />,
+      };
     }
     // Show 'Starting' for optimistic updates or for loading/pending states from the backend.
     if (
@@ -75,7 +84,7 @@ export const ModelStatusIcon: React.FC<ModelStatusIconProps> = ({
           icon: <OutlinedQuestionCircleIcon />,
         };
     }
-  }, [state, defaultHeaderContent, inferenceService, isStarting]);
+  }, [state, defaultHeaderContent, isStarting, isStopping, isStopped]);
 
   return (
     <Popover

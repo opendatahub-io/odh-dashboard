@@ -22,6 +22,8 @@ import {
 import { mock404Error } from '#~/__mocks__/mockK8sStatus';
 import { mockInferenceServiceK8sResource } from '#~/__mocks__/mockInferenceServiceK8sResource';
 import { mockRoleK8sResource } from '#~/__mocks__/mockRoleK8sResource';
+import { PodKind } from '#~/k8sTypes';
+import { InferenceServiceModelState } from '~/pages/modelServing/screens/types';
 
 jest.mock('#~/api', () => ({
   ...jest.requireActual('#~/api'),
@@ -308,10 +310,15 @@ describe('isOciModelUri', () => {
   });
 });
 
-describe('getModelServingStatus', () => {
-  it('should return correct status when model is running', () => {
-    const inferenceService = mockInferenceServiceK8sResource({});
-    expect(getInferenceServiceStoppedStatus(inferenceService)).toEqual({
+describe('getInferenceServiceStoppedStatus', () => {
+  it('should return running status when model is running', () => {
+    const inferenceService = mockInferenceServiceK8sResource({
+      activeModelState: InferenceServiceModelState.LOADED,
+    });
+    const mockPod: PodKind = {
+      metadata: { name: 'test-pod' },
+    } as PodKind;
+    expect(getInferenceServiceStoppedStatus(inferenceService, mockPod)).toEqual({
       inferenceService,
       isStopped: false,
       isRunning: true,
@@ -320,16 +327,47 @@ describe('getModelServingStatus', () => {
     });
   });
 
-  it('should return correct status when model is stopped', () => {
+  it('should return stopped status when model is stopped', () => {
     const inferenceService = mockInferenceServiceK8sResource({});
     inferenceService.metadata.annotations ??= {};
     inferenceService.metadata.annotations['serving.kserve.io/stop'] = 'true';
-    expect(getInferenceServiceStoppedStatus(inferenceService)).toEqual({
+    const modelPod = null; // No pod when stopped
+    expect(getInferenceServiceStoppedStatus(inferenceService, modelPod)).toEqual({
       inferenceService,
       isStopped: true,
       isRunning: false,
       isStopping: false,
       isStarting: false,
+    });
+  });
+
+  it('should return stopping status when model is stopping', () => {
+    const inferenceService = mockInferenceServiceK8sResource({});
+    inferenceService.metadata.annotations ??= {};
+    inferenceService.metadata.annotations['serving.kserve.io/stop'] = 'true';
+    const mockPod: PodKind = {
+      // Pod still exists while stopping
+      metadata: { name: 'test-pod' },
+    } as PodKind;
+    expect(getInferenceServiceStoppedStatus(inferenceService, mockPod)).toEqual({
+      inferenceService,
+      isStopped: false,
+      isRunning: false,
+      isStopping: true,
+      isStarting: false,
+    });
+  });
+
+  it('should return starting status when model is starting', () => {
+    const inferenceService = mockInferenceServiceK8sResource({});
+    // No stop annotation (status = false) and no pod
+    const modelPod = null;
+    expect(getInferenceServiceStoppedStatus(inferenceService, modelPod)).toEqual({
+      inferenceService,
+      isStopped: false,
+      isRunning: false,
+      isStopping: false,
+      isStarting: true,
     });
   });
 });
