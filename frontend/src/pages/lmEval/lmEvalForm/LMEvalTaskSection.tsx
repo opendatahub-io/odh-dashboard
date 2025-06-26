@@ -1,13 +1,4 @@
-import {
-  Button,
-  FormGroup,
-  FormHelperText,
-  HelperText,
-  HelperTextItem,
-  Icon,
-  Popover,
-} from '@patternfly/react-core';
-import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
+import { FormGroup, FormHelperText, HelperText, HelperTextItem } from '@patternfly/react-core';
 import * as React from 'react';
 import { MultiSelection, type SelectionOptions } from '#~/components/MultiSelection';
 import { lmEvalTasks } from './data';
@@ -24,8 +15,7 @@ const LMEvalTaskSection: React.FC<LmEvalTaskSectionProps> = ({ tasks, setTasks }
     [tasks],
   );
 
-  const taskHelperText =
-    'Choose the type of evaluation that you want to perform. Red Hat support the top x evaluations';
+  const taskHelperText = 'Select at least 1 evaluation task.';
 
   const handleSelectionChange = React.useCallback(
     (selections: SelectionOptions[]) => {
@@ -38,24 +28,7 @@ const LMEvalTaskSection: React.FC<LmEvalTaskSectionProps> = ({ tasks, setTasks }
   );
 
   return (
-    <FormGroup
-      label="Tasks"
-      isRequired
-      data-testid="tasks-form-group"
-      labelHelp={
-        <Popover bodyContent={<></>}>
-          <Button
-            icon={
-              <Icon isInline>
-                <OutlinedQuestionCircleIcon />
-              </Icon>
-            }
-            variant="plain"
-            isInline
-          />
-        </Popover>
-      }
-    >
+    <FormGroup label="Select tasks" isRequired data-testid="tasks-form-group">
       <MultiSelection
         isScrollable
         value={initialOptions}

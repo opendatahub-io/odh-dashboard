@@ -4,14 +4,14 @@ import { getLMEvalState } from './utils';
 
 export const columns: SortableData<LMEvalKind>[] = [
   {
-    field: 'evaluation',
-    label: 'Evaluation',
+    field: 'name',
+    label: 'Name',
     sortable: (a: LMEvalKind, b: LMEvalKind): number =>
       a.metadata.name.localeCompare(b.metadata.name),
   },
   {
-    field: 'model',
-    label: 'Model',
+    field: 'model_name',
+    label: 'Model name',
     sortable: (a: LMEvalKind, b: LMEvalKind): number => {
       const aModel = a.spec.modelArgs?.find((arg) => arg.name === 'model')?.value;
       const bModel = b.spec.modelArgs?.find((arg) => arg.name === 'model')?.value;
@@ -19,8 +19,8 @@ export const columns: SortableData<LMEvalKind>[] = [
     },
   },
   {
-    field: 'evaluated',
-    label: 'Evaluated',
+    field: 'started',
+    label: 'Started',
     sortable: (a: LMEvalKind, b: LMEvalKind): number => {
       const first = a.metadata.creationTimestamp;
       const second = b.metadata.creationTimestamp;

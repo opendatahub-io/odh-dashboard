@@ -24,17 +24,17 @@ const LmEvalModelArgumentSection: React.FC<LmEvalModelArgumentSectionProps> = ({
   <FormSection
     title={
       <>
-        <Content className="pf-v6-c-form__section-title">Model arguments</Content>
+        <Content className="pf-v6-c-form__section-title">Model parameters</Content>
         <Content component="p" className="odh-form-section__desc">
           Details about the model you are evaluating.
         </Content>
       </>
     }
   >
-    <FormGroup label="Model" data-testid="model-argument-name">
+    <FormGroup label="Model name" data-testid="model-argument-name">
       {modelArgument.name || '-'}
     </FormGroup>
-    <FormGroup label="Url" data-testid="model-argument-url">
+    <FormGroup label="Model URL" data-testid="model-argument-url">
       {modelArgument.url || '-'}
     </FormGroup>
     <FormGroup
