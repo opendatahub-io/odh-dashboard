@@ -19,6 +19,7 @@ export const GlobalArtifactsPage: React.FC = () => {
       description="View your artifacts and their metadata."
       headerAction={<PipelineServerActions isDisabled={!pipelinesAPI.pipelinesServer.installed} />}
       getRedirectPath={artifactsBaseRoute}
+      overrideTimeout
     >
       <EnsureAPIAvailability>
         <EnsureCompatiblePipelineServer>

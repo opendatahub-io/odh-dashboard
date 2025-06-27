@@ -29,6 +29,7 @@ const GlobalExecutions: React.FC = () => {
       headerAction={<PipelineServerActions isDisabled={!pipelinesAPI.pipelinesServer.installed} />}
       getRedirectPath={executionsBaseRoute}
       overrideChildPadding
+      overrideTimeout
     >
       <EnsureAPIAvailability>
         <EnsureCompatiblePipelineServer>

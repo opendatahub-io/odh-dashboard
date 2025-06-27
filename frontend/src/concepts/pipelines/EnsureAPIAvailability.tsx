@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Bullseye, Spinner, Button, Flex, FlexItem } from '@patternfly/react-core';
-import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+import { usePipelinesAPI, PipelineServerTimedOut } from '#~/concepts/pipelines/context';
 import StartingStatusModal from '#~/concepts/pipelines/content/StartingStatusModal.tsx';
 
 type EnsureAPIAvailabilityProps = {
@@ -52,8 +52,11 @@ const EnsureAPIAvailability: React.FC<EnsureAPIAvailabilityProps> = ({ children 
   };
 
   const getMainComponent = () => {
-    const { isStarting, compatible } = pipelinesServer;
+    const { isStarting, compatible, timedOut } = pipelinesServer;
 
+    if (timedOut && compatible) {
+      return <PipelineServerTimedOut />;
+    }
     if (isStarting) {
       return makePipelineSpinner(!!isStarting);
     }
@@ -65,6 +68,7 @@ const EnsureAPIAvailability: React.FC<EnsureAPIAvailabilityProps> = ({ children 
         </Bullseye>
       );
     }
+
     return children;
   };
   return (
