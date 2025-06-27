@@ -30,7 +30,12 @@ describe('DeploymentsTableRow', () => {
     render(
       <table>
         <tbody>
-          <DeploymentRow deployment={mockDeployment({})} platformColumns={[]} onDelete={onDelete} />
+          <DeploymentRow
+            deployment={mockDeployment({})}
+            platformColumns={[]}
+            onDelete={onDelete}
+            metricsExtension={undefined}
+          />
         </tbody>
       </table>,
     );
@@ -68,6 +73,7 @@ describe('DeploymentsTableRow', () => {
               },
             ]}
             onDelete={onDelete}
+            metricsExtension={undefined}
           />
         </tbody>
       </table>,
@@ -86,6 +92,7 @@ describe('DeploymentsTableRow', () => {
             })}
             platformColumns={[]}
             onDelete={onDelete}
+            metricsExtension={undefined}
           />
         </tbody>
       </table>,
@@ -111,6 +118,7 @@ describe('DeploymentsTableRow', () => {
               })}
               platformColumns={[]}
               onDelete={onDelete}
+              metricsExtension={undefined}
             />
           </tbody>
         </table>,
@@ -140,6 +148,7 @@ describe('DeploymentsTableRow', () => {
               })}
               platformColumns={[]}
               onDelete={onDelete}
+              metricsExtension={undefined}
             />
           </tbody>
         </table>,
@@ -174,6 +183,7 @@ describe('DeploymentsTableRow', () => {
               })}
               platformColumns={[]}
               onDelete={onDelete}
+              metricsExtension={undefined}
             />
           </tbody>
         </table>,
@@ -208,6 +218,7 @@ describe('DeploymentsTableRow', () => {
             })}
             platformColumns={[]}
             onDelete={onDelete}
+            metricsExtension={undefined}
           />
         </tbody>
       </table>,
