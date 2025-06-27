@@ -37,8 +37,7 @@ module.exports = (env) => ({
     rules: [
       {
         test: /\.(tsx|ts|jsx|js)?$/,
-        exclude: [/node_modules/, /__tests__/, /__mocks__/],
-        include: [SRC_DIR, COMMON_DIR],
+        exclude: [/node_modules\/(?!@odh-dashboard)/, /__tests__/, /__mocks__/],
         use: [
           COVERAGE === 'true' && '@jsdevtools/coverage-istanbul-loader',
           env === 'development'
