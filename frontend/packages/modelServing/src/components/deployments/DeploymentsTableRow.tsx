@@ -36,7 +36,7 @@ export const DeploymentRow: React.FC<{
           <Td
             expand={{
               rowIndex,
-              expandId: 'kserve-model-row-item',
+              expandId: `${deployment.modelServingPlatformId}-model-row-item`,
               isExpanded,
               onToggle: () => setExpanded(!isExpanded),
             }}
