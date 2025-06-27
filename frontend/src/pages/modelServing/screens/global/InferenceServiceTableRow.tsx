@@ -186,7 +186,7 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
       {isOpenConfirm && (
         <ModelServingStopModal
           modelName={displayName}
-          title="Stop model?"
+          title="Stop model deployment?"
           onClose={(confirmStatus) => {
             if (confirmStatus) {
               patchInferenceServiceStoppedStatus(inferenceService, 'true').then(refresh);
