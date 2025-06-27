@@ -12,7 +12,8 @@ import {
 import { ModelVersion } from '~/app/types';
 import { ModelVersionDetailsTabTitle, ModelVersionDetailsTab } from './const';
 import ModelVersionDetailsView from './ModelVersionDetailsView';
-import ModelVersionRegisteredDeploymentsView from './ModelVersionRegisteredDeploymentsView';
+import { LazyCodeRefComponent, useExtensions } from '@odh-dashboard/plugin-core';
+import { isModelRegistryDeploymentsTabExtension } from '@odh-dashboard/model-registry/extension-points';
 
 type ModelVersionDetailTabsProps = {
   tab: ModelVersionDetailsTab;
@@ -33,6 +34,8 @@ const ModelVersionDetailsTabs: React.FC<ModelVersionDetailTabsProps> = ({
 }) => {
   const navigate = useNavigate();
   const { deploymentMode, platformMode } = useModularArchContext();
+  const extensions = useExtensions(isModelRegistryDeploymentsTabExtension);
+  const extension = extensions.length ? extensions[0] : null;
   return (
     <Tabs
       activeKey={tab}
@@ -59,7 +62,13 @@ const ModelVersionDetailsTabs: React.FC<ModelVersionDetailTabsProps> = ({
           />
         </PageSection>
       </Tab>
-      {!isArchiveVersion &&
+      {extension && (
+        <LazyCodeRefComponent
+          component={extension.properties.component}
+          props={{ inferenceServices, servingRuntimes, refresh }}
+        />
+      )}
+      {/* {!isArchiveVersion &&
         (deploymentMode === DeploymentMode.Standalone ||
           platformMode !== PlatformMode.Kubeflow) && (
           <Tab
@@ -76,7 +85,7 @@ const ModelVersionDetailsTabs: React.FC<ModelVersionDetailTabsProps> = ({
               />
             </PageSection>
           </Tab>
-        )}
+        )} */}
     </Tabs>
   );
 };
