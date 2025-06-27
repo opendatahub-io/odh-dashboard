@@ -23,7 +23,7 @@ const EvaluateModelButton: React.FC = () => {
 
   if (!project) {
     return (
-      <Tooltip data-testid="deploy-model-tooltip" content="To deploy a model, select a project.">
+      <Tooltip data-testid="deploy-model-tooltip" content="To evaluate a model, select a project.">
         {deployButton}
       </Tooltip>
     );
