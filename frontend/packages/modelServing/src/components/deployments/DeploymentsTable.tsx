@@ -4,19 +4,24 @@ import { SortableData, Table } from '@odh-dashboard/internal/components/table/in
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
 import { DeploymentRow } from './DeploymentsTableRow';
-import { deploymentNameSort } from '../../concepts/deploymentUtils';
-import { useResolvedPlatformExtension } from '../../concepts/extensionUtils';
 import { ModelServingPlatform } from '../../concepts/useProjectServingPlatform';
-import { Deployment, isModelServingDeploymentsTableExtension } from '../../../extension-points';
+import { useResolvedPlatformExtension } from '../../concepts/extensionUtils';
+import { deploymentNameSort } from '../../concepts/deploymentUtils';
+import {
+  Deployment,
+  isModelServingDeploymentsExpandedInfo,
+  isModelServingDeploymentsTableExtension,
+} from '../../../extension-points';
 import DeleteModelServingModal from '../deleteModal/DeleteModelServingModal';
+
+const expandedInfoColumn: SortableData<Deployment> = {
+  field: 'expand',
+  label: '',
+  sortable: false,
+};
 
 const genericColumns: SortableData<Deployment>[] = [
   // Platform can enable expanded view of the deployment
-  // {
-  //   field: 'expand',
-  //   label: '',
-  //   sortable: false,
-  // },
   {
     label: 'Model deployment name',
     field: 'name',
@@ -53,6 +58,10 @@ const DeploymentsTable: React.FC<{
     isModelServingDeploymentsTableExtension,
     modelServingPlatform,
   );
+  const [expandedInfoExtension, expandedInfoExtensionLoaded] = useResolvedPlatformExtension(
+    isModelServingDeploymentsExpandedInfo,
+    modelServingPlatform,
+  );
 
   const [deleteDeployment, setDeleteDeployment] = React.useState<Deployment | undefined>(undefined);
 
@@ -61,11 +70,16 @@ const DeploymentsTable: React.FC<{
     [tableExtension],
   );
   const allColumns: SortableData<Deployment>[] = React.useMemo(
-    () => [genericColumns[0], ...platformColumns, ...genericColumns.slice(1)],
-    [platformColumns],
+    () => [
+      ...(expandedInfoExtension ? [expandedInfoColumn] : []),
+      genericColumns[0],
+      ...platformColumns,
+      ...genericColumns.slice(1),
+    ],
+    [platformColumns, expandedInfoExtension],
   );
 
-  if (!tableExtensionLoaded) {
+  if (!tableExtensionLoaded || !expandedInfoExtensionLoaded) {
     return (
       <Bullseye>
         <Spinner />
@@ -78,19 +92,19 @@ const DeploymentsTable: React.FC<{
       <Table
         columns={allColumns}
         data={deployments ?? []}
-        rowRenderer={(row: Deployment) => (
+        rowRenderer={(row: Deployment, rowIndex: number) => (
           <DeploymentRow
             key={row.model.metadata.name}
             deployment={row}
             platformColumns={platformColumns}
             onDelete={() => setDeleteDeployment(row)}
+            rowIndex={rowIndex}
           />
         )}
       />
       {deleteDeployment && (
         <DeleteModelServingModal
           deployment={deleteDeployment}
-          servingPlatform={modelServingPlatform}
           onClose={(deleted: boolean) => {
             fireFormTrackingEvent('Model Deleted', {
               outcome: deleted ? TrackingOutcome.submit : TrackingOutcome.cancel,
