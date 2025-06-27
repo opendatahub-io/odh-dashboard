@@ -51,6 +51,7 @@ export type DashboardConfig = K8sResourceCommon & {
       disableAdminConnectionTypes: boolean;
       disableFineTuning: boolean;
       disableKueue: boolean;
+      disableLMEval: boolean;
     };
     // Intentionally disjointed from the CRD, we should move away from this code-wise now; CRD later
     // groupsConfig?: {
