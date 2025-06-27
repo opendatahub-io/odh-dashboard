@@ -71,7 +71,7 @@ const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose }) =>
   const renderProgress = () => (
     <Panel isScrollable>
       <PanelMain className="odh-modal__full-height">
-        {/* Render an Alert for each error condition */}
+        {/* Render an Alert for each error condition  that has a message*/}
         {errorConditions
           .filter((c) => c.message)
           .map((condition, idx) => (
