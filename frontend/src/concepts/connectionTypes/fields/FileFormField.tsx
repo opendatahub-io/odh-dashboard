@@ -1,16 +1,11 @@
 import * as React from 'react';
 import { ErrorCode, FileError } from 'react-dropzone';
-import {
-  FileUpload,
-  FormHelperText,
-  HelperText,
-  HelperTextItem,
-  Icon,
-} from '@patternfly/react-core';
-import { ExclamationCircleIcon, InfoCircleIcon } from '@patternfly/react-icons';
+import { FileUpload, FormHelperText, HelperText, HelperTextItem } from '@patternfly/react-core';
+import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { FileField } from '#~/concepts/connectionTypes/types';
 import { FieldProps } from '#~/concepts/connectionTypes/fields/types';
 import { EXTENSION_REGEX, isDuplicateExtension } from './fieldUtils';
+import { SensitiveFieldHelperText } from './SensitiveFieldHelperText';
 
 const MAX_SIZE = 1024 * 1024; // 1 MB as bytes
 
@@ -117,22 +112,7 @@ const FileFormField: React.FC<FieldProps<FileField>> = ({
           </HelperTextItem>
         </HelperText>
       </FormHelperText>
-      {field.properties.helperText && (
-        <FormHelperText>
-          <HelperText>
-            <HelperTextItem
-              variant="success"
-              icon={
-                <Icon status="info">
-                  <InfoCircleIcon />
-                </Icon>
-              }
-            >
-              {field.properties.helperText}
-            </HelperTextItem>
-          </HelperText>
-        </FormHelperText>
-      )}
+      <SensitiveFieldHelperText field={field} mode={mode} />
     </>
   );
 };
