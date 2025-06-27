@@ -3,6 +3,7 @@ import {
   RunDateTime,
   periodicOptionAsSeconds,
 } from '#~/concepts/pipelines/content/createRun/types';
+import { SERVER_TIMEOUT } from '#~/utilities/const.ts';
 
 const printAgo = (time: number, unit: string) => `${time} ${unit}${time > 1 ? 's' : ''} ago`;
 const printIn = (time: number, unit: string) => `in ${time} ${unit}${time > 1 ? 's' : ''}`;
@@ -218,11 +219,8 @@ export const convertSecondsToPeriodicTime = (seconds: number): string => {
 
 // server timeout is 5 minutes; in src/utilities/const.ts
 // so we are using that same timeout here
-// SERVER_TIMEOUT = process.env.SERVER_TIMEOUT ? parseInt(process.env.SERVER_TIMEOUT) : 300000; // 5 minutes
-
-const shortTimeRangeMinuteLimit = 3; // 3 minutes (3 minutes ago)
-// todo:  use the server_timeout here and convert to minutes
-const mediumTimeRangeMinuteLimit = 5; // 5 minutes (5 minutes ago)  152411
+const shortTimeRangeMinuteLimit = 3; // 3 minutes
+const mediumTimeRangeMinuteLimit = SERVER_TIMEOUT / 60000; // 5 minutes is the default server timeout
 
 export const getTimeRangeCategory = (
   timestamp: string | undefined | null,
