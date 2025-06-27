@@ -8,6 +8,8 @@ import {
   getEnabledPlatformsFromTemplate,
   getServingRuntimeVersion,
   getTemplateEnabledForPlatform,
+  getTemplateNameFromServingRuntime,
+  findTemplateByName,
   isTemplateKind,
 } from '#~/pages/modelServing/customServingRuntimes/utils';
 import { ServingRuntimePlatform } from '#~/types';
@@ -138,5 +140,39 @@ describe('isTemplateKind', () => {
   it('should return false if the resource is not a template', () => {
     const servingRuntime = mockServingRuntimeK8sResource({});
     expect(isTemplateKind(servingRuntime)).toBe(false);
+  });
+});
+
+describe('getTemplateNameFromServingRuntime', () => {
+  it('should return the template name from the annotation', () => {
+    const servingRuntime = mockServingRuntimeK8sResource({});
+    servingRuntime.metadata.annotations = {
+      'opendatahub.io/template-name': 'ovms',
+    };
+    expect(getTemplateNameFromServingRuntime(servingRuntime)).toBe('ovms');
+  });
+  it('should return undefined if the annotation is not present', () => {
+    const servingRuntime = mockServingRuntimeK8sResource({});
+    delete servingRuntime.metadata.annotations?.['opendatahub.io/template-name'];
+    expect(getTemplateNameFromServingRuntime(servingRuntime)).toBe(undefined);
+  });
+});
+
+describe('findTemplateByName', () => {
+  it('should return the template from the list', () => {
+    const template1 = mockServingRuntimeTemplateK8sResource({});
+    const template2 = mockServingRuntimeTemplateK8sResource({});
+    template1.objects[0].metadata.name = 'template1';
+    template2.objects[0].metadata.name = 'ovms';
+    const templates = [template1, template2];
+    expect(findTemplateByName(templates, 'ovms')).toBe(template2);
+  });
+  it('should return undefined if the template is not found', () => {
+    const template1 = mockServingRuntimeTemplateK8sResource({});
+    template1.objects[0].metadata.name = 'template1';
+    const template2 = mockServingRuntimeTemplateK8sResource({});
+    template2.objects[0].metadata.name = 'template2';
+    const templates = [template1, template2];
+    expect(findTemplateByName(templates, 'ovms')).toBe(undefined);
   });
 });

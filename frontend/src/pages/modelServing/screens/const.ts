@@ -28,3 +28,8 @@ export enum ScopedType {
   Project = 'Project-scoped',
   Global = 'Global-scoped',
 }
+
+export enum ServingRuntimeVersionStatusLabel {
+  LATEST = 'Latest',
+  OUTDATED = 'Outdated',
+}
