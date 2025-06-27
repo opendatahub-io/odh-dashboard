@@ -8,7 +8,7 @@ const updateTypes = !!process.env.MF_UPDATE_TYPES;
  * Get all workspace packages using npm query
  * @returns {Array} Array of workspace package objects
  */
-function getWorkspacePackages() {
+const getWorkspacePackages = () => {
   try {
     const stdout = execSync('npm query .workspace --json', {
       encoding: 'utf8',
@@ -19,15 +19,15 @@ function getWorkspacePackages() {
     console.warn('Error querying workspaces with npm query:', error.message);
     return [];
   }
-}
+};
+
+const workspacePackages = getWorkspacePackages();
 
 // Function to read module federation config from workspace packages
 const readModuleFederationConfigFromPackages = () => {
   const configs = [];
 
   try {
-    const workspacePackages = getWorkspacePackages();
-
     for (const pkg of workspacePackages) {
       const federatedConfigProperty = pkg['module-federation'];
       if (federatedConfigProperty) {
@@ -104,13 +104,19 @@ module.exports = {
               '@patternfly/react-core': {
                 requiredVersion: deps['@patternfly/react-core'],
               },
-              '@patternfly/react-icons': {
-                requiredVersion: deps['@patternfly/react-icons'],
-              },
-              '@odh-dashboard/plugin-core': {
+              '@openshift/dynamic-plugin-sdk': {
                 singleton: true,
-                requiredVersion: '0.0.0',
+                requiredVersion: deps['@openshift/dynamic-plugin-sdk'],
               },
+              ...workspacePackages
+                .filter((pkg) => !!pkg.exports)
+                .reduce((acc, pkg) => {
+                  acc[pkg.name] = {
+                    singleton: true,
+                    requiredVersion: pkg.version,
+                  };
+                  return acc;
+                }, {}),
             },
             exposes: {},
             dts: updateTypes,
