@@ -12,6 +12,7 @@ import { mockNotebookK8sResource } from '#~/__mocks__/mockNotebookK8sResource';
 import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
 import { mock200Status } from '#~/__mocks__/mockK8sStatus';
 import { mockStartNotebookData } from '#~/__mocks__/mockStartNotebookData';
+import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile';
 
 import {
   assembleNotebook,
@@ -293,6 +294,46 @@ describe('assembleNotebook', () => {
     const result = assembleNotebook(mockNoteBookData, username, canEnablePipelines);
 
     expect(result.metadata.annotations?.['opendatahub.io/image-display-name']).toBeUndefined();
+  });
+
+  it('should not set hardware profile annotation for legacy profiles', () => {
+    const notebookData = mockStartNotebookData({});
+    notebookData.podSpecOptions.selectedHardwareProfile = mockHardwareProfile({
+      annotations: { 'opendatahub.io/is-legacy-profile': 'true' },
+    });
+    const result = assembleNotebook(notebookData, 'test-user');
+    expect(result.metadata.annotations?.['opendatahub.io/hardware-profile-name']).toBe('');
+  });
+
+  it('should set hardware profile annotation for real profiles', () => {
+    const notebookData = mockStartNotebookData({});
+    notebookData.podSpecOptions.selectedHardwareProfile = mockHardwareProfile({
+      name: 'real-profile',
+    });
+    const result = assembleNotebook(notebookData, 'test-user');
+    expect(result.metadata.annotations?.['opendatahub.io/hardware-profile-name']).toBe(
+      'real-profile',
+    );
+  });
+
+  it('should set pod spec for legacy hardware profiles', () => {
+    const notebookData = mockStartNotebookData({});
+    notebookData.podSpecOptions.selectedHardwareProfile = mockHardwareProfile({
+      annotations: { 'opendatahub.io/is-legacy-profile': 'true' },
+    });
+    const result = assembleNotebook(notebookData, 'test-user');
+    expect(result.spec.template.spec.containers[0].resources).toBeDefined();
+    expect(result.spec.template.spec.tolerations).toBeDefined();
+    expect(result.spec.template.spec.nodeSelector).toBeDefined();
+  });
+
+  it('should not set pod spec for real hardware profiles', () => {
+    const notebookData = mockStartNotebookData({});
+    notebookData.podSpecOptions.selectedHardwareProfile = mockHardwareProfile({});
+    const result = assembleNotebook(notebookData, 'test-user');
+    expect(result.spec.template.spec.containers[0].resources).toBeUndefined();
+    expect(result.spec.template.spec.tolerations).toBeUndefined();
+    expect(result.spec.template.spec.nodeSelector).toBeUndefined();
   });
 
   it('should create a notebook with pipelines without volumes and volumes mount', async () => {
