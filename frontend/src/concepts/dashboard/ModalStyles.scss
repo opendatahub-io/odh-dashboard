@@ -1,9 +1,16 @@
 // Common modal styles that can be shared across different modal components
 
 .odh-modal {
+  &__scrollable-panel {
+    overflow-y: auto;
+    height: 100%;
+    padding: 0.5rem;
+  }
+  &__full-height {
+    height: 100%;
+  } 
   
   &__content-height {
-     height: 470px;
     overflow-y: hidden;
   }
 

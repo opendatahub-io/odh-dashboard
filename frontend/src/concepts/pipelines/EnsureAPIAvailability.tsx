@@ -55,20 +55,24 @@ const EnsureAPIAvailability: React.FC<EnsureAPIAvailabilityProps> = ({ children 
     const { isStarting, compatible, timedOut } = pipelinesServer;
 
     if (timedOut && compatible) {
+      console.log('hi, showing pipeline serving timing out....66a', pipelinesServer);
       return <PipelineServerTimedOut />;
     }
-
     if (isStarting) {
+      console.log("it's starting.......66a", pipelinesServer);
       return makePipelineSpinner(!!isStarting);
     }
 
     if (!apiAvailable && compatible) {
+      console.log('66a: showing default spinner', pipelinesServer);
       return (
         <Bullseye style={{ minHeight: '150px' }} data-testid="pipelines-api-not-available">
           <Spinner />
         </Bullseye>
       );
     }
+
+    console.log('66a:  not showing any main components here now', pipelinesServer);
     return children;
   };
   return (
