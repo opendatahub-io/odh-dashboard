@@ -212,6 +212,10 @@ module.exports = {
       {
         pathGroups: [
           {
+            pattern: '#~/**',
+            group: 'internal',
+          },
+          {
             pattern: '@mf/**',
             group: 'external',
             position: 'after',
@@ -463,8 +467,8 @@ function srcRulesOverrides() {
   return [
     {
       files: ['src/**'],
+      excludedFiles: ['src/__tests__/cypress/**'],
       rules: {
-        'no-console': 'error',
         'import/no-extraneous-dependencies': [
           'error',
           {
@@ -475,12 +479,11 @@ function srcRulesOverrides() {
     },
     // add monorepo packages
     ...packages.map((pkg) => ({
-      files: [`${pkg}/src/**`],
+      files: [`${pkg}/**`],
       parserOptions: {
         tsconfigRootDir: path.join(__dirname, pkg),
       },
       rules: {
-        'no-console': 'error',
         'import/no-extraneous-dependencies': [
           'error',
           {

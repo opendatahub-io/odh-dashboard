@@ -40,13 +40,17 @@
     "test:frontend:coverage": "cd ./frontend && npm run test:coverage",
     "test:frontend:unit-coverage": "cd ./frontend && npm run test:unit-coverage",
     "test:backend:unit-coverage": "cd ./backend && npm run test:unit-coverage",
-
     "test:cypress-ci": "cd ./frontend && npm run test:cypress-ci -- ",
     "test:unit": "cd ./frontend && npm run test:unit",
-    "lint:frontend:backend": "cd ./backend && npm run test:lint && cd ../frontend && npm run test:lint",
+    "lint:frontend:backend": "run-p test:lint:*",
+    "test:lint:backend": "cd ./backend && npm run test:lint",
+    "test:lint:frontend": "cd ./frontend && npm run test:lint",
     "test:fix": "run-s test:fix-backend test:fix-frontend",
     "test:fix-backend": "cd ./backend && npm run test:fix",
-    "test:fix-frontend": "cd ./frontend && npm run test:fix"
+    "test:fix-frontend": "cd ./frontend && npm run test:fix",
+    "test:type-check": "run-p test:type-check:*",
+    "test:type-check:backend": "cd ./backend && npm run test:type-check",
+    "test:type-check:frontend": "cd ./frontend && npm run test:type-check"
   },
   "dependencies": {
     "dotenv": "^16.4.7",
