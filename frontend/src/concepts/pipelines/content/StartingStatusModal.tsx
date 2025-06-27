@@ -70,7 +70,7 @@ const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose }) =>
 
   const renderProgress = () => (
     <Panel isScrollable>
-      <PanelMain>
+      <PanelMain className="odh-modal__full-height">
         {/* Render an Alert for each error condition */}
         {errorConditions
           .filter((c) => c.message)
@@ -117,7 +117,7 @@ const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose }) =>
   );
 
   const renderLogs = () => (
-    <Panel className="odh-modal__scrollable-panel">
+    <Panel isScrollable className="odh-modal__scrollable-panel">
       <PanelMain>
         <EventLog
           events={allEvents}

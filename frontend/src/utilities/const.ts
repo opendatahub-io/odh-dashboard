@@ -8,7 +8,7 @@ const POLL_INTERVAL = process.env.POLL_INTERVAL ? parseInt(process.env.POLL_INTE
 const FAST_POLL_INTERVAL = process.env.FAST_POLL_INTERVAL
   ? parseInt(process.env.FAST_POLL_INTERVAL)
   : 3000;
-const SERVER_TIMEOUT = process.env.SERVER_TIMEOUT ? parseInt(process.env.SERVER_TIMEOUT) : 100000; // (testing: 100 seconds; original is 300 seconds === 5 minutes)
+const SERVER_TIMEOUT = process.env.SERVER_TIMEOUT ? parseInt(process.env.SERVER_TIMEOUT) : 300000; // (testing: 100 seconds; original is 300 seconds === 5 minutes)
 const { DOC_LINK } = process.env;
 const { COMMUNITY_LINK } = process.env;
 const { SUPPORT_LINK } = process.env;
