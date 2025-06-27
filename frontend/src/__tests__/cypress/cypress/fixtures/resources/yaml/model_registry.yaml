@@ -7,24 +7,9 @@ metadata:
     openshift.io/display-name: {{REGISTRY_NAME}}
     openshift.io/description: E2E test model registry
 spec:
-  grpc:
-    port: 9090
-  rest:
-    port: 8080
-    serviceRoute: disabled
-  istio:
-    gateway:
-      grpc:
-        gatewayRoute: enabled
-        port: 443
-        tls:
-          mode: SIMPLE
-      rest:
-        gatewayRoute: enabled
-        port: 443
-        tls:
-          mode: SIMPLE
-    tlsMode: ISTIO_MUTUAL
+  grpc: {}
+  rest: {}
+  oauthProxy: {}
   mysql:
     host: model-registry-db
     port: 3306
@@ -33,4 +18,4 @@ spec:
     skipDBCreation: false
     passwordSecret:
       name: model-registry-db
-      key: database-password 
+      key: database-password
