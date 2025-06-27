@@ -17,7 +17,7 @@ const EvaluateModelButton: React.FC = () => {
       isAriaDisabled={!project}
       onClick={() => project && navigate(`/modelEvaluations/${project.metadata.name}/evaluate`)}
     >
-      Create evaluation report
+      Start evaluation run
     </Button>
   );
 

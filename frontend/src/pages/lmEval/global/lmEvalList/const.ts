@@ -10,8 +10,8 @@ export const columns: SortableData<LMEvalKind>[] = [
       a.metadata.name.localeCompare(b.metadata.name),
   },
   {
-    field: 'model_name',
-    label: 'Model name',
+    field: 'model',
+    label: 'Model',
     sortable: (a: LMEvalKind, b: LMEvalKind): number => {
       const aModel = a.spec.modelArgs?.find((arg) => arg.name === 'model')?.value;
       const bModel = b.spec.modelArgs?.find((arg) => arg.name === 'model')?.value;

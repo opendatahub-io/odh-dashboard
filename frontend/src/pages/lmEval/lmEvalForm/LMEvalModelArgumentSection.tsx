@@ -40,7 +40,16 @@ const LmEvalModelArgumentSection: React.FC<LmEvalModelArgumentSectionProps> = ({
     <FormGroup
       label="Tokenized requests"
       labelHelp={
-        <Popover bodyContent="If tokenized requests are set to true, the evaluation run requests are broken down to tokens. If set to false they are not broken down to tokens.">
+        <Popover
+          bodyContent={
+            <>
+              Set to <strong>true</strong> if the evaluation dataset is pre-tokenized.
+              <br />
+              <br />
+              Set to <strong>false</strong> if the evaluation dataset consists of raw text.
+            </>
+          }
+        >
           <Button
             icon={
               <Icon isInline>
@@ -69,10 +78,10 @@ const LmEvalModelArgumentSection: React.FC<LmEvalModelArgumentSectionProps> = ({
       />
     </FormGroup>
     <FormGroup
-      label="Tokenizer"
+      label="Tokenizer URL"
       isRequired
       labelHelp={
-        <Popover bodyContent="Add your models tokenizer url here. This is included in the model you are using documentation.">
+        <Popover bodyContent="Enter the tokenizer URL for the selected model. This should be included in the model’s documentation.">
           <Button
             icon={
               <Icon isInline>
