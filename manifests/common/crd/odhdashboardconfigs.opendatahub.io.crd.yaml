@@ -95,6 +95,8 @@ spec:
                       type: boolean
                     disableKueue:
                       type: boolean
+                    disableLMEval:
+                      type: boolean
                 # TODO: Remove before going to v1
                 groupsConfig:
                   description: 'Ignored -- See "Auth" Resource'
