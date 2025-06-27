@@ -35,6 +35,7 @@ import { tablePagination } from '#~/__tests__/cypress/cypress/pages/components/P
 import { verifyRelativeURL } from '#~/__tests__/cypress/cypress/utils/url';
 import { pipelineRunsGlobal } from '#~/__tests__/cypress/cypress/pages/pipelines/pipelineRunsGlobal';
 import { argoAlert } from '#~/__tests__/cypress/cypress/pages/pipelines/argoAlert';
+import { toastNotifications } from '#~/__tests__/cypress/cypress/pages/components/ToastNotifications';
 
 const projectName = 'test-project-name';
 const initialMockPipeline = buildMockPipeline({ display_name: 'Test pipeline' });
@@ -123,6 +124,13 @@ describe('Pipelines', () => {
     cy.get('@createSecret.all').then((interceptions) => {
       expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
     });
+
+    toastNotifications
+      .findToastNotification(0)
+      .should(
+        'have.text',
+        'Info alert:Waiting on pipeline server resources for test-project-name...',
+      );
 
     cy.wait('@createDSPA').then((interception) => {
       expect(interception.request.body).to.containSubset({

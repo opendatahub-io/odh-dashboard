@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useNavigate } from 'react-router';
 import {
   Alert,
   Form,
@@ -9,15 +10,28 @@ import {
   ModalHeader,
   ModalFooter,
 } from '@patternfly/react-core';
+import useNotification from '#~/utilities/useNotification.ts';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
-import { createPipelinesCR, deleteSecret } from '#~/api';
+import { createPipelinesCR, deleteSecret, listPipelinesCR } from '#~/api';
 import { EMPTY_AWS_PIPELINE_DATA } from '#~/pages/projects/dataConnections/const';
 import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
 import SamplePipelineSettingsSection from '#~/concepts/pipelines/content/configurePipelinesServer/SamplePipelineSettingsSection';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import {
+  NotificationResponseStatus,
+  NotificationWatcherContext,
+} from '#~/concepts/notificationWatcher/NotificationWatcherContext.tsx';
 import usePipelinesConnections from '#~/pages/projects/screens/detail/connections/usePipelinesConnections';
+import { FAST_POLL_INTERVAL } from '#~/utilities/const.ts';
+import { pipelinesBaseRoute } from '#~/routes/pipelines/global.ts';
+import { DSPipelineKind } from '#~/k8sTypes.ts';
+import {
+  dspaLoaded,
+  hasServerTimedOut,
+  isDspaAllReady,
+} from '#~/concepts/pipelines/context/usePipelineNamespaceCR';
 import { PipelinesDatabaseSection } from './PipelinesDatabaseSection';
 import { ObjectStorageSection } from './ObjectStorageSection';
 import {
@@ -47,7 +61,10 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
   const [fetching, setFetching] = React.useState(false);
   const [error, setError] = React.useState<Error>();
   const [config, setConfig] = React.useState<PipelineServerConfigType>(FORM_DEFAULTS);
+  const { registerNotification } = React.useContext(NotificationWatcherContext);
   const isFineTuningAvailable = useIsAreaAvailable(SupportedArea.FINE_TUNING).status;
+  const notification = useNotification();
+  const navigate = useNavigate();
 
   const databaseIsValid = config.database.useDefault
     ? true
@@ -92,8 +109,67 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
     configureDSPipelineResourceSpec(configureConfig, project.metadata.name)
       .then((spec) => {
         createPipelinesCR(namespace, spec)
-          .then(() => {
+          .then((obj: DSPipelineKind) => {
             onBeforeClose();
+
+            const pollingNamespace = obj.metadata.namespace;
+            notification.info(`Waiting on pipeline server resources for ${pollingNamespace}...`);
+            registerNotification({
+              callbackDelay: FAST_POLL_INTERVAL || 3000,
+              callback: async (signal: AbortSignal) => {
+                try {
+                  // This should emulate the logic in usePipelineNamespaceCR as much as possible
+                  const response = await listPipelinesCR(pollingNamespace, { signal });
+                  const serverLoaded = dspaLoaded([response[0], true]);
+                  const serverAllReady = isDspaAllReady([response[0], true]);
+
+                  if (hasServerTimedOut([response[0], true], serverLoaded)) {
+                    const errorMessage =
+                      response[0]?.status?.conditions?.find(
+                        (condition) => condition.type === 'Ready',
+                      )?.message || `${pollingNamespace} pipeline server creation timed out`;
+                    throw Error(errorMessage);
+                  }
+
+                  // User deleted pipeline server while waiting
+                  if (response.length === 0) {
+                    return {
+                      status: NotificationResponseStatus.STOP,
+                    };
+                  }
+
+                  if (serverLoaded && serverAllReady) {
+                    return {
+                      status: NotificationResponseStatus.SUCCESS,
+                      title: `Pipeline server for ${pollingNamespace} is ready.`,
+                      actions: [
+                        {
+                          title: `${pollingNamespace} pipeline server`,
+                          onClick: () => navigate(pipelinesBaseRoute(pollingNamespace)),
+                        },
+                      ],
+                    };
+                  }
+
+                  // repoll
+                  return {
+                    status: NotificationResponseStatus.REPOLL,
+                  };
+                } catch (e) {
+                  return {
+                    status: NotificationResponseStatus.ERROR,
+                    title: `Error configuring pipeline server for ${pollingNamespace}`,
+                    message: e instanceof Error ? e.message : 'Unknown error',
+                    actions: [
+                      {
+                        title: `${pollingNamespace} pipeline server`,
+                        onClick: () => navigate(pipelinesBaseRoute(pollingNamespace)),
+                      },
+                    ],
+                  };
+                }
+              },
+            });
             fireFormTrackingEvent(serverConfiguredEvent, {
               outcome: TrackingOutcome.submit,
               success: true,
