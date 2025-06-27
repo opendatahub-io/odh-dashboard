@@ -17,7 +17,7 @@ describe('LMEval Form', () => {
 
     lmEvalFormPage
       .shouldHaveCorrectUrl(namespace)
-      .shouldHavePageTitle('Evaluate model')
+      .shouldHavePageTitle('Start an evaluation run')
       .shouldHavePageDescription()
       .shouldHaveFormSections();
   });

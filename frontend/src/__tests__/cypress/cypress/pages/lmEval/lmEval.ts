@@ -25,9 +25,7 @@ class LMEvalFormPage {
   }
 
   shouldHavePageDescription() {
-    cy.contains('Test your model against a large number of different evaluation tasks').should(
-      'be.visible',
-    );
+    cy.contains('Configure details for your model evaluation run.').should('be.visible');
     return this;
   }
 
