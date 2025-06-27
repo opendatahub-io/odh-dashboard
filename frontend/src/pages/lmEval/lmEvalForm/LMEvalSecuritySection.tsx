@@ -56,7 +56,18 @@ const LMEvalSecuritySection: React.FC<LMEvalSecuritySectionProps> = ({
           isRequired
           fieldId="1-expanded-group1-label1"
           labelHelp={
-            <Popover bodyContent={<></>}>
+            <Popover
+              bodyContent={
+                <>
+                  If <strong>true</strong>, the evaluation run downloads artifacts such as models,
+                  datasets, or tokenizers, as needed.
+                  <br />
+                  <br />
+                  If <strong>false</strong>, artifacts are not downloaded and are instead pulled
+                  from local storage.
+                </>
+              }
+            >
               <Button
                 icon={
                   <Icon isInline>
@@ -97,7 +108,17 @@ const LMEvalSecuritySection: React.FC<LMEvalSecuritySectionProps> = ({
           isRequired
           fieldId="trust-remote-code"
           labelHelp={
-            <Popover bodyContent={<></>}>
+            <Popover
+              bodyContent={
+                <>
+                  If <strong>true</strong>, the evaluation run will use downloaded code for
+                  preparing models or datasets.
+                  <br />
+                  <br />
+                  If <strong>false</strong>, downloaded code will not be used.
+                </>
+              }
+            >
               <Button
                 icon={
                   <Icon isInline>
