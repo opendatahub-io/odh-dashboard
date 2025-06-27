@@ -2,5 +2,5 @@
 editTestNamespace: 'dsp-wb-edit-test'
 editedTestNamespace: 'dsp-wb-edited-test'
 editedTestDescription: 'This is a test description.'
-pvc_EditDisplayName: 'pvc--edit-test-display-name'
+pvcEditDisplayName: 'pvc--edit-test-display-name'
 pvcStorageName: 'wb-edit-test'
