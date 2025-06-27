@@ -14,6 +14,7 @@ export type StateActionToggleProps<T extends ToggleState> = {
   onStart: () => void;
   onStop: () => void;
   isDisabled?: boolean;
+  isDisabledWhileStarting?: boolean;
 };
 
 const StateActionToggle = <T extends ToggleState>({
@@ -21,9 +22,10 @@ const StateActionToggle = <T extends ToggleState>({
   onStart,
   onStop,
   isDisabled,
+  isDisabledWhileStarting = true,
 }: StateActionToggleProps<T>): React.ReactElement => {
   const { isStarting, isRunning, isStopping } = currentState;
-  const actionDisabled = isDisabled || isStopping || isStarting;
+  const actionDisabled = isDisabled || isStopping || (isStarting && isDisabledWhileStarting);
   const runningState = isRunning || isStarting;
   return (
     <Button

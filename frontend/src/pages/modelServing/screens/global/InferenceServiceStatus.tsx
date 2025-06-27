@@ -11,12 +11,16 @@ type InferenceServiceStatusProps = {
   inferenceService: InferenceServiceKind;
   isKserve: boolean;
   isStarting?: boolean;
+  isStopping?: boolean;
+  isStopped?: boolean;
 };
 
 const InferenceServiceStatus: React.FC<InferenceServiceStatusProps> = ({
   inferenceService,
   isKserve,
   isStarting,
+  isStopping,
+  isStopped,
 }) => {
   const [modelPodStatus] = useModelStatus(
     inferenceService.metadata.namespace,
@@ -32,8 +36,9 @@ const InferenceServiceStatus: React.FC<InferenceServiceStatusProps> = ({
       state={state}
       defaultHeaderContent="Inference Service Status"
       bodyContent={bodyContent}
-      inferenceService={inferenceService}
       isStarting={isStarting}
+      isStopping={isStopping}
+      isStopped={isStopped}
     />
   );
 };
