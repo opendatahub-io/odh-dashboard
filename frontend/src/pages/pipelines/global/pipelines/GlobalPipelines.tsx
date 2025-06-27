@@ -23,7 +23,6 @@ const GlobalPipelines: React.FC = () => {
   // will address this in a future ticket: https://issues.redhat.com/browse/RHOAIENG-27999
   return (
     <div>
-      hi missing piece-4
       <PipelineCoreApplicationPage
         title={<TitleWithIcon title={pipelinesPageTitle} objectType={ProjectObjectType.pipeline} />}
         description={pipelinesPageDescription}

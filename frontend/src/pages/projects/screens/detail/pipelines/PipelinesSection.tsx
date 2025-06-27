@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { ButtonVariant, FlexItem, Popover } from '@patternfly/react-core';
+import { ButtonVariant, Popover } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { ProjectSectionID } from '#~/pages/projects/screens/detail/types';
 import { ProjectSectionTitles } from '#~/pages/projects/screens/detail/const';
@@ -45,7 +45,6 @@ const PipelinesSection: React.FC = () => {
 
   return (
     <PipelineAndVersionContextProvider>
-      <div> missing piece-44axx</div>
       <EnsureAPIAvailability>
         <DetailsSection
           id={ProjectSectionID.PIPELINES}
