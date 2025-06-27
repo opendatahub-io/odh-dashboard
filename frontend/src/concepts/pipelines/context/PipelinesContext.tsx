@@ -40,7 +40,6 @@ type PipelineContext = {
   crName: string;
   crStatus: DSPipelineKind['status'];
   serverTimedOut: boolean;
-  ignoreTimedOut: () => void;
   namespace: string;
   project: ProjectKind;
   refreshState: () => Promise<undefined>;
@@ -59,7 +58,6 @@ const PipelinesContext = React.createContext<PipelineContext>({
   crName: '',
   crStatus: undefined,
   serverTimedOut: false,
-  ignoreTimedOut: () => undefined,
   namespace: '',
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   project: null as unknown as ProjectKind,
@@ -99,11 +97,7 @@ export const PipelineContextProvider = conditionalArea<PipelineContextProviderPr
   const isStarting = isResourceLoaded && !isAllLoaded;
 
   const isCRReady = dspaLoaded(state);
-  const [disableTimeout, setDisableTimeout] = React.useState(false);
-  const serverTimedOut = !disableTimeout && hasServerTimedOut(state, isCRReady);
-  const ignoreTimedOut = React.useCallback(() => {
-    setDisableTimeout(true);
-  }, []);
+  const serverTimedOut = hasServerTimedOut(state, isCRReady);
   const dspaName = pipelineNamespaceCR?.metadata.name;
   const [, routeLoaded, routeLoadError, refreshRoute] = usePipelinesAPIRoute(
     isCRReady,
@@ -158,7 +152,6 @@ export const PipelineContextProvider = conditionalArea<PipelineContextProviderPr
         crName: pipelineNamespaceCR?.metadata.name ?? '',
         crStatus: pipelineNamespaceCR?.status,
         serverTimedOut,
-        ignoreTimedOut,
         project,
         apiState,
         namespace,
@@ -302,7 +295,7 @@ export const ViewServerModal = ({ onClose }: { onClose: () => void }): React.JSX
 };
 
 export const PipelineServerTimedOut: React.FC = () => {
-  const { crStatus, ignoreTimedOut } = React.useContext(PipelinesContext);
+  const { crStatus } = React.useContext(PipelinesContext);
   const [deleteOpen, setDeleteOpen] = React.useState(false);
   const errorMessage =
     crStatus?.conditions?.find((condition) => condition.type === 'Ready')?.message || '';
@@ -312,13 +305,11 @@ export const PipelineServerTimedOut: React.FC = () => {
         variant="danger"
         isInline
         title="Pipeline server failed"
-        actionClose={<AlertActionCloseButton onClose={() => ignoreTimedOut()} />}
         actionLinks={
           <>
             <AlertActionLink onClick={() => setDeleteOpen(true)}>
               Delete pipeline server
             </AlertActionLink>
-            <AlertActionLink onClick={() => ignoreTimedOut()}>Close</AlertActionLink>
           </>
         }
       >
