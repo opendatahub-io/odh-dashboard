@@ -29,7 +29,7 @@ const ModelServingStopModal: React.FC<ModelServingStopModalProps> = ({
       onClick={() => onBeforeClose(true)}
       data-testid="stop-model-button"
     >
-      Stop
+      Stop model deployment
     </Button>,
     <Button
       key="cancel"
@@ -44,7 +44,8 @@ const ModelServingStopModal: React.FC<ModelServingStopModalProps> = ({
     <ConfirmStopModal
       message={
         <>
-          Are you sure you want to stop <strong>{modelName}</strong>?
+          The <strong>{modelName}</strong> model deployment will be shut down and will not use
+          resources until it is restarted.
         </>
       }
       modalActions={modalActions}

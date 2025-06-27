@@ -91,7 +91,7 @@ describe('DeploymentsTableRow', () => {
       </table>,
     );
 
-    expect(screen.getByText('Running')).toBeInTheDocument();
+    expect(screen.getByText('Started')).toBeInTheDocument();
   });
 
   describe('Inference endpoints', () => {
