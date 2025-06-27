@@ -63,7 +63,7 @@ const registerVersionFormDataDefaults: RegisterVersionFormData = {
   registeredModelId: '',
 };
 
-const registerModelFormDataDefaultsForModelCatalog: RegisterCatalogModelFormData = {
+export const registerModelFormDataDefaultsForModelCatalog: RegisterCatalogModelFormData = {
   ...registerModelFormDataDefaults,
   modelRegistry: '',
 };
