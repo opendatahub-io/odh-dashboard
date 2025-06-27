@@ -11,6 +11,7 @@ import {
   ModalHeader,
   ModalFooter,
 } from '@patternfly/react-core';
+import { getHardwareProfileDisplayName } from '#~/pages/hardwareProfiles/utils.ts';
 import { MigrationAction, MigrationSourceType } from './types';
 import { MIGRATION_SOURCE_TYPE_LABELS } from './const';
 
@@ -67,7 +68,9 @@ const MigrationModal: React.FC<MigrationModalProps> = ({ onClose, onMigrate, mig
                   <ListItem>
                     A new hardware profile will be created:{' '}
                     <strong>
-                      {`${migrationAction.targetProfile.spec.displayName} (${migrationAction.targetProfile.metadata.name})`}
+                      {`${getHardwareProfileDisplayName(migrationAction.targetProfile)} (${
+                        migrationAction.targetProfile.metadata.name
+                      })`}
                     </strong>
                   </ListItem>
                   {migrationAction.dependentProfiles.length > 0 && (
@@ -76,7 +79,10 @@ const MigrationModal: React.FC<MigrationModalProps> = ({ onClose, onMigrate, mig
                       <strong>
                         {migrationAction.dependentProfiles
                           .map(
-                            (profile) => `${profile.spec.displayName} (${profile.metadata.name})`,
+                            (profile) =>
+                              `${getHardwareProfileDisplayName(profile)} (${
+                                profile.metadata.name
+                              })`,
                           )
                           .join(', ')}
                       </strong>

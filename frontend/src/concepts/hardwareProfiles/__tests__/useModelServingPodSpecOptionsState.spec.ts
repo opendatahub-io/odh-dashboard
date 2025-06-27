@@ -158,8 +158,8 @@ describe('useModelServingPodSpecOptionsState', () => {
         requests: { cpu: '1', memory: '1Gi' },
         limits: { cpu: '10', memory: '10Gi' },
       },
-      tolerations: hardwareProfile.spec.tolerations,
-      nodeSelector: hardwareProfile.spec.nodeSelector,
+      tolerations: hardwareProfile.spec.scheduling?.node?.tolerations,
+      nodeSelector: hardwareProfile.spec.scheduling?.node?.nodeSelector,
       selectedAcceleratorProfile: undefined,
       selectedHardwareProfile: hardwareProfile,
     });

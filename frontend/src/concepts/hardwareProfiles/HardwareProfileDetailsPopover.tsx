@@ -13,6 +13,10 @@ import {
 import { QuestionCircleIcon } from '@patternfly/react-icons';
 import { Toleration, NodeSelector, ContainerResources } from '#~/types';
 import { HardwareProfileKind } from '#~/k8sTypes';
+import {
+  getHardwareProfileDescription,
+  getHardwareProfileDisplayName,
+} from '#~/pages/hardwareProfiles/utils.ts';
 import { formatToleration, formatNodeSelector, formatResource, formatResourceValue } from './utils';
 
 type HardwareProfileDetailsPopoverProps = {
@@ -62,19 +66,22 @@ const HardwareProfileDetailsPopover: React.FC<HardwareProfileDetailsPopoverProps
   if (!tolerations && !nodeSelector && !resources) {
     return null;
   }
+  const description = hardwareProfile && getHardwareProfileDescription(hardwareProfile);
 
   return (
     <Popover
       hasAutoWidth
       headerContent={
-        hardwareProfile ? `${hardwareProfile.spec.displayName} details` : 'Existing settings'
+        hardwareProfile
+          ? `${getHardwareProfileDisplayName(hardwareProfile)} details`
+          : 'Existing settings'
       }
       bodyContent={
         <Stack hasGutter data-testid="hardware-profile-details">
           {hardwareProfile ? (
-            hardwareProfile.spec.description && (
+            description && (
               <StackItem>
-                <Truncate content={hardwareProfile.spec.description} />
+                <Truncate content={description} />
               </StackItem>
             )
           ) : (

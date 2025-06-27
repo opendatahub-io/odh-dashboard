@@ -13,6 +13,7 @@ import { Link } from 'react-router-dom';
 import { BYONImage } from '#~/types';
 import { filterHardwareProfilesByRecommendedIdentifiers } from '#~/pages/BYONImages/utils';
 import { useHardwareProfilesByFeatureVisibility } from '#~/pages/hardwareProfiles/migration/useHardwareProfilesByFeatureVisibility';
+import { getHardwareProfileDisplayName } from '#~/pages/hardwareProfiles/utils';
 
 type BYONImageHardwareProfilesProps = {
   image: BYONImage;
@@ -51,7 +52,7 @@ const BYONImageHardwareProfiles: React.FC<BYONImageHardwareProfilesProps> = ({
                 isCompact
                 textMaxWidth="16ch"
               >
-                {cr.spec.displayName}
+                {getHardwareProfileDisplayName(cr)}
               </Label>
             ))}
           </LabelGroup>

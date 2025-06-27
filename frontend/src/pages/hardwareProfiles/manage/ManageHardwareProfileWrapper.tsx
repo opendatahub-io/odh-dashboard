@@ -16,6 +16,7 @@ import useHardwareProfile from '#~/pages/hardwareProfiles/useHardwareProfile';
 import { HardwareProfileKind } from '#~/k8sTypes';
 import useMigratedHardwareProfiles from '#~/pages/hardwareProfiles/migration/useMigratedHardwareProfiles';
 import { MigrationAction } from '#~/pages/hardwareProfiles/migration/types';
+import { normalizeHardwareProfiles } from '#~/concepts/hardwareProfiles/utils.ts';
 
 type ManageHardwareProfileWrapperProps = {
   children: (data: HardwareProfileKind, migrationAction?: MigrationAction) => React.ReactNode;
@@ -27,7 +28,9 @@ const ManageHardwareProfileWrapper: React.FC<ManageHardwareProfileWrapperProps> 
   const navigate = useNavigate();
   const { hardwareProfileName } = useParams();
   const { dashboardNamespace } = useDashboardNamespace();
-  const [data, , error] = useHardwareProfile(dashboardNamespace, hardwareProfileName);
+  const [rawData, , error] = useHardwareProfile(dashboardNamespace, hardwareProfileName);
+  // Remove once the new HardwareProfile crd is fully rolled out
+  const data = rawData ? normalizeHardwareProfiles([rawData])[0] : null;
   const {
     data: migratedHardwareProfiles,
     getMigrationAction,

@@ -7,6 +7,7 @@ import {
   ContainerResourceAttributes,
   ContainerResources,
   Identifier,
+  HardwareProfileScheduling,
   ImageStreamStatusTagCondition,
   ImageStreamStatusTagItem,
   NodeSelector,
@@ -17,6 +18,7 @@ import {
   TolerationSettings,
   Volume,
   VolumeMount,
+  HardwareProfileAnnotations,
 } from './types';
 import { ModelServingSize } from './pages/modelServing/screens/types';
 
@@ -1100,6 +1102,15 @@ export type WorkloadCondition = {
   type: 'QuotaReserved' | 'Admitted' | 'PodsReady' | 'Finished' | 'Evicted' | 'Failed';
 };
 
+export type WorkloadPriorityClassKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+    namespace?: string;
+  };
+  value: number;
+  description?: string;
+};
+
 export type AccessReviewResourceAttributes = {
   /** CRD group, '*' for all groups, omit for core resources */
   group?: '*' | string;
@@ -1344,18 +1355,19 @@ export type HardwareProfileKind = K8sResourceCommon & {
   metadata: {
     name: string;
     namespace: string;
-    annotations?: Partial<{
-      // JSON stringified HardwareProfileFeatureVisibility[]
-      'opendatahub.io/dashboard-feature-visibility': string;
-    }>;
+    annotations?: HardwareProfileAnnotations;
   };
   spec: {
-    displayName: string;
-    enabled: boolean;
+    //--- Old HWP fields ---
+    // Remove once the new HardwareProfile crd is fully rolled out
+    displayName?: string;
+    enabled?: boolean;
     description?: string;
     tolerations?: Toleration[];
-    identifiers?: Identifier[];
     nodeSelector?: NodeSelector;
+    //----------------------
+    identifiers?: Identifier[];
+    scheduling?: HardwareProfileScheduling;
   };
 };
 

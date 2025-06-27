@@ -93,8 +93,8 @@ export const useModelServingPodSpecOptionsState = (
     } else {
       podSpecOptions = {
         resources: hardwareProfile.formData.resources,
-        tolerations: hardwareProfile.formData.selectedProfile?.spec.tolerations,
-        nodeSelector: hardwareProfile.formData.selectedProfile?.spec.nodeSelector,
+        tolerations: hardwareProfile.formData.selectedProfile?.spec.scheduling?.node?.tolerations,
+        nodeSelector: hardwareProfile.formData.selectedProfile?.spec.scheduling?.node?.nodeSelector,
         ...annotationData,
       };
     }

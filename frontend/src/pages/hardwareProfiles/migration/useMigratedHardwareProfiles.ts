@@ -2,7 +2,7 @@ import React from 'react';
 import { HardwareProfileKind, HardwareProfileFeatureVisibility } from '#~/k8sTypes';
 import { deleteAcceleratorProfile, patchModelServingSizes, patchNotebookSizes } from '#~/api';
 import useAcceleratorProfiles from '#~/pages/notebookController/screens/server/useAcceleratorProfiles';
-import { Toleration, TolerationEffect, TolerationOperator } from '#~/types';
+import { SchedulingType, Toleration, TolerationEffect, TolerationOperator } from '#~/types';
 import { DEFAULT_NOTEBOOK_SIZES } from '#~/pages/notebookController/const';
 import { DEFAULT_MODEL_SERVER_SIZES } from '#~/concepts/modelServing/modelServingSizesUtils';
 
@@ -135,7 +135,14 @@ const useMigratedHardwareProfiles = (
         namespace,
         {
           spec: {
-            tolerations: notebooksOnlyToleration ? [notebooksOnlyToleration] : undefined,
+            ...(notebooksOnlyToleration && {
+              scheduling: {
+                type: SchedulingType.NODE,
+                node: {
+                  tolerations: [notebooksOnlyToleration],
+                },
+              },
+            }),
           },
         },
         [HardwareProfileFeatureVisibility.WORKBENCH],
