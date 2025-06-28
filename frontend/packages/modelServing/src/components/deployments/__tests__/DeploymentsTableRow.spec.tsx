@@ -3,7 +3,10 @@ import '@testing-library/jest-dom';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { InferenceServiceModelState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import { Deployment } from '../../../../extension-points';
+import { mockExtensions } from '../../../__tests__/mockUtils';
 import { DeploymentRow } from '../DeploymentsTableRow';
+
+jest.mock('@odh-dashboard/plugin-core');
 
 const mockDeployment = (partial: Partial<Deployment> = {}) => ({
   modelServingPlatformId: 'test-platform',
@@ -24,13 +27,19 @@ describe('DeploymentsTableRow', () => {
 
   beforeEach(() => {
     onDelete = jest.fn();
+    mockExtensions();
   });
 
   it('should render the basic row', async () => {
     render(
       <table>
         <tbody>
-          <DeploymentRow deployment={mockDeployment({})} platformColumns={[]} onDelete={onDelete} />
+          <DeploymentRow
+            deployment={mockDeployment({})}
+            platformColumns={[]}
+            onDelete={onDelete}
+            rowIndex={0}
+          />
         </tbody>
       </table>,
     );
@@ -68,6 +77,7 @@ describe('DeploymentsTableRow', () => {
               },
             ]}
             onDelete={onDelete}
+            rowIndex={0}
           />
         </tbody>
       </table>,
@@ -86,12 +96,13 @@ describe('DeploymentsTableRow', () => {
             })}
             platformColumns={[]}
             onDelete={onDelete}
+            rowIndex={0}
           />
         </tbody>
       </table>,
     );
 
-    expect(screen.getByText('Running')).toBeInTheDocument();
+    expect(screen.getByText('Started')).toBeInTheDocument();
   });
 
   describe('Inference endpoints', () => {
@@ -111,6 +122,7 @@ describe('DeploymentsTableRow', () => {
               })}
               platformColumns={[]}
               onDelete={onDelete}
+              rowIndex={0}
             />
           </tbody>
         </table>,
@@ -140,6 +152,7 @@ describe('DeploymentsTableRow', () => {
               })}
               platformColumns={[]}
               onDelete={onDelete}
+              rowIndex={0}
             />
           </tbody>
         </table>,
@@ -174,6 +187,7 @@ describe('DeploymentsTableRow', () => {
               })}
               platformColumns={[]}
               onDelete={onDelete}
+              rowIndex={0}
             />
           </tbody>
         </table>,
@@ -208,6 +222,7 @@ describe('DeploymentsTableRow', () => {
             })}
             platformColumns={[]}
             onDelete={onDelete}
+            rowIndex={0}
           />
         </tbody>
       </table>,

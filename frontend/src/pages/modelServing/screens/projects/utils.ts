@@ -1,7 +1,6 @@
 import * as React from 'react';
 import {
   ConfigMapKind,
-  DashboardConfigKind,
   DeploymentMode,
   InferenceServiceKind,
   KnownLabels,
@@ -17,12 +16,11 @@ import {
   CreatingInferenceServiceObject,
   CreatingServingRuntimeObject,
   InferenceServiceStorageType,
-  ModelServingSize,
   ServingPlatformStatuses,
   ServingRuntimeEditInfo,
 } from '#~/pages/modelServing/screens/types';
 import { ServingRuntimePlatform } from '#~/types';
-import { DEFAULT_MODEL_SERVER_SIZES, platformKeyMap } from '#~/pages/modelServing/screens/const';
+import { platformKeyMap } from '#~/pages/modelServing/screens/const';
 import { useDeepCompareMemoize } from '#~/utilities/useDeepCompareMemoize';
 import { EMPTY_AWS_SECRET_DATA } from '#~/pages/projects/dataConnections/const';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
@@ -48,14 +46,6 @@ import {
   ModelServingCompatibleTypes,
 } from '#~/concepts/connectionTypes/utils';
 import { ModelDeployPrefillInfo } from './usePrefillModelDeployModal';
-
-export const getServingRuntimeSizes = (config: DashboardConfigKind): ModelServingSize[] => {
-  let sizes = config.spec.modelServerSizes || [];
-  if (sizes.length === 0) {
-    sizes = DEFAULT_MODEL_SERVER_SIZES;
-  }
-  return sizes;
-};
 
 export const isServingRuntimeTokenEnabled = (servingRuntime: ServingRuntimeKind): boolean =>
   servingRuntime.metadata.annotations?.['enable-auth'] === 'true';

@@ -4,7 +4,7 @@ import { deleteAcceleratorProfile, patchModelServingSizes, patchNotebookSizes } 
 import useAcceleratorProfiles from '#~/pages/notebookController/screens/server/useAcceleratorProfiles';
 import { Toleration, TolerationEffect, TolerationOperator } from '#~/types';
 import { DEFAULT_NOTEBOOK_SIZES } from '#~/pages/notebookController/const';
-import { DEFAULT_MODEL_SERVER_SIZES } from '#~/pages/modelServing/screens/const';
+import { DEFAULT_MODEL_SERVER_SIZES } from '#~/concepts/modelServing/modelServingSizesUtils';
 
 import { useApplicationSettings } from '#~/app/useApplicationSettings';
 import {

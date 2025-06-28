@@ -17,13 +17,13 @@ const EvaluateModelButton: React.FC = () => {
       isAriaDisabled={!project}
       onClick={() => project && navigate(`/modelEvaluations/${project.metadata.name}/evaluate`)}
     >
-      Evaluate model
+      Start evaluation run
     </Button>
   );
 
   if (!project) {
     return (
-      <Tooltip data-testid="deploy-model-tooltip" content="To deploy a model, select a project.">
+      <Tooltip data-testid="deploy-model-tooltip" content="To evaluate a model, select a project.">
         {deployButton}
       </Tooltip>
     );

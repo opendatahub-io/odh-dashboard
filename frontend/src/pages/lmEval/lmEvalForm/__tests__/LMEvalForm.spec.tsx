@@ -320,7 +320,7 @@ describe('LMEvalForm', () => {
     setupInferenceServicesMock();
     renderWithContext('default');
 
-    selectModelType('Local-chat-completion');
+    selectModelType('Local chat completion');
 
     // Verify setData was called to update model type
     expect(mockSetData).toHaveBeenCalledWith('modelType', 'local-chat-completions');
