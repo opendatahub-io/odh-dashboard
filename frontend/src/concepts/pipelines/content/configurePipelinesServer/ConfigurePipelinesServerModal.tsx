@@ -56,7 +56,7 @@ const serverConfiguredEvent = 'Pipeline Server Configured';
 export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerModalProps> = ({
   onClose,
 }) => {
-  const { project, namespace } = usePipelinesAPI();
+  const { project, namespace, startingStatusModalOpenRef } = usePipelinesAPI();
   const [connections, loaded] = usePipelinesConnections(namespace);
   const [fetching, setFetching] = React.useState(false);
   const [error, setError] = React.useState<Error>();
@@ -115,7 +115,7 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
             const pollingNamespace = obj.metadata.namespace;
             notification.info(`Waiting on pipeline server resources for ${pollingNamespace}...`);
             registerNotification({
-              callbackDelay: FAST_POLL_INTERVAL || 3000,
+              callbackDelay: FAST_POLL_INTERVAL,
               callback: async (signal: AbortSignal) => {
                 try {
                   // This should emulate the logic in usePipelineNamespaceCR as much as possible
@@ -139,6 +139,13 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
                   }
 
                   if (serverLoaded && serverAllReady) {
+                    // If we're viewing the StartingStatusModal in the same namespace, we don't need to show the notification
+                    if (startingStatusModalOpenRef.current === pollingNamespace) {
+                      return {
+                        status: NotificationResponseStatus.STOP,
+                      };
+                    }
+
                     return {
                       status: NotificationResponseStatus.SUCCESS,
                       title: `Pipeline server for ${pollingNamespace} is ready.`,
@@ -156,6 +163,11 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
                     status: NotificationResponseStatus.REPOLL,
                   };
                 } catch (e) {
+                  if (startingStatusModalOpenRef.current === pollingNamespace) {
+                    return {
+                      status: NotificationResponseStatus.STOP,
+                    };
+                  }
                   return {
                     status: NotificationResponseStatus.ERROR,
                     title: `Error configuring pipeline server for ${pollingNamespace}`,

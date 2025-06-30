@@ -11,8 +11,13 @@ const spinningText = 'Initializing Pipeline Server';
 
 // if isInitialized but not ready, show spinner; if isNot initialized then show new status
 const EnsureAPIAvailability: React.FC<EnsureAPIAvailabilityProps> = ({ children }) => {
-  const { apiAvailable, pipelinesServer } = usePipelinesAPI();
+  const { apiAvailable, pipelinesServer, namespace, startingStatusModalOpenRef } =
+    usePipelinesAPI();
   const [showModal, setShowModal] = React.useState(false);
+
+  React.useEffect(() => {
+    startingStatusModalOpenRef.current = showModal ? namespace : null;
+  }, [namespace, showModal, startingStatusModalOpenRef]);
 
   const modalLink = (
     <Button
