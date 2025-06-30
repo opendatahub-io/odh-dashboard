@@ -16,7 +16,7 @@ const EnsureAPIAvailability: React.FC<EnsureAPIAvailabilityProps> = ({ children 
   const [showModal, setShowModal] = React.useState(false);
 
   React.useEffect(() => {
-    if (startingStatusModalOpenRef.current) {
+    if (startingStatusModalOpenRef?.current) {
       startingStatusModalOpenRef.current = showModal ? namespace : null;
     }
   }, [namespace, showModal, startingStatusModalOpenRef]);

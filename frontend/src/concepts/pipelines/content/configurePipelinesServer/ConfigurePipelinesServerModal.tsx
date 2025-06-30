@@ -137,7 +137,7 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
 
                   if (serverLoaded && serverAllReady) {
                     // If we're viewing the StartingStatusModal in the same namespace, we don't need to show the notification
-                    if (startingStatusModalOpenRef.current === pollingNamespace) {
+                    if (startingStatusModalOpenRef?.current === pollingNamespace) {
                       return {
                         status: NotificationResponseStatus.STOP,
                       };
@@ -160,7 +160,7 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
                     status: NotificationResponseStatus.REPOLL,
                   };
                 } catch (e) {
-                  if (startingStatusModalOpenRef.current === pollingNamespace) {
+                  if (startingStatusModalOpenRef?.current === pollingNamespace) {
                     return {
                       status: NotificationResponseStatus.STOP,
                     };

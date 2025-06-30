@@ -50,7 +50,7 @@ type PipelineContext = {
   metadataStoreServiceClient: MetadataStoreServicePromiseClient;
   managedPipelines: DSPipelineManagedPipelinesKind | undefined;
   isStarting?: boolean;
-  startingStatusModalOpenRef: React.MutableRefObject<string | null>;
+  startingStatusModalOpenRef?: React.MutableRefObject<string | null>;
 };
 
 const PipelinesContext = React.createContext<PipelineContext>({
@@ -204,7 +204,8 @@ type UsePipelinesAPI = PipelineAPIState & {
   metadataStoreServiceClient: MetadataStoreServicePromiseClient;
   refreshState: () => void;
   managedPipelines: DSPipelineManagedPipelinesKind | undefined;
-  startingStatusModalOpenRef: React.MutableRefObject<string | null>;
+
+  startingStatusModalOpenRef?: React.MutableRefObject<string | null>;
 };
 
 export const usePipelinesAPI = (): UsePipelinesAPI => {
