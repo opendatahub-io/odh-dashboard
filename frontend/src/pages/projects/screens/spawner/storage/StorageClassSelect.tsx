@@ -145,8 +145,7 @@ const StorageClassSelect: React.FC<StorageClassSelectProps> = ({
         onChange={(selection) => {
           setStorageClassName(selection);
         }}
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-        isDisabled={disableStorageClassSelect || !storageClassesLoaded || shouldShowDefaultOnly}
+        isDisabled={disableStorageClassSelect || shouldShowDefaultOnly}
         placeholder="Select storage class"
         popperProps={{ appendTo: menuAppendTo }}
         toggleProps={{ status: validated ? validatedToToggleStatus[validated] : undefined }}

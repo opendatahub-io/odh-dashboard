@@ -152,7 +152,7 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
   const openshiftDefaultSc = useOpenshiftDefaultStorageClass();
   const odhDefaultSc = odhDefaultScResult[0];
   const defaultSc = odhDefaultSc || openshiftDefaultSc;
-  const defaultStorageClassName = defaultSc ? defaultSc.metadata.name || '' : '';
+  const defaultStorageClassName = defaultSc?.metadata.name ?? '';
   const deployedStorageClassName = pvc?.spec.storageClassName || '';
   const [storageClassName, setStorageClassName] = React.useState(
     deployedStorageClassName || defaultStorageClassName,
