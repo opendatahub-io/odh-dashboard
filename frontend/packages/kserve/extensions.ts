@@ -7,6 +7,7 @@ import type {
   ModelServingDeploymentsTableExtension,
   ModelServingDeleteModal,
   ModelServingPlatformWatchDeploymentsExtension,
+  ModelServingDeploymentsExpandedInfo,
 } from '@odh-dashboard/model-serving/extension-points';
 import type { KServeDeployment } from './src/deployments';
 
@@ -16,6 +17,7 @@ const extensions: (
   | ModelServingPlatformExtension<KServeDeployment>
   | ModelServingPlatformWatchDeploymentsExtension<KServeDeployment>
   | ModelServingDeploymentsTableExtension<KServeDeployment>
+  | ModelServingDeploymentsExpandedInfo<KServeDeployment>
   | ModelServingDeleteModal<KServeDeployment>
 )[] = [
   {
@@ -54,6 +56,20 @@ const extensions: (
     properties: {
       platform: KSERVE_ID,
       columns: () => import('./src/deploymentsTable').then((m) => m.columns),
+    },
+  },
+  {
+    type: 'model-serving.deployments-table/expanded-info',
+    properties: {
+      platform: KSERVE_ID,
+      getFramework: () =>
+        import('./src/deploymentExpandedDetails').then((m) => m.getKserveFramework),
+      getReplicas: () => import('./src/deploymentExpandedDetails').then((m) => m.getKserveReplicas),
+      getResourceSize: () =>
+        import('./src/deploymentExpandedDetails').then((m) => m.getKserveResourceSize),
+      getHardwareAccelerator: () =>
+        import('./src/deploymentExpandedDetails').then((m) => m.getKserveHardwareAccelerator),
+      getTokens: () => import('./src/deploymentExpandedDetails').then((m) => m.getKserveTokens),
     },
   },
   {

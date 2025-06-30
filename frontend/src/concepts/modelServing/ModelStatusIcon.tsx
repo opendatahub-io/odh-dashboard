@@ -34,11 +34,17 @@ export const ModelStatusIcon: React.FC<ModelStatusIconProps> = ({
     color?: LabelProps['color'];
     status?: LabelProps['status'];
     icon: React.ReactNode;
+    message?: string;
   } => {
     // Highest-priority: service explicitly stopped
     const isStopped = inferenceService?.metadata.annotations?.['serving.kserve.io/stop'] === 'true';
     if (isStopped) {
-      return { label: 'Stopped', color: 'grey', icon: <OffIcon /> };
+      return {
+        label: 'Stopped',
+        color: 'grey',
+        icon: <OffIcon />,
+        message: 'Offline and not using resources. Restart to use model.',
+      };
     }
     // Show 'Starting' for optimistic updates or for loading/pending states from the backend.
     if (
@@ -58,9 +64,10 @@ export const ModelStatusIcon: React.FC<ModelStatusIconProps> = ({
       case InferenceServiceModelState.LOADED:
       case InferenceServiceModelState.STANDBY:
         return {
-          label: 'Running',
+          label: 'Started',
           status: 'success',
           icon: <PlayIcon />,
+          message: 'Model is deployed.',
         };
       case InferenceServiceModelState.FAILED_TO_LOAD:
         return {
@@ -83,7 +90,7 @@ export const ModelStatusIcon: React.FC<ModelStatusIconProps> = ({
       className="odh-u-scrollable"
       position="top"
       headerContent={statusSettings.label}
-      bodyContent={bodyContent}
+      bodyContent={statusSettings.message || bodyContent}
       isVisible={bodyContent ? undefined : false}
     >
       <Label

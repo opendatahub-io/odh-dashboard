@@ -65,10 +65,34 @@ describe('getLMEvalState', () => {
 
 describe('getLMEvalStatusProgress', () => {
   it('returns 0 if message does not include Requesting API:', () => {
-    expect(getLMEvalStatusProgress({ message: 'Something else' })).toBe(0);
+    expect(
+      getLMEvalStatusProgress({
+        progressBars: [
+          {
+            message: 'Something else',
+            percent: '1%',
+            count: '',
+            elapsedTime: '',
+            remainingTimeEstimate: '',
+          },
+        ],
+      }),
+    ).toBe(0);
   });
 
   it('returns progress if message includes Requesting API:', () => {
-    expect(getLMEvalStatusProgress({ message: 'Requesting API:   1%' })).toBe(1);
+    expect(
+      getLMEvalStatusProgress({
+        progressBars: [
+          {
+            message: 'Requesting API',
+            percent: '1%',
+            count: '',
+            elapsedTime: '',
+            remainingTimeEstimate: '',
+          },
+        ],
+      }),
+    ).toBe(1);
   });
 });

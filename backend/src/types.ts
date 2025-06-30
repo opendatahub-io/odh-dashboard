@@ -51,6 +51,7 @@ export type DashboardConfig = K8sResourceCommon & {
       disableAdminConnectionTypes: boolean;
       disableFineTuning: boolean;
       disableKueue: boolean;
+      disableLMEval: boolean;
     };
     // Intentionally disjointed from the CRD, we should move away from this code-wise now; CRD later
     // groupsConfig?: {
@@ -59,7 +60,8 @@ export type DashboardConfig = K8sResourceCommon & {
     notebookController?: {
       enabled: boolean;
       pvcSize?: string;
-      notebookNamespace?: string;
+      // Intentionally disjointed from the CRD, we should move away from this code-wise now; CRD later
+      // notebookNamespace?: string;
       notebookTolerationSettings?: {
         enabled: boolean;
         key: string;
@@ -1008,6 +1010,9 @@ export type DataScienceClusterKindStatus = {
   components?: {
     modelregistry?: {
       registriesNamespace?: string;
+    };
+    workbenches?: {
+      workbenchNamespace?: string;
     };
   };
   conditions: K8sCondition[];

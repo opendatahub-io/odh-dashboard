@@ -57,7 +57,7 @@ const LMEvalFormFooter: React.FC<LMEvalFormFooterProps> = ({ data, namespace }) 
               onClick={onCreatelmEval}
               isLoading={isSubmitting}
             >
-              Evaluate
+              Start evaluation run
             </Button>
           </ActionListItem>
           <ActionListItem>

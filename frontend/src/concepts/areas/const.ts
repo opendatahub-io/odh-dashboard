@@ -43,8 +43,8 @@ export const definedFeatureFlags: string[] = Object.keys({
   disableAdminConnectionTypes: false,
   disableFineTuning: true,
   disableKueue: true,
+  disableLMEval: true,
   disableLlamaStackChatBot: true, // internal dev only
-  disableLMEval: true, // internal dev only
 } satisfies DashboardCommonConfig);
 
 export const SupportedAreasStateMap: SupportedAreasState = {

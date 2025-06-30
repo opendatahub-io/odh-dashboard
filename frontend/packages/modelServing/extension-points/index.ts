@@ -10,6 +10,8 @@ import type {
 // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/consistent-type-imports
 import { InferenceServiceModelState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import type { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
+import type { ModelServingPodSpecOptionsState } from '@odh-dashboard/internal/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
+import type { ContainerResources } from '@odh-dashboard/internal/types.js';
 
 export type DeploymentStatus = {
   state: InferenceServiceModelState;
@@ -117,6 +119,22 @@ export const isModelServingDeploymentsTableExtension = <D extends Deployment = D
   extension: Extension,
 ): extension is ModelServingDeploymentsTableExtension<D> =>
   extension.type === 'model-serving.deployments-table';
+
+export type ModelServingDeploymentsExpandedInfo<D extends Deployment = Deployment> = Extension<
+  'model-serving.deployments-table/expanded-info',
+  {
+    platform: D['modelServingPlatformId'];
+    getFramework: CodeRef<(deployment: D) => string | null>;
+    getReplicas: CodeRef<(deployment: D) => number | null>;
+    getResourceSize: CodeRef<(deployment: D) => ContainerResources | null>;
+    getHardwareAccelerator: CodeRef<(deployment: D) => ModelServingPodSpecOptionsState | null>;
+    getTokens: CodeRef<(deployment: D) => string[] | null>;
+  }
+>;
+export const isModelServingDeploymentsExpandedInfo = <D extends Deployment = Deployment>(
+  extension: Extension,
+): extension is ModelServingDeploymentsExpandedInfo<D> =>
+  extension.type === 'model-serving.deployments-table/expanded-info';
 
 export type ModelServingDeleteModal<D extends Deployment = Deployment> = Extension<
   'model-serving.platform/delete-modal',

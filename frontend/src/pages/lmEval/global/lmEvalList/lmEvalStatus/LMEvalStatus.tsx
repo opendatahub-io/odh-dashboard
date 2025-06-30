@@ -22,10 +22,10 @@ const LMEvalStatus: React.FC<LMEvalStatusProps> = ({ name, namespace }) => {
   const currentState = getLMEvalState(lmEvalJob.status);
 
   const isStarting = currentState === LMEvalState.PENDING;
-  const isRunningInitializing = currentState === LMEvalState.IN_PROGRESS;
   const isRunning =
     currentState === LMEvalState.IN_PROGRESS &&
-    lmEvalJob.status?.message?.includes('Requesting API:');
+    lmEvalJob.status?.progressBars?.some((bar) => bar.message === 'Requesting API');
+  const isRunningInitializing = currentState === LMEvalState.IN_PROGRESS && !isRunning;
   const isFailed = currentState === LMEvalState.FAILED;
 
   const showUnderlinedTruncateButton = isStarting || isRunningInitializing || isFailed;

@@ -15,10 +15,13 @@ describe('LM Evaluation Home Page', () => {
     lmEvalPage.visit('test-project');
 
     lmEvalPage.findPageTitle().should('have.text', 'Model evaluations');
-    lmEvalPage.findEmptyStateTitle().should('contain.text', 'No evaluations on this project');
+    lmEvalPage.findEmptyStateTitle().should('contain.text', 'No model evaluation runs');
     lmEvalPage
       .findEmptyStateBody()
-      .should('contain.text', 'No evaluations have been generated within this project');
+      .should(
+        'contain.text',
+        'No evaluation runs have been started for models in this project. Start a new evaluation run, or select a different project.',
+      );
 
     lmEvalPage.findEvaluateModelButton().should('exist');
   });

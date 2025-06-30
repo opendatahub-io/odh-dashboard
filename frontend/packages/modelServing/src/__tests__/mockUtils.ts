@@ -1,6 +1,12 @@
 import { NamespaceApplicationCase } from '@odh-dashboard/internal/pages/projects/types';
 import type { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
 import { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
+import {
+  useResolvedExtensions,
+  useExtensions,
+  type UseResolvedExtensionsResult,
+} from '@odh-dashboard/plugin-core';
+import type { Extension, LoadedExtension } from '@openshift/dynamic-plugin-sdk';
 import { ModelServingPlatform } from '../concepts/useProjectServingPlatform';
 
 export const mockModelServingPlatform = ({
@@ -66,4 +72,34 @@ export const mockProjectWithPlatform = (
     },
   };
   return projectWithPlatform;
+};
+/**
+ * @example
+ * ```ts
+ * jest.mock('@odh-dashboard/plugin-core');
+ *
+ * describe('My test', () => {
+ *   beforeEach(() => {
+ *     const { mockUseExtensions, mockUseResolvedExtensions } = mockExtensions([mocks]);
+ *   });
+ * ...
+ * ```
+ */
+export const mockExtensions = (
+  extensions: LoadedExtension<Extension>[] = [],
+): {
+  mockUseExtensions: jest.Mock;
+  mockUseResolvedExtensions: jest.Mock;
+} => {
+  const mockUseResolvedExtensions = jest.mocked(useResolvedExtensions);
+  const mockUseExtensions = jest.mocked(useExtensions);
+
+  mockUseExtensions.mockReturnValue(extensions);
+  mockUseResolvedExtensions.mockReturnValue([
+    extensions as UseResolvedExtensionsResult<Extension>['0'],
+    true,
+    [],
+  ]);
+
+  return { mockUseResolvedExtensions, mockUseExtensions };
 };
