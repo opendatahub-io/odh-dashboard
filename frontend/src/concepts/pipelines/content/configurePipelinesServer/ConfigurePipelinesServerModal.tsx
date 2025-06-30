@@ -32,6 +32,8 @@ import {
   hasServerTimedOut,
   isDspaAllReady,
 } from '#~/concepts/pipelines/context/usePipelineNamespaceCR';
+import { useAppSelector } from '#~/redux/hooks.ts';
+import { AppNotification } from '#~/redux/types.ts';
 import { PipelinesDatabaseSection } from './PipelinesDatabaseSection';
 import { ObjectStorageSection } from './ObjectStorageSection';
 import {
@@ -65,6 +67,8 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
   const isFineTuningAvailable = useIsAreaAvailable(SupportedArea.FINE_TUNING).status;
   const notification = useNotification();
   const navigate = useNavigate();
+
+  const notifications: AppNotification[] = useAppSelector((state) => state.notifications);
 
   const databaseIsValid = config.database.useDefault
     ? true
@@ -113,7 +117,6 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
             onBeforeClose();
 
             const pollingNamespace = obj.metadata.namespace;
-            notification.info(`Waiting on pipeline server resources for ${pollingNamespace}...`);
             registerNotification({
               callbackDelay: FAST_POLL_INTERVAL,
               callback: async (signal: AbortSignal) => {
