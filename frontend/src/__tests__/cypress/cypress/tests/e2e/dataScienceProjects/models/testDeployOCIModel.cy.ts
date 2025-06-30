@@ -94,7 +94,7 @@ describe(
         // Note reload is required as status tooltip was not found due to a stale element
         cy.reload();
         modelServingSection.findStatusTooltip().click({ force: true });
-        cy.contains('Loaded', { timeout: 120000 }).should('be.visible');
+        cy.contains('Model is deployed', { timeout: 120000 }).should('be.visible');
       },
     );
   },
