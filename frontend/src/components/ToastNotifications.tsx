@@ -8,7 +8,7 @@ const ToastNotifications: React.FC = () => {
   const notifications: AppNotification[] = useAppSelector((state) => state.notifications);
 
   return (
-    <AlertGroup isToast isLiveRegion data-testid="toast-notification-group">
+    <AlertGroup isToast isLiveRegion data-testid="toast-notification-group" hasAnimations>
       {notifications.map((notification) => (
         <ToastNotification notification={notification} key={notification.id} />
       ))}

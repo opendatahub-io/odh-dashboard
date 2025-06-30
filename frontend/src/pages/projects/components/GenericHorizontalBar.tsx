@@ -43,7 +43,7 @@ const GenericHorizontalBar: React.FC<GenericHorizontalBarProps> = ({
             onSectionChange(`${tabIndex}`);
           }}
           aria-label="Horizontal bar"
-          style={{ paddingInlineStart: 'var(--pf-t--global--spacer--lg' }}
+          className="pf-v6-u-ml-lg pf-v6-u-mr-lg"
         >
           {sections.map((section) => (
             <Tab

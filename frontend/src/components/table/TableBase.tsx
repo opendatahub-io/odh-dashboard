@@ -268,7 +268,12 @@ const TableBase = <T,>({
       : data.map((row, rowIndex) => rowRenderer(row, rowIndex));
 
   const table = (
-    <Table {...props} {...(hasStickyColumns && { gridBreakPoint: '' })} ref={tableRef}>
+    <Table
+      {...props}
+      {...(hasStickyColumns && { gridBreakPoint: '' })}
+      ref={tableRef}
+      hasAnimations
+    >
       {caption && <Caption>{caption}</Caption>}
       <Thead noWrap hasNestedHeader={hasNestedHeader}>
         {/* Note from PF: following custom style can be removed when we can resolve misalignment issue natively */}

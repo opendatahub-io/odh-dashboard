@@ -69,7 +69,11 @@ const ManageConnectionTypeFieldsTable: React.FC<Props> = ({ fields, onFieldsChan
     <>
       {fields.length > 0 ? (
         <>
-          <Table data-testid="connection-type-fields-table" className={tableProps.className}>
+          <Table
+            data-testid="connection-type-fields-table"
+            className={tableProps.className}
+            hasAnimations
+          >
             <Thead>
               <Tr>
                 <Th screenReaderText="Drag and drop" />

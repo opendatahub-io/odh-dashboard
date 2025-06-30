@@ -72,7 +72,12 @@ const ModelPropertiesDescriptionListGroup: React.FC<ModelPropertiesDescriptionLi
       isEmpty={!isAdding && keys.length === 0}
       contentWhenEmpty="No properties"
     >
-      <Table aria-label="Properties table" data-testid="properties-table" variant="compact">
+      <Table
+        aria-label="Properties table"
+        data-testid="properties-table"
+        variant="compact"
+        hasAnimations
+      >
         <Thead>
           <Tr>
             <Th>Key {isEditingSomeRow && requiredAsterisk}</Th>
