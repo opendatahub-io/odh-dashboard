@@ -8,7 +8,10 @@ import type {
   ModelServingDeleteModal,
   ModelServingPlatformWatchDeploymentsExtension,
   ModelServingDeploymentsExpandedInfo,
+  ModelServingMetricsExtension,
 } from '@odh-dashboard/model-serving/extension-points';
+// eslint-disable-next-line no-restricted-syntax
+import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/index';
 import type { KServeDeployment } from './src/deployments';
 
 export const KSERVE_ID = 'kserve';
@@ -19,6 +22,7 @@ const extensions: (
   | ModelServingDeploymentsTableExtension<KServeDeployment>
   | ModelServingDeploymentsExpandedInfo<KServeDeployment>
   | ModelServingDeleteModal<KServeDeployment>
+  | ModelServingMetricsExtension<KServeDeployment>
 )[] = [
   {
     type: 'model-serving.platform',
@@ -79,6 +83,15 @@ const extensions: (
       onDelete: () => import('./src/deployments').then((m) => m.deleteDeployment),
       title: 'Delete deployed model?',
       submitButtonLabel: 'Delete deployed model',
+    },
+  },
+  {
+    type: 'model-serving.metrics',
+    properties: {
+      platform: KSERVE_ID,
+    },
+    flags: {
+      required: [SupportedArea.K_SERVE_METRICS],
     },
   },
 ];
