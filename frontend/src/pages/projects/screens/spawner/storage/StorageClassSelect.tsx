@@ -134,10 +134,6 @@ const StorageClassSelect: React.FC<StorageClassSelectProps> = ({
     [ValidatedOptions.default]: undefined,
   };
 
-  console.log('disableStorageClassSelect:', disableStorageClassSelect);
-  console.log('!storageClassesLoaded:', !storageClassesLoaded);
-  console.log('shouldShowDefaultOnly:', shouldShowDefaultOnly);
-
   return storageClassesLoaded ? (
     <FormGroup label="Storage class" fieldId="storage-class" isRequired={isRequired}>
       <SimpleSelect

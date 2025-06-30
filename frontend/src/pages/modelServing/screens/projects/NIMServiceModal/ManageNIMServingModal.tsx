@@ -349,10 +349,6 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
     return currentName || namespaceName || '';
   };
 
-  console.log('editInfo:', editInfo);
-  console.log('selectedStorageClassConfig:', selectedStorageClassConfig);
-  console.log('isStorageClassesAvailable', isStorageClassesAvailable);
-
   return (
     <Modal variant="medium" isOpen onClose={() => onBeforeClose(false)}>
       <ModalHeader
