@@ -16,11 +16,30 @@ module.exports = async (fastify: KubeFastifyInstance) => {
     const body = request.body as { messages: any[]; model_id: string };
     const { messages, model_id } = body;
 
-    const response = await client.inference.chatCompletion({
-      model_id,
-      messages: messages,
-    });
+    try {
+      const stream = await client.inference.chatCompletion({
+        messages: messages,
+        model_id,
+        stream: true,
+      });
 
-    reply.send(response);
+      for await (const inferenceChatCompletionResponse of stream) {
+        if ('text' in inferenceChatCompletionResponse.event.delta) {
+          const text = inferenceChatCompletionResponse.event.delta.text;
+          console.log('text', text);
+          if (text) {
+            reply.raw.write(`data: ${JSON.stringify({ text })}\n\n`);
+          }
+        }
+      }
+
+      // Send end of stream
+      reply.raw.write('data: [DONE]\n\n');
+      reply.raw.end();
+    } catch (error) {
+      console.error('Streaming error:', error);
+      reply.raw.write(`data: ${JSON.stringify({ error: 'Streaming error occurred' })}\n\n`);
+      reply.raw.end();
+    }
   });
 };
