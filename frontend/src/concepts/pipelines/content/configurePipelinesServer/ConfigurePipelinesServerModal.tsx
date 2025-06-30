@@ -10,7 +10,6 @@ import {
   ModalHeader,
   ModalFooter,
 } from '@patternfly/react-core';
-import useNotification from '#~/utilities/useNotification.ts';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { createPipelinesCR, deleteSecret, listPipelinesCR } from '#~/api';
 import { EMPTY_AWS_PIPELINE_DATA } from '#~/pages/projects/dataConnections/const';
@@ -32,8 +31,6 @@ import {
   hasServerTimedOut,
   isDspaAllReady,
 } from '#~/concepts/pipelines/context/usePipelineNamespaceCR';
-import { useAppSelector } from '#~/redux/hooks.ts';
-import { AppNotification } from '#~/redux/types.ts';
 import { PipelinesDatabaseSection } from './PipelinesDatabaseSection';
 import { ObjectStorageSection } from './ObjectStorageSection';
 import {
@@ -65,10 +62,7 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
   const [config, setConfig] = React.useState<PipelineServerConfigType>(FORM_DEFAULTS);
   const { registerNotification } = React.useContext(NotificationWatcherContext);
   const isFineTuningAvailable = useIsAreaAvailable(SupportedArea.FINE_TUNING).status;
-  const notification = useNotification();
   const navigate = useNavigate();
-
-  const notifications: AppNotification[] = useAppSelector((state) => state.notifications);
 
   const databaseIsValid = config.database.useDefault
     ? true
