@@ -1255,6 +1255,7 @@ export type DashboardCommonConfig = {
   disableLlamaStackChatBot: boolean;
   disableLMEval: boolean;
   disableKueue: boolean;
+  disablePVCServing: boolean;
 };
 
 // [1] Intentionally disjointed fields from the CRD in this type definition

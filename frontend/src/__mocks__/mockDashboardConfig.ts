@@ -42,6 +42,7 @@ export type MockDashboardConfigType = {
   modelServerSizes?: ModelServingSize[];
   disableLMEval?: boolean;
   disableKueue?: boolean;
+  disablePVCServing?: boolean;
 };
 
 export const mockDashboardConfig = ({
@@ -79,6 +80,7 @@ export const mockDashboardConfig = ({
   disableLlamaStackChatBot = false,
   disableLMEval = true,
   disableKueue = true,
+  disablePVCServing = true,
   modelServerSizes = [
     {
       name: 'Small',
@@ -237,6 +239,7 @@ export const mockDashboardConfig = ({
       disableLlamaStackChatBot,
       disableLMEval,
       disableKueue,
+      disablePVCServing,
     },
     notebookController: {
       enabled: !disableNotebookController,
