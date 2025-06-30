@@ -45,6 +45,7 @@ export const definedFeatureFlags: string[] = Object.keys({
   disableKueue: true,
   disableLMEval: true,
   disableLlamaStackChatBot: true, // internal dev only
+  disablePVCServing: true,
 } satisfies DashboardCommonConfig);
 
 export const SupportedAreasStateMap: SupportedAreasState = {
@@ -112,6 +113,9 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.MODEL_SERVING]: {
     featureFlags: ['disableModelServing'],
+  },
+  [SupportedArea.PVCSERVING]: {
+    featureFlags: ['disablePVCServing'],
   },
   [SupportedArea.USER_MANAGEMENT]: {
     featureFlags: ['disableUserManagement'],
