@@ -50,7 +50,6 @@ type PipelineContext = {
   metadataStoreServiceClient: MetadataStoreServicePromiseClient;
   managedPipelines: DSPipelineManagedPipelinesKind | undefined;
   isStarting?: boolean;
-
   startingStatusModalOpenRef: React.MutableRefObject<string | null>;
 };
 
