@@ -243,7 +243,7 @@ class NotebookRow extends TableRow {
   }
 
   findNotebookStopToggle() {
-    return this.find().findByTestId('notebook-stop-action');
+    return this.find().findByTestId('state-action-toggle');
   }
 
   findNotebookStatusModal() {
