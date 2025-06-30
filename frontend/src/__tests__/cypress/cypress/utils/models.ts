@@ -17,7 +17,7 @@ export function attemptToClickTooltip(): void {
   modelServingSection.findStatusTooltip().then(($tooltip) => {
     if ($tooltip.length > 0 && $tooltip.is(':visible')) {
       modelServingSection.findStatusTooltip().click({ force: true });
-      cy.contains('Loaded', { timeout: 120000 }).should('be.visible');
+      cy.contains('Model is deployed', { timeout: 120000 }).should('be.visible');
     } else {
       attempts++;
       cy.reload();
