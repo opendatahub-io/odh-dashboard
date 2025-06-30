@@ -3,9 +3,10 @@ import { Td, ActionsColumn } from '@patternfly/react-table';
 import { Label, Content, ContentVariants } from '@patternfly/react-core';
 import ResourceTr from '@odh-dashboard/internal/components/ResourceTr';
 import { ModelStatusIcon } from '@odh-dashboard/internal/concepts/modelServing/ModelStatusIcon';
-import { TableRowTitleDescription } from '@odh-dashboard/internal/components/table/index';
 import { InferenceServiceModelState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
+import { Link } from 'react-router-dom';
+import ResourceNameTooltip from '@odh-dashboard/internal/components/ResourceNameTooltip';
 import { DeploymentEndpointsPopupButton } from './DeploymentEndpointsPopupButton';
 import { DeploymentRowExpandedSection } from './DeploymentsTableRowExpandedSection';
 import { useResolvedDeploymentExtension } from '../../concepts/extensionUtils';
@@ -14,6 +15,7 @@ import {
   Deployment,
   DeploymentsTableColumn,
   isModelServingDeploymentsExpandedInfo,
+  ModelServingMetricsExtension,
 } from '../../../extension-points';
 
 export const DeploymentRow: React.FC<{
@@ -21,7 +23,8 @@ export const DeploymentRow: React.FC<{
   platformColumns: DeploymentsTableColumn[];
   onDelete: (deployment: Deployment) => void;
   rowIndex: number;
-}> = ({ deployment, platformColumns, onDelete, rowIndex }) => {
+  metricsExtension?: ModelServingMetricsExtension;
+}> = ({ deployment, platformColumns, onDelete, rowIndex, metricsExtension }) => {
   const [detailsExtension] = useResolvedDeploymentExtension(
     isModelServingDeploymentsExpandedInfo,
     deployment,
@@ -43,10 +46,20 @@ export const DeploymentRow: React.FC<{
           />
         )}
         <Td dataLabel="Name">
-          <TableRowTitleDescription
-            title={getDisplayNameFromK8sResource(deployment.model)}
-            resource={deployment.model}
-          />
+          <ResourceNameTooltip resource={deployment.model}>
+            {metricsExtension && deployment.model.metadata.namespace ? (
+              <Link
+                data-testid={`metrics-link-${getDisplayNameFromK8sResource(deployment.model)}`}
+                to={`/projects/${encodeURIComponent(
+                  deployment.model.metadata.namespace,
+                )}/metrics/model/${encodeURIComponent(deployment.model.metadata.name)}`}
+              >
+                {getDisplayNameFromK8sResource(deployment.model)}
+              </Link>
+            ) : (
+              getDisplayNameFromK8sResource(deployment.model)
+            )}
+          </ResourceNameTooltip>
         </Td>
         {platformColumns.map((column) => (
           <Td key={column.field} dataLabel={column.label}>
