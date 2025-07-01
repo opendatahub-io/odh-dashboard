@@ -10,7 +10,7 @@ type LMEvalProgressBarProps = {
 const LMEvalProgressBar: React.FC<LMEvalProgressBarProps> = ({ status }) => {
   const progress = getLMEvalStatusProgress(status);
 
-  return <Progress value={progress} />;
+  return <Progress value={progress} style={{ width: '200px' }} size="sm" />;
 };
 
 export default LMEvalProgressBar;

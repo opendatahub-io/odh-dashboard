@@ -1,13 +1,13 @@
 import * as React from 'react';
 import { LMEvalKind, ProjectKind } from '#~/k8sTypes';
-import { FetchStateObject } from '#~/utilities/useFetch';
-import { DEFAULT_LIST_FETCH_STATE } from '#~/utilities/const';
+import { DEFAULT_LIST_WATCH_RESULT } from '#~/utilities/const';
 import { SupportedArea, conditionalArea } from '#~/concepts/areas';
 import { ProjectsContext, byName } from '#~/concepts/projects/ProjectsContext';
-import useLMEval from '#~/pages/lmEval/useLMEval';
+import { useLMEvalJob } from '#~/api/index.ts';
+import { CustomWatchK8sResult } from '#~/types.ts';
 
 type LMEvalContextType = {
-  lmEval: FetchStateObject<LMEvalKind[]>;
+  lmEval: CustomWatchK8sResult<LMEvalKind[]>;
   project?: ProjectKind | null;
   preferredProject?: ProjectKind | null;
   projects?: ProjectKind[] | null;
@@ -19,7 +19,7 @@ type LMEvalContextProviderProps = {
 };
 
 export const LMEvalContext = React.createContext<LMEvalContextType>({
-  lmEval: DEFAULT_LIST_FETCH_STATE,
+  lmEval: DEFAULT_LIST_WATCH_RESULT,
   project: null,
   preferredProject: null,
   projects: null,
@@ -32,7 +32,7 @@ export const LMEvalContextProvider = conditionalArea<LMEvalContextProviderProps>
   const { projects, preferredProject } = React.useContext(ProjectsContext);
   const project = projects.find(byName(namespace)) ?? null;
 
-  const lmEval = useLMEval(namespace);
+  const lmEval = useLMEvalJob(namespace ?? '');
 
   return (
     <LMEvalContext.Provider
