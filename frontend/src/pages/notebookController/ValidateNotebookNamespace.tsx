@@ -8,13 +8,13 @@ type ValidateNotebookNamespaceProps = {
 };
 
 const ValidateNotebookNamespace: React.FC<ValidateNotebookNamespaceProps> = ({ children }) => {
-  const { notebookNamespace, dashboardNamespace } = useNamespaces();
+  const { workbenchNamespace, dashboardNamespace } = useNamespaces();
   const [loaded, setLoaded] = React.useState(false);
   const [loadError, setLoadError] = React.useState<Error | undefined>();
 
   React.useEffect(() => {
-    if (notebookNamespace && dashboardNamespace) {
-      validateNotebookNamespaceRoleBinding(notebookNamespace, dashboardNamespace)
+    if (workbenchNamespace && dashboardNamespace) {
+      validateNotebookNamespaceRoleBinding(workbenchNamespace, dashboardNamespace)
         .then(() => {
           setLoaded(true);
         })
@@ -25,7 +25,7 @@ const ValidateNotebookNamespace: React.FC<ValidateNotebookNamespaceProps> = ({ c
           setLoadError(error);
         });
     }
-  }, [notebookNamespace, dashboardNamespace]);
+  }, [workbenchNamespace, dashboardNamespace]);
 
   return loaded ? (
     <>{children}</>

@@ -114,7 +114,7 @@ describe('Create, Delete and Edit - Workbench Tests', () => {
 
       // Stop workbench
       cy.step('Stop workbench and validate it has been stopped');
-      notebookRow.findNotebookStop().click();
+      notebookRow.findNotebookStopToggle().should('have.text', 'Stop').click();
       notebookConfirmModal.findStopWorkbenchButton().click();
       notebookRow.expectStatusLabelToBe('Stopped', 120000);
       cy.reload();

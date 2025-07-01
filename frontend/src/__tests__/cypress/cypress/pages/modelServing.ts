@@ -108,10 +108,6 @@ class ModelServingGlobal {
   findServingRuntime(name: string) {
     return this.findModelsTable().find(`[data-label=Serving Runtime]`).contains(name);
   }
-
-  findServingRuntimeVersionLabel() {
-    return cy.findByTestId('serving-runtime-version-label');
-  }
 }
 
 class ServingRuntimeGroup extends Contextual<HTMLElement> {}
@@ -564,6 +560,18 @@ class ModelServingRow extends TableRow {
   findInternalServicePopover() {
     return cy.findByTestId('internal-service-popover');
   }
+
+  findConfirmStopModal() {
+    return cy.findByTestId('stop-model-modal');
+  }
+
+  findConfirmStopModalButton() {
+    return this.findConfirmStopModal().findByTestId('stop-model-button');
+  }
+
+  findConfirmStopModalCheckbox() {
+    return this.findConfirmStopModal().findByTestId('dont-show-again-checkbox');
+  }
 }
 
 class ModelMeshRow extends ModelServingRow {
@@ -596,12 +604,28 @@ class KServeRow extends ModelMeshRow {
   findProjectScopedLabel() {
     return this.find().findByTestId('project-scoped-label');
   }
+
+  findStateActionToggle() {
+    return this.find().findByTestId('state-action-toggle');
+  }
+
+  findStatusLabel(label: string) {
+    return this.find().findByTestId('model-status-text').should('include.text', label);
+  }
 }
 
 class InferenceServiceRow extends TableRow {
+  findServingRuntimeVersionLabel() {
+    return this.find().findByTestId('serving-runtime-version-label');
+  }
+
+  findServingRuntimeVersionStatusLabel() {
+    return this.find().findByTestId('serving-runtime-version-status-label');
+  }
+
   findStatusTooltip() {
     return this.find()
-      .findByTestId('status-tooltip')
+      .findByTestId('model-status-text')
       .click()
       .then(() => {
         cy.findByTestId('model-status-tooltip');
@@ -644,6 +668,10 @@ class InferenceServiceRow extends TableRow {
   findProject() {
     return this.find().find(`[data-label=Project]`);
   }
+
+  findStatusLabel(label: string) {
+    return this.find().findByTestId('model-status-text').should('include.text', label);
+  }
 }
 
 class ModelServingSection {
@@ -680,7 +708,7 @@ class ModelServingSection {
   }
 
   findStatusTooltip() {
-    return this.find().findByTestId('status-tooltip');
+    return this.find().findByTestId('model-status-text');
   }
 
   findKServeTableHeaderButton(name: string) {

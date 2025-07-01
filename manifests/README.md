@@ -25,7 +25,7 @@ With those said, the key takeaways from this section are:
 * There are some **Unmanaged** resources that need to be treated very softly as once a customer has it installed, we need external help to address it
     * Dashboard team does not have a mechanism inside our wheelhouse to update an **Unmanaged** file; the Operator team has an upgrade script that needs to be involved if we have critical changes needed
     * The [RHOAI OdhDashboardConfig](./rhoai/shared/odhdashboardconfig/README.md) is the most common friction point
-* Currently, there is no way to provide both a user-managed & upgradable resource within Dashboard
+* Currently, the Dashboard has no mechanism to create or manage partially managed resources - this functionality is controlled by the Operator. The Dashboard can only support and interact with such resources as defined by the Operator's management model.
 
 ## Adding/Modifying Manifests
 

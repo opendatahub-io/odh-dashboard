@@ -2,4 +2,8 @@
 registryNamePrefix: "test-model-registry"
 objectStorageModelName: "test-object-storage-model"
 uriModelName: "test-uri-model"
+version1Name: "v1.0"
+version2Name: "v2.0"
+newNameSuffix: "-edited"
+newDescription: "Updated description for e2e test"
   

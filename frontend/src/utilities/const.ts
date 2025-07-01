@@ -20,6 +20,7 @@ const DASHBOARD_CONFIG = process.env.DASHBOARD_CONFIG || 'odh-dashboard-config';
 const { EXT_CLUSTER } = process.env;
 const INTERNAL_DASHBOARD_VERSION = process.env.INTERNAL_DASHBOARD_VERSION || '';
 const { CONSOLE_LINK_DOMAIN } = process.env;
+const { MF_CONFIG } = process.env;
 
 export {
   DEV_MODE,
@@ -39,6 +40,7 @@ export {
   EXT_CLUSTER,
   INTERNAL_DASHBOARD_VERSION,
   CONSOLE_LINK_DOMAIN,
+  MF_CONFIG,
 };
 
 export const DOC_TYPE_TOOLTIPS = {

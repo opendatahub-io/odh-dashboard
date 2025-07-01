@@ -98,6 +98,7 @@ type HandlersProps = {
   disableProjectScoped?: boolean;
   disableHardwareProfiles?: boolean;
 };
+import { STOP_MODAL_PREFERENCE_KEY } from '#~/pages/modelServing/useStopModalPreference';
 
 const initIntercepts = ({
   disableKServeConfig,
@@ -118,6 +119,7 @@ const initIntercepts = ({
       route: true,
       tolerations: [],
       nodeSelector: {},
+      version: 'v1.0.0',
     }),
   ],
   inferenceServices = [
@@ -697,13 +699,15 @@ describe('Serving Runtime List', () => {
         .click();
       modelServingSection.findInferenceServiceTable().should('exist');
       let inferenceServiceRow = modelServingSection.getInferenceServiceRow('OVMS ONNX');
+      inferenceServiceRow.findStatusLabel('Failed');
       inferenceServiceRow.findStatusTooltip();
       inferenceServiceRow.findStatusTooltipValue('Failed to pull model from storage due to error');
 
       // Check status of deployed model which loaded successfully after an error
       inferenceServiceRow = modelServingSection.getInferenceServiceRow('Loaded model');
+      inferenceServiceRow.findStatusLabel('Started');
       inferenceServiceRow.findStatusTooltip().should('be.visible');
-      inferenceServiceRow.findStatusTooltipValue('Loaded');
+      inferenceServiceRow.findStatusTooltipValue('Model is deployed.');
 
       // Check API protocol in row
       inferenceServiceRow.findAPIProtocol().should('have.text', 'REST');
@@ -1322,6 +1326,101 @@ describe('Serving Runtime List', () => {
       modelServingSection
         .findKServeTableHeaderButton('Model deployment name')
         .should(be.sortDescending);
+    });
+
+    it('Stop and start model', () => {
+      initIntercepts({
+        projectEnableModelMesh: false,
+        disableKServeConfig: false,
+        disableModelMeshConfig: true,
+        inferenceServices: [
+          mockInferenceServiceK8sResource({
+            name: 'test-model',
+            displayName: 'test-model',
+            modelName: 'test-model',
+            isModelMesh: false,
+            activeModelState: 'Loaded',
+          }),
+        ],
+      });
+      cy.clearLocalStorage(STOP_MODAL_PREFERENCE_KEY);
+      cy.window().then((win) => win.localStorage.setItem(STOP_MODAL_PREFERENCE_KEY, 'false'));
+      projectDetails.visitSection('test-project', 'model-server');
+
+      const kserveRow = modelServingSection.getKServeRow('test-model');
+      kserveRow.findStatusLabel('Started');
+
+      const stoppedInferenceService = mockInferenceServiceK8sResource({
+        name: 'test-model',
+        displayName: 'test-model',
+        modelName: 'test-model',
+        isModelMesh: false,
+        activeModelState: 'Unknown',
+      });
+      stoppedInferenceService.metadata.annotations = {
+        ...stoppedInferenceService.metadata.annotations,
+        'serving.kserve.io/stop': 'true',
+      };
+
+      cy.intercept(
+        'PATCH',
+        '/api/k8s/apis/serving.kserve.io/v1beta1/namespaces/test-project/inferenceservices/test-model',
+        (req) => {
+          expect(req.body).to.deep.include({
+            op: 'add',
+            path: '/metadata/annotations/serving.kserve.io~1stop',
+            value: 'true',
+          });
+          req.reply(stoppedInferenceService);
+        },
+      ).as('stopModelPatch');
+      cy.interceptK8sList(InferenceServiceModel, mockK8sResourceList([stoppedInferenceService])).as(
+        'getStoppedModel',
+      );
+
+      kserveRow.findStateActionToggle().should('have.text', 'Stop').click();
+      kserveRow.findConfirmStopModal().should('exist');
+      kserveRow.findConfirmStopModalCheckbox().should('exist');
+      kserveRow.findConfirmStopModalCheckbox().should('not.be.checked');
+      kserveRow.findConfirmStopModalCheckbox().click();
+      kserveRow.findConfirmStopModalCheckbox().should('be.checked');
+      kserveRow.findConfirmStopModalButton().click();
+      cy.wait(['@stopModelPatch', '@getStoppedModel']);
+      kserveRow.findStatusLabel('Stopped');
+      kserveRow.findStateActionToggle().should('have.text', 'Start');
+      cy.window().then((win) => {
+        const preference = win.localStorage.getItem(STOP_MODAL_PREFERENCE_KEY);
+        expect(preference).to.equal('true');
+      });
+
+      const runningInferenceService = mockInferenceServiceK8sResource({
+        name: 'test-model',
+        displayName: 'test-model',
+        modelName: 'test-model',
+        isModelMesh: false,
+        activeModelState: 'Loaded',
+      });
+
+      cy.intercept(
+        'PATCH',
+        '/api/k8s/apis/serving.kserve.io/v1beta1/namespaces/test-project/inferenceservices/test-model',
+        (req) => {
+          expect(req.body).to.deep.include({
+            op: 'add',
+            path: '/metadata/annotations/serving.kserve.io~1stop',
+            value: 'false',
+          });
+          req.reply(runningInferenceService);
+        },
+      ).as('startModelPatch');
+      cy.interceptK8sList(InferenceServiceModel, mockK8sResourceList([runningInferenceService])).as(
+        'getStartedModel',
+      );
+
+      kserveRow.findStateActionToggle().should('have.text', 'Start').click();
+      cy.wait(['@startModelPatch', '@getStartedModel']);
+      kserveRow.findStatusLabel('Started');
+      kserveRow.findStateActionToggle().should('have.text', 'Stop');
     });
 
     it('Check number of replicas of model', () => {
@@ -3344,6 +3443,17 @@ describe('Serving Runtime List', () => {
       createServingRuntimeModal.findServingRuntimeTemplateSearchSelector().within(() => {
         createServingRuntimeModal.findServingRuntimeVersionLabel().should('exist');
       });
+      createServingRuntimeModal.findCloseButton().click();
+
+      // Check that the label is displayed when editing
+      modelServingSection
+        .getModelMeshRow('OVMS Model Serving')
+        .find()
+        .findKebabAction('Edit model server')
+        .click();
+      editServingRuntimeModal.findServingRuntimeTemplateSearchSelector().within(() => {
+        editServingRuntimeModal.findServingRuntimeVersionLabel().should('exist');
+      });
     });
 
     it('displays label in search selector when single-model serving is selected', () => {
@@ -3363,6 +3473,13 @@ describe('Serving Runtime List', () => {
       kserveModal.findGlobalScopedTemplateOption('Multi Platform').click();
       kserveModal.findServingRuntimeTemplateSearchSelector().within(() => {
         kserveModal.findServingRuntimeVersionLabel().should('exist');
+      });
+      kserveModal.findCloseButton().click();
+
+      // Check that the label is displayed when editing
+      modelServingSection.getKServeRow('Llama Caikit').find().findKebabAction('Edit').click();
+      kserveModalEdit.findServingRuntimeTemplateSearchSelector().within(() => {
+        kserveModalEdit.findServingRuntimeVersionLabel().should('exist');
       });
     });
   });

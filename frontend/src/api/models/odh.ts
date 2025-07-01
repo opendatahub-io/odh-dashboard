@@ -43,7 +43,7 @@ export const DataSciencePipelineApplicationModel: K8sModelCommon = {
 };
 
 export const ModelRegistryModel: K8sModelCommon = {
-  apiVersion: 'v1alpha1',
+  apiVersion: 'v1beta1',
   apiGroup: 'modelregistry.opendatahub.io',
   kind: 'ModelRegistry',
   plural: 'modelregistries',
@@ -60,5 +60,5 @@ export const LMEvalModel: K8sModelCommon = {
   apiVersion: 'v1alpha1',
   apiGroup: 'trustyai.opendatahub.io',
   kind: 'LMEvalJob',
-  plural: 'lmevaluations',
+  plural: 'lmevaljobs',
 };

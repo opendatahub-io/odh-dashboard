@@ -61,9 +61,11 @@ export enum SupportedArea {
   TRUSTY_AI = 'trusty-ai',
   NIM_MODEL = 'nim-model',
   SERVING_RUNTIME_PARAMS = 'serving-runtime-params',
+  PVCSERVING = 'pvc-serving',
 
   /* Distributed Workloads areas */
   DISTRIBUTED_WORKLOADS = 'distributed-workloads',
+  KUEUE = 'kueue',
 
   /* Model Registry areas */
   MODEL_REGISTRY = 'model-registry',
@@ -80,6 +82,9 @@ export enum SupportedArea {
 
   /* LM Eval */
   LM_EVAL = 'lm-eval',
+
+  /* Feature store */
+  FEATURE_STORE = 'feature-store',
 }
 
 export type SupportedAreaType = SupportedArea | string;
@@ -96,6 +101,7 @@ export enum StackComponent {
   TRUSTY_AI = 'trustyai',
   KUEUE = 'kueue',
   MODEL_REGISTRY = 'model-registry-operator',
+  FEAST_OPERATOR = 'feastoperator',
 }
 
 /** The possible component names that are used as keys in the `components` object of the DSC Status.

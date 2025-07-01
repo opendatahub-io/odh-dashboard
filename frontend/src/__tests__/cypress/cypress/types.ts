@@ -59,6 +59,7 @@ export type DspaReplacements = {
   DSPA_SECRET_NAME: string;
   NAMESPACE: string;
   AWS_S3_BUCKET: string;
+  AWS_REGION: string;
 };
 
 export type StorageClassConfig = {
@@ -308,6 +309,10 @@ export type RegisterModelTestData = {
   registryNamePrefix: string;
   objectStorageModelName: string;
   uriModelName: string;
+  version1Name: string;
+  version2Name: string;
+  newNameSuffix: string;
+  newDescription: string;
 };
 
 export enum AccessMode {

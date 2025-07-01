@@ -23,6 +23,8 @@ type MockResourceConfigType = {
   hardwareProfileNamespace?: string;
   acceleratorProfileNamespace?: string;
   isNonDashboardItem?: boolean;
+  version?: string;
+  templateName?: string;
 };
 
 export const mockServingRuntimeK8sResourceLegacy = ({
@@ -134,6 +136,8 @@ export const mockServingRuntimeK8sResource = ({
   scope,
   hardwareProfileNamespace = undefined,
   isNonDashboardItem = false,
+  version,
+  templateName = 'ovms',
 }: MockResourceConfigType): ServingRuntimeKind => ({
   apiVersion: 'serving.kserve.io/v1alpha1',
   kind: 'ServingRuntime',
@@ -148,9 +152,12 @@ export const mockServingRuntimeK8sResource = ({
       'opendatahub.io/accelerator-name': acceleratorName,
       'opendatahub.io/hardware-profile-name': hardwareProfileName,
 
-      'opendatahub.io/template-name': 'ovms',
+      'opendatahub.io/template-name': templateName,
       'openshift.io/display-name': displayName,
       'opendatahub.io/apiProtocol': apiProtocol,
+      ...(version && {
+        'opendatahub.io/runtime-version': version,
+      }),
       ...(!disableModelMeshAnnotations && {
         'enable-auth': auth ? 'true' : 'false',
         'enable-route': route ? 'true' : 'false',

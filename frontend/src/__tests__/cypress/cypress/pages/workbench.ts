@@ -242,12 +242,8 @@ class NotebookRow extends TableRow {
     this.findHaveNotebookStatusText(timeout).should('have.text', statusValue);
   }
 
-  findNotebookStart() {
-    return this.find().findByTestId('notebook-start-action');
-  }
-
-  findNotebookStop() {
-    return this.find().findByTestId('notebook-stop-action');
+  findNotebookStopToggle() {
+    return this.find().findByTestId('state-action-toggle');
   }
 
   findNotebookStatusModal() {
@@ -275,7 +271,7 @@ class NotebookRow extends TableRow {
 
 class AttachExistingStorageModal extends Modal {
   constructor() {
-    super('Attach Existing Storage');
+    super('Attach existing storage');
   }
 
   selectExistingPersistentStorage(name: string) {
@@ -637,7 +633,7 @@ class WorkbenchStatusModal extends Modal {
   }
 
   findLogEntry(text: string) {
-    return cy.get('ul[data-id="event-logs"]').find('li span').contains(text);
+    return cy.findByTestId('event-logs').find('li span').contains(text);
   }
 
   getNotebookStatus(expectedStatus: string, timeout?: number) {

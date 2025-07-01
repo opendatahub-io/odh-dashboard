@@ -6,9 +6,12 @@ import {
   ResolvedExtension,
   useExtensions,
 } from '@openshift/dynamic-plugin-sdk';
-import { ModelServingPlatform } from './modelServingPlatforms';
+import { ModelServingPlatform } from './useProjectServingPlatform';
+import type { Deployment } from '../../extension-points';
 
-export const usePlatformExtension = <T extends Extension>(
+export type PlatformExtension = Extension & { properties: { platform: string } };
+
+export const usePlatformExtension = <T extends PlatformExtension>(
   extensionPredicate: ExtensionPredicate<T>,
   platform: ModelServingPlatform,
 ): T | null => {
@@ -20,7 +23,7 @@ export const usePlatformExtension = <T extends Extension>(
   );
 };
 
-export const useResolvedPlatformExtension = <T extends Extension>(
+export const useResolvedPlatformExtension = <T extends PlatformExtension>(
   extensionPredicate: ExtensionPredicate<T>,
   platform: ModelServingPlatform,
 ): [ResolvedExtension<T> | null, boolean, unknown[]] => {
@@ -33,5 +36,39 @@ export const useResolvedPlatformExtension = <T extends Extension>(
       errors,
     ],
     [resolvedExtensions, platform, loaded, errors],
+  );
+};
+
+/////
+
+export const useDeploymentExtension = <T extends PlatformExtension>(
+  extensionPredicate: ExtensionPredicate<T>,
+  deployment: Deployment,
+): T | null => {
+  const extensions = useExtensions<T>(extensionPredicate);
+
+  return React.useMemo(
+    () =>
+      extensions.find((ext) => ext.properties.platform === deployment.modelServingPlatformId) ??
+      null,
+    [extensions, deployment],
+  );
+};
+
+export const useResolvedDeploymentExtension = <T extends PlatformExtension>(
+  extensionPredicate: ExtensionPredicate<T>,
+  deployment: Deployment,
+): [ResolvedExtension<T> | null, boolean, unknown[]] => {
+  const [resolvedExtensions, loaded, errors] = useResolvedExtensions<T>(extensionPredicate);
+
+  return React.useMemo(
+    () => [
+      resolvedExtensions.find(
+        (ext) => ext.properties.platform === deployment.modelServingPlatformId,
+      ) ?? null,
+      loaded,
+      errors,
+    ],
+    [resolvedExtensions, deployment, loaded, errors],
   );
 };

@@ -28,7 +28,12 @@ import {
   ServingRuntimeModel,
   TemplateModel,
 } from '#~/__tests__/cypress/cypress/utils/models';
-import { DeploymentMode, type InferenceServiceKind, type ServingRuntimeKind } from '#~/k8sTypes';
+import {
+  DeploymentMode,
+  type TemplateKind,
+  type InferenceServiceKind,
+  type ServingRuntimeKind,
+} from '#~/k8sTypes';
 import { ServingRuntimePlatform } from '#~/types';
 import { be } from '#~/__tests__/cypress/cypress/utils/should';
 import { asClusterAdminUser } from '#~/__tests__/cypress/cypress/utils/mockUsers';
@@ -63,6 +68,7 @@ type HandlersProps = {
   disableServingRuntimeParamsConfig?: boolean;
   disableProjectScoped?: boolean;
   disableHardwareProfiles?: boolean;
+  servingRuntimesTemplates?: TemplateKind[];
 };
 
 const initIntercepts = ({
@@ -343,7 +349,7 @@ describe('Model Serving Global', () => {
     modelServingSection
       .getInferenceServiceRow('NIM Model')
       .findServingRuntime()
-      .should('have.text', 'NVIDIA NIM');
+      .should('contain.text', 'NVIDIA NIM');
 
     // Open each modal and make sure it is the correct one
     modelServingGlobal.getModelRow('KServe Model').findKebabAction('Edit').click();
@@ -724,7 +730,7 @@ describe('Model Serving Global', () => {
     kserveModalEdit.findServingRuntimeTemplateSearchSelector().should('be.disabled');
     kserveModalEdit
       .findServingRuntimeTemplateSearchSelector()
-      .should('have.text', 'test-project-scoped-srProject-scoped');
+      .should('contain.text', 'test-project-scoped-sr');
     kserveModalEdit.findProjectScopedLabel().should('exist');
     kserveModalEdit.findModelFrameworkSelect().should('have.text', 'onnx - 1');
   });
@@ -884,7 +890,7 @@ describe('Model Serving Global', () => {
     kserveModalEdit.findServingRuntimeTemplateSearchSelector().should('be.disabled');
     kserveModalEdit
       .findServingRuntimeTemplateSearchSelector()
-      .should('have.text', 'OpenVINO Serving Runtime (Supports GPUs)Global-scoped');
+      .should('contain.text', 'OpenVINO Serving Runtime (Supports GPUs)');
     kserveModalEdit.findGlobalScopedLabel().should('exist');
     kserveModalEdit.findModelFrameworkSelect().should('have.text', 'onnx - 1');
   });
@@ -947,19 +953,46 @@ describe('Model Serving Global', () => {
     modelServingGlobal.getModelMetricLink('Test Inference Service').click();
     cy.findByTestId('app-page-title').should('have.text', 'Test Inference Service metrics');
   });
-  it('Display the version label if the annotation is present', () => {
-    const servingRuntimeWithVersion = mockServingRuntimeK8sResource({});
-    servingRuntimeWithVersion.metadata.annotations =
-      servingRuntimeWithVersion.metadata.annotations || {};
-    servingRuntimeWithVersion.metadata.annotations['opendatahub.io/runtime-version'] = '1.2.3';
-
-    initIntercepts({
-      servingRuntimes: [servingRuntimeWithVersion],
+  it('Display the version label and status label correctly', () => {
+    const servingRuntimeWithLatestVersion = mockServingRuntimeK8sResource({
+      namespace: 'test-project',
+      name: 'test-inference-service-latest',
+      templateName: 'template-2',
+      version: '1.0.0',
+    });
+    const servingRuntimeWithOutdatedVersion = mockServingRuntimeK8sResource({
+      namespace: 'test-project',
+      name: 'test-inference-service-outdated',
+      templateName: 'template-2',
+      version: '0.5.0',
+    });
+    const inferenceServiceLatest = mockInferenceServiceK8sResource({
+      name: 'test-inference-service-latest',
+      namespace: 'test-project',
+      displayName: 'Latest Model',
+      modelName: 'test-inference-service-latest',
+    });
+    const inferenceServiceOutdated = mockInferenceServiceK8sResource({
+      name: 'test-inference-service-outdated',
+      namespace: 'test-project',
+      displayName: 'Outdated Model',
+      modelName: 'test-inference-service-outdated',
     });
 
-    modelServingGlobal.visit();
-    modelServingGlobal.findServingRuntimeVersionLabel().should('exist');
-    modelServingGlobal.findServingRuntimeVersionLabel().should('contain.text', '1.2.3');
+    initIntercepts({
+      servingRuntimes: [servingRuntimeWithLatestVersion, servingRuntimeWithOutdatedVersion],
+      inferenceServices: [inferenceServiceLatest, inferenceServiceOutdated],
+    });
+
+    modelServingGlobal.visit('test-project');
+
+    const latestRow = modelServingSection.getInferenceServiceRow('Latest Model');
+    latestRow.findServingRuntimeVersionLabel().should('contain.text', '1.0.0');
+    latestRow.findServingRuntimeVersionStatusLabel().should('have.text', 'Latest');
+
+    const outdatedRow = modelServingSection.getInferenceServiceRow('Outdated Model');
+    outdatedRow.findServingRuntimeVersionLabel().should('contain.text', '0.5.0');
+    outdatedRow.findServingRuntimeVersionStatusLabel().should('have.text', 'Outdated');
   });
 
   it('Not display the version label if the annotation is absent', () => {
@@ -969,8 +1002,15 @@ describe('Model Serving Global', () => {
       servingRuntimes: [servingRuntimeWithoutVersion],
     });
 
-    modelServingGlobal.visit();
-    modelServingGlobal.findServingRuntimeVersionLabel().should('not.exist');
+    modelServingGlobal.visit('test-project');
+    modelServingSection
+      .getInferenceServiceRow('Test Inference Service')
+      .findServingRuntimeVersionLabel()
+      .should('not.exist');
+    modelServingSection
+      .getInferenceServiceRow('Test Inference Service')
+      .findServingRuntimeVersionStatusLabel()
+      .should('not.exist');
   });
 
   it('Should display env vars from a valueFrom secret', () => {

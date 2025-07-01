@@ -5,26 +5,23 @@ import {
   isModelServingDeleteModal,
   Deployment,
 } from '@odh-dashboard/model-serving/extension-points';
-import { useResolvedPlatformExtension } from '../../concepts/extensionUtils';
-import { ModelServingPlatform } from '../../concepts/modelServingPlatforms';
+import { useResolvedDeploymentExtension } from '../../concepts/extensionUtils';
 
 type DeleteModelServingModalProps = {
   onClose: (deleted: boolean) => void;
   deployment: Deployment;
-  servingPlatform: ModelServingPlatform;
 };
 
 const DeleteModelServingModal: React.FC<DeleteModelServingModalProps> = ({
   onClose,
   deployment,
-  servingPlatform,
 }) => {
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
 
-  const [deleteModal, deleteModalLoaded] = useResolvedPlatformExtension(
+  const [deleteModal, deleteModalLoaded] = useResolvedDeploymentExtension(
     isModelServingDeleteModal,
-    servingPlatform,
+    deployment,
   );
 
   const onDelete = async () => {

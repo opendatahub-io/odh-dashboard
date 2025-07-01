@@ -31,7 +31,7 @@ export const getAdminUserList = async (fastify: KubeFastifyInstance): Promise<st
 
 export const getClusterAdminUserList = async (fastify: KubeFastifyInstance): Promise<string[]> => {
   // fetch all the users and groups who have cluster-admin role and put them into the admin user list
-  const { notebookNamespace } = getNamespaces(fastify);
+  const { workbenchNamespace } = getNamespaces(fastify);
   const clusterAdminUsersAndGroups = await fastify.kube.customObjectsApi
     // This is not actually fetching all the groups who have admin access to the notebook resources
     // But only the cluster admins
@@ -41,7 +41,7 @@ export const getClusterAdminUserList = async (fastify: KubeFastifyInstance): Pro
       resourceAPIGroup: 'kubeflow.org',
       resourceAPIVersion: 'v1',
       verb: '*',
-      namespace: notebookNamespace,
+      namespace: workbenchNamespace,
     })
     .then((rar) => rar.body as ResourceAccessReviewResponse)
     .catch((e) => {
