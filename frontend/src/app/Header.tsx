@@ -28,7 +28,7 @@ const MastheadBranchComponent: React.FC<React.ComponentProps<typeof Link>> = (pr
   <Link {...props} to="/" />
 );
 
-const Header: React.FC<Props> = ({ onNotificationsClick, ...rest }) => {
+const Header: React.FC<Props> = (props) => {
   const { isAllowed } = useUser();
   const { theme } = useThemeContext();
   return (
@@ -58,7 +58,7 @@ const Header: React.FC<Props> = ({ onNotificationsClick, ...rest }) => {
         </MastheadBrand>
       </MastheadMain>
       <MastheadContent>
-        <HeaderTools {...rest} onNotificationsClick={onNotificationsClick} />
+        <HeaderTools {...props} />
       </MastheadContent>
     </Masthead>
   );
