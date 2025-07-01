@@ -91,7 +91,13 @@ export const updatePvc = (
   excludeSpec?: boolean,
   additionalAnnotations?: Record<string, string>,
 ): Promise<PersistentVolumeClaimKind> => {
-  const pvc = assemblePvc(data, namespace, existingData.metadata.name, undefined, additionalAnnotations);
+  const pvc = assemblePvc(
+    data,
+    namespace,
+    existingData.metadata.name,
+    undefined,
+    additionalAnnotations,
+  );
   const newData = excludeSpec
     ? {
         ...pvc,
