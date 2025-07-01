@@ -18,7 +18,6 @@ const DevFeatureFlagsBanner: React.FC<Props> = ({
   setDevFeatureFlagQueryVisible,
   isBannerVisible,
 }) => {
-
   const [isBannerHidden, setBannerHidden] = React.useState(false);
   const [isModalOpen, setModalOpen] = React.useState(false);
 
