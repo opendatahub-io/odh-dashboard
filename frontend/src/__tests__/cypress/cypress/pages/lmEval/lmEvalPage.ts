@@ -16,7 +16,7 @@ class LMEvalPage {
 
   private wait() {
     this.findPageTitle().should('exist');
-    this.findPageTitle().should('contain.text', 'Model evaluations');
+    this.findPageTitle().should('contain.text', 'Model evaluation runs');
     cy.testA11y();
   }
 
