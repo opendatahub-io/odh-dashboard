@@ -100,7 +100,7 @@ const extensions: NavExtension[] = [
     },
     properties: {
       id: 'lm-eval',
-      title: 'Model evaluations',
+      title: 'Model evaluation runs',
       href: '/modelEvaluations',
       section: 'models',
       path: '/modelEvaluations/*',

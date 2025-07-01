@@ -8,14 +8,12 @@ import DeleteLMEvalModal from './DeleteLMEvalModal';
 
 type LMEvalTableProps = {
   lmEval: LMEvalKind[];
-  lmEvalRefresh: () => void;
   clearFilters?: () => void;
   onClearFilters: () => void;
 } & Partial<Pick<React.ComponentProps<typeof Table>, 'enablePagination' | 'toolbarContent'>>;
 
 const LMEvalTable: React.FC<LMEvalTableProps> = ({
   lmEval,
-  lmEvalRefresh,
   clearFilters,
   onClearFilters,
   toolbarContent,
@@ -46,10 +44,7 @@ const LMEvalTable: React.FC<LMEvalTableProps> = ({
       {deleteLMEval ? (
         <DeleteLMEvalModal
           lmEval={deleteLMEval}
-          onClose={(deleted) => {
-            if (deleted) {
-              lmEvalRefresh();
-            }
+          onClose={() => {
             setDeleteLMEval(undefined);
           }}
         />

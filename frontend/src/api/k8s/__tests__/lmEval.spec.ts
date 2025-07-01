@@ -1,25 +1,25 @@
 import {
   k8sCreateResource,
   k8sGetResource,
-  k8sListResource,
   k8sDeleteResource,
   K8sStatus,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import { mockLMEvaluation } from '#~/__mocks__/mockLMEvaluation';
 import { LMEvalModel } from '#~/api/models';
-import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
 import { mock200Status, mock404Error } from '#~/__mocks__/mockK8sStatus';
 import {
-  listModelEvaluations,
   createModelEvaluation,
   getModelEvaluationResult,
   deleteModelEvaluation,
+  useLMEvalJob,
 } from '#~/api/k8s/lmEval';
 import { LMEvalKind } from '#~/k8sTypes';
 import { LmEvalFormData } from '#~/pages/lmEval/types';
+import { testHook } from '#~/__tests__/unit/testUtils/hooks';
+import { groupVersionKind } from '#~/api/k8sUtils';
+import useK8sWatchResourceList from '#~/utilities/useK8sWatchResourceList';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
-  k8sListResource: jest.fn(),
   k8sGetResource: jest.fn(),
   k8sCreateResource: jest.fn(),
   k8sDeleteResource: jest.fn(),
@@ -30,53 +30,111 @@ jest.mock('#~/concepts/k8s/utils', () => ({
   translateDisplayNameForK8s: jest.fn((name) => name.toLowerCase().replace(/\s+/g, '-')),
 }));
 
-const mockListResource = jest.mocked(k8sListResource);
+jest.mock('#~/utilities/useK8sWatchResourceList', () => ({
+  __esModule: true,
+  default: jest.fn(),
+}));
+
 const mockGetResource = jest.mocked(k8sGetResource);
 const mockCreateResource = jest.mocked(k8sCreateResource<LMEvalKind>);
 const mockDeleteResource = jest.mocked(k8sDeleteResource<LMEvalKind, K8sStatus>);
-
-describe('listModelEvaluations', () => {
+const useK8sWatchResourceListMock = jest.mocked(useK8sWatchResourceList<LMEvalKind[]>);
+describe('useLMEvalJob', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  it('should fetch and return list of model evaluations', async () => {
+  it('should wrap useK8sWatchResourceList to watch LMEval jobs', () => {
     const namespace = 'test-project';
-    const mockEvaluation = mockLMEvaluation({ name: 'test-evaluation' });
-    mockListResource.mockResolvedValue(mockK8sResourceList([mockEvaluation]));
+    const mockReturnValue: ReturnType<typeof useK8sWatchResourceListMock> = [[], false, undefined];
+    useK8sWatchResourceListMock.mockReturnValue(mockReturnValue);
 
-    const result = await listModelEvaluations(namespace);
-    expect(mockListResource).toHaveBeenCalledWith({
-      model: LMEvalModel,
-      queryOptions: {
-        ns: namespace,
+    const { result } = testHook(useLMEvalJob)(namespace);
+
+    expect(useK8sWatchResourceListMock).toHaveBeenCalledTimes(1);
+    expect(useK8sWatchResourceListMock).toHaveBeenCalledWith(
+      {
+        isList: true,
+        groupVersionKind: groupVersionKind(LMEvalModel),
+        namespace,
       },
-    });
-    expect(mockListResource).toHaveBeenCalledTimes(1);
-    expect(result).toStrictEqual([mockEvaluation]);
+      LMEvalModel,
+    );
+    expect(result.current).toStrictEqual(mockReturnValue);
   });
 
-  it('should return empty array when no evaluations exist', async () => {
-    const namespace = 'empty-project';
-    mockListResource.mockResolvedValue(mockK8sResourceList([]));
+  it('should return list of LMEval jobs', () => {
+    const namespace = 'test-project';
+    const mockReturnValue: ReturnType<typeof useK8sWatchResourceListMock> = [
+      [mockLMEvaluation({})],
+      true,
+      undefined,
+    ];
+    useK8sWatchResourceListMock.mockReturnValue(mockReturnValue);
 
-    const result = await listModelEvaluations(namespace);
-    expect(result).toStrictEqual([]);
-    expect(mockListResource).toHaveBeenCalledTimes(1);
+    const { result } = testHook(useLMEvalJob)(namespace);
+
+    expect(useK8sWatchResourceListMock).toHaveBeenCalledTimes(1);
+    expect(useK8sWatchResourceListMock).toHaveBeenCalledWith(
+      {
+        isList: true,
+        groupVersionKind: groupVersionKind(LMEvalModel),
+        namespace,
+      },
+      LMEvalModel,
+    );
+    expect(result.current).toStrictEqual(mockReturnValue);
   });
 
-  it('should handle errors when fetching list of model evaluations', async () => {
+  it('should handle errors and rethrow', () => {
     const namespace = 'test-project';
-    mockListResource.mockRejectedValue(new Error('error1'));
+    const mockReturnValue: ReturnType<typeof useK8sWatchResourceListMock> = [
+      [],
+      true,
+      new Error('Unknown error occurred'),
+    ];
+    useK8sWatchResourceListMock.mockReturnValue(mockReturnValue);
 
-    await expect(listModelEvaluations(namespace)).rejects.toThrow('error1');
-    expect(mockListResource).toHaveBeenCalledTimes(1);
-    expect(mockListResource).toHaveBeenCalledWith({
-      model: LMEvalModel,
-      queryOptions: {
-        ns: namespace,
+    const { result } = testHook(useLMEvalJob)(namespace);
+
+    expect(useK8sWatchResourceListMock).toHaveBeenCalledTimes(1);
+    expect(useK8sWatchResourceListMock).toHaveBeenCalledWith(
+      {
+        isList: true,
+        groupVersionKind: groupVersionKind(LMEvalModel),
+        namespace,
       },
-    });
+      LMEvalModel,
+    );
+    expect(result.current).toStrictEqual(mockReturnValue);
+  });
+
+  it('should handle multiple LMEval jobs', () => {
+    const namespace = 'test-project';
+    const mockJobs = [
+      mockLMEvaluation({ name: 'evaluation-1' }),
+      mockLMEvaluation({ name: 'evaluation-2' }),
+      mockLMEvaluation({ name: 'evaluation-3' }),
+    ];
+    const mockReturnValue: ReturnType<typeof useK8sWatchResourceListMock> = [
+      mockJobs,
+      true,
+      undefined,
+    ];
+    useK8sWatchResourceListMock.mockReturnValue(mockReturnValue);
+
+    const { result } = testHook(useLMEvalJob)(namespace);
+
+    expect(useK8sWatchResourceListMock).toHaveBeenCalledTimes(1);
+    expect(useK8sWatchResourceListMock).toHaveBeenCalledWith(
+      {
+        isList: true,
+        groupVersionKind: groupVersionKind(LMEvalModel),
+        namespace,
+      },
+      LMEvalModel,
+    );
+    expect(result.current).toStrictEqual(mockReturnValue);
   });
 });
 

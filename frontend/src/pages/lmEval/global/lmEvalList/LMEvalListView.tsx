@@ -7,7 +7,6 @@ import LMEvalToolbar from './LMEvalToolbar';
 
 type LMEvalListViewProps = {
   lmEval: LMEvalKind[];
-  lmEvalRefresh: () => void;
 };
 
 export const getLMEvalProjectDisplayName = (
@@ -18,10 +17,7 @@ export const getLMEvalProjectDisplayName = (
   return project ? getDisplayNameFromK8sResource(project) : 'Unknown';
 };
 
-const LMEvalListView: React.FC<LMEvalListViewProps> = ({
-  lmEval: unfilteredLMEval,
-  lmEvalRefresh,
-}) => {
+const LMEvalListView: React.FC<LMEvalListViewProps> = ({ lmEval: unfilteredLMEval }) => {
   const [filterData, setFilterData] = React.useState<LMEvalFilterDataType>(initialLMEvalFilterData);
 
   const onClearFilters = React.useCallback(
@@ -62,7 +58,6 @@ const LMEvalListView: React.FC<LMEvalListViewProps> = ({
   return (
     <LMEvalTable
       lmEval={filteredLMEval}
-      lmEvalRefresh={lmEvalRefresh}
       onClearFilters={onClearFilters}
       toolbarContent={<LMEvalToolbar filterData={filterData} onFilterUpdate={onFilterUpdate} />}
     />
