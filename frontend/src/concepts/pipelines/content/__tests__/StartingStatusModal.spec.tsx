@@ -124,10 +124,21 @@ describe('StartingStatusModal', () => {
   });
 
   it('should show spinner when no conditions are ready', () => {
+    const recentTime = new Date(Date.now() - 1000 * 60 * 2).toISOString(); // 2 minutes ago
     mockUsePipelinesAPI.mockReturnValue(
       createMockConditions([
-        { type: 'APIServerReady', status: 'False', message: 'API server not ready' },
-        { type: 'Ready', status: 'False', message: 'Server not ready' },
+        {
+          type: 'APIServerReady',
+          status: 'False',
+          message: 'API server not ready',
+          lastTransitionTime: recentTime,
+        },
+        {
+          type: 'Ready',
+          status: 'False',
+          message: 'Server not ready',
+          lastTransitionTime: recentTime,
+        },
       ]),
     );
 
@@ -138,13 +149,15 @@ describe('StartingStatusModal', () => {
   });
 
   it('should show in progress when APIServerReady is True and ready is Not true', () => {
+    const recentTime = new Date(Date.now() - 1000 * 60 * 2).toISOString(); // 2 minutes ago
     mockUsePipelinesAPI.mockReturnValue(
       createMockConditions([
         { type: 'APIServerReady', status: 'True', message: 'API server ready' },
         {
-          reason: 'still spinning up.....',
+          reason: K8sDspaConditionReason.Deploying, // Use Deploying reason to trigger IN_PROGRESS status
           status: 'False',
           type: 'Ready',
+          lastTransitionTime: recentTime,
         },
       ]),
     );
