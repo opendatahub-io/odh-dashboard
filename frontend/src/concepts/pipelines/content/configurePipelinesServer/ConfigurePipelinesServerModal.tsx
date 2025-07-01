@@ -115,7 +115,6 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
               callbackDelay: FAST_POLL_INTERVAL,
               callback: async (signal: AbortSignal) => {
                 try {
-                  console.log('POLL');
                   // This should emulate the logic in usePipelineNamespaceCR as much as possible
                   const response = await listPipelinesCR(pollingNamespace, { signal });
                   const serverLoaded = dspaLoaded([response[0], true]);

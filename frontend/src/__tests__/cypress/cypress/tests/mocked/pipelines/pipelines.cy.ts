@@ -35,7 +35,7 @@ import { tablePagination } from '#~/__tests__/cypress/cypress/pages/components/P
 import { verifyRelativeURL } from '#~/__tests__/cypress/cypress/utils/url';
 import { pipelineRunsGlobal } from '#~/__tests__/cypress/cypress/pages/pipelines/pipelineRunsGlobal';
 import { argoAlert } from '#~/__tests__/cypress/cypress/pages/pipelines/argoAlert';
-// import { toastNotifications } from '#~/__tests__/cypress/cypress/pages/components/ToastNotifications';
+import { toastNotifications } from '#~/__tests__/cypress/cypress/pages/components/ToastNotifications';
 
 const projectName = 'test-project-name';
 const initialMockPipeline = buildMockPipeline({ display_name: 'Test pipeline' });
@@ -89,6 +89,14 @@ describe('Pipelines', () => {
       mockK8sResourceList([
         mockSecretK8sResource({ s3Bucket: 'c2RzZA==', namespace: projectName }),
       ]),
+    );
+
+    cy.interceptK8sList(
+      {
+        model: DataSciencePipelineApplicationModel,
+        ns: projectName,
+      },
+      mockK8sResourceList([mockDataSciencePipelineApplicationK8sResource({})]),
     );
     pipelinesGlobal.findConfigurePipelineServerButton().should('be.enabled');
     pipelinesGlobal.findConfigurePipelineServerButton().click();
@@ -147,11 +155,21 @@ describe('Pipelines', () => {
         },
       });
     });
+
+    toastNotifications.findToastNotification(0).should('contain.text', 'Success alert');
   });
 
   it('Configure pipeline server when viable connection does not exist', () => {
     initIntercepts({ isEmpty: true });
     pipelinesGlobal.visit(projectName);
+
+    cy.interceptK8sList(
+      {
+        model: DataSciencePipelineApplicationModel,
+        ns: projectName,
+      },
+      mockK8sResourceList([mockDataSciencePipelineApplicationK8sResource({})]),
+    );
 
     cy.interceptK8s(
       'POST',
@@ -223,6 +241,8 @@ describe('Pipelines', () => {
         },
       });
     });
+
+    toastNotifications.findToastNotification(0).should('contain.text', 'Success alert');
   });
 
   it('Connect external database while configuring pipeline server', () => {

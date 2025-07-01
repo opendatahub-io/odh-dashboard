@@ -30,7 +30,7 @@ export const hasServerTimedOut = (
   }
 
   // If we are here, and 5 mins have past, we are having issues
-  return Date.now() - new Date(createTime).getTime() > 10000;
+  return Date.now() - new Date(createTime).getTime() > SERVER_TIMEOUT;
 };
 
 const usePipelineNamespaceCR = (namespace: string): FetchState<State> => {
