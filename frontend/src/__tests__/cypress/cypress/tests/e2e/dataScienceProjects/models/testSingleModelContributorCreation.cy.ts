@@ -64,17 +64,9 @@ describe('Verify Model Creation and Validation using the UI', () => {
   });
 
   it(
-    '[Product Bug: RHOAIENG-28128] Verify that a Non Admin can Serve and Query a Model using the UI',
+    'Verify that a Non Admin can Serve and Query a Model using the UI',
     {
-      tags: [
-        '@Smoke',
-        '@SmokeSet3',
-        '@ODS-2552',
-        '@Dashboard',
-        '@Modelserving',
-        '@NonConcurrent',
-        '@Bug',
-      ],
+      tags: ['@Smoke', '@SmokeSet3', '@ODS-2552', '@Dashboard', '@Modelserving', '@NonConcurrent'],
     },
     () => {
       cy.log('Model Name:', modelName);

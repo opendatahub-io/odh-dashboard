@@ -7,7 +7,11 @@ import type {
   ModelServingDeploymentsTableExtension,
   ModelServingDeleteModal,
   ModelServingPlatformWatchDeploymentsExtension,
+  ModelServingDeploymentsExpandedInfo,
+  ModelServingMetricsExtension,
 } from '@odh-dashboard/model-serving/extension-points';
+// eslint-disable-next-line no-restricted-syntax
+import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/index';
 import type { KServeDeployment } from './src/deployments';
 
 export const KSERVE_ID = 'kserve';
@@ -16,7 +20,9 @@ const extensions: (
   | ModelServingPlatformExtension<KServeDeployment>
   | ModelServingPlatformWatchDeploymentsExtension<KServeDeployment>
   | ModelServingDeploymentsTableExtension<KServeDeployment>
+  | ModelServingDeploymentsExpandedInfo<KServeDeployment>
   | ModelServingDeleteModal<KServeDeployment>
+  | ModelServingMetricsExtension<KServeDeployment>
 )[] = [
   {
     type: 'model-serving.platform',
@@ -57,12 +63,35 @@ const extensions: (
     },
   },
   {
+    type: 'model-serving.deployments-table/expanded-info',
+    properties: {
+      platform: KSERVE_ID,
+      getFramework: () =>
+        import('./src/deploymentExpandedDetails').then((m) => m.getKserveFramework),
+      getReplicas: () => import('./src/deploymentExpandedDetails').then((m) => m.getKserveReplicas),
+      getResourceSize: () =>
+        import('./src/deploymentExpandedDetails').then((m) => m.getKserveResourceSize),
+      getHardwareAccelerator: () =>
+        import('./src/deploymentExpandedDetails').then((m) => m.getKserveHardwareAccelerator),
+      getTokens: () => import('./src/deploymentExpandedDetails').then((m) => m.getKserveTokens),
+    },
+  },
+  {
     type: 'model-serving.platform/delete-modal',
     properties: {
       platform: KSERVE_ID,
       onDelete: () => import('./src/deployments').then((m) => m.deleteDeployment),
       title: 'Delete deployed model?',
       submitButtonLabel: 'Delete deployed model',
+    },
+  },
+  {
+    type: 'model-serving.metrics',
+    properties: {
+      platform: KSERVE_ID,
+    },
+    flags: {
+      required: [SupportedArea.K_SERVE_METRICS],
     },
   },
 ];

@@ -1,11 +1,8 @@
 import {
   k8sGetResource,
-  k8sListResource,
   k8sCreateResource,
   k8sDeleteResource,
   K8sStatus,
-  useK8sWatchResource,
-  WatchK8sResult,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import { LmEvalFormData } from '#~/pages/lmEval/types';
 import { K8sAPIOptions, LMEvalKind } from '#~/k8sTypes';
@@ -14,14 +11,8 @@ import { applyK8sAPIOptions } from '#~/api/apiMergeUtils';
 import { kindApiVersion, translateDisplayNameForK8s } from '#~/concepts/k8s/utils';
 import { convertModelArgs } from '#~/pages/lmEval/lmEvalForm/utils.ts';
 import { groupVersionKind } from '#~/api/k8sUtils';
-
-export const listModelEvaluations = async (namespace: string): Promise<LMEvalKind[]> =>
-  k8sListResource<LMEvalKind>({
-    model: LMEvalModel,
-    queryOptions: {
-      ns: namespace,
-    },
-  }).then((listResource) => listResource.items);
+import { CustomWatchK8sResult } from '#~/types.ts';
+import useK8sWatchResourceList from '#~/utilities/useK8sWatchResourceList.ts';
 
 const assembleModelEvaluation = (
   data: LmEvalFormData,
@@ -94,13 +85,12 @@ export const getModelEvaluationResult = (name: string, namespace: string): Promi
     queryOptions: { name, ns: namespace },
   });
 
-export const useLMEvalJobStatus = (name: string, namespace: string): WatchK8sResult<LMEvalKind> =>
-  useK8sWatchResource(
+export const useLMEvalJob = (namespace: string): CustomWatchK8sResult<LMEvalKind[]> =>
+  useK8sWatchResourceList(
     {
-      isList: false,
+      isList: true,
       groupVersionKind: groupVersionKind(LMEvalModel),
       namespace,
-      name,
     },
     LMEvalModel,
   );

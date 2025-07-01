@@ -55,8 +55,8 @@ describe(
     });
 
     it(
-      '[Product Bug: RHOAIENG-28128] Verify User Can Create an OCI Connection in DS Connections Page And Deploy the Model',
-      { tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@Modelserving', '@NonConcurrent', '@Bug'] },
+      'Verify User Can Create an OCI Connection in DS Connections Page And Deploy the Model',
+      { tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@Modelserving', '@NonConcurrent'] },
       () => {
         cy.step(`Navigate to DS Project ${projectName}`);
         cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
@@ -94,7 +94,7 @@ describe(
         // Note reload is required as status tooltip was not found due to a stale element
         cy.reload();
         modelServingSection.findStatusTooltip().click({ force: true });
-        cy.contains('Loaded', { timeout: 120000 }).should('be.visible');
+        cy.contains('Model is deployed', { timeout: 120000 }).should('be.visible');
       },
     );
   },

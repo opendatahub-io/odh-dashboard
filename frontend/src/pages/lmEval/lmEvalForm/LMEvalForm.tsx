@@ -104,7 +104,7 @@ const LMEvalForm: React.FC = () => {
   const findOptionForKey = (key: string): ModelTypeOption | undefined =>
     modelTypeOptions.find((option) => option.key === key);
   const selectedOption = data.modelType ? findOptionForKey(data.modelType) : undefined;
-  const selectedLabel = selectedOption?.label ?? 'Select type a model';
+  const selectedLabel = selectedOption?.label ?? 'Select endpoint interaction type';
   const selectedModel = modelOptions.find(
     (model: ModelOption) => model.value === data.deployedModelName,
   );
@@ -117,17 +117,14 @@ const LMEvalForm: React.FC = () => {
   return (
     <LMEvalApplicationPage
       loaded
-      title="Evaluate model"
-      description={
-        <>
-          Test your model against a large number of different evaluation tasks to understand your
-          model&apos;s performance, as well as its strengths and weaknesses.
-        </>
-      }
+      title="Start an evaluation run"
+      description="Configure details for your model evaluation run."
       breadcrumb={
         <Breadcrumb>
-          <BreadcrumbItem render={() => <Link to="/modelEvaluations">Model evaluations</Link>} />
-          <BreadcrumbItem isActive>Evaluate model</BreadcrumbItem>
+          <BreadcrumbItem
+            render={() => <Link to="/modelEvaluations">Model evaluation runs</Link>}
+          />
+          <BreadcrumbItem isActive>Start an evaluation run</BreadcrumbItem>
         </Breadcrumb>
       }
       empty={false}
@@ -208,9 +205,7 @@ const LMEvalForm: React.FC = () => {
               </SelectList>
             </Select>
           </FormGroup>
-          {/* TODO: add popover content */}
           <FormGroup
-            label="Evaluation name"
             isRequired
             data-testid="evaluation-name-form-group"
             labelHelp={
@@ -232,13 +227,18 @@ const LMEvalForm: React.FC = () => {
               onDataChange={setLmEvalName}
               dataTestId="lm-eval"
               hideDescription
+              nameLabel="Evaluation run name"
             />
           </FormGroup>
           <LmEvaluationTaskSection
             tasks={data.tasks}
             setTasks={(selectedTasks: string[]) => setData('tasks', selectedTasks)}
           />
-          <FormGroup label="Model type" isRequired data-testid="model-type-form-group">
+          <FormGroup
+            label="Model endpoint interaction"
+            isRequired
+            data-testid="model-type-form-group"
+          >
             <Select
               isOpen={open}
               selected={data.modelType}
