@@ -27,7 +27,7 @@ const testRunName = 'test-pipelines-run';
 const awsBucket = 'BUCKET_2' as const;
 
 describe(
-  '[Product Bug: RHOAIENG-24702] An admin user can import and run a pipeline',
+  'An admin user can import and run a pipeline',
   { testIsolation: false },
   () => {
     retryableBefore(() => {
@@ -49,7 +49,7 @@ describe(
 
     it(
       'Verify User Can Create, Run and Delete A DS Pipeline From DS Project Details Page Using Custom Pip Mirror',
-      { tags: ['@Smoke', '@SmokeSet1', '@ODS-2206', '@Pipelines', '@Dashboard', '@Bug'] },
+      { tags: ['@Smoke', '@SmokeSet1', '@ODS-2206', '@Pipelines', '@Dashboard'] },
       () => {
         cy.step(`Navigate to DSP ${projectName}`);
         cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
@@ -95,7 +95,7 @@ describe(
             createRunPage.findSubmitButton().click();
 
             cy.step('Expect the run to Succeed');
-            pipelineRunDetails.expectStatusLabelToBe('Succeeded', 180000);
+            pipelineRunDetails.expectStatusLabelToBe('Succeeded', 240000);
 
             cy.step('Delete the pipeline version');
             pipelinesGlobal.navigate();

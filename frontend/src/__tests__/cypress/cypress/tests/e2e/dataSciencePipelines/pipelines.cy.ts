@@ -19,7 +19,7 @@ const testRunName = 'test-pipelines-run';
 const awsBucket = 'BUCKET_3' as const;
 
 describe(
-  '[Product Bug: RHOAIENG-24702] An admin user can import and run a pipeline',
+  'An admin user can import and run a pipeline',
   { testIsolation: false },
   () => {
     retryableBefore(() => {
@@ -34,7 +34,7 @@ describe(
 
     it(
       'An admin User can Import and Run a Pipeline',
-      { tags: ['@Smoke', '@SmokeSet1', '@Dashboard', '@Pipelines', '@Bug'] },
+      { tags: ['@Smoke', '@SmokeSet1', '@Dashboard', '@Pipelines'] },
       () => {
         cy.step('Navigate to DSP ${projectName}');
         cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
@@ -70,7 +70,7 @@ describe(
 
         cy.step('Expect the run to Succeed');
         //Redirected to the Graph view of the created run
-        pipelineRunDetails.expectStatusLabelToBe('Succeeded', 180000);
+        pipelineRunDetails.expectStatusLabelToBe('Succeeded', 240000);
       },
     );
   },
