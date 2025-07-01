@@ -38,7 +38,7 @@
     "**/*.tsx",
     "**/*.jsx",
     "**/*.js"
-  ],
+, "../typesTest.ts"  ],
   "exclude": [
     "node_modules",
     "dist",

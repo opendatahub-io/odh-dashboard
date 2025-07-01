@@ -31,5 +31,8 @@
       "name": "model-registry-ui-service",
       "port": 8080
     }
+  },
+  "exports": {
+    "./extension-points": "./extension-points/index.ts"
   }
 }

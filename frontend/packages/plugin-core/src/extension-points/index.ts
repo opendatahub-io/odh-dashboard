@@ -4,6 +4,7 @@ export * from './routes';
 export * from './status-provider';
 export * from './project-details';
 export * from './overview-card';
+export * from './types';
 
 /**
  * ## Extension Point Definitions
