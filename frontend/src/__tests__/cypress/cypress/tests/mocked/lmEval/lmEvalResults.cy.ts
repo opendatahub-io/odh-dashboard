@@ -81,7 +81,7 @@ describe('LM Eval Results', () => {
 
   it('should only show clickable links for completed evaluations', () => {
     lmEvalPage.visit(TEST_PROJECT);
-    lmEvalPage.findPageTitle().should('have.text', 'Model evaluations');
+    lmEvalPage.findPageTitle().should('have.text', 'Model evaluation runs');
 
     // Complete evaluation should have clickable link
     lmEvalList.getRow(COMPLETE_EVALUATION).shouldHaveClickableLink(COMPLETE_EVALUATION);
@@ -156,10 +156,10 @@ describe('LM Eval Results', () => {
   it('should handle breadcrumb navigation back to evaluations list', () => {
     lmEvalResultsPage.visit(TEST_PROJECT, COMPLETE_EVALUATION);
 
-    lmEvalResultsPage.findBreadcrumbItem('Model evaluations').click();
+    lmEvalResultsPage.findBreadcrumbItem('Model evaluation runs').click();
 
     verifyRelativeURL('/modelEvaluations');
-    lmEvalPage.findPageTitle().should('have.text', 'Model evaluations');
+    lmEvalPage.findPageTitle().should('have.text', 'Model evaluation runs');
   });
 
   it('should allow downloading results as JSON', () => {
