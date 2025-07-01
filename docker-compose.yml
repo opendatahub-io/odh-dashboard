@@ -1,0 +1,50 @@
+
+services:
+  odh-dashboard-dev:
+    build:
+      context: .
+      dockerfile: scripts/dev/Dockerfile
+      args:
+        - OC_CLI_PATH=${OC_CLI_PATH:-./oc-cli.tar.gz}
+    container_name: odh-dashboard-dev
+    ports:
+      - "4010:4010" # Frontend dev
+      - "8080:8080" # Backend dev
+    volumes:
+      - .:/app/odh-dashboard:Z
+      - node_modules_cache:/app/odh-dashboard/node_modules
+      - frontend_node_modules_cache:/app/odh-dashboard/frontend/node_modules
+      - backend_node_modules_cache:/app/odh-dashboard/backend/node_modules
+      - ${OC_CONFIG_DIR:-~/.kube}:/home/odh/.kube:ro,Z
+      - ${CRC_CONFIG_DIR:-~/.crc}:/home/odh/.crc:Z
+      - ./scripts/dev/entrypoint.sh:/entrypoint.sh:Z
+
+    environment:
+      - NODE_ENV=development
+      - NODE_TLS_REJECT_UNAUTHORIZED=0
+      - OC_CLUSTER_TYPE=${OC_CLUSTER_TYPE:-existing}
+      - OC_URL=${OC_URL}
+      - OC_TOKEN=${OC_TOKEN}
+      - OC_USER=${OC_USER}
+      - OC_PASSWORD=${OC_PASSWORD}
+      - CRC_PULL_SECRET=${CRC_PULL_SECRET_PATH}
+      - IMAGE_REPOSITORY=${IMAGE_REPOSITORY:-quay.io/opendatahub/odh-dashboard:dev}
+      - OC_PROJECT=${OC_PROJECT:-odh-dashboard}
+
+    entrypoint: ["/entrypoint.sh"]
+    command: ["dev"]
+    working_dir: /app/odh-dashboard
+    networks:
+      "odh-dev"
+
+networks:
+  odh-dev:
+    driver: bridge
+
+
+volumes:
+  node_modules_cache:
+  frontend_node_modules_cache:
+  backend_node_modules_cache:
+
+
