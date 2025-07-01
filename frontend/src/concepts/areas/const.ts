@@ -46,6 +46,7 @@ export const definedFeatureFlags: string[] = Object.keys({
   disableLMEval: true,
   disableLlamaStackChatBot: true, // internal dev only
   disablePVCServing: true,
+  disableFeatureStore: true,
 } satisfies DashboardCommonConfig);
 
 export const SupportedAreasStateMap: SupportedAreasState = {
@@ -185,6 +186,10 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   [SupportedArea.LM_EVAL]: {
     featureFlags: ['disableLMEval'],
     reliantAreas: [SupportedArea.MODEL_REGISTRY, SupportedArea.MODEL_SERVING],
+  },
+  [SupportedArea.FEATURE_STORE]: {
+    featureFlags: ['disableFeatureStore'],
+    requiredComponents: [StackComponent.FEAST_OPERATOR],
   },
 };
 
