@@ -30,6 +30,12 @@ describe('updateTimestamps', () => {
     patchRegisteredModel: jest.fn(),
     patchModelVersion: jest.fn(),
     patchModelArtifact: jest.fn(),
+    getExperiment: jest.fn(),
+    listExperiments: jest.fn(),
+    getExperimentRuns: jest.fn(),
+    getExperimentRun: jest.fn(),
+    getExperimentRunArtifacts: jest.fn(),
+    getExperimentRunMetricHistory: jest.fn(),
   });
   const fakeModelVersionId = 'test-model-version-id';
   const fakeRegisteredModelId = 'test-registered-model-id';

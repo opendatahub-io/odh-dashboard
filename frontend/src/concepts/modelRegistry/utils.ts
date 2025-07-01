@@ -1,3 +1,4 @@
+import { ServiceKind } from 'mod-arch-shared';
 import { LabeledConnection } from '#~/pages/modelServing/screens/types';
 import {
   ConnectionTypeConfigMapObj,
@@ -186,3 +187,6 @@ export const modelSourcePropertiesToPipelineRunRef = (
     runName: properties.modelSourceName,
   };
 };
+
+export const getServerAddress = (resource: ServiceKind): string =>
+  resource.metadata.annotations?.['routing.opendatahub.io/external-address-rest'] || '';

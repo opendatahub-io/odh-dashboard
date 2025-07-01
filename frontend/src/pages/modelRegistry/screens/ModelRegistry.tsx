@@ -5,8 +5,8 @@ import useRegisteredModels from '#~/concepts/modelRegistry/apiHooks/useRegistere
 import useModelVersions from '#~/concepts/modelRegistry/apiHooks/useModelVersions';
 import TitleWithIcon from '#~/concepts/design/TitleWithIcon';
 import { ProjectObjectType } from '#~/concepts/design/utils';
+import ModelRegistrySelectorNavigator from '#~/concepts/modelRegistry/content/ModelRegistrySelectorNavigator';
 import RegisteredModelListView from './RegisteredModels/RegisteredModelListView';
-import ModelRegistrySelectorNavigator from './ModelRegistrySelectorNavigator';
 
 type ModelRegistryProps = Omit<
   React.ComponentProps<typeof ApplicationsPage>,

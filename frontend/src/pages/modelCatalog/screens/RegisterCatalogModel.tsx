@@ -33,7 +33,7 @@ import { registeredModelRoute } from '#~/routes/modelRegistry/registeredModels';
 import { useAppSelector } from '#~/redux/hooks';
 import { ModelCatalogContext } from '#~/concepts/modelCatalog/context/ModelCatalogContext';
 import { CatalogModel } from '#~/concepts/modelCatalog/types';
-import ModelRegistrySelector from '#~/pages/modelRegistry/screens/ModelRegistrySelector';
+import ModelRegistrySelector from '#~/concepts/modelRegistry/content/ModelRegistrySelector.tsx';
 import useModelRegistryAPIState from '#~/concepts/modelRegistry/context/useModelRegistryAPIState';
 import {
   createCustomPropertiesFromModel,
