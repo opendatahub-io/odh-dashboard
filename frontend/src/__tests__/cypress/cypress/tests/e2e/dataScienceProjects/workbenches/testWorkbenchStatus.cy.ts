@@ -44,8 +44,8 @@ describe('Workbenches - status tests', () => {
   });
 
   it(
-    '[Product Bug: RHOAIENG-27515] Verify user can access progress and event log - validate status and successful workbench creation',
-    { tags: ['@Sanity', '@SanitySet2', '@ODS-1970', '@Dashboard', '@Workbenches', '@Bug'] },
+    'Verify user can access progress and event log - validate status and successful workbench creation',
+    { tags: ['@Sanity', '@SanitySet2', '@ODS-1970', '@Dashboard', '@Workbenches'] },
     () => {
       const workbenchName = projectName.replace('dsp-', '');
 
