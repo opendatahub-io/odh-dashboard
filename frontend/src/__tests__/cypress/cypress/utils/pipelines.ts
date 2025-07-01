@@ -53,6 +53,7 @@ export const provisionProjectForPipelines = (
     DSPA_SECRET_NAME: dspaSecretName,
     NAMESPACE: projectName,
     AWS_S3_BUCKET: bucketConfig.NAME,
+    AWS_REGION: bucketConfig.REGION,
   };
   createDSPA(dspaReplacements);
 };
