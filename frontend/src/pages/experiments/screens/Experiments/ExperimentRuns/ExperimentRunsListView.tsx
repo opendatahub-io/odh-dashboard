@@ -9,12 +9,15 @@ import {
   EmptyStateBody,
   EmptyStateVariant,
 } from '@patternfly/react-core';
-import { ExclamationCircleIcon } from '@patternfly/react-icons';
+import { ExclamationCircleIcon, ColumnsIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
 import { RegistryExperimentRun } from '#~/concepts/modelRegistry/types';
 import { ModelRegistriesContext } from '#~/concepts/modelRegistry/context/ModelRegistriesContext.tsx';
 import { compareRunsRoute } from '#~/routes/experiments/registryBase.ts';
-import ExperimentRunsTable from './ExperimentRunsTable';
+import useExperimentRunsArtifacts from '#~/concepts/modelRegistry/apiHooks/useExperimentRunsArtifacts';
+import ExperimentRunsColumnSelector from './ExperimentRunsColumnSelector';
+import ExperimentRunsTableWithNestedHeaders from './ExperimentRunsTableWithNestedHeaders';
+import { createExperimentRunsColumns, ColumnSelection } from './ExperimentRunsTableColumnsConfig';
 
 type ExperimentRunsListViewProps = {
   experimentRuns: RegistryExperimentRun[];
@@ -22,8 +25,46 @@ type ExperimentRunsListViewProps = {
 
 const ExperimentRunsListView: React.FC<ExperimentRunsListViewProps> = ({ experimentRuns }) => {
   const [selectedRuns, setSelectedRuns] = React.useState<RegistryExperimentRun[]>([]);
+  const [isColumnSelectorOpen, setIsColumnSelectorOpen] = React.useState(false);
+  const [selectedColumns, setSelectedColumns] = React.useState<ColumnSelection>({
+    metrics: [],
+    parameters: [],
+    tags: [],
+  });
+
   const { preferredModelRegistry } = React.useContext(ModelRegistriesContext);
   const navigate = useNavigate();
+
+  // Get available columns from artifacts
+  const [aggregatedArtifacts] = useExperimentRunsArtifacts(experimentRuns);
+
+  // Initialize selected columns when artifacts are loaded
+  React.useEffect(() => {
+    if (
+      aggregatedArtifacts.metrics.size > 0 ||
+      aggregatedArtifacts.parameters.size > 0 ||
+      aggregatedArtifacts.tags.size > 0
+    ) {
+      const newSelection: ColumnSelection = {
+        metrics: Array.from(aggregatedArtifacts.metrics).map((metric) => ({
+          id: metric,
+          name: metric,
+          checked: false, // Default to unchecked, user can select what they want
+        })),
+        parameters: Array.from(aggregatedArtifacts.parameters).map((param) => ({
+          id: param,
+          name: param,
+          checked: false,
+        })),
+        tags: Array.from(aggregatedArtifacts.tags).map((tag) => ({
+          id: tag,
+          name: tag,
+          checked: false,
+        })),
+      };
+      setSelectedColumns(newSelection);
+    }
+  }, [aggregatedArtifacts]);
 
   const handleCompareRuns = React.useCallback(() => {
     navigate(
@@ -33,6 +74,8 @@ const ExperimentRunsListView: React.FC<ExperimentRunsListViewProps> = ({ experim
       ),
     );
   }, [navigate, preferredModelRegistry?.metadata.name, selectedRuns]);
+
+  const columnConfig = createExperimentRunsColumns(selectedColumns);
 
   if (experimentRuns.length === 0) {
     return (
@@ -62,13 +105,35 @@ const ExperimentRunsListView: React.FC<ExperimentRunsListViewProps> = ({ experim
               {selectedRuns.length > 1 ? `Compare runs (${selectedRuns.length})` : 'Compare runs'}
             </Button>
           </ToolbarItem>
+          <ToolbarItem>
+            <Button
+              variant="secondary"
+              icon={<ColumnsIcon />}
+              onClick={() => setIsColumnSelectorOpen(true)}
+            >
+              Columns
+            </Button>
+          </ToolbarItem>
         </ToolbarContent>
       </Toolbar>
-      <ExperimentRunsTable
+      <ExperimentRunsTableWithNestedHeaders
         experimentRuns={experimentRuns}
         selectedRuns={selectedRuns}
         setSelectedRuns={setSelectedRuns}
+        columnConfig={columnConfig}
+        selectedColumns={selectedColumns}
       />
+      {(aggregatedArtifacts.metrics.size > 0 ||
+        aggregatedArtifacts.parameters.size > 0 ||
+        aggregatedArtifacts.tags.size > 0) && (
+        <ExperimentRunsColumnSelector
+          isOpen={isColumnSelectorOpen}
+          onClose={() => setIsColumnSelectorOpen(false)}
+          availableColumns={aggregatedArtifacts}
+          selectedColumns={selectedColumns}
+          onSelectionChange={setSelectedColumns}
+        />
+      )}
     </>
   );
 };
