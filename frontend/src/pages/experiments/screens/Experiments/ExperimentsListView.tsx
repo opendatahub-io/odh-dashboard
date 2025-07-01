@@ -2,7 +2,7 @@ import * as React from 'react';
 import { RegistryExperiment } from '#~/concepts/modelRegistry/types.ts';
 import ExperimentsTable from './ExperimentsTable';
 // eslint-disable-next-line no-relative-import-paths/no-relative-import-paths
-import EmptyModelRegistryState from '../components/EmptyModelRegistryState';
+import EmptyModelRegistryState from '../../../../concepts/modelRegistry/content/EmptyModelRegistryState';
 
 type ExperimentsListViewProps = {
   experiments: RegistryExperiment[];

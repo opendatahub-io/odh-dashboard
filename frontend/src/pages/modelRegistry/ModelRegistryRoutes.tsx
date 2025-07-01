@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { modelRegistryRoute } from '#~/routes/modelRegistry/registryBase';
-import ModelRegistryCoreLoader from './ModelRegistryCoreLoader';
+import ModelRegistryCoreLoader from '#~/concepts/modelRegistry/content/ModelRegistryCoreLoader.tsx';
 import ModelRegistry from './screens/ModelRegistry';
 import { ModelVersionsTab } from './screens/ModelVersions/const';
 import ModelVersions from './screens/ModelVersions/ModelVersions';
@@ -14,7 +14,6 @@ import RegisteredModelsArchiveDetails from './screens/RegisteredModelsArchive/Re
 import RegisterModel from './screens/RegisterModel/RegisterModel';
 import RegisterVersion from './screens/RegisterModel/RegisterVersion';
 import ArchiveModelVersionDetails from './screens/ModelVersionsArchive/ArchiveModelVersionDetails';
-import Experiments from './screens/Experiments/Experiments';
 
 const ModelRegistryRoutes: React.FC = () => (
   <Routes>
@@ -27,9 +26,6 @@ const ModelRegistryRoutes: React.FC = () => (
       }
     >
       <Route index element={<ModelRegistry empty={false} />} />
-      <Route path="experiments">
-        <Route index element={<Experiments empty={false} />} />
-      </Route>
       <Route path="registeredModels/:registeredModelId">
         <Route index element={<Navigate to={ModelVersionsTab.VERSIONS} replace />} />
         <Route

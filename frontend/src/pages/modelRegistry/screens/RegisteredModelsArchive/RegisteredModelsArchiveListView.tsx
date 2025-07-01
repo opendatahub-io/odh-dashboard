@@ -12,7 +12,7 @@ import { SearchType } from '#~/concepts/dashboard/DashboardSearchField';
 import { ModelVersion, RegisteredModel } from '#~/concepts/modelRegistry/types';
 import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
 import { filterRegisteredModels } from '#~/pages/modelRegistry/screens/utils';
-import EmptyModelRegistryState from '#~/pages/modelRegistry/screens/components/EmptyModelRegistryState';
+import EmptyModelRegistryState from '#~/concepts/modelRegistry/content/EmptyModelRegistryState.tsx';
 import { asEnumMember } from '#~/utilities/utils';
 import RegisteredModelsArchiveTable from './RegisteredModelsArchiveTable';
 

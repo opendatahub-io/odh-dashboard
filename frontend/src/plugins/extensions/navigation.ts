@@ -153,40 +153,13 @@ const extensions: NavExtension[] = [
   {
     type: 'app.navigation/href',
     flags: {
-      required: [SupportedArea.DS_PIPELINES],
+      required: [SupportedArea.MODEL_REGISTRY],
     },
     properties: {
-      id: 'experiments-and-runs',
-      title: 'Experiments and runs',
+      id: 'experiments',
+      title: 'Experiments',
       href: '/experiments',
-      section: 'experiments',
       path: '/experiments/*',
-    },
-  },
-  {
-    type: 'app.navigation/href',
-    flags: {
-      required: [SupportedArea.DS_PIPELINES],
-    },
-    properties: {
-      id: 'executions',
-      title: 'Executions',
-      href: '/executions',
-      section: 'experiments',
-      path: '/executions/*',
-    },
-  },
-  {
-    type: 'app.navigation/href',
-    flags: {
-      required: [SupportedArea.DS_PIPELINES],
-    },
-    properties: {
-      id: 'artifacts',
-      title: 'Artifacts',
-      href: '/artifacts',
-      section: 'experiments',
-      path: '/artifacts/*',
     },
   },
 
