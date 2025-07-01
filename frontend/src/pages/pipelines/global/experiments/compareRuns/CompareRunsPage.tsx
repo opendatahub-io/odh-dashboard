@@ -9,7 +9,7 @@ import CompareRunsRunList from '#~/concepts/pipelines/content/compareRuns/Compar
 import { ExperimentContext } from '#~/pages/pipelines/global/experiments/ExperimentContext';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { experimentRunsRoute } from '#~/routes/pipelines/experiments';
-import { CompareRunMetricsSection } from './CompareRunsMetricsSection';
+import { Visualization } from './visualization';
 import { CompareRunParamsSection } from './CompareRunParamsSection';
 
 const CompareRunsPage: React.FC<PathProps> = ({ breadcrumbPath }) => {
@@ -57,7 +57,7 @@ const CompareRunsPage: React.FC<PathProps> = ({ breadcrumbPath }) => {
         </StackItem>
 
         <StackItem>
-          <CompareRunMetricsSection />
+          <Visualization />
         </StackItem>
       </Stack>
     </ApplicationsPage>
