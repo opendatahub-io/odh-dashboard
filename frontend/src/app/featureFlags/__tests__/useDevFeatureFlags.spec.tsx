@@ -41,11 +41,9 @@ const mockSession = (initialSessionFlags: Record<string, boolean> | null) => {
   const setSessionFn = jest.fn().mockImplementation((value) => (sessionFlags = value));
   const setBannerFn = jest.fn().mockImplementation((value) => (bannerVisible = value));
 
-  // Mock useBrowserStorage to handle both calls
-  let callCount = 0;
-  useBrowserStorageMock.mockImplementation(() => {
-    callCount++;
-    if (callCount === 1) {
+  // Mock useBrowserStorage to handle both calls based on the storage key
+  useBrowserStorageMock.mockImplementation((key: string) => {
+    if (key === 'odh-feature-flags') {
       // First call is for sessionFlags
       return [sessionFlags, setSessionFn];
     }
@@ -175,7 +173,7 @@ describe('useDevFeatureFlags', () => {
       resetDevFeatureFlags: expect.any(Function),
       setDevFeatureFlag: expect.any(Function),
       setDevFeatureFlagQueryVisible: expect.any(Function),
-      isBannerVisible: false,
+      isBannerVisible: true,
     });
 
     expect(searchParams.delete).toHaveBeenCalledWith('devFeatureFlags');
@@ -214,7 +212,7 @@ describe('useDevFeatureFlags', () => {
       resetDevFeatureFlags: expect.any(Function),
       setDevFeatureFlag: expect.any(Function),
       setDevFeatureFlagQueryVisible: expect.any(Function),
-      isBannerVisible: false,
+      isBannerVisible: true,
     });
   });
 
@@ -242,7 +240,7 @@ describe('useDevFeatureFlags', () => {
       resetDevFeatureFlags: expect.any(Function),
       setDevFeatureFlag: expect.any(Function),
       setDevFeatureFlagQueryVisible: expect.any(Function),
-      isBannerVisible: false,
+      isBannerVisible: true,
     });
   });
 });
