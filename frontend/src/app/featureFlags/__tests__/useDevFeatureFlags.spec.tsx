@@ -5,11 +5,11 @@ import { PluginStoreProvider } from '@openshift/dynamic-plugin-sdk';
 import { PluginStore } from '@odh-dashboard/plugin-core';
 import { RenderOptions } from '@testing-library/react';
 import { renderHook } from '#~/__tests__/unit/testUtils/hooks';
-import useDevFeatureFlags from '#~/app/useDevFeatureFlags';
 import { useBrowserStorage } from '#~/components/browserStorage/BrowserStorageContext';
 import { definedFeatureFlags } from '#~/concepts/areas/const';
 import { DashboardConfigKind } from '#~/k8sTypes';
 import axios from '#~/utilities/axios';
+import useDevFeatureFlags from '#~/app/featureFlags/useDevFeatureFlags';
 
 jest.mock('react-router-dom', () => ({
   useSearchParams: jest.fn(() => [
@@ -71,7 +71,7 @@ const mockUseSearchParams = (queryFlags: { [key in string]: boolean } | null | b
 };
 
 const renderOptions = (): RenderOptions => {
-  const store = new PluginStore({});
+  const store = new PluginStore([]);
   return {
     wrapper: ({ children }) => <PluginStoreProvider store={store}>{children}</PluginStoreProvider>,
   };
