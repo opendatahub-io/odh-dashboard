@@ -1,30 +1,23 @@
 import React from 'react';
-import { Flex, FlexItem, Skeleton } from '@patternfly/react-core';
-import { useLMEvalJobStatus } from '#~/api/k8s/lmEval.ts';
+import { Flex, FlexItem } from '@patternfly/react-core';
 import UnderlinedTruncateButton from '#~/components/UnderlinedTruncateButton.tsx';
 import { LMEvalState } from '#~/pages/lmEval/types.ts';
 import { getLMEvalState, getLMEvalStatusColor } from '#~/pages/lmEval/global/lmEvalList/utils';
+import { LMEvalKind } from '#~/k8sTypes.ts';
 import LMEvalStatusLabel from './LMEvalStatusLabel';
 import LMEvalProgressBar from './LMEvalProgressBar';
 
 type LMEvalStatusProps = {
-  name: string;
-  namespace: string;
+  lmEval: LMEvalKind;
 };
 
-const LMEvalStatus: React.FC<LMEvalStatusProps> = ({ name, namespace }) => {
-  const [lmEvalJob, loaded] = useLMEvalJobStatus(name, namespace);
-
-  if (!loaded) {
-    return <Skeleton width="50%" />;
-  }
-
-  const currentState = getLMEvalState(lmEvalJob.status);
+const LMEvalStatus: React.FC<LMEvalStatusProps> = ({ lmEval }) => {
+  const currentState = getLMEvalState(lmEval.status);
 
   const isStarting = currentState === LMEvalState.PENDING;
   const isRunning =
     currentState === LMEvalState.IN_PROGRESS &&
-    lmEvalJob.status?.progressBars?.some((bar) => bar.message === 'Requesting API');
+    lmEval.status?.progressBars?.some((bar) => bar.message === 'Requesting API');
   const isRunningInitializing = currentState === LMEvalState.IN_PROGRESS && !isRunning;
   const isFailed = currentState === LMEvalState.FAILED;
 
@@ -33,15 +26,19 @@ const LMEvalStatus: React.FC<LMEvalStatusProps> = ({ name, namespace }) => {
   return (
     <Flex direction={{ default: 'column' }} gap={{ default: 'gapXs' }}>
       <FlexItem>
-        <LMEvalStatusLabel status={lmEvalJob.status} />
+        <LMEvalStatusLabel status={lmEval.status} />
       </FlexItem>
       {showUnderlinedTruncateButton ? (
         <UnderlinedTruncateButton
-          content={lmEvalJob.status?.message || 'Waiting for server request to start...'}
+          content={lmEval.status?.message || 'Waiting for server request to start...'}
           color={getLMEvalStatusColor(currentState)}
         />
       ) : null}
-      {isRunning ? <LMEvalProgressBar status={lmEvalJob.status} /> : null}
+      {isRunning ? (
+        <FlexItem>
+          <LMEvalProgressBar status={lmEval.status} />
+        </FlexItem>
+      ) : null}
     </Flex>
   );
 };

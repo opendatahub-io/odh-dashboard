@@ -58,7 +58,7 @@ class LMEvalResultsPage {
   }
 
   verifyBreadcrumbNavigation() {
-    this.findBreadcrumbItem('Model evaluations').should('exist');
+    this.findBreadcrumbItem('Model evaluation runs').should('exist');
   }
 
   verifyDownloadButtonExists() {

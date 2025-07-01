@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { render, screen, fireEvent, RenderResult } from '@testing-library/react';
 import { ProjectKind, InferenceServiceKind } from '#~/k8sTypes';
-import { DEFAULT_LIST_FETCH_STATE } from '#~/utilities/const';
+import { DEFAULT_LIST_WATCH_RESULT } from '#~/utilities/const';
 import { LMEvalContext } from '#~/pages/lmEval/global/LMEvalContext';
 import LMEvalForm from '#~/pages/lmEval/lmEvalForm/LMEvalForm';
 import { mockInferenceServices } from './mockInferenceServicesData';
@@ -24,7 +24,7 @@ export const renderWithContext = (namespace?: string): RenderResult => {
   const project = namespace ? createMockProject(namespace) : null;
 
   const mockContextValue = {
-    lmEval: DEFAULT_LIST_FETCH_STATE,
+    lmEval: DEFAULT_LIST_WATCH_RESULT,
     project,
     preferredProject: project,
     projects: project ? [project] : [],
