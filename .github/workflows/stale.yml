@@ -19,7 +19,7 @@ jobs:
       pull-requests: write
 
     steps:
-      - uses: actions/stale@v5
+      - uses: actions/stale@v9
         with:
           # for now, we will only label PRs as stale, not issues
           days-before-issue-stale: -1
