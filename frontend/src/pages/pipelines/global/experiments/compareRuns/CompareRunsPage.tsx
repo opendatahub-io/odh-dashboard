@@ -52,9 +52,9 @@ const CompareRunsPage: React.FC<PathProps> = ({ breadcrumbPath }) => {
           <CompareRunsRunList />
         </StackItem>
 
-        <StackItem>
+        {/* <StackItem>
           <CompareRunParamsSection />
-        </StackItem>
+        </StackItem> */}
 
         <StackItem>
           <Visualization />
