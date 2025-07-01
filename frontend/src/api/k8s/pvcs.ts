@@ -20,7 +20,7 @@ export const assemblePvc = (
   namespace: string,
   editName?: string,
   hideFromUI?: boolean,
-  forceRedeploy?: boolean, // New optional parameter for NIM use case
+  additionalAnnotations?: Record<string, string>, // Generic alternative to forceRedeploy
 ): PersistentVolumeClaimKind => {
   const { name: pvcName, description, size, storageClassName, accessMode } = data;
   const name = editName || data.k8sName || translateDisplayNameForK8s(pvcName);
@@ -28,12 +28,8 @@ export const assemblePvc = (
   const annotations: Record<string, string> = {
     'openshift.io/display-name': pvcName.trim(),
     ...(description && { 'openshift.io/description': description }),
+    ...(additionalAnnotations || {}),
   };
-
-  // Only add the force redeploy annotation when explicitly requested (for NIM)
-  if (forceRedeploy) {
-    annotations['runtimes.opendatahub.io/force-redeploy'] = new Date().toISOString();
-  }
 
   return {
     apiVersion: 'v1',
@@ -78,9 +74,9 @@ export const createPvc = (
   namespace: string,
   opts?: K8sAPIOptions,
   hideFromUI?: boolean,
-  forceRedeploy?: boolean, // New optional parameter
+  additionalAnnotations?: Record<string, string>,
 ): Promise<PersistentVolumeClaimKind> => {
-  const pvc = assemblePvc(data, namespace, undefined, hideFromUI, forceRedeploy);
+  const pvc = assemblePvc(data, namespace, undefined, hideFromUI, additionalAnnotations);
 
   return k8sCreateResource<PersistentVolumeClaimKind>(
     applyK8sAPIOptions({ model: PVCModel, resource: pvc }, opts),
@@ -93,9 +89,9 @@ export const updatePvc = (
   namespace: string,
   opts?: K8sAPIOptions,
   excludeSpec?: boolean,
-  forceRedeploy?: boolean, // New optional parameter
+  additionalAnnotations?: Record<string, string>,
 ): Promise<PersistentVolumeClaimKind> => {
-  const pvc = assemblePvc(data, namespace, existingData.metadata.name, undefined, forceRedeploy);
+  const pvc = assemblePvc(data, namespace, existingData.metadata.name, undefined, additionalAnnotations);
   const newData = excludeSpec
     ? {
         ...pvc,

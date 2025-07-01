@@ -325,7 +325,15 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
             description: pvc.metadata.annotations?.description || '',
             storageClassName: pvc.spec.storageClassName,
           };
-          promises.push(updatePvc(updatePvcData, pvc, namespace, { dryRun: false }, false, true)); // Pass forceRedeploy: true for NIM
+          promises.push(updatePvc(
+            updatePvcData,
+            pvc,
+            namespace,
+            { dryRun: false },
+            false,
+            { 'runtimes.opendatahub.io/force-redeploy': new Date().toISOString() }
+          ));
+          //promises.push(updatePvc(updatePvcData, pvc, namespace, { dryRun: false }, false, true)); // Pass forceRedeploy: true for NIM
         }
         return Promise.all(promises);
       })
