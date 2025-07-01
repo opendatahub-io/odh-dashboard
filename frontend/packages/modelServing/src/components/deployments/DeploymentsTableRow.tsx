@@ -67,7 +67,9 @@ export const DeploymentRow: React.FC<{
         )}
         <Td dataLabel="Name">
           <ResourceNameTooltip resource={deployment.model}>
-            {metricsExtension && deployment.model.metadata.namespace ? (
+            {metricsExtension &&
+            deployment.model.metadata.namespace &&
+            deployment.status?.state === InferenceServiceModelState.LOADED ? (
               <Link
                 data-testid={`metrics-link-${getDisplayNameFromK8sResource(deployment.model)}`}
                 to={`/projects/${encodeURIComponent(
@@ -87,10 +89,16 @@ export const DeploymentRow: React.FC<{
           </Td>
         ))}
         <Td dataLabel="Inference endpoint">
-          <DeploymentEndpointsPopupButton
-            endpoints={deployment.endpoints}
-            loading={deployment.status?.state === InferenceServiceModelState.LOADING}
-          />
+          {deployment.status?.state === InferenceServiceModelState.LOADED ? (
+            <DeploymentEndpointsPopupButton endpoints={deployment.endpoints} loading={false} />
+          ) : deployment.status?.state === InferenceServiceModelState.FAILED_TO_LOAD ? (
+            '-'
+          ) : deployment.status?.state === InferenceServiceModelState.LOADING ||
+            deployment.status?.state === InferenceServiceModelState.PENDING ? (
+            'Pending...'
+          ) : (
+            <DeploymentEndpointsPopupButton endpoints={deployment.endpoints} loading={false} />
+          )}
         </Td>
         <Td dataLabel="API protocol">
           {getServerApiProtocol(deployment) ? (

@@ -23,6 +23,7 @@ import InferenceServiceStatus from './InferenceServiceStatus';
 import InferenceServiceServingRuntime from './InferenceServiceServingRuntime';
 import InferenceServiceAPIProtocol from './InferenceServiceAPIProtocol';
 import { ColumnField } from './data';
+import { useModelStatus } from './useModelStatus';
 
 type InferenceServiceTableRowProps = {
   obj: InferenceServiceKind;
@@ -60,6 +61,16 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
   const kserveMetricsSupported = modelMetricsEnabled && kserveMetricsEnabled && !modelMesh;
   const displayName = getDisplayNameFromK8sResource(inferenceService);
 
+  const [modelPodStatus] = useModelStatus(
+    inferenceService.metadata.namespace,
+    inferenceService.spec.predictor.model?.runtime ?? '',
+    !modelMesh,
+  );
+  const modelState = getInferenceServiceModelState(inferenceService, modelPodStatus);
+  const isModelStopped =
+    inferenceService.metadata.annotations?.['serving.kserve.io/stop'] === 'true';
+  const isModelRunning = modelState === InferenceServiceModelState.LOADED && !isModelStopped;
+
   const { isStarting, isStopping, isStopped, isRunning, setIsStarting, setIsStopping } =
     useModelStatus(inferenceService, refresh);
 
@@ -86,7 +97,8 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
     <>
       <Td dataLabel="Name">
         <ResourceNameTooltip resource={inferenceService}>
-          {modelMeshMetricsSupported || kserveMetricsSupported ? (
+          {((modelMeshMetricsSupported || kserveMetricsSupported) && isModelRunning) ||
+          isModelStopped ? (
             <Link
               data-testid={`metrics-link-${displayName}`}
               to={
@@ -119,11 +131,25 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
       )}
 
       <Td dataLabel="Inference endpoint">
-        <InferenceServiceEndpoint
-          inferenceService={inferenceService}
-          servingRuntime={servingRuntime}
-          isKserve={!modelMesh}
-        />
+        {modelState === InferenceServiceModelState.LOADED || isModelStopped ? (
+          <InferenceServiceEndpoint
+            inferenceService={inferenceService}
+            servingRuntime={servingRuntime}
+            isKserve={!modelMesh}
+          />
+        ) : modelState === InferenceServiceModelState.FAILED_TO_LOAD ? (
+          '-'
+        ) : modelState === InferenceServiceModelState.LOADING ||
+          modelState === InferenceServiceModelState.PENDING ||
+          isStarting ? (
+          'Pending...'
+        ) : (
+          <InferenceServiceEndpoint
+            inferenceService={inferenceService}
+            servingRuntime={servingRuntime}
+            isKserve={!modelMesh}
+          />
+        )}
       </Td>
 
       {columnNames.includes(ColumnField.ApiProtocol) && (
