@@ -20,6 +20,7 @@ export type FeatureFlagProps = {
 // to add to below:  isBannerVisible: boolean;
 export type DevFeatureFlags = FeatureFlagProps & {
   setDevFeatureFlagQueryVisible: (visible: boolean) => void;
+  isBannerVisible: boolean;
 };
 
 export type PrometheusQueryResponse<TResultExtraProps extends object = object> = {
