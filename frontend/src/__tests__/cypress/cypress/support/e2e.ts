@@ -108,6 +108,7 @@ Cypress.Keyboard.defaults({
 Cypress.on('uncaught:exception', (err) => {
   // Returning false here prevents Cypress from failing the test
   if (err.name === 'ChunkLoadError') {
+    // eslint-disable-next-line no-console
     console.warn('ChunkLoadError caught and ignored:', err.message);
     return false;
   }
