@@ -26,9 +26,10 @@ import {
   SecretKind,
   ServingRuntimeKind,
 } from '#~/k8sTypes';
+import { EMPTY_AWS_SECRET_DATA } from '#~/pages/projects/dataConnections/const';
 import useCustomServingRuntimesEnabled from '#~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
 import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
-import { ModelServingSize, ServingRuntimeEditInfo } from '#~/pages/modelServing/screens/types';
+import { InferenceServiceStorageType, ModelServingSize, ServingRuntimeEditInfo } from '#~/pages/modelServing/screens/types';
 import ServingRuntimeSizeSection from '#~/pages/modelServing/screens/projects/ServingRuntimeModal/ServingRuntimeSizeSection';
 import NIMModelListSection from '#~/pages/modelServing/screens/projects/NIMServiceModal/NIMModelListSection';
 import NIMModelDeploymentNameSection from '#~/pages/modelServing/screens/projects/NIMServiceModal/NIMModelDeploymentNameSection';
@@ -71,6 +72,8 @@ const accessReviewResource: AccessReviewResourceAttributes = {
   resource: 'rolebindings',
   verb: 'create',
 };
+
+type PVCMode = 'create-new' | 'use-existing';
 
 type ManageNIMServingModalProps = {
   onClose: (submit: boolean) => void;
@@ -157,6 +160,9 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
   const [storageClassName, setStorageClassName] = React.useState(
     deployedStorageClassName || defaultStorageClassName,
   );
+  const [pvcMode, setPvcMode] = React.useState<PVCMode>('create-new');
+  const [existingPvcName, setExistingPvcName] = React.useState<string>('');
+  const [modelPath, setModelPath] = React.useState<string>('/mnt/models/cache');
 
   React.useEffect(() => {
     if (pvc?.spec.storageClassName) {
@@ -204,13 +210,18 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
 
   const baseInputValueValid = createDataServingRuntime.numReplicas >= 0 && isModelServerSizeValid;
 
+  const isExistingPvcValid = 
+    pvcMode === 'create-new' || 
+    (existingPvcName.trim() !== '' && modelPath.trim() !== '');
+
   const isDisabledInferenceService =
     actionInProgress ||
     createDataInferenceService.name.trim() === '' ||
     createDataInferenceService.project === '' ||
     !translatedName ||
     !baseInputValueValid ||
-    !podSpecOptionsState.hardwareProfile.isFormDataValid;
+    !podSpecOptionsState.hardwareProfile.isFormDataValid ||
+    !isExistingPvcValid; // new validation
 
   const { dashboardNamespace } = useDashboardNamespace();
   const templateName = useNIMTemplateName();
@@ -249,6 +260,9 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
     podSpecOptionsState.hardwareProfile.resetFormData();
     podSpecOptionsState.modelSize.setSelectedSize(podSpecOptionsState.modelSize.sizes[0]);
     setAlertVisible(true);
+    setPvcMode('create-new');
+    setExistingPvcName('');
+    setModelPath('/mnt/models/cache');
   };
 
   const setErrorModal = (e: Error) => {
@@ -269,11 +283,12 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
       editInfo?.inferenceServiceEditInfo?.spec.predictor.model?.runtime ||
       translateDisplayNameForK8s(createDataInferenceService.name, { safeK8sPrefix: 'nim-' });
 
-    const nimPVCName = getUniqueId('nim-pvc');
-    const finalServingRuntime =
-      !editInfo && servingRuntimeSelected
-        ? updateServingRuntimeTemplate(servingRuntimeSelected, nimPVCName)
-        : servingRuntimeSelected;
+  const nimPVCName = pvcMode === 'create-new' ? getUniqueId('nim-pvc') : existingPvcName;
+
+  const finalServingRuntime =
+    !editInfo && servingRuntimeSelected
+      ? updateServingRuntimeTemplate(servingRuntimeSelected, nimPVCName)
+      : servingRuntimeSelected;
 
     const submitServingRuntimeResources = getSubmitServingRuntimeResourcesFn(
       finalServingRuntime,
@@ -290,6 +305,16 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
     );
 
     const inferenceServiceName = createDataInferenceService.k8sName;
+    if (pvcMode === 'use-existing') {
+      // For existing PVC, configure storage to use local path instead of remote URI
+      setCreateDataInferenceService('storage', {
+        type: InferenceServiceStorageType.EXISTING_URI,
+        path: modelPath,
+        dataConnection: '',
+        uri: modelPath,
+        awsData: EMPTY_AWS_SECRET_DATA,
+      });
+    }
     const submitInferenceServiceResource = getSubmitInferenceServiceResourceFn(
       createDataInferenceService,
       editInfo?.inferenceServiceEditInfo,
@@ -319,7 +344,9 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
           if (await isSecretNeeded(namespace, NIM_NGC_SECRET_NAME)) {
             promises.push(createNIMSecret(namespace, 'nimPullSecret', true, false));
           }
-          promises.push(createNIMPVC(namespace, nimPVCName, pvcSize, false, storageClassName));
+          if (pvcMode === 'create-new') {
+            promises.push(createNIMPVC(namespace, nimPVCName, pvcSize, false, storageClassName));
+          }
         } else if (pvc && pvc.spec.resources.requests.storage !== pvcSize) {
           const updatePvcData = {
             size: pvcSize, // New size
@@ -402,7 +429,16 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
               )}
             </StackItem>
             <StackItem>
-              <NIMPVCSizeSection pvcSize={pvcSize} setPvcSize={setPvcSize} />
+              <NIMPVCSizeSection 
+                pvcSize={pvcSize} 
+                setPvcSize={setPvcSize}
+                pvcMode={pvcMode}
+                setPvcMode={setPvcMode}
+                existingPvcName={existingPvcName}
+                setExistingPvcName={setExistingPvcName}
+                modelPath={modelPath}
+                setModelPath={setModelPath}
+              />
             </StackItem>
             {isRawAvailable && isServerlessAvailable && (
               <StackItem>
