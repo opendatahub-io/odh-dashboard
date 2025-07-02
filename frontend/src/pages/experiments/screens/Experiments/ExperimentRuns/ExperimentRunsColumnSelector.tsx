@@ -92,7 +92,7 @@ const ExperimentRunsColumnSelector: React.FC<ExperimentRunsColumnSelectorProps> 
 
   const onCheck = (event: React.ChangeEvent, treeViewItem: TreeViewDataItem) => {
     const { target } = event;
-    if (!target || !('checked' in target)) {
+    if (!('checked' in target)) {
       return;
     }
 
@@ -105,10 +105,7 @@ const ExperimentRunsColumnSelector: React.FC<ExperimentRunsColumnSelectorProps> 
       const category = itemId;
       const newSelection = { ...selectedColumns };
 
-      if (
-        treeViewItem.children &&
-        (category === 'metrics' || category === 'parameters' || category === 'tags')
-      ) {
+      if (treeViewItem.children) {
         newSelection[category] = treeViewItem.children.map((child) => ({
           id: child.name ? String(child.name) : '',
           name: child.name ? String(child.name) : '',
@@ -141,8 +138,6 @@ const ExperimentRunsColumnSelector: React.FC<ExperimentRunsColumnSelectorProps> 
   const handleApply = () => {
     onClose();
   };
-
-  console.log('treeData', treeData, isOpen);
 
   if (!isOpen) {
     return null;

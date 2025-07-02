@@ -2,7 +2,7 @@ import React from 'react';
 import ApplicationsPage from '#~/pages/ApplicationsPage.tsx';
 import useExperiments from '#~/concepts/modelRegistry/apiHooks/useExperiments.ts';
 import ModelRegistrySelectorNavigator from '#~/concepts/modelRegistry/content/ModelRegistrySelectorNavigator.tsx';
-import { experimentsRoute } from '#~/routes/experiments/registryBase.ts';
+import { experimentsRunsRoute } from '#~/routes/experiments/registryBase.ts';
 import ExperimentsListView from './ExperimentsListView';
 
 type ExperimentsProps = Omit<
@@ -22,7 +22,7 @@ const Experiments: React.FC<ExperimentsProps> = ({ ...pageProps }) => {
       {...pageProps}
       headerContent={
         <ModelRegistrySelectorNavigator
-          getRedirectPath={(modelRegistryName) => experimentsRoute(modelRegistryName)}
+          getRedirectPath={(modelRegistryName) => experimentsRunsRoute(modelRegistryName)}
         />
       }
       title="Experiments"

@@ -143,7 +143,7 @@ const extensions: NavExtension[] = [
   {
     type: 'app.navigation/section',
     flags: {
-      required: [SupportedArea.DS_PIPELINES],
+      required: [SupportedArea.MODEL_REGISTRY],
     },
     properties: {
       id: 'experiments',
@@ -156,10 +156,37 @@ const extensions: NavExtension[] = [
       required: [SupportedArea.MODEL_REGISTRY],
     },
     properties: {
-      id: 'experiments',
-      title: 'Experiments',
-      href: '/experiments',
-      path: '/experiments/*',
+      id: 'experiments-runs',
+      title: 'Runs',
+      href: '/experiments/runs',
+      section: 'experiments',
+      path: '/experiments/runs',
+    },
+  },
+  {
+    type: 'app.navigation/href',
+    flags: {
+      required: [SupportedArea.MODEL_REGISTRY],
+    },
+    properties: {
+      id: 'experiments-metrics',
+      title: 'Metrics',
+      href: '/experiments/metrics',
+      section: 'experiments',
+      path: '/experiments/metrics',
+    },
+  },
+  {
+    type: 'app.navigation/href',
+    flags: {
+      required: [SupportedArea.MODEL_REGISTRY],
+    },
+    properties: {
+      id: 'experiments-params',
+      title: 'Parameters',
+      href: '/experiments/params',
+      section: 'experiments',
+      path: '/experiments/params',
     },
   },
 

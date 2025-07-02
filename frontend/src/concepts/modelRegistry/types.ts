@@ -73,6 +73,19 @@ export enum ModelRegistryMetadataType {
   BOOL = 'MetadataBoolValue',
 }
 
+// MLflow tag keys for experiment runs
+export enum MLflowTagKeys {
+  PARENT_RUN_ID = 'mlflow.parentRunId',
+}
+
+export type ModelRegistryQueryParams = {
+  filterQuery?: string;
+  pageSize?: number;
+  nextPageToken?: string;
+  sortOrder?: string;
+  orderBy?: string;
+};
+
 export type ModelRegistryCustomPropertyInt = {
   metadataType: ModelRegistryMetadataType.INT;
   int_value: string; // int64-formatted string
@@ -302,6 +315,9 @@ export type RegistryExperimentRun = ModelRegistryBase & {
   startTimeSinceEpoch?: string;
   endTimeSinceEpoch?: string;
   owner?: string;
+  customProperties: ModelRegistryCustomProperties & {
+    [MLflowTagKeys.PARENT_RUN_ID]?: ModelRegistryCustomPropertyString;
+  };
 };
 
 export type RegistryArtifact = ModelRegistryBase & {
@@ -341,6 +357,7 @@ export type GetListRegistryExperiments = (opts: K8sAPIOptions) => Promise<Regist
 export type GetRegistryExperimentRuns = (
   opts: K8sAPIOptions,
   experimentId: string,
+  params?: ModelRegistryQueryParams,
 ) => Promise<RegistryExperimentRunList>;
 
 export type GetRegistryExperimentRun = (

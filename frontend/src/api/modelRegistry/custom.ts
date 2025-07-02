@@ -13,12 +13,21 @@ import {
   RegistryExperimentRun,
   RegistryExperimentRunList,
   RegistryArtifactList,
+  ModelRegistryQueryParams,
 } from '#~/concepts/modelRegistry/types';
 import { MODEL_REGISTRY_API_VERSION } from '#~/concepts/modelRegistry/const';
 import { bumpRegisteredModelTimestamp } from '#~/concepts/modelRegistry/utils/updateTimestamps';
 import { proxyCREATE, proxyGET, proxyPATCH } from '#~/api/proxyUtils';
 import { K8sAPIOptions } from '#~/k8sTypes';
 import { handleModelRegistryFailures } from './errorUtils';
+
+const queryParamBuilder = (url: string, params: ModelRegistryQueryParams = {}) => {
+  const queryParams = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    queryParams.set(key, value.toString());
+  });
+  return `${url}?${queryParams.toString()}`;
+};
 
 export const getRegistryExperiment =
   (hostPath: string) =>
@@ -41,11 +50,18 @@ export const getListRegistryExperiments =
 
 export const getRegistryExperimentRuns =
   (hostPath: string) =>
-  (opts: K8sAPIOptions, experimentId: string): Promise<RegistryExperimentRunList> =>
+  (
+    opts: K8sAPIOptions,
+    experimentId: string,
+    params?: ModelRegistryQueryParams,
+  ): Promise<RegistryExperimentRunList> =>
     handleModelRegistryFailures(
       proxyGET(
         hostPath,
-        `/api/model_registry/${MODEL_REGISTRY_API_VERSION}/experiments/${experimentId}/experiment_runs`,
+        queryParamBuilder(
+          `/api/model_registry/${MODEL_REGISTRY_API_VERSION}/experiments/${experimentId}/experiment_runs`,
+          params,
+        ),
         {},
         opts,
       ),

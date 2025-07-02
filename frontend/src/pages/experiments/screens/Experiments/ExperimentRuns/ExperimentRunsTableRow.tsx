@@ -1,12 +1,13 @@
 import { Td, Tr } from '@patternfly/react-table';
-import { Timestamp, Label, Checkbox } from '@patternfly/react-core';
+import { Timestamp, Label, Checkbox, Button } from '@patternfly/react-core';
+import { AngleDownIcon, AngleRightIcon } from '@patternfly/react-icons';
+import { Link, useParams } from 'react-router-dom';
 import * as React from 'react';
-import {
-  RegistryExperimentRun,
-  ExperimentRunStatus,
-  ExperimentRunState,
-} from '#~/concepts/modelRegistry/types';
+import { ExperimentRunStatus, ExperimentRunState } from '#~/concepts/modelRegistry/types';
 import useExperimentRunArtifacts from '#~/concepts/modelRegistry/apiHooks/useExperimentRunArtifacts';
+import { experimentRunDetailsRoute } from '#~/routes/experiments/registryBase';
+import { ModelRegistriesContext } from '#~/concepts/modelRegistry/context/ModelRegistriesContext';
+import { NestedExperimentRun, hasChildren } from './experimentRunsUtils';
 
 type ColumnSelectorItem = {
   id: string;
@@ -15,7 +16,7 @@ type ColumnSelectorItem = {
 };
 
 type ExperimentRunsTableRowProps = {
-  experimentRun: RegistryExperimentRun;
+  experimentRun: NestedExperimentRun;
   isSelected: boolean;
   onSelectionChange: () => void;
   selectedColumns?: {
@@ -23,6 +24,8 @@ type ExperimentRunsTableRowProps = {
     parameters: ColumnSelectorItem[];
     tags: ColumnSelectorItem[];
   };
+  isExpanded?: boolean;
+  onToggleExpand?: () => void;
 };
 
 const getStatusColor = (
@@ -60,41 +63,47 @@ const ExperimentRunsTableRow: React.FC<ExperimentRunsTableRowProps> = ({
   isSelected,
   onSelectionChange,
   selectedColumns,
+  isExpanded = false,
+  onToggleExpand,
 }) => {
+  const { experimentId, modelRegistry } = useParams<{
+    experimentId: string;
+    modelRegistry: string;
+  }>();
+  const { preferredModelRegistry } = React.useContext(ModelRegistriesContext);
   const [artifactsData] = useExperimentRunArtifacts(experimentRun.id);
 
   // Helper function to get artifact value based on type and name
   const getArtifactValue = (key: string, type: 'metric' | 'parameter' | 'tag'): string => {
     if (type === 'tag') {
       // Tags come from experiment run custom properties
-      if (experimentRun.customProperties && experimentRun.customProperties[key]) {
-        const prop = experimentRun.customProperties[key];
-        if ('string_value' in prop) {
-          return prop.string_value;
-        }
-        if ('double_value' in prop) {
-          return prop.double_value.toString();
-        }
-        if ('int_value' in prop) {
-          return prop.int_value;
-        }
-        if ('bool_value' in prop) {
-          return prop.bool_value.toString();
-        }
+      const prop = experimentRun.customProperties[key];
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      if (!prop) {
+        return '-';
       }
-      return '-';
+      if ('string_value' in prop) {
+        return prop.string_value;
+      }
+      if ('double_value' in prop) {
+        return prop.double_value.toString();
+      }
+      if ('int_value' in prop) {
+        return prop.int_value;
+      }
+      if ('bool_value' in prop) {
+        return prop.bool_value.toString();
+      }
     }
 
     // For metrics and parameters, look in artifacts
-    if (!artifactsData.items) {
-      return '-';
-    }
+    const { items } = artifactsData;
 
-    for (const artifact of artifactsData.items) {
+    for (const artifact of items) {
       if (artifact.artifactType === type && artifact.name === key) {
         // For metrics and parameters, the value is directly on the artifact
-        if ('value' in artifact && artifact.value !== undefined && artifact.value !== null) {
-          return artifact.value.toString();
+        if ('value' in artifact && artifact.value != null) {
+          return String(artifact.value);
         }
       }
     }
@@ -145,6 +154,13 @@ const ExperimentRunsTableRow: React.FC<ExperimentRunsTableRowProps> = ({
     return columns;
   };
 
+  // Calculate indentation based on nesting level
+  const indentationLevel = experimentRun.level || 0;
+  const indentationPx = indentationLevel * 24; // 24px per level
+
+  // Check if this run has children
+  const runHasChildren = hasChildren(experimentRun);
+
   return (
     <Tr>
       <Td dataLabel="Select">
@@ -156,8 +172,34 @@ const ExperimentRunsTableRow: React.FC<ExperimentRunsTableRowProps> = ({
         />
       </Td>
       <Td dataLabel="Run name">
-        <div>
-          <strong>{experimentRun.name || 'Unnamed'}</strong>
+        <div style={{ paddingLeft: `${indentationPx}px`, display: 'flex', alignItems: 'center' }}>
+          {runHasChildren && onToggleExpand ? (
+            <Button
+              variant="plain"
+              onClick={onToggleExpand}
+              style={{ padding: '4px', marginRight: '8px', minWidth: '24px' }}
+              aria-label={isExpanded ? 'Collapse child runs' : 'Expand child runs'}
+            >
+              {isExpanded ? <AngleDownIcon size={16} /> : <AngleRightIcon size={16} />}
+            </Button>
+          ) : (
+            <div style={{ width: '32px' }} /> // Spacer for alignment when no expand button
+          )}
+          <div>
+            <Link
+              to={experimentRunDetailsRoute(
+                modelRegistry || preferredModelRegistry?.metadata.name,
+                experimentId,
+                experimentRun.id,
+              )}
+              style={{ textDecoration: 'none', color: 'inherit' }}
+            >
+              <strong>{experimentRun.name || 'Unnamed'}</strong>
+            </Link>
+            {experimentRun.isChild && (
+              <div style={{ fontSize: '0.875rem', color: '#6a6e73' }}>Child run</div>
+            )}
+          </div>
         </div>
       </Td>
       <Td dataLabel="Owner">

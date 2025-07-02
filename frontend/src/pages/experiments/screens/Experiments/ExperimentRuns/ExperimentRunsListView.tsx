@@ -13,8 +13,8 @@ import { ExclamationCircleIcon, ColumnsIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
 import { RegistryExperimentRun } from '#~/concepts/modelRegistry/types';
 import { ModelRegistriesContext } from '#~/concepts/modelRegistry/context/ModelRegistriesContext.tsx';
-import { compareRunsRoute } from '#~/routes/experiments/registryBase.ts';
 import useExperimentRunsArtifacts from '#~/concepts/modelRegistry/apiHooks/useExperimentRunsArtifacts';
+import { metricsRoute } from '#~/routes/experiments/registryBase.ts';
 import ExperimentRunsColumnSelector from './ExperimentRunsColumnSelector';
 import ExperimentRunsTableWithNestedHeaders from './ExperimentRunsTableWithNestedHeaders';
 import { createExperimentRunsColumns, ColumnSelection } from './ExperimentRunsTableColumnsConfig';
@@ -68,7 +68,7 @@ const ExperimentRunsListView: React.FC<ExperimentRunsListViewProps> = ({ experim
 
   const handleCompareRuns = React.useCallback(() => {
     navigate(
-      compareRunsRoute(
+      metricsRoute(
         preferredModelRegistry?.metadata.name,
         selectedRuns.map((run) => run.id),
       ),

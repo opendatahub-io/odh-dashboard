@@ -4,7 +4,7 @@ import { Breadcrumb, BreadcrumbItem } from '@patternfly/react-core';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import useExperimentRuns from '#~/concepts/modelRegistry/apiHooks/useExperimentRuns';
 import useExperimentById from '#~/concepts/modelRegistry/apiHooks/useExperimentById';
-import { experimentsRoute } from '#~/routes/experiments/registryBase.ts';
+import { experimentsRunsRoute } from '#~/routes/experiments/registryBase.ts';
 import { ModelRegistriesContext } from '#~/concepts/modelRegistry/context/ModelRegistriesContext.tsx';
 import ExperimentRunsListView from './ExperimentRunsListView';
 
@@ -18,10 +18,9 @@ const ExperimentRuns: React.FC<ExperimentRunsProps> = ({ ...pageProps }) => {
   const { preferredModelRegistry } = React.useContext(ModelRegistriesContext);
 
   const [experiment, experimentLoaded, experimentLoadError] = useExperimentById(experimentId);
-  const [experimentRunsData, experimentRunsLoaded, experimentRunsLoadError] =
+  const [experimentRuns, experimentRunsLoaded, experimentRunsLoadError] =
     useExperimentRuns(experimentId);
 
-  const experimentRuns = experimentRunsData.items;
   const loadError = experimentLoadError || experimentRunsLoadError;
   const loaded = experimentLoaded && experimentRunsLoaded;
 
@@ -32,7 +31,7 @@ const ExperimentRuns: React.FC<ExperimentRunsProps> = ({ ...pageProps }) => {
         <Breadcrumb>
           <BreadcrumbItem
             render={() => (
-              <Link to={experimentsRoute(preferredModelRegistry?.metadata.name, experimentId)}>
+              <Link to={experimentsRunsRoute(preferredModelRegistry?.metadata.name, experimentId)}>
                 Experiments - {preferredModelRegistry?.metadata.name}
               </Link>
             )}
