@@ -537,6 +537,11 @@ describe('Project Details', () => {
         disableKServeConfig: false,
         disableModelConfig: true,
         disableKServeMetrics: false,
+        inferenceServices: [
+          mockInferenceServiceK8sResource({
+            activeModelState: 'Loaded',
+          }),
+        ],
       });
 
       projectDetails.visitSection('test-project', 'model-server');
