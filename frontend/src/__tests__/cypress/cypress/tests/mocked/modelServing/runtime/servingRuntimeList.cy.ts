@@ -737,6 +737,7 @@ describe('Serving Runtime List', () => {
             },
             deleted: true,
             isModelMesh: true,
+            activeModelState: 'Loaded',
           }),
         ],
       });
@@ -817,6 +818,7 @@ describe('Serving Runtime List', () => {
             },
             deleted: true,
             isModelMesh: true,
+            activeModelState: 'Loaded',
           }),
         ],
         servingRuntimes: [
@@ -3607,6 +3609,7 @@ describe('Serving Runtime List', () => {
               restUrl: 'http://modelmesh-serving.modelmesh:8008',
               url: 'grpc://modelmesh-serving.modelmesh:8033',
             },
+            activeModelState: 'Loaded',
           }),
           mockInferenceServiceK8sResource({
             name: 'model-not-loaded',
@@ -3633,11 +3636,7 @@ describe('Serving Runtime List', () => {
       // Get modal of inference service when is not loaded
       const notLoadedInferenceServiceRow =
         modelServingSection.getInferenceServiceRow('Model not loaded');
-      notLoadedInferenceServiceRow.findInternalServiceButton().click();
-      notLoadedInferenceServiceRow
-        .findInternalServicePopover()
-        .findByText('Could not find any internal service enabled')
-        .should('exist');
+      notLoadedInferenceServiceRow.find().should('contain.text', 'Pending...');
     });
 
     it('Check internal service is rendered when the model is loaded in Kserve', () => {
@@ -3665,6 +3664,7 @@ describe('Serving Runtime List', () => {
             isModelMesh: false,
             kserveInternalUrl: 'http://test.kserve.svc.cluster.local',
             kserveInternalLabel: true,
+            activeModelState: 'Loaded',
           }),
           mockInferenceServiceK8sResource({
             name: 'model-not-loaded',
@@ -3688,11 +3688,7 @@ describe('Serving Runtime List', () => {
 
       // Get modal of inference service when is not loaded
       const kserveRowModelNotLoaded = modelServingSection.getKServeRow('Model Not loaded');
-      kserveRowModelNotLoaded.findInternalServiceButton().click();
-      kserveRowModelLoaded
-        .findInternalServicePopover()
-        .findByText('Could not find any internal service enabled')
-        .should('exist');
+      kserveRowModelNotLoaded.find().should('contain.text', 'Pending...');
     });
   });
   describe('Serving Runtime Template Selection', () => {
