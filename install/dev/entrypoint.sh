@@ -28,7 +28,7 @@ log_warning() {
 # check if oc binary exists and copy if provided
 setup_oc_cli() {
   log_info "Setting up OpenShift CLI (oc)..."
-  if [ $1 == "crc" ]; then
+  if [ "${OC_CLUSTER_TYPE}" == "crc" ]; then
     log_info "Using CRC for oc. Skipping oc setup setup."
   elif [ -f "/tmp/oc-cli.tar.gz" ]; then
     log_info "Found oc CLI tarball at /tmp/oc-cli.tar.gz"
@@ -48,10 +48,15 @@ setup_crc() {
 
   if [ ! -f "/opt/crc/crc" ]; then
     log_info "Downloading CRC..."
-    CRC_VERSION="2.52"
-    CRC_URL="https://mirror.openshift.com/pub/openshift-v4/clients/crc/${CRC_VERSION}/crc-linux-amd64.tar.xz"
+    CRC_VERSION="${CRC_VERSION-latest}"
+    CRC_URL="${CRC_URL-https://mirror.openshift.com/pub/openshift-v4/clients/crc/${CRC_VERSION}/crc-linux-amd64.tar.xz}"
 
-    curl -L "$CRC_URL" -o /tmp/crc.tar.xz
+    wget --show-progress=off "$CRC_URL" -O /tmp/crc.tar.xz
+    if [ $? -ne 0 ]; then
+      log_error "Failed to download CRC from $CRC_URL. Exit code: $?"
+      exit 1
+    fi
+
     tar -xf /tmp/crc.tar.xz -C /tmp
     mv /tmp/crc-linux-$CRC_VERSION-amd64/crc /opt/crc/
     chmod +x /opt/crc/crc
@@ -65,7 +70,8 @@ setup_crc() {
     log_info "Setting up CRC with pull secret..."
     /opt/crc/crc config set pull-secret-file "$CRC_PULL_SECRET_PATH"
   else
-    log_warning "No pull secret provided. You'll need to set it up manually."
+    log_warning "No pull secret provided. Please set CRC_PULL_SECRET_PATH environment variable to your pull secret file."
+    exit 1
   fi
 
   # might need to add configuration for CRC for resource limits
@@ -118,3 +124,48 @@ wait_for_cluster() {
   log_error "Failed to connect to cluster"
   exit 1
 }
+
+# install operators
+
+# Setup OpenShift CLI and CRC
+setup_environment() {
+  log_info "Setting up ODH Dashboard environment..."
+
+  setup_oc_cli
+
+  if [ "$OC_CLUSTER_TYPE" = "crc" ]; then
+    setup_crc
+    login_to_cluster "crc"
+  else
+    login_to_cluster "existing"
+  fi
+
+  wait_for_cluster
+  #operators
+
+  log_success "ODH Dashboard environment setup complete."
+}
+
+# main
+case "${1:-dev}" in
+"setup")
+  setup_environment
+  ;;
+"dev")
+  if ! oc cluster-info >/dev/null 2>&1; then
+    log_error "No OpenShift cluster found. running setup..."
+    setup_environment
+  fi
+  log_info "Starting development environment..."
+  exec npm run dev
+  ;;
+"bash")
+  exec /bin/bash
+  ;;
+*)
+  "Unknown command: $1"
+  log_info "Available commands: setup, dev, bash"
+  exit 1
+  ;;
+
+esac

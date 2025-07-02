@@ -4,8 +4,8 @@ services:
     build:
       context: .
       dockerfile: scripts/dev/Dockerfile
-      args:
-        - OC_CLI_PATH=${OC_CLI_PATH:-./oc-cli.tar.gz}
+      # args:
+        # - OC_CLI_PATH=${OC_CLI_PATH:-./oc-cli.tar.gz}
     container_name: odh-dashboard-dev
     ports:
       - "4010:4010" # Frontend dev
@@ -17,7 +17,7 @@ services:
       - backend_node_modules_cache:/app/odh-dashboard/backend/node_modules
       - ${OC_CONFIG_DIR:-~/.kube}:/home/odh/.kube:ro,Z
       - ${CRC_CONFIG_DIR:-~/.crc}:/home/odh/.crc:Z
-      - ./scripts/dev/entrypoint.sh:/entrypoint.sh:Z
+      # - ./scripts/dev/entrypoint.sh:/entrypoint.sh:Z
 
     environment:
       - NODE_ENV=development
