@@ -6,7 +6,7 @@ import { find, findLast } from 'lodash-es';
 import ApplicationsPage from '#~/pages/ApplicationsPage.tsx';
 import { CompareRunsSearchParam } from '#~/routes/experiments/registryBase.ts';
 import useExperimentRunsArtifactsMetrics from '#~/concepts/modelRegistry/apiHooks/useExperimentRunsArtifactsMetrics';
-import { transformMockDataToDimensions, getColorScaleConfigsForDimension } from './utils';
+import { transformDataToDimensions, getColorScaleConfigsForDimension } from './utils';
 
 type CompareRunsProps = Omit<
   React.ComponentProps<typeof ApplicationsPage>,
@@ -23,7 +23,7 @@ const CompareRuns: React.FC<CompareRunsProps> = ({ ...pageProps }) => {
 
   const [runsData, loaded] = useExperimentRunsArtifactsMetrics(runIds);
 
-  const transformedData = transformMockDataToDimensions(runsData);
+  const transformedData = transformDataToDimensions(runsData);
 
   const lastMetricDimensionMetricKey = findLast(
     runsData[0]?.items,

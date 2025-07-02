@@ -1,8 +1,7 @@
 import { min, max } from 'lodash-es';
-import { mockdata } from './mockData';
 
-// Transform mockdata into dimensions format for parallel coordinates plot
-export const transformMockDataToDimensions = (data: typeof mockdata) => {
+// Transform data into dimensions format for parallel coordinates plot
+export const transformDataToDimensions = (data: any) => {
   // Get all unique parameter/metric names
   const uniqueNames = new Set<string>();
   data.forEach((run) => {
