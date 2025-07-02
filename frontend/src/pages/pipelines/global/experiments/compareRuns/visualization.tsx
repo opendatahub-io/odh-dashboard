@@ -151,6 +151,7 @@ export const Visualization: React.FunctionComponent = () => {
               colorscale: 'Jet',
               cmin: -4000,
               cmax: -100,
+              //color: ['red', 'blue'],
             },
             dimensions: transformedData,
           },
