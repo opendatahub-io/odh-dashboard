@@ -1,7 +1,12 @@
 import React from 'react';
+import Plot from 'react-plotly.js';
 import { useSearchParams } from 'react-router-dom';
+import { find, findLast } from 'lodash-es';
+
 import ApplicationsPage from '#~/pages/ApplicationsPage.tsx';
 import { CompareRunsSearchParam } from '#~/routes/experiments/registryBase.ts';
+import useExperimentRunsArtifactsMetrics from '#~/concepts/modelRegistry/apiHooks/useExperimentRunsArtifactsMetrics';
+import { transformDataToDimensions, getColorScaleConfigsForDimension } from './utils';
 
 type CompareRunsProps = Omit<
   React.ComponentProps<typeof ApplicationsPage>,
@@ -13,6 +18,18 @@ const CompareRuns: React.FC<CompareRunsProps> = ({ ...pageProps }) => {
   const [searchParams] = useSearchParams();
   const runs = searchParams.get(CompareRunsSearchParam.RUNS);
 
+  // Memoize the split operation to prevent unnecessary re-renders
+  const runIds = React.useMemo(() => (runs ? runs.split(',').filter(Boolean) : []), [runs]);
+
+  const [runsData, loaded] = useExperimentRunsArtifactsMetrics(runIds);
+
+  const transformedData = transformDataToDimensions(runsData);
+
+  const lastMetricDimensionMetricKey = findLast(
+    runsData[0]?.items,
+    (item) => item.artifactType === 'metric',
+  )?.name;
+
   return (
     <ApplicationsPage
       {...pageProps}
@@ -21,7 +38,21 @@ const CompareRuns: React.FC<CompareRunsProps> = ({ ...pageProps }) => {
       loaded
       provideChildrenPadding
     >
-      WIP: {runs}
+      <div>
+        <h3>Parallel Coordinates Plot Data</h3>
+        <Plot
+          data={[
+            {
+              type: 'parcoords',
+              line: getColorScaleConfigsForDimension(
+                find(transformedData, ['label', lastMetricDimensionMetricKey]),
+              ),
+              dimensions: transformedData,
+            },
+          ]}
+          layout={{ autosize: true, margin: { t: 50 } }}
+        />
+      </div>
     </ApplicationsPage>
   );
 };
