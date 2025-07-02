@@ -204,8 +204,8 @@ class ModelRegistry {
     return cy.findByTestId('model-versions-table-filter');
   }
 
-  findRegisterModelButton() {
-    return cy.findByRole('button', { name: 'Register model' });
+  findRegisterModelButton(timeout?: number) {
+    return cy.findByRole('button', { name: 'Register model', timeout });
   }
 
   findRegisterNewVersionButton() {

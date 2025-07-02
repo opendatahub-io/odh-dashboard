@@ -64,7 +64,7 @@ describe('Verify models can be registered in a model registry', () => {
       cy.findByTestId(registryName).click();
 
       cy.step('Register a model using object storage');
-      cy.findByRole('button', { name: 'Register model', timeout: 30000 }).click();
+      modelRegistry.findRegisterModelButton(30000).click();
 
       // Fill in model details for object storage
       registerModelPage
