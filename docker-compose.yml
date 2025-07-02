@@ -35,7 +35,7 @@ services:
     command: ["dev"]
     working_dir: /app/odh-dashboard
     networks:
-      "odh-dev"
+      - "odh-dev"
 
 networks:
   odh-dev:
