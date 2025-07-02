@@ -15,17 +15,33 @@ export const transformDataToDimensions = (
       uniqueNames.add(item.name);
     });
   });
-
   // Create dimensions array
   return Array.from(uniqueNames).map((name) => {
     const values: number[] = [];
+    const mapper = new Map<string, number>();
 
     data.forEach((run) => {
       const item = run.items.find((i) => i.name === name);
       if (item) {
         // For parameters, convert string value to number
         if (item.artifactType === 'parameter' && 'value' in item) {
-          values.push(parseFloat(String(item.value)) || 0);
+          // eslint-disable-next-line no-restricted-globals,@typescript-eslint/ban-ts-comment
+          // @ts-expect-error
+          // eslint-disable-next-line no-restricted-globals
+          const isNum = !isNaN(item.value);
+          if (isNum) {
+            values.push(parseFloat(String(item.value)));
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+          } else if (!isNum) {
+            if (mapper.has(String(item.value))) {
+              const valueEquiv = mapper.get(String(item.value));
+              values.push(Number(valueEquiv));
+            } else {
+              const valueEquiv = Array.from(mapper.keys()).length;
+              mapper.set(String(item.value), valueEquiv);
+              values.push(valueEquiv);
+            }
+          }
         }
         // For metrics, use the value directly
         else if (item.artifactType === 'metric' && 'value' in item) {
@@ -37,9 +53,28 @@ export const transformDataToDimensions = (
       }
     });
 
+    const ticktext: string[] = [];
+    const tickvals: number[] = [];
+    mapper.forEach((value, key) => {
+      if (key in ticktext) {
+        const idx = ticktext.findIndex((t) => t === key);
+        tickvals.push(idx);
+      } else {
+        const idx = ticktext.length;
+        tickvals.push(idx);
+        ticktext.push(key);
+      }
+    });
+
     return {
       label: name,
       values,
+      ...(!tickvals.length
+        ? {}
+        : {
+            tickvals,
+            ticktext,
+          }),
     };
   });
 };
