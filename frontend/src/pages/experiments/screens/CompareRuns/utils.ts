@@ -39,7 +39,9 @@ export const transformDataToDimensions = (data: any) => {
 };
 
 export const getColorScaleConfigsForDimension = (dimension: any) => {
-  if (!dimension) return null;
+  if (!dimension) {
+    return null;
+  }
   const cmin = min(dimension.values);
   const cmax = max(dimension.values);
   return {
@@ -49,4 +51,106 @@ export const getColorScaleConfigsForDimension = (dimension: any) => {
     cmax,
     color: dimension.values,
   };
+};
+
+export interface Option {
+  label: string;
+  value: string;
+}
+
+export interface MockDataItem {
+  artifactType: string;
+  createTimeSinceEpoch: string;
+  customProperties?: any;
+  id: string;
+  lastUpdateTimeSinceEpoch: string;
+  name: string;
+  parameterType?: string;
+  value?: string | number;
+  step?: number;
+  timestamp?: string;
+  description?: string;
+  state?: string;
+  uri?: string;
+}
+
+export interface MockDataRun {
+  items: MockDataItem[];
+  nextPageToken: string;
+  pageSize: number;
+  size: number;
+}
+
+export type FilterCriteria = {
+  parameterNames?: string[];
+  artifactType?: 'parameter' | 'metric' | 'model-artifact';
+  includeMetrics?: boolean;
+  includeModelArtifacts?: boolean;
+};
+
+export const filterMockDataByParameters = (
+  data: MockDataRun[],
+  criteria: FilterCriteria,
+): MockDataRun[] => {
+  const {
+    parameterNames = [],
+    artifactType,
+    includeMetrics = false,
+    includeModelArtifacts = false,
+  } = criteria;
+
+  return data
+    .map((run) => ({
+      ...run,
+      items: run.items.filter((item) => {
+        if (artifactType && item.artifactType !== artifactType) {
+          return false;
+        }
+        if (parameterNames.length > 0) {
+          if (item.artifactType === 'parameter') {
+            return parameterNames.includes(item.name);
+          }
+          if (item.artifactType === 'metric') {
+            return includeMetrics && parameterNames.includes(item.name);
+          }
+          if (item.artifactType === 'model-artifact') {
+            return includeModelArtifacts;
+          }
+          return false;
+        }
+
+        if (item.artifactType === 'parameter') {
+          return true;
+        }
+        if (item.artifactType === 'metric') {
+          return includeMetrics;
+        }
+        if (item.artifactType === 'model-artifact') {
+          return includeModelArtifacts;
+        }
+
+        return true;
+      }),
+      size: 0,
+    }))
+    .map((run) => ({
+      ...run,
+      size: run.items.length,
+    }));
+};
+
+export const getUniqueParameterNames = (
+  data: MockDataRun[],
+  artifactType?: 'parameter' | 'metric' | 'model-artifact',
+): string[] => {
+  const names = new Set<string>();
+
+  data.forEach((run) => {
+    run.items.forEach((item) => {
+      if (!artifactType || item.artifactType === artifactType) {
+        names.add(item.name);
+      }
+    });
+  });
+  return Array.from(names).toSorted();
 };
