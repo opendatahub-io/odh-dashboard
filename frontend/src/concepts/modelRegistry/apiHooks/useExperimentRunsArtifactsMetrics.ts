@@ -4,7 +4,7 @@ import { RegistryArtifactList } from '#~/concepts/modelRegistry/types';
 import { useModelRegistryAPI } from '#~/concepts/modelRegistry/context/ModelRegistryPageContext';
 import { allSettledPromises } from '#~/utilities/allSettledPromises';
 
-const useExperimentRunsArtifacts = (
+const useExperimentRunsArtifactsMetrics = (
   experimentRunIds?: Array<string>,
 ): FetchState<RegistryArtifactList[]> => {
   const { api, apiAvailable } = useModelRegistryAPI();
@@ -29,4 +29,4 @@ const useExperimentRunsArtifacts = (
   return useFetchState(fetchSuccessfulRuns, []);
 };
 
-export default useExperimentRunsArtifacts;
+export default useExperimentRunsArtifactsMetrics;

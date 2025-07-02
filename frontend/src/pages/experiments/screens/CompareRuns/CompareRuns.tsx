@@ -5,7 +5,7 @@ import { min, max, findLast, find } from 'lodash-es';
 
 import ApplicationsPage from '#~/pages/ApplicationsPage.tsx';
 import { CompareRunsSearchParam } from '#~/routes/experiments/registryBase.ts';
-import useExperimentRunsArtifacts from '#~/concepts/modelRegistry/apiHooks/useExperimentRunsArtifacts';
+import useExperimentRunsArtifactsMetrics from '#~/concepts/modelRegistry/apiHooks/useExperimentRunsArtifactsMetrics';
 
 type CompareRunsProps = Omit<
   React.ComponentProps<typeof ApplicationsPage>,
@@ -358,7 +358,7 @@ const CompareRuns: React.FC<CompareRunsProps> = ({ ...pageProps }) => {
     return runs ? runs.split(',').filter(Boolean) : [];
   }, [runs]);
 
-  const [runsData, loaded] = useExperimentRunsArtifacts(runIds);
+  const [runsData, loaded] = useExperimentRunsArtifactsMetrics(runIds);
 
   const transformedData = transformMockDataToDimensions(runsData);
 
