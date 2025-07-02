@@ -52,8 +52,7 @@ const ModelVersionDetailsTabs: React.FC<ModelVersionDetailTabsProps> = ({
         />
       </PageSection>
     </Tab>,
-    ...extensions.map((extension) => {
-      return (
+    ...extensions.map((extension) => (
         <Tab
           key={extension.properties.id}
           eventKey={extension.properties.id}
@@ -72,8 +71,8 @@ const ModelVersionDetailsTabs: React.FC<ModelVersionDetailTabsProps> = ({
             />
           </PageSection>
         </Tab>
-    )})
-  ]
+    ))
+  ];
 
   return (
     <Tabs
