@@ -22,6 +22,7 @@ describe('DevFeatureFlagsBanner', () => {
         resetDevFeatureFlags={() => undefined}
         devFeatureFlags={null}
         setDevFeatureFlagQueryVisible={() => undefined}
+        isBannerVisible={false}
       />,
       renderOptions(),
     );
@@ -38,6 +39,7 @@ describe('DevFeatureFlagsBanner', () => {
         resetDevFeatureFlags={resetFn}
         setDevFeatureFlagQueryVisible={visibleFn}
         devFeatureFlags={{}}
+        isBannerVisible
       />,
       renderOptions(),
     );
@@ -57,6 +59,7 @@ describe('DevFeatureFlagsBanner', () => {
     const resetFn = jest.fn();
     const result = render(
       <DevFeatureFlagsBanner
+        isBannerVisible
         dashboardConfig={{
           disableAcceleratorProfiles: false,
         }}
@@ -71,7 +74,7 @@ describe('DevFeatureFlagsBanner', () => {
     );
     expect(result.container).not.toBeEmptyDOMElement();
     act(() => result.getByTestId('override-feature-flags-button').click());
-    screen.getByTestId('dev-feature-flags-modal');
+    result.getByTestId('dev-feature-flags-modal');
 
     act(() => result.getByTestId('reset-feature-flags-button').click());
     expect(resetFn).toHaveBeenCalled();
