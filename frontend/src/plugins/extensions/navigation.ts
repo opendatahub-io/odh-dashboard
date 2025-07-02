@@ -147,7 +147,7 @@ const extensions: NavExtension[] = [
     },
     properties: {
       id: 'experiments',
-      title: 'Experiments',
+      title: 'Experimentation',
     },
   },
   {
@@ -157,7 +157,7 @@ const extensions: NavExtension[] = [
     },
     properties: {
       id: 'experiments-runs',
-      title: 'Runs',
+      title: 'Experiments',
       href: '/experiments/runs',
       section: 'experiments',
       path: '/experiments/runs',
