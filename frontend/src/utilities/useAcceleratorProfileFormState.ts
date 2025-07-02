@@ -2,6 +2,8 @@ import React from 'react';
 import { AcceleratorProfileKind } from '#~/k8sTypes';
 import { ContainerResources, Toleration } from '#~/types';
 import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
+import useAcceleratorProfiles from '#~/pages/notebookController/screens/server/useAcceleratorProfiles.ts';
+import { useDashboardNamespace } from '#~/redux/selectors';
 import useGenericObjectState from './useGenericObjectState';
 import useReadAcceleratorState, { AcceleratorProfileState } from './useReadAcceleratorState';
 
@@ -29,6 +31,15 @@ const useAcceleratorProfileFormState = (
   namespace?: string,
   acceleratorProfileNamespace?: string,
 ): UseAcceleratorProfileFormResult => {
+  const { dashboardNamespace } = useDashboardNamespace();
+
+  // Get the actual loading state from useAcceleratorProfiles
+  const [, globalProfilesLoaded, globalProfilesLoadError] =
+    useAcceleratorProfiles(dashboardNamespace);
+  const [, projectProfilesLoaded, projectProfilesLoadError] = useAcceleratorProfiles(
+    namespace ?? dashboardNamespace,
+  );
+
   const [globalScopedInitialState, globalScopedLoaded, globalScopedLoadError, refresh] =
     useReadAcceleratorState(resources, tolerations, existingAcceleratorProfileName);
   const [projectScopedInitialState, projectScopedLoaded, projectScopedLoadError] =
@@ -40,10 +51,16 @@ const useAcceleratorProfileFormState = (
       acceleratorProfileNamespace,
     );
 
-  const loaded = namespace ? projectScopedLoaded && globalScopedLoaded : globalScopedLoaded;
+  const loaded = namespace
+    ? projectScopedLoaded && globalScopedLoaded && projectProfilesLoaded && globalProfilesLoaded
+    : globalScopedLoaded && globalProfilesLoaded;
+
   const loadError = namespace
-    ? projectScopedLoadError || globalScopedLoadError
-    : globalScopedLoadError;
+    ? projectScopedLoadError ||
+      globalScopedLoadError ||
+      projectProfilesLoadError ||
+      globalProfilesLoadError
+    : globalScopedLoadError || globalProfilesLoadError;
 
   const initialState = React.useMemo(() => {
     // Check if project-scoped feature flag is off but workbench has project-scoped profile
