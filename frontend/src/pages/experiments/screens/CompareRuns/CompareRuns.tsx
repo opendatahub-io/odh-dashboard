@@ -1,6 +1,7 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import Plot from 'react-plotly.js';
 import { useSearchParams } from 'react-router-dom';
+import { min, max, findLast, find } from 'lodash-es';
 
 import ApplicationsPage from '#~/pages/ApplicationsPage.tsx';
 import { CompareRunsSearchParam } from '#~/routes/experiments/registryBase.ts';
@@ -334,6 +335,19 @@ const transformMockDataToDimensions = (data: typeof mockdata) => {
   });
 };
 
+const getColorScaleConfigsForDimension = (dimension: any) => {
+  if (!dimension) return null;
+  const cmin = min(dimension.values);
+  const cmax = max(dimension.values);
+  return {
+    showscale: true,
+    colorscale: 'Jet',
+    cmin,
+    cmax,
+    color: dimension.values,
+  };
+};
+
 const CompareRuns: React.FC<CompareRunsProps> = ({ ...pageProps }) => {
   // get runs from query params
   const [searchParams] = useSearchParams();
@@ -347,6 +361,11 @@ const CompareRuns: React.FC<CompareRunsProps> = ({ ...pageProps }) => {
   const [runsData, loaded] = useExperimentRunsArtifacts(runIds);
 
   const transformedData = transformMockDataToDimensions(runsData);
+
+  const lastMetricDimensionMetricKey = findLast(
+    runsData[0]?.items,
+    (item) => item.artifactType === 'metric',
+  )?.name;
 
   return (
     <ApplicationsPage
@@ -362,17 +381,13 @@ const CompareRuns: React.FC<CompareRunsProps> = ({ ...pageProps }) => {
           data={[
             {
               type: 'parcoords',
-              line: {
-                showscale: true,
-                colorscale: 'Jet',
-                cmin: 1,
-                cmax: 1,
-                color: [9, 5, 1],
-              },
+              line: getColorScaleConfigsForDimension(
+                find(transformedData, ['label', lastMetricDimensionMetricKey]),
+              ),
               dimensions: transformedData,
             },
           ]}
-          layout={{ width: 520, height: 540, title: { text: 'Parallel Coordinates Plot' } }}
+          layout={{ autosize: true, margin: { t: 50 } }}
         />
       </div>
     </ApplicationsPage>
