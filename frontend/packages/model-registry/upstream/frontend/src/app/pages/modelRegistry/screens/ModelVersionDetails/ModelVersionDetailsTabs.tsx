@@ -32,16 +32,48 @@ const ModelVersionDetailsTabs: React.FC<ModelVersionDetailTabsProps> = ({
   const navigate = useNavigate();
   const extensions = useExtensions(isModelRegistryDeploymentsTabExtension);
 
-  const findProps = (id: string) => {
-    if (id === ModelVersionDetailsTab.DEPLOYMENTS) {
-      return {
-        inferenceServices,
-        servingRuntimes,
-        refresh,
-      };
-    }
-    return null;
-  };
+  const modelVersionDetails = [
+    <Tab
+      key={ModelVersionDetailsTab.DETAILS}
+      eventKey={ModelVersionDetailsTab.DETAILS}
+      title={<TabTitleText>{ModelVersionDetailsTabTitle.DETAILS}</TabTitleText>}
+      aria-label="Model versions details tab"
+      data-testid="model-versions-details-tab"
+    >
+      <PageSection
+        hasBodyWrapper={false}
+        isFilled
+        data-testid="model-versions-details-tab-content"
+      >
+        <ModelVersionDetailsView
+          modelVersion={mv}
+          refresh={refresh}
+          isArchiveVersion={isArchiveVersion}
+        />
+      </PageSection>
+    </Tab>,
+    ...extensions.map((extension) => {
+      return (
+        <Tab
+          key={extension.properties.id}
+          eventKey={extension.properties.id}
+          aria-label={`${extension.properties.title} tab`}
+          data-testid={`${extension.properties.id}-tab`}
+          title={<TabTitleText>{extension.properties.title}</TabTitleText>}
+        >
+          <PageSection hasBodyWrapper={false} isFilled data-testid={`${extension.properties.id}-tab-content`}>
+            <LazyCodeRefComponent
+              component={extension.properties.component}
+              props={{
+                inferenceServices,
+                servingRuntimes,
+                refresh,
+              }}
+            />
+          </PageSection>
+        </Tab>
+    )})
+  ]
 
   return (
     <Tabs
@@ -51,48 +83,7 @@ const ModelVersionDetailsTabs: React.FC<ModelVersionDetailTabsProps> = ({
       data-testid="model-versions-details-page-tabs"
       onSelect={(_event, eventKey) => navigate(`../${eventKey}`, { relative: 'path' })}
     >
-      <Tab
-        eventKey={ModelVersionDetailsTab.DETAILS}
-        title={<TabTitleText>{ModelVersionDetailsTabTitle.DETAILS}</TabTitleText>}
-        aria-label="Model versions details tab"
-        data-testid="model-versions-details-tab"
-      >
-        <PageSection
-          hasBodyWrapper={false}
-          isFilled
-          data-testid="model-versions-details-tab-content"
-        >
-          <ModelVersionDetailsView
-            modelVersion={mv}
-            refresh={refresh}
-            isArchiveVersion={isArchiveVersion}
-          />
-        </PageSection>
-      </Tab>
-      <>
-        {extensions.map((extension) => {
-          console.log('extension', extension);
-          const tabProps = findProps(extension.properties.id);
-          if (!tabProps) {
-            return null;
-          }
-          return (
-            <Tab
-              key={extension.properties.id}
-              eventKey={extension.properties.id}
-              aria-label={`${extension.properties.title} tab`}
-              data-testid={`${extension.properties.id}-tab`}
-              title={<TabTitleText>{extension.properties.title}</TabTitleText>}
-            >
-              <PageSection hasBodyWrapper={false} isFilled data-testid={`${extension.properties.id}-tab-content`}>
-                <LazyCodeRefComponent
-                  component={extension.properties.component}
-                  props={tabProps}
-                />
-              </PageSection>
-            </Tab>
-        )})}
-      </>
+      {modelVersionDetails}
     </Tabs>
   );
 };
