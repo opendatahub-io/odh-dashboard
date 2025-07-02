@@ -45,6 +45,8 @@ export const definedFeatureFlags: string[] = Object.keys({
   disableKueue: true,
   disableLMEval: true,
   disableLlamaStackChatBot: true, // internal dev only
+  disablePVCServing: true,
+  disableFeatureStore: true,
 } satisfies DashboardCommonConfig);
 
 export const SupportedAreasStateMap: SupportedAreasState = {
@@ -112,6 +114,9 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.MODEL_SERVING]: {
     featureFlags: ['disableModelServing'],
+  },
+  [SupportedArea.PVCSERVING]: {
+    featureFlags: ['disablePVCServing'],
   },
   [SupportedArea.USER_MANAGEMENT]: {
     featureFlags: ['disableUserManagement'],
@@ -181,6 +186,10 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   [SupportedArea.LM_EVAL]: {
     featureFlags: ['disableLMEval'],
     reliantAreas: [SupportedArea.MODEL_REGISTRY, SupportedArea.MODEL_SERVING],
+  },
+  [SupportedArea.FEATURE_STORE]: {
+    featureFlags: ['disableFeatureStore'],
+    requiredComponents: [StackComponent.FEAST_OPERATOR],
   },
 };
 

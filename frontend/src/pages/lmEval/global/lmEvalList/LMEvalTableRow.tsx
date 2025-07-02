@@ -44,7 +44,7 @@ const LMEvalTableRow: React.FC<LMEvalTableRowType> = ({ lmEval, onDeleteLMEval }
         )}
       </Td>
       <Td dataLabel="Status">
-        <LMEvalStatus namespace={lmEval.metadata.namespace} name={lmEval.metadata.name} />
+        <LMEvalStatus lmEval={lmEval} />
       </Td>
       <Td isActionCell>
         <ActionsColumn

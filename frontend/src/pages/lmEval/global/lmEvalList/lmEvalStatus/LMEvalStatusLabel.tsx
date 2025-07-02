@@ -24,7 +24,7 @@ const LMEvalStatusLabel: React.FC<LMEvalStatusLabelProps> = ({ status }) => {
 
   if (currentState === LMEvalState.IN_PROGRESS) {
     return (
-      <Label color="blue" icon={<InProgressIcon />}>
+      <Label isCompact color="blue" icon={<InProgressIcon />}>
         {currentState}
       </Label>
     );
@@ -50,7 +50,7 @@ const LMEvalStatusLabel: React.FC<LMEvalStatusLabelProps> = ({ status }) => {
   }
 
   return (
-    <Label status={iconStatus} icon={<IconComponent />}>
+    <Label isCompact status={iconStatus} icon={<IconComponent />}>
       {currentState}
     </Label>
   );

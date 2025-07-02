@@ -39,6 +39,7 @@ describe('DeploymentsTableRow', () => {
             platformColumns={[]}
             onDelete={onDelete}
             rowIndex={0}
+            metricsExtension={undefined}
           />
         </tbody>
       </table>,
@@ -78,6 +79,7 @@ describe('DeploymentsTableRow', () => {
             ]}
             onDelete={onDelete}
             rowIndex={0}
+            metricsExtension={undefined}
           />
         </tbody>
       </table>,
@@ -97,6 +99,7 @@ describe('DeploymentsTableRow', () => {
             platformColumns={[]}
             onDelete={onDelete}
             rowIndex={0}
+            metricsExtension={undefined}
           />
         </tbody>
       </table>,
@@ -123,6 +126,7 @@ describe('DeploymentsTableRow', () => {
               platformColumns={[]}
               onDelete={onDelete}
               rowIndex={0}
+              metricsExtension={undefined}
             />
           </tbody>
         </table>,
@@ -153,6 +157,7 @@ describe('DeploymentsTableRow', () => {
               platformColumns={[]}
               onDelete={onDelete}
               rowIndex={0}
+              metricsExtension={undefined}
             />
           </tbody>
         </table>,
@@ -188,6 +193,7 @@ describe('DeploymentsTableRow', () => {
               platformColumns={[]}
               onDelete={onDelete}
               rowIndex={0}
+              metricsExtension={undefined}
             />
           </tbody>
         </table>,
@@ -223,6 +229,7 @@ describe('DeploymentsTableRow', () => {
             platformColumns={[]}
             onDelete={onDelete}
             rowIndex={0}
+            metricsExtension={undefined}
           />
         </tbody>
       </table>,
