@@ -59,6 +59,7 @@ export type DspaReplacements = {
   DSPA_SECRET_NAME: string;
   NAMESPACE: string;
   AWS_S3_BUCKET: string;
+  AWS_REGION: string;
 };
 
 export type StorageClassConfig = {

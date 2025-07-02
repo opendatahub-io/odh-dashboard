@@ -5,6 +5,7 @@ import {
   setUpTokenAuth,
   isOciModelUri,
   getInferenceServiceStoppedStatus,
+  getServingRuntimeVersionStatus,
 } from '#~/pages/modelServing/utils';
 import { mockServingRuntimeK8sResource } from '#~/__mocks__/mockServingRuntimeK8sResource';
 import { ContainerResources } from '#~/types';
@@ -22,6 +23,7 @@ import {
 import { mock404Error } from '#~/__mocks__/mockK8sStatus';
 import { mockInferenceServiceK8sResource } from '#~/__mocks__/mockInferenceServiceK8sResource';
 import { mockRoleK8sResource } from '#~/__mocks__/mockRoleK8sResource';
+import { ServingRuntimeVersionStatusLabel } from '#~/pages/modelServing/screens/const';
 
 jest.mock('#~/api', () => ({
   ...jest.requireActual('#~/api'),
@@ -331,5 +333,23 @@ describe('getModelServingStatus', () => {
       isStopping: false,
       isStarting: false,
     });
+  });
+});
+
+describe('getServingRuntimeVersionStatus', () => {
+  it('should return undefined if servingRuntimeVersion or templateVersion is undefined', () => {
+    expect(getServingRuntimeVersionStatus(undefined, undefined)).toBeUndefined();
+  });
+
+  it('should return latest if servingRuntimeVersion and templateVersion are the same', () => {
+    expect(getServingRuntimeVersionStatus('1.0.0', '1.0.0')).toBe(
+      ServingRuntimeVersionStatusLabel.LATEST,
+    );
+  });
+
+  it('should return outdated if servingRuntimeVersion and templateVersion are different', () => {
+    expect(getServingRuntimeVersionStatus('1.0.0', '2.0.0')).toBe(
+      ServingRuntimeVersionStatusLabel.OUTDATED,
+    );
   });
 });
