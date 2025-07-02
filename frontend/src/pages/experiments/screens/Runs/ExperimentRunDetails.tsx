@@ -28,12 +28,12 @@ import {
   RegistryMetricArtifact,
   RegistryParameterArtifact,
 } from '#~/concepts/modelRegistry/types';
-import useExperimentRunById from '#~/concepts/modelRegistry/apiHooks/useExperimentRunById';
-import useExperimentById from '#~/concepts/modelRegistry/apiHooks/useExperimentById';
-import useExperimentRunArtifacts from '#~/concepts/modelRegistry/apiHooks/useExperimentRunArtifacts';
+import useExperimentById from '#~/concepts/modelRegistry/apiHooks/useExperimentById.ts';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import { experimentsRunsRoute, experimentsBaseRoute } from '#~/routes/experiments/registryBase';
 import { ModelRegistriesContext } from '#~/concepts/modelRegistry/context/ModelRegistriesContext';
+import useExperimentRunArtifacts from '#~/concepts/modelRegistry/apiHooks/useExperimentRunArtifacts.ts';
+import useExperimentRunById from '#~/concepts/modelRegistry/apiHooks/useExperimentRunById.ts';
 import MetricHistoryChart from './MetricHistoryChart';
 
 const getStatusColor = (

@@ -67,6 +67,21 @@ export const getRegistryExperimentRuns =
       ),
     );
 
+export const getListRegistryRuns =
+  (hostPath: string) =>
+  (opts: K8sAPIOptions, params?: ModelRegistryQueryParams): Promise<RegistryExperimentRunList> =>
+    handleModelRegistryFailures(
+      proxyGET(
+        hostPath,
+        queryParamBuilder(
+          `/api/model_registry/${MODEL_REGISTRY_API_VERSION}/experiment_runs`,
+          params,
+        ),
+        {},
+        opts,
+      ),
+    );
+
 export const getRegistryExperimentRun =
   (hostPath: string) =>
   (opts: K8sAPIOptions, experimentRunId: string): Promise<RegistryExperimentRun> =>
@@ -337,6 +352,19 @@ export const patchModelArtifact =
         hostPath,
         `/api/model_registry/${MODEL_REGISTRY_API_VERSION}/model_artifacts/${modelartifactId}`,
         data,
+        opts,
+      ),
+    );
+
+// TODO: the pageSize value here is temporary until server-side filtering is implemented
+export const getListRegistryArtifacts =
+  (hostPath: string) =>
+  (opts: K8sAPIOptions, params: ModelRegistryQueryParams = {}): Promise<RegistryArtifactList> =>
+    handleModelRegistryFailures(
+      proxyGET(
+        hostPath,
+        queryParamBuilder(`/api/model_registry/${MODEL_REGISTRY_API_VERSION}/artifacts`, params),
+        {},
         opts,
       ),
     );

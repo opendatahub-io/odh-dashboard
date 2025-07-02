@@ -12,6 +12,7 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import ErrorBoundary from '#~/components/error/ErrorBoundary';
 import ToastNotifications from '#~/components/ToastNotifications';
 import { useWatchBuildStatus } from '#~/utilities/useWatchBuildStatus';
@@ -43,6 +44,14 @@ import DevFeatureFlagsBanner from './DevFeatureFlagsBanner';
 import SessionExpiredModal from './SessionExpiredModal';
 
 import './App.scss';
+
+const queryClient = new QueryClient({x
+  defaultOptions: {
+    queries: {
+      staleTime: Infinity,
+    },
+  },
+});
 
 const App: React.FC = () => {
   const [notificationsOpen, setNotificationsOpen] = React.useState(false);
@@ -139,50 +148,52 @@ const App: React.FC = () => {
   }
 
   return (
-    <AppContext.Provider value={contextValue}>
-      <AreaContextProvider flags={devFeatureFlagsProps.devFeatureFlags}>
-        <PluginStoreAreaFlagsProvider />
-        <AccessReviewProvider>
-          <Page
-            className="odh-dashboard"
-            isManagedSidebar
-            isContentFilled
-            masthead={
-              <Header onNotificationsClick={() => setNotificationsOpen(!notificationsOpen)} />
-            }
-            sidebar={isAllowed ? <NavSidebar /> : undefined}
-            notificationDrawer={
-              <AppNotificationDrawer onClose={() => setNotificationsOpen(false)} />
-            }
-            isNotificationDrawerExpanded={notificationsOpen}
-            mainContainerId={DASHBOARD_MAIN_CONTAINER_ID}
-            data-testid={DASHBOARD_MAIN_CONTAINER_ID}
-            banner={
-              <DevFeatureFlagsBanner
-                dashboardConfig={dashboardConfig.spec.dashboardConfig}
-                {...devFeatureFlagsProps}
-              />
-            }
-          >
-            <ErrorBoundary>
-              <NimContextProvider>
-                <ProjectsContextProvider>
-                  <ModelRegistriesContextProvider>
-                    <QuickStarts>
-                      <NotificationWatcherContextProvider>
-                        <AppRoutes />
-                      </NotificationWatcherContextProvider>
-                    </QuickStarts>
-                  </ModelRegistriesContextProvider>
-                </ProjectsContextProvider>
-              </NimContextProvider>
-              <ToastNotifications />
-              <TelemetrySetup />
-            </ErrorBoundary>
-          </Page>
-        </AccessReviewProvider>
-      </AreaContextProvider>
-    </AppContext.Provider>
+    <QueryClientProvider client={queryClient}>
+      <AppContext.Provider value={contextValue}>
+        <AreaContextProvider flags={devFeatureFlagsProps.devFeatureFlags}>
+          <PluginStoreAreaFlagsProvider />
+          <AccessReviewProvider>
+            <Page
+              className="odh-dashboard"
+              isManagedSidebar
+              isContentFilled
+              masthead={
+                <Header onNotificationsClick={() => setNotificationsOpen(!notificationsOpen)} />
+              }
+              sidebar={isAllowed ? <NavSidebar /> : undefined}
+              notificationDrawer={
+                <AppNotificationDrawer onClose={() => setNotificationsOpen(false)} />
+              }
+              isNotificationDrawerExpanded={notificationsOpen}
+              mainContainerId={DASHBOARD_MAIN_CONTAINER_ID}
+              data-testid={DASHBOARD_MAIN_CONTAINER_ID}
+              banner={
+                <DevFeatureFlagsBanner
+                  dashboardConfig={dashboardConfig.spec.dashboardConfig}
+                  {...devFeatureFlagsProps}
+                />
+              }
+            >
+              <ErrorBoundary>
+                <NimContextProvider>
+                  <ProjectsContextProvider>
+                    <ModelRegistriesContextProvider>
+                      <QuickStarts>
+                        <NotificationWatcherContextProvider>
+                          <AppRoutes />
+                        </NotificationWatcherContextProvider>
+                      </QuickStarts>
+                    </ModelRegistriesContextProvider>
+                  </ProjectsContextProvider>
+                </NimContextProvider>
+                <ToastNotifications />
+                <TelemetrySetup />
+              </ErrorBoundary>
+            </Page>
+          </AccessReviewProvider>
+        </AreaContextProvider>
+      </AppContext.Provider>
+    </QueryClientProvider>
   );
 };
 

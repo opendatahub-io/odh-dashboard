@@ -1,6 +1,8 @@
 import React from 'react';
 import { Table, Thead, Tr, Th, Tbody } from '@patternfly/react-table';
+import { Checkbox } from '@patternfly/react-core';
 import { RegistryExperimentRun } from '#~/concepts/modelRegistry/types';
+import { CHECKBOX_FIELD_ID } from '#~/components/table/const';
 import { ColumnConfig } from './ExperimentRunsTableColumnsConfig';
 import ExperimentRunsTableRow from './ExperimentRunsTableRow';
 import {
@@ -14,11 +16,13 @@ type ExperimentRunsTableWithNestedHeadersProps = {
   selectedRuns: RegistryExperimentRun[];
   setSelectedRuns: React.Dispatch<React.SetStateAction<RegistryExperimentRun[]>>;
   columnConfig: ColumnConfig;
+  compact?: boolean;
   selectedColumns: {
     metrics: Array<{ id: string; name: string; checked: boolean }>;
     parameters: Array<{ id: string; name: string; checked: boolean }>;
     tags: Array<{ id: string; name: string; checked: boolean }>;
   };
+  isStickyHeader?: boolean;
 };
 
 const ExperimentRunsTableWithNestedHeaders: React.FC<ExperimentRunsTableWithNestedHeadersProps> = ({
@@ -27,6 +31,8 @@ const ExperimentRunsTableWithNestedHeaders: React.FC<ExperimentRunsTableWithNest
   setSelectedRuns,
   columnConfig,
   selectedColumns,
+  compact,
+  isStickyHeader,
 }) => {
   const [expandedRunIds, setExpandedRunIds] = React.useState<Set<string>>(new Set());
 
@@ -88,6 +94,27 @@ const ExperimentRunsTableWithNestedHeaders: React.FC<ExperimentRunsTableWithNest
     [isRunSelected, setSelectedRuns],
   );
 
+  // Select all functionality
+  const allDisplayRunsSelected = React.useMemo(
+    () => displayRuns.length > 0 && displayRuns.every((run) => isRunSelected(run)),
+    [displayRuns, isRunSelected],
+  );
+
+  const handleSelectAll = React.useCallback(() => {
+    if (allDisplayRunsSelected) {
+      // Unselect all displayed runs
+      const displayRunIds = new Set(displayRuns.map((run) => run.id));
+      setSelectedRuns((prev) => prev.filter((run) => !displayRunIds.has(run.id)));
+    } else {
+      // Select all displayed runs that aren't already selected
+      const displayRunIds = new Set(selectedRuns.map((run) => run.id));
+      const newSelectionsBase = displayRuns
+        .filter((run) => !displayRunIds.has(run.id))
+        .map((run) => convertToBaseRun(run));
+      setSelectedRuns((prev) => [...prev, ...newSelectionsBase]);
+    }
+  }, [allDisplayRunsSelected, displayRuns, selectedRuns, setSelectedRuns]);
+
   const { baseColumns, dynamicColumns, nestedHeaderConfig } = columnConfig;
   const allColumns = [...baseColumns, ...dynamicColumns];
 
@@ -96,9 +123,22 @@ const ExperimentRunsTableWithNestedHeaders: React.FC<ExperimentRunsTableWithNest
       // Regular single header row
       return (
         <Tr>
-          {allColumns.map((column, index) => (
-            <Th key={column.field || index}>{column.label}</Th>
-          ))}
+          {allColumns.map((column, index) => {
+            // Special handling for checkbox column to add select all
+            if (column.field === CHECKBOX_FIELD_ID) {
+              return (
+                <Th key={column.field}>
+                  <Checkbox
+                    id="select-all-runs"
+                    isChecked={allDisplayRunsSelected}
+                    onChange={handleSelectAll}
+                    aria-label="Select all runs"
+                  />
+                </Th>
+              );
+            }
+            return <Th key={column.field || index}>{column.label}</Th>;
+          })}
         </Tr>
       );
     }
@@ -109,11 +149,24 @@ const ExperimentRunsTableWithNestedHeaders: React.FC<ExperimentRunsTableWithNest
 
     // Add base columns to first row (they span both rows)
     baseColumns.slice(0, -1).forEach((column, index) => {
-      firstRowHeaders.push(
-        <Th key={column.field || index} rowSpan={2}>
-          {column.label}
-        </Th>,
-      );
+      if (column.field === CHECKBOX_FIELD_ID) {
+        firstRowHeaders.push(
+          <Th key={column.field} rowSpan={2}>
+            <Checkbox
+              id="select-all-runs"
+              isChecked={allDisplayRunsSelected}
+              onChange={handleSelectAll}
+              aria-label="Select all runs"
+            />
+          </Th>,
+        );
+      } else {
+        firstRowHeaders.push(
+          <Th key={column.field || index} rowSpan={2}>
+            {column.label}
+          </Th>,
+        );
+      }
     });
 
     // Add group headers to first row
@@ -156,7 +209,12 @@ const ExperimentRunsTableWithNestedHeaders: React.FC<ExperimentRunsTableWithNest
   };
 
   return (
-    <Table aria-label="Experiment runs table with nested headers" gridBreakPoint="">
+    <Table
+      aria-label="Experiment runs table with nested headers"
+      gridBreakPoint=""
+      variant={compact ? 'compact' : undefined}
+      isStickyHeader={isStickyHeader}
+    >
       <Thead hasNestedHeader={nestedHeaderConfig.hasNested}>{renderNestedHeaders()}</Thead>
       <Tbody>
         {displayRuns.map((experimentRun) => (

@@ -87,6 +87,7 @@
     "@patternfly/react-topology": "^6.2.0",
     "@patternfly/react-virtualized-extension": "^6.0.0",
     "@segment/analytics-next": "^1.72.0",
+    "@tanstack/react-query": "^5.81.5",
     "@types/classnames": "^2.3.1",
     "axios": "^1.6.4",
     "classnames": "^2.2.6",

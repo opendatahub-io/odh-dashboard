@@ -1,10 +1,5 @@
-import * as React from 'react';
-import {
-  useFetchState,
-  FetchState,
-  FetchStateCallbackPromise,
-  NotReadyError,
-} from 'mod-arch-shared';
+// React import not needed
+import { useQuery } from '@tanstack/react-query';
 import { RegistryExperimentRun } from '#~/concepts/modelRegistry/types';
 import { useModelRegistryAPI } from '#~/concepts/modelRegistry/context/ModelRegistryPageContext';
 
@@ -16,35 +11,33 @@ type AggregatedArtifacts = {
 
 const useExperimentRunsArtifacts = (
   experimentRuns: RegistryExperimentRun[],
-): FetchState<AggregatedArtifacts> => {
+): [AggregatedArtifacts, boolean, Error | undefined] => {
   const { api, apiAvailable } = useModelRegistryAPI();
 
-  const callback = React.useCallback<FetchStateCallbackPromise<AggregatedArtifacts>>(
-    async (opts) => {
+  const query = useQuery({
+    queryKey: ['runsArtifacts', experimentRuns.length],
+    queryFn: async () => {
       if (!apiAvailable) {
-        return Promise.reject(new Error('API not yet available'));
+        throw new Error('API not yet available');
       }
       if (!experimentRuns.length) {
-        return Promise.reject(new NotReadyError('No experiment runs'));
+        throw new Error('No experiment runs');
       }
 
-      // Fetch artifacts for all experiment runs in parallel
       const artifactPromises = experimentRuns.map((run) =>
         api
-          .getExperimentRunArtifacts(opts, run.id)
+          .getExperimentRunArtifacts({}, run.id)
           .catch(() => ({ items: [], size: 0, pageSize: 0, nextPageToken: '' })),
       );
 
       const allArtifacts = await Promise.all(artifactPromises);
 
-      // Aggregate all unique metrics, parameters, and tags
       const aggregated: AggregatedArtifacts = {
         metrics: new Set<string>(),
         parameters: new Set<string>(),
         tags: new Set<string>(),
       };
 
-      // Process artifacts based on artifactType
       allArtifacts.forEach((artifactList) => {
         artifactList.items.forEach((artifact) => {
           if (artifact.artifactType === 'metric' && artifact.name) {
@@ -55,23 +48,25 @@ const useExperimentRunsArtifacts = (
         });
       });
 
-      // Get tags from experiment run custom properties
       experimentRuns.forEach((run) => {
-        Object.keys(run.customProperties).forEach((key) => {
-          aggregated.tags.add(key);
-        });
+        Object.keys(run.customProperties).forEach((key) => aggregated.tags.add(key));
       });
 
       return aggregated;
     },
-    [api, apiAvailable, experimentRuns],
-  );
+    enabled: apiAvailable && experimentRuns.length > 0,
+    staleTime: Infinity,
+  });
 
-  return useFetchState(
-    callback,
-    { metrics: new Set(), parameters: new Set(), tags: new Set() },
-    { initialPromisePurity: true },
-  );
+  return [
+    query.data ?? {
+      metrics: new Set<string>(),
+      parameters: new Set<string>(),
+      tags: new Set<string>(),
+    },
+    query.isSuccess,
+    query.error ?? undefined,
+  ];
 };
 
 export default useExperimentRunsArtifacts;

@@ -21,7 +21,7 @@ import {
   ChartThemeColor,
 } from '@patternfly/react-charts/victory';
 import { ChartLineIcon } from '@patternfly/react-icons';
-import useExperimentRunMetricHistory from '#~/concepts/modelRegistry/apiHooks/useExperimentRunMetricHistory';
+import useExperimentRunMetricHistory from '#~/concepts/modelRegistry/apiHooks/useExperimentRunMetricHistory.ts';
 
 type MetricHistoryChartProps = {
   experimentRunId: string;

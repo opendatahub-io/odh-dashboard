@@ -10,7 +10,9 @@ import {
   getListModelArtifacts,
   getListModelVersions,
   getListRegisteredModels,
+  getListRegistryArtifacts,
   getListRegistryExperiments,
+  getListRegistryRuns,
   getModelArtifact,
   getModelArtifactsByModelVersion,
   getModelVersion,
@@ -56,6 +58,8 @@ const useModelRegistryAPIState = (
       getExperimentRun: getRegistryExperimentRun(path),
       getExperimentRunArtifacts: getRegistryExperimentRunArtifacts(path),
       getExperimentRunMetricHistory: getRegistryExperimentRunMetricHistory(path),
+      listRuns: getListRegistryRuns(path),
+      listArtifacts: getListRegistryArtifacts(path),
     }),
     [],
   );

@@ -36,6 +36,8 @@ describe('updateTimestamps', () => {
     getExperimentRun: jest.fn(),
     getExperimentRunArtifacts: jest.fn(),
     getExperimentRunMetricHistory: jest.fn(),
+    listRuns: jest.fn(),
+    listArtifacts: jest.fn(),
   });
   const fakeModelVersionId = 'test-model-version-id';
   const fakeRegisteredModelId = 'test-registered-model-id';

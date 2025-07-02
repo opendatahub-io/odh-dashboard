@@ -1,31 +1,28 @@
-import * as React from 'react';
-import {
-  useFetchState,
-  FetchState,
-  FetchStateCallbackPromise,
-  NotReadyError,
-} from 'mod-arch-shared';
+import { useQuery } from '@tanstack/react-query';
 import { RegistryExperiment } from '#~/concepts/modelRegistry/types';
 import { useModelRegistryAPI } from '#~/concepts/modelRegistry/context/ModelRegistryPageContext';
 
-const useExperimentById = (experimentId?: string): FetchState<RegistryExperiment | null> => {
+const useExperimentById = (
+  experimentId?: string,
+): [RegistryExperiment | null, boolean, Error | undefined] => {
   const { api, apiAvailable } = useModelRegistryAPI();
 
-  const call = React.useCallback<FetchStateCallbackPromise<RegistryExperiment | null>>(
-    (opts) => {
+  const query = useQuery({
+    queryKey: ['experiment', experimentId],
+    queryFn: () => {
       if (!apiAvailable) {
-        return Promise.reject(new Error('API not yet available'));
+        throw new Error('API not yet available');
       }
       if (!experimentId) {
-        return Promise.reject(new NotReadyError('No experiment id'));
+        throw new Error('No experiment id');
       }
-
-      return api.getExperiment(opts, experimentId);
+      return api.getExperiment({}, experimentId);
     },
-    [api, apiAvailable, experimentId],
-  );
+    enabled: apiAvailable && Boolean(experimentId),
+    staleTime: Infinity,
+  });
 
-  return useFetchState(call, null);
+  return [query.data ?? null, query.isSuccess, query.error ?? undefined];
 };
 
 export default useExperimentById;

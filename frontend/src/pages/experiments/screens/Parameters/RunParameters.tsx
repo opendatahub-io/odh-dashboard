@@ -16,12 +16,12 @@ import {
   filterMockDataByParameters,
 } from './utils';
 
-type CompareRunsProps = Omit<
+type RunParametersProps = Omit<
   React.ComponentProps<typeof ApplicationsPage>,
   'breadcrumb' | 'title' | 'description' | 'loadError' | 'loaded' | 'provideChildrenPadding'
 >;
 
-const CompareRuns: React.FC<CompareRunsProps> = ({ ...pageProps }) => {
+const RunParameters: React.FC<RunParametersProps> = ({ ...pageProps }) => {
   // get runs from query params
   const [searchParams] = useSearchParams();
   const runs = searchParams.get(CompareRunsSearchParam.RUNS);
@@ -71,8 +71,8 @@ const CompareRuns: React.FC<CompareRunsProps> = ({ ...pageProps }) => {
   return (
     <ApplicationsPage
       {...pageProps}
-      title="Compare runs"
-      description="Compare runs"
+      title="Run parameters"
+      description="Run parameters"
       loaded
       provideChildrenPadding
     >
@@ -148,4 +148,4 @@ const CompareRuns: React.FC<CompareRunsProps> = ({ ...pageProps }) => {
   );
 };
 
-export default CompareRuns;
+export default RunParameters;

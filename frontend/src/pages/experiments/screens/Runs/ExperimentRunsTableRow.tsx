@@ -4,10 +4,11 @@ import { AngleDownIcon, AngleRightIcon } from '@patternfly/react-icons';
 import { Link, useParams } from 'react-router-dom';
 import * as React from 'react';
 import { ExperimentRunStatus, ExperimentRunState } from '#~/concepts/modelRegistry/types';
-import useExperimentRunArtifacts from '#~/concepts/modelRegistry/apiHooks/useExperimentRunArtifacts';
 import { experimentRunDetailsRoute } from '#~/routes/experiments/registryBase';
 import { ModelRegistriesContext } from '#~/concepts/modelRegistry/context/ModelRegistriesContext';
+import useExperimentRunArtifacts from '#~/concepts/modelRegistry/apiHooks/useExperimentRunArtifacts.ts';
 import { NestedExperimentRun, hasChildren } from './experimentRunsUtils';
+import ExperimentCell from './ExperimentCell';
 
 type ColumnSelectorItem = {
   id: string;
@@ -66,7 +67,7 @@ const ExperimentRunsTableRow: React.FC<ExperimentRunsTableRowProps> = ({
   isExpanded = false,
   onToggleExpand,
 }) => {
-  const { experimentId, modelRegistry } = useParams<{
+  const { modelRegistry } = useParams<{
     experimentId: string;
     modelRegistry: string;
   }>();
@@ -189,7 +190,7 @@ const ExperimentRunsTableRow: React.FC<ExperimentRunsTableRowProps> = ({
             <Link
               to={experimentRunDetailsRoute(
                 modelRegistry || preferredModelRegistry?.metadata.name,
-                experimentId,
+                experimentRun.experimentId,
                 experimentRun.id,
               )}
               style={{ textDecoration: 'none', color: 'inherit' }}
@@ -201,6 +202,12 @@ const ExperimentRunsTableRow: React.FC<ExperimentRunsTableRowProps> = ({
             )}
           </div>
         </div>
+      </Td>
+      <Td dataLabel="Experiment">
+        <ExperimentCell
+          experimentId={experimentRun.experimentId}
+          modelRegistry={modelRegistry || preferredModelRegistry?.metadata.name}
+        />
       </Td>
       <Td dataLabel="Owner">
         <div>{experimentRun.owner || '-'}</div>

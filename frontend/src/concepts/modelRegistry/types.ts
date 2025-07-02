@@ -324,6 +324,8 @@ export type RegistryArtifact = ModelRegistryBase & {
   uri?: string;
   state?: ArtifactState;
   artifactType: string;
+  experimentRunId?: string;
+  parentId?: string;
 };
 
 export type RegistryMetricArtifact = RegistryArtifact & {
@@ -376,6 +378,16 @@ export type GetRegistryExperimentRunMetricHistory = (
   metricName?: string,
 ) => Promise<RegistryArtifactList>;
 
+export type GetListRegistryRuns = (
+  opts: K8sAPIOptions,
+  params?: ModelRegistryQueryParams,
+) => Promise<RegistryExperimentRunList>;
+
+export type GetListRegistryArtifacts = (
+  opts: K8sAPIOptions,
+  params?: ModelRegistryQueryParams,
+) => Promise<RegistryArtifactList>;
+
 export type ModelRegistryAPIs = {
   createRegisteredModel: CreateRegisteredModel;
   createModelVersion: CreateModelVersion;
@@ -399,4 +411,6 @@ export type ModelRegistryAPIs = {
   getExperimentRun: GetRegistryExperimentRun;
   getExperimentRunArtifacts: GetRegistryExperimentRunArtifacts;
   getExperimentRunMetricHistory: GetRegistryExperimentRunMetricHistory;
+  listRuns: GetListRegistryRuns;
+  listArtifacts: GetListRegistryArtifacts;
 };

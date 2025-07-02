@@ -47,7 +47,7 @@ const ExperimentRuns: React.FC<ExperimentRunsProps> = ({ ...pageProps }) => {
       loaded={loaded}
       provideChildrenPadding
     >
-      <ExperimentRunsListView experimentRuns={experimentRuns} />
+      <ExperimentRunsListView experimentRuns={experimentRuns} showCompareRunsButton />
     </ApplicationsPage>
   );
 };

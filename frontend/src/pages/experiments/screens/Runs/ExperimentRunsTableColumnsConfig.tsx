@@ -37,6 +37,11 @@ export const createExperimentRunsColumns = (selectedColumns: ColumnSelection): C
       sortable: true,
     },
     {
+      field: 'experimentId',
+      label: 'Experiment',
+      sortable: true,
+    },
+    {
       field: 'owner',
       label: 'Owner',
       sortable: true,

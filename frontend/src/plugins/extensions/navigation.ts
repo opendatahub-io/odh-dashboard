@@ -184,9 +184,9 @@ const extensions: NavExtension[] = [
     properties: {
       id: 'experiments-params',
       title: 'Parameters',
-      href: '/experiments/params',
+      href: '/experiments/parameters',
       section: 'experiments',
-      path: '/experiments/params',
+      path: '/experiments/parameters',
     },
   },
 

@@ -1,53 +1,41 @@
-import * as React from 'react';
-import {
-  useFetchState,
-  FetchState,
-  FetchStateCallbackPromise,
-  NotReadyError,
-} from 'mod-arch-shared';
+import { useQuery } from '@tanstack/react-query';
 import { ModelRegistryQueryParams, RegistryExperimentRun } from '#~/concepts/modelRegistry/types';
 import { useModelRegistryAPI } from '#~/concepts/modelRegistry/context/ModelRegistryPageContext';
 
 const useExperimentRuns = (
   experimentId?: string,
   params?: ModelRegistryQueryParams,
-): FetchState<RegistryExperimentRun[]> => {
+): [RegistryExperimentRun[], boolean, Error | undefined] => {
   const { api, apiAvailable } = useModelRegistryAPI();
-  const callback = React.useCallback<FetchStateCallbackPromise<RegistryExperimentRun[]>>(
-    async (opts) => {
+
+  const query = useQuery({
+    queryKey: ['experimentRuns', experimentId, params],
+    queryFn: async () => {
       if (!apiAvailable) {
-        return Promise.reject(new Error('API not yet available'));
+        throw new Error('API not yet available');
       }
       if (!experimentId) {
-        return Promise.reject(new NotReadyError('No experiment id'));
+        throw new Error('No experiment id');
       }
 
-      // Fetch all pages iteratively
-      let allItems: RegistryExperimentRun[] = [];
-      let nextPageToken: string | undefined;
-
+      const all: RegistryExperimentRun[] = [];
+      let next: string | undefined;
       do {
-        const currentParams = {
+        const response = await api.getExperimentRuns({}, experimentId, {
           ...params,
-          ...(nextPageToken && { nextPageToken }),
-        };
-
-        const response = await api.getExperimentRuns(opts, experimentId, currentParams);
-
-        allItems = allItems.concat(response.items);
-        nextPageToken = response.nextPageToken;
-
-        // Break if no more pages or no items
-        if (!nextPageToken || response.items.length === 0) {
-          break;
-        }
-      } while (nextPageToken);
-
-      return allItems;
+          pageSize: 100,
+          ...(next && { nextPageToken: next }),
+        });
+        all.push(...response.items);
+        next = response.nextPageToken;
+      } while (next);
+      return all;
     },
-    [api, apiAvailable, experimentId, params],
-  );
-  return useFetchState(callback, [], { initialPromisePurity: true });
+    enabled: apiAvailable && Boolean(experimentId),
+    staleTime: Infinity,
+  });
+
+  return [query.data ?? [], query.isSuccess, query.error ?? undefined];
 };
 
 export default useExperimentRuns;
