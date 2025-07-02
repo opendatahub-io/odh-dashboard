@@ -3,6 +3,10 @@ import {
   FormFieldSelector,
   registerModelPage,
 } from '#~/__tests__/cypress/cypress/pages/modelRegistry/registerModelPage';
+import {
+  FormFieldSelector as VersionFormFieldSelector,
+  registerVersionPage,
+} from '#~/__tests__/cypress/cypress/pages/modelRegistry/registerVersionPage';
 import { modelRegistry } from '#~/__tests__/cypress/cypress/pages/modelRegistry';
 import { retryableBeforeEach } from '#~/__tests__/cypress/cypress/utils/retryableHooks';
 import {
@@ -60,7 +64,7 @@ describe('Verify models can be registered in a model registry', () => {
       cy.findByTestId(registryName).click();
 
       cy.step('Register a model using object storage');
-      modelRegistry.findRegisterModelButton().click();
+      cy.findByRole('button', { name: 'Register model', timeout: 30000 }).click();
 
       // Fill in model details for object storage
       registerModelPage
@@ -129,6 +133,64 @@ describe('Verify models can be registered in a model registry', () => {
       cy.step('Verify both models are visible in the registry');
       cy.contains(testData.objectStorageModelName, { timeout: 10000 }).should('be.visible');
       cy.contains(testData.uriModelName, { timeout: 10000 }).should('be.visible');
+    },
+  );
+
+  it(
+    'Registers a new version via versions view',
+    { tags: ['@Maintain', '@ModelRegistry', '@NonConcurrent'] },
+    () => {
+      cy.step('Login as an Admin');
+      cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
+
+      cy.step('Navigate to Model Registry');
+      appChrome.findNavItem('Model registry', 'Models').click();
+
+      cy.step('Select the created model registry');
+      modelRegistry.findModelRegistry().click();
+      cy.findByTestId(registryName).click();
+
+      cy.step('Navigate to the first registered model');
+      cy.contains(testData.objectStorageModelName).click();
+
+      cy.step('Navigate to versions tab');
+      cy.findByTestId('model-versions-tab').click();
+
+      cy.step('Click Register new version button');
+      modelRegistry.findRegisterNewVersionButton().click();
+
+      cy.step('Fill in version details');
+      registerVersionPage
+        .findFormField(VersionFormFieldSelector.VERSION_NAME)
+        .type(testData.version2Name);
+      registerVersionPage
+        .findFormField(VersionFormFieldSelector.VERSION_DESCRIPTION)
+        .type('Second version registered via versions view');
+      registerVersionPage
+        .findFormField(VersionFormFieldSelector.SOURCE_MODEL_FORMAT)
+        .type('tensorflow');
+      registerVersionPage
+        .findFormField(VersionFormFieldSelector.SOURCE_MODEL_FORMAT_VERSION)
+        .type('3.0');
+
+      cy.step('Configure URI location for the new version');
+      registerVersionPage.findFormField(VersionFormFieldSelector.LOCATION_TYPE_URI).click();
+      registerVersionPage
+        .findFormField(VersionFormFieldSelector.LOCATION_URI)
+        .type(
+          's3://test-bucket/models/tensorflow-model-v2?endpoint=http%3A%2F%2Fminio.example.com%3A9000&defaultRegion=us-east-1',
+        );
+
+      cy.step('Submit the new version');
+      registerVersionPage.findSubmitButton().click();
+
+      cy.step('Verify the new version was registered');
+      cy.url().should('include', '/versions');
+      cy.contains(testData.version2Name, { timeout: 10000 }).should('be.visible');
+
+      cy.step('Verify both versions are now visible');
+      cy.contains('v1.0', { timeout: 10000 }).should('be.visible');
+      cy.contains(testData.version2Name, { timeout: 10000 }).should('be.visible');
     },
   );
 

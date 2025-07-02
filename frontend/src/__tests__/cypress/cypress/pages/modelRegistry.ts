@@ -208,6 +208,10 @@ class ModelRegistry {
     return cy.findByRole('button', { name: 'Register model' });
   }
 
+  findRegisterNewVersionButton() {
+    return cy.findByRole('button', { name: 'Register new version' });
+  }
+
   // Empty state selectors for admin users
   findEmptyStateAdminTitle() {
     return cy.findByText('Create a model registry');
