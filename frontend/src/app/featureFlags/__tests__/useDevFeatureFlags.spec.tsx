@@ -5,11 +5,11 @@ import { PluginStoreProvider } from '@openshift/dynamic-plugin-sdk';
 import { PluginStore } from '@odh-dashboard/plugin-core';
 import { RenderOptions } from '@testing-library/react';
 import { renderHook } from '#~/__tests__/unit/testUtils/hooks';
-import useDevFeatureFlags from '#~/app/useDevFeatureFlags';
 import { useBrowserStorage } from '#~/components/browserStorage/BrowserStorageContext';
 import { definedFeatureFlags } from '#~/concepts/areas/const';
 import { DashboardConfigKind } from '#~/k8sTypes';
 import axios from '#~/utilities/axios';
+import useDevFeatureFlags from '#~/app/featureFlags/useDevFeatureFlags';
 
 jest.mock('react-router-dom', () => ({
   useSearchParams: jest.fn(() => [
@@ -37,9 +37,21 @@ const useBrowserStorageMock = jest.mocked(useBrowserStorage);
 
 const mockSession = (initialSessionFlags: Record<string, boolean> | null) => {
   let sessionFlags: Record<string, boolean> | null = initialSessionFlags;
+  let bannerVisible = false;
   const setSessionFn = jest.fn().mockImplementation((value) => (sessionFlags = value));
-  useBrowserStorageMock.mockImplementation(() => [sessionFlags, setSessionFn]);
-  return { sessionFlags, setSessionFn };
+  const setBannerFn = jest.fn().mockImplementation((value) => (bannerVisible = value));
+
+  // Mock useBrowserStorage to handle both calls based on the storage key
+  useBrowserStorageMock.mockImplementation((key: string) => {
+    if (key === 'odh-feature-flags') {
+      // First call is for sessionFlags
+      return [sessionFlags, setSessionFn];
+    }
+    // Second call is for isBannerVisible
+    return [bannerVisible, setBannerFn];
+  });
+
+  return { sessionFlags, setSessionFn, bannerVisible, setBannerFn };
 };
 
 const mockUseSearchParams = (queryFlags: { [key in string]: boolean } | null | boolean) => {
@@ -82,6 +94,7 @@ describe('useDevFeatureFlags', () => {
     const dashboardConfig = {
       spec: { dashboardConfig: { disableAppLauncher: true } },
     } as DashboardConfigKind;
+    mockSession(null);
     const renderResult = renderHook(() => useDevFeatureFlags(dashboardConfig), renderOptions());
     expect(renderResult.result.current.dashboardConfig).toBe(dashboardConfig);
     expect(renderResult.result.current).toEqual({
@@ -90,6 +103,7 @@ describe('useDevFeatureFlags', () => {
       resetDevFeatureFlags: expect.any(Function),
       setDevFeatureFlag: expect.any(Function),
       setDevFeatureFlagQueryVisible: expect.any(Function),
+      isBannerVisible: false,
     });
   });
 
@@ -108,6 +122,7 @@ describe('useDevFeatureFlags', () => {
       resetDevFeatureFlags: expect.any(Function),
       setDevFeatureFlag: expect.any(Function),
       setDevFeatureFlagQueryVisible: expect.any(Function),
+      isBannerVisible: false,
     });
 
     expect(axiosMock.defaults.headers.common['x-odh-feature-flags']).toEqual(
@@ -158,6 +173,7 @@ describe('useDevFeatureFlags', () => {
       resetDevFeatureFlags: expect.any(Function),
       setDevFeatureFlag: expect.any(Function),
       setDevFeatureFlagQueryVisible: expect.any(Function),
+      isBannerVisible: true,
     });
 
     expect(searchParams.delete).toHaveBeenCalledWith('devFeatureFlags');
@@ -174,6 +190,7 @@ describe('useDevFeatureFlags', () => {
 
   it('should load flags from query string with true', () => {
     mockUseSearchParams(true);
+    mockSession(null);
     const dashboardConfig = {
       spec: { dashboardConfig: { disableAppLauncher: true } },
     } as DashboardConfigKind;
@@ -195,11 +212,13 @@ describe('useDevFeatureFlags', () => {
       resetDevFeatureFlags: expect.any(Function),
       setDevFeatureFlag: expect.any(Function),
       setDevFeatureFlagQueryVisible: expect.any(Function),
+      isBannerVisible: true,
     });
   });
 
   it('should load flags from query string with false', () => {
     mockUseSearchParams(false);
+    mockSession(null);
     const dashboardConfig = {
       spec: { dashboardConfig: { disableAppLauncher: false } },
     } as DashboardConfigKind;
@@ -221,6 +240,7 @@ describe('useDevFeatureFlags', () => {
       resetDevFeatureFlags: expect.any(Function),
       setDevFeatureFlag: expect.any(Function),
       setDevFeatureFlagQueryVisible: expect.any(Function),
+      isBannerVisible: true,
     });
   });
 });
