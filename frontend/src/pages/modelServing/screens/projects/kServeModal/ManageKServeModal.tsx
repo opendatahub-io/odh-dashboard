@@ -383,7 +383,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
                   onDataChange={setKserveNameDesc}
                   dataTestId="inference-service"
                   nameLabel="Model deployment name"
-                  nameHelperText="This is the name of the inference service created when the model is deployed"
+                  nameHelperText="This is the name of the inference service created when the model is deployed."
                   hideDescription
                 />
                 <ServingRuntimeTemplateSection
