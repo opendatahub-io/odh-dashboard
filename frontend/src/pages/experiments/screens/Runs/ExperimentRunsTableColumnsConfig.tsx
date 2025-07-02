@@ -1,6 +1,5 @@
-import { SortableData } from 'mod-arch-shared';
 import { RegistryExperimentRun } from '#~/concepts/modelRegistry/types';
-import { checkboxTableColumn } from '#~/components/table';
+import { checkboxTableColumn, SortableData } from '#~/components/table';
 
 type ColumnSelectorItem = {
   id: string;

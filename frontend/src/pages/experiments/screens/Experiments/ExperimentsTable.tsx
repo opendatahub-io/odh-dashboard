@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { Table } from 'mod-arch-shared';
 import { RegistryExperiment } from '#~/concepts/modelRegistry/types.ts';
+import { Table } from '#~/components/table';
 import { experimentsColumns } from './ExperimentsTableColumns';
 import ExperimentsTableRow from './ExperimentsTableRow';
 

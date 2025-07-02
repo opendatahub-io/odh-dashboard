@@ -37,8 +37,8 @@ export const experimentsMetricsRoute = (
   return `${basePath}/${registry}/${experimentId}${generateCompareRunsQueryString(runIds)}`;
 };
 
-export const metricsRoute = (registry?: string, runIds?: string[]): string => {
-  const basePath = `${experimentsRootPath}/metrics`;
+export const parametersRoute = (registry?: string, runIds?: string[]): string => {
+  const basePath = `${experimentsRootPath}/parameters`;
   return !registry
     ? `${basePath}${generateCompareRunsQueryString(runIds)}`
     : `${basePath}/${registry}${generateCompareRunsQueryString(runIds)}`;

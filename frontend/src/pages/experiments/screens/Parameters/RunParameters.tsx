@@ -8,6 +8,7 @@ import { Button, Split, SplitItem, Stack, StackItem } from '@patternfly/react-co
 import ApplicationsPage from '#~/pages/ApplicationsPage.tsx';
 import { CompareRunsSearchParam } from '#~/routes/experiments/registryBase.ts';
 import useExperimentRunsArtifactsMetrics from '#~/concepts/modelRegistry/apiHooks/useExperimentRunsArtifactsMetrics';
+import { RegistryArtifactList } from '#~/concepts/modelRegistry/types.ts';
 import {
   transformDataToDimensions,
   getColorScaleConfigsForDimension,
@@ -29,13 +30,18 @@ const RunParameters: React.FC<RunParametersProps> = ({ ...pageProps }) => {
   // Memoize the split operation to prevent unnecessary re-renders
   const runIds = React.useMemo(() => (runs ? runs.split(',').filter(Boolean) : []), [runs]);
 
-  const [runsData, loaded] = useExperimentRunsArtifactsMetrics(runIds);
+  const [runsData] = useExperimentRunsArtifactsMetrics(runIds);
 
   const paramsNames = React.useMemo(
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     () => getUniqueParameterNames(runsData, 'parameter'),
     [runsData],
   );
-  const metricsNames = React.useMemo(() => getUniqueParameterNames(runsData, 'metric'), [runsData]);
+  const metricsNames = React.useMemo(
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    () => getUniqueParameterNames(runsData, 'metric'),
+    [runsData],
+  );
 
   const paramOptions: Option[] = paramsNames.map((n) => ({ label: n, value: n }));
   const metricOptions: Option[] = metricsNames.map((n) => ({ label: n, value: n }));
@@ -43,7 +49,7 @@ const RunParameters: React.FC<RunParametersProps> = ({ ...pageProps }) => {
   const [selectedParams, setSelectedParams] = React.useState<string[]>([]);
   const [selectedMetrics, setSelectedMetrics] = React.useState<string[]>([]);
 
-  const [filteredData, setFilteredData] = React.useState<any[]>([]);
+  const [filteredData, setFilteredData] = React.useState<RegistryArtifactList[]>([]);
 
   const isEmpty = selectedParams.length === 0 && selectedMetrics.length === 0;
 
@@ -133,6 +139,8 @@ const RunParameters: React.FC<RunParametersProps> = ({ ...pageProps }) => {
                         find(dimensions, ['label', lastMetricDimensionMetricKey]),
                       ),
                     }),
+                    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                    // @ts-expect-error
                     dimensions,
                   },
                 ]}

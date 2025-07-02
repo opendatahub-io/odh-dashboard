@@ -1,5 +1,5 @@
-import { SortableData } from 'mod-arch-shared';
 import { RegistryExperiment } from '#~/concepts/modelRegistry/types.ts';
+import { SortableData } from '#~/components/table';
 
 export const experimentsColumns: SortableData<RegistryExperiment>[] = [
   {

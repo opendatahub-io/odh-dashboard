@@ -1,12 +1,8 @@
 import * as React from 'react';
-import {
-  useFetchState,
-  FetchState,
-  FetchStateCallbackPromise,
-  NotReadyError,
-} from 'mod-arch-shared';
 import { RegistryArtifactList, RegistryExperimentRun } from '#~/concepts/modelRegistry/types';
 import { useModelRegistryAPI } from '#~/concepts/modelRegistry/context/ModelRegistryPageContext';
+import { FetchStateCallbackPromise, NotReadyError } from '#~/utilities/useFetch.ts';
+import useFetchState, { FetchState } from '#~/utilities/useFetchState.ts';
 
 type MultipleRunMetricHistoryResult = {
   [runId: string]: {

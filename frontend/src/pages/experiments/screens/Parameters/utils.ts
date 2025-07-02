@@ -1,7 +1,13 @@
 import { min, max } from 'lodash-es';
+import { RegistryArtifactList } from '#~/concepts/modelRegistry/types.ts';
 
 // Transform data into dimensions format for parallel coordinates plot
-export const transformDataToDimensions = (data: any) => {
+export const transformDataToDimensions = (
+  data: RegistryArtifactList[],
+): {
+  label: string;
+  values: number[];
+}[] => {
   // Get all unique parameter/metric names
   const uniqueNames = new Set<string>();
   data.forEach((run) => {
@@ -38,18 +44,24 @@ export const transformDataToDimensions = (data: any) => {
   });
 };
 
-export const getColorScaleConfigsForDimension = (dimension: any) => {
-  if (!dimension) {
-    return null;
-  }
-  const cmin = min(dimension.values);
-  const cmax = max(dimension.values);
+export const getColorScaleConfigsForDimension = (dimension?: {
+  values: number[];
+  label: string;
+}): {
+  showscale: boolean;
+  colorscale: string;
+  cmin: number;
+  cmax: number;
+  color: number[];
+} | null => {
+  const cmin = min(dimension?.values) ?? 0;
+  const cmax = max(dimension?.values) ?? 0;
   return {
     showscale: true,
     colorscale: 'Jet',
     cmin,
     cmax,
-    color: dimension.values,
+    color: dimension?.values ?? [],
   };
 };
 
@@ -61,7 +73,7 @@ export interface Option {
 export interface MockDataItem {
   artifactType: string;
   createTimeSinceEpoch: string;
-  customProperties?: any;
+  customProperties?: Record<string, string>;
   id: string;
   lastUpdateTimeSinceEpoch: string;
   name: string;
@@ -89,9 +101,9 @@ export type FilterCriteria = {
 };
 
 export const filterMockDataByParameters = (
-  data: MockDataRun[],
+  data: RegistryArtifactList[],
   criteria: FilterCriteria,
-): MockDataRun[] => {
+): RegistryArtifactList[] => {
   const {
     parameterNames = [],
     artifactType,
@@ -140,7 +152,7 @@ export const filterMockDataByParameters = (
 };
 
 export const getUniqueParameterNames = (
-  data: MockDataRun[],
+  data: RegistryArtifactList[],
   artifactType?: 'parameter' | 'metric' | 'model-artifact',
 ): string[] => {
   const names = new Set<string>();

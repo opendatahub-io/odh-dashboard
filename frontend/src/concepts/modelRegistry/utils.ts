@@ -1,4 +1,3 @@
-import { ServiceKind } from 'mod-arch-shared';
 import { LabeledConnection } from '#~/pages/modelServing/screens/types';
 import {
   ConnectionTypeConfigMapObj,
@@ -9,6 +8,7 @@ import {
   ModelServingCompatibleTypes,
 } from '#~/concepts/connectionTypes/utils';
 import { CatalogModelDetailsParams } from '#~/pages/modelCatalog/types';
+import { ServiceKind } from '#~/k8sTypes.ts';
 import {
   ModelVersion,
   ModelState,

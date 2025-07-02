@@ -45,7 +45,7 @@ import SessionExpiredModal from './SessionExpiredModal';
 
 import './App.scss';
 
-const queryClient = new QueryClient({x
+const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: Infinity,
