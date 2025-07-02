@@ -339,7 +339,12 @@ const CompareRuns: React.FC<CompareRunsProps> = ({ ...pageProps }) => {
   const [searchParams] = useSearchParams();
   const runs = searchParams.get(CompareRunsSearchParam.RUNS);
 
-  const [runsData, loaded] = useExperimentRunsArtifacts(runs?.split(','));
+  // Memoize the split operation to prevent unnecessary re-renders
+  const runIds = React.useMemo(() => {
+    return runs ? runs.split(',').filter(Boolean) : [];
+  }, [runs]);
+
+  const [runsData, loaded] = useExperimentRunsArtifacts(runIds);
 
   const transformedData = transformMockDataToDimensions(runsData);
 
@@ -359,11 +364,10 @@ const CompareRuns: React.FC<CompareRunsProps> = ({ ...pageProps }) => {
               type: 'parcoords',
               line: {
                 showscale: true,
-                reversescale: true,
                 colorscale: 'Jet',
-                cmin: -4000,
-                cmax: -100,
-                //color: ['red', 'blue'],
+                cmin: 1,
+                cmax: 1,
+                color: [9, 5, 1],
               },
               dimensions: transformedData,
             },
