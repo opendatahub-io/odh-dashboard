@@ -1,12 +1,12 @@
 import React from 'react';
-import { 
-  HelperText, 
-  HelperTextItem, 
+import {
+  HelperText,
+  HelperTextItem,
   StackItem,
   Radio,
   Stack,
   FormGroup,
-  TextInput  
+  TextInput,
 } from '@patternfly/react-core';
 import PVSizeField from '#~/pages/projects/components/PVSizeField';
 import { MEMORY_UNITS_FOR_SELECTION } from '#~/utilities/valueUnits';
@@ -26,15 +26,15 @@ type NIMPVCSizeSectionProps = {
   setModelPath: (path: string) => void;
 };
 
-const NIMPVCSizeSection: React.FC<NIMPVCSizeSectionProps> = ({ 
-  pvcSize, 
+const NIMPVCSizeSection: React.FC<NIMPVCSizeSectionProps> = ({
+  pvcSize,
   setPvcSize,
   pvcMode,
   setPvcMode,
   existingPvcName,
   setExistingPvcName,
   modelPath,
-  setModelPath
+  setModelPath,
 }) => (
   <StackItem>
     <Stack hasGutter>
@@ -84,11 +84,7 @@ const NIMPVCSizeSection: React.FC<NIMPVCSizeSectionProps> = ({
         <StackItem>
           <Stack hasGutter>
             <StackItem>
-              <FormGroup 
-                label="Existing storage name" 
-                fieldId="existing-pvc-name"
-                isRequired
-              >
+              <FormGroup label="Existing storage name" fieldId="existing-pvc-name" isRequired>
                 <TextInput
                   id="existing-pvc-name"
                   value={existingPvcName}
@@ -98,20 +94,18 @@ const NIMPVCSizeSection: React.FC<NIMPVCSizeSectionProps> = ({
               </FormGroup>
               <HelperText>
                 <HelperTextItem>
-                  Enter the exact name of the Persistent Volume Claim (PVC) that contains your pre-downloaded models.
+                  Enter the exact name of the Persistent Volume Claim (PVC) that contains your
+                  pre-downloaded models.
                 </HelperTextItem>
                 <HelperTextItem>
-                  The PVC must exist in the same project/namespace and be accessible to the deployment.
+                  The PVC must exist in the same project/namespace and be accessible to the
+                  deployment.
                 </HelperTextItem>
               </HelperText>
             </StackItem>
-            
+
             <StackItem>
-              <FormGroup 
-                label="Model path in storage" 
-                fieldId="model-path"
-                isRequired
-              >
+              <FormGroup label="Model path in storage" fieldId="model-path" isRequired>
                 <TextInput
                   id="model-path"
                   value={modelPath}
@@ -124,7 +118,8 @@ const NIMPVCSizeSection: React.FC<NIMPVCSizeSectionProps> = ({
                   Specify the directory path within the storage where your model files are located.
                 </HelperTextItem>
                 <HelperTextItem>
-                  This path will be mounted into the container and should contain the model files that NIM expects.
+                  This path will be mounted into the container and should contain the model files
+                  that NIM expects.
                 </HelperTextItem>
               </HelperText>
             </StackItem>
