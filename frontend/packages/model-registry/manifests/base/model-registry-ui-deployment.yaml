@@ -13,7 +13,7 @@ spec:
     metadata:
       labels:
         app: model-registry-ui
-    spec: 
+    spec:
       serviceAccountName: model-registry-ui
       securityContext:
         seccompProfile:
@@ -53,8 +53,10 @@ spec:
         ports:
           - containerPort: 8080
         args:
-          - "--standalone-mode=false"
-          - "--default-platform=true"
+          - "--deployment-mode=federated"
+          - "--auth-method=user_token"
+          - "--auth-token-header=x-forwarded-access-token"
+          - "--auth-token-prefix="
           - "--port=8080"
         securityContext:
           allowPrivilegeEscalation: false

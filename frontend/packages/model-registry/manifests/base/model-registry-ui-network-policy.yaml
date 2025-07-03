@@ -1,0 +1,25 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: model-registry-ui-network-policy
+  labels:
+    app: model-registry-ui
+spec:
+  podSelector:
+    matchLabels:
+      app: model-registry-ui
+  policyTypes:
+  - Ingress
+  ingress:
+  # Allow traffic from the main dashboard
+  - from:
+    - podSelector:
+        matchLabels:
+          deployment: odh-dashboard
+    ports:
+    - protocol: TCP
+      port: 8080
+  # Allow health check probes from the same namespace (kubelet/system)
+  - ports:
+    - protocol: TCP
+      port: 8080
