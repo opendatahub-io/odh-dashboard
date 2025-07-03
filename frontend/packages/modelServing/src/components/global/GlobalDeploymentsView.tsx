@@ -37,6 +37,7 @@ const GlobalDeploymentsView: React.FC<GlobalDeploymentsViewProps> = ({ projects 
       headerContent={
         <ModelServingProjectSelection getRedirectPath={(ns: string) => `/model-serving/${ns}`} />
       }
+      provideChildrenPadding
     >
       <GlobalDeploymentsTable deployments={deployments ?? []} loaded />
     </ApplicationsPage>
