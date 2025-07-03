@@ -2,12 +2,12 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
-- model-registry-ui-role.yaml
 - model-registry-ui-service.yaml
 - model-registry-ui-deployment.yaml
 - model-registry-ui-service-account.yaml
+- model-registry-ui-network-policy.yaml
 
 images:
 - name: model-registry-ui
-  newName: quay.io/lferrnan/model-registry-ui-federated
+  newName: quay.io/lferrnan/model-registry-ui-federated # TODO: Update to the correct image once we set up the module in konflux and onboard it in quay
   newTag: latest

@@ -13,7 +13,7 @@ spec:
     metadata:
       labels:
         app: model-registry-ui
-    spec: 
+    spec:
       serviceAccountName: model-registry-ui
       securityContext:
         seccompProfile:
@@ -26,8 +26,8 @@ spec:
         livenessProbe:
           httpGet:
             path: /healthcheck
-            port: 8080
-            scheme: HTTP
+            port: 8443
+            scheme: HTTPS
           initialDelaySeconds: 30
           timeoutSeconds: 15
           periodSeconds: 30
@@ -36,8 +36,8 @@ spec:
         readinessProbe:
           httpGet:
             path: /healthcheck
-            port: 8080
-            scheme: HTTP
+            port: 8443
+            scheme: HTTPS
           initialDelaySeconds: 15
           timeoutSeconds: 15
           periodSeconds: 30
@@ -51,13 +51,26 @@ spec:
             cpu: 500m
             memory: 2Gi
         ports:
-          - containerPort: 8080
+          - containerPort: 8443
+            name: https
+        volumeMounts:
+        - name: tls-cert
+          mountPath: /etc/tls/private
+          readOnly: true
         args:
-          - "--standalone-mode=false"
-          - "--default-platform=true"
-          - "--port=8080"
+          - "--deployment-mode=federated"
+          - "--auth-method=user_token"
+          - "--auth-token-header=x-forwarded-access-token"
+          - "--auth-token-prefix="
+          - "--port=8443"
+          - "--cert-file=/etc/tls/private/tls.crt"
+          - "--key-file=/etc/tls/private/tls.key"
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
             drop:
               - ALL
+      volumes:
+      - name: tls-cert
+        secret:
+          secretName: model-registry-ui-tls

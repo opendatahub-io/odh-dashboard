@@ -5,12 +5,14 @@ metadata:
   labels:
     app: model-registry-ui
     run: model-registry-ui
+  annotations:
+    service.beta.openshift.io/serving-cert-secret-name: model-registry-ui-tls
 spec:
   selector:
     app: model-registry-ui
   ports:
-    - name: http
-      port: 8080
+    - name: https
+      port: 8443
       protocol: TCP
-      targetPort: 8080
+      targetPort: 8443
   type: ClusterIP
