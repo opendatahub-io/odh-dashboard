@@ -366,6 +366,9 @@ const createInferenceServiceAndDataConnection = async (
   if (connection?.type === 'kubernetes.io/dockerconfigjson') {
     imagePullSecrets = [{ name: connection.metadata.name }];
   }
+  if (inferenceServiceData.storage.type === InferenceServiceStorageType.PVC_STORAGE) {
+    storageUri = inferenceServiceData.storage.uri;
+  }
 
   let inferenceService;
   if (editInfo) {
@@ -755,3 +758,21 @@ export const validateEnvVarName = (name: string): string | undefined => {
 
 export const isValueFromEnvVar = (envVar: NonNullable<ServingContainer['env']>[number]): boolean =>
   envVar.valueFrom !== undefined;
+
+export const getPVCFromURI = (
+  uri: string,
+  pvcs?: PersistentVolumeClaimKind[],
+): PersistentVolumeClaimKind | undefined => {
+  const url = new URL(uri);
+  const pvcName = url.hostname;
+  return pvcs?.find((pvc) => pvc.metadata.name === pvcName);
+};
+
+export const getModelPathFromUri = (uri: string): string => {
+  try {
+    const url = new URL(uri);
+    return url.pathname.replace(/^\//, '');
+  } catch {
+    return '';
+  }
+};
