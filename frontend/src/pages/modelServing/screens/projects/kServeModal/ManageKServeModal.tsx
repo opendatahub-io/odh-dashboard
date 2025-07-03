@@ -61,6 +61,7 @@ import { useKServeDeploymentMode } from '#~/pages/modelServing/useKServeDeployme
 import { SERVING_RUNTIME_SCOPE } from '#~/pages/modelServing/screens/const';
 import { useModelDeploymentNotification } from '#~/pages/modelServing/screens/projects/useModelDeploymentNotification';
 import useModelServerSizeValidation from '#~/pages/modelServing/screens/projects/useModelServerSizeValidation.ts';
+import usePvcs from '#~/pages/modelServing/usePvcs';
 import KServeAutoscalerReplicaSection from './KServeAutoscalerReplicaSection';
 import EnvironmentVariablesSection from './EnvironmentVariablesSection';
 import ServingRuntimeArgsSection from './ServingRuntimeArgsSection';
@@ -135,6 +136,8 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
     createDataInferenceService.isKServeRawDeployment;
   const currentProjectName = projectContext?.currentProject.metadata.name;
   const namespace = currentProjectName || createDataInferenceService.project;
+
+  const pvcs = usePvcs(namespace);
 
   const projectTemplates = useTemplates(namespace);
 
@@ -467,6 +470,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
                 setConnection={setConnection}
                 setIsConnectionValid={setIsConnectionValid}
                 connections={connections}
+                pvcs={pvcs.data}
               />
             </FormSection>
           )}
