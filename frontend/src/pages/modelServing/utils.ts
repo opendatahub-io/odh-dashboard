@@ -32,6 +32,7 @@ import {
   RoleKind,
   ServingContainer,
   DeploymentMode,
+  PersistentVolumeClaimKind,
 } from '#~/k8sTypes';
 import { ContainerResources } from '#~/types';
 import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '#~/concepts/k8s/utils';
@@ -393,4 +394,13 @@ export const getServingRuntimeVersionStatus = (
   return servingRuntimeVersion === templateVersion
     ? ServingRuntimeVersionStatusLabel.LATEST
     : ServingRuntimeVersionStatusLabel.OUTDATED;
+};
+
+export const getModelServingPVCAnnotations = (
+  pvc: PersistentVolumeClaimKind,
+): { modelName: string | null; modelPath: string | null } => {
+  const modelName = pvc.metadata.annotations?.['dashboard.opendatahub.io/model-name'] || null;
+  const modelPath = pvc.metadata.annotations?.['dashboard.opendatahub.io/model-path'] || null;
+
+  return { modelName, modelPath };
 };
