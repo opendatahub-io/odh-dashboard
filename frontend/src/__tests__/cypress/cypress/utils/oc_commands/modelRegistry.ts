@@ -169,7 +169,10 @@ export const checkModelExistsInDatabase = (modelName: string): Cypress.Chainable
       }
 
       const podName = podResult.stdout.trim();
-      const sqlQuery = `SELECT COUNT(*) FROM Context WHERE name = '${modelName}';`;
+      const sqlQuery = `SELECT COUNT(*) FROM Context WHERE name = '${modelName.replace(
+        /'/g,
+        "''",
+      )}';`;
       const verifyCommand = `oc exec ${podName} -n ${targetNamespace} -- mysql -u mlmduser -pTheBlurstOfTimes model_registry -e "${sqlQuery}" --skip-column-names`;
 
       cy.log(`Checking if model '${modelName}' exists in database`);
@@ -209,8 +212,10 @@ export const checkModelVersionExistsInDatabase = (
       }
 
       const podName = podResult.stdout.trim();
-      // Simple check for version name in Context table (where all MLMD entities are stored)
-      const sqlQuery = `SELECT COUNT(*) FROM Context WHERE name LIKE '%${versionName}%';`;
+      const sqlQuery = `SELECT COUNT(*) FROM Context WHERE name LIKE '%${versionName.replace(
+        /'/g,
+        "''",
+      )}%';`;
       const verifyCommand = `oc exec ${podName} -n ${targetNamespace} -- mysql -u mlmduser -pTheBlurstOfTimes model_registry -e "${sqlQuery}" --skip-column-names`;
 
       cy.log(`Checking if version '${versionName}' exists in database`);
