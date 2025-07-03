@@ -10,28 +10,24 @@ import NoProjectsPage from './NoProjectsPage';
 import { ModelDeploymentsContext } from '../../concepts/ModelDeploymentsContext';
 
 type GlobalDeploymentsViewProps = {
-  currentProject?: ProjectKind | null;
+  projects: ProjectKind[];
 };
 
-const GlobalDeploymentsView: React.FC<GlobalDeploymentsViewProps> = ({ currentProject }) => {
-  const {
-    deployments,
-    loaded: deploymentsLoaded,
-    projects,
-  } = React.useContext(ModelDeploymentsContext);
+const GlobalDeploymentsView: React.FC<GlobalDeploymentsViewProps> = ({ projects }) => {
+  const { deployments, loaded: deploymentsLoaded } = React.useContext(ModelDeploymentsContext);
   const hasDeployments = deployments && deployments.length > 0;
   const isLoading = !deploymentsLoaded;
-  const isEmpty = projects?.length === 0 || (!isLoading && !hasDeployments);
+  const isEmpty = projects.length === 0 || (!isLoading && !hasDeployments);
 
   return (
     <ApplicationsPage
       loaded={!isLoading}
       empty={isEmpty}
       emptyStatePage={
-        projects?.length === 0 ? (
+        projects.length === 0 ? (
           <NoProjectsPage />
         ) : (
-          <GlobalNoModelsView project={currentProject ?? undefined} />
+          <GlobalNoModelsView project={projects.length === 1 ? projects[0] : undefined} />
         )
       }
       description="Manage and view the health and performance of your deployed models."
@@ -42,7 +38,7 @@ const GlobalDeploymentsView: React.FC<GlobalDeploymentsViewProps> = ({ currentPr
         <ModelServingProjectSelection getRedirectPath={(ns: string) => `/model-serving/${ns}`} />
       }
     >
-      <GlobalDeploymentsTable />
+      <GlobalDeploymentsTable deployments={deployments ?? []} loaded />
     </ApplicationsPage>
   );
 };
