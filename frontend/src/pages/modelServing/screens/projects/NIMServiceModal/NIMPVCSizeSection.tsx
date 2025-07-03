@@ -11,7 +11,7 @@ import {
 import PVSizeField from '#~/pages/projects/components/PVSizeField';
 import { MEMORY_UNITS_FOR_SELECTION } from '#~/utilities/valueUnits';
 
-// Add new type for PVC mode
+// new type for PVC mode
 type PVCMode = 'create-new' | 'use-existing';
 
 type NIMPVCSizeSectionProps = {
@@ -19,11 +19,11 @@ type NIMPVCSizeSectionProps = {
   setPvcSize: (value: string) => void;
   pvcMode: PVCMode;
   setPvcMode: (mode: PVCMode) => void;
-  // Add these new props
   existingPvcName: string;
   setExistingPvcName: (name: string) => void;
   modelPath: string;
   setModelPath: (path: string) => void;
+  isEditing?: boolean;
 };
 
 const NIMPVCSizeSection: React.FC<NIMPVCSizeSectionProps> = ({
@@ -35,32 +35,34 @@ const NIMPVCSizeSection: React.FC<NIMPVCSizeSectionProps> = ({
   setExistingPvcName,
   modelPath,
   setModelPath,
+  isEditing = false,
 }) => (
   <StackItem>
     <Stack hasGutter>
-      {/* New: PVC Mode Selection */}
-      <StackItem>
-        <FormGroup label="Storage option" fieldId="pvc-mode">
-          <Radio
-            id="create-new-pvc"
-            name="pvc-mode"
-            label="Create new storage for model caching"
-            description="A new storage volume will be created and models will be downloaded at deployment time."
-            isChecked={pvcMode === 'create-new'}
-            onChange={() => setPvcMode('create-new')}
-          />
-          <Radio
-            id="use-existing-pvc"
-            name="pvc-mode"
-            label="Use existing storage with pre-cached models"
-            description="Use a storage volume that already contains downloaded models for faster deployment."
-            isChecked={pvcMode === 'use-existing'}
-            onChange={() => setPvcMode('use-existing')}
-          />
-        </FormGroup>
-      </StackItem>
-      {/* Existing: PVC Size Field - only show when creating new */}
-      {pvcMode === 'create-new' && (
+      {!isEditing && (
+        <StackItem>
+          <FormGroup label="Storage option" fieldId="pvc-mode">
+            <Radio
+              id="create-new-pvc"
+              name="pvc-mode"
+              label="Create new storage for model caching"
+              description="A new storage volume will be created and models will be downloaded at deployment time."
+              isChecked={pvcMode === 'create-new'}
+              onChange={() => setPvcMode('create-new')}
+            />
+            <Radio
+              id="use-existing-pvc"
+              name="pvc-mode"
+              label="Use existing storage with pre-cached models"
+              description="Use a storage volume that already contains downloaded models for faster deployment."
+              isChecked={pvcMode === 'use-existing'}
+              onChange={() => setPvcMode('use-existing')}
+            />
+          </FormGroup>
+        </StackItem>
+      )}
+
+      {((!isEditing && pvcMode === 'create-new') || isEditing) && (
         <StackItem>
           <PVSizeField
             fieldID="pvc-size"
@@ -80,7 +82,8 @@ const NIMPVCSizeSection: React.FC<NIMPVCSizeSectionProps> = ({
           </HelperText>
         </StackItem>
       )}
-      {pvcMode === 'use-existing' && (
+
+      {!isEditing && pvcMode === 'use-existing' && (
         <StackItem>
           <Stack hasGutter>
             <StackItem>
