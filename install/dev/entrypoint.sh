@@ -28,6 +28,7 @@ log_warning() {
 # check if oc binary exists and copy if provided
 setup_oc_cli() {
   log_info "Setting up OpenShift CLI (oc)..."
+  echo "$OC_CLUSTER_TYPE"
 
   if [ "${OC_CLUSTER_TYPE}" == "crc" ]; then
     log_info "Using CRC for oc. Skipping oc setup setup."
@@ -39,7 +40,8 @@ setup_oc_cli() {
     chmod +x /opt/oc/oc /opt/oc/kubectl
     log_success "OpenShift CLI (oc) installed successfully."
   else
-    log_warning "No oc CLI not found. Please provide oc-cli.targ.gz or install oc CLI manually."
+    log_error "No oc CLI not found. Please provide oc-cli.targ.gz or install oc CLI manually."
+    exit 1
   fi
 }
 
