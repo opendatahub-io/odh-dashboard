@@ -185,9 +185,8 @@ describe('Verify models can be registered in a model registry', () => {
       cy.url().should('include', '/versions');
       cy.contains(testData.version2Name, { timeout: 10000 }).should('be.visible');
 
-      cy.step('Verify both versions are now visible');
+      cy.step('Verify first version is still visible');
       cy.contains(testData.version1Name, { timeout: 10000 }).should('be.visible');
-      cy.contains(testData.version2Name, { timeout: 10000 }).should('be.visible');
     },
   );
 
