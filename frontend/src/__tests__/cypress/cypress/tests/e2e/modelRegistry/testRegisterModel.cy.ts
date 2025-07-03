@@ -63,7 +63,7 @@ describe('Verify models can be registered in a model registry', () => {
       modelRegistry.findSelectModelRegistry(registryName);
 
       cy.step('Register a model using object storage');
-      modelRegistry.findRegisterModelButton(30000).click();
+      modelRegistry.findEmptyRegisterModelButton(30000).click();
 
       // Fill in model details for object storage
       registerModelPage
