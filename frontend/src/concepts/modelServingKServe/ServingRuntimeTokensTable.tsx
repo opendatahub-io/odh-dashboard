@@ -1,10 +1,7 @@
 import * as React from 'react';
-import { HelperText, HelperTextItem } from '@patternfly/react-core';
-import { Table } from '#~/components/table';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
-import { tokenColumns } from '#~/pages/modelServing/screens/global/data';
 import { InferenceServiceKind, isInferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
-import ServingRuntimeTokenTableRow from '#~/pages/modelServing/screens/projects/ModelMeshSection/ServingRuntimeTokenTableRow';
+import { TokensDescriptionItem } from '#~/concepts/modelServing/ModelRow/TokensDescriptionItem';
 
 type ServingRuntimeTokensTableProps = {
   obj: ServingRuntimeKind | InferenceServiceKind;
@@ -24,26 +21,12 @@ const ServingRuntimeTokensTable: React.FC<ServingRuntimeTokensTableProps> = ({
 
   const tokens = filterTokens(name);
 
-  if (!isTokenEnabled) {
-    return (
-      <HelperText>
-        <HelperTextItem variant="warning">Tokens disabled</HelperTextItem>
-      </HelperText>
-    );
-  }
-
   return (
-    <Table
-      data={tokens}
-      columns={tokenColumns}
-      rowRenderer={(secret) => (
-        <ServingRuntimeTokenTableRow
-          key={secret.metadata.uid}
-          obj={secret}
-          loaded={loaded}
-          error={error}
-        />
-      )}
+    <TokensDescriptionItem
+      tokens={tokens}
+      isTokenEnabled={isTokenEnabled}
+      loaded={loaded}
+      error={error}
     />
   );
 };
