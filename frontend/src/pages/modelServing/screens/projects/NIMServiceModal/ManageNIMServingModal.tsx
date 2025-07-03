@@ -441,6 +441,7 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
                 setExistingPvcName={setExistingPvcName}
                 modelPath={modelPath}
                 setModelPath={setModelPath}
+                isEditing={!!editInfo}
               />
             </StackItem>
             {isRawAvailable && isServerlessAvailable && (
