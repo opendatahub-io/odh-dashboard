@@ -363,6 +363,9 @@ const createInferenceServiceAndDataConnection = async (
   if (connection?.type === 'kubernetes.io/dockerconfigjson') {
     imagePullSecrets = [{ name: connection.metadata.name }];
   }
+  if (inferenceServiceData.storage.type === InferenceServiceStorageType.PVC_STORAGE) {
+    storageUri = inferenceServiceData.storage.uri;
+  }
 
   let inferenceService;
   if (editInfo) {

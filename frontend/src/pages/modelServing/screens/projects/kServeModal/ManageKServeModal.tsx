@@ -11,6 +11,7 @@ import {
 import { EitherOrNone } from '@openshift/dynamic-plugin-sdk';
 import {
   getCreateInferenceServiceLabels,
+  getProjectModelServingPlatform,
   getSubmitInferenceServiceResourceFn,
   getSubmitServingRuntimeResourcesFn,
   useCreateInferenceServiceObject,
@@ -29,12 +30,14 @@ import {
   getKServeContainerEnvVarStrs,
   requestsUnderLimits,
   resourcesArePositive,
+  isModelMesh,
 } from '#~/pages/modelServing/utils';
 import useCustomServingRuntimesEnabled from '#~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
 import { getServingRuntimeFromName } from '#~/pages/modelServing/customServingRuntimes/utils';
 import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
 import {
   InferenceServiceStorageType,
+  ServingPlatformStatuses,
   ServingRuntimeEditInfo,
 } from '#~/pages/modelServing/screens/types';
 import ServingRuntimeSizeSection from '#~/pages/modelServing/screens/projects/ServingRuntimeModal/ServingRuntimeSizeSection';
@@ -65,6 +68,9 @@ import usePrefillModelDeployModal, {
 import { useKServeDeploymentMode } from '#~/pages/modelServing/useKServeDeploymentMode';
 import { SERVING_RUNTIME_SCOPE } from '#~/pages/modelServing/screens/const';
 import { useModelDeploymentNotification } from '#~/pages/modelServing/screens/projects/useModelDeploymentNotification';
+import useServingPlatformStatuses from '#~/pages/modelServing/useServingPlatformStatuses';
+import { ServingRuntimePlatform } from '#~/types';
+import usePvcs from '#~/pages/modelServing/usePvcs';
 import KServeAutoscalerReplicaSection from './KServeAutoscalerReplicaSection';
 import EnvironmentVariablesSection from './EnvironmentVariablesSection';
 import ServingRuntimeArgsSection from './ServingRuntimeArgsSection';
@@ -110,6 +116,23 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
   shouldFormHidden: hideForm,
   existingUriOption,
 }) => {
+  const getPlatform = (
+    platformStatuses: ServingPlatformStatuses,
+    currentProject?: ProjectKind,
+    editingInfo?: {
+      inferenceServiceEditInfo?: InferenceServiceKind;
+    },
+  ) => {
+    if (currentProject) {
+      return getProjectModelServingPlatform(currentProject, platformStatuses).platform;
+    }
+    if (editingInfo?.inferenceServiceEditInfo) {
+      return isModelMesh(editingInfo.inferenceServiceEditInfo)
+        ? ServingRuntimePlatform.MULTI
+        : ServingRuntimePlatform.SINGLE;
+    }
+    return undefined;
+  };
   const { isRawAvailable, isServerlessAvailable } = useKServeDeploymentMode();
 
   const [createDataServingRuntime, setCreateDataServingRuntime] = useCreateServingRuntimeObject(
@@ -137,6 +160,11 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
     createDataInferenceService.isKServeRawDeployment;
   const currentProjectName = projectContext?.currentProject.metadata.name;
   const namespace = currentProjectName || createDataInferenceService.project;
+  const currentProject = projectContext?.currentProject;
+  const platformStatuses = useServingPlatformStatuses();
+  const platform = getPlatform(platformStatuses, currentProject, editInfo);
+
+  const pvcs = usePvcs(namespace);
 
   const projectTemplates = useTemplates(namespace);
 
@@ -473,6 +501,8 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
                 setConnection={setConnection}
                 setIsConnectionValid={setIsConnectionValid}
                 connections={connections}
+                pvcs={pvcs.data}
+                platform={platform}
               />
             </FormSection>
           )}

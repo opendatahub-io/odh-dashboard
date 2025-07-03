@@ -12,6 +12,7 @@ import {
 import { EitherOrNone } from '@openshift/dynamic-plugin-sdk';
 import {
   getCreateInferenceServiceLabels,
+  getProjectModelServingPlatform,
   submitInferenceServiceResourceWithDryRun,
   useCreateInferenceServiceObject,
 } from '#~/pages/modelServing/screens/projects/utils';
@@ -32,6 +33,7 @@ import {
   ModelServingCompatibleTypes,
 } from '#~/concepts/connectionTypes/utils';
 import { useModelDeploymentNotification } from '#~/pages/modelServing/screens/projects/useModelDeploymentNotification';
+import useServingPlatformStatuses from '#~/pages/modelServing/useServingPlatformStatuses';
 import ProjectSection from './ProjectSection';
 import InferenceServiceFrameworkSection from './InferenceServiceFrameworkSection';
 import InferenceServiceServingRuntimeSection from './InferenceServiceServingRuntimeSection';
@@ -72,6 +74,11 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
     createData.k8sName,
     false,
   );
+  const currentProject = projectContext?.currentProject;
+  const platformStatuses = useServingPlatformStatuses();
+  const { platform } = currentProject
+    ? getProjectModelServingPlatform(currentProject, platformStatuses)
+    : { platform: undefined };
 
   const currentProjectName = projectContext?.currentProject.metadata.name || '';
   const currentServingRuntimeName = projectContext?.currentServingRuntime?.metadata.name || '';
@@ -237,6 +244,7 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
                   connectionTypeFilter={(ct) =>
                     !isModelServingCompatible(ct, ModelServingCompatibleTypes.OCI)
                   }
+                  platform={platform}
                 />
               </FormSection>
             </>
