@@ -58,6 +58,7 @@ import { useModelServingPodSpecOptionsState } from '#~/concepts/hardwareProfiles
 import { useKServeDeploymentMode } from '#~/pages/modelServing/useKServeDeploymentMode';
 import StorageClassSelect from '#~/pages/projects/screens/spawner/storage/StorageClassSelect';
 import useAdminDefaultStorageClass from '#~/pages/projects/screens/spawner/storage/useAdminDefaultStorageClass';
+import useOpenshiftDefaultStorageClass from '#~/pages/projects/screens/spawner/storage/useOpenshiftDefaultStorageClass';
 import { useModelDeploymentNotification } from '#~/pages/modelServing/screens/projects/useModelDeploymentNotification';
 import { useGetStorageClassConfig } from '#~/pages/projects/screens/spawner/storage/useGetStorageClassConfig';
 import { NoAuthAlert } from './NoAuthAlert';
@@ -147,8 +148,11 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
   );
 
   const isStorageClassesAvailable = useIsAreaAvailable(SupportedArea.STORAGE_CLASSES).status;
-  const [defaultSc] = useAdminDefaultStorageClass();
-  const defaultStorageClassName = defaultSc?.metadata.name || '';
+  const odhDefaultScResult = useAdminDefaultStorageClass();
+  const openshiftDefaultSc = useOpenshiftDefaultStorageClass();
+  const odhDefaultSc = odhDefaultScResult[0];
+  const defaultSc = odhDefaultSc || openshiftDefaultSc;
+  const defaultStorageClassName = defaultSc?.metadata.name ?? '';
   const deployedStorageClassName = pvc?.spec.storageClassName || '';
   const [storageClassName, setStorageClassName] = React.useState(
     deployedStorageClassName || defaultStorageClassName,
@@ -325,7 +329,11 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
             description: pvc.metadata.annotations?.description || '',
             storageClassName: pvc.spec.storageClassName,
           };
-          promises.push(updatePvc(updatePvcData, pvc, namespace, { dryRun: false }));
+          promises.push(
+            updatePvc(updatePvcData, pvc, namespace, { dryRun: false }, false, {
+              'runtimes.opendatahub.io/force-redeploy': new Date().toISOString(),
+            }),
+          );
         }
         return Promise.all(promises);
       })
@@ -391,6 +399,7 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
                   setStorageClassName={setStorageClassName}
                   isRequired
                   disableStorageClassSelect={!!editInfo}
+                  showDefaultWhenNoConfig
                 />
               )}
             </StackItem>
