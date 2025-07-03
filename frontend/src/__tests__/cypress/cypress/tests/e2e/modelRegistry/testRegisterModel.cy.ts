@@ -153,7 +153,7 @@ describe('Verify models can be registered in a model registry', () => {
       cy.contains(testData.objectStorageModelName).click();
 
       cy.step('Navigate to versions tab');
-      cy.findByTestId('model-versions-tab').click();
+      modelRegistry.findModelVersionsTab().click();
 
       cy.step('Click Register new version button');
       modelRegistry.findRegisterNewVersionButton().click();

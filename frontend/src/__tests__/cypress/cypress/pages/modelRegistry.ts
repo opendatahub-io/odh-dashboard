@@ -218,6 +218,10 @@ class ModelRegistry {
     return cy.findByTestId('empty-model-registry-primary-action', { timeout });
   }
 
+  findModelVersionsTab() {
+    return cy.findByTestId('model-versions-tab');
+  }
+
   findRegisterNewVersionButton() {
     return cy.findByRole('button', { name: 'Register new version' });
   }
