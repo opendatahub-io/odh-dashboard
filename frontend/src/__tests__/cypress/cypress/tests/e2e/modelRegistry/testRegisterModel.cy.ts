@@ -19,7 +19,6 @@ import {
 import { loadRegisterModelFixture } from '#~/__tests__/cypress/cypress/utils/dataLoader';
 import { generateTestUUID } from '#~/__tests__/cypress/cypress/utils/uuidGenerator';
 import type { RegisterModelTestData } from '#~/__tests__/cypress/cypress/types';
-import { appChrome } from '#~/__tests__/cypress/cypress/pages/appChrome';
 
 describe('Verify models can be registered in a model registry', () => {
   let testData: RegisterModelTestData;
@@ -53,11 +52,8 @@ describe('Verify models can be registered in a model registry', () => {
     'Registers models via model registry using object storage and URI',
     { tags: ['@Maintain', '@ModelRegistry', '@NonConcurrent'] },
     () => {
-      cy.step('Login as an Admin');
-      cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
-
-      cy.step('Navigate to Model Registry');
-      appChrome.findNavItem('Model registry', 'Models').click();
+      cy.step('Login and navigate to Model Registry');
+      modelRegistry.visit();
 
       cy.step('Select the created model registry');
       modelRegistry.findSelectModelRegistry(registryName);
@@ -147,11 +143,8 @@ describe('Verify models can be registered in a model registry', () => {
     'Registers a new version via versions view',
     { tags: ['@Maintain', '@ModelRegistry', '@NonConcurrent'] },
     () => {
-      cy.step('Login as an Admin');
-      cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
-
-      cy.step('Navigate to Model Registry');
-      appChrome.findNavItem('Model registry', 'Models').click();
+      cy.step('Login and navigate to Model Registry');
+      modelRegistry.visit();
 
       cy.step('Select the created model registry');
       modelRegistry.findSelectModelRegistry(registryName);
