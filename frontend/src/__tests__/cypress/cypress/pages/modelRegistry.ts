@@ -214,6 +214,10 @@ class ModelRegistry {
     return cy.findByTestId('register-model-button', { timeout });
   }
 
+  findEmptyRegisterModelButton() {
+    return cy.findByTestId('empty-model-registry-primary-action');
+  }
+
   findRegisterNewVersionButton() {
     return cy.findByRole('button', { name: 'Register new version' });
   }
