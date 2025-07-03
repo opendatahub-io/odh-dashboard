@@ -10,8 +10,10 @@ import {
 import { modelRegistry } from '#~/__tests__/cypress/cypress/pages/modelRegistry';
 import { retryableBeforeEach } from '#~/__tests__/cypress/cypress/utils/retryableHooks';
 import {
+  checkModelExistsInDatabase,
   checkModelRegistry,
   checkModelRegistryAvailable,
+  checkModelVersionExistsInDatabase,
   cleanupRegisteredModelsFromDatabase,
   createModelRegistryViaYAML,
   deleteModelRegistry,
@@ -100,6 +102,9 @@ describe('Verify models can be registered in a model registry', () => {
       cy.url().should('include', '/modelRegistry');
       cy.contains(testData.objectStorageModelName, { timeout: 10000 }).should('be.visible');
 
+      cy.step('Verify the object storage model exists in the database');
+      checkModelExistsInDatabase(testData.objectStorageModelName).should('be.true');
+
       cy.step('Navigate back to register another model using direct URL');
       registerModelPage.visitWithRegistry(registryName);
 
@@ -129,6 +134,9 @@ describe('Verify models can be registered in a model registry', () => {
       cy.step('Verify the URI model was registered');
       cy.url().should('include', '/modelRegistry');
       cy.contains(testData.uriModelName, { timeout: 10000 }).should('be.visible');
+
+      cy.step('Verify the URI model exists in the database');
+      checkModelExistsInDatabase(testData.uriModelName).should('be.true');
 
       cy.step('Navigate back to model registry to verify both models');
       cy.visitWithLogin(`/modelRegistry/${registryName}`, HTPASSWD_CLUSTER_ADMIN_USER);
@@ -184,6 +192,9 @@ describe('Verify models can be registered in a model registry', () => {
       cy.step('Verify the new version was registered');
       cy.url().should('include', '/versions');
       cy.contains(testData.version2Name, { timeout: 10000 }).should('be.visible');
+
+      cy.step('Verify the new version exists in the database');
+      checkModelVersionExistsInDatabase(testData.version2Name).should('be.true');
 
       cy.step('Verify first version is still visible');
       cy.contains(testData.version1Name, { timeout: 10000 }).should('be.visible');
