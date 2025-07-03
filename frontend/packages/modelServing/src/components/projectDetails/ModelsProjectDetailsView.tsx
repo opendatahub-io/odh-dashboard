@@ -6,20 +6,19 @@ import DashboardPopupIconButton from '@odh-dashboard/internal/concepts/dashboard
 import { OutlinedQuestionCircleIcon, PencilAltIcon } from '@patternfly/react-icons';
 import { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
 import type { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
+import { useExtensions } from '@odh-dashboard/plugin-core';
 import { SelectPlatformView } from './SelectPlatformView';
 import { NoModelsView } from './NoModelsView';
 import { useProjectServingPlatform } from '../../concepts/useProjectServingPlatform';
 import DeploymentsTable from '../deployments/DeploymentsTable';
 import { ModelDeploymentsContext } from '../../concepts/ModelDeploymentsContext';
 import { DeployButton } from '../deploy/DeployButton';
-import { ModelServingPlatformContext } from '../../concepts/ModelServingPlatformContext';
+import { isModelServingPlatformExtension } from '../../../extension-points';
 
 const ModelsProjectDetailsView: React.FC<{
   project: ProjectKind;
 }> = ({ project }) => {
-  const { availablePlatforms, availablePlatformsLoaded } = React.useContext(
-    ModelServingPlatformContext,
-  );
+  const availablePlatforms = useExtensions(isModelServingPlatformExtension);
   const { deployments, loaded: deploymentsLoaded } = React.useContext(ModelDeploymentsContext);
 
   const {
@@ -31,10 +30,7 @@ const ModelsProjectDetailsView: React.FC<{
   } = useProjectServingPlatform(project, availablePlatforms);
 
   const isLoading =
-    !project.metadata.name ||
-    !availablePlatforms ||
-    !availablePlatformsLoaded ||
-    !!(projectPlatform && (!deployments || !deploymentsLoaded));
+    !project.metadata.name || !!(projectPlatform && (!deployments || !deploymentsLoaded));
   const hasModels = !!deployments && deployments.length > 0;
 
   return (
@@ -67,7 +63,7 @@ const ModelsProjectDetailsView: React.FC<{
             <Label data-testid="serving-platform-label">
               {activePlatform?.properties.enableCardText.enabledText}
             </Label>
-            {activePlatform && availablePlatforms && availablePlatforms.length > 1 && (
+            {activePlatform && availablePlatforms.length > 1 && (
               <Button
                 variant="link"
                 isInline

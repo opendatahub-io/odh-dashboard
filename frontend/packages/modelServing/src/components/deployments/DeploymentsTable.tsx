@@ -96,6 +96,7 @@ const DeploymentsTable: React.FC<{
       <Table
         columns={allColumns}
         data={deployments ?? []}
+        disableRowRenderSupport
         rowRenderer={(row: Deployment, rowIndex: number) => (
           <DeploymentRow
             key={row.model.metadata.name}

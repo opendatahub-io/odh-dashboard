@@ -15,10 +15,11 @@ import CollapsibleSection from '@odh-dashboard/internal/concepts/design/Collapsi
 import { ProjectObjectType, SectionType } from '@odh-dashboard/internal/concepts/design/utils';
 import OverviewCard from '@odh-dashboard/internal/pages/projects/screens/detail/overview/components/OverviewCard';
 import { ProjectDetailsContext } from '@odh-dashboard/internal/pages/projects/ProjectDetailsContext';
-import { ModelServingPlatformContext } from '../../concepts/ModelServingPlatformContext';
+import { useExtensions } from '@odh-dashboard/plugin-core';
 import { useProjectServingPlatform } from '../../concepts/useProjectServingPlatform';
 import { DeployButton } from '../deploy/DeployButton';
 import { PlatformSelectionGallery } from '../platformSelection';
+import { isModelServingPlatformExtension } from '../../../extension-points';
 
 const galleryWidth = {
   minWidths: { default: '100%', lg: 'calc(50% - 1rem / 2)' },
@@ -26,8 +27,8 @@ const galleryWidth = {
 };
 
 const ModelPlatformSection: React.FC = () => {
+  const availablePlatforms = useExtensions(isModelServingPlatformExtension);
   const { currentProject } = React.useContext(ProjectDetailsContext);
-  const { availablePlatforms } = React.useContext(ModelServingPlatformContext);
 
   const {
     activePlatform,
@@ -54,7 +55,7 @@ const ModelPlatformSection: React.FC = () => {
           </FlexItem>
           <FlexItem>
             <PlatformSelectionGallery
-              platforms={availablePlatforms || []}
+              platforms={availablePlatforms}
               onSelect={setProjectPlatform}
               loadingPlatformId={newProjectPlatformLoading?.properties.id}
               useOverviewCard
@@ -95,7 +96,7 @@ const ModelPlatformSection: React.FC = () => {
         headerInfo={
           <Flex gap={{ default: 'gapSm' }}>
             <Label>{enabledText}</Label>
-            {(availablePlatforms?.length ?? 0) > 1 && (
+            {availablePlatforms.length > 1 && (
               <Button
                 data-testid="change-serving-platform-button"
                 variant="link"
