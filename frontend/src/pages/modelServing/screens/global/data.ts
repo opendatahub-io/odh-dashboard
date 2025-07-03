@@ -1,4 +1,4 @@
-import { InferenceServiceKind, ProjectKind, SecretKind } from '#~/k8sTypes';
+import { InferenceServiceKind, ProjectKind } from '#~/k8sTypes';
 import { SortableData } from '#~/components/table';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 
@@ -121,20 +121,4 @@ export const getKServeInferenceServiceColumns = (): SortableData<InferenceServic
   COL_API_PROTOCOL,
   COL_STATUS,
   COL_KEBAB,
-];
-
-export const tokenColumns: SortableData<SecretKind>[] = [
-  {
-    field: ColumnField.Name,
-    label: 'Token name',
-    width: 20,
-    sortable: (a, b) =>
-      getDisplayNameFromK8sResource(a).localeCompare(getDisplayNameFromK8sResource(b)),
-  },
-  {
-    field: ColumnField.Token,
-    label: 'Token secret',
-    width: 80,
-    sortable: false,
-  },
 ];

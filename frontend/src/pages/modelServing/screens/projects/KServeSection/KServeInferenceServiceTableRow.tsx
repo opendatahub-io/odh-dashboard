@@ -13,7 +13,7 @@ import InferenceServiceTableRow from '#~/pages/modelServing/screens/global/Infer
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import ServingRuntimeDetails from '#~/pages/modelServing/screens/projects/ModelMeshSection/ServingRuntimeDetails';
 import ResourceTr from '#~/components/ResourceTr';
-import ServingRuntimeTokensTable from '#~/pages/modelServing/screens/projects/ModelMeshSection/ServingRuntimeTokensTable';
+import ServingRuntimeTokensTable from '#~/concepts/modelServingKServe/ServingRuntimeTokensTable';
 import { isInferenceServiceTokenEnabled } from '#~/pages/modelServing/screens/projects/utils';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 

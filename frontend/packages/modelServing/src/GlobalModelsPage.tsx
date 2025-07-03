@@ -1,25 +1,14 @@
 import React from 'react';
 import { ProjectsContext } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
-import { useExtensions, useResolvedExtensions } from '@odh-dashboard/plugin-core';
+import { useExtensions } from '@odh-dashboard/plugin-core';
 import { Bullseye, Spinner } from '@patternfly/react-core';
 import { useNavigate, useParams } from 'react-router-dom';
 import GlobalDeploymentsView from './components/global/GlobalDeploymentsView';
 import { ModelDeploymentsProvider } from './concepts/ModelDeploymentsContext';
-import { ModelServingPlatformProvider } from './concepts/ModelServingPlatformContext';
-import {
-  isModelServingPlatformExtension,
-  isModelServingPlatformWatchDeployments,
-} from '../extension-points';
+import { isModelServingPlatformExtension } from '../extension-points';
 
-const GlobalModelsPage: React.FC = () => (
-  <ModelServingPlatformProvider>
-    <GlobalModelsPageCoreLoader />
-  </ModelServingPlatformProvider>
-);
-
-const GlobalModelsPageCoreLoader: React.FC = () => {
+const GlobalModelsPage: React.FC = () => {
   const availablePlatforms = useExtensions(isModelServingPlatformExtension);
-  const [deploymentWatchers] = useResolvedExtensions(isModelServingPlatformWatchDeployments);
 
   const {
     projects,
@@ -49,11 +38,7 @@ const GlobalModelsPageCoreLoader: React.FC = () => {
   }
 
   return (
-    <ModelDeploymentsProvider
-      modelServingPlatforms={availablePlatforms}
-      projects={projectsToShow}
-      deploymentWatchers={deploymentWatchers}
-    >
+    <ModelDeploymentsProvider modelServingPlatforms={availablePlatforms} projects={projectsToShow}>
       <GlobalDeploymentsView currentProject={selectedProject} />
     </ModelDeploymentsProvider>
   );
