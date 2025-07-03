@@ -28,15 +28,16 @@ log_warning() {
 # check if oc binary exists and copy if provided
 setup_oc_cli() {
   log_info "Setting up OpenShift CLI (oc)..."
+
   if [ "${OC_CLUSTER_TYPE}" == "crc" ]; then
     log_info "Using CRC for oc. Skipping oc setup setup."
+  elif command -v oc >/dev/null 2>&1; then
+    log_success "oc CLI already installed at ${NC}$(command -v oc)${NC}."
   elif [ -f "/tmp/oc-cli.tar.gz" ]; then
     log_info "Found oc CLI tarball at /tmp/oc-cli.tar.gz"
     tar -xzf /tmp/oc-cli.tar.gz -C /opt/oc/
     chmod +x /opt/oc/oc /opt/oc/kubectl
     log_success "OpenShift CLI (oc) installed successfully."
-  elif command -v oc >/dev/null 2>&1; then
-    log_success "oc CLI already installed at ${NC}$(command -v oc)${NC}."
   else
     log_warning "No oc CLI not found. Please provide oc-cli.targ.gz or install oc CLI manually."
   fi
@@ -46,19 +47,19 @@ setup_oc_cli() {
 setup_crc() {
   log_info "Setting up CodeReady Containers (CRC)..."
 
+  # if no crc binary
   if [ ! -f "/opt/crc/crc" ]; then
     log_info "Downloading CRC..."
     CRC_VERSION="${CRC_VERSION-latest}"
     CRC_URL="${CRC_URL-https://mirror.openshift.com/pub/openshift-v4/clients/crc/${CRC_VERSION}/crc-linux-amd64.tar.xz}"
 
-    wget --show-progress=off "$CRC_URL" -O /tmp/crc.tar.xz
-    if [ $? -ne 0 ]; then
-      log_error "Failed to download CRC from $CRC_URL. Exit code: $?"
+    if ! wget --show-progress=off "$CRC_URL" -O /tmp/crc.tar.xz; then
+      log_error "Failed to download CRC from $CRC_URL"
       exit 1
     fi
 
     tar -xf /tmp/crc.tar.xz -C /tmp
-    mv /tmp/crc-linux-$CRC_VERSION-amd64/crc /opt/crc/
+    mv /tmp/crc-linux-"$CRC_VERSION"-amd64/crc /opt/crc/
     chmod +x /opt/crc/crc
     rm -rf /tmp/crc*
 
@@ -70,12 +71,19 @@ setup_crc() {
     log_info "Setting up CRC with pull secret..."
     /opt/crc/crc config set pull-secret-file "$CRC_PULL_SECRET_PATH"
   else
-    log_warning "No pull secret provided. Please set CRC_PULL_SECRET_PATH environment variable to your pull secret file."
+    log_error "No pull secret provided. Please set CRC_PULL_SECRET_PATH environment variable to your pull secret file."
     exit 1
   fi
 
   # might need to add configuration for CRC for resource limits
-  /opt/crc/crc setup
+  # /opt/crc/crc config set cpus 4
+  # /opt/crc/crc config set memory 8192
+  # /opt/crc/crc config set disk-size 30
+
+  if ! /opt/crc/crc setup; then
+    log_error "CRC setup failed. Please check your configuration."
+    exit 1
+  fi
 
   log_success "CRC configured successsfully."
 }
@@ -99,11 +107,69 @@ login_to_cluster() {
 
   else
     # login to existing cluster with oc cli
-    exit 1
+    log_info "Logging in to existing OpenShift cluster..."
+
+    if [ -z "$OC_URL" ]; then
+      log_error "OC_URL environment variable is not set. Please provide the OpenShift API URL."
+      exit 1
+    fi
+
+    if [ -z "$OC_TOKEN" ] || [ -z "$OC_USER" ] && [ -z "$OC_PASSWORD" ]; then
+      log_error "OC_TOKEN or OC_USER and OC_PASSWORD environment variables are not set. Please provide authentication details."
+      exit 1
+    fi
+
+    if ! make login; then
+      log_error "Failed to login to OpenShift cluster at $OC_URL."
+      exit 1
+    fi
+
+    # if [ -n "$OC_TOKEN" ]; then
+    #   log_info "Using OC_TOKEN for authentication..."
+    #   # if ! oc login "$OC_URL" --token="$OC_TOKEN"; then
+    #   #   log_error "Failed to login to OpenShift cluster with token."
+    #   #   exit 1
+    #   # fi
+    #   if ! make login
+    # elif [ -n "$OC_USER" ] && [ -n "$OC_PASSWORD" ]; then
+    #   log_info "Using OC_USER and OC_PASSWORD for authentication..."
+    #   if ! oc login "$OC_URL" -u "$OC_USER" -p "$OC_PASSWORD"; then
+    #     log_error "Failed to login to OpenShift cluster with username and password."
+    #     exit 1
+    #   fi
+    # else
+    #   log_error "No authentication method provided. Please set OC_TOKEN or OC_USER and OC_PASSWORD environment variables."
+    #   exit 1
+    # fi
 
   fi
 
   log_success "Logged in to OpenShift cluster successfully."
+}
+
+# install operators
+install_cluster_operators() {
+  log_info "Installing OpenShift Data Hub operators..."
+
+  # Example: Install ODH operator
+  if ! oc apply -f /path/to/odh-operator.yaml; then
+    log_error "Failed to install ODH operator."
+    exit 1
+  fi
+
+  log_success "OpenShift Data Hub operators installed successfully."
+}
+
+# set project
+set_project() {
+  log_info "Setting OpenShift project to $OC_PROJECT..."
+
+  if ! oc project "$OC_PROJECT"; then
+    log_error "Failed to set OpenShift project to $OC_PROJECT."
+    exit 1
+  fi
+
+  log_success "OpenShift project set to $OC_PROJECT."
 }
 
 # Ping cluster connection
@@ -141,9 +207,19 @@ setup_environment() {
   fi
 
   wait_for_cluster
-  #operators
+  install_cluster_operators
 
   log_success "ODH Dashboard environment setup complete."
+}
+
+install_node_dependencies() {
+  log_info "Installing Node.js dependencies..."
+
+  if [ ! -d "node_modules" ]; then
+    npm install
+  fi
+
+  log_success "Node.js dependencies installed successfully."
 }
 
 # main
@@ -156,7 +232,11 @@ case "${1:-dev}" in
     log_error "No OpenShift cluster found. running setup..."
     setup_environment
   fi
+
   log_info "Starting development environment..."
+
+  install_node_dependencies
+
   exec npm run dev
   ;;
 "bash")

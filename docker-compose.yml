@@ -3,15 +3,29 @@ services:
   odh-dashboard-dev:
     build:
       context: .
-      dockerfile: scripts/dev/Dockerfile
+      dockerfile: Dockerfile
       # args:
         # - OC_CLI_PATH=${OC_CLI_PATH:-./oc-cli.tar.gz}
+    develop:
+      watch:
+        # - action: sync
+        #   path: ./frontend/src
+        #   target: /usr/src/odh-dashboard/frontend/src
+        # - action: sync
+        #   path: ./backend/src
+        #   target: /usr/src/odh-dashboard/backend/src
+        - action: rebuild
+          path: package.json
+        - action: rebuild
+          path: ./frontend/package.json
+        - action: rebuild
+          path: ./backend/package.json
     container_name: odh-dashboard-dev
     ports:
       - "4010:4010" # Frontend dev
       - "8080:8080" # Backend dev
     volumes:
-      - .:/app/odh-dashboard:Z
+      - .:/usr/src/app/odh-dashboard:Z
       - node_modules_cache:/app/odh-dashboard/node_modules
       - frontend_node_modules_cache:/app/odh-dashboard/frontend/node_modules
       - backend_node_modules_cache:/app/odh-dashboard/backend/node_modules
@@ -29,13 +43,18 @@ services:
       - OC_PASSWORD=${OC_PASSWORD}
       - CRC_PULL_SECRET=${CRC_PULL_SECRET_PATH}
       - IMAGE_REPOSITORY=${IMAGE_REPOSITORY:-quay.io/opendatahub/odh-dashboard:dev}
-      - OC_PROJECT=${OC_PROJECT:-odh-dashboard}
+      - OC_PROJECT=${OC_PROJECT:-opendatahub}
+      - CONTAINER_BUILDER=${CONTAINER_BUILDER:-docker}
 
-    entrypoint: ["/entrypoint.sh"]
     command: ["dev"]
-    working_dir: /app/odh-dashboard
+    entrypoint: ["/usr/src/app/odh-dashboard/install/dev/entrypoint.sh"]
+    working_dir: /usr/src/app/odh-dashboard
     networks:
       - "odh-dev"
+
+    labels:
+      - "odh.dashboard.dev=true"
+      - "odh.dashboard.version=dev"
 
 networks:
   odh-dev:
