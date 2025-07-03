@@ -176,6 +176,12 @@ class ModelRegistry {
     return cy.findByTestId('model-registry-selector-dropdown');
   }
 
+  findSelectModelRegistry(registryName: string) {
+    this.findModelRegistry().click();
+    cy.findByTestId(registryName).click();
+    return this;
+  }
+
   findModelVersionsTableHeaderButton(name: string) {
     return this.findModelVersionsTable().find('thead').findByRole('button', { name });
   }
@@ -205,7 +211,7 @@ class ModelRegistry {
   }
 
   findRegisterModelButton(timeout?: number) {
-    return cy.findByRole('button', { name: 'Register model', timeout });
+    return cy.findByTestId('register-model-button', { timeout });
   }
 
   findRegisterNewVersionButton() {

@@ -60,8 +60,7 @@ describe('Verify models can be registered in a model registry', () => {
       appChrome.findNavItem('Model registry', 'Models').click();
 
       cy.step('Select the created model registry');
-      modelRegistry.findModelRegistry().click();
-      cy.findByTestId(registryName).click();
+      modelRegistry.findSelectModelRegistry(registryName);
 
       cy.step('Register a model using object storage');
       modelRegistry.findRegisterModelButton(30000).click();
@@ -72,24 +71,32 @@ describe('Verify models can be registered in a model registry', () => {
         .type(testData.objectStorageModelName);
       registerModelPage
         .findFormField(FormFieldSelector.MODEL_DESCRIPTION)
-        .type('E2E test model using object storage');
-      registerModelPage.findFormField(FormFieldSelector.VERSION_NAME).type('v1.0');
+        .type(testData.objectStorageModelDescription);
+      registerModelPage.findFormField(FormFieldSelector.VERSION_NAME).type(testData.version1Name);
       registerModelPage
         .findFormField(FormFieldSelector.VERSION_DESCRIPTION)
-        .type('First version of the test model');
-      registerModelPage.findFormField(FormFieldSelector.SOURCE_MODEL_FORMAT).type('onnx');
-      registerModelPage.findFormField(FormFieldSelector.SOURCE_MODEL_FORMAT_VERSION).type('1.0');
+        .type(testData.version1Description);
+      registerModelPage
+        .findFormField(FormFieldSelector.SOURCE_MODEL_FORMAT)
+        .type(testData.modelFormatOnnx);
+      registerModelPage
+        .findFormField(FormFieldSelector.SOURCE_MODEL_FORMAT_VERSION)
+        .type(testData.formatVersion1_0);
 
       // Configure object storage location
       registerModelPage.findFormField(FormFieldSelector.LOCATION_TYPE_OBJECT_STORAGE).click();
       registerModelPage
         .findFormField(FormFieldSelector.LOCATION_ENDPOINT)
-        .type('http://minio.example.com:9000');
-      registerModelPage.findFormField(FormFieldSelector.LOCATION_BUCKET).type('test-models');
-      registerModelPage.findFormField(FormFieldSelector.LOCATION_REGION).type('us-east-1');
+        .type(testData.objectStorageEndpoint);
+      registerModelPage
+        .findFormField(FormFieldSelector.LOCATION_BUCKET)
+        .type(testData.objectStorageBucket);
+      registerModelPage
+        .findFormField(FormFieldSelector.LOCATION_REGION)
+        .type(testData.objectStorageRegion);
       registerModelPage
         .findFormField(FormFieldSelector.LOCATION_PATH)
-        .type('models/test-model/v1.0');
+        .type(testData.objectStoragePath);
 
       registerModelPage.findSubmitButton().click();
 
@@ -105,21 +112,21 @@ describe('Verify models can be registered in a model registry', () => {
       registerModelPage.findFormField(FormFieldSelector.MODEL_NAME).type(testData.uriModelName);
       registerModelPage
         .findFormField(FormFieldSelector.MODEL_DESCRIPTION)
-        .type('E2E test model using URI');
-      registerModelPage.findFormField(FormFieldSelector.VERSION_NAME).type('v1.0');
+        .type(testData.uriModelDescription);
+      registerModelPage.findFormField(FormFieldSelector.VERSION_NAME).type(testData.version1Name);
       registerModelPage
         .findFormField(FormFieldSelector.VERSION_DESCRIPTION)
-        .type('First version of the URI test model');
-      registerModelPage.findFormField(FormFieldSelector.SOURCE_MODEL_FORMAT).type('pytorch');
-      registerModelPage.findFormField(FormFieldSelector.SOURCE_MODEL_FORMAT_VERSION).type('2.0');
+        .type(testData.uriVersion1Description);
+      registerModelPage
+        .findFormField(FormFieldSelector.SOURCE_MODEL_FORMAT)
+        .type(testData.modelFormatPytorch);
+      registerModelPage
+        .findFormField(FormFieldSelector.SOURCE_MODEL_FORMAT_VERSION)
+        .type(testData.formatVersion2_0);
 
       // Configure URI location
       registerModelPage.findFormField(FormFieldSelector.LOCATION_TYPE_URI).click();
-      registerModelPage
-        .findFormField(FormFieldSelector.LOCATION_URI)
-        .type(
-          's3://test-bucket/models/pytorch-model?endpoint=http%3A%2F%2Fminio.example.com%3A9000&defaultRegion=us-east-1',
-        );
+      registerModelPage.findFormField(FormFieldSelector.LOCATION_URI).type(testData.uriPrimary);
 
       registerModelPage.findSubmitButton().click();
 
@@ -147,8 +154,7 @@ describe('Verify models can be registered in a model registry', () => {
       appChrome.findNavItem('Model registry', 'Models').click();
 
       cy.step('Select the created model registry');
-      modelRegistry.findModelRegistry().click();
-      cy.findByTestId(registryName).click();
+      modelRegistry.findSelectModelRegistry(registryName);
 
       cy.step('Navigate to the first registered model');
       cy.contains(testData.objectStorageModelName).click();
@@ -165,21 +171,19 @@ describe('Verify models can be registered in a model registry', () => {
         .type(testData.version2Name);
       registerVersionPage
         .findFormField(VersionFormFieldSelector.VERSION_DESCRIPTION)
-        .type('Second version registered via versions view');
+        .type(testData.version2Description);
       registerVersionPage
         .findFormField(VersionFormFieldSelector.SOURCE_MODEL_FORMAT)
-        .type('tensorflow');
+        .type(testData.modelFormatTensorflow);
       registerVersionPage
         .findFormField(VersionFormFieldSelector.SOURCE_MODEL_FORMAT_VERSION)
-        .type('3.0');
+        .type(testData.formatVersion3_0);
 
       cy.step('Configure URI location for the new version');
       registerVersionPage.findFormField(VersionFormFieldSelector.LOCATION_TYPE_URI).click();
       registerVersionPage
         .findFormField(VersionFormFieldSelector.LOCATION_URI)
-        .type(
-          's3://test-bucket/models/tensorflow-model-v2?endpoint=http%3A%2F%2Fminio.example.com%3A9000&defaultRegion=us-east-1',
-        );
+        .type(testData.uriVersion2);
 
       cy.step('Submit the new version');
       registerVersionPage.findSubmitButton().click();
@@ -189,7 +193,7 @@ describe('Verify models can be registered in a model registry', () => {
       cy.contains(testData.version2Name, { timeout: 10000 }).should('be.visible');
 
       cy.step('Verify both versions are now visible');
-      cy.contains('v1.0', { timeout: 10000 }).should('be.visible');
+      cy.contains(testData.version1Name, { timeout: 10000 }).should('be.visible');
       cy.contains(testData.version2Name, { timeout: 10000 }).should('be.visible');
     },
   );
