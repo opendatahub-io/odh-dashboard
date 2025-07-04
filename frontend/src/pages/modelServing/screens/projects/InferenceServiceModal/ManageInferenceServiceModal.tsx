@@ -200,7 +200,7 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
                 nameLabel="Model deployment name"
                 nameHelperText={
                   <HelperTextItem>
-                    This is the name of the inference service created when the model is deployed
+                    This is the name of the inference service created when the model is deployed.
                   </HelperTextItem>
                 }
                 hideDescription

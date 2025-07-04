@@ -19,10 +19,10 @@ const ProjectScopedPopover: React.FC<PropjectScopedPopoverProps> = ({ title, ite
         listHeading={`${title} accessibility`}
         listItems={[
           <span key="project-scoped">
-            <strong>Project-scoped {item}</strong> are accessible only within this project
+            <strong>Project-scoped {item}</strong> are accessible only within this project.
           </span>,
           <span key="global-scoped">
-            <strong>Global {item}</strong> are accessible across all projects
+            <strong>Global {item}</strong> are accessible across all projects.
           </span>,
         ]}
       />

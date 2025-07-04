@@ -81,9 +81,12 @@ const TrainingHardwareProfileFormSection: React.FC<TrainingHardwareProfileFormSe
                 <>
                   <Content component={ContentVariants.p}>
                     This list includes only hardware profiles with defined GPUs.
-                    {isProjectScoped &&
-                      projectScopedHardwareProfiles['1'] &&
-                      projectScopedHardwareProfiles['0'].length > 0 && (
+                  </Content>
+                  {isProjectScoped &&
+                    projectScopedHardwareProfiles['1'] &&
+                    projectScopedHardwareProfiles['0'].length > 0 && (
+                      <>
+                        <div style={{ marginTop: 10, marginBottom: 8 }} />
                         <List>
                           <ListItem>
                             <b>Project-scoped hardware profiles</b> are accessible only within this
@@ -93,8 +96,9 @@ const TrainingHardwareProfileFormSection: React.FC<TrainingHardwareProfileFormSe
                             <b>Global hardware profiles</b> are accessible within all projects.
                           </ListItem>
                         </List>
-                      )}
-                  </Content>
+                        <div style={{ marginTop: 8, marginBottom: 10 }} />
+                      </>
+                    )}
                   <Content component={ContentVariants.p}>
                     Hardware profiles enable administrators to create profiles for additional types
                     of identifiers, limit workload resource allocations, and target workloads to
