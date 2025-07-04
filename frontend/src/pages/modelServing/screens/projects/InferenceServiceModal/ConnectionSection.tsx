@@ -39,10 +39,13 @@ import {
 import { isModelPathValid } from '#~/pages/modelServing/screens/projects/utils';
 import DashboardPopupIconButton from '#~/concepts/dashboard/DashboardPopupIconButton';
 import { AccessTypes } from '#~/pages/projects/dataConnections/const';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas/index.ts';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas/index';
+import { PersistentVolumeClaimKind } from '#~/k8sTypes';
+import { ServingRuntimePlatform } from '#~/types';
 import ConnectionS3FolderPathField from './ConnectionS3FolderPathField';
 import ConnectionOciPathField from './ConnectionOciPathField';
 import { ConnectionOciAlert } from './ConnectionOciAlert';
+import { PvcSelect } from './PVCSelect';
 
 type ExistingConnectionFieldProps = {
   connectionTypes: ConnectionTypeConfigMapObj[];
@@ -81,7 +84,6 @@ const ExistingModelConnectionField: React.FC<ExistingConnectionFieldProps> = ({
       !!selectedConnection && isModelPathValid(selectedConnection, folderPath, modelUri),
     );
   }, [folderPath, modelUri, selectedConnection, setIsConnectionValid]);
-
   return (
     <>
       <ExistingConnectionField
@@ -244,7 +246,9 @@ type Props = {
   loaded?: boolean;
   loadError?: Error | undefined;
   connections?: LabeledConnection[];
+  pvcs?: PersistentVolumeClaimKind[];
   connectionTypeFilter?: (ct: ConnectionTypeConfigMapObj) => boolean;
+  platform?: ServingRuntimePlatform;
 };
 
 // todo convert 'data' into a generic 'modelLocation' obj
@@ -260,15 +264,17 @@ export const ConnectionSection: React.FC<Props> = ({
   loaded,
   loadError,
   connections,
+  pvcs,
   connectionTypeFilter = () => true,
+  platform,
 }) => {
   const [modelServingConnectionTypes] = useWatchConnectionTypes(true);
+
   const connectionTypes = React.useMemo(
     () => modelServingConnectionTypes.filter(connectionTypeFilter),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [modelServingConnectionTypes],
   );
-
   const hasImagePullSecret = React.useMemo(() => !!data.imagePullSecrets, [data.imagePullSecrets]);
   const pvcServingEnabled = useIsAreaAvailable(SupportedArea.PVCSERVING).status;
   const selectedConnection = React.useMemo(
@@ -277,6 +283,11 @@ export const ConnectionSection: React.FC<Props> = ({
         (c) => getResourceNameFromK8sResource(c.connection) === data.storage.dataConnection,
       ),
     [connections, data.storage.dataConnection],
+  );
+
+  const selectedPVC = React.useMemo(
+    () => pvcs?.find((pvc) => pvc.metadata.name === data.storage.dataConnection),
+    [pvcs, data.storage.dataConnection],
   );
 
   React.useEffect(() => {
@@ -296,11 +307,41 @@ export const ConnectionSection: React.FC<Props> = ({
   if (!loaded) {
     return <Skeleton />;
   }
-
   return (
     <>
-      {pvcServingEnabled && (
-        <Radio label="PVC Serving" name="pvc-serving-radio" id="pvc-serving-radio" />
+      {pvcServingEnabled && platform === ServingRuntimePlatform.SINGLE && (
+        <Radio
+          label="Existing cluster storage"
+          name="pvc-serving-radio"
+          id="pvc-serving-radio"
+          isChecked={data.storage.type === InferenceServiceStorageType.PVC_STORAGE}
+          onChange={() => {
+            setConnection(undefined);
+            setData('storage', {
+              ...data.storage,
+              type: InferenceServiceStorageType.PVC_STORAGE,
+              uri: undefined,
+              alert: undefined,
+            });
+          }}
+          body={
+            data.storage.type === InferenceServiceStorageType.PVC_STORAGE && (
+              <PvcSelect
+                pvcs={pvcs}
+                setModelUri={(uri) => setData('storage', { ...data.storage, uri })}
+                modelUri={data.storage.uri}
+                selectedPVC={selectedPVC}
+                onSelect={(selection) => {
+                  setData('storage', {
+                    ...data.storage,
+                    dataConnection: getResourceNameFromK8sResource(selection),
+                  });
+                }}
+                setIsConnectionValid={setIsConnectionValid}
+              />
+            )
+          }
+        />
       )}
       {existingUriOption && !hasImagePullSecret && (
         <Radio
