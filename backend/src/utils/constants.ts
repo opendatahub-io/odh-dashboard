@@ -1,9 +1,9 @@
 import * as path from 'path';
 import './dotenv';
 import { DashboardConfig, KnownLabels, NotebookSize } from '../types';
+import os from 'os';
 
 export const PORT = Number(process.env.PORT) || Number(process.env.BACKEND_PORT) || 8080;
-export const IP = process.env.IP || '0.0.0.0';
 export const LOG_LEVEL = process.env.FASTIFY_LOG_LEVEL || process.env.LOG_LEVEL || 'info';
 export const LOG_DIR = path.join(__dirname, '../../../logs');
 export const DEV_MODE = process.env.APP_ENV === 'development';
@@ -17,6 +17,15 @@ export const USER_ACCESS_TOKEN = 'x-forwarded-access-token';
 
 export const yamlRegExp = /\.ya?ml$/;
 export const mdRegExp = /\.md$/;
+
+const getDefaultIP = (): string => {
+  const interfaces = os.networkInterfaces();
+  const hasIPv6 = Object.values(interfaces).some((iface) =>
+    iface?.some((address) => address.family === 'IPv6' && !address.internal)
+  );
+  return hasIPv6 ? '::' : '0.0.0.0'; // Default to IPv6-capable if available
+};
+export const IP = process.env.IP || getDefaultIP();
 
 export const IMAGE_ANNOTATIONS = {
   DESC: 'opendatahub.io/notebook-image-desc',
