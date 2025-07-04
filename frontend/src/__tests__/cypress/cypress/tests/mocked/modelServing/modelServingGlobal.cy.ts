@@ -945,7 +945,14 @@ describe('Model Serving Global', () => {
     modelServingGlobal.getModelRow('Test Inference Service').should('have.length', 1);
     modelServingGlobal.getModelMetricLink('Test Inference Service').should('not.exist');
 
-    initIntercepts({ disableKServeMetrics: false });
+    initIntercepts({
+      disableKServeMetrics: false,
+      inferenceServices: [
+        mockInferenceServiceK8sResource({
+          activeModelState: 'Loaded',
+        }),
+      ],
+    });
     modelServingGlobal.visit('test-project');
 
     modelServingGlobal.getModelRow('Test Inference Service').should('have.length', 1);
