@@ -28,7 +28,7 @@ import WhosMyAdministrator from '#~/components/WhosMyAdministrator';
 import InlineTruncatedClipboardCopy from '#~/components/InlineTruncatedClipboardCopy';
 import ModelRegistrySelectIcon from '#~/images/icons/ModelRegistrySelectIcon';
 import { ModelRegistriesContext } from '#~/concepts/modelRegistry/context/ModelRegistriesContext';
-import { getServerAddress } from './utils';
+import { getServerAddress } from '#~/concepts/modelRegistry/utils';
 
 const MODEL_REGISTRY_FAVORITE_STORAGE_KEY = 'odh.dashboard.model.registry.favorite';
 

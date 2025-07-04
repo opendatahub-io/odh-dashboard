@@ -17,9 +17,9 @@ import {
 import RedirectErrorState from '#~/pages/external/RedirectErrorState';
 import { useAccessAllowed, verbModelAccess } from '#~/concepts/userSSAR';
 import { ModelRegistryModel } from '#~/api/models';
-import InvalidModelRegistry from './screens/InvalidModelRegistry';
-import EmptyModelRegistryState from './screens/components/EmptyModelRegistryState';
-import ModelRegistrySelectorNavigator from './screens/ModelRegistrySelectorNavigator';
+import InvalidModelRegistry from './InvalidModelRegistry';
+import ModelRegistrySelectorNavigator from './ModelRegistrySelectorNavigator';
+import EmptyModelRegistryState from './EmptyModelRegistryState';
 
 type ApplicationPageProps = React.ComponentProps<typeof ApplicationsPage>;
 

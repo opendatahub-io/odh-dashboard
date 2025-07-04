@@ -117,7 +117,7 @@ const extensions: RouteExtension[] = [
     type: 'app.route',
     properties: {
       path: '/experiments/*',
-      component: () => import('#~/pages/pipelines/GlobalPipelineExperimentsRoutes'),
+      component: () => import('#~/pages/experiments/ExperimentsRoutes'),
     },
   },
   {

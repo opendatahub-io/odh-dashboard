@@ -6,7 +6,7 @@ import { SearchType } from '#~/concepts/dashboard/DashboardSearchField';
 import { ModelVersion, RegisteredModel } from '#~/concepts/modelRegistry/types';
 import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
 import { filterRegisteredModels } from '#~/pages/modelRegistry/screens/utils';
-import EmptyModelRegistryState from '#~/pages/modelRegistry/screens/components/EmptyModelRegistryState';
+import EmptyModelRegistryState from '#~/concepts/modelRegistry/content/EmptyModelRegistryState.tsx';
 import { registerModelRoute } from '#~/routes/modelRegistry/register';
 import { registeredModelArchiveRoute } from '#~/routes/modelRegistry/modelArchive';
 import { asEnumMember } from '#~/utilities/utils';
