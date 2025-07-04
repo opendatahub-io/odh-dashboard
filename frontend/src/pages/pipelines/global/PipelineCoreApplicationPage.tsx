@@ -9,6 +9,7 @@ export type PipelineCoreApplicationPageProps = {
   children: React.ReactNode;
   getRedirectPath: (namespace: string) => string;
   overrideChildPadding?: boolean;
+  overrideTimeout?: boolean;
 } & Omit<
   React.ComponentProps<typeof ApplicationsPage>,
   'loaded' | 'empty' | 'emptyStatePage' | 'headerContent' | 'provideChildrenPadding'
@@ -18,6 +19,7 @@ const PipelineCoreApplicationPage: React.FC<PipelineCoreApplicationPageProps> = 
   children,
   getRedirectPath,
   overrideChildPadding,
+  overrideTimeout = false,
   ...pageProps
 }) => {
   const { pipelinesServer } = usePipelinesAPI();
@@ -31,7 +33,7 @@ const PipelineCoreApplicationPage: React.FC<PipelineCoreApplicationPageProps> = 
       headerContent={<PipelineCoreProjectSelector getRedirectPath={getRedirectPath} />}
       provideChildrenPadding={!overrideChildPadding}
     >
-      {pipelinesServer.timedOut && pipelinesServer.compatible ? (
+      {!overrideTimeout && pipelinesServer.timedOut && pipelinesServer.compatible ? (
         <PipelineServerTimedOut />
       ) : (
         children

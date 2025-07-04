@@ -61,7 +61,9 @@ const GenericHorizontalBar: React.FC<GenericHorizontalBarProps> = ({
           ))}
         </Tabs>
       </PageSection>
-      {activeSection.component}
+      <div id={activeSection.id} role="tabpanel" aria-labelledby={`${activeSection.id}-tab`}>
+        {activeSection.component}
+      </div>
     </>
   );
 };
