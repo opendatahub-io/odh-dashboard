@@ -2,17 +2,15 @@ import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageSection, Tab, Tabs, TabTitleText } from '@patternfly/react-core';
 import {
-  DeploymentMode,
   FetchStateObject,
   InferenceServiceKind,
-  PlatformMode,
   ServingRuntimeKind,
-  useModularArchContext,
 } from 'mod-arch-shared';
 import { ModelVersion } from '~/app/types';
 import { ModelVersionDetailsTabTitle, ModelVersionDetailsTab } from './const';
 import ModelVersionDetailsView from './ModelVersionDetailsView';
-import ModelVersionRegisteredDeploymentsView from './ModelVersionRegisteredDeploymentsView';
+import { LazyCodeRefComponent, useExtensions } from '@odh-dashboard/plugin-core';
+import { isModelRegistryDeploymentsTabExtension } from '@odh-dashboard/model-registry/extension-points';
 
 type ModelVersionDetailTabsProps = {
   tab: ModelVersionDetailsTab;
@@ -32,7 +30,50 @@ const ModelVersionDetailsTabs: React.FC<ModelVersionDetailTabsProps> = ({
   refresh,
 }) => {
   const navigate = useNavigate();
-  const { deploymentMode, platformMode } = useModularArchContext();
+  const extensions = useExtensions(isModelRegistryDeploymentsTabExtension);
+
+  const modelVersionDetails = [
+    <Tab
+      key={ModelVersionDetailsTab.DETAILS}
+      eventKey={ModelVersionDetailsTab.DETAILS}
+      title={<TabTitleText>{ModelVersionDetailsTabTitle.DETAILS}</TabTitleText>}
+      aria-label="Model versions details tab"
+      data-testid="model-versions-details-tab"
+    >
+      <PageSection
+        hasBodyWrapper={false}
+        isFilled
+        data-testid="model-versions-details-tab-content"
+      >
+        <ModelVersionDetailsView
+          modelVersion={mv}
+          refresh={refresh}
+          isArchiveVersion={isArchiveVersion}
+        />
+      </PageSection>
+    </Tab>,
+    ...extensions.map((extension) => (
+        <Tab
+          key={extension.properties.id}
+          eventKey={extension.properties.id}
+          aria-label={`${extension.properties.title} tab`}
+          data-testid={`${extension.properties.id}-tab`}
+          title={<TabTitleText>{extension.properties.title}</TabTitleText>}
+        >
+          <PageSection hasBodyWrapper={false} isFilled data-testid={`${extension.properties.id}-tab-content`}>
+            <LazyCodeRefComponent
+              component={extension.properties.component}
+              props={{
+                inferenceServices,
+                servingRuntimes,
+                refresh,
+              }}
+            />
+          </PageSection>
+        </Tab>
+    ))
+  ];
+
   return (
     <Tabs
       activeKey={tab}
@@ -41,42 +82,7 @@ const ModelVersionDetailsTabs: React.FC<ModelVersionDetailTabsProps> = ({
       data-testid="model-versions-details-page-tabs"
       onSelect={(_event, eventKey) => navigate(`../${eventKey}`, { relative: 'path' })}
     >
-      <Tab
-        eventKey={ModelVersionDetailsTab.DETAILS}
-        title={<TabTitleText>{ModelVersionDetailsTabTitle.DETAILS}</TabTitleText>}
-        aria-label="Model versions details tab"
-        data-testid="model-versions-details-tab"
-      >
-        <PageSection
-          hasBodyWrapper={false}
-          isFilled
-          data-testid="model-versions-details-tab-content"
-        >
-          <ModelVersionDetailsView
-            modelVersion={mv}
-            refresh={refresh}
-            isArchiveVersion={isArchiveVersion}
-          />
-        </PageSection>
-      </Tab>
-      {!isArchiveVersion &&
-        (deploymentMode === DeploymentMode.Standalone ||
-          platformMode !== PlatformMode.Kubeflow) && (
-          <Tab
-            eventKey={ModelVersionDetailsTab.DEPLOYMENTS}
-            title={<TabTitleText>{ModelVersionDetailsTabTitle.DEPLOYMENTS}</TabTitleText>}
-            aria-label="Deployments tab"
-            data-testid="deployments-tab"
-          >
-            <PageSection hasBodyWrapper={false} isFilled data-testid="deployments-tab-content">
-              <ModelVersionRegisteredDeploymentsView
-                inferenceServices={inferenceServices}
-                servingRuntimes={servingRuntimes}
-                refresh={refresh}
-              />
-            </PageSection>
-          </Tab>
-        )}
+      {modelVersionDetails}
     </Tabs>
   );
 };

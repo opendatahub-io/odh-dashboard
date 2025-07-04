@@ -1,12 +1,7 @@
 import React from 'react';
-import { ProjectObjectType, typedEmptyImage } from 'mod-arch-shared';
-import ModelVersionDetailsTabs from '~/app/pages/modelRegistry/screens/ModelVersionDetails/ModelVersionDetailsTabs';
-import EmptyModelRegistryState from '~/app/pages/modelRegistry/screens/components/EmptyModelRegistryState';
-
-type ModelVersionRegisteredDeploymentsViewProps = Pick<
-  React.ComponentProps<typeof ModelVersionDetailsTabs>,
-  'inferenceServices' | 'servingRuntimes' | 'refresh'
->;
+import { ProjectObjectType, typedEmptyImage } from '@odh-dashboard/internal/concepts/design/utils';
+import EmptyModelRegistryState from './EmptyModelRegistryState';
+import { ModelVersionRegisteredDeploymentsViewProps } from './types';
 
 const ModelVersionRegisteredDeploymentsView: React.FC<
   ModelVersionRegisteredDeploymentsViewProps

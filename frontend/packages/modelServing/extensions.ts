@@ -8,6 +8,7 @@ import type {
 // Allow this import as it consists of types and enums only.
 // eslint-disable-next-line no-restricted-syntax
 import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
+import type { ModelRegistryDeploymentsTabExtension } from '@odh-dashboard/model-registry/extension-points';
 
 const PLUGIN_MODEL_SERVING = 'plugin-model-serving';
 
@@ -17,6 +18,7 @@ const extensions: (
   | HrefNavItemExtension
   | RouteExtension
   | OverviewSectionExtension
+  | ModelRegistryDeploymentsTabExtension
 )[] = [
   {
     type: 'app.area',
@@ -35,6 +37,14 @@ const extensions: (
     },
     flags: {
       required: [PLUGIN_MODEL_SERVING],
+    },
+  },
+  {
+    type: 'model-registry.version-details/tab',
+    properties: {
+      id: 'deployments',
+      title: 'Deployments',
+      component: () => import('./src/components/deployments/ModelVersionRegisteredDeploymentsView'),
     },
   },
   {
