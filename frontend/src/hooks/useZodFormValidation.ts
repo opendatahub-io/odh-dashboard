@@ -29,6 +29,9 @@ export type FieldValidationProps = {
 export function useZodFormValidation<T>(
   data: T,
   schema: ZodType<T>,
+  options?: {
+    ignoreTouchedFields?: boolean;
+  },
 ): {
   markFieldTouched: (fieldPath?: (string | number)[]) => void;
   getFieldValidation: (fieldPath?: (string | number)[]) => ZodIssue[];
@@ -45,7 +48,7 @@ export function useZodFormValidation<T>(
   const getFieldValidation = (fieldPath?: (string | number)[]): ZodIssue[] => {
     const key = fieldPath ? fieldPath.join('.') : '/';
     const issues = getAllValidationIssues(fieldPath);
-    if (touchedFields[key]) {
+    if (touchedFields[key] || options?.ignoreTouchedFields) {
       return issues;
     }
     return [];
