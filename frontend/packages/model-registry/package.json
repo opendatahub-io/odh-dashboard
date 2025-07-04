@@ -7,10 +7,10 @@
     "update-subtree": "../../scripts/package-subtree.sh model-registry"
   },
   "subtree": {
-    "repo": "https://github.com/kubeflow/model-registry.git",
+    "repo": "https://github.com/lucferbux/model-registry.git",
     "src": "clients/ui",
     "target": "upstream",
-    "commit": "aa34fd59ad066781b236634cbb2ff00b4bb01127"
+    "commit": "1783e5e021640b98e6881f3ff442852845007d0b"
   },
   "module-federation": {
     "name": "modelRegistry",
