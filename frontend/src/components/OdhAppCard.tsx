@@ -142,7 +142,7 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
             to="/notebookController"
             className={css('odh-card__footer__link', !workbenchEnabled && 'm-disabled')}
           >
-            Launch application
+            Open application
           </Link>
         ) : null
       ) : (
@@ -152,7 +152,7 @@ const OdhAppCard: React.FC<OdhAppCardProps> = ({ odhApp }) => {
           target="_blank"
           rel="noopener noreferrer"
         >
-          Launch application
+          Open application
           <ExternalLinkAltIcon />
         </a>
       )}

@@ -18,10 +18,13 @@ ODH requires the following to run:
 ## Development
 
 1. Clone the repository
+
    ```bash
    git clone https://github.com/opendatahub-io/odh-dashboard
    ```
+
 2. Within the repo context, we use `npm` to install project dependencies
+
    ```bash
    cd odh-dashboard && npm install
    ```
@@ -49,6 +52,7 @@ npm run start
 For in-depth local run guidance review the [contribution guidelines](../CONTRIBUTING.md).
 
 ### Testing
+
 Run the tests.
 
 ```bash
@@ -69,10 +73,10 @@ Certain environments require custom access configurations for the OpenShift cons
 
 Steps to Configure:
 
-1.  Open the root `.env.local` file (or create it if it doesn't exist).
-2.  Add the following line to define the custom console domain:
+1. Open the root `.env.local` file (or create it if it doesn't exist).
+2. Add the following line to define the custom console domain:
 
-    <code>CONSOLE_LINK_DOMAIN=your-custom-domain.com</code>
+   <code>CONSOLE_LINK_DOMAIN=your-custom-domain.com</code>
 
 Replace your-custom-domain.com with the specific domain for your OpenShift console
 

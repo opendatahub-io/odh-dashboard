@@ -156,7 +156,7 @@ spec:
     You just installed Pachyderm.
     ## Post Deployment
 
-    1. Launch the **Jupyter** application: From the `Enabled` menu, click `Launch application` from the **Jupyter** tile.
+    1. Launch the **Jupyter** application: From the `Enabled` menu, click `Open application` from the **Jupyter** tile.
 
     1. Run a **Jupyter Lab server**: Select the Image and Container size of your choice (At a minimum, we recommend the *Standard Data Science* Image and *Medium* container size.) then start your Jupyter Lab server.
 
