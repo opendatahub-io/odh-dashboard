@@ -30,8 +30,7 @@
     "importHelpers": true,
     "skipLibCheck": true,
     "noErrorTruncation": true,
-    "noEmit": true,
-    "allowImportingTsExtensions": true
+    "noEmit": true
   },
   "include": [
     "**/*.ts",
