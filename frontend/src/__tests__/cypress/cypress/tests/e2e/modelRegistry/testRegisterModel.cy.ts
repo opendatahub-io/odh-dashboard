@@ -26,6 +26,7 @@ import { appChrome } from '#~/__tests__/cypress/cypress/pages/appChrome';
 describe('Verify models can be registered in a model registry', () => {
   let testData: RegisterModelTestData;
   let registryName: string;
+  let objectStorageModelName: string;
   const uuid = generateTestUUID();
 
   before(() => {
@@ -33,6 +34,7 @@ describe('Verify models can be registered in a model registry', () => {
     loadRegisterModelFixture('e2e/modelRegistry/testRegisterModel.yaml').then((fixtureData) => {
       testData = fixtureData;
       registryName = `${testData.registryNamePrefix}-${uuid}`;
+      objectStorageModelName = `${testData.objectStorageModelName}-${uuid}`;
 
       // creates a model registry
       cy.step('Create a model registry using YAML');
@@ -68,9 +70,7 @@ describe('Verify models can be registered in a model registry', () => {
       modelRegistry.findEmptyRegisterModelButton(30000).click();
 
       // Fill in model details for object storage
-      registerModelPage
-        .findFormField(FormFieldSelector.MODEL_NAME)
-        .type(testData.objectStorageModelName);
+      registerModelPage.findFormField(FormFieldSelector.MODEL_NAME).type(objectStorageModelName);
       registerModelPage
         .findFormField(FormFieldSelector.MODEL_DESCRIPTION)
         .type(testData.objectStorageModelDescription);
@@ -104,10 +104,10 @@ describe('Verify models can be registered in a model registry', () => {
 
       cy.step('Verify the object storage model was registered');
       cy.url().should('include', '/modelRegistry');
-      cy.contains(testData.objectStorageModelName, { timeout: 10000 }).should('be.visible');
+      cy.contains(objectStorageModelName, { timeout: 10000 }).should('be.visible');
 
       cy.step('Verify the object storage model exists in the database');
-      checkModelExistsInDatabase(testData.objectStorageModelName).should('be.true');
+      checkModelExistsInDatabase(objectStorageModelName).should('be.true');
 
       cy.step('Navigate back to register another model using direct URL');
       registerModelPage.visitWithRegistry(registryName);
@@ -146,7 +146,7 @@ describe('Verify models can be registered in a model registry', () => {
       cy.visitWithLogin(`/modelRegistry/${registryName}`, HTPASSWD_CLUSTER_ADMIN_USER);
 
       cy.step('Verify both models are visible in the registry');
-      cy.contains(testData.objectStorageModelName, { timeout: 10000 }).should('be.visible');
+      cy.contains(objectStorageModelName, { timeout: 10000 }).should('be.visible');
       cy.contains(testData.uriModelName, { timeout: 10000 }).should('be.visible');
     },
   );
@@ -165,7 +165,7 @@ describe('Verify models can be registered in a model registry', () => {
       modelRegistry.findSelectModelRegistry(registryName);
 
       cy.step('Navigate to the first registered model');
-      cy.contains(testData.objectStorageModelName).click();
+      cy.contains(objectStorageModelName).click();
 
       cy.step('Navigate to versions tab');
       modelRegistry.findModelVersionsTab().click();
@@ -213,7 +213,7 @@ describe('Verify models can be registered in a model registry', () => {
     cy.clearLocalStorage();
 
     cy.step('Clean up registered models from database');
-    cleanupRegisteredModelsFromDatabase([testData.objectStorageModelName, testData.uriModelName]);
+    cleanupRegisteredModelsFromDatabase([objectStorageModelName, testData.uriModelName]);
 
     cy.step('Delete the model registry');
     deleteModelRegistry(registryName);
