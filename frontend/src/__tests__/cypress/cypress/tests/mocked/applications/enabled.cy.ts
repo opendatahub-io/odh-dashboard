@@ -13,7 +13,7 @@ describe('Enabled Page', () => {
   it('check jupyter card details', () => {
     enabledPage.visit();
     jupyterCard.findBrandImage().should('be.visible');
-    jupyterCard.findCardTitle().should('have.text', 'Jupyter');
+    jupyterCard.findCardTitle().should('have.text', 'Start basic workbench');
     jupyterCard.findTooltipInfo().should('exist');
     jupyterCard.findPartnerBadge().should('have.text', 'Red Hat managed');
     jupyterCard
