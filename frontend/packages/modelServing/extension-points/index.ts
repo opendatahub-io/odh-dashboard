@@ -130,7 +130,7 @@ export const isModelServingAuthExtension = <D extends Deployment = Deployment>(
 // Model serving deployments table extension
 
 export type DeploymentsTableColumn<D extends Deployment = Deployment> = SortableData<D> & {
-  cellRenderer: (deployment: D, column: string) => string;
+  cellRenderer: (deployment: D, column: string) => React.ReactNode;
 };
 
 export type ModelServingDeploymentsTableExtension<D extends Deployment = Deployment> = Extension<

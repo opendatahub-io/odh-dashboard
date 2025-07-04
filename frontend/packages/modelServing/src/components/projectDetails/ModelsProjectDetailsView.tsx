@@ -9,8 +9,8 @@ import type { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
 import { useExtensions } from '@odh-dashboard/plugin-core';
 import { SelectPlatformView } from './SelectPlatformView';
 import { NoModelsView } from './NoModelsView';
+import { ProjectDeploymentsTable } from './ProjectDeploymentsTable';
 import { useProjectServingPlatform } from '../../concepts/useProjectServingPlatform';
-import DeploymentsTable from '../deployments/DeploymentsTable';
 import { ModelDeploymentsContext } from '../../concepts/ModelDeploymentsContext';
 import { DeployButton } from '../deploy/DeployButton';
 import { isModelServingPlatformExtension } from '../../../extension-points';
@@ -95,7 +95,11 @@ const ModelsProjectDetailsView: React.FC<{
         (!hasModels ? (
           <NoModelsView platform={activePlatform} />
         ) : (
-          <DeploymentsTable modelServingPlatform={activePlatform} deployments={deployments} />
+          <ProjectDeploymentsTable
+            modelServingPlatform={activePlatform}
+            deployments={deployments}
+            loaded={deploymentsLoaded}
+          />
         ))}
     </DetailsSection>
   );

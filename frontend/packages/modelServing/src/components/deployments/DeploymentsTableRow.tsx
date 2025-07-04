@@ -20,7 +20,7 @@ import {
   isModelServingAuthExtension,
   isModelServingDeploymentResourcesExtension,
   isModelServingDeploymentsExpandedInfo,
-  ModelServingMetricsExtension,
+  isModelServingMetricsExtension,
 } from '../../../extension-points';
 
 export const DeploymentRow: React.FC<{
@@ -28,8 +28,9 @@ export const DeploymentRow: React.FC<{
   platformColumns: DeploymentsTableColumn[];
   onDelete: (deployment: Deployment) => void;
   rowIndex: number;
-  metricsExtension?: ModelServingMetricsExtension;
-}> = ({ deployment, platformColumns, onDelete, rowIndex, metricsExtension }) => {
+  showExpandedInfo?: boolean;
+}> = ({ deployment, platformColumns, onDelete, rowIndex, showExpandedInfo }) => {
+  const metricsExtension = useDeploymentExtension(isModelServingMetricsExtension, deployment);
   // Loads instantly so we know if the row is expandable
   const detailsExtension = useDeploymentExtension(
     isModelServingDeploymentsExpandedInfo,
@@ -54,7 +55,7 @@ export const DeploymentRow: React.FC<{
   return (
     <Tbody isExpanded={isExpanded}>
       <ResourceTr resource={deployment.model}>
-        {detailsExtension && (
+        {detailsExtension && showExpandedInfo && (
           <Td
             expand={{
               rowIndex,
@@ -119,6 +120,7 @@ export const DeploymentRow: React.FC<{
         </Td>
       </ResourceTr>
       {isExpanded &&
+        showExpandedInfo &&
         resolvedResourcesExtension &&
         resolvedExpandedInfoExtension &&
         resolvedAuthExtension && (

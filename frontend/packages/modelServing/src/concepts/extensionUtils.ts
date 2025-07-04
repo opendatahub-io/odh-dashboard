@@ -38,13 +38,13 @@ export const useResolvedPlatformExtension = <T extends PlatformExtension>(
 
 export const useDeploymentExtension = <T extends PlatformExtension>(
   extensionPredicate: ExtensionPredicate<T>,
-  deployment: Deployment,
+  deployment?: Deployment,
 ): T | null => {
   const extensions = useExtensions<T>(extensionPredicate);
 
   return React.useMemo(
     () =>
-      extensions.find((ext) => ext.properties.platform === deployment.modelServingPlatformId) ??
+      extensions.find((ext) => ext.properties.platform === deployment?.modelServingPlatformId) ??
       null,
     [extensions, deployment],
   );
@@ -52,18 +52,18 @@ export const useDeploymentExtension = <T extends PlatformExtension>(
 
 export const useResolvedDeploymentExtension = <T extends PlatformExtension>(
   extensionPredicate: ExtensionPredicate<T>,
-  deployment: Deployment,
+  deployment?: Deployment | null,
 ): [ResolvedExtension<T> | null, boolean, unknown[]] => {
   const [resolvedExtensions, loaded, errors] = useResolvedExtensions<T>(extensionPredicate);
 
   return React.useMemo(
     () => [
       resolvedExtensions.find(
-        (ext) => ext.properties.platform === deployment.modelServingPlatformId,
+        (ext) => ext.properties.platform === deployment?.modelServingPlatformId,
       ) ?? null,
       loaded,
       errors,
     ],
-    [resolvedExtensions, deployment.modelServingPlatformId, loaded, errors],
+    [resolvedExtensions, deployment?.modelServingPlatformId, loaded, errors],
   );
 };
