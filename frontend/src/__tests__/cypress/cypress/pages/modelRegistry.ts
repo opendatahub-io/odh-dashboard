@@ -64,7 +64,7 @@ class ModelRegistry {
   }
 
   navigate() {
-    appChrome.findNavItem('Model registry').click();
+    appChrome.findNavItem('Model registry', 'Models').click();
     this.wait();
   }
 
