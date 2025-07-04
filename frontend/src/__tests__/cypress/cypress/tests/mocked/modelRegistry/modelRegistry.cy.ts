@@ -421,7 +421,7 @@ describe('Register Model button', () => {
   it('Navigates to register page from empty state', () => {
     initIntercepts({ disableModelRegistryFeature: false, registeredModels: [] });
     modelRegistry.visit();
-    modelRegistry.findRegisterModelButton().click();
+    modelRegistry.findEmptyRegisterModelButton().click();
     cy.findByTestId('app-page-title').should('exist');
     cy.findByTestId('app-page-title').contains('Register model');
     cy.findByText('Model registry - modelregistry-sample').should('exist');
