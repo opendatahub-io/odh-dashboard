@@ -140,7 +140,7 @@ describe('NotificationWatcherContextProvider', () => {
 
     renderTestComponent([callbackMock], callbackDelay);
 
-    expect(callbackMock).toHaveBeenCalledTimes(0);
+    expect(callbackMock).toHaveBeenCalledTimes(1);
 
     act(() => {
       jest.advanceTimersByTime(repollCount * callbackDelay);
