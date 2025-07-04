@@ -32,6 +32,7 @@ import {
   RoleKind,
   ServingContainer,
   DeploymentMode,
+  PodKind,
 } from '#~/k8sTypes';
 import { ContainerResources } from '#~/types';
 import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '#~/concepts/k8s/utils';
@@ -42,8 +43,10 @@ import {
   ModelServingSize,
   ServingRuntimeToken,
   ModelServingState,
+  InferenceServiceModelState,
 } from '#~/pages/modelServing/screens/types';
 import { ModelServingPodSpecOptionsState } from '#~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
+import { getInferenceServiceModelState } from '#~/concepts/modelServingKServe/kserveStatusUtils.ts';
 import { ServingRuntimeVersionStatusLabel } from './screens/const';
 
 type TokenNames = {
@@ -371,14 +374,22 @@ export const isOciModelUri = (modelUri?: string): boolean => !!modelUri?.include
 
 export const getInferenceServiceStoppedStatus = (
   inferenceService: InferenceServiceKind,
+  modelPod: PodKind | null,
 ): ModelServingState => {
   const status = inferenceService.metadata.annotations?.['serving.kserve.io/stop'] === 'true';
+
+  const state = getInferenceServiceModelState(inferenceService);
+  const isStarting =
+    state === InferenceServiceModelState.LOADING || state === InferenceServiceModelState.PENDING;
+  const isRunning =
+    state === InferenceServiceModelState.LOADED || state === InferenceServiceModelState.STANDBY;
+
   return {
     inferenceService,
-    isStopped: status,
-    isRunning: !status,
-    isStopping: false,
-    isStarting: false,
+    isStopped: status && !modelPod,
+    isRunning: !status && isRunning,
+    isStopping: status && !!modelPod,
+    isStarting: !status && isStarting, // This gets overriden by the isStarting state in InferenceServiceTableRow
   };
 };
 

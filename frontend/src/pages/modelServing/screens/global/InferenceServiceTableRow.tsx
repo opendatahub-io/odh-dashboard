@@ -18,6 +18,9 @@ import { getInferenceServiceModelState } from '#~/concepts/modelServingKServe/ks
 import useStopModalPreference from '#~/pages/modelServing/useStopModalPreference.ts';
 import ModelServingStopModal from '#~/pages/modelServing/ModelServingStopModal';
 import { InferenceServiceModelState } from '#~/pages/modelServing/screens/types';
+import useModelPodStatus from '#~/pages/modelServing/useModelPodStatus';
+import useRefreshInterval from '#~/utilities/useRefreshInterval.ts';
+import { FAST_POLL_INTERVAL } from '#~/utilities/const.ts';
 import InferenceServiceEndpoint from './InferenceServiceEndpoint';
 import InferenceServiceProject from './InferenceServiceProject';
 import InferenceServiceStatus from './InferenceServiceStatus';
@@ -61,8 +64,24 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
   const kserveMetricsSupported = modelMetricsEnabled && kserveMetricsEnabled && !modelMesh;
   const displayName = getDisplayNameFromK8sResource(inferenceService);
 
-  const modelServingStatus = getInferenceServiceStoppedStatus(inferenceService);
   const [isStarting, setIsStarting] = React.useState(false);
+
+  const { data: modelPodStatus, refresh: refreshModelPodStatus } = useModelPodStatus(
+    inferenceService.metadata.namespace,
+    inferenceService.metadata.name,
+  );
+
+  const modelServingStatus = React.useMemo(
+    () => getInferenceServiceStoppedStatus(inferenceService, modelPodStatus),
+    [inferenceService, modelPodStatus],
+  );
+
+  useRefreshInterval(FAST_POLL_INTERVAL, async () => {
+    await refreshModelPodStatus();
+    if (isStarting) {
+      refresh();
+    }
+  });
 
   const onStart = React.useCallback(() => {
     setIsStarting(true);
@@ -75,11 +94,17 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
     if (!isStarting) {
       return;
     }
-    const isStopped = inferenceService.metadata.annotations?.['serving.kserve.io/stop'] === 'true';
+
     const currentState = getInferenceServiceModelState(inferenceService);
 
     if (
-      !isStopped &&
+      currentState === InferenceServiceModelState.LOADING ||
+      currentState === InferenceServiceModelState.PENDING
+    ) {
+      setIsStarting(true);
+    }
+
+    if (
       [InferenceServiceModelState.LOADED, InferenceServiceModelState.FAILED_TO_LOAD].includes(
         currentState,
       )
@@ -90,6 +115,7 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
 
   const onStop = React.useCallback(() => {
     if (dontShowModalValue) {
+      setIsStarting(false);
       patchInferenceServiceStoppedStatus(inferenceService, 'true').then(refresh);
     } else {
       setOpenConfirm(true);
@@ -154,10 +180,17 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
           inferenceService={inferenceService}
           isKserve={!modelMesh}
           isStarting={isStarting}
+          isStopping={modelServingStatus.isStopping}
+          isStopped={modelServingStatus.isStopped}
         />
       </Td>
       <Td>
-        <StateActionToggle currentState={modelServingStatus} onStart={onStart} onStop={onStop} />
+        <StateActionToggle
+          currentState={isStarting ? { ...modelServingStatus, isStarting } : modelServingStatus} // if missing isStarting state when first deploying the model default to modelServingStatus
+          onStart={onStart}
+          onStop={onStop}
+          isDisabledWhileStarting={false}
+        />
       </Td>
 
       {columnNames.includes(ColumnField.Kebab) && (
