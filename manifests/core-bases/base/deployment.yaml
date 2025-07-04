@@ -31,6 +31,12 @@ spec:
           imagePullPolicy: Always
           ports:
             - containerPort: 8080
+          env:
+            - name: MODULE_FEDERATION_CONFIG
+              valueFrom:
+                configMapKeyRef:
+                  name: federation-config
+                  key: module-federation-config.json
           resources:
             requests:
               cpu: 500m
