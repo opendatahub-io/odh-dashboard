@@ -25,6 +25,7 @@ import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import { useDashboardNamespace } from '#~/redux/selectors';
 import { useImageStreams } from '#~/utilities/useImageStreams';
 import { mapImageStreamToImageInfo } from '#~/utilities/imageStreamUtils';
+import { getHardwareProfileDisplayName } from '#~/pages/hardwareProfiles/utils.ts';
 import { getNotebookSizes } from './usePreferredNotebookSize';
 
 const NotebookServerDetails: React.FC = () => {
@@ -131,7 +132,7 @@ const NotebookServerDetails: React.FC = () => {
             <DescriptionListTerm>Hardware profile</DescriptionListTerm>
             <DescriptionListDescription>
               {hardwareProfile.initialHardwareProfile
-                ? hardwareProfile.initialHardwareProfile.spec.displayName
+                ? getHardwareProfileDisplayName(hardwareProfile.initialHardwareProfile)
                 : hardwareProfile.formData.useExistingSettings
                 ? 'Unknown'
                 : 'None'}

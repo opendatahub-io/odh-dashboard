@@ -27,6 +27,8 @@ import TolerationTable from '#~/pages/hardwareProfiles/toleration/TolerationTabl
 import { useKebabAccessAllowed, verbModelAccess } from '#~/concepts/userSSAR';
 import {
   createHardwareProfileWarningTitle,
+  getHardwareProfileDescription,
+  getHardwareProfileDisplayName,
   validateProfileWarning,
 } from '#~/pages/hardwareProfiles/utils';
 import { HardwareProfileModel } from '#~/api';
@@ -68,6 +70,12 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
 
   const hardwareProfileWarnings = validateProfileWarning(hardwareProfile);
 
+  const { kueue, node } = hardwareProfile.spec.scheduling ?? {};
+  const localQueueName = kueue?.localQueueName;
+  const priorityClass = kueue?.priorityClass;
+  const nodeSelector = node?.nodeSelector;
+  const tolerations = node?.tolerations;
+
   return (
     <Tbody isExpanded={isExpanded}>
       <Tr>
@@ -81,8 +89,8 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
         />
         <Td dataLabel="Name">
           <TableRowTitleDescription
-            title={<Truncate content={hardwareProfile.spec.displayName} />}
-            description={hardwareProfile.spec.description}
+            title={<Truncate content={getHardwareProfileDisplayName(hardwareProfile)} />}
+            description={getHardwareProfileDescription(hardwareProfile)}
             resource={migrationAction ? undefined : hardwareProfile}
             truncateDescriptionLines={2}
             wrapResourceTitle={false}
@@ -223,22 +231,32 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
                     <Divider />
                   </StackItem>
                 )}
-              {hardwareProfile.spec.nodeSelector &&
-                Object.keys(hardwareProfile.spec.nodeSelector).length !== 0 && (
-                  <StackItem>
-                    <p className="pf-v6-u-font-weight-bold">Node selectors</p>
-                    <NodeSelectorTable nodeSelector={hardwareProfile.spec.nodeSelector} />
-                    <Divider />
-                  </StackItem>
-                )}
-              {hardwareProfile.spec.tolerations &&
-                hardwareProfile.spec.tolerations.length !== 0 && (
-                  <StackItem>
-                    <p className="pf-v6-u-font-weight-bold">Tolerations</p>
-                    <TolerationTable tolerations={hardwareProfile.spec.tolerations} />
-                    <Divider />
-                  </StackItem>
-                )}
+              {localQueueName && (
+                <StackItem>
+                  <p className="pf-v6-u-font-weight-bold">Local Queue</p>
+                  {localQueueName}
+                </StackItem>
+              )}
+              {priorityClass && (
+                <StackItem>
+                  <p className="pf-v6-u-font-weight-bold">Workload priority</p>
+                  {priorityClass}
+                </StackItem>
+              )}
+              {nodeSelector && Object.keys(nodeSelector).length !== 0 && (
+                <StackItem>
+                  <p className="pf-v6-u-font-weight-bold">Node selectors</p>
+                  <NodeSelectorTable nodeSelector={nodeSelector} />
+                  <Divider />
+                </StackItem>
+              )}
+              {tolerations && tolerations.length !== 0 && (
+                <StackItem>
+                  <p className="pf-v6-u-font-weight-bold">Tolerations</p>
+                  <TolerationTable tolerations={tolerations} />
+                  <Divider />
+                </StackItem>
+              )}
             </Stack>
           </ExpandableRowContent>
         </Td>

@@ -7,6 +7,8 @@ import {
   Identifier,
   ContainerResources,
   IdentifierResourceType,
+  SchedulingType,
+  DisplayNameAnnotation,
 } from '#~/types';
 import { useIsAreaAvailable, SupportedArea } from '#~/concepts/areas';
 import { splitValueUnit, CPU_UNITS, MEMORY_UNITS_FOR_PARSING } from '#~/utilities/valueUnits';
@@ -174,3 +176,51 @@ export const getProfileScore = (profile: HardwareProfileKind): number => {
 
   return score;
 };
+
+// Remove once the new HardwareProfile crd is fully rolled out
+//--------------------------------------------------------------------------------------------------
+export const isOldHardwareProfile = (hardwareProfile: HardwareProfileKind): boolean =>
+  hardwareProfile.spec.displayName !== undefined && hardwareProfile.spec.enabled !== undefined;
+
+export function convertOldToNew(hardwareProfile: HardwareProfileKind): HardwareProfileKind {
+  const { apiVersion, kind, metadata, spec: oldSpec } = hardwareProfile;
+
+  const identifiers: Identifier[] = oldSpec.identifiers ?? [];
+
+  // migrate displayName/description/enabled into annotations
+  const annotations = {
+    ...(metadata.annotations || {}),
+    [DisplayNameAnnotation.ODH_DISP_NAME]: oldSpec.displayName ?? '',
+    ...(oldSpec.description && { [DisplayNameAnnotation.ODH_DESC]: oldSpec.description ?? '' }),
+    'opendatahub.io/disabled': (!oldSpec.enabled).toString(),
+  };
+
+  const hasNodeFields =
+    (oldSpec.nodeSelector && Object.keys(oldSpec.nodeSelector).length > 0) ||
+    (oldSpec.tolerations && oldSpec.tolerations.length > 0);
+
+  return {
+    apiVersion,
+    kind,
+    metadata: { ...metadata, annotations },
+    spec: {
+      identifiers,
+      ...(hasNodeFields && {
+        scheduling: {
+          type: SchedulingType.NODE,
+          node: {
+            nodeSelector: oldSpec.nodeSelector ?? {},
+            tolerations: oldSpec.tolerations ?? [],
+          },
+        },
+      }),
+    },
+  };
+}
+
+export function normalizeHardwareProfiles(
+  hardwareProfiles: HardwareProfileKind[],
+): HardwareProfileKind[] {
+  return hardwareProfiles.map((hwp) => (isOldHardwareProfile(hwp) ? convertOldToNew(hwp) : hwp));
+}
+//--------------------------------------------------------------------------------------------------

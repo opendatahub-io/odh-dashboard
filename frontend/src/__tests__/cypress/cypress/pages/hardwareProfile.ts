@@ -334,6 +334,35 @@ class ManageHardwareProfile {
     return cy.findByTestId('delete-node-resource-modal-cancel-btn');
   }
 
+  findLocalQueueRadio() {
+    return cy.findByTestId('local-queue-radio-input');
+  }
+
+  findNodeStrategyRadio() {
+    return cy.findByTestId('node-strategy-radio-input');
+  }
+
+  findLocalQueueInput() {
+    return cy.findByTestId('local-queue-input');
+  }
+
+  findWorkloadPrioritySelect() {
+    return cy.findByTestId('workload-priority-select');
+  }
+
+  selectWorkloadPriority(name: string) {
+    this.findWorkloadPrioritySelect().click();
+    cy.findByTestId(name).click();
+  }
+
+  findKueueDisabledAlert() {
+    return cy.findByTestId('kueue-disabled-alert').scrollIntoView();
+  }
+
+  findKueueDisabledTooltip() {
+    return cy.findByTestId('kueue-disabled-tooltip');
+  }
+
   getTolerationTableRow(name: string) {
     return new TolerationRow(() =>
       this.findTolerationTable().find(`[data-label=Key]`).contains(name).parents('tr'),
