@@ -2,12 +2,32 @@
 import type { Model as LlamaModel } from 'llama-stack-client/resources/models';
 import axios from '#~/utilities/axios';
 
-// Roles must be 'user' and 'assistant' according to the Llama Stack API
-type ChatMessage = {
-  role: 'user' | 'assistant';
-  content: string;
-  stop_reason?: string;
+type OutgoingChatMessage = {
+  message: string;
+  assistantName: string;
+  files?: File[];
 };
+
+function buildMultipartRequestInit(networkChatRequest: string, files: File[]): RequestInit {
+  const formData = new FormData();
+  formData.append('request', networkChatRequest);
+  files.forEach((file) => {
+    formData.append('files', file);
+  });
+
+  return {
+    method: 'POST',
+    body: formData,
+  };
+}
+
+function buildStandardRequestInit(networkChatRequest: string): RequestInit {
+  return {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: networkChatRequest,
+  };
+}
 
 export const listModels = (): Promise<LlamaModel[]> => {
   const url = '/api/llama-stack/models/list';
@@ -19,30 +39,40 @@ export const listModels = (): Promise<LlamaModel[]> => {
     });
 };
 
-export const completeChat = (messages: ChatMessage[], model_id: string): Promise<string> => {
-  const url = '/api/llama-stack/chat/complete';
+export async function completeChat(
+  message: OutgoingChatMessage,
+  signal?: AbortSignal,
+): Promise<ReadableStream<Uint8Array>> {
+  const useMultipart = Boolean(message.files?.length);
 
-  const formattedMessages = messages.map((msg) => {
-    if (msg.role === 'assistant' && !msg.stop_reason) {
-      return { ...msg, stop_reason: 'stop' };
-    }
-    return msg;
+  const networkChatRequest = JSON.stringify({
+    messages: [
+      {
+        role: 'user',
+        content: message.message,
+      },
+    ],
+    model_id: 'llama3.2:latest',
   });
 
-  return fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ messages: formattedMessages, model_id }),
-  })
-    .then((response) => {
-      if (!response.ok) {
-        return response.text().then((msg) => {
-          throw new Error(msg || 'Failed to fetch chat completion');
-        });
-      }
-      return response.text();
-    })
-    .catch((error) => {
-      throw new Error(error.message || 'Chat completion error');
-    });
-};
+  let fetchRequest: RequestInit;
+  if (useMultipart && message.files) {
+    fetchRequest = buildMultipartRequestInit(networkChatRequest, message.files);
+  } else {
+    fetchRequest = buildStandardRequestInit(networkChatRequest);
+  }
+
+  fetchRequest.signal = signal;
+
+  const response = await fetch('/api/llama-stack/chat/complete', fetchRequest);
+
+  if (!response.ok) {
+    throw new Error(response.status.toString());
+  }
+
+  if (!response.body) {
+    throw new Error('No response body');
+  }
+
+  return response.body;
+}
