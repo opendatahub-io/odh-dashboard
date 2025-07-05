@@ -64,7 +64,7 @@ class ModelRegistry {
   }
 
   navigate() {
-    appChrome.findNavItem('Model registry').click();
+    appChrome.findNavItem('Model registry', 'Models').click();
     this.wait();
   }
 
@@ -176,6 +176,12 @@ class ModelRegistry {
     return cy.findByTestId('model-registry-selector-dropdown');
   }
 
+  findSelectModelRegistry(registryName: string) {
+    this.findModelRegistry().click();
+    cy.findByTestId(registryName).click();
+    return this;
+  }
+
   findModelVersionsTableHeaderButton(name: string) {
     return this.findModelVersionsTable().find('thead').findByRole('button', { name });
   }
@@ -204,8 +210,20 @@ class ModelRegistry {
     return cy.findByTestId('model-versions-table-filter');
   }
 
-  findRegisterModelButton() {
-    return cy.findByRole('button', { name: 'Register model' });
+  findRegisterModelButton(timeout?: number) {
+    return cy.findByTestId('register-model-button', { timeout });
+  }
+
+  findEmptyRegisterModelButton(timeout?: number) {
+    return cy.findByTestId('empty-model-registry-primary-action', { timeout });
+  }
+
+  findModelVersionsTab() {
+    return cy.findByTestId('model-versions-tab');
+  }
+
+  findRegisterNewVersionButton() {
+    return cy.findByRole('button', { name: 'Register new version' });
   }
 
   // Empty state selectors for admin users
