@@ -11,6 +11,7 @@ import {
 import PVSizeField from '#~/pages/projects/components/PVSizeField';
 import { MEMORY_UNITS_FOR_SELECTION } from '#~/utilities/valueUnits';
 
+const DEFAULT_MODEL_PATH = '/mnt/models/cache';
 // new type for PVC mode
 type PVCMode = 'create-new' | 'use-existing';
 
@@ -113,7 +114,7 @@ const NIMPVCSizeSection: React.FC<NIMPVCSizeSectionProps> = ({
                   id="model-path"
                   value={modelPath}
                   onChange={(_event, value) => setModelPath(value)}
-                  placeholder="/mnt/models/cache"
+                  placeholder={DEFAULT_MODEL_PATH}
                 />
               </FormGroup>
               <HelperText>

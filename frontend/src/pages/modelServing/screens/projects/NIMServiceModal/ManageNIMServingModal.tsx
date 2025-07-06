@@ -70,6 +70,7 @@ import { NoAuthAlert } from './NoAuthAlert';
 
 const NIM_SECRET_NAME = 'nvidia-nim-secrets';
 const NIM_NGC_SECRET_NAME = 'ngc-secret';
+const DEFAULT_MODEL_PATH = '/mnt/models/cache';
 
 const accessReviewResource: AccessReviewResourceAttributes = {
   group: 'rbac.authorization.k8s.io',
@@ -166,7 +167,7 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
   );
   const [pvcMode, setPvcMode] = React.useState<PVCMode>('create-new');
   const [existingPvcName, setExistingPvcName] = React.useState<string>('');
-  const [modelPath, setModelPath] = React.useState<string>('/mnt/models/cache');
+  const [modelPath, setModelPath] = React.useState<string>(DEFAULT_MODEL_PATH);
 
   React.useEffect(() => {
     if (pvc?.spec.storageClassName) {
@@ -265,7 +266,7 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
     setAlertVisible(true);
     setPvcMode('create-new');
     setExistingPvcName('');
-    setModelPath('/mnt/models/cache');
+    setModelPath(DEFAULT_MODEL_PATH);
   };
 
   const setErrorModal = (e: Error) => {
