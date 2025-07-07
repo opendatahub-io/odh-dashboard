@@ -90,7 +90,8 @@ const TrainingHardwareProfileFormSection: React.FC<TrainingHardwareProfileFormSe
                             project.
                           </Content>
                           <Content component={ContentVariants.li}>
-                            <b>Global-scoped hardware profiles</b> are accessible within all projects.
+                            <b>Global-scoped hardware profiles</b> are accessible within all
+                            projects.
                           </Content>
                         </Content>
                       </Content>
