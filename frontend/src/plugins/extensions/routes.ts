@@ -251,9 +251,9 @@ const extensions: RouteExtension[] = [
   },
   {
     type: 'app.route',
-    // flags: {
-    //   required: [SupportedArea.FEATURE_STORE],
-    // },
+    flags: {
+      required: [SupportedArea.FEATURE_STORE],
+    },
     properties: {
       path: '/featureStore/*',
       component: () => import('#~/pages/featureStore/FeatureStoreRoutes'),

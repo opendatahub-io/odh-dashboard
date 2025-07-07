@@ -108,9 +108,9 @@ const extensions: NavExtension[] = [
   },
   {
     type: 'app.navigation/section',
-    // flags: {
-    //   required: [SupportedArea.FEATURE_STORE],
-    // },
+    flags: {
+      required: [SupportedArea.FEATURE_STORE],
+    },
     properties: {
       id: 'feature-store',
       title: 'Feature Store',
@@ -118,9 +118,9 @@ const extensions: NavExtension[] = [
   },
   {
     type: 'app.navigation/href',
-    // flags: {
-    //   required: [SupportedArea.FEATURE_STORE],
-    // },
+    flags: {
+      required: [SupportedArea.FEATURE_STORE],
+    },
     properties: {
       id: 'overview',
       title: 'Overview',
@@ -131,9 +131,9 @@ const extensions: NavExtension[] = [
   },
   {
     type: 'app.navigation/href',
-    // flags: {
-    //   required: [SupportedArea.FEATURE_STORE],
-    // },
+    flags: {
+      required: [SupportedArea.FEATURE_STORE],
+    },
     properties: {
       id: 'entities',
       title: 'Entities',
@@ -144,9 +144,9 @@ const extensions: NavExtension[] = [
   },
   {
     type: 'app.navigation/href',
-    // flags: {
-    //   required: [SupportedArea.FEATURE_STORE],
-    // },
+    flags: {
+      required: [SupportedArea.FEATURE_STORE],
+    },
     properties: {
       id: 'data-sources',
       title: 'Data Sources',
@@ -157,9 +157,9 @@ const extensions: NavExtension[] = [
   },
   {
     type: 'app.navigation/href',
-    // flags: {
-    //   required: [SupportedArea.FEATURE_STORE],
-    // },
+    flags: {
+      required: [SupportedArea.FEATURE_STORE],
+    },
     properties: {
       id: 'data-sets',
       title: 'Data Sets',
@@ -170,9 +170,9 @@ const extensions: NavExtension[] = [
   },
   {
     type: 'app.navigation/href',
-    // flags: {
-    //   required: [SupportedArea.FEATURE_STORE],
-    // },
+    flags: {
+      required: [SupportedArea.FEATURE_STORE],
+    },
     properties: {
       id: 'features',
       title: 'Features',
@@ -183,9 +183,9 @@ const extensions: NavExtension[] = [
   },
   {
     type: 'app.navigation/href',
-    // flags: {
-    //   required: [SupportedArea.FEATURE_STORE],
-    // },
+    flags: {
+      required: [SupportedArea.FEATURE_STORE],
+    },
     properties: {
       id: 'feature-views',
       title: 'Feature Views',
@@ -196,9 +196,9 @@ const extensions: NavExtension[] = [
   },
   {
     type: 'app.navigation/href',
-    // flags: {
-    //   required: [SupportedArea.FEATURE_STORE],
-    // },
+    flags: {
+      required: [SupportedArea.FEATURE_STORE],
+    },
     properties: {
       id: 'feature-services',
       title: 'Feature Services',
