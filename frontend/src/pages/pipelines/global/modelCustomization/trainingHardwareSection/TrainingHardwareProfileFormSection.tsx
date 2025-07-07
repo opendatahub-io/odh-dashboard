@@ -7,8 +7,6 @@ import {
   Popover,
   Content,
   ContentVariants,
-  ListItem,
-  List,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { HardwareProfileFeatureVisibility, HardwareProfileKind } from '#~/k8sTypes';
