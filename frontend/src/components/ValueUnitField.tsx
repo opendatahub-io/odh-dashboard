@@ -57,7 +57,7 @@ const ValueUnitField: React.FC<ValueUnitFieldProps> = ({
         <NumberInputWrapper
           min={minAsNumber}
           max={maxAsNumber}
-          value={Number(currentValue)}
+          value={currentValue ?? ''}
           validated={validated}
           onBlur={
             onBlur &&

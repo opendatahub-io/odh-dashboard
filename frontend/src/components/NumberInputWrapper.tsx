@@ -25,6 +25,7 @@ const NumberInputWrapper: React.FC<NumberInputWrapperProps> = ({
   <NumberInput
     className={fullWidth ? 'odh-number-input-wrapper m-full-width' : undefined}
     inputProps={{ placeholder: '' }}
+    inputName="value-unit-input"
     {...otherProps}
     min={min}
     max={max}

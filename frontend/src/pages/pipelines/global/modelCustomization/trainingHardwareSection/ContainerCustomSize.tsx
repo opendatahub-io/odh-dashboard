@@ -28,7 +28,7 @@ export const ContainerCustomSize: React.FC<ContainerCustomSizeProps> = ({ resour
 
   const renderField = (identifier: string, renderType: 'requests' | 'limits') => {
     const value = resources[renderType]?.[identifier];
-    const onChange = (v: string) =>
+    const onChange = (v: string | undefined) =>
       setSize({
         ...resources,
         [renderType]: {
