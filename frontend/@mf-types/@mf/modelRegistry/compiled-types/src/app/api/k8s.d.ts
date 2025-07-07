@@ -1,0 +1,10 @@
+import { APIOptions, Namespace, UserSettings, ModelRegistryKind } from 'mod-arch-shared';
+import { ModelRegistry } from '~/app/types';
+export declare const getListModelRegistries: (hostPath: string, queryParams?: Record<string, unknown>) => (opts: APIOptions) => Promise<ModelRegistry[]>;
+export declare const getUser: (hostPath: string) => (opts: APIOptions) => Promise<UserSettings>;
+export declare const getNamespaces: (hostPath: string) => (opts: APIOptions) => Promise<Namespace[]>;
+export declare const getModelRegistrySettings: (hostPath: string, queryParams?: Record<string, unknown>) => (opts: APIOptions, modelRegistryId: string) => Promise<ModelRegistryKind>;
+export declare const listModelRegistrySettings: (hostPath: string, queryParams?: Record<string, unknown>) => (opts: APIOptions) => Promise<ModelRegistryKind[]>;
+export declare const createModelRegistrySettings: (hostPath: string, queryParams?: Record<string, unknown>) => (opts: APIOptions, data: ModelRegistryKind) => Promise<ModelRegistryKind[]>;
+export declare const deleteModelRegistrySettings: (hostPath: string, queryParams?: Record<string, unknown>) => (opts: APIOptions, data: ModelRegistryKind, modelRegistryId: string) => Promise<ModelRegistryKind[]>;
+export declare const patchModelRegistrySettings: (hostPath: string, queryParams?: Record<string, unknown>) => (opts: APIOptions, data: ModelRegistryKind, modelRegistryId: string) => Promise<ModelRegistryKind[]>;

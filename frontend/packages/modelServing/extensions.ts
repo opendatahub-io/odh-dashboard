@@ -8,6 +8,10 @@ import type {
 // Allow this import as it consists of types and enums only.
 // eslint-disable-next-line no-restricted-syntax
 import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
+import type {
+  ModelRegistryDeployButtonExtension,
+  ModelRegistryRowActionColumnExtension,
+} from '@mf/modelRegistry/extension-points';
 
 const PLUGIN_MODEL_SERVING = 'plugin-model-serving';
 
@@ -17,6 +21,8 @@ const extensions: (
   | HrefNavItemExtension
   | RouteExtension
   | OverviewSectionExtension
+  | ModelRegistryDeployButtonExtension
+  | ModelRegistryRowActionColumnExtension
 )[] = [
   {
     type: 'app.area',
@@ -69,6 +75,20 @@ const extensions: (
     },
     flags: {
       required: [PLUGIN_MODEL_SERVING],
+    },
+  },
+  {
+    type: 'model-registry.model-version/deploy-button',
+    properties: {
+      component: () =>
+        import('./src/components/deploy/DeployButton').then((m) => m.ModelVersionDeployButton),
+    },
+  },
+  {
+    type: 'model-registry.model-version/row-action-column',
+    properties: {
+      component: () =>
+        import('./src/components/deploy/DeployButton').then((m) => m.ModelVersionRowActionColumn),
     },
   },
 ];

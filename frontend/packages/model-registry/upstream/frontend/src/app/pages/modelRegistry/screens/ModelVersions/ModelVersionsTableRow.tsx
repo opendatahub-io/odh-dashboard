@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { ActionsColumn, IAction, Td, Tr } from '@patternfly/react-table';
+import { IAction, Td, Tr } from '@patternfly/react-table';
 import { Content, ContentVariants, Truncate, FlexItem } from '@patternfly/react-core';
 import { Link, useNavigate } from 'react-router-dom';
 import { ModelState, ModelVersion } from '~/app/types';
@@ -14,6 +14,8 @@ import ModelTimestamp from '~/app/pages/modelRegistry/screens/components/ModelTi
 import ModelLabels from '~/app/pages/modelRegistry/screens/components/ModelLabels';
 import { ArchiveModelVersionModal } from '~/app/pages/modelRegistry/screens/components/ArchiveModelVersionModal';
 import { RestoreModelVersionModal } from '~/app/pages/modelRegistry/screens/components/RestoreModelVersionModal';
+import { LazyCodeRefComponent, useExtensions } from '@odh-dashboard/plugin-core';
+import { isModelRegistryRowActionColumnExtension } from '~/odh/extension-points';
 
 type ModelVersionsTableRowProps = {
   modelVersion: ModelVersion;
@@ -36,6 +38,8 @@ const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
 
   const [isArchiveModalOpen, setIsArchiveModalOpen] = React.useState(false);
   const [isRestoreModalOpen, setIsRestoreModalOpen] = React.useState(false);
+
+  const actionColumnExtensions = useExtensions(isModelRegistryRowActionColumnExtension);
 
   if (!preferredModelRegistry) {
     return null;
@@ -101,7 +105,15 @@ const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
       </Td>
       {!isArchiveModel && (
         <Td isActionCell>
-          <ActionsColumn items={actions} />
+          {actionColumnExtensions.map((ext) => (
+            <LazyCodeRefComponent
+              component={ext.properties.component}
+              props={{
+                modelVersion: mv,
+                actions,
+              }}
+            />
+          ))}
           {isArchiveModalOpen ? (
             <ArchiveModelVersionModal
               onCancel={() => setIsArchiveModalOpen(false)}

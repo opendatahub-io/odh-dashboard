@@ -1,3 +1,8 @@
 {
-  "extends": "@odh-dashboard/tsconfig/tsconfig.json"
+  "extends": "@odh-dashboard/tsconfig/tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "@mf/*": ["../../../@mf-types/@mf/*"]
+    }
+  }
 }
