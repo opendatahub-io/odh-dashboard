@@ -70,9 +70,9 @@ const ServingRuntimeSizeSection = ({
       const desc =
         name !== 'Custom'
           ? `Limits: ${size.resources.limits?.cpu || '??'} CPU, ` +
-            `${formatMemory(size.resources.limits?.memory) || '??'} Memory ` +
-            `Requests: ${size.resources.requests?.cpu || '??'} CPU, ` +
-            `${formatMemory(size.resources.requests?.memory) || '??'} Memory`
+          `${formatMemory(size.resources.limits?.memory) || '??'} Memory ` +
+          `Requests: ${size.resources.requests?.cpu || '??'} CPU, ` +
+          `${formatMemory(size.resources.requests?.memory) || '??'} Memory`
           : '';
       return { key: name, label: name, description: desc };
     });

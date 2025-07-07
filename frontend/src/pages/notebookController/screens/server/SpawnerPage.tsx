@@ -261,9 +261,8 @@ const SpawnerPage: React.FC = () => {
         tolerations: podSpecOptionsState.podSpecOptions.tolerations,
         nodeSelector: podSpecOptionsState.podSpecOptions.nodeSelector,
       }),
-      lastSelectedImage: `${selectedImageTag.image?.name ?? ''}:${
-        selectedImageTag.tag?.name ?? ''
-      }`,
+      lastSelectedImage: `${selectedImageTag.image?.name ?? ''}:${selectedImageTag.tag?.name ?? ''
+        }`,
     });
   };
 
@@ -362,6 +361,7 @@ const SpawnerPage: React.FC = () => {
                 />
                 <AcceleratorProfileSelectField
                   initialState={podSpecOptionsState.acceleratorProfile.initialState}
+                  acceleratorProfilesLoaded={podSpecOptionsState.acceleratorProfile.loaded}
                   formData={podSpecOptionsState.acceleratorProfile.formData}
                   setFormData={podSpecOptionsState.acceleratorProfile.setFormData}
                 />
