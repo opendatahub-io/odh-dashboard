@@ -136,7 +136,7 @@ describe('Workbench Hardware Profiles', () => {
     );
   });
 
-  it('should display and select project-scoped hardware and global hardware profiles while creating a workbench', () => {
+  it('should display and select project-scoped hardware and global-scoped hardware profiles while creating a workbench', () => {
     initIntercepts({ disableHardwareProfiles: false, disableProjectScoped: false });
 
     cy.interceptK8sList(
@@ -166,10 +166,10 @@ describe('Workbench Hardware Profiles', () => {
 
     // Verify both groups are initially visible
     cy.contains('Project-scoped hardware profiles').should('be.visible');
-    cy.contains('Global hardware profiles').scrollIntoView();
-    cy.contains('Global hardware profiles').should('be.visible');
+    cy.contains('Global-scoped hardware profiles').scrollIntoView();
+    cy.contains('Global-scoped hardware profiles').should('be.visible');
 
-    // Search for a value that exists in Project-scoped hardware profiles but not in Global hardware profiles
+    // Search for a value that exists in Project-scoped hardware profiles but not in Global-scoped hardware profiles
     hardwareProfileSection
       .findHardwareProfileSearchInput()
       .should('be.visible')
@@ -179,7 +179,7 @@ describe('Workbench Hardware Profiles', () => {
     cy.contains('Large Profile-1').should('be.visible');
     hardwareProfileSection.getGlobalHardwareProfileLabel().should('not.exist');
 
-    //Search for a value that doesn't exist in either Global hardware profiles or Project-scoped hardware profiles
+    //Search for a value that doesn't exist in either Global-scoped hardware profiles or Project-scoped hardware profiles
     hardwareProfileSection
       .findHardwareProfileSearchInput()
       .should('be.visible')
