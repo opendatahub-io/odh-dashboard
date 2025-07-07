@@ -1,0 +1,64 @@
+apiVersion: v1
+kind: List
+items:
+# 1. Authorino Operator Subscription
+- apiVersion: operators.coreos.com/v1alpha1
+  kind: Subscription
+  metadata:
+    name: authorino-operator
+    namespace: openshift-operators
+  spec:
+    channel: "stable"
+    name: "authorino-operator"
+    source: "community-operators"
+    sourceNamespace: "openshift-marketplace"
+    installPlanApproval: "Automatic"
+
+# 2. Open Data Hub Operator Subscription
+- apiVersion: operators.coreos.com/v1alpha1
+  kind: Subscription
+  metadata:
+    name: opendatahub-operator
+    namespace: openshift-operators
+  spec:
+    channel: "fast"
+    name: "opendatahub-operator"
+    source: "community-operators"
+    sourceNamespace: "openshift-marketplace"
+    installPlanApproval: "Automatic"
+
+# 3. Red Hat OpenShift Serverless Operator Subscription
+- apiVersion: v1
+  kind: Namespace
+  metadata:
+    name: openshift-serverless
+- apiVersion: operators.coreos.com/v1
+  kind: OperatorGroup
+  metadata:
+    name: serverless-operators
+    namespace: openshift-serverless
+  spec: {}
+- apiVersion: operators.coreos.com/v1alpha1
+  kind: Subscription
+  metadata:
+    name: serverless-operator
+    namespace: openshift-serverless
+  spec:
+    channel: "stable"
+    name: "serverless-operator"
+    source: "redhat-operators"
+    sourceNamespace: "openshift-marketplace"
+    installPlanApproval: "Automatic"
+
+# 4. Red Hat OpenShift Service Mesh Operator Subscription
+- apiVersion: operators.coreos.com/v1alpha1
+  kind: Subscription
+  metadata:
+    name: servicemeshoperator
+    namespace: openshift-operators
+  spec:
+    channel: "stable"
+    name: "servicemeshoperator"
+    source: "redhat-operators"
+    sourceNamespace: "openshift-marketplace"
+    installPlanApproval: "Automatic"

@@ -25,6 +25,43 @@ log_warning() {
   echo -e "${YELLOW}[WARNING]${NC} $1"
 }
 
+install_system_packages() {
+  log_info "Installing system packages..."
+  if ! dnf update -y -q; then
+    log_error "Failed to update system packages."
+    exit 1
+  fi
+  if ! dnf install -y -q \
+    wget \
+    tar \
+    curl \
+    git; then
+    log_error "Failed to install system packages."
+    exit 1
+  fi
+
+  mkdir -p /opt/yq
+  if ! wget --show-progress=off https://github.com/mikefarah/yq/releases/latest/download/yq_linux_arm64 -O /opt/yq/yq; then
+    log_error "Failed to install yq."
+    exit 1
+  fi
+
+  chmod +x /opt/yq/yq
+  ln -sf /opt/yq/yq /usr/local/bin/yq
+
+  log_success "System packages installed successfully."
+
+  if ! id -u 1001 >/dev/null 2>&1; then
+    log_warning "UID 1001 not found. Creating user with UID 1001..."
+    useradd -u 1001 -m -s /bin/bash default
+  fi
+
+  mkdir -p /app/odh-dashboard /opt/crc /opt/oc &&
+    chown -R 1001:0 /app /opt/crc /opt/oc &&
+    chmod -R g=u /app /opt/crc /opt/oc
+
+}
+
 # check if oc binary exists and copy if provided
 setup_oc_cli() {
   log_info "Setting up OpenShift CLI (oc)..."
@@ -38,6 +75,9 @@ setup_oc_cli() {
     log_info "Found oc CLI tarball at /tmp/oc-cli.tar.gz"
     tar -xzf /tmp/oc-cli.tar.gz -C /opt/oc/
     chmod +x /opt/oc/oc /opt/oc/kubectl
+
+    ln -sf /opt/oc/oc /usr/local/bin/oc
+    ln -sf /opt/oc/kubectl /usr/local/bin/kubectl
     log_success "OpenShift CLI (oc) installed successfully."
   else
     log_error "No oc CLI not found. Please provide oc-cli.targ.gz or install oc CLI manually."
@@ -116,7 +156,7 @@ login_to_cluster() {
       exit 1
     fi
 
-    if [ -z "$OC_TOKEN" ] || [ -z "$OC_USER" ] && [ -z "$OC_PASSWORD" ]; then
+    if [ -z "$OC_TOKEN" ] && { [ -z "$OC_USER" ] || [ -z "$OC_PASSWORD" ]; }; then
       log_error "OC_TOKEN or OC_USER and OC_PASSWORD environment variables are not set. Please provide authentication details."
       exit 1
     fi
@@ -149,17 +189,126 @@ login_to_cluster() {
   log_success "Logged in to OpenShift cluster successfully."
 }
 
+# verify operator installation
+# TODO: Make checking more robust
+# this can use oc wait or grep search for Succeeded condition
+verify_operator_installation() {
+  log_info "Verifying operator installation..."
+
+  # Wait for all CSVs to be in Succeeded phase
+  log_info "Waiting for ClusterServiceVersions to be ready..."
+
+  # Fallback: check CSV phases directly
+  local retries=60
+  local wait_time=10
+
+  sleep 5
+
+  while [ $retries -gt 0 ]; do
+    log_info "Checking CSV phases... (attempts remaining: $retries)"
+
+    # Check if any CSVs are in Failed state
+    if oc get csv --no-headers 2>/dev/null | grep -q "Failed\|InstallCheckFailed"; then
+      log_error "Some operators failed to install:"
+      oc get csv -A --no-headers 2>/dev/null | grep "Failed\|InstallCheckFailed"
+      exit 1
+    fi
+
+    # Count CSVs in Succeeded phase
+    local csv_count
+    local total_csv
+    csv_count=$(oc get csv --no-headers 2>/dev/null | grep -c "Succeeded" || echo "0")
+    total_csv=$(oc get csv --no-headers 2>/dev/null | wc -l || echo "0")
+
+    if [ "$csv_count" -eq "$total_csv" ] && [ "$total_csv" -gt 0 ]; then
+      log_success "All operators installed successfully ($csv_count/$total_csv)."
+      return 0
+    fi
+
+    log_info "Operators still installing... ($csv_count/$total_csv ready)"
+    sleep $wait_time
+    retries=$((retries - 1))
+  done
+
+  log_error "Operator installation verification failed after timeout."
+  log_info "Current operator status:"
+  oc get csv -A --no-headers 2>/dev/null || log_error "Unable to get CSV status"
+  exit 1
+}
+
 # install operators
 install_cluster_operators() {
   log_info "Installing OpenShift Data Hub operators..."
 
-  # Example: Install ODH operator
-  if ! oc apply -f /path/to/odh-operator.yaml; then
-    log_error "Failed to install ODH operator."
+  local debug_help="Try going to your cluster operator page, Open Data Hub, deleting the DSC, DSCI, and Auth objects, and reinstalling the DSCI, then DSC (in that order). Your cluster also might be limited in resources."
+
+  local operators=("opendatahub-operator" "authorino-operator" "serverless-operator" "servicemeshoperator")
+  local all_installed=true
+  local expected_operators=${#operators[@]}
+
+  if ! oc apply -f ./install/dev/operators.yml; then
+    log_error "Failed to install operators."
     exit 1
   fi
 
-  log_success "OpenShift Data Hub operators installed successfully."
+  # verify installations
+  verify_operator_installation "$expected_operators"
+
+  local odh_csv_name=""
+  odh_csv_name=$(oc get csv -n openshift-operators -o name | grep opendatahub-operator)
+  log_info "ODH CSV Name: $odh_csv_name"
+
+  # get default dsc and dsci files
+  if ! oc get "$odh_csv_name" \
+    -n openshift-operators \
+    -o jsonpath='{.metadata.annotations.alm-examples}' | /opt/yq/yq '.[1]' -p json -o yaml >/tmp/dsci.yml; then
+    log_error "Failed to get Data Science Cluster Initialization (DSCI) file."
+    exit 1
+  fi
+
+  if ! oc get "$odh_csv_name" \
+    -n openshift-operators \
+    -o jsonpath='{.metadata.annotations.alm-examples}' | /opt/yq/yq '.[0]' -p json -o yaml >/tmp/dsc.yml; then
+    log_error "Failed to get Data Science Cluster (DSC) file."
+    exit 1
+  fi
+
+  # apply dsci, wait, and then dsc
+  if oc get dscinitialization default-dsci >/dev/null 2>&1; then
+    log_info "Found existing Data Science Cluster Initialization (DSCI). Not applying DSCI file again."
+  else
+    log_info "Applying DSCI file..."
+    if ! oc apply -f /tmp/dsci.yml; then
+      log_error "Failed to apply Data Science Cluster Initialization (DSCI) file."
+      exit 1
+    fi
+  fi
+
+  log_info "Waiting for Data Science Cluster Initialization (DSCI) to be ready..."
+  if ! oc wait --for=jsonpath='{.status.phase}'=Ready --timeout=200s dscinitialization/default-dsci; then
+    log_error "Data Science Cluster Initialization (DSCI) did not become ready in time."
+    echo "$debug_help"
+    exit 1
+  fi
+
+  if oc get datasciencecluster default-dsc >/dev/null 2>&1; then
+    log_info "Found existing Data Science Cluster (DSC). Not applying DSC file again."
+  else
+    log_info "Applying DSC file."
+    if ! oc apply -f /tmp/dsc.yml; then
+      log_error "Failed to apply Data Science Cluster (DSC) file."
+      exit 1
+    fi
+  fi
+
+  # log_info "Waiting for Data Science Cluster (DSC) to be ready..."
+  # if ! oc wait --for=condition=Ready --timeout=600s datasciencecluster/default-dsc -n openshift-operators; then
+  #   log_error "Data Science Cluster (DSC) did not become ready in time."
+  #   echo "$debug_help"
+  #   exit 1
+  # fi
+
+  log_success "OpenShift Data Hub operators and custom resources installed successfully."
 }
 
 # set project
@@ -199,6 +348,11 @@ wait_for_cluster() {
 setup_environment() {
   log_info "Setting up ODH Dashboard environment..."
 
+  # mkdir -p /app/odh-dashboard /opt/crc /opt/oc &&
+  #   chown -R 1001:0 /app /opt/crc /opt/oc &&
+  #   chmod -R g=u /app /opt/crc /opt/oc
+  install_system_packages
+
   setup_oc_cli
 
   if [ "$OC_CLUSTER_TYPE" = "crc" ]; then
@@ -217,9 +371,7 @@ setup_environment() {
 install_node_dependencies() {
   log_info "Installing Node.js dependencies..."
 
-  if [ ! -d "node_modules" ]; then
-    npm install
-  fi
+  npm install
 
   log_success "Node.js dependencies installed successfully."
 }
@@ -231,18 +383,18 @@ case "${1:-dev}" in
   ;;
 "dev")
   if ! oc cluster-info >/dev/null 2>&1; then
-    log_error "No OpenShift cluster found. running setup..."
+    log_info "No OpenShift cluster found. running setup..."
     setup_environment
   fi
 
-  log_info "Starting development environment..."
+  log_info "Starting ${NODE_ENV} environment..."
 
   install_node_dependencies
 
-  exec npm run dev
+  exec su - default -s /bin/bash -c "cd /usr/src/app && npm run dev"
   ;;
 "bash")
-  exec /bin/bash
+  exec su - default -s /bin/bash
   ;;
 *)
   "Unknown command: $1"

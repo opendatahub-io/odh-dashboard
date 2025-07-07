@@ -25,12 +25,13 @@ services:
       - "4010:4010" # Frontend dev
       - "8080:8080" # Backend dev
     volumes:
-      - .:/usr/src/app/odh-dashboard:Z
-      - node_modules_cache:/app/odh-dashboard/node_modules
-      - frontend_node_modules_cache:/app/odh-dashboard/frontend/node_modules
-      - backend_node_modules_cache:/app/odh-dashboard/backend/node_modules
+      - .:/usr/src/app:Z
+      - node_modules_cache:/app/node_modules
+      - frontend_node_modules_cache:/app/frontend/node_modules
+      - backend_node_modules_cache:/app/backend/node_modules
       - ${OC_CONFIG_DIR:-~/.kube}:/home/odh/.kube:ro,Z
       - ${CRC_CONFIG_DIR:-~/.crc}:/home/odh/.crc:Z
+      - ${OC_CLI_TARBALL:-./oc-cli.tar.gz}:/tmp/oc-cli.tar.gz:Z
       # - ./scripts/dev/entrypoint.sh:/entrypoint.sh:Z
 
     environment:
@@ -47,8 +48,9 @@ services:
       - CONTAINER_BUILDER=${CONTAINER_BUILDER:-docker}
 
     command: ["dev"]
-    entrypoint: ["/usr/src/app/odh-dashboard/install/dev/entrypoint.sh"]
-    working_dir: /usr/src/app/odh-dashboard
+    user: root
+    entrypoint: ["/usr/src/app/install/dev/entrypoint.sh"]
+    working_dir: /usr/src/app
     networks:
       - "odh-dev"
 

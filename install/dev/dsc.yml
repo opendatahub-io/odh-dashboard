@@ -1,0 +1,48 @@
+kind: DataScienceCluster
+apiVersion: datasciencecluster.opendatahub.io/v1
+metadata:
+  labels:
+    app.kubernetes.io/created-by: opendatahub-operator
+    app.kubernetes.io/instance: default
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: datasciencecluster
+    app.kubernetes.io/part-of: opendatahub-operator
+  name: default-dsc
+spec:
+  components:
+    codeflare:
+      managementState: Managed
+    dashboard:
+      managementState: Managed
+    datasciencepipelines:
+      managementState: Managed
+    feastoperator:
+      managementState: Managed
+    kserve:
+      managementState: Managed
+      nim:
+        managementState: Managed
+      rawDeploymentServiceConfig: Headed
+      serving:
+        ingressGateway:
+          certificate:
+            type: OpenshiftDefaultIngress
+        managementState: Managed
+        name: knative-serving
+    kueue:
+      managementState: Managed
+    llamastackoperator:
+      managementState: Removed
+    modelmeshserving:
+      managementState: Managed
+    modelregistry:
+      managementState: Managed
+      registriesNamespace: odh-model-registries
+    ray:
+      managementState: Managed
+    trainingoperator:
+      managementState: Managed
+    trustyai:
+      managementState: Managed
+    workbenches:
+      managementState: Managed

@@ -51,7 +51,7 @@ WORKDIR /usr/src/app/backend
 CMD ["npm", "run", "start"]
 
 LABEL io.opendatahub.component="odh-dashboard" \
-      io.k8s.display-name="odh-dashboard" \
-      name="open-data-hub/odh-dashboard-ubi8" \
-      summary="odh-dashboard" \
-      description="Open Data Hub Dashboard"
+  io.k8s.display-name="odh-dashboard" \
+  name="open-data-hub/odh-dashboard-ubi8" \
+  summary="odh-dashboard" \
+  description="Open Data Hub Dashboard"
