@@ -1,23 +1,19 @@
 import * as React from 'react';
 import {
-  Button,
   CardBody,
   CardFooter,
   CardHeader,
   Flex,
   FlexItem,
   GalleryItem,
-  Truncate,
   Content,
   ContentVariants,
 } from '@patternfly/react-core';
-import { useNavigate } from 'react-router-dom';
 import { ProjectObjectType } from '#~/concepts/design/utils';
 import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
 import InferenceServiceStatus from '#~/pages/modelServing/screens/global/InferenceServiceStatus';
 import { isModelMesh } from '#~/pages/modelServing/utils';
 import ResourceNameTooltip from '#~/components/ResourceNameTooltip';
-import useModelMetricsEnabled from '#~/pages/modelServing/useModelMetricsEnabled';
 import InferenceServiceServingRuntime from '#~/pages/modelServing/screens/global/InferenceServiceServingRuntime';
 import InferenceServiceEndpoint from '#~/pages/modelServing/screens/global/InferenceServiceEndpoint';
 import TypeBorderedCard from '#~/concepts/design/TypeBorderedCard';
@@ -33,9 +29,6 @@ const DeployedModelCard: React.FC<DeployedModelCardProps> = ({
   inferenceService,
   servingRuntime,
 }) => {
-  const [modelMetricsEnabled] = useModelMetricsEnabled();
-  const navigate = useNavigate();
-  const kserveMetricsEnabled = useIsAreaAvailable(SupportedArea.K_SERVE_METRICS).status;
   const modelMesh = isModelMesh(inferenceService);
   const modelMetricsSupported = modelMetricsEnabled && (modelMesh || kserveMetricsEnabled);
 
@@ -60,21 +53,14 @@ const DeployedModelCard: React.FC<DeployedModelCardProps> = ({
             </FlexItem>
             <FlexItem>
               <ResourceNameTooltip resource={inferenceService}>
-                {modelMetricsSupported ? (
-                  <Button
-                    variant="link"
-                    isInline
-                    onClick={() => {
-                      navigate(
-                        `/projects/${inferenceService.metadata.namespace}/metrics/model/${inferenceService.metadata.name}`,
-                      );
-                    }}
-                  >
-                    <Truncate content={inferenceServiceDisplayName} />
-                  </Button>
-                ) : (
-                  inferenceServiceDisplayName
-                )}
+                <InferenceServiceEndpoint
+                  inferenceService={inferenceService}
+                  servingRuntime={servingRuntime}
+                  isKserve={!modelMesh}
+                  modelState={modelState}
+                  renderName
+                  displayName={inferenceServiceDisplayName}
+                />
               </ResourceNameTooltip>
             </FlexItem>
           </Flex>
@@ -105,6 +91,7 @@ const DeployedModelCard: React.FC<DeployedModelCardProps> = ({
             inferenceService={inferenceService}
             servingRuntime={servingRuntime}
             isKserve={!isModelMesh(inferenceService)}
+            modelState={modelState}
           />
         </CardFooter>
       </TypeBorderedCard>

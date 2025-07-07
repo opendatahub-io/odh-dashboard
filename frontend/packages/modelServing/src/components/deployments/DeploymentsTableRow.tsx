@@ -71,10 +71,7 @@ export const DeploymentRow: React.FC<{
             deployment.model.metadata.namespace &&
             deployment.status?.state === InferenceServiceModelState.LOADED ? (
               <Link
-                data-testid={`metrics-link-${getDisplayNameFromK8sResource(deployment.model)}`}
-                to={`/projects/${encodeURIComponent(
-                  deployment.model.metadata.namespace,
-                )}/metrics/model/${encodeURIComponent(deployment.model.metadata.name)}`}
+                to={`/projects/${deployment.model.metadata.namespace}/metrics/model/${deployment.model.metadata.name}`}
               >
                 {getDisplayNameFromK8sResource(deployment.model)}
               </Link>
@@ -89,13 +86,11 @@ export const DeploymentRow: React.FC<{
           </Td>
         ))}
         <Td dataLabel="Inference endpoint">
-          {deployment.status?.state === InferenceServiceModelState.LOADED ? (
-            <DeploymentEndpointsPopupButton endpoints={deployment.endpoints} loading={false} />
+          {deployment.status?.state === InferenceServiceModelState.LOADING ||
+          deployment.status?.state === InferenceServiceModelState.PENDING ? (
+            'Pending...'
           ) : deployment.status?.state === InferenceServiceModelState.FAILED_TO_LOAD ? (
             '-'
-          ) : deployment.status?.state === InferenceServiceModelState.LOADING ||
-            deployment.status?.state === InferenceServiceModelState.PENDING ? (
-            'Pending...'
           ) : (
             <DeploymentEndpointsPopupButton endpoints={deployment.endpoints} loading={false} />
           )}
