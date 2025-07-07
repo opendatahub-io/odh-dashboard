@@ -81,8 +81,10 @@ const useNotebookPodSpecOptionsStateBase = (
       // if hardware profile is selected, use the hardware profile settings
       podSpecOptions = {
         resources: hardwareProfileConfig.formData.resources,
-        tolerations: hardwareProfileConfig.formData.selectedProfile?.spec.tolerations,
-        nodeSelector: hardwareProfileConfig.formData.selectedProfile?.spec.nodeSelector,
+        tolerations:
+          hardwareProfileConfig.formData.selectedProfile?.spec.scheduling?.node?.tolerations,
+        nodeSelector:
+          hardwareProfileConfig.formData.selectedProfile?.spec.scheduling?.node?.nodeSelector,
         ...annotationData,
       };
     }

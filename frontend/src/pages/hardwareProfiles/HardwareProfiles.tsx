@@ -28,7 +28,7 @@ import TitleWithIcon from '#~/concepts/design/TitleWithIcon';
 import useMigratedHardwareProfiles from './migration/useMigratedHardwareProfiles';
 
 const description =
-  'Hardware profiles enable administrators to create profiles for additional types of identifiers, limit workload resource allocations, and target workloads to specific nodes by including tolerations and nodeSelectors in profiles.';
+  'Manage hardware profiles for your organization. Administrators can use hardware profiles to determine resource allocation strategies for specific workloads or to explicitly define hardware configurations for users.';
 
 const HardwareProfiles: React.FC = () => {
   const { dashboardNamespace } = useDashboardNamespace();
