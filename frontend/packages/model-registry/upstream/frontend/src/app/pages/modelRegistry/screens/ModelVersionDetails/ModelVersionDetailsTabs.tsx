@@ -1,22 +1,15 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageSection, Tab, Tabs, TabTitleText } from '@patternfly/react-core';
-import {
-  FetchStateObject,
-  InferenceServiceKind,
-  ServingRuntimeKind,
-} from 'mod-arch-shared';
 import { ModelVersion } from '~/app/types';
 import { ModelVersionDetailsTabTitle, ModelVersionDetailsTab } from './const';
 import ModelVersionDetailsView from './ModelVersionDetailsView';
 import { LazyCodeRefComponent, useExtensions } from '@odh-dashboard/plugin-core';
-import { isModelRegistryDeploymentsTabExtension } from '@odh-dashboard/model-registry/extension-points';
+import { isModelRegistryDeploymentsTabExtension } from '~/odh/extension-points';
 
 type ModelVersionDetailTabsProps = {
   tab: ModelVersionDetailsTab;
   modelVersion: ModelVersion;
-  inferenceServices: FetchStateObject<InferenceServiceKind[]>;
-  servingRuntimes: FetchStateObject<ServingRuntimeKind[]>;
   isArchiveVersion?: boolean;
   refresh: () => void;
 };
@@ -24,8 +17,6 @@ type ModelVersionDetailTabsProps = {
 const ModelVersionDetailsTabs: React.FC<ModelVersionDetailTabsProps> = ({
   tab,
   modelVersion: mv,
-  inferenceServices,
-  servingRuntimes,
   isArchiveVersion,
   refresh,
 }) => {
@@ -64,8 +55,7 @@ const ModelVersionDetailsTabs: React.FC<ModelVersionDetailTabsProps> = ({
             <LazyCodeRefComponent
               component={extension.properties.component}
               props={{
-                inferenceServices,
-                servingRuntimes,
+                mv,
                 refresh,
               }}
             />

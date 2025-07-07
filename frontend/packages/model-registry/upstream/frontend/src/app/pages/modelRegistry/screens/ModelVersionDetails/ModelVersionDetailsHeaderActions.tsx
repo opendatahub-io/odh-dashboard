@@ -1,13 +1,12 @@
 import * as React from 'react';
 import {
   Dropdown,
-  DropdownList,
   MenuToggle,
-  DropdownItem,
   ButtonVariant,
   ActionList,
   ActionListGroup,
   ActionListItem,
+  DropdownList,
 } from '@patternfly/react-core';
 import { useNavigate } from 'react-router';
 import { ModelState, ModelVersion } from '~/app/types';
@@ -15,16 +14,17 @@ import { ModelRegistryContext } from '~/app/context/ModelRegistryContext';
 import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelectorContext';
 import { ArchiveModelVersionModal } from '~/app/pages/modelRegistry/screens/components/ArchiveModelVersionModal';
 import { modelVersionListUrl } from '~/app/pages/modelRegistry/screens/routeUtils';
+import { useExtensions } from '@openshift/dynamic-plugin-sdk';
+import { isArchiveModelVersionButtonExtension } from '~/odh/extension-points';
+import { LazyCodeRefComponent } from '@odh-dashboard/plugin-core';
 
 interface ModelVersionsDetailsHeaderActionsProps {
   mv: ModelVersion;
-  hasDeployment?: boolean;
   refresh: () => void;
 }
 
 const ModelVersionsDetailsHeaderActions: React.FC<ModelVersionsDetailsHeaderActionsProps> = ({
   mv,
-  hasDeployment = false,
   // TODO: [Model Serving] Uncomment when model serving is available
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   refresh,
@@ -37,6 +37,7 @@ const ModelVersionsDetailsHeaderActions: React.FC<ModelVersionsDetailsHeaderActi
   // TODO: [Model Serving] Uncomment when model serving is available
   // const [isDeployModalOpen, setIsDeployModalOpen] = React.useState(false);
   const tooltipRef = React.useRef<HTMLButtonElement>(null);
+  const extensions = useExtensions(isArchiveModelVersionButtonExtension);
 
   if (!preferredModelRegistry) {
     return null;
@@ -77,21 +78,17 @@ const ModelVersionsDetailsHeaderActions: React.FC<ModelVersionsDetailsHeaderActi
             )}
           >
             <DropdownList>
-              <DropdownItem
-                isAriaDisabled={hasDeployment}
-                id="archive-version-button"
-                aria-label="Archive model version"
-                key="archive-version-button"
-                onClick={() => setIsArchiveModalOpen(true)}
-                tooltipProps={
-                  hasDeployment
-                    ? { content: 'Deployed model versions cannot be archived' }
-                    : undefined
-                }
-                ref={tooltipRef}
-              >
-                Archive model version
-              </DropdownItem>
+              {extensions.map((extension) =>
+                <LazyCodeRefComponent
+                  key={extension.properties.id}
+                  component={extension.properties.component}
+                  props={{
+                    mv,
+                    setIsArchiveModalOpen,
+                    ref: tooltipRef,
+                  }}
+                />
+              )}
             </DropdownList>
           </Dropdown>
         </ActionListItem>

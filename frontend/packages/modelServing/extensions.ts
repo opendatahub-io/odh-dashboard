@@ -8,7 +8,10 @@ import type {
 // Allow this import as it consists of types and enums only.
 // eslint-disable-next-line no-restricted-syntax
 import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
-import type { ModelRegistryDeploymentsTabExtension } from '@odh-dashboard/model-registry/extension-points';
+import type {
+  ModelRegistryDeploymentsTabExtension,
+  ArchiveModelVersionButtonExtension,
+} from '@mf/modelRegistry/extension-points';
 
 const PLUGIN_MODEL_SERVING = 'plugin-model-serving';
 
@@ -19,6 +22,7 @@ const extensions: (
   | RouteExtension
   | OverviewSectionExtension
   | ModelRegistryDeploymentsTabExtension
+  | ArchiveModelVersionButtonExtension
 )[] = [
   {
     type: 'app.area',
@@ -44,7 +48,15 @@ const extensions: (
     properties: {
       id: 'deployments',
       title: 'Deployments',
-      component: () => import('./src/components/deployments/ModelVersionRegisteredDeploymentsView'),
+      component: () =>
+        import('./src/components/deployments/ModelVersionRegisteredDeploymentsViewWrapper'),
+    },
+  },
+  {
+    type: 'model-registry.model-version/archive-button',
+    properties: {
+      id: 'archive-button',
+      component: () => import('./src/components/archive/ArchiveButton'),
     },
   },
   {
