@@ -1,8 +1,7 @@
 import * as React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowsAltVIcon, LongArrowAltDownIcon, LongArrowAltUpIcon } from '@patternfly/react-icons';
 import { setQueryArgument } from '#~/utilities/router';
-import { useQueryParams } from '#~/utilities/useQueryParams';
 import {
   DOC_SORT_KEY,
   DOC_SORT_ORDER_KEY,
@@ -16,9 +15,9 @@ import {
 
 const LearningCenterListHeaders: React.FC = () => {
   const navigate = useNavigate();
-  const queryParams = useQueryParams();
-  const sortType = queryParams.get(DOC_SORT_KEY) || SORT_TYPE_NAME;
-  const sortOrder = queryParams.get(DOC_SORT_ORDER_KEY) || SORT_ASC;
+  const [searchParams] = useSearchParams();
+  const sortType = searchParams.get(DOC_SORT_KEY) || SORT_TYPE_NAME;
+  const sortOrder = searchParams.get(DOC_SORT_ORDER_KEY) || SORT_ASC;
 
   const onSortSelect = React.useCallback(
     (currentSortType: string, ascending: boolean) => {
