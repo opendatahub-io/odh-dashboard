@@ -261,8 +261,9 @@ const SpawnerPage: React.FC = () => {
         tolerations: podSpecOptionsState.podSpecOptions.tolerations,
         nodeSelector: podSpecOptionsState.podSpecOptions.nodeSelector,
       }),
-      lastSelectedImage: `${selectedImageTag.image?.name ?? ''}:${selectedImageTag.tag?.name ?? ''
-        }`,
+      lastSelectedImage: `${selectedImageTag.image?.name ?? ''}:${
+        selectedImageTag.tag?.name ?? ''
+      }`,
     });
   };
 
