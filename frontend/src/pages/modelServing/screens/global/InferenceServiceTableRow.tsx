@@ -1,6 +1,5 @@
 import * as React from 'react';
 import { Td } from '@patternfly/react-table';
-import { Link } from 'react-router-dom';
 import ResourceActionsColumn from '#~/components/ResourceActionsColumn';
 import ResourceNameTooltip from '#~/components/ResourceNameTooltip';
 import useModelMetricsEnabled from '#~/pages/modelServing/useModelMetricsEnabled';
@@ -55,11 +54,9 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
   const isProjectScoped = useIsAreaAvailable(SupportedArea.DS_PROJECT_SCOPED).status;
 
   const [modelMetricsEnabled] = useModelMetricsEnabled();
-  const kserveMetricsEnabled = useIsAreaAvailable(SupportedArea.K_SERVE_METRICS).status;
 
   const modelMesh = isModelMesh(inferenceService);
   const modelMeshMetricsSupported = modelMetricsEnabled && modelMesh;
-  const kserveMetricsSupported = modelMetricsEnabled && kserveMetricsEnabled && !modelMesh;
   const displayName = getDisplayNameFromK8sResource(inferenceService);
 
   const [modelPodStatus] = useModelStatus(
@@ -70,7 +67,6 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
   const modelState = getInferenceServiceModelState(inferenceService, modelPodStatus);
   const isModelStopped =
     inferenceService.metadata.annotations?.['serving.kserve.io/stop'] === 'true';
-  const isModelRunning = modelState === InferenceServiceModelState.LOADED && !isModelStopped;
 
   const modelServingStatus = getInferenceServiceStoppedStatus(inferenceService);
   const [isStarting, setIsStarting] = React.useState(false);
@@ -88,19 +84,17 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
     if (!isStarting) {
       return;
     }
-    const isServiceStopped =
-      inferenceService.metadata.annotations?.['serving.kserve.io/stop'] === 'true';
     const currentState = getInferenceServiceModelState(inferenceService);
 
     if (
-      !isServiceStopped &&
+      !isModelStopped &&
       [InferenceServiceModelState.LOADED, InferenceServiceModelState.FAILED_TO_LOAD].includes(
         currentState,
       )
     ) {
       setIsStarting(false);
     }
-  }, [isStarting, inferenceService]);
+  }, [isStarting, inferenceService, isModelStopped]);
 
   const onStop = React.useCallback(() => {
     if (dontShowModalValue) {
@@ -114,21 +108,16 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
     <>
       <Td dataLabel="Name">
         <ResourceNameTooltip resource={inferenceService}>
-          {((modelMeshMetricsSupported || kserveMetricsSupported) && isModelRunning) ||
-          isModelStopped ? (
-            <Link
-              data-testid={`metrics-link-${displayName}`}
-              to={
-                isGlobal
-                  ? `/modelServing/${inferenceService.metadata.namespace}/metrics/${inferenceService.metadata.name}`
-                  : `/projects/${inferenceService.metadata.namespace}/metrics/model/${inferenceService.metadata.name}`
-              }
-            >
-              {displayName}
-            </Link>
-          ) : (
-            displayName
-          )}
+          <InferenceServiceEndpoint
+            inferenceService={inferenceService}
+            servingRuntime={servingRuntime}
+            isKserve={!modelMesh}
+            modelState={modelState}
+            isStarting={isStarting}
+            isGlobal={isGlobal}
+            renderName
+            displayName={displayName}
+          />
         </ResourceNameTooltip>
       </Td>
 
@@ -148,25 +137,13 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
       )}
 
       <Td dataLabel="Inference endpoint">
-        {modelState === InferenceServiceModelState.LOADED || isModelStopped ? (
-          <InferenceServiceEndpoint
-            inferenceService={inferenceService}
-            servingRuntime={servingRuntime}
-            isKserve={!modelMesh}
-          />
-        ) : modelState === InferenceServiceModelState.FAILED_TO_LOAD ? (
-          '-'
-        ) : modelState === InferenceServiceModelState.LOADING ||
-          modelState === InferenceServiceModelState.PENDING ||
-          isStarting ? (
-          'Pending...'
-        ) : (
-          <InferenceServiceEndpoint
-            inferenceService={inferenceService}
-            servingRuntime={servingRuntime}
-            isKserve={!modelMesh}
-          />
-        )}
+        <InferenceServiceEndpoint
+          inferenceService={inferenceService}
+          servingRuntime={servingRuntime}
+          isKserve={!modelMesh}
+          modelState={modelState}
+          isStarting={isStarting}
+        />
       </Td>
 
       {columnNames.includes(ColumnField.ApiProtocol) && (

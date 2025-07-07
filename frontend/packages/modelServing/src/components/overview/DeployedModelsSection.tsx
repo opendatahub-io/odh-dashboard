@@ -14,12 +14,11 @@ import {
   Content,
   ContentVariants,
   CardHeader,
-  Truncate,
   EmptyState,
   EmptyStateBody,
   EmptyStateFooter,
 } from '@patternfly/react-core';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { SearchIcon } from '@patternfly/react-icons';
 import { ProjectObjectType, SectionType } from '@odh-dashboard/internal/concepts/design/utils';
 import OverviewCard from '@odh-dashboard/internal/pages/projects/screens/detail/overview/components/OverviewCard';
@@ -61,8 +60,16 @@ const DeployedModelCard: React.FC<{ deployment: Deployment }> = ({ deployment })
             </FlexItem>
             <FlexItem>
               <ResourceNameTooltip resource={deployment.model}>
-                {/* TODO: Once the Deployed Test metrics page is available, this name should link to it */}
-                <Truncate content={displayName} />
+                {deployment.model.metadata.namespace &&
+                deployment.status?.state === InferenceServiceModelState.LOADED ? (
+                  <Link
+                    to={`/projects/${deployment.model.metadata.namespace}/metrics/model/${deployment.model.metadata.name}`}
+                  >
+                    {displayName}
+                  </Link>
+                ) : (
+                  displayName
+                )}
               </ResourceNameTooltip>
             </FlexItem>
           </Flex>
@@ -90,10 +97,14 @@ const DeployedModelCard: React.FC<{ deployment: Deployment }> = ({ deployment })
           </Content>
         </CardBody>
         <CardFooter>
-          <DeploymentEndpointsPopupButton
-            endpoints={deployment.endpoints}
-            loading={deployment.status?.state === InferenceServiceModelState.LOADING}
-          />
+          {deployment.status?.state === InferenceServiceModelState.LOADING ||
+          deployment.status?.state === InferenceServiceModelState.PENDING ? (
+            'Pending...'
+          ) : deployment.status?.state === InferenceServiceModelState.FAILED_TO_LOAD ? (
+            '-'
+          ) : (
+            <DeploymentEndpointsPopupButton endpoints={deployment.endpoints} loading={false} />
+          )}
         </CardFooter>
       </TypeBorderedCard>
     </GalleryItem>
