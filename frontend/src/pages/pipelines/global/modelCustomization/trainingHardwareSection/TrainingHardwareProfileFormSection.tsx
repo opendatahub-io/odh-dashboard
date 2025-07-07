@@ -85,19 +85,17 @@ const TrainingHardwareProfileFormSection: React.FC<TrainingHardwareProfileFormSe
                   {isProjectScoped &&
                     projectScopedHardwareProfiles['1'] &&
                     projectScopedHardwareProfiles['0'].length > 0 && (
-                      <>
-                        <div style={{ marginTop: 10, marginBottom: 8 }} />
-                        <List>
-                          <ListItem>
+                      <Content>
+                        <ul>
+                          <li>
                             <b>Project-scoped hardware profiles</b> are accessible only within this
                             project.
-                          </ListItem>
-                          <ListItem>
+                          </li>
+                          <li>
                             <b>Global hardware profiles</b> are accessible within all projects.
-                          </ListItem>
-                        </List>
-                        <div style={{ marginTop: 8, marginBottom: 10 }} />
-                      </>
+                          </li>
+                        </ul>
+                      </Content>
                     )}
                   <Content component={ContentVariants.p}>
                     Hardware profiles enable administrators to create profiles for additional types
