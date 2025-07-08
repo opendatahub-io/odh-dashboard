@@ -127,6 +127,16 @@ describe('assembleServingRuntime', () => {
           'nvidia.com/gpu': 1,
         },
       },
+      tolerations: [
+        {
+          key: 'nvidia.com/gpu',
+          operator: TolerationOperator.EXISTS,
+          effect: TolerationEffect.NO_SCHEDULE,
+        },
+      ],
+      selectedHardwareProfile: mockHardwareProfile({
+        annotations: { 'opendatahub.io/is-legacy-profile': 'true' },
+      }),
     });
     const servingRuntime = assembleServingRuntime(
       mockServingRuntimeModalData({

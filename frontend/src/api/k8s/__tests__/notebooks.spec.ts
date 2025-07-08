@@ -648,29 +648,45 @@ describe('stopNotebook', () => {
     });
   });
 });
-describe('updateNotebook', () => {
+describe('mergePatchUpdateNotebook', () => {
   it('should update a notebook', async () => {
     const existingNotebook = mockNotebookK8sResource({ uid });
     const notebook = assembleNotebook(
       mockStartNotebookData({ notebookId: existingNotebook.metadata.name }),
       username,
     );
-
+    const oldNodeSelectorToRemove: Record<string, string | null> = {};
+    for (const key of Object.keys(existingNotebook.spec.template.spec.nodeSelector || {})) {
+      oldNodeSelectorToRemove[key] = null;
+    }
     k8sMergePatchResourceMock.mockResolvedValue(existingNotebook);
-
     const renderResult = await mergePatchUpdateNotebook(
       existingNotebook,
       mockStartNotebookData({ notebookId: existingNotebook.metadata.name }),
       username,
     );
-
     expect(k8sMergePatchResourceMock).toHaveBeenCalledWith({
       fetchOptions: {
         requestInit: {},
       },
       model: NotebookModel,
       queryOptions: { queryParams: {} },
-      resource: notebook,
+      resource: {
+        ...notebook,
+        spec: {
+          ...notebook.spec,
+          template: {
+            ...notebook.spec.template,
+            spec: {
+              ...notebook.spec.template.spec,
+              nodeSelector: {
+                ...oldNodeSelectorToRemove,
+                ...notebook.spec.template.spec.nodeSelector,
+              },
+            },
+          },
+        },
+      },
     });
     expect(k8sMergePatchResourceMock).toHaveBeenCalledTimes(1);
     expect(renderResult).toStrictEqual(existingNotebook);
@@ -681,7 +697,10 @@ describe('updateNotebook', () => {
       mockStartNotebookData({ notebookId: existingNotebook.metadata.name }),
       username,
     );
-
+    const oldNodeSelectorToRemove: Record<string, string | null> = {};
+    for (const key of Object.keys(existingNotebook.spec.template.spec.nodeSelector || {})) {
+      oldNodeSelectorToRemove[key] = null;
+    }
     k8sMergePatchResourceMock.mockRejectedValue(new Error('error1'));
     await expect(
       mergePatchUpdateNotebook(
@@ -697,7 +716,22 @@ describe('updateNotebook', () => {
       },
       model: NotebookModel,
       queryOptions: { queryParams: {} },
-      resource: notebook,
+      resource: {
+        ...notebook,
+        spec: {
+          ...notebook.spec,
+          template: {
+            ...notebook.spec.template,
+            spec: {
+              ...notebook.spec.template.spec,
+              nodeSelector: {
+                ...oldNodeSelectorToRemove,
+                ...notebook.spec.template.spec.nodeSelector,
+              },
+            },
+          },
+        },
+      },
     });
   });
 });
