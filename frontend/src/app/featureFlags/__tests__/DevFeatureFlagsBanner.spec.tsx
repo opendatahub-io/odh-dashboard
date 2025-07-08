@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { act } from 'react';
-import { render, RenderOptions} from '@testing-library/react';
+import { render, RenderOptions } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { PluginStoreProvider } from '@openshift/dynamic-plugin-sdk';
 import { PluginStore } from '@odh-dashboard/plugin-core';
