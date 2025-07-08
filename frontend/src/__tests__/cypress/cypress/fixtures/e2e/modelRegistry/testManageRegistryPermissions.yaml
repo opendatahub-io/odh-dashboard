@@ -1,0 +1,4 @@
+# Test data for model registry permissions management tests
+registryNamePrefix: "test-mr-permissions-registry"
+testProjectNamePrefix: "test-mr-permissions-project"
+rhodsUsersGroup: "rhods-users" 

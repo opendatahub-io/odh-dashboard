@@ -315,6 +315,12 @@ export type RegisterModelTestData = {
   newDescription: string;
 };
 
+export type ManageRegistryPermissionsTestData = {
+  registryNamePrefix: string;
+  testProjectNamePrefix: string;
+  rhodsUsersGroup: string;
+};
+
 export enum AccessMode {
   RWO = 'ReadWriteOnce',
   RWX = 'ReadWriteMany',
