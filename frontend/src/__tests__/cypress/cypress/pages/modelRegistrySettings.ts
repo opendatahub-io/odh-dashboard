@@ -115,6 +115,10 @@ class ModelRegistrySettings {
     return this.findTable().findByText(registryName).closest('tr');
   }
 
+  managePermissions(registryName: string) {
+    this.findModelRegistryRow(registryName).findByText('Manage permissions').click();
+  }
+
   findDatabaseDetail(testId: DatabaseDetailsTestId) {
     return cy.findByTestId(testId);
   }
