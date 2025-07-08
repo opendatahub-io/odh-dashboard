@@ -27,7 +27,7 @@ const ProjectCell: React.FC<{ deployment: Deployment; projects: ProjectKind[] }>
   const platform = platformLabel.find((p) => p.properties.id === deployment.modelServingPlatformId);
   return (
     <>
-      {namespaceToProjectDisplayName(deployment.model.metadata.namespace, projects)}
+      {namespaceToProjectDisplayName(deployment.model.metadata.namespace, projects)}{' '}
       {platform && (
         <Label data-testid="serving-platform-label" isCompact>
           {platform.properties.enableCardText.enabledText}
