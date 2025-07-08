@@ -64,6 +64,8 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
   const modelServingStatus = getInferenceServiceStoppedStatus(inferenceService);
   const [isStarting, setIsStarting] = React.useState(false);
 
+  const isNewlyDeployed = !inferenceService.status?.modelStatus?.states?.activeModelState;
+
   const onStart = React.useCallback(() => {
     setIsStarting(true);
     patchInferenceServiceStoppedStatus(inferenceService, 'false')
@@ -153,7 +155,7 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
         <InferenceServiceStatus
           inferenceService={inferenceService}
           isKserve={!modelMesh}
-          isStarting={isStarting}
+          isStarting={isStarting || isNewlyDeployed}
         />
       </Td>
       <Td>
