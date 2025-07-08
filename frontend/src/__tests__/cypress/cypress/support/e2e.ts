@@ -313,6 +313,8 @@ beforeEach(function beforeEachHook(this: Mocha.Context) {
   if (Cypress.env('MOCK')) {
     // Fallback: return 404 for all API requests.
     cy.intercept({ pathname: '/api/**' }, { statusCode: 404 });
+    // Return 404 for all module federation requests.
+    cy.intercept({ pathname: '/_mf/**' }, { statusCode: 404 });
     // Default intercepts.
     cy.interceptOdh('GET /api/dsc/status', mockDscStatus({}));
     asProjectAdminUser();
