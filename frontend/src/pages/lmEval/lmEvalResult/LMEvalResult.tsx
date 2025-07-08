@@ -25,7 +25,7 @@ const LMEvalResult: React.FC = () => {
   const breadcrumb = React.useMemo(
     () => (
       <Breadcrumb>
-        <BreadcrumbItem render={() => <Link to="/modelEvaluations">Model evaluations</Link>} />
+        <BreadcrumbItem render={() => <Link to="/modelEvaluations">Model evaluation runs</Link>} />
         <BreadcrumbItem isActive>{evaluation?.metadata.name || evaluationName}</BreadcrumbItem>
       </Breadcrumb>
     ),

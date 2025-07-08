@@ -5,18 +5,17 @@ import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analytic
 import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
 import { DeploymentRow } from './DeploymentsTableRow';
 import { deploymentNameSort } from '../../concepts/deploymentUtils';
-import { useResolvedPlatformExtension } from '../../concepts/extensionUtils';
-import { ModelServingPlatform } from '../../concepts/useProjectServingPlatform';
-import { Deployment, isModelServingDeploymentsTableExtension } from '../../../extension-points';
+import { Deployment, type DeploymentsTableColumn } from '../../../extension-points';
 import DeleteModelServingModal from '../deleteModal/DeleteModelServingModal';
+
+const expandedInfoColumn: SortableData<Deployment> = {
+  field: 'expand',
+  label: '',
+  sortable: false,
+};
 
 const genericColumns: SortableData<Deployment>[] = [
   // Platform can enable expanded view of the deployment
-  // {
-  //   field: 'expand',
-  //   label: '',
-  //   sortable: false,
-  // },
   {
     label: 'Model deployment name',
     field: 'name',
@@ -45,27 +44,38 @@ const genericColumns: SortableData<Deployment>[] = [
   },
 ];
 
-const DeploymentsTable: React.FC<{
-  modelServingPlatform: ModelServingPlatform;
-  deployments: Deployment[] | undefined;
-}> = ({ modelServingPlatform, deployments }) => {
-  const [tableExtension, tableExtensionLoaded] = useResolvedPlatformExtension(
-    isModelServingDeploymentsTableExtension,
-    modelServingPlatform,
-  );
+type DeploymentsTableProps = {
+  deployments: Deployment[];
+  showExpandedInfo?: boolean;
+  platformColumns?: DeploymentsTableColumn<Deployment>[];
+  loaded: boolean;
+} & Partial<
+  Pick<
+    React.ComponentProps<typeof Table>,
+    'enablePagination' | 'toolbarContent' | 'onClearFilters' | 'emptyTableView'
+  >
+>;
 
+const DeploymentsTable: React.FC<DeploymentsTableProps> = ({
+  deployments,
+  showExpandedInfo,
+  platformColumns,
+  loaded = true,
+  ...tableProps
+}) => {
   const [deleteDeployment, setDeleteDeployment] = React.useState<Deployment | undefined>(undefined);
 
-  const platformColumns = React.useMemo(
-    () => tableExtension?.properties.columns() ?? [],
-    [tableExtension],
-  );
   const allColumns: SortableData<Deployment>[] = React.useMemo(
-    () => [genericColumns[0], ...platformColumns, ...genericColumns.slice(1)],
-    [platformColumns],
+    () => [
+      ...(showExpandedInfo ? [expandedInfoColumn] : []),
+      genericColumns[0],
+      ...(platformColumns ?? []),
+      ...genericColumns.slice(1),
+    ],
+    [platformColumns, showExpandedInfo],
   );
 
-  if (!tableExtensionLoaded) {
+  if (!loaded) {
     return (
       <Bullseye>
         <Spinner />
@@ -76,21 +86,25 @@ const DeploymentsTable: React.FC<{
   return (
     <>
       <Table
+        data-testid="inference-service-table" // legacy testid
         columns={allColumns}
-        data={deployments ?? []}
-        rowRenderer={(row: Deployment) => (
+        data={deployments}
+        disableRowRenderSupport
+        rowRenderer={(row: Deployment, rowIndex: number) => (
           <DeploymentRow
             key={row.model.metadata.name}
             deployment={row}
-            platformColumns={platformColumns}
+            platformColumns={platformColumns ?? []}
             onDelete={() => setDeleteDeployment(row)}
+            rowIndex={rowIndex}
+            showExpandedInfo={showExpandedInfo}
           />
         )}
+        {...tableProps}
       />
       {deleteDeployment && (
         <DeleteModelServingModal
           deployment={deleteDeployment}
-          servingPlatform={modelServingPlatform}
           onClose={(deleted: boolean) => {
             fireFormTrackingEvent('Model Deleted', {
               outcome: deleted ? TrackingOutcome.submit : TrackingOutcome.cancel,

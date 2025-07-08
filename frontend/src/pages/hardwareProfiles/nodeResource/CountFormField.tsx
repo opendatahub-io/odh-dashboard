@@ -36,7 +36,7 @@ const CountFormField: React.FC<CountFormFieldProps> = ({
         return (
           <CPUField
             validated={validated}
-            onChange={(value) => setSize(value)}
+            onChange={(value) => setSize(value ?? '1')}
             value={size}
             min={0}
           />
@@ -45,7 +45,7 @@ const CountFormField: React.FC<CountFormFieldProps> = ({
         return (
           <MemoryField
             validated={validated}
-            onChange={(value) => setSize(value)}
+            onChange={(value) => setSize(value ?? '1Gi')}
             value={size}
             min={0}
           />

@@ -44,6 +44,7 @@ import {
   ModelServingState,
 } from '#~/pages/modelServing/screens/types';
 import { ModelServingPodSpecOptionsState } from '#~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
+import { ServingRuntimeVersionStatusLabel } from './screens/const';
 
 type TokenNames = {
   serviceAccountName: string;
@@ -379,4 +380,16 @@ export const getInferenceServiceStoppedStatus = (
     isStopping: false,
     isStarting: false,
   };
+};
+
+export const getServingRuntimeVersionStatus = (
+  servingRuntimeVersion: string | undefined,
+  templateVersion: string | undefined,
+): string | undefined => {
+  if (!servingRuntimeVersion || !templateVersion) {
+    return undefined;
+  }
+  return servingRuntimeVersion === templateVersion
+    ? ServingRuntimeVersionStatusLabel.LATEST
+    : ServingRuntimeVersionStatusLabel.OUTDATED;
 };

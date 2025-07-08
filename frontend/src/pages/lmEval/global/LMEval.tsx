@@ -17,23 +17,26 @@ import LMEvalLoading from './LMEvalLoading';
 import LMEvalListView from './lmEvalList/LMEvalListView';
 import EvaluateModelButton from './EvaluateModelButton';
 
-const title = 'Model evaluations';
-const description = 'Evaluate your model';
+const title = 'Model evaluation runs';
+const description =
+  'Select a project to view its model evaluation runs, or start a new evaluation run. Evaluation runs help determine a model’s performance by testing it against selected evaluation benchmarks called tasks.';
 
 const LMEval = (): React.ReactElement => {
   const navigate = useNavigate();
   const { lmEval, project, preferredProject, projects } = React.useContext(LMEvalContext);
+  const [lmEvalData, lmEvalLoaded, lmEvalLoadError] = lmEval;
 
   const emptyState = (
     <EmptyState
       headingLevel="h6"
       icon={SearchIcon}
-      titleText="No evaluations on this project"
+      titleText="No model evaluation runs"
       variant={EmptyStateVariant.lg}
       data-testid="empty-state-title"
     >
       <EmptyStateBody data-testid="empty-state-body">
-        No evaluations have been generated within this project
+        No evaluation runs have been started for models in this project. Start a new evaluation run,
+        or select a different project.
       </EmptyStateBody>
       <EmptyStateFooter>
         <EmptyStateActions>
@@ -45,12 +48,12 @@ const LMEval = (): React.ReactElement => {
 
   return (
     <ApplicationsPage
-      empty={lmEval.data.length === 0}
+      empty={lmEvalData.length === 0}
       emptyStatePage={emptyState}
       title={<TitleWithIcon title={title} objectType={ProjectObjectType.modelEvaluation} />}
       description={description}
-      loadError={lmEval.error}
-      loaded={lmEval.loaded}
+      loadError={lmEvalLoadError}
+      loaded={lmEvalLoaded}
       headerContent={
         <LMEvalProjectSelector getRedirectPath={(ns: string) => `/modelEvaluations/${ns}`} />
       }
@@ -70,7 +73,7 @@ const LMEval = (): React.ReactElement => {
         )
       }
     >
-      <LMEvalListView lmEval={lmEval.data} lmEvalRefresh={lmEval.refresh} />
+      <LMEvalListView lmEval={lmEvalData} />
     </ApplicationsPage>
   );
 };

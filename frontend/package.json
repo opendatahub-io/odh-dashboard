@@ -66,6 +66,7 @@
     "@odh-dashboard/internal": "0.0.0",
     "@odh-dashboard/kserve": "0.0.0",
     "@odh-dashboard/model-serving": "0.0.0",
+    "@odh-dashboard/model-registry": "0.0.0",
     "@odh-dashboard/plugin-core": "0.0.0",
     "@openshift/dynamic-plugin-sdk": "^5.0.1",
     "@openshift/dynamic-plugin-sdk-utils": "^5.0.1",

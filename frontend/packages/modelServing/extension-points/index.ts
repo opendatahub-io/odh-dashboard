@@ -1,5 +1,4 @@
 import type { Extension, CodeRef, ResolvedExtension } from '@openshift/dynamic-plugin-sdk';
-import type { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import type { NamespaceApplicationCase } from '@odh-dashboard/internal/pages/projects/types';
 import type { SortableData } from '@odh-dashboard/internal/components/table/types';
 import type {
@@ -8,8 +7,10 @@ import type {
   ProjectKind,
 } from '@odh-dashboard/internal/k8sTypes';
 // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/consistent-type-imports
-import { InferenceServiceModelState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import type { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
+import type { ModelServingPodSpecOptionsState } from '@odh-dashboard/internal/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
+import type { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
+import type { InferenceServiceModelState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 
 export type DeploymentStatus = {
   state: InferenceServiceModelState;
@@ -28,6 +29,7 @@ export type DeploymentEndpoint = {
 export type ServerResourceType = K8sResourceCommon & {
   metadata: {
     name: string;
+    namespace: string;
     annotations?: DisplayNameAnnotations &
       Partial<{
         'opendatahub.io/apiProtocol': string;
@@ -38,6 +40,7 @@ export type ServerResourceType = K8sResourceCommon & {
 export type ModelResourceType = K8sResourceCommon & {
   metadata: {
     name: string;
+    namespace: string;
     annotations?: DisplayNameAnnotations;
   };
 };
@@ -51,6 +54,7 @@ export type Deployment<
   server?: ServerResource;
   status?: DeploymentStatus;
   endpoints?: DeploymentEndpoint[];
+  resources?: ModelServingPodSpecOptionsState;
 };
 
 export type ModelServingPlatformExtension<D extends Deployment = Deployment> = Extension<
@@ -100,10 +104,33 @@ export const isModelServingPlatformWatchDeployments = <D extends Deployment = De
 ): extension is ModelServingPlatformWatchDeploymentsExtension<D> =>
   extension.type === 'model-serving.platform/watch-deployments';
 
+export type ModelServingDeploymentResourcesExtension<D extends Deployment = Deployment> = Extension<
+  'model-serving.deployment/resources',
+  {
+    platform: D['modelServingPlatformId'];
+    useResources: CodeRef<(deployment: D) => ModelServingPodSpecOptionsState | null>;
+  }
+>;
+export const isModelServingDeploymentResourcesExtension = <D extends Deployment = Deployment>(
+  extension: Extension,
+): extension is ModelServingDeploymentResourcesExtension<D> =>
+  extension.type === 'model-serving.deployment/resources';
+
+export type ModelServingAuthExtension<D extends Deployment = Deployment> = Extension<
+  'model-serving.auth',
+  {
+    platform: D['modelServingPlatformId'];
+    usePlatformAuthEnabled: CodeRef<(deployment?: D) => boolean>;
+  }
+>;
+export const isModelServingAuthExtension = <D extends Deployment = Deployment>(
+  extension: Extension,
+): extension is ModelServingAuthExtension<D> => extension.type === 'model-serving.auth';
+
 // Model serving deployments table extension
 
 export type DeploymentsTableColumn<D extends Deployment = Deployment> = SortableData<D> & {
-  cellRenderer: (deployment: D, column: string) => string;
+  cellRenderer: (deployment: D, column: string) => React.ReactNode;
 };
 
 export type ModelServingDeploymentsTableExtension<D extends Deployment = Deployment> = Extension<
@@ -117,6 +144,19 @@ export const isModelServingDeploymentsTableExtension = <D extends Deployment = D
   extension: Extension,
 ): extension is ModelServingDeploymentsTableExtension<D> =>
   extension.type === 'model-serving.deployments-table';
+
+export type ModelServingDeploymentsExpandedInfo<D extends Deployment = Deployment> = Extension<
+  'model-serving.deployments-table/expanded-info',
+  {
+    platform: D['modelServingPlatformId'];
+    useFramework: CodeRef<(deployment: D) => string | null>;
+    useReplicas: CodeRef<(deployment: D) => number | null>;
+  }
+>;
+export const isModelServingDeploymentsExpandedInfo = <D extends Deployment = Deployment>(
+  extension: Extension,
+): extension is ModelServingDeploymentsExpandedInfo<D> =>
+  extension.type === 'model-serving.deployments-table/expanded-info';
 
 export type ModelServingDeleteModal<D extends Deployment = Deployment> = Extension<
   'model-serving.platform/delete-modal',
@@ -132,3 +172,14 @@ export const isModelServingDeleteModal = <D extends Deployment = Deployment>(
   extension: Extension,
 ): extension is ModelServingDeleteModal<D> =>
   extension.type === 'model-serving.platform/delete-modal';
+
+export type ModelServingMetricsExtension<D extends Deployment = Deployment> = Extension<
+  'model-serving.metrics',
+  {
+    platform: D['modelServingPlatformId'];
+  }
+>;
+
+export const isModelServingMetricsExtension = <D extends Deployment = Deployment>(
+  extension: Extension,
+): extension is ModelServingMetricsExtension<D> => extension.type === 'model-serving.metrics';

@@ -26,7 +26,6 @@ import {
   SecretKind,
   ServingRuntimeKind,
 } from '#~/k8sTypes';
-import { requestsUnderLimits, resourcesArePositive } from '#~/pages/modelServing/utils';
 import useCustomServingRuntimesEnabled from '#~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
 import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
 import { ModelServingSize, ServingRuntimeEditInfo } from '#~/pages/modelServing/screens/types';
@@ -58,8 +57,10 @@ import { useModelServingPodSpecOptionsState } from '#~/concepts/hardwareProfiles
 import { useKServeDeploymentMode } from '#~/pages/modelServing/useKServeDeploymentMode';
 import StorageClassSelect from '#~/pages/projects/screens/spawner/storage/StorageClassSelect';
 import useAdminDefaultStorageClass from '#~/pages/projects/screens/spawner/storage/useAdminDefaultStorageClass';
+import useOpenshiftDefaultStorageClass from '#~/pages/projects/screens/spawner/storage/useOpenshiftDefaultStorageClass';
 import { useModelDeploymentNotification } from '#~/pages/modelServing/screens/projects/useModelDeploymentNotification';
 import { useGetStorageClassConfig } from '#~/pages/projects/screens/spawner/storage/useGetStorageClassConfig';
+import useModelServerSizeValidation from '#~/pages/modelServing/screens/projects/useModelServerSizeValidation.ts';
 import { NoAuthAlert } from './NoAuthAlert';
 
 const NIM_SECRET_NAME = 'nvidia-nim-secrets';
@@ -147,8 +148,11 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
   );
 
   const isStorageClassesAvailable = useIsAreaAvailable(SupportedArea.STORAGE_CLASSES).status;
-  const [defaultSc] = useAdminDefaultStorageClass();
-  const defaultStorageClassName = defaultSc?.metadata.name || '';
+  const odhDefaultScResult = useAdminDefaultStorageClass();
+  const openshiftDefaultSc = useOpenshiftDefaultStorageClass();
+  const odhDefaultSc = odhDefaultScResult[0];
+  const defaultSc = odhDefaultSc || openshiftDefaultSc;
+  const defaultStorageClassName = defaultSc?.metadata.name ?? '';
   const deployedStorageClassName = pvc?.spec.storageClassName || '';
   const [storageClassName, setStorageClassName] = React.useState(
     deployedStorageClassName || defaultStorageClassName,
@@ -196,11 +200,9 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
   const isDisabledServingRuntime =
     namespace === '' || actionInProgress || createDataServingRuntime.imageName === undefined;
 
-  const baseInputValueValid =
-    createDataServingRuntime.numReplicas >= 0 &&
-    podSpecOptionsState.podSpecOptions.resources &&
-    resourcesArePositive(podSpecOptionsState.podSpecOptions.resources) &&
-    requestsUnderLimits(podSpecOptionsState.podSpecOptions.resources);
+  const { isValid: isModelServerSizeValid } = useModelServerSizeValidation(podSpecOptionsState);
+
+  const baseInputValueValid = createDataServingRuntime.numReplicas >= 0 && isModelServerSizeValid;
 
   const isDisabledInferenceService =
     actionInProgress ||
@@ -325,7 +327,11 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
             description: pvc.metadata.annotations?.description || '',
             storageClassName: pvc.spec.storageClassName,
           };
-          promises.push(updatePvc(updatePvcData, pvc, namespace, { dryRun: false }));
+          promises.push(
+            updatePvc(updatePvcData, pvc, namespace, { dryRun: false }, false, {
+              'runtimes.opendatahub.io/force-redeploy': new Date().toISOString(),
+            }),
+          );
         }
         return Promise.all(promises);
       })
@@ -391,6 +397,7 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
                   setStorageClassName={setStorageClassName}
                   isRequired
                   disableStorageClassSelect={!!editInfo}
+                  showDefaultWhenNoConfig
                 />
               )}
             </StackItem>

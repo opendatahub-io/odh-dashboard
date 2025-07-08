@@ -3,7 +3,10 @@ import '@testing-library/jest-dom';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { InferenceServiceModelState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import { Deployment } from '../../../../extension-points';
+import { mockExtensions } from '../../../__tests__/mockUtils';
 import { DeploymentRow } from '../DeploymentsTableRow';
+
+jest.mock('@odh-dashboard/plugin-core');
 
 const mockDeployment = (partial: Partial<Deployment> = {}) => ({
   modelServingPlatformId: 'test-platform',
@@ -12,6 +15,7 @@ const mockDeployment = (partial: Partial<Deployment> = {}) => ({
     kind: 'TestModelKind',
     metadata: {
       name: 'test-deployment',
+      namespace: 'test-project',
     },
   },
   server: partial.server,
@@ -24,14 +28,18 @@ describe('DeploymentsTableRow', () => {
 
   beforeEach(() => {
     onDelete = jest.fn();
+    mockExtensions();
   });
 
   it('should render the basic row', async () => {
     render(
       <table>
-        <tbody>
-          <DeploymentRow deployment={mockDeployment({})} platformColumns={[]} onDelete={onDelete} />
-        </tbody>
+        <DeploymentRow
+          deployment={mockDeployment({})}
+          platformColumns={[]}
+          onDelete={onDelete}
+          rowIndex={0}
+        />
       </table>,
     );
 
@@ -56,20 +64,19 @@ describe('DeploymentsTableRow', () => {
   it('should render with platform columns', () => {
     render(
       <table>
-        <tbody>
-          <DeploymentRow
-            deployment={mockDeployment({})}
-            platformColumns={[
-              {
-                label: 'Platform',
-                field: 'platform',
-                sortable: false,
-                cellRenderer: () => 'test-data',
-              },
-            ]}
-            onDelete={onDelete}
-          />
-        </tbody>
+        <DeploymentRow
+          deployment={mockDeployment({})}
+          platformColumns={[
+            {
+              label: 'Platform',
+              field: 'platform',
+              sortable: false,
+              cellRenderer: () => 'test-data',
+            },
+          ]}
+          onDelete={onDelete}
+          rowIndex={0}
+        />
       </table>,
     );
 
@@ -79,40 +86,38 @@ describe('DeploymentsTableRow', () => {
   it('should render the row with a status', () => {
     render(
       <table>
-        <tbody>
-          <DeploymentRow
-            deployment={mockDeployment({
-              status: { state: InferenceServiceModelState.LOADED },
-            })}
-            platformColumns={[]}
-            onDelete={onDelete}
-          />
-        </tbody>
+        <DeploymentRow
+          deployment={mockDeployment({
+            status: { state: InferenceServiceModelState.LOADED },
+          })}
+          platformColumns={[]}
+          onDelete={onDelete}
+          rowIndex={0}
+        />
       </table>,
     );
 
-    expect(screen.getByText('Running')).toBeInTheDocument();
+    expect(screen.getByText('Started')).toBeInTheDocument();
   });
 
   describe('Inference endpoints', () => {
     it('should render the row with internal inference endpoint', async () => {
       render(
         <table>
-          <tbody>
-            <DeploymentRow
-              deployment={mockDeployment({
-                endpoints: [
-                  {
-                    type: 'internal',
-                    name: 'test-endpoint',
-                    url: 'https://internal-endpoint.com',
-                  },
-                ],
-              })}
-              platformColumns={[]}
-              onDelete={onDelete}
-            />
-          </tbody>
+          <DeploymentRow
+            deployment={mockDeployment({
+              endpoints: [
+                {
+                  type: 'internal',
+                  name: 'test-endpoint',
+                  url: 'https://internal-endpoint.com',
+                },
+              ],
+            })}
+            platformColumns={[]}
+            onDelete={onDelete}
+            rowIndex={0}
+          />
         </table>,
       );
 
@@ -127,21 +132,20 @@ describe('DeploymentsTableRow', () => {
     it('should render the row with external inference endpoint', async () => {
       render(
         <table>
-          <tbody>
-            <DeploymentRow
-              deployment={mockDeployment({
-                endpoints: [
-                  {
-                    type: 'external',
-                    name: 'test-endpoint',
-                    url: 'https://external-endpoint.com',
-                  },
-                ],
-              })}
-              platformColumns={[]}
-              onDelete={onDelete}
-            />
-          </tbody>
+          <DeploymentRow
+            deployment={mockDeployment({
+              endpoints: [
+                {
+                  type: 'external',
+                  name: 'test-endpoint',
+                  url: 'https://external-endpoint.com',
+                },
+              ],
+            })}
+            platformColumns={[]}
+            onDelete={onDelete}
+            rowIndex={0}
+          />
         </table>,
       );
 
@@ -156,26 +160,25 @@ describe('DeploymentsTableRow', () => {
     it('should render the row with multiple inference endpoints', async () => {
       render(
         <table>
-          <tbody>
-            <DeploymentRow
-              deployment={mockDeployment({
-                endpoints: [
-                  {
-                    type: 'internal',
-                    name: 'test-endpoint',
-                    url: 'https://internal-endpoint.com',
-                  },
-                  {
-                    type: 'external',
-                    name: 'test-endpoint',
-                    url: 'https://external-endpoint.com',
-                  },
-                ],
-              })}
-              platformColumns={[]}
-              onDelete={onDelete}
-            />
-          </tbody>
+          <DeploymentRow
+            deployment={mockDeployment({
+              endpoints: [
+                {
+                  type: 'internal',
+                  name: 'test-endpoint',
+                  url: 'https://internal-endpoint.com',
+                },
+                {
+                  type: 'external',
+                  name: 'test-endpoint',
+                  url: 'https://external-endpoint.com',
+                },
+              ],
+            })}
+            platformColumns={[]}
+            onDelete={onDelete}
+            rowIndex={0}
+          />
         </table>,
       );
 
@@ -192,24 +195,24 @@ describe('DeploymentsTableRow', () => {
   it('should render the row with an api protocol', () => {
     render(
       <table>
-        <tbody>
-          <DeploymentRow
-            deployment={mockDeployment({
-              server: {
-                apiVersion: 'v1',
-                kind: 'TestServerKind',
-                metadata: {
-                  name: 'test-server',
-                  annotations: {
-                    'opendatahub.io/apiProtocol': 'REST',
-                  },
+        <DeploymentRow
+          deployment={mockDeployment({
+            server: {
+              apiVersion: 'v1',
+              kind: 'TestServerKind',
+              metadata: {
+                name: 'test-server',
+                namespace: 'test-project',
+                annotations: {
+                  'opendatahub.io/apiProtocol': 'REST',
                 },
               },
-            })}
-            platformColumns={[]}
-            onDelete={onDelete}
-          />
-        </tbody>
+            },
+          })}
+          platformColumns={[]}
+          onDelete={onDelete}
+          rowIndex={0}
+        />
       </table>,
     );
 

@@ -39,6 +39,7 @@ import {
 import { isModelPathValid } from '#~/pages/modelServing/screens/projects/utils';
 import DashboardPopupIconButton from '#~/concepts/dashboard/DashboardPopupIconButton';
 import { AccessTypes } from '#~/pages/projects/dataConnections/const';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas/index.ts';
 import ConnectionS3FolderPathField from './ConnectionS3FolderPathField';
 import ConnectionOciPathField from './ConnectionOciPathField';
 import { ConnectionOciAlert } from './ConnectionOciAlert';
@@ -269,7 +270,7 @@ export const ConnectionSection: React.FC<Props> = ({
   );
 
   const hasImagePullSecret = React.useMemo(() => !!data.imagePullSecrets, [data.imagePullSecrets]);
-
+  const pvcServingEnabled = useIsAreaAvailable(SupportedArea.PVCSERVING).status;
   const selectedConnection = React.useMemo(
     () =>
       connections?.find(
@@ -298,6 +299,9 @@ export const ConnectionSection: React.FC<Props> = ({
 
   return (
     <>
+      {pvcServingEnabled && (
+        <Radio label="PVC Serving" name="pvc-serving-radio" id="pvc-serving-radio" />
+      )}
       {existingUriOption && !hasImagePullSecret && (
         <Radio
           id="existing-uri-radio"

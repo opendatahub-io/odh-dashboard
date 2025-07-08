@@ -31,11 +31,11 @@ import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/
 import { ModelStatusIcon } from '@odh-dashboard/internal/concepts/modelServing/ModelStatusIcon';
 import { InferenceServiceModelState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import ResourceNameTooltip from '@odh-dashboard/internal/components/ResourceNameTooltip';
+import { useExtensions } from '@odh-dashboard/plugin-core';
 import { ModelDeploymentsContext } from '../../concepts/ModelDeploymentsContext';
-import { ModelServingPlatformContext } from '../../concepts/ModelServingPlatformContext';
 import { useProjectServingPlatform } from '../../concepts/useProjectServingPlatform';
 import { DeploymentEndpointsPopupButton } from '../deployments/DeploymentEndpointsPopupButton';
-import { Deployment } from '../../../extension-points';
+import { Deployment, isModelServingPlatformExtension } from '../../../extension-points';
 
 enum FilterStates {
   success = 'success',
@@ -178,9 +178,9 @@ const DeployedModelsGallery: React.FC<DeployedModelsGalleryProps> = ({
 };
 
 const DeployedModelsSection: React.FC = () => {
+  const availablePlatforms = useExtensions(isModelServingPlatformExtension);
   const { currentProject } = React.useContext(ProjectDetailsContext);
   const { loaded: deploymentsLoaded } = React.useContext(ModelDeploymentsContext);
-  const { availablePlatforms } = React.useContext(ModelServingPlatformContext);
   const { activePlatform } = useProjectServingPlatform(currentProject, availablePlatforms);
   const [filteredState, setFilteredState] = React.useState<FilterStates | undefined>();
 
