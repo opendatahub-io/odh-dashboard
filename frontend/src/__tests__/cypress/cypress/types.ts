@@ -307,10 +307,31 @@ export type NotebookTolerationsTestData = {
 
 export type RegisterModelTestData = {
   registryNamePrefix: string;
+  // First model (Object Storage)
   objectStorageModelName: string;
-  uriModelName: string;
+  objectStorageModelDescription: string;
   version1Name: string;
+  version1Description: string;
+  modelFormatOnnx: string;
+  formatVersion1_0: string;
+  objectStorageEndpoint: string;
+  objectStorageBucket: string;
+  objectStorageRegion: string;
+  objectStoragePath: string;
+  // Second model (URI)
+  uriModelName: string;
+  uriModelDescription: string;
+  uriVersion1Description: string;
+  modelFormatPytorch: string;
+  formatVersion2_0: string;
+  uriPrimary: string;
+  // New version registration (Versions view)
   version2Name: string;
+  version2Description: string;
+  modelFormatTensorflow: string;
+  formatVersion3_0: string;
+  uriVersion2: string;
+
   newNameSuffix: string;
   newDescription: string;
 };

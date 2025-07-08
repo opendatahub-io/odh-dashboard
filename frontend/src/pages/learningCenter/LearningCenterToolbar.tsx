@@ -1,6 +1,6 @@
 import * as React from 'react';
 import * as _ from 'lodash-es';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Button,
   ButtonVariant,
@@ -23,7 +23,6 @@ import {
   PficonSortCommonDescIcon,
 } from '@patternfly/react-icons';
 import { removeQueryArgument, setQueryArgument } from '#~/utilities/router';
-import { useQueryParams } from '#~/utilities/useQueryParams';
 import { fireMiscTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
 import {
@@ -94,16 +93,16 @@ const LearningCenterToolbar: React.FC<LearningCenterToolbarProps> = ({
   onToggleFiltersCollapsed,
 }) => {
   const navigate = useNavigate();
-  const queryParams = useQueryParams();
-  const categoryQuery = queryParams.get(CATEGORY_FILTER_KEY) || '';
-  const enabled = queryParams.get(ENABLED_FILTER_KEY);
-  const docTypes = queryParams.get(DOC_TYPE_FILTER_KEY);
-  const applications = queryParams.get(APPLICATION_FILTER_KEY);
-  const searchQuery = queryParams.get(SEARCH_FILTER_KEY) || '';
+  const [searchParams] = useSearchParams();
+  const categoryQuery = searchParams.get(CATEGORY_FILTER_KEY) || '';
+  const enabled = searchParams.get(ENABLED_FILTER_KEY);
+  const docTypes = searchParams.get(DOC_TYPE_FILTER_KEY);
+  const applications = searchParams.get(APPLICATION_FILTER_KEY);
+  const searchQuery = searchParams.get(SEARCH_FILTER_KEY) || '';
   const [searchInputText, setSearchInputText] = React.useState(searchQuery);
-  const sortTypeQ = queryParams.get(DOC_SORT_KEY);
+  const sortTypeQ = searchParams.get(DOC_SORT_KEY);
   const sortType = isSortType(sortTypeQ) ? sortTypeQ : SORT_TYPE_NAME;
-  const sortOrderQ = queryParams.get(DOC_SORT_ORDER_KEY);
+  const sortOrderQ = searchParams.get(DOC_SORT_ORDER_KEY);
   const sortOrder = isSortOrder(sortOrderQ) ? sortOrderQ : SORT_ASC;
 
   React.useEffect(() => {

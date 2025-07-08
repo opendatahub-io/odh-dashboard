@@ -9,6 +9,8 @@ import type {
   ModelServingPlatformWatchDeploymentsExtension,
   ModelServingDeploymentsExpandedInfo,
   ModelServingMetricsExtension,
+  ModelServingDeploymentResourcesExtension,
+  ModelServingAuthExtension,
 } from '@odh-dashboard/model-serving/extension-points';
 // eslint-disable-next-line no-restricted-syntax
 import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/index';
@@ -19,6 +21,8 @@ export const KSERVE_ID = 'kserve';
 const extensions: (
   | ModelServingPlatformExtension<KServeDeployment>
   | ModelServingPlatformWatchDeploymentsExtension<KServeDeployment>
+  | ModelServingDeploymentResourcesExtension<KServeDeployment>
+  | ModelServingAuthExtension<KServeDeployment>
   | ModelServingDeploymentsTableExtension<KServeDeployment>
   | ModelServingDeploymentsExpandedInfo<KServeDeployment>
   | ModelServingDeleteModal<KServeDeployment>
@@ -56,6 +60,21 @@ const extensions: (
     },
   },
   {
+    type: 'model-serving.deployment/resources',
+    properties: {
+      platform: KSERVE_ID,
+      useResources: () => import('./src/useKServeResources').then((m) => m.useKServeResources),
+    },
+  },
+  {
+    type: 'model-serving.auth',
+    properties: {
+      platform: KSERVE_ID,
+      usePlatformAuthEnabled: () =>
+        import('./src/useAuth').then((m) => m.useKServePlatformAuthEnabled),
+    },
+  },
+  {
     type: 'model-serving.deployments-table',
     properties: {
       platform: KSERVE_ID,
@@ -66,14 +85,9 @@ const extensions: (
     type: 'model-serving.deployments-table/expanded-info',
     properties: {
       platform: KSERVE_ID,
-      getFramework: () =>
-        import('./src/deploymentExpandedDetails').then((m) => m.getKserveFramework),
-      getReplicas: () => import('./src/deploymentExpandedDetails').then((m) => m.getKserveReplicas),
-      getResourceSize: () =>
-        import('./src/deploymentExpandedDetails').then((m) => m.getKserveResourceSize),
-      getHardwareAccelerator: () =>
-        import('./src/deploymentExpandedDetails').then((m) => m.getKserveHardwareAccelerator),
-      getTokens: () => import('./src/deploymentExpandedDetails').then((m) => m.getKserveTokens),
+      useReplicas: () => import('./src/deploymentExpandedDetails').then((m) => m.useKserveReplicas),
+      useFramework: () =>
+        import('./src/deploymentExpandedDetails').then((m) => m.useKserveFramework),
     },
   },
   {

@@ -505,6 +505,22 @@ class KServeModal extends InferenceServiceModal {
     return this.find().findByTestId('max-replicas').findByRole('button', { name: 'Minus' });
   }
 
+  findCPURequestedCheckbox() {
+    return this.find().findByTestId('cpu-requested-checkbox');
+  }
+
+  findCPULimitCheckbox() {
+    return this.find().findByTestId('cpu-limit-checkbox');
+  }
+
+  findMemoryRequestedCheckbox() {
+    return this.find().findByTestId('memory-requested-checkbox');
+  }
+
+  findMemoryLimitCheckbox() {
+    return this.find().findByTestId('memory-limit-checkbox');
+  }
+
   findCPURequestedInput() {
     return this.find().findByTestId('cpu-requested-input').find('input');
   }
