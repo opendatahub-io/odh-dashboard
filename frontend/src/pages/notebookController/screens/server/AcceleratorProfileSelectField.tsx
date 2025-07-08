@@ -276,7 +276,7 @@ const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps
     label:
       options.length > 0
         ? 'None'
-        : 'No enabled or valid hardware profiles are available. Contact your administrator',
+        : 'No enabled or valid accelerator profiles are available. Contact your administrator',
   });
 
   return (
