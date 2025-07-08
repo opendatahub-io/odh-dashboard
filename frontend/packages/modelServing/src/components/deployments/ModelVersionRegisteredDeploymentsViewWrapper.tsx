@@ -4,12 +4,13 @@ import useServingRuntimes from '@odh-dashboard/internal/pages/modelServing/useSe
 import { ModelVersion } from '@odh-dashboard/internal/concepts/modelRegistry/types';
 import ModelVersionRegisteredDeploymentsView from '@odh-dashboard/internal/pages/modelRegistry/screens/ModelVersionDetails/ModelVersionRegisteredDeploymentsView';
 
-const ModelVersionRegisteredViewWrapper: React.FC<{ mv: ModelVersion; refresh: () => void }> = ({
-  mv,
-  refresh,
-}) => {
-  const inferenceServices = useInferenceServices(mv.id);
-  const servingRuntimes = useServingRuntimes(mv.id);
+const ModelVersionRegisteredViewWrapper: React.FC<{
+  mv: ModelVersion;
+  mrName?: string;
+  refresh: () => void;
+}> = ({ mv, mrName, refresh }) => {
+  const inferenceServices = useInferenceServices(undefined, mv.registeredModelId, mv.id, mrName);
+  const servingRuntimes = useServingRuntimes();
 
   return (
     <ModelVersionRegisteredDeploymentsView

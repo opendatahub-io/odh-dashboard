@@ -92,6 +92,7 @@ const ModelVersionsDetails: React.FC<ModelVersionsDetailProps> = ({ tab, ...page
             <FlexItem>
               <ModelVersionsDetailsHeaderActions
                 mv={mv}
+                mrName={preferredModelRegistry?.name}
                 refresh={refresh}
               />
             </FlexItem>
@@ -107,6 +108,7 @@ const ModelVersionsDetails: React.FC<ModelVersionsDetailProps> = ({ tab, ...page
         <ModelVersionDetailsTabs
           tab={tab}
           modelVersion={mv}
+          mrName={preferredModelRegistry?.name}
           refresh={refresh}
         />
       )}

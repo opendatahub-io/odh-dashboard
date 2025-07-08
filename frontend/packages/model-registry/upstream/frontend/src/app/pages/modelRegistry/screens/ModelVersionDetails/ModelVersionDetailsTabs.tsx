@@ -12,6 +12,7 @@ type ModelVersionDetailTabsProps = {
   modelVersion: ModelVersion;
   isArchiveVersion?: boolean;
   refresh: () => void;
+  mrName?: string;
 };
 
 const ModelVersionDetailsTabs: React.FC<ModelVersionDetailTabsProps> = ({
@@ -19,6 +20,7 @@ const ModelVersionDetailsTabs: React.FC<ModelVersionDetailTabsProps> = ({
   modelVersion: mv,
   isArchiveVersion,
   refresh,
+  mrName,
 }) => {
   const navigate = useNavigate();
   const extensions = useExtensions(isModelRegistryDeploymentsTabExtension);
@@ -56,6 +58,7 @@ const ModelVersionDetailsTabs: React.FC<ModelVersionDetailTabsProps> = ({
               component={extension.properties.component}
               props={{
                 mv,
+                mrName,
                 refresh,
               }}
             />

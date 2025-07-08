@@ -21,6 +21,7 @@ import { LazyCodeRefComponent } from '@odh-dashboard/plugin-core';
 interface ModelVersionsDetailsHeaderActionsProps {
   mv: ModelVersion;
   refresh: () => void;
+  mrName?: string;
 }
 
 const ModelVersionsDetailsHeaderActions: React.FC<ModelVersionsDetailsHeaderActionsProps> = ({
@@ -28,6 +29,7 @@ const ModelVersionsDetailsHeaderActions: React.FC<ModelVersionsDetailsHeaderActi
   // TODO: [Model Serving] Uncomment when model serving is available
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   refresh,
+  mrName,
 }) => {
   const { apiState } = React.useContext(ModelRegistryContext);
   const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
@@ -86,6 +88,7 @@ const ModelVersionsDetailsHeaderActions: React.FC<ModelVersionsDetailsHeaderActi
                     mv,
                     setIsArchiveModalOpen,
                     ref: tooltipRef,
+                    mrName,
                   }}
                 />
               )}

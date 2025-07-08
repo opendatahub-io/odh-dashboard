@@ -82,6 +82,7 @@ const ModelVersionsArchiveDetails: React.FC<ModelVersionsArchiveDetailsProps> = 
             tab={tab}
             modelVersion={mv}
             refresh={refreshModelVersion}
+            mrName={preferredModelRegistry?.name}
           />
         )}
       </ApplicationsPage>

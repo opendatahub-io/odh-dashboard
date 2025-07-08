@@ -5,12 +5,13 @@ import useInferenceServices from '@odh-dashboard/internal/pages/modelServing/use
 
 interface ArchiveButtonProps {
   mv: ModelVersion;
+  mrName?: string;
   setIsArchiveModalOpen: (value: React.SetStateAction<boolean>) => void;
 }
 
 const ArchiveButton = React.forwardRef<HTMLButtonElement, ArchiveButtonProps>(
-  ({ mv, setIsArchiveModalOpen }, ref) => {
-    const inferenceServices = useInferenceServices(mv.id);
+  ({ mv, mrName, setIsArchiveModalOpen }, ref) => {
+    const inferenceServices = useInferenceServices(undefined, mv.registeredModelId, mv.id, mrName);
     const hasDeployment = inferenceServices.data.items.length > 0;
     return (
       <DropdownItem

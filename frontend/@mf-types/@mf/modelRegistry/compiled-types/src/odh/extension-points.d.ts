@@ -6,6 +6,7 @@ export type ModelRegistryDeploymentsTabExtension = Extension<'model-registry.ver
     title: string;
     component: ComponentCodeRef<{
         mv: ModelVersion;
+        mrName?: string;
         refresh: () => void;
     }>;
 }>;
@@ -16,6 +17,7 @@ export type ArchiveModelVersionButtonExtension = Extension<'model-registry.model
         mv: ModelVersion;
         setIsArchiveModalOpen: (value: React.SetStateAction<boolean>) => void;
         ref: React.LegacyRef<HTMLButtonElement>;
+        mrName?: string;
     }>;
 }>;
 export declare const isArchiveModelVersionButtonExtension: (extension: Extension) => extension is ArchiveModelVersionButtonExtension;

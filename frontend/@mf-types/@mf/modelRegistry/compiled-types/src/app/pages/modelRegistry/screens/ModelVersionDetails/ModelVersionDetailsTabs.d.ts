@@ -6,6 +6,7 @@ type ModelVersionDetailTabsProps = {
     modelVersion: ModelVersion;
     isArchiveVersion?: boolean;
     refresh: () => void;
+    mrName?: string;
 };
 declare const ModelVersionDetailsTabs: React.FC<ModelVersionDetailTabsProps>;
 export default ModelVersionDetailsTabs;
