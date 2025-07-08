@@ -844,28 +844,58 @@ describe('Manage Hardware Profile', () => {
 
       if (visibility?.includes('model-serving')) {
         expect(name).to.match(new RegExp(`${originalAcceleratorProfile.metadata.name}-.*-serving`));
-        expect(actual).to.eql({
-          ...migratedServingHardwareProfile,
-          metadata: {
-            namespace: 'opendatahub',
-            annotations: {
-              'opendatahub.io/dashboard-feature-visibility': '["model-serving","pipelines"]',
-            },
-          },
-        });
+        const expected = Cypress._.omit(
+          migratedServingHardwareProfile,
+          'metadata.annotations["opendatahub.io/modified-date"]',
+          'metadata.name',
+        );
+        expect(actual).to.eql(expected);
       } else if (visibility?.includes('workbench')) {
         expect(name).to.match(
           new RegExp(`${originalAcceleratorProfile.metadata.name}-.*-notebooks`),
         );
-        expect(actual).to.eql({
-          ...migratedNotebooksHardwareProfile,
-          metadata: {
-            namespace: 'opendatahub',
-            annotations: {
-              'opendatahub.io/dashboard-feature-visibility': '["workbench"]',
-            },
-          },
-        });
+        const expected = Cypress._.omit(
+          migratedNotebooksHardwareProfile,
+          'metadata.annotations["opendatahub.io/modified-date"]',
+          'metadata.name',
+        );
+        expect(actual).to.eql(expected);
+      }
+    });
+    cy.wait('@create').then((interception) => {
+      // Assert individually the properties that include random values
+      const { name, annotations } = interception.request.body.metadata;
+      expect(annotations).to.have.property('opendatahub.io/modified-date');
+
+      const actual = Cypress._.omit(
+        interception.request.body,
+        'metadata.annotations["opendatahub.io/modified-date"]',
+        'metadata.name',
+      );
+
+      const visibility =
+        interception.request.body.metadata?.annotations?.[
+          'opendatahub.io/dashboard-feature-visibility'
+        ];
+
+      if (visibility?.includes('model-serving')) {
+        expect(name).to.match(new RegExp(`${originalAcceleratorProfile.metadata.name}-.*-serving`));
+        const expected = Cypress._.omit(
+          migratedServingHardwareProfile,
+          'metadata.annotations["opendatahub.io/modified-date"]',
+          'metadata.name',
+        );
+        expect(actual).to.eql(expected);
+      } else if (visibility?.includes('workbench')) {
+        expect(name).to.match(
+          new RegExp(`${originalAcceleratorProfile.metadata.name}-.*-notebooks`),
+        );
+        const expected = Cypress._.omit(
+          migratedNotebooksHardwareProfile,
+          'metadata.annotations["opendatahub.io/modified-date"]',
+          'metadata.name',
+        );
+        expect(actual).to.eql(expected);
       }
     });
   });
