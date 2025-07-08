@@ -83,16 +83,13 @@ const TrainingHardwareProfileFormSection: React.FC<TrainingHardwareProfileFormSe
                   {isProjectScoped &&
                     projectScopedHardwareProfiles['1'] &&
                     projectScopedHardwareProfiles['0'].length > 0 && (
-                      <Content>
-                        <Content component={ContentVariants.ul}>
-                          <Content component={ContentVariants.li}>
-                            <b>Project-scoped hardware profiles</b> are accessible only within this
-                            project.
-                          </Content>
-                          <Content component={ContentVariants.li}>
-                            <b>Global-scoped hardware profiles</b> are accessible within all
-                            projects.
-                          </Content>
+                      <Content component={ContentVariants.ul}>
+                        <Content component={ContentVariants.li}>
+                          <b>Project-scoped hardware profiles</b> are accessible only within this
+                          project.
+                        </Content>
+                        <Content component={ContentVariants.li}>
+                          <b>Global-scoped hardware profiles</b> are accessible within all projects.
                         </Content>
                       </Content>
                     )}
