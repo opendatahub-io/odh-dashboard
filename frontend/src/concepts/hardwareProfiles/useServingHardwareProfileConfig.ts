@@ -13,7 +13,10 @@ const useServingHardwareProfileConfig = (
   servingRuntime?: ServingRuntimeKind | null,
   inferenceService?: InferenceServiceKind | null,
 ): UseHardwareProfileConfigResult => {
-  const name = servingRuntime?.metadata.annotations?.['opendatahub.io/hardware-profile-name'];
+  const legacyName =
+    servingRuntime?.metadata.annotations?.['opendatahub.io/legacy-hardware-profile-name'];
+  const name =
+    legacyName || servingRuntime?.metadata.annotations?.['opendatahub.io/hardware-profile-name'];
   const resources =
     inferenceService?.spec.predictor.model?.resources ||
     servingRuntime?.spec.containers[0].resources;

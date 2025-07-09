@@ -107,6 +107,9 @@ export const assembleServingRuntime = (
           'opendatahub.io/hardware-profile-name': isLegacyHardwareProfile
             ? ''
             : podSpecOptions.selectedHardwareProfile?.metadata.name || '',
+          'opendatahub.io/legacy-hardware-profile-name': isLegacyHardwareProfile
+            ? podSpecOptions.selectedHardwareProfile?.metadata.name || ''
+            : '',
         }),
       },
     };
@@ -120,6 +123,9 @@ export const assembleServingRuntime = (
         'opendatahub.io/hardware-profile-name': isLegacyHardwareProfile
           ? ''
           : podSpecOptions.selectedHardwareProfile?.metadata.name || '',
+        'opendatahub.io/legacy-hardware-profile-name': isLegacyHardwareProfile
+          ? podSpecOptions.selectedHardwareProfile?.metadata.name || ''
+          : '',
         ...(isCustomServingRuntimesEnabled && { 'openshift.io/display-name': displayName.trim() }),
       },
     };
