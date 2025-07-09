@@ -48,6 +48,7 @@ type PipelineContext = {
   metadataStoreServiceClient: MetadataStoreServicePromiseClient;
   managedPipelines: DSPipelineManagedPipelinesKind | undefined;
   isStarting?: boolean;
+  startingStatusModalOpenRef?: React.MutableRefObject<string | null>;
 };
 
 const PipelinesContext = React.createContext<PipelineContext>({
@@ -72,6 +73,7 @@ const PipelinesContext = React.createContext<PipelineContext>({
   metadataStoreServiceClient: null as unknown as MetadataStoreServicePromiseClient,
   managedPipelines: undefined,
   isStarting: false,
+  startingStatusModalOpenRef: { current: null },
 });
 
 type PipelineContextProviderProps = {
@@ -87,6 +89,8 @@ export const PipelineContextProvider = conditionalArea<PipelineContextProviderPr
   const { projects } = React.useContext(ProjectsContext);
   const project = projects.find(byName(namespace)) ?? null;
   useSyncPreferredProject(project);
+
+  const startingStatusModalOpenRef = React.useRef<string | null>(null);
 
   const state = usePipelineNamespaceCR(namespace);
   const [pipelineNamespaceCR, crLoaded, crLoadError, refreshCR] = state;
@@ -160,6 +164,7 @@ export const PipelineContextProvider = conditionalArea<PipelineContextProviderPr
         metadataStoreServiceClient,
         managedPipelines: pipelineNamespaceCR?.spec.apiServer?.managedPipelines,
         isStarting,
+        startingStatusModalOpenRef,
       }}
     >
       {children}
@@ -191,6 +196,8 @@ type UsePipelinesAPI = PipelineAPIState & {
   metadataStoreServiceClient: MetadataStoreServicePromiseClient;
   refreshState: () => void;
   managedPipelines: DSPipelineManagedPipelinesKind | undefined;
+
+  startingStatusModalOpenRef?: React.MutableRefObject<string | null>;
 };
 
 export const usePipelinesAPI = (): UsePipelinesAPI => {
@@ -210,6 +217,7 @@ export const usePipelinesAPI = (): UsePipelinesAPI => {
     refreshState,
     crStatus,
     isStarting,
+    startingStatusModalOpenRef,
   } = React.useContext(PipelinesContext);
 
   const pipelinesServer: UsePipelinesAPI['pipelinesServer'] = {
@@ -231,6 +239,7 @@ export const usePipelinesAPI = (): UsePipelinesAPI => {
     metadataStoreServiceClient,
     managedPipelines,
     refreshState,
+    startingStatusModalOpenRef,
     ...apiState,
   };
 };
