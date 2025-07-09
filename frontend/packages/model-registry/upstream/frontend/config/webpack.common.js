@@ -18,7 +18,7 @@ const FAVICON = process.env.FAVICON;
 const PRODUCT_NAME = process.env.PRODUCT_NAME;
 const COVERAGE = process.env.COVERAGE;
 const DEPLOYMENT_MODE = process.env._DEPLOYMENT_MODE;
-const BASE_PATH = DEPLOYMENT_MODE === 'kubeflow' ? '/model-registry/' : PUBLIC_PATH;
+const BASE_PATH = DEPLOYMENT_MODE === 'integrated' ? '/model-registry/' : PUBLIC_PATH;
 
 if (OUTPUT_ONLY !== 'true') {
   console.info(
@@ -37,8 +37,7 @@ module.exports = (env) => ({
     rules: [
       {
         test: /\.(tsx|ts|jsx|js)?$/,
-        exclude: [/node_modules/, /__tests__/, /__mocks__/],
-        include: [SRC_DIR, COMMON_DIR],
+        exclude: [/node_modules\/(?!@odh-dashboard)/, /__tests__/, /__mocks__/],
         use: [
           COVERAGE === 'true' && '@jsdevtools/coverage-istanbul-loader',
           env === 'development'
