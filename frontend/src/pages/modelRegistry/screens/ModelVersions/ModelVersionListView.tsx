@@ -19,7 +19,7 @@ import { useNavigate } from 'react-router';
 import { SearchType } from '#~/concepts/dashboard/DashboardSearchField';
 import { ModelVersion, RegisteredModel } from '#~/concepts/modelRegistry/types';
 import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
-import EmptyModelRegistryState from '#~/pages/modelRegistry/screens/components/EmptyModelRegistryState';
+import EmptyModelRegistryState from '#~/concepts/modelRegistry/content/EmptyModelRegistryState.tsx';
 import {
   filterModelVersions,
   sortModelVersionsByCreateTime,

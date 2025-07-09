@@ -8,6 +8,7 @@ import {
   ModelServingCompatibleTypes,
 } from '#~/concepts/connectionTypes/utils';
 import { CatalogModelDetailsParams } from '#~/pages/modelCatalog/types';
+import { ServiceKind } from '#~/k8sTypes.ts';
 import {
   ModelVersion,
   ModelState,
@@ -186,3 +187,6 @@ export const modelSourcePropertiesToPipelineRunRef = (
     runName: properties.modelSourceName,
   };
 };
+
+export const getServerAddress = (resource: ServiceKind): string =>
+  resource.metadata.annotations?.['routing.opendatahub.io/external-address-rest'] || '';
