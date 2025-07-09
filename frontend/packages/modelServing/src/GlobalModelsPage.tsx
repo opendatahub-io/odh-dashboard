@@ -10,24 +10,26 @@ import { isModelServingPlatformExtension } from '../extension-points';
 const GlobalModelsPage: React.FC = () => {
   const availablePlatforms = useExtensions(isModelServingPlatformExtension);
 
-  const {
-    projects,
-    loaded: projectsLoaded,
-    preferredProject: currentProject,
-  } = React.useContext(ProjectsContext);
+  const { projects, loaded: projectsLoaded, preferredProject } = React.useContext(ProjectsContext);
 
-  const selectedProject = currentProject
-    ? projects.find((project) => project.metadata.name === currentProject.metadata.name)
-    : null;
-  const projectsToShow = selectedProject ? [selectedProject] : projects;
   const { namespace } = useParams();
   const navigate = useNavigate();
 
-  React.useEffect(() => {
-    if (!namespace && currentProject) {
-      navigate(`/model-serving/${currentProject.metadata.name}`, { replace: true });
+  const projectsToShow = React.useMemo(() => {
+    if (preferredProject) {
+      return [preferredProject];
     }
-  }, [namespace, currentProject, navigate]);
+    if (namespace) {
+      return projects.filter((project) => project.metadata.name === namespace);
+    }
+    return projects;
+  }, [preferredProject, projects, namespace]);
+
+  React.useEffect(() => {
+    if (!namespace && preferredProject) {
+      navigate(`/model-serving/${preferredProject.metadata.name}`, { replace: true });
+    }
+  }, [namespace, preferredProject, navigate]);
 
   if (!projectsLoaded) {
     return (
@@ -39,7 +41,7 @@ const GlobalModelsPage: React.FC = () => {
 
   return (
     <ModelDeploymentsProvider modelServingPlatforms={availablePlatforms} projects={projectsToShow}>
-      <GlobalDeploymentsView currentProject={selectedProject} />
+      <GlobalDeploymentsView projects={projectsToShow} />
     </ModelDeploymentsProvider>
   );
 };
