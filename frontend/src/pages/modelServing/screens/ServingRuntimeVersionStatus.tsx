@@ -19,26 +19,26 @@ const ServingRuntimeVersionStatus: React.FC<ServingRuntimeVersionStatusProps> = 
     title: string;
     body: React.ReactNode;
     variant: AlertProps['variant'];
-    footer?: React.ReactNode;
   } => {
     if (isOutdated) {
       return {
-        title: 'Serving runtime outdated',
+        title: 'Outdated',
         body: (
           <p>
-            This serving runtime is outdated.
+            A newer version of this serving runtime is available. To use the newest version, you
+            must create a new model deployment.
             <br />
-            <b>Your version:</b> {version}
+            <strong>Current version:</strong> {version}
             <br />
-            <b>Latest version:</b> {templateVersion}
+            <strong>Newest version:</strong> {templateVersion}
           </p>
         ),
         variant: 'warning',
       };
     }
     return {
-      title: 'Serving runtime up to date',
-      body: <p>This serving runtime is up to date.</p>,
+      title: 'Latest',
+      body: <p>This is the most recent serving runtime version.</p>,
       variant: 'success',
     };
   };
