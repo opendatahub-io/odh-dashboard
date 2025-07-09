@@ -168,6 +168,13 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
   const [pvcMode, setPvcMode] = React.useState<PVCMode>('create-new');
   const [existingPvcName, setExistingPvcName] = React.useState<string>('');
   const [modelPath, setModelPath] = React.useState<string>(DEFAULT_MODEL_PATH);
+  const [selectedModelName, setSelectedModelName] = React.useState<string>('');
+
+  // Add useEffect to track selected model from inference service data
+  React.useEffect(() => {
+    const modelName = createDataInferenceService.format?.name || '';
+    setSelectedModelName(modelName);
+  }, [createDataInferenceService.format]);
 
   React.useEffect(() => {
     if (pvc?.spec.storageClassName) {
@@ -443,6 +450,8 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
                 modelPath={modelPath}
                 setModelPath={setModelPath}
                 isEditing={!!editInfo}
+                selectedModel={selectedModelName} // Add this prop
+                namespace={namespace} // Add this prop
               />
             </StackItem>
             {isRawAvailable && isServerlessAvailable && (

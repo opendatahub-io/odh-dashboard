@@ -6,13 +6,15 @@ import {
   Radio,
   Stack,
   FormGroup,
-  TextInput,
 } from '@patternfly/react-core';
 import PVSizeField from '#~/pages/projects/components/PVSizeField';
 import { MEMORY_UNITS_FOR_SELECTION } from '#~/utilities/valueUnits';
+import NIMPVCSelector from './NIMPVCSelector';
 
+// Constants
 const DEFAULT_MODEL_PATH = '/mnt/models/cache';
-// new type for PVC mode
+
+// Types
 type PVCMode = 'create-new' | 'use-existing';
 
 type NIMPVCSizeSectionProps = {
@@ -25,6 +27,8 @@ type NIMPVCSizeSectionProps = {
   modelPath: string;
   setModelPath: (path: string) => void;
   isEditing?: boolean;
+  selectedModel?: string;
+  namespace?: string;
 };
 
 const NIMPVCSizeSection: React.FC<NIMPVCSizeSectionProps> = ({
@@ -37,9 +41,12 @@ const NIMPVCSizeSection: React.FC<NIMPVCSizeSectionProps> = ({
   modelPath,
   setModelPath,
   isEditing = false,
+  selectedModel = '',
+  namespace = '',
 }) => (
   <StackItem>
     <Stack hasGutter>
+      {/* Only show PVC Mode Selection for new deployments */}
       {!isEditing && (
         <StackItem>
           <FormGroup label="Storage option" fieldId="pvc-mode">
@@ -63,6 +70,7 @@ const NIMPVCSizeSection: React.FC<NIMPVCSizeSectionProps> = ({
         </StackItem>
       )}
 
+      {/* Show PVC Size Field for new deployments with create-new mode OR for editing existing deployments */}
       {((!isEditing && pvcMode === 'create-new') || isEditing) && (
         <StackItem>
           <PVSizeField
@@ -84,49 +92,18 @@ const NIMPVCSizeSection: React.FC<NIMPVCSizeSectionProps> = ({
         </StackItem>
       )}
 
+      {/* Smart PVC Selector for new deployments with use-existing mode */}
       {!isEditing && pvcMode === 'use-existing' && (
         <StackItem>
           <Stack hasGutter>
-            <StackItem>
-              <FormGroup label="Existing storage name" fieldId="existing-pvc-name" isRequired>
-                <TextInput
-                  id="existing-pvc-name"
-                  value={existingPvcName}
-                  onChange={(_event, value) => setExistingPvcName(value)}
-                  placeholder="Enter PVC name (e.g., nim-pvc-f75f401f3966fvfnhxw6yvfc)"
-                />
-              </FormGroup>
-              <HelperText>
-                <HelperTextItem>
-                  Enter the exact name of the Persistent Volume Claim (PVC) that contains your
-                  pre-downloaded models.
-                </HelperTextItem>
-                <HelperTextItem>
-                  The PVC must exist in the same project/namespace and be accessible to the
-                  deployment.
-                </HelperTextItem>
-              </HelperText>
-            </StackItem>
-
-            <StackItem>
-              <FormGroup label="Model path in storage" fieldId="model-path" isRequired>
-                <TextInput
-                  id="model-path"
-                  value={modelPath}
-                  onChange={(_event, value) => setModelPath(value)}
-                  placeholder={DEFAULT_MODEL_PATH}
-                />
-              </FormGroup>
-              <HelperText>
-                <HelperTextItem>
-                  Specify the directory path within the storage where your model files are located.
-                </HelperTextItem>
-                <HelperTextItem>
-                  This path will be mounted into the container and should contain the model files
-                  that NIM expects.
-                </HelperTextItem>
-              </HelperText>
-            </StackItem>
+            <NIMPVCSelector
+              selectedModel={selectedModel}
+              namespace={namespace}
+              existingPvcName={existingPvcName}
+              setExistingPvcName={setExistingPvcName}
+              modelPath={modelPath}
+              setModelPath={setModelPath}
+            />
           </Stack>
         </StackItem>
       )}
