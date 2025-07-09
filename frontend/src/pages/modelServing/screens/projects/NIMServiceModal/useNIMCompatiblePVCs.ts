@@ -18,35 +18,37 @@ type UseNIMCompatiblePVCsState = {
 const isNIMServingRuntime = (servingRuntime: ServingRuntimeKind): boolean => {
   // Check if this is a NIM serving runtime
   const containers = servingRuntime.spec.containers || [];
-  
-  return containers.some(container => 
-    container.image?.includes('nvcr.io/nim/') ||
-    container.image?.includes('nvidia/nim') ||
-    servingRuntime.metadata.annotations?.['opendatahub.io/template-name'] === 'nvidia-nim-runtime'
+
+  return containers.some(
+    (container) =>
+      container.image?.includes('nvcr.io/nim/') ||
+      container.image?.includes('nvidia/nim') ||
+      servingRuntime.metadata.annotations?.['opendatahub.io/template-name'] ===
+        'nvidia-nim-runtime',
   );
 };
 
 const extractPVCFromServingRuntime = (servingRuntime: ServingRuntimeKind): string | null => {
   // Look for PVC in volumes
   const volumes = servingRuntime.spec.volumes || [];
-  
+
   for (const volume of volumes) {
-    if (volume.persistentVolumeClaim?.claimName?.startsWith('nim-pvc')) {
+    if (volume.persistentVolumeClaim?.claimName.startsWith('nim-pvc')) {
       return volume.persistentVolumeClaim.claimName;
     }
   }
-  
+
   return null;
 };
 
 const extractModelFromServingRuntime = (servingRuntime: ServingRuntimeKind): string | null => {
   // Check supportedModelFormats for the model name
   const supportedFormats = servingRuntime.spec.supportedModelFormats || [];
-  
+
   if (supportedFormats.length > 0) {
     return supportedFormats[0].name;
   }
-  
+
   // Fallback: try to extract from container image
   const containers = servingRuntime.spec.containers || [];
   for (const container of containers) {
@@ -60,7 +62,7 @@ const extractModelFromServingRuntime = (servingRuntime: ServingRuntimeKind): str
       }
     }
   }
-  
+
   return null;
 };
 
@@ -85,18 +87,18 @@ export const useNIMCompatiblePVCs = (
       try {
         // Get all serving runtimes in the namespace
         const servingRuntimes = await listServingRuntimes(namespace);
-        
+
         // Filter for NIM serving runtimes and extract PVC info
         const nimPVCInfos: NIMPVCInfo[] = [];
-        
+
         for (const servingRuntime of servingRuntimes) {
           if (!isNIMServingRuntime(servingRuntime)) {
             continue;
           }
-          
+
           const pvcName = extractPVCFromServingRuntime(servingRuntime);
           const modelName = extractModelFromServingRuntime(servingRuntime);
-          
+
           if (pvcName && modelName) {
             nimPVCInfos.push({
               pvcName,
@@ -106,19 +108,18 @@ export const useNIMCompatiblePVCs = (
             });
           }
         }
-        
+
         // Filter for the selected model
-        const compatible = nimPVCInfos.filter(info => 
-          info.modelName === selectedModel ||
-          info.modelName.includes(selectedModel) ||
-          selectedModel.includes(info.modelName)
+        const compatible = nimPVCInfos.filter(
+          (info) =>
+            info.modelName === selectedModel ||
+            info.modelName.includes(selectedModel) ||
+            selectedModel.includes(info.modelName),
         );
-        
+
         // Sort by creation date (newest first)
-        const sorted = compatible.sort((a, b) => 
-          b.createdAt.getTime() - a.createdAt.getTime()
-        );
-        
+        const sorted = compatible.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+
         setCompatiblePVCs(sorted);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to fetch NIM PVCs');

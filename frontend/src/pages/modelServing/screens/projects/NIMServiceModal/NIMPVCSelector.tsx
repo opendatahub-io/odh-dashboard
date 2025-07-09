@@ -7,8 +7,6 @@ import {
   Spinner,
   Alert,
   AlertVariant,
-} from '@patternfly/react-core';
-import { 
   MenuToggle,
   Select,
   SelectList,
@@ -37,7 +35,7 @@ const NIMPVCSelector: React.FC<NIMPVCSelectorProps> = ({
 }) => {
   const [isSelectOpen, setIsSelectOpen] = React.useState(false);
   const [showManualInput, setShowManualInput] = React.useState(false);
-  
+
   const { compatiblePVCs, loading, error } = useNIMCompatiblePVCs(namespace, selectedModel);
 
   // Auto-set model path when a PVC is selected
@@ -51,13 +49,13 @@ const NIMPVCSelector: React.FC<NIMPVCSelectorProps> = ({
   const formatPVCOption = (pvcInfo: NIMPVCInfo): string => {
     const age = Math.floor((Date.now() - pvcInfo.createdAt.getTime()) / (1000 * 60 * 60 * 24));
     const ageText = age === 0 ? 'Today' : `${age}d ago`;
-    
+
     return `${pvcInfo.pvcName} (${ageText}) - From: ${pvcInfo.servingRuntimeName}`;
   };
 
   const onSelect = (selection: string) => {
     // Extract PVC name from the formatted option
-    const selectedPVC = compatiblePVCs.find(pvc => selection.startsWith(pvc.pvcName));
+    const selectedPVC = compatiblePVCs.find((pvc) => selection.startsWith(pvc.pvcName));
     if (selectedPVC) {
       setExistingPvcName(selectedPVC.pvcName);
     }
@@ -107,8 +105,17 @@ const NIMPVCSelector: React.FC<NIMPVCSelectorProps> = ({
           <>
             <Select
               toggle={(toggleRef) => (
-                <MenuToggle ref={toggleRef} onClick={() => setIsSelectOpen(!isSelectOpen)} isExpanded={isSelectOpen}>
-                  {existingPvcName ? formatPVCOption(compatiblePVCs.find(pvc => pvc.pvcName === existingPvcName) || compatiblePVCs[0]) : `Select from ${compatiblePVCs.length} storage volume(s) with ${selectedModel}`}
+                <MenuToggle
+                  ref={toggleRef}
+                  onClick={() => setIsSelectOpen(!isSelectOpen)}
+                  isExpanded={isSelectOpen}
+                >
+                  {existingPvcName
+                    ? formatPVCOption(
+                        compatiblePVCs.find((pvc) => pvc.pvcName === existingPvcName) ||
+                          compatiblePVCs[0],
+                      )
+                    : `Select from ${compatiblePVCs.length} storage volume(s) with ${selectedModel}`}
                 </MenuToggle>
               )}
               isOpen={isSelectOpen}
@@ -128,10 +135,17 @@ const NIMPVCSelector: React.FC<NIMPVCSelectorProps> = ({
                 Found {compatiblePVCs.length} storage volume(s) that contain {selectedModel}.
               </HelperTextItem>
               <HelperTextItem>
-                <button 
+                <button
                   type="button"
                   onClick={() => setShowManualInput(true)}
-                  style={{ color: 'var(--pf-global--link--Color)', background: 'none', border: 'none', padding: 0, textDecoration: 'underline', cursor: 'pointer' }}
+                  style={{
+                    color: 'var(--pf-global--link--Color)',
+                    background: 'none',
+                    border: 'none',
+                    padding: 0,
+                    textDecoration: 'underline',
+                    cursor: 'pointer',
+                  }}
                 >
                   Enter PVC name manually instead
                 </button>
@@ -150,10 +164,17 @@ const NIMPVCSelector: React.FC<NIMPVCSelectorProps> = ({
             {showManualInput && hasCompatiblePVCs && (
               <HelperText>
                 <HelperTextItem>
-                  <button 
+                  <button
                     type="button"
                     onClick={() => setShowManualInput(false)}
-                    style={{ color: 'var(--pf-global--link--Color)', background: 'none', border: 'none', padding: 0, textDecoration: 'underline', cursor: 'pointer' }}
+                    style={{
+                      color: 'var(--pf-global--link--Color)',
+                      background: 'none',
+                      border: 'none',
+                      padding: 0,
+                      textDecoration: 'underline',
+                      cursor: 'pointer',
+                    }}
                   >
                     Back to compatible storage list
                   </button>
