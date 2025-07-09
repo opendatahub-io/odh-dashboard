@@ -119,7 +119,7 @@ const LMEvalResultTable: React.FC<LMEvalResultTableProps> = ({ results }) => {
         </ToolbarContent>
       </Toolbar>
 
-      <Table variant={TableVariant.compact}>
+      <Table variant={TableVariant.compact} hasAnimations>
         <Thead>
           <Tr>
             <Th>Task</Th>

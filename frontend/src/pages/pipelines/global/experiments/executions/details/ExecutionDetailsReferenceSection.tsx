@@ -24,7 +24,12 @@ const ExecutionDetailsReferenceSection: React.FC<ExecutionDetailsReferenceSectio
         <Title headingLevel="h3">Reference</Title>
       </StackItem>
       <StackItem>
-        <Table aria-label="Execution details reference table" variant="compact" borders={false}>
+        <Table
+          aria-label="Execution details reference table"
+          variant="compact"
+          borders={false}
+          hasAnimations
+        >
           <Thead>
             <Tr>
               <Th width={30}>Name</Th>
