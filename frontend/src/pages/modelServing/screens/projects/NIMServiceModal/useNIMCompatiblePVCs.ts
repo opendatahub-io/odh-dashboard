@@ -17,7 +17,7 @@ type UseNIMCompatiblePVCsState = {
 
 const isNIMServingRuntime = (servingRuntime: ServingRuntimeKind): boolean => {
   // Check if this is a NIM serving runtime
-  const containers = servingRuntime.spec.containers || [];
+  const { containers } = servingRuntime.spec;
 
   return containers.some(
     (container) =>
@@ -30,7 +30,11 @@ const isNIMServingRuntime = (servingRuntime: ServingRuntimeKind): boolean => {
 
 const extractPVCFromServingRuntime = (servingRuntime: ServingRuntimeKind): string | null => {
   // Look for PVC in volumes
-  const volumes = servingRuntime.spec.volumes || [];
+  const { volumes } = servingRuntime.spec;
+
+  if (!volumes) {
+    return null;
+  }
 
   for (const volume of volumes) {
     if (volume.persistentVolumeClaim?.claimName.startsWith('nim-pvc')) {
@@ -43,14 +47,14 @@ const extractPVCFromServingRuntime = (servingRuntime: ServingRuntimeKind): strin
 
 const extractModelFromServingRuntime = (servingRuntime: ServingRuntimeKind): string | null => {
   // Check supportedModelFormats for the model name
-  const supportedFormats = servingRuntime.spec.supportedModelFormats || [];
+  const supportedFormats = servingRuntime.spec.supportedModelFormats;
 
-  if (supportedFormats.length > 0) {
+  if (supportedFormats && supportedFormats.length > 0) {
     return supportedFormats[0].name;
   }
 
   // Fallback: try to extract from container image
-  const containers = servingRuntime.spec.containers || [];
+  const { containers } = servingRuntime.spec;
   for (const container of containers) {
     if (container.image?.includes('nvcr.io/nim/')) {
       // Extract model name from image like: nvcr.io/nim/meta/llama-3.1-8b-instruct:1.8.5
@@ -118,7 +122,7 @@ export const useNIMCompatiblePVCs = (
         );
 
         // Sort by creation date (newest first)
-        const sorted = compatible.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+        const sorted = compatible.toSorted((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
         setCompatiblePVCs(sorted);
       } catch (err) {

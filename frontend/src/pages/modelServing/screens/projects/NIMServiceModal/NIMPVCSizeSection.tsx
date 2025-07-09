@@ -11,9 +11,6 @@ import PVSizeField from '#~/pages/projects/components/PVSizeField';
 import { MEMORY_UNITS_FOR_SELECTION } from '#~/utilities/valueUnits';
 import NIMPVCSelector from './NIMPVCSelector';
 
-// Constants
-const DEFAULT_MODEL_PATH = '/mnt/models/cache';
-
 // Types
 type PVCMode = 'create-new' | 'use-existing';
 

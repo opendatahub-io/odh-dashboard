@@ -7,11 +7,8 @@ import {
   Spinner,
   Alert,
   AlertVariant,
-  MenuToggle,
-  Select,
-  SelectList,
-  SelectOption,
 } from '@patternfly/react-core';
+import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
 import { useNIMCompatiblePVCs, NIMPVCInfo } from './useNIMCompatiblePVCs';
 
 type NIMPVCSelectorProps = {
@@ -33,7 +30,6 @@ const NIMPVCSelector: React.FC<NIMPVCSelectorProps> = ({
   modelPath,
   setModelPath,
 }) => {
-  const [isSelectOpen, setIsSelectOpen] = React.useState(false);
   const [showManualInput, setShowManualInput] = React.useState(false);
 
   const { compatiblePVCs, loading, error } = useNIMCompatiblePVCs(namespace, selectedModel);
@@ -53,13 +49,12 @@ const NIMPVCSelector: React.FC<NIMPVCSelectorProps> = ({
     return `${pvcInfo.pvcName} (${ageText}) - From: ${pvcInfo.servingRuntimeName}`;
   };
 
-  const onSelect = (selection: string) => {
-    // Extract PVC name from the formatted option
-    const selectedPVC = compatiblePVCs.find((pvc) => selection.startsWith(pvc.pvcName));
+  const onSelect = (key: string) => {
+    // Find the PVC info by key
+    const selectedPVC = compatiblePVCs.find((pvc) => pvc.pvcName === key);
     if (selectedPVC) {
       setExistingPvcName(selectedPVC.pvcName);
     }
-    setIsSelectOpen(false);
   };
 
   const hasCompatiblePVCs = compatiblePVCs.length > 0;
@@ -91,6 +86,13 @@ const NIMPVCSelector: React.FC<NIMPVCSelectorProps> = ({
     );
   }
 
+  // Prepare options for SimpleSelect
+  const selectOptions: SimpleSelectOption[] = compatiblePVCs.map((pvcInfo) => ({
+    key: pvcInfo.pvcName,
+    label: formatPVCOption(pvcInfo),
+    description: `Created from ${pvcInfo.servingRuntimeName}`,
+  }));
+
   return (
     <>
       {/* Show alert when no compatible storage found */}
@@ -103,33 +105,12 @@ const NIMPVCSelector: React.FC<NIMPVCSelectorProps> = ({
       <FormGroup label="Existing storage name" fieldId="existing-pvc-name" isRequired>
         {hasCompatiblePVCs && !showManualInput ? (
           <>
-            <Select
-              toggle={(toggleRef) => (
-                <MenuToggle
-                  ref={toggleRef}
-                  onClick={() => setIsSelectOpen(!isSelectOpen)}
-                  isExpanded={isSelectOpen}
-                >
-                  {existingPvcName
-                    ? formatPVCOption(
-                        compatiblePVCs.find((pvc) => pvc.pvcName === existingPvcName) ||
-                          compatiblePVCs[0],
-                      )
-                    : `Select from ${compatiblePVCs.length} storage volume(s) with ${selectedModel}`}
-                </MenuToggle>
-              )}
-              isOpen={isSelectOpen}
-              onSelect={(_event, selection) => onSelect(selection as string)}
-              onOpenChange={setIsSelectOpen}
-            >
-              <SelectList>
-                {compatiblePVCs.map((pvcInfo) => (
-                  <SelectOption key={pvcInfo.pvcName} value={formatPVCOption(pvcInfo)}>
-                    {formatPVCOption(pvcInfo)}
-                  </SelectOption>
-                ))}
-              </SelectList>
-            </Select>
+            <SimpleSelect
+              options={selectOptions}
+              value={existingPvcName}
+              onChange={onSelect}
+              placeholder={`Select from ${compatiblePVCs.length} storage volume(s) with ${selectedModel}`}
+            />
             <HelperText>
               <HelperTextItem variant="success">
                 Found {compatiblePVCs.length} storage volume(s) that contain {selectedModel}.
