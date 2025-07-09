@@ -7,8 +7,6 @@ import {
   Popover,
   Content,
   ContentVariants,
-  ListItem,
-  List,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { HardwareProfileFeatureVisibility, HardwareProfileKind } from '#~/k8sTypes';
@@ -81,20 +79,20 @@ const TrainingHardwareProfileFormSection: React.FC<TrainingHardwareProfileFormSe
                 <>
                   <Content component={ContentVariants.p}>
                     This list includes only hardware profiles with defined GPUs.
-                    {isProjectScoped &&
-                      projectScopedHardwareProfiles['1'] &&
-                      projectScopedHardwareProfiles['0'].length > 0 && (
-                        <List>
-                          <ListItem>
-                            <b>Project-scoped hardware profiles</b> are accessible only within this
-                            project.
-                          </ListItem>
-                          <ListItem>
-                            <b>Global hardware profiles</b> are accessible within all projects.
-                          </ListItem>
-                        </List>
-                      )}
                   </Content>
+                  {isProjectScoped &&
+                    projectScopedHardwareProfiles['1'] &&
+                    projectScopedHardwareProfiles['0'].length > 0 && (
+                      <Content component={ContentVariants.ul}>
+                        <Content component={ContentVariants.li}>
+                          <b>Project-scoped hardware profiles</b> are accessible only within this
+                          project.
+                        </Content>
+                        <Content component={ContentVariants.li}>
+                          <b>Global-scoped hardware profiles</b> are accessible within all projects.
+                        </Content>
+                      </Content>
+                    )}
                   <Content component={ContentVariants.p}>
                     Hardware profiles enable administrators to create profiles for additional types
                     of identifiers, limit workload resource allocations, and target workloads to
