@@ -22,20 +22,25 @@ const GlobalPipelines: React.FC = () => {
   // is removed from the DOM)
   // will address this in a future ticket: https://issues.redhat.com/browse/RHOAIENG-27999
   return (
-    <PipelineCoreApplicationPage
-      title={<TitleWithIcon title={pipelinesPageTitle} objectType={ProjectObjectType.pipeline} />}
-      description={pipelinesPageDescription}
-      headerAction={<PipelineServerActions isDisabled={!pipelinesAPI.pipelinesServer.installed} />}
-      getRedirectPath={pipelinesBaseRoute}
-    >
-      <EnsureAPIAvailability>
-        <EnsureCompatiblePipelineServer>
-          <PipelineAndVersionContextProvider>
-            <PipelinesView />
-          </PipelineAndVersionContextProvider>
-        </EnsureCompatiblePipelineServer>
-      </EnsureAPIAvailability>
-    </PipelineCoreApplicationPage>
+    <div>
+      <PipelineCoreApplicationPage
+        title={<TitleWithIcon title={pipelinesPageTitle} objectType={ProjectObjectType.pipeline} />}
+        description={pipelinesPageDescription}
+        headerAction={
+          <PipelineServerActions isDisabled={!pipelinesAPI.pipelinesServer.installed} />
+        }
+        getRedirectPath={pipelinesBaseRoute}
+        overrideTimeout
+      >
+        <EnsureAPIAvailability>
+          <EnsureCompatiblePipelineServer>
+            <PipelineAndVersionContextProvider>
+              <PipelinesView />
+            </PipelineAndVersionContextProvider>
+          </EnsureCompatiblePipelineServer>
+        </EnsureAPIAvailability>
+      </PipelineCoreApplicationPage>
+    </div>
   );
 };
 
