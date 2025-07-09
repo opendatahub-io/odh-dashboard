@@ -41,7 +41,7 @@
     "test:jest": "jest",
     "test:jest:coverage": "rimraf jest-coverage && jest --silent --coverage --coverageReporters=json --coverageReporters=lcov",
     "test:unit": "npm run test:jest -- --silent",
-    "test:unit-coverage": "run-s test:type-check test:jest:coverage",
+    "test:unit-coverage": "npm run test:jest:coverage",
     "test:cypress-ci": "npx concurrently -P -k -s first \"npm run cypress:server:build && npm run cypress:server\" \"npx wait-on tcp:127.0.0.1:9001 && npm run cypress:run:mock -- {@}\" -- ",
     "test:cypress-ci:coverage": "npx concurrently -P -k -s first \"npm run cypress:server:build:coverage && npm run cypress:server\" \"npx wait-on tcp:127.0.0.1:9001 && npm run cypress:run:mock:coverage -- {@}\" -- ",
     "test:cypress-ci:coverage:nobuild": "npx concurrently -P -k -s first \"npm run cypress:server\" \"npx wait-on tcp:127.0.0.1:9001 && npm run cypress:run:mock:coverage -- {@}\" -- ",

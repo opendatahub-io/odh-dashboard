@@ -26,7 +26,7 @@
     "build": "run-s build:clean tsc:prod",
     "build:clean": "rimraf ./dist",
     "test": "run-s test:lint test:type-check test:jest",
-    "test:unit-coverage": "run-s test:type-check test:jest:coverage",
+    "test:unit-coverage": "npm run test:jest:coverage",
     "test:jest:coverage": "rimraf jest-coverage && jest --silent --coverage --coverageReporters=json --coverageReporters=lcov",
     "test:lint": "eslint --max-warnings 0 --ext .json,.js,.ts ./src",
     "test:fix": "eslint --ext .json,.js,.ts ./src --fix",
