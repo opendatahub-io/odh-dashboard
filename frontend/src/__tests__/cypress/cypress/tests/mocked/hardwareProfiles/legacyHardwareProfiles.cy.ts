@@ -538,60 +538,28 @@ describe('legacy profiles table', () => {
           expect(name).to.match(
             new RegExp(`${originalAcceleratorProfile.metadata.name}-.*-serving`),
           );
-          const expected = Cypress._.omit(
-            migratedServingHardwareProfile,
-            'metadata.annotations["opendatahub.io/modified-date"]',
-            'metadata.name',
-          );
-          expect(actual).to.eql(expected);
+          expect(actual).to.eql({
+            ...migratedServingHardwareProfile,
+            metadata: {
+              namespace: 'opendatahub',
+              annotations: {
+                'opendatahub.io/dashboard-feature-visibility': '["model-serving","pipelines"]',
+              },
+            },
+          });
         } else if (visibility?.includes('workbench')) {
           expect(name).to.match(
             new RegExp(`${originalAcceleratorProfile.metadata.name}-.*-notebooks`),
           );
-          const expected = Cypress._.omit(
-            migratedNotebooksHardwareProfile,
-            'metadata.annotations["opendatahub.io/modified-date"]',
-            'metadata.name',
-          );
-          expect(actual).to.eql(expected);
-        }
-      });
-      cy.wait('@create').then((interception) => {
-        // Assert individually the properties that include random values
-        const { name, annotations } = interception.request.body.metadata;
-        expect(annotations).to.have.property('opendatahub.io/modified-date');
-
-        const actual = Cypress._.omit(
-          interception.request.body,
-          'metadata.annotations["opendatahub.io/modified-date"]',
-          'metadata.name',
-        );
-
-        const visibility =
-          interception.request.body.metadata?.annotations?.[
-            'opendatahub.io/dashboard-feature-visibility'
-          ];
-
-        if (visibility?.includes('model-serving')) {
-          expect(name).to.match(
-            new RegExp(`${originalAcceleratorProfile.metadata.name}-.*-serving`),
-          );
-          const expected = Cypress._.omit(
-            migratedServingHardwareProfile,
-            'metadata.annotations["opendatahub.io/modified-date"]',
-            'metadata.name',
-          );
-          expect(actual).to.eql(expected);
-        } else if (visibility?.includes('workbench')) {
-          expect(name).to.match(
-            new RegExp(`${originalAcceleratorProfile.metadata.name}-.*-notebooks`),
-          );
-          const expected = Cypress._.omit(
-            migratedNotebooksHardwareProfile,
-            'metadata.annotations["opendatahub.io/modified-date"]',
-            'metadata.name',
-          );
-          expect(actual).to.eql(expected);
+          expect(actual).to.eql({
+            ...migratedNotebooksHardwareProfile,
+            metadata: {
+              namespace: 'opendatahub',
+              annotations: {
+                'opendatahub.io/dashboard-feature-visibility': '["workbench"]',
+              },
+            },
+          });
         }
       });
     });
@@ -732,6 +700,53 @@ describe('legacy profiles table', () => {
           },
         });
       });
+      cy.wait('@deleteSource');
+      cy.wait('@createTarget').then((interception) => {
+        // Assert individually the properties that include random values
+        const { name, annotations } = interception.request.body.metadata;
+        expect(annotations).to.have.property('opendatahub.io/modified-date');
+        expect(name).to.include(`${testProfileName}-notebooks`);
+
+        const actual = Cypress._.omit(
+          interception.request.body,
+          'metadata.annotations["opendatahub.io/modified-date"]',
+          'metadata.name',
+        );
+
+        expect(actual).to.eql({
+          apiVersion: 'dashboard.opendatahub.io/v1alpha1',
+          kind: 'HardwareProfile',
+          metadata: {
+            namespace: 'opendatahub',
+            annotations: {
+              'opendatahub.io/dashboard-feature-visibility': '["workbench"]',
+            },
+          },
+          spec: {
+            displayName: testProfileName,
+            enabled: true,
+            identifiers: [
+              {
+                displayName: 'CPU',
+                resourceType: 'CPU',
+                identifier: 'cpu',
+                minCount: '1',
+                maxCount: '1',
+                defaultCount: '1',
+              },
+              {
+                displayName: 'Memory',
+                resourceType: 'Memory',
+                identifier: 'memory',
+                minCount: '1Gi',
+                maxCount: '1Gi',
+                defaultCount: '1Gi',
+              },
+            ],
+            tolerations: [{ key: 'NotebooksOnlyChange', effect: 'NoSchedule', operator: 'Exists' }],
+          },
+        });
+      });
     });
 
     it('should show correct Visibility labels', () => {
@@ -818,6 +833,52 @@ describe('legacy profiles table', () => {
       legacyHardwareProfile.getRow(testProfileName).findKebabAction('Migrate').click();
       migrationModal.findSubmitButton().should('be.enabled').click();
 
+      cy.wait('@deleteSource');
+      cy.wait('@createTarget').then((interception) => {
+        // Assert individually the properties that include random values
+        const { name, annotations } = interception.request.body.metadata;
+        expect(annotations).to.have.property('opendatahub.io/modified-date');
+        expect(name).to.include(`${testProfileName}-serving`);
+
+        const actual = Cypress._.omit(
+          interception.request.body,
+          'metadata.annotations["opendatahub.io/modified-date"]',
+          'metadata.name',
+        );
+
+        expect(actual).to.eql({
+          apiVersion: 'dashboard.opendatahub.io/v1alpha1',
+          kind: 'HardwareProfile',
+          metadata: {
+            namespace: 'opendatahub',
+            annotations: {
+              'opendatahub.io/dashboard-feature-visibility': '["model-serving"]',
+            },
+          },
+          spec: {
+            displayName: 'test-model-server-size-profile',
+            enabled: true,
+            identifiers: [
+              {
+                displayName: 'CPU',
+                resourceType: 'CPU',
+                identifier: 'cpu',
+                minCount: '1',
+                maxCount: '1',
+                defaultCount: '1',
+              },
+              {
+                displayName: 'Memory',
+                resourceType: 'Memory',
+                identifier: 'memory',
+                minCount: '1Gi',
+                maxCount: '1Gi',
+                defaultCount: '1Gi',
+              },
+            ],
+          },
+        });
+      });
       cy.wait('@deleteSource');
       cy.wait('@createTarget').then((interception) => {
         // Assert individually the properties that include random values
