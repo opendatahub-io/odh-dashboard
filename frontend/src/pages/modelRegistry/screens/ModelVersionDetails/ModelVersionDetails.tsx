@@ -18,6 +18,7 @@ import { ModelVersionDetailsTab } from './const';
 import ModelVersionsDetailsHeaderActions from './ModelVersionDetailsHeaderActions';
 import ModelVersionDetailsTabs from './ModelVersionDetailsTabs';
 import ModelVersionSelector from './ModelVersionSelector';
+import { POLL_INTERVAL } from '#~/utilities/const';
 
 type ModelVersionsDetailProps = {
   tab: ModelVersionDetailsTab;
@@ -39,11 +40,12 @@ const ModelVersionsDetails: React.FC<ModelVersionsDetailProps> = ({ tab, ...page
     mv?.registeredModelId,
     mv?.id,
     preferredModelRegistry?.metadata.name,
+    { refreshRate: POLL_INTERVAL },
   );
   const [modelArtifacts, modelArtifactsLoaded, modelArtifactsLoadError, refreshModelArtifacts] =
     useModelArtifactsByVersionId(mvId);
 
-  const servingRuntimes = useServingRuntimes();
+  const servingRuntimes = useServingRuntimes(undefined, undefined, { refreshRate: POLL_INTERVAL });
 
   const refresh = React.useCallback(() => {
     refreshModelVersion();
