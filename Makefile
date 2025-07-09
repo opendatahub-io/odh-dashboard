@@ -25,6 +25,11 @@ CONTAINER_DOCKERFILE?=Dockerfile
 
 reinstall: build push undeploy deploy
 
+.PHONY:dev-setup
+dev-setup:
+  echo "Running dev-setup..."
+  ./scripts/dev/dev-setup.sh
+
 ##################################
 
 # BUILD - build image locally using s2i
@@ -91,7 +96,7 @@ ifdef NAMESPACE
 	'oc port-forward -n ${NAMESPACE} svc/ds-pipeline-md-${DSPA_NAME} ${METADATA_ENVOY_SERVICE_PORT}:8443' \
 	'oc port-forward -n ${NAMESPACE} svc/ds-pipeline-${DSPA_NAME} ${DS_PIPELINE_DSPA_SERVICE_PORT}:8443' \
 	'oc port-forward -n ${NAMESPACE} svc/${TRUSTYAI_NAME}-tls ${TRUSTYAI_TAIS_SERVICE_PORT}:443' \
-	'oc port-forward -n ${MODEL_REGISTRY_NAMESPACE} svc/${MODEL_REGISTRY_NAME} ${MODEL_REGISTRY_SERVICE_PORT}:8080' 
+	'oc port-forward -n ${MODEL_REGISTRY_NAMESPACE} svc/${MODEL_REGISTRY_NAME} ${MODEL_REGISTRY_SERVICE_PORT}:8080'
 else
 	$(error Missing NAMESPACE variable)
 endif

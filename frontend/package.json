@@ -48,6 +48,7 @@
     "cypress:e2e": "npx cypress run --env grepTags=@Dashboard+-@Bug --browser=chrome --project src/__tests__/cypress",
     "cypress:run": "cypress run -b chrome --project src/__tests__/cypress",
     "cypress:open:mock": "CY_MOCK=1 CY_WS_PORT=9002 npm run cypress:open -- ",
+    "cypress:open:mock:dev": "run-p cypress:server:dev cypress:open:mock",
     "cypress:run:mock": "CY_MOCK=1 CY_WS_PORT=9002 npm run cypress:run -- ",
     "cypress:run:mock:coverage": "rimraf src/__tests__/cypress/coverage src/__tests__/cypress/.nyc_output && CY_COVERAGE=true npm run cypress:run:mock -- {@}",
     "cypress:open:record": "CY_RECORD=1 npm run cypress:open",

@@ -2,6 +2,9 @@
 
 set -e
 
+# source operators script for local setup
+. ../../install/dev/operators.sh
+
 # Color codes for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -9,6 +12,8 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 CYAN='\033[0;36m'
 NC='\033[0m' # No Color
+
+ARCH=$(uname -m)
 
 log_info() {
   echo -e "${BLUE}[INFO]${NC} $1"
@@ -30,7 +35,7 @@ log_step() {
   echo -e "${CYAN}[STEP]${NC} $1"
 }
 
-check_prerequisites() {
+container_check_prerequisites() {
   log_step "Checking prerequisites..."
 
   local missing_tools=()
@@ -54,28 +59,7 @@ check_prerequisites() {
   log_success "All prerequisites are met."
 }
 
-# install node depenencies locally
-install_node_dependencies() {
-  log_step "Installing Node.js dependencies..."
-
-  if [ ! -d "backend/node_modules" ]; then
-    log_info "Installing backend dependencies..."
-    (cd backend && npm install)
-  else
-    log_success "Backend dependencies already installed."
-  fi
-
-  if [ ! -d "frontend/node_modules" ]; then
-    log_info "Installing frontend dependencies..."
-    (cd frontend && npm install)
-  else
-    log_success "Frontend dependencies already installed."
-  fi
-
-  log_success "Node.js dependencies installed successfully."
-}
-
-create_env_files() {
+container_create_env_file() {
   log_step "Creating environment files..."
 
   local local_env_file=".env.local"
@@ -87,6 +71,30 @@ create_env_files() {
   local crc_pull_secret_path=""
   local oc_cli_tarball=""
   local container_builder
+  local container_development="false"
+
+  echo ""
+  echo "Develop environment in containers or locally?"
+  echo "1) Container (Docker or Podman)"
+  echo "2) Local (without containers)"
+  while true; do
+    read -p "Enter your choice (1 or 2): " dev_choice
+    case $dev_choice in
+    1)
+      log_info "Using container setup"
+      container_development="true"
+      break
+      ;;
+    2)
+      log_info "Using local setup"
+      container_development="false"
+      break
+      ;;
+    *)
+      echo "Please enter 1 or 2"
+      ;;
+    esac
+  done
 
   # Ask user for cluster type
   echo ""
@@ -274,25 +282,30 @@ EOF
 # Development Configuration
 NODE_ENV=development
 NODE_TLS_REJECT_UNAUTHORIZED=0
-IMAGE_REPOSITORY=quay.io/opendatahub/odh-dashboard:dev
+CONTAINER_DEVELOPMENT=${container_development}
 
 # Docker Configuration
 CONTAINER_BUILDER=${container_builder}
+
+# Start Command
+START_COMMAND="cd frontend && npm run start:dev:ext"
 EOF
 
   log_success "Environment file created at: ${YELLOW}$local_env_file${NC}"
 
 }
 
-show_completed_message() {
+container_show_completed_message() {
   echo ""
   echo "Setup completed successfully!"
   echo ""
   echo "Next steps:"
   echo -e "1. Check your environment variables in ${YELLOW}.env.local${NC} file and make sure they are correct."
+  echo -e "   Change the START_COMMAND variable in ${YELLOW}.env.local${NC} if you want to use a different command to start the development environment."
   echo -e "   Add a ${YELLOW}.env.development.local${NC} file if you need any variables for development."
-  echo "2. Start the development environment:"
-  echo -e "   ${CYAN}docker compose --env-file=.env.local up --build${NC}"
+  echo ""
+  echo "2. Start the development environment. Please ensure your container environment allows host network binding (i.e. https://docs.docker.com/engine/network/drivers/host/):"
+  echo -e "   ${CYAN}docker compose --env-file=.env.local up --watch${NC} (use --build to rebuild images)"
   echo -e "   Stop with ${CYAN}docker compose down${NC}"
   echo -e "   Stop with ${CYAN}docker compose down -v${NC} to remove volumes"
   echo ""
@@ -302,15 +315,159 @@ show_completed_message() {
   echo "4. For local development without Docker:"
   echo -e "   - Backend: ${CYAN}cd backend && npm run start:dev${NC}"
   echo -e "   - Frontend: ${CYAN}cd frontend && npm run start:dev${NC}"
+  echo -e "   - Frontend-only: ${CYAN}cd frontend && npm run start:dev:ext${NC}"
+}
+
+# --- Local setup steps ---
+local_check_prerequisities() {
+  # requires oc, tar, node, npm
+
+  local required_tools=("tar" "node" "npm")
+  local missing_tools=()
+
+  for tool in "${required_tools[@]}"; do
+    if ! command -v "$tool" >/dev/null 2>&1; then
+      missing_tools+=("$tool")
+    fi
+  done
+
+  if [ "${#missing_tools[@]}" -gt 0 ]; then
+    log_error "Missing required tools: ${missing_tools[*]}"
+    log_info "Please install the missing tools before proceeding."
+    exit 1
+  fi
+}
+
+local_setup_oc() {
+  # check if oc is installed and ask to install if not
+  if ! command -v oc >/dev/null 2>&1; then
+    local install_oc
+    log_error "OpenShift CLI (oc) is not installed."
+    read -p "Do you want to install it now into /usr/local/bin (requires root privilege)? (y/N): " install_oc
+
+    if [ "$install_oc" == "y" ] || [ "$install_oc" == "Y" ]; then
+      log_info "Installing OpenShift CLI (oc)..."
+
+      case "${ARCH}" in
+      amd64 | x86_64) OCP_ARCH="openshift-client-linux" ;;
+      arm64 | aarch64) OCP_ARCH="openshift-client-linux-arm64" ;;
+      *) echo "Unsupported architecture: ${ARCH}" && exit 1 ;;
+      esac
+
+      sudo wget -qO- "https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable/${OCP_ARCH}.tar.gz" | tar zxv -C /usr/local/bin/ oc kubectl
+
+      log_success "OpenShift CLI (oc) installed successfully in /usr/local/bin"
+
+    else
+      log_error "Cannot proceed without OpenShift CLI (oc). Please install OpenShift CLI manually or through this script. Exiting."
+      exit 1
+    fi
+  fi
+
+  # check if oc is logged in to a cluster
+  if ! oc cluster-info >/dev/null 2>&1; then
+    log_error "OpenShift CLI (oc) is not logged in to a cluster."
+    read -p "Do you want to log in now? (y/N): " login_oc
+
+    if [ "$login_oc" == "y" ] || [ "$login_oc" == "Y" ]; then
+      read -p "Enter your OpenShift cluster API URL (e.g. https://api.xxx.openshiftapps.com:443) " oc_url
+      read -p "Enter your OpenShift username: " oc_user
+      read -s -p "Enter your OpenShift password: " oc_password
+      echo ""
+
+      export OC_URL="$oc_url"
+      export OC_USER="$oc_user"
+      export OC_PASSWORD="$oc_password"
+    else
+      log_error "Cannot proceed without logging in to OpenShift cluster. Please login manually or via this script. Exiting."
+      exit 1
+    fi
+  else
+    local cluster_info=eval "$(oc cluster-info)"
+    log_info "OpenShift CLI (oc) is already logged in to a cluster. Use oc login to switch clusters."
+    log_info "$cluster_info"
+  fi
+
+  log_success "OpenShift CLI (oc) setup successful."
+
+}
+
+local_setup_cluster() {
+  # uses functions from install/dev/operators.sh
+  setup_environment
+}
+
+local_install_node_dependencies() {
+  log_step "Installing Node.js dependencies..."
+
+  local install_node_deps
+  read -p "Install Node.js dependencies? (y/N): " install_node_deps
+
+  if [ "install_node_deps" != "y" ] && [ "$install_node_deps" != "Y" ]; then
+    log_info "Skipping Node.js dependencies installation."
+    return
+  fi
+
+  npm install
+
+  # if [ ! -d "backend/node_modules" ]; then
+  #   log_info "Installing backend dependencies..."
+  #   (cd backend && npm install)
+  # else
+  #   log_success "Backend dependencies already installed."
+  # fi
+  #
+  # if [ ! -d "frontend/node_modules" ]; then
+  #   log_info "Installing frontend dependencies..."
+  #   (cd frontend && npm install)
+  # else
+  #   log_success "Frontend dependencies already installed."
+  # fi
+
+  log_success "Node.js dependencies installed successfully."
+}
+
+local_show_completed_message() {
+  echo ""
+  echo "Setup completed successfully!"
+  echo ""
+  echo "Next steps:"
+  echo "1. Start the development environment:"
+  echo -e "   ${CYAN}cd frontend && npm run start:dev:ext${NC}"
+  echo -e "   ${CYAN}npm run dev${NC}"
+  echo ""
+  echo "2. Access the dashboard at:"
+  echo -e "   ${CYAN}http://localhost:4010${NC}"
 }
 
 main() {
-  check_prerequisites
-  create_env_files
+  echo "OpenDataHub Dashboard Development Setup"
+  read -p "Would you like to develop locally or in a container? (container/local) [default: local]: " setup_choice
+  local setup_type="${1:-local}"
+
+  case $setup_type in
+  "container")
+    log_info "Using container setup"
+    container_check_prerequisites
+    container_create_env_files
+    container_show_completed_message
+    ;;
+  "local")
+    log_info "Using local setup"
+    local_check_prerequisities
+    local_setup_oc
+    local_setup_cluster
+    local_install_node_dependencies
+    local_show_completed_message
+    ;;
+  *)
+    log_error "Invalid setup type: $setup_type"
+    log_info "Usage: $0 [container|local]"
+    exit 1
+    ;;
+  esac
 
   # TODO: install node deps
-
-  show_completed_message
 
 }
 

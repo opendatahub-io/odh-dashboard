@@ -1,41 +1,32 @@
-
 services:
   odh-dashboard-dev:
     build:
       context: .
-      dockerfile: Dockerfile
-      # args:
+      dockerfile: scripts/dev/Dockerfile
+      # dockerignore: .dockerignore
         # - OC_CLI_PATH=${OC_CLI_PATH:-./oc-cli.tar.gz}
     develop:
       watch:
-        # - action: sync
-        #   path: ./frontend/src
-        #   target: /usr/src/odh-dashboard/frontend/src
-        # - action: sync
-        #   path: ./backend/src
-        #   target: /usr/src/odh-dashboard/backend/src
+        - action: sync
+          path: .
+          target: /usr/src/app
+          # ignore:
+          #   - node_modules/
+          #   - frontend/node_modules/
+          #   - backend/node_modules/
+          #   - .git/
+          #   - .next/
+          #   - dist/
         - action: rebuild
           path: package.json
         - action: rebuild
           path: ./frontend/package.json
         - action: rebuild
           path: ./backend/package.json
-    container_name: odh-dashboard-dev
-    ports:
-      - "4010:4010" # Frontend dev
-      - "8080:8080" # Backend dev
-    volumes:
-      - .:/usr/src/app:Z
-      - node_modules_cache:/app/node_modules
-      - frontend_node_modules_cache:/app/frontend/node_modules
-      - backend_node_modules_cache:/app/backend/node_modules
-      - ${OC_CONFIG_DIR:-~/.kube}:/home/odh/.kube:ro,Z
-      - ${CRC_CONFIG_DIR:-~/.crc}:/home/odh/.crc:Z
-      - ${OC_CLI_TARBALL:-./oc-cli.tar.gz}:/tmp/oc-cli.tar.gz:Z
-      # - ./scripts/dev/entrypoint.sh:/entrypoint.sh:Z
+    container_name: odh-dashboard
+    network_mode: "host"
 
     environment:
-      - NODE_ENV=development
       - NODE_TLS_REJECT_UNAUTHORIZED=0
       - OC_CLUSTER_TYPE=${OC_CLUSTER_TYPE:-existing}
       - OC_URL=${OC_URL}
@@ -43,24 +34,26 @@ services:
       - OC_USER=${OC_USER}
       - OC_PASSWORD=${OC_PASSWORD}
       - CRC_PULL_SECRET=${CRC_PULL_SECRET_PATH}
-      - IMAGE_REPOSITORY=${IMAGE_REPOSITORY:-quay.io/opendatahub/odh-dashboard:dev}
       - OC_PROJECT=${OC_PROJECT:-opendatahub}
       - CONTAINER_BUILDER=${CONTAINER_BUILDER:-docker}
 
-    command: ["dev"]
-    user: root
-    entrypoint: ["/usr/src/app/install/dev/entrypoint.sh"]
+    env_file:
+      # add in ignored .env files
+      - .env.development
+
+    command: ["${START_COMMAND}"]
     working_dir: /usr/src/app
-    networks:
-      - "odh-dev"
+    entrypoint: ["/usr/src/app/install/dev/entrypoint.sh"]
+    # networks:
+    #   - "odh-dev"
 
     labels:
       - "odh.dashboard.dev=true"
       - "odh.dashboard.version=dev"
 
-networks:
-  odh-dev:
-    driver: bridge
+# networks:
+#   odh-dev:
+#     driver: bridge
 
 
 volumes:
