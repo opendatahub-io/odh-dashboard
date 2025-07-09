@@ -1,20 +1,29 @@
 import React from 'react';
 import type { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
-import { ResolvedExtension } from '@openshift/dynamic-plugin-sdk';
 import { addSupportServingPlatformProject } from '@odh-dashboard/internal/api/k8s/projects';
 import { NamespaceApplicationCase } from '@odh-dashboard/internal/pages/projects/types';
 import { ModelServingPlatformExtension } from '../../extension-points';
 
-export type ModelServingPlatform = ResolvedExtension<ModelServingPlatformExtension>;
+export type ModelServingPlatform = ModelServingPlatformExtension;
 
+/**
+ * Check the project labels and annotations to see if it matches any of the platforms.
+ * First match is returned.
+ */
 export const getProjectServingPlatform = (
   project: ProjectKind,
   platforms: ModelServingPlatform[],
 ): ModelServingPlatform | null =>
   platforms.find(
     (p) =>
-      project.metadata.labels?.[p.properties.manage.enabledLabel] ===
-      p.properties.manage.enabledLabelValue,
+      (p.properties.manage.enabledProjectMetadata.labels &&
+        Object.entries(p.properties.manage.enabledProjectMetadata.labels).every(
+          ([key, value]) => project.metadata.labels?.[key] === value,
+        )) ||
+      (p.properties.manage.enabledProjectMetadata.annotations &&
+        Object.entries(p.properties.manage.enabledProjectMetadata.annotations).every(
+          ([key, value]) => project.metadata.annotations?.[key] === value,
+        )),
   ) ?? null;
 
 export const useProjectServingPlatform = (
