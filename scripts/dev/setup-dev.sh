@@ -3,7 +3,7 @@
 set -e
 
 # source operators script for local setup
-. ../../install/dev/operators.sh
+. ./install/dev/operators.sh
 
 # Color codes for output
 RED='\033[0;31m'
@@ -71,30 +71,34 @@ container_create_env_file() {
   local crc_pull_secret_path=""
   local oc_cli_tarball=""
   local container_builder
-  local container_development="false"
+  # local container_development="false"
 
-  echo ""
-  echo "Develop environment in containers or locally?"
-  echo "1) Container (Docker or Podman)"
-  echo "2) Local (without containers)"
-  while true; do
-    read -p "Enter your choice (1 or 2): " dev_choice
-    case $dev_choice in
-    1)
-      log_info "Using container setup"
-      container_development="true"
-      break
-      ;;
-    2)
-      log_info "Using local setup"
-      container_development="false"
-      break
-      ;;
-    *)
-      echo "Please enter 1 or 2"
-      ;;
-    esac
-  done
+  # echo ""
+  # echo "Develop environment in containers or locally?"
+  # echo "1) Container (Docker or Podman)"
+  # echo "2) Local (without containers)"
+  # while true; do
+  #   read -p "Enter your choice (1 or 2): " dev_choice
+  #   case $dev_choice in
+  #   1)
+  #     log_info "Using container setup"
+  #     container_development="true"
+  #     break
+  #     ;;
+  #   2)
+  #     log_info "Using local setup"
+  #     container_development="false"
+  #     break
+  #     ;;
+  #   *)
+  #     echo "Please enter 1 or 2"
+  #     ;;
+  #   esac
+  # done
+  # case $SETUP_CHOICE in
+  #   "local")
+  #     container_development="false"
+  #   ""
 
   # Ask user for cluster type
   echo ""
@@ -282,7 +286,6 @@ EOF
 # Development Configuration
 NODE_ENV=development
 NODE_TLS_REJECT_UNAUTHORIZED=0
-CONTAINER_DEVELOPMENT=${container_development}
 
 # Docker Configuration
 CONTAINER_BUILDER=${container_builder}
@@ -442,14 +445,17 @@ local_show_completed_message() {
 
 main() {
   echo "OpenDataHub Dashboard Development Setup"
-  read -p "Would you like to develop locally or in a container? (container/local) [default: local]: " setup_choice
-  local setup_type="${1:-local}"
+  read -p "Would you like to develop locally or in a container? (container/local) [default: local]: " SETUP_CHOICE
 
-  case $setup_type in
+  if [ -z "$SETUP_CHOICE" ]; then
+    SETUP_CHOICE="local"
+  fi
+
+  case $SETUP_CHOICE in
   "container")
     log_info "Using container setup"
     container_check_prerequisites
-    container_create_env_files
+    container_create_env_file
     container_show_completed_message
     ;;
   "local")
@@ -461,7 +467,7 @@ main() {
     local_show_completed_message
     ;;
   *)
-    log_error "Invalid setup type: $setup_type"
+    log_error "Invalid setup type: $SETUP_CHOICE"
     log_info "Usage: $0 [container|local]"
     exit 1
     ;;
