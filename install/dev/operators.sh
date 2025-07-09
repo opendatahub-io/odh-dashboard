@@ -149,13 +149,14 @@ install_cluster_operators() {
   done
 
   if [ ${#missing_operators[@]} -eq 0 ]; then
-    log_info "All expected operators are already installed."
-    return 0
-  fi
-
-  # return 0
-
-  if ! oc apply -f ./install/dev/operators.yml; then
+    log_info "Found all expected operators"
+    if oc get dscinitialization default-dsci >/dev/null 2>&1; then
+      if oc get datasciencecluster default-dsc >/dev/null 2>&1; then
+        log_info "Found existing DSC and DSCI. Not applying DSCI or DSC file again."
+        return 0
+      fi
+    fi
+  elif ! oc apply -f ./install/dev/operators.yml; then
     log_error "Failed to install operators."
     exit 1
   fi

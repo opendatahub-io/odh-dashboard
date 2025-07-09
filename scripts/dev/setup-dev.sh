@@ -145,20 +145,20 @@ container_create_env_file() {
     read -p "Enter your OpenShift cluster URL (e.g., https://api.cluster.example.com:6443): " oc_url
 
     # get oc cli tarball
-    echo ""
-    echo "Enter the path to your OpenShift CLI (oc)"
-
-    while true; do
-      read -e -p "Path: " oc_cli_tarball
-      if [ -f "$oc_cli_tarball" ]; then
-        oc_cli_tarball=$(realpath "$oc_cli_tarball")
-        log_success "OC CLI tarball found at: $oc_cli_tarball"
-        break
-      else
-        log_error "OC CLI tarball not found at: $oc_cli_tarball"
-        echo "Please enter a valid path to your OpenShift CLI tarball."
-      fi
-    done
+    # echo ""
+    # echo "Enter the path to your OpenShift CLI (oc)"
+    #
+    # while true; do
+    #   read -e -p "Path: " oc_cli_tarball
+    #   if [ -f "$oc_cli_tarball" ]; then
+    #     oc_cli_tarball=$(realpath "$oc_cli_tarball")
+    #     log_success "OC CLI tarball found at: $oc_cli_tarball"
+    #     break
+    #   else
+    #     log_error "OC CLI tarball not found at: $oc_cli_tarball"
+    #     echo "Please enter a valid path to your OpenShift CLI tarball."
+    #   fi
+    # done
 
     echo ""
     echo "Authentication method:"
@@ -325,7 +325,7 @@ container_show_completed_message() {
 local_check_prerequisities() {
   # requires oc, tar, node, npm
 
-  local required_tools=("tar" "node" "npm")
+  local required_tools=("tar" "node" "npm" "yq")
   local missing_tools=()
 
   for tool in "${required_tools[@]}"; do
@@ -357,7 +357,7 @@ local_setup_oc() {
       *) echo "Unsupported architecture: ${ARCH}" && exit 1 ;;
       esac
 
-      sudo wget -qO- "https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable/${OCP_ARCH}.tar.gz" | tar zxv -C /usr/local/bin/ oc kubectl
+      sudo wget -qO- "https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable/${OCP_ARCH}.tar.gz" | sudo tar zxv -C /usr/local/bin/ oc kubectl
 
       log_success "OpenShift CLI (oc) installed successfully in /usr/local/bin"
 
@@ -371,6 +371,19 @@ local_setup_oc() {
   if ! oc cluster-info >/dev/null 2>&1; then
     log_error "OpenShift CLI (oc) is not logged in to a cluster."
     read -p "Do you want to log in now? (y/N): " login_oc
+
+    if [ -n "$OC_URL" ] && [ -n "$OC_USER" ] && [ -n "$OC_PASSWORD" ]; then
+      log_info "Using existing OpenShift cluster credentials from environment variables."
+      return
+    elif [ -n "$OC_URL" ] && [ -n "$OC_TOKEN" ]; then
+      log_info "Using existing OpenShift token from environment variable."
+      return
+    elif [ "$login_oc" == "y" ] || [ "$login_oc" == "Y" ]; then
+      log_info "Logging in to OpenShift cluster..."
+    else
+      log_error "Cannot proceed without logging in to OpenShift cluster. Please login manually or via this script. Exiting."
+      exit 1
+    fi
 
     if [ "$login_oc" == "y" ] || [ "$login_oc" == "Y" ]; then
       read -p "Enter your OpenShift cluster API URL (e.g. https://api.xxx.openshiftapps.com:443) " oc_url
@@ -386,7 +399,8 @@ local_setup_oc() {
       exit 1
     fi
   else
-    local cluster_info=eval "$(oc cluster-info)"
+    local cluster_info
+    cluster_info=$(oc cluster-info)
     log_info "OpenShift CLI (oc) is already logged in to a cluster. Use oc login to switch clusters."
     log_info "$cluster_info"
   fi
@@ -401,17 +415,18 @@ local_setup_cluster() {
 }
 
 local_install_node_dependencies() {
-  log_step "Installing Node.js dependencies..."
+  log_step "Installing Node.js dependencies and building project..."
 
   local install_node_deps
-  read -p "Install Node.js dependencies? (y/N): " install_node_deps
+  read -p "Install Node.js dependencies and build project? (y/N): " install_node_deps
 
-  if [ "install_node_deps" != "y" ] && [ "$install_node_deps" != "Y" ]; then
+  if [ "$install_node_deps" != "y" ] && [ "$install_node_deps" != "Y" ]; then
     log_info "Skipping Node.js dependencies installation."
     return
   fi
 
   npm install
+  npm run build
 
   # if [ ! -d "backend/node_modules" ]; then
   #   log_info "Installing backend dependencies..."
@@ -435,11 +450,12 @@ local_show_completed_message() {
   echo "Setup completed successfully!"
   echo ""
   echo "Next steps:"
-  echo "1. Start the development environment:"
+  echo -e "1. ${CYAN}npm install && npm run build${NC} if not done automatically."
+  echo "2. Start the development environment:"
   echo -e "   ${CYAN}cd frontend && npm run start:dev:ext${NC}"
   echo -e "   ${CYAN}npm run dev${NC}"
   echo ""
-  echo "2. Access the dashboard at:"
+  echo "3. Access the dashboard at:"
   echo -e "   ${CYAN}http://localhost:4010${NC}"
 }
 
