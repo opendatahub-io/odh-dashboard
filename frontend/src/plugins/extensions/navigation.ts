@@ -108,107 +108,6 @@ const extensions: NavExtension[] = [
   },
   {
     type: 'app.navigation/section',
-    flags: {
-      required: [SupportedArea.FEATURE_STORE],
-    },
-    properties: {
-      id: 'feature-store',
-      title: 'Feature Store',
-    },
-  },
-  {
-    type: 'app.navigation/href',
-    flags: {
-      required: [SupportedArea.FEATURE_STORE],
-    },
-    properties: {
-      id: 'overview',
-      title: 'Overview',
-      href: '/featureStore/overview',
-      section: 'feature-store',
-      path: '/featureStore/overview/*',
-    },
-  },
-  {
-    type: 'app.navigation/href',
-    flags: {
-      required: [SupportedArea.FEATURE_STORE],
-    },
-    properties: {
-      id: 'entities',
-      title: 'Entities',
-      href: '/featureStore/entities',
-      section: 'feature-store',
-      path: '/featureStore/entities/*',
-    },
-  },
-  {
-    type: 'app.navigation/href',
-    flags: {
-      required: [SupportedArea.FEATURE_STORE],
-    },
-    properties: {
-      id: 'data-sources',
-      title: 'Data Sources',
-      href: '/featureStore/data-sources',
-      section: 'feature-store',
-      path: '/featureStore/data-sources/*',
-    },
-  },
-  {
-    type: 'app.navigation/href',
-    flags: {
-      required: [SupportedArea.FEATURE_STORE],
-    },
-    properties: {
-      id: 'data-sets',
-      title: 'Data Sets',
-      href: '/featureStore/data-sets',
-      section: 'feature-store',
-      path: '/featureStore/data-sets/*',
-    },
-  },
-  {
-    type: 'app.navigation/href',
-    flags: {
-      required: [SupportedArea.FEATURE_STORE],
-    },
-    properties: {
-      id: 'features',
-      title: 'Features',
-      href: '/featureStore/features',
-      section: 'feature-store',
-      path: '/featureStore/features/*',
-    },
-  },
-  {
-    type: 'app.navigation/href',
-    flags: {
-      required: [SupportedArea.FEATURE_STORE],
-    },
-    properties: {
-      id: 'feature-views',
-      title: 'Feature Views',
-      href: '/featureStore/feature-views',
-      section: 'feature-store',
-      path: '/featureStore/feature-views/*',
-    },
-  },
-  {
-    type: 'app.navigation/href',
-    flags: {
-      required: [SupportedArea.FEATURE_STORE],
-    },
-    properties: {
-      id: 'feature-services',
-      title: 'Feature Services',
-      href: '/featureStore/feature-services',
-      section: 'feature-store',
-      path: '/featureStore/feature-services/*',
-    },
-  },
-  {
-    type: 'app.navigation/section',
     properties: {
       id: 'pipelines-and-runs',
       title: 'Data science pipelines',
@@ -289,7 +188,107 @@ const extensions: NavExtension[] = [
       path: '/artifacts/*',
     },
   },
-
+  {
+    type: 'app.navigation/section',
+    flags: {
+      required: [SupportedArea.FEATURE_STORE],
+    },
+    properties: {
+      id: 'feature-store',
+      title: 'Feature store',
+    },
+  },
+  {
+    type: 'app.navigation/href',
+    flags: {
+      required: [SupportedArea.FEATURE_STORE],
+    },
+    properties: {
+      id: 'overview',
+      title: 'Overview',
+      href: '/featureStore/overview',
+      section: 'feature-store',
+      path: '/featureStore/overview/*',
+    },
+  },
+  {
+    type: 'app.navigation/href',
+    flags: {
+      required: [SupportedArea.FEATURE_STORE],
+    },
+    properties: {
+      id: 'entities',
+      title: 'Entities',
+      href: '/featureStore/entities',
+      section: 'feature-store',
+      path: '/featureStore/entities/*',
+    },
+  },
+  {
+    type: 'app.navigation/href',
+    flags: {
+      required: [SupportedArea.FEATURE_STORE],
+    },
+    properties: {
+      id: 'data-sources',
+      title: 'Data sources',
+      href: '/featureStore/data-sources',
+      section: 'feature-store',
+      path: '/featureStore/data-sources/*',
+    },
+  },
+  {
+    type: 'app.navigation/href',
+    flags: {
+      required: [SupportedArea.FEATURE_STORE],
+    },
+    properties: {
+      id: 'data-sets',
+      title: 'Data sets',
+      href: '/featureStore/data-sets',
+      section: 'feature-store',
+      path: '/featureStore/data-sets/*',
+    },
+  },
+  {
+    type: 'app.navigation/href',
+    flags: {
+      required: [SupportedArea.FEATURE_STORE],
+    },
+    properties: {
+      id: 'features',
+      title: 'Features',
+      href: '/featureStore/features',
+      section: 'feature-store',
+      path: '/featureStore/features/*',
+    },
+  },
+  {
+    type: 'app.navigation/href',
+    flags: {
+      required: [SupportedArea.FEATURE_STORE],
+    },
+    properties: {
+      id: 'feature-views',
+      title: 'Feature views',
+      href: '/featureStore/feature-views',
+      section: 'feature-store',
+      path: '/featureStore/feature-views/*',
+    },
+  },
+  {
+    type: 'app.navigation/href',
+    flags: {
+      required: [SupportedArea.FEATURE_STORE],
+    },
+    properties: {
+      id: 'feature-services',
+      title: 'Feature services',
+      href: '/featureStore/feature-services',
+      section: 'feature-store',
+      path: '/featureStore/feature-services/*',
+    },
+  },
   {
     type: 'app.navigation/href',
     flags: {
