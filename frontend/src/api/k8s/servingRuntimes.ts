@@ -148,7 +148,7 @@ export const assembleServingRuntime = (
 
       return {
         ...containerWithoutResources,
-        ...(isModelMesh && isLegacyHardwareProfile ? { resources } : {}),
+        ...(isModelMesh ? { resources } : {}),
         volumeMounts,
       };
     },

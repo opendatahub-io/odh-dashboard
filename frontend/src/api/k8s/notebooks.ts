@@ -169,7 +169,7 @@ export const assembleNotebook = (
                 },
               ],
               envFrom,
-              resources: isLegacyHardwareProfile ? resources : undefined,
+              resources,
               volumeMounts,
               ports: [
                 {

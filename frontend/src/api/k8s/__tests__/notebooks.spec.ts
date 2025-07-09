@@ -316,22 +316,20 @@ describe('assembleNotebook', () => {
     );
   });
 
-  it('should set pod spec for legacy hardware profiles', () => {
+  it('should set pod specs like tolerations and nodeSelector for legacy hardware profiles', () => {
     const notebookData = mockStartNotebookData({});
     notebookData.podSpecOptions.selectedHardwareProfile = mockHardwareProfile({
       annotations: { 'opendatahub.io/is-legacy-profile': 'true' },
     });
     const result = assembleNotebook(notebookData, 'test-user');
-    expect(result.spec.template.spec.containers[0].resources).toBeDefined();
     expect(result.spec.template.spec.tolerations).toBeDefined();
     expect(result.spec.template.spec.nodeSelector).toBeDefined();
   });
 
-  it('should not set pod spec for real hardware profiles', () => {
+  it('should not set pod specs like tolerations and nodeSelector for real hardware profiles', () => {
     const notebookData = mockStartNotebookData({});
     notebookData.podSpecOptions.selectedHardwareProfile = mockHardwareProfile({});
     const result = assembleNotebook(notebookData, 'test-user');
-    expect(result.spec.template.spec.containers[0].resources).toBeUndefined();
     expect(result.spec.template.spec.tolerations).toBeUndefined();
     expect(result.spec.template.spec.nodeSelector).toBeUndefined();
   });

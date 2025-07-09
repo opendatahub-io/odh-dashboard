@@ -269,7 +269,7 @@ describe('assembleServingRuntime', () => {
     );
   });
 
-  it('should set pod spec for legacy hardware profiles on modelmesh', () => {
+  it('should set pod specs like tolerations and nodeSelector for legacy hardware profiles on modelmesh', () => {
     const podSpecOptions = mockModelServingPodSpecOptions({
       selectedHardwareProfile: mockHardwareProfile({
         annotations: { 'opendatahub.io/is-legacy-profile': 'true' },
@@ -284,12 +284,11 @@ describe('assembleServingRuntime', () => {
       false,
       true,
     );
-    expect(result.spec.containers[0].resources).toBeDefined();
     expect(result.spec.tolerations).toBeDefined();
     expect(result.spec.nodeSelector).toBeDefined();
   });
 
-  it('should not set pod spec for real hardware profiles on modelmesh', () => {
+  it('should not set pod specs like tolerations and nodeSelector for real hardware profiles on modelmesh', () => {
     const podSpecOptions = mockModelServingPodSpecOptions({
       selectedHardwareProfile: mockHardwareProfile({}),
     });
@@ -302,7 +301,6 @@ describe('assembleServingRuntime', () => {
       false,
       true,
     );
-    expect(result.spec.containers[0].resources).toBeUndefined();
     expect(result.spec.tolerations).toBeUndefined();
     expect(result.spec.nodeSelector).toBeUndefined();
   });
