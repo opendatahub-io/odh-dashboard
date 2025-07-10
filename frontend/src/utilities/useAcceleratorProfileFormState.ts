@@ -31,15 +31,6 @@ const useAcceleratorProfileFormState = (
   namespace?: string,
   acceleratorProfileNamespace?: string,
 ): UseAcceleratorProfileFormResult => {
-  const { dashboardNamespace } = useDashboardNamespace();
-
-  // Get the actual loading state from useAcceleratorProfiles
-  const [, globalProfilesLoaded, globalProfilesLoadError] =
-    useAcceleratorProfiles(dashboardNamespace);
-  const [, projectProfilesLoaded, projectProfilesLoadError] = useAcceleratorProfiles(
-    namespace ?? dashboardNamespace,
-  );
-
   const [globalScopedInitialState, globalScopedLoaded, globalScopedLoadError, refresh] =
     useReadAcceleratorState(resources, tolerations, existingAcceleratorProfileName);
   const [projectScopedInitialState, projectScopedLoaded, projectScopedLoadError] =
@@ -51,16 +42,11 @@ const useAcceleratorProfileFormState = (
       acceleratorProfileNamespace,
     );
 
-  const loaded = namespace
-    ? projectScopedLoaded && globalScopedLoaded && projectProfilesLoaded && globalProfilesLoaded
-    : globalScopedLoaded && globalProfilesLoaded;
+  const loaded = namespace ? projectScopedLoaded && globalScopedLoaded : globalScopedLoaded;
 
   const loadError = namespace
-    ? projectScopedLoadError ||
-      globalScopedLoadError ||
-      projectProfilesLoadError ||
-      globalProfilesLoadError
-    : globalScopedLoadError || globalProfilesLoadError;
+    ? projectScopedLoadError || globalScopedLoadError
+    : globalScopedLoadError;
 
   const initialState = React.useMemo(() => {
     // Check if project-scoped feature flag is off but workbench has project-scoped profile
