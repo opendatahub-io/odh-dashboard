@@ -40,6 +40,7 @@ import {
 } from './const';
 import { configureDSPipelineResourceSpec, objectStorageIsValid } from './utils';
 import { PipelineServerConfigType } from './types';
+import PipelinesAdditionalConfigurationSection from './PipelinesAdditionalConfigurationSection';
 
 type ConfigurePipelinesServerModalProps = {
   onClose: () => void;
@@ -49,6 +50,7 @@ const FORM_DEFAULTS: PipelineServerConfigType = {
   database: { useDefault: true, value: EMPTY_DATABASE_CONNECTION },
   objectStorage: { newValue: EMPTY_AWS_PIPELINE_DATA },
   enableInstructLab: false,
+  storeYamlInKubernetes: false,
 };
 
 const serverConfiguredEvent = 'Pipeline Server Configured';
@@ -240,6 +242,7 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
               {isFineTuningAvailable && (
                 <SamplePipelineSettingsSection setConfig={setConfig} config={config} />
               )}
+              <PipelinesAdditionalConfigurationSection setConfig={setConfig} config={config} />
             </Form>
           </StackItem>
         </Stack>
