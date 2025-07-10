@@ -1,7 +1,9 @@
 import React from 'react';
-import { ModelRegistryKind } from 'mod-arch-shared';
+import { FetchStateObject } from 'mod-arch-shared/dist/types/common';
+import { ModelRegistryKind, RoleBindingKind } from 'mod-arch-shared';
 type ModelRegistriesTableRowProps = {
     modelRegistry: ModelRegistryKind;
+    roleBindings: FetchStateObject<RoleBindingKind[]>;
     onEditRegistry: (obj: ModelRegistryKind) => void;
     onDeleteRegistry: (obj: ModelRegistryKind) => void;
 };

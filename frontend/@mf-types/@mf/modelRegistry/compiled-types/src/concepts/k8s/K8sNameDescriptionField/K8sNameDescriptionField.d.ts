@@ -1,7 +1,12 @@
 import * as React from 'react';
 /** Companion data hook */
+type NameDescType = {
+    name: string;
+    description: string;
+};
 type K8sNameDescriptionFieldProps = {
-    autoFocusName?: boolean;
+    data: NameDescType;
+    onDataChange: (data: NameDescType) => void;
     dataTestId: string;
     descriptionLabel?: string;
     nameLabel?: string;
