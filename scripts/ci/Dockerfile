@@ -30,13 +30,13 @@ RUN chmod -R 777 "$CYPRESS_CACHE"
 # Install tools including Xvfb and Chrome
 RUN dnf update -y
 RUN dnf install --nodocs -y \
-  wget \
-  unzip \
-  xz \
-  jq \
-  git \
-  xorg-x11-server-Xvfb \
-  "$CHROME"
+    wget \
+    unzip \
+    xz \
+    jq \
+    git \
+    xorg-x11-server-Xvfb \
+    "$CHROME"
 
 # Install OCP client
 RUN wget -qO- "$OCP_CLI" | tar zxv -C /usr/local/bin/ oc kubectl
@@ -65,13 +65,13 @@ RUN mkdir -p $NVM_DIR
 # Install Node Version Manager, NodeJS and the packages for CI (package-lock.json)
 RUN curl -o- $NVM_INSTALLER | bash
 RUN /bin/bash -c "source $NVM_DIR/nvm.sh && \
-  nvm install $NODE_VERSION && \
-  nvm use --delete-prefix $NODE_VERSION && \
-  npm config set prefix '$NPM_CACHE' && \
-  echo 'export PATH=$PATH' >> '$USER_HOME/.profile' && \
-  source $USER_HOME/.profile && \
-  npm cache -g clean --force && \
-  npm ci --cache=$NPM_CACHE"
+    nvm install $NODE_VERSION && \
+    nvm use --delete-prefix $NODE_VERSION && \
+    npm config set prefix '$NPM_CACHE' && \
+    echo 'export PATH=$PATH' >> '$USER_HOME/.profile' && \
+    source $USER_HOME/.profile && \
+    npm cache -g clean --force && \
+    npm ci --cache=$NPM_CACHE"
 
 # Export NPM and Cypress Cache directories (to be accesible by rootless user)
 ENV NPM_CONFIG_CACHE $NPM_CACHE
@@ -79,7 +79,7 @@ ENV CYPRESS_CACHE_FOLDER $CYPRESS_CACHE
 
 # Label the Image
 LABEL io.opendatahub.component="odh-cypress" \
-  io.k8s.display-name="odh-cypress" \
-  name="open-data-hub/odh-cypress" \
-  summary="odh-cypress" \
-  description="Image for Running Cypress Tests for Open Data Hub Dashboard"
+      io.k8s.display-name="odh-cypress" \
+      name="open-data-hub/odh-cypress" \
+      summary="odh-cypress" \
+      description="Image for Running Cypress Tests for Open Data Hub Dashboard"
