@@ -262,7 +262,6 @@ EOF
     cat >>"$local_env_file" <<EOF
 # Existing Cluster Configuration
 OC_URL=$oc_url
-OC_CLI_TARBALL=$oc_cli_tarball
 EOF
 
     if [ -n "$oc_token" ]; then
@@ -368,42 +367,32 @@ local_setup_oc() {
   fi
 
   # check if oc is logged in to a cluster
-  if ! oc cluster-info >/dev/null 2>&1; then
-    log_error "OpenShift CLI (oc) is not logged in to a cluster."
-    read -p "Do you want to log in now? (y/N): " login_oc
+  # read -p "Do you want to log in now? (y/N): " login_oc
 
-    if [ -n "$OC_URL" ] && [ -n "$OC_USER" ] && [ -n "$OC_PASSWORD" ]; then
-      log_info "Using existing OpenShift cluster credentials from environment variables."
-      return
-    elif [ -n "$OC_URL" ] && [ -n "$OC_TOKEN" ]; then
-      log_info "Using existing OpenShift token from environment variable."
-      return
-    elif [ "$login_oc" == "y" ] || [ "$login_oc" == "Y" ]; then
-      log_info "Logging in to OpenShift cluster..."
-    else
-      log_error "Cannot proceed without logging in to OpenShift cluster. Please login manually or via this script. Exiting."
-      exit 1
-    fi
-
-    if [ "$login_oc" == "y" ] || [ "$login_oc" == "Y" ]; then
-      read -p "Enter your OpenShift cluster API URL (e.g. https://api.xxx.openshiftapps.com:443) " oc_url
-      read -p "Enter your OpenShift username: " oc_user
-      read -s -p "Enter your OpenShift password: " oc_password
-      echo ""
-
-      export OC_URL="$oc_url"
-      export OC_USER="$oc_user"
-      export OC_PASSWORD="$oc_password"
-    else
-      log_error "Cannot proceed without logging in to OpenShift cluster. Please login manually or via this script. Exiting."
-      exit 1
-    fi
+  if [ -n "$OC_URL" ] && [ -n "$OC_USER" ] && [ -n "$OC_PASSWORD" ]; then
+    log_info "Using existing OpenShift cluster credentials from environment variables."
+    return
+  elif [ -n "$OC_URL" ] && [ -n "$OC_TOKEN" ]; then
+    log_info "Using existing OpenShift token from environment variable."
+    return
   else
-    local cluster_info
-    cluster_info=$(oc cluster-info)
-    log_info "OpenShift CLI (oc) is already logged in to a cluster. Use oc login to switch clusters."
-    log_info "$cluster_info"
+    log_info "Logging in to OpenShift cluster..."
   fi
+
+  read -p "Enter your OpenShift cluster API URL (e.g. https://api.xxx.openshiftapps.com:443) " oc_url
+  read -p "Enter your OpenShift username: " oc_user
+  read -s -p "Enter your OpenShift password: " oc_password
+  echo ""
+
+  export OC_URL="$oc_url"
+  export OC_USER="$oc_user"
+  export OC_PASSWORD="$oc_password"
+  # else
+  #   local cluster_info
+  #   cluster_info=$(oc cluster-info)
+  #   log_info "OpenShift CLI (oc) is already logged in to a cluster. Use oc login to switch clusters."
+  #   log_info "$cluster_info"
+  # fi
 
   log_success "OpenShift CLI (oc) setup successful."
 
@@ -452,8 +441,9 @@ local_show_completed_message() {
   echo "Next steps:"
   echo -e "1. ${CYAN}npm install && npm run build${NC} if not done automatically."
   echo "2. Start the development environment:"
-  echo -e "   ${CYAN}cd frontend && npm run start:dev:ext${NC}"
-  echo -e "   ${CYAN}npm run dev${NC}"
+  echo -e "   For frontend only (backed in cluster): ${CYAN}cd frontend && npm run start:dev:ext${NC}"
+  echo -e "   For both backend and frontend${CYAN}npm run dev${NC}"
+  echo -e "   ${CYAN}npm run start:dev${NC} in /frontend and /backend for each component separately."
   echo ""
   echo "3. Access the dashboard at:"
   echo -e "   ${CYAN}http://localhost:4010${NC}"

@@ -28,7 +28,7 @@ git clone https://github.com/opendatahub-io/odh-dashboard
 There is a quick start script that will install the required dependencies and run the project in development mode.
 
 ```bash
-make dev-setup
+cd odh-dashboard && make dev-setup
 ```
 
 - This script will install OpenShift CLI (oc), login to an existing cluster, setup the required operators, install node dependencies, and build the project.
