@@ -1127,6 +1127,35 @@ describe('Model Serving Global', () => {
       modelServingGlobal.findEmptyResults().should('exist');
     });
 
+    it('Sort model by last deployed', () => {
+      const inferenceServiceNew = mockInferenceServiceK8sResource({
+        namespace: 'test-project',
+        displayName: 'New Model',
+        modelName: 'test-inference-service-latest',
+        lastTransitionTime: '2025-07-10T12:12:41Z',
+      });
+      const inferenceServiceOld = mockInferenceServiceK8sResource({
+        namespace: 'test-project',
+        displayName: 'Old Model',
+        modelName: 'test-inference-service-outdated',
+        lastTransitionTime: '2024-09-04T16:12:41Z',
+      });
+      initIntercepts({
+        inferenceServices: [inferenceServiceNew, inferenceServiceOld],
+      });
+
+      modelServingGlobal.visit('test-project');
+
+      modelServingGlobal.findSortButton('Last Deployed').click();
+      modelServingGlobal.findSortButton('Last Deployed').should(be.sortAscending);
+      modelServingGlobal.findSortButton('Last Deployed').click();
+      modelServingGlobal.findSortButton('Last Deployed').should(be.sortDescending);
+
+      modelServingSection.getInferenceServiceRow('Old Model');
+      cy.findByText('10 months ago').trigger('mouseenter');
+      cy.findByRole('tooltip').should('contain.text', '9/4/2024, 4:12:41 PM UTC');
+    });
+
     it('Validate pagination', () => {
       const totalItems = 50;
       const mockInferenceService: InferenceServiceKind[] = Array.from(

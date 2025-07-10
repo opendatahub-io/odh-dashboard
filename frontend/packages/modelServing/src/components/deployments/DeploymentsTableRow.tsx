@@ -22,6 +22,8 @@ import {
   isModelServingDeploymentsExpandedInfo,
   isModelServingMetricsExtension,
 } from '../../../extension-points';
+import InferenceServiceLastDeployed from '../../../../../src/pages/modelServing/screens/global/InferenceServiceLastDeployed';
+import { InferenceServiceKind } from '../../../../../src/k8sTypes';
 
 export const DeploymentRow: React.FC<{
   deployment: Deployment;
@@ -94,6 +96,12 @@ export const DeploymentRow: React.FC<{
           ) : (
             <Content component={ContentVariants.small}>Not defined</Content>
           )}
+        </Td>
+        <Td dataLabel="Last Deployed">
+          <InferenceServiceLastDeployed
+            // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+            inferenceService={deployment.model as InferenceServiceKind}
+          />
         </Td>
         <Td dataLabel="Status">
           <ModelStatusIcon

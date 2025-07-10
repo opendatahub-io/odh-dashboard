@@ -9,20 +9,22 @@ import { isModelMesh } from '#~/pages/modelServing/utils';
 import { SupportedArea } from '#~/concepts/areas';
 import useIsAreaAvailable from '#~/concepts/areas/useIsAreaAvailable';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
-import { byName, ProjectsContext } from '#~/concepts/projects/ProjectsContext';
-import { isProjectNIMSupported } from '#~/pages/modelServing/screens/projects/nimUtils';
-import useServingPlatformStatuses from '#~/pages/modelServing/useServingPlatformStatuses';
 import StateActionToggle from '#~/components/StateActionToggle';
 import { patchInferenceServiceStoppedStatus } from '#~/api/k8s/inferenceServices';
-import useStopModalPreference from '#~/pages/modelServing/useStopModalPreference.ts';
+import { byName, ProjectsContext } from '#~/concepts/projects/ProjectsContext';
+import useStopModalPreference from '#~/pages/modelServing/useStopModalPreference';
+import { isProjectNIMSupported } from '#~/pages/modelServing/screens/projects/nimUtils';
 import ModelServingStopModal from '#~/pages/modelServing/ModelServingStopModal';
-import { useInferenceServiceStatus } from '#~/pages/modelServing/useInferenceServiceStatus.ts';
+import { getInferenceServiceModelState } from '#~/concepts/modelServingKServe/kserveStatusUtils';
+import { InferenceServiceModelState } from '#~/pages/modelServing/screens/types';
+import useServingPlatformStatuses from '#~/pages/modelServing/useServingPlatformStatuses';
 import InferenceServiceEndpoint from './InferenceServiceEndpoint';
 import InferenceServiceProject from './InferenceServiceProject';
 import InferenceServiceStatus from './InferenceServiceStatus';
 import InferenceServiceServingRuntime from './InferenceServiceServingRuntime';
 import InferenceServiceAPIProtocol from './InferenceServiceAPIProtocol';
 import { ColumnField } from './data';
+import InferenceServiceLastDeployed from './InferenceServiceLastDeployed';
 
 type InferenceServiceTableRowProps = {
   obj: InferenceServiceKind;
@@ -137,6 +139,12 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
             servingRuntime={servingRuntime}
             isMultiModel={modelMeshMetricsSupported}
           />
+        </Td>
+      )}
+
+      {columnNames.includes(ColumnField.LastDeployed) && (
+        <Td dataLabel="Last Deployed">
+          <InferenceServiceLastDeployed inferenceService={inferenceService} />
         </Td>
       )}
 
