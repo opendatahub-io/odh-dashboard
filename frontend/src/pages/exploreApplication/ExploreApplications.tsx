@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import * as _ from 'lodash-es';
 import {
   Drawer,
@@ -12,7 +12,6 @@ import { useWatchComponents } from '#~/utilities/useWatchComponents';
 import OdhExploreCard from '#~/components/OdhExploreCard';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import { OdhApplication } from '#~/types';
-import { useQueryParams } from '#~/utilities/useQueryParams';
 import { removeQueryArgument, setQueryArgument } from '#~/utilities/router';
 import { ODH_PRODUCT_NAME } from '#~/utilities/const';
 import { useAppContext } from '#~/app/AppContext';
@@ -103,8 +102,8 @@ ExploreApplicationsInner.displayName = 'ExploreApplicationsInner';
 const ExploreApplications: React.FC = () => {
   const { components, loaded, loadError } = useWatchComponents(false);
   const navigate = useNavigate();
-  const queryParams = useQueryParams();
-  const selectedId = queryParams.get('selectId');
+  const [searchParams] = useSearchParams();
+  const selectedId = searchParams.get('selectId');
   const [selectedComponent, setSelectedComponent] = React.useState<OdhApplication>();
   const isEmpty = components.length === 0;
 

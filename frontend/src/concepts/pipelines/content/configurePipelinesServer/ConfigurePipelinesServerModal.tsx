@@ -24,9 +24,14 @@ import {
   NotificationWatcherContext,
 } from '#~/concepts/notificationWatcher/NotificationWatcherContext.tsx';
 import usePipelinesConnections from '#~/pages/projects/screens/detail/connections/usePipelinesConnections';
-import { FAST_POLL_INTERVAL, SERVER_TIMEOUT } from '#~/utilities/const.ts';
+import { FAST_POLL_INTERVAL } from '#~/utilities/const.ts';
 import { pipelinesBaseRoute } from '#~/routes/pipelines/global.ts';
 import { DSPipelineKind } from '#~/k8sTypes.ts';
+import {
+  dspaLoaded,
+  hasServerTimedOut,
+  isDspaAllReady,
+} from '#~/concepts/pipelines/context/usePipelineNamespaceCR';
 import { PipelinesDatabaseSection } from './PipelinesDatabaseSection';
 import { ObjectStorageSection } from './ObjectStorageSection';
 import {
@@ -51,14 +56,13 @@ const serverConfiguredEvent = 'Pipeline Server Configured';
 export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerModalProps> = ({
   onClose,
 }) => {
-  const { project, namespace } = usePipelinesAPI();
+  const { project, namespace, startingStatusModalOpenRef } = usePipelinesAPI();
   const [connections, loaded] = usePipelinesConnections(namespace);
   const [fetching, setFetching] = React.useState(false);
   const [error, setError] = React.useState<Error>();
   const [config, setConfig] = React.useState<PipelineServerConfigType>(FORM_DEFAULTS);
   const { registerNotification } = React.useContext(NotificationWatcherContext);
   const isFineTuningAvailable = useIsAreaAvailable(SupportedArea.FINE_TUNING).status;
-  const notification = useNotification();
   const navigate = useNavigate();
 
   const databaseIsValid = config.database.useDefault
@@ -108,27 +112,37 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
             onBeforeClose();
 
             const pollingNamespace = obj.metadata.namespace;
-            notification.info(`Waiting on pipeline server resources for ${pollingNamespace}...`);
             registerNotification({
-              callbackDelay: FAST_POLL_INTERVAL || 3000,
+              callbackDelay: FAST_POLL_INTERVAL,
               callback: async (signal: AbortSignal) => {
                 try {
-                  // check if polling for too long
-                  if (
-                    Date.now() - new Date(obj.metadata.creationTimestamp || Date.now()).getTime() >
-                    SERVER_TIMEOUT
-                  ) {
-                    throw Error(`${pollingNamespace} pipeline server creation timed out`);
+                  // This should emulate the logic in usePipelineNamespaceCR as much as possible
+                  const response = await listPipelinesCR(pollingNamespace, { signal });
+                  const serverLoaded = dspaLoaded([response[0], true]);
+                  const serverAllReady = isDspaAllReady([response[0], true]);
+
+                  if (hasServerTimedOut([response[0], true], serverLoaded)) {
+                    const errorMessage =
+                      response[0]?.status?.conditions?.find(
+                        (condition) => condition.type === 'Ready',
+                      )?.message || `${pollingNamespace} pipeline server creation timed out`;
+                    throw Error(errorMessage);
                   }
 
-                  const response = await listPipelinesCR(pollingNamespace, { signal });
+                  // User deleted pipeline server while waiting
+                  if (response.length === 0) {
+                    return {
+                      status: NotificationResponseStatus.STOP,
+                    };
+                  }
 
-                  // if we find an APIServerReady true condition, we know the pipeline server is ready
-                  if (
-                    response[0]?.status?.conditions?.find(
-                      (c) => c.type === 'APIServerReady' && c.status === 'True',
-                    )
-                  ) {
+                  if (serverLoaded && serverAllReady) {
+                    // If we're viewing the StartingStatusModal in the same namespace, we don't need to show the notification
+                    if (startingStatusModalOpenRef?.current === pollingNamespace) {
+                      return {
+                        status: NotificationResponseStatus.STOP,
+                      };
+                    }
                     return {
                       status: NotificationResponseStatus.SUCCESS,
                       title: `Pipeline server for ${pollingNamespace} is ready.`,
@@ -146,6 +160,11 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
                     status: NotificationResponseStatus.REPOLL,
                   };
                 } catch (e) {
+                  if (startingStatusModalOpenRef?.current === pollingNamespace) {
+                    return {
+                      status: NotificationResponseStatus.STOP,
+                    };
+                  }
                   return {
                     status: NotificationResponseStatus.ERROR,
                     title: `Error configuring pipeline server for ${pollingNamespace}`,

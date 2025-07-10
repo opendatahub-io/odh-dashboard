@@ -1,11 +1,6 @@
 import React from 'react';
-import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
-import {
-  Extension,
-  ExtensionPredicate,
-  ResolvedExtension,
-  useExtensions,
-} from '@openshift/dynamic-plugin-sdk';
+import { useResolvedExtensions, useExtensions } from '@odh-dashboard/plugin-core';
+import { Extension, ExtensionPredicate, ResolvedExtension } from '@openshift/dynamic-plugin-sdk';
 import { ModelServingPlatform } from './useProjectServingPlatform';
 import type { Deployment } from '../../extension-points';
 
@@ -43,13 +38,13 @@ export const useResolvedPlatformExtension = <T extends PlatformExtension>(
 
 export const useDeploymentExtension = <T extends PlatformExtension>(
   extensionPredicate: ExtensionPredicate<T>,
-  deployment: Deployment,
+  deployment?: Deployment,
 ): T | null => {
   const extensions = useExtensions<T>(extensionPredicate);
 
   return React.useMemo(
     () =>
-      extensions.find((ext) => ext.properties.platform === deployment.modelServingPlatformId) ??
+      extensions.find((ext) => ext.properties.platform === deployment?.modelServingPlatformId) ??
       null,
     [extensions, deployment],
   );
@@ -57,18 +52,18 @@ export const useDeploymentExtension = <T extends PlatformExtension>(
 
 export const useResolvedDeploymentExtension = <T extends PlatformExtension>(
   extensionPredicate: ExtensionPredicate<T>,
-  deployment: Deployment,
+  deployment?: Deployment | null,
 ): [ResolvedExtension<T> | null, boolean, unknown[]] => {
   const [resolvedExtensions, loaded, errors] = useResolvedExtensions<T>(extensionPredicate);
 
   return React.useMemo(
     () => [
       resolvedExtensions.find(
-        (ext) => ext.properties.platform === deployment.modelServingPlatformId,
+        (ext) => ext.properties.platform === deployment?.modelServingPlatformId,
       ) ?? null,
       loaded,
       errors,
     ],
-    [resolvedExtensions, deployment, loaded, errors],
+    [resolvedExtensions, deployment?.modelServingPlatformId, loaded, errors],
   );
 };

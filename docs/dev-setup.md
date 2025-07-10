@@ -17,6 +17,7 @@ ODH requires the following to run:
 
 ## Development
 
+<<<<<<< HEAD
 Clone the repository
 
 ```bash
@@ -44,12 +45,16 @@ cd odh-dashboard && make dev-setup
    - Ensure you have cluster-admin access to the cluster.
 
 3. Login to the OpenShift cluster using the OpenShift CLI (oc)
+=======
+1. Clone the repository
+>>>>>>> 1f55f81bfa04e47c4ccfed6e6ef66aa07195bb3e
 
    ```bash
    oc login <CLUSTER_URL> --token=<TOKEN>
    oc login <CLUSTER_URL> -u <USERNAME> -p <PASSWORD>
    ```
 
+<<<<<<< HEAD
 4. Install the required operators in the OpenShift cluster. You can find these in the OperatorHub or install them manually.
 
    - The ODH Dashboard requires the following operators to be installed for full functionality:
@@ -59,6 +64,9 @@ cd odh-dashboard && make dev-setup
      - [Red Hat OpenShift Service Mesh 2](https://github.com/Maistra/istio-operator)
 
 5. Within the repo context, we use `npm` to install project dependencies
+=======
+2. Within the repo context, we use `npm` to install project dependencies
+>>>>>>> 1f55f81bfa04e47c4ccfed6e6ef66aa07195bb3e
 
    ```bash
    cd odh-dashboard && npm install

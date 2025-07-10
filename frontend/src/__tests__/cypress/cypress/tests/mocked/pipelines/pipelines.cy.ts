@@ -90,6 +90,14 @@ describe('Pipelines', () => {
         mockSecretK8sResource({ s3Bucket: 'c2RzZA==', namespace: projectName }),
       ]),
     );
+
+    cy.interceptK8sList(
+      {
+        model: DataSciencePipelineApplicationModel,
+        ns: projectName,
+      },
+      mockK8sResourceList([mockDataSciencePipelineApplicationK8sResource({})]),
+    );
     pipelinesGlobal.findConfigurePipelineServerButton().should('be.enabled');
     pipelinesGlobal.findConfigurePipelineServerButton().click();
     configurePipelineServerModal.selectViableConnection('Test Secret •••••••••••••••••');
@@ -154,11 +162,21 @@ describe('Pipelines', () => {
         },
       });
     });
+
+    toastNotifications.findToastNotification(0).should('contain.text', 'Success alert');
   });
 
   it('Configure pipeline server when viable connection does not exist', () => {
     initIntercepts({ isEmpty: true });
     pipelinesGlobal.visit(projectName);
+
+    cy.interceptK8sList(
+      {
+        model: DataSciencePipelineApplicationModel,
+        ns: projectName,
+      },
+      mockK8sResourceList([mockDataSciencePipelineApplicationK8sResource({})]),
+    );
 
     cy.interceptK8s(
       'POST',
@@ -230,6 +248,8 @@ describe('Pipelines', () => {
         },
       });
     });
+
+    toastNotifications.findToastNotification(0).should('contain.text', 'Success alert');
   });
 
   it('Connect external database while configuring pipeline server', () => {

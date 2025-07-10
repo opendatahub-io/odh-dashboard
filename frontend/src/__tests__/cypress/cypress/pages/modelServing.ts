@@ -505,6 +505,22 @@ class KServeModal extends InferenceServiceModal {
     return this.find().findByTestId('max-replicas').findByRole('button', { name: 'Minus' });
   }
 
+  findCPURequestedCheckbox() {
+    return this.find().findByTestId('cpu-requested-checkbox');
+  }
+
+  findCPULimitCheckbox() {
+    return this.find().findByTestId('cpu-limit-checkbox');
+  }
+
+  findMemoryRequestedCheckbox() {
+    return this.find().findByTestId('memory-requested-checkbox');
+  }
+
+  findMemoryLimitCheckbox() {
+    return this.find().findByTestId('memory-limit-checkbox');
+  }
+
   findCPURequestedInput() {
     return this.find().findByTestId('cpu-requested-input').find('input');
   }
@@ -609,8 +625,11 @@ class KServeRow extends ModelMeshRow {
     return this.find().findByTestId('state-action-toggle');
   }
 
-  findStatusLabel(label: string) {
-    return this.find().findByTestId('model-status-text').should('include.text', label);
+  findStatusLabel(label?: string) {
+    if (label) {
+      return this.find().findByTestId('model-status-text').should('include.text', label);
+    }
+    return this.find().findByTestId('model-status-text');
   }
 }
 

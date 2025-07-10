@@ -1,9 +1,33 @@
 # Test data for model registry registration tests
 registryNamePrefix: "test-model-registry"
+
+# First model (Object Storage)
 objectStorageModelName: "test-object-storage-model"
-uriModelName: "test-uri-model"
+objectStorageModelDescription: "E2E test model using object storage"
 version1Name: "v1.0"
+version1Description: "First version of the object storage test model"
+modelFormatOnnx: "onnx"
+formatVersion1_0: "1.0"
+objectStorageEndpoint: "http://minio.example.com:9000"
+objectStorageBucket: "test-models"
+objectStorageRegion: "us-east-1"
+objectStoragePath: "models/test-model/v1.0"
+
+# Second model (URI)
+uriModelName: "test-uri-model"
+uriModelDescription: "E2E test model using URI"
+uriVersion1Description: "First version of the URI test model"
+modelFormatPytorch: "pytorch"
+formatVersion2_0: "2.0"
+uriPrimary: "s3://test-bucket/models/pytorch-model?endpoint=http%3A%2F%2Fminio.example.com%3A9000&defaultRegion=us-east-1"
+
+# New version registration (Versions view)
 version2Name: "v2.0"
+version2Description: "Second version registered via versions view"
+modelFormatTensorflow: "tensorflow"
+formatVersion3_0: "3.0"
+uriVersion2: "s3://test-bucket/models/tensorflow-model-v2?endpoint=http%3A%2F%2Fminio.example.com%3A9000&defaultRegion=us-east-1"
+
 newNameSuffix: "-edited"
 newDescription: "Updated description for e2e test"
   

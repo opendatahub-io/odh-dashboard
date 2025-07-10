@@ -1,9 +1,10 @@
 import * as React from 'react';
-import { FormGroup, Grid } from '@patternfly/react-core';
+import { Grid } from '@patternfly/react-core';
 import { ContainerResourceAttributes, ContainerResources } from '#~/types';
-import CPUField from '#~/components/CPUField';
-import MemoryField from '#~/components/MemoryField';
-import { ModelServingSize } from '#~/pages/modelServing/screens/types';
+import { CPUFieldWithCheckbox } from '#~/components/CPUField';
+import { MemoryFieldWithCheckbox } from '#~/components/MemoryField';
+import { useZodFormValidation } from '#~/hooks/useZodFormValidation.ts';
+import { ModelServingSize, modelServingSizeSchema } from './validationUtils';
 
 type ServingRuntimeSizeExpandedFieldProps = {
   data: ModelServingSize;
@@ -16,10 +17,16 @@ const ServingRuntimeSizeExpandedField = ({
   data,
   setData,
 }: ServingRuntimeSizeExpandedFieldProps): React.ReactNode => {
+  const { getFieldValidation, getFieldValidationProps } = useZodFormValidation(
+    data,
+    modelServingSizeSchema,
+    { ignoreTouchedFields: true },
+  );
+
   const handleChange = (
     type: ContainerResourceAttributes.CPU | ContainerResourceAttributes.MEMORY,
     variant: ResourceKeys,
-    value: string,
+    value: string | undefined,
   ) => {
     setData({
       ...data,
@@ -35,38 +42,80 @@ const ServingRuntimeSizeExpandedField = ({
 
   return (
     <Grid hasGutter md={6}>
-      <FormGroup label="CPUs requested">
-        <CPUField
-          onChange={(value) => handleChange(ContainerResourceAttributes.CPU, 'requests', value)}
-          value={data.resources.requests?.cpu}
-          max={data.resources.limits?.cpu}
-          dataTestId="cpu-requested"
-        />
-      </FormGroup>
-      <FormGroup label="Memory requested">
-        <MemoryField
-          onChange={(value) => handleChange(ContainerResourceAttributes.MEMORY, 'requests', value)}
-          value={data.resources.requests?.memory}
-          max={data.resources.limits?.memory}
-          dataTestId="memory-requested"
-        />
-      </FormGroup>
-      <FormGroup label="CPU limit">
-        <CPUField
-          onChange={(value) => handleChange(ContainerResourceAttributes.CPU, 'limits', value)}
-          value={data.resources.limits?.cpu}
-          min={data.resources.requests?.cpu}
-          dataTestId="cpu-limit"
-        />
-      </FormGroup>
-      <FormGroup label="Memory limit">
-        <MemoryField
-          onChange={(value) => handleChange(ContainerResourceAttributes.MEMORY, 'limits', value)}
-          value={data.resources.limits?.memory}
-          min={data.resources.requests?.memory}
-          dataTestId="memory-limit"
-        />
-      </FormGroup>
+      <CPUFieldWithCheckbox
+        checkboxId="cpu-requested-checkbox"
+        label="CPU requested"
+        onChange={(value) => {
+          if (value === undefined) {
+            setData({
+              ...data,
+              resources: {
+                ...data.resources,
+                requests: { ...data.resources.requests, cpu: undefined },
+                limits: { ...data.resources.limits, cpu: undefined },
+              },
+            });
+          } else {
+            handleChange(ContainerResourceAttributes.CPU, 'requests', value);
+          }
+        }}
+        value={data.resources.requests?.cpu}
+        validated={getFieldValidationProps(['resources', 'requests', 'cpu']).validated}
+        zodIssue={getFieldValidation(['resources', 'requests', 'cpu'])}
+        dataTestId="cpu-requested"
+      />
+      <MemoryFieldWithCheckbox
+        checkboxId="memory-requested-checkbox"
+        label="Memory requested"
+        onChange={(value) => {
+          if (value === undefined) {
+            setData({
+              ...data,
+              resources: {
+                ...data.resources,
+                requests: { ...data.resources.requests, memory: undefined },
+                limits: { ...data.resources.limits, memory: undefined },
+              },
+            });
+          } else {
+            handleChange(ContainerResourceAttributes.MEMORY, 'requests', value);
+          }
+        }}
+        value={data.resources.requests?.memory}
+        validated={getFieldValidationProps(['resources', 'requests', 'memory']).validated}
+        zodIssue={getFieldValidation(['resources', 'requests', 'memory'])}
+        dataTestId="memory-requested"
+      />
+      <CPUFieldWithCheckbox
+        checkboxId="cpu-limit-checkbox"
+        isDisabled={data.resources.requests?.cpu === undefined}
+        checkboxTooltip={
+          data.resources.requests?.cpu === undefined
+            ? 'Requests must be set in order to set a limit'
+            : undefined
+        }
+        label="CPU limit"
+        onChange={(value) => handleChange(ContainerResourceAttributes.CPU, 'limits', value)}
+        value={data.resources.limits?.cpu}
+        validated={getFieldValidationProps(['resources', 'limits', 'cpu']).validated}
+        zodIssue={getFieldValidation(['resources', 'limits', 'cpu'])}
+        dataTestId="cpu-limit"
+      />
+      <MemoryFieldWithCheckbox
+        checkboxId="memory-limit-checkbox"
+        isDisabled={data.resources.requests?.memory === undefined}
+        label="Memory limit"
+        checkboxTooltip={
+          data.resources.requests?.memory === undefined
+            ? 'Requests must be set in order to set a limit'
+            : undefined
+        }
+        onChange={(value) => handleChange(ContainerResourceAttributes.MEMORY, 'limits', value)}
+        value={data.resources.limits?.memory}
+        validated={getFieldValidationProps(['resources', 'limits', 'memory']).validated}
+        zodIssue={getFieldValidation(['resources', 'limits', 'memory'])}
+        dataTestId="memory-limit"
+      />
     </Grid>
   );
 };
