@@ -20,7 +20,10 @@
         "noErrorTruncation": true,
         "baseUrl": "${configDir}",
         "noEmit": true,
-        "allowImportingTsExtensions": true
+        "allowImportingTsExtensions": true,
+        "paths": {
+          "@mf/*": ["../../@mf-types/@mf/*"]
+        }
     },
     "include": ["${configDir}/**/*.ts", "${configDir}/**/*.tsx", "${configDir}/**/*.jsx", "${configDir}/**/**.js"],
     "exclude": ["node_modules"],

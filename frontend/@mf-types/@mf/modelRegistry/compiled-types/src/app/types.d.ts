@@ -18,6 +18,25 @@ export type ModelRegistry = {
     description: string;
     serverAddress?: string;
 };
+export type ModelRegistryPayload = {
+    modelRegistry: {
+        metadata: {
+            name: string;
+            annotations: {
+                'openshift.io/display-name': string;
+                'openshift.io/description': string;
+            };
+        };
+        spec: {
+            mysql: {
+                host: string;
+                port: number;
+                username: string;
+                database: string;
+            };
+        };
+    };
+};
 export declare enum ModelRegistryMetadataType {
     INT = "MetadataIntValue",
     DOUBLE = "MetadataDoubleValue",
