@@ -89,8 +89,7 @@ const RegisterCatalogModelForm: React.FC<RegisterCatalogModelFormProps> = ({
       },
       'Source model version': {
         // eslint-disable-next-line camelcase
-        string_value:
-          model.artifacts?.map((artifact) => artifact.tags && artifact.tags[0])[0] ?? '',
+        string_value: model.artifacts?.[0]?.tags?.[0] ?? '',
         metadataType: ModelRegistryMetadataType.STRING,
       },
     },
