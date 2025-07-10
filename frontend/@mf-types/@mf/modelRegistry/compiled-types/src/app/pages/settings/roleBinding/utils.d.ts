@@ -1,0 +1,11 @@
+import { RoleBindingKind } from 'mod-arch-shared';
+import { ProjectKind } from '~/app/shared/components/types';
+import { RoleBindingPermissionsRBType, RoleBindingPermissionsRoleType } from './types';
+export declare const filterRoleBindingSubjects: (roleBindings: RoleBindingKind[], type: RoleBindingPermissionsRBType) => RoleBindingKind[];
+export declare const castRoleBindingPermissionsRoleType: (role: string) => RoleBindingPermissionsRoleType;
+export declare const firstSubject: (roleBinding: RoleBindingKind, isProjectSubject?: boolean, project?: ProjectKind[]) => string;
+export declare const roleLabel: (value: RoleBindingPermissionsRoleType) => string;
+export declare const isCurrentUserChanging: (roleBinding: RoleBindingKind | undefined, currentUsername: string) => boolean;
+export declare const tryPatchRoleBinding: (oldRBObject: RoleBindingKind, newRBObject: RoleBindingKind) => Promise<boolean>;
+export declare const namespaceToProjectDisplayName: (namespace: string, projects: ProjectKind[]) => string;
+export declare const projectDisplayNameToNamespace: (displayName: string, projects: ProjectKind[]) => string;

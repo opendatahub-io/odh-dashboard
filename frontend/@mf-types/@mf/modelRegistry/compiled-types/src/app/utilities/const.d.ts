@@ -1,16 +1,12 @@
-import { Theme, DeploymentMode, PlatformMode } from 'mod-arch-shared';
-export declare const isIntegrated: () => boolean;
-export declare const isPlatformKubeflow: () => boolean;
+import { Theme, DeploymentMode } from 'mod-arch-shared';
 declare const STYLE_THEME: Theme;
-declare const PLATFORM_MODE: PlatformMode;
 declare const DEPLOYMENT_MODE: DeploymentMode;
 declare const DEV_MODE: boolean;
 declare const POLL_INTERVAL: number;
-declare const AUTH_HEADER: string;
 declare const KUBEFLOW_USERNAME: string;
 declare const IMAGE_DIR: string;
 declare const LOGO_LIGHT: string;
 declare const URL_PREFIX = "/model-registry";
 declare const BFF_API_VERSION = "v1";
-export { STYLE_THEME, POLL_INTERVAL, DEV_MODE, AUTH_HEADER, KUBEFLOW_USERNAME, IMAGE_DIR, LOGO_LIGHT, URL_PREFIX, PLATFORM_MODE, DEPLOYMENT_MODE, BFF_API_VERSION, };
+export { STYLE_THEME, POLL_INTERVAL, DEV_MODE, KUBEFLOW_USERNAME, IMAGE_DIR, LOGO_LIGHT, URL_PREFIX, DEPLOYMENT_MODE, BFF_API_VERSION, };
 export declare const FindAdministratorOptions: string[];
