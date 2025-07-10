@@ -104,7 +104,7 @@ describe('Workbench and PVSs tests', () => {
       cy.step(`Check the cluster storage ${PVCDisplayName} is now connected to ${workbenchName}`);
       projectDetails.findSectionTab('cluster-storages').click();
       const csRow = clusterStorage.getClusterStorageRow(PVCDisplayName);
-      csRow.findConnectedWorkbenches().should('have.text', workbenchName);
+      csRow.findConnectedResources().should('have.text', workbenchName);
     },
   );
 });
