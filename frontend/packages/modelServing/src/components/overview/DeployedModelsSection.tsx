@@ -33,8 +33,8 @@ import ResourceNameTooltip from '@odh-dashboard/internal/components/ResourceName
 import { useExtensions } from '@odh-dashboard/plugin-core';
 import { ModelDeploymentsContext } from '../../concepts/ModelDeploymentsContext';
 import { useProjectServingPlatform } from '../../concepts/useProjectServingPlatform';
-import { DeploymentEndpointsPopupButton } from '../deployments/DeploymentEndpointsPopupButton';
 import { Deployment, isModelServingPlatformExtension } from '../../../extension-points';
+import DeploymentStatus from '../deployments/DeploymentStatus';
 
 enum FilterStates {
   success = 'success',
@@ -97,14 +97,7 @@ const DeployedModelCard: React.FC<{ deployment: Deployment }> = ({ deployment })
           </Content>
         </CardBody>
         <CardFooter>
-          {deployment.status?.state === InferenceServiceModelState.LOADING ||
-          deployment.status?.state === InferenceServiceModelState.PENDING ? (
-            'Pending...'
-          ) : deployment.status?.state === InferenceServiceModelState.FAILED_TO_LOAD ? (
-            '-'
-          ) : (
-            <DeploymentEndpointsPopupButton endpoints={deployment.endpoints} loading={false} />
-          )}
+          <DeploymentStatus deployment={deployment} />
         </CardFooter>
       </TypeBorderedCard>
     </GalleryItem>
