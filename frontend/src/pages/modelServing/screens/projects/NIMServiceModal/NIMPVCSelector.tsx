@@ -62,7 +62,10 @@ const NIMPVCSelector: React.FC<NIMPVCSelectorProps> = ({
   if (loading) {
     return (
       <FormGroup label="Existing storage name" fieldId="existing-pvc-name" isRequired>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div
+          data-testid="pvc-loading-spinner"
+          style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+        >
           <Spinner size="sm" />
           <span>Looking for storage with {selectedModel}...</span>
         </div>
@@ -73,10 +76,16 @@ const NIMPVCSelector: React.FC<NIMPVCSelectorProps> = ({
   if (error) {
     return (
       <FormGroup label="Existing storage name" fieldId="existing-pvc-name" isRequired>
-        <Alert variant={AlertVariant.warning} isInline title="Error loading storage">
+        <Alert
+          data-testid="pvc-loading-error-alert"
+          variant={AlertVariant.warning}
+          isInline
+          title="Error loading storage"
+        >
           {error}
         </Alert>
         <TextInput
+          data-testid="manual-pvc-input-error"
           id="existing-pvc-name"
           value={existingPvcName}
           onChange={(_event, value) => setExistingPvcName(value)}
@@ -97,26 +106,38 @@ const NIMPVCSelector: React.FC<NIMPVCSelectorProps> = ({
     <>
       {/* Show alert when no compatible storage found */}
       {!hasCompatiblePVCs && (
-        <Alert variant={AlertVariant.info} isInline title="No compatible storage found">
+        <Alert
+          data-testid="no-compatible-pvcs-alert"
+          variant={AlertVariant.info}
+          isInline
+          title="No compatible storage found"
+        >
           No existing storage volumes found that contain {selectedModel}.
         </Alert>
       )}
 
-      <FormGroup label="Existing storage name" fieldId="existing-pvc-name" isRequired>
+      <FormGroup
+        data-testid="pvc-selection-section"
+        label="Existing storage name"
+        fieldId="existing-pvc-name"
+        isRequired
+      >
         {hasCompatiblePVCs && !showManualInput ? (
           <>
             <SimpleSelect
+              data-testid="existing-pvc-select"
               options={selectOptions}
               value={existingPvcName}
               onChange={onSelect}
               placeholder={`Select from ${compatiblePVCs.length} storage volume(s) with ${selectedModel}`}
             />
             <HelperText>
-              <HelperTextItem variant="success">
+              <HelperTextItem data-testid="compatible-pvcs-found-message" variant="success">
                 Found {compatiblePVCs.length} storage volume(s) that contain {selectedModel}.
               </HelperTextItem>
               <HelperTextItem>
                 <button
+                  data-testid="use-manual-pvc-button"
                   type="button"
                   onClick={() => setShowManualInput(true)}
                   style={{
@@ -136,6 +157,7 @@ const NIMPVCSelector: React.FC<NIMPVCSelectorProps> = ({
         ) : (
           <>
             <TextInput
+              data-testid="manual-pvc-input"
               id="existing-pvc-name"
               value={existingPvcName}
               onChange={(_event, value) => setExistingPvcName(value)}
@@ -146,6 +168,7 @@ const NIMPVCSelector: React.FC<NIMPVCSelectorProps> = ({
               <HelperText>
                 <HelperTextItem>
                   <button
+                    data-testid="back-to-compatible-list-button"
                     type="button"
                     onClick={() => setShowManualInput(false)}
                     style={{
@@ -164,7 +187,7 @@ const NIMPVCSelector: React.FC<NIMPVCSelectorProps> = ({
             )}
             {!hasCompatiblePVCs && (
               <HelperText>
-                <HelperTextItem variant="warning">
+                <HelperTextItem data-testid="no-compatible-pvcs-warning" variant="warning">
                   Field disabled - no compatible storage found for {selectedModel}.
                 </HelperTextItem>
               </HelperText>
@@ -173,8 +196,14 @@ const NIMPVCSelector: React.FC<NIMPVCSelectorProps> = ({
         )}
       </FormGroup>
 
-      <FormGroup label="Model path in storage" fieldId="model-path" isRequired>
+      <FormGroup
+        data-testid="model-path-section"
+        label="Model path in storage"
+        fieldId="model-path"
+        isRequired
+      >
         <TextInput
+          data-testid="model-path-input"
           id="model-path"
           value={modelPath}
           onChange={(_event, value) => setModelPath(value)}
@@ -183,15 +212,15 @@ const NIMPVCSelector: React.FC<NIMPVCSelectorProps> = ({
         />
         <HelperText>
           {!hasCompatiblePVCs ? (
-            <HelperTextItem variant="warning">
+            <HelperTextItem data-testid="model-path-disabled-warning" variant="warning">
               Field disabled - no compatible storage found for {selectedModel}.
             </HelperTextItem>
           ) : (
             <>
-              <HelperTextItem>
+              <HelperTextItem data-testid="model-path-description">
                 Path within the storage where {selectedModel} model files are located.
               </HelperTextItem>
-              <HelperTextItem>
+              <HelperTextItem data-testid="model-path-default-hint">
                 For most NIM deployments, the default path {DEFAULT_MODEL_PATH} is correct.
               </HelperTextItem>
             </>

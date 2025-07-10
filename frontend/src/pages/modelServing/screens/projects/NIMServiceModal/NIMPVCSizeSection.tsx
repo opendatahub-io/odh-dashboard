@@ -49,6 +49,7 @@ const NIMPVCSizeSection: React.FC<NIMPVCSizeSectionProps> = ({
           <FormGroup label="Storage option" fieldId="pvc-mode">
             <Radio
               id="create-new-pvc"
+              data-testid="create-new-pvc"
               name="pvc-mode"
               label="Create new storage for model caching"
               description="A new storage volume will be created and models will be downloaded at deployment time."
@@ -57,6 +58,7 @@ const NIMPVCSizeSection: React.FC<NIMPVCSizeSectionProps> = ({
             />
             <Radio
               id="use-existing-pvc"
+              data-testid="use-existing-pvc"
               name="pvc-mode"
               label="Use existing storage with pre-cached models"
               description="Use a storage volume that already contains downloaded models for faster deployment."
