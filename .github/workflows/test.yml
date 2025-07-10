@@ -27,7 +27,7 @@ jobs:
           key: ${{ steps.key.outputs.modules-cache-key }}
       - name: Setup Node.js ${{ env.NODE_VERSION }}
         if: steps.modules-cache.outputs.cache-hit != 'true'
-        uses: actions/setup-node@v4.3.0
+        uses: actions/setup-node@v4.4.0
         with:
           node-version: ${{ env.NODE_VERSION }}
       - name: Install dependencies
@@ -73,7 +73,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Setup Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@v4.3.0
+        uses: actions/setup-node@v4.4.0
         with:
           node-version: ${{ env.NODE_VERSION }}
       - name: Restore cache
@@ -94,7 +94,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Setup Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@v4.3.0
+        uses: actions/setup-node@v4.4.0
         with:
           node-version: ${{ env.NODE_VERSION }}
       - name: Restore cache
@@ -208,7 +208,7 @@ jobs:
           key: ${{ needs.Setup.outputs.modules-cache-key }}
       - name: Setup Node.js ${{ env.NODE_VERSION }}
         if: steps.cypress-build-cache.outputs.cache-hit != 'true'
-        uses: actions/setup-node@v4.3.0
+        uses: actions/setup-node@v4.4.0
         with:
           node-version: ${{ env.NODE_VERSION }}
       - name: Build frontend for cypress
@@ -226,7 +226,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Setup Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@v4.3.0
+        uses: actions/setup-node@v4.4.0
         with:
           node-version: ${{ env.NODE_VERSION }}
       - name: Restore cache
@@ -273,7 +273,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Setup Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@v4.3.0
+        uses: actions/setup-node@v4.4.0
         with:
           node-version: ${{ env.NODE_VERSION }}
       - name: Download all artifacts
