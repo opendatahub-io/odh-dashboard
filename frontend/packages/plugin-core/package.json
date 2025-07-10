@@ -3,6 +3,9 @@
   "name": "@odh-dashboard/plugin-core",
   "description": "Plugin utilities and extension point definitions.",
   "version": "0.0.0",
+  "scripts": {
+    "type-check": "tsc --noEmit"
+  },
   "exports": {
     ".": "./src/core/index.ts",
     "./extension-points": "./src/extension-points/index.ts",
