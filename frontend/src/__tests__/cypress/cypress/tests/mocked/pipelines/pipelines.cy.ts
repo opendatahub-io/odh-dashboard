@@ -133,13 +133,6 @@ describe('Pipelines', () => {
       expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
     });
 
-    toastNotifications
-      .findToastNotification(0)
-      .should(
-        'have.text',
-        'Info alert:Waiting on pipeline server resources for test-project-name...',
-      );
-
     cy.wait('@createDSPA').then((interception) => {
       expect(interception.request.body).to.containSubset({
         metadata: { name: 'dspa', namespace: projectName },

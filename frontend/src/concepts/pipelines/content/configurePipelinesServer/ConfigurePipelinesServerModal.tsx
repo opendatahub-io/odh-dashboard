@@ -10,7 +10,6 @@ import {
   ModalHeader,
   ModalFooter,
 } from '@patternfly/react-core';
-import useNotification from '#~/utilities/useNotification.ts';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { createPipelinesCR, deleteSecret, listPipelinesCR } from '#~/api';
 import { EMPTY_AWS_PIPELINE_DATA } from '#~/pages/projects/dataConnections/const';
