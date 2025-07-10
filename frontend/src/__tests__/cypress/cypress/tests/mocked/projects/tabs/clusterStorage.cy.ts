@@ -358,7 +358,7 @@ describe('ClusterStorage', () => {
     const clusterStorageRow = clusterStorage.getClusterStorageRow('Test Storage');
     clusterStorageRow.findStorageClassColumn().should('not.exist');
     clusterStorageRow.shouldHaveStorageTypeValue('Persistent storage');
-    clusterStorageRow.findConnectedWorkbenches().should('have.text', 'No connections');
+    clusterStorageRow.findConnectedResources().should('have.text', '');
     clusterStorageRow.findSizeColumn().contains('5GiB');
 
     //sort by Name
