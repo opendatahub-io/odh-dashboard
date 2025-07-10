@@ -1,7 +1,7 @@
 import { InferenceServiceKind, ProjectKind } from '#~/k8sTypes';
 import { SortableData } from '#~/components/table';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
-import { getInferenceServiceStoppedStatus } from '#~/pages/modelServing/utils';
+import { getInferenceServiceStoppedStatus, isModelMesh } from '#~/pages/modelServing/utils';
 
 export enum ColumnField {
   Expand = 'expand',
@@ -78,13 +78,13 @@ const COL_LAST_DEPLOYED: SortableData<InferenceServiceKind> = {
   label: 'Last Deployed',
   width: 15,
   sortable: (a, b) => {
-    const aStopped = getInferenceServiceStoppedStatus(a).isStopped;
-    const bStopped = getInferenceServiceStoppedStatus(b).isStopped;
+    const aInactive = getInferenceServiceStoppedStatus(a).isStopped || isModelMesh(a);
+    const bInactive = getInferenceServiceStoppedStatus(b).isStopped || isModelMesh(b);
 
-    if (aStopped && !bStopped) {
+    if (aInactive && !bInactive) {
       return 1;
     }
-    if (!aStopped && bStopped) {
+    if (!aInactive && bInactive) {
       return -1;
     }
 

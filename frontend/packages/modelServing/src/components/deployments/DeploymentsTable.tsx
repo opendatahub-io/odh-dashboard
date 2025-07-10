@@ -36,7 +36,6 @@ const genericColumns: SortableData<Deployment>[] = [
     label: 'Last Deployed',
     field: 'lastDeployed',
     sortable: (a, b) => {
-      // Sort by creation timestamp (newest first)
       const timeA = a.model.metadata.creationTimestamp;
       const timeB = b.model.metadata.creationTimestamp;
 
@@ -44,7 +43,6 @@ const genericColumns: SortableData<Deployment>[] = [
         return new Date(timeB).getTime() - new Date(timeA).getTime();
       }
 
-      // One has timestamp: prioritize the one with timestamp
       return (timeA ? -1 : 0) - (timeB ? -1 : 0);
     },
   },

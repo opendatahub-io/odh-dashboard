@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Timestamp, TimestampTooltipVariant } from '@patternfly/react-core';
 import { InferenceServiceKind } from '#~/k8sTypes';
 import { relativeTime } from '#~/utilities/time';
-import { getInferenceServiceStoppedStatus } from '#~/pages/modelServing/utils';
+import { getInferenceServiceStoppedStatus, isModelMesh } from '#~/pages/modelServing/utils';
 
 type InferenceServiceLastDeployedProps = {
   inferenceService: InferenceServiceKind;
@@ -13,7 +13,7 @@ const InferenceServiceLastDeployed: React.FC<InferenceServiceLastDeployedProps> 
 }) => {
   const { isStopped } = getInferenceServiceStoppedStatus(inferenceService);
 
-  if (isStopped) {
+  if (isStopped || isModelMesh(inferenceService)) {
     return <>-</>;
   }
 
