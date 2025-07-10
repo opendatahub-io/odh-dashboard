@@ -5,7 +5,7 @@ import ResourceActionsColumn from '#~/components/ResourceActionsColumn';
 import ResourceNameTooltip from '#~/components/ResourceNameTooltip';
 import useModelMetricsEnabled from '#~/pages/modelServing/useModelMetricsEnabled';
 import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
-import { getInferenceServiceStoppedStatus, isModelMesh } from '#~/pages/modelServing/utils';
+import { isModelMesh } from '#~/pages/modelServing/utils';
 import { SupportedArea } from '#~/concepts/areas';
 import useIsAreaAvailable from '#~/concepts/areas/useIsAreaAvailable';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
@@ -14,10 +14,9 @@ import { isProjectNIMSupported } from '#~/pages/modelServing/screens/projects/ni
 import useServingPlatformStatuses from '#~/pages/modelServing/useServingPlatformStatuses';
 import StateActionToggle from '#~/components/StateActionToggle';
 import { patchInferenceServiceStoppedStatus } from '#~/api/k8s/inferenceServices';
-import { getInferenceServiceModelState } from '#~/concepts/modelServingKServe/kserveStatusUtils.ts';
 import useStopModalPreference from '#~/pages/modelServing/useStopModalPreference.ts';
 import ModelServingStopModal from '#~/pages/modelServing/ModelServingStopModal';
-import { InferenceServiceModelState } from '#~/pages/modelServing/screens/types';
+import { useModelStatus } from '#~/pages/modelServing/useModelStatus';
 import InferenceServiceEndpoint from './InferenceServiceEndpoint';
 import InferenceServiceProject from './InferenceServiceProject';
 import InferenceServiceStatus from './InferenceServiceStatus';
@@ -61,8 +60,8 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
   const kserveMetricsSupported = modelMetricsEnabled && kserveMetricsEnabled && !modelMesh;
   const displayName = getDisplayNameFromK8sResource(inferenceService);
 
-  const modelServingStatus = getInferenceServiceStoppedStatus(inferenceService);
-  const [isStarting, setIsStarting] = React.useState(false);
+  const { isStarting, isStopping, isStopped, isRunning, setIsStarting, setIsStopping } =
+    useModelStatus(inferenceService, refresh);
 
   const isNewlyDeployed = !inferenceService.status?.modelStatus?.states?.activeModelState;
 
@@ -71,32 +70,17 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
     patchInferenceServiceStoppedStatus(inferenceService, 'false')
       .then(refresh)
       .catch(() => setIsStarting(false));
-  }, [inferenceService, refresh]);
-
-  React.useEffect(() => {
-    if (!isStarting) {
-      return;
-    }
-    const isStopped = inferenceService.metadata.annotations?.['serving.kserve.io/stop'] === 'true';
-    const currentState = getInferenceServiceModelState(inferenceService);
-
-    if (
-      !isStopped &&
-      [InferenceServiceModelState.LOADED, InferenceServiceModelState.FAILED_TO_LOAD].includes(
-        currentState,
-      )
-    ) {
-      setIsStarting(false);
-    }
-  }, [isStarting, inferenceService]);
+  }, [inferenceService, refresh, setIsStarting]);
 
   const onStop = React.useCallback(() => {
     if (dontShowModalValue) {
+      setIsStarting(false);
+      setIsStopping(true);
       patchInferenceServiceStoppedStatus(inferenceService, 'true').then(refresh);
     } else {
       setOpenConfirm(true);
     }
-  }, [dontShowModalValue, inferenceService, refresh]);
+  }, [dontShowModalValue, inferenceService, refresh, setIsStarting, setIsStopping]);
 
   return (
     <>
@@ -156,10 +140,22 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
           inferenceService={inferenceService}
           isKserve={!modelMesh}
           isStarting={isStarting || isNewlyDeployed}
+          isStopping={isStopping}
+          isStopped={isStopped && !isStopping}
         />
       </Td>
       <Td>
-        <StateActionToggle currentState={modelServingStatus} onStart={onStart} onStop={onStop} />
+        <StateActionToggle
+          currentState={{
+            isRunning: isRunning && !isStarting,
+            isStopped: isStopped && !isStopping,
+            isStarting,
+            isStopping,
+          }}
+          onStart={onStart}
+          onStop={onStop}
+          isDisabledWhileStarting={false}
+        />
       </Td>
 
       {columnNames.includes(ColumnField.Kebab) && (
@@ -190,10 +186,11 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
           modelName={displayName}
           title="Stop model deployment?"
           onClose={(confirmStatus) => {
+            setOpenConfirm(false);
             if (confirmStatus) {
+              setIsStopping(true);
               patchInferenceServiceStoppedStatus(inferenceService, 'true').then(refresh);
             }
-            setOpenConfirm(false);
           }}
         />
       )}
