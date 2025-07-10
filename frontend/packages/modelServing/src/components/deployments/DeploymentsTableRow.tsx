@@ -9,6 +9,7 @@ import { Link } from 'react-router-dom';
 import ResourceNameTooltip from '@odh-dashboard/internal/components/ResourceNameTooltip';
 import { DeploymentEndpointsPopupButton } from './DeploymentEndpointsPopupButton';
 import { DeploymentRowExpandedSection } from './DeploymentsTableRowExpandedSection';
+import DeploymentLastDeployed from './DeploymentLastDeployed';
 import {
   useDeploymentExtension,
   useResolvedDeploymentExtension,
@@ -22,8 +23,6 @@ import {
   isModelServingDeploymentsExpandedInfo,
   isModelServingMetricsExtension,
 } from '../../../extension-points';
-import InferenceServiceLastDeployed from '../../../../../src/pages/modelServing/screens/global/InferenceServiceLastDeployed';
-import { InferenceServiceKind } from '../../../../../src/k8sTypes';
 
 export const DeploymentRow: React.FC<{
   deployment: Deployment;
@@ -102,10 +101,7 @@ export const DeploymentRow: React.FC<{
           )}
         </Td>
         <Td dataLabel="Last Deployed">
-          <InferenceServiceLastDeployed
-            // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-            inferenceService={deployment.model as InferenceServiceKind}
-          />
+          <DeploymentLastDeployed deployment={deployment} />
         </Td>
         <Td dataLabel="Status">
           <ModelStatusIcon
