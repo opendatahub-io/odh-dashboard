@@ -3,7 +3,14 @@
   "name": "@odh-dashboard/kserve",
   "description": "KServe model serving platform extension",
   "version": "0.0.0",
+  "scripts": {
+    "type-check": "tsc --noEmit"
+  },
   "exports": {
     "./extensions": "./extensions.ts"
+  },
+  "dependencies": {
+    "@odh-dashboard/internal": "*",
+    "@odh-dashboard/model-serving": "*"
   }
 }
