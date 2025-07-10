@@ -38,21 +38,19 @@ const StopServerModal: React.FC<StopServerModalProps> = ({
       return <strong>workbenches</strong>;
     }
 
-    const notebook = notebooksToStop.at(0);
-
-    if (notebook) {
-      return (
-        <>
-          <strong>
-            {notebook.metadata.annotations?.['opendatahub.io/display-name'] ??
-              notebook.metadata.name}
-          </strong>{' '}
-          workbench
-        </>
-      );
+    if (notebooksToStop.length === 0) {
+      return <strong>workbench</strong>;
     }
 
-    return <strong>workbench</strong>;
+    return (
+      <>
+        <strong>
+          {notebooksToStop[0].metadata.annotations?.['opendatahub.io/display-name'] ??
+            notebooksToStop[0].metadata.name}
+        </strong>{' '}
+        workbench
+      </>
+    );
   };
 
   const onBeforeClose = (confirmStatus: boolean) => {
