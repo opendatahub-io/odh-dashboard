@@ -7,8 +7,8 @@ import { InferenceServiceModelState } from '@odh-dashboard/internal/pages/modelS
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
 import { Link } from 'react-router-dom';
 import ResourceNameTooltip from '@odh-dashboard/internal/components/ResourceNameTooltip';
-import { DeploymentEndpointsPopupButton } from './DeploymentEndpointsPopupButton';
 import { DeploymentRowExpandedSection } from './DeploymentsTableRowExpandedSection';
+import DeploymentStatus from './DeploymentStatus';
 import {
   useDeploymentExtension,
   useResolvedDeploymentExtension,
@@ -86,14 +86,7 @@ export const DeploymentRow: React.FC<{
           </Td>
         ))}
         <Td dataLabel="Inference endpoint">
-          {deployment.status?.state === InferenceServiceModelState.LOADING ||
-          deployment.status?.state === InferenceServiceModelState.PENDING ? (
-            'Pending...'
-          ) : deployment.status?.state === InferenceServiceModelState.FAILED_TO_LOAD ? (
-            '-'
-          ) : (
-            <DeploymentEndpointsPopupButton endpoints={deployment.endpoints} loading={false} />
-          )}
+          <DeploymentStatus deployment={deployment} />
         </Td>
         <Td dataLabel="API protocol">
           {getServerApiProtocol(deployment) ? (
