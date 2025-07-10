@@ -23,6 +23,7 @@ import InferenceServiceEndpoint from '#~/pages/modelServing/screens/global/Infer
 import TypeBorderedCard from '#~/concepts/design/TypeBorderedCard';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { useModelStatus } from '#~/pages/modelServing/useModelStatus.ts';
 
 interface DeployedModelCardProps {
   inferenceService: InferenceServiceKind;
@@ -38,6 +39,9 @@ const DeployedModelCard: React.FC<DeployedModelCardProps> = ({
   const modelMesh = isModelMesh(inferenceService);
   const modelMetricsSupported = modelMetricsEnabled && (modelMesh || kserveMetricsEnabled);
 
+  const { isStarting, isStopping, isStopped } = useModelStatus(inferenceService);
+  const isNewlyDeployed = !inferenceService.status?.modelStatus?.states?.activeModelState;
+
   const inferenceServiceDisplayName = getDisplayNameFromK8sResource(inferenceService);
 
   return (
@@ -49,6 +53,9 @@ const DeployedModelCard: React.FC<DeployedModelCardProps> = ({
               <InferenceServiceStatus
                 inferenceService={inferenceService}
                 isKserve={!isModelMesh(inferenceService)}
+                isStarting={isStarting || isNewlyDeployed}
+                isStopping={isStopping}
+                isStopped={isStopped && !isStopping}
               />
             </FlexItem>
             <FlexItem>
