@@ -14,11 +14,11 @@ import useServingRuntimes from '#~/pages/modelServing/useServingRuntimes';
 import { ModelState } from '#~/concepts/modelRegistry/types';
 import { ModelRegistriesContext } from '#~/concepts/modelRegistry/context/ModelRegistriesContext';
 import useModelArtifactsByVersionId from '#~/concepts/modelRegistry/apiHooks/useModelArtifactsByVersionId';
+import { POLL_INTERVAL } from '#~/utilities/const';
 import { ModelVersionDetailsTab } from './const';
 import ModelVersionsDetailsHeaderActions from './ModelVersionDetailsHeaderActions';
 import ModelVersionDetailsTabs from './ModelVersionDetailsTabs';
 import ModelVersionSelector from './ModelVersionSelector';
-import { POLL_INTERVAL } from '#~/utilities/const';
 
 type ModelVersionsDetailProps = {
   tab: ModelVersionDetailsTab;
