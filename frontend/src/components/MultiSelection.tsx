@@ -42,6 +42,7 @@ type MultiSelectionProps = {
   value?: SelectionOptions[];
   groupedValues?: GroupSelectionOptions[];
   setValue: (itemSelection: SelectionOptions[]) => void;
+  isScrollable?: boolean;
   toggleId?: string;
   inputId?: string;
   ariaLabel: string;
@@ -68,6 +69,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
   value = [],
   groupedValues = [],
   setValue,
+  isScrollable = false,
   placeholder,
   isDisabled,
   ariaLabel = 'Options menu',
@@ -318,6 +320,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
   return (
     <>
       <Select
+        isScrollable={isScrollable}
         id={id}
         isOpen={isOpen}
         selected={selected}

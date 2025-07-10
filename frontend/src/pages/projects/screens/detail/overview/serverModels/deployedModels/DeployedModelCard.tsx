@@ -49,7 +49,6 @@ const DeployedModelCard: React.FC<DeployedModelCardProps> = ({
               <InferenceServiceStatus
                 inferenceService={inferenceService}
                 isKserve={!isModelMesh(inferenceService)}
-                iconSize="lg"
               />
             </FlexItem>
             <FlexItem>

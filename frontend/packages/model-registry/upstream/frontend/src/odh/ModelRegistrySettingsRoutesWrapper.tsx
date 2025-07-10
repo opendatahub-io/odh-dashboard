@@ -4,33 +4,33 @@ import {
   NotificationContextProvider,
   ModularArchContextProvider,
   ModularArchConfig,
+  DeploymentMode,
+  ThemeProvider,
+  Theme,
 } from 'mod-arch-shared';
 import { ModelRegistrySelectorContextProvider } from '~/app/context/ModelRegistrySelectorContext';
 import ModelRegistrySettingsRoutes from '~/app/pages/settings/ModelRegistrySettingsRoutes';
-import {
-  BFF_API_VERSION,
-  DEPLOYMENT_MODE,
-  PLATFORM_MODE,
-  URL_PREFIX,
-} from '~/app/utilities/const';
+import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
 
 const modularArchConfig: ModularArchConfig = {
-  platformMode: PLATFORM_MODE,
-  deploymentMode: DEPLOYMENT_MODE,
+  deploymentMode: DeploymentMode.Federated,
   URL_PREFIX,
   BFF_API_VERSION,
+  mandatoryNamespace: 'odh-model-registries',
 };
 
 const ModelRegistryWrapper: React.FC = () => {
   return (
     <ModularArchContextProvider config={modularArchConfig}>
-      <BrowserStorageContextProvider>
-        <NotificationContextProvider>
-          <ModelRegistrySelectorContextProvider>
-            <ModelRegistrySettingsRoutes />
-          </ModelRegistrySelectorContextProvider>
-        </NotificationContextProvider>
-      </BrowserStorageContextProvider>
+      <ThemeProvider theme={Theme.Patternfly}>
+        <BrowserStorageContextProvider>
+          <NotificationContextProvider>
+            <ModelRegistrySelectorContextProvider>
+              <ModelRegistrySettingsRoutes />
+            </ModelRegistrySelectorContextProvider>
+          </NotificationContextProvider>
+        </BrowserStorageContextProvider>
+      </ThemeProvider>
     </ModularArchContextProvider>
   );
 };

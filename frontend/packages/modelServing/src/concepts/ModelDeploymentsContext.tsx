@@ -1,18 +1,25 @@
 import React from 'react';
 import type { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
+import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
 import { getProjectServingPlatform, ModelServingPlatform } from './useProjectServingPlatform';
-import { Deployment, type ModelServingPlatformWatchDeployments } from '../../extension-points';
+import {
+  Deployment,
+  isModelServingPlatformWatchDeployments,
+  type ModelServingPlatformWatchDeployments,
+} from '../../extension-points';
 
 type ModelDeploymentsContextType = {
   deployments?: Deployment[];
   loaded: boolean;
   errors?: Error[];
+  projects?: ProjectKind[];
 };
 
 export const ModelDeploymentsContext = React.createContext<ModelDeploymentsContextType>({
   deployments: undefined,
   loaded: false,
   errors: undefined,
+  projects: undefined,
 });
 
 type ProjectDeploymentWatcherProps = {
@@ -48,16 +55,18 @@ const ProjectDeploymentWatcher: React.FC<ProjectDeploymentWatcherProps> = ({
 type ModelDeploymentsProviderProps = {
   projects: ProjectKind[];
   modelServingPlatforms: ModelServingPlatform[];
-  deploymentWatchers: ModelServingPlatformWatchDeployments[];
   children: React.ReactNode;
 };
 
 export const ModelDeploymentsProvider: React.FC<ModelDeploymentsProviderProps> = ({
   projects,
   modelServingPlatforms,
-  deploymentWatchers,
   children,
 }) => {
+  const [deploymentWatchers, deploymentWatchersLoaded] = useResolvedExtensions(
+    isModelServingPlatformWatchDeployments,
+  );
+
   const [projectDeployments, setProjectDeployments] = React.useState<{
     [key: string]: { deployments?: Deployment[]; loaded: boolean; error?: Error };
   }>({});
@@ -93,10 +102,16 @@ export const ModelDeploymentsProvider: React.FC<ModelDeploymentsProviderProps> =
       }
     }
 
-    const allLoaded = Object.values(projectDeployments).every((state) => state.loaded);
+    const allLoaded =
+      deploymentWatchersLoaded && Object.values(projectDeployments).every((state) => state.loaded);
 
-    return { deployments: allLoaded ? allDeployments : undefined, loaded: allLoaded, errors };
-  }, [projects, projectDeployments]);
+    return {
+      deployments: allLoaded ? allDeployments : undefined,
+      loaded: allLoaded,
+      errors,
+      projects,
+    };
+  }, [projects, projectDeployments, deploymentWatchersLoaded]);
 
   return (
     <ModelDeploymentsContext.Provider value={contextValue}>

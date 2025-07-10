@@ -24,19 +24,32 @@ const LmEvalModelArgumentSection: React.FC<LmEvalModelArgumentSectionProps> = ({
   <FormSection
     title={
       <>
-        <Content className="pf-v6-c-form__section-title">Model arguments</Content>
+        <Content className="pf-v6-c-form__section-title">Model parameters</Content>
         <Content component="p" className="odh-form-section__desc">
           Details about the model you are evaluating.
         </Content>
       </>
     }
   >
-    <FormGroup label="Model">{modelArgument.name || '-'}</FormGroup>
-    <FormGroup label="Url">{modelArgument.url || '-'}</FormGroup>
+    <FormGroup label="Model name" data-testid="model-argument-name">
+      {modelArgument.name || '-'}
+    </FormGroup>
+    <FormGroup label="Model URL" data-testid="model-argument-url">
+      {modelArgument.url || '-'}
+    </FormGroup>
     <FormGroup
       label="Tokenized requests"
       labelHelp={
-        <Popover bodyContent={<></>}>
+        <Popover
+          bodyContent={
+            <>
+              Set to <strong>true</strong> if the evaluation dataset is pre-tokenized.
+              <br />
+              <br />
+              Set to <strong>false</strong> if the evaluation dataset consists of raw text.
+            </>
+          }
+        >
           <Button
             icon={
               <Icon isInline>
@@ -53,22 +66,22 @@ const LmEvalModelArgumentSection: React.FC<LmEvalModelArgumentSectionProps> = ({
         name="model-tokenized-request-true-radio"
         id="model-tokenized-request-true-radio"
         label="True"
-        isChecked={modelArgument.tokenizedRequest}
-        onChange={() => setModelArgument({ ...modelArgument, tokenizedRequest: true })}
+        isChecked={modelArgument.tokenizedRequest === 'True'}
+        onChange={() => setModelArgument({ ...modelArgument, tokenizedRequest: 'True' })}
       />
       <Radio
         name="model-tokenized-request-false-radio"
         id="model-tokenized-request-false-radio"
         label="False"
-        isChecked={!modelArgument.tokenizedRequest}
-        onChange={() => setModelArgument({ ...modelArgument, tokenizedRequest: false })}
+        isChecked={modelArgument.tokenizedRequest === 'False'}
+        onChange={() => setModelArgument({ ...modelArgument, tokenizedRequest: 'False' })}
       />
     </FormGroup>
     <FormGroup
-      label="Tokenizer"
+      label="Tokenizer URL"
       isRequired
       labelHelp={
-        <Popover bodyContent={<></>}>
+        <Popover bodyContent="Enter the tokenizer URL for the selected model. This should be included in the model’s documentation.">
           <Button
             icon={
               <Icon isInline>

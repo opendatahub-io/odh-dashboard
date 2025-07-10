@@ -633,7 +633,7 @@ class WorkbenchStatusModal extends Modal {
   }
 
   findLogEntry(text: string) {
-    return cy.get('ul[data-id="event-logs"]').find('li span').contains(text);
+    return cy.findByTestId('event-logs').find('li span').contains(text);
   }
 
   getNotebookStatus(expectedStatus: string, timeout?: number) {

@@ -42,7 +42,7 @@ spec:
         - You have no workbenches running in Red Hat OpenShift AI.
 
         1. Navigate to the Red Hat OpenShift AI dashboard.
-        2. Click **Launch application** on the Start basic workbench card to open the **Start a basic workbench** page.
+        2. Click **Open application** on the Start basic workbench card to open the **Start a basic workbench** page.
         2. Under **Deployment size**, set the **Number of Accelerators** dropdown menu to the number of GPUs you want to use.
         3. Launch a workbench using the PyTorch notebook image.
 
