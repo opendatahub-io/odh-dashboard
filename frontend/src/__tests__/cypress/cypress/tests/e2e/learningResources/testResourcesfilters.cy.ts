@@ -36,7 +36,7 @@ describe('[Automation Bug: RHOAIENG-21088] Verify the filters on Resources page'
 
       // Navigate to Resources
       cy.step('Navigate to Resources tab');
-      resources.visit();
+      resources.navigate();
 
       cy.step('Check for Enabled and Not Enabled filters');
 
@@ -128,9 +128,13 @@ describe('[Automation Bug: RHOAIENG-21088] Verify the filters on Resources page'
         return;
       }
 
+      // Authentication
+      cy.step('Log into the application');
+      cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
+
       // Navigate to Resources
       cy.step('Navigate to Resources tab');
-      resources.visit();
+      resources.navigate();
 
       // RHOAI-specific provider filters
       cy.step('Test RHOAI-specific provider filters');
