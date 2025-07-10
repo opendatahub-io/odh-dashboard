@@ -716,6 +716,7 @@ export type DSPipelineKind = K8sResourceCommon & {
       }>;
       enableSamplePipeline: boolean;
       managedPipelines?: DSPipelineManagedPipelinesKind;
+      pipelineStore?: string;
     }>;
     database?: Partial<{
       externalDB: Partial<{
