@@ -282,7 +282,7 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
                 }
                 globalGroupLabel={
                   <ProjectScopedGroupLabel isProject={false}>
-                    Global hardware profiles
+                    Global-scoped hardware profiles
                   </ProjectScopedGroupLabel>
                 }
                 dataTestId="hardware-profile-selection"

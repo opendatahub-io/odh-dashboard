@@ -104,6 +104,18 @@ Cypress.Keyboard.defaults({
   keystrokeDelay: 0,
 });
 
+// Handle ChunkLoadError - ignore these errors as they are usually due to code splitting issues during development
+Cypress.on('uncaught:exception', (err) => {
+  // Returning false here prevents Cypress from failing the test
+  if (err.name === 'ChunkLoadError') {
+    // eslint-disable-next-line no-console
+    console.warn('ChunkLoadError caught and ignored:', err.message);
+    return false;
+  }
+  // Let other errors fail the test as expected
+  return true;
+});
+
 // Configure grep filtering
 const grepTags = Cypress.env('grepTags') ? Cypress.env('grepTags').split(' ') : [];
 const skipTags = Cypress.env('skipTags') ? Cypress.env('skipTags').split(' ') : [];

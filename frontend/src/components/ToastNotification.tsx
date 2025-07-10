@@ -43,6 +43,7 @@ const ToastNotification: React.FC<ToastNotificationProps> = ({ notification }) =
   return (
     <Alert
       variant={asEnumMember(notification.status, AlertVariant) ?? undefined}
+      data-testid="toast-notification-alert"
       title={notification.title}
       actionClose={
         <AlertActionCloseButton onClose={() => dispatch(ackNotification(notification))} />
