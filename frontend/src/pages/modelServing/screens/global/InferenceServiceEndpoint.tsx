@@ -21,6 +21,7 @@ import {
 } from '#~/pages/modelServing/screens/projects/utils';
 import { InferenceServiceModelState } from '#~/pages/modelServing/screens/types';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
+import { isModelServingStopped } from '#~/pages/modelServing/utils';
 import useRouteForInferenceService from './useRouteForInferenceService';
 import InternalServicePopoverContent from './InternalServicePopoverContent';
 
@@ -45,8 +46,7 @@ const InferenceServiceEndpoint: React.FC<InferenceServiceEndpointProps> = ({
   renderName = false,
   displayName,
 }) => {
-  const isModelStopped =
-    inferenceService.metadata.annotations?.['serving.kserve.io/stop'] === 'true';
+  const isModelStopped = isModelServingStopped(inferenceService);
   const isModelRunning = modelState === InferenceServiceModelState.LOADED && !isModelStopped;
 
   const isRouteEnabled = !isKserve

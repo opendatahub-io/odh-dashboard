@@ -4,7 +4,11 @@ import ResourceActionsColumn from '#~/components/ResourceActionsColumn';
 import ResourceNameTooltip from '#~/components/ResourceNameTooltip';
 import useModelMetricsEnabled from '#~/pages/modelServing/useModelMetricsEnabled';
 import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
-import { getInferenceServiceStoppedStatus, isModelMesh } from '#~/pages/modelServing/utils';
+import {
+  getInferenceServiceStoppedStatus,
+  isModelMesh,
+  isModelServingStopped,
+} from '#~/pages/modelServing/utils';
 import { SupportedArea } from '#~/concepts/areas';
 import useIsAreaAvailable from '#~/concepts/areas/useIsAreaAvailable';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
@@ -65,8 +69,7 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
     !modelMesh,
   );
   const modelState = getInferenceServiceModelState(inferenceService, modelPodStatus);
-  const isModelStopped =
-    inferenceService.metadata.annotations?.['serving.kserve.io/stop'] === 'true';
+  const isModelStopped = isModelServingStopped(inferenceService);
 
   const modelServingStatus = getInferenceServiceStoppedStatus(inferenceService);
   const [isStarting, setIsStarting] = React.useState(false);
