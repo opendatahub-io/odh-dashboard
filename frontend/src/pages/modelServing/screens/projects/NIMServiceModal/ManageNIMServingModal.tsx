@@ -172,7 +172,7 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
 
   // Add useEffect to track selected model from inference service data
   React.useEffect(() => {
-    const modelName = createDataInferenceService.format.name || '';
+    const modelName = createDataInferenceService.format?.name || '';
     setSelectedModelName(modelName);
   }, [createDataInferenceService.format]);
 
