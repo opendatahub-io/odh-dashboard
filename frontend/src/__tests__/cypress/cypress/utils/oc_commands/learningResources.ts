@@ -375,3 +375,34 @@ export const getStarburstResourceCount = (
     return cy.wrap(count);
   });
 };
+
+/**
+ * Get count of Self-managed provider type resources
+ * @param namespace - The namespace to search in
+ * @returns Cypress chainable with Self-managed resource count
+ */
+export const getSelfManagedResourceCount = (
+  namespace = applicationNamespace,
+): Cypress.Chainable<number> => {
+  return getNVIDIAResourceCount(namespace).then((nvidiaCount) => {
+    return getElasticResourceCount(namespace).then((elasticCount) => {
+      return getPachydermResourceCount(namespace).then((pachydermCount) => {
+        return getIntelResourceCount(namespace).then((intelCount) => {
+          return getIBMResourceCount(namespace).then((ibmCount) => {
+            return getStarburstResourceCount(namespace).then((starburstCount) => {
+              const total =
+                nvidiaCount +
+                elasticCount +
+                pachydermCount +
+                intelCount +
+                ibmCount +
+                starburstCount;
+              cy.log(`Self-managed resources count: ${total}`);
+              return cy.wrap(total);
+            });
+          });
+        });
+      });
+    });
+  });
+};

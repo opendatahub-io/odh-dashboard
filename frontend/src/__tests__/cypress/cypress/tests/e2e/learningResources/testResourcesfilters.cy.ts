@@ -16,6 +16,7 @@ import {
   getPachydermResourceCount,
   getRedHatResourceCount,
   getStarburstResourceCount,
+  getSelfManagedResourceCount,
 } from '#~/__tests__/cypress/cypress/utils/oc_commands/learningResources';
 
 const listView = resources.getListView();
@@ -182,6 +183,13 @@ describe('[Automation Bug: RHOAIENG-21088] Verify the filters on Resources page'
       // Starburst
       resourcesToolbar.findCardToggleButton().click();
       verifyResourcesForFilter('Starburst');
+
+      // Verify backend state for Self-managed resources
+      getSelfManagedResourceCount();
+
+      // Self-managed
+      resourcesToolbar.findCardToggleButton().click();
+      verifyResourcesForFilter('Self-managed');
     },
   );
 });
