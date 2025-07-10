@@ -40,34 +40,6 @@ interface RegisterCatalogModelFormProps {
   apiState: ModelRegistryAPIState;
 }
 
-// Custom hook to accept initial values
-const useRegisterCatalogModelDataWithDefaults = (defaults: RegisterCatalogModelFormData) => {
-  const [formData, setData] = useRegisterCatalogModelData();
-
-  const isInitialized = React.useRef(false);
-  if (!isInitialized.current) {
-    setData('modelName', defaults.modelName);
-    setData('modelDescription', defaults.modelDescription);
-    setData('modelRegistry', defaults.modelRegistry);
-    setData('versionName', defaults.versionName);
-    setData('versionDescription', defaults.versionDescription);
-    setData('sourceModelFormat', defaults.sourceModelFormat);
-    setData('sourceModelFormatVersion', defaults.sourceModelFormatVersion);
-    setData('modelLocationType', defaults.modelLocationType);
-    setData('modelLocationEndpoint', defaults.modelLocationEndpoint);
-    setData('modelLocationBucket', defaults.modelLocationBucket);
-    setData('modelLocationRegion', defaults.modelLocationRegion);
-    setData('modelLocationPath', defaults.modelLocationPath);
-    setData('modelLocationURI', defaults.modelLocationURI);
-    setData('versionCustomProperties', defaults.versionCustomProperties);
-    setData('modelCustomProperties', defaults.modelCustomProperties);
-    setData('additionalArtifactProperties', defaults.additionalArtifactProperties);
-    setData('storageKey', defaults.storageKey);
-    isInitialized.current = true;
-  }
-  return [formData, setData] as const;
-};
-
 const RegisterCatalogModelForm: React.FC<RegisterCatalogModelFormProps> = ({
   model,
   decodedParams,
@@ -124,7 +96,7 @@ const RegisterCatalogModelForm: React.FC<RegisterCatalogModelFormProps> = ({
     },
   };
 
-  const [formData, setData] = useRegisterCatalogModelDataWithDefaults(initialFormData);
+  const [formData, setData] = useRegisterCatalogModelData(initialFormData);
 
   const [submittedRegisteredModelName, setSubmittedRegisteredModelName] =
     React.useState<string>('');

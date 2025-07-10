@@ -79,5 +79,9 @@ export const useRegisterVersionData = (
     registeredModelId: registeredModelId || '',
   });
 
-export const useRegisterCatalogModelData = (): GenericObjectState<RegisterCatalogModelFormData> =>
-  useGenericObjectState<RegisterCatalogModelFormData>(registerModelFormDataDefaultsForModelCatalog);
+export const useRegisterCatalogModelData = (
+  initialData?: RegisterCatalogModelFormData,
+): GenericObjectState<RegisterCatalogModelFormData> =>
+  useGenericObjectState<RegisterCatalogModelFormData>(
+    initialData || registerModelFormDataDefaultsForModelCatalog,
+  );
