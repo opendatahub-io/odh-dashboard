@@ -25,10 +25,10 @@ const cardView = resources.getCardView();
 const resourcesToolbar = resources.getLearningCenterToolbar();
 const resourceFilters = resources.getLearningCenterFilters();
 
-describe('[Automation Bug: RHOAIENG-21088] Verify the filters on Resources page', () => {
+describe('Verify the filters on Resources page', () => {
   it(
     'Test whether enabled, resource type, provider and provider type filters are working',
-    { tags: ['@Sanity', '@SanitySet1', '@ODS-489', '@Dashboard', '@Maintain'] },
+    { tags: ['@Sanity', '@SanitySet1', '@ODS-489', '@Dashboard'] },
     () => {
       // Authentication
       cy.step('Log into the application');
@@ -115,85 +115,81 @@ describe('[Automation Bug: RHOAIENG-21088] Verify the filters on Resources page'
     },
   );
 
-  it(
-    'Test RHOAI-specific filters',
-    { tags: ['@Sanity', '@SanitySet1', '@Dashboard', '@Maintain'] },
-    () => {
-      // Skips this test if not running on RHOAI
-      const applicationsNamespace = Cypress.env('APPLICATIONS_NAMESPACE');
-      if (applicationsNamespace === 'opendatahub') {
-        cy.log(
-          `Skipping RHOAI-specific filter test. Applications namespace: ${applicationsNamespace}`,
-        );
-        return;
-      }
+  it('Test RHOAI-specific filters', { tags: ['@Sanity', '@SanitySet1', '@Dashboard'] }, () => {
+    // Skips this test if not running on RHOAI
+    const applicationsNamespace = Cypress.env('APPLICATIONS_NAMESPACE');
+    if (applicationsNamespace === 'opendatahub') {
+      cy.log(
+        `Skipping RHOAI-specific filter test. Applications namespace: ${applicationsNamespace}`,
+      );
+      return;
+    }
 
-      // Authentication
-      cy.step('Log into the application');
-      cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
+    // Authentication
+    cy.step('Log into the application');
+    cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
-      // Navigate to Resources
-      cy.step('Navigate to Resources tab');
-      resources.navigate();
+    // Navigate to Resources
+    cy.step('Navigate to Resources tab');
+    resources.navigate();
 
-      // RHOAI-specific provider filters
-      cy.step('Test RHOAI-specific provider filters');
+    // RHOAI-specific provider filters
+    cy.step('Test RHOAI-specific provider filters');
 
-      // Verify backend state for Elastic resources
-      getElasticResourceCount();
+    // Verify backend state for Elastic resources
+    getElasticResourceCount();
 
-      // Elastic
-      resourcesToolbar.findCardToggleButton().click();
-      verifyResourcesForFilter('Elastic');
+    // Elastic
+    resourcesToolbar.findCardToggleButton().click();
+    verifyResourcesForFilter('Elastic');
 
-      // Verify backend state for IBM resources
-      getIBMResourceCount();
+    // Verify backend state for IBM resources
+    getIBMResourceCount();
 
-      // IBM
-      resourcesToolbar.findCardToggleButton().click();
-      verifyResourcesForFilter('IBM');
+    // IBM
+    resourcesToolbar.findCardToggleButton().click();
+    verifyResourcesForFilter('IBM');
 
-      // Verify backend state for Intel® resources
-      getIntelResourceCount();
+    // Verify backend state for Intel® resources
+    getIntelResourceCount();
 
-      // Intel®
-      resourcesToolbar.findCardToggleButton().click();
-      verifyResourcesForFilter('Intel®');
+    // Intel®
+    resourcesToolbar.findCardToggleButton().click();
+    verifyResourcesForFilter('Intel®');
 
-      // Verify backend state for NVIDIA resources
-      getNVIDIAResourceCount();
+    // Verify backend state for NVIDIA resources
+    getNVIDIAResourceCount();
 
-      // NVIDIA
-      resourcesToolbar.findCardToggleButton().click();
-      verifyResourcesForFilter('NVIDIA');
+    // NVIDIA
+    resourcesToolbar.findCardToggleButton().click();
+    verifyResourcesForFilter('NVIDIA');
 
-      // Verify backend state for Pachyderm resources
-      getPachydermResourceCount();
+    // Verify backend state for Pachyderm resources
+    getPachydermResourceCount();
 
-      // Pachyderm
-      resourcesToolbar.findCardToggleButton().click();
-      verifyResourcesForFilter('Pachyderm');
+    // Pachyderm
+    resourcesToolbar.findCardToggleButton().click();
+    verifyResourcesForFilter('Pachyderm');
 
-      // Verify backend state for Red Hat resources
-      getRedHatResourceCount();
+    // Verify backend state for Red Hat resources
+    getRedHatResourceCount();
 
-      // Red Hat
-      resourcesToolbar.findCardToggleButton().click();
-      verifyResourcesForFilter('Red Hat');
+    // Red Hat
+    resourcesToolbar.findCardToggleButton().click();
+    verifyResourcesForFilter('Red Hat');
 
-      // Verify backend state for Starburst resources
-      getStarburstResourceCount();
+    // Verify backend state for Starburst resources
+    getStarburstResourceCount();
 
-      // Starburst
-      resourcesToolbar.findCardToggleButton().click();
-      verifyResourcesForFilter('Starburst');
+    // Starburst
+    resourcesToolbar.findCardToggleButton().click();
+    verifyResourcesForFilter('Starburst');
 
-      // Verify backend state for Self-managed resources
-      getSelfManagedResourceCount();
+    // Verify backend state for Self-managed resources
+    getSelfManagedResourceCount();
 
-      // Self-managed
-      resourcesToolbar.findCardToggleButton().click();
-      verifyResourcesForFilter('Self-managed');
-    },
-  );
+    // Self-managed
+    resourcesToolbar.findCardToggleButton().click();
+    verifyResourcesForFilter('Self-managed');
+  });
 });
