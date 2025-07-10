@@ -239,6 +239,7 @@ describe('ManageNIMServingModal', () => {
     project: 'test-project',
     k8sName: 'test-model',
     isKServeRawDeployment: false,
+    format: { name: 'test-model-format' },
   };
 
   const defaultMockServingRuntimeData = {
