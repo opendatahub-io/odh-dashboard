@@ -2,8 +2,6 @@ import React from 'react';
 import { AcceleratorProfileKind } from '#~/k8sTypes';
 import { ContainerResources, Toleration } from '#~/types';
 import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
-import useAcceleratorProfiles from '#~/pages/notebookController/screens/server/useAcceleratorProfiles.ts';
-import { useDashboardNamespace } from '#~/redux/selectors';
 import useGenericObjectState from './useGenericObjectState';
 import useReadAcceleratorState, { AcceleratorProfileState } from './useReadAcceleratorState';
 
