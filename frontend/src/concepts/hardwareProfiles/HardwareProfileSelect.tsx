@@ -381,6 +381,12 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
           {options.length > 0 && (
             <HardwareProfileDetailsPopover
               hardwareProfile={hardwareProfileConfig.selectedProfile}
+              localQueueName={
+                hardwareProfileConfig.selectedProfile?.spec.scheduling?.kueue?.localQueueName
+              }
+              priorityClass={
+                hardwareProfileConfig.selectedProfile?.spec.scheduling?.kueue?.priorityClass
+              }
               tolerations={
                 hardwareProfileConfig.selectedProfile?.spec.scheduling?.node?.tolerations
               }

@@ -20,6 +20,8 @@ import {
 import { formatToleration, formatNodeSelector, formatResource, formatResourceValue } from './utils';
 
 type HardwareProfileDetailsPopoverProps = {
+  localQueueName?: string;
+  priorityClass?: string;
   tolerations?: Toleration[];
   nodeSelector?: NodeSelector;
   resources?: ContainerResources;
@@ -27,6 +29,8 @@ type HardwareProfileDetailsPopoverProps = {
 };
 
 const HardwareProfileDetailsPopover: React.FC<HardwareProfileDetailsPopoverProps> = ({
+  localQueueName,
+  priorityClass,
   tolerations,
   nodeSelector,
   resources,
@@ -100,7 +104,12 @@ const HardwareProfileDetailsPopover: React.FC<HardwareProfileDetailsPopoverProps
                 ])}
               </StackItem>
             ))}
-
+          {localQueueName && (
+            <StackItem>{renderSection('Local Queue', [localQueueName])}</StackItem>
+          )}
+          {priorityClass && (
+            <StackItem>{renderSection('Workload Priority', [priorityClass])}</StackItem>
+          )}
           {tolerations && tolerations.length > 0 && (
             <StackItem>
               {renderSection(
