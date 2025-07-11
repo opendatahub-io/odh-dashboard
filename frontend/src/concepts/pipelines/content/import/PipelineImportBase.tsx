@@ -131,7 +131,7 @@ const PipelineImportBase: React.FC<PipelineImportBaseProps> = ({
             {children}
             <StackItem>
               <NameDescriptionField
-                nameFieldId="pipeline-display-name"
+                nameFieldId="pipeline-name"
                 nameFieldLabel="Pipeline name"
                 descriptionFieldLabel="Pipeline description"
                 descriptionFieldId="pipeline-description"
