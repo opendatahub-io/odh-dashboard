@@ -1,11 +1,19 @@
-import { mockByon } from '#~/__mocks__/mockByon';
+import { mockImageStreamK8sResource } from '#~/__mocks__/mockImageStreamK8sResource';
+import { ImageStreamModel } from '#~/__tests__/cypress/cypress/utils/models';
 import { asProductAdminUser } from '#~/__tests__/cypress/cypress/utils/mockUsers';
 import { notebookImageSettings } from '#~/__tests__/cypress/cypress/pages/notebookImageSettings';
 
 describe('Workbench Image Form Character Limits', () => {
   beforeEach(() => {
     asProductAdminUser();
-    cy.interceptOdh('GET /api/images/byon', mockByon([]));
+    cy.interceptK8s(
+      'GET',
+      { model: ImageStreamModel, ns: 'opendatahub' },
+      mockImageStreamK8sResource({
+        name: 'byon-123',
+        namespace: 'opendatahub',
+      }),
+    );
     notebookImageSettings.visit();
     notebookImageSettings.findImportImageButton().click();
   });

@@ -1,7 +1,8 @@
 import React from 'react';
-import { deleteBYONImage } from '#~/services/imagesService';
 import { BYONImage } from '#~/types';
 import DeleteModal from '#~/pages/projects/components/DeleteModal';
+import { useDashboardNamespace } from '#~/redux/selectors';
+import { deleteImageStream } from '#~/api/k8s/imageStreams.ts';
 
 export type DeleteBYONImageModalProps = {
   image: BYONImage;
@@ -9,6 +10,7 @@ export type DeleteBYONImageModalProps = {
 };
 
 const DeleteBYONImageModal: React.FC<DeleteBYONImageModalProps> = ({ image, onClose }) => {
+  const { dashboardNamespace } = useDashboardNamespace();
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
 
@@ -27,7 +29,7 @@ const DeleteBYONImageModal: React.FC<DeleteBYONImageModalProps> = ({ image, onCl
       submitButtonLabel="Delete notebook image"
       onDelete={() => {
         setIsDeleting(true);
-        deleteBYONImage(image)
+        deleteImageStream(image.name, dashboardNamespace)
           .then(() => {
             onBeforeClose(true);
           })

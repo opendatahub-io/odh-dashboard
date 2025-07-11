@@ -1,6 +1,7 @@
 import {
   mapImageStreamToBYONImage,
   mapImageStreamToImageInfo,
+  parseImageURL,
 } from '#~/utilities/imageStreamUtils';
 import {
   BYONImage,
@@ -178,6 +179,79 @@ describe('imageStreamUtils', () => {
       });
       const info = mapImageStreamToImageInfo(image);
       expect(info.error).toBe('');
+    });
+  });
+
+  describe('parseImageURL', () => {
+    it('Invalid URL: space string', () => {
+      const url = '     ';
+      const { fullURL, host } = parseImageURL(url);
+      expect(fullURL).toBe('');
+      expect(host).toBeUndefined();
+    });
+
+    it('Invalid URL: no match', () => {
+      const url = '/';
+      const { host, tag } = parseImageURL(url);
+      expect(host).toBeUndefined();
+      expect(tag).toBeUndefined();
+    });
+
+    it('Invalid URL: host only', () => {
+      const url = 'docker.io';
+      const { host } = parseImageURL(url);
+      expect(host).toBe('');
+    });
+
+    it('Invalid URL: host and repo, no image', () => {
+      const url = 'docker.io/opendatahub';
+      const { host } = parseImageURL(url);
+      expect(host).toBe('');
+    });
+
+    it('Valid URL with spaces on both sides', () => {
+      const url = '  docker.io/library/mysql:test  ';
+      const { fullURL, host, tag } = parseImageURL(url);
+      expect(fullURL).toBe('docker.io/library/mysql:test');
+      expect(host).toBe('docker.io');
+      expect(tag).toBe('test');
+    });
+
+    it('Docker container URL without tag', () => {
+      const url = 'docker.io/library/mysql';
+      const { host, tag } = parseImageURL(url);
+      expect(host).toBe('docker.io');
+      expect(tag).toBeUndefined();
+    });
+
+    it('Docker container URL with tag', () => {
+      const url = 'docker.io/library/mysql:test-tag';
+      const { host, tag } = parseImageURL(url);
+      expect(host).toBe('docker.io');
+      expect(tag).toBe('test-tag');
+    });
+
+    it('OpenShift internal registry URL without tag', () => {
+      const url =
+        'image-registry.openshift-image-registry.svc:5000/opendatahub/s2i-minimal-notebook';
+      const { host, tag } = parseImageURL(url);
+      expect(host).toBe('image-registry.openshift-image-registry.svc:5000');
+      expect(tag).toBeUndefined();
+    });
+
+    it('OpenShift internal registry URL with tag', () => {
+      const url =
+        'image-registry.openshift-image-registry.svc:5000/opendatahub/s2i-minimal-notebook:v0.3.0-py36';
+      const { host, tag } = parseImageURL(url);
+      expect(host).toBe('image-registry.openshift-image-registry.svc:5000');
+      expect(tag).toBe('v0.3.0-py36');
+    });
+
+    it('Quay URL with port and tag', () => {
+      const url = 'quay.io:443/opendatahub/odh-dashboard:main-55e19fa';
+      const { host, tag } = parseImageURL(url);
+      expect(host).toBe('quay.io:443');
+      expect(tag).toBe('main-55e19fa');
     });
   });
 });
