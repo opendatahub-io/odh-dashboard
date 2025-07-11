@@ -69,6 +69,7 @@ describe('[Product Bug: RHOAIENG-29340] Verify Admin Multi Model Creation and Va
         '@Dashboard',
         '@Modelserving',
         '@NonConcurrent',
+        '@Bug',
       ],
     },
     () => {
