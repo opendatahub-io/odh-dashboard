@@ -66,16 +66,22 @@ describe('Workbenches - image/version tests', () => {
           cy.log(`Checking image: ${info.image}`);
           createSpawnerPage.findNotebookImage(info.image).click();
 
-          // Log all elements with data-testid attributes in the version selection area
-          cy.get('[data-testid*="-version-"]').then(($elements) => {
-            cy.log(`Found ${$elements.length} version elements for ${info.image}`);
-            $elements.each((_, el) => {
-              const dataTestId = el.getAttribute('data-testid');
-              if (dataTestId) {
-                cy.log(`Version element data-testid: ${dataTestId}`);
-              }
+          // Only validate if there are 2 or more non-outdated versions
+          if (info.versions.length >= 2) {
+            cy.get('[data-testid*="-version-"]').then(($elements) => {
+              cy.log(`Found ${$elements.length} version elements for ${info.image}`);
+              $elements.each((_, el) => {
+                const dataTestId = el.getAttribute('data-testid');
+                if (dataTestId) {
+                  cy.log(`Version element data-testid: ${dataTestId}`);
+                }
+              });
             });
-          });
+          } else {
+            cy.log(
+              `Skipping UI version validation for ${info.image} (only 1 non-outdated version)`,
+            );
+          }
         });
       });
     },
