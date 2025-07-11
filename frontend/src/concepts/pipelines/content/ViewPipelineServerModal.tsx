@@ -8,13 +8,14 @@ import {
   Modal,
   ModalBody,
   ModalHeader,
+  Checkbox,
 } from '@patternfly/react-core';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import PasswordHiddenText from '#~/components/PasswordHiddenText';
 import { dataEntryToRecord } from '#~/utilities/dataEntryToRecord';
 import useNamespaceSecret from '#~/concepts/projects/apiHooks/useNamespaceSecret';
 import { ExternalDatabaseSecret } from '#~/concepts/pipelines/content/configurePipelinesServer/const';
-import { DSPipelineKind } from '#~/k8sTypes';
+import { DSPipelineAPIServerStore, DSPipelineKind } from '#~/k8sTypes';
 
 type ViewPipelineServerModalProps = {
   onClose: () => void;
@@ -120,6 +121,25 @@ const ViewPipelineServerModal: React.FC<ViewPipelineServerModalProps> = ({
                   </DescriptionListGroup>
                 </>
               )}
+            {!!pipelineNamespaceCR.spec.apiServer?.pipelineStore && (
+              <>
+                <Title headingLevel="h2">Additional Configurations</Title>
+                <DescriptionListGroup>
+                  <DescriptionListTerm>Pipeline Store</DescriptionListTerm>
+                  <DescriptionListDescription>
+                    <Checkbox
+                      id="pipeline-configure-server-kubernetes-store-checkbox"
+                      isDisabled
+                      label="Store pipeline yaml files in Kubernetes"
+                      isChecked={
+                        pipelineNamespaceCR.spec.apiServer.pipelineStore ===
+                        DSPipelineAPIServerStore.KUBERNETES
+                      }
+                    />
+                  </DescriptionListDescription>
+                </DescriptionListGroup>
+              </>
+            )}
           </DescriptionList>
         )}
       </ModalBody>

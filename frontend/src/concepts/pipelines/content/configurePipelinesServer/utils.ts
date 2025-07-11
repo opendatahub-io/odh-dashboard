@@ -1,5 +1,5 @@
 import { createSecret, assembleSecret, deleteSecret } from '#~/api';
-import { DSPipelineKind } from '#~/k8sTypes';
+import { DSPipelineAPIServerStore, DSPipelineKind } from '#~/k8sTypes';
 import { AwsKeys, PIPELINE_AWS_FIELDS } from '#~/pages/projects/dataConnections/const';
 import { dataEntryToRecord } from '#~/utilities/dataEntryToRecord';
 import { EnvVariableDataEntry } from '#~/pages/projects/types';
@@ -144,7 +144,7 @@ export const createDSPipelineResourceSpec = (
       managedPipelines: {
         instructLab: { state: config.enableInstructLab ? 'Managed' : 'Removed' },
       },
-      pipelineStore: config.storeYamlInKubernetes ? 'kubernetes' : undefined,
+      pipelineStore: config.storeYamlInKubernetes ? DSPipelineAPIServerStore.KUBERNETES : undefined,
     },
   };
 };

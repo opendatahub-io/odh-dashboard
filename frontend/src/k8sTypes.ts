@@ -700,6 +700,11 @@ export type DSPipelineManagedPipelinesKind = {
   };
 };
 
+export enum DSPipelineAPIServerStore {
+  KUBERNETES = 'kubernetes',
+  DATABASE = 'database',
+}
+
 export type DSPipelineKind = K8sResourceCommon & {
   metadata: {
     name: string;
@@ -716,7 +721,7 @@ export type DSPipelineKind = K8sResourceCommon & {
       }>;
       enableSamplePipeline: boolean;
       managedPipelines?: DSPipelineManagedPipelinesKind;
-      pipelineStore: string;
+      pipelineStore: DSPipelineAPIServerStore;
     }>;
     database?: Partial<{
       externalDB: Partial<{

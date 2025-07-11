@@ -1,4 +1,4 @@
-import { Checkbox, ExpandableSection, FormGroup } from '@patternfly/react-core';
+import { Checkbox, ExpandableSection, FormGroup, Tooltip } from '@patternfly/react-core';
 import React from 'react';
 import FormSection from '#~/components/pf-overrides/FormSection';
 import { PipelineServerConfigType } from './types';
@@ -30,8 +30,9 @@ const PipelinesAdditionalConfigurationSection = ({
             <Checkbox
               id="pipeline-configure-server-kubernetes-store-checkbox"
               label="Store pipeline yaml files in Kubernetes"
+              description="This cannot be changed after server configuration."
               isChecked={config.storeYamlInKubernetes}
-              onChange={(e, enabled) => {
+              onChange={(_, enabled) => {
                 setConfig({
                   ...config,
                   storeYamlInKubernetes: enabled,
