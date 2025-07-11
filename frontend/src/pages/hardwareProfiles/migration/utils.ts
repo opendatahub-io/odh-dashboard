@@ -133,6 +133,7 @@ const transformAcceleratorProfileToHardwareProfile = (
         ...acceleratorProfile.metadata.annotations,
         'opendatahub.io/dashboard-feature-visibility': JSON.stringify(visibleIn),
         'opendatahub.io/modified-date': new Date().toISOString(),
+        'opendatahub.io/is-legacy-profile': 'true',
       },
     },
     spec: {
@@ -207,6 +208,7 @@ export const transformContainerSizeToHardwareProfile = (
       annotations: {
         'opendatahub.io/dashboard-feature-visibility': JSON.stringify(visibleIn),
         'opendatahub.io/modified-date': new Date().toISOString(),
+        'opendatahub.io/is-legacy-profile': 'true',
       },
     },
     spec: {
