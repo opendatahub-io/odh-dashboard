@@ -163,7 +163,6 @@ export type UploadPipeline = (
   name: string,
   description: string,
   fileContents: string,
-  displayName?: string,
 ) => Promise<PipelineKF>;
 export type UploadPipelineVersion = (
   opts: K8sAPIOptions,
@@ -171,7 +170,6 @@ export type UploadPipelineVersion = (
   description: string,
   fileContents: string,
   pipelineId: string,
-  displayName?: string,
 ) => Promise<PipelineVersionKF>;
 
 export type PipelineAPIs = {
