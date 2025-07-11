@@ -1642,7 +1642,18 @@ describe('Serving Runtime List', () => {
       kserveRow.findConfirmStopModalCheckbox().click();
       kserveRow.findConfirmStopModalCheckbox().should('be.checked');
       kserveRow.findConfirmStopModalButton().click();
+
+      cy.interceptK8sList(
+        {
+          model: PodModel,
+          ns: 'test-project',
+          queryParams: { labelSelector: 'serving.kserve.io/inferenceservice=test-model' },
+        },
+        mockK8sResourceList([]),
+      ).as('getPods');
+
       cy.wait(['@stopModelPatch', '@getStoppedModel']);
+
       kserveRow.findStatusLabel('Stopped');
       kserveRow.findStateActionToggle().should('have.text', 'Start');
       cy.window().then((win) => {

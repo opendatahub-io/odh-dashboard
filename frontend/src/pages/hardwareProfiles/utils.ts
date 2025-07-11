@@ -124,9 +124,9 @@ export const generateWarningForHardwareProfiles = (
 export const isHardwareProfileIdentifierValid = (identifier: Identifier): boolean => {
   try {
     if (
-      identifier.minCount.toString().at(0) === '-' ||
-      (identifier.maxCount && identifier.maxCount.toString().at(0) === '-') ||
-      identifier.defaultCount.toString().at(0) === '-'
+      identifier.minCount.toString().charAt(0) === '-' ||
+      (identifier.maxCount && identifier.maxCount.toString().charAt(0) === '-') ||
+      identifier.defaultCount.toString().charAt(0) === '-'
     ) {
       return false;
     }

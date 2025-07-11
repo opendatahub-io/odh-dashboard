@@ -17,7 +17,8 @@ export const getNotebookImageData = (
   const container: PodContainer | undefined = notebook.spec.template.spec.containers.find(
     (currentContainer) => currentContainer.name === notebook.metadata.name,
   );
-  const imageTag = container?.image.split('/').at(-1)?.split(':');
+  const containerImages = container?.image.split('/');
+  const imageTag = containerImages?.[containerImages.length - 1]?.split(':');
   // if image could not be parsed from the container, consider it deleted because the image tag is invalid
   if (!imageTag || imageTag.length < 2 || !container) {
     return {
