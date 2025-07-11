@@ -17,6 +17,7 @@ import { patchInferenceServiceStoppedStatus } from '#~/api/k8s/inferenceServices
 import useStopModalPreference from '#~/pages/modelServing/useStopModalPreference.ts';
 import ModelServingStopModal from '#~/pages/modelServing/ModelServingStopModal';
 import { useModelStatus } from '#~/pages/modelServing/useModelStatus';
+import { InferenceServiceModelState } from '#~/pages/modelServing/screens/types';
 import InferenceServiceEndpoint from './InferenceServiceEndpoint';
 import InferenceServiceProject from './InferenceServiceProject';
 import InferenceServiceStatus from './InferenceServiceStatus';
@@ -63,7 +64,13 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
   const { isStarting, isStopping, isStopped, isRunning, setIsStarting, setIsStopping } =
     useModelStatus(inferenceService, refresh);
 
-  const isNewlyDeployed = !inferenceService.status?.modelStatus?.states?.activeModelState;
+  const isNewlyDeployed = React.useMemo(
+    () =>
+      !inferenceService.status?.modelStatus?.states?.activeModelState &&
+      inferenceService.status?.modelStatus?.states?.targetModelState !==
+        InferenceServiceModelState.FAILED_TO_LOAD,
+    [inferenceService.status?.modelStatus?.states],
+  );
 
   const onStart = React.useCallback(() => {
     setIsStarting(true);
@@ -123,6 +130,12 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
           inferenceService={inferenceService}
           servingRuntime={servingRuntime}
           isKserve={!modelMesh}
+          modelState={{
+            isStarting: isStarting || isNewlyDeployed,
+            isStopping,
+            isStopped,
+            isRunning,
+          }}
         />
       </Td>
 
@@ -145,17 +158,19 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
         />
       </Td>
       <Td>
-        <StateActionToggle
-          currentState={{
-            isRunning: isRunning && !isStarting,
-            isStopped: isStopped && !isStopping,
-            isStarting,
-            isStopping,
-          }}
-          onStart={onStart}
-          onStop={onStop}
-          isDisabledWhileStarting={false}
-        />
+        {!modelMesh && (
+          <StateActionToggle
+            currentState={{
+              isRunning: isRunning && !isStarting,
+              isStopped: isStopped && !isStopping,
+              isStarting,
+              isStopping,
+            }}
+            onStart={onStart}
+            onStop={onStop}
+            isDisabledWhileStarting={false}
+          />
+        )}
       </Td>
 
       {columnNames.includes(ColumnField.Kebab) && (

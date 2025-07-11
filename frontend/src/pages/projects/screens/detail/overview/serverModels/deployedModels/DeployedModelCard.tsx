@@ -39,8 +39,11 @@ const DeployedModelCard: React.FC<DeployedModelCardProps> = ({
   const modelMesh = isModelMesh(inferenceService);
   const modelMetricsSupported = modelMetricsEnabled && (modelMesh || kserveMetricsEnabled);
 
-  const { isStarting, isStopping, isStopped } = useModelStatus(inferenceService);
-  const isNewlyDeployed = !inferenceService.status?.modelStatus?.states?.activeModelState;
+  const { isStarting, isStopping, isStopped, isRunning } = useModelStatus(inferenceService);
+  const isNewlyDeployed = React.useMemo(
+    () => !inferenceService.status?.modelStatus?.states?.activeModelState,
+    [inferenceService.status?.modelStatus?.states?.activeModelState],
+  );
 
   const inferenceServiceDisplayName = getDisplayNameFromK8sResource(inferenceService);
 
@@ -105,6 +108,12 @@ const DeployedModelCard: React.FC<DeployedModelCardProps> = ({
             inferenceService={inferenceService}
             servingRuntime={servingRuntime}
             isKserve={!isModelMesh(inferenceService)}
+            modelState={{
+              isStarting: isStarting || isNewlyDeployed,
+              isStopping,
+              isStopped,
+              isRunning,
+            }}
           />
         </CardFooter>
       </TypeBorderedCard>
