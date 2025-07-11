@@ -108,9 +108,11 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
 
     configureDSPipelineResourceSpec(configureConfig, project.metadata.name)
       .then((spec) => {
+        console.log(spec);
         createPipelinesCR(namespace, spec)
           .then((obj: DSPipelineKind) => {
             onBeforeClose();
+            console.log(obj);
 
             const pollingNamespace = obj.metadata.namespace;
             registerNotification({
