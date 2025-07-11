@@ -1413,6 +1413,10 @@ export type DataScienceClusterKind = K8sResourceCommon & {
       [DataScienceStackComponent.MODEL_REGISTRY]?: DataScienceClusterComponent & {
         registriesNamespace: string;
       };
+      [DataScienceStackComponent.KUEUE]?: DataScienceClusterComponent & {
+        defaultLocalQueueName: string;
+        defaultClusterQueueName: string;
+      };
     };
   };
   status?: DataScienceClusterKindStatus;
