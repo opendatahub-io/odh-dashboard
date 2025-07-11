@@ -16,7 +16,7 @@ export const AcceleratorProfileModel: K8sModelCommon = {
 
 export const HardwareProfileModel: K8sModelCommon = {
   apiVersion: 'v1alpha1',
-  apiGroup: 'dashboard.opendatahub.io',
+  apiGroup: 'infrastructure.opendatahub.io',
   kind: 'HardwareProfile',
   plural: 'hardwareprofiles',
 };
