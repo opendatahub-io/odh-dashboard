@@ -11,11 +11,16 @@ import { EitherNotBoth } from './typeHelpers';
 import { NotebookPodSpecOptions } from './concepts/hardwareProfiles/useNotebookPodSpecOptionsState';
 import { FetchStateObject } from './utilities/useFetch';
 
-export type DevFeatureFlags = {
+export type FeatureFlagProps = {
   devFeatureFlags: Record<FeatureFlag | string, boolean | undefined> | null;
   setDevFeatureFlag: (flag: FeatureFlag | string, value: boolean) => void;
   resetDevFeatureFlags: (turnOff: boolean) => void;
+};
+
+// to add to below:  isBannerVisible: boolean;
+export type DevFeatureFlags = FeatureFlagProps & {
   setDevFeatureFlagQueryVisible: (visible: boolean) => void;
+  isBannerVisible: boolean;
 };
 
 export type PrometheusQueryResponse<TResultExtraProps extends object = object> = {
