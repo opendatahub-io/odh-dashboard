@@ -63,7 +63,10 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
   const { isStarting, isStopping, isStopped, isRunning, setIsStarting, setIsStopping } =
     useModelStatus(inferenceService, refresh);
 
-  const isNewlyDeployed = !inferenceService.status?.modelStatus?.states?.activeModelState;
+  const isNewlyDeployed = React.useMemo(
+    () => !inferenceService.status?.modelStatus?.states?.activeModelState,
+    [inferenceService.status?.modelStatus?.states?.activeModelState],
+  );
 
   const onStart = React.useCallback(() => {
     setIsStarting(true);
@@ -123,6 +126,12 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
           inferenceService={inferenceService}
           servingRuntime={servingRuntime}
           isKserve={!modelMesh}
+          modelState={{
+            isStarting: isStarting || isNewlyDeployed,
+            isStopping,
+            isStopped,
+            isRunning,
+          }}
         />
       </Td>
 
@@ -145,17 +154,19 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
         />
       </Td>
       <Td>
-        <StateActionToggle
-          currentState={{
-            isRunning: isRunning && !isStarting,
-            isStopped: isStopped && !isStopping,
-            isStarting,
-            isStopping,
-          }}
-          onStart={onStart}
-          onStop={onStop}
-          isDisabledWhileStarting={false}
-        />
+        {!modelMesh && (
+          <StateActionToggle
+            currentState={{
+              isRunning: isRunning && !isStarting,
+              isStopped: isStopped && !isStopping,
+              isStarting,
+              isStopping,
+            }}
+            onStart={onStart}
+            onStop={onStop}
+            isDisabledWhileStarting={false}
+          />
+        )}
       </Td>
 
       {columnNames.includes(ColumnField.Kebab) && (
