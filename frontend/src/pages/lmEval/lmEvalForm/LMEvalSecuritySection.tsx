@@ -49,6 +49,7 @@ const LMEvalSecuritySection: React.FC<LMEvalSecuritySectionProps> = ({
           }
         />
       }
+      hasAnimations
     >
       <>
         <FormGroup

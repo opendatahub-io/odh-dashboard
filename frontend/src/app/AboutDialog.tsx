@@ -136,7 +136,11 @@ const AboutDialog: React.FC<AboutDialogProps> = ({ onClose }) => {
           >
             <h4>Installed components</h4>
             {groupedComponents.length > 0 ? (
-              <Table aria-label="Component Releases Table" data-testid="component-releases-table">
+              <Table
+                aria-label="Component Releases Table"
+                data-testid="component-releases-table"
+                hasAnimations
+              >
                 <Thead>
                   <Tr data-testid="table-row-title">
                     <Th modifier="wrap">
