@@ -3,6 +3,7 @@ import {
   Identifier,
   IdentifierResourceType,
   NodeSelector,
+  SchedulingType,
   Toleration,
   TolerationEffect,
   TolerationOperator,
@@ -19,6 +20,9 @@ type MockResourceConfigType = {
   description?: string;
   enabled?: boolean;
   nodeSelector?: NodeSelector;
+  schedulingType?: SchedulingType;
+  localQueueName?: string;
+  priorityClass?: string;
   tolerations?: Toleration[];
   annotations?: Record<string, string>;
   warning?: WarningNotification;
@@ -53,6 +57,9 @@ export const mockHardwareProfile = ({
   ],
   description = '',
   enabled = true,
+  schedulingType = SchedulingType.NODE,
+  localQueueName = 'default-local-queue',
+  priorityClass = 'None',
   tolerations = [
     {
       key: 'nvidia.com/gpu',
@@ -64,7 +71,7 @@ export const mockHardwareProfile = ({
   annotations,
   labels,
 }: MockResourceConfigType): HardwareProfileKind => ({
-  apiVersion: 'dashboard.opendatahub.io/v1alpha1',
+  apiVersion: 'infrastructure.opendatahub.io/v1alpha1',
   kind: 'HardwareProfile',
   metadata: {
     creationTimestamp: '2023-03-17T16:12:41Z',
@@ -73,16 +80,31 @@ export const mockHardwareProfile = ({
     namespace,
     resourceVersion: '1309350',
     uid,
-    annotations,
+    annotations: {
+      ...annotations,
+      'opendatahub.io/display-name': displayName,
+      'opendatahub.io/description': description,
+      'opendatahub.io/disabled': (!enabled).toString(),
+    },
     labels,
   },
   spec: {
     identifiers,
-    displayName,
-    enabled,
-    tolerations,
-    ...(nodeSelector ? { nodeSelector } : {}),
-    description,
+    scheduling: {
+      type: schedulingType,
+      ...(schedulingType === SchedulingType.QUEUE && {
+        kueue: {
+          localQueueName,
+          priorityClass,
+        },
+      }),
+      ...(schedulingType === SchedulingType.NODE && {
+        node: {
+          ...(nodeSelector ? { nodeSelector } : {}),
+          tolerations,
+        },
+      }),
+    },
   },
 });
 

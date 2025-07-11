@@ -284,6 +284,30 @@ export type NotebookPort = {
   protocol: string;
 };
 
+export type HardwareProfileAnnotations = Partial<{
+  'opendatahub.io/display-name': string;
+  'opendatahub.io/description': string;
+  'opendatahub.io/dashboard-feature-visibility': string; // JSON stringified HardwareProfileFeatureVisibility[]
+  'opendatahub.io/disabled': string;
+}>;
+
+export type HardwareProfileScheduling = {
+  type: SchedulingType;
+  kueue?: {
+    localQueueName: string;
+    priorityClass?: string;
+  };
+  node?: {
+    nodeSelector?: NodeSelector;
+    tolerations?: Toleration[];
+  };
+};
+
+export enum SchedulingType {
+  QUEUE = 'Queue',
+  NODE = 'Node',
+}
+
 export enum TolerationOperator {
   EXISTS = 'Exists',
   EQUAL = 'Equal',
@@ -573,6 +597,8 @@ export enum ImageStreamSpecTagAnnotation {
 export enum DisplayNameAnnotation {
   DISP_NAME = 'openshift.io/display-name',
   DESC = 'openshift.io/description',
+  ODH_DISP_NAME = 'opendatahub.io/display-name',
+  ODH_DESC = 'opendatahub.io/description',
 }
 
 export type Volume = {
