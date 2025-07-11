@@ -48,7 +48,7 @@ RUN rm -rf /var/cache/yum
 # Set capability to adjust OOM score for Node
 RUN echo CAP_SYS_NICE >> /etc/security/limits.conf
 
-# Copy NodeJS packages lists (json files) from "frontend" directory 
+# Copy NodeJS packages lists (json files) from "frontend" directory
 WORKDIR $USER_HOME
 COPY ./frontend/package*.json ./
 RUN chown $USER:0 ./*
@@ -62,7 +62,7 @@ ENV NODE_PATH "$NVM_DIR/versions/node/$NODE_VERSION/lib/node_modules"
 ENV PATH "$NVM_DIR/versions/node/$NODE_VERSION/bin:/bin:$HOME/.local/bin:/root/.local/bin:$PATH"
 RUN mkdir -p $NVM_DIR
 
-# Install Node Version Manager, NodeJS and the packages for CI (package-lock.json) 
+# Install Node Version Manager, NodeJS and the packages for CI (package-lock.json)
 RUN curl -o- $NVM_INSTALLER | bash
 RUN /bin/bash -c "source $NVM_DIR/nvm.sh && \
     nvm install $NODE_VERSION && \

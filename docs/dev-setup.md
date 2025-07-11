@@ -12,18 +12,61 @@ ODH requires the following to run:
 
 ### Additional tooling
 
-- [Podman](https://github.com/containers/podman)
+- [Podman](https://github.com/containers/podman) or [Docker](https://www.docker.com/)
 - [Quay.io](https://quay.io/)
 
 ## Development
 
+<<<<<<< HEAD
+Clone the repository
+
+```bash
+git clone https://github.com/opendatahub-io/odh-dashboard
+```
+
+### Quick Start
+
+There is a quick start script that will install the required dependencies and run the project in development mode.
+
+```bash
+cd odh-dashboard && make dev-setup
+```
+
+- This script will install OpenShift CLI (oc), login to an existing cluster, setup the required operators, install node dependencies, and build the project.
+- This will create a .env.local file if you decide to use container development environments.
+- Some steps require sudo access. You may also skip those steps and install the required tools manually.
+
+### Manual Setup
+
+1. Get OpenShift CLI (oc)
+
+2. Setup an OpenShift cluster with CRC or create one in the Red Hat Console.
+
+   - Ensure you have cluster-admin access to the cluster.
+
+3. Login to the OpenShift cluster using the OpenShift CLI (oc)
+=======
 1. Clone the repository
+>>>>>>> 1f55f81bfa04e47c4ccfed6e6ef66aa07195bb3e
 
    ```bash
-   git clone https://github.com/opendatahub-io/odh-dashboard
+   oc login <CLUSTER_URL> --token=<TOKEN>
+   oc login <CLUSTER_URL> -u <USERNAME> -p <PASSWORD>
    ```
 
+<<<<<<< HEAD
+4. Install the required operators in the OpenShift cluster. You can find these in the OperatorHub or install them manually.
+
+   - The ODH Dashboard requires the following operators to be installed for full functionality:
+     - [Open Data Hub Operator](https://github.com/opendatahub-io/opendatahub-operator)
+     - [Authorino Operator](https://github.com/Kuadrant/authorino-operator)
+     - [Red Hat OpenShift Serverless Operator](https://github.com/openshift-knative/serverless-operator)
+     - [Red Hat OpenShift Service Mesh 2](https://github.com/Maistra/istio-operator)
+
+5. Within the repo context, we use `npm` to install project dependencies
+=======
 2. Within the repo context, we use `npm` to install project dependencies
+>>>>>>> 1f55f81bfa04e47c4ccfed6e6ef66aa07195bb3e
 
    ```bash
    cd odh-dashboard && npm install
@@ -45,6 +88,13 @@ This is the default context for running a local UI. Make sure you build the proj
 
 ```bash
 npm run start
+# or
+npm run dev
+# or
+cd frontend && npm run start:dev
+cd ../backend && npm run start:dev
+# or
+cd frontend && npm run start:dev:ext # backend is running externally in cluster
 ```
 
 > If you'd like to run "backend" and "frontend" separately for development, cd into each directory in two different terminals and run `npm run start:dev` from each.
@@ -63,7 +113,11 @@ For in-depth testing guidance review the [testing guidelines](./testing.md)
 
 ### Dev Feature Flags
 
-Feature flags are defined in the [dashboard config](./dashboard-config.md#features). When testing on a live cluster, changing feature flags via the config affects all users on the cluster. It is also possible to personally control the enablement of feature flags within the browser session. Simply append `?devFeatureFlags` to the dashboard URL. A blue banner will appear at the top of the page where a modal can be opened, allowing one to adjust the enablement of feature flags. These settings will persist for the length of the browser session.
+Feature flags are defined in the [dashboard config](./dashboard-config.md#features). When testing on a live cluster, changing feature flags via the config affects all users on the cluster. It is also possible to personally control the enablement of feature flags within the browser session.
+
+Simply append `?devFeatureFlags` to the dashboard URL.
+
+- A blue banner will appear at the top of the page where a modal can be opened, allowing one to adjust the enablement of feature flags. These settings will persist for the length of the browser session.
 
 With the dev feature flags modal opened, the browser URL will update to include the current feature flag enablement settings. The URL can then be bookmarked or shared.
 

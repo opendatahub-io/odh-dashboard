@@ -142,7 +142,6 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
                         status: NotificationResponseStatus.STOP,
                       };
                     }
-
                     return {
                       status: NotificationResponseStatus.SUCCESS,
                       title: `Pipeline server for ${pollingNamespace} is ready.`,
