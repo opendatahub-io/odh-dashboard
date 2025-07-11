@@ -7,47 +7,78 @@ import {
   DataScienceStackComponent,
 } from './types';
 
-export const definedFeatureFlags: string[] = Object.keys({
+const techPreviewFlags = {
+  disableHardwareProfiles: true,
+  disableModelRegistry: true,
+} satisfies Partial<DashboardCommonConfig>;
+
+const devTemporaryFeatureFlags = {
+  disableKueue: true,
+  disableFeatureStore: true,
+  disableLlamaStackChatBot: true, // internal dev only
+  disablePVCServing: true,
+  disableProjectScoped: true,
+} satisfies Partial<DashboardCommonConfig>;
+
+// Group 1: Core Dashboard Features
+const coreDashboardFlags = {
   enablement: false,
   disableInfo: false,
   disableSupport: false,
-  disableClusterManager: false,
-  disableTracking: false,
-  disableBYONImageStream: false,
-  disableISVBadges: false,
-  disableAppLauncher: false,
-  disableUserManagement: false,
   disableHome: false,
+  disableAppLauncher: false,
+  disableTracking: false,
+  disableISVBadges: false,
+} satisfies Partial<DashboardCommonConfig>;
+
+// Group 2: Project & User Management Features
+const projectManagementFlags = {
   disableProjects: false,
-  disableModelServing: false,
-  disableProjectScoped: true,
   disableProjectSharing: false,
+  disableUserManagement: false,
+  disableClusterManager: false,
+  disableBYONImageStream: false,
+  disableAdminConnectionTypes: false,
+  disableStorageClasses: false,
+  disableAcceleratorProfiles: false,
+} satisfies Partial<DashboardCommonConfig>;
+
+// Group 3: Model Serving & AI/ML Infrastructure
+const modelServingFlags = {
+  disableModelServing: false,
   disableCustomServingRuntimes: false,
-  disablePipelines: false,
-  disableTrustyBiasMetrics: false,
-  disablePerformanceMetrics: false,
+  disableServingRuntimeParams: false,
   disableKServe: false,
   disableKServeAuth: false,
   disableKServeMetrics: false,
   disableKServeRaw: false,
   disableModelMesh: false,
-  disableAcceleratorProfiles: false,
-  disableHardwareProfiles: false,
+  disableNIMModelServing: false,
+  disablePerformanceMetrics: false,
+  disableTrustyBiasMetrics: false,
+} satisfies Partial<DashboardCommonConfig>;
+
+// Group 4: Advanced AI/ML Features & Pipelines
+const advancedAIMLFlags = {
+  disablePipelines: false,
   disableDistributedWorkloads: false,
   disableModelCatalog: true,
-  disableModelRegistry: false,
   disableModelRegistrySecureDB: false,
-  disableServingRuntimeParams: false,
-  disableStorageClasses: false,
-  disableNIMModelServing: false,
-  disableAdminConnectionTypes: false,
   disableFineTuning: true,
-  disableKueue: true,
   disableLMEval: true,
-  disableLlamaStackChatBot: true, // internal dev only
-  disablePVCServing: true,
-  disableFeatureStore: true,
-} satisfies DashboardCommonConfig);
+} satisfies Partial<DashboardCommonConfig>;
+
+// Combined feature flags object
+const allFeatureFlagsConfig = {
+  ...devTemporaryFeatureFlags,
+  ...techPreviewFlags,
+  ...coreDashboardFlags,
+  ...projectManagementFlags,
+  ...modelServingFlags,
+  ...advancedAIMLFlags,
+} satisfies DashboardCommonConfig;
+
+export const definedFeatureFlags: string[] = Object.keys(allFeatureFlagsConfig);
 
 export const SupportedAreasStateMap: SupportedAreasState = {
   [SupportedArea.BYON]: {
