@@ -51,13 +51,13 @@ const PipelineImportModal: React.FC<PipelineImportModalProps> = ({
   );
 
   const submitAction = React.useCallback(() => {
-    const { name, description, fileContents, pipelineUrl, uploadOption } = modalData;
+    const { name, description, fileContents, pipelineUrl, uploadOption, displayName } = modalData;
     fireFormTrackingEvent(pipelineImported, {
       outcome: TrackingOutcome.submit,
       mode: uploadOption === PipelineUploadOption.FILE_UPLOAD ? 'file' : 'url',
     });
     if (uploadOption === PipelineUploadOption.FILE_UPLOAD) {
-      return api.uploadPipeline({}, name, description, fileContents);
+      return api.uploadPipeline({}, name, description, fileContents, displayName);
     }
     return api.createPipelineAndVersion(
       {},
