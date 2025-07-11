@@ -31,7 +31,9 @@ const InternalServicePopoverContent: React.FC<InternalServicePopoverContentProps
     return (
       <DescriptionList isCompact>
         <DescriptionListGroup>
-          <DescriptionListTerm>Internal (can only be accessed from inside the cluster)</DescriptionListTerm>
+          <DescriptionListTerm>
+            Internal (can only be accessed from inside the cluster)
+          </DescriptionListTerm>
           <DescriptionListDescription>
             <ClipboardCopy
               hoverTip="Copy"

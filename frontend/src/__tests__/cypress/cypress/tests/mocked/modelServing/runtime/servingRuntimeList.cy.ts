@@ -3681,7 +3681,10 @@ describe('Serving Runtime List', () => {
       // Get modal of inference service when is loaded
       const kserveRowModelLoaded = modelServingSection.getKServeRow('Loaded model');
       kserveRowModelLoaded.findInternalServiceButton().click();
-      kserveRowModelLoaded.findInternalServicePopover().findByText('url').should('exist');
+      kserveRowModelLoaded
+        .findInternalServicePopover()
+        .findByText('Internal (can only be accessed from inside the cluster)')
+        .should('exist');
 
       // Get modal of inference service when is not loaded
       const kserveRowModelNotLoaded = modelServingSection.getKServeRow('Model Not loaded');

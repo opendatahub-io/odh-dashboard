@@ -11,13 +11,13 @@ export const getKServeDeploymentEndpoints = (
   const endpoints: DeploymentEndpoint[] = [];
   if (inferenceService.status?.address?.url) {
     endpoints.push({
-      name: 'Internal (can be accessed from inside or outside the cluster)',
+      name: 'Internal (can only be accessed from inside the cluster)',
       type: 'internal',
       url: inferenceService.status.address.url,
     });
   } else {
     endpoints.push({
-      name: 'Internal (can be accessed from inside or outside the cluster)',
+      name: 'Internal (can only be accessed from inside the cluster)',
       type: 'internal',
       url: '',
       error: 'Could not find any internal service enabled',
