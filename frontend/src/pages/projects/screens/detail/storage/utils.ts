@@ -5,7 +5,10 @@ import {
 import { NotebookKind, PersistentVolumeClaimKind } from '#~/k8sTypes';
 import { ClusterStorageNotebookSelection, StorageData } from '#~/pages/projects/types';
 import { MOUNT_PATH_PREFIX } from '#~/pages/projects/screens/spawner/storage/const';
-import { MountPathFormat } from '#~/pages/projects/screens/spawner/storage/types';
+import {
+  MountPathFormat,
+  PvcModelAnnotation,
+} from '#~/pages/projects/screens/spawner/storage/types';
 import { getNotebookPVCMountPathMap } from '#~/pages/projects/notebook/utils';
 
 type Status = 'error' | 'warning' | 'info' | null;
@@ -25,11 +28,22 @@ export const getFullStatusFromPercentage = (percentageFull: number): Status => {
 export const isPvcUpdateRequired = (
   existingPvc: PersistentVolumeClaimKind,
   storageData: StorageData,
-): boolean =>
-  getDisplayNameFromK8sResource(existingPvc) !== storageData.name ||
-  getDescriptionFromK8sResource(existingPvc) !== (storageData.description ?? '') ||
-  existingPvc.spec.resources.requests.storage !== storageData.size ||
-  existingPvc.spec.storageClassName !== storageData.storageClassName;
+): boolean => {
+  const existingAnnotations = existingPvc.metadata.annotations || {};
+  const modelNameChanged =
+    (existingAnnotations[PvcModelAnnotation.MODEL_NAME] || '') !== (storageData.modelName || '');
+  const modelPathChanged =
+    (existingAnnotations[PvcModelAnnotation.MODEL_PATH] || '') !== (storageData.modelPath || '');
+
+  return (
+    getDisplayNameFromK8sResource(existingPvc) !== storageData.name ||
+    getDescriptionFromK8sResource(existingPvc) !== (storageData.description ?? '') ||
+    existingPvc.spec.resources.requests.storage !== storageData.size ||
+    existingPvc.spec.storageClassName !== storageData.storageClassName ||
+    modelNameChanged ||
+    modelPathChanged
+  );
+};
 
 export type NotebooksChangesResult = {
   updatedNotebooks: ClusterStorageNotebookSelection[];
@@ -130,3 +144,7 @@ export const getDefaultMountPathFromStorageName = (
   storageName
     ? `${MOUNT_PATH_PREFIX}${storageName.toLowerCase().replace(/\s+/g, '-')}-${newRowId ?? 1}`
     : MOUNT_PATH_PREFIX;
+
+export const isModelStorage = (pvc: PersistentVolumeClaimKind): boolean =>
+  !!pvc.metadata.annotations?.[PvcModelAnnotation.MODEL_NAME] ||
+  !!pvc.metadata.annotations?.[PvcModelAnnotation.MODEL_PATH];

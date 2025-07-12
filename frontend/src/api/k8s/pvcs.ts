@@ -14,6 +14,7 @@ import { LABEL_SELECTOR_DASHBOARD_RESOURCE } from '#~/const';
 import { applyK8sAPIOptions } from '#~/api/apiMergeUtils';
 import { StorageData } from '#~/pages/projects/types';
 import { AccessMode } from '#~/pages/storageClasses/storageEnums';
+import { PvcModelAnnotation } from '#~/pages/projects/screens/spawner/storage/types';
 
 export const assemblePvc = (
   data: StorageData,
@@ -22,12 +23,22 @@ export const assemblePvc = (
   hideFromUI?: boolean,
   additionalAnnotations?: Record<string, string>, // Generic alternative to forceRedeploy
 ): PersistentVolumeClaimKind => {
-  const { name: pvcName, description, size, storageClassName, accessMode } = data;
+  const {
+    name: pvcName,
+    description,
+    size,
+    storageClassName,
+    accessMode,
+    modelName,
+    modelPath,
+  } = data;
   const name = editName || data.k8sName || translateDisplayNameForK8s(pvcName);
 
   const annotations: Record<string, string> = {
     'openshift.io/display-name': pvcName.trim(),
     ...(description && { 'openshift.io/description': description }),
+    ...(modelName && { [PvcModelAnnotation.MODEL_NAME]: modelName }),
+    ...(modelPath && { [PvcModelAnnotation.MODEL_PATH]: modelPath }),
     ...(additionalAnnotations || {}),
   };
 
@@ -115,7 +126,23 @@ export const updatePvc = (
   if (!data.description && pvcResource.metadata.annotations?.['openshift.io/description']) {
     pvcResource.metadata.annotations['openshift.io/description'] = undefined;
   }
+  const modelNameTrimmed = data.modelName?.trim() ?? '';
+  const modelPathTrimmed = data.modelPath?.trim() ?? '';
 
+  if (pvcResource.metadata.annotations) {
+    // Model Name
+    if (modelNameTrimmed) {
+      pvcResource.metadata.annotations[PvcModelAnnotation.MODEL_NAME] = modelNameTrimmed;
+    } else {
+      delete pvcResource.metadata.annotations[PvcModelAnnotation.MODEL_NAME];
+    }
+    // Model Path
+    if (modelPathTrimmed) {
+      pvcResource.metadata.annotations[PvcModelAnnotation.MODEL_PATH] = modelPathTrimmed;
+    } else {
+      delete pvcResource.metadata.annotations[PvcModelAnnotation.MODEL_PATH];
+    }
+  }
   return k8sUpdateResource<PersistentVolumeClaimKind>(
     applyK8sAPIOptions({ model: PVCModel, resource: pvcResource }, opts),
   );

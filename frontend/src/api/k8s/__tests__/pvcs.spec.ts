@@ -20,6 +20,7 @@ import { PVCModel } from '#~/api/models/k8s';
 import { PersistentVolumeClaimKind } from '#~/k8sTypes';
 import { StorageData } from '#~/pages/projects/types';
 import { AccessMode } from '#~/pages/storageClasses/storageEnums';
+import { PvcModelAnnotation } from '#~/pages/projects/screens/spawner/storage/types';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sGetResource: jest.fn(),
@@ -89,6 +90,27 @@ describe('assemblePvc', () => {
       ...assemblePvcResult,
       metadata: { ...assemblePvcResult.metadata, name: 'editName' },
       spec: { ...assemblePvcResult.spec, accessModes: [AccessMode.RWOP] },
+    });
+  });
+  it('should assemble pvc with model annotations', () => {
+    const result = assemblePvc(
+      { ...data, modelName: 'model-name', modelPath: 'model-path' },
+      'namespace',
+      'editName',
+    );
+    expect(result).toStrictEqual({
+      ...assemblePvcResult,
+      metadata: {
+        ...assemblePvcResult.metadata,
+        name: 'editName',
+        annotations: {
+          [PvcModelAnnotation.MODEL_NAME]: 'model-name',
+          [PvcModelAnnotation.MODEL_PATH]: 'model-path',
+          'openshift.io/description': 'Test Storage',
+          'openshift.io/display-name': 'pvc',
+        },
+      },
+      spec: { ...assemblePvcResult.spec, accessModes: [AccessMode.RWO] },
     });
   });
 });
@@ -171,6 +193,111 @@ describe('updatePvc', () => {
       model: PVCModel,
       queryOptions: { queryParams: {} },
       resource: createAssemblePvcs(['ReadWriteOnce']),
+    });
+  });
+
+  it('should update pvc and remove model annotations', async () => {
+    const existingPvc = mockPVCK8sResource({
+      name: 'pvc',
+      namespace: 'namespace',
+      storage: '5Gi',
+      storageClassName: 'standard-csi',
+      displayName: 'Old Storage',
+    });
+    existingPvc.metadata.annotations = {
+      [PvcModelAnnotation.MODEL_NAME]: 'model-name',
+      [PvcModelAnnotation.MODEL_PATH]: 'model-path',
+    };
+    const storageData: StorageData = {
+      name: 'pvc',
+      size: '5Gi',
+      modelName: '',
+      modelPath: '',
+    };
+
+    k8sUpdateResourceMock.mockResolvedValue(existingPvc);
+
+    await updatePvc(storageData, existingPvc, 'namespace');
+
+    const expectedPvc = {
+      ...existingPvc,
+      metadata: {
+        ...existingPvc.metadata,
+        annotations: {
+          'openshift.io/display-name': 'pvc',
+        },
+      },
+      spec: {
+        ...existingPvc.spec,
+        resources: {
+          requests: {
+            storage: '5Gi',
+          },
+        },
+      },
+      status: {
+        ...existingPvc.status,
+        phase: 'Pending',
+      },
+    };
+
+    expect(k8sUpdateResourceMock).toHaveBeenCalledWith({
+      model: PVCModel,
+      fetchOptions: { requestInit: {} },
+      queryOptions: { queryParams: {} },
+      resource: expectedPvc,
+    });
+  });
+
+  it('should update pvc and add model annotations', async () => {
+    const existingPvc = mockPVCK8sResource({
+      name: 'pvc',
+      namespace: 'namespace',
+      storage: '5Gi',
+      storageClassName: 'standard-csi',
+      displayName: 'Old Storage',
+    });
+    existingPvc.metadata.annotations = {
+      'openshift.io/description': 'Test Storage',
+    };
+    const storageData: StorageData = {
+      name: 'pvc',
+      size: '5Gi',
+      modelName: 'model-name',
+      modelPath: 'model-path',
+      description: 'Test Storage',
+    };
+    k8sUpdateResourceMock.mockResolvedValue(existingPvc);
+    await updatePvc(storageData, existingPvc, 'namespace');
+    const expectedPvc = {
+      ...existingPvc,
+      metadata: {
+        ...existingPvc.metadata,
+        annotations: {
+          'openshift.io/description': 'Test Storage',
+          'openshift.io/display-name': 'pvc',
+          [PvcModelAnnotation.MODEL_NAME]: 'model-name',
+          [PvcModelAnnotation.MODEL_PATH]: 'model-path',
+        },
+      },
+      spec: {
+        ...existingPvc.spec,
+        resources: {
+          requests: {
+            storage: '5Gi',
+          },
+        },
+      },
+      status: {
+        ...existingPvc.status,
+        phase: 'Pending',
+      },
+    };
+    expect(k8sUpdateResourceMock).toHaveBeenCalledWith({
+      model: PVCModel,
+      fetchOptions: { requestInit: {} },
+      queryOptions: { queryParams: {} },
+      resource: expectedPvc,
     });
   });
 

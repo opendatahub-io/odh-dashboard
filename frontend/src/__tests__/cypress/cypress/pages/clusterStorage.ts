@@ -33,6 +33,10 @@ class ClusterStorageRow extends TableRow {
     return this.find().find('[data-label="Storage class"]');
   }
 
+  findStorageTypeColumn() {
+    return this.find().find('[data-label="Type"]');
+  }
+
   findSizeColumn() {
     return this.find().find('[data-label="Storage size"]');
   }
@@ -215,6 +219,22 @@ class ClusterStorageModal extends Modal {
 
   findExistingAccessMode() {
     return this.find().findByTestId('existing-access-mode');
+  }
+
+  findModelNameInput() {
+    return this.find().findByTestId('model-name-input');
+  }
+
+  findModelPathInput() {
+    return this.find().findByTestId('model-path-input');
+  }
+
+  findGeneralPurposeRadio() {
+    return this.find().findByTestId('general-purpose-radio');
+  }
+
+  findModelStorageRadio() {
+    return this.find().findByTestId('model-storage-radio');
   }
 }
 

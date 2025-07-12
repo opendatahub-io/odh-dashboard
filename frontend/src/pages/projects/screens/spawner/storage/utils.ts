@@ -16,7 +16,7 @@ import {
   getDisplayNameFromK8sResource,
 } from '#~/concepts/k8s/utils';
 import useDefaultPvcSize from './useDefaultPvcSize';
-import { MountPathFormat } from './types';
+import { MountPathFormat, PvcModelAnnotation } from './types';
 import { MOUNT_PATH_PREFIX } from './const';
 
 export const useCreateStorageObject = (
@@ -34,6 +34,10 @@ export const useCreateStorageObject = (
     storageClassName: formData?.storageClassName || existingData?.spec.storageClassName,
     existingPvc: existingData,
     accessMode: formData?.accessMode || existingData?.spec.accessModes[0],
+    modelName:
+      formData?.modelName || existingData?.metadata.annotations?.[PvcModelAnnotation.MODEL_NAME],
+    modelPath:
+      formData?.modelPath || existingData?.metadata.annotations?.[PvcModelAnnotation.MODEL_PATH],
   };
 
   const [data, setData] = useGenericObjectState<StorageData>(createStorageData);
