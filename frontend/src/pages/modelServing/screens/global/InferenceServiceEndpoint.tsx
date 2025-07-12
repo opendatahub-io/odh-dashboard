@@ -18,6 +18,7 @@ import {
   isServingRuntimeRouteEnabled,
   isInferenceServiceRouteEnabled,
 } from '#~/pages/modelServing/screens/projects/utils';
+import { ToggleState } from '#~/components/StateActionToggle.tsx';
 import useRouteForInferenceService from './useRouteForInferenceService';
 import InternalServicePopoverContent from './InternalServicePopoverContent';
 
@@ -25,12 +26,14 @@ type InferenceServiceEndpointProps = {
   inferenceService: InferenceServiceKind;
   servingRuntime?: ServingRuntimeKind;
   isKserve?: boolean;
+  modelState: ToggleState;
 };
 
 const InferenceServiceEndpoint: React.FC<InferenceServiceEndpointProps> = ({
   inferenceService,
   servingRuntime,
   isKserve,
+  modelState,
 }) => {
   const isRouteEnabled = !isKserve
     ? servingRuntime !== undefined && isServingRuntimeRouteEnabled(servingRuntime)
@@ -70,9 +73,26 @@ const InferenceServiceEndpoint: React.FC<InferenceServiceEndpointProps> = ({
     );
   }
 
-  if (!loaded || !routeLink) {
-    return <Skeleton />;
-  }
+  const getExternalServiceContent = () => {
+    if (modelState.isStopped || modelState.isStopping) {
+      return <>Could not find any external service enabled</>;
+    }
+    if (modelState.isStarting) {
+      return <Skeleton />;
+    }
+    if (routeLink && loaded && modelState.isRunning) {
+      return (
+        <ClipboardCopy
+          hoverTip="Copy"
+          clickTip="Copied"
+          variant={ClipboardCopyVariant.inlineCompact}
+        >
+          {isKserve ? routeLink : `${routeLink}/infer`}
+        </ClipboardCopy>
+      );
+    }
+    return null;
+  };
 
   return (
     <Popover
@@ -81,23 +101,21 @@ const InferenceServiceEndpoint: React.FC<InferenceServiceEndpointProps> = ({
       aria-label="External Service Info"
       hasAutoWidth
       bodyContent={
-        <InternalServicePopoverContent inferenceService={inferenceService} isKserve={isKserve} />
+        modelState.isStarting && !modelState.isStopped ? (
+          <Skeleton />
+        ) : (
+          <InternalServicePopoverContent inferenceService={inferenceService} isKserve={isKserve} />
+        )
       }
       footerContent={
-        <DescriptionList>
+        <DescriptionList isCompact>
           <DescriptionListGroup>
             <Divider />
             <DescriptionListTerm>
               External (can be accessed from inside or outside the cluster)
             </DescriptionListTerm>
             <DescriptionListDescription style={{ paddingLeft: 'var(--pf-t--global--spacer--md)' }}>
-              <ClipboardCopy
-                hoverTip="Copy"
-                clickTip="Copied"
-                variant={ClipboardCopyVariant.inlineCompact}
-              >
-                {isKserve ? routeLink : `${routeLink}/infer`}
-              </ClipboardCopy>
+              {getExternalServiceContent()}
             </DescriptionListDescription>
           </DescriptionListGroup>
         </DescriptionList>
