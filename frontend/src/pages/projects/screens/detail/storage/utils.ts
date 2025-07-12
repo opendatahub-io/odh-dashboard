@@ -130,3 +130,7 @@ export const getDefaultMountPathFromStorageName = (
   storageName
     ? `${MOUNT_PATH_PREFIX}${storageName.toLowerCase().replace(/\s+/g, '-')}-${newRowId ?? 1}`
     : MOUNT_PATH_PREFIX;
+
+export const isModelStorage = (pvc: PersistentVolumeClaimKind): boolean =>
+  !!pvc.metadata.annotations?.['dashboard.opendatahub.io/model-name'] ||
+  !!pvc.metadata.annotations?.['dashboard.opendatahub.io/model-path'];

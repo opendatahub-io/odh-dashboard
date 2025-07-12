@@ -54,7 +54,7 @@ export const columns: SortableData<StorageTableData>[] = [
   },
   {
     field: 'connected',
-    label: 'Workbench connections',
+    label: 'Connected resources',
     width: 20,
     sortable: false,
   },
