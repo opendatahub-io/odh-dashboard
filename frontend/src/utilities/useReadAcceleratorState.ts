@@ -169,7 +169,7 @@ const useReadAcceleratorState = (
     dashboardNamespace,
   ]);
 
-  return useFetchState<AcceleratorProfileState>(
+  const [state, stateLoaded, stateError, refresh] = useFetchState<AcceleratorProfileState>(
     fetchAcceleratorState,
     {
       acceleratorProfiles: [],
@@ -179,6 +179,10 @@ const useReadAcceleratorState = (
     },
     { initialPromisePurity: true },
   );
+
+  const allLoaded = loaded && stateLoaded;
+  const actualError = loadError || stateError;
+  return [state, allLoaded, actualError, refresh];
 };
 
 export default useReadAcceleratorState;
