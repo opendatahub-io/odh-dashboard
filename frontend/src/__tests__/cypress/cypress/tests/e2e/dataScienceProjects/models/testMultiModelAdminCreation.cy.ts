@@ -25,7 +25,7 @@ let modelFilePath: string;
 const awsBucket = 'BUCKET_1' as const;
 const uuid = generateTestUUID();
 
-describe('Verify Admin Multi Model Creation and Validation using the UI', () => {
+describe('[Product Bug: RHOAIENG-29340] Verify Admin Multi Model Creation and Validation using the UI', () => {
   retryableBefore(() => {
     Cypress.on('uncaught:exception', (err) => {
       if (err.message.includes('Error: secrets "ds-pipeline-config" already exists')) {
@@ -69,6 +69,7 @@ describe('Verify Admin Multi Model Creation and Validation using the UI', () => 
         '@Dashboard',
         '@Modelserving',
         '@NonConcurrent',
+        '@Bug',
       ],
     },
     () => {

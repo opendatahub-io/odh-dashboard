@@ -170,8 +170,8 @@ describe('useNotebookPodSpecOptionsState', () => {
           memory: '10Gi',
         },
       },
-      tolerations: hardwareProfile.spec.tolerations,
-      nodeSelector: hardwareProfile.spec.nodeSelector,
+      tolerations: hardwareProfile.spec.scheduling?.node?.tolerations,
+      nodeSelector: hardwareProfile.spec.scheduling?.node?.nodeSelector,
       selectedHardwareProfile: hardwareProfile,
     });
   });
