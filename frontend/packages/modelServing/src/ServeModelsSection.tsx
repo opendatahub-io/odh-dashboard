@@ -1,6 +1,6 @@
 import React from 'react';
 import { ProjectDetailsContext } from '@odh-dashboard/internal/pages/projects/ProjectDetailsContext';
-import { useExtensions } from '@odh-dashboard/plugin-core';
+import { LazyCodeRefComponent, useExtensions } from '@odh-dashboard/plugin-core';
 import {
   ModelDeploymentsProvider,
   ModelDeploymentsContext,
@@ -25,6 +25,13 @@ const ServeModelsSection: React.FC = () => {
   const availablePlatforms = useExtensions(isModelServingPlatformExtension);
 
   const { activePlatform } = useProjectServingPlatform(currentProject, availablePlatforms);
+
+  // TODO: remove this once modelmesh and nim are fully supported plugins
+  if (activePlatform?.properties.backport?.ServeModelsSection) {
+    return (
+      <LazyCodeRefComponent component={activePlatform.properties.backport.ServeModelsSection} />
+    );
+  }
 
   return (
     <ModelDeploymentsProvider

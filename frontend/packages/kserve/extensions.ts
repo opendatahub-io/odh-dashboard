@@ -34,8 +34,12 @@ const extensions: (
       id: KSERVE_ID,
       manage: {
         namespaceApplicationCase: NamespaceApplicationCase.KSERVE_PROMOTION,
-        enabledLabel: 'modelmesh-enabled',
-        enabledLabelValue: 'false',
+        // TODO: set this platform as the default if no other has priority
+        enabledProjectMetadata: {
+          labels: {
+            'modelmesh-enabled': 'false',
+          },
+        },
       },
       enableCardText: {
         title: 'Single-model serving platform',
@@ -50,6 +54,9 @@ const extensions: (
         startHintDescription: 'Each model is deployed on its own model server',
         deployButtonText: 'Deploy model',
       },
+    },
+    flags: {
+      required: [SupportedArea.K_SERVE],
     },
   },
   {

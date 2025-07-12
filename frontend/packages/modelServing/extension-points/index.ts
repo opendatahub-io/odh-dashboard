@@ -11,6 +11,7 @@ import type { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/
 import type { ModelServingPodSpecOptionsState } from '@odh-dashboard/internal/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
 import type { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import type { InferenceServiceModelState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
+import type { ComponentCodeRef } from '../../plugin-core/src/extension-points/types';
 
 export type DeploymentStatus = {
   state: InferenceServiceModelState;
@@ -63,8 +64,14 @@ export type ModelServingPlatformExtension<D extends Deployment = Deployment> = E
     id: D['modelServingPlatformId'];
     manage: {
       namespaceApplicationCase: NamespaceApplicationCase;
-      enabledLabel: string;
-      enabledLabelValue: string;
+      enabledProjectMetadata: {
+        annotations?: {
+          [key: string]: string;
+        };
+        labels?: {
+          [key: string]: string;
+        };
+      };
     };
     enableCardText: {
       title: string;
@@ -77,6 +84,11 @@ export type ModelServingPlatformExtension<D extends Deployment = Deployment> = E
       startHintTitle: string;
       startHintDescription: string;
       deployButtonText: string;
+    };
+    // TODO: remove this once modelmesh and nim are fully supported plugins
+    backport?: {
+      ModelsProjectDetailsTab?: ComponentCodeRef;
+      ServeModelsSection?: ComponentCodeRef;
     };
   }
 >;
