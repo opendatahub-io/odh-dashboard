@@ -10,10 +10,8 @@ import ManageWorkloadStrategySection from '#~/pages/hardwareProfiles/manage/Mana
 import { NodeSelector, SchedulingType, Toleration } from '#~/types.ts';
 import ManageLocalQueueFieldSection from '#~/pages/hardwareProfiles/manage/ManageLocalQueueFieldSection.tsx';
 import ManageWorkloadPrioritySection from '#~/pages/hardwareProfiles/manage/ManageWorkloadPrioritySection.tsx';
-import {
-  DEFAULT_LOCAL_QUEUE,
-  DEFAULT_PRIORITY_CLASS,
-} from '#~/pages/hardwareProfiles/nodeResource/const.ts';
+import { DEFAULT_PRIORITY_CLASS } from '#~/pages/hardwareProfiles/nodeResource/const.ts';
+import useDefaultDsc from '#~/pages/clusterSettings/useDefaultDsc.ts';
 
 type ManageResourceAllocationSectionProps = {
   scheduling: HardwareProfileKind['spec']['scheduling'];
@@ -27,9 +25,13 @@ const ManageResourceAllocationSection: React.FC<ManageResourceAllocationSectionP
   existingType,
 }) => {
   const { status: kueueAvailable } = useIsAreaAvailable(SupportedArea.KUEUE);
+  const [dsc, dscLoaded, dscError] = useDefaultDsc();
+  const defaultLocalQueueName = dsc?.spec.components?.kueue?.defaultLocalQueueName;
+  const isDefaultLocalQueueNameSet = React.useRef(false);
+
   const {
     type: schedulingType,
-    kueue: { localQueueName = DEFAULT_LOCAL_QUEUE, priorityClass = DEFAULT_PRIORITY_CLASS } = {},
+    kueue: { localQueueName = '', priorityClass = DEFAULT_PRIORITY_CLASS } = {},
     node: { nodeSelector = {}, tolerations = [] } = {},
   } = scheduling ?? {};
 
@@ -75,6 +77,38 @@ const ManageResourceAllocationSection: React.FC<ManageResourceAllocationSectionP
 
   const selectedStrategy =
     schedulingType || (kueueAvailable ? SchedulingType.QUEUE : SchedulingType.NODE);
+
+  React.useEffect(() => {
+    if (
+      dscLoaded &&
+      !dscError &&
+      defaultLocalQueueName &&
+      !localQueueName &&
+      !isDefaultLocalQueueNameSet.current &&
+      existingType !== SchedulingType.QUEUE &&
+      kueueAvailable
+    ) {
+      setScheduling({
+        ...scheduling,
+        type: schedulingType ?? SchedulingType.QUEUE,
+        kueue: {
+          ...scheduling?.kueue,
+          localQueueName: defaultLocalQueueName,
+        },
+      });
+      isDefaultLocalQueueNameSet.current = true;
+    }
+  }, [
+    dscLoaded,
+    dscError,
+    defaultLocalQueueName,
+    localQueueName,
+    existingType,
+    schedulingType,
+    setScheduling,
+    scheduling,
+    kueueAvailable,
+  ]);
 
   return (
     <FormSection

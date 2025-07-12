@@ -89,9 +89,6 @@ export const DEFAULT_MEMORY_SIZE = {
 export const DEFAULT_CPU_IDENTIFIER = 'cpu';
 export const DEFAULT_MEMORY_IDENTIFIER = 'memory';
 
-// Default local queue name reference:
-// https://github.com/opendatahub-io/opendatahub-operator/pull/2131/files
-export const DEFAULT_LOCAL_QUEUE = 'default';
 export const DEFAULT_PRIORITY_CLASS = 'None';
 
 export const HARDWARE_PROFILE_RESOURCE_ALLOCATION_HELP = {
