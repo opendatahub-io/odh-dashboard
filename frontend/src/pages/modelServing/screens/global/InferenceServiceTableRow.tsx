@@ -23,6 +23,7 @@ import InferenceServiceStatus from './InferenceServiceStatus';
 import InferenceServiceServingRuntime from './InferenceServiceServingRuntime';
 import InferenceServiceAPIProtocol from './InferenceServiceAPIProtocol';
 import { ColumnField } from './data';
+import InferenceServiceLastDeployed from './InferenceServiceLastDeployed';
 
 type InferenceServiceTableRowProps = {
   obj: InferenceServiceKind;
@@ -132,6 +133,12 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
             servingRuntime={servingRuntime}
             isMultiModel={modelMeshMetricsSupported}
           />
+        </Td>
+      )}
+
+      {columnNames.includes(ColumnField.LastDeployed) && (
+        <Td dataLabel="Last Deployed">
+          <InferenceServiceLastDeployed inferenceService={inferenceService} />
         </Td>
       )}
 

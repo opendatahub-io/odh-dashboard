@@ -9,6 +9,7 @@ import { Link } from 'react-router-dom';
 import ResourceNameTooltip from '@odh-dashboard/internal/components/ResourceNameTooltip';
 import { DeploymentEndpointsPopupButton } from './DeploymentEndpointsPopupButton';
 import { DeploymentRowExpandedSection } from './DeploymentsTableRowExpandedSection';
+import DeploymentLastDeployed from './DeploymentLastDeployed';
 import {
   useDeploymentExtension,
   useResolvedDeploymentExtension,
@@ -98,6 +99,9 @@ export const DeploymentRow: React.FC<{
           ) : (
             <Content component={ContentVariants.small}>Not defined</Content>
           )}
+        </Td>
+        <Td dataLabel="Last Deployed">
+          <DeploymentLastDeployed deployment={deployment} />
         </Td>
         <Td dataLabel="Status">
           <ModelStatusIcon

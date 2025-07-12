@@ -33,6 +33,20 @@ const genericColumns: SortableData<Deployment>[] = [
     sortable: false,
   },
   {
+    label: 'Last Deployed',
+    field: 'lastDeployed',
+    sortable: (a, b) => {
+      const timeA = a.model.metadata.creationTimestamp;
+      const timeB = b.model.metadata.creationTimestamp;
+
+      if (timeA && timeB) {
+        return new Date(timeB).getTime() - new Date(timeA).getTime();
+      }
+
+      return (timeA ? -1 : 0) - (timeB ? -1 : 0);
+    },
+  },
+  {
     label: 'Status',
     field: 'status',
     sortable: false,
