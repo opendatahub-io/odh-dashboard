@@ -6,7 +6,10 @@ import {
   Radio,
   Stack,
   FormGroup,
+  Icon,
+  Popover,
 } from '@patternfly/react-core';
+import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import PVSizeField from '#~/pages/projects/components/PVSizeField';
 import { MEMORY_UNITS_FOR_SELECTION } from '#~/utilities/valueUnits';
 import NIMPVCSelector from './NIMPVCSelector';
@@ -46,13 +49,49 @@ const NIMPVCSizeSection: React.FC<NIMPVCSizeSectionProps> = ({
       {/* Only show PVC Mode Selection for new deployments */}
       {!isEditing && (
         <StackItem>
-          <FormGroup label="Storage option" fieldId="pvc-mode">
+          <FormGroup
+            label={
+              <>
+                Storage option{' '}
+                <Popover
+                  bodyContent={
+                    <>
+                      <div>
+                        Choose whether to create a new storage volume or reuse an existing one:
+                      </div>
+                      <ul
+                        style={{
+                          listStyleType: 'disc',
+                          paddingLeft: '1.5rem',
+                          marginTop: '0.5rem',
+                          marginBottom: 0,
+                        }}
+                      >
+                        <li>
+                          <strong>Create new</strong>: A new storage volume will be created and
+                          models will be downloaded at deployment time.
+                        </li>
+                        <li>
+                          <strong>Use existing</strong>: Use a storage volume that already contains
+                          downloaded models for faster deployment.
+                        </li>
+                      </ul>
+                    </>
+                  }
+                >
+                  <Icon aria-label="Storage option info" role="button">
+                    <OutlinedQuestionCircleIcon />
+                  </Icon>
+                </Popover>
+              </>
+            }
+            fieldId="pvc-mode"
+          >
             <Radio
               id="create-new-pvc"
               data-testid="create-new-pvc"
               name="pvc-mode"
               label="Create new storage for model caching"
-              description="A new storage volume will be created and models will be downloaded at deployment time."
               isChecked={pvcMode === 'create-new'}
               onChange={() => setPvcMode('create-new')}
             />
@@ -61,7 +100,6 @@ const NIMPVCSizeSection: React.FC<NIMPVCSizeSectionProps> = ({
               data-testid="use-existing-pvc"
               name="pvc-mode"
               label="Use existing storage with pre-cached models"
-              description="Use a storage volume that already contains downloaded models for faster deployment."
               isChecked={pvcMode === 'use-existing'}
               onChange={() => setPvcMode('use-existing')}
             />
