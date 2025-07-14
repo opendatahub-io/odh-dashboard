@@ -21,65 +21,45 @@ log_warning() {
 }
 
 login_to_cluster() {
-  local cluster_type="$1"
+  # local cluster_type="$1"
 
-  if [ "$cluster_type" = "crc" ]; then
-    log_info "Starting CRC cluster..."
+  # if [ "$cluster_type" = "crc" ]; then
+  #   log_info "Starting CRC cluster..."
+  #
+  #   # if not already started, start
+  #   if ! /opt/crc/crc status | grep -q "Running"; then
+  #     log_info "Starting CRC cluster (this may take a while)..."
+  #     /opt/crc/crc start
+  #   fi
+  #
+  #   # get CRC credentials and login
+  #   /opt/crc/crc oc-env
+  #   oc login -u developer -p developer https://api.crc.testing:6443
+  #
+  # else
+  # login to existing cluster with oc cli
+  log_info "Logging in to existing OpenShift cluster..."
 
-    # if not already started, start
-    if ! /opt/crc/crc status | grep -q "Running"; then
-      log_info "Starting CRC cluster (this may take a while)..."
-      /opt/crc/crc start
-    fi
+  if [ -z "$OC_URL" ]; then
+    log_error "OC_URL environment variable is not set. Please provide the OpenShift API URL."
+    exit 1
+  fi
 
-    # get CRC credentials and login
-    /opt/crc/crc oc-env
-    oc login -u developer -p developer https://api.crc.testing:6443
+  if [ -z "$OC_TOKEN" ] && { [ -z "$OC_USER" ] || [ -z "$OC_PASSWORD" ]; }; then
+    log_error "OC_TOKEN or OC_USER and OC_PASSWORD environment variables are not set. Please provide authentication details."
+    exit 1
+  fi
 
-  else
-    # login to existing cluster with oc cli
-    log_info "Logging in to existing OpenShift cluster..."
-
-    if [ -z "$OC_URL" ]; then
-      log_error "OC_URL environment variable is not set. Please provide the OpenShift API URL."
+  if [ -n "$OC_TOKEN" ]; then
+    if ! oc login --token="$OC_TOKEN" --server="$OC_URL" --insecure-skip-tls-verify=true; then
+      log_error "Failed to login to OpenShift cluster with username and password."
       exit 1
     fi
-
-    if [ -z "$OC_TOKEN" ] && { [ -z "$OC_USER" ] || [ -z "$OC_PASSWORD" ]; }; then
-      log_error "OC_TOKEN or OC_USER and OC_PASSWORD environment variables are not set. Please provide authentication details."
+  elif [ -n "$OC_USER" ] && [ -n "$OC_PASSWORD" ]; then
+    if ! oc login "$OC_URL" -u "$OC_USER" -p "$OC_PASSWORD" --insecure-skip-tls-verify=true; then
+      log_error "Failed to login to OpenShift cluster with username and password."
       exit 1
     fi
-
-    if [ -z "$OC_TOKEN" ]; then
-      if ! oc login "$OC_URL" -u "$OC_USER" -p "$OC_PASSWORD" --insecure-skip-tls-verify=true; then
-        log_error "Failed to login to OpenShift cluster with username and password."
-        exit 1
-      fi
-    elif [ -n "$OC_USER" ] && [ -n "$OC_PASSWORD" ]; then
-      if ! oc login "$OC_URL" -u "$OC_USER" -p "$OC_PASSWORD" --insecure-skip-tls-verify=true; then
-        log_error "Failed to login to OpenShift cluster with username and password."
-        exit 1
-      fi
-    fi
-
-    # if [ -n "$OC_TOKEN" ]; then
-    #   log_info "Using OC_TOKEN for authentication..."
-    #   # if ! oc login "$OC_URL" --token="$OC_TOKEN"; then
-    #   #   log_error "Failed to login to OpenShift cluster with token."
-    #   #   exit 1
-    #   # fi
-    #   if ! make login
-    # elif [ -n "$OC_USER" ] && [ -n "$OC_PASSWORD" ]; then
-    #   log_info "Using OC_USER and OC_PASSWORD for authentication..."
-    #   if ! oc login "$OC_URL" -u "$OC_USER" -p "$OC_PASSWORD"; then
-    #     log_error "Failed to login to OpenShift cluster with username and password."
-    #     exit 1
-    #   fi
-    # else
-    #   log_error "No authentication method provided. Please set OC_TOKEN or OC_USER and OC_PASSWORD environment variables."
-    #   exit 1
-    # fi
-
   fi
 
   log_success "Logged in to OpenShift cluster successfully."
@@ -248,7 +228,7 @@ set_project() {
     exit 1
   fi
 
-  log_success "OpenShift project set to $OC_PROJECT."
+  log_info "OpenShift project set to $OC_PROJECT."
 }
 
 # Setup OpenShift CLI and CRC
@@ -263,7 +243,6 @@ setup_environment() {
   # setup_oc_cli
 
   if [ "$OC_CLUSTER_TYPE" = "crc" ]; then
-    setup_crc
     login_to_cluster "crc"
   else
     login_to_cluster "existing"

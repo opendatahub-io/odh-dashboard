@@ -129,49 +129,49 @@ setup_oc_cli() {
 }
 
 # setup CRC
-setup_crc() {
-  log_info "Setting up CodeReady Containers (CRC)..."
-
-  # if no crc binary
-  if [ ! -f "/opt/crc/crc" ]; then
-    log_info "Downloading CRC..."
-    CRC_VERSION="${CRC_VERSION-latest}"
-    CRC_URL="${CRC_URL-https://mirror.openshift.com/pub/openshift-v4/clients/crc/${CRC_VERSION}/crc-linux-amd64.tar.xz}"
-
-    if ! wget --show-progress=off "$CRC_URL" -O /tmp/crc.tar.xz; then
-      log_error "Failed to download CRC from $CRC_URL"
-      exit 1
-    fi
-
-    tar -xf /tmp/crc.tar.xz -C /tmp
-    mv /tmp/crc-linux-"$CRC_VERSION"-amd64/crc /opt/crc/
-    chmod +x /opt/crc/crc
-    rm -rf /tmp/crc*
-
-    log_success "CRC installed successfully at /opt/crc/crc"
-
-  fi
-
-  if [ -n "$CRC_PULL_SECRET_PATH" ] && [ -f "CRC_PULL_SECRET_PATH" ]; then
-    log_info "Setting up CRC with pull secret..."
-    /opt/crc/crc config set pull-secret-file "$CRC_PULL_SECRET_PATH"
-  else
-    log_error "No pull secret provided. Please set CRC_PULL_SECRET_PATH environment variable to your pull secret file."
-    exit 1
-  fi
-
-  # might need to add configuration for CRC for resource limits
-  # /opt/crc/crc config set cpus 4
-  # /opt/crc/crc config set memory 8192
-  # /opt/crc/crc config set disk-size 30
-
-  if ! /opt/crc/crc setup; then
-    log_error "CRC setup failed. Please check your configuration."
-    exit 1
-  fi
-
-  log_success "CRC configured successsfully."
-}
+# setup_crc() {
+#   log_info "Setting up CodeReady Containers (CRC)..."
+#
+#   # if no crc binary
+#   if [ ! -f "/opt/crc/crc" ]; then
+#     log_info "Downloading CRC..."
+#     CRC_VERSION="${CRC_VERSION-latest}"
+#     CRC_URL="${CRC_URL-https://mirror.openshift.com/pub/openshift-v4/clients/crc/${CRC_VERSION}/crc-linux-amd64.tar.xz}"
+#
+#     if ! wget --show-progress=off "$CRC_URL" -O /tmp/crc.tar.xz; then
+#       log_error "Failed to download CRC from $CRC_URL"
+#       exit 1
+#     fi
+#
+#     tar -xf /tmp/crc.tar.xz -C /tmp
+#     mv /tmp/crc-linux-"$CRC_VERSION"-amd64/crc /opt/crc/
+#     chmod +x /opt/crc/crc
+#     rm -rf /tmp/crc*
+#
+#     log_success "CRC installed successfully at /opt/crc/crc"
+#
+#   fi
+#
+#   if [ -n "$CRC_PULL_SECRET_PATH" ] && [ -f "CRC_PULL_SECRET_PATH" ]; then
+#     log_info "Setting up CRC with pull secret..."
+#     /opt/crc/crc config set pull-secret-file "$CRC_PULL_SECRET_PATH"
+#   else
+#     log_error "No pull secret provided. Please set CRC_PULL_SECRET_PATH environment variable to your pull secret file."
+#     exit 1
+#   fi
+#
+#   # might need to add configuration for CRC for resource limits
+#   # /opt/crc/crc config set cpus 4
+#   # /opt/crc/crc config set memory 8192
+#   # /opt/crc/crc config set disk-size 30
+#
+#   if ! /opt/crc/crc setup; then
+#     log_error "CRC setup failed. Please check your configuration."
+#     exit 1
+#   fi
+#
+#   log_success "CRC configured successsfully."
+# }
 
 # Login to OpenShift cluster
 # login_to_cluster() {
