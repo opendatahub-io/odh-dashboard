@@ -58,6 +58,11 @@ const useDevFeatureFlags = (
     true,
   );
 
+  const [isBannerVisible, setBannerVisible] = useBrowserStorage<boolean>(
+    `odh.dashboard.devFlag.banner`,
+    false,
+  );
+
   const devFlags = useDevFlags();
   const combinedFlags = React.useMemo(() => [...definedFeatureFlags, ...devFlags], [devFlags]);
 
@@ -130,10 +135,12 @@ const useDevFeatureFlags = (
               .join(',')
           : '',
       );
+      setBannerVisible(true);
       setSearchParams(searchParams, { replace: true });
     } else if (searchParams.has(PARAM_NAME)) {
       // clean up query string
       searchParams.delete(PARAM_NAME);
+      setBannerVisible(true);
       setSearchParams(searchParams, { replace: true });
     }
     // do not react to changes in searchParams or setSearchParams
@@ -186,8 +193,9 @@ const useDevFeatureFlags = (
   const resetDevFeatureFlags = React.useCallback(
     (turnOff: boolean) => {
       setSessionFlags(turnOff ? null : {});
+      setBannerVisible(false);
     },
-    [setSessionFlags],
+    [setSessionFlags, setBannerVisible],
   );
 
   const setDevFeatureFlag = React.useCallback(
@@ -203,6 +211,7 @@ const useDevFeatureFlags = (
     setDevFeatureFlag,
     resetDevFeatureFlags,
     setDevFeatureFlagQueryVisible,
+    isBannerVisible,
   };
 };
 
