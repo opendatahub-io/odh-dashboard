@@ -1146,10 +1146,10 @@ describe('Model Serving Global', () => {
 
       modelServingGlobal.visit('test-project');
 
-      modelServingGlobal.findSortButton('Last Deployed').click();
-      modelServingGlobal.findSortButton('Last Deployed').should(be.sortAscending);
-      modelServingGlobal.findSortButton('Last Deployed').click();
-      modelServingGlobal.findSortButton('Last Deployed').should(be.sortDescending);
+      modelServingGlobal.findSortButton('Last deployed').click();
+      modelServingGlobal.findSortButton('Last deployed').should(be.sortAscending);
+      modelServingGlobal.findSortButton('Last deployed').click();
+      modelServingGlobal.findSortButton('Last deployed').should(be.sortDescending);
 
       modelServingSection.getInferenceServiceRow('Old Model');
       cy.findByText('10 months ago').trigger('mouseenter');
