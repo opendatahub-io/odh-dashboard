@@ -116,8 +116,8 @@ export const getOpenShiftProject = (projectName: string): Cypress.Chainable<stri
  * @param projectName OpenShift Project name to verify (in the format like 'cypress-test-project')
  * @returns A Cypress chainable boolean indicating whether the project exists (true) or not (false)
  */
-export const verifyOpenShiftProjectExists = (projectName: string): Cypress.Chainable<boolean> => {
-  return getOpenShiftProject(projectName).then((projectInfo) => {
+export const verifyOpenShiftProjectExists = (projectName: string): Cypress.Chainable<boolean> =>
+  getOpenShiftProject(projectName).then((projectInfo) => {
     const projectExists = projectInfo === `project.project.openshift.io/${projectName}`;
     if (projectExists) {
       cy.log(`Project '${projectName}' exists.`);
@@ -126,7 +126,6 @@ export const verifyOpenShiftProjectExists = (projectName: string): Cypress.Chain
     }
     return cy.wrap(projectExists);
   });
-};
 
 /**
  * Retrieves the DashboardConfig from OpenShift and returns either the full config or a specific value.

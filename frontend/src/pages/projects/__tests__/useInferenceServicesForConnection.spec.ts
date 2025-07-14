@@ -1,6 +1,6 @@
 import React from 'react';
+import { testHook } from '@odh-dashboard/jest-config/hooks';
 import { mockInferenceServiceK8sResource } from '#~/__mocks__';
-import { testHook } from '#~/__tests__/unit/testUtils/hooks';
 import { useInferenceServicesForConnection } from '#~/pages/projects/useInferenceServicesForConnection';
 import { ProjectDetailsContextType } from '#~/pages/projects/ProjectDetailsContext';
 import { mockConnection } from '#~/__mocks__/mockConnection';

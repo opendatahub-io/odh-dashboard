@@ -1,0 +1,30 @@
+{
+  "private": true,
+  "name": "@odh-dashboard/jest-config",
+  "description": "ODH Dashboard Jest configs.",
+  "version": "0.0.0",
+  "types": "types.d.ts",
+  "exports": {
+    ".": "./jest.config.ts",
+    "./hooks": "./src/hooks.ts"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "test-unit": "jest --silent",
+    "test-unit-coverage": "jest --silent --coverage",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@testing-library/dom": "^10.4.0",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.2.0",
+    "core-js": "^3.37.1",
+    "expect": "^29.7.0"
+  },
+  "devDependencies": {
+    "@odh-dashboard/eslint-config": "*",
+    "@odh-dashboard/tsconfig": "*",
+    "react": "^18",
+    "react-dom": "^18"
+  }
+}

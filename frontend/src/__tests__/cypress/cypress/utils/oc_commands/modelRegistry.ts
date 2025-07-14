@@ -87,9 +87,7 @@ export const createModelRegistryViaYAML = (
       );
       return applyOpenShiftYaml(modifiedRegistryYaml);
     })
-    .then((result: CommandLineResult) => {
-      return result;
-    });
+    .then((result: CommandLineResult) => result);
 };
 
 /**

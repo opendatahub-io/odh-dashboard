@@ -41,8 +41,8 @@ interface ExecResult {
 export const getImageStreamDisplayName = (
   imageStreamName: string,
   namespace: string = applicationNamespace,
-): Cypress.Chainable<string> => {
-  return cy
+): Cypress.Chainable<string> =>
+  cy
     .exec(`oc get imagestream ${imageStreamName} -n ${namespace} -o json`)
     .then((result: ExecResult) => {
       if (result.code !== 0) {
@@ -56,7 +56,6 @@ export const getImageStreamDisplayName = (
       // Fallback to imagestream name if annotation is not present
       return displayName || imageStream.metadata.name;
     });
-};
 
 /**
  * Checks if an imagestream exists in the given namespace
@@ -67,13 +66,10 @@ export const getImageStreamDisplayName = (
 export const imageStreamExists = (
   imageStreamName: string,
   namespace: string = applicationNamespace,
-): Cypress.Chainable<boolean> => {
-  return cy
+): Cypress.Chainable<boolean> =>
+  cy
     .exec(`oc get imagestream ${imageStreamName} -n ${namespace} --ignore-not-found -o name`)
-    .then((result: ExecResult) => {
-      return result.stdout.trim() !== '';
-    });
-};
+    .then((result: ExecResult) => result.stdout.trim() !== '');
 
 /**
  * Gets all available notebook imagestreams in a namespace
@@ -82,8 +78,8 @@ export const imageStreamExists = (
  */
 export const getAvailableNotebookImageStreams = (
   namespace: string = applicationNamespace,
-): Cypress.Chainable<string[]> => {
-  return cy
+): Cypress.Chainable<string[]> =>
+  cy
     .exec(`oc get imagestream -n ${namespace} -o jsonpath='{.items[*].metadata.name}'`)
     .then((result: ExecResult) => {
       if (result.code !== 0) {
@@ -92,7 +88,6 @@ export const getAvailableNotebookImageStreams = (
       const imageNames = result.stdout.trim().split(' ').filter(Boolean);
       return imageNames.filter((imageName) => imageName.includes('notebook'));
     });
-};
 
 /**
  * Attempts to select a notebook image in UI, with backend fallback if not found
@@ -114,9 +109,9 @@ export const selectNotebookImageWithBackendFallback = (
   return createSpawnerPage
     .findNotebookImageSelector()
     .click()
-    .then(() => {
+    .then(() =>
       // Check if the preferred image exists in the dropdown
-      return cy.get('body').then(($body) => {
+      cy.get('body').then(($body) => {
         if ($body.find(`[data-testid="${preferredImageStream}"]`).length > 0) {
           // Preferred image found - select it
           cy.log(`Successfully found ${preferredImageStream} in dropdown`);
@@ -139,15 +134,15 @@ export const selectNotebookImageWithBackendFallback = (
             .click()
             .then(() => cy.wrap(firstAvailableImage));
         });
-      });
-    });
+      }),
+    );
 };
 
 export const getImageStreamTags = (
   namespace: string,
   imageStreamName: string,
-): Cypress.Chainable<string[]> => {
-  return cy
+): Cypress.Chainable<string[]> =>
+  cy
     .exec(`oc get imagestream ${imageStreamName} -n ${namespace} -o json`)
     .then((result: ExecResult) => {
       if (result.code !== 0) {
@@ -157,12 +152,9 @@ export const getImageStreamTags = (
       return imageStream.spec.tags.map((tag) => tag.name);
     })
     .then((tags) => tags.toSorted());
-};
 
-export const getNotebookImageNames = (
-  namespace: string,
-): Cypress.Chainable<NotebookImageInfo[]> => {
-  return cy
+export const getNotebookImageNames = (namespace: string): Cypress.Chainable<NotebookImageInfo[]> =>
+  cy
     .exec(`oc get imagestream -n ${namespace} -o jsonpath='{.items[*].metadata.name}'`)
     .then((result: ExecResult) => {
       if (result.code !== 0) {
@@ -174,8 +166,8 @@ export const getNotebookImageNames = (
       // Create a chain of promises for each notebook image
       const imagePromises = imageNames
         .filter((imageName) => imageName.includes('notebook'))
-        .map((imageName) => {
-          return cy
+        .map((imageName) =>
+          cy
             .exec(
               `oc get imagestream ${imageName} -n ${namespace} -o jsonpath='{.spec.tags[*].name}'`,
             )
@@ -185,10 +177,9 @@ export const getNotebookImageNames = (
               }
               const versions = tagResult.stdout.trim().split(' ');
               imageInfos.push({ image: imageName, name: imageName, versions });
-            });
-        });
+            }),
+        );
 
       // Wait for all image version queries to complete
       return cy.wrap(Promise.all(imagePromises)).then(() => imageInfos);
     });
-};

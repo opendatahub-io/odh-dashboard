@@ -4,7 +4,7 @@ import { useSearchParams } from 'react-router-dom';
 import { PluginStoreProvider } from '@openshift/dynamic-plugin-sdk';
 import { PluginStore } from '@odh-dashboard/plugin-core';
 import { RenderOptions } from '@testing-library/react';
-import { renderHook } from '#~/__tests__/unit/testUtils/hooks';
+import { renderHook } from '@odh-dashboard/jest-config/hooks';
 import { useBrowserStorage } from '#~/components/browserStorage/BrowserStorageContext';
 import { definedFeatureFlags } from '#~/concepts/areas/const';
 import { DashboardConfigKind } from '#~/k8sTypes';

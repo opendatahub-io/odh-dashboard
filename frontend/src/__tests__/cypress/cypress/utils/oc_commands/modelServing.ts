@@ -104,8 +104,8 @@ export const checkInferenceServiceState = (
   const maxAttempts = 96; // 8 minutes / 5 seconds = 96 attempts
   let attempts = 0;
 
-  const checkState = (): Cypress.Chainable<Cypress.Exec> => {
-    return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => {
+  const checkState = (): Cypress.Chainable<Cypress.Exec> =>
+    cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => {
       attempts++;
 
       // Log raw command output for debugging
@@ -262,7 +262,6 @@ export const checkInferenceServiceState = (
         return cy.wait(5000).then(() => checkState());
       }
     });
-  };
 
   return checkState();
 };
@@ -278,8 +277,8 @@ export const modelExternalTester = (
   modelName: string,
   namespace: string,
   token?: string,
-): Cypress.Chainable<{ url: string; response: Cypress.Response<unknown> }> => {
-  return cy.exec(`oc get inferenceService ${modelName} -n ${namespace} -o json`).then((result) => {
+): Cypress.Chainable<{ url: string; response: Cypress.Response<unknown> }> =>
+  cy.exec(`oc get inferenceService ${modelName} -n ${namespace} -o json`).then((result) => {
     const inferenceService = JSON.parse(result.stdout);
     const { url } = inferenceService.status;
 
@@ -357,16 +356,15 @@ export const modelExternalTester = (
           );
 
           // Use Cypress's wait command before making the next attempt
-          return cy.wait(waitTime).then(() => {
-            return makeRequest(attemptNumber + 1, maxAttempts, waitTime);
-          });
+          return cy
+            .wait(waitTime)
+            .then(() => makeRequest(attemptNumber + 1, maxAttempts, waitTime));
         });
     };
 
     // Start the request chain with the first attempt
     return makeRequest();
   });
-};
 
 /**
  * Validates tolerations in a workbench pod
@@ -450,15 +448,13 @@ export const validateInferenceServiceTolerations = (
 export const verifyS3CopyCompleted = (
   podName: string,
   namespace: string,
-): Cypress.Chainable<Cypress.Exec> => {
-  return cy
-    .exec(`oc logs ${podName} -n ${namespace}`, { failOnNonZeroExit: false })
-    .then((result) => {
-      if (!result.stdout.includes('S3 copy completed successfully')) {
-        throw new Error('S3 copy did not complete successfully');
-      }
-    });
-};
+): Cypress.Chainable<Cypress.Exec> =>
+  cy.exec(`oc logs ${podName} -n ${namespace}`, { failOnNonZeroExit: false }).then((result) => {
+    if (!result.stdout.includes('S3 copy completed successfully')) {
+      throw new Error('S3 copy did not complete successfully');
+    }
+  });
+
 /**
  * Retrieve the token for a given service account and model
  *
@@ -471,15 +467,12 @@ export const getModelExternalToken = (
   namespace: string,
   serviceAccountName: string,
   modelName: string,
-): Cypress.Chainable<string> => {
-  return cy
+): Cypress.Chainable<string> =>
+  cy
     .exec(
       `oc get secret ${serviceAccountName}-${modelName}-sa -n ${namespace} -o jsonpath='{.data.token}' | base64 -d`,
     )
-    .then((result) => {
-      return result.stdout;
-    });
-};
+    .then((result) => result.stdout);
 
 /**
  * Verify the model is accessible with a token
@@ -493,8 +486,8 @@ export const verifyModelExternalToken = (
   modelName: string,
   namespace: string,
   token?: string,
-): Cypress.Chainable<Cypress.Response<unknown>> => {
-  return cy.exec(`oc get inferenceService ${modelName} -n ${namespace} -o json`).then((result) => {
+): Cypress.Chainable<Cypress.Response<unknown>> =>
+  cy.exec(`oc get inferenceService ${modelName} -n ${namespace} -o json`).then((result) => {
     const inferenceService = JSON.parse(result.stdout);
     const { url } = inferenceService.status;
 
@@ -515,4 +508,3 @@ export const verifyModelExternalToken = (
         return cy.wrap(response);
       });
   });
-};

@@ -1,5 +1,5 @@
 import { act } from 'react';
-import { standardUseFetchState, testHook } from '#~/__tests__/unit/testUtils/hooks';
+import { standardUseFetchState, testHook } from '@odh-dashboard/jest-config/hooks';
 import useModelRegistryCertificateNames from '#~/concepts/modelRegistrySettings/useModelRegistryCertificateNames';
 import { listModelRegistryCertificateNames } from '#~/services/modelRegistrySettingsService';
 import { ListConfigSecretsResponse } from '#~/k8sTypes';

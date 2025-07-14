@@ -1,4 +1,4 @@
-import { testHook } from '#~/__tests__/unit/testUtils/hooks';
+import { testHook } from '@odh-dashboard/jest-config/hooks';
 import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile';
 import { mockDashboardConfig, mockNotebookK8sResource } from '#~/__mocks__';
 import { DEFAULT_NOTEBOOK_SIZES } from '#~/pages/projects/screens/spawner/const';

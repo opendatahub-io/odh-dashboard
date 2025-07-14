@@ -8,7 +8,6 @@ function getWorkspacePackages() {
   try {
     const stdout = execSync('npm query .workspace --json', {
       encoding: 'utf8',
-      cwd: process.cwd(),
     });
     return JSON.parse(stdout);
   } catch (error) {
