@@ -9,8 +9,6 @@ import {
   SyncAltIcon,
 } from '@patternfly/react-icons';
 import { InferenceServiceModelState } from '#~/pages/modelServing/screens/types';
-import { InferenceServiceKind } from '#~/k8sTypes';
-import { isModelServingStopped } from '#~/pages/modelServing/utils.ts';
 
 type ModelStatusIconProps = {
   state: InferenceServiceModelState;
@@ -41,7 +39,6 @@ export const ModelStatusIcon: React.FC<ModelStatusIconProps> = ({
     message?: string;
   } => {
     // Highest-priority: service explicitly stopped
-    const isStopped = isModelServingStopped(inferenceService);
     if (isStopped) {
       return {
         label: 'Stopped',

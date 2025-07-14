@@ -18,8 +18,9 @@ import InferenceServiceServingRuntime from '#~/pages/modelServing/screens/global
 import InferenceServiceEndpoint from '#~/pages/modelServing/screens/global/InferenceServiceEndpoint';
 import TypeBorderedCard from '#~/concepts/design/TypeBorderedCard';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
-import { useModelStatus } from '#~/pages/modelServing/useModelStatus.ts';
+import { getInferenceServiceModelState } from '#~/concepts/modelServingKServe/kserveStatusUtils';
+import { useInferenceServiceStatus } from '#~/pages/modelServing/useInferenceServiceStatus.ts';
+import { InferenceServiceModelState } from '#~/pages/modelServing/screens/types.ts';
 
 interface DeployedModelCardProps {
   inferenceService: InferenceServiceKind;
@@ -30,10 +31,16 @@ const DeployedModelCard: React.FC<DeployedModelCardProps> = ({
   servingRuntime,
 }) => {
   const modelMesh = isModelMesh(inferenceService);
-  const modelMetricsSupported = modelMetricsEnabled && (modelMesh || kserveMetricsEnabled);
 
-  const { isStarting, isStopping, isStopped } = useModelStatus(inferenceService);
-  const isNewlyDeployed = !inferenceService.status?.modelStatus?.states?.activeModelState;
+  const { isStarting, isStopping, isStopped } = useInferenceServiceStatus(inferenceService);
+  const modelState = getInferenceServiceModelState(inferenceService);
+  const isNewlyDeployed = React.useMemo(
+    () =>
+      !inferenceService.status?.modelStatus?.states?.activeModelState &&
+      inferenceService.status?.modelStatus?.states?.targetModelState !==
+        InferenceServiceModelState.FAILED_TO_LOAD,
+    [inferenceService.status?.modelStatus?.states],
+  );
 
   const inferenceServiceDisplayName = getDisplayNameFromK8sResource(inferenceService);
 
@@ -57,9 +64,9 @@ const DeployedModelCard: React.FC<DeployedModelCardProps> = ({
                   inferenceService={inferenceService}
                   servingRuntime={servingRuntime}
                   isKserve={!modelMesh}
-                  modelState={modelState}
                   renderName
                   displayName={inferenceServiceDisplayName}
+                  modelState={modelState}
                 />
               </ResourceNameTooltip>
             </FlexItem>
@@ -91,6 +98,7 @@ const DeployedModelCard: React.FC<DeployedModelCardProps> = ({
             inferenceService={inferenceService}
             servingRuntime={servingRuntime}
             isKserve={!isModelMesh(inferenceService)}
+            isStarting={isStarting || isNewlyDeployed}
             modelState={modelState}
           />
         </CardFooter>

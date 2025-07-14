@@ -11,7 +11,7 @@ type ModelStatus = ModelServingState & {
   setIsStopping: (isStopping: boolean) => void;
 };
 
-export const useModelStatus = (
+export const useInferenceServiceStatus = (
   inferenceService: InferenceServiceKind,
   refresh?: () => void,
 ): ModelStatus => {
