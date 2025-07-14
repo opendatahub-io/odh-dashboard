@@ -16,9 +16,12 @@ import {
 import { FeatureFlagLauncherProps } from '#~/app/featureFlags/FeatureFlagLauncher';
 import { useDevFlags } from '#~/app/featureFlags/useDevFeatureFlags';
 import {
-  definedFeatureFlags,
   devTemporaryFeatureFlags,
   techPreviewFlags,
+  coreDashboardFlags,
+  projectManagementFlags,
+  modelServingFlags,
+  advancedAIMLFlags,
 } from '#~/concepts/areas/const';
 
 type Props = FeatureFlagLauncherProps & { onClose: () => void };
@@ -101,7 +104,16 @@ const FeatureFlagModal: React.FC<Props> = ({
                 These feature flags are hardly used and cannot be deleted yet at this time.
               </Content>
               <Content component="p">
-                Some of them may be deprecated soon; but most of them are permanent              
+                Some of them may be deprecated soon; but most of them are permanent.
+              </Content>
+              <h2>Core Dashboard Flags</h2>
+              {renderFlags(Object.keys(coreDashboardFlags), dashboardConfig)}
+              <h2>Project & User Management Flags</h2>
+              {renderFlags(Object.keys(projectManagementFlags), dashboardConfig)}
+              <h2>Model Serving & AI/ML Infrastructure Flags</h2>
+              {renderFlags(Object.keys(modelServingFlags), dashboardConfig)}
+              <h2>Advanced AI/ML Features & Pipelines Flags</h2>
+              {renderFlags(Object.keys(advancedAIMLFlags), dashboardConfig)}
             </Content>
           </Tab>
         </Tabs>
