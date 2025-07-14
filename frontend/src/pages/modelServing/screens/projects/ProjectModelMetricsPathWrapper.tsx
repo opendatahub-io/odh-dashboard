@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { useParams } from 'react-router-dom';
 import { Bullseye, Spinner } from '@patternfly/react-core';
-import NotFound from '~/pages/NotFound';
-import { InferenceServiceKind, ProjectKind } from '~/k8sTypes';
-import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
+import NotFound from '#~/pages/NotFound';
+import { InferenceServiceKind, ProjectKind } from '#~/k8sTypes';
+import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 
 type ProjectModelMetricsPathWrapperProps = {
   children: (
@@ -20,7 +20,10 @@ const ProjectModelMetricsPathWrapper: React.FC<ProjectModelMetricsPathWrapperPro
   }>();
   const {
     currentProject,
-    inferenceServices: { data: models, loaded },
+    inferenceServices: {
+      data: { items: models },
+      loaded,
+    },
   } = React.useContext(ProjectDetailsContext);
   const model = models.find((currentModel) => currentModel.metadata.name === modelName);
   if (!loaded) {

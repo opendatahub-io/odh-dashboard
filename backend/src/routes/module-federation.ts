@@ -1,5 +1,9 @@
+import * as path from 'path';
+import { execSync } from 'child_process';
 import { registerProxy } from '../utils/proxy';
 import { KubeFastifyInstance } from '../types';
+import { DEV_MODE } from '../utils/constants';
+import { errorHandler } from '../utils';
 
 type ModuleFederationConfig = {
   name: string;
@@ -19,17 +23,68 @@ type ModuleFederationConfig = {
     namespace?: string;
     port: number;
   };
-}[];
+};
 
-export default async (fastify: KubeFastifyInstance): Promise<void> => {
-  let mfConfig: ModuleFederationConfig | null = null;
+/**
+ * Get all workspace packages using npm query from frontend directory
+ * @returns {Array} Array of workspace package objects
+ */
+const getWorkspacePackages = (fastify: KubeFastifyInstance): any[] => {
+  try {
+    const frontendPath = path.resolve(__dirname, '../../../frontend');
+    const stdout = execSync('npm query .workspace --json', {
+      encoding: 'utf8',
+      cwd: frontendPath,
+    });
+    return JSON.parse(stdout);
+  } catch (error) {
+    fastify.log.warn(`Error querying workspaces with npm query: ${errorHandler(error)}`);
+    return [];
+  }
+};
+
+const getModuleFederationConfig = (
+  fastify: KubeFastifyInstance,
+): ModuleFederationConfig[] | null => {
   if (process.env.MODULE_FEDERATION_CONFIG) {
     try {
-      mfConfig = JSON.parse(process.env.MODULE_FEDERATION_CONFIG);
+      return JSON.parse(process.env.MODULE_FEDERATION_CONFIG);
     } catch (e) {
-      fastify.log.error('Failed to parse module federation config', e);
+      fastify.log.error(e, `Failed to parse module federation config from ENV: ${errorHandler(e)}`);
     }
+  } else if (DEV_MODE) {
+    // in DEV_MODE, read the module federation config from workspace packages
+    return readModuleFederationConfigFromPackages(fastify);
   }
+  return null;
+};
+
+const readModuleFederationConfigFromPackages = (
+  fastify: KubeFastifyInstance,
+): ModuleFederationConfig[] | null => {
+  const configs: ModuleFederationConfig[] = [];
+
+  try {
+    const workspacePackages = getWorkspacePackages(fastify);
+
+    for (const pkg of workspacePackages) {
+      const federatedConfigProperty = pkg['module-federation'];
+      if (federatedConfigProperty) {
+        configs.push(federatedConfigProperty);
+      }
+    }
+  } catch (e) {
+    fastify.log.error(
+      e,
+      `Failed to process workspace packages for module federation: ${errorHandler(e)}`,
+    );
+  }
+
+  return configs;
+};
+
+export default async (fastify: KubeFastifyInstance): Promise<void> => {
+  const mfConfig = getModuleFederationConfig(fastify);
   if (mfConfig && mfConfig.length > 0) {
     fastify.log.info(
       `Module federation configured for: ${mfConfig.map((mf) => mf.name).join(', ')}`,
@@ -39,7 +94,8 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
         process.env[`MF_${name.toLocaleUpperCase()}_${prop.toLocaleUpperCase()}`];
 
       const serviceName = getEnvVar('SERVICE_NAME') ?? service.name;
-      const serviceNamespace = getEnvVar('SERVICE_NAMESPACE') ?? service.namespace;
+      const serviceNamespace =
+        getEnvVar('SERVICE_NAMESPACE') ?? service.namespace ?? process.env.OC_PROJECT;
       const servicePort = getEnvVar('SERVICE_PORT') ?? service.port;
       const host = getEnvVar('LOCAL_HOST') ?? local.host ?? 'localhost';
       const port = getEnvVar('LOCAL_PORT') ?? local.port;
@@ -58,6 +114,24 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
         local: {
           host,
           port,
+        },
+        onError: (reply, error) => {
+          if (
+            'code' in error.error &&
+            error.error.code === 'FST_REPLY_FROM_INTERNAL_SERVER_ERROR' &&
+            'statusCode' in error.error &&
+            error.error.statusCode === 500
+          ) {
+            fastify.log.error(`Module federation service '${name}' is unavailable`);
+            // Respond with 503 Service Unavailable instead of 500
+            reply.code(503).send({
+              error: 'Service Unavailable',
+              message: `Module federation service '${name}' is currently unavailable`,
+              statusCode: 503,
+            });
+          } else {
+            reply.send(error);
+          }
         },
       });
       proxy.forEach((proxy) => {

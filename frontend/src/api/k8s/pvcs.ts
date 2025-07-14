@@ -7,21 +7,29 @@ import {
   K8sStatus,
   k8sUpdateResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { K8sAPIOptions, KnownLabels, PersistentVolumeClaimKind } from '~/k8sTypes';
-import { PVCModel } from '~/api/models';
-import { translateDisplayNameForK8s } from '~/concepts/k8s/utils';
-import { LABEL_SELECTOR_DASHBOARD_RESOURCE } from '~/const';
-import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
-import { StorageData } from '~/pages/projects/types';
+import { K8sAPIOptions, KnownLabels, PersistentVolumeClaimKind } from '#~/k8sTypes';
+import { PVCModel } from '#~/api/models';
+import { translateDisplayNameForK8s } from '#~/concepts/k8s/utils';
+import { LABEL_SELECTOR_DASHBOARD_RESOURCE } from '#~/const';
+import { applyK8sAPIOptions } from '#~/api/apiMergeUtils';
+import { StorageData } from '#~/pages/projects/types';
+import { AccessMode } from '#~/pages/storageClasses/storageEnums';
 
 export const assemblePvc = (
   data: StorageData,
   namespace: string,
   editName?: string,
   hideFromUI?: boolean,
+  additionalAnnotations?: Record<string, string>, // Generic alternative to forceRedeploy
 ): PersistentVolumeClaimKind => {
-  const { name: pvcName, description, size, storageClassName } = data;
+  const { name: pvcName, description, size, storageClassName, accessMode } = data;
   const name = editName || data.k8sName || translateDisplayNameForK8s(pvcName);
+
+  const annotations: Record<string, string> = {
+    'openshift.io/display-name': pvcName.trim(),
+    ...(description && { 'openshift.io/description': description }),
+    ...(additionalAnnotations || {}),
+  };
 
   return {
     apiVersion: 'v1',
@@ -34,13 +42,10 @@ export const assemblePvc = (
           [KnownLabels.DASHBOARD_RESOURCE]: 'true',
         },
       }),
-      annotations: {
-        'openshift.io/display-name': pvcName.trim(),
-        ...(description && { 'openshift.io/description': description }),
-      },
+      annotations,
     },
     spec: {
-      accessModes: ['ReadWriteOnce'],
+      accessModes: [accessMode ?? AccessMode.RWO],
       resources: {
         requests: {
           storage: String(size),
@@ -69,8 +74,9 @@ export const createPvc = (
   namespace: string,
   opts?: K8sAPIOptions,
   hideFromUI?: boolean,
+  additionalAnnotations?: Record<string, string>,
 ): Promise<PersistentVolumeClaimKind> => {
-  const pvc = assemblePvc(data, namespace, undefined, hideFromUI);
+  const pvc = assemblePvc(data, namespace, undefined, hideFromUI, additionalAnnotations);
 
   return k8sCreateResource<PersistentVolumeClaimKind>(
     applyK8sAPIOptions({ model: PVCModel, resource: pvc }, opts),
@@ -82,10 +88,30 @@ export const updatePvc = (
   existingData: PersistentVolumeClaimKind,
   namespace: string,
   opts?: K8sAPIOptions,
+  excludeSpec?: boolean,
+  additionalAnnotations?: Record<string, string>,
 ): Promise<PersistentVolumeClaimKind> => {
-  const pvc = assemblePvc(data, namespace, existingData.metadata.name);
+  const pvc = assemblePvc(
+    data,
+    namespace,
+    existingData.metadata.name,
+    undefined,
+    additionalAnnotations,
+  );
+  const newData = excludeSpec
+    ? {
+        ...pvc,
+        spec: {
+          resources: {
+            requests: {
+              storage: pvc.spec.resources.requests.storage,
+            },
+          },
+        },
+      }
+    : pvc;
 
-  const pvcResource = _.merge({}, existingData, pvc);
+  const pvcResource = _.merge({}, existingData, newData);
   if (!data.description && pvcResource.metadata.annotations?.['openshift.io/description']) {
     pvcResource.metadata.annotations['openshift.io/description'] = undefined;
   }

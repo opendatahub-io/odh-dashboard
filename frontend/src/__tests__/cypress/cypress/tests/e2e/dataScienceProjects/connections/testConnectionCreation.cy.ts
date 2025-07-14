@@ -1,17 +1,20 @@
-import { HTPASSWD_CLUSTER_ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
-import { projectDetails, projectListPage } from '~/__tests__/cypress/cypress/pages/projects';
-import { deleteOpenShiftProject } from '~/__tests__/cypress/cypress/utils/oc_commands/project';
-import type { DataScienceProjectData, AWSS3BucketDetails } from '~/__tests__/cypress/cypress/types';
-import { connectionsPage, addConnectionModal } from '~/__tests__/cypress/cypress/pages/connections';
-import { loadDSPFixture } from '~/__tests__/cypress/cypress/utils/dataLoader';
-import { createCleanProject } from '~/__tests__/cypress/cypress/utils/projectChecker';
-import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
-import { AWS_BUCKETS } from '~/__tests__/cypress/cypress/utils/s3Buckets';
+import { HTPASSWD_CLUSTER_ADMIN_USER } from '#~/__tests__/cypress/cypress/utils/e2eUsers';
+import { projectDetails, projectListPage } from '#~/__tests__/cypress/cypress/pages/projects';
+import { deleteOpenShiftProject } from '#~/__tests__/cypress/cypress/utils/oc_commands/project';
+import type {
+  DataScienceProjectData,
+  AWSS3BucketDetails,
+} from '#~/__tests__/cypress/cypress/types';
 import {
-  retryableBefore,
-  wasSetupPerformed,
-} from '~/__tests__/cypress/cypress/utils/retryableHooks';
-import { generateTestUUID } from '~/__tests__/cypress/cypress/utils/uuidGenerator';
+  connectionsPage,
+  addConnectionModal,
+} from '#~/__tests__/cypress/cypress/pages/connections';
+import { loadDSPFixture } from '#~/__tests__/cypress/cypress/utils/dataLoader';
+import { createCleanProject } from '#~/__tests__/cypress/cypress/utils/projectChecker';
+import { deleteModal } from '#~/__tests__/cypress/cypress/pages/components/DeleteModal';
+import { AWS_BUCKETS } from '#~/__tests__/cypress/cypress/utils/s3Buckets';
+import { retryableBefore } from '#~/__tests__/cypress/cypress/utils/retryableHooks';
+import { generateTestUUID } from '#~/__tests__/cypress/cypress/utils/uuidGenerator';
 
 describe('Verify Connections - Creation and Deletion', () => {
   let testData: DataScienceProjectData;
@@ -52,13 +55,10 @@ describe('Verify Connections - Creation and Deletion', () => {
       });
   });
   after(() => {
-    //Check if the Before Method was executed to perform the setup
-    if (!wasSetupPerformed()) return;
-
     // Delete provisioned Project
     if (projectName) {
       cy.log(`Deleting Project ${projectName} after the test has finished.`);
-      deleteOpenShiftProject(projectName);
+      deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
     }
   });
 

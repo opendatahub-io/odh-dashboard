@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { SearchInput, ToolbarGroup, ToolbarItem } from '@patternfly/react-core';
-import FilterToolbar from '~/components/FilterToolbar';
+import FilterToolbar from '#~/components/FilterToolbar';
 import ImportBYONImageButton from './ImportBYONImageButton';
 import {
   BYONImagesToolbarFilterOptions,
@@ -11,14 +11,9 @@ import {
 type BYONImagesToolbarProps = {
   filterData: BYONImagesFilterDataType;
   onFilterUpdate: (key: string, value?: string | { label: string; value: string }) => void;
-  refresh: () => void;
 };
 
-const BYONImagesToolbar: React.FC<BYONImagesToolbarProps> = ({
-  filterData,
-  onFilterUpdate,
-  refresh,
-}) => (
+const BYONImagesToolbar: React.FC<BYONImagesToolbarProps> = ({ filterData, onFilterUpdate }) => (
   <FilterToolbar<keyof typeof byonImagesFilterOptions>
     data-testid="byonImages-table-toolbar"
     filterOptions={byonImagesFilterOptions}
@@ -45,7 +40,7 @@ const BYONImagesToolbar: React.FC<BYONImagesToolbarProps> = ({
   >
     <ToolbarGroup>
       <ToolbarItem>
-        <ImportBYONImageButton refresh={refresh} />
+        <ImportBYONImageButton />
       </ToolbarItem>
     </ToolbarGroup>
   </FilterToolbar>

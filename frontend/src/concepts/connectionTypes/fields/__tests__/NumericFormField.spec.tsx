@@ -2,8 +2,8 @@ import * as React from 'react';
 import '@testing-library/jest-dom';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { act } from 'react';
-import { NumericField } from '~/concepts/connectionTypes/types';
-import NumericFormField from '~/concepts/connectionTypes/fields/NumericFormField';
+import { NumericField } from '#~/concepts/connectionTypes/types';
+import NumericFormField from '#~/concepts/connectionTypes/fields/NumericFormField';
 
 describe('NumericFormField', () => {
   it('should render editable field', () => {

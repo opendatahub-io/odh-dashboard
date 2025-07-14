@@ -1,4 +1,4 @@
-import { AllowedUser, PrivilegeState } from '~/pages/notebookController/screens/admin/types';
+import { AllowedUser, PrivilegeState } from '#~/pages/notebookController/screens/admin/types';
 
 type MockAllowedUsersType = {
   username?: string;

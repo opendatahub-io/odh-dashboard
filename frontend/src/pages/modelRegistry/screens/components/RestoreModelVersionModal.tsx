@@ -1,9 +1,9 @@
 import * as React from 'react';
-import { Modal } from '@patternfly/react-core/deprecated';
-import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
-import useNotification from '~/utilities/useNotification';
-import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
+import { Modal, ModalBody, ModalHeader, ModalFooter } from '@patternfly/react-core';
+import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
+import useNotification from '#~/utilities/useNotification';
+import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
 
 interface RestoreModelVersionModalProps {
   onCancel: () => void;
@@ -56,12 +56,12 @@ export const RestoreModelVersionModal: React.FC<RestoreModelVersionModalProps> =
   }, [onSubmit, onClose, notification, modelVersionName]);
 
   return (
-    <Modal
-      isOpen
-      title="Restore model version?"
-      variant="small"
-      onClose={onCancelClose}
-      footer={
+    <Modal isOpen variant="small" onClose={onCancelClose} data-testid="restore-model-version-modal">
+      <ModalHeader title="Restore model version?" />
+      <ModalBody>
+        <b>{modelVersionName}</b> will be restored and returned to the versions list.
+      </ModalBody>
+      <ModalFooter>
         <DashboardModalFooter
           onCancel={onCancelClose}
           onSubmit={onConfirm}
@@ -71,10 +71,7 @@ export const RestoreModelVersionModal: React.FC<RestoreModelVersionModalProps> =
           alertTitle="Error"
           isSubmitDisabled={isSubmitting}
         />
-      }
-      data-testid="restore-model-version-modal"
-    >
-      <b>{modelVersionName}</b> will be restored and returned to the versions list.
+      </ModalFooter>
     </Modal>
   );
 };

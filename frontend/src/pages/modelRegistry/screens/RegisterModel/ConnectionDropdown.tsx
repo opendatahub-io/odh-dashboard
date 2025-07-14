@@ -8,9 +8,9 @@ import {
   Spinner,
 } from '@patternfly/react-core';
 import React from 'react';
-import { Connection } from '~/concepts/connectionTypes/types';
-import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
-import useServingConnections from '~/pages/projects/screens/detail/connections/useServingConnections';
+import { Connection } from '#~/concepts/connectionTypes/types';
+import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
+import useServingConnections from '#~/pages/projects/screens/detail/connections/useServingConnections';
 import { ModelLocationType } from './useRegisterModelData';
 
 type ConnectionDropdownProps = {

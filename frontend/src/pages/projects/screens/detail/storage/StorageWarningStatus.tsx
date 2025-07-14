@@ -5,10 +5,10 @@ import {
   ExclamationTriangleIcon,
   InfoCircleIcon,
 } from '@patternfly/react-icons';
-import { PersistentVolumeClaimKind } from '~/k8sTypes';
-import { usePVCFreeAmount } from '~/api';
-import { getPvcTotalSize } from '~/pages/projects/utils';
-import { bytesAsRoundedGiB } from '~/utilities/number';
+import { PersistentVolumeClaimKind } from '#~/k8sTypes';
+import { usePVCFreeAmount } from '#~/api';
+import { getPvcTotalSize } from '#~/pages/projects/utils';
+import { bytesAsRoundedGiB } from '#~/utilities/number';
 import { getFullStatusFromPercentage } from './utils';
 import useStorageStatusAlert from './useStorageStatusAlert';
 

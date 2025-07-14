@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { EmptyState, EmptyStateBody, EmptyStateFooter } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
-import ImportPipelineButton from '~/concepts/pipelines/content/import/ImportPipelineButton';
-import ImportPipelineSplitButton from '~/concepts/pipelines/content/import/ImportPipelineSplitButton';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+import ImportPipelineButton from '#~/concepts/pipelines/content/import/ImportPipelineButton';
+import ImportPipelineSplitButton from '#~/concepts/pipelines/content/import/ImportPipelineSplitButton';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 
 const GlobalNoPipelines: React.FC = () => {
   const isFineTuningAvailable = useIsAreaAvailable(SupportedArea.FINE_TUNING).status;

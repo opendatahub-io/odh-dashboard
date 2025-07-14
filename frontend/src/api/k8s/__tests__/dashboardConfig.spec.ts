@@ -1,15 +1,15 @@
 import { k8sGetResource, k8sPatchResource } from '@openshift/dynamic-plugin-sdk-utils';
-import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
+import { mockDashboardConfig } from '#~/__mocks__/mockDashboardConfig';
 import {
   getDashboardConfig,
   getDashboardConfigTemplateDisablement,
   getDashboardConfigTemplateOrder,
   patchDashboardConfigTemplateDisablement,
   patchDashboardConfigTemplateOrder,
-} from '~/api/k8s/dashboardConfig';
-import { ODHDashboardConfigModel } from '~/api/models';
-import { DashboardConfigKind } from '~/k8sTypes';
-import { DASHBOARD_CONFIG } from '~/utilities/const';
+} from '#~/api/k8s/dashboardConfig';
+import { ODHDashboardConfigModel } from '#~/api/models';
+import { DashboardConfigKind } from '#~/k8sTypes';
+import { DASHBOARD_CONFIG } from '#~/utilities/const';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sGetResource: jest.fn(),

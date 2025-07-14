@@ -1,6 +1,6 @@
 import * as React from 'react';
-import useExperiments from '~/concepts/pipelines/apiHooks/useExperiments';
-import { ExperimentKF } from '~/concepts/pipelines/kfTypes';
+import useExperiments from '#~/concepts/pipelines/apiHooks/useExperiments';
+import { ExperimentKF } from '#~/concepts/pipelines/kfTypes';
 
 type PipelineRunExperimentsContextState = {
   experiments: ExperimentKF[];

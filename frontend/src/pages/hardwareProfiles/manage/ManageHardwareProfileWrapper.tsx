@@ -10,12 +10,12 @@ import {
   Title,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
-import { useDashboardNamespace } from '~/redux/selectors';
-import ManageHardwareProfile from '~/pages/hardwareProfiles/manage/ManageHardwareProfile';
-import useHardwareProfile from '~/pages/hardwareProfiles/useHardwareProfile';
-import { HardwareProfileKind } from '~/k8sTypes';
-import useMigratedHardwareProfiles from '~/pages/hardwareProfiles/migration/useMigratedHardwareProfiles';
-import { MigrationAction } from '~/pages/hardwareProfiles/migration/types';
+import { useDashboardNamespace } from '#~/redux/selectors';
+import ManageHardwareProfile from '#~/pages/hardwareProfiles/manage/ManageHardwareProfile';
+import useHardwareProfile from '#~/pages/hardwareProfiles/useHardwareProfile';
+import { HardwareProfileKind } from '#~/k8sTypes';
+import useMigratedHardwareProfiles from '#~/pages/hardwareProfiles/migration/useMigratedHardwareProfiles';
+import { MigrationAction } from '#~/pages/hardwareProfiles/migration/types';
 
 type ManageHardwareProfileWrapperProps = {
   children: (data: HardwareProfileKind, migrationAction?: MigrationAction) => React.ReactNode;

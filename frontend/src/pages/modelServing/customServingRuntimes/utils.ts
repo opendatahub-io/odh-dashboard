@@ -1,9 +1,9 @@
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
-import { ServingRuntimeKind, TemplateKind } from '~/k8sTypes';
-import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
-import { ServingRuntimeAPIProtocol, ServingRuntimePlatform } from '~/types';
-import { asEnumMember } from '~/utilities/utils';
-import { CreatingServingRuntimeObject } from '~/pages/modelServing/screens/types';
+import { ServingRuntimeKind, TemplateKind } from '#~/k8sTypes';
+import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
+import { ServingRuntimeAPIProtocol, ServingRuntimePlatform } from '#~/types';
+import { asEnumMember } from '#~/utilities/utils';
+import { CreatingServingRuntimeObject } from '#~/pages/modelServing/screens/types';
 
 type DataKeys = keyof CreatingServingRuntimeObject;
 
@@ -125,6 +125,34 @@ export const getDisplayNameFromServingRuntimeTemplate = (resource: ServingRuntim
 
   return templateName || legacyTemplateName || 'Unknown Serving Runtime';
 };
+
+export const getServingRuntimeVersion = (
+  resource: ServingRuntimeKind | TemplateKind | undefined,
+): string | undefined => {
+  if (!resource) {
+    return undefined;
+  }
+  if (isTemplateKind(resource)) {
+    return (
+      resource.objects[0].metadata.annotations?.['opendatahub.io/runtime-version'] || undefined
+    );
+  }
+  return resource.metadata.annotations?.['opendatahub.io/runtime-version'] || undefined;
+};
+
+export const getTemplateNameFromServingRuntime = (
+  resource: ServingRuntimeKind,
+): string | undefined => resource.metadata.annotations?.['opendatahub.io/template-name'];
+
+export const findTemplateByName = (
+  templates: TemplateKind[],
+  templateName: string,
+): TemplateKind | undefined =>
+  templates.find((t) => getServingRuntimeNameFromTemplate(t) === templateName);
+
+export const isTemplateKind = (
+  resource: ServingRuntimeKind | TemplateKind,
+): resource is TemplateKind => resource.kind === 'Template';
 
 export const getEnabledPlatformsFromTemplate = (
   template: TemplateKind,

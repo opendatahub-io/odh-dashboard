@@ -11,14 +11,14 @@ import {
   Flex,
 } from '@patternfly/react-core';
 
-import PipelineDetailsYAML from '~/concepts/pipelines/content/pipelinesDetails/PipelineDetailsYAML';
+import PipelineDetailsYAML from '#~/concepts/pipelines/content/pipelinesDetails/PipelineDetailsYAML';
 import {
   PipelineRecurringRunKF,
   PipelineRunKF,
   PipelineSpecVariable,
-} from '~/concepts/pipelines/kfTypes';
-import { isPipelineRecurringRun } from '~/concepts/pipelines/content/utils';
-import { Artifact } from '~/third_party/mlmd';
+} from '#~/concepts/pipelines/kfTypes';
+import { isPipelineRecurringRun } from '#~/concepts/pipelines/content/utils';
+import { Artifact } from '#~/third_party/mlmd';
 import PipelineRunTabDetails from './PipelineRunTabDetails';
 import PipelineRunTabParameters from './PipelineRunTabParameters';
 

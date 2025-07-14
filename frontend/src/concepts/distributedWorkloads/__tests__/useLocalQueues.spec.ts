@@ -1,10 +1,10 @@
 import { k8sListResourceItems } from '@openshift/dynamic-plugin-sdk-utils';
 import { act } from 'react';
-import { mockLocalQueueK8sResource } from '~/__mocks__/mockLocalQueueK8sResource';
-import { standardUseFetchState, testHook } from '~/__tests__/unit/testUtils/hooks';
-import useDistributedWorkloadsEnabled from '~/concepts/distributedWorkloads/useDistributedWorkloadsEnabled';
-import { LocalQueueKind } from '~/k8sTypes';
-import useLocalQueues from '~/concepts/distributedWorkloads/useLocalQueues';
+import { mockLocalQueueK8sResource } from '#~/__mocks__/mockLocalQueueK8sResource';
+import { standardUseFetchState, testHook } from '#~/__tests__/unit/testUtils/hooks';
+import useDistributedWorkloadsEnabled from '#~/concepts/distributedWorkloads/useDistributedWorkloadsEnabled';
+import { LocalQueueKind } from '#~/k8sTypes';
+import useLocalQueues from '#~/concepts/distributedWorkloads/useLocalQueues';
 
 const mockedLocalQueues = [
   mockLocalQueueK8sResource({
@@ -17,7 +17,7 @@ jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sListResourceItems: jest.fn(),
 }));
 
-jest.mock('~/concepts/distributedWorkloads/useDistributedWorkloadsEnabled', () => ({
+jest.mock('#~/concepts/distributedWorkloads/useDistributedWorkloadsEnabled', () => ({
   __esModule: true,
   default: jest.fn(),
 }));

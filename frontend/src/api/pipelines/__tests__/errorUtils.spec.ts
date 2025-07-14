@@ -1,7 +1,7 @@
 /* eslint-disable camelcase */
-import { handlePipelineFailures } from '~/api/pipelines/errorUtils';
-import { mockPipelineKF } from '~/__mocks__/mockPipelineKF';
-import { NotReadyError } from '~/utilities/useFetchState';
+import { handlePipelineFailures } from '#~/api/pipelines/errorUtils';
+import { mockPipelineKF } from '#~/__mocks__/mockPipelineKF';
+import { NotReadyError } from '#~/utilities/useFetchState';
 
 describe('handlePipelineFailures', () => {
   it('should successfully return pipeline', async () => {

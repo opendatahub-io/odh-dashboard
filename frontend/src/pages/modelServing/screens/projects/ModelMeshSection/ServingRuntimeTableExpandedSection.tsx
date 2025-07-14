@@ -1,30 +1,35 @@
 import * as React from 'react';
 import { ExpandableRowContent, Td } from '@patternfly/react-table';
-import { ServingRuntimeKind } from '~/k8sTypes';
-import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import InferenceServiceTable from '~/pages/modelServing/screens/global/InferenceServiceTable';
-import { ServingRuntimeTableTabs } from '~/pages/modelServing/screens/types';
-import ScrollViewOnMount from '~/components/ScrollViewOnMount';
-import ServingRuntimeTokensTable from '~/pages/modelServing/screens/projects/ModelMeshSection/ServingRuntimeTokensTable';
+import { ServingRuntimeKind } from '#~/k8sTypes';
+import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
+import InferenceServiceTable from '#~/pages/modelServing/screens/global/InferenceServiceTable';
+import { ServingRuntimeTableTabs } from '#~/pages/modelServing/screens/types';
+import ScrollViewOnMount from '#~/components/ScrollViewOnMount';
+import ServingRuntimeTokensTable from '#~/concepts/modelServingKServe/ServingRuntimeTokensTable';
 import {
   getInferenceServiceFromServingRuntime,
   isServingRuntimeTokenEnabled,
-} from '~/pages/modelServing/screens/projects/utils';
+} from '#~/pages/modelServing/screens/projects/utils';
 import ServingRuntimeDetails from './ServingRuntimeDetails';
 
 type ServingRuntimeTableExpandedSectionProps = {
   activeColumn?: ServingRuntimeTableTabs;
   onClose: () => void;
   obj: ServingRuntimeKind;
+  project: string;
 };
 
 const ServingRuntimeTableExpandedSection: React.FC<ServingRuntimeTableExpandedSectionProps> = ({
   activeColumn,
   onClose,
   obj,
+  project,
 }) => {
   const {
-    inferenceServices: { data: inferenceServices, refresh: refreshInferenceServices },
+    inferenceServices: {
+      data: { items: inferenceServices },
+      refresh: refreshInferenceServices,
+    },
   } = React.useContext(ProjectDetailsContext);
 
   const modelInferenceServices = getInferenceServiceFromServingRuntime(inferenceServices, obj);
@@ -34,7 +39,7 @@ const ServingRuntimeTableExpandedSection: React.FC<ServingRuntimeTableExpandedSe
       <>
         <Td dataLabel="Type expansion" colSpan={7}>
           <ExpandableRowContent>
-            <ServingRuntimeDetails obj={obj} />
+            <ServingRuntimeDetails obj={obj} project={project} />
           </ExpandableRowContent>
         </Td>
       </>

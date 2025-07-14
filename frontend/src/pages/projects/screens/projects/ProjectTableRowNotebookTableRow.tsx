@@ -1,19 +1,19 @@
 import * as React from 'react';
 import { Td, Tr } from '@patternfly/react-table';
-import { NotebookKind, ProjectKind } from '~/k8sTypes';
-import NotebookRouteLink from '~/pages/projects/notebook/NotebookRouteLink';
-import NotebookStateStatus from '~/pages/projects/notebook/NotebookStateStatus';
-import { NotebookState } from '~/pages/projects/notebook/types';
-import { NotebookActionsColumn } from '~/pages/projects/notebook/NotebookActionsColumn';
-import { computeNotebooksTolerations } from '~/utilities/tolerations';
-import { startNotebook, stopNotebook } from '~/api';
-import { currentlyHasPipelines } from '~/concepts/pipelines/elyra/utils';
-import useStopNotebookModalAvailability from '~/pages/projects/notebook/useStopNotebookModalAvailability';
-import { useAppContext } from '~/app/AppContext';
-import { fireNotebookTrackingEvent } from '~/pages/projects/notebook/utils';
-import StopNotebookConfirmModal from '~/pages/projects/notebook/StopNotebookConfirmModal';
-import NotebookStateAction from '~/pages/projects/notebook/NotebookStateAction';
-import { useNotebookKindPodSpecOptionsState } from '~/concepts/hardwareProfiles/useNotebookPodSpecOptionsState';
+import { NotebookKind, ProjectKind } from '#~/k8sTypes';
+import NotebookRouteLink from '#~/pages/projects/notebook/NotebookRouteLink';
+import NotebookStateStatus from '#~/pages/projects/notebook/NotebookStateStatus';
+import { NotebookState } from '#~/pages/projects/notebook/types';
+import { NotebookActionsColumn } from '#~/pages/projects/notebook/NotebookActionsColumn';
+import { computeNotebooksTolerations } from '#~/utilities/tolerations';
+import { startNotebook, stopNotebook } from '#~/api';
+import { currentlyHasPipelines } from '#~/concepts/pipelines/elyra/utils';
+import useStopNotebookModalAvailability from '#~/pages/projects/notebook/useStopNotebookModalAvailability';
+import { useAppContext } from '#~/app/AppContext';
+import { fireNotebookTrackingEvent } from '#~/pages/projects/notebook/utils';
+import StopNotebookConfirmModal from '#~/pages/projects/notebook/StopNotebookConfirmModal';
+import { useNotebookKindPodSpecOptionsState } from '#~/concepts/hardwareProfiles/useNotebookPodSpecOptionsState';
+import StateActionToggle from '#~/components/StateActionToggle';
 
 type ProjectTableRowNotebookTableRowProps = {
   project: ProjectKind;
@@ -81,8 +81,8 @@ const ProjectTableRowNotebookTableRow: React.FC<ProjectTableRowNotebookTableRowP
         />
       </Td>
       <Td>
-        <NotebookStateAction
-          notebookState={notebookState}
+        <StateActionToggle
+          currentState={notebookState}
           onStart={onStart}
           onStop={onStop}
           isDisabled={inProgress}
@@ -95,7 +95,7 @@ const ProjectTableRowNotebookTableRow: React.FC<ProjectTableRowNotebookTableRowP
           onNotebookDelete={onNotebookDelete}
         />
       </Td>
-      {isOpenConfirm ? (
+      {isOpenConfirm && (
         <StopNotebookConfirmModal
           notebookState={notebookState}
           onClose={(confirmStatus) => {
@@ -105,7 +105,7 @@ const ProjectTableRowNotebookTableRow: React.FC<ProjectTableRowNotebookTableRowP
             setOpenConfirm(false);
           }}
         />
-      ) : null}
+      )}
     </Tr>
   );
 };

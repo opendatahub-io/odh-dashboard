@@ -1,7 +1,7 @@
 import * as React from 'react';
-import { ExperimentKF } from '~/concepts/pipelines/kfTypes';
-import DeleteExperimentModal from '~/pages/pipelines/global/experiments/DeleteExperimentModal';
-import { RestoreExperimentModal } from '~/pages/pipelines/global/experiments/RestoreExperimentModal';
+import { ExperimentKF } from '#~/concepts/pipelines/kfTypes';
+import DeleteExperimentModal from '#~/pages/pipelines/global/experiments/DeleteExperimentModal';
+import { RestoreExperimentModal } from '#~/pages/pipelines/global/experiments/RestoreExperimentModal';
 import ExperimentTableBase from './ExperimentTableBase';
 import { ArchivedExperimentTableToolbar } from './ExperimentTableToolbar';
 

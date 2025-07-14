@@ -8,9 +8,9 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import { ProjectObjectType, SectionType } from '~/concepts/design/utils';
-import DividedGalleryItem from '~/concepts/design/DividedGalleryItem';
-import HeaderIcon from '~/concepts/design/HeaderIcon';
+import { ProjectObjectType, SectionType } from '#~/concepts/design/utils';
+import DividedGalleryItem from '#~/concepts/design/DividedGalleryItem';
+import HeaderIcon from '#~/concepts/design/HeaderIcon';
 
 type InfoGalleryItemProps = {
   title: string;

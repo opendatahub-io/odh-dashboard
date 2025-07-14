@@ -1,4 +1,4 @@
-import { ImageStreamKind } from '~/k8sTypes';
+import { ImageStreamKind } from '#~/k8sTypes';
 import {
   ConfigMapCategory,
   EnvironmentVariableType,
@@ -7,8 +7,8 @@ import {
   StartNotebookData,
   StorageData,
   StorageType,
-} from '~/pages/projects/types';
-import { mockK8sNameDescriptionFieldData } from '~/__mocks__/mockK8sNameDescriptionFieldData';
+} from '#~/pages/projects/types';
+import { mockK8sNameDescriptionFieldData } from '#~/__mocks__/mockK8sNameDescriptionFieldData';
 
 type MockResourceConfigType = {
   volumeName?: string;

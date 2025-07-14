@@ -6,7 +6,7 @@ import {
   useK8sWatchResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import React from 'react';
-import { CustomWatchK8sResult } from '~/types';
+import { CustomWatchK8sResult } from '#~/types';
 
 const useK8sWatchResourceList = <T extends K8sResourceCommon[]>(
   initResource: WatchK8sResource | null,

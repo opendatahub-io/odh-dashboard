@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { Bullseye, EmptyState, EmptyStateBody, Spinner } from '@patternfly/react-core';
 import { ExclamationCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
-import { useGetExecutionsList } from '~/concepts/pipelines/apiHooks/mlmd/useGetExecutionsList';
-import ExecutionsTable from '~/pages/pipelines/global/experiments/executions/ExecutionsTable';
-import { useMlmdListContext } from '~/concepts/pipelines/context';
+import { useGetExecutionsList } from '#~/concepts/pipelines/apiHooks/mlmd/useGetExecutionsList';
+import ExecutionsTable from '#~/pages/pipelines/global/experiments/executions/ExecutionsTable';
+import { useMlmdListContext } from '#~/concepts/pipelines/context';
 
 const ExecutionsList: React.FC = () => {
   const { filterQuery } = useMlmdListContext();

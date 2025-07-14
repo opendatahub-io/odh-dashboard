@@ -1,24 +1,24 @@
 import * as React from 'react';
 import { act } from 'react';
 import { render, fireEvent } from '@testing-library/react';
-import ManageInferenceServiceModal from '~/pages/modelServing/screens/projects/InferenceServiceModal/ManageInferenceServiceModal';
-import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
-import useServingRuntimes from '~/pages/modelServing/useServingRuntimes';
-import { mockServingRuntimeK8sResource } from '~/__mocks__/mockServingRuntimeK8sResource';
-import { useAppContext } from '~/app/AppContext';
-import { mockDashboardConfig } from '~/__mocks__';
+import ManageInferenceServiceModal from '#~/pages/modelServing/screens/projects/InferenceServiceModal/ManageInferenceServiceModal';
+import { mockProjectK8sResource } from '#~/__mocks__/mockProjectK8sResource';
+import useServingRuntimes from '#~/pages/modelServing/useServingRuntimes';
+import { mockServingRuntimeK8sResource } from '#~/__mocks__/mockServingRuntimeK8sResource';
+import { useAppContext } from '#~/app/AppContext';
+import { mockDashboardConfig } from '#~/__mocks__';
 
-jest.mock('~/pages/modelServing/useServingRuntimes', () => ({
+jest.mock('#~/pages/modelServing/useServingRuntimes', () => ({
   __esModule: true,
   default: jest.fn(),
 }));
 
-jest.mock('~/app/AppContext', () => ({
+jest.mock('#~/app/AppContext', () => ({
   __esModule: true,
   useAppContext: jest.fn(),
 }));
 
-jest.mock('~/pages/modelServing/screens/projects/useModelDeploymentNotification', () => ({
+jest.mock('#~/pages/modelServing/screens/projects/useModelDeploymentNotification', () => ({
   useModelDeploymentNotification: () => ({
     watchDeployment: jest.fn(),
   }),
@@ -29,15 +29,18 @@ const useAppContextMock = jest.mocked(useAppContext);
 
 describe('ManageInferenceServiceModal', () => {
   it('should not re-render serving runtime selection', async () => {
-    useServingRuntimesMock.mockReturnValue([
-      [
-        mockServingRuntimeK8sResource({ name: 'runtime1', displayName: 'Runtime 1' }),
-        mockServingRuntimeK8sResource({ name: 'runtime2' }),
-      ],
-      true,
-      undefined,
-      jest.fn(),
-    ]);
+    useServingRuntimesMock.mockReturnValue({
+      data: {
+        items: [
+          mockServingRuntimeK8sResource({ name: 'runtime1', displayName: 'Runtime 1' }),
+          mockServingRuntimeK8sResource({ name: 'runtime2' }),
+        ],
+        hasNonDashboardItems: false,
+      },
+      loaded: true,
+      error: undefined,
+      refresh: jest.fn(),
+    });
 
     useAppContextMock.mockReturnValue({
       buildStatuses: [],

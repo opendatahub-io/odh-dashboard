@@ -1,21 +1,26 @@
 import {
   editHardwareProfile,
   legacyHardwareProfile,
-} from '~/__tests__/cypress/cypress/pages/hardwareProfile';
-import { mockHardwareProfile } from '~/__mocks__/mockHardwareProfile';
+} from '#~/__tests__/cypress/cypress/pages/hardwareProfile';
+import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile';
 import {
   AcceleratorProfileModel,
   HardwareProfileModel,
   ODHDashboardConfigModel,
-} from '~/__tests__/cypress/cypress/utils/models';
-import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
-import { migrationModal } from '~/__tests__/cypress/cypress/pages/components/MigrationModal';
-import { mock200Status, mockDashboardConfig, mockK8sResourceList } from '~/__mocks__';
-import { be } from '~/__tests__/cypress/cypress/utils/should';
-import { asProductAdminUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
-import { testPagination } from '~/__tests__/cypress/cypress/utils/pagination';
-import { mockAcceleratorProfile } from '~/__mocks__/mockAcceleratorProfile';
-import { IdentifierResourceType, TolerationEffect, TolerationOperator } from '~/types';
+} from '#~/__tests__/cypress/cypress/utils/models';
+import { deleteModal } from '#~/__tests__/cypress/cypress/pages/components/DeleteModal';
+import { migrationModal } from '#~/__tests__/cypress/cypress/pages/components/MigrationModal';
+import { mock200Status, mockDashboardConfig, mockK8sResourceList } from '#~/__mocks__';
+import { be } from '#~/__tests__/cypress/cypress/utils/should';
+import { asProductAdminUser } from '#~/__tests__/cypress/cypress/utils/mockUsers';
+import { testPagination } from '#~/__tests__/cypress/cypress/utils/pagination';
+import { mockAcceleratorProfile } from '#~/__mocks__/mockAcceleratorProfile';
+import {
+  IdentifierResourceType,
+  SchedulingType,
+  TolerationEffect,
+  TolerationOperator,
+} from '#~/types';
 
 const initIntercepts = () => {
   cy.interceptOdh(
@@ -543,6 +548,7 @@ describe('legacy profiles table', () => {
             metadata: {
               namespace: 'opendatahub',
               annotations: {
+                ...migratedServingHardwareProfile.metadata.annotations,
                 'opendatahub.io/dashboard-feature-visibility': '["model-serving","pipelines"]',
               },
             },
@@ -556,6 +562,7 @@ describe('legacy profiles table', () => {
             metadata: {
               namespace: 'opendatahub',
               annotations: {
+                ...migratedServingHardwareProfile.metadata.annotations,
                 'opendatahub.io/dashboard-feature-visibility': '["workbench"]',
               },
             },
@@ -667,17 +674,17 @@ describe('legacy profiles table', () => {
         );
 
         expect(actual).to.eql({
-          apiVersion: 'dashboard.opendatahub.io/v1alpha1',
+          apiVersion: 'infrastructure.opendatahub.io/v1alpha1',
           kind: 'HardwareProfile',
           metadata: {
             namespace: 'opendatahub',
             annotations: {
               'opendatahub.io/dashboard-feature-visibility': '["workbench"]',
+              'opendatahub.io/display-name': 'test-notebook-size-profile',
+              'opendatahub.io/disabled': 'false',
             },
           },
           spec: {
-            displayName: 'test-notebook-size-profile',
-            enabled: true,
             identifiers: [
               {
                 displayName: 'CPU',
@@ -696,7 +703,14 @@ describe('legacy profiles table', () => {
                 defaultCount: '1Gi',
               },
             ],
-            tolerations: [{ key: 'NotebooksOnlyChange', effect: 'NoSchedule', operator: 'Exists' }],
+            scheduling: {
+              type: SchedulingType.NODE,
+              node: {
+                tolerations: [
+                  { key: 'NotebooksOnlyChange', effect: 'NoSchedule', operator: 'Exists' },
+                ],
+              },
+            },
           },
         });
       });
@@ -714,17 +728,17 @@ describe('legacy profiles table', () => {
         );
 
         expect(actual).to.eql({
-          apiVersion: 'dashboard.opendatahub.io/v1alpha1',
+          apiVersion: 'infrastructure.opendatahub.io/v1alpha1',
           kind: 'HardwareProfile',
           metadata: {
             namespace: 'opendatahub',
             annotations: {
               'opendatahub.io/dashboard-feature-visibility': '["workbench"]',
+              'opendatahub.io/display-name': 'test-notebook-size-profile',
+              'opendatahub.io/disabled': 'false',
             },
           },
           spec: {
-            displayName: testProfileName,
-            enabled: true,
             identifiers: [
               {
                 displayName: 'CPU',
@@ -743,7 +757,14 @@ describe('legacy profiles table', () => {
                 defaultCount: '1Gi',
               },
             ],
-            tolerations: [{ key: 'NotebooksOnlyChange', effect: 'NoSchedule', operator: 'Exists' }],
+            scheduling: {
+              type: SchedulingType.NODE,
+              node: {
+                tolerations: [
+                  { key: 'NotebooksOnlyChange', effect: 'NoSchedule', operator: 'Exists' },
+                ],
+              },
+            },
           },
         });
       });
@@ -847,17 +868,17 @@ describe('legacy profiles table', () => {
         );
 
         expect(actual).to.eql({
-          apiVersion: 'dashboard.opendatahub.io/v1alpha1',
+          apiVersion: 'infrastructure.opendatahub.io/v1alpha1',
           kind: 'HardwareProfile',
           metadata: {
             namespace: 'opendatahub',
             annotations: {
               'opendatahub.io/dashboard-feature-visibility': '["model-serving"]',
+              'opendatahub.io/display-name': 'test-model-server-size-profile',
+              'opendatahub.io/disabled': 'false',
             },
           },
           spec: {
-            displayName: 'test-model-server-size-profile',
-            enabled: true,
             identifiers: [
               {
                 displayName: 'CPU',
@@ -893,17 +914,17 @@ describe('legacy profiles table', () => {
         );
 
         expect(actual).to.eql({
-          apiVersion: 'dashboard.opendatahub.io/v1alpha1',
+          apiVersion: 'infrastructure.opendatahub.io/v1alpha1',
           kind: 'HardwareProfile',
           metadata: {
             namespace: 'opendatahub',
             annotations: {
               'opendatahub.io/dashboard-feature-visibility': '["model-serving"]',
+              'opendatahub.io/display-name': 'test-model-server-size-profile',
+              'opendatahub.io/disabled': 'false',
             },
           },
           spec: {
-            displayName: 'test-model-server-size-profile',
-            enabled: true,
             identifiers: [
               {
                 displayName: 'CPU',

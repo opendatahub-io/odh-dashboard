@@ -1,4 +1,4 @@
-import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
+import { mockProjectK8sResource } from '#~/__mocks__/mockProjectK8sResource';
 import {
   createNIMPVC,
   createNIMSecret,
@@ -6,27 +6,30 @@ import {
   getCreateInferenceServiceLabels,
   getProjectModelServingPlatform,
   getUrlFromKserveInferenceService,
-} from '~/pages/modelServing/screens/projects/utils';
-import { ServingPlatformStatuses } from '~/pages/modelServing/screens/types';
-import { ServingRuntimePlatform } from '~/types';
-import { mockInferenceServiceK8sResource } from '~/__mocks__/mockInferenceServiceK8sResource';
-import { createPvc, createSecret } from '~/api';
-import { PersistentVolumeClaimKind, ServingRuntimeKind } from '~/k8sTypes';
+  isCurrentServingPlatformEnabled,
+  isValueFromEnvVar,
+} from '#~/pages/modelServing/screens/projects/utils';
+import { ServingPlatformStatuses } from '#~/pages/modelServing/screens/types';
+import { ServingRuntimePlatform } from '#~/types';
+import { mockInferenceServiceK8sResource } from '#~/__mocks__/mockInferenceServiceK8sResource';
+import { createPvc, createSecret } from '#~/api';
+import { PersistentVolumeClaimKind, ServingRuntimeKind } from '#~/k8sTypes';
 import {
   getNIMData,
   getNIMResource,
   updateServingRuntimeTemplate,
-} from '~/pages/modelServing/screens/projects/nimUtils';
+} from '#~/pages/modelServing/screens/projects/nimUtils';
+import { AccessMode } from '#~/pages/storageClasses/storageEnums';
 
-jest.mock('~/api', () => ({
+jest.mock('#~/api', () => ({
   getSecret: jest.fn(),
   createSecret: jest.fn(),
   createPvc: jest.fn(),
   getInferenceServiceContext: jest.fn(),
 }));
 
-jest.mock('~/pages/modelServing/screens/projects/nimUtils', () => ({
-  ...jest.requireActual('~/pages/modelServing/screens/projects/nimUtils'),
+jest.mock('#~/pages/modelServing/screens/projects/nimUtils', () => ({
+  ...jest.requireActual('#~/pages/modelServing/screens/projects/nimUtils'),
   getNIMData: jest.fn(),
   getNIMResource: jest.fn(),
 }));
@@ -390,7 +393,7 @@ describe('createNIMPVC', () => {
       namespace: projectName,
     },
     spec: {
-      accessModes: ['ReadWriteOnce'],
+      accessModes: [AccessMode.RWO],
       resources: {
         requests: {
           storage: pvcSize,
@@ -516,5 +519,62 @@ describe('updateServingRuntimeTemplate', () => {
     const result = updateServingRuntimeTemplate(servingRuntimeWithoutVolumeMounts, pvcName);
 
     expect(result.spec.containers[0].volumeMounts).toBeUndefined();
+  });
+});
+
+describe('isCurrentServingPlatformEnabled', () => {
+  const baseStatuses = {
+    kServe: { enabled: true, installed: true },
+    kServeNIM: { enabled: false, installed: false },
+    modelMesh: { enabled: true, installed: true },
+    platformEnabledCount: 2,
+    refreshNIMAvailability: async () => true,
+  };
+
+  it('returns true if currentPlatform is single and kServe is enabled', () => {
+    expect(isCurrentServingPlatformEnabled(ServingRuntimePlatform.SINGLE, baseStatuses)).toBe(true);
+  });
+
+  it('returns false if currentPlatform is single and kServe is disabled', () => {
+    const statuses = { ...baseStatuses, kServe: { enabled: false, installed: true } };
+    expect(isCurrentServingPlatformEnabled(ServingRuntimePlatform.SINGLE, statuses)).toBe(false);
+  });
+
+  it('returns true if currentPlatform is multi and modelMesh is enabled', () => {
+    expect(isCurrentServingPlatformEnabled(ServingRuntimePlatform.MULTI, baseStatuses)).toBe(true);
+  });
+
+  it('returns false if currentPlatform is multi and modelMesh is disabled', () => {
+    const statuses = { ...baseStatuses, modelMesh: { enabled: false, installed: true } };
+    expect(isCurrentServingPlatformEnabled(ServingRuntimePlatform.MULTI, statuses)).toBe(false);
+  });
+
+  it('returns false if currentPlatform is undefined', () => {
+    expect(isCurrentServingPlatformEnabled(undefined, baseStatuses)).toBe(false);
+  });
+});
+
+describe('isValueFrom', () => {
+  it('should return true if the value is from a valueFrom envVar', () => {
+    expect(
+      isValueFromEnvVar({
+        valueFrom: {
+          secretKeyRef: {
+            name: 'test',
+            key: '',
+          },
+        },
+        name: '',
+      }),
+    ).toBe(true);
+  });
+
+  it('should return false if the value is not from a valueFrom envVar', () => {
+    expect(
+      isValueFromEnvVar({
+        value: 'test',
+        name: '',
+      }),
+    ).toBe(false);
   });
 });

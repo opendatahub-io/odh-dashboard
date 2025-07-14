@@ -3,9 +3,9 @@ import useFetchState, {
   FetchState,
   FetchStateCallbackPromise,
   NotReadyError,
-} from '~/utilities/useFetchState';
-import { AcceleratorProfileKind } from '~/k8sTypes';
-import { getAcceleratorProfile } from '~/api';
+} from '#~/utilities/useFetchState';
+import { AcceleratorProfileKind } from '#~/k8sTypes';
+import { getAcceleratorProfile } from '#~/api';
 
 const useAcceleratorProfile = (
   namespace: string,

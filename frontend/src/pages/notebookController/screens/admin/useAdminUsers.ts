@@ -1,9 +1,9 @@
 import * as React from 'react';
-import { useUser } from '~/redux/selectors';
-import useWatchNotebooksForUsers from '~/utilities/useWatchNotebooksForUsers';
-import { NotebookRunningState } from '~/types';
-import { NotebookControllerContext } from '~/pages/notebookController/NotebookControllerContext';
-import useNamespaces from '~/pages/notebookController/useNamespaces';
+import { useUser } from '#~/redux/selectors';
+import useWatchNotebooksForUsers from '#~/utilities/useWatchNotebooksForUsers';
+import { NotebookRunningState } from '#~/types';
+import { NotebookControllerContext } from '#~/pages/notebookController/NotebookControllerContext';
+import useNamespaces from '#~/pages/notebookController/useNamespaces';
 import { AdminViewUserData, ServerStatus } from './types';
 import useCheckForAllowedUsers from './useCheckForAllowedUsers';
 
@@ -11,7 +11,7 @@ const useAdminUsers = (): [AdminViewUserData[], boolean, Error | undefined] => {
   const { requestNotebookRefresh } = React.useContext(NotebookControllerContext);
   const { username: loggedInUser } = useUser();
 
-  const { notebookNamespace } = useNamespaces();
+  const { workbenchNamespace } = useNamespaces();
   const [allowedUsers, allowedUsersLoaded, allowedUsersError] = useCheckForAllowedUsers();
 
   const {
@@ -20,7 +20,7 @@ const useAdminUsers = (): [AdminViewUserData[], boolean, Error | undefined] => {
     loadError: notebookError,
     forceRefresh,
   } = useWatchNotebooksForUsers(
-    notebookNamespace,
+    workbenchNamespace,
     allowedUsers.map(({ username }) => username),
   );
 

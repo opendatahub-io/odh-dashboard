@@ -1,4 +1,4 @@
-import { ConfusionMatrixInput } from '~/concepts/pipelines/content/artifacts/charts/confusionMatrix/types';
+import { ConfusionMatrixInput } from '#~/concepts/pipelines/content/artifacts/charts/confusionMatrix/types';
 
 export const isConfusionMatrix = (obj: unknown): obj is ConfusionMatrixInput => {
   const matrix = obj;

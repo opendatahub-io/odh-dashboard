@@ -12,26 +12,29 @@ import {
   mockInferenceServiceK8sResource,
   mockProjectK8sResource,
   mockDscStatus,
-} from '~/__mocks__';
-import { mockModelArtifact } from '~/__mocks__/mockModelArtifact';
+} from '#~/__mocks__';
+import { mockModelArtifact } from '#~/__mocks__/mockModelArtifact';
 
 import {
   InferenceServiceModel,
   ProjectModel,
   ServiceModel,
   ServingRuntimeModel,
-} from '~/__tests__/cypress/cypress/utils/models';
-import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url';
-import { modelVersionDetails } from '~/__tests__/cypress/cypress/pages/modelRegistry/modelVersionDetails';
-import { InferenceServiceModelState } from '~/pages/modelServing/screens/types';
-import { modelServingGlobal } from '~/__tests__/cypress/cypress/pages/modelServing';
+} from '#~/__tests__/cypress/cypress/utils/models';
+import { verifyRelativeURL } from '#~/__tests__/cypress/cypress/utils/url';
+import {
+  modelVersionDetails,
+  navigationBlockerModal,
+} from '#~/__tests__/cypress/cypress/pages/modelRegistry/modelVersionDetails';
+import { InferenceServiceModelState } from '#~/pages/modelServing/screens/types';
+import { modelServingGlobal } from '#~/__tests__/cypress/cypress/pages/modelServing';
 import {
   ModelRegistryMetadataType,
   ModelState,
   ModelSourceKind,
-} from '~/concepts/modelRegistry/types';
-import { KnownLabels } from '~/k8sTypes';
-import { asProjectEditUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
+} from '#~/concepts/modelRegistry/types';
+import { KnownLabels } from '#~/k8sTypes';
+import { asProjectEditUser } from '#~/__tests__/cypress/cypress/utils/mockUsers';
 
 const MODEL_REGISTRY_API_VERSION = 'v1alpha3';
 const mockModelVersions = mockModelVersion({
@@ -133,12 +136,17 @@ const mockModelArtifactFromCatalog = mockModelArtifact({
   modelSourceId: 'test-catalog-tag',
 });
 
-const initIntercepts = (isEmptyProject = false, fromCatalog = false) => {
+const initIntercepts = (
+  isEmptyProject = false,
+  fromCatalog = false,
+  modelCatalogAvailable = true,
+) => {
   cy.interceptOdh(
     'GET /api/config',
     mockDashboardConfig({
       disableModelRegistry: false,
       disableFineTuning: false,
+      disableModelCatalog: !modelCatalogAvailable,
     }),
   );
 
@@ -271,17 +279,25 @@ describe('Model version details', () => {
     });
 
     it('Model version details registered from catalog', () => {
-      initIntercepts(false, true);
+      initIntercepts(false, true, true);
       modelVersionDetails.visit();
       modelVersionDetails.findVersionId().contains('1');
       modelVersionDetails.findRegisteredFromCatalog().should('exist');
       modelVersionDetails
         .findRegisteredFromCatalog()
-        .should('have.text', 'test-catalog-model (test-catalog-tag) in Model catalog');
+        .should('have.text', 'test-catalog-model (test-catalog-tag)');
       modelVersionDetails.findRegisteredFromCatalog().click();
       verifyRelativeURL(
         '/modelCatalog/test-catalog-source/test-catalog-repo/test-catalog-model/test-catalog-tag',
       );
+    });
+
+    it('Model version details registered from catalog with model catalog unavailable', () => {
+      initIntercepts(false, true, false);
+      modelVersionDetails.visit();
+      modelVersionDetails.findVersionId().contains('1');
+      modelVersionDetails.findRegisteredFromCatalog().should('exist');
+      modelVersionDetails.findRegisteredFromTitle().should('exist');
     });
 
     it('Model version details page header', () => {
@@ -516,6 +532,38 @@ describe('Model version details', () => {
     });
   });
 
+  describe('Discard unsaved changes', () => {
+    beforeEach(() => {
+      initIntercepts();
+      modelVersionDetails.visit();
+    });
+
+    it('should show discard modal when editing and moving to Deployments tab', () => {
+      modelVersionDetails.findEditLabelsButton().click();
+      modelVersionDetails.findAddLabelButton().click();
+      cy.findByTestId('editable-label-group').within(() => {
+        cy.contains('New Label').should('exist').click();
+      });
+
+      modelVersionDetails.findRegisteredDeploymentsTab().click();
+      navigationBlockerModal.findDiscardUnsavedChanges().should('exist');
+      navigationBlockerModal.findDiscardButton().click();
+      modelVersionDetails.findDetailsTab().click();
+    });
+
+    it('should continue editing when clicking cancel', () => {
+      modelVersionDetails.findEditLabelsButton().click();
+      modelVersionDetails.findAddLabelButton().click();
+      cy.findByTestId('editable-label-group').within(() => {
+        cy.contains('New Label').should('exist').click();
+      });
+
+      modelVersionDetails.findRegisteredDeploymentsTab().click();
+      navigationBlockerModal.findCloseModal().click();
+      cy.findByTestId('editable-labels-group-save').should('exist');
+    });
+  });
+
   describe('Registered deployments tab', () => {
     beforeEach(() => {
       initIntercepts();
@@ -687,6 +735,37 @@ describe('Model version details', () => {
       );
       modelVersionDetails.findLabTuneButton().click();
       modelVersionDetails.findStartRunModal().should('exist');
+    });
+  });
+
+  describe('model serving is disabled', () => {
+    beforeEach(() => {
+      initIntercepts();
+      // Mock fine-tuning as enabled
+      cy.interceptOdh(
+        'GET /api/dsc/status',
+        mockDscStatus({
+          installedComponents: {
+            'model-registry-operator': true,
+            'data-science-pipelines-operator': true,
+          },
+        }),
+      );
+      modelVersionDetails.visit();
+    });
+
+    it('should show the deploy button as disabled', () => {
+      cy.interceptOdh(
+        'GET /api/config',
+        mockDashboardConfig({
+          disableModelServing: true,
+        }),
+      );
+      modelVersionDetails.findDeployModelButton().click();
+      cy.findByRole('tooltip').should(
+        'contain.text',
+        'To enable model serving, an administrator must first select a model serving platform in the cluster settings.',
+      );
     });
   });
 });

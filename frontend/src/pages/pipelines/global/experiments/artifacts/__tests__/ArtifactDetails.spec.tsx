@@ -3,19 +3,24 @@ import { BrowserRouter } from 'react-router-dom';
 import { render, screen, within } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { act } from 'react';
-import { Artifact } from '~/third_party/mlmd';
-import { artifactsBaseRoute } from '~/routes';
-import { ArtifactDetails } from '~/pages/pipelines/global/experiments/artifacts/ArtifactDetails';
-import GlobalPipelineCoreDetails from '~/pages/pipelines/global/GlobalPipelineCoreDetails';
-import * as useGetArtifactById from '~/concepts/pipelines/apiHooks/mlmd/useGetArtifactById';
-import * as useArtifactStorage from '~/concepts/pipelines/apiHooks/useArtifactStorage';
+import { Artifact } from '#~/third_party/mlmd';
+import { artifactsBaseRoute } from '#~/routes/pipelines/artifacts';
+import { ArtifactDetails } from '#~/pages/pipelines/global/experiments/artifacts/ArtifactDetails/ArtifactDetails';
+import GlobalPipelineCoreDetails from '#~/pages/pipelines/global/GlobalPipelineCoreDetails';
+import * as useGetArtifactById from '#~/concepts/pipelines/apiHooks/mlmd/useGetArtifactById';
+import * as useArtifactStorage from '#~/concepts/pipelines/apiHooks/useArtifactStorage';
 
-jest.mock('~/redux/selectors', () => ({
-  ...jest.requireActual('~/redux/selectors'),
+// Mock the useDispatch hook
+jest.mock('#~/redux/hooks', () => ({
+  useAppDispatch: jest.fn(),
+}));
+
+jest.mock('#~/redux/selectors', () => ({
+  ...jest.requireActual('#~/redux/selectors'),
   useUser: jest.fn(() => ({ isAdmin: true })),
 }));
 
-jest.mock('~/concepts/areas/useIsAreaAvailable', () => () => ({
+jest.mock('#~/concepts/areas/useIsAreaAvailable', () => () => ({
   status: true,
   featureFlags: {},
   reliantAreas: {},
@@ -24,7 +29,7 @@ jest.mock('~/concepts/areas/useIsAreaAvailable', () => () => ({
   customCondition: jest.fn(),
 }));
 
-jest.mock('~/concepts/pipelines/context/PipelinesContext', () => ({
+jest.mock('#~/concepts/pipelines/context/PipelinesContext', () => ({
   usePipelinesAPI: jest.fn(() => ({
     pipelinesServer: {
       initializing: false,
@@ -50,7 +55,7 @@ jest.mock('~/concepts/pipelines/context/PipelinesContext', () => ({
   })),
 }));
 
-jest.mock('~/concepts/pipelines/apiHooks/useArtifactStorage');
+jest.mock('#~/concepts/pipelines/apiHooks/useArtifactStorage');
 
 describe('ArtifactDetails', () => {
   const useGetArtifactByIdSpy = jest.spyOn(useGetArtifactById, 'useGetArtifactById');
@@ -58,7 +63,10 @@ describe('ArtifactDetails', () => {
 
   beforeEach(() => {
     useArtifactStorageSpy.mockReturnValue({
-      getStorageObjectUrl: jest.fn().mockResolvedValue('https://example.com/s3-url'),
+      getStorageObjectRenderUrl: jest.fn().mockResolvedValue('https://example.com/s3-url/render'),
+      getStorageObjectDownloadUrl: jest
+        .fn()
+        .mockResolvedValue('https://example.com/s3-url/download'),
       getStorageObjectSize: jest.fn().mockResolvedValue(1e9), // Mocking 1 GB size
     });
 
@@ -196,7 +204,7 @@ describe('ArtifactDetails', () => {
     const breadcrumb = screen.getByRole('navigation', { name: 'Breadcrumb' });
 
     expect(
-      within(breadcrumb).getByRole('link', { name: 'Artifacts - Test namespace' }),
+      within(breadcrumb).getByRole('link', { name: 'Artifacts in Test namespace' }),
     ).toBeVisible();
     expect(within(breadcrumb).getByText('vertex_model')).toBeVisible();
   });

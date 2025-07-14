@@ -1,5 +1,5 @@
-import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
-import type { ServingRuntimeAPIProtocol } from '~/types';
+import { appChrome } from '#~/__tests__/cypress/cypress/pages/appChrome';
+import type { ServingRuntimeAPIProtocol } from '#~/types';
 import { DashboardCodeEditor } from './components/DashboardCodeEditor';
 
 class ServingRuntimeRow {
@@ -35,6 +35,10 @@ class ServingRuntimeRow {
   shouldHaveAPIProtocol(apiProtocol: ServingRuntimeAPIProtocol) {
     this.find().find('[data-label="API protocol"]').should('include.text', apiProtocol);
     return this;
+  }
+
+  findServingRuntimeVersionLabel() {
+    return this.find().findByTestId('serving-runtime-version-label');
   }
 }
 

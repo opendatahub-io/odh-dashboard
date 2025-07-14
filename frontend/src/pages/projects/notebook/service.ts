@@ -1,5 +1,5 @@
-import { NotebookKind, PodKind } from '~/k8sTypes';
-import { getPodsForNotebook } from '~/api';
+import { NotebookKind, PodKind } from '#~/k8sTypes';
+import { getPodsForNotebook } from '#~/api';
 import { NotebookDataState } from './types';
 import { hasStopAnnotation } from './utils';
 

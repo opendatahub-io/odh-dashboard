@@ -1,8 +1,11 @@
 import * as React from 'react';
 import { Checkbox, FormGroup, HelperText, HelperTextItem } from '@patternfly/react-core';
-import { ConnectionTypeDataField } from '~/concepts/connectionTypes/types';
-import ConnectionTypeDataFormField from '~/concepts/connectionTypes/fields/ConnectionTypeDataFormField';
-import DataFieldAdvancedPropertiesForm from '~/pages/connectionTypes/manage/advanced/DataFieldAdvancedPropertiesForm';
+import {
+  ConnectionTypeDataField,
+  ConnectionTypeFieldType,
+} from '#~/concepts/connectionTypes/types';
+import ConnectionTypeDataFormField from '#~/concepts/connectionTypes/fields/ConnectionTypeDataFormField';
+import DataFieldAdvancedPropertiesForm from '#~/pages/connectionTypes/manage/advanced/DataFieldAdvancedPropertiesForm';
 
 type Props<T extends ConnectionTypeDataField> = {
   field: T;
@@ -35,31 +38,42 @@ const DataFieldPropertiesForm = <T extends ConnectionTypeDataField>({
         onValidate={(isValid) => setAdvancedError(!isValid)}
         properties={field.properties}
       />
-      <FormGroup fieldId="defaultValue" label="Default value">
-        <ConnectionTypeDataFormField
-          id="defaultValue"
-          field={field}
-          mode="default"
-          onChange={(defaultValue) => onChange({ ...field.properties, defaultValue })}
-          onValidate={(error) => setDefaultValueError(!error)}
-          value={field.properties.defaultValue}
-          data-testid="field-default-value"
-        />
-        <HelperText>
-          <HelperTextItem>
-            Do not enter sensitive information. Default values are visible to users in your
-            organization.
-          </HelperTextItem>
-        </HelperText>
-        <Checkbox
-          id="defaultReadOnly"
-          label="Default value is read-only"
-          isDisabled={isReadOnlyDisabled}
-          isChecked={!isReadOnlyDisabled && !!field.properties.defaultReadOnly}
-          onChange={(_ev, checked) => onChange({ ...field.properties, defaultReadOnly: checked })}
-          data-testid="field-default-value-readonly-checkbox"
-        />
-      </FormGroup>
+      <Checkbox
+        id="defer-input-checkbox"
+        data-testid="field-defer-input-checkbox"
+        label="Defer input"
+        description="This field requires input at runtime. To set a default value, uncheck the Deferred input checkbox."
+        isDisabled={field.type === ConnectionTypeFieldType.Hidden}
+        isChecked={field.properties.deferInput || field.type === ConnectionTypeFieldType.Hidden}
+        onChange={(_ev, checked) => onChange({ ...field.properties, deferInput: checked })}
+      />
+      {!field.properties.deferInput && (
+        <FormGroup fieldId="defaultValue" label="Default value">
+          <ConnectionTypeDataFormField
+            id="defaultValue"
+            field={field}
+            mode="default"
+            onChange={(defaultValue) => onChange({ ...field.properties, defaultValue })}
+            onValidate={(error) => setDefaultValueError(!error)}
+            value={field.properties.defaultValue}
+            data-testid="field-default-value"
+          />
+          <HelperText>
+            <HelperTextItem>
+              Do not enter sensitive information. Default values are visible to users in your
+              organization.
+            </HelperTextItem>
+          </HelperText>
+          <Checkbox
+            id="defaultReadOnly"
+            label="Default value is read-only"
+            isDisabled={isReadOnlyDisabled}
+            isChecked={!isReadOnlyDisabled && !!field.properties.defaultReadOnly}
+            onChange={(_ev, checked) => onChange({ ...field.properties, defaultReadOnly: checked })}
+            data-testid="field-default-value-readonly-checkbox"
+          />
+        </FormGroup>
+      )}
     </>
   );
 };

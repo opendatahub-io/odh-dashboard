@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { MountPath, StorageData } from '~/pages/projects/types';
-import BaseStorageModal from '~/pages/projects/screens/detail/storage/BaseStorageModal';
+import { MountPath, StorageData } from '#~/pages/projects/types';
+import BaseStorageModal from '#~/pages/projects/screens/detail/storage/BaseStorageModal';
 import SpawnerMountPathField from './SpawnerMountPathField';
 import { MOUNT_PATH_PREFIX } from './const';
 

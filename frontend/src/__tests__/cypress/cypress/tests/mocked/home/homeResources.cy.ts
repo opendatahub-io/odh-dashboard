@@ -1,8 +1,8 @@
-import { mockDocs } from '~/__mocks__/mockDocs';
-import { mockComponents } from '~/__mocks__/mockComponents';
-import { mockQuickStarts } from '~/__mocks__/mockQuickStarts';
-import { homePage } from '~/__tests__/cypress/cypress/pages/home/home';
-import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url';
+import { mockDocs } from '#~/__mocks__/mockDocs';
+import { mockComponents } from '#~/__mocks__/mockComponents';
+import { mockQuickStarts } from '#~/__mocks__/mockQuickStarts';
+import { homePage } from '#~/__tests__/cypress/cypress/pages/home/home';
+import { verifyRelativeURL } from '#~/__tests__/cypress/cypress/utils/url';
 
 describe('Home page Resources section', () => {
   beforeEach(() => {

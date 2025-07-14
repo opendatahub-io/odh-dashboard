@@ -7,19 +7,19 @@ import {
   mockK8sResourceList,
   mockProjectK8sResource,
   mockRouteK8sResource,
-} from '~/__mocks__';
+} from '#~/__mocks__';
 import {
   DataSciencePipelineApplicationModel,
   RouteModel,
   ProjectModel,
-} from '~/__tests__/cypress/cypress/utils/models';
+} from '#~/__tests__/cypress/cypress/utils/models';
 import {
   executionPage,
   executionFilter,
-} from '~/__tests__/cypress/cypress/pages/pipelines/executions';
-import { mockGetExecutions, mockGetNextPageExecutions } from '~/__mocks__/mlmd/mockGetExecutions';
-import { tablePagination } from '~/__tests__/cypress/cypress/pages/components/Pagination';
-import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url';
+} from '#~/__tests__/cypress/cypress/pages/pipelines/executions';
+import { mockGetExecutions, mockGetNextPageExecutions } from '#~/__mocks__/mlmd/mockGetExecutions';
+import { tablePagination } from '#~/__tests__/cypress/cypress/pages/components/Pagination';
+import { verifyRelativeURL } from '#~/__tests__/cypress/cypress/utils/url';
 import { decodeGetExecutionsRequest, initMlmdIntercepts } from './mlmdUtils';
 
 const projectName = 'test-project-name';

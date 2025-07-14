@@ -1,15 +1,15 @@
 import React from 'react';
-import useTrustyAINamespaceCR from '~/concepts/trustyai/useTrustyAINamespaceCR';
+import useTrustyAINamespaceCR from '#~/concepts/trustyai/useTrustyAINamespaceCR';
 import {
   assembleSecret,
   createSecret,
   createTrustyAICR,
   deleteSecret,
   deleteTrustyAICR,
-} from '~/api';
-import { getTrustyStatusState } from '~/concepts/trustyai/utils';
-import { TRUSTYAI_SECRET_NAME } from '~/concepts/trustyai/const';
-import useTrustyBrowserStorage from '~/concepts/trustyai/content/useTrustyBrowserStorage';
+} from '#~/api';
+import { getTrustyStatusState } from '#~/concepts/trustyai/utils';
+import { TRUSTYAI_SECRET_NAME } from '#~/concepts/trustyai/const';
+import useTrustyBrowserStorage from '#~/concepts/trustyai/content/useTrustyBrowserStorage';
 import { TrustyDBData, TrustyStatusStates } from './types';
 
 export type UseManageTrustyAICRReturnType = {

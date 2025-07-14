@@ -1,5 +1,5 @@
-import { ConfigMapKind, NotebookKind, SecretKind } from '~/k8sTypes';
-import { EnvVariable } from '~/pages/projects/types';
+import { ConfigMapKind, NotebookKind, SecretKind } from '#~/k8sTypes';
+import { EnvVariable } from '#~/pages/projects/types';
 
 export const updateArrayValue = <T>(values: T[], index: number, partialValue: Partial<T>): T[] =>
   values.map((v, i) => (i === index ? { ...v, ...partialValue } : v));

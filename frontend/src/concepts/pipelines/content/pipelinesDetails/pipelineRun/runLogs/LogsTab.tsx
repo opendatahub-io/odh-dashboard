@@ -29,17 +29,17 @@ import {
   OutlinedPlayCircleIcon,
   OutlinedWindowRestoreIcon,
 } from '@patternfly/react-icons';
-import DashboardLogViewer from '~/concepts/dashboard/DashboardLogViewer';
-import useFetchLogs from '~/concepts/k8s/pods/useFetchLogs';
-import usePodContainerLogState from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/runLogs/usePodContainerLogState';
-import LogsTabStatus from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/runLogs/LogsTabStatus';
-import { LOG_TAIL_LINES } from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/runLogs/const';
-import { downloadAllStepLogs, downloadCurrentStepLog } from '~/concepts/k8s/pods/utils';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import DownloadDropdown from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/runLogs/DownloadDropdown';
-import useDebounceCallback from '~/utilities/useDebounceCallback';
-import { PipelineTask } from '~/concepts/pipelines/topology';
-import { ExecutionStateKF } from '~/concepts/pipelines/kfTypes';
+import DashboardLogViewer from '#~/concepts/dashboard/DashboardLogViewer';
+import useFetchLogs from '#~/concepts/k8s/pods/useFetchLogs';
+import usePodContainerLogState from '#~/concepts/pipelines/content/pipelinesDetails/pipelineRun/runLogs/usePodContainerLogState';
+import LogsTabStatus from '#~/concepts/pipelines/content/pipelinesDetails/pipelineRun/runLogs/LogsTabStatus';
+import { LOG_TAIL_LINES } from '#~/concepts/pipelines/content/pipelinesDetails/pipelineRun/runLogs/const';
+import { downloadAllStepLogs, downloadCurrentStepLog } from '#~/concepts/k8s/pods/utils';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+import DownloadDropdown from '#~/concepts/pipelines/content/pipelinesDetails/pipelineRun/runLogs/DownloadDropdown';
+import useDebounceCallback from '#~/utilities/useDebounceCallback';
+import { PipelineTask } from '#~/concepts/pipelines/topology';
+import { ExecutionStateKF } from '#~/concepts/pipelines/kfTypes';
 
 interface LogsTabProps {
   task: PipelineTask;

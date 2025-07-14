@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Badge, Button, Flex, FlexItem } from '@patternfly/react-core';
 import { Tbody, Td, Tr } from '@patternfly/react-table';
-import useNotification from '~/utilities/useNotification';
+import useNotification from '#~/utilities/useNotification';
 
 type PipelineViewMoreFooterRowProps = {
   visibleLength: number;

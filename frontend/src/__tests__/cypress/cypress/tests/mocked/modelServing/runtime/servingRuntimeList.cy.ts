@@ -1,28 +1,34 @@
-import { mockAcceleratorProfile } from '~/__mocks__/mockAcceleratorProfile';
-import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
-import { mockDscStatus } from '~/__mocks__/mockDscStatus';
-import { mockInferenceServiceK8sResource } from '~/__mocks__/mockInferenceServiceK8sResource';
-import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
-import { mock200Status, mock404Error, mock409Error } from '~/__mocks__/mockK8sStatus';
-import { mockNotebookK8sResource } from '~/__mocks__/mockNotebookK8sResource';
-import { mockPVCK8sResource } from '~/__mocks__/mockPVCK8sResource';
-import { mockPodK8sResource } from '~/__mocks__/mockPodK8sResource';
-import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
-import { mockRoleBindingK8sResource } from '~/__mocks__/mockRoleBindingK8sResource';
+import {
+  mockAcceleratorProfile,
+  mockProjectScopedAcceleratorProfiles,
+} from '#~/__mocks__/mockAcceleratorProfile';
+import { mockDashboardConfig } from '#~/__mocks__/mockDashboardConfig';
+import { mockDscStatus } from '#~/__mocks__/mockDscStatus';
+import { mockInferenceServiceK8sResource } from '#~/__mocks__/mockInferenceServiceK8sResource';
+import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
+import { mock200Status, mock404Error, mock409Error } from '#~/__mocks__/mockK8sStatus';
+import { mockNotebookK8sResource } from '#~/__mocks__/mockNotebookK8sResource';
+import { mockPVCK8sResource } from '#~/__mocks__/mockPVCK8sResource';
+import { mockPodK8sResource } from '#~/__mocks__/mockPodK8sResource';
+import { mockProjectK8sResource } from '#~/__mocks__/mockProjectK8sResource';
+import { mockRoleBindingK8sResource } from '#~/__mocks__/mockRoleBindingK8sResource';
 import {
   mockRouteK8sResource,
   mockRouteK8sResourceModelServing,
-} from '~/__mocks__/mockRouteK8sResource';
-import { mockSecretK8sResource } from '~/__mocks__/mockSecretK8sResource';
-import { mockServiceAccountK8sResource } from '~/__mocks__/mockServiceAccountK8sResource';
+} from '#~/__mocks__/mockRouteK8sResource';
+import {
+  mockCustomSecretK8sResource,
+  mockSecretK8sResource,
+} from '#~/__mocks__/mockSecretK8sResource';
+import { mockServiceAccountK8sResource } from '#~/__mocks__/mockServiceAccountK8sResource';
 import {
   mockServingRuntimeK8sResource,
   mockServingRuntimeK8sResourceLegacy,
-} from '~/__mocks__/mockServingRuntimeK8sResource';
+} from '#~/__mocks__/mockServingRuntimeK8sResource';
 import {
   mockInvalidTemplateK8sResource,
   mockServingRuntimeTemplateK8sResource,
-} from '~/__mocks__/mockServingRuntimeTemplateK8sResource';
+} from '#~/__mocks__/mockServingRuntimeTemplateK8sResource';
 import {
   createServingRuntimeModal,
   editServingRuntimeModal,
@@ -31,21 +37,22 @@ import {
   kserveModal,
   kserveModalEdit,
   modelServingSection,
-} from '~/__tests__/cypress/cypress/pages/modelServing';
-import { projectDetails } from '~/__tests__/cypress/cypress/pages/projects';
-import { be } from '~/__tests__/cypress/cypress/utils/should';
+} from '#~/__tests__/cypress/cypress/pages/modelServing';
+import { projectDetails } from '#~/__tests__/cypress/cypress/pages/projects';
+import { be } from '#~/__tests__/cypress/cypress/utils/should';
 import type {
   DataScienceClusterKindStatus,
   InferenceServiceKind,
   ServingRuntimeKind,
-} from '~/k8sTypes';
-import { DeploymentMode } from '~/k8sTypes';
-import { ServingRuntimePlatform } from '~/types';
-import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
-import { StackCapability } from '~/concepts/areas/types';
-import { mockDsciStatus } from '~/__mocks__/mockDsciStatus';
+} from '#~/k8sTypes';
+import { DeploymentMode } from '#~/k8sTypes';
+import { ServingRuntimePlatform, TolerationEffect, TolerationOperator } from '#~/types';
+import { deleteModal } from '#~/__tests__/cypress/cypress/pages/components/DeleteModal';
+import { StackCapability } from '#~/concepts/areas/types';
+import { mockDsciStatus } from '#~/__mocks__/mockDsciStatus';
 import {
   AcceleratorProfileModel,
+  HardwareProfileModel,
   InferenceServiceModel,
   NotebookModel,
   ODHDashboardConfigModel,
@@ -59,9 +66,15 @@ import {
   ServiceAccountModel,
   ServingRuntimeModel,
   TemplateModel,
-} from '~/__tests__/cypress/cypress/utils/models';
-import { mockRoleK8sResource } from '~/__mocks__/mockRoleK8sResource';
-import { mockConnectionTypeConfigMap } from '~/__mocks__/mockConnectionType';
+} from '#~/__tests__/cypress/cypress/utils/models';
+import { mockRoleK8sResource } from '#~/__mocks__/mockRoleK8sResource';
+import { mockConnectionTypeConfigMap } from '#~/__mocks__/mockConnectionType';
+import {
+  mockGlobalScopedHardwareProfiles,
+  mockProjectScopedHardwareProfiles,
+} from '#~/__mocks__/mockHardwareProfile';
+import { hardwareProfileSection } from '#~/__tests__/cypress/cypress/pages/components/HardwareProfileSection';
+import { acceleratorProfileSection } from '#~/__tests__/cypress/cypress/pages/components/subComponents/AcceleratorProfileSection';
 
 type HandlersProps = {
   disableKServeConfig?: boolean;
@@ -83,7 +96,9 @@ type HandlersProps = {
   requiredCapabilities?: StackCapability[];
   DscComponents?: DataScienceClusterKindStatus['components'];
   disableProjectScoped?: boolean;
+  disableHardwareProfiles?: boolean;
 };
+import { STOP_MODAL_PREFERENCE_KEY } from '#~/pages/modelServing/useStopModalPreference';
 
 const initIntercepts = ({
   disableKServeConfig,
@@ -94,6 +109,7 @@ const initIntercepts = ({
   disableKServeRaw = true,
   projectEnableModelMesh,
   disableProjectScoped = true,
+  disableHardwareProfiles = true,
   servingRuntimes = [
     mockServingRuntimeK8sResourceLegacy({ tolerations: [], nodeSelector: {} }),
     mockServingRuntimeK8sResource({
@@ -103,6 +119,7 @@ const initIntercepts = ({
       route: true,
       tolerations: [],
       nodeSelector: {},
+      version: 'v1.0.0',
     }),
   ],
   inferenceServices = [
@@ -151,6 +168,7 @@ const initIntercepts = ({
       disableServingRuntimeParams,
       disableKServeRaw,
       disableProjectScoped,
+      disableHardwareProfiles,
     }),
   );
   cy.interceptK8sList(PodModel, mockK8sResourceList([mockPodK8sResource({})]));
@@ -288,6 +306,18 @@ const initIntercepts = ({
         },
   ).as('createRole');
   cy.interceptK8sList(ServingRuntimeModel, mockK8sResourceList(servingRuntimes));
+
+  // Mock hardware profiles
+  cy.interceptK8sList(
+    { model: HardwareProfileModel, ns: 'opendatahub' },
+    mockK8sResourceList(mockGlobalScopedHardwareProfiles),
+  ).as('hardwareProfiles');
+
+  cy.interceptK8sList(
+    { model: HardwareProfileModel, ns: 'test-project' },
+    mockK8sResourceList(mockProjectScopedHardwareProfiles),
+  ).as('hardwareProfiles');
+
   cy.interceptK8s(
     'POST',
     {
@@ -358,6 +388,19 @@ const initIntercepts = ({
         identifier: 'nvidia.com/gpu',
         description: 'Lorem, ipsum dolor sit amet consectetur adipisicing elit. Saepe, quis',
       }),
+      mockAcceleratorProfile({
+        name: 'small-profile',
+        displayName: 'Small Profile',
+        namespace: 'test-project',
+        enabled: !disableAccelerator,
+        tolerations: [
+          {
+            effect: TolerationEffect.NO_SCHEDULE,
+            key: 'NotebooksOnlyChange',
+            operator: TolerationOperator.EXISTS,
+          },
+        ],
+      }),
     ]),
   );
   cy.interceptK8sList(
@@ -422,6 +465,31 @@ const initIntercepts = ({
 };
 
 describe('Serving Runtime List', () => {
+  describe('Change button visiblity', () => {
+    it('Change button visible when current platform is disabled', () => {
+      // starts with modelMesh enabled and kServe disabled
+      initIntercepts({
+        disableModelMeshConfig: false,
+        disableKServeConfig: true,
+        servingRuntimes: [],
+        projectEnableModelMesh: true,
+      });
+      projectDetails.visitSection('test-project', 'model-server');
+      // shouldn't exist because kServe is disabled and theres nothing to change to
+      projectDetails.findResetPlatformButton().should('not.exist');
+      // simulate modelMesh being disabled
+      cy.interceptOdh(
+        'GET /api/dsc/status',
+        mockDscStatus({
+          components: undefined,
+          installedComponents: { kserve: false, 'model-mesh': false },
+        }),
+      );
+
+      cy.reload();
+      projectDetails.findResetPlatformButton().should('exist');
+    });
+  });
   describe('No server available', () => {
     it('No model serving platform available', () => {
       initIntercepts({
@@ -631,13 +699,15 @@ describe('Serving Runtime List', () => {
         .click();
       modelServingSection.findInferenceServiceTable().should('exist');
       let inferenceServiceRow = modelServingSection.getInferenceServiceRow('OVMS ONNX');
+      inferenceServiceRow.findStatusLabel('Failed');
       inferenceServiceRow.findStatusTooltip();
       inferenceServiceRow.findStatusTooltipValue('Failed to pull model from storage due to error');
 
       // Check status of deployed model which loaded successfully after an error
       inferenceServiceRow = modelServingSection.getInferenceServiceRow('Loaded model');
+      inferenceServiceRow.findStatusLabel('Started');
       inferenceServiceRow.findStatusTooltip().should('be.visible');
-      inferenceServiceRow.findStatusTooltipValue('Loaded');
+      inferenceServiceRow.findStatusTooltipValue('Model is deployed.');
 
       // Check API protocol in row
       inferenceServiceRow.findAPIProtocol().should('have.text', 'REST');
@@ -806,7 +876,8 @@ describe('Serving Runtime List', () => {
 
       // test filling in minimum required fields
       kserveModal.findModelNameInput().type('Test Name');
-      kserveModal.findServingRuntimeTemplateDropdown().findSelectOption('Caikit').click();
+      kserveModal.findServingRuntimeTemplateSearchSelector().click();
+      kserveModal.findGlobalScopedTemplateOption('Caikit').click();
       kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
       kserveModal.findSubmitButton().should('be.disabled');
       // check external route, token should be checked and no alert
@@ -831,6 +902,133 @@ describe('Serving Runtime List', () => {
       kserveModal.findServingRuntimeEnvVarsSectionAddButton().click();
       kserveModal.findServingRuntimeEnvVarsName('0').type('test-name');
       kserveModal.findServingRuntimeEnvVarsValue('0').type('test-value');
+
+      // Checking model server custom size validation behavior
+      kserveModal.findModelServerSizeSelect().findSelectOption('Custom').click();
+
+      // Test that initial values are set and form is valid
+      kserveModal.findCPURequestedInput().should('have.value', '1');
+      kserveModal.findCPULimitInput().should('have.value', '1');
+      kserveModal.findMemoryRequestedInput().should('have.value', '1');
+      kserveModal.findMemoryLimitInput().should('have.value', '1');
+      kserveModal.findSubmitButton().should('be.enabled');
+
+      // Test validation: CPU request cannot exceed CPU limit
+      kserveModal.findCPURequestedInput().clear().type('3');
+      kserveModal.findSubmitButton().should('be.disabled');
+      cy.findByText('CPU requested must be less than or equal to CPU limit').should('be.visible');
+
+      // Test validation: Memory request cannot exceed memory limit
+      kserveModal.findCPURequestedInput().clear().type('1');
+      kserveModal.findMemoryRequestedInput().clear().type('3');
+      kserveModal.findSubmitButton().should('be.disabled');
+      cy.findByText('Memory requested must be less than or equal to memory limit').should(
+        'be.visible',
+      );
+
+      // Test validation: CPU limit cannot be less than CPU request
+      kserveModal.findMemoryRequestedInput().clear().type('1');
+      kserveModal.findCPURequestedInput().clear().type('2');
+      kserveModal.findCPULimitInput().clear().type('1');
+      kserveModal.findSubmitButton().should('be.disabled');
+      cy.findByText('CPU limit must be greater than or equal to CPU requested').should(
+        'be.visible',
+      );
+
+      // Test validation: Memory limit cannot be less than memory request
+      kserveModal.findCPULimitInput().clear().type('2');
+      kserveModal.findMemoryRequestedInput().clear().type('2');
+      kserveModal.findMemoryLimitInput().clear().type('1');
+      kserveModal.findSubmitButton().should('be.disabled');
+      cy.findByText('Memory limit must be greater than or equal to memory requested').should(
+        'be.visible',
+      );
+
+      // Test validation: Empty input fields show validation errors
+      kserveModal.findMemoryLimitInput().clear().type('2');
+
+      // Test empty CPU request
+      kserveModal.findCPURequestedInput().clear();
+      kserveModal.findSubmitButton().should('be.disabled');
+
+      // Test empty CPU limit
+      kserveModal.findCPURequestedInput().clear().type('1');
+      kserveModal.findCPULimitInput().clear();
+      kserveModal.findSubmitButton().should('be.disabled');
+
+      // Test empty Memory request
+      kserveModal.findCPULimitInput().clear().type('2');
+      kserveModal.findMemoryRequestedInput().clear();
+      kserveModal.findSubmitButton().should('be.disabled');
+
+      // Test empty Memory limit
+      kserveModal.findMemoryRequestedInput().clear().type('2');
+      kserveModal.findMemoryLimitInput().clear();
+      kserveModal.findSubmitButton().should('be.disabled');
+
+      // Test checkbox dependency: limit checkboxes are disabled when request checkboxes are unchecked
+      kserveModal.findCPULimitInput().clear().type('2');
+      kserveModal.findMemoryLimitInput().clear().type('4');
+
+      // Uncheck CPU request checkbox - CPU limit checkbox should become disabled
+      kserveModal.findCPURequestedCheckbox().uncheck();
+      kserveModal.findCPULimitCheckbox().should('be.disabled');
+
+      // Uncheck Memory request checkbox - Memory limit checkbox should become disabled
+      kserveModal.findMemoryRequestedCheckbox().uncheck();
+      kserveModal.findMemoryLimitCheckbox().should('be.disabled');
+
+      // Test checkbox value storage: verify previous values and units are restored
+      // First ensure all checkboxes are checked before setting values
+      kserveModal.findCPURequestedCheckbox().check();
+      kserveModal.findCPULimitCheckbox().check();
+      kserveModal.findMemoryRequestedCheckbox().check();
+      kserveModal.findMemoryLimitCheckbox().check();
+
+      // Set specific values with units
+      kserveModal.findCPURequestedInput().clear().type('3');
+      kserveModal.findCPULimitInput().clear().type('6');
+      kserveModal.findMemoryRequestedInput().clear().type('8');
+      kserveModal.findMemoryLimitInput().clear().type('16');
+
+      // Verify values are set correctly
+      kserveModal.findCPURequestedInput().should('have.value', '3');
+      kserveModal.findCPULimitInput().should('have.value', '6');
+      kserveModal.findMemoryRequestedInput().should('have.value', '8');
+      kserveModal.findMemoryLimitInput().should('have.value', '16');
+
+      // Uncheck CPU request checkbox (should also clear CPU limit)
+      kserveModal.findCPURequestedCheckbox().uncheck();
+      kserveModal.findCPURequestedInput().should('have.value', '');
+      kserveModal.findCPULimitInput().should('have.value', '');
+
+      // Uncheck Memory request checkbox (should also clear Memory limit)
+      kserveModal.findMemoryRequestedCheckbox().uncheck();
+      kserveModal.findMemoryRequestedInput().should('have.value', '');
+      kserveModal.findMemoryLimitInput().should('have.value', '');
+
+      // Re-check CPU request checkbox - should restore previous value
+      kserveModal.findCPURequestedCheckbox().check();
+      kserveModal.findCPURequestedInput().should('have.value', '3');
+      kserveModal.findCPULimitCheckbox().should('not.be.checked');
+      kserveModal.findCPULimitCheckbox().check();
+      kserveModal.findCPULimitInput().should('have.value', '6');
+
+      // Re-check Memory request checkbox - should restore previous value and unit
+      kserveModal.findMemoryRequestedCheckbox().check();
+      kserveModal.findMemoryRequestedInput().should('have.value', '8');
+      kserveModal.findMemoryLimitCheckbox().should('not.be.checked');
+      kserveModal.findMemoryLimitCheckbox().check();
+      kserveModal.findMemoryLimitInput().should('have.value', '16');
+
+      // Reset to valid values
+      kserveModal.findCPURequestedInput().clear().type('1');
+      kserveModal.findCPULimitInput().clear().type('2');
+      kserveModal.findMemoryRequestedInput().clear().type('2');
+      kserveModal.findMemoryLimitInput().clear().type('4');
+      kserveModal.findSubmitButton().should('be.enabled');
+
+      kserveModal.findModelServerSizeSelect().findSelectOption(/Small/).click();
       kserveModal.findSubmitButton().should('be.enabled');
 
       // test submitting form, the modal should close to indicate success.
@@ -962,7 +1160,8 @@ describe('Serving Runtime List', () => {
 
       // test filling in minimum required fields
       kserveModal.findModelNameInput().type('Test Name');
-      kserveModal.findServingRuntimeTemplateDropdown().findSelectOption('Caikit').click();
+      kserveModal.findServingRuntimeTemplateSearchSelector().click();
+      kserveModal.findGlobalScopedTemplateOption('Caikit').click();
       kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
       kserveModal.findSubmitButton().should('be.disabled');
       // check external route, token should be checked and no alert
@@ -1048,7 +1247,8 @@ describe('Serving Runtime List', () => {
 
       // test filling in minimum required fields
       kserveModal.findModelNameInput().type('Test Name');
-      kserveModal.findServingRuntimeTemplateDropdown().findSelectOption('Caikit').click();
+      kserveModal.findServingRuntimeTemplateSearchSelector().click();
+      kserveModal.findGlobalScopedTemplateOption('Caikit').click();
       kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
       kserveModal.findExistingConnectionSelect().should('have.attr', 'disabled');
       kserveModal.findNewConnectionOption().click();
@@ -1194,8 +1394,169 @@ describe('Serving Runtime List', () => {
       });
 
       cy.get('@updateInferenceService.all').then((interceptions) => {
-        expect(interceptions).to.have.length(2); // 1 dry run request and 1 actaul request
+        expect(interceptions).to.have.length(2); // 1 dry run request and 1 actual request
       });
+    });
+
+    it('Verify initial checkbox states and values when editing KServe model', () => {
+      initIntercepts({
+        projectEnableModelMesh: false,
+        disableKServeConfig: true,
+        disableModelMeshConfig: true,
+        disableServingRuntimeParams: false,
+        inferenceServices: [
+          mockInferenceServiceK8sResource({
+            name: 'test-inference-edit',
+            displayName: 'Test Inference Edit',
+            modelName: 'test-inference-edit',
+            isModelMesh: false,
+            resources: {
+              requests: { cpu: '2', memory: '4Gi' },
+              limits: { cpu: '4', memory: '8Gi' },
+            },
+          }),
+        ],
+        servingRuntimes: [
+          mockServingRuntimeK8sResource({
+            name: 'test-inference-edit',
+            displayName: 'Test Inference Edit',
+            namespace: 'test-project',
+            resources: {
+              requests: { cpu: '2', memory: '4Gi' },
+              limits: { cpu: '4', memory: '8Gi' },
+            },
+          }),
+        ],
+      });
+
+      projectDetails.visitSection('test-project', 'model-server');
+
+      // Open edit modal
+      modelServingSection
+        .getKServeRow('Test Inference Edit')
+        .find()
+        .findKebabAction('Edit')
+        .click();
+      kserveModalEdit.shouldBeOpen();
+
+      // Navigate to custom size section to verify initial checkbox states
+      kserveModalEdit.findModelServerSizeSelect().should('contain.text', 'Custom');
+
+      // Verify all checkboxes are initially checked (since all values exist)
+      kserveModalEdit.findCPURequestedCheckbox().should('be.checked');
+      kserveModalEdit.findCPULimitCheckbox().should('be.checked');
+      kserveModalEdit.findMemoryRequestedCheckbox().should('be.checked');
+      kserveModalEdit.findMemoryLimitCheckbox().should('be.checked');
+
+      // Verify initial values match the existing resources
+      kserveModalEdit.findCPURequestedInput().should('have.value', '2');
+      kserveModalEdit.findCPULimitInput().should('have.value', '4');
+      kserveModalEdit.findMemoryRequestedInput().should('have.value', '4');
+      kserveModalEdit.findMemoryLimitInput().should('have.value', '8');
+
+      // Verify form is initially valid
+      kserveModalEdit.findSubmitButton().should('be.enabled');
+
+      // Test that unchecking CPU request disables CPU limit checkbox
+      kserveModalEdit.findCPURequestedCheckbox().uncheck();
+      kserveModalEdit.findCPULimitCheckbox().should('be.disabled');
+      kserveModalEdit.findCPURequestedInput().should('have.value', '');
+      kserveModalEdit.findCPULimitInput().should('have.value', '');
+
+      // Test that re-checking CPU request restores request value and enables CPU limit checkbox (but doesn't auto-check it)
+      kserveModalEdit.findCPURequestedCheckbox().check();
+      kserveModalEdit.findCPULimitCheckbox().should('not.be.disabled');
+      kserveModalEdit.findCPURequestedInput().should('have.value', '2');
+      kserveModalEdit.findCPULimitCheckbox().should('not.be.checked'); // Limit checkbox should not be auto-checked
+      kserveModalEdit.findCPULimitInput().should('have.value', ''); // Limit input should remain empty
+
+      // Manually check the CPU limit checkbox to restore its value
+      kserveModalEdit.findCPULimitCheckbox().check();
+      kserveModalEdit.findCPULimitInput().should('have.value', '4');
+
+      // Test memory checkbox behavior follows same pattern
+      kserveModalEdit.findMemoryRequestedCheckbox().uncheck();
+      kserveModalEdit.findMemoryLimitCheckbox().should('be.disabled');
+      kserveModalEdit.findMemoryRequestedInput().should('have.value', '');
+      kserveModalEdit.findMemoryLimitInput().should('have.value', '');
+      kserveModalEdit.findMemoryRequestedCheckbox().check();
+      kserveModalEdit.findMemoryLimitCheckbox().should('not.be.disabled');
+      kserveModalEdit.findMemoryRequestedInput().should('have.value', '4');
+      kserveModalEdit.findMemoryLimitCheckbox().should('not.be.checked'); // Memory limit checkbox should not be auto-checked
+      kserveModalEdit.findMemoryLimitInput().should('have.value', ''); // Memory limit input should remain empty
+
+      // Manually check the memory limit checkbox to restore its value
+      kserveModalEdit.findMemoryLimitCheckbox().check();
+      kserveModalEdit.findMemoryLimitInput().should('have.value', '8');
+
+      // Verify form is valid again after restoring all values
+      kserveModalEdit.findSubmitButton().should('be.enabled');
+    });
+
+    it('Verify initial checkbox states when editing KServe model with partial values', () => {
+      initIntercepts({
+        projectEnableModelMesh: false,
+        disableKServeConfig: true,
+        disableModelMeshConfig: true,
+        disableServingRuntimeParams: false,
+        inferenceServices: [
+          mockInferenceServiceK8sResource({
+            name: 'test-inference-partial',
+            displayName: 'Test Inference Partial',
+            modelName: 'test-inference-partial',
+            isModelMesh: false,
+            resources: {
+              requests: { cpu: '1', memory: '2Gi' },
+              // No limits defined
+            },
+          }),
+        ],
+        servingRuntimes: [
+          mockServingRuntimeK8sResource({
+            name: 'test-inference-partial',
+            displayName: 'Test Inference Partial',
+            namespace: 'test-project',
+            resources: {
+              requests: { cpu: '1', memory: '2Gi' },
+              // No limits defined
+            },
+          }),
+        ],
+      });
+
+      projectDetails.visitSection('test-project', 'model-server');
+
+      // Open edit modal
+      modelServingSection
+        .getKServeRow('Test Inference Partial')
+        .find()
+        .findKebabAction('Edit')
+        .click();
+      kserveModalEdit.shouldBeOpen();
+
+      // Navigate to custom size section
+      kserveModalEdit.findModelServerSizeSelect().should('contain.text', 'Custom');
+
+      // Verify only request checkboxes are checked (since only requests exist in the resources)
+      kserveModalEdit.findCPURequestedCheckbox().should('be.checked');
+      kserveModalEdit.findMemoryRequestedCheckbox().should('be.checked');
+      kserveModalEdit.findCPULimitCheckbox().should('not.be.checked');
+      kserveModalEdit.findMemoryLimitCheckbox().should('not.be.checked');
+
+      // Verify initial values match existing requests
+      kserveModalEdit.findCPURequestedInput().should('have.value', '1');
+      kserveModalEdit.findMemoryRequestedInput().should('have.value', '2');
+
+      // Verify limit checkboxes are disabled since no request for limits
+      kserveModalEdit.findCPULimitCheckbox().should('not.be.disabled'); // Should be enabled since CPU request exists
+      kserveModalEdit.findMemoryLimitCheckbox().should('not.be.disabled'); // Should be enabled since Memory request exists
+
+      // Verify limit inputs are empty
+      kserveModalEdit.findCPULimitInput().should('have.value', '');
+      kserveModalEdit.findMemoryLimitInput().should('have.value', '');
+
+      // Verify form is initially valid (even with only requests)
+      kserveModalEdit.findSubmitButton().should('be.enabled');
     });
 
     it('KServe Model list', () => {
@@ -1222,6 +1583,112 @@ describe('Serving Runtime List', () => {
       modelServingSection
         .findKServeTableHeaderButton('Model deployment name')
         .should(be.sortDescending);
+    });
+
+    it('Stop and start model', () => {
+      initIntercepts({
+        projectEnableModelMesh: false,
+        disableKServeConfig: false,
+        disableModelMeshConfig: true,
+        inferenceServices: [
+          mockInferenceServiceK8sResource({
+            name: 'test-model',
+            displayName: 'test-model',
+            modelName: 'test-model',
+            isModelMesh: false,
+            activeModelState: 'Loaded',
+          }),
+        ],
+      });
+      cy.clearLocalStorage(STOP_MODAL_PREFERENCE_KEY);
+      cy.window().then((win) => win.localStorage.setItem(STOP_MODAL_PREFERENCE_KEY, 'false'));
+      projectDetails.visitSection('test-project', 'model-server');
+
+      const kserveRow = modelServingSection.getKServeRow('test-model');
+      kserveRow.findStatusLabel('Started');
+
+      const stoppedInferenceService = mockInferenceServiceK8sResource({
+        name: 'test-model',
+        displayName: 'test-model',
+        modelName: 'test-model',
+        isModelMesh: false,
+        activeModelState: 'Unknown',
+      });
+      stoppedInferenceService.metadata.annotations = {
+        ...stoppedInferenceService.metadata.annotations,
+        'serving.kserve.io/stop': 'true',
+      };
+
+      cy.intercept(
+        'PATCH',
+        '/api/k8s/apis/serving.kserve.io/v1beta1/namespaces/test-project/inferenceservices/test-model',
+        (req) => {
+          expect(req.body).to.deep.include({
+            op: 'add',
+            path: '/metadata/annotations/serving.kserve.io~1stop',
+            value: 'true',
+          });
+          req.reply(stoppedInferenceService);
+        },
+      ).as('stopModelPatch');
+      cy.interceptK8sList(InferenceServiceModel, mockK8sResourceList([stoppedInferenceService])).as(
+        'getStoppedModel',
+      );
+
+      kserveRow.findStateActionToggle().should('have.text', 'Stop').click();
+      kserveRow.findConfirmStopModal().should('exist');
+      kserveRow.findConfirmStopModalCheckbox().should('exist');
+      kserveRow.findConfirmStopModalCheckbox().should('not.be.checked');
+      kserveRow.findConfirmStopModalCheckbox().click();
+      kserveRow.findConfirmStopModalCheckbox().should('be.checked');
+      kserveRow.findConfirmStopModalButton().click();
+
+      cy.interceptK8sList(
+        {
+          model: PodModel,
+          ns: 'test-project',
+          queryParams: { labelSelector: 'serving.kserve.io/inferenceservice=test-model' },
+        },
+        mockK8sResourceList([]),
+      ).as('getPods');
+
+      cy.wait(['@stopModelPatch', '@getStoppedModel']);
+
+      kserveRow.findStatusLabel('Stopped');
+      kserveRow.findStateActionToggle().should('have.text', 'Start');
+      cy.window().then((win) => {
+        const preference = win.localStorage.getItem(STOP_MODAL_PREFERENCE_KEY);
+        expect(preference).to.equal('true');
+      });
+
+      const runningInferenceService = mockInferenceServiceK8sResource({
+        name: 'test-model',
+        displayName: 'test-model',
+        modelName: 'test-model',
+        isModelMesh: false,
+        activeModelState: 'Loaded',
+      });
+
+      cy.intercept(
+        'PATCH',
+        '/api/k8s/apis/serving.kserve.io/v1beta1/namespaces/test-project/inferenceservices/test-model',
+        (req) => {
+          expect(req.body).to.deep.include({
+            op: 'add',
+            path: '/metadata/annotations/serving.kserve.io~1stop',
+            value: 'false',
+          });
+          req.reply(runningInferenceService);
+        },
+      ).as('startModelPatch');
+      cy.interceptK8sList(InferenceServiceModel, mockK8sResourceList([runningInferenceService])).as(
+        'getStartedModel',
+      );
+
+      kserveRow.findStateActionToggle().should('have.text', 'Start').click();
+      cy.wait(['@startModelPatch', '@getStartedModel']);
+      kserveRow.findStatusLabel('Started');
+      kserveRow.findStateActionToggle().should('have.text', 'Stop');
     });
 
     it('Check number of replicas of model', () => {
@@ -1325,7 +1792,8 @@ describe('Serving Runtime List', () => {
 
       // test filling in minimum required fields
       kserveModal.findModelNameInput().type('Test Name');
-      kserveModal.findServingRuntimeTemplateDropdown().findSelectOption('Caikit').click();
+      kserveModal.findServingRuntimeTemplateSearchSelector().click();
+      kserveModal.findGlobalScopedTemplateOption('Caikit').click();
       kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
       kserveModal.findSubmitButton().should('be.disabled');
       kserveModal.findNewConnectionOption().click();
@@ -1422,7 +1890,8 @@ describe('Serving Runtime List', () => {
 
       // test filling in minimum required fields
       kserveModal.findModelNameInput().type('Test Name');
-      kserveModal.findServingRuntimeTemplateDropdown().findSelectOption('Caikit').click();
+      kserveModal.findServingRuntimeTemplateSearchSelector().click();
+      kserveModal.findGlobalScopedTemplateOption('Caikit').click();
       kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
       kserveModal.findSubmitButton().should('be.disabled');
       // misc.
@@ -1440,6 +1909,21 @@ describe('Serving Runtime List', () => {
       kserveModal.findSubmitButton().should('be.enabled');
       // raw
       kserveModal.findDeploymentModeSelect().should('contain.text', 'Advanced');
+
+      // Test advanced mode replica settings
+      kserveModal.findMinReplicasInput().should('have.value', '1');
+      kserveModal.findMinReplicasPlusButton().should('be.disabled');
+      kserveModal.findMaxReplicasInput().should('have.value', '1');
+      kserveModal.findMaxReplicasMinusButton().should('be.disabled');
+      kserveModal.findMaxReplicasPlusButton().click();
+      kserveModal.findMaxReplicasInput().should('have.value', '2');
+      kserveModal.findMinReplicasPlusButton().click();
+      kserveModal.findMinReplicasInput().should('have.value', '2');
+
+      // Test max limit of 99
+      kserveModal.findMaxReplicasInput().clear().type('100');
+      kserveModal.findMaxReplicasInput().should('have.value', '99');
+      kserveModal.findMaxReplicasPlusButton().should('be.disabled');
       kserveModal.findDeploymentModeSelect().findSelectOption('Standard').click();
 
       // test submitting form, the modal should close to indicate success.
@@ -1501,8 +1985,8 @@ describe('Serving Runtime List', () => {
           },
           spec: {
             predictor: {
-              minReplicas: 1,
-              maxReplicas: 1,
+              minReplicas: 2,
+              maxReplicas: 2,
               model: {
                 modelFormat: { name: 'onnx', version: '1' },
                 runtime: 'test-name',
@@ -1570,7 +2054,8 @@ describe('Serving Runtime List', () => {
 
       // test filling in minimum required fields
       kserveModal.findModelNameInput().type('Test Name');
-      kserveModal.findServingRuntimeTemplateDropdown().findSelectOption('Caikit').click();
+      kserveModal.findServingRuntimeTemplateSearchSelector().click();
+      kserveModal.findGlobalScopedTemplateOption('Caikit').click();
       kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
       kserveModal.findSubmitButton().should('be.disabled');
       // misc.
@@ -1707,7 +2192,8 @@ describe('Serving Runtime List', () => {
       kserveModal.shouldBeOpen();
 
       kserveModal.findModelNameInput().type('Test Name');
-      kserveModal.findServingRuntimeTemplateDropdown().findSelectOption('Caikit').click();
+      kserveModal.findServingRuntimeTemplateSearchSelector().click();
+      kserveModal.findGlobalScopedTemplateOption('Caikit').click();
       kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
       kserveModal.findExistingConnectionOption().click();
       kserveModal.findLocationPathInput().type('test-model/');
@@ -1740,6 +2226,146 @@ describe('Serving Runtime List', () => {
         'false',
       );
       kserveModal.findSubmitButton().should('be.enabled');
+    });
+
+    it('Deploy OCI Model and check paste functionality', () => {
+      initIntercepts({
+        disableModelMeshConfig: false,
+        disableKServeConfig: false,
+        disableServingRuntimeParams: false,
+        servingRuntimes: [],
+        requiredCapabilities: [StackCapability.SERVICE_MESH, StackCapability.SERVICE_MESH_AUTHZ],
+        projectEnableModelMesh: false,
+      });
+
+      cy.interceptK8sList(
+        SecretModel,
+        mockK8sResourceList([
+          mockCustomSecretK8sResource({
+            type: 'kubernetes.io/dockerconfigjson',
+            namespace: 'test-project',
+            name: 'test-secret',
+            annotations: {
+              'opendatahub.io/connection-type': 'oci-v1',
+              'openshift.io/display-name': 'Test Secret',
+            },
+            data: {
+              '.dockerconfigjson':
+                'eyJhdXRocyI6IHsidGVzdC5pbyI6IHsiYXV0aCI6ICJibGFoYmxhaGJsYWgifX19Cg==',
+              OCI_HOST: 'dGVzdC5pby9vcmdhbml6YXRpb24K',
+              ACCESS_TYPE: 'WyJQdWxsIl0',
+            },
+          }),
+        ]),
+      );
+
+      projectDetails.visitSection('test-project', 'model-server');
+
+      modelServingSection.findDeployModelButton().click();
+
+      kserveModal.shouldBeOpen();
+
+      // test that you can not submit on empty
+      kserveModal.findSubmitButton().should('be.disabled');
+
+      // test filling in minimum required fields
+      kserveModal.findModelNameInput().type('Test Name');
+      kserveModal.findServingRuntimeTemplateSearchSelector().click();
+      kserveModal.findGlobalScopedTemplateOption('Caikit').click();
+      kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
+      kserveModal.findSubmitButton().should('be.disabled');
+
+      kserveModal.findExistingConnectionOption().click();
+      kserveModal
+        .findExistingConnectionSelect()
+        .findByRole('combobox')
+        .should('have.value', 'Test Secret');
+      kserveModal.findOCIModelURI().click();
+      kserveModal.findOCIModelURI().trigger('paste', {
+        clipboardData: {
+          getData: () => 'https://test.io/organization/test-model:latest',
+        },
+      });
+      kserveModal.findOCIModelURI().blur();
+      kserveModal.findSubmitButton().should('be.enabled');
+
+      // test submitting form, the modal should close to indicate success.
+      kserveModal.findSubmitButton().click();
+      kserveModal.shouldBeOpen(false);
+
+      // dry run request
+      cy.wait('@createServingRuntime').then((interception) => {
+        expect(interception.request.url).to.include('?dryRun=All');
+        expect(interception.request.body).to.containSubset({
+          metadata: {
+            name: 'test-name',
+            annotations: {
+              'openshift.io/display-name': 'test-name',
+              'opendatahub.io/apiProtocol': 'REST',
+              'opendatahub.io/template-name': 'template-2',
+              'opendatahub.io/template-display-name': 'Caikit',
+              'opendatahub.io/accelerator-name': '',
+            },
+            namespace: 'test-project',
+          },
+          spec: {
+            protocolVersions: ['grpc-v1'],
+            supportedModelFormats: [
+              { autoSelect: true, name: 'openvino_ir', version: 'opset1' },
+              { autoSelect: true, name: 'onnx', version: '1' },
+            ],
+          },
+        });
+      });
+
+      // Actual request
+      cy.wait('@createServingRuntime').then((interception) => {
+        expect(interception.request.url).not.to.include('?dryRun=All');
+      });
+
+      // the serving runtime should have been created
+      cy.get('@createServingRuntime.all').then((interceptions) => {
+        expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
+      });
+
+      cy.wait('@createInferenceService').then((interception) => {
+        expect(interception.request.url).to.include('?dryRun=All');
+        expect(interception.request.body).to.containSubset({
+          apiVersion: 'serving.kserve.io/v1beta1',
+          kind: 'InferenceService',
+          metadata: {
+            name: 'test-name',
+            namespace: 'test-project',
+            annotations: {
+              'openshift.io/display-name': 'Test Name',
+              'serving.kserve.io/deploymentMode': DeploymentMode.Serverless,
+              'serving.knative.openshift.io/enablePassthrough': 'true',
+              'sidecar.istio.io/inject': 'true',
+              'sidecar.istio.io/rewriteAppHTTPProbers': 'true',
+            },
+            labels: {
+              'opendatahub.io/dashboard': 'true',
+              'networking.knative.dev/visibility': 'cluster-local',
+            },
+          },
+          spec: {
+            predictor: {
+              minReplicas: 1,
+              maxReplicas: 1,
+              imagePullSecrets: [{ name: 'test-secret' }],
+              model: {
+                modelFormat: { name: 'onnx', version: '1' },
+                runtime: 'test-name',
+                storageUri: 'oci://test.io/organization/test-model:latest',
+                resources: {
+                  requests: { cpu: '1', memory: '4Gi' },
+                  limits: { cpu: '2', memory: '8Gi' },
+                },
+              },
+            },
+          },
+        });
+      });
     });
   });
 
@@ -1775,10 +2401,8 @@ describe('Serving Runtime List', () => {
 
       // test filling in minimum required fields
       createServingRuntimeModal.k8sNameDescription.findDisplayNameInput().type('Test Name');
-      createServingRuntimeModal
-        .findServingRuntimeTemplateDropdown()
-        .findSelectOption('New OVMS Server')
-        .click();
+      createServingRuntimeModal.findServingRuntimeTemplateSearchSelector().click();
+      createServingRuntimeModal.findGlobalScopedTemplateOption('New OVMS Server').click();
       createServingRuntimeModal.findSubmitButton().should('be.enabled');
 
       // test invalid resource name
@@ -1865,6 +2489,247 @@ describe('Serving Runtime List', () => {
       cy.get('@createRoleBinding.all').then((interceptions) => {
         expect(interceptions).to.have.length(2); //1 dry run request and 1 actual request
       });
+    });
+
+    it('should display accelerator profile selection when both accelerator profile and project-scoped feature flag is enabled for Model mesh, while adding model server', () => {
+      initIntercepts({
+        projectEnableModelMesh: true,
+        disableKServeConfig: false,
+        disableModelMeshConfig: true,
+        disableProjectScoped: false,
+        inferenceServices: [
+          mockInferenceServiceK8sResource({ name: 'test-inference', isModelMesh: true }),
+          mockInferenceServiceK8sResource({
+            name: 'another-inference-service',
+            displayName: 'Another Inference Service',
+            deleted: true,
+            isModelMesh: true,
+          }),
+          mockInferenceServiceK8sResource({
+            name: 'ovms-testing',
+            displayName: 'OVMS ONNX',
+            isModelMesh: true,
+          }),
+        ],
+      });
+
+      cy.interceptK8sList(
+        { model: AcceleratorProfileModel, ns: 'test-project' },
+        mockK8sResourceList(mockProjectScopedAcceleratorProfiles),
+      ).as('acceleratorProfiles');
+
+      projectDetails.visitSection('test-project', 'model-server');
+      modelServingSection.findAddModelServerButton().click();
+      createServingRuntimeModal.shouldBeOpen();
+
+      // verify available project-scoped accelerator profile
+      acceleratorProfileSection.findAcceleratorProfileSearchSelector().should('exist');
+      acceleratorProfileSection.findAcceleratorProfileSearchSelector().click();
+
+      const projectScopedAcceleratorProfile =
+        acceleratorProfileSection.getProjectScopedAcceleratorProfile();
+      projectScopedAcceleratorProfile
+        .find()
+        .findByRole('menuitem', { name: 'Small Profile nvidia.com/gpu', hidden: true })
+        .click();
+      acceleratorProfileSection.findProjectScopedLabel().should('exist');
+
+      // verify available global-scoped hardware profile
+      acceleratorProfileSection.findAcceleratorProfileSearchSelector().click();
+      const globalScopedHardwareProfile =
+        acceleratorProfileSection.getGlobalScopedAcceleratorProfile();
+      globalScopedHardwareProfile
+        .find()
+        .findByRole('menuitem', {
+          name: 'NVIDIA GPU Lorem, ipsum dolor sit amet consectetur adipisicing elit. Saepe, quis nvidia.com/gpu',
+          hidden: true,
+        })
+        .click();
+      acceleratorProfileSection.findGlobalScopedLabel().should('exist');
+    });
+
+    it('should display accelerator profile selection when both accelerator profile and project-scoped feature flag is enabled for Model mesh, while editing model server', () => {
+      initIntercepts({
+        projectEnableModelMesh: true,
+        disableKServeConfig: false,
+        disableModelMeshConfig: true,
+        disableAccelerator: false,
+        disableProjectScoped: false,
+        servingRuntimes: [
+          mockServingRuntimeK8sResource({
+            name: 'test-model',
+            namespace: 'test-project',
+            auth: true,
+            route: true,
+            acceleratorName: 'small-profile',
+          }),
+        ],
+      });
+
+      cy.interceptK8sList(
+        { model: AcceleratorProfileModel, ns: 'test-project' },
+        mockK8sResourceList(mockProjectScopedAcceleratorProfiles),
+      ).as('acceleratorProfiles');
+
+      projectDetails.visitSection('test-project', 'model-server');
+
+      // click on the toggle button and open edit model server
+      modelServingSection
+        .getModelMeshRow('OVMS Model Serving')
+        .find()
+        .findKebabAction('Edit model server')
+        .click();
+
+      editServingRuntimeModal.shouldBeOpen();
+      // cy.wait('@acceleratorProfile');
+      acceleratorProfileSection
+        .findAcceleratorProfileSearchSelector()
+        .should('contain.text', 'Small Profile');
+      acceleratorProfileSection.findProjectScopedLabel().should('exist');
+    });
+
+    it('Check project-scoped accelerator when enabled and selected', () => {
+      initIntercepts({
+        projectEnableModelMesh: true,
+        disableKServeConfig: false,
+        disableModelMeshConfig: true,
+        disableAccelerator: false,
+        disableProjectScoped: false,
+        servingRuntimes: [
+          mockServingRuntimeK8sResource({
+            name: 'test-model',
+            namespace: 'test-project',
+            auth: true,
+            route: true,
+            acceleratorName: 'small-profile',
+          }),
+        ],
+      });
+
+      projectDetails.visitSection('test-project', 'model-server');
+      modelServingSection.findModelServer().click();
+      modelServingSection
+        .findAcceleratorSection()
+        .should('have.text', 'AcceleratorSmall Profile Project-scoped');
+    });
+
+    it('Check project-scoped hardware when enabled and selected', () => {
+      initIntercepts({
+        projectEnableModelMesh: true,
+        disableKServeConfig: false,
+        disableModelMeshConfig: true,
+        disableHardwareProfiles: false,
+        disableAccelerator: false,
+        disableProjectScoped: false,
+        servingRuntimes: [
+          mockServingRuntimeK8sResource({
+            hardwareProfileName: 'large-profile-1',
+            hardwareProfileNamespace: 'test-project',
+          }),
+        ],
+      });
+
+      projectDetails.visitSection('test-project', 'model-server');
+      modelServingSection.findModelServer().click();
+      modelServingSection
+        .findHardwareSection()
+        .should('have.text', 'Large Profile-1Project-scoped');
+    });
+
+    it('should display hardware profile selection when both hardware profile and project-scoped feature flag is enabled for Model mesh, while adding model server', () => {
+      initIntercepts({
+        projectEnableModelMesh: true,
+        disableKServeConfig: false,
+        disableModelMeshConfig: true,
+        disableHardwareProfiles: false,
+        disableProjectScoped: false,
+        inferenceServices: [
+          mockInferenceServiceK8sResource({ name: 'test-inference', isModelMesh: true }),
+          mockInferenceServiceK8sResource({
+            name: 'another-inference-service',
+            displayName: 'Another Inference Service',
+            deleted: true,
+            isModelMesh: true,
+          }),
+          mockInferenceServiceK8sResource({
+            name: 'ovms-testing',
+            displayName: 'OVMS ONNX',
+            isModelMesh: true,
+          }),
+        ],
+      });
+      projectDetails.visitSection('test-project', 'model-server');
+
+      modelServingSection.findAddModelServerButton().click();
+
+      createServingRuntimeModal.shouldBeOpen();
+
+      // Verify hardware profile section exists
+      hardwareProfileSection.findHardwareProfileSearchSelector().should('exist');
+      hardwareProfileSection.findHardwareProfileSearchSelector().click();
+
+      // verify available project-scoped hardware profile
+      const projectScopedHardwareProfile = hardwareProfileSection.getProjectScopedHardwareProfile();
+      projectScopedHardwareProfile
+        .find()
+        .findByRole('menuitem', {
+          name: 'Small Profile CPU: Request = 1; Limit = 1; Memory: Request = 2Gi; Limit = 2Gi',
+          hidden: true,
+        })
+        .click();
+      hardwareProfileSection.findProjectScopedLabel().should('exist');
+
+      // verify available global-scoped hardware profile
+      hardwareProfileSection.findHardwareProfileSearchSelector().click();
+      const globalScopedHardwareProfile = hardwareProfileSection.getGlobalScopedHardwareProfile();
+      globalScopedHardwareProfile
+        .find()
+        .findByRole('menuitem', {
+          name: 'Small Profile CPU: Request = 1; Limit = 1; Memory: Request = 2Gi; Limit = 2Gi',
+          hidden: true,
+        })
+        .click();
+      hardwareProfileSection.findGlobalScopedLabel().should('exist');
+    });
+
+    it('should display hardware profile selection when both hardware profile and project-scoped feature flag is enabled for Model mesh, while editing model server', () => {
+      initIntercepts({
+        projectEnableModelMesh: true,
+        disableKServeConfig: false,
+        disableModelMeshConfig: true,
+        disableHardwareProfiles: false,
+        disableProjectScoped: false,
+        servingRuntimes: [
+          mockServingRuntimeK8sResource({
+            hardwareProfileName: 'large-profile-1',
+            hardwareProfileNamespace: 'test-project',
+          }),
+        ],
+        inferenceServices: [
+          mockInferenceServiceK8sResource({ name: 'test-inference', isModelMesh: true }),
+          mockInferenceServiceK8sResource({
+            name: 'ovms-testing',
+            displayName: 'OVMS ONNX',
+            isModelMesh: true,
+          }),
+        ],
+      });
+
+      projectDetails.visitSection('test-project', 'model-server');
+
+      // click on the toggle button and open edit model server
+      modelServingSection
+        .getModelMeshRow('OVMS Model Serving')
+        .find()
+        .findKebabAction('Edit model server')
+        .click();
+
+      editServingRuntimeModal.shouldBeOpen();
+
+      hardwareProfileSection
+        .findHardwareProfileSearchSelector()
+        .should('contain.text', 'Large Profile-1');
+      hardwareProfileSection.findProjectScopedLabel().should('exist');
     });
 
     it('Edit ModelMesh model server', () => {
@@ -1959,10 +2824,8 @@ describe('Serving Runtime List', () => {
 
       // fill in minimum required fields
       createServingRuntimeModal.k8sNameDescription.findDisplayNameInput().type('Test Name');
-      createServingRuntimeModal
-        .findServingRuntimeTemplateDropdown()
-        .findSelectOption('New OVMS Server')
-        .click();
+      createServingRuntimeModal.findServingRuntimeTemplateSearchSelector().click();
+      createServingRuntimeModal.findGlobalScopedTemplateOption('New OVMS Server').click();
       createServingRuntimeModal.findSubmitButton().should('be.enabled');
 
       // test submitting form, the modal should close to indicate success.
@@ -2013,10 +2876,8 @@ describe('Serving Runtime List', () => {
 
       // fill in minimum required fields
       createServingRuntimeModal.k8sNameDescription.findDisplayNameInput().type('Test Name');
-      createServingRuntimeModal
-        .findServingRuntimeTemplateDropdown()
-        .findSelectOption('New OVMS Server')
-        .click();
+      createServingRuntimeModal.findServingRuntimeTemplateSearchSelector().click();
+      createServingRuntimeModal.findGlobalScopedTemplateOption('New OVMS Server').click();
       createServingRuntimeModal.findSubmitButton().should('be.enabled');
 
       // test submitting form, an error should appear
@@ -2063,10 +2924,8 @@ describe('Serving Runtime List', () => {
 
       // fill in minimum required fields
       createServingRuntimeModal.k8sNameDescription.findDisplayNameInput().type('Test Name');
-      createServingRuntimeModal
-        .findServingRuntimeTemplateDropdown()
-        .findSelectOption('New OVMS Server')
-        .click();
+      createServingRuntimeModal.findServingRuntimeTemplateSearchSelector().click();
+      createServingRuntimeModal.findGlobalScopedTemplateOption('New OVMS Server').click();
       createServingRuntimeModal.findSubmitButton().should('be.enabled');
 
       // test submitting form, the modal should close to indicate success.
@@ -2126,10 +2985,8 @@ describe('Serving Runtime List', () => {
 
       // fill in minimum required fields
       createServingRuntimeModal.k8sNameDescription.findDisplayNameInput().type('Test Name');
-      createServingRuntimeModal
-        .findServingRuntimeTemplateDropdown()
-        .findSelectOption('New OVMS Server')
-        .click();
+      createServingRuntimeModal.findServingRuntimeTemplateSearchSelector().click();
+      createServingRuntimeModal.findGlobalScopedTemplateOption('New OVMS Server').click();
       createServingRuntimeModal.findSubmitButton().should('be.enabled');
 
       // enable auth
@@ -2200,10 +3057,8 @@ describe('Serving Runtime List', () => {
 
       // fill in minimum required fields
       createServingRuntimeModal.k8sNameDescription.findDisplayNameInput().type('Test Name');
-      createServingRuntimeModal
-        .findServingRuntimeTemplateDropdown()
-        .findSelectOption('New OVMS Server')
-        .click();
+      createServingRuntimeModal.findServingRuntimeTemplateSearchSelector().click();
+      createServingRuntimeModal.findGlobalScopedTemplateOption('New OVMS Server').click();
       createServingRuntimeModal.findSubmitButton().should('be.enabled');
 
       // enable auth
@@ -2319,6 +3174,35 @@ describe('Serving Runtime List', () => {
       kserveRow.findDescriptionListItem('Number of accelerators').should('exist');
     });
 
+    it('Check project-scoped accelerator when disabled but selected', () => {
+      initIntercepts({
+        projectEnableModelMesh: false,
+        disableKServeConfig: false,
+        disableModelMeshConfig: true,
+        disableAccelerator: true,
+        disableProjectScoped: false,
+        servingRuntimes: [
+          mockServingRuntimeK8sResource({
+            name: 'test-model',
+            namespace: 'test-project',
+            auth: true,
+            route: true,
+            acceleratorName: 'small-profile',
+          }),
+        ],
+      });
+
+      projectDetails.visitSection('test-project', 'model-server');
+      const kserveRow = modelServingSection.getKServeRow('Llama Caikit');
+      kserveRow.findExpansion().should(be.collapsed);
+      kserveRow.findToggleButton().click();
+      kserveRow
+        .findDescriptionListItem('Accelerator')
+        .next('dd')
+        .should('have.text', 'Small Profile Project-scoped (disabled)');
+      kserveRow.findDescriptionListItem('Number of accelerators').should('exist');
+    });
+
     it('Check accelerator when enabled but not selected', () => {
       initIntercepts({
         projectEnableModelMesh: false,
@@ -2375,6 +3259,35 @@ describe('Serving Runtime List', () => {
       kserveRow.findExpansion().should(be.collapsed);
       kserveRow.findToggleButton().click();
       kserveRow.findDescriptionListItem('Accelerator').next('dd').should('have.text', 'NVIDIA GPU');
+      kserveRow.findDescriptionListItem('Number of accelerators').should('exist');
+    });
+
+    it('Check project-scoped accelerator when enabled and selected', () => {
+      initIntercepts({
+        projectEnableModelMesh: false,
+        disableKServeConfig: false,
+        disableModelMeshConfig: true,
+        disableAccelerator: false,
+        disableProjectScoped: false,
+        servingRuntimes: [
+          mockServingRuntimeK8sResource({
+            name: 'test-model',
+            namespace: 'test-project',
+            auth: true,
+            route: true,
+            acceleratorName: 'small-profile',
+          }),
+        ],
+      });
+
+      projectDetails.visitSection('test-project', 'model-server');
+      const kserveRow = modelServingSection.getKServeRow('Llama Caikit');
+      kserveRow.findExpansion().should(be.collapsed);
+      kserveRow.findToggleButton().click();
+      kserveRow
+        .findDescriptionListItem('Accelerator')
+        .next('dd')
+        .should('have.text', 'Small Profile Project-scoped');
       kserveRow.findDescriptionListItem('Number of accelerators').should('exist');
     });
   });
@@ -2450,7 +3363,8 @@ describe('Serving Runtime List', () => {
 
       // test filling in minimum required fields
       kserveModal.findModelNameInput().type('Test Name');
-      kserveModal.findServingRuntimeTemplateDropdown().findSelectOption('Caikit').click();
+      kserveModal.findServingRuntimeTemplateSearchSelector().click();
+      kserveModal.findGlobalScopedTemplateOption('Caikit').click();
       kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
       kserveModal.findSubmitButton().should('be.disabled');
       kserveModal.findExistingConnectionOption().click();
@@ -2489,7 +3403,8 @@ describe('Serving Runtime List', () => {
 
       // test filling in minimum required fields
       kserveModal.findModelNameInput().type('Test Name');
-      kserveModal.findServingRuntimeTemplateDropdown().findSelectOption('Caikit').click();
+      kserveModal.findServingRuntimeTemplateSearchSelector().click();
+      kserveModal.findGlobalScopedTemplateOption('Caikit').click();
       kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
       kserveModal.findSubmitButton().should('be.disabled');
       kserveModal.findExistingConnectionOption().click();
@@ -2775,6 +3690,65 @@ describe('Serving Runtime List', () => {
         .findInternalServicePopover()
         .findByText('Could not find any internal service enabled')
         .should('exist');
+    });
+  });
+  describe('Serving Runtime Template Selection', () => {
+    it('displays label in search selector when multi-model serving is selected', () => {
+      initIntercepts({
+        projectEnableModelMesh: true,
+        disableKServeConfig: false,
+        disableModelMeshConfig: false,
+      });
+
+      projectDetails.visitSection('test-project', 'model-server');
+      modelServingSection.findAddModelServerButton().click();
+      createServingRuntimeModal.findServingRuntimeTemplateSearchSelector().should('exist');
+      createServingRuntimeModal.findServingRuntimeTemplateSearchSelector().click();
+      createServingRuntimeModal.findGlobalScopedTemplateOption('Multi Platform').within(() => {
+        createServingRuntimeModal.findServingRuntimeVersionLabel().should('exist');
+      });
+      createServingRuntimeModal.findGlobalScopedTemplateOption('Multi Platform').click();
+      createServingRuntimeModal.findServingRuntimeTemplateSearchSelector().within(() => {
+        createServingRuntimeModal.findServingRuntimeVersionLabel().should('exist');
+      });
+      createServingRuntimeModal.findCloseButton().click();
+
+      // Check that the label is displayed when editing
+      modelServingSection
+        .getModelMeshRow('OVMS Model Serving')
+        .find()
+        .findKebabAction('Edit model server')
+        .click();
+      editServingRuntimeModal.findServingRuntimeTemplateSearchSelector().within(() => {
+        editServingRuntimeModal.findServingRuntimeVersionLabel().should('exist');
+      });
+    });
+
+    it('displays label in search selector when single-model serving is selected', () => {
+      initIntercepts({
+        projectEnableModelMesh: false,
+        disableKServeConfig: false,
+        disableModelMeshConfig: false,
+      });
+
+      projectDetails.visitSection('test-project', 'model-server');
+      modelServingSection.findDeployModelButton().click();
+      kserveModal.findServingRuntimeTemplateSearchSelector().should('exist');
+      kserveModal.findServingRuntimeTemplateSearchSelector().click();
+      kserveModal.findGlobalScopedTemplateOption('Multi Platform').within(() => {
+        kserveModal.findServingRuntimeVersionLabel().should('exist');
+      });
+      kserveModal.findGlobalScopedTemplateOption('Multi Platform').click();
+      kserveModal.findServingRuntimeTemplateSearchSelector().within(() => {
+        kserveModal.findServingRuntimeVersionLabel().should('exist');
+      });
+      kserveModal.findCloseButton().click();
+
+      // Check that the label is displayed when editing
+      modelServingSection.getKServeRow('Llama Caikit').find().findKebabAction('Edit').click();
+      kserveModalEdit.findServingRuntimeTemplateSearchSelector().within(() => {
+        kserveModalEdit.findServingRuntimeVersionLabel().should('exist');
+      });
     });
   });
 });

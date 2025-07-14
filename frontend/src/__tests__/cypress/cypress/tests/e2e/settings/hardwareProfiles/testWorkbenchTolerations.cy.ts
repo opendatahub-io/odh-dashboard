@@ -1,25 +1,22 @@
-import type { WBTolerationsTestData } from '~/__tests__/cypress/cypress/types';
-import { projectListPage, projectDetails } from '~/__tests__/cypress/cypress/pages/projects';
+import type { WBTolerationsTestData } from '#~/__tests__/cypress/cypress/types';
+import { projectListPage, projectDetails } from '#~/__tests__/cypress/cypress/pages/projects';
 import {
   workbenchPage,
   createSpawnerPage,
   notebookConfirmModal,
-} from '~/__tests__/cypress/cypress/pages/workbench';
-import { HTPASSWD_CLUSTER_ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
-import { loadWBTolerationsFixture } from '~/__tests__/cypress/cypress/utils/dataLoader';
-import { createCleanProject } from '~/__tests__/cypress/cypress/utils/projectChecker';
-import { deleteOpenShiftProject } from '~/__tests__/cypress/cypress/utils/oc_commands/project';
-import { validateWorkbenchTolerations } from '~/__tests__/cypress/cypress/utils/oc_commands/workbench';
-import {
-  retryableBefore,
-  wasSetupPerformed,
-} from '~/__tests__/cypress/cypress/utils/retryableHooks';
+} from '#~/__tests__/cypress/cypress/pages/workbench';
+import { HTPASSWD_CLUSTER_ADMIN_USER } from '#~/__tests__/cypress/cypress/utils/e2eUsers';
+import { loadWBTolerationsFixture } from '#~/__tests__/cypress/cypress/utils/dataLoader';
+import { createCleanProject } from '#~/__tests__/cypress/cypress/utils/projectChecker';
+import { deleteOpenShiftProject } from '#~/__tests__/cypress/cypress/utils/oc_commands/project';
+import { validateWorkbenchTolerations } from '#~/__tests__/cypress/cypress/utils/oc_commands/workbench';
+import { retryableBefore } from '#~/__tests__/cypress/cypress/utils/retryableHooks';
 import {
   cleanupHardwareProfiles,
   createCleanHardwareProfile,
-} from '~/__tests__/cypress/cypress/utils/oc_commands/hardwareProfiles';
-import { hardwareProfileSection } from '~/__tests__/cypress/cypress/pages/components/HardwareProfileSection';
-import { generateTestUUID } from '~/__tests__/cypress/cypress/utils/uuidGenerator';
+} from '#~/__tests__/cypress/cypress/utils/oc_commands/hardwareProfiles';
+import { hardwareProfileSection } from '#~/__tests__/cypress/cypress/pages/components/HardwareProfileSection';
+import { generateTestUUID } from '#~/__tests__/cypress/cypress/utils/uuidGenerator';
 
 describe('Workbenches - tolerations tests', () => {
   let testData: WBTolerationsTestData;
@@ -56,9 +53,6 @@ describe('Workbenches - tolerations tests', () => {
 
   // Cleanup: Delete Hardware Profile and the associated Project
   after(() => {
-    // Check if the Before Method was executed to perform the setup
-    if (!wasSetupPerformed()) return;
-
     // Load Hardware Profile
     cy.log(`Loaded Hardware Profile Name: ${hardwareProfileResourceName}`);
 
@@ -67,7 +61,7 @@ describe('Workbenches - tolerations tests', () => {
       // Delete provisioned Project
       if (projectName) {
         cy.log(`Deleting Project ${projectName} after the test has finished.`);
-        deleteOpenShiftProject(projectName);
+        deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
       }
     });
   });
@@ -141,7 +135,7 @@ describe('Workbenches - tolerations tests', () => {
       // Stop workbench and verify it stops running
       cy.step(`Stop workbench ${testData.workbenchName}`);
       const notebookRow = workbenchPage.getNotebookRow(testData.workbenchName);
-      notebookRow.findNotebookStop().click();
+      notebookRow.findNotebookStopToggle().click();
       notebookConfirmModal.findStopWorkbenchButton().click();
       notebookRow.expectStatusLabelToBe('Stopped', 120000);
       cy.reload();
@@ -181,7 +175,7 @@ describe('Workbenches - tolerations tests', () => {
       // Stop workbench and verify it stops running
       cy.step(`Restart workbench ${testData.workbenchName} and validate it has been started`);
       const notebookRow = workbenchPage.getNotebookRow(testData.workbenchName);
-      notebookRow.findNotebookStart().click();
+      notebookRow.findNotebookStopToggle().click();
       notebookRow.expectStatusLabelToBe('Running', 120000);
       cy.reload();
 

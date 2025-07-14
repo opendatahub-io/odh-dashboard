@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useUser } from '~/redux/selectors';
+import { useUser } from '#~/redux/selectors';
 import { NotebookControllerTabTypes } from './const';
 
 export type SetCurrentAdminTab = (newTab: NotebookControllerTabTypes) => void;

@@ -1,10 +1,10 @@
-import { SortableData } from '~/components/table';
+import { SortableData } from '#~/components/table';
 import {
   getExecutionDisplayName,
   getArtifactName,
-} from '~/concepts/pipelines/content/compareRuns/metricsSection/utils';
-import { RunArtifact } from '~/concepts/pipelines/apiHooks/mlmd/types';
-import { getMlmdMetadataValue } from '~/pages/pipelines/global/experiments/executions/utils';
+} from '#~/concepts/pipelines/content/compareRuns/metricsSection/utils';
+import { RunArtifact } from '#~/concepts/pipelines/apiHooks/mlmd/types';
+import { getMlmdMetadataValue } from '#~/pages/pipelines/global/experiments/executions/utils';
 import { ScalarTableProps, XParentLabel, ScalarRowData, ScalarTableData } from './types';
 
 export const generateTableStructure = (scalarMetricsArtifacts: RunArtifact[]): ScalarTableProps => {

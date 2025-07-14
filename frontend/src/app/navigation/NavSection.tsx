@@ -12,8 +12,8 @@ import {
 } from '@odh-dashboard/plugin-core/extension-points';
 import { useExtensions } from '@odh-dashboard/plugin-core';
 import { useAccessReviewExtensions } from '@odh-dashboard/internal/utilities/useAccessReviewExtensions';
-import { StatusReportIcon } from '~/app/status-provider/StatusReportIcon';
-import { getStatusReportSummary } from '~/app/status-provider/utils';
+import { StatusReportIcon } from '#~/app/status-provider/StatusReportIcon';
+import { getStatusReportSummary } from '#~/app/status-provider/utils';
 import { NavItem } from './NavItem';
 import { NavItemTitle } from './NavItemTitle';
 import { compareNavItemGroups } from './utils';
@@ -43,10 +43,7 @@ export const NavSection: React.FC<Props> = ({
 
   const [accessReviewExtensions, isAccessReviewExtensionsLoaded] = useAccessReviewExtensions(
     navExtensions,
-    React.useCallback(
-      (e) => (isHrefNavItemExtension(e) ? e.properties.accessReview : undefined),
-      [],
-    ),
+    (e) => (isHrefNavItemExtension(e) ? e.properties.accessReview : undefined),
   );
 
   const navExtensionIsActive = React.useCallback(

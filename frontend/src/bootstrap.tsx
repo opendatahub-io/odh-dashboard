@@ -1,6 +1,6 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import { BrowserRouter as Router } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { sdkStore, store } from './redux/store/store';
 import App from './app/App';
@@ -10,7 +10,22 @@ import { BrowserStorageContextProvider } from './components/browserStorage/Brows
 import ErrorBoundary from './components/error/ErrorBoundary';
 import { ReduxContext } from './redux/context';
 
-/**
+// Creates a data router using createBrowserRouter
+const router = createBrowserRouter([
+  {
+    path: '*',
+    element: (
+      <SDKInitialize>
+        <BrowserStorageContextProvider>
+          <ThemeProvider>
+            <App />
+          </ThemeProvider>
+        </BrowserStorageContextProvider>
+      </SDKInitialize>
+    ),
+  },
+]);
+
 /**
  * Main function
  */
@@ -23,15 +38,7 @@ root.render(
     <ErrorBoundary>
       <Provider store={sdkStore}>
         <Provider store={store} context={ReduxContext}>
-          <Router>
-            <SDKInitialize>
-              <BrowserStorageContextProvider>
-                <ThemeProvider>
-                  <App />
-                </ThemeProvider>
-              </BrowserStorageContextProvider>
-            </SDKInitialize>
-          </Router>
+          <RouterProvider router={router} />
         </Provider>
       </Provider>
     </ErrorBoundary>

@@ -1,9 +1,12 @@
 import React from 'react';
 import { Alert, HelperText, HelperTextItem, Skeleton } from '@patternfly/react-core';
-import PasswordInput from '~/components/PasswordInput';
-import { ModelRegistryKind } from '~/k8sTypes';
-import useFetchState, { FetchStateCallbackPromise, NotReadyError } from '~/utilities/useFetchState';
-import { getModelRegistryBackend } from '~/services/modelRegistrySettingsService';
+import PasswordInput from '#~/components/PasswordInput';
+import { ModelRegistryKind } from '#~/k8sTypes';
+import useFetchState, {
+  FetchStateCallbackPromise,
+  NotReadyError,
+} from '#~/utilities/useFetchState';
+import { getModelRegistryBackend } from '#~/services/modelRegistrySettingsService';
 
 type ModelRegistryDatabasePasswordProps = {
   password: string | undefined;

@@ -1,8 +1,8 @@
 import * as React from 'react';
-import { BiasMetricType } from '~/api';
-import { TrustyAIContext } from '~/concepts/trustyai/context/TrustyAIContext';
-import { BiasMetricConfig } from '~/concepts/trustyai/types';
-import DeleteModal from '~/pages/projects/components/DeleteModal';
+import { BiasMetricType } from '#~/api';
+import { TrustyAIContext } from '#~/concepts/trustyai/context/TrustyAIContext';
+import { BiasMetricConfig } from '#~/concepts/trustyai/types';
+import DeleteModal from '#~/pages/projects/components/DeleteModal';
 
 type DeleteBiasConfigurationModalProps = {
   configurationToDelete: BiasMetricConfig;

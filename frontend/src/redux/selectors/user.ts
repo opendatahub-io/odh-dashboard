@@ -1,6 +1,6 @@
-import { AppState } from '~/redux/types';
-import { useAppSelector } from '~/redux/hooks';
-import { isStateEqual } from '~/redux/selectors/utils';
+import { AppState } from '#~/redux/types';
+import { useAppSelector } from '#~/redux/hooks';
+import { isStateEqual } from '#~/redux/selectors/utils';
 import { UserState } from './types';
 
 const getUser = (state: AppState): UserState => ({

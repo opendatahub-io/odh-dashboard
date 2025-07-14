@@ -1,4 +1,4 @@
-import { extractNumberAndTimeUnit } from '~/concepts/pipelines/content/createRun/contentSections/utils';
+import { extractNumberAndTimeUnit } from '#~/concepts/pipelines/content/createRun/contentSections/utils';
 
 describe('extractNumberAndTimeUnit', () => {
   test('splits valid numeric and unit parts', () => {

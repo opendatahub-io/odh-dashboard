@@ -1,12 +1,12 @@
 import * as React from 'react';
 import { HelperText, HelperTextItem, FormGroup } from '@patternfly/react-core';
-import { fetchNIMModelNames, ModelInfo } from '~/pages/modelServing/screens/projects/utils';
-import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
+import { fetchNIMModelNames, ModelInfo } from '#~/pages/modelServing/screens/projects/utils';
+import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
 import {
   CreatingInferenceServiceObject,
   CreatingServingRuntimeObject,
-} from '~/pages/modelServing/screens/types';
-import TypeaheadSelect, { TypeaheadSelectOption } from '~/components/TypeaheadSelect';
+} from '#~/pages/modelServing/screens/types';
+import TypeaheadSelect, { TypeaheadSelectOption } from '#~/components/TypeaheadSelect';
 
 type NIMModelListSectionProps = {
   inferenceServiceData: CreatingInferenceServiceObject;

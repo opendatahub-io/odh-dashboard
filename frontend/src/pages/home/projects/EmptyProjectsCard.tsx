@@ -10,8 +10,8 @@ import {
   Content,
 } from '@patternfly/react-core';
 import { ArrowRightIcon } from '@patternfly/react-icons';
-import getStartedImage from '~/images/AI_ML-illustration-Blog-thumbnail.svg';
-import WhosMyAdministrator from '~/components/WhosMyAdministrator';
+import getStartedImage from '#~/images/AI_ML-illustration-Blog-thumbnail.svg';
+import WhosMyAdministrator from '#~/components/WhosMyAdministrator';
 
 type EmptyProjectsCardProps = {
   allowCreate: boolean;

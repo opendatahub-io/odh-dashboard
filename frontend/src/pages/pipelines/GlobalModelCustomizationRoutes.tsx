@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { Navigate, Route } from 'react-router-dom';
-import ProjectsRoutes from '~/concepts/projects/ProjectsRoutes';
-import { getModelCustomizationPath } from '~/routes/pipelines/modelCustomization';
-import ModelCustomization from '~/pages/pipelines/global/modelCustomization/landingPage/ModelCustomization';
+import ProjectsRoutes from '#~/concepts/projects/ProjectsRoutes';
+import { getModelCustomizationPath } from '#~/routes/pipelines/modelCustomization';
+import ModelCustomization from '#~/pages/pipelines/global/modelCustomization/landingPage/ModelCustomization';
 import ModelCustomizationForm from './global/modelCustomization/ModelCustomizationForm';
 import GlobalPipelineCoreLoader from './global/GlobalPipelineCoreLoader';
 

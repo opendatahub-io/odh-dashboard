@@ -6,13 +6,13 @@ import {
   k8sListResource,
   k8sUpdateResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
-import { mock200Status, mock404Error } from '~/__mocks__/mockK8sStatus';
-import { mockModelServingPodSpecOptions } from '~/__mocks__/mockModelServingPodSpecOptions';
-import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
-import { mockServingRuntimeK8sResource } from '~/__mocks__/mockServingRuntimeK8sResource';
-import { mockServingRuntimeModalData } from '~/__mocks__/mockServingRuntimeModalData';
-import { mockServingRuntimeTemplateK8sResource } from '~/__mocks__/mockServingRuntimeTemplateK8sResource';
+import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
+import { mock200Status, mock404Error } from '#~/__mocks__/mockK8sStatus';
+import { mockModelServingPodSpecOptions } from '#~/__mocks__/mockModelServingPodSpecOptions';
+import { mockProjectK8sResource } from '#~/__mocks__/mockProjectK8sResource';
+import { mockServingRuntimeK8sResource } from '#~/__mocks__/mockServingRuntimeK8sResource';
+import { mockServingRuntimeModalData } from '#~/__mocks__/mockServingRuntimeModalData';
+import { mockServingRuntimeTemplateK8sResource } from '#~/__mocks__/mockServingRuntimeTemplateK8sResource';
 import {
   assembleServingRuntime,
   createServingRuntime,
@@ -22,11 +22,11 @@ import {
   listScopedServingRuntimes,
   listServingRuntimes,
   updateServingRuntime,
-} from '~/api/k8s/servingRuntimes';
-import { ProjectModel, ServingRuntimeModel } from '~/api/models';
-import { ModelServingPodSpecOptions } from '~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
-import { TolerationOperator, TolerationEffect } from '~/types';
-import { ProjectKind, ServingRuntimeKind } from '~/k8sTypes';
+} from '#~/api/k8s/servingRuntimes';
+import { ProjectModel, ServingRuntimeModel } from '#~/api/models';
+import { ModelServingPodSpecOptions } from '#~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
+import { TolerationOperator, TolerationEffect } from '#~/types';
+import { ProjectKind, ServingRuntimeKind } from '#~/k8sTypes';
 
 global.structuredClone = (val: unknown) => JSON.parse(JSON.stringify(val));
 

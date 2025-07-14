@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { useDeepCompareMemoize } from '~/utilities/useDeepCompareMemoize';
-import { useEventListener } from '~/utilities/useEventListener';
+import { useDeepCompareMemoize } from '#~/utilities/useDeepCompareMemoize';
+import { useEventListener } from '#~/utilities/useEventListener';
 
 type ValueMap = { [storageKey: string]: unknown };
 export type BrowserStorageContextType = {

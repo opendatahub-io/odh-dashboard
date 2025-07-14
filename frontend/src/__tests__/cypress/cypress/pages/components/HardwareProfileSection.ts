@@ -1,4 +1,4 @@
-import type { ContainerResources } from '~/types';
+import type { ContainerResources } from '#~/types';
 import { Contextual } from './Contextual';
 
 class HardwareProfileGroup extends Contextual<HTMLElement> {}

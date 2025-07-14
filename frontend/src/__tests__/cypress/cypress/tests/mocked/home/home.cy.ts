@@ -1,7 +1,7 @@
-import { enabledPage } from '~/__tests__/cypress/cypress/pages/enabled';
-import { mockComponents } from '~/__mocks__/mockComponents';
-import { homePage } from '~/__tests__/cypress/cypress/pages/home/home';
-import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url';
+import { enabledPage } from '#~/__tests__/cypress/cypress/pages/enabled';
+import { mockComponents } from '#~/__mocks__/mockComponents';
+import { homePage } from '#~/__tests__/cypress/cypress/pages/home/home';
+import { verifyRelativeURL } from '#~/__tests__/cypress/cypress/utils/url';
 
 describe('Home page', () => {
   beforeEach(() => {

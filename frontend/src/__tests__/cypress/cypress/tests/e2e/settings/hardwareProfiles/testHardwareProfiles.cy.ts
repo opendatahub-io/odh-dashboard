@@ -2,13 +2,13 @@ import yaml from 'js-yaml';
 import {
   hardwareProfile,
   createHardwareProfile,
-} from '~/__tests__/cypress/cypress/pages/hardwareProfile';
-import { HTPASSWD_CLUSTER_ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
-import type { HardwareProfilesData } from '~/__tests__/cypress/cypress/types';
-import { retryableBefore } from '~/__tests__/cypress/cypress/utils/retryableHooks';
-import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
-import { cleanupHardwareProfiles } from '~/__tests__/cypress/cypress/utils/oc_commands/hardwareProfiles';
-import { generateTestUUID } from '~/__tests__/cypress/cypress/utils/uuidGenerator';
+} from '#~/__tests__/cypress/cypress/pages/hardwareProfile';
+import { HTPASSWD_CLUSTER_ADMIN_USER } from '#~/__tests__/cypress/cypress/utils/e2eUsers';
+import type { HardwareProfilesData } from '#~/__tests__/cypress/cypress/types';
+import { retryableBefore } from '#~/__tests__/cypress/cypress/utils/retryableHooks';
+import { deleteModal } from '#~/__tests__/cypress/cypress/pages/components/DeleteModal';
+import { cleanupHardwareProfiles } from '#~/__tests__/cypress/cypress/utils/oc_commands/hardwareProfiles';
+import { generateTestUUID } from '#~/__tests__/cypress/cypress/utils/uuidGenerator';
 
 describe('[Feature behing a Dev Feature Flag] Verify Hardware Profiles - Creating, Editing and Deleting', () => {
   // This feature is under active development (see RHOAIENG-9399) and requires a developer flag to be enabled.

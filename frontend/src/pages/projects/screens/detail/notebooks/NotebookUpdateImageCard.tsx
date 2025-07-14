@@ -1,11 +1,11 @@
 import { Card, CardHeader, CardBody, Stack, StackItem, Title } from '@patternfly/react-core';
 import * as React from 'react';
-import { ImageStreamSpecTagType } from '~/k8sTypes';
-import NotebookImagePackageDetails from '~/pages/projects/notebook/NotebookImagePackageDetails';
+import { ImageStreamSpecTagType } from '#~/k8sTypes';
+import NotebookImagePackageDetails from '#~/pages/projects/notebook/NotebookImagePackageDetails';
 import {
   getImageVersionDependencies,
   getImageVersionSoftwareString,
-} from '~/pages/projects/screens/spawner/spawnerUtils';
+} from '#~/pages/projects/screens/spawner/spawnerUtils';
 
 type NotebookUpdateImageCardProps = {
   id: string;

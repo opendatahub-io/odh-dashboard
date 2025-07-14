@@ -1,5 +1,4 @@
 import {
-  Breadcrumb,
   BreadcrumbItem,
   Bullseye,
   EmptyState,
@@ -15,23 +14,24 @@ import {
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import React from 'react';
 import { useNavigate, useParams } from 'react-router';
-import { useGetArtifactTypes } from '~/concepts/pipelines/apiHooks/mlmd/useGetArtifactTypes';
-import { useGetEventsByExecutionId } from '~/concepts/pipelines/apiHooks/mlmd/useGetEventsByExecutionId';
-import { useGetExecutionById } from '~/concepts/pipelines/apiHooks/mlmd/useGetExecutionById';
-import { PipelineCoreDetailsPageComponent } from '~/concepts/pipelines/content/types';
-import ApplicationsPage from '~/pages/ApplicationsPage';
-import { inputOutputSectionTitle } from '~/pages/pipelines/global/experiments/executions/const';
-import ExecutionDetailsCustomPropertiesSection from '~/pages/pipelines/global/experiments/executions/details/ExecutionDetailsCustomPropertiesSection';
-import ExecutionDetailsIDSection from '~/pages/pipelines/global/experiments/executions/details/ExecutionDetailsIDSection';
-import ExecutionDetailsInputOutputSection from '~/pages/pipelines/global/experiments/executions/details/ExecutionDetailsInputOutputSection';
-import ExecutionDetailsPropertiesSection from '~/pages/pipelines/global/experiments/executions/details/ExecutionDetailsPropertiesSection';
-import ExecutionDetailsReferenceSection from '~/pages/pipelines/global/experiments/executions/details/ExecutionDetailsReferenceSection';
-import { ExecutionStatus } from '~/pages/pipelines/global/experiments/executions/ExecutionStatus';
+import { useGetArtifactTypes } from '#~/concepts/pipelines/apiHooks/mlmd/useGetArtifactTypes';
+import { useGetEventsByExecutionId } from '#~/concepts/pipelines/apiHooks/mlmd/useGetEventsByExecutionId';
+import { useGetExecutionById } from '#~/concepts/pipelines/apiHooks/mlmd/useGetExecutionById';
+import { PipelineCoreDetailsPageComponent } from '#~/concepts/pipelines/content/types';
+import ApplicationsPage from '#~/pages/ApplicationsPage';
+import { inputOutputSectionTitle } from '#~/pages/pipelines/global/experiments/executions/const';
+import ExecutionDetailsCustomPropertiesSection from '#~/pages/pipelines/global/experiments/executions/details/ExecutionDetailsCustomPropertiesSection';
+import ExecutionDetailsIDSection from '#~/pages/pipelines/global/experiments/executions/details/ExecutionDetailsIDSection';
+import ExecutionDetailsInputOutputSection from '#~/pages/pipelines/global/experiments/executions/details/ExecutionDetailsInputOutputSection';
+import ExecutionDetailsPropertiesSection from '#~/pages/pipelines/global/experiments/executions/details/ExecutionDetailsPropertiesSection';
+import ExecutionDetailsReferenceSection from '#~/pages/pipelines/global/experiments/executions/details/ExecutionDetailsReferenceSection';
+import { ExecutionStatus } from '#~/pages/pipelines/global/experiments/executions/ExecutionStatus';
+import PipelineContextBreadcrumb from '#~/concepts/pipelines/content/PipelineContextBreadcrumb';
 import {
   getExecutionDisplayName,
   parseEventsByType,
-} from '~/pages/pipelines/global/experiments/executions/utils';
-import { Event } from '~/third_party/mlmd';
+} from '#~/pages/pipelines/global/experiments/executions/utils';
+import { Event } from '#~/third_party/mlmd';
 
 const ExecutionDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, contextPath }) => {
   const { executionId } = useParams();
@@ -91,10 +91,10 @@ const ExecutionDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, co
       }
       loaded
       breadcrumb={
-        <Breadcrumb>
+        <PipelineContextBreadcrumb>
           {breadcrumbPath}
           <BreadcrumbItem isActive>{displayName}</BreadcrumbItem>
-        </Breadcrumb>
+        </PipelineContextBreadcrumb>
       }
       empty={false}
       provideChildrenPadding

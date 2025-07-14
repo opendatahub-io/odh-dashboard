@@ -1,17 +1,17 @@
-import { ServingRuntimeKind } from '~/k8sTypes';
-import { fetchInferenceServiceCount } from '~/pages/modelServing/screens/projects/utils';
-import { deletePvc, deleteSecret, listNIMAccounts } from '~/api';
+import { ServingRuntimeKind } from '#~/k8sTypes';
+import { fetchInferenceServiceCount } from '#~/pages/modelServing/screens/projects/utils';
+import { deletePvc, deleteSecret, listNIMAccounts } from '#~/api';
 import {
   fetchNIMAccountTemplateName,
   getNIMResourcesToDelete,
-} from '~/pages/modelServing/screens/projects/nimUtils';
-import { mockNimAccount } from '~/__mocks__/mockNimAccount';
-import { mockServingRuntimeK8sResource } from '~/__mocks__';
+} from '#~/pages/modelServing/screens/projects/nimUtils';
+import { mockNimAccount } from '#~/__mocks__/mockNimAccount';
+import { mockServingRuntimeK8sResource } from '#~/__mocks__';
 
-jest.mock('~/pages/modelServing/screens/projects/utils', () => ({
+jest.mock('#~/pages/modelServing/screens/projects/utils', () => ({
   fetchInferenceServiceCount: jest.fn(),
 }));
-jest.mock('~/api', () => ({
+jest.mock('#~/api', () => ({
   deletePvc: jest.fn(),
   deleteSecret: jest.fn(),
   listNIMAccounts: jest.fn(),

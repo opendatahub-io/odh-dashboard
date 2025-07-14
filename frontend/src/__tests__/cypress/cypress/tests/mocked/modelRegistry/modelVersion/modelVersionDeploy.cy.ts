@@ -1,28 +1,35 @@
 /* eslint-disable camelcase */
 import {
   mockCustomSecretK8sResource,
+  mockDashboardConfig,
   mockK8sResourceList,
   mockSecretK8sResource,
-} from '~/__mocks__';
-import { mockRegisteredModelList } from '~/__mocks__/mockRegisteredModelsList';
+} from '#~/__mocks__';
+import { mockRegisteredModelList } from '#~/__mocks__/mockRegisteredModelsList';
 import {
+  AcceleratorProfileModel,
   SecretModel,
   ServiceModel,
   ServingRuntimeModel,
-} from '~/__tests__/cypress/cypress/utils/models';
-import { mockModelVersionList } from '~/__mocks__/mockModelVersionList';
-import { mockModelVersion } from '~/__mocks__/mockModelVersion';
-import type { ModelVersion } from '~/concepts/modelRegistry/types';
-import { ModelState } from '~/concepts/modelRegistry/types';
-import { mockRegisteredModel } from '~/__mocks__/mockRegisteredModel';
-import { modelRegistry } from '~/__tests__/cypress/cypress/pages/modelRegistry';
-import { mockModelRegistryService } from '~/__mocks__/mockModelRegistryService';
-import { modelVersionDeployModal } from '~/__tests__/cypress/cypress/pages/modelRegistry/modelVersionDeployModal';
-import { mockModelArtifactList } from '~/__mocks__/mockModelArtifactList';
-import { kserveModal } from '~/__tests__/cypress/cypress/pages/modelServing';
-import { mockModelArtifact } from '~/__mocks__/mockModelArtifact';
-import { initDeployPrefilledModelIntercepts } from '~/__tests__/cypress/cypress/utils/modelServingUtils';
-import { hardwareProfileSection } from '~/__tests__/cypress/cypress/pages/components/HardwareProfileSection';
+} from '#~/__tests__/cypress/cypress/utils/models';
+import { mockModelVersionList } from '#~/__mocks__/mockModelVersionList';
+import { mockModelVersion } from '#~/__mocks__/mockModelVersion';
+import type { ModelVersion } from '#~/concepts/modelRegistry/types';
+import { ModelState } from '#~/concepts/modelRegistry/types';
+import { mockRegisteredModel } from '#~/__mocks__/mockRegisteredModel';
+import { modelRegistry } from '#~/__tests__/cypress/cypress/pages/modelRegistry';
+import { mockModelRegistryService } from '#~/__mocks__/mockModelRegistryService';
+import { modelVersionDeployModal } from '#~/__tests__/cypress/cypress/pages/modelRegistry/modelVersionDeployModal';
+import { mockModelArtifactList } from '#~/__mocks__/mockModelArtifactList';
+import { kserveModal } from '#~/__tests__/cypress/cypress/pages/modelServing';
+import { mockModelArtifact } from '#~/__mocks__/mockModelArtifact';
+import { initDeployPrefilledModelIntercepts } from '#~/__tests__/cypress/cypress/utils/modelServingUtils';
+import { hardwareProfileSection } from '#~/__tests__/cypress/cypress/pages/components/HardwareProfileSection';
+import {
+  mockGlobalScopedAcceleratorProfiles,
+  mockProjectScopedAcceleratorProfiles,
+} from '#~/__mocks__/mockAcceleratorProfile';
+import { acceleratorProfileSection } from '#~/__tests__/cypress/cypress/pages/components/subComponents/AcceleratorProfileSection';
 
 const MODEL_REGISTRY_API_VERSION = 'v1alpha3';
 
@@ -198,6 +205,17 @@ const initIntercepts = ({
     },
     mockModelArtifactList({}),
   );
+
+  // Mock accelerator profiles
+  cy.interceptK8sList(
+    { model: AcceleratorProfileModel, ns: 'opendatahub' },
+    mockK8sResourceList(mockGlobalScopedAcceleratorProfiles),
+  ).as('acceleratorProfiles');
+
+  cy.interceptK8sList(
+    { model: AcceleratorProfileModel, ns: 'test-project' },
+    mockK8sResourceList(mockProjectScopedAcceleratorProfiles),
+  ).as('acceleratorProfiles');
 };
 
 describe('Deploy model version', () => {
@@ -337,7 +355,6 @@ describe('Deploy model version', () => {
     kserveModal.findModelNameInput().should('exist');
 
     kserveModal.findServingRuntimeTemplateSearchSelector().click();
-    const projectScopedSR = kserveModal.getProjectScopedServingRuntime();
 
     // Verify both groups are initially visible
     cy.contains('Project-scoped serving runtimes').should('be.visible');
@@ -360,8 +377,8 @@ describe('Deploy model version', () => {
     kserveModal.findServingRuntimeTemplateSearchInput().should('be.visible').clear();
 
     // Check for project specific serving runtimes
-    projectScopedSR.find().findByRole('menuitem', { name: 'Caikit', hidden: true }).click();
-    kserveModal.findProjectScopedLabel().should('exist');
+    kserveModal.findProjectScopedTemplateOption('Caikit').click();
+    acceleratorProfileSection.findProjectScopedLabel().should('exist');
     kserveModal.findModelFrameworkSelect().should('be.disabled');
     kserveModal.findModelFrameworkSelect().should('have.text', 'openvino_ir - opset1');
     cy.findByText(
@@ -372,9 +389,8 @@ describe('Deploy model version', () => {
 
     // Check for global specific serving runtimes
     kserveModal.findServingRuntimeTemplateSearchSelector().click();
-    const globalScopedSR = kserveModal.getGlobalScopedServingRuntime();
-    globalScopedSR.find().findByRole('menuitem', { name: 'Multi Platform', hidden: true }).click();
-    kserveModal.findGlobalScopedLabel().should('exist');
+    kserveModal.findGlobalScopedTemplateOption('Multi Platform').click();
+    acceleratorProfileSection.findGlobalScopedLabel().should('exist');
     kserveModal.findModelFrameworkSelect().should('be.enabled');
     kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
     cy.findByText(
@@ -385,16 +401,16 @@ describe('Deploy model version', () => {
 
     // check model framework selection when serving runtime changes
     kserveModal.findServingRuntimeTemplateSearchSelector().click();
-    globalScopedSR.find().findByRole('menuitem', { name: 'Multi Platform', hidden: true }).click();
+    kserveModal.findGlobalScopedTemplateOption('Multi Platform').click();
     kserveModal.findModelFrameworkSelect().should('have.text', 'onnx - 1');
 
     kserveModal.findServingRuntimeTemplateSearchSelector().click();
-    globalScopedSR.find().findByRole('menuitem', { name: 'Caikit', hidden: true }).click();
+    kserveModal.findGlobalScopedTemplateOption('Caikit').click();
     kserveModal.findModelFrameworkSelect().should('be.enabled');
     kserveModal.findModelFrameworkSelect().should('have.text', 'Select a framework');
 
     kserveModal.findServingRuntimeTemplateSearchSelector().click();
-    projectScopedSR.find().findByRole('menuitem', { name: 'Caikit', hidden: true }).click();
+    kserveModal.findProjectScopedTemplateOption('Caikit').click();
     kserveModal.findModelFrameworkSelect().should('be.disabled');
     kserveModal.findModelFrameworkSelect().should('have.text', 'openvino_ir - opset1');
   });
@@ -435,6 +451,44 @@ describe('Deploy model version', () => {
     hardwareProfileSection.findGlobalScopedLabel().should('exist');
   });
 
+  it('Display project specific accelerator profile while deploying', () => {
+    initIntercepts({ disableProjectScoped: false });
+    cy.visit(`/modelRegistry/modelregistry-sample/registeredModels/1/versions`);
+    const modelVersionRow = modelRegistry.getModelVersionRow('test model version 4');
+    modelVersionRow.findKebabAction('Deploy').click();
+    modelVersionDeployModal.selectProjectByName('Test project');
+    kserveModal.findModelNameInput().should('exist');
+
+    // Verify accelerator profile section exists
+    acceleratorProfileSection.findAcceleratorProfileSearchSelector().should('exist');
+    acceleratorProfileSection.findAcceleratorProfileSearchSelector().click();
+
+    // verify available project-scoped accelerator profile
+    const projectScopedAcceleratorProfile =
+      acceleratorProfileSection.getProjectScopedAcceleratorProfile();
+    projectScopedAcceleratorProfile
+      .find()
+      .findByRole('menuitem', {
+        name: 'Small Profile nvidia.com/gpu',
+        hidden: true,
+      })
+      .click();
+    acceleratorProfileSection.findProjectScopedLabel().should('exist');
+
+    // verify available global-scoped accelerator profile
+    acceleratorProfileSection.findAcceleratorProfileSearchSelector().click();
+    const globalScopedAcceleratorProfile =
+      acceleratorProfileSection.getGlobalScopedAcceleratorProfile();
+    globalScopedAcceleratorProfile
+      .find()
+      .findByRole('menuitem', {
+        name: 'Small Profile Global nvidia.com/gpu',
+        hidden: true,
+      })
+      .click();
+    acceleratorProfileSection.findGlobalScopedLabel().should('exist');
+  });
+
   it('Selects Create Connection in case of no matching connections', () => {
     initIntercepts({});
     cy.interceptK8sList(
@@ -461,7 +515,8 @@ describe('Deploy model version', () => {
     // Validate model framework section
     kserveModal.findModelFrameworkSelect().should('be.disabled');
     cy.findByText('The format of the source model is').should('not.exist');
-    kserveModal.findServingRuntimeTemplateDropdown().findSelectOption('Multi Platform').click();
+    kserveModal.findServingRuntimeTemplateSearchSelector().click();
+    kserveModal.findGlobalScopedTemplateOption('Multi Platform').click();
     kserveModal.findModelFrameworkSelect().should('be.enabled');
     cy.findByText(
       `The format of the source model is ${modelArtifactMocked.modelFormatName ?? ''} - ${
@@ -471,6 +526,36 @@ describe('Deploy model version', () => {
 
     // Validate connection section
     kserveModal.findNewConnectionOption().should('be.checked');
+    kserveModal.findConnectionNameInput().should('have.value', 'test storage key');
+    kserveModal.findLocationBucketInput().should('have.value', 'test-bucket');
+    kserveModal.findLocationEndpointInput().should('have.value', 'test-endpoint');
+    kserveModal.findLocationRegionInput().should('have.value', 'test-region');
+    kserveModal.findLocationPathInput().should('have.value', 'demo-models/test-path');
+  });
+
+  it('Selects Create Connection in case of no connections in project', () => {
+    initIntercepts({});
+    cy.visit(`/modelRegistry/modelregistry-sample/registeredModels/1/versions`);
+    const modelVersionRow = modelRegistry.getModelVersionRow(modelVersionMocked2.name);
+    modelVersionRow.findKebabAction('Deploy').click();
+    modelVersionDeployModal.selectProjectByName('KServe project');
+
+    // Validate name input field
+    kserveModal.findModelNameInput().should('exist');
+
+    // Validate model framework section
+    kserveModal.findModelFrameworkSelect().should('be.disabled');
+    cy.findByText('The format of the source model is').should('not.exist');
+    kserveModal.findServingRuntimeTemplateSearchSelector().click();
+    kserveModal.findGlobalScopedTemplateOption('Multi Platform').click();
+    kserveModal.findModelFrameworkSelect().should('be.enabled');
+    cy.findByText(
+      `The format of the source model is ${modelArtifactMocked.modelFormatName ?? ''} - ${
+        modelArtifactMocked.modelFormatVersion ?? ''
+      }`,
+    ).should('exist');
+
+    // Validate connection section
     kserveModal.findConnectionNameInput().should('have.value', 'test storage key');
     kserveModal.findLocationBucketInput().should('have.value', 'test-bucket');
     kserveModal.findLocationEndpointInput().should('have.value', 'test-endpoint');
@@ -720,5 +805,33 @@ describe('Deploy model version', () => {
     modelVersionRow.findKebabAction('Deploy').click();
     modelVersionDeployModal.selectProjectByName('KServe project');
     kserveModal.findSpinner().should('exist');
+  });
+
+  it('does not show deploy in the kebab menu option when model serving is disabled', () => {
+    initIntercepts({});
+    cy.interceptOdh(
+      'GET /api/config',
+      mockDashboardConfig({
+        disableModelServing: true,
+      }),
+    );
+    cy.visit(`/modelRegistry/modelregistry-sample/registeredModels/1/versions`);
+    const modelVersionRow = modelRegistry.getModelVersionRow('test model version 3');
+    modelVersionRow.findKebab().click();
+    cy.get('[role="menu"]').within(() => {
+      cy.contains('Deploy').should('not.exist');
+    });
+  });
+
+  it('shows a disabled deploy menu option in the kebab menu for the model with OCI URI when kserve is disabled', () => {
+    initIntercepts({ kServeInstalled: false });
+    cy.visit(`/modelRegistry/modelregistry-sample/registeredModels/1/versions`);
+    cy.visit(`/modelRegistry/modelregistry-sample/registeredModels/1/versions`);
+    const modelVersionRow = modelRegistry.getModelVersionRow('test model version 4');
+    modelVersionRow.findKebabAction('Deploy').click();
+    cy.findByRole('tooltip').should(
+      'contain.text',
+      'To deploy this model, an administrator must first enable single-model serving in the cluster settings.',
+    );
   });
 });

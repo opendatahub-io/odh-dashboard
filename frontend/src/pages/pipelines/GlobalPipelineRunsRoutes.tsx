@@ -1,30 +1,31 @@
 import * as React from 'react';
 import { Navigate, Route } from 'react-router-dom';
-import ProjectsRoutes from '~/concepts/projects/ProjectsRoutes';
-import GlobalPipelineCoreLoader from '~/pages/pipelines/global/GlobalPipelineCoreLoader';
-import { PipelineRunCoreDetails } from '~/pages/pipelines/global/GlobalPipelineCoreDetails';
-import { globNamespaceAll, pipelineRunsBaseRoute } from '~/routes';
-import { PipelineRunType } from '~/pages/pipelines/global/runs';
-import PipelineAvailabilityLoader from '~/pages/pipelines/global/pipelines/PipelineAvailabilityLoader';
-import GlobalPipelineRuns from '~/pages/pipelines/global/runs/GlobalPipelineRuns';
+import ProjectsRoutes from '#~/concepts/projects/ProjectsRoutes';
+import GlobalPipelineCoreLoader from '#~/pages/pipelines/global/GlobalPipelineCoreLoader';
+import { PipelineRunCoreDetails } from '#~/pages/pipelines/global/GlobalPipelineCoreDetails';
+import { globNamespaceAll } from '#~/routes/pipelines/global';
+import { pipelineRunsBaseRoute } from '#~/routes/pipelines/runs';
+import { PipelineRunType } from '#~/pages/pipelines/global/runs/types';
+import PipelineAvailabilityLoader from '#~/pages/pipelines/global/pipelines/PipelineAvailabilityLoader';
+import GlobalPipelineRuns from '#~/pages/pipelines/global/runs/GlobalPipelineRuns';
 import {
   pipelineRunsPageDescription,
   pipelineRunsPageTitle,
-} from '~/pages/pipelines/global/runs/const';
+} from '#~/pages/pipelines/global/runs/const';
 import {
   GlobalComparePipelineRunsLoader,
   GlobalManagePipelineRunsLoader,
-} from '~/pages/pipelines/global/experiments/compareRuns/GlobalComparePipelineRunsLoader';
-import CompareRunsPage from '~/pages/pipelines/global/experiments/compareRuns/CompareRunsPage';
-import ManageRunsPage from '~/pages/pipelines/global/experiments/compareRuns/ManageRunsPage';
-import GlobalPipelineRunDetails from '~/pages/pipelines/global/runs/GlobalPipelineRunDetails';
-import GlobalPipelineRecurringRunDetails from '~/pages/pipelines/global/runs/GlobalPipelineRecurringRunDetails';
+} from '#~/pages/pipelines/global/experiments/compareRuns/GlobalComparePipelineRunsLoader';
+import CompareRunsPage from '#~/pages/pipelines/global/experiments/compareRuns/CompareRunsPage';
+import ManageRunsPage from '#~/pages/pipelines/global/experiments/compareRuns/ManageRunsPage';
+import GlobalPipelineRunDetails from '#~/pages/pipelines/global/runs/GlobalPipelineRunDetails';
+import GlobalPipelineRecurringRunDetails from '#~/pages/pipelines/global/runs/GlobalPipelineRecurringRunDetails';
 import {
   GlobalPipelineCreateRecurringRunPagePage,
   GlobalPipelineCreateRunPage,
-} from '~/pages/pipelines/global/runs/GlobalPipelineCreateRunPage';
-import GlobalPipelineDuplicateRunPage from '~/pages/pipelines/global/runs/GlobalPipelineDuplicateRunPage';
-import GlobalPipelineDuplicateRecurringRunPage from '~/pages/pipelines/global/runs/GlobalPipelineDuplicateRecurringRunPage';
+} from '#~/pages/pipelines/global/runs/GlobalPipelineCreateRunPage';
+import GlobalPipelineDuplicateRunPage from '#~/pages/pipelines/global/runs/GlobalPipelineDuplicateRunPage';
+import GlobalPipelineDuplicateRecurringRunPage from '#~/pages/pipelines/global/runs/GlobalPipelineDuplicateRecurringRunPage';
 
 const GlobalPipelineRunsRoutes: React.FC = () => (
   <ProjectsRoutes>

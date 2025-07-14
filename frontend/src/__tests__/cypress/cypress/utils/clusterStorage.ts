@@ -1,4 +1,4 @@
-import { clusterStorage } from '~/__tests__/cypress/cypress/pages/clusterStorage';
+import { clusterStorage } from '#~/__tests__/cypress/cypress/pages/clusterStorage';
 
 /**
  * Find the "Add cluster storage" button in the DSP details Cluster Storage tab.

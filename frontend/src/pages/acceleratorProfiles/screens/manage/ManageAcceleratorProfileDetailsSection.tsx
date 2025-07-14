@@ -2,8 +2,8 @@ import { FormGroup, Switch, Popover } from '@patternfly/react-core';
 import React from 'react';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { useSearchParams } from 'react-router-dom';
-import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
-import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
+import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
+import DashboardPopupIconButton from '#~/concepts/dashboard/DashboardPopupIconButton';
 import { AcceleratorProfileFormData } from './types';
 import { IdentifierSelectField } from './IdentifierSelectField';
 

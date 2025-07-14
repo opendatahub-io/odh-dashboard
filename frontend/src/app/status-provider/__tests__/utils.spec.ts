@@ -1,5 +1,5 @@
 import type { StatusReport } from '@odh-dashboard/plugin-core/extension-points';
-import { getStatusReportSummary } from '~/app/status-provider/utils';
+import { getStatusReportSummary } from '#~/app/status-provider/utils';
 
 describe('getStatusReportSummary', () => {
   it('should return undefined for an empty array', () => {

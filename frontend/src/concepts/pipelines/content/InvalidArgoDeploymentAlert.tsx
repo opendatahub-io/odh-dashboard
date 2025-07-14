@@ -1,9 +1,9 @@
 import React from 'react';
 import { Alert, AlertActionCloseButton } from '@patternfly/react-core';
-import { useBrowserStorage } from '~/components/browserStorage';
-import { useIsAreaAvailable, SupportedArea } from '~/concepts/areas';
-import PipelineMigrationNoteLinks from '~/concepts/pipelines/content/PipelineMigrationNoteLinks';
-import { ODH_PRODUCT_NAME } from '~/utilities/const';
+import { useBrowserStorage } from '#~/components/browserStorage/BrowserStorageContext';
+import { useIsAreaAvailable, SupportedArea } from '#~/concepts/areas';
+import PipelineMigrationNoteLinks from '#~/concepts/pipelines/content/PipelineMigrationNoteLinks';
+import { ODH_PRODUCT_NAME } from '#~/utilities/const';
 
 export const InvalidArgoDeploymentAlert: React.FC = () => {
   const [invalidArgoDeploymentAlertDismissed, setInvalidArgoDeploymentAlertDismissed] =

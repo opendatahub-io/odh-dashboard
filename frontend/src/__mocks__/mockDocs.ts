@@ -1,4 +1,4 @@
-import { OdhDocument } from '~/types';
+import { OdhDocument } from '#~/types';
 
 export const mockDocs = (): OdhDocument[] => [
   {
@@ -75,6 +75,25 @@ export const mockDocs = (): OdhDocument[] => [
       durationMinutes: 15,
       type: 'how-to',
       url: 'https://docs.redhat.com/en/documentation/red_hat_openshift_ai_cloud_service/1/html/working_with_connected_applications/using_the_jupyter_application#viewing-python-packages-installed-on-your-notebook-server_connected-apps',
+    },
+  },
+  {
+    metadata: {
+      annotations: {
+        'internal.config.kubernetes.io/previousKinds': 'OdhDocument',
+        'internal.config.kubernetes.io/previousNames': 'jupyterhub-install-python-packages',
+        'internal.config.kubernetes.io/previousNamespaces': 'default',
+        'opendatahub.io/categories': '',
+      },
+      name: 'test-doc',
+    },
+    spec: {
+      appName: 'test-provider',
+      description: 'Install additional python packages into your notebook server.',
+      displayName: 'test',
+      durationMinutes: 15,
+      type: 'how-to',
+      url: 'https://docs.redhat.com/en/documentation/red_hat_openshift_ai_cloud_service/1/html/working_with_connected_applications/using_the_jupyter_application#installing-python-packages-on-your-notebook-server_connected-apps',
     },
   },
 ];

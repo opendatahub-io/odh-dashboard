@@ -2,7 +2,7 @@ import {
   verifyOpenShiftProjectExists,
   deleteOpenShiftProject,
   createOpenShiftProject,
-} from '~/__tests__/cypress/cypress/utils/oc_commands/project';
+} from '#~/__tests__/cypress/cypress/utils/oc_commands/project';
 
 export const createAndVerifyProject = (projectName: string): void => {
   createOpenShiftProject(projectName).then((result) => {
@@ -20,7 +20,7 @@ export const createCleanProject = (projectName: string): void => {
   verifyOpenShiftProjectExists(projectName).then((exists) => {
     if (exists) {
       cy.log(`Project ${projectName} already exists. Deleting it.`);
-      deleteOpenShiftProject(projectName, { timeout: 300000 });
+      deleteOpenShiftProject(projectName, { wait: true });
     }
     cy.log(`Creating project ${projectName}`);
     createAndVerifyProject(projectName);

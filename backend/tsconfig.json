@@ -4,7 +4,7 @@
     "baseUrl": "./src",
     "module": "commonjs",
     "esModuleInterop": true,
-    "target": "es6",
+    "target": "es2021",
     "noImplicitAny": true,
     "moduleResolution": "node",
     "sourceMap": true,

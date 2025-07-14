@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { Alert, Button, Checkbox, FormGroup, Stack, StackItem } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
-import IndentSection from '~/pages/projects/components/IndentSection';
-import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
-import { CreatingModelServingObjectCommon } from '~/pages/modelServing/screens/types';
+import IndentSection from '#~/pages/projects/components/IndentSection';
+import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
+import { CreatingModelServingObjectCommon } from '#~/pages/modelServing/screens/types';
 import ServingRuntimeTokenInput from './ServingRuntimeTokenInput';
 
 type ServingRuntimeTokenSectionProps<D extends CreatingModelServingObjectCommon> = {

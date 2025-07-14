@@ -1,7 +1,7 @@
 import * as React from 'react';
-import { UseCheckboxTableBaseProps, useCheckboxTableBase } from '~/components/table';
-import { PipelineAndVersionContext } from '~/concepts/pipelines/content/PipelineAndVersionContext';
-import { PipelineKF } from '~/concepts/pipelines/kfTypes';
+import { UseCheckboxTableBaseProps, useCheckboxTableBase } from '#~/components/table';
+import { PipelineAndVersionContext } from '#~/concepts/pipelines/content/PipelineAndVersionContext';
+import { PipelineKF } from '#~/concepts/pipelines/kfTypes';
 
 const usePipelinesCheckboxTable = (
   pipelines: PipelineKF[],

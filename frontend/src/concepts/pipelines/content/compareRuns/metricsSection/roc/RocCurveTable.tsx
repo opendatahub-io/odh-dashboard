@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { TextInput, ToolbarItem } from '@patternfly/react-core';
-import { Table, useCheckboxTableBase } from '~/components/table';
-import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
-import { getLinkedArtifactId } from '~/concepts/pipelines/content/compareRuns/metricsSection/utils';
+import { Table, useCheckboxTableBase } from '#~/components/table';
+import DashboardEmptyTableView from '#~/concepts/dashboard/DashboardEmptyTableView';
+import { getLinkedArtifactId } from '#~/concepts/pipelines/content/compareRuns/metricsSection/utils';
 import RocCurveTableRow from './RocCurveTableRow';
 import { rocCurveColumns } from './const';
 import { FullArtifactPathsAndConfig } from './types';

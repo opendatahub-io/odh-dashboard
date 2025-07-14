@@ -2,12 +2,12 @@ import { Label } from '@patternfly/react-core';
 import { Td, Tr } from '@patternfly/react-table';
 import React from 'react';
 import { Link } from 'react-router';
-import { ArtifactUriLink } from '~/concepts/pipelines/content/artifacts/ArtifactUriLink';
-import PipelinesTableRowTime from '~/concepts/pipelines/content/tables/PipelinesTableRowTime';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { artifactsDetailsRoute } from '~/routes';
-import { Artifact } from '~/third_party/mlmd';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+import { ArtifactUriLink } from '#~/concepts/pipelines/content/artifacts/ArtifactUriLink';
+import PipelinesTableRowTime from '#~/concepts/pipelines/content/tables/PipelinesTableRowTime';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+import { artifactsDetailsRoute } from '#~/routes/pipelines/artifacts';
+import { Artifact } from '#~/third_party/mlmd';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import { getArtifactName, getIsArtifactModelRegistered } from './utils';
 
 type ArtifactsTableRowProps = {

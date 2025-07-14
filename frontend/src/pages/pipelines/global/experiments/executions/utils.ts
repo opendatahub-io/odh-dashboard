@@ -1,5 +1,5 @@
 import { Struct } from 'google-protobuf/google/protobuf/struct_pb';
-import { Event, Execution, Value as MlmdValue } from '~/third_party/mlmd';
+import { Event, Execution, Value as MlmdValue } from '#~/third_party/mlmd';
 
 export type MlmdMetadataValueType = string | number | Struct | undefined;
 

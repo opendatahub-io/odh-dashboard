@@ -1,4 +1,4 @@
-import { AuthKind } from '~/k8sTypes';
+import { AuthKind } from '#~/k8sTypes';
 
 type MockAuthData = {
   adminGroups?: string[];

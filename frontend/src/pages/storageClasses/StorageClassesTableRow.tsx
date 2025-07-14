@@ -1,34 +1,48 @@
 import React from 'react';
 
 import {
-  Flex,
-  FlexItem,
-  Popover,
+  Button,
   DescriptionList,
+  DescriptionListDescription,
   DescriptionListGroup,
   DescriptionListTerm,
-  DescriptionListDescription,
+  Flex,
+  FlexItem,
+  Icon,
+  LabelGroup,
+  Popover,
   Timestamp,
-  Button,
+  Tooltip,
+  Truncate,
 } from '@patternfly/react-core';
-import { Tr, Td, ActionsColumn, TableText } from '@patternfly/react-table';
-import { PencilAltIcon, OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
+import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
+import {
+  ExclamationTriangleIcon,
+  OutlinedQuestionCircleIcon,
+  PencilAltIcon,
+} from '@patternfly/react-icons';
 
-import { MetadataAnnotation, StorageClassConfig, StorageClassKind } from '~/k8sTypes';
-import { TableRowTitleDescription } from '~/components/table';
-import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
-import { NoValue } from '~/components/NoValue';
-import { updateStorageClassConfig } from '~/api';
+import { updateStorageClassConfig } from '#~/api';
+import { NoValue } from '#~/components/NoValue';
+import { TableRowTitleDescription } from '#~/components/table';
+import DashboardPopupIconButton from '#~/concepts/dashboard/DashboardPopupIconButton';
+import { MetadataAnnotation, StorageClassConfig, StorageClassKind } from '#~/k8sTypes';
+import AccessModeLabel from '#~/pages/projects/screens/spawner/storage/AccessModeLabel';
 import { ColumnLabel } from './constants';
-import { isOpenshiftDefaultStorageClass, isValidConfigValue } from './utils';
-import { StorageClassEnableSwitch } from './StorageClassEnableSwitch';
+import { CorruptedMetadataAlert } from './CorruptedMetadataAlert';
+import { OpenshiftDefaultLabel } from './OpenshiftDefaultLabel';
+import { ResetCorruptConfigValueAlert } from './ResetCorruptConfigValueAlert';
 import { StorageClassDefaultRadio } from './StorageClassDefaultRadio';
 import { StorageClassEditModal } from './StorageClassEditModal';
-import { OpenshiftDefaultLabel } from './OpenshiftDefaultLabel';
-import { CorruptedMetadataAlert } from './CorruptedMetadataAlert';
-import { ResetCorruptConfigValueAlert } from './ResetCorruptConfigValueAlert';
+import { StorageClassEnableSwitch } from './StorageClassEnableSwitch';
 import { useStorageClassContext } from './StorageClassesContext';
-import { StrorageClassConfigValue } from './StorageClassConfigValue';
+import { StorageClassConfigValue } from './StorageClassConfigValue';
+import {
+  getSupportedAccessModesForProvisioner,
+  isOpenshiftDefaultStorageClass,
+  isValidAccessModeSettings,
+  isValidConfigValue,
+} from './utils';
 
 interface StorageClassesTableRowProps {
   storageClass: StorageClassKind;
@@ -125,9 +139,9 @@ export const StorageClassesTableRow: React.FC<StorageClassesTableRowProps> = ({ 
 
   return (
     <Tr>
-      <Td modifier="truncate" dataLabel={ColumnLabel.DisplayName}>
+      <Td dataLabel={ColumnLabel.DisplayName}>
         {hasReadableConfig ? (
-          <StrorageClassConfigValue
+          <StorageClassConfigValue
             alert={
               <CorruptedMetadataAlert
                 popoverText="Edit the invalid field(s) and save your changes to correct the corrupted metadata."
@@ -152,15 +166,39 @@ export const StorageClassesTableRow: React.FC<StorageClassesTableRowProps> = ({ 
               (!storageClassConfig.description ||
                 isValidConfigValue('description', storageClassConfig.description)) && (
                 <TableRowTitleDescription
-                  title={<TableText>{storageClassConfig.displayName}</TableText>}
-                  description={
-                    storageClassConfig.description && (
-                      <TableText>{storageClassConfig.description}</TableText>
-                    )
+                  title={
+                    <Flex spaceItems={{ default: 'spaceItemsXs' }}>
+                      <Truncate content={storageClassConfig.displayName} />
+                      {isValidAccessModeSettings(
+                        storageClass,
+                        storageClassConfig.accessModeSettings,
+                      ) ? (
+                        <LabelGroup data-testid="access-mode-label-group">
+                          {getSupportedAccessModesForProvisioner(storageClass.provisioner)
+                            .filter(
+                              (modeValue) =>
+                                storageClassConfig.accessModeSettings[modeValue] === true,
+                            )
+                            .map((modeValue) => (
+                              <AccessModeLabel key={modeValue} accessMode={modeValue} />
+                            ))}
+                        </LabelGroup>
+                      ) : (
+                        // only show tooltip if the access mode settings are not valid
+                        // which means that the supported access modes are not set to a boolean
+                        <Tooltip content="Edit the access mode settings and save your changes to correct the corrupted metadata.">
+                          <Icon status="warning">
+                            <ExclamationTriangleIcon />
+                          </Icon>
+                        </Tooltip>
+                      )}
+                    </Flex>
                   }
+                  description={storageClassConfig.description}
+                  truncateDescriptionLines={2}
                 />
               )}
-          </StrorageClassConfigValue>
+          </StorageClassConfigValue>
         ) : (
           '-'
         )}
@@ -205,7 +243,7 @@ export const StorageClassesTableRow: React.FC<StorageClassesTableRowProps> = ({ 
 
       <Td dataLabel={ColumnLabel.Enable}>
         {hasReadableConfig ? (
-          <StrorageClassConfigValue
+          <StorageClassConfigValue
             alert={
               <ResetCorruptConfigValueAlert
                 storageClassName={metadata.name}
@@ -227,7 +265,7 @@ export const StorageClassesTableRow: React.FC<StorageClassesTableRowProps> = ({ 
                 onChange={onEnableSwitchChange}
               />
             )}
-          </StrorageClassConfigValue>
+          </StorageClassConfigValue>
         ) : (
           '-'
         )}
@@ -235,7 +273,7 @@ export const StorageClassesTableRow: React.FC<StorageClassesTableRowProps> = ({ 
 
       <Td dataLabel={ColumnLabel.Default}>
         {hasReadableConfig ? (
-          <StrorageClassConfigValue
+          <StorageClassConfigValue
             alert={
               <ResetCorruptConfigValueAlert
                 storageClassName={metadata.name}
@@ -255,7 +293,7 @@ export const StorageClassesTableRow: React.FC<StorageClassesTableRowProps> = ({ 
                 onChange={onDefaultRadioChange}
               />
             )}
-          </StrorageClassConfigValue>
+          </StorageClassConfigValue>
         ) : (
           '-'
         )}
@@ -263,7 +301,7 @@ export const StorageClassesTableRow: React.FC<StorageClassesTableRowProps> = ({ 
 
       <Td dataLabel={ColumnLabel.LastModified}>
         {hasReadableConfig ? (
-          <StrorageClassConfigValue
+          <StorageClassConfigValue
             alert={
               <ResetCorruptConfigValueAlert
                 storageClassName={metadata.name}
@@ -275,7 +313,7 @@ export const StorageClassesTableRow: React.FC<StorageClassesTableRowProps> = ({ 
             {isValidConfigValue('lastModified', storageClassConfig.lastModified) && (
               <Timestamp date={new Date(storageClassConfig.lastModified)} />
             )}
-          </StrorageClassConfigValue>
+          </StorageClassConfigValue>
         ) : (
           '-'
         )}
@@ -304,7 +342,7 @@ export const StorageClassesTableRow: React.FC<StorageClassesTableRowProps> = ({ 
                     ? {
                         title: 'Reset the metadata',
                         children:
-                          'Correct any invalid fields and save your changes to reset the corrupted metadata. Upon saving, Display name and Last modified will receive valid values, and the Enable and Default parameters will be reset to their default values.',
+                          'Correct any invalid fields and save your changes to reset the corrupted metadata. Upon saving, Display name and Last modified will receive valid values, and the Enable and Default parameters will be reset to their default values.',
                       }
                     : undefined;
                   setIsEditModalOpen(true);

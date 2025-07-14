@@ -1,5 +1,5 @@
-import { SortableData, checkboxTableColumn } from '~/components/table';
-import { getFullArtifactPathLabel } from '~/concepts/pipelines/content/compareRuns/metricsSection/utils';
+import { SortableData, checkboxTableColumn } from '#~/components/table';
+import { getFullArtifactPathLabel } from '#~/concepts/pipelines/content/compareRuns/metricsSection/utils';
 import { FullArtifactPathsAndConfig } from './types';
 
 export const rocCurveColumns: SortableData<FullArtifactPathsAndConfig>[] = [

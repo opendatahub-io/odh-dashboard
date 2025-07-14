@@ -3,12 +3,12 @@ import { LabelGroup, Spinner } from '@patternfly/react-core';
 import {
   useRelatedNotebooks,
   ConnectedNotebookContext,
-} from '~/pages/projects/notebook/useRelatedNotebooks';
-import { Connection } from '~/concepts/connectionTypes/types';
-import { ProjectObjectType } from '~/concepts/design/utils';
-import ResourceLabel from '~/pages/projects/screens/detail/connections/ResourceLabel';
-import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
-import { useInferenceServicesForConnection } from '~/pages/projects/useInferenceServicesForConnection';
+} from '#~/pages/projects/notebook/useRelatedNotebooks';
+import { Connection } from '#~/concepts/connectionTypes/types';
+import { ProjectObjectType } from '#~/concepts/design/utils';
+import ResourceLabel from '#~/pages/projects/screens/detail/connections/ResourceLabel';
+import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
+import { useInferenceServicesForConnection } from '#~/pages/projects/useInferenceServicesForConnection';
 
 type Props = {
   connection: Connection;

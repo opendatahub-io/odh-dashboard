@@ -1,7 +1,7 @@
 import * as React from 'react';
 
-import { FilterOptions } from '~/concepts/pipelines/content/tables/usePipelineFilter';
-import { default as FilterToolbar, ToolbarFilterProps } from '~/components/FilterToolbar';
+import { FilterOptions } from '#~/concepts/pipelines/content/tables/usePipelineFilter';
+import { default as FilterToolbar, ToolbarFilterProps } from '#~/components/FilterToolbar';
 
 const PipelineFilterBar = <Options extends FilterOptions>(
   props: ToolbarFilterProps<Options>,

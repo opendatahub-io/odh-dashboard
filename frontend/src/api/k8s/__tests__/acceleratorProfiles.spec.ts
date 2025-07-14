@@ -6,18 +6,18 @@ import {
   K8sStatus,
   k8sUpdateResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { mockAcceleratorProfile } from '~/__mocks__/mockAcceleratorProfile';
-import { AcceleratorProfileModel } from '~/api/models';
-import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
+import { mockAcceleratorProfile } from '#~/__mocks__/mockAcceleratorProfile';
+import { AcceleratorProfileModel } from '#~/api/models';
+import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
 import {
   createAcceleratorProfile,
   deleteAcceleratorProfile,
   getAcceleratorProfile,
   listAcceleratorProfiles,
   updateAcceleratorProfile,
-} from '~/api/k8s/acceleratorProfiles';
-import { AcceleratorProfileKind } from '~/k8sTypes';
-import { mock200Status, mock404Error } from '~/__mocks__';
+} from '#~/api/k8s/acceleratorProfiles';
+import { AcceleratorProfileKind } from '#~/k8sTypes';
+import { mock200Status, mock404Error } from '#~/__mocks__';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sListResource: jest.fn(),

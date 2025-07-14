@@ -13,7 +13,7 @@ import { PlusCircleIcon } from '@patternfly/react-icons';
 type EmptyModelRegistryStateType = {
   testid?: string;
   title: string;
-  description: string;
+  description: React.ReactNode;
   primaryActionText?: string;
   primaryActionOnClick?: () => void;
   secondaryActionText?: string;

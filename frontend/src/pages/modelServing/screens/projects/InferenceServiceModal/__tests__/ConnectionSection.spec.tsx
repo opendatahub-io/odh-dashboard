@@ -1,16 +1,16 @@
 import React, { act } from 'react';
 import '@testing-library/jest-dom';
 import { fireEvent, render, waitFor } from '@testing-library/react';
-import { mockConnection } from '~/__mocks__/mockConnection';
+import { mockConnection } from '#~/__mocks__/mockConnection';
 import {
   mockConnectionTypeConfigMapObj,
   mockOciConnectionType,
-} from '~/__mocks__/mockConnectionType';
-import { mockInferenceServiceModalData } from '~/__mocks__/mockInferenceServiceModalData';
-import { ConnectionSection } from '~/pages/modelServing/screens/projects/InferenceServiceModal/ConnectionSection';
-import { InferenceServiceStorageType } from '~/pages/modelServing/screens/types';
+} from '#~/__mocks__/mockConnectionType';
+import { mockInferenceServiceModalData } from '#~/__mocks__/mockInferenceServiceModalData';
+import { ConnectionSection } from '#~/pages/modelServing/screens/projects/InferenceServiceModal/ConnectionSection';
+import { InferenceServiceStorageType } from '#~/pages/modelServing/screens/types';
 
-jest.mock('~/utilities/useWatchConnectionTypes', () => ({
+jest.mock('#~/utilities/useWatchConnectionTypes', () => ({
   useWatchConnectionTypes: jest.fn().mockReturnValue([
     [
       mockConnectionTypeConfigMapObj({
@@ -47,7 +47,7 @@ jest.mock('~/utilities/useWatchConnectionTypes', () => ({
     ],
   ]),
 }));
-jest.mock('~/pages/projects/screens/detail/connections/useConnections', () =>
+jest.mock('#~/pages/projects/screens/detail/connections/useConnections', () =>
   jest.fn().mockReturnValue([
     [
       mockConnection({

@@ -1,34 +1,28 @@
 import React, { act } from 'react';
 import { fireEvent, render } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { k8sCreateResource, k8sGetResource } from '@openshift/dynamic-plugin-sdk-utils';
-import { useUser } from '~/redux/selectors';
-import SpawnerFooter from '~/pages/projects/screens/spawner/SpawnerFooter';
+import { k8sCreateResource } from '@openshift/dynamic-plugin-sdk-utils';
+import { useUser } from '#~/redux/selectors';
+import SpawnerFooter from '#~/pages/projects/screens/spawner/SpawnerFooter';
 import {
   mockEnvVariables,
   mockStartNotebookData,
   mockStorageData,
-} from '~/__mocks__/mockStartNotebookData';
-import { useAppContext } from '~/app/AppContext';
-import { mockDashboardConfig, mockNotebookK8sResource } from '~/__mocks__';
-import {
-  ConfigMapKind,
-  NotebookKind,
-  PersistentVolumeClaimKind,
-  RoleBindingKind,
-  SecretKind,
-} from '~/k8sTypes';
-import { ConfigMapModel, NotebookModel, PVCModel, RoleBindingModel, SecretModel } from '~/api';
-import { mockPVCK8sResource } from '~/__mocks__/mockPVCK8sResource';
-import { mockConnection } from '~/__mocks__/mockConnection';
+} from '#~/__mocks__/mockStartNotebookData';
+import { useAppContext } from '#~/app/AppContext';
+import { mockDashboardConfig, mockNotebookK8sResource } from '#~/__mocks__';
+import { ConfigMapKind, NotebookKind, PersistentVolumeClaimKind, SecretKind } from '#~/k8sTypes';
+import { ConfigMapModel, NotebookModel, PVCModel, SecretModel } from '#~/api';
+import { mockPVCK8sResource } from '#~/__mocks__/mockPVCK8sResource';
+import { mockConnection } from '#~/__mocks__/mockConnection';
 
-jest.mock('~/app/AppContext', () => ({
+jest.mock('#~/app/AppContext', () => ({
   __esModule: true,
   useAppContext: jest.fn(),
 }));
 
-jest.mock('~/redux/selectors', () => ({
-  ...jest.requireActual('~/redux/selectors'),
+jest.mock('#~/redux/selectors', () => ({
+  ...jest.requireActual('#~/redux/selectors'),
   useUser: jest.fn(),
   useClusterInfo: jest.fn(),
 }));
@@ -47,12 +41,9 @@ const k8sCreateSecretMock = jest.mocked(k8sCreateResource<SecretKind>);
 const k8sCreatePVCMock = jest.mocked(k8sCreateResource<PersistentVolumeClaimKind>);
 const k8sCreateConfigMapMock = jest.mocked(k8sCreateResource<ConfigMapKind>);
 const k8sCreateNotebookMock = jest.mocked(k8sCreateResource<NotebookKind>);
-const k8sCreateRoleBindingMock = jest.mocked(k8sCreateResource<RoleBindingKind>);
-const k8sGetRoleBindingMock = jest.mocked(k8sGetResource<RoleBindingKind>);
 
 k8sCreatePVCMock.mockResolvedValue(mockPVCK8sResource({}));
 k8sCreateNotebookMock.mockResolvedValue(mockNotebookK8sResource({}));
-k8sGetRoleBindingMock.mockRejectedValue(new Error());
 
 const useAppContextMock = jest.mocked(useAppContext);
 useAppContextMock.mockReturnValue({
@@ -124,12 +115,6 @@ describe('EmptyProjects', () => {
     expect(k8sCreateNotebookMock).toHaveBeenCalledWith(
       expect.objectContaining({
         model: NotebookModel,
-        ...dryRunOptions,
-      }),
-    );
-    expect(k8sCreateRoleBindingMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        model: RoleBindingModel,
         ...dryRunOptions,
       }),
     );

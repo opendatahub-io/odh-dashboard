@@ -1,10 +1,14 @@
 import * as React from 'react';
-import { getDashboardConfigTemplateDisablement } from '~/api';
-import useCustomServingRuntimesEnabled from '~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
-import { getDashboardConfigTemplateDisablementBackend } from '~/services/dashboardService';
-import useFetchState, { FetchState, NotReadyError } from '~/utilities/useFetchState';
+import { getDashboardConfigTemplateDisablement } from '#~/api';
+import useCustomServingRuntimesEnabled from '#~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
+import { getDashboardConfigTemplateDisablementBackend } from '#~/services/dashboardService';
+import useFetch, { FetchOptions, FetchStateObject, NotReadyError } from '#~/utilities/useFetch';
 
-const useTemplateDisablement = (namespace?: string, adminPanel?: boolean): FetchState<string[]> => {
+const useTemplateDisablement = (
+  namespace?: string,
+  adminPanel?: boolean,
+  fetchOptions?: Partial<FetchOptions>,
+): FetchStateObject<string[]> => {
   const customServingRuntimesEnabled = useCustomServingRuntimesEnabled();
 
   const getTemplateEnablement = React.useCallback(() => {
@@ -34,7 +38,7 @@ const useTemplateDisablement = (namespace?: string, adminPanel?: boolean): Fetch
     });
   }, [namespace, customServingRuntimesEnabled, adminPanel]);
 
-  return useFetchState<string[]>(getTemplateEnablement, []);
+  return useFetch<string[]>(getTemplateEnablement, [], fetchOptions);
 };
 
 export default useTemplateDisablement;

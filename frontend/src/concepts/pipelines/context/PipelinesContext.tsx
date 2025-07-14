@@ -1,7 +1,6 @@
 import * as React from 'react';
 import {
   Alert,
-  AlertActionCloseButton,
   AlertActionLink,
   Bullseye,
   Button,
@@ -9,18 +8,23 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import { DSPipelineKind, DSPipelineManagedPipelinesKind, ProjectKind } from '~/k8sTypes';
-import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
-import DeletePipelineServerModal from '~/concepts/pipelines/content/DeletePipelineServerModal';
-import { ConfigurePipelinesServerModal } from '~/concepts/pipelines/content/configurePipelinesServer/ConfigurePipelinesServerModal';
-import ViewPipelineServerModal from '~/concepts/pipelines/content/ViewPipelineServerModal';
-import useSyncPreferredProject from '~/concepts/projects/useSyncPreferredProject';
-import useManageElyraSecret from '~/concepts/pipelines/context/useManageElyraSecret';
-import { conditionalArea, SupportedArea } from '~/concepts/areas';
-import { DEV_MODE } from '~/utilities/const';
-import { MetadataStoreServicePromiseClient } from '~/third_party/mlmd';
+import { DSPipelineKind, DSPipelineManagedPipelinesKind, ProjectKind } from '#~/k8sTypes';
+import { byName, ProjectsContext } from '#~/concepts/projects/ProjectsContext';
+import DeletePipelineServerModal from '#~/concepts/pipelines/content/DeletePipelineServerModal';
+import { ConfigurePipelinesServerModal } from '#~/concepts/pipelines/content/configurePipelinesServer/ConfigurePipelinesServerModal';
+import ViewPipelineServerModal from '#~/concepts/pipelines/content/ViewPipelineServerModal';
+import useSyncPreferredProject from '#~/concepts/projects/useSyncPreferredProject';
+import { conditionalArea, SupportedArea } from '#~/concepts/areas';
+import { DEV_MODE } from '#~/utilities/const';
+import { MetadataStoreServicePromiseClient } from '#~/third_party/mlmd';
+import { getGenericErrorCode } from '#~/api';
+import UnauthorizedError from '#~/pages/UnauthorizedError';
 import usePipelineAPIState, { PipelineAPIState } from './usePipelineAPIState';
-import usePipelineNamespaceCR, { dspaLoaded, hasServerTimedOut } from './usePipelineNamespaceCR';
+import usePipelineNamespaceCR, {
+  dspaLoaded,
+  hasServerTimedOut,
+  isDspaAllReady,
+} from './usePipelineNamespaceCR';
 import usePipelinesAPIRoute from './usePipelinesAPIRoute';
 import useRecurringRunRelatedInformation from './useRecurringRunRelatedInformation';
 
@@ -35,7 +39,6 @@ type PipelineContext = {
   crName: string;
   crStatus: DSPipelineKind['status'];
   serverTimedOut: boolean;
-  ignoreTimedOut: () => void;
   namespace: string;
   project: ProjectKind;
   refreshState: () => Promise<undefined>;
@@ -44,6 +47,8 @@ type PipelineContext = {
   apiState: PipelineAPIState;
   metadataStoreServiceClient: MetadataStoreServicePromiseClient;
   managedPipelines: DSPipelineManagedPipelinesKind | undefined;
+  isStarting?: boolean;
+  startingStatusModalOpenRef?: React.MutableRefObject<string | null>;
 };
 
 const PipelinesContext = React.createContext<PipelineContext>({
@@ -53,7 +58,6 @@ const PipelinesContext = React.createContext<PipelineContext>({
   crName: '',
   crStatus: undefined,
   serverTimedOut: false,
-  ignoreTimedOut: () => undefined,
   namespace: '',
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   project: null as unknown as ProjectKind,
@@ -68,40 +72,44 @@ const PipelinesContext = React.createContext<PipelineContext>({
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   metadataStoreServiceClient: null as unknown as MetadataStoreServicePromiseClient,
   managedPipelines: undefined,
+  isStarting: false,
+  startingStatusModalOpenRef: { current: null },
 });
 
 type PipelineContextProviderProps = {
   children: React.ReactNode;
   namespace: string;
+  pageName?: string;
 };
 
 export const PipelineContextProvider = conditionalArea<PipelineContextProviderProps>(
   SupportedArea.DS_PIPELINES,
   true,
-)(({ children, namespace }) => {
+)(({ children, namespace, pageName }) => {
   const { projects } = React.useContext(ProjectsContext);
   const project = projects.find(byName(namespace)) ?? null;
   useSyncPreferredProject(project);
 
+  const startingStatusModalOpenRef = React.useRef<string | null>(null);
+
   const state = usePipelineNamespaceCR(namespace);
   const [pipelineNamespaceCR, crLoaded, crLoadError, refreshCR] = state;
+
+  const isResourceLoaded = crLoaded && !!pipelineNamespaceCR;
+  const isAllLoaded = isDspaAllReady(state);
+  const isStarting = isResourceLoaded && !isAllLoaded;
+
   const isCRReady = dspaLoaded(state);
-  const [disableTimeout, setDisableTimeout] = React.useState(false);
-  const serverTimedOut = !disableTimeout && hasServerTimedOut(state, isCRReady);
-  const ignoreTimedOut = React.useCallback(() => {
-    setDisableTimeout(true);
-  }, []);
+  const serverTimedOut = hasServerTimedOut(state, isCRReady);
   const dspaName = pipelineNamespaceCR?.metadata.name;
-  const [pipelineAPIRouteHost, routeLoaded, routeLoadError, refreshRoute] = usePipelinesAPIRoute(
+  const [, routeLoaded, routeLoadError, refreshRoute] = usePipelinesAPIRoute(
     isCRReady,
     dspaName ?? '',
     namespace,
   );
 
-  const routeHost = routeLoaded && pipelineAPIRouteHost ? pipelineAPIRouteHost : null;
   const hostPath =
     routeLoaded && namespace && dspaName ? `/api/service/pipelines/${namespace}/${dspaName}` : null;
-  useManageElyraSecret(namespace, pipelineNamespaceCR, routeHost);
 
   const refreshState = React.useCallback(
     () => Promise.all([refreshCR(), refreshRoute()]).then(() => undefined),
@@ -126,6 +134,9 @@ export const PipelineContextProvider = conditionalArea<PipelineContextProviderPr
   let error = crLoadError || routeLoadError;
   if (error || !project) {
     error = error || new Error('Project not found');
+    if (getGenericErrorCode(error) === 403) {
+      return <UnauthorizedError accessDomain={pageName} />;
+    }
     return (
       <Bullseye>
         <Alert title="Pipelines load error" variant="danger" isInline>
@@ -144,7 +155,6 @@ export const PipelineContextProvider = conditionalArea<PipelineContextProviderPr
         crName: pipelineNamespaceCR?.metadata.name ?? '',
         crStatus: pipelineNamespaceCR?.status,
         serverTimedOut,
-        ignoreTimedOut,
         project,
         apiState,
         namespace,
@@ -153,6 +163,8 @@ export const PipelineContextProvider = conditionalArea<PipelineContextProviderPr
         getRecurringRunInformation,
         metadataStoreServiceClient,
         managedPipelines: pipelineNamespaceCR?.spec.apiServer?.managedPipelines,
+        isStarting,
+        startingStatusModalOpenRef,
       }}
     >
       {children}
@@ -172,6 +184,8 @@ type UsePipelinesAPI = PipelineAPIState & {
     timedOut: boolean;
     compatible: boolean;
     name: string;
+    crStatus: DSPipelineKind['status'];
+    isStarting: boolean | undefined;
   };
   /**
    * Allows agnostic functionality to request all watched API to be reacquired.
@@ -182,6 +196,8 @@ type UsePipelinesAPI = PipelineAPIState & {
   metadataStoreServiceClient: MetadataStoreServicePromiseClient;
   refreshState: () => void;
   managedPipelines: DSPipelineManagedPipelinesKind | undefined;
+
+  startingStatusModalOpenRef?: React.MutableRefObject<string | null>;
 };
 
 export const usePipelinesAPI = (): UsePipelinesAPI => {
@@ -199,6 +215,9 @@ export const usePipelinesAPI = (): UsePipelinesAPI => {
     metadataStoreServiceClient,
     managedPipelines,
     refreshState,
+    crStatus,
+    isStarting,
+    startingStatusModalOpenRef,
   } = React.useContext(PipelinesContext);
 
   const pipelinesServer: UsePipelinesAPI['pipelinesServer'] = {
@@ -207,6 +226,8 @@ export const usePipelinesAPI = (): UsePipelinesAPI => {
     compatible: hasCompatibleVersion,
     timedOut: serverTimedOut,
     name: crName,
+    crStatus,
+    isStarting,
   };
 
   return {
@@ -218,6 +239,7 @@ export const usePipelinesAPI = (): UsePipelinesAPI => {
     metadataStoreServiceClient,
     managedPipelines,
     refreshState,
+    startingStatusModalOpenRef,
     ...apiState,
   };
 };
@@ -281,7 +303,7 @@ export const ViewServerModal = ({ onClose }: { onClose: () => void }): React.JSX
 };
 
 export const PipelineServerTimedOut: React.FC = () => {
-  const { crStatus, ignoreTimedOut } = React.useContext(PipelinesContext);
+  const { crStatus } = React.useContext(PipelinesContext);
   const [deleteOpen, setDeleteOpen] = React.useState(false);
   const errorMessage =
     crStatus?.conditions?.find((condition) => condition.type === 'Ready')?.message || '';
@@ -291,13 +313,11 @@ export const PipelineServerTimedOut: React.FC = () => {
         variant="danger"
         isInline
         title="Pipeline server failed"
-        actionClose={<AlertActionCloseButton onClose={() => ignoreTimedOut()} />}
         actionLinks={
           <>
             <AlertActionLink onClick={() => setDeleteOpen(true)}>
               Delete pipeline server
             </AlertActionLink>
-            <AlertActionLink onClick={() => ignoreTimedOut()}>Close</AlertActionLink>
           </>
         }
       >

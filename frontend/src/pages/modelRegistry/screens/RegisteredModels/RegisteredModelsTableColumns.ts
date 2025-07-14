@@ -1,5 +1,5 @@
-import { SortableData } from '~/components/table';
-import { RegisteredModel } from '~/concepts/modelRegistry/types';
+import { SortableData } from '#~/components/table';
+import { RegisteredModel } from '#~/concepts/modelRegistry/types';
 
 export const rmColumns: SortableData<RegisteredModel>[] = [
   {

@@ -1,5 +1,5 @@
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
-import { addTypesToK8sListedResources } from '~/utilities/addTypesToK8sListedResources';
+import { addTypesToK8sListedResources } from '#~/utilities/addTypesToK8sListedResources';
 
 const servingRuntimeTemplate = {
   apiVersion: 'template.openshift.io/v1',

@@ -1,7 +1,7 @@
 import { k8sCreateResource, k8sGetResource } from '@openshift/dynamic-plugin-sdk-utils';
-import { K8sAPIOptions, KnownLabels, RoleKind } from '~/k8sTypes';
-import { RoleModel } from '~/api/models';
-import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
+import { K8sAPIOptions, KnownLabels, RoleKind } from '#~/k8sTypes';
+import { RoleModel } from '#~/api/models';
+import { applyK8sAPIOptions } from '#~/api/apiMergeUtils';
 
 export const generateRoleInferenceService = (
   roleName: string,

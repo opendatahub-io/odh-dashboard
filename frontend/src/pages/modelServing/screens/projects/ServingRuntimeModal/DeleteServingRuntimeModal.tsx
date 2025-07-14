@@ -1,15 +1,15 @@
 import * as React from 'react';
 import { K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
-import DeleteModal from '~/pages/projects/components/DeleteModal';
-import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
+import DeleteModal from '#~/pages/projects/components/DeleteModal';
+import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
 import {
   deleteInferenceService,
   deleteRoleBinding,
   deleteServiceAccount,
   deleteServingRuntime,
-} from '~/api';
-import { getTokenNames } from '~/pages/modelServing/utils';
-import { allSettledPromises } from '~/utilities/allSettledPromises';
+} from '#~/api';
+import { getTokenNames } from '#~/pages/modelServing/utils';
+import { allSettledPromises } from '#~/utilities/allSettledPromises';
 
 type DeleteServingRuntimeModalProps = {
   servingRuntime: ServingRuntimeKind;

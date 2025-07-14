@@ -1,5 +1,5 @@
-import { ModelRegistryError } from '~/concepts/modelRegistry/types';
-import { isCommonStateError } from '~/utilities/useFetchState';
+import { ModelRegistryError } from '#~/concepts/modelRegistry/types';
+import { isCommonStateError } from '#~/utilities/useFetchState';
 
 const isError = (e: unknown): e is ModelRegistryError =>
   typeof e === 'object' && e !== null && ['code', 'message'].every((key) => key in e);

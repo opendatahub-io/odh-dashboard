@@ -1,10 +1,10 @@
-import { Modal } from '~/__tests__/cypress/cypress/pages/components/Modal';
-import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
-import { DeleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
-import { Contextual } from '~/__tests__/cypress/cypress/pages/components/Contextual';
-import { K8sNameDescriptionField } from '~/__tests__/cypress/cypress/pages/components/subComponents/K8sNameDescriptionField';
-import { TrustyAICRState } from '~/__tests__/cypress/cypress/pages/components/TrustyAICRState';
-import { TableRow } from './components/table';
+import { Modal } from '#~/__tests__/cypress/cypress/pages/components/Modal';
+import { appChrome } from '#~/__tests__/cypress/cypress/pages/appChrome';
+import { DeleteModal } from '#~/__tests__/cypress/cypress/pages/components/DeleteModal';
+import { Contextual } from '#~/__tests__/cypress/cypress/pages/components/Contextual';
+import { K8sNameDescriptionField } from '#~/__tests__/cypress/cypress/pages/components/subComponents/K8sNameDescriptionField';
+import { TrustyAICRState } from '#~/__tests__/cypress/cypress/pages/components/TrustyAICRState';
+import { TableRow } from '#~/__tests__/cypress/cypress/pages/components/table';
 
 class ProjectListToolbar extends Contextual<HTMLElement> {
   findToggleButton(id: string) {
@@ -47,12 +47,8 @@ class ProjectNotebookRow extends TableRow {
     return this.find().findByTestId('notebook-status-text');
   }
 
-  findNotebookStart() {
-    return this.find().findByTestId('notebook-start-action');
-  }
-
   findNotebookStop() {
-    return this.find().findByTestId('notebook-stop-action');
+    return this.find().findByTestId('state-action-toggle');
   }
 }
 
@@ -185,9 +181,13 @@ class CreateEditProjectModal extends Modal {
 }
 
 class ProjectDetails {
-  visit(project: string) {
+  visit(project: string, opts: { wait?: boolean } = { wait: true }) {
     cy.visitWithLogin(`/projects/${project}`);
-    this.wait();
+    if (opts.wait) {
+      this.wait();
+    } else {
+      cy.testA11y();
+    }
   }
 
   visitSection(project: string, section: string, extraUrlParams = '') {
@@ -341,6 +341,10 @@ class ProjectDetails {
 
   findDeleteProjectButton() {
     return cy.findByTestId('delete-project-action').find('button');
+  }
+
+  find403Page() {
+    return cy.findByTestId('unauthorized-error');
   }
 
   getKserveTableRow(name: string) {

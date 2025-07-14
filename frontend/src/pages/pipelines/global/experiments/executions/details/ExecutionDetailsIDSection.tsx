@@ -5,7 +5,7 @@ import {
   DescriptionListGroup,
   DescriptionListTerm,
 } from '@patternfly/react-core';
-import { Execution } from '~/third_party/mlmd';
+import { Execution } from '#~/third_party/mlmd';
 
 type ExecutionDetailsIDSectionProps = {
   execution: Execution;

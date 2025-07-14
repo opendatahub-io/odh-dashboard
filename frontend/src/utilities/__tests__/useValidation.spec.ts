@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { testHook } from '~/__tests__/unit/testUtils/hooks';
-import { useValidation } from '~/utilities/useValidation';
+import { testHook } from '#~/__tests__/unit/testUtils/hooks';
+import { useValidation } from '#~/utilities/useValidation';
 
 const objectSchema = z.object({
   foo: z.string().regex(/^foo-/, 'invalid foo'),

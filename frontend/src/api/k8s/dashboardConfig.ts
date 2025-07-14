@@ -1,10 +1,10 @@
 import { k8sGetResource, k8sPatchResource } from '@openshift/dynamic-plugin-sdk-utils';
-import { DashboardConfigKind, K8sAPIOptions } from '~/k8sTypes';
-import { DASHBOARD_CONFIG } from '~/utilities/const';
-import { ODHDashboardConfigModel } from '~/api/models';
-import { ModelServingSize } from '~/pages/modelServing/screens/types';
-import { NotebookSize } from '~/types';
-import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
+import { DashboardConfigKind, K8sAPIOptions } from '#~/k8sTypes';
+import { DASHBOARD_CONFIG } from '#~/utilities/const';
+import { ODHDashboardConfigModel } from '#~/api/models';
+import { ModelServingSize } from '#~/pages/modelServing/screens/types';
+import { NotebookSize } from '#~/types';
+import { applyK8sAPIOptions } from '#~/api/apiMergeUtils';
 
 export const getDashboardConfig = (ns: string): Promise<DashboardConfigKind> =>
   k8sGetResource<DashboardConfigKind>({

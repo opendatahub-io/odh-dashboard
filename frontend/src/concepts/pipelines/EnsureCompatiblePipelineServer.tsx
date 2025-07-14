@@ -8,9 +8,9 @@ import {
   ButtonVariant,
 } from '@patternfly/react-core';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
-import ExternalLink from '~/components/ExternalLink';
-import NoPipelineServer from '~/concepts/pipelines/NoPipelineServer';
-import { ODH_PRODUCT_NAME } from '~/utilities/const';
+import ExternalLink from '#~/components/ExternalLink';
+import NoPipelineServer from '#~/concepts/pipelines/NoPipelineServer';
+import { ODH_PRODUCT_NAME } from '#~/utilities/const';
 import { DeleteServerModal, usePipelinesAPI } from './context';
 
 const DOCS_LINK =

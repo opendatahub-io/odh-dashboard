@@ -1,5 +1,6 @@
 import * as React from 'react';
 import {
+  Alert,
   EmptyState,
   EmptyStateBody,
   EmptyStateVariant,
@@ -10,16 +11,16 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { K8sResourceCommon, K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
-import { GroupKind, RoleBindingKind, RoleBindingRoleRef } from '~/k8sTypes';
-import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
-import { ContextResourceData } from '~/types';
+import { GroupKind, RoleBindingKind, RoleBindingRoleRef } from '#~/k8sTypes';
+import { ProjectSectionID } from '#~/pages/projects/screens/detail/types';
+import { FetchStateObject } from '#~/utilities/useFetch';
 import RoleBindingPermissionsTableSection from './RoleBindingPermissionsTableSection';
 import { RoleBindingPermissionsRBType, RoleBindingPermissionsRoleType } from './types';
 import { filterRoleBindingSubjects } from './utils';
 
 type RoleBindingPermissionsProps = {
   ownerReference?: K8sResourceCommon;
-  roleBindingPermissionsRB: ContextResourceData<RoleBindingKind>;
+  roleBindingPermissionsRB: FetchStateObject<RoleBindingKind[]>;
   defaultRoleBindingName?: string;
   permissionOptions: {
     type: RoleBindingPermissionsRoleType;
@@ -133,6 +134,9 @@ const RoleBindingPermissions: React.FC<RoleBindingPermissionsProps> = ({
       id={ProjectSectionID.PERMISSIONS}
     >
       <Stack hasGutter>
+        <Alert variant="warning" title="Warning" isInline>
+          Changing user or group permissions may remove their access to this resource.
+        </Alert>
         <StackItem>{description}</StackItem>
         <StackItem>{isGroupFirst ? groupTable : userTable}</StackItem>
         <StackItem>{isGroupFirst ? userTable : groupTable}</StackItem>

@@ -1,5 +1,5 @@
-import type { CommandLineResult } from '~/__tests__/cypress/cypress//types';
-import { applyOpenShiftYaml } from '~/__tests__/cypress/cypress/utils/oc_commands/baseCommands';
+import type { CommandLineResult } from '#~/__tests__/cypress/cypress//types';
+import { applyOpenShiftYaml } from '#~/__tests__/cypress/cypress/utils/oc_commands/baseCommands';
 
 /**
  * Creates Kueue resources by applying a YAML template.

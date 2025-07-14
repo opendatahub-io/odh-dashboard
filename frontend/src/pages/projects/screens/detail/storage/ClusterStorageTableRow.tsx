@@ -20,13 +20,13 @@ import {
 } from '@patternfly/react-core';
 import { MinusCircleIcon } from '@patternfly/react-icons';
 import { Td, Tr } from '@patternfly/react-table';
-import TypeaheadSelect from '~/components/TypeaheadSelect';
-import { NotebookKind } from '~/k8sTypes';
-import { ClusterStorageNotebookSelection } from '~/pages/projects/types';
-import { MOUNT_PATH_PREFIX } from '~/pages/projects/screens/spawner/storage/const';
-import SimpleSelect from '~/components/SimpleSelect';
-import { MountPathFormat } from '~/pages/projects/screens/spawner/storage/types';
-import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
+import TypeaheadSelect from '#~/components/TypeaheadSelect';
+import { NotebookKind } from '#~/k8sTypes';
+import { ClusterStorageNotebookSelection } from '#~/pages/projects/types';
+import { MOUNT_PATH_PREFIX } from '#~/pages/projects/screens/spawner/storage/const';
+import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
+import { MountPathFormat } from '#~/pages/projects/screens/spawner/storage/types';
+import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import { isMountPathFormat, mountPathFormat, mountPathSuffix } from './utils';
 
 type ClusterStorageTableRowProps = {
@@ -108,12 +108,14 @@ const ClusterStorageTableRow: React.FC<ClusterStorageTableRowProps> = ({
         <SimpleSelect
           isFullWidth
           popperProps={{ maxWidth: '350px', direction: 'down' }}
-          options={pathFormatOptions.map((option) => ({
-            ...option,
-            label: option.type,
-            description: option.description,
-            key: option.type,
-          }))}
+          options={pathFormatOptions.map(
+            (option): SimpleSelectOption => ({
+              ...option,
+              label: option.type,
+              description: option.description,
+              key: option.type,
+            }),
+          )}
           value={format}
           onChange={(newSelection) => {
             if (isMountPathFormat(newSelection)) {

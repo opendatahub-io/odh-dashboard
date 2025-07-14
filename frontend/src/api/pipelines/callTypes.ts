@@ -27,8 +27,8 @@ import {
   DeleteExperiment,
   GetArtifact,
   GetPipelineByName,
-} from '~/concepts/pipelines/types';
-import { K8sAPIOptions } from '~/k8sTypes';
+} from '#~/concepts/pipelines/types';
+import { K8sAPIOptions } from '#~/k8sTypes';
 
 // TODO: Determine if there is a better typing than `any` -- the caller makes the proper type
 // eslint-disable-next-line

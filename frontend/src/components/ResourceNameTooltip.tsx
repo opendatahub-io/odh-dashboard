@@ -13,8 +13,8 @@ import {
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
-import '~/pages/notebookController/NotebookController.scss';
-import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
+import '#~/pages/notebookController/NotebookController.scss';
+import DashboardPopupIconButton from '#~/concepts/dashboard/DashboardPopupIconButton';
 
 type ResourceNameTooltipProps = {
   resource: K8sResourceCommon;

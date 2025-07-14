@@ -6,23 +6,23 @@ import {
   k8sListResource,
   k8sUpdateResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { ServingRuntimeModel } from '~/api/models';
+import { ServingRuntimeModel } from '#~/api/models';
 import {
   K8sAPIOptions,
   ServingContainer,
   ServingRuntimeAnnotations,
   ServingRuntimeKind,
-} from '~/k8sTypes';
+} from '#~/k8sTypes';
 import {
   CreatingServingRuntimeObject,
   SupportedModelFormatsInfo,
-} from '~/pages/modelServing/screens/types';
-import { getModelServingRuntimeName } from '~/pages/modelServing/utils';
-import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '~/concepts/k8s/utils';
-import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
-import { getModelServingProjects } from '~/api/k8s/projects';
-import { getshmVolume, getshmVolumeMount } from '~/api/k8s/utils';
-import { ModelServingPodSpecOptions } from '~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
+} from '#~/pages/modelServing/screens/types';
+import { getModelServingRuntimeName } from '#~/pages/modelServing/utils';
+import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '#~/concepts/k8s/utils';
+import { applyK8sAPIOptions } from '#~/api/apiMergeUtils';
+import { getModelServingProjects } from '#~/api/k8s/projects';
+import { getshmVolume, getshmVolumeMount } from '#~/api/k8s/utils';
+import { ModelServingPodSpecOptions } from '#~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
 
 export const assembleServingRuntime = (
   data: CreatingServingRuntimeObject,
@@ -65,6 +65,18 @@ export const assembleServingRuntime = (
 
   if (scope) {
     annotations['opendatahub.io/serving-runtime-scope'] = scope;
+  }
+
+  if (podSpecOptions.selectedHardwareProfile?.metadata.namespace === namespace) {
+    annotations['opendatahub.io/hardware-profile-namespace'] = namespace;
+  } else {
+    annotations['opendatahub.io/hardware-profile-namespace'] = undefined;
+  }
+
+  if (podSpecOptions.selectedAcceleratorProfile?.metadata.namespace === namespace) {
+    annotations['opendatahub.io/accelerator-profile-namespace'] = namespace;
+  } else {
+    annotations['opendatahub.io/accelerator-profile-namespace'] = undefined;
   }
 
   // TODO: Enable GRPC

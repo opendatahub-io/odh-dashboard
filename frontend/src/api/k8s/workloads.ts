@@ -1,6 +1,6 @@
 import { k8sListResourceItems } from '@openshift/dynamic-plugin-sdk-utils';
-import { WorkloadKind } from '~/k8sTypes';
-import { WorkloadModel } from '~/api/models/kueue';
+import { WorkloadKind } from '#~/k8sTypes';
+import { WorkloadModel } from '#~/api/models/kueue';
 
 export const listWorkloads = async (
   namespace?: string,

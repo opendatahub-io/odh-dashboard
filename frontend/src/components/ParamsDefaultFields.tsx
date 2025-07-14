@@ -7,14 +7,14 @@ import {
 } from '@patternfly/react-core';
 import * as React from 'react';
 import { ZodIssue } from 'zod';
-import { JsonInputParam } from '~/concepts/pipelines/content/createRun/contentSections/ParamsSection/JsonInputParam';
-import { NumberInputParam } from '~/concepts/pipelines/content/createRun/contentSections/ParamsSection/NumberInputParam';
-import { RadioInputParam } from '~/concepts/pipelines/content/createRun/contentSections/ParamsSection/RadioInputParam';
+import { JsonInputParam } from '#~/concepts/pipelines/content/createRun/contentSections/ParamsSection/JsonInputParam';
+import { NumberInputParam } from '#~/concepts/pipelines/content/createRun/contentSections/ParamsSection/NumberInputParam';
+import { RadioInputParam } from '#~/concepts/pipelines/content/createRun/contentSections/ParamsSection/RadioInputParam';
 import {
   InputDefinitionParameterType,
   RuntimeConfigParamValue,
-} from '~/concepts/pipelines/kfTypes';
-import { FieldValidationProps } from '~/hooks/useZodFormValidation';
+} from '#~/concepts/pipelines/kfTypes';
+import { FieldValidationProps } from '#~/hooks/useZodFormValidation';
 import { ZodErrorHelperText } from './ZodErrorFormHelperText';
 
 type ParamsDefaultFieldsProps = {

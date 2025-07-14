@@ -1,11 +1,11 @@
 import React from 'react';
-import { GetArtifactsRequest } from '~/third_party/mlmd';
+import { GetArtifactsRequest } from '#~/third_party/mlmd';
 import {
   Artifact,
   ListOperationOptions,
-} from '~/third_party/mlmd/generated/ml_metadata/proto/metadata_store_pb';
-import useFetchState, { FetchState, NotReadyError } from '~/utilities/useFetchState';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
+} from '#~/third_party/mlmd/generated/ml_metadata/proto/metadata_store_pb';
+import useFetchState, { FetchState, NotReadyError } from '#~/utilities/useFetchState';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 
 export const useFetchRunArtifact = (runId?: string): FetchState<Artifact[]> => {
   const { metadataStoreServiceClient } = usePipelinesAPI();

@@ -1,44 +1,46 @@
 import * as React from 'react';
 import {
   Alert,
-  Button,
+  Bullseye,
   Checkbox,
-  EmptyState,
   Form,
   FormGroup,
   HelperText,
   HelperTextItem,
   Spinner,
   TextInput,
+  Modal,
+  ModalBody,
+  ModalHeader,
+  ModalFooter,
 } from '@patternfly/react-core';
-import { Modal } from '@patternfly/react-core/deprecated';
-import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
-import { ModelRegistryKind } from '~/k8sTypes';
-import { ModelRegistryModel } from '~/api';
+import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
+import { ModelRegistryKind } from '#~/k8sTypes';
+import { ModelRegistryModel } from '#~/api';
 import {
   createModelRegistryBackend,
   updateModelRegistryBackend,
-} from '~/services/modelRegistrySettingsService';
-import { isValidK8sName, kindApiVersion, translateDisplayNameForK8s } from '~/concepts/k8s/utils';
-import FormSection from '~/components/pf-overrides/FormSection';
-import { AreaContext } from '~/concepts/areas/AreaContext';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+} from '#~/services/modelRegistrySettingsService';
+import { isValidK8sName, kindApiVersion, translateDisplayNameForK8s } from '#~/concepts/k8s/utils';
+import FormSection from '#~/components/pf-overrides/FormSection';
+import { AreaContext } from '#~/concepts/areas/AreaContext';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
-} from '~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
-import useModelRegistryCertificateNames from '~/concepts/modelRegistrySettings/useModelRegistryCertificateNames';
+} from '#~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
+import useModelRegistryCertificateNames from '#~/concepts/modelRegistrySettings/useModelRegistryCertificateNames';
 import {
   constructRequestBody,
   findConfigMap,
   findSecureDBType,
   isClusterWideCABundleEnabled,
   isOpenshiftCAbundleEnabled,
-} from '~/pages/modelRegistrySettings/utils';
-import { RecursivePartial } from '~/typeHelpers';
-import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
-import ApplicationsPage from '~/pages/ApplicationsPage';
-import RedirectErrorState from '~/pages/external/RedirectErrorState';
+} from '#~/pages/modelRegistrySettings/utils';
+import { RecursivePartial } from '#~/typeHelpers';
+import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
+import ApplicationsPage from '#~/pages/ApplicationsPage';
+import RedirectErrorState from '#~/pages/external/RedirectErrorState';
 import { CreateMRSecureDBSection, SecureDBInfo } from './CreateMRSecureDBSection';
 import ModelRegistryDatabasePassword from './ModelRegistryDatabasePassword';
 import { ResourceType, SecureDBRType } from './const';
@@ -179,6 +181,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
           },
         },
         spec: {
+          oauthProxy: {},
           mysql: {
             host,
             port: Number(port),
@@ -224,14 +227,9 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
           },
         },
         spec: {
+          oauthProxy: {},
           grpc: {},
           rest: {},
-          istio: {
-            gateway: {
-              grpc: { tls: {} },
-              rest: { tls: {} },
-            },
-          },
           mysql: {
             host,
             port: Number(port),
@@ -290,20 +288,143 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
     (!addSecureDB || (secureDBInfo.isValid && !configSecretsError));
 
   return (
-    <Modal
-      isOpen
-      title={`${mr ? 'Edit' : 'Create'} model registry`}
-      onClose={onCancelClose}
-      actions={[
-        <Button key="create-button" variant="primary" isDisabled={!canSubmit()} onClick={onSubmit}>
-          Create
-        </Button>,
-        <Button key="cancel-button" variant="secondary" onClick={onCancelClose}>
-          Cancel
-        </Button>,
-      ]}
-      variant="medium"
-      footer={
+    <Modal isOpen onClose={onCancelClose} variant="medium">
+      <ModalHeader title={`${mr ? 'Edit' : 'Create'} model registry`} />
+      <ModalBody>
+        <Form>
+          <K8sNameDescriptionField dataTestId="mr" data={nameDesc} onDataChange={setNameDesc} />
+          <FormSection
+            title="Connect to external MySQL database"
+            description="This external database is where model data is stored."
+          >
+            <FormGroup label="Host" isRequired fieldId="mr-host">
+              <TextInput
+                isRequired
+                type="text"
+                id="mr-host"
+                name="mr-host"
+                value={host}
+                onBlur={() => setIsHostTouched(true)}
+                onChange={(_e, value) => setHost(value)}
+                validated={isHostTouched && !hasContent(host) ? 'error' : 'default'}
+              />
+              {isHostTouched && !hasContent(host) && (
+                <HelperText>
+                  <HelperTextItem variant="error" data-testid="mr-host-error">
+                    Host cannot be empty
+                  </HelperTextItem>
+                </HelperText>
+              )}
+            </FormGroup>
+            <FormGroup label="Port" isRequired fieldId="mr-port">
+              <TextInput
+                isRequired
+                type="text"
+                id="mr-port"
+                name="mr-port"
+                value={port}
+                onBlur={() => setIsPortTouched(true)}
+                onChange={(_e, value) => setPort(value)}
+                validated={isPortTouched && !hasContent(port) ? 'error' : 'default'}
+              />
+              {isPortTouched && !hasContent(port) && (
+                <HelperText>
+                  <HelperTextItem variant="error" data-testid="mr-port-error">
+                    Port cannot be empty
+                  </HelperTextItem>
+                </HelperText>
+              )}
+            </FormGroup>
+            <FormGroup label="Username" isRequired fieldId="mr-username">
+              <TextInput
+                isRequired
+                type="text"
+                id="mr-username"
+                name="mr-username"
+                value={username}
+                onBlur={() => setIsUsernameTouched(true)}
+                onChange={(_e, value) => setUsername(value)}
+                validated={isUsernameTouched && !hasContent(username) ? 'error' : 'default'}
+              />
+              {isUsernameTouched && !hasContent(username) && (
+                <HelperText>
+                  <HelperTextItem variant="error" data-testid="mr-username-error">
+                    Username cannot be empty
+                  </HelperTextItem>
+                </HelperText>
+              )}
+            </FormGroup>
+            <FormGroup label="Password" isRequired fieldId="mr-password">
+              <ModelRegistryDatabasePassword
+                password={password || ''}
+                setPassword={setPassword}
+                isPasswordTouched={isPasswordTouched}
+                setIsPasswordTouched={setIsPasswordTouched}
+                showPassword={showPassword}
+                editRegistry={mr}
+              />
+            </FormGroup>
+            <FormGroup label="Database" isRequired fieldId="mr-database">
+              <TextInput
+                isRequired
+                type="text"
+                id="mr-database"
+                name="mr-database"
+                value={database}
+                onBlur={() => setIsDatabaseTouched(true)}
+                onChange={(_e, value) => setDatabase(value)}
+                validated={isDatabaseTouched && !hasContent(database) ? 'error' : 'default'}
+              />
+              {isDatabaseTouched && !hasContent(database) && (
+                <HelperText>
+                  <HelperTextItem variant="error" data-testid="mr-database-error">
+                    Database cannot be empty
+                  </HelperTextItem>
+                </HelperText>
+              )}
+            </FormGroup>
+            {secureDbEnabled && (
+              <>
+                <FormGroup>
+                  <Checkbox
+                    label="Add CA certificate to secure database connection"
+                    isChecked={addSecureDB}
+                    onChange={(_e, value) => setAddSecureDB(value)}
+                    id="add-secure-db"
+                    data-testid="add-secure-db-mr-checkbox"
+                    name="add-secure-db"
+                  />
+                </FormGroup>
+                {addSecureDB &&
+                  (!configSecretsLoaded && !configSecretsError ? (
+                    <Bullseye>
+                      <Spinner className="pf-v6-u-m-md" />
+                    </Bullseye>
+                  ) : configSecretsLoaded ? (
+                    <CreateMRSecureDBSection
+                      secureDBInfo={secureDBInfo}
+                      modelRegistryNamespace={modelRegistryNamespace}
+                      k8sName={nameDesc.k8sName.value}
+                      existingCertConfigMaps={configSecrets.configMaps}
+                      existingCertSecrets={configSecrets.secrets}
+                      setSecureDBInfo={setSecureDBInfo}
+                    />
+                  ) : (
+                    <Alert
+                      isInline
+                      variant="danger"
+                      title="Error fetching config maps and secrets"
+                      data-testid="error-fetching-resource-alert"
+                    >
+                      {configSecretsError?.message}
+                    </Alert>
+                  ))}
+              </>
+            )}
+          </FormSection>
+        </Form>
+      </ModalBody>
+      <ModalFooter>
         <DashboardModalFooter
           onCancel={onCancelClose}
           onSubmit={onSubmit}
@@ -313,138 +434,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
           error={error}
           alertTitle={`Error ${mr ? 'updating' : 'creating'} model registry`}
         />
-      }
-    >
-      <Form>
-        <K8sNameDescriptionField dataTestId="mr" data={nameDesc} onDataChange={setNameDesc} />
-        <FormSection
-          title="Connect to external MySQL database"
-          description="This external database is where model data is stored."
-        >
-          <FormGroup label="Host" isRequired fieldId="mr-host">
-            <TextInput
-              isRequired
-              type="text"
-              id="mr-host"
-              name="mr-host"
-              value={host}
-              onBlur={() => setIsHostTouched(true)}
-              onChange={(_e, value) => setHost(value)}
-              validated={isHostTouched && !hasContent(host) ? 'error' : 'default'}
-            />
-            {isHostTouched && !hasContent(host) && (
-              <HelperText>
-                <HelperTextItem variant="error" data-testid="mr-host-error">
-                  Host cannot be empty
-                </HelperTextItem>
-              </HelperText>
-            )}
-          </FormGroup>
-          <FormGroup label="Port" isRequired fieldId="mr-port">
-            <TextInput
-              isRequired
-              type="text"
-              id="mr-port"
-              name="mr-port"
-              value={port}
-              onBlur={() => setIsPortTouched(true)}
-              onChange={(_e, value) => setPort(value)}
-              validated={isPortTouched && !hasContent(port) ? 'error' : 'default'}
-            />
-            {isPortTouched && !hasContent(port) && (
-              <HelperText>
-                <HelperTextItem variant="error" data-testid="mr-port-error">
-                  Port cannot be empty
-                </HelperTextItem>
-              </HelperText>
-            )}
-          </FormGroup>
-          <FormGroup label="Username" isRequired fieldId="mr-username">
-            <TextInput
-              isRequired
-              type="text"
-              id="mr-username"
-              name="mr-username"
-              value={username}
-              onBlur={() => setIsUsernameTouched(true)}
-              onChange={(_e, value) => setUsername(value)}
-              validated={isUsernameTouched && !hasContent(username) ? 'error' : 'default'}
-            />
-            {isUsernameTouched && !hasContent(username) && (
-              <HelperText>
-                <HelperTextItem variant="error" data-testid="mr-username-error">
-                  Username cannot be empty
-                </HelperTextItem>
-              </HelperText>
-            )}
-          </FormGroup>
-          <FormGroup label="Password" isRequired fieldId="mr-password">
-            <ModelRegistryDatabasePassword
-              password={password || ''}
-              setPassword={setPassword}
-              isPasswordTouched={isPasswordTouched}
-              setIsPasswordTouched={setIsPasswordTouched}
-              showPassword={showPassword}
-              editRegistry={mr}
-            />
-          </FormGroup>
-          <FormGroup label="Database" isRequired fieldId="mr-database">
-            <TextInput
-              isRequired
-              type="text"
-              id="mr-database"
-              name="mr-database"
-              value={database}
-              onBlur={() => setIsDatabaseTouched(true)}
-              onChange={(_e, value) => setDatabase(value)}
-              validated={isDatabaseTouched && !hasContent(database) ? 'error' : 'default'}
-            />
-            {isDatabaseTouched && !hasContent(database) && (
-              <HelperText>
-                <HelperTextItem variant="error" data-testid="mr-database-error">
-                  Database cannot be empty
-                </HelperTextItem>
-              </HelperText>
-            )}
-          </FormGroup>
-          {secureDbEnabled && (
-            <>
-              <FormGroup>
-                <Checkbox
-                  label="Add CA certificate to secure database connection"
-                  isChecked={addSecureDB}
-                  onChange={(_e, value) => setAddSecureDB(value)}
-                  id="add-secure-db"
-                  data-testid="add-secure-db-mr-checkbox"
-                  name="add-secure-db"
-                />
-              </FormGroup>
-              {addSecureDB &&
-                (!configSecretsLoaded && !configSecretsError ? (
-                  <EmptyState icon={Spinner} />
-                ) : configSecretsLoaded ? (
-                  <CreateMRSecureDBSection
-                    secureDBInfo={secureDBInfo}
-                    modelRegistryNamespace={modelRegistryNamespace}
-                    k8sName={nameDesc.k8sName.value}
-                    existingCertConfigMaps={configSecrets.configMaps}
-                    existingCertSecrets={configSecrets.secrets}
-                    setSecureDBInfo={setSecureDBInfo}
-                  />
-                ) : (
-                  <Alert
-                    isInline
-                    variant="danger"
-                    title="Error fetching config maps and secrets"
-                    data-testid="error-fetching-resource-alert"
-                  >
-                    {configSecretsError?.message}
-                  </Alert>
-                ))}
-            </>
-          )}
-        </FormSection>
-      </Form>
+      </ModalFooter>
     </Modal>
   );
 };

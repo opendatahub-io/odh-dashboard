@@ -1,10 +1,10 @@
 import React from 'react';
-import { Table } from '~/components/table';
-import { ClusterStorageNotebookSelection } from '~/pages/projects/types';
-import { NotebookKind, PersistentVolumeClaimKind } from '~/k8sTypes';
-import { MountPathFormat } from '~/pages/projects/screens/spawner/storage/types';
-import { getNotebookPVCMountPathMap } from '~/pages/projects/notebook/utils';
-import { MOUNT_PATH_PREFIX } from '~/pages/projects/screens/spawner/storage/const';
+import { Table } from '#~/components/table';
+import { ClusterStorageNotebookSelection } from '#~/pages/projects/types';
+import { NotebookKind, PersistentVolumeClaimKind } from '#~/k8sTypes';
+import { MountPathFormat } from '#~/pages/projects/screens/spawner/storage/types';
+import { getNotebookPVCMountPathMap } from '#~/pages/projects/notebook/utils';
+import { MOUNT_PATH_PREFIX } from '#~/pages/projects/screens/spawner/storage/const';
 import { storageColumns } from './clusterTableColumns';
 import ClusterStorageTableRow from './ClusterStorageTableRow';
 import { getInUseMountPaths, validateClusterMountPath } from './utils';

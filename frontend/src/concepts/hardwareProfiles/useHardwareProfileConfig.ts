@@ -1,11 +1,12 @@
 import React, { useRef } from 'react';
-import { HardwareProfileKind, HardwareProfileFeatureVisibility } from '~/k8sTypes';
-import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
-import useGenericObjectState from '~/utilities/useGenericObjectState';
-import { ContainerResources, NodeSelector, Toleration } from '~/types';
-import { isCpuLimitLarger, isMemoryLimitLarger } from '~/utilities/valueUnits';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import { useHardwareProfilesByFeatureVisibility } from '~/pages/hardwareProfiles/migration/useHardwareProfilesByFeatureVisibility';
+import { HardwareProfileKind, HardwareProfileFeatureVisibility } from '#~/k8sTypes';
+import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
+import useGenericObjectState from '#~/utilities/useGenericObjectState';
+import { ContainerResources, NodeSelector, Toleration } from '#~/types';
+import { isCpuLimitLarger, isMemoryLimitLarger } from '#~/utilities/valueUnits';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { useHardwareProfilesByFeatureVisibility } from '#~/pages/hardwareProfiles/migration/useHardwareProfilesByFeatureVisibility';
+import { isHardwareProfileEnabled } from '#~/pages/hardwareProfiles/utils.ts';
 import { isHardwareProfileConfigValid } from './validationUtils';
 import { getContainerResourcesFromHardwareProfile } from './utils';
 
@@ -77,7 +78,7 @@ const matchToHardwareProfile = (
       );
     });
 
-    const tolerationsMatch = profile.spec.tolerations?.every((toleration) =>
+    const tolerationsMatch = profile.spec.scheduling?.node?.tolerations?.every((toleration) =>
       tolerations.some(
         (t) =>
           t.key === toleration.key &&
@@ -88,9 +89,9 @@ const matchToHardwareProfile = (
       ),
     );
 
-    const nodeSelectorMatch = Object.entries(profile.spec.nodeSelector || {}).every(
-      ([key, value]) => nodeSelector[key] === value,
-    );
+    const nodeSelectorMatch = Object.entries(
+      profile.spec.scheduling?.node?.nodeSelector || {},
+    ).every(([key, value]) => nodeSelector[key] === value);
 
     return identifiersMatch && tolerationsMatch && nodeSelectorMatch;
   });
@@ -105,6 +106,7 @@ export const useHardwareProfileConfig = (
   nodeSelector?: NodeSelector,
   visibleIn?: HardwareProfileFeatureVisibility[],
   namespace?: string,
+  hardwareProfileNamespace?: string | null,
 ): UseHardwareProfileConfigResult => {
   const [dashboardProfiles, dashboardProfilesLoaded, dashboardProfilesLoadError] =
     useHardwareProfilesByFeatureVisibility(visibleIn);
@@ -143,9 +145,17 @@ export const useHardwareProfileConfig = (
       if (resources) {
         // try to match to existing profile
         if (existingHardwareProfileName) {
-          selectedProfile = profiles.find(
-            (profile) => profile.metadata.name === existingHardwareProfileName,
-          );
+          if (hardwareProfileNamespace) {
+            selectedProfile = projectScopedProfiles.find(
+              (profile) =>
+                profile.metadata.name === existingHardwareProfileName &&
+                profile.metadata.namespace === hardwareProfileNamespace,
+            );
+          } else {
+            selectedProfile = dashboardProfiles.find(
+              (profile) => profile.metadata.name === existingHardwareProfileName,
+            );
+          }
         } else {
           selectedProfile = matchToHardwareProfile(profiles, resources, tolerations, nodeSelector);
         }
@@ -158,7 +168,7 @@ export const useHardwareProfileConfig = (
 
       // if not editing existing profile, select the first enabled profile
       else {
-        selectedProfile = profiles.find((profile) => profile.spec.enabled);
+        selectedProfile = profiles.find((profile) => isHardwareProfileEnabled(profile));
         if (selectedProfile) {
           setFormData('resources', getContainerResourcesFromHardwareProfile(selectedProfile));
           setFormData('selectedProfile', selectedProfile);
@@ -175,6 +185,9 @@ export const useHardwareProfileConfig = (
     nodeSelector,
     formData.resources,
     formData.selectedProfile,
+    hardwareProfileNamespace,
+    projectScopedProfiles,
+    dashboardProfiles,
   ]);
 
   return {

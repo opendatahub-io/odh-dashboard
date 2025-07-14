@@ -6,9 +6,9 @@ import {
   ModelVersion,
   RegisteredModel,
   RegisteredModelList,
-} from '~/concepts/modelRegistry/types';
-import { ModelRegistryAPIState } from '~/concepts/modelRegistry/context/useModelRegistryAPIState';
-import { objectStorageFieldsToUri } from '~/concepts/modelRegistry/utils';
+} from '#~/concepts/modelRegistry/types';
+import { ModelRegistryAPIState } from '#~/concepts/modelRegistry/context/useModelRegistryAPIState';
+import { objectStorageFieldsToUri } from '#~/concepts/modelRegistry/utils';
 import {
   ModelLocationType,
   RegisterModelFormData,

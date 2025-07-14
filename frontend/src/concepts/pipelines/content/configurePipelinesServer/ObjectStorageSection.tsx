@@ -7,12 +7,14 @@ import {
   InputGroupItem,
   Popover,
   Button,
+  Flex,
+  FlexItem,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
-import { Connection } from '~/concepts/connectionTypes/types';
-import { AwsKeys, PIPELINE_AWS_FIELDS } from '~/pages/projects/dataConnections/const';
-import { FieldListField } from '~/components/FieldList';
-import FormSection from '~/components/pf-overrides/FormSection';
+import { Connection } from '#~/concepts/connectionTypes/types';
+import { AwsKeys, PIPELINE_AWS_FIELDS } from '#~/pages/projects/dataConnections/const';
+import { FieldListField } from '#~/components/FieldList';
+import FormSection from '#~/components/pf-overrides/FormSection';
 import { PipelineDropdown } from './PipelineDropdown';
 import { PipelineServerConfigType } from './types';
 
@@ -47,7 +49,18 @@ export const ObjectStorageSection = ({
 
   return (
     <FormSection
-      title="Object storage connection"
+      title={
+        <Flex>
+          <FlexItem>Object storage connection</FlexItem>
+          {loaded && !!connections.length && (
+            <FlexItem align={{ default: 'alignRight' }}>
+              <Tooltip content="Populate the form with credentials from your selected connection">
+                <PipelineDropdown config={config} setConfig={setConfig} connections={connections} />
+              </Tooltip>
+            </FlexItem>
+          )}
+        </Flex>
+      }
       description="To store pipeline artifacts. Must be S3 compatible"
     >
       {PIPELINE_AWS_FIELDS.map((field) =>
@@ -67,15 +80,6 @@ export const ObjectStorageSection = ({
                   onChange={(_, value) => onChange(field.key, value)}
                 />
               </InputGroupItem>
-              {loaded && !!connections.length && (
-                <Tooltip content="Populate the form with credentials from your selected data connection">
-                  <PipelineDropdown
-                    config={config}
-                    setConfig={setConfig}
-                    connections={connections}
-                  />
-                </Tooltip>
-              )}
             </InputGroup>
           </FormGroup>
         ) : (

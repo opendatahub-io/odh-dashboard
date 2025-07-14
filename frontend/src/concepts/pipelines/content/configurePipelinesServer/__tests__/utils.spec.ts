@@ -1,13 +1,13 @@
-import { mockDataSciencePipelineApplicationK8sResource } from '~/__mocks__/mockDataSciencePipelinesApplicationK8sResource';
-import { deleteSecret, getPipelinesCR } from '~/api';
-import { DSPA_SECRET_NAME } from '~/concepts/pipelines/content/configurePipelinesServer/const';
-import { PipelineServerConfigType } from '~/concepts/pipelines/content/configurePipelinesServer/types';
-import { createDSPipelineResourceSpec } from '~/concepts/pipelines/content/configurePipelinesServer/utils';
-import { deleteServer, isGeneratedDSPAExternalStorageSecret } from '~/concepts/pipelines/utils';
-import { AwsKeys } from '~/pages/projects/dataConnections/const';
-import { genRandomChars } from '~/utilities/string';
+import { mockDataSciencePipelineApplicationK8sResource } from '#~/__mocks__/mockDataSciencePipelinesApplicationK8sResource';
+import { deleteSecret, getPipelinesCR } from '#~/api';
+import { DSPA_SECRET_NAME } from '#~/concepts/pipelines/content/configurePipelinesServer/const';
+import { PipelineServerConfigType } from '#~/concepts/pipelines/content/configurePipelinesServer/types';
+import { createDSPipelineResourceSpec } from '#~/concepts/pipelines/content/configurePipelinesServer/utils';
+import { deleteServer, isGeneratedDSPAExternalStorageSecret } from '#~/concepts/pipelines/utils';
+import { AwsKeys } from '#~/pages/projects/dataConnections/const';
+import { genRandomChars } from '#~/utilities/string';
 
-jest.mock('~/api', () => ({
+jest.mock('#~/api', () => ({
   getPipelinesCR: jest.fn(),
   deleteSecret: jest.fn(),
   deletePipelineCR: jest.fn(),

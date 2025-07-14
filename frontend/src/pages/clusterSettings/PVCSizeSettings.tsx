@@ -11,7 +11,7 @@ import {
   TextInput,
   InputGroupItem,
 } from '@patternfly/react-core';
-import SettingSection from '~/components/SettingSection';
+import SettingSection from '#~/components/SettingSection';
 import { DEFAULT_PVC_SIZE, MAX_PVC_SIZE, MIN_PVC_SIZE } from './const';
 
 type PVCSizeSettingsProps = {

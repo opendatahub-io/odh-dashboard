@@ -4,19 +4,19 @@ import {
   Connection,
   ConnectionTypeConfigMapObj,
   ConnectionTypeValueType,
-} from '~/concepts/connectionTypes/types';
-import { ProjectKind } from '~/k8sTypes';
+} from '#~/concepts/connectionTypes/types';
+import { ProjectKind } from '#~/k8sTypes';
 import {
   CreatingInferenceServiceObject,
   InferenceServiceStorageType,
-} from '~/pages/modelServing/screens/types';
+} from '#~/pages/modelServing/screens/types';
 import {
   AccessTypes,
   AwsKeys,
   EMPTY_AWS_SECRET_DATA,
-} from '~/pages/projects/dataConnections/const';
-import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
-import { isRedHatRegistryUri } from '~/pages/modelRegistry/screens/utils';
+} from '#~/pages/projects/dataConnections/const';
+import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
+import { isRedHatRegistryUri } from '#~/pages/modelRegistry/screens/utils';
 import {
   getMRConnectionValues,
   OCIAccessTypeKey,
@@ -24,11 +24,11 @@ import {
   S3ConnectionTypeKeys,
   URIConnectionTypeKeys,
   withRequiredFields,
-} from '~/concepts/connectionTypes/utils';
-import { useWatchConnectionTypes } from '~/utilities/useWatchConnectionTypes';
-import { getResourceNameFromK8sResource } from '~/concepts/k8s/utils';
-import { PrefilledConnection } from '~/concepts/modelRegistry/utils';
-import useServingConnections from '~/pages/projects/screens/detail/connections/useServingConnections';
+} from '#~/concepts/connectionTypes/utils';
+import { useWatchConnectionTypes } from '#~/utilities/useWatchConnectionTypes';
+import { getResourceNameFromK8sResource } from '#~/concepts/k8s/utils';
+import { PrefilledConnection } from '#~/concepts/modelRegistry/utils';
+import useServingConnections from '#~/pages/projects/screens/detail/connections/useServingConnections';
 import useLabeledConnections from './useLabeledConnections';
 
 export type ModelDeployPrefillInfo = {
@@ -79,14 +79,16 @@ const usePrefillModelDeployModal = (
       message:
         'The selected project does not have a connection that matches the model location. You can create a matching connection by using the data in the autopopulated fields, or edit the fields to create a different connection. Alternatively, click Existing connection to select an existing non-matching connection.',
     };
-    if (modelDeployPrefillInfo?.modelArtifactUri && loaded && !hasPrefilledRef.current) {
-      // Mark as prefilled to prevent future prefills
-      hasPrefilledRef.current = true;
 
+    // Only run this effect if we have modelDeployPrefillInfo and haven't prefilled yet
+    if (modelDeployPrefillInfo?.modelArtifactUri && loaded && !hasPrefilledRef.current) {
+      hasPrefilledRef.current = true;
       setCreateData('name', modelDeployPrefillInfo.modelName);
       const recommendedConnections = connections.filter(
         (dataConnection) => dataConnection.isRecommended,
       );
+
+      const connectionName = modelDeployPrefillInfo.initialConnectionName || '';
 
       if (!modelLocation) {
         setCreateData('storage', {
@@ -103,7 +105,7 @@ const usePrefillModelDeployModal = (
           AwsKeys.DEFAULT_REGION,
         ];
         const prefilledAWSData = [
-          { key: AwsKeys.NAME, value: modelDeployPrefillInfo.initialConnectionName || '' },
+          { key: AwsKeys.NAME, value: connectionName },
           { key: AwsKeys.AWS_S3_BUCKET, value: modelLocation.s3Fields.bucket },
           { key: AwsKeys.S3_ENDPOINT, value: modelLocation.s3Fields.endpoint },
           { key: AwsKeys.DEFAULT_REGION, value: modelLocation.s3Fields.region || '' },
@@ -112,7 +114,7 @@ const usePrefillModelDeployModal = (
         if (recommendedConnections.length === 0) {
           setCreateData('storage', {
             awsData: prefilledAWSData,
-            dataConnection: modelDeployPrefillInfo.initialConnectionName || '',
+            dataConnection: connectionName,
             path: modelLocation.s3Fields.path,
             type: InferenceServiceStorageType.NEW_STORAGE,
             alert,
@@ -147,7 +149,7 @@ const usePrefillModelDeployModal = (
           setCreateData('storage', {
             awsData: EMPTY_AWS_SECRET_DATA,
             uri: '',
-            dataConnection: modelDeployPrefillInfo.initialConnectionName || '',
+            dataConnection: connectionName,
             path: '',
             type: InferenceServiceStorageType.NEW_STORAGE,
             alert,
@@ -192,7 +194,7 @@ const usePrefillModelDeployModal = (
           setCreateData('storage', {
             awsData: EMPTY_AWS_SECRET_DATA,
             uri: modelLocation.ociUri,
-            dataConnection: '',
+            dataConnection: connectionName,
             path: '',
             type: InferenceServiceStorageType.NEW_STORAGE,
             alert,

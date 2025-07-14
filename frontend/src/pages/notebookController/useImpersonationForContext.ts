@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { Notebook } from '~/types';
-import { useUser } from '~/redux/selectors';
+import { Notebook } from '#~/types';
+import { useUser } from '#~/redux/selectors';
 import { NotebookContextStorage, SetNotebookState } from './notebookControllerContextTypes';
 
 export type SetImpersonating = (

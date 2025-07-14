@@ -1,4 +1,4 @@
-import { K8sNameDescriptionField } from '~/__tests__/cypress/cypress/pages/components/subComponents/K8sNameDescriptionField';
+import { K8sNameDescriptionField } from '#~/__tests__/cypress/cypress/pages/components/subComponents/K8sNameDescriptionField';
 import { Modal } from './components/Modal';
 import { Contextual } from './components/Contextual';
 import { TableRow } from './components/table';

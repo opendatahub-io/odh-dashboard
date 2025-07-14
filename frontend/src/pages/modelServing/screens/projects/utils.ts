@@ -1,32 +1,31 @@
 import * as React from 'react';
 import {
   ConfigMapKind,
-  DashboardConfigKind,
   DeploymentMode,
   InferenceServiceKind,
   KnownLabels,
   PersistentVolumeClaimKind,
   ProjectKind,
   SecretKind,
+  ServingContainer,
   ServingRuntimeKind,
-} from '~/k8sTypes';
-import { NamespaceApplicationCase, UpdateObjectAtPropAndValue } from '~/pages/projects/types';
-import useGenericObjectState from '~/utilities/useGenericObjectState';
+} from '#~/k8sTypes';
+import { NamespaceApplicationCase, UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
+import useGenericObjectState from '#~/utilities/useGenericObjectState';
 import {
   CreatingInferenceServiceObject,
   CreatingServingRuntimeObject,
   InferenceServiceStorageType,
-  ModelServingSize,
   ServingPlatformStatuses,
   ServingRuntimeEditInfo,
-} from '~/pages/modelServing/screens/types';
-import { ServingRuntimePlatform } from '~/types';
-import { DEFAULT_MODEL_SERVER_SIZES } from '~/pages/modelServing/screens/const';
-import { useDeepCompareMemoize } from '~/utilities/useDeepCompareMemoize';
-import { EMPTY_AWS_SECRET_DATA } from '~/pages/projects/dataConnections/const';
-import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
-import { getDisplayNameFromServingRuntimeTemplate } from '~/pages/modelServing/customServingRuntimes/utils';
-import { getServingRuntimeTokens, setUpTokenAuth } from '~/pages/modelServing/utils';
+} from '#~/pages/modelServing/screens/types';
+import { ServingRuntimePlatform } from '#~/types';
+import { platformKeyMap } from '#~/pages/modelServing/screens/const';
+import { useDeepCompareMemoize } from '#~/utilities/useDeepCompareMemoize';
+import { EMPTY_AWS_SECRET_DATA } from '#~/pages/projects/dataConnections/const';
+import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
+import { getDisplayNameFromServingRuntimeTemplate } from '#~/pages/modelServing/customServingRuntimes/utils';
+import { getServingRuntimeTokens, setUpTokenAuth } from '#~/pages/modelServing/utils';
 import {
   addSupportServingPlatformProject,
   createInferenceService,
@@ -36,25 +35,17 @@ import {
   getInferenceServiceContext,
   updateInferenceService,
   updateServingRuntime,
-} from '~/api';
-import { containsOnlySlashes, isS3PathValid, removeLeadingSlash } from '~/utilities/string';
-import { getNIMData, getNIMResource } from '~/pages/modelServing/screens/projects/nimUtils';
-import { useKServeDeploymentMode } from '~/pages/modelServing/useKServeDeploymentMode';
-import { Connection } from '~/concepts/connectionTypes/types';
-import { ModelServingPodSpecOptions } from '~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
+} from '#~/api';
+import { containsOnlySlashes, isS3PathValid, removeLeadingSlash } from '#~/utilities/string';
+import { getNIMData, getNIMResource } from '#~/pages/modelServing/screens/projects/nimUtils';
+import { useKServeDeploymentMode } from '#~/pages/modelServing/useKServeDeploymentMode';
+import { Connection } from '#~/concepts/connectionTypes/types';
+import { ModelServingPodSpecOptions } from '#~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
 import {
   isModelServingCompatible,
   ModelServingCompatibleTypes,
-} from '~/concepts/connectionTypes/utils';
+} from '#~/concepts/connectionTypes/utils';
 import { ModelDeployPrefillInfo } from './usePrefillModelDeployModal';
-
-export const getServingRuntimeSizes = (config: DashboardConfigKind): ModelServingSize[] => {
-  let sizes = config.spec.modelServerSizes || [];
-  if (sizes.length === 0) {
-    sizes = DEFAULT_MODEL_SERVER_SIZES;
-  }
-  return sizes;
-};
 
 export const isServingRuntimeTokenEnabled = (servingRuntime: ServingRuntimeKind): boolean =>
   servingRuntime.metadata.annotations?.['enable-auth'] === 'true';
@@ -731,3 +722,33 @@ export const fetchInferenceServiceCount = async (namespace: string): Promise<num
     );
   }
 };
+
+export function isCurrentServingPlatformEnabled(
+  currentPlatform: ServingRuntimePlatform | undefined,
+  statuses: ServingPlatformStatuses,
+): boolean {
+  if (!currentPlatform) {
+    return false;
+  }
+  const mappedKey = platformKeyMap[currentPlatform];
+  return statuses[mappedKey].enabled;
+}
+
+export const VALID_ENV_VARNAME_REGEX = /^[A-Za-z_][A-Za-z0-9_\-.]*$/;
+export const STARTS_WITH_DIGIT_REGEX = /^\d/;
+
+export const validateEnvVarName = (name: string): string | undefined => {
+  if (!name) {
+    return undefined;
+  }
+  if (STARTS_WITH_DIGIT_REGEX.test(name)) {
+    return 'Must not start with a digit.';
+  }
+  if (!VALID_ENV_VARNAME_REGEX.test(name)) {
+    return "Must consist of alphabetic characters, digits, '_', '-', or '.'";
+  }
+  return undefined;
+};
+
+export const isValueFromEnvVar = (envVar: NonNullable<ServingContainer['env']>[number]): boolean =>
+  envVar.valueFrom !== undefined;

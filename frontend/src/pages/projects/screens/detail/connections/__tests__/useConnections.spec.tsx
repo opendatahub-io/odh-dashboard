@@ -1,10 +1,10 @@
 import { act } from 'react';
-import { standardUseFetchState, testHook } from '~/__tests__/unit/testUtils/hooks';
-import useConnections from '~/pages/projects/screens/detail/connections/useConnections';
-import { getSecretsByLabel } from '~/api';
-import { mockConnection } from '~/__mocks__/mockConnection';
+import { standardUseFetchStateObject, testHook } from '#~/__tests__/unit/testUtils/hooks';
+import useConnections from '#~/pages/projects/screens/detail/connections/useConnections';
+import { getSecretsByLabel } from '#~/api';
+import { mockConnection } from '#~/__mocks__/mockConnection';
 
-jest.mock('~/api', () => ({
+jest.mock('#~/api', () => ({
   getSecretsByLabel: jest.fn(),
 }));
 
@@ -21,14 +21,16 @@ describe('useConnections', () => {
     // wait for update
     await renderResult.waitForNextUpdate();
     expect(mockGetSecretsByLabel).toHaveBeenCalledTimes(1);
-    expect(renderResult).hookToStrictEqual(standardUseFetchState(connectionsMock, true));
+    expect(renderResult).hookToStrictEqual(
+      standardUseFetchStateObject({ data: connectionsMock, loaded: true }),
+    );
     expect(renderResult).hookToHaveUpdateCount(2);
-    expect(renderResult).hookToBeStable([false, false, true, true]);
+    expect(renderResult).hookToBeStable({ data: false, loaded: false, error: true, refresh: true });
 
     // refresh
-    await act(() => renderResult.result.current[3]());
+    await act(() => renderResult.result.current.refresh());
     expect(mockGetSecretsByLabel).toHaveBeenCalledTimes(2);
     expect(renderResult).hookToHaveUpdateCount(3);
-    expect(renderResult).hookToBeStable([false, true, true, true]);
+    expect(renderResult).hookToBeStable({ data: false, loaded: true, error: true, refresh: true });
   });
 });

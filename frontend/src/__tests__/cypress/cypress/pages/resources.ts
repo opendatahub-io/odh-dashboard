@@ -1,8 +1,14 @@
 import { Contextual } from './components/Contextual';
+import { appChrome } from './appChrome';
 
 class Resources {
   visit() {
     cy.visitWithLogin('/resources');
+    this.wait();
+  }
+
+  navigate() {
+    appChrome.findNavItem('Resources').click();
     this.wait();
   }
 
@@ -39,7 +45,7 @@ class Resources {
   }
 
   getQuickStartDrawer() {
-    return new QuickStartDrawer(() => cy.findByTestId('qs-drawer-creatingAJupyterNotebook'));
+    return new QuickStartDrawer(() => cy.findByTestId('qs-drawer-creatingABasicWorkbench'));
   }
 
   findLeaveQuickStartDialogue() {

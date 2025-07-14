@@ -1,4 +1,4 @@
-import { ConfigSecretItem, ListConfigSecretsResponse } from '~/k8sTypes';
+import { ConfigSecretItem, ListConfigSecretsResponse } from '#~/k8sTypes';
 
 type MockConfigMapsSecretsType = {
   secrets?: ConfigSecretItem[];

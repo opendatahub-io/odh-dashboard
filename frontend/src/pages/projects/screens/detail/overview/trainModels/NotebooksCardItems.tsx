@@ -1,11 +1,11 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Flex, FlexItem, Content } from '@patternfly/react-core';
-import NotebookRouteLink from '~/pages/projects/notebook/NotebookRouteLink';
-import { NotebookDataState } from '~/pages/projects/notebook/types';
-import { ProjectKind } from '~/k8sTypes';
-import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
-import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
+import NotebookRouteLink from '#~/pages/projects/notebook/NotebookRouteLink';
+import { NotebookDataState } from '#~/pages/projects/notebook/types';
+import { ProjectKind } from '#~/k8sTypes';
+import { ProjectSectionID } from '#~/pages/projects/screens/detail/types';
+import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 
 const notebookSorter = (a: NotebookDataState, b: NotebookDataState) => {
   if (a.isRunning !== b.isRunning) {

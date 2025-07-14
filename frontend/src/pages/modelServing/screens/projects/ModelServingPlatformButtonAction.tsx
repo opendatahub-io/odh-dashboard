@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { Button, ButtonProps, Content, Tooltip } from '@patternfly/react-core';
-import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import { isProjectNIMSupported } from '~/pages/modelServing/screens/projects/nimUtils';
-import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformStatuses';
+import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
+import { isProjectNIMSupported } from '#~/pages/modelServing/screens/projects/nimUtils';
+import useServingPlatformStatuses from '#~/pages/modelServing/useServingPlatformStatuses';
 
 type ModelServingPlatformButtonActionProps = ButtonProps & {
   isProjectModelMesh: boolean;

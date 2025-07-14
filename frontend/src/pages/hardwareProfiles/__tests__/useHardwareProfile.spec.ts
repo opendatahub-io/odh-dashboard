@@ -1,10 +1,10 @@
 import { k8sGetResource } from '@openshift/dynamic-plugin-sdk-utils';
 import { act } from 'react';
-import { mockHardwareProfile } from '~/__mocks__/mockHardwareProfile';
-import { standardUseFetchState, testHook } from '~/__tests__/unit/testUtils/hooks';
-import { HardwareProfileModel } from '~/api';
-import { HardwareProfileKind } from '~/k8sTypes';
-import useHardwareProfile from '~/pages/hardwareProfiles/useHardwareProfile';
+import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile';
+import { standardUseFetchState, testHook } from '#~/__tests__/unit/testUtils/hooks';
+import { HardwareProfileModel } from '#~/api';
+import { HardwareProfileKind } from '#~/k8sTypes';
+import useHardwareProfile from '#~/pages/hardwareProfiles/useHardwareProfile';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sGetResource: jest.fn(),

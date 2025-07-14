@@ -4,9 +4,9 @@ import {
   k8sGetResource,
   K8sStatus,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { ServiceAccountModel } from '~/api/models';
-import { K8sAPIOptions, ServiceAccountKind } from '~/k8sTypes';
-import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
+import { ServiceAccountModel } from '#~/api/models';
+import { K8sAPIOptions, ServiceAccountKind } from '#~/k8sTypes';
+import { applyK8sAPIOptions } from '#~/api/apiMergeUtils';
 
 export const assembleServiceAccount = (name: string, namespace: string): ServiceAccountKind => {
   const serviceAccount: ServiceAccountKind = {

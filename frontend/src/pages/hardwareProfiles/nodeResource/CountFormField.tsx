@@ -1,10 +1,10 @@
 import * as React from 'react';
 import { FormGroup, FormHelperText, HelperText, HelperTextItem } from '@patternfly/react-core';
-import MemoryField from '~/components/MemoryField';
-import CPUField from '~/components/CPUField';
-import NumberInputWrapper from '~/components/NumberInputWrapper';
-import { IdentifierResourceType } from '~/types';
-import DashboardHelpTooltip from '~/concepts/dashboard/DashboardHelpTooltip';
+import MemoryField from '#~/components/MemoryField';
+import CPUField from '#~/components/CPUField';
+import NumberInputWrapper from '#~/components/NumberInputWrapper';
+import { IdentifierResourceType } from '#~/types';
+import DashboardHelpTooltip from '#~/concepts/dashboard/DashboardHelpTooltip';
 
 type CountFormFieldProps = {
   label?: string;
@@ -36,7 +36,7 @@ const CountFormField: React.FC<CountFormFieldProps> = ({
         return (
           <CPUField
             validated={validated}
-            onChange={(value) => setSize(value)}
+            onChange={(value) => setSize(value ?? '1')}
             value={size}
             min={0}
           />
@@ -45,7 +45,7 @@ const CountFormField: React.FC<CountFormFieldProps> = ({
         return (
           <MemoryField
             validated={validated}
-            onChange={(value) => setSize(value)}
+            onChange={(value) => setSize(value ?? '1Gi')}
             value={size}
             min={0}
           />

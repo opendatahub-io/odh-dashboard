@@ -68,13 +68,13 @@ export const enableNotebook = async (
   }>,
 ): Promise<Notebook> => {
   const notebookData = request.body;
-  const { notebookNamespace } = getNamespaces(fastify);
+  const { workbenchNamespace } = getNamespaces(fastify);
   const username = request.body.username || (await getUserInfo(fastify, request)).userName;
   const name = generateNotebookNameFromUsername(username);
   const url = request.headers.origin;
 
   try {
-    const notebook = await getNotebook(fastify, notebookNamespace, name);
+    const notebook = await getNotebook(fastify, workbenchNamespace, name);
     return await updateNotebook(fastify, username, url ?? '', notebookData, notebook);
   } catch (e) {
     if (isHttpError(e) && e.response.statusCode === 404) {

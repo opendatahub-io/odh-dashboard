@@ -1,8 +1,8 @@
 import { k8sCreateResource, k8sGetResource } from '@openshift/dynamic-plugin-sdk-utils';
-import { mockRoleK8sResource } from '~/__mocks__/mockRoleK8sResource';
-import { KnownLabels, RoleKind } from '~/k8sTypes';
-import { createRole, generateRoleInferenceService, getRole } from '~/api/k8s/roles';
-import { RoleModel } from '~/api/models/k8s';
+import { mockRoleK8sResource } from '#~/__mocks__/mockRoleK8sResource';
+import { KnownLabels, RoleKind } from '#~/k8sTypes';
+import { createRole, generateRoleInferenceService, getRole } from '#~/api/k8s/roles';
+import { RoleModel } from '#~/api/models/k8s';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sGetResource: jest.fn(),

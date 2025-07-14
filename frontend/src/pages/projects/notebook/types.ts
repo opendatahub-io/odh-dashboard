@@ -1,4 +1,4 @@
-import { NotebookKind } from '~/k8sTypes';
+import { NotebookKind } from '#~/k8sTypes';
 
 /** The state behind the notebook status */
 export type NotebookDataState = {

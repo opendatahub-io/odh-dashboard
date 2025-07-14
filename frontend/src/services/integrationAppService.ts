@@ -1,5 +1,5 @@
-import axios from '~/utilities/axios';
-import { IntegrationAppStatus, ResponseStatus } from '~/types';
+import axios from '#~/utilities/axios';
+import { IntegrationAppStatus, ResponseStatus } from '#~/types';
 
 export const enableIntegrationApp = (
   internalRoute: string,

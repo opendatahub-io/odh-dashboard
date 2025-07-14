@@ -6,25 +6,25 @@ import {
   mockProjectK8sResource,
   mockSecretK8sResource,
   mockServingRuntimeK8sResource,
-} from '~/__mocks__';
+} from '#~/__mocks__';
 import {
   mockConnectionTypeConfigMap,
   mockModelServingFields,
-} from '~/__mocks__/mockConnectionType';
-import { mockNimAccount } from '~/__mocks__/mockNimAccount';
+} from '#~/__mocks__/mockConnectionType';
+import { mockNimAccount } from '#~/__mocks__/mockNimAccount';
 import {
   mockNimInferenceService,
   mockNimProject,
   mockNimServingRuntime,
-} from '~/__mocks__/mockNimResource';
-import { mockOdhApplication } from '~/__mocks__/mockOdhApplication';
+} from '#~/__mocks__/mockNimResource';
+import { mockOdhApplication } from '#~/__mocks__/mockOdhApplication';
 import {
   InferenceServiceModel,
   NIMAccountModel,
   ProjectModel,
   SecretModel,
   ServingRuntimeModel,
-} from '~/__tests__/cypress/cypress/utils/models';
+} from '#~/__tests__/cypress/cypress/utils/models';
 
 export const initInterceptsForAllProjects = (): void => {
   cy.interceptOdh(

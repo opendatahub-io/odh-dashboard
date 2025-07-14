@@ -1,11 +1,11 @@
-import { useIsAreaAvailable, SupportedArea } from '~/concepts/areas';
-import { useNotebookSizeState } from '~/pages/projects/screens/spawner/useNotebookSizeState';
-import { NotebookKind } from '~/k8sTypes';
-import useNotebookAcceleratorProfileFormState from '~/pages/projects/screens/detail/notebooks/useNotebookAcceleratorProfileFormState';
-import { Notebook, NotebookSize } from '~/types';
-import { assemblePodSpecOptions } from '~/utilities/podSpec';
-import { useAppContext } from '~/app/AppContext';
-import { usePreferredNotebookSize } from '~/pages/notebookController/screens/server/usePreferredNotebookSize';
+import { useIsAreaAvailable, SupportedArea } from '#~/concepts/areas';
+import { useNotebookSizeState } from '#~/pages/projects/screens/spawner/useNotebookSizeState';
+import { NotebookKind } from '#~/k8sTypes';
+import useNotebookAcceleratorProfileFormState from '#~/pages/projects/screens/detail/notebooks/useNotebookAcceleratorProfileFormState';
+import { Notebook, NotebookSize } from '#~/types';
+import { assemblePodSpecOptions } from '#~/utilities/podSpec';
+import { useAppContext } from '#~/app/AppContext';
+import { usePreferredNotebookSize } from '#~/pages/notebookController/screens/server/usePreferredNotebookSize';
 import useNotebookHardwareProfileConfig from './useNotebookHardwareProfileConfig';
 import { PodSpecOptions, PodSpecOptionsState } from './types';
 
@@ -81,8 +81,10 @@ const useNotebookPodSpecOptionsStateBase = (
       // if hardware profile is selected, use the hardware profile settings
       podSpecOptions = {
         resources: hardwareProfileConfig.formData.resources,
-        tolerations: hardwareProfileConfig.formData.selectedProfile?.spec.tolerations,
-        nodeSelector: hardwareProfileConfig.formData.selectedProfile?.spec.nodeSelector,
+        tolerations:
+          hardwareProfileConfig.formData.selectedProfile?.spec.scheduling?.node?.tolerations,
+        nodeSelector:
+          hardwareProfileConfig.formData.selectedProfile?.spec.scheduling?.node?.nodeSelector,
         ...annotationData,
       };
     }

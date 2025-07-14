@@ -3,10 +3,10 @@ import useFetchState, {
   FetchState,
   FetchStateCallbackPromise,
   NotReadyError,
-} from '~/utilities/useFetchState';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { PipelineRecurringRunKF } from '~/concepts/pipelines/kfTypes';
-import { K8sAPIOptions } from '~/k8sTypes';
+} from '#~/utilities/useFetchState';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+import { PipelineRecurringRunKF } from '#~/concepts/pipelines/kfTypes';
+import { K8sAPIOptions } from '#~/k8sTypes';
 
 const usePipelineRecurringRunById = (
   pipelineRecurringRunByIdId?: string,

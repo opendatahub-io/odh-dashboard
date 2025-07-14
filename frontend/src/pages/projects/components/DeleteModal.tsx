@@ -1,6 +1,17 @@
 import * as React from 'react';
-import { Alert, Button, Flex, FlexItem, Stack, StackItem, TextInput } from '@patternfly/react-core';
-import { Modal } from '@patternfly/react-core/deprecated';
+import {
+  Alert,
+  Button,
+  Flex,
+  FlexItem,
+  Stack,
+  StackItem,
+  TextInput,
+  Modal,
+  ModalBody,
+  ModalHeader,
+  ModalFooter,
+} from '@patternfly/react-core';
 
 type DeleteModalProps = {
   title: string;
@@ -12,6 +23,7 @@ type DeleteModalProps = {
   error?: Error;
   children: React.ReactNode;
   testId?: string;
+  genericLabel?: boolean;
 };
 
 const DeleteModal: React.FC<DeleteModalProps> = ({
@@ -24,6 +36,7 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
   error,
   submitButtonLabel = 'Delete',
   testId,
+  genericLabel,
 }) => {
   const [value, setValue] = React.useState('');
 
@@ -42,11 +55,53 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
 
   return (
     <Modal
-      title={title}
-      titleIconVariant="warning"
       isOpen
       onClose={() => onBeforeClose(false)}
-      actions={[
+      variant="small"
+      data-testid={testId || 'delete-modal'}
+    >
+      <ModalHeader title={title} titleIconVariant="warning" />
+      <ModalBody>
+        <Stack hasGutter>
+          <StackItem>{children}</StackItem>
+
+          <StackItem>
+            <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsSm' }}>
+              <FlexItem>
+                Type <strong>{deleteNameSanitized}</strong> to confirm
+                {genericLabel ? '' : ' deletion'}:
+              </FlexItem>
+
+              <TextInput
+                id="delete-modal-input"
+                data-testid="delete-modal-input"
+                aria-label="Delete modal input"
+                value={value}
+                onChange={(_e, newValue) => setValue(newValue)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' && value.trim() === deleteNameSanitized && !deleting) {
+                    onDelete();
+                  }
+                }}
+              />
+            </Flex>
+          </StackItem>
+
+          {error && (
+            <StackItem>
+              <Alert
+                data-testid="delete-model-error-message-alert"
+                title={`Error deleting ${deleteNameSanitized}`}
+                isInline
+                variant="danger"
+              >
+                {error.message}
+              </Alert>
+            </StackItem>
+          )}
+        </Stack>
+      </ModalBody>
+      <ModalFooter>
         <Button
           key="delete-button"
           variant="danger"
@@ -55,51 +110,11 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
           onClick={() => onBeforeClose(true)}
         >
           {submitButtonLabel}
-        </Button>,
+        </Button>
         <Button key="cancel-button" variant="link" onClick={() => onBeforeClose(false)}>
           Cancel
-        </Button>,
-      ]}
-      variant="small"
-      data-testid={testId || 'delete-modal'}
-    >
-      <Stack hasGutter>
-        <StackItem>{children}</StackItem>
-
-        <StackItem>
-          <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsSm' }}>
-            <FlexItem>
-              Type <strong>{deleteNameSanitized}</strong> to confirm deletion:
-            </FlexItem>
-
-            <TextInput
-              id="delete-modal-input"
-              data-testid="delete-modal-input"
-              aria-label="Delete modal input"
-              value={value}
-              onChange={(_e, newValue) => setValue(newValue)}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter' && value.trim() === deleteNameSanitized && !deleting) {
-                  onDelete();
-                }
-              }}
-            />
-          </Flex>
-        </StackItem>
-
-        {error && (
-          <StackItem>
-            <Alert
-              data-testid="delete-model-error-message-alert"
-              title={`Error deleting ${deleteNameSanitized}`}
-              isInline
-              variant="danger"
-            >
-              {error.message}
-            </Alert>
-          </StackItem>
-        )}
-      </Stack>
+        </Button>
+      </ModalFooter>
     </Modal>
   );
 };

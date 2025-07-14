@@ -3,9 +3,9 @@ import useFetchState, {
   FetchState,
   FetchStateCallbackPromise,
   NotReadyError,
-} from '~/utilities/useFetchState';
-import { getSecret } from '~/api';
-import { SecretKind } from '~/k8sTypes';
+} from '#~/utilities/useFetchState';
+import { getSecret } from '#~/api';
+import { SecretKind } from '#~/k8sTypes';
 
 const useExternalStorageSecret = (
   name: string | undefined,

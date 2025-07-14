@@ -5,8 +5,8 @@ import {
   ConnectionTypeDataField,
   connectionTypeDataFields,
   ConnectionTypeFieldType,
-} from '~/concepts/connectionTypes/types';
-import ConnectionTypeDataFormField from '~/concepts/connectionTypes/fields/ConnectionTypeDataFormField';
+} from '#~/concepts/connectionTypes/types';
+import ConnectionTypeDataFormField from '#~/concepts/connectionTypes/fields/ConnectionTypeDataFormField';
 
 describe('ConnectionTypeDataFormField', () => {
   it('should render field for each connection type', () => {

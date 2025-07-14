@@ -1,18 +1,20 @@
 import * as React from 'react';
 import { Alert, FormSection, HelperTextItem } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
-import { StorageData, UpdateObjectAtPropAndValue } from '~/pages/projects/types';
-import PVSizeField from '~/pages/projects/components/PVSizeField';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import { PersistentVolumeClaimKind } from '~/k8sTypes';
+import { StorageData, UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
+import PVSizeField from '#~/pages/projects/components/PVSizeField';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { PersistentVolumeClaimKind } from '#~/k8sTypes';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
-} from '~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
+} from '#~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import {
   isK8sNameDescriptionDataValid,
   LimitNameResourceType,
-} from '~/concepts/k8s/K8sNameDescriptionField/utils';
+} from '#~/concepts/k8s/K8sNameDescriptionField/utils';
 import StorageClassSelect from './StorageClassSelect';
+import AccessModeField from './AccessModeField';
+import { useGetStorageClassConfig } from './useGetStorageClassConfig';
 
 type CreateNewStorageSectionProps<D extends StorageData> = {
   data: D;
@@ -51,6 +53,14 @@ const CreateNewStorageSection = <D extends StorageData>({
       editableK8sName,
     });
 
+  const {
+    storageClasses,
+    storageClassesLoaded,
+    selectedStorageClassConfig,
+    adminSupportedAccessModes,
+    openshiftSupportedAccessModes,
+  } = useGetStorageClassConfig(data.storageClassName);
+
   React.useEffect(() => {
     setData('name', clusterStorageNameDesc.name);
     setData('k8sName', clusterStorageNameDesc.k8sName.value);
@@ -77,20 +87,33 @@ const CreateNewStorageSection = <D extends StorageData>({
         }
       />
       {isStorageClassesAvailable && (
-        <StorageClassSelect
-          storageClassName={data.storageClassName}
-          setStorageClassName={(name) => setData('storageClassName', name)}
-          additionalHelperText={
-            <Alert
-              variant="info"
-              title="The storage class cannot be changed after creation."
-              isInline
-              isPlain
-            />
-          }
-          disableStorageClassSelect={disableStorageClassSelect}
-          menuAppendTo={menuAppendTo}
-        />
+        <>
+          <StorageClassSelect
+            storageClasses={storageClasses}
+            storageClassesLoaded={storageClassesLoaded}
+            selectedStorageClassConfig={selectedStorageClassConfig}
+            storageClassName={data.storageClassName}
+            setStorageClassName={(name) => setData('storageClassName', name)}
+            additionalHelperText={
+              <Alert
+                variant="info"
+                title="The storage class cannot be changed after creation."
+                isInline
+                isPlain
+              />
+            }
+            disableStorageClassSelect={disableStorageClassSelect}
+            menuAppendTo={menuAppendTo}
+          />
+          <AccessModeField
+            storageClassesLoaded={storageClassesLoaded}
+            adminSupportedAccessModes={adminSupportedAccessModes}
+            openshiftSupportedAccessModes={openshiftSupportedAccessModes}
+            currentAccessMode={data.accessMode}
+            canEditAccessMode={editableK8sName}
+            setAccessMode={(accessMode) => setData('accessMode', accessMode)}
+          />
+        </>
       )}
       <PVSizeField
         fieldID="create-new-storage-size"

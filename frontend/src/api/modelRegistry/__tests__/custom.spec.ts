@@ -1,6 +1,6 @@
-import { proxyCREATE, proxyGET, proxyPATCH } from '~/api/proxyUtils';
-import { handleModelRegistryFailures } from '~/api/modelRegistry/errorUtils';
-import { ModelState, ModelArtifactState } from '~/concepts/modelRegistry/types';
+import { proxyCREATE, proxyGET, proxyPATCH } from '#~/api/proxyUtils';
+import { handleModelRegistryFailures } from '#~/api/modelRegistry/errorUtils';
+import { ModelState, ModelArtifactState } from '#~/concepts/modelRegistry/types';
 import {
   createModelArtifact,
   createModelVersion,
@@ -18,13 +18,13 @@ import {
   getModelArtifactsByModelVersion,
   createModelVersionForRegisteredModel,
   createModelArtifactForModelVersion,
-} from '~/api/modelRegistry/custom';
-import { MODEL_REGISTRY_API_VERSION } from '~/concepts/modelRegistry/const';
-import { mockRegisteredModel } from '~/__mocks__';
+} from '#~/api/modelRegistry/custom';
+import { MODEL_REGISTRY_API_VERSION } from '#~/concepts/modelRegistry/const';
+import { mockRegisteredModel } from '#~/__mocks__';
 
 const mockProxyPromise = Promise.resolve();
 
-jest.mock('~/api/proxyUtils', () => ({
+jest.mock('#~/api/proxyUtils', () => ({
   proxyCREATE: jest.fn(() => mockProxyPromise),
   proxyGET: jest.fn(() => mockProxyPromise),
   proxyPATCH: jest.fn(() => mockProxyPromise),
@@ -32,7 +32,7 @@ jest.mock('~/api/proxyUtils', () => ({
 
 const mockResultPromise = Promise.resolve();
 
-jest.mock('~/api/modelRegistry/errorUtils', () => ({
+jest.mock('#~/api/modelRegistry/errorUtils', () => ({
   handleModelRegistryFailures: jest.fn(() => mockResultPromise),
 }));
 

@@ -1,24 +1,24 @@
-import { mockDashboardConfig, mockDscStatus, mockK8sResourceList } from '~/__mocks__';
-import { mockDsciStatus } from '~/__mocks__/mockDsciStatus';
-import { StackCapability, StackComponent } from '~/concepts/areas/types';
-import { ServiceModel } from '~/__tests__/cypress/cypress/utils/models';
+import { mockDashboardConfig, mockDscStatus, mockK8sResourceList } from '#~/__mocks__';
+import { mockDsciStatus } from '#~/__mocks__/mockDsciStatus';
+import { StackComponent } from '#~/concepts/areas/types';
+import { ServiceModel } from '#~/__tests__/cypress/cypress/utils/models';
 import {
   FormFieldSelector,
   registerVersionPage,
-} from '~/__tests__/cypress/cypress/pages/modelRegistry/registerVersionPage';
-import { mockRegisteredModel } from '~/__mocks__/mockRegisteredModel';
-import { mockModelVersion } from '~/__mocks__/mockModelVersion';
-import { mockModelArtifact } from '~/__mocks__/mockModelArtifact';
-import { mockModelRegistryService } from '~/__mocks__/mockModelRegistryService';
-import { mockRegisteredModelList } from '~/__mocks__/mockRegisteredModelsList';
-import { mockModelVersionList } from '~/__mocks__/mockModelVersionList';
-import { mockModelArtifactList } from '~/__mocks__/mockModelArtifactList';
+} from '#~/__tests__/cypress/cypress/pages/modelRegistry/registerVersionPage';
+import { mockRegisteredModel } from '#~/__mocks__/mockRegisteredModel';
+import { mockModelVersion } from '#~/__mocks__/mockModelVersion';
+import { mockModelArtifact } from '#~/__mocks__/mockModelArtifact';
+import { mockModelRegistryService } from '#~/__mocks__/mockModelRegistryService';
+import { mockRegisteredModelList } from '#~/__mocks__/mockRegisteredModelsList';
+import { mockModelVersionList } from '#~/__mocks__/mockModelVersionList';
+import { mockModelArtifactList } from '#~/__mocks__/mockModelArtifactList';
 import {
   ModelArtifactState,
   ModelState,
   type ModelVersion,
   type ModelArtifact,
-} from '~/concepts/modelRegistry/types';
+} from '#~/concepts/modelRegistry/types';
 
 const MODEL_REGISTRY_API_VERSION = 'v1alpha3';
 
@@ -38,12 +38,7 @@ const initIntercepts = () => {
       },
     }),
   );
-  cy.interceptOdh(
-    'GET /api/dsci/status',
-    mockDsciStatus({
-      requiredCapabilities: [StackCapability.SERVICE_MESH, StackCapability.SERVICE_MESH_AUTHZ],
-    }),
-  );
+  cy.interceptOdh('GET /api/dsci/status', mockDsciStatus({}));
 
   cy.interceptK8sList(
     ServiceModel,

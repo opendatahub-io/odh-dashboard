@@ -1,6 +1,6 @@
-import { mockClusterQueueK8sResource } from '~/__mocks__/mockClusterQueueK8sResource';
-import { mockLocalQueueK8sResource } from '~/__mocks__/mockLocalQueueK8sResource';
-import { mockWorkloadK8sResource } from '~/__mocks__/mockWorkloadK8sResource';
+import { mockClusterQueueK8sResource } from '#~/__mocks__/mockClusterQueueK8sResource';
+import { mockLocalQueueK8sResource } from '#~/__mocks__/mockLocalQueueK8sResource';
+import { mockWorkloadK8sResource } from '#~/__mocks__/mockWorkloadK8sResource';
 import {
   getWorkloadOwner,
   WorkloadStatusColorAndIcon,
@@ -12,9 +12,9 @@ import {
   getQueueRequestedResources,
   getTotalSharedQuota,
   getWorkloadStatusMessage,
-} from '~/concepts/distributedWorkloads/utils';
-import { WorkloadOwnerType, WorkloadPodSet } from '~/k8sTypes';
-import { PodContainer } from '~/types';
+} from '#~/concepts/distributedWorkloads/utils';
+import { WorkloadOwnerType, WorkloadPodSet } from '#~/k8sTypes';
+import { PodContainer } from '#~/types';
 
 describe('getStatusInfo', () => {
   const testWorkloadStatus = (statusType: WorkloadStatusType | null, expectedMessage: string) => {

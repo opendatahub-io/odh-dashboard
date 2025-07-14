@@ -1,10 +1,10 @@
 import * as React from 'react';
 import { Alert, Button, Skeleton } from '@patternfly/react-core';
-import { PodStatus } from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/utils';
+import { PodStatus } from '#~/concepts/pipelines/content/pipelinesDetails/pipelineRun/utils';
 import {
   LOG_REFRESH_RATE,
   LOG_TAIL_LINES,
-} from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/runLogs/const';
+} from '#~/concepts/pipelines/content/pipelinesDetails/pipelineRun/runLogs/const';
 
 type LogsTabStatusProps = {
   podError?: Error;

@@ -2,8 +2,8 @@ import * as React from 'react';
 import '@testing-library/jest-dom';
 import { render, screen, waitFor } from '@testing-library/react';
 import { act } from 'react';
-import { DropdownField } from '~/concepts/connectionTypes/types';
-import DropdownFormField from '~/concepts/connectionTypes/fields/DropdownFormField';
+import { DropdownField } from '#~/concepts/connectionTypes/types';
+import DropdownFormField from '#~/concepts/connectionTypes/fields/DropdownFormField';
 
 describe('DropdownFormField', () => {
   describe('single variant', () => {

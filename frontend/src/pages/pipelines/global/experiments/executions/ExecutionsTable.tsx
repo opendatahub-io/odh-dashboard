@@ -1,12 +1,12 @@
 import * as React from 'react';
-import { TableBase } from '~/components/table';
-import { Execution } from '~/third_party/mlmd';
-import ExecutionsTableRow from '~/pages/pipelines/global/experiments/executions/ExecutionsTableRow';
-import { executionColumns } from '~/pages/pipelines/global/experiments/executions/columns';
-import { useMlmdListContext } from '~/concepts/pipelines/context';
-import { initialFilterData } from '~/pages/pipelines/global/experiments/executions/const';
-import ExecutionsTableToolbar from '~/pages/pipelines/global/experiments/executions/ExecutionsTableToolbar';
-import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
+import { TableBase } from '#~/components/table';
+import { Execution } from '#~/third_party/mlmd';
+import ExecutionsTableRow from '#~/pages/pipelines/global/experiments/executions/ExecutionsTableRow';
+import { executionColumns } from '#~/pages/pipelines/global/experiments/executions/columns';
+import { useMlmdListContext } from '#~/concepts/pipelines/context';
+import { initialFilterData } from '#~/pages/pipelines/global/experiments/executions/const';
+import ExecutionsTableToolbar from '#~/pages/pipelines/global/experiments/executions/ExecutionsTableToolbar';
+import DashboardEmptyTableView from '#~/concepts/dashboard/DashboardEmptyTableView';
 
 interface ExecutionsTableProps {
   executions: Execution[];

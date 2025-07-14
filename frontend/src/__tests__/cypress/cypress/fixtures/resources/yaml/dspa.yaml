@@ -35,7 +35,7 @@ spec:
       bucket: {{AWS_S3_BUCKET}}
       host: s3.amazonaws.com
       port: ''
-      region: us-east-1
+      region: {{AWS_REGION}}
       s3CredentialsSecret:
         accessKey: AWS_ACCESS_KEY_ID
         secretKey: AWS_SECRET_ACCESS_KEY

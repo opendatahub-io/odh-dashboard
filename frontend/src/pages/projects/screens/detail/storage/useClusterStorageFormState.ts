@@ -1,7 +1,7 @@
 import React from 'react';
-import { NotebookKind, PersistentVolumeClaimKind } from '~/k8sTypes';
-import { getNotebookPVCMountPathMap } from '~/pages/projects/notebook/utils';
-import { ClusterStorageNotebookSelection } from '~/pages/projects/types';
+import { NotebookKind, PersistentVolumeClaimKind } from '#~/k8sTypes';
+import { getNotebookPVCMountPathMap } from '#~/pages/projects/notebook/utils';
+import { ClusterStorageNotebookSelection } from '#~/pages/projects/types';
 
 const useClusterStorageFormState = (
   connectedNotebooks: NotebookKind[],

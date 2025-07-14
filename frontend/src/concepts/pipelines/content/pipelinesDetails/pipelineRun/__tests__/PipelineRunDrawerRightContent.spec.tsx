@@ -4,9 +4,9 @@ import { Drawer } from '@patternfly/react-core';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { act } from 'react';
-import PipelineRunDrawerRightContent from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDrawerRightContent';
-import { PipelineTask } from '~/concepts/pipelines/topology';
-import { Artifact } from '~/third_party/mlmd';
+import PipelineRunDrawerRightContent from '#~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDrawerRightContent';
+import { PipelineTask } from '#~/concepts/pipelines/topology';
+import { Artifact } from '#~/third_party/mlmd';
 
 const artifactTask: PipelineTask = {
   type: 'artifact',
@@ -29,7 +29,12 @@ const task: PipelineTask = {
   volumeMounts: [],
 };
 
-jest.mock('~/concepts/areas/useIsAreaAvailable', () => () => ({
+// Mock the useDispatch hook
+jest.mock('#~/redux/hooks', () => ({
+  useAppDispatch: jest.fn(),
+}));
+
+jest.mock('#~/concepts/areas/useIsAreaAvailable', () => () => ({
   status: true,
   featureFlags: {},
   reliantAreas: {},
@@ -38,7 +43,7 @@ jest.mock('~/concepts/areas/useIsAreaAvailable', () => () => ({
   customCondition: jest.fn(),
 }));
 
-jest.mock('~/concepts/pipelines/context/PipelinesContext', () => ({
+jest.mock('#~/concepts/pipelines/context/PipelinesContext', () => ({
   usePipelinesAPI: jest.fn(() => ({
     pipelinesServer: {
       initializing: false,

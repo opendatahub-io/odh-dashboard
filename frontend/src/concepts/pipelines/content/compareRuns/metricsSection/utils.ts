@@ -1,14 +1,14 @@
-import { ArtifactType, Event, Execution } from '~/third_party/mlmd';
+import { ArtifactType, Event, Execution } from '#~/third_party/mlmd';
 
 import {
   FullArtifactPath,
   PipelineRunRelatedMlmd,
-} from '~/concepts/pipelines/content/compareRuns/metricsSection/types';
+} from '#~/concepts/pipelines/content/compareRuns/metricsSection/types';
 import {
   LinkedArtifact,
   RunArtifact,
   ExecutionArtifact,
-} from '~/concepts/pipelines/apiHooks/mlmd/types';
+} from '#~/concepts/pipelines/apiHooks/mlmd/types';
 import { MetricsType } from './const';
 
 export const getLinkedArtifactId = (linkedArtifact: LinkedArtifact): string =>

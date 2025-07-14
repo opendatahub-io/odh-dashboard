@@ -6,8 +6,8 @@ import {
   DescriptionListTerm,
   Truncate,
 } from '@patternfly/react-core';
-import { getNameVersionString } from '~/pages/projects/screens/spawner/spawnerUtils';
-import { ImageVersionDependencyType } from '~/pages/projects/screens/spawner/types';
+import { getNameVersionString } from '#~/pages/projects/screens/spawner/spawnerUtils';
+import { ImageVersionDependencyType } from '#~/pages/projects/screens/spawner/types';
 
 type NotebookPackageDetailsProps = {
   dependencies: ImageVersionDependencyType[];

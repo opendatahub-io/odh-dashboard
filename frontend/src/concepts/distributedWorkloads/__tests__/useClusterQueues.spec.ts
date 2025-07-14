@@ -1,10 +1,10 @@
 import { k8sListResourceItems } from '@openshift/dynamic-plugin-sdk-utils';
 import { act } from 'react';
-import { mockClusterQueueK8sResource } from '~/__mocks__/mockClusterQueueK8sResource';
-import { standardUseFetchState, testHook } from '~/__tests__/unit/testUtils/hooks';
-import useDistributedWorkloadsEnabled from '~/concepts/distributedWorkloads/useDistributedWorkloadsEnabled';
-import { ClusterQueueKind } from '~/k8sTypes';
-import useClusterQueues from '~/concepts/distributedWorkloads/useClusterQueues';
+import { mockClusterQueueK8sResource } from '#~/__mocks__/mockClusterQueueK8sResource';
+import { standardUseFetchState, testHook } from '#~/__tests__/unit/testUtils/hooks';
+import useDistributedWorkloadsEnabled from '#~/concepts/distributedWorkloads/useDistributedWorkloadsEnabled';
+import { ClusterQueueKind } from '#~/k8sTypes';
+import useClusterQueues from '#~/concepts/distributedWorkloads/useClusterQueues';
 
 const mockedClusterQueues = [mockClusterQueueK8sResource({ name: 'test-cluster-queue' })];
 
@@ -12,7 +12,7 @@ jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sListResourceItems: jest.fn(),
 }));
 
-jest.mock('~/concepts/distributedWorkloads/useDistributedWorkloadsEnabled', () => ({
+jest.mock('#~/concepts/distributedWorkloads/useDistributedWorkloadsEnabled', () => ({
   __esModule: true,
   default: jest.fn(),
 }));

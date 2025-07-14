@@ -1,5 +1,5 @@
-import { genUID } from '~/__mocks__/mockUtils';
-import { KnownLabels, ResourceRule, RoleKind } from '~/k8sTypes';
+import { genUID } from '#~/__mocks__/mockUtils';
+import { KnownLabels, ResourceRule, RoleKind } from '#~/k8sTypes';
 
 type MockResourceConfigType = {
   name?: string;

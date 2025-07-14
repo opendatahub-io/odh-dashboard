@@ -1,6 +1,6 @@
 import React from 'react';
-import { KserveMetricsConfigMapKind, NimMetricsDefinition } from '~/concepts/metrics/kserve/types';
-import { isValidNimMetricsDataObject } from '~/concepts/metrics/kserve/utils';
+import { KserveMetricsConfigMapKind, NimMetricsDefinition } from '#~/concepts/metrics/kserve/types';
+import { isValidNimMetricsDataObject } from '#~/concepts/metrics/kserve/utils';
 
 const useNimMetricsGraphDefinitions = (
   kserveMetricsConfigMap: KserveMetricsConfigMapKind | null,

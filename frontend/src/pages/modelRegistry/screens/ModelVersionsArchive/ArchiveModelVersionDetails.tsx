@@ -1,17 +1,17 @@
 import React, { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { Button, Flex, FlexItem, Label, Tooltip, Truncate } from '@patternfly/react-core';
-import ApplicationsPage from '~/pages/ApplicationsPage';
-import useModelVersionById from '~/concepts/modelRegistry/apiHooks/useModelVersionById';
-import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
-import useRegisteredModelById from '~/concepts/modelRegistry/apiHooks/useRegisteredModelById';
-import { ModelVersionDetailsTab } from '~/pages/modelRegistry/screens/ModelVersionDetails/const';
-import ModelVersionDetailsTabs from '~/pages/modelRegistry/screens/ModelVersionDetails/ModelVersionDetailsTabs';
-import useInferenceServices from '~/pages/modelServing/useInferenceServices';
-import useServingRuntimes from '~/pages/modelServing/useServingRuntimes';
-import { useMakeFetchObject } from '~/utilities/useMakeFetchObject';
-import { ModelState } from '~/concepts/modelRegistry/types';
-import { modelVersionRoute } from '~/routes';
+import ApplicationsPage from '#~/pages/ApplicationsPage';
+import useModelVersionById from '#~/concepts/modelRegistry/apiHooks/useModelVersionById';
+import useRegisteredModelById from '#~/concepts/modelRegistry/apiHooks/useRegisteredModelById';
+import { ModelVersionDetailsTab } from '#~/pages/modelRegistry/screens/ModelVersionDetails/const';
+import ModelVersionDetailsTabs from '#~/pages/modelRegistry/screens/ModelVersionDetails/ModelVersionDetailsTabs';
+import useInferenceServices from '#~/pages/modelServing/useInferenceServices';
+import useServingRuntimes from '#~/pages/modelServing/useServingRuntimes';
+import { ModelState } from '#~/concepts/modelRegistry/types';
+import { modelVersionRoute } from '#~/routes/modelRegistry/modelVersions';
+import { ModelRegistriesContext } from '#~/concepts/modelRegistry/context/ModelRegistriesContext';
+import useModelArtifactsByVersionId from '#~/concepts/modelRegistry/apiHooks/useModelArtifactsByVersionId';
 import ArchiveModelVersionDetailsBreadcrumb from './ArchiveModelVersionDetailsBreadcrumb';
 
 type ArchiveModelVersionDetailsProps = {
@@ -25,20 +25,26 @@ const ArchiveModelVersionDetails: React.FC<ArchiveModelVersionDetailsProps> = ({
   tab,
   ...pageProps
 }) => {
-  const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
+  const { preferredModelRegistry } = React.useContext(ModelRegistriesContext);
   const { modelVersionId: mvId, registeredModelId: rmId } = useParams();
   const [rm] = useRegisteredModelById(rmId);
   const [mv, mvLoaded, mvLoadError, refreshModelVersion] = useModelVersionById(mvId);
-  const inferenceServices = useMakeFetchObject(
-    useInferenceServices(
-      undefined,
-      mv?.registeredModelId,
-      mv?.id,
-      preferredModelRegistry?.metadata.name,
-    ),
+  const inferenceServices = useInferenceServices(
+    undefined,
+    mv?.registeredModelId,
+    mv?.id,
+    preferredModelRegistry?.metadata.name,
   );
+  const [modelArtifacts, modelArtifactsLoaded, modelArtifactsLoadError, refreshModelArtifacts] =
+    useModelArtifactsByVersionId(mvId);
+
   const navigate = useNavigate();
-  const servingRuntimes = useMakeFetchObject(useServingRuntimes());
+  const servingRuntimes = useServingRuntimes();
+
+  const refresh = React.useCallback(() => {
+    refreshModelVersion();
+    refreshModelArtifacts();
+  }, [refreshModelVersion, refreshModelArtifacts]);
 
   useEffect(() => {
     if (rm?.state === ModelState.LIVE && mv?.id) {
@@ -85,7 +91,10 @@ const ArchiveModelVersionDetails: React.FC<ArchiveModelVersionDetailsProps> = ({
           modelVersion={mv}
           inferenceServices={inferenceServices}
           servingRuntimes={servingRuntimes}
-          refresh={refreshModelVersion}
+          refresh={refresh}
+          modelArtifacts={modelArtifacts}
+          modelArtifactsLoaded={modelArtifactsLoaded}
+          modelArtifactsLoadError={modelArtifactsLoadError}
         />
       )}
     </ApplicationsPage>

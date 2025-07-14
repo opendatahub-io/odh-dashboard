@@ -11,18 +11,18 @@ import {
   TextInput,
 } from '@patternfly/react-core';
 import { useLocation } from 'react-router';
-import { OutputModelFormData } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/validationUtils';
+import { OutputModelFormData } from '#~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/validationUtils';
 import {
   FineTunePageSections,
   fineTunePageSectionTitles,
-} from '~/pages/pipelines/global/modelCustomization/const';
-import { ModelCustomizationRouterState } from '~/routes';
-import FineTunedModelConnectionSection from '~/pages/pipelines/global/modelCustomization/fineTunedModelSection/FineTunedModelConnectionSection';
-import { ConnectionTypeConfigMapObj } from '~/concepts/connectionTypes/types';
-import { ODH_PRODUCT_NAME } from '~/utilities/const';
-import { ZodErrorHelperText } from '~/components/ZodErrorFormHelperText';
-import { ValidationContext } from '~/utilities/useValidation';
-import FormSection from '~/components/pf-overrides/FormSection';
+} from '#~/pages/pipelines/global/modelCustomization/const';
+import { ModelCustomizationRouterState } from '#~/routes/pipelines/modelCustomization';
+import FineTunedModelConnectionSection from '#~/pages/pipelines/global/modelCustomization/fineTunedModelSection/FineTunedModelConnectionSection';
+import { ConnectionTypeConfigMapObj } from '#~/concepts/connectionTypes/types';
+import { ODH_PRODUCT_NAME } from '#~/utilities/const';
+import { ZodErrorHelperText } from '#~/components/ZodErrorFormHelperText';
+import { ValidationContext } from '#~/utilities/useValidation';
+import FormSection from '#~/components/pf-overrides/FormSection';
 
 const FIELD_ID_PREFIX = 'model-customization-fineTunedModel';
 

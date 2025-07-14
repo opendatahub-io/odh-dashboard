@@ -1,5 +1,5 @@
 import { K8sModelCommon } from '@openshift/dynamic-plugin-sdk-utils';
-import { AccessReviewResourceAttributes, K8sVerb } from '~/k8sTypes';
+import { AccessReviewResourceAttributes, K8sVerb } from '#~/k8sTypes';
 
 /** Shortcut access to simply reuse -- use AccessReviewResourceAttributes if you need full flexibility */
 export const verbModelAccess = (

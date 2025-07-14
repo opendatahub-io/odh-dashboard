@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { ConnectionTypeField, ConnectionTypeFieldType } from '~/concepts/connectionTypes/types';
-import { ConnectionTypeDataFieldModal } from '~/pages/connectionTypes/manage/ConnectionTypeDataFieldModal';
+import { ConnectionTypeField, ConnectionTypeFieldType } from '#~/concepts/connectionTypes/types';
+import { ConnectionTypeDataFieldModal } from '#~/pages/connectionTypes/manage/ConnectionTypeDataFieldModal';
 import ConnectionTypeSectionModal from './ConnectionTypeSectionModal';
 
 type Props = {

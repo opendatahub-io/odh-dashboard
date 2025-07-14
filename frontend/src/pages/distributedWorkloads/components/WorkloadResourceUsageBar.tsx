@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Tooltip, Stack, StackItem } from '@patternfly/react-core';
-import { roundNumber } from '~/utilities/number';
-import ProgressBarWithLabels from '~/components/ProgressBarWithLabels';
+import { roundNumber } from '#~/utilities/number';
+import ProgressBarWithLabels from '#~/components/ProgressBarWithLabels';
 
 type WorkloadResourceUsageBarProps = {
   showData?: boolean;

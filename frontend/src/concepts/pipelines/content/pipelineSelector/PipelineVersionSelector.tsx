@@ -1,15 +1,15 @@
 import * as React from 'react';
 import { EmptyStateVariant } from '@patternfly/react-core';
 import { TableVariant } from '@patternfly/react-table';
-import PipelineSelectorTableRow from '~/concepts/pipelines/content/pipelineSelector/PipelineSelectorTableRow';
-import { TableBase, getTableColumnSort } from '~/components/table';
-import { PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
-import { pipelineVersionSelectorColumns } from '~/concepts/pipelines/content/pipelineSelector/columns';
-import PipelineViewMoreFooterRow from '~/concepts/pipelines/content/tables/PipelineViewMoreFooterRow';
-import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
-import usePipelineVersionSelector from '~/concepts/pipelines/content/pipelineSelector/usePipelineVersionSelector';
-import { isArgoWorkflow } from '~/concepts/pipelines/content/tables/utils';
-import SearchSelector from '~/components/searchSelector/SearchSelector';
+import PipelineSelectorTableRow from '#~/concepts/pipelines/content/pipelineSelector/PipelineSelectorTableRow';
+import { TableBase, getTableColumnSort } from '#~/components/table';
+import { PipelineVersionKF } from '#~/concepts/pipelines/kfTypes';
+import { pipelineVersionSelectorColumns } from '#~/concepts/pipelines/content/pipelineSelector/columns';
+import PipelineViewMoreFooterRow from '#~/concepts/pipelines/content/tables/PipelineViewMoreFooterRow';
+import DashboardEmptyTableView from '#~/concepts/dashboard/DashboardEmptyTableView';
+import usePipelineVersionSelector from '#~/concepts/pipelines/content/pipelineSelector/usePipelineVersionSelector';
+import { isArgoWorkflow } from '#~/concepts/pipelines/content/tables/utils';
+import SearchSelector from '#~/components/searchSelector/SearchSelector';
 
 type PipelineVersionSelectorProps = {
   pipelineId?: string;

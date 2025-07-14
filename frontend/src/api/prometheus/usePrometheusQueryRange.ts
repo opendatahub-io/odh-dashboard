@@ -1,18 +1,18 @@
 import * as React from 'react';
-import axios from '~/utilities/axios';
+import axios from '#~/utilities/axios';
 
 import useFetchState, {
   FetchOptions,
   FetchState,
   FetchStateCallbackPromise,
   NotReadyError,
-} from '~/utilities/useFetchState';
+} from '#~/utilities/useFetchState';
 import {
   PrometheusQueryRangeResponse,
   PrometheusQueryRangeResponseData,
   PrometheusQueryRangeResponseDataResult,
   PrometheusQueryRangeResultValue,
-} from '~/types';
+} from '#~/types';
 
 export type ResponsePredicate<T = PrometheusQueryRangeResultValue> = (
   data: PrometheusQueryRangeResponseData,

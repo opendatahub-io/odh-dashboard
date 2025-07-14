@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { useSearchParams } from 'react-router-dom';
-import useNotification from '~/utilities/useNotification';
-import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
+import useNotification from '#~/utilities/useNotification';
+import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
+import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 
 const useCheckLogoutParams = (): void => {
   const [queryParams, setQueryParams] = useSearchParams();

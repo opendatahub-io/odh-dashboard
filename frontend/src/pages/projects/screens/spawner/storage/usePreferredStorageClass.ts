@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { AppContext } from '~/app/AppContext';
-import { MetadataAnnotation, StorageClassKind } from '~/k8sTypes';
+import { AppContext } from '#~/app/AppContext';
+import { MetadataAnnotation, StorageClassKind } from '#~/k8sTypes';
 
 const usePreferredStorageClass = (): StorageClassKind | undefined => {
   const {

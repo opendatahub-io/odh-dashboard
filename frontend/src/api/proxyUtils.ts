@@ -1,6 +1,6 @@
-import { mergeRequestInit } from '~/api/apiMergeUtils';
-import { K8sAPIOptions } from '~/k8sTypes';
-import { EitherOrNone } from '~/typeHelpers';
+import { mergeRequestInit } from '#~/api/apiMergeUtils';
+import { K8sAPIOptions } from '#~/k8sTypes';
+import { EitherOrNone } from '#~/typeHelpers';
 
 type CallProxyJSONOptions = {
   queryParams?: Record<string, unknown>;

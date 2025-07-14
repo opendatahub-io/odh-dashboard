@@ -3,8 +3,8 @@ import {
   PipelineRecurringRunKF,
   PipelineRunKF,
   PipelineVersionKF,
-} from '~/concepts/pipelines/kfTypes';
-import { PipelineRunVersionsContext } from '~/pages/pipelines/global/runs/PipelineRunVersionsContext';
+} from '#~/concepts/pipelines/kfTypes';
+import { PipelineRunVersionsContext } from '#~/pages/pipelines/global/runs/PipelineRunVersionsContext';
 
 const usePipelineRunVersionInfo = (
   run: PipelineRunKF | PipelineRecurringRunKF | null,

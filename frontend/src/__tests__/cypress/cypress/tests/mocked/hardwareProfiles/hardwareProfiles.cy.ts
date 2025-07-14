@@ -1,16 +1,16 @@
-import { hardwareProfile } from '~/__tests__/cypress/cypress/pages/hardwareProfile';
-import { mockHardwareProfile } from '~/__mocks__/mockHardwareProfile';
-import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
+import { hardwareProfile } from '#~/__tests__/cypress/cypress/pages/hardwareProfile';
+import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile';
+import { deleteModal } from '#~/__tests__/cypress/cypress/pages/components/DeleteModal';
 import {
   HardwareProfileModel,
   SelfSubjectAccessReviewModel,
-} from '~/__tests__/cypress/cypress/utils/models';
-import { mock200Status, mockDashboardConfig, mockK8sResourceList } from '~/__mocks__';
-import { be } from '~/__tests__/cypress/cypress/utils/should';
-import { asProductAdminUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
-import { testPagination } from '~/__tests__/cypress/cypress/utils/pagination';
-import { IdentifierResourceType } from '~/types';
-import { mockSelfSubjectAccessReview } from '~/__mocks__/mockSelfSubjectAccessReview';
+} from '#~/__tests__/cypress/cypress/utils/models';
+import { mock200Status, mockDashboardConfig, mockK8sResourceList } from '#~/__mocks__';
+import { be } from '#~/__tests__/cypress/cypress/utils/should';
+import { asProductAdminUser } from '#~/__tests__/cypress/cypress/utils/mockUsers';
+import { testPagination } from '#~/__tests__/cypress/cypress/utils/pagination';
+import { IdentifierResourceType, SchedulingType } from '#~/types';
+import { mockSelfSubjectAccessReview } from '#~/__mocks__/mockSelfSubjectAccessReview';
 
 const initIntercepts = () => {
   cy.interceptOdh(
@@ -152,7 +152,11 @@ describe('Hardware Profile', () => {
       hardwareProfile.getRow('Test Hardware Profile Delete').findEnableSwitch().click();
       cy.wait('@enableHardwareProfile').then((interception) => {
         expect(interception.request.body).to.eql([
-          { op: 'replace', path: '/spec/enabled', value: true },
+          {
+            op: 'replace',
+            path: '/metadata/annotations/opendatahub.io~1disabled',
+            value: 'false',
+          },
         ]);
       });
     });
@@ -173,7 +177,11 @@ describe('Hardware Profile', () => {
       hardwareProfile.getRow('Test Hardware Profile').findEnableSwitch().click();
       cy.wait('@disableHardwareProfile').then((interception) => {
         expect(interception.request.body).to.eql([
-          { op: 'replace', path: '/spec/enabled', value: false },
+          {
+            op: 'replace',
+            path: '/metadata/annotations/opendatahub.io~1disabled',
+            value: 'true',
+          },
         ]);
       });
     });
@@ -500,6 +508,28 @@ describe('Hardware Profile', () => {
         .findTolerationTable()
         .find(`[data-label="Toleration seconds"]`)
         .should('contain.text', '-');
+    });
+
+    it('should display local queue and workload priority in the expanded row', () => {
+      cy.interceptK8sList(
+        { model: HardwareProfileModel, ns: 'opendatahub' },
+        mockK8sResourceList([
+          mockHardwareProfile({
+            name: 'Test Hardware Profile With Queue',
+            displayName: 'Test Hardware Profile With Queue',
+            schedulingType: SchedulingType.QUEUE,
+            localQueueName: 'test-queue',
+            priorityClass: 'high',
+          }),
+        ]),
+      );
+      hardwareProfile.visit();
+      const row = hardwareProfile.getRow('Test Hardware Profile With Queue');
+      row.findExpandButton().click();
+      row.findExpandableSection().contains('Local Queue').should('be.visible');
+      row.findExpandableSection().contains('test-queue').should('be.visible');
+      row.findExpandableSection().contains('Workload priority').should('be.visible');
+      row.findExpandableSection().contains('high').should('be.visible');
     });
   });
 });

@@ -10,9 +10,9 @@ import {
   Truncate,
 } from '@patternfly/react-core';
 import { ExclamationTriangleIcon, MinusCircleIcon, PencilAltIcon } from '@patternfly/react-icons';
-import { Identifier } from '~/types';
-import { isHardwareProfileIdentifierValid } from '~/pages/hardwareProfiles/utils';
-import { formatResourceValue } from '~/concepts/hardwareProfiles/utils';
+import { Identifier } from '#~/types';
+import { isHardwareProfileIdentifierValid } from '#~/pages/hardwareProfiles/utils';
+import { formatResourceValue } from '#~/concepts/hardwareProfiles/utils';
 
 type NodeResourceTableRowProps = {
   identifier: Identifier;

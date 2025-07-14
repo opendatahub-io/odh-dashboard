@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { SubscriptionStatusData } from '~/types';
+import { SubscriptionStatusData } from '#~/types';
 
 export const fetchOperatorSubscriptionStatus = (): Promise<SubscriptionStatusData> => {
   const url = '/api/operator-subscription-status';

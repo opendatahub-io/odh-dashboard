@@ -1,13 +1,13 @@
 import React from 'react';
-import { TrustyAPIState } from '~/concepts/trustyai/useTrustyAIAPIState';
+import { TrustyAPIState } from '#~/concepts/trustyai/useTrustyAIAPIState';
 import useFetchState, {
   FetchState,
   FetchStateCallbackPromise,
   NotReadyError,
-} from '~/utilities/useFetchState';
-import { BiasMetricConfig } from '~/concepts/trustyai/types';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import { formatListResponse } from '~/concepts/trustyai/utils';
+} from '#~/utilities/useFetchState';
+import { BiasMetricConfig } from '#~/concepts/trustyai/types';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { formatListResponse } from '#~/concepts/trustyai/utils';
 
 const useFetchBiasMetricConfigs = (apiState: TrustyAPIState): FetchState<BiasMetricConfig[]> => {
   const biasMetricsAreaAvailable = useIsAreaAvailable(SupportedArea.BIAS_METRICS).status;

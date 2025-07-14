@@ -14,13 +14,13 @@ import {
   MenuToggle,
   SearchInput,
 } from '@patternfly/react-core';
-import useDebounceCallback from '~/utilities/useDebounceCallback';
-import PipelineSelectorTableRow from '~/concepts/pipelines/content/pipelineSelector/PipelineSelectorTableRow';
-import { SortableData, Table } from '~/components/table';
-import { ExperimentKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
-import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
-import { experimentSelectorColumns } from '~/concepts/pipelines/content/experiment/columns';
-import { pipelineVersionSelectorColumns } from '~/concepts/pipelines/content/pipelineSelector/columns';
+import useDebounceCallback from '#~/utilities/useDebounceCallback';
+import PipelineSelectorTableRow from '#~/concepts/pipelines/content/pipelineSelector/PipelineSelectorTableRow';
+import { SortableData, Table } from '#~/components/table';
+import { ExperimentKF, PipelineVersionKF } from '#~/concepts/pipelines/kfTypes';
+import DashboardEmptyTableView from '#~/concepts/dashboard/DashboardEmptyTableView';
+import { experimentSelectorColumns } from '#~/concepts/pipelines/content/experiment/columns';
+import { pipelineVersionSelectorColumns } from '#~/concepts/pipelines/content/pipelineSelector/columns';
 
 type FilterSelectorProps<T> = {
   resources: T[];

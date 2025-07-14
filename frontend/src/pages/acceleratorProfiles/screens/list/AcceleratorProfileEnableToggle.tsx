@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { Switch } from '@patternfly/react-core';
-import DisableAcceleratorProfileModal from '~/pages/acceleratorProfiles/screens/list/DisableAcceleratorProfileModal';
-import useNotification from '~/utilities/useNotification';
-import { updateAcceleratorProfile } from '~/api';
-import { useDashboardNamespace } from '~/redux/selectors';
+import DisableAcceleratorProfileModal from '#~/pages/acceleratorProfiles/screens/list/DisableAcceleratorProfileModal';
+import useNotification from '#~/utilities/useNotification';
+import { updateAcceleratorProfile } from '#~/api';
+import { useDashboardNamespace } from '#~/redux/selectors';
 
 type AcceleratorProfileEnableToggleProps = {
   enabled: boolean;

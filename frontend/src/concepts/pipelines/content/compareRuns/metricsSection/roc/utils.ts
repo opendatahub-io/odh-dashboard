@@ -1,5 +1,5 @@
 import { JavaScriptValue } from 'google-protobuf/google/protobuf/struct_pb';
-import { ROCCurveConfig } from '~/concepts/pipelines/content/artifacts/charts/ROCCurve';
+import { ROCCurveConfig } from '#~/concepts/pipelines/content/artifacts/charts/ROCCurve';
 import { ConfidenceMetric } from './types';
 
 export const isConfidenceMetric = (obj: JavaScriptValue): obj is ConfidenceMetric =>

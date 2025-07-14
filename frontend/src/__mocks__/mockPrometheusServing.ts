@@ -1,4 +1,4 @@
-import { PrometheusQueryRangeResponse, PrometheusQueryRangeResponseDataResult } from '~/types';
+import { PrometheusQueryRangeResponse, PrometheusQueryRangeResponseDataResult } from '#~/types';
 
 type MockPrometheusServingType = {
   result?: PrometheusQueryRangeResponseDataResult[];

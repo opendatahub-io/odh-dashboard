@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { InputDefinitionParameterType, ParametersKF } from '~/concepts/pipelines/kfTypes';
+import { InputDefinitionParameterType, ParametersKF } from '#~/concepts/pipelines/kfTypes';
 
 const stringSchema = z.string().trim().min(1, 'Hyperparameter length must be greater than 0');
 

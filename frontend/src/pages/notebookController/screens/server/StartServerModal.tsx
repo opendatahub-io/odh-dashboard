@@ -1,13 +1,13 @@
 import * as React from 'react';
 import { ActionList, ActionListItem, AlertVariant, Button } from '@patternfly/react-core';
 import { useNavigate } from 'react-router';
-import { useDeepCompareMemoize } from '~/utilities/useDeepCompareMemoize';
-import { useNotebookRedirectLink, useNotebookStatus } from '~/utilities/notebookControllerUtils';
-import { NotebookControllerContext } from '~/pages/notebookController/NotebookControllerContext';
-import StartNotebookModal from '~/concepts/notebooks/StartNotebookModal';
+import { useDeepCompareMemoize } from '#~/utilities/useDeepCompareMemoize';
+import { useNotebookRedirectLink, useNotebookStatus } from '#~/utilities/notebookControllerUtils';
+import { NotebookControllerContext } from '#~/pages/notebookController/NotebookControllerContext';
+import StartNotebookModal from '#~/concepts/notebooks/StartNotebookModal';
 import useBrowserTabPreference from './useBrowserTabPreference';
 
-import '~/pages/notebookController/NotebookController.scss';
+import '#~/pages/notebookController/NotebookController.scss';
 
 type StartServerModalProps = {
   spawnInProgress: boolean;
@@ -55,7 +55,7 @@ const StartServerModal: React.FC<StartServerModalProps> = ({ spawnInProgress, on
             status: AlertVariant.danger,
             title: 'Failed to redirect',
             description:
-              'For unknown reasons the notebook server was unable to be redirected to. Please check your notebook status.',
+              'For unknown reasons the workbench was unable to be redirected to. Please check your workbench status.',
           });
         });
     },

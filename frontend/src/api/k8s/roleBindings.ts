@@ -14,12 +14,12 @@ import {
   RoleBindingKind,
   RoleBindingRoleRef,
   RoleBindingSubject,
-} from '~/k8sTypes';
-import { RoleBindingModel } from '~/api/models';
-import { genRandomChars } from '~/utilities/string';
-import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
-import { RoleBindingPermissionsRoleType } from '~/concepts/roleBinding/types';
-import { addOwnerReference } from '~/api/k8sUtils';
+} from '#~/k8sTypes';
+import { RoleBindingModel } from '#~/api/models';
+import { genRandomChars } from '#~/utilities/string';
+import { applyK8sAPIOptions } from '#~/api/apiMergeUtils';
+import { RoleBindingPermissionsRoleType } from '#~/concepts/roleBinding/types';
+import { addOwnerReference } from '#~/api/k8sUtils';
 
 export const generateRoleBindingServiceAccount = (
   name: string,
@@ -144,6 +144,29 @@ export const patchRoleBindingOwnerRef = (
             op: 'replace',
             path: '/metadata/ownerReferences',
             value: ownerReferences,
+          },
+        ],
+      },
+      opts,
+    ),
+  );
+
+export const patchRoleBindingSubjects = (
+  rbName: string,
+  namespace: string,
+  subjects: RoleBindingSubject[],
+  opts?: K8sAPIOptions,
+): Promise<RoleBindingKind> =>
+  k8sPatchResource<RoleBindingKind>(
+    applyK8sAPIOptions(
+      {
+        model: RoleBindingModel,
+        queryOptions: { name: rbName, ns: namespace },
+        patches: [
+          {
+            op: 'replace',
+            path: '/subjects',
+            value: subjects,
           },
         ],
       },

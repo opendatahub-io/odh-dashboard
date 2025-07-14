@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Alert } from '@patternfly/react-core';
-import { RunDateTime } from '~/concepts/pipelines/content/createRun/types';
-import { isStartBeforeEnd } from '~/concepts/pipelines/content/createRun/utils';
+import { RunDateTime } from '#~/concepts/pipelines/content/createRun/types';
+import { isStartBeforeEnd } from '#~/concepts/pipelines/content/createRun/utils';
 
 type EndDateBeforeStartDateErrorProps = {
   start?: RunDateTime;

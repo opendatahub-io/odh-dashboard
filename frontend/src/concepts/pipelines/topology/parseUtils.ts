@@ -10,11 +10,11 @@ import {
   RunDetailsKF,
   RuntimeStateKF,
   TaskDetailKF,
-} from '~/concepts/pipelines/kfTypes';
-import { VolumeMount } from '~/types';
-import { Artifact, Event, Execution } from '~/third_party/mlmd';
-import { LinkedArtifact } from '~/concepts/pipelines/apiHooks/mlmd/types';
-import { getArtifactNameFromEvent } from '~/concepts/pipelines/content/compareRuns/metricsSection/utils';
+} from '#~/concepts/pipelines/kfTypes';
+import { VolumeMount } from '#~/types';
+import { Artifact, Event, Execution } from '#~/third_party/mlmd';
+import { LinkedArtifact } from '#~/concepts/pipelines/apiHooks/mlmd/types';
+import { getArtifactNameFromEvent } from '#~/concepts/pipelines/content/compareRuns/metricsSection/utils';
 import { PipelineTaskInputOutput, PipelineTaskRunStatus } from './pipelineTaskTypes';
 
 export const composeArtifactType = (data: InputOutputArtifactType): string =>

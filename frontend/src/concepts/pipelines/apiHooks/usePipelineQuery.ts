@@ -1,9 +1,9 @@
 import * as React from 'react';
-import { PipelineCoreResourceKF, PipelineKFCallCommon } from '~/concepts/pipelines/kfTypes';
-import useFetchState, { FetchState, FetchStateCallbackPromise } from '~/utilities/useFetchState';
-import { PipelineListPaged, PipelineOptions, PipelineParams } from '~/concepts/pipelines/types';
-import { POLL_INTERVAL } from '~/utilities/const';
-import { K8sAPIOptions } from '~/k8sTypes';
+import { PipelineCoreResourceKF, PipelineKFCallCommon } from '#~/concepts/pipelines/kfTypes';
+import useFetchState, { FetchState, FetchStateCallbackPromise } from '#~/utilities/useFetchState';
+import { PipelineListPaged, PipelineOptions, PipelineParams } from '#~/concepts/pipelines/types';
+import { POLL_INTERVAL } from '#~/utilities/const';
+import { K8sAPIOptions } from '#~/k8sTypes';
 
 const usePipelineQuery = <T extends PipelineCoreResourceKF>(
   apiFetch: (

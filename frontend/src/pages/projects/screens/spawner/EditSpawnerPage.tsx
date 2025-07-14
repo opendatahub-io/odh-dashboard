@@ -10,9 +10,9 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
-import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import { NotebookState } from '~/pages/projects/notebook/types';
-import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
+import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
+import { NotebookState } from '#~/pages/projects/notebook/types';
+import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import SpawnerPage from './SpawnerPage';
 
 const EditSpawnerPage: React.FC = () => {

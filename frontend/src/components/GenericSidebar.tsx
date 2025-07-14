@@ -6,7 +6,7 @@ import {
   SidebarContent,
   SidebarPanel,
 } from '@patternfly/react-core';
-import { DASHBOARD_SCROLL_CONTAINER_SELECTOR } from '~/utilities/const';
+import { DASHBOARD_SCROLL_CONTAINER_SELECTOR } from '#~/utilities/const';
 
 type GenericSidebarProps = {
   sections: string[];
@@ -42,6 +42,7 @@ const GenericSidebar: React.FC<GenericSidebarProps> = ({
           <JumpLinksItem
             key={section}
             href={`#${section}`}
+            data-testid={`${section}-jump-link`}
             onClick={onJumpLinksItemClick ? () => onJumpLinksItemClick(section) : undefined}
           >
             {titles[section]}

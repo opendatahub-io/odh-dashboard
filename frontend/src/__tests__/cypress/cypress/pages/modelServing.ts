@@ -1,8 +1,8 @@
-import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
-import { Modal } from '~/__tests__/cypress/cypress/pages/components/Modal';
-import { TableRow } from '~/__tests__/cypress/cypress/pages/components/table';
-import { mixin } from '~/__tests__/cypress/cypress/utils/mixin';
-import { K8sNameDescriptionField } from '~/__tests__/cypress/cypress/pages/components/subComponents/K8sNameDescriptionField';
+import { appChrome } from '#~/__tests__/cypress/cypress/pages/appChrome';
+import { Modal } from '#~/__tests__/cypress/cypress/pages/components/Modal';
+import { TableRow } from '#~/__tests__/cypress/cypress/pages/components/table';
+import { mixin } from '#~/__tests__/cypress/cypress/utils/mixin';
+import { K8sNameDescriptionField } from '#~/__tests__/cypress/cypress/pages/components/subComponents/K8sNameDescriptionField';
 import { Contextual } from './components/Contextual';
 
 class ModelServingToolbar extends Contextual<HTMLElement> {
@@ -112,7 +112,57 @@ class ModelServingGlobal {
 
 class ServingRuntimeGroup extends Contextual<HTMLElement> {}
 
-class InferenceServiceModal extends Modal {
+class ServingModal extends Modal {
+  findServingRuntimeTemplateSearchSelector() {
+    return this.find().findByTestId('serving-runtime-template-selection-toggle');
+  }
+
+  findServingRuntimeTemplateSearchInput() {
+    return cy.findByTestId('serving-runtime-template-selection-search').find('input');
+  }
+
+  findGlobalScopedTemplateOption(name: string) {
+    return this.getGlobalScopedServingRuntime()
+      .find()
+      .findByRole('menuitem', { name: new RegExp(name), hidden: true });
+  }
+
+  findProjectScopedTemplateOption(name: string) {
+    return this.getProjectScopedServingRuntime()
+      .find()
+      .findByRole('menuitem', { name: new RegExp(name), hidden: true });
+  }
+
+  getGlobalServingRuntimesLabel() {
+    return cy.get('body').contains('Global serving runtimes');
+  }
+
+  getProjectScopedServingRuntimesLabel() {
+    return cy.get('body').contains('Project-scoped serving runtimes');
+  }
+
+  findProjectScopedLabel() {
+    return this.find().findByTestId('project-scoped-label');
+  }
+
+  findGlobalScopedLabel() {
+    return this.find().findByTestId('global-scoped-label');
+  }
+
+  getProjectScopedServingRuntime() {
+    return new ServingRuntimeGroup(() => cy.findByTestId('project-scoped-serving-runtimes'));
+  }
+
+  getGlobalScopedServingRuntime() {
+    return new ServingRuntimeGroup(() => cy.findByTestId('global-scoped-serving-runtimes'));
+  }
+
+  findServingRuntimeVersionLabel() {
+    return cy.findByTestId('serving-runtime-version-label');
+  }
+}
+
+class InferenceServiceModal extends ServingModal {
   k8sNameDescription = new K8sNameDescriptionField('inference-service');
 
   constructor(private edit = false) {
@@ -139,54 +189,6 @@ class InferenceServiceModal extends Modal {
 
   findServingRuntimeSelect() {
     return this.find().findByTestId('inference-service-model-selection');
-  }
-
-  findServingRuntimeTemplateSearchSelector() {
-    return this.find().findByTestId('serving-runtime-template-selection-toggle');
-  }
-
-  findServingRuntimeTemplateSearchInput() {
-    return cy.findByTestId('serving-runtime-template-selection-search').find('input');
-  }
-
-  getGlobalServingRuntimesLabel() {
-    return cy.get('body').contains('Global serving runtimes');
-  }
-
-  getProjectScopedServingRuntimesLabel() {
-    return cy.get('body').contains('Project-scoped serving runtimes');
-  }
-
-  findProjectScopedLabel() {
-    return this.find().findByTestId('project-scoped-image');
-  }
-
-  findGlobalScopedLabel() {
-    return this.find().findByTestId('global-scoped-image');
-  }
-
-  getProjectScopedServingRuntime() {
-    return new ServingRuntimeGroup(() => cy.findByTestId('project-scoped-serving-runtimes'));
-  }
-
-  getGlobalScopedServingRuntime() {
-    return new ServingRuntimeGroup(() => cy.findByTestId('global-scoped-serving-runtimes'));
-  }
-
-  findServingRuntimeTemplate() {
-    return this.find().findByTestId('serving-runtime-template-selection');
-  }
-
-  findCalkitStandaloneServingRuntime() {
-    return this.find().findByTestId('caikit-standalone-runtime');
-  }
-
-  findCalkitTGISServingRuntime() {
-    return this.find().findByTestId('caikit-tgis-runtime');
-  }
-
-  findOpenVinoServingRuntime() {
-    return this.find().findByTestId('kserve-ovms');
   }
 
   findModelFrameworkSelect() {
@@ -369,7 +371,7 @@ class InferenceServiceModal extends Modal {
   }
 }
 
-class ServingRuntimeModal extends Modal {
+class ServingRuntimeModal extends ServingModal {
   k8sNameDescription = new K8sNameDescriptionField('serving-runtime');
 
   constructor(private edit = false) {
@@ -394,14 +396,6 @@ class ServingRuntimeModal extends Modal {
 
   findServingRuntimeTemplateHelptext() {
     return this.find().findByTestId('serving-runtime-template-helptext');
-  }
-
-  findServingRuntimeTemplateDropdown() {
-    return this.find().findByTestId('serving-runtime-template-selection');
-  }
-
-  findOpenVinoModelServer() {
-    return this.find().findByTestId('ovms');
   }
 
   findPredefinedArgsButton() {
@@ -486,6 +480,78 @@ class KServeModal extends InferenceServiceModal {
   constructor(private edit = false) {
     super(edit);
   }
+
+  findMinReplicasInput() {
+    return this.find().findByTestId('min-replicas').find('input');
+  }
+
+  findMaxReplicasInput() {
+    return this.find().findByTestId('max-replicas').find('input');
+  }
+
+  findMinReplicasPlusButton() {
+    return this.find().findByTestId('min-replicas').findByRole('button', { name: 'Plus' });
+  }
+
+  findMinReplicasMinusButton() {
+    return this.find().findByTestId('min-replicas').findByRole('button', { name: 'Minus' });
+  }
+
+  findMaxReplicasPlusButton() {
+    return this.find().findByTestId('max-replicas').findByRole('button', { name: 'Plus' });
+  }
+
+  findMaxReplicasMinusButton() {
+    return this.find().findByTestId('max-replicas').findByRole('button', { name: 'Minus' });
+  }
+
+  findCPURequestedCheckbox() {
+    return this.find().findByTestId('cpu-requested-checkbox');
+  }
+
+  findCPULimitCheckbox() {
+    return this.find().findByTestId('cpu-limit-checkbox');
+  }
+
+  findMemoryRequestedCheckbox() {
+    return this.find().findByTestId('memory-requested-checkbox');
+  }
+
+  findMemoryLimitCheckbox() {
+    return this.find().findByTestId('memory-limit-checkbox');
+  }
+
+  findCPURequestedInput() {
+    return this.find().findByTestId('cpu-requested-input').find('input');
+  }
+
+  findCPURequestedButton(type: 'Plus' | 'Minus') {
+    return this.find().findByTestId('cpu-requested-input').findByRole('button', { name: type });
+  }
+
+  findCPULimitInput() {
+    return this.find().findByTestId('cpu-limit-input').find('input');
+  }
+
+  findCPULimitButton(type: 'Plus' | 'Minus') {
+    return this.find().findByTestId('cpu-limit-input').findByRole('button', { name: type });
+  }
+
+  findMemoryRequestedInput() {
+    return this.find().findByTestId('memory-requested-input').find('input');
+  }
+
+  findMemoryRequestedButton(type: 'Plus' | 'Minus') {
+    return this.find().findByTestId('memory-requested-input').findByRole('button', { name: type });
+  }
+
+  findMemoryLimitInput() {
+    return this.find().findByTestId('memory-limit-input').find('input');
+  }
+
+  findMemoryLimitButton(type: 'Plus' | 'Minus') {
+    return this.find().findByTestId('memory-limit-input').findByRole('button', { name: type });
+  }
 }
 mixin(KServeModal, [ServingRuntimeModal, InferenceServiceModal]);
 
@@ -509,6 +575,18 @@ class ModelServingRow extends TableRow {
 
   findInternalServicePopover() {
     return cy.findByTestId('internal-service-popover');
+  }
+
+  findConfirmStopModal() {
+    return cy.findByTestId('stop-model-modal');
+  }
+
+  findConfirmStopModalButton() {
+    return this.findConfirmStopModal().findByTestId('stop-model-button');
+  }
+
+  findConfirmStopModalCheckbox() {
+    return this.findConfirmStopModal().findByTestId('dont-show-again-checkbox');
   }
 }
 
@@ -542,12 +620,31 @@ class KServeRow extends ModelMeshRow {
   findProjectScopedLabel() {
     return this.find().findByTestId('project-scoped-label');
   }
+
+  findStateActionToggle() {
+    return this.find().findByTestId('state-action-toggle');
+  }
+
+  findStatusLabel(label?: string) {
+    if (label) {
+      return this.find().findByTestId('model-status-text').should('include.text', label);
+    }
+    return this.find().findByTestId('model-status-text');
+  }
 }
 
 class InferenceServiceRow extends TableRow {
+  findServingRuntimeVersionLabel() {
+    return this.find().findByTestId('serving-runtime-version-label');
+  }
+
+  findServingRuntimeVersionStatusLabel() {
+    return this.find().findByTestId('serving-runtime-version-status-label');
+  }
+
   findStatusTooltip() {
     return this.find()
-      .findByTestId('status-tooltip')
+      .findByTestId('model-status-text')
       .click()
       .then(() => {
         cy.findByTestId('model-status-tooltip');
@@ -590,11 +687,19 @@ class InferenceServiceRow extends TableRow {
   findProject() {
     return this.find().find(`[data-label=Project]`);
   }
+
+  findStatusLabel(label: string) {
+    return this.find().findByTestId('model-status-text').should('include.text', label);
+  }
 }
 
 class ModelServingSection {
   find() {
     return cy.findByTestId('section-model-server');
+  }
+
+  findDescriptionListItem(itemName: string) {
+    return this.find().next('tr').find(`dt:contains("${itemName}")`);
   }
 
   private findKServeTable() {
@@ -609,8 +714,20 @@ class ModelServingSection {
     return this.find().findByTestId(`metrics-link-${name}`);
   }
 
+  findModelServer() {
+    return this.find().findByTestId('model-server-name');
+  }
+
+  findHardwareSection() {
+    return this.find().findByTestId('hardware-section');
+  }
+
+  findAcceleratorSection() {
+    return this.find().findByTestId('accelerator-section');
+  }
+
   findStatusTooltip() {
-    return this.find().findByTestId('status-tooltip');
+    return this.find().findByTestId('model-status-text');
   }
 
   findKServeTableHeaderButton(name: string) {

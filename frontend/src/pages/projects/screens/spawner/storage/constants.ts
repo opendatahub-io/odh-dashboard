@@ -1,5 +1,7 @@
-import { SortableData, kebabTableColumn } from '~/components/table';
-import { StorageData } from '~/pages/projects/types';
+import { SortableData, kebabTableColumn } from '#~/components/table';
+import { StorageData } from '#~/pages/projects/types';
+import { AccessMode } from '#~/pages/storageClasses/storageEnums';
+import { getAccessModePopover } from './getAccessModePopover';
 import { MOUNT_PATH_PREFIX } from './const';
 
 export const clusterStorageTableColumns: SortableData<StorageData>[] = [
@@ -13,6 +15,19 @@ export const clusterStorageTableColumns: SortableData<StorageData>[] = [
     label: 'Name',
     field: 'name',
     sortable: false,
+  },
+  {
+    label: 'Access mode',
+    field: 'accessMode',
+    sortable: false,
+    width: 30,
+    info: {
+      popover: getAccessModePopover({}),
+      popoverProps: {
+        showClose: true,
+        maxWidth: '500px',
+      },
+    },
   },
   {
     label: 'Storage size',
@@ -32,4 +47,5 @@ export const defaultClusterStorage = {
   description: '',
   size: '20Gi',
   mountPath: MOUNT_PATH_PREFIX,
+  accessMode: AccessMode.RWO,
 };

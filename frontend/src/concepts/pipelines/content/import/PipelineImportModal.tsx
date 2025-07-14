@@ -1,12 +1,12 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { PipelineKF } from '~/concepts/pipelines/kfTypes';
-import { pipelineVersionDetailsRoute } from '~/routes';
-import { getNameEqualsFilter } from '~/concepts/pipelines/utils';
-import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+import { PipelineKF } from '#~/concepts/pipelines/kfTypes';
+import { pipelineVersionDetailsRoute } from '#~/routes/pipelines/global';
+import { getNameEqualsFilter } from '#~/concepts/pipelines/utils';
+import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
 import { usePipelineImportModalData } from './useImportModalData';
 import PipelineImportBase from './PipelineImportBase';
 import { PipelineUploadOption } from './utils';

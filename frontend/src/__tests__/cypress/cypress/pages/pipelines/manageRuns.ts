@@ -1,4 +1,4 @@
-import { TableRow } from '~/__tests__/cypress/cypress/pages/components/table';
+import { TableRow } from '#~/__tests__/cypress/cypress/pages/components/table';
 
 class ManageRunsPage {
   visit(experimentId: string, projectName: string, runIds: string[]) {
@@ -15,6 +15,10 @@ class ManageRunsPage {
 
   find() {
     return cy.findByTestId('app-page-title').contains('Manage runs');
+  }
+
+  findProjectNavigatorLink() {
+    return cy.findByTestId('project-navigator-link-in-breadcrumb');
   }
 
   findBreadcrumb() {

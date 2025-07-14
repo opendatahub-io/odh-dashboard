@@ -1,5 +1,5 @@
-import { SortableData, kebabTableColumn } from '~/components/table';
-import { ModelRegistryKind } from '~/k8sTypes';
+import { SortableData, kebabTableColumn } from '#~/components/table';
+import { ModelRegistryKind } from '#~/k8sTypes';
 
 export const modelRegistryColumns: SortableData<ModelRegistryKind>[] = [
   {

@@ -18,6 +18,20 @@ export const mock403Error = ({ message = '403 Forbidden' }: Partial<K8sStatus>):
   code: 403,
 });
 
+export const mock403ErrorWithDetails = ({
+  message = '403 Forbidden',
+}: Partial<K8sStatus>): K8sStatus & { details?: { kind?: string } } => ({
+  kind: 'Status',
+  apiVersion: 'v1',
+  status: 'Failure',
+  message,
+  reason: 'Forbidden',
+  code: 403,
+  details: {
+    kind: 'notebooks',
+  },
+});
+
 export const mock409Error = ({ message = '409 Conflict' }: Partial<K8sStatus>): K8sStatus => ({
   kind: 'Status',
   apiVersion: 'v1',

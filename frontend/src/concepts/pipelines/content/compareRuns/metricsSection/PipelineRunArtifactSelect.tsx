@@ -18,7 +18,7 @@ import {
   Split,
 } from '@patternfly/react-core';
 import { CompressIcon, ExpandIcon } from '@patternfly/react-icons';
-import { PipelineRunKF } from '~/concepts/pipelines/kfTypes';
+import { PipelineRunKF } from '#~/concepts/pipelines/kfTypes';
 
 type ArtifactDisplayConfig<T> = { config: T; title: string; fileSize?: number };
 

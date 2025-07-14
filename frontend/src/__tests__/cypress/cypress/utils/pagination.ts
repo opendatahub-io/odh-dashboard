@@ -1,4 +1,4 @@
-import { tablePagination } from '~/__tests__/cypress/cypress/pages/components/Pagination';
+import { tablePagination } from '#~/__tests__/cypress/cypress/pages/components/Pagination';
 
 type PaginationProp = {
   totalItems: number;

@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { AxiosError } from 'axios';
-import { DashboardConfigKind } from '~/k8sTypes';
-import { POLL_INTERVAL } from '~/utilities/const';
-import { useDeepCompareMemoize } from '~/utilities/useDeepCompareMemoize';
-import { fetchDashboardConfig } from '~/services/dashboardConfigService';
+import { DashboardConfigKind } from '#~/k8sTypes';
+import { POLL_INTERVAL } from '#~/utilities/const';
+import { useDeepCompareMemoize } from '#~/utilities/useDeepCompareMemoize';
+import { fetchDashboardConfig } from '#~/services/dashboardConfigService';
 import useTimeBasedRefresh from './useTimeBasedRefresh';
 
 export const useApplicationSettings = (): {

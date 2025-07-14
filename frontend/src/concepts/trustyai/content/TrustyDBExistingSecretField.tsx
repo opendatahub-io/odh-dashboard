@@ -3,9 +3,9 @@ import { HelperText, HelperTextItem, TextInput } from '@patternfly/react-core';
 import {
   TrustyInstallModalFormExistingState,
   UseTrustyInstallModalDataExisting,
-} from '~/concepts/trustyai/content/useTrustyInstallModalData';
-import { TRUSTYAI_INSTALL_MODAL_TEST_ID } from '~/concepts/trustyai/const';
-import useDebounceCallback from '~/utilities/useDebounceCallback';
+} from '#~/concepts/trustyai/content/useTrustyInstallModalData';
+import { TRUSTYAI_INSTALL_MODAL_TEST_ID } from '#~/concepts/trustyai/const';
+import useDebounceCallback from '#~/utilities/useDebounceCallback';
 
 type TrustyDBExistingSecretFieldProps = {
   formData: UseTrustyInstallModalDataExisting;

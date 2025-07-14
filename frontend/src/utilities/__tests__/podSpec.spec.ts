@@ -1,8 +1,8 @@
-import { mockAcceleratorProfile } from '~/__mocks__/mockAcceleratorProfile';
-import { ContainerResources, TolerationEffect, TolerationOperator } from '~/types';
-import { assemblePodSpecOptions } from '~/utilities/podSpec';
-import { AcceleratorProfileFormData } from '~/utilities/useAcceleratorProfileFormState';
-import { AcceleratorProfileState } from '~/utilities/useReadAcceleratorState';
+import { mockAcceleratorProfile } from '#~/__mocks__/mockAcceleratorProfile';
+import { ContainerResources, TolerationEffect, TolerationOperator } from '#~/types';
+import { assemblePodSpecOptions } from '#~/utilities/podSpec';
+import { AcceleratorProfileFormData } from '#~/utilities/useAcceleratorProfileFormState';
+import { AcceleratorProfileState } from '#~/utilities/useReadAcceleratorState';
 
 global.structuredClone = (val: unknown) => JSON.parse(JSON.stringify(val));
 

@@ -1,5 +1,5 @@
-import { ClusterSettingsType } from '~/types';
-import axios from '~/utilities/axios';
+import { ClusterSettingsType } from '#~/types';
+import axios from '#~/utilities/axios';
 
 export const fetchClusterSettings = (): Promise<ClusterSettingsType> => {
   const url = '/api/cluster-settings';

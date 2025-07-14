@@ -5,9 +5,16 @@
     "outDir": "public",
     "baseUrl": "./src",
     "paths": {
-      "~/*": ["./*"],
       "@mf/*": ["../@mf-types/@mf/*"]
     }
   },
-  "exclude": ["node_modules", "public", "public-cypress", "src/__tests__/cypress"]
+  "exclude": [
+    "node_modules",
+    "coverage",
+    "jest-coverage",
+    "public",
+    "public-cypress",
+    "src/__tests__/cypress",
+    "**/upstream"
+  ]
 }

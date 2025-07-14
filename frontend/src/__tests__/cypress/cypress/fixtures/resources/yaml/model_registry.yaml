@@ -1,0 +1,21 @@
+apiVersion: modelregistry.opendatahub.io/v1beta1
+kind: ModelRegistry
+metadata:
+  name: {{REGISTRY_NAME}}
+  namespace: {{NAMESPACE}}
+  annotations:
+    openshift.io/display-name: {{REGISTRY_NAME}}
+    openshift.io/description: E2E test model registry
+spec:
+  grpc: {}
+  rest: {}
+  oauthProxy: {}
+  mysql:
+    host: model-registry-db
+    port: 3306
+    database: model_registry
+    username: mlmduser
+    skipDBCreation: false
+    passwordSecret:
+      name: model-registry-db
+      key: database-password

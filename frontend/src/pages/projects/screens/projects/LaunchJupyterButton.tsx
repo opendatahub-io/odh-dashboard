@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { Button, ButtonVariant, Tooltip } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
-import { useCheckJupyterEnabled } from '~/utilities/notebookControllerUtils';
-import { useIsAreaAvailable, SupportedArea } from '~/concepts/areas';
+import { useCheckJupyterEnabled } from '#~/utilities/notebookControllerUtils';
+import { useIsAreaAvailable, SupportedArea } from '#~/concepts/areas';
 
 const LaunchJupyterButton: React.FC = () => {
   const navigate = useNavigate();
@@ -16,7 +16,7 @@ const LaunchJupyterButton: React.FC = () => {
   return (
     <Tooltip
       position="left"
-      content="Launch a notebook server to create a standalone workbench outside of a project."
+      content="Create a limited-use workbench that is not associated with a project."
     >
       <Button
         data-testid="launch-standalone-notebook-server"
@@ -28,7 +28,7 @@ const LaunchJupyterButton: React.FC = () => {
           navigate('/notebookController');
         }}
       >
-        Launch standalone workbench
+        Start basic workbench
       </Button>
     </Tooltip>
   );

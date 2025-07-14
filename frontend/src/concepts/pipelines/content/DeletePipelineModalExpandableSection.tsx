@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { Icon, ListItem, Tooltip } from '@patternfly/react-core';
 import { CheckCircleIcon, ExclamationCircleIcon, PendingIcon } from '@patternfly/react-icons';
-import { PipelineCoreResourceKF } from '~/concepts/pipelines/kfTypes';
-import { PipelineResourceDeleteResult } from '~/concepts/pipelines/content/useDeleteStatuses';
-import { BulkActionExpandableSection } from '~/pages/projects/components/BulkActionExpandableSection';
+import { PipelineCoreResourceKF } from '#~/concepts/pipelines/kfTypes';
+import { PipelineResourceDeleteResult } from '#~/concepts/pipelines/content/useDeleteStatuses';
+import { BulkActionExpandableSection } from '#~/pages/projects/components/BulkActionExpandableSection';
 import { getPipelineResourceUniqueID } from './utils';
 
 type DeletePipelineModalExpandableSectionProps = {

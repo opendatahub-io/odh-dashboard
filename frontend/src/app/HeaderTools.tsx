@@ -7,7 +7,6 @@ import {
   ToolbarItem,
   Button,
   Tooltip,
-  MenuToggleElement,
   MenuToggle,
   DropdownItem,
   Dropdown,
@@ -16,22 +15,25 @@ import {
   ToggleGroupItem,
 } from '@patternfly/react-core';
 import { QuestionCircleIcon, MoonIcon, SunIcon } from '@patternfly/react-icons';
-import { COMMUNITY_LINK, DOC_LINK, SUPPORT_LINK, DEV_MODE, EXT_CLUSTER } from '~/utilities/const';
-import useNotification from '~/utilities/useNotification';
-import { updateImpersonateSettings } from '~/services/impersonateService';
-import { AppNotification } from '~/redux/types';
-import { useAppSelector } from '~/redux/hooks';
-import AboutDialog from '~/app/AboutDialog';
+import { COMMUNITY_LINK, DOC_LINK, SUPPORT_LINK, DEV_MODE, EXT_CLUSTER } from '#~/utilities/const';
+import useNotification from '#~/utilities/useNotification';
+import { updateImpersonateSettings } from '#~/services/impersonateService';
+import { AppNotification } from '#~/redux/types';
+import { useAppSelector } from '#~/redux/hooks';
+import AboutDialog from '#~/app/AboutDialog';
 import AppLauncher from './AppLauncher';
 import { useAppContext } from './AppContext';
 import { useThemeContext } from './ThemeContext';
 import { logout } from './appUtils';
+import FeatureFlagLauncher, { FeatureFlagLauncherProps } from './featureFlags/FeatureFlagLauncher';
 
 interface HeaderToolsProps {
   onNotificationsClick: () => void;
 }
 
-const HeaderTools: React.FC<HeaderToolsProps> = ({ onNotificationsClick }) => {
+type Props = HeaderToolsProps & FeatureFlagLauncherProps;
+
+const HeaderTools: React.FC<Props> = ({ onNotificationsClick, ...devFeatureFlagsProps }) => {
   const [userMenuOpen, setUserMenuOpen] = React.useState(false);
   const [helpMenuOpen, setHelpMenuOpen] = React.useState(false);
   const [aboutShown, setAboutShown] = React.useState(false);
@@ -152,16 +154,26 @@ const HeaderTools: React.FC<HeaderToolsProps> = ({ onNotificationsClick }) => {
       <ToolbarContent>
         <ToolbarGroup variant="action-group-plain" align={{ default: 'alignEnd' }}>
           <ToolbarItem>
-            <NotificationBadge
-              aria-label="Notification drawer"
-              variant="read"
-              count={newNotifications}
-              onClick={onNotificationsClick}
-            />
+            <Tooltip content="Notifications" position="bottom">
+              <NotificationBadge
+                aria-label="Notification drawer"
+                variant="read"
+                count={newNotifications}
+                onClick={onNotificationsClick}
+              />
+            </Tooltip>
           </ToolbarItem>
+          {DEV_MODE && (
+            <ToolbarItem data-testid="feature-flags-menu">
+              <FeatureFlagLauncher {...devFeatureFlagsProps} />
+            </ToolbarItem>
+          )}
+
           {!dashboardConfig.spec.dashboardConfig.disableAppLauncher ? (
             <ToolbarItem data-testid="application-launcher">
-              <AppLauncher />
+              <Tooltip content="Applications" position="bottom">
+                <AppLauncher />
+              </Tooltip>
             </ToolbarItem>
           ) : null}
           <ToolbarItem>
@@ -169,16 +181,18 @@ const HeaderTools: React.FC<HeaderToolsProps> = ({ onNotificationsClick }) => {
               popperProps={{ position: 'right' }}
               onOpenChange={(isOpen) => setHelpMenuOpen(isOpen)}
               toggle={(toggleRef) => (
-                <MenuToggle
-                  variant="plain"
-                  aria-label="Help items"
-                  id="help-icon-toggle"
-                  ref={toggleRef}
-                  onClick={() => setHelpMenuOpen(!helpMenuOpen)}
-                  isExpanded={helpMenuOpen}
-                >
-                  <QuestionCircleIcon />
-                </MenuToggle>
+                <Tooltip content="Info" triggerRef={toggleRef} position="bottom">
+                  <MenuToggle
+                    variant="plain"
+                    aria-label="Help items"
+                    id="help-icon-toggle"
+                    ref={toggleRef}
+                    onClick={() => setHelpMenuOpen(!helpMenuOpen)}
+                    isExpanded={helpMenuOpen}
+                  >
+                    <QuestionCircleIcon />
+                  </MenuToggle>
+                </Tooltip>
               )}
               isOpen={helpMenuOpen}
             >
@@ -228,16 +242,18 @@ const HeaderTools: React.FC<HeaderToolsProps> = ({ onNotificationsClick }) => {
           <Dropdown
             popperProps={{ position: 'right' }}
             onOpenChange={(isOpen) => setUserMenuOpen(isOpen)}
-            toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
-              <MenuToggle
-                aria-label="User menu"
-                id="user-menu-toggle"
-                ref={toggleRef}
-                onClick={() => setUserMenuOpen(!userMenuOpen)}
-                isExpanded={userMenuOpen}
-              >
-                {userName}
-              </MenuToggle>
+            toggle={(toggleRef) => (
+              <Tooltip content="User Menu" triggerRef={toggleRef}>
+                <MenuToggle
+                  aria-label="User menu"
+                  id="user-menu-toggle"
+                  ref={toggleRef}
+                  onClick={() => setUserMenuOpen(!userMenuOpen)}
+                  isExpanded={userMenuOpen}
+                >
+                  {userName}
+                </MenuToggle>
+              </Tooltip>
             )}
             isOpen={userMenuOpen}
           >

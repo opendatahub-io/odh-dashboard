@@ -9,12 +9,12 @@ import {
   Title,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
-import PipelineRunDrawerRightTabs from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDrawerRightTabs';
+import PipelineRunDrawerRightTabs from '#~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDrawerRightTabs';
 import './PipelineRunDrawer.scss';
-import { PipelineTask } from '~/concepts/pipelines/topology';
-import { Execution } from '~/third_party/mlmd';
-import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
-import InlineTruncatedClipboardCopy from '~/components/InlineTruncatedClipboardCopy';
+import { PipelineTask } from '#~/concepts/pipelines/topology';
+import { Execution } from '#~/third_party/mlmd';
+import DashboardPopupIconButton from '#~/concepts/dashboard/DashboardPopupIconButton';
+import InlineTruncatedClipboardCopy from '#~/components/InlineTruncatedClipboardCopy';
 import { ArtifactNodeDrawerContent } from './artifacts';
 
 type PipelineRunDrawerRightContentProps = {
@@ -35,14 +35,7 @@ const PipelineRunDrawerRightContent: React.FC<PipelineRunDrawerRightContentProps
   }
 
   return (
-    // TODO: Revisit below approach, either to further to look into what caused the content to not render or
-    // to restructure the code -- see https://issues.redhat.com/browse/RHOAIENG-23537
-    <div
-      className="pf-v6-c-drawer__panel"
-      data-testid="pipeline-run-drawer-right-content"
-      // TODO: look into removing this inline style; PF Drawers should handle height/scrolling by default
-      style={{ height: '100%', overflowY: 'auto' }}
-    >
+    <>
       {task.type === 'artifact' ? (
         <ArtifactNodeDrawerContent
           upstreamTaskName={upstreamTaskName}
@@ -77,12 +70,17 @@ const PipelineRunDrawerRightContent: React.FC<PipelineRunDrawerRightContentProps
               <DrawerCloseButton onClick={onClose} />
             </DrawerActions>
           </DrawerHead>
-          <DrawerPanelBody className="pipeline-run__drawer-panel-body pf-v6-u-pr-sm">
+          {/* TODO: Revert the custom classname once
+          https://github.com/patternfly/patternfly-react/issues/11804 is resolved */}
+          <DrawerPanelBody
+            className="pipeline-run__drawer-panel-body pf-v6-u-p-sm"
+            data-testid="pipeline-run-drawer-right-content"
+          >
             <PipelineRunDrawerRightTabs task={task} executions={executions} />
           </DrawerPanelBody>
         </>
       )}
-    </div>
+    </>
   );
 };
 

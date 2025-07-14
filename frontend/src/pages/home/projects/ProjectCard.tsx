@@ -13,13 +13,16 @@ import {
   Truncate,
 } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
-import { ProjectKind } from '~/k8sTypes';
-import TruncatedText from '~/components/TruncatedText';
-import { SectionType } from '~/concepts/design/utils';
-import TypeBorderedCard from '~/concepts/design/TypeBorderedCard';
-import { getProjectOwner } from '~/concepts/projects/utils';
-import { fireLinkTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
-import { getDescriptionFromK8sResource, getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
+import { ProjectKind } from '#~/k8sTypes';
+import TruncatedText from '#~/components/TruncatedText';
+import { SectionType } from '#~/concepts/design/utils';
+import TypeBorderedCard from '#~/concepts/design/TypeBorderedCard';
+import { getProjectOwner } from '#~/concepts/projects/utils';
+import { fireLinkTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
+import {
+  getDescriptionFromK8sResource,
+  getDisplayNameFromK8sResource,
+} from '#~/concepts/k8s/utils';
 
 interface ProjectCardProps {
   project: ProjectKind;

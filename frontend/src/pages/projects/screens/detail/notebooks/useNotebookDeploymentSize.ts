@@ -1,9 +1,9 @@
 import * as React from 'react';
-import { AppContext } from '~/app/AppContext';
-import { PodContainer, NotebookSize } from '~/types';
-import { getNotebookSizes } from '~/pages/notebookController/screens/server/usePreferredNotebookSize';
-import { NotebookKind } from '~/k8sTypes';
-import { isCpuResourceEqual, isMemoryResourceEqual } from '~/utilities/valueUnits';
+import { AppContext } from '#~/app/AppContext';
+import { PodContainer, NotebookSize } from '#~/types';
+import { getNotebookSizes } from '#~/pages/notebookController/screens/server/usePreferredNotebookSize';
+import { NotebookKind } from '#~/k8sTypes';
+import { isCpuResourceEqual, isMemoryResourceEqual } from '#~/utilities/valueUnits';
 
 const useNotebookDeploymentSize = (notebook?: NotebookKind): { size: NotebookSize | null } => {
   const { dashboardConfig } = React.useContext(AppContext);

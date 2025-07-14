@@ -7,7 +7,7 @@ import {
   StackItem,
 } from '@patternfly/react-core';
 import { ErrorCode } from 'react-dropzone';
-import { MAX_SIZE, MAX_SIZE_AS_MB } from '~/concepts/pipelines/content/const';
+import { MAX_SIZE, MAX_SIZE_AS_MB } from '#~/concepts/pipelines/content/const';
 
 type PipelineFileUploadProps = {
   fileContents: string;

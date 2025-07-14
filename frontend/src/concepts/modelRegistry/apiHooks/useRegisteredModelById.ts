@@ -3,12 +3,12 @@ import useFetchState, {
   FetchState,
   FetchStateCallbackPromise,
   NotReadyError,
-} from '~/utilities/useFetchState';
-import { RegisteredModel } from '~/concepts/modelRegistry/types';
-import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegistryContext';
+} from '#~/utilities/useFetchState';
+import { RegisteredModel } from '#~/concepts/modelRegistry/types';
+import { ModelRegistryPageContext } from '#~/concepts/modelRegistry/context/ModelRegistryPageContext';
 
 const useRegisteredModelById = (registeredModel?: string): FetchState<RegisteredModel | null> => {
-  const { apiState } = React.useContext(ModelRegistryContext);
+  const { apiState } = React.useContext(ModelRegistryPageContext);
 
   const call = React.useCallback<FetchStateCallbackPromise<RegisteredModel | null>>(
     (opts) => {

@@ -3,10 +3,10 @@ import { Alert, FormSection } from '@patternfly/react-core';
 import {
   CreateRunPageSections,
   runPageSectionTitles,
-} from '~/concepts/pipelines/content/createRun/const';
-import { PipelineVersionKF, RuntimeConfigParameters } from '~/concepts/pipelines/kfTypes';
-import { getInputDefinitionParams } from '~/concepts/pipelines/content/createRun/utils';
-import ParamsDefaultFields from '~/components/ParamsDefaultFields';
+} from '#~/concepts/pipelines/content/createRun/const';
+import { PipelineVersionKF, RuntimeConfigParameters } from '#~/concepts/pipelines/kfTypes';
+import { getInputDefinitionParams } from '#~/concepts/pipelines/content/createRun/utils';
+import ParamsDefaultFields from '#~/components/ParamsDefaultFields';
 
 type ParamsSectionProps = {
   runParams: RuntimeConfigParameters | undefined;

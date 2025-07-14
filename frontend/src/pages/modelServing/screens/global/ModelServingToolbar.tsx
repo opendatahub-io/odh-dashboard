@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { SearchInput, ToolbarGroup, ToolbarItem } from '@patternfly/react-core';
-import FilterToolbar from '~/components/FilterToolbar';
+import FilterToolbar from '#~/components/FilterToolbar';
 import ServeModelButton from './ServeModelButton';
 import {
   ModelServingToolbarFilterOptions,

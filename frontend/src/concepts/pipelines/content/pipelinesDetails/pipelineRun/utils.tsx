@@ -11,10 +11,10 @@ import {
   TimestampFormat,
 } from '@patternfly/react-core';
 import { GlobeAmericasIcon } from '@patternfly/react-icons';
-import { DateTimeKF, RuntimeConfigParamValue } from '~/concepts/pipelines/kfTypes';
-import { PodKind } from '~/k8sTypes';
-import { PodContainer } from '~/types';
-import { NoValue } from '~/components/NoValue';
+import { DateTimeKF, RuntimeConfigParamValue } from '#~/concepts/pipelines/kfTypes';
+import { PodKind } from '#~/k8sTypes';
+import { PodContainer } from '#~/types';
+import { NoValue } from '#~/components/NoValue';
 
 export type DetailItem = {
   key: string;

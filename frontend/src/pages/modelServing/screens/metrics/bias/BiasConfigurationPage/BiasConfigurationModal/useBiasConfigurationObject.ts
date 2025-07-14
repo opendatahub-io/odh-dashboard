@@ -1,9 +1,9 @@
 import * as React from 'react';
-import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
-import useGenericObjectState from '~/utilities/useGenericObjectState';
-import { BiasMetricConfig } from '~/concepts/trustyai/types';
-import { BaseMetricRequestInput, BiasMetricType } from '~/api';
-import { getThresholdDefaultDelta } from '~/pages/modelServing/screens/metrics/utils';
+import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
+import useGenericObjectState from '#~/utilities/useGenericObjectState';
+import { BiasMetricConfig } from '#~/concepts/trustyai/types';
+import { BaseMetricRequestInput, BiasMetricType } from '#~/api';
+import { getThresholdDefaultDelta } from '#~/pages/modelServing/screens/metrics/utils';
 
 const useBiasConfigurationObject = (
   modelId: string,

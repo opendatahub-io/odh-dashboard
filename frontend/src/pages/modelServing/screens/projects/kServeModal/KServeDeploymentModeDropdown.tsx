@@ -1,8 +1,8 @@
 import { FormGroup, Icon, Popover } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import React from 'react';
-import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
-import { DeploymentMode } from '~/k8sTypes';
+import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
+import { DeploymentMode } from '#~/k8sTypes';
 
 type Props = {
   isRaw: boolean;

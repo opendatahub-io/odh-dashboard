@@ -1,37 +1,37 @@
 import { act } from 'react';
 import { k8sGetResource } from '@openshift/dynamic-plugin-sdk-utils';
 import { waitFor } from '@testing-library/react';
-import { useAccessReview, useRulesReview, listServices } from '~/api';
-import { ServiceKind } from '~/k8sTypes';
+import { useAccessReview, useRulesReview, listServices } from '#~/api';
+import { ServiceKind } from '#~/k8sTypes';
 import {
   useModelRegistryServices,
   ModelRegistryServicesResult,
-} from '~/concepts/modelRegistry/apiHooks/useModelRegistryServices';
-import { testHook } from '~/__tests__/unit/testUtils/hooks';
-import { mockModelRegistryService } from '~/__mocks__/mockModelRegistryService';
+} from '#~/concepts/modelRegistry/apiHooks/useModelRegistryServices';
+import { testHook } from '#~/__tests__/unit/testUtils/hooks';
+import { mockModelRegistryService } from '#~/__mocks__/mockModelRegistryService';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sListResource: jest.fn(),
   k8sGetResource: jest.fn(),
 }));
 
-jest.mock('~/api', () => ({
+jest.mock('#~/api', () => ({
   useAccessReview: jest.fn(),
   useRulesReview: jest.fn(),
   listServices: jest.fn(),
 }));
 
-jest.mock('~/concepts/modelRegistry/apiHooks/useModelRegistryServices', () => ({
-  ...jest.requireActual('~/concepts/modelRegistry/apiHooks/useModelRegistryServices'),
+jest.mock('#~/concepts/modelRegistry/apiHooks/useModelRegistryServices', () => ({
+  ...jest.requireActual('#~/concepts/modelRegistry/apiHooks/useModelRegistryServices'),
   fetchServices: jest.fn(),
 }));
 
-jest.mock('~/api/useRulesReview', () => ({
+jest.mock('#~/api/useRulesReview', () => ({
   useRulesReview: jest.fn(),
 }));
 
-jest.mock('~/api/useAccessReview');
-jest.mock('~/api/useRulesReview');
+jest.mock('#~/api/useAccessReview');
+jest.mock('#~/api/useRulesReview');
 const objectToStandardUseFetchState = (obj: ModelRegistryServicesResult) => [
   obj.modelRegistryServices,
   obj.isLoaded,

@@ -1,9 +1,9 @@
 import React from 'react';
-import { NimMetricGraphDefinition } from '~/concepts/metrics/kserve/types';
-import { TimeframeTitle } from '~/concepts/metrics/types';
-import { useFetchNimTimeToFirstTokenData } from '~/api';
-import MetricsChart from '~/pages/modelServing/screens/metrics/MetricsChart';
-import { convertPrometheusNaNToZero } from '~/pages/modelServing/screens/metrics/utils';
+import { NimMetricGraphDefinition } from '#~/concepts/metrics/kserve/types';
+import { TimeframeTitle } from '#~/concepts/metrics/types';
+import { useFetchNimTimeToFirstTokenData } from '#~/api';
+import MetricsChart from '#~/pages/modelServing/screens/metrics/MetricsChart';
+import { convertPrometheusNaNToZero } from '#~/pages/modelServing/screens/metrics/utils';
 
 // Graph #4 - Time to First Token
 type NimTimeToFirstTokenGraphProps = {

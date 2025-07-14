@@ -1,18 +1,18 @@
 import yaml from 'js-yaml';
-import { HTPASSWD_CLUSTER_ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
+import { HTPASSWD_CLUSTER_ADMIN_USER } from '#~/__tests__/cypress/cypress/utils/e2eUsers';
 import {
   projectListPage,
   createProjectModal,
   projectDetails,
-} from '~/__tests__/cypress/cypress/pages/projects';
+} from '#~/__tests__/cypress/cypress/pages/projects';
 import {
   verifyOpenShiftProjectExists,
   deleteOpenShiftProject,
-} from '~/__tests__/cypress/cypress/utils/oc_commands/project';
-import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
-import type { DataScienceProjectData } from '~/__tests__/cypress/cypress/types';
-import { retryableBefore } from '~/__tests__/cypress/cypress/utils/retryableHooks';
-import { generateTestUUID } from '~/__tests__/cypress/cypress/utils/uuidGenerator';
+} from '#~/__tests__/cypress/cypress/utils/oc_commands/project';
+import { deleteModal } from '#~/__tests__/cypress/cypress/pages/components/DeleteModal';
+import type { DataScienceProjectData } from '#~/__tests__/cypress/cypress/types';
+import { retryableBefore } from '#~/__tests__/cypress/cypress/utils/retryableHooks';
+import { generateTestUUID } from '#~/__tests__/cypress/cypress/utils/uuidGenerator';
 
 describe('Verify Data Science Project - Creation and Deletion', () => {
   let testData: DataScienceProjectData;
@@ -43,6 +43,14 @@ describe('Verify Data Science Project - Creation and Deletion', () => {
         // Return a resolved promise to ensure a value is always returned
         return cy.wrap(null);
       });
+  });
+
+  after(() => {
+    // Delete provisioned Project
+    if (projectName) {
+      cy.log(`Deleting Project ${projectName} after the test has finished.`);
+      deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
+    }
   });
 
   it(
@@ -159,4 +167,28 @@ describe('Verify Data Science Project - Creation and Deletion', () => {
       });
     },
   );
+  it('Verify 250 character limit is enforced for Name and Description fields', () => {
+    cy.step('Log into the application');
+    cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
+    projectListPage.navigate();
+    cy.step('Open Create Data Science Project modal');
+    createProjectModal.shouldBeOpen(false);
+    projectListPage.findCreateProjectButton().click();
+    // Test Name field character limit
+    cy.step('Test Name field 250 character limit');
+    const longName = 'a'.repeat(250); // Exactly 250 characters
+    createProjectModal.k8sNameDescription.findDisplayNameInput().type(longName);
+
+    // Try to add one more character to exceed limit
+    createProjectModal.k8sNameDescription.findDisplayNameInput().type('b');
+
+    // Verify validation message appears
+    cy.contains('Cannot exceed 250 characters (0 remaining)').should('be.visible');
+
+    // Test Description field character limit
+    cy.step('Test Description field 5500 character limit');
+    const longDescription = 'c'.repeat(5500);
+    createProjectModal.k8sNameDescription.findDescriptionInput().clear().type(longDescription);
+    cy.contains('Cannot exceed 5500 characters (0 remaining)').should('be.visible');
+  });
 });

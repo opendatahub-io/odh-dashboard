@@ -1,17 +1,21 @@
-import { Modal } from '~/__tests__/cypress/cypress/pages/components/Modal';
+import { Modal } from '#~/__tests__/cypress/cypress/pages/components/Modal';
 
 class ModelVersionDeployModal extends Modal {
   constructor() {
     super('Deploy model');
   }
 
-  findProjectSelector() {
-    return this.find().findByTestId('deploy-model-project-selector');
+  private findProjectSelector() {
+    return this.find().findByTestId('deploy-model-project-selector-toggle');
   }
 
   selectProjectByName(name: string) {
     this.findProjectSelector().click();
-    cy.findByRole('option', { name, hidden: true }).click();
+    cy.findByTestId('deploy-model-project-selector-search').fill(name);
+    cy.findByTestId('deploy-model-project-selector-menuList')
+      .contains('button', name)
+      .should('be.visible')
+      .click();
   }
 }
 

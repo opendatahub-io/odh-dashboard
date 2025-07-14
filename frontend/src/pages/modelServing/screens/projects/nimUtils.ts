@@ -1,9 +1,9 @@
 // NGC stands for NVIDIA GPU Cloud.
 
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
-import { ProjectKind, SecretKind, ServingRuntimeKind, TemplateKind } from '~/k8sTypes';
-import { deletePvc, deleteSecret, getTemplate, listNIMAccounts } from '~/api';
-import { fetchInferenceServiceCount } from '~/pages/modelServing/screens/projects/utils';
+import { ProjectKind, SecretKind, ServingRuntimeKind, TemplateKind } from '#~/k8sTypes';
+import { deletePvc, deleteSecret, getTemplate, listNIMAccounts } from '#~/api';
+import { fetchInferenceServiceCount } from '#~/pages/modelServing/screens/projects/utils';
 
 export const getNGCSecretType = (isNGC: boolean): string =>
   isNGC ? 'kubernetes.io/dockerconfigjson' : 'Opaque';

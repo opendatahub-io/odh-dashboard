@@ -1,4 +1,4 @@
-import { SortableData } from '~/components/table';
+import { SortableData } from '#~/components/table';
 
 export type XParentLabel = {
   label: string;

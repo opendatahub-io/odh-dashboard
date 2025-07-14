@@ -9,7 +9,7 @@ import {
   GridItem,
 } from '@patternfly/react-core';
 import { TimesIcon } from '@patternfly/react-icons';
-import modelCatalogImg from '~/images/homepage-model-catalog.svg';
+import modelCatalogImg from '#~/images/homepage-model-catalog.svg';
 
 const ModelCatalogHint: React.FC<{ isHidden: boolean; setHidden: React.FC }> = ({
   isHidden,
@@ -60,10 +60,7 @@ const ModelCatalogHint: React.FC<{ isHidden: boolean; setHidden: React.FC }> = (
               paddingRight: '4em',
             }}
           >
-            <Content>
-              Discover models that are available for your organization to register, deploy, and
-              customize.
-            </Content>
+            <Content>Discover models that you can register, deploy, and customize.</Content>
           </CardBody>
         </GridItem>
       </Grid>

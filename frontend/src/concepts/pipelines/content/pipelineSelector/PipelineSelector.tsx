@@ -1,14 +1,14 @@
 import * as React from 'react';
 import { EmptyStateVariant } from '@patternfly/react-core';
 import { TableVariant } from '@patternfly/react-table';
-import PipelineSelectorTableRow from '~/concepts/pipelines/content/pipelineSelector/PipelineSelectorTableRow';
-import { TableBase, getTableColumnSort } from '~/components/table';
-import { PipelineKF } from '~/concepts/pipelines/kfTypes';
-import { pipelineSelectorColumns } from '~/concepts/pipelines/content/pipelineSelector/columns';
-import PipelineViewMoreFooterRow from '~/concepts/pipelines/content/tables/PipelineViewMoreFooterRow';
-import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
-import { usePipelineSelector } from '~/concepts/pipelines/content/pipelineSelector/useCreateSelectors';
-import SearchSelector from '~/components/searchSelector/SearchSelector';
+import PipelineSelectorTableRow from '#~/concepts/pipelines/content/pipelineSelector/PipelineSelectorTableRow';
+import { TableBase, getTableColumnSort } from '#~/components/table';
+import { PipelineKF } from '#~/concepts/pipelines/kfTypes';
+import { pipelineSelectorColumns } from '#~/concepts/pipelines/content/pipelineSelector/columns';
+import PipelineViewMoreFooterRow from '#~/concepts/pipelines/content/tables/PipelineViewMoreFooterRow';
+import DashboardEmptyTableView from '#~/concepts/dashboard/DashboardEmptyTableView';
+import { usePipelineSelector } from '#~/concepts/pipelines/content/pipelineSelector/useCreateSelectors';
+import SearchSelector from '#~/components/searchSelector/SearchSelector';
 
 type PipelineSelectorProps = {
   selection?: string;

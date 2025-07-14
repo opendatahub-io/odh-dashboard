@@ -1,12 +1,12 @@
 import type { MatcherOptions } from '@testing-library/cypress';
 import type { Matcher, MatcherOptions as DTLMatcherOptions } from '@testing-library/dom';
-import type { UserAuthConfig, DashboardConfig } from '~/__tests__/cypress/cypress/types';
-import { HTPASSWD_CLUSTER_ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
+import type { UserAuthConfig, DashboardConfig } from '#~/__tests__/cypress/cypress/types';
+import { HTPASSWD_CLUSTER_ADMIN_USER } from '#~/__tests__/cypress/cypress/utils/e2eUsers';
 import {
   getDashboardConfig,
   getNotebookControllerConfig,
   getNotebookControllerCullerConfig,
-} from '~/__tests__/cypress/cypress/utils/oc_commands/project';
+} from '#~/__tests__/cypress/cypress/utils/oc_commands/project';
 
 /* eslint-disable @typescript-eslint/no-namespace */
 declare global {
@@ -24,6 +24,14 @@ declare global {
         relativeUrl: string,
         credentials?: UserAuthConfig,
       ) => Cypress.Chainable<void>;
+
+      /**
+       * Finds a app nav item relative to the subject element.
+       *
+       * @param name the name of the item
+       * @param section the section of the item
+       */
+      findAppNavItem: (name: string, section?: string) => Cypress.Chainable<JQuery>;
 
       /**
        * Find a patternfly kebab toggle button.
@@ -179,6 +187,31 @@ declare global {
     }
   }
 }
+
+Cypress.Commands.addQuery('findAppNavItem', (name: string, section?: string) => {
+  Cypress.log({
+    displayName: 'findAppNavItem',
+    message: `name: ${name}, section: ${section ?? 'none'}`,
+  });
+
+  return (subject) => {
+    Cypress.ensure.isElement(subject, 'findAppNavItem', cy);
+    const $el: JQuery<HTMLElement> = subject;
+
+    let $parent = $el;
+    if (section) {
+      const $section = $el.find(`:contains('${section}')`).closest('button');
+      if ($section.length) {
+        $parent = $section.parent();
+        if ($section.attr('aria-expanded') === 'false') {
+          $section.trigger('click');
+        }
+      }
+    }
+
+    return $parent.find(`:contains('${name}')`).closest('a');
+  };
+});
 
 Cypress.Commands.add('visitWithLogin', (relativeUrl, credentials = HTPASSWD_CLUSTER_ADMIN_USER) => {
   if (Cypress.env('MOCK')) {

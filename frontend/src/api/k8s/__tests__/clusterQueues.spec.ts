@@ -1,8 +1,8 @@
 import { k8sListResourceItems } from '@openshift/dynamic-plugin-sdk-utils';
-import { mockClusterQueueK8sResource } from '~/__mocks__/mockClusterQueueK8sResource';
-import { ClusterQueueKind } from '~/k8sTypes';
-import { listClusterQueues } from '~/api/k8s/clusterQueues';
-import { ClusterQueueModel } from '~/api/models/kueue';
+import { mockClusterQueueK8sResource } from '#~/__mocks__/mockClusterQueueK8sResource';
+import { ClusterQueueKind } from '#~/k8sTypes';
+import { listClusterQueues } from '#~/api/k8s/clusterQueues';
+import { ClusterQueueModel } from '#~/api/models/kueue';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sListResourceItems: jest.fn(),

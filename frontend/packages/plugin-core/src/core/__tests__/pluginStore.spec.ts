@@ -2,16 +2,18 @@ import { PluginStore } from '../plugin-store';
 
 describe('PluginStore', () => {
   it('should filter extensions based on feature flags', () => {
-    const pluginStore = new PluginStore([
-      {
-        type: 'test',
-        flags: {
-          required: ['test'],
-          disallowed: ['test2'],
+    const pluginStore = new PluginStore({
+      test: [
+        {
+          type: 'test',
+          flags: {
+            required: ['test'],
+            disallowed: ['test2'],
+          },
+          properties: {},
         },
-        properties: {},
-      },
-    ]);
+      ],
+    });
 
     expect(pluginStore.getExtensions()).toHaveLength(0);
 

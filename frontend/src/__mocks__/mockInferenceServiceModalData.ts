@@ -1,7 +1,7 @@
 import {
   CreatingInferenceServiceObject,
   InferenceServiceStorageType,
-} from '~/pages/modelServing/screens/types';
+} from '#~/pages/modelServing/screens/types';
 
 type MockResourceConfigType = Partial<CreatingInferenceServiceObject>;
 

@@ -1,4 +1,4 @@
-import { Contextual } from '~/__tests__/cypress/cypress/pages/components/Contextual';
+import { Contextual } from '#~/__tests__/cypress/cypress/pages/components/Contextual';
 
 export class HomeAdminSection extends Contextual<HTMLElement> {
   findNotebookImageCard(): Cypress.Chainable<JQuery<HTMLElement>> {

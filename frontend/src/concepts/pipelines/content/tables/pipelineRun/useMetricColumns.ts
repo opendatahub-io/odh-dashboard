@@ -1,11 +1,11 @@
 import React from 'react';
-import { useGetArtifactsByRuns } from '~/concepts/pipelines/apiHooks/mlmd/useGetArtifactsByRuns';
-import { ArtifactType, PipelineRunKF } from '~/concepts/pipelines/kfTypes';
-import { getArtifactProperties } from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/artifacts/utils';
-import { ArtifactProperty } from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/artifacts/types';
-import { RunWithMetrics } from '~/concepts/pipelines/content/tables/pipelineRun/types';
-import { useMlmdContextsByType } from '~/concepts/pipelines/apiHooks/mlmd/useMlmdContextsByType';
-import { MlmdContextTypes } from '~/concepts/pipelines/apiHooks/mlmd/types';
+import { useGetArtifactsByRuns } from '#~/concepts/pipelines/apiHooks/mlmd/useGetArtifactsByRuns';
+import { ArtifactType, PipelineRunKF } from '#~/concepts/pipelines/kfTypes';
+import { getArtifactProperties } from '#~/concepts/pipelines/content/pipelinesDetails/pipelineRun/artifacts/utils';
+import { ArtifactProperty } from '#~/concepts/pipelines/content/pipelinesDetails/pipelineRun/artifacts/types';
+import { RunWithMetrics } from '#~/concepts/pipelines/content/tables/pipelineRun/types';
+import { useMlmdContextsByType } from '#~/concepts/pipelines/apiHooks/mlmd/useMlmdContextsByType';
+import { MlmdContextTypes } from '#~/concepts/pipelines/apiHooks/mlmd/types';
 import { getMetricsColumnsLocalStorageKey } from './utils';
 
 export const useMetricColumnNames = (

@@ -1,5 +1,5 @@
-import type { CommandLineResult, DashboardConfig } from '~/__tests__/cypress/cypress/types';
-import { handleOCCommandResult } from '~/__tests__/cypress/cypress/utils/errorHandling';
+import type { CommandLineResult, DashboardConfig } from '#~/__tests__/cypress/cypress/types';
+import { handleOCCommandResult } from '#~/__tests__/cypress/cypress/utils/errorHandling';
 
 /**
  * Create an OpenShift Project
@@ -31,25 +31,36 @@ export const createOpenShiftProject = (
  * Delete an OpenShift Project given its name
  *
  * @param projectName OpenShift Project name
+ * @param options Configuration options for the delete operation
+ * @param options.timeout Timeout in milliseconds for the command (only used when wait is true)
+ * @param options.wait Whether to wait for the deletion to complete (default: true)
+ * @param options.ignoreNotFound Whether to ignore if the project doesn't exist (default: false)
  * @returns Result Object of the operation
  */
 export const deleteOpenShiftProject = (
   projectName: string,
-  options: { timeout?: number } = {},
+  options: { timeout?: number; wait?: boolean; ignoreNotFound?: boolean } = {},
 ): Cypress.Chainable<CommandLineResult> => {
-  const { timeout } = options;
-  const ocCommand = `oc delete project ${projectName}`;
-  return cy
-    .exec(ocCommand, { failOnNonZeroExit: false, ...(timeout && { timeout }) })
-    .then((result) => {
-      if (result.code !== 0) {
-        cy.log(`ERROR deleting ${projectName} Project
+  const { timeout, wait = true, ignoreNotFound = false } = options;
+  const waitFlag = wait ? '' : '--wait=false';
+  const ignoreNotFoundFlag = ignoreNotFound ? '--ignore-not-found' : '';
+  const ocCommand = `oc delete project ${projectName} ${waitFlag} ${ignoreNotFoundFlag}`.trim();
+
+  // Only apply timeout if we're waiting for the deletion
+  const execOptions = {
+    failOnNonZeroExit: false,
+    ...(wait && timeout && { timeout }),
+  };
+
+  return cy.exec(ocCommand, execOptions).then((result) => {
+    if (result.code !== 0) {
+      cy.log(`ERROR deleting ${projectName} Project
                 stdout: ${result.stdout}
                 stderr: ${result.stderr}`);
-        throw new Error(`Command failed with code ${result.code}`);
-      }
-      return result;
-    });
+      throw new Error(`Command failed with code ${result.code}`);
+    }
+    return result;
+  });
 };
 
 /**

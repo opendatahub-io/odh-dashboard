@@ -1,14 +1,15 @@
 import React from 'react';
-import { useIsAreaAvailable, SupportedArea } from '~/concepts/areas';
-import { ContainerResources } from '~/types';
-import { assemblePodSpecOptions } from '~/utilities/podSpec';
-import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
-import useServingAcceleratorProfileFormState from '~/pages/modelServing/screens/projects/useServingAcceleratorProfileFormState';
-import { useAppContext } from '~/app/AppContext';
-import { getServingRuntimeSizes, isGpuDisabled } from '~/pages/modelServing/screens/projects/utils';
-import { useDeepCompareMemoize } from '~/utilities/useDeepCompareMemoize';
-import { ModelServingSize } from '~/pages/modelServing/screens/types';
-import { getInferenceServiceSize } from '~/pages/modelServing/utils';
+import { useIsAreaAvailable, SupportedArea } from '#~/concepts/areas';
+import { ContainerResources } from '#~/types';
+import { assemblePodSpecOptions } from '#~/utilities/podSpec';
+import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
+import useServingAcceleratorProfileFormState from '#~/pages/modelServing/screens/projects/useServingAcceleratorProfileFormState';
+import { useAppContext } from '#~/app/AppContext';
+import { getModelServingSizes } from '#~/concepts/modelServing/modelServingSizesUtils';
+import { useDeepCompareMemoize } from '#~/utilities/useDeepCompareMemoize';
+import { ModelServingSize } from '#~/pages/modelServing/screens/types';
+import { getInferenceServiceSize } from '#~/pages/modelServing/utils';
+import { isGpuDisabled } from '#~/pages/modelServing/screens/projects/utils.ts';
 import useServingHardwareProfileConfig from './useServingHardwareProfileConfig';
 import { PodSpecOptions, PodSpecOptionsState } from './types';
 
@@ -31,7 +32,7 @@ export const useModelServingPodSpecOptionsState = (
   inferenceService?: InferenceServiceKind,
 ): ModelServingPodSpecOptionsState => {
   const { dashboardConfig } = useAppContext();
-  const sizes = useDeepCompareMemoize(getServingRuntimeSizes(dashboardConfig));
+  const sizes = useDeepCompareMemoize(getModelServingSizes(dashboardConfig));
   const existingSize = useDeepCompareMemoize(
     getInferenceServiceSize(sizes, inferenceService, servingRuntime),
   );
@@ -92,8 +93,8 @@ export const useModelServingPodSpecOptionsState = (
     } else {
       podSpecOptions = {
         resources: hardwareProfile.formData.resources,
-        tolerations: hardwareProfile.formData.selectedProfile?.spec.tolerations,
-        nodeSelector: hardwareProfile.formData.selectedProfile?.spec.nodeSelector,
+        tolerations: hardwareProfile.formData.selectedProfile?.spec.scheduling?.node?.tolerations,
+        nodeSelector: hardwareProfile.formData.selectedProfile?.spec.scheduling?.node?.nodeSelector,
         ...annotationData,
       };
     }

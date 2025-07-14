@@ -1,10 +1,10 @@
 import * as React from 'react';
-import EmptyStateErrorMessage from '~/components/EmptyStateErrorMessage';
-import { DistributedWorkloadsContext } from '~/concepts/distributedWorkloads/DistributedWorkloadsContext';
-import { Table } from '~/components/table';
-import { NoWorkloadState } from '~/pages/distributedWorkloads/components/NoWorkloadState';
-import { LoadingState } from '~/pages/distributedWorkloads/components/LoadingState';
-import { getStatusInfo } from '~/concepts/distributedWorkloads/utils';
+import EmptyStateErrorMessage from '#~/components/EmptyStateErrorMessage';
+import { DistributedWorkloadsContext } from '#~/concepts/distributedWorkloads/DistributedWorkloadsContext';
+import { Table } from '#~/components/table';
+import { NoWorkloadState } from '#~/pages/distributedWorkloads/components/NoWorkloadState';
+import { LoadingState } from '#~/pages/distributedWorkloads/components/LoadingState';
+import { getStatusInfo } from '#~/concepts/distributedWorkloads/utils';
 import DWWorkloadsTableRow from './DWWorkloadsTableRow';
 import { DWWorkloadsTableColumns } from './columns';
 

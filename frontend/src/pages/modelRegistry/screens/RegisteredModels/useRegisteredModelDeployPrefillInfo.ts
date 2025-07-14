@@ -1,9 +1,9 @@
 import React from 'react';
-import useModelArtifactsByVersionId from '~/concepts/modelRegistry/apiHooks/useModelArtifactsByVersionId';
-import useRegisteredModelById from '~/concepts/modelRegistry/apiHooks/useRegisteredModelById';
-import { ModelVersion } from '~/concepts/modelRegistry/types';
-import { uriToConnectionTypeName } from '~/concepts/modelRegistry/utils';
-import { ModelDeployPrefillInfo } from '~/pages/modelServing/screens/projects/usePrefillModelDeployModal';
+import useModelArtifactsByVersionId from '#~/concepts/modelRegistry/apiHooks/useModelArtifactsByVersionId';
+import useRegisteredModelById from '#~/concepts/modelRegistry/apiHooks/useRegisteredModelById';
+import { ModelVersion } from '#~/concepts/modelRegistry/types';
+import { uriToConnectionTypeName } from '#~/concepts/modelRegistry/utils';
+import { ModelDeployPrefillInfo } from '#~/pages/modelServing/screens/projects/usePrefillModelDeployModal';
 
 const useRegisteredModelDeployPrefillInfo = (
   modelVersion: ModelVersion,

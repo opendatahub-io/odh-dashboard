@@ -1,7 +1,7 @@
 import { k8sCreateResource } from '@openshift/dynamic-plugin-sdk-utils';
 import * as React from 'react';
-import { SelfSubjectRulesReviewModel } from '~/api/models';
-import { SelfSubjectRulesReviewKind } from '~/k8sTypes';
+import { SelfSubjectRulesReviewModel } from '#~/api/models';
+import { SelfSubjectRulesReviewKind } from '#~/k8sTypes';
 
 const checkAccess = (ns: string): Promise<SelfSubjectRulesReviewKind> => {
   const selfSubjectRulesReview: SelfSubjectRulesReviewKind = {

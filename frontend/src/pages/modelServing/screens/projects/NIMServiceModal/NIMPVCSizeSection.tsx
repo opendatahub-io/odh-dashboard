@@ -1,7 +1,7 @@
 import React from 'react';
 import { HelperText, HelperTextItem, StackItem } from '@patternfly/react-core';
-import PVSizeField from '~/pages/projects/components/PVSizeField';
-import { MEMORY_UNITS_FOR_SELECTION } from '~/utilities/valueUnits';
+import PVSizeField from '#~/pages/projects/components/PVSizeField';
+import { MEMORY_UNITS_FOR_SELECTION } from '#~/utilities/valueUnits';
 
 type NIMPVCSizeSectionProps = {
   pvcSize: string;

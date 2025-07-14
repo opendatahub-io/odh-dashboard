@@ -1,4 +1,4 @@
-import type { CommandLineResult } from '~/__tests__/cypress/cypress/types';
+import type { CommandLineResult } from '#~/__tests__/cypress/cypress/types';
 import { createCustomResource } from './customResources';
 
 const applicationNamespace = Cypress.env('APPLICATIONS_NAMESPACE');

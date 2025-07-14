@@ -6,15 +6,15 @@ import { PlusCircleIcon } from '@patternfly/react-icons';
 import {
   CreateRunPageSections,
   runPageSectionTitles,
-} from '~/concepts/pipelines/content/createRun/const';
-import { PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
-import PipelineSelector from '~/concepts/pipelines/content/pipelineSelector/PipelineSelector';
-import ImportPipelineButton from '~/concepts/pipelines/content/import/ImportPipelineButton';
-import PipelineVersionSelector from '~/concepts/pipelines/content/pipelineSelector/PipelineVersionSelector';
-import RunForm from '~/concepts/pipelines/content/createRun/RunForm';
-import { PipelineVersionToUse } from '~/concepts/pipelines/content/createRun/types';
-import PipelineVersionRadioGroup from '~/concepts/pipelines/content/createRun/contentSections/PipelineVersionRadioGroup';
-import ImportPipelineVersionButton from '~/concepts/pipelines/content/import/ImportPipelineVersionButton';
+} from '#~/concepts/pipelines/content/createRun/const';
+import { PipelineKF, PipelineVersionKF } from '#~/concepts/pipelines/kfTypes';
+import PipelineSelector from '#~/concepts/pipelines/content/pipelineSelector/PipelineSelector';
+import ImportPipelineButton from '#~/concepts/pipelines/content/import/ImportPipelineButton';
+import PipelineVersionSelector from '#~/concepts/pipelines/content/pipelineSelector/PipelineVersionSelector';
+import RunForm from '#~/concepts/pipelines/content/createRun/RunForm';
+import { PipelineVersionToUse } from '#~/concepts/pipelines/content/createRun/types';
+import PipelineVersionRadioGroup from '#~/concepts/pipelines/content/createRun/contentSections/PipelineVersionRadioGroup';
+import ImportPipelineVersionButton from '#~/concepts/pipelines/content/import/ImportPipelineVersionButton';
 
 type PipelineSectionProps = Pick<React.ComponentProps<typeof RunForm>, 'onValueChange'> & {
   pipeline: PipelineKF | null;
@@ -104,12 +104,14 @@ const PipelineSection: React.FC<PipelineSectionProps> = ({
             </StackItem>
             <StackItem>
               <ImportPipelineVersionButton
+                data-testid="import-pipeline-version-button"
                 selectedPipeline={pipeline}
                 variant="link"
                 icon={<PlusCircleIcon />}
                 onCreate={(value) => {
                   onVersionChange({ value, versionToUse: PipelineVersionToUse.PROVIDED });
                 }}
+                redirectAfterImport={false}
               />
             </StackItem>
           </Stack>

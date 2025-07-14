@@ -3,7 +3,7 @@ import { Language } from '@patternfly/react-code-editor';
 import YAML from 'yaml';
 import { EmptyState, EmptyStateBody } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons/dist/esm/icons/exclamation-circle-icon';
-import DashboardCodeEditor from '~/concepts/dashboard/codeEditor/DashboardCodeEditor';
+import DashboardCodeEditor from '#~/concepts/dashboard/codeEditor/DashboardCodeEditor';
 import PipelineVersionError from './PipelineVersionError';
 
 type PipelineDetailsYAMLProps = {

@@ -1,7 +1,7 @@
 import React from 'react';
 
 import { Flex, FlexItem, Radio, Spinner, Tooltip } from '@patternfly/react-core';
-import { updateStorageClassConfig } from '~/api';
+import { updateStorageClassConfig } from '#~/api';
 import { useStorageClassContext } from './StorageClassesContext';
 
 interface StorageClassDefaultRadioProps {

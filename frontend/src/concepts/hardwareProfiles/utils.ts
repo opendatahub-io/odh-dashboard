@@ -1,15 +1,15 @@
 import React from 'react';
-import { ImageStreamKind, AcceleratorProfileKind, HardwareProfileKind } from '~/k8sTypes';
-import { getCompatibleIdentifiers } from '~/pages/projects/screens/spawner/spawnerUtils';
+import { ImageStreamKind, AcceleratorProfileKind, HardwareProfileKind } from '#~/k8sTypes';
+import { getCompatibleIdentifiers } from '#~/pages/projects/screens/spawner/spawnerUtils';
 import {
   Toleration,
   NodeSelector,
   Identifier,
   ContainerResources,
   IdentifierResourceType,
-} from '~/types';
-import { useIsAreaAvailable, SupportedArea } from '~/concepts/areas';
-import { splitValueUnit, CPU_UNITS, MEMORY_UNITS_FOR_PARSING } from '~/utilities/valueUnits';
+} from '#~/types';
+import { useIsAreaAvailable, SupportedArea } from '#~/concepts/areas';
+import { splitValueUnit, CPU_UNITS, MEMORY_UNITS_FOR_PARSING } from '#~/utilities/valueUnits';
 
 export const formatToleration = (toleration: Toleration): string => {
   const parts = [`Key = ${toleration.key}`];

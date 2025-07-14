@@ -5,25 +5,25 @@ import {
   PipelineRecurringRunKF,
   PipelineRunKF,
   RecurringRunStatus,
-} from '~/concepts/pipelines/kfTypes';
-import { getRunDuration } from '~/concepts/pipelines/content/tables/utils';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { relativeDuration } from '~/utilities/time';
+} from '#~/concepts/pipelines/kfTypes';
+import { getRunDuration } from '#~/concepts/pipelines/content/tables/utils';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+import { relativeDuration } from '#~/utilities/time';
 import {
   asTimestamp,
   DetailItem,
   isEmptyDateKF,
   renderDetailItems,
-} from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/utils';
-import { isPipelineRun, isPipelineRecurringRun } from '~/concepts/pipelines/content/utils';
-import { PipelineVersionLink } from '~/concepts/pipelines/content/PipelineVersionLink';
-import usePipelineVersionById from '~/concepts/pipelines/apiHooks/usePipelineVersionById';
-import usePipelineById from '~/concepts/pipelines/apiHooks/usePipelineById';
-import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
-import { RecurringRunTrigger } from '~/concepts/pipelines/content/tables/renderUtils';
-import { Artifact } from '~/third_party/mlmd';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import { getIsArtifactModelRegistered } from '~/pages/pipelines/global/experiments/artifacts/utils';
+} from '#~/concepts/pipelines/content/pipelinesDetails/pipelineRun/utils';
+import { isPipelineRun, isPipelineRecurringRun } from '#~/concepts/pipelines/content/utils';
+import { PipelineVersionLink } from '#~/concepts/pipelines/content/PipelineVersionLink';
+import usePipelineVersionById from '#~/concepts/pipelines/apiHooks/usePipelineVersionById';
+import usePipelineById from '#~/concepts/pipelines/apiHooks/usePipelineById';
+import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
+import { RecurringRunTrigger } from '#~/concepts/pipelines/content/tables/renderUtils';
+import { Artifact } from '#~/third_party/mlmd';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { getIsArtifactModelRegistered } from '#~/pages/pipelines/global/experiments/artifacts/utils';
 import PipelineRunRegisteredModelDetails from './PipelineRunRegisteredModelDetails';
 import { getArtifactModelData } from './artifacts/utils';
 

@@ -1,5 +1,5 @@
-import axios from '~/utilities/axios';
-import { ConfigMap, Secret } from '~/types';
+import axios from '#~/utilities/axios';
+import { ConfigMap, Secret } from '#~/types';
 
 export const getEnvSecret = (namespace: string, name: string): Promise<Secret> => {
   const url = `/api/envs/secret/${namespace}/${name}`;

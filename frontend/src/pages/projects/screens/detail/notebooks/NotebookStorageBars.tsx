@@ -11,14 +11,14 @@ import {
   Content,
 } from '@patternfly/react-core';
 
-import { NotebookKind } from '~/k8sTypes';
-import useNotebookPVCItems from '~/pages/projects/pvc/useNotebookPVCItems';
-import StorageSizeBar from '~/pages/projects/components/StorageSizeBars';
-import { getNotebookPVCMountPathMap } from '~/pages/projects/notebook/utils';
-import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
-import { ProjectObjectType } from '~/concepts/design/utils';
-import HeaderIcon from '~/concepts/design/HeaderIcon';
-import InlineTruncatedClipboardCopy from '~/components/InlineTruncatedClipboardCopy';
+import { NotebookKind } from '#~/k8sTypes';
+import useNotebookPVCItems from '#~/pages/projects/pvc/useNotebookPVCItems';
+import StorageSizeBar from '#~/pages/projects/components/StorageSizeBars';
+import { getNotebookPVCMountPathMap } from '#~/pages/projects/notebook/utils';
+import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
+import { ProjectObjectType } from '#~/concepts/design/utils';
+import HeaderIcon from '#~/concepts/design/HeaderIcon';
+import InlineTruncatedClipboardCopy from '#~/components/InlineTruncatedClipboardCopy';
 import ShowAllButton from './ShowAllButton';
 
 type NotebookStorageBarsProps = {

@@ -1,7 +1,7 @@
 import { Outlet, useParams } from 'react-router-dom';
 import React from 'react';
-import NotFound from '~/pages/NotFound';
-import { TrustyAIContextProvider } from '~/concepts/trustyai/context/TrustyAIContext';
+import NotFound from '#~/pages/NotFound';
+import { TrustyAIContextProvider } from '#~/concepts/trustyai/context/TrustyAIContext';
 
 const ProjectInferenceExplainabilityWrapper: React.FC = () => {
   const { namespace } = useParams<{ namespace: string }>();

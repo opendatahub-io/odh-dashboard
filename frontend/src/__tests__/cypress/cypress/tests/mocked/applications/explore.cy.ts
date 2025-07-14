@@ -1,6 +1,6 @@
-import { explorePage } from '~/__tests__/cypress/cypress/pages/explore';
-import { mockComponents } from '~/__mocks__/mockComponents';
-import { jupyterCard } from '~/__tests__/cypress/cypress/pages/components/JupyterCard';
+import { explorePage } from '#~/__tests__/cypress/cypress/pages/explore';
+import { mockComponents } from '#~/__mocks__/mockComponents';
+import { jupyterCard } from '#~/__tests__/cypress/cypress/pages/components/JupyterCard';
 
 describe('Explore Page', () => {
   beforeEach(() => {
@@ -8,10 +8,9 @@ describe('Explore Page', () => {
     explorePage.visit();
   });
 
-  it('check jupyter card details', () => {
+  it('check start basic workbench card details', () => {
     jupyterCard.findBrandImage().should('be.visible');
-    jupyterCard.findCardTitle().should('have.text', 'Jupyter');
-    jupyterCard.findCardProvider().should('have.text', 'by Jupyter');
+    jupyterCard.findCardTitle().should('have.text', 'Start basic workbench');
     jupyterCard
       .findCardBody()
       .should(

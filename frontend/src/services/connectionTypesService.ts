@@ -1,13 +1,13 @@
-import axios from '~/utilities/axios';
-import { ResponseStatus } from '~/types';
+import axios from '#~/utilities/axios';
+import { ResponseStatus } from '#~/types';
 import {
   ConnectionTypeConfigMap,
   ConnectionTypeConfigMapObj,
-} from '~/concepts/connectionTypes/types';
+} from '#~/concepts/connectionTypes/types';
 import {
   toConnectionTypeConfigMap,
   toConnectionTypeConfigMapObj,
-} from '~/concepts/connectionTypes/utils';
+} from '#~/concepts/connectionTypes/utils';
 
 export const fetchConnectionTypes = (): Promise<ConnectionTypeConfigMapObj[]> => {
   const url = `/api/connection-types`;

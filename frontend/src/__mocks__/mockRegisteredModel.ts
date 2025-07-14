@@ -2,7 +2,7 @@ import {
   RegisteredModel,
   ModelState,
   ModelRegistryCustomProperties,
-} from '~/concepts/modelRegistry/types';
+} from '#~/concepts/modelRegistry/types';
 
 type MockRegisteredModelType = {
   id?: string;

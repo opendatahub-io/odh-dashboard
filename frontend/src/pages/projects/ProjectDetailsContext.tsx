@@ -9,59 +9,64 @@ import {
   SecretKind,
   ServingRuntimeKind,
   TemplateKind,
-} from '~/k8sTypes';
-import { DEFAULT_CONTEXT_DATA, DEFAULT_LIST_WATCH_RESULT } from '~/utilities/const';
-import useServingRuntimes from '~/pages/modelServing/useServingRuntimes';
-import useInferenceServices from '~/pages/modelServing/useInferenceServices';
-import { ContextResourceData, CustomWatchK8sResult } from '~/types';
-import { useContextResourceData } from '~/utilities/useContextResourceData';
-import useServingRuntimeSecrets from '~/pages/modelServing/screens/projects/useServingRuntimeSecrets';
-import { PipelineContextProvider } from '~/concepts/pipelines/context';
-import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
-import InvalidProject from '~/concepts/projects/InvalidProject';
-import useSyncPreferredProject from '~/concepts/projects/useSyncPreferredProject';
-import useTemplateOrder from '~/pages/modelServing/customServingRuntimes/useTemplateOrder';
-import useTemplateDisablement from '~/pages/modelServing/customServingRuntimes/useTemplateDisablement';
-import { useDashboardNamespace } from '~/redux/selectors';
-import { getTokenNames } from '~/pages/modelServing/utils';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import { Connection } from '~/concepts/connectionTypes/types';
-import { useGroups, useTemplates } from '~/api';
+} from '#~/k8sTypes';
+import {
+  DEFAULT_LIST_FETCH_STATE,
+  DEFAULT_LIST_WATCH_RESULT,
+  DEFAULT_LIST_WITH_NON_DASHBOARD_PRESENCE_FETCH_STATE,
+  POLL_INTERVAL,
+} from '#~/utilities/const';
+import useServingRuntimes from '#~/pages/modelServing/useServingRuntimes';
+import useInferenceServices from '#~/pages/modelServing/useInferenceServices';
+import { CustomWatchK8sResult, ListWithNonDashboardPresence } from '#~/types';
+import { FetchStateObject } from '#~/utilities/useFetch';
+import useServingRuntimeSecrets from '#~/pages/modelServing/screens/projects/useServingRuntimeSecrets';
+import { PipelineContextProvider } from '#~/concepts/pipelines/context';
+import { byName, ProjectsContext } from '#~/concepts/projects/ProjectsContext';
+import InvalidProject from '#~/concepts/projects/InvalidProject';
+import useSyncPreferredProject from '#~/concepts/projects/useSyncPreferredProject';
+import useTemplateOrder from '#~/pages/modelServing/customServingRuntimes/useTemplateOrder';
+import useTemplateDisablement from '#~/pages/modelServing/customServingRuntimes/useTemplateDisablement';
+import { useDashboardNamespace } from '#~/redux/selectors';
+import { getTokenNames } from '#~/pages/modelServing/utils';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { Connection } from '#~/concepts/connectionTypes/types';
+import { useGroups, useTemplates } from '#~/api';
 import { NotebookState } from './notebook/types';
 import useProjectNotebookStates from './notebook/useProjectNotebookStates';
 import useProjectPvcs from './screens/detail/storage/useProjectPvcs';
 import useProjectSharing from './projectSharing/useProjectSharing';
 import useConnections from './screens/detail/connections/useConnections';
 
-type ProjectDetailsContextType = {
+export type ProjectDetailsContextType = {
   currentProject: ProjectKind;
   filterTokens: (servingRuntime?: string) => SecretKind[];
-  notebooks: ContextResourceData<NotebookState>;
-  pvcs: ContextResourceData<PersistentVolumeClaimKind>;
-  connections: ContextResourceData<Connection>;
-  servingRuntimes: ContextResourceData<ServingRuntimeKind>;
+  notebooks: FetchStateObject<NotebookState[]>;
+  pvcs: FetchStateObject<PersistentVolumeClaimKind[]>;
+  connections: FetchStateObject<Connection[]>;
+  servingRuntimes: FetchStateObject<ListWithNonDashboardPresence<ServingRuntimeKind>>;
   servingRuntimeTemplates: CustomWatchK8sResult<TemplateKind[]>;
-  servingRuntimeTemplateOrder: ContextResourceData<string>;
-  servingRuntimeTemplateDisablement: ContextResourceData<string>;
-  inferenceServices: ContextResourceData<InferenceServiceKind>;
-  serverSecrets: ContextResourceData<SecretKind>;
-  projectSharingRB: ContextResourceData<RoleBindingKind>;
+  servingRuntimeTemplateOrder: FetchStateObject<string[]>;
+  servingRuntimeTemplateDisablement: FetchStateObject<string[]>;
+  inferenceServices: FetchStateObject<ListWithNonDashboardPresence<InferenceServiceKind>>;
+  serverSecrets: FetchStateObject<SecretKind[]>;
+  projectSharingRB: FetchStateObject<RoleBindingKind[]>;
   groups: CustomWatchK8sResult<GroupKind[]>;
 };
 
 export const ProjectDetailsContext = React.createContext<ProjectDetailsContextType>({
   currentProject: { apiVersion: '', kind: '', metadata: { name: '' } },
   filterTokens: () => [],
-  notebooks: DEFAULT_CONTEXT_DATA,
-  pvcs: DEFAULT_CONTEXT_DATA,
-  connections: DEFAULT_CONTEXT_DATA,
-  servingRuntimes: DEFAULT_CONTEXT_DATA,
+  notebooks: DEFAULT_LIST_FETCH_STATE,
+  pvcs: DEFAULT_LIST_FETCH_STATE,
+  connections: DEFAULT_LIST_FETCH_STATE,
+  servingRuntimes: DEFAULT_LIST_WITH_NON_DASHBOARD_PRESENCE_FETCH_STATE,
   servingRuntimeTemplates: DEFAULT_LIST_WATCH_RESULT,
-  servingRuntimeTemplateOrder: DEFAULT_CONTEXT_DATA,
-  servingRuntimeTemplateDisablement: DEFAULT_CONTEXT_DATA,
-  inferenceServices: DEFAULT_CONTEXT_DATA,
-  serverSecrets: DEFAULT_CONTEXT_DATA,
-  projectSharingRB: DEFAULT_CONTEXT_DATA,
+  servingRuntimeTemplateOrder: DEFAULT_LIST_FETCH_STATE,
+  servingRuntimeTemplateDisablement: DEFAULT_LIST_FETCH_STATE,
+  inferenceServices: DEFAULT_LIST_WITH_NON_DASHBOARD_PRESENCE_FETCH_STATE,
+  serverSecrets: DEFAULT_LIST_FETCH_STATE,
+  projectSharingRB: DEFAULT_LIST_FETCH_STATE,
   groups: DEFAULT_LIST_WATCH_RESULT,
 });
 
@@ -71,31 +76,28 @@ const ProjectDetailsContextProvider: React.FC = () => {
   const { projects } = React.useContext(ProjectsContext);
   const project = projects.find(byName(namespace)) ?? null;
   useSyncPreferredProject(project);
-  const notebooks = useContextResourceData<NotebookState>(useProjectNotebookStates(namespace));
-  const pvcs = useContextResourceData<PersistentVolumeClaimKind>(useProjectPvcs(namespace));
-  const connections = useContextResourceData<Connection>(useConnections(namespace));
-  const servingRuntimes = useContextResourceData<ServingRuntimeKind>(useServingRuntimes(namespace));
-  const servingRuntimeTemplates = useTemplates(dashboardNamespace);
+  const notebooks = useProjectNotebookStates(namespace, { refreshRate: POLL_INTERVAL });
 
-  const servingRuntimeTemplateOrder = useContextResourceData<string>(
-    useTemplateOrder(dashboardNamespace),
-  );
-  const servingRuntimeTemplateDisablement = useContextResourceData<string>(
-    useTemplateDisablement(dashboardNamespace),
-  );
-  const inferenceServices = useContextResourceData<InferenceServiceKind>(
-    useInferenceServices(namespace),
-  );
-  const serverSecrets = useContextResourceData<SecretKind>(useServingRuntimeSecrets(namespace));
-  const projectSharingRB = useContextResourceData<RoleBindingKind>(useProjectSharing(namespace));
+  const pvcs = useProjectPvcs(namespace, { refreshRate: POLL_INTERVAL });
+  const connections = useConnections(namespace, { refreshRate: POLL_INTERVAL });
+  const servingRuntimes = useServingRuntimes(namespace, undefined, { refreshRate: POLL_INTERVAL });
+  const servingRuntimeTemplates = useTemplates(dashboardNamespace);
+  const servingRuntimeTemplateOrder = useTemplateOrder(dashboardNamespace);
+  const servingRuntimeTemplateDisablement = useTemplateDisablement(dashboardNamespace);
+  const inferenceServices = useInferenceServices(namespace, undefined, undefined, undefined, {
+    refreshRate: POLL_INTERVAL,
+  });
+  const serverSecrets = useServingRuntimeSecrets(namespace, { refreshRate: POLL_INTERVAL });
+  const projectSharingRB = useProjectSharing(namespace, { refreshRate: POLL_INTERVAL });
+
   const groups = useGroups();
+  const pageName = 'project details';
 
   const filterTokens = React.useCallback(
     (servingRuntimeName?: string): SecretKind[] => {
       if (!namespace || !servingRuntimeName) {
         return [];
       }
-
       const { serviceAccountName } = getTokenNames(servingRuntimeName, namespace);
 
       const secrets = serverSecrets.data.filter(
@@ -103,6 +105,7 @@ const ProjectDetailsContextProvider: React.FC = () => {
           secret.metadata.annotations?.['kubernetes.io/service-account.name'] ===
           serviceAccountName,
       );
+
       return secrets;
     },
     [namespace, serverSecrets],
@@ -156,7 +159,7 @@ const ProjectDetailsContextProvider: React.FC = () => {
     return (
       <InvalidProject
         namespace={namespace}
-        title="Problem loading project details"
+        title={`Problem loading ${pageName}`}
         getRedirectPath={(ns) => `/projects/${ns}`}
       />
     );
@@ -165,7 +168,7 @@ const ProjectDetailsContextProvider: React.FC = () => {
   return (
     <ProjectDetailsContext.Provider value={contextValue}>
       {pipelinesEnabled ? (
-        <PipelineContextProvider namespace={project.metadata.name}>
+        <PipelineContextProvider namespace={project.metadata.name} pageName={pageName}>
           <Outlet />
         </PipelineContextProvider>
       ) : (

@@ -4,16 +4,23 @@
 
 import { K8sResourceCommon, WatchK8sResult } from '@openshift/dynamic-plugin-sdk-utils';
 import { AxiosError } from 'axios';
-import { EnvironmentFromVariable } from '~/pages/projects/types';
-import { DashboardCommonConfig, ImageStreamKind, ImageStreamSpecTagType } from './k8sTypes';
+import { EnvironmentFromVariable } from '#~/pages/projects/types';
+import { FeatureFlag } from '#~/concepts/areas/types';
+import { ImageStreamKind, ImageStreamSpecTagType } from './k8sTypes';
 import { EitherNotBoth } from './typeHelpers';
 import { NotebookPodSpecOptions } from './concepts/hardwareProfiles/useNotebookPodSpecOptionsState';
+import { FetchStateObject } from './utilities/useFetch';
 
-export type DevFeatureFlags = {
-  devFeatureFlags: Partial<DashboardCommonConfig> | null;
-  setDevFeatureFlag: (flag: keyof DashboardCommonConfig, value: boolean) => void;
-  resetDevFeatureFlags: () => void;
+export type FeatureFlagProps = {
+  devFeatureFlags: Record<FeatureFlag | string, boolean | undefined> | null;
+  setDevFeatureFlag: (flag: FeatureFlag | string, value: boolean) => void;
+  resetDevFeatureFlags: (turnOff: boolean) => void;
+};
+
+// to add to below:  isBannerVisible: boolean;
+export type DevFeatureFlags = FeatureFlagProps & {
   setDevFeatureFlagQueryVisible: (visible: boolean) => void;
+  isBannerVisible: boolean;
 };
 
 export type PrometheusQueryResponse<TResultExtraProps extends object = object> = {
@@ -155,7 +162,6 @@ export type OdhApplication = {
     betaText?: string | null;
     shownOnEnabledPage: boolean | null;
     isEnabled: boolean | null;
-    kfdefApplications?: string[];
     csvName?: string;
     enable?: {
       title: string;
@@ -282,6 +288,30 @@ export type NotebookPort = {
   containerPort: number;
   protocol: string;
 };
+
+export type HardwareProfileAnnotations = Partial<{
+  'opendatahub.io/display-name': string;
+  'opendatahub.io/description': string;
+  'opendatahub.io/dashboard-feature-visibility': string; // JSON stringified HardwareProfileFeatureVisibility[]
+  'opendatahub.io/disabled': string;
+}>;
+
+export type HardwareProfileScheduling = {
+  type: SchedulingType;
+  kueue?: {
+    localQueueName: string;
+    priorityClass?: string;
+  };
+  node?: {
+    nodeSelector?: NodeSelector;
+    tolerations?: Toleration[];
+  };
+};
+
+export enum SchedulingType {
+  QUEUE = 'Queue',
+  NODE = 'Node',
+}
 
 export enum TolerationOperator {
   EXISTS = 'Exists',
@@ -548,6 +578,34 @@ export type ImageInfo = {
 
 export type ImageType = 'byon' | 'jupyter' | 'other';
 
+export enum ImageStreamAnnotation {
+  DISP_NAME = 'opendatahub.io/notebook-image-name',
+  DESC = 'opendatahub.io/notebook-image-desc',
+  URL = 'opendatahub.io/notebook-image-url',
+  CREATOR = 'opendatahub.io/notebook-image-creator',
+  RECOMMENDED_ACCELERATORS = 'opendatahub.io/recommended-accelerators',
+  IMAGE_ORDER = 'opendatahub.io/notebook-image-order',
+}
+
+export enum ImageStreamLabel {
+  NOTEBOOK = 'opendatahub.io/notebook-image',
+}
+
+export enum ImageStreamSpecTagAnnotation {
+  DEPENDENCIES = 'opendatahub.io/notebook-python-dependencies',
+  SOFTWARE = 'opendatahub.io/notebook-software',
+  OUTDATED = 'opendatahub.io/image-tag-outdated',
+  RECOMMENDED = 'opendatahub.io/workbench-image-recommended',
+  DEFAULT = 'opendatahub.io/default-image',
+}
+
+export enum DisplayNameAnnotation {
+  DISP_NAME = 'openshift.io/display-name',
+  DESC = 'openshift.io/description',
+  ODH_DISP_NAME = 'opendatahub.io/display-name',
+  ODH_DESC = 'opendatahub.io/description',
+}
+
 export type Volume = {
   name: string;
   emptyDir?: Record<string, unknown>;
@@ -603,7 +661,7 @@ export enum NotebookState {
 }
 
 export enum ProgressionStep {
-  SERVER_REQUESTED = 'SERVER_REQUESTED',
+  WORKBENCH_REQUESTED = 'WORKBENCH_REQUESTED',
   POD_PROBLEM = 'POD_PROBLEM',
   POD_CREATED = 'POD_CREATED',
   POD_ASSIGNED = 'POD_ASSIGNED',
@@ -619,11 +677,11 @@ export enum ProgressionStep {
   OAUTH_CONTAINER_CREATED = 'OAUTH_CONTAINER_CREATED',
   OAUTH_CONTAINER_PROBLEM = 'OAUTH_CONTAINER_PROBLEM',
   OAUTH_CONTAINER_STARTED = 'OAUTH_CONTAINER_STARTED',
-  SERVER_STARTED = 'SERVER_STARTED',
+  WORKBENCH_STARTED = 'WORKBENCH_STARTED',
 }
 
 export const ProgressionStepTitles: Record<ProgressionStep, string> = {
-  [ProgressionStep.SERVER_REQUESTED]: 'Server requested',
+  [ProgressionStep.WORKBENCH_REQUESTED]: 'Workbench requested',
   [ProgressionStep.POD_PROBLEM]: 'There was a problem with the pod',
   [ProgressionStep.POD_CREATED]: 'Pod created',
   [ProgressionStep.POD_ASSIGNED]: 'Pod assigned',
@@ -632,14 +690,14 @@ export const ProgressionStepTitles: Record<ProgressionStep, string> = {
   [ProgressionStep.PULLING_NOTEBOOK_IMAGE]: 'Pulling workbench image',
   [ProgressionStep.NOTEBOOK_IMAGE_PULLED]: 'Workbench image pulled',
   [ProgressionStep.NOTEBOOK_CONTAINER_CREATED]: 'Workbench container created',
-  [ProgressionStep.NOTEBOOK_CONTAINER_PROBLEM]: 'There was a problem with the notebook',
+  [ProgressionStep.NOTEBOOK_CONTAINER_PROBLEM]: 'There was a problem with the workbench',
   [ProgressionStep.NOTEBOOK_CONTAINER_STARTED]: 'Workbench container started',
   [ProgressionStep.PULLING_OAUTH]: 'Pulling oauth proxy',
   [ProgressionStep.OAUTH_PULLED]: 'Oauth proxy pulled',
   [ProgressionStep.OAUTH_CONTAINER_CREATED]: 'Oauth proxy container created',
   [ProgressionStep.OAUTH_CONTAINER_PROBLEM]: 'There was a problem with Oauth',
   [ProgressionStep.OAUTH_CONTAINER_STARTED]: 'Oauth proxy container started',
-  [ProgressionStep.SERVER_STARTED]: 'Server started',
+  [ProgressionStep.WORKBENCH_STARTED]: 'Workbench started',
 };
 
 export const AssociatedSteps: { [key in ProgressionStep]?: ProgressionStep[] } = {
@@ -654,7 +712,7 @@ export const AssociatedSteps: { [key in ProgressionStep]?: ProgressionStep[] } =
     ProgressionStep.OAUTH_CONTAINER_CREATED,
   ],
   [ProgressionStep.POD_ASSIGNED]: [ProgressionStep.POD_CREATED],
-  [ProgressionStep.SERVER_STARTED]: Object.values(ProgressionStep),
+  [ProgressionStep.WORKBENCH_STARTED]: Object.values(ProgressionStep),
 };
 
 export const OptionalSteps: ProgressionStep[] = [
@@ -696,16 +754,14 @@ export type CustomWatchK8sResult<R extends K8sResourceCommon | K8sResourceCommon
   loadError: Error | undefined,
 ];
 
-export type FetchStateObject<T, E = Error> = {
-  data: T;
-  loaded: boolean;
-  error?: E;
-  refresh: () => void;
+export type PendingContextResourceData<T> = FetchStateObject<T[], Error | AxiosError> & {
+  pending: boolean;
 };
 
-// TODO this and useContextResourceData should probably be removed in favor of useMakeFetchObject
-export type ContextResourceData<T> = FetchStateObject<T[], Error | AxiosError>;
-export type PendingContextResourceData<T> = ContextResourceData<T> & { pending: boolean };
+export type ListWithNonDashboardPresence<T> = {
+  items: T[];
+  hasNonDashboardItems: boolean;
+};
 
 export type BreadcrumbItemType = {
   label: string;
@@ -747,3 +803,20 @@ export type IntegrationAppStatus = {
   variablesValidationTimestamp?: string;
   error: string;
 };
+
+export enum OdhPlatformType {
+  // eslint-disable-next-line no-restricted-syntax
+  OPEN_DATA_HUB = 'Open Data Hub',
+  SELF_MANAGED_RHOAI = 'OpenShift AI Self-Managed',
+  MANAGED_RHOAI = 'OpenShift AI Cloud Service',
+} // Reference: https://github.com/red-hat-data-services/rhods-operator/blob/main/pkg/cluster/const.go
+
+export type TypedPromiseRejectedResult<R> = Omit<PromiseRejectedResult, 'reason'> & { reason: R };
+
+export enum IconSize {
+  SM = 'sm',
+  MD = 'md',
+  LG = 'lg',
+  XL = 'xl',
+  XXL = 'xxl',
+}

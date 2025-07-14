@@ -2,21 +2,21 @@ import * as React from 'react';
 import { Button, ExpandableSection } from '@patternfly/react-core';
 import { TableVariant } from '@patternfly/react-table';
 import { useNavigate } from 'react-router-dom';
-import { PipelinesFilter } from '~/concepts/pipelines/types';
-import { Table } from '~/components/table';
-import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
+import { PipelinesFilter } from '#~/concepts/pipelines/types';
+import { Table } from '#~/components/table';
+import DashboardEmptyTableView from '#~/concepts/dashboard/DashboardEmptyTableView';
 import usePipelineFilter, {
   FilterOptions,
   getDataValue,
-} from '~/concepts/pipelines/content/tables/usePipelineFilter';
-import { useCompareRuns } from '~/concepts/pipelines/content/compareRuns/CompareRunsContext';
-import useCompareRunsCheckboxTable from '~/concepts/pipelines/content/compareRuns/useCompareRunsCheckboxTable';
-import PipelineRunTableRow from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableRow';
-import { compareRunColumns } from '~/concepts/pipelines/content/tables/columns';
-import PipelineRunTableToolbar from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableToolbar';
-import { manageCompareRunsRoute } from '~/routes';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { ExperimentContext } from '~/pages/pipelines/global/experiments/ExperimentContext';
+} from '#~/concepts/pipelines/content/tables/usePipelineFilter';
+import { useCompareRuns } from '#~/concepts/pipelines/content/compareRuns/CompareRunsContext';
+import useCompareRunsCheckboxTable from '#~/concepts/pipelines/content/compareRuns/useCompareRunsCheckboxTable';
+import PipelineRunTableRow from '#~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableRow';
+import { compareRunColumns } from '#~/concepts/pipelines/content/tables/columns';
+import PipelineRunTableToolbar from '#~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableToolbar';
+import { manageCompareRunsRoute } from '#~/routes/pipelines/runs';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+import { ExperimentContext } from '#~/pages/pipelines/global/experiments/ExperimentContext';
 
 const CompareRunsRunList: React.FC = () => {
   const { namespace } = usePipelinesAPI();

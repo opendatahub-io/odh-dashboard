@@ -1,6 +1,6 @@
 import * as React from 'react';
 import * as _ from 'lodash-es';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Button,
   ButtonVariant,
@@ -17,16 +17,14 @@ import {
 
 import {
   ThIcon,
-  CheckIcon,
   FilterIcon,
   ListIcon,
   PficonSortCommonAscIcon,
   PficonSortCommonDescIcon,
 } from '@patternfly/react-icons';
-import { removeQueryArgument, setQueryArgument } from '~/utilities/router';
-import { useQueryParams } from '~/utilities/useQueryParams';
-import { fireMiscTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
-import SimpleSelect from '~/components/SimpleSelect';
+import { removeQueryArgument, setQueryArgument } from '#~/utilities/router';
+import { fireMiscTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
+import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
 import {
   SEARCH_FILTER_KEY,
   DOC_SORT_KEY,
@@ -80,6 +78,12 @@ const sortOrders = {
 const isSortType = (e: string | null): e is keyof typeof sortTypes => !!e && e in sortTypes;
 const isSortOrder = (e: string | null): e is keyof typeof sortOrders => !!e && e in sortOrders;
 
+const SortOrderIcon: React.FC<{ isAsc: boolean; alt: string }> = ({ isAsc, alt }) => (
+  <span style={{ display: 'inline-flex', alignItems: 'center', width: '100%' }}>
+    {isAsc ? <PficonSortCommonAscIcon alt={alt} /> : <PficonSortCommonDescIcon alt={alt} />}
+  </span>
+);
+
 const LearningCenterToolbar: React.FC<LearningCenterToolbarProps> = ({
   count,
   totalCount,
@@ -89,16 +93,16 @@ const LearningCenterToolbar: React.FC<LearningCenterToolbarProps> = ({
   onToggleFiltersCollapsed,
 }) => {
   const navigate = useNavigate();
-  const queryParams = useQueryParams();
-  const categoryQuery = queryParams.get(CATEGORY_FILTER_KEY) || '';
-  const enabled = queryParams.get(ENABLED_FILTER_KEY);
-  const docTypes = queryParams.get(DOC_TYPE_FILTER_KEY);
-  const applications = queryParams.get(APPLICATION_FILTER_KEY);
-  const searchQuery = queryParams.get(SEARCH_FILTER_KEY) || '';
+  const [searchParams] = useSearchParams();
+  const categoryQuery = searchParams.get(CATEGORY_FILTER_KEY) || '';
+  const enabled = searchParams.get(ENABLED_FILTER_KEY);
+  const docTypes = searchParams.get(DOC_TYPE_FILTER_KEY);
+  const applications = searchParams.get(APPLICATION_FILTER_KEY);
+  const searchQuery = searchParams.get(SEARCH_FILTER_KEY) || '';
   const [searchInputText, setSearchInputText] = React.useState(searchQuery);
-  const sortTypeQ = queryParams.get(DOC_SORT_KEY);
+  const sortTypeQ = searchParams.get(DOC_SORT_KEY);
   const sortType = isSortType(sortTypeQ) ? sortTypeQ : SORT_TYPE_NAME;
-  const sortOrderQ = queryParams.get(DOC_SORT_ORDER_KEY);
+  const sortOrderQ = searchParams.get(DOC_SORT_ORDER_KEY);
   const sortOrder = isSortOrder(sortOrderQ) ? sortOrderQ : SORT_ASC;
 
   React.useEffect(() => {
@@ -114,45 +118,25 @@ const LearningCenterToolbar: React.FC<LearningCenterToolbarProps> = ({
     [navigate],
   );
 
-  const sortTypeDropdownItems = Object.entries(sortTypes).map(([key, val]) => ({
-    key,
-    label: key,
-    dropdownLabel: (
-      <>
-        <CheckIcon
-          className={`odh-learning-paths__toolbar__filter-check ${
-            sortType === key ? 'odh-m-filtered' : ''
-          }`}
-          data-key={key}
-        />
-        {val}
-      </>
-    ),
-  }));
+  const sortTypeDropdownItems = Object.entries(sortTypes).map(
+    ([key, val]): SimpleSelectOption => ({
+      key,
+      label: key,
+      dropdownLabel: <>{val}</>,
+    }),
+  );
   const onSortOrderSelect = React.useCallback(
     (value: string) => setQueryArgument(navigate, DOC_SORT_ORDER_KEY, value),
     [navigate],
   );
 
-  const sortOrderDropdownItems = Object.entries(sortOrders).map(([key, val]) => ({
-    key,
-    label: key,
-    dropdownLabel: (
-      <>
-        <CheckIcon
-          className={`odh-learning-paths__toolbar__filter-check ${
-            sortOrder === key ? 'odh-m-filtered' : ''
-          }`}
-          data-key={key}
-        />
-        {key === SORT_ASC ? (
-          <PficonSortCommonAscIcon data-key={key} alt={val} />
-        ) : (
-          <PficonSortCommonDescIcon data-key={key} alt={val} />
-        )}
-      </>
-    ),
-  }));
+  const sortOrderDropdownItems = Object.entries(sortOrders).map(
+    ([key, val]): SimpleSelectOption => ({
+      key,
+      label: val,
+      dropdownLabel: <SortOrderIcon isAsc={key === SORT_ASC} alt={val} />,
+    }),
+  );
 
   const handleTextChange = (val: string) => {
     if (val.length > 0) {
@@ -218,6 +202,7 @@ const LearningCenterToolbar: React.FC<LearningCenterToolbarProps> = ({
                 options={sortTypeDropdownItems}
                 aria-label="Select sort type"
                 toggleLabel={`Sort by ${sortTypes[sortType]}`}
+                value={sortType}
                 onChange={onSortTypeSelect}
               />
             </ToolbarItem>
@@ -226,13 +211,12 @@ const LearningCenterToolbar: React.FC<LearningCenterToolbarProps> = ({
                 aria-label="Select sort order"
                 options={sortOrderDropdownItems}
                 toggleLabel={
-                  sortOrder === SORT_ASC ? (
-                    <PficonSortCommonAscIcon data-key={sortOrder} alt={sortOrders.ASC} />
-                  ) : (
-                    <PficonSortCommonDescIcon data-key={sortOrder} alt={sortOrders.DESC} />
-                  )
+                  <SortOrderIcon isAsc={sortOrder === 'ASC'} alt={sortOrders[sortOrder]} />
                 }
+                value={sortOrder}
                 onChange={onSortOrderSelect}
+                isFullWidth
+                toggleProps={{ style: { minWidth: '100px' } }}
                 popperProps={{ appendTo: 'inline' }}
               />
             </ToolbarItem>

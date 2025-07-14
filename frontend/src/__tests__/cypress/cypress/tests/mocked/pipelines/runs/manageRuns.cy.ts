@@ -6,17 +6,17 @@ import {
   buildMockPipelineVersions,
   buildMockPipelines,
   buildMockRunKF,
-} from '~/__mocks__';
-import type { PipelineRunKF } from '~/concepts/pipelines/kfTypes';
+} from '#~/__mocks__';
+import type { PipelineRunKF } from '#~/concepts/pipelines/kfTypes';
 import {
   manageRunsPage,
   manageRunsTable,
-} from '~/__tests__/cypress/cypress/pages/pipelines/manageRuns';
+} from '#~/__tests__/cypress/cypress/pages/pipelines/manageRuns';
 import {
   configIntercept,
   dspaIntercepts,
   projectsIntercept,
-} from '~/__tests__/cypress/cypress/tests/mocked/pipelines/intercepts';
+} from '#~/__tests__/cypress/cypress/tests/mocked/pipelines/intercepts';
 
 const projectName = 'test-project-name';
 const pipelineVersionId = 'test-version-id';
@@ -41,6 +41,10 @@ describe('Manage runs', () => {
   beforeEach(() => {
     initIntercepts();
     manageRunsPage.visit(experimentId, projectName, initialRunIds);
+  });
+
+  it('renders the project navigator link', () => {
+    manageRunsPage.findProjectNavigatorLink().should('exist');
   });
 
   it('renders the page with table data', () => {
@@ -80,7 +84,7 @@ describe('Manage runs', () => {
   it('navigates to experiment list page when the project name breadcrumb is clicked', () => {
     manageRunsPage
       .findBreadcrumb()
-      .findByRole('link', { name: 'Experiments - Test project' })
+      .findByRole('link', { name: 'Experiments in Test project' })
       .click();
     cy.location('pathname').should('equal', `/experiments/${projectName}`);
   });

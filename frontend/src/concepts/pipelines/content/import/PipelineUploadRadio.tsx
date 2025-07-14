@@ -1,7 +1,6 @@
 import * as React from 'react';
 import {
   Alert,
-  AlertActionLink,
   FormGroup,
   FormHelperText,
   HelperText,
@@ -13,8 +12,7 @@ import {
   StackItem,
   TextInput,
 } from '@patternfly/react-core';
-import { ExternalLinkAltIcon } from '@patternfly/react-icons';
-import { COMPILE_PIPELINE_DOCUMENTATION_URL, PipelineUploadOption } from './utils';
+import { PipelineUploadOption } from './utils';
 import PipelineFileUpload from './PipelineFileUpload';
 
 type PipelineFileUploadProps = {
@@ -70,23 +68,6 @@ const PipelineUploadRadio: React.FC<PipelineFileUploadProps> = ({
         variant="info"
         title="For expected file format, refer to Compile Pipeline Documentation."
         isInline
-        actionLinks={
-          <>
-            <AlertActionLink
-              component="a"
-              href={COMPILE_PIPELINE_DOCUMENTATION_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <Split hasGutter>
-                <SplitItem>View documentation</SplitItem>
-                <SplitItem>
-                  <ExternalLinkAltIcon />
-                </SplitItem>
-              </Split>
-            </AlertActionLink>
-          </>
-        }
       />
     </StackItem>
     <StackItem>

@@ -1,8 +1,8 @@
 import * as React from 'react';
-import { NotebookRunningState } from '~/types';
-import useWatchNotebooksForUsers from '~/utilities/useWatchNotebooksForUsers';
-import ApplicationsPage from '~/pages/ApplicationsPage';
-import { useSpecificNotebookUserState } from '~/utilities/notebookControllerUtils';
+import { NotebookRunningState } from '#~/types';
+import useWatchNotebooksForUsers from '#~/utilities/useWatchNotebooksForUsers';
+import ApplicationsPage from '#~/pages/ApplicationsPage';
+import { useSpecificNotebookUserState } from '#~/utilities/notebookControllerUtils';
 import { NotebookContextStorage, SetNotebookState } from './notebookControllerContextTypes';
 import useNamespaces from './useNamespaces';
 
@@ -17,10 +17,10 @@ const SetupCurrentNotebook: React.FC<SetupCurrentNotebookProps> = ({
   currentNotebook,
   setNotebookState,
 }) => {
-  const { notebookNamespace } = useNamespaces();
+  const { workbenchNamespace } = useNamespaces();
   const { user: username } = useSpecificNotebookUserState(currentNotebook ?? null);
   const { notebooks, loaded, loadError, forceRefresh, setPollInterval } = useWatchNotebooksForUsers(
-    notebookNamespace,
+    workbenchNamespace,
     [username],
   );
   const notebookRunningState: NotebookRunningState | undefined = loaded

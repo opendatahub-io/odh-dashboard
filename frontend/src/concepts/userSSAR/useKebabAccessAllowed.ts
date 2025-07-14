@@ -1,6 +1,6 @@
 import { IAction } from '@patternfly/react-table';
-import { AccessReviewResourceAttributes } from '~/k8sTypes';
-import { useAccessAllowed } from '~/concepts/userSSAR/useAccessAllowed';
+import { AccessReviewResourceAttributes } from '#~/k8sTypes';
+import { useAccessAllowed } from '#~/concepts/userSSAR/useAccessAllowed';
 
 const tooltipArgs = (text: string): Partial<IAction> => ({
   isAriaDisabled: true,

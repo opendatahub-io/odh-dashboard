@@ -1,15 +1,15 @@
 import * as React from 'react';
-import { getConfigMap, getSecret } from '~/api';
-import { ConfigMapKind, NotebookKind, SecretKind } from '~/k8sTypes';
-import { EnvVarResourceType } from '~/types';
+import { getConfigMap, getSecret } from '#~/api';
+import { ConfigMapKind, NotebookKind, SecretKind } from '#~/k8sTypes';
+import { EnvVarResourceType } from '#~/types';
 import {
   ConfigMapCategory,
   EnvironmentVariableType,
   EnvVariable,
   SecretCategory,
-} from '~/pages/projects/types';
-import useFetchState, { NotReadyError } from '~/utilities/useFetchState';
-import { isConnection } from '~/concepts/connectionTypes/utils';
+} from '#~/pages/projects/types';
+import useFetchState, { NotReadyError } from '#~/utilities/useFetchState';
+import { isConnection } from '#~/concepts/connectionTypes/utils';
 import { getDeletedConfigMapOrSecretVariables, isSecretKind } from './utils';
 
 export const fetchNotebookEnvVariables = (notebook: NotebookKind): Promise<EnvVariable[]> => {

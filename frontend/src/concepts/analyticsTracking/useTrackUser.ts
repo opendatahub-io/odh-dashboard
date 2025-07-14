@@ -1,8 +1,8 @@
 import React from 'react';
-import { useUser } from '~/redux/selectors';
-import { useAccessReview } from '~/api';
-import { AccessReviewResourceAttributes } from '~/k8sTypes';
-import { IdentifyEventProperties } from '~/concepts/analyticsTracking/trackingProperties';
+import { useUser } from '#~/redux/selectors';
+import { useAccessReview } from '#~/api';
+import { AccessReviewResourceAttributes } from '#~/k8sTypes';
+import { IdentifyEventProperties } from '#~/concepts/analyticsTracking/trackingProperties';
 
 export const useTrackUser = (username?: string): [IdentifyEventProperties, boolean] => {
   const { isAdmin, userID } = useUser();

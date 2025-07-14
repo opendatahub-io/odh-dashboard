@@ -1,17 +1,17 @@
 import * as React from 'react';
 import { ExpandableSection, Flex, FlexItem, Label, Radio } from '@patternfly/react-core';
 import { StarIcon } from '@patternfly/react-icons';
-import { ImageInfo, ImageTagInfo } from '~/types';
+import { ImageInfo, ImageTagInfo } from '#~/types';
 import {
   compareTagVersions,
   getDescriptionForTag,
   getVersion,
   isImageTagBuildValid,
-} from '~/utilities/imageUtils';
-import { useAppContext } from '~/app/AppContext';
+} from '#~/utilities/imageUtils';
+import { useAppContext } from '#~/app/AppContext';
 import ImageTagPopover from './ImageTagPopover';
 
-import '~/pages/notebookController/NotebookController.scss';
+import '#~/pages/notebookController/NotebookController.scss';
 
 type ImageVersionsProps = {
   image: ImageInfo;
@@ -56,7 +56,7 @@ const ImageVersions: React.FC<ImageVersionsProps> = ({ image, tags, selectedTag,
                 {tag.recommended ? (
                   <FlexItem>
                     <Label color="blue" icon={<StarIcon />}>
-                      Recommended
+                      Latest
                     </Label>
                   </FlexItem>
                 ) : null}

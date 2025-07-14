@@ -1,5 +1,5 @@
-import axios from '~/utilities/axios';
-import { OdhDocument } from '~/types';
+import axios from '#~/utilities/axios';
+import { OdhDocument } from '#~/types';
 
 export const fetchDocs = (docType?: string): Promise<OdhDocument[]> => {
   const url = '/api/docs';

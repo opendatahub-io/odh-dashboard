@@ -1,12 +1,12 @@
 import * as React from 'react';
-import { testHook, standardUseFetchState } from '~/__tests__/unit/testUtils/hooks';
-import useModelVersionsByRegisteredModel from '~/concepts/modelRegistry/apiHooks/useModelVersionsByRegisteredModel';
-import { ModelVersionList } from '~/concepts/modelRegistry/types';
-import useFetchState from '~/utilities/useFetchState';
+import { testHook, standardUseFetchState } from '#~/__tests__/unit/testUtils/hooks';
+import useModelVersionsByRegisteredModel from '#~/concepts/modelRegistry/apiHooks/useModelVersionsByRegisteredModel';
+import { ModelVersionList } from '#~/concepts/modelRegistry/types';
+import useFetchState from '#~/utilities/useFetchState';
 
 // Mock useFetchState for the API unavailable test
-jest.mock('~/utilities/useFetchState', () => {
-  const actual = jest.requireActual('~/utilities/useFetchState');
+jest.mock('#~/utilities/useFetchState', () => {
+  const actual = jest.requireActual('#~/utilities/useFetchState');
   return {
     __esModule: true,
     ...actual,
@@ -29,7 +29,7 @@ describe('useModelVersionsByRegisteredModel', () => {
     nextPageToken: '',
   };
   const mockUseFetchState = useFetchState as jest.Mock;
-  const actualUseFetchState = jest.requireActual('~/utilities/useFetchState').default;
+  const actualUseFetchState = jest.requireActual('#~/utilities/useFetchState').default;
 
   beforeEach(() => {
     jest.clearAllMocks();

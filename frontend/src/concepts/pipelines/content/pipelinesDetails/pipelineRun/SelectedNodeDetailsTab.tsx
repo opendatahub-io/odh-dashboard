@@ -4,13 +4,13 @@ import {
   asTimestamp,
   DetailItem,
   renderDetailItems,
-} from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/utils';
-import { relativeDuration } from '~/utilities/time';
-import { RuntimeStateKF } from '~/concepts/pipelines/kfTypes';
-import { PipelineTask } from '~/concepts/pipelines/topology';
-import TaskDetailsSection from '~/concepts/pipelines/content/pipelinesDetails/taskDetails/TaskDetailsSection';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import { getIsArtifactModelRegistered } from '~/pages/pipelines/global/experiments/artifacts/utils';
+} from '#~/concepts/pipelines/content/pipelinesDetails/pipelineRun/utils';
+import { relativeDuration } from '#~/utilities/time';
+import { RuntimeStateKF } from '#~/concepts/pipelines/kfTypes';
+import { PipelineTask } from '#~/concepts/pipelines/topology';
+import TaskDetailsSection from '#~/concepts/pipelines/content/pipelinesDetails/taskDetails/TaskDetailsSection';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { getIsArtifactModelRegistered } from '#~/pages/pipelines/global/experiments/artifacts/utils';
 import { getArtifactModelData } from './artifacts/utils';
 import PipelineRunRegisteredModelDetails from './PipelineRunRegisteredModelDetails';
 

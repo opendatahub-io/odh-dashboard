@@ -4,6 +4,7 @@
   "description": "Backend for the ODH dashboard.",
   "license": "Apache-2.0",
   "private": true,
+  "packageManager": "npm@10.9.2",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/opendatahub-io/odh-dashboard.git"
@@ -25,12 +26,13 @@
     "build": "run-s build:clean tsc:prod",
     "build:clean": "rimraf ./dist",
     "test": "run-s test:lint test:type-check test:jest",
-    "test:unit-coverage": "run-s test:type-check test:jest:coverage",
+    "test:unit-coverage": "npm run test:jest:coverage",
     "test:jest:coverage": "rimraf jest-coverage && jest --silent --coverage --coverageReporters=json --coverageReporters=lcov",
     "test:lint": "eslint --max-warnings 0 --ext .json,.js,.ts ./src",
     "test:fix": "eslint --ext .json,.js,.ts ./src --fix",
-    "test:type-check": "tsc --noEmit",
+    "test:type-check": "turbo run type-check",
     "test:jest": "jest",
+    "type-check": "tsc --noEmit",
     "server": "NODE_ENV=production node ./dist/server.js",
     "tsc": "tsc -p .",
     "tsc:prod": "tsc -p tsconfig.prod.json",
@@ -49,6 +51,7 @@
     "fastify-plugin": "^4.5.1",
     "http-errors": "^1.8.0",
     "js-yaml": "^4.0.0",
+    "llama-stack-client": "^0.2.7",
     "lodash": "^4.17.21",
     "pino": "^8.11.0",
     "prom-client": "^14.0.1",
@@ -69,6 +72,7 @@
     "rimraf": "^3.0.2",
     "ts-protoc-gen": "^0.10.0",
     "tslib": "^2.0.3",
+    "turbo": "^2.4.2",
     "typescript": "^5.3.3"
   },
   "optionalDependencies": {

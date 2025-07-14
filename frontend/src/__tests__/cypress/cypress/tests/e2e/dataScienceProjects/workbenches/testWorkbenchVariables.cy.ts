@@ -1,16 +1,13 @@
-import type { WBVariablesTestData } from '~/__tests__/cypress/cypress/types';
-import { projectDetails, projectListPage } from '~/__tests__/cypress/cypress/pages/projects';
-import { workbenchPage, createSpawnerPage } from '~/__tests__/cypress/cypress/pages/workbench';
-import { HTPASSWD_CLUSTER_ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
-import { loadWBVariablesFixture } from '~/__tests__/cypress/cypress/utils/dataLoader';
-import { createCleanProject } from '~/__tests__/cypress/cypress/utils/projectChecker';
-import { deleteOpenShiftProject } from '~/__tests__/cypress/cypress/utils/oc_commands/project';
-import { validateWorkbenchEnvironmentVariables } from '~/__tests__/cypress/cypress/utils/oc_commands/workbench';
-import {
-  retryableBeforeEach,
-  wasSetupPerformed,
-} from '~/__tests__/cypress/cypress/utils/retryableHooks';
-import { generateTestUUID } from '~/__tests__/cypress/cypress/utils/uuidGenerator';
+import type { WBVariablesTestData } from '#~/__tests__/cypress/cypress/types';
+import { projectDetails, projectListPage } from '#~/__tests__/cypress/cypress/pages/projects';
+import { workbenchPage, createSpawnerPage } from '#~/__tests__/cypress/cypress/pages/workbench';
+import { HTPASSWD_CLUSTER_ADMIN_USER } from '#~/__tests__/cypress/cypress/utils/e2eUsers';
+import { loadWBVariablesFixture } from '#~/__tests__/cypress/cypress/utils/dataLoader';
+import { createCleanProject } from '#~/__tests__/cypress/cypress/utils/projectChecker';
+import { deleteOpenShiftProject } from '#~/__tests__/cypress/cypress/utils/oc_commands/project';
+import { validateWorkbenchEnvironmentVariables } from '#~/__tests__/cypress/cypress/utils/oc_commands/workbench';
+import { retryableBeforeEach } from '#~/__tests__/cypress/cypress/utils/retryableHooks';
+import { generateTestUUID } from '#~/__tests__/cypress/cypress/utils/uuidGenerator';
 
 describe('Workbenches - variable tests', () => {
   let projectName: string;
@@ -37,19 +34,16 @@ describe('Workbenches - variable tests', () => {
       });
   });
   after(() => {
-    //Check if the Before Method was executed to perform the setup
-    if (!wasSetupPerformed()) return;
-
     // Delete provisioned Project
     if (projectName) {
       cy.log(`Deleting Project ${projectName} after the test has finished.`);
-      deleteOpenShiftProject(projectName);
+      deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
     }
   });
   it(
     'Verify user can set environment variables in their workbenches by uploading a yaml Secret and Config Map file.',
     {
-      tags: ['@Sanity', '@SanitySet2', '@ODS-1883', '@ODS-1864', '@Dashboard', '@Workbenches'],
+      tags: ['@Sanity', '@SanitySet3', '@ODS-1883', '@ODS-1864', '@Dashboard', '@Workbenches'],
     },
     () => {
       const workbenchName = projectName;
@@ -127,7 +121,7 @@ describe('Workbenches - variable tests', () => {
   it(
     'Verify that the user can inject environment variables manually into a workbench using Key / Value',
     {
-      tags: ['@Sanity', '@SanitySet2', '@ODS-1883', '@ODS-1864', '@Dashboard', '@Workbenches'],
+      tags: ['@Sanity', '@SanitySet3', '@ODS-1883', '@ODS-1864', '@Dashboard', '@Workbenches'],
     },
     () => {
       const workbenchName = projectName;

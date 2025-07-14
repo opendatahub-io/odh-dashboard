@@ -1,8 +1,8 @@
-import { connectionTypesPage } from '~/__tests__/cypress/cypress/pages/connectionTypes';
-import type { OOTBConnectionTypesData } from '~/__tests__/cypress/cypress/types';
-import { loadOOTBConnectionTypesFixture } from '~/__tests__/cypress/cypress/utils/dataLoader';
-import { HTPASSWD_CLUSTER_ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
-import { retryableBefore } from '~/__tests__/cypress/cypress/utils/retryableHooks';
+import { connectionTypesPage } from '#~/__tests__/cypress/cypress/pages/connectionTypes';
+import type { OOTBConnectionTypesData } from '#~/__tests__/cypress/cypress/types';
+import { loadOOTBConnectionTypesFixture } from '#~/__tests__/cypress/cypress/utils/dataLoader';
+import { HTPASSWD_CLUSTER_ADMIN_USER } from '#~/__tests__/cypress/cypress/utils/e2eUsers';
+import { retryableBefore } from '#~/__tests__/cypress/cypress/utils/retryableHooks';
 
 describe('Verify OOTB Connection Types', () => {
   let testData: OOTBConnectionTypesData;

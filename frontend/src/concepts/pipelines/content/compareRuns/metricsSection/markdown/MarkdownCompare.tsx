@@ -8,10 +8,10 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import { CompareRunsEmptyState } from '~/concepts/pipelines/content/compareRuns/CompareRunsEmptyState';
-import { PipelineRunArtifactSelect } from '~/concepts/pipelines/content/compareRuns/metricsSection/PipelineRunArtifactSelect';
-import { PipelineRunKF } from '~/concepts/pipelines/kfTypes';
-import { CompareRunsNoMetrics } from '~/concepts/pipelines/content/compareRuns/CompareRunsNoMetrics';
+import { CompareRunsEmptyState } from '#~/concepts/pipelines/content/compareRuns/CompareRunsEmptyState';
+import { PipelineRunArtifactSelect } from '#~/concepts/pipelines/content/compareRuns/metricsSection/PipelineRunArtifactSelect';
+import { PipelineRunKF } from '#~/concepts/pipelines/kfTypes';
+import { CompareRunsNoMetrics } from '#~/concepts/pipelines/content/compareRuns/CompareRunsNoMetrics';
 
 type MarkdownCompareProps = {
   configMap: Record<string, MarkdownAndTitle[]>;

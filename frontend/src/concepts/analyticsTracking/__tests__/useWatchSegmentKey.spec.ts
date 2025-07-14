@@ -1,8 +1,8 @@
-import { testHook } from '~/__tests__/unit/testUtils/hooks';
-import { fetchSegmentKey } from '~/concepts/analyticsTracking/segmentKeyService';
-import { useWatchSegmentKey } from '~/concepts/analyticsTracking/useWatchSegmentKey';
+import { testHook } from '#~/__tests__/unit/testUtils/hooks';
+import { fetchSegmentKey } from '#~/concepts/analyticsTracking/segmentKeyService';
+import { useWatchSegmentKey } from '#~/concepts/analyticsTracking/useWatchSegmentKey';
 
-jest.mock('~/concepts/analyticsTracking/segmentKeyService', () => ({
+jest.mock('#~/concepts/analyticsTracking/segmentKeyService', () => ({
   fetchSegmentKey: jest.fn(),
 }));
 

@@ -6,19 +6,19 @@ import {
   ConnectionTypeField,
   ConnectionTypeFieldType,
   SectionField,
-} from '~/concepts/connectionTypes/types';
+} from '#~/concepts/connectionTypes/types';
 import {
   defaultValueToString,
   fieldTypeToString,
   findSectionFields,
-} from '~/concepts/connectionTypes/utils';
-import type { RowProps } from '~/utilities/useDraggableTableControlled';
-import { columns } from '~/pages/connectionTypes/manage/fieldTableColumns';
-import ConnectionTypeDataFieldRemoveModal from '~/pages/connectionTypes/manage/ConnectionTypeDataFieldRemoveModal';
-import ConnectionTypeSectionRemoveModal from '~/pages/connectionTypes/manage/ConnectionTypeSectionRemoveModal';
-import { TableRowTitleDescription } from '~/components/table';
-import { ValidationContext } from '~/utilities/useValidation';
-import { ValidationErrorCodes } from '~/concepts/connectionTypes/validationUtils';
+} from '#~/concepts/connectionTypes/utils';
+import type { RowProps } from '#~/utilities/useDraggableTableControlled';
+import { columns } from '#~/pages/connectionTypes/manage/fieldTableColumns';
+import ConnectionTypeDataFieldRemoveModal from '#~/pages/connectionTypes/manage/ConnectionTypeDataFieldRemoveModal';
+import ConnectionTypeSectionRemoveModal from '#~/pages/connectionTypes/manage/ConnectionTypeSectionRemoveModal';
+import { TableRowTitleDescription } from '#~/components/table';
+import { ValidationContext } from '#~/utilities/useValidation';
+import { ValidationErrorCodes } from '#~/concepts/connectionTypes/validationUtils';
 
 type Props = {
   row: ConnectionTypeField;

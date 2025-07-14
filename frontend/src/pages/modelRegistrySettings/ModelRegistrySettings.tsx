@@ -8,15 +8,13 @@ import {
   EmptyStateVariant,
 } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
-import { AreaContext } from '~/concepts/areas/AreaContext';
-import ApplicationsPage from '~/pages/ApplicationsPage';
-import RedirectErrorState from '~/pages/external/RedirectErrorState';
-import TitleWithIcon from '~/concepts/design/TitleWithIcon';
-import { ProjectObjectType } from '~/concepts/design/utils';
-import useModelRegistriesBackend from '~/concepts/modelRegistrySettings/useModelRegistriesBackend';
-import { useContextResourceData } from '~/utilities/useContextResourceData';
-import { RoleBindingKind } from '~/k8sTypes';
-import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
+import { AreaContext } from '#~/concepts/areas/AreaContext';
+import ApplicationsPage from '#~/pages/ApplicationsPage';
+import RedirectErrorState from '#~/pages/external/RedirectErrorState';
+import TitleWithIcon from '#~/concepts/design/TitleWithIcon';
+import { ProjectObjectType } from '#~/concepts/design/utils';
+import useModelRegistriesBackend from '#~/concepts/modelRegistrySettings/useModelRegistriesBackend';
+import { ModelRegistriesContext } from '#~/concepts/modelRegistry/context/ModelRegistriesContext';
 import ModelRegistriesTable from './ModelRegistriesTable';
 import CreateModal from './CreateModal';
 import useModelRegistryRoleBindings from './useModelRegistryRoleBindings';
@@ -28,8 +26,8 @@ const ModelRegistrySettings: React.FC = () => {
 
   const [modelRegistries, mrloaded, loadError, refreshModelRegistries] =
     useModelRegistriesBackend();
-  const roleBindings = useContextResourceData<RoleBindingKind>(useModelRegistryRoleBindings());
-  const { refreshRulesReview } = React.useContext(ModelRegistrySelectorContext);
+  const roleBindings = useModelRegistryRoleBindings();
+  const { refreshRulesReview } = React.useContext(ModelRegistriesContext);
   const loaded = mrloaded && roleBindings.loaded;
 
   const refreshAll = React.useCallback(

@@ -1,10 +1,10 @@
 import { act } from 'react';
 import { k8sListResource } from '@openshift/dynamic-plugin-sdk-utils';
-import { standardUseFetchState, testHook } from '~/__tests__/unit/testUtils/hooks';
-import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
-import { mockAcceleratorProfile } from '~/__mocks__/mockAcceleratorProfile';
-import useAcceleratorProfiles from '~/pages/notebookController/screens/server/useAcceleratorProfiles';
-import { AcceleratorProfileKind } from '~/k8sTypes';
+import { standardUseFetchState, testHook } from '#~/__tests__/unit/testUtils/hooks';
+import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
+import { mockAcceleratorProfile } from '#~/__mocks__/mockAcceleratorProfile';
+import useAcceleratorProfiles from '#~/pages/notebookController/screens/server/useAcceleratorProfiles';
+import { AcceleratorProfileKind } from '#~/k8sTypes';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sListResource: jest.fn(),

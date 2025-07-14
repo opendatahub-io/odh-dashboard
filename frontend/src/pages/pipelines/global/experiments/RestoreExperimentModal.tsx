@@ -1,11 +1,11 @@
 import * as React from 'react';
 import { ListItem, StackItem, Stack } from '@patternfly/react-core';
-import { RestoreModal } from '~/concepts/pipelines/content/RestoreModal';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { ExperimentKF } from '~/concepts/pipelines/kfTypes';
-import { ExperimentListTabTitle } from '~/pages/pipelines/global/experiments/const';
-import { PipelineRunTabTitle } from '~/pages/pipelines/global/runs';
-import { BulkActionExpandableSection } from '~/pages/projects/components/BulkActionExpandableSection';
+import { RestoreModal } from '#~/concepts/pipelines/content/RestoreModal';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+import { ExperimentKF } from '#~/concepts/pipelines/kfTypes';
+import { ExperimentListTabTitle } from '#~/pages/pipelines/global/experiments/const';
+import { PipelineRunTabTitle } from '#~/pages/pipelines/global/runs/types';
+import { BulkActionExpandableSection } from '#~/pages/projects/components/BulkActionExpandableSection';
 
 interface RestoreExperimentModalProps {
   experiments: ExperimentKF[];

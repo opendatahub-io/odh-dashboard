@@ -2,7 +2,8 @@ import {
   PeriodicOptions,
   RunDateTime,
   periodicOptionAsSeconds,
-} from '~/concepts/pipelines/content/createRun/types';
+} from '#~/concepts/pipelines/content/createRun/types';
+import { SERVER_TIMEOUT } from '#~/utilities/const.ts';
 
 const printAgo = (time: number, unit: string) => `${time} ${unit}${time > 1 ? 's' : ''} ago`;
 const printIn = (time: number, unit: string) => `in ${time} ${unit}${time > 1 ? 's' : ''}`;
@@ -214,4 +215,37 @@ export const convertSecondsToPeriodicTime = (seconds: number): string => {
   }
 
   return '';
+};
+
+// server timeout is 5 minutes; in src/utilities/const.ts
+// so we are using that same timeout here
+const shortTimeRangeMinuteLimit = 3; // 3 minutes
+const mediumTimeRangeMinuteLimit = SERVER_TIMEOUT / 60000; // 5 minutes is the default server timeout
+
+export const getTimeRangeCategory = (
+  timestamp: string | undefined | null,
+): 'shortRange' | 'mediumRange' | 'longRange' => {
+  if (!timestamp) {
+    return 'longRange';
+  }
+  const now = Date.now();
+  const timestampMs = new Date(timestamp).getTime();
+
+  if (Number.isNaN(timestampMs)) {
+    return 'longRange';
+  }
+
+  const diffMinutes = (now - timestampMs) / 60000; // 60 000
+
+  if (diffMinutes < 0) {
+    // Future timestamp – treat as shortest range
+    return 'shortRange';
+  }
+  if (diffMinutes > mediumTimeRangeMinuteLimit) {
+    return 'longRange';
+  }
+  if (diffMinutes > shortTimeRangeMinuteLimit) {
+    return 'mediumRange';
+  }
+  return 'shortRange';
 };

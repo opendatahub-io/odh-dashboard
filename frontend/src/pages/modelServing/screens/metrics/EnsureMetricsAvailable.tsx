@@ -1,13 +1,13 @@
 import React from 'react';
 import { Bullseye, PageSectionVariants, Spinner } from '@patternfly/react-core';
 import { AxiosError } from 'axios';
-import UnauthorizedError from '~/pages/UnauthorizedError';
-import UnknownError from '~/pages/UnknownError';
+import UnauthorizedError from '#~/pages/UnauthorizedError';
+import UnknownError from '#~/pages/UnknownError';
 import {
   ModelMetricType,
   ModelServingMetricsContext,
   ServerMetricType,
-} from '~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
+} from '#~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
 
 const DEFAULT_ACCESS_DOMAIN = 'metrics';
 

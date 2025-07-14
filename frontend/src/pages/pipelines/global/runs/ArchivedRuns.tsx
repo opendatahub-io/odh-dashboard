@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { Bullseye, EmptyState, EmptyStateBody, Spinner } from '@patternfly/react-core';
 import { CubesIcon, ExclamationCircleIcon } from '@patternfly/react-icons';
-import PipelineRunTable from '~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTable';
-import { usePipelineArchivedRunsTable } from '~/concepts/pipelines/content/tables/pipelineRun/usePipelineRunTable';
-import { ExperimentContext } from '~/pages/pipelines/global/experiments/ExperimentContext';
+import PipelineRunTable from '#~/concepts/pipelines/content/tables/pipelineRun/PipelineRunTable';
+import { usePipelineArchivedRunsTable } from '#~/concepts/pipelines/content/tables/pipelineRun/usePipelineRunTable';
+import { ExperimentContext } from '#~/pages/pipelines/global/experiments/ExperimentContext';
 import { PipelineRunTabTitle, PipelineRunType } from './types';
 
 export const ArchivedRuns: React.FC = () => {

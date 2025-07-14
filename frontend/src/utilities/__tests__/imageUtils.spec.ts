@@ -10,7 +10,7 @@ import {
   getImageTagVersion,
   getDescriptionForTag,
   getImageTagByContainer,
-} from '~/utilities/imageUtils';
+} from '#~/utilities/imageUtils';
 import {
   ImageTagInfo,
   ImageInfo,
@@ -20,7 +20,7 @@ import {
   ImageSoftwareType,
   ImageTag,
   PodContainer,
-} from '~/types';
+} from '#~/types';
 
 describe('compareTagVersions', () => {
   it('should sort recommended tags first', () => {
@@ -287,8 +287,8 @@ describe('getDescriptionForTag', () => {
     } as ImageTagInfo;
 
     // Mock the implementation of getNameVersionString
-    jest.mock('~/utilities/imageUtils', () => ({
-      ...jest.requireActual('~/utilities/imageUtils'),
+    jest.mock('#~/utilities/imageUtils', () => ({
+      ...jest.requireActual('#~/utilities/imageUtils'),
       getNameVersionString: jest.fn((software) => `${software.name} ${software.version}`),
     }));
 

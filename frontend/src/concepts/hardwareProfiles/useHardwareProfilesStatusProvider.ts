@@ -1,11 +1,11 @@
 import React from 'react';
 import type { StatusProviderHook } from '@odh-dashboard/plugin-core/extension-points';
-import useMigratedHardwareProfiles from '~/pages/hardwareProfiles/migration/useMigratedHardwareProfiles';
+import useMigratedHardwareProfiles from '#~/pages/hardwareProfiles/migration/useMigratedHardwareProfiles';
 import {
   generateWarningForHardwareProfiles,
   HardwareProfileBannerWarningTitles,
-} from '~/pages/hardwareProfiles/utils';
-import { useDashboardNamespace } from '~/redux/selectors';
+} from '#~/pages/hardwareProfiles/utils';
+import { useDashboardNamespace } from '#~/redux/selectors';
 
 export const useHardwareProfilesStatusProvider: StatusProviderHook = () => {
   const { dashboardNamespace } = useDashboardNamespace();

@@ -1,18 +1,18 @@
-import { testHook, standardUseFetchState } from '~/__tests__/unit/testUtils/hooks';
+import { testHook, standardUseFetchState } from '#~/__tests__/unit/testUtils/hooks';
 import {
   MetadataStoreServicePromiseClient,
   GetEventsByArtifactIDsResponse,
   Event,
-} from '~/third_party/mlmd';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { useGetEventByArtifactId } from '~/concepts/pipelines/apiHooks/mlmd/useGetEventByArtifactId';
+} from '#~/third_party/mlmd';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+import { useGetEventByArtifactId } from '#~/concepts/pipelines/apiHooks/mlmd/useGetEventByArtifactId';
 
-jest.mock('~/concepts/pipelines/context', () => ({
+jest.mock('#~/concepts/pipelines/context', () => ({
   usePipelinesAPI: jest.fn(),
 }));
 
-jest.mock('~/third_party/mlmd', () => {
-  const originalModule = jest.requireActual('~/third_party/mlmd');
+jest.mock('#~/third_party/mlmd', () => {
+  const originalModule = jest.requireActual('#~/third_party/mlmd');
   return {
     ...originalModule,
     MetadataStoreServicePromiseClient: jest.fn().mockImplementation(() => ({

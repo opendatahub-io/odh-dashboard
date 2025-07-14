@@ -1,13 +1,13 @@
 import * as React from 'react';
 import { FormGroup, FormHelperText, HelperText, HelperTextItem } from '@patternfly/react-core';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
-import ValueUnitField from '~/components/ValueUnitField';
-import { MEMORY_UNITS_FOR_SELECTION, UnitOption } from '~/utilities/valueUnits';
-import { PersistentVolumeClaimKind } from '~/k8sTypes';
+import ValueUnitField from '#~/components/ValueUnitField';
+import { MEMORY_UNITS_FOR_SELECTION, UnitOption } from '#~/utilities/valueUnits';
+import { PersistentVolumeClaimKind } from '#~/k8sTypes';
 import {
   ConnectedNotebookContext,
   useRelatedNotebooks,
-} from '~/pages/projects/notebook/useRelatedNotebooks';
+} from '#~/pages/projects/notebook/useRelatedNotebooks';
 
 type PVSizeFieldProps = {
   fieldID: string;

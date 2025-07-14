@@ -4,8 +4,8 @@ import {
   k8sGetResource,
   k8sListResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { PodModel } from '~/api/models';
-import { PodKind } from '~/k8sTypes';
+import { PodModel } from '#~/api/models';
+import { PodKind } from '#~/k8sTypes';
 
 export const getPodsForNotebook = (namespace: string, notebookName: string): Promise<PodKind[]> =>
   k8sListResource<PodKind>({

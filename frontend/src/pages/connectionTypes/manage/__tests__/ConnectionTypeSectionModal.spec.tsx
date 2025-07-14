@@ -2,8 +2,8 @@ import * as React from 'react';
 import '@testing-library/jest-dom';
 import { act } from 'react';
 import { fireEvent, render } from '@testing-library/react';
-import ConnectionTypeSectionModal from '~/pages/connectionTypes/manage/ConnectionTypeSectionModal';
-import { ConnectionTypeFieldType } from '~/concepts/connectionTypes/types';
+import ConnectionTypeSectionModal from '#~/pages/connectionTypes/manage/ConnectionTypeSectionModal';
+import { ConnectionTypeFieldType } from '#~/concepts/connectionTypes/types';
 
 describe('ConnectionTypeSectionModal', () => {
   let onClose: jest.Mock;

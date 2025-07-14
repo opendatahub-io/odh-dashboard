@@ -5,7 +5,7 @@ import {
   proxyFILE,
   proxyGET,
   proxyUPDATE,
-} from '~/api/proxyUtils';
+} from '#~/api/proxyUtils';
 
 global.fetch = jest.fn();
 const mockFetch = jest.mocked(global.fetch);

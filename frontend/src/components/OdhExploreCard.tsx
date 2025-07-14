@@ -1,11 +1,11 @@
 import React from 'react';
 import classNames from 'classnames';
 import { Card, CardBody, CardHeader, Flex, FlexItem, Label } from '@patternfly/react-core';
-import { OdhApplication } from '~/types';
-import { makeCardVisible } from '~/utilities/utils';
-import EnableModal from '~/pages/exploreApplication/EnableModal';
-import { ODH_PRODUCT_NAME } from '~/utilities/const';
-import { useAppContext } from '~/app/AppContext';
+import { OdhApplication } from '#~/types';
+import { makeCardVisible } from '#~/utilities/utils';
+import EnableModal from '#~/pages/exploreApplication/EnableModal';
+import { ODH_PRODUCT_NAME } from '#~/utilities/const';
+import { useAppContext } from '#~/app/AppContext';
 import BrandImage from './BrandImage';
 import SupportedAppTitle from './SupportedAppTitle';
 import OdhExploreCardTypeBadge from './OdhExploreCardTypeBadge';

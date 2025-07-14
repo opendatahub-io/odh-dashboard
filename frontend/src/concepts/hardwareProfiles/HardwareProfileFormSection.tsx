@@ -1,12 +1,12 @@
 import * as React from 'react';
 import { FormGroup, Stack, StackItem, ExpandableSection } from '@patternfly/react-core';
-import { HardwareProfileKind, HardwareProfileFeatureVisibility } from '~/k8sTypes';
-import { useValidation, ValidationContext } from '~/utilities/useValidation';
-import { ContainerResources } from '~/types';
-import { useHardwareProfilesByFeatureVisibility } from '~/pages/hardwareProfiles/migration/useHardwareProfilesByFeatureVisibility';
-import { ZodErrorHelperText } from '~/components/ZodErrorFormHelperText';
-import ProjectScopedPopover from '~/components/ProjectScopedPopover';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+import { HardwareProfileKind, HardwareProfileFeatureVisibility } from '#~/k8sTypes';
+import { useValidation, ValidationContext } from '#~/utilities/useValidation';
+import { ContainerResources } from '#~/types';
+import { useHardwareProfilesByFeatureVisibility } from '#~/pages/hardwareProfiles/migration/useHardwareProfilesByFeatureVisibility';
+import { ZodErrorHelperText } from '#~/components/ZodErrorFormHelperText';
+import ProjectScopedPopover from '#~/components/ProjectScopedPopover';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import { hardwareProfileValidationSchema } from './validationUtils';
 import HardwareProfileSelect from './HardwareProfileSelect';
 import HardwareProfileCustomize from './HardwareProfileCustomize';
@@ -76,6 +76,7 @@ const HardwareProfileFormSection: React.FC<HardwareProfileFormSectionProps<PodSp
             }
           >
             <HardwareProfileSelect
+              isProjectScoped={isProjectScoped}
               hardwareProfileConfig={formData}
               previewDescription
               hardwareProfiles={hardwareProfiles}

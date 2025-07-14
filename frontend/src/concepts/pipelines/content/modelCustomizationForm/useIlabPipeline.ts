@@ -1,9 +1,9 @@
 import React from 'react';
-import { ILAB_PIPELINE_NAME } from '~/pages/pipelines/global/modelCustomization/const';
-import { useLatestPipelineVersion } from '~/concepts/pipelines/apiHooks/useLatestPipelineVersion';
-import { usePipelineByName } from '~/concepts/pipelines/apiHooks/usePipelineByName';
-import { PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
+import { ILAB_PIPELINE_NAME } from '#~/pages/pipelines/global/modelCustomization/const';
+import { useLatestPipelineVersion } from '#~/concepts/pipelines/apiHooks/useLatestPipelineVersion';
+import { usePipelineByName } from '#~/concepts/pipelines/apiHooks/usePipelineByName';
+import { PipelineKF, PipelineVersionKF } from '#~/concepts/pipelines/kfTypes';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 
 export const useIlabPipeline = (): {
   ilabPipeline: PipelineKF | null;

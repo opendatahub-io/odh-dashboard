@@ -1,7 +1,7 @@
-import { mockHardwareProfile } from '~/__mocks__/mockHardwareProfile';
-import { getProfileScore, sortIdentifiers } from '~/concepts/hardwareProfiles/utils';
-import { HardwareProfileKind } from '~/k8sTypes';
-import { Identifier, IdentifierResourceType } from '~/types';
+import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile';
+import { getProfileScore, sortIdentifiers } from '#~/concepts/hardwareProfiles/utils';
+import { HardwareProfileKind } from '#~/k8sTypes';
+import { Identifier, IdentifierResourceType } from '#~/types';
 
 describe('sortIdentifiers', () => {
   it('should sort CPU and memory first, followed by other identifiers', () => {

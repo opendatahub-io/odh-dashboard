@@ -1,7 +1,7 @@
-import type { CreatePipelineVersionKFData, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
-import { buildMockPipelineVersion } from '~/__mocks__/mockPipelineVersionsProxy';
-import { Modal } from '~/__tests__/cypress/cypress/pages/components/Modal';
-import { SearchSelector } from '~/__tests__/cypress/cypress/pages/components/subComponents/SearchSelector';
+import type { CreatePipelineVersionKFData, PipelineVersionKF } from '#~/concepts/pipelines/kfTypes';
+import { buildMockPipelineVersion } from '#~/__mocks__/mockPipelineVersionsProxy';
+import { Modal } from '#~/__tests__/cypress/cypress/pages/components/Modal';
+import { SearchSelector } from '#~/__tests__/cypress/cypress/pages/components/subComponents/SearchSelector';
 
 class PipelineImportModal extends Modal {
   pipelineSelector = new SearchSelector('pipeline-selector');
@@ -11,7 +11,7 @@ class PipelineImportModal extends Modal {
   }
 
   find() {
-    return cy.findByTestId('import-pipeline-modal').parents('div[role="dialog"]');
+    return cy.findByTestId('import-pipeline-modal');
   }
 
   findSubmitButton() {

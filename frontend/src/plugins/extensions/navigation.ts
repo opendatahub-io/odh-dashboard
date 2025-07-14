@@ -1,7 +1,7 @@
 import type { NavExtension } from '@odh-dashboard/plugin-core/extension-points';
 // Allow this import as it consists of types and enums only.
 // eslint-disable-next-line no-restricted-syntax
-import { SupportedArea } from '~/concepts/areas/types';
+import { SupportedArea } from '#~/concepts/areas/types';
 
 const ADMIN_USER = 'ADMIN_USER';
 
@@ -70,6 +70,7 @@ const extensions: NavExtension[] = [
     type: 'app.navigation/href',
     flags: {
       required: [SupportedArea.MODEL_SERVING],
+      disallowed: [SupportedArea.PLUGIN_MODEL_SERVING],
     },
     properties: {
       id: 'modelServing',
@@ -90,6 +91,19 @@ const extensions: NavExtension[] = [
       href: '/modelCustomization',
       section: 'models',
       path: '/modelCustomization/*',
+    },
+  },
+  {
+    type: 'app.navigation/href',
+    flags: {
+      required: [SupportedArea.LM_EVAL],
+    },
+    properties: {
+      id: 'lm-eval',
+      title: 'Model evaluation runs',
+      href: '/modelEvaluations',
+      section: 'models',
+      path: '/modelEvaluations/*',
     },
   },
 

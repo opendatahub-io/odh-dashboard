@@ -9,7 +9,7 @@ import { CogIcon } from '@patternfly/react-icons';
 import {
   EMPTY_BIAS_CONFIGURATION_DESC,
   EMPTY_BIAS_CONFIGURATION_TITLE,
-} from '~/pages/modelServing/screens/metrics/const';
+} from '#~/pages/modelServing/screens/metrics/const';
 
 type BiasConfigurationEmptyStateProps = {
   actionButton: React.ReactNode;

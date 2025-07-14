@@ -1,11 +1,13 @@
 import React from 'react';
-import { SortableData } from '~/components/table';
-import { HardwareProfileKind } from '~/k8sTypes';
+import { SortableData } from '#~/components/table';
+import { HardwareProfileKind } from '#~/k8sTypes';
 import {
+  HardwareProfileFormData,
   ManageHardwareProfileSectionID,
   ManageHardwareProfileSectionTitlesType,
-} from '~/pages/hardwareProfiles/manage/types';
-import { IdentifierResourceType } from '~/types';
+} from '#~/pages/hardwareProfiles/manage/types';
+import { IdentifierResourceType } from '#~/types';
+import { getHardwareProfileDisplayName } from './utils';
 
 export const hardwareProfileColumns: SortableData<HardwareProfileKind>[] = [
   {
@@ -16,7 +18,8 @@ export const hardwareProfileColumns: SortableData<HardwareProfileKind>[] = [
   {
     field: 'name',
     label: 'Name',
-    sortable: (a, b) => a.spec.displayName.localeCompare(b.spec.displayName),
+    sortable: (a, b) =>
+      getHardwareProfileDisplayName(a).localeCompare(getHardwareProfileDisplayName(b)),
     width: 40,
   },
   {
@@ -130,12 +133,19 @@ export const ManageHardwareProfileSectionTitles: ManageHardwareProfileSectionTit
   [ManageHardwareProfileSectionID.DETAILS]: 'Details',
   [ManageHardwareProfileSectionID.VISIBILITY]: 'Visibility',
   [ManageHardwareProfileSectionID.IDENTIFIERS]: 'Resource requests and limits',
+  [ManageHardwareProfileSectionID.SCHEDULING]: 'Resource allocation',
+  [ManageHardwareProfileSectionID.ALLOCATION_STRATEGY]: 'Workload allocation strategy',
+  [ManageHardwareProfileSectionID.LOCAL_QUEUE]: 'Local queue',
+  [ManageHardwareProfileSectionID.WORKLOAD_PRIORITY]: 'Workload priority',
   [ManageHardwareProfileSectionID.NODE_SELECTORS]: 'Node selectors',
   [ManageHardwareProfileSectionID.TOLERATIONS]: 'Tolerations',
 };
 
-export const DEFAULT_HARDWARE_PROFILE_SPEC: HardwareProfileKind['spec'] = {
+export const DEFAULT_HARDWARE_PROFILE_FORM_DATA: HardwareProfileFormData = {
+  name: '',
   displayName: '',
+  description: '',
+  visibility: [],
   enabled: true,
   identifiers: [
     {
@@ -156,3 +166,6 @@ export const DEFAULT_HARDWARE_PROFILE_SPEC: HardwareProfileKind['spec'] = {
     },
   ],
 };
+
+export const CPU_MEMORY_MISSING_WARNING =
+  'It is not recommended to remove the last CPU or Memory resource. Resources that use this hardware profile will schedule, but will be very unstable due to not having any lower or upper resource bounds.';

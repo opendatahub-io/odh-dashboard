@@ -1,13 +1,16 @@
 import * as React from 'react';
-import { getServingRuntimeContext, listServingRuntimes, useAccessReview } from '~/api';
-import { AccessReviewResourceAttributes, ServingRuntimeKind } from '~/k8sTypes';
-import useModelServingEnabled from '~/pages/modelServing/useModelServingEnabled';
-import useFetchState, {
-  FetchState,
+import { K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
+import { getServingRuntimeContext, listServingRuntimes, useAccessReview } from '#~/api';
+import { AccessReviewResourceAttributes, KnownLabels, ServingRuntimeKind } from '#~/k8sTypes';
+import useModelServingEnabled from '#~/pages/modelServing/useModelServingEnabled';
+import useFetch, {
+  FetchOptions,
+  FetchStateObject,
   FetchStateCallbackPromise,
   NotReadyError,
-} from '~/utilities/useFetchState';
-import { LABEL_SELECTOR_DASHBOARD_RESOURCE } from '~/const';
+} from '#~/utilities/useFetch';
+import { ListWithNonDashboardPresence } from '#~/types';
+import { DEFAULT_LIST_WITH_NON_DASHBOARD_PRESENCE } from '#~/utilities/const';
 
 const accessReviewResource: AccessReviewResourceAttributes = {
   group: 'serving.kserve.io',
@@ -18,15 +21,18 @@ const accessReviewResource: AccessReviewResourceAttributes = {
 const useServingRuntimes = (
   namespace?: string,
   notReady?: boolean,
-): FetchState<ServingRuntimeKind[]> => {
+  fetchOptions?: Partial<FetchOptions>,
+): FetchStateObject<ListWithNonDashboardPresence<ServingRuntimeKind>> => {
   const modelServingEnabled = useModelServingEnabled();
 
   const [allowCreate, rbacLoaded] = useAccessReview({
     ...accessReviewResource,
   });
 
-  const callback = React.useCallback<FetchStateCallbackPromise<ServingRuntimeKind[]>>(
-    (opts) => {
+  const callback = React.useCallback<
+    FetchStateCallbackPromise<ListWithNonDashboardPresence<ServingRuntimeKind>>
+  >(
+    async (opts) => {
       if (!modelServingEnabled) {
         return Promise.reject(new NotReadyError('Model serving is not enabled'));
       }
@@ -37,18 +43,29 @@ const useServingRuntimes = (
 
       const getServingRuntimes = allowCreate ? listServingRuntimes : getServingRuntimeContext;
 
-      return getServingRuntimes(namespace, LABEL_SELECTOR_DASHBOARD_RESOURCE, opts).catch((e) => {
-        if (e.statusObject?.code === 404) {
+      try {
+        const servingRuntimeList = await getServingRuntimes(namespace, undefined, opts);
+        const dashboardServingRuntimes = servingRuntimeList.filter(
+          ({ metadata: { labels } }) => labels?.[KnownLabels.DASHBOARD_RESOURCE] === 'true',
+        );
+        return {
+          items: dashboardServingRuntimes,
+          hasNonDashboardItems: servingRuntimeList.length > dashboardServingRuntimes.length,
+        };
+      } catch (e) {
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+        if ((e as { statusObject?: K8sStatus }).statusObject?.code === 404) {
           throw new Error('Model serving is not properly configured.');
         }
         throw e;
-      });
+      }
     },
     [namespace, modelServingEnabled, notReady, rbacLoaded, allowCreate],
   );
 
-  return useFetchState(callback, [], {
+  return useFetch(callback, DEFAULT_LIST_WITH_NON_DASHBOARD_PRESENCE, {
     initialPromisePurity: true,
+    ...fetchOptions,
   });
 };
 

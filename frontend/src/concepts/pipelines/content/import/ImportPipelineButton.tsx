@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { Button } from '@patternfly/react-core';
-import PipelineImportModal from '~/concepts/pipelines/content/import/PipelineImportModal';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { PipelineKF } from '~/concepts/pipelines/kfTypes';
+import PipelineImportModal from '#~/concepts/pipelines/content/import/PipelineImportModal';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+import { PipelineKF } from '#~/concepts/pipelines/kfTypes';
 
 type ImportPipelineButtonProps = {
   onCreate?: (pipeline: PipelineKF) => void;

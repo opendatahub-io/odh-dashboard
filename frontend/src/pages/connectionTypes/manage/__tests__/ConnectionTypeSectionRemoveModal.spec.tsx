@@ -1,8 +1,8 @@
 import * as React from 'react';
 import '@testing-library/jest-dom';
 import { render, screen } from '@testing-library/react';
-import { ConnectionTypeField, SectionField } from '~/concepts/connectionTypes/types';
-import ConnectionTypeSectionRemoveModal from '~/pages/connectionTypes/manage/ConnectionTypeSectionRemoveModal';
+import { ConnectionTypeField, SectionField } from '#~/concepts/connectionTypes/types';
+import ConnectionTypeSectionRemoveModal from '#~/pages/connectionTypes/manage/ConnectionTypeSectionRemoveModal';
 
 describe('ConnectionTypeSectionRemoveModal', () => {
   it('should callback on submit ', () => {

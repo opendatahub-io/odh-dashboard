@@ -1,22 +1,22 @@
 import { act } from 'react';
-import { testHook } from '~/__tests__/unit/testUtils/hooks';
-import { GroupsConfig } from '~/concepts/userConfigs/groupTypes';
-import { useWatchGroups } from '~/concepts/userConfigs/useWatchGroups';
-import { getAuth, patchAuth, useGroups } from '~/api';
-import useNotification from '~/utilities/useNotification';
-import { GroupKind } from '~/k8sTypes';
-import { mockGroup } from '~/__mocks__/mockGroup';
-import { fetchAuthGroups } from '~/concepts/userConfigs/utils';
-import { mockAuth } from '~/__mocks__/mockAuth';
+import { testHook } from '#~/__tests__/unit/testUtils/hooks';
+import { GroupsConfig } from '#~/concepts/userConfigs/groupTypes';
+import { useWatchGroups } from '#~/concepts/userConfigs/useWatchGroups';
+import { getAuth, patchAuth, useGroups } from '#~/api';
+import useNotification from '#~/utilities/useNotification';
+import { GroupKind } from '#~/k8sTypes';
+import { mockGroup } from '#~/__mocks__/mockGroup';
+import { fetchAuthGroups } from '#~/concepts/userConfigs/utils';
+import { mockAuth } from '#~/__mocks__/mockAuth';
 
-jest.mock('~/api', () => ({
-  ...jest.requireActual('~/api'),
+jest.mock('#~/api', () => ({
+  ...jest.requireActual('#~/api'),
   getAuth: jest.fn(),
   patchAuth: jest.fn(),
   useGroups: jest.fn(),
 }));
-jest.mock('~/concepts/userConfigs/utils', () => ({
-  ...jest.requireActual('~/concepts/userConfigs/utils'),
+jest.mock('#~/concepts/userConfigs/utils', () => ({
+  ...jest.requireActual('#~/concepts/userConfigs/utils'),
   fetchAuthGroups: jest.fn(),
 }));
 // Mock the useNotification hook

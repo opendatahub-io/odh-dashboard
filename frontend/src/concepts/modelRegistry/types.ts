@@ -1,5 +1,5 @@
-import { K8sAPIOptions } from '~/k8sTypes';
-import { ModelLocationType } from '~/pages/modelRegistry/screens/RegisterModel/useRegisterModelData';
+import { K8sAPIOptions } from '#~/k8sTypes';
+import { ModelLocationType } from '#~/pages/modelRegistry/screens/RegisterModel/useRegisterModelData';
 
 export enum ModelState {
   LIVE = 'LIVE',

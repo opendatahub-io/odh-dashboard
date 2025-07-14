@@ -1,4 +1,4 @@
-import type { FilterArgs } from '~/__tests__/cypress/cypress/tests/mocked/pipelines/executions.cy';
+import type { FilterArgs } from '#~/__tests__/cypress/cypress/tests/mocked/pipelines/executions.cy';
 
 class ExecutionPage {
   visit(namespace?: string) {

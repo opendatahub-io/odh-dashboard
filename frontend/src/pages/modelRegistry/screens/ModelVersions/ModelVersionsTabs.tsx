@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageSection, Tab, Tabs, TabTitleText } from '@patternfly/react-core';
-import '~/pages/pipelines/global/runs/GlobalPipelineRunsTabs.scss';
-import { ModelVersion, RegisteredModel } from '~/concepts/modelRegistry/types';
+import '#~/pages/pipelines/global/runs/GlobalPipelineRunsTabs.scss';
+import { ModelVersion, RegisteredModel } from '#~/concepts/modelRegistry/types';
 import ModelVersionListView from './ModelVersionListView';
 import ModelDetailsView from './ModelDetailsView';
 import { ModelVersionsTab, ModelVersionsTabTitle } from './const';

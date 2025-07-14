@@ -7,17 +7,18 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import SimpleSelect from '~/components/SimpleSelect';
+import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
 import {
   PeriodicOptions,
   RunTypeScheduledData,
   ScheduledType,
-} from '~/concepts/pipelines/content/createRun/types';
+} from '#~/concepts/pipelines/content/createRun/types';
 import {
   DEFAULT_CRON_STRING,
   DEFAULT_PERIODIC_OPTION,
-} from '~/concepts/pipelines/content/createRun/const';
-import NumberInputWrapper from '~/components/NumberInputWrapper';
+} from '#~/concepts/pipelines/content/createRun/const';
+import NumberInputWrapper from '#~/components/NumberInputWrapper';
+import DashboardHelpTooltip from '#~/concepts/dashboard/DashboardHelpTooltip';
 import { extractNumberAndTimeUnit } from './utils';
 
 type TriggerTypeFieldProps = {
@@ -28,7 +29,10 @@ type TriggerTypeFieldProps = {
 const TriggerTypeField: React.FC<TriggerTypeFieldProps> = ({ data, onChange }) => {
   let content: React.ReactNode | null;
   const [numberPart, unitPart] = extractNumberAndTimeUnit(data.value);
-
+  const options: SimpleSelectOption[] = [
+    { key: ScheduledType.PERIODIC, label: 'Periodic' },
+    { key: ScheduledType.CRON, label: 'Cron' },
+  ];
   switch (data.triggerType) {
     case ScheduledType.CRON:
       content = (
@@ -72,10 +76,12 @@ const TriggerTypeField: React.FC<TriggerTypeFieldProps> = ({ data, onChange }) =
               <SimpleSelect
                 popperProps={{ maxWidth: undefined }}
                 isFullWidth
-                options={Object.values(PeriodicOptions).map((v) => ({
-                  key: v,
-                  label: v,
-                }))}
+                options={Object.values(PeriodicOptions).map(
+                  (v): SimpleSelectOption => ({
+                    key: v,
+                    label: v,
+                  }),
+                )}
                 value={unitPart}
                 onChange={(newUnitPart) => {
                   const updatedValue = `${numberPart}${newUnitPart}`;
@@ -97,14 +103,27 @@ const TriggerTypeField: React.FC<TriggerTypeFieldProps> = ({ data, onChange }) =
   return (
     <Stack hasGutter>
       <StackItem>
-        <FormGroup label="Trigger type">
+        <FormGroup
+          label="Trigger type"
+          labelHelp={
+            <DashboardHelpTooltip
+              content={
+                <>
+                  The <strong>periodic</strong> type triggers the run at a regular interval, such as
+                  every 15 minutes.
+                  <br />
+                  <br />
+                  The <strong>Cron</strong> type triggers the run at a specific time defined by a
+                  Cron expression. One-time and recurring schedules are supported.
+                </>
+              }
+            />
+          }
+        >
           <SimpleSelect
             dataTestId="triggerTypeSelector"
             isFullWidth
-            options={[
-              { key: ScheduledType.PERIODIC, label: 'Periodic' },
-              { key: ScheduledType.CRON, label: 'Cron' },
-            ]}
+            options={options}
             value={data.triggerType}
             onChange={(triggerTypeString) => {
               let triggerType: ScheduledType;

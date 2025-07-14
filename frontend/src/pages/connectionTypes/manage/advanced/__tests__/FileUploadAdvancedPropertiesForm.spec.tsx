@@ -2,8 +2,8 @@ import * as React from 'react';
 import '@testing-library/jest-dom';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { act } from 'react';
-import { ConnectionTypeFieldType, FileField } from '~/concepts/connectionTypes/types';
-import FileUploadAdvancedPropertiesForm from '~/pages/connectionTypes/manage/advanced/FileUploadAdvancedPropertiesForm';
+import { ConnectionTypeFieldType, FileField } from '#~/concepts/connectionTypes/types';
+import FileUploadAdvancedPropertiesForm from '#~/pages/connectionTypes/manage/advanced/FileUploadAdvancedPropertiesForm';
 
 let onChange: jest.Mock;
 let onValidate: jest.Mock;

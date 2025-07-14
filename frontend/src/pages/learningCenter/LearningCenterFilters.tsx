@@ -3,9 +3,9 @@ import classNames from 'classnames';
 import { Button, ButtonVariant } from '@patternfly/react-core';
 import { FilterSidePanel } from '@patternfly/react-catalog-view-extension';
 import { TimesIcon } from '@patternfly/react-icons';
-import { OdhDocument } from '~/types';
-import { useQueryParams } from '~/utilities/useQueryParams';
-import { matchesCategories } from '~/utilities/utils';
+import { useSearchParams } from 'react-router-dom';
+import { OdhDocument } from '#~/types';
+import { matchesCategories } from '#~/utilities/utils';
 import CategoryFilters from './CategoryFilters';
 import EnabledFilters from './EnabledFilters';
 import DocTypeFilters from './DocTypeFilters';
@@ -28,8 +28,8 @@ const LearningCenterFilters: React.FC<LearningCenterFilterProps> = ({
   collapsed,
   onCollapse,
 }) => {
-  const queryParams = useQueryParams();
-  const category = queryParams.get(CATEGORY_FILTER_KEY) || '';
+  const [searchParams] = useSearchParams();
+  const category = searchParams.get(CATEGORY_FILTER_KEY) || '';
   const categoryApps = docApps.filter((odhDoc) => matchesCategories(odhDoc, category, favorites));
   const classes = classNames('odh-learning-paths__filter-panel', {
     'm-is-collapsible': collapsible,

@@ -1,20 +1,20 @@
 import * as React from 'react';
 import { Button, Tooltip } from '@patternfly/react-core';
 import { useParams } from 'react-router-dom';
-import ManageInferenceServiceModal from '~/pages/modelServing/screens/projects/InferenceServiceModal/ManageInferenceServiceModal';
-import { ModelServingContext } from '~/pages/modelServing/ModelServingContext';
+import ManageInferenceServiceModal from '#~/pages/modelServing/screens/projects/InferenceServiceModal/ManageInferenceServiceModal';
+import { ModelServingContext } from '#~/pages/modelServing/ModelServingContext';
 import {
   getSortedTemplates,
   getTemplateEnabled,
   getTemplateEnabledForPlatform,
-} from '~/pages/modelServing/customServingRuntimes/utils';
-import { ServingRuntimePlatform } from '~/types';
-import { getProjectModelServingPlatform } from '~/pages/modelServing/screens/projects/utils';
-import ManageKServeModal from '~/pages/modelServing/screens/projects/kServeModal/ManageKServeModal';
-import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
-import { isProjectNIMSupported } from '~/pages/modelServing/screens/projects/nimUtils';
-import ManageNIMServingModal from '~/pages/modelServing/screens/projects/NIMServiceModal/ManageNIMServingModal';
-import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformStatuses';
+} from '#~/pages/modelServing/customServingRuntimes/utils';
+import { ServingRuntimePlatform } from '#~/types';
+import { getProjectModelServingPlatform } from '#~/pages/modelServing/screens/projects/utils';
+import ManageKServeModal from '#~/pages/modelServing/screens/projects/kServeModal/ManageKServeModal';
+import { byName, ProjectsContext } from '#~/concepts/projects/ProjectsContext';
+import { isProjectNIMSupported } from '#~/pages/modelServing/screens/projects/nimUtils';
+import ManageNIMServingModal from '#~/pages/modelServing/screens/projects/NIMServiceModal/ManageNIMServingModal';
+import useServingPlatformStatuses from '#~/pages/modelServing/useServingPlatformStatuses';
 
 const ServeModelButton: React.FC = () => {
   const [platformSelected, setPlatformSelected] = React.useState<

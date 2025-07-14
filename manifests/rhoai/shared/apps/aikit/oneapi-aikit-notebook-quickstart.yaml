@@ -44,7 +44,7 @@ spec:
           Has the ImageStream created?
           Inspect under Builds > ImageStreams (the submenu item) > oneapi-aikit
         failedTaskHelp: This task is not verified yet. Try the task again.
-    - title: Launch Jupyter Notebook Server
+    - title: Launch Jupyter workbench
       description: |-
         ### Important considerations
         Use the **Intel oneAPI AI Analytics Toolkit** notebook with the **Large** container size.
@@ -52,12 +52,12 @@ spec:
         This triggers pulling the Intel® oneAPI AI Analytics Toolkit container. Once the pulling is complete, you are presented with a Jupyter notebook environment.
       review:
         instructions: |-
-          #### Launched Jupyter notebook server
+          #### Launched Jupyter workbench
           Do you have a notebook browser tab?
         failedTaskHelp: This task is not verified yet. Try the task again.
       summary:
-        success: You have a notebook server
-        failed: Review the "Creating a Jupyter notebook" quick start for additional help.
+        success: You have a workbench
+        failed: Review the "Creating a basic workbench" quick start for additional help.
     - title: Review the Intel® oneAPI AI Analytics Toolkit Welcome Message
       description: |-
         ### Review the Intel® oneAPI AI Analytics Toolkit Welcome Message

@@ -2,13 +2,13 @@ import React from 'react';
 import {
   KserveMetricGraphDefinition,
   NimMetricGraphDefinition,
-} from '~/concepts/metrics/kserve/types';
-import { defaultResponsePredicate } from '~/api/prometheus/usePrometheusQueryRange';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import { TimeframeTitle } from '~/concepts/metrics/types';
-import useQueryRangeResourceData from '~/api/prometheus/useQueryRangeResourceData';
-import { PendingContextResourceData, PrometheusQueryRangeResultValue } from '~/types';
-import { DEFAULT_PENDING_CONTEXT_RESOURCE } from '~/api/prometheus/const';
+} from '#~/concepts/metrics/kserve/types';
+import { defaultResponsePredicate } from '#~/api/prometheus/usePrometheusQueryRange';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { TimeframeTitle } from '#~/concepts/metrics/types';
+import useQueryRangeResourceData from '#~/api/prometheus/useQueryRangeResourceData';
+import { PendingContextResourceData, PrometheusQueryRangeResultValue } from '#~/types';
+import { DEFAULT_PENDING_CONTEXT_RESOURCE } from '#~/api/prometheus/const';
 
 type RequestCountData = {
   data: {

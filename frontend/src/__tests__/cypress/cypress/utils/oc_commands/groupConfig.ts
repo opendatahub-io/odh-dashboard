@@ -1,4 +1,4 @@
-import type { CommandLineResult } from '~/__tests__/cypress/cypress/types';
+import type { CommandLineResult } from '#~/__tests__/cypress/cypress/types';
 
 const NAMESPACE = 'redhat-ods-applications';
 const CONFIG_MAP_NAME = 'odh-enabled-applications-config';

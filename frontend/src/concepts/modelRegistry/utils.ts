@@ -1,13 +1,13 @@
-import { LabeledConnection } from '~/pages/modelServing/screens/types';
+import { LabeledConnection } from '#~/pages/modelServing/screens/types';
 import {
   ConnectionTypeConfigMapObj,
   ConnectionTypeValueType,
-} from '~/concepts/connectionTypes/types';
+} from '#~/concepts/connectionTypes/types';
 import {
   getModelServingConnectionTypeName,
   ModelServingCompatibleTypes,
-} from '~/concepts/connectionTypes/utils';
-import { CatalogModelDetailsParams } from '~/pages/modelCatalog/types';
+} from '#~/concepts/connectionTypes/utils';
+import { CatalogModelDetailsParams } from '#~/pages/modelCatalog/types';
 import {
   ModelVersion,
   ModelState,

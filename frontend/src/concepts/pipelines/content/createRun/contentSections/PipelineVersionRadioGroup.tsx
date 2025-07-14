@@ -11,12 +11,12 @@ import {
   StackItem,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
-import { PipelineVersionToUse } from '~/concepts/pipelines/content/createRun/types';
-import ImportPipelineVersionButton from '~/concepts/pipelines/content/import/ImportPipelineVersionButton';
-import PipelineVersionImportModal from '~/concepts/pipelines/content/import/PipelineVersionImportModal';
-import PipelineVersionSelector from '~/concepts/pipelines/content/pipelineSelector/PipelineVersionSelector';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
+import { PipelineVersionToUse } from '#~/concepts/pipelines/content/createRun/types';
+import ImportPipelineVersionButton from '#~/concepts/pipelines/content/import/ImportPipelineVersionButton';
+import PipelineVersionImportModal from '#~/concepts/pipelines/content/import/PipelineVersionImportModal';
+import PipelineVersionSelector from '#~/concepts/pipelines/content/pipelineSelector/PipelineVersionSelector';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+import { PipelineKF, PipelineVersionKF } from '#~/concepts/pipelines/kfTypes';
 
 type PipelineVersionRadioGroupProps = {
   pipeline: PipelineKF | null;
@@ -113,6 +113,7 @@ const PipelineVersionRadioGroup: React.FC<PipelineVersionRadioGroupProps> = ({
                   </Popover>
                   {isUploadPipelineVersionModalOpen && (
                     <PipelineVersionImportModal
+                      redirectAfterImport={false}
                       existingPipeline={pipeline}
                       onClose={(value) => {
                         setIsUploadPipelineVersionModalOpen(false);
@@ -162,6 +163,7 @@ const PipelineVersionRadioGroup: React.FC<PipelineVersionRadioGroupProps> = ({
                     </StackItem>
                     <StackItem>
                       <ImportPipelineVersionButton
+                        data-testid="import-pipeline-version-radio-button"
                         selectedPipeline={pipeline}
                         variant="link"
                         icon={<PlusCircleIcon />}
@@ -171,6 +173,7 @@ const PipelineVersionRadioGroup: React.FC<PipelineVersionRadioGroupProps> = ({
                             versionToUse: PipelineVersionToUse.PROVIDED,
                           });
                         }}
+                        redirectAfterImport={false}
                       />
                     </StackItem>
                   </Stack>
@@ -194,13 +197,13 @@ const PipelineVersionRadioGroup: React.FC<PipelineVersionRadioGroupProps> = ({
           </StackItem>
           <StackItem>
             <ImportPipelineVersionButton
-              data-testid="import-pipeline-version-button"
               selectedPipeline={pipeline}
               variant="link"
               icon={<PlusCircleIcon />}
               onCreate={(value) => {
                 onVersionChange({ value, versionToUse: PipelineVersionToUse.PROVIDED });
               }}
+              redirectAfterImport={false}
             />
           </StackItem>
         </Stack>

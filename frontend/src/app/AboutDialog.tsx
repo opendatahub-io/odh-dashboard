@@ -1,15 +1,15 @@
 import React, { useMemo } from 'react';
 import { AboutModal, Alert, Bullseye, Spinner, Content } from '@patternfly/react-core';
 import { Table, Thead, Tr, Th, Tbody, Td } from '@patternfly/react-table';
-import { ODH_LOGO, ODH_LOGO_DARK, ODH_PRODUCT_NAME } from '~/utilities/const';
-import { DataScienceStackComponentMap } from '~/concepts/areas/const';
-import { DataScienceClusterComponentStatus } from '~/k8sTypes';
-import { useUser, useClusterInfo } from '~/redux/selectors';
-import { useAppContext } from '~/app/AppContext';
-import useFetchDscStatus from '~/concepts/areas/useFetchDscStatus';
-import useFetchDsciStatus from '~/concepts/areas/useFetchDsciStatus';
-import { useWatchOperatorSubscriptionStatus } from '~/utilities/useWatchOperatorSubscriptionStatus';
-import ExternalLink from '~/components/ExternalLink';
+import { ODH_LOGO, ODH_LOGO_DARK, ODH_PRODUCT_NAME } from '#~/utilities/const';
+import { DataScienceStackComponentMap } from '#~/concepts/areas/const';
+import { DataScienceClusterComponentStatus } from '#~/k8sTypes';
+import { useUser, useClusterInfo } from '#~/redux/selectors';
+import { useAppContext } from '#~/app/AppContext';
+import useFetchDscStatus from '#~/concepts/areas/useFetchDscStatus';
+import useFetchDsciStatus from '#~/concepts/areas/useFetchDsciStatus';
+import { useWatchOperatorSubscriptionStatus } from '#~/utilities/useWatchOperatorSubscriptionStatus';
+import ExternalLink from '#~/components/ExternalLink';
 import { useThemeContext } from './ThemeContext';
 
 const RhoaiAboutText = `Red Hat® OpenShift® AI (formerly Red Hat OpenShift Data Science) is a flexible, scalable MLOps platform for data scientists and developers of artificial intelligence and machine learning (AI/ML) applications. Built using open source technologies, OpenShift AI supports the full lifecycle of AI/ML experiments and models, on premise and in the public cloud.`;

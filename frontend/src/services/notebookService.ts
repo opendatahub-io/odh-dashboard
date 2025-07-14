@@ -1,6 +1,6 @@
-import axios from '~/utilities/axios';
-import { RecursivePartial } from '~/typeHelpers';
-import { Notebook, NotebookState, NotebookData, NotebookRunningState } from '~/types';
+import axios from '#~/utilities/axios';
+import { RecursivePartial } from '#~/typeHelpers';
+import { Notebook, NotebookState, NotebookData, NotebookRunningState } from '#~/types';
 
 export const getNotebook = (namespace: string, name: string): Promise<Notebook> => {
   const url = `/api/notebooks/${namespace}/${name}`;

@@ -6,21 +6,21 @@ import {
   k8sPatchResource,
   K8sStatus,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { DataSciencePipelineApplicationModel } from '~/api/models';
+import { DataSciencePipelineApplicationModel } from '#~/api/models';
 import {
   DSPipelineKind,
   DSPipelineManagedPipelinesKind,
   K8sAPIOptions,
   RouteKind,
   SecretKind,
-} from '~/k8sTypes';
-import { getRoute } from '~/api/k8s/routes';
-import { getSecret } from '~/api/k8s/secrets';
-import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
-import { DEFAULT_PIPELINE_DEFINITION_NAME } from '~/concepts/pipelines/const';
-import { ELYRA_SECRET_NAME } from '~/concepts/pipelines/elyra/const';
-import { DEV_MODE } from '~/utilities/const';
-import { kindApiVersion } from '~/concepts/k8s/utils';
+} from '#~/k8sTypes';
+import { getRoute } from '#~/api/k8s/routes';
+import { getSecret } from '#~/api/k8s/secrets';
+import { applyK8sAPIOptions } from '#~/api/apiMergeUtils';
+import { DEFAULT_PIPELINE_DEFINITION_NAME } from '#~/concepts/pipelines/const';
+import { ELYRA_SECRET_NAME } from '#~/concepts/pipelines/elyra/const';
+import { DEV_MODE } from '#~/utilities/const';
+import { kindApiVersion } from '#~/concepts/k8s/utils';
 
 export const getElyraSecret = async (namespace: string, opts: K8sAPIOptions): Promise<SecretKind> =>
   getSecret(namespace, ELYRA_SECRET_NAME, opts);

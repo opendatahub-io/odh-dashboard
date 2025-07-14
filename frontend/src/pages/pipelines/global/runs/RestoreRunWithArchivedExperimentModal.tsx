@@ -7,13 +7,16 @@ import {
   Label,
   Stack,
   StackItem,
+  Modal,
+  ModalBody,
+  ModalHeader,
+  ModalFooter,
 } from '@patternfly/react-core';
-import { Modal } from '@patternfly/react-core/deprecated';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import useRestoreStatuses from '~/concepts/pipelines/content/useRestoreStatuses';
-import { ExperimentKF, PipelineRunKF } from '~/concepts/pipelines/kfTypes';
-import { allSettledPromises } from '~/utilities/allSettledPromises';
-import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+import useRestoreStatuses from '#~/concepts/pipelines/content/useRestoreStatuses';
+import { ExperimentKF, PipelineRunKF } from '#~/concepts/pipelines/kfTypes';
+import { allSettledPromises } from '#~/utilities/allSettledPromises';
+import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
 import RunsWithArchivedExperimentTable from './RunsWithArchivedExperimentTable';
 import { PipelineRunTabTitle } from './types';
 
@@ -102,8 +105,6 @@ const RestoreRunWithArchivedExperimentModal: React.FC<
 
   return (
     <Modal
-      title={`Restore ${isSingleRestoring ? 'run' : `${selectedRuns.length} runs`}`}
-      titleIconVariant="warning"
       isOpen
       data-testid="restore-run-modal"
       onClose={() =>
@@ -113,7 +114,75 @@ const RestoreRunWithArchivedExperimentModal: React.FC<
           runStatuses.map((status) => status.status),
         )
       }
-      footer={
+      variant="small"
+    >
+      <ModalHeader
+        title={`Restore ${isSingleRestoring ? 'run' : `${selectedRuns.length} runs`}`}
+        titleIconVariant="warning"
+      />
+      <ModalBody>
+        {isSingleRestoring ? (
+          <Stack hasGutter>
+            <StackItem>
+              <Alert
+                data-testid="single-restoring-alert-message"
+                isInline
+                variant="info"
+                component="p"
+                title={
+                  <span style={{ fontWeight: 'normal' }} className="pf-v6-c-alert__description">
+                    The selected run belongs to the archived{' '}
+                    <strong>{archivedExperiments[0].display_name}</strong> experiment. Restoring it
+                    will also restore the experiment, but not other archived runs.
+                  </span>
+                }
+              />
+            </StackItem>
+            <StackItem>
+              The <strong>{selectedRuns[0].display_name}</strong> run and its associated{' '}
+              <strong>{archivedExperiments[0].display_name}</strong> experiment will be restored.
+            </StackItem>
+          </Stack>
+        ) : (
+          <Stack hasGutter>
+            <StackItem>
+              <Alert
+                isInline
+                variant="info"
+                title="At least one selected run belongs to an archived experiment. Restoring it will also restore the experiment, but not other archived runs."
+              />
+            </StackItem>
+            <StackItem>
+              {selectedRuns.length} runs will be restored and returned to the{' '}
+              <b>{PipelineRunTabTitle.ACTIVE} tab</b>. {archivedExperiments.length} associated
+              experiments will be restored.
+            </StackItem>
+            <StackItem>
+              <ExpandableSection
+                isExpanded={isExpanded}
+                onToggle={(_, expanded) => setIsExpanded(expanded)}
+                toggleContent={
+                  <Flex alignItems={{ default: 'alignItemsCenter' }}>
+                    <FlexItem>Selected runs</FlexItem>
+                    <Label color="blue" isCompact>
+                      {selectedRuns.length}
+                    </Label>
+                  </Flex>
+                }
+              >
+                <RunsWithArchivedExperimentTable
+                  runs={selectedRuns}
+                  archivedExperiments={archivedExperiments}
+                  runStatus={runStatuses}
+                  experimentStatus={experimentStatuses}
+                  isSubmitting={isSubmitting}
+                />
+              </ExpandableSection>
+            </StackItem>
+          </Stack>
+        )}
+      </ModalBody>
+      <ModalFooter>
         <DashboardModalFooter
           onSubmit={onSubmit}
           isSubmitLoading={isSubmitting}
@@ -134,69 +203,7 @@ const RestoreRunWithArchivedExperimentModal: React.FC<
           alertTitle="Restoration failed"
           error={error}
         />
-      }
-      variant="small"
-    >
-      {isSingleRestoring ? (
-        <Stack hasGutter>
-          <StackItem>
-            <Alert
-              data-testid="single-restoring-alert-message"
-              isInline
-              variant="info"
-              component="p"
-              title={
-                <span style={{ fontWeight: 'normal' }} className="pf-v6-c-alert__description">
-                  The selected run belongs to the archived{' '}
-                  <strong>{archivedExperiments[0].display_name}</strong> experiment. Restoring it
-                  will also restore the experiment, but not other archived runs.
-                </span>
-              }
-            />
-          </StackItem>
-          <StackItem>
-            The <strong>{selectedRuns[0].display_name}</strong> run and its associated{' '}
-            <strong>{archivedExperiments[0].display_name}</strong> experiment will be restored.
-          </StackItem>
-        </Stack>
-      ) : (
-        <Stack hasGutter>
-          <StackItem>
-            <Alert
-              isInline
-              variant="info"
-              title="At least one selected run belongs to an archived experiment. Restoring it will also restore the experiment, but not other archived runs."
-            />
-          </StackItem>
-          <StackItem>
-            {selectedRuns.length} runs will be restored and returned to the{' '}
-            <b>{PipelineRunTabTitle.ACTIVE} tab</b>. {archivedExperiments.length} associated
-            experiments will be restored.
-          </StackItem>
-          <StackItem>
-            <ExpandableSection
-              isExpanded={isExpanded}
-              onToggle={(_, expanded) => setIsExpanded(expanded)}
-              toggleContent={
-                <Flex alignItems={{ default: 'alignItemsCenter' }}>
-                  <FlexItem>Selected runs</FlexItem>
-                  <Label color="blue" isCompact>
-                    {selectedRuns.length}
-                  </Label>
-                </Flex>
-              }
-            >
-              <RunsWithArchivedExperimentTable
-                runs={selectedRuns}
-                archivedExperiments={archivedExperiments}
-                runStatus={runStatuses}
-                experimentStatus={experimentStatuses}
-                isSubmitting={isSubmitting}
-              />
-            </ExpandableSection>
-          </StackItem>
-        </Stack>
-      )}
+      </ModalFooter>
     </Modal>
   );
 };

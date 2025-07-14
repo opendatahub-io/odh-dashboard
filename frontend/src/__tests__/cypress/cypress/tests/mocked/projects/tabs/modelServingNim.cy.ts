@@ -1,21 +1,21 @@
-import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
-import { mockNimInferenceService, mockNimServingRuntime } from '~/__mocks__/mockNimResource';
+import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
+import { mockNimInferenceService, mockNimServingRuntime } from '#~/__mocks__/mockNimResource';
 import {
   InferenceServiceModel,
   ServingRuntimeModel,
-} from '~/__tests__/cypress/cypress/utils/models';
+} from '#~/__tests__/cypress/cypress/utils/models';
 import {
   projectDetails,
   projectDetailsOverviewTab,
-} from '~/__tests__/cypress/cypress/pages/projects';
-import { nimDeployModal } from '~/__tests__/cypress/cypress/pages/components/NIMDeployModal';
+} from '#~/__tests__/cypress/cypress/pages/projects';
+import { nimDeployModal } from '#~/__tests__/cypress/cypress/pages/components/NIMDeployModal';
 import {
   initInterceptorsValidatingNimEnablement,
   initInterceptsForDeleteModel,
   initInterceptsToDeployModel,
   initInterceptsToEnableNim,
-} from '~/__tests__/cypress/cypress/utils/nimUtils';
-import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
+} from '#~/__tests__/cypress/cypress/utils/nimUtils';
+import { deleteModal } from '#~/__tests__/cypress/cypress/pages/components/DeleteModal';
 
 describe('NIM Model Serving', () => {
   describe('Deploying a model from an existing Project', () => {
@@ -73,15 +73,16 @@ describe('NIM Model Serving', () => {
       nimDeployModal.findNimStorageSizeInput().should('have.value', '30');
 
       // Validate model replicas
-      nimDeployModal.findNimModelReplicas().should('have.value', '1');
-
-      cy.get('button[aria-label="Plus"]').eq(1).should('exist').should('be.visible').click();
-
-      nimDeployModal.findNimModelReplicas().should('have.value', '2');
-
-      cy.get('button[aria-label="Minus"]').eq(1).should('exist').should('be.visible').click();
-
-      nimDeployModal.findNimModelReplicas().should('have.value', '1');
+      nimDeployModal.findMinReplicasInput().should('have.value', '1');
+      nimDeployModal.findMinReplicasPlusButton().should('be.disabled');
+      nimDeployModal.findMaxReplicasInput().should('have.value', '1');
+      nimDeployModal.findMaxReplicasMinusButton().should('be.disabled');
+      nimDeployModal.findMaxReplicasPlusButton().click();
+      nimDeployModal.findMaxReplicasInput().should('have.value', '2');
+      nimDeployModal.findMinReplicasPlusButton().click();
+      nimDeployModal.findMinReplicasInput().should('have.value', '2');
+      nimDeployModal.findMinReplicasMinusButton().click();
+      nimDeployModal.findMaxReplicasMinusButton().click();
 
       nimDeployModal.findSubmitButton().click();
 
@@ -120,7 +121,7 @@ describe('NIM Model Serving', () => {
       projectDetails
         .getKserveTableRow('Test Name')
         .findServiceRuntime()
-        .should('have.text', 'NVIDIA NIM');
+        .should('contain.text', 'NVIDIA NIM');
       projectDetails.getKserveTableRow('Test Name').findAPIProtocol().should('have.text', 'REST');
 
       // Open toggle to validate Model details
@@ -162,7 +163,7 @@ describe('NIM Model Serving', () => {
       // Card is visible
       projectDetailsOverviewTab
         .findDeployedModelServingRuntime('Test Name')
-        .should('have.text', 'NVIDIA NIM');
+        .should('contain.text', 'NVIDIA NIM');
     });
 
     it('should be blocked if failed to fetch NIM model list', () => {

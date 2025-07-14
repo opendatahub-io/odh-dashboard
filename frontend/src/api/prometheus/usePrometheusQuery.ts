@@ -1,7 +1,7 @@
 import * as React from 'react';
-import axios from '~/utilities/axios';
-import { PrometheusQueryResponse } from '~/types';
-import useFetchState, { FetchOptions, FetchState, NotReadyError } from '~/utilities/useFetchState';
+import axios from '#~/utilities/axios';
+import { PrometheusQueryResponse } from '#~/types';
+import useFetchState, { FetchOptions, FetchState, NotReadyError } from '#~/utilities/useFetchState';
 
 const usePrometheusQuery = <TResponse = PrometheusQueryResponse>(
   apiPath: string,

@@ -1,9 +1,9 @@
 /* eslint-disable camelcase */
-import { type PipelineKF, type PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
-import { buildMockPipelines } from '~/__mocks__/mockPipelinesProxy';
-import { buildMockPipelineVersions } from '~/__mocks__/mockPipelineVersionsProxy';
-import { TableRow } from '~/__tests__/cypress/cypress/pages/components/table';
-import { be } from '~/__tests__/cypress/cypress/utils/should';
+import { type PipelineKF, type PipelineVersionKF } from '#~/concepts/pipelines/kfTypes';
+import { buildMockPipelines } from '#~/__mocks__/mockPipelinesProxy';
+import { buildMockPipelineVersions } from '#~/__mocks__/mockPipelineVersionsProxy';
+import { TableRow } from '#~/__tests__/cypress/cypress/pages/components/table';
+import { be } from '#~/__tests__/cypress/cypress/utils/should';
 
 class PipelinesTableRow extends TableRow {
   findPipelineVersionsTable() {

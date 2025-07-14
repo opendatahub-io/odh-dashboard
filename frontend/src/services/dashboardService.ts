@@ -1,7 +1,7 @@
 // TODO: Delete once we refactor Admin panel to support Passthrough API
-import axios from '~/utilities/axios';
-import { DashboardConfigKind } from '~/k8sTypes';
-import { DASHBOARD_CONFIG } from '~/utilities/const';
+import axios from '#~/utilities/axios';
+import { DashboardConfigKind } from '#~/k8sTypes';
+import { DASHBOARD_CONFIG } from '#~/utilities/const';
 
 export const getDashboardConfigBackend = (namespace: string): Promise<DashboardConfigKind> =>
   axios

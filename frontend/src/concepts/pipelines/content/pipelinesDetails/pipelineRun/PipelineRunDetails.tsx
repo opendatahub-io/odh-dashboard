@@ -1,6 +1,5 @@
 import * as React from 'react';
 import {
-  Breadcrumb,
   BreadcrumbItem,
   EmptyState,
   EmptyStateVariant,
@@ -11,29 +10,30 @@ import {
 } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import { ExclamationCircleIcon } from '@patternfly/react-icons/dist/esm/icons/exclamation-circle-icon';
-import ApplicationsPage from '~/pages/ApplicationsPage';
-import MarkdownView from '~/components/MarkdownView';
-import { PathProps } from '~/concepts/pipelines/content/types';
-import PipelineRunDetailsActions from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDetailsActions';
-import PipelineRunDrawerRightContent from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDrawerRightContent';
-import { ArchiveRunModal } from '~/pages/pipelines/global/runs/ArchiveRunModal';
-import DeletePipelineRunsModal from '~/concepts/pipelines/content/DeletePipelineRunsModal';
-import PipelineDetailsTitle from '~/concepts/pipelines/content/pipelinesDetails/PipelineDetailsTitle';
-import usePipelineVersionById from '~/concepts/pipelines/apiHooks/usePipelineVersionById';
-import { usePipelineTaskTopology } from '~/concepts/pipelines/topology';
-import { PipelineRunType } from '~/pages/pipelines/global/runs/types';
-import PipelineRecurringRunReferenceName from '~/concepts/pipelines/content/PipelineRecurringRunReferenceName';
-import useExecutionsForPipelineRun from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/useExecutionsForPipelineRun';
-import { useGetEventsByExecutionIds } from '~/concepts/pipelines/apiHooks/mlmd/useGetEventsByExecutionId';
-import { PipelineTopology } from '~/concepts/topology';
-import { FetchState } from '~/utilities/useFetchState';
-import { PipelineRunKF } from '~/concepts/pipelines/kfTypes';
-import PipelineNotSupported from '~/concepts/pipelines/content/pipelinesDetails/pipeline/PipelineNotSupported';
-import { isArgoWorkflow } from '~/concepts/pipelines/content/tables/utils';
-import { isPipelineRunRegistered } from '~/concepts/pipelines/content/tables/pipelineRun/utils';
-import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+import ApplicationsPage from '#~/pages/ApplicationsPage';
+import MarkdownView from '#~/components/MarkdownView';
+import { PathProps } from '#~/concepts/pipelines/content/types';
+import PipelineRunDetailsActions from '#~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDetailsActions';
+import PipelineRunDrawerRightContent from '#~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDrawerRightContent';
+import { ArchiveRunModal } from '#~/pages/pipelines/global/runs/ArchiveRunModal';
+import DeletePipelineRunsModal from '#~/concepts/pipelines/content/DeletePipelineRunsModal';
+import PipelineDetailsTitle from '#~/concepts/pipelines/content/pipelinesDetails/PipelineDetailsTitle';
+import usePipelineVersionById from '#~/concepts/pipelines/apiHooks/usePipelineVersionById';
+import { usePipelineTaskTopology } from '#~/concepts/pipelines/topology';
+import { PipelineRunType } from '#~/pages/pipelines/global/runs/types';
+import PipelineRecurringRunReferenceName from '#~/concepts/pipelines/content/PipelineRecurringRunReferenceName';
+import useExecutionsForPipelineRun from '#~/concepts/pipelines/content/pipelinesDetails/pipelineRun/useExecutionsForPipelineRun';
+import { useGetEventsByExecutionIds } from '#~/concepts/pipelines/apiHooks/mlmd/useGetEventsByExecutionId';
+import { PipelineTopology } from '#~/concepts/topology';
+import { FetchState } from '#~/utilities/useFetchState';
+import { PipelineRunKF } from '#~/concepts/pipelines/kfTypes';
+import PipelineNotSupported from '#~/concepts/pipelines/content/pipelinesDetails/pipeline/PipelineNotSupported';
+import { isArgoWorkflow } from '#~/concepts/pipelines/content/tables/utils';
+import { isPipelineRunRegistered } from '#~/concepts/pipelines/content/tables/pipelineRun/utils';
+import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import PipelineContextBreadcrumb from '#~/concepts/pipelines/content/PipelineContextBreadcrumb';
 import { usePipelineRunArtifacts } from './artifacts';
 import { PipelineRunDetailsTabs } from './PipelineRunDetailsTabs';
 
@@ -138,23 +138,19 @@ const PipelineRunDetails: React.FC<
         }
         loaded={loaded}
         breadcrumb={
-          <Breadcrumb>
+          <PipelineContextBreadcrumb>
             {breadcrumbPath}
             <BreadcrumbItem isActive style={{ maxWidth: 300 }}>
-              {/* TODO: Remove the custom className after upgrading to PFv6 */}
-              <Truncate
-                content={run?.display_name ?? 'Loading...'}
-                className="truncate-no-min-width"
-              />
+              <Truncate content={run?.display_name ?? 'Loading...'} />
             </BreadcrumbItem>
-          </Breadcrumb>
+          </PipelineContextBreadcrumb>
         }
         headerAction={
           <PipelineRunDetailsActions
             run={run}
             onDelete={() => setDeleting(true)}
             onArchive={() => setArchiving(true)}
-            isPipelineSupported={!isArgoWorkflow(version?.pipeline_spec)}
+            isPipelineSupported={!isInvalidPipelineVersion}
           />
         }
         empty={false}
@@ -165,7 +161,7 @@ const PipelineRunDetails: React.FC<
           <PipelineRunDetailsTabs
             run={run}
             versionError={versionError}
-            pipelineSpec={version?.pipeline_spec}
+            pipelineSpec={pipelineSpec}
             graphContent={
               <PipelineTopology
                 nodes={nodes}

@@ -13,12 +13,13 @@ import {
 import spacing from '@patternfly/react-styles/css/utilities/Spacing/spacing';
 import { useParams, useNavigate } from 'react-router';
 import { Link } from 'react-router-dom';
-import ApplicationsPage from '~/pages/ApplicationsPage';
-import { modelRegistryRoute, registeredModelRoute } from '~/routes';
-import useRegisteredModels from '~/concepts/modelRegistry/apiHooks/useRegisteredModels';
-import { filterLiveModels } from '~/concepts/modelRegistry/utils';
-import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegistryContext';
-import { useAppSelector } from '~/redux/hooks';
+import ApplicationsPage from '#~/pages/ApplicationsPage';
+import { modelRegistryRoute } from '#~/routes/modelRegistry/registryBase';
+import { registeredModelRoute } from '#~/routes/modelRegistry/registeredModels';
+import useRegisteredModels from '#~/concepts/modelRegistry/apiHooks/useRegisteredModels';
+import { filterLiveModels } from '#~/concepts/modelRegistry/utils';
+import { useAppSelector } from '#~/redux/hooks';
+import { ModelRegistryPageContext } from '#~/concepts/modelRegistry/context/ModelRegistryPageContext';
 import { useRegisterVersionData } from './useRegisterModelData';
 import { isRegisterVersionSubmitDisabled, registerVersion } from './utils';
 import RegistrationCommonFormSections from './RegistrationCommonFormSections';
@@ -31,7 +32,7 @@ import { SubmitLabel } from './const';
 const RegisterVersion: React.FC = () => {
   const { modelRegistry: mrName, registeredModelId: prefilledRegisteredModelId } = useParams();
   const navigate = useNavigate();
-  const { apiState } = React.useContext(ModelRegistryContext);
+  const { apiState } = React.useContext(ModelRegistryPageContext);
   const author = useAppSelector((state) => state.user || '');
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [formData, setData] = useRegisterVersionData(prefilledRegisteredModelId);

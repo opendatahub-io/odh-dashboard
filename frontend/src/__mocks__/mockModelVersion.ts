@@ -2,7 +2,7 @@ import {
   ModelVersion,
   ModelState,
   ModelRegistryCustomProperties,
-} from '~/concepts/modelRegistry/types';
+} from '#~/concepts/modelRegistry/types';
 
 type MockModelVersionType = {
   author?: string;

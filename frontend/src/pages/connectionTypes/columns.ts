@@ -1,6 +1,6 @@
-import { SortableData } from '~/components/table';
-import { ConnectionTypeConfigMapObj } from '~/concepts/connectionTypes/types';
-import { getCreatorFromK8sResource, getResourceNameFromK8sResource } from '~/concepts/k8s/utils';
+import { SortableData } from '#~/components/table';
+import { ConnectionTypeConfigMapObj } from '#~/concepts/connectionTypes/types';
+import { getCreatorFromK8sResource, getResourceNameFromK8sResource } from '#~/concepts/k8s/utils';
 
 const sorter = (
   a: ConnectionTypeConfigMapObj,

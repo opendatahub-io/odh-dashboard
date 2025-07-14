@@ -1,5 +1,5 @@
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
-import { HardwareProfileKind, K8sAPIOptions } from '~/k8sTypes';
+import { HardwareProfileKind, K8sAPIOptions } from '#~/k8sTypes';
 
 export type ContainerSizeLimits = {
   minCpu: string | number;

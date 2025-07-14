@@ -9,15 +9,16 @@ import {
   ContentVariants,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
-import { HardwareProfileFeatureVisibility, HardwareProfileKind } from '~/k8sTypes';
-import { ContainerResources } from '~/types';
-import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
-import { HardwareProfileConfig } from '~/concepts/hardwareProfiles/useHardwareProfileConfig';
-import HardwareProfileCustomize from '~/concepts/hardwareProfiles/HardwareProfileCustomize';
-import HardwareProfileSelect from '~/concepts/hardwareProfiles/HardwareProfileSelect';
-import { filterHardwareProfilesForTraining } from '~/pages/pipelines/global/modelCustomization/utils';
-import { useHardwareProfilesByFeatureVisibility } from '~/pages/hardwareProfiles/migration/useHardwareProfilesByFeatureVisibility';
-import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
+import { HardwareProfileFeatureVisibility, HardwareProfileKind } from '#~/k8sTypes';
+import { ContainerResources } from '#~/types';
+import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
+import { HardwareProfileConfig } from '#~/concepts/hardwareProfiles/useHardwareProfileConfig';
+import HardwareProfileCustomize from '#~/concepts/hardwareProfiles/HardwareProfileCustomize';
+import HardwareProfileSelect from '#~/concepts/hardwareProfiles/HardwareProfileSelect';
+import { filterHardwareProfilesForTraining } from '#~/pages/pipelines/global/modelCustomization/utils';
+import { useHardwareProfilesByFeatureVisibility } from '#~/pages/hardwareProfiles/migration/useHardwareProfilesByFeatureVisibility';
+import DashboardPopupIconButton from '#~/concepts/dashboard/DashboardPopupIconButton';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 
 type TrainingHardwareProfileFormSectionProps = {
   data: HardwareProfileConfig;
@@ -38,6 +39,7 @@ const TrainingHardwareProfileFormSection: React.FC<TrainingHardwareProfileFormSe
     [HardwareProfileFeatureVisibility.PIPELINES],
     projectName,
   );
+  const isProjectScoped = useIsAreaAvailable(SupportedArea.DS_PROJECT_SCOPED).status;
 
   const onProfileSelect = (profile?: HardwareProfileKind) => {
     if (profile) {
@@ -76,13 +78,25 @@ const TrainingHardwareProfileFormSection: React.FC<TrainingHardwareProfileFormSe
               bodyContent={
                 <>
                   <Content component={ContentVariants.p}>
+                    This list includes only hardware profiles with defined GPUs.
+                  </Content>
+                  {isProjectScoped &&
+                    projectScopedHardwareProfiles['1'] &&
+                    projectScopedHardwareProfiles['0'].length > 0 && (
+                      <Content component={ContentVariants.ul}>
+                        <Content component={ContentVariants.li}>
+                          <b>Project-scoped hardware profiles</b> are accessible only within this
+                          project.
+                        </Content>
+                        <Content component={ContentVariants.li}>
+                          <b>Global-scoped hardware profiles</b> are accessible within all projects.
+                        </Content>
+                      </Content>
+                    )}
+                  <Content component={ContentVariants.p}>
                     Hardware profiles enable administrators to create profiles for additional types
                     of identifiers, limit workload resource allocations, and target workloads to
                     specific nodes by including tolerations and nodeSelectors in profiles.
-                  </Content>
-                  <br />
-                  <Content component={ContentVariants.p}>
-                    This list includes only hardware profiles that have GPU defined.
                   </Content>
                 </>
               }
@@ -96,6 +110,7 @@ const TrainingHardwareProfileFormSection: React.FC<TrainingHardwareProfileFormSe
         >
           <HardwareProfileSelect
             allowExistingSettings={false}
+            isProjectScoped={isProjectScoped}
             isHardwareProfileSupported={() => false}
             hardwareProfiles={filteredHardwareProfiles}
             hardwareProfilesLoaded={loaded}

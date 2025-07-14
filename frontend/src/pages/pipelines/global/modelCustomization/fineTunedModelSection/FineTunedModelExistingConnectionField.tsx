@@ -1,19 +1,19 @@
 import React from 'react';
 import { Flex, FlexItem, FormGroup, Popover, Truncate } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
-import TypeaheadSelect, { TypeaheadSelectOption } from '~/components/TypeaheadSelect';
-import { Connection, ConnectionTypeConfigMapObj } from '~/concepts/connectionTypes/types';
+import TypeaheadSelect, { TypeaheadSelectOption } from '#~/components/TypeaheadSelect';
+import { Connection, ConnectionTypeConfigMapObj } from '#~/concepts/connectionTypes/types';
 import {
   getDescriptionFromK8sResource,
   getDisplayNameFromK8sResource,
   getResourceNameFromK8sResource,
-} from '~/concepts/k8s/utils';
+} from '#~/concepts/k8s/utils';
 import {
   getConnectionTypeDisplayName,
   getConnectionTypeRef,
-} from '~/concepts/connectionTypes/utils';
-import { ConnectionDetailsHelperText } from '~/concepts/connectionTypes/ConnectionDetailsHelperText';
-import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
+} from '#~/concepts/connectionTypes/utils';
+import { ConnectionDetailsHelperText } from '#~/concepts/connectionTypes/ConnectionDetailsHelperText';
+import DashboardPopupIconButton from '#~/concepts/dashboard/DashboardPopupIconButton';
 
 type FineTunedModelExistingConnectionFieldProps = {
   connectionTypes: ConnectionTypeConfigMapObj[];

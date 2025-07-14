@@ -1,11 +1,11 @@
 import React from 'react';
-import { Alert, FormGroup, Stack, StackItem } from '@patternfly/react-core';
+import { Alert, FormGroup, MenuItem, Stack, StackItem, Truncate } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
-import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
-import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
-import { KnownLabels, ProjectKind } from '~/k8sTypes';
-import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
-import SimpleSelect from '~/components/SimpleSelect';
+import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
+import { ProjectsContext } from '#~/concepts/projects/ProjectsContext';
+import { KnownLabels, ProjectKind } from '#~/k8sTypes';
+import { ProjectSectionID } from '#~/pages/projects/screens/detail/types';
+import SearchSelector from '#~/components/searchSelector/SearchSelector';
 
 type ProjectSelectorProps = {
   selectedProject: ProjectKind | null;
@@ -28,7 +28,16 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
       !project.metadata.labels?.[KnownLabels.MODEL_SERVING_PROJECT] ||
       project.metadata.labels[KnownLabels.MODEL_SERVING_PROJECT] === 'false',
   );
+  const [searchText, setSearchText] = React.useState('');
+  const bySearchText = React.useCallback(
+    (project: ProjectKind) =>
+      !searchText ||
+      getDisplayNameFromK8sResource(project).toLowerCase().includes(searchText.toLowerCase()),
+    [searchText],
+  );
 
+  const filteredProjects = isOciModel ? kserveProjects : projects;
+  const visibleProjects = filteredProjects.filter(bySearchText);
   const projectLinkUrlParams = new URLSearchParams();
   projectLinkUrlParams.set('section', ProjectSectionID.MODEL_SERVER);
   if (projectLinkExtraUrlParams) {
@@ -43,31 +52,35 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
     <FormGroup label="Project" fieldId="deploy-model-project-selector" isRequired>
       <Stack hasGutter>
         <StackItem>
-          <SimpleSelect
+          <SearchSelector
             isFullWidth
-            isScrollable
-            onChange={(selection) => {
-              const foundProject = projects.find(byName(selection));
-              if (foundProject) {
-                setSelectedProject(foundProject);
-              } else {
-                setSelectedProject(null);
-              }
-            }}
-            value={selectedProject?.metadata.name}
-            options={(isOciModel ? kserveProjects : projects).map((project) => ({
-              key: project.metadata.name,
-              value: project.metadata.name,
-              label: getDisplayNameFromK8sResource(project),
-            }))}
+            onSearchChange={(value) => setSearchText(value)}
+            onSearchClear={() => setSearchText('')}
+            searchValue={searchText}
             dataTestId="deploy-model-project-selector"
-            toggleLabel={
+            toggleContent={
               selectedProject
                 ? getDisplayNameFromK8sResource(selectedProject)
                 : 'Select target project'
             }
-            toggleProps={{ id: 'deploy-model-project-selector' }}
-          />
+            searchPlaceholder="Project name"
+          >
+            {visibleProjects.length === 0 && <MenuItem isDisabled>No matching results</MenuItem>}
+            {visibleProjects.map((project) => (
+              <MenuItem
+                key={project.metadata.name}
+                isSelected={project.metadata.name === selectedProject?.metadata.name}
+                onClick={() => {
+                  setSearchText('');
+                  setSelectedProject(project);
+                }}
+              >
+                <Truncate content={getDisplayNameFromK8sResource(project)}>
+                  {getDisplayNameFromK8sResource(project)}
+                </Truncate>
+              </MenuItem>
+            ))}
+          </SearchSelector>
         </StackItem>
         {error && selectedProject && (
           <StackItem>

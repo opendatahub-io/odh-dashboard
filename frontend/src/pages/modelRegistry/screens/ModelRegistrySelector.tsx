@@ -17,14 +17,17 @@ import {
 import text from '@patternfly/react-styles/css/utilities/Text/text';
 import truncateStyles from '@patternfly/react-styles/css/components/Truncate/truncate';
 import { InfoCircleIcon } from '@patternfly/react-icons';
-import { useBrowserStorage } from '~/components/browserStorage';
-import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
-import { getDescriptionFromK8sResource, getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
-import { ServiceKind } from '~/k8sTypes';
-import SimpleSelect, { SimpleSelectOption } from '~/components/SimpleSelect';
-import WhosMyAdministrator from '~/components/WhosMyAdministrator';
-import InlineTruncatedClipboardCopy from '~/components/InlineTruncatedClipboardCopy';
-import ModelRegistrySelectIcon from '~/images/icons/ModelRegistrySelectIcon';
+import { useBrowserStorage } from '#~/components/browserStorage/BrowserStorageContext';
+import {
+  getDescriptionFromK8sResource,
+  getDisplayNameFromK8sResource,
+} from '#~/concepts/k8s/utils';
+import { ServiceKind } from '#~/k8sTypes';
+import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
+import WhosMyAdministrator from '#~/components/WhosMyAdministrator';
+import InlineTruncatedClipboardCopy from '#~/components/InlineTruncatedClipboardCopy';
+import ModelRegistrySelectIcon from '#~/images/icons/ModelRegistrySelectIcon';
+import { ModelRegistriesContext } from '#~/concepts/modelRegistry/context/ModelRegistriesContext';
 import { getServerAddress } from './utils';
 
 const MODEL_REGISTRY_FAVORITE_STORAGE_KEY = 'odh.dashboard.model.registry.favorite';
@@ -44,9 +47,8 @@ const ModelRegistrySelector: React.FC<ModelRegistrySelectorProps> = ({
   isFullWidth,
   hasError,
 }) => {
-  const { modelRegistryServices, updatePreferredModelRegistry } = React.useContext(
-    ModelRegistrySelectorContext,
-  );
+  const { modelRegistryServices, updatePreferredModelRegistry } =
+    React.useContext(ModelRegistriesContext);
   const selection = modelRegistryServices.find((mr) => mr.metadata.name === modelRegistry);
   const [favorites, setFavorites] = useBrowserStorage<string[]>(
     MODEL_REGISTRY_FAVORITE_STORAGE_KEY,

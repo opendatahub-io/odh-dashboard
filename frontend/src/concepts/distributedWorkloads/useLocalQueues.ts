@@ -1,8 +1,8 @@
 import * as React from 'react';
-import { LocalQueueKind } from '~/k8sTypes';
-import useDistributedWorkloadsEnabled from '~/concepts/distributedWorkloads/useDistributedWorkloadsEnabled';
-import useFetchState, { FetchState, NotReadyError } from '~/utilities/useFetchState';
-import { listLocalQueues } from '~/api';
+import { LocalQueueKind } from '#~/k8sTypes';
+import useDistributedWorkloadsEnabled from '#~/concepts/distributedWorkloads/useDistributedWorkloadsEnabled';
+import useFetchState, { FetchState, NotReadyError } from '#~/utilities/useFetchState';
+import { listLocalQueues } from '#~/api';
 
 const useLocalQueues = (namespace?: string, refreshRate = 0): FetchState<LocalQueueKind[]> => {
   const dwEnabled = useDistributedWorkloadsEnabled();

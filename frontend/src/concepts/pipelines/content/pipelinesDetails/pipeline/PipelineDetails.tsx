@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
-  Breadcrumb,
   BreadcrumbItem,
   Flex,
   FlexItem,
@@ -13,20 +12,21 @@ import {
   TabTitleText,
   Truncate,
 } from '@patternfly/react-core';
-import ApplicationsPage from '~/pages/ApplicationsPage';
-import { usePipelineTaskTopology } from '~/concepts/pipelines/topology';
-import { PipelineTopology, PipelineTopologyEmpty } from '~/concepts/topology';
-import MarkdownView from '~/components/MarkdownView';
-import PipelineDetailsYAML from '~/concepts/pipelines/content/pipelinesDetails/PipelineDetailsYAML';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { PipelineCoreDetailsPageComponent } from '~/concepts/pipelines/content/types';
-import usePipelineVersionById from '~/concepts/pipelines/apiHooks/usePipelineVersionById';
-import usePipelineById from '~/concepts/pipelines/apiHooks/usePipelineById';
-import PipelineVersionSelector from '~/concepts/pipelines/content/pipelineSelector/PipelineVersionSelector';
-import DeletePipelinesModal from '~/concepts/pipelines/content/DeletePipelinesModal';
-import { pipelineVersionDetailsRoute, pipelinesBaseRoute } from '~/routes';
-import { getCorePipelineSpec } from '~/concepts/pipelines/getCorePipelineSpec';
-import { isArgoWorkflow } from '~/concepts/pipelines/content/tables/utils';
+import ApplicationsPage from '#~/pages/ApplicationsPage';
+import { usePipelineTaskTopology } from '#~/concepts/pipelines/topology';
+import { PipelineTopology, PipelineTopologyEmpty } from '#~/concepts/topology';
+import MarkdownView from '#~/components/MarkdownView';
+import PipelineDetailsYAML from '#~/concepts/pipelines/content/pipelinesDetails/PipelineDetailsYAML';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+import { PipelineCoreDetailsPageComponent } from '#~/concepts/pipelines/content/types';
+import usePipelineVersionById from '#~/concepts/pipelines/apiHooks/usePipelineVersionById';
+import usePipelineById from '#~/concepts/pipelines/apiHooks/usePipelineById';
+import PipelineVersionSelector from '#~/concepts/pipelines/content/pipelineSelector/PipelineVersionSelector';
+import DeletePipelinesModal from '#~/concepts/pipelines/content/DeletePipelinesModal';
+import { pipelineVersionDetailsRoute, pipelinesBaseRoute } from '#~/routes/pipelines/global';
+import { getCorePipelineSpec } from '#~/concepts/pipelines/getCorePipelineSpec';
+import { isArgoWorkflow } from '#~/concepts/pipelines/content/tables/utils';
+import PipelineContextBreadcrumb from '#~/concepts/pipelines/content/PipelineContextBreadcrumb';
 import PipelineDetailsActions from './PipelineDetailsActions';
 import SelectedTaskDrawerContent from './SelectedTaskDrawerContent';
 import PipelineNotFound from './PipelineNotFound';
@@ -72,10 +72,10 @@ const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) =
     return (
       <ApplicationsPage
         breadcrumb={
-          <Breadcrumb>
+          <PipelineContextBreadcrumb>
             {breadcrumbPath}
             <BreadcrumbItem isActive>{title}</BreadcrumbItem>
-          </Breadcrumb>
+          </PipelineContextBreadcrumb>
         }
         title={title}
         empty={false}
@@ -97,31 +97,17 @@ const PipelineDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath }) =
     <>
       <ApplicationsPage
         breadcrumb={
-          <Breadcrumb>
+          <PipelineContextBreadcrumb>
             {breadcrumbPath}
             <BreadcrumbItem style={{ maxWidth: 300 }}>
-              {/* TODO: Remove the custom className after upgrading to PFv6 */}
-              <Truncate
-                content={pipeline?.display_name || 'Loading...'}
-                className="truncate-no-min-width"
-              />
+              <Truncate content={pipeline?.display_name || 'Loading...'} />
             </BreadcrumbItem>
             <BreadcrumbItem isActive style={{ maxWidth: 300 }}>
-              {/* TODO: Remove the custom className after upgrading to PFv6 */}
-              <Truncate
-                content={pipelineVersion?.display_name || 'Loading...'}
-                className="truncate-no-min-width"
-              />
+              <Truncate content={pipelineVersion?.display_name || 'Loading...'} />
             </BreadcrumbItem>
-          </Breadcrumb>
+          </PipelineContextBreadcrumb>
         }
-        title={
-          <Truncate
-            content={pipelineVersion?.display_name || 'Loading...'}
-            // TODO: Remove the custom className after upgrading to PFv6
-            className="truncate-no-min-width"
-          />
-        }
+        title={<Truncate content={pipelineVersion?.display_name || 'Loading...'} />}
         {...(pipelineVersion && {
           description: (
             <MarkdownView component="span" conciseDisplay markdown={pipelineVersion.description} />

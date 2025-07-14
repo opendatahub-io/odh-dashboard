@@ -1,13 +1,13 @@
 import * as React from 'react';
-import { useAppSelector } from '~/redux/hooks';
+import { useAppSelector } from '#~/redux/hooks';
 import {
   IntegrationAppStatus,
   OdhApplication,
   OdhIntegrationApplication,
   VariablesValidationStatus,
-} from '~/types';
-import { getIntegrationAppEnablementStatus } from '~/services/integrationAppService';
-import { allSettledPromises } from '~/utilities/allSettledPromises';
+} from '#~/types';
+import { getIntegrationAppEnablementStatus } from '#~/services/integrationAppService';
+import { allSettledPromises } from '#~/utilities/allSettledPromises';
 import { POLL_INTERVAL } from './const';
 import { isIntegrationApp } from './utils';
 

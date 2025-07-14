@@ -1,8 +1,8 @@
 import { act } from 'react';
-import { testHook } from '~/__tests__/unit/testUtils/hooks';
-import useClusterStorageFormState from '~/pages/projects/screens/detail/storage/useClusterStorageFormState';
-import { mockNotebookK8sResource } from '~/__mocks__';
-import { mockPVCK8sResource } from '~/__mocks__/mockPVCK8sResource';
+import { testHook } from '#~/__tests__/unit/testUtils/hooks';
+import useClusterStorageFormState from '#~/pages/projects/screens/detail/storage/useClusterStorageFormState';
+import { mockNotebookK8sResource } from '#~/__mocks__';
+import { mockPVCK8sResource } from '#~/__mocks__/mockPVCK8sResource';
 
 describe('useClusterStorageFormState', () => {
   it('should set notebookData correctly when connectedNotebooks and existingPvc are provided', () => {

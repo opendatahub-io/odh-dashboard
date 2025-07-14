@@ -1,5 +1,5 @@
-import { mockDashboardConfig } from '~/__mocks__';
-import { HomeModelCatalog } from '~/__tests__/cypress/cypress/pages/home/homeModelCatalog';
+import { mockDashboardConfig } from '#~/__mocks__';
+import { HomeModelCatalog } from '#~/__tests__/cypress/cypress/pages/home/homeModelCatalog';
 import { HomeAdminSection } from './homeAdmin';
 import { HomeAIFlow } from './homeAIFlow';
 import { HomeProject } from './homeProject';

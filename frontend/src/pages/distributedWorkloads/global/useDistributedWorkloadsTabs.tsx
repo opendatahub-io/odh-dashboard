@@ -1,5 +1,5 @@
 import * as React from 'react';
-import useDistributedWorkloadsEnabled from '~/concepts/distributedWorkloads/useDistributedWorkloadsEnabled';
+import useDistributedWorkloadsEnabled from '#~/concepts/distributedWorkloads/useDistributedWorkloadsEnabled';
 import GlobalDistributedWorkloadsProjectMetricsTab from './projectMetrics/GlobalDistributedWorkloadsProjectMetricsTab';
 import GlobalDistributedWorkloadsWorkloadStatusTab from './workloadStatus/GlobalDistributedWorkloadsWorkloadStatusTab';
 

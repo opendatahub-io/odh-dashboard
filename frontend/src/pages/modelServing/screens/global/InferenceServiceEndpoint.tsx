@@ -13,11 +13,11 @@ import {
   Popover,
   Skeleton,
 } from '@patternfly/react-core';
-import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
+import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
 import {
   isServingRuntimeRouteEnabled,
   isInferenceServiceRouteEnabled,
-} from '~/pages/modelServing/screens/projects/utils';
+} from '#~/pages/modelServing/screens/projects/utils';
 import useRouteForInferenceService from './useRouteForInferenceService';
 import InternalServicePopoverContent from './InternalServicePopoverContent';
 

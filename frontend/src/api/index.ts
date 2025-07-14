@@ -6,7 +6,6 @@ export * from './k8s/auth';
 export * from './k8s/builds';
 export * from './k8s/configMaps';
 export * from './k8s/events';
-export * from './k8s/imageStreams';
 export * from './k8s/inferenceServices';
 export * from './k8s/notebooks';
 export * from './k8s/pods';
@@ -24,10 +23,12 @@ export * from './k8s/templates';
 export * from './k8s/dashboardConfig';
 export * from './k8s/acceleratorProfiles';
 export * from './k8s/hardwareProfiles';
+export * from './k8s/lmEval';
 export * from './k8s/clusterQueues';
 export * from './k8s/localQueues';
 export * from './k8s/workloads';
 export * from './k8s/dsc';
+export * from './k8s/lmEval';
 
 // Model registry
 export * from './modelRegistry/custom';

@@ -1,6 +1,6 @@
-import { Connection } from '~/concepts/connectionTypes/types';
-import { NotebookKind } from '~/k8sTypes';
-import { EnvironmentFromVariable } from '~/pages/projects/types';
+import { Connection } from '#~/concepts/connectionTypes/types';
+import { NotebookKind } from '#~/k8sTypes';
+import { EnvironmentFromVariable } from '#~/pages/projects/types';
 
 export const getConnectionsFromNotebook = (
   notebook: NotebookKind,

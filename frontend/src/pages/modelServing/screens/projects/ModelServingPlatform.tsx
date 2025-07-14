@@ -15,32 +15,35 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
-import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import { ProjectSectionTitles } from '~/pages/projects/screens/detail/const';
+import { ProjectSectionID } from '#~/pages/projects/screens/detail/types';
+import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
+import { ProjectSectionTitles } from '#~/pages/projects/screens/detail/const';
 import {
   getSortedTemplates,
   getTemplateEnabled,
   getTemplateEnabledForPlatform,
-} from '~/pages/modelServing/customServingRuntimes/utils';
-import { ServingRuntimePlatform } from '~/types';
-import { getProjectModelServingPlatform } from '~/pages/modelServing/screens/projects/utils';
-import KServeInferenceServiceTable from '~/pages/modelServing/screens/projects/KServeSection/KServeInferenceServiceTable';
-import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
-import DetailsSection from '~/pages/projects/screens/detail/DetailsSection';
-import EmptyDetailsView from '~/components/EmptyDetailsView';
-import EmptySingleModelServingCard from '~/pages/modelServing/screens/projects/EmptySingleModelServingCard';
-import EmptyMultiModelServingCard from '~/pages/modelServing/screens/projects/EmptyMultiModelServingCard';
-import { ProjectObjectType, typedEmptyImage } from '~/concepts/design/utils';
-import EmptyModelServingPlatform from '~/pages/modelServing/screens/projects/EmptyModelServingPlatform';
-import EmptyNIMModelServingCard from '~/pages/modelServing/screens/projects/EmptyNIMModelServingCard';
-import { isProjectNIMSupported } from '~/pages/modelServing/screens/projects/nimUtils';
-import ManageNIMServingModal from '~/pages/modelServing/screens/projects/NIMServiceModal/ManageNIMServingModal';
-import { NamespaceApplicationCase } from '~/pages/projects/types';
-import ModelServingPlatformSelectButton from '~/pages/modelServing/screens/projects/ModelServingPlatformSelectButton';
-import ModelServingPlatformSelectErrorAlert from '~/pages/modelServing/screens/ModelServingPlatformSelectErrorAlert';
-import { modelVersionRoute } from '~/routes';
-import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformStatuses';
+} from '#~/pages/modelServing/customServingRuntimes/utils';
+import { ServingRuntimePlatform } from '#~/types';
+import {
+  getProjectModelServingPlatform,
+  isCurrentServingPlatformEnabled,
+} from '#~/pages/modelServing/screens/projects/utils';
+import KServeInferenceServiceTable from '#~/pages/modelServing/screens/projects/KServeSection/KServeInferenceServiceTable';
+import DashboardPopupIconButton from '#~/concepts/dashboard/DashboardPopupIconButton';
+import DetailsSection from '#~/pages/projects/screens/detail/DetailsSection';
+import EmptyDetailsView from '#~/components/EmptyDetailsView';
+import EmptySingleModelServingCard from '#~/pages/modelServing/screens/projects/EmptySingleModelServingCard';
+import EmptyMultiModelServingCard from '#~/pages/modelServing/screens/projects/EmptyMultiModelServingCard';
+import { ProjectObjectType, typedEmptyImage } from '#~/concepts/design/utils';
+import EmptyModelServingPlatform from '#~/pages/modelServing/screens/projects/EmptyModelServingPlatform';
+import EmptyNIMModelServingCard from '#~/pages/modelServing/screens/projects/EmptyNIMModelServingCard';
+import { isProjectNIMSupported } from '#~/pages/modelServing/screens/projects/nimUtils';
+import ManageNIMServingModal from '#~/pages/modelServing/screens/projects/NIMServiceModal/ManageNIMServingModal';
+import { NamespaceApplicationCase } from '#~/pages/projects/types';
+import ModelServingPlatformSelectButton from '#~/pages/modelServing/screens/projects/ModelServingPlatformSelectButton';
+import ModelServingPlatformSelectErrorAlert from '#~/pages/modelServing/screens/ModelServingPlatformSelectErrorAlert';
+import { modelVersionRoute } from '#~/routes/modelRegistry/modelVersions';
+import useServingPlatformStatuses from '#~/pages/modelServing/useServingPlatformStatuses';
 import ManageServingRuntimeModal from './ServingRuntimeModal/ManageServingRuntimeModal';
 import ModelMeshServingRuntimeTable from './ModelMeshSection/ServingRuntimeTable';
 import ModelServingPlatformButtonAction from './ModelServingPlatformButtonAction';
@@ -68,7 +71,7 @@ const ModelServingPlatform: React.FC = () => {
 
   const {
     servingRuntimes: {
-      data: servingRuntimes,
+      data: { items: servingRuntimes },
       loaded: servingRuntimesLoaded,
       error: servingRuntimeError,
       refresh: refreshServingRuntime,
@@ -78,7 +81,10 @@ const ModelServingPlatform: React.FC = () => {
     servingRuntimeTemplateDisablement: { data: templateDisablement },
     connections: { data: connections },
     serverSecrets: { refresh: refreshTokens },
-    inferenceServices: { refresh: refreshInferenceServices },
+    inferenceServices: {
+      data: { items: inferenceServices },
+      refresh: refreshInferenceServices,
+    },
     currentProject,
   } = React.useContext(ProjectDetailsContext);
 
@@ -90,7 +96,6 @@ const ModelServingPlatform: React.FC = () => {
   );
 
   const emptyTemplates = templatesEnabled.length === 0;
-  const emptyModelServer = servingRuntimes.length === 0;
 
   const { platform: currentProjectServingPlatform, error: platformError } =
     getProjectModelServingPlatform(currentProject, servingPlatformStatuses);
@@ -99,6 +104,15 @@ const ModelServingPlatform: React.FC = () => {
     servingPlatformStatuses.platformEnabledCount !== 1 && !currentProjectServingPlatform;
 
   const isProjectModelMesh = currentProjectServingPlatform === ServingRuntimePlatform.MULTI;
+
+  const emptyModelServer = isProjectModelMesh
+    ? servingRuntimes.length === 0
+    : inferenceServices.length === 0;
+
+  const isCurrentPlatformEnabled = isCurrentServingPlatformEnabled(
+    currentProjectServingPlatform,
+    servingPlatformStatuses,
+  );
 
   const onSubmit = (submit: boolean) => {
     setPlatformSelected(undefined);
@@ -324,21 +338,26 @@ const ModelServingPlatform: React.FC = () => {
                   <Label data-testid="serving-platform-label">
                     {isKServeNIMEnabled
                       ? 'NVIDIA NIM serving enabled'
-                      : isProjectModelMesh
-                      ? 'Multi-model serving enabled'
-                      : 'Single-model serving enabled'}
+                      : isCurrentPlatformEnabled
+                      ? isProjectModelMesh
+                        ? 'Multi-model serving enabled'
+                        : 'Single-model serving enabled'
+                      : 'Current platform disabled'}
                   </Label>
 
-                  {emptyModelServer && servingPlatformStatuses.platformEnabledCount > 1 && (
-                    <ModelServingPlatformSelectButton
-                      namespace={currentProject.metadata.name}
-                      servingPlatform={NamespaceApplicationCase.RESET_MODEL_SERVING_PLATFORM}
-                      setError={setErrorSelectingPlatform}
-                      variant="link"
-                      isInline
-                      data-testid="change-serving-platform-button"
-                    />
-                  )}
+                  {emptyModelServer &&
+                    (servingPlatformStatuses.platformEnabledCount > 1 ||
+                      !isCurrentPlatformEnabled ||
+                      platformError) && (
+                      <ModelServingPlatformSelectButton
+                        namespace={currentProject.metadata.name}
+                        servingPlatform={NamespaceApplicationCase.RESET_MODEL_SERVING_PLATFORM}
+                        setError={setErrorSelectingPlatform}
+                        variant="link"
+                        isInline
+                        data-testid="change-serving-platform-button"
+                      />
+                    )}
                 </Flex>,
               ]
             : undefined

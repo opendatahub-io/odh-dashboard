@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
+import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import { NotebookState } from './types';
 
 const useWillNotebooksRestart = (notebookNames: string[]): NotebookState[] => {

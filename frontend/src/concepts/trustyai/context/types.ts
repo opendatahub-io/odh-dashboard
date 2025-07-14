@@ -1,4 +1,4 @@
-import { BiasMetricConfig } from '~/concepts/trustyai/types';
+import { BiasMetricConfig } from '#~/concepts/trustyai/types';
 
 export type TrustyAIContextData = {
   refresh: () => Promise<void>;

@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { Content } from '@patternfly/react-core';
-import { ProjectObjectType, SectionType } from '~/concepts/design/utils';
-import InfoGalleryItem from '~/concepts/design/InfoGalleryItem';
-import { SupportedArea } from '~/concepts/areas';
-import useIsAreaAvailable from '~/concepts/areas/useIsAreaAvailable';
+import { ProjectObjectType, SectionType } from '#~/concepts/design/utils';
+import InfoGalleryItem from '#~/concepts/design/InfoGalleryItem';
+import { SupportedArea } from '#~/concepts/areas';
+import useIsAreaAvailable from '#~/concepts/areas/useIsAreaAvailable';
 import InfoGallery from './InfoGallery';
 
 const CreateAndTrainGallery: React.FC<{ onClose: () => void }> = ({ onClose }) => {

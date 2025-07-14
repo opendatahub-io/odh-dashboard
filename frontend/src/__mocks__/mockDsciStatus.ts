@@ -1,5 +1,5 @@
-import { StackCapability } from '~/concepts/areas/types';
-import { DataScienceClusterInitializationKindStatus, K8sCondition } from '~/k8sTypes';
+import { StackCapability } from '#~/concepts/areas/types';
+import { DataScienceClusterInitializationKindStatus, K8sCondition } from '#~/k8sTypes';
 
 export type MockDsciStatus = {
   conditions?: K8sCondition[];

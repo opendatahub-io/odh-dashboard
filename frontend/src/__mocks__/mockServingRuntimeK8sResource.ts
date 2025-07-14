@@ -1,5 +1,5 @@
-import { KnownLabels, ServingRuntimeKind } from '~/k8sTypes';
-import { ServingRuntimeAPIProtocol, ContainerResources, NodeSelector, Toleration } from '~/types';
+import { KnownLabels, ServingRuntimeKind } from '#~/k8sTypes';
+import { ServingRuntimeAPIProtocol, ContainerResources, NodeSelector, Toleration } from '#~/types';
 
 type MockResourceConfigType = {
   name?: string;
@@ -20,6 +20,11 @@ type MockResourceConfigType = {
   templateDisplayName?: string;
   isProjectScoped?: boolean;
   scope?: string;
+  hardwareProfileNamespace?: string;
+  acceleratorProfileNamespace?: string;
+  isNonDashboardItem?: boolean;
+  version?: string;
+  templateName?: string;
 };
 
 export const mockServingRuntimeK8sResourceLegacy = ({
@@ -108,6 +113,7 @@ export const mockServingRuntimeK8sResource = ({
   route = false,
   displayName = 'OVMS Model Serving',
   acceleratorName = '',
+  acceleratorProfileNamespace = undefined,
   hardwareProfileName = '',
   apiProtocol = ServingRuntimeAPIProtocol.REST,
   resources = {
@@ -128,6 +134,10 @@ export const mockServingRuntimeK8sResource = ({
   templateDisplayName = 'OpenVINO Serving Runtime (Supports GPUs)',
   isProjectScoped = false,
   scope,
+  hardwareProfileNamespace = undefined,
+  isNonDashboardItem = false,
+  version,
+  templateName = 'ovms',
 }: MockResourceConfigType): ServingRuntimeKind => ({
   apiVersion: 'serving.kserve.io/v1alpha1',
   kind: 'ServingRuntime',
@@ -135,20 +145,30 @@ export const mockServingRuntimeK8sResource = ({
     creationTimestamp: '2023-06-22T16:05:55Z',
     labels: {
       name,
-      [KnownLabels.DASHBOARD_RESOURCE]: 'true',
+      ...(isNonDashboardItem ? {} : { [KnownLabels.DASHBOARD_RESOURCE]: 'true' }),
     },
     annotations: {
       'opendatahub.io/template-display-name': templateDisplayName,
       'opendatahub.io/accelerator-name': acceleratorName,
       'opendatahub.io/hardware-profile-name': hardwareProfileName,
-      'opendatahub.io/template-name': 'ovms',
+
+      'opendatahub.io/template-name': templateName,
       'openshift.io/display-name': displayName,
       'opendatahub.io/apiProtocol': apiProtocol,
+      ...(version && {
+        'opendatahub.io/runtime-version': version,
+      }),
       ...(!disableModelMeshAnnotations && {
         'enable-auth': auth ? 'true' : 'false',
         'enable-route': route ? 'true' : 'false',
       }),
       ...(isProjectScoped && { 'opendatahub.io/serving-runtime-scope': scope }),
+      ...(hardwareProfileNamespace && {
+        'opendatahub.io/hardware-profile-namespace': hardwareProfileNamespace,
+      }),
+      ...(acceleratorProfileNamespace && {
+        'opendatahub.io/accelerator-profile-namespace': acceleratorProfileNamespace,
+      }),
     },
     name,
     namespace,

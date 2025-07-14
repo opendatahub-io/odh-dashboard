@@ -1,5 +1,5 @@
-import { ModelRegistryCustomProperties, ModelArtifact } from '~/concepts/modelRegistry/types';
-import useGenericObjectState, { GenericObjectState } from '~/utilities/useGenericObjectState';
+import { ModelRegistryCustomProperties, ModelArtifact } from '#~/concepts/modelRegistry/types';
+import useGenericObjectState, { GenericObjectState } from '#~/utilities/useGenericObjectState';
 
 export enum ModelLocationType {
   ObjectStorage = 'Object storage',

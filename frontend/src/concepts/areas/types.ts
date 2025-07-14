@@ -1,10 +1,10 @@
-import { EitherOrBoth } from '~/typeHelpers';
+import { EitherOrBoth } from '#~/typeHelpers';
 import {
   DashboardCommonConfig,
   DashboardConfigKind,
   DataScienceClusterInitializationKindStatus,
   DataScienceClusterKindStatus,
-} from '~/k8sTypes';
+} from '#~/k8sTypes';
 
 export type FeatureFlag = keyof DashboardCommonConfig;
 
@@ -12,8 +12,9 @@ export type IsAreaAvailableStatus = {
   /** A single boolean status */
   status: boolean;
   /* Each status portion broken down -- null if no check made */
+  devFlags: { [key in string]?: 'on' | 'off' } | null; // simplified. `disableX` flags are weird to read
   featureFlags: { [key in FeatureFlag]?: 'on' | 'off' } | null; // simplified. `disableX` flags are weird to read
-  reliantAreas: { [key in SupportedArea]?: boolean } | null; // only needs 1 to be true
+  reliantAreas: { [key in SupportedAreaType]?: boolean } | null; // only needs 1 to be true
   requiredComponents: { [key in StackComponent]?: boolean } | null;
   requiredCapabilities: { [key in StackCapability]?: boolean } | null;
   customCondition: (conditionFunc: CustomConditionFunction) => boolean;
@@ -60,9 +61,11 @@ export enum SupportedArea {
   TRUSTY_AI = 'trusty-ai',
   NIM_MODEL = 'nim-model',
   SERVING_RUNTIME_PARAMS = 'serving-runtime-params',
+  PVCSERVING = 'pvc-serving',
 
   /* Distributed Workloads areas */
   DISTRIBUTED_WORKLOADS = 'distributed-workloads',
+  KUEUE = 'kueue',
 
   /* Model Registry areas */
   MODEL_REGISTRY = 'model-registry',
@@ -73,8 +76,18 @@ export enum SupportedArea {
 
   /* Plugins */
   PLUGIN_MODEL_SERVING = 'plugin-model-serving',
+
+  /* RAG & Agentic */
+  LLAMA_STACK_CHAT_BOT = 'llama-stack-chat-bot',
+
+  /* LM Eval */
+  LM_EVAL = 'lm-eval',
+
+  /* Feature store */
+  FEATURE_STORE = 'feature-store',
 }
 
+export type SupportedAreaType = SupportedArea | string;
 /** Components deployed by the Operator. Part of the DSC Status. */
 export enum StackComponent {
   CODE_FLARE = 'codeflare',
@@ -88,6 +101,7 @@ export enum StackComponent {
   TRUSTY_AI = 'trustyai',
   KUEUE = 'kueue',
   MODEL_REGISTRY = 'model-registry-operator',
+  FEAST_OPERATOR = 'feastoperator',
 }
 
 /** The possible component names that are used as keys in the `components` object of the DSC Status.
@@ -131,7 +145,7 @@ export type CustomConditionFunction = (state: {
 }) => boolean;
 
 // TODO: Support extra operators, like the pipelines operator -- maybe as a "external dependency need?"
-type SupportedComponentFlagValue = {
+export type SupportedComponentFlagValue = {
   /**
    * An area can be reliant on another area being enabled. The list is "OR"-ed together.
    *
@@ -140,7 +154,7 @@ type SupportedComponentFlagValue = {
    *
    * TODO: support AND -- maybe double array?
    */
-  reliantAreas?: SupportedArea[];
+  reliantAreas?: SupportedAreaType[];
   /**
    * Required capabilities supported by the Operator. The list is "AND"-ed together.
    * If the Operator does not support the capability, the area is not available.
@@ -150,28 +164,36 @@ type SupportedComponentFlagValue = {
 } & EitherOrBoth<
   {
     /**
-     * Refers to OdhDashboardConfig's feature flags, any number of them to be "enabled", the result
-     * is AND-ed. Omit to not be related to any feature flag.
-     *
-     * Note: "disable<FlagName>" methodology is confusing and needs to be removed
-     * Note: "Enabled" will mean "disable<FlagName>" is false
-     * @see https://github.com/opendatahub-io/odh-dashboard/issues/1108
+     * Flags that are only available to developers.
      */
-    featureFlags: FeatureFlag[];
+    devFlags?: string[];
   },
-  {
-    /**
-     * Refers to the related stack component names. If a backend component is not installed, this
-     * can prevent the feature flag from enabling the item. Omit to not be reliant on a backend
-     * component.
-     */
-    requiredComponents: StackComponent[];
-  }
+  EitherOrBoth<
+    {
+      /**
+       * Refers to OdhDashboardConfig's feature flags, any number of them to be "enabled", the result
+       * is AND-ed. Omit to not be related to any feature flag.
+       *
+       * Note: "disable<FlagName>" methodology is confusing and needs to be removed
+       * Note: "Enabled" will mean "disable<FlagName>" is false
+       * @see https://github.com/opendatahub-io/odh-dashboard/issues/1108
+       */
+      featureFlags: FeatureFlag[];
+    },
+    {
+      /**
+       * Refers to the related stack component names. If a backend component is not installed, this
+       * can prevent the feature flag from enabling the item. Omit to not be reliant on a backend
+       * component.
+       */
+      requiredComponents: StackComponent[];
+    }
+  >
 >;
 
 /**
  * Relationships between areas and the state of the cluster.
  */
 export type SupportedAreasState = {
-  [key in SupportedArea]: SupportedComponentFlagValue;
+  [key in SupportedAreaType]: SupportedComponentFlagValue;
 };

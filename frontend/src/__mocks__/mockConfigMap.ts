@@ -1,4 +1,4 @@
-import { ConfigMapKind } from '~/k8sTypes';
+import { ConfigMapKind } from '#~/k8sTypes';
 
 type MockConfigMapType = {
   data?: Record<string, string>;

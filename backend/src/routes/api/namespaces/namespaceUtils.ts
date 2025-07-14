@@ -4,9 +4,10 @@ import {
   V1SelfSubjectAccessReview,
 } from '@kubernetes/client-node';
 import { NamespaceApplicationCase } from './const';
-import { K8sStatus, KubeFastifyInstance, OauthFastifyRequest } from '../../../types';
+import { K8sStatus, KnownLabels, KubeFastifyInstance, OauthFastifyRequest } from '../../../types';
 import { createCustomError } from '../../../utils/requestUtils';
 import { isK8sStatus, passThroughResource } from '../k8s/pass-through';
+import { getDashboardConfig } from '../../../utils/resourceUtils';
 
 export const createSelfSubjectAccessReview = (
   fastify: KubeFastifyInstance,
@@ -74,10 +75,15 @@ export const applyNamespaceChange = async (
   let annotations = {};
   let labels = {};
   let checkPermissionsFn = null;
+  const config = getDashboardConfig(request);
+  const isKueueDisabled = config.spec.dashboardConfig.disableKueue;
   switch (context) {
     case NamespaceApplicationCase.DSG_CREATION:
       {
-        labels = { 'opendatahub.io/dashboard': 'true' };
+        labels = {
+          [KnownLabels.DASHBOARD_RESOURCE]: 'true',
+          ...(!isKueueDisabled && { [KnownLabels.KUEUE_MANAGED]: 'true' }),
+        };
         checkPermissionsFn = checkAdminNamespacePermission;
       }
       break;

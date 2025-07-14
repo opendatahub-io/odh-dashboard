@@ -6,14 +6,15 @@ import {
   k8sListResource,
   K8sStatus,
   k8sUpdateResource,
+  k8sPatchResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { InferenceServiceModel } from '~/api/models';
-import { InferenceServiceKind, K8sAPIOptions, KnownLabels } from '~/k8sTypes';
-import { CreatingInferenceServiceObject } from '~/pages/modelServing/screens/types';
-import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
-import { getInferenceServiceDeploymentMode } from '~/pages/modelServing/screens/projects/utils';
-import { parseCommandLine } from '~/api/k8s/utils';
-import { ModelServingPodSpecOptions } from '~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
+import { InferenceServiceModel } from '#~/api/models';
+import { InferenceServiceKind, K8sAPIOptions, KnownLabels } from '#~/k8sTypes';
+import { CreatingInferenceServiceObject } from '#~/pages/modelServing/screens/types';
+import { applyK8sAPIOptions } from '#~/api/apiMergeUtils';
+import { getInferenceServiceDeploymentMode } from '#~/pages/modelServing/screens/projects/utils';
+import { parseCommandLine } from '#~/api/k8s/utils';
+import { ModelServingPodSpecOptions } from '#~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
 import { getModelServingProjects } from './projects';
 
 const applyAuthToInferenceService = (
@@ -361,3 +362,22 @@ export const deleteInferenceService = (
       opts,
     ),
   );
+
+export const patchInferenceServiceStoppedStatus = (
+  inferenceService: InferenceServiceKind,
+  stoppedStatus: 'true' | 'false',
+): Promise<InferenceServiceKind> =>
+  k8sPatchResource({
+    model: InferenceServiceModel,
+    queryOptions: {
+      name: inferenceService.metadata.name,
+      ns: inferenceService.metadata.namespace,
+    },
+    patches: [
+      {
+        op: 'add',
+        path: '/metadata/annotations/serving.kserve.io~1stop',
+        value: stoppedStatus,
+      },
+    ],
+  });

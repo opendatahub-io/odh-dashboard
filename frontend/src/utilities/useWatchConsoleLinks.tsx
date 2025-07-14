@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as _ from 'lodash-es';
-import { ConsoleLinkKind } from '~/k8sTypes';
-import { fetchConsoleLinks } from '~/services/consoleLinksService';
+import { ConsoleLinkKind } from '#~/k8sTypes';
+import { fetchConsoleLinks } from '#~/services/consoleLinksService';
 import { POLL_INTERVAL } from './const';
 
 export type ConsoleLinkResults = {

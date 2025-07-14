@@ -1,11 +1,11 @@
 import {
   HTPASSWD_CLUSTER_ADMIN_USER,
   LDAP_CONTRIBUTOR_USER,
-} from '~/__tests__/cypress/cypress/utils/e2eUsers';
+} from '#~/__tests__/cypress/cypress/utils/e2eUsers';
 import {
   notebookController,
   administration,
-} from '~/__tests__/cypress/cypress/pages/administration';
+} from '#~/__tests__/cypress/cypress/pages/administration';
 
 describe('Verify Notebook Server Administration', () => {
   it(

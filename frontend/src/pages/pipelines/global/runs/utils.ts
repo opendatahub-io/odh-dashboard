@@ -1,4 +1,4 @@
-import { ExperimentKF, PipelineRunKF } from '~/concepts/pipelines/kfTypes';
+import { ExperimentKF, PipelineRunKF } from '#~/concepts/pipelines/kfTypes';
 import { PipelineResourceRestoreResult, StatusEntry } from './types';
 
 export const getGroupRunsByExperiment = (

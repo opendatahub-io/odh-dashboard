@@ -1,13 +1,16 @@
-import { HardwareProfileKind } from '~/k8sTypes';
-import { Identifier, IdentifierResourceType } from '~/types';
-import { HardwareProfileWarningType, WarningNotification } from '~/concepts/hardwareProfiles/types';
+import { HardwareProfileKind } from '#~/k8sTypes';
+import { DisplayNameAnnotation, Identifier, IdentifierResourceType } from '#~/types';
+import {
+  HardwareProfileWarningType,
+  WarningNotification,
+} from '#~/concepts/hardwareProfiles/types';
 import {
   CPU_UNITS,
   MEMORY_UNITS_FOR_SELECTION,
   OTHER,
   splitValueUnit,
   UnitOption,
-} from '~/utilities/valueUnits';
+} from '#~/utilities/valueUnits';
 import { DEFAULT_CPU_IDENTIFIER, DEFAULT_MEMORY_IDENTIFIER } from './nodeResource/const';
 import { hasCPUandMemory } from './manage/ManageNodeResourceSection';
 import { createHardwareProfileWarningSchema } from './manage/validationUtils';
@@ -87,7 +90,7 @@ export const generateWarningForHardwareProfiles = (
       (warning) => warning.type !== HardwareProfileWarningType.HARDWARE_PROFILES_MISSING_CPU_MEMORY,
     );
   });
-  const hasEnabled = hardwareProfiles.some((profile) => profile.spec.enabled);
+  const hasEnabled = hardwareProfiles.some((profile) => isHardwareProfileEnabled(profile));
   const allInvalid = hardwareProfiles.every((profile) => {
     const warnings = validateProfileWarning(profile);
     return warnings.some(
@@ -121,9 +124,9 @@ export const generateWarningForHardwareProfiles = (
 export const isHardwareProfileIdentifierValid = (identifier: Identifier): boolean => {
   try {
     if (
-      identifier.minCount.toString().at(0) === '-' ||
-      (identifier.maxCount && identifier.maxCount.toString().at(0) === '-') ||
-      identifier.defaultCount.toString().at(0) === '-'
+      identifier.minCount.toString().charAt(0) === '-' ||
+      (identifier.maxCount && identifier.maxCount.toString().charAt(0) === '-') ||
+      identifier.defaultCount.toString().charAt(0) === '-'
     ) {
       return false;
     }
@@ -192,3 +195,15 @@ export const isHardwareProfileValid = (hardwareProfile: HardwareProfileKind): bo
   const warnings = validateProfileWarning(hardwareProfile);
   return warnings.length === 0;
 };
+
+export const getHardwareProfileDisplayName = (hardwareProfile: HardwareProfileKind): string =>
+  hardwareProfile.metadata.annotations?.[DisplayNameAnnotation.ODH_DISP_NAME] ||
+  hardwareProfile.metadata.name;
+
+export const getHardwareProfileDescription = (
+  hardwareProfile: HardwareProfileKind,
+): string | undefined => hardwareProfile.metadata.annotations?.[DisplayNameAnnotation.ODH_DESC];
+
+export const isHardwareProfileEnabled = (hardwareProfile: HardwareProfileKind): boolean =>
+  hardwareProfile.metadata.annotations?.['opendatahub.io/disabled'] === 'false' ||
+  hardwareProfile.metadata.annotations?.['opendatahub.io/disabled'] === undefined;

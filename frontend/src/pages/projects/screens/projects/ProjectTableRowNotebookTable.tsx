@@ -1,11 +1,11 @@
 import * as React from 'react';
-import { Table } from '~/components/table';
-import { NotebookKind, ProjectKind } from '~/k8sTypes';
-import CanEnableElyraPipelinesCheck from '~/concepts/pipelines/elyra/CanEnableElyraPipelinesCheck';
-import ProjectTableRowNotebookTableRow from '~/pages/projects/screens/projects/ProjectTableRowNotebookTableRow';
-import DeleteNotebookModal from '~/pages/projects/notebook/DeleteNotebookModal';
-import { NotebookState } from '~/pages/projects/notebook/types';
-import { FetchStateRefreshPromise } from '~/utilities/useFetchState';
+import { Table } from '#~/components/table';
+import { NotebookKind, ProjectKind } from '#~/k8sTypes';
+import CanEnableElyraPipelinesCheck from '#~/concepts/pipelines/elyra/CanEnableElyraPipelinesCheck';
+import ProjectTableRowNotebookTableRow from '#~/pages/projects/screens/projects/ProjectTableRowNotebookTableRow';
+import DeleteNotebookModal from '#~/pages/projects/notebook/DeleteNotebookModal';
+import { NotebookState } from '#~/pages/projects/notebook/types';
+import { FetchStateRefreshPromise } from '#~/utilities/useFetchState';
 import { columns } from './notebookTableData';
 
 type ProjectTableRowNotebookTableProps = {

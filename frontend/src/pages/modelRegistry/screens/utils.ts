@@ -1,4 +1,4 @@
-import { SearchType } from '~/concepts/dashboard/DashboardSearchField';
+import { SearchType } from '#~/concepts/dashboard/DashboardSearchField';
 import {
   ModelRegistryCustomProperties,
   ModelRegistryCustomProperty,
@@ -6,9 +6,9 @@ import {
   ModelRegistryStringCustomProperties,
   ModelVersion,
   RegisteredModel,
-} from '~/concepts/modelRegistry/types';
-import { ServiceKind } from '~/k8sTypes';
-import { KeyValuePair } from '~/types';
+} from '#~/concepts/modelRegistry/types';
+import { ServiceKind } from '#~/k8sTypes';
+import { KeyValuePair } from '#~/types';
 
 // Retrieves the labels from customProperties that have non-empty string_value.
 export const getLabels = <T extends ModelRegistryCustomProperties>(customProperties: T): string[] =>

@@ -12,11 +12,11 @@ import {
   EmptyStateFooter,
 } from '@patternfly/react-core';
 import { WrenchIcon } from '@patternfly/react-icons';
-import MetricsPageToolbar from '~/concepts/metrics/MetricsPageToolbar';
-import { DistributedWorkloadsContext } from '~/concepts/distributedWorkloads/DistributedWorkloadsContext';
-import EmptyStateErrorMessage from '~/components/EmptyStateErrorMessage';
-import { LoadingState } from '~/pages/distributedWorkloads/components/LoadingState';
-import WhosMyAdministrator from '~/components/WhosMyAdministrator';
+import MetricsPageToolbar from '#~/concepts/metrics/MetricsPageToolbar';
+import { DistributedWorkloadsContext } from '#~/concepts/distributedWorkloads/DistributedWorkloadsContext';
+import EmptyStateErrorMessage from '#~/components/EmptyStateErrorMessage';
+import { LoadingState } from '#~/pages/distributedWorkloads/components/LoadingState';
+import WhosMyAdministrator from '#~/components/WhosMyAdministrator';
 import {
   DistributedWorkloadsTabId,
   useDistributedWorkloadsTabs,

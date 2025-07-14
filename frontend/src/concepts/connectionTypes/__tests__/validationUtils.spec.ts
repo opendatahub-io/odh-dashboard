@@ -10,7 +10,7 @@ import {
   ShortTextField,
   TextField,
   UriField,
-} from '~/concepts/connectionTypes/types';
+} from '#~/concepts/connectionTypes/types';
 import {
   booleanFieldSchema,
   connectionTypeFormSchema,
@@ -23,7 +23,7 @@ import {
   shortTextFieldSchema,
   textFieldSchema,
   uriFieldSchema,
-} from '~/concepts/connectionTypes/validationUtils';
+} from '#~/concepts/connectionTypes/validationUtils';
 
 describe('sectionFieldSchema', () => {
   it('should validate the section field', () => {

@@ -1,9 +1,9 @@
 import React from 'react';
-import usePersistentData from '~/pages/projects/screens/detail/connections/usePersistentData';
-import { useK8sNameDescriptionFieldData } from '~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
-import { isK8sNameDescriptionDataValid } from '~/concepts/k8s/K8sNameDescriptionField/utils';
-import { getResourceNameFromK8sResource } from '~/concepts/k8s/utils';
-import { UseK8sNameDescriptionFieldData } from '~/concepts/k8s/K8sNameDescriptionField/types';
+import usePersistentData from '#~/pages/projects/screens/detail/connections/usePersistentData';
+import { useK8sNameDescriptionFieldData } from '#~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
+import { isK8sNameDescriptionDataValid } from '#~/concepts/k8s/K8sNameDescriptionField/utils';
+import { getResourceNameFromK8sResource } from '#~/concepts/k8s/utils';
+import { UseK8sNameDescriptionFieldData } from '#~/concepts/k8s/K8sNameDescriptionField/types';
 import {
   Connection,
   ConnectionTypeConfigMapObj,

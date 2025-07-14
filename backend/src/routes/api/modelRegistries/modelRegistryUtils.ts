@@ -3,7 +3,7 @@ import { PatchUtils, V1ConfigMap, V1Secret, V1Status } from '@kubernetes/client-
 import { getClusterStatus } from '../../../utils/resourceUtils';
 
 const MODEL_REGISTRY_API_GROUP = 'modelregistry.opendatahub.io';
-const MODEL_REGISTRY_API_VERSION = 'v1alpha1';
+const MODEL_REGISTRY_API_VERSION = 'v1beta1';
 const MODEL_REGISTRY_PLURAL = 'modelregistries';
 
 export const getModelRegistryNamespace = (fastify: KubeFastifyInstance): string => {

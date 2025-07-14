@@ -19,8 +19,8 @@ import {
   PendingIcon,
   SyncAltIcon,
 } from '@patternfly/react-icons';
-import { PipelineNodeModelExpanded } from '~/concepts/topology/types';
-import { ExecutionStateKF } from '~/concepts/pipelines/kfTypes';
+import { PipelineNodeModelExpanded } from '#~/concepts/topology/types';
+import { ExecutionStateKF } from '#~/concepts/pipelines/kfTypes';
 
 type StandardTaskNodeProps = {
   element: GraphElement<PipelineNodeModelExpanded>;

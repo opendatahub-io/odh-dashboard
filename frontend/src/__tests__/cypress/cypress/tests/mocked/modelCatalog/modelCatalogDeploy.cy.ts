@@ -1,16 +1,16 @@
 /* eslint-disable camelcase */
-import { mockK8sResourceList } from '~/__mocks__';
-import { ConfigMapModel, ServingRuntimeModel } from '~/__tests__/cypress/cypress/utils/models';
-import { modelDetailsPage } from '~/__tests__/cypress/cypress/pages/modelCatalog/modelDetailsPage';
-import { kserveModal } from '~/__tests__/cypress/cypress/pages/modelServing';
-import { initDeployPrefilledModelIntercepts } from '~/__tests__/cypress/cypress/utils/modelServingUtils';
-import type { ModelCatalogSource } from '~/concepts/modelCatalog/types';
-import { mockModelCatalogSource } from '~/__mocks__/mockModelCatalogSource';
+import { mockK8sResourceList } from '#~/__mocks__';
+import { ConfigMapModel, ServingRuntimeModel } from '#~/__tests__/cypress/cypress/utils/models';
+import { modelDetailsPage } from '#~/__tests__/cypress/cypress/pages/modelCatalog/modelDetailsPage';
+import { kserveModal } from '#~/__tests__/cypress/cypress/pages/modelServing';
+import { initDeployPrefilledModelIntercepts } from '#~/__tests__/cypress/cypress/utils/modelServingUtils';
+import type { ModelCatalogSource } from '#~/concepts/modelCatalog/types';
+import { mockModelCatalogSource } from '#~/__mocks__/mockModelCatalogSource';
 import {
   mockModelCatalogConfigMap,
   mockUnmanagedModelCatalogConfigMap,
-} from '~/__mocks__/mockModelCatalogConfigMap';
-import { modelCatalogDeployModal } from '~/__tests__/cypress/cypress/pages/modelCatalog/modelCatalogDeployModal';
+} from '#~/__mocks__/mockModelCatalogConfigMap';
+import { modelCatalogDeployModal } from '#~/__tests__/cypress/cypress/pages/modelCatalog/modelCatalogDeployModal';
 
 type HandlersProps = {
   catalogModels?: ModelCatalogSource[];
@@ -49,10 +49,12 @@ describe('Deploy catalog model', () => {
   it('Error if kserve is not enabled', () => {
     initIntercepts({ kServeInstalled: false });
     modelDetailsPage.visit();
-    modelDetailsPage.findDeployModelButton().click();
-    cy.wait('@getProjects');
-    modelCatalogDeployModal.selectProjectByName('KServe project');
-    cy.findByText('Single-model platform is not installed').should('exist');
+    modelDetailsPage.findDeployModelButton().should('have.attr', 'aria-disabled', 'true');
+    modelDetailsPage.findDeployModelButton().focus();
+    cy.findByRole('tooltip').should(
+      'contain.text',
+      'To deploy this model, an administrator must first enable single-model serving in the cluster settings.',
+    );
   });
 
   it('Allow using a project with no platform selected (it will use kserve)', () => {

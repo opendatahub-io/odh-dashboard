@@ -1,5 +1,5 @@
-import { DeleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
-import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
+import { DeleteModal } from '#~/__tests__/cypress/cypress/pages/components/DeleteModal';
+import { appChrome } from '#~/__tests__/cypress/cypress/pages/appChrome';
 
 class PipelineRunsGlobal {
   visit(projectName: string, runType?: 'active' | 'archived' | 'scheduled') {
@@ -19,6 +19,10 @@ class PipelineRunsGlobal {
   private wait() {
     cy.findByTestId('app-page-title').contains('Runs');
     cy.testA11y();
+  }
+
+  findProjectNavigatorLink() {
+    return cy.findByTestId('project-navigator-link');
   }
 
   isApiAvailable() {
@@ -81,7 +85,7 @@ class SchedulesDeleteModal extends DeleteModal {
   }
 
   find() {
-    return cy.findByTestId('delete-schedule-modal').parents('div[role="dialog"]');
+    return cy.findByTestId('delete-schedule-modal');
   }
 }
 
@@ -91,7 +95,7 @@ class RunsDeleteModal extends DeleteModal {
   }
 
   find() {
-    return cy.findByTestId('delete-run-modal').parents('div[role="dialog"]');
+    return cy.findByTestId('delete-run-modal');
   }
 }
 

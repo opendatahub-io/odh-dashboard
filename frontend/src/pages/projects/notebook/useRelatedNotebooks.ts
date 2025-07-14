@@ -1,8 +1,8 @@
 import * as React from 'react';
-import { NotebookKind } from '~/k8sTypes';
-import { getNotebookPVCNames, getNotebookSecretNames } from '~/pages/projects/pvc/utils';
-import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import { DATA_CONNECTION_PREFIX } from '~/api';
+import { NotebookKind } from '#~/k8sTypes';
+import { getNotebookPVCNames, getNotebookSecretNames } from '#~/pages/projects/pvc/utils';
+import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
+import { DATA_CONNECTION_PREFIX } from '#~/api';
 import { getNotebookPVCMountPathMap } from './utils';
 
 export enum ConnectedNotebookContext {

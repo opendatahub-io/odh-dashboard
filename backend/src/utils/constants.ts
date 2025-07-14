@@ -29,6 +29,11 @@ export const IMAGE_ANNOTATIONS = {
   RECOMMENDED: 'opendatahub.io/workbench-image-recommended',
   OUTDATED: 'opendatahub.io/image-tag-outdated',
 };
+
+/**
+ * Our defaults for our app. Foundation for anything defined in the OdhDashboardConfig yaml on cluster.
+ * @see odhdashboardconfig.yaml
+ */
 export const blankDashboardCR: DashboardConfig = {
   apiVersion: 'opendatahub.io/v1alpha',
   kind: 'OdhDashboardConfig',
@@ -40,6 +45,7 @@ export const blankDashboardCR: DashboardConfig = {
   },
   spec: {
     dashboardConfig: {
+      // Defaults, do not need to be redeclared in any OdhDashboardConfig.yaml files
       enablement: true,
       disableInfo: false,
       disableSupport: false,
@@ -75,13 +81,12 @@ export const blankDashboardCR: DashboardConfig = {
       disableNIMModelServing: false,
       disableAdminConnectionTypes: false,
       disableFineTuning: true,
+      disableKueue: true,
+      disableLMEval: true,
+      disablePVCServing: true,
     },
     notebookController: {
       enabled: true,
-    },
-    groupsConfig: {
-      adminGroups: 'odh-admins',
-      allowedGroups: 'system:authenticated',
     },
     templateOrder: [],
     // templateDisablement: [], Don't create this field, will be used in migration

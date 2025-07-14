@@ -1,24 +1,24 @@
-import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
-import { mockDscStatus } from '~/__mocks__/mockDscStatus';
-import { mockComponents } from '~/__mocks__/mockComponents';
-import { globalDistributedWorkloads } from '~/__tests__/cypress/cypress/pages/distributedWorkloads';
-import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
-import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
-import { mockDWUsageByOwnerPrometheusResponse } from '~/__mocks__/mockDWUsageByOwnerPrometheusResponse';
-import { mockWorkloadK8sResource } from '~/__mocks__/mockWorkloadK8sResource';
-import type { ClusterQueueKind, LocalQueueKind, WorkloadKind, WorkloadPodSet } from '~/k8sTypes';
-import { WorkloadOwnerType } from '~/k8sTypes';
-import type { PodContainer } from '~/types';
-import { WorkloadStatusType } from '~/concepts/distributedWorkloads/utils';
-import { mockClusterQueueK8sResource } from '~/__mocks__/mockClusterQueueK8sResource';
-import { mockLocalQueueK8sResource } from '~/__mocks__/mockLocalQueueK8sResource';
+import { mockDashboardConfig } from '#~/__mocks__/mockDashboardConfig';
+import { mockDscStatus } from '#~/__mocks__/mockDscStatus';
+import { mockComponents } from '#~/__mocks__/mockComponents';
+import { globalDistributedWorkloads } from '#~/__tests__/cypress/cypress/pages/distributedWorkloads';
+import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
+import { mockProjectK8sResource } from '#~/__mocks__/mockProjectK8sResource';
+import { mockDWUsageByOwnerPrometheusResponse } from '#~/__mocks__/mockDWUsageByOwnerPrometheusResponse';
+import { mockWorkloadK8sResource } from '#~/__mocks__/mockWorkloadK8sResource';
+import type { ClusterQueueKind, LocalQueueKind, WorkloadKind, WorkloadPodSet } from '#~/k8sTypes';
+import { WorkloadOwnerType } from '#~/k8sTypes';
+import type { PodContainer } from '#~/types';
+import { WorkloadStatusType } from '#~/concepts/distributedWorkloads/utils';
+import { mockClusterQueueK8sResource } from '#~/__mocks__/mockClusterQueueK8sResource';
+import { mockLocalQueueK8sResource } from '#~/__mocks__/mockLocalQueueK8sResource';
 import {
   ClusterQueueModel,
   LocalQueueModel,
   ProjectModel,
   WorkloadModel,
-} from '~/__tests__/cypress/cypress/utils/models';
-import { RefreshIntervalTitle } from '~/concepts/metrics/types';
+} from '#~/__tests__/cypress/cypress/utils/models';
+import { RefreshIntervalTitle } from '#~/concepts/metrics/types';
 
 const mockContainer: PodContainer = {
   env: [],

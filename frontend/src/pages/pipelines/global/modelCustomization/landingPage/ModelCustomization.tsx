@@ -10,17 +10,17 @@ import {
   StackItem,
   Title,
 } from '@patternfly/react-core';
-import TitleWithIcon from '~/concepts/design/TitleWithIcon';
-import { ProjectObjectType } from '~/concepts/design/utils';
-import ApplicationsPage from '~/pages/ApplicationsPage';
-import { LabMethodDescriptionSection } from '~/pages/pipelines/global/modelCustomization/landingPage/LabMethodDescriptionSection';
+import TitleWithIcon from '#~/concepts/design/TitleWithIcon';
+import { ProjectObjectType } from '#~/concepts/design/utils';
+import ApplicationsPage from '#~/pages/ApplicationsPage';
+import { LabMethodDescriptionSection } from '#~/pages/pipelines/global/modelCustomization/landingPage/LabMethodDescriptionSection';
 import ModelCustomizationDrawerContent, {
   ModelCustomizationDrawerContentArgs,
   ModelCustomizationDrawerContentRef,
-} from '~/pages/pipelines/global/modelCustomization/landingPage/ModelCustomizationDrawerContent';
-import { NextStepsSection } from '~/pages/pipelines/global/modelCustomization/landingPage/NextStepsSection';
-import { PrerequisitesSection } from '~/pages/pipelines/global/modelCustomization/landingPage/PrerequisitesSection';
-import { ProjectSetupSection } from '~/pages/pipelines/global/modelCustomization/landingPage/ProjectSetupSection';
+} from '#~/pages/pipelines/global/modelCustomization/landingPage/ModelCustomizationDrawerContent';
+import { NextStepsSection } from '#~/pages/pipelines/global/modelCustomization/landingPage/NextStepsSection';
+import { PrerequisitesSection } from '#~/pages/pipelines/global/modelCustomization/landingPage/PrerequisitesSection';
+import { ProjectSetupSection } from '#~/pages/pipelines/global/modelCustomization/landingPage/ProjectSetupSection';
 
 const title = 'Model customization';
 const description =

@@ -1,6 +1,6 @@
 import React from 'react';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
-import { Toleration } from '~/types';
+import { Toleration } from '#~/types';
 
 type TolerationRowProps = {
   toleration: Toleration;

@@ -1,5 +1,5 @@
 import { renderHook } from '@testing-library/react';
-import useAcceleratorCountWarning from '~/pages/notebookController/screens/server/useAcceleratorCountWarning';
+import useAcceleratorCountWarning from '#~/pages/notebookController/screens/server/useAcceleratorCountWarning';
 
 type DetectedAccelerators = {
   available: Record<string, number>;

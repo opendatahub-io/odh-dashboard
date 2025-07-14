@@ -1,6 +1,6 @@
 import type { K8sResourceListResult, K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
 import type { GenericStaticResponse, RouteHandlerController } from 'cypress/types/net-stubbing';
-import type { BaseMetricCreationResponse, BaseMetricListResponse } from '~/api';
+import type { BaseMetricCreationResponse, BaseMetricListResponse } from '#~/api';
 import type {
   ModelArtifact,
   ModelArtifactList,
@@ -8,7 +8,7 @@ import type {
   ModelVersionList,
   RegisteredModel,
   RegisteredModelList,
-} from '~/concepts/modelRegistry/types';
+} from '#~/concepts/modelRegistry/types';
 import type {
   ConfigMapKind,
   ConsoleLinkKind,
@@ -23,11 +23,11 @@ import type {
   SecretKind,
   ServingRuntimeKind,
   TemplateKind,
-} from '~/k8sTypes';
+} from '#~/k8sTypes';
 
-import type { StartNotebookData } from '~/pages/projects/types';
-import type { AllowedUser } from '~/pages/notebookController/screens/admin/types';
-import type { StatusResponse } from '~/redux/types';
+import type { StartNotebookData } from '#~/pages/projects/types';
+import type { AllowedUser } from '#~/pages/notebookController/screens/admin/types';
+import type { StatusResponse } from '#~/redux/types';
 import type {
   BYONImage,
   ClusterSettingsType,
@@ -40,7 +40,7 @@ import type {
   PrometheusQueryResponse,
   ResponseStatus,
   SubscriptionStatusData,
-} from '~/types';
+} from '#~/types';
 import type {
   ArgoWorkflowPipelineVersion,
   ExperimentKF,
@@ -53,12 +53,12 @@ import type {
   PipelineRecurringRunKF,
   PipelineRunKF,
   PipelineVersionKF,
-} from '~/concepts/pipelines/kfTypes';
-import type { GrpcResponse } from '~/__mocks__/mlmd/utils';
-import type { NimServingResponse } from '~/__mocks__/mockNimResource';
-import type { BuildMockPipelinveVersionsType } from '~/__mocks__';
-import type { ArtifactStorage } from '~/concepts/pipelines/types';
-import type { ConnectionTypeConfigMap } from '~/concepts/connectionTypes/types';
+} from '#~/concepts/pipelines/kfTypes';
+import type { GrpcResponse } from '#~/__mocks__/mlmd/utils';
+import type { NimServingResponse } from '#~/__mocks__/mockNimResource';
+import type { BuildMockPipelinveVersionsType } from '#~/__mocks__';
+import type { ArtifactStorage } from '#~/concepts/pipelines/types';
+import type { ConnectionTypeConfigMap } from '#~/concepts/connectionTypes/types';
 
 type SuccessErrorResponse = {
   success: boolean;
@@ -420,7 +420,11 @@ declare global {
         ) => Cypress.Chainable<null>) &
         ((
           type: `POST /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/pipelines/upload_version`,
-          options: { path: { namespace: string; serviceName: string }; times?: number },
+          options: {
+            path: { namespace: string; serviceName: string };
+            query?: { pipelineid: string; name: string; description?: string };
+            times?: number;
+          },
           response: OdhResponse<PipelineVersionKF | GoogleRpcStatusKF>,
         ) => Cypress.Chainable<null>) &
         ((

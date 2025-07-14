@@ -3,8 +3,8 @@ import {
   ConfigMapCategory,
   EnvironmentVariableType,
   EnvVariableData,
-} from '~/pages/projects/types';
-import { asEnumMember } from '~/utilities/utils';
+} from '#~/pages/projects/types';
+import { asEnumMember } from '#~/utilities/utils';
 import EnvDataTypeField from './EnvDataTypeField';
 import GenericKeyValuePairField from './GenericKeyValuePairField';
 import { EMPTY_KEY_VALUE_PAIR } from './const';

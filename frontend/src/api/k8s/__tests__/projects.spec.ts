@@ -4,10 +4,10 @@ import {
   k8sUpdateResource,
   k8sDeleteResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import axios from '~/utilities/axios';
-import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
-import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
-import { mockAxiosError } from '~/__mocks__/mockAxiosError';
+import axios from '#~/utilities/axios';
+import { mockProjectK8sResource } from '#~/__mocks__/mockProjectK8sResource';
+import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
+import { mockAxiosError } from '#~/__mocks__/mockAxiosError';
 import {
   addSupportServingPlatformProject,
   createProject,
@@ -16,13 +16,13 @@ import {
   getProjects,
   updateProject,
   useProjects,
-} from '~/api/k8s/projects';
-import { ProjectModel, ProjectRequestModel } from '~/api/models';
-import { ODH_PRODUCT_NAME } from '~/utilities/const';
-import { NamespaceApplicationCase } from '~/pages/projects/types';
-import { ProjectKind } from '~/k8sTypes';
-import { groupVersionKind } from '~/api/k8sUtils';
-import useK8sWatchResourceList from '~/utilities/useK8sWatchResourceList';
+} from '#~/api/k8s/projects';
+import { ProjectModel, ProjectRequestModel } from '#~/api/models';
+import { ODH_PRODUCT_NAME } from '#~/utilities/const';
+import { NamespaceApplicationCase } from '#~/pages/projects/types';
+import { ProjectKind } from '#~/k8sTypes';
+import { groupVersionKind } from '#~/api/k8sUtils';
+import useK8sWatchResourceList from '#~/utilities/useK8sWatchResourceList';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sListResource: jest.fn(),
@@ -31,16 +31,16 @@ jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sDeleteResource: jest.fn(),
 }));
 
-jest.mock('~/utilities/useK8sWatchResourceList', () => ({
+jest.mock('#~/utilities/useK8sWatchResourceList', () => ({
   __esModule: true,
   default: jest.fn(),
 }));
 
-jest.mock('~/api/k8s/servingRuntimes.ts', () => ({
+jest.mock('#~/api/k8s/servingRuntimes.ts', () => ({
   listServingRuntimes: jest.fn(),
 }));
 
-jest.mock('~/utilities/axios');
+jest.mock('#~/utilities/axios');
 
 const mockedAxios = jest.mocked(axios);
 const k8sListResourceMock = jest.mocked(k8sListResource<ProjectKind>);

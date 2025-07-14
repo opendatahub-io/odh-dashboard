@@ -1,9 +1,9 @@
-import { useArtifactsFromMlmdContext } from '~/concepts/pipelines/apiHooks/mlmd/useArtifactsFromMlmdContext';
-import { usePipelineRunMlmdContext } from '~/concepts/pipelines/apiHooks/mlmd/usePipelineRunMlmdContext';
-import { isPipelineRunFinished } from '~/concepts/pipelines/apiHooks/usePipelineRunById';
-import { PipelineRunKF } from '~/concepts/pipelines/kfTypes';
-import { Artifact } from '~/third_party/mlmd';
-import { FAST_POLL_INTERVAL } from '~/utilities/const';
+import { useArtifactsFromMlmdContext } from '#~/concepts/pipelines/apiHooks/mlmd/useArtifactsFromMlmdContext';
+import { usePipelineRunMlmdContext } from '#~/concepts/pipelines/apiHooks/mlmd/usePipelineRunMlmdContext';
+import { isPipelineRunFinished } from '#~/concepts/pipelines/apiHooks/usePipelineRunById';
+import { PipelineRunKF } from '#~/concepts/pipelines/kfTypes';
+import { Artifact } from '#~/third_party/mlmd';
+import { FAST_POLL_INTERVAL } from '#~/utilities/const';
 
 export const usePipelineRunArtifacts = (
   run: PipelineRunKF | null,

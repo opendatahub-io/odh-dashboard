@@ -7,8 +7,8 @@ import {
   ToolbarGroup,
   ToolbarItem,
 } from '@patternfly/react-core';
-import { MetricsTimeRangeSelect } from '~/concepts/metrics/MetricsTimeRangeSelect';
-import { MetricsRefreshIntervalSelect } from '~/concepts/metrics/MetricsRefreshIntervalSelect';
+import { MetricsTimeRangeSelect } from '#~/concepts/metrics/MetricsTimeRangeSelect';
+import { MetricsRefreshIntervalSelect } from '#~/concepts/metrics/MetricsRefreshIntervalSelect';
 
 type MetricsPageToolbarProps = {
   leftToolbarItem?: React.ReactElement<typeof ToolbarItem | typeof ToolbarGroup>;

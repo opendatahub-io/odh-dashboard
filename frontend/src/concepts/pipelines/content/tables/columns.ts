@@ -3,14 +3,14 @@ import {
   checkboxTableColumn,
   expandTableColumn,
   kebabTableColumn,
-} from '~/components/table';
+} from '#~/components/table';
 import {
   PipelineVersionKF,
   PipelineKF,
   PipelineRecurringRunKF,
   PipelineRunKF,
   ExperimentKF,
-} from '~/concepts/pipelines/kfTypes';
+} from '#~/concepts/pipelines/kfTypes';
 
 export const pipelineColumns: SortableData<PipelineKF>[] = [
   expandTableColumn(),

@@ -1,18 +1,15 @@
-import type { DataScienceProjectData } from '~/__tests__/cypress/cypress/types';
+import type { DataScienceProjectData } from '#~/__tests__/cypress/cypress/types';
 import {
   editProjectModal,
   projectDetails,
   projectListPage,
-} from '~/__tests__/cypress/cypress/pages/projects';
-import { HTPASSWD_CLUSTER_ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
-import { loadDSPFixture } from '~/__tests__/cypress/cypress/utils/dataLoader';
-import { createCleanProject } from '~/__tests__/cypress/cypress/utils/projectChecker';
-import { deleteOpenShiftProject } from '~/__tests__/cypress/cypress/utils/oc_commands/project';
-import {
-  retryableBefore,
-  wasSetupPerformed,
-} from '~/__tests__/cypress/cypress/utils/retryableHooks';
-import { generateTestUUID } from '~/__tests__/cypress/cypress/utils/uuidGenerator';
+} from '#~/__tests__/cypress/cypress/pages/projects';
+import { HTPASSWD_CLUSTER_ADMIN_USER } from '#~/__tests__/cypress/cypress/utils/e2eUsers';
+import { loadDSPFixture } from '#~/__tests__/cypress/cypress/utils/dataLoader';
+import { createCleanProject } from '#~/__tests__/cypress/cypress/utils/projectChecker';
+import { deleteOpenShiftProject } from '#~/__tests__/cypress/cypress/utils/oc_commands/project';
+import { retryableBefore } from '#~/__tests__/cypress/cypress/utils/retryableHooks';
+import { generateTestUUID } from '#~/__tests__/cypress/cypress/utils/uuidGenerator';
 
 describe('Verify Data Science Project - Editing', () => {
   let testData: DataScienceProjectData;
@@ -36,13 +33,10 @@ describe('Verify Data Science Project - Editing', () => {
       });
   });
   after(() => {
-    //Check if the Before Method was executed to perform the setup
-    if (!wasSetupPerformed()) return;
-
     // Delete provisioned Project
     if (projectName) {
       cy.log(`Deleting Project ${projectName} after the test has finished.`);
-      deleteOpenShiftProject(projectName);
+      deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
     }
   });
 

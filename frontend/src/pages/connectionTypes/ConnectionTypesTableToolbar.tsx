@@ -1,8 +1,8 @@
 import { Button, SearchInput, ToolbarItem } from '@patternfly/react-core';
 import React from 'react';
 import { Link } from 'react-router-dom';
-import FilterToolbar from '~/components/FilterToolbar';
-import { ConnectionTypesOptions, FilterDataType, options } from '~/pages/connectionTypes/const';
+import FilterToolbar from '#~/components/FilterToolbar';
+import { ConnectionTypesOptions, FilterDataType, options } from '#~/pages/connectionTypes/const';
 
 type Props = {
   filterData: Record<ConnectionTypesOptions, string | undefined>;

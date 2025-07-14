@@ -12,9 +12,9 @@ import {
   Content,
 } from '@patternfly/react-core';
 import { ArrowRightIcon, ExclamationCircleIcon } from '@patternfly/react-icons';
-import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import { ProjectObjectType, SectionType, typedEmptyImage } from '~/concepts/design/utils';
-import OverviewCard from '~/pages/projects/screens/detail/overview/components/OverviewCard';
+import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
+import { ProjectObjectType, SectionType, typedEmptyImage } from '#~/concepts/design/utils';
+import OverviewCard from '#~/pages/projects/screens/detail/overview/components/OverviewCard';
 import NotebooksCardItems from './NotebooksCardItems';
 import MetricsContents from './MetricsContents';
 

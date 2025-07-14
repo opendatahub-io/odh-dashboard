@@ -1,8 +1,8 @@
 import React from 'react';
-import { TableBase } from '~/components/table';
-import { NodeSelector } from '~/types';
-import NodeSelectorTableRow from '~/pages/hardwareProfiles/nodeSelector/NodeSelectorTableRow';
-import ManageNodeSelectorModal from '~/pages/hardwareProfiles/nodeSelector/ManageNodeSelectorModal';
+import { TableBase } from '#~/components/table';
+import { NodeSelector } from '#~/types';
+import NodeSelectorTableRow from '#~/pages/hardwareProfiles/nodeSelector/NodeSelectorTableRow';
+import ManageNodeSelectorModal from '#~/pages/hardwareProfiles/nodeSelector/ManageNodeSelectorModal';
 import { nodeSelectorColumns, NodeSelectorRow } from './const';
 
 type NodeSelectorTableProps = {

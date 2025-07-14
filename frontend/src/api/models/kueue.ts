@@ -20,3 +20,10 @@ export const WorkloadModel: K8sModelCommon = {
   kind: 'Workload',
   plural: 'workloads',
 };
+
+export const WorkloadPriorityClassModel: K8sModelCommon = {
+  apiVersion: 'v1beta1',
+  apiGroup: 'kueue.x-k8s.io',
+  kind: 'WorkloadPriorityClass',
+  plural: 'workloadpriorityclasses',
+};

@@ -12,9 +12,9 @@ import {
 } from '@patternfly/react-core';
 import { TimesIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router';
-import { useBrowserStorage } from '~/components/browserStorage';
-import aiFlowHintImage from '~/images/AIFlowHintImage.svg';
-import { modelCustomizationRootPath } from '~/routes';
+import { useBrowserStorage } from '#~/components/browserStorage/BrowserStorageContext';
+import aiFlowHintImage from '#~/images/AIFlowHintImage.svg';
+import { modelCustomizationRootPath } from '#~/routes/pipelines/modelCustomization';
 
 type AIFlowHintProps = {
   isDisplayed: boolean;

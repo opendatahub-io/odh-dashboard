@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { Content } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
-import jupyterImg from '~/images/jupyter.svg';
-import { ODH_PRODUCT_NAME } from '~/utilities/const';
-import { useCheckJupyterEnabled } from '~/utilities/notebookControllerUtils';
+import jupyterImg from '#~/images/jupyter.svg';
+import { ODH_PRODUCT_NAME } from '#~/utilities/const';
+import { useCheckJupyterEnabled } from '#~/utilities/notebookControllerUtils';
 import HomeHint from './HomeHint';
 
 const LandingPageHomeHint: React.FC = () => (

@@ -3,7 +3,7 @@ import {
   K8sResourceDeleteOptions,
   QueryParams,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { K8sAPIOptions } from '~/k8sTypes';
+import { K8sAPIOptions } from '#~/k8sTypes';
 
 const dryRunPayload = (dryRun?: boolean): Pick<K8sResourceDeleteOptions, 'payload'> =>
   dryRun ? { payload: { dryRun: ['All'] } } : {};

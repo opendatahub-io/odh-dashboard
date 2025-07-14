@@ -1,5 +1,5 @@
-import type { GrpcResponse } from '~/__mocks__/mlmd/utils';
-import { Contextual } from '~/__tests__/cypress/cypress/pages/components/Contextual';
+import type { GrpcResponse } from '#~/__mocks__/mlmd/utils';
+import { Contextual } from '#~/__tests__/cypress/cypress/pages/components/Contextual';
 
 class ArtifactsGlobal {
   visit(projectName: string) {
@@ -100,6 +100,10 @@ class ArtifactDetails {
   private wait(pageTitle: string) {
     cy.findByTestId('app-page-title').contains(pageTitle);
     cy.testA11y();
+  }
+
+  findProjectNavigatorLink() {
+    return cy.findByTestId('project-navigator-link-in-breadcrumb');
   }
 
   shouldFailToLoadRun() {

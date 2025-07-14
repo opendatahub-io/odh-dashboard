@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import BaseModelSection from '~/pages/pipelines/global/modelCustomization/baseModelSection/BaseModelSection';
+import BaseModelSection from '#~/pages/pipelines/global/modelCustomization/baseModelSection/BaseModelSection';
 
 describe('BaseModelSection', () => {
   const defaultProps = {

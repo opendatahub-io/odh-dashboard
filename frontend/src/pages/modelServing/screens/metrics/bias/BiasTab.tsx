@@ -12,17 +12,17 @@ import {
   ToolbarItem,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
-import MetricsPageToolbar from '~/concepts/metrics/MetricsPageToolbar';
-import BiasMetricConfigSelector from '~/pages/modelServing/screens/metrics/bias/BiasMetricConfigSelector';
-import { useModelBiasData } from '~/concepts/trustyai/context/useModelBiasData';
-import BiasChart from '~/pages/modelServing/screens/metrics/bias/BiasChart';
-import EmptyBiasConfigurationCard from '~/pages/modelServing/screens/metrics/bias/BiasConfigurationPage/EmptyBiasConfigurationCard';
-import EmptyBiasChartSelectionCard from '~/pages/modelServing/screens/metrics/bias/EmptyBiasChartSelectionCard';
-import DashboardExpandableSection from '~/concepts/dashboard/DashboardExpandableSection';
-import useBiasChartSelections from '~/pages/modelServing/screens/metrics/bias/useBiasChartSelections';
-import { ModelMetricType } from '~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
-import EnsureMetricsAvailable from '~/pages/modelServing/screens/metrics/EnsureMetricsAvailable';
-import { TrustyInstallState } from '~/concepts/trustyai/types';
+import MetricsPageToolbar from '#~/concepts/metrics/MetricsPageToolbar';
+import BiasMetricConfigSelector from '#~/pages/modelServing/screens/metrics/bias/BiasMetricConfigSelector';
+import { useModelBiasData } from '#~/concepts/trustyai/context/useModelBiasData';
+import BiasChart from '#~/pages/modelServing/screens/metrics/bias/BiasChart';
+import EmptyBiasConfigurationCard from '#~/pages/modelServing/screens/metrics/bias/BiasConfigurationPage/EmptyBiasConfigurationCard';
+import EmptyBiasChartSelectionCard from '#~/pages/modelServing/screens/metrics/bias/EmptyBiasChartSelectionCard';
+import DashboardExpandableSection from '#~/concepts/dashboard/DashboardExpandableSection';
+import useBiasChartSelections from '#~/pages/modelServing/screens/metrics/bias/useBiasChartSelections';
+import { ModelMetricType } from '#~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
+import EnsureMetricsAvailable from '#~/pages/modelServing/screens/metrics/EnsureMetricsAvailable';
+import { TrustyInstallState } from '#~/concepts/trustyai/types';
 
 const OPEN_WRAPPER_STORAGE_KEY_PREFIX = `odh.dashboard.xai.bias_metric_chart_wrapper_open`;
 const BiasTab: React.FC = () => {

@@ -7,6 +7,7 @@ export enum ProjectSectionID {
   PIPELINES = 'pipelines-projects',
   PERMISSIONS = 'permissions',
   SETTINGS = 'settings',
+  CHATBOT = 'chatbot',
 }
 
 export type ProjectSectionTitlesType = {

@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Timestamp, TimestampTooltipVariant } from '@patternfly/react-core';
-import { relativeTime } from '~/utilities/time';
+import { relativeTime } from '#~/utilities/time';
 
 type PipelinesTableRowTimeProps = {
   date: Date;

@@ -1,11 +1,11 @@
 import { act } from 'react';
-import axios from '~/utilities/axios';
-import { mockPrometheusQueryVectorResponse } from '~/__mocks__/mockPrometheusQueryVectorResponse';
-import { mockWorkloadK8sResource } from '~/__mocks__/mockWorkloadK8sResource';
-import { WorkloadKind, WorkloadOwnerType } from '~/k8sTypes';
-import { getWorkloadOwner } from '~/concepts/distributedWorkloads/utils';
-import { testHook } from '~/__tests__/unit/testUtils/hooks';
-import { POLL_INTERVAL } from '~/utilities/const';
+import axios from '#~/utilities/axios';
+import { mockPrometheusQueryVectorResponse } from '#~/__mocks__/mockPrometheusQueryVectorResponse';
+import { mockWorkloadK8sResource } from '#~/__mocks__/mockWorkloadK8sResource';
+import { WorkloadKind, WorkloadOwnerType } from '#~/k8sTypes';
+import { getWorkloadOwner } from '#~/concepts/distributedWorkloads/utils';
+import { testHook } from '#~/__tests__/unit/testUtils/hooks';
+import { POLL_INTERVAL } from '#~/utilities/const';
 import {
   DWProjectCurrentMetrics,
   EMPTY_WORKLOAD_METRIC_INDEXED_BY_OWNER,
@@ -17,7 +17,7 @@ import {
   getTotalUsage,
   indexWorkloadMetricByOwner,
   useDWProjectCurrentMetrics,
-} from '~/api/prometheus/distributedWorkloads';
+} from '#~/api/prometheus/distributedWorkloads';
 
 const mockCpuUsageResults: WorkloadMetricPromQueryResponse['data']['result'] = [
   {
@@ -310,7 +310,7 @@ describe('getTopResourceConsumingWorkloads', () => {
   });
 });
 
-jest.mock('~/utilities/axios', () => ({
+jest.mock('#~/utilities/axios', () => ({
   post: jest.fn(),
 }));
 
@@ -462,7 +462,7 @@ describe('useDWProjectCurrentMetrics', () => {
     renderResult.result.current.refresh();
     await renderResult.waitForNextUpdate();
     expect(mockAxios).toHaveBeenCalledTimes(6);
-    expect(renderResult).hookToHaveUpdateCount(4);
+    expect(renderResult).hookToHaveUpdateCount(5);
   });
 
   it('should handle errors and return first error found', async () => {

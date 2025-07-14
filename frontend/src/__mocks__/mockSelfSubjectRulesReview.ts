@@ -1,4 +1,4 @@
-import { SelfSubjectRulesReviewKind } from '~/k8sTypes';
+import { SelfSubjectRulesReviewKind } from '#~/k8sTypes';
 
 export const mockSelfSubjectRulesReview = (): SelfSubjectRulesReviewKind => ({
   kind: 'SelfSubjectRulesReview',

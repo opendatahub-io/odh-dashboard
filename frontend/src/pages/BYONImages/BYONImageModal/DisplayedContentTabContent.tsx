@@ -8,7 +8,7 @@ import {
   TabContent,
 } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
-import { BYONImagePackage } from '~/types';
+import { BYONImagePackage } from '#~/types';
 import { DisplayedContentTab } from './ManageBYONImageModal';
 import DisplayedContentTable from './DisplayedContentTable';
 

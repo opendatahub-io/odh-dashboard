@@ -1,6 +1,6 @@
 import { K8sResourceListResult } from '@openshift/dynamic-plugin-sdk-utils';
-import { genUID } from '~/__mocks__/mockUtils';
-import { KnownLabels, ProjectKind } from '~/k8sTypes';
+import { genUID } from '#~/__mocks__/mockUtils';
+import { KnownLabels, ProjectKind } from '#~/k8sTypes';
 
 type MockResourceConfigType = {
   hasAnnotations?: boolean;

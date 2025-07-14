@@ -6,12 +6,7 @@ import {
   RouteKind,
   CSVKind,
 } from '../types';
-import {
-  getConsoleLinks,
-  getDashboardConfig,
-  getInstalledKfdefs,
-  getSubscriptions,
-} from './resourceUtils';
+import { getConsoleLinks, getDashboardConfig, getSubscriptions } from './resourceUtils';
 import { isHttpError } from '../utils';
 
 type RoutesResponse = {
@@ -214,20 +209,6 @@ const getCSVForApp = (
     });
 };
 
-const hasKfDefForApp = (appDef: OdhApplication): boolean => {
-  if (!appDef.spec.kfdefApplications?.length) {
-    return false;
-  }
-
-  const kfdefApps = getInstalledKfdefs();
-  if (kfdefApps.length === 0) {
-    // Only way we can have no KfDef applications is if we are no longer using the KfDef
-    return true;
-  }
-
-  return !!kfdefApps.find((kfdefApp) => appDef.spec.kfdefApplications.includes(kfdefApp.name));
-};
-
 // eslint-disable-next-line
 const getField = (obj: any, path: string, defaultValue: string = undefined): string => {
   const travel = (regexp: RegExp) =>
@@ -268,7 +249,7 @@ export const getIsAppEnabled = async (
   fastify: KubeFastifyInstance,
   appDef: OdhApplication,
 ): Promise<boolean> => {
-  if (hasKfDefForApp(appDef)) {
+  if (appDef.spec.category === 'Red Hat managed') {
     return true;
   }
 

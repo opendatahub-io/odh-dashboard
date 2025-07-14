@@ -9,7 +9,7 @@ import {
   HelperText,
   HelperTextItem,
 } from '@patternfly/react-core';
-import { MountPath } from '~/pages/projects/types';
+import { MountPath } from '#~/pages/projects/types';
 
 type MountPathFieldProps = {
   inUseMountPaths: string[];

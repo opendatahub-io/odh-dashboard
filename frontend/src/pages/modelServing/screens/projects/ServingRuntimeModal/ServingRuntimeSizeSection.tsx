@@ -5,16 +5,16 @@ import {
   HardwareProfileKind,
   HardwareProfileFeatureVisibility,
   ServingRuntimeKind,
-} from '~/k8sTypes';
-import { isGpuDisabled } from '~/pages/modelServing/screens/projects/utils';
-import AcceleratorProfileSelectField from '~/pages/notebookController/screens/server/AcceleratorProfileSelectField';
-import { getCompatibleIdentifiers } from '~/pages/projects/screens/spawner/spawnerUtils';
-import SimpleSelect from '~/components/SimpleSelect';
-import { formatMemory } from '~/utilities/valueUnits';
-import { ModelServingPodSpecOptionsState } from '~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import HardwareProfileFormSection from '~/concepts/hardwareProfiles/HardwareProfileFormSection';
-import { ModelServingSize } from '~/pages/modelServing/screens/types';
+} from '#~/k8sTypes';
+import { isGpuDisabled } from '#~/pages/modelServing/screens/projects/utils';
+import AcceleratorProfileSelectField from '#~/pages/notebookController/screens/server/AcceleratorProfileSelectField';
+import { getCompatibleIdentifiers } from '#~/pages/projects/screens/spawner/spawnerUtils';
+import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
+import { formatMemory } from '#~/utilities/valueUnits';
+import { ModelServingPodSpecOptionsState } from '#~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import HardwareProfileFormSection from '#~/concepts/hardwareProfiles/HardwareProfileFormSection';
+import { ModelServingSize } from '#~/pages/modelServing/screens/types';
 import ServingRuntimeSizeExpandedField from './ServingRuntimeSizeExpandedField';
 
 type ServingRuntimeSizeSectionProps = {
@@ -38,20 +38,34 @@ const ServingRuntimeSizeSection = ({
 
   const gpuDisabled = servingRuntimeSelected ? isGpuDisabled(servingRuntimeSelected) : false;
 
-  const customResources = customDefaults
-    ? customDefaults.resources
-    : podSpecOptionState.modelSize.sizes[0].resources;
+  const lastEditedCustomResourcesRef = React.useRef<ModelServingSize['resources'] | undefined>(
+    customDefaults?.resources,
+  );
 
-  const sizeCustom = [
-    ...podSpecOptionState.modelSize.sizes,
-    {
-      name: 'Custom',
-      resources: customResources,
-    },
-  ];
+  const getLatestCustomResources = (): ModelServingSize['resources'] =>
+    lastEditedCustomResourcesRef.current ||
+    customDefaults?.resources || {
+      requests: { cpu: '1', memory: '1Gi' },
+      limits: { cpu: '1', memory: '1Gi' },
+    };
+
+  const baseSizes = podSpecOptionState.modelSize.sizes.filter(
+    (size) =>
+      size.resources.limits?.cpu &&
+      size.resources.limits.memory &&
+      size.resources.requests?.cpu &&
+      size.resources.requests.memory,
+  );
+
+  const currentCustomSizeObject: ModelServingSize = {
+    name: 'Custom',
+    resources: getLatestCustomResources(),
+  };
+
+  const sizeCustom = [...baseSizes, currentCustomSizeObject];
 
   const sizeOptions = () =>
-    sizeCustom.map((size) => {
+    sizeCustom.map((size): SimpleSelectOption => {
       const { name } = size;
       const desc =
         name !== 'Custom'
@@ -114,9 +128,7 @@ const ServingRuntimeSizeSection = ({
                 options={sizeOptions()}
                 value={podSpecOptionState.modelSize.selectedSize.name}
                 toggleProps={{ id: 'model-server-size-selection' }}
-                toggleLabel={
-                  podSpecOptionState.modelSize.selectedSize.name || 'Select a model server size'
-                }
+                placeholder="Select a model server size"
                 onChange={(option) => {
                   const valuesSelected = sizeCustom.find((element) => element.name === option);
                   if (valuesSelected) {
@@ -130,12 +142,19 @@ const ServingRuntimeSizeSection = ({
               <StackItem>
                 <ServingRuntimeSizeExpandedField
                   data={podSpecOptionState.modelSize.selectedSize}
-                  setData={podSpecOptionState.modelSize.setSelectedSize}
+                  setData={(value) => {
+                    podSpecOptionState.modelSize.setSelectedSize(value);
+                    if (value.name === 'Custom') {
+                      lastEditedCustomResourcesRef.current = value.resources;
+                    }
+                  }}
                 />
               </StackItem>
             )}
             {!gpuDisabled && (
               <AcceleratorProfileSelectField
+                hasAdditionalPopoverInfo
+                currentProject={projectName}
                 initialState={podSpecOptionState.acceleratorProfile.initialState}
                 compatibleIdentifiers={
                   servingRuntimeSelected ? getCompatibleIdentifiers(servingRuntimeSelected) : []

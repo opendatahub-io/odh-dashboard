@@ -5,27 +5,27 @@ import {
   mockK8sResourceList,
   mockProjectK8sResource,
   mockSecretK8sResource,
-} from '~/__mocks__';
-import { mockDsciStatus } from '~/__mocks__/mockDsciStatus';
-import { StackCapability, StackComponent } from '~/concepts/areas/types';
-import { ProjectModel, SecretModel, ServiceModel } from '~/__tests__/cypress/cypress/utils/models';
+} from '#~/__mocks__';
+import { mockDsciStatus } from '#~/__mocks__/mockDsciStatus';
+import { StackComponent } from '#~/concepts/areas/types';
+import { ProjectModel, SecretModel, ServiceModel } from '#~/__tests__/cypress/cypress/utils/models';
 import {
   FormFieldSelector,
   registerModelPage,
-} from '~/__tests__/cypress/cypress/pages/modelRegistry/registerModelPage';
-import { mockRegisteredModel } from '~/__mocks__/mockRegisteredModel';
-import { mockModelVersion } from '~/__mocks__/mockModelVersion';
-import { mockModelArtifact } from '~/__mocks__/mockModelArtifact';
+} from '#~/__tests__/cypress/cypress/pages/modelRegistry/registerModelPage';
+import { mockRegisteredModel } from '#~/__mocks__/mockRegisteredModel';
+import { mockModelVersion } from '#~/__mocks__/mockModelVersion';
+import { mockModelArtifact } from '#~/__mocks__/mockModelArtifact';
 import {
   ModelArtifactState,
   ModelState,
   type RegisteredModel,
   type ModelVersion,
   type ModelArtifact,
-} from '~/concepts/modelRegistry/types';
-import { mockModelRegistryService } from '~/__mocks__/mockModelRegistryService';
-import { mockRegisteredModelList } from '~/__mocks__/mockRegisteredModelsList';
-import { KnownLabels } from '~/k8sTypes';
+} from '#~/concepts/modelRegistry/types';
+import { mockModelRegistryService } from '#~/__mocks__/mockModelRegistryService';
+import { mockRegisteredModelList } from '#~/__mocks__/mockRegisteredModelsList';
+import { KnownLabels } from '#~/k8sTypes';
 
 const MODEL_REGISTRY_API_VERSION = 'v1alpha3';
 const existingModelName = 'model1';
@@ -46,12 +46,7 @@ const initIntercepts = () => {
       },
     }),
   );
-  cy.interceptOdh(
-    'GET /api/dsci/status',
-    mockDsciStatus({
-      requiredCapabilities: [StackCapability.SERVICE_MESH, StackCapability.SERVICE_MESH_AUTHZ],
-    }),
-  );
+  cy.interceptOdh('GET /api/dsci/status', mockDsciStatus({}));
   cy.interceptK8sList(
     ProjectModel,
     mockK8sResourceList([

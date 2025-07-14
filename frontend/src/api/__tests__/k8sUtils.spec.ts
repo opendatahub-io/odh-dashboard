@@ -1,6 +1,6 @@
-import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
-import { mockSecretK8sResource } from '~/__mocks__/mockSecretK8sResource';
-import { addOwnerReference } from '~/api/k8sUtils';
+import { mockProjectK8sResource } from '#~/__mocks__/mockProjectK8sResource';
+import { mockSecretK8sResource } from '#~/__mocks__/mockSecretK8sResource';
+import { addOwnerReference } from '#~/api/k8sUtils';
 
 const resource = mockSecretK8sResource({});
 

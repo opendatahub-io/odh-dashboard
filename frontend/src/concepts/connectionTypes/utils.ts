@@ -1,6 +1,7 @@
-import { KnownLabels, SecretKind } from '~/k8sTypes';
-import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '~/concepts/k8s/utils';
-import { K8sNameDescriptionFieldData } from '~/concepts/k8s/K8sNameDescriptionField/types';
+import * as React from 'react';
+import { KnownLabels, SecretKind } from '#~/k8sTypes';
+import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '#~/concepts/k8s/utils';
+import { K8sNameDescriptionFieldData } from '#~/concepts/k8s/K8sNameDescriptionField/types';
 import {
   Connection,
   ConnectionTypeConfigMap,
@@ -12,11 +13,11 @@ import {
   ConnectionTypeFieldType,
   ConnectionTypeFieldTypeUnion,
   ConnectionTypeValueType,
-} from '~/concepts/connectionTypes/types';
-import { enumIterator } from '~/utilities/utils';
-import { AWSDataEntry, EnvVariableDataEntry } from '~/pages/projects/types';
-import { AwsKeys } from '~/pages/projects/dataConnections/const';
-import { isSecretKind } from '~/pages/projects/screens/spawner/environmentVariables/utils';
+} from '#~/concepts/connectionTypes/types';
+import { enumIterator } from '#~/utilities/utils';
+import { AWSDataEntry, EnvVariableDataEntry } from '#~/pages/projects/types';
+import { AwsKeys } from '#~/pages/projects/dataConnections/const';
+import { isSecretKind } from '#~/pages/projects/screens/spawner/environmentVariables/utils';
 
 export const isConnectionTypeDataFieldType = (
   type: ConnectionTypeFieldTypeUnion | string,
@@ -429,22 +430,6 @@ export const findSectionFields = (
   return fields.slice(sectionIndex + 1, nextSectionIndex === -1 ? undefined : nextSectionIndex);
 };
 
-export const VALID_ENV_VARNAME_REGEX = /^[A-Za-z_][A-Za-z0-9_\-.]*$/;
-export const STARTS_WITH_DIGIT_REGEX = /^\d/;
-
-export const validateEnvVarName = (name: string): string | undefined => {
-  if (!name) {
-    return undefined;
-  }
-  if (STARTS_WITH_DIGIT_REGEX.test(name)) {
-    return 'Must not start with a digit.';
-  }
-  if (!VALID_ENV_VARNAME_REGEX.test(name)) {
-    return "Must consist of alphabetic characters, digits, '_', '-', or '.'";
-  }
-  return undefined;
-};
-
 export const convertObjectStorageSecretData = (dataConnection: Connection): AWSDataEntry => {
   let convertedData: { key: AwsKeys; value: string }[] = [];
   const secretData = dataConnection.data;
@@ -465,3 +450,23 @@ export const convertObjectStorageSecretData = (dataConnection: Connection): AWSD
   ];
   return convertedSecret;
 };
+
+export const trimInputOnBlur =
+  (value: string | undefined, onChange?: (value: string) => void) =>
+  (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>): void => {
+    const trimmed = e.currentTarget.value.trim();
+    if (trimmed !== value && onChange) {
+      onChange(trimmed);
+    }
+  };
+
+export const trimInputOnPaste =
+  (value: string | undefined, onChange?: (value: string) => void) =>
+  (e: React.ClipboardEvent<HTMLInputElement | HTMLTextAreaElement>): void => {
+    const trimmed = e.clipboardData.getData('text').trim();
+    if (!onChange) {
+      return;
+    }
+    e.preventDefault();
+    onChange(trimmed);
+  };

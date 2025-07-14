@@ -1,4 +1,4 @@
-import { GroupsConfig } from '~/concepts/userConfigs/groupTypes';
+import { GroupsConfig } from '#~/concepts/userConfigs/groupTypes';
 
 export const mockGroupSettings = (): GroupsConfig => ({
   adminGroups: [

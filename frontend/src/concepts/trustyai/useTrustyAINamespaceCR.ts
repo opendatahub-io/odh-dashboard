@@ -3,13 +3,13 @@ import useFetchState, {
   FetchState,
   FetchStateCallbackPromise,
   NotReadyError,
-} from '~/utilities/useFetchState';
-import { TrustyAIKind } from '~/k8sTypes';
-import { getTrustyAICR } from '~/api';
-import { FAST_POLL_INTERVAL } from '~/utilities/const';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import { getTrustyStatusState } from '~/concepts/trustyai/utils';
-import { TrustyInstallState } from '~/concepts/trustyai/types';
+} from '#~/utilities/useFetchState';
+import { TrustyAIKind } from '#~/k8sTypes';
+import { getTrustyAICR } from '#~/api';
+import { FAST_POLL_INTERVAL } from '#~/utilities/const';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { getTrustyStatusState } from '#~/concepts/trustyai/utils';
+import { TrustyInstallState } from '#~/concepts/trustyai/types';
 
 type State = TrustyAIKind | null;
 

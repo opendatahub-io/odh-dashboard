@@ -1,8 +1,8 @@
 import {
   HTPASSWD_CLUSTER_ADMIN_USER,
   LDAP_CONTRIBUTOR_USER,
-} from '~/__tests__/cypress/cypress/utils/e2eUsers';
-import { header } from '~/__tests__/cypress/cypress/pages/components/Header';
+} from '#~/__tests__/cypress/cypress/utils/e2eUsers';
+import { header } from '#~/__tests__/cypress/cypress/pages/components/Header';
 
 describe('Verify that logged in users display on the Dashboard', () => {
   it(

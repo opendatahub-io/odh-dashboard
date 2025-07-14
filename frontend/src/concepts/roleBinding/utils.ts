@@ -1,6 +1,7 @@
 import { capitalize } from '@patternfly/react-core';
-import { ProjectKind, RoleBindingKind } from '~/k8sTypes';
-import { namespaceToProjectDisplayName } from '~/concepts/projects/utils';
+import { ProjectKind, RoleBindingKind } from '#~/k8sTypes';
+import { namespaceToProjectDisplayName } from '#~/concepts/projects/utils';
+import { patchRoleBindingSubjects } from '#~/api';
 import { RoleBindingPermissionsRBType, RoleBindingPermissionsRoleType } from './types';
 
 export const filterRoleBindingSubjects = (
@@ -25,7 +26,10 @@ export const castRoleBindingPermissionsRoleType = (
   if (role === RoleBindingPermissionsRoleType.EDIT) {
     return RoleBindingPermissionsRoleType.EDIT;
   }
-  return RoleBindingPermissionsRoleType.DEFAULT;
+  if (role.includes('registry-user')) {
+    return RoleBindingPermissionsRoleType.DEFAULT;
+  }
+  return RoleBindingPermissionsRoleType.CUSTOM;
 };
 
 export const firstSubject = (
@@ -49,3 +53,44 @@ export const roleLabel = (value: RoleBindingPermissionsRoleType): string => {
 
 export const removePrefix = (roleBindings: RoleBindingKind[]): string[] =>
   roleBindings.map((rb) => rb.subjects[0]?.name.replace(/^system:serviceaccounts:/, ''));
+
+export const isCurrentUserChanging = (
+  roleBinding: RoleBindingKind | undefined,
+  currentUsername: string,
+): boolean => {
+  if (!roleBinding) {
+    return false;
+  }
+  return currentUsername === roleBinding.subjects[0].name;
+};
+
+export const tryPatchRoleBinding = async (
+  oldRBObject: RoleBindingKind,
+  newRBObject: RoleBindingKind,
+): Promise<boolean> => {
+  // Trying to patch roleRef will always fail
+  if (oldRBObject.roleRef.name !== newRBObject.roleRef.name) {
+    return false;
+  }
+  try {
+    await patchRoleBindingSubjects(
+      oldRBObject.metadata.name,
+      oldRBObject.metadata.namespace,
+      newRBObject.subjects,
+      { dryRun: true },
+    );
+  } catch (e) {
+    return false;
+  }
+  try {
+    await patchRoleBindingSubjects(
+      oldRBObject.metadata.name,
+      oldRBObject.metadata.namespace,
+      newRBObject.subjects,
+      { dryRun: false },
+    );
+    return true;
+  } catch {
+    return false;
+  }
+};

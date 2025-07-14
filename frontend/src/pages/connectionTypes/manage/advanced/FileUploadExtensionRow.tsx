@@ -9,7 +9,7 @@ import {
   TextInput,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon, MinusCircleIcon } from '@patternfly/react-icons';
-import { EXTENSION_REGEX } from '~/concepts/connectionTypes/fields/fieldUtils';
+import { EXTENSION_REGEX } from '#~/concepts/connectionTypes/fields/fieldUtils';
 
 type FileUploadExtensionRowProps = {
   extension?: string;

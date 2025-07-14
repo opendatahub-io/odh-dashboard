@@ -21,9 +21,11 @@ import {
   HelperText,
   FlexItem,
   Flex,
+  SelectGroup,
+  Divider,
 } from '@patternfly/react-core';
 import { TimesIcon } from '@patternfly/react-icons';
-import TruncatedText from '~/components/TruncatedText';
+import TruncatedText from '#~/components/TruncatedText';
 
 export interface TypeaheadSelectOption extends Omit<SelectOptionProps, 'content' | 'isSelected'> {
   /** Content of the select option. */
@@ -33,6 +35,8 @@ export interface TypeaheadSelectOption extends Omit<SelectOptionProps, 'content'
   /** Indicator for option being selected */
   isSelected?: boolean;
   dropdownLabel?: React.ReactNode;
+  selectedLabel?: React.ReactNode;
+  group?: string;
 }
 
 export interface TypeaheadSelectProps extends Omit<SelectProps, 'toggle' | 'onSelect'> {
@@ -400,32 +404,126 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
       {...toggleProps}
     >
       <TextInputGroup isPlain>
-        <TextInputGroupMain
-          value={isFiltering ? filterValue : selected?.content ?? ''}
-          onClick={onInputClick}
-          onChange={onTextInputChange}
-          onKeyDown={onInputKeyDown}
-          autoComplete="off"
-          innerRef={textInputRef}
-          placeholder={placeholder}
-          {...(activeItemId && { 'aria-activedescendant': activeItemId })}
-          role="combobox"
-          isExpanded={isOpen}
-          aria-controls="select-typeahead-listbox"
-        />
-        {(isFiltering && filterValue) || (allowClear && selected) ? (
-          <TextInputGroupUtilities>
-            <Button
-              icon={<TimesIcon aria-hidden />}
-              variant="plain"
-              onClick={onClearButtonClick}
-              aria-label="Clear input value"
+        <Flex alignItems={{ default: 'alignItemsCenter' }} style={{ width: '100%' }}>
+          <FlexItem style={{ flex: 1 }}>
+            <TextInputGroupMain
+              value={isFiltering ? filterValue : selected?.content ?? ''}
+              onClick={onInputClick}
+              onChange={onTextInputChange}
+              onKeyDown={onInputKeyDown}
+              autoComplete="off"
+              innerRef={textInputRef}
+              placeholder={placeholder}
+              {...(activeItemId && { 'aria-activedescendant': activeItemId })}
+              role="combobox"
+              isExpanded={isOpen}
+              aria-controls="select-typeahead-listbox"
             />
-          </TextInputGroupUtilities>
-        ) : null}
+          </FlexItem>
+          {selected && selected.selectedLabel && <FlexItem>{selected.selectedLabel}</FlexItem>}
+          {(isFiltering && filterValue) || (allowClear && selected) ? (
+            <FlexItem>
+              <TextInputGroupUtilities>
+                <Button
+                  icon={<TimesIcon aria-hidden />}
+                  variant="plain"
+                  onClick={onClearButtonClick}
+                  aria-label="Clear input value"
+                />
+              </TextInputGroupUtilities>
+            </FlexItem>
+          ) : null}
+        </Flex>
       </TextInputGroup>
     </MenuToggle>
   );
+
+  const groupedSelections = React.useMemo(() => {
+    const group: Record<string, TypeaheadSelectOption[]> = {};
+    const noGroup: TypeaheadSelectOption[] = [];
+
+    filteredSelections.forEach((option) => {
+      if (option.group) {
+        if (option.group in group) {
+          group[option.group].push(option);
+        } else {
+          group[option.group] = [option];
+        }
+      } else {
+        noGroup.push(option);
+      }
+    });
+
+    return { group, noGroup };
+  }, [filteredSelections]);
+
+  const tSelectOption = (option: TypeaheadSelectOption, index: number) => {
+    const { content, value, dropdownLabel, ...optionProps } = option;
+    return (
+      <SelectOption
+        key={value}
+        value={value}
+        isFocused={focusedItemIndex === index}
+        {...optionProps}
+      >
+        {dropdownLabel ? (
+          <Flex>
+            <FlexItem>{content}</FlexItem>
+            <FlexItem>{dropdownLabel}</FlexItem>
+          </Flex>
+        ) : (
+          content
+        )}
+      </SelectOption>
+    );
+  };
+
+  const tGroupOption = (
+    group: string,
+    groupOptions: TypeaheadSelectOption[],
+    optionIdx: number,
+    addDivider: boolean,
+  ): { node: React.ReactNode; nextIndex: number } => {
+    let index = optionIdx;
+    const testId = `typeahead-group-${group
+      .toLowerCase()
+      .replace(/\s+/g, '-')
+      .replace(/[()]/g, '')}`;
+    return {
+      node: (
+        <>
+          <SelectGroup key={group} label={group} data-testid={testId}>
+            {groupOptions.map((opt) => tSelectOption(opt, index++))}
+          </SelectGroup>
+          {addDivider && <Divider />}
+        </>
+      ),
+      nextIndex: index,
+    };
+  };
+
+  const renderOptions = (): React.ReactNode => {
+    let idx = 0;
+    const groupEntries = Object.entries(groupedSelections.group);
+    const groupOpts = groupEntries.map(([groupName, group], groupIndex) => {
+      const { node, nextIndex } = tGroupOption(
+        groupName,
+        group,
+        idx,
+        groupIndex !== groupEntries.length - 1,
+      );
+      idx = nextIndex;
+      return node;
+    });
+    const selectOpts = groupedSelections.noGroup.map((opt) => tSelectOption(opt, idx++));
+    return (
+      <>
+        {groupOpts}
+        {selectOpts.length > 0 && <Divider />}
+        {selectOpts}
+      </>
+    );
+  };
 
   return (
     <>
@@ -439,28 +537,7 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
         ref={innerRef}
         {...props}
       >
-        <SelectList>
-          {filteredSelections.map((option, index) => {
-            const { content, value, dropdownLabel, ...optionProps } = option;
-            return (
-              <SelectOption
-                key={value}
-                value={value}
-                isFocused={focusedItemIndex === index}
-                {...optionProps}
-              >
-                {dropdownLabel ? (
-                  <Flex>
-                    <FlexItem>{content}</FlexItem>
-                    <FlexItem>{dropdownLabel}</FlexItem>
-                  </Flex>
-                ) : (
-                  content
-                )}
-              </SelectOption>
-            );
-          })}
-        </SelectList>
+        <SelectList>{renderOptions()}</SelectList>
       </Select>
       {previewDescription && isSingleOption && selected?.description ? (
         <FormHelperText>

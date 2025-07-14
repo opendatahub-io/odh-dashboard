@@ -1,14 +1,14 @@
 import * as React from 'react';
-import { DistributedWorkloadsContext } from '~/concepts/distributedWorkloads/DistributedWorkloadsContext';
-import { SortableData, Table } from '~/components/table';
+import { DistributedWorkloadsContext } from '#~/concepts/distributedWorkloads/DistributedWorkloadsContext';
+import { SortableData, Table } from '#~/components/table';
 import {
   getStatusInfo,
   getWorkloadRequestedResources,
-} from '~/concepts/distributedWorkloads/utils';
-import { WorkloadKind } from '~/k8sTypes';
-import EmptyStateErrorMessage from '~/components/EmptyStateErrorMessage';
-import { LoadingState } from '~/pages/distributedWorkloads/components/LoadingState';
-import { NoWorkloadState } from '~/pages/distributedWorkloads/components/NoWorkloadState';
+} from '#~/concepts/distributedWorkloads/utils';
+import { WorkloadKind } from '#~/k8sTypes';
+import EmptyStateErrorMessage from '#~/components/EmptyStateErrorMessage';
+import { LoadingState } from '#~/pages/distributedWorkloads/components/LoadingState';
+import { NoWorkloadState } from '#~/pages/distributedWorkloads/components/NoWorkloadState';
 import WorkloadResourceMetricsTableRow from './WorkloadResourceMetricsTableRow';
 
 export const WorkloadResourceMetricsTable: React.FC = () => {

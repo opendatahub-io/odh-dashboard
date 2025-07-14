@@ -1,6 +1,6 @@
-import { mockDscStatus } from '~/__mocks__';
-import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
-import { argoAlert } from '~/__tests__/cypress/cypress/pages/pipelines/argoAlert';
+import { mockDscStatus } from '#~/__mocks__';
+import { appChrome } from '#~/__tests__/cypress/cypress/pages/appChrome';
+import { argoAlert } from '#~/__tests__/cypress/cypress/pages/pipelines/argoAlert';
 
 describe('Argo Alert', () => {
   it('should display Data Science Pipelines enablement failed alert', () => {

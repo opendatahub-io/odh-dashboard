@@ -1,16 +1,16 @@
-import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
-import { mockDscStatus } from '~/__mocks__/mockDscStatus';
-import { mockInferenceServiceK8sResource } from '~/__mocks__/mockInferenceServiceK8sResource';
-import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
-import { mock200Status } from '~/__mocks__/mockK8sStatus';
-import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
-import { mockSecretK8sResource } from '~/__mocks__/mockSecretK8sResource';
-import { mockServingRuntimeK8sResource } from '~/__mocks__/mockServingRuntimeK8sResource';
+import { mockDashboardConfig } from '#~/__mocks__/mockDashboardConfig';
+import { mockDscStatus } from '#~/__mocks__/mockDscStatus';
+import { mockInferenceServiceK8sResource } from '#~/__mocks__/mockInferenceServiceK8sResource';
+import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
+import { mock200Status } from '#~/__mocks__/mockK8sStatus';
+import { mockProjectK8sResource } from '#~/__mocks__/mockProjectK8sResource';
+import { mockSecretK8sResource } from '#~/__mocks__/mockSecretK8sResource';
+import { mockServingRuntimeK8sResource } from '#~/__mocks__/mockServingRuntimeK8sResource';
 import {
   mockInvalidTemplateK8sResource,
   mockServingRuntimeTemplateK8sResource,
-} from '~/__mocks__/mockServingRuntimeTemplateK8sResource';
-import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
+} from '#~/__mocks__/mockServingRuntimeTemplateK8sResource';
+import { deleteModal } from '#~/__tests__/cypress/cypress/pages/components/DeleteModal';
 import {
   inferenceServiceModal,
   inferenceServiceModalEdit,
@@ -18,32 +18,43 @@ import {
   kserveModalEdit,
   modelServingGlobal,
   modelServingSection,
-} from '~/__tests__/cypress/cypress/pages/modelServing';
+} from '#~/__tests__/cypress/cypress/pages/modelServing';
 import {
+  AcceleratorProfileModel,
   HardwareProfileModel,
   InferenceServiceModel,
   ProjectModel,
   SecretModel,
   ServingRuntimeModel,
   TemplateModel,
-} from '~/__tests__/cypress/cypress/utils/models';
-import { DeploymentMode, type InferenceServiceKind, type ServingRuntimeKind } from '~/k8sTypes';
-import { ServingRuntimePlatform } from '~/types';
-import { be } from '~/__tests__/cypress/cypress/utils/should';
-import { asClusterAdminUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
-import { testPagination } from '~/__tests__/cypress/cypress/utils/pagination';
+} from '#~/__tests__/cypress/cypress/utils/models';
+import {
+  DeploymentMode,
+  type TemplateKind,
+  type InferenceServiceKind,
+  type ServingRuntimeKind,
+} from '#~/k8sTypes';
+import { ServingRuntimePlatform } from '#~/types';
+import { be } from '#~/__tests__/cypress/cypress/utils/should';
+import { asClusterAdminUser } from '#~/__tests__/cypress/cypress/utils/mockUsers';
+import { testPagination } from '#~/__tests__/cypress/cypress/utils/pagination';
 import {
   mockConnectionTypeConfigMap,
   mockModelServingFields,
   mockOciConnectionTypeConfigMap,
-} from '~/__mocks__/mockConnectionType';
-import { hardwareProfileSection } from '~/__tests__/cypress/cypress/pages/components/HardwareProfileSection';
+} from '#~/__mocks__/mockConnectionType';
+import { hardwareProfileSection } from '#~/__tests__/cypress/cypress/pages/components/HardwareProfileSection';
 import {
   mockGlobalScopedHardwareProfiles,
   mockProjectScopedHardwareProfiles,
-} from '~/__mocks__/mockHardwareProfile';
-import { initInterceptsForAllProjects } from '~/__tests__/cypress/cypress/utils/servingUtils';
-import { nimDeployModal } from '~/__tests__/cypress/cypress/pages/components/NIMDeployModal';
+} from '#~/__mocks__/mockHardwareProfile';
+import { initInterceptsForAllProjects } from '#~/__tests__/cypress/cypress/utils/servingUtils';
+import { nimDeployModal } from '#~/__tests__/cypress/cypress/pages/components/NIMDeployModal';
+import {
+  mockGlobalScopedAcceleratorProfiles,
+  mockProjectScopedAcceleratorProfiles,
+} from '#~/__mocks__/mockAcceleratorProfile';
+import { acceleratorProfileSection } from '#~/__tests__/cypress/cypress/pages/components/subComponents/AcceleratorProfileSection';
 
 type HandlersProps = {
   disableKServeConfig?: boolean;
@@ -57,6 +68,7 @@ type HandlersProps = {
   disableServingRuntimeParamsConfig?: boolean;
   disableProjectScoped?: boolean;
   disableHardwareProfiles?: boolean;
+  servingRuntimesTemplates?: TemplateKind[];
 };
 
 const initIntercepts = ({
@@ -205,6 +217,18 @@ const initIntercepts = ({
       { namespace: 'opendatahub' },
     ),
   );
+
+  // Mock accelerator profiles
+  cy.interceptK8sList(
+    { model: AcceleratorProfileModel, ns: 'opendatahub' },
+    mockK8sResourceList(mockGlobalScopedAcceleratorProfiles),
+  ).as('acceleratorProfiles');
+
+  cy.interceptK8sList(
+    { model: AcceleratorProfileModel, ns: 'test-project' },
+    mockK8sResourceList(mockProjectScopedAcceleratorProfiles),
+  ).as('acceleratorProfiles');
+
   cy.interceptOdh('GET /api/connection-types', [
     mockConnectionTypeConfigMap({
       displayName: 'URI - v1',
@@ -325,7 +349,7 @@ describe('Model Serving Global', () => {
     modelServingSection
       .getInferenceServiceRow('NIM Model')
       .findServingRuntime()
-      .should('have.text', 'NVIDIA NIM');
+      .should('contain.text', 'NVIDIA NIM');
 
     // Open each modal and make sure it is the correct one
     modelServingGlobal.getModelRow('KServe Model').findKebabAction('Edit').click();
@@ -644,7 +668,8 @@ describe('Model Serving Global', () => {
 
     kserveModal.shouldBeOpen();
     kserveModal.findServingRuntimeTemplateHelptext().should('not.exist');
-    kserveModal.findServingRuntimeTemplateDropdown().findSelectOption('Caikit').click();
+    kserveModal.findServingRuntimeTemplateSearchSelector().click();
+    kserveModal.findGlobalScopedTemplateOption('Caikit').click();
     kserveModal.findServingRuntimeTemplateHelptext().should('exist');
   });
 
@@ -662,29 +687,27 @@ describe('Model Serving Global', () => {
 
     // Check for project specific serving runtimes
     kserveModal.findServingRuntimeTemplateSearchSelector().click();
-    const projectScopedSR = kserveModal.getProjectScopedServingRuntime();
-    projectScopedSR.find().findByRole('menuitem', { name: 'Multi Platform', hidden: true }).click();
+    kserveModal.findProjectScopedTemplateOption('Multi Platform').click();
     kserveModal.findProjectScopedLabel().should('exist');
 
     // Check for global specific serving runtimes
     kserveModal.findServingRuntimeTemplateSearchSelector().click();
-    const globalScopedSR = kserveModal.getGlobalScopedServingRuntime();
-    globalScopedSR.find().findByRole('menuitem', { name: 'Multi Platform', hidden: true }).click();
+    kserveModal.findGlobalScopedTemplateOption('Multi Platform').click();
     kserveModal.findGlobalScopedLabel().should('exist');
     kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
 
     // check model framework selection when serving runtime changes
     kserveModal.findServingRuntimeTemplateSearchSelector().click();
-    globalScopedSR.find().findByRole('menuitem', { name: 'Multi Platform', hidden: true }).click();
+    kserveModal.findGlobalScopedTemplateOption('Multi Platform').click();
     kserveModal.findModelFrameworkSelect().should('have.text', 'onnx - 1');
 
     kserveModal.findServingRuntimeTemplateSearchSelector().click();
-    globalScopedSR.find().findByRole('menuitem', { name: 'Caikit', hidden: true }).click();
+    kserveModal.findGlobalScopedTemplateOption('Caikit').click();
     kserveModal.findModelFrameworkSelect().should('be.enabled');
     kserveModal.findModelFrameworkSelect().should('have.text', 'Select a framework');
 
     kserveModal.findServingRuntimeTemplateSearchSelector().click();
-    projectScopedSR.find().findByRole('menuitem', { name: 'Caikit', hidden: true }).click();
+    kserveModal.findProjectScopedTemplateOption('Caikit').click();
     kserveModal.findModelFrameworkSelect().should('be.disabled');
     kserveModal.findModelFrameworkSelect().should('have.text', 'openvino_ir - opset1');
   });
@@ -707,7 +730,7 @@ describe('Model Serving Global', () => {
     kserveModalEdit.findServingRuntimeTemplateSearchSelector().should('be.disabled');
     kserveModalEdit
       .findServingRuntimeTemplateSearchSelector()
-      .should('have.text', 'test-project-scoped-sr Project-scoped');
+      .should('contain.text', 'test-project-scoped-sr');
     kserveModalEdit.findProjectScopedLabel().should('exist');
     kserveModalEdit.findModelFrameworkSelect().should('have.text', 'onnx - 1');
   });
@@ -760,6 +783,7 @@ describe('Model Serving Global', () => {
       servingRuntimes: [
         mockServingRuntimeK8sResource({
           hardwareProfileName: 'large-profile-1',
+          hardwareProfileNamespace: 'test-project',
         }),
       ],
     });
@@ -769,6 +793,84 @@ describe('Model Serving Global', () => {
       .findHardwareProfileSearchSelector()
       .should('contain.text', 'Large Profile-1');
     hardwareProfileSection.findProjectScopedLabel().should('exist');
+  });
+
+  it('should display accelerator profile selection when both accelerator profile and project-scoped feature flag is enabled', () => {
+    initIntercepts({
+      projectEnableModelMesh: false,
+      disableServingRuntimeParamsConfig: false,
+      disableProjectScoped: false,
+    });
+    modelServingGlobal.visit('test-project');
+    modelServingGlobal.findDeployModelButton().click();
+    kserveModal.findModelNameInput().should('exist');
+
+    // Verify accelerator profile section exists
+    acceleratorProfileSection.findAcceleratorProfileSearchSelector().should('exist');
+    acceleratorProfileSection.findAcceleratorProfileSearchSelector().click();
+
+    // verify available project-scoped accelerator profile
+    const projectScopedAcceleratorProfile =
+      acceleratorProfileSection.getProjectScopedAcceleratorProfile();
+    projectScopedAcceleratorProfile
+      .find()
+      .findByRole('menuitem', {
+        name: 'Small Profile nvidia.com/gpu',
+        hidden: true,
+      })
+      .click();
+    kserveModal.findProjectScopedLabel().should('exist');
+
+    // verify available global-scoped accelerator profile
+    acceleratorProfileSection.findAcceleratorProfileSearchSelector().click();
+    const globalScopedAcceleratorProfile =
+      acceleratorProfileSection.getGlobalScopedAcceleratorProfile();
+    globalScopedAcceleratorProfile
+      .find()
+      .findByRole('menuitem', {
+        name: 'Small Profile Global nvidia.com/gpu',
+        hidden: true,
+      })
+      .click();
+    kserveModal.findGlobalScopedLabel().should('exist');
+  });
+
+  it('Display project scoped label on accelerator profile selection on Edit', () => {
+    initIntercepts({
+      projectEnableModelMesh: false,
+      disableServingRuntimeParamsConfig: false,
+      disableProjectScoped: false,
+      servingRuntimes: [
+        mockServingRuntimeK8sResource({
+          acceleratorName: 'large-profile-1',
+          acceleratorProfileNamespace: 'test-project',
+        }),
+      ],
+    });
+    modelServingGlobal.visit('test-project');
+    modelServingGlobal.getModelRow('Test Inference Service').findKebabAction('Edit').click();
+    acceleratorProfileSection
+      .findAcceleratorProfileSearchSelector()
+      .should('contain.text', 'Large Profile-1');
+    kserveModalEdit.findProjectScopedLabel().should('exist');
+  });
+
+  it('Display Existing settings for deleted accelerator profile selection on Edit', () => {
+    initIntercepts({
+      projectEnableModelMesh: false,
+      disableServingRuntimeParamsConfig: false,
+      disableProjectScoped: false,
+      servingRuntimes: [
+        mockServingRuntimeK8sResource({
+          acceleratorName: 'large-profile-2',
+        }),
+      ],
+    });
+    modelServingGlobal.visit('test-project');
+    modelServingGlobal.getModelRow('Test Inference Service').findKebabAction('Edit').click();
+    acceleratorProfileSection
+      .findAcceleratorProfileSearchSelector()
+      .should('contain.text', 'Existing settings');
   });
 
   it('Display global scoped label on serving runtime selection', () => {
@@ -788,7 +890,7 @@ describe('Model Serving Global', () => {
     kserveModalEdit.findServingRuntimeTemplateSearchSelector().should('be.disabled');
     kserveModalEdit
       .findServingRuntimeTemplateSearchSelector()
-      .should('have.text', 'OpenVINO Serving Runtime (Supports GPUs) Global-scoped');
+      .should('contain.text', 'OpenVINO Serving Runtime (Supports GPUs)');
     kserveModalEdit.findGlobalScopedLabel().should('exist');
     kserveModalEdit.findModelFrameworkSelect().should('have.text', 'onnx - 1');
   });
@@ -806,7 +908,8 @@ describe('Model Serving Global', () => {
     kserveModal.findPredefinedArgsButton().click();
     kserveModal.findPredefinedArgsList().should('not.exist');
     kserveModal.findPredefinedArgsTooltip().should('exist');
-    kserveModal.findServingRuntimeTemplateDropdown().findSelectOption('Caikit').click();
+    kserveModal.findServingRuntimeTemplateSearchSelector().click();
+    kserveModal.findGlobalScopedTemplateOption('Caikit').click();
     kserveModal.findPredefinedArgsButton().click();
     kserveModal.findPredefinedArgsList().should('exist');
     kserveModal.findPredefinedArgsTooltip().should('not.exist');
@@ -826,7 +929,8 @@ describe('Model Serving Global', () => {
     kserveModal.findPredefinedVarsButton().click();
     kserveModal.findPredefinedVarsList().should('not.exist');
     kserveModal.findPredefinedVarsTooltip().should('exist');
-    kserveModal.findServingRuntimeTemplateDropdown().findSelectOption('Caikit').click();
+    kserveModal.findServingRuntimeTemplateSearchSelector().click();
+    kserveModal.findGlobalScopedTemplateOption('Caikit').click();
     kserveModal.findPredefinedVarsButton().click();
     kserveModal.findPredefinedVarsList().should('exist');
     kserveModal.findPredefinedVarsTooltip().should('not.exist');
@@ -848,6 +952,93 @@ describe('Model Serving Global', () => {
     modelServingGlobal.getModelMetricLink('Test Inference Service').should('be.visible');
     modelServingGlobal.getModelMetricLink('Test Inference Service').click();
     cy.findByTestId('app-page-title').should('have.text', 'Test Inference Service metrics');
+  });
+  it('Display the version label and status label correctly', () => {
+    const servingRuntimeWithLatestVersion = mockServingRuntimeK8sResource({
+      namespace: 'test-project',
+      name: 'test-inference-service-latest',
+      templateName: 'template-2',
+      version: '1.0.0',
+    });
+    const servingRuntimeWithOutdatedVersion = mockServingRuntimeK8sResource({
+      namespace: 'test-project',
+      name: 'test-inference-service-outdated',
+      templateName: 'template-2',
+      version: '0.5.0',
+    });
+    const inferenceServiceLatest = mockInferenceServiceK8sResource({
+      name: 'test-inference-service-latest',
+      namespace: 'test-project',
+      displayName: 'Latest Model',
+      modelName: 'test-inference-service-latest',
+    });
+    const inferenceServiceOutdated = mockInferenceServiceK8sResource({
+      name: 'test-inference-service-outdated',
+      namespace: 'test-project',
+      displayName: 'Outdated Model',
+      modelName: 'test-inference-service-outdated',
+    });
+
+    initIntercepts({
+      servingRuntimes: [servingRuntimeWithLatestVersion, servingRuntimeWithOutdatedVersion],
+      inferenceServices: [inferenceServiceLatest, inferenceServiceOutdated],
+    });
+
+    modelServingGlobal.visit('test-project');
+
+    const latestRow = modelServingSection.getInferenceServiceRow('Latest Model');
+    latestRow.findServingRuntimeVersionLabel().should('contain.text', '1.0.0');
+    latestRow.findServingRuntimeVersionStatusLabel().should('have.text', 'Latest');
+
+    const outdatedRow = modelServingSection.getInferenceServiceRow('Outdated Model');
+    outdatedRow.findServingRuntimeVersionLabel().should('contain.text', '0.5.0');
+    outdatedRow.findServingRuntimeVersionStatusLabel().should('have.text', 'Outdated');
+  });
+
+  it('Not display the version label if the annotation is absent', () => {
+    const servingRuntimeWithoutVersion = mockServingRuntimeK8sResource({});
+
+    initIntercepts({
+      servingRuntimes: [servingRuntimeWithoutVersion],
+    });
+
+    modelServingGlobal.visit('test-project');
+    modelServingSection
+      .getInferenceServiceRow('Test Inference Service')
+      .findServingRuntimeVersionLabel()
+      .should('not.exist');
+    modelServingSection
+      .getInferenceServiceRow('Test Inference Service')
+      .findServingRuntimeVersionStatusLabel()
+      .should('not.exist');
+  });
+
+  it('Should display env vars from a valueFrom secret', () => {
+    initIntercepts({
+      inferenceServices: [
+        mockInferenceServiceK8sResource({
+          env: [
+            {
+              name: 'value-from-secret-env-var',
+              valueFrom: { secretKeyRef: { name: 'test-secret', key: 'test-key' } },
+            },
+            {
+              name: 'key-value-env-var',
+              value: 'test-value',
+            },
+          ],
+        }),
+      ],
+    });
+    modelServingGlobal.visit('test-project');
+
+    modelServingGlobal.getModelRow('Test Inference Service').findKebabAction('Edit').click();
+    kserveModalEdit.findServingRuntimeEnvVarsValue('0').should('be.disabled');
+    kserveModalEdit
+      .findServingRuntimeEnvVarsValue('0')
+      .should('have.value', '{"secretKeyRef":{"name":"test-secret","key":"test-key"}}');
+    kserveModalEdit.findServingRuntimeEnvVarsValue('1').should('not.be.disabled');
+    kserveModalEdit.findServingRuntimeEnvVarsValue('1').should('have.value', 'test-value');
   });
 
   describe('Table filter and pagination', () => {

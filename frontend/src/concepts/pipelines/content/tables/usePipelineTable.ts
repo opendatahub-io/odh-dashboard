@@ -1,12 +1,12 @@
 import * as React from 'react';
-import { PipelineCoreResourceKF } from '~/concepts/pipelines/kfTypes';
+import { PipelineCoreResourceKF } from '#~/concepts/pipelines/kfTypes';
 import {
   PipelineListPaged,
   PipelineOptions,
   PipelineRunOptions,
   PipelinesFilter,
-} from '~/concepts/pipelines/types';
-import { FetchState } from '~/utilities/useFetchState';
+} from '#~/concepts/pipelines/types';
+import { FetchState } from '#~/utilities/useFetchState';
 
 export type TableSortProps = {
   sortField?: string;

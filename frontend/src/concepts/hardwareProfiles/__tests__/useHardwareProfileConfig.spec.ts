@@ -1,19 +1,19 @@
 import { act } from '@testing-library/react';
-import { testHook } from '~/__tests__/unit/testUtils/hooks';
-import { mockHardwareProfile } from '~/__mocks__/mockHardwareProfile';
-import { useHardwareProfileConfig } from '~/concepts/hardwareProfiles/useHardwareProfileConfig';
-import * as areasUtils from '~/concepts/areas';
-import * as reduxSelectors from '~/redux/selectors';
-import * as useHardwareProfilesModule from '~/pages/hardwareProfiles/migration/useHardwareProfilesByFeatureVisibility';
+import { testHook } from '#~/__tests__/unit/testUtils/hooks';
+import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile';
+import { useHardwareProfileConfig } from '#~/concepts/hardwareProfiles/useHardwareProfileConfig';
+import * as areasUtils from '#~/concepts/areas';
+import * as reduxSelectors from '#~/redux/selectors';
+import * as useHardwareProfilesModule from '#~/pages/hardwareProfiles/migration/useHardwareProfilesByFeatureVisibility';
 
-jest.mock('~/concepts/areas', () => ({
-  ...jest.requireActual('~/concepts/areas'),
+jest.mock('#~/concepts/areas', () => ({
+  ...jest.requireActual('#~/concepts/areas'),
   useIsAreaAvailable: jest.fn(),
 }));
 
-jest.mock('~/pages/hardwareProfiles/migration/useHardwareProfilesByFeatureVisibility');
+jest.mock('#~/pages/hardwareProfiles/migration/useHardwareProfilesByFeatureVisibility');
 
-jest.mock('~/redux/selectors', () => ({
+jest.mock('#~/redux/selectors', () => ({
   useDashboardNamespace: jest.fn(),
 }));
 
@@ -29,6 +29,7 @@ describe('useHardwareProfileConfig', () => {
     mockUseDashboardNamespace.mockReturnValue({ dashboardNamespace: 'test-namespace' });
     mockUseIsAreaAvailable.mockReturnValue({
       status: true,
+      devFlags: {},
       featureFlags: {},
       reliantAreas: {},
       requiredComponents: {},
@@ -129,6 +130,7 @@ describe('useHardwareProfileConfig', () => {
   it('should handle hardware profiles not being available', () => {
     mockUseIsAreaAvailable.mockReturnValue({
       status: false,
+      devFlags: {},
       featureFlags: {},
       reliantAreas: {},
       requiredComponents: {},

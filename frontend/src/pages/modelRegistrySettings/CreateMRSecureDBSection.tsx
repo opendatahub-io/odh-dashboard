@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { FormGroup, Radio, Alert, MenuItem, MenuGroup, Tooltip } from '@patternfly/react-core';
-import SearchSelector from '~/components/searchSelector/SearchSelector';
-import { RecursivePartial } from '~/typeHelpers';
-import { ConfigSecretItem } from '~/k8sTypes';
-import { ODH_PRODUCT_NAME } from '~/utilities/const';
+import SearchSelector from '#~/components/searchSelector/SearchSelector';
+import { RecursivePartial } from '#~/typeHelpers';
+import { ConfigSecretItem } from '#~/k8sTypes';
+import { ODH_PRODUCT_NAME } from '#~/utilities/const';
 import { PemFileUpload } from './PemFileUpload';
 import {
   CA_BUNDLE_CRT,

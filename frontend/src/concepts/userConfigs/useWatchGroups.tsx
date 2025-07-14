@@ -1,8 +1,8 @@
 import * as React from 'react';
-import { GroupsConfig } from '~/concepts/userConfigs/groupTypes';
-import { fetchAuthGroups, updateAuthGroups } from '~/concepts/userConfigs/utils';
-import useNotification from '~/utilities/useNotification';
-import { useGroups } from '~/api';
+import { GroupsConfig } from '#~/concepts/userConfigs/groupTypes';
+import { fetchAuthGroups, updateAuthGroups } from '#~/concepts/userConfigs/utils';
+import useNotification from '#~/utilities/useNotification';
+import { useGroups } from '#~/api';
 
 export const useWatchGroups = (): {
   groupSettings: GroupsConfig;

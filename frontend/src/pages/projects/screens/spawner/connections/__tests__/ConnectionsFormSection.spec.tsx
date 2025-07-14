@@ -1,14 +1,14 @@
 import React, { act } from 'react';
 import '@testing-library/jest-dom';
 import { render, within } from '@testing-library/react';
-import { mockProjectK8sResource } from '~/__mocks__';
-import { ConnectionsFormSection } from '~/pages/projects/screens/spawner/connections/ConnectionsFormSection';
-import { mockConnection } from '~/__mocks__/mockConnection';
+import { mockProjectK8sResource } from '#~/__mocks__';
+import { ConnectionsFormSection } from '#~/pages/projects/screens/spawner/connections/ConnectionsFormSection';
+import { mockConnection } from '#~/__mocks__/mockConnection';
 
-jest.mock('~/pages/projects/notebook/useNotebooksStates', () => ({
+jest.mock('#~/pages/projects/notebook/useNotebooksStates', () => ({
   useNotebooksStates: jest.fn().mockReturnValue([[]]),
 }));
-jest.mock('~/utilities/useWatchConnectionTypes', () => ({
+jest.mock('#~/utilities/useWatchConnectionTypes', () => ({
   useWatchConnectionTypes: jest.fn().mockReturnValue([[], true, undefined, jest.fn()]),
 }));
 
@@ -117,7 +117,7 @@ describe('ConnectionsFormSection', () => {
     );
 
     act(() => result.getByRole('button', { name: 'Attach existing connections' }).click());
-    const attachModal = result.getByRole('dialog', { name: 'Attach existing connections' });
+    const attachModal = result.getByRole('dialog');
     expect(attachModal).toBeTruthy();
     expect(within(attachModal).getByRole('button', { name: 'Attach' })).toBeDisabled();
     expect(within(attachModal).getByRole('button', { name: 'Cancel' })).toBeEnabled();

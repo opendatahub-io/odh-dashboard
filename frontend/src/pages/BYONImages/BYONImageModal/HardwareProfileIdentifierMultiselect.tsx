@@ -1,7 +1,7 @@
 import React from 'react';
-import { MultiSelection } from '~/components/MultiSelection';
-import { HardwareProfileFeatureVisibility } from '~/k8sTypes';
-import { useHardwareProfilesByFeatureVisibility } from '~/pages/hardwareProfiles/migration/useHardwareProfilesByFeatureVisibility';
+import { MultiSelection } from '#~/components/MultiSelection';
+import { HardwareProfileFeatureVisibility } from '#~/k8sTypes';
+import { useHardwareProfilesByFeatureVisibility } from '#~/pages/hardwareProfiles/migration/useHardwareProfilesByFeatureVisibility';
 
 type HardwareProfileIdentifierMultiselectProps = {
   data: string[];

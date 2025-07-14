@@ -3,9 +3,9 @@ import useFetchState, {
   FetchState,
   FetchStateCallbackPromise,
   NotReadyError,
-} from '~/utilities/useFetchState';
-import { getElyraSecret } from '~/api';
-import { SecretKind } from '~/k8sTypes';
+} from '#~/utilities/useFetchState';
+import { getElyraSecret } from '#~/api';
+import { SecretKind } from '#~/k8sTypes';
 
 const useElyraSecret = (namespace: string, hasCR: boolean): FetchState<SecretKind | null> => {
   const callback = React.useCallback<FetchStateCallbackPromise<SecretKind | null>>(

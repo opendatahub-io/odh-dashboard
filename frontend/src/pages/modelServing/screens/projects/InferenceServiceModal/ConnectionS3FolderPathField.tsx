@@ -7,8 +7,9 @@ import {
   HelperTextItem,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons/dist/esm/icons/exclamation-circle-icon';
-import { containsOnlySlashes, isS3PathValid } from '~/utilities/string';
-import useDebounceCallback from '~/utilities/useDebounceCallback';
+import { containsOnlySlashes, isS3PathValid } from '#~/utilities/string';
+import useDebounceCallback from '#~/utilities/useDebounceCallback';
+import { trimInputOnBlur, trimInputOnPaste } from '#~/concepts/connectionTypes/utils';
 
 type ConnectionFolderPathFieldProps = {
   folderPath: string;
@@ -54,6 +55,8 @@ const ConnectionS3FolderPathField: React.FC<ConnectionFolderPathFieldProps> = ({
         validated={validated}
         placeholder="Example, data_folder"
         onChange={(e, newFolderPath: string) => handlePathChange(newFolderPath)}
+        onBlur={(e) => trimInputOnBlur(folderPath, setFolderPath)(e)}
+        onPaste={(e) => trimInputOnPaste(folderPath, setFolderPath)(e)}
       />
       <FormHelperText>
         <HelperText>

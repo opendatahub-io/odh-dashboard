@@ -1,12 +1,12 @@
 import React from 'react';
 import { BreadcrumbItem, Truncate } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
-import CreateRunPage from '~/concepts/pipelines/content/createRun/CreateRunPage';
-import { RunTypeOption } from '~/concepts/pipelines/content/createRun/types';
-import { PathProps, PipelineCoreDetailsPageComponent } from '~/concepts/pipelines/content/types';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { ExperimentContext } from '~/pages/pipelines/global/experiments/ExperimentContext';
-import { experimentRecurringRunsRoute, experimentRunsRoute } from '~/routes';
+import CreateRunPage from '#~/concepts/pipelines/content/createRun/CreateRunPage';
+import { RunTypeOption } from '#~/concepts/pipelines/content/createRun/types';
+import { PathProps, PipelineCoreDetailsPageComponent } from '#~/concepts/pipelines/content/types';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+import { ExperimentContext } from '#~/pages/pipelines/global/experiments/ExperimentContext';
+import { experimentRecurringRunsRoute, experimentRunsRoute } from '#~/routes/pipelines/experiments';
 
 const ExperimentCreateRunPageInner: React.FC<PathProps & { runType: RunTypeOption }> = ({
   breadcrumbPath,
@@ -26,8 +26,7 @@ const ExperimentCreateRunPageInner: React.FC<PathProps & { runType: RunTypeOptio
         <BreadcrumbItem isActive key="experiment" style={{ maxWidth: 300 }}>
           {experiment ? (
             <Link to={redirectLink}>
-              {/* TODO: Remove the custom className after upgrading to PFv6 */}
-              <Truncate content={experiment.display_name} className="truncate-no-min-width" />
+              <Truncate content={experiment.display_name} />
             </Link>
           ) : (
             'Loading...'

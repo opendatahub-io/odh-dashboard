@@ -7,14 +7,14 @@ import {
   Spinner,
 } from '@patternfly/react-core';
 import { CubesIcon, ErrorCircleOIcon } from '@patternfly/react-icons';
-import { MetricsCommonContext } from '~/concepts/metrics/MetricsCommonContext';
-import useKserveMetricsConfigMap from '~/concepts/metrics/kserve/useKserveMetricsConfigMap';
-import useKserveMetricsGraphDefinitions from '~/concepts/metrics/kserve/useKserveMetricsGraphDefinitions';
-import useRefreshInterval from '~/utilities/useRefreshInterval';
-import { RefreshIntervalValue } from '~/concepts/metrics/const';
-import { RefreshIntervalTitle, TimeframeTitle } from '~/concepts/metrics/types';
-import { KserveMetricGraphDefinition } from '~/concepts/metrics/kserve/types';
-import { conditionalArea, SupportedArea } from '~/concepts/areas';
+import { MetricsCommonContext } from '#~/concepts/metrics/MetricsCommonContext';
+import useKserveMetricsConfigMap from '#~/concepts/metrics/kserve/useKserveMetricsConfigMap';
+import useKserveMetricsGraphDefinitions from '#~/concepts/metrics/kserve/useKserveMetricsGraphDefinitions';
+import useRefreshInterval from '#~/utilities/useRefreshInterval';
+import { RefreshIntervalValue } from '#~/concepts/metrics/const';
+import { RefreshIntervalTitle, TimeframeTitle } from '#~/concepts/metrics/types';
+import { KserveMetricGraphDefinition } from '#~/concepts/metrics/kserve/types';
+import { conditionalArea, SupportedArea } from '#~/concepts/areas';
 
 type KserveMetricsContextProps = {
   namespace: string;

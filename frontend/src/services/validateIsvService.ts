@@ -1,4 +1,4 @@
-import axios from '~/utilities/axios';
+import axios from '#~/utilities/axios';
 
 export const postValidateIsv = (
   appName: string,

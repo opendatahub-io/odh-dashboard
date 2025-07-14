@@ -1,4 +1,4 @@
-import type { CommandLineResult } from '~/__tests__/cypress/cypress/types';
+import type { CommandLineResult } from '#~/__tests__/cypress/cypress/types';
 
 /**
  * Create a custom resource in a specified namespace using a YAML file.

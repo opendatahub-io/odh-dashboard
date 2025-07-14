@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { TbodyProps } from '@patternfly/react-table';
-import { EitherNotBoth } from '~/typeHelpers';
+import { EitherNotBoth } from '#~/typeHelpers';
 import TableBase, { MIN_PAGE_SIZE } from './TableBase';
 import useTableColumnSort from './useTableColumnSort';
 

@@ -1,7 +1,5 @@
 name: PR E2E Tests
-on:
-  issue_comment:
-    types: [created]
+on: [push, pull_request]
 
 env:
   NODE_VERSION: 20.x
@@ -22,8 +20,6 @@ jobs:
           fi
 
   Setup:
-    needs: check-trigger
-    if: needs.check-trigger.outputs.should_run == 'true'
     runs-on: self-hosted
     outputs:
       modules-cache-key: ${{ steps.key.outputs.modules-cache-key }}
@@ -353,4 +349,4 @@ jobs:
         with:
           name: combined-test-results
           path: all-results
-          if-no-files-found: error 
+          if-no-files-found: error

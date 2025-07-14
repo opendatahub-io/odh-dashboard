@@ -1,7 +1,7 @@
 import React from 'react';
-import useAcceleratorProfiles from '~/pages/notebookController/screens/server/useAcceleratorProfiles';
-import { useDashboardNamespace } from '~/redux/selectors';
-import { MultiSelection } from '~/components/MultiSelection';
+import useAcceleratorProfiles from '#~/pages/notebookController/screens/server/useAcceleratorProfiles';
+import { useDashboardNamespace } from '#~/redux/selectors';
+import { MultiSelection } from '#~/components/MultiSelection';
 
 type AcceleratorIdentifierMultiselectProps = {
   data: string[];

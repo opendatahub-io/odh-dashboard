@@ -1,8 +1,8 @@
 import React from 'react';
-import { useMlmdListContext, usePipelinesAPI } from '~/concepts/pipelines/context';
-import { Execution, GetExecutionsRequest } from '~/third_party/mlmd';
-import { ListOperationOptions } from '~/third_party/mlmd/generated/ml_metadata/proto/metadata_store_pb';
-import useFetchState, { FetchState, FetchStateCallbackPromise } from '~/utilities/useFetchState';
+import { useMlmdListContext, usePipelinesAPI } from '#~/concepts/pipelines/context';
+import { Execution, GetExecutionsRequest } from '#~/third_party/mlmd';
+import { ListOperationOptions } from '#~/third_party/mlmd/generated/ml_metadata/proto/metadata_store_pb';
+import useFetchState, { FetchState, FetchStateCallbackPromise } from '#~/utilities/useFetchState';
 
 export interface ExecutionsListResponse {
   executions: Execution[];

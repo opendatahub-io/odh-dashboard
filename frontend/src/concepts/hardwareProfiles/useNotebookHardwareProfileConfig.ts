@@ -1,6 +1,6 @@
-import { HardwareProfileFeatureVisibility, NotebookKind } from '~/k8sTypes';
-import { Notebook } from '~/types';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+import { HardwareProfileFeatureVisibility, NotebookKind } from '#~/k8sTypes';
+import { Notebook } from '#~/types';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import {
   useHardwareProfileConfig,
   UseHardwareProfileConfigResult,
@@ -17,6 +17,8 @@ const useNotebookHardwareProfileConfig = (
   const nodeSelector = notebook?.spec.template.spec.nodeSelector;
   const namespace = notebook?.metadata.namespace;
   const isProjectScoped = useIsAreaAvailable(SupportedArea.DS_PROJECT_SCOPED).status;
+  const hardwareProfileNamespace =
+    notebook?.metadata.annotations?.['opendatahub.io/hardware-profile-namespace'];
 
   return useHardwareProfileConfig(
     name,
@@ -25,6 +27,7 @@ const useNotebookHardwareProfileConfig = (
     nodeSelector,
     [HardwareProfileFeatureVisibility.WORKBENCH],
     isProjectScoped ? namespace : undefined,
+    hardwareProfileNamespace,
   );
 };
 

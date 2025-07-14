@@ -1,5 +1,5 @@
 import * as React from 'react';
-import NotFound from '~/pages/NotFound';
+import NotFound from '#~/pages/NotFound';
 import { SupportedArea } from './types';
 import useIsAreaAvailable from './useIsAreaAvailable';
 

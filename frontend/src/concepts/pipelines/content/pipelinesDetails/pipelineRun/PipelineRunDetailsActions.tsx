@@ -1,13 +1,13 @@
 import * as React from 'react';
 import { Divider, Dropdown, DropdownItem, MenuToggle, DropdownList } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import useNotification from '~/utilities/useNotification';
-import { PipelineRunKF, RuntimeStateKF, StorageStateKF } from '~/concepts/pipelines/kfTypes';
-import { compareRunsRoute, duplicateRunRoute } from '~/routes';
-import useExperimentById from '~/concepts/pipelines/apiHooks/useExperimentById';
-import { getDashboardMainContainer } from '~/utilities/utils';
-import { ExperimentContext } from '~/pages/pipelines/global/experiments/ExperimentContext';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+import useNotification from '#~/utilities/useNotification';
+import { PipelineRunKF, RuntimeStateKF, StorageStateKF } from '#~/concepts/pipelines/kfTypes';
+import { compareRunsRoute, duplicateRunRoute } from '#~/routes/pipelines/runs';
+import useExperimentById from '#~/concepts/pipelines/apiHooks/useExperimentById';
+import { getDashboardMainContainer } from '#~/utilities/utils';
+import { ExperimentContext } from '#~/pages/pipelines/global/experiments/ExperimentContext';
 
 type PipelineRunDetailsActionsProps = {
   run?: PipelineRunKF | null;

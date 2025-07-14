@@ -6,8 +6,8 @@ import {
   isK8sDSGResource,
   isValidK8sName,
   translateDisplayNameForK8s,
-} from '~/concepts/k8s/utils';
-import { RecursivePartial } from '~/typeHelpers';
+} from '#~/concepts/k8s/utils';
+import { RecursivePartial } from '#~/typeHelpers';
 import {
   K8sNameDescriptionFieldData,
   K8sNameDescriptionFieldUpdateFunctionInternal,

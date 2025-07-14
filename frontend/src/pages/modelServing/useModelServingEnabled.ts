@@ -1,4 +1,4 @@
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 
 const useModelServingEnabled = (): boolean =>
   useIsAreaAvailable(SupportedArea.MODEL_SERVING).status;

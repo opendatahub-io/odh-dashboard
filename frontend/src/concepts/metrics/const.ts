@@ -4,7 +4,7 @@ import {
   TimeframeStepType,
   RefreshIntervalValueType,
   RefreshIntervalTitle,
-} from '~/concepts/metrics/types';
+} from '#~/concepts/metrics/types';
 
 /**
  * The desired range (x-axis) of the charts.

@@ -3,9 +3,9 @@ import useFetchState, {
   FetchState,
   FetchStateCallbackPromise,
   NotReadyError,
-} from '~/utilities/useFetchState';
-import { RegisteredModelList } from '~/concepts/modelRegistry/types';
-import { useModelRegistryAPI } from '~/concepts/modelRegistry/context/ModelRegistryContext';
+} from '#~/utilities/useFetchState';
+import { RegisteredModelList } from '#~/concepts/modelRegistry/types';
+import { useModelRegistryAPI } from '#~/concepts/modelRegistry/context/ModelRegistryPageContext';
 
 const useRegisteredModels = (): FetchState<RegisteredModelList> => {
   const { api, apiAvailable } = useModelRegistryAPI();

@@ -1,18 +1,19 @@
 import * as React from 'react';
 import { ButtonVariant, Popover } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
-import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
-import { ProjectSectionTitles } from '~/pages/projects/screens/detail/const';
-import { PipelineServerTimedOut, usePipelinesAPI } from '~/concepts/pipelines/context';
-import ImportPipelineSplitButton from '~/concepts/pipelines/content/import/ImportPipelineSplitButton';
-import PipelinesList from '~/pages/projects/screens/detail/pipelines/PipelinesList';
-import PipelineServerActions from '~/concepts/pipelines/content/PipelineServerActions';
-import DetailsSection from '~/pages/projects/screens/detail/DetailsSection';
-import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
-import { ProjectObjectType } from '~/concepts/design/utils';
-import NoPipelineServer from '~/concepts/pipelines/NoPipelineServer';
-import PipelineAndVersionContextProvider from '~/concepts/pipelines/content/PipelineAndVersionContext';
-import EnsureCompatiblePipelineServer from '~/concepts/pipelines/EnsureCompatiblePipelineServer';
+import { ProjectSectionID } from '#~/pages/projects/screens/detail/types';
+import { ProjectSectionTitles } from '#~/pages/projects/screens/detail/const';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+import ImportPipelineSplitButton from '#~/concepts/pipelines/content/import/ImportPipelineSplitButton';
+import PipelinesList from '#~/pages/projects/screens/detail/pipelines/PipelinesList';
+import PipelineServerActions from '#~/concepts/pipelines/content/PipelineServerActions';
+import DetailsSection from '#~/pages/projects/screens/detail/DetailsSection';
+import DashboardPopupIconButton from '#~/concepts/dashboard/DashboardPopupIconButton';
+import { ProjectObjectType } from '#~/concepts/design/utils';
+import NoPipelineServer from '#~/concepts/pipelines/NoPipelineServer';
+import PipelineAndVersionContextProvider from '#~/concepts/pipelines/content/PipelineAndVersionContext';
+import EnsureCompatiblePipelineServer from '#~/concepts/pipelines/EnsureCompatiblePipelineServer';
+import EnsureAPIAvailability from '#~/concepts/pipelines/EnsureAPIAvailability.tsx';
 
 const PipelinesSection: React.FC = () => {
   const {
@@ -44,38 +45,36 @@ const PipelinesSection: React.FC = () => {
 
   return (
     <PipelineAndVersionContextProvider>
-      <DetailsSection
-        id={ProjectSectionID.PIPELINES}
-        objectType={ProjectObjectType.pipeline}
-        title={ProjectSectionTitles[ProjectSectionID.PIPELINES]}
-        data-testid={ProjectSectionID.PIPELINES}
-        popover={
-          installed ? (
-            <Popover
-              headerContent="About pipelines"
-              bodyContent="Pipelines are platforms for building and deploying portable and scalable machine-learning (ML) workflows. You can import a pipeline or create one in a workbench."
-            >
-              <DashboardPopupIconButton
-                icon={<OutlinedQuestionCircleIcon />}
-                aria-label="More info"
-              />
-            </Popover>
-          ) : null
-        }
-        actions={actions}
-        isLoading={(!timedOut && compatible && !apiAvailable && installed) || initializing}
-        isEmpty={!installed}
-        emptyState={<NoPipelineServer variant={ButtonVariant.primary} />}
-        showDivider={isPipelinesEmpty}
-      >
-        <EnsureCompatiblePipelineServer>
-          {timedOut ? (
-            <PipelineServerTimedOut />
-          ) : installed ? (
+      <EnsureAPIAvailability>
+        <DetailsSection
+          id={ProjectSectionID.PIPELINES}
+          objectType={ProjectObjectType.pipeline}
+          title={ProjectSectionTitles[ProjectSectionID.PIPELINES]}
+          data-testid={ProjectSectionID.PIPELINES}
+          popover={
+            installed ? (
+              <Popover
+                headerContent="About pipelines"
+                bodyContent="Pipelines are platforms for building and deploying portable and scalable machine-learning (ML) workflows. You can import a pipeline or create one in a workbench."
+              >
+                <DashboardPopupIconButton
+                  icon={<OutlinedQuestionCircleIcon />}
+                  aria-label="More info"
+                />
+              </Popover>
+            ) : null
+          }
+          actions={actions}
+          isLoading={(!timedOut && compatible && !apiAvailable && installed) || initializing}
+          isEmpty={!installed}
+          emptyState={<NoPipelineServer variant={ButtonVariant.primary} />}
+          showDivider={isPipelinesEmpty}
+        >
+          <EnsureCompatiblePipelineServer>
             <PipelinesList setIsPipelinesEmpty={setIsPipelinesEmpty} />
-          ) : null}
-        </EnsureCompatiblePipelineServer>
-      </DetailsSection>
+          </EnsureCompatiblePipelineServer>
+        </DetailsSection>
+      </EnsureAPIAvailability>
     </PipelineAndVersionContextProvider>
   );
 };

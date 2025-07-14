@@ -1,11 +1,11 @@
 import React from 'react';
-import { Modal } from '@patternfly/react-core/deprecated';
-import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
-import { Identifier, IdentifierResourceType } from '~/types';
-import useGenericObjectState from '~/utilities/useGenericObjectState';
-import { CPU_UNITS, MEMORY_UNITS_FOR_SELECTION, UnitOption } from '~/utilities/valueUnits';
-import { useValidation } from '~/utilities/useValidation';
-import { identifierSchema } from '~/pages/hardwareProfiles/manage/validationUtils';
+import { Modal, ModalBody, ModalHeader, ModalFooter } from '@patternfly/react-core';
+import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
+import { Identifier, IdentifierResourceType } from '#~/types';
+import useGenericObjectState from '#~/utilities/useGenericObjectState';
+import { CPU_UNITS, MEMORY_UNITS_FOR_SELECTION, UnitOption } from '#~/utilities/valueUnits';
+import { useValidation } from '#~/utilities/useValidation';
+import { identifierSchema } from '#~/pages/hardwareProfiles/manage/validationUtils';
 import { EMPTY_IDENTIFIER } from './const';
 import NodeResourceForm from './NodeResourceForm';
 
@@ -55,26 +55,24 @@ const ManageNodeResourceModal: React.FC<ManageNodeResourceModalProps> = ({
   };
 
   return (
-    <Modal
-      title={existingIdentifier ? 'Edit node resource' : 'Add node resource'}
-      variant="medium"
-      isOpen
-      onClose={onClose}
-      footer={
+    <Modal variant="medium" isOpen onClose={onClose}>
+      <ModalHeader title={existingIdentifier ? 'Edit node resource' : 'Add node resource'} />
+      <ModalBody>
+        <NodeResourceForm
+          identifier={identifier}
+          setIdentifier={setIdentifier}
+          unitOptions={unitOptions}
+          isUniqueIdentifier={isUniqueIdentifier}
+        />
+      </ModalBody>
+      <ModalFooter>
         <DashboardModalFooter
           submitLabel={existingIdentifier ? 'Update' : 'Add'}
           onSubmit={handleSubmit}
           onCancel={onClose}
           isSubmitDisabled={isButtonDisabled}
         />
-      }
-    >
-      <NodeResourceForm
-        identifier={identifier}
-        setIdentifier={setIdentifier}
-        unitOptions={unitOptions}
-        isUniqueIdentifier={isUniqueIdentifier}
-      />
+      </ModalFooter>
     </Modal>
   );
 };

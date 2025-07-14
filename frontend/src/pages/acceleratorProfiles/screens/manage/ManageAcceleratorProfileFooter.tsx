@@ -8,11 +8,11 @@ import {
 } from '@patternfly/react-core';
 import React from 'react';
 import { useNavigate } from 'react-router';
-import { createAcceleratorProfile, updateAcceleratorProfile } from '~/api';
-import { AcceleratorProfileKind } from '~/k8sTypes';
-import { AcceleratorProfileFormData } from '~/pages/acceleratorProfiles/screens/manage/types';
-import { useDashboardNamespace } from '~/redux/selectors';
-import useNotification from '~/utilities/useNotification';
+import { createAcceleratorProfile, updateAcceleratorProfile } from '#~/api';
+import { AcceleratorProfileKind } from '#~/k8sTypes';
+import { AcceleratorProfileFormData } from '#~/pages/acceleratorProfiles/screens/manage/types';
+import { useDashboardNamespace } from '#~/redux/selectors';
+import useNotification from '#~/utilities/useNotification';
 
 type ManageAcceleratorProfileFooterProps = {
   state: AcceleratorProfileFormData;

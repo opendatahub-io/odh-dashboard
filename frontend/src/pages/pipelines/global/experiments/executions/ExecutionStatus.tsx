@@ -10,7 +10,7 @@ import {
   PendingIcon,
 } from '@patternfly/react-icons';
 
-import { Execution } from '~/third_party/mlmd';
+import { Execution } from '#~/third_party/mlmd';
 
 type ExecutionStatusProps = {
   status: Execution.State;

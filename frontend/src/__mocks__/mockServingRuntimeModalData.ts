@@ -1,4 +1,4 @@
-import { CreatingServingRuntimeObject } from '~/pages/modelServing/screens/types';
+import { CreatingServingRuntimeObject } from '#~/pages/modelServing/screens/types';
 
 type MockResourceConfigType = Partial<CreatingServingRuntimeObject>;
 

@@ -1,13 +1,13 @@
 import React from 'react';
-import { RegisteredModel, ModelVersion, ModelArtifact } from '~/concepts/modelRegistry/types';
+import { RegisteredModel, ModelVersion, ModelArtifact } from '#~/concepts/modelRegistry/types';
 import {
   filterLiveVersions,
   getLastCreatedItem,
   uriToModelLocation,
-} from '~/concepts/modelRegistry/utils';
-import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
-import useModelArtifactsByVersionId from '~/concepts/modelRegistry/apiHooks/useModelArtifactsByVersionId';
-import useModelVersionsByRegisteredModel from '~/concepts/modelRegistry/apiHooks/useModelVersionsByRegisteredModel';
+} from '#~/concepts/modelRegistry/utils';
+import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
+import useModelArtifactsByVersionId from '#~/concepts/modelRegistry/apiHooks/useModelArtifactsByVersionId';
+import useModelVersionsByRegisteredModel from '#~/concepts/modelRegistry/apiHooks/useModelVersionsByRegisteredModel';
 import { RegisterVersionFormData, ModelLocationType } from './useRegisterModelData';
 
 type UsePrefillRegisterVersionFieldsArgs = {

@@ -1,10 +1,19 @@
 import * as React from 'react';
-import { Flex, FlexItem, Stack, StackItem, TextInput } from '@patternfly/react-core';
-import { Modal } from '@patternfly/react-core/deprecated';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
-import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
+import {
+  Flex,
+  FlexItem,
+  Stack,
+  StackItem,
+  TextInput,
+  Modal,
+  ModalBody,
+  ModalHeader,
+  ModalFooter,
+} from '@patternfly/react-core';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
+import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
 
 interface ArchiveModalProps {
   confirmMessage: string;
@@ -72,13 +81,33 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
   }, [onSubmit, onClose, refreshAllAPI, eventName]);
 
   return (
-    <Modal
-      isOpen
-      title={title}
-      titleIconVariant="warning"
-      variant="small"
-      onClose={onCancelClose}
-      footer={
+    <Modal isOpen variant="small" onClose={onCancelClose} data-testid={testId}>
+      <ModalHeader title={title} titleIconVariant="warning" />
+      <ModalBody>
+        <Stack hasGutter>
+          {children}
+          <StackItem>
+            <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsSm' }}>
+              <FlexItem>
+                Type <strong>{confirmMessage}</strong> to confirm archiving:
+              </FlexItem>
+              <TextInput
+                id="confirm-archive-input"
+                data-testid="confirm-archive-input"
+                aria-label="confirm archive input"
+                value={confirmInputValue}
+                onChange={(_e, newValue) => setConfirmInputValue(newValue)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' && !isDisabled) {
+                    onConfirm();
+                  }
+                }}
+              />
+            </Flex>
+          </StackItem>
+        </Stack>
+      </ModalBody>
+      <ModalFooter>
         <DashboardModalFooter
           onCancel={onCancelClose}
           onSubmit={onConfirm}
@@ -88,31 +117,7 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
           error={error}
           alertTitle={alertTitle}
         />
-      }
-      data-testid={testId}
-    >
-      <Stack hasGutter>
-        {children}
-        <StackItem>
-          <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsSm' }}>
-            <FlexItem>
-              Type <strong>{confirmMessage}</strong> to confirm archiving:
-            </FlexItem>
-            <TextInput
-              id="confirm-archive-input"
-              data-testid="confirm-archive-input"
-              aria-label="confirm archive input"
-              value={confirmInputValue}
-              onChange={(_e, newValue) => setConfirmInputValue(newValue)}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter' && !isDisabled) {
-                  onConfirm();
-                }
-              }}
-            />
-          </Flex>
-        </StackItem>
-      </Stack>
+      </ModalFooter>
     </Modal>
   );
 };

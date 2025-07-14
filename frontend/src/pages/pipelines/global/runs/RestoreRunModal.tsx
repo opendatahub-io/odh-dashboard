@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { ListItem, Stack, StackItem } from '@patternfly/react-core';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { PipelineRunKF } from '~/concepts/pipelines/kfTypes';
-import { RestoreModal } from '~/concepts/pipelines/content/RestoreModal';
-import { BulkActionExpandableSection } from '~/pages/projects/components/BulkActionExpandableSection';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+import { PipelineRunKF } from '#~/concepts/pipelines/kfTypes';
+import { RestoreModal } from '#~/concepts/pipelines/content/RestoreModal';
+import { BulkActionExpandableSection } from '#~/pages/projects/components/BulkActionExpandableSection';
 import { PipelineRunTabTitle } from './types';
 
 interface RestoreRunModalProps {

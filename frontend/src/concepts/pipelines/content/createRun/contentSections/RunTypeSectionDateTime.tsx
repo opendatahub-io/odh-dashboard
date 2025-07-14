@@ -12,15 +12,15 @@ import {
   convertDateToSimpleDateString,
   convertDateToTimeString,
   ensureTimeFormat,
-} from '~/utilities/time';
-import { RunDateTime } from '~/concepts/pipelines/content/createRun/types';
+} from '#~/utilities/time';
+import { RunDateTime } from '#~/concepts/pipelines/content/createRun/types';
 import {
   DATE_FORMAT,
   DEFAULT_TIME,
   RUN_OPTION_LABEL_SIZE,
-} from '~/concepts/pipelines/content/createRun/const';
-import DashboardSplitItemLabel from '~/concepts/dashboard/split/DashboardSplitItemLabel';
-import DashboardSplitReserveSpace from '~/concepts/dashboard/split/DashboardSplitReserveSpace';
+} from '#~/concepts/pipelines/content/createRun/const';
+import DashboardSplitItemLabel from '#~/concepts/dashboard/split/DashboardSplitItemLabel';
+import DashboardSplitReserveSpace from '#~/concepts/dashboard/split/DashboardSplitReserveSpace';
 
 type RunTypeSectionDateTimeProps = {
   id: string;

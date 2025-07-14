@@ -2,6 +2,7 @@ name: Test
 on: [push, pull_request]
 env:
   NODE_VERSION: 20.x
+  DO_NOT_TRACK: 1
 jobs:
   Setup:
     runs-on: ubuntu-latest
@@ -9,8 +10,6 @@ jobs:
       modules-cache-key: ${{ steps.key.outputs.modules-cache-key }}
     steps:
       - uses: actions/checkout@v4
-      - name: Check for uncomitted changes
-        run: git diff --exit-code
       - name: Generate modules cache key
         id: key
         run: |
@@ -35,6 +34,39 @@ jobs:
         if: steps.modules-cache.outputs.cache-hit != 'true'
         run: npm install
 
+      - name: Check for uncommitted changes
+        run: git diff --exit-code
+
+  Type-Check:
+    needs: Setup
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4.3.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Restore cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/.cache/Cypress
+            ${{ github.workspace }}/node_modules
+            ${{ github.workspace }}/backend/node_modules
+            ${{ github.workspace }}/frontend/node_modules
+          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-modules-${{ hashFiles('**/package-lock.json') }}
+      - name: Cache turbo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ github.workspace }}/backend/.turbo
+            ${{ github.workspace }}/frontend/.turbo
+          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-
+      - name: Run type checks
+        run: npm run test:type-check
+
   Lint:
     needs: Setup
     runs-on: ubuntu-latest
@@ -57,7 +89,7 @@ jobs:
         run: npm run lint:frontend:backend
 
   Unit-Tests:
-    needs: [Setup, Lint]
+    needs: [Setup, Lint, Type-Check]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -185,7 +217,7 @@ jobs:
         working-directory: ./frontend
 
   Cypress-Mock-Tests:
-    needs: [Setup, Lint, Cypress-Setup, Get-Test-Groups]
+    needs: [Setup, Lint, Type-Check, Cypress-Setup, Get-Test-Groups]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -239,6 +271,7 @@ jobs:
     needs: [Unit-Tests, Cypress-Mock-Tests]
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - name: Setup Node.js ${{ env.NODE_VERSION }}
         uses: actions/setup-node@v4.3.0
         with:
@@ -296,6 +329,7 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - Lint
+      - Type-Check
       - Unit-Tests
       - Cypress-Mock-Tests
       - Combine-Results-and-Upload

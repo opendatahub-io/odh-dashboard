@@ -9,7 +9,7 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
-import { TemplateKind } from '~/k8sTypes';
+import { TemplateKind } from '#~/k8sTypes';
 import { getServingRuntimeNameFromTemplate } from './utils';
 import CustomServingRuntimeAddTemplate from './CustomServingRuntimeAddTemplate';
 import { CustomServingRuntimeContext } from './CustomServingRuntimeContext';

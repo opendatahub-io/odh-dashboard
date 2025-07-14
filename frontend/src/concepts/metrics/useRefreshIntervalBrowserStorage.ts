@@ -1,6 +1,8 @@
-import { useBrowserStorage } from '~/components/browserStorage';
-import { SetBrowserStorageHook } from '~/components/browserStorage/BrowserStorageContext';
-import { RefreshIntervalTitle } from '~/concepts/metrics/types';
+import {
+  SetBrowserStorageHook,
+  useBrowserStorage,
+} from '#~/components/browserStorage/BrowserStorageContext';
+import { RefreshIntervalTitle } from '#~/concepts/metrics/types';
 
 const useRefreshIntervalBrowserStorage = (
   initialRefreshInterval = RefreshIntervalTitle.FIVE_MINUTES,

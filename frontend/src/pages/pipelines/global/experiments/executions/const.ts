@@ -1,6 +1,6 @@
-import { ExecutionStatus } from '~/concepts/pipelines/kfTypes';
-import { Event, Execution as MlmdExecution } from '~/third_party/mlmd';
-import { PickEnum } from '~/typeHelpers';
+import { ExecutionStatus } from '#~/concepts/pipelines/kfTypes';
+import { Event, Execution as MlmdExecution } from '#~/third_party/mlmd';
+import { PickEnum } from '#~/typeHelpers';
 
 export const executionsPageTitle = 'Executions';
 export const executionsPageDescription = 'View execution metadata.';

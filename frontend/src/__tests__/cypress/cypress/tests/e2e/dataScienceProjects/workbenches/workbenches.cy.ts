@@ -1,22 +1,19 @@
-import type { PVCReplacements } from '~/__tests__/cypress/cypress/types';
-import { projectDetails, projectListPage } from '~/__tests__/cypress/cypress/pages/projects';
+import type { PVCReplacements } from '#~/__tests__/cypress/cypress/types';
+import { projectDetails, projectListPage } from '#~/__tests__/cypress/cypress/pages/projects';
 import {
   workbenchPage,
   createSpawnerPage,
   attachExistingStorageModal,
-} from '~/__tests__/cypress/cypress/pages/workbench';
-import { clusterStorage } from '~/__tests__/cypress/cypress/pages/clusterStorage';
-import { HTPASSWD_CLUSTER_ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
-import { loadPVCFixture } from '~/__tests__/cypress/cypress/utils/dataLoader';
-import { createCleanProject } from '~/__tests__/cypress/cypress/utils/projectChecker';
-import { deleteOpenShiftProject } from '~/__tests__/cypress/cypress/utils/oc_commands/project';
-import { createPersistentVolumeClaim } from '~/__tests__/cypress/cypress/utils/oc_commands/presistentVolumeClaim';
-import { getOpenshiftDefaultStorageClass } from '~/__tests__/cypress/cypress/utils/oc_commands/storageClass';
-import {
-  retryableBefore,
-  wasSetupPerformed,
-} from '~/__tests__/cypress/cypress/utils/retryableHooks';
-import { generateTestUUID } from '~/__tests__/cypress/cypress/utils/uuidGenerator';
+} from '#~/__tests__/cypress/cypress/pages/workbench';
+import { clusterStorage } from '#~/__tests__/cypress/cypress/pages/clusterStorage';
+import { HTPASSWD_CLUSTER_ADMIN_USER } from '#~/__tests__/cypress/cypress/utils/e2eUsers';
+import { loadPVCFixture } from '#~/__tests__/cypress/cypress/utils/dataLoader';
+import { createCleanProject } from '#~/__tests__/cypress/cypress/utils/projectChecker';
+import { deleteOpenShiftProject } from '#~/__tests__/cypress/cypress/utils/oc_commands/project';
+import { createPersistentVolumeClaim } from '#~/__tests__/cypress/cypress/utils/oc_commands/presistentVolumeClaim';
+import { getOpenshiftDefaultStorageClass } from '#~/__tests__/cypress/cypress/utils/oc_commands/storageClass';
+import { retryableBefore } from '#~/__tests__/cypress/cypress/utils/retryableHooks';
+import { generateTestUUID } from '#~/__tests__/cypress/cypress/utils/uuidGenerator';
 
 describe('Workbench and PVSs tests', () => {
   let projectName: string;
@@ -65,13 +62,9 @@ describe('Workbench and PVSs tests', () => {
   });
 
   after(() => {
-    //Check if the Before Method was executed to perform the setup
-    if (!wasSetupPerformed()) return;
-
-    // Delete provisioned Project
     if (projectName) {
       cy.log(`Deleting Project ${projectName} after the test has finished.`);
-      deleteOpenShiftProject(projectName);
+      deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
     }
   });
 
