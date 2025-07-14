@@ -33,7 +33,7 @@ const genericColumns: SortableData<Deployment>[] = [
     sortable: false,
   },
   {
-    label: 'Last Deployed',
+    label: 'Last deployed',
     field: 'lastDeployed',
     sortable: (a, b) => {
       const timeA = a.model.metadata.creationTimestamp;

@@ -75,7 +75,7 @@ const COL_API_PROTOCOL: SortableData<InferenceServiceKind> = {
 
 const COL_LAST_DEPLOYED: SortableData<InferenceServiceKind> = {
   field: ColumnField.LastDeployed,
-  label: 'Last Deployed',
+  label: 'Last deployed',
   width: 15,
   sortable: (a, b) => {
     const aInactive = getInferenceServiceStoppedStatus(a).isStopped || isModelMesh(a);

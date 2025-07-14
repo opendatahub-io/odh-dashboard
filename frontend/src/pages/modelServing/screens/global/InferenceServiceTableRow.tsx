@@ -142,7 +142,7 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
       )}
 
       {columnNames.includes(ColumnField.LastDeployed) && (
-        <Td dataLabel="Last Deployed">
+        <Td dataLabel="Last deployed">
           <InferenceServiceLastDeployed inferenceService={inferenceService} />
         </Td>
       )}

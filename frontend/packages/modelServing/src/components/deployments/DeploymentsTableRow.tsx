@@ -96,7 +96,7 @@ export const DeploymentRow: React.FC<{
             <Content component={ContentVariants.small}>Not defined</Content>
           )}
         </Td>
-        <Td dataLabel="Last Deployed">
+        <Td dataLabel="Last deployed">
           <DeploymentLastDeployed deployment={deployment} />
         </Td>
         <Td dataLabel="Status">
