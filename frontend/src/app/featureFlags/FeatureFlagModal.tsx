@@ -95,9 +95,13 @@ const FeatureFlagModal: React.FC<Props> = ({
               </Content>
             </Tab>
           )}
-          <Tab eventKey={2} title={<TabTitleText>Archived</TabTitleText>}>
+          <Tab eventKey={2} title={<TabTitleText>Legacy</TabTitleText>}>
             <Content style={{ height: '400px', padding: '8px' }}>
-              <Content component="p">Archived feature flags will be displayed here.</Content>
+              <Content component="p">
+                These feature flags are hardly used and cannot be deleted yet at this time.
+              </Content>
+              <Content component="p">
+                Some of them may be deprecated soon; but most of them are permanent              
             </Content>
           </Tab>
         </Tabs>
