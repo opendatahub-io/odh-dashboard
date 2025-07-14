@@ -4,7 +4,7 @@ import { SortableData, Table } from '@odh-dashboard/internal/components/table/in
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
 import { DeploymentRow } from './DeploymentsTableRow';
-import { deploymentNameSort } from '../../concepts/deploymentUtils';
+import { deploymentNameSort, deploymentLastDeployedSort } from '../../concepts/deploymentUtils';
 import { Deployment, type DeploymentsTableColumn } from '../../../extension-points';
 import DeleteModelServingModal from '../deleteModal/DeleteModelServingModal';
 
@@ -35,16 +35,7 @@ const genericColumns: SortableData<Deployment>[] = [
   {
     label: 'Last deployed',
     field: 'lastDeployed',
-    sortable: (a, b) => {
-      const timeA = a.model.metadata.creationTimestamp;
-      const timeB = b.model.metadata.creationTimestamp;
-
-      if (timeA && timeB) {
-        return new Date(timeB).getTime() - new Date(timeA).getTime();
-      }
-
-      return (timeA ? -1 : 0) - (timeB ? -1 : 0);
-    },
+    sortable: deploymentLastDeployedSort,
   },
   {
     label: 'Status',
@@ -106,7 +97,7 @@ const DeploymentsTable: React.FC<DeploymentsTableProps> = ({
         disableRowRenderSupport
         rowRenderer={(row: Deployment, rowIndex: number) => (
           <DeploymentRow
-            key={row.model.metadata.name}
+            key={row.model.metadata.creationTimestamp}
             deployment={row}
             platformColumns={platformColumns ?? []}
             onDelete={() => setDeleteDeployment(row)}

@@ -14,22 +14,17 @@ export const LastDeployed: React.FC<LastDeployedProps> = ({ resource }) => {
   }
   const readyCondition = conditions.find((c) => c.type === 'Ready');
 
-  const creationTimestamp =
-    readyCondition?.lastTransitionTime ?? resource.metadata?.creationTimestamp ?? '';
-
-  if (!creationTimestamp) {
-    return <>-</>;
-  }
+  const transitionTimestamp = readyCondition?.lastTransitionTime ?? '-';
 
   return (
     <span style={{ whiteSpace: 'nowrap' }}>
       <Timestamp
-        date={new Date(creationTimestamp)}
+        date={new Date(transitionTimestamp)}
         tooltip={{
           variant: TimestampTooltipVariant.default,
         }}
       >
-        {relativeTime(Date.now(), new Date(creationTimestamp).getTime())}
+        {relativeTime(Date.now(), new Date(transitionTimestamp).getTime())}
       </Timestamp>
     </span>
   );

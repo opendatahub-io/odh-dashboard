@@ -1151,8 +1151,8 @@ describe('Model Serving Global', () => {
       modelServingGlobal.findSortButton('Last deployed').click();
       modelServingGlobal.findSortButton('Last deployed').should(be.sortDescending);
 
-      modelServingSection.getInferenceServiceRow('Old Model');
-      cy.findByText('10 months ago').trigger('mouseenter');
+      const oldModelRow = modelServingSection.getInferenceServiceRow('Old Model');
+      oldModelRow.findLastDeployed().trigger('mouseenter');
       cy.findByRole('tooltip').should('contain.text', '9/4/2024, 4:12:41 PM UTC');
     });
 

@@ -660,6 +660,10 @@ class InferenceServiceRow extends TableRow {
       });
   }
 
+  findLastDeployed() {
+    return this.find().find(`[data-label="Last deployed"]`);
+  }
+
   findAPIProtocol() {
     return this.find().find(`[data-label="API protocol"]`);
   }
