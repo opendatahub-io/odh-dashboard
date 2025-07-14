@@ -2,20 +2,21 @@ import * as React from 'react';
 import { Td, Tbody, Tr, ActionsColumn, TableText } from '@patternfly/react-table';
 import { Link, useNavigate } from 'react-router-dom';
 import { Skeleton } from '@patternfly/react-core';
-import { PipelineKF } from '~/concepts/pipelines/kfTypes';
-import { CheckboxTd, TableRowTitleDescription } from '~/components/table';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import PipelinesTableExpandedRow from '~/concepts/pipelines/content/tables/pipeline/PipelinesTableExpandedRow';
-import PipelineVersionUploadModal from '~/concepts/pipelines/content/import/PipelineVersionImportModal';
-import PipelinesTableRowTime from '~/concepts/pipelines/content/tables/PipelinesTableRowTime';
-import usePipelineTableRowData from '~/concepts/pipelines/content/tables/pipeline/usePipelineTableRowData';
-import { PipelineAndVersionContext } from '~/concepts/pipelines/content/PipelineAndVersionContext';
-import { pipelineVersionDetailsRoute, createRunRoute, createRecurringRunRoute } from '~/routes';
-import { isArgoWorkflow } from '~/concepts/pipelines/content/tables/utils';
+import { PipelineKF } from '#~/concepts/pipelines/kfTypes';
+import { CheckboxTd, TableRowTitleDescription } from '#~/components/table';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+import PipelinesTableExpandedRow from '#~/concepts/pipelines/content/tables/pipeline/PipelinesTableExpandedRow';
+import PipelineVersionUploadModal from '#~/concepts/pipelines/content/import/PipelineVersionImportModal';
+import PipelinesTableRowTime from '#~/concepts/pipelines/content/tables/PipelinesTableRowTime';
+import usePipelineTableRowData from '#~/concepts/pipelines/content/tables/pipeline/usePipelineTableRowData';
+import { PipelineAndVersionContext } from '#~/concepts/pipelines/content/PipelineAndVersionContext';
+import { pipelineVersionDetailsRoute } from '#~/routes/pipelines/global';
+import { createRunRoute, createRecurringRunRoute } from '#~/routes/pipelines/runs';
+import { isArgoWorkflow } from '#~/concepts/pipelines/content/tables/utils';
 import {
   PIPELINE_CREATE_RUN_TOOLTIP_ARGO_ERROR,
   PIPELINE_CREATE_SCHEDULE_TOOLTIP_ARGO_ERROR,
-} from '~/concepts/pipelines/content/const';
+} from '#~/concepts/pipelines/content/const';
 
 const DISABLE_TOOLTIP =
   'All child pipeline versions must be deleted before deleting the parent pipeline';

@@ -1,7 +1,7 @@
-import { mockDocs } from '~/__mocks__/mockDocs';
-import { mockComponents } from '~/__mocks__/mockComponents';
-import { mockQuickStarts } from '~/__mocks__/mockQuickStarts';
-import { resources } from '~/__tests__/cypress/cypress/pages/resources';
+import { mockDocs } from '#~/__mocks__/mockDocs';
+import { mockComponents } from '#~/__mocks__/mockComponents';
+import { mockQuickStarts } from '#~/__mocks__/mockQuickStarts';
+import { resources } from '#~/__tests__/cypress/cypress/pages/resources';
 
 const listView = resources.getListView();
 const cardView = resources.getCardView();
@@ -24,13 +24,13 @@ describe('Resources page', () => {
     resourcesToolbar.findListToggleButton().click();
     cardView.find().should('not.exist');
     listView.find().should('exist');
-    listView.findListItems().should('have.length', 7);
+    listView.findListItems().should('have.length', 9);
 
     //check for card view
     resourcesToolbar.findCardToggleButton().click();
     cardView.find().should('exist');
     listView.find().should('not.exist');
-    cardView.findCardItems().should('have.length', 7);
+    cardView.findCardItems().should('have.length', 9);
   });
 
   it('Category filter for card', () => {
@@ -111,9 +111,9 @@ describe('Resources page', () => {
     // Enabled filter
     resourceFilters.findFilter('enabled-filter-checkbox').should('not.be.checked');
     resourceFilters.findFilter('enabled-filter-checkbox').check();
-    cardView.findCardItems().should('have.length', 7);
+    cardView.findCardItems().should('have.length', 9);
     resourcesToolbar.findListToggleButton().click();
-    listView.findListItems().should('have.length', 7);
+    listView.findListItems().should('have.length', 9);
     resourceFilters.findFilter('enabled-filter-checkbox').should('be.checked');
     resourceFilters.findFilter('enabled-filter-checkbox').uncheck();
 
@@ -135,9 +135,9 @@ describe('Resources page', () => {
     // Documentations
     resourceFilters.findFilter('documentation').should('not.be.checked');
     resourceFilters.findFilter('documentation').check();
-    cardView.findCardItems().should('have.length', 1);
+    cardView.findCardItems().should('have.length', 2);
     resourcesToolbar.findListToggleButton().click();
-    listView.findListItems().should('have.length', 1);
+    listView.findListItems().should('have.length', 2);
     resourceFilters.findFilter('documentation').should('be.checked');
     resourceFilters.findFilter('documentation').uncheck();
 
@@ -145,9 +145,9 @@ describe('Resources page', () => {
     resourcesToolbar.findCardToggleButton().click();
     resourceFilters.findFilter('how-to').should('not.be.checked');
     resourceFilters.findFilter('how-to').check();
-    cardView.findCardItems().should('have.length', 4);
+    cardView.findCardItems().should('have.length', 5);
     resourcesToolbar.findListToggleButton().click();
-    listView.findListItems().should('have.length', 4);
+    listView.findListItems().should('have.length', 5);
     resourceFilters.findFilter('how-to').should('be.checked');
     resourceFilters.findFilter('how-to').uncheck();
 
@@ -177,21 +177,22 @@ describe('Resources page', () => {
     const resourcesToolbar = resources.getLearningCenterToolbar();
 
     // Jupyter
-    resourceFilters.findFilter('Jupyter').should('not.be.checked');
-    resourceFilters.findFilter('Jupyter').check();
-    cardView.findCardItems().should('have.length', 7);
+    resourceFilters.findFilter('Jupyter').should('not.exist');
+    resourceFilters.findFilter('test-provider').should('not.be.checked');
+    resourceFilters.findFilter('test-provider').check();
+    cardView.findCardItems().should('have.length', 2);
     resourcesToolbar.findListToggleButton().click();
-    listView.findListItems().should('have.length', 7);
-    resourceFilters.findFilter('Jupyter').should('be.checked');
-    resourceFilters.findFilter('Jupyter').uncheck();
+    listView.findListItems().should('have.length', 2);
+    resourceFilters.findFilter('test-provider').should('be.checked');
+    resourceFilters.findFilter('test-provider').uncheck();
 
     // Red Hat managed
     resourcesToolbar.findCardToggleButton().click();
     resourceFilters.findFilter('Red Hat managed').should('not.be.checked');
     resourceFilters.findFilter('Red Hat managed').check();
-    cardView.findCardItems().should('have.length', 7);
+    cardView.findCardItems().should('have.length', 9);
     resourcesToolbar.findListToggleButton().click();
-    listView.findListItems().should('have.length', 7);
+    listView.findListItems().should('have.length', 9);
     resourceFilters.findFilter('Red Hat managed').should('be.checked');
     resourceFilters.findFilter('Red Hat managed').uncheck();
   });
@@ -204,13 +205,13 @@ describe('Resources page', () => {
     resources.findClearFilterButton().click();
 
     resources.findEmptyState().should('not.exist');
-    cardView.findCardItems().should('have.length', 7);
+    cardView.findCardItems().should('have.length', 9);
   });
 
   it('Search functionality for card view', () => {
     const resourcesToolbar = resources.getLearningCenterToolbar();
 
-    resourcesToolbar.findSearchInput().fill('Creating a Jupyter notebook');
+    resourcesToolbar.findSearchInput().fill('Creating a basic workbench');
     cardView.findCardItems().should('have.length', 1);
     cardView.getCard('create-jupyter-notebook').find().should('exist');
 
@@ -227,7 +228,7 @@ describe('Resources page', () => {
     const resourcesToolbar = resources.getLearningCenterToolbar();
     resourcesToolbar.findListToggleButton().click();
 
-    resourcesToolbar.findSearchInput().fill('Creating a Jupyter notebook');
+    resourcesToolbar.findSearchInput().fill('Creating a basic workbench');
     listView.findListItems().should('have.length', 1);
     listView.findList('create-jupyter-notebook').should('exist');
 

@@ -1,5 +1,5 @@
-import { ContainerResources } from '~/types';
-import { extractAcceleratorResources } from '~/pages/projects/screens/detail/notebooks/utils';
+import { ContainerResources } from '#~/types';
+import { extractAcceleratorResources } from '#~/pages/projects/screens/detail/notebooks/utils';
 
 describe('extractAcceleratorResources', () => {
   it('should return empty object if no resources are provided', () => {

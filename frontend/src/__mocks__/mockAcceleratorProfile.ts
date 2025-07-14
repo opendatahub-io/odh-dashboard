@@ -1,5 +1,5 @@
-import { AcceleratorProfileKind } from '~/k8sTypes';
-import { Toleration, TolerationEffect, TolerationOperator } from '~/types';
+import { AcceleratorProfileKind } from '#~/k8sTypes';
+import { Toleration, TolerationEffect, TolerationOperator } from '#~/types';
 import { genUID } from './mockUtils';
 
 type MockResourceConfigType = {
@@ -47,3 +47,43 @@ export const mockAcceleratorProfile = ({
     description,
   },
 });
+
+export const mockGlobalScopedAcceleratorProfiles = [
+  mockAcceleratorProfile({
+    name: 'small-profile-global',
+    displayName: 'Small Profile Global',
+    namespace: 'opendatahub',
+    tolerations: [
+      {
+        effect: TolerationEffect.NO_SCHEDULE,
+        key: 'NotebooksOnlyChange',
+        operator: TolerationOperator.EXISTS,
+      },
+    ],
+  }),
+  mockAcceleratorProfile({
+    name: 'large-profile-global',
+    displayName: 'Large Profile Global',
+    namespace: 'opendatahub',
+  }),
+];
+
+export const mockProjectScopedAcceleratorProfiles = [
+  mockAcceleratorProfile({
+    name: 'small-profile',
+    displayName: 'Small Profile',
+    namespace: 'test-project',
+    tolerations: [
+      {
+        effect: TolerationEffect.NO_SCHEDULE,
+        key: 'NotebooksOnlyChange',
+        operator: TolerationOperator.EXISTS,
+      },
+    ],
+  }),
+  mockAcceleratorProfile({
+    name: 'large-profile-1',
+    displayName: 'Large Profile-1',
+    namespace: 'test-project',
+  }),
+];

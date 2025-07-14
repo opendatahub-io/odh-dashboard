@@ -1,4 +1,4 @@
-import { convertInputType } from '~/pages/modelServing/screens/metrics/utils';
+import { convertInputType } from '#~/pages/modelServing/screens/metrics/utils';
 
 describe('convertInputType', () => {
   describe('string inputs', () => {

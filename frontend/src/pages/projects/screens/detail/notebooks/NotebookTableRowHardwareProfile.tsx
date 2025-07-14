@@ -1,8 +1,10 @@
-import { HelperText, HelperTextItem, Label, Spinner } from '@patternfly/react-core';
+import { HelperText, HelperTextItem, Spinner } from '@patternfly/react-core';
 import React from 'react';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import { ProjectObjectType, typedObjectImage } from '~/concepts/design/utils';
-import { HardwareProfileKind } from '~/k8sTypes';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { HardwareProfileKind } from '#~/k8sTypes';
+import ScopedLabel from '#~/components/ScopedLabel';
+import { ScopedType } from '#~/pages/modelServing/screens/const';
+import { getHardwareProfileDisplayName } from '#~/pages/hardwareProfiles/utils.ts';
 
 type NotebookTableRowHardwareProfileProps = {
   namespace: string;
@@ -32,23 +34,11 @@ const NotebookTableRowHardwareProfile: React.FC<NotebookTableRowHardwareProfileP
 
   return (
     <>
-      {hardwareProfile?.spec.displayName ?? <i>Custom</i>}{' '}
+      {hardwareProfile ? getHardwareProfileDisplayName(hardwareProfile) : <i>Custom</i>}{' '}
       {isProjectScoped && hardwareProfile?.metadata.namespace === namespace && (
-        <Label
-          variant="outline"
-          color="blue"
-          data-testid="project-scoped-label"
-          isCompact
-          icon={
-            <img
-              style={{ height: '15px', paddingTop: '3px' }}
-              src={typedObjectImage(ProjectObjectType.project)}
-              alt=""
-            />
-          }
-        >
-          Project-scoped
-        </Label>
+        <ScopedLabel isProject color="blue" isCompact>
+          {ScopedType.Project}
+        </ScopedLabel>
       )}
     </>
   );

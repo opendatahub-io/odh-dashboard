@@ -1,5 +1,5 @@
 name: PR E2E Tests
-on:
+on: 
   issue_comment:
     types: [created]
 
@@ -15,14 +15,14 @@ jobs:
     steps:
       - id: check
         run: |
-          if [[ "${{ github.event.comment.body }}" == "/rune2etests" ]]; then
+          if [[ "${{ github.event.comment.body }}" == *"/rune2etests"* ]]; then
             echo "should_run=true" >> $GITHUB_OUTPUT
           else
             echo "should_run=false" >> $GITHUB_OUTPUT
           fi
 
   Setup:
-    needs: check-trigger
+    needs: [check-trigger]
     if: needs.check-trigger.outputs.should_run == 'true'
     runs-on: self-hosted
     outputs:
@@ -54,7 +54,7 @@ jobs:
         run: npm install
 
   Cypress-Setup:
-    needs: [Setup]
+    needs: [check-trigger, Setup]
     if: needs.check-trigger.outputs.should_run == 'true'
     runs-on: self-hosted
     outputs:
@@ -94,7 +94,7 @@ jobs:
         working-directory: ./frontend
 
   Launch-Dashboard:
-    needs: [Setup, Cypress-Setup]
+    needs: [check-trigger, Setup, Cypress-Setup]
     if: needs.check-trigger.outputs.should_run == 'true'
     runs-on: self-hosted
     outputs:
@@ -239,7 +239,7 @@ jobs:
           EOF
 
   Run-Smoke-Tests:
-    needs: [Setup, Cypress-Setup, Launch-Dashboard]
+    needs: [check-trigger, Setup, Cypress-Setup, Launch-Dashboard]
     if: needs.check-trigger.outputs.should_run == 'true'
     runs-on: self-hosted
     strategy:
@@ -287,7 +287,7 @@ jobs:
           if-no-files-found: error
 
   Run-Sanity-Tests:
-    needs: [Setup, Cypress-Setup, Launch-Dashboard]
+    needs: [check-trigger, Setup, Cypress-Setup, Launch-Dashboard]
     if: needs.check-trigger.outputs.should_run == 'true'
     runs-on: self-hosted
     strategy:
@@ -335,7 +335,7 @@ jobs:
           if-no-files-found: error
 
   Combine-Results:
-    needs: [Run-Smoke-Tests, Run-Sanity-Tests]
+    needs: [check-trigger, Run-Smoke-Tests, Run-Sanity-Tests]
     if: needs.check-trigger.outputs.should_run == 'true'
     runs-on: self-hosted
     steps:
@@ -353,4 +353,4 @@ jobs:
         with:
           name: combined-test-results
           path: all-results
-          if-no-files-found: error 
+          if-no-files-found: error

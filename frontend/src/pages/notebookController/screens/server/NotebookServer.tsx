@@ -1,15 +1,15 @@
 import * as React from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { Button, ActionList, ActionListItem, Stack, StackItem } from '@patternfly/react-core';
-import { Notebook } from '~/types';
-import ApplicationsPage from '~/pages/ApplicationsPage';
-import { NotebookControllerContext } from '~/pages/notebookController/NotebookControllerContext';
-import ImpersonateAlert from '~/pages/notebookController/screens/admin/ImpersonateAlert';
-import useNotification from '~/utilities/useNotification';
+import ApplicationsPage from '#~/pages/ApplicationsPage';
+import { NotebookControllerContext } from '#~/pages/notebookController/NotebookControllerContext';
+import ImpersonateAlert from '#~/pages/notebookController/screens/admin/ImpersonateAlert';
+import useNotification from '#~/utilities/useNotification';
+import { useStopWorkbenchModal } from '#~/concepts/notebooks/useStopWorkbenchModal';
 import NotebookServerDetails from './NotebookServerDetails';
 import StopServerModal from './StopServerModal';
 
-import '~/pages/notebookController/NotebookController.scss';
+import '#~/pages/notebookController/NotebookController.scss';
 
 const NotebookServer: React.FC = () => {
   const navigate = useNavigate();
@@ -20,28 +20,21 @@ const NotebookServer: React.FC = () => {
     currentUserNotebookLink,
     requestNotebookRefresh,
   } = React.useContext(NotebookControllerContext);
-  const [notebooksToStop, setNotebooksToStop] = React.useState<Notebook[]>([]);
+  const notebooksToStop = notebook ? [notebook] : [];
 
-  const onNotebooksStop = React.useCallback(
-    (didStop: boolean) => {
-      if (didStop) {
-        // Refresh the context so the spawner page knows the full state
-        requestNotebookRefresh();
-        navigate(`/notebookController/spawner`);
-      } else {
-        setNotebooksToStop([]);
-      }
+  const { showModal, isDeleting, onStop, onNotebooksStop } = useStopWorkbenchModal({
+    notebooksToStop,
+    refresh: () => {
+      requestNotebookRefresh();
+      navigate(`/notebookController/spawner`);
     },
-    [requestNotebookRefresh, navigate],
-  );
-
-  const link = currentUserNotebookLink || '#';
+  });
 
   return (
     <>
       <ImpersonateAlert />
       <ApplicationsPage
-        title="Notebook server control panel"
+        title="Workbench control panel"
         description={null}
         loaded
         provideChildrenPadding
@@ -51,31 +44,37 @@ const NotebookServer: React.FC = () => {
         {notebook && (
           <Stack hasGutter>
             <StackItem>
-              {notebooksToStop.length ? (
+              {showModal && (
                 <StopServerModal
                   notebooksToStop={notebooksToStop}
+                  isDeleting={isDeleting}
+                  link={currentUserNotebookLink}
                   onNotebooksStop={onNotebooksStop}
                 />
-              ) : null}
+              )}
               <ActionList>
                 <ActionListItem
                   onClick={(e) => {
-                    if (link === '#') {
+                    if (!currentUserNotebookLink) {
                       e.preventDefault();
                       notification.error(
-                        'Error accessing notebook server',
-                        'Failed to redirect page due to missing notebook URL, please try to refresh the page and try it again.',
+                        'Error accessing workbench',
+                        'Failed to redirect page due to missing workbench URL, please try to refresh the page and try it again.',
                       );
                     }
                   }}
                 >
-                  <Button component="a" href={link} data-id="return-nb-button">
-                    Access notebook server
+                  <Button component="a" href={currentUserNotebookLink} data-id="return-nb-button">
+                    Access workbench
                   </Button>
                 </ActionListItem>
-                <ActionListItem onClick={() => setNotebooksToStop([notebook])}>
-                  <Button data-id="stop-nb-button" data-testid="stop-nb-button" variant="secondary">
-                    Stop notebook server
+                <ActionListItem
+                  onClick={() => {
+                    onStop();
+                  }}
+                >
+                  <Button data-testid="stop-wb-button" variant="secondary">
+                    Stop workbench
                   </Button>
                 </ActionListItem>
               </ActionList>

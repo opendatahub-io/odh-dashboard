@@ -1,12 +1,12 @@
 import { Stack, StackItem } from '@patternfly/react-core/dist/esm';
 import React from 'react';
-import { KserveMetricGraphDefinition } from '~/concepts/metrics/kserve/types';
-import { KserveMetricsGraphTypes } from '~/concepts/metrics/kserve/const';
-import KserveRequestCountGraph from '~/concepts/metrics/kserve/content/KserveRequestCountGraph';
-import { TimeframeTitle } from '~/concepts/metrics/types';
-import KserveMeanLatencyGraph from '~/concepts/metrics/kserve/content/KserveMeanLatencyGraph';
-import KserveCpuUsageGraph from '~/concepts/metrics/kserve/content/KserveCpuUsageGraph';
-import KserveMemoryUsageGraph from '~/concepts/metrics/kserve/content/KserveMemoryUsageGraph';
+import { KserveMetricGraphDefinition } from '#~/concepts/metrics/kserve/types';
+import { KserveMetricsGraphTypes } from '#~/concepts/metrics/kserve/const';
+import KserveRequestCountGraph from '#~/concepts/metrics/kserve/content/KserveRequestCountGraph';
+import { TimeframeTitle } from '#~/concepts/metrics/types';
+import KserveMeanLatencyGraph from '#~/concepts/metrics/kserve/content/KserveMeanLatencyGraph';
+import KserveCpuUsageGraph from '#~/concepts/metrics/kserve/content/KserveCpuUsageGraph';
+import KserveMemoryUsageGraph from '#~/concepts/metrics/kserve/content/KserveMemoryUsageGraph';
 
 type KservePerformanceGraphsProps = {
   namespace: string;

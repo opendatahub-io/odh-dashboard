@@ -1,12 +1,12 @@
 import {
   mockConnectionTypeConfigMap,
   mockConnectionTypeConfigMapObj,
-} from '~/__mocks__/mockConnectionType';
-import { createConnectionTypePage } from '~/__tests__/cypress/cypress/pages/connectionTypes';
-import { asProductAdminUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
-import { mockDashboardConfig } from '~/__mocks__';
-import type { ConnectionTypeField } from '~/concepts/connectionTypes/types';
-import { toConnectionTypeConfigMap } from '~/concepts/connectionTypes/utils';
+} from '#~/__mocks__/mockConnectionType';
+import { createConnectionTypePage } from '#~/__tests__/cypress/cypress/pages/connectionTypes';
+import { asProductAdminUser } from '#~/__tests__/cypress/cypress/utils/mockUsers';
+import { mockDashboardConfig } from '#~/__mocks__';
+import type { ConnectionTypeField } from '#~/concepts/connectionTypes/types';
+import { toConnectionTypeConfigMap } from '#~/concepts/connectionTypes/utils';
 
 describe('create', () => {
   beforeEach(() => {

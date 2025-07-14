@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Alert } from '@patternfly/react-core';
-import { NotebookKind } from '~/k8sTypes';
-import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
+import { NotebookKind } from '#~/k8sTypes';
+import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 
 type DeleteModalConnectedAlertProps = {
   loaded: boolean;

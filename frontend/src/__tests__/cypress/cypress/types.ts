@@ -59,6 +59,7 @@ export type DspaReplacements = {
   DSPA_SECRET_NAME: string;
   NAMESPACE: string;
   AWS_S3_BUCKET: string;
+  AWS_REGION: string;
 };
 
 export type StorageClassConfig = {
@@ -303,3 +304,47 @@ export type NotebookTolerationsTestData = {
   tolerationValue: string;
   hardwareProfileDeploymentSize: string;
 };
+
+export type RegisterModelTestData = {
+  registryNamePrefix: string;
+  // First model (Object Storage)
+  objectStorageModelName: string;
+  objectStorageModelDescription: string;
+  version1Name: string;
+  version1Description: string;
+  modelFormatOnnx: string;
+  formatVersion1_0: string;
+  objectStorageEndpoint: string;
+  objectStorageBucket: string;
+  objectStorageRegion: string;
+  objectStoragePath: string;
+  // Second model (URI)
+  uriModelName: string;
+  uriModelDescription: string;
+  uriVersion1Description: string;
+  modelFormatPytorch: string;
+  formatVersion2_0: string;
+  uriPrimary: string;
+  // New version registration (Versions view)
+  version2Name: string;
+  version2Description: string;
+  modelFormatTensorflow: string;
+  formatVersion3_0: string;
+  uriVersion2: string;
+
+  newNameSuffix: string;
+  newDescription: string;
+};
+
+export type ManageRegistryPermissionsTestData = {
+  registryNamePrefix: string;
+  testProjectNamePrefix: string;
+  rhodsUsersGroup: string;
+};
+
+export enum AccessMode {
+  RWO = 'ReadWriteOnce',
+  RWX = 'ReadWriteMany',
+  ROX = 'ReadOnlyMany',
+  RWOP = 'ReadWriteOncePod',
+}

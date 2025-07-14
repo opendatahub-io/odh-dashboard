@@ -1,94 +1,113 @@
 import * as React from 'react';
 import { Button } from '@patternfly/react-core';
-import { Modal, ModalVariant } from '@patternfly/react-core/deprecated';
-import { Notebook } from '~/types';
-import { stopNotebook } from '~/services/notebookService';
-import useNotification from '~/utilities/useNotification';
-import { allSettledPromises } from '~/utilities/allSettledPromises';
-import { useUser } from '~/redux/selectors';
+import { Notebook } from '#~/types';
+import useStopNotebookModalAvailability from '#~/pages/projects/notebook/useStopNotebookModalAvailability';
+import ConfirmStopModal from '#~/pages/projects/components/ConfirmStopModal.tsx';
 
 type StopServerModalProps = {
   notebooksToStop: Notebook[];
+  link?: string;
+  isDeleting: boolean;
   onNotebooksStop: (didStop: boolean) => void;
 };
 
-const StopServerModal: React.FC<StopServerModalProps> = ({ notebooksToStop, onNotebooksStop }) => {
-  const notification = useNotification();
-  const [isDeleting, setDeleting] = React.useState(false);
-
-  const { isAdmin } = useUser();
+const StopServerModal: React.FC<StopServerModalProps> = ({
+  notebooksToStop,
+  link,
+  isDeleting,
+  onNotebooksStop,
+}) => {
+  const [dontShowModalValue, setDontShowModalValue] = useStopNotebookModalAvailability();
 
   if (!notebooksToStop.length) {
     return null;
   }
 
   const hasMultipleServers = notebooksToStop.length > 1;
-  const textToShow = hasMultipleServers ? 'all servers' : 'server';
+  const textToShow = hasMultipleServers ? 'all workbenches' : 'workbench';
 
-  const onClose = () => {
-    onNotebooksStop(false);
+  const getWorkbenchModalTitle = () => {
+    if (hasMultipleServers) {
+      return 'Stop all workbenches?';
+    }
+    return 'Stop workbench?';
   };
 
-  const handleStopServer = () => {
-    setDeleting(true);
-    allSettledPromises<Notebook | void>(
-      notebooksToStop.map((notebook) => {
-        const notebookName = notebook.metadata.name || '';
-        if (!notebookName) {
-          return Promise.resolve();
-        }
+  const getWorkbenchName = () => {
+    if (hasMultipleServers) {
+      return <strong>workbenches</strong>;
+    }
 
-        if (!isAdmin) {
-          return stopNotebook();
-        }
+    if (notebooksToStop.length === 0) {
+      return <strong>workbench</strong>;
+    }
 
-        const notebookUser = notebook.metadata.annotations?.['opendatahub.io/username'];
-        if (!notebookUser) {
-          return Promise.resolve();
-        }
+    return (
+      <>
+        <strong>
+          {notebooksToStop[0].metadata.annotations?.['opendatahub.io/display-name'] ??
+            notebooksToStop[0].metadata.name}
+        </strong>{' '}
+        workbench
+      </>
+    );
+  };
 
-        return stopNotebook(notebookUser);
-      }),
-    )
-      .then(() => {
-        setDeleting(false);
-        onNotebooksStop(true);
-      })
-      .catch((e) => {
-        setDeleting(false);
-        notification.error(`Error stopping ${textToShow}`, e.message);
-      });
+  const onBeforeClose = (confirmStatus: boolean) => {
+    if (!confirmStatus) {
+      setDontShowModalValue(false);
+    }
+    onNotebooksStop(confirmStatus);
+  };
+
+  const displayLink = () => {
+    if (!!link && notebooksToStop.length === 1) {
+      return (
+        <>
+          <Button data-testid="workbench-url" component="a" href={link} variant="link" isInline>
+            open the workbench
+          </Button>
+        </>
+      );
+    }
+    if (notebooksToStop.length === 1) {
+      return 'open the workbench';
+    }
+    return 'open the workbenches';
   };
 
   const modalActions = [
     <Button
-      data-id="stop-nb-button"
-      data-testid="stop-nb-server-button"
+      data-testid="stop-workbench-button"
       isDisabled={isDeleting}
       key="confirm"
       variant="primary"
-      onClick={handleStopServer}
+      onClick={() => onBeforeClose(true)}
     >
       Stop {textToShow}
     </Button>,
-    <Button data-id="cancel-button" key="cancel" variant="secondary" onClick={onClose}>
+    <Button key="cancel" variant="secondary" onClick={() => onBeforeClose(false)}>
       Cancel
     </Button>,
   ];
 
   return (
-    <Modal
-      aria-label="Stop server modal"
-      appendTo={document.body}
-      variant={ModalVariant.small}
-      title={`Stop ${textToShow}`}
-      isOpen
-      showClose
-      onClose={onClose}
-      actions={modalActions}
-    >
-      Are you sure you want to stop {textToShow}? Any changes made without saving will be lost.
-    </Modal>
+    <ConfirmStopModal
+      message={
+        <>
+          Any unsaved changes to the <strong>{getWorkbenchName()}</strong> will be lost.
+        </>
+      }
+      isRunning
+      modalActions={modalActions}
+      link={displayLink()}
+      onBeforeClose={onBeforeClose}
+      title={getWorkbenchModalTitle()}
+      dontShowModalValue={dontShowModalValue}
+      setDontShowModalValue={setDontShowModalValue}
+      saveChanges
+      dataTestId="stop-server-modal"
+    />
   );
 };
 

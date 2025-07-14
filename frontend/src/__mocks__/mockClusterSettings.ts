@@ -1,5 +1,5 @@
-import { DEFAULT_CULLER_TIMEOUT, DEFAULT_PVC_SIZE } from '~/pages/clusterSettings/const';
-import { ClusterSettingsType } from '~/types';
+import { DEFAULT_CULLER_TIMEOUT, DEFAULT_PVC_SIZE } from '#~/pages/clusterSettings/const';
+import { ClusterSettingsType } from '#~/types';
 
 export const mockClusterSettings = ({
   userTrackingEnabled = false,

@@ -1,28 +1,28 @@
 import * as React from 'react';
 import * as _ from 'lodash-es';
 import { AlertVariant, Button, Stack, StackItem } from '@patternfly/react-core';
-import ApplicationsPage from '~/pages/ApplicationsPage';
-import { useAppContext } from '~/app/AppContext';
-import { fetchClusterSettings, updateClusterSettings } from '~/services/clusterSettingsService';
+import ApplicationsPage from '#~/pages/ApplicationsPage';
+import { useAppContext } from '#~/app/AppContext';
+import { fetchClusterSettings, updateClusterSettings } from '#~/services/clusterSettingsService';
 import {
   ClusterSettingsType,
   ModelServingPlatformEnabled,
   NotebookTolerationFormSettings,
-} from '~/types';
-import { DeploymentMode } from '~/k8sTypes';
-import { addNotification } from '~/redux/actions/actions';
-import { useCheckJupyterEnabled } from '~/utilities/notebookControllerUtils';
-import { useAppDispatch } from '~/redux/hooks';
-import PVCSizeSettings from '~/pages/clusterSettings/PVCSizeSettings';
-import CullerSettings from '~/pages/clusterSettings/CullerSettings';
-import TelemetrySettings from '~/pages/clusterSettings/TelemetrySettings';
-import TolerationSettings from '~/pages/clusterSettings/TolerationSettings';
-import ModelServingPlatformSettings from '~/pages/clusterSettings/ModelServingPlatformSettings';
-import { useKServeDeploymentMode } from '~/pages/modelServing/useKServeDeploymentMode';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import TitleWithIcon from '~/concepts/design/TitleWithIcon';
-import { ProjectObjectType } from '~/concepts/design/utils';
-import { patchDefaultDeploymentMode } from '~/api/';
+} from '#~/types';
+import { DeploymentMode } from '#~/k8sTypes';
+import { addNotification } from '#~/redux/actions/actions';
+import { useCheckJupyterEnabled } from '#~/utilities/notebookControllerUtils';
+import { useAppDispatch } from '#~/redux/hooks';
+import PVCSizeSettings from '#~/pages/clusterSettings/PVCSizeSettings';
+import CullerSettings from '#~/pages/clusterSettings/CullerSettings';
+import TelemetrySettings from '#~/pages/clusterSettings/TelemetrySettings';
+import TolerationSettings from '#~/pages/clusterSettings/TolerationSettings';
+import ModelServingPlatformSettings from '#~/pages/clusterSettings/ModelServingPlatformSettings';
+import { useKServeDeploymentMode } from '#~/pages/modelServing/useKServeDeploymentMode';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import TitleWithIcon from '#~/concepts/design/TitleWithIcon';
+import { ProjectObjectType } from '#~/concepts/design/utils';
+import { patchDefaultDeploymentMode } from '#~/api';
 import {
   DEFAULT_CONFIG,
   DEFAULT_PVC_SIZE,

@@ -1,5 +1,6 @@
 import { Contextual } from './components/Contextual';
 import { TableRow } from './components/table';
+import { DeleteModal } from './components/DeleteModal';
 
 class PermissionsTableRow extends TableRow {}
 
@@ -28,6 +29,24 @@ class PermissionsTab {
 
   getGroupTable() {
     return new PermissionTable(() => cy.findByTestId('role-binding-table Group'));
+  }
+}
+
+class RoleBindingPermissionsChangeModal extends DeleteModal {
+  findPermissionsChangeModal() {
+    return cy.findByTestId('delete-modal');
+  }
+
+  findModalCancelButton() {
+    return cy.get('button').contains('Cancel');
+  }
+
+  findModalInput() {
+    return cy.findByTestId('delete-modal-input');
+  }
+
+  findModalConfirmButton(action: string) {
+    return cy.get('button').contains(action);
   }
 }
 
@@ -65,10 +84,10 @@ class PermissionTable extends Contextual<HTMLElement> {
 
   addGroupName(name: string) {
     const userNameCell = permissions.getGroupTable().find().find('[data-label="Username"]');
-    userNameCell.findByRole('button', { name: 'Typeahead menu toggle' }).should('exist').click();
-    userNameCell.children().first().type(`${name}`);
-    //have to do this at top level `cy` because it goes to top of dom
-    cy.findByRole('option', { name: `Select "${name}"` }).click();
+    userNameCell.find('input[role="combobox"]').type(name);
+    cy.findByRole('listbox')
+      .findByRole('option', { name: `Select "${name}"` })
+      .click();
   }
 
   selectAdminOption() {
@@ -77,7 +96,7 @@ class PermissionTable extends Contextual<HTMLElement> {
       .find()
       .find('[data-label="Permission"]')
       .children()
-      .first()
+      .last()
       .findSelectOption('Admin Edit the project and manage user access')
       .click();
   }
@@ -92,3 +111,4 @@ class PermissionTable extends Contextual<HTMLElement> {
 }
 
 export const permissions = new PermissionsTab();
+export const roleBindingPermissionsChangeModal = new RoleBindingPermissionsChangeModal();

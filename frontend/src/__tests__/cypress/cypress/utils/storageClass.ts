@@ -2,17 +2,17 @@ import type {
   CommandLineResult,
   StorageClassConfig,
   SCReplacements,
-} from '~/__tests__/cypress/cypress/types';
+} from '#~/__tests__/cypress/cypress/types';
 import {
   createStorageClass,
   deleteStorageClass,
   getStorageClassConfig,
-} from '~/__tests__/cypress/cypress/utils/oc_commands/storageClass';
+} from '#~/__tests__/cypress/cypress/utils/oc_commands/storageClass';
 import {
-  createOpenShiftProject,
   deleteOpenShiftProject,
   addUserToProject,
-} from '~/__tests__/cypress/cypress/utils/oc_commands/project';
+} from '#~/__tests__/cypress/cypress/utils/oc_commands/project';
+import { createCleanProject } from './projectChecker';
 
 /**
  * Provision (using oc) all necessary resources for the Storage Class testing feature
@@ -71,7 +71,7 @@ export const tearDownStorageClassFeature = (createdSC: string[]): void => {
  */
 export const provisionClusterStorageSCFeature = (projectName: string, userName: string): void => {
   // Provision a Project
-  createOpenShiftProject(projectName);
+  createCleanProject(projectName);
   addUserToProject(projectName, userName);
 };
 
@@ -83,7 +83,7 @@ export const provisionClusterStorageSCFeature = (projectName: string, userName: 
  */
 export const tearDownClusterStorageSCFeature = (projectName: string): void => {
   // Delete provisioned projectName
-  deleteOpenShiftProject(projectName);
+  deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
 };
 
 /**

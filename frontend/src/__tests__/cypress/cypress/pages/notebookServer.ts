@@ -65,11 +65,11 @@ class NotebookServer {
   }
 
   findStopServerButton() {
-    return cy.findByTestId('stop-nb-button');
+    return cy.findByTestId('stop-wb-button');
   }
 
   findStopNotebookServerButton() {
-    return cy.findByTestId('stop-nb-server-button');
+    return cy.findByTestId('stop-workbench-button');
   }
 
   findAcceleratorProfileSelect() {

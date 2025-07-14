@@ -1,8 +1,8 @@
 import { ThunkAction } from 'redux-thunk';
 import { Action } from 'redux';
-import axios from '~/utilities/axios';
-import { Actions, AppNotification, AppState, GetUserAction, StatusResponse } from '~/redux/types';
-import { AllowedUser } from '~/pages/notebookController/screens/admin/types';
+import axios from '#~/utilities/axios';
+import { Actions, AppNotification, AppState, GetUserAction, StatusResponse } from '#~/redux/types';
+import { AllowedUser } from '#~/pages/notebookController/screens/admin/types';
 
 export const getUserPending = (): GetUserAction => ({
   type: Actions.GET_USER_PENDING,

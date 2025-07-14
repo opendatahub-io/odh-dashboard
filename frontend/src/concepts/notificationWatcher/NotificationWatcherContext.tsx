@@ -1,7 +1,7 @@
 import * as React from 'react';
-import { AppNotification } from '~/redux/types';
-import useNotification from '~/utilities/useNotification';
-import { POLL_INTERVAL } from '~/utilities/const';
+import { AppNotification } from '#~/redux/types';
+import useNotification from '#~/utilities/useNotification';
+import { POLL_INTERVAL } from '#~/utilities/const';
 
 export type NotificationWatcherContextType = {
   registerNotification: (item: NotificationWatcherItem) => void;
@@ -63,50 +63,49 @@ export const NotificationWatcherContextProvider: React.FC<
     (itemToInvoke: NotificationWatcherItem, signal: AbortSignal) => {
       const callbackDelay = itemToInvoke.callbackDelay ?? POLL_INTERVAL;
 
-      const timeoutId = setTimeout(() => {
-        timeoutIdsMapRef.current.delete(itemToInvoke);
+      itemToInvoke
+        .callback(signal)
+        .then((response) => {
+          if (response.status !== NotificationResponseStatus.REPOLL) {
+            abortControllersMapRef.current.delete(itemToInvoke);
+          }
 
-        itemToInvoke
-          .callback(signal)
-          .then((response) => {
-            if (response.status !== NotificationResponseStatus.REPOLL) {
-              abortControllersMapRef.current.delete(itemToInvoke);
-            }
+          if (signal.aborted) {
+            return;
+          }
 
-            if (signal.aborted) {
-              return;
-            }
-
-            const { status } = response;
-            switch (status) {
-              case NotificationResponseStatus.SUCCESS:
-                notification.success(response.title, response.message, response.actions);
-                break;
-              case NotificationResponseStatus.ERROR:
-                notification.error(response.title, response.message, response.actions);
-                break;
-              case NotificationResponseStatus.REPOLL:
+          const { status } = response;
+          switch (status) {
+            case NotificationResponseStatus.SUCCESS:
+              notification.success(response.title, response.message, response.actions);
+              break;
+            case NotificationResponseStatus.ERROR:
+              notification.error(response.title, response.message, response.actions);
+              break;
+            case NotificationResponseStatus.REPOLL: {
+              const timeoutId = setTimeout(() => {
+                timeoutIdsMapRef.current.delete(itemToInvoke);
                 invoke(itemToInvoke, signal);
-                break;
-              case NotificationResponseStatus.STOP:
-                // Do nothing more
-                break;
-              default: {
-                // If you see a compilation error here, it means that you have added a new status to the
-                // NotificationWatcherResponse type but forgot to handle it in the switch statement above.
-                const value: never = status;
-                // eslint-disable-next-line no-console
-                console.error('Unreachable code', value);
-              }
+              }, callbackDelay);
+              timeoutIdsMapRef.current.set(itemToInvoke, timeoutId);
+              break;
             }
-          })
-          .catch((error) => {
-            // eslint-disable-next-line no-console
-            console.error('Uncaught error:', error);
-          });
-      }, callbackDelay);
-
-      timeoutIdsMapRef.current.set(itemToInvoke, timeoutId);
+            case NotificationResponseStatus.STOP:
+              // Do nothing more
+              break;
+            default: {
+              // If you see a compilation error here, it means that you have added a new status to the
+              // NotificationWatcherResponse type but forgot to handle it in the switch statement above.
+              const value: never = status;
+              // eslint-disable-next-line no-console
+              console.error('Unreachable code', value);
+            }
+          }
+        })
+        .catch((error) => {
+          // eslint-disable-next-line no-console
+          console.error('Uncaught error:', error);
+        });
     },
     [notification],
   );

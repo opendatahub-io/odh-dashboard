@@ -1,13 +1,13 @@
 import React from 'react';
-import { getModelRegistryCR } from '~/api';
-import { ModelRegistryKind } from '~/k8sTypes';
-import useModelRegistryEnabled from '~/concepts/modelRegistry/useModelRegistryEnabled';
-import { FAST_POLL_INTERVAL, SERVER_TIMEOUT } from '~/utilities/const';
+import { getModelRegistryCR } from '#~/api';
+import { ModelRegistryKind } from '#~/k8sTypes';
+import useModelRegistryEnabled from '#~/concepts/modelRegistry/useModelRegistryEnabled';
+import { FAST_POLL_INTERVAL, SERVER_TIMEOUT } from '#~/utilities/const';
 import useFetchState, {
   FetchState,
   FetchStateCallbackPromise,
   NotReadyError,
-} from '~/utilities/useFetchState';
+} from '#~/utilities/useFetchState';
 
 type State = ModelRegistryKind | null;
 

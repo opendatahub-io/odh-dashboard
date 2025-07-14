@@ -1,5 +1,5 @@
-import { useClusterInfo } from '~/redux/selectors/clusterInfo';
-import { CONSOLE_LINK_DOMAIN, DEV_MODE } from '~/utilities/const';
+import { useClusterInfo } from '#~/redux/selectors/clusterInfo';
+import { CONSOLE_LINK_DOMAIN, DEV_MODE } from '#~/utilities/const';
 
 const consolePrefix = 'console-openshift-console';
 

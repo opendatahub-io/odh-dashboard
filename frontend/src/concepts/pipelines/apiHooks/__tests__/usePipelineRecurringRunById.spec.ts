@@ -1,10 +1,10 @@
 /* eslint-disable camelcase */
-import { standardUseFetchState, testHook } from '~/__tests__/unit/testUtils/hooks';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import usePipelineRecurringRunById from '~/concepts/pipelines/apiHooks/usePipelineRecurringRunById';
-import { buildMockRecurringRunKF } from '~/__mocks__';
+import { standardUseFetchState, testHook } from '#~/__tests__/unit/testUtils/hooks';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+import usePipelineRecurringRunById from '#~/concepts/pipelines/apiHooks/usePipelineRecurringRunById';
+import { buildMockRecurringRunKF } from '#~/__mocks__';
 
-jest.mock('~/concepts/pipelines/context', () => ({
+jest.mock('#~/concepts/pipelines/context', () => ({
   usePipelinesAPI: jest.fn(),
 }));
 

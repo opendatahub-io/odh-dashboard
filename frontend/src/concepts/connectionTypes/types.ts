@@ -1,5 +1,5 @@
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
-import { DashboardLabels, DisplayNameAnnotations, SecretKind } from '~/k8sTypes';
+import { DashboardLabels, DisplayNameAnnotations, SecretKind } from '#~/k8sTypes';
 
 export enum ConnectionTypeFieldType {
   Boolean = 'boolean',
@@ -56,6 +56,7 @@ type Field<T extends ConnectionTypeFieldTypeUnion> = {
 export type ConnectionTypeCommonProperties<V = string> = {
   defaultValue?: V;
   defaultReadOnly?: boolean;
+  deferInput?: boolean;
 };
 
 // P default to an empty set of properties

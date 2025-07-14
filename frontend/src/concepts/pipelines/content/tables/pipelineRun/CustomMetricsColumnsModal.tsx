@@ -8,8 +8,11 @@ import {
   Stack,
   StackItem,
   Tooltip,
+  Modal,
+  ModalBody,
+  ModalHeader,
+  ModalFooter,
 } from '@patternfly/react-core';
-import { Modal, ModalBoxBody, ModalVariant } from '@patternfly/react-core/deprecated';
 import { DragDropSort, DraggableObject } from '@patternfly/react-drag-drop';
 import { getMetricsColumnsLocalStorageKey } from './utils';
 import { MetricColumnSearchInput } from './MetricColumnSearchInput';
@@ -44,54 +47,47 @@ export const CustomMetricsColumnsModal: React.FC<CustomMetricsColumnsModalProps>
 
   return (
     <Modal
-      bodyAriaLabel="Metrics column names"
       tabIndex={0}
-      hasNoBodyWrapper
       aria-label="Custom metrics columns modal"
-      variant={ModalVariant.small}
-      title="Customize metrics columns"
-      description={
-        <Stack hasGutter className="pf-v6-u-pb-md">
-          <StackItem className="pf-v6-u-mt-sm">
-            Select up to 10 metrics that will display as columns in the table. Drag and drop column
-            names to reorder them.
-          </StackItem>
-
-          <StackItem>
-            <MetricColumnSearchInput
-              onSearch={(searchText) => {
-                let newColumns = defaultColumns;
-
-                if (searchText) {
-                  newColumns = defaultColumns.filter((column) =>
-                    String(column.id).toLowerCase().includes(searchText.toLowerCase()),
-                  );
-                }
-
-                setFilteredColumns(newColumns);
-              }}
-            />
-          </StackItem>
-
-          <StackItem>
-            <Label>
-              {selectedColumnNames.length} / total {defaultColumns.length} selected
-            </Label>
-          </StackItem>
-        </Stack>
-      }
+      variant="small"
       isOpen
       onClose={onClose}
-      actions={[
-        <Button key="update" variant="primary" onClick={onUpdate}>
-          Update
-        </Button>,
-        <Button key="cancel" variant="link" onClick={onClose}>
-          Cancel
-        </Button>,
-      ]}
     >
-      <ModalBoxBody
+      <ModalHeader
+        title="Customize metrics columns"
+        description={
+          <Stack hasGutter className="pf-v6-u-pb-md">
+            <StackItem className="pf-v6-u-mt-sm">
+              Select up to 10 metrics that will display as columns in the table. Drag and drop
+              column names to reorder them.
+            </StackItem>
+
+            <StackItem>
+              <MetricColumnSearchInput
+                onSearch={(searchText) => {
+                  let newColumns = defaultColumns;
+
+                  if (searchText) {
+                    newColumns = defaultColumns.filter((column) =>
+                      String(column.id).toLowerCase().includes(searchText.toLowerCase()),
+                    );
+                  }
+
+                  setFilteredColumns(newColumns);
+                }}
+              />
+            </StackItem>
+
+            <StackItem>
+              <Label>
+                {selectedColumnNames.length} / total {defaultColumns.length} selected
+              </Label>
+            </StackItem>
+          </Stack>
+        }
+      />
+      <ModalBody
+        aria-label="Metrics column names"
         className="pf-v6-u-pt-0 pf-v6-u-pl-md pf-v6-u-pr-md"
         style={{ maxHeight: '500px' }}
       >
@@ -156,7 +152,15 @@ export const CustomMetricsColumnsModal: React.FC<CustomMetricsColumnsModalProps>
             setColumns(newColumns);
           }}
         />
-      </ModalBoxBody>
+      </ModalBody>
+      <ModalFooter>
+        <Button key="update" variant="primary" onClick={onUpdate}>
+          Update
+        </Button>
+        <Button key="cancel" variant="link" onClick={onClose}>
+          Cancel
+        </Button>
+      </ModalFooter>
     </Modal>
   );
 };

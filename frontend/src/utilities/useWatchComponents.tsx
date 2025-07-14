@@ -1,7 +1,7 @@
 import * as React from 'react';
-import { useAppSelector } from '~/redux/hooks';
-import { fetchComponents } from '~/services/componentsServices';
-import { OdhApplication } from '~/types';
+import { useAppSelector } from '#~/redux/hooks';
+import { fetchComponents } from '#~/services/componentsServices';
+import { OdhApplication } from '#~/types';
 import { POLL_INTERVAL } from './const';
 import { useDeepCompareMemoize } from './useDeepCompareMemoize';
 

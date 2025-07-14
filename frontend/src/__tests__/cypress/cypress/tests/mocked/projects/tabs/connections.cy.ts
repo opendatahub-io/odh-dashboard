@@ -4,13 +4,16 @@ import {
   mockK8sResourceList,
   mockProjectK8sResource,
   mockSecretK8sResource,
-} from '~/__mocks__';
-import { mockConnectionTypeConfigMap } from '~/__mocks__/mockConnectionType';
-import { projectDetails } from '~/__tests__/cypress/cypress/pages/projects';
-import { ProjectModel, SecretModel } from '~/__tests__/cypress/cypress/utils/models';
-import { connectionsPage } from '~/__tests__/cypress/cypress/pages/connections';
-import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
-import { ConnectionTypeFieldType } from '~/concepts/connectionTypes/types';
+} from '#~/__mocks__';
+import {
+  mockConnectionTypeConfigMap,
+  mockModelServingFields,
+} from '#~/__mocks__/mockConnectionType';
+import { projectDetails } from '#~/__tests__/cypress/cypress/pages/projects';
+import { ProjectModel, SecretModel } from '#~/__tests__/cypress/cypress/utils/models';
+import { connectionsPage } from '#~/__tests__/cypress/cypress/pages/connections';
+import { deleteModal } from '#~/__tests__/cypress/cypress/pages/components/DeleteModal';
+import { ConnectionTypeFieldType } from '#~/concepts/connectionTypes/types';
 
 const initIntercepts = ({ isEmpty = false }) => {
   cy.interceptK8sList(
@@ -132,6 +135,61 @@ describe('Connections', () => {
           namespace: 'test-project',
         },
         stringData: {},
+      });
+    });
+  });
+
+  it('Add a connection with whitespace to trim', () => {
+    initIntercepts({});
+    cy.interceptOdh('GET /api/connection-types', [
+      mockConnectionTypeConfigMap({
+        name: 's3',
+        fields: mockModelServingFields,
+      }),
+    ]);
+    cy.interceptK8s(
+      'POST',
+      {
+        model: SecretModel,
+        ns: 'test-project',
+      },
+      mockSecretK8sResource({}),
+    ).as('createConnection');
+
+    projectDetails.visitSection('test-project', 'connections');
+
+    connectionsPage.findAddConnectionButton().click();
+    cy.findByTestId('connection-name-desc-name').fill('whitespace connection');
+    cy.findByTestId(['field', 'AWS_ACCESS_KEY_ID']).fill('    testtesttest123123      ');
+    cy.findByTestId(['field', 'AWS_SECRET_ACCESS_KEY']).fill('    testtesttest123123      ');
+    cy.findByTestId(['field', 'AWS_S3_ENDPOINT']).fill('    https://s3.amazonaws.com/      ');
+    cy.findByTestId(['field', 'AWS_S3_BUCKET']).fill('    test-bucket      ');
+    cy.findByTestId(['field', 'AWS_S3_BUCKET']).blur();
+    cy.findByTestId('modal-submit-button').click();
+
+    cy.wait('@createConnection').then((interception) => {
+      expect(interception.request.body).to.eql({
+        apiVersion: 'v1',
+        kind: 'Secret',
+        metadata: {
+          name: 'whitespace-connection',
+          namespace: 'test-project',
+          labels: { 'opendatahub.io/dashboard': 'true', 'opendatahub.io/managed': 'true' },
+          annotations: {
+            'openshift.io/display-name': 'whitespace connection',
+            'openshift.io/description': '',
+            'opendatahub.io/connection-type': 's3',
+            'opendatahub.io/connection-type-ref': 's3',
+          },
+        },
+        stringData: {
+          /* eslint-disable camelcase */
+          AWS_ACCESS_KEY_ID: 'testtesttest123123',
+          AWS_SECRET_ACCESS_KEY: 'testtesttest123123',
+          AWS_S3_ENDPOINT: 'https://s3.amazonaws.com/',
+          AWS_S3_BUCKET: 'test-bucket',
+          /* eslint-enable camelcase */
+        },
       });
     });
   });

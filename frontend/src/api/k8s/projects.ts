@@ -5,18 +5,18 @@ import {
   K8sResourceCommon,
   k8sUpdateResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import axios from '~/utilities/axios';
-import { CustomWatchK8sResult } from '~/types';
-import { K8sAPIOptions, ProjectKind } from '~/k8sTypes';
-import { ProjectModel, ProjectRequestModel } from '~/api/models';
-import { throwErrorFromAxios } from '~/api/errorUtils';
-import { translateDisplayNameForK8s } from '~/concepts/k8s/utils';
-import { ODH_PRODUCT_NAME } from '~/utilities/const';
-import { LABEL_SELECTOR_DASHBOARD_RESOURCE, LABEL_SELECTOR_MODEL_SERVING_PROJECT } from '~/const';
-import { NamespaceApplicationCase } from '~/pages/projects/types';
-import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
-import { groupVersionKind } from '~/api/k8sUtils';
-import useK8sWatchResourceList from '~/utilities/useK8sWatchResourceList';
+import axios from '#~/utilities/axios';
+import { CustomWatchK8sResult } from '#~/types';
+import { K8sAPIOptions, ProjectKind } from '#~/k8sTypes';
+import { ProjectModel, ProjectRequestModel } from '#~/api/models';
+import { throwErrorFromAxios } from '#~/api/errorUtils';
+import { translateDisplayNameForK8s } from '#~/concepts/k8s/utils';
+import { ODH_PRODUCT_NAME } from '#~/utilities/const';
+import { LABEL_SELECTOR_DASHBOARD_RESOURCE, LABEL_SELECTOR_MODEL_SERVING_PROJECT } from '#~/const';
+import { NamespaceApplicationCase } from '#~/pages/projects/types';
+import { applyK8sAPIOptions } from '#~/api/apiMergeUtils';
+import { groupVersionKind } from '#~/api/k8sUtils';
+import useK8sWatchResourceList from '#~/utilities/useK8sWatchResourceList';
 
 export const useProjects = (): CustomWatchK8sResult<ProjectKind[]> =>
   useK8sWatchResourceList(

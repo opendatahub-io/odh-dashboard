@@ -1,10 +1,10 @@
 import React from 'react';
 import { LazyCodeRefComponent, useExtensions } from '@odh-dashboard/plugin-core';
 import { isProjectDetailsTab } from '@odh-dashboard/plugin-core/extension-points';
-import useModelServingEnabled from '~/pages/modelServing/useModelServingEnabled';
-import { SectionDefinition } from '~/pages/projects/components/GenericHorizontalBar';
-import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
-import ModelServingPlatform from '~/pages/modelServing/screens/projects/ModelServingPlatform';
+import useModelServingEnabled from '#~/pages/modelServing/useModelServingEnabled';
+import { SectionDefinition } from '#~/pages/projects/components/GenericHorizontalBar';
+import { ProjectSectionID } from '#~/pages/projects/screens/detail/types';
+import ModelServingPlatform from '#~/pages/modelServing/screens/projects/ModelServingPlatform';
 
 export const useModelServingTab = (): SectionDefinition[] => {
   const modelServingEnabled = useModelServingEnabled();

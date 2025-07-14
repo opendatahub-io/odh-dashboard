@@ -1,10 +1,10 @@
-import { KserveMetricsGraphTypes, NimMetricsGraphTypes } from '~/concepts/metrics/kserve/const';
+import { KserveMetricsGraphTypes, NimMetricsGraphTypes } from '#~/concepts/metrics/kserve/const';
 import {
   isKserveMetricsConfigMapKind,
   isValidKserveMetricsDataObject,
   isValidNimMetricsDataObject,
-} from '~/concepts/metrics/kserve/utils';
-import { mockConfigMap } from '~/__mocks__/mockConfigMap';
+} from '#~/concepts/metrics/kserve/utils';
+import { mockConfigMap } from '#~/__mocks__/mockConfigMap';
 
 describe('isKserveMetricsConfigMapKind', () => {
   it('should return true when given a valid value', () => {

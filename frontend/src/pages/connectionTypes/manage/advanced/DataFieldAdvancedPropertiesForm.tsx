@@ -1,10 +1,13 @@
 import * as React from 'react';
-import { ConnectionTypeDataField, ConnectionTypeFieldType } from '~/concepts/connectionTypes/types';
-import BooleanAdvancedPropertiesForm from '~/pages/connectionTypes/manage/advanced/BooleanAdvancedPropertiesForm';
-import { AdvancedFieldProps } from '~/pages/connectionTypes/manage/advanced/types';
-import NumericAdvancedPropertiesForm from '~/pages/connectionTypes/manage/advanced/NumericAdvancedPropertiesForm';
-import FileUploadAdvancedPropertiesForm from '~/pages/connectionTypes/manage/advanced/FileUploadAdvancedPropertiesForm';
-import DropdownAdvancedPropertiesForm from '~/pages/connectionTypes/manage/advanced/DropdownAdvancedPropertiesForm';
+import {
+  ConnectionTypeDataField,
+  ConnectionTypeFieldType,
+} from '#~/concepts/connectionTypes/types';
+import BooleanAdvancedPropertiesForm from '#~/pages/connectionTypes/manage/advanced/BooleanAdvancedPropertiesForm';
+import { AdvancedFieldProps } from '#~/pages/connectionTypes/manage/advanced/types';
+import NumericAdvancedPropertiesForm from '#~/pages/connectionTypes/manage/advanced/NumericAdvancedPropertiesForm';
+import FileUploadAdvancedPropertiesForm from '#~/pages/connectionTypes/manage/advanced/FileUploadAdvancedPropertiesForm';
+import DropdownAdvancedPropertiesForm from '#~/pages/connectionTypes/manage/advanced/DropdownAdvancedPropertiesForm';
 
 const DataFieldAdvancedPropertiesForm = <T extends ConnectionTypeDataField>(
   props: AdvancedFieldProps<T>,

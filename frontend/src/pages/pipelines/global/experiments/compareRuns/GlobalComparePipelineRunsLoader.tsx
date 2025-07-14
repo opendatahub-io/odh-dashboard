@@ -1,12 +1,12 @@
 import * as React from 'react';
-import { CompareRunsContextProvider } from '~/concepts/pipelines/content/compareRuns/CompareRunsContext';
+import { CompareRunsContextProvider } from '#~/concepts/pipelines/content/compareRuns/CompareRunsContext';
 import {
   ExperimentCoreDetails,
   GlobalPipelineCoreDetailsProps,
   PipelineRunCoreDetails,
-} from '~/pages/pipelines/global/GlobalPipelineCoreDetails';
-import PipelineRunExperimentsContextProvider from '~/pages/pipelines/global/runs/PipelineRunExperimentsContext';
-import PipelineRunVersionsContextProvider from '~/pages/pipelines/global/runs/PipelineRunVersionsContext';
+} from '#~/pages/pipelines/global/GlobalPipelineCoreDetails';
+import PipelineRunExperimentsContextProvider from '#~/pages/pipelines/global/runs/PipelineRunExperimentsContext';
+import PipelineRunVersionsContextProvider from '#~/pages/pipelines/global/runs/PipelineRunVersionsContext';
 
 export const GlobalComparePipelineRunsLoader: React.FC<
   Pick<GlobalPipelineCoreDetailsProps, 'BreadcrumbDetailsComponent'>

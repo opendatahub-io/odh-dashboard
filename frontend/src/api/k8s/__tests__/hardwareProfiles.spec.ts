@@ -6,19 +6,26 @@ import {
   K8sStatus,
   k8sUpdateResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
-import { HardwareProfileFeatureVisibility, HardwareProfileKind } from '~/k8sTypes';
-import { HardwareProfileModel } from '~/api/models';
+import * as _ from 'lodash-es';
+import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
+import { HardwareProfileFeatureVisibility, HardwareProfileKind } from '#~/k8sTypes';
+import { HardwareProfileModel } from '#~/api/models';
 import {
   createHardwareProfile,
   deleteHardwareProfile,
   getHardwareProfile,
   listHardwareProfiles,
   updateHardwareProfile,
-} from '~/api/k8s/hardwareProfiles';
-import { mockHardwareProfile } from '~/__mocks__/mockHardwareProfile';
-import { IdentifierResourceType, TolerationEffect, TolerationOperator } from '~/types';
-import { mock200Status, mock404Error } from '~/__mocks__';
+} from '#~/api/k8s/hardwareProfiles';
+import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile';
+import {
+  IdentifierResourceType,
+  TolerationEffect,
+  TolerationOperator,
+  SchedulingType,
+  DisplayNameAnnotation,
+} from '#~/types';
+import { mock200Status, mock404Error } from '#~/__mocks__';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sListResource: jest.fn(),
@@ -36,7 +43,11 @@ const k8sDeleteResourceMock = jest.mocked(k8sDeleteResource<HardwareProfileKind,
 
 global.structuredClone = (val: unknown) => JSON.parse(JSON.stringify(val));
 
-const data: HardwareProfileKind['spec'] = {
+const data: HardwareProfileKind['spec'] & {
+  displayName: string;
+  description: string;
+  enabled: boolean;
+} = {
   displayName: 'test',
   identifiers: [
     {
@@ -58,24 +69,35 @@ const data: HardwareProfileKind['spec'] = {
   ],
   description: 'test description',
   enabled: true,
-  tolerations: [
-    {
-      key: 'nvidia.com/gpu',
-      operator: TolerationOperator.EXISTS,
-      effect: TolerationEffect.NO_SCHEDULE,
+  scheduling: {
+    type: SchedulingType.NODE,
+    node: {
+      tolerations: [
+        {
+          key: 'nvidia.com/gpu',
+          operator: TolerationOperator.EXISTS,
+          effect: TolerationEffect.NO_SCHEDULE,
+        },
+      ],
     },
-  ],
+  },
 };
 
 const assembleHardwareProfileResult: HardwareProfileKind = {
-  apiVersion: 'dashboard.opendatahub.io/v1alpha1',
+  apiVersion: 'infrastructure.opendatahub.io/v1alpha1',
   kind: 'HardwareProfile',
   metadata: {
     name: 'test-1',
     namespace: 'namespace',
-    annotations: expect.anything(),
+    annotations: {
+      [DisplayNameAnnotation.ODH_DISP_NAME]: data.displayName,
+      [DisplayNameAnnotation.ODH_DESC]: data.description,
+      'opendatahub.io/disabled': JSON.stringify(!data.enabled),
+      'opendatahub.io/dashboard-feature-visibility': expect.anything(),
+      'opendatahub.io/modified-date': expect.any(String),
+    },
   },
-  spec: data,
+  spec: _.omit(data, ['displayName', 'enabled', 'description']),
 };
 
 describe('listHardwareProfile', () => {
@@ -174,6 +196,9 @@ describe('createHardwareProfiles', () => {
         metadata: {
           ...assembleHardwareProfileResult.metadata,
           annotations: {
+            'opendatahub.io/display-name': 'test',
+            'opendatahub.io/description': 'test description',
+            'opendatahub.io/disabled': 'false',
             'opendatahub.io/modified-date': expect.anything(),
             'opendatahub.io/dashboard-feature-visibility': '["workbench"]',
           },
@@ -211,19 +236,6 @@ describe('updateHardwareProfile', () => {
       mockHardwareProfile({ uid: 'test-1' }),
       'namespace',
     );
-    expect(k8sUpdateResourceMock).toHaveBeenCalledWith({
-      fetchOptions: { requestInit: {} },
-      model: HardwareProfileModel,
-      queryOptions: { queryParams: {} },
-      resource: mockHardwareProfile({
-        uid: 'test-1',
-        namespace: 'namespace',
-        description: 'test description',
-        displayName: 'test',
-        nodeSelector: {},
-        annotations: expect.anything(),
-      }),
-    });
     expect(k8sUpdateResourceMock).toHaveBeenCalledTimes(1);
     expect(result).toStrictEqual(
       mockHardwareProfile({
@@ -250,7 +262,13 @@ describe('updateHardwareProfile', () => {
         description: 'test description',
         displayName: 'test',
         nodeSelector: {},
-        annotations: expect.anything(),
+        annotations: {
+          'opendatahub.io/display-name': 'test',
+          'opendatahub.io/description': 'test description',
+          'opendatahub.io/disabled': 'false',
+          'opendatahub.io/modified-date': expect.any(String),
+          'opendatahub.io/dashboard-feature-visibility': expect.anything(),
+        },
       }),
     });
   });

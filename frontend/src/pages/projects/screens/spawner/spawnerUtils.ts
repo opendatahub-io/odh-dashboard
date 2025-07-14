@@ -1,17 +1,18 @@
 import compareVersions from 'compare-versions';
-import { NotebookSize, Volume, VolumeMount } from '~/types';
-import { BuildKind, ImageStreamKind, ImageStreamSpecTagType, K8sDSGResource } from '~/k8sTypes';
+import type { ImageStreamStatusTag } from '#~/types';
+import { NotebookSize, Volume, VolumeMount } from '#~/types';
+import { BuildKind, ImageStreamKind, ImageStreamSpecTagType, K8sDSGResource } from '#~/k8sTypes';
 import {
   ConfigMapCategory,
   EnvVariable,
   EnvVariableDataEntry,
   SecretCategory,
   StartNotebookData,
-} from '~/pages/projects/types';
-import { AWS_FIELDS } from '~/pages/projects/dataConnections/const';
-import { FieldOptions } from '~/components/FieldList';
-import { isK8sNameDescriptionDataValid } from '~/concepts/k8s/K8sNameDescriptionField/utils';
-import { formatMemory } from '~/utilities/valueUnits';
+} from '#~/pages/projects/types';
+import { AWS_FIELDS } from '#~/pages/projects/dataConnections/const';
+import { FieldOptions } from '#~/components/FieldList';
+import { isK8sNameDescriptionDataValid } from '#~/concepts/k8s/K8sNameDescriptionField/utils';
+import { formatMemory } from '#~/utilities/valueUnits';
 import {
   BuildStatus,
   ImageVersionDependencyType,
@@ -36,6 +37,27 @@ export const getVersion = (version?: string | number, prefix?: string): string =
 export const getNameVersionString = (software: ImageVersionDependencyType): string =>
   `${software.name} ${getVersion(software.version, 'v')}`;
 
+export const getMatchingImageStreamStatusTag = (
+  imageStream: ImageStreamKind,
+  imageVersion: ImageStreamSpecTagType,
+): ImageStreamStatusTag | undefined => {
+  const statusTag = imageStream.status?.tags?.find((tag) => tag.tag === imageVersion.name);
+  if (!statusTag || !statusTag.items) {
+    return undefined;
+  }
+  return {
+    tag: statusTag.tag,
+    items: statusTag.items,
+  };
+};
+
+export const getImageVersionBuildDate = (
+  imageVersion: ImageStreamSpecTagType,
+  imageStreamStatusTag: ImageStreamStatusTag | undefined,
+): string | undefined =>
+  imageStreamStatusTag?.items.find((item) => item.dockerImageReference === imageVersion.from?.name)
+    ?.created;
+
 /******************* PF Select related utils *******************/
 /**
  * Create object for PF Select component to use
@@ -45,10 +67,12 @@ export const getImageVersionSelectOptionObject = (
   imageStream: ImageStreamKind,
   imageVersion: ImageStreamSpecTagType,
 ): ImageVersionSelectOptionObjectType => ({
+  imageStreamTag: getMatchingImageStreamStatusTag(imageStream, imageVersion),
   imageVersion,
   toString: () =>
     `${imageVersion.name}${checkVersionRecommended(imageVersion) ? ' (Recommended)' : ''}`,
 });
+
 export const isImageVersionSelectOptionObject = (
   object: unknown,
 ): object is ImageVersionSelectOptionObjectType =>
@@ -347,16 +371,16 @@ export const checkRequiredFieldsForNotebookStart = (
   return isNotebookDataValid && isEnvVariableDataValid(envVariables);
 };
 
+export const isBYONImageStream = (imageStream: ImageStreamKind): boolean =>
+  imageStream.metadata.labels?.['app.kubernetes.io/created-by'] === 'byon';
+
 export const isInvalidBYONImageStream = (imageStream: ImageStreamKind): boolean => {
   // there will be always only 1 tag in the spec for BYON images
   // status tags could be more than one
   const activeTag = imageStream.status?.tags?.find(
     (statusTag) => statusTag.tag === imageStream.spec.tags?.[0].name,
   );
-  return (
-    imageStream.metadata.labels?.['app.kubernetes.io/created-by'] === 'byon' &&
-    (activeTag === undefined || activeTag.items === null)
-  );
+  return isBYONImageStream(imageStream) && (activeTag === undefined || activeTag.items === null);
 };
 
 export const getPvcVolumeDetails = (

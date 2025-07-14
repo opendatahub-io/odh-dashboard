@@ -1,11 +1,11 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Alert, Stack } from '@patternfly/react-core';
-import InferenceServiceTable from '~/pages/modelServing/screens/global/InferenceServiceTable';
-import { getVersionDetailsInferenceServiceColumns } from '~/pages/modelServing/screens/global/data';
-import ModelVersionDetailsTabs from '~/pages/modelRegistry/screens/ModelVersionDetails/ModelVersionDetailsTabs';
-import { ProjectObjectType, typedEmptyImage } from '~/concepts/design/utils';
-import EmptyModelRegistryState from '~/pages/modelRegistry/screens/components/EmptyModelRegistryState';
+import InferenceServiceTable from '#~/pages/modelServing/screens/global/InferenceServiceTable';
+import { getVersionDetailsInferenceServiceColumns } from '#~/pages/modelServing/screens/global/data';
+import ModelVersionDetailsTabs from '#~/pages/modelRegistry/screens/ModelVersionDetails/ModelVersionDetailsTabs';
+import { ProjectObjectType, typedEmptyImage } from '#~/concepts/design/utils';
+import EmptyModelRegistryState from '#~/pages/modelRegistry/screens/components/EmptyModelRegistryState';
 
 type ModelVersionRegisteredDeploymentsViewProps = Pick<
   React.ComponentProps<typeof ModelVersionDetailsTabs>,
@@ -17,7 +17,7 @@ const ModelVersionRegisteredDeploymentsView: React.FC<
 > = ({ inferenceServices, servingRuntimes, refresh }) => {
   const isLoading = !inferenceServices.loaded || !servingRuntimes.loaded;
 
-  if (!isLoading && !inferenceServices.data.length) {
+  if (!isLoading && !inferenceServices.data.items.length) {
     return (
       <EmptyModelRegistryState
         title="No deployments from model registry"
@@ -44,8 +44,8 @@ const ModelVersionRegisteredDeploymentsView: React.FC<
       <InferenceServiceTable
         isGlobal
         getColumns={getVersionDetailsInferenceServiceColumns}
-        inferenceServices={inferenceServices.data}
-        servingRuntimes={servingRuntimes.data}
+        inferenceServices={inferenceServices.data.items}
+        servingRuntimes={servingRuntimes.data.items}
         isLoading={isLoading}
         refresh={refresh}
       />

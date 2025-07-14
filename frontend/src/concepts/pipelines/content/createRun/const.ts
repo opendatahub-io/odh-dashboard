@@ -2,7 +2,7 @@ import {
   PeriodicOptions,
   RunTypeScheduledData,
   ScheduledType,
-} from '~/concepts/pipelines/content/createRun/types';
+} from '#~/concepts/pipelines/content/createRun/types';
 
 export const DEFAULT_CRON_STRING = '0 0 0 * * *';
 export const DEFAULT_PERIODIC_OPTION = PeriodicOptions.WEEK;

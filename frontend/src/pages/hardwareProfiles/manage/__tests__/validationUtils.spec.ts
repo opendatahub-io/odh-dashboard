@@ -1,8 +1,14 @@
-import { TolerationOperator, TolerationEffect, IdentifierResourceType } from '~/types';
+import {
+  TolerationOperator,
+  TolerationEffect,
+  IdentifierResourceType,
+  SchedulingType,
+} from '#~/types';
 import {
   manageHardwareProfileValidationSchema,
   nodeSelectorSchema,
-} from '~/pages/hardwareProfiles/manage/validationUtils';
+  schedulingSchema,
+} from '#~/pages/hardwareProfiles/manage/validationUtils';
 
 describe('manageHardwareProfileValidationSchema', () => {
   const validData = {
@@ -26,19 +32,24 @@ describe('manageHardwareProfileValidationSchema', () => {
         maxCount: '4Gi',
       },
     ],
-    tolerations: [
-      {
-        key: 'node-type',
-        operator: TolerationOperator.EQUAL,
-        value: 'gpu',
-        effect: TolerationEffect.NO_SCHEDULE,
-        tolerationSeconds: 300,
-      },
-    ],
-    nodeSelector: { 'test-key': 'test-value' },
     name: 'test-name',
     description: 'A valid hardware profile',
     visibility: [],
+    scheduling: {
+      type: SchedulingType.NODE,
+      node: {
+        nodeSelector: { 'test-key': 'test-value' },
+        tolerations: [
+          {
+            key: 'node-type',
+            operator: TolerationOperator.EQUAL,
+            value: 'gpu',
+            effect: TolerationEffect.NO_SCHEDULE,
+            tolerationSeconds: 300,
+          },
+        ],
+      },
+    },
   };
 
   it('should validate a correct hardware profile', () => {
@@ -85,42 +96,20 @@ describe('manageHardwareProfileValidationSchema', () => {
     expect(result.success).toBe(false);
   });
 
-  it('should fail if memory resource is missing', () => {
-    const invalidData = {
+  it('should validate with queue scheduling type', () => {
+    const queueSchedulingData = {
       ...validData,
-      identifiers: [
-        {
-          displayName: 'CPU',
-          identifier: 'cpu',
-          resourceType: IdentifierResourceType.CPU,
-          defaultCount: 2,
-          minCount: 1,
-          maxCount: 4,
+      scheduling: {
+        type: SchedulingType.QUEUE,
+        kueue: {
+          localQueueName: 'test-queue',
+          priorityClass: 'high',
         },
-      ],
+      },
     };
 
-    const result = manageHardwareProfileValidationSchema.safeParse(invalidData);
-    expect(result.success).toBe(false);
-  });
-
-  it('should fail if CPU resource is missing', () => {
-    const invalidData = {
-      ...validData,
-      identifiers: [
-        {
-          displayName: 'Memory',
-          identifier: 'memory',
-          resourceType: IdentifierResourceType.MEMORY,
-          defaultCount: 2,
-          minCount: 1,
-          maxCount: 4,
-        },
-      ],
-    };
-
-    const result = manageHardwareProfileValidationSchema.safeParse(invalidData);
-    expect(result.success).toBe(false);
+    const result = manageHardwareProfileValidationSchema.safeParse(queueSchedulingData);
+    expect(result.success).toBe(true);
   });
 
   describe('nodeSelectorSchema', () => {
@@ -145,6 +134,61 @@ describe('manageHardwareProfileValidationSchema', () => {
     it('should fail if nodeSelector has empty key and value', () => {
       const invalidNodeSelector = { '': '' };
       const result = nodeSelectorSchema.safeParse(invalidNodeSelector);
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe('schedulingSchema', () => {
+    it('should pass for valid queue scheduling', () => {
+      const validQueueScheduling = {
+        type: SchedulingType.QUEUE,
+        kueue: {
+          localQueueName: 'test-queue',
+          priorityClass: 'high',
+        },
+      };
+      const result = schedulingSchema.safeParse(validQueueScheduling);
+      expect(result.success).toBe(true);
+    });
+
+    it('should pass for valid node scheduling', () => {
+      const validNodeScheduling = {
+        type: SchedulingType.NODE,
+        node: {
+          nodeSelector: { 'test-key': 'test-value' },
+          tolerations: [
+            {
+              key: 'node-type',
+              operator: TolerationOperator.EQUAL,
+              value: 'gpu',
+              effect: TolerationEffect.NO_SCHEDULE,
+            },
+          ],
+        },
+      };
+      const result = schedulingSchema.safeParse(validNodeScheduling);
+      expect(result.success).toBe(true);
+    });
+
+    it('should fail if queue scheduling is missing localQueueName', () => {
+      const invalidQueueScheduling = {
+        type: SchedulingType.QUEUE,
+        kueue: {
+          priorityClass: 'high',
+        },
+      };
+      const result = schedulingSchema.safeParse(invalidQueueScheduling);
+      expect(result.success).toBe(false);
+    });
+
+    it('should fail if scheduling type is invalid', () => {
+      const invalidScheduling = {
+        type: 'INVALID_TYPE',
+        node: {
+          nodeSelector: { 'test-key': 'test-value' },
+        },
+      };
+      const result = schedulingSchema.safeParse(invalidScheduling);
       expect(result.success).toBe(false);
     });
   });

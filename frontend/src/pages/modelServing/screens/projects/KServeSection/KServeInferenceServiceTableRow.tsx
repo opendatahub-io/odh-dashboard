@@ -8,16 +8,17 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import { DeploymentMode, InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
-import InferenceServiceTableRow from '~/pages/modelServing/screens/global/InferenceServiceTableRow';
-import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import ServingRuntimeDetails from '~/pages/modelServing/screens/projects/ModelMeshSection/ServingRuntimeDetails';
-import ResourceTr from '~/components/ResourceTr';
-import ServingRuntimeTokensTable from '~/pages/modelServing/screens/projects/ModelMeshSection/ServingRuntimeTokensTable';
-import { isInferenceServiceTokenEnabled } from '~/pages/modelServing/screens/projects/utils';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+import { DeploymentMode, InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
+import InferenceServiceTableRow from '#~/pages/modelServing/screens/global/InferenceServiceTableRow';
+import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
+import ServingRuntimeDetails from '#~/pages/modelServing/screens/projects/ModelMeshSection/ServingRuntimeDetails';
+import ResourceTr from '#~/components/ResourceTr';
+import ServingRuntimeTokensTable from '#~/concepts/modelServingKServe/ServingRuntimeTokensTable';
+import { isInferenceServiceTokenEnabled } from '#~/pages/modelServing/screens/projects/utils';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 
 type KServeInferenceServiceTableRowProps = {
+  project?: string;
   obj: InferenceServiceKind;
   onEditKServe: (obj: {
     inferenceService: InferenceServiceKind;
@@ -32,6 +33,7 @@ type KServeInferenceServiceTableRowProps = {
 };
 
 const KServeInferenceServiceTableRow: React.FC<KServeInferenceServiceTableRowProps> = ({
+  project,
   obj,
   rowIndex,
   columnNames,
@@ -44,7 +46,10 @@ const KServeInferenceServiceTableRow: React.FC<KServeInferenceServiceTableRowPro
 
   const [isExpanded, setExpanded] = React.useState(false);
   const {
-    servingRuntimes: { data: servingRuntimes },
+    servingRuntimes: {
+      data: { items: servingRuntimes },
+    },
+    inferenceServices,
   } = React.useContext(ProjectDetailsContext);
 
   const frameworkName = obj.spec.predictor.model?.modelFormat?.name || '';
@@ -70,6 +75,7 @@ const KServeInferenceServiceTableRow: React.FC<KServeInferenceServiceTableRowPro
           obj={obj}
           columnNames={columnNames}
           servingRuntime={servingRuntime}
+          refresh={inferenceServices.refresh}
           onDeleteInferenceService={() => onDeleteKServe({ inferenceService: obj, servingRuntime })}
           onEditInferenceService={() => onEditKServe({ inferenceService: obj, servingRuntime })}
         />
@@ -91,7 +97,7 @@ const KServeInferenceServiceTableRow: React.FC<KServeInferenceServiceTableRowPro
               </StackItem>
               {servingRuntime && (
                 <StackItem>
-                  <ServingRuntimeDetails obj={servingRuntime} isvc={obj} />
+                  <ServingRuntimeDetails project={project} obj={servingRuntime} isvc={obj} />
                 </StackItem>
               )}
               {isAuthAvailable && (

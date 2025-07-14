@@ -19,7 +19,8 @@ module.exports = {
           {
             target: './src/components/**/*',
             from: ['./src/!(utilities|components|images)/**/*'],
-            message: 'Modules in `src/components` may only import external modules from `src/utilities``.',
+            message:
+              'Modules in `src/components` may only import external modules from `src/utilities``.',
           },
           {
             target: './src/utilities/**/*',

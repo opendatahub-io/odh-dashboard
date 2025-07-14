@@ -1,6 +1,6 @@
-import { HardwareProfileKind } from '~/k8sTypes';
-import { CustomWatchK8sResult } from '~/types';
-import { groupVersionKind, HardwareProfileModel } from '~/api';
+import { HardwareProfileKind } from '#~/k8sTypes';
+import { CustomWatchK8sResult } from '#~/types';
+import { groupVersionKind, HardwareProfileModel } from '#~/api';
 import useK8sWatchResourceList from './useK8sWatchResourceList';
 
 export const useWatchHardwareProfiles = (

@@ -1,17 +1,25 @@
-import { mockK8sResourceList, mockProjectK8sResource } from '~/__mocks__';
-import { mock200Status } from '~/__mocks__/mockK8sStatus';
-import { mockRoleBindingK8sResource } from '~/__mocks__/mockRoleBindingK8sResource';
-import { permissions } from '~/__tests__/cypress/cypress/pages/permissions';
-import { be } from '~/__tests__/cypress/cypress/utils/should';
-import { ProjectModel, RoleBindingModel } from '~/__tests__/cypress/cypress/utils/models';
-import type { RoleBindingSubject } from '~/k8sTypes';
-import { asProjectEditUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
+import { mockK8sResourceList, mockProjectK8sResource } from '#~/__mocks__';
+import { mock200Status } from '#~/__mocks__/mockK8sStatus';
+import { mockRoleBindingK8sResource } from '#~/__mocks__/mockRoleBindingK8sResource';
+import {
+  permissions,
+  roleBindingPermissionsChangeModal,
+} from '#~/__tests__/cypress/cypress/pages/permissions';
+import { be } from '#~/__tests__/cypress/cypress/utils/should';
+import { ProjectModel, RoleBindingModel } from '#~/__tests__/cypress/cypress/utils/models';
+import type { RoleBindingSubject } from '#~/k8sTypes';
+import { asProjectEditUser } from '#~/__tests__/cypress/cypress/utils/mockUsers';
 
 const userSubjects: RoleBindingSubject[] = [
   {
     kind: 'User',
     apiGroup: 'rbac.authorization.k8s.io',
     name: 'user-1',
+  },
+  {
+    kind: 'User',
+    apiGroup: 'rbac.authorization.k8s.io',
+    name: 'test-user',
   },
 ];
 
@@ -40,7 +48,12 @@ const initIntercepts = ({ isEmpty = false }: HandlersProps) => {
         : [
             mockRoleBindingK8sResource({
               name: 'user-1',
-              subjects: userSubjects,
+              subjects: [userSubjects[0]],
+              roleRefName: 'edit',
+            }),
+            mockRoleBindingK8sResource({
+              name: 'test-user',
+              subjects: [userSubjects[1]],
               roleRefName: 'edit',
             }),
             mockRoleBindingK8sResource({
@@ -170,6 +183,64 @@ describe('Permissions tab', () => {
 
       userTable.getTableRow('user-1').findKebabAction('Delete').click();
 
+      cy.wait('@deleteUser');
+    });
+
+    it('Shows confirmation modal when editing own permissions', () => {
+      initIntercepts({ isEmpty: false });
+      permissions.visit('test-project');
+
+      userTable.getTableRow('test-user').findKebabAction('Edit').click();
+      userTable.findEditInput('test-user').clear().type('test-user');
+      userTable.selectPermission('test-user', 'Admin Edit the project and manage user access');
+      userTable.findEditSaveButton('test-user').click();
+
+      roleBindingPermissionsChangeModal.findPermissionsChangeModal().should('exist');
+      roleBindingPermissionsChangeModal.findModalInput().should('exist').type('test-user');
+      roleBindingPermissionsChangeModal.findModalConfirmButton('Save').should('not.be.disabled');
+      roleBindingPermissionsChangeModal.findModalCancelButton().click();
+    });
+
+    it('Shows confirmation modal when deleting own permissions', () => {
+      cy.interceptK8s(
+        'DELETE',
+        { model: RoleBindingModel, ns: 'test-project', name: 'test-user' },
+        mock200Status({}),
+      ).as('deleteUser');
+      initIntercepts({ isEmpty: false });
+      permissions.visit('test-project');
+
+      userTable.getTableRow('test-user').findKebabAction('Delete').click();
+
+      roleBindingPermissionsChangeModal.findPermissionsChangeModal().should('exist');
+      roleBindingPermissionsChangeModal.findModalInput().should('exist').type('test-user');
+      roleBindingPermissionsChangeModal.findModalConfirmButton('Delete').should('not.be.disabled');
+      roleBindingPermissionsChangeModal.findModalCancelButton().click();
+    });
+
+    it('Does not show confirmation modal when editing other users permissions', () => {
+      initIntercepts({ isEmpty: false });
+      permissions.visit('test-project');
+
+      userTable.getTableRow('user-1').findKebabAction('Edit').click();
+      userTable.findEditInput('user-1').clear().type('user-3');
+      userTable.selectPermission('user-3', 'Admin Edit the project and manage user access');
+      userTable.findEditSaveButton('user-3').click();
+
+      roleBindingPermissionsChangeModal.findPermissionsChangeModal().should('not.exist');
+    });
+
+    it('Does not show confirmation modal when deleting other users permissions', () => {
+      cy.interceptK8s(
+        'DELETE',
+        { model: RoleBindingModel, ns: 'test-project', name: 'user-1' },
+        mock200Status({}),
+      ).as('deleteUser');
+      initIntercepts({ isEmpty: false });
+      permissions.visit('test-project');
+
+      userTable.getTableRow('user-1').findKebabAction('Delete').click();
+      roleBindingPermissionsChangeModal.findPermissionsChangeModal().should('not.exist');
       cy.wait('@deleteUser');
     });
   });

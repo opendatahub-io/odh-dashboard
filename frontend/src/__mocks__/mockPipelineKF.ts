@@ -1,5 +1,5 @@
 /* eslint-disable camelcase */
-import { PipelineKF } from '~/concepts/pipelines/kfTypes';
+import { PipelineKF } from '#~/concepts/pipelines/kfTypes';
 
 type MockResourceConfigType = {
   name?: string;

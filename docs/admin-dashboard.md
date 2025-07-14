@@ -23,7 +23,7 @@ spec:
 
 ```
 
-2. A part from that, we should have one or several `Groups` with the same name as the one mentioned above, here we should have all of our **admin users**.
+2. Apart from that, we should have one or several `Groups` with the same name as the one mentioned above, here we should have all of our **admin users**.
 
 ```yaml
 apiVersion: user.openshift.io/v1

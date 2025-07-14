@@ -1,18 +1,23 @@
 import * as React from 'react';
-import { DSPipelineKind } from '~/k8sTypes';
-import { getPipelinesCR, listPipelinesCR } from '~/api';
-import useFetchState, { FetchState, FetchStateCallbackPromise } from '~/utilities/useFetchState';
-import { FAST_POLL_INTERVAL, SERVER_TIMEOUT } from '~/utilities/const';
+import { DSPipelineKind } from '#~/k8sTypes';
+import { getPipelinesCR, listPipelinesCR } from '#~/api';
+import useFetchState, { FetchState, FetchStateCallbackPromise } from '#~/utilities/useFetchState';
+import { FAST_POLL_INTERVAL, SERVER_TIMEOUT } from '#~/utilities/const';
 
 type State = DSPipelineKind | null;
 
-export const dspaLoaded = ([state, loaded]: FetchState<State>): boolean =>
+export const dspaLoaded = ([state, loaded]: FetchState<State> | [State, boolean]): boolean =>
   loaded &&
   !!state &&
   !!state.status?.conditions?.find((c) => c.type === 'APIServerReady' && c.status === 'True');
 
+export const isDspaAllReady = ([state, loaded]: FetchState<State> | [State, boolean]): boolean =>
+  loaded &&
+  !!state &&
+  !!state.status?.conditions?.find((c) => c.type === 'Ready' && c.status === 'True');
+
 export const hasServerTimedOut = (
-  [state, loaded]: FetchState<State>,
+  [state, loaded]: FetchState<State> | [State, boolean],
   isDspaLoaded: boolean,
 ): boolean => {
   if (!state || !loaded || isDspaLoaded) {
@@ -57,16 +62,19 @@ const usePipelineNamespaceCR = (namespace: string): FetchState<State> => {
 
   const [isStarting, setIsStarting] = React.useState(false);
 
+  // state is an array here
   const state = useFetchState<State>(callback, null, {
     initialPromisePurity: true,
     refreshRate: isStarting ? FAST_POLL_INTERVAL : undefined,
   });
-
+  // state1: fetched successfully; whether or not  it is actually there
+  // state0: the actual thing that was fetched
   const resourceLoaded = state[1] && !!state[0];
-  const hasStatus = dspaLoaded(state);
+  const pipelineApiServerReady = dspaLoaded(state);
+
   React.useEffect(() => {
-    setIsStarting(resourceLoaded && !hasStatus);
-  }, [hasStatus, resourceLoaded]);
+    setIsStarting(resourceLoaded && !pipelineApiServerReady);
+  }, [pipelineApiServerReady, resourceLoaded]);
 
   return state;
 };

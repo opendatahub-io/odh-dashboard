@@ -16,19 +16,19 @@ import {
 } from '@patternfly/react-core';
 import { BanIcon, PlusCircleIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
-import ApplicationsPage from '~/pages/ApplicationsPage';
-import HardwareProfilesTable from '~/pages/hardwareProfiles/HardwareProfilesTable';
-import { useAccessAllowed, verbModelAccess } from '~/concepts/userSSAR';
-import { HardwareProfileModel } from '~/api';
-import { generateWarningForHardwareProfiles } from '~/pages/hardwareProfiles/utils';
-import { useWatchHardwareProfiles } from '~/utilities/useWatchHardwareProfiles';
-import { useDashboardNamespace } from '~/redux/selectors';
-import { ProjectObjectType } from '~/concepts/design/utils';
-import TitleWithIcon from '~/concepts/design/TitleWithIcon';
+import ApplicationsPage from '#~/pages/ApplicationsPage';
+import HardwareProfilesTable from '#~/pages/hardwareProfiles/HardwareProfilesTable';
+import { useAccessAllowed, verbModelAccess } from '#~/concepts/userSSAR';
+import { HardwareProfileModel } from '#~/api';
+import { generateWarningForHardwareProfiles } from '#~/pages/hardwareProfiles/utils';
+import { useWatchHardwareProfiles } from '#~/utilities/useWatchHardwareProfiles';
+import { useDashboardNamespace } from '#~/redux/selectors';
+import { ProjectObjectType } from '#~/concepts/design/utils';
+import TitleWithIcon from '#~/concepts/design/TitleWithIcon';
 import useMigratedHardwareProfiles from './migration/useMigratedHardwareProfiles';
 
 const description =
-  'Hardware profiles enable administrators to create profiles for additional types of identifiers, limit workload resource allocations, and target workloads to specific nodes by including tolerations and nodeSelectors in profiles.';
+  'Manage hardware profiles for your organization. Administrators can use hardware profiles to determine resource allocation strategies for specific workloads or to explicitly define hardware configurations for users.';
 
 const HardwareProfiles: React.FC = () => {
   const { dashboardNamespace } = useDashboardNamespace();

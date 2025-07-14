@@ -1,21 +1,21 @@
 import type { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
-import { homePage } from '~/__tests__/cypress/cypress/pages/home/home';
+import { homePage } from '#~/__tests__/cypress/cypress/pages/home/home';
 import {
   mockConfigMap404Response,
   mockManagedModelCatalogConfigMap,
   mockModelCatalogConfigMap,
   mockUnmanagedModelCatalogConfigMap,
-} from '~/__mocks__/mockModelCatalogConfigMap';
-import type { ModelCatalogSource } from '~/concepts/modelCatalog/types';
-import { ConfigMapModel, ServiceModel } from '~/__tests__/cypress/cypress/utils/models';
-import { mockModelCatalogSource } from '~/__mocks__/mockModelCatalogSource';
+} from '#~/__mocks__/mockModelCatalogConfigMap';
+import type { ModelCatalogSource } from '#~/concepts/modelCatalog/types';
+import { ConfigMapModel, ServiceModel } from '#~/__tests__/cypress/cypress/utils/models';
+import { mockModelCatalogSource } from '#~/__mocks__/mockModelCatalogSource';
 import {
   mockDashboardConfig,
   mockDscStatus,
   mockK8sResourceList,
   mockModelRegistryService,
-} from '~/__mocks__';
-import { mockCatalogModel } from '~/__mocks__/mockCatalogModel';
+} from '#~/__mocks__';
+import { mockCatalogModel } from '#~/__mocks__/mockCatalogModel';
 
 type HandlersProps = {
   modelRegistries?: K8sResourceCommon[];
@@ -350,7 +350,7 @@ describe('Homepage Model Catalog section', () => {
     homePage.getHomeModelCatalogSection().find().should('not.exist');
   });
 
-  it('should truncate model catalog card when description is exceeds 2 lines, and show tooltip with full description', () => {
+  it('should truncate model catalog card description when description is exceeds 2 lines, and show tooltip with full description', () => {
     const description =
       'Mauris dignissim pretium augue non blandit. Nullam sodales, nisl sed egestas tempus, mauris quam aliquet massa, ut euismod massa magna in neque. Aliquam at tortor sem. Nulla rutrum in turpis in condimentum. Sed condimentum rutrum velit, vel porttitor massa auctor sed. Vivamus lacinia arcu tortor, sit amet pretium nibh venenatis sit amet. Aenean eget condimentum sapien. Ut viverra mauris quam, quis malesuada velit fringilla et. Curabitur bibendum volutpat lorem, vel euismod justo rutrum a. Donec placerat dui eget nisl consectetur tristique. Aliquam sodales sed neque sed mollis.';
     cy.interceptK8s(
@@ -371,5 +371,28 @@ describe('Homepage Model Catalog section', () => {
     const modelCatalogSection = homePage.getHomeModelCatalogSection();
     modelCatalogSection.getModelCatalogCardDescription().trigger('mouseenter');
     modelCatalogSection.getModelCatalogCardDescriptionTooltip().should('have.text', description);
+  });
+
+  it('should truncate model catalog card name when name is too long, and show tooltip with full name', () => {
+    const name =
+      'Mauris dignissim pretium augue non blandit. Nullam sodales, nisl sed egestas tempus, mauris quam aliquet massa, ut euismod massa magna in neque. Aliquam at tortor sem. Nulla rutrum in turpis in condimentum. Sed condimentum rutrum velit, vel porttitor massa auctor sed. Vivamus lacinia arcu tortor, sit amet pretium nibh venenatis sit amet. Aenean eget condimentum sapien. Ut viverra mauris quam, quis malesuada velit fringilla et. Curabitur bibendum volutpat lorem, vel euismod justo rutrum a. Donec placerat dui eget nisl consectetur tristique. Aliquam sodales sed neque sed mollis.';
+    cy.interceptK8s(
+      {
+        model: ConfigMapModel,
+        ns: 'opendatahub',
+        name: 'model-catalog-sources',
+      },
+      mockModelCatalogConfigMap([
+        mockModelCatalogSource({
+          source: 'Red Hat',
+          models: [mockCatalogModel({ labels: ['featured'], name })],
+        }),
+      ]),
+    );
+
+    homePage.visit();
+    const modelCatalogSection = homePage.getHomeModelCatalogSection();
+    modelCatalogSection.getModelCatalogCardName().trigger('mouseenter');
+    modelCatalogSection.getModelCatalogCardNameTooltip().should('have.text', name);
   });
 });

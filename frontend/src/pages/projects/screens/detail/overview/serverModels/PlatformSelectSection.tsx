@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { Alert, Content, Flex, FlexItem, Gallery } from '@patternfly/react-core';
-import CollapsibleSection from '~/concepts/design/CollapsibleSection';
-import ModelServingPlatformSelectErrorAlert from '~/pages/modelServing/screens/ModelServingPlatformSelectErrorAlert';
-import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformStatuses';
+import CollapsibleSection from '#~/concepts/design/CollapsibleSection';
+import ModelServingPlatformSelectErrorAlert from '#~/pages/modelServing/screens/ModelServingPlatformSelectErrorAlert';
+import useServingPlatformStatuses from '#~/pages/modelServing/useServingPlatformStatuses';
 import SelectNIMCard from './SelectNIMCard';
 import SelectSingleModelCard from './SelectSingleModelCard';
 import SelectMultiModelCard from './SelectMultiModelCard';

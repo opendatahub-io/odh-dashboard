@@ -4,11 +4,18 @@ import {
   AcceleratorProfileKind,
   HardwareProfileKind,
   HardwareProfileFeatureVisibility,
-} from '~/k8sTypes';
-import { IdentifierResourceType, Toleration, Identifier, NotebookSize } from '~/types';
-import { isCpuLarger, isMemoryLarger } from '~/utilities/valueUnits';
-import { HardwareProfileModel } from '~/api';
-import { kindApiVersion, translateDisplayNameForK8s } from '~/concepts/k8s/utils';
+} from '#~/k8sTypes';
+import {
+  IdentifierResourceType,
+  Toleration,
+  Identifier,
+  NotebookSize,
+  SchedulingType,
+  DisplayNameAnnotation,
+} from '#~/types';
+import { isCpuLarger, isMemoryLarger } from '#~/utilities/valueUnits';
+import { HardwareProfileModel } from '#~/api';
+import { kindApiVersion, translateDisplayNameForK8s } from '#~/concepts/k8s/utils';
 import { ContainerSizeLimits } from './types';
 
 export const getMinMaxResourceSize = (containerSizes: NotebookSize[]): ContainerSizeLimits => {
@@ -133,13 +140,12 @@ const transformAcceleratorProfileToHardwareProfile = (
         ...acceleratorProfile.metadata.annotations,
         'opendatahub.io/dashboard-feature-visibility': JSON.stringify(visibleIn),
         'opendatahub.io/modified-date': new Date().toISOString(),
+        [DisplayNameAnnotation.ODH_DISP_NAME]: acceleratorProfile.spec.displayName,
+        [DisplayNameAnnotation.ODH_DESC]: acceleratorProfile.spec.description ?? '',
+        'opendatahub.io/disabled': (!acceleratorProfile.spec.enabled).toString(),
       },
     },
     spec: {
-      displayName: acceleratorProfile.spec.displayName,
-      description: acceleratorProfile.spec.description,
-      enabled: acceleratorProfile.spec.enabled,
-      tolerations: acceleratorProfile.spec.tolerations,
       identifiers: [
         {
           identifier: acceleratorProfile.spec.identifier,
@@ -148,6 +154,14 @@ const transformAcceleratorProfileToHardwareProfile = (
           defaultCount: 1,
         },
       ],
+      ...(acceleratorProfile.spec.tolerations?.length && {
+        scheduling: {
+          type: SchedulingType.NODE,
+          node: {
+            tolerations: acceleratorProfile.spec.tolerations,
+          },
+        },
+      }),
     },
   };
 
@@ -172,8 +186,15 @@ export const createAcceleratorHardwareProfiles = (
     {
       metadata: { name: translateDisplayNameForK8s(`${name}-notebooks`) },
       spec: {
-        tolerations: notebooksOnlyToleration ? [notebooksOnlyToleration] : undefined,
         identifiers: createCpuMemoryIdentifiers(notebookMaxSizes),
+        ...(notebooksOnlyToleration && {
+          scheduling: {
+            type: SchedulingType.NODE,
+            node: {
+              tolerations: [notebooksOnlyToleration],
+            },
+          },
+        }),
       },
     },
     [HardwareProfileFeatureVisibility.WORKBENCH],
@@ -205,13 +226,13 @@ export const transformContainerSizeToHardwareProfile = (
       name: translateDisplayNameForK8s(name),
       namespace,
       annotations: {
+        [DisplayNameAnnotation.ODH_DISP_NAME]: containerSize.name,
+        'opendatahub.io/disabled': 'false',
         'opendatahub.io/dashboard-feature-visibility': JSON.stringify(visibleIn),
         'opendatahub.io/modified-date': new Date().toISOString(),
       },
     },
     spec: {
-      displayName: containerSize.name,
-      enabled: true,
       identifiers: createCpuMemoryIdentifiers(sizes),
     },
   };

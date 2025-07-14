@@ -1,25 +1,30 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Breadcrumb, BreadcrumbItem, Form, FormSection, PageSection } from '@patternfly/react-core';
-import ApplicationsPage from '~/pages/ApplicationsPage';
-import useGenericObjectState from '~/utilities/useGenericObjectState';
-import { HardwareProfileKind } from '~/k8sTypes';
+import ApplicationsPage from '#~/pages/ApplicationsPage';
+import useGenericObjectState from '#~/utilities/useGenericObjectState';
+import { HardwareProfileKind } from '#~/k8sTypes';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
-} from '~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
+} from '#~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import {
-  DEFAULT_HARDWARE_PROFILE_SPEC,
+  DEFAULT_HARDWARE_PROFILE_FORM_DATA,
   ManageHardwareProfileSectionTitles,
-} from '~/pages/hardwareProfiles/const';
-import ManageNodeSelectorSection from '~/pages/hardwareProfiles/manage/ManageNodeSelectorSection';
-import ManageTolerationSection from '~/pages/hardwareProfiles/manage/ManageTolerationSection';
-import ManageHardwareProfileFooter from '~/pages/hardwareProfiles/manage/ManageHardwareProfileFooter';
-import ManageNodeResourceSection from '~/pages/hardwareProfiles/manage/ManageNodeResourceSection';
-import { MigrationAction } from '~/pages/hardwareProfiles/migration/types';
-import { useValidation, ValidationContext } from '~/utilities/useValidation';
-import { HardwareProfileFormData, ManageHardwareProfileSectionID } from './types';
-import { HardwareProfileVisibilitySection } from './HardwareProfileVisibilitySection';
+} from '#~/pages/hardwareProfiles/const';
+import {
+  getHardwareProfileDescription,
+  getHardwareProfileDisplayName,
+  isHardwareProfileEnabled,
+} from '#~/pages/hardwareProfiles/utils';
+import ManageHardwareProfileFooter from '#~/pages/hardwareProfiles/manage/ManageHardwareProfileFooter';
+import ManageNodeResourceSection from '#~/pages/hardwareProfiles/manage/ManageNodeResourceSection';
+import { MigrationAction } from '#~/pages/hardwareProfiles/migration/types';
+import { useValidation, ValidationContext } from '#~/utilities/useValidation';
+import ManageResourceAllocationSection from '#~/pages/hardwareProfiles/manage/ManageResourceAllocationSection.tsx';
+import { SchedulingType } from '#~/types.ts';
 import { manageHardwareProfileValidationSchema } from './validationUtils';
+import { HardwareProfileVisibilitySection } from './HardwareProfileVisibilitySection';
+import { HardwareProfileFormData, ManageHardwareProfileSectionID } from './types';
 
 type ManageHardwareProfileProps = {
   existingHardwareProfile?: HardwareProfileKind;
@@ -36,17 +41,17 @@ const ManageHardwareProfile: React.FC<ManageHardwareProfileProps> = ({
   homepageTitle = 'Hardware profiles',
   migrationAction,
 }) => {
-  const [state, setState] = useGenericObjectState<HardwareProfileKind['spec']>(
-    DEFAULT_HARDWARE_PROFILE_SPEC,
+  const [state, setState] = useGenericObjectState<HardwareProfileFormData>(
+    DEFAULT_HARDWARE_PROFILE_FORM_DATA,
   );
   const [visibility, setVisibility] = React.useState<string[]>([]);
   const { data: profileNameDesc, onDataChange: setProfileNameDesc } =
     useK8sNameDescriptionFieldData({
       initialData: existingHardwareProfile
         ? {
-            name: existingHardwareProfile.spec.displayName,
+            name: getHardwareProfileDisplayName(existingHardwareProfile),
             k8sName: existingHardwareProfile.metadata.name,
-            description: existingHardwareProfile.spec.description,
+            description: getHardwareProfileDescription(existingHardwareProfile) ?? '',
           }
         : undefined,
     });
@@ -55,9 +60,10 @@ const ManageHardwareProfile: React.FC<ManageHardwareProfileProps> = ({
     (hardwareProfile?: HardwareProfileKind) => {
       if (hardwareProfile) {
         setState('identifiers', hardwareProfile.spec.identifiers);
-        setState('enabled', hardwareProfile.spec.enabled);
-        setState('nodeSelector', hardwareProfile.spec.nodeSelector);
-        setState('tolerations', hardwareProfile.spec.tolerations);
+        setState('enabled', isHardwareProfileEnabled(hardwareProfile));
+        if (hardwareProfile.spec.scheduling) {
+          setState('scheduling', hardwareProfile.spec.scheduling);
+        }
 
         // set the visibility from the annotations
         try {
@@ -87,16 +93,22 @@ const ManageHardwareProfile: React.FC<ManageHardwareProfileProps> = ({
     prefillFormData(duplicatedHardwareProfile);
   }, [duplicatedHardwareProfile, prefillFormData]);
 
-  const formState: HardwareProfileFormData = React.useMemo(
-    () => ({
-      ...state,
+  const formState: HardwareProfileFormData = React.useMemo(() => {
+    const { scheduling, ...rest } = state;
+    const { type: schedulingType, kueue, node } = scheduling ?? {};
+    return {
+      ...rest,
       name: profileNameDesc.k8sName.value,
       displayName: profileNameDesc.name.trim(),
       description: profileNameDesc.description,
       visibility,
-    }),
-    [state, profileNameDesc, visibility],
-  );
+      scheduling: schedulingType
+        ? schedulingType === SchedulingType.QUEUE
+          ? { type: SchedulingType.QUEUE, kueue }
+          : { type: SchedulingType.NODE, node }
+        : undefined,
+    };
+  }, [state, profileNameDesc, visibility]);
 
   const validation = useValidation(formState, manageHardwareProfileValidationSchema);
 
@@ -105,15 +117,15 @@ const ManageHardwareProfile: React.FC<ManageHardwareProfileProps> = ({
       <ApplicationsPage
         title={
           existingHardwareProfile
-            ? `Edit ${existingHardwareProfile.spec.displayName}`
+            ? `Edit ${getHardwareProfileDisplayName(existingHardwareProfile)}`
             : duplicatedHardwareProfile
-            ? `Duplicate ${duplicatedHardwareProfile.spec.displayName}`
+            ? `Duplicate ${getHardwareProfileDisplayName(duplicatedHardwareProfile)}`
             : 'Create hardware profile'
         }
         description={
           duplicatedHardwareProfile
             ? 'Create a new, editable profile by duplicating an existing profile.'
-            : 'A hardware profile allows you to target notebook and model deployment workloads to particular cluster nodes by allowing you to specify node resources, node selectors and tolerations.'
+            : 'Configure a new hardware profile to either determine resource allocation strategies for specific workloads or to explicitly define hardware configurations for users.'
         }
         breadcrumb={
           <Breadcrumb>
@@ -158,13 +170,12 @@ const ManageHardwareProfile: React.FC<ManageHardwareProfileProps> = ({
               nodeResources={state.identifiers ?? []}
               setNodeResources={(identifiers) => setState('identifiers', identifiers)}
             />
-            <ManageNodeSelectorSection
-              nodeSelector={state.nodeSelector ?? {}}
-              setNodeSelector={(nodeSelector) => setState('nodeSelector', nodeSelector)}
-            />
-            <ManageTolerationSection
-              tolerations={state.tolerations ?? []}
-              setTolerations={(tolerations) => setState('tolerations', tolerations)}
+            <ManageResourceAllocationSection
+              scheduling={state.scheduling}
+              setScheduling={(updated) => {
+                setState('scheduling', updated);
+              }}
+              existingType={existingHardwareProfile?.spec.scheduling?.type}
             />
           </Form>
         </PageSection>
@@ -181,5 +192,4 @@ const ManageHardwareProfile: React.FC<ManageHardwareProfileProps> = ({
     </ValidationContext.Provider>
   );
 };
-
 export default ManageHardwareProfile;

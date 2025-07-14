@@ -17,23 +17,23 @@ import {
 } from '@patternfly/react-core';
 import { useSearchParams } from 'react-router-dom';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
-import { ProjectObjectType, SectionType } from '~/concepts/design/utils';
-import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
+import { ProjectObjectType, SectionType } from '#~/concepts/design/utils';
+import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import {
   getInferenceServiceFromServingRuntime,
   getProjectModelServingPlatform,
-} from '~/pages/modelServing/screens/projects/utils';
-import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformStatuses';
-import CollapsibleSection from '~/concepts/design/CollapsibleSection';
-import OverviewCard from '~/pages/projects/screens/detail/overview/components/OverviewCard';
-import AddModelFooter from '~/pages/projects/screens/detail/overview/serverModels/AddModelFooter';
-import { InferenceServiceKind } from '~/k8sTypes';
-import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
-import ModelServingContextProvider from '~/pages/modelServing/ModelServingContext';
-import { isProjectNIMSupported } from '~/pages/modelServing/screens/projects/nimUtils';
-import { NamespaceApplicationCase } from '~/pages/projects/types';
-import ModelServingPlatformSelectButton from '~/pages/modelServing/screens/projects/ModelServingPlatformSelectButton';
-import ModelServingPlatformSelectErrorAlert from '~/pages/modelServing/screens/ModelServingPlatformSelectErrorAlert';
+} from '#~/pages/modelServing/screens/projects/utils';
+import useServingPlatformStatuses from '#~/pages/modelServing/useServingPlatformStatuses';
+import CollapsibleSection from '#~/concepts/design/CollapsibleSection';
+import OverviewCard from '#~/pages/projects/screens/detail/overview/components/OverviewCard';
+import AddModelFooter from '#~/pages/projects/screens/detail/overview/serverModels/AddModelFooter';
+import { InferenceServiceKind } from '#~/k8sTypes';
+import { ProjectSectionID } from '#~/pages/projects/screens/detail/types';
+import ModelServingContextProvider from '#~/pages/modelServing/ModelServingContext';
+import { isProjectNIMSupported } from '#~/pages/modelServing/screens/projects/nimUtils';
+import { NamespaceApplicationCase } from '#~/pages/projects/types';
+import ModelServingPlatformSelectButton from '#~/pages/modelServing/screens/projects/ModelServingPlatformSelectButton';
+import ModelServingPlatformSelectErrorAlert from '#~/pages/modelServing/screens/ModelServingPlatformSelectErrorAlert';
 import DeployedModelsCard from './DeployedModelsCard';
 
 interface DeployedModelsSectionProps {
@@ -44,8 +44,14 @@ const DeployedModelsSection: React.FC<DeployedModelsSectionProps> = ({ isMultiPl
   const [queryParams, setQueryParams] = useSearchParams();
   const { currentProject } = React.useContext(ProjectDetailsContext);
   const {
-    inferenceServices: { data: inferenceServices, loaded: inferenceServicesLoaded },
-    servingRuntimes: { data: modelServers, loaded: modelServersLoaded },
+    inferenceServices: {
+      data: { items: inferenceServices },
+      loaded: inferenceServicesLoaded,
+    },
+    servingRuntimes: {
+      data: { items: modelServers },
+      loaded: modelServersLoaded,
+    },
   } = React.useContext(ProjectDetailsContext);
 
   const servingPlatformStatuses = useServingPlatformStatuses();

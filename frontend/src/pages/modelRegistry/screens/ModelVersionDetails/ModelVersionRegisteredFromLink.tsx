@@ -2,29 +2,38 @@ import React from 'react';
 import { Button, Content, Flex, FlexItem, Popover, Stack, StackItem } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
-import TypedObjectIcon from '~/concepts/design/TypedObjectIcon';
-import { ProjectObjectType } from '~/concepts/design/utils';
-import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
-import { FindAdministratorOptions } from '~/pages/projects/screens/projects/const';
-import PopoverListContent from '~/components/PopoverListContent';
-import { globalPipelineRunDetailsRoute, getCatalogModelDetailsRoute } from '~/routes';
-import { ModelArtifact } from '~/concepts/modelRegistry/types';
-import DashboardDescriptionListGroup from '~/components/DashboardDescriptionListGroup';
+import TypedObjectIcon from '#~/concepts/design/TypedObjectIcon';
+import { ProjectObjectType } from '#~/concepts/design/utils';
+import { ProjectsContext } from '#~/concepts/projects/ProjectsContext';
+import { FindAdministratorOptions } from '#~/pages/projects/screens/projects/const';
+import PopoverListContent from '#~/components/PopoverListContent';
+import { globalPipelineRunDetailsRoute } from '#~/routes/pipelines/runs';
+import { getCatalogModelDetailsRoute } from '#~/routes/modelCatalog/catalogModelDetails';
+import { ModelArtifact } from '#~/concepts/modelRegistry/types';
+import DashboardDescriptionListGroup from '#~/components/DashboardDescriptionListGroup';
 import {
   modelSourcePropertiesToCatalogParams,
   modelSourcePropertiesToPipelineRunRef,
-} from '~/concepts/modelRegistry/utils';
+} from '#~/concepts/modelRegistry/utils';
 
 type ModelVersionRegisteredFromLinkProps = {
   modelArtifact: ModelArtifact;
+  isModelCatalogAvailable: boolean;
 };
 
 const ModelVersionRegisteredFromLink: React.FC<ModelVersionRegisteredFromLinkProps> = ({
   modelArtifact,
+  isModelCatalogAvailable,
 }) => {
   const { projects } = React.useContext(ProjectsContext);
   const registeredFromCatalogDetails = modelSourcePropertiesToCatalogParams(modelArtifact);
   const registeredFromPipelineDetails = modelSourcePropertiesToPipelineRunRef(modelArtifact);
+
+  const registeredfromText = (
+    <span className="pf-v6-u-font-weight-bold" data-testid="registered-from-catalog">
+      {registeredFromCatalogDetails?.modelName} ({registeredFromCatalogDetails?.tag})
+    </span>
+  );
 
   if (!registeredFromCatalogDetails && !registeredFromPipelineDetails) {
     return null;
@@ -38,7 +47,7 @@ const ModelVersionRegisteredFromLink: React.FC<ModelVersionRegisteredFromLinkPro
 
       const renderRunLink = registeredPipelineProject ? (
         <Link
-          style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}
+          className="pf-v6-u-font-weight-bold"
           to={globalPipelineRunDetailsRoute(
             registeredFromPipelineDetails.project,
             registeredFromPipelineDetails.runId,
@@ -109,12 +118,14 @@ const ModelVersionRegisteredFromLink: React.FC<ModelVersionRegisteredFromLinkPro
     if (registeredFromCatalogDetails) {
       const catalogModelUrl = getCatalogModelDetailsRoute(registeredFromCatalogDetails);
       return (
-        <Link to={catalogModelUrl} data-testid="registered-from-catalog">
-          <span style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}>
-            {registeredFromCatalogDetails.modelName} ({registeredFromCatalogDetails.tag})
-          </span>{' '}
+        <>
+          {isModelCatalogAvailable ? (
+            <Link to={catalogModelUrl}>{registeredfromText}</Link>
+          ) : (
+            registeredfromText
+          )}{' '}
           in Model catalog
-        </Link>
+        </>
       );
     }
 
@@ -127,7 +138,9 @@ const ModelVersionRegisteredFromLink: React.FC<ModelVersionRegisteredFromLinkPro
   }
 
   return (
-    <DashboardDescriptionListGroup title="Registered from">{content}</DashboardDescriptionListGroup>
+    <DashboardDescriptionListGroup title="Registered from" groupTestId="registered-from-title">
+      {content}
+    </DashboardDescriptionListGroup>
   );
 };
 

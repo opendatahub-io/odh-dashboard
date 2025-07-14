@@ -1,10 +1,10 @@
 import React from 'react';
 import { ListItem, StackItem } from '@patternfly/react-core';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { PipelineRunKF } from '~/concepts/pipelines/kfTypes';
-import { ArchiveModal } from '~/concepts/pipelines/content/ArchiveModal';
-import { PipelineRunTabTitle } from '~/pages/pipelines/global/runs/types';
-import { BulkActionExpandableSection } from '~/pages/projects/components/BulkActionExpandableSection';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+import { PipelineRunKF } from '#~/concepts/pipelines/kfTypes';
+import { ArchiveModal } from '#~/concepts/pipelines/content/ArchiveModal';
+import { PipelineRunTabTitle } from '#~/pages/pipelines/global/runs/types';
+import { BulkActionExpandableSection } from '#~/pages/projects/components/BulkActionExpandableSection';
 
 interface ArchiveRunModalProps {
   runs: PipelineRunKF[];

@@ -1,4 +1,4 @@
-import { RoleBindingSubject } from '~/k8sTypes';
+import { RoleBindingSubject } from '#~/k8sTypes';
 
 export enum RoleBindingPermissionsRBType {
   USER = 'User',
@@ -9,6 +9,7 @@ export enum RoleBindingPermissionsRoleType {
   EDIT = 'edit',
   ADMIN = 'admin',
   DEFAULT = 'default',
+  CUSTOM = 'custom',
 }
 
 export type RoleBindingSubjectWithRole = RoleBindingSubject & {

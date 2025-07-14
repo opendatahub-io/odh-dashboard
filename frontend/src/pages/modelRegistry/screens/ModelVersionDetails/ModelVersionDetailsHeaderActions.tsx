@@ -9,24 +9,38 @@ import {
   ActionList,
   ActionListItem,
   ActionListGroup,
+  Tooltip,
 } from '@patternfly/react-core';
 import { useNavigate } from 'react-router';
-import { ArchiveModelVersionModal } from '~/pages/modelRegistry/screens/components/ArchiveModelVersionModal';
-import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegistryContext';
-import { ModelVersion, ModelState, RegisteredModel } from '~/concepts/modelRegistry/types';
-import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
-import { modelVersionDeploymentsRoute, modelVersionListRoute } from '~/routes';
-import DeployRegisteredVersionModal from '~/pages/modelRegistry/screens/components/DeployRegisteredVersionModal';
-import { useIsAreaAvailable, SupportedArea } from '~/concepts/areas';
-import StartRunModal from '~/pages/pipelines/global/modelCustomization/startRunModal/StartRunModal';
-import { useModelVersionTuningData } from '~/concepts/modelRegistry/hooks/useModelVersionTuningData';
-import { getModelCustomizationPath } from '~/routes/pipelines/modelCustomization';
+import { ArchiveModelVersionModal } from '#~/pages/modelRegistry/screens/components/ArchiveModelVersionModal';
+import {
+  ModelVersion,
+  ModelState,
+  RegisteredModel,
+  ModelArtifactList,
+} from '#~/concepts/modelRegistry/types';
+import {
+  modelVersionDeploymentsRoute,
+  modelVersionListRoute,
+} from '#~/routes/modelRegistry/modelVersions';
+import DeployRegisteredVersionModal from '#~/pages/modelRegistry/screens/components/DeployRegisteredVersionModal';
+import { useIsAreaAvailable, SupportedArea } from '#~/concepts/areas';
+import StartRunModal from '#~/pages/pipelines/global/modelCustomization/startRunModal/StartRunModal';
+import { getModelCustomizationPath } from '#~/routes/pipelines/modelCustomization';
+import useDeployButtonState from '#~/pages/modelServing/screens/projects/useDeployButtonState';
+import { isOciModelUri } from '#~/pages/modelServing/utils';
+import { ModelRegistriesContext } from '#~/concepts/modelRegistry/context/ModelRegistriesContext';
+import { ModelRegistryPageContext } from '#~/concepts/modelRegistry/context/ModelRegistryPageContext';
+import { getModelVersionTuningData } from '#~/concepts/modelRegistry/utils/getModelVersionTuningData';
 
 interface ModelVersionsDetailsHeaderActionsProps {
   mv: ModelVersion;
   registeredModel: RegisteredModel | null;
   hasDeployment?: boolean;
   refresh: () => void;
+  modelArtifacts: ModelArtifactList;
+  modelArtifactsLoaded: boolean;
+  modelArtifactsLoadError: Error | undefined;
 }
 
 const ModelVersionsDetailsHeaderActions: React.FC<ModelVersionsDetailsHeaderActionsProps> = ({
@@ -34,9 +48,13 @@ const ModelVersionsDetailsHeaderActions: React.FC<ModelVersionsDetailsHeaderActi
   registeredModel,
   hasDeployment = false,
   refresh,
+  modelArtifacts,
+  modelArtifactsLoaded,
+  modelArtifactsLoadError,
 }) => {
-  const { apiState } = React.useContext(ModelRegistryContext);
-  const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
+  const { apiState } = React.useContext(ModelRegistryPageContext);
+  const { preferredModelRegistry, modelRegistryServices } =
+    React.useContext(ModelRegistriesContext);
   const navigate = useNavigate();
   const [isOpenActionDropdown, setOpenActionDropdown] = React.useState(false);
   const [isArchiveModalOpen, setIsArchiveModalOpen] = React.useState(false);
@@ -46,30 +64,90 @@ const ModelVersionsDetailsHeaderActions: React.FC<ModelVersionsDetailsHeaderActi
 
   const isFineTuningEnabled = useIsAreaAvailable(SupportedArea.FINE_TUNING).status;
 
-  const { tuningData, loaded, loadError } = useModelVersionTuningData(
-    isLabTuneModalOpen ? mv.id : null,
-    mv,
-    registeredModel,
+  const tuningData = React.useMemo(
+    () =>
+      getModelVersionTuningData(
+        mv,
+        registeredModel,
+        modelArtifacts,
+        modelRegistryServices,
+        preferredModelRegistry,
+      ),
+    [mv, registeredModel, modelArtifacts, modelRegistryServices, preferredModelRegistry],
   );
+
+  const isOciModel = isOciModelUri(tuningData?.inputModelLocationUri);
+  const deployButtonState = useDeployButtonState(isOciModel);
+
+  const handleLabTuneSubmit = React.useCallback(
+    (selectedProject: string) => {
+      if (!preferredModelRegistry || !tuningData) {
+        return;
+      }
+      navigate(getModelCustomizationPath(selectedProject), {
+        state: tuningData,
+      });
+    },
+    [navigate, preferredModelRegistry, tuningData],
+  );
+
+  const handleDeploySubmit = React.useCallback(() => {
+    if (!preferredModelRegistry) {
+      return;
+    }
+    refresh();
+    navigate(
+      modelVersionDeploymentsRoute(
+        mv.id,
+        mv.registeredModelId,
+        preferredModelRegistry.metadata.name,
+      ),
+    );
+  }, [navigate, mv.id, mv.registeredModelId, preferredModelRegistry, refresh]);
+
+  const handleArchiveSubmit = React.useCallback(() => {
+    if (!preferredModelRegistry) {
+      return;
+    }
+    apiState.api
+      .patchModelVersion({}, { state: ModelState.ARCHIVED }, mv.id)
+      .then(() =>
+        navigate(modelVersionListRoute(mv.registeredModelId, preferredModelRegistry.metadata.name)),
+      );
+  }, [apiState.api, mv.id, mv.registeredModelId, preferredModelRegistry, navigate]);
 
   if (!preferredModelRegistry) {
     return null;
   }
 
+  const deployButton = (
+    <Button
+      id="deploy-button"
+      aria-label="Deploy version"
+      ref={tooltipRef}
+      variant={ButtonVariant.primary}
+      onClick={() => setIsDeployModalOpen(true)}
+      isAriaDisabled={!deployButtonState.enabled}
+      data-testid="deploy-button"
+    >
+      Deploy
+    </Button>
+  );
+
   return (
     <ActionList className="pf-v5-u-display-flex">
       <ActionListGroup className="pf-v5-u-flex-1">
-        <ActionListItem>
-          <Button
-            id="deploy-button"
-            aria-label="Deploy version"
-            ref={tooltipRef}
-            variant={ButtonVariant.primary}
-            onClick={() => setIsDeployModalOpen(true)}
-          >
-            Deploy
-          </Button>
-        </ActionListItem>
+        {deployButtonState.visible && (
+          <ActionListItem>
+            {deployButtonState.enabled ? (
+              deployButton
+            ) : (
+              <Tooltip content={deployButtonState.tooltip}>
+                <span>{deployButton}</span>
+              </Tooltip>
+            )}
+          </ActionListItem>
+        )}
         {isFineTuningEnabled && (
           <ActionListItem
             className="pf-v5-u-w-100"
@@ -120,28 +198,17 @@ const ModelVersionsDetailsHeaderActions: React.FC<ModelVersionsDetailsHeaderActi
           </Dropdown>
         </ActionListItem>
       </ActionListGroup>
-      {isLabTuneModalOpen ? (
+      {isLabTuneModalOpen && (
         <StartRunModal
           onCancel={() => setIsLabTuneModalOpen(false)}
-          onSubmit={(selectedProject) => {
-            navigate(getModelCustomizationPath(selectedProject), { state: tuningData });
-          }}
-          loaded={loaded}
-          loadError={loadError}
+          onSubmit={handleLabTuneSubmit}
+          loaded={modelArtifactsLoaded}
+          loadError={modelArtifactsLoadError}
         />
-      ) : null}
+      )}
       {isDeployModalOpen && (
         <DeployRegisteredVersionModal
-          onSubmit={() => {
-            refresh();
-            navigate(
-              modelVersionDeploymentsRoute(
-                mv.id,
-                mv.registeredModelId,
-                preferredModelRegistry.metadata.name,
-              ),
-            );
-          }}
+          onSubmit={handleDeploySubmit}
           onCancel={() => setIsDeployModalOpen(false)}
           modelVersion={mv}
         />
@@ -149,21 +216,7 @@ const ModelVersionsDetailsHeaderActions: React.FC<ModelVersionsDetailsHeaderActi
       {isArchiveModalOpen && (
         <ArchiveModelVersionModal
           onCancel={() => setIsArchiveModalOpen(false)}
-          onSubmit={() =>
-            apiState.api
-              .patchModelVersion(
-                {},
-                {
-                  state: ModelState.ARCHIVED,
-                },
-                mv.id,
-              )
-              .then(() =>
-                navigate(
-                  modelVersionListRoute(mv.registeredModelId, preferredModelRegistry.metadata.name),
-                ),
-              )
-          }
+          onSubmit={handleArchiveSubmit}
           modelVersionName={mv.name}
         />
       )}

@@ -1,4 +1,4 @@
-import { Connection } from '~/concepts/connectionTypes/types';
+import { Connection } from '#~/concepts/connectionTypes/types';
 
 type MockConnection = {
   name?: string;

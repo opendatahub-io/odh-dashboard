@@ -1,11 +1,11 @@
 import * as React from 'react';
 import { Dropdown, DropdownItem, MenuToggle, DropdownList, Divider } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
-import { getDashboardMainContainer } from '~/utilities/utils';
-import { ProjectKind } from '~/k8sTypes';
-import DeleteProjectModal from '~/pages/projects/screens/projects/DeleteProjectModal';
-import ManageProjectModal from '~/pages/projects/screens/projects/ManageProjectModal';
-import { useProjectAccessReview } from '~/concepts/projects/accessChecks';
+import { getDashboardMainContainer } from '#~/utilities/utils';
+import { ProjectKind } from '#~/k8sTypes';
+import DeleteProjectModal from '#~/pages/projects/screens/projects/DeleteProjectModal';
+import ManageProjectModal from '#~/pages/projects/screens/projects/ManageProjectModal';
+import { useProjectAccessReview } from '#~/concepts/projects/accessChecks';
 
 type Props = {
   project: ProjectKind;

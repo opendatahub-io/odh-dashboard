@@ -14,7 +14,7 @@ import {
 } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
-import { CUSTOM_VARIABLE, EMPTY_KEY, ENV_VAR_NAME_REGEX } from '~/pages/notebookController/const';
+import { CUSTOM_VARIABLE, EMPTY_KEY, ENV_VAR_NAME_REGEX } from '#~/pages/notebookController/const';
 import {
   ConfigMap,
   EnvVarResourceType,
@@ -24,30 +24,32 @@ import {
   NotebookState,
   Secret,
   VariableRow,
-} from '~/types';
-import { checkOrder, getDefaultTag, isImageTagBuildValid } from '~/utilities/imageUtils';
-import { enableNotebook, stopNotebook } from '~/services/notebookService';
+} from '#~/types';
+import { checkOrder, getDefaultTag, isImageTagBuildValid } from '#~/utilities/imageUtils';
+import { enableNotebook, stopNotebook } from '#~/services/notebookService';
 import {
   classifyEnvVars,
   generateEnvVarFileNameFromUsername,
   useNotebookUserState,
   verifyResource,
-} from '~/utilities/notebookControllerUtils';
-import { useAppContext } from '~/app/AppContext';
-import { useWatchImages } from '~/utilities/useWatchImages';
-import ApplicationsPage from '~/pages/ApplicationsPage';
-import useNotification from '~/utilities/useNotification';
-import { NotebookControllerContext } from '~/pages/notebookController/NotebookControllerContext';
-import ImpersonateAlert from '~/pages/notebookController/screens/admin/ImpersonateAlert';
-import useNamespaces from '~/pages/notebookController/useNamespaces';
-import { getEnvConfigMap, getEnvSecret } from '~/services/envService';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
-import useAdminDefaultStorageClass from '~/pages/projects/screens/spawner/storage/useAdminDefaultStorageClass';
-import HardwareProfileFormSection from '~/concepts/hardwareProfiles/HardwareProfileFormSection';
-import { useNotebookPodSpecOptionsState } from '~/concepts/hardwareProfiles/useNotebookPodSpecOptionsState';
-import { HardwareProfileFeatureVisibility } from '~/k8sTypes';
+} from '#~/utilities/notebookControllerUtils';
+import { useAppContext } from '#~/app/AppContext';
+import ApplicationsPage from '#~/pages/ApplicationsPage';
+import useNotification from '#~/utilities/useNotification';
+import { NotebookControllerContext } from '#~/pages/notebookController/NotebookControllerContext';
+import ImpersonateAlert from '#~/pages/notebookController/screens/admin/ImpersonateAlert';
+import useNamespaces from '#~/pages/notebookController/useNamespaces';
+import { getEnvConfigMap, getEnvSecret } from '#~/services/envService';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
+import useAdminDefaultStorageClass from '#~/pages/projects/screens/spawner/storage/useAdminDefaultStorageClass';
+import HardwareProfileFormSection from '#~/concepts/hardwareProfiles/HardwareProfileFormSection';
+import { useNotebookPodSpecOptionsState } from '#~/concepts/hardwareProfiles/useNotebookPodSpecOptionsState';
+import { HardwareProfileFeatureVisibility } from '#~/k8sTypes';
+import { useDashboardNamespace } from '#~/redux/selectors';
+import { useImageStreams } from '#~/utilities/useImageStreams';
+import { mapImageStreamToImageInfo } from '#~/utilities/imageStreamUtils';
 import SizeSelectField from './SizeSelectField';
 import useSpawnerNotebookModalState from './useSpawnerNotebookModalState';
 import BrowserTabPreferenceCheckbox from './BrowserTabPreferenceCheckbox';
@@ -56,18 +58,20 @@ import ImageSelector from './ImageSelector';
 import StartServerModal from './StartServerModal';
 import AcceleratorProfileSelectField from './AcceleratorProfileSelectField';
 
-import '~/pages/notebookController/NotebookController.scss';
+import '#~/pages/notebookController/NotebookController.scss';
 
 const SpawnerPage: React.FC = () => {
   const navigate = useNavigate();
   const notification = useNotification();
   const isHomeAvailable = useIsAreaAvailable(SupportedArea.HOME).status;
   const isHardwareProfilesAvailable = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;
-  const { images, loaded, loadError } = useWatchImages();
+  const { dashboardNamespace } = useDashboardNamespace();
+  const [imageStreams, loaded, loadError] = useImageStreams(dashboardNamespace, { enabled: true });
+  const images = React.useMemo(() => imageStreams.map(mapImageStreamToImageInfo), [imageStreams]);
   const { buildStatuses } = useAppContext();
   const { currentUserNotebook, requestNotebookRefresh, impersonatedUsername, setImpersonating } =
     React.useContext(NotebookControllerContext);
-  const { notebookNamespace: projectName } = useNamespaces();
+  const { workbenchNamespace } = useNamespaces();
   const currentUserState = useNotebookUserState();
   const username = currentUserState.user;
   const [createInProgress, setCreateInProgress] = React.useState(false);
@@ -134,7 +138,7 @@ const SpawnerPage: React.FC = () => {
       const envVarFileName = generateEnvVarFileNameFromUsername(username);
       const response = await verifyResource<ConfigMap | Secret>(
         envVarFileName,
-        projectName,
+        workbenchNamespace,
         fetchFunc,
       );
       if (response && response.data) {
@@ -160,7 +164,7 @@ const SpawnerPage: React.FC = () => {
       }
       return fetchedVariableRows;
     },
-    [username, projectName],
+    [username, workbenchNamespace],
   );
 
   React.useEffect(() => {
@@ -303,8 +307,8 @@ const SpawnerPage: React.FC = () => {
     <>
       <ImpersonateAlert />
       <ApplicationsPage
-        title="Start a notebook server"
-        description="Select options for your notebook server."
+        title="Start a basic workbench"
+        description="Configure your basic workbench. Each user can start a single basic workbench, and its features are limited to only a workbench image."
         provideChildrenPadding
         loaded={loaded}
         loadingContent={
@@ -318,10 +322,10 @@ const SpawnerPage: React.FC = () => {
           </EmptyState>
         }
         loadError={loadError}
-        empty={images.length === 0}
+        empty={loaded && images.length === 0}
       >
         <Form maxWidth="1000px" data-testid="notebook-server-form">
-          <FormSection title="Notebook image">
+          <FormSection title="Workbench image">
             <FormGroup fieldId="modal-notebook-image">
               <Grid sm={12} md={12} lg={12} xl={6} xl2={6} hasGutter>
                 {images
@@ -402,7 +406,7 @@ const SpawnerPage: React.FC = () => {
                 }}
                 isDisabled={disableSubmit}
               >
-                Start server
+                Start workbench
               </Button>
               <Button
                 data-id="cancel-button"

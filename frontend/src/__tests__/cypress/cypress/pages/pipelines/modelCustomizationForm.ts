@@ -1,4 +1,5 @@
-import { Contextual } from '~/__tests__/cypress/cypress/pages/components/Contextual';
+import { Contextual } from '#~/__tests__/cypress/cypress/pages/components/Contextual';
+import { AcceleratorProfileSection } from '#~/__tests__/cypress/cypress/pages/components/subComponents/AcceleratorProfileSection';
 
 class ModelCustomizationFormGlobal {
   visit(projectName: string, empty = false) {
@@ -174,6 +175,12 @@ class HardwareSection {
   }
 }
 
+class ModelCustomizationAcceleratorProfileSection extends AcceleratorProfileSection {
+  find() {
+    return cy.findByTestId('fine-tune-section-training-hardware');
+  }
+}
+
 class BaseModelSection {
   find() {
     return cy.findByTestId('fine-tune-section-base-model');
@@ -279,6 +286,8 @@ export const baseModelSection = new BaseModelSection();
 export const judgeModelSection = new JudgeModelSection();
 export const taxonomySection = new TaxonomySection();
 export const hardwareSection = new HardwareSection();
+export const acceleratorProfileSectionModelCustomization =
+  new ModelCustomizationAcceleratorProfileSection();
 export const dataScienceProjectSection = new DataScienceProjectSection();
 export const pipelineSection = new PipelineSection();
 export const hyperparameterSection = new HyperparameterSection();

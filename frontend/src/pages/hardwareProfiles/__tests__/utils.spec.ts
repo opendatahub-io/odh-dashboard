@@ -1,12 +1,12 @@
-import { mockHardwareProfile } from '~/__mocks__/mockHardwareProfile';
-import { Identifier, IdentifierResourceType } from '~/types';
+import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile';
+import { Identifier, IdentifierResourceType } from '#~/types';
 import {
   determineIdentifierUnit,
   isHardwareProfileIdentifierValid,
   validateProfileWarning,
-} from '~/pages/hardwareProfiles/utils';
-import { HardwareProfileWarningType } from '~/concepts/hardwareProfiles/types';
-import { CPU_UNITS, MEMORY_UNITS_FOR_SELECTION, OTHER } from '~/utilities/valueUnits';
+} from '#~/pages/hardwareProfiles/utils';
+import { HardwareProfileWarningType } from '#~/concepts/hardwareProfiles/types';
+import { CPU_UNITS, MEMORY_UNITS_FOR_SELECTION, OTHER } from '#~/utilities/valueUnits';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sListResource: jest.fn(),
@@ -148,6 +148,15 @@ describe('validateProfileWarning', () => {
     });
     const hardwareProfilesResult = validateProfileWarning(hardwareProfileMock);
     expect(hardwareProfilesResult).toEqual([
+      {
+        type: HardwareProfileWarningType.OUT_OF_RANGE,
+        message: 'Minimum allowed value cannot exceed the maximum allowed value (if specified).',
+      },
+      {
+        type: HardwareProfileWarningType.OUT_OF_RANGE,
+        message:
+          'Default value must be equal to or between the minimum and maximum allowed limits.',
+      },
       {
         type: HardwareProfileWarningType.INVALID_UNIT,
         message: `The resource count for ${IdentifierResourceType.MEMORY} has an invalid unit. Edit the profile to make the profile valid.`,

@@ -1,7 +1,7 @@
 import React from 'react';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import { AreaContext } from '~/concepts/areas/AreaContext';
-import { DeploymentMode } from '~/k8sTypes';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { AreaContext } from '#~/concepts/areas/AreaContext';
+import { DeploymentMode } from '#~/k8sTypes';
 
 const toDeploymentMode = (mode?: string) => Object.values(DeploymentMode).find((v) => mode === v);
 

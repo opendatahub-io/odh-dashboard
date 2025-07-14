@@ -3,22 +3,22 @@ import {
   artifactDetails,
   artifactsGlobal,
   artifactsTable,
-} from '~/__tests__/cypress/cypress/pages/pipelines/artifacts';
+} from '#~/__tests__/cypress/cypress/pages/pipelines/artifacts';
 import {
   mockGetArtifactsById,
   mockGetArtifactsResponse,
   mockedArtifactsResponse,
-} from '~/__mocks__/mlmd/mockGetArtifacts';
+} from '#~/__mocks__/mlmd/mockGetArtifacts';
 import {
   buildMockPipeline,
   buildMockRunKF,
   mockMetricsVisualizationRun,
   mockMetricsVisualizationVersion,
-} from '~/__mocks__';
-import { pipelineRunDetails } from '~/__tests__/cypress/cypress/pages/pipelines';
-import { mockArtifactStorage } from '~/__mocks__/mockArtifactStorage';
-import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url';
-import { RuntimeStateKF } from '~/concepts/pipelines/kfTypes';
+} from '#~/__mocks__';
+import { pipelineRunDetails } from '#~/__tests__/cypress/cypress/pages/pipelines';
+import { mockArtifactStorage } from '#~/__mocks__/mockArtifactStorage';
+import { verifyRelativeURL } from '#~/__tests__/cypress/cypress/utils/url';
+import { RuntimeStateKF } from '#~/concepts/pipelines/kfTypes';
 import { configIntercept, dspaIntercepts, projectsIntercept } from './intercepts';
 import { initMlmdIntercepts } from './mlmdUtils';
 
@@ -59,7 +59,7 @@ describe('Artifacts', () => {
       const scalarMetricsRow = artifactsTable.getRowByName('scalar metrics');
       scalarMetricsRow.findId().should('have.text', '1');
       scalarMetricsRow.findType().should('have.text', 'system.Metrics');
-      scalarMetricsRow.findUri().should('have.text', 's3://scalar-metrics-uri-scalar-metrics-uri');
+      scalarMetricsRow.findUri().should('have.text', '-');
       scalarMetricsRow.findCreated().should('have.text', '23 Jan 2021');
 
       const datasetRow = artifactsTable.getRowByName('dataset');
@@ -71,13 +71,13 @@ describe('Artifacts', () => {
       const confidenceMetricsRow = artifactsTable.getRowByName('confidence metrics');
       confidenceMetricsRow.findId().should('have.text', '3');
       confidenceMetricsRow.findType().should('have.text', 'system.ClassificationMetrics');
-      confidenceMetricsRow.findUri().should('have.text', 's3://confidence-metrics-uri');
+      confidenceMetricsRow.findUri().should('have.text', '-');
       confidenceMetricsRow.findCreated().should('have.text', '23 Jan 2021');
 
       const confusionMatrixRow = artifactsTable.getRowByName('confusion matrix');
       confusionMatrixRow.findId().should('have.text', '4');
       confusionMatrixRow.findType().should('have.text', 'system.ClassificationMetrics');
-      confusionMatrixRow.findUri().should('have.text', 's3://confusion-matrix-uri');
+      confusionMatrixRow.findUri().should('have.text', '-');
       confusionMatrixRow.findCreated().should('have.text', '23 Jan 2021');
     });
 
@@ -171,6 +171,18 @@ describe('Artifacts', () => {
   });
 
   describe('details', () => {
+    it('renders the project navigator link', () => {
+      artifactDetails.mockGetArtifactById(
+        projectName,
+        mockGetArtifactsById({
+          artifacts: [mockedArtifactsResponse.artifacts[0]],
+          artifactTypes: [],
+        }),
+      );
+      artifactDetails.visit(projectName, 'metrics', '1');
+      artifactDetails.findProjectNavigatorLink().should('exist');
+    });
+
     it('shows empty state for properties and custom properties', () => {
       artifactDetails.mockGetArtifactById(
         projectName,
@@ -193,10 +205,7 @@ describe('Artifacts', () => {
         }),
       );
       artifactDetails.visit(projectName, 'metrics', '1');
-      artifactDetails
-        .findDatasetItemByLabel('URI')
-        .next()
-        .should('include.text', 's3://scalar-metrics-uri-scalar-metrics-uri');
+      artifactDetails.findDatasetItemByLabel('URI').next().should('include.text', '-');
       artifactDetails.findCustomPropItemByLabel('accuracy').next().should('have.text', '92');
       artifactDetails
         .findCustomPropItemByLabel('display_name')
@@ -252,7 +261,7 @@ describe('Artifacts', () => {
       cy.interceptOdh(
         'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/artifacts/:artifactId',
         {
-          query: { view: 'DOWNLOAD' },
+          query: { view: 'RENDER' },
           path: { namespace: projectName, serviceName: 'dspa', artifactId: '18' },
         },
         mockArtifactStorage({ namespace: projectName, artifactId: '18' }),

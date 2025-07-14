@@ -2,11 +2,11 @@ import React from 'react';
 import { Stack, StackItem, Title } from '@patternfly/react-core';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import { Link } from 'react-router-dom';
-import { Execution } from '~/third_party/mlmd';
-import { executionDetailsRoute } from '~/routes';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { getOriginalExecutionId } from '~/pages/pipelines/global/experiments/executions/utils';
-import ExperimentPipelineRunLink from '~/pages/pipelines/global/experiments/ExperimentPipelineRunLink';
+import { Execution } from '#~/third_party/mlmd';
+import { executionDetailsRoute } from '#~/routes/pipelines/executions';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+import { getOriginalExecutionId } from '#~/pages/pipelines/global/experiments/executions/utils';
+import ExperimentPipelineRunLink from '#~/pages/pipelines/global/experiments/ExperimentPipelineRunLink';
 
 type ExecutionDetailsReferenceSectionProps = {
   execution: Execution;

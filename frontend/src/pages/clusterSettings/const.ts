@@ -1,4 +1,4 @@
-import { ClusterSettingsType } from '~/types';
+import { ClusterSettingsType } from '#~/types';
 
 export const DEFAULT_PVC_SIZE = 20;
 export const MIN_PVC_SIZE = 1;

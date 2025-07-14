@@ -7,9 +7,9 @@ import {
   splitValueUnit,
   ValueUnitCPU,
   ValueUnitString,
-} from '~/utilities/valueUnits';
-import { HardwareProfileKind } from '~/k8sTypes';
-import { IdentifierResourceType } from '~/types';
+} from '#~/utilities/valueUnits';
+import { HardwareProfileKind } from '#~/k8sTypes';
+import { IdentifierResourceType } from '#~/types';
 import { HardwareProfileConfig } from './useHardwareProfileConfig';
 import { formatResourceValue } from './utils';
 

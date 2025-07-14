@@ -2,13 +2,13 @@
 import * as React from 'react';
 import { FormGroup, StackItem } from '@patternfly/react-core';
 import { useNavigate } from 'react-router';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
-import PipelineSelector from '~/concepts/pipelines/content/pipelineSelector/PipelineSelector';
-import { getNameEqualsFilter } from '~/concepts/pipelines/utils';
-import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
-import { pipelineVersionDetailsRoute } from '~/routes';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+import { PipelineKF, PipelineVersionKF } from '#~/concepts/pipelines/kfTypes';
+import PipelineSelector from '#~/concepts/pipelines/content/pipelineSelector/PipelineSelector';
+import { getNameEqualsFilter } from '#~/concepts/pipelines/utils';
+import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
+import { pipelineVersionDetailsRoute } from '#~/routes/pipelines/global';
 import { generatePipelineVersionName, PipelineUploadOption } from './utils';
 import { usePipelineVersionImportModalData } from './useImportModalData';
 import PipelineImportBase from './PipelineImportBase';
@@ -16,12 +16,15 @@ import PipelineImportBase from './PipelineImportBase';
 type PipelineVersionImportModalProps = {
   existingPipeline?: PipelineKF | null;
   onClose: (pipelineVersion?: PipelineVersionKF, pipeline?: PipelineKF | null) => void;
+  redirectAfterImport?: boolean;
 };
 
 const eventName = 'Pipeline Version Updated';
+
 const PipelineVersionImportModal: React.FC<PipelineVersionImportModalProps> = ({
   existingPipeline,
   onClose,
+  redirectAfterImport = true,
 }) => {
   const { api, namespace } = usePipelinesAPI();
   const navigate = useNavigate();
@@ -35,14 +38,20 @@ const PipelineVersionImportModal: React.FC<PipelineVersionImportModalProps> = ({
 
       if (result && 'pipeline_version_id' in result && pipeline) {
         onClose(result, pipeline);
-        navigate(
-          pipelineVersionDetailsRoute(namespace, pipeline.pipeline_id, result.pipeline_version_id),
-        );
+        if (redirectAfterImport) {
+          navigate(
+            pipelineVersionDetailsRoute(
+              namespace,
+              pipeline.pipeline_id,
+              result.pipeline_version_id,
+            ),
+          );
+        }
       } else {
         onClose();
       }
     },
-    [namespace, navigate, onClose],
+    [namespace, navigate, onClose, redirectAfterImport],
   );
 
   const checkForDuplicateName = React.useCallback(

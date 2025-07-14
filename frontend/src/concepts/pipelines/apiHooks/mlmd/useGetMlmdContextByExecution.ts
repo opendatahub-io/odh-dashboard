@@ -1,10 +1,10 @@
 import React from 'react';
-import { MlmdContext, MlmdContextTypes } from '~/concepts/pipelines/apiHooks/mlmd/types';
-import { useGetMlmdContextType } from '~/concepts/pipelines/apiHooks/mlmd/useGetMlmdContextType';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
+import { MlmdContext, MlmdContextTypes } from '#~/concepts/pipelines/apiHooks/mlmd/types';
+import { useGetMlmdContextType } from '#~/concepts/pipelines/apiHooks/mlmd/useGetMlmdContextType';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 
-import { GetContextsByExecutionRequest } from '~/third_party/mlmd/generated/ml_metadata/proto/metadata_store_service_pb';
-import useFetchState, { FetchState, FetchStateCallbackPromise } from '~/utilities/useFetchState';
+import { GetContextsByExecutionRequest } from '#~/third_party/mlmd/generated/ml_metadata/proto/metadata_store_service_pb';
+import useFetchState, { FetchState, FetchStateCallbackPromise } from '#~/utilities/useFetchState';
 
 const useGetMlmdContextByExecution = (
   executionId: number | undefined,

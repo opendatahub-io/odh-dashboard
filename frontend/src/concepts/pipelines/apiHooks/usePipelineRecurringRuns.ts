@@ -1,10 +1,10 @@
 import * as React from 'react';
-import { PipelineRecurringRunKF } from '~/concepts/pipelines/kfTypes';
-import { FetchState } from '~/utilities/useFetchState';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import usePipelineQuery from '~/concepts/pipelines/apiHooks/usePipelineQuery';
-import { PipelineListPaged, PipelineRunOptions } from '~/concepts/pipelines/types';
-import { K8sAPIOptions } from '~/k8sTypes';
+import { PipelineRecurringRunKF } from '#~/concepts/pipelines/kfTypes';
+import { FetchState } from '#~/utilities/useFetchState';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+import usePipelineQuery from '#~/concepts/pipelines/apiHooks/usePipelineQuery';
+import { PipelineListPaged, PipelineRunOptions } from '#~/concepts/pipelines/types';
+import { K8sAPIOptions } from '#~/k8sTypes';
 
 const usePipelineRecurringRuns = (
   options?: PipelineRunOptions,

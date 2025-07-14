@@ -1,9 +1,9 @@
 import * as React from 'react';
-import { Modal } from '@patternfly/react-core/deprecated';
-import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
-import useNotification from '~/utilities/useNotification';
-import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
+import { Modal, ModalBody, ModalHeader, ModalFooter } from '@patternfly/react-core';
+import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
+import useNotification from '#~/utilities/useNotification';
+import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
 
 interface RestoreRegisteredModelModalProps {
   onCancel: () => void;
@@ -58,10 +58,16 @@ export const RestoreRegisteredModelModal: React.FC<RestoreRegisteredModelModalPr
   return (
     <Modal
       isOpen
-      title="Restore model?"
       variant="small"
       onClose={onCancelClose}
-      footer={
+      data-testid="restore-registered-model-modal"
+    >
+      <ModalHeader title="Restore model?" />
+      <ModalBody>
+        <b>{registeredModelName}</b> and all of its versions will be restored and returned to the
+        registered models list.
+      </ModalBody>
+      <ModalFooter>
         <DashboardModalFooter
           onCancel={onCancelClose}
           onSubmit={onConfirm}
@@ -71,11 +77,7 @@ export const RestoreRegisteredModelModal: React.FC<RestoreRegisteredModelModalPr
           alertTitle="Error"
           isSubmitDisabled={isSubmitting}
         />
-      }
-      data-testid="restore-registered-model-modal"
-    >
-      <b>{registeredModelName}</b> and all of its versions will be restored and returned to the
-      registered models list.
+      </ModalFooter>
     </Modal>
   );
 };

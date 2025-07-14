@@ -2,14 +2,14 @@ import * as React from 'react';
 import { Bullseye, Button, ButtonVariant, Spinner, Stack, StackItem } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import { TableVariant } from '@patternfly/react-table';
-import PipelinesTable from '~/concepts/pipelines/content/tables/pipeline/PipelinesTable';
-import IndentSection from '~/pages/projects/components/IndentSection';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import EmptyStateErrorMessage from '~/components/EmptyStateErrorMessage';
-import { TABLE_CONTENT_LIMIT } from '~/concepts/pipelines/const';
-import usePipelinesTable from '~/concepts/pipelines/content/tables/pipeline/usePipelinesTable';
-import { pipelinesBaseRoute } from '~/routes';
-import NoPipelineServer from '~/concepts/pipelines/NoPipelineServer';
+import PipelinesTable from '#~/concepts/pipelines/content/tables/pipeline/PipelinesTable';
+import IndentSection from '#~/pages/projects/components/IndentSection';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+import EmptyStateErrorMessage from '#~/components/EmptyStateErrorMessage';
+import { TABLE_CONTENT_LIMIT } from '#~/concepts/pipelines/const';
+import usePipelinesTable from '#~/concepts/pipelines/content/tables/pipeline/usePipelinesTable';
+import { pipelinesBaseRoute } from '#~/routes/pipelines/global';
+import NoPipelineServer from '#~/concepts/pipelines/NoPipelineServer';
 
 type PipelinesListProps = {
   setIsPipelinesEmpty: (isEmpty: boolean) => void;

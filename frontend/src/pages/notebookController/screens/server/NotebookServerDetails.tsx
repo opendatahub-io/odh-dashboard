@@ -2,32 +2,37 @@ import * as React from 'react';
 import * as _ from 'lodash-es';
 import {
   Alert,
+  Content,
+  ContentVariants,
   DescriptionList,
   DescriptionListDescription,
   DescriptionListGroup,
   DescriptionListTerm,
   ExpandableSection,
   Spinner,
-  Content,
-  ContentVariants,
 } from '@patternfly/react-core';
-import { PodContainer } from '~/types';
+import { PodContainer } from '#~/types';
 import {
   getDescriptionForTag,
   getImageTagByContainer,
   getNameVersionString,
-} from '~/utilities/imageUtils';
-import { useAppContext } from '~/app/AppContext';
-import { useWatchImages } from '~/utilities/useWatchImages';
-import { NotebookControllerContext } from '~/pages/notebookController/NotebookControllerContext';
-import { formatMemory } from '~/utilities/valueUnits';
-import { useNotebookPodSpecOptionsState } from '~/concepts/hardwareProfiles/useNotebookPodSpecOptionsState';
-import { useIsAreaAvailable, SupportedArea } from '~/concepts/areas';
+} from '#~/utilities/imageUtils';
+import { useAppContext } from '#~/app/AppContext';
+import { NotebookControllerContext } from '#~/pages/notebookController/NotebookControllerContext';
+import { formatMemory } from '#~/utilities/valueUnits';
+import { useNotebookPodSpecOptionsState } from '#~/concepts/hardwareProfiles/useNotebookPodSpecOptionsState';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { useDashboardNamespace } from '#~/redux/selectors';
+import { useImageStreams } from '#~/utilities/useImageStreams';
+import { mapImageStreamToImageInfo } from '#~/utilities/imageStreamUtils';
+import { getHardwareProfileDisplayName } from '#~/pages/hardwareProfiles/utils.ts';
 import { getNotebookSizes } from './usePreferredNotebookSize';
 
 const NotebookServerDetails: React.FC = () => {
   const { currentUserNotebook: notebook } = React.useContext(NotebookControllerContext);
-  const { images, loaded } = useWatchImages();
+  const { dashboardNamespace } = useDashboardNamespace();
+  const [imageStreams, loaded] = useImageStreams(dashboardNamespace, { enabled: true });
+  const images = React.useMemo(() => imageStreams.map(mapImageStreamToImageInfo), [imageStreams]);
   const [isExpanded, setExpanded] = React.useState(false);
   const { dashboardConfig } = useAppContext();
   const {
@@ -64,16 +69,16 @@ const NotebookServerDetails: React.FC = () => {
     <ExpandableSection
       data-id="details-expand"
       className="odh-notebook-controller__server-details"
-      toggleText="Notebook server details"
+      toggleText="Workbench details"
       onToggle={(e, expanded: boolean) => onToggle(expanded)}
       isExpanded={isExpanded}
       isIndented
     >
-      <p className="odh-notebook-controller__server-details-title">Notebook image</p>
+      <p className="odh-notebook-controller__server-details-title">Workbench image</p>
       {!image || !tag ? (
         loaded ? (
           <Alert variant="danger" isInline title="Error loading related images...">
-            Unable to show notebook image details at this time.
+            Unable to show workbench image details at this time.
           </Alert>
         ) : (
           <Spinner />
@@ -127,7 +132,7 @@ const NotebookServerDetails: React.FC = () => {
             <DescriptionListTerm>Hardware profile</DescriptionListTerm>
             <DescriptionListDescription>
               {hardwareProfile.initialHardwareProfile
-                ? hardwareProfile.initialHardwareProfile.spec.displayName
+                ? getHardwareProfileDisplayName(hardwareProfile.initialHardwareProfile)
                 : hardwareProfile.formData.useExistingSettings
                 ? 'Unknown'
                 : 'None'}

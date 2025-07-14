@@ -1,8 +1,8 @@
 import React from 'react';
-import { HardwareProfileKind, HardwareProfileFeatureVisibility } from '~/k8sTypes';
-import { isHardwareProfileValid } from '~/pages/hardwareProfiles/utils';
-import { useWatchHardwareProfiles } from '~/utilities/useWatchHardwareProfiles';
-import { useDashboardNamespace } from '~/redux/selectors';
+import { HardwareProfileKind, HardwareProfileFeatureVisibility } from '#~/k8sTypes';
+import { isHardwareProfileValid } from '#~/pages/hardwareProfiles/utils';
+import { useWatchHardwareProfiles } from '#~/utilities/useWatchHardwareProfiles';
+import { useDashboardNamespace } from '#~/redux/selectors';
 import useMigratedHardwareProfiles from './useMigratedHardwareProfiles';
 
 export const useHardwareProfilesByFeatureVisibility = (

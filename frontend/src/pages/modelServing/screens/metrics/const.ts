@@ -1,7 +1,7 @@
-import { BiasMetricType } from '~/api';
-import { BiasChartConfigMap, MetricsChartTypes } from '~/pages/modelServing/screens/metrics/types';
-import { ModelMetricType } from '~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
-import { calculateThresholds } from '~/pages/modelServing/screens/metrics/utils';
+import { BiasMetricType } from '#~/api';
+import { BiasChartConfigMap, MetricsChartTypes } from '#~/pages/modelServing/screens/metrics/types';
+import { ModelMetricType } from '#~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
+import { calculateThresholds } from '#~/pages/modelServing/screens/metrics/utils';
 
 export const EMPTY_BIAS_CONFIGURATION_TITLE = 'Bias metrics not configured';
 export const EMPTY_BIAS_CONFIGURATION_DESC =

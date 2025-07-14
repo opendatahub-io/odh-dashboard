@@ -6,10 +6,10 @@ import {
   HelperText,
   HelperTextItem,
 } from '@patternfly/react-core';
-import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
-import { CreatingInferenceServiceObject } from '~/pages/modelServing/screens/types';
-import { SupportedModelFormats } from '~/k8sTypes';
-import SimpleSelect from '~/components/SimpleSelect';
+import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
+import { CreatingInferenceServiceObject } from '#~/pages/modelServing/screens/types';
+import { SupportedModelFormats } from '#~/k8sTypes';
+import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
 import useModelFramework from './useModelFramework';
 
 type InferenceServiceFrameworkSectionProps = {
@@ -53,7 +53,7 @@ const InferenceServiceFrameworkSection: React.FC<InferenceServiceFrameworkSectio
       <SimpleSelect
         dataTestId="inference-service-framework-selection"
         toggleProps={{ id: 'inference-service-framework-selection' }}
-        options={models.map((framework) => {
+        options={models.map((framework): SimpleSelectOption => {
           const name = framework.version
             ? `${framework.name} - ${framework.version}`
             : `${framework.name}`;
@@ -66,10 +66,10 @@ const InferenceServiceFrameworkSection: React.FC<InferenceServiceFrameworkSectio
         isSkeleton={!modelContext && !loaded && data.servingRuntimeName !== ''}
         isFullWidth
         toggleLabel={
-          dataFormatVersion
-            ? `${dataFormatName} - ${dataFormatVersion}`
-            : dataFormatName || placeholderText
+          dataFormatVersion ? `${dataFormatName} - ${dataFormatVersion}` : dataFormatName
         }
+        placeholder={placeholderText}
+        value={dataFormatName}
         onChange={(option) => {
           const [name, version] = option.split(' - ');
           setData('format', { name, version });

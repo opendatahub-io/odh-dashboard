@@ -1,9 +1,12 @@
-import { getDescriptionFromK8sResource, getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
-import { NotebookKind, PersistentVolumeClaimKind } from '~/k8sTypes';
-import { ClusterStorageNotebookSelection, StorageData } from '~/pages/projects/types';
-import { MOUNT_PATH_PREFIX } from '~/pages/projects/screens/spawner/storage/const';
-import { MountPathFormat } from '~/pages/projects/screens/spawner/storage/types';
-import { getNotebookPVCMountPathMap } from '~/pages/projects/notebook/utils';
+import {
+  getDescriptionFromK8sResource,
+  getDisplayNameFromK8sResource,
+} from '#~/concepts/k8s/utils';
+import { NotebookKind, PersistentVolumeClaimKind } from '#~/k8sTypes';
+import { ClusterStorageNotebookSelection, StorageData } from '#~/pages/projects/types';
+import { MOUNT_PATH_PREFIX } from '#~/pages/projects/screens/spawner/storage/const';
+import { MountPathFormat } from '#~/pages/projects/screens/spawner/storage/types';
+import { getNotebookPVCMountPathMap } from '#~/pages/projects/notebook/utils';
 
 type Status = 'error' | 'warning' | 'info' | null;
 export const getFullStatusFromPercentage = (percentageFull: number): Status => {
@@ -24,7 +27,7 @@ export const isPvcUpdateRequired = (
   storageData: StorageData,
 ): boolean =>
   getDisplayNameFromK8sResource(existingPvc) !== storageData.name ||
-  getDescriptionFromK8sResource(existingPvc) !== storageData.description ||
+  getDescriptionFromK8sResource(existingPvc) !== (storageData.description ?? '') ||
   existingPvc.spec.resources.requests.storage !== storageData.size ||
   existingPvc.spec.storageClassName !== storageData.storageClassName;
 

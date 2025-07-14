@@ -16,13 +16,13 @@ import {
   StackItem,
 } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
-import ProjectSelector from '~/concepts/projects/ProjectSelector';
-import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
-import { PipelineContextProvider } from '~/concepts/pipelines/context';
-import MissingConditionAlert from '~/pages/pipelines/global/modelCustomization/startRunModal/MissingConditionAlert';
-import { modelCustomizationRootPath } from '~/routes';
-import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
+import ProjectSelector from '#~/concepts/projects/ProjectSelector';
+import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
+import { PipelineContextProvider } from '#~/concepts/pipelines/context';
+import MissingConditionAlert from '#~/pages/pipelines/global/modelCustomization/startRunModal/MissingConditionAlert';
+import { modelCustomizationRootPath } from '#~/routes/pipelines/modelCustomization';
+import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
 
 export type StartRunModalProps = {
   onSubmit: (selectedProject: string) => void;

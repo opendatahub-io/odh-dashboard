@@ -1,15 +1,15 @@
 import React from 'react';
-import { MlmdContext, MlmdContextTypes } from '~/concepts/pipelines/apiHooks/mlmd/types';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
+import { MlmdContext, MlmdContextTypes } from '#~/concepts/pipelines/apiHooks/mlmd/types';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import {
   GetContextByTypeAndNameRequest,
   MetadataStoreServicePromiseClient,
-} from '~/third_party/mlmd';
+} from '#~/third_party/mlmd';
 import useFetchState, {
   FetchState,
   FetchStateCallbackPromise,
   NotReadyError,
-} from '~/utilities/useFetchState';
+} from '#~/utilities/useFetchState';
 
 export const getMlmdContext = async (
   client: MetadataStoreServicePromiseClient,

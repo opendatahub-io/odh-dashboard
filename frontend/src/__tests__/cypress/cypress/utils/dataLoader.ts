@@ -12,7 +12,9 @@ import type {
   WBImagesTestData,
   DeployOCIModelData,
   ModelTolerationsTestData,
-} from '~/__tests__/cypress/cypress/types';
+  RegisterModelTestData,
+  ManageRegistryPermissionsTestData,
+} from '#~/__tests__/cypress/cypress/types';
 
 // Load fixture function that returns DataScienceProjectData
 export const loadDSPFixture = (fixturePath: string): Cypress.Chainable<DataScienceProjectData> => {
@@ -114,6 +116,26 @@ export const loadModelTolerationsFixture = (
 ): Cypress.Chainable<ModelTolerationsTestData> => {
   return cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
     const data = yaml.load(yamlContent) as ModelTolerationsTestData;
+
+    return data;
+  });
+};
+
+export const loadRegisterModelFixture = (
+  fixturePath: string,
+): Cypress.Chainable<RegisterModelTestData> => {
+  return cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
+    const data = yaml.load(yamlContent) as RegisterModelTestData;
+
+    return data;
+  });
+};
+
+export const loadManagePermissionsFixture = (
+  fixturePath: string,
+): Cypress.Chainable<ManageRegistryPermissionsTestData> => {
+  return cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
+    const data = yaml.load(yamlContent) as ManageRegistryPermissionsTestData;
 
     return data;
   });

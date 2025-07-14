@@ -2,10 +2,28 @@
   "name": "@odh-dashboard/internal",
   "version": "0.0.0",
   "private": true,
+  "scripts": {
+    "type-check": "tsc --noEmit"
+  },
+  "imports": {
+    "#~/*": [
+      "./*",
+      "./*.ts",
+      "./*.d.ts",
+      "./*.tsx",
+      "./*/index.ts",
+      "./*/index.tsx"
+    ]
+  },
   "exports": {
+    "./extensions": "./plugins/extensions/index.ts",
     "./*": [
+      "./*",
       "./*.ts",
       "./*.tsx"
     ]
+  },
+  "dependencies": {
+    "@odh-dashboard/plugin-core": "*"
   }
 }

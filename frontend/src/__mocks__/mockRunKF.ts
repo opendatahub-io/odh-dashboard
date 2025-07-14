@@ -1,5 +1,5 @@
 /* eslint-disable camelcase */
-import { PipelineRunKF, RuntimeStateKF, StorageStateKF } from '~/concepts/pipelines/kfTypes';
+import { PipelineRunKF, RuntimeStateKF, StorageStateKF } from '#~/concepts/pipelines/kfTypes';
 
 export const buildMockRunKF = (run?: Partial<PipelineRunKF>): PipelineRunKF => ({
   experiment_id: '1a1a1e71-25b6-46b6-a9eb-6ff1d8518be9',

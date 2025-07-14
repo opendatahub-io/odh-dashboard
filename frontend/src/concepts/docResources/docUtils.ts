@@ -1,7 +1,7 @@
 import * as _ from 'lodash-es';
 import { QuickStart } from '@patternfly/quickstarts/src/utils/quick-start-types';
-import { OdhApplication, OdhDocument, OdhDocumentType } from '~/types';
-import { combineCategoryAnnotations } from '~/utilities/utils';
+import { OdhApplication, OdhDocument, OdhDocumentType } from '#~/types';
+import { combineCategoryAnnotations } from '#~/utilities/utils';
 
 export const updateDocToComponent = (
   odhDoc: OdhDocument,
@@ -11,7 +11,7 @@ export const updateDocToComponent = (
   const updatedDoc = _.cloneDeep(odhDoc);
   if (odhApp) {
     combineCategoryAnnotations(odhDoc, odhApp);
-    updatedDoc.spec.appDisplayName = odhApp.spec.displayName;
+    updatedDoc.spec.appDisplayName = odhApp.spec.provider;
     updatedDoc.spec.appEnabled = odhApp.spec.isEnabled ?? false;
     updatedDoc.spec.img = odhDoc.spec.img || odhApp.spec.img;
     updatedDoc.spec.description = odhDoc.spec.description || odhApp.spec.description;

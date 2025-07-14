@@ -1,8 +1,9 @@
 import * as React from 'react';
-import { Button, ButtonProps } from '@patternfly/react-core';
+import { Button, ButtonProps, Tooltip } from '@patternfly/react-core';
 import { PencilAltIcon } from '@patternfly/react-icons';
-import { NamespaceApplicationCase } from '~/pages/projects/types';
-import { addSupportServingPlatformProject } from '~/api';
+import { NamespaceApplicationCase } from '#~/pages/projects/types';
+import { addSupportServingPlatformProject } from '#~/api';
+import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 
 type ModelServingPlatformSelectButtonProps = ButtonProps & {
   namespace: string;
@@ -30,13 +31,23 @@ const ModelServingPlatformSelectButton: React.FC<ModelServingPlatformSelectButto
   const [isLoading, setIsLoading] = React.useState(false);
   const isResetAction = servingPlatform === NamespaceApplicationCase.RESET_MODEL_SERVING_PLATFORM;
 
-  return (
+  const { inferenceServices, servingRuntimes } = React.useContext(ProjectDetailsContext);
+
+  const shouldDisableReset =
+    isResetAction &&
+    (inferenceServices.data.hasNonDashboardItems || servingRuntimes.data.hasNonDashboardItems);
+  const isDisabled = isLoading || shouldDisableReset;
+  const tooltipContent = shouldDisableReset
+    ? 'To change the model serving platform, delete all models and model servers in the project. This project contains models or servers not managed by the dashboard.'
+    : undefined;
+
+  const button = (
     <Button
       {...buttonProps}
       aria-label={isResetAction ? 'Change model serving platform' : undefined}
       icon={isResetAction ? <PencilAltIcon /> : undefined}
       isLoading={isLoading}
-      isDisabled={isLoading}
+      isAriaDisabled={isDisabled}
       onClick={async () => {
         try {
           setError(undefined);
@@ -53,6 +64,12 @@ const ModelServingPlatformSelectButton: React.FC<ModelServingPlatformSelectButto
       {buttonLabels[servingPlatform]}
     </Button>
   );
+
+  if (tooltipContent) {
+    return <Tooltip content={tooltipContent}>{button}</Tooltip>;
+  }
+
+  return button;
 };
 
 export default ModelServingPlatformSelectButton;

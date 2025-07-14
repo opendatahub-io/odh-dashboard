@@ -1,12 +1,22 @@
-import { markdownConverter } from '~/utilities/markdown';
+import { markdownConverter } from '#~/utilities/markdown';
 
 describe('markdownConverter', () => {
-  it('should convert markdown to sanitized HTML and add hook to transform anchor tags', () => {
-    const mockMarkdown = '## Heading\n[Link](https://example.com)';
-    const expectedHtml =
-      '<h2>Heading</h2>\n<p><a target="_blank" rel="noopener noreferrer" href="https://example.com">Link</a></p>';
+  // Helper function to convert HTML string to a DOM node
+  const htmlToNode = (html: string): HTMLDivElement => {
+    const container = document.createElement('div');
+    container.innerHTML = html;
+    return container;
+  };
 
-    const result = markdownConverter.makeHtml(mockMarkdown);
-    expect(result).toEqual(expectedHtml);
+  it('should convert markdown to sanitized HTML and add hook to transform anchor tags', () => {
+    const mockMarkdown = '## Heading\n\n[Link](https://example.com)';
+    const expectedHtml = htmlToNode(
+      '<h2>Heading</h2>\n' +
+        '<p><a href="https://example.com" rel="noopener noreferrer" target="_blank">Link</a></p>',
+    );
+
+    const result = htmlToNode(markdownConverter.makeHtml(mockMarkdown));
+
+    expect(result.isEqualNode(expectedHtml)).toBe(true);
   });
 });

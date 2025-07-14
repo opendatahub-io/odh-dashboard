@@ -1,7 +1,7 @@
-import { Contextual } from '~/__tests__/cypress/cypress/pages/components/Contextual';
-import { K8sNameDescriptionField } from '~/__tests__/cypress/cypress/pages/components/subComponents/K8sNameDescriptionField';
-import { Modal } from '~/__tests__/cypress/cypress/pages/components/Modal';
-import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
+import { Contextual } from '#~/__tests__/cypress/cypress/pages/components/Contextual';
+import { K8sNameDescriptionField } from '#~/__tests__/cypress/cypress/pages/components/subComponents/K8sNameDescriptionField';
+import { Modal } from '#~/__tests__/cypress/cypress/pages/components/Modal';
+import { appChrome } from '#~/__tests__/cypress/cypress/pages/appChrome';
 import { TableRow } from './components/table';
 
 class HardwareProfileTableToolbar extends Contextual<HTMLElement> {
@@ -322,6 +322,47 @@ class ManageHardwareProfile {
     return cy.findByTestId('node-resource-table-alert');
   }
 
+  findNodeResourceDeletionDialog() {
+    return cy.findByTestId('delete-node-resource-modal');
+  }
+
+  findNodeResourceDeletionDialogDeleteButton() {
+    return cy.findByTestId('delete-node-resource-modal-delete-btn');
+  }
+
+  findNodeResourceDeletionDialogCancelButton() {
+    return cy.findByTestId('delete-node-resource-modal-cancel-btn');
+  }
+
+  findLocalQueueRadio() {
+    return cy.findByTestId('local-queue-radio-input');
+  }
+
+  findNodeStrategyRadio() {
+    return cy.findByTestId('node-strategy-radio-input');
+  }
+
+  findLocalQueueInput() {
+    return cy.findByTestId('local-queue-input');
+  }
+
+  findWorkloadPrioritySelect() {
+    return cy.findByTestId('workload-priority-select');
+  }
+
+  selectWorkloadPriority(name: string) {
+    this.findWorkloadPrioritySelect().click();
+    cy.findByTestId(name).click();
+  }
+
+  findKueueDisabledAlert() {
+    return cy.findByTestId('kueue-disabled-alert').scrollIntoView();
+  }
+
+  findKueueDisabledTooltip() {
+    return cy.findByTestId('kueue-disabled-tooltip');
+  }
+
   getTolerationTableRow(name: string) {
     return new TolerationRow(() =>
       this.findTolerationTable().find(`[data-label=Key]`).contains(name).parents('tr'),
@@ -341,6 +382,18 @@ class ManageHardwareProfile {
         .contains(name)
         .parents('tr'),
     );
+  }
+
+  hasNodeResourceRow(name: string): Cypress.Chainable<boolean> {
+    // Use .then to transform the result into a boolean
+    return cy.document().then(() => {
+      // Create a wrapped jQuery selector that won't fail if the element doesn't exist
+      return cy.wrap(
+        Cypress.$(
+          `[data-testid="hardware-profile-node-resources-table"] [data-label="Resource identifier"]:contains("${name}")`,
+        ).length > 0,
+      );
+    });
   }
 }
 

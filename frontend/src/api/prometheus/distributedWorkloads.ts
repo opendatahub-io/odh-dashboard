@@ -1,9 +1,10 @@
 import * as React from 'react';
-import { FetchStateObject, PrometheusQueryResponse } from '~/types';
-import { useMakeFetchObject } from '~/utilities/useMakeFetchObject';
-import { DEFAULT_VALUE_FETCH_STATE } from '~/utilities/const';
-import { WorkloadKind, WorkloadOwnerType } from '~/k8sTypes';
-import { TopWorkloadUsageType, getWorkloadOwner } from '~/concepts/distributedWorkloads/utils';
+import { PrometheusQueryResponse } from '#~/types';
+import { FetchStateObject } from '#~/utilities/useFetch';
+import { useMakeFetchObject } from '#~/utilities/useMakeFetchObject';
+import { DEFAULT_VALUE_FETCH_STATE } from '#~/utilities/const';
+import { WorkloadKind, WorkloadOwnerType } from '#~/k8sTypes';
+import { TopWorkloadUsageType, getWorkloadOwner } from '#~/concepts/distributedWorkloads/utils';
 import usePrometheusQuery from './usePrometheusQuery';
 
 export type WorkloadMetricIndexedByOwner = Record<
@@ -51,6 +52,7 @@ const useWorkloadMetricIndexedByOwner = (
     () => ({
       ...promQueryFetchObj,
       data: indexWorkloadMetricByOwner(promQueryFetchObj.data),
+      refresh: async () => indexWorkloadMetricByOwner((await promQueryFetchObj.refresh()) || null),
     }),
     [promQueryFetchObj],
   );
@@ -127,6 +129,7 @@ export const DEFAULT_DW_PROJECT_CURRENT_METRICS: DWProjectCurrentMetrics = {
     cpuCoresUsed: { totalUsage: 0, topWorkloads: [], otherUsage: undefined },
     memoryBytesUsed: { totalUsage: 0, topWorkloads: [], otherUsage: undefined },
   },
+  refresh: () => Promise.resolve(undefined),
 };
 
 const getDWProjectCurrentMetricsQueries = (
@@ -174,10 +177,21 @@ export const useDWProjectCurrentMetrics = (
   );
   return {
     data,
-    refresh: React.useCallback(() => {
-      cpuCoresUsedByWorkloadOwnerRefresh();
-      memoryBytesUsedByWorkloadOwnerRefresh();
-    }, [cpuCoresUsedByWorkloadOwnerRefresh, memoryBytesUsedByWorkloadOwnerRefresh]),
+    refresh: React.useCallback(
+      async () => ({
+        cpuCoresUsedByWorkloadOwner: {
+          data: await cpuCoresUsedByWorkloadOwnerRefresh(),
+          loaded: true,
+          refresh: cpuCoresUsedByWorkloadOwnerRefresh,
+        },
+        memoryBytesUsedByWorkloadOwner: {
+          data: await memoryBytesUsedByWorkloadOwnerRefresh(),
+          loaded: true,
+          refresh: memoryBytesUsedByWorkloadOwnerRefresh,
+        },
+      }),
+      [cpuCoresUsedByWorkloadOwnerRefresh, memoryBytesUsedByWorkloadOwnerRefresh],
+    ),
     loaded: Object.values(data).every(({ loaded }) => loaded),
     error: Object.values(data).find(({ error }) => !!error)?.error,
     getWorkloadCurrentUsage,

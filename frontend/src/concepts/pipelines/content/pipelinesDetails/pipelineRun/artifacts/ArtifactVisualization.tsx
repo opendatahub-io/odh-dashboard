@@ -13,20 +13,20 @@ import {
 } from '@patternfly/react-core';
 import { TableVariant, Td, Tr } from '@patternfly/react-table';
 
-import { Artifact } from '~/third_party/mlmd';
-import { Table } from '~/components/table';
-import { ArtifactType } from '~/concepts/pipelines/kfTypes';
+import { Artifact } from '#~/third_party/mlmd';
+import { Table } from '#~/components/table';
+import { ArtifactType } from '#~/concepts/pipelines/kfTypes';
 import {
   buildRocCurveConfig,
   isConfidenceMetric,
-} from '~/concepts/pipelines/content/compareRuns/metricsSection/roc/utils';
-import ROCCurve from '~/concepts/pipelines/content/artifacts/charts/ROCCurve';
-import ConfusionMatrix from '~/concepts/pipelines/content/artifacts/charts/confusionMatrix/ConfusionMatrix';
-import { buildConfusionMatrixConfig } from '~/concepts/pipelines/content/artifacts/charts/confusionMatrix/utils';
-import { isConfusionMatrix } from '~/concepts/pipelines/content/compareRuns/metricsSection/confusionMatrix/utils';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { useArtifactStorage } from '~/concepts/pipelines/apiHooks/useArtifactStorage';
-import { useDeepCompareMemoize } from '~/utilities/useDeepCompareMemoize';
+} from '#~/concepts/pipelines/content/compareRuns/metricsSection/roc/utils';
+import ROCCurve from '#~/concepts/pipelines/content/artifacts/charts/ROCCurve';
+import ConfusionMatrix from '#~/concepts/pipelines/content/artifacts/charts/confusionMatrix/ConfusionMatrix';
+import { buildConfusionMatrixConfig } from '#~/concepts/pipelines/content/artifacts/charts/confusionMatrix/utils';
+import { isConfusionMatrix } from '#~/concepts/pipelines/content/compareRuns/metricsSection/confusionMatrix/utils';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+import { useArtifactStorage } from '#~/concepts/pipelines/apiHooks/useArtifactStorage';
+import { useDeepCompareMemoize } from '#~/utilities/useDeepCompareMemoize';
 import { getArtifactProperties } from './utils';
 
 interface ArtifactVisualizationProps {
@@ -34,10 +34,10 @@ interface ArtifactVisualizationProps {
 }
 
 export const ArtifactVisualization: React.FC<ArtifactVisualizationProps> = ({ artifact }) => {
-  const [downloadedArtifactUrl, setDownloadedArtifactUrl] = React.useState<string | undefined>();
+  const [renderUrl, setRenderUrl] = React.useState<string>();
   const [loading, setLoading] = React.useState<boolean>(false);
   const { namespace } = usePipelinesAPI();
-  const { getStorageObjectUrl } = useArtifactStorage();
+  const { getStorageObjectRenderUrl } = useArtifactStorage();
   const artifactType = artifact.getType();
 
   const memoizedArtifact = useDeepCompareMemoize(artifact);
@@ -46,18 +46,18 @@ export const ArtifactVisualization: React.FC<ArtifactVisualizationProps> = ({ ar
     if (artifactType === ArtifactType.MARKDOWN || artifactType === ArtifactType.HTML) {
       const uri = memoizedArtifact.getUri();
       if (uri) {
-        const downloadArtifact = async () => {
-          await getStorageObjectUrl(memoizedArtifact)
-            .then((url) => setDownloadedArtifactUrl(url))
+        const renderArtifact = async () => {
+          await getStorageObjectRenderUrl(memoizedArtifact)
+            .then((url) => setRenderUrl(url))
             .catch(() => null);
           setLoading(false);
         };
         setLoading(true);
-        setDownloadedArtifactUrl(undefined);
-        downloadArtifact();
+        setRenderUrl(undefined);
+        renderArtifact();
       }
     }
-  }, [memoizedArtifact, getStorageObjectUrl, artifactType, namespace]);
+  }, [memoizedArtifact, getStorageObjectRenderUrl, artifactType, namespace]);
 
   if (artifactType === ArtifactType.CLASSIFICATION_METRICS) {
     const confusionMatrix = artifact.getCustomPropertiesMap().get('confusionMatrix');
@@ -132,7 +132,9 @@ export const ArtifactVisualization: React.FC<ArtifactVisualizationProps> = ({ ar
             rowRenderer={(scalarMetric) => (
               <Tr>
                 <Td dataLabel="name">{scalarMetric.name}</Td>
-                <Td dataLabel="value">{scalarMetric.value}</Td>
+                <Td dataLabel="value" modifier="breakWord">
+                  {scalarMetric.value}
+                </Td>
               </Tr>
             )}
             variant={TableVariant.compact}
@@ -147,23 +149,19 @@ export const ArtifactVisualization: React.FC<ArtifactVisualizationProps> = ({ ar
   if (artifactType === ArtifactType.MARKDOWN || artifactType === ArtifactType.HTML) {
     if (loading) {
       return (
-        <Bullseye>
+        <Bullseye className="pf-v6-u-pt-lg">
           <Spinner />
         </Bullseye>
       );
     }
-    if (downloadedArtifactUrl) {
+    if (renderUrl) {
       return (
         <Stack className="pf-v6-u-pt-lg pf-v6-u-pb-lg" hasGutter>
           <StackItem>
             <Title headingLevel="h3">Artifact details</Title>
           </StackItem>
           <StackItem>
-            <iframe
-              src={downloadedArtifactUrl}
-              data-testid="artifact-visualization"
-              title="Artifact details"
-            />
+            <iframe src={renderUrl} data-testid="artifact-visualization" title="Artifact details" />
           </StackItem>
         </Stack>
       );

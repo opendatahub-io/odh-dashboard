@@ -2,8 +2,8 @@ import {
   mockGlobalScopedHardwareProfiles,
   mockHardwareProfile,
   mockProjectScopedHardwareProfiles,
-} from '~/__mocks__/mockHardwareProfile';
-import { mockDashboardConfig } from '~/__mocks__/mockDashboardConfig';
+} from '#~/__mocks__/mockHardwareProfile';
+import { mockDashboardConfig } from '#~/__mocks__/mockDashboardConfig';
 import {
   HardwareProfileModel,
   ImageStreamModel,
@@ -14,7 +14,7 @@ import {
   RouteModel,
   SecretModel,
   StorageClassModel,
-} from '~/__tests__/cypress/cypress/utils/models';
+} from '#~/__tests__/cypress/cypress/utils/models';
 import {
   mockK8sResourceList,
   mockNotebookK8sResource,
@@ -22,16 +22,16 @@ import {
   mockRouteK8sResource,
   mockSecretK8sResource,
   mockStorageClassList,
-} from '~/__mocks__';
-import { mockPVCK8sResource } from '~/__mocks__/mockPVCK8sResource';
-import { mockPodK8sResource } from '~/__mocks__/mockPodK8sResource';
-import { mockImageStreamK8sResource } from '~/__mocks__/mockImageStreamK8sResource';
-import { asProductAdminUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
-import { projectDetails } from '~/__tests__/cypress/cypress/pages/projects';
-import { workbenchPage, editSpawnerPage } from '~/__tests__/cypress/cypress/pages/workbench';
-import { hardwareProfileSection } from '~/__tests__/cypress/cypress/pages/components/HardwareProfileSection';
-import { mockDscStatus } from '~/__mocks__/mockDscStatus';
-import type { PodKind } from '~/k8sTypes';
+} from '#~/__mocks__';
+import { mockPVCK8sResource } from '#~/__mocks__/mockPVCK8sResource';
+import { mockPodK8sResource } from '#~/__mocks__/mockPodK8sResource';
+import { mockImageStreamK8sResource } from '#~/__mocks__/mockImageStreamK8sResource';
+import { asProductAdminUser } from '#~/__tests__/cypress/cypress/utils/mockUsers';
+import { projectDetails } from '#~/__tests__/cypress/cypress/pages/projects';
+import { workbenchPage, editSpawnerPage } from '#~/__tests__/cypress/cypress/pages/workbench';
+import { hardwareProfileSection } from '#~/__tests__/cypress/cypress/pages/components/HardwareProfileSection';
+import { mockDscStatus } from '#~/__mocks__/mockDscStatus';
+import type { PodKind } from '#~/k8sTypes';
 
 type HandlersProps = {
   isEmpty?: boolean;
@@ -136,7 +136,7 @@ describe('Workbench Hardware Profiles', () => {
     );
   });
 
-  it('should display and select project-scoped hardware and global hardware profiles while creating a workbench', () => {
+  it('should display and select project-scoped hardware and global-scoped hardware profiles while creating a workbench', () => {
     initIntercepts({ disableHardwareProfiles: false, disableProjectScoped: false });
 
     cy.interceptK8sList(
@@ -166,10 +166,10 @@ describe('Workbench Hardware Profiles', () => {
 
     // Verify both groups are initially visible
     cy.contains('Project-scoped hardware profiles').should('be.visible');
-    cy.contains('Global hardware profiles').scrollIntoView();
-    cy.contains('Global hardware profiles').should('be.visible');
+    cy.contains('Global-scoped hardware profiles').scrollIntoView();
+    cy.contains('Global-scoped hardware profiles').should('be.visible');
 
-    // Search for a value that exists in Project-scoped hardware profiles but not in Global hardware profiles
+    // Search for a value that exists in Project-scoped hardware profiles but not in Global-scoped hardware profiles
     hardwareProfileSection
       .findHardwareProfileSearchInput()
       .should('be.visible')
@@ -179,7 +179,7 @@ describe('Workbench Hardware Profiles', () => {
     cy.contains('Large Profile-1').should('be.visible');
     hardwareProfileSection.getGlobalHardwareProfileLabel().should('not.exist');
 
-    //Search for a value that doesn't exist in either Global hardware profiles or Project-scoped hardware profiles
+    //Search for a value that doesn't exist in either Global-scoped hardware profiles or Project-scoped hardware profiles
     hardwareProfileSection
       .findHardwareProfileSearchInput()
       .should('be.visible')
@@ -245,6 +245,7 @@ describe('Workbench Hardware Profiles', () => {
         mockNotebookK8sResource({
           hardwareProfileName: 'large-profile-1',
           displayName: 'Test Notebook',
+          hardwareProfileNamespace: 'test-project',
         }),
       ]),
     );
@@ -363,6 +364,7 @@ describe('Workbench Hardware Profiles', () => {
           mockNotebookK8sResource({
             hardwareProfileName: 'large-profile-1',
             displayName: 'Test Notebook',
+            hardwareProfileNamespace: 'test-project',
           }),
         ]),
       );

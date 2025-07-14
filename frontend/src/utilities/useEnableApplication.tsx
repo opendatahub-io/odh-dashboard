@@ -1,13 +1,13 @@
 import * as React from 'react';
 import { AlertVariant } from '@patternfly/react-core';
-import { getValidationStatus, postValidateIsv } from '~/services/validateIsvService';
+import { getValidationStatus, postValidateIsv } from '#~/services/validateIsvService';
 import {
   enableIntegrationApp,
   getIntegrationAppEnablementStatus,
-} from '~/services/integrationAppService';
-import { addNotification, forceComponentsUpdate } from '~/redux/actions/actions';
-import { useAppDispatch } from '~/redux/hooks';
-import { IntegrationAppStatus } from '~/types';
+} from '#~/services/integrationAppService';
+import { addNotification, forceComponentsUpdate } from '#~/redux/actions/actions';
+import { useAppDispatch } from '#~/redux/hooks';
+import { IntegrationAppStatus } from '#~/types';
 import { isInternalRouteIntegrationsApp } from './utils';
 
 export enum EnableApplicationStatus {

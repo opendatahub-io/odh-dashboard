@@ -1,8 +1,8 @@
 import { k8sListResourceItems } from '@openshift/dynamic-plugin-sdk-utils';
-import { EventKind } from '~/k8sTypes';
-import { EventModel } from '~/api/models';
-import useK8sWatchResourceList from '~/utilities/useK8sWatchResourceList';
-import { CustomWatchK8sResult } from '~/types';
+import { EventKind } from '#~/k8sTypes';
+import { EventModel } from '#~/api/models';
+import useK8sWatchResourceList from '#~/utilities/useK8sWatchResourceList';
+import { CustomWatchK8sResult } from '#~/types';
 import { groupVersionKind } from '..';
 
 export const getNotebookEvents = async (
@@ -35,6 +35,18 @@ export const useWatchNotebookEvents = (
       fieldSelector: podUid
         ? `involvedObject.kind=Pod,involvedObject.uid=${podUid}`
         : `involvedObject.kind=StatefulSet,involvedObject.name=${name}`,
+    },
+    EventModel,
+  );
+
+// get all the events for all the pods in the namespace
+export const useWatchPodEvents = (namespace: string): CustomWatchK8sResult<EventKind[]> =>
+  useK8sWatchResourceList(
+    {
+      isList: true,
+      groupVersionKind: groupVersionKind(EventModel),
+      namespace,
+      fieldSelector: 'involvedObject.kind=Pod',
     },
     EventModel,
   );

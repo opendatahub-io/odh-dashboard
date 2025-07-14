@@ -8,40 +8,42 @@ import {
 } from '@patternfly/react-core';
 import * as React from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import ApplicationsPage from '~/pages/ApplicationsPage';
-import GenericSidebar from '~/components/GenericSidebar';
-import EnsureAPIAvailability from '~/concepts/pipelines/EnsureAPIAvailability';
-import { useValidation, ValidationContext } from '~/utilities/useValidation';
-import useGenericObjectState from '~/utilities/useGenericObjectState';
+import ApplicationsPage from '#~/pages/ApplicationsPage';
+import GenericSidebar from '#~/components/GenericSidebar';
+import EnsureAPIAvailability from '#~/concepts/pipelines/EnsureAPIAvailability';
+import { useValidation, ValidationContext } from '#~/utilities/useValidation';
+import useGenericObjectState from '#~/utilities/useGenericObjectState';
 import {
   ModelCustomizationFormData,
   modelCustomizationFormSchema,
   pipelineParameterSchema,
-} from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/validationUtils';
-import { useIlabPipeline } from '~/concepts/pipelines/content/modelCustomizationForm/useIlabPipeline';
+} from '#~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/validationUtils';
+import { useIlabPipeline } from '#~/concepts/pipelines/content/modelCustomizationForm/useIlabPipeline';
 import {
   ModelCustomizationEndpointType,
   FineTuneTaxonomyType,
-} from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/types';
+} from '#~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/types';
 import {
-  registeredModelRoute,
-  modelVersionRoute,
-  modelRegistryRoute,
   modelCustomizationRootPath,
+  ModelCustomizationRouterState,
+} from '#~/routes/pipelines/modelCustomization';
+import {
   globalPipelineRecurringRunDetailsRoute,
   globalPipelineRunDetailsRoute,
-  ModelCustomizationRouterState,
-} from '~/routes';
-import { createHyperParametersSchema } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/hyperparameterValidationUtils';
-import { InferenceServiceStorageType } from '~/pages/modelServing/screens/types';
-import { getInputDefinitionParams } from '~/concepts/pipelines/content/createRun/utils';
-import { RunTypeOption } from '~/concepts/pipelines/content/createRun/types';
+} from '#~/routes/pipelines/runs';
+import { registeredModelRoute } from '#~/routes/modelRegistry/registeredModels';
+import { modelVersionRoute } from '#~/routes/modelRegistry/modelVersions';
+import { modelRegistryRoute } from '#~/routes/modelRegistry/registryBase';
+import { createHyperParametersSchema } from '#~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/hyperparameterValidationUtils';
+import { InferenceServiceStorageType } from '#~/pages/modelServing/screens/types';
+import { getInputDefinitionParams } from '#~/concepts/pipelines/content/createRun/utils';
+import { RunTypeOption } from '#~/concepts/pipelines/content/createRun/types';
 import ModelCustomizationDrawerContent, {
   ModelCustomizationDrawerContentArgs,
   ModelCustomizationDrawerContentRef,
-} from '~/pages/pipelines/global/modelCustomization/landingPage/ModelCustomizationDrawerContent';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { useDefaultStorageClass } from '~/pages/projects/screens/spawner/storage/useDefaultStorageClass';
+} from '#~/pages/pipelines/global/modelCustomization/landingPage/ModelCustomizationDrawerContent';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+import { useDefaultStorageClass } from '#~/pages/projects/screens/spawner/storage/useDefaultStorageClass';
 import FineTunePage from './FineTunePage';
 import {
   FineTunePageSections,

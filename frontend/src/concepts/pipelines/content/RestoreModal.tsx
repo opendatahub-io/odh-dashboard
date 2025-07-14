@@ -1,13 +1,12 @@
 import React from 'react';
-import { Button } from '@patternfly/react-core';
-import { Modal } from '@patternfly/react-core/deprecated';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
-import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
+import { Modal, ModalBody, ModalHeader, ModalFooter } from '@patternfly/react-core';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
+import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import {
   FormTrackingEventProperties,
   TrackingOutcome,
-} from '~/concepts/analyticsTracking/trackingProperties';
+} from '#~/concepts/analyticsTracking/trackingProperties';
 
 interface RestoreModalProps {
   onCancel: () => void;
@@ -65,12 +64,10 @@ export const RestoreModal: React.FC<RestoreModalProps> = ({
   }, [onSubmit, fireFormTrackingEventForRestore, refreshAllAPI, onCancel]);
 
   return (
-    <Modal
-      isOpen
-      title={title}
-      variant="small"
-      onClose={onCancel}
-      footer={
+    <Modal isOpen variant="small" onClose={onCancel} data-testid={testId}>
+      <ModalHeader title={title} />
+      <ModalBody>{children}</ModalBody>
+      <ModalFooter>
         <DashboardModalFooter
           onSubmit={onConfirm}
           isSubmitDisabled={isSubmitting}
@@ -80,24 +77,7 @@ export const RestoreModal: React.FC<RestoreModalProps> = ({
           alertTitle={alertTitle}
           error={error}
         />
-      }
-      actions={[
-        <Button
-          key="confirm"
-          variant="primary"
-          onClick={onConfirm}
-          isDisabled={isSubmitting}
-          isLoading={isSubmitting}
-        >
-          Restore
-        </Button>,
-        <Button key="cancel" variant="link" onClick={onCancel}>
-          Cancel
-        </Button>,
-      ]}
-      data-testid={testId}
-    >
-      {children}
+      </ModalFooter>
     </Modal>
   );
 };

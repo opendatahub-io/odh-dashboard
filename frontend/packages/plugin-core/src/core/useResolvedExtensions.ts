@@ -5,6 +5,8 @@ import type {
   ResolvedExtension,
   ExtensionPredicate,
 } from '@openshift/dynamic-plugin-sdk';
+// TODO should be moved to a shared package
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { allSettledPromises } from '@odh-dashboard/internal/utilities/allSettledPromises';
 import { resolveCodeRefValues } from './internal/coderefs';
 import { useExtensions } from './useExtensions';

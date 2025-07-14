@@ -1,14 +1,14 @@
 import {
   acceleratorProfile,
   disableAcceleratorProfileModal,
-} from '~/__tests__/cypress/cypress/pages/acceleratorProfile';
-import { mockAcceleratorProfile } from '~/__mocks__/mockAcceleratorProfile';
-import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
-import { AcceleratorProfileModel } from '~/__tests__/cypress/cypress/utils/models';
-import { mock200Status, mockK8sResourceList } from '~/__mocks__';
-import { be } from '~/__tests__/cypress/cypress/utils/should';
-import { asProductAdminUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
-import { testPagination } from '~/__tests__/cypress/cypress/utils/pagination';
+} from '#~/__tests__/cypress/cypress/pages/acceleratorProfile';
+import { mockAcceleratorProfile } from '#~/__mocks__/mockAcceleratorProfile';
+import { deleteModal } from '#~/__tests__/cypress/cypress/pages/components/DeleteModal';
+import { AcceleratorProfileModel } from '#~/__tests__/cypress/cypress/utils/models';
+import { mock200Status, mockK8sResourceList } from '#~/__mocks__';
+import { be } from '#~/__tests__/cypress/cypress/utils/should';
+import { asProductAdminUser } from '#~/__tests__/cypress/cypress/utils/mockUsers';
+import { testPagination } from '#~/__tests__/cypress/cypress/utils/pagination';
 
 type HandlersProps = {
   isEmpty?: boolean;

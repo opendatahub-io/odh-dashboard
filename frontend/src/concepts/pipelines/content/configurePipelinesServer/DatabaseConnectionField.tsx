@@ -1,6 +1,6 @@
 import * as React from 'react';
-import FieldList from '~/components/FieldList';
-import { EnvVariableDataEntry } from '~/pages/projects/types';
+import FieldList from '#~/components/FieldList';
+import { EnvVariableDataEntry } from '#~/pages/projects/types';
 import { DATABASE_CONNECTION_FIELDS } from './const';
 
 type DatabaseConnectionFieldProps = {

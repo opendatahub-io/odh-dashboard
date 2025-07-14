@@ -1,15 +1,15 @@
 import React from 'react';
 import useDimensions from 'react-cool-dimensions';
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';
-import { OdhDocument } from '~/types';
-import { useBrowserStorage } from '~/components/browserStorage';
-import { useQueryParams } from '~/utilities/useQueryParams';
-import ApplicationsPage from '~/pages/ApplicationsPage';
-import { DOC_LINK, ODH_PRODUCT_NAME } from '~/utilities/const';
-import { useDeepCompareMemoize } from '~/utilities/useDeepCompareMemoize';
-import { useDocResources } from '~/concepts/docResources/useDocResources';
-import { ProjectObjectType } from '~/concepts/design/utils';
-import TitleWithIcon from '~/concepts/design/TitleWithIcon';
+import { useSearchParams } from 'react-router-dom';
+import { OdhDocument } from '#~/types';
+import { useBrowserStorage } from '#~/components/browserStorage/BrowserStorageContext';
+import ApplicationsPage from '#~/pages/ApplicationsPage';
+import { DOC_LINK, ODH_PRODUCT_NAME } from '#~/utilities/const';
+import { useDeepCompareMemoize } from '#~/utilities/useDeepCompareMemoize';
+import { useDocResources } from '#~/concepts/docResources/useDocResources';
+import { ProjectObjectType } from '#~/concepts/design/utils';
+import TitleWithIcon from '#~/concepts/design/TitleWithIcon';
 import {
   DOC_SORT_KEY,
   DOC_SORT_ORDER_KEY,
@@ -35,9 +35,9 @@ const docText = ` To learn more about ${ODH_PRODUCT_NAME}, `;
 
 const LearningCenter: React.FC = () => {
   const [filteredDocApps, setFilteredDocApps] = React.useState<OdhDocument[]>([]);
-  const queryParams = useQueryParams();
-  const sortType = queryParams.get(DOC_SORT_KEY) || SORT_TYPE_NAME;
-  const sortOrder = queryParams.get(DOC_SORT_ORDER_KEY) || SORT_ASC;
+  const [searchParams] = useSearchParams();
+  const sortType = searchParams.get(DOC_SORT_KEY) || SORT_TYPE_NAME;
+  const sortOrder = searchParams.get(DOC_SORT_ORDER_KEY) || SORT_ASC;
   const [favorites, setFavorites] = useBrowserStorage<string[]>(FAVORITE_RESOURCES, []);
   const favoriteResources = useDeepCompareMemoize(favorites);
   const docFilterer = useDocFilterer(favoriteResources);

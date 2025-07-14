@@ -4,20 +4,20 @@ import { Button, Icon, Skeleton, Tooltip, Truncate } from '@patternfly/react-cor
 import { ActionsColumn, Tbody, Td, Tr } from '@patternfly/react-table';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { KnownLabels, ServingRuntimeKind } from '~/k8sTypes';
-import SimpleMenuActions from '~/components/SimpleMenuActions';
-import EmptyTableCellForAlignment from '~/pages/projects/components/EmptyTableCellForAlignment';
-import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import { ServingRuntimeTableTabs } from '~/pages/modelServing/screens/types';
-import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
-import { getDisplayNameFromServingRuntimeTemplate } from '~/pages/modelServing/customServingRuntimes/utils';
-import { modelVersionRoute } from '~/routes';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+import { KnownLabels, ServingRuntimeKind } from '#~/k8sTypes';
+import SimpleMenuActions from '#~/components/SimpleMenuActions';
+import EmptyTableCellForAlignment from '#~/pages/projects/components/EmptyTableCellForAlignment';
+import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
+import { ServingRuntimeTableTabs } from '#~/pages/modelServing/screens/types';
+import { ProjectSectionID } from '#~/pages/projects/screens/detail/types';
+import { getDisplayNameFromServingRuntimeTemplate } from '#~/pages/modelServing/customServingRuntimes/utils';
+import { modelVersionRoute } from '#~/routes/modelRegistry/modelVersions';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 
 import {
   getInferenceServiceFromServingRuntime,
   isServingRuntimeTokenEnabled,
-} from '~/pages/modelServing/screens/projects/utils';
+} from '#~/pages/modelServing/screens/projects/utils';
 import ServingRuntimeTableExpandedSection from './ServingRuntimeTableExpandedSection';
 
 type ServingRuntimeTableRowProps = {
@@ -49,7 +49,7 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
   const {
     currentProject,
     inferenceServices: {
-      data: inferenceServices,
+      data: { items: inferenceServices },
       loaded: inferenceServicesLoaded,
       error: inferenceServicesLoadError,
     },
@@ -93,6 +93,7 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
       <Tr isControlRow>
         <EmptyTableCellForAlignment />
         <Td
+          data-testid="model-server-name"
           dataLabel="Model Server Name"
           compoundExpand={compoundExpandParams(ServingRuntimeTableTabs.TYPE, false)}
         >
@@ -229,6 +230,7 @@ const ServingRuntimeTableRow: React.FC<ServingRuntimeTableRowProps> = ({
           activeColumn={expandedColumn}
           obj={obj}
           onClose={() => setExpandedColumn(undefined)}
+          project={currentProject.metadata.name}
         />
       </Tr>
     </Tbody>

@@ -12,13 +12,13 @@ import {
   DescriptionListDescription,
 } from '@patternfly/react-core';
 
-import { Artifact } from '~/third_party/mlmd';
-import { artifactsDetailsRoute } from '~/routes';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { getArtifactName } from '~/pages/pipelines/global/experiments/artifacts/utils';
-import PipelinesTableRowTime from '~/concepts/pipelines/content/tables/PipelinesTableRowTime';
-import PipelineRunDrawerRightContent from '~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDrawerRightContent';
-import { ArtifactUriLink } from '~/concepts/pipelines/content/artifacts/ArtifactUriLink';
+import { Artifact } from '#~/third_party/mlmd';
+import { artifactsDetailsRoute } from '#~/routes/pipelines/artifacts';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+import { getArtifactName } from '#~/pages/pipelines/global/experiments/artifacts/utils';
+import PipelinesTableRowTime from '#~/concepts/pipelines/content/tables/PipelinesTableRowTime';
+import PipelineRunDrawerRightContent from '#~/concepts/pipelines/content/pipelinesDetails/pipelineRun/PipelineRunDrawerRightContent';
+import { ArtifactUriLink } from '#~/concepts/pipelines/content/artifacts/ArtifactUriLink';
 
 type ArtifactNodeDetailsProps = Pick<
   React.ComponentProps<typeof PipelineRunDrawerRightContent>,
@@ -35,11 +35,7 @@ export const ArtifactNodeDetails: React.FC<ArtifactNodeDetailsProps> = ({
   const artifactName = getArtifactName(artifact);
 
   return (
-    <Flex
-      spaceItems={{ default: 'spaceItems2xl' }}
-      direction={{ default: 'column' }}
-      className="pf-v6-u-pt-lg pf-v6-u-pb-lg"
-    >
+    <Flex spaceItems={{ default: 'spaceItems2xl' }} direction={{ default: 'column' }}>
       <FlexItem>
         <Stack hasGutter>
           <Title headingLevel="h3">Artifact details</Title>

@@ -27,8 +27,8 @@ import {
   createContainer,
 } from '@patternfly/react-charts/victory';
 import { CubesIcon } from '@patternfly/react-icons';
-import { TimeframeTimeRange } from '~/concepts/metrics/const';
-import { MetricsCommonContext } from '~/concepts/metrics/MetricsCommonContext';
+import { TimeframeTimeRange } from '#~/concepts/metrics/const';
+import { MetricsCommonContext } from '#~/concepts/metrics/MetricsCommonContext';
 import {
   DomainCalculator,
   MetricChartLine,

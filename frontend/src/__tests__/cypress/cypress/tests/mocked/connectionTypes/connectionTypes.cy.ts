@@ -1,18 +1,18 @@
-import { pageNotfound } from '~/__tests__/cypress/cypress/pages/pageNotFound';
+import { pageNotfound } from '#~/__tests__/cypress/cypress/pages/pageNotFound';
 import {
   asProductAdminUser,
   asProjectAdminUser,
-} from '~/__tests__/cypress/cypress/utils/mockUsers';
+} from '#~/__tests__/cypress/cypress/utils/mockUsers';
 import {
   connectionTypePreviewModal,
   connectionTypesPage,
-} from '~/__tests__/cypress/cypress/pages/connectionTypes';
-import { mockDashboardConfig } from '~/__mocks__';
+} from '#~/__tests__/cypress/cypress/pages/connectionTypes';
+import { mockDashboardConfig } from '#~/__mocks__';
 import {
   mockConnectionTypeConfigMap,
   mockModelServingFields,
-} from '~/__mocks__/mockConnectionType';
-import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
+} from '#~/__mocks__/mockConnectionType';
+import { deleteModal } from '#~/__tests__/cypress/cypress/pages/components/DeleteModal';
 
 it('Connection types should not be available for non product admins', () => {
   asProjectAdminUser();

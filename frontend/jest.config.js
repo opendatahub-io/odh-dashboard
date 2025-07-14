@@ -8,6 +8,9 @@ module.exports = {
     '**/__tests__/?(*.)+(spec|test).ts?(x)',
   ],
 
+  // Ignore tests in the upstream directory
+  modulePathIgnorePatterns: ['/upstream/'],
+
   // Automatically clear mock calls and instances between every test
   clearMocks: true,
 
@@ -19,7 +22,6 @@ module.exports = {
     '\\.(css|less|sass|scss)$': '<rootDir>/config/transform.style.js',
     '\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga)$':
       '<rootDir>/config/transform.file.js',
-    '~/(.*)': '<rootDir>/src/$1',
     '^monaco-editor$': '<rootDir>/src/__tests__/unit/__mocks__/monaco-editor.ts',
   },
 
@@ -40,7 +42,8 @@ module.exports = {
 
   collectCoverageFrom: [
     '<rootDir>/src/**/*.{ts,tsx}',
-    '<rootDir>/packages/**/src/**/*.{ts,tsx}',
+    '<rootDir>/packages/*/src/**/*.{ts,tsx}',
+    '!<rootDir>/packages/*/upstream/**',
     '!<rootDir>/src/third_party/**',
     '!<rootDir>/src/__tests__/**',
     '!<rootDir>/src/__mocks__/**',

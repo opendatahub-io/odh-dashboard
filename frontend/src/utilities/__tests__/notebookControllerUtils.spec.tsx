@@ -1,11 +1,11 @@
 import * as React from 'react';
-import { mockNotebookK8sResource } from '~/__mocks__/mockNotebookK8sResource';
-import { renderHook } from '~/__tests__/unit/testUtils/hooks';
-import { NotebookControllerContext } from '~/pages/notebookController/NotebookControllerContext';
-import { NotebookControllerContextProps } from '~/pages/notebookController/notebookControllerContextTypes';
-import { getRoute } from '~/services/routeService';
-import { Notebook, Route } from '~/types';
-import { useNotebookRedirectLink, usernameTranslate } from '~/utilities/notebookControllerUtils';
+import { mockNotebookK8sResource } from '#~/__mocks__/mockNotebookK8sResource';
+import { renderHook } from '#~/__tests__/unit/testUtils/hooks';
+import { NotebookControllerContext } from '#~/pages/notebookController/NotebookControllerContext';
+import { NotebookControllerContextProps } from '#~/pages/notebookController/notebookControllerContextTypes';
+import { getRoute } from '#~/services/routeService';
+import { Notebook, Route } from '#~/types';
+import { useNotebookRedirectLink, usernameTranslate } from '#~/utilities/notebookControllerUtils';
 
 const validUnameRegex = new RegExp('^[a-z]{1}[a-z0-9-]{1,62}$');
 
@@ -121,12 +121,12 @@ describe('usernameTranslate', () => {
   });
 });
 
-jest.mock('~/pages/notebookController/useNamespaces', () => () => ({
-  notebookNamespace: 'test-project',
+jest.mock('#~/pages/notebookController/useNamespaces', () => () => ({
+  workbenchNamespace: 'test-project',
   dashboardNamespace: 'opendatahub',
 }));
 
-jest.mock('~/services/routeService', () => ({
+jest.mock('#~/services/routeService', () => ({
   getRoute: jest.fn(),
 }));
 

@@ -6,9 +6,9 @@ import {
   k8sListResource,
   k8sUpdateResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
-import { mock200Status, mock404Error } from '~/__mocks__/mockK8sStatus';
-import { mockSecretK8sResource } from '~/__mocks__/mockSecretK8sResource';
+import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
+import { mock200Status, mock404Error } from '#~/__mocks__/mockK8sStatus';
+import { mockSecretK8sResource } from '#~/__mocks__/mockSecretK8sResource';
 import {
   assembleISSecretBody,
   assembleSecret,
@@ -19,12 +19,12 @@ import {
   getSecret,
   getSecretsByLabel,
   replaceSecret,
-} from '~/api/k8s/secrets';
-import { SecretModel } from '~/api/models/k8s';
-import { SecretKind } from '~/k8sTypes';
-import { genRandomChars } from '~/utilities/string';
+} from '#~/api/k8s/secrets';
+import { SecretModel } from '#~/api/models/k8s';
+import { SecretKind } from '#~/k8sTypes';
+import { genRandomChars } from '#~/utilities/string';
 
-jest.mock('~/utilities/string', () => ({
+jest.mock('#~/utilities/string', () => ({
   genRandomChars: jest.fn(),
 }));
 

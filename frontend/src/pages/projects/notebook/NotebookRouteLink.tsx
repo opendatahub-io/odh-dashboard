@@ -5,10 +5,11 @@ import {
   t_global_font_size_body_default as DefaultFontSize,
   t_global_font_size_body_sm as SmallFontSize,
 } from '@patternfly/react-tokens';
-import { NotebookKind } from '~/k8sTypes';
-import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
-import { fireMiscTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
-import useRouteForNotebook from './useRouteForNotebook';
+import { NotebookKind } from '#~/k8sTypes';
+import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
+import { fireMiscTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
+import useRouteForNotebook from '#~/concepts/notebooks/apiHooks/useRouteForNotebook';
+import { FAST_POLL_INTERVAL } from '#~/utilities/const';
 import { hasStopAnnotation } from './utils';
 
 type NotebookRouteLinkProps = {
@@ -32,10 +33,15 @@ const NotebookRouteLink: React.FC<NotebookRouteLinkProps> = ({
   isLarge,
   buttonStyle,
 }) => {
-  const [routeLink, loaded, error] = useRouteForNotebook(
+  const {
+    data: routeLink,
+    loaded,
+    error,
+  } = useRouteForNotebook(
     notebook.metadata.name,
     notebook.metadata.namespace,
     isRunning,
+    FAST_POLL_INTERVAL,
   );
   const isStopped = hasStopAnnotation(notebook);
   const canLink = loaded && !!routeLink && !error && !isStopped && isRunning;

@@ -1,4 +1,4 @@
-import { K8sNameDescriptionField } from '~/__tests__/cypress/cypress/pages/components/subComponents/K8sNameDescriptionField';
+import { K8sNameDescriptionField } from '#~/__tests__/cypress/cypress/pages/components/subComponents/K8sNameDescriptionField';
 import { Contextual } from './components/Contextual';
 import { Modal } from './components/Modal';
 import { TableRow } from './components/table';
@@ -58,6 +58,14 @@ class WorkbenchPage {
 
   findCreateButton() {
     return cy.findByTestId('create-workbench-button');
+  }
+
+  findUpdatingImageIcon() {
+    return cy.findByTestId('updating-image-icon');
+  }
+
+  findUpdatingImageIconTooltip() {
+    return cy.findByTestId('updating-image-icon-tooltip');
   }
 }
 
@@ -159,6 +167,24 @@ class NotebookImageUpdateModal {
   }
 }
 
+class NotebookImageVersionPopover extends Contextual<HTMLElement> {
+  findImageVersionName() {
+    return cy.findByTestId('notebook-image-version-name');
+  }
+
+  findImageVersionBuildCommit() {
+    return cy.findByTestId('notebook-image-version-build-commit');
+  }
+
+  findImageVersionBuildDate() {
+    return cy.findByTestId('notebook-image-version-build-date');
+  }
+
+  findImageVersionSoftware() {
+    return cy.findByTestId('notebook-image-version-software');
+  }
+}
+
 class NotebookRow extends TableRow {
   shouldHaveNotebookImageName(name: string) {
     return this.find().findByTestId('image-display-name').should('contain.text', name);
@@ -216,12 +242,8 @@ class NotebookRow extends TableRow {
     this.findHaveNotebookStatusText(timeout).should('have.text', statusValue);
   }
 
-  findNotebookStart() {
-    return this.find().findByTestId('notebook-start-action');
-  }
-
-  findNotebookStop() {
-    return this.find().findByTestId('notebook-stop-action');
+  findNotebookStopToggle() {
+    return this.find().findByTestId('state-action-toggle');
   }
 
   findNotebookStatusModal() {
@@ -235,11 +257,21 @@ class NotebookRow extends TableRow {
   findNotebookImageLabel() {
     return this.find().findByTestId('notebook-image-availability');
   }
+
+  findNotebookImageVersionLink() {
+    return this.find().findByTestId('notebook-image-version-link');
+  }
+
+  findNotebookImageVersionPopover() {
+    return new NotebookImageVersionPopover(() =>
+      cy.findByTestId('notebook-image-version-popover').click(),
+    );
+  }
 }
 
 class AttachExistingStorageModal extends Modal {
   constructor() {
-    super('Attach Existing Storage');
+    super('Attach existing storage');
   }
 
   selectExistingPersistentStorage(name: string) {
@@ -268,6 +300,18 @@ class AttachExistingStorageModal extends Modal {
 
   findAttachButton() {
     return cy.findByTestId('modal-submit-button');
+  }
+
+  findExistingStorageField() {
+    return this.find().findByTestId('persistent-storage-group');
+  }
+
+  findTypeaheadGroup(label: string) {
+    return this.find().get(`[data-testid="typeahead-group-${label}"]`);
+  }
+
+  findTypeaheadOptionUnderGroup(groupLabel: string, optionText: string) {
+    return this.findTypeaheadGroup(groupLabel).contains(optionText);
   }
 }
 
@@ -320,6 +364,17 @@ class StorageTable {
 }
 
 class NotebookImageGroup extends Contextual<HTMLElement> {}
+
+class NotebookImageVersionDropdown extends Contextual<HTMLElement> {
+  findNotebookImageLabel() {
+    return this.find().findByTestId('notebook-image-availability');
+  }
+
+  findImageVersionButton(name: string) {
+    return this.find().findByRole('option', { name });
+  }
+}
+
 class CreateSpawnerPage {
   k8sNameDescription = new K8sNameDescriptionField('workbench');
 
@@ -385,17 +440,33 @@ class CreateSpawnerPage {
     return cy.findByTestId('submit-button');
   }
 
+  findCancelButton() {
+    return cy.findByTestId('cancel-button');
+  }
+
+  findSideBarItems(section: string) {
+    return cy.findByTestId(`${section}-jump-link`).find('a');
+  }
+
   getEnvironmentVariableTypeField(index: number) {
     return new EnvironmentVariableTypeField(() =>
       cy.findAllByTestId('environment-variable-field').eq(index),
     );
   }
 
+  findAcceleratorProfile(name: string) {
+    return cy.findByRole('menuitem', {
+      name,
+      hidden: true,
+    });
+  }
+
+  findNotebookImageSelector() {
+    return cy.findByTestId('workbench-image-stream-selection');
+  }
+
   findNotebookImage(name: string) {
-    return cy
-      .findByTestId('workbench-image-stream-selection')
-      .findDropdownItemByTestId(name)
-      .scrollIntoView();
+    return this.findNotebookImageSelector().findDropdownItemByTestId(name).scrollIntoView();
   }
 
   findNotebookImageSearchSelector() {
@@ -415,11 +486,11 @@ class CreateSpawnerPage {
   }
 
   findProjectScopedLabel() {
-    return cy.findByTestId('project-scoped-image');
+    return cy.findByTestId('project-scoped-label');
   }
 
   findGlobalScopedLabel() {
-    return cy.findByTestId('global-scoped-image');
+    return cy.findByTestId('global-scoped-label');
   }
 
   getProjectScopedNotebookImages() {
@@ -430,8 +501,17 @@ class CreateSpawnerPage {
     return new NotebookImageGroup(() => cy.findByTestId('global-scoped-notebook-images'));
   }
 
+  findNotebookImageDropdown() {
+    return new NotebookImageVersionDropdown(() =>
+      cy.findByTestId('workbench-image-version-dropdown'),
+    );
+  }
+
+  findNotebookImageVersionSelector() {
+    return cy.findByTestId('workbench-image-version-selection');
+  }
+
   findNotebookVersion(version: string): Cypress.Chainable<JQuery<HTMLElement>> {
-    cy.findByTestId('workbench-image-version-selection').click();
     return cy.get(`[data-testid$="-${version}"]`).click();
   }
 
@@ -553,7 +633,7 @@ class WorkbenchStatusModal extends Modal {
   }
 
   findLogEntry(text: string) {
-    return cy.get('ul[data-id="event-logs"]').find('li span').contains(text);
+    return cy.findByTestId('event-logs').find('li span').contains(text);
   }
 
   getNotebookStatus(expectedStatus: string, timeout?: number) {

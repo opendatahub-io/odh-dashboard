@@ -2,8 +2,8 @@ import * as React from 'react';
 import '@testing-library/jest-dom';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { act } from 'react';
-import { TextField } from '~/concepts/connectionTypes/types';
-import TextFormField from '~/concepts/connectionTypes/fields/TextFormField';
+import { TextField } from '#~/concepts/connectionTypes/types';
+import TextFormField from '#~/concepts/connectionTypes/fields/TextFormField';
 
 describe('TextFormField', () => {
   it('should render editable field', () => {

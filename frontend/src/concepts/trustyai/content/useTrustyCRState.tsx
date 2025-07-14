@@ -7,11 +7,11 @@ import {
   Split,
   SplitItem,
 } from '@patternfly/react-core';
-import useManageTrustyAICR from '~/concepts/trustyai/useManageTrustyAICR';
-import { TrustyInstallState } from '~/concepts/trustyai/types';
-import TrustyAIInstalledState from '~/concepts/trustyai/content/statusStates/TrustyAIInstalledState';
-import TrustyAIUninstalledState from '~/concepts/trustyai/content/statusStates/TrustyAIUninstalledState';
-import { ProjectKind } from '~/k8sTypes';
+import useManageTrustyAICR from '#~/concepts/trustyai/useManageTrustyAICR';
+import { TrustyInstallState } from '#~/concepts/trustyai/types';
+import TrustyAIInstalledState from '#~/concepts/trustyai/content/statusStates/TrustyAIInstalledState';
+import TrustyAIUninstalledState from '#~/concepts/trustyai/content/statusStates/TrustyAIUninstalledState';
+import { ProjectKind } from '#~/k8sTypes';
 
 type UseTrustyCRState = {
   action: React.ReactNode;

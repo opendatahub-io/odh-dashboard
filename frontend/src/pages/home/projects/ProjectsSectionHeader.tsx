@@ -9,8 +9,8 @@ import {
   ContentVariants,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
-import HeaderIcon from '~/concepts/design/HeaderIcon';
-import { ProjectObjectType, SectionType } from '~/concepts/design/utils';
+import HeaderIcon from '#~/concepts/design/HeaderIcon';
+import { ProjectObjectType, SectionType } from '#~/concepts/design/utils';
 
 interface ProjectsSectionHeaderProps {
   showCreate: boolean;

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useBrowserStorage } from '~/components/browserStorage';
+import { useBrowserStorage } from '#~/components/browserStorage/BrowserStorageContext';
 import { logout } from './appUtils';
 
 export type SetTime = (refreshDateMarker: Date) => void;

@@ -1,18 +1,20 @@
 import * as React from 'react';
 import { Button, Truncate } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
-import { ModelServingContext } from '~/pages/modelServing/ModelServingContext';
-import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformStatuses';
-import EmptyDetailsView from '~/components/EmptyDetailsView';
-import { ProjectObjectType, typedEmptyImage } from '~/concepts/design/utils';
-import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
-import ServeModelButton from '~/pages/modelServing/screens/global/ServeModelButton';
-import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
+import { ModelServingContext } from '#~/pages/modelServing/ModelServingContext';
+import useServingPlatformStatuses from '#~/pages/modelServing/useServingPlatformStatuses';
+import EmptyDetailsView from '#~/components/EmptyDetailsView';
+import { ProjectObjectType, typedEmptyImage } from '#~/concepts/design/utils';
+import { ProjectSectionID } from '#~/pages/projects/screens/detail/types';
+import ServeModelButton from '#~/pages/modelServing/screens/global/ServeModelButton';
+import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 
 const EmptyModelServing: React.FC = () => {
   const navigate = useNavigate();
   const {
-    servingRuntimes: { data: servingRuntimes },
+    servingRuntimes: {
+      data: { items: servingRuntimes },
+    },
     project,
   } = React.useContext(ModelServingContext);
   const servingPlatformStatuses = useServingPlatformStatuses();
