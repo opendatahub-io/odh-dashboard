@@ -21,10 +21,6 @@ const PVCContextField: React.FC<PVCContextFieldProps> = ({
 }) => {
   const [isGeneralPurpose, setIsGeneralPurpose] = useState(!modelName && !modelPath);
 
-  React.useEffect(() => {
-    setIsGeneralPurpose(!modelName && !modelPath);
-  }, [modelName, modelPath]);
-
   const validatePath = (path: string) => {
     const trimmedPath = path.trim();
     const pathRegex = /^[A-Za-z0-9._-]+(?:\/[A-Za-z0-9._-]+)*\/?$/;
