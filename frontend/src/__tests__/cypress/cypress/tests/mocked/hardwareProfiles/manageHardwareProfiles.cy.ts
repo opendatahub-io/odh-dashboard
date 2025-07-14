@@ -9,6 +9,7 @@ import {
   HardwareProfileModel,
   AcceleratorProfileModel,
   WorkloadPriorityClassModel,
+  DataScienceClusterModel,
 } from '#~/__tests__/cypress/cypress/utils/models';
 import { asProductAdminUser } from '#~/__tests__/cypress/cypress/utils/mockUsers';
 import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile';
@@ -29,6 +30,7 @@ import {
 import { migrationModal } from '#~/__tests__/cypress/cypress/pages/components/MigrationModal';
 import { mock200Status, mockDashboardConfig } from '#~/__mocks__';
 import { mockWorkloadPriorityClassK8sResource as mockWorkloadPriorityClass } from '#~/__mocks__/mockWorkloadPriorityClassK8Resource';
+import { mockDsc } from '#~/__mocks__/mockDsc';
 
 type HandlersProps = {
   isPresent?: boolean;
@@ -120,6 +122,8 @@ function setupIntercepts({ disableKueue = false, isPresent = true, withLocalQueu
     { model: HardwareProfileModel, ns: 'opendatahub', name: 'test-hardware-profile' },
     isPresent ? makeProfile({ withLocalQueue }) : { statusCode: 404 },
   );
+
+  cy.interceptK8sList({ model: DataScienceClusterModel }, mockK8sResourceList([mockDsc({})]));
 }
 
 describe('Manage Hardware Profile', () => {
@@ -957,7 +961,7 @@ describe('Manage Hardware Profile', () => {
       // The default workload allocation strategy pick should be 'Local queue'
       createHardwareProfile.findLocalQueueRadio().should('be.checked');
 
-      // The default local queue value is ''
+      // The default local queue value is 'default'
       createHardwareProfile.findLocalQueueInput().should('have.value', 'default');
 
       // The default workload priority is None, and is optional
@@ -989,7 +993,7 @@ describe('Manage Hardware Profile', () => {
 
       // Switch back to local queue and set values
       createHardwareProfile.findLocalQueueRadio().click();
-      createHardwareProfile.findLocalQueueInput().clear().type('my-queue');
+      createHardwareProfile.findLocalQueueInput().fill('my-queue');
       createHardwareProfile.selectWorkloadPriority('high');
 
       cy.interceptK8s(
@@ -1030,7 +1034,7 @@ describe('Manage Hardware Profile', () => {
       editHardwareProfile.findWorkloadPrioritySelect().should('contain.text', 'high');
 
       // Update the values
-      editHardwareProfile.findLocalQueueInput().clear().type('updated-queue');
+      editHardwareProfile.findLocalQueueInput().fill('updated-queue');
       editHardwareProfile.selectWorkloadPriority('medium');
 
       cy.interceptK8s(
