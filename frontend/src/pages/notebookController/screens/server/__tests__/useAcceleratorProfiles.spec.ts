@@ -1,6 +1,6 @@
 import { act } from 'react';
 import { k8sListResource } from '@openshift/dynamic-plugin-sdk-utils';
-import { standardUseFetchState, testHook } from '#~/__tests__/unit/testUtils/hooks';
+import { standardUseFetchState, testHook } from '@odh-dashboard/jest-config/hooks';
 import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
 import { mockAcceleratorProfile } from '#~/__mocks__/mockAcceleratorProfile';
 import useAcceleratorProfiles from '#~/pages/notebookController/screens/server/useAcceleratorProfiles';

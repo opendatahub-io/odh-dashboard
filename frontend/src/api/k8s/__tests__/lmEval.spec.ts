@@ -4,6 +4,7 @@ import {
   k8sDeleteResource,
   K8sStatus,
 } from '@openshift/dynamic-plugin-sdk-utils';
+import { testHook } from '@odh-dashboard/jest-config/hooks';
 import { mockLMEvaluation } from '#~/__mocks__/mockLMEvaluation';
 import { LMEvalModel } from '#~/api/models';
 import { mock200Status, mock404Error } from '#~/__mocks__/mockK8sStatus';
@@ -15,7 +16,6 @@ import {
 } from '#~/api/k8s/lmEval';
 import { LMEvalKind } from '#~/k8sTypes';
 import { LmEvalFormData } from '#~/pages/lmEval/types';
-import { testHook } from '#~/__tests__/unit/testUtils/hooks';
 import { groupVersionKind } from '#~/api/k8sUtils';
 import useK8sWatchResourceList from '#~/utilities/useK8sWatchResourceList';
 

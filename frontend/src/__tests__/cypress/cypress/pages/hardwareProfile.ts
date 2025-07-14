@@ -166,22 +166,20 @@ class HardwareProfile {
 
   findCreateButton() {
     // Use Cypress's built-in handling to try one selector, then another if the first fails
-    return cy.get('body').then(() => {
-      return cy
+    return cy.get('body').then(() =>
+      cy
         .get(
           '[data-testid="display-hardware-modal-button"], [data-testid="create-hardware-profile"]',
         )
         .first()
-        .then(($el) => {
-          return cy.wrap($el);
-        });
-    });
+        .then(($el) => cy.wrap($el)),
+    );
   }
 
   getUniqueTableToolbar() {
-    return new HardwareProfileTableToolbar(() => {
+    return new HardwareProfileTableToolbar(() =>
       // This approach will get all matching elements, then return the first one that's visible
-      return cy.get('[data-testid="hardware-profiles-table-toolbar"]').then(($elements) => {
+      cy.get('[data-testid="hardware-profiles-table-toolbar"]').then(($elements) => {
         // Return the first element that's visible
         const visibleElements = $elements.filter(':visible');
         if (visibleElements.length > 0) {
@@ -189,8 +187,8 @@ class HardwareProfile {
         }
         // Fallback to the first element if none are visible
         return cy.wrap($elements.first());
-      });
-    });
+      }),
+    );
   }
 
   findClearFiltersButton() {
@@ -386,14 +384,14 @@ class ManageHardwareProfile {
 
   hasNodeResourceRow(name: string): Cypress.Chainable<boolean> {
     // Use .then to transform the result into a boolean
-    return cy.document().then(() => {
+    return cy.document().then(() =>
       // Create a wrapped jQuery selector that won't fail if the element doesn't exist
-      return cy.wrap(
+      cy.wrap(
         Cypress.$(
           `[data-testid="hardware-profile-node-resources-table"] [data-label="Resource identifier"]:contains("${name}")`,
         ).length > 0,
-      );
-    });
+      ),
+    );
   }
 }
 
