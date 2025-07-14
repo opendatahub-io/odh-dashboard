@@ -25,7 +25,7 @@ const extensions: ModelServingPlatformExtension[] = [
           'Multiple models can be deployed on one shared model server. Choose this option when you want to deploy a number of small or medium-sized models that can share the server resources..',
         selectText: 'Select multi-model',
         enabledText: 'Multi-model serving enabled',
-        objectType: ProjectObjectType.modelServer,
+        objectType: ProjectObjectType.multiModel,
       },
       deployedModelsView: {
         startHintTitle: 'Start by adding a model server',
