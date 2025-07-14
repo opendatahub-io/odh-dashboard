@@ -58,6 +58,7 @@ const useDevFeatureFlags = (
     true,
   );
 
+  console.log('dashboardconfig from server:', dashboardConfig);
   const [isBannerVisible, setBannerVisible] = useBrowserStorage<boolean>(
     `odh.dashboard.devFlag.banner`,
     false,
@@ -174,6 +175,8 @@ const useDevFeatureFlags = (
         }
         return acc;
       }, {});
+
+      console.log('arghh configFeatureFlags:', configFeatureFlags);
 
       return {
         ...dashboardConfig,

@@ -26,7 +26,11 @@ const FeatureFlagModal: React.FC<Props> = ({
   const devFlags = useDevFlags();
 
   const safeDevFeatureFlags = devFeatureFlags || {};
-
+  console.log('safe dev feature flags:', safeDevFeatureFlags);
+  console.log('dashboardConfig:', dashboardConfig);
+  // ok; so the default values are from the SERVER (see lines 52-60 of App.tsx)
+  // which is why 'newer' flags have an indeterminate checkbox state.
+  // talk about this with gage and/or andrew TODO
   const renderFlags = (flags: string[], fallbackFlags?: Record<string, boolean | undefined>) => (
     <Grid hasGutter span={6} md={3}>
       {flags.toSorted().map((key) => {
