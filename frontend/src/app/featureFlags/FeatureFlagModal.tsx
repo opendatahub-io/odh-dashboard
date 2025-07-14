@@ -15,7 +15,11 @@ import {
 } from '@patternfly/react-core';
 import { FeatureFlagLauncherProps } from '#~/app/featureFlags/FeatureFlagLauncher';
 import { useDevFlags } from '#~/app/featureFlags/useDevFeatureFlags';
-import { definedFeatureFlags } from '#~/concepts/areas/const';
+import {
+  definedFeatureFlags,
+  devTemporaryFeatureFlags,
+  techPreviewFlags,
+} from '#~/concepts/areas/const';
 
 type Props = FeatureFlagLauncherProps & { onClose: () => void };
 
@@ -67,16 +71,23 @@ const FeatureFlagModal: React.FC<Props> = ({
       <ModalBody>
         <Tabs activeKey={activeTabKey} onSelect={(_event, tabIndex) => setActiveTabKey(tabIndex)}>
           <Tab eventKey={0} title={<TabTitleText>Active</TabTitleText>}>
-            <Content style={{ height: '400px' }}>
+            <Content style={{ height: '400px', padding: '8px' }}>
               <Content component="p">
-                Feature flags default to the values defined in the dashboard config.
+                Feature flags default to the values defined in the dashboard config from the server.
               </Content>
-              {renderFlags(definedFeatureFlags, dashboardConfig)}
+              <Content component="p">
+                Flags that have an indeterminate value are because they are *not* defined in the
+                server.
+              </Content>
+              <h2> Tech Preview Flags </h2>
+              {renderFlags(Object.keys(techPreviewFlags), dashboardConfig)}
+              <h2> Temporary Developer Feature Flags</h2>
+              {renderFlags(Object.keys(devTemporaryFeatureFlags), dashboardConfig)}
             </Content>
           </Tab>
           {devFlags.length > 0 && (
             <Tab eventKey={1} title={<TabTitleText>Dev Flags</TabTitleText>}>
-              <Content style={{ height: '400px' }}>
+              <Content style={{ height: '400px', padding: '8px' }}>
                 <Content component="p">
                   Dev flags default to inactive and can only be changed for the current session.
                 </Content>
@@ -85,7 +96,7 @@ const FeatureFlagModal: React.FC<Props> = ({
             </Tab>
           )}
           <Tab eventKey={2} title={<TabTitleText>Archived</TabTitleText>}>
-            <Content style={{ height: '400px' }}>
+            <Content style={{ height: '400px', padding: '8px' }}>
               <Content component="p">Archived feature flags will be displayed here.</Content>
             </Content>
           </Tab>

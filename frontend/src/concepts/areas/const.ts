@@ -7,12 +7,12 @@ import {
   DataScienceStackComponent,
 } from './types';
 
-const techPreviewFlags = {
+export const techPreviewFlags = {
   disableHardwareProfiles: true,
   disableModelRegistry: true,
 } satisfies Partial<DashboardCommonConfig>;
 
-const devTemporaryFeatureFlags = {
+export const devTemporaryFeatureFlags = {
   disableKueue: true,
   disableFeatureStore: true,
   disableLlamaStackChatBot: true, // internal dev only
@@ -21,7 +21,7 @@ const devTemporaryFeatureFlags = {
 } satisfies Partial<DashboardCommonConfig>;
 
 // Group 1: Core Dashboard Features
-const coreDashboardFlags = {
+export const coreDashboardFlags = {
   enablement: false,
   disableInfo: false,
   disableSupport: false,
@@ -32,7 +32,7 @@ const coreDashboardFlags = {
 } satisfies Partial<DashboardCommonConfig>;
 
 // Group 2: Project & User Management Features
-const projectManagementFlags = {
+export const projectManagementFlags = {
   disableProjects: false,
   disableProjectSharing: false,
   disableUserManagement: false,
@@ -44,7 +44,7 @@ const projectManagementFlags = {
 } satisfies Partial<DashboardCommonConfig>;
 
 // Group 3: Model Serving & AI/ML Infrastructure
-const modelServingFlags = {
+export const modelServingFlags = {
   disableModelServing: false,
   disableCustomServingRuntimes: false,
   disableServingRuntimeParams: false,
@@ -59,7 +59,7 @@ const modelServingFlags = {
 } satisfies Partial<DashboardCommonConfig>;
 
 // Group 4: Advanced AI/ML Features & Pipelines
-const advancedAIMLFlags = {
+export const advancedAIMLFlags = {
   disablePipelines: false,
   disableDistributedWorkloads: false,
   disableModelCatalog: true,
