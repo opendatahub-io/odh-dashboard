@@ -67,27 +67,27 @@ const FeatureFlagModal: React.FC<Props> = ({
       <ModalBody>
         <Tabs activeKey={activeTabKey} onSelect={(_event, tabIndex) => setActiveTabKey(tabIndex)}>
           <Tab eventKey={0} title={<TabTitleText>Active</TabTitleText>}>
-            <div style={{ height: '400px' }}>
+            <Content style={{ height: '400px' }}>
               <Content component="p">
                 Feature flags default to the values defined in the dashboard config.
               </Content>
               {renderFlags(definedFeatureFlags, dashboardConfig)}
-
-              {devFlags.length > 0 ? (
-                <>
-                  <Content component="h2">Dev Flags</Content>
-                  <Content component="p">
-                    Dev flags default to inactive and can only be changed for the current session.
-                  </Content>
-                  {renderFlags(devFlags)}
-                </>
-              ) : null}
-            </div>
+            </Content>
           </Tab>
-          <Tab eventKey={1} title={<TabTitleText>Archived</TabTitleText>}>
-            <div style={{ height: '400px' }}>
+          {devFlags.length > 0 && (
+            <Tab eventKey={1} title={<TabTitleText>Dev Flags</TabTitleText>}>
+              <Content style={{ height: '400px' }}>
+                <Content component="p">
+                  Dev flags default to inactive and can only be changed for the current session.
+                </Content>
+                {renderFlags(devFlags)}
+              </Content>
+            </Tab>
+          )}
+          <Tab eventKey={2} title={<TabTitleText>Archived</TabTitleText>}>
+            <Content style={{ height: '400px' }}>
               <Content component="p">Archived feature flags will be displayed here.</Content>
-            </div>
+            </Content>
           </Tab>
         </Tabs>
       </ModalBody>
