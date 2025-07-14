@@ -12,10 +12,12 @@ import { useInferenceServicesForConnection } from '#~/pages/projects/useInferenc
 import { PersistentVolumeClaimKind } from '#~/k8sTypes';
 import { isModelStorage } from '#~/pages/projects/screens/detail/storage/utils';
 import { useIsAreaAvailable, SupportedArea } from '#~/concepts/areas/index';
+import { EitherNotBoth } from '#~/typeHelpers';
 
-export type ConnectedResourcesProps =
-  | { connection: Connection; pvc?: undefined }
-  | { connection?: undefined; pvc: PersistentVolumeClaimKind };
+export type ConnectedResourcesProps = EitherNotBoth<
+  { connection: Connection },
+  { pvc: PersistentVolumeClaimKind }
+>;
 
 const ConnectedResources: React.FC<ConnectedResourcesProps> = ({ connection, pvc }) => {
   const { notebooks: connectedNotebooks, loaded: notebooksLoaded } = useRelatedNotebooks(
