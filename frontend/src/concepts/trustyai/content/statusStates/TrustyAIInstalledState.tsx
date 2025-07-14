@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Button } from '@patternfly/react-core';
-import DeleteTrustyAIModal from '~/concepts/trustyai/content/DeleteTrustyAIModal';
+import DeleteTrustyAIModal from '#~/concepts/trustyai/content/DeleteTrustyAIModal';
 
 type TrustyAIInstalledStateProps = {
   uninstalling?: boolean;

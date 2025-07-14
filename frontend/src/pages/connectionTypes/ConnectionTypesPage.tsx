@@ -1,11 +1,11 @@
 import React from 'react';
 import { PageSection } from '@patternfly/react-core';
-import ConnectionTypesTable from '~/pages/connectionTypes/ConnectionTypesTable';
-import ApplicationsPage from '~/pages/ApplicationsPage';
-import { useWatchConnectionTypes } from '~/utilities/useWatchConnectionTypes';
-import EmptyConnectionTypes from '~/pages/connectionTypes/EmptyConnectionTypes';
-import TitleWithIcon from '~/concepts/design/TitleWithIcon';
-import { ProjectObjectType } from '~/concepts/design/utils';
+import ConnectionTypesTable from '#~/pages/connectionTypes/ConnectionTypesTable';
+import ApplicationsPage from '#~/pages/ApplicationsPage';
+import { useWatchConnectionTypes } from '#~/utilities/useWatchConnectionTypes';
+import EmptyConnectionTypes from '#~/pages/connectionTypes/EmptyConnectionTypes';
+import TitleWithIcon from '#~/concepts/design/TitleWithIcon';
+import { ProjectObjectType } from '#~/concepts/design/utils';
 
 const ConnectionTypesPage: React.FC = () => {
   const [connectionTypes, loaded, loadError, refresh] = useWatchConnectionTypes();

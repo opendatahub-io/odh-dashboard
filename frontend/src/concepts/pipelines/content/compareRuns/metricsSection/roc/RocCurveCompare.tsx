@@ -1,16 +1,16 @@
 import * as React from 'react';
 import { Bullseye, Flex, Spinner, Split, SplitItem, Content } from '@patternfly/react-core';
-import DashboardHelpTooltip from '~/concepts/dashboard/DashboardHelpTooltip';
-import { useCheckboxTableBase } from '~/components/table';
-import ROCCurve from '~/concepts/pipelines/content/artifacts/charts/ROCCurve';
-import { RunArtifact } from '~/concepts/pipelines/apiHooks/mlmd/types';
+import DashboardHelpTooltip from '#~/concepts/dashboard/DashboardHelpTooltip';
+import { useCheckboxTableBase } from '#~/components/table';
+import ROCCurve from '#~/concepts/pipelines/content/artifacts/charts/ROCCurve';
+import { RunArtifact } from '#~/concepts/pipelines/apiHooks/mlmd/types';
 import {
   getFullArtifactPathLabel,
   getFullArtifactPaths,
   getLinkedArtifactId,
-} from '~/concepts/pipelines/content/compareRuns/metricsSection/utils';
-import { CompareRunsEmptyState } from '~/concepts/pipelines/content/compareRuns/CompareRunsEmptyState';
-import { CompareRunsNoMetrics } from '~/concepts/pipelines/content/compareRuns/CompareRunsNoMetrics';
+} from '#~/concepts/pipelines/content/compareRuns/metricsSection/utils';
+import { CompareRunsEmptyState } from '#~/concepts/pipelines/content/compareRuns/CompareRunsEmptyState';
+import { CompareRunsNoMetrics } from '#~/concepts/pipelines/content/compareRuns/CompareRunsNoMetrics';
 import RocCurveTable from './RocCurveTable';
 import { FullArtifactPathsAndConfig } from './types';
 import { isConfidenceMetric, buildRocCurveConfig } from './utils';

@@ -2,16 +2,19 @@ import React from 'react';
 import { FormSection, Flex, FlexItem, Button, Alert, AlertVariant } from '@patternfly/react-core';
 import { AddCircleOIcon } from '@patternfly/react-icons';
 import { useSearchParams } from 'react-router-dom';
-import { Identifier, IdentifierResourceType } from '~/types';
-import NodeResourceTable from '~/pages/hardwareProfiles/nodeResource/NodeResourceTable';
-import ManageNodeResourceModal from '~/pages/hardwareProfiles/nodeResource/ManageNodeResourceModal';
-import { ManageHardwareProfileSectionTitles } from '~/pages/hardwareProfiles/const';
-import { ManageHardwareProfileSectionID } from '~/pages/hardwareProfiles/manage/types';
+import { Identifier, IdentifierResourceType } from '#~/types';
+import NodeResourceTable from '#~/pages/hardwareProfiles/nodeResource/NodeResourceTable';
+import ManageNodeResourceModal from '#~/pages/hardwareProfiles/nodeResource/ManageNodeResourceModal';
+import {
+  ManageHardwareProfileSectionTitles,
+  CPU_MEMORY_MISSING_WARNING,
+} from '#~/pages/hardwareProfiles/const';
+import { ManageHardwareProfileSectionID } from '#~/pages/hardwareProfiles/manage/types';
 import {
   DEFAULT_CPU_IDENTIFIER,
   DEFAULT_MEMORY_IDENTIFIER,
   EMPTY_IDENTIFIER,
-} from '~/pages/hardwareProfiles/nodeResource/const';
+} from '#~/pages/hardwareProfiles/nodeResource/const';
 
 type ManageNodeResourceSectionProps = {
   nodeResources: Identifier[];
@@ -86,9 +89,7 @@ const ManageNodeResourceSection: React.FC<ManageNodeResourceSectionProps> = ({
             variant={AlertVariant.warning}
             data-testid="node-resource-table-alert"
           >
-            It is not recommended to remove the CPU or Memory. The resources that use this hardware
-            profile will schedule, but will be very unstable due to not having any lower or upper
-            resource bounds.
+            {CPU_MEMORY_MISSING_WARNING}
           </Alert>
         )}
         {!isEmpty && (

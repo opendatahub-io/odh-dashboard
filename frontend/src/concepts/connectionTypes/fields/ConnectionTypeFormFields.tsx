@@ -1,15 +1,15 @@
 import * as React from 'react';
-import ConnectionTypeDataFormField from '~/concepts/connectionTypes/fields/ConnectionTypeDataFormField';
-import DataFormFieldGroup from '~/concepts/connectionTypes/fields/DataFormFieldGroup';
-import SectionFormField from '~/concepts/connectionTypes/fields/SectionFormField';
+import ConnectionTypeDataFormField from '#~/concepts/connectionTypes/fields/ConnectionTypeDataFormField';
+import DataFormFieldGroup from '#~/concepts/connectionTypes/fields/DataFormFieldGroup';
+import SectionFormField from '#~/concepts/connectionTypes/fields/SectionFormField';
 import {
   ConnectionTypeDataField,
   ConnectionTypeField,
   ConnectionTypeFieldType,
   ConnectionTypeValueType,
   SectionField,
-} from '~/concepts/connectionTypes/types';
-import { isConnectionTypeDataField } from '~/concepts/connectionTypes/utils';
+} from '#~/concepts/connectionTypes/types';
+import { isConnectionTypeDataField } from '#~/concepts/connectionTypes/utils';
 
 type Props = {
   fields?: ConnectionTypeField[];

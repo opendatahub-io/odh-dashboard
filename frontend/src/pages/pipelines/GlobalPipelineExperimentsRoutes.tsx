@@ -1,27 +1,27 @@
 import * as React from 'react';
 import { Navigate, Route } from 'react-router-dom';
-import ProjectsRoutes from '~/concepts/projects/ProjectsRoutes';
-import GlobalPipelineCoreLoader from '~/pages/pipelines/global/GlobalPipelineCoreLoader';
+import ProjectsRoutes from '#~/concepts/projects/ProjectsRoutes';
+import GlobalPipelineCoreLoader from '#~/pages/pipelines/global/GlobalPipelineCoreLoader';
 import {
   ExperimentListTabs,
   experimentsPageDescription,
   experimentsPageTitle,
-} from '~/pages/pipelines/global/experiments/const';
-import GlobalExperiments from '~/pages/pipelines/global/experiments/GlobalExperiments';
-import { experimentsBaseRoute } from '~/routes';
-import ExperimentContextProvider from '~/pages/pipelines/global/experiments/ExperimentContext';
-import ExperimentPipelineRuns from '~/pages/pipelines/global/experiments/ExperimentPipelineRuns';
-import ExperimentPipelineRunsTabs from '~/pages/pipelines/global/experiments/ExperimentPipelineRunsTabs';
-import { PipelineRunType } from '~/pages/pipelines/global/runs';
-import ExperimentPipelineRunDetails from '~/pages/pipelines/global/experiments/ExperimentPipelineRunDetails';
-import ExperimentPipelineRecurringRunDetails from '~/pages/pipelines/global/experiments/ExperimentPipelineRecurringRunDetails';
+} from '#~/pages/pipelines/global/experiments/const';
+import GlobalExperiments from '#~/pages/pipelines/global/experiments/GlobalExperiments';
+import { experimentsBaseRoute } from '#~/routes/pipelines/experiments';
+import ExperimentContextProvider from '#~/pages/pipelines/global/experiments/ExperimentContext';
+import ExperimentPipelineRuns from '#~/pages/pipelines/global/experiments/ExperimentPipelineRuns';
+import ExperimentPipelineRunsTabs from '#~/pages/pipelines/global/experiments/ExperimentPipelineRunsTabs';
+import { PipelineRunType } from '#~/pages/pipelines/global/runs/types';
+import ExperimentPipelineRunDetails from '#~/pages/pipelines/global/experiments/ExperimentPipelineRunDetails';
+import ExperimentPipelineRecurringRunDetails from '#~/pages/pipelines/global/experiments/ExperimentPipelineRecurringRunDetails';
 import {
   ExperimentCreateRunPage,
   ExperimentCreateSchedulePage,
-} from '~/pages/pipelines/global/experiments/ExperimentCreateRunPage';
-import PipelineAvailabilityLoader from '~/pages/pipelines/global/pipelines/PipelineAvailabilityLoader';
-import ExperimentDuplicateRunPage from '~/pages/pipelines/global/experiments/ExperimentDuplicateRunPage';
-import ExperimentDuplicateRecurringRunPage from '~/pages/pipelines/global/experiments/ExperimentDuplicateRecurringRunPage';
+} from '#~/pages/pipelines/global/experiments/ExperimentCreateRunPage';
+import PipelineAvailabilityLoader from '#~/pages/pipelines/global/pipelines/PipelineAvailabilityLoader';
+import ExperimentDuplicateRunPage from '#~/pages/pipelines/global/experiments/ExperimentDuplicateRunPage';
+import ExperimentDuplicateRecurringRunPage from '#~/pages/pipelines/global/experiments/ExperimentDuplicateRecurringRunPage';
 import { ExperimentCoreDetails } from './global/GlobalPipelineCoreDetails';
 import {
   ExperimentComparePipelineRunsLoader,

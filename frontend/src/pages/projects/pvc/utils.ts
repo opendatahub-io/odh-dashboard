@@ -1,5 +1,5 @@
-import { NotebookKind } from '~/k8sTypes';
-import { EnvironmentFromVariable, SecretRef } from '~/pages/projects/types';
+import { NotebookKind } from '#~/k8sTypes';
+import { EnvironmentFromVariable, SecretRef } from '#~/pages/projects/types';
 
 export const getNotebookPVCNames = (notebook: NotebookKind): string[] => {
   const volumes = notebook.spec.template.spec.volumes || [];

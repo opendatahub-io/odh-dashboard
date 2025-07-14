@@ -1,5 +1,5 @@
 import * as React from 'react';
-import useElyraSecret from '~/concepts/pipelines/elyra/useElyraSecret';
+import useElyraSecret from '#~/concepts/pipelines/elyra/useElyraSecret';
 
 type CanEnableElyraPipelinesCheckProps = {
   children: (canEnablePipelines: boolean) => React.ReactNode;

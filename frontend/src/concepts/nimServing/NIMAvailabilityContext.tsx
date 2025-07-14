@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useIsNIMAvailable } from '~/pages/modelServing/screens/projects/useIsNIMAvailable';
+import { useIsNIMAvailable } from '#~/pages/modelServing/screens/projects/useIsNIMAvailable';
 
 export type NIMAvailabilityContextType = {
   isNIMAvailable: boolean;

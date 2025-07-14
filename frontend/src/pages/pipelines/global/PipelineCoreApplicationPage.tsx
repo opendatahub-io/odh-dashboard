@@ -1,14 +1,15 @@
 import * as React from 'react';
 import { ButtonVariant } from '@patternfly/react-core';
-import ApplicationsPage from '~/pages/ApplicationsPage';
-import NoPipelineServer from '~/concepts/pipelines/NoPipelineServer';
-import PipelineCoreProjectSelector from '~/pages/pipelines/global/PipelineCoreProjectSelector';
-import { PipelineServerTimedOut, usePipelinesAPI } from '~/concepts/pipelines/context';
+import ApplicationsPage from '#~/pages/ApplicationsPage';
+import NoPipelineServer from '#~/concepts/pipelines/NoPipelineServer';
+import PipelineCoreProjectSelector from '#~/pages/pipelines/global/PipelineCoreProjectSelector';
+import { PipelineServerTimedOut, usePipelinesAPI } from '#~/concepts/pipelines/context';
 
 export type PipelineCoreApplicationPageProps = {
   children: React.ReactNode;
   getRedirectPath: (namespace: string) => string;
   overrideChildPadding?: boolean;
+  overrideTimeout?: boolean;
 } & Omit<
   React.ComponentProps<typeof ApplicationsPage>,
   'loaded' | 'empty' | 'emptyStatePage' | 'headerContent' | 'provideChildrenPadding'
@@ -18,6 +19,7 @@ const PipelineCoreApplicationPage: React.FC<PipelineCoreApplicationPageProps> = 
   children,
   getRedirectPath,
   overrideChildPadding,
+  overrideTimeout = false,
   ...pageProps
 }) => {
   const { pipelinesServer } = usePipelinesAPI();
@@ -31,7 +33,7 @@ const PipelineCoreApplicationPage: React.FC<PipelineCoreApplicationPageProps> = 
       headerContent={<PipelineCoreProjectSelector getRedirectPath={getRedirectPath} />}
       provideChildrenPadding={!overrideChildPadding}
     >
-      {pipelinesServer.timedOut && pipelinesServer.compatible ? (
+      {!overrideTimeout && pipelinesServer.timedOut && pipelinesServer.compatible ? (
         <PipelineServerTimedOut />
       ) : (
         children

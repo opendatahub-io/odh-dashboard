@@ -6,9 +6,9 @@ import {
   SecretKind,
   ServingRuntimeKind,
   TemplateKind,
-} from '~/k8sTypes';
-import { ServingRuntimeAPIProtocol, ServingRuntimePlatform } from '~/types';
-import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
+} from '#~/k8sTypes';
+import { ServingRuntimeAPIProtocol, ServingRuntimePlatform } from '#~/types';
+import { mockProjectK8sResource } from '#~/__mocks__/mockProjectK8sResource';
 import { mockConfigMap } from './mockConfigMap';
 import { mockServingRuntimeK8sResource } from './mockServingRuntimeK8sResource';
 import { mockInferenceServiceK8sResource } from './mockInferenceServiceK8sResource';

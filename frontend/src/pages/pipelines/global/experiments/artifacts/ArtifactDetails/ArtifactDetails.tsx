@@ -2,7 +2,6 @@ import React from 'react';
 import { useParams } from 'react-router';
 
 import {
-  Breadcrumb,
   BreadcrumbItem,
   Bullseye,
   EmptyState,
@@ -16,15 +15,16 @@ import {
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 
-import { PipelineCoreDetailsPageComponent } from '~/concepts/pipelines/content/types';
-import ApplicationsPage from '~/pages/ApplicationsPage';
+import { PipelineCoreDetailsPageComponent } from '#~/concepts/pipelines/content/types';
+import ApplicationsPage from '#~/pages/ApplicationsPage';
 import {
   getArtifactName,
   getIsArtifactModelRegistered,
-} from '~/pages/pipelines/global/experiments/artifacts/utils';
-import { ArtifactDetailsTabKey } from '~/pages/pipelines/global/experiments/artifacts/constants';
-import { useGetArtifactById } from '~/concepts/pipelines/apiHooks/mlmd/useGetArtifactById';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+} from '#~/pages/pipelines/global/experiments/artifacts/utils';
+import { ArtifactDetailsTabKey } from '#~/pages/pipelines/global/experiments/artifacts/constants';
+import { useGetArtifactById } from '#~/concepts/pipelines/apiHooks/mlmd/useGetArtifactById';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import PipelineContextBreadcrumb from '#~/concepts/pipelines/content/PipelineContextBreadcrumb';
 import { ArtifactOverviewDetails } from './ArtifactOverviewDetails';
 import ArtifactDetailsTitle from './ArtifactDetailsTitle';
 
@@ -69,12 +69,12 @@ export const ArtifactDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPa
       loaded={isArtifactLoaded}
       loadError={artifactError}
       breadcrumb={
-        <Breadcrumb>
+        <PipelineContextBreadcrumb>
           {breadcrumbPath}
           <BreadcrumbItem isActive style={{ maxWidth: 300 }}>
             <Truncate content={artifactName} />
           </BreadcrumbItem>
-        </Breadcrumb>
+        </PipelineContextBreadcrumb>
       }
       empty={false}
       provideChildrenPadding

@@ -12,12 +12,12 @@ import {
   Button,
 } from '@patternfly/react-core';
 import { QuestionCircleIcon } from '@patternfly/react-icons';
-import { ContainerResources, Identifier } from '~/types';
-import CPUField from '~/components/CPUField';
-import MemoryField from '~/components/MemoryField';
-import NumberInputWrapper from '~/components/NumberInputWrapper';
-import { ValidationContext } from '~/utilities/useValidation';
-import DashboardHelpTooltip from '~/concepts/dashboard/DashboardHelpTooltip';
+import { ContainerResources, Identifier } from '#~/types';
+import CPUField from '#~/components/CPUField';
+import MemoryField from '#~/components/MemoryField';
+import NumberInputWrapper from '#~/components/NumberInputWrapper';
+import { ValidationContext } from '#~/utilities/useValidation';
+import DashboardHelpTooltip from '#~/concepts/dashboard/DashboardHelpTooltip';
 import { formatResourceValue } from './utils';
 
 type HardwareProfileCustomizeProps = {
@@ -54,7 +54,7 @@ const HardwareProfileCustomize: React.FC<HardwareProfileCustomizeProps> = ({
 
   const renderField = (identifier: Identifier, type: 'requests' | 'limits') => {
     const value = data[type]?.[identifier.identifier];
-    const onChange = (v: string) =>
+    const onChange = (v: string | undefined) =>
       setData({
         ...data,
         [type]: {

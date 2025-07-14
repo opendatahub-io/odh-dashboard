@@ -1,42 +1,42 @@
 import { K8sStatus, k8sDeleteResource } from '@openshift/dynamic-plugin-sdk-utils';
-import { mock200Status, mock404Error } from '~/__mocks__/mockK8sStatus';
+import { mock200Status, mock404Error } from '#~/__mocks__/mockK8sStatus';
 
-import { mockServingRuntimeTemplateK8sResource } from '~/__mocks__/mockServingRuntimeTemplateK8sResource';
-import { testHook } from '~/__tests__/unit/testUtils/hooks';
+import { mockServingRuntimeTemplateK8sResource } from '#~/__mocks__/mockServingRuntimeTemplateK8sResource';
+import { testHook } from '#~/__tests__/unit/testUtils/hooks';
 import {
   assembleServingRuntimeTemplate,
   deleteTemplate,
   groupVersionKind,
   useTemplates,
-} from '~/api';
-import { TemplateModel } from '~/api/models';
-import { K8sDSGResource, TemplateKind } from '~/k8sTypes';
-import useCustomServingRuntimesEnabled from '~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
-import useModelServingEnabled from '~/pages/modelServing/useModelServingEnabled';
-import { ServingRuntimeAPIProtocol, ServingRuntimePlatform } from '~/types';
-import { genRandomChars } from '~/utilities/string';
-import useK8sWatchResourceList from '~/utilities/useK8sWatchResourceList';
+} from '#~/api';
+import { TemplateModel } from '#~/api/models';
+import { K8sDSGResource, TemplateKind } from '#~/k8sTypes';
+import useCustomServingRuntimesEnabled from '#~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
+import useModelServingEnabled from '#~/pages/modelServing/useModelServingEnabled';
+import { ServingRuntimeAPIProtocol, ServingRuntimePlatform } from '#~/types';
+import { genRandomChars } from '#~/utilities/string';
+import useK8sWatchResourceList from '#~/utilities/useK8sWatchResourceList';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sListResource: jest.fn(),
   k8sDeleteResource: jest.fn(),
 }));
 
-jest.mock('~/utilities/string', () => ({
+jest.mock('#~/utilities/string', () => ({
   genRandomChars: jest.fn(),
 }));
 
-jest.mock('~/utilities/useK8sWatchResourceList', () => ({
+jest.mock('#~/utilities/useK8sWatchResourceList', () => ({
   __esModule: true,
   default: jest.fn(),
 }));
 
-jest.mock('~/pages/modelServing/useModelServingEnabled', () => ({
+jest.mock('#~/pages/modelServing/useModelServingEnabled', () => ({
   __esModule: true,
   default: jest.fn(),
 }));
 
-jest.mock('~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled', () => ({
+jest.mock('#~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled', () => ({
   __esModule: true,
   default: jest.fn(),
 }));

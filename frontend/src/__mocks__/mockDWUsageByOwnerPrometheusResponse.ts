@@ -1,5 +1,5 @@
-import { WorkloadMetricIndexedByOwner, WorkloadMetricPromQueryResponse } from '~/api';
-import { WorkloadOwnerType } from '~/k8sTypes';
+import { WorkloadMetricIndexedByOwner, WorkloadMetricPromQueryResponse } from '#~/api';
+import { WorkloadOwnerType } from '#~/k8sTypes';
 import { mockPrometheusQueryVectorResponse } from './mockPrometheusQueryVectorResponse';
 
 export const mockDWUsageByOwnerPrometheusResponse = (

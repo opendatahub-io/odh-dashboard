@@ -1,21 +1,21 @@
-import { deleteOpenShiftProject } from '~/__tests__/cypress/cypress/utils/oc_commands/project';
-import { HTPASSWD_CLUSTER_ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
-import { projectDetails, projectListPage } from '~/__tests__/cypress/cypress/pages/projects';
+import { deleteOpenShiftProject } from '#~/__tests__/cypress/cypress/utils/oc_commands/project';
+import { HTPASSWD_CLUSTER_ADMIN_USER } from '#~/__tests__/cypress/cypress/utils/e2eUsers';
+import { projectDetails, projectListPage } from '#~/__tests__/cypress/cypress/pages/projects';
+import { retryableBefore } from '#~/__tests__/cypress/cypress/utils/retryableHooks';
+import { createCleanProject } from '#~/__tests__/cypress/cypress/utils/projectChecker';
 import {
-  retryableBefore,
-  wasSetupPerformed,
-} from '~/__tests__/cypress/cypress/utils/retryableHooks';
-import { createCleanProject } from '~/__tests__/cypress/cypress/utils/projectChecker';
-import { addConnectionModal, connectionsPage } from '~/__tests__/cypress/cypress/pages/connections';
+  addConnectionModal,
+  connectionsPage,
+} from '#~/__tests__/cypress/cypress/pages/connections';
 import {
   inferenceServiceModal,
   modelServingGlobal,
   modelServingSection,
-} from '~/__tests__/cypress/cypress/pages/modelServing';
-import { checkInferenceServiceState } from '~/__tests__/cypress/cypress/utils/oc_commands/modelServing';
-import type { DeployOCIModelData } from '~/__tests__/cypress/cypress/types';
-import { loadDeployOCIModelFixture } from '~/__tests__/cypress/cypress/utils/dataLoader';
-import { generateTestUUID } from '~/__tests__/cypress/cypress/utils/uuidGenerator';
+} from '#~/__tests__/cypress/cypress/pages/modelServing';
+import { checkInferenceServiceState } from '#~/__tests__/cypress/cypress/utils/oc_commands/modelServing';
+import type { DeployOCIModelData } from '#~/__tests__/cypress/cypress/types';
+import { loadDeployOCIModelFixture } from '#~/__tests__/cypress/cypress/utils/dataLoader';
+import { generateTestUUID } from '#~/__tests__/cypress/cypress/utils/uuidGenerator';
 
 let projectName: string;
 let connectionName: string;
@@ -26,7 +26,7 @@ let modelDeploymentName: string;
 const uuid = generateTestUUID();
 
 describe(
-  'A user can create an OCI connection and deploy a model with it',
+  '[Product Bug: RHOAIENG-29340] A user can create an OCI connection and deploy a model with it',
   { testIsolation: false },
   () => {
     let testData: DeployOCIModelData;
@@ -50,16 +50,15 @@ describe(
     });
 
     after(() => {
-      //Check if the Before Method was executed to perform the setup
-      if (!wasSetupPerformed()) return;
-
-      // Delete provisioned Project - 5 min timeout to accomadate increased time to delete a project with a model
-      deleteOpenShiftProject(projectName, { timeout: 300000 });
+      // Delete provisioned Project
+      deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
     });
 
     it(
       'Verify User Can Create an OCI Connection in DS Connections Page And Deploy the Model',
-      { tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@Modelserving'] },
+      {
+        tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@Modelserving', '@NonConcurrent', '@Bug'],
+      },
       () => {
         cy.step(`Navigate to DS Project ${projectName}`);
         cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
@@ -86,18 +85,18 @@ describe(
         modelServingGlobal.findSingleServingModelButton().click();
         modelServingGlobal.findDeployModelButton().click();
         inferenceServiceModal.findModelNameInput().type(modelDeploymentName);
-        inferenceServiceModal.findServingRuntimeTemplate().click();
-        inferenceServiceModal.findOpenVinoServingRuntime().click();
+        inferenceServiceModal.findServingRuntimeTemplateSearchSelector().click();
+        inferenceServiceModal.findGlobalScopedTemplateOption('OpenVINO Model Server').click();
         inferenceServiceModal.findModelFrameworkSelect().click();
         inferenceServiceModal.findOpenVinoOnnx().click();
         inferenceServiceModal.findOCIModelURI().type(modelDeploymentURI);
         inferenceServiceModal.findSubmitButton().focus().click();
-        checkInferenceServiceState(modelDeploymentName);
+        checkInferenceServiceState(modelDeploymentName, projectName);
         modelServingSection.findModelServerName(modelDeploymentName);
         // Note reload is required as status tooltip was not found due to a stale element
         cy.reload();
         modelServingSection.findStatusTooltip().click({ force: true });
-        cy.contains('Loaded', { timeout: 120000 }).should('be.visible');
+        cy.contains('Model is deployed', { timeout: 120000 }).should('be.visible');
       },
     );
   },

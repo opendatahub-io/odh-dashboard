@@ -1,10 +1,10 @@
 import React, { act } from 'react';
 import '@testing-library/jest-dom';
 import { fireEvent, render, screen } from '@testing-library/react';
-import { ManageConnectionModal } from '~/pages/projects/screens/detail/connections/ManageConnectionsModal';
-import { mockConnectionTypeConfigMapObj } from '~/__mocks__/mockConnectionType';
-import { mockProjectK8sResource } from '~/__mocks__';
-import { mockConnection } from '~/__mocks__/mockConnection';
+import { ManageConnectionModal } from '#~/pages/projects/screens/detail/connections/ManageConnectionsModal';
+import { mockConnectionTypeConfigMapObj } from '#~/__mocks__/mockConnectionType';
+import { mockProjectK8sResource } from '#~/__mocks__';
+import { mockConnection } from '#~/__mocks__/mockConnection';
 
 describe('Create connection modal', () => {
   const onCloseMock = jest.fn();
@@ -32,7 +32,7 @@ describe('Create connection modal', () => {
       />,
     );
 
-    expect(screen.getByRole('dialog', { name: 'Create connection' })).toBeTruthy();
+    expect(screen.getByRole('dialog')).toBeTruthy();
     expect(screen.getByRole('combobox')).toHaveValue('the only type');
     expect(screen.getByRole('textbox', { name: 'Connection name' })).toBeVisible();
     expect(screen.getByRole('textbox', { name: 'Connection description' })).toBeVisible();
@@ -430,7 +430,7 @@ describe('Edit connection modal', () => {
       />,
     );
 
-    expect(screen.getByRole('dialog', { name: 'Edit connection' })).toBeTruthy();
+    expect(screen.getByRole('dialog')).toBeTruthy();
     expect(screen.getByRole('combobox')).toHaveValue('s3');
     expect(screen.getByRole('textbox', { name: 'Connection name' })).toHaveValue('s3-connection');
     expect(screen.getByRole('textbox', { name: 'Connection description' })).toHaveValue('s3 desc');

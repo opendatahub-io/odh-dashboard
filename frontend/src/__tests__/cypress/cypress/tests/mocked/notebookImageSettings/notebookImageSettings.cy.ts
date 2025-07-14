@@ -1,28 +1,34 @@
-import { mockByon } from '~/__mocks__/mockByon';
-import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
+import { deleteModal } from '#~/__tests__/cypress/cypress/pages/components/DeleteModal';
 import {
   importNotebookImageModal,
   notebookImageDeleteModal,
   notebookImageSettings,
   updateNotebookImageModal,
-} from '~/__tests__/cypress/cypress/pages/notebookImageSettings';
-import { pageNotfound } from '~/__tests__/cypress/cypress/pages/pageNotFound';
-import { projectListPage } from '~/__tests__/cypress/cypress/pages/projects';
-import { be } from '~/__tests__/cypress/cypress/utils/should';
+} from '#~/__tests__/cypress/cypress/pages/notebookImageSettings';
+import { pageNotfound } from '#~/__tests__/cypress/cypress/pages/pageNotFound';
+import { projectListPage } from '#~/__tests__/cypress/cypress/pages/projects';
+import { be } from '#~/__tests__/cypress/cypress/utils/should';
 import {
   asProductAdminUser,
   asProjectAdminUser,
-} from '~/__tests__/cypress/cypress/utils/mockUsers';
-import { testPagination } from '~/__tests__/cypress/cypress/utils/pagination';
+} from '#~/__tests__/cypress/cypress/utils/mockUsers';
+import { testPagination } from '#~/__tests__/cypress/cypress/utils/pagination';
 import {
   AcceleratorProfileModel,
   HardwareProfileModel,
-} from '~/__tests__/cypress/cypress/utils/models';
-import { mockDashboardConfig, mockK8sResourceList } from '~/__mocks__';
-import { mockHardwareProfile } from '~/__mocks__/mockHardwareProfile';
-import { mockAcceleratorProfile } from '~/__mocks__/mockAcceleratorProfile';
-import { IdentifierResourceType } from '~/types';
-import { HardwareProfileFeatureVisibility } from '~/k8sTypes';
+  ImageStreamModel,
+} from '#~/__tests__/cypress/cypress/utils/models';
+import { mockDashboardConfig, mockK8sResourceList } from '#~/__mocks__';
+import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile';
+import { mockAcceleratorProfile } from '#~/__mocks__/mockAcceleratorProfile';
+import {
+  IdentifierResourceType,
+  ImageStreamAnnotation,
+  ImageStreamLabel,
+  ImageStreamSpecTagAnnotation,
+} from '#~/types';
+import { HardwareProfileFeatureVisibility } from '#~/k8sTypes';
+import { mockImageStreamK8sResource } from '#~/__mocks__/mockImageStreamK8sResource';
 
 it('Workbench image settings should not be available for non product admins', () => {
   asProjectAdminUser();
@@ -38,25 +44,32 @@ describe('Workbench image settings', () => {
 
   it('Table sorting and pagination', () => {
     const totalItems = 1000;
-    cy.interceptOdh(
-      'GET /api/images/byon',
-      Array.from(
-        { length: totalItems },
-        (_, i) =>
-          mockByon([
-            {
-              id: `id-${i}`,
-              /* eslint-disable camelcase */
-              display_name: `image-${i}`,
-              /* eslint-enable camelcase */
-              name: `byon-${i}`,
-              description: `description-${i}`,
-              provider: `provider-${i}`,
-              visible: i % 3 === 0,
+    cy.interceptK8sList(
+      { model: ImageStreamModel, ns: 'opendatahub' },
+      mockK8sResourceList(
+        Array.from({ length: totalItems }, (_, i) =>
+          mockImageStreamK8sResource({
+            name: `byon-${i}`,
+            displayName: `image-${i}`,
+            opts: {
+              metadata: {
+                uid: `id-${i}`,
+                labels: {
+                  'app.kubernetes.io/created-by': 'byon',
+                  [ImageStreamLabel.NOTEBOOK]: (i % 3 === 0).toString(),
+                },
+                annotations: {
+                  [ImageStreamAnnotation.DESC]: `description-${i}`,
+                  [ImageStreamAnnotation.DISP_NAME]: `image-${i}`,
+                  [ImageStreamAnnotation.CREATOR]: `provider-${i}`,
+                },
+              },
             },
-          ])[0],
+          }),
+        ),
       ),
     );
+
     projectListPage.visit();
     notebookImageSettings.navigate();
 
@@ -89,23 +102,29 @@ describe('Workbench image settings', () => {
 
   it('Table filtering and searching by name', () => {
     const totalItems = 1000;
-    cy.interceptOdh(
-      'GET /api/images/byon',
-      Array.from(
-        { length: totalItems },
-        (_, i) =>
-          mockByon([
-            {
-              id: `id-${i}`,
-              /* eslint-disable camelcase */
-              display_name: `image-${i}`,
-              /* eslint-enable camelcase */
-              name: `byon-${i}`,
-              description: `description-${i}`,
-              provider: `provider-${i}`,
-              visible: i % 3 === 0,
+    cy.interceptK8sList(
+      { model: ImageStreamModel, ns: 'opendatahub' },
+      mockK8sResourceList(
+        Array.from({ length: totalItems }, (_, i) =>
+          mockImageStreamK8sResource({
+            name: `byon-${i}`,
+            displayName: `image-${i}`,
+            opts: {
+              metadata: {
+                uid: `id-${i}`,
+                labels: {
+                  'app.kubernetes.io/created-by': 'byon',
+                  [ImageStreamLabel.NOTEBOOK]: (i % 3 === 0).toString(),
+                },
+                annotations: {
+                  [ImageStreamAnnotation.DESC]: `description-${i}`,
+                  [ImageStreamAnnotation.DISP_NAME]: `image-${i}`,
+                  [ImageStreamAnnotation.CREATOR]: `provider-${i}`,
+                },
+              },
             },
-          ])[0],
+          }),
+        ),
       ),
     );
     projectListPage.visit();
@@ -121,23 +140,29 @@ describe('Workbench image settings', () => {
 
   it('Table filtering and searching by provider', () => {
     const totalItems = 1000;
-    cy.interceptOdh(
-      'GET /api/images/byon',
-      Array.from(
-        { length: totalItems },
-        (_, i) =>
-          mockByon([
-            {
-              id: `id-${i}`,
-              /* eslint-disable camelcase */
-              display_name: `image-${i}`,
-              /* eslint-enable camelcase */
-              name: `byon-${i}`,
-              description: `description-${i}`,
-              provider: `provider-${i}`,
-              visible: i % 3 === 0,
+    cy.interceptK8sList(
+      { model: ImageStreamModel, ns: 'opendatahub' },
+      mockK8sResourceList(
+        Array.from({ length: totalItems }, (_, i) =>
+          mockImageStreamK8sResource({
+            name: `byon-${i}`,
+            displayName: `image-${i}`,
+            opts: {
+              metadata: {
+                uid: `id-${i}`,
+                labels: {
+                  'app.kubernetes.io/created-by': 'byon',
+                  [ImageStreamLabel.NOTEBOOK]: (i % 3 === 0).toString(),
+                },
+                annotations: {
+                  [ImageStreamAnnotation.DESC]: `description-${i}`,
+                  [ImageStreamAnnotation.DISP_NAME]: `image-${i}`,
+                  [ImageStreamAnnotation.CREATOR]: `provider-${i}`,
+                },
+              },
             },
-          ])[0],
+          }),
+        ),
       ),
     );
     projectListPage.visit();
@@ -151,7 +176,10 @@ describe('Workbench image settings', () => {
   });
 
   it('Import form fields', () => {
-    cy.interceptOdh('GET /api/images/byon', mockByon([{ url: 'test-image:latest' }]));
+    cy.interceptK8sList(
+      { model: ImageStreamModel, ns: 'opendatahub' },
+      mockK8sResourceList([mockImageStreamK8sResource({})]),
+    );
     cy.interceptOdh('POST /api/images', { success: true }).as('importNotebookImage');
 
     notebookImageSettings.visit();
@@ -248,13 +276,48 @@ describe('Workbench image settings', () => {
   });
 
   it('Edit form fields match', () => {
-    cy.interceptOdh('GET /api/images/byon', mockByon([{ url: 'test-image:latest' }]));
+    cy.interceptK8sList(
+      { model: ImageStreamModel, ns: 'opendatahub' },
+      mockK8sResourceList([
+        mockImageStreamK8sResource({
+          name: 'byon-123',
+          displayName: 'Testing Custom Image',
+          opts: {
+            metadata: {
+              labels: {
+                'app.kubernetes.io/created-by': 'byon',
+                [ImageStreamLabel.NOTEBOOK]: 'true',
+              },
+              annotations: {
+                [ImageStreamAnnotation.DISP_NAME]: 'Testing Custom Image',
+                [ImageStreamAnnotation.URL]: 'test-image:latest',
+                [ImageStreamAnnotation.DESC]: 'A custom notebook image',
+              },
+            },
+            spec: {
+              tags: [
+                {
+                  annotations: {
+                    [ImageStreamSpecTagAnnotation.DEPENDENCIES]:
+                      '[{"name":"test-package","version": "1.0", "visible": true}]',
+                    [ImageStreamSpecTagAnnotation.SOFTWARE]:
+                      '[{"name":"test-software","version":"2.0", "visible": true}]',
+                  },
+                },
+              ],
+            },
+          },
+        }),
+      ]),
+    );
+
     cy.interceptOdh(
       'GET /api/config',
       mockDashboardConfig({
         disableHardwareProfiles: false,
       }),
     );
+
     cy.interceptOdh(
       'PUT /api/images/:image',
       { path: { image: 'byon-123' } },
@@ -386,7 +449,38 @@ describe('Workbench image settings', () => {
       { success: true },
     ).as('delete');
 
-    cy.interceptOdh('GET /api/images/byon', mockByon([{ url: 'test-image:latest' }]));
+    cy.interceptK8sList(
+      { model: ImageStreamModel, ns: 'opendatahub' },
+      mockK8sResourceList([
+        mockImageStreamK8sResource({
+          name: 'byon-123',
+          displayName: 'Testing Custom Image',
+          opts: {
+            metadata: {
+              labels: {
+                'app.kubernetes.io/created-by': 'byon',
+                [ImageStreamLabel.NOTEBOOK]: 'true',
+              },
+              annotations: {
+                [ImageStreamAnnotation.DISP_NAME]: 'Testing Custom Image',
+              },
+            },
+            spec: {
+              tags: [
+                {
+                  annotations: {
+                    [ImageStreamSpecTagAnnotation.DEPENDENCIES]:
+                      '[{"name":"test-package","version": "1.0", "visible": true}]',
+                    [ImageStreamSpecTagAnnotation.SOFTWARE]:
+                      '[{"name":"test-software","version":"2.0", "visible": true}]',
+                  },
+                },
+              ],
+            },
+          },
+        }),
+      ]),
+    );
 
     notebookImageSettings.visit();
 
@@ -425,13 +519,47 @@ describe('Workbench image settings', () => {
       },
     ).as('deleteError');
 
-    cy.interceptOdh(
-      'GET /api/images/byon',
-      mockByon([
-        {
+    cy.interceptK8sList(
+      { model: ImageStreamModel, ns: 'opendatahub' },
+      mockK8sResourceList([
+        mockImageStreamK8sResource({
           name: 'byon-1',
-          error: 'Testing error message',
-        },
+          displayName: 'Testing Custom Image',
+          opts: {
+            metadata: {
+              labels: {
+                'app.kubernetes.io/created-by': 'byon',
+                [ImageStreamLabel.NOTEBOOK]: 'true',
+              },
+              annotations: {
+                [ImageStreamAnnotation.DISP_NAME]: 'Testing Custom Image',
+              },
+            },
+            status: {
+              tags: [
+                {
+                  tag: 'tag-1',
+                  conditions: [
+                    { type: 'ImportSuccess', status: 'False', message: 'Testing error message' },
+                  ],
+                },
+              ],
+            },
+            spec: {
+              tags: [
+                {
+                  name: 'tag-1',
+                  annotations: {
+                    [ImageStreamSpecTagAnnotation.DEPENDENCIES]:
+                      '[{"name":"test-package","version": "1.0", "visible": true}]',
+                    [ImageStreamSpecTagAnnotation.SOFTWARE]:
+                      '[{"name":"test-software","version":"2.0", "visible": true}]',
+                  },
+                },
+              ],
+            },
+          },
+        }),
       ]),
     );
 
@@ -473,7 +601,10 @@ describe('Workbench image settings', () => {
   });
 
   it('Import modal opens from the empty state', () => {
-    cy.interceptOdh('GET /api/images/byon', mockByon([]));
+    cy.interceptK8sList(
+      { model: ImageStreamModel, ns: 'opendatahub' },
+      mockK8sResourceList([mockImageStreamK8sResource({})]),
+    );
 
     notebookImageSettings.visit();
 

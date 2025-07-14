@@ -1,8 +1,15 @@
 import { AlertVariant } from '@patternfly/react-core';
-import { Connection } from '~/concepts/connectionTypes/types';
-import { ImagePullSecret, SecretKind, ServingContainer, ServingRuntimeKind } from '~/k8sTypes';
-import { EnvVariableDataEntry } from '~/pages/projects/types';
-import { ContainerResources } from '~/types';
+import { Connection } from '#~/concepts/connectionTypes/types';
+import {
+  ImagePullSecret,
+  InferenceServiceKind,
+  SecretKind,
+  ServingContainer,
+  ServingRuntimeKind,
+} from '#~/k8sTypes';
+import { EnvVariableDataEntry } from '#~/pages/projects/types';
+import { ContainerResources } from '#~/types';
+import { ToggleState } from '#~/components/StateActionToggle';
 
 export enum PerformanceMetricType {
   SERVER = 'server',
@@ -30,8 +37,13 @@ export enum InferenceServiceModelState {
   UNKNOWN = 'Unknown',
 }
 
+export type ModelServingState = ToggleState & {
+  inferenceService: InferenceServiceKind;
+};
+
 export type ModelStatus = {
   failedToSchedule: boolean;
+  failureMessage?: string | null;
 };
 
 export type SupportedModelFormatsInfo = {

@@ -1,6 +1,11 @@
-import { mock200Status, mock404Error } from '~/__mocks__/mockK8sStatus';
-import { K8sStatusError, isK8sStatus, throwErrorFromAxios } from '~/api/errorUtils';
-import { mockAxiosError } from '~/__mocks__/mockAxiosError';
+import { mock200Status, mock404Error } from '#~/__mocks__/mockK8sStatus';
+import {
+  K8sStatusError,
+  getGenericErrorCode,
+  isK8sStatus,
+  throwErrorFromAxios,
+} from '#~/api/errorUtils';
+import { mockAxiosError } from '#~/__mocks__/mockAxiosError';
 
 describe('isK8sStatus', () => {
   it('should return true when data is k8sStatus', () => {
@@ -38,5 +43,24 @@ describe('throwErrorFromAxios', () => {
       message: 'Not Found',
     };
     expect(() => throwErrorFromAxios(error)).toThrowError('Not Found');
+  });
+});
+
+describe('getGenericErrorCode', () => {
+  it('should return k8sStatusError status code', () => {
+    const statusObject = mock404Error({});
+    const error = new K8sStatusError(statusObject);
+    expect(getGenericErrorCode(error)).toBe(404);
+  });
+
+  it('should return axios error status code', () => {
+    const axiosResponse = mockAxiosError({ message: 'error' });
+    expect(axiosResponse.response?.status).toBe(404);
+    expect(getGenericErrorCode(axiosResponse)).toBe(404);
+  });
+
+  it('should return undefined when error is not k8sStatusError or axios error', () => {
+    const error = 'error';
+    expect(getGenericErrorCode(error)).toBeUndefined();
   });
 });

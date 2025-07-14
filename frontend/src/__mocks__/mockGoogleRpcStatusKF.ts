@@ -1,4 +1,4 @@
-import { GoogleRpcStatusKF } from '~/concepts/pipelines/kfTypes';
+import { GoogleRpcStatusKF } from '#~/concepts/pipelines/kfTypes';
 
 type MockGoogleRpcStatusKF = { message?: string };
 

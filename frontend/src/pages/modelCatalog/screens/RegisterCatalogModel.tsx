@@ -13,47 +13,48 @@ import {
 import React from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import spacing from '@patternfly/react-styles/css/utilities/Spacing/spacing';
-import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
-import ApplicationsPage from '~/pages/ApplicationsPage';
+import ApplicationsPage from '#~/pages/ApplicationsPage';
 import {
   ModelLocationType,
   useRegisterCatalogModelData,
-} from '~/pages/modelRegistry/screens/RegisterModel/useRegisterModelData';
-import RegistrationCommonFormSections from '~/pages/modelRegistry/screens/RegisterModel/RegistrationCommonFormSections';
+} from '#~/pages/modelRegistry/screens/RegisterModel/useRegisterModelData';
+import RegistrationCommonFormSections from '#~/pages/modelRegistry/screens/RegisterModel/RegistrationCommonFormSections';
 import {
   isModelNameExisting,
   isNameValid,
   isRegisterCatalogModelSubmitDisabled,
   registerModel,
-} from '~/pages/modelRegistry/screens/RegisterModel/utils';
-import { SubmitLabel } from '~/pages/modelRegistry/screens/RegisterModel/const';
-import RegisterModelDetailsFormSection from '~/pages/modelRegistry/screens/RegisterModel/RegisterModelDetailsFormSection';
-import RegistrationFormFooter from '~/pages/modelRegistry/screens/RegisterModel/RegistrationFormFooter';
-import { getCatalogModelDetailsRoute, registeredModelRoute } from '~/routes';
-import { useAppSelector } from '~/redux/hooks';
-import { ModelCatalogContext } from '~/concepts/modelCatalog/context/ModelCatalogContext';
-import { CatalogModel } from '~/concepts/modelCatalog/types';
-import ModelRegistrySelector from '~/pages/modelRegistry/screens/ModelRegistrySelector';
-import useModelRegistryAPIState from '~/concepts/modelRegistry/context/useModelRegistryAPIState';
+} from '#~/pages/modelRegistry/screens/RegisterModel/utils';
+import { SubmitLabel } from '#~/pages/modelRegistry/screens/RegisterModel/const';
+import RegisterModelDetailsFormSection from '#~/pages/modelRegistry/screens/RegisterModel/RegisterModelDetailsFormSection';
+import RegistrationFormFooter from '#~/pages/modelRegistry/screens/RegisterModel/RegistrationFormFooter';
+import { getCatalogModelDetailsRoute } from '#~/routes/modelCatalog/catalogModelDetails';
+import { registeredModelRoute } from '#~/routes/modelRegistry/registeredModels';
+import { useAppSelector } from '#~/redux/hooks';
+import { ModelCatalogContext } from '#~/concepts/modelCatalog/context/ModelCatalogContext';
+import { CatalogModel } from '#~/concepts/modelCatalog/types';
+import ModelRegistrySelector from '#~/pages/modelRegistry/screens/ModelRegistrySelector';
+import useModelRegistryAPIState from '#~/concepts/modelRegistry/context/useModelRegistryAPIState';
 import {
   createCustomPropertiesFromModel,
   decodeParams,
   findModelFromModelCatalogSources,
   getTagFromModel,
-} from '~/pages/modelCatalog/utils';
-import { ModelRegistryMetadataType } from '~/concepts/modelRegistry/types';
-import { CatalogModelDetailsParams } from '~/pages/modelCatalog/types';
-import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
-import useRegisteredModels from '~/concepts/modelRegistry/apiHooks/useRegisteredModels';
-import { catalogParamsToModelSourceProperties } from '~/concepts/modelRegistry/utils';
+} from '#~/pages/modelCatalog/utils';
+import { ModelRegistryMetadataType } from '#~/concepts/modelRegistry/types';
+import { CatalogModelDetailsParams } from '#~/pages/modelCatalog/types';
+import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
+import useRegisteredModels from '#~/concepts/modelRegistry/apiHooks/useRegisteredModels';
+import { catalogParamsToModelSourceProperties } from '#~/concepts/modelRegistry/utils';
+import { ModelRegistriesContext } from '#~/concepts/modelRegistry/context/ModelRegistriesContext';
 
 const RegisterCatalogModel: React.FC = () => {
   const navigate = useNavigate();
   const params = useParams<CatalogModelDetailsParams>();
   const decodedParams = React.useMemo(() => decodeParams(params), [params]);
 
-  const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
+  const { preferredModelRegistry } = React.useContext(ModelRegistriesContext);
   const { modelCatalogSources } = React.useContext(ModelCatalogContext);
 
   const [registeredModels, registeredModelsLoaded, registeredModelsLoadError] =

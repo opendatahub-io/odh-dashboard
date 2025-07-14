@@ -1,29 +1,33 @@
-import { mockRoleBindingK8sResource } from '~/__mocks__/mockRoleBindingK8sResource';
+import { mockRoleBindingK8sResource } from '#~/__mocks__/mockRoleBindingK8sResource';
 import {
+  mockCustomSecretK8sResource,
+  mockDashboardConfig,
   mockK8sResourceList,
   mockNotebookK8sResource,
-  mockDashboardConfig,
   mockStorageClassList,
-  mockCustomSecretK8sResource,
-} from '~/__mocks__';
-import type { RoleBindingSubject } from '~/k8sTypes';
-import { mockAllowedUsers } from '~/__mocks__/mockAllowedUsers';
-import { mockNotebookImageInfo } from '~/__mocks__/mockNotebookImageInfo';
-import { mockStartNotebookData } from '~/__mocks__/mockStartNotebookData';
-import { notebookServer } from '~/__tests__/cypress/cypress/pages/notebookServer';
-import { asClusterAdminUser, asProjectEditUser } from '~/__tests__/cypress/cypress/utils/mockUsers';
+} from '#~/__mocks__';
+import type { RoleBindingSubject } from '#~/k8sTypes';
+import { mockAllowedUsers } from '#~/__mocks__/mockAllowedUsers';
+import { mockStartNotebookData } from '#~/__mocks__/mockStartNotebookData';
+import { notebookServer } from '#~/__tests__/cypress/cypress/pages/notebookServer';
+import {
+  asClusterAdminUser,
+  asProjectEditUser,
+} from '#~/__tests__/cypress/cypress/utils/mockUsers';
 import {
   notebookController,
   stopNotebookModal,
-} from '~/__tests__/cypress/cypress/pages/administration';
-import { homePage } from '~/__tests__/cypress/cypress/pages/home/home';
+} from '#~/__tests__/cypress/cypress/pages/administration';
+import { homePage } from '#~/__tests__/cypress/cypress/pages/home/home';
 import {
   AcceleratorProfileModel,
+  ImageStreamModel,
   StorageClassModel,
-} from '~/__tests__/cypress/cypress/utils/models';
-import { mockAcceleratorProfile } from '~/__mocks__/mockAcceleratorProfile';
-import type { EnvironmentVariable, NotebookData } from '~/types';
-import { mockConfigMap } from '~/__mocks__/mockConfigMap';
+} from '#~/__tests__/cypress/cypress/utils/models';
+import { mockAcceleratorProfile } from '#~/__mocks__/mockAcceleratorProfile';
+import type { EnvironmentVariable, NotebookData } from '#~/types';
+import { mockConfigMap } from '#~/__mocks__/mockConfigMap';
+import { mockImageStreamK8sResourceList } from '#~/__mocks__/mockImageStreamK8sResource';
 
 const groupSubjects: RoleBindingSubject[] = [
   {
@@ -44,7 +48,12 @@ const initIntercepts = () => {
       }),
     ]),
   );
-  cy.interceptOdh('GET /api/images/:type', { path: { type: 'jupyter' } }, mockNotebookImageInfo());
+
+  cy.interceptK8sList(
+    { model: ImageStreamModel, ns: 'opendatahub' },
+    mockK8sResourceList(mockImageStreamK8sResourceList()),
+  );
+
   cy.interceptOdh('GET /api/status/openshift-ai-notebooks/allowedUsers', mockAllowedUsers({}));
   cy.interceptOdh(
     'GET /api/config',
@@ -72,7 +81,7 @@ it('Administration tab should not be accessible for non-product admins', () => {
   notebookServer.visit();
   notebookController.findAdministrationTab().should('not.exist');
   notebookController.findSpawnerTab().should('not.exist');
-  notebookController.findAppTitle().should('contain', 'Start a notebook server');
+  notebookController.findAppTitle().should('contain', 'Start a basic workbench');
 });
 
 describe('NotebookServer', () => {
@@ -81,7 +90,7 @@ describe('NotebookServer', () => {
     initIntercepts();
   });
 
-  it('should start notebook server', () => {
+  it('should start a workbench', () => {
     notebookServer.visit();
     notebookServer.findStartServerButton().should('be.visible');
     notebookServer.findStartServerButton().click();
@@ -119,7 +128,7 @@ describe('NotebookServer', () => {
     });
   });
 
-  it('should start notebook server with params', () => {
+  it('should start a workbench with params', () => {
     const existingParamEnvs: EnvironmentVariable[] = [
       {
         name: 'one',
@@ -182,7 +191,7 @@ describe('NotebookServer', () => {
     notebookServer.findEnvVarValue(1).should('contain.value', 'test2');
   });
 
-  it('should start notebook server with hardware profile', () => {
+  it('should start a workbench with hardware profile', () => {
     cy.interceptOdh(
       'GET /api/config',
       mockDashboardConfig({
@@ -210,7 +219,11 @@ describe('NotebookServer', () => {
 
       expect(podSpecOptions.selectedAcceleratorProfile).to.eq(undefined);
       expect(podSpecOptions.selectedHardwareProfile).not.to.eq(undefined);
-      expect(podSpecOptions.selectedHardwareProfile?.spec.displayName).to.eq('Large');
+      expect(
+        podSpecOptions.selectedHardwareProfile?.metadata.annotations?.[
+          'opendatahub.io/display-name'
+        ],
+      ).to.eq('Large');
       expect(podSpecOptions.selectedHardwareProfile?.spec.identifiers).to.eql([
         {
           displayName: 'CPU',
@@ -232,7 +245,7 @@ describe('NotebookServer', () => {
     });
   });
 
-  it('should start notebook server with accelerator profile', () => {
+  it('should start a workbench with accelerator profile', () => {
     notebookServer.visit();
     notebookServer.findAcceleratorProfileSelect().click();
     notebookServer.findAcceleratorProfileSelect().findSelectOption('Test GPU').click();
@@ -285,7 +298,7 @@ describe('NotebookServer', () => {
     });
   });
 
-  it('should stop notebook server', () => {
+  it('should stop a workbench', () => {
     cy.interceptOdh(
       'GET /api/notebooks/openshift-ai-notebooks/:username/status',
       { path: { username: 'jupyter-nb-test-2duser' } },

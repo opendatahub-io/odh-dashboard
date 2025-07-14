@@ -1,13 +1,13 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { PipelinesFilterOp, PipelinesFilterPredicate } from '~/concepts/pipelines/kfTypes';
+import { PipelinesFilterOp, PipelinesFilterPredicate } from '#~/concepts/pipelines/kfTypes';
 
-import { PipelinesFilter } from '~/concepts/pipelines/types';
-import useDebounceCallback from '~/utilities/useDebounceCallback';
-import FilterToolbar from '~/components/FilterToolbar';
-import { PipelineRunVersionsContext } from '~/pages/pipelines/global/runs/PipelineRunVersionsContext';
-import { PipelineRunExperimentsContext } from '~/pages/pipelines/global/runs/PipelineRunExperimentsContext';
+import { PipelinesFilter } from '#~/concepts/pipelines/types';
+import useDebounceCallback from '#~/utilities/useDebounceCallback';
+import FilterToolbar from '#~/components/FilterToolbar';
+import { PipelineRunVersionsContext } from '#~/pages/pipelines/global/runs/PipelineRunVersionsContext';
+import { PipelineRunExperimentsContext } from '#~/pages/pipelines/global/runs/PipelineRunExperimentsContext';
 
 export enum FilterOptions {
   NAME = 'name',

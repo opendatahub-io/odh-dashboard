@@ -6,10 +6,10 @@ import {
   k8sListResource,
   k8sPatchResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { mockRoleBindingK8sResource } from '~/__mocks__/mockRoleBindingK8sResource';
-import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
-import { mock200Status, mock404Error } from '~/__mocks__/mockK8sStatus';
-import { KnownLabels, RoleBindingKind, RoleBindingSubject } from '~/k8sTypes';
+import { mockRoleBindingK8sResource } from '#~/__mocks__/mockRoleBindingK8sResource';
+import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
+import { mock200Status, mock404Error } from '#~/__mocks__/mockK8sStatus';
+import { KnownLabels, RoleBindingKind, RoleBindingSubject } from '#~/k8sTypes';
 import {
   createRoleBinding,
   deleteRoleBinding,
@@ -18,12 +18,13 @@ import {
   getRoleBinding,
   listRoleBindings,
   patchRoleBindingOwnerRef,
-} from '~/api/k8s/roleBindings';
-import { RoleBindingModel } from '~/api/models/k8s';
+  patchRoleBindingSubjects,
+} from '#~/api/k8s/roleBindings';
+import { RoleBindingModel } from '#~/api/models/k8s';
 import {
   RoleBindingPermissionsRBType,
   RoleBindingPermissionsRoleType,
-} from '~/concepts/roleBinding/types';
+} from '#~/concepts/roleBinding/types';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sListResource: jest.fn(),
@@ -350,6 +351,34 @@ describe('patchRoleBindingOwnerRef', () => {
       fetchOptions: { requestInit: {} },
       model: RoleBindingModel,
       patches: [{ op: 'replace', path: '/metadata/ownerReferences', value: [] }],
+      queryOptions: { name: 'rbName', ns: namespace, queryParams: {} },
+    });
+    expect(k8sPatchResourceMock).toHaveBeenCalledTimes(1);
+    expect(result).toStrictEqual(roleBindingMock);
+  });
+});
+
+describe('patchRoleBindingSubjects', () => {
+  it('should patch role binding subjects', async () => {
+    const newSubjects: RoleBindingSubject[] = [
+      {
+        apiGroup: 'rbac.authorization.k8s.io',
+        kind: 'User',
+        name: 'test-user',
+      },
+    ];
+    k8sPatchResourceMock.mockResolvedValue(roleBindingMock);
+    const result = await patchRoleBindingSubjects('rbName', namespace, newSubjects);
+    expect(k8sPatchResourceMock).toHaveBeenCalledWith({
+      fetchOptions: { requestInit: {} },
+      model: RoleBindingModel,
+      patches: [
+        {
+          op: 'replace',
+          path: '/subjects',
+          value: newSubjects,
+        },
+      ],
       queryOptions: { name: 'rbName', ns: namespace, queryParams: {} },
     });
     expect(k8sPatchResourceMock).toHaveBeenCalledTimes(1);

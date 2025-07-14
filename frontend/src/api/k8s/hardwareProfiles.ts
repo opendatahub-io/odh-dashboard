@@ -8,10 +8,11 @@ import {
   K8sStatus,
   k8sUpdateResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { HardwareProfileKind, K8sAPIOptions } from '~/k8sTypes';
-import { HardwareProfileModel } from '~/api/models';
-import { applyK8sAPIOptions } from '~/api/apiMergeUtils';
-import { kindApiVersion, translateDisplayNameForK8s } from '~/concepts/k8s/utils';
+import { HardwareProfileKind, K8sAPIOptions } from '#~/k8sTypes';
+import { HardwareProfileModel } from '#~/api/models';
+import { applyK8sAPIOptions } from '#~/api/apiMergeUtils';
+import { kindApiVersion, translateDisplayNameForK8s } from '#~/concepts/k8s/utils';
+import { DisplayNameAnnotation } from '#~/types.ts';
 
 export const listHardwareProfiles = async (namespace: string): Promise<HardwareProfileKind[]> =>
   k8sListResource<HardwareProfileKind>({
@@ -29,26 +30,40 @@ export const getHardwareProfile = (name: string, namespace: string): Promise<Har
 
 export const assembleHardwareProfile = (
   hardwareProfileName: string,
-  data: HardwareProfileKind['spec'],
+  data: HardwareProfileKind['spec'] & {
+    displayName: string;
+    enabled: boolean;
+    description?: string;
+  },
   namespace: string,
   visibility: string[] = [],
-): HardwareProfileKind => ({
-  apiVersion: kindApiVersion(HardwareProfileModel),
-  kind: HardwareProfileModel.kind,
-  metadata: {
-    name: hardwareProfileName || translateDisplayNameForK8s(data.displayName),
-    namespace,
-    annotations: {
-      'opendatahub.io/modified-date': new Date().toISOString(),
-      'opendatahub.io/dashboard-feature-visibility': JSON.stringify(visibility),
+): HardwareProfileKind => {
+  const { displayName, enabled, description, ...spec } = data;
+  return {
+    apiVersion: kindApiVersion(HardwareProfileModel),
+    kind: HardwareProfileModel.kind,
+    metadata: {
+      name: hardwareProfileName || translateDisplayNameForK8s(displayName),
+      namespace,
+      annotations: {
+        [DisplayNameAnnotation.ODH_DISP_NAME]: displayName,
+        ...(description && { [DisplayNameAnnotation.ODH_DESC]: description }),
+        'opendatahub.io/disabled': (!enabled).toString(),
+        'opendatahub.io/modified-date': new Date().toISOString(),
+        'opendatahub.io/dashboard-feature-visibility': JSON.stringify(visibility),
+      },
     },
-  },
-  spec: data,
-});
+    spec,
+  };
+};
 
 export const createHardwareProfile = (
   hardwareProfileName: string,
-  data: HardwareProfileKind['spec'],
+  data: HardwareProfileKind['spec'] & {
+    displayName: string;
+    enabled: boolean;
+    description?: string;
+  },
   namespace: string,
   visibility?: string[],
   opts?: K8sAPIOptions,
@@ -80,7 +95,11 @@ export const createHardwareProfileFromResource = (
   );
 
 export const updateHardwareProfile = (
-  data: HardwareProfileKind['spec'],
+  data: HardwareProfileKind['spec'] & {
+    displayName: string;
+    enabled: boolean;
+    description?: string;
+  },
   existingHardwareProfile: HardwareProfileKind,
   namespace: string,
   visibility?: string[],
@@ -96,8 +115,16 @@ export const updateHardwareProfile = (
   const oldHardwareProfile = structuredClone(existingHardwareProfile);
   // clean up the resources from the old hardware profile
   oldHardwareProfile.spec.identifiers = [];
-  oldHardwareProfile.spec.nodeSelector = {};
-  oldHardwareProfile.spec.tolerations = [];
+  const oldHardwareProfileScheduling = oldHardwareProfile.spec.scheduling;
+  if (resource.spec.scheduling?.kueue && oldHardwareProfileScheduling?.node) {
+    delete oldHardwareProfileScheduling.node;
+  } else if (oldHardwareProfileScheduling?.node) {
+    oldHardwareProfileScheduling.node.nodeSelector = {};
+    oldHardwareProfileScheduling.node.tolerations = [];
+  }
+  if (resource.spec.scheduling?.node && oldHardwareProfileScheduling?.kueue) {
+    delete oldHardwareProfileScheduling.kueue;
+  }
 
   const hardwareProfileResource = _.merge({}, oldHardwareProfile, resource);
 
@@ -120,8 +147,8 @@ export const toggleHardwareProfileEnablement = (
         patches: [
           {
             op: 'replace',
-            path: '/spec/enabled',
-            value: enabled,
+            path: '/metadata/annotations/opendatahub.io~1disabled',
+            value: (!enabled).toString(),
           },
         ],
       },

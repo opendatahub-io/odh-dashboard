@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { NotebookRunningState, UsernameMap } from '~/types';
-import { getNotebookAndStatus } from '~/services/notebookService';
+import { NotebookRunningState, UsernameMap } from '#~/types';
+import { getNotebookAndStatus } from '#~/services/notebookService';
 import { POLL_INTERVAL } from './const';
 import { generateNotebookNameFromUsername } from './notebookControllerUtils';
 import { allSettledPromises } from './allSettledPromises';

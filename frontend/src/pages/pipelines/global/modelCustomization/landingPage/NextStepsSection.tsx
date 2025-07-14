@@ -1,11 +1,12 @@
 import * as React from 'react';
 import { Link } from 'react-router-dom';
 import { Accordion, Label, Title } from '@patternfly/react-core';
-import { ODH_PRODUCT_NAME } from '~/utilities/const';
-import { ModelCustomizationAccordionItem } from '~/pages/pipelines/global/modelCustomization/landingPage/ModelCustomizationAccordionItem';
-import { BaseSection } from '~/pages/pipelines/global/modelCustomization/landingPage/BaseSection';
-import { useToggleAccordion } from '~/pages/pipelines/global/modelCustomization/landingPage/useToggleAccordion';
-import { modelCatalogRoute, pipelineRunsRootPath } from '~/routes';
+import { ODH_PRODUCT_NAME } from '#~/utilities/const';
+import { ModelCustomizationAccordionItem } from '#~/pages/pipelines/global/modelCustomization/landingPage/ModelCustomizationAccordionItem';
+import { BaseSection } from '#~/pages/pipelines/global/modelCustomization/landingPage/BaseSection';
+import { useToggleAccordion } from '#~/pages/pipelines/global/modelCustomization/landingPage/useToggleAccordion';
+import { pipelineRunsRootPath } from '#~/routes/pipelines/runs';
+import { modelCatalogRoute } from '#~/routes/modelCatalog/catalogModelDetails';
 
 export const NextStepsSection: React.FC = () => {
   const { accordionItemsExpanded, handleToggleAccordion } = useToggleAccordion();

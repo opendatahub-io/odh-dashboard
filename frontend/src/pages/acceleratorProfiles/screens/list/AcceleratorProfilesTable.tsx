@@ -1,13 +1,13 @@
 import * as React from 'react';
-import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
-import { Table } from '~/components/table';
-import AcceleratorProfilesTableRow from '~/pages/acceleratorProfiles/screens/list/AcceleratorProfilesTableRow';
-import { AcceleratorProfileKind } from '~/k8sTypes';
+import DashboardEmptyTableView from '#~/concepts/dashboard/DashboardEmptyTableView';
+import { Table } from '#~/components/table';
+import AcceleratorProfilesTableRow from '#~/pages/acceleratorProfiles/screens/list/AcceleratorProfilesTableRow';
+import { AcceleratorProfileKind } from '#~/k8sTypes';
 import {
   columns,
   initialAcceleratorProfilesFilterData,
   AcceleratorProfilesFilterDataType,
-} from '~/pages/acceleratorProfiles/screens/list/const';
+} from '#~/pages/acceleratorProfiles/screens/list/const';
 import DeleteAcceleratorProfileModal from './DeleteAcceleratorProfileModal';
 import AcceleratorProfilesToolbar from './AcceleratorProfilesToolbar';
 

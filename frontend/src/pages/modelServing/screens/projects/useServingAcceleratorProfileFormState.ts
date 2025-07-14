@@ -1,7 +1,8 @@
-import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
 import useAcceleratorProfileFormState, {
   UseAcceleratorProfileFormResult,
-} from '~/utilities/useAcceleratorProfileFormState';
+} from '#~/utilities/useAcceleratorProfileFormState';
 
 const useServingAcceleratorProfileFormState = (
   servingRuntime?: ServingRuntimeKind | null,
@@ -14,8 +15,18 @@ const useServingAcceleratorProfileFormState = (
     servingRuntime?.spec.containers[0].resources;
   const tolerations =
     inferenceService?.spec.predictor.tolerations || servingRuntime?.spec.tolerations;
+  const isProjectScopedAvailable = useIsAreaAvailable(SupportedArea.DS_PROJECT_SCOPED).status;
+  const namespace = servingRuntime?.metadata.namespace;
+  const acceleratorProfileNamespace =
+    servingRuntime?.metadata.annotations?.['opendatahub.io/accelerator-profile-namespace'];
 
-  return useAcceleratorProfileFormState(resources, tolerations, acceleratorProfileName);
+  return useAcceleratorProfileFormState(
+    resources,
+    tolerations,
+    acceleratorProfileName,
+    isProjectScopedAvailable ? namespace : undefined,
+    acceleratorProfileNamespace,
+  );
 };
 
 export default useServingAcceleratorProfileFormState;

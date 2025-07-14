@@ -1,5 +1,5 @@
-import { RecursivePartial } from '~/typeHelpers';
-import { ConfigSecretItem, ModelRegistryKind } from '~/k8sTypes';
+import { RecursivePartial } from '#~/typeHelpers';
+import { ConfigSecretItem, ModelRegistryKind } from '#~/k8sTypes';
 import {
   CA_BUNDLE_CRT,
   ODH_CA_BUNDLE_CRT,

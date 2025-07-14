@@ -2,12 +2,12 @@ import React from 'react';
 import { useParams } from 'react-router';
 import { Breadcrumb, BreadcrumbItem } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
-import ApplicationsPage from '~/pages/ApplicationsPage';
-import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
-import { registeredModelRoute } from '~/routes';
-import useRegisteredModelById from '~/concepts/modelRegistry/apiHooks/useRegisteredModelById';
-import useModelVersionsByRegisteredModel from '~/concepts/modelRegistry/apiHooks/useModelVersionsByRegisteredModel';
-import { filterArchiveVersions } from '~/concepts/modelRegistry/utils';
+import ApplicationsPage from '#~/pages/ApplicationsPage';
+import { registeredModelRoute } from '#~/routes/modelRegistry/registeredModels';
+import useRegisteredModelById from '#~/concepts/modelRegistry/apiHooks/useRegisteredModelById';
+import useModelVersionsByRegisteredModel from '#~/concepts/modelRegistry/apiHooks/useModelVersionsByRegisteredModel';
+import { filterArchiveVersions } from '#~/concepts/modelRegistry/utils';
+import { ModelRegistriesContext } from '#~/concepts/modelRegistry/context/ModelRegistriesContext';
 import ModelVersionsArchiveListView from './ModelVersionsArchiveListView';
 
 type ModelVersionsArchiveProps = Omit<
@@ -16,7 +16,7 @@ type ModelVersionsArchiveProps = Omit<
 >;
 
 const ModelVersionsArchive: React.FC<ModelVersionsArchiveProps> = ({ ...pageProps }) => {
-  const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
+  const { preferredModelRegistry } = React.useContext(ModelRegistriesContext);
 
   const { registeredModelId: rmId } = useParams();
   const [rm] = useRegisteredModelById(rmId);

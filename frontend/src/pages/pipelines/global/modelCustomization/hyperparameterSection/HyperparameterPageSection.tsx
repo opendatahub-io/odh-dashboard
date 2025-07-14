@@ -3,11 +3,11 @@ import { ExpandableSection } from '@patternfly/react-core';
 import {
   FineTunePageSections,
   fineTunePageSectionTitles,
-} from '~/pages/pipelines/global/modelCustomization/const';
-import { ParametersKF, RuntimeConfigParamValue } from '~/concepts/pipelines/kfTypes';
-import FormSection from '~/components/pf-overrides/FormSection';
-import { HyperParametersFormData } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/hyperparameterValidationUtils';
-import HyperparameterFieldsDisplay from '~/pages/pipelines/global/modelCustomization/hyperparameterSection/HyperparameterFields';
+} from '#~/pages/pipelines/global/modelCustomization/const';
+import { ParametersKF, RuntimeConfigParamValue } from '#~/concepts/pipelines/kfTypes';
+import FormSection from '#~/components/pf-overrides/FormSection';
+import { HyperParametersFormData } from '#~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/hyperparameterValidationUtils';
+import HyperparameterFieldsDisplay from '#~/pages/pipelines/global/modelCustomization/hyperparameterSection/HyperparameterFields';
 
 type HyperparameterPageSectionProps = {
   hyperparameters: ParametersKF;

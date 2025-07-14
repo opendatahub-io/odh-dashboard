@@ -1,5 +1,4 @@
 import * as _ from 'lodash';
-import createError from 'http-errors';
 import { V1ConfigMap, V1Role, V1RoleBinding, V1RoleBindingList } from '@kubernetes/client-node';
 import {
   AcceleratorProfileKind,
@@ -9,8 +8,6 @@ import {
   ConsoleLinkKind,
   DashboardConfig,
   K8sResourceCommon,
-  KfDefApplication,
-  KfDefResource,
   KubeFastifyInstance,
   OdhApplication,
   OdhDocument,
@@ -23,6 +20,7 @@ import {
   DataScienceClusterKindStatus,
   KnownLabels,
   AuthKind,
+  OdhPlatformType,
 } from '../types';
 import {
   DEFAULT_ACTIVE_TIMEOUT,
@@ -56,7 +54,6 @@ let clusterStatusWatcher: ResourceWatcher<DataScienceClusterKindStatus>;
 let subscriptionWatcher: ResourceWatcher<SubscriptionStatusData>;
 let appWatcher: ResourceWatcher<OdhApplication>;
 let docWatcher: ResourceWatcher<OdhDocument>;
-let kfDefWatcher: ResourceWatcher<KfDefApplication>;
 let buildsWatcher: ResourceWatcher<BuildStatus>;
 let consoleLinksWatcher: ResourceWatcher<ConsoleLinkKind>;
 let quickStartWatcher: ResourceWatcher<QuickStart>;
@@ -89,21 +86,6 @@ const fetchOrCreateDashboardCR = async (fastify: KubeFastifyInstance): Promise<D
     )
     .then((res) => {
       const dashboardCR = res?.body as DashboardConfig;
-      if (
-        dashboardCR &&
-        dashboardCR.spec.dashboardConfig.disableKServe === undefined &&
-        dashboardCR.spec.dashboardConfig.disableModelMesh === undefined
-      ) {
-        // return a merge between dashboardCR and blankDashboardCR but changing spec.disableKServe to true and spec.disableModelMesh to false
-        return _.merge({}, blankDashboardCR, dashboardCR, {
-          spec: {
-            dashboardConfig: {
-              disableKServe: true,
-              disableModelMesh: false,
-            },
-          },
-        });
-      }
       return _.merge({}, blankDashboardCR, dashboardCR); // merge with blank CR to prevent any missing values
     })
     .catch((e) => {
@@ -114,6 +96,8 @@ const fetchOrCreateDashboardCR = async (fastify: KubeFastifyInstance): Promise<D
     });
 };
 
+// Do not contain any feature flags -- code overrides will do their trick until managed by users
+const defaultDashboardCR = _.omit(blankDashboardCR, 'spec.dashboardConfig');
 const createDashboardCR = (fastify: KubeFastifyInstance): Promise<DashboardConfig> => {
   return fastify.kube.customObjectsApi
     .createNamespacedCustomObject(
@@ -121,12 +105,12 @@ const createDashboardCR = (fastify: KubeFastifyInstance): Promise<DashboardConfi
       DASHBOARD_CONFIG.version,
       fastify.kube.namespace,
       DASHBOARD_CONFIG.plural,
-      blankDashboardCR,
+      defaultDashboardCR,
     )
     .then((result) => result.body as DashboardConfig)
     .catch((e) => {
       fastify.log.error('Error creating Dashboard CR: ', e);
-      return blankDashboardCR;
+      return defaultDashboardCR;
     });
 };
 
@@ -171,46 +155,6 @@ const fetchSubscriptions = (fastify: KubeFastifyInstance): Promise<SubscriptionS
     return installedCSVs;
   };
   return fetchAll();
-};
-
-/** @deprecated -- we are moving away from KfDefs */
-const fetchInstalledKfdefs = async (fastify: KubeFastifyInstance): Promise<KfDefApplication[]> => {
-  const customObjectsApi = fastify.kube.customObjectsApi;
-  const namespace = fastify.kube.namespace;
-
-  try {
-    const res = await customObjectsApi.listNamespacedCustomObject(
-      'kfdef.apps.kubeflow.org',
-      'v1',
-      namespace,
-      'kfdefs',
-    );
-    const kfdefs = (res?.body as { items: KfDefResource[] })?.items;
-    return kfdefs.reduce((acc, kfdef) => {
-      if (kfdef?.spec?.applications?.length) {
-        acc.push(...kfdef.spec.applications);
-      }
-      return acc;
-    }, [] as KfDefApplication[]);
-  } catch (e) {
-    const errorResponse = e.response.body;
-    if (errorResponse?.trim() === '404 page not found') {
-      // 404s like this are because the CRD does not exist
-      // If there were no resources, we would get an empty array
-      // This is not an error case, we are supporting the new Operator that does not use KfDefs
-      fastify.log.info('Detected no KfDef CRD installed -- suppressing issue pulling KfDef');
-      return [];
-    }
-
-    // Old flow, if it fails in other ways, we'll need to still handle a failed KfDef issue
-    fastify.log.error(e, 'failed to get kfdefs');
-    const error = createError(500, 'failed to get kfdefs');
-    error.explicitInternalServerError = true;
-    error.error = 'failed to get kfdefs';
-    error.message =
-      'Unable to load Kubeflow resources. Please ensure the Open Data Hub operator has been installed.';
-    throw error;
-  }
 };
 
 const fetchQuickStarts = async (fastify: KubeFastifyInstance): Promise<QuickStart[]> => {
@@ -566,7 +510,6 @@ export const initializeWatchedResources = (fastify: KubeFastifyInstance): void =
     fetchWatchedClusterStatus,
   );
   subscriptionWatcher = new ResourceWatcher<SubscriptionStatusData>(fastify, fetchSubscriptions);
-  kfDefWatcher = new ResourceWatcher<KfDefApplication>(fastify, fetchInstalledKfdefs);
   appWatcher = new ResourceWatcher<OdhApplication>(fastify, fetchApplications);
   docWatcher = new ResourceWatcher<OdhDocument>(fastify, fetchDocs);
   quickStartWatcher = new ResourceWatcher<QuickStart>(fastify, fetchQuickStarts);
@@ -618,10 +561,6 @@ export const updateDashboardConfig = (): Promise<void> => {
 
 export const getSubscriptions = (): SubscriptionStatusData[] => {
   return subscriptionWatcher.getResources();
-};
-
-export const getInstalledKfdefs = (): KfDefApplication[] => {
-  return kfDefWatcher.getResources();
 };
 
 export const getApplications = (): OdhApplication[] => {
@@ -914,11 +853,13 @@ export const cleanupGPU = async (fastify: KubeFastifyInstance): Promise<void> =>
   }
 };
 
-/**
- * TODO: There should be a better way to go about this... but the namespace is unlikely to ever change
- */
-export const isRHOAI = (fastify: KubeFastifyInstance): boolean =>
-  fastify.kube.namespace === 'redhat-ods-applications';
+export const isRHOAI = (fastify: KubeFastifyInstance): boolean => {
+  const releaseName = getClusterStatus(fastify)?.release?.name;
+  return (
+    releaseName === OdhPlatformType.SELF_MANAGED_RHOAI ||
+    releaseName === OdhPlatformType.MANAGED_RHOAI
+  );
+};
 
 export const getServingRuntimeNameFromTemplate = (template: Template): string =>
   template.objects[0].metadata.name;

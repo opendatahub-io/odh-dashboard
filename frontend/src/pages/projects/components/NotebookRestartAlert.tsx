@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Alert } from '@patternfly/react-core';
-import { NotebookState } from '~/pages/projects/notebook/types';
-import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
+import { NotebookState } from '#~/pages/projects/notebook/types';
+import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 
 type NotebookRestartAlertProps = {
   notebooks: NotebookState[];

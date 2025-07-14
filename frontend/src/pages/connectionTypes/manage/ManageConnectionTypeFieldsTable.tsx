@@ -12,10 +12,10 @@ import {
 } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import { Table, Thead, Tbody, Tr, Th } from '@patternfly/react-table';
-import { ConnectionTypeField, ConnectionTypeFieldType } from '~/concepts/connectionTypes/types';
-import useDraggableTableControlled from '~/utilities/useDraggableTableControlled';
-import { columns } from '~/pages/connectionTypes/manage/fieldTableColumns';
-import { findSectionFields } from '~/concepts/connectionTypes/utils';
+import { ConnectionTypeField, ConnectionTypeFieldType } from '#~/concepts/connectionTypes/types';
+import useDraggableTableControlled from '#~/utilities/useDraggableTableControlled';
+import { columns } from '#~/pages/connectionTypes/manage/fieldTableColumns';
+import { findSectionFields } from '#~/concepts/connectionTypes/utils';
 import ConnectionTypeFieldModal from './ConnectionTypeFieldModal';
 import ManageConnectionTypeFieldsTableRow from './ManageConnectionTypeFieldsTableRow';
 import { ConnectionTypeMoveFieldToSectionModal } from './ConnectionTypeFieldMoveModal';

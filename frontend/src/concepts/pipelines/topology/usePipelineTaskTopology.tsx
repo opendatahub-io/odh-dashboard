@@ -8,13 +8,13 @@ import {
   PipelineSpecVariable,
   RunDetailsKF,
   TaskKF,
-} from '~/concepts/pipelines/kfTypes';
-import { createNode } from '~/concepts/topology';
-import { PipelineNodeModelExpanded } from '~/concepts/topology/types';
-import { createArtifactNode, createGroupNode } from '~/concepts/topology/utils';
-import { Artifact, Execution, Event } from '~/third_party/mlmd';
-import { LinkedArtifact } from '~/concepts/pipelines/apiHooks/mlmd/types';
-import { parseEventsByType } from '~/pages/pipelines/global/experiments/executions/utils';
+} from '#~/concepts/pipelines/kfTypes';
+import { createNode } from '#~/concepts/topology';
+import { PipelineNodeModelExpanded } from '#~/concepts/topology/types';
+import { createArtifactNode, createGroupNode } from '#~/concepts/topology/utils';
+import { Artifact, Execution, Event } from '#~/third_party/mlmd';
+import { LinkedArtifact } from '#~/concepts/pipelines/apiHooks/mlmd/types';
+import { parseEventsByType } from '#~/pages/pipelines/global/experiments/executions/utils';
 import {
   ComponentArtifactMap,
   composeArtifactType,

@@ -1,16 +1,16 @@
 import * as React from 'react';
-import ManageInferenceServiceModal from '~/pages/modelServing/screens/projects/InferenceServiceModal/ManageInferenceServiceModal';
-import { SortableData, Table } from '~/components/table';
-import { InferenceServiceKind, ProjectKind, SecretKind, ServingRuntimeKind } from '~/k8sTypes';
-import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
-import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
-import { isModelMesh } from '~/pages/modelServing/utils';
-import ManageKServeModal from '~/pages/modelServing/screens/projects/kServeModal/ManageKServeModal';
-import ResourceTr from '~/components/ResourceTr';
-import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
-import { isProjectNIMSupported } from '~/pages/modelServing/screens/projects/nimUtils';
-import ManageNIMServingModal from '~/pages/modelServing/screens/projects/NIMServiceModal/ManageNIMServingModal';
+import ManageInferenceServiceModal from '#~/pages/modelServing/screens/projects/InferenceServiceModal/ManageInferenceServiceModal';
+import { SortableData, Table } from '#~/components/table';
+import { InferenceServiceKind, ProjectKind, SecretKind, ServingRuntimeKind } from '#~/k8sTypes';
+import { byName, ProjectsContext } from '#~/concepts/projects/ProjectsContext';
+import DashboardEmptyTableView from '#~/concepts/dashboard/DashboardEmptyTableView';
+import { isModelMesh } from '#~/pages/modelServing/utils';
+import ManageKServeModal from '#~/pages/modelServing/screens/projects/kServeModal/ManageKServeModal';
+import ResourceTr from '#~/components/ResourceTr';
+import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
+import { isProjectNIMSupported } from '#~/pages/modelServing/screens/projects/nimUtils';
+import ManageNIMServingModal from '#~/pages/modelServing/screens/projects/NIMServiceModal/ManageNIMServingModal';
 import InferenceServiceTableRow from './InferenceServiceTableRow';
 import { getGlobalInferenceServiceColumns, getProjectInferenceServiceColumns } from './data';
 import DeleteInferenceServiceModal from './DeleteInferenceServiceModal';
@@ -84,6 +84,7 @@ const InferenceServiceTable: React.FC<InferenceServiceTableProps> = ({
               columnNames={mappedColumns.map((column) => column.field)}
               onDeleteInferenceService={setDeleteInferenceService}
               onEditInferenceService={setEditInferenceService}
+              refresh={refresh}
             />
           </ResourceTr>
         )}
@@ -142,7 +143,9 @@ const InferenceServiceTable: React.FC<InferenceServiceTableProps> = ({
                     ),
                     secrets: [],
                   },
-                  secrets: filterTokens ? filterTokens(editInferenceService.metadata.name) : [],
+                  secrets: filterTokens
+                    ? filterTokens(editInferenceService.spec.predictor.model?.runtime)
+                    : [],
                 }}
                 onClose={(edited) => {
                   if (edited) {

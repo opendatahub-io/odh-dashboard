@@ -2,14 +2,13 @@ import React, { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { Breadcrumb, BreadcrumbItem, Truncate } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
-import ApplicationsPage from '~/pages/ApplicationsPage';
-import useModelVersionsByRegisteredModel from '~/concepts/modelRegistry/apiHooks/useModelVersionsByRegisteredModel';
-import useRegisteredModelById from '~/concepts/modelRegistry/apiHooks/useRegisteredModelById';
-import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
-import { ModelState } from '~/concepts/modelRegistry/types';
-import { registeredModelArchiveDetailsRoute } from '~/routes';
-import { useMakeFetchObject } from '~/utilities/useMakeFetchObject';
-import useInferenceServices from '~/pages/modelServing/useInferenceServices';
+import ApplicationsPage from '#~/pages/ApplicationsPage';
+import useModelVersionsByRegisteredModel from '#~/concepts/modelRegistry/apiHooks/useModelVersionsByRegisteredModel';
+import useRegisteredModelById from '#~/concepts/modelRegistry/apiHooks/useRegisteredModelById';
+import { ModelState } from '#~/concepts/modelRegistry/types';
+import { registeredModelArchiveDetailsRoute } from '#~/routes/modelRegistry/modelArchive';
+import useInferenceServices from '#~/pages/modelServing/useInferenceServices';
+import { ModelRegistriesContext } from '#~/concepts/modelRegistry/context/ModelRegistriesContext';
 import ModelVersionsTabs from './ModelVersionsTabs';
 import ModelVersionsHeaderActions from './ModelVersionsHeaderActions';
 import { ModelVersionsTab } from './const';
@@ -22,15 +21,18 @@ type ModelVersionsProps = {
 >;
 
 const ModelVersions: React.FC<ModelVersionsProps> = ({ tab, ...pageProps }) => {
-  const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
+  const { preferredModelRegistry } = React.useContext(ModelRegistriesContext);
   const { registeredModelId: rmId } = useParams();
   const [modelVersions, mvLoaded, mvLoadError, mvRefresh] = useModelVersionsByRegisteredModel(rmId);
   const [rm, rmLoaded, rmLoadError, rmRefresh] = useRegisteredModelById(rmId);
   const loadError = mvLoadError || rmLoadError;
   const loaded = mvLoaded && rmLoaded;
   const navigate = useNavigate();
-  const inferenceServices = useMakeFetchObject(
-    useInferenceServices(undefined, rmId, undefined, preferredModelRegistry?.metadata.name),
+  const inferenceServices = useInferenceServices(
+    undefined,
+    rmId,
+    undefined,
+    preferredModelRegistry?.metadata.name,
   );
 
   useEffect(() => {
@@ -59,7 +61,10 @@ const ModelVersions: React.FC<ModelVersionsProps> = ({ tab, ...pageProps }) => {
       title={rm?.name}
       headerAction={
         rm && (
-          <ModelVersionsHeaderActions hasDeployments={!!inferenceServices.data.length} rm={rm} />
+          <ModelVersionsHeaderActions
+            hasDeployments={!!inferenceServices.data.items.length}
+            rm={rm}
+          />
         )
       }
       description={<Truncate content={rm?.description || ''} />}

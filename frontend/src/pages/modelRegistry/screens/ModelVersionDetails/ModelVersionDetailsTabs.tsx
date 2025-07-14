@@ -1,10 +1,12 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageSection, Tab, Tabs, TabTitleText } from '@patternfly/react-core';
-import '~/pages/pipelines/global/runs/GlobalPipelineRunsTabs.scss';
-import { ModelVersion } from '~/concepts/modelRegistry/types';
-import { InferenceServiceKind, ServingRuntimeKind } from '~/k8sTypes';
-import { FetchStateObject } from '~/types';
+import '#~/pages/pipelines/global/runs/GlobalPipelineRunsTabs.scss';
+import { ModelVersion, ModelArtifactList } from '#~/concepts/modelRegistry/types';
+import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
+import { ListWithNonDashboardPresence } from '#~/types';
+import { FetchStateObject } from '#~/utilities/useFetch';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import { ModelVersionDetailsTabTitle, ModelVersionDetailsTab } from './const';
 import ModelVersionDetailsView from './ModelVersionDetailsView';
 import ModelVersionRegisteredDeploymentsView from './ModelVersionRegisteredDeploymentsView';
@@ -12,10 +14,13 @@ import ModelVersionRegisteredDeploymentsView from './ModelVersionRegisteredDeplo
 type ModelVersionDetailTabsProps = {
   tab: ModelVersionDetailsTab;
   modelVersion: ModelVersion;
-  inferenceServices: FetchStateObject<InferenceServiceKind[]>;
-  servingRuntimes: FetchStateObject<ServingRuntimeKind[]>;
+  inferenceServices: FetchStateObject<ListWithNonDashboardPresence<InferenceServiceKind>>;
+  servingRuntimes: FetchStateObject<ListWithNonDashboardPresence<ServingRuntimeKind>>;
   isArchiveVersion?: boolean;
   refresh: () => void;
+  modelArtifacts: ModelArtifactList;
+  modelArtifactsLoaded: boolean;
+  modelArtifactsLoadError: Error | undefined;
 };
 
 const ModelVersionDetailsTabs: React.FC<ModelVersionDetailTabsProps> = ({
@@ -25,8 +30,13 @@ const ModelVersionDetailsTabs: React.FC<ModelVersionDetailTabsProps> = ({
   servingRuntimes,
   isArchiveVersion,
   refresh,
+  modelArtifacts,
+  modelArtifactsLoaded,
+  modelArtifactsLoadError,
 }) => {
   const navigate = useNavigate();
+  const { status: isModelServingEnabled } = useIsAreaAvailable(SupportedArea.MODEL_SERVING);
+
   return (
     <Tabs
       activeKey={tab}
@@ -50,10 +60,13 @@ const ModelVersionDetailsTabs: React.FC<ModelVersionDetailTabsProps> = ({
             modelVersion={mv}
             refresh={refresh}
             isArchiveVersion={isArchiveVersion}
+            modelArtifacts={modelArtifacts}
+            modelArtifactsLoaded={modelArtifactsLoaded}
+            modelArtifactsLoadError={modelArtifactsLoadError}
           />
         </PageSection>
       </Tab>
-      {!isArchiveVersion && (
+      {!isArchiveVersion && isModelServingEnabled && (
         <Tab
           eventKey={ModelVersionDetailsTab.DEPLOYMENTS}
           title={<TabTitleText>{ModelVersionDetailsTabTitle.DEPLOYMENTS}</TabTitleText>}

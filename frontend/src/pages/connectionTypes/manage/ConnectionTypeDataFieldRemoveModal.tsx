@@ -1,7 +1,7 @@
 import * as React from 'react';
-import { Modal } from '@patternfly/react-core/deprecated';
-import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
-import { ConnectionTypeDataField } from '~/concepts/connectionTypes/types';
+import { Modal, ModalBody, ModalHeader, ModalFooter } from '@patternfly/react-core';
+import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
+import { ConnectionTypeDataField } from '#~/concepts/connectionTypes/types';
 
 type Props = {
   field: ConnectionTypeDataField;
@@ -9,20 +9,18 @@ type Props = {
 };
 
 const ConnectionTypeDataFieldRemoveModal: React.FC<Props> = ({ field, onClose }) => (
-  <Modal
-    isOpen
-    title="Remove field?"
-    onClose={() => onClose(false)}
-    variant="small"
-    footer={
+  <Modal isOpen onClose={() => onClose(false)} variant="small">
+    <ModalHeader title="Remove field?" />
+    <ModalBody>
+      The <b>{field.name}</b> field will be removed.
+    </ModalBody>
+    <ModalFooter>
       <DashboardModalFooter
         submitLabel="Remove"
         onCancel={() => onClose(false)}
         onSubmit={() => onClose(true)}
       />
-    }
-  >
-    The <b>{field.name}</b> field will be removed.
+    </ModalFooter>
   </Modal>
 );
 

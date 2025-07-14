@@ -1,6 +1,6 @@
-import { NotebookKind, PersistentVolumeClaimKind } from '~/k8sTypes';
-import { NotebookState } from '~/pages/projects/notebook/types';
-import { StorageData } from '~/pages/projects/types';
+import { NotebookKind, PersistentVolumeClaimKind } from '#~/k8sTypes';
+import { NotebookState } from '#~/pages/projects/notebook/types';
+import { StorageData } from '#~/pages/projects/types';
 import {
   attachNotebookPVC,
   createPvc,
@@ -8,7 +8,7 @@ import {
   restartNotebook,
   updateNotebookPVC,
   updatePvc,
-} from '~/api';
+} from '#~/api';
 import { isPvcUpdateRequired, NotebooksChangesResult } from './utils';
 
 export const handleSubmit = async (

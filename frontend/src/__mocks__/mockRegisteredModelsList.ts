@@ -1,4 +1,4 @@
-import { ModelRegistryMetadataType, RegisteredModelList } from '~/concepts/modelRegistry/types';
+import { ModelRegistryMetadataType, RegisteredModelList } from '#~/concepts/modelRegistry/types';
 import { mockRegisteredModel } from './mockRegisteredModel';
 
 export const mockRegisteredModelList = ({

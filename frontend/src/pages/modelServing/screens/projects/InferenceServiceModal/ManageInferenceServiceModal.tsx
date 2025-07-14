@@ -1,29 +1,37 @@
 import * as React from 'react';
-import { Form, FormSection, HelperTextItem, Spinner } from '@patternfly/react-core';
-import { Modal } from '@patternfly/react-core/deprecated';
+import {
+  Form,
+  FormSection,
+  HelperTextItem,
+  Spinner,
+  Modal,
+  ModalBody,
+  ModalHeader,
+  ModalFooter,
+} from '@patternfly/react-core';
 import { EitherOrNone } from '@openshift/dynamic-plugin-sdk';
 import {
   getCreateInferenceServiceLabels,
   submitInferenceServiceResourceWithDryRun,
   useCreateInferenceServiceObject,
-} from '~/pages/modelServing/screens/projects/utils';
-import { InferenceServiceKind, ProjectKind, ServingRuntimeKind } from '~/k8sTypes';
-import DashboardModalFooter from '~/concepts/dashboard/DashboardModalFooter';
-import { InferenceServiceStorageType } from '~/pages/modelServing/screens/types';
-import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
-import { Connection } from '~/concepts/connectionTypes/types';
+} from '#~/pages/modelServing/screens/projects/utils';
+import { InferenceServiceKind, ProjectKind, ServingRuntimeKind } from '#~/k8sTypes';
+import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
+import { InferenceServiceStorageType } from '#~/pages/modelServing/screens/types';
+import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
+import { Connection } from '#~/concepts/connectionTypes/types';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
-} from '~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
-import { isK8sNameDescriptionDataValid } from '~/concepts/k8s/K8sNameDescriptionField/utils';
+} from '#~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
+import { isK8sNameDescriptionDataValid } from '#~/concepts/k8s/K8sNameDescriptionField/utils';
 import usePrefillModelDeployModal, {
   ModelDeployPrefillInfo,
-} from '~/pages/modelServing/screens/projects/usePrefillModelDeployModal';
+} from '#~/pages/modelServing/screens/projects/usePrefillModelDeployModal';
 import {
   isModelServingCompatible,
   ModelServingCompatibleTypes,
-} from '~/concepts/connectionTypes/utils';
-import { useModelDeploymentNotification } from '~/pages/modelServing/screens/projects/useModelDeploymentNotification';
+} from '#~/concepts/connectionTypes/utils';
+import { useModelDeploymentNotification } from '#~/pages/modelServing/screens/projects/useModelDeploymentNotification';
 import ProjectSection from './ProjectSection';
 import InferenceServiceFrameworkSection from './InferenceServiceFrameworkSection';
 import InferenceServiceServingRuntimeSection from './InferenceServiceServingRuntimeSection';
@@ -165,13 +173,77 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
   };
 
   return (
-    <Modal
-      title={editInfo ? 'Edit model' : 'Deploy model'}
-      description="Configure properties for deploying your model"
-      variant="medium"
-      isOpen
-      onClose={() => onClose(false)}
-      footer={
+    <Modal variant="medium" isOpen onClose={() => onClose(false)}>
+      <ModalHeader
+        title={editInfo ? 'Edit model' : 'Deploy model'}
+        description="Configure properties for deploying your model"
+      />
+      <ModalBody>
+        <Form>
+          {projectSection || (
+            <ProjectSection
+              projectName={
+                (projectContext?.currentProject &&
+                  getDisplayNameFromK8sResource(projectContext.currentProject)) ||
+                editInfo?.metadata.namespace ||
+                ''
+              }
+            />
+          )}
+          {!shouldFormHidden && isLoading && <Spinner />}
+          {!shouldFormHidden && !isLoading && (
+            <>
+              <K8sNameDescriptionField
+                data={inferenceServiceNameDesc}
+                onDataChange={setInferenceServiceNameDesc}
+                dataTestId="inference-service"
+                nameLabel="Model deployment name"
+                nameHelperText={
+                  <HelperTextItem>
+                    This is the name of the inference service created when the model is deployed.
+                  </HelperTextItem>
+                }
+                hideDescription
+              />
+              <InferenceServiceServingRuntimeSection
+                data={createData}
+                setData={setCreateData}
+                currentServingRuntime={projectContext?.currentServingRuntime}
+              />
+              <InferenceServiceFrameworkSection
+                data={createData}
+                setData={setCreateData}
+                servingRuntimeName={projectContext?.currentServingRuntime?.metadata.name}
+                modelContext={projectContext?.currentServingRuntime?.spec.supportedModelFormats}
+                registeredModelFormat={modelDeployPrefillInfo?.modelFormat}
+              />
+              <FormSection title="Source model location" id="model-location">
+                <ConnectionSection
+                  existingUriOption={editInfo?.spec.predictor.model?.storageUri}
+                  data={createData}
+                  setData={setCreateData}
+                  initialNewConnectionType={initialNewConnectionType}
+                  initialNewConnectionValues={initialNewConnectionValues}
+                  loaded={
+                    modelDeployPrefillInfo
+                      ? !!projectContext?.connections && connectionsLoaded
+                      : !!projectContext?.connections || connectionsLoaded
+                  }
+                  loadError={connectionsLoadError}
+                  connection={connection}
+                  setConnection={setConnection}
+                  setIsConnectionValid={setIsConnectionValid}
+                  connections={modelMeshConnections}
+                  connectionTypeFilter={(ct) =>
+                    !isModelServingCompatible(ct, ModelServingCompatibleTypes.OCI)
+                  }
+                />
+              </FormSection>
+            </>
+          )}
+        </Form>
+      </ModalBody>
+      <ModalFooter>
         <DashboardModalFooter
           submitLabel={editInfo ? 'Redeploy' : 'Deploy'}
           onSubmit={submit}
@@ -180,72 +252,7 @@ const ManageInferenceServiceModal: React.FC<ManageInferenceServiceModalProps> = 
           error={error}
           alertTitle="Error creating model server"
         />
-      }
-      showClose
-    >
-      <Form>
-        {projectSection || (
-          <ProjectSection
-            projectName={
-              (projectContext?.currentProject &&
-                getDisplayNameFromK8sResource(projectContext.currentProject)) ||
-              editInfo?.metadata.namespace ||
-              ''
-            }
-          />
-        )}
-        {!shouldFormHidden && isLoading && <Spinner />}
-        {!shouldFormHidden && !isLoading && (
-          <>
-            <K8sNameDescriptionField
-              data={inferenceServiceNameDesc}
-              onDataChange={setInferenceServiceNameDesc}
-              dataTestId="inference-service"
-              nameLabel="Model deployment name"
-              nameHelperText={
-                <HelperTextItem>
-                  This is the name of the inference service created when the model is deployed
-                </HelperTextItem>
-              }
-              hideDescription
-            />
-            <InferenceServiceServingRuntimeSection
-              data={createData}
-              setData={setCreateData}
-              currentServingRuntime={projectContext?.currentServingRuntime}
-            />
-            <InferenceServiceFrameworkSection
-              data={createData}
-              setData={setCreateData}
-              servingRuntimeName={projectContext?.currentServingRuntime?.metadata.name}
-              modelContext={projectContext?.currentServingRuntime?.spec.supportedModelFormats}
-              registeredModelFormat={modelDeployPrefillInfo?.modelFormat}
-            />
-            <FormSection title="Source model location" id="model-location">
-              <ConnectionSection
-                existingUriOption={editInfo?.spec.predictor.model?.storageUri}
-                data={createData}
-                setData={setCreateData}
-                initialNewConnectionType={initialNewConnectionType}
-                initialNewConnectionValues={initialNewConnectionValues}
-                loaded={
-                  modelDeployPrefillInfo
-                    ? !!projectContext?.connections && connectionsLoaded
-                    : !!projectContext?.connections || connectionsLoaded
-                }
-                loadError={connectionsLoadError}
-                connection={connection}
-                setConnection={setConnection}
-                setIsConnectionValid={setIsConnectionValid}
-                connections={modelMeshConnections}
-                connectionTypeFilter={(ct) =>
-                  !isModelServingCompatible(ct, ModelServingCompatibleTypes.OCI)
-                }
-              />
-            </FormSection>
-          </>
-        )}
-      </Form>
+      </ModalFooter>
     </Modal>
   );
 };

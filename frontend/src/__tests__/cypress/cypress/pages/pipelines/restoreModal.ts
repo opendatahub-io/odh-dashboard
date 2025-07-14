@@ -1,4 +1,4 @@
-import { Modal } from '~/__tests__/cypress/cypress/pages/components/Modal';
+import { Modal } from '#~/__tests__/cypress/cypress/pages/components/Modal';
 
 class RestoreModal extends Modal {
   protected testId;
@@ -12,7 +12,7 @@ class RestoreModal extends Modal {
   }
 
   find() {
-    return cy.findByTestId(this.testId).parents('div[role="dialog"]');
+    return cy.findByTestId(this.testId);
   }
 
   findAlertMessage() {

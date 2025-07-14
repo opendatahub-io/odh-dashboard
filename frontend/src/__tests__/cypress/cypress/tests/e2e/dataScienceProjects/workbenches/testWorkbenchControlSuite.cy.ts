@@ -1,21 +1,18 @@
-import type { WBControlSuiteTestData } from '~/__tests__/cypress/cypress/types';
-import { projectDetails, projectListPage } from '~/__tests__/cypress/cypress/pages/projects';
+import type { WBControlSuiteTestData } from '#~/__tests__/cypress/cypress/types';
+import { projectDetails, projectListPage } from '#~/__tests__/cypress/cypress/pages/projects';
 import {
   workbenchPage,
   createSpawnerPage,
   notebookConfirmModal,
   notebookDeleteModal,
   workbenchStatusModal,
-} from '~/__tests__/cypress/cypress/pages/workbench';
-import { HTPASSWD_CLUSTER_ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
-import { loadWBControlSuiteFixture } from '~/__tests__/cypress/cypress/utils/dataLoader';
-import { createCleanProject } from '~/__tests__/cypress/cypress/utils/projectChecker';
-import { deleteOpenShiftProject } from '~/__tests__/cypress/cypress/utils/oc_commands/project';
-import {
-  retryableBefore,
-  wasSetupPerformed,
-} from '~/__tests__/cypress/cypress/utils/retryableHooks';
-import { generateTestUUID } from '~/__tests__/cypress/cypress/utils/uuidGenerator';
+} from '#~/__tests__/cypress/cypress/pages/workbench';
+import { HTPASSWD_CLUSTER_ADMIN_USER } from '#~/__tests__/cypress/cypress/utils/e2eUsers';
+import { loadWBControlSuiteFixture } from '#~/__tests__/cypress/cypress/utils/dataLoader';
+import { createCleanProject } from '#~/__tests__/cypress/cypress/utils/projectChecker';
+import { deleteOpenShiftProject } from '#~/__tests__/cypress/cypress/utils/oc_commands/project';
+import { retryableBefore } from '#~/__tests__/cypress/cypress/utils/retryableHooks';
+import { generateTestUUID } from '#~/__tests__/cypress/cypress/utils/uuidGenerator';
 
 describe('Start, Stop, Launch and Delete a Workbench in RHOAI', () => {
   let controlSuiteTestNamespace: string;
@@ -42,13 +39,10 @@ describe('Start, Stop, Launch and Delete a Workbench in RHOAI', () => {
       });
   });
   after(() => {
-    //Check if the Before Method was executed to perform the setup
-    if (!wasSetupPerformed()) return;
-
     // Delete provisioned Project
     if (controlSuiteTestNamespace) {
       cy.log(`Deleting Project ${controlSuiteTestNamespace} after the test has finished.`);
-      deleteOpenShiftProject(controlSuiteTestNamespace);
+      deleteOpenShiftProject(controlSuiteTestNamespace, { wait: false, ignoreNotFound: true });
     }
   });
 
@@ -97,13 +91,13 @@ describe('Start, Stop, Launch and Delete a Workbench in RHOAI', () => {
 
       // Stop workbench
       cy.step('Stop workbench and validate it has been stopped');
-      notebookRow.findNotebookStop().click();
+      notebookRow.findNotebookStopToggle().click();
       notebookConfirmModal.findStopWorkbenchButton().click();
       notebookRow.expectStatusLabelToBe('Stopped', 120000);
 
       // Restart workbench and confirm initiation
       cy.step('Restart workbench and validate it starts successfully');
-      notebookRow.findNotebookStart().click();
+      notebookRow.findNotebookStopToggle().click();
       notebookRow.expectStatusLabelToBe('Running', 120000);
 
       // Delete workbench

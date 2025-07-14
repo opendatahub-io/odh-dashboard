@@ -1,8 +1,8 @@
-import { createSecret, assembleSecret, deleteSecret } from '~/api';
-import { DSPipelineKind } from '~/k8sTypes';
-import { AwsKeys, PIPELINE_AWS_FIELDS } from '~/pages/projects/dataConnections/const';
-import { dataEntryToRecord } from '~/utilities/dataEntryToRecord';
-import { EnvVariableDataEntry } from '~/pages/projects/types';
+import { createSecret, assembleSecret, deleteSecret } from '#~/api';
+import { DSPipelineKind } from '#~/k8sTypes';
+import { AwsKeys, PIPELINE_AWS_FIELDS } from '#~/pages/projects/dataConnections/const';
+import { dataEntryToRecord } from '#~/utilities/dataEntryToRecord';
+import { EnvVariableDataEntry } from '#~/pages/projects/types';
 import { DSPA_SECRET_NAME, DatabaseConnectionKeys, ExternalDatabaseSecret } from './const';
 import { PipelineServerConfigType } from './types';
 

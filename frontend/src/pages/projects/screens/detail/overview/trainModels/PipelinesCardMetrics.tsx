@@ -8,18 +8,18 @@ import {
   Content,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
-import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
+import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import {
   usePipelineActiveRuns,
   usePipelineArchivedRuns,
-} from '~/concepts/pipelines/apiHooks/usePipelineRuns';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import useExperiments from '~/concepts/pipelines/apiHooks/useExperiments';
-import usePipelines from '~/concepts/pipelines/apiHooks/usePipelines';
-import EnsureCompatiblePipelineServer from '~/concepts/pipelines/EnsureCompatiblePipelineServer';
-import ImportPipelineButton from '~/concepts/pipelines/content/import/ImportPipelineButton';
-import PipelinesCardItems from '~/pages/projects/screens/detail/overview/trainModels/PipelinesCardItems';
-import usePipelineRecurringRuns from '~/concepts/pipelines/apiHooks/usePipelineRecurringRuns';
+} from '#~/concepts/pipelines/apiHooks/usePipelineRuns';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+import useExperiments from '#~/concepts/pipelines/apiHooks/useExperiments';
+import usePipelines from '#~/concepts/pipelines/apiHooks/usePipelines';
+import EnsureCompatiblePipelineServer from '#~/concepts/pipelines/EnsureCompatiblePipelineServer';
+import ImportPipelineButton from '#~/concepts/pipelines/content/import/ImportPipelineButton';
+import PipelinesCardItems from '#~/pages/projects/screens/detail/overview/trainModels/PipelinesCardItems';
+import usePipelineRecurringRuns from '#~/concepts/pipelines/apiHooks/usePipelineRecurringRuns';
 import MetricsContents from './MetricsContents';
 
 const PipelinesCardMetrics: React.FC = () => {

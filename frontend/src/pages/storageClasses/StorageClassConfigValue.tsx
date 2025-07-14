@@ -1,8 +1,8 @@
 import React from 'react';
 
-type StrorageClassConfigValueProps = React.PropsWithChildren & { alert: React.ReactNode };
+type StorageClassConfigValueProps = React.PropsWithChildren & { alert: React.ReactNode };
 
-export const StrorageClassConfigValue: React.FC<StrorageClassConfigValueProps> = ({
+export const StorageClassConfigValue: React.FC<StorageClassConfigValueProps> = ({
   alert,
   children,
 }) => {

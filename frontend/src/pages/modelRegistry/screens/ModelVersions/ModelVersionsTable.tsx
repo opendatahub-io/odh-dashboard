@@ -1,11 +1,10 @@
 import * as React from 'react';
 import { useParams } from 'react-router-dom';
-import { Table } from '~/components/table';
-import { ModelVersion, RegisteredModel } from '~/concepts/modelRegistry/types';
-import DashboardEmptyTableView from '~/concepts/dashboard/DashboardEmptyTableView';
-import useInferenceServices from '~/pages/modelServing/useInferenceServices';
-import { useMakeFetchObject } from '~/utilities/useMakeFetchObject';
-import { KnownLabels } from '~/k8sTypes';
+import { Table } from '#~/components/table';
+import { ModelVersion, RegisteredModel } from '#~/concepts/modelRegistry/types';
+import DashboardEmptyTableView from '#~/concepts/dashboard/DashboardEmptyTableView';
+import useInferenceServices from '#~/pages/modelServing/useInferenceServices';
+import { KnownLabels } from '#~/k8sTypes';
 import { mvColumns } from './ModelVersionsTableColumns';
 import ModelVersionsTableRow from './ModelVersionsTableRow';
 
@@ -26,11 +25,9 @@ const ModelVersionsTable: React.FC<ModelVersionsTableProps> = ({
   registeredModel,
 }) => {
   const { mrName, registeredModelId } = useParams();
-  const inferenceServices = useMakeFetchObject(
-    useInferenceServices(undefined, registeredModelId, undefined, mrName),
-  );
+  const inferenceServices = useInferenceServices(undefined, registeredModelId, undefined, mrName);
   const hasDeploys = (mvId: string) =>
-    !!inferenceServices.data.some(
+    !!inferenceServices.data.items.some(
       (s) => s.metadata.labels?.[KnownLabels.MODEL_VERSION_ID] === mvId,
     );
 

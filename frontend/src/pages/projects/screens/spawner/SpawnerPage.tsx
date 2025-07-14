@@ -13,42 +13,40 @@ import {
   StackItem,
   Truncate,
 } from '@patternfly/react-core';
-import ApplicationsPage from '~/pages/ApplicationsPage';
-import { ImageStreamAndVersion } from '~/types';
-import ExtendedButton from '~/components/ExtendedButton';
-import GenericSidebar from '~/components/GenericSidebar';
-import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import { HardwareProfileKind, HardwareProfileFeatureVisibility, NotebookKind } from '~/k8sTypes';
-import useNotebookImageData from '~/pages/projects/screens/detail/notebooks/useNotebookImageData';
-import NotebookRestartAlert from '~/pages/projects/components/NotebookRestartAlert';
-import useWillNotebooksRestart from '~/pages/projects/notebook/useWillNotebooksRestart';
-import CanEnableElyraPipelinesCheck from '~/concepts/pipelines/elyra/CanEnableElyraPipelinesCheck';
-import AcceleratorProfileSelectField from '~/pages/notebookController/screens/server/AcceleratorProfileSelectField';
+import ApplicationsPage from '#~/pages/ApplicationsPage';
+import { ImageStreamAndVersion } from '#~/types';
+import ExtendedButton from '#~/components/ExtendedButton';
+import GenericSidebar from '#~/components/GenericSidebar';
+import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
+import { HardwareProfileKind, HardwareProfileFeatureVisibility, NotebookKind } from '#~/k8sTypes';
+import useNotebookImageData from '#~/pages/projects/screens/detail/notebooks/useNotebookImageData';
+import NotebookRestartAlert from '#~/pages/projects/components/NotebookRestartAlert';
+import useWillNotebooksRestart from '#~/pages/projects/notebook/useWillNotebooksRestart';
+import CanEnableElyraPipelinesCheck from '#~/concepts/pipelines/elyra/CanEnableElyraPipelinesCheck';
+import AcceleratorProfileSelectField from '#~/pages/notebookController/screens/server/AcceleratorProfileSelectField';
 import {
   NotebookImageAvailability,
   NotebookImageStatus,
-} from '~/pages/projects/screens/detail/notebooks/const';
-import useProjectPvcs from '~/pages/projects/screens/detail/storage/useProjectPvcs';
-import {
-  getDisplayNameFromK8sResource,
-  getResourceNameFromK8sResource,
-} from '~/concepts/k8s/utils';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
+} from '#~/pages/projects/screens/detail/notebooks/const';
+import useProjectPvcs from '#~/pages/projects/screens/detail/storage/useProjectPvcs';
+import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
-} from '~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
-import { LimitNameResourceType } from '~/concepts/k8s/K8sNameDescriptionField/utils';
-import { Connection } from '~/concepts/connectionTypes/types';
-import { StorageData, StorageType } from '~/pages/projects/types';
-import useNotebookPVCItems from '~/pages/projects/pvc/useNotebookPVCItems';
-import { getNotebookPVCMountPathMap } from '~/pages/projects/notebook/utils';
-import { getNotebookPVCNames } from '~/pages/projects/pvc/utils';
-import HardwareProfileFormSection from '~/concepts/hardwareProfiles/HardwareProfileFormSection';
+} from '#~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
+import { LimitNameResourceType } from '#~/concepts/k8s/K8sNameDescriptionField/utils';
+import { Connection } from '#~/concepts/connectionTypes/types';
+import { StorageData, StorageType } from '#~/pages/projects/types';
+import useNotebookPVCItems from '#~/pages/projects/pvc/useNotebookPVCItems';
+import { getNotebookPVCMountPathMap } from '#~/pages/projects/notebook/utils';
+import { getNotebookPVCNames } from '#~/pages/projects/pvc/utils';
+import HardwareProfileFormSection from '#~/concepts/hardwareProfiles/HardwareProfileFormSection';
 import {
   useProfileIdentifiers,
   doesImageStreamSupportHardwareProfile,
-} from '~/concepts/hardwareProfiles/utils';
-import { useNotebookKindPodSpecOptionsState } from '~/concepts/hardwareProfiles/useNotebookPodSpecOptionsState';
+} from '#~/concepts/hardwareProfiles/utils';
+import { useNotebookKindPodSpecOptionsState } from '#~/concepts/hardwareProfiles/useNotebookPodSpecOptionsState';
+import { getPvcAccessMode } from '#~/pages/projects/utils.ts';
 import { SpawnerPageSectionID } from './types';
 import {
   K8_NOTEBOOK_RESOURCE_NAME_VALIDATOR,
@@ -107,9 +105,11 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
   const isStorageClassesAvailable = useIsAreaAvailable(SupportedArea.STORAGE_CLASSES).status;
   const isHardwareProfilesAvailable = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;
 
-  const [storages, storagesLoaded, storagesLoadError] = useProjectPvcs(
-    currentProject.metadata.name,
-  );
+  const {
+    data: storages,
+    loaded: storagesLoaded,
+    error: storagesLoadError,
+  } = useProjectPvcs(currentProject.metadata.name);
 
   const defaultStorageClassName = isStorageClassesAvailable
     ? defaultStorageClass?.metadata.name
@@ -129,6 +129,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
           size: existingPvc.spec.resources.requests.storage,
           storageClassName: existingPvc.spec.storageClassName,
           mountPath: getNotebookPVCMountPathMap(existingNotebook)[existingPvc.metadata.name],
+          accessMode: getPvcAccessMode(existingPvc),
         }))
       : [
           {
@@ -138,6 +139,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
             size: defaultClusterStorage.size || defaultNotebookSize,
             storageClassName: defaultStorageClassName,
             mountPath: defaultClusterStorage.mountPath,
+            accessMode: defaultClusterStorage.accessMode,
           },
         ],
   );
@@ -147,7 +149,11 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
       storageDataEntry.mountPath ? acc.concat(storageDataEntry.mountPath) : acc,
     [],
   );
-  const existingStorageNames = storageData.map((storageDataEntry) => storageDataEntry.name);
+
+  const existingStorageNames = React.useMemo(
+    () => storageData.map((storageDataEntry) => storageDataEntry.name),
+    [storageData],
+  );
 
   const [notebookConnections, setNotebookConnections] = React.useState<Connection[]>(
     existingNotebook ? getConnectionsFromNotebook(existingNotebook, projectConnections) : [],
@@ -177,10 +183,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
     ...notebooksUsingPVCsWithSizeChanges,
   ]);
 
-  const [data, loaded, loadError] = useNotebookImageData(
-    getResourceNameFromK8sResource(currentProject),
-    existingNotebook,
-  );
+  const [data, loaded, loadError] = useNotebookImageData(existingNotebook);
 
   React.useEffect(() => {
     if (loaded) {
@@ -296,6 +299,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                     value={notebookSize}
                   />
                   <AcceleratorProfileSelectField
+                    currentProject={currentProject.metadata.name}
                     compatibleIdentifiers={
                       selectedImage.imageStream
                         ? getCompatibleIdentifiers(selectedImage.imageStream)
@@ -442,6 +446,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                     description: attachData.pvc?.metadata.annotations?.['openshift.io/description'],
                     size: attachData.pvc?.spec.resources.requests.storage,
                     storageClassName: attachData.pvc?.spec.storageClassName,
+                    accessMode: attachData.pvc ? getPvcAccessMode(attachData.pvc) : undefined,
                   },
                 ]),
               );

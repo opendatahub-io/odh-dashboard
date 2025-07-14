@@ -23,14 +23,6 @@ rules:
       - list
       - watch
   - apiGroups:
-      - kfdef.apps.kubeflow.org
-    resources:
-      - kfdefs
-    verbs:
-      - get
-      - list
-      - watch
-  - apiGroups:
       - batch
     verbs:
       - get

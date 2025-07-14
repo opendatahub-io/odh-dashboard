@@ -1,9 +1,9 @@
 import * as React from 'react';
-import { IntegrationAppStatus, OdhApplication, VariablesValidationStatus } from '~/types';
-import useFetchState, { FetchState, NotReadyError } from '~/utilities/useFetchState';
-import { getIntegrationAppEnablementStatus } from '~/services/integrationAppService';
-import { isIntegrationApp } from '~/utilities/utils';
-import { useAppSelector } from '~/redux/hooks';
+import { IntegrationAppStatus, OdhApplication, VariablesValidationStatus } from '#~/types';
+import useFetchState, { FetchState, NotReadyError } from '#~/utilities/useFetchState';
+import { getIntegrationAppEnablementStatus } from '#~/services/integrationAppService';
+import { isIntegrationApp } from '#~/utilities/utils';
+import { useAppSelector } from '#~/redux/hooks';
 
 export const useIntegratedAppStatus = (app?: OdhApplication): FetchState<IntegrationAppStatus> => {
   const forceUpdate = useAppSelector((state) => state.forceComponentsUpdate);

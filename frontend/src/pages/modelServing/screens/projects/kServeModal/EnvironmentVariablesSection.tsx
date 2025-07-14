@@ -21,10 +21,13 @@ import {
   PlusCircleIcon,
   ExclamationCircleIcon,
 } from '@patternfly/react-icons';
-import { UpdateObjectAtPropAndValue } from '~/pages/projects/types';
-import { CreatingInferenceServiceObject } from '~/pages/modelServing/screens/types';
-import { validateEnvVarName } from '~/concepts/connectionTypes/utils';
-import { ServingContainer } from '~/k8sTypes';
+import { UpdateObjectAtPropAndValue } from '#~/pages/projects/types';
+import { CreatingInferenceServiceObject } from '#~/pages/modelServing/screens/types';
+import {
+  isValueFromEnvVar,
+  validateEnvVarName,
+} from '#~/pages/modelServing/screens/projects/utils';
+import { ServingContainer } from '#~/k8sTypes';
 
 type EnvironmentVariablesSectionType = {
   predefinedVars?: string[];
@@ -145,6 +148,7 @@ const EnvironmentVariablesSection: React.FC<EnvironmentVariablesSectionType> = (
       <Stack hasGutter>
         {data.servingRuntimeEnvVars?.map((envVar, index) => {
           const error = validateEnvVarName(envVar.name);
+          const isEnvVarValueFrom = isValueFromEnvVar(envVar);
           return (
             <Split hasGutter key={index}>
               <SplitItem isFilled>
@@ -171,14 +175,29 @@ const EnvironmentVariablesSection: React.FC<EnvironmentVariablesSectionType> = (
                 )}
               </SplitItem>
               <SplitItem isFilled>
-                <TextInput
-                  data-testid={`serving-runtime-environment-variables-input-value ${index}`}
-                  aria-label="env var value"
-                  value={envVar.value}
-                  onChange={(_event: React.FormEvent<HTMLInputElement>, value: string) =>
-                    updateEnvVar(index, { value })
+                <Tooltip
+                  trigger={isEnvVarValueFrom ? 'mouseenter' : ''}
+                  content={
+                    <>
+                      <div>{JSON.stringify(envVar.valueFrom)}</div>
+                      <br />
+                      <div>
+                        The value of this variable is defined by a key of a ConfigMap/Secret. It can
+                        only be edited from the OpenShift console.
+                      </div>
+                    </>
                   }
-                />
+                >
+                  <TextInput
+                    data-testid={`serving-runtime-environment-variables-input-value ${index}`}
+                    aria-label="env var value"
+                    value={envVar.value ? envVar.value : JSON.stringify(envVar.valueFrom)}
+                    isDisabled={isEnvVarValueFrom}
+                    onChange={(_event: React.FormEvent<HTMLInputElement>, value: string) =>
+                      updateEnvVar(index, { value })
+                    }
+                  />
+                </Tooltip>
               </SplitItem>
               <SplitItem>
                 <Button

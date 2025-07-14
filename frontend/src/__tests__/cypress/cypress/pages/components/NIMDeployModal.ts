@@ -1,4 +1,4 @@
-import { Modal } from '~/__tests__/cypress/cypress/pages/components/Modal';
+import { Modal } from '#~/__tests__/cypress/cypress/pages/components/Modal';
 
 class NIMDeployModal extends Modal {
   constructor(private edit = false) {
@@ -33,12 +33,28 @@ class NIMDeployModal extends Modal {
     return cy.get('[data-testid="model-server-replicas"] input');
   }
 
-  findNimModelReplicasMinusButton() {
-    return this.find().find('button[aria-label="Minus"]').eq(1);
+  findMinReplicasInput() {
+    return this.find().findByTestId('min-replicas').find('input');
   }
 
-  findNimModelReplicasPlusButton() {
-    return this.find().find('button[aria-label="Plus"]').eq(1);
+  findMaxReplicasInput() {
+    return this.find().findByTestId('max-replicas').find('input');
+  }
+
+  findMinReplicasPlusButton() {
+    return this.find().findByTestId('min-replicas').findByRole('button', { name: 'Plus' });
+  }
+
+  findMinReplicasMinusButton() {
+    return this.find().findByTestId('min-replicas').findByRole('button', { name: 'Minus' });
+  }
+
+  findMaxReplicasPlusButton() {
+    return this.find().findByTestId('max-replicas').findByRole('button', { name: 'Plus' });
+  }
+
+  findMaxReplicasMinusButton() {
+    return this.find().findByTestId('max-replicas').findByRole('button', { name: 'Minus' });
   }
 
   shouldDisplayError(msg: string): void {

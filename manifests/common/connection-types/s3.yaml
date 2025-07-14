@@ -10,4 +10,4 @@ metadata:
     openshift.io/display-name: S3 compatible object storage - v1
 data:
   category: '["Object storage"]'
-  fields: '[{"type":"short-text","name":"Access key","envVar":"AWS_ACCESS_KEY_ID","properties":{},"required":true},{"type":"hidden","name":"Secret key","envVar":"AWS_SECRET_ACCESS_KEY","required":true,"properties":{}},{"type":"short-text","name":"Endpoint","envVar":"AWS_S3_ENDPOINT","required":true,"properties":{}},{"type":"short-text","name":"Region","envVar":"AWS_DEFAULT_REGION","required":false,"properties":{}},{"type":"short-text","name":"Bucket","envVar":"AWS_S3_BUCKET","required":false,"properties":{}}]'
+  fields: '[{"type":"short-text","name":"Access key","envVar":"AWS_ACCESS_KEY_ID","properties":{},"required":true},{"type":"hidden","name":"Secret key","envVar":"AWS_SECRET_ACCESS_KEY","required":true,"properties":{"deferInput":true}},{"type":"short-text","name":"Endpoint","envVar":"AWS_S3_ENDPOINT","required":true,"properties":{}},{"type":"short-text","name":"Region","envVar":"AWS_DEFAULT_REGION","required":false,"properties":{}},{"type":"short-text","name":"Bucket","envVar":"AWS_S3_BUCKET","required":false,"properties":{}}]'

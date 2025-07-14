@@ -1,10 +1,14 @@
 import React from 'react';
 
-import { MetadataAnnotation, StorageClassConfig, StorageClassKind } from '~/k8sTypes';
-import { FetchStateRefreshPromise } from '~/utilities/useFetchState';
-import { allSettledPromises } from '~/utilities/allSettledPromises';
-import { updateStorageClassConfig } from '~/api';
-import { getStorageClassConfig, isOpenshiftDefaultStorageClass } from './utils';
+import { MetadataAnnotation, StorageClassConfig, StorageClassKind } from '#~/k8sTypes';
+import { FetchStateRefreshPromise } from '#~/utilities/useFetchState';
+import { allSettledPromises } from '#~/utilities/allSettledPromises';
+import { updateStorageClassConfig } from '#~/api';
+import {
+  getStorageClassConfig,
+  isOpenshiftDefaultStorageClass,
+  getStorageClassDefaultAccessModeSettings,
+} from './utils';
 
 export interface StorageClassContextProps {
   storageClasses: StorageClassKind[];
@@ -86,6 +90,8 @@ export const StorageClassContextProvider: React.FC<StorageClassContextProviderPr
         const isFirstConfig = index === 0;
         const isOpenshiftDefault = openshiftDefaultScName === name;
 
+        const accessModeSettings = getStorageClassDefaultAccessModeSettings(storageClass);
+
         // Add a default config annotation when one doesn't exist
         if (!config) {
           let isDefault = isOpenshiftDefault;
@@ -101,6 +107,7 @@ export const StorageClassContextProvider: React.FC<StorageClassContextProviderPr
               isDefault,
               isEnabled,
               displayName: name,
+              accessModeSettings,
             }),
           );
         }
@@ -134,6 +141,14 @@ export const StorageClassContextProvider: React.FC<StorageClassContextProviderPr
             acc.push(
               updateStorageClassConfig(defaultStorageClassName, {
                 isEnabled: true,
+              }),
+            );
+          }
+
+          if (!config.accessModeSettings) {
+            acc.push(
+              updateStorageClassConfig(name, {
+                accessModeSettings,
               }),
             );
           }

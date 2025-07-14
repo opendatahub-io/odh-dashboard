@@ -1,9 +1,9 @@
-import type { RoleBindingSubject } from '~/k8sTypes';
-import { mockComponents } from '~/__mocks__/mockComponents';
-import { enabledPage } from '~/__tests__/cypress/cypress/pages/enabled';
-import { jupyterCard } from '~/__tests__/cypress/cypress/pages/components/JupyterCard';
-import { mockDashboardConfig, mockK8sResourceList } from '~/__mocks__';
-import { mockRoleBindingK8sResource } from '~/__mocks__/mockRoleBindingK8sResource';
+import type { RoleBindingSubject } from '#~/k8sTypes';
+import { mockComponents } from '#~/__mocks__/mockComponents';
+import { enabledPage } from '#~/__tests__/cypress/cypress/pages/enabled';
+import { jupyterCard } from '#~/__tests__/cypress/cypress/pages/components/JupyterCard';
+import { mockDashboardConfig, mockK8sResourceList } from '#~/__mocks__';
+import { mockRoleBindingK8sResource } from '#~/__mocks__/mockRoleBindingK8sResource';
 
 describe('Enabled Page', () => {
   beforeEach(() => {
@@ -13,7 +13,7 @@ describe('Enabled Page', () => {
   it('check jupyter card details', () => {
     enabledPage.visit();
     jupyterCard.findBrandImage().should('be.visible');
-    jupyterCard.findCardTitle().should('have.text', 'Jupyter');
+    jupyterCard.findCardTitle().should('have.text', 'Start basic workbench');
     jupyterCard.findTooltipInfo().should('exist');
     jupyterCard.findPartnerBadge().should('have.text', 'Red Hat managed');
     jupyterCard
@@ -44,13 +44,13 @@ describe('Enabled Page', () => {
 
     enabledPage.visit();
     jupyterCard.findApplicationLink().click();
-    cy.findByTestId('app-page-title').should('have.text', 'Start a notebook server');
+    cy.findByTestId('app-page-title').should('have.text', 'Start a basic workbench');
 
     // Now validate with the home page feature flag enabled
     cy.interceptOdh('GET /api/config', mockDashboardConfig({ disableHome: false }));
 
     enabledPage.visit();
     jupyterCard.findApplicationLink().click();
-    cy.findByTestId('app-page-title').should('have.text', 'Start a notebook server');
+    cy.findByTestId('app-page-title').should('have.text', 'Start a basic workbench');
   });
 });

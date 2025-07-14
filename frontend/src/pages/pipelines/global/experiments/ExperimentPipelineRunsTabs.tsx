@@ -1,7 +1,7 @@
 import React from 'react';
-import { PipelineRunType } from '~/pages/pipelines/global/runs';
-import GlobalPipelineRunsTabs from '~/pages/pipelines/global/runs/GlobalPipelineRunsTabs';
-import { ExperimentContext } from '~/pages/pipelines/global/experiments/ExperimentContext';
+import { PipelineRunType } from '#~/pages/pipelines/global/runs/types';
+import GlobalPipelineRunsTabs from '#~/pages/pipelines/global/runs/GlobalPipelineRunsTabs';
+import { ExperimentContext } from '#~/pages/pipelines/global/experiments/ExperimentContext';
 
 type ExperimentPipelineRunsTabsProps = {
   tab: PipelineRunType;

@@ -4,7 +4,7 @@ import {
   InputDefinitionParameterType,
   PipelineSpecVariable,
   TriggerStrategy,
-} from '~/concepts/pipelines/kfTypes';
+} from '#~/concepts/pipelines/kfTypes';
 
 export const mockLargePipelineSpec: PipelineSpecVariable = {
   components: {

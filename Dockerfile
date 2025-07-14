@@ -19,9 +19,15 @@ USER default
 
 RUN npm cache clean --force
 
-RUN npm ci --omit=optional
+RUN npm ci --omit=optional --ignore-scripts
+RUN cd frontend && npm ci --omit=optional --ignore-scripts
+RUN cd backend && npm ci --omit=optional --ignore-scripts
 
 RUN npm run build
+
+# Install only production dependencies
+# This is needed to remove the dev dependencies that were installed in the previous step
+RUN cd backend && npm prune --omit=dev
 
 FROM ${BASE_IMAGE} as runtime
 
@@ -34,12 +40,11 @@ USER 1001:0
 COPY --chown=default:root --from=builder /usr/src/app/frontend/public /usr/src/app/frontend/public
 COPY --chown=default:root --from=builder /usr/src/app/backend/package.json /usr/src/app/backend/package.json
 COPY --chown=default:root --from=builder /usr/src/app/backend/package-lock.json /usr/src/app/backend/package-lock.json
+COPY --chown=default:root --from=builder /usr/src/app/backend/node_modules /usr/src/app/backend/node_modules
 COPY --chown=default:root --from=builder /usr/src/app/backend/dist /usr/src/app/backend/dist
 COPY --chown=default:root --from=builder /usr/src/app/.npmrc /usr/src/app/backend/.npmrc
 COPY --chown=default:root --from=builder /usr/src/app/.env /usr/src/app/.env
 COPY --chown=default:root --from=builder /usr/src/app/data /usr/src/app/data
-
-RUN cd backend && npm cache clean --force && npm ci --omit=dev --omit=optional && chmod -R g+w ${HOME}/.npm
 
 WORKDIR /usr/src/app/backend
 

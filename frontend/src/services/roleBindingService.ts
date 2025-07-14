@@ -1,5 +1,5 @@
-import axios from '~/utilities/axios';
-import { RoleBindingKind } from '~/k8sTypes';
+import axios from '#~/utilities/axios';
+import { RoleBindingKind } from '#~/k8sTypes';
 
 export const getRoleBinding = (projectName: string, rbName: string): Promise<RoleBindingKind> => {
   const url = `/api/rolebindings/${projectName}/${rbName}`;

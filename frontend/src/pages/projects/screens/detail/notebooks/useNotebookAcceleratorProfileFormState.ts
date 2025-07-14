@@ -1,8 +1,9 @@
-import { NotebookKind } from '~/k8sTypes';
-import { Notebook } from '~/types';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { NotebookKind } from '#~/k8sTypes';
+import { Notebook } from '#~/types';
 import useAcceleratorProfileFormState, {
   UseAcceleratorProfileFormResult,
-} from '~/utilities/useAcceleratorProfileFormState';
+} from '#~/utilities/useAcceleratorProfileFormState';
 
 const useNotebookAcceleratorProfileFormState = (
   notebook?: NotebookKind | Notebook | null,
@@ -12,8 +13,18 @@ const useNotebookAcceleratorProfileFormState = (
     (container) => container.name === notebook.metadata.name,
   )?.resources;
   const tolerations = notebook?.spec.template.spec.tolerations;
+  const isProjectScopedAvailable = useIsAreaAvailable(SupportedArea.DS_PROJECT_SCOPED).status;
+  const namespace = notebook?.metadata.namespace;
+  const acceleratorProfileNamespace =
+    notebook?.metadata.annotations?.['opendatahub.io/accelerator-profile-namespace'];
 
-  return useAcceleratorProfileFormState(resources, tolerations, name);
+  return useAcceleratorProfileFormState(
+    resources,
+    tolerations,
+    name,
+    isProjectScopedAvailable ? namespace : undefined,
+    acceleratorProfileNamespace,
+  );
 };
 
 export default useNotebookAcceleratorProfileFormState;

@@ -1,4 +1,4 @@
-import { DashboardCommonConfig } from '~/k8sTypes';
+import { DashboardCommonConfig } from '#~/k8sTypes';
 import {
   StackCapability,
   StackComponent,
@@ -7,7 +7,7 @@ import {
   DataScienceStackComponent,
 } from './types';
 
-export const allFeatureFlags: string[] = Object.keys({
+export const definedFeatureFlags: string[] = Object.keys({
   enablement: false,
   disableInfo: false,
   disableSupport: false,
@@ -42,7 +42,11 @@ export const allFeatureFlags: string[] = Object.keys({
   disableNIMModelServing: false,
   disableAdminConnectionTypes: false,
   disableFineTuning: true,
-  disableModelServingPlugin: true, // internal dev only
+  disableKueue: true,
+  disableLMEval: true,
+  disableLlamaStackChatBot: true, // internal dev only
+  disablePVCServing: true,
+  disableFeatureStore: true,
 } satisfies DashboardCommonConfig);
 
 export const SupportedAreasStateMap: SupportedAreasState = {
@@ -111,6 +115,9 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   [SupportedArea.MODEL_SERVING]: {
     featureFlags: ['disableModelServing'],
   },
+  [SupportedArea.PVCSERVING]: {
+    featureFlags: ['disablePVCServing'],
+  },
   [SupportedArea.USER_MANAGEMENT]: {
     featureFlags: ['disableUserManagement'],
   },
@@ -136,6 +143,10 @@ export const SupportedAreasStateMap: SupportedAreasState = {
     featureFlags: ['disableDistributedWorkloads'],
     requiredComponents: [StackComponent.KUEUE],
   },
+  [SupportedArea.KUEUE]: {
+    featureFlags: ['disableKueue'],
+    requiredComponents: [StackComponent.KUEUE],
+  },
   [SupportedArea.MODEL_CATALOG]: {
     featureFlags: ['disableModelCatalog'],
     reliantAreas: [SupportedArea.MODEL_REGISTRY],
@@ -143,7 +154,6 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   [SupportedArea.MODEL_REGISTRY]: {
     featureFlags: ['disableModelRegistry'],
     requiredComponents: [StackComponent.MODEL_REGISTRY],
-    requiredCapabilities: [StackCapability.SERVICE_MESH, StackCapability.SERVICE_MESH_AUTHZ],
   },
   [SupportedArea.SERVING_RUNTIME_PARAMS]: {
     featureFlags: ['disableServingRuntimeParams'],
@@ -168,9 +178,18 @@ export const SupportedAreasStateMap: SupportedAreasState = {
       SupportedArea.MODEL_REGISTRY,
     ],
   },
-  [SupportedArea.PLUGIN_MODEL_SERVING]: {
-    featureFlags: ['disableModelServingPlugin'],
+  [SupportedArea.LLAMA_STACK_CHAT_BOT]: {
+    featureFlags: ['disableLlamaStackChatBot'],
     reliantAreas: [SupportedArea.MODEL_SERVING],
+    //TODO: Add Llama Stack component when details known.
+  },
+  [SupportedArea.LM_EVAL]: {
+    featureFlags: ['disableLMEval'],
+    reliantAreas: [SupportedArea.MODEL_REGISTRY, SupportedArea.MODEL_SERVING],
+  },
+  [SupportedArea.FEATURE_STORE]: {
+    featureFlags: ['disableFeatureStore'],
+    requiredComponents: [StackComponent.FEAST_OPERATOR],
   },
 };
 

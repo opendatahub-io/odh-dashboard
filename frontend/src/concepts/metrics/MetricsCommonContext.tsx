@@ -1,7 +1,7 @@
 import * as React from 'react';
-import useCurrentTimeframeBrowserStorage from '~/concepts/metrics/useCurrentTimeframeBrowserStorage';
-import useRefreshIntervalBrowserStorage from '~/concepts/metrics/useRefreshIntervalBrowserStorage';
-import { RefreshIntervalTitle, TimeframeTitle } from '~/concepts/metrics/types';
+import useCurrentTimeframeBrowserStorage from '#~/concepts/metrics/useCurrentTimeframeBrowserStorage';
+import useRefreshIntervalBrowserStorage from '#~/concepts/metrics/useRefreshIntervalBrowserStorage';
+import { RefreshIntervalTitle, TimeframeTitle } from '#~/concepts/metrics/types';
 
 export type MetricsCommonContextType = {
   currentTimeframe: TimeframeTitle;

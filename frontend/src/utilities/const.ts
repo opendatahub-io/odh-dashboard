@@ -1,9 +1,5 @@
-import {
-  ContextResourceData,
-  CustomWatchK8sResult,
-  FetchStateObject,
-  OdhDocumentType,
-} from '~/types';
+import { CustomWatchK8sResult, ListWithNonDashboardPresence, OdhDocumentType } from '#~/types';
+import { FetchStateObject } from '#~/utilities/useFetch';
 
 const WS_HOSTNAME = process.env.WS_HOSTNAME || location.host;
 const DEV_MODE = process.env.APP_ENV === 'development';
@@ -24,6 +20,7 @@ const DASHBOARD_CONFIG = process.env.DASHBOARD_CONFIG || 'odh-dashboard-config';
 const { EXT_CLUSTER } = process.env;
 const INTERNAL_DASHBOARD_VERSION = process.env.INTERNAL_DASHBOARD_VERSION || '';
 const { CONSOLE_LINK_DOMAIN } = process.env;
+const { MF_CONFIG } = process.env;
 
 export {
   DEV_MODE,
@@ -43,6 +40,7 @@ export {
   EXT_CLUSTER,
   INTERNAL_DASHBOARD_VERSION,
   CONSOLE_LINK_DOMAIN,
+  MF_CONFIG,
 };
 
 export const DOC_TYPE_TOOLTIPS = {
@@ -54,12 +52,6 @@ export const DOC_TYPE_TOOLTIPS = {
 
 export const CATEGORY_ANNOTATION = 'opendatahub.io/categories';
 
-export const DEFAULT_CONTEXT_DATA: ContextResourceData<never> = {
-  data: [],
-  loaded: false,
-  refresh: () => undefined,
-};
-
 export const DEFAULT_LIST_WATCH_RESULT: CustomWatchK8sResult<never | never[]> = [
   [],
   false,
@@ -69,13 +61,26 @@ export const DEFAULT_LIST_WATCH_RESULT: CustomWatchK8sResult<never | never[]> = 
 export const DEFAULT_LIST_FETCH_STATE: FetchStateObject<never[]> = {
   data: [],
   loaded: false,
-  refresh: () => undefined,
+  refresh: () => Promise.resolve(undefined),
 };
 
 export const DEFAULT_VALUE_FETCH_STATE: FetchStateObject<never | undefined> = {
   data: undefined,
   loaded: false,
-  refresh: () => undefined,
+  refresh: () => Promise.resolve(undefined),
+};
+
+export const DEFAULT_LIST_WITH_NON_DASHBOARD_PRESENCE: ListWithNonDashboardPresence<never> = {
+  items: [],
+  hasNonDashboardItems: false,
+};
+
+export const DEFAULT_LIST_WITH_NON_DASHBOARD_PRESENCE_FETCH_STATE: FetchStateObject<
+  ListWithNonDashboardPresence<never>
+> = {
+  ...DEFAULT_VALUE_FETCH_STATE,
+  data: DEFAULT_LIST_WITH_NON_DASHBOARD_PRESENCE,
+  refresh: () => Promise.resolve(undefined),
 };
 
 export const DASHBOARD_MAIN_CONTAINER_ID = 'dashboard-page-main';

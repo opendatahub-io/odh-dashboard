@@ -2,14 +2,14 @@ import React from 'react';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
 import { useNavigate } from 'react-router-dom';
 import { Button, Tooltip } from '@patternfly/react-core';
-import { ModelRegistryKind, RoleBindingKind } from '~/k8sTypes';
-import ResourceNameTooltip from '~/components/ResourceNameTooltip';
-import { ContextResourceData } from '~/types';
+import { ModelRegistryKind, RoleBindingKind } from '#~/k8sTypes';
+import { FetchStateObject } from '#~/utilities/useFetch';
+import ResourceNameTooltip from '#~/components/ResourceNameTooltip';
 import { ModelRegistryTableRowStatus } from './ModelRegistryTableRowStatus';
 
 type ModelRegistriesTableRowProps = {
   modelRegistry: ModelRegistryKind;
-  roleBindings: ContextResourceData<RoleBindingKind>;
+  roleBindings: FetchStateObject<RoleBindingKind[]>;
   onEditRegistry: (obj: ModelRegistryKind) => void;
   onDeleteRegistry: (obj: ModelRegistryKind) => void;
 };

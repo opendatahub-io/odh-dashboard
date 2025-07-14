@@ -1,23 +1,23 @@
 import { Button, FormGroup, Radio, TextInput } from '@patternfly/react-core';
 import React from 'react';
-import { FineTuneTaxonomyType } from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/types';
+import { FineTuneTaxonomyType } from '#~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/types';
 import {
   FineTuneTaxonomyFormData,
   fineTuneTaxonomySchema,
-} from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/validationUtils';
-import PasswordInput from '~/components/PasswordInput';
-import { ZodErrorHelperText } from '~/components/ZodErrorFormHelperText';
-import { ModelCustomizationDrawerContentArgs } from '~/pages/pipelines/global/modelCustomization/landingPage/ModelCustomizationDrawerContent';
-import MarkdownView from '~/components/MarkdownView';
-import FormSection from '~/components/pf-overrides/FormSection';
-import { useZodFormValidation } from '~/hooks/useZodFormValidation';
+} from '#~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/validationUtils';
+import PasswordInput from '#~/components/PasswordInput';
+import { ZodErrorHelperText } from '#~/components/ZodErrorFormHelperText';
+import { ModelCustomizationDrawerContentArgs } from '#~/pages/pipelines/global/modelCustomization/landingPage/ModelCustomizationDrawerContent';
+import MarkdownView from '#~/components/MarkdownView';
+import FormSection from '#~/components/pf-overrides/FormSection';
+import { useZodFormValidation } from '#~/hooks/useZodFormValidation';
 import {
   FineTunePageSections,
   fineTunePageSectionTitles,
   taxonomyMarkdownContent,
   taxonomyMarkdownTitle,
-} from '~/pages/pipelines/global/modelCustomization/const';
-import { SshKeyFileUpload } from '~/pages/pipelines/global/modelCustomization/taxonomySection/SshKeyFileUpload';
+} from '#~/pages/pipelines/global/modelCustomization/const';
+import { SshKeyFileUpload } from '#~/pages/pipelines/global/modelCustomization/taxonomySection/SshKeyFileUpload';
 
 type FineTuneTaxonomySectionProps = {
   data: FineTuneTaxonomyFormData;

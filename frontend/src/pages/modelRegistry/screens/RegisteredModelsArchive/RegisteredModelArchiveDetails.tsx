@@ -1,16 +1,16 @@
 import React, { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { Button, Flex, FlexItem, Label, Truncate } from '@patternfly/react-core';
-import ApplicationsPage from '~/pages/ApplicationsPage';
-import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
-import { registeredModelRoute } from '~/routes';
-import useRegisteredModelById from '~/concepts/modelRegistry/apiHooks/useRegisteredModelById';
-import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegistryContext';
-import { ModelState } from '~/concepts/modelRegistry/types';
-import { RestoreRegisteredModelModal } from '~/pages/modelRegistry/screens/components/RestoreRegisteredModel';
-import ModelVersionsTabs from '~/pages/modelRegistry/screens/ModelVersions/ModelVersionsTabs';
-import { ModelVersionsTab } from '~/pages/modelRegistry/screens/ModelVersions/const';
-import useModelVersionsByRegisteredModel from '~/concepts/modelRegistry/apiHooks/useModelVersionsByRegisteredModel';
+import ApplicationsPage from '#~/pages/ApplicationsPage';
+import { registeredModelRoute } from '#~/routes/modelRegistry/registeredModels';
+import useRegisteredModelById from '#~/concepts/modelRegistry/apiHooks/useRegisteredModelById';
+import { ModelState } from '#~/concepts/modelRegistry/types';
+import { RestoreRegisteredModelModal } from '#~/pages/modelRegistry/screens/components/RestoreRegisteredModel';
+import ModelVersionsTabs from '#~/pages/modelRegistry/screens/ModelVersions/ModelVersionsTabs';
+import { ModelVersionsTab } from '#~/pages/modelRegistry/screens/ModelVersions/const';
+import useModelVersionsByRegisteredModel from '#~/concepts/modelRegistry/apiHooks/useModelVersionsByRegisteredModel';
+import { ModelRegistriesContext } from '#~/concepts/modelRegistry/context/ModelRegistriesContext';
+import { ModelRegistryPageContext } from '#~/concepts/modelRegistry/context/ModelRegistryPageContext';
 import RegisteredModelArchiveDetailsBreadcrumb from './RegisteredModelArchiveDetailsBreadcrumb';
 
 type RegisteredModelsArchiveDetailsProps = {
@@ -24,8 +24,8 @@ const RegisteredModelsArchiveDetails: React.FC<RegisteredModelsArchiveDetailsPro
   tab,
   ...pageProps
 }) => {
-  const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
-  const { apiState } = React.useContext(ModelRegistryContext);
+  const { preferredModelRegistry } = React.useContext(ModelRegistriesContext);
+  const { apiState } = React.useContext(ModelRegistryPageContext);
 
   const navigate = useNavigate();
 

@@ -1,9 +1,9 @@
 import * as React from 'react';
 import '@testing-library/jest-dom';
 import { render, screen } from '@testing-library/react';
-import ManageConnectionTypeFieldsTableRow from '~/pages/connectionTypes/manage/ManageConnectionTypeFieldsTableRow';
-import { ShortTextField, TextField } from '~/concepts/connectionTypes/types';
-import { ValidationContext, ValidationContextType } from '~/utilities/useValidation';
+import ManageConnectionTypeFieldsTableRow from '#~/pages/connectionTypes/manage/ManageConnectionTypeFieldsTableRow';
+import { ShortTextField, TextField } from '#~/concepts/connectionTypes/types';
+import { ValidationContext, ValidationContextType } from '#~/utilities/useValidation';
 
 const renderRow = (
   props: Pick<React.ComponentProps<typeof ManageConnectionTypeFieldsTableRow>, 'row'> &

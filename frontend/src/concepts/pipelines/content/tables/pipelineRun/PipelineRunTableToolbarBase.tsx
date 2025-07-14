@@ -1,16 +1,16 @@
 import * as React from 'react';
 import { TextInput } from '@patternfly/react-core';
-import PipelineFilterBar from '~/concepts/pipelines/content/tables/PipelineFilterBar';
-import SimpleSelect from '~/components/SimpleSelect';
-import { FilterOptions } from '~/concepts/pipelines/content/tables/usePipelineFilter';
-import { RuntimeStateKF, runtimeStateLabels } from '~/concepts/pipelines/kfTypes';
-import DashboardDatePicker from '~/components/DashboardDatePicker';
-import { PipelineRunVersionsContext } from '~/pages/pipelines/global/runs/PipelineRunVersionsContext';
-import { PipelineRunExperimentsContext } from '~/pages/pipelines/global/runs/PipelineRunExperimentsContext';
+import PipelineFilterBar from '#~/concepts/pipelines/content/tables/PipelineFilterBar';
+import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
+import { FilterOptions } from '#~/concepts/pipelines/content/tables/usePipelineFilter';
+import { RuntimeStateKF, runtimeStateLabels } from '#~/concepts/pipelines/kfTypes';
+import DashboardDatePicker from '#~/components/DashboardDatePicker';
+import { PipelineRunVersionsContext } from '#~/pages/pipelines/global/runs/PipelineRunVersionsContext';
+import { PipelineRunExperimentsContext } from '#~/pages/pipelines/global/runs/PipelineRunExperimentsContext';
 import {
   ExperimentFilterSelector,
   PipelineVersionFilterSelector,
-} from '~/concepts/pipelines/content/pipelineSelector/CustomPipelineRunToolbarSelect';
+} from '#~/concepts/pipelines/content/pipelineSelector/CustomPipelineRunToolbarSelect';
 
 export type FilterProps = Pick<
   React.ComponentProps<typeof PipelineFilterBar>,
@@ -84,11 +84,14 @@ const PipelineRunTableToolbarBase: React.FC<PipelineRunTableToolbarBaseProps> = 
           <SimpleSelect
             {...props}
             value={value}
+            placeholder="Select a status"
             aria-label="Select a status"
-            options={Object.values(statusRuntimeStates).map((v) => ({
-              key: v,
-              label: v,
-            }))}
+            options={Object.values(statusRuntimeStates).map(
+              (v): SimpleSelectOption => ({
+                key: v,
+                label: v,
+              }),
+            )}
             onChange={(v) => onChange(v)}
             dataTestId="runtime-status-dropdown"
             popperProps={{ maxWidth: undefined, appendTo: 'inline' }}

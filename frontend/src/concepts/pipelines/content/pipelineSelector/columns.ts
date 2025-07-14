@@ -1,5 +1,5 @@
-import { SortableData } from '~/components/table';
-import { PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
+import { SortableData } from '#~/components/table';
+import { PipelineKF, PipelineVersionKF } from '#~/concepts/pipelines/kfTypes';
 
 export const pipelineSelectorColumns: SortableData<PipelineKF>[] = [
   {

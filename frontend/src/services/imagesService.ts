@@ -1,25 +1,5 @@
-import axios from '~/utilities/axios';
-import { BYONImage, ImageInfo, ResponseStatus } from '~/types';
-
-export const fetchImages = (): Promise<ImageInfo[]> => {
-  const url = `/api/images/jupyter`;
-  return axios
-    .get(url)
-    .then((response) => response.data)
-    .catch((e) => {
-      throw new Error(e.response.data.message);
-    });
-};
-
-export const fetchBYONImages = (): Promise<BYONImage[]> => {
-  const url = '/api/images/byon';
-  return axios
-    .get(url)
-    .then((response) => response.data)
-    .catch((e) => {
-      throw new Error(e.response.data.message);
-    });
-};
+import axios from '#~/utilities/axios';
+import { BYONImage, ResponseStatus } from '#~/types';
 
 export const importBYONImage = (image: Partial<BYONImage>): Promise<ResponseStatus> => {
   const url = '/api/images';

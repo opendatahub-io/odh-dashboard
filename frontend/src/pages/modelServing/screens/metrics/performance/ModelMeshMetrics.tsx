@@ -1,11 +1,11 @@
 import * as React from 'react';
 import { Stack, StackItem } from '@patternfly/react-core';
-import MetricsChart from '~/pages/modelServing/screens/metrics/MetricsChart';
+import MetricsChart from '#~/pages/modelServing/screens/metrics/MetricsChart';
 import {
   ModelMetricType,
   ModelServingMetricsContext,
-} from '~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
-import EnsureMetricsAvailable from '~/pages/modelServing/screens/metrics/EnsureMetricsAvailable';
+} from '#~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
+import EnsureMetricsAvailable from '#~/pages/modelServing/screens/metrics/EnsureMetricsAvailable';
 
 const ModelMeshMetrics: React.FC = () => {
   const { data } = React.useContext(ModelServingMetricsContext);

@@ -1,15 +1,15 @@
-import { testHook } from '~/__tests__/unit/testUtils/hooks';
-import { getAllowedUsers } from '~/redux/actions/actions';
-import { mockAllowedUsers } from '~/__mocks__/mockAllowedUsers';
-import useCheckForAllowedUsers from '~/pages/notebookController/screens/admin/useCheckForAllowedUsers';
-import { AllowedUser } from '~/pages/notebookController/screens/admin/types';
+import { testHook } from '#~/__tests__/unit/testUtils/hooks';
+import { getAllowedUsers } from '#~/redux/actions/actions';
+import { mockAllowedUsers } from '#~/__mocks__/mockAllowedUsers';
+import useCheckForAllowedUsers from '#~/pages/notebookController/screens/admin/useCheckForAllowedUsers';
+import { AllowedUser } from '#~/pages/notebookController/screens/admin/types';
 
-jest.mock('~/redux/actions/actions', () => ({
+jest.mock('#~/redux/actions/actions', () => ({
   getAllowedUsers: jest.fn(),
 }));
 
-jest.mock('~/pages/notebookController/useNamespaces', () => () => ({
-  notebookNamespace: 'test-project',
+jest.mock('#~/pages/notebookController/useNamespaces', () => () => ({
+  workbenchNamespace: 'test-project',
   dashboardNamespace: 'opendatahub',
 }));
 

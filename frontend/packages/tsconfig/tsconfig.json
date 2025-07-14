@@ -1,8 +1,8 @@
 {
     "compilerOptions": {
         "module": "esnext",
-        "target": "es5",
-        "lib": ["es6", "dom", "ES2023.Array"],
+        "target": "es2021",
+        "lib": ["es2021", "dom", "ES2023.Array"],
         "sourceMap": true,
         "jsx": "react",
         "moduleResolution": "bundler",
@@ -18,8 +18,14 @@
         "importHelpers": true,
         "skipLibCheck": true,
         "noErrorTruncation": true,
-        "baseUrl": "${configDir}/src"
+        "baseUrl": "${configDir}",
+        "noEmit": true,
+        "allowImportingTsExtensions": true
     },
-    "include": ["${configDir}/**/*.ts", "${configDir}/**/*.tsx", "${configDir}/**/*.jsx", "${configDir}/**/*.js"],
-    "exclude": ["node_modules"]
+    "include": ["${configDir}/**/*.ts", "${configDir}/**/*.tsx", "${configDir}/**/*.jsx", "${configDir}/**/**.js"],
+    "exclude": ["node_modules"],
+    "files": [
+        "../../src/typings.d.ts",
+        "../../src/__tests__/unit/jest.d.ts"
+    ]
 }

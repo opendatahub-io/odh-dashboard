@@ -1,8 +1,8 @@
 /* eslint-disable cypress/no-unnecessary-waiting */
-import { createDataConnection } from '~/__tests__/cypress/cypress/utils/oc_commands/dataConnection';
-import { AWS_BUCKETS } from '~/__tests__/cypress/cypress/utils/s3Buckets';
-import type { DataConnectionReplacements } from '~/__tests__/cypress/cypress/types';
-import { createCleanProject } from '~/__tests__/cypress/cypress/utils/projectChecker';
+import { createDataConnection } from '#~/__tests__/cypress/cypress/utils/oc_commands/dataConnection';
+import { AWS_BUCKETS } from '#~/__tests__/cypress/cypress/utils/s3Buckets';
+import type { DataConnectionReplacements } from '#~/__tests__/cypress/cypress/types';
+import { createCleanProject } from '#~/__tests__/cypress/cypress/utils/projectChecker';
 
 /**
  * Provision (using oc) a Project in order to make it usable with model seving
@@ -78,6 +78,8 @@ type ConditionCheck = {
 type ConditionCheckOptions = {
   checkLatestDeploymentReady?: boolean;
   checkReady?: boolean;
+  checkStopped?: boolean;
+  requireLoadedState?: boolean;
 };
 
 /**
@@ -89,14 +91,16 @@ const safeString = (value: string | undefined | null): string => value ?? '';
  * Check InferenceService active model state and additional conditions
  *
  * @param serviceName InferenceService name
+ * @param namespace The namespace where the InferenceService is deployed
  * @param options Optional configuration for condition checks
  * @returns Result Object of the operation
  */
 export const checkInferenceServiceState = (
   serviceName: string,
+  namespace: string,
   options: ConditionCheckOptions = {},
 ): Cypress.Chainable<Cypress.Exec> => {
-  const ocCommand = `oc get inferenceService ${serviceName} -o json`;
+  const ocCommand = `oc get inferenceService ${serviceName} -n ${namespace} -o json`;
   const maxAttempts = 96; // 8 minutes / 5 seconds = 96 attempts
   let attempts = 0;
 
@@ -104,18 +108,38 @@ export const checkInferenceServiceState = (
     return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => {
       attempts++;
 
+      // Log raw command output for debugging
+      cy.log(`Raw command output (attempt ${attempts}):
+        Exit code: ${result.code}
+        Stdout length: ${result.stdout.length}
+        Stderr: ${result.stderr || 'none'}`);
+
+      // Check if the command failed
+      if (result.code !== 0) {
+        const errorMsg = `Command failed with exit code ${result.code}: ${result.stderr}`;
+        cy.log(`❌ ${errorMsg}`);
+        throw new Error(errorMsg);
+      }
+
+      // Check if stdout is empty
+      if (!result.stdout.trim()) {
+        const errorMsg = 'Command succeeded but returned empty output';
+        cy.log(`❌ ${errorMsg}`);
+        throw new Error(errorMsg);
+      }
+
       let serviceState: InferenceServiceState;
       try {
+        // Log the first 100 characters of stdout for debugging
+        cy.log(`Attempting to parse JSON (first 100 chars): ${result.stdout.substring(0, 100)}...`);
         serviceState = JSON.parse(result.stdout) as InferenceServiceState;
       } catch (error) {
-        cy.log(
-          `❌ Failed to parse JSON: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        );
-        throw new Error(
-          `Failed to parse InferenceService JSON: ${
-            error instanceof Error ? error.message : 'Unknown error'
-          }`,
-        );
+        const errorMsg = `Failed to parse InferenceService JSON: ${
+          error instanceof Error ? error.message : 'Unknown error'
+        }`;
+        cy.log(`❌ ${errorMsg}`);
+        cy.log(`Raw stdout: ${result.stdout}`);
+        throw new Error(errorMsg);
       }
 
       // Check active model state
@@ -152,6 +176,15 @@ export const checkInferenceServiceState = (
         });
       }
 
+      if (options.checkStopped) {
+        conditionChecks.push({
+          type: 'Stopped',
+          expectedStatus: 'True',
+          check: (condition) => condition.type === 'Stopped' && condition.status === 'True',
+          name: 'Service Stopped',
+        });
+      }
+
       // If no condition checks are specified, skip condition validation
       const shouldValidateConditions = conditionChecks.length > 0;
 
@@ -185,10 +218,12 @@ export const checkInferenceServiceState = (
       // If no condition checks were specified, only check model state
       const allConditionsPassed =
         !shouldValidateConditions || checkedConditions.every((check) => check.isPassed);
+      // If the user does not want to check the loaded state, then we can return if all conditions are met
+      const requireLoaded = options.requireLoadedState !== false;
 
-      if (isModelLoaded && allConditionsPassed) {
+      if ((!requireLoaded || isModelLoaded) && allConditionsPassed) {
         cy.log(
-          `✅ InferenceService ${serviceName} is in "Loaded" state and meets all conditions after ${attempts} attempts`,
+          `✅ InferenceService ${serviceName} meets all conditions after ${attempts} attempts`,
         );
         return cy.wrap(result);
       }
@@ -237,11 +272,13 @@ export const checkInferenceServiceState = (
  * Retries the request every 5 seconds for up to 30 seconds if the initial request fails.
  *
  * @param modelName - The name of the InferenceService/model to test.
+ * @param namespace - The namespace where the InferenceService is deployed.
  */
 export const modelExternalTester = (
   modelName: string,
+  namespace: string,
 ): Cypress.Chainable<{ url: string; response: Cypress.Response<unknown> }> => {
-  return cy.exec(`oc get inferenceService ${modelName} -o json`).then((result) => {
+  return cy.exec(`oc get inferenceService ${modelName} -n ${namespace} -o json`).then((result) => {
     const inferenceService = JSON.parse(result.stdout);
     const { url } = inferenceService.status;
 

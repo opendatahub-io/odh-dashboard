@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { Bullseye, Button, CardBody, Flex, FlexItem, Content } from '@patternfly/react-core';
-import { SectionType } from '~/concepts/design/utils';
-import TypeBorderedCard from '~/concepts/design/TypeBorderedCard';
-import { ProjectIcon } from '~/images/icons';
+import { SectionType } from '#~/concepts/design/utils';
+import TypeBorderedCard from '#~/concepts/design/TypeBorderedCard';
+import { ProjectIcon } from '#~/images/icons';
 
 interface CreateProjectCardProps {
   allowCreate: boolean;

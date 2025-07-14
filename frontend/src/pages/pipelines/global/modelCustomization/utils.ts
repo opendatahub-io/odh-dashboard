@@ -1,31 +1,31 @@
 /* eslint-disable camelcase */
-import { assembleSecretJudge, assembleSecretTeacher, createSecret } from '~/api';
+import { assembleSecretJudge, assembleSecretTeacher, createSecret } from '#~/api';
 import {
   FineTuneTaxonomyType,
   ModelCustomizationEndpointType,
-} from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/types';
+} from '#~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/types';
 import {
   FineTuneTaxonomyFormData,
   ModelCustomizationFormData,
   TeacherJudgeFormData,
-} from '~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/validationUtils';
-import { HardwareProfileKind, SecretKind } from '~/k8sTypes';
-import { genRandomChars } from '~/utilities/string';
-import { getInputDefinitionParams } from '~/concepts/pipelines/content/createRun/utils';
+} from '#~/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/validationUtils';
+import { HardwareProfileKind, SecretKind } from '#~/k8sTypes';
+import { genRandomChars } from '#~/utilities/string';
+import { getInputDefinitionParams } from '#~/concepts/pipelines/content/createRun/utils';
 import {
   PipelineVersionKF,
   ParametersKF,
   RuntimeConfigParamValue,
   ParameterKF,
   RuntimeConfigParameters,
-} from '~/concepts/pipelines/kfTypes';
-import { K8sNameDescriptionFieldData } from '~/concepts/k8s/K8sNameDescriptionField/types';
-import { getResourceNameFromK8sResource } from '~/concepts/k8s/utils';
-import { assembleConnectionSecret } from '~/concepts/connectionTypes/utils';
+} from '#~/concepts/pipelines/kfTypes';
+import { K8sNameDescriptionFieldData } from '#~/concepts/k8s/K8sNameDescriptionField/types';
+import { getResourceNameFromK8sResource } from '#~/concepts/k8s/utils';
+import { assembleConnectionSecret } from '#~/concepts/connectionTypes/utils';
 import {
   ConnectionTypeConfigMapObj,
   ConnectionTypeValueType,
-} from '~/concepts/connectionTypes/types';
+} from '#~/concepts/connectionTypes/types';
 import {
   EXCLUDED_HYPERPARAMETERS,
   EXPECTED_FINE_TUNING_PIPELINE_PARAMETERS,

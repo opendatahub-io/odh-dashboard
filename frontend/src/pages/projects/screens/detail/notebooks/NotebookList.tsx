@@ -2,15 +2,15 @@ import * as React from 'react';
 import { Button, Popover } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
-import { ProjectSectionID } from '~/pages/projects/screens/detail/types';
-import { ProjectSectionTitles } from '~/pages/projects/screens/detail/const';
-import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import { FAST_POLL_INTERVAL, POLL_INTERVAL } from '~/utilities/const';
-import DetailsSection from '~/pages/projects/screens/detail/DetailsSection';
-import EmptyDetailsView from '~/components/EmptyDetailsView';
-import DashboardPopupIconButton from '~/concepts/dashboard/DashboardPopupIconButton';
-import { ProjectObjectType, typedEmptyImage } from '~/concepts/design/utils';
-import useRefreshInterval from '~/utilities/useRefreshInterval';
+import { ProjectSectionID } from '#~/pages/projects/screens/detail/types';
+import { ProjectSectionTitles } from '#~/pages/projects/screens/detail/const';
+import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
+import { FAST_POLL_INTERVAL, POLL_INTERVAL } from '#~/utilities/const';
+import DetailsSection from '#~/pages/projects/screens/detail/DetailsSection';
+import EmptyDetailsView from '#~/components/EmptyDetailsView';
+import DashboardPopupIconButton from '#~/concepts/dashboard/DashboardPopupIconButton';
+import { ProjectObjectType, typedEmptyImage } from '#~/concepts/design/utils';
+import useRefreshInterval from '#~/utilities/useRefreshInterval';
 import NotebookTable from './NotebookTable';
 
 const NotebookList: React.FC = () => {

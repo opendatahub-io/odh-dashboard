@@ -1,10 +1,10 @@
-import { useIsAreaAvailable, SupportedArea } from '~/concepts/areas';
-import useStorageClasses from '~/concepts/k8s/useStorageClasses';
-import { StorageClassKind } from '~/k8sTypes';
-import useAdminDefaultStorageClass from '~/pages/projects/screens/spawner/storage/useAdminDefaultStorageClass';
-import useOpenshiftDefaultStorageClass from '~/pages/projects/screens/spawner/storage/useOpenshiftDefaultStorageClass';
-import usePreferredStorageClass from '~/pages/projects/screens/spawner/storage/usePreferredStorageClass';
-import { FetchState } from '~/utilities/useFetchState';
+import { useIsAreaAvailable, SupportedArea } from '#~/concepts/areas';
+import useStorageClasses from '#~/concepts/k8s/useStorageClasses';
+import { StorageClassKind } from '#~/k8sTypes';
+import useAdminDefaultStorageClass from '#~/pages/projects/screens/spawner/storage/useAdminDefaultStorageClass';
+import useOpenshiftDefaultStorageClass from '#~/pages/projects/screens/spawner/storage/useOpenshiftDefaultStorageClass';
+import usePreferredStorageClass from '#~/pages/projects/screens/spawner/storage/usePreferredStorageClass';
+import { FetchState } from '#~/utilities/useFetchState';
 
 export const useDefaultStorageClass = (
   fallbackToFirst = false,

@@ -1,10 +1,11 @@
 import React from 'react';
 import { Stack, StackItem } from '@patternfly/react-core';
-import { deleteHardwareProfile } from '~/api';
-import { HardwareProfileKind } from '~/k8sTypes';
-import DeleteModal from '~/pages/projects/components/DeleteModal';
+import { deleteHardwareProfile } from '#~/api';
+import { HardwareProfileKind } from '#~/k8sTypes';
+import DeleteModal from '#~/pages/projects/components/DeleteModal';
 import { MigrationAction } from './migration/types';
 import { MIGRATION_SOURCE_TYPE_LABELS } from './migration/const';
+import { getHardwareProfileDisplayName } from './utils';
 
 type DeleteHardwareProfileModalProps = {
   hardwareProfile: HardwareProfileKind;
@@ -34,7 +35,7 @@ const DeleteHardwareProfileModal: React.FC<DeleteHardwareProfileModalProps> = ({
       deleteName={
         migrationAction
           ? `Delete ${migrationAction.dependentProfiles.length + 2} resources` // dependent profiles + target profile + source
-          : hardwareProfile.spec.displayName
+          : getHardwareProfileDisplayName(hardwareProfile)
       }
       onDelete={() => {
         setIsDeleting(true);
@@ -66,13 +67,14 @@ const DeleteHardwareProfileModal: React.FC<DeleteHardwareProfileModalProps> = ({
         {migrationAction && (
           <>
             <StackItem>
-              The <b>{migrationAction.targetProfile.spec.displayName}</b> legacy hardware profile
+              The <b>{getHardwareProfileDisplayName(migrationAction.targetProfile)}</b> legacy
+              legacy hardware profile
               {migrationAction.dependentProfiles.length > 0 && (
                 <>
                   , dependent legacy hardware profiles:{' '}
                   <b>
                     {migrationAction.dependentProfiles
-                      .map((profile) => profile.spec.displayName)
+                      .map((profile) => getHardwareProfileDisplayName(profile))
                       .join(', ')}
                   </b>
                 </>

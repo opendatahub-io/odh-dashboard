@@ -1,13 +1,13 @@
 import * as React from 'react';
-import { SupportedArea, useIsAreaAvailable } from '~/concepts/areas';
-import useStorageClasses from '~/concepts/k8s/useStorageClasses';
-import { StorageClassKind } from '~/k8sTypes';
-import { getStorageClassConfig } from '~/pages/storageClasses/utils';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import useStorageClasses from '#~/concepts/k8s/useStorageClasses';
+import { StorageClassKind } from '#~/k8sTypes';
+import { getStorageClassConfig } from '#~/pages/storageClasses/utils';
 import useFetchState, {
   FetchState,
   FetchStateCallbackPromise,
   NotReadyError,
-} from '~/utilities/useFetchState';
+} from '#~/utilities/useFetchState';
 
 const useAdminDefaultStorageClass = (): FetchState<StorageClassKind | null> => {
   const isStorageClassesAvailable = useIsAreaAvailable(SupportedArea.STORAGE_CLASSES).status;

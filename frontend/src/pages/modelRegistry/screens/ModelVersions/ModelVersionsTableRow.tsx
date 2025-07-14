@@ -2,24 +2,27 @@ import * as React from 'react';
 import { ActionsColumn, IAction, Td, Tr } from '@patternfly/react-table';
 import { Content, ContentVariants, Truncate, FlexItem } from '@patternfly/react-core';
 import { Link, useNavigate } from 'react-router-dom';
-import { ModelVersion, ModelState, RegisteredModel } from '~/concepts/modelRegistry/types';
-import { ModelRegistrySelectorContext } from '~/concepts/modelRegistry/context/ModelRegistrySelectorContext';
-import ModelLabels from '~/pages/modelRegistry/screens/components/ModelLabels';
-import ModelTimestamp from '~/pages/modelRegistry/screens/components/ModelTimestamp';
+import { ModelVersion, ModelState, RegisteredModel } from '#~/concepts/modelRegistry/types';
+import ModelLabels from '#~/pages/modelRegistry/screens/components/ModelLabels';
+import ModelTimestamp from '#~/pages/modelRegistry/screens/components/ModelTimestamp';
 import {
-  archiveModelVersionDetailsRoute,
-  modelVersionArchiveDetailsRoute,
   modelVersionDeploymentsRoute,
   modelVersionRoute,
-} from '~/routes';
-import { ArchiveModelVersionModal } from '~/pages/modelRegistry/screens/components/ArchiveModelVersionModal';
-import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegistryContext';
-import { RestoreModelVersionModal } from '~/pages/modelRegistry/screens/components/RestoreModelVersionModal';
-import DeployRegisteredVersionModal from '~/pages/modelRegistry/screens/components/DeployRegisteredVersionModal';
-import { useIsAreaAvailable, SupportedArea } from '~/concepts/areas';
-import StartRunModal from '~/pages/pipelines/global/modelCustomization/startRunModal/StartRunModal';
-import { useModelVersionTuningData } from '~/concepts/modelRegistry/hooks/useModelVersionTuningData';
-import { getModelCustomizationPath } from '~/routes/pipelines/modelCustomization';
+} from '#~/routes/modelRegistry/modelVersions';
+import { archiveModelVersionDetailsRoute } from '#~/routes/modelRegistry/modelArchive';
+import { modelVersionArchiveDetailsRoute } from '#~/routes/modelRegistry/modelVersionArchive';
+import { ArchiveModelVersionModal } from '#~/pages/modelRegistry/screens/components/ArchiveModelVersionModal';
+import { RestoreModelVersionModal } from '#~/pages/modelRegistry/screens/components/RestoreModelVersionModal';
+import DeployRegisteredVersionModal from '#~/pages/modelRegistry/screens/components/DeployRegisteredVersionModal';
+import { useIsAreaAvailable, SupportedArea } from '#~/concepts/areas';
+import StartRunModal from '#~/pages/pipelines/global/modelCustomization/startRunModal/StartRunModal';
+import { getModelCustomizationPath } from '#~/routes/pipelines/modelCustomization';
+import { isOciModelUri } from '#~/pages/modelServing/utils';
+import useModelArtifactsByVersionId from '#~/concepts/modelRegistry/apiHooks/useModelArtifactsByVersionId';
+import useDeployButtonState from '#~/pages/modelServing/screens/projects/useDeployButtonState';
+import { ModelRegistryPageContext } from '#~/concepts/modelRegistry/context/ModelRegistryPageContext';
+import { ModelRegistriesContext } from '#~/concepts/modelRegistry/context/ModelRegistriesContext';
+import { getModelVersionTuningData } from '#~/concepts/modelRegistry/utils/getModelVersionTuningData';
 
 type ModelVersionsTableRowProps = {
   modelVersion: ModelVersion;
@@ -39,8 +42,9 @@ const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
   refresh,
 }) => {
   const navigate = useNavigate();
-  const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
-  const { apiState } = React.useContext(ModelRegistryContext);
+  const { preferredModelRegistry, modelRegistryServices } =
+    React.useContext(ModelRegistriesContext);
+  const { apiState } = React.useContext(ModelRegistryPageContext);
   const isFineTuningEnabled = useIsAreaAvailable(SupportedArea.FINE_TUNING).status;
 
   const [isArchiveModalOpen, setIsArchiveModalOpen] = React.useState(false);
@@ -48,15 +52,47 @@ const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
   const [isDeployModalOpen, setIsDeployModalOpen] = React.useState(false);
   const [tuningModelVersionId, setTuningModelVersionId] = React.useState<string | null>(null);
 
-  const { tuningData, loaded, loadError } = useModelVersionTuningData(
+  const [modelArtifacts, modelArtifactsLoaded, modelArtifactsLoadError] =
+    useModelArtifactsByVersionId(mv.id);
+  const isOciModel = isOciModelUri(modelArtifacts.items.map((artifact) => artifact.uri)[0]);
+  const deployButtonState = useDeployButtonState(isOciModel);
+
+  const tuningData = React.useMemo(() => {
+    if (tuningModelVersionId === mv.id) {
+      return getModelVersionTuningData(
+        mv,
+        registeredModel,
+        modelArtifacts,
+        modelRegistryServices,
+        preferredModelRegistry,
+      );
+    }
+    return null;
+  }, [
     tuningModelVersionId,
-    tuningModelVersionId === mv.id ? mv : null,
+    mv,
     registeredModel,
-  );
+    modelArtifacts,
+    modelRegistryServices,
+    preferredModelRegistry,
+  ]);
 
   if (!preferredModelRegistry) {
     return null;
   }
+
+  const deployAction = deployButtonState.visible
+    ? [
+        {
+          title: 'Deploy',
+          onClick: () => setIsDeployModalOpen(true),
+          isAriaDisabled: !deployButtonState.enabled,
+          tooltipProps: !deployButtonState.enabled
+            ? { content: deployButtonState.tooltip }
+            : undefined,
+        },
+      ]
+    : [];
 
   const actions: IAction[] = isArchiveRow
     ? [
@@ -66,10 +102,7 @@ const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
         },
       ]
     : [
-        {
-          title: 'Deploy',
-          onClick: () => setIsDeployModalOpen(true),
-        },
+        ...deployAction,
         ...(isFineTuningEnabled
           ? [
               {
@@ -198,8 +231,8 @@ const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
               onSubmit={(selectedProject) => {
                 navigate(getModelCustomizationPath(selectedProject), { state: tuningData });
               }}
-              loaded={loaded}
-              loadError={loadError}
+              loaded={modelArtifactsLoaded}
+              loadError={modelArtifactsLoadError}
             />
           )}
         </Td>

@@ -1,13 +1,13 @@
 import React from 'react';
-import { RunArtifact } from '~/concepts/pipelines/apiHooks/mlmd/types';
-import { useArtifactStorage } from '~/concepts/pipelines/apiHooks/useArtifactStorage';
-import { MarkdownAndTitle } from '~/concepts/pipelines/content/compareRuns/metricsSection/markdown/MarkdownCompare';
+import { RunArtifact } from '#~/concepts/pipelines/apiHooks/mlmd/types';
+import { useArtifactStorage } from '#~/concepts/pipelines/apiHooks/useArtifactStorage';
+import { MarkdownAndTitle } from '#~/concepts/pipelines/content/compareRuns/metricsSection/markdown/MarkdownCompare';
 import {
   getFullArtifactPathLabel,
   getFullArtifactPaths,
-} from '~/concepts/pipelines/content/compareRuns/metricsSection/utils';
-import { PipelineRunKF } from '~/concepts/pipelines/kfTypes';
-import { allSettledPromises } from '~/utilities/allSettledPromises';
+} from '#~/concepts/pipelines/content/compareRuns/metricsSection/utils';
+import { ArtifactType, PipelineRunKF } from '#~/concepts/pipelines/kfTypes';
+import { allSettledPromises } from '#~/utilities/allSettledPromises';
 
 const useFetchMarkdownMaps = (
   markdownArtifacts?: RunArtifact[],
@@ -17,7 +17,7 @@ const useFetchMarkdownMaps = (
   configsLoaded: boolean;
 } => {
   const [configsLoaded, setConfigsLoaded] = React.useState(false);
-  const { getStorageObjectUrl } = useArtifactStorage();
+  const { getStorageObjectRenderUrl } = useArtifactStorage();
 
   const [configMapBuilder, setConfigMapBuilder] = React.useState<
     Record<string, MarkdownAndTitle[]>
@@ -39,10 +39,15 @@ const useFetchMarkdownMaps = (
         .map(async (path) => {
           const { run } = path;
           let sizeBytes: number | undefined;
-
-          const url = await getStorageObjectUrl(path.linkedArtifact.artifact).catch(
-            () => undefined,
-          );
+          let url: string | undefined;
+          if (
+            path.linkedArtifact.artifact.getType() === ArtifactType.MARKDOWN ||
+            path.linkedArtifact.artifact.getType() === ArtifactType.HTML
+          ) {
+            url = await getStorageObjectRenderUrl(path.linkedArtifact.artifact).catch(
+              () => undefined,
+            );
+          }
 
           if (url === undefined) {
             return null;
@@ -50,7 +55,7 @@ const useFetchMarkdownMaps = (
           return { run, sizeBytes, url, path };
         }),
 
-    [fullArtifactPaths, getStorageObjectUrl],
+    [fullArtifactPaths, getStorageObjectRenderUrl],
   );
 
   React.useEffect(() => {

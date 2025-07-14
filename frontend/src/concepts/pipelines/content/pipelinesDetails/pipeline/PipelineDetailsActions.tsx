@@ -3,21 +3,21 @@ import { useNavigate } from 'react-router-dom';
 
 import { Divider, Dropdown, DropdownItem, DropdownList, MenuToggle } from '@patternfly/react-core';
 
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import PipelineVersionImportModal from '~/concepts/pipelines/content/import/PipelineVersionImportModal';
-import { PipelineKF, PipelineVersionKF } from '~/concepts/pipelines/kfTypes';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+import PipelineVersionImportModal from '#~/concepts/pipelines/content/import/PipelineVersionImportModal';
+import { PipelineKF, PipelineVersionKF } from '#~/concepts/pipelines/kfTypes';
 import {
   createRecurringRunRoute,
   createRunRoute,
   globalPipelineRecurringRunsVersionRoute,
   globalPipelineRunsVersionRoute,
-  pipelineVersionDetailsRoute,
-} from '~/routes';
-import { getDashboardMainContainer } from '~/utilities/utils';
+} from '#~/routes/pipelines/runs';
+import { pipelineVersionDetailsRoute } from '#~/routes/pipelines/global';
+import { getDashboardMainContainer } from '#~/utilities/utils';
 import {
   PIPELINE_CREATE_RUN_TOOLTIP_ARGO_ERROR,
   PIPELINE_CREATE_SCHEDULE_TOOLTIP_ARGO_ERROR,
-} from '~/concepts/pipelines/content/const';
+} from '#~/concepts/pipelines/content/const';
 
 type PipelineDetailsActionsProps = {
   onDelete: () => void;

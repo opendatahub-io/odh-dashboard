@@ -11,16 +11,16 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import SettingSection from '~/components/SettingSection';
-import SimpleSelect from '~/components/SimpleSelect';
-import { ModelServingPlatformEnabled } from '~/types';
-import useServingPlatformStatuses from '~/pages/modelServing/useServingPlatformStatuses';
-import { useKServeDeploymentMode } from '~/pages/modelServing/useKServeDeploymentMode';
-import { DataScienceClusterModel } from '~/api';
-import { DeploymentMode } from '~/k8sTypes';
-import { useOpenShiftURL } from '~/utilities/clusterUtils';
-import DashboardHelpTooltip from '~/concepts/dashboard/DashboardHelpTooltip';
-import { useAccessAllowed, verbModelAccess } from '~/concepts/userSSAR';
+import SettingSection from '#~/components/SettingSection';
+import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
+import { ModelServingPlatformEnabled } from '#~/types';
+import useServingPlatformStatuses from '#~/pages/modelServing/useServingPlatformStatuses';
+import { useKServeDeploymentMode } from '#~/pages/modelServing/useKServeDeploymentMode';
+import { DataScienceClusterModel } from '#~/api';
+import { DeploymentMode } from '#~/k8sTypes';
+import { useOpenShiftURL } from '#~/utilities/clusterUtils';
+import DashboardHelpTooltip from '#~/concepts/dashboard/DashboardHelpTooltip';
+import { useAccessAllowed, verbModelAccess } from '#~/concepts/userSSAR';
 
 type ModelServingPlatformSettingsProps = {
   initialValue: ModelServingPlatformEnabled;
@@ -73,6 +73,19 @@ const ModelServingPlatformSettings: React.FC<ModelServingPlatformSettingsProps> 
       setAlert(undefined);
     }
   }, [enabledPlatforms, initialValue, kServeInstalled, modelMeshInstalled]);
+
+  const options: SimpleSelectOption[] = [
+    {
+      key: DeploymentMode.RawDeployment,
+      label: 'Standard (No additional dependencies)',
+      isDisabled: !allowedToPatchDSC,
+    },
+    {
+      key: DeploymentMode.Serverless,
+      label: 'Advanced (Serverless and Service Mesh)',
+      isDisabled: !isServerlessAvailable || !allowedToPatchDSC,
+    },
+  ];
 
   return (
     <SettingSection
@@ -147,18 +160,7 @@ const ModelServingPlatformSettings: React.FC<ModelServingPlatformSettingsProps> 
                         setDefaultDeploymentMode(mode);
                       }
                     }}
-                    options={[
-                      {
-                        key: DeploymentMode.RawDeployment,
-                        label: 'Standard (No additional dependencies)',
-                        isDisabled: !allowedToPatchDSC,
-                      },
-                      {
-                        key: DeploymentMode.Serverless,
-                        label: 'Advanced (Serverless and Service Mesh)',
-                        isDisabled: !isServerlessAvailable || !allowedToPatchDSC,
-                      },
-                    ]}
+                    options={options}
                     isDisabled={!enabledPlatforms.kServe}
                     popperProps={{ maxWidth: undefined }}
                   />

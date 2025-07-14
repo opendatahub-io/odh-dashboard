@@ -1,36 +1,36 @@
 /* eslint-disable camelcase */
-import { mockDataSciencePipelineApplicationK8sResource } from '~/__mocks__/mockDataSciencePipelinesApplicationK8sResource';
-import { mockDscStatus } from '~/__mocks__/mockDscStatus';
-import { mockK8sResourceList } from '~/__mocks__/mockK8sResourceList';
+import { mockDataSciencePipelineApplicationK8sResource } from '#~/__mocks__/mockDataSciencePipelinesApplicationK8sResource';
+import { mockDscStatus } from '#~/__mocks__/mockDscStatus';
+import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
 import {
   buildMockPipelineVersion,
   buildMockPipelineVersions,
-} from '~/__mocks__/mockPipelineVersionsProxy';
-import { mockProjectK8sResource } from '~/__mocks__/mockProjectK8sResource';
-import { mockRouteK8sResource } from '~/__mocks__/mockRouteK8sResource';
-import { mockSecretK8sResource } from '~/__mocks__/mockSecretK8sResource';
-import { buildMockRecurringRunKF } from '~/__mocks__/mockRecurringRunKF';
-import { mockPodLogs } from '~/__mocks__/mockPodLogs';
+} from '#~/__mocks__/mockPipelineVersionsProxy';
+import { mockProjectK8sResource } from '#~/__mocks__/mockProjectK8sResource';
+import { mockRouteK8sResource } from '#~/__mocks__/mockRouteK8sResource';
+import { mockSecretK8sResource } from '#~/__mocks__/mockSecretK8sResource';
+import { buildMockRecurringRunKF } from '#~/__mocks__/mockRecurringRunKF';
+import { mockPodLogs } from '#~/__mocks__/mockPodLogs';
 import {
   pipelineDetails,
   pipelineRecurringRunDetails,
   pipelineRunDetails,
   pipelineVersionImportModal,
-} from '~/__tests__/cypress/cypress/pages/pipelines';
-import { buildMockRunKF } from '~/__mocks__/mockRunKF';
-import { mockPipelinePodK8sResource } from '~/__mocks__/mockPipelinePodK8sResource';
-import { buildMockExperimentKF, buildMockPipeline } from '~/__mocks__';
-import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url';
+} from '#~/__tests__/cypress/cypress/pages/pipelines';
+import { buildMockRunKF } from '#~/__mocks__/mockRunKF';
+import { mockPipelinePodK8sResource } from '#~/__mocks__/mockPipelinePodK8sResource';
+import { buildMockExperimentKF, buildMockPipeline } from '#~/__mocks__';
+import { verifyRelativeURL } from '#~/__tests__/cypress/cypress/utils/url';
 import {
   DataSciencePipelineApplicationModel,
   PodModel,
   ProjectModel,
   RouteModel,
   SecretModel,
-} from '~/__tests__/cypress/cypress/utils/models';
-import { deleteModal } from '~/__tests__/cypress/cypress/pages/components/DeleteModal';
-import { RecurringRunStatus } from '~/concepts/pipelines/kfTypes';
-import { initMlmdIntercepts } from '~/__tests__/cypress/cypress/tests/mocked/pipelines/mlmdUtils';
+} from '#~/__tests__/cypress/cypress/utils/models';
+import { deleteModal } from '#~/__tests__/cypress/cypress/pages/components/DeleteModal';
+import { RecurringRunStatus } from '#~/concepts/pipelines/kfTypes';
+import { initMlmdIntercepts } from '#~/__tests__/cypress/cypress/tests/mocked/pipelines/mlmdUtils';
 
 const projectId = 'test-project';
 const mockPipeline = buildMockPipeline({
@@ -202,6 +202,10 @@ describe('Pipeline topology', () => {
       pipelineDetails.visit(projectId, mockVersion.pipeline_id, mockVersion.pipeline_version_id);
     });
     describe('Navigation', () => {
+      it('renders the project navigator link', () => {
+        pipelineDetails.findProjectNavigatorLink().should('exist');
+      });
+
       it('Test pipeline details create run navigation', () => {
         pipelineDetails.selectActionDropdownItem('Create run');
         verifyRelativeURL(`/pipelineRuns/${projectId}/runs/create`);
@@ -332,6 +336,11 @@ describe('Pipeline topology', () => {
     describe('Navigation', () => {
       beforeEach(() => {
         initIntercepts();
+      });
+
+      it('renders the project navigator link', () => {
+        pipelineRunDetails.visit(projectId, mockRun.run_id);
+        pipelineRunDetails.findProjectNavigatorLink().should('exist');
       });
 
       it('Test pipeline run duplicate navigation', () => {
@@ -512,6 +521,11 @@ describe('Pipeline topology', () => {
 
     beforeEach(() => {
       initIntercepts();
+    });
+
+    it('renders the project navigator link', () => {
+      pipelineRecurringRunDetails.visit(projectId, mockRecurringRun.recurring_run_id);
+      pipelineRecurringRunDetails.findProjectNavigatorLink().should('exist');
     });
 
     it('disables recurring run from action dropdown', () => {

@@ -12,8 +12,8 @@ import {
   TextInput,
   InputGroupItem,
 } from '@patternfly/react-core';
-import SettingSection from '~/components/SettingSection';
-import { getHourAndMinuteByTimeout, getTimeoutByHourAndMinute } from '~/utilities/utils';
+import SettingSection from '#~/components/SettingSection';
+import { getHourAndMinuteByTimeout, getTimeoutByHourAndMinute } from '#~/utilities/utils';
 import {
   CULLER_TIMEOUT_LIMITED,
   CULLER_TIMEOUT_UNLIMITED,

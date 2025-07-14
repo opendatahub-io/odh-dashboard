@@ -13,6 +13,7 @@ export type OperatorStatus = {
 
 export type DashboardConfig = K8sResourceCommon & {
   spec: {
+    // Optional in CRD -- normalized when cached in ResourceWatcher
     dashboardConfig: {
       enablement: boolean;
       disableInfo: boolean;
@@ -49,20 +50,19 @@ export type DashboardConfig = K8sResourceCommon & {
       disableNIMModelServing: boolean;
       disableAdminConnectionTypes: boolean;
       disableFineTuning: boolean;
+      disableKueue: boolean;
+      disableLMEval: boolean;
+      disablePVCServing: boolean;
     };
-    /** @deprecated -- replacing this with Platform Auth resource -- remove when this is no longer in the CRD */
-    groupsConfig?: {
-      /** @deprecated -- see above */
-      adminGroups: string;
-      /** @deprecated -- see above */
-      allowedGroups: string;
-    };
+    // Intentionally disjointed from the CRD, we should move away from this code-wise now; CRD later
+    // groupsConfig?: {
     notebookSizes?: NotebookSize[];
     modelServerSizes?: ModelServerSize[];
     notebookController?: {
       enabled: boolean;
       pvcSize?: string;
-      notebookNamespace?: string;
+      // Intentionally disjointed from the CRD, we should move away from this code-wise now; CRD later
+      // notebookNamespace?: string;
       notebookTolerationSettings?: {
         enabled: boolean;
         key: string;
@@ -256,22 +256,6 @@ export type ConsoleLinkKind = {
   };
 } & K8sResourceCommon;
 
-export type KfDefApplication = {
-  kustomizeConfig: {
-    repoRef: {
-      name: string;
-      path: string;
-    };
-  };
-  name: string;
-};
-
-export type KfDefResource = K8sResourceCommon & {
-  spec: {
-    applications: KfDefApplication[];
-  };
-};
-
 export type KubeStatus = {
   currentContext: string;
   currentUser: User;
@@ -356,7 +340,6 @@ export type OdhApplication = {
     img: string;
     shownOnEnabledPage: boolean | null;
     isEnabled: boolean | null;
-    kfdefApplications: string[];
     link: string | null;
     provider: string;
     quickStart: string | null;
@@ -1011,6 +994,7 @@ export enum KnownLabels {
   DATA_CONNECTION_AWS = 'opendatahub.io/managed',
   CONNECTION_TYPE = 'opendatahub.io/connection-type',
   LABEL_SELECTOR_MODEL_REGISTRY = 'component=model-registry',
+  KUEUE_MANAGED = 'kueue.openshift.io/managed',
 }
 
 type ComponentNames =
@@ -1028,10 +1012,16 @@ export type DataScienceClusterKindStatus = {
     modelregistry?: {
       registriesNamespace?: string;
     };
+    workbenches?: {
+      workbenchNamespace?: string;
+    };
   };
   conditions: K8sCondition[];
   installedComponents: { [key in ComponentNames]?: boolean };
   phase?: string;
+  release?: {
+    name: string;
+  };
 };
 
 export type DataScienceClusterKind = K8sResourceCommon & {
@@ -1316,3 +1306,9 @@ export type AuthKind = K8sResourceCommon & {
     allowedGroups: string[];
   };
 };
+
+export enum OdhPlatformType {
+  OPEN_DATA_HUB = 'Open Data Hub',
+  SELF_MANAGED_RHOAI = 'OpenShift AI Self-Managed',
+  MANAGED_RHOAI = 'OpenShift AI Cloud Service',
+} // Reference: https://github.com/red-hat-data-services/rhods-operator/blob/main/pkg/cluster/const.go

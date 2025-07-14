@@ -1,10 +1,10 @@
 import * as React from 'react';
 import { ZodIssue } from 'zod';
 import { gridSpans } from '@patternfly/react-core';
-import HyperparameterLongNumberField from '~/concepts/pipelines/content/modelCustomizationForm/hyperparameterFields/HyperparameterLongNumberField';
-import HyperparameterEvaluationField from '~/concepts/pipelines/content/modelCustomizationForm/hyperparameterFields/HyperparameterEvaluationField';
-import { RuntimeConfigParamValue } from '~/concepts/pipelines/kfTypes';
-import { KnownFineTuningPipelineParameters } from '~/pages/pipelines/global/modelCustomization/const';
+import HyperparameterLongNumberField from '#~/concepts/pipelines/content/modelCustomizationForm/hyperparameterFields/HyperparameterLongNumberField';
+import HyperparameterEvaluationField from '#~/concepts/pipelines/content/modelCustomizationForm/hyperparameterFields/HyperparameterEvaluationField';
+import { RuntimeConfigParamValue } from '#~/concepts/pipelines/kfTypes';
+import { KnownFineTuningPipelineParameters } from '#~/pages/pipelines/global/modelCustomization/const';
 
 type RenderFieldProps = (
   label: string,

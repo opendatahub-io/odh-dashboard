@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { Switch } from '@patternfly/react-core';
-import { BYONImage } from '~/types';
-import { updateBYONImage } from '~/services/imagesService';
-import useNotification from '~/utilities/useNotification';
+import { BYONImage } from '#~/types';
+import { updateBYONImage } from '#~/services/imagesService';
+import useNotification from '#~/utilities/useNotification';
 
 type BYONImageStatusToggleProps = {
   image: BYONImage;

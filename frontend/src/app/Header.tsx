@@ -11,8 +11,10 @@ import {
 } from '@patternfly/react-core';
 import { BarsIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router-dom';
-import { ODH_LOGO, ODH_LOGO_DARK, ODH_PRODUCT_NAME } from '~/utilities/const';
-import { useUser } from '~/redux/selectors';
+import { ODH_LOGO, ODH_LOGO_DARK, ODH_PRODUCT_NAME } from '#~/utilities/const';
+import { useUser } from '#~/redux/selectors';
+
+import { FeatureFlagLauncherProps } from '#~/app/featureFlags/FeatureFlagLauncher';
 import { useThemeContext } from './ThemeContext';
 import HeaderTools from './HeaderTools';
 
@@ -20,11 +22,13 @@ type HeaderProps = {
   onNotificationsClick: () => void;
 };
 
+type Props = HeaderProps & FeatureFlagLauncherProps;
+
 const MastheadBranchComponent: React.FC<React.ComponentProps<typeof Link>> = (props) => (
   <Link {...props} to="/" />
 );
 
-const Header: React.FC<HeaderProps> = ({ onNotificationsClick }) => {
+const Header: React.FC<Props> = (props) => {
   const { isAllowed } = useUser();
   const { theme } = useThemeContext();
   return (
@@ -54,7 +58,7 @@ const Header: React.FC<HeaderProps> = ({ onNotificationsClick }) => {
         </MastheadBrand>
       </MastheadMain>
       <MastheadContent>
-        <HeaderTools onNotificationsClick={onNotificationsClick} />
+        <HeaderTools {...props} />
       </MastheadContent>
     </Masthead>
   );

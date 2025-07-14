@@ -7,17 +7,17 @@ import {
   Spinner,
   Content,
 } from '@patternfly/react-core';
-import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
-import { Connection } from '~/concepts/connectionTypes/types';
-import DeleteModal from '~/pages/projects/components/DeleteModal';
+import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
+import { Connection } from '#~/concepts/connectionTypes/types';
+import DeleteModal from '#~/pages/projects/components/DeleteModal';
 import {
   useRelatedNotebooks,
   ConnectedNotebookContext,
-} from '~/pages/projects/notebook/useRelatedNotebooks';
-import { useNotebooksStates } from '~/pages/projects/notebook/useNotebooksStates';
-import { NotebookKind } from '~/k8sTypes';
-import { useInferenceServicesForConnection } from '~/pages/projects/useInferenceServicesForConnection';
-import { deleteSecret, removeNotebookSecret } from '~/api';
+} from '#~/pages/projects/notebook/useRelatedNotebooks';
+import { useNotebooksStates } from '#~/pages/projects/notebook/useNotebooksStates';
+import { NotebookKind } from '#~/k8sTypes';
+import { useInferenceServicesForConnection } from '#~/pages/projects/useInferenceServicesForConnection';
+import { deleteSecret, removeNotebookSecret } from '#~/api';
 
 type Props = {
   namespace: string;

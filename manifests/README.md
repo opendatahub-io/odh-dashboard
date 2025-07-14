@@ -9,6 +9,24 @@ The Dashboard manifests run on Kustomize. There are 3 types of deployments for t
 
 Each deployment type will have a `params.env` file where the Operator can inject values for us to use.
 
+## The "How" Of Manifests
+
+A common inquiry from the developers working on the Dashboard repo is "how" do these manifests impact installations and what happens during the varying states the given Dashboard component on a cluster goes through; eg. Upgrades, fresh installations, and how does it all work.
+
+A couple key points to get out of the way first:
+1. There are multiple "types" of manifest files (specifics can be found in [this ADR](https://github.com/opendatahub-io/architecture-decision-records/blob/main/architecture-decision-records/operator/ODH-ADR-Operator-0008-resources-lifecycle.md))
+    * **Unmanaged** (Rare) -- An "install once" mentality; gets onto a cluster but after that it's a user-resource (never to be managed by us again)
+    * **Fully Managed** (Very Common) -- Part of the ecosystem of the Dashboard; upgrades, user-changes, and effectively anything you do to the resources on the cluster should result in the Operator setting it back to what is in the manifest file -- this is the most desired state for most of our manifests
+    * **Partially Managed** (Rare) -- Some resources (like the [Dashboard Deployment](./core-bases/base/deployment.yaml)) can have some fields modified (like replica count or resource requests/limits) but the rest falls under the managed state -- this is handled as internal Operator logic and not something we typically have any control over
+2. The entirety of the `manifests` folder is not installed _ever_ -- a subset of it is based on which "deployment type" you choose
+
+With those said, the key takeaways from this section are:
+* The `manifests` folder speaks more to how we show up on a cluster -- not how we update with it
+* There are some **Unmanaged** resources that need to be treated very softly as once a customer has it installed, we need external help to address it
+    * Dashboard team does not have a mechanism inside our wheelhouse to update an **Unmanaged** file; the Operator team has an upgrade script that needs to be involved if we have critical changes needed
+    * The [RHOAI OdhDashboardConfig](./rhoai/shared/odhdashboardconfig/README.md) is the most common friction point
+* Currently, the Dashboard has no mechanism to create or manage partially managed resources - this functionality is controlled by the Operator. The Dashboard can only support and interact with such resources as defined by the Operator's management model.
+
 ## Adding/Modifying Manifests
 
 Rules for keeping the manifest files in a sane order:

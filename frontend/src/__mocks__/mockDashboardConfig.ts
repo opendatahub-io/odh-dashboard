@@ -1,6 +1,6 @@
-import { DashboardConfigKind, KnownLabels } from '~/k8sTypes';
-import { ModelServingSize } from '~/pages/modelServing/screens/types';
-import { NotebookSize } from '~/types';
+import { DashboardConfigKind, KnownLabels } from '#~/k8sTypes';
+import { ModelServingSize } from '#~/pages/modelServing/screens/types';
+import { NotebookSize } from '#~/types';
 
 export type MockDashboardConfigType = {
   disableInfo?: boolean;
@@ -38,7 +38,12 @@ export type MockDashboardConfigType = {
   notebookSizes?: NotebookSize[];
   disableNIMModelServing?: boolean;
   disableFineTuning?: boolean;
+  disableLlamaStackChatBot?: boolean;
   modelServerSizes?: ModelServingSize[];
+  disableLMEval?: boolean;
+  disableKueue?: boolean;
+  disablePVCServing?: boolean;
+  disableFeatureStore?: boolean;
 };
 
 export const mockDashboardConfig = ({
@@ -73,6 +78,11 @@ export const mockDashboardConfig = ({
   disableStorageClasses = false,
   disableNotebookController = false,
   disableNIMModelServing = false,
+  disableLlamaStackChatBot = false,
+  disableLMEval = true,
+  disableKueue = true,
+  disablePVCServing = true,
+  disableFeatureStore = true,
   modelServerSizes = [
     {
       name: 'Small',
@@ -228,11 +238,14 @@ export const mockDashboardConfig = ({
       disableNIMModelServing,
       disableAdminConnectionTypes: false,
       disableFineTuning,
-      disableModelServingPlugin: true,
+      disableLlamaStackChatBot,
+      disableLMEval,
+      disableKueue,
+      disablePVCServing,
+      disableFeatureStore,
     },
     notebookController: {
       enabled: !disableNotebookController,
-      notebookNamespace: 'openshift-ai-notebooks',
       notebookTolerationSettings: {
         enabled: true,
         key: 'NotebooksOnlyChange',

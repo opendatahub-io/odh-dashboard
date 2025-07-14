@@ -1,23 +1,23 @@
 import yaml from 'js-yaml';
-import { HTPASSWD_CLUSTER_ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
-import { deleteOpenShiftProject } from '~/__tests__/cypress/cypress/utils/oc_commands/project';
-import { createCleanProject } from '~/__tests__/cypress/cypress/utils/projectChecker';
+import { HTPASSWD_CLUSTER_ADMIN_USER } from '#~/__tests__/cypress/cypress/utils/e2eUsers';
+import { deleteOpenShiftProject } from '#~/__tests__/cypress/cypress/utils/oc_commands/project';
+import { createCleanProject } from '#~/__tests__/cypress/cypress/utils/projectChecker';
 import {
   globalDistributedWorkloads,
   projectMetricsTab,
   distributedWorkloadStatusTab,
-} from '~/__tests__/cypress/cypress/pages/distributedWorkloads';
+} from '#~/__tests__/cypress/cypress/pages/distributedWorkloads';
 import {
   createKueueResources,
   deleteKueueResources,
-} from '~/__tests__/cypress/cypress/utils/oc_commands/distributedWorkloads';
-import type { WorkloadMetricsTestData } from '~/__tests__/cypress/cypress/types';
-import { retryableBefore } from '~/__tests__/cypress/cypress/utils/retryableHooks';
+} from '#~/__tests__/cypress/cypress/utils/oc_commands/distributedWorkloads';
+import type { WorkloadMetricsTestData } from '#~/__tests__/cypress/cypress/types';
+import { retryableBefore } from '#~/__tests__/cypress/cypress/utils/retryableHooks';
 import {
   findRefreshIntervalList,
   verifyRequestedResources,
-} from '~/__tests__/cypress/cypress/utils/workloadMetricsUtils';
-import { generateTestUUID } from '~/__tests__/cypress/cypress/utils/uuidGenerator';
+} from '#~/__tests__/cypress/cypress/utils/workloadMetricsUtils';
+import { generateTestUUID } from '#~/__tests__/cypress/cypress/utils/uuidGenerator';
 
 describe('Verify Workload Metrics Default page Contents', () => {
   let testData: WorkloadMetricsTestData;
@@ -55,7 +55,7 @@ describe('Verify Workload Metrics Default page Contents', () => {
       projectName,
     );
     cy.log('Deleting Namespace ${projectName}');
-    deleteOpenShiftProject(projectName);
+    deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
   });
 
   it(

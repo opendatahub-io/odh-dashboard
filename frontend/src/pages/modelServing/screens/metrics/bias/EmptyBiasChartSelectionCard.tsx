@@ -4,7 +4,7 @@ import { SearchIcon } from '@patternfly/react-icons';
 import {
   EMPTY_BIAS_CHART_SELECTION_DESC,
   EMPTY_BIAS_CHART_SELECTION_TITLE,
-} from '~/pages/modelServing/screens/metrics/const';
+} from '#~/pages/modelServing/screens/metrics/const';
 
 const EmptyBiasChartSelectionCard = (): ReactElement => (
   <Card>

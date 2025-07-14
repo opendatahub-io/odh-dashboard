@@ -1,10 +1,10 @@
 import React from 'react';
-import MetricsChart from '~/pages/modelServing/screens/metrics/MetricsChart';
-import { ModelServingMetricsContext } from '~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
-import { BiasMetricConfig } from '~/concepts/trustyai/types';
-import { createChartThresholds } from '~/pages/modelServing/screens/metrics/utils';
-import { BIAS_CHART_CONFIGS } from '~/pages/modelServing/screens/metrics/const';
-import { PrometheusQueryRangeResponseDataResult } from '~/types';
+import MetricsChart from '#~/pages/modelServing/screens/metrics/MetricsChart';
+import { ModelServingMetricsContext } from '#~/pages/modelServing/screens/metrics/ModelServingMetricsContext';
+import { BiasMetricConfig } from '#~/concepts/trustyai/types';
+import { createChartThresholds } from '#~/pages/modelServing/screens/metrics/utils';
+import { BIAS_CHART_CONFIGS } from '#~/pages/modelServing/screens/metrics/const';
+import { PrometheusQueryRangeResponseDataResult, PrometheusQueryRangeResultValue } from '#~/types';
 
 export type BiasChartProps = {
   biasMetricConfig: BiasMetricConfig;
@@ -19,15 +19,23 @@ const BiasChart: React.FC<BiasChartProps> = ({ biasMetricConfig }) => {
     BIAS_CHART_CONFIGS[metricType];
 
   const metric = React.useMemo(() => {
-    const metricData = data[modelMetricKey].data.filter(
-      (x): x is PrometheusQueryRangeResponseDataResult => 'metric' in x,
-    );
-
-    const values = metricData.find((x) => x.metric.request === id)?.values || [];
+    const convertData = (
+      metricData: PrometheusQueryRangeResultValue[] | PrometheusQueryRangeResponseDataResult[],
+    ): PrometheusQueryRangeResultValue[] => {
+      const filteredMetricData = metricData.filter(
+        (x): x is PrometheusQueryRangeResponseDataResult => 'metric' in x,
+      );
+      const values = filteredMetricData.find((x) => x.metric.request === id)?.values || [];
+      return values;
+    };
 
     return {
       ...data[modelMetricKey],
-      data: values,
+      data: convertData(data[modelMetricKey].data),
+      refresh: async () => {
+        const refreshedData = await data[modelMetricKey].refresh();
+        return refreshedData ? convertData(refreshedData) : [];
+      },
     };
   }, [data, id, modelMetricKey]);
 

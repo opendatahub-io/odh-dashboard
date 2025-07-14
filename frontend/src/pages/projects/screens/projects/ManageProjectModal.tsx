@@ -1,20 +1,29 @@
 import * as React from 'react';
-import { Alert, Button, Form, Stack, StackItem } from '@patternfly/react-core';
-import { Modal } from '@patternfly/react-core/deprecated';
-import { createProject, updateProject } from '~/api';
-import { useUser } from '~/redux/selectors';
-import { ProjectKind } from '~/k8sTypes';
-import { ProjectsContext } from '~/concepts/projects/ProjectsContext';
-import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
+import {
+  Alert,
+  Button,
+  Form,
+  Stack,
+  StackItem,
+  Modal,
+  ModalBody,
+  ModalHeader,
+  ModalFooter,
+} from '@patternfly/react-core';
+import { createProject, updateProject } from '#~/api';
+import { useUser } from '#~/redux/selectors';
+import { ProjectKind } from '#~/k8sTypes';
+import { ProjectsContext } from '#~/concepts/projects/ProjectsContext';
+import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 
-import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
+import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
-} from '~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
+} from '#~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import {
   isK8sNameDescriptionDataValid,
   LimitNameResourceType,
-} from '~/concepts/k8s/K8sNameDescriptionField/utils';
+} from '#~/concepts/k8s/K8sNameDescriptionField/utils';
 
 type ManageProjectModalProps = {
   editProjectData?: ProjectKind;
@@ -73,12 +82,40 @@ const ManageProjectModal: React.FC<ManageProjectModalProps> = ({ editProjectData
   };
 
   return (
-    <Modal
-      title={editProjectData ? 'Edit project' : 'Create project'}
-      variant="medium"
-      isOpen
-      onClose={() => onBeforeClose()}
-      actions={[
+    <Modal variant="medium" isOpen onClose={() => onBeforeClose()}>
+      <ModalHeader title={editProjectData ? 'Edit project' : 'Create project'} />
+      <ModalBody>
+        <Stack hasGutter>
+          <StackItem>
+            <Form
+              onSubmit={(e) => {
+                e.preventDefault();
+                submit();
+              }}
+            >
+              <K8sNameDescriptionField
+                autoFocusName
+                dataTestId="manage-project-modal"
+                maxLength={250}
+                maxLengthDesc={5500}
+                {...k8sNameDescriptionData}
+              />
+            </Form>
+          </StackItem>
+          {error && (
+            <StackItem>
+              <Alert
+                variant="danger"
+                isInline
+                title={editProjectData ? 'Error updating project' : 'Error creating project'}
+              >
+                {error.message}
+              </Alert>
+            </StackItem>
+          )}
+        </Stack>
+      </ModalBody>
+      <ModalFooter>
         <Button
           key="confirm"
           variant="primary"
@@ -87,7 +124,7 @@ const ManageProjectModal: React.FC<ManageProjectModalProps> = ({ editProjectData
           onClick={submit}
         >
           {editProjectData ? 'Update' : 'Create'}
-        </Button>,
+        </Button>
         <Button
           key="cancel"
           variant="link"
@@ -99,36 +136,8 @@ const ManageProjectModal: React.FC<ManageProjectModalProps> = ({ editProjectData
           }}
         >
           Cancel
-        </Button>,
-      ]}
-    >
-      <Stack hasGutter>
-        <StackItem>
-          <Form
-            onSubmit={(e) => {
-              e.preventDefault();
-              submit();
-            }}
-          >
-            <K8sNameDescriptionField
-              autoFocusName
-              dataTestId="manage-project-modal"
-              {...k8sNameDescriptionData}
-            />
-          </Form>
-        </StackItem>
-        {error && (
-          <StackItem>
-            <Alert
-              variant="danger"
-              isInline
-              title={editProjectData ? 'Error updating project' : 'Error creating project'}
-            >
-              {error.message}
-            </Alert>
-          </StackItem>
-        )}
-      </Stack>
+        </Button>
+      </ModalFooter>
     </Modal>
   );
 };

@@ -1,6 +1,10 @@
-package.json
-config
 src/third_party/mlmd
 src/__tests__/cypress/.nyc_output
 src/__tests__/cypress/coverage
 @mf-types
+coverage
+jest-coverage
+public
+public-cypress
+node_modules
+upstream

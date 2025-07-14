@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { Outlet } from 'react-router-dom';
-import { PerformanceMetricType } from '~/pages/modelServing/screens/types';
-import { InferenceServiceKind } from '~/k8sTypes';
-import { MetricsCommonContextProvider } from '~/concepts/metrics/MetricsCommonContext';
+import { PerformanceMetricType } from '#~/pages/modelServing/screens/types';
+import { InferenceServiceKind } from '#~/k8sTypes';
+import { MetricsCommonContextProvider } from '#~/concepts/metrics/MetricsCommonContext';
 import ModelMetricsPathWrapper from './ModelMetricsPathWrapper';
 import { ModelServingMetricsProvider } from './ModelServingMetricsContext';
 import { getModelMetricsQueries } from './utils';

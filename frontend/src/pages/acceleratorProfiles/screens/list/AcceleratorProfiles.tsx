@@ -11,12 +11,12 @@ import {
 } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
-import ApplicationsPage from '~/pages/ApplicationsPage';
-import useAcceleratorProfiles from '~/pages/notebookController/screens/server/useAcceleratorProfiles';
-import { useDashboardNamespace } from '~/redux/selectors';
-import AcceleratorProfilesTable from '~/pages/acceleratorProfiles/screens/list/AcceleratorProfilesTable';
-import TitleWithIcon from '~/concepts/design/TitleWithIcon';
-import { ProjectObjectType } from '~/concepts/design/utils';
+import ApplicationsPage from '#~/pages/ApplicationsPage';
+import useAcceleratorProfiles from '#~/pages/notebookController/screens/server/useAcceleratorProfiles';
+import { useDashboardNamespace } from '#~/redux/selectors';
+import AcceleratorProfilesTable from '#~/pages/acceleratorProfiles/screens/list/AcceleratorProfilesTable';
+import TitleWithIcon from '#~/concepts/design/TitleWithIcon';
+import { ProjectObjectType } from '#~/concepts/design/utils';
 
 const description = `Manage accelerator profile settings for users in your organization`;
 

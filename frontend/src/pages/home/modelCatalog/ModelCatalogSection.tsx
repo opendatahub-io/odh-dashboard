@@ -12,18 +12,18 @@ import {
 } from '@patternfly/react-core';
 import useDimensions from 'react-cool-dimensions';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
-import { conditionalArea, SupportedArea } from '~/concepts/areas';
-import EvenlySpacedGallery from '~/components/EvenlySpacedGallery';
-import ModelCatalogSectionHeader from '~/pages/home/modelCatalog/ModelCatalogSectionHeader';
-import ModelCatalogHint from '~/pages/home/modelCatalog/ModelCatalogHint';
-import { useBrowserStorage } from '~/components/browserStorage';
-import ProjectsLoading from '~/pages/home/projects/ProjectsLoading';
-import { CatalogModel, ModelCatalogSource } from '~/concepts/modelCatalog/types';
-import ModelCatalogSectionFooter from '~/pages/home/modelCatalog/ModelCatalogSectionFooter';
-import { FEATURED_LABEL, MAX_SHOWN_MODELS, MIN_CARD_WIDTH } from '~/concepts/modelCatalog/const';
-import { useMakeFetchObject } from '~/utilities/useMakeFetchObject';
-import { useModelCatalogSources } from '~/concepts/modelCatalog/useModelCatalogSources';
-import { ModelCatalogCard } from '~/concepts/modelCatalog/content/ModelCatalogCard';
+import { conditionalArea, SupportedArea } from '#~/concepts/areas';
+import EvenlySpacedGallery from '#~/components/EvenlySpacedGallery';
+import ModelCatalogSectionHeader from '#~/pages/home/modelCatalog/ModelCatalogSectionHeader';
+import ModelCatalogHint from '#~/pages/home/modelCatalog/ModelCatalogHint';
+import { useBrowserStorage } from '#~/components/browserStorage/BrowserStorageContext';
+import ProjectsLoading from '#~/pages/home/projects/ProjectsLoading';
+import { CatalogModel, ModelCatalogSource } from '#~/concepts/modelCatalog/types';
+import ModelCatalogSectionFooter from '#~/pages/home/modelCatalog/ModelCatalogSectionFooter';
+import { FEATURED_LABEL, MAX_SHOWN_MODELS, MIN_CARD_WIDTH } from '#~/concepts/modelCatalog/const';
+import { useMakeFetchObject } from '#~/utilities/useMakeFetchObject';
+import { useModelCatalogSources } from '#~/concepts/modelCatalog/useModelCatalogSources';
+import { ModelCatalogCard } from '#~/concepts/modelCatalog/content/ModelCatalogCard';
 
 const ModelCatalogSection: React.FC = conditionalArea(
   SupportedArea.MODEL_CATALOG,

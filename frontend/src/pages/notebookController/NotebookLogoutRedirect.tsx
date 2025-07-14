@@ -1,31 +1,36 @@
 import * as React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getNotebook } from '~/services/notebookService';
-import ApplicationsPage from '~/pages/ApplicationsPage';
-import useNotification from '~/utilities/useNotification';
-import useRouteForNotebook from '~/pages/projects/notebook/useRouteForNotebook';
-import { getRoute } from '~/services/routeService';
+import { getNotebook } from '#~/services/notebookService';
+import ApplicationsPage from '#~/pages/ApplicationsPage';
+import useNotification from '#~/utilities/useNotification';
+import useRouteForNotebook from '#~/concepts/notebooks/apiHooks/useRouteForNotebook';
+import { getRoute } from '#~/services/routeService';
+import { FAST_POLL_INTERVAL } from '#~/utilities/const';
 import useNamespaces from './useNamespaces';
 
 const NotebookLogoutRedirect: React.FC = () => {
   const { namespace, notebookName } = useParams<{ namespace: string; notebookName: string }>();
   const notification = useNotification();
   const navigate = useNavigate();
-  const { notebookNamespace } = useNamespaces();
-  const [routeLink, loaded, error] = useRouteForNotebook(notebookName, namespace, true);
+  const { workbenchNamespace } = useNamespaces();
+  const {
+    data: notebookRoute,
+    loaded,
+    error,
+  } = useRouteForNotebook(notebookName, namespace, true, FAST_POLL_INTERVAL);
 
   React.useEffect(() => {
     let cancelled = false;
-    if (namespace && notebookName && namespace === notebookNamespace) {
+    if (namespace && notebookName && namespace === workbenchNamespace) {
       getNotebook(namespace, notebookName)
         .then(() => {
           if (cancelled) {
             return;
           }
-          getRoute(notebookNamespace, notebookName)
+          getRoute(workbenchNamespace, notebookName)
             .then((route) => {
               const location = new URL(
-                `https://${route.spec.host}/notebook/${notebookNamespace}/${notebookName}`,
+                `https://${route.spec.host}/notebook/${workbenchNamespace}/${notebookName}`,
               );
               window.location.href = `${location.origin}/oauth/sign_out`;
             })
@@ -45,29 +50,28 @@ const NotebookLogoutRedirect: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [namespace, notebookName, navigate, notification, notebookNamespace]);
+  }, [namespace, notebookName, navigate, notification, workbenchNamespace]);
 
   React.useEffect(() => {
-    if (namespace && notebookName && namespace !== notebookNamespace) {
-      if (loaded) {
-        if (error) {
-          notification.error(`Error when logging out ${notebookName}`, error.message);
-          navigate(`/projects/${namespace}`);
-        } else if (routeLink) {
-          const location = new URL(routeLink);
-          window.location.href = `${location.origin}/oauth/sign_out`;
-        }
+    if (namespace && notebookName && namespace !== workbenchNamespace) {
+      if (error) {
+        notification.error(`Error when logging out ${notebookName}`, error.message);
+        navigate(`/projects/${namespace}`);
+      }
+      if (loaded && notebookRoute) {
+        const location = new URL(notebookRoute);
+        window.location.href = `${location.origin}/oauth/sign_out`;
       }
     }
   }, [
-    routeLink,
+    notebookRoute,
     loaded,
     error,
     notification,
     namespace,
     notebookName,
     navigate,
-    notebookNamespace,
+    workbenchNamespace,
   ]);
 
   return (

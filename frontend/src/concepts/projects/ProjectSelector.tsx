@@ -1,10 +1,12 @@
 import * as React from 'react';
 import { Bullseye, Divider, Flex, FlexItem, MenuItem, Truncate } from '@patternfly/react-core';
-import { byName, ProjectsContext } from '~/concepts/projects/ProjectsContext';
-import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
-import SearchSelector from '~/components/searchSelector/SearchSelector';
-import { ProjectKind } from '~/k8sTypes';
-import { ProjectIcon } from '~/images/icons';
+import { byName, ProjectsContext } from '#~/concepts/projects/ProjectsContext';
+import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
+import SearchSelector from '#~/components/searchSelector/SearchSelector';
+import { ProjectKind } from '#~/k8sTypes';
+import ProjectNavigatorLink from '#~/concepts/projects/ProjectNavigatorLink';
+import { ProjectIconWithSize } from '#~/concepts/projects/ProjectIconWithSize';
+import { IconSize } from '#~/types';
 
 type ProjectSelectorProps = {
   onSelection: (projectName: string) => void;
@@ -105,13 +107,7 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
   if (showTitle) {
     return (
       <Flex spaceItems={{ default: 'spaceItemsXs' }} alignItems={{ default: 'alignItemsCenter' }}>
-        <ProjectIcon
-          alt=""
-          style={{
-            width: 'var(--pf-t--global--icon--size--font--2xl)',
-            height: 'var(--pf-t--global--icon--size--font--2xl)',
-          }}
-        />
+        <ProjectIconWithSize size={IconSize.XXL} />
         <Flex
           spaceItems={{ default: 'spaceItemsSm' }}
           alignItems={{ default: 'alignItemsCenter' }}
@@ -120,7 +116,10 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
           <FlexItem>
             <Bullseye>{selectorLabel}</Bullseye>
           </FlexItem>
-          <FlexItem flex={{ default: 'flex_1' }}>{selector}</FlexItem>
+          <FlexItem flex={{ default: 'flex_1' }}>
+            {selector}
+            <ProjectNavigatorLink project={selection} />
+          </FlexItem>
         </Flex>
       </Flex>
     );

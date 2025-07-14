@@ -1,4 +1,5 @@
 approvers:
+- openshift-cherrypick-robot
 - andrewballantyne
 - lucferbux
 - alexcreasy
@@ -12,6 +13,7 @@ approvers:
 - FedeAlonso
 - Griffin-Sullivan
 - YuliaKrimerman
+- manaswinidas
 
 reviewers:
 - alexcreasy

@@ -1,10 +1,9 @@
 import * as React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { VerticalTabs, VerticalTabsTab } from '@patternfly/react-catalog-view-extension';
-import { OdhDocument } from '~/types';
-import { CATEGORY_ANNOTATION } from '~/utilities/const';
-import { removeQueryArgument, setQueryArgument } from '~/utilities/router';
-import { useQueryParams } from '~/utilities/useQueryParams';
+import { OdhDocument } from '#~/types';
+import { CATEGORY_ANNOTATION } from '#~/utilities/const';
+import { removeQueryArgument, setQueryArgument } from '#~/utilities/router';
 import { CATEGORY_FILTER_KEY } from './const';
 
 type CategoryFiltersProps = {
@@ -17,8 +16,8 @@ const ALL_ITEMS = 'All Items';
 const CategoryFilters: React.FC<CategoryFiltersProps> = ({ docApps, favorites }) => {
   const [categories, setCategories] = React.useState<string[]>([]);
   const navigate = useNavigate();
-  const queryParams = useQueryParams();
-  const categoryQuery = queryParams.get(CATEGORY_FILTER_KEY) || '';
+  const [searchParams] = useSearchParams();
+  const categoryQuery = searchParams.get(CATEGORY_FILTER_KEY) || '';
 
   React.useEffect(() => {
     const initCategories = favorites.length ? ['Favorites'] : [];

@@ -1,11 +1,11 @@
-import { ProjectKind } from '~/k8sTypes';
+import { ProjectKind } from '#~/k8sTypes';
 import {
   ExperimentKF,
   PipelineKF,
   PipelineVersionKF,
   RuntimeConfigParameters,
-} from '~/concepts/pipelines/kfTypes';
-import { PipelineRunType } from '~/pages/pipelines/global/runs';
+} from '#~/concepts/pipelines/kfTypes';
+import { PipelineRunType } from '#~/pages/pipelines/global/runs/types';
 
 export enum RunTypeOption {
   ONE_TRIGGER = 'run',

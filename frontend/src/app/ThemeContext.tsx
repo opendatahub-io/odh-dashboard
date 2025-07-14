@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useBrowserStorage } from '~/components/browserStorage';
+import { useBrowserStorage } from '#~/components/browserStorage/BrowserStorageContext';
 
 type ThemeContextProps = {
   theme: string;

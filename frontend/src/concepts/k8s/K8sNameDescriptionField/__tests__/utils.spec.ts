@@ -4,10 +4,10 @@ import {
   LimitNameResourceType,
   resourceTypeLimits,
   setupDefaults,
-} from '~/concepts/k8s/K8sNameDescriptionField/utils';
-import { K8sNameDescriptionFieldData } from '~/concepts/k8s/K8sNameDescriptionField/types';
-import { mockProjectK8sResource } from '~/__mocks__';
-import { mockK8sNameDescriptionFieldData } from '~/__mocks__/mockK8sNameDescriptionFieldData';
+} from '#~/concepts/k8s/K8sNameDescriptionField/utils';
+import { K8sNameDescriptionFieldData } from '#~/concepts/k8s/K8sNameDescriptionField/types';
+import { mockProjectK8sResource } from '#~/__mocks__';
+import { mockK8sNameDescriptionFieldData } from '#~/__mocks__/mockK8sNameDescriptionFieldData';
 
 describe('setupDefaults', () => {
   it('should return a sane default', () => {

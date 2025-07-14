@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
-import type { PipelineRecurringRunKF, PipelineRunKF } from '~/concepts/pipelines/kfTypes';
-import { InputDefinitionParameterType, StorageStateKF } from '~/concepts/pipelines/kfTypes';
+import type { PipelineRecurringRunKF, PipelineRunKF } from '#~/concepts/pipelines/kfTypes';
+import { InputDefinitionParameterType, StorageStateKF } from '#~/concepts/pipelines/kfTypes';
 import {
   buildMockRunKF,
   buildMockPipeline,
@@ -8,7 +8,7 @@ import {
   buildMockRecurringRunKF,
   buildMockExperimentKF,
   mockArgoWorkflowPipelineVersion,
-} from '~/__mocks__';
+} from '#~/__mocks__';
 import {
   createRunPage,
   duplicateRunPage,
@@ -17,14 +17,15 @@ import {
   activeRunsTable,
   createSchedulePage,
   duplicateSchedulePage,
-} from '~/__tests__/cypress/cypress/pages/pipelines';
-import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url';
-import { getCorePipelineSpec } from '~/concepts/pipelines/getCorePipelineSpec';
+  pipelineVersionImportModal,
+} from '#~/__tests__/cypress/cypress/pages/pipelines';
+import { verifyRelativeURL } from '#~/__tests__/cypress/cypress/utils/url';
+import { getCorePipelineSpec } from '#~/concepts/pipelines/getCorePipelineSpec';
 import {
   configIntercept,
   dspaIntercepts,
   projectsIntercept,
-} from '~/__tests__/cypress/cypress/tests/mocked/pipelines/intercepts';
+} from '#~/__tests__/cypress/cypress/tests/mocked/pipelines/intercepts';
 
 const projectName = 'test-project-name';
 const mockPipeline = buildMockPipeline();
@@ -46,6 +47,32 @@ const mockPipelineVersions = [
     pipeline_version_id: 'oldest',
   },
 ];
+const mockPipelineVersionWithEmpties = buildMockPipelineVersion(
+  {
+    pipeline_id: mockPipeline.pipeline_id,
+  },
+  {
+    parameters: {
+      min_max_scaler: {
+        parameterType: InputDefinitionParameterType.BOOLEAN,
+      },
+      neighbors: {
+        parameterType: InputDefinitionParameterType.INTEGER,
+      },
+      standard_scaler: {
+        parameterType: InputDefinitionParameterType.STRING,
+      },
+      empty_param_1: {
+        parameterType: InputDefinitionParameterType.STRING,
+        isOptional: true,
+      },
+      empty_param_2: {
+        parameterType: InputDefinitionParameterType.STRING,
+        isOptional: true,
+      },
+    },
+  },
+);
 const mockArgoPipelineVersion = mockArgoWorkflowPipelineVersion({});
 const pipelineVersionRef = {
   pipeline_id: mockPipeline.pipeline_id,
@@ -80,6 +107,7 @@ const initialMockRecurringRuns = [
     experiment_id: 'experiment-1',
   }),
 ];
+const mockPipelineYamlPath = `./cypress/tests/mocked/pipelines/mock-upload-pipeline.yaml`;
 
 describe('Pipeline create runs', () => {
   beforeEach(() => {
@@ -229,11 +257,11 @@ describe('Pipeline create runs', () => {
       duplicateRunPage.mockGetPipelines(projectName, [mockPipeline]);
       duplicateRunPage.mockGetPipelineVersions(
         projectName,
-        [mockPipelineVersion],
+        [mockPipelineVersionWithEmpties],
         mockPipelineVersion.pipeline_id,
       );
       duplicateRunPage.mockGetRun(projectName, mockRun);
-      duplicateRunPage.mockGetPipelineVersion(projectName, mockPipelineVersion);
+      duplicateRunPage.mockGetPipelineVersion(projectName, mockPipelineVersionWithEmpties);
       duplicateRunPage.mockGetPipeline(projectName, mockPipeline);
       duplicateRunPage.mockGetExperiment(projectName, mockExperiment);
 
@@ -262,12 +290,16 @@ describe('Pipeline create runs', () => {
       paramsSection.findParamById('radio-min_max_scaler-false').should('be.checked');
       paramsSection.findParamById('neighbors').find('input').should('have.value', '1');
       paramsSection.findParamById('standard_scaler').should('have.value', 'false');
+      paramsSection.findParamById('empty_param_1').should('have.value', '');
+      paramsSection.findParamById('empty_param_2').should('have.value', '');
 
       duplicateRunPage
         .mockCreateRun(projectName, mockPipelineVersion, mockDuplicateRun)
         .as('duplicateRun');
       duplicateRunPage.submit();
 
+      // don't include the empty params as they are not included in the request body
+      // since they have no value
       cy.wait('@duplicateRun').then((interception) => {
         expect(interception.request.body).to.eql({
           display_name: 'Duplicate of Test run',
@@ -529,6 +561,134 @@ describe('Pipeline create runs', () => {
       });
       // Should be redirected to the run details page
       verifyRelativeURL(`/pipelineRuns/${projectName}/runs/${createRunParams.run_id}`);
+    });
+
+    it('should not redirect user after creating a new pipeline version', () => {
+      pipelineRunsGlobal.visit(projectName);
+
+      const createRunParams = {
+        display_name: 'New run with new version',
+        description: 'New run description',
+        run_id: 'new-run-id',
+        runtime_config: {
+          parameters: {
+            min_max_scaler: false,
+            neighbors: 1,
+            standard_scaler: 'no',
+          },
+        },
+      } satisfies Partial<PipelineRunKF>;
+
+      const newPipelineVersion = {
+        pipeline_id: mockPipeline.pipeline_id,
+        display_name: 'New pipeline version',
+        pipeline_version_id: 'new-pipeline-version',
+        description: 'New pipeline description',
+        package_url: {
+          pipeline_url: 'https://example.com/pipeline.yaml',
+        },
+      };
+
+      // Mock experiements, pipelines, and versions
+      createRunPage.mockGetExperiments(projectName, mockExperiments);
+      createRunPage.mockGetPipelines(projectName, [mockPipeline]);
+      createRunPage
+        .mockGetPipelineVersions(
+          projectName,
+          [mockPipelineVersion, buildMockPipelineVersion(newPipelineVersion)],
+          mockPipeline.pipeline_id,
+        )
+        .as('getPipelineVersions');
+
+      // Mock create new pipeline version
+      createRunPage
+        .mockCreatePipelineVersion(projectName, newPipelineVersion)
+        .as('createPipelineVersion');
+
+      // Navigate to the 'Create run' page
+      pipelineRunsGlobal.findCreateRunButton().click();
+      verifyRelativeURL(`/pipelineRuns/${projectName}/runs/create`);
+      createRunPage.find();
+
+      // Fill required fields
+      createRunPage.fillName('New run with new version');
+      createRunPage.experimentSelect.findToggleButton().click();
+      createRunPage.selectExperimentByName('Test experiment 1');
+      createRunPage.pipelineSelect.findToggleButton().click();
+      createRunPage.selectPipelineByName('Test pipeline');
+
+      // Wait for pipeline versions to load
+      cy.wait('@getPipelineVersions');
+
+      // open and populate modal
+      createRunPage.findPipelineCreateVersionButton().click();
+
+      pipelineVersionImportModal.find();
+      pipelineVersionImportModal.fillVersionName(newPipelineVersion.display_name);
+      pipelineVersionImportModal.fillVersionDescription(newPipelineVersion.description);
+      pipelineVersionImportModal.uploadPipelineYaml(mockPipelineYamlPath);
+      pipelineVersionImportModal.submit();
+
+      cy.wait('@createPipelineVersion').then((interception) => {
+        expect(interception.response?.body).to.include({
+          display_name: 'New pipeline version',
+          pipeline_id: mockPipeline.pipeline_id,
+          pipeline_version_id: 'new-pipeline-version',
+        });
+      });
+
+      createRunPage.pipelineVersionSelect.openAndSelectItem('New pipeline version');
+
+      // verify the modal is closed and we have not been redirected
+      pipelineVersionImportModal.find().should('not.exist');
+      verifyRelativeURL(`/pipelineRuns/${projectName}/runs/create`);
+
+      // populate arbitrary parameters
+      const runParameters = createRunParams.runtime_config.parameters;
+      createRunPage.getParamsSection().findParamById('radio-min_max_scaler-false').click();
+      createRunPage
+        .getParamsSection()
+        .fillParamInputById('neighbors', runParameters.neighbors.toString());
+      createRunPage
+        .getParamsSection()
+        .fillParamInputById('standard_scaler', runParameters.standard_scaler);
+
+      // submit
+      createRunPage
+        .mockCreateRun(projectName, mockPipelineVersion, createRunParams)
+        .as('createRuns');
+      createRunPage.submit();
+
+      cy.wait('@createRuns');
+
+      verifyRelativeURL(`/pipelineRuns/${projectName}/runs/${createRunParams.run_id}`);
+    });
+
+    it('shows and opens the create new experiment button in the experiment dropdown', () => {
+      pipelineRunsGlobal.visit(projectName);
+      // Mock experiments for the dropdown
+      createRunPage.mockGetExperiments(projectName, mockExperiments);
+      createRunPage.mockGetPipelines(projectName, [mockPipeline]);
+      createRunPage.mockGetPipelineVersions(
+        projectName,
+        [mockPipelineVersion],
+        mockPipelineVersion.pipeline_id,
+      );
+
+      // Navigate to the 'Create run' page
+      pipelineRunsGlobal.findCreateRunButton().click();
+      createRunPage.find();
+
+      // Open the experiment selector dropdown
+      createRunPage.experimentSelect.findToggleButton().should('not.be.disabled').click();
+
+      // The button should be visible in the dropdown
+      cy.findByRole('button', { name: /create new experiment/i })
+        .should('be.visible')
+        .click();
+
+      // The create experiment modal should open
+      cy.findByRole('dialog', { name: /create experiment/i }).should('be.visible');
     });
   });
 

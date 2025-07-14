@@ -1,12 +1,16 @@
-import { DataScienceClusterKindStatus, K8sCondition } from '~/k8sTypes';
-import { DataScienceStackComponent, StackComponent } from '~/concepts/areas/types';
-import { DataScienceStackComponentMap } from '~/concepts/areas/const';
+import { DataScienceClusterKindStatus, K8sCondition } from '#~/k8sTypes';
+import { DataScienceStackComponent, StackComponent } from '#~/concepts/areas/types';
+import { DataScienceStackComponentMap } from '#~/concepts/areas/const';
 
 export type MockDscStatus = {
   components?: DataScienceClusterKindStatus['components'];
   conditions?: K8sCondition[];
   phase?: string;
   installedComponents?: DataScienceClusterKindStatus['installedComponents'];
+  release?: {
+    name: string;
+    version: string;
+  };
 };
 
 export const mockDscStatus = ({
@@ -32,6 +36,10 @@ export const mockDscStatus = ({
         },
       ],
     },
+    [DataScienceStackComponent.WORKBENCHES]: {
+      workbenchNamespace: 'openshift-ai-notebooks',
+      managementState: 'Managed',
+    },
   },
   installedComponents = Object.values(StackComponent).reduce(
     (acc, component) => ({ ...acc, [component]: true }),
@@ -39,6 +47,7 @@ export const mockDscStatus = ({
   ),
   conditions = [],
   phase = 'Ready',
+  release = { name: 'Open Data Hub', version: '2.28.0' },
 }: MockDscStatus): DataScienceClusterKindStatus => ({
   components,
   conditions: [
@@ -142,6 +151,7 @@ export const mockDscStatus = ({
     {},
   ),
   phase,
+  release,
 });
 
 export const dataScienceStackComponentMap = DataScienceStackComponentMap;

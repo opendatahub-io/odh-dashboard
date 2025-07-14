@@ -1,5 +1,5 @@
-import path from 'path';
-import fs from 'fs';
+import * as path from 'path';
+import * as fs from 'fs';
 
 // @ts-expect-error: Types are not available for this third-party library
 import registerCypressGrep from '@cypress/grep/src/plugin';
@@ -12,10 +12,12 @@ import cypressHighResolution from 'cypress-high-resolution';
 // @ts-ignore no types available
 import { beforeRunHook, afterRunHook } from 'cypress-mochawesome-reporter/lib';
 import { mergeFiles } from 'junit-report-merger';
-import { interceptSnapshotFile } from '~/__tests__/cypress/cypress/utils/snapshotUtils';
-import { setup as setupWebsockets } from '~/__tests__/cypress/cypress/support/websockets';
-import { env, cypressEnv, BASE_URL } from '~/__tests__/cypress/cypress/utils/testConfig';
-import { extractHttpsUrls } from '~/__tests__/cypress/cypress/utils/urlExtractor';
+import { interceptSnapshotFile } from './cypress/utils/snapshotUtils';
+import { setup as setupWebsockets } from './cypress/support/websockets';
+import { env, cypressEnv, BASE_URL } from './cypress/utils/testConfig';
+import { extractHttpsUrlsWithLocation } from './cypress/utils/urlExtractor';
+import { validateHttpsUrls } from './cypress/utils/urlValidator';
+import { logToConsole, LogLevel } from './cypress/utils/logger';
 
 const resultsDir = `${env.CY_RESULTS_DIR || 'results'}/${env.CY_MOCK ? 'mocked' : 'e2e'}`;
 
@@ -89,22 +91,19 @@ export default defineConfig({
           return Promise.resolve({});
         },
         extractHttpsUrls(directory: string) {
-          return extractHttpsUrls(directory);
+          return extractHttpsUrlsWithLocation(directory);
+        },
+        validateHttpsUrls(urls: string[]) {
+          return validateHttpsUrls(urls);
         },
         log(message) {
-          // eslint-disable-next-line no-console
-          console.log(message);
-          return null;
+          return logToConsole(LogLevel.INFO, message);
         },
         error(message) {
-          // eslint-disable-next-line no-console
-          console.error(message);
-          return null;
+          return logToConsole(LogLevel.ERROR, message);
         },
         table(message) {
-          // eslint-disable-next-line no-console
-          console.table(message);
-          return null;
+          return logToConsole(LogLevel.TABLE, message);
         },
       });
 

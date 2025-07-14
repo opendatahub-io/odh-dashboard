@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { useBrowserStorage } from '~/components/browserStorage';
-import { TrustyAIKind } from '~/k8sTypes';
+import { useBrowserStorage } from '#~/components/browserStorage/BrowserStorageContext';
+import { TrustyAIKind } from '#~/k8sTypes';
 
 /** { [namespace]: uid } */
 type TrustyStorageState = Record<string, string | undefined>;

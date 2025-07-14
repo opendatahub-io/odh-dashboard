@@ -1,13 +1,13 @@
 import * as React from 'react';
-import { PersistentVolumeClaimKind } from '~/k8sTypes';
-import { deletePvc, removeNotebookPVC } from '~/api';
+import { PersistentVolumeClaimKind } from '#~/k8sTypes';
+import { deletePvc, removeNotebookPVC } from '#~/api';
 import {
   useRelatedNotebooks,
   ConnectedNotebookContext,
-} from '~/pages/projects/notebook/useRelatedNotebooks';
-import DeleteModal from '~/pages/projects/components/DeleteModal';
-import DeleteModalConnectedAlert from '~/pages/projects/components/DeleteModalConnectedAlert';
-import { getDisplayNameFromK8sResource } from '~/concepts/k8s/utils';
+} from '#~/pages/projects/notebook/useRelatedNotebooks';
+import DeleteModal from '#~/pages/projects/components/DeleteModal';
+import DeleteModalConnectedAlert from '#~/pages/projects/components/DeleteModalConnectedAlert';
+import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 
 type DeletePVCModalProps = {
   pvcToDelete: PersistentVolumeClaimKind;

@@ -1,7 +1,7 @@
 import { K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
-import { DeploymentMode, InferenceServiceKind, KnownLabels } from '~/k8sTypes';
-import { genUID } from '~/__mocks__/mockUtils';
-import { ContainerResources, NodeSelector, Toleration } from '~/types';
+import { DeploymentMode, InferenceServiceKind, KnownLabels } from '#~/k8sTypes';
+import { genUID } from '#~/__mocks__/mockUtils';
+import { ContainerResources, NodeSelector, Toleration } from '#~/types';
 
 type MockResourceConfigType = {
   name?: string;
@@ -28,10 +28,15 @@ type MockResourceConfigType = {
   kserveInternalLabel?: boolean;
   additionalLabels?: Record<string, string>;
   args?: string[];
-  env?: Array<{ name: string; value: string }>;
+  env?: Array<{
+    name: string;
+    value?: string;
+    valueFrom?: { secretKeyRef: { name: string; key: string } };
+  }>;
   isKserveRaw?: boolean;
   tolerations?: Toleration[];
   nodeSelector?: NodeSelector;
+  isNonDashboardItem?: boolean;
 };
 
 type InferenceServicek8sError = K8sStatus & {
@@ -100,6 +105,7 @@ export const mockInferenceServiceK8sResource = ({
   isKserveRaw = false,
   tolerations,
   nodeSelector,
+  isNonDashboardItem = false,
 }: MockResourceConfigType): InferenceServiceKind => ({
   apiVersion: 'serving.kserve.io/v1beta1',
   kind: 'InferenceService',
@@ -124,7 +130,7 @@ export const mockInferenceServiceK8sResource = ({
     labels: {
       name,
       ...additionalLabels,
-      [KnownLabels.DASHBOARD_RESOURCE]: 'true',
+      ...(isNonDashboardItem ? {} : { [KnownLabels.DASHBOARD_RESOURCE]: 'true' }),
       ...(kserveInternalLabel && { 'networking.knative.dev/visibility': 'cluster-local' }),
     },
     name,

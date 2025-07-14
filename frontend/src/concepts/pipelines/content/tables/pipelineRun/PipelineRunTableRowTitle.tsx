@@ -1,13 +1,13 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { TableText } from '@patternfly/react-table';
-import { TableRowTitleDescription } from '~/components/table';
-import { PipelineRunKF } from '~/concepts/pipelines/kfTypes';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import PipelineRunTypeLabel from '~/concepts/pipelines/content/PipelineRunTypeLabel';
-import { runDetailsRoute } from '~/routes';
-import PipelineRecurringRunReferenceName from '~/concepts/pipelines/content/PipelineRecurringRunReferenceName';
-import { ExperimentContext } from '~/pages/pipelines/global/experiments/ExperimentContext';
+import { TableRowTitleDescription } from '#~/components/table';
+import { PipelineRunKF } from '#~/concepts/pipelines/kfTypes';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+import PipelineRunTypeLabel from '#~/concepts/pipelines/content/PipelineRunTypeLabel';
+import { runDetailsRoute } from '#~/routes/pipelines/runs';
+import PipelineRecurringRunReferenceName from '#~/concepts/pipelines/content/PipelineRecurringRunReferenceName';
+import { ExperimentContext } from '#~/pages/pipelines/global/experiments/ExperimentContext';
 
 type PipelineRunTableRowTitleProps = {
   run: PipelineRunKF;

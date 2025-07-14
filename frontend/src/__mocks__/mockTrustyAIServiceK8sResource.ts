@@ -1,4 +1,4 @@
-import { TrustyAIKind } from '~/k8sTypes';
+import { TrustyAIKind } from '#~/k8sTypes';
 
 type MockTrustyAIServiceK8sResourceOptions = {
   isAvailable?: boolean;

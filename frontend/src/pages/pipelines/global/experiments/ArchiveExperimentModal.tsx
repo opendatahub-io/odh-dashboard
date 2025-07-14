@@ -1,9 +1,9 @@
 import React from 'react';
 import { ListItem, StackItem } from '@patternfly/react-core';
-import { usePipelinesAPI } from '~/concepts/pipelines/context';
-import { ExperimentKF } from '~/concepts/pipelines/kfTypes';
-import { ArchiveModal } from '~/concepts/pipelines/content/ArchiveModal';
-import { BulkActionExpandableSection } from '~/pages/projects/components/BulkActionExpandableSection';
+import { usePipelinesAPI } from '#~/concepts/pipelines/context';
+import { ExperimentKF } from '#~/concepts/pipelines/kfTypes';
+import { ArchiveModal } from '#~/concepts/pipelines/content/ArchiveModal';
+import { BulkActionExpandableSection } from '#~/pages/projects/components/BulkActionExpandableSection';
 
 interface ArchiveExperimentModalProps {
   experiments: ExperimentKF[];

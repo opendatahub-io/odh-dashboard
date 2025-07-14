@@ -1,15 +1,15 @@
 import * as React from 'react';
-import { Table } from '~/components/table';
-import { AccessReviewResourceAttributes, ServingRuntimeKind } from '~/k8sTypes';
-import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import { useAccessReview } from '~/api';
-import { columns } from '~/pages/modelServing/screens/projects/data';
-import ServingRuntimeTableRow from '~/pages/modelServing/screens/projects/ModelMeshSection/ServingRuntimeTableRow';
-import DeleteServingRuntimeModal from '~/pages/modelServing/screens/projects/ServingRuntimeModal/DeleteServingRuntimeModal';
-import ManageServingRuntimeModal from '~/pages/modelServing/screens/projects/ServingRuntimeModal/ManageServingRuntimeModal';
-import ManageInferenceServiceModal from '~/pages/modelServing/screens/projects/InferenceServiceModal/ManageInferenceServiceModal';
-import { fireFormTrackingEvent } from '~/concepts/analyticsTracking/segmentIOUtils';
-import { TrackingOutcome } from '~/concepts/analyticsTracking/trackingProperties';
+import { Table } from '#~/components/table';
+import { AccessReviewResourceAttributes, ServingRuntimeKind } from '#~/k8sTypes';
+import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
+import { useAccessReview } from '#~/api';
+import { columns } from '#~/pages/modelServing/screens/projects/data';
+import ServingRuntimeTableRow from '#~/pages/modelServing/screens/projects/ModelMeshSection/ServingRuntimeTableRow';
+import DeleteServingRuntimeModal from '#~/pages/modelServing/screens/projects/ServingRuntimeModal/DeleteServingRuntimeModal';
+import ManageServingRuntimeModal from '#~/pages/modelServing/screens/projects/ServingRuntimeModal/ManageServingRuntimeModal';
+import ManageInferenceServiceModal from '#~/pages/modelServing/screens/projects/InferenceServiceModal/ManageInferenceServiceModal';
+import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
+import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
 
 const accessReviewResource: AccessReviewResourceAttributes = {
   group: 'rbac.authorization.k8s.io',
@@ -24,10 +24,16 @@ const ServingRuntimeTable: React.FC = () => {
   const [expandedServingRuntimeName, setExpandedServingRuntimeName] = React.useState<string>();
 
   const {
-    servingRuntimes: { data: modelServers, refresh: refreshServingRuntime },
+    servingRuntimes: {
+      data: { items: modelServers },
+      refresh: refreshServingRuntime,
+    },
     serverSecrets: { refresh: refreshTokens },
     connections: { data: connections, refresh: refreshConnections },
-    inferenceServices: { data: inferenceServices, refresh: refreshInferenceServices },
+    inferenceServices: {
+      data: { items: inferenceServices },
+      refresh: refreshInferenceServices,
+    },
     filterTokens,
     currentProject,
   } = React.useContext(ProjectDetailsContext);

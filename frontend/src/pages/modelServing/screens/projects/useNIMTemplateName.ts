@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { fetchNIMAccountTemplateName } from '~/pages/modelServing/screens/projects/nimUtils';
-import { useDashboardNamespace } from '~/redux/selectors';
+import { fetchNIMAccountTemplateName } from '#~/pages/modelServing/screens/projects/nimUtils';
+import { useDashboardNamespace } from '#~/redux/selectors';
 
 export const useNIMTemplateName = (): string | undefined => {
   const { dashboardNamespace } = useDashboardNamespace();

@@ -1,8 +1,8 @@
 import { SDKReducers } from '@openshift/dynamic-plugin-sdk-utils';
 import { createStore, applyMiddleware, compose, combineReducers } from 'redux';
 import reduxThunk from 'redux-thunk';
-import appReducer from '~/redux/reducers/appReducer';
-import { ODH_PRODUCT_NAME } from '~/utilities/const';
+import appReducer from '#~/redux/reducers/appReducer';
+import { ODH_PRODUCT_NAME } from '#~/utilities/const';
 
 const composeEnhancers =
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/consistent-type-assertions

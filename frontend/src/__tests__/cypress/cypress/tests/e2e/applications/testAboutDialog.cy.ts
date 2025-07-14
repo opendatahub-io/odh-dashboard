@@ -1,14 +1,14 @@
-import { aboutDialog } from '~/__tests__/cypress/cypress/pages/aboutDialog';
+import { aboutDialog } from '#~/__tests__/cypress/cypress/pages/aboutDialog';
 // eslint-disable-next-line no-restricted-syntax
-import { DataScienceStackComponentMap } from '~/concepts/areas/const';
+import { DataScienceStackComponentMap } from '#~/concepts/areas/const';
 import {
   getCsvByDisplayName,
   getResourceVersionByName,
   getSubscriptionChannelFromCsv,
   getVersionFromCsv,
-} from '~/__tests__/cypress/cypress/utils/oc_commands/applications';
-import { HTPASSWD_CLUSTER_ADMIN_USER } from '~/__tests__/cypress/cypress/utils/e2eUsers';
-import { retryableBefore } from '~/__tests__/cypress/cypress/utils/retryableHooks';
+} from '#~/__tests__/cypress/cypress/utils/oc_commands/applications';
+import { HTPASSWD_CLUSTER_ADMIN_USER } from '#~/__tests__/cypress/cypress/utils/e2eUsers';
+import { retryableBefore } from '#~/__tests__/cypress/cypress/utils/retryableHooks';
 
 const productName = Cypress.env('PRODUCT_NAME');
 const dataScienceStackComponentMap = DataScienceStackComponentMap;

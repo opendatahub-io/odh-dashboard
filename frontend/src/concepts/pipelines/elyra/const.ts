@@ -1,4 +1,4 @@
-import { DEFAULT_PIPELINE_DEFINITION_NAME } from '~/concepts/pipelines/const';
+import { DEFAULT_PIPELINE_DEFINITION_NAME } from '#~/concepts/pipelines/const';
 
 export const ELYRA_SECRET_NAME = 'ds-pipeline-config';
 export const ELYRA_SECRET_DATA_KEY = 'odh_dsp.json';

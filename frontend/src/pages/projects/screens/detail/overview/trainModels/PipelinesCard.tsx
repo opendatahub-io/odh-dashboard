@@ -11,15 +11,11 @@ import {
   Stack,
   Content,
 } from '@patternfly/react-core';
-import { ProjectDetailsContext } from '~/pages/projects/ProjectDetailsContext';
-import {
-  CreatePipelineServerButton,
-  PipelineServerTimedOut,
-  usePipelinesAPI,
-} from '~/concepts/pipelines/context';
-import { useSafePipelines } from '~/concepts/pipelines/apiHooks/usePipelines';
-import EnsureAPIAvailability from '~/concepts/pipelines/EnsureAPIAvailability';
-import EnsureCompatiblePipelineServer from '~/concepts/pipelines/EnsureCompatiblePipelineServer';
+import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
+import { CreatePipelineServerButton, usePipelinesAPI } from '#~/concepts/pipelines/context';
+import { useSafePipelines } from '#~/concepts/pipelines/apiHooks/usePipelines';
+import EnsureAPIAvailability from '#~/concepts/pipelines/EnsureAPIAvailability';
+import EnsureCompatiblePipelineServer from '#~/concepts/pipelines/EnsureCompatiblePipelineServer';
 import PipelinesOverviewCard from './PipelinesOverviewCard';
 import PipelinesCardMetrics from './PipelinesCardMetrics';
 
@@ -48,10 +44,9 @@ const PipelinesCard: React.FC = () => {
             <Stack hasGutter>
               <Content>
                 <Content component="small">
-                  Pipelines are platforms for building and deploying portable and scalable
-                  machine-learning (ML) workflows. You can import a pipeline or create one in a
-                  workbench. Before you can work with pipelines, you must first configure a pipeline
-                  server in your project.
+                  To create or use pipelines, you must first configure a pipeline server in this
+                  project. A pipeline server provides the infrastructure necessary for the pipeline
+                  to execute steps, track results, and manage runs.
                 </Content>
               </Content>
               {notebooksLoaded && !notebooksError && notebooks.length > 0 ? (
@@ -75,14 +70,6 @@ const PipelinesCard: React.FC = () => {
             />
           </CardFooter>
         </>
-      );
-    }
-
-    if (pipelinesServer.timedOut && pipelinesServer.compatible) {
-      return (
-        <CardBody>
-          <PipelineServerTimedOut />
-        </CardBody>
       );
     }
 

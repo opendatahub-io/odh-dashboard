@@ -10,46 +10,51 @@ import {
   Spinner,
   Alert,
 } from '@patternfly/react-core';
-import { ModelVersion } from '~/concepts/modelRegistry/types';
-import DashboardDescriptionListGroup from '~/components/DashboardDescriptionListGroup';
-import EditableTextDescriptionListGroup from '~/components/EditableTextDescriptionListGroup';
-import { EditableLabelsDescriptionListGroup } from '~/components/EditableLabelsDescriptionListGroup';
-import ModelPropertiesDescriptionListGroup from '~/pages/modelRegistry/screens/ModelPropertiesDescriptionListGroup';
-import { getLabels, mergeUpdatedLabels } from '~/pages/modelRegistry/screens/utils';
-import useModelArtifactsByVersionId from '~/concepts/modelRegistry/apiHooks/useModelArtifactsByVersionId';
-import { ModelRegistryContext } from '~/concepts/modelRegistry/context/ModelRegistryContext';
-import ModelTimestamp from '~/pages/modelRegistry/screens/components/ModelTimestamp';
-import { uriToModelLocation } from '~/concepts/modelRegistry/utils';
-import InlineTruncatedClipboardCopy from '~/components/InlineTruncatedClipboardCopy';
+import { ModelVersion, ModelArtifactList } from '#~/concepts/modelRegistry/types';
+import DashboardDescriptionListGroup from '#~/components/DashboardDescriptionListGroup';
+import EditableTextDescriptionListGroup from '#~/components/EditableTextDescriptionListGroup';
+import { EditableLabelsDescriptionListGroup } from '#~/components/EditableLabelsDescriptionListGroup';
+import ModelPropertiesDescriptionListGroup from '#~/pages/modelRegistry/screens/ModelPropertiesDescriptionListGroup';
+import { getLabels, mergeUpdatedLabels } from '#~/pages/modelRegistry/screens/utils';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import ModelTimestamp from '#~/pages/modelRegistry/screens/components/ModelTimestamp';
+import { uriToModelLocation } from '#~/concepts/modelRegistry/utils';
+import InlineTruncatedClipboardCopy from '#~/components/InlineTruncatedClipboardCopy';
 import {
   bumpBothTimestamps,
   bumpRegisteredModelTimestamp,
-} from '~/concepts/modelRegistry/utils/updateTimestamps';
-import useRegisteredModelById from '~/concepts/modelRegistry/apiHooks/useRegisteredModelById';
+} from '#~/concepts/modelRegistry/utils/updateTimestamps';
+import useRegisteredModelById from '#~/concepts/modelRegistry/apiHooks/useRegisteredModelById';
+import { ModelRegistryPageContext } from '#~/concepts/modelRegistry/context/ModelRegistryPageContext';
 import ModelVersionRegisteredFromLink from './ModelVersionRegisteredFromLink';
 
 type ModelVersionDetailsViewProps = {
   modelVersion: ModelVersion;
   isArchiveVersion?: boolean;
   refresh: () => void;
+  modelArtifacts: ModelArtifactList;
+  modelArtifactsLoaded: boolean;
+  modelArtifactsLoadError: Error | undefined;
 };
 
 const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
   modelVersion: mv,
   isArchiveVersion,
   refresh,
+  modelArtifacts,
+  modelArtifactsLoaded,
+  modelArtifactsLoadError,
 }) => {
-  const [modelArtifacts, modelArtifactsLoaded, modelArtifactsLoadError, refreshModelArtifacts] =
-    useModelArtifactsByVersionId(mv.id);
   const modelArtifact = modelArtifacts.items.length ? modelArtifacts.items[0] : null;
-  const { apiState } = React.useContext(ModelRegistryContext);
+  const modelCatalogAvailable = useIsAreaAvailable(SupportedArea.MODEL_CATALOG).status;
+  const { apiState } = React.useContext(ModelRegistryPageContext);
   const storageFields = uriToModelLocation(modelArtifact?.uri || '');
   const [registeredModel, registeredModelLoaded, registeredModelLoadError, refreshRegisteredModel] =
     useRegisteredModelById(mv.registeredModelId);
   const loaded = modelArtifactsLoaded && registeredModelLoaded;
   const loadError = modelArtifactsLoadError || registeredModelLoadError;
   const refreshBoth = () => {
-    refreshModelArtifacts();
+    refresh();
     refreshRegisteredModel();
   };
 
@@ -141,7 +146,12 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
           >
             <InlineTruncatedClipboardCopy testId="model-version-id" textToCopy={mv.id} />
           </DashboardDescriptionListGroup>
-          {modelArtifact && <ModelVersionRegisteredFromLink modelArtifact={modelArtifact} />}
+          {modelArtifact && (
+            <ModelVersionRegisteredFromLink
+              modelArtifact={modelArtifact}
+              isModelCatalogAvailable={modelCatalogAvailable}
+            />
+          )}
         </DescriptionList>
 
         <Title style={{ margin: '1em 0' }} headingLevel={ContentVariants.h3}>
