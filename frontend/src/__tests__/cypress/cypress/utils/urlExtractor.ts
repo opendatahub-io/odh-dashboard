@@ -164,6 +164,5 @@ export function extractHttpsUrlsWithLocation(directory: string): UrlLocation[] {
 }
 
 // Check if URL contains any excluded substrings
-export const isUrlExcluded = (url: string, excludedSubstrings: string[]): boolean => {
-  return excludedSubstrings.some((substring) => url.includes(substring));
-};
+export const isUrlExcluded = (url: string, excludedSubstrings: string[]): boolean =>
+  excludedSubstrings.some((substring) => url.includes(substring));

@@ -7,7 +7,9 @@ import { wasSetupPerformed } from '#~/__tests__/cypress/cypress/utils/retryableH
 
 describe('[Product Bug: NVPE-244] Verify NIM enable flow', () => {
   after(() => {
-    if (!wasSetupPerformed()) return;
+    if (!wasSetupPerformed()) {
+      return;
+    }
     cy.step('Delete odh-nim-account');
     deleteNIMAccount();
   });

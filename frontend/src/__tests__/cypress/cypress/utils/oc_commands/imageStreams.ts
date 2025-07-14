@@ -30,8 +30,8 @@ interface ExecResult {
 export const getImageStreamTags = (
   namespace: string,
   imageStreamName: string,
-): Cypress.Chainable<string[]> => {
-  return cy
+): Cypress.Chainable<string[]> =>
+  cy
     .exec(`oc get imagestream ${imageStreamName} -n ${namespace} -o json`)
     .then((result: ExecResult) => {
       if (result.code !== 0) {
@@ -41,12 +41,9 @@ export const getImageStreamTags = (
       return imageStream.spec.tags.map((tag) => tag.name);
     })
     .then((tags) => tags.toSorted());
-};
 
-export const getNotebookImageNames = (
-  namespace: string,
-): Cypress.Chainable<NotebookImageInfo[]> => {
-  return cy
+export const getNotebookImageNames = (namespace: string): Cypress.Chainable<NotebookImageInfo[]> =>
+  cy
     .exec(`oc get imagestream -n ${namespace} -o jsonpath='{.items[*].metadata.name}'`)
     .then((result: ExecResult) => {
       if (result.code !== 0) {
@@ -58,8 +55,8 @@ export const getNotebookImageNames = (
       // Create a chain of promises for each notebook image
       const imagePromises = imageNames
         .filter((imageName) => imageName.includes('notebook'))
-        .map((imageName) => {
-          return cy
+        .map((imageName) =>
+          cy
             .exec(
               `oc get imagestream ${imageName} -n ${namespace} -o jsonpath='{.spec.tags[*].name}'`,
             )
@@ -69,10 +66,9 @@ export const getNotebookImageNames = (
               }
               const versions = tagResult.stdout.trim().split(' ');
               imageInfos.push({ image: imageName, name: imageName, versions });
-            });
-        });
+            }),
+        );
 
       // Wait for all image version queries to complete
       return cy.wrap(Promise.all(imagePromises)).then(() => imageInfos);
     });
-};

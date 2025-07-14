@@ -124,8 +124,8 @@ export const verifyStorageClassConfig = (
   expectedIsEnabled?: boolean,
   expectedDisplayName?: string,
   expectedDescription?: string,
-): Cypress.Chainable<CommandLineResult> => {
-  return getStorageClassConfig(scName).then((result) => {
+): Cypress.Chainable<CommandLineResult> =>
+  getStorageClassConfig(scName).then((result) => {
     const config = parseStorageClassConfig(result);
 
     if (expectedIsDefault !== undefined) {
@@ -150,4 +150,3 @@ export const verifyStorageClassConfig = (
     cy.log('Storage Class Config:', JSON.stringify(config));
     return cy.wrap(result);
   });
-};

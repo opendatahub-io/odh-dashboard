@@ -1,4 +1,4 @@
-import { testHook } from '#~/__tests__/unit/testUtils/hooks';
+import { testHook } from '@odh-dashboard/jest-config/hooks';
 import { getAllowedUsers } from '#~/redux/actions/actions';
 import { mockAllowedUsers } from '#~/__mocks__/mockAllowedUsers';
 import useCheckForAllowedUsers from '#~/pages/notebookController/screens/admin/useCheckForAllowedUsers';

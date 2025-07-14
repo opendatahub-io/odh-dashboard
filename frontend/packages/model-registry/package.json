@@ -31,5 +31,9 @@
       "name": "model-registry-ui-service",
       "port": 8080
     }
+  },
+  "devDependencies": {
+    "@odh-dashboard/eslint-config": "*",
+    "@odh-dashboard/tsconfig": "*"
   }
 }

@@ -86,24 +86,22 @@ export const getResourceValues = (
   customAppDescription: string;
   howToDescription: string;
   tutorialDescription: string;
-} => {
-  return {
-    quickStartName: resourcesData.resources.CustomQuickStart[0].createdName,
-    applicationName: resourcesData.resources.CustomApplication[0].createdName,
-    howToName: resourcesData.resources.CustomHowTo[0].createdName,
-    tutorialName: resourcesData.resources.CustomTutorial[0].createdName,
+} => ({
+  quickStartName: resourcesData.resources.CustomQuickStart[0].createdName,
+  applicationName: resourcesData.resources.CustomApplication[0].createdName,
+  howToName: resourcesData.resources.CustomHowTo[0].createdName,
+  tutorialName: resourcesData.resources.CustomTutorial[0].createdName,
 
-    quickStartMetaDataName: resourcesData.resources.CustomQuickStart[0].metaDataName,
-    customAppMetaDataName: resourcesData.resources.CustomApplication[0].metaDataName,
-    howToMetaDataName: resourcesData.resources.CustomHowTo[0].metaDataName,
-    tutorialMetaDataName: resourcesData.resources.CustomTutorial[0].metaDataName,
+  quickStartMetaDataName: resourcesData.resources.CustomQuickStart[0].metaDataName,
+  customAppMetaDataName: resourcesData.resources.CustomApplication[0].metaDataName,
+  howToMetaDataName: resourcesData.resources.CustomHowTo[0].metaDataName,
+  tutorialMetaDataName: resourcesData.resources.CustomTutorial[0].metaDataName,
 
-    quickStartDescription: resourcesData.resources.CustomQuickStart[0].description,
-    customAppDescription: resourcesData.resources.CustomApplication[0].description,
-    howToDescription: resourcesData.resources.CustomHowTo[0].description,
-    tutorialDescription: resourcesData.resources.CustomTutorial[0].description,
-  };
-};
+  quickStartDescription: resourcesData.resources.CustomQuickStart[0].description,
+  customAppDescription: resourcesData.resources.CustomApplication[0].description,
+  howToDescription: resourcesData.resources.CustomHowTo[0].description,
+  tutorialDescription: resourcesData.resources.CustomTutorial[0].description,
+});
 
 /**
  * Verifies whether resource count in filter matches the number of cards

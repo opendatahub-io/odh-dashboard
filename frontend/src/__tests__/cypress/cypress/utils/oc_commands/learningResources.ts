@@ -85,12 +85,11 @@ export const getOdhApplications = (
  */
 export const getEnabledResourceCount = (
   namespace = applicationNamespace,
-): Cypress.Chainable<number> => {
-  return getLearningResourceCounts(namespace).then((counts) => {
+): Cypress.Chainable<number> =>
+  getLearningResourceCounts(namespace).then((counts) => {
     cy.log(`Enabled resources count: ${counts.total}`);
     return cy.wrap(counts.total);
   });
-};
 
 /**
  * Get count of disabled learning resources (always 0 since all resources show as enabled)
@@ -112,9 +111,9 @@ export const getDisabledResourceCount = (): Cypress.Chainable<number> => {
  */
 export const getDocumentationResourceCount = (
   namespace = applicationNamespace,
-): Cypress.Chainable<number> => {
-  return getOdhDocuments(namespace).then((documents) => {
-    return getOdhApplications(namespace).then((applications) => {
+): Cypress.Chainable<number> =>
+  getOdhDocuments(namespace).then((documents) =>
+    getOdhApplications(namespace).then((applications) => {
       const staticDocs = documents.filter(
         (doc: { spec?: { type?: string } }) => doc.spec && doc.spec.type === 'documentation',
       ).length;
@@ -127,9 +126,8 @@ export const getDocumentationResourceCount = (
 
       cy.log(`Documentation resources count: ${totalDocs}`);
       return cy.wrap(totalDocs);
-    });
-  });
-};
+    }),
+  );
 
 /**
  * Get count of how-to resources
@@ -138,8 +136,8 @@ export const getDocumentationResourceCount = (
  */
 export const getHowToResourceCount = (
   namespace = applicationNamespace,
-): Cypress.Chainable<number> => {
-  return getOdhDocuments(namespace).then((documents) => {
+): Cypress.Chainable<number> =>
+  getOdhDocuments(namespace).then((documents) => {
     const howtoResources = documents.filter(
       (doc: { spec?: { type?: string } }) => doc.spec && doc.spec.type === 'how-to',
     );
@@ -147,7 +145,6 @@ export const getHowToResourceCount = (
     cy.log(`How-to resources count: ${howtoResources.length}`);
     return cy.wrap(howtoResources.length);
   });
-};
 
 /**
  * Get count of quickstart resources
@@ -156,12 +153,11 @@ export const getHowToResourceCount = (
  */
 export const getQuickstartResourceCount = (
   namespace = applicationNamespace,
-): Cypress.Chainable<number> => {
-  return getLearningResourceCounts(namespace).then((counts) => {
+): Cypress.Chainable<number> =>
+  getLearningResourceCounts(namespace).then((counts) => {
     cy.log(`Quickstart resources count: ${counts.quickstarts}`);
     return cy.wrap(counts.quickstarts);
   });
-};
 
 /**
  * Get count of tutorial resources
@@ -170,8 +166,8 @@ export const getQuickstartResourceCount = (
  */
 export const getTutorialResourceCount = (
   namespace = applicationNamespace,
-): Cypress.Chainable<number> => {
-  return getOdhDocuments(namespace).then((documents) => {
+): Cypress.Chainable<number> =>
+  getOdhDocuments(namespace).then((documents) => {
     const tutorialResources = documents.filter(
       (doc: { spec?: { type?: string } }) => doc.spec && doc.spec.type === 'tutorial',
     );
@@ -179,7 +175,6 @@ export const getTutorialResourceCount = (
     cy.log(`Tutorial resources count: ${tutorialResources.length}`);
     return cy.wrap(tutorialResources.length);
   });
-};
 
 /**
  * Get count of Red Hat managed resources (all resources show as Red Hat managed in UI)
@@ -188,13 +183,12 @@ export const getTutorialResourceCount = (
  */
 export const getRedHatManagedResourceCount = (
   namespace = applicationNamespace,
-): Cypress.Chainable<number> => {
+): Cypress.Chainable<number> =>
   // Red Hat managed count is identical to enabled count - all resources appear as Red Hat managed
-  return getEnabledResourceCount(namespace).then((enabledCount) => {
+  getEnabledResourceCount(namespace).then((enabledCount) => {
     cy.log(`Red Hat managed resources count: ${enabledCount}`);
     return cy.wrap(enabledCount);
   });
-};
 
 /**
  * Get comprehensive learning resource counts
@@ -203,10 +197,10 @@ export const getRedHatManagedResourceCount = (
  */
 export const getLearningResourceCounts = (
   namespace = applicationNamespace,
-): Cypress.Chainable<LearningResourceCounts> => {
-  return getOdhDocuments(namespace).then((documents) => {
-    return getOdhQuickstarts(namespace).then((quickstarts) => {
-      return getOdhApplications(namespace).then((applications) => {
+): Cypress.Chainable<LearningResourceCounts> =>
+  getOdhDocuments(namespace).then((documents) =>
+    getOdhQuickstarts(namespace).then((quickstarts) =>
+      getOdhApplications(namespace).then((applications) => {
         const dynamicDocs = applications.filter(
           (app: { spec?: { docsLink?: string } }) => app.spec && app.spec.docsLink,
         ).length;
@@ -220,10 +214,9 @@ export const getLearningResourceCounts = (
         };
 
         return cy.wrap(counts);
-      });
-    });
-  });
-};
+      }),
+    ),
+  );
 
 /**
  * Get count of resources for a specific provider
@@ -234,9 +227,9 @@ export const getLearningResourceCounts = (
 export const getResourceCountByProvider = (
   providerName: string,
   namespace = applicationNamespace,
-): Cypress.Chainable<number> => {
-  return getOdhApplications(namespace).then((applications) => {
-    return getOdhDocuments(namespace).then((documents) => {
+): Cypress.Chainable<number> =>
+  getOdhApplications(namespace).then((applications) =>
+    getOdhDocuments(namespace).then((documents) => {
       let count = 0;
 
       // Find applications for this provider
@@ -274,9 +267,8 @@ export const getResourceCountByProvider = (
 
       cy.log(`${providerName} resources count: ${count}`);
       return cy.wrap(count);
-    });
-  });
-};
+    }),
+  );
 
 /**
  * Get count of Elastic provider resources
@@ -285,26 +277,22 @@ export const getResourceCountByProvider = (
  */
 export const getElasticResourceCount = (
   namespace = applicationNamespace,
-): Cypress.Chainable<number> => {
-  return getResourceCountByProvider('Elastic', namespace).then((count) => {
+): Cypress.Chainable<number> =>
+  getResourceCountByProvider('Elastic', namespace).then((count) => {
     cy.log(`Elastic resources count: ${count}`);
     return cy.wrap(count);
   });
-};
 
 /**
  * Get count of IBM provider resources
  * @param namespace - The namespace to search in
  * @returns Cypress chainable with IBM resource count
  */
-export const getIBMResourceCount = (
-  namespace = applicationNamespace,
-): Cypress.Chainable<number> => {
-  return getResourceCountByProvider('IBM', namespace).then((count) => {
+export const getIBMResourceCount = (namespace = applicationNamespace): Cypress.Chainable<number> =>
+  getResourceCountByProvider('IBM', namespace).then((count) => {
     cy.log(`IBM resources count: ${count}`);
     return cy.wrap(count);
   });
-};
 
 /**
  * Get count of Intel® provider resources
@@ -313,12 +301,11 @@ export const getIBMResourceCount = (
  */
 export const getIntelResourceCount = (
   namespace = applicationNamespace,
-): Cypress.Chainable<number> => {
-  return getResourceCountByProvider('Intel®', namespace).then((count) => {
+): Cypress.Chainable<number> =>
+  getResourceCountByProvider('Intel®', namespace).then((count) => {
     cy.log(`Intel® resources count: ${count}`);
     return cy.wrap(count);
   });
-};
 
 /**
  * Get count of NVIDIA provider resources
@@ -327,12 +314,11 @@ export const getIntelResourceCount = (
  */
 export const getNVIDIAResourceCount = (
   namespace = applicationNamespace,
-): Cypress.Chainable<number> => {
-  return getResourceCountByProvider('NVIDIA', namespace).then((count) => {
+): Cypress.Chainable<number> =>
+  getResourceCountByProvider('NVIDIA', namespace).then((count) => {
     cy.log(`NVIDIA resources count: ${count}`);
     return cy.wrap(count);
   });
-};
 
 /**
  * Get count of Pachyderm provider resources
@@ -341,12 +327,11 @@ export const getNVIDIAResourceCount = (
  */
 export const getPachydermResourceCount = (
   namespace = applicationNamespace,
-): Cypress.Chainable<number> => {
-  return getResourceCountByProvider('Pachyderm', namespace).then((count) => {
+): Cypress.Chainable<number> =>
+  getResourceCountByProvider('Pachyderm', namespace).then((count) => {
     cy.log(`Pachyderm resources count: ${count}`);
     return cy.wrap(count);
   });
-};
 
 /**
  * Get count of Red Hat provider resources
@@ -355,12 +340,11 @@ export const getPachydermResourceCount = (
  */
 export const getRedHatResourceCount = (
   namespace = applicationNamespace,
-): Cypress.Chainable<number> => {
-  return getResourceCountByProvider('Red Hat', namespace).then((count) => {
+): Cypress.Chainable<number> =>
+  getResourceCountByProvider('Red Hat', namespace).then((count) => {
     cy.log(`Red Hat resources count: ${count}`);
     return cy.wrap(count);
   });
-};
 
 /**
  * Get count of Starburst provider resources
@@ -369,12 +353,11 @@ export const getRedHatResourceCount = (
  */
 export const getStarburstResourceCount = (
   namespace = applicationNamespace,
-): Cypress.Chainable<number> => {
-  return getResourceCountByProvider('Starburst', namespace).then((count) => {
+): Cypress.Chainable<number> =>
+  getResourceCountByProvider('Starburst', namespace).then((count) => {
     cy.log(`Starburst resources count: ${count}`);
     return cy.wrap(count);
   });
-};
 
 /**
  * Get count of Self-managed provider type resources
@@ -383,13 +366,13 @@ export const getStarburstResourceCount = (
  */
 export const getSelfManagedResourceCount = (
   namespace = applicationNamespace,
-): Cypress.Chainable<number> => {
-  return getNVIDIAResourceCount(namespace).then((nvidiaCount) => {
-    return getElasticResourceCount(namespace).then((elasticCount) => {
-      return getPachydermResourceCount(namespace).then((pachydermCount) => {
-        return getIntelResourceCount(namespace).then((intelCount) => {
-          return getIBMResourceCount(namespace).then((ibmCount) => {
-            return getStarburstResourceCount(namespace).then((starburstCount) => {
+): Cypress.Chainable<number> =>
+  getNVIDIAResourceCount(namespace).then((nvidiaCount) =>
+    getElasticResourceCount(namespace).then((elasticCount) =>
+      getPachydermResourceCount(namespace).then((pachydermCount) =>
+        getIntelResourceCount(namespace).then((intelCount) =>
+          getIBMResourceCount(namespace).then((ibmCount) =>
+            getStarburstResourceCount(namespace).then((starburstCount) => {
               const total =
                 nvidiaCount +
                 elasticCount +
@@ -399,10 +382,9 @@ export const getSelfManagedResourceCount = (
                 starburstCount;
               cy.log(`Self-managed resources count: ${total}`);
               return cy.wrap(total);
-            });
-          });
-        });
-      });
-    });
-  });
-};
+            }),
+          ),
+        ),
+      ),
+    ),
+  );
