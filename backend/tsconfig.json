@@ -1,24 +1,17 @@
-
 {
+  "extends": "@odh-dashboard/tsconfig/tsconfig.json",
   "compilerOptions": {
-    "baseUrl": "./src",
+    "baseUrl": ".",
     "module": "commonjs",
-    "esModuleInterop": true,
-    "target": "es2021",
-    "noImplicitAny": true,
     "moduleResolution": "node",
-    "sourceMap": true,
-    "outDir": "dist",
     "paths": {
-      "*": [
-        "node_modules/*",
-      ],
-    }
+      "*": ["node_modules/*"]
+    },
+    "noImplicitAny": false,
+    "noImplicitReturns": false,
+    "strictNullChecks": false,
+    "strictFunctionTypes": false,
+    "useUnknownInCatchVariables": false
   },
-  "include": [
-    "src/**/*"
-  ],
-  "exclude": [
-    "node_modules"
-  ]
+  "exclude": ["node_modules", "dist"]
 }

@@ -1,8 +1,8 @@
 import { act } from 'react';
+import { testHook } from '@odh-dashboard/jest-config/hooks';
 import axios from '#~/utilities/axios';
 import { mockPVCK8sResource } from '#~/__mocks__/mockPVCK8sResource';
 import { mockPrometheusQueryResponse } from '#~/__mocks__/mockPrometheusQueryResponse';
-import { testHook } from '#~/__tests__/unit/testUtils/hooks';
 import { usePVCFreeAmount } from '#~/api/prometheus/pvcs';
 import { POLL_INTERVAL } from '#~/utilities/const';
 

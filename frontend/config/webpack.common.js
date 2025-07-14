@@ -38,7 +38,12 @@ module.exports = (env) => ({
       {
         test: /\.(tsx|ts|jsx|js)?$/,
         exclude: [/node_modules/, /__tests__/, /__mocks__/],
-        include: [SRC_DIR, COMMON_DIR],
+        include: [
+          SRC_DIR,
+          COMMON_DIR,
+          path.resolve(RELATIVE_DIRNAME, '../packages'),
+          path.resolve(RELATIVE_DIRNAME, '../plugins'),
+        ],
         use: [
           COVERAGE === 'true' && '@jsdevtools/coverage-istanbul-loader',
           env === 'development'
@@ -56,18 +61,18 @@ module.exports = (env) => ({
         // only process modules with this loader
         // if they live under a 'fonts' or 'pficon' directory
         include: [
-          path.resolve(RELATIVE_DIRNAME, 'node_modules/patternfly/dist/fonts'),
+          path.resolve(RELATIVE_DIRNAME, '../node_modules/patternfly/dist/fonts'),
           path.resolve(
             RELATIVE_DIRNAME,
-            'node_modules/@patternfly/react-core/dist/styles/assets/fonts',
+            '../node_modules/@patternfly/react-core/dist/styles/assets/fonts',
           ),
           path.resolve(
             RELATIVE_DIRNAME,
-            'node_modules/@patternfly/react-core/dist/styles/assets/pficon',
+            '../node_modules/@patternfly/react-core/dist/styles/assets/pficon',
           ),
-          path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly/patternfly/assets/fonts'),
-          path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly/patternfly/assets/pficon'),
-          path.resolve(RELATIVE_DIRNAME, 'node_modules/monaco-editor'),
+          path.resolve(RELATIVE_DIRNAME, '../node_modules/@patternfly/patternfly/assets/fonts'),
+          path.resolve(RELATIVE_DIRNAME, '../node_modules/@patternfly/patternfly/assets/pficon'),
+          path.resolve(RELATIVE_DIRNAME, '../node_modules/monaco-editor'),
         ],
         use: {
           loader: 'file-loader',
@@ -124,24 +129,27 @@ module.exports = (env) => ({
         include: [
           SRC_DIR,
           COMMON_DIR,
-          path.resolve(RELATIVE_DIRNAME, 'node_modules/patternfly'),
-          path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly/patternfly/assets/images'),
-          path.resolve(RELATIVE_DIRNAME, 'node_modules/@patternfly/react-styles/css/assets/images'),
+          path.resolve(RELATIVE_DIRNAME, '../node_modules/patternfly'),
+          path.resolve(RELATIVE_DIRNAME, '../node_modules/@patternfly/patternfly/assets/images'),
           path.resolve(
             RELATIVE_DIRNAME,
-            'node_modules/@patternfly/react-core/dist/styles/assets/images',
+            '../node_modules/@patternfly/react-styles/css/assets/images',
           ),
           path.resolve(
             RELATIVE_DIRNAME,
-            'node_modules/@patternfly/react-core/node_modules/@patternfly/react-styles/css/assets/images',
+            '../node_modules/@patternfly/react-core/dist/styles/assets/images',
           ),
           path.resolve(
             RELATIVE_DIRNAME,
-            'node_modules/@patternfly/react-table/node_modules/@patternfly/react-styles/css/assets/images',
+            '../node_modules/@patternfly/react-core/node_modules/@patternfly/react-styles/css/assets/images',
           ),
           path.resolve(
             RELATIVE_DIRNAME,
-            'node_modules/@patternfly/react-inline-edit-extension/node_modules/@patternfly/react-styles/css/assets/images',
+            '../node_modules/@patternfly/react-table/node_modules/@patternfly/react-styles/css/assets/images',
+          ),
+          path.resolve(
+            RELATIVE_DIRNAME,
+            '../node_modules/@patternfly/react-inline-edit-extension/node_modules/@patternfly/react-styles/css/assets/images',
           ),
         ],
         use: [

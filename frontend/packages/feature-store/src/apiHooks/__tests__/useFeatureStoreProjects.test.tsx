@@ -1,10 +1,7 @@
 /* eslint-disable camelcase */
 import { act } from 'react';
-import {
-  standardUseFetchStateObject,
-  testHook,
-} from '@odh-dashboard/internal/__tests__/unit/testUtils/hooks';
-import { mockFeatureStoreProject } from '@odh-dashboard/internal/__mocks__/mockFeatureStoreProject';
+import { standardUseFetchStateObject, testHook } from '@odh-dashboard/jest-config/hooks';
+import { mockFeatureStoreProject } from '../../__mocks__/mockFeatureStoreProject';
 import { useFeatureStoreAPI } from '../../FeatureStoreContext';
 import { ProjectList } from '../../types/featureStoreProjects';
 import useFeatureStoreProjects from '../useFeatureStoreProjects';

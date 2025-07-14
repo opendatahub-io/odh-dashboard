@@ -28,9 +28,9 @@ const awsBucket = 'BUCKET_3' as const;
 const uuid = generateTestUUID();
 
 describe('Verify Model Creation and Validation using the UI', () => {
-  retryableBefore(() => {
+  retryableBefore(() =>
     // Setup: Load test data and ensure clean state
-    return loadDSPFixture('e2e/dataScienceProjects/testSingleModelContributorCreation.yaml').then(
+    loadDSPFixture('e2e/dataScienceProjects/testSingleModelContributorCreation.yaml').then(
       (fixtureData: DataScienceProjectData) => {
         testData = fixtureData;
         projectName = `${testData.projectSingleModelResourceName}-${uuid}`;
@@ -50,8 +50,8 @@ describe('Verify Model Creation and Validation using the UI', () => {
         );
         addUserToProject(projectName, contributor, 'edit');
       },
-    );
-  });
+    ),
+  );
   after(() => {
     // Delete provisioned Project - wait for completion due to RHOAIENG-19969 to support test retries, 5 minute timeout
     // TODO: Review this timeout once RHOAIENG-19969 is resolved

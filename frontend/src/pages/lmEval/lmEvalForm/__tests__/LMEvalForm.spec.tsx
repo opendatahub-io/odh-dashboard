@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
+import { standardUseFetchStateObject } from '@odh-dashboard/jest-config/hooks';
 import useInferenceServices from '#~/pages/modelServing/useInferenceServices';
 import useServingRuntimes from '#~/pages/modelServing/useServingRuntimes';
-import { standardUseFetchStateObject } from '#~/__tests__/unit/testUtils/hooks';
 import { mockInferenceServices, nonVllmService } from './__mocks__/mockInferenceServicesData';
 import {
   renderWithContext,

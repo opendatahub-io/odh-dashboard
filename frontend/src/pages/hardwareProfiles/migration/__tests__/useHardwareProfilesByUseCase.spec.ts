@@ -1,4 +1,4 @@
-import { testHook } from '#~/__tests__/unit/testUtils/hooks';
+import { testHook } from '@odh-dashboard/jest-config/hooks';
 import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile';
 import { HardwareProfileFeatureVisibility } from '#~/k8sTypes';
 import useMigratedHardwareProfiles from '#~/pages/hardwareProfiles/migration/useMigratedHardwareProfiles';

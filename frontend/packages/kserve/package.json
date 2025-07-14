@@ -4,6 +4,7 @@
   "description": "KServe model serving platform extension",
   "version": "0.0.0",
   "scripts": {
+    "lint": "eslint .",
     "type-check": "tsc --noEmit"
   },
   "exports": {
@@ -12,5 +13,9 @@
   "dependencies": {
     "@odh-dashboard/internal": "*",
     "@odh-dashboard/model-serving": "*"
+  },
+  "devDependencies": {
+    "@odh-dashboard/eslint-config": "*",
+    "@odh-dashboard/tsconfig": "*"
   }
 }

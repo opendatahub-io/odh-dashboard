@@ -20,8 +20,8 @@ describe('Verify Data Science Project - Creation and Deletion', () => {
   const uuid = generateTestUUID();
 
   // Setup: Load test data and ensure clean state
-  retryableBefore(() => {
-    return cy
+  retryableBefore(() =>
+    cy
       .fixture('e2e/dataScienceProjects/testProjectCreation.yaml', 'utf8')
       .then((yamlContent: string) => {
         testData = yaml.load(yamlContent) as DataScienceProjectData;
@@ -42,8 +42,8 @@ describe('Verify Data Science Project - Creation and Deletion', () => {
         cy.log(`Project ${projectName} does not exist. Proceeding with test.`);
         // Return a resolved promise to ensure a value is always returned
         return cy.wrap(null);
-      });
-  });
+      }),
+  );
 
   after(() => {
     // Delete provisioned Project

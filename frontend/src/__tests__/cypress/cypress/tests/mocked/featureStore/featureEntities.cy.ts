@@ -1,5 +1,10 @@
 /* eslint-disable camelcase */
 
+import { mockFeatureStoreService } from '@odh-dashboard/feature-store/mocks/mockFeatureStoreService';
+import { mockFeatureStore } from '@odh-dashboard/feature-store/mocks/mockFeatureStore';
+import { mockFeatureStoreProject } from '@odh-dashboard/feature-store/mocks/mockFeatureStoreProject';
+import { mockFeatureView } from '@odh-dashboard/feature-store/mocks/mockFeatureViews';
+import { mockEntities, mockEntity } from '@odh-dashboard/feature-store/mocks/mockEntities';
 import { featureStoreGlobal } from '#~/__tests__/cypress/cypress/pages/featureStore/featureStoreGlobal';
 import { featureEntitiesTable } from '#~/__tests__/cypress/cypress/pages/featureStore/featureEntities';
 import { featureEntityDetails } from '#~/__tests__/cypress/cypress/pages/featureStore/featureEntityDetails';
@@ -10,11 +15,6 @@ import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
 import { ProjectModel, ServiceModel } from '#~/__tests__/cypress/cypress/utils/models';
 import { asClusterAdminUser } from '#~/__tests__/cypress/cypress/utils/mockUsers';
 import { mockProjectK8sResource } from '#~/__mocks__/mockProjectK8sResource';
-import { mockFeatureStoreService } from '#~/__mocks__/mockFeatureStoreService';
-import { mockFeatureStore } from '#~/__mocks__/mockFeatureStore';
-import { mockFeatureStoreProject } from '#~/__mocks__/mockFeatureStoreProject';
-import { mockEntities, mockEntity } from '#~/__mocks__/mockEntities';
-import { mockFeatureView } from '#~/__mocks__/mockFeatureViews';
 
 const k8sNamespace = 'default';
 const fsName = 'demo';

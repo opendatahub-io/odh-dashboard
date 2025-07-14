@@ -103,15 +103,15 @@ const controlledIntercept = (
   const trigger: InterceptTrigger = () => triggerResolve();
 
   return cy
-    .intercept(requestMatcher, (request) => {
-      return controller.then(() => {
+    .intercept(requestMatcher, (request) =>
+      controller.then(() => {
         if (response) {
           request.reply(response);
         } else {
           request.continue();
         }
-      });
-    })
+      }),
+    )
     .as(alias)
     .wrap(trigger);
 };
