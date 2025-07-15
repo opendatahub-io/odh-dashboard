@@ -9,6 +9,7 @@ import {
   ModalBody,
   ModalFooter,
   ModalHeader,
+  PageSection,
   Tab,
   TabTitleText,
   Tabs,
@@ -99,22 +100,24 @@ const FeatureFlagModal: React.FC<Props> = ({
             </Tab>
           )}
           <Tab eventKey={2} title={<TabTitleText>Legacy</TabTitleText>}>
-            <Content style={{ height: '400px', padding: '8px', overflow: 'scroll' }}>
-              <Content component="p">
-                These feature flags are hardly used and cannot be deleted yet at this time.
+            <PageSection hasOverflowScroll>
+              <Content style={{ height: '400px', padding: '8px' }}>
+                <Content component="p">
+                  These feature flags are hardly used and cannot be deleted yet at this time.
+                </Content>
+                <Content component="p">
+                  Some of them may be deprecated soon; but most of them are permanent.
+                </Content>
+                <h2>Core Dashboard Flags</h2>
+                {renderFlags(Object.keys(coreDashboardFlags), dashboardConfig)}
+                <h2>Project & User Management Flags</h2>
+                {renderFlags(Object.keys(projectManagementFlags), dashboardConfig)}
+                <h2>Model Serving & AI/ML Infrastructure Flags</h2>
+                {renderFlags(Object.keys(modelServingFlags), dashboardConfig)}
+                <h2>Advanced AI/ML Features & Pipelines Flags</h2>
+                {renderFlags(Object.keys(advancedAIMLFlags), dashboardConfig)}
               </Content>
-              <Content component="p">
-                Some of them may be deprecated soon; but most of them are permanent.
-              </Content>
-              <h2>Core Dashboard Flags</h2>
-              {renderFlags(Object.keys(coreDashboardFlags), dashboardConfig)}
-              <h2>Project & User Management Flags</h2>
-              {renderFlags(Object.keys(projectManagementFlags), dashboardConfig)}
-              <h2>Model Serving & AI/ML Infrastructure Flags</h2>
-              {renderFlags(Object.keys(modelServingFlags), dashboardConfig)}
-              <h2>Advanced AI/ML Features & Pipelines Flags</h2>
-              {renderFlags(Object.keys(advancedAIMLFlags), dashboardConfig)}
-            </Content>
+            </PageSection>
           </Tab>
         </Tabs>
       </ModalBody>
