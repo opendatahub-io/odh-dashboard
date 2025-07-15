@@ -6,6 +6,10 @@ import ResourceNameTooltip from '#~/components/ResourceNameTooltip';
 import useModelMetricsEnabled from '#~/pages/modelServing/useModelMetricsEnabled';
 import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
 import { isModelMesh } from '#~/pages/modelServing/utils';
+import {
+  isInferenceServiceRouteEnabled,
+  isServingRuntimeRouteEnabled,
+} from '#~/pages/modelServing/screens/projects/utils';
 import { SupportedArea } from '#~/concepts/areas';
 import useIsAreaAvailable from '#~/concepts/areas/useIsAreaAvailable';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
@@ -60,6 +64,10 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
   const kserveMetricsSupported = modelMetricsEnabled && kserveMetricsEnabled && !modelMesh;
   const displayName = getDisplayNameFromK8sResource(inferenceService);
 
+  const isRouteEnabled = !modelMesh
+    ? servingRuntime !== undefined && isServingRuntimeRouteEnabled(servingRuntime)
+    : isInferenceServiceRouteEnabled(inferenceService);
+
   const { isStarting, isStopping, isStopped, isRunning, isFailed, setIsStarting, setIsStopping } =
     useInferenceServiceStatus(inferenceService, refresh);
 
@@ -84,7 +92,11 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
     <>
       <Td dataLabel="Name">
         <ResourceNameTooltip resource={inferenceService}>
-          {!isStarting && !isFailed && (modelMeshMetricsSupported || kserveMetricsSupported) ? (
+          {isStopped ||
+          (!isStarting &&
+            !isFailed &&
+            isRouteEnabled &&
+            (modelMeshMetricsSupported || kserveMetricsSupported)) ? (
             <Link
               data-testid={`metrics-link-${displayName}`}
               to={

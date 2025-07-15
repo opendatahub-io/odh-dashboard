@@ -59,11 +59,11 @@ const InferenceServiceEndpoint: React.FC<InferenceServiceEndpointProps> = ({
     />
   );
 
-  if (isFailed) {
+  if (isFailed && !isStopped) {
     return <>-</>;
   }
 
-  if (isStarting) {
+  if (isStarting || (isRouteEnabled && !loaded && !isStopped)) {
     return <>Pending...</>;
   }
 
