@@ -1,0 +1,40 @@
+import type {
+  HrefNavItemExtension,
+  AreaExtension,
+  RouteExtension,
+} from '@odh-dashboard/plugin-core/extension-points';{{#if requiredAreas.length}}
+// Allow this import as it consists of types and enums only.
+// eslint-disable-next-line no-restricted-syntax
+import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/index';{{/if}}
+
+const PLUGIN_{{{constantCase componentName}}} = 'plugin-{{{kebabCase componentName}}}';
+
+const extensions: (AreaExtension | HrefNavItemExtension | RouteExtension)[] = [
+  {
+    type: 'app.area',
+    properties: {
+      id: PLUGIN_{{{constantCase componentName}}},{{#if requiredAreas.length}}
+      reliantAreas: [{{#each requiredAreas}}SupportedArea.{{{this}}}{{#unless @last}}, {{/unless}}{{/each}}],{{/if}}
+      devFlags: ['{{{devFlag}}}'],
+    },
+  },
+  {
+    type: 'app.navigation/href',
+    flags: {
+      required: [PLUGIN_{{{constantCase componentName}}}],
+    },
+    properties: {{{generateNavProperties navId navTitle routePath navSection customSection}}},
+  },
+  {
+    type: 'app.route',
+    properties: {
+      path: '{{{routePath}}}',
+      component: () => import('./src/{{{componentName}}}'),
+    },
+    flags: {
+      required: [PLUGIN_{{{constantCase componentName}}}],
+    },
+  },
+];
+
+export default extensions;
