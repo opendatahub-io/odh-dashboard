@@ -15,6 +15,7 @@ import {
 import StorageClassSelect from './StorageClassSelect';
 import AccessModeField from './AccessModeField';
 import { useGetStorageClassConfig } from './useGetStorageClassConfig';
+import PVCContextField from './PVCContextField';
 
 type CreateNewStorageSectionProps<D extends StorageData> = {
   data: D;
@@ -61,16 +62,23 @@ const CreateNewStorageSection = <D extends StorageData>({
     openshiftSupportedAccessModes,
   } = useGetStorageClassConfig(data.storageClassName);
 
+  const [isValidModelPath, setIsValidModelPath] = React.useState(true);
+  const removeModelAnnotations = () => {
+    setData('modelName', '');
+    setData('modelPath', '');
+  };
+
   React.useEffect(() => {
     setData('name', clusterStorageNameDesc.name);
     setData('k8sName', clusterStorageNameDesc.k8sName.value);
     setData('description', clusterStorageNameDesc.description);
     onNameChange?.(clusterStorageNameDesc.name);
-    setValid?.(isK8sNameDescriptionDataValid(clusterStorageNameDesc));
+    setValid?.(isK8sNameDescriptionDataValid(clusterStorageNameDesc) && isValidModelPath);
     // only update if the name description changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clusterStorageNameDesc]);
+  }, [clusterStorageNameDesc, isValidModelPath]);
 
+  const isPVCServingEnabled = useIsAreaAvailable(SupportedArea.PVCSERVING).status;
   return (
     <FormSection>
       <K8sNameDescriptionField
@@ -114,6 +122,16 @@ const CreateNewStorageSection = <D extends StorageData>({
             setAccessMode={(accessMode) => setData('accessMode', accessMode)}
           />
         </>
+      )}
+      {isPVCServingEnabled && (
+        <PVCContextField
+          modelName={data.modelName || ''}
+          modelPath={data.modelPath || ''}
+          setModelName={(name) => setData('modelName', name)}
+          setModelPath={(path) => setData('modelPath', path)}
+          setValid={setIsValidModelPath}
+          removeModelAnnotations={removeModelAnnotations}
+        />
       )}
       <PVSizeField
         fieldID="create-new-storage-size"
