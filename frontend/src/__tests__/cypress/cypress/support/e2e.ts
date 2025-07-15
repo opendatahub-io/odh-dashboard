@@ -290,6 +290,14 @@ beforeEach(function beforeEachHook(this: Mocha.Context) {
   const testTags = Cypress.testTags[testTitle] ?? [];
   const mappedTestTags = mapTestTags(testTags);
 
+  const grep = Cypress.env('grep');
+
+  const shouldRunByGrep = !grep || this.currentTest.title.includes(grep);
+
+  if (!shouldRunByGrep) {
+    this.skip();
+  }
+
   // Chain Cypress commands
   cy.task('log', `Test title: ${testTitle}`)
     .then(() =>
