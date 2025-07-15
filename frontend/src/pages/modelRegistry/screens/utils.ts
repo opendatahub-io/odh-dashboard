@@ -9,6 +9,7 @@ import {
 } from '#~/concepts/modelRegistry/types';
 import { ServiceKind } from '#~/k8sTypes';
 import { KeyValuePair } from '#~/types';
+import { ModelRegistryFilterDataType } from './const';
 
 // Retrieves the labels from customProperties that have non-empty string_value.
 export const getLabels = <T extends ModelRegistryCustomProperties>(customProperties: T): string[] =>
@@ -137,44 +138,42 @@ export const sortModelVersionsByCreateTime = (registeredModels: ModelVersion[]):
 export const filterRegisteredModels = (
   unfilteredRegisteredModels: RegisteredModel[],
   unfilteredModelVersions: ModelVersion[],
-  search: string,
-  searchType: SearchType,
-): RegisteredModel[] => {
-  const searchLower = search.toLowerCase();
-
-  return unfilteredRegisteredModels.filter((rm: RegisteredModel) => {
-    if (!search) {
+  filterData: ModelRegistryFilterDataType,
+): RegisteredModel[] =>
+  unfilteredRegisteredModels.filter((rm: RegisteredModel) => {
+    const keywordFilter = filterData.Keyword?.toLowerCase();
+    const ownerFilter = filterData.Owner?.toLowerCase();
+    if (!keywordFilter && !ownerFilter) {
       return true;
     }
     const modelVersions = unfilteredModelVersions.filter((mv) => mv.registeredModelId === rm.id);
+    const doesNotMatchModel =
+      keywordFilter &&
+      !(
+        rm.name.toLowerCase().includes(keywordFilter) ||
+        (rm.description && rm.description.toLowerCase().includes(keywordFilter)) ||
+        getLabels(rm.customProperties).some((label: string) =>
+          label.toLowerCase().includes(keywordFilter),
+        )
+      );
 
-    switch (searchType) {
-      case SearchType.KEYWORD: {
-        const matchesModel =
-          rm.name.toLowerCase().includes(searchLower) ||
-          (rm.description && rm.description.toLowerCase().includes(searchLower)) ||
-          getLabels(rm.customProperties).some((label) => label.toLowerCase().includes(searchLower));
+    const doesNotMatchVersions =
+      keywordFilter &&
+      !modelVersions.some(
+        (mv: ModelVersion) =>
+          mv.name.toLowerCase().includes(keywordFilter) ||
+          (mv.description && mv.description.toLowerCase().includes(keywordFilter)) ||
+          getLabels(mv.customProperties).some((label: string) =>
+            label.toLowerCase().includes(keywordFilter),
+          ),
+      );
 
-        const matchesVersion = modelVersions.some(
-          (mv: ModelVersion) =>
-            mv.name.toLowerCase().includes(searchLower) ||
-            (mv.description && mv.description.toLowerCase().includes(searchLower)) ||
-            getLabels(mv.customProperties).some((label) =>
-              label.toLowerCase().includes(searchLower),
-            ),
-        );
-
-        return matchesModel || matchesVersion;
-      }
-      case SearchType.OWNER: {
-        return rm.owner && rm.owner.toLowerCase().includes(searchLower);
-      }
-
-      default:
-        return true;
+    if (doesNotMatchModel && doesNotMatchVersions) {
+      return false;
     }
+
+    return !ownerFilter || rm.owner?.toLowerCase().includes(ownerFilter);
   });
-};
 
 export const getServerAddress = (resource: ServiceKind): string =>
   resource.metadata.annotations?.['routing.opendatahub.io/external-address-rest'] || '';
