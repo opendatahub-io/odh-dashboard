@@ -62,3 +62,10 @@ export const LMEvalModel: K8sModelCommon = {
   kind: 'LMEvalJob',
   plural: 'lmevaljobs',
 };
+
+export const FeatureStoreModel: K8sModelCommon = {
+  apiVersion: 'v1alpha1',
+  apiGroup: '	feast.dev',
+  kind: 'FeatureStore',
+  plural: 'featurestores',
+};
