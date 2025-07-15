@@ -4,7 +4,7 @@
  * This file configures the plugin generator:
  * - 'plugin' - Creates a new plugin package in packages/
  *
- * Usage: npm run plop
+ * Usage: make plugin (from root) or npm run make:plugin (from frontend)
  */
 
 module.exports = (plop) => {
@@ -13,56 +13,64 @@ module.exports = (plop) => {
   // ============================================================================
 
   /**
-   * Available supported areas for feature flags
-   * These correspond to the SupportedArea enum in the codebase
+   * Dynamically load supported areas from the source file
+   * This ensures the generator stays in sync with the actual codebase
    */
-  const supportedAreaOptions = [
-    // Core areas
-    { name: 'Home', value: 'HOME' },
-    { name: 'Workbenches', value: 'WORKBENCHES' },
-    { name: 'Data Science Pipelines', value: 'DS_PIPELINES' },
+  const getSupportedAreaOptions = () => {
+    const fs = require('fs');
+    const path = require('path');
 
-    // Admin areas
-    { name: 'Bring Your Own Notebook', value: 'BYON' },
-    { name: 'Cluster Settings', value: 'CLUSTER_SETTINGS' },
-    { name: 'User Management', value: 'USER_MANAGEMENT' },
-    { name: 'Accelerator Profiles', value: 'ACCELERATOR_PROFILES' },
-    { name: 'Hardware Profiles', value: 'HARDWARE_PROFILES' },
-    { name: 'Storage Classes', value: 'STORAGE_CLASSES' },
-    { name: 'Connection Types', value: 'ADMIN_CONNECTION_TYPES' },
-    { name: 'Fine Tuning', value: 'FINE_TUNING' },
+    try {
+      const typesFilePath = path.join(__dirname, 'src/concepts/areas/types.ts');
+      const typesContent = fs.readFileSync(typesFilePath, 'utf8');
 
-    // Project areas
-    { name: 'DS Projects Permissions', value: 'DS_PROJECTS_PERMISSIONS' },
-    { name: 'DS Projects View', value: 'DS_PROJECTS_VIEW' },
-    { name: 'DS Project Scoped', value: 'DS_PROJECT_SCOPED' },
+      // Extract the SupportedArea enum content
+      const enumMatch = typesContent.match(/export enum SupportedArea \{([\s\S]*?)\}/);
+      if (!enumMatch) {
+        throw new Error('Could not find SupportedArea enum');
+      }
 
-    // Model serving areas
-    { name: 'Model Serving', value: 'MODEL_SERVING' },
-    { name: 'Custom Runtimes', value: 'CUSTOM_RUNTIMES' },
-    { name: 'KServe', value: 'K_SERVE' },
-    { name: 'KServe Auth', value: 'K_SERVE_AUTH' },
-    { name: 'KServe Metrics', value: 'K_SERVE_METRICS' },
-    { name: 'KServe Raw', value: 'K_SERVE_RAW' },
-    { name: 'Model Mesh', value: 'MODEL_MESH' },
-    { name: 'Bias Metrics', value: 'BIAS_METRICS' },
-    { name: 'Performance Metrics', value: 'PERFORMANCE_METRICS' },
-    { name: 'Trusty AI', value: 'TRUSTY_AI' },
-    { name: 'NIM Model', value: 'NIM_MODEL' },
-    { name: 'Serving Runtime Params', value: 'SERVING_RUNTIME_PARAMS' },
-    { name: 'PVC Serving', value: 'PVCSERVING' },
+      const enumContent = enumMatch[1];
+      const enumEntries = [];
 
-    // Other areas
-    { name: 'Distributed Workloads', value: 'DISTRIBUTED_WORKLOADS' },
-    { name: 'Kueue', value: 'KUEUE' },
-    { name: 'Model Registry', value: 'MODEL_REGISTRY' },
-    { name: 'Model Registry Secure DB', value: 'MODEL_REGISTRY_SECURE_DB' },
-    { name: 'Model Catalog', value: 'MODEL_CATALOG' },
-    { name: 'Plugin Model Serving', value: 'PLUGIN_MODEL_SERVING' },
-    { name: 'Llama Stack Chat Bot', value: 'LLAMA_STACK_CHAT_BOT' },
-    { name: 'LM Eval', value: 'LM_EVAL' },
-    { name: 'Feature Store', value: 'FEATURE_STORE' },
-  ];
+      // Parse each enum entry
+      const lines = enumContent.split('\n');
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (trimmed && !trimmed.startsWith('//') && !trimmed.startsWith('/*')) {
+          // Match pattern: KEY = 'value',
+          const entryMatch = trimmed.match(/^([A-Z_]+)\s*=\s*'([^']+)'/);
+          if (entryMatch) {
+            const [, key] = entryMatch;
+            // Convert enum key to human-readable name
+            const humanName = key
+              .split('_')
+              .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+              .join(' ');
+
+            enumEntries.push({ name: humanName, value: key });
+          }
+        }
+      }
+
+      // Sort by name for better UX
+      return enumEntries.toSorted((a, b) => a.name.localeCompare(b.name));
+    } catch (error) {
+      console.warn('⚠️  Could not load SupportedArea options from source file:', error.message);
+      console.warn('   Falling back to basic options...');
+
+      // Fallback to a basic set if file reading fails
+      return [
+        { name: 'Home', value: 'HOME' },
+        { name: 'Workbenches', value: 'WORKBENCHES' },
+        { name: 'Data Science Pipelines', value: 'DS_PIPELINES' },
+        { name: 'Model Serving', value: 'MODEL_SERVING' },
+      ];
+    }
+  };
+
+  // Load supported area options dynamically
+  const supportedAreaOptions = getSupportedAreaOptions();
 
   /**
    * Navigation sections - organize navigation items into collapsible groups
