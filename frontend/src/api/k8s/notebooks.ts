@@ -138,7 +138,7 @@ export const assembleNotebook = (
           ? ''
           : selectedHardwareProfile?.metadata.name || '',
         'opendatahub.io/legacy-hardware-profile-name': isLegacyHardwareProfile
-          ? selectedHardwareProfile?.metadata.name || ''
+          ? selectedHardwareProfile.metadata.name || ''
           : '',
         'notebooks.opendatahub.io/last-image-version-git-commit-selection':
           image.imageVersion?.annotations?.['opendatahub.io/notebook-build-commit'] ?? '',
