@@ -40,6 +40,7 @@ import {
   getModelPathFromUri,
   getPVCFromURI,
   isModelPathValid,
+  isPVCUri,
 } from '#~/pages/modelServing/screens/projects/utils';
 import DashboardPopupIconButton from '#~/concepts/dashboard/DashboardPopupIconButton';
 import { AccessTypes } from '#~/pages/projects/dataConnections/const';
@@ -286,8 +287,8 @@ export const ConnectionSection: React.FC<Props> = ({
   }, [existingUriOption]);
 
   const selectedPVC = React.useMemo(
-    () => pvcs?.find((pvc) => pvc.metadata.name === data.storage.dataConnection),
-    [pvcs, data.storage.dataConnection],
+    () => pvcs?.find((pvc) => pvc.metadata.name === data.storage.pvcConnection),
+    [pvcs, data.storage.pvcConnection],
   );
 
   const selectedConnection = React.useMemo(
@@ -304,28 +305,55 @@ export const ConnectionSection: React.FC<Props> = ({
     }
   }, [selectedConnection, connection, setConnection]);
 
+  const [prefillComplete, setPrefillComplete] = React.useState(false);
   const didInitialPVCPrefill = React.useRef(false);
+
   React.useEffect(() => {
-    if (pvcs && pvcs.length > 0 && existingUriOption) {
-      if (!didInitialPVCPrefill.current) {
-        const editPVC = getPVCFromURI(existingUriOption, pvcs);
+    if (!loaded) {
+      return;
+    }
+
+    // Only prefill if not already done
+    if (!didInitialPVCPrefill.current) {
+      // If editing, and storage type is already set to something other than default, just mark as complete
+      if (
+        data.storage.type === InferenceServiceStorageType.EXISTING_STORAGE ||
+        data.storage.type === InferenceServiceStorageType.NEW_STORAGE
+      ) {
+        didInitialPVCPrefill.current = true;
+        setPrefillComplete(true);
+        return;
+      }
+
+      // Otherwise, handle PVC/URI prefill
+      if (existingUriOption !== undefined) {
+        const isPVC = isPVCUri(existingUriOption);
+        const editPVC = isPVC ? getPVCFromURI(existingUriOption, pvcs) : undefined;
+
         if (editPVC) {
           setData('storage', {
             ...data.storage,
-            dataConnection: editPVC.metadata.name,
+            pvcConnection: editPVC.metadata.name,
+            type: InferenceServiceStorageType.PVC_STORAGE,
+            uri: existingUriOption,
+          });
+        } else {
+          setData('storage', {
+            ...data.storage,
+            type: InferenceServiceStorageType.EXISTING_URI,
+            uri: existingUriOption,
           });
         }
         didInitialPVCPrefill.current = true;
+        setPrefillComplete(true);
+        return;
       }
-      if (selectedPVC) {
-        setData('storage', {
-          ...data.storage,
-          dataConnection: selectedPVC.metadata.name,
-        });
-      }
+
+      // If nothing to prefill, just mark as complete
+      didInitialPVCPrefill.current = true;
+      setPrefillComplete(true);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pvcs, existingUriOption, data.storage, setData]);
+  }, [loaded, pvcs, existingUriOption, data.storage, setData]);
 
   if (loadError) {
     return (
@@ -335,7 +363,7 @@ export const ConnectionSection: React.FC<Props> = ({
     );
   }
 
-  if (!loaded) {
+  if (!loaded || !prefillComplete) {
     return <Skeleton />;
   }
   return (
@@ -346,10 +374,7 @@ export const ConnectionSection: React.FC<Props> = ({
           name="pvc-serving-radio"
           id="pvc-serving-radio"
           data-testid="pvc-serving-radio"
-          isChecked={
-            data.storage.type === InferenceServiceStorageType.PVC_STORAGE ||
-            (data.storage.type === InferenceServiceStorageType.EXISTING_URI && !!selectedPVC)
-          }
+          isChecked={data.storage.type === InferenceServiceStorageType.PVC_STORAGE}
           onChange={() => {
             setConnection(undefined);
             setData('storage', {
@@ -360,16 +385,15 @@ export const ConnectionSection: React.FC<Props> = ({
             });
           }}
           body={
-            (data.storage.type === InferenceServiceStorageType.PVC_STORAGE ||
-              (data.storage.type === InferenceServiceStorageType.EXISTING_URI &&
-                !!selectedPVC)) && (
+            data.storage.type === InferenceServiceStorageType.PVC_STORAGE && (
               <PvcSelect
                 pvcs={pvcs}
                 selectedPVC={selectedPVC}
                 onSelect={(selection) => {
                   setData('storage', {
                     ...data.storage,
-                    dataConnection: getResourceNameFromK8sResource(selection),
+                    type: InferenceServiceStorageType.PVC_STORAGE,
+                    pvcConnection: selection.metadata.name,
                   });
                 }}
                 setModelUri={(uri) => setData('storage', { ...data.storage, uri })}
@@ -380,7 +404,7 @@ export const ConnectionSection: React.FC<Props> = ({
           }
         />
       )}
-      {existingUriOption && !hasImagePullSecret && !selectedPVC && (
+      {existingUriOption && !hasImagePullSecret && (
         <Radio
           id="existing-uri-radio"
           name="existing-uri-radio"

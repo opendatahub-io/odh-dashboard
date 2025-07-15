@@ -109,6 +109,7 @@ export type InferenceServiceStorage = {
   dataConnection: string;
   uri?: string;
   awsData: EnvVariableDataEntry[];
+  pvcConnection?: string;
   alert?: {
     type: AlertVariant;
     title: string;

@@ -7,7 +7,6 @@ import {
   InputGroup,
 } from '@patternfly/react-core';
 import { PersistentVolumeClaimKind } from '#~/k8sTypes';
-import { trimInputOnBlur, trimInputOnPaste } from '#~/concepts/connectionTypes/utils';
 
 type PVCFieldsProps = {
   selectedPVC: PersistentVolumeClaimKind;
@@ -65,8 +64,17 @@ export const PVCFields: React.FC<PVCFieldsProps> = ({
             onChange={(e, value: string) => {
               handlePathChange(value);
             }}
-            onBlur={trimInputOnBlur(modelPath, setModelUri)}
-            onPaste={trimInputOnPaste(modelPath, setModelUri)}
+            onBlur={() => {
+              const trimmed = modelPath.trim();
+              if (trimmed !== modelPath) {
+                handlePathChange(trimmed);
+              }
+            }}
+            onPaste={(e) => {
+              const pastedText = e.clipboardData.getData('text').trim();
+              handlePathChange(pastedText);
+              e.preventDefault();
+            }}
           />
         </InputGroupItem>
       </InputGroup>
