@@ -109,6 +109,7 @@ export const updatePvc = (
     undefined,
     additionalAnnotations,
   );
+
   const newData = excludeSpec
     ? {
         ...pvc,
@@ -126,20 +127,12 @@ export const updatePvc = (
   if (!data.description && pvcResource.metadata.annotations?.['openshift.io/description']) {
     pvcResource.metadata.annotations['openshift.io/description'] = undefined;
   }
-  const modelNameTrimmed = data.modelName?.trim() ?? '';
-  const modelPathTrimmed = data.modelPath?.trim() ?? '';
 
   if (pvcResource.metadata.annotations) {
-    // Model Name
-    if (modelNameTrimmed) {
-      pvcResource.metadata.annotations[PvcModelAnnotation.MODEL_NAME] = modelNameTrimmed;
-    } else {
+    if (!data.modelName) {
       delete pvcResource.metadata.annotations[PvcModelAnnotation.MODEL_NAME];
     }
-    // Model Path
-    if (modelPathTrimmed) {
-      pvcResource.metadata.annotations[PvcModelAnnotation.MODEL_PATH] = modelPathTrimmed;
-    } else {
+    if (!data.modelPath) {
       delete pvcResource.metadata.annotations[PvcModelAnnotation.MODEL_PATH];
     }
   }
