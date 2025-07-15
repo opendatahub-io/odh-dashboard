@@ -99,7 +99,7 @@ const FeatureFlagModal: React.FC<Props> = ({
             </Tab>
           )}
           <Tab eventKey={2} title={<TabTitleText>Legacy</TabTitleText>}>
-            <Content style={{ height: '400px', padding: '8px' }}>
+            <Content style={{ height: '400px', padding: '8px', overflow: 'scroll' }}>
               <Content component="p">
                 These feature flags are hardly used and cannot be deleted yet at this time.
               </Content>
