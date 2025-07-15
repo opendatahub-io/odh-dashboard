@@ -47,7 +47,9 @@ import {
 import { getSecret, updatePvc, useAccessReview } from '#~/api';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import KServeAutoscalerReplicaSection from '#~/pages/modelServing/screens/projects/kServeModal/KServeAutoscalerReplicaSection';
-import NIMPVCSizeSection from '#~/pages/modelServing/screens/projects/NIMServiceModal/NIMPVCSizeSection';
+import NIMPVCSizeSection, {
+  PVCMode,
+} from '#~/pages/modelServing/screens/projects/NIMServiceModal/NIMPVCSizeSection';
 import {
   getNIMServingRuntimeTemplate,
   updateServingRuntimeTemplate,
@@ -78,7 +80,7 @@ const accessReviewResource: AccessReviewResourceAttributes = {
   verb: 'create',
 };
 
-type PVCMode = 'create-new' | 'use-existing';
+//type PVCMode = 'create-new' | 'use-existing';
 
 type ManageNIMServingModalProps = {
   onClose: (submit: boolean) => void;

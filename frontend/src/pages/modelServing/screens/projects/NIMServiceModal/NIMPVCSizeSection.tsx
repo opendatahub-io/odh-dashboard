@@ -15,7 +15,7 @@ import { MEMORY_UNITS_FOR_SELECTION } from '#~/utilities/valueUnits';
 import NIMPVCSelector from './NIMPVCSelector';
 
 // Types
-type PVCMode = 'create-new' | 'use-existing';
+export type PVCMode = 'create-new' | 'use-existing';
 
 type NIMPVCSizeSectionProps = {
   pvcSize: string;

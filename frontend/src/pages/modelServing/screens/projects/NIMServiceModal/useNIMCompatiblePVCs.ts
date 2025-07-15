@@ -117,8 +117,7 @@ export const useNIMCompatiblePVCs = (
         const compatible = nimPVCInfos.filter(
           (info) =>
             info.modelName === selectedModel ||
-            info.modelName.includes(selectedModel) ||
-            selectedModel.includes(info.modelName),
+            info.modelName.toLowerCase() === selectedModel.toLowerCase(),
         );
 
         // Sort by creation date (newest first)
