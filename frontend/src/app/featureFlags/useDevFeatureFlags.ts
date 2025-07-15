@@ -175,8 +175,6 @@ const useDevFeatureFlags = (
         return acc;
       }, {});
 
-      console.log('arghh configFeatureFlags:', configFeatureFlags);
-
       return {
         ...dashboardConfig,
         spec: {

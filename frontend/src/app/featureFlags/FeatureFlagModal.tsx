@@ -37,16 +37,11 @@ const FeatureFlagModal: React.FC<Props> = ({
   const [activeTabKey, setActiveTabKey] = React.useState<string | number>(0);
 
   const safeDevFeatureFlags = devFeatureFlags || {};
-  console.log('safe dev feature flags:', safeDevFeatureFlags);
-  console.log('dashboardConfig:', dashboardConfig);
-  // ok; so the default values are from the SERVER (see lines 52-60 of App.tsx)
-  // which is why 'newer' flags have an indeterminate checkbox state.
-  // talk about this with gage and/or andrew TODO
 
   const determineValueByName = (flagName: string) => flagName.startsWith('disable');
 
-  // and/or: if starts with disabled : check it
-  // if doesn't start with disabled: then unchecked
+  // if no value:  if starts with disable : check it
+  // if doesn't start with disable: then unchecked
   const renderFlags = (flags: string[], fallbackFlags?: Record<string, boolean | undefined>) => (
     <Grid hasGutter span={6} md={3}>
       {flags.toSorted().map((key) => {
