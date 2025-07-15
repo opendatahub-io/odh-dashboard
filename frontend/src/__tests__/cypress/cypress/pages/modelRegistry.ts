@@ -187,7 +187,11 @@ class ModelRegistry {
   }
 
   findTableSearch() {
-    return cy.findByTestId('registered-model-table-search');
+    return cy.findByTestId('filter-toolbar-text-field');
+  }
+
+  findFilterDropdownItem(name: string) {
+    return cy.findByTestId(`filter-toolbar-dropdown`).findDropdownItem(name);
   }
 
   findModelVersionsTableSearch() {
