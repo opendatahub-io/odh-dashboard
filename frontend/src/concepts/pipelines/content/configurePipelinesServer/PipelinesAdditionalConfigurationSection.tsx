@@ -1,4 +1,4 @@
-import { Checkbox, ExpandableSection, FormGroup, Tooltip } from '@patternfly/react-core';
+import { Checkbox, ExpandableSection, FormGroup } from '@patternfly/react-core';
 import React from 'react';
 import FormSection from '#~/components/pf-overrides/FormSection';
 import { PipelineServerConfigType } from './types';

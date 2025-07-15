@@ -145,6 +145,7 @@ export enum K8sDspaConditionReason {
   ComponentDeploymentNotFound = 'ComponentDeploymentNotFound',
   UnsupportedVersion = 'UnsupportedVersion',
   Deploying = 'Deploying',
+  NotApplicable = 'NotApplicable',
 }
 
 export type ServingRuntimeAnnotations = Partial<{
@@ -721,7 +722,7 @@ export type DSPipelineKind = K8sResourceCommon & {
       }>;
       enableSamplePipeline: boolean;
       managedPipelines?: DSPipelineManagedPipelinesKind;
-      pipelineStore: DSPipelineAPIServerStore;
+      pipelineStore?: DSPipelineAPIServerStore;
     }>;
     database?: Partial<{
       externalDB: Partial<{

@@ -72,7 +72,8 @@ const PipelineVersionImportModal: React.FC<PipelineVersionImportModalProps> = ({
     [api, modalData.pipeline?.pipeline_id],
   );
   const submitAction = React.useCallback(() => {
-    const { name, description, fileContents, pipelineUrl, uploadOption, pipeline } = modalData;
+    const { name, displayName, description, fileContents, pipelineUrl, uploadOption, pipeline } =
+      modalData;
     const pipelineId = pipeline?.pipeline_id || '';
 
     fireFormTrackingEvent(eventName, {
@@ -81,11 +82,19 @@ const PipelineVersionImportModal: React.FC<PipelineVersionImportModalProps> = ({
     });
 
     if (uploadOption === PipelineUploadOption.FILE_UPLOAD) {
-      return api.uploadPipelineVersion({}, name, description, fileContents, pipelineId);
+      return api.uploadPipelineVersion(
+        {},
+        name,
+        description,
+        fileContents,
+        pipelineId,
+        displayName,
+      );
     }
     return api.createPipelineVersion({}, pipelineId, {
       pipeline_id: pipelineId,
-      display_name: name,
+      name,
+      display_name: displayName,
       description,
       package_url: {
         pipeline_url: pipelineUrl,
@@ -111,6 +120,7 @@ const PipelineVersionImportModal: React.FC<PipelineVersionImportModalProps> = ({
             onSelect={(newPipeline) => {
               setData('pipeline', newPipeline);
               setData('name', generatePipelineVersionName(newPipeline));
+              setData('displayName', generatePipelineVersionName(newPipeline));
             }}
           />
         </FormGroup>

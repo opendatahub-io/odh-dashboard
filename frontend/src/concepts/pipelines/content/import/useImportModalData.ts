@@ -7,7 +7,7 @@ import { PipelineKF } from '#~/concepts/pipelines/kfTypes';
 import useGenericObjectState, { GenericObjectState } from '#~/utilities/useGenericObjectState';
 
 export type PipelineImportData = {
-  displayName?: string;
+  displayName: string;
   name: string;
   description: string;
   uploadOption: PipelineUploadOption;

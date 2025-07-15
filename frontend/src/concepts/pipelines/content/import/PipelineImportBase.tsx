@@ -9,6 +9,7 @@ import {
   ModalHeader,
   ModalFooter,
   Spinner,
+  Alert,
 } from '@patternfly/react-core';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { PipelineKF, PipelineVersionKF } from '#~/concepts/pipelines/kfTypes';
@@ -31,6 +32,7 @@ import K8sNameDescriptionField, {
 } from '#~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField.tsx';
 import { DSPipelineAPIServerStore } from '#~/k8sTypes.ts';
 import usePipelineNamespaceCR from '#~/concepts/pipelines/context/usePipelineNamespaceCR';
+import { K8sNameDescriptionFieldUpdateFunction } from '#~/concepts/k8s/K8sNameDescriptionField/types.ts';
 import { PipelineUploadOption, extractKindFromPipelineYAML, isYAMLPipelineV1 } from './utils';
 import PipelineUploadRadio from './PipelineUploadRadio';
 import { PipelineImportData } from './useImportModalData';
@@ -47,6 +49,7 @@ export type PipelineImportBaseProps = {
   children?: React.ReactNode;
 };
 
+const pipelineImportBaseTestId = 'import-pipeline-modal';
 const PipelineImportBase: React.FC<PipelineImportBaseProps> = ({
   title,
   submitButtonText,
@@ -61,31 +64,40 @@ const PipelineImportBase: React.FC<PipelineImportBaseProps> = ({
   const { project, apiAvailable, namespace } = usePipelinesAPI();
   const [importing, setImporting] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
-  const { name, description, fileContents, pipelineUrl, uploadOption } = data;
+  const { displayName, name, description, fileContents, pipelineUrl, uploadOption } = data;
   const [hasDuplicateName, setHasDuplicateName] = React.useState(false);
   const isArgoWorkflow = extractKindFromPipelineYAML(fileContents) === 'Workflow';
   const isV1PipelineFile = isYAMLPipelineV1(fileContents);
   const [pipelineNamespaceCR, crLoaded, crLoadError] = usePipelineNamespaceCR(namespace);
 
-  // TODO: Move fetch state for pipeline namespace CR to a higher level
   const isKubernetesStorage =
     crLoaded &&
     pipelineNamespaceCR?.spec.apiServer?.pipelineStore === DSPipelineAPIServerStore.KUBERNETES;
 
-  const { data: k8sNameDescData, onDataChange: setK8sNameDescData } =
+  const { data: k8sNameDescData, onDataChange: onK8sNameDescDataChange } =
     useK8sNameDescriptionFieldData({
       initialData: {
-        name,
+        name: displayName,
+        k8sName: '',
         description,
       },
+      editableK8sName: true,
     });
+
+  // for when pipeline context switches within modal
+  React.useEffect(() => {
+    if (isKubernetesStorage) {
+      onK8sNameDescDataChange('name', displayName || '');
+    }
+  }, [displayName, isKubernetesStorage, onK8sNameDescDataChange]);
 
   React.useEffect(() => {
     if (isKubernetesStorage) {
-      setData('name', name);
-      setData('description', description);
+      setData('name', k8sNameDescData.k8sName.value);
+      setData('displayName', k8sNameDescData.name);
+      setData('description', k8sNameDescData.description);
     }
-  }, [name, description, isKubernetesStorage, setData]);
+  }, [k8sNameDescData, isKubernetesStorage, setData]);
 
   const isImportButtonDisabled =
     !apiAvailable ||
@@ -116,33 +128,15 @@ const PipelineImportBase: React.FC<PipelineImportBaseProps> = ({
     500,
   );
 
-  const handleNameChange = React.useCallback(
-    (newName: string) => {
-      setData('name', newName);
-      setHasDuplicateName(false);
-      debouncedCheckForDuplicateName(newName);
+  const handleK8sNameDescDataChange = React.useCallback<K8sNameDescriptionFieldUpdateFunction>(
+    (key, value) => {
+      onK8sNameDescDataChange(key, value);
+      // if (key === 'name') {
+      //   setHasDuplicateName(false);
+      //   debouncedCheckForDuplicateName(value);
+      // }
     },
-    [setData, debouncedCheckForDuplicateName],
-  );
-
-  const handleDescriptionChange = React.useCallback(
-    (newDescription: string) => {
-      setData('description', newDescription);
-    },
-    [setData],
-  );
-
-  const handleK8sNameDescChange = React.useCallback(
-    (key: keyof typeof k8sNameDescData, value: string) => {
-      setK8sNameDescData(key, value);
-
-      if (key === 'name') {
-        handleNameChange(value);
-      } else if (key === 'description') {
-        handleDescriptionChange(value);
-      }
-    },
-    [setK8sNameDescData, handleNameChange, handleDescriptionChange],
+    [onK8sNameDescDataChange],
   );
 
   const onSubmit = () => {
@@ -168,40 +162,48 @@ const PipelineImportBase: React.FC<PipelineImportBaseProps> = ({
     }
   };
 
-  // TODO: Remove once moved fetch to upper level
-  if (crLoadError) {
-    return (
-      <Modal
-        isOpen
-        onClose={() => onBeforeClose()}
-        variant="medium"
-        data-testid="import-pipeline-modal"
-      >
-        Error loading pipeline namespace configuration: {crLoadError.message}
-      </Modal>
-    );
-  }
-
   if (!crLoaded) {
     return (
       <Modal
         isOpen
         onClose={() => onBeforeClose()}
         variant="medium"
-        data-testid="import-pipeline-modal"
+        data-testid={pipelineImportBaseTestId}
       >
+        <ModalHeader title={title} />
         <ModalBody>
           <Spinner size="lg" />
         </ModalBody>
       </Modal>
     );
   }
+
+  if (crLoadError) {
+    return (
+      <Modal
+        isOpen
+        onClose={() => onBeforeClose()}
+        variant="medium"
+        data-testid={pipelineImportBaseTestId}
+      >
+        <ModalHeader title={title} />
+        <ModalBody>
+          <Stack hasGutter style={{ flex: 'auto' }}>
+            <Alert data-testid="error-message-alert" isInline variant="danger" title="Error">
+              {crLoadError instanceof Error ? crLoadError.message : crLoadError}
+            </Alert>
+          </Stack>
+        </ModalBody>
+      </Modal>
+    );
+  }
+
   return (
     <Modal
       isOpen
       onClose={() => onBeforeClose()}
       variant="medium"
-      data-testid="import-pipeline-modal"
+      data-testid={pipelineImportBaseTestId}
     >
       <ModalHeader title={title} />
       <ModalBody>
@@ -217,8 +219,6 @@ const PipelineImportBase: React.FC<PipelineImportBaseProps> = ({
               {isKubernetesStorage ? (
                 <K8sNameDescriptionField
                   dataTestId="pipeline-k8s-name-description"
-                  data={k8sNameDescData}
-                  onDataChange={handleK8sNameDescChange}
                   nameLabel="Pipeline name"
                   descriptionLabel="Pipeline description"
                   maxLength={NAME_CHARACTER_LIMIT}
@@ -226,6 +226,8 @@ const PipelineImportBase: React.FC<PipelineImportBaseProps> = ({
                   nameHelperText={
                     hasDuplicateName ? <DuplicateNameHelperText isError name={name} /> : undefined
                   }
+                  data={k8sNameDescData}
+                  onDataChange={handleK8sNameDescDataChange}
                 />
               ) : (
                 <NameDescriptionField

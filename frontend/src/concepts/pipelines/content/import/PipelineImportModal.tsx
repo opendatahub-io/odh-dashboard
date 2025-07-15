@@ -63,11 +63,13 @@ const PipelineImportModal: React.FC<PipelineImportModalProps> = ({
       {},
       {
         pipeline: {
-          display_name: name,
+          name,
+          display_name: displayName,
           description,
         },
         pipeline_version: {
-          display_name: name,
+          name,
+          display_name: displayName,
           description,
           package_url: {
             pipeline_url: pipelineUrl,
