@@ -1,5 +1,13 @@
 import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
-import { mockNimInferenceService, mockNimServingRuntime } from '#~/__mocks__/mockNimResource';
+import {
+  mockNimInferenceService,
+  mockNimServingRuntime,
+  mockNimServingRuntimeWithPVC,
+  mockMultipleNimPVCs,
+  mockMultipleNimServingRuntimes,
+  mockNimImages,
+  mockNimServingResource,
+} from '#~/__mocks__/mockNimResource';
 import {
   InferenceServiceModel,
   ServingRuntimeModel,
@@ -413,6 +421,299 @@ describe('NIM Model Serving', () => {
       // should display the default service account name when "Model route" is checked
       nimDeployModal.findModelRouteCheckbox().check();
       nimDeployModal.findServiceAccountNameInput().should('have.value', 'default-name');
+    });
+  });
+});
+
+describe('PVC Storage Management', () => {
+  describe('Storage Option Selection', () => {
+    it('should default to "Create new storage" when no existing compatible PVCs are found', () => {
+      initInterceptsToEnableNim({ hasAllModels: false });
+
+      // Mock NIM models data
+      cy.intercept('GET', '/api/nim-serving/nimConfig', mockNimServingResource(mockNimImages()));
+
+      // Mock empty ServingRuntime lists (no existing compatible storage)
+      cy.interceptK8sList(ServingRuntimeModel, mockK8sResourceList([]));
+
+      projectDetails.visitSection('test-project', 'model-server');
+      cy.findByTestId('deploy-button').click();
+
+      nimDeployModal.shouldBeOpen();
+
+      // Fill in required fields to show storage options
+      nimDeployModal.findModelNameInput().type('Test Model');
+      nimDeployModal.findNIMToDeploy().click().type('Snowflake Arctic');
+      cy.get('[role="listbox"]').contains('Snowflake Arctic Embed Large Embedding - 1.0.0').click();
+
+      // Should show both storage options
+      nimDeployModal.shouldShowCreateNewPVCOption();
+      nimDeployModal.shouldShowUseExistingPVCOption();
+
+      // "Create new storage" should be selected by default
+      nimDeployModal.findCreateNewPVCRadio().should('be.checked');
+      nimDeployModal.findUseExistingPVCRadio().should('not.be.checked');
+
+      // Should show PVC size section for new storage
+      nimDeployModal.findPVCSizeSection().should('be.visible');
+      nimDeployModal.findNimStorageSizeInput().should('have.value', '30');
+    });
+
+    it('should allow switching between "Create new" and "Use existing" storage options', () => {
+      initInterceptsToEnableNim({ hasAllModels: false });
+
+      // Mock NIM models data
+      cy.intercept('GET', '/api/nim-serving/nimConfig', mockNimServingResource(mockNimImages()));
+
+      // Mock existing compatible ServingRuntimes AND the PVCs they reference
+      const mockServingRuntimes = mockMultipleNimServingRuntimes();
+      const mockPVCs = mockMultipleNimPVCs();
+
+      cy.interceptK8sList(ServingRuntimeModel, mockK8sResourceList(mockServingRuntimes)).as(
+        'servingruntimes',
+      );
+      // Add PVC mocks - the hook likely fetches these by name
+      cy.intercept('GET', '/api/k8s/api/v1/namespaces/test-project/persistentvolumeclaims*', {
+        body: mockK8sResourceList(mockPVCs),
+      });
+
+      projectDetails.visitSection('test-project', 'model-server');
+      cy.findByTestId('deploy-button').click();
+
+      nimDeployModal.shouldBeOpen();
+
+      // Fill in required fields
+      nimDeployModal.findModelNameInput().type('Test Model');
+      nimDeployModal.findNIMToDeploy().click().type('Snowflake Arctic');
+      cy.get('[role="listbox"]').contains('Snowflake Arctic Embed Large Embedding - 1.0.0').click();
+
+      // Initially "Create new storage" should be selected
+      nimDeployModal.findCreateNewPVCRadio().should('be.checked');
+      nimDeployModal.findPVCSizeSection().should('be.visible');
+
+      // Switch to "Use existing storage"
+      nimDeployModal.selectUseExistingPVC();
+
+      // Wait for the PVC discovery to complete
+      cy.wait('@servingruntimes');
+
+      // Should show existing PVC selection UI
+      nimDeployModal.findPVCSelectionSection().should('be.visible');
+      nimDeployModal.shouldShowCompatiblePVCs(2); // 2 compatible arctic-embed-l PVCs
+
+      // Switch back to "Create new storage"
+      nimDeployModal.selectCreateNewPVC();
+      nimDeployModal.findCreateNewPVCRadio().should('be.checked');
+      nimDeployModal.findPVCSizeSection().should('be.visible');
+    });
+  });
+
+  describe('Compatible PVC Detection', () => {
+    it('should show compatible PVCs that contain the selected model', () => {
+      initInterceptsToEnableNim({ hasAllModels: false });
+
+      cy.intercept('GET', '/api/nim-serving/nimConfig', mockNimServingResource(mockNimImages()));
+
+      const mockServingRuntimes = mockMultipleNimServingRuntimes();
+      const mockPVCs = mockMultipleNimPVCs();
+
+      cy.interceptK8sList(ServingRuntimeModel, mockK8sResourceList(mockServingRuntimes)).as(
+        'servingruntimes',
+      );
+      cy.intercept('GET', '**/api/k8s/api/v1/namespaces/test-project/persistentvolumeclaims**', {
+        statusCode: 200,
+        body: mockK8sResourceList(mockPVCs),
+      }).as('pvcs');
+
+      projectDetails.visitSection('test-project', 'model-server');
+      cy.findByTestId('deploy-button').click();
+
+      nimDeployModal.shouldBeOpen();
+
+      // Fill in required fields - select Arctic model
+      nimDeployModal.findModelNameInput().type('Test Model');
+      nimDeployModal.findNIMToDeploy().click().type('Snowflake Arctic');
+      cy.get('[role="listbox"]').contains('Snowflake Arctic Embed Large Embedding - 1.0.0').click();
+
+      // Verify and switch to existing storage
+      nimDeployModal.findCreateNewPVCRadio().should('be.visible').should('be.checked');
+      nimDeployModal.findUseExistingPVCRadio().should('be.visible').should('not.be.checked');
+      nimDeployModal.selectUseExistingPVC();
+      nimDeployModal.findUseExistingPVCRadio().should('be.checked');
+      nimDeployModal.findCreateNewPVCRadio().should('not.be.checked');
+
+      // Wait for both API calls
+      cy.wait('@servingruntimes');
+      cy.wait('@pvcs');
+
+      // Should show 2 compatible PVCs for arctic-embed-l model
+      nimDeployModal.shouldShowCompatiblePVCs(2);
+
+      // Open dropdown and verify PVC options
+      nimDeployModal.findExistingPVCSelectByText().click({ force: true });
+      cy.get('[role="listbox"]', { timeout: 8000 }).should('be.visible');
+      cy.get('[role="listbox"]').should('contain.text', 'nim-pvc-arctic-recent');
+      cy.get('[role="listbox"]').should('contain.text', 'nim-pvc-arctic-old');
+      cy.get('[role="listbox"]').should('contain.text', 'From: arctic-runtime-1');
+      cy.get('[role="listbox"]').should('contain.text', 'From: arctic-runtime-2');
+      cy.get('[role="listbox"]').should('not.contain.text', 'nim-pvc-alphafold');
+    });
+
+    it('should show "no compatible storage" when no PVCs match the selected model', () => {
+      initInterceptsToEnableNim({ hasAllModels: false });
+
+      cy.intercept('GET', '/api/nim-serving/nimConfig', mockNimServingResource(mockNimImages()));
+
+      const alphafoldRuntime = mockNimServingRuntimeWithPVC({
+        name: 'alphafold-runtime',
+        pvcName: 'nim-pvc-alphafold-only',
+        modelName: 'alphafold2',
+      });
+
+      cy.interceptK8sList(ServingRuntimeModel, mockK8sResourceList([alphafoldRuntime]));
+
+      projectDetails.visitSection('test-project', 'model-server');
+      cy.findByTestId('deploy-button').click();
+
+      nimDeployModal.shouldBeOpen();
+
+      nimDeployModal.findModelNameInput().type('Test Model');
+      nimDeployModal.findNIMToDeploy().click().type('Snowflake Arctic');
+      cy.get('[role="listbox"]').contains('Snowflake Arctic Embed Large Embedding - 1.0.0').click();
+
+      nimDeployModal.selectUseExistingPVC();
+      nimDeployModal.shouldShowNoCompatiblePVCsAlert();
+      nimDeployModal.shouldDisableManualPVCInput();
+      nimDeployModal.shouldDisableModelPathInput();
+
+      cy.findByTestId('no-compatible-pvcs-warning').should(
+        'contain.text',
+        'Field disabled - no compatible storage found',
+      );
+      cy.findByTestId('model-path-disabled-warning').should(
+        'contain.text',
+        'Field disabled - no compatible storage found',
+      );
+    });
+
+    it('should handle PVC loading states', () => {
+      initInterceptsToEnableNim({ hasAllModels: false });
+
+      cy.intercept('GET', '/api/nim-serving/nimConfig', mockNimServingResource(mockNimImages()));
+
+      cy.intercept(
+        'GET',
+        '/api/k8s/apis/serving.kserve.io/v1alpha1/namespaces/test-project/servingruntimes',
+        {
+          delay: 2000,
+          body: mockK8sResourceList([]),
+        },
+      ).as('servingruntimes');
+
+      cy.intercept('GET', '**/api/k8s/api/v1/namespaces/test-project/persistentvolumeclaims**', {
+        delay: 2000,
+        body: mockK8sResourceList([]),
+      }).as('pvcs');
+
+      projectDetails.visitSection('test-project', 'model-server');
+      cy.findByTestId('deploy-button').click();
+
+      nimDeployModal.shouldBeOpen();
+
+      nimDeployModal.findModelNameInput().type('Test Model');
+      nimDeployModal.findNIMToDeploy().click().type('Snowflake Arctic');
+      cy.get('[role="listbox"]').contains('Snowflake Arctic Embed Large Embedding - 1.0.0').click();
+
+      nimDeployModal.selectUseExistingPVC();
+
+      cy.get('[data-testid="pvc-loading-spinner"]').then(($spinner) => {
+        if ($spinner.length > 0) {
+          cy.wrap($spinner).should('be.visible');
+        }
+      });
+
+      cy.wait('@servingruntimes');
+      cy.wait('@pvcs');
+      nimDeployModal.shouldShowNoCompatiblePVCsAlert();
+    });
+
+    it('should allow selecting an existing PVC and auto-set model path', () => {
+      initInterceptsToEnableNim({ hasAllModels: false });
+
+      cy.intercept('GET', '/api/nim-serving/nimConfig', mockNimServingResource(mockNimImages()));
+
+      const mockServingRuntimes = mockMultipleNimServingRuntimes();
+      const mockPVCs = mockMultipleNimPVCs();
+
+      cy.interceptK8sList(ServingRuntimeModel, mockK8sResourceList(mockServingRuntimes)).as(
+        'servingruntimes',
+      );
+      cy.intercept('GET', '**/api/k8s/api/v1/namespaces/test-project/persistentvolumeclaims**', {
+        statusCode: 200,
+        body: mockK8sResourceList(mockPVCs),
+      }).as('pvcs');
+
+      projectDetails.visitSection('test-project', 'model-server');
+      cy.findByTestId('deploy-button').click();
+
+      nimDeployModal.shouldBeOpen();
+
+      nimDeployModal.findModelNameInput().type('Test Model');
+      nimDeployModal.findNIMToDeploy().click().type('Snowflake Arctic');
+      cy.get('[role="listbox"]').contains('Snowflake Arctic Embed Large Embedding - 1.0.0').click();
+
+      nimDeployModal.selectUseExistingPVC();
+
+      cy.wait('@servingruntimes');
+      cy.wait('@pvcs');
+
+      nimDeployModal.shouldShowCompatiblePVCs(2);
+
+      nimDeployModal.selectExistingPVCRobust('nim-pvc-arctic-recent');
+
+      nimDeployModal.shouldHaveModelPath('/mnt/models/cache');
+
+      nimDeployModal.setModelPath('/custom/model/path');
+      nimDeployModal.shouldHaveModelPath('/custom/model/path');
+    });
+
+    it('should enable submit button when all required fields are filled with existing PVC', () => {
+      initInterceptsToEnableNim({ hasAllModels: false });
+
+      cy.intercept('GET', '/api/nim-serving/nimConfig', mockNimServingResource(mockNimImages()));
+
+      const mockServingRuntimes = mockMultipleNimServingRuntimes();
+      const mockPVCs = mockMultipleNimPVCs();
+
+      cy.interceptK8sList(ServingRuntimeModel, mockK8sResourceList(mockServingRuntimes)).as(
+        'servingruntimes',
+      );
+      cy.intercept('GET', '**/api/k8s/api/v1/namespaces/test-project/persistentvolumeclaims**', {
+        statusCode: 200,
+        body: mockK8sResourceList(mockPVCs),
+      }).as('pvcs');
+
+      projectDetails.visitSection('test-project', 'model-server');
+      cy.findByTestId('deploy-button').click();
+
+      nimDeployModal.shouldBeOpen();
+
+      nimDeployModal.findSubmitButton().should('be.disabled');
+
+      nimDeployModal.findModelNameInput().type('Test Model');
+      nimDeployModal.findNIMToDeploy().click().type('Snowflake Arctic');
+      cy.get('[role="listbox"]').contains('Snowflake Arctic Embed Large Embedding - 1.0.0').click();
+
+      nimDeployModal.selectUseExistingPVC();
+
+      cy.wait('@servingruntimes');
+      cy.wait('@pvcs');
+
+      nimDeployModal.shouldShowCompatiblePVCs(2);
+
+      nimDeployModal.selectExistingPVCRobust('nim-pvc-arctic-recent');
+
+      nimDeployModal.findSubmitButton().should('be.enabled');
     });
   });
 });

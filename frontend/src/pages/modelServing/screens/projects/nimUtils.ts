@@ -2,7 +2,7 @@
 
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import { ProjectKind, SecretKind, ServingRuntimeKind, TemplateKind } from '#~/k8sTypes';
-import { deletePvc, deleteSecret, getTemplate, listNIMAccounts } from '#~/api';
+import { deletePvc, deleteSecret, getTemplate, listNIMAccounts, listServingRuntimes } from '#~/api';
 import { fetchInferenceServiceCount } from '#~/pages/modelServing/screens/projects/utils';
 
 export const getNGCSecretType = (isNGC: boolean): string =>
@@ -130,6 +130,36 @@ export const updateServingRuntimeTemplate = (
   return updatedServingRuntime;
 };
 
+/**
+ * Check how many ServingRuntimes are using a specific PVC
+ */
+export const checkPVCUsage = async (
+  pvcName: string,
+  namespace: string,
+): Promise<{ count: number; servingRuntimes: string[] }> => {
+  try {
+    const servingRuntimes = await listServingRuntimes(namespace);
+
+    const usingPVC = servingRuntimes.filter((sr) => {
+      const volumes = sr.spec.volumes || [];
+      return volumes.some((volume) => volume.persistentVolumeClaim?.claimName === pvcName);
+    });
+
+    return {
+      count: usingPVC.length,
+      servingRuntimes: usingPVC.map((sr) => sr.metadata.name),
+    };
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error(`Failed to check PVC usage for ${pvcName}:`, error);
+    // Return safe default - assume PVC is in use
+    return {
+      count: 1,
+      servingRuntimes: ['unknown'],
+    };
+  }
+};
+
 export const getNIMResourcesToDelete = async (
   projectName: string,
   servingRuntime: ServingRuntimeKind,
@@ -154,14 +184,41 @@ export const getNIMResourcesToDelete = async (
     }
   }
 
+  // Handle PVC deletion with reference counting
   const pvcName = servingRuntime.spec.volumes?.find((vol) =>
     vol.persistentVolumeClaim?.claimName.startsWith('nim-pvc'),
   )?.persistentVolumeClaim?.claimName;
 
   if (pvcName) {
-    resourcesToDelete.push(deletePvc(pvcName, projectName).then(() => undefined));
+    try {
+      // Check how many other deployments are using this PVC
+      const pvcUsage = await checkPVCUsage(pvcName, projectName);
+
+      // Only delete PVC if this is the last deployment using it
+      if (pvcUsage.count <= 1) {
+        // eslint-disable-next-line no-console
+        console.log(`Deleting PVC ${pvcName} - no other deployments using it`);
+        resourcesToDelete.push(deletePvc(pvcName, projectName).then(() => undefined));
+      } else {
+        // eslint-disable-next-line no-console
+        console.log(
+          `Preserving PVC ${pvcName} - still in use by ${
+            pvcUsage.count - 1
+          } other deployment(s): ${pvcUsage.servingRuntimes
+            .filter((name) => name !== servingRuntime.metadata.name)
+            .join(', ')}`,
+        );
+      }
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error(`Error checking PVC usage for ${pvcName}:`, error);
+      // Safe default: don't delete PVC if we can't verify usage
+      // eslint-disable-next-line no-console
+      console.log(`Preserving PVC ${pvcName} due to error checking usage`);
+    }
   }
 
+  // Handle secrets deletion (only if this is the last inference service)
   let nimSecretName: string | undefined;
   let imagePullSecretName: string | undefined;
 
