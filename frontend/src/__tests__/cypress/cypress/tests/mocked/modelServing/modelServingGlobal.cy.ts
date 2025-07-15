@@ -483,6 +483,10 @@ describe('Model Serving Global', () => {
         disableReplicas: true,
         disableModelMeshAnnotations: true,
       }); // KServe should send resources in ServingRuntime after migration
+      servingRuntimeMockNoResources.metadata.annotations = {
+        ...servingRuntimeMockNoResources.metadata.annotations,
+        'opendatahub.io/legacy-hardware-profile-name': '',
+      };
       delete servingRuntimeMock.metadata.annotations?.['enable-auth'];
       delete servingRuntimeMock.metadata.annotations?.['enable-route'];
       delete servingRuntimeMock.spec.replicas;
