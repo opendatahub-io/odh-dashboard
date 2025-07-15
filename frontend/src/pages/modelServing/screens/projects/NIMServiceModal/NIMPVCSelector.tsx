@@ -9,6 +9,7 @@ import {
   AlertVariant,
 } from '@patternfly/react-core';
 import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
+import { relativeTime } from '#~/utilities/time';
 import { useNIMCompatiblePVCs, NIMPVCInfo } from './useNIMCompatiblePVCs';
 
 type NIMPVCSelectorProps = {
@@ -43,9 +44,7 @@ const NIMPVCSelector: React.FC<NIMPVCSelectorProps> = ({
   }, [existingPvcName, showManualInput, setModelPath]);
 
   const formatPVCOption = (pvcInfo: NIMPVCInfo): string => {
-    const age = Math.floor((Date.now() - pvcInfo.createdAt.getTime()) / (1000 * 60 * 60 * 24));
-    const ageText = age === 0 ? 'Today' : `${age}d ago`;
-
+    const ageText = relativeTime(Date.now(), pvcInfo.createdAt.getTime());
     return `${pvcInfo.pvcName} (${ageText}) - From: ${pvcInfo.servingRuntimeName}`;
   };
 
@@ -112,7 +111,9 @@ const NIMPVCSelector: React.FC<NIMPVCSelectorProps> = ({
           isInline
           title="No compatible storage found"
         >
-          No existing storage volumes found that contain {selectedModel}.
+          {selectedModel
+            ? `No existing storage volumes found that contain ${selectedModel}.`
+            : 'Select a model to view if there are compatible storage volumes.'}
         </Alert>
       )}
 
@@ -188,7 +189,9 @@ const NIMPVCSelector: React.FC<NIMPVCSelectorProps> = ({
             {!hasCompatiblePVCs && (
               <HelperText>
                 <HelperTextItem data-testid="no-compatible-pvcs-warning" variant="warning">
-                  Field disabled - no compatible storage found for {selectedModel}.
+                  {selectedModel
+                    ? `Field disabled - no compatible storage found for ${selectedModel}.`
+                    : 'Field disabled - select a model first.'}
                 </HelperTextItem>
               </HelperText>
             )}
@@ -213,7 +216,9 @@ const NIMPVCSelector: React.FC<NIMPVCSelectorProps> = ({
         <HelperText>
           {!hasCompatiblePVCs ? (
             <HelperTextItem data-testid="model-path-disabled-warning" variant="warning">
-              Field disabled - no compatible storage found for {selectedModel}.
+              {selectedModel
+                ? `Field disabled - no compatible storage found for ${selectedModel}.`
+                : 'Field disabled - select a model first.'}
             </HelperTextItem>
           ) : (
             <>
