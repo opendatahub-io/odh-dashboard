@@ -212,6 +212,10 @@ module.exports = {
       {
         pathGroups: [
           {
+            pattern: '#~/**',
+            group: 'internal',
+          },
+          {
             pattern: '@mf/**',
             group: 'external',
             position: 'after',
@@ -430,7 +434,13 @@ module.exports = {
       files: [
         'src/plugins/extensions/**',
         'packages/**/extensions.ts',
+        'packages/**/extensions/**',
         'packages/**/extension-points/*.{ts,tsx,js,jsx}',
+      ],
+      excludedFiles: [
+        'src/plugins/extensions/index.ts',
+        'packages/**/extensions/index.ts',
+        'packages/**/extensions-points/index.ts',
       ],
       rules: {
         '@typescript-eslint/consistent-type-imports': 'error',
@@ -457,8 +467,8 @@ function srcRulesOverrides() {
   return [
     {
       files: ['src/**'],
+      excludedFiles: ['src/__tests__/cypress/**'],
       rules: {
-        'no-console': 'error',
         'import/no-extraneous-dependencies': [
           'error',
           {
@@ -469,12 +479,11 @@ function srcRulesOverrides() {
     },
     // add monorepo packages
     ...packages.map((pkg) => ({
-      files: [`${pkg}/src/**`],
+      files: [`${pkg}/**`],
       parserOptions: {
         tsconfigRootDir: path.join(__dirname, pkg),
       },
       rules: {
-        'no-console': 'error',
         'import/no-extraneous-dependencies': [
           'error',
           {

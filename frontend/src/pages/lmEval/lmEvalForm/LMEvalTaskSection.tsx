@@ -1,15 +1,6 @@
-import {
-  Button,
-  FormGroup,
-  FormHelperText,
-  HelperText,
-  HelperTextItem,
-  Icon,
-  Popover,
-} from '@patternfly/react-core';
-import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
-import { MultiTypeaheadSelect, MultiTypeaheadSelectOption } from '@patternfly/react-templates';
+import { FormGroup, FormHelperText, HelperText, HelperTextItem } from '@patternfly/react-core';
 import * as React from 'react';
+import { MultiSelection, type SelectionOptions } from '#~/components/MultiSelection';
 import { lmEvalTasks } from './data';
 
 type LmEvalTaskSectionProps = {
@@ -17,44 +8,34 @@ type LmEvalTaskSectionProps = {
   setTasks: (tasks: string[]) => void;
 };
 
-const LmEvalTaskSection: React.FC<LmEvalTaskSectionProps> = ({ tasks, setTasks }) => {
-  const initialOptions = React.useMemo<MultiTypeaheadSelectOption[]>(
-    () => lmEvalTasks.map((o) => ({ ...o, selected: tasks.includes(o.value) })),
+const LMEvalTaskSection: React.FC<LmEvalTaskSectionProps> = ({ tasks, setTasks }) => {
+  const initialOptions = React.useMemo<SelectionOptions[]>(
+    () =>
+      lmEvalTasks.map((o) => ({ id: o.value, name: o.content, selected: tasks.includes(o.value) })),
     [tasks],
   );
-  const taskHelperText =
-    'Choose the type of evaluation that you want to perform. Red Hat support the top x evaluations';
+
+  const taskHelperText = 'Select at least 1 evaluation task.';
+
+  const handleSelectionChange = React.useCallback(
+    (selections: SelectionOptions[]) => {
+      const selectedTaskIds = selections
+        .filter((selection) => selection.selected)
+        .map((selection) => String(selection.id));
+      setTasks(selectedTaskIds);
+    },
+    [setTasks],
+  );
 
   return (
-    <FormGroup
-      label="Tasks"
-      isRequired
-      labelHelp={
-        <Popover bodyContent={<></>}>
-          <Button
-            icon={
-              <Icon isInline>
-                <OutlinedQuestionCircleIcon />
-              </Icon>
-            }
-            variant="plain"
-            isInline
-          />
-        </Popover>
-      }
-    >
-      <MultiTypeaheadSelect
+    <FormGroup label="Select tasks" isRequired data-testid="tasks-form-group">
+      <MultiSelection
         isScrollable
-        initialOptions={initialOptions}
+        value={initialOptions}
+        setValue={handleSelectionChange}
+        ariaLabel="Select evaluation tasks"
         placeholder="Select the evaluation to perform"
-        noOptionsFoundMessage={(filter) => `No state was found for "${filter}"`}
-        onSelectionChange={(_items, selections) =>
-          setTasks(
-            selections.map((selection) =>
-              typeof selection === 'number' ? String(selection) : selection,
-            ),
-          )
-        }
+        noSelectedOptionsMessage="No tasks selected"
       />
       <FormHelperText>
         <HelperText>
@@ -65,4 +46,4 @@ const LmEvalTaskSection: React.FC<LmEvalTaskSectionProps> = ({ tasks, setTasks }
   );
 };
 
-export default LmEvalTaskSection;
+export default LMEvalTaskSection;

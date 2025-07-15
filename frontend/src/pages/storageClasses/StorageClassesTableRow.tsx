@@ -37,7 +37,6 @@ import { StorageClassEditModal } from './StorageClassEditModal';
 import { StorageClassEnableSwitch } from './StorageClassEnableSwitch';
 import { useStorageClassContext } from './StorageClassesContext';
 import { StorageClassConfigValue } from './StorageClassConfigValue';
-import { AccessMode } from './storageEnums';
 import {
   getSupportedAccessModesForProvisioner,
   isOpenshiftDefaultStorageClass,
@@ -178,8 +177,7 @@ export const StorageClassesTableRow: React.FC<StorageClassesTableRowProps> = ({ 
                           {getSupportedAccessModesForProvisioner(storageClass.provisioner)
                             .filter(
                               (modeValue) =>
-                                storageClassConfig.accessModeSettings[modeValue] === true &&
-                                modeValue !== AccessMode.RWO,
+                                storageClassConfig.accessModeSettings[modeValue] === true,
                             )
                             .map((modeValue) => (
                               <AccessModeLabel key={modeValue} accessMode={modeValue} />

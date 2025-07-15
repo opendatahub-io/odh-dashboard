@@ -219,11 +219,11 @@ describe('assembleNotebook', () => {
     expect(result.metadata.annotations?.['notebooks.opendatahub.io/last-image-selection']).toBe(
       'test:2024.2',
     );
-    expect(result.spec.template.spec.containers.at(0)?.image).toBe(
+    expect(result.spec.template.spec.containers[0]?.image).toBe(
       'image-registry.openshift-image-registry.svc:5000/opendatahub/jupyter-minimal-notebook:2024.2',
     );
     expect(
-      result.spec.template.spec.containers.at(0)?.env.includes({
+      result.spec.template.spec.containers[0]?.env.includes({
         name: 'JUPYTER_IMAGE',
         value:
           'image-registry.openshift-image-registry.svc:5000/opendatahub/jupyter-minimal-notebook:2024.2',

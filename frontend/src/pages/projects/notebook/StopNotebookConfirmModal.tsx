@@ -1,10 +1,10 @@
 import * as React from 'react';
 import { Button } from '@patternfly/react-core';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
+import ConfirmStopModal from '#~/pages/projects/components/ConfirmStopModal.tsx';
 import NotebookRouteLink from './NotebookRouteLink';
 import useStopNotebookModalAvailability from './useStopNotebookModalAvailability';
 import { NotebookState } from './types';
-import StopWorkbenchModal from './StopWorkbenchModal';
 
 type StopNotebookConfirmProps = {
   notebookState: NotebookState;
@@ -16,7 +16,7 @@ const StopNotebookConfirmModal: React.FC<StopNotebookConfirmProps> = ({
   onClose,
 }) => {
   const { notebook, isRunning } = notebookState;
-  const [, setDontShowModalValue] = useStopNotebookModalAvailability();
+  const [dontShowModalValue, setDontShowModalValue] = useStopNotebookModalAvailability();
   const onBeforeClose = (confirmStatus: boolean) => {
     if (!confirmStatus) {
       // Disable the choice -- we were in this modal and they checked and then cancelled -- so undo it
@@ -41,12 +41,22 @@ const StopNotebookConfirmModal: React.FC<StopNotebookConfirmProps> = ({
   ];
 
   return (
-    <StopWorkbenchModal
-      workbenchName={<strong>{getDisplayNameFromK8sResource(notebook)}</strong>}
+    <ConfirmStopModal
+      message={
+        <>
+          Any unsaved changes to the <strong>{getDisplayNameFromK8sResource(notebook)}</strong> will
+          be lost.
+        </>
+      }
       isRunning={isRunning}
       modalActions={modalActions}
       link={<NotebookRouteLink label="open the workbench" notebook={notebook} isRunning />}
       onBeforeClose={onBeforeClose}
+      dataTestId="stop-notebook-modal"
+      title="Stop workbench?"
+      saveChanges
+      dontShowModalValue={dontShowModalValue}
+      setDontShowModalValue={setDontShowModalValue}
     />
   );
 };

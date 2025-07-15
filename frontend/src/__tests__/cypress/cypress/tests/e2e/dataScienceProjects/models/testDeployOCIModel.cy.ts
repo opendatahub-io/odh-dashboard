@@ -26,7 +26,7 @@ let modelDeploymentName: string;
 const uuid = generateTestUUID();
 
 describe(
-  'A user can create an OCI connection and deploy a model with it',
+  '[Product Bug: RHOAIENG-29340] A user can create an OCI connection and deploy a model with it',
   { testIsolation: false },
   () => {
     let testData: DeployOCIModelData;
@@ -56,7 +56,9 @@ describe(
 
     it(
       'Verify User Can Create an OCI Connection in DS Connections Page And Deploy the Model',
-      { tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@Modelserving', '@NonConcurrent'] },
+      {
+        tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@Modelserving', '@NonConcurrent', '@Bug'],
+      },
       () => {
         cy.step(`Navigate to DS Project ${projectName}`);
         cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
@@ -94,7 +96,7 @@ describe(
         // Note reload is required as status tooltip was not found due to a stale element
         cy.reload();
         modelServingSection.findStatusTooltip().click({ force: true });
-        cy.contains('Loaded', { timeout: 120000 }).should('be.visible');
+        cy.contains('Model is deployed', { timeout: 120000 }).should('be.visible');
       },
     );
   },

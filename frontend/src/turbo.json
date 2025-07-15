@@ -1,0 +1,19 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    "no-op": {
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "!__tests__/cypress"
+      ]
+    },
+    "type-check": {
+      "dependsOn": ["no-op"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "!__tests__/cypress"
+      ]
+    }
+  }
+}

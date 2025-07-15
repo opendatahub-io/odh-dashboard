@@ -1,9 +1,9 @@
 import * as React from 'react';
-import { useQueryParams } from '#~/utilities/useQueryParams';
+import { useSearchParams } from 'react-router-dom';
 
 export const useQueryFilters = (key: string): string[] => {
-  const queryParams = useQueryParams();
-  const enabledFilters = queryParams.get(key);
+  const [searchParams] = useSearchParams();
+  const enabledFilters = searchParams.get(key);
 
   const filters = React.useMemo(() => {
     if (!enabledFilters) {

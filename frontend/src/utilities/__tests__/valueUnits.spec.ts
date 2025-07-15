@@ -224,3 +224,56 @@ describe('formatMemory', () => {
     expect(formatMemory('1.5')).toEqual('1.5');
   });
 });
+
+describe('MEMORY_UNITS_FOR_SELECTION TiB support', () => {
+  it('should include TiB in MEMORY_UNITS_FOR_SELECTION', () => {
+    const tibUnit = MEMORY_UNITS_FOR_SELECTION.find((unit) => unit.unit === 'Ti');
+    expect(tibUnit).toBeDefined();
+    expect(tibUnit?.name).toBe('TiB');
+    expect(tibUnit?.weight).toBe(1024 ** 4);
+  });
+
+  it('should convert 1024 GiB to 1 TiB correctly', () => {
+    const [value, unit] = convertToUnit('1024Gi', MEMORY_UNITS_FOR_PARSING, 'Ti');
+    expect(value).toBe(1);
+    expect(unit.name).toBe('TiB');
+    expect(unit.unit).toBe('Ti');
+  });
+
+  it('should support round-trip conversion between 1024 GiB and 1 TiB in UI workflows', () => {
+    const originalValue = '1024Gi';
+
+    // Convert 1024 GiB to TiB for display purposes
+    const [displayValue, displayUnit] = convertToUnit(
+      originalValue,
+      MEMORY_UNITS_FOR_PARSING,
+      'Ti',
+    );
+    expect(displayValue).toBe(1);
+    expect(displayUnit.name).toBe('TiB');
+
+    // Verify TiB is available in dropdown selections
+    const tibInSelection = MEMORY_UNITS_FOR_SELECTION.find((unit) => unit.unit === 'Ti');
+    expect(tibInSelection).toBeDefined();
+
+    // Verify the converted value can be reconstructed
+    const reconstructedValue = `${displayValue}${displayUnit.unit}`;
+    expect(reconstructedValue).toBe('1Ti');
+
+    // Verify round-trip conversion maintains equivalence
+    const [baseValue, baseUnit] = convertToUnit(reconstructedValue, MEMORY_UNITS_FOR_PARSING, '');
+    const [originalBaseValue, originalBaseUnit] = convertToUnit(
+      originalValue,
+      MEMORY_UNITS_FOR_PARSING,
+      '',
+    );
+
+    expect(baseValue).toBe(originalBaseValue);
+    expect(baseUnit.unit).toBe(originalBaseUnit.unit);
+  });
+
+  it('should format TiB memory values correctly', () => {
+    expect(formatMemory('1Ti')).toEqual('1TiB');
+    expect(formatMemory('2.5Ti')).toEqual('2.5TiB');
+  });
+});

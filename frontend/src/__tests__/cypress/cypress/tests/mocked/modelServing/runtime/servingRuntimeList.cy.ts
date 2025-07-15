@@ -98,6 +98,7 @@ type HandlersProps = {
   disableProjectScoped?: boolean;
   disableHardwareProfiles?: boolean;
 };
+import { STOP_MODAL_PREFERENCE_KEY } from '#~/pages/modelServing/useStopModalPreference';
 
 const initIntercepts = ({
   disableKServeConfig,
@@ -118,6 +119,7 @@ const initIntercepts = ({
       route: true,
       tolerations: [],
       nodeSelector: {},
+      version: 'v1.0.0',
     }),
   ],
   inferenceServices = [
@@ -697,13 +699,15 @@ describe('Serving Runtime List', () => {
         .click();
       modelServingSection.findInferenceServiceTable().should('exist');
       let inferenceServiceRow = modelServingSection.getInferenceServiceRow('OVMS ONNX');
+      inferenceServiceRow.findStatusLabel('Failed');
       inferenceServiceRow.findStatusTooltip();
       inferenceServiceRow.findStatusTooltipValue('Failed to pull model from storage due to error');
 
       // Check status of deployed model which loaded successfully after an error
       inferenceServiceRow = modelServingSection.getInferenceServiceRow('Loaded model');
+      inferenceServiceRow.findStatusLabel('Started');
       inferenceServiceRow.findStatusTooltip().should('be.visible');
-      inferenceServiceRow.findStatusTooltipValue('Loaded');
+      inferenceServiceRow.findStatusTooltipValue('Model is deployed.');
 
       // Check API protocol in row
       inferenceServiceRow.findAPIProtocol().should('have.text', 'REST');
@@ -899,34 +903,130 @@ describe('Serving Runtime List', () => {
       kserveModal.findServingRuntimeEnvVarsName('0').type('test-name');
       kserveModal.findServingRuntimeEnvVarsValue('0').type('test-value');
 
-      // Checking model server custom size input min/max values
+      // Checking model server custom size validation behavior
       kserveModal.findModelServerSizeSelect().findSelectOption('Custom').click();
 
-      kserveModal.findCPURequestedInput().clear().type('1');
-      kserveModal.findCPULimitInput().clear().type('1');
-      kserveModal.findMemoryRequestedInput().clear().type('1');
-      kserveModal.findMemoryLimitInput().clear().type('1');
-      kserveModal.findCPURequestedButton('Minus').should('be.disabled');
-      kserveModal.findCPULimitButton('Minus').should('be.disabled');
-      kserveModal.findMemoryRequestedButton('Minus').should('be.disabled');
-      kserveModal.findMemoryLimitButton('Minus').should('be.disabled');
+      // Test that initial values are set and form is valid
+      kserveModal.findCPURequestedInput().should('have.value', '1');
+      kserveModal.findCPULimitInput().should('have.value', '1');
+      kserveModal.findMemoryRequestedInput().should('have.value', '1');
+      kserveModal.findMemoryLimitInput().should('have.value', '1');
+      kserveModal.findSubmitButton().should('be.enabled');
 
-      kserveModal.findCPURequestedButton('Plus').should('be.disabled');
-      kserveModal.findCPULimitButton('Plus').click();
-      kserveModal.findCPURequestedButton('Plus').should('be.enabled');
-      kserveModal.findMemoryRequestedButton('Plus').should('be.disabled');
-      kserveModal.findMemoryLimitButton('Plus').click();
-      kserveModal.findMemoryRequestedButton('Plus').should('be.enabled');
-
-      kserveModal.findMemoryRequestedInput().clear().type('3');
-      kserveModal.findMemoryRequestedInput().should('have.value', '2');
+      // Test validation: CPU request cannot exceed CPU limit
       kserveModal.findCPURequestedInput().clear().type('3');
-      kserveModal.findCPURequestedInput().should('have.value', '2');
+      kserveModal.findSubmitButton().should('be.disabled');
+      cy.findByText('CPU requested must be less than or equal to CPU limit').should('be.visible');
 
+      // Test validation: Memory request cannot exceed memory limit
+      kserveModal.findCPURequestedInput().clear().type('1');
+      kserveModal.findMemoryRequestedInput().clear().type('3');
+      kserveModal.findSubmitButton().should('be.disabled');
+      cy.findByText('Memory requested must be less than or equal to memory limit').should(
+        'be.visible',
+      );
+
+      // Test validation: CPU limit cannot be less than CPU request
+      kserveModal.findMemoryRequestedInput().clear().type('1');
+      kserveModal.findCPURequestedInput().clear().type('2');
       kserveModal.findCPULimitInput().clear().type('1');
-      kserveModal.findCPULimitInput().should('have.value', '2');
+      kserveModal.findSubmitButton().should('be.disabled');
+      cy.findByText('CPU limit must be greater than or equal to CPU requested').should(
+        'be.visible',
+      );
+
+      // Test validation: Memory limit cannot be less than memory request
+      kserveModal.findCPULimitInput().clear().type('2');
+      kserveModal.findMemoryRequestedInput().clear().type('2');
       kserveModal.findMemoryLimitInput().clear().type('1');
-      kserveModal.findMemoryLimitInput().should('have.value', '2');
+      kserveModal.findSubmitButton().should('be.disabled');
+      cy.findByText('Memory limit must be greater than or equal to memory requested').should(
+        'be.visible',
+      );
+
+      // Test validation: Empty input fields show validation errors
+      kserveModal.findMemoryLimitInput().clear().type('2');
+
+      // Test empty CPU request
+      kserveModal.findCPURequestedInput().clear();
+      kserveModal.findSubmitButton().should('be.disabled');
+
+      // Test empty CPU limit
+      kserveModal.findCPURequestedInput().clear().type('1');
+      kserveModal.findCPULimitInput().clear();
+      kserveModal.findSubmitButton().should('be.disabled');
+
+      // Test empty Memory request
+      kserveModal.findCPULimitInput().clear().type('2');
+      kserveModal.findMemoryRequestedInput().clear();
+      kserveModal.findSubmitButton().should('be.disabled');
+
+      // Test empty Memory limit
+      kserveModal.findMemoryRequestedInput().clear().type('2');
+      kserveModal.findMemoryLimitInput().clear();
+      kserveModal.findSubmitButton().should('be.disabled');
+
+      // Test checkbox dependency: limit checkboxes are disabled when request checkboxes are unchecked
+      kserveModal.findCPULimitInput().clear().type('2');
+      kserveModal.findMemoryLimitInput().clear().type('4');
+
+      // Uncheck CPU request checkbox - CPU limit checkbox should become disabled
+      kserveModal.findCPURequestedCheckbox().uncheck();
+      kserveModal.findCPULimitCheckbox().should('be.disabled');
+
+      // Uncheck Memory request checkbox - Memory limit checkbox should become disabled
+      kserveModal.findMemoryRequestedCheckbox().uncheck();
+      kserveModal.findMemoryLimitCheckbox().should('be.disabled');
+
+      // Test checkbox value storage: verify previous values and units are restored
+      // First ensure all checkboxes are checked before setting values
+      kserveModal.findCPURequestedCheckbox().check();
+      kserveModal.findCPULimitCheckbox().check();
+      kserveModal.findMemoryRequestedCheckbox().check();
+      kserveModal.findMemoryLimitCheckbox().check();
+
+      // Set specific values with units
+      kserveModal.findCPURequestedInput().clear().type('3');
+      kserveModal.findCPULimitInput().clear().type('6');
+      kserveModal.findMemoryRequestedInput().clear().type('8');
+      kserveModal.findMemoryLimitInput().clear().type('16');
+
+      // Verify values are set correctly
+      kserveModal.findCPURequestedInput().should('have.value', '3');
+      kserveModal.findCPULimitInput().should('have.value', '6');
+      kserveModal.findMemoryRequestedInput().should('have.value', '8');
+      kserveModal.findMemoryLimitInput().should('have.value', '16');
+
+      // Uncheck CPU request checkbox (should also clear CPU limit)
+      kserveModal.findCPURequestedCheckbox().uncheck();
+      kserveModal.findCPURequestedInput().should('have.value', '');
+      kserveModal.findCPULimitInput().should('have.value', '');
+
+      // Uncheck Memory request checkbox (should also clear Memory limit)
+      kserveModal.findMemoryRequestedCheckbox().uncheck();
+      kserveModal.findMemoryRequestedInput().should('have.value', '');
+      kserveModal.findMemoryLimitInput().should('have.value', '');
+
+      // Re-check CPU request checkbox - should restore previous value
+      kserveModal.findCPURequestedCheckbox().check();
+      kserveModal.findCPURequestedInput().should('have.value', '3');
+      kserveModal.findCPULimitCheckbox().should('not.be.checked');
+      kserveModal.findCPULimitCheckbox().check();
+      kserveModal.findCPULimitInput().should('have.value', '6');
+
+      // Re-check Memory request checkbox - should restore previous value and unit
+      kserveModal.findMemoryRequestedCheckbox().check();
+      kserveModal.findMemoryRequestedInput().should('have.value', '8');
+      kserveModal.findMemoryLimitCheckbox().should('not.be.checked');
+      kserveModal.findMemoryLimitCheckbox().check();
+      kserveModal.findMemoryLimitInput().should('have.value', '16');
+
+      // Reset to valid values
+      kserveModal.findCPURequestedInput().clear().type('1');
+      kserveModal.findCPULimitInput().clear().type('2');
+      kserveModal.findMemoryRequestedInput().clear().type('2');
+      kserveModal.findMemoryLimitInput().clear().type('4');
+      kserveModal.findSubmitButton().should('be.enabled');
 
       kserveModal.findModelServerSizeSelect().findSelectOption(/Small/).click();
       kserveModal.findSubmitButton().should('be.enabled');
@@ -1294,8 +1394,169 @@ describe('Serving Runtime List', () => {
       });
 
       cy.get('@updateInferenceService.all').then((interceptions) => {
-        expect(interceptions).to.have.length(2); // 1 dry run request and 1 actaul request
+        expect(interceptions).to.have.length(2); // 1 dry run request and 1 actual request
       });
+    });
+
+    it('Verify initial checkbox states and values when editing KServe model', () => {
+      initIntercepts({
+        projectEnableModelMesh: false,
+        disableKServeConfig: true,
+        disableModelMeshConfig: true,
+        disableServingRuntimeParams: false,
+        inferenceServices: [
+          mockInferenceServiceK8sResource({
+            name: 'test-inference-edit',
+            displayName: 'Test Inference Edit',
+            modelName: 'test-inference-edit',
+            isModelMesh: false,
+            resources: {
+              requests: { cpu: '2', memory: '4Gi' },
+              limits: { cpu: '4', memory: '8Gi' },
+            },
+          }),
+        ],
+        servingRuntimes: [
+          mockServingRuntimeK8sResource({
+            name: 'test-inference-edit',
+            displayName: 'Test Inference Edit',
+            namespace: 'test-project',
+            resources: {
+              requests: { cpu: '2', memory: '4Gi' },
+              limits: { cpu: '4', memory: '8Gi' },
+            },
+          }),
+        ],
+      });
+
+      projectDetails.visitSection('test-project', 'model-server');
+
+      // Open edit modal
+      modelServingSection
+        .getKServeRow('Test Inference Edit')
+        .find()
+        .findKebabAction('Edit')
+        .click();
+      kserveModalEdit.shouldBeOpen();
+
+      // Navigate to custom size section to verify initial checkbox states
+      kserveModalEdit.findModelServerSizeSelect().should('contain.text', 'Custom');
+
+      // Verify all checkboxes are initially checked (since all values exist)
+      kserveModalEdit.findCPURequestedCheckbox().should('be.checked');
+      kserveModalEdit.findCPULimitCheckbox().should('be.checked');
+      kserveModalEdit.findMemoryRequestedCheckbox().should('be.checked');
+      kserveModalEdit.findMemoryLimitCheckbox().should('be.checked');
+
+      // Verify initial values match the existing resources
+      kserveModalEdit.findCPURequestedInput().should('have.value', '2');
+      kserveModalEdit.findCPULimitInput().should('have.value', '4');
+      kserveModalEdit.findMemoryRequestedInput().should('have.value', '4');
+      kserveModalEdit.findMemoryLimitInput().should('have.value', '8');
+
+      // Verify form is initially valid
+      kserveModalEdit.findSubmitButton().should('be.enabled');
+
+      // Test that unchecking CPU request disables CPU limit checkbox
+      kserveModalEdit.findCPURequestedCheckbox().uncheck();
+      kserveModalEdit.findCPULimitCheckbox().should('be.disabled');
+      kserveModalEdit.findCPURequestedInput().should('have.value', '');
+      kserveModalEdit.findCPULimitInput().should('have.value', '');
+
+      // Test that re-checking CPU request restores request value and enables CPU limit checkbox (but doesn't auto-check it)
+      kserveModalEdit.findCPURequestedCheckbox().check();
+      kserveModalEdit.findCPULimitCheckbox().should('not.be.disabled');
+      kserveModalEdit.findCPURequestedInput().should('have.value', '2');
+      kserveModalEdit.findCPULimitCheckbox().should('not.be.checked'); // Limit checkbox should not be auto-checked
+      kserveModalEdit.findCPULimitInput().should('have.value', ''); // Limit input should remain empty
+
+      // Manually check the CPU limit checkbox to restore its value
+      kserveModalEdit.findCPULimitCheckbox().check();
+      kserveModalEdit.findCPULimitInput().should('have.value', '4');
+
+      // Test memory checkbox behavior follows same pattern
+      kserveModalEdit.findMemoryRequestedCheckbox().uncheck();
+      kserveModalEdit.findMemoryLimitCheckbox().should('be.disabled');
+      kserveModalEdit.findMemoryRequestedInput().should('have.value', '');
+      kserveModalEdit.findMemoryLimitInput().should('have.value', '');
+      kserveModalEdit.findMemoryRequestedCheckbox().check();
+      kserveModalEdit.findMemoryLimitCheckbox().should('not.be.disabled');
+      kserveModalEdit.findMemoryRequestedInput().should('have.value', '4');
+      kserveModalEdit.findMemoryLimitCheckbox().should('not.be.checked'); // Memory limit checkbox should not be auto-checked
+      kserveModalEdit.findMemoryLimitInput().should('have.value', ''); // Memory limit input should remain empty
+
+      // Manually check the memory limit checkbox to restore its value
+      kserveModalEdit.findMemoryLimitCheckbox().check();
+      kserveModalEdit.findMemoryLimitInput().should('have.value', '8');
+
+      // Verify form is valid again after restoring all values
+      kserveModalEdit.findSubmitButton().should('be.enabled');
+    });
+
+    it('Verify initial checkbox states when editing KServe model with partial values', () => {
+      initIntercepts({
+        projectEnableModelMesh: false,
+        disableKServeConfig: true,
+        disableModelMeshConfig: true,
+        disableServingRuntimeParams: false,
+        inferenceServices: [
+          mockInferenceServiceK8sResource({
+            name: 'test-inference-partial',
+            displayName: 'Test Inference Partial',
+            modelName: 'test-inference-partial',
+            isModelMesh: false,
+            resources: {
+              requests: { cpu: '1', memory: '2Gi' },
+              // No limits defined
+            },
+          }),
+        ],
+        servingRuntimes: [
+          mockServingRuntimeK8sResource({
+            name: 'test-inference-partial',
+            displayName: 'Test Inference Partial',
+            namespace: 'test-project',
+            resources: {
+              requests: { cpu: '1', memory: '2Gi' },
+              // No limits defined
+            },
+          }),
+        ],
+      });
+
+      projectDetails.visitSection('test-project', 'model-server');
+
+      // Open edit modal
+      modelServingSection
+        .getKServeRow('Test Inference Partial')
+        .find()
+        .findKebabAction('Edit')
+        .click();
+      kserveModalEdit.shouldBeOpen();
+
+      // Navigate to custom size section
+      kserveModalEdit.findModelServerSizeSelect().should('contain.text', 'Custom');
+
+      // Verify only request checkboxes are checked (since only requests exist in the resources)
+      kserveModalEdit.findCPURequestedCheckbox().should('be.checked');
+      kserveModalEdit.findMemoryRequestedCheckbox().should('be.checked');
+      kserveModalEdit.findCPULimitCheckbox().should('not.be.checked');
+      kserveModalEdit.findMemoryLimitCheckbox().should('not.be.checked');
+
+      // Verify initial values match existing requests
+      kserveModalEdit.findCPURequestedInput().should('have.value', '1');
+      kserveModalEdit.findMemoryRequestedInput().should('have.value', '2');
+
+      // Verify limit checkboxes are disabled since no request for limits
+      kserveModalEdit.findCPULimitCheckbox().should('not.be.disabled'); // Should be enabled since CPU request exists
+      kserveModalEdit.findMemoryLimitCheckbox().should('not.be.disabled'); // Should be enabled since Memory request exists
+
+      // Verify limit inputs are empty
+      kserveModalEdit.findCPULimitInput().should('have.value', '');
+      kserveModalEdit.findMemoryLimitInput().should('have.value', '');
+
+      // Verify form is initially valid (even with only requests)
+      kserveModalEdit.findSubmitButton().should('be.enabled');
     });
 
     it('KServe Model list', () => {
@@ -1322,6 +1583,112 @@ describe('Serving Runtime List', () => {
       modelServingSection
         .findKServeTableHeaderButton('Model deployment name')
         .should(be.sortDescending);
+    });
+
+    it('Stop and start model', () => {
+      initIntercepts({
+        projectEnableModelMesh: false,
+        disableKServeConfig: false,
+        disableModelMeshConfig: true,
+        inferenceServices: [
+          mockInferenceServiceK8sResource({
+            name: 'test-model',
+            displayName: 'test-model',
+            modelName: 'test-model',
+            isModelMesh: false,
+            activeModelState: 'Loaded',
+          }),
+        ],
+      });
+      cy.clearLocalStorage(STOP_MODAL_PREFERENCE_KEY);
+      cy.window().then((win) => win.localStorage.setItem(STOP_MODAL_PREFERENCE_KEY, 'false'));
+      projectDetails.visitSection('test-project', 'model-server');
+
+      const kserveRow = modelServingSection.getKServeRow('test-model');
+      kserveRow.findStatusLabel('Started');
+
+      const stoppedInferenceService = mockInferenceServiceK8sResource({
+        name: 'test-model',
+        displayName: 'test-model',
+        modelName: 'test-model',
+        isModelMesh: false,
+        activeModelState: 'Unknown',
+      });
+      stoppedInferenceService.metadata.annotations = {
+        ...stoppedInferenceService.metadata.annotations,
+        'serving.kserve.io/stop': 'true',
+      };
+
+      cy.intercept(
+        'PATCH',
+        '/api/k8s/apis/serving.kserve.io/v1beta1/namespaces/test-project/inferenceservices/test-model',
+        (req) => {
+          expect(req.body).to.deep.include({
+            op: 'add',
+            path: '/metadata/annotations/serving.kserve.io~1stop',
+            value: 'true',
+          });
+          req.reply(stoppedInferenceService);
+        },
+      ).as('stopModelPatch');
+      cy.interceptK8sList(InferenceServiceModel, mockK8sResourceList([stoppedInferenceService])).as(
+        'getStoppedModel',
+      );
+
+      kserveRow.findStateActionToggle().should('have.text', 'Stop').click();
+      kserveRow.findConfirmStopModal().should('exist');
+      kserveRow.findConfirmStopModalCheckbox().should('exist');
+      kserveRow.findConfirmStopModalCheckbox().should('not.be.checked');
+      kserveRow.findConfirmStopModalCheckbox().click();
+      kserveRow.findConfirmStopModalCheckbox().should('be.checked');
+      kserveRow.findConfirmStopModalButton().click();
+
+      cy.interceptK8sList(
+        {
+          model: PodModel,
+          ns: 'test-project',
+          queryParams: { labelSelector: 'serving.kserve.io/inferenceservice=test-model' },
+        },
+        mockK8sResourceList([]),
+      ).as('getPods');
+
+      cy.wait(['@stopModelPatch', '@getStoppedModel']);
+
+      kserveRow.findStatusLabel('Stopped');
+      kserveRow.findStateActionToggle().should('have.text', 'Start');
+      cy.window().then((win) => {
+        const preference = win.localStorage.getItem(STOP_MODAL_PREFERENCE_KEY);
+        expect(preference).to.equal('true');
+      });
+
+      const runningInferenceService = mockInferenceServiceK8sResource({
+        name: 'test-model',
+        displayName: 'test-model',
+        modelName: 'test-model',
+        isModelMesh: false,
+        activeModelState: 'Loaded',
+      });
+
+      cy.intercept(
+        'PATCH',
+        '/api/k8s/apis/serving.kserve.io/v1beta1/namespaces/test-project/inferenceservices/test-model',
+        (req) => {
+          expect(req.body).to.deep.include({
+            op: 'add',
+            path: '/metadata/annotations/serving.kserve.io~1stop',
+            value: 'false',
+          });
+          req.reply(runningInferenceService);
+        },
+      ).as('startModelPatch');
+      cy.interceptK8sList(InferenceServiceModel, mockK8sResourceList([runningInferenceService])).as(
+        'getStartedModel',
+      );
+
+      kserveRow.findStateActionToggle().should('have.text', 'Start').click();
+      cy.wait(['@startModelPatch', '@getStartedModel']);
+      kserveRow.findStatusLabel('Started');
+      kserveRow.findStateActionToggle().should('have.text', 'Stop');
     });
 
     it('Check number of replicas of model', () => {
@@ -3344,6 +3711,17 @@ describe('Serving Runtime List', () => {
       createServingRuntimeModal.findServingRuntimeTemplateSearchSelector().within(() => {
         createServingRuntimeModal.findServingRuntimeVersionLabel().should('exist');
       });
+      createServingRuntimeModal.findCloseButton().click();
+
+      // Check that the label is displayed when editing
+      modelServingSection
+        .getModelMeshRow('OVMS Model Serving')
+        .find()
+        .findKebabAction('Edit model server')
+        .click();
+      editServingRuntimeModal.findServingRuntimeTemplateSearchSelector().within(() => {
+        editServingRuntimeModal.findServingRuntimeVersionLabel().should('exist');
+      });
     });
 
     it('displays label in search selector when single-model serving is selected', () => {
@@ -3363,6 +3741,13 @@ describe('Serving Runtime List', () => {
       kserveModal.findGlobalScopedTemplateOption('Multi Platform').click();
       kserveModal.findServingRuntimeTemplateSearchSelector().within(() => {
         kserveModal.findServingRuntimeVersionLabel().should('exist');
+      });
+      kserveModal.findCloseButton().click();
+
+      // Check that the label is displayed when editing
+      modelServingSection.getKServeRow('Llama Caikit').find().findKebabAction('Edit').click();
+      kserveModalEdit.findServingRuntimeTemplateSearchSelector().within(() => {
+        kserveModalEdit.findServingRuntimeVersionLabel().should('exist');
       });
     });
   });

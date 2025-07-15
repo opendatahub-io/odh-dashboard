@@ -91,13 +91,13 @@ describe('Start, Stop, Launch and Delete a Workbench in RHOAI', () => {
 
       // Stop workbench
       cy.step('Stop workbench and validate it has been stopped');
-      notebookRow.findNotebookStop().click();
+      notebookRow.findNotebookStopToggle().click();
       notebookConfirmModal.findStopWorkbenchButton().click();
       notebookRow.expectStatusLabelToBe('Stopped', 120000);
 
       // Restart workbench and confirm initiation
       cy.step('Restart workbench and validate it starts successfully');
-      notebookRow.findNotebookStart().click();
+      notebookRow.findNotebookStopToggle().click();
       notebookRow.expectStatusLabelToBe('Running', 120000);
 
       // Delete workbench

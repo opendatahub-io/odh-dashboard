@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { ImageStreamKind, ImageStreamSpecTagType, NotebookKind } from '#~/k8sTypes';
 import useNamespaces from '#~/pages/notebookController/useNamespaces';
-import useImageStreams from '#~/pages/projects/screens/spawner/useImageStreams';
+import { useImageStreams } from '#~/utilities/useImageStreams';
 import { PodContainer } from '#~/types';
 import {
   getImageStreamDisplayName,
@@ -17,7 +17,8 @@ export const getNotebookImageData = (
   const container: PodContainer | undefined = notebook.spec.template.spec.containers.find(
     (currentContainer) => currentContainer.name === notebook.metadata.name,
   );
-  const imageTag = container?.image.split('/').at(-1)?.split(':');
+  const containerImages = container?.image.split('/');
+  const imageTag = containerImages?.[containerImages.length - 1]?.split(':');
   // if image could not be parsed from the container, consider it deleted because the image tag is invalid
   if (!imageTag || imageTag.length < 2 || !container) {
     return {
@@ -80,7 +81,7 @@ const useNotebookImageData = (notebook?: NotebookKind): NotebookImageData => {
   const namespace = notebook?.metadata.annotations?.['opendatahub.io/workbench-image-namespace']
     ? notebook.metadata.annotations['opendatahub.io/workbench-image-namespace']
     : dashboardNamespace;
-  const [images, loaded, loadError] = useImageStreams(namespace, true);
+  const [images, loaded, loadError] = useImageStreams(namespace);
 
   return React.useMemo(() => {
     if (!notebook || !loaded) {

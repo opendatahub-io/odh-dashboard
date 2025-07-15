@@ -11,11 +11,16 @@ import { EitherNotBoth } from './typeHelpers';
 import { NotebookPodSpecOptions } from './concepts/hardwareProfiles/useNotebookPodSpecOptionsState';
 import { FetchStateObject } from './utilities/useFetch';
 
-export type DevFeatureFlags = {
+export type FeatureFlagProps = {
   devFeatureFlags: Record<FeatureFlag | string, boolean | undefined> | null;
   setDevFeatureFlag: (flag: FeatureFlag | string, value: boolean) => void;
   resetDevFeatureFlags: (turnOff: boolean) => void;
+};
+
+// to add to below:  isBannerVisible: boolean;
+export type DevFeatureFlags = FeatureFlagProps & {
   setDevFeatureFlagQueryVisible: (visible: boolean) => void;
+  isBannerVisible: boolean;
 };
 
 export type PrometheusQueryResponse<TResultExtraProps extends object = object> = {
@@ -284,6 +289,30 @@ export type NotebookPort = {
   protocol: string;
 };
 
+export type HardwareProfileAnnotations = Partial<{
+  'opendatahub.io/display-name': string;
+  'opendatahub.io/description': string;
+  'opendatahub.io/dashboard-feature-visibility': string; // JSON stringified HardwareProfileFeatureVisibility[]
+  'opendatahub.io/disabled': string;
+}>;
+
+export type HardwareProfileScheduling = {
+  type: SchedulingType;
+  kueue?: {
+    localQueueName: string;
+    priorityClass?: string;
+  };
+  node?: {
+    nodeSelector?: NodeSelector;
+    tolerations?: Toleration[];
+  };
+};
+
+export enum SchedulingType {
+  QUEUE = 'Queue',
+  NODE = 'Node',
+}
+
 export enum TolerationOperator {
   EXISTS = 'Exists',
   EQUAL = 'Equal',
@@ -549,6 +578,34 @@ export type ImageInfo = {
 
 export type ImageType = 'byon' | 'jupyter' | 'other';
 
+export enum ImageStreamAnnotation {
+  DISP_NAME = 'opendatahub.io/notebook-image-name',
+  DESC = 'opendatahub.io/notebook-image-desc',
+  URL = 'opendatahub.io/notebook-image-url',
+  CREATOR = 'opendatahub.io/notebook-image-creator',
+  RECOMMENDED_ACCELERATORS = 'opendatahub.io/recommended-accelerators',
+  IMAGE_ORDER = 'opendatahub.io/notebook-image-order',
+}
+
+export enum ImageStreamLabel {
+  NOTEBOOK = 'opendatahub.io/notebook-image',
+}
+
+export enum ImageStreamSpecTagAnnotation {
+  DEPENDENCIES = 'opendatahub.io/notebook-python-dependencies',
+  SOFTWARE = 'opendatahub.io/notebook-software',
+  OUTDATED = 'opendatahub.io/image-tag-outdated',
+  RECOMMENDED = 'opendatahub.io/workbench-image-recommended',
+  DEFAULT = 'opendatahub.io/default-image',
+}
+
+export enum DisplayNameAnnotation {
+  DISP_NAME = 'openshift.io/display-name',
+  DESC = 'openshift.io/description',
+  ODH_DISP_NAME = 'opendatahub.io/display-name',
+  ODH_DESC = 'opendatahub.io/description',
+}
+
 export type Volume = {
   name: string;
   emptyDir?: Record<string, unknown>;
@@ -755,3 +812,11 @@ export enum OdhPlatformType {
 } // Reference: https://github.com/red-hat-data-services/rhods-operator/blob/main/pkg/cluster/const.go
 
 export type TypedPromiseRejectedResult<R> = Omit<PromiseRejectedResult, 'reason'> & { reason: R };
+
+export enum IconSize {
+  SM = 'sm',
+  MD = 'md',
+  LG = 'lg',
+  XL = 'xl',
+  XXL = 'xxl',
+}

@@ -150,3 +150,87 @@ export const cleanupRegisteredModelsFromDatabase = (modelNames: string[]): Cypre
         });
     });
 };
+
+/**
+ * Check if a registered model exists in the database
+ * @param modelName Name of the model to check
+ * @returns Cypress.Chainable<boolean> that resolves to true if the model exists
+ */
+export const checkModelExistsInDatabase = (modelName: string): Cypress.Chainable<boolean> => {
+  const targetNamespace = getModelRegistryNamespace();
+  const findPodCommand = `oc get pods -n ${targetNamespace} -o name | grep model-registry-db | head -1 | cut -d'/' -f2`;
+
+  return cy
+    .exec(findPodCommand, { failOnNonZeroExit: false })
+    .then((podResult: CommandLineResult) => {
+      if (podResult.code !== 0 || !podResult.stdout.trim()) {
+        cy.log('No MySQL pod found, cannot verify model existence');
+        return cy.wrap(false);
+      }
+
+      const podName = podResult.stdout.trim();
+      const sqlQuery = `SELECT COUNT(*) FROM Context WHERE name = '${modelName.replace(
+        /'/g,
+        "''",
+      )}';`;
+      const verifyCommand = `oc exec ${podName} -n ${targetNamespace} -- mysql -u mlmduser -pTheBlurstOfTimes model_registry -e "${sqlQuery}" --skip-column-names`;
+
+      cy.log(`Checking if model '${modelName}' exists in database`);
+
+      return cy
+        .exec(verifyCommand, { failOnNonZeroExit: false })
+        .then((verifyResult: CommandLineResult) => {
+          if (verifyResult.code === 0) {
+            const count = parseInt(verifyResult.stdout.trim(), 10);
+            const exists = count > 0;
+            cy.log(`Model '${modelName}' exists in database: ${exists}`);
+            return cy.wrap(exists);
+          }
+          cy.log(`Database verification failed: ${verifyResult.stderr}`);
+          return cy.wrap(false);
+        });
+    });
+};
+
+/**
+ * Check if a model version exists in the database
+ * @param versionName Name of the version to check
+ * @returns Cypress.Chainable<boolean> that resolves to true if the version exists
+ */
+export const checkModelVersionExistsInDatabase = (
+  versionName: string,
+): Cypress.Chainable<boolean> => {
+  const targetNamespace = getModelRegistryNamespace();
+  const findPodCommand = `oc get pods -n ${targetNamespace} -o name | grep model-registry-db | head -1 | cut -d'/' -f2`;
+
+  return cy
+    .exec(findPodCommand, { failOnNonZeroExit: false })
+    .then((podResult: CommandLineResult) => {
+      if (podResult.code !== 0 || !podResult.stdout.trim()) {
+        cy.log('No MySQL pod found, cannot verify version existence');
+        return cy.wrap(false);
+      }
+
+      const podName = podResult.stdout.trim();
+      const sqlQuery = `SELECT COUNT(*) FROM Context WHERE name LIKE '%${versionName.replace(
+        /'/g,
+        "''",
+      )}%';`;
+      const verifyCommand = `oc exec ${podName} -n ${targetNamespace} -- mysql -u mlmduser -pTheBlurstOfTimes model_registry -e "${sqlQuery}" --skip-column-names`;
+
+      cy.log(`Checking if version '${versionName}' exists in database`);
+
+      return cy
+        .exec(verifyCommand, { failOnNonZeroExit: false })
+        .then((verifyResult: CommandLineResult) => {
+          if (verifyResult.code === 0) {
+            const count = parseInt(verifyResult.stdout.trim(), 10);
+            const exists = count > 0;
+            cy.log(`Version '${versionName}' exists in database: ${exists}`);
+            return cy.wrap(exists);
+          }
+          cy.log(`Database verification failed: ${verifyResult.stderr}`);
+          return cy.wrap(false);
+        });
+    });
+};

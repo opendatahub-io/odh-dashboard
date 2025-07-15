@@ -18,7 +18,6 @@ import {
   getPossibleStorageClassAccessModes,
   getStorageClassConfig,
 } from '#~/pages/storageClasses/utils';
-import { AccessMode } from '#~/pages/storageClasses/storageEnums';
 import { StorageClassConfig, StorageClassKind } from '#~/k8sTypes';
 import useAdminDefaultStorageClass from './useAdminDefaultStorageClass';
 import AccessModeLabel from './AccessModeLabel';
@@ -34,6 +33,7 @@ type StorageClassSelectProps = {
   disableStorageClassSelect?: boolean;
   menuAppendTo?: HTMLElement | 'inline';
   validated?: ValidatedOptions;
+  showDefaultWhenNoConfig?: boolean;
 };
 
 const StorageClassSelect: React.FC<StorageClassSelectProps> = ({
@@ -47,12 +47,13 @@ const StorageClassSelect: React.FC<StorageClassSelectProps> = ({
   disableStorageClassSelect,
   menuAppendTo,
   validated,
+  showDefaultWhenNoConfig = false,
 }) => {
   const hasStorageClassConfigs = storageClasses.some((sc) => !!getStorageClassConfig(sc));
   const [defaultSc] = useAdminDefaultStorageClass();
 
   const enabledStorageClasses = storageClasses
-    .filter((sc) => getStorageClassConfig(sc)?.isEnabled === true)
+    .filter((sc) => getStorageClassConfig(sc)?.isEnabled)
     .toSorted((a, b) => {
       const aConfig = getStorageClassConfig(a);
       const bConfig = getStorageClassConfig(b);
@@ -67,9 +68,23 @@ const StorageClassSelect: React.FC<StorageClassSelectProps> = ({
       );
     });
 
-  const options: SimpleSelectOption[] = (
-    disableStorageClassSelect ? storageClasses : enabledStorageClasses
-  ).map((sc) => {
+  // When showDefaultWhenNoConfig is true and no configs exist, show all storage classes but disable the select
+  const shouldShowDefaultOnly = showDefaultWhenNoConfig && !hasStorageClassConfigs;
+
+  // Determine which storage classes to show
+  let storageClassesToShow: StorageClassKind[];
+  if (shouldShowDefaultOnly) {
+    // Show all storage classes when no ODH configs exist and showDefaultWhenNoConfig is true
+    storageClassesToShow = storageClasses;
+  } else if (disableStorageClassSelect) {
+    // Show all storage classes when disabled
+    storageClassesToShow = storageClasses;
+  } else {
+    // Show only enabled storage classes with ODH configs
+    storageClassesToShow = enabledStorageClasses;
+  }
+
+  const options: SimpleSelectOption[] = storageClassesToShow.map((sc) => {
     const config = getStorageClassConfig(sc);
 
     return {
@@ -91,11 +106,11 @@ const StorageClassSelect: React.FC<StorageClassSelectProps> = ({
             {/* If multiple storage classes have `isDefault` set to true,
             prioritize the one returned by useAdminDefaultStorageClass() as the default class */}
             <LabelGroup>
-              {getPossibleStorageClassAccessModes(sc)
-                .adminSupportedAccessModes.filter((accessMode) => accessMode !== AccessMode.RWO)
-                .map((accessMode, index) => (
+              {getPossibleStorageClassAccessModes(sc).adminSupportedAccessModes.map(
+                (accessMode, index) => (
                   <AccessModeLabel key={index} accessMode={accessMode} />
-                ))}
+                ),
+              )}
               {sc.metadata.name === defaultSc?.metadata.name && (
                 <Label isCompact color="green" data-testid="is-default-label">
                   Default class
@@ -108,7 +123,7 @@ const StorageClassSelect: React.FC<StorageClassSelectProps> = ({
     };
   });
 
-  if (storageClassesLoaded && !hasStorageClassConfigs) {
+  if (storageClassesLoaded && !hasStorageClassConfigs && !showDefaultWhenNoConfig) {
     return null;
   }
 
@@ -119,7 +134,7 @@ const StorageClassSelect: React.FC<StorageClassSelectProps> = ({
     [ValidatedOptions.default]: undefined,
   };
 
-  return hasStorageClassConfigs ? (
+  return storageClassesLoaded ? (
     <FormGroup label="Storage class" fieldId="storage-class" isRequired={isRequired}>
       <SimpleSelect
         dataTestId="storage-classes-selector"
@@ -130,7 +145,7 @@ const StorageClassSelect: React.FC<StorageClassSelectProps> = ({
         onChange={(selection) => {
           setStorageClassName(selection);
         }}
-        isDisabled={disableStorageClassSelect || !storageClassesLoaded}
+        isDisabled={disableStorageClassSelect || shouldShowDefaultOnly}
         placeholder="Select storage class"
         popperProps={{ appendTo: menuAppendTo }}
         toggleProps={{ status: validated ? validatedToToggleStatus[validated] : undefined }}

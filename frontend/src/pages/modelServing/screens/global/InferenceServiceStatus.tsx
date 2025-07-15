@@ -1,7 +1,6 @@
 import * as React from 'react';
-import { Icon } from '@patternfly/react-core';
-import { InferenceServiceKind } from '#~/k8sTypes';
 import { ModelStatusIcon } from '#~/concepts/modelServing/ModelStatusIcon';
+import { InferenceServiceKind } from '#~/k8sTypes';
 import {
   getInferenceServiceModelState,
   getInferenceServiceStatusMessage,
@@ -11,13 +10,17 @@ import { useModelStatus } from './useModelStatus';
 type InferenceServiceStatusProps = {
   inferenceService: InferenceServiceKind;
   isKserve: boolean;
-  iconSize?: React.ComponentProps<typeof Icon>['iconSize'];
+  isStarting?: boolean;
+  isStopping?: boolean;
+  isStopped?: boolean;
 };
 
 const InferenceServiceStatus: React.FC<InferenceServiceStatusProps> = ({
   inferenceService,
   isKserve,
-  iconSize,
+  isStarting,
+  isStopping,
+  isStopped,
 }) => {
   const [modelPodStatus] = useModelStatus(
     inferenceService.metadata.namespace,
@@ -33,7 +36,9 @@ const InferenceServiceStatus: React.FC<InferenceServiceStatusProps> = ({
       state={state}
       defaultHeaderContent="Inference Service Status"
       bodyContent={bodyContent}
-      iconSize={iconSize}
+      isStarting={isStarting}
+      isStopping={isStopping}
+      isStopped={isStopped}
     />
   );
 };

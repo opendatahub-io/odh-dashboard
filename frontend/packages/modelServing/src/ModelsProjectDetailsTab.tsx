@@ -1,30 +1,25 @@
 import React from 'react';
-import ModelsProjectDetailsView from './components/projectDetails/ModelsProjectDetailsView';
+import { ProjectDetailsContext } from '@odh-dashboard/internal/pages/projects/ProjectDetailsContext';
+import { useExtensions } from '@odh-dashboard/plugin-core';
+import { useProjectServingPlatform } from './concepts/useProjectServingPlatform';
 import { ModelDeploymentsProvider } from './concepts/ModelDeploymentsContext';
-import {
-  ModelServingPlatformContext,
-  ModelServingPlatformProvider,
-} from './concepts/ModelServingPlatformContext';
+import ModelsProjectDetailsView from './components/projectDetails/ModelsProjectDetailsView';
+import { isModelServingPlatformExtension } from '../extension-points';
 
-const WithDeploymentsData: React.FC = () => {
-  const { platform, project } = React.useContext(ModelServingPlatformContext);
+const ModelsProjectDetailsTab: React.FC = () => {
+  const { currentProject } = React.useContext(ProjectDetailsContext);
 
-  // Certain platform-specific properties, such as hooks, require the `platform`
-  // to be always defined and truthy.
-  if (platform && project) {
-    return (
-      <ModelDeploymentsProvider modelServingPlatform={platform} project={project}>
-        <ModelsProjectDetailsView />
-      </ModelDeploymentsProvider>
-    );
-  }
-  return <ModelsProjectDetailsView />;
+  const availablePlatforms = useExtensions(isModelServingPlatformExtension);
+
+  const { activePlatform } = useProjectServingPlatform(currentProject, availablePlatforms);
+  return (
+    <ModelDeploymentsProvider
+      modelServingPlatforms={activePlatform ? [activePlatform] : []}
+      projects={[currentProject]}
+    >
+      <ModelsProjectDetailsView project={currentProject} />
+    </ModelDeploymentsProvider>
+  );
 };
-
-const ModelsProjectDetailsTab: React.FC = () => (
-  <ModelServingPlatformProvider>
-    <WithDeploymentsData />
-  </ModelServingPlatformProvider>
-);
 
 export default ModelsProjectDetailsTab;

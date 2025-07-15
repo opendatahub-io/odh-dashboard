@@ -13,7 +13,7 @@ import InferenceServiceTableRow from '#~/pages/modelServing/screens/global/Infer
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import ServingRuntimeDetails from '#~/pages/modelServing/screens/projects/ModelMeshSection/ServingRuntimeDetails';
 import ResourceTr from '#~/components/ResourceTr';
-import ServingRuntimeTokensTable from '#~/pages/modelServing/screens/projects/ModelMeshSection/ServingRuntimeTokensTable';
+import ServingRuntimeTokensTable from '#~/concepts/modelServingKServe/ServingRuntimeTokensTable';
 import { isInferenceServiceTokenEnabled } from '#~/pages/modelServing/screens/projects/utils';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 
@@ -49,6 +49,7 @@ const KServeInferenceServiceTableRow: React.FC<KServeInferenceServiceTableRowPro
     servingRuntimes: {
       data: { items: servingRuntimes },
     },
+    inferenceServices,
   } = React.useContext(ProjectDetailsContext);
 
   const frameworkName = obj.spec.predictor.model?.modelFormat?.name || '';
@@ -74,6 +75,7 @@ const KServeInferenceServiceTableRow: React.FC<KServeInferenceServiceTableRowPro
           obj={obj}
           columnNames={columnNames}
           servingRuntime={servingRuntime}
+          refresh={inferenceServices.refresh}
           onDeleteInferenceService={() => onDeleteKServe({ inferenceService: obj, servingRuntime })}
           onEditInferenceService={() => onEditKServe({ inferenceService: obj, servingRuntime })}
         />

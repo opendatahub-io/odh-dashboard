@@ -4,6 +4,8 @@ import {
   resourcesArePositive,
   setUpTokenAuth,
   isOciModelUri,
+  getInferenceServiceStoppedStatus,
+  getServingRuntimeVersionStatus,
 } from '#~/pages/modelServing/utils';
 import { mockServingRuntimeK8sResource } from '#~/__mocks__/mockServingRuntimeK8sResource';
 import { ContainerResources } from '#~/types';
@@ -21,6 +23,7 @@ import {
 import { mock404Error } from '#~/__mocks__/mockK8sStatus';
 import { mockInferenceServiceK8sResource } from '#~/__mocks__/mockInferenceServiceK8sResource';
 import { mockRoleK8sResource } from '#~/__mocks__/mockRoleK8sResource';
+import { ServingRuntimeVersionStatusLabel } from '#~/pages/modelServing/screens/const';
 
 jest.mock('#~/api', () => ({
   ...jest.requireActual('#~/api'),
@@ -304,5 +307,47 @@ describe('isOciModelUri', () => {
     expect(isOciModelUri('s3://my-model')).toBe(false);
     expect(isOciModelUri(undefined)).toBe(false);
     expect(isOciModelUri('')).toBe(false);
+  });
+});
+
+describe('getInferenceServiceStoppedStatus', () => {
+  it('should return running status when model is running', () => {
+    const inferenceService = mockInferenceServiceK8sResource({});
+
+    expect(getInferenceServiceStoppedStatus(inferenceService)).toEqual({
+      inferenceService,
+      isStopped: false,
+      isRunning: true,
+    });
+  });
+
+  it('should return stopped status when model is stopped', () => {
+    const inferenceService = mockInferenceServiceK8sResource({});
+    inferenceService.metadata.annotations ??= {};
+    inferenceService.metadata.annotations['serving.kserve.io/stop'] = 'true';
+
+    expect(getInferenceServiceStoppedStatus(inferenceService)).toEqual({
+      inferenceService,
+      isStopped: true,
+      isRunning: false,
+    });
+  });
+});
+
+describe('getServingRuntimeVersionStatus', () => {
+  it('should return undefined if servingRuntimeVersion or templateVersion is undefined', () => {
+    expect(getServingRuntimeVersionStatus(undefined, undefined)).toBeUndefined();
+  });
+
+  it('should return latest if servingRuntimeVersion and templateVersion are the same', () => {
+    expect(getServingRuntimeVersionStatus('1.0.0', '1.0.0')).toBe(
+      ServingRuntimeVersionStatusLabel.LATEST,
+    );
+  });
+
+  it('should return outdated if servingRuntimeVersion and templateVersion are different', () => {
+    expect(getServingRuntimeVersionStatus('1.0.0', '2.0.0')).toBe(
+      ServingRuntimeVersionStatusLabel.OUTDATED,
+    );
   });
 });

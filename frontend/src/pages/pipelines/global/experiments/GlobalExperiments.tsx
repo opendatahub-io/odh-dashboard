@@ -30,6 +30,7 @@ const GlobalExperiments: React.FC<GlobalExperimentsParams> = ({ tab }) => {
       headerAction={<PipelineServerActions isDisabled={!pipelinesAPI.pipelinesServer.installed} />}
       getRedirectPath={experimentsBaseRoute}
       overrideChildPadding
+      overrideTimeout
     >
       <EnsureAPIAvailability>
         <EnsureCompatiblePipelineServer>

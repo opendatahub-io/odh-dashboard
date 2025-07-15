@@ -2,17 +2,13 @@ import { useAppContext } from '#~/app/AppContext';
 import { useDashboardNamespace } from '#~/redux/selectors';
 
 const useNamespaces = (): {
-  /** @deprecated - all new functionality should use project creation under DSG */
-  notebookNamespace: string;
+  workbenchNamespace: string;
   dashboardNamespace: string;
 } => {
-  const { dashboardConfig } = useAppContext();
   const { dashboardNamespace } = useDashboardNamespace();
+  const { workbenchNamespace } = useAppContext();
 
-  /** @deprecated */
-  const notebookNamespace = dashboardConfig.spec.notebookController?.notebookNamespace;
-
-  return { notebookNamespace: notebookNamespace || dashboardNamespace, dashboardNamespace };
+  return { workbenchNamespace: workbenchNamespace || dashboardNamespace, dashboardNamespace };
 };
 
 export default useNamespaces;

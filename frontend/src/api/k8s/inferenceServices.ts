@@ -6,6 +6,7 @@ import {
   k8sListResource,
   K8sStatus,
   k8sUpdateResource,
+  k8sPatchResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import { InferenceServiceModel } from '#~/api/models';
 import { InferenceServiceKind, K8sAPIOptions, KnownLabels } from '#~/k8sTypes';
@@ -361,3 +362,22 @@ export const deleteInferenceService = (
       opts,
     ),
   );
+
+export const patchInferenceServiceStoppedStatus = (
+  inferenceService: InferenceServiceKind,
+  stoppedStatus: 'true' | 'false',
+): Promise<InferenceServiceKind> =>
+  k8sPatchResource({
+    model: InferenceServiceModel,
+    queryOptions: {
+      name: inferenceService.metadata.name,
+      ns: inferenceService.metadata.namespace,
+    },
+    patches: [
+      {
+        op: 'add',
+        path: '/metadata/annotations/serving.kserve.io~1stop',
+        value: stoppedStatus,
+      },
+    ],
+  });

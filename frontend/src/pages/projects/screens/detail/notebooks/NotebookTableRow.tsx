@@ -20,11 +20,11 @@ import { currentlyHasPipelines } from '#~/concepts/pipelines/elyra/utils';
 import { fireNotebookTrackingEvent } from '#~/pages/projects/notebook/utils';
 import useStopNotebookModalAvailability from '#~/pages/projects/notebook/useStopNotebookModalAvailability';
 import { useAppContext } from '#~/app/AppContext';
-import NotebookStateAction from '#~/pages/projects/notebook/NotebookStateAction';
 import StopNotebookConfirmModal from '#~/pages/projects/notebook/StopNotebookConfirmModal';
 import { useNotebookKindPodSpecOptionsState } from '#~/concepts/hardwareProfiles/useNotebookPodSpecOptionsState';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import NotebookTableRowHardwareProfile from '#~/pages/projects/screens/detail/notebooks/NotebookTableRowHardwareProfile';
+import StateActionToggle from '#~/components/StateActionToggle';
 import { NotebookImageStatus } from './const';
 import { NotebookImageDisplayName } from './NotebookImageDisplayName';
 import NotebookStorageBars from './NotebookStorageBars';
@@ -219,8 +219,8 @@ const NotebookTableRow: React.FC<NotebookTableRowProps> = ({
           <NotebookStateStatus notebookState={obj} stopNotebook={onStop} startNotebook={onStart} />
         </Td>
         <Td>
-          <NotebookStateAction
-            notebookState={obj}
+          <StateActionToggle
+            currentState={obj}
             onStart={onStart}
             onStop={onStop}
             isDisabled={inProgress}

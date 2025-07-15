@@ -11,13 +11,17 @@ import {
 } from '@patternfly/react-core';
 import { AppContext } from '#~/app/AppContext';
 import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
-import { getServingRuntimeSizes } from '#~/pages/modelServing/screens/projects/utils';
+import { getModelServingSizes } from '#~/concepts/modelServing/modelServingSizesUtils';
 import { getResourceSize } from '#~/pages/modelServing/utils';
 import { formatMemory } from '#~/utilities/valueUnits';
 import { useModelServingPodSpecOptionsState } from '#~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
 import { useIsAreaAvailable, SupportedArea } from '#~/concepts/areas';
 import ScopedLabel from '#~/components/ScopedLabel';
 import { ScopedType } from '#~/pages/modelServing/screens/const';
+import {
+  getHardwareProfileDisplayName,
+  isHardwareProfileEnabled,
+} from '#~/pages/hardwareProfiles/utils.ts';
 
 type ServingRuntimeDetailsProps = {
   project?: string;
@@ -37,7 +41,7 @@ const ServingRuntimeDetails: React.FC<ServingRuntimeDetailsProps> = ({ project, 
     (ac) => ac.spec.enabled,
   );
   const resources = isvc?.spec.predictor.model?.resources || obj.spec.containers[0].resources;
-  const sizes = getServingRuntimeSizes(dashboardConfig);
+  const sizes = getModelServingSizes(dashboardConfig);
   const size = sizes.find(
     (currentSize) => getResourceSize(sizes, resources || {}).name === currentSize.name,
   );
@@ -76,7 +80,9 @@ const ServingRuntimeDetails: React.FC<ServingRuntimeDetailsProps> = ({ project, 
           <DescriptionListDescription data-testid="hardware-section">
             {hardwareProfile.initialHardwareProfile ? (
               <Flex gap={{ default: 'gapSm' }}>
-                <FlexItem>{hardwareProfile.initialHardwareProfile.spec.displayName}</FlexItem>
+                <FlexItem>
+                  {getHardwareProfileDisplayName(hardwareProfile.initialHardwareProfile)}
+                </FlexItem>
                 <FlexItem>
                   {isProjectScopedAvailable &&
                     hardwareProfile.initialHardwareProfile.metadata.namespace === project && (
@@ -86,7 +92,9 @@ const ServingRuntimeDetails: React.FC<ServingRuntimeDetailsProps> = ({ project, 
                     )}
                 </FlexItem>
                 <Flex>
-                  {!hardwareProfile.initialHardwareProfile.spec.enabled ? '(disabled)' : ''}
+                  {!isHardwareProfileEnabled(hardwareProfile.initialHardwareProfile)
+                    ? '(disabled)'
+                    : ''}
                 </Flex>
               </Flex>
             ) : hardwareProfile.formData.useExistingSettings ? (

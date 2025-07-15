@@ -5,7 +5,7 @@ import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import InferenceServiceTable from '#~/pages/modelServing/screens/global/InferenceServiceTable';
 import { ServingRuntimeTableTabs } from '#~/pages/modelServing/screens/types';
 import ScrollViewOnMount from '#~/components/ScrollViewOnMount';
-import ServingRuntimeTokensTable from '#~/pages/modelServing/screens/projects/ModelMeshSection/ServingRuntimeTokensTable';
+import ServingRuntimeTokensTable from '#~/concepts/modelServingKServe/ServingRuntimeTokensTable';
 import {
   getInferenceServiceFromServingRuntime,
   isServingRuntimeTokenEnabled,

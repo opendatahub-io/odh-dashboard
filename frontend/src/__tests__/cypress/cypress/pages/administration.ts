@@ -1,3 +1,4 @@
+import { mockNotebookK8sResource } from '#~/__mocks__/mockNotebookK8sResource.ts';
 import { Modal } from './components/Modal';
 import { TableRow } from './components/table';
 
@@ -82,6 +83,17 @@ class AdministrationTab {
       this.findTable().find(`[data-label=name]`).contains(name).parents('tr'),
     );
   }
+
+  mockGetNotebookStatus(username: string, isRunning = true) {
+    return cy.interceptOdh(
+      'GET /api/notebooks/openshift-ai-notebooks/:username/status',
+      { path: { username } },
+      {
+        notebook: mockNotebookK8sResource({ image: 'code-server-notebook:2023.2' }),
+        isRunning,
+      },
+    );
+  }
 }
 
 class AdministrationUsersRow extends TableRow {
@@ -107,6 +119,14 @@ class StopNotebookModal extends Modal {
 
   findStopNotebookServerButton() {
     return this.find().findByTestId('stop-workbench-button');
+  }
+
+  findNotebookRouteLink() {
+    return this.find().findByTestId('workbench-url');
+  }
+
+  findStopNotebookTitle() {
+    return this.find().findByRole('heading');
   }
 }
 

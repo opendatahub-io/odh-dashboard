@@ -79,8 +79,8 @@ export const useIlabPodSpecOptionsState = (
     if (isHardwareProfilesAvailable) {
       podSpecOptions = {
         resources: hardwareProfile.formData.resources ?? {},
-        tolerations: hardwareProfile.formData.selectedProfile?.spec.tolerations,
-        nodeSelector: hardwareProfile.formData.selectedProfile?.spec.nodeSelector,
+        tolerations: hardwareProfile.formData.selectedProfile?.spec.scheduling?.node?.tolerations,
+        nodeSelector: hardwareProfile.formData.selectedProfile?.spec.scheduling?.node?.nodeSelector,
       };
     } else if (acceleratorProfile.formData.profile?.spec.identifier) {
       const resources: ContainerResources = {

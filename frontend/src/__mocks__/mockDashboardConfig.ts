@@ -41,6 +41,9 @@ export type MockDashboardConfigType = {
   disableLlamaStackChatBot?: boolean;
   modelServerSizes?: ModelServingSize[];
   disableLMEval?: boolean;
+  disableKueue?: boolean;
+  disablePVCServing?: boolean;
+  disableFeatureStore?: boolean;
 };
 
 export const mockDashboardConfig = ({
@@ -77,6 +80,9 @@ export const mockDashboardConfig = ({
   disableNIMModelServing = false,
   disableLlamaStackChatBot = false,
   disableLMEval = true,
+  disableKueue = true,
+  disablePVCServing = true,
+  disableFeatureStore = true,
   modelServerSizes = [
     {
       name: 'Small',
@@ -234,10 +240,12 @@ export const mockDashboardConfig = ({
       disableFineTuning,
       disableLlamaStackChatBot,
       disableLMEval,
+      disableKueue,
+      disablePVCServing,
+      disableFeatureStore,
     },
     notebookController: {
       enabled: !disableNotebookController,
-      notebookNamespace: 'openshift-ai-notebooks',
       notebookTolerationSettings: {
         enabled: true,
         key: 'NotebooksOnlyChange',

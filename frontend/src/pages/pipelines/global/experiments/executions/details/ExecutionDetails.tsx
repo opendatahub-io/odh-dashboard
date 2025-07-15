@@ -1,5 +1,4 @@
 import {
-  Breadcrumb,
   BreadcrumbItem,
   Bullseye,
   EmptyState,
@@ -27,6 +26,7 @@ import ExecutionDetailsInputOutputSection from '#~/pages/pipelines/global/experi
 import ExecutionDetailsPropertiesSection from '#~/pages/pipelines/global/experiments/executions/details/ExecutionDetailsPropertiesSection';
 import ExecutionDetailsReferenceSection from '#~/pages/pipelines/global/experiments/executions/details/ExecutionDetailsReferenceSection';
 import { ExecutionStatus } from '#~/pages/pipelines/global/experiments/executions/ExecutionStatus';
+import PipelineContextBreadcrumb from '#~/concepts/pipelines/content/PipelineContextBreadcrumb';
 import {
   getExecutionDisplayName,
   parseEventsByType,
@@ -91,10 +91,10 @@ const ExecutionDetails: PipelineCoreDetailsPageComponent = ({ breadcrumbPath, co
       }
       loaded
       breadcrumb={
-        <Breadcrumb>
+        <PipelineContextBreadcrumb>
           {breadcrumbPath}
           <BreadcrumbItem isActive>{displayName}</BreadcrumbItem>
-        </Breadcrumb>
+        </PipelineContextBreadcrumb>
       }
       empty={false}
       provideChildrenPadding

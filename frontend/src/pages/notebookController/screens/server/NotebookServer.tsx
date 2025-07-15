@@ -22,8 +22,6 @@ const NotebookServer: React.FC = () => {
   } = React.useContext(NotebookControllerContext);
   const notebooksToStop = notebook ? [notebook] : [];
 
-  const link = currentUserNotebookLink || '#';
-
   const { showModal, isDeleting, onStop, onNotebooksStop } = useStopWorkbenchModal({
     notebooksToStop,
     refresh: () => {
@@ -50,14 +48,14 @@ const NotebookServer: React.FC = () => {
                 <StopServerModal
                   notebooksToStop={notebooksToStop}
                   isDeleting={isDeleting}
-                  link={link}
+                  link={currentUserNotebookLink}
                   onNotebooksStop={onNotebooksStop}
                 />
               )}
               <ActionList>
                 <ActionListItem
                   onClick={(e) => {
-                    if (link === '#') {
+                    if (!currentUserNotebookLink) {
                       e.preventDefault();
                       notification.error(
                         'Error accessing workbench',
@@ -66,7 +64,7 @@ const NotebookServer: React.FC = () => {
                     }
                   }}
                 >
-                  <Button component="a" href={link} data-id="return-nb-button">
+                  <Button component="a" href={currentUserNotebookLink} data-id="return-nb-button">
                     Access workbench
                   </Button>
                 </ActionListItem>

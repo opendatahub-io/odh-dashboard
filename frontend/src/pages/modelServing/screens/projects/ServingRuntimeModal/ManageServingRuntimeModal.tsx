@@ -14,11 +14,7 @@ import {
   useCreateServingRuntimeObject,
 } from '#~/pages/modelServing/screens/projects/utils';
 import { TemplateKind, ProjectKind, AccessReviewResourceAttributes } from '#~/k8sTypes';
-import {
-  isModelServerEditInfoChanged,
-  requestsUnderLimits,
-  resourcesArePositive,
-} from '#~/pages/modelServing/utils';
+import { isModelServerEditInfoChanged } from '#~/pages/modelServing/utils';
 import useCustomServingRuntimesEnabled from '#~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
 import { getServingRuntimeFromName } from '#~/pages/modelServing/customServingRuntimes/utils';
 import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
@@ -36,6 +32,7 @@ import K8sNameDescriptionField, {
 import { isK8sNameDescriptionDataValid } from '#~/concepts/k8s/K8sNameDescriptionField/utils';
 import { useProfileIdentifiers } from '#~/concepts/hardwareProfiles/utils';
 import { useModelServingPodSpecOptionsState } from '#~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
+import useModelServerSizeValidation from '#~/pages/modelServing/screens/projects/useModelServerSizeValidation.ts';
 import ServingRuntimeReplicaSection from './ServingRuntimeReplicaSection';
 import ServingRuntimeSizeSection from './ServingRuntimeSizeSection';
 import ServingRuntimeTemplateSection from './ServingRuntimeTemplateSection';
@@ -94,11 +91,8 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
   });
 
   const tokenErrors = createData.tokens.filter((token) => token.error !== '').length > 0;
-  const baseInputValueValid =
-    createData.numReplicas >= 0 &&
-    podSpecOptionsState.podSpecOptions.resources &&
-    resourcesArePositive(podSpecOptionsState.podSpecOptions.resources) &&
-    requestsUnderLimits(podSpecOptionsState.podSpecOptions.resources);
+  const { isValid: isModelServerSizeValid } = useModelServerSizeValidation(podSpecOptionsState);
+  const baseInputValueValid = createData.numReplicas >= 0 && isModelServerSizeValid;
   const servingRuntimeTemplateNameValid = editInfo?.servingRuntime
     ? true
     : !!createData.servingRuntimeTemplateName;
@@ -209,6 +203,7 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
                 setData={setCreateData}
                 templates={servingRuntimeTemplates || []}
                 isEditing={!!editInfo}
+                servingRuntimeSelected={servingRuntimeSelected}
                 compatibleIdentifiers={profileIdentifiers}
               />
             </StackItem>

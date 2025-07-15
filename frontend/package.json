@@ -4,8 +4,10 @@
   "description": "Frontend for ODH dashboard.",
   "license": "Apache-2.0",
   "private": true,
+  "packageManager": "npm@10.9.2",
   "workspaces": [
     "src",
+    "src/__tests__/cypress",
     "packages/*"
   ],
   "repository": {
@@ -34,12 +36,12 @@
     "test": "run-s test:lint test:type-check test:unit test:cypress-ci",
     "test:coverage": "run-s test:lint test:type-check test:jest:coverage test:cypress-ci:coverage coverage:merge",
     "test:fix": "eslint --ext .js,.ts,.jsx,.tsx . --fix",
-    "test:lint": "eslint --max-warnings 0 --ext .js,.ts,.jsx,.tsx .",
-    "test:type-check": "tsc --noEmit && cd ./src/__tests__/cypress && tsc --noEmit",
+    "test:lint": "eslint --max-warnings 0 --ext .js,.ts,.jsx . && eslint --max-warnings 0 --ext .tsx .",
+    "test:type-check": "turbo run type-check",
     "test:jest": "jest",
     "test:jest:coverage": "rimraf jest-coverage && jest --silent --coverage --coverageReporters=json --coverageReporters=lcov",
     "test:unit": "npm run test:jest -- --silent",
-    "test:unit-coverage": "run-s test:type-check test:jest:coverage",
+    "test:unit-coverage": "npm run test:jest:coverage",
     "test:cypress-ci": "npx concurrently -P -k -s first \"npm run cypress:server:build && npm run cypress:server\" \"npx wait-on tcp:127.0.0.1:9001 && npm run cypress:run:mock -- {@}\" -- ",
     "test:cypress-ci:coverage": "npx concurrently -P -k -s first \"npm run cypress:server:build:coverage && npm run cypress:server\" \"npx wait-on tcp:127.0.0.1:9001 && npm run cypress:run:mock:coverage -- {@}\" -- ",
     "test:cypress-ci:coverage:nobuild": "npx concurrently -P -k -s first \"npm run cypress:server\" \"npx wait-on tcp:127.0.0.1:9001 && npm run cypress:run:mock:coverage -- {@}\" -- ",
@@ -61,11 +63,8 @@
     "test:cypress:e2e:open": "cd src/__tests__/cypress && npx cypress open --env grepTags=\"${CY_TEST_TAGS}\",skipTags=\"${CY_SKIP_TAGS}\""
   },
   "dependencies": {
+    "@module-federation/runtime": "^0.15.0",
     "@monaco-editor/react": "^4.6.0",
-    "@odh-dashboard/internal": "0.0.0",
-    "@odh-dashboard/model-serving": "0.0.0",
-    "@odh-dashboard/plugin-core": "0.0.0",
-    "@odh-dashboard/kserve": "0.0.0",
     "@openshift/dynamic-plugin-sdk": "^5.0.1",
     "@openshift/dynamic-plugin-sdk-utils": "^5.0.1",
     "@patternfly/chatbot": "^2.2.1",
@@ -165,6 +164,7 @@
     "terser-webpack-plugin": "^5.3.6",
     "ts-loader": "^8.0.5",
     "tslib": "^2.5.0",
+    "turbo": "^2.4.2",
     "typescript": "^5.8.3",
     "url-loader": "^4.1.1",
     "victory-area": "^37.3.6",
@@ -188,7 +188,8 @@
     "webpack-bundle-analyzer": "^4.7.0",
     "webpack-cli": "^5.1.4",
     "webpack-dev-server": "^5.1.0",
-    "webpack-merge": "^6.0.1"
+    "webpack-merge": "^6.0.1",
+    "webpack-virtual-modules": "^0.6.2"
   },
   "optionalDependencies": {
     "@babel/preset-env": "^7.21.5",

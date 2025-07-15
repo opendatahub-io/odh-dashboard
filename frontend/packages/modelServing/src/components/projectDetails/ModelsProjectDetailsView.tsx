@@ -5,27 +5,33 @@ import { Button, Flex, Label, Popover } from '@patternfly/react-core';
 import DashboardPopupIconButton from '@odh-dashboard/internal/concepts/dashboard/DashboardPopupIconButton';
 import { OutlinedQuestionCircleIcon, PencilAltIcon } from '@patternfly/react-icons';
 import { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
+import type { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
+import { useExtensions } from '@odh-dashboard/plugin-core';
 import { SelectPlatformView } from './SelectPlatformView';
 import { NoModelsView } from './NoModelsView';
-import DeploymentsTable from '../deployments/DeploymentsTable';
+import { ProjectDeploymentsTable } from './ProjectDeploymentsTable';
+import { useProjectServingPlatform } from '../../concepts/useProjectServingPlatform';
 import { ModelDeploymentsContext } from '../../concepts/ModelDeploymentsContext';
 import { DeployButton } from '../deploy/DeployButton';
-import { ModelServingPlatformContext } from '../../concepts/ModelServingPlatformContext';
+import { isModelServingPlatformExtension } from '../../../extension-points';
 
-const ModelsProjectDetailsView: React.FC = () => {
-  const { availablePlatforms, project, platform, setPlatform, resetPlatform, newPlatformLoading } =
-    React.useContext(ModelServingPlatformContext);
+const ModelsProjectDetailsView: React.FC<{
+  project: ProjectKind;
+}> = ({ project }) => {
+  const availablePlatforms = useExtensions(isModelServingPlatformExtension);
   const { deployments, loaded: deploymentsLoaded } = React.useContext(ModelDeploymentsContext);
 
-  const isLoading =
-    !project || !availablePlatforms || !!(platform && (!deployments || !deploymentsLoaded));
-  const hasModels = !!deployments && deployments.length > 0;
+  const {
+    activePlatform,
+    projectPlatform,
+    setProjectPlatform,
+    resetProjectPlatform,
+    newProjectPlatformLoading,
+  } = useProjectServingPlatform(project, availablePlatforms);
 
-  const activePlatform = React.useMemo(
-    () =>
-      availablePlatforms && availablePlatforms.length === 1 ? availablePlatforms[0] : platform,
-    [availablePlatforms, platform],
-  );
+  const isLoading =
+    !project.metadata.name || !!(projectPlatform && (!deployments || !deploymentsLoaded));
+  const hasModels = !!deployments && deployments.length > 0;
 
   return (
     <DetailsSection
@@ -57,15 +63,15 @@ const ModelsProjectDetailsView: React.FC = () => {
             <Label data-testid="serving-platform-label">
               {activePlatform?.properties.enableCardText.enabledText}
             </Label>
-            {activePlatform && availablePlatforms && availablePlatforms.length > 1 && (
+            {activePlatform && availablePlatforms.length > 1 && (
               <Button
                 variant="link"
                 isInline
                 icon={<PencilAltIcon />}
-                isLoading={newPlatformLoading !== undefined}
-                isDisabled={newPlatformLoading !== undefined || hasModels}
+                isLoading={newProjectPlatformLoading !== undefined}
+                isDisabled={newProjectPlatformLoading !== undefined || hasModels}
                 onClick={() => {
-                  resetPlatform();
+                  resetProjectPlatform();
                 }}
               >
                 Change
@@ -79,8 +85,8 @@ const ModelsProjectDetailsView: React.FC = () => {
         !isLoading && (
           <SelectPlatformView
             platforms={availablePlatforms}
-            setModelServingPlatform={setPlatform}
-            newPlatformLoading={newPlatformLoading}
+            setModelServingPlatform={setProjectPlatform}
+            newPlatformLoading={newProjectPlatformLoading}
           />
         )
       }
@@ -89,7 +95,11 @@ const ModelsProjectDetailsView: React.FC = () => {
         (!hasModels ? (
           <NoModelsView platform={activePlatform} />
         ) : (
-          <DeploymentsTable modelServingPlatform={activePlatform} deployments={deployments} />
+          <ProjectDeploymentsTable
+            modelServingPlatform={activePlatform}
+            deployments={deployments}
+            loaded={deploymentsLoaded}
+          />
         ))}
     </DetailsSection>
   );
