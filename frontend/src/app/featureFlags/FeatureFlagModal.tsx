@@ -74,7 +74,7 @@ const FeatureFlagModal: React.FC<Props> = ({
       <ModalHeader title="Feature Flags: Override Flags" />
       <ModalBody>
         <Tabs activeKey={activeTabKey} onSelect={(_event, tabIndex) => setActiveTabKey(tabIndex)}>
-          <Tab eventKey={0} title={<TabTitleText>Active</TabTitleText>}>
+          <Tab eventKey={0} title={<TabTitleText>Active</TabTitleText>} data-testid="activeFlagTab">
             <Content style={{ height: '400px', padding: '8px' }}>
               <Content component="p">
                 Feature flags default to the values defined in the dashboard config from the server.
@@ -90,7 +90,11 @@ const FeatureFlagModal: React.FC<Props> = ({
             </Content>
           </Tab>
           {devFlags.length > 0 && (
-            <Tab eventKey={1} title={<TabTitleText>Dev Flags</TabTitleText>}>
+            <Tab
+              eventKey={1}
+              title={<TabTitleText>Dev Flags</TabTitleText>}
+              data-testid="devFlagTab"
+            >
               <Content style={{ height: '400px', padding: '8px' }}>
                 <Content component="p">
                   Dev flags default to inactive and can only be changed for the current session.
@@ -99,7 +103,7 @@ const FeatureFlagModal: React.FC<Props> = ({
               </Content>
             </Tab>
           )}
-          <Tab eventKey={2} title={<TabTitleText>Legacy</TabTitleText>}>
+          <Tab eventKey={2} title={<TabTitleText>Legacy</TabTitleText>} data-testid="legacyFlagTab">
             <PageSection hasOverflowScroll>
               <Content style={{ height: '400px', padding: '8px' }}>
                 <Content component="p">
