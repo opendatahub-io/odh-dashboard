@@ -159,11 +159,6 @@ describe('DevFeatureFlagsBanner', () => {
     });
     expect(setFeatureFlagFn).toHaveBeenCalledWith('disablePipelines', true);
 
-    // Print number of tabs and their labels
-    const tabs = result.getAllByRole('tab');
-    const tabLabels = tabs.map((tab) => tab.textContent);
-    console.log(`Number of tabs: ${tabs.length}, Tab labels: ${tabLabels.join(', ')}`);
-
     // click on the dev flags tab
     act(() => {
       result.getByTestId('devFlagTab').click();
