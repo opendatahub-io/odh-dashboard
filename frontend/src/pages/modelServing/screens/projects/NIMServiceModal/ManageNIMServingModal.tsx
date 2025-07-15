@@ -80,8 +80,6 @@ const accessReviewResource: AccessReviewResourceAttributes = {
   verb: 'create',
 };
 
-//type PVCMode = 'create-new' | 'use-existing';
-
 type ManageNIMServingModalProps = {
   onClose: (submit: boolean) => void;
 } & EitherOrNone<
