@@ -13,15 +13,12 @@ import {
   Popover,
   Skeleton,
 } from '@patternfly/react-core';
-import { Link } from 'react-router-dom';
 import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
 import {
   isServingRuntimeRouteEnabled,
   isInferenceServiceRouteEnabled,
 } from '#~/pages/modelServing/screens/projects/utils';
-import { InferenceServiceModelState } from '#~/pages/modelServing/screens/types';
-import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
-import { isModelServingStopped } from '#~/pages/modelServing/utils';
+import { ToggleState } from '#~/components/StateActionToggle.tsx';
 import useRouteForInferenceService from './useRouteForInferenceService';
 import InternalServicePopoverContent from './InternalServicePopoverContent';
 
@@ -29,11 +26,7 @@ type InferenceServiceEndpointProps = {
   inferenceService: InferenceServiceKind;
   servingRuntime?: ServingRuntimeKind;
   isKserve?: boolean;
-  modelState?: InferenceServiceModelState;
-  isStarting?: boolean;
-  isGlobal?: boolean;
-  renderName?: boolean;
-  displayName?: string;
+  modelState: ToggleState & { isFailed: boolean };
 };
 
 const InferenceServiceEndpoint: React.FC<InferenceServiceEndpointProps> = ({
@@ -41,13 +34,8 @@ const InferenceServiceEndpoint: React.FC<InferenceServiceEndpointProps> = ({
   servingRuntime,
   isKserve,
   modelState,
-  isStarting = false,
-  isGlobal = false,
-  renderName = false,
-  displayName,
 }) => {
-  const isModelStopped = isModelServingStopped(inferenceService);
-  const isModelRunning = modelState === InferenceServiceModelState.LOADED && !isModelStopped;
+  const { isStopped, isRunning, isStarting, isFailed } = modelState;
 
   const isRouteEnabled = !isKserve
     ? servingRuntime !== undefined && isServingRuntimeRouteEnabled(servingRuntime)
@@ -67,38 +55,22 @@ const InferenceServiceEndpoint: React.FC<InferenceServiceEndpointProps> = ({
       routeLink={routeLink || undefined}
       loaded={loaded}
       loadError={loadError || undefined}
+      modelState={modelState}
     />
   );
 
-  if (renderName) {
-    const name = displayName || getDisplayNameFromK8sResource(inferenceService);
-
-    if (isModelRunning || isModelStopped) {
-      const metricsPath = isGlobal
-        ? `/modelServing/${inferenceService.metadata.namespace}/metrics/${inferenceService.metadata.name}`
-        : `/projects/${inferenceService.metadata.namespace}/metrics/model/${inferenceService.metadata.name}`;
-
-      return (
-        <Link data-testid={`metrics-link-${name}`} to={metricsPath}>
-          {name}
-        </Link>
-      );
-    }
-    return <>{name}</>;
-  }
-  if (isModelStopped || modelState === InferenceServiceModelState.LOADED) {
-    return endpointDetails;
-  }
-  if (modelState === InferenceServiceModelState.FAILED_TO_LOAD) {
+  if (isFailed) {
     return <>-</>;
   }
-  if (
-    modelState === InferenceServiceModelState.LOADING ||
-    modelState === InferenceServiceModelState.PENDING ||
-    isStarting
-  ) {
+
+  if (isStarting) {
     return <>Pending...</>;
   }
+
+  if (isStopped || isRunning) {
+    return endpointDetails;
+  }
+
   return endpointDetails;
 };
 
@@ -109,7 +81,10 @@ const InferenceServiceEndpointContent: React.FC<{
   routeLink?: string;
   loaded: boolean;
   loadError?: Error;
-}> = ({ inferenceService, isKserve, isRouteEnabled, routeLink, loaded, loadError }) => {
+  modelState: ToggleState;
+}> = ({ inferenceService, isKserve, isRouteEnabled, routeLink, loaded, loadError, modelState }) => {
+  const { isStopped, isStopping } = modelState;
+
   if (!isRouteEnabled) {
     return (
       <Popover
@@ -138,7 +113,7 @@ const InferenceServiceEndpointContent: React.FC<{
     );
   }
 
-  if (!loaded || !routeLink) {
+  if ((!loaded || !routeLink) && !isStopping && !isStopped) {
     return <Skeleton />;
   }
 
@@ -159,13 +134,19 @@ const InferenceServiceEndpointContent: React.FC<{
               External (can be accessed from inside or outside the cluster)
             </DescriptionListTerm>
             <DescriptionListDescription style={{ paddingLeft: 'var(--pf-t--global--spacer--md)' }}>
-              <ClipboardCopy
-                hoverTip="Copy"
-                clickTip="Copied"
-                variant={ClipboardCopyVariant.inlineCompact}
-              >
-                {isKserve ? routeLink : `${routeLink}/infer`}
-              </ClipboardCopy>
+              {isStopped || isStopping ? (
+                <>Could not find any external service enabled</>
+              ) : routeLink ? (
+                <ClipboardCopy
+                  hoverTip="Copy"
+                  clickTip="Copied"
+                  variant={ClipboardCopyVariant.inlineCompact}
+                >
+                  {isKserve ? routeLink : `${routeLink}/infer`}
+                </ClipboardCopy>
+              ) : (
+                <Skeleton />
+              )}
             </DescriptionListDescription>
           </DescriptionListGroup>
         </DescriptionList>

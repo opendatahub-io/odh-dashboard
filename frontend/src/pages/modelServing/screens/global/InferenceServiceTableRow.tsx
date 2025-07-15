@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { Td } from '@patternfly/react-table';
+import { Link } from 'react-router-dom';
 import ResourceActionsColumn from '#~/components/ResourceActionsColumn';
 import ResourceNameTooltip from '#~/components/ResourceNameTooltip';
 import useModelMetricsEnabled from '#~/pages/modelServing/useModelMetricsEnabled';
@@ -8,7 +9,6 @@ import { isModelMesh } from '#~/pages/modelServing/utils';
 import { SupportedArea } from '#~/concepts/areas';
 import useIsAreaAvailable from '#~/concepts/areas/useIsAreaAvailable';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
-import { getInferenceServiceModelState } from '#~/concepts/modelServingKServe/kserveStatusUtils';
 import { byName, ProjectsContext } from '#~/concepts/projects/ProjectsContext';
 import { isProjectNIMSupported } from '#~/pages/modelServing/screens/projects/nimUtils';
 import useServingPlatformStatuses from '#~/pages/modelServing/useServingPlatformStatuses';
@@ -17,7 +17,6 @@ import { patchInferenceServiceStoppedStatus } from '#~/api/k8s/inferenceServices
 import useStopModalPreference from '#~/pages/modelServing/useStopModalPreference.ts';
 import ModelServingStopModal from '#~/pages/modelServing/ModelServingStopModal';
 import { useInferenceServiceStatus } from '#~/pages/modelServing/useInferenceServiceStatus.ts';
-import { InferenceServiceModelState } from '#~/pages/modelServing/screens/types';
 import InferenceServiceEndpoint from './InferenceServiceEndpoint';
 import InferenceServiceProject from './InferenceServiceProject';
 import InferenceServiceStatus from './InferenceServiceStatus';
@@ -57,20 +56,12 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
 
   const modelMesh = isModelMesh(inferenceService);
   const modelMeshMetricsSupported = modelMetricsEnabled && modelMesh;
+  const kserveMetricsEnabled = useIsAreaAvailable(SupportedArea.K_SERVE_METRICS).status;
+  const kserveMetricsSupported = modelMetricsEnabled && kserveMetricsEnabled && !modelMesh;
   const displayName = getDisplayNameFromK8sResource(inferenceService);
 
-  const { isStarting, isStopping, isStopped, isRunning, setIsStarting, setIsStopping } =
+  const { isStarting, isStopping, isStopped, isRunning, isFailed, setIsStarting, setIsStopping } =
     useInferenceServiceStatus(inferenceService, refresh);
-
-  const modelState = getInferenceServiceModelState(inferenceService);
-
-  const isNewlyDeployed = React.useMemo(
-    () =>
-      !inferenceService.status?.modelStatus?.states?.activeModelState &&
-      inferenceService.status?.modelStatus?.states?.targetModelState !==
-        InferenceServiceModelState.FAILED_TO_LOAD,
-    [inferenceService.status?.modelStatus?.states],
-  );
 
   const onStart = React.useCallback(() => {
     setIsStarting(true);
@@ -93,16 +84,20 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
     <>
       <Td dataLabel="Name">
         <ResourceNameTooltip resource={inferenceService}>
-          <InferenceServiceEndpoint
-            inferenceService={inferenceService}
-            servingRuntime={servingRuntime}
-            isKserve={!modelMesh}
-            isStarting={isStarting}
-            isGlobal={isGlobal}
-            renderName
-            displayName={displayName}
-            modelState={modelState}
-          />
+          {!isStarting && !isFailed && (modelMeshMetricsSupported || kserveMetricsSupported) ? (
+            <Link
+              data-testid={`metrics-link-${displayName}`}
+              to={
+                isGlobal
+                  ? `/modelServing/${inferenceService.metadata.namespace}/metrics/${inferenceService.metadata.name}`
+                  : `/projects/${inferenceService.metadata.namespace}/metrics/model/${inferenceService.metadata.name}`
+              }
+            >
+              {displayName}
+            </Link>
+          ) : (
+            displayName
+          )}
         </ResourceNameTooltip>
       </Td>
 
@@ -126,8 +121,13 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
           inferenceService={inferenceService}
           servingRuntime={servingRuntime}
           isKserve={!modelMesh}
-          isStarting={isStarting}
-          modelState={modelState}
+          modelState={{
+            isStarting,
+            isStopping,
+            isStopped,
+            isRunning,
+            isFailed,
+          }}
         />
       </Td>
 
@@ -144,23 +144,25 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
         <InferenceServiceStatus
           inferenceService={inferenceService}
           isKserve={!modelMesh}
-          isStarting={isStarting || isNewlyDeployed}
+          isStarting={isStarting}
           isStopping={isStopping}
-          isStopped={isStopped && !isStopping}
+          isStopped={isStopped}
         />
       </Td>
       <Td>
-        <StateActionToggle
-          currentState={{
-            isRunning: isRunning && !isStarting,
-            isStopped: isStopped && !isStopping,
-            isStarting,
-            isStopping,
-          }}
-          onStart={onStart}
-          onStop={onStop}
-          isDisabledWhileStarting={false}
-        />
+        {!modelMesh && (
+          <StateActionToggle
+            currentState={{
+              isRunning,
+              isStopped,
+              isStarting,
+              isStopping,
+            }}
+            onStart={onStart}
+            onStop={onStop}
+            isDisabledWhileStarting={false}
+          />
+        )}
       </Td>
 
       {columnNames.includes(ColumnField.Kebab) && (

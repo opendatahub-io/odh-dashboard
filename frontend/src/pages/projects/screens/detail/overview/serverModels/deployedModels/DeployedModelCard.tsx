@@ -9,6 +9,7 @@ import {
   Content,
   ContentVariants,
 } from '@patternfly/react-core';
+import { Link } from 'react-router-dom';
 import { ProjectObjectType } from '#~/concepts/design/utils';
 import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
 import InferenceServiceStatus from '#~/pages/modelServing/screens/global/InferenceServiceStatus';
@@ -17,10 +18,11 @@ import ResourceNameTooltip from '#~/components/ResourceNameTooltip';
 import InferenceServiceServingRuntime from '#~/pages/modelServing/screens/global/InferenceServiceServingRuntime';
 import InferenceServiceEndpoint from '#~/pages/modelServing/screens/global/InferenceServiceEndpoint';
 import TypeBorderedCard from '#~/concepts/design/TypeBorderedCard';
-import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
-import { getInferenceServiceModelState } from '#~/concepts/modelServingKServe/kserveStatusUtils';
 import { useInferenceServiceStatus } from '#~/pages/modelServing/useInferenceServiceStatus.ts';
-import { InferenceServiceModelState } from '#~/pages/modelServing/screens/types.ts';
+import useIsAreaAvailable from '#~/concepts/areas/useIsAreaAvailable.ts';
+import { SupportedArea } from '#~/concepts/areas/types.ts';
+import useModelMetricsEnabled from '#~/pages/modelServing/useModelMetricsEnabled.ts';
+import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils.ts';
 
 interface DeployedModelCardProps {
   inferenceService: InferenceServiceKind;
@@ -30,19 +32,17 @@ const DeployedModelCard: React.FC<DeployedModelCardProps> = ({
   inferenceService,
   servingRuntime,
 }) => {
+  const [modelMetricsEnabled] = useModelMetricsEnabled();
+
   const modelMesh = isModelMesh(inferenceService);
+  const modelMeshMetricsSupported = modelMetricsEnabled && modelMesh;
+  const kserveMetricsEnabled = useIsAreaAvailable(SupportedArea.K_SERVE_METRICS).status;
+  const kserveMetricsSupported = modelMetricsEnabled && kserveMetricsEnabled && !modelMesh;
 
-  const { isStarting, isStopping, isStopped } = useInferenceServiceStatus(inferenceService);
-  const modelState = getInferenceServiceModelState(inferenceService);
-  const isNewlyDeployed = React.useMemo(
-    () =>
-      !inferenceService.status?.modelStatus?.states?.activeModelState &&
-      inferenceService.status?.modelStatus?.states?.targetModelState !==
-        InferenceServiceModelState.FAILED_TO_LOAD,
-    [inferenceService.status?.modelStatus?.states],
-  );
+  const displayName = getDisplayNameFromK8sResource(inferenceService);
 
-  const inferenceServiceDisplayName = getDisplayNameFromK8sResource(inferenceService);
+  const { isStarting, isStopping, isStopped, isRunning, isFailed } =
+    useInferenceServiceStatus(inferenceService);
 
   return (
     <GalleryItem key={inferenceService.metadata.uid}>
@@ -53,21 +53,25 @@ const DeployedModelCard: React.FC<DeployedModelCardProps> = ({
               <InferenceServiceStatus
                 inferenceService={inferenceService}
                 isKserve={!isModelMesh(inferenceService)}
-                isStarting={isStarting || isNewlyDeployed}
+                isStarting={isStarting}
                 isStopping={isStopping}
-                isStopped={isStopped && !isStopping}
+                isStopped={isStopped}
               />
             </FlexItem>
             <FlexItem>
               <ResourceNameTooltip resource={inferenceService}>
-                <InferenceServiceEndpoint
-                  inferenceService={inferenceService}
-                  servingRuntime={servingRuntime}
-                  isKserve={!modelMesh}
-                  renderName
-                  displayName={inferenceServiceDisplayName}
-                  modelState={modelState}
-                />
+                {!isStarting &&
+                !isFailed &&
+                (modelMeshMetricsSupported || kserveMetricsSupported) ? (
+                  <Link
+                    data-testid={`metrics-link-${displayName}`}
+                    to={`/projects/${inferenceService.metadata.namespace}/metrics/model/${inferenceService.metadata.name}`}
+                  >
+                    {displayName}
+                  </Link>
+                ) : (
+                  displayName
+                )}
               </ResourceNameTooltip>
             </FlexItem>
           </Flex>
@@ -98,8 +102,7 @@ const DeployedModelCard: React.FC<DeployedModelCardProps> = ({
             inferenceService={inferenceService}
             servingRuntime={servingRuntime}
             isKserve={!isModelMesh(inferenceService)}
-            isStarting={isStarting || isNewlyDeployed}
-            modelState={modelState}
+            modelState={{ isStarting, isStopping, isStopped, isRunning, isFailed }}
           />
         </CardFooter>
       </TypeBorderedCard>
