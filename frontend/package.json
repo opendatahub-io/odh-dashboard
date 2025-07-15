@@ -61,7 +61,7 @@
     "cypress:format": "prettier --write src/__tests__/**/*.snap.json",
     "test:cypress:e2e": "cd src/__tests__/cypress && npx cypress run --env grepTags=\"${CY_TEST_TAGS}\",skipTags=\"${CY_SKIP_TAGS}\" --browser chrome",
     "test:cypress:e2e:open": "cd src/__tests__/cypress && npx cypress open --env grepTags=\"${CY_TEST_TAGS}\",skipTags=\"${CY_SKIP_TAGS}\"",
-    "generate-plugin": "plop"
+    "make:plugin": "plop"
   },
   "dependencies": {
     "@module-federation/runtime": "^0.15.0",
