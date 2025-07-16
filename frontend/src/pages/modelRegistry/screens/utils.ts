@@ -1,4 +1,3 @@
-import { SearchType } from '#~/concepts/dashboard/DashboardSearchField';
 import {
   ModelRegistryCustomProperties,
   ModelRegistryCustomProperty,
@@ -9,7 +8,7 @@ import {
 } from '#~/concepts/modelRegistry/types';
 import { ServiceKind } from '#~/k8sTypes';
 import { KeyValuePair } from '#~/types';
-import { ModelRegistryFilterDataType } from './const';
+import { ModelRegistryFilterDataType, ModelRegistryVersionsFilterDataType } from './const';
 
 // Retrieves the labels from customProperties that have non-empty string_value.
 export const getLabels = <T extends ModelRegistryCustomProperties>(customProperties: T): string[] =>
@@ -100,31 +99,29 @@ export const getCustomPropString = <
 
 export const filterModelVersions = (
   unfilteredModelVersions: ModelVersion[],
-  search: string,
-  searchType: SearchType,
+  filterData: ModelRegistryVersionsFilterDataType,
 ): ModelVersion[] => {
-  const searchLower = search.toLowerCase();
+  const keywordFilter = filterData.Keyword?.toLowerCase();
+  const authorFilter = filterData.Author?.toLowerCase();
 
   return unfilteredModelVersions.filter((mv: ModelVersion) => {
-    if (!search) {
+    if (!keywordFilter && !authorFilter) {
       return true;
     }
 
-    switch (searchType) {
-      case SearchType.KEYWORD:
-        return (
-          mv.name.toLowerCase().includes(searchLower) ||
-          (mv.description && mv.description.toLowerCase().includes(searchLower)) ||
-          getLabels(mv.customProperties).some((label) => label.toLowerCase().includes(searchLower))
-        );
+    const doesNotMatchVersions =
+      keywordFilter &&
+      !(
+        mv.name.toLowerCase().includes(keywordFilter) ||
+        (mv.description && mv.description.toLowerCase().includes(keywordFilter)) ||
+        getLabels(mv.customProperties).some((label) => label.toLowerCase().includes(keywordFilter))
+      );
 
-      case SearchType.AUTHOR: {
-        return mv.author && mv.author.toLowerCase().includes(searchLower);
-      }
-
-      default:
-        return true;
+    if (doesNotMatchVersions) {
+      return false;
     }
+
+    return !authorFilter || mv.author?.toLowerCase().includes(authorFilter);
   });
 };
 
@@ -139,10 +136,11 @@ export const filterRegisteredModels = (
   unfilteredRegisteredModels: RegisteredModel[],
   unfilteredModelVersions: ModelVersion[],
   filterData: ModelRegistryFilterDataType,
-): RegisteredModel[] =>
-  unfilteredRegisteredModels.filter((rm: RegisteredModel) => {
-    const keywordFilter = filterData.Keyword?.toLowerCase();
-    const ownerFilter = filterData.Owner?.toLowerCase();
+): RegisteredModel[] => {
+  const keywordFilter = filterData.Keyword?.toLowerCase();
+  const ownerFilter = filterData.Owner?.toLowerCase();
+
+  return unfilteredRegisteredModels.filter((rm: RegisteredModel) => {
     if (!keywordFilter && !ownerFilter) {
       return true;
     }
@@ -152,9 +150,7 @@ export const filterRegisteredModels = (
       !(
         rm.name.toLowerCase().includes(keywordFilter) ||
         (rm.description && rm.description.toLowerCase().includes(keywordFilter)) ||
-        getLabels(rm.customProperties).some((label: string) =>
-          label.toLowerCase().includes(keywordFilter),
-        )
+        getLabels(rm.customProperties).some((label) => label.toLowerCase().includes(keywordFilter))
       );
 
     const doesNotMatchVersions =
@@ -163,7 +159,7 @@ export const filterRegisteredModels = (
         (mv: ModelVersion) =>
           mv.name.toLowerCase().includes(keywordFilter) ||
           (mv.description && mv.description.toLowerCase().includes(keywordFilter)) ||
-          getLabels(mv.customProperties).some((label: string) =>
+          getLabels(mv.customProperties).some((label) =>
             label.toLowerCase().includes(keywordFilter),
           ),
       );
@@ -174,6 +170,7 @@ export const filterRegisteredModels = (
 
     return !ownerFilter || rm.owner?.toLowerCase().includes(ownerFilter);
   });
+};
 
 export const getServerAddress = (resource: ServiceKind): string =>
   resource.metadata.annotations?.['routing.opendatahub.io/external-address-rest'] || '';
