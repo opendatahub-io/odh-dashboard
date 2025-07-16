@@ -152,32 +152,68 @@ module.exports = (plop) => {
     };
 
   /**
-   * Shows post-generation instructions for plugins
+   * Shows post-generation instructions for plugins and runs setup commands
    */
   const createPluginInstructionsAction = () =>
     function pluginInstructionsHandler(answers) {
       const { componentName, devFlag, packageName } = answers;
+      const { execSync } = require('child_process');
 
       console.log('\n🎉 PLUGIN GENERATED SUCCESSFULLY!');
       console.log('═'.repeat(50));
       console.log(`📦 Plugin: ${componentName}`);
       console.log(`📂 Location: packages/${packageName}/`);
       console.log('');
-      console.log('📋 Next steps:');
-      console.log('  1. 📦 Install dependencies:');
-      console.log(`     npm install`);
+
+      // Automatically install/update dependencies
+      console.log('📦 Installing/updating dependencies...');
+      try {
+        execSync('npm i', { 
+          stdio: 'inherit',
+          cwd: process.cwd() // Make sure we're in the frontend directory
+        });
+        console.log('✅ Dependencies installed successfully!');
+      } catch (error) {
+        console.error('❌ Error installing dependencies:', error.message);
+        console.log('💡 You may need to run "npm i" manually');
+      }
       console.log('');
-      console.log('  2. 🔄 Restart the frontend server:');
-      console.log(`     npm run start:dev`);
+
+      // Check if dev server is likely running and provide appropriate instructions
+      console.log('🔄 Dev Server Setup:');
+      try {
+        // Try to detect if dev server is running by checking for common ports
+        const { execSync: execSyncQuiet } = require('child_process');
+        const netstatResult = execSyncQuiet('lsof -ti:4010 2>/dev/null || echo "not_found"', { 
+          encoding: 'utf8',
+          stdio: 'pipe'
+        }).trim();
+        
+        if (netstatResult !== 'not_found' && netstatResult !== '') {
+          console.log('  ℹ️  Dev server appears to be running on port 4010');
+          console.log('  🔄 Please restart your dev server to load the new plugin:');
+          console.log('     • Stop the current server (Ctrl+C)');
+          console.log('     • Run: npm run start:dev');
+        } else {
+          console.log('  🚀 Start the dev server with: npm run start:dev');
+        }
+      } catch (error) {
+        // Fallback if port detection fails
+        console.log('  🔄 Restart/start the frontend server:');
+        console.log('     • If already running: Stop (Ctrl+C) and restart');
+        console.log('     • If not running: npm run start:dev');
+      }
       console.log('');
-      console.log('  3. 🚩 Enable the plugin using feature flags:');
+
+      console.log('📋 Next steps after server restart:');
+      console.log('  1. 🚩 Enable the plugin using feature flags:');
       console.log(
         `     • Click the feature flags icon in the top right corner of the dashboard header`,
       );
       console.log(`     • Find "${devFlag}" and toggle it ON`);
       console.log(`     • The plugin will appear in the navigation sidebar`);
       console.log('');
-      console.log('  4. 🎨 Customize your plugin (optional):');
+      console.log('  2. 🎨 Customize your plugin (optional):');
       console.log(
         `     • Edit packages/${packageName}/src/${componentName}Page.tsx for the main page`,
       );
