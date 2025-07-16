@@ -562,7 +562,7 @@ describe('legacy profiles table', () => {
             metadata: {
               namespace: 'opendatahub',
               annotations: {
-                ...migratedServingHardwareProfile.metadata.annotations,
+                ...migratedNotebooksHardwareProfile.metadata.annotations,
                 'opendatahub.io/dashboard-feature-visibility': '["workbench"]',
               },
             },
