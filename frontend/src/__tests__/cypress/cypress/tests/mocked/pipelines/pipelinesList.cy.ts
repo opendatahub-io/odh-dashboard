@@ -17,7 +17,7 @@ import {
   pipelineVersionImportModal,
   PipelineSort,
   pipelinesGlobal,
-  viewPipelineServerModal,
+  managePipelineServerModal,
 } from '#~/__tests__/cypress/cypress/pages/pipelines';
 import { pipelinesSection } from '#~/__tests__/cypress/cypress/pages/pipelines/pipelinesSection';
 import { projectDetails } from '#~/__tests__/cypress/cypress/pages/projects';
@@ -28,6 +28,7 @@ import {
   SecretModel,
 } from '#~/__tests__/cypress/cypress/utils/models';
 import { verifyRelativeURL } from '#~/__tests__/cypress/cypress/utils/url';
+import { MANAGE_PIPELINE_SERVER_CONFIGURATION_TITLE } from '#~/concepts/pipelines/content/const';
 import type { PipelineKF } from '#~/concepts/pipelines/kfTypes';
 
 const projectName = 'test-project-name';
@@ -93,14 +94,20 @@ describe('PipelinesList', () => {
     );
     projectDetails.visitSection(projectName, 'pipelines-projects');
 
-    pipelinesGlobal.selectPipelineServerAction('View pipeline server configuration');
-    viewPipelineServerModal.shouldHaveAccessKey('sdsd');
-    viewPipelineServerModal.findPasswordHiddenButton().click();
-    viewPipelineServerModal.shouldHaveSecretKey('sdsd');
-    viewPipelineServerModal.shouldHaveEndPoint('https://s3.amazonaws.com');
-    viewPipelineServerModal.shouldHaveBucketName('test-pipelines-bucket');
+    pipelinesGlobal.selectPipelineServerAction(MANAGE_PIPELINE_SERVER_CONFIGURATION_TITLE);
+    managePipelineServerModal.shouldHaveAccessKey('sdsd');
+    managePipelineServerModal.findPasswordHiddenButton().click();
+    managePipelineServerModal.shouldHaveSecretKey('sdsd');
+    managePipelineServerModal.shouldHaveEndPoint('https://s3.amazonaws.com');
+    managePipelineServerModal.shouldHaveBucketName('test-pipelines-bucket');
 
-    viewPipelineServerModal.findCloseButton().click();
+    const checkbox = managePipelineServerModal.getPipelineCachingCheckbox();
+    checkbox.should('be.checked');
+
+    managePipelineServerModal.findButton('save', false);
+    managePipelineServerModal.findButton('cancel', true);
+
+    managePipelineServerModal.findCloseButton().click();
   });
 
   it('should disable the upload version button when the list is empty', () => {

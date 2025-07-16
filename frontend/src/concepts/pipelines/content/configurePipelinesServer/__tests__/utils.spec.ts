@@ -19,7 +19,7 @@ const deleteSecretMock = deleteSecret as jest.Mock;
 
 describe('configure pipeline server utils', () => {
   describe('createDSPipelineResourceSpec', () => {
-    const createPipelineServerConfig = () =>
+    const createPipelineServerConfig = (enableCaching = true) =>
       ({
         database: {
           useDefault: true,
@@ -30,6 +30,7 @@ describe('configure pipeline server utils', () => {
         },
         enableInstructLab: false,
         storeYamlInKubernetes: false,
+        enableCaching,
       } as PipelineServerConfigType);
 
     type SecretsResponse = Parameters<typeof createDSPipelineResourceSpec>[1];
@@ -62,6 +63,40 @@ describe('configure pipeline server utils', () => {
         },
         apiServer: {
           enableSamplePipeline: false,
+          cacheEnabled: true,
+          managedPipelines: {
+            instructLab: {
+              state: 'Removed',
+            },
+          },
+        },
+      });
+    });
+
+    it('should create resource spec without caching', () => {
+      const spec = createDSPipelineResourceSpec(
+        createPipelineServerConfig(false),
+        createSecretsResponse(),
+      );
+      expect(spec).toEqual({
+        dspVersion: 'v2',
+        database: undefined,
+        objectStorage: {
+          externalStorage: {
+            bucket: '',
+            host: '',
+            region: 'us-east-1',
+            s3CredentialsSecret: {
+              accessKey: 'AWS_ACCESS_KEY_ID',
+              secretKey: 'AWS_SECRET_ACCESS_KEY',
+              secretName: '',
+            },
+            scheme: 'https',
+          },
+        },
+        apiServer: {
+          enableSamplePipeline: false,
+          cacheEnabled: false,
           managedPipelines: {
             instructLab: {
               state: 'Removed',
@@ -169,6 +204,7 @@ describe('configure pipeline server utils', () => {
         },
         apiServer: {
           enableSamplePipeline: false,
+          cacheEnabled: true,
           managedPipelines: {
             instructLab: {
               state: 'Removed',
