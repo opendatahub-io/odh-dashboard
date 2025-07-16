@@ -66,8 +66,13 @@ frontend/src/__tests__/cypress/cypress/
 - Store test-specific data in YAML fixture files
 - Use descriptive names like `testFeatureName.yaml`
 - Load fixtures: `cy.fixture('e2e/path/file.yaml')`
-- **NEVER include tags in fixture files** - tags are subject to change and belong in test files
+- **NEVER include tags in fixture files** - tags are subject to change and belong in test files (see below for tagging convention)
 - **NEVER include user credentials in fixtures** - use test-variables.yml
+
+**Tagging convention**:
+- Tags should be specified in the test file, in the `it()` block options, e.g. `it('...', { tags: ['@Tag'] }, ...)`
+- Never include tags in fixture files.
+- See [project tagging guidelines](#) for more details (update with actual link if available).
 
 **No interfaces for test data**:
 - Don't create TypeScript interfaces for test data
@@ -104,7 +109,7 @@ describe('Feature Name', () => {
 **MANDATORY: Use page objects for ALL UI interactions**:
 - **NEVER use `cy.findByTestId()` directly in tests**
 - **NEVER use `cy.findByRole()` directly in tests**
-- **NEVER use `cy.get()` directly in tests**
+- **Do NOT call `cy.get()` directly in test files; use it only inside page-object `find...` helper methods.**
 - All UI interactions must go through page objects
 - If a test ID exists but no page object, create the page object method
 - If a test ID doesn't exist, create both the test ID and page object method
@@ -173,7 +178,7 @@ pageObject.findStatusText().should('contain', 'Running');
 
 **MANDATORY: Always lint before claiming test is complete**:
 ```bash
-npm run test:lint
+npm run lint:frontend:backend
 npm run test:fix
 ```
 
@@ -242,7 +247,7 @@ During implementation:
 - [ ] Never include tags in fixture files
 
 After implementation:
-- [ ] Run linting: `npm run test:lint && npm run test:fix`
+- [ ] Run linting: `npm run lint:frontend:backend && npm run test:fix`
 - [ ] Fix ALL linting errors before claiming test is complete
 - [ ] Verify test independence and cleanup
 - [ ] Test on clean environment
