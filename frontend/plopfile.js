@@ -181,28 +181,7 @@ module.exports = (plop) => {
 
       // Check if dev server is likely running and provide appropriate instructions
       console.log('🔄 Dev Server Setup:');
-      try {
-        // Try to detect if dev server is running by checking for common ports
-        const { execSync: execSyncQuiet } = require('child_process');
-        const netstatResult = execSyncQuiet('lsof -ti:4010 2>/dev/null || echo "not_found"', { 
-          encoding: 'utf8',
-          stdio: 'pipe'
-        }).trim();
-        
-        if (netstatResult !== 'not_found' && netstatResult !== '') {
-          console.log('  ℹ️  Dev server appears to be running on port 4010');
-          console.log('  🔄 Please restart your dev server to load the new plugin:');
-          console.log('     • Stop the current server (Ctrl+C)');
-          console.log('     • Run: npm run start:dev');
-        } else {
-          console.log('  🚀 Start the dev server with: npm run start:dev');
-        }
-      } catch (error) {
-        // Fallback if port detection fails
-        console.log('  🔄 Restart/start the frontend server:');
-        console.log('     • If already running: Stop (Ctrl+C) and restart');
-        console.log('     • If not running: npm run start:dev');
-      }
+      console.log('  🚀 Start/Restart the dev server with: cd frontend && npm run start:dev');
       console.log('');
 
       console.log('📋 Next steps after server restart:');
