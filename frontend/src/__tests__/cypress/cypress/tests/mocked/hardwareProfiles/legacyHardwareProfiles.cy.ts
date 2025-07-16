@@ -549,7 +549,6 @@ describe('legacy profiles table', () => {
               namespace: 'opendatahub',
               annotations: {
                 ...migratedServingHardwareProfile.metadata.annotations,
-                'opendatahub.io/is-legacy-profile': 'true',
                 'opendatahub.io/dashboard-feature-visibility': '["model-serving","pipelines"]',
               },
             },
@@ -564,7 +563,6 @@ describe('legacy profiles table', () => {
               namespace: 'opendatahub',
               annotations: {
                 ...migratedNotebooksHardwareProfile.metadata.annotations,
-                'opendatahub.io/is-legacy-profile': 'true',
                 'opendatahub.io/dashboard-feature-visibility': '["workbench"]',
               },
             },
@@ -684,7 +682,6 @@ describe('legacy profiles table', () => {
               'opendatahub.io/dashboard-feature-visibility': '["workbench"]',
               'opendatahub.io/display-name': 'test-notebook-size-profile',
               'opendatahub.io/disabled': 'false',
-              'opendatahub.io/is-legacy-profile': 'true',
             },
           },
           spec: {
@@ -739,7 +736,6 @@ describe('legacy profiles table', () => {
               'opendatahub.io/dashboard-feature-visibility': '["workbench"]',
               'opendatahub.io/display-name': 'test-notebook-size-profile',
               'opendatahub.io/disabled': 'false',
-              'opendatahub.io/is-legacy-profile': 'true',
             },
           },
           spec: {
@@ -880,7 +876,6 @@ describe('legacy profiles table', () => {
               'opendatahub.io/dashboard-feature-visibility': '["model-serving"]',
               'opendatahub.io/display-name': 'test-model-server-size-profile',
               'opendatahub.io/disabled': 'false',
-              'opendatahub.io/is-legacy-profile': 'true',
             },
           },
           spec: {
@@ -927,7 +922,6 @@ describe('legacy profiles table', () => {
               'opendatahub.io/dashboard-feature-visibility': '["model-serving"]',
               'opendatahub.io/display-name': 'test-model-server-size-profile',
               'opendatahub.io/disabled': 'false',
-              'opendatahub.io/is-legacy-profile': 'true',
             },
           },
           spec: {

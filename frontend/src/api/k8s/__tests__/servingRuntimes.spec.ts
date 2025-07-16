@@ -232,10 +232,10 @@ describe('assembleServingRuntime', () => {
   });
 
   it('should not set hardware profile annotation for legacy profiles', () => {
+    const hardwareProfile = mockHardwareProfile({});
+    hardwareProfile.metadata.uid = undefined;
     const podSpecOptions = mockModelServingPodSpecOptions({
-      selectedHardwareProfile: mockHardwareProfile({
-        annotations: { 'opendatahub.io/is-legacy-profile': 'true' },
-      }),
+      selectedHardwareProfile: hardwareProfile,
     });
     const result = assembleServingRuntime(
       mockServingRuntimeModalData({}),
@@ -250,10 +250,10 @@ describe('assembleServingRuntime', () => {
   });
 
   it('should set hardware profile annotation for real profiles', () => {
+    const hardwareProfile = mockHardwareProfile({ name: 'real-profile' });
+    hardwareProfile.metadata.uid = 'test-uid';
     const podSpecOptions = mockModelServingPodSpecOptions({
-      selectedHardwareProfile: mockHardwareProfile({
-        name: 'real-profile',
-      }),
+      selectedHardwareProfile: hardwareProfile,
     });
     const result = assembleServingRuntime(
       mockServingRuntimeModalData({}),
@@ -270,10 +270,10 @@ describe('assembleServingRuntime', () => {
   });
 
   it('should set pod specs like tolerations and nodeSelector for legacy hardware profiles on modelmesh', () => {
+    const hardwareProfile = mockHardwareProfile({});
+    hardwareProfile.metadata.uid = undefined;
     const podSpecOptions = mockModelServingPodSpecOptions({
-      selectedHardwareProfile: mockHardwareProfile({
-        annotations: { 'opendatahub.io/is-legacy-profile': 'true' },
-      }),
+      selectedHardwareProfile: hardwareProfile,
     });
     const result = assembleServingRuntime(
       mockServingRuntimeModalData({}),
@@ -289,8 +289,10 @@ describe('assembleServingRuntime', () => {
   });
 
   it('should not set pod specs like tolerations and nodeSelector for real hardware profiles on modelmesh', () => {
+    const hardwareProfile = mockHardwareProfile({});
+    hardwareProfile.metadata.uid = 'test-uid';
     const podSpecOptions = mockModelServingPodSpecOptions({
-      selectedHardwareProfile: mockHardwareProfile({}),
+      selectedHardwareProfile: hardwareProfile,
     });
     const result = assembleServingRuntime(
       mockServingRuntimeModalData({}),

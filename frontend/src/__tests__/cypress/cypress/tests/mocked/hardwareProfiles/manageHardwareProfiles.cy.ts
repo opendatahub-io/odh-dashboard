@@ -925,7 +925,6 @@ describe('Manage Hardware Profile', () => {
             'opendatahub.io/display-name': originalAcceleratorProfile.spec.displayName,
             'opendatahub.io/description': originalAcceleratorProfile.spec.description,
             'opendatahub.io/disabled': 'false',
-            'opendatahub.io/is-legacy-profile': 'true',
           },
         };
 
@@ -944,7 +943,6 @@ describe('Manage Hardware Profile', () => {
             'opendatahub.io/display-name': originalAcceleratorProfile.spec.displayName,
             'opendatahub.io/description': originalAcceleratorProfile.spec.description,
             'opendatahub.io/disabled': 'false',
-            'opendatahub.io/is-legacy-profile': 'true',
           },
         };
 

@@ -298,18 +298,18 @@ describe('assembleNotebook', () => {
 
   it('should not set hardware profile annotation for legacy profiles', () => {
     const notebookData = mockStartNotebookData({});
-    notebookData.podSpecOptions.selectedHardwareProfile = mockHardwareProfile({
-      annotations: { 'opendatahub.io/is-legacy-profile': 'true' },
-    });
+    const hardwareProfile = mockHardwareProfile({});
+    hardwareProfile.metadata.uid = undefined;
+    notebookData.podSpecOptions.selectedHardwareProfile = hardwareProfile;
     const result = assembleNotebook(notebookData, 'test-user');
     expect(result.metadata.annotations?.['opendatahub.io/hardware-profile-name']).toBe('');
   });
 
   it('should set hardware profile annotation for real profiles', () => {
     const notebookData = mockStartNotebookData({});
-    notebookData.podSpecOptions.selectedHardwareProfile = mockHardwareProfile({
-      name: 'real-profile',
-    });
+    const hardwareProfile = mockHardwareProfile({ name: 'real-profile' });
+    hardwareProfile.metadata.uid = 'test-uid';
+    notebookData.podSpecOptions.selectedHardwareProfile = hardwareProfile;
     const result = assembleNotebook(notebookData, 'test-user');
     expect(result.metadata.annotations?.['opendatahub.io/hardware-profile-name']).toBe(
       'real-profile',
@@ -318,9 +318,9 @@ describe('assembleNotebook', () => {
 
   it('should set pod specs like tolerations and nodeSelector for legacy hardware profiles', () => {
     const notebookData = mockStartNotebookData({});
-    notebookData.podSpecOptions.selectedHardwareProfile = mockHardwareProfile({
-      annotations: { 'opendatahub.io/is-legacy-profile': 'true' },
-    });
+    const hardwareProfile = mockHardwareProfile({});
+    hardwareProfile.metadata.uid = undefined;
+    notebookData.podSpecOptions.selectedHardwareProfile = hardwareProfile;
     const result = assembleNotebook(notebookData, 'test-user');
     expect(result.spec.template.spec.tolerations).toBeDefined();
     expect(result.spec.template.spec.nodeSelector).toBeDefined();
@@ -328,7 +328,9 @@ describe('assembleNotebook', () => {
 
   it('should not set pod specs like tolerations and nodeSelector for real hardware profiles', () => {
     const notebookData = mockStartNotebookData({});
-    notebookData.podSpecOptions.selectedHardwareProfile = mockHardwareProfile({});
+    const hardwareProfile = mockHardwareProfile({});
+    hardwareProfile.metadata.uid = 'test-uid';
+    notebookData.podSpecOptions.selectedHardwareProfile = hardwareProfile;
     const result = assembleNotebook(notebookData, 'test-user');
     expect(result.spec.template.spec.tolerations).toBeUndefined();
     expect(result.spec.template.spec.nodeSelector).toBeUndefined();
