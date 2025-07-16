@@ -49,9 +49,8 @@ export const assembleServingRuntime = (
   const updatedServingRuntime = { ...servingRuntime };
 
   const isLegacyHardwareProfile =
-    podSpecOptions.selectedHardwareProfile?.metadata.annotations?.[
-      'opendatahub.io/is-legacy-profile'
-    ] === 'true';
+    !!podSpecOptions.selectedAcceleratorProfile ||
+    !podSpecOptions.selectedHardwareProfile?.metadata.uid;
 
   const annotations: ServingRuntimeAnnotations = {
     ...updatedServingRuntime.metadata.annotations,
@@ -70,12 +69,6 @@ export const assembleServingRuntime = (
 
   if (scope) {
     annotations['opendatahub.io/serving-runtime-scope'] = scope;
-  }
-
-  if (podSpecOptions.selectedHardwareProfile?.metadata.namespace === namespace) {
-    annotations['opendatahub.io/hardware-profile-namespace'] = namespace;
-  } else {
-    annotations['opendatahub.io/hardware-profile-namespace'] = undefined;
   }
 
   if (podSpecOptions.selectedAcceleratorProfile?.metadata.namespace === namespace) {
@@ -107,9 +100,10 @@ export const assembleServingRuntime = (
           'opendatahub.io/hardware-profile-name': isLegacyHardwareProfile
             ? ''
             : podSpecOptions.selectedHardwareProfile?.metadata.name || '',
-          'opendatahub.io/legacy-hardware-profile-name': isLegacyHardwareProfile
-            ? podSpecOptions.selectedHardwareProfile?.metadata.name || ''
-            : '',
+          'opendatahub.io/legacy-hardware-profile-name':
+            isLegacyHardwareProfile && podSpecOptions.selectedHardwareProfile
+              ? podSpecOptions.selectedHardwareProfile.metadata.name || ''
+              : '',
         }),
       },
     };
@@ -123,9 +117,10 @@ export const assembleServingRuntime = (
         'opendatahub.io/hardware-profile-name': isLegacyHardwareProfile
           ? ''
           : podSpecOptions.selectedHardwareProfile?.metadata.name || '',
-        'opendatahub.io/legacy-hardware-profile-name': isLegacyHardwareProfile
-          ? podSpecOptions.selectedHardwareProfile?.metadata.name || ''
-          : '',
+        'opendatahub.io/legacy-hardware-profile-name':
+          isLegacyHardwareProfile && podSpecOptions.selectedHardwareProfile
+            ? podSpecOptions.selectedHardwareProfile.metadata.name || ''
+            : '',
         ...(isCustomServingRuntimesEnabled && { 'openshift.io/display-name': displayName.trim() }),
       },
     };
