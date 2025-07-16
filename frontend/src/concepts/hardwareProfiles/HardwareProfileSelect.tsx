@@ -241,7 +241,6 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
   const getHardwareProfiles = () => {
     const currentProjectEnabledProfiles = currentProjectHardwareProfiles
       .filter((hp) => isHardwareProfileEnabled(hp))
-      .filter(filterKueue)
       .toSorted((a, b) => {
         const aHasExtra = (a.spec.identifiers ?? []).length > 2;
         const bHasExtra = (b.spec.identifiers ?? []).length > 2;
@@ -253,17 +252,18 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
     if (initialHardwareProfile && isHardwareProfileEnabled(initialHardwareProfile)) {
       currentProjectEnabledProfiles.push(initialHardwareProfile);
     }
-    return currentProjectEnabledProfiles.filter((profile) =>
-      getHardwareProfileDisplayName(profile)
-        .toLocaleLowerCase()
-        .includes(searchHardwareProfile.toLocaleLowerCase()),
-    );
+    return currentProjectEnabledProfiles
+      .filter(filterKueue)
+      .filter((profile) =>
+        getHardwareProfileDisplayName(profile)
+          .toLocaleLowerCase()
+          .includes(searchHardwareProfile.toLocaleLowerCase()),
+      );
   };
 
   const getDashboardHardwareProfiles = () => {
     const DashboardEnabledProfiles = hardwareProfiles
       .filter((hp) => isHardwareProfileEnabled(hp))
-      .filter(filterKueue)
       .toSorted((a, b) => {
         const aHasExtra = (a.spec.identifiers ?? []).length > 2;
         const bHasExtra = (b.spec.identifiers ?? []).length > 2;
@@ -275,7 +275,7 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
     if (initialHardwareProfile && isHardwareProfileEnabled(initialHardwareProfile)) {
       DashboardEnabledProfiles.push(initialHardwareProfile);
     }
-    return DashboardEnabledProfiles.filter((profile) =>
+    return DashboardEnabledProfiles.filter(filterKueue).filter((profile) =>
       getHardwareProfileDisplayName(profile)
         .toLocaleLowerCase()
         .includes(searchHardwareProfile.toLocaleLowerCase()),
