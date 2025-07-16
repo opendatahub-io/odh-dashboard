@@ -38,6 +38,7 @@ import {
 } from '#~/pages/hardwareProfiles/utils.ts';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { SchedulingType } from '#~/types.ts';
 
 type HardwareProfileSelectProps = {
   initialHardwareProfile?: HardwareProfileKind;
@@ -92,7 +93,7 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
   const filterKueue = React.useCallback(
     (hp: HardwareProfileKind) => {
       if (shouldFilterKueueProfiles) {
-        return hp.spec.scheduling?.type !== 'Queue';
+        return hp.spec.scheduling?.type !== SchedulingType.QUEUE;
       }
       return true;
     },
