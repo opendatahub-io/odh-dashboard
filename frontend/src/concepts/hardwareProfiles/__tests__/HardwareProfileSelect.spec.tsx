@@ -12,7 +12,7 @@ import { useIsAreaAvailable } from '#~/concepts/areas';
 import { HardwareProfileKind, KnownLabels, ProjectKind } from '#~/k8sTypes';
 import { SchedulingType } from '#~/types';
 import { useHardwareProfileConfig } from '#~/concepts/hardwareProfiles/useHardwareProfileConfig';
-import HardwareProfileSelect from '../HardwareProfileSelect';
+import HardwareProfileSelect from '#~/concepts/hardwareProfiles/HardwareProfileSelect';
 
 jest.mock('#~/concepts/areas', () => ({
   ...jest.requireActual('#~/concepts/areas'),
