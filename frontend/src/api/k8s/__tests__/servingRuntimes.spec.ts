@@ -118,6 +118,8 @@ describe('assembleServingRuntime', () => {
   });
 
   it('should add tolerations and gpu on modelmesh', async () => {
+    const hardwareProfile = mockHardwareProfile({});
+    hardwareProfile.metadata.uid = undefined;
     const podSpecOption: ModelServingPodSpecOptions = mockModelServingPodSpecOptions({
       resources: {
         requests: {
@@ -134,9 +136,7 @@ describe('assembleServingRuntime', () => {
           effect: TolerationEffect.NO_SCHEDULE,
         },
       ],
-      selectedHardwareProfile: mockHardwareProfile({
-        annotations: { 'opendatahub.io/is-legacy-profile': 'true' },
-      }),
+      selectedHardwareProfile: hardwareProfile,
     });
     const servingRuntime = assembleServingRuntime(
       mockServingRuntimeModalData({
