@@ -141,6 +141,9 @@ export const createDSPipelineResourceSpec = (
       : undefined,
     apiServer: {
       enableSamplePipeline: false,
+      caching: {
+        enabled: config.enableCaching,
+      },
       managedPipelines: {
         instructLab: { state: config.enableInstructLab ? 'Managed' : 'Removed' },
       },
