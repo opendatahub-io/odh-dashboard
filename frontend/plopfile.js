@@ -168,9 +168,9 @@ module.exports = (plop) => {
       // Automatically install/update dependencies
       console.log('📦 Installing/updating dependencies...');
       try {
-        execSync('npm i', { 
+        execSync('npm i', {
           stdio: 'inherit',
-          cwd: process.cwd() // Make sure we're in the frontend directory
+          cwd: process.cwd(), // Make sure we're in the frontend directory
         });
         console.log('✅ Dependencies installed successfully!');
       } catch (error) {

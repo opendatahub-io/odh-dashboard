@@ -1,0 +1,236 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# .cursor/rules/plugin-development.mdc - ODH Dashboard Plugin Development
+
+## Trigger:
+Creating plugins in the OpenDataHub (ODH) Dashboard using the plop generator system.
+
+## Plugin Creation Workflow
+
+### 1. Generate New Plugin
+Use the make command to start the plugin generator:
+```bash
+make plugin
+```
+
+This runs the plop generator (`cd frontend && npm run make:plugin`) which will prompt you for:
+- **Component Name**: PascalCase name (e.g., "MyFeature")
+- **Package Name**: kebab-case folder name (e.g., "my-feature") 
+- **Navigation Name**: Display name for menu (e.g., "My Feature")
+- **Supported Areas**: Select required feature flags from 25+ available options
+- **Routes**: Define URL paths for the plugin
+
+### 2. Generated Plugin Structure
+The generator creates a complete plugin package in `frontend/packages/[package-name]/`:
+```
+packages/my-feature/
+├── package.json           # Plugin dependencies and scripts
+├── tsconfig.json         # TypeScript configuration
+├── extensions.ts         # Plugin registration and extension points
+└── src/
+    ├── MyFeature.tsx     # Main routing component
+    └── MyFeaturePage.tsx # Page component with ApplicationsPage wrapper
+```
+
+### 3. Extension Points Configuration
+The generated `extensions.ts` file defines three key extension types:
+
+#### Area Definition
+```typescript
+{
+  type: 'app.area',
+  properties: {
+    id: 'my-feature',
+    displayName: 'My Feature',
+    reliantAreas: ['AREA1', 'AREA2'], // If required areas selected
+  },
+}
+```
+
+#### Navigation Menu
+```typescript
+{
+  type: 'app.navigation/href',
+  properties: {
+    id: 'my-feature-nav',
+    name: 'My Feature',
+    href: '/my-feature',
+    areaId: 'my-feature',
+    flags: {
+      required: ['AREA1', 'AREA2'], // If required areas selected
+    },
+  },
+}
+```
+
+#### Route Definition
+```typescript
+{
+  type: 'app.route',
+  properties: {
+    path: '/my-feature/*',
+    component: { $codeRef: 'MyFeature' },
+    flags: {
+      required: ['AREA1', 'AREA2'], // If required areas selected
+    },
+  },
+}
+```
+
+### 4. Component Patterns
+
+#### Main Plugin Component
+```typescript
+// MyFeature.tsx - Handles routing
+import React from 'react';
+import { Route, Routes } from 'react-router-dom';
+import MyFeaturePage from './MyFeaturePage';
+
+const MyFeature: React.FC = () => (
+  <Routes>
+    <Route path="/" element={<MyFeaturePage />} />
+  </Routes>
+);
+
+export default MyFeature;
+```
+
+#### Page Component
+```typescript
+// MyFeaturePage.tsx - Main page with ApplicationsPage wrapper
+import React from 'react';
+import { ApplicationsPage } from '#~/pages/ApplicationsPage';
+
+const MyFeaturePage: React.FC = () => (
+  <ApplicationsPage
+    title="My Feature"
+    description="Description of what this plugin does"
+    loaded
+    empty={false}
+  >
+    {/* Page content goes here */}
+  </ApplicationsPage>
+);
+
+export default MyFeaturePage;
+```
+
+### 5. Post-Generation Setup
+
+After generation, the plop script automatically:
+1. **Installs dependencies**: Runs `npm install` in the plugin directory
+2. **Provides next steps**: Shows instructions for development
+
+#### Manual Steps Required:
+1. **Restart dev server**: Kill and restart `npm run start:dev` in frontend folder to load the new plugin
+2. **Enable feature flags**: Go to Settings → Cluster settings and enable required areas
+3. **Access plugin**: Navigate to the new menu item to see your plugin
+
+### 6. Development Commands
+
+#### In Plugin Directory
+```bash
+cd frontend/packages/my-feature
+npm run type-check     # Check TypeScript types
+```
+
+#### In Frontend Root
+```bash
+cd frontend
+npm run start:dev      # Start dev server (restart after adding plugins)
+```
+
+### 7. Feature Flags & Areas
+
+#### Available Supported Areas
+The generator loads areas dynamically from `frontend/src/concepts/areas/types.ts`:
+- HOME, WORKBENCHES, DS_PIPELINES
+- MODEL_SERVING, K_SERVE, MODEL_REGISTRY  
+- ADMIN_CONNECTION_TYPES, CLUSTER_SETTINGS
+- And 20+ more options...
+
+#### Area Selection Impact
+- **No areas selected**: Plugin always visible
+- **Areas selected**: Plugin only visible when those feature flags are enabled
+- **reliantAreas**: Added to area extension for dependencies
+- **flags.required**: Added to navigation and route extensions
+
+### 8. Import Patterns
+
+#### Standard Imports
+```typescript
+// External libraries
+import React from 'react';
+import { Route, Routes } from 'react-router-dom';
+
+// Internal dashboard imports using alias
+import { ApplicationsPage } from '#~/pages/ApplicationsPage';
+import { SupportedArea } from '#~/concepts/areas/types';
+```
+
+#### Plugin Exports
+```typescript
+// extensions.ts - Must export as default
+export default extensions;
+
+// Main component - Must export as default  
+export default MyFeature;
+```
+
+### 9. Common Plugin Patterns
+
+#### Add More Routes
+```typescript
+const MyFeature: React.FC = () => (
+  <Routes>
+    <Route path="/" element={<MyFeaturePage />} />
+    <Route path="/details/:id" element={<MyFeatureDetailsPage />} />
+    <Route path="/settings" element={<MyFeatureSettingsPage />} />
+  </Routes>
+);
+```
+
+#### Handle Loading States
+```typescript
+const MyFeaturePage: React.FC = () => {
+  const [data, loading, error] = useMyData();
+
+  return (
+    <ApplicationsPage
+      title="My Feature"
+      description="Feature description"
+      loaded={!loading}
+      empty={!data}
+      loadError={error}
+    >
+      {data && <div>{/* Render data */}</div>}
+    </ApplicationsPage>
+  );
+};
+```
+
+---
+
+## Quick Reference
+
+### Create Plugin
+```bash
+make plugin
+```
+
+### Plugin Structure
+- `extensions.ts` - Plugin registration
+- `src/MyPlugin.tsx` - Main routing component  
+- `src/MyPluginPage.tsx` - Page with ApplicationsPage wrapper
+
+### After Generation
+1. Restart dev server
+2. Enable feature flags in cluster settings
+3. Navigate to new menu item
+
+### Key Files Modified
+- `frontend/packages/[package-name]/` - New plugin directory
+- Plugin auto-discovered by module federation system
