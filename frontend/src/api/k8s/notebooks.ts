@@ -326,8 +326,6 @@ export const updateNotebook = (
   oldNotebook.spec.template.spec.nodeSelector = {};
   container.resources = {};
 
-  console.log('resource', _.merge({}, oldNotebook, notebook));
-
   return k8sUpdateResource<NotebookKind>(
     applyK8sAPIOptions(
       {
