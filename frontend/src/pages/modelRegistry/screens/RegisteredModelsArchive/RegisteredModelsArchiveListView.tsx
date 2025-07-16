@@ -9,7 +9,7 @@ import { FilterIcon, SearchIcon } from '@patternfly/react-icons';
 import { ModelVersion, RegisteredModel } from '#~/concepts/modelRegistry/types';
 import { filterRegisteredModels } from '#~/pages/modelRegistry/screens/utils';
 import EmptyModelRegistryState from '#~/pages/modelRegistry/screens/components/EmptyModelRegistryState';
-import FilterToolbar from '#~/components/FilterToolbar.tsx';
+import FilterToolbar from '#~/components/FilterToolbar';
 import {
   initialModelRegistryFilterData,
   ModelRegistryFilterDataType,

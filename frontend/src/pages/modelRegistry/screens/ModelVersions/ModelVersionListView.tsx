@@ -26,7 +26,7 @@ import { registerVersionForModelRoute } from '#~/routes/modelRegistry/register';
 import { ProjectObjectType, typedEmptyImage } from '#~/concepts/design/utils';
 import { filterArchiveVersions, filterLiveVersions } from '#~/concepts/modelRegistry/utils';
 import { ModelRegistriesContext } from '#~/concepts/modelRegistry/context/ModelRegistriesContext';
-import FilterToolbar from '#~/components/FilterToolbar.tsx';
+import FilterToolbar from '#~/components/FilterToolbar';
 import {
   ModelRegistryVersionsFilterDataType,
   ModelRegistryVersionsFilterOptions,
