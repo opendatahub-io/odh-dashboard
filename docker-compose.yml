@@ -26,6 +26,16 @@ services:
     container_name: odh-dashboard
     network_mode: "host"
 
+    # ports:
+    #   - "3000:3000"
+    #   - "9000:9000"
+    #   - "9001:9001"
+    #   - "8321:8321"
+    #   - "50051:50051"
+    #   - "4000:4000"
+    #   - "8080:8080"
+    #   - "4010:4010"
+    #
     environment:
       - NODE_TLS_REJECT_UNAUTHORIZED=0
       - OC_CLUSTER_TYPE=${OC_CLUSTER_TYPE:-existing}
@@ -39,6 +49,7 @@ services:
 
     env_file:
       # add in ignored .env files
+      - .env.local
       - .env.development
 
     command: ["${START_COMMAND}"]

@@ -65,9 +65,6 @@ login_to_cluster() {
   log_success "Logged in to OpenShift cluster successfully."
 }
 
-# verify operator installation
-# TODO: Make checking more robust
-# this can use oc wait or grep search for Succeeded condition
 verify_operator_installation() {
   log_info "Verifying operator installation..."
 

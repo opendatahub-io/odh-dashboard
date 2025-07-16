@@ -21,6 +21,7 @@ SETUP_CHOICE=${SETUP_CHOICE:-""}
 CONTAINER_BUILDER=${CONTAINER_BUILDER:-""}
 LOCAL_ENV_FILE=${LOCAL_ENV_FILE:-".env.local"}
 OCP_DOWNLOAD_BASE_URL="https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable"
+NPM_START_COMMAND=${NPM_START_COMMAND:-""}
 
 OC_URL=${OC_URL:-""}
 OC_USER=${OC_USER:-""}
@@ -663,6 +664,19 @@ parse_flags() {
         exit 1
       fi
       ;;
+    --start-command=*)
+      NPM_START_COMMAND="${1#*=}"
+      shift
+      ;;
+    --start-command)
+      if [ -n "$2" ] && [ "${2:0:1}" != "-" ]; then
+        NPM_START_COMMAND="$2"
+        shift 2
+      else
+        log_error "Error: --development-environment requires a value (local|container)"
+        exit 1
+      fi
+      ;;
     --container-builder=*)
       CONTAINER_BUILDER="${1#*=}"
       shift
@@ -713,6 +727,7 @@ show_help() {
   echo "  --skip-env-creation              Skip creating a new environment file"
   echo "  --cluster-type TYPE              Set cluster type (crc|existing)"
   echo "  --development-environment TYPE   Set development environment (local|container)"
+  echo "  --start-command COMMAND          Set custom start command for the development environment"
   echo "  --container-builder BUILDER      Set container builder (docker|podman)"
   echo "  --skip-deps                      Skip Node.js dependencies installation"
   echo "  --verbose, -v                    Enable verbose output"
@@ -827,11 +842,11 @@ main() {
       setup_crc
     fi
 
-    if [ ! $SKIP_ENV_CREATION ]; then
+    if [ ! "$SKIP_ENV_CREATION" ]; then
       container_create_env_file
     fi
 
-    if [ ! $SKIP_DEPS ]; then
+    if [ ! "$SKIP_DEPS" ]; then
       log_warning "Cannot skip dependency installation in container setup. Node dependencies will be installed."
     fi
 
@@ -851,18 +866,23 @@ main() {
     local_setup_oc
     local_setup_cluster
 
-    if [ ! $SKIP_ENV_CREATION ]; then
+    if [ ! "$SKIP_ENV_CREATION" ]; then
       local_create_env_file
     fi
 
-    if [ ! $SKIP_DEPS ]; then
+    if [ ! "$SKIP_DEPS" ]; then
       local_install_node_dependencies
     fi
 
-    local_show_completed_message
+    if [ -n "$NPM_START_COMMAND" ]; then
+      log_info "Starting development environment with command: $NPM_START_COMMAND"
+      eval "$NPM_START_COMMAND"
+    else
+      local_show_completed_message
+    fi
     ;;
   *)
-    log_error "Invalid setup type: $SETUP_CHOICE"
+    log_error "Invalid setup type: ${SETUP_CHOICE}"
     log_info "Usage: $0 [container|local]"
     exit 1
     ;;

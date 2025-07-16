@@ -30,6 +30,11 @@ dev-setup:
 	echo "Running dev-setup..."
 	./scripts/dev/setup-dev.sh $(ARGS)
 
+.PHOY:dev-env
+dev-env-local:
+	echo "Running dev-env-local..."
+	./scripts/dev/dev-env.sh local $(ARGS)
+
 ##################################
 
 # BUILD - build image locally using s2i
