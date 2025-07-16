@@ -19,7 +19,7 @@ import {
   pipelineVersionImportModal,
   pipelineDeleteModal,
   configurePipelineServerModal,
-  viewPipelineServerModal,
+  managePipelineServerModal,
   PipelineSort,
   pipelineDetails,
 } from '#~/__tests__/cypress/cypress/pages/pipelines';
@@ -37,6 +37,7 @@ import { pipelineRunsGlobal } from '#~/__tests__/cypress/cypress/pages/pipelines
 import { argoAlert } from '#~/__tests__/cypress/cypress/pages/pipelines/argoAlert';
 import { toastNotifications } from '#~/__tests__/cypress/cypress/pages/components/ToastNotifications';
 import { DSPipelineAPIServerStore } from '#~/k8sTypes.ts';
+import { MANAGE_PIPELINE_SERVER_CONFIGURATION_TITLE } from '#~/concepts/pipelines/content/const';
 
 const projectName = 'test-project-name';
 const initialMockPipeline = buildMockPipeline({ display_name: 'Test pipeline' });
@@ -492,18 +493,29 @@ describe('Pipelines', () => {
     );
     pipelinesGlobal.visit(projectName);
 
-    pipelinesGlobal.selectPipelineServerAction('View pipeline server configuration');
-    viewPipelineServerModal.shouldHaveAccessKey('sdsd');
-    viewPipelineServerModal.findPasswordHiddenButton().click();
-    viewPipelineServerModal.shouldHaveSecretKey('sdsd');
-    viewPipelineServerModal.shouldHaveEndPoint('https://s3.amazonaws.com');
-    viewPipelineServerModal.shouldHaveBucketName('test-pipelines-bucket');
-    viewPipelineServerModal
+    pipelinesGlobal.selectPipelineServerAction(MANAGE_PIPELINE_SERVER_CONFIGURATION_TITLE);
+    managePipelineServerModal.shouldHaveAccessKey('sdsd');
+    managePipelineServerModal.findPasswordHiddenButton().click();
+    managePipelineServerModal.shouldHaveSecretKey('sdsd');
+    managePipelineServerModal.shouldHaveEndPoint('https://s3.amazonaws.com');
+    managePipelineServerModal.shouldHaveBucketName('test-pipelines-bucket');
+
+    managePipelineServerModal
       .findPipelineStoreCheckbox()
       .should('be.disabled')
       .should('not.be.checked');
 
-    viewPipelineServerModal.findCloseButton().click();
+    managePipelineServerModal.findButton('save', false);
+    managePipelineServerModal.findButton('cancel', true);
+
+    const checkbox = managePipelineServerModal.getPipelineCachingCheckbox();
+    checkbox.should('be.checked');
+    checkbox.click();
+    checkbox.should('not.be.checked');
+    managePipelineServerModal.findButton('save', true);
+    managePipelineServerModal.findButton('cancel', true);
+
+    managePipelineServerModal.findCloseButton().click();
   });
 
   it('renders the page with pipelines table data', () => {
