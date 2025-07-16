@@ -22,7 +22,7 @@ import {
   getProfileScore,
 } from '#~/concepts/hardwareProfiles/utils';
 import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
-import { HardwareProfileKind } from '#~/k8sTypes';
+import { HardwareProfileKind, KnownLabels } from '#~/k8sTypes';
 import TruncatedText from '#~/components/TruncatedText';
 import ProjectScopedIcon from '#~/components/searchSelector/ProjectScopedIcon.tsx';
 import {
@@ -36,6 +36,8 @@ import {
   getHardwareProfileDisplayName,
   isHardwareProfileEnabled,
 } from '#~/pages/hardwareProfiles/utils.ts';
+import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 
 type HardwareProfileSelectProps = {
   initialHardwareProfile?: HardwareProfileKind;
@@ -80,9 +82,27 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
     currentProjectHardwareProfilesError,
   ] = projectScopedHardwareProfiles;
 
+  const { currentProject } = React.useContext(ProjectDetailsContext);
+  const isKueueEnabled = useIsAreaAvailable(SupportedArea.KUEUE).status;
+  const isProjectKueueEnabled =
+    currentProject.metadata.labels?.[KnownLabels.KUEUE_MANAGED] === 'true';
+
+  const shouldFilterKueueProfiles = !isKueueEnabled || !isProjectKueueEnabled;
+
+  const filterKueue = React.useCallback(
+    (hp: HardwareProfileKind) => {
+      if (shouldFilterKueueProfiles) {
+        return hp.spec.scheduling?.type !== 'Queue';
+      }
+      return true;
+    },
+    [shouldFilterKueueProfiles],
+  );
+
   const options = React.useMemo(() => {
     const enabledProfiles = hardwareProfiles
       .filter((hp) => isHardwareProfileEnabled(hp))
+      .filter(filterKueue)
       .toSorted((a, b) => {
         // First compare by whether they have extra resources
         const aHasExtra = (a.spec.identifiers ?? []).length > 2;
@@ -158,7 +178,13 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
     }
 
     return formattedOptions;
-  }, [hardwareProfiles, initialHardwareProfile, allowExistingSettings, isHardwareProfileSupported]);
+  }, [
+    hardwareProfiles,
+    initialHardwareProfile,
+    allowExistingSettings,
+    isHardwareProfileSupported,
+    filterKueue,
+  ]);
 
   const renderMenuItem = (
     profile: HardwareProfileKind,
@@ -215,6 +241,7 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
   const getHardwareProfiles = () => {
     const currentProjectEnabledProfiles = currentProjectHardwareProfiles
       .filter((hp) => isHardwareProfileEnabled(hp))
+      .filter(filterKueue)
       .toSorted((a, b) => {
         const aHasExtra = (a.spec.identifiers ?? []).length > 2;
         const bHasExtra = (b.spec.identifiers ?? []).length > 2;
@@ -236,6 +263,7 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
   const getDashboardHardwareProfiles = () => {
     const DashboardEnabledProfiles = hardwareProfiles
       .filter((hp) => isHardwareProfileEnabled(hp))
+      .filter(filterKueue)
       .toSorted((a, b) => {
         const aHasExtra = (a.spec.identifiers ?? []).length > 2;
         const bHasExtra = (b.spec.identifiers ?? []).length > 2;
