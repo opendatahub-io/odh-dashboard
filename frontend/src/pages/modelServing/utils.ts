@@ -367,13 +367,15 @@ export const isModelMesh = (inferenceService: InferenceServiceKind): boolean =>
   inferenceService.metadata.annotations?.['serving.kserve.io/deploymentMode'] ===
   DeploymentMode.ModelMesh;
 
+export const isModelServingStopped = (inferenceService?: InferenceServiceKind): boolean =>
+  inferenceService?.metadata.annotations?.['serving.kserve.io/stop'] === 'true';
+
 export const isOciModelUri = (modelUri?: string): boolean => !!modelUri?.includes('oci://');
 
 export const getInferenceServiceStoppedStatus = (
   inferenceService: InferenceServiceKind,
 ): ModelServingState => {
-  const status = inferenceService.metadata.annotations?.['serving.kserve.io/stop'] === 'true';
-
+  const status = isModelServingStopped(inferenceService);
   return {
     inferenceService,
     isStopped: status,
