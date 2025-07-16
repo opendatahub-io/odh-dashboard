@@ -22,7 +22,8 @@ ODH requires the following to run:
 
 There is a quick start script that will install the required dependencies and run the project in development mode.
 
-> [!WARNING](Container mode currently does not work with Podman)
+> [!WARNING]
+> Container mode currently does not work with Podman
 
 1. Clone the repository
 
