@@ -100,19 +100,15 @@ module.exports = (plop) => {
       const fs = require('fs');
 
       try {
-        const { componentName } = answers;
-        const kebabName = componentName
-          .replace(/([A-Z])/g, '-$1')
-          .toLowerCase()
-          .replace(/^-/, '');
+        const { componentName, packageName } = answers;
 
         // Files that should be formatted if they exist
         const potentialFiles = [
-          `packages/${kebabName}/package.json`,
-          `packages/${kebabName}/tsconfig.json`,
-          `packages/${kebabName}/extensions.ts`,
-          `packages/${kebabName}/src/${componentName}.tsx`,
-          `packages/${kebabName}/src/${componentName}Page.tsx`,
+          `packages/${packageName}/package.json`,
+          `packages/${packageName}/tsconfig.json`,
+          `packages/${packageName}/extensions.ts`,
+          `packages/${packageName}/src/${componentName}.tsx`,
+          `packages/${packageName}/src/${componentName}Page.tsx`,
         ];
 
         // Only format files that actually exist
@@ -160,16 +156,12 @@ module.exports = (plop) => {
    */
   const createPluginInstructionsAction = () =>
     function pluginInstructionsHandler(answers) {
-      const { componentName, devFlag } = answers;
-      const kebabName = componentName
-        .replace(/([A-Z])/g, '-$1')
-        .toLowerCase()
-        .replace(/^-/, '');
+      const { componentName, devFlag, packageName } = answers;
 
       console.log('\n🎉 PLUGIN GENERATED SUCCESSFULLY!');
       console.log('═'.repeat(50));
       console.log(`📦 Plugin: ${componentName}`);
-      console.log(`📂 Location: packages/${kebabName}/`);
+      console.log(`📂 Location: packages/${packageName}/`);
       console.log('');
       console.log('📋 Next steps:');
       console.log('  1. 📦 Install dependencies:');
@@ -187,10 +179,10 @@ module.exports = (plop) => {
       console.log('');
       console.log('  4. 🎨 Customize your plugin (optional):');
       console.log(
-        `     • Edit packages/${kebabName}/src/${componentName}Page.tsx for the main page`,
+        `     • Edit packages/${packageName}/src/${componentName}Page.tsx for the main page`,
       );
-      console.log(`     • Edit packages/${kebabName}/src/${componentName}.tsx for routing`);
-      console.log(`     • Modify packages/${kebabName}/extensions.ts for plugin configuration`);
+      console.log(`     • Edit packages/${packageName}/src/${componentName}.tsx for routing`);
+      console.log(`     • Modify packages/${packageName}/extensions.ts for plugin configuration`);
       console.log('');
       console.log(`🔗 Your plugin route will be available at: ${answers.routePath}`);
       console.log('');
@@ -333,6 +325,51 @@ module.exports = (plop) => {
       },
       {
         type: 'input',
+        name: 'packageName',
+        message: 'Package folder name (kebab-case)?',
+        default: (answers) => {
+          // Use the kebab case helper to provide a smart default
+          const str = answers.componentName;
+          return str
+            .split('')
+            .map((char, index) => {
+              const isUpperCase = char >= 'A' && char <= 'Z';
+              const prevChar = str[index - 1];
+              const nextChar = str[index + 1];
+
+              if (!isUpperCase) {
+                return char;
+              }
+
+              if (index === 0) {
+                return char;
+              }
+
+              const prevIsLower = prevChar && prevChar >= 'a' && prevChar <= 'z';
+              const prevIsDigit = prevChar && prevChar >= '0' && prevChar <= '9';
+              const nextIsLower = nextChar && nextChar >= 'a' && nextChar <= 'z';
+
+              if (prevIsLower || prevIsDigit || (nextIsLower && index > 0)) {
+                return `-${char}`;
+              }
+
+              return char;
+            })
+            .join('')
+            .toLowerCase();
+        },
+        validate: (input) => {
+          if (!input) {
+            return 'Package name is required';
+          }
+          if (!/^[a-z][a-z0-9]*(-[a-z0-9]+)*$/.test(input)) {
+            return 'Package name must be in kebab-case (e.g., my-component)';
+          }
+          return true;
+        },
+      },
+      {
+        type: 'input',
         name: 'routePath',
         message: 'Route path (e.g., /myFeature/*)?',
         validate: (input) => {
@@ -368,11 +405,7 @@ module.exports = (plop) => {
         type: 'input',
         name: 'navId',
         message: 'Navigation ID (kebab-case)?',
-        default: (answers) =>
-          answers.componentName
-            .replace(/([A-Z])/g, '-$1')
-            .toLowerCase()
-            .replace(/^-/, ''),
+        default: (answers) => answers.packageName,
       },
       {
         type: 'list',
@@ -400,27 +433,27 @@ module.exports = (plop) => {
       // Generate all plugin files
       {
         type: 'add',
-        path: 'packages/{{kebabCase componentName}}/package.json',
+        path: 'packages/{{packageName}}/package.json',
         templateFile: 'plop-templates/package.json.hbs',
       },
       {
         type: 'add',
-        path: 'packages/{{kebabCase componentName}}/tsconfig.json',
+        path: 'packages/{{packageName}}/tsconfig.json',
         templateFile: 'plop-templates/tsconfig.json.hbs',
       },
       {
         type: 'add',
-        path: 'packages/{{kebabCase componentName}}/extensions.ts',
+        path: 'packages/{{packageName}}/extensions.ts',
         templateFile: 'plop-templates/extensions.ts.hbs',
       },
       {
         type: 'add',
-        path: 'packages/{{kebabCase componentName}}/src/{{componentName}}Page.tsx',
+        path: 'packages/{{packageName}}/src/{{componentName}}Page.tsx',
         templateFile: 'plop-templates/plugin-main-page.tsx.hbs',
       },
       {
         type: 'add',
-        path: 'packages/{{kebabCase componentName}}/src/{{componentName}}.tsx',
+        path: 'packages/{{packageName}}/src/{{componentName}}.tsx',
         templateFile: 'plop-templates/plugin-component.tsx.hbs',
       },
       // Format generated files
