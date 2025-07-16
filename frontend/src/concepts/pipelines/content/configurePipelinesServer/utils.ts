@@ -155,9 +155,12 @@ export const configureDSPipelineResourceSpec = (
   config: PipelineServerConfigType,
   projectName: string,
 ): Promise<DSPipelineKind['spec']> =>
-  createSecrets(config, projectName).then((secretsResponse) =>
-    createDSPipelineResourceSpec(config, secretsResponse),
-  );
+  createSecrets(config, projectName).then((secretsResponse) => {
+    console.log('about to send dspa.....');
+    const spec = createDSPipelineResourceSpec(config, secretsResponse);
+    console.log('dspa spec', spec);
+    return spec;
+  });
 
 export const objectStorageIsValid = (objectStorage: EnvVariableDataEntry[]): boolean =>
   objectStorage.every(({ key, value }) =>

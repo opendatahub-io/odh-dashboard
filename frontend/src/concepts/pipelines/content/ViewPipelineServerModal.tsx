@@ -30,9 +30,14 @@ const ViewPipelineServerModal: React.FC<ViewPipelineServerModalProps> = ({
     namespace,
     pipelineNamespaceCR?.spec.objectStorage.externalStorage?.s3CredentialsSecret.secretName ?? '',
   );
+  console.log('ugh; secret stuff(1)', pipelineResult);
   const pipelineSecret = dataEntryToRecord(pipelineResult?.values?.data ?? []);
   const [result] = useNamespaceSecret(namespace, ExternalDatabaseSecret.NAME);
   const databaseSecret = dataEntryToRecord(result?.values?.data ?? []);
+  console.log('ugh; secret stuff(2)', result);
+  console.log('props? ugh (3)', pipelineNamespaceCR);
+  console.log('DSPA spec:', pipelineNamespaceCR?.spec);
+  console.log('API server config:', pipelineNamespaceCR?.spec.apiServer);
 
   return (
     <Modal isOpen onClose={onClose} variant="small">

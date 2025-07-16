@@ -29,7 +29,7 @@ export const PipelineCachingSection = ({
         body="When enabled, pipelines can be configured to use caching. If unspecified in the pipeline, caching will be enabled by default."
       />
       {!config.enableCaching && (
-        <Alert variant="warning" isInline title="Caching is disabled">
+        <Alert variant="warning" isInline title="Caching is disabled" style={{ marginTop: '8px' }}>
           All pipelines will be prevented from caching.
         </Alert>
       )}
