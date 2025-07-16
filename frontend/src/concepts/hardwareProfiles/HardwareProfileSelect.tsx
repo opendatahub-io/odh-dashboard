@@ -38,7 +38,7 @@ import {
 } from '#~/pages/hardwareProfiles/utils.ts';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
-import { SchedulingType } from '#~/types.ts';
+import { SchedulingType } from '#~/types';
 
 type HardwareProfileSelectProps = {
   initialHardwareProfile?: HardwareProfileKind;
