@@ -342,37 +342,9 @@ module.exports = (plop) => {
         type: 'input',
         name: 'packageName',
         message: 'Package folder name (kebab-case)?',
-        default: (answers) => {
-          // Use the kebab case helper to provide a smart default
-          const str = answers.componentName;
-          return str
-            .split('')
-            .map((char, index) => {
-              const isUpperCase = char >= 'A' && char <= 'Z';
-              const prevChar = str[index - 1];
-              const nextChar = str[index + 1];
-
-              if (!isUpperCase) {
-                return char;
-              }
-
-              if (index === 0) {
-                return char;
-              }
-
-              const prevIsLower = prevChar && prevChar >= 'a' && prevChar <= 'z';
-              const prevIsDigit = prevChar && prevChar >= '0' && prevChar <= '9';
-              const nextIsLower = nextChar && nextChar >= 'a' && nextChar <= 'z';
-
-              if (prevIsLower || prevIsDigit || (nextIsLower && index > 0)) {
-                return `-${char}`;
-              }
-
-              return char;
-            })
-            .join('')
-            .toLowerCase();
-        },
+        default: (answers) =>
+          // Use the existing kebabCase helper
+          plop.getHelper('kebabCase')(answers.componentName),
         validate: (input) => {
           if (!input) {
             return 'Package name is required';
