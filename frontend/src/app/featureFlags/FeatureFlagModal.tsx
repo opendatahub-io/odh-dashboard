@@ -9,7 +9,6 @@ import {
   ModalBody,
   ModalFooter,
   ModalHeader,
-  PageSection,
   Tab,
   TabTitleText,
   Tabs,
