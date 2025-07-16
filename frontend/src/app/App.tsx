@@ -29,6 +29,7 @@ import { ExtensibilityContextProvider } from '#~/plugins/ExtensibilityContext';
 import useFetchDscStatus from '#~/concepts/areas/useFetchDscStatus';
 import { PluginStoreAreaFlagsProvider } from '#~/plugins/PluginStoreAreaFlagsProvider';
 import { OdhPlatformType } from '#~/types';
+import { FeatureStoreProjectContextProvider } from '#~/concepts/featureStore/context/FeatureStoreProjectContext.tsx';
 import Header from './Header';
 import AppRoutes from './AppRoutes';
 import NavSidebar from './NavSidebar';
@@ -172,11 +173,13 @@ const App: React.FC = () => {
               <NimContextProvider>
                 <ProjectsContextProvider>
                   <ModelRegistriesContextProvider>
-                    <QuickStarts>
-                      <NotificationWatcherContextProvider>
-                        <AppRoutes />
-                      </NotificationWatcherContextProvider>
-                    </QuickStarts>
+                    <FeatureStoreProjectContextProvider>
+                      <QuickStarts>
+                        <NotificationWatcherContextProvider>
+                          <AppRoutes />
+                        </NotificationWatcherContextProvider>
+                      </QuickStarts>
+                    </FeatureStoreProjectContextProvider>
                   </ModelRegistriesContextProvider>
                 </ProjectsContextProvider>
               </NimContextProvider>
