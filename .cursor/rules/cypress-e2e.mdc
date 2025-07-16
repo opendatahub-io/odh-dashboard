@@ -177,10 +177,23 @@ pageObject.findStatusText().should('contain', 'Running');
 ### Code Quality and Linting
 
 **MANDATORY: Always lint before claiming test is complete**:
-```bash
-npm run lint:frontend:backend
-npm run test:fix
-```
+
+> **Linting/fixing commands:**
+> - To lint/fix both frontend and backend (from the project root):
+>   ```bash
+>   npm run lint:frontend:backend
+>   npm run test:fix
+>   ```
+> - To lint/fix just the frontend (from the frontend directory):
+>   ```bash
+>   npm run test:lint
+>   npm run test:fix
+>   ```
+> - To lint/fix just the backend (from the backend directory):
+>   ```bash
+>   npm run test:lint
+>   npm run test:fix
+>   ```
 
 **All linting errors must be fixed**:
 - No test is ready until ALL linting errors are resolved
@@ -247,7 +260,8 @@ During implementation:
 - [ ] Never include tags in fixture files
 
 After implementation:
-- [ ] Run linting: `npm run lint:frontend:backend && npm run test:fix`
+- [ ] Run linting: `npm run lint:frontend:backend && npm run test:fix` (from the project root)
+- [ ] Or, for just frontend/backend, run `npm run test:lint && npm run test:fix` from the respective directory
 - [ ] Fix ALL linting errors before claiming test is complete
 - [ ] Verify test independence and cleanup
 - [ ] Test on clean environment
