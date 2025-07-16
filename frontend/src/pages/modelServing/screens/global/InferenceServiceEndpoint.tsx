@@ -35,7 +35,7 @@ const InferenceServiceEndpoint: React.FC<InferenceServiceEndpointProps> = ({
   isKserve,
   modelState,
 }) => {
-  const { isStopped, isRunning, isStarting, isFailed } = modelState;
+  const { isStopped, isRunning, isStarting, isStopping, isFailed } = modelState;
 
   const isRouteEnabled = !isKserve
     ? servingRuntime !== undefined && isServingRuntimeRouteEnabled(servingRuntime)
@@ -63,7 +63,7 @@ const InferenceServiceEndpoint: React.FC<InferenceServiceEndpointProps> = ({
     return <>-</>;
   }
 
-  if (isStarting || (isRouteEnabled && !loaded && !isStopped)) {
+  if (isStarting || (isRouteEnabled && !loaded && !isStopped && !isStopping)) {
     return <>Pending...</>;
   }
 
