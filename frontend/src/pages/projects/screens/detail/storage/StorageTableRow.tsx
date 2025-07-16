@@ -26,6 +26,7 @@ import AccessModeFullName from '#~/pages/projects/screens/detail/storage/AccessM
 import useIsRootVolume from './useIsRootVolume';
 import StorageWarningStatus from './StorageWarningStatus';
 import { StorageTableData } from './types';
+import { isModelStorage } from './utils';
 
 type StorageTableRowProps = {
   rowIndex: number;
@@ -48,7 +49,7 @@ const StorageTableRow: React.FC<StorageTableRowProps> = ({
   const isStorageClassesAvailable = useIsAreaAvailable(SupportedArea.STORAGE_CLASSES).status;
   const workbenchEnabled = useIsAreaAvailable(SupportedArea.WORKBENCHES).status;
   const storageClassConfig = obj.storageClass && getStorageClassConfig(obj.storageClass);
-
+  const modelStorage = isModelStorage(obj.pvc);
   const actions: IAction[] = [
     {
       title: 'Edit storage',
@@ -154,7 +155,7 @@ const StorageTableRow: React.FC<StorageTableRowProps> = ({
             <FlexItem spacer={{ default: 'spacerSm' }}>
               <HddIcon />
             </FlexItem>
-            <FlexItem>{` Persistent storage`}</FlexItem>
+            <FlexItem>{` ${modelStorage ? 'Model' : 'Generic persistent'} storage`}</FlexItem>
           </Flex>
         </Content>
       </Td>
