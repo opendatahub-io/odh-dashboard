@@ -16,7 +16,7 @@ import StateActionToggle from '#~/components/StateActionToggle';
 import { patchInferenceServiceStoppedStatus } from '#~/api/k8s/inferenceServices';
 import useStopModalPreference from '#~/pages/modelServing/useStopModalPreference.ts';
 import ModelServingStopModal from '#~/pages/modelServing/ModelServingStopModal';
-import { useModelStatus } from '#~/pages/modelServing/useModelStatus';
+import { useInferenceServiceStatus } from '#~/pages/modelServing/useInferenceServiceStatus.ts';
 import InferenceServiceEndpoint from './InferenceServiceEndpoint';
 import InferenceServiceProject from './InferenceServiceProject';
 import InferenceServiceStatus from './InferenceServiceStatus';
@@ -53,17 +53,15 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
   const isProjectScoped = useIsAreaAvailable(SupportedArea.DS_PROJECT_SCOPED).status;
 
   const [modelMetricsEnabled] = useModelMetricsEnabled();
-  const kserveMetricsEnabled = useIsAreaAvailable(SupportedArea.K_SERVE_METRICS).status;
 
   const modelMesh = isModelMesh(inferenceService);
   const modelMeshMetricsSupported = modelMetricsEnabled && modelMesh;
+  const kserveMetricsEnabled = useIsAreaAvailable(SupportedArea.K_SERVE_METRICS).status;
   const kserveMetricsSupported = modelMetricsEnabled && kserveMetricsEnabled && !modelMesh;
   const displayName = getDisplayNameFromK8sResource(inferenceService);
 
-  const { isStarting, isStopping, isStopped, isRunning, setIsStarting, setIsStopping } =
-    useModelStatus(inferenceService, refresh);
-
-  const isNewlyDeployed = !inferenceService.status?.modelStatus?.states?.activeModelState;
+  const { isStarting, isStopping, isStopped, isRunning, isFailed, setIsStarting, setIsStopping } =
+    useInferenceServiceStatus(inferenceService, refresh);
 
   const onStart = React.useCallback(() => {
     setIsStarting(true);
@@ -86,7 +84,7 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
     <>
       <Td dataLabel="Name">
         <ResourceNameTooltip resource={inferenceService}>
-          {modelMeshMetricsSupported || kserveMetricsSupported ? (
+          {!isStarting && !isFailed && (modelMeshMetricsSupported || kserveMetricsSupported) ? (
             <Link
               data-testid={`metrics-link-${displayName}`}
               to={
@@ -123,6 +121,13 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
           inferenceService={inferenceService}
           servingRuntime={servingRuntime}
           isKserve={!modelMesh}
+          modelState={{
+            isStarting,
+            isStopping,
+            isStopped,
+            isRunning,
+            isFailed,
+          }}
         />
       </Td>
 
@@ -139,23 +144,25 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
         <InferenceServiceStatus
           inferenceService={inferenceService}
           isKserve={!modelMesh}
-          isStarting={isStarting || isNewlyDeployed}
+          isStarting={isStarting}
           isStopping={isStopping}
-          isStopped={isStopped && !isStopping}
+          isStopped={isStopped}
         />
       </Td>
       <Td>
-        <StateActionToggle
-          currentState={{
-            isRunning: isRunning && !isStarting,
-            isStopped: isStopped && !isStopping,
-            isStarting,
-            isStopping,
-          }}
-          onStart={onStart}
-          onStop={onStop}
-          isDisabledWhileStarting={false}
-        />
+        {!modelMesh && (
+          <StateActionToggle
+            currentState={{
+              isRunning,
+              isStopped,
+              isStarting,
+              isStopping,
+            }}
+            onStart={onStart}
+            onStop={onStop}
+            isDisabledWhileStarting={false}
+          />
+        )}
       </Td>
 
       {columnNames.includes(ColumnField.Kebab) && (

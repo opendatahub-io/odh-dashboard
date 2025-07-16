@@ -2,7 +2,7 @@ import { renderHook, act } from '@testing-library/react';
 import { InferenceServiceKind } from '#~/k8sTypes';
 import { getInferenceServiceModelState } from '#~/concepts/modelServingKServe/kserveStatusUtils';
 import { FAST_POLL_INTERVAL } from '#~/utilities/const';
-import { useModelStatus } from '#~/pages/modelServing/useModelStatus';
+import { useInferenceServiceStatus } from '#~/pages/modelServing/useInferenceServiceStatus.ts';
 import { InferenceServiceModelState } from '#~/pages/modelServing/screens/types';
 import { getInferenceServiceStoppedStatus } from '#~/pages/modelServing/utils';
 
@@ -24,7 +24,7 @@ jest
 const mockGetInferenceServiceModelState = jest.mocked(getInferenceServiceModelState);
 const mockGetInferenceServiceStoppedStatus = jest.mocked(getInferenceServiceStoppedStatus);
 
-describe('useModelStatus', () => {
+describe('useInferenceServiceStatus', () => {
   const mockInferenceService: InferenceServiceKind = {
     apiVersion: 'serving.kserve.io/v1beta1',
     kind: 'InferenceService',
@@ -103,7 +103,7 @@ describe('useModelStatus', () => {
 
   it('should initialize with default state', () => {
     const { result } = renderHook(
-      ({ inferenceService, refresh }) => useModelStatus(inferenceService, refresh),
+      ({ inferenceService, refresh }) => useInferenceServiceStatus(inferenceService, refresh),
       {
         initialProps: { inferenceService: mockInferenceService, refresh: mockRefresh },
       },
@@ -125,7 +125,7 @@ describe('useModelStatus', () => {
     mockGetInferenceServiceStoppedStatus.mockReturnValue(mockBaseStatus);
 
     const { result } = renderHook(
-      ({ inferenceService, refresh }) => useModelStatus(inferenceService, refresh),
+      ({ inferenceService, refresh }) => useInferenceServiceStatus(inferenceService, refresh),
       {
         initialProps: { inferenceService: mockInferenceService, refresh: mockRefresh },
       },
@@ -141,7 +141,7 @@ describe('useModelStatus', () => {
       mockGetInferenceServiceModelState.mockReturnValue(InferenceServiceModelState.LOADING);
 
       const { result } = renderHook(
-        ({ inferenceService, refresh }) => useModelStatus(inferenceService, refresh),
+        ({ inferenceService, refresh }) => useInferenceServiceStatus(inferenceService, refresh),
         {
           initialProps: { inferenceService: mockInferenceService, refresh: mockRefresh },
         },
@@ -158,7 +158,7 @@ describe('useModelStatus', () => {
       mockGetInferenceServiceModelState.mockReturnValue(InferenceServiceModelState.PENDING);
 
       const { result } = renderHook(
-        ({ inferenceService, refresh }) => useModelStatus(inferenceService, refresh),
+        ({ inferenceService, refresh }) => useInferenceServiceStatus(inferenceService, refresh),
         {
           initialProps: { inferenceService: mockInferenceService, refresh: mockRefresh },
         },
@@ -175,7 +175,7 @@ describe('useModelStatus', () => {
       mockGetInferenceServiceModelState.mockReturnValue(InferenceServiceModelState.LOADED);
 
       const { result, rerender } = renderHook(
-        ({ inferenceService, refresh }) => useModelStatus(inferenceService, refresh),
+        ({ inferenceService, refresh }) => useInferenceServiceStatus(inferenceService, refresh),
         {
           initialProps: { inferenceService: mockInferenceService, refresh: mockRefresh },
         },
@@ -197,7 +197,7 @@ describe('useModelStatus', () => {
       mockGetInferenceServiceModelState.mockReturnValue(InferenceServiceModelState.FAILED_TO_LOAD);
 
       const { result, rerender } = renderHook(
-        ({ inferenceService, refresh }) => useModelStatus(inferenceService, refresh),
+        ({ inferenceService, refresh }) => useInferenceServiceStatus(inferenceService, refresh),
         {
           initialProps: { inferenceService: mockInferenceService, refresh: mockRefresh },
         },
@@ -227,7 +227,7 @@ describe('useModelStatus', () => {
       });
 
       const { result } = renderHook(
-        ({ inferenceService, refresh }) => useModelStatus(inferenceService, refresh),
+        ({ inferenceService, refresh }) => useInferenceServiceStatus(inferenceService, refresh),
         {
           initialProps: { inferenceService: mockInferenceService, refresh: mockRefresh },
         },
@@ -259,7 +259,7 @@ describe('useModelStatus', () => {
       });
 
       const { result } = renderHook(
-        ({ inferenceService, refresh }) => useModelStatus(inferenceService, refresh),
+        ({ inferenceService, refresh }) => useInferenceServiceStatus(inferenceService, refresh),
         {
           initialProps: { inferenceService: mockInferenceService, refresh: mockRefresh },
         },
@@ -293,7 +293,7 @@ describe('useModelStatus', () => {
       });
 
       const { result } = renderHook(
-        ({ inferenceService, refresh }) => useModelStatus(inferenceService, refresh),
+        ({ inferenceService, refresh }) => useInferenceServiceStatus(inferenceService, refresh),
         {
           initialProps: { inferenceService: mockInferenceService, refresh: mockRefresh },
         },
@@ -338,7 +338,7 @@ describe('useModelStatus', () => {
       });
 
       const { result, unmount } = renderHook(
-        ({ inferenceService, refresh }) => useModelStatus(inferenceService, refresh),
+        ({ inferenceService, refresh }) => useInferenceServiceStatus(inferenceService, refresh),
         {
           initialProps: { inferenceService: mockInferenceService, refresh: mockRefresh },
         },
