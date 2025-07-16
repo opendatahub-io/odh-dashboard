@@ -3,7 +3,7 @@ import React from 'react';
 import FormSection from '#~/components/pf-overrides/FormSection';
 import { PipelineServerConfigType } from './types';
 
-type PipelinesAdditionalConfigurationSectionProps = {
+type PipelinesAdditionalConfigurationProps = {
   setConfig: (config: PipelineServerConfigType) => void;
   config: PipelineServerConfigType;
 };
@@ -11,7 +11,7 @@ type PipelinesAdditionalConfigurationSectionProps = {
 const PipelinesAdditionalConfigurationSection = ({
   setConfig,
   config,
-}: PipelinesAdditionalConfigurationSectionProps): React.JSX.Element => {
+}: PipelinesAdditionalConfigurationProps): React.JSX.Element => {
   const [configurationIsExpanded, setConfigurationIsExpanded] = React.useState(false);
 
   return (
@@ -28,9 +28,10 @@ const PipelinesAdditionalConfigurationSection = ({
         >
           <FormGroup hasNoPaddingTop isStack>
             <Checkbox
-              id="pipeline-configure-server-kubernetes-store-checkbox"
+              id="pipeline-kubernetes-store-checkbox"
+              data-testid="pipeline-kubernetes-store-checkbox"
               label="Store pipeline yaml files in Kubernetes"
-              description="This cannot be changed after server configuration."
+              description="Store your pipeline definitions as Kubernetes custom resources. This enables GitOps, letting you manage, version, and deploy your ML pipelines with tools like OpenShift GitOps for consistent, traceable workflows. This cannot be changed after pipeline server configuration."
               isChecked={config.storeYamlInKubernetes}
               onChange={(_, enabled) => {
                 setConfig({

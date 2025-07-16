@@ -118,12 +118,16 @@ class ConfigurePipelineServerModal extends Modal {
     cy.findByRole('menuitem', { name }).click();
   }
 
-  findToggleButton() {
-    return this.find().findByRole('button', { name: 'Show advanced database options' });
+  findToggleButton(name: string) {
+    return this.find().findByRole('button', { name });
   }
 
   findExternalMYSQLDatabaseRadio() {
     return this.find().findByTestId('external-database-type-radio');
+  }
+
+  findPipelineStoreCheckbox() {
+    return this.find().findByTestId('pipeline-kubernetes-store-checkbox');
   }
 
   findHostInput() {
@@ -174,6 +178,10 @@ class ViewPipelineServerModal extends Modal {
 
   findPasswordHiddenButton() {
     return this.find().findByTestId('password-hidden-button');
+  }
+
+  findPipelineStoreCheckbox() {
+    return this.find().findByTestId('pipeline-kubernetes-store-checkbox');
   }
 }
 

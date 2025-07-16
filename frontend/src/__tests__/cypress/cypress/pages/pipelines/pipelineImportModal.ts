@@ -15,6 +15,14 @@ class PipelineImportModal extends Modal {
     return this.find().findByTestId('pipeline-name');
   }
 
+  findPipelineResourceNameInput() {
+    return this.find().findByTestId('pipeline-resourceName');
+  }
+
+  findPipelineEditResourceNameButton() {
+    return this.find().findByTestId('pipeline-k8s-editResourceLink');
+  }
+
   findPipelineDescriptionInput() {
     return this.find().findByTestId('pipeline-description');
   }
@@ -41,6 +49,10 @@ class PipelineImportModal extends Modal {
 
   fillPipelineName(value: string) {
     this.findPipelineNameInput().clear().type(value);
+  }
+
+  fillPipelineResourceName(value: string) {
+    this.findPipelineResourceNameInput().clear().type(value);
   }
 
   fillPipelineDescription(value: string) {

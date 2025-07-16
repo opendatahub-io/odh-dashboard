@@ -218,7 +218,8 @@ const PipelineImportBase: React.FC<PipelineImportBaseProps> = ({
             <StackItem>
               {isKubernetesStorage ? (
                 <K8sNameDescriptionField
-                  dataTestId="pipeline-k8s-name-description"
+                  // dataTestId becomes dataTestId-{name/description}
+                  dataTestId="pipeline"
                   nameLabel="Pipeline name"
                   descriptionLabel="Pipeline description"
                   maxLength={NAME_CHARACTER_LIMIT}
@@ -231,7 +232,7 @@ const PipelineImportBase: React.FC<PipelineImportBaseProps> = ({
                 />
               ) : (
                 <NameDescriptionField
-                  nameFieldId="pipeline-display-name"
+                  nameFieldId="pipeline-name"
                   nameFieldLabel="Pipeline name"
                   descriptionFieldLabel="Pipeline description"
                   descriptionFieldId="pipeline-description"
