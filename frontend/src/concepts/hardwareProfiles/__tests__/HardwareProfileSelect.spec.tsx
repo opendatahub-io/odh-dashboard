@@ -129,8 +129,8 @@ describe('HardwareProfileSelect filtering', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Options menu' }));
 
-    expect(screen.queryByText('Kueue Profile')).toBeNull();
-    expect(screen.queryByText('Kueue Profile 2')).toBeNull();
+    expect(screen.queryByText('Kueue Profile')).not.toBeInTheDocument();
+    expect(screen.queryByText('Kueue Profile 2')).not.toBeInTheDocument();
     expect(screen.getByText('Node Profile')).toBeInTheDocument();
     expect(screen.getByText('Node Profile 2')).toBeInTheDocument();
   });
@@ -141,8 +141,8 @@ describe('HardwareProfileSelect filtering', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Options menu' }));
 
-    expect(screen.queryByText('Kueue Profile')).toBeNull();
-    expect(screen.queryByText('Kueue Profile 2')).toBeNull();
+    expect(screen.queryByText('Kueue Profile')).not.toBeInTheDocument();
+    expect(screen.queryByText('Kueue Profile 2')).not.toBeInTheDocument();
     expect(screen.getByText('Node Profile')).toBeInTheDocument();
     expect(screen.getByText('Node Profile 2')).toBeInTheDocument();
   });
