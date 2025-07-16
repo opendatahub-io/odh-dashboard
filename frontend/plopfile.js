@@ -209,10 +209,39 @@ module.exports = (plop) => {
   // Register handlebars helpers
   plop.setHelper('eq', (a, b) => a === b);
   plop.setHelper('kebabCase', (str) =>
+    // More intelligent kebab case conversion that handles acronyms
     str
-      .replace(/([A-Z])/g, '-$1')
-      .toLowerCase()
-      .replace(/^-/, ''),
+      // Split the string into an array of characters
+      .split('')
+      .map((char, index) => {
+        const isUpperCase = char >= 'A' && char <= 'Z';
+        const prevChar = str[index - 1];
+        const nextChar = str[index + 1];
+
+        if (!isUpperCase) {
+          return char;
+        }
+
+        // First character - always keep as is
+        if (index === 0) {
+          return char;
+        }
+
+        const prevIsLower = prevChar && prevChar >= 'a' && prevChar <= 'z';
+        const prevIsDigit = prevChar && prevChar >= '0' && prevChar <= '9';
+        const nextIsLower = nextChar && nextChar >= 'a' && nextChar <= 'z';
+
+        // Add dash before uppercase letter if:
+        // 1. Previous character is lowercase or digit (camelCase transition)
+        // 2. Current is uppercase, next is lowercase, and we're not at start (acronym ending)
+        if (prevIsLower || prevIsDigit || (nextIsLower && index > 0)) {
+          return `-${char}`;
+        }
+
+        return char;
+      })
+      .join('')
+      .toLowerCase(),
   );
   plop.setHelper('constantCase', (str) =>
     str
