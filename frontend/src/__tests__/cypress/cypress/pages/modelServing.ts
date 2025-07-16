@@ -227,6 +227,18 @@ class InferenceServiceModal extends ServingModal {
     return this.find().findByTestId('new-connection-radio');
   }
 
+  findExistingPVCConnectionOption() {
+    return this.find().findByTestId('pvc-serving-radio');
+  }
+
+  findConnectionTypeDropdown() {
+    return this.find().findByTestId('typeahead-menu-toggle').findByRole('button');
+  }
+
+  findUriNewConnectionType() {
+    return cy.get('#connection-type ul li').contains('URI');
+  }
+
   findExistingConnectionOption() {
     return this.find().findByTestId('existing-connection-radio');
   }
@@ -344,6 +356,10 @@ class InferenceServiceModal extends ServingModal {
 
   findLocationPathInput() {
     return this.find().findByTestId('folder-path');
+  }
+
+  findUriLocationPathInput() {
+    return this.find().findByTestId('field URI');
   }
 
   findLocationPathInputError() {
