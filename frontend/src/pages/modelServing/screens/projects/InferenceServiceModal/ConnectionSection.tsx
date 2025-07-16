@@ -307,6 +307,33 @@ export const ConnectionSection: React.FC<Props> = ({
 
   const [prefillComplete, setPrefillComplete] = React.useState(false);
   const didInitialPVCPrefill = React.useRef(false);
+  const foundPVC = React.useRef(false);
+
+  const handlePVCPrefill = React.useCallback(
+    (uri: string) => {
+      const isPVC = isPVCUri(uri);
+      const editPVC = isPVC ? getPVCFromURI(uri, pvcs) : undefined;
+
+      if (editPVC) {
+        setData('storage', {
+          ...data.storage,
+          pvcConnection: editPVC.metadata.name,
+          type: InferenceServiceStorageType.PVC_STORAGE,
+          uri: existingUriOption,
+        });
+        foundPVC.current = true;
+      } else {
+        setData('storage', {
+          ...data.storage,
+          type: InferenceServiceStorageType.EXISTING_URI,
+          uri: existingUriOption,
+        });
+      }
+      didInitialPVCPrefill.current = true;
+      setPrefillComplete(true);
+    },
+    [pvcs, existingUriOption, data.storage, setData],
+  );
 
   React.useEffect(() => {
     if (!loaded) {
@@ -315,7 +342,7 @@ export const ConnectionSection: React.FC<Props> = ({
 
     // Only prefill if not already done
     if (!didInitialPVCPrefill.current) {
-      // If editing, and storage type is already set to something other than default, just mark as complete
+      // If editing, and storage type is already set to something other than URI/PVC, just mark as complete
       if (
         data.storage.type === InferenceServiceStorageType.EXISTING_STORAGE ||
         data.storage.type === InferenceServiceStorageType.NEW_STORAGE
@@ -327,33 +354,14 @@ export const ConnectionSection: React.FC<Props> = ({
 
       // Otherwise, handle PVC/URI prefill
       if (existingUriOption !== undefined) {
-        const isPVC = isPVCUri(existingUriOption);
-        const editPVC = isPVC ? getPVCFromURI(existingUriOption, pvcs) : undefined;
-
-        if (editPVC) {
-          setData('storage', {
-            ...data.storage,
-            pvcConnection: editPVC.metadata.name,
-            type: InferenceServiceStorageType.PVC_STORAGE,
-            uri: existingUriOption,
-          });
-        } else {
-          setData('storage', {
-            ...data.storage,
-            type: InferenceServiceStorageType.EXISTING_URI,
-            uri: existingUriOption,
-          });
-        }
-        didInitialPVCPrefill.current = true;
-        setPrefillComplete(true);
-        return;
+        handlePVCPrefill(existingUriOption);
       }
 
       // If nothing to prefill, just mark as complete
       didInitialPVCPrefill.current = true;
       setPrefillComplete(true);
     }
-  }, [loaded, pvcs, existingUriOption, data.storage, setData]);
+  }, [loaded, pvcs, existingUriOption, data.storage, setData, handlePVCPrefill]);
 
   if (loadError) {
     return (
@@ -404,7 +412,7 @@ export const ConnectionSection: React.FC<Props> = ({
           }
         />
       )}
-      {existingUriOption && !hasImagePullSecret && (
+      {existingUriOption && !hasImagePullSecret && !foundPVC.current && (
         <Radio
           id="existing-uri-radio"
           name="existing-uri-radio"
