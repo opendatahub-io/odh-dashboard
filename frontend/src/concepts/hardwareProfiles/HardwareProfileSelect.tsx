@@ -90,7 +90,7 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
 
   const shouldFilterKueueProfiles = !isKueueEnabled || !isProjectKueueEnabled;
 
-  const filterKueue = React.useCallback(
+  const maybeRemoveKueueProfiles = React.useCallback(
     (hp: HardwareProfileKind) => {
       if (shouldFilterKueueProfiles) {
         return hp.spec.scheduling?.type !== SchedulingType.QUEUE;
@@ -103,7 +103,7 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
   const options = React.useMemo(() => {
     const enabledProfiles = hardwareProfiles
       .filter((hp) => isHardwareProfileEnabled(hp))
-      .filter(filterKueue)
+      .filter(maybeRemoveKueueProfiles)
       .toSorted((a, b) => {
         // First compare by whether they have extra resources
         const aHasExtra = (a.spec.identifiers ?? []).length > 2;
@@ -184,7 +184,7 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
     initialHardwareProfile,
     allowExistingSettings,
     isHardwareProfileSupported,
-    filterKueue,
+    maybeRemoveKueueProfiles,
   ]);
 
   const renderMenuItem = (
@@ -254,7 +254,7 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
       currentProjectEnabledProfiles.push(initialHardwareProfile);
     }
     return currentProjectEnabledProfiles
-      .filter(filterKueue)
+      .filter(maybeRemoveKueueProfiles)
       .filter((profile) =>
         getHardwareProfileDisplayName(profile)
           .toLocaleLowerCase()
@@ -276,7 +276,7 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
     if (initialHardwareProfile && isHardwareProfileEnabled(initialHardwareProfile)) {
       DashboardEnabledProfiles.push(initialHardwareProfile);
     }
-    return DashboardEnabledProfiles.filter(filterKueue).filter((profile) =>
+    return DashboardEnabledProfiles.filter(maybeRemoveKueueProfiles).filter((profile) =>
       getHardwareProfileDisplayName(profile)
         .toLocaleLowerCase()
         .includes(searchHardwareProfile.toLocaleLowerCase()),
