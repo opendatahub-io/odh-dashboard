@@ -1,5 +1,6 @@
 import React from 'react';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
+import { featureStoreRoute } from './FeatureStoreRoutes';
 import FeatureStoreProjectSelectorNavigator from './screens/FeatureStoreProjectSelectorNavigator';
 
 type FeatureStoreProps = Omit<
@@ -12,7 +13,6 @@ type FeatureStoreProps = Omit<
   | 'removeChildrenTopPadding'
   | 'headerContent'
 >;
-
 const FeatureStore: React.FC<FeatureStoreProps> = ({ ...pageProps }) => (
   <ApplicationsPage
     {...pageProps}
@@ -20,7 +20,7 @@ const FeatureStore: React.FC<FeatureStoreProps> = ({ ...pageProps }) => (
     description="A catalog of features, entities, feature views and datasets created by your own team"
     headerContent={
       <FeatureStoreProjectSelectorNavigator
-        getRedirectPath={(featureStoreProject) => `/featurestore/${featureStoreProject}`}
+        getRedirectPath={(featureStore) => `${featureStoreRoute(featureStore)}`}
       />
     }
     loaded

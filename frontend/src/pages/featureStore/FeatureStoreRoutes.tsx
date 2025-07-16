@@ -1,17 +1,25 @@
 import * as React from 'react';
-import { Route, Routes } from 'react-router-dom';
-import FeatureStore from './screens/FeatureStore';
+import { Route } from 'react-router-dom';
+import ProjectsRoutes from '#~/concepts/projects/ProjectsRoutes.tsx';
+import FeatureStoreCoreLoader from './FeatureStoreCoreLoader';
+import FeatureStore from './FeatureStore';
+
+export const featureStoreRoute = (preferredFeatureStore = ''): string =>
+  `/featureStore/${preferredFeatureStore}`;
 
 const FeatureStoreRoutes: React.FC = () => (
-  <Routes>
-    <Route path="/overview" element={<FeatureStore />} />
-    <Route path="/entities" element={<>Entities Page</>} />
-    <Route path="/data-sources" element={<>Data Sources Page</>} />
-    <Route path="/data-sets" element={<>Data Sets Page</>} />
-    <Route path="/features" element={<>Features Page</>} />
-    <Route path="/feature-views" element={<>Feature Views Page</>} />
-    <Route path="/feature-services" element={<>Feature Services Page</>} />
-  </Routes>
+  <ProjectsRoutes>
+    <Route
+      path="overview/:namespace?/*"
+      element={
+        <FeatureStoreCoreLoader
+          getInvalidRedirectPath={(featureStore) => featureStoreRoute(featureStore)}
+        />
+      }
+    >
+      <Route index element={<FeatureStore empty={false} />} />
+    </Route>
+  </ProjectsRoutes>
 );
 
 export default FeatureStoreRoutes;
