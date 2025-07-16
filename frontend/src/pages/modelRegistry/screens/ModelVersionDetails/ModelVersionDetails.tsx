@@ -45,7 +45,7 @@ const ModelVersionsDetails: React.FC<ModelVersionsDetailProps> = ({ tab, ...page
   const [modelArtifacts, modelArtifactsLoaded, modelArtifactsLoadError, refreshModelArtifacts] =
     useModelArtifactsByVersionId(mvId);
 
-  const servingRuntimes = useServingRuntimes(undefined, undefined, { refreshRate: POLL_INTERVAL });
+  const servingRuntimes = useServingRuntimes();
 
   const refresh = React.useCallback(() => {
     refreshModelVersion();
