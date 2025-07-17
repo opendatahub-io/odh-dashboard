@@ -13,6 +13,7 @@ export const PipelineCachingSection = ({
 }: PipelineCachingSectionProps): React.JSX.Element => {
   const alertRef = React.useRef<HTMLDivElement>(null);
 
+  console.log('arghh 477a: enableC?', enableCaching);
   React.useEffect(() => {
     // When caching is disabled (alert appears), scroll to it
     if (!enableCaching && alertRef.current) {

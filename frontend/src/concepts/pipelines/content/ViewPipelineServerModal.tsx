@@ -48,7 +48,7 @@ const ViewPipelineServerModal: React.FC<ViewPipelineServerModalProps> = ({
   console.log('Cache enabled?:', pipelineNamespaceCR?.spec.apiServer?.cacheEnabled);
 
   const initCachingEnabled = pipelineNamespaceCR?.spec.apiServer?.cacheEnabled || false;
-  console.log('is initCachingEnabled??', initCachingEnabled);
+  console.log('77a is initCachingEnabled??', initCachingEnabled);
 
   // State for caching configuration
   const [enableCaching, setEnableCaching] = React.useState<boolean>(initCachingEnabled);
@@ -56,8 +56,16 @@ const ViewPipelineServerModal: React.FC<ViewPipelineServerModalProps> = ({
   const [isUpdating, setIsUpdating] = React.useState(false);
 
   React.useEffect(() => {
-    console.log('did the caching change??? arghh', initCachingEnabled);
+    console.log('77a did the caching change??? arghh', initCachingEnabled);
   }, [initCachingEnabled]);
+
+  React.useEffect(() => {
+    const value = pipelineNamespaceCR?.spec.apiServer?.cacheEnabled ?? false;
+    console.log('77a Setting caching from DSPA:', value);
+    console.log('77a did the caching change??? arghh', value);
+ 
+    setEnableCaching(value);
+  }, [pipelineNamespaceCR]);
 
   const updateCaching = () => {
     updatePipelineCaching(namespace, 'dspa', enableCaching)
