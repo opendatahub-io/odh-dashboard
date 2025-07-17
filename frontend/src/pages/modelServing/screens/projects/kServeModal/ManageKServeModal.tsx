@@ -120,6 +120,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
   const podSpecOptionsState = useModelServingPodSpecOptionsState(
     editInfo?.servingRuntimeEditInfo?.servingRuntime,
     editInfo?.inferenceServiceEditInfo,
+    false,
   );
   const { data: kServeNameDesc, onDataChange: setKserveNameDesc } = useK8sNameDescriptionFieldData({
     initialData: editInfo?.inferenceServiceEditInfo,

@@ -30,6 +30,7 @@ export type ModelServingPodSpecOptionsState = PodSpecOptionsState<ModelServingPo
 export const useModelServingPodSpecOptionsState = (
   servingRuntime?: ServingRuntimeKind,
   inferenceService?: InferenceServiceKind,
+  isModelMesh?: boolean,
 ): ModelServingPodSpecOptionsState => {
   const { dashboardConfig } = useAppContext();
   const sizes = useDeepCompareMemoize(getModelServingSizes(dashboardConfig));
@@ -49,7 +50,7 @@ export const useModelServingPodSpecOptionsState = (
     servingRuntime,
     inferenceService,
   );
-  const hardwareProfile = useServingHardwareProfileConfig(servingRuntime, inferenceService);
+  const hardwareProfile = useServingHardwareProfileConfig(inferenceService);
 
   // Handle GPU disabled state
   const controlledAcceleratorProfile = {
@@ -82,7 +83,7 @@ export const useModelServingPodSpecOptionsState = (
     selectedHardwareProfile: hardwareProfile.formData.selectedProfile,
   };
 
-  if (isHardwareProfilesAvailable) {
+  if (isHardwareProfilesAvailable && !isModelMesh) {
     if (hardwareProfile.formData.useExistingSettings) {
       podSpecOptions = {
         resources: existingResources,

@@ -7,6 +7,7 @@ import { isCpuLimitLarger, isMemoryLimitLarger } from '#~/utilities/valueUnits';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import { useHardwareProfilesByFeatureVisibility } from '#~/pages/hardwareProfiles/migration/useHardwareProfilesByFeatureVisibility';
 import { isHardwareProfileEnabled } from '#~/pages/hardwareProfiles/utils.ts';
+import { useDashboardNamespace } from '#~/redux/selectors';
 import { isHardwareProfileConfigValid } from './validationUtils';
 import { getContainerResourcesFromHardwareProfile } from './utils';
 
@@ -133,6 +134,8 @@ export const useHardwareProfileConfig = (
     [formData, hardwareProfilesAvailable],
   );
 
+  const { dashboardNamespace } = useDashboardNamespace();
+
   React.useEffect(() => {
     if (!profilesLoaded || formData.selectedProfile) {
       return;
@@ -145,7 +148,7 @@ export const useHardwareProfileConfig = (
       if (resources) {
         // try to match to existing profile
         if (existingHardwareProfileName) {
-          if (hardwareProfileNamespace) {
+          if (hardwareProfileNamespace && hardwareProfileNamespace !== dashboardNamespace) {
             selectedProfile = projectScopedProfiles.find(
               (profile) =>
                 profile.metadata.name === existingHardwareProfileName &&
@@ -188,6 +191,7 @@ export const useHardwareProfileConfig = (
     hardwareProfileNamespace,
     projectScopedProfiles,
     dashboardProfiles,
+    dashboardNamespace,
   ]);
 
   return {

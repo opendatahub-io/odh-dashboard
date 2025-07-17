@@ -79,6 +79,7 @@ export type StartNotebookData = {
   volumes?: Volume[];
   volumeMounts?: VolumeMount[];
   envFrom?: EnvironmentFromVariable[];
+  dashboardNamespace?: string;
 };
 
 export type SecretRef = {

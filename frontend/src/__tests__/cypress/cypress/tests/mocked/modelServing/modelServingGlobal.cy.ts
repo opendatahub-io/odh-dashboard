@@ -485,7 +485,6 @@ describe('Model Serving Global', () => {
       }); // KServe should send resources in ServingRuntime after migration
       servingRuntimeMockNoResources.metadata.annotations = {
         ...servingRuntimeMockNoResources.metadata.annotations,
-        'opendatahub.io/legacy-hardware-profile-name': '',
       };
       delete servingRuntimeMock.metadata.annotations?.['enable-auth'];
       delete servingRuntimeMock.metadata.annotations?.['enable-route'];
@@ -717,15 +716,21 @@ describe('Model Serving Global', () => {
   });
 
   it('Display project scoped label on serving runtime selection on Edit', () => {
+    const projectScopedServingRuntime = mockServingRuntimeK8sResource({
+      name: 'test-project-scoped-sr',
+      isProjectScoped: true,
+      scope: 'project',
+      templateDisplayName: 'test-project-scoped-sr',
+    });
+
     initIntercepts({
       projectEnableModelMesh: false,
       disableServingRuntimeParamsConfig: false,
       disableProjectScoped: false,
-      servingRuntimes: [
-        mockServingRuntimeK8sResource({
-          isProjectScoped: true,
-          scope: 'project',
-          templateDisplayName: 'test-project-scoped-sr',
+      servingRuntimes: [projectScopedServingRuntime],
+      inferenceServices: [
+        mockInferenceServiceK8sResource({
+          modelName: 'test-project-scoped-sr', // Set runtime to match serving runtime name
         }),
       ],
     });

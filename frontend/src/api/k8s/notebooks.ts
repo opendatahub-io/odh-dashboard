@@ -55,6 +55,7 @@ export const assembleNotebook = (
       selectedHardwareProfile,
     },
   } = data;
+  const dashboardNamespace = data.dashboardNamespace ?? '';
   const {
     name: notebookName,
     description,
@@ -98,11 +99,11 @@ export const assembleNotebook = (
     !!selectedAcceleratorProfile || !selectedHardwareProfile?.metadata.uid;
 
   const hardwareProfileNamespace: Record<string, string | null> =
-    selectedHardwareProfile?.metadata.namespace === projectName
-      ? { 'opendatahub.io/hardware-profile-namespace': projectName }
-      : {
-          'opendatahub.io/hardware-profile-namespace': null,
-        };
+    selectedHardwareProfile && !isLegacyHardwareProfile
+      ? selectedHardwareProfile.metadata.namespace === projectName
+        ? { 'opendatahub.io/hardware-profile-namespace': projectName }
+        : { 'opendatahub.io/hardware-profile-namespace': dashboardNamespace }
+      : { 'opendatahub.io/hardware-profile-namespace': null };
 
   let acceleratorProfileNamespace: Record<string, string | null> = {
     'opendatahub.io/accelerator-profile-namespace': null,
