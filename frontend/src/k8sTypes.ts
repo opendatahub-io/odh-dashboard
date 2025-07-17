@@ -33,6 +33,7 @@ export enum KnownLabels {
   REGISTERED_MODEL_ID = 'modelregistry.opendatahub.io/registered-model-id',
   MODEL_VERSION_ID = 'modelregistry.opendatahub.io/model-version-id',
   MODEL_REGISTRY_NAME = 'modelregistry.opendatahub.io/name',
+  KUEUE_MANAGED = 'kueue.openshift.io/managed',
 }
 
 export type K8sVerb =
