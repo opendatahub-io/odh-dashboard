@@ -2,6 +2,7 @@ import * as React from 'react';
 import { Spinner, Content, ContentVariants, Timestamp } from '@patternfly/react-core';
 import { ActionsColumn, Tbody, Td, Tr, ExpandableRowContent } from '@patternfly/react-table';
 import { OffIcon, PlayIcon } from '@patternfly/react-icons';
+import ProjectLink from './ProjectLink';
 import { ProjectKind } from '#~/k8sTypes';
 import useProjectTableRowItems from '#~/pages/projects/screens/projects/useProjectTableRowItems';
 import { getProjectOwner } from '#~/concepts/projects/utils';
@@ -13,7 +14,6 @@ import useProjectNotebookStates from '#~/pages/projects/notebook/useProjectNoteb
 import { FAST_POLL_INTERVAL, POLL_INTERVAL } from '#~/utilities/const';
 import useRefreshInterval from '#~/utilities/useRefreshInterval';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
-import ProjectLink from './ProjectLink';
 
 // Plans to add other expandable columns in the future
 export enum ExpandableColumns {
