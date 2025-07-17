@@ -22,7 +22,7 @@ import ProjectsContextProvider from '#~/concepts/projects/ProjectsContext';
 import { ModelRegistriesContextProvider } from '#~/concepts/modelRegistry/context/ModelRegistriesContext';
 import useStorageClasses from '#~/concepts/k8s/useStorageClasses';
 import AreaContextProvider from '#~/concepts/areas/AreaContext';
-import { IntegrationsStatusProvider } from '#~/concepts/integrations/IntegrationsStatusContext.tsx';
+import { IntegrationsStatusProvider } from '#~/concepts/integrations/IntegrationsStatusContext';
 import { NotificationWatcherContextProvider } from '#~/concepts/notificationWatcher/NotificationWatcherContext';
 import { AccessReviewProvider } from '#~/concepts/userSSAR';
 import { ExtensibilityContextProvider } from '#~/plugins/ExtensibilityContext';

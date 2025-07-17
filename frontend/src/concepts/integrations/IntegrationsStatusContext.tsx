@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { type IntegrationAppStatus } from '#~/types';
-import { useComponentIntegrationsStatus } from './useComponentIntegrationsStatus';
+import { useComponentIntegrationsStatus } from '#~/concepts/integrations/useComponentIntegrationsStatus';
 
 export type IntegrationsStatusContextType = {
   integrationStatus: Record<string, IntegrationAppStatus>;

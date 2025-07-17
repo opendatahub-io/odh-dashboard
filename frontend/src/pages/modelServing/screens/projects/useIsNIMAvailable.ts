@@ -1,6 +1,6 @@
 import { SupportedArea } from '#~/concepts/areas/types';
 import useIsAreaAvailable from '#~/concepts/areas/useIsAreaAvailable';
-import { useIsComponentIntegrationEnabled } from '#~/concepts/integrations/useIsComponentIntegrationEnabled.ts';
+import { useIsComponentIntegrationEnabled } from '#~/concepts/integrations/useIsComponentIntegrationEnabled';
 
 export const useIsNIMAvailable = (): [
   boolean,

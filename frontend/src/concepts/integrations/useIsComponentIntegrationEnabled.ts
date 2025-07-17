@@ -1,6 +1,6 @@
 import React from 'react';
 import { IntegrationAppStatus } from '#~/types';
-import { IntegrationsStatusContext } from './IntegrationsStatusContext';
+import { IntegrationsStatusContext } from '#~/concepts/integrations/IntegrationsStatusContext';
 
 export const isEnabled = (
   components: Record<string, IntegrationAppStatus>,

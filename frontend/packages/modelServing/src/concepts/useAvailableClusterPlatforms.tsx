@@ -2,7 +2,7 @@ import React from 'react';
 import { useExtensions } from '@odh-dashboard/plugin-core';
 import { IntegrationsStatusContext } from '@odh-dashboard/internal/concepts/integrations/IntegrationsStatusContext';
 import { isEnabled } from '@odh-dashboard/internal/concepts/integrations/useIsComponentIntegrationEnabled';
-import type { IntegrationAppStatus } from '@odh-dashboard/internal/types.js';
+import type { IntegrationAppStatus } from '@odh-dashboard/internal/types';
 import type { ModelServingPlatform } from './useProjectServingPlatform';
 import { isModelServingPlatformExtension } from '../../extension-points';
 

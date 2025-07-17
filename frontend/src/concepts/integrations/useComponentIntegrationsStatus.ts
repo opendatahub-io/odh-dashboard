@@ -3,7 +3,7 @@ import useFetch, { type FetchStateObject } from '#~/utilities/useFetch';
 import { fetchComponents } from '#~/services/componentsServices';
 import { getIntegrationAppEnablementStatus } from '#~/services/integrationAppService';
 import { IntegrationAppStatus } from '#~/types';
-import { isIntegrationApp } from '#~/utilities/utils.ts';
+import { isIntegrationApp } from '#~/utilities/utils';
 
 export const useComponentIntegrationsStatus = (): FetchStateObject<
   Record<string, IntegrationAppStatus>
