@@ -59,6 +59,9 @@ const ManagePipelineServerModal: React.FC<ManagePipelineServerModalProps> = ({
   // State for caching configuration
   const [enableCaching, setEnableCaching] = React.useState<boolean>(initCachingEnabled);
 
+  // Track if changes have been made
+  const hasChanges = enableCaching !== initCachingEnabled;
+
   const [isUpdating, setIsUpdating] = React.useState(false);
 
   React.useEffect(() => {
@@ -213,7 +216,12 @@ const ManagePipelineServerModal: React.FC<ManagePipelineServerModalProps> = ({
       </ModalBody>
       <ModalFooter>
         <ActionGroup>
-          <Button variant="primary" onClick={updateCaching} isLoading={isUpdating}>
+          <Button
+            variant="primary"
+            onClick={updateCaching}
+            isLoading={isUpdating}
+            isDisabled={!hasChanges || isUpdating}
+          >
             Save
           </Button>
           <Button variant="link" onClick={onClose}>

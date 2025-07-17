@@ -35,7 +35,7 @@ export const PipelineCachingSection = ({
       <FormGroup hasNoPaddingTop>
         <Checkbox
           id="pipeline-enable-caching-checkbox"
-          data-testid="pipeline-init-enable-caching-checkbox"
+          data-testid="pipeline-cache-enabling"
           name="enable-caching-checkbox"
           label="Enable caching configuration in pipelines"
           isChecked={enableCaching}
