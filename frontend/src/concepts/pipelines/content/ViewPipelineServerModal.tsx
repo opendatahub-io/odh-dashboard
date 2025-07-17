@@ -83,7 +83,11 @@ const ViewPipelineServerModal: React.FC<ViewPipelineServerModalProps> = ({
     <Modal isOpen onClose={onClose} variant="small">
       <ModalHeader title={MANAGE_PIPELINE_SERVER_TITLE} />
       <ModalBody>
-        {!pipelineNamespaceCR && <Spinner size="lg" />}
+        {!pipelineNamespaceCR && (
+          <>
+            Loading ... <Spinner size="lg" />
+          </>
+        )}
         {pipelineNamespaceCR && (
           <DescriptionList termWidth="20ch" isHorizontal>
             {!!pipelineNamespaceCR.spec.objectStorage.externalStorage?.s3CredentialsSecret
