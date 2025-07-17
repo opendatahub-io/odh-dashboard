@@ -1133,12 +1133,16 @@ describe('Model Serving Global', () => {
         displayName: 'New Model',
         modelName: 'test-inference-service-latest',
         lastTransitionTime: '2025-07-10T12:12:41Z',
+        activeModelState: 'Loaded',
+        isReady: true,
       });
       const inferenceServiceOld = mockInferenceServiceK8sResource({
         namespace: 'test-project',
         displayName: 'Old Model',
         modelName: 'test-inference-service-outdated',
         lastTransitionTime: '2024-09-04T16:12:41Z',
+        activeModelState: 'Loaded',
+        isReady: true,
       });
       initIntercepts({
         inferenceServices: [inferenceServiceNew, inferenceServiceOld],

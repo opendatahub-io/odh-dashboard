@@ -8,13 +8,14 @@ type LastDeployedProps = {
 };
 
 export const LastDeployed: React.FC<LastDeployedProps> = ({ resource }) => {
-  let conditions: { type: string; lastTransitionTime?: string }[] = [];
-  if (resource.status?.conditions && Array.isArray(resource.status.conditions)) {
-    conditions = resource.status.conditions;
-  }
-  const readyCondition = conditions.find((c) => c.type === 'Ready');
+  const conditions = Array.isArray(resource.status?.conditions) ? resource.status.conditions : [];
+  const readyCondition = conditions.find((c) => c.type === 'Ready' && c.status === 'True');
 
-  const transitionTimestamp = readyCondition?.lastTransitionTime ?? '-';
+  if (!readyCondition) {
+    return <>-</>;
+  }
+
+  const transitionTimestamp = readyCondition.lastTransitionTime;
 
   return (
     <span style={{ whiteSpace: 'nowrap' }}>

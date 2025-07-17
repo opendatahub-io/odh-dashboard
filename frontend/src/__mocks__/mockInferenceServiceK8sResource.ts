@@ -42,6 +42,7 @@ type MockResourceConfigType = {
   useLegacyHardwareProfile?: boolean;
   creationTimestamp?: string;
   lastTransitionTime?: string;
+  isReady?: boolean;
 };
 
 type InferenceServicek8sError = K8sStatus & {
@@ -116,6 +117,7 @@ export const mockInferenceServiceK8sResource = ({
   useLegacyHardwareProfile = false,
   creationTimestamp = '2023-03-17T16:12:41Z',
   lastTransitionTime = '2023-03-17T16:12:41Z',
+  isReady = false,
 }: MockResourceConfigType): InferenceServiceKind => ({
   apiVersion: 'serving.kserve.io/v1beta1',
   kind: 'InferenceService',
@@ -205,7 +207,7 @@ export const mockInferenceServiceK8sResource = ({
           },
           {
             lastTransitionTime,
-            status: 'False',
+            status: isReady ? 'True' : 'False',
             type: 'Ready',
           },
         ],
