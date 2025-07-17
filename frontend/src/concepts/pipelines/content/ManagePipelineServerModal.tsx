@@ -43,18 +43,11 @@ const ManagePipelineServerModal: React.FC<ManagePipelineServerModalProps> = ({
     namespace,
     pipelineNamespaceCR?.spec.objectStorage.externalStorage?.s3CredentialsSecret.secretName ?? '',
   );
-  console.log('ugh; secret stuff(1)', pipelineResult);
   const pipelineSecret = dataEntryToRecord(pipelineResult?.values?.data ?? []);
   const [result] = useNamespaceSecret(namespace, ExternalDatabaseSecret.NAME);
   const databaseSecret = dataEntryToRecord(result?.values?.data ?? []);
-  console.log('ugh; secret stuff(2)', result);
-  console.log('props? ugh (3)', pipelineNamespaceCR);
-  console.log('DSPA spec:', pipelineNamespaceCR?.spec);
-  console.log('API server config:', pipelineNamespaceCR?.spec.apiServer);
-  console.log('Cache enabled?:', pipelineNamespaceCR?.spec.apiServer?.cacheEnabled);
 
   const initCachingEnabled = pipelineNamespaceCR?.spec.apiServer?.cacheEnabled || false;
-  console.log('77a is initCachingEnabled??', initCachingEnabled);
 
   // State for caching configuration
   const [enableCaching, setEnableCaching] = React.useState<boolean>(initCachingEnabled);
@@ -65,25 +58,16 @@ const ManagePipelineServerModal: React.FC<ManagePipelineServerModalProps> = ({
   const [isUpdating, setIsUpdating] = React.useState(false);
 
   React.useEffect(() => {
-    console.log('77a did the caching change??? arghh', initCachingEnabled);
-  }, [initCachingEnabled]);
-
-  React.useEffect(() => {
     const value = pipelineNamespaceCR?.spec.apiServer?.cacheEnabled ?? false;
-    console.log('77a Setting caching from DSPA:', value);
-    console.log('77a did the caching change??? arghh', value);
 
     setEnableCaching(value);
   }, [pipelineNamespaceCR]);
 
   const updateCaching = () => {
     setIsUpdating(true);
-    console.log('ugh 99a:', enableCaching);
 
     updatePipelineCaching(namespace, 'dspa', enableCaching)
       .then(() => {
-        console.log('Caching updated successfully; to:', enableCaching);
-
         registerNotification({
           callback: async () => ({
             status: NotificationResponseStatus.SUCCESS,

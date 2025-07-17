@@ -15,7 +15,6 @@ export const PipelineCachingSection = ({
 
   const [userClickedCheckbox, setUserClickedCheckbox] = React.useState(false);
 
-  console.log('arghh 477a: enableC?', enableCaching);
   React.useEffect(() => {
     // When caching is disabled (alert appears), scroll to it;
     // but only if it is unchecked because the user just unchecked it
