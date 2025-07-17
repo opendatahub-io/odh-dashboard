@@ -2,26 +2,26 @@
 
 set -e
 
-# source operators script for local setup
 . ./install/dev/operators.sh
 
-# Color codes for output
+#### Globals ####
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 CYAN='\033[0;36m'
-NC='\033[0m' # No Color
+DIM='\033[2m'
+NC='\033[0m' # no color
 
 PLATFORM=$(uname -s)
 ARCH=$(uname -m)
 
-# globals
 SETUP_CHOICE=${SETUP_CHOICE:-""}
 CONTAINER_BUILDER=${CONTAINER_BUILDER:-""}
 LOCAL_ENV_FILE=${LOCAL_ENV_FILE:-".env.local"}
 OCP_DOWNLOAD_BASE_URL="https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable"
 NPM_START_COMMAND=${NPM_START_COMMAND:-""}
+CRC_PULL_SECRET_PATH=${CRC_PULL_SECRET_PATH:-""}
 
 OC_URL=${OC_URL:-""}
 OC_USER=${OC_USER:-""}
@@ -29,7 +29,6 @@ OC_PASSWORD=${OC_PASSWORD:-""}
 OC_PROJECT=${OC_PROJECT:-""}
 OC_CLUSTER_TYPE=${OC_CLUSTER_TYPE:-""}
 
-# crc globals for local cluster deployment
 CRC_URL="https://console.redhat.com/openshift/create/local"
 CRC_VERSION="latest"
 CRC_BASE_DOWNLOAD_URL="https://developers.redhat.com/content-gateway/rest/mirror/pub/openshift-v4/clients/crc/${CRC_VERSION}"
@@ -37,61 +36,97 @@ CRC_DEFAULT_CLUSTER_ROUTE="https://api.crc.testing:6443"
 CRC_DEFAULT_ADMIN_USER="kubeadmin"
 CRC_DEFAULT_ADMIN_PASSWORD="password"
 
+#### Logging Functions ####
 log_info() {
-  echo -e "${BLUE}[INFO]${NC} $1"
+  echo -e "${CYAN}$(printf "%-7s" "INFO")${NC} ${DIM}|${NC} $1"
 }
 
 log_success() {
-  echo -e "${GREEN}[SUCCESS]${NC} $1"
+  echo -e "${GREEN}$(printf "%-7s" "SUCCESS")${NC} ${DIM}|${NC} $1"
 }
 
 log_error() {
-  echo -e "${RED}[ERROR]${NC} $1"
+  echo -e "${RED}$(printf "%-7s" "ERROR")${NC} ${DIM}|${NC} $1"
 }
 
 log_warning() {
-  echo -e "${YELLOW}[WARNING]${NC} $1"
+  echo -e "${YELLOW}$(printf "%-7s" "WARNING")${NC} ${DIM}|${NC} $1"
 }
 
 log_step() {
-  echo -e "${CYAN}[STEP]${NC} $1"
+  echo -e "${CYAN}$(printf "%-7s" "STEP")${NC} ${DIM}|${NC} $1"
 }
 
-# crc is recommended to only be used on bare metal (no containerization)
+#### Panic handling ####
+trap handle_panic EXIT
+
+handle_panic() {
+  if [ "$OC_CLUSTER_TYPE" == "crc" ]; then
+    log_error "An error occurred during the setup. Cleaning up CRC..."
+    teardown_crc
+  fi
+}
+
+#### Main functions ####
+teardown_crc() {
+  local confirm_teardown
+  if ! crc ctatus >/dev/null 2>&1; then
+    log_info "CRC is not running, nothing to stop."
+    return
+  fi
+
+  read -r -p "Do you want to stop and delete the CRC cluster? [y/N]: " confirm_teardown
+  if [ "${confirm_teardown}" != "y" ]; then
+    log_info "Skipping CRC teardown."
+    return
+  fi
+  if ! crc stop; then
+    log_warning "CRC not stopped, use ${CYAN}crc stop${NC} manually."
+  fi
+  if ! crc delete; then
+    log_warning "CRC not deleted, use ${CYAN}crc delete${NC} manually."
+  fi
+}
+
 setup_crc() {
+  local crc_pull_secret_path="$1"
+  local crc_url="$2"
+  local crc_default_cluster_route="$3"
+  local crc_default_admin_user="$4"
+  local crc_default_admin_password="$5"
+
   log_info "Setting up CodeReady Containers (CRC)..."
 
   if command -v crc >/dev/null 2>&1; then
-    # --- start cluster only (crc already installed) ---
     log_info "CRC is already installed."
-    if [ -z "$CRC_PULL_SECRET_PATH" ]; then
-      echo -e "Go to ${CYAN}\033]8;;${CRC_URL}\a${CRC_URL}\033]8;;\a${NC} to get your CodeReady Containers pull secret."
+    if [ -z "$crc_pull_secret_path" ]; then
+      echo -e "Go to ${CYAN}\033]8;;${crc_url}\a${crc_url}\033]8;;\a${NC} to get your CodeReady Containers pull secret."
       while true; do
         read -e -p "Enter the path to your CRC pull secret file: " temp_crc_pull_secret_path
-        CRC_PULL_SECRET_PATH="${temp_crc_pull_secret_path/#\~/$HOME}"
-        CRC_PULL_SECRET_PATH=$(realpath "$CRC_PULL_SECRET_PATH")
-        if [ -f "$CRC_PULL_SECRET_PATH" ]; then
-          log_success "Pull secret file found at: $CRC_PULL_SECRET_PATH"
+        crc_pull_secret_path="${temp_crc_pull_secret_path/#\~/$HOME}"
+        crc_pull_secret_path=$(realpath "$crc_pull_secret_path")
+        if [ -f "$crc_pull_secret_path" ]; then
+          log_success "Pull secret file found at: $crc_pull_secret_path"
           break
         else
-          log_error "Pull secret file not found at: $CRC_PULL_SECRET_PATH"
+          log_error "Pull secret file not found at: $crc_pull_secret_path"
           echo "Please enter a valid path to your CRC pull secret file."
         fi
       done
     else
-      log_info "Using existing CRC pull secret at: $CRC_PULL_SECRET_PATH"
+      log_info "Using existing CRC pull secret at: $crc_pull_secret_path"
     fi
 
-    log_info "Starting CRC cluster..."
-    # export env variables for cluster setup script (only needed for local development choice)
-    export OC_URL="$CRC_DEFAULT_CLUSTER_ROUTE"
-    export OC_USER="$CRC_DEFAULT_ADMIN_USER"
+    log_info "Starting CRC cluster. This may take a while..."
+    OC_URL="$crc_default_cluster_route"
+    OC_USER="$crc_default_admin_user"
 
     crc setup
-    crc start --pull-secret-file "$CRC_PULL_SECRET_PATH"
+    crc start --pull-secret-file "$crc_pull_secret_path"
 
     OC_PASSWORD=$(crc console --credentials | grep 'kubeadmin -p' | sed 's/.*-p \([^ ]*\).*/\1/')
-    export OC_PASSWORD
+    # export OC_PASSWORD
+    CRC_PULL_SECRET_PATH="$crc_pull_secret_path"
 
     return 0
   else
@@ -105,25 +140,23 @@ setup_crc() {
     fi
   fi
 
-  # --- installation process + start cluster ---
   log_info "Installing CodeReady Containers (CRC)..."
 
   echo ""
-  echo -e "Go to ${CYAN}\033]8;;${CRC_URL}\a${CRC_URL}\033]8;;\a${NC} to get your CodeReady Containers pull secret."
+  echo -e "Go to ${CYAN}\033]8;;${crc_url}\a${crc_url}\033]8;;\a${NC} to get your CodeReady Containers pull secret."
   while true; do
     read -e -p "Enter the path to your CRC pull secret file: " temp_crc_pull_secret_path
-    CRC_PULL_SECRET_PATH="${temp_crc_pull_secret_path/#\~/$HOME}"
-    CRC_PULL_SECRET_PATH=$(realpath "$CRC_PULL_SECRET_PATH")
-    if [ -f "$CRC_PULL_SECRET_PATH" ]; then
-      log_success "Pull secret file found at: $CRC_PULL_SECRET_PATH"
+    crc_pull_secret_path="${temp_crc_pull_secret_path/#\~/$HOME}"
+    crc_pull_secret_path=$(realpath "$crc_pull_secret_path")
+    if [ -f "$crc_pull_secret_path" ]; then
+      log_success "Pull secret file found at: $crc_pull_secret_path"
       break
     else
-      log_error "Pull secret file not found at: $CRC_PULL_SECRET_PATH"
+      log_error "Pull secret file not found at: $crc_pull_secret_path"
       echo "Please enter a valid path to your CRC pull secret file."
     fi
   done
 
-  # get correct installer and install based on platform and architecture
   case "${PLATFORM}" in
   "Darwin")
     log_info "Detected macOS platform, installing CRC for macOS..."
@@ -162,12 +195,12 @@ setup_crc() {
   crc setup
 
   log_info "Starting CodeReady Containers (CRC)"
-  crc start --pull-secret-file "$CRC_PULL_SECRET_PATH"
+  crc start --pull-secret-file "$crc_pull_secret_path"
 
-  # export env variables for cluster setup script (only for local development choice)
-  export OC_URL="$CRC_DEFAULT_CLUSTER_ROUTE"
-  export OC_USER="$CRC_DEFAULT_ADMIN_USER"
-  export OC_PASSWORD="$CRC_DEFAULT_ADMIN_PASSWORD"
+  OC_URL="$crc_default_cluster_route"
+  OC_USER="$crc_default_admin_user"
+  OC_PASSWORD="$crc_default_admin_password"
+  CRC_PULL_SECRET_PATH="$crc_pull_secret_path"
 
   log_success "CodeReady Containers (CRC) setup completed successfully."
 
@@ -187,8 +220,6 @@ container_check_prerequisites() {
     missing_tools+=("Docker Compose")
   fi
 
-  # check for node and npm
-
   if [ ${#missing_tools[@]} -gt 0 ]; then
     log_error "Missing prerequisites: ${missing_tools[*]}"
     log_info "Please install the missing tools before proceeding."
@@ -199,191 +230,174 @@ container_check_prerequisites() {
 }
 
 container_create_env_file() {
+  local oc_cluster_type="$1"
+  local oc_url="$2"
+  local oc_user="$3"
+  local oc_password="$4"
+  local oc_project="$5"
+  local oc_token="$6"
+  local container_builder="$7"
+  local local_env_file="$8"
+  local crc_default_cluster_route="$9"
+  local crc_default_admin_user="${10}"
+  local crc_default_admin_password="${11}"
+
   log_step "Creating environment files..."
 
-  local container_builder
+  local container_builder_to_use
 
-  if [ "$OC_CLUSTER_TYPE" == "crc" ]; then
-    OC_URL=${CRC_DEFAULT_CLUSTER_ROUTE}
-    OC_USER=${CRC_DEFAULT_ADMIN_USER}
-    OC_PASSWORD=${CRC_DEFAULT_ADMIN_PASSWORD}
+  if [ "$oc_cluster_type" == "crc" ]; then
+    oc_url="$crc_default_cluster_route"
+    oc_user="$crc_default_admin_user"
+    oc_password="$crc_default_admin_password"
   else
-    # Existing cluster setup
-    if [ -n "$OC_URL" ]; then
-      log_info "Using existing OpenShift cluster URL from environment variable: $OC_URL"
+    if [ -n "$oc_url" ]; then
+      log_info "Using existing OpenShift cluster URL from environment variable: $oc_url"
     else
       echo ""
-      read -p "Enter your OpenShift cluster API URL (e.g., https://api.cluster.example.com:6443): " OC_URL
+      read -p "Enter your OpenShift cluster API URL (e.g., https://api.cluster.example.com:6443): " oc_url
     fi
 
-    if [ -n "$OC_USER" ] && [ -n "$OC_PASSWORD" ]; then
+    if [ -n "$oc_user" ] && [ -n "$oc_password" ]; then
       log_info "Using existing OpenShift credentials from environment variables."
     else
-      read -p "Enter your OpenShift cluster username: " OC_USER
-      read -s -p "Enter your OpenShift cluster password: " OC_PASSWORD
-
-      # echo ""
-      # echo "Authentication method:"
-      # echo "1) Username/Password"
-      # echo "2) Token"
-      # echo ""
-      # while true; do
-      #   read -p "Enter your choice (1 or 2): " auth_choice
-      #   case $auth_choice in
-      #   1)
-      #     read -p "Enter your OpenShift username: " OC_USER
-      #     read -s -p "Enter your OpenShift password: " OC_PASSWORD
-      #     echo ""
-      #     break
-      #     ;;
-      #   2)
-      #     read -s -p "Enter your OpenShift token: " OC_TOKEN
-      #     echo ""
-      #     break
-      #     ;;
-      #   *)
-      #     echo "Please enter 1 or 2"
-      #     ;;
-      #   esac
-      # done
+      read -p "Enter your OpenShift cluster username: " oc_user
+      read -s -p "Enter your OpenShift cluster password: " oc_password
     fi
 
-    if [ -z "$OC_PROJECT" ]; then
+    if [ -z "$oc_project" ]; then
       echo ""
-      read -p "Enter the OpenShift project name (default: opendatahub): " OC_PROJECT
-      if [ -n "$OC_PROJECT" ]; then
-        log_info "Using project: $OC_PROJECT"
+      read -p "Enter the OpenShift project name (default: opendatahub): " oc_project
+      if [ -n "$oc_project" ]; then
+        log_info "Using project: $oc_project"
       else
-        OC_PROJECT="opendatahub"
-        log_info "Using default project: $OC_PROJECT"
+        oc_project="opendatahub"
+        log_info "Using default project: $oc_project"
       fi
     fi
   fi
 
-  # check container builder
-  if [ -n "$CONTAINER_BUILDER" ] &&
+  if [ -n "$container_builder" ] &&
     {
-      [ "$CONTAINER_BUILDER" == "docker" ] ||
-        [ "$CONTAINER_BUILDER" == "podman" ]
+      [ "$container_builder" == "docker" ] ||
+        [ "$container_builder" == "podman" ]
     }; then
-    log_info "Container builder set to: $CONTAINER_BUILDER"
-    container_builder="$CONTAINER_BUILDER"
+    log_info "Container builder set to: $container_builder"
+    container_builder_to_use="$container_builder"
   elif command -v podman >/dev/null 2>&1; then
-    container_builder="podman"
+    container_builder_to_use="podman"
     log_info "Using Podman as container builder"
   elif command -v docker >/dev/null 2>&1; then
-    container_builder="docker"
+    container_builder_to_use="docker"
     log_info "Using Docker as container builder"
   else
     log_error "No container builder found. Please install Docker or Podman."
     exit 1
   fi
 
-  # overwrite or append to .env.local file
-  if [ -f "$LOCAL_ENV_FILE" ]; then
+  if [ -f "$local_env_file" ]; then
     echo ""
-    log_warning "Warning: $LOCAL_ENV_FILE already exists."
+    log_warning "Warning: $local_env_file already exists."
 
     read -r -p "Do you want to overwrite it (appends otherwise)? [y/N]: " overwrite_response
 
     if [ "$overwrite_response" == "y" ] || [ "$overwrite_response" == "Y" ]; then
-      log_info "Overwriting $LOCAL_ENV_FILE"
-      # create or append to .env.local file
-      cat >"$LOCAL_ENV_FILE" <<EOF
+      log_info "Overwriting $local_env_file"
+      cat >"$local_env_file" <<EOF
 
 # ODH Dashboard Development Environment Configuration
 # Generated by setup-dev.sh on $(date)
 
 # Cluster Configuration
-OC_CLUSTER_TYPE=$OC_CLUSTER_TYPE
-OC_PROJECT=$OC_PROJECT
+OC_CLUSTER_TYPE=$oc_cluster_type
+OC_PROJECT=$oc_project
 
 EOF
     else
-      log_info "Appending to $LOCAL_ENV_FILE"
-      cat >>"$LOCAL_ENV_FILE" <<EOF
+      log_info "Appending to $local_env_file"
+      cat >>"$local_env_file" <<EOF
 # ODH Dashboard Development Environment Configuration
 # Generated by setup-dev.sh on $(date)
 
 # Cluster Configuration
-OC_CLUSTER_TYPE=$OC_CLUSTER_TYPE
-OC_PROJECT=$OC_PROJECT
+OC_CLUSTER_TYPE=$oc_cluster_type
+OC_PROJECT=$oc_project
 
 EOF
     fi
   else
-    cat >"$LOCAL_ENV_FILE" <<EOF
+    cat >"$local_env_file" <<EOF
 # ODH Dashboard Development Environment Configuration
 # Generated by setup-dev.sh on $(date)
 
 # Cluster Configuration
-OC_CLUSTER_TYPE=$OC_CLUSTER_TYPE
-OC_PROJECT=$OC_PROJECT
+OC_CLUSTER_TYPE=$oc_cluster_type
+OC_PROJECT=$oc_project
 
 EOF
   fi
 
-  # if [ "$CLUSTER_TYPE" == "existing" ]; then
-
-  cat >>"$LOCAL_ENV_FILE" <<EOF
+  cat >>"$local_env_file" <<EOF
 # Existing Cluster Configuration
-OC_URL=$OC_URL
+OC_URL=$oc_url
 EOF
 
-  if [ -n "$OC_TOKEN" ]; then
-    cat >>"$LOCAL_ENV_FILE" <<EOF
-OC_TOKEN=$OC_TOKEN
-EOF
-  fi
-
-  if [ -n "$OC_USER" ]; then
-    cat >>"$LOCAL_ENV_FILE" <<EOF
-OC_USER=$OC_USER
-OC_PASSWORD=$OC_PASSWORD
+  if [ -n "$oc_token" ]; then
+    cat >>"$local_env_file" <<EOF
+OC_TOKEN=$oc_token
 EOF
   fi
-  cat >>"$LOCAL_ENV_FILE" <<EOF
+
+  if [ -n "$oc_user" ]; then
+    cat >>"$local_env_file" <<EOF
+OC_USER=$oc_user
+OC_PASSWORD=$oc_password
+EOF
+  fi
+  cat >>"$local_env_file" <<EOF
 
 EOF
 
-  cat >>"$LOCAL_ENV_FILE" <<EOF
+  cat >>"$local_env_file" <<EOF
 # Development Configuration
 NODE_ENV=development
 NODE_TLS_REJECT_UNAUTHORIZED=0
 
 # Container Configuration
-CONTAINER_BUILDER=${container_builder}
+CONTAINER_BUILDER=${container_builder_to_use}
 
 # Start Command
 START_COMMAND="cd frontend && npm run start:dev:ext"
 
 EOF
 
-  cat >>"$LOCAL_ENV_FILE" <<EOF
+  cat >>"$local_env_file" <<EOF
 # Dev environment for startup script
 DEVELOPMENT_ENVIRONMENT=container
 EOF
 
-  log_success "Environment file created at: ${YELLOW}$LOCAL_ENV_FILE${NC}"
+  log_success "Environment file created at: ${YELLOW}${local_env_file}${NC}"
 
 }
 
 container_show_completed_message() {
+  local local_env_file="$1"
+
   echo ""
   echo "Setup completed successfully!"
   echo ""
 
   echo ""
   echo "Next steps:"
-  echo -e "1. Check your environment variables in ${YELLOW}.env.local${NC} file and make sure they are correct."
-  echo -e "   Change the START_COMMAND variable in ${YELLOW}.env.local${NC} if you want to use a different command to start the development environment."
+  echo -e "1. Check your environment variables in ${YELLOW}$local_env_file${NC} file and make sure they are correct."
+  echo -e "   Change the START_COMMAND variable in ${YELLOW}$local_env_file${NC} if you want to use a different command to start the development environment."
   echo -e "   Add a ${YELLOW}.env.development.local${NC} file if you need any variables for development."
   echo ""
   echo "2. Start the development environment. Please ensure your container environment allows host network binding (i.e. https://docs.docker.com/engine/network/drivers/host/):"
-  echo -e "   ${CYAN}docker compose --env-file=.env.local up --watch${NC} (use --build to rebuild images)"
+  echo -e "   ${CYAN}docker compose --env-file=$local_env_file up --watch${NC} (use --build to rebuild images)"
   echo -e "   Stop with ${CYAN}docker compose down${NC}"
   echo -e "   Stop with ${CYAN}docker compose down -v${NC} to remove volumes"
-  echo -e "   You can change the start command in ${YELLOW}.env.local${NC} file."
+  echo -e "   You can change the start command in ${YELLOW}$local_env_file${NC} file."
   echo ""
   echo "3. Access the dashboard at:"
   echo -e "   ${CYAN}http://localhost:4010${NC}"
@@ -394,10 +408,7 @@ container_show_completed_message() {
   echo -e "   - Frontend-only: ${CYAN}cd frontend && npm run start:dev:ext${NC}"
 }
 
-# --- Local setup steps ---
 local_check_prerequisities() {
-  # requires oc, tar, node, npm
-
   local required_tools=("tar" "node" "npm" "yq" "wget")
   local missing_tools=()
 
@@ -415,7 +426,12 @@ local_check_prerequisities() {
 }
 
 local_setup_oc() {
-  # check if oc is installed and ask to install if not
+  local oc_url="$1"
+  local oc_user="$2"
+  local oc_password="$3"
+  local oc_token="$4"
+  local oc_cluster_type="$5"
+
   if ! command -v oc >/dev/null 2>&1; then
     local install_oc
     log_error "OpenShift CLI (oc) is not installed."
@@ -440,123 +456,119 @@ local_setup_oc() {
     fi
   fi
 
-  # check if oc is logged in to a cluster
-  # read -p "Do you want to log in now? (y/N): " login_oc
-
-  if [ -n "$OC_URL" ] && [ -n "$OC_USER" ] && [ -n "$OC_PASSWORD" ]; then
+  if [ -n "$oc_url" ] && [ -n "$oc_user" ] && [ -n "$oc_password" ]; then
     log_info "Using existing OpenShift cluster credentials from environment variables."
     return
-  elif [ -n "$OC_URL" ] && [ -n "$OC_TOKEN" ]; then
+  elif [ -n "$oc_url" ] && [ -n "$oc_token" ]; then
     log_info "Using existing OpenShift token from environment variable."
     return
   fi
-
-  local oc_url
-  local oc_user
-  local oc_password
 
   read -p "Enter your OpenShift cluster API URL (e.g. https://api.xxx.openshiftapps.com:443) " oc_url
   read -p "Enter your OpenShift username: " oc_user
   read -s -p "Enter your OpenShift password: " oc_password
   echo ""
 
-  # used by local_setup_cluster() -> setup_environment()
-  #         local_create_env_file
   export OC_URL="$oc_url"
   export OC_USER="$oc_user"
   export OC_PASSWORD="$oc_password"
-  export OC_CLUSTER_TYPE
+  export OC_CLUSTER_TYPE="$oc_cluster_type"
 
   log_success "OpenShift CLI (oc) setup successful."
 
 }
 
 local_setup_cluster() {
-  # uses functions from install/dev/operators.sh
-  # logs in to cluster and installs operators
-  setup_environment
+  setup_environment "${OC_CLUSTER_TYPE}" "${OC_URL}" "${OC_TOKEN}" "${OC_USER}" "${OC_PASSWORD}" "${OC_PROJECT}"
 }
 
 local_create_env_file() {
-  log_step "Creating ${LOCAL_ENV_FILE} file..."
+  local oc_cluster_type="$1"
+  local oc_url="$2"
+  local oc_user="$3"
+  local oc_password="$4"
+  local oc_project="$5"
+  local oc_token="$6"
+  local container_builder="$7"
+  local local_env_file="$8"
+  local crc_pull_secret_path="$9"
 
-  if [ -z "$OC_PROJECT" ]; then
-    read -p "Enter the OpenShift project name (default: opendatahub): " OC_PROJECT
-    if [ -n "$OC_PROJECT" ]; then
-      log_info "Using project: $OC_PROJECT"
+  log_step "Creating $local_env_file file..."
+
+  if [ -z "$oc_project" ]; then
+    read -p "Enter the OpenShift project name (default: opendatahub): " oc_project
+    if [ -n "$oc_project" ]; then
+      log_info "Using project: $oc_project"
     else
-      OC_PROJECT="opendatahub"
-      log_info "Using default project: $OC_PROJECT"
+      oc_project="opendatahub"
+      log_info "Using default project: $oc_project"
     fi
   fi
 
-  if [ -f "$LOCAL_ENV_FILE" ]; then
+  if [ -f "$local_env_file" ]; then
     echo ""
-    log_warning "Warning: $LOCAL_ENV_FILE already exists."
+    log_warning "Warning: $local_env_file already exists."
 
     read -r -p "Do you want to overwrite it (appends otherwise)? [y/N]: " overwrite_response
 
     if [ "$overwrite_response" == "y" ] || [ "$overwrite_response" == "Y" ]; then
-      log_info "Overwriting $LOCAL_ENV_FILE"
-      # create or append to .env.local file
-      cat >"$LOCAL_ENV_FILE" <<EOF
+      log_info "Overwriting $local_env_file"
+      cat >"$local_env_file" <<EOF
 
 # ODH Dashboard Development Environment Configuration
 # Generated by setup-dev.sh on $(date)
 
 # Cluster Configuration
-OC_CLUSTER_TYPE=$OC_CLUSTER_TYPE
-OC_PROJECT=$OC_PROJECT
+OC_CLUSTER_TYPE=$oc_cluster_type
+OC_PROJECT=$oc_project
 
 EOF
     else
-      log_info "Appending to $LOCAL_ENV_FILE"
-      cat >>"$LOCAL_ENV_FILE" <<EOF
+      log_info "Appending to $local_env_file"
+      cat >>"$local_env_file" <<EOF
 # ODH Dashboard Development Environment Configuration
 # Generated by setup-dev.sh on $(date)
 
 # Cluster Configuration
-OC_CLUSTER_TYPE=$OC_CLUSTER_TYPE
-OC_PROJECT=$OC_PROJECT
+OC_CLUSTER_TYPE=$oc_cluster_type
+OC_PROJECT=$oc_project
 
 EOF
     fi
   else
-    cat >"$LOCAL_ENV_FILE" <<EOF
+    cat >"$local_env_file" <<EOF
 # ODH Dashboard Development Environment Configuration
 # Generated by setup-dev.sh on $(date)
 
 # Cluster Configuration
-OC_CLUSTER_TYPE=$OC_CLUSTER_TYPE
-OC_PROJECT=$OC_PROJECT
+OC_CLUSTER_TYPE=$oc_cluster_type
+OC_PROJECT=$oc_project
 
 EOF
   fi
 
-  # if [ "$CLUSTER_TYPE" == "existing" ]; then
-
-  cat >>"$LOCAL_ENV_FILE" <<EOF
+  cat >>"$local_env_file" <<EOF
 # Existing Cluster Configuration
-OC_URL=$OC_URL
+OC_URL=$oc_url
 EOF
 
-  if [ -n "$OC_TOKEN" ]; then
-    cat >>"$LOCAL_ENV_FILE" <<EOF
-OC_TOKEN=$OC_TOKEN
-EOF
-  fi
-
-  if [ -n "$OC_USER" ]; then
-    cat >>"$LOCAL_ENV_FILE" <<EOF
-OC_USER=$OC_USER
-OC_PASSWORD=$OC_PASSWORD
+  if [ -n "$oc_token" ]; then
+    cat >>"$local_env_file" <<EOF
+OC_TOKEN=$oc_token
 EOF
   fi
-  cat >>"$LOCAL_ENV_FILE" <<EOF
+
+  if [ -n "$oc_user" ]; then
+    cat >>"$local_env_file" <<EOF
+OC_USER=$oc_user
+OC_PASSWORD=$oc_password
+EOF
+  fi
+  cat >>"$local_env_file" <<EOF
 
 EOF
 
-  cat >>"$LOCAL_ENV_FILE" <<EOF
+  cat >>"$local_env_file" <<EOF
 # Development Configuration
 NODE_ENV=development
 NODE_TLS_REJECT_UNAUTHORIZED=0
@@ -568,17 +580,17 @@ CONTAINER_BUILDER=${container_builder}
 START_COMMAND="cd frontend && npm run start:dev:ext"
 EOF
 
-  if [ -n "$CRC_PULL_SECRET_PATH" ]; then
-    cat >>"$LOCAL_ENV_FILE" <<EOF
-CRC_PULL_SECRET_PATH=$CRC_PULL_SECRET_PATH
+  if [ -n "$crc_pull_secret_path" ]; then
+    cat >>"$local_env_file" <<EOF
+CRC_PULL_SECRET_PATH=$crc_pull_secret_path
 EOF
   fi
 
-  cat >>"$LOCAL_ENV_FILE" <<EOF
+  cat >>"$local_env_file" <<EOF
 DEVELOPMENT_ENVIRONMENT=local
 EOF
 
-  log_success "Environment file created at: ${YELLOW}$LOCAL_ENV_FILE${NC}"
+  log_success "Environment file created at: ${YELLOW}$local_env_file${NC}"
 
 }
 
@@ -607,7 +619,7 @@ local_show_completed_message() {
   echo -e "1. ${CYAN}npm install && npm run build${NC} if not done automatically."
   echo "2. Start the development environment:"
   echo -e "   For frontend only (backend in cluster): ${CYAN}cd frontend && npm run start:dev:ext${NC}"
-  echo -e "   For both backend and frontend${CYAN}npm run dev${NC}"
+  echo -e "   For both backend and frontend: ${CYAN}npm run dev${NC}"
   echo -e "   ${CYAN}npm run start:dev${NC} in /frontend and /backend for each component separately."
   echo ""
   echo "3. Access the dashboard at:"
@@ -630,10 +642,6 @@ parse_flags() {
         exit 1
       fi
       ;;
-    # --no-env-file)
-    #   NO_ENV_FILE=true
-    #   shift
-    #   ;;
     --skip-env-creation)
       SKIP_ENV_CREATION=true
       shift
@@ -723,7 +731,6 @@ show_help() {
   echo ""
   echo "Options:"
   echo "  --env-file FILE                  Specify custom environment file (default: .env.local)"
-  # echo "  --no-env-file                    Skip creating a new environment file"
   echo "  --skip-env-creation              Skip creating a new environment file"
   echo "  --cluster-type TYPE              Set cluster type (crc|existing)"
   echo "  --development-environment TYPE   Set development environment (local|container)"
@@ -739,25 +746,11 @@ show_help() {
   echo "  $0 --skip-deps --verbose"
 }
 
-# TODO: Add support for flags and sourcing an existing env file
 main() {
   parse_flags "$@"
 
-  # if [ -f "$LOCAL_ENV_FILE" ] && [ ! $NO_ENV_FILE ]; then
-  #   log_info "Loading existing environment file: $LOCAL_ENV_FILE"
-  #   local env_filepath
-  #   env_filepath="${LOCAL_ENV_FILE/#\~/$HOME}"
-  #   env_filepath=$(realpath "$env_filepath")
-  #   set -a
-  #   . "$env_filepath"
-  #   set +a
-  # else
-  #   log_info "No existing environment file found."
-  # fi
-
   echo "OpenDataHub Dashboard Development Setup"
 
-  # user sets development environment variable if they want
   if [ -z "$DEVELOPMENT_ENVIRONMENT" ]; then
     echo ""
     echo "Preferred development environment:"
@@ -795,7 +788,6 @@ main() {
     SETUP_CHOICE="$DEVELOPMENT_ENVIRONMENT"
   fi
 
-  # Ask user for cluster type
   if [ -z "$OC_CLUSTER_TYPE" ]; then
     echo ""
     echo "Which OpenShift setup would you like to use?"
@@ -833,41 +825,33 @@ main() {
 
   case $SETUP_CHOICE in
   "container")
-    # creates local CRC cluster (if selected)
-    # creates .env.local file with cluster and development environment variables
-    # containers install oc, login to cluster, install operators, set project, and start development environment
     log_info "Using container setup"
     container_check_prerequisites
     if [ "$OC_CLUSTER_TYPE" == "crc" ]; then
-      setup_crc
+      setup_crc "$CRC_PULL_SECRET_PATH" "$CRC_URL" "$CRC_DEFAULT_CLUSTER_ROUTE" "$CRC_DEFAULT_ADMIN_USER" "$CRC_DEFAULT_ADMIN_PASSWORD"
     fi
 
     if [ ! "$SKIP_ENV_CREATION" ]; then
-      container_create_env_file
+      container_create_env_file "$OC_CLUSTER_TYPE" "$OC_URL" "$OC_USER" "$OC_PASSWORD" "$OC_PROJECT" "$OC_TOKEN" "$CONTAINER_BUILDER" "$LOCAL_ENV_FILE" "$CRC_DEFAULT_CLUSTER_ROUTE" "$CRC_DEFAULT_ADMIN_USER" "$CRC_DEFAULT_ADMIN_PASSWORD"
     fi
 
     if [ ! "$SKIP_DEPS" ]; then
       log_warning "Cannot skip dependency installation in container setup. Node dependencies will be installed."
     fi
 
-    container_show_completed_message
+    container_show_completed_message "$LOCAL_ENV_FILE"
     ;;
   "local")
-    # creates local CRC cluster (if selected)
-    # creates .env.local file with variables to be reused for this script
-    # installs oc onto users machine
-    # logins to cluster, installs operators, sets project
-    # installs node dependencies, and starts development environment
     log_info "Using local setup"
     local_check_prerequisities
     if [ "$OC_CLUSTER_TYPE" == "crc" ]; then
-      setup_crc
+      setup_crc "$CRC_PULL_SECRET_PATH" "$CRC_URL" "$CRC_DEFAULT_CLUSTER_ROUTE" "$CRC_DEFAULT_ADMIN_USER" "$CRC_DEFAULT_ADMIN_PASSWORD"
     fi
-    local_setup_oc
+    local_setup_oc "$OC_URL" "$OC_USER" "$OC_PASSWORD" "$OC_TOKEN" "$OC_CLUSTER_TYPE"
     local_setup_cluster
 
     if [ ! "$SKIP_ENV_CREATION" ]; then
-      local_create_env_file
+      local_create_env_file "$OC_CLUSTER_TYPE" "$OC_URL" "$OC_USER" "$OC_PASSWORD" "$OC_PROJECT" "$OC_TOKEN" "$CONTAINER_BUILDER" "$LOCAL_ENV_FILE" "$CRC_PULL_SECRET_PATH"
     fi
 
     if [ ! "$SKIP_DEPS" ]; then

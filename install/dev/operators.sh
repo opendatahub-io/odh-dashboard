@@ -21,42 +21,30 @@ log_warning() {
 }
 
 login_to_cluster() {
-  # local cluster_type="$1"
+  local oc_url="$1"
+  local oc_token="$2"
+  local oc_user="$3"
+  local oc_password="$4"
 
-  # if [ "$cluster_type" = "crc" ]; then
-  #   log_info "Starting CRC cluster..."
-  #
-  #   # if not already started, start
-  #   if ! /opt/crc/crc status | grep -q "Running"; then
-  #     log_info "Starting CRC cluster (this may take a while)..."
-  #     /opt/crc/crc start
-  #   fi
-  #
-  #   # get CRC credentials and login
-  #   /opt/crc/crc oc-env
-  #   oc login -u developer -p developer https://api.crc.testing:6443
-  #
-  # else
-  # login to existing cluster with oc cli
   log_info "Logging in to existing OpenShift cluster..."
 
-  if [ -z "$OC_URL" ]; then
+  if [ -z "$oc_url" ]; then
     log_error "OC_URL environment variable is not set. Please provide the OpenShift API URL."
     exit 1
   fi
 
-  if [ -z "$OC_TOKEN" ] && { [ -z "$OC_USER" ] || [ -z "$OC_PASSWORD" ]; }; then
+  if [ -z "$oc_token" ] && { [ -z "$oc_user" ] || [ -z "$oc_password" ]; }; then
     log_error "OC_TOKEN or OC_USER and OC_PASSWORD environment variables are not set. Please provide authentication details."
     exit 1
   fi
 
-  if [ -n "$OC_TOKEN" ]; then
-    if ! oc login --token="$OC_TOKEN" --server="$OC_URL" --insecure-skip-tls-verify=true; then
-      log_error "Failed to login to OpenShift cluster with username and password."
+  if [ -n "$oc_token" ]; then
+    if ! oc login --token="$oc_token" --server="$oc_url" --insecure-skip-tls-verify=true; then
+      log_error "Failed to login to OpenShift cluster with token."
       exit 1
     fi
-  elif [ -n "$OC_USER" ] && [ -n "$OC_PASSWORD" ]; then
-    if ! oc login "$OC_URL" -u "$OC_USER" -p "$OC_PASSWORD" --insecure-skip-tls-verify=true; then
+  elif [ -n "$oc_user" ] && [ -n "$oc_password" ]; then
+    if ! oc login "$oc_url" -u "$oc_user" -p "$oc_password" --insecure-skip-tls-verify=true; then
       log_error "Failed to login to OpenShift cluster with username and password."
       exit 1
     fi
@@ -66,101 +54,148 @@ login_to_cluster() {
 }
 
 verify_operator_installation() {
-  log_info "Verifying operator installation..."
+  local operators=("$@")
 
-  # Wait for all CSVs to be in Succeeded phase
-  log_info "Waiting for ClusterServiceVersions to be ready..."
+  log_info "Verifying installation of operators: ${operators[*]}"
 
-  # Fallback: check CSV phases directly
   local retries=60
+  local warning_threshold=30
   local wait_time=10
 
   sleep 5
 
   while [ $retries -gt 0 ]; do
-    log_info "Checking CSV phases... (attempts remaining: $retries)"
+    log_info "Checking operator CSV phases... (attempts remaining: $retries)"
 
-    # Check if any CSVs are in Failed state
-    if oc get csv --no-headers 2>/dev/null | grep -q "Failed\|InstallCheckFailed"; then
-      log_error "Some operators failed to install:"
-      oc get csv -A --no-headers 2>/dev/null | grep "Failed\|InstallCheckFailed"
+    if [ "$retries" == "$warning_threshold" ]; then
+      log_warning "Some operators may not have minimum availability. Please check the operator status in the OpenShift console."
+    fi
+
+    local failed_operators=()
+    local missing_operators=()
+    local succeeded_operators=()
+
+    for operator in "${operators[@]}"; do
+      local csv_info
+      csv_info=$(oc get csv -A --no-headers 2>/dev/null | grep "$operator" | head -n1)
+
+      if [ -n "$csv_info" ]; then
+        local csv_status=$(echo "$csv_info" | awk '{print $NF}')
+        local namespace=$(echo "$csv_info" | awk '{print $1}')
+
+        case "$csv_status" in
+        "Succeeded")
+          succeeded_operators+=("$operator")
+          ;;
+        "Failed" | "InstallCheckFailed")
+          failed_operators+=("$operator")
+          log_error "$operator: $csv_status (in $namespace)"
+          ;;
+        *)
+          log_info "$operator: $csv_status (in $namespace)"
+          ;;
+        esac
+      else
+        missing_operators+=("$operator")
+      fi
+    done
+
+    if [ ${#failed_operators[@]} -gt 0 ]; then
+      log_error "The following operators failed to install: ${failed_operators[*]}"
       exit 1
     fi
 
-    # Count CSVs in Succeeded phase
-    local csv_count
-    local total_csv
-    csv_count=$(oc get csv --no-headers 2>/dev/null | grep -c "Succeeded" || echo "0")
-    total_csv=$(oc get csv --no-headers 2>/dev/null | wc -l || echo "0")
-
-    if [ "$csv_count" -eq "$total_csv" ] && [ "$total_csv" -gt 0 ]; then
-      log_success "All operators installed successfully ($csv_count/$total_csv)."
+    if [ ${#succeeded_operators[@]} -eq ${#operators[@]} ]; then
+      log_success "All required operators installed successfully (${#succeeded_operators[@]}/${#operators[@]}): ${succeeded_operators[*]}"
       return 0
     fi
 
-    log_info "Operators still installing... ($csv_count/$total_csv ready)"
+    if [ ${#missing_operators[@]} -gt 0 ]; then
+      log_info "Still waiting for operators: ${missing_operators[*]}"
+    fi
+
+    log_info "Operators status: ${#succeeded_operators[@]}/${#operators[@]} ready"
     sleep $wait_time
     retries=$((retries - 1))
   done
 
   log_error "Operator installation verification failed after timeout."
-  log_info "Current operator status:"
-  oc get csv -A --no-headers 2>/dev/null || log_error "Unable to get CSV status"
+  log_info "Current operator status for required operators:"
+  for operator in "${operators[@]}"; do
+    local csv_info
+    csv_info=$(oc get csv -A --no-headers 2>/dev/null | grep "$operator" | head -n1 || echo "$operator: Not Found")
+    log_info "  $csv_info"
+  done
   exit 1
 }
 
-# install operators
+check_operators_ready() {
+  local operators=("$@")
+
+  for operator in "${operators[@]}"; do
+    local csv_info
+    csv_info=$(oc get csv -A --no-headers 2>/dev/null | grep "$operator" | head -n1)
+
+    if [ -z "$csv_info" ]; then
+      return 1
+    fi
+
+    local csv_status
+    csv_status=$(echo "$csv_info" | awk '{print $NF}')
+
+    if [ "$csv_status" != "Succeeded" ]; then
+      return 1
+    fi
+  done
+
+  return 0
+}
+
+# to add/change installed operators, edit ./install/dev/operators.yml and add the operator name to the local operators array
 install_cluster_operators() {
   log_info "Installing OpenShift Data Hub operators..."
 
   local debug_help="Try going to your cluster operator page, Open Data Hub, deleting the DSC, DSCI, and Auth objects, and reinstalling the DSCI, then DSC (in that order). Your cluster also might be limited in resources."
 
   local operators=("opendatahub-operator" "authorino-operator" "serverless-operator" "servicemeshoperator")
-  local expected_operators=${#operators[@]}
-  local missing_operators=()
 
-  for operator in "${operators[@]}"; do
-    if ! oc get csv -n openshift-operators | grep -q "$operator"; then
-      missing_operators+=("$operator")
+  if check_operators_ready "${operators[@]}"; then
+    log_success "All required operators are already installed and ready. Skipping installation."
+  else
+    log_info "Installing operators..."
+    if ! oc apply -f ./install/dev/operators.yml; then
+      log_error "Failed to install operators."
+      exit 1
     fi
-  done
+    verify_operator_installation "${operators[@]}"
+  fi
 
-  if [ ${#missing_operators[@]} -eq 0 ]; then
-    log_info "Found all expected operators"
-    if oc get dscinitialization default-dsci >/dev/null 2>&1; then
-      if oc get datasciencecluster default-dsc >/dev/null 2>&1; then
-        log_info "Found existing DSC and DSCI. Not applying DSCI or DSC file again."
-        return 0
-      fi
-    fi
-  elif ! oc apply -f ./install/dev/operators.yml; then
-    log_error "Failed to install operators."
+  # Following code installs and verifies the DSCI and DSC custom resources in the ODH operator
+  local odh_csv_name
+  odh_csv_name=$(oc get csv -A -o name | grep opendatahub-operator | head -n1)
+  if [ -z "$odh_csv_name" ]; then
+    log_error "Could not find opendatahub-operator CSV after installation"
     exit 1
   fi
 
-  # verify installations
-  verify_operator_installation "$expected_operators"
+  local odh_namespace
+  odh_namespace=$(oc get csv -A --no-headers | grep opendatahub-operator | head -n1 | awk '{print $1}')
+  log_info "ODH CSV Name: $odh_csv_name in namespace: $odh_namespace"
 
-  local odh_csv_name=""
-  odh_csv_name=$(oc get csv -n openshift-operators -o name | grep opendatahub-operator)
-  log_info "ODH CSV Name: $odh_csv_name"
-
-  # get default dsc and dsci files
-  if ! oc get "$odh_csv_name" \
-    -n openshift-operators \
+  if ! oc get csv "${odh_csv_name#*/}" \
+    -n "$odh_namespace" \
     -o jsonpath='{.metadata.annotations.alm-examples}' | yq '.[1]' -p json -o yaml >/tmp/dsci.yml; then
     log_error "Failed to get Data Science Cluster Initialization (DSCI) file."
     exit 1
   fi
 
-  if ! oc get "$odh_csv_name" \
-    -n openshift-operators \
+  if ! oc get csv "${odh_csv_name#*/}" \
+    -n "$odh_namespace" \
     -o jsonpath='{.metadata.annotations.alm-examples}' | yq '.[0]' -p json -o yaml >/tmp/dsc.yml; then
     log_error "Failed to get Data Science Cluster (DSC) file."
     exit 1
   fi
 
-  # apply dsci, wait, and then dsc
   if oc get dscinitialization default-dsci >/dev/null 2>&1; then
     log_info "Found existing Data Science Cluster Initialization (DSCI). Not applying DSCI file again."
   else
@@ -188,17 +223,9 @@ install_cluster_operators() {
     fi
   fi
 
-  # log_info "Waiting for Data Science Cluster (DSC) to be ready..."
-  # if ! oc wait --for=condition=Ready --timeout=600s datasciencecluster/default-dsc -n openshift-operators; then
-  #   log_error "Data Science Cluster (DSC) did not become ready in time."
-  #   echo "$debug_help"
-  #   exit 1
-  # fi
-
   log_success "OpenShift Data Hub operators and custom resources installed successfully."
 }
 
-# Ping cluster connection
 wait_for_cluster() {
   log_info "Waiting for cluster connection..."
 
@@ -218,37 +245,38 @@ wait_for_cluster() {
 }
 
 set_project() {
-  log_info "Setting OpenShift project to $OC_PROJECT..."
+  local oc_project="$1"
 
-  if ! oc project "$OC_PROJECT"; then
-    log_error "Failed to set OpenShift project to $OC_PROJECT."
+  log_info "Setting OpenShift project to $oc_project..."
+
+  if ! oc project "$oc_project"; then
+    log_error "Failed to set OpenShift project to $oc_project."
     exit 1
   fi
 
-  log_info "OpenShift project set to $OC_PROJECT."
+  log_info "OpenShift project set to $oc_project."
 }
 
-# Setup OpenShift CLI and CRC
 setup_environment() {
+  local oc_cluster_type="$1"
+  local oc_url="$2"
+  local oc_token="$3"
+  local oc_user="$4"
+  local oc_password="$5"
+  local oc_project="$6"
+
   log_info "Setting up OpenShift environment..."
 
-  # mkdir -p /app/odh-dashboard /opt/crc /opt/oc &&
-  #   chown -R 1001:0 /app /opt/crc /opt/oc &&
-  #   chmod -R g=u /app /opt/crc /opt/oc
-  # install_system_packages
-
-  # setup_oc_cli
-
-  if [ "$OC_CLUSTER_TYPE" = "crc" ]; then
-    login_to_cluster "crc"
+  if [ "$oc_cluster_type" = "crc" ]; then
+    login_to_cluster "$oc_url" "$oc_token" "$oc_user" "$oc_password"
   else
-    login_to_cluster "existing"
+    login_to_cluster "$oc_url" "$oc_token" "$oc_user" "$oc_password"
   fi
 
   wait_for_cluster
   install_cluster_operators
 
-  set_project
+  set_project "$oc_project"
 
   log_success "ODH Dashboard environment setup complete."
 }
