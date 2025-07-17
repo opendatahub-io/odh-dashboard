@@ -195,6 +195,7 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
           onClose={(confirmStatus) => {
             setOpenConfirm(false);
             if (confirmStatus) {
+              setIsStarting(false);
               setIsStopping(true);
               patchInferenceServiceStoppedStatus(inferenceService, 'true').then(refresh);
             }
