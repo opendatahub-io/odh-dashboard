@@ -38,6 +38,7 @@ const ViewPipelineServerModal: React.FC<ViewPipelineServerModalProps> = ({
   console.log('props? ugh (3)', pipelineNamespaceCR);
   console.log('DSPA spec:', pipelineNamespaceCR?.spec);
   console.log('API server config:', pipelineNamespaceCR?.spec.apiServer);
+  console.log('Cache enabled?:', pipelineNamespaceCR?.spec.apiServer?.cacheEnabled);
 
   return (
     <Modal isOpen onClose={onClose} variant="small">
