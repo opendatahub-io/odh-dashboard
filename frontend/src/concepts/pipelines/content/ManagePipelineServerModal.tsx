@@ -24,12 +24,12 @@ import { updatePipelineCaching } from '#~/api/pipelines/k8s.ts';
 import { MANAGE_PIPELINE_SERVER_TITLE } from './const';
 import { PipelineCachingSection } from './configurePipelinesServer/PipelineCachingSection';
 
-type ViewPipelineServerModalProps = {
+type ManagePipelineServerModalProps = {
   onClose: () => void;
   pipelineNamespaceCR: DSPipelineKind | null;
 };
 
-const ViewPipelineServerModal: React.FC<ViewPipelineServerModalProps> = ({
+const ManagePipelineServerModal: React.FC<ManagePipelineServerModalProps> = ({
   onClose,
   pipelineNamespaceCR,
 }) => {
@@ -210,4 +210,4 @@ const ViewPipelineServerModal: React.FC<ViewPipelineServerModalProps> = ({
   );
 };
 
-export default ViewPipelineServerModal;
+export default ManagePipelineServerModal;
