@@ -6,16 +6,23 @@ import { ModelServingPlatformExtension } from '../../extension-points';
 
 export type ModelServingPlatform = ModelServingPlatformExtension;
 
-const isPlatformEnabled = (platform: ModelServingPlatform, project: ProjectKind): boolean =>
-  ((platform.properties.manage.projectRequirements.labels &&
-    Object.entries(platform.properties.manage.projectRequirements.labels).every(
+const isPlatformEnabled = (platform: ModelServingPlatform, project: ProjectKind): boolean => {
+  const requirements = platform.properties.manage.projectRequirements;
+
+  const labelsMatch =
+    !requirements.labels ||
+    Object.entries(requirements.labels).every(
       ([key, value]) => project.metadata.labels?.[key] === value,
-    )) ||
-    (platform.properties.manage.projectRequirements.annotations &&
-      Object.entries(platform.properties.manage.projectRequirements.annotations).every(
-        ([key, value]) => project.metadata.annotations?.[key] === value,
-      ))) ??
-  false;
+    );
+
+  const annotationsMatch =
+    !requirements.annotations ||
+    Object.entries(requirements.annotations).every(
+      ([key, value]) => project.metadata.annotations?.[key] === value,
+    );
+
+  return labelsMatch && annotationsMatch;
+};
 
 /**
  * Check the project labels and annotations to see if it matches any of the platforms.
