@@ -23,6 +23,7 @@ Self checklist (all need to be checked):
 - [ ] The developer has manually tested the changes and verified that the changes work
 - [ ] Testing instructions have been added in the PR body (for PRs involving changes that are not immediately obvious).
 - [ ] The developer has added tests or explained why testing cannot be added (unit or cypress tests for related changes)
+- [ ] The code follows our [Best Practices](/docs/best-practices.md) (React coding standards, PatternFly usage, performance considerations)
 
 If you have UI changes: 
 <!--- You can ignore these if you are doing manifest, backend, internal logic, etc changes; aka non-UI / visual changes -->

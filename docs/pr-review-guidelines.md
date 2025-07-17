@@ -26,12 +26,9 @@ Here is a handy list of things to consider when doing a review on any PR.
 - [ ] **Every file looks sane** – this helps with anything our linter may not track, aim to be on the lookout for ways we can improve our CI to help avoid these cases in the future
 
 - [ ] **Verified eslint ignore statements** – sometimes we want these (intentional console log statements), most times we do not
-
-    - [ ] **No ignoring of React hook dependency errors** (there is rarely a good reason for this)
-
-    - [ ] **No ignoring the use of `any` type without a very good reason** (must be commented above the ignore statement)
-
-    - [ ] **No unnecessary ignores** – this is our "catch all" statement for this list; we can add specific issues we run across above this line
+  - [ ] **No ignoring of React hook dependency errors** (there is rarely a good reason for this)
+  - [ ] **No ignoring the use of `any` type without a very good reason** (must be commented above the ignore statement)
+  - [ ] **No unnecessary ignores** – this is our "catch all" statement for this list; we can add specific issues we run across above this line
 
 ### React & TypeScript Best Practices
 
@@ -44,10 +41,8 @@ Here is a handy list of things to consider when doing a review on any PR.
   - [ ] Components make liberal use of custom hooks** to store data and logic that is heavily coupled
   - [ ] Components avoid using useMemo for processes that are not computationally expensive
   - [ ] Referential stability has been maintained for variables through render loops and the use-cases has been considered for when it has changed
-
-     - [ ] *All functions passed to another component have referential integrity* (exception being to PF components and onChange-esk handlers)
-
-     - [ ] *Understanding use of referential integrity around new hooks added* – useMemo, useEffect, useCallback should all be dependant on referentially stable variables
+    - [ ] *All functions passed to another component have referential integrity* (exception being to PF components and onChange-esk handlers)
+    - [ ] *Understanding use of referential integrity around new hooks added* – useMemo, useEffect, useCallback should all be dependant on referentially stable variables
 
   - [ ] **No `useEffect`s that take incoming props and computes them for a local `useState`** – this is `useMemo` with extra steps
 
@@ -61,13 +56,13 @@ Here is a handy list of things to consider when doing a review on any PR.
 
   - [ ] **Tested error flows**
 
-     - [ ] **Does the flow handle error messages from the server or known failures in the flow?**
+    - [ ] **Does the flow handle error messages from the server or known failures in the flow?**
 
-     - [ ] **Are buttons disabled when the accompanying fields have invalid data?**
+    - [ ] **Are buttons disabled when the accompanying fields have invalid data?**
 
-     - [ ] **When network takes a moment, are buttons disabled from being spammed by the user**
+    - [ ] **When network takes a moment, are buttons disabled from being spammed by the user**
 
-     - [ ] **Do we use loading spinners when data takes a moment?** – note that network traffic varies for users, do not consider anything async on the network to be "fast"
+    - [ ] **Do we use loading spinners when data takes a moment?** – note that network traffic varies for users, do not consider anything async on the network to be "fast"
 
 - [ ] **UX has been involved**
 

@@ -13,10 +13,10 @@ To review the ODH requirements, please refer to the [dev setup documentation].
 Before beginning development on an issue, please refer to our [Definition of Ready](/docs/definition-of-ready.md).
 
 ## PR Review Guidelines
-When reviewing pull requests, please refer to our comprehensive [PR Review Guidelines](/docs/pr-review-guidelines.md) to ensure code quality, functionality, and adherence to best practices.
+When reviewing pull requests, please refer to our comprehensive [PR Review Guidelines](docs/pr-review-guidelines.md) to ensure code quality, functionality, and adherence to best practices.
 
 ## Best Practices
-For development standards and coding guidelines, please review our [Best Practices](/docs/best-practices.md) documentation. This covers React coding standards, component architecture, performance considerations, and PatternFly usage guidelines.
+For development standards and coding guidelines, please review our [Best Practices](docs/best-practices.md) documentation. This covers React coding standards, component architecture, performance considerations, and PatternFly usage guidelines.
 
 ## Writing code
 
