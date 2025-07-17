@@ -1615,10 +1615,10 @@ const initIntercepts = ({
       isEmpty
         ? []
         : [
-          mockDataSciencePipelineApplicationK8sResource({
-            namespace: projectName,
-          }),
-        ],
+            mockDataSciencePipelineApplicationK8sResource({
+              namespace: projectName,
+            }),
+          ],
     ),
   );
   cy.interceptK8s(
