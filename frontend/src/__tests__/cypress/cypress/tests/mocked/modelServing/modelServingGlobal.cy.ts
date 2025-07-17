@@ -483,6 +483,10 @@ describe('Model Serving Global', () => {
         disableReplicas: true,
         disableModelMeshAnnotations: true,
       }); // KServe should send resources in ServingRuntime after migration
+      servingRuntimeMockNoResources.metadata.annotations = {
+        ...servingRuntimeMockNoResources.metadata.annotations,
+        'opendatahub.io/legacy-hardware-profile-name': '',
+      };
       delete servingRuntimeMock.metadata.annotations?.['enable-auth'];
       delete servingRuntimeMock.metadata.annotations?.['enable-route'];
       delete servingRuntimeMock.spec.replicas;
@@ -945,7 +949,14 @@ describe('Model Serving Global', () => {
     modelServingGlobal.getModelRow('Test Inference Service').should('have.length', 1);
     modelServingGlobal.getModelMetricLink('Test Inference Service').should('not.exist');
 
-    initIntercepts({ disableKServeMetrics: false });
+    initIntercepts({
+      disableKServeMetrics: false,
+      inferenceServices: [
+        mockInferenceServiceK8sResource({
+          activeModelState: 'Loaded',
+        }),
+      ],
+    });
     modelServingGlobal.visit('test-project');
 
     modelServingGlobal.getModelRow('Test Inference Service').should('have.length', 1);

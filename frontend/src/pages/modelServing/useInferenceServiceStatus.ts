@@ -6,15 +6,16 @@ import { FAST_POLL_INTERVAL } from '#~/utilities/const.ts';
 import { InferenceServiceKind } from '#~/k8sTypes.ts';
 import { getInferenceServiceStoppedStatus } from './utils';
 
-type ModelStatus = ModelServingState & {
+type InferenceServiceStatus = ModelServingState & {
   setIsStarting: (isStarting: boolean) => void;
   setIsStopping: (isStopping: boolean) => void;
+  isFailed: boolean;
 };
 
-export const useModelStatus = (
+export const useInferenceServiceStatus = (
   inferenceService: InferenceServiceKind,
   refresh?: () => void,
-): ModelStatus => {
+): InferenceServiceStatus => {
   const [isStarting, setIsStarting] = React.useState(false);
   const [isStopping, setIsStopping] = React.useState(false);
   const [pollingInterval, setPollingInterval] = React.useState<NodeJS.Timeout | null>(null);
@@ -76,11 +77,28 @@ export const useModelStatus = (
   }, [isStarting, inferenceService]);
 
   const baseStatus = getInferenceServiceStoppedStatus(inferenceService);
+  const isStopped = baseStatus.isStopped && !isStopping;
+  const isRunning = baseStatus.isRunning && !isStarting;
+
+  const isNewlyDeployed = React.useMemo(
+    () =>
+      !inferenceService.status?.modelStatus?.states?.activeModelState &&
+      inferenceService.status?.modelStatus?.states?.targetModelState !==
+        InferenceServiceModelState.FAILED_TO_LOAD &&
+      !isStopped &&
+      !isStopping,
+    [inferenceService.status?.modelStatus?.states, isStopped, isStopping],
+  );
+
+  const inferenceServiceModelState = getInferenceServiceModelState(inferenceService);
 
   return {
     ...baseStatus,
-    isStarting,
+    isStarting: isStarting || isNewlyDeployed,
     isStopping,
+    isStopped,
+    isRunning,
+    isFailed: inferenceServiceModelState === InferenceServiceModelState.FAILED_TO_LOAD,
     setIsStarting,
     setIsStopping,
   };
