@@ -33,6 +33,7 @@ export enum KnownLabels {
   REGISTERED_MODEL_ID = 'modelregistry.opendatahub.io/registered-model-id',
   MODEL_VERSION_ID = 'modelregistry.opendatahub.io/model-version-id',
   MODEL_REGISTRY_NAME = 'modelregistry.opendatahub.io/name',
+  KUEUE_MANAGED = 'kueue.openshift.io/managed',
 }
 
 export type K8sVerb =
@@ -1585,5 +1586,103 @@ export type AuthKind = K8sResourceCommon & {
   spec: {
     adminGroups: string[];
     allowedGroups: string[];
+  };
+};
+
+export type Server = {
+  env?: Record<string, never>[][];
+  envFrom?: Record<string, never>[];
+  grpc?: boolean;
+  image?: string;
+  restAPI?: boolean;
+  tls?: {
+    secretKeyNames: {
+      tlsCrt: string;
+      tlsKey: string;
+    };
+    secretRef: {
+      name: string;
+    };
+  };
+  volumeMounts?: Record<string, never>[];
+};
+
+export type Persistence = {
+  file?: { path?: string; pvc?: Record<string, never> };
+  store?: { type?: string; secretKeyName?: Record<string, never> };
+};
+
+export type Services = {
+  offlineStore?: {
+    persistence?: Persistence;
+    server?: Server;
+  };
+  onlineStore?: {
+    persistence?: Persistence;
+    server?: Server;
+  };
+  registry: {
+    local: {
+      persistence?: Persistence;
+      server?: Server;
+    };
+  };
+  ui?: Server;
+};
+
+export type FeastProjectDir = {
+  git?: {
+    url: string;
+    featureRepoPath: string;
+    ref: string;
+  };
+  init?: { minimal?: boolean; template?: string };
+};
+
+export type FeatureStoreKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+    namespace: string;
+    annotations?: Record<string, string>;
+  };
+  spec: {
+    feastProject: string;
+    feastProjectDir?: FeastProjectDir;
+    services: Services;
+    authz?: {
+      kubernetes?: {
+        roles?: string[];
+      };
+      oidc?: {
+        secretRef: {
+          name: string;
+        };
+      };
+    };
+    cronJob?: Record<string, never>;
+    volumes?: Record<string, never>[];
+  };
+  status?: {
+    applied?: {
+      cronJob?: {
+        concurrencyPolicy: string;
+        containerConfigs: {
+          commands: string[];
+          image: string;
+        };
+        schedule: string;
+        startingDeadlineSeconds: number;
+        suspend: boolean;
+      };
+      feastProject: string;
+      feastProjectDir?: FeastProjectDir;
+      services?: Services;
+    };
+    clientConfigMap?: string;
+    conditions?: K8sCondition[];
+    cronJob?: string;
+    feastVersion?: string;
+    phase?: string;
+    serviceHostnames?: Record<string, string>;
   };
 };

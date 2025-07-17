@@ -33,10 +33,23 @@ const ManageWorkloadPrioritySection: React.FC<ManageWorkloadPrioritySectionProps
     };
 
     if (!loaded || error) {
+      // If we have a current priorityClass that's not "None", include it in the options
+      // This prevents SimpleSelect from auto-calling onChange when the real options haven't loaded yet
+      if (priorityClass && priorityClass !== DEFAULT_PRIORITY_CLASS) {
+        return [
+          noneOption,
+          {
+            key: priorityClass,
+            label: priorityClass,
+            dropdownLabel: priorityClass,
+          },
+        ];
+      }
+
       return [noneOption];
     }
 
-    return [
+    const options = [
       noneOption,
       ...workloadPriorityClasses.map((priority: WorkloadPriorityClassKind) => ({
         key: priority.metadata.name,
@@ -54,7 +67,9 @@ const ManageWorkloadPrioritySection: React.FC<ManageWorkloadPrioritySectionProps
         dropdownLabel: priority.metadata.name,
       })),
     ];
-  }, [workloadPriorityClasses, loaded, error]);
+
+    return options;
+  }, [workloadPriorityClasses, loaded, error, priorityClass]);
   return (
     <FormGroup
       label={ManageHardwareProfileSectionTitles[ManageHardwareProfileSectionID.WORKLOAD_PRIORITY]}
