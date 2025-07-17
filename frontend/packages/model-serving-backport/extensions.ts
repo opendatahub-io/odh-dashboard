@@ -13,7 +13,7 @@ const extensions: ModelServingPlatformExtension[] = [
       id: 'model-mesh',
       manage: {
         namespaceApplicationCase: NamespaceApplicationCase.MODEL_MESH_PROMOTION,
-        enabledProjectMetadata: {
+        projectRequirements: {
           labels: {
             'modelmesh-enabled': 'true',
           },
@@ -46,6 +46,51 @@ const extensions: ModelServingPlatformExtension[] = [
     },
     flags: {
       required: [SupportedArea.MODEL_MESH],
+    },
+  },
+  {
+    type: 'model-serving.platform',
+    properties: {
+      id: 'nim',
+      manage: {
+        namespaceApplicationCase: NamespaceApplicationCase.KSERVE_NIM_PROMOTION,
+        priority: 100,
+        projectRequirements: {
+          annotations: {
+            'opendatahub.io/nim-support': 'true',
+          },
+        },
+        clusterRequirements: {
+          integrationAppName: 'nvidia-nim',
+        },
+      },
+      enableCardText: {
+        title: 'NVIDIA NIM model serving platform',
+        description:
+          'Models are deployed using NVIDIA NIM microservices. Choose this option when you want to deploy your model within a NIM container. Please provide the API key to authenticate with the NIM service.',
+        selectText: 'Select NVIDIA NIM',
+        enabledText: 'NVIDIA NIM serving enabled',
+        objectType: ProjectObjectType.modelServer,
+      },
+      deployedModelsView: {
+        startHintTitle: 'Start by adding a model server',
+        startHintDescription:
+          'Model servers are used to deploy models and to allow apps to send requests to your models. Configuring a model server includes specifying the number of replicas being deployed, the server size, the token authentication, the serving runtime, and how the project that the model server belongs to is accessed. ',
+        deployButtonText: 'Add model server',
+      },
+      backport: {
+        ModelsProjectDetailsTab: () =>
+          import(
+            '@odh-dashboard/internal/pages/modelServing/screens/projects/ModelServingPlatform'
+          ),
+        ServeModelsSection: () =>
+          import(
+            '@odh-dashboard/internal/pages/projects/screens/detail/overview/serverModels/ServeModelsSection'
+          ),
+      },
+    },
+    flags: {
+      required: [SupportedArea.NIM_MODEL],
     },
   },
 ];

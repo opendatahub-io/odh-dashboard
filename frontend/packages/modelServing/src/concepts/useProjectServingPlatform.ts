@@ -6,25 +6,31 @@ import { ModelServingPlatformExtension } from '../../extension-points';
 
 export type ModelServingPlatform = ModelServingPlatformExtension;
 
+const isPlatformEnabled = (platform: ModelServingPlatform, project: ProjectKind): boolean =>
+  ((platform.properties.manage.projectRequirements.labels &&
+    Object.entries(platform.properties.manage.projectRequirements.labels).every(
+      ([key, value]) => project.metadata.labels?.[key] === value,
+    )) ||
+    (platform.properties.manage.projectRequirements.annotations &&
+      Object.entries(platform.properties.manage.projectRequirements.annotations).every(
+        ([key, value]) => project.metadata.annotations?.[key] === value,
+      ))) ??
+  false;
+
 /**
  * Check the project labels and annotations to see if it matches any of the platforms.
- * First match is returned.
+ * Returns the platform with the highest priority if there are multiple matches.
  */
 export const getProjectServingPlatform = (
   project: ProjectKind,
   platforms: ModelServingPlatform[],
-): ModelServingPlatform | null =>
-  platforms.find(
-    (p) =>
-      (p.properties.manage.enabledProjectMetadata.labels &&
-        Object.entries(p.properties.manage.enabledProjectMetadata.labels).every(
-          ([key, value]) => project.metadata.labels?.[key] === value,
-        )) ||
-      (p.properties.manage.enabledProjectMetadata.annotations &&
-        Object.entries(p.properties.manage.enabledProjectMetadata.annotations).every(
-          ([key, value]) => project.metadata.annotations?.[key] === value,
-        )),
-  ) ?? null;
+): ModelServingPlatform | null => {
+  const enabledPlatforms = platforms.filter((p) => isPlatformEnabled(p, project));
+  const sortedEnabledPlatforms = enabledPlatforms.toSorted(
+    (a, b) => (b.properties.manage.priority ?? 0) - (a.properties.manage.priority ?? 0),
+  );
+  return sortedEnabledPlatforms[0] ?? null;
+};
 
 export const useProjectServingPlatform = (
   project: ProjectKind,
