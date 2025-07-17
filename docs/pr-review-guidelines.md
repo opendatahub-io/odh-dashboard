@@ -12,8 +12,7 @@ Here is a handy list of things to consider when doing a review on any PR.
 - [ ] **Have they answered the [PR template](../.github/pull_request_template.md) properly** – provided screenshots, have sane responses to the questions, etc
 
 - [ ] **Does it have tests?** (Refer to [Testing](testing.md) documentation)
-
-   - [ ] **Have you made sure to test the PR image on your cluster?** (this is critically important if there are permission changes since we only have cluster-admin locally; so if there are permission changes along with it, test with and without those permissions to verify the flow on-cluster)
+  - [ ] **Have you made sure to test the PR image on your cluster?** (this is critically important if there are permission changes since we only have cluster-admin locally; so if there are permission changes along with it, test with and without those permissions to verify the flow on-cluster)
 
 - [ ] **You have followed the [Best Practices](best-practices.md)**
 
@@ -21,7 +20,7 @@ Here is a handy list of things to consider when doing a review on any PR.
 
 - [ ] **Have you looked at all the code files?**
 
-### File-Level Checks 
+### File-Level Checks
 
 - [ ] **Every file looks sane** – this helps with anything our linter may not track, aim to be on the lookout for ways we can improve our CI to help avoid these cases in the future
 
@@ -37,31 +36,31 @@ Here is a handy list of things to consider when doing a review on any PR.
   - [ ] Optional chaining values accessed have fallback values
   - [ ] Has EitherNotBoth / EitherOrNone been considered when object props are in conflict?
   - [ ] Optional type properties are optional because they are truly optional (can optionally be passed / have a nice fallback) and not because it's easier for types (to get around a type error)
-  - [ ] Components are properly broken down into good bite-sized efforts with 1 single goal
-  - [ ] Components make liberal use of custom hooks to store data and logic that is heavily coupled
-  - [ ] Components avoid using useMemo for processes that are not computationally expensive
-  - [ ] Referential stability has been maintained for variables through render loops and the use-cases has been considered for when it has changed
-    - [ ] *All functions passed to another component have referential integrity* (exception being to PF components and onChange-esk handlers)
-    - [ ] *Understanding use of referential integrity around new hooks added* – useMemo, useEffect, useCallback should all be dependant on referentially stable variables
 
-  - [ ] **No `useEffect`s that take incoming props and computes them for a local `useState`** – this is `useMemo` with extra steps
+### Component Architecture
 
-  - [ ] **Passing objects to components that only need a few attributes** (Interface segregation)
+- [ ] **Components are properly broken down into good bite-sized efforts with 1 single goal**
+
+- [ ] **Components make liberal use of custom hooks** to store data and logic that is heavily coupled
+
+- [ ] **Components avoid using useMemo for processes that are not computationally expensive**
+
+- [ ] **Referential stability has been maintained** for variables through render loops and the use-cases have been considered for when it has changed
+  - [ ] *All functions passed to another component have referential integrity* (exception being to PF components and onChange-esk handlers)
+  - [ ] *Understanding use of referential integrity around new hooks added* – useMemo, useEffect, useCallback should all be dependent on referentially stable variables
+
+- [ ] **No `useEffect`s that take incoming props and computes them for a local `useState`** – this is `useMemo` with extra steps
+
+- [ ] **Passing objects to components that only need a few attributes** (Interface segregation)
 
 ## Functional Testing
 
 - [ ] **Have you run the code?**
-
   - [ ] **Tested happy paths**
-
   - [ ] **Tested error flows**
-
     - [ ] **Does the flow handle error messages from the server or known failures in the flow?**
-
     - [ ] **Are buttons disabled when the accompanying fields have invalid data?**
-
     - [ ] **When network takes a moment, are buttons disabled from being spammed by the user**
-
     - [ ] **Do we use loading spinners when data takes a moment?** – note that network traffic varies for users, do not consider anything async on the network to be "fast"
 
 - [ ] **UX has been involved**
@@ -72,4 +71,4 @@ If all the checkboxes above can be checked, you should be good to add your LGTM 
 
 ## When in Doubt
 
-If you run into new decisions on how to handle something, new annotations, or a change / deviation from the normal flow of our app, either counter it with something you're aware of or reach out to the UI Lead or UI Advisors to make sure this is acceptable. It is important for the Dashboard to continue building on existing functionality and terms we have before creating new ones. 
+If you run into new decisions on how to handle something, new annotations, or a change / deviation from the normal flow of our app, either counter it with something you're aware of or reach out to the UI Lead or UI Advisors to make sure this is acceptable. It is important for the Dashboard to continue building on existing functionality and terms we have before creating new ones.
