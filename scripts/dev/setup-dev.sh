@@ -106,7 +106,7 @@ setup_crc() {
         crc_pull_secret_path="${temp_crc_pull_secret_path/#\~/$HOME}"
         crc_pull_secret_path=$(realpath "$crc_pull_secret_path")
         if [ -f "$crc_pull_secret_path" ]; then
-          log_success "Pull secret file found at: $crc_pull_secret_path"
+          log_info "Pull secret file found at: $crc_pull_secret_path"
           break
         else
           log_error "Pull secret file not found at: $crc_pull_secret_path"
@@ -129,6 +129,7 @@ setup_crc() {
     CRC_PULL_SECRET_PATH="$crc_pull_secret_path"
 
     return 0
+
   else
     log_error "CRC is not installed"
     local install_crc
@@ -149,7 +150,7 @@ setup_crc() {
     crc_pull_secret_path="${temp_crc_pull_secret_path/#\~/$HOME}"
     crc_pull_secret_path=$(realpath "$crc_pull_secret_path")
     if [ -f "$crc_pull_secret_path" ]; then
-      log_success "Pull secret file found at: $crc_pull_secret_path"
+      log_info "Pull secret file found at: $crc_pull_secret_path"
       break
     else
       log_error "Pull secret file not found at: $crc_pull_secret_path"
@@ -479,6 +480,15 @@ local_setup_oc() {
 }
 
 local_setup_cluster() {
+  if [ -z "$OC_PROJECT" ]; then
+    read -p "Enter the OpenShift project name (default: opendatahub): " oc_project
+    if [ -n "$OC_PROJECT" ]; then
+      log_info "Using project: $OC_PROJECT"
+    else
+      OC_PROJECT="opendatahub"
+      log_info "Using default project: $OC_PROJECT"
+    fi
+  fi
   setup_environment "${OC_CLUSTER_TYPE}" "${OC_URL}" "${OC_TOKEN}" "${OC_USER}" "${OC_PASSWORD}" "${OC_PROJECT}"
 }
 
@@ -494,16 +504,6 @@ local_create_env_file() {
   local crc_pull_secret_path="$9"
 
   log_step "Creating $local_env_file file..."
-
-  if [ -z "$oc_project" ]; then
-    read -p "Enter the OpenShift project name (default: opendatahub): " oc_project
-    if [ -n "$oc_project" ]; then
-      log_info "Using project: $oc_project"
-    else
-      oc_project="opendatahub"
-      log_info "Using default project: $oc_project"
-    fi
-  fi
 
   if [ -f "$local_env_file" ]; then
     echo ""
@@ -730,7 +730,7 @@ show_help() {
   echo "Usage: $0 [OPTIONS]"
   echo ""
   echo "Options:"
-  echo "  --env-file FILE                  Specify custom environment file (default: .env.local)"
+  # echo "  --env-file FILE                  Specify custom environment file (default: .env.local)"
   echo "  --skip-env-creation              Skip creating a new environment file"
   echo "  --cluster-type TYPE              Set cluster type (crc|existing)"
   echo "  --development-environment TYPE   Set development environment (local|container)"
@@ -741,7 +741,7 @@ show_help() {
   echo "  --help, -h                       Show this help message"
   echo ""
   echo "Examples:"
-  echo "  $0 --env-file .env.custom --cluster-type crc"
+  echo "  $0 --cluster-type crc --skip-env-creation --skip-deps"
   echo "  $0 --development-environment container --container-builder podman"
   echo "  $0 --skip-deps --verbose"
 }

@@ -106,7 +106,7 @@ verify_operator_installation() {
     fi
 
     if [ ${#succeeded_operators[@]} -eq ${#operators[@]} ]; then
-      log_success "All required operators installed successfully (${#succeeded_operators[@]}/${#operators[@]}): ${succeeded_operators[*]}"
+      log_info "All required operators installed successfully (${#succeeded_operators[@]}/${#operators[@]}): ${succeeded_operators[*]}"
       return 0
     fi
 
@@ -160,7 +160,7 @@ install_cluster_operators() {
   local operators=("opendatahub-operator" "authorino-operator" "serverless-operator" "servicemeshoperator")
 
   if check_operators_ready "${operators[@]}"; then
-    log_success "All required operators are already installed and ready. Skipping installation."
+    log_info "All required operators are already installed and ready. Skipping installation."
   else
     log_info "Installing operators..."
     if ! oc apply -f ./install/dev/operators.yml; then
@@ -232,7 +232,7 @@ wait_for_cluster() {
   local retries=30
   while [ $retries -gt 0 ]; do
     if oc status >/dev/null 2>&1; then
-      log_success "Cluster is ready."
+      log_info "Cluster is ready."
       return 0
     fi
     log_info "Waiting for cluster to be ready..."
