@@ -73,6 +73,7 @@ export enum ProjectObjectType {
   enabledApplications = 'enabled-applications',
   exploreApplications = 'explore-applications',
   resources = 'resources',
+  featureStore = 'feature-store',
 }
 
 export const typedIconColor = (objectType: ProjectObjectType): string => {
