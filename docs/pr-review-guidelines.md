@@ -38,7 +38,7 @@ Here is a handy list of things to consider when doing a review on any PR.
   - [ ] Has EitherNotBoth / EitherOrNone been considered when object props are in conflict?
   - [ ] Optional type properties are optional because they are truly optional (can optionally be passed / have a nice fallback) and not because it's easier for types (to get around a type error)
   - [ ] Components are properly broken down into good bite-sized efforts with 1 single goal
-  - [ ] Components make liberal use of custom hooks** to store data and logic that is heavily coupled
+  - [ ] Components make liberal use of custom hooks to store data and logic that is heavily coupled
   - [ ] Components avoid using useMemo for processes that are not computationally expensive
   - [ ] Referential stability has been maintained for variables through render loops and the use-cases has been considered for when it has changed
     - [ ] *All functions passed to another component have referential integrity* (exception being to PF components and onChange-esk handlers)
