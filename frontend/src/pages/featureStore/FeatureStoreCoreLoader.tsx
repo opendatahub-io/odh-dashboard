@@ -41,7 +41,7 @@ const FeatureStoreCoreLoader: React.FC<FeatureStoreCoreLoaderProps> =
       return (
         <ApplicationsPage loaded loadError={featureStoreProjectLoadError} empty={false}>
           <RedirectErrorState
-            title="Feature store project load error"
+            title="Feature Store project load error"
             errorMessage={featureStoreProjectLoadError.message}
           />
         </ApplicationsPage>
@@ -63,9 +63,9 @@ const FeatureStoreCoreLoader: React.FC<FeatureStoreCoreLoaderProps> =
         </>
       );
 
-      const userTitle = 'Start by requesting a Feature store project';
+      const userTitle = 'Start by requesting a Feature Store project';
       const userDescription =
-        'Feature ore projects allow you and your team to organize and collaborate on resources within seperate namespaces. To request project, contact your adminstrator.';
+        'Feature Store projects allow you and your team to organize and collaborate on resources within separate namespaces. To request a project, contact your administrator.';
       renderStateProps = {
         empty: true,
         emptyStatePage: (

@@ -21,7 +21,7 @@ const FeatureStoreProjectSelector: React.FC<FeatureStoreProjectSelectorProps> = 
   const selectionName = selection ? selection.spec.name : 'All projects';
   const bySearchText = React.useCallback(
     (project: FeatureStoreProject) =>
-      !searchText || project.spec.name.toLocaleLowerCase().includes(searchText.toLocaleLowerCase()),
+      !searchText || project.spec.name.toLowerCase().includes(searchText.toLowerCase()),
     [searchText],
   );
   const filteredProjects = featureStoreProjects.filter(bySearchText);

@@ -65,7 +65,7 @@ export const LMEvalModel: K8sModelCommon = {
 
 export const FeatureStoreModel: K8sModelCommon = {
   apiVersion: 'v1alpha1',
-  apiGroup: '	feast.dev',
+  apiGroup: 'feast.dev',
   kind: 'FeatureStore',
   plural: 'featurestores',
 };
