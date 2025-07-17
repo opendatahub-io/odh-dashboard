@@ -783,21 +783,36 @@ describe('Model Serving Global', () => {
     hardwareProfileSection.findGlobalScopedLabel().should('exist');
   });
 
-  it('Display project scoped label on serving runtime selection on Edit', () => {
+  it('Display project scoped hardware profile on serving runtime selection on Edit', () => {
     initIntercepts({
       projectEnableModelMesh: false,
       disableServingRuntimeParamsConfig: false,
       disableProjectScoped: false,
       disableHardwareProfiles: false,
-      servingRuntimes: [
-        mockServingRuntimeK8sResource({
+      inferenceServices: [
+        mockInferenceServiceK8sResource({
+          namespace: 'test-project',
           hardwareProfileName: 'large-profile-1',
           hardwareProfileNamespace: 'test-project',
+          resources: {
+            requests: {
+              cpu: '4',
+              memory: '8Gi',
+            },
+            limits: {
+              cpu: '8',
+              memory: '16Gi',
+            },
+          },
         }),
       ],
+      servingRuntimes: [mockServingRuntimeK8sResource({})],
     });
+
     modelServingGlobal.visit('test-project');
     modelServingGlobal.getModelRow('Test Inference Service').findKebabAction('Edit').click();
+
+    hardwareProfileSection.findHardwareProfileSearchSelector().should('be.visible');
     hardwareProfileSection
       .findHardwareProfileSearchSelector()
       .should('contain.text', 'Large Profile-1');

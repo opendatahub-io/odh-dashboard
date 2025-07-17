@@ -120,16 +120,16 @@ export const assembleInferenceService = (
     if (!isLegacyHardwareProfile) {
       annotations['opendatahub.io/hardware-profile-name'] =
         podSpecOptions.selectedHardwareProfile.metadata.name;
-      if (podSpecOptions.selectedHardwareProfile.metadata.namespace === project) {
-        annotations['opendatahub.io/hardware-profile-namespace'] = project;
-      } else {
-        annotations['opendatahub.io/hardware-profile-namespace'] = dashboardNamespace;
-      }
     } else {
       const legacyName = podSpecOptions.selectedHardwareProfile.metadata.name;
       if (legacyName) {
         annotations['opendatahub.io/legacy-hardware-profile-name'] = legacyName;
       }
+    }
+    if (podSpecOptions.selectedHardwareProfile.metadata.namespace === project) {
+      annotations['opendatahub.io/hardware-profile-namespace'] = project;
+    } else {
+      annotations['opendatahub.io/hardware-profile-namespace'] = dashboardNamespace;
     }
   }
 
@@ -138,7 +138,10 @@ export const assembleInferenceService = (
         ...inferenceService,
         metadata: {
           ...inferenceService.metadata,
-          annotations,
+          annotations: {
+            ...inferenceService.metadata.annotations,
+            ...annotations,
+          },
           labels: {
             ...inferenceService.metadata.labels,
           },

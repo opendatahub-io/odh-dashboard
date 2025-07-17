@@ -843,6 +843,94 @@ describe('updateInferenceService', () => {
   });
 });
 
+describe('project scoped hardware profile on inference service', () => {
+  it('should correctly set project-scoped hardware profile annotations on inference service', () => {
+    // Create an inference service with project-scoped hardware profile
+    const inferenceService = mockInferenceServiceK8sResource({
+      namespace: 'test-project',
+      hardwareProfileName: 'large-profile-1',
+      hardwareProfileNamespace: 'test-project',
+    });
+
+    // Verify the hardware profile annotations are set correctly
+    expect(inferenceService.metadata.annotations).toBeDefined();
+    expect(inferenceService.metadata.annotations?.['opendatahub.io/hardware-profile-name']).toBe(
+      'large-profile-1',
+    );
+    expect(
+      inferenceService.metadata.annotations?.['opendatahub.io/hardware-profile-namespace'],
+    ).toBe('test-project');
+  });
+
+  it('should preserve hardware profile annotations when assembling inference service', () => {
+    // Create a mock inference service with hardware profile annotations
+    const existingInferenceService = mockInferenceServiceK8sResource({
+      namespace: 'test-project',
+      hardwareProfileName: 'large-profile-1',
+      hardwareProfileNamespace: 'test-project',
+    });
+
+    // Assemble a new inference service based on the existing one
+    const assembledInferenceService = assembleInferenceService(
+      mockInferenceServiceModalData({}),
+      undefined,
+      undefined,
+      false,
+      existingInferenceService,
+    );
+
+    // Verify the hardware profile annotations are preserved
+    expect(assembledInferenceService.metadata.annotations).toBeDefined();
+    expect(
+      assembledInferenceService.metadata.annotations?.['opendatahub.io/hardware-profile-name'],
+    ).toBe('large-profile-1');
+    expect(
+      assembledInferenceService.metadata.annotations?.['opendatahub.io/hardware-profile-namespace'],
+    ).toBe('test-project');
+  });
+
+  it('should update hardware profile annotations when using a different hardware profile', () => {
+    // Create a mock inference service with hardware profile annotations
+    const existingInferenceService = mockInferenceServiceK8sResource({
+      namespace: 'test-project',
+      hardwareProfileName: 'large-profile-1',
+      hardwareProfileNamespace: 'test-project',
+    });
+
+    // Create a hardware profile to use in the pod spec options
+    const hardwareProfile = mockHardwareProfile({
+      name: 'small-profile',
+      namespace: 'opendatahub',
+      displayName: 'Small Profile',
+    });
+
+    // Create pod spec options with the new hardware profile
+    const podSpecOptions = mockModelServingPodSpecOptions({
+      selectedHardwareProfile: hardwareProfile,
+    });
+
+    // Assemble a new inference service with the new hardware profile
+    const assembledInferenceService = assembleInferenceService(
+      mockInferenceServiceModalData({}),
+      undefined,
+      undefined,
+      false,
+      existingInferenceService,
+      undefined,
+      podSpecOptions,
+    );
+
+    // Verify the hardware profile annotations are updated
+    expect(assembledInferenceService.metadata.annotations).toBeDefined();
+    expect(
+      assembledInferenceService.metadata.annotations?.['opendatahub.io/hardware-profile-name'],
+    ).toBe('small-profile');
+    expect(
+      assembledInferenceService.metadata.annotations?.['opendatahub.io/hardware-profile-namespace'],
+    ).toBe('opendatahub');
+  });
+});
+
 describe('deleteInferenceService', () => {
   const name = 'test';
   const namespace = 'test-project';
