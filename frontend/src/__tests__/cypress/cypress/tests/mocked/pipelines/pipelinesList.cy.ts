@@ -28,6 +28,7 @@ import {
   SecretModel,
 } from '#~/__tests__/cypress/cypress/utils/models';
 import { verifyRelativeURL } from '#~/__tests__/cypress/cypress/utils/url';
+import { MANAGE_PIPELINE_SERVER_CONFIGURATION_TITLE } from '#~/concepts/pipelines/content/const';
 import type { PipelineKF } from '#~/concepts/pipelines/kfTypes';
 
 const projectName = 'test-project-name';
@@ -93,7 +94,7 @@ describe('PipelinesList', () => {
     );
     projectDetails.visitSection(projectName, 'pipelines-projects');
 
-    pipelinesGlobal.selectPipelineServerAction('View pipeline server configuration');
+    pipelinesGlobal.selectPipelineServerAction(MANAGE_PIPELINE_SERVER_CONFIGURATION_TITLE);
     viewPipelineServerModal.shouldHaveAccessKey('sdsd');
     viewPipelineServerModal.findPasswordHiddenButton().click();
     viewPipelineServerModal.shouldHaveSecretKey('sdsd');

@@ -239,7 +239,11 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
                 connections={connections}
               />
               <PipelinesDatabaseSection setConfig={setConfig} config={config} />
-              <PipelineCachingSection setConfig={setConfig} config={config} />
+
+              <PipelineCachingSection
+                enableCaching={config.enableCaching}
+                setEnableCaching={(enableCaching) => setConfig({ ...config, enableCaching })}
+              />
               {isFineTuningAvailable && (
                 <SamplePipelineSettingsSection setConfig={setConfig} config={config} />
               )}

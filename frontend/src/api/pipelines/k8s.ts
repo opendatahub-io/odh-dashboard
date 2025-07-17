@@ -70,6 +70,23 @@ export const createPipelinesCR = async (
   );
 };
 
+export const updatePipelineCaching = (
+  namespace: string,
+  name: string,
+  cacheEnabled: boolean,
+): Promise<DSPipelineKind> =>
+  k8sPatchResource<DSPipelineKind>({
+    model: DataSciencePipelineApplicationModel,
+    queryOptions: { name, ns: namespace },
+    patches: [
+      {
+        op: 'replace',
+        path: '/spec/apiServer/cacheEnabled',
+        value: cacheEnabled,
+      },
+    ],
+  });
+
 export const getPipelinesCR = async (
   namespace: string,
   name: string,

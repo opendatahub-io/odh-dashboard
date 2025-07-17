@@ -36,6 +36,7 @@ import { verifyRelativeURL } from '#~/__tests__/cypress/cypress/utils/url';
 import { pipelineRunsGlobal } from '#~/__tests__/cypress/cypress/pages/pipelines/pipelineRunsGlobal';
 import { argoAlert } from '#~/__tests__/cypress/cypress/pages/pipelines/argoAlert';
 import { toastNotifications } from '#~/__tests__/cypress/cypress/pages/components/ToastNotifications';
+import { MANAGE_PIPELINE_SERVER_CONFIGURATION_TITLE } from '#~/concepts/pipelines/content/const';
 
 const projectName = 'test-project-name';
 const initialMockPipeline = buildMockPipeline({ display_name: 'Test pipeline' });
@@ -405,7 +406,7 @@ describe('Pipelines', () => {
     );
     pipelinesGlobal.visit(projectName);
 
-    pipelinesGlobal.selectPipelineServerAction('View pipeline server configuration');
+    pipelinesGlobal.selectPipelineServerAction(MANAGE_PIPELINE_SERVER_CONFIGURATION_TITLE);
     viewPipelineServerModal.shouldHaveAccessKey('sdsd');
     viewPipelineServerModal.findPasswordHiddenButton().click();
     viewPipelineServerModal.shouldHaveSecretKey('sdsd');

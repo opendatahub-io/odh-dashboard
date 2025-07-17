@@ -2,6 +2,7 @@ import { DeleteModal } from '#~/__tests__/cypress/cypress/pages/components/Delet
 import { Modal } from '#~/__tests__/cypress/cypress/pages/components/Modal';
 import { appChrome } from '#~/__tests__/cypress/cypress/pages/appChrome';
 import { SearchSelector } from '#~/__tests__/cypress/cypress/pages/components/subComponents/SearchSelector';
+import { MANAGE_PIPELINE_SERVER_TITLE } from '#~/concepts/pipelines/content/const';
 
 class PipelinesGlobal {
   projectDropdown = new SearchSelector('project-selector');
@@ -149,7 +150,7 @@ class ConfigurePipelineServerModal extends Modal {
 
 class ViewPipelineServerModal extends Modal {
   constructor() {
-    super('View pipeline server');
+    super(MANAGE_PIPELINE_SERVER_TITLE);
   }
 
   shouldHaveAccessKey(value: string) {

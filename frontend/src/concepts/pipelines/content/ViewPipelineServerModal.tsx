@@ -8,6 +8,10 @@ import {
   Modal,
   ModalBody,
   ModalHeader,
+  ModalFooter,
+  Button,
+  ActionGroup,
+  Content,
 } from '@patternfly/react-core';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import PasswordHiddenText from '#~/components/PasswordHiddenText';
@@ -15,6 +19,9 @@ import { dataEntryToRecord } from '#~/utilities/dataEntryToRecord';
 import useNamespaceSecret from '#~/concepts/projects/apiHooks/useNamespaceSecret';
 import { ExternalDatabaseSecret } from '#~/concepts/pipelines/content/configurePipelinesServer/const';
 import { DSPipelineKind } from '#~/k8sTypes';
+import { updatePipelineCaching } from '#~/api/pipelines/k8s.ts';
+import { MANAGE_PIPELINE_SERVER_TITLE } from './const';
+import { PipelineCachingSection } from './configurePipelinesServer/PipelineCachingSection';
 
 type ViewPipelineServerModalProps = {
   onClose: () => void;
@@ -40,9 +47,32 @@ const ViewPipelineServerModal: React.FC<ViewPipelineServerModalProps> = ({
   console.log('API server config:', pipelineNamespaceCR?.spec.apiServer);
   console.log('Cache enabled?:', pipelineNamespaceCR?.spec.apiServer?.cacheEnabled);
 
+  const initCachingEnabled = pipelineNamespaceCR?.spec.apiServer?.cacheEnabled || false;
+  console.log('is initCachingEnabled??', initCachingEnabled);
+
+  // State for caching configuration
+  const [enableCaching, setEnableCaching] = React.useState<boolean>(initCachingEnabled);
+
+  const [isUpdating, setIsUpdating] = React.useState(false);
+
+  React.useEffect(() => {
+    console.log('did the caching change??? arghh', initCachingEnabled);
+  }, [initCachingEnabled]);
+
+  const updateCaching = () => {
+    updatePipelineCaching(namespace, 'dspa', enableCaching)
+      .then(() => {
+        console.log('Caching updated successfully');
+        onClose();
+      })
+      .catch((error) => {
+        console.error('Failed to update caching:', error);
+      });
+  };
+
   return (
     <Modal isOpen onClose={onClose} variant="small">
-      <ModalHeader title="View pipeline server" />
+      <ModalHeader title={MANAGE_PIPELINE_SERVER_TITLE} />
       <ModalBody>
         {pipelineNamespaceCR && (
           <DescriptionList termWidth="20ch" isHorizontal>
@@ -128,7 +158,34 @@ const ViewPipelineServerModal: React.FC<ViewPipelineServerModalProps> = ({
               )}
           </DescriptionList>
         )}
+
+        <Content component="h3"> Additional Configurations</Content>
+        <PipelineCachingSection enableCaching={enableCaching} setEnableCaching={setEnableCaching} />
       </ModalBody>
+      <ModalFooter>
+        <ActionGroup>
+          <Button
+            variant="primary"
+            onClick={() => {
+              // TODO: Implement save functionality
+              setIsUpdating(true);
+              console.log('Saving caching config:', enableCaching);
+              // For now, just close the modal
+              updateCaching();
+              setTimeout(() => {
+                setIsUpdating(false);
+                onClose();
+              }, 1000);
+            }}
+            isLoading={isUpdating}
+          >
+            Save
+          </Button>
+          <Button variant="link" onClick={onClose}>
+            Cancel
+          </Button>
+        </ActionGroup>
+      </ModalFooter>
     </Modal>
   );
 };
