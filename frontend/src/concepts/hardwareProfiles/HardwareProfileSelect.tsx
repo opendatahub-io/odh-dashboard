@@ -250,7 +250,7 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
         }
         return getProfileScore(a) - getProfileScore(b);
       });
-    if (initialHardwareProfile && isHardwareProfileEnabled(initialHardwareProfile)) {
+    if (initialHardwareProfile && !isHardwareProfileEnabled(initialHardwareProfile)) {
       currentProjectEnabledProfiles.push(initialHardwareProfile);
     }
     return currentProjectEnabledProfiles
@@ -273,7 +273,7 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
         }
         return getProfileScore(a) - getProfileScore(b);
       });
-    if (initialHardwareProfile && isHardwareProfileEnabled(initialHardwareProfile)) {
+    if (initialHardwareProfile && !isHardwareProfileEnabled(initialHardwareProfile)) {
       DashboardEnabledProfiles.push(initialHardwareProfile);
     }
     return DashboardEnabledProfiles.filter(maybeRemoveKueueProfiles).filter((profile) =>
