@@ -12,6 +12,7 @@ import {
   Button,
   ActionGroup,
   Content,
+  Spinner,
 } from '@patternfly/react-core';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import PasswordHiddenText from '#~/components/PasswordHiddenText';
@@ -63,7 +64,7 @@ const ViewPipelineServerModal: React.FC<ViewPipelineServerModalProps> = ({
     const value = pipelineNamespaceCR?.spec.apiServer?.cacheEnabled ?? false;
     console.log('77a Setting caching from DSPA:', value);
     console.log('77a did the caching change??? arghh', value);
- 
+
     setEnableCaching(value);
   }, [pipelineNamespaceCR]);
 
@@ -82,6 +83,7 @@ const ViewPipelineServerModal: React.FC<ViewPipelineServerModalProps> = ({
     <Modal isOpen onClose={onClose} variant="small">
       <ModalHeader title={MANAGE_PIPELINE_SERVER_TITLE} />
       <ModalBody>
+        {!pipelineNamespaceCR && <Spinner size="lg" />}
         {pipelineNamespaceCR && (
           <DescriptionList termWidth="20ch" isHorizontal>
             {!!pipelineNamespaceCR.spec.objectStorage.externalStorage?.s3CredentialsSecret
@@ -166,9 +168,15 @@ const ViewPipelineServerModal: React.FC<ViewPipelineServerModalProps> = ({
               )}
           </DescriptionList>
         )}
-
-        <Content component="h3"> Additional Configurations</Content>
-        <PipelineCachingSection enableCaching={enableCaching} setEnableCaching={setEnableCaching} />
+        {pipelineNamespaceCR && (
+          <>
+            <Content component="h3"> Additional Configurations</Content>
+            <PipelineCachingSection
+              enableCaching={enableCaching}
+              setEnableCaching={setEnableCaching}
+            />
+          </>
+        )}
       </ModalBody>
       <ModalFooter>
         <ActionGroup>
