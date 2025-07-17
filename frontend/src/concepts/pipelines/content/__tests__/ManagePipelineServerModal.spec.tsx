@@ -7,6 +7,7 @@ import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import useNamespaceSecret from '#~/concepts/projects/apiHooks/useNamespaceSecret';
 import { updatePipelineCaching } from '#~/api/pipelines/k8s';
 import { NotificationWatcherContext } from '#~/concepts/notificationWatcher/NotificationWatcherContext';
+import { SecretCategory, EnvironmentVariableType } from '#~/pages/projects/types';
 
 // Mock dependencies
 jest.mock('#~/concepts/pipelines/context', () => ({
@@ -42,7 +43,7 @@ describe('ManagePipelineServerModal', () => {
     unregisterNotification: jest.fn(),
   };
 
-  const defaultProps = {
+  const defaultProps: React.ComponentProps<typeof ManagePipelineServerModal> = {
     onClose: mockOnClose,
     pipelineNamespaceCR: mockDataSciencePipelineApplicationK8sResource({
       name: 'dspa',
@@ -62,14 +63,25 @@ describe('ManagePipelineServerModal', () => {
 
     mockUsePipelinesAPI.mockReturnValue({
       namespace: 'test-project',
+      apiAvailable: true,
+      pipelinesServer: {
+        initializing: false,
+        installed: true,
+        timedOut: false,
+        compatible: true,
+        name: 'dspa',
+        crStatus: undefined,
+        isStarting: false,
+      },
       // Add other required properties with mock values
-    } as any);
+    } as ReturnType<typeof usePipelinesAPI>);
 
     mockUseNamespaceSecret.mockReturnValue([
       {
-        loaded: true,
-        error: undefined,
+        type: EnvironmentVariableType.SECRET,
+        existingName: 'test-secret',
         values: {
+          category: SecretCategory.GENERIC,
           data: [
             { key: 'AWS_ACCESS_KEY_ID', value: 'test-access-key' },
             { key: 'AWS_SECRET_ACCESS_KEY', value: 'test-secret-key' },
@@ -77,11 +89,13 @@ describe('ManagePipelineServerModal', () => {
         },
       },
       true,
-      false,
+      undefined,
       jest.fn(),
     ]);
 
-    mockUpdatePipelineCaching.mockResolvedValue({} as any);
+    mockUpdatePipelineCaching.mockResolvedValue(
+      {} as Awaited<ReturnType<typeof updatePipelineCaching>>,
+    );
   });
 
   it('should render the modal with correct title', () => {
