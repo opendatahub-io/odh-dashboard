@@ -42,6 +42,11 @@ const readModuleFederationConfigFromPackages = () => {
 };
 
 const getModuleFederationConfig = () => {
+  // Disable module federation for Cypress tests
+  if (process.env.CYPRESS_TESTS === 'true') {
+    return [];
+  }
+
   if (process.env.MODULE_FEDERATION_CONFIG) {
     try {
       return JSON.parse(process.env.MODULE_FEDERATION_CONFIG);
