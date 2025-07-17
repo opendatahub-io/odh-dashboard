@@ -8,8 +8,8 @@ class ClusterStorageRow extends TableRow {
     return this;
   }
 
-  findConnectedWorkbenches() {
-    return this.find().find('[data-label="Workbench connections"]');
+  findConnectedResources() {
+    return this.find().find('[data-label="Connected resources"]');
   }
 
   toggleExpandableContent() {
