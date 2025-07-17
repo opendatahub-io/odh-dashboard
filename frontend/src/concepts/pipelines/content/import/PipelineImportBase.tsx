@@ -45,7 +45,10 @@ export type PipelineImportBaseProps = {
   setData: UpdateObjectAtPropAndValue<PipelineImportData>;
   resetData: () => void;
   submitAction: () => Promise<PipelineKF | PipelineVersionKF>;
-  checkForDuplicateName: (value: string) => Promise<boolean>;
+  checkForDuplicateName: (
+    value: string,
+    pipelineStore?: DSPipelineAPIServerStore,
+  ) => Promise<boolean>;
   children?: React.ReactNode;
 };
 
@@ -91,13 +94,17 @@ const PipelineImportBase: React.FC<PipelineImportBaseProps> = ({
     }
   }, [displayName, isKubernetesStorage, onK8sNameDescDataChange]);
 
+  // must handle k8sdescdata changes separately from callback since
+  // displayName can externally populate pipeline name, and that needs
+  // to auto-fill the resource name as if it was typed in to keep
+  // the resource name rules intact
   React.useEffect(() => {
     if (isKubernetesStorage) {
-      setData('name', k8sNameDescData.k8sName.value);
       setData('displayName', k8sNameDescData.name);
+      setData('name', k8sNameDescData.k8sName.value);
       setData('description', k8sNameDescData.description);
     }
-  }, [k8sNameDescData, isKubernetesStorage, setData]);
+  }, [isKubernetesStorage, k8sNameDescData, setData]);
 
   const isImportButtonDisabled =
     !apiAvailable ||
@@ -119,8 +126,8 @@ const PipelineImportBase: React.FC<PipelineImportBaseProps> = ({
 
   const debouncedCheckForDuplicateName = useDebounceCallback(
     React.useCallback(
-      async (value: string) => {
-        const isDuplicate = await checkForDuplicateName(value);
+      async (value: string, pipelineStore?: DSPipelineAPIServerStore) => {
+        const isDuplicate = await checkForDuplicateName(value, pipelineStore);
         setHasDuplicateName(!!isDuplicate);
       },
       [checkForDuplicateName],
@@ -131,12 +138,11 @@ const PipelineImportBase: React.FC<PipelineImportBaseProps> = ({
   const handleK8sNameDescDataChange = React.useCallback<K8sNameDescriptionFieldUpdateFunction>(
     (key, value) => {
       onK8sNameDescDataChange(key, value);
-      // if (key === 'name') {
-      //   setHasDuplicateName(false);
-      //   debouncedCheckForDuplicateName(value);
-      // }
+      if (key === 'name') {
+        debouncedCheckForDuplicateName(value, DSPipelineAPIServerStore.KUBERNETES);
+      }
     },
-    [onK8sNameDescDataChange],
+    [onK8sNameDescDataChange, debouncedCheckForDuplicateName],
   );
 
   const onSubmit = () => {
@@ -225,7 +231,9 @@ const PipelineImportBase: React.FC<PipelineImportBaseProps> = ({
                   maxLength={NAME_CHARACTER_LIMIT}
                   maxLengthDesc={DESCRIPTION_CHARACTER_LIMIT}
                   nameHelperText={
-                    hasDuplicateName ? <DuplicateNameHelperText isError name={name} /> : undefined
+                    hasDuplicateName ? (
+                      <DuplicateNameHelperText isError name={displayName} />
+                    ) : undefined
                   }
                   data={k8sNameDescData}
                   onDataChange={handleK8sNameDescDataChange}
@@ -236,9 +244,10 @@ const PipelineImportBase: React.FC<PipelineImportBaseProps> = ({
                   nameFieldLabel="Pipeline name"
                   descriptionFieldLabel="Pipeline description"
                   descriptionFieldId="pipeline-description"
-                  data={{ name, description: description || '' }}
+                  data={{ name: displayName, description: description || '' }}
                   hasNameError={hasDuplicateName}
                   setData={(newData) => {
+                    setData('displayName', newData.name);
                     setData('name', newData.name);
                     setData('description', newData.description);
                   }}
@@ -249,7 +258,9 @@ const PipelineImportBase: React.FC<PipelineImportBaseProps> = ({
                     debouncedCheckForDuplicateName(value);
                   }}
                   nameHelperText={
-                    hasDuplicateName ? <DuplicateNameHelperText isError name={name} /> : undefined
+                    hasDuplicateName ? (
+                      <DuplicateNameHelperText isError name={displayName} />
+                    ) : undefined
                   }
                 />
               )}
@@ -282,8 +293,8 @@ const PipelineImportBase: React.FC<PipelineImportBaseProps> = ({
             isArgoWorkflow
               ? PIPELINE_ARGO_ERROR
               : isV1PipelineFile
-              ? 'pipeline update and recompile required'
-              : 'error creating pipeline'
+              ? 'Pipeline update and recompile required'
+              : 'Error creating pipeline'
           }
           alertLinks={isV1PipelineFile ? <PipelineMigrationNoteLinks /> : undefined}
         />

@@ -7,6 +7,7 @@ import { pipelineVersionDetailsRoute } from '#~/routes/pipelines/global';
 import { getNameEqualsFilter } from '#~/concepts/pipelines/utils';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
+import { DSPipelineAPIServerStore } from '#~/k8sTypes.ts';
 import { usePipelineImportModalData } from './useImportModalData';
 import PipelineImportBase from './PipelineImportBase';
 import { PipelineUploadOption } from './utils';
@@ -80,14 +81,21 @@ const PipelineImportModal: React.FC<PipelineImportModalProps> = ({
   }, [api, modalData]);
 
   const checkForDuplicateName = React.useCallback(
-    async (value: string) => {
+    async (value: string, pipelineStore?: DSPipelineAPIServerStore) => {
       if (value) {
-        const { pipelines: duplicatePipelines } = await api.listPipelines(
-          {},
-          getNameEqualsFilter(value),
-        );
+        // extra handling for k8s store pipelines since DSPA does not support getNameEqualsFilter for k8s store
+        let duplicatePipelines: PipelineKF[];
+        if (pipelineStore === DSPipelineAPIServerStore.KUBERNETES) {
+          const allPipelines = await api.listPipelines({});
+          duplicatePipelines = (allPipelines.pipelines || []).filter(
+            (pipeline) => pipeline.display_name === value,
+          );
+        } else {
+          duplicatePipelines =
+            (await api.listPipelines({}, getNameEqualsFilter(value))).pipelines || [];
+        }
 
-        if (duplicatePipelines?.length) {
+        if (duplicatePipelines.length) {
           return true;
         }
       }

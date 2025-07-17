@@ -276,7 +276,7 @@ describe('Pipelines', () => {
     configurePipelineServerModal.findRegionInput().should('have.value', 'us-east-1');
     configurePipelineServerModal.findBucketInput().type('test-bucket');
 
-    configurePipelineServerModal.findToggleButton('Show advanced database options').click();
+    configurePipelineServerModal.findToggleButton('Advanced settings').click();
     configurePipelineServerModal.findExternalMYSQLDatabaseRadio().click();
     configurePipelineServerModal.findSubmitButton().should('be.disabled');
 
@@ -387,7 +387,7 @@ describe('Pipelines', () => {
     configurePipelineServerModal.findBucketInput().type('test-bucket');
 
     // Find and check the store pipeline yaml in kubernetes checkbox
-    configurePipelineServerModal.findToggleButton('Show more configuration options.').click();
+    configurePipelineServerModal.findToggleButton('Advanced settings').click();
     configurePipelineServerModal.findPipelineStoreCheckbox().check();
 
     configurePipelineServerModal.findSubmitButton().should('be.enabled');
@@ -659,6 +659,7 @@ describe('Pipelines', () => {
     pipelinesGlobal.visit(projectName);
     const uploadPipelineParams = {
       display_name: 'New pipeline',
+      name: 'New pipeline',
       description: 'New pipeline description',
     };
     const uploadedMockPipeline = buildMockPipeline(uploadPipelineParams);
@@ -710,6 +711,7 @@ describe('Pipelines', () => {
 
       expect(interception.request.query).to.eql({
         name: 'New pipeline',
+        display_name: 'New pipeline',
         description: 'New pipeline description',
       });
     });
@@ -974,6 +976,7 @@ describe('Pipelines', () => {
 
       expect(interception.request.query).to.eql({
         name: 'New pipeline version',
+        display_name: 'New pipeline version',
         description: 'New pipeline version description',
         pipelineid: 'test-pipeline',
       });
@@ -1612,10 +1615,10 @@ const initIntercepts = ({
       isEmpty
         ? []
         : [
-            mockDataSciencePipelineApplicationK8sResource({
-              namespace: projectName,
-            }),
-          ],
+          mockDataSciencePipelineApplicationK8sResource({
+            namespace: projectName,
+          }),
+        ],
     ),
   );
   cy.interceptK8s(

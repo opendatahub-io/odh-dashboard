@@ -9,6 +9,7 @@ import {
   ModalBody,
   ModalHeader,
   ModalFooter,
+  ExpandableSection,
 } from '@patternfly/react-core';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { createPipelinesCR, deleteSecret, listPipelinesCR } from '#~/api';
@@ -40,7 +41,7 @@ import {
 } from './const';
 import { configureDSPipelineResourceSpec, objectStorageIsValid } from './utils';
 import { PipelineServerConfigType } from './types';
-import PipelinesAdditionalConfigurationSection from './PipelinesAdditionalConfigurationSection';
+import PipelinesDefinitionStorageSection from './PipelinesDefinitionStorageSection';
 
 type ConfigurePipelinesServerModalProps = {
   onClose: () => void;
@@ -61,6 +62,7 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
   const [connections, loaded] = usePipelinesConnections(namespace);
   const [fetching, setFetching] = React.useState(false);
   const [error, setError] = React.useState<Error>();
+  const [advancedSettingsExpanded, setAdvancedSettingsExpanded] = React.useState(false);
   const [config, setConfig] = React.useState<PipelineServerConfigType>(FORM_DEFAULTS);
   const { registerNotification } = React.useContext(NotificationWatcherContext);
   const isFineTuningAvailable = useIsAreaAvailable(SupportedArea.FINE_TUNING).status;
@@ -238,11 +240,18 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
                 loaded={loaded}
                 connections={connections}
               />
-              <PipelinesDatabaseSection setConfig={setConfig} config={config} />
-              {isFineTuningAvailable && (
-                <SamplePipelineSettingsSection setConfig={setConfig} config={config} />
-              )}
-              <PipelinesAdditionalConfigurationSection setConfig={setConfig} config={config} />
+              <ExpandableSection
+                isIndented
+                toggleText="Advanced settings"
+                onToggle={() => setAdvancedSettingsExpanded(!advancedSettingsExpanded)}
+                isExpanded={advancedSettingsExpanded}
+              >
+                <PipelinesDatabaseSection setConfig={setConfig} config={config} />
+                {isFineTuningAvailable && (
+                  <SamplePipelineSettingsSection setConfig={setConfig} config={config} />
+                )}
+                <PipelinesDefinitionStorageSection setConfig={setConfig} config={config} />
+              </ExpandableSection>
             </Form>
           </StackItem>
         </Stack>

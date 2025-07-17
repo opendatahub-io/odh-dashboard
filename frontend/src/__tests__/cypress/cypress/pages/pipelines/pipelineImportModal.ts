@@ -20,7 +20,7 @@ class PipelineImportModal extends Modal {
   }
 
   findPipelineEditResourceNameButton() {
-    return this.find().findByTestId('pipeline-k8s-editResourceLink');
+    return this.find().findByTestId('pipeline-editResourceLink');
   }
 
   findPipelineDescriptionInput() {

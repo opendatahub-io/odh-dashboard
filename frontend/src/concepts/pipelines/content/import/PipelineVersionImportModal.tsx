@@ -9,6 +9,7 @@ import { getNameEqualsFilter } from '#~/concepts/pipelines/utils';
 import { fireFormTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '#~/concepts/analyticsTracking/trackingProperties';
 import { pipelineVersionDetailsRoute } from '#~/routes/pipelines/global';
+import { DSPipelineAPIServerStore } from '#~/k8sTypes.ts';
 import { generatePipelineVersionName, PipelineUploadOption } from './utils';
 import { usePipelineVersionImportModalData } from './useImportModalData';
 import PipelineImportBase from './PipelineImportBase';
@@ -55,15 +56,30 @@ const PipelineVersionImportModal: React.FC<PipelineVersionImportModalProps> = ({
   );
 
   const checkForDuplicateName = React.useCallback(
-    async (value: string) => {
+    async (value: string, pipelineStore?: DSPipelineAPIServerStore) => {
       if (modalData.pipeline?.pipeline_id && value) {
-        const { pipeline_versions: duplicateVersions } = await api.listPipelineVersions(
-          {},
-          modalData.pipeline.pipeline_id,
-          getNameEqualsFilter(value),
-        );
+        // extra handling for k8s store pipelines since DSPA does not support getNameEqualsFilter for k8s store
+        let duplicateVersions: PipelineVersionKF[];
+        if (pipelineStore === DSPipelineAPIServerStore.KUBERNETES) {
+          const allPipelineVersions = await api.listPipelineVersions(
+            {},
+            modalData.pipeline.pipeline_id,
+          );
+          duplicateVersions = (allPipelineVersions.pipeline_versions || []).filter(
+            (version) => version.display_name === value,
+          );
+        } else {
+          duplicateVersions =
+            (
+              await api.listPipelineVersions(
+                {},
+                modalData.pipeline.pipeline_id,
+                getNameEqualsFilter(value),
+              )
+            ).pipeline_versions || [];
+        }
 
-        if (duplicateVersions?.length) {
+        if (duplicateVersions.length) {
           return true;
         }
       }
@@ -71,6 +87,7 @@ const PipelineVersionImportModal: React.FC<PipelineVersionImportModalProps> = ({
     },
     [api, modalData.pipeline?.pipeline_id],
   );
+
   const submitAction = React.useCallback(() => {
     const { name, displayName, description, fileContents, pipelineUrl, uploadOption, pipeline } =
       modalData;

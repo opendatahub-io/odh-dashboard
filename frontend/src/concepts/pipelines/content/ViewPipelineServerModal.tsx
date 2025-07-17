@@ -122,22 +122,24 @@ const ViewPipelineServerModal: React.FC<ViewPipelineServerModalProps> = ({
                 </>
               )}
             <>
-              <Title headingLevel="h2">Additional Configurations</Title>
-              <DescriptionListGroup>
-                <DescriptionListTerm>Pipeline store</DescriptionListTerm>
-                <DescriptionListDescription>
-                  <Checkbox
-                    id="pipeline-kubernetes-store-checkbox"
-                    data-testid="pipeline-kubernetes-store-checkbox"
-                    isDisabled
-                    label="Store pipeline yaml files in Kubernetes"
-                    isChecked={
-                      pipelineNamespaceCR.spec.apiServer?.pipelineStore ===
-                      DSPipelineAPIServerStore.KUBERNETES
-                    }
-                  />
-                </DescriptionListDescription>
-              </DescriptionListGroup>
+              <Title headingLevel="h2">Additional configurations</Title>
+              <DescriptionList isHorizontal isFluid>
+                <DescriptionListGroup>
+                  <DescriptionListTerm>Pipeline definition storage</DescriptionListTerm>
+                  <DescriptionListDescription>
+                    <Checkbox
+                      id="pipeline-kubernetes-store-checkbox"
+                      data-testid="pipeline-kubernetes-store-checkbox"
+                      isDisabled
+                      label="Store pipeline definitions in Kubernetes"
+                      isChecked={
+                        pipelineNamespaceCR.spec.apiServer?.pipelineStore ===
+                        DSPipelineAPIServerStore.KUBERNETES
+                      }
+                    />
+                  </DescriptionListDescription>
+                </DescriptionListGroup>
+              </DescriptionList>
             </>
           </DescriptionList>
         )}
