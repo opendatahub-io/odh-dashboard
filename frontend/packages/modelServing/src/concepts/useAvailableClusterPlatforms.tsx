@@ -1,7 +1,7 @@
 import React from 'react';
 import { useExtensions } from '@odh-dashboard/plugin-core';
-import { NIMAvailabilityContext } from '@odh-dashboard/internal/concepts/integrations/NIMAvailabilityContext';
-import { isEnabled } from '@odh-dashboard/internal/concepts/integrations/useIsComponentEnabled';
+import { IntegrationsStatusContext } from '@odh-dashboard/internal/concepts/integrations/IntegrationsStatusContext';
+import { isEnabled } from '@odh-dashboard/internal/concepts/integrations/useIsComponentIntegrationEnabled';
 import type { IntegrationAppStatus } from '@odh-dashboard/internal/types.js';
 import type { ModelServingPlatform } from './useProjectServingPlatform';
 import { isModelServingPlatformExtension } from '../../extension-points';
@@ -27,12 +27,12 @@ type ClusterPlatformsType = {
 };
 
 /**
- * @returns The list of platforms that are available for selection on the cluster. (Different that the list of all platform plugins)
+ * @returns The list of platforms that are available for selection on the cluster. (Different than the list of all platform plugins)
  */
 export const useAvailableClusterPlatforms = (): ClusterPlatformsType => {
   const allPlatforms = useExtensions<ModelServingPlatform>(isModelServingPlatformExtension);
 
-  const { integrationStatus, loaded, error } = React.useContext(NIMAvailabilityContext);
+  const { integrationStatus, loaded, error } = React.useContext(IntegrationsStatusContext);
 
   const platforms = React.useMemo(() => {
     const availablePlatforms = [];

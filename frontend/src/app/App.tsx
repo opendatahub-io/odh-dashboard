@@ -22,7 +22,7 @@ import ProjectsContextProvider from '#~/concepts/projects/ProjectsContext';
 import { ModelRegistriesContextProvider } from '#~/concepts/modelRegistry/context/ModelRegistriesContext';
 import useStorageClasses from '#~/concepts/k8s/useStorageClasses';
 import AreaContextProvider from '#~/concepts/areas/AreaContext';
-import { NimContextProvider } from '#~/concepts/integrations/NIMAvailabilityContext';
+import { IntegrationsStatusProvider } from '#~/concepts/integrations/IntegrationsStatusContext.tsx';
 import { NotificationWatcherContextProvider } from '#~/concepts/notificationWatcher/NotificationWatcherContext';
 import { AccessReviewProvider } from '#~/concepts/userSSAR';
 import { ExtensibilityContextProvider } from '#~/plugins/ExtensibilityContext';
@@ -169,7 +169,7 @@ const App: React.FC = () => {
             }
           >
             <ErrorBoundary>
-              <NimContextProvider>
+              <IntegrationsStatusProvider>
                 <ProjectsContextProvider>
                   <ModelRegistriesContextProvider>
                     <QuickStarts>
@@ -179,7 +179,7 @@ const App: React.FC = () => {
                     </QuickStarts>
                   </ModelRegistriesContextProvider>
                 </ProjectsContextProvider>
-              </NimContextProvider>
+              </IntegrationsStatusProvider>
               <ToastNotifications />
               <TelemetrySetup />
             </ErrorBoundary>

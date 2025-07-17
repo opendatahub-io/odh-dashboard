@@ -1,6 +1,6 @@
 import { SupportedArea } from '#~/concepts/areas/types';
 import useIsAreaAvailable from '#~/concepts/areas/useIsAreaAvailable';
-import { useIsComponentEnabled } from '#~/concepts/integrations/useIsComponentEnabled';
+import { useIsComponentIntegrationEnabled } from '#~/concepts/integrations/useIsComponentIntegrationEnabled.ts';
 
 export const useIsNIMAvailable = (): [
   boolean,
@@ -15,7 +15,7 @@ export const useIsNIMAvailable = (): [
     loaded,
     error,
     refresh: refreshNIMAvailability,
-  } = useIsComponentEnabled('nvidia-nim');
+  } = useIsComponentIntegrationEnabled('nvidia-nim');
 
   return [isNIMAvailable && isNIMModelServingAvailable, loaded, error, refreshNIMAvailability];
 };

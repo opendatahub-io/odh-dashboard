@@ -1,6 +1,6 @@
 import React from 'react';
 import { IntegrationAppStatus } from '#~/types';
-import { NIMAvailabilityContext } from './NIMAvailabilityContext';
+import { IntegrationsStatusContext } from './IntegrationsStatusContext';
 
 export const isEnabled = (
   components: Record<string, IntegrationAppStatus>,
@@ -10,7 +10,7 @@ export const isEnabled = (
   return !!(component?.isEnabled && component.isInstalled);
 };
 
-export const useIsComponentEnabled = (
+export const useIsComponentIntegrationEnabled = (
   componentName: string,
 ): {
   isEnabled: boolean;
@@ -18,7 +18,7 @@ export const useIsComponentEnabled = (
   error: Error | undefined;
   refresh: () => Promise<boolean | undefined>;
 } => {
-  const { integrationStatus, loaded, error, refresh } = React.useContext(NIMAvailabilityContext);
+  const { integrationStatus, loaded, error, refresh } = React.useContext(IntegrationsStatusContext);
 
   const refreshCallback = React.useCallback(async () => {
     const status = await refresh();
