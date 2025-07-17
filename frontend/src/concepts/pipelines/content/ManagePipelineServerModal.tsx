@@ -21,6 +21,10 @@ import useNamespaceSecret from '#~/concepts/projects/apiHooks/useNamespaceSecret
 import { ExternalDatabaseSecret } from '#~/concepts/pipelines/content/configurePipelinesServer/const';
 import { DSPipelineKind } from '#~/k8sTypes';
 import { updatePipelineCaching } from '#~/api/pipelines/k8s.ts';
+import {
+  NotificationResponseStatus,
+  NotificationWatcherContext,
+} from '#~/concepts/notificationWatcher/NotificationWatcherContext';
 import { MANAGE_PIPELINE_SERVER_TITLE } from './const';
 import { PipelineCachingSection } from './configurePipelinesServer/PipelineCachingSection';
 
@@ -34,6 +38,7 @@ const ManagePipelineServerModal: React.FC<ManagePipelineServerModalProps> = ({
   pipelineNamespaceCR,
 }) => {
   const { namespace } = usePipelinesAPI();
+  const { registerNotification } = React.useContext(NotificationWatcherContext);
   const [pipelineResult] = useNamespaceSecret(
     namespace,
     pipelineNamespaceCR?.spec.objectStorage.externalStorage?.s3CredentialsSecret.secretName ?? '',
@@ -69,13 +74,36 @@ const ManagePipelineServerModal: React.FC<ManagePipelineServerModalProps> = ({
   }, [pipelineNamespaceCR]);
 
   const updateCaching = () => {
+    setIsUpdating(true);
+
     updatePipelineCaching(namespace, 'dspa', enableCaching)
       .then(() => {
         console.log('Caching updated successfully');
+
+        registerNotification({
+          callback: async () => ({
+            status: NotificationResponseStatus.SUCCESS,
+            title: 'Pipeline caching updated',
+            message: `Caching has been ${enableCaching ? 'enabled' : 'disabled'} successfully.`,
+          }),
+        });
+
+        setIsUpdating(false);
         onClose();
       })
       .catch((error) => {
         console.error('Failed to update caching:', error);
+
+        registerNotification({
+          callback: async () => ({
+            status: NotificationResponseStatus.ERROR,
+            title: 'Failed to update pipeline caching',
+            message:
+              error.message || 'An unexpected error occurred while updating caching settings.',
+          }),
+        });
+
+        setIsUpdating(false);
       });
   };
 
@@ -184,21 +212,7 @@ const ManagePipelineServerModal: React.FC<ManagePipelineServerModalProps> = ({
       </ModalBody>
       <ModalFooter>
         <ActionGroup>
-          <Button
-            variant="primary"
-            onClick={() => {
-              // TODO: Implement save functionality
-              setIsUpdating(true);
-              console.log('Saving caching config:', enableCaching);
-              // For now, just close the modal
-              updateCaching();
-              setTimeout(() => {
-                setIsUpdating(false);
-                onClose();
-              }, 1000);
-            }}
-            isLoading={isUpdating}
-          >
+          <Button variant="primary" onClick={updateCaching} isLoading={isUpdating}>
             Save
           </Button>
           <Button variant="link" onClick={onClose}>
