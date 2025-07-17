@@ -282,8 +282,8 @@ describe('assembleServingRuntime', () => {
       false,
       true,
     );
-    expect(result.spec.tolerations).toBeUndefined();
-    expect(result.spec.nodeSelector).toBeUndefined();
+    expect(result.spec.tolerations).toEqual([]);
+    expect(result.spec.nodeSelector).toEqual({});
 
     const hardwareProfile = mockHardwareProfile({});
     hardwareProfile.metadata.uid = 'uid';
@@ -299,8 +299,8 @@ describe('assembleServingRuntime', () => {
       false,
       true,
     );
-    expect(result.spec.tolerations).toBeUndefined();
-    expect(result.spec.nodeSelector).toBeUndefined();
+    expect(result.spec.tolerations).toEqual([]);
+    expect(result.spec.nodeSelector).toEqual({});
   });
 
   it('should not set pod specs like tolerations and nodeSelector for real hardware profiles on modelmesh', () => {
@@ -318,8 +318,8 @@ describe('assembleServingRuntime', () => {
       false,
       true,
     );
-    expect(result.spec.tolerations).toBeUndefined();
-    expect(result.spec.nodeSelector).toBeUndefined();
+    expect(result.spec.tolerations).toEqual([]);
+    expect(result.spec.nodeSelector).toEqual({});
   });
 
   it('should not set annotations for hardware profiles, resources, nodeSelectors, and tolerations when isModelMesh is false', () => {

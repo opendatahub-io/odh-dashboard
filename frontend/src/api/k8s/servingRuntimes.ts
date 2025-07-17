@@ -149,10 +149,10 @@ export const assembleServingRuntime = (
   }
 
   if (isModelMesh) {
-    if (tolerations && tolerations.length > 0) {
+    if (tolerations) {
       updatedServingRuntime.spec.tolerations = tolerations;
     }
-    if (nodeSelector && Object.keys(nodeSelector).length > 0) {
+    if (nodeSelector) {
       updatedServingRuntime.spec.nodeSelector = nodeSelector;
     }
   }
