@@ -43,9 +43,7 @@ const ManageResourceAllocationSection: React.FC<ManageResourceAllocationSectionP
         type: SchedulingType.QUEUE,
         kueue: {
           localQueueName: overrides.localQueueName ?? localQueueName,
-          ...(updatedPriorityClass !== DEFAULT_PRIORITY_CLASS && {
-            priorityClass: updatedPriorityClass,
-          }),
+          priorityClass: updatedPriorityClass,
         },
       });
     },
@@ -67,10 +65,28 @@ const ManageResourceAllocationSection: React.FC<ManageResourceAllocationSectionP
 
   const setSchedulingType = React.useCallback(
     (type: SchedulingType) => {
-      setScheduling({
+      // Preserve existing kueue and node data when switching types
+      // Make sure to explicitly preserve the priorityClass if it exists
+      const currentKueue = scheduling?.kueue;
+      const preservedKueue = {
+        localQueueName: currentKueue?.localQueueName || '',
+        priorityClass: currentKueue?.priorityClass || DEFAULT_PRIORITY_CLASS,
+      };
+
+      const currentNode = scheduling?.node;
+      const preservedNode = {
+        nodeSelector: currentNode?.nodeSelector || {},
+        tolerations: currentNode?.tolerations || [],
+      };
+
+      const newScheduling = {
         ...scheduling,
         type,
-      });
+        kueue: preservedKueue,
+        node: preservedNode,
+      };
+
+      setScheduling(newScheduling);
     },
     [setScheduling, scheduling],
   );
@@ -94,6 +110,10 @@ const ManageResourceAllocationSection: React.FC<ManageResourceAllocationSectionP
         kueue: {
           ...scheduling?.kueue,
           localQueueName: defaultLocalQueueName,
+          // PRESERVE the existing priorityClass if it exists
+          ...(scheduling?.kueue?.priorityClass && {
+            priorityClass: scheduling.kueue.priorityClass,
+          }),
         },
       });
       isDefaultLocalQueueNameSet.current = true;

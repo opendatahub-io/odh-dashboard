@@ -172,9 +172,7 @@ const ManageHardwareProfile: React.FC<ManageHardwareProfileProps> = ({
             />
             <ManageResourceAllocationSection
               scheduling={state.scheduling}
-              setScheduling={(updated) => {
-                setState('scheduling', updated);
-              }}
+              setScheduling={(updated) => setState('scheduling', updated)}
               existingType={existingHardwareProfile?.spec.scheduling?.type}
             />
           </Form>
