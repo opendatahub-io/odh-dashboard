@@ -12,8 +12,6 @@ import {
 import { ExclamationTriangleIcon, HddIcon } from '@patternfly/react-icons';
 import { PersistentVolumeClaimKind } from '#~/k8sTypes';
 import StorageSizeBar from '#~/pages/projects/components/StorageSizeBars';
-import ConnectedNotebookNames from '#~/pages/projects/notebook/ConnectedNotebookNames';
-import { ConnectedNotebookContext } from '#~/pages/projects/notebook/useRelatedNotebooks';
 import { TableRowTitleDescription } from '#~/components/table';
 import {
   getDescriptionFromK8sResource,
@@ -23,6 +21,7 @@ import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import { getStorageClassConfig } from '#~/pages/storageClasses/utils';
 import { getPvcAccessMode } from '#~/pages/projects/utils.ts';
 import AccessModeFullName from '#~/pages/projects/screens/detail/storage/AccessModeFullName';
+import ConnectedResources from '#~/pages/projects/screens/detail/connections/ConnectedResources';
 import useIsRootVolume from './useIsRootVolume';
 import StorageWarningStatus from './StorageWarningStatus';
 import { StorageTableData } from './types';
@@ -163,11 +162,8 @@ const StorageTableRow: React.FC<StorageTableRowProps> = ({
         <StorageSizeBar pvc={obj.pvc} />
       </Td>
       {workbenchEnabled && (
-        <Td dataLabel="Workbench connections">
-          <ConnectedNotebookNames
-            context={ConnectedNotebookContext.EXISTING_PVC}
-            relatedResourceName={obj.pvc.metadata.name}
-          />
+        <Td dataLabel="Connected resources">
+          <ConnectedResources pvc={obj.pvc} />
         </Td>
       )}
       <Td isActionCell>
