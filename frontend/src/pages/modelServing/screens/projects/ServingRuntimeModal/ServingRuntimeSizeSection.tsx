@@ -158,6 +158,7 @@ const ServingRuntimeSizeSection = ({
                 hasAdditionalPopoverInfo
                 currentProject={projectName}
                 initialState={podSpecOptionState.acceleratorProfile.initialState}
+                acceleratorProfilesLoaded={podSpecOptionState.acceleratorProfile.loaded}
                 compatibleIdentifiers={
                   servingRuntimeSelected ? getCompatibleIdentifiers(servingRuntimeSelected) : []
                 }

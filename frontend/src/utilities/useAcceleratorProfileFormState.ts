@@ -41,6 +41,7 @@ const useAcceleratorProfileFormState = (
     );
 
   const loaded = namespace ? projectScopedLoaded && globalScopedLoaded : globalScopedLoaded;
+
   const loadError = namespace
     ? projectScopedLoadError || globalScopedLoadError
     : globalScopedLoadError;

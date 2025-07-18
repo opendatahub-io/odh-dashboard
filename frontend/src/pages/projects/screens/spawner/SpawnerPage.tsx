@@ -211,6 +211,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
       initialState: acceleratorProfileInitialState,
       formData: acceleratorProfileFormData,
       setFormData: setAcceleratorProfileFormData,
+      loaded: acceleratorProfilesLoaded,
     },
     hardwareProfile: { formData: hardwareProfileFormData },
   } = podSpecOptionsState;
@@ -310,6 +311,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                     }
                     initialState={acceleratorProfileInitialState}
                     formData={acceleratorProfileFormData}
+                    acceleratorProfilesLoaded={acceleratorProfilesLoaded}
                     setFormData={setAcceleratorProfileFormData}
                   />
                 </>

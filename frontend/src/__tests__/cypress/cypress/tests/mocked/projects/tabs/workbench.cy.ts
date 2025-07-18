@@ -46,7 +46,7 @@ import {
   mockProjectScopedAcceleratorProfiles,
 } from '#~/__mocks__/mockAcceleratorProfile';
 import { mockConnectionTypeConfigMap } from '#~/__mocks__/mockConnectionType';
-import type { NotebookKind, PodKind } from '#~/k8sTypes';
+import type { AcceleratorProfileKind, NotebookKind, PodKind } from '#~/k8sTypes';
 import type { EnvironmentFromVariable } from '#~/pages/projects/types';
 import { SpawnerPageSectionID } from '#~/pages/projects/screens/spawner/types';
 import { acceleratorProfileSection } from '#~/__tests__/cypress/cypress/pages/components/subComponents/AcceleratorProfileSection';
@@ -62,6 +62,10 @@ type HandlersProps = {
   disableProjectScoped?: boolean;
   disableHardwareProfiles?: boolean;
   notebooks?: NotebookKind[];
+  acceleratorProfiles?: {
+    global: AcceleratorProfileKind[];
+    project: AcceleratorProfileKind[];
+  };
 };
 
 const initIntercepts = ({
@@ -170,6 +174,7 @@ const initIntercepts = ({
       },
     }),
   ],
+  acceleratorProfiles,
 }: HandlersProps) => {
   cy.interceptK8sList(StorageClassModel, mockStorageClassList());
   cy.interceptOdh(
@@ -471,30 +476,42 @@ const initIntercepts = ({
 
   cy.interceptK8s('POST', NotebookModel, mockNotebookK8sResource({})).as('createWorkbench');
 
-  cy.interceptK8sList(
-    AcceleratorProfileModel,
-    mockK8sResourceList([
-      mockAcceleratorProfile({
-        name: 'test-accelerator',
-        namespace: 'opendatahub',
-        displayName: 'Test Accelerator',
-        description: 'A test accelerator profile',
-        enabled: true,
-        identifier: 'test.com/accelerator',
-      }),
-    ]),
-  );
+  if (acceleratorProfiles) {
+    cy.interceptK8sList(
+      { model: AcceleratorProfileModel, ns: 'opendatahub' },
+      mockK8sResourceList(acceleratorProfiles.global),
+    ).as('acceleratorProfiles');
 
-  // Mock accelerator profiles
-  cy.interceptK8sList(
-    { model: AcceleratorProfileModel, ns: 'opendatahub' },
-    mockK8sResourceList(mockGlobalScopedAcceleratorProfiles),
-  ).as('acceleratorProfiles');
+    cy.interceptK8sList(
+      { model: AcceleratorProfileModel, ns: 'test-project' },
+      mockK8sResourceList(acceleratorProfiles.project),
+    ).as('acceleratorProfiles');
+  } else {
+    cy.interceptK8sList(
+      AcceleratorProfileModel,
+      mockK8sResourceList([
+        mockAcceleratorProfile({
+          name: 'test-accelerator',
+          namespace: 'opendatahub',
+          displayName: 'Test Accelerator',
+          description: 'A test accelerator profile',
+          enabled: true,
+          identifier: 'test.com/accelerator',
+        }),
+      ]),
+    );
 
-  cy.interceptK8sList(
-    { model: AcceleratorProfileModel, ns: 'test-project' },
-    mockK8sResourceList(mockProjectScopedAcceleratorProfiles),
-  ).as('acceleratorProfiles');
+    // Mock accelerator profiles
+    cy.interceptK8sList(
+      { model: AcceleratorProfileModel, ns: 'opendatahub' },
+      mockK8sResourceList(mockGlobalScopedAcceleratorProfiles),
+    ).as('acceleratorProfiles');
+
+    cy.interceptK8sList(
+      { model: AcceleratorProfileModel, ns: 'test-project' },
+      mockK8sResourceList(mockProjectScopedAcceleratorProfiles),
+    ).as('acceleratorProfiles');
+  }
 };
 
 describe('Workbench page', () => {
@@ -758,6 +775,34 @@ describe('Workbench page', () => {
     acceleratorProfileSection.findAcceleratorProfileSearchSelector().click();
     createSpawnerPage.findAcceleratorProfile('Small Profile Global nvidia.com/gpu').click();
     createSpawnerPage.findGlobalScopedLabel().should('exist');
+  });
+
+  it('Should show correct message when no accelerator profiles available', () => {
+    initIntercepts({
+      disableProjectScoped: false,
+      disableHardwareProfiles: true,
+      acceleratorProfiles: {
+        global: [],
+        project: [],
+      },
+    });
+
+    workbenchPage.visit('test-project');
+    workbenchPage.findCreateButton().click();
+    createSpawnerPage.findSubmitButton().should('be.disabled');
+    verifyRelativeURL('/projects/test-project/spawner');
+
+    // Verify accelerator profile section exists
+    acceleratorProfileSection.findSelect().should('exist');
+    acceleratorProfileSection.findSelect().should('be.disabled');
+
+    // verify no accelerator profiles
+    acceleratorProfileSection
+      .findSelect()
+      .should(
+        'contain.text',
+        'No enabled or valid accelerator profiles are available. Contact your administrator',
+      );
   });
 
   it('Create workbench with numbers', () => {

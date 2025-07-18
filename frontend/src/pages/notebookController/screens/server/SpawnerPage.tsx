@@ -362,6 +362,7 @@ const SpawnerPage: React.FC = () => {
                 />
                 <AcceleratorProfileSelectField
                   initialState={podSpecOptionsState.acceleratorProfile.initialState}
+                  acceleratorProfilesLoaded={podSpecOptionsState.acceleratorProfile.loaded}
                   formData={podSpecOptionsState.acceleratorProfile.formData}
                   setFormData={podSpecOptionsState.acceleratorProfile.setFormData}
                 />

@@ -17,6 +17,7 @@ export const TrainingAcceleratorFormSection: React.FC<TrainingAcceleratorSection
       isRequired
       currentProject={projectName}
       initialState={podSpecOptionsState.acceleratorProfile.initialState}
+      acceleratorProfilesLoaded={podSpecOptionsState.acceleratorProfile.loaded}
       formData={podSpecOptionsState.acceleratorProfile.formData}
       setFormData={podSpecOptionsState.acceleratorProfile.setFormData}
     />
