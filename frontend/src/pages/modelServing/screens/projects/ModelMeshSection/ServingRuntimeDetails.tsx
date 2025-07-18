@@ -22,6 +22,10 @@ import {
   getHardwareProfileDisplayName,
   isHardwareProfileEnabled,
 } from '#~/pages/hardwareProfiles/utils.ts';
+import { getProjectModelServingPlatform } from '#~/pages/modelServing/screens/projects/utils.ts';
+import { ServingRuntimePlatform } from '#~/types.ts';
+import useServingPlatformStatuses from '#~/pages/modelServing/useServingPlatformStatuses.ts';
+import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext.tsx';
 
 type ServingRuntimeDetailsProps = {
   project?: string;
@@ -33,10 +37,18 @@ const ServingRuntimeDetails: React.FC<ServingRuntimeDetailsProps> = ({ project, 
   const { dashboardConfig } = React.useContext(AppContext);
   const isProjectScopedAvailable = useIsAreaAvailable(SupportedArea.DS_PROJECT_SCOPED).status;
   const isHardwareProfileAvailable = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;
+  const { currentProject } = React.useContext(ProjectDetailsContext);
+  const servingPlatformStatuses = useServingPlatformStatuses();
+  const { platform: currentProjectServingPlatform } = getProjectModelServingPlatform(
+    currentProject,
+    servingPlatformStatuses,
+  );
+  const isModelMesh = currentProjectServingPlatform === ServingRuntimePlatform.MULTI;
+
   const {
     acceleratorProfile: { initialState: initialAcceleratorProfileState },
     hardwareProfile,
-  } = useModelServingPodSpecOptionsState(obj, isvc);
+  } = useModelServingPodSpecOptionsState(obj, isvc, isModelMesh);
   const enabledAcceleratorProfiles = initialAcceleratorProfileState.acceleratorProfiles.filter(
     (ac) => ac.spec.enabled,
   );
@@ -74,7 +86,7 @@ const ServingRuntimeDetails: React.FC<ServingRuntimeDetailsProps> = ({ project, 
           </DescriptionListDescription>
         </DescriptionListGroup>
       )}
-      {isHardwareProfileAvailable ? (
+      {isHardwareProfileAvailable && !isModelMesh && (
         <DescriptionListGroup>
           <DescriptionListTerm>Hardware profile</DescriptionListTerm>
           <DescriptionListDescription data-testid="hardware-section">
@@ -104,7 +116,8 @@ const ServingRuntimeDetails: React.FC<ServingRuntimeDetailsProps> = ({ project, 
             )}
           </DescriptionListDescription>
         </DescriptionListGroup>
-      ) : (
+      )}
+      {!isHardwareProfileAvailable && (
         <>
           <DescriptionListGroup data-testid="accelerator-section">
             <DescriptionListTerm>Accelerator</DescriptionListTerm>

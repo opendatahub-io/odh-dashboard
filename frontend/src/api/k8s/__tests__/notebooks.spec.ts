@@ -336,6 +336,17 @@ describe('assembleNotebook', () => {
     expect(result.spec.template.spec.nodeSelector).toBeUndefined();
   });
 
+  it('should set hardware profile namespace annotation to dashboard namespace when global scoped', () => {
+    const notebookData = mockStartNotebookData({});
+    const hardwareProfile = mockHardwareProfile({ name: 'real-profile' });
+    hardwareProfile.metadata.uid = 'test-uid';
+    notebookData.podSpecOptions.selectedHardwareProfile = hardwareProfile;
+    const result = assembleNotebook(notebookData, 'test-user');
+    expect(result.metadata.annotations?.['opendatahub.io/hardware-profile-namespace']).toBe(
+      'opendatahub',
+    );
+  });
+
   it('should create a notebook with pipelines without volumes and volumes mount', async () => {
     const startNotebookDataMock = mockStartNotebookData({});
     startNotebookDataMock.volumeMounts = undefined;
