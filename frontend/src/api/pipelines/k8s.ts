@@ -56,9 +56,6 @@ export const createPipelinesCR = async (
     },
   };
 
-  console.log('jill-88a: Creating DSPA with resource:', JSON.stringify(resource, null, 2));
-  console.log('jill-88a: API server section:', resource.spec.apiServer);
-
   return k8sCreateResource<DSPipelineKind>(
     applyK8sAPIOptions(
       {
