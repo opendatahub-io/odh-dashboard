@@ -113,9 +113,6 @@ case "${1:-dev}" in
 "frontend-start:dev:ext")
   cd frontend && npm run start:dev:ext
   ;;
-"bash")
-  exec su - "$(id -un 1001)" -s /bin/bash
-  ;;
 *)
   log_info "Using $1 as the start command."
   eval "$1"

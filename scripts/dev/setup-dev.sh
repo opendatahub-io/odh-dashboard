@@ -70,8 +70,13 @@ handle_panic() {
 #### Main functions ####
 teardown_crc() {
   local confirm_teardown
-  if ! crc ctatus >/dev/null 2>&1; then
-    log_info "CRC is not running, nothing to stop."
+  if ! crc status >/dev/null 2>&1; then
+    log_warning "CRC cluster status could not be found because the cluster isn't started or the crc command could not be found. Run ${CYAN}crc status${NC} to check if you think this is a mistake."
+    return
+  fi
+
+  if ! crc status | grep -q "Running"; then
+    log_info "CRC is not running. No need to stop it."
     return
   fi
 
@@ -131,7 +136,7 @@ setup_crc() {
     return 0
 
   else
-    log_error "CRC is not installed"
+    log_error "CRC is not installed or is not in PATH"
     local install_crc
     read -p "Do you want to install CRC now? [y/N]: " install_crc
 
@@ -170,21 +175,65 @@ setup_crc() {
     sudo installer -pkg "/tmp/${installer_file}" -target /
     ;;
   "Linux")
-    log_info "Detected Linux platform, installing CRC for Linux..."
-    local installer_file="crc-linux-${ARCH}.tar.xz"
+    # incase crc exists but not in PATH
+    if [ -f "$HOME/crc/crc" ]; then
+      log_info "CRC binary found at $HOME/crc/crc. Adding to PATH."
+      export PATH="$PATH:$HOME/crc"
+    else
+      log_info "Detected Linux platform, installing CRC for Linux..."
+      local installer_file
 
-    mkdir "$HOME/crc"
-    log_info "Creating directory $HOME/crc for CRC installation files"
+      case "$ARCH" in
+      x86_64 | amd64)
+        log_info "Detected x86_64 architecture, installing CRC for Linux x86_64 (amd64)..."
+        installer_file="crc-linux-amd64.tar.xz"
+        ;;
+      arm64 | aarch64)
+        log_info "Detected ARM64 architecture, installing CRC for Linux ARM64..."
+        installer_file="crc-linux-arm64.tar.xz"
+        ;;
+      *)
+        log_warning "Unsupported architecture: ${ARCH}. Please install CRC manually."
+        exit 1
+        ;;
+      esac
 
-    wget -O- "${CRC_BASE_DOWNLOAD_URL}/crc-linux-${ARCH}.tar.xz" >"/tmp/${installer_file}"
-    tar -xvf "/tmp/${installer_file}" -C "/tmp/"
-    log_info "Extracted CRC files to /tmp"
+      mkdir -p "$HOME/crc"
+      log_info "Creating directory $HOME/crc for CRC installation files"
 
-    local extracted_crc_dir
-    extracted_crc_dir=$(find /tmp -maxdepth 1 - name "crc-linux-*" -type d | head -n1)
-    mv "$extracted_crc_dir"/* "$HOME/crc/"
+      local temp_dir
+      temp_dir=$(mktemp -d)
+      trap "rm -r '$temp_dir'" EXIT
 
-    rm -r /tmp/crc-linux-*
+      if ! wget -O- "${CRC_BASE_DOWNLOAD_URL}/${installer_file}" >"/tmp/${installer_file}"; then
+        log_error "Failed to download CRC installer file: ${installer_file}"
+        exit 1
+      fi
+
+      if ! tar -xvf "/tmp/${installer_file}" -C "$temp_dir/"; then
+        log_error "Failed to extract CRC installer file: ${installer_file}"
+        exit 1
+      fi
+      log_info "Extracted CRC files to ${temp_dir}"
+
+      local extracted_crc_dir
+      extracted_crc_dir=$(find "$temp_dir" -maxdepth 1 -name "crc-linux-*" -type d | head -n1)
+
+      if [ -z "$extracted_crc_dir" ] || [ ! -d "$extracted_crc_dir"]; then
+        log_error "No extracted CRC directory found in ${temp_dir}. Please check the downloaded file."
+        exit 1
+      fi
+
+      if [ ! -f "$extracted_crc_dir/crc" ]; then
+        log_error "CRC binary not found in the extracted directory: ${extracted_crc_dir}"
+        exit 1
+      fi
+
+      if ! cp -r "$extracted_crc_dir/crc" "$HOME/crc/"; then
+        log_error "Failed to copy CRC binary to $HOME/crc/"
+        exit 1
+      fi
+    fi
 
     chmod +x "$HOME/crc/crc"
     export PATH="$PATH:$HOME/crc"
@@ -192,15 +241,15 @@ setup_crc() {
 
   esac
 
-  log_info "Setting up CodeReady Containers (CRC)"
-  crc setup
-
-  log_info "Starting CodeReady Containers (CRC)"
-  crc start --pull-secret-file "$crc_pull_secret_path"
-
+  log_info "Starting CRC cluster. This may take a while..."
   OC_URL="$crc_default_cluster_route"
   OC_USER="$crc_default_admin_user"
-  OC_PASSWORD="$crc_default_admin_password"
+
+  crc setup
+  crc start --pull-secret-file "$crc_pull_secret_path"
+
+  OC_PASSWORD=$(crc console --credentials | grep 'kubeadmin -p' | sed 's/.*-p \([^ ]*\).*/\1/')
+  # export OC_PASSWORD
   CRC_PULL_SECRET_PATH="$crc_pull_secret_path"
 
   log_success "CodeReady Containers (CRC) setup completed successfully."
@@ -755,7 +804,7 @@ main() {
     echo ""
     echo "Preferred development environment:"
     echo "1) Local"
-    echo "2) Container (Docker or Podman)"
+    echo "2) Container (Docker or Podman) [currently only Docker is supported due to host network binding issues]"
     echo ""
     while true; do
       read -p "Enter your choice (1 or 2): " dev_env_choice
@@ -791,8 +840,8 @@ main() {
   if [ -z "$OC_CLUSTER_TYPE" ]; then
     echo ""
     echo "Which OpenShift setup would you like to use?"
-    echo "1) CRC running locally (CodeReady Containers)"
-    echo "2) Existing OpenShift cluster"
+    echo "1) CRC running locally (CodeReady Containers). High resource requirements"
+    echo "2) Existing OpenShift cluster (recommended for most users)"
     echo ""
     while true; do
       read -p "Enter your choice (1 or 2): " choice
@@ -874,6 +923,7 @@ main() {
 
   if [ "$OC_CLUSTER_TYPE" == "crc" ]; then
     echo "CodeReady Containers (CRC) is set up and running."
+    echo -e "Ensure to add the CRC binary to your PATH within your .bashrc/.zshrc/etc. , e.g. ${CYAN}export PATH=\$PATH:\$HOME/crc${NC}"
     echo -e "   ${CYAN}crc -h${NC} to see available commands."
     echo -e "You can access the CRC OpenShift cluster using: ${CYAN}crc console${NC}"
   fi
