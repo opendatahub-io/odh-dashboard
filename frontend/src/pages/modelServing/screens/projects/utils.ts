@@ -219,7 +219,7 @@ export const useCreateInferenceServiceObject = (
   const existingMaxReplicas =
     existingData?.spec.predictor.maxReplicas ?? existingServingRuntimeData?.spec.replicas ?? 1;
   const existingImagePullSecrets = existingData?.spec.predictor.imagePullSecrets || undefined;
-
+  const existingPvcConnection = existingUri ? getPVCNameFromURI(existingUri) : undefined;
   const existingExternalRoute = !!existingData && isInferenceServiceRouteEnabled(existingData);
   const existingTokenAuth = !!existingData && isInferenceServiceTokenEnabled(existingData);
 
@@ -246,6 +246,7 @@ export const useCreateInferenceServiceObject = (
           : existingStorage?.key || '',
         uri: existingUri || '',
         awsData: EMPTY_AWS_SECRET_DATA,
+        pvcConnection: isPVCUri(existingUri || '') ? existingPvcConnection : undefined,
       });
       setCreateData(
         'format',
@@ -279,6 +280,7 @@ export const useCreateInferenceServiceObject = (
     existingServingRuntimeEnvVars,
     existingIsKServeRaw,
     existingImagePullSecrets,
+    existingPvcConnection,
   ]);
 
   return [...createInferenceServiceState];
@@ -365,6 +367,9 @@ const createInferenceServiceAndDataConnection = async (
 
   if (connection?.type === 'kubernetes.io/dockerconfigjson') {
     imagePullSecrets = [{ name: connection.metadata.name }];
+  }
+  if (inferenceServiceData.storage.type === InferenceServiceStorageType.PVC_STORAGE) {
+    storageUri = inferenceServiceData.storage.uri;
   }
 
   let inferenceService;
@@ -755,3 +760,43 @@ export const validateEnvVarName = (name: string): string | undefined => {
 
 export const isValueFromEnvVar = (envVar: NonNullable<ServingContainer['env']>[number]): boolean =>
   envVar.valueFrom !== undefined;
+
+export const getPVCFromURI = (
+  uri: string,
+  pvcs?: PersistentVolumeClaimKind[],
+): PersistentVolumeClaimKind | undefined => {
+  try {
+    const url = new URL(uri);
+    const pvcName = url.hostname;
+    return pvcs?.find((pvc) => pvc.metadata.name === pvcName);
+  } catch {
+    return undefined;
+  }
+};
+
+export const getPVCNameFromURI = (uri: string): string => {
+  try {
+    const url = new URL(uri);
+    return url.hostname;
+  } catch {
+    return '';
+  }
+};
+
+export const isPVCUri = (uri: string): boolean => {
+  try {
+    const url = new URL(uri);
+    return url.protocol === 'pvc:';
+  } catch {
+    return false;
+  }
+};
+
+export const getModelPathFromUri = (uri: string): string => {
+  try {
+    const url = new URL(uri);
+    return url.pathname.replace(/^\//, '');
+  } catch {
+    return '';
+  }
+};

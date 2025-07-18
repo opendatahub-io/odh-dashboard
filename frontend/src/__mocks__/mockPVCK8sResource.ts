@@ -12,6 +12,7 @@ type MockResourceConfigType = {
   status?: PersistentVolumeClaimKind['status'];
   accessModes?: AccessMode[];
   annotations?: Record<string, string>;
+  labels?: Record<string, string>;
 };
 
 export const mockPVCK8sResource = ({
@@ -30,6 +31,7 @@ export const mockPVCK8sResource = ({
   },
   accessModes = [AccessMode.RWO],
   annotations = {},
+  labels = {},
 }: MockResourceConfigType): PersistentVolumeClaimKind => ({
   kind: 'PersistentVolumeClaim',
   apiVersion: 'v1',
@@ -43,6 +45,7 @@ export const mockPVCK8sResource = ({
     namespace,
     labels: {
       [KnownLabels.DASHBOARD_RESOURCE]: 'true',
+      ...labels,
     },
     uid,
   },
