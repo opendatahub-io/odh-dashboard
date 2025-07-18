@@ -413,6 +413,16 @@ describe('Pipelines', () => {
     viewPipelineServerModal.shouldHaveEndPoint('https://s3.amazonaws.com');
     viewPipelineServerModal.shouldHaveBucketName('test-pipelines-bucket');
 
+    viewPipelineServerModal.findButton('save', false);
+    viewPipelineServerModal.findButton('cancel', true);
+
+    const checkbox = viewPipelineServerModal.getCheckbox();
+    checkbox.should('be.checked');
+    checkbox.click();
+    checkbox.should('not.be.checked');
+    viewPipelineServerModal.findButton('save', true);
+    viewPipelineServerModal.findButton('cancel', true);
+
     viewPipelineServerModal.findCloseButton().click();
   });
 

@@ -148,7 +148,7 @@ class ConfigurePipelineServerModal extends Modal {
   }
 }
 
-class ViewPipelineServerModal extends Modal {
+class ManagePipelineServerModal extends Modal {
   constructor() {
     super(MANAGE_PIPELINE_SERVER_TITLE);
   }
@@ -176,6 +176,16 @@ class ViewPipelineServerModal extends Modal {
   findPasswordHiddenButton() {
     return this.find().findByTestId('password-hidden-button');
   }
+
+  getCheckbox() {
+    return this.find().findByTestId('pipeline-cache-enabling');
+  }
+
+  findButton(name: string, isEnabled: boolean) {
+    const id = `managePipelineServer-modal-${name}Btn`;
+    const enabledState = isEnabled ? 'be.enabled' : 'be.disabled';
+    return this.find().findByTestId(id).should(enabledState).should('be.visible');
+  }
 }
 
 class PipelineDeleteModal extends DeleteModal {
@@ -191,4 +201,4 @@ class PipelineDeleteModal extends DeleteModal {
 export const pipelineDeleteModal = new PipelineDeleteModal();
 export const pipelinesGlobal = new PipelinesGlobal();
 export const configurePipelineServerModal = new ConfigurePipelineServerModal();
-export const viewPipelineServerModal = new ViewPipelineServerModal();
+export const viewPipelineServerModal = new ManagePipelineServerModal();

@@ -11,7 +11,6 @@ import {
   ModalFooter,
   Button,
   ActionGroup,
-  Content,
   Spinner,
 } from '@patternfly/react-core';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
@@ -190,7 +189,7 @@ const ManagePipelineServerModal: React.FC<ManagePipelineServerModalProps> = ({
         )}
         {pipelineNamespaceCR && (
           <>
-            <Content component="h3"> Additional Configurations</Content>
+            <Title headingLevel="h3"> Additional Configurations</Title>
             <PipelineCachingSection
               enableCaching={enableCaching}
               setEnableCaching={setEnableCaching}
@@ -205,10 +204,15 @@ const ManagePipelineServerModal: React.FC<ManagePipelineServerModalProps> = ({
             onClick={updateCaching}
             isLoading={isUpdating}
             isDisabled={!hasChanges || isUpdating}
+            data-testid="managePipelineServer-modal-saveBtn"
           >
             Save
           </Button>
-          <Button variant="link" onClick={onClose}>
+          <Button
+            variant="link"
+            onClick={onClose}
+            data-testid="managePipelineServer-modal-cancelBtn"
+          >
             Cancel
           </Button>
         </ActionGroup>
