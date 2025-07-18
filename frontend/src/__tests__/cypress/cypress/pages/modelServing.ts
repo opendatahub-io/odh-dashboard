@@ -715,7 +715,7 @@ class ModelServingSection {
   }
 
   findModelServerDeployedName(name: string) {
-    return this.find().find('[data-model-name="deployed-model-name"]').contains(name);
+    return this.find().find('[data-testid="deployed-model-name"]').contains(name);
   }
 
   findModelServerName(name: string) {
