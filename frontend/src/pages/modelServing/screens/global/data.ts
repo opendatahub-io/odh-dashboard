@@ -1,6 +1,7 @@
 import { InferenceServiceKind, ProjectKind } from '#~/k8sTypes';
 import { SortableData } from '#~/components/table';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
+import { getInferenceServiceStoppedStatus, isModelMesh } from '#~/pages/modelServing/utils';
 
 export enum ColumnField {
   Expand = 'expand',
@@ -9,6 +10,7 @@ export enum ColumnField {
   Endpoint = 'endpoint',
   ServingRuntime = 'servingRuntime',
   ApiProtocol = 'apiProtocol',
+  LastDeployed = 'lastDeployed',
   Status = 'status',
   Kebab = 'kebab',
   Token = 'token',
@@ -71,6 +73,30 @@ const COL_API_PROTOCOL: SortableData<InferenceServiceKind> = {
   sortable: false,
 };
 
+const COL_LAST_DEPLOYED: SortableData<InferenceServiceKind> = {
+  field: ColumnField.LastDeployed,
+  label: 'Last deployed',
+  width: 15,
+  sortable: (a, b) => {
+    const aInactive = getInferenceServiceStoppedStatus(a).isStopped || isModelMesh(a);
+    const bInactive = getInferenceServiceStoppedStatus(b).isStopped || isModelMesh(b);
+
+    if (aInactive && !bInactive) {
+      return 1;
+    }
+    if (!aInactive && bInactive) {
+      return -1;
+    }
+
+    const aReadyCondition = (a.status?.conditions || []).find((c) => c.type === 'Ready');
+    const bReadyCondition = (b.status?.conditions || []).find((c) => c.type === 'Ready');
+    const aTimestamp = aReadyCondition?.lastTransitionTime ?? a.metadata.creationTimestamp;
+    const bTimestamp = bReadyCondition?.lastTransitionTime ?? b.metadata.creationTimestamp;
+
+    return new Date(bTimestamp ?? '').getTime() - new Date(aTimestamp ?? '').getTime();
+  },
+};
+
 const COL_STATUS: SortableData<InferenceServiceKind> = {
   field: ColumnField.Status,
   label: 'Status',
@@ -90,6 +116,7 @@ export const getGlobalInferenceServiceColumns = (
   COL_SERVING_RUNTIME,
   COL_ENDPOINT,
   COL_API_PROTOCOL,
+  COL_LAST_DEPLOYED,
   COL_STATUS,
   COL_KEBAB,
 ];
@@ -102,6 +129,7 @@ export const getVersionDetailsInferenceServiceColumns = (
   COL_SERVING_RUNTIME,
   COL_ENDPOINT,
   COL_API_PROTOCOL,
+  COL_LAST_DEPLOYED,
   COL_STATUS,
   COL_KEBAB,
 ];
@@ -110,6 +138,7 @@ export const getProjectInferenceServiceColumns = (): SortableData<InferenceServi
   COL_NAME,
   COL_ENDPOINT,
   COL_API_PROTOCOL,
+  COL_LAST_DEPLOYED,
   COL_STATUS,
   COL_KEBAB,
 ];
@@ -119,6 +148,7 @@ export const getKServeInferenceServiceColumns = (): SortableData<InferenceServic
   COL_SERVING_RUNTIME,
   COL_ENDPOINT,
   COL_API_PROTOCOL,
+  COL_LAST_DEPLOYED,
   COL_STATUS,
   COL_KEBAB,
 ];

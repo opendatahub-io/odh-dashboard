@@ -1127,6 +1127,39 @@ describe('Model Serving Global', () => {
       modelServingGlobal.findEmptyResults().should('exist');
     });
 
+    it('Sort model by last deployed', () => {
+      const inferenceServiceNew = mockInferenceServiceK8sResource({
+        namespace: 'test-project',
+        displayName: 'New Model',
+        modelName: 'test-inference-service-latest',
+        lastTransitionTime: '2025-07-10T12:12:41Z',
+        activeModelState: 'Loaded',
+        isReady: true,
+      });
+      const inferenceServiceOld = mockInferenceServiceK8sResource({
+        namespace: 'test-project',
+        displayName: 'Old Model',
+        modelName: 'test-inference-service-outdated',
+        lastTransitionTime: '2024-09-04T16:12:41Z',
+        activeModelState: 'Loaded',
+        isReady: true,
+      });
+      initIntercepts({
+        inferenceServices: [inferenceServiceNew, inferenceServiceOld],
+      });
+
+      modelServingGlobal.visit('test-project');
+
+      modelServingGlobal.findSortButton('Last deployed').click();
+      modelServingGlobal.findSortButton('Last deployed').should(be.sortAscending);
+      modelServingGlobal.findSortButton('Last deployed').click();
+      modelServingGlobal.findSortButton('Last deployed').should(be.sortDescending);
+
+      const oldModelRow = modelServingSection.getInferenceServiceRow('Old Model');
+      oldModelRow.findLastDeployed().trigger('mouseenter');
+      cy.findByRole('tooltip').should('contain.text', '9/4/2024, 4:12:41 PM UTC');
+    });
+
     it('Validate pagination', () => {
       const totalItems = 50;
       const mockInferenceService: InferenceServiceKind[] = Array.from(

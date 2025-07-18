@@ -8,6 +8,7 @@ import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/
 import { Link } from 'react-router-dom';
 import ResourceNameTooltip from '@odh-dashboard/internal/components/ResourceNameTooltip';
 import { DeploymentRowExpandedSection } from './DeploymentsTableRowExpandedSection';
+import DeploymentLastDeployed from './DeploymentLastDeployed';
 import DeploymentStatus from './DeploymentStatus';
 import {
   useDeploymentExtension,
@@ -97,6 +98,9 @@ export const DeploymentRow: React.FC<{
           ) : (
             <Content component={ContentVariants.small}>Not defined</Content>
           )}
+        </Td>
+        <Td dataLabel="Last deployed">
+          <DeploymentLastDeployed deployment={deployment} />
         </Td>
         <Td dataLabel="Status">
           <ModelStatusIcon
