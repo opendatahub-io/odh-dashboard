@@ -19,7 +19,7 @@ import {
   pipelineVersionImportModal,
   pipelineDeleteModal,
   configurePipelineServerModal,
-  viewPipelineServerModal,
+  managePipelineServerModal,
   PipelineSort,
   pipelineDetails,
 } from '#~/__tests__/cypress/cypress/pages/pipelines';
@@ -407,23 +407,23 @@ describe('Pipelines', () => {
     pipelinesGlobal.visit(projectName);
 
     pipelinesGlobal.selectPipelineServerAction(MANAGE_PIPELINE_SERVER_CONFIGURATION_TITLE);
-    viewPipelineServerModal.shouldHaveAccessKey('sdsd');
-    viewPipelineServerModal.findPasswordHiddenButton().click();
-    viewPipelineServerModal.shouldHaveSecretKey('sdsd');
-    viewPipelineServerModal.shouldHaveEndPoint('https://s3.amazonaws.com');
-    viewPipelineServerModal.shouldHaveBucketName('test-pipelines-bucket');
+    managePipelineServerModal.shouldHaveAccessKey('sdsd');
+    managePipelineServerModal.findPasswordHiddenButton().click();
+    managePipelineServerModal.shouldHaveSecretKey('sdsd');
+    managePipelineServerModal.shouldHaveEndPoint('https://s3.amazonaws.com');
+    managePipelineServerModal.shouldHaveBucketName('test-pipelines-bucket');
 
-    viewPipelineServerModal.findButton('save', false);
-    viewPipelineServerModal.findButton('cancel', true);
+    managePipelineServerModal.findButton('save', false);
+    managePipelineServerModal.findButton('cancel', true);
 
-    const checkbox = viewPipelineServerModal.getCheckbox();
+    const checkbox = managePipelineServerModal.getCheckbox();
     checkbox.should('be.checked');
     checkbox.click();
     checkbox.should('not.be.checked');
-    viewPipelineServerModal.findButton('save', true);
-    viewPipelineServerModal.findButton('cancel', true);
+    managePipelineServerModal.findButton('save', true);
+    managePipelineServerModal.findButton('cancel', true);
 
-    viewPipelineServerModal.findCloseButton().click();
+    managePipelineServerModal.findCloseButton().click();
   });
 
   it('renders the page with pipelines table data', () => {

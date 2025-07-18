@@ -201,4 +201,4 @@ class PipelineDeleteModal extends DeleteModal {
 export const pipelineDeleteModal = new PipelineDeleteModal();
 export const pipelinesGlobal = new PipelinesGlobal();
 export const configurePipelineServerModal = new ConfigurePipelineServerModal();
-export const viewPipelineServerModal = new ManagePipelineServerModal();
+export const managePipelineServerModal = new ManagePipelineServerModal();

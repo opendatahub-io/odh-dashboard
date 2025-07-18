@@ -17,7 +17,7 @@ import {
   pipelineVersionImportModal,
   PipelineSort,
   pipelinesGlobal,
-  viewPipelineServerModal,
+  managePipelineServerModal,
 } from '#~/__tests__/cypress/cypress/pages/pipelines';
 import { pipelinesSection } from '#~/__tests__/cypress/cypress/pages/pipelines/pipelinesSection';
 import { projectDetails } from '#~/__tests__/cypress/cypress/pages/projects';
@@ -95,13 +95,19 @@ describe('PipelinesList', () => {
     projectDetails.visitSection(projectName, 'pipelines-projects');
 
     pipelinesGlobal.selectPipelineServerAction(MANAGE_PIPELINE_SERVER_CONFIGURATION_TITLE);
-    viewPipelineServerModal.shouldHaveAccessKey('sdsd');
-    viewPipelineServerModal.findPasswordHiddenButton().click();
-    viewPipelineServerModal.shouldHaveSecretKey('sdsd');
-    viewPipelineServerModal.shouldHaveEndPoint('https://s3.amazonaws.com');
-    viewPipelineServerModal.shouldHaveBucketName('test-pipelines-bucket');
+    managePipelineServerModal.shouldHaveAccessKey('sdsd');
+    managePipelineServerModal.findPasswordHiddenButton().click();
+    managePipelineServerModal.shouldHaveSecretKey('sdsd');
+    managePipelineServerModal.shouldHaveEndPoint('https://s3.amazonaws.com');
+    managePipelineServerModal.shouldHaveBucketName('test-pipelines-bucket');
 
-    viewPipelineServerModal.findCloseButton().click();
+    const checkbox = managePipelineServerModal.getCheckbox();
+    checkbox.should('be.checked');
+
+    managePipelineServerModal.findButton('save', false);
+    managePipelineServerModal.findButton('cancel', true);
+
+    managePipelineServerModal.findCloseButton().click();
   });
 
   it('should disable the upload version button when the list is empty', () => {
