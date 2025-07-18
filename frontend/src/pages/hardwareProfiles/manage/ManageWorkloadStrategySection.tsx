@@ -26,7 +26,7 @@ const ManageWorkloadStrategySection: React.FC<ManageWorkloadStrategySectionProps
       labelHelp={
         <DashboardHelpTooltip
           content={
-            <Stack>
+            <Stack hasGutter={hideQueueOption}>
               <StackItem>
                 The selected workload allocation strategy defines how workloads are assigned to
                 nodes.
