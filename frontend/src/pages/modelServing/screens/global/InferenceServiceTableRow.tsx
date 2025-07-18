@@ -87,7 +87,6 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
           {!isStarting && !isFailed && (modelMeshMetricsSupported || kserveMetricsSupported) ? (
             <Link
               data-testid={`metrics-link-${displayName}`}
-              data-model-name="deployed-model-name"
               to={
                 isGlobal
                   ? `/modelServing/${inferenceService.metadata.namespace}/metrics/${inferenceService.metadata.name}`

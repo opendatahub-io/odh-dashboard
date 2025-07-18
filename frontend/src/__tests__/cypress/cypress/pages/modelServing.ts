@@ -90,7 +90,7 @@ class ModelServingGlobal {
   }
 
   findModelDeployedName() {
-    return this.findModelsTable().find('[data-model-name="deployed-model-name"]');
+    return this.findModelsTable().findByTestId('deployed-model-name');
   }
 
   findStatusTooltip() {
