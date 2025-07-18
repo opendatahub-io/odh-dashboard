@@ -48,8 +48,9 @@ describe('A model can be stopped and started', () => {
   });
 
   after(() => {
-    // Delete provisioned Project- set to True due to RHOAIENG-19969
-    deleteOpenShiftProject(projectName, { wait: true, ignoreNotFound: true });
+    // Delete provisioned Project - wait for completion due to RHOAIENG-19969 to support test retries, 5 minute timeout
+    // TODO: Review this timeout once RHOAIENG-19969 is resolved
+    deleteOpenShiftProject(projectName, { wait: true, ignoreNotFound: true, timeout: 300000 });
   });
 
   it(

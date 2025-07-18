@@ -26,12 +26,6 @@ const uuid = generateTestUUID();
 
 describe('Verify Admin Single Model Creation and Validation using the UI', () => {
   retryableBefore(() => {
-    Cypress.on('uncaught:exception', (err) => {
-      if (err.message.includes('Error: secrets "ds-pipeline-config" already exists')) {
-        return false;
-      }
-      return true;
-    });
     // Setup: Load test data and ensure clean state
     return loadDSPFixture('e2e/dataScienceProjects/testSingleModelAdminCreation.yaml').then(
       (fixtureData: DataScienceProjectData) => {
@@ -54,8 +48,9 @@ describe('Verify Admin Single Model Creation and Validation using the UI', () =>
     );
   });
   after(() => {
-    // Delete provisioned Project- set to True due to RHOAIENG-19969
-    deleteOpenShiftProject(projectName, { wait: true, ignoreNotFound: true });
+    // Delete provisioned Project - wait for completion due to RHOAIENG-19969 to support test retries, 5 minute timeout
+    // TODO: Review this timeout once RHOAIENG-19969 is resolved
+    deleteOpenShiftProject(projectName, { wait: true, ignoreNotFound: true, timeout: 300000 });
   });
 
   it(
