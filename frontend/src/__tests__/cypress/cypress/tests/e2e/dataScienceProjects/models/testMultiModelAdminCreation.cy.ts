@@ -55,7 +55,8 @@ describe('Verify Admin Multi Model Creation and Validation using the UI', () => 
     );
   });
   after(() => {
-    deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
+    // Delete provisioned Project- set to True due to RHOAIENG-19969
+    deleteOpenShiftProject(projectName, { wait: true, ignoreNotFound: true });
   });
 
   it(

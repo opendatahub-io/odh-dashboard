@@ -59,8 +59,8 @@ describe('Verify Model Creation and Validation using the UI', () => {
     );
   });
   after(() => {
-    // Delete provisioned Project
-    deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
+    // Delete provisioned Project- set to True due to RHOAIENG-19969
+    deleteOpenShiftProject(projectName, { wait: true, ignoreNotFound: true });
   });
 
   it(
@@ -97,7 +97,7 @@ describe('Verify Model Creation and Validation using the UI', () => {
       inferenceServiceModal.findLocationPathInput().type(modelFilePath);
       inferenceServiceModal.findSubmitButton().click();
       inferenceServiceModal.shouldBeOpen(false);
-      modelServingSection.findModelServerName(testData.singleModelName);
+      modelServingSection.findModelServerDeployedName(testData.singleModelName);
 
       //Verify the model created
       cy.step('Verify that the Model is created Successfully on the backend and frontend');
@@ -105,9 +105,9 @@ describe('Verify Model Creation and Validation using the UI', () => {
         checkReady: true,
         checkLatestDeploymentReady: true,
       });
+      cy.reload();
       modelServingSection.findModelServerName(testData.singleModelName);
       // Note reload is required as status tooltip was not found due to a stale element
-      cy.reload();
       attemptToClickTooltip();
     },
   );

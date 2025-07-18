@@ -710,6 +710,10 @@ class ModelServingSection {
     return this.find().findByTestId('serving-runtime-table');
   }
 
+  findModelServerDeployedName(name: string) {
+    return this.find().findByTestId(`deployed-model-name-${name}`);
+  }
+
   findModelServerName(name: string) {
     return this.find().findByTestId(`metrics-link-${name}`);
   }

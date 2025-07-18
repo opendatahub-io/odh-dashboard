@@ -48,8 +48,8 @@ describe('A model can be stopped and started', () => {
   });
 
   after(() => {
-    // Delete the Project
-    deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
+    // Delete provisioned Project- set to True due to RHOAIENG-19969
+    deleteOpenShiftProject(projectName, { wait: true, ignoreNotFound: true });
   });
 
   it(
@@ -84,7 +84,7 @@ describe('A model can be stopped and started', () => {
       inferenceServiceModal.findLocationPathInput().type(modelFilePath);
       inferenceServiceModal.findSubmitButton().click();
       inferenceServiceModal.shouldBeOpen(false);
-      modelServingSection.findModelServerName(testData.singleModelName);
+      modelServingSection.findModelServerDeployedName(testData.singleModelName);
       const kServeRow = modelServingSection.getKServeRow(testData.singleModelName);
 
       //Verify the model created and is running

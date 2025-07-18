@@ -54,8 +54,8 @@ describe('Verify Admin Single Model Creation and Validation using the UI', () =>
     );
   });
   after(() => {
-    // Delete provisioned Project
-    deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
+    // Delete provisioned Project- set to True due to RHOAIENG-19969
+    deleteOpenShiftProject(projectName, { wait: true, ignoreNotFound: true });
   });
 
   it(
@@ -98,7 +98,7 @@ describe('Verify Admin Single Model Creation and Validation using the UI', () =>
       inferenceServiceModal.findLocationPathInput().type(modelFilePath);
       inferenceServiceModal.findSubmitButton().click();
       inferenceServiceModal.shouldBeOpen(false);
-      modelServingSection.findModelServerName(testData.singleModelAdminName);
+      modelServingSection.findModelServerDeployedName(testData.singleModelAdminName);
 
       //Verify the model created
       cy.step('Verify that the Model is created Successfully on the backend and frontend');
@@ -106,9 +106,9 @@ describe('Verify Admin Single Model Creation and Validation using the UI', () =>
         checkReady: true,
         checkLatestDeploymentReady: true,
       });
-      modelServingSection.findModelServerName(testData.singleModelAdminName);
       // Note reload is required as status tooltip was not found due to a stale element
       cy.reload();
+      modelServingSection.findModelServerName(testData.singleModelAdminName);
       attemptToClickTooltip();
 
       //Verify the Model is accessible externally

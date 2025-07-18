@@ -50,8 +50,8 @@ describe(
     });
 
     after(() => {
-      // Delete provisioned Project
-      deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
+      // Delete provisioned Project- set to True due to RHOAIENG-19969
+      deleteOpenShiftProject(projectName, { wait: true, ignoreNotFound: true });
     });
 
     it(
@@ -92,9 +92,9 @@ describe(
         inferenceServiceModal.findOCIModelURI().type(modelDeploymentURI);
         inferenceServiceModal.findSubmitButton().focus().click();
         checkInferenceServiceState(modelDeploymentName, projectName);
-        modelServingSection.findModelServerName(modelDeploymentName);
         // Note reload is required as status tooltip was not found due to a stale element
         cy.reload();
+        modelServingSection.findModelServerName(modelDeploymentName);
         modelServingSection.findStatusTooltip().click({ force: true });
         cy.contains('Model is deployed', { timeout: 120000 }).should('be.visible');
       },
