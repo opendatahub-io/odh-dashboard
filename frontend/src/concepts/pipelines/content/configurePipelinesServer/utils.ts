@@ -154,9 +154,7 @@ export const configureDSPipelineResourceSpec = (
   projectName: string,
 ): Promise<DSPipelineKind['spec']> =>
   createSecrets(config, projectName).then((secretsResponse) => {
-    console.log('about to send dspa.....');
     const spec = createDSPipelineResourceSpec(config, secretsResponse);
-    console.log('dspa spec', spec);
     return spec;
   });
 
