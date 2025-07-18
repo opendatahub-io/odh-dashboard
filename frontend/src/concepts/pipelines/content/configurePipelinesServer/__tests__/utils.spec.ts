@@ -28,6 +28,7 @@ describe('configure pipeline server utils', () => {
           newValue: [{ key: 'AWS_S3_ENDPOINT', value: '' }],
         },
         enableInstructLab: false,
+        enableCaching: true,
       } as PipelineServerConfigType);
 
     type SecretsResponse = Parameters<typeof createDSPipelineResourceSpec>[1];
@@ -60,6 +61,7 @@ describe('configure pipeline server utils', () => {
         },
         apiServer: {
           enableSamplePipeline: false,
+          cacheEnabled: true,
           managedPipelines: {
             instructLab: {
               state: 'Removed',
@@ -166,6 +168,7 @@ describe('configure pipeline server utils', () => {
         },
         apiServer: {
           enableSamplePipeline: false,
+          cacheEnabled: true,
           managedPipelines: {
             instructLab: {
               state: 'Removed',
