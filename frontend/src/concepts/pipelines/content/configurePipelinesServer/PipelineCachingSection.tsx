@@ -32,7 +32,7 @@ export const PipelineCachingSection = ({
   return (
     <FormSection
       title={
-        <Title headingLevel="h2" size="lg">
+        <Title headingLevel="h2" size="lg" style={{ marginBottom: '8px' }}>
           Pipeline caching
         </Title>
       }

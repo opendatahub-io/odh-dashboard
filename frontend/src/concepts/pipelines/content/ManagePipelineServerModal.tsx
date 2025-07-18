@@ -188,15 +188,12 @@ const ManagePipelineServerModal: React.FC<ManagePipelineServerModalProps> = ({
           </DescriptionList>
         )}
         {pipelineNamespaceCR && (
-          <>
-            <Title headingLevel="h3" style={{ marginTop: '12px', marginBottom: '8px' }}>
-              Additional Configurations
-            </Title>
+          <div style={{ marginTop: '12px' }}>
             <PipelineCachingSection
               enableCaching={enableCaching}
               setEnableCaching={setEnableCaching}
             />
-          </>
+          </div>
         )}
       </ModalBody>
       <ModalFooter>
