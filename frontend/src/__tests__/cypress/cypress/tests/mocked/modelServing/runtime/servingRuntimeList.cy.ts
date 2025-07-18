@@ -2615,7 +2615,7 @@ describe('Serving Runtime List', () => {
         .should('have.text', 'AcceleratorSmall Profile Project-scoped');
     });
 
-    it('Check project-scoped hardware when enabled and selected', () => {
+    it('should not display hardware profile section when project is model mesh enabled and hardware profile flag is enabled', () => {
       initIntercepts({
         projectEnableModelMesh: true,
         disableKServeConfig: false,
@@ -2633,12 +2633,10 @@ describe('Serving Runtime List', () => {
 
       projectDetails.visitSection('test-project', 'model-server');
       modelServingSection.findModelServer().click();
-      modelServingSection
-        .findHardwareSection()
-        .should('have.text', 'Large Profile-1Project-scoped');
+      modelServingSection.findHardwareSection().should('not.exist');
     });
 
-    it('should display hardware profile selection when both hardware profile and project-scoped feature flag is enabled for Model mesh, while adding model server', () => {
+    it('should not display hardware profile selection when both hardware profile and project-scoped feature flag is enabled for Model mesh, while adding model server', () => {
       initIntercepts({
         projectEnableModelMesh: true,
         disableKServeConfig: false,
@@ -2666,32 +2664,10 @@ describe('Serving Runtime List', () => {
 
       createServingRuntimeModal.shouldBeOpen();
 
-      // Verify hardware profile section exists
-      hardwareProfileSection.findHardwareProfileSearchSelector().should('exist');
-      hardwareProfileSection.findHardwareProfileSearchSelector().click();
-
-      // verify available project-scoped hardware profile
-      const projectScopedHardwareProfile = hardwareProfileSection.getProjectScopedHardwareProfile();
-      projectScopedHardwareProfile
-        .find()
-        .findByRole('menuitem', {
-          name: 'Small Profile CPU: Request = 1; Limit = 1; Memory: Request = 2Gi; Limit = 2Gi',
-          hidden: true,
-        })
-        .click();
-      hardwareProfileSection.findProjectScopedLabel().should('exist');
-
-      // verify available global-scoped hardware profile
-      hardwareProfileSection.findHardwareProfileSearchSelector().click();
-      const globalScopedHardwareProfile = hardwareProfileSection.getGlobalScopedHardwareProfile();
-      globalScopedHardwareProfile
-        .find()
-        .findByRole('menuitem', {
-          name: 'Small Profile CPU: Request = 1; Limit = 1; Memory: Request = 2Gi; Limit = 2Gi',
-          hidden: true,
-        })
-        .click();
-      hardwareProfileSection.findGlobalScopedLabel().should('exist');
+      // Verify hardware profile section is missing
+      hardwareProfileSection.findHardwareProfileSearchSelector().should('not.exist');
+      // replaced by the Model server size section
+      createServingRuntimeModal.findModelServerSizeSelect().should('exist');
     });
 
     it('should display hardware profile selection when both hardware profile and project-scoped feature flag is enabled for Model mesh, while editing model server', () => {
@@ -2728,10 +2704,7 @@ describe('Serving Runtime List', () => {
 
       editServingRuntimeModal.shouldBeOpen();
 
-      hardwareProfileSection
-        .findHardwareProfileSearchSelector()
-        .should('contain.text', 'Large Profile-1');
-      hardwareProfileSection.findProjectScopedLabel().should('exist');
+      hardwareProfileSection.findHardwareProfileSearchSelector().should('not.exist');
     });
 
     it('Edit ModelMesh model server', () => {
