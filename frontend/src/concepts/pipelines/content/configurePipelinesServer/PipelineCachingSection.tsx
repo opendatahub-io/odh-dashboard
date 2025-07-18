@@ -1,5 +1,5 @@
 import React from 'react';
-import { FormGroup, Checkbox, Alert } from '@patternfly/react-core';
+import { FormGroup, Checkbox, Alert, Title } from '@patternfly/react-core';
 import FormSection from '#~/components/pf-overrides/FormSection';
 
 type PipelineCachingSectionProps = {
@@ -30,7 +30,14 @@ export const PipelineCachingSection = ({
   // note:  alert is in a div because PatternFly's Alert is a function component that doesn't accept refs directly
   // need the ref for auto-scrolling
   return (
-    <FormSection title="Pipeline caching" description="">
+    <FormSection
+      title={
+        <Title headingLevel="h2" size="lg">
+          Pipeline caching
+        </Title>
+      }
+      description=""
+    >
       <FormGroup hasNoPaddingTop>
         <Checkbox
           id="pipeline-enable-caching-checkbox"
