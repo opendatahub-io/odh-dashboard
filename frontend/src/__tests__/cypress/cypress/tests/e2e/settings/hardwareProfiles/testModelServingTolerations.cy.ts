@@ -137,7 +137,7 @@ describe('Notebooks - tolerations tests', () => {
       //Verify the model created
       cy.step('Verify that the Model is created Successfully on the backend and frontend');
       checkInferenceServiceState(modelName, projectName);
-      modelServingSection.findModelServerName(modelName);
+      modelServingSection.findModelMetricsLink(modelName);
       // Note reload is required as status tooltip was not found due to a stale element
       cy.reload();
       attemptToClickTooltip();
