@@ -89,6 +89,10 @@ class ModelServingGlobal {
     return this.findModelsTable().findByTestId(`metrics-link-${name}`);
   }
 
+  findModelDeployedName() {
+    return this.findModelsTable().find('[data-model-name="deployed-model-name"]');
+  }
+
   findStatusTooltip() {
     return cy.findByTestId('status-tooltip');
   }
@@ -711,7 +715,7 @@ class ModelServingSection {
   }
 
   findModelServerDeployedName(name: string) {
-    return this.find().findByTestId(`deployed-model-name-${name}`);
+    return this.find().find('[data-model-name="deployed-model-name"]').contains(name);
   }
 
   findModelServerName(name: string) {

@@ -86,7 +86,8 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
         <ResourceNameTooltip resource={inferenceService}>
           {!isStarting && !isFailed && (modelMeshMetricsSupported || kserveMetricsSupported) ? (
             <Link
-              data-testid="deployed-model-name"
+              data-testid={`metrics-link-${displayName}`}
+              data-model-name="deployed-model-name"
               to={
                 isGlobal
                   ? `/modelServing/${inferenceService.metadata.namespace}/metrics/${inferenceService.metadata.name}`
@@ -96,7 +97,9 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
               {displayName}
             </Link>
           ) : (
-            <span data-testid="deployed-model-name">{displayName}</span>
+            <span data-testid="deployed-model-name" data-model-name="deployed-model-name">
+              {displayName}
+            </span>
           )}
         </ResourceNameTooltip>
       </Td>
