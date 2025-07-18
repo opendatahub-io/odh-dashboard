@@ -93,10 +93,10 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
                   : `/projects/${inferenceService.metadata.namespace}/metrics/model/${inferenceService.metadata.name}`
               }
             >
-              {displayName}
+              <span data-testid="deployed-model-name">{displayName}</span>
             </Link>
           ) : (
-            displayName
+            <span data-testid="deployed-model-name">{displayName}</span>
           )}
         </ResourceNameTooltip>
       </Td>

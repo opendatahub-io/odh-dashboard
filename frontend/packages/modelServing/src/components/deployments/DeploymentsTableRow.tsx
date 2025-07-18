@@ -72,11 +72,14 @@ export const DeploymentRow: React.FC<{
             deployment.status?.state === InferenceServiceModelState.LOADED ? (
               <Link
                 to={`/projects/${deployment.model.metadata.namespace}/metrics/model/${deployment.model.metadata.name}`}
+                data-testid="deployed-model-name"
               >
                 {getDisplayNameFromK8sResource(deployment.model)}
               </Link>
             ) : (
-              getDisplayNameFromK8sResource(deployment.model)
+              <span data-testid="deployed-model-name">
+                {getDisplayNameFromK8sResource(deployment.model)}
+              </span>
             )}
           </ResourceNameTooltip>
         </Td>
