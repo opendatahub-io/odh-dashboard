@@ -89,10 +89,6 @@ class ModelServingGlobal {
     return this.findModelsTable().findByTestId(`metrics-link-${name}`);
   }
 
-  findModelDeployedName() {
-    return this.findModelsTable().findByTestId('deployed-model-name');
-  }
-
   findStatusTooltip() {
     return cy.findByTestId('status-tooltip');
   }
