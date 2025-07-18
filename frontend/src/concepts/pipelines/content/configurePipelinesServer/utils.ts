@@ -153,10 +153,9 @@ export const configureDSPipelineResourceSpec = (
   config: PipelineServerConfigType,
   projectName: string,
 ): Promise<DSPipelineKind['spec']> =>
-  createSecrets(config, projectName).then((secretsResponse) => {
-    const spec = createDSPipelineResourceSpec(config, secretsResponse);
-    return spec;
-  });
+  createSecrets(config, projectName).then((secretsResponse) =>
+    createDSPipelineResourceSpec(config, secretsResponse),
+  );
 
 export const objectStorageIsValid = (objectStorage: EnvVariableDataEntry[]): boolean =>
   objectStorage.every(({ key, value }) =>

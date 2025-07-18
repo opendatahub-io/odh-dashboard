@@ -69,8 +69,8 @@ export const createPipelinesCR = async (
 
 export const updatePipelineCaching = (
   namespace: string,
-  name: string,
   cacheEnabled: boolean,
+  name = 'dspa',
 ): Promise<DSPipelineKind> =>
   k8sPatchResource<DSPipelineKind>({
     model: DataSciencePipelineApplicationModel,

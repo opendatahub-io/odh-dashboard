@@ -65,7 +65,7 @@ const ManagePipelineServerModal: React.FC<ManagePipelineServerModalProps> = ({
   const updateCaching = () => {
     setIsUpdating(true);
 
-    updatePipelineCaching(namespace, 'dspa', enableCaching)
+    updatePipelineCaching(namespace, enableCaching)
       .then(() => {
         registerNotification({
           callback: async () => ({
