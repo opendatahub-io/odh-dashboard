@@ -68,7 +68,7 @@ const ProjectTableRow: React.FC<ProjectTableRowProps> = ({
 
   return (
     <Tbody isExpanded={!!expandColumn}>
-      <Tr isControlRow>
+      <Tr isControlRow isContentExpanded={!!expandColumn}>
         <Td dataLabel="Name">
           <TableRowTitleDescription
             title={
