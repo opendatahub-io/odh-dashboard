@@ -43,6 +43,26 @@ jest.mock('#~/concepts/pipelines/content/configurePipelinesServer/utils', () => 
   objectStorageIsValid: jest.fn(),
 }));
 
+// Mock child components
+jest.mock('#~/concepts/pipelines/content/configurePipelinesServer/ObjectStorageSection', () => ({
+  ObjectStorageSection: () => <div>Object storage connection</div>,
+}));
+
+jest.mock(
+  '#~/concepts/pipelines/content/configurePipelinesServer/PipelinesDatabaseSection',
+  () => ({
+    PipelinesDatabaseSection: () => <div>Database</div>,
+  }),
+);
+
+jest.mock(
+  '#~/concepts/pipelines/content/configurePipelinesServer/SamplePipelineSettingsSection',
+  () => ({
+    __esModule: true,
+    default: () => <div>Sample pipeline settings</div>,
+  }),
+);
+
 const mockUsePipelinesAPI = usePipelinesAPI as jest.MockedFunction<typeof usePipelinesAPI>;
 const mockUsePipelinesConnections = usePipelinesConnections as jest.MockedFunction<
   typeof usePipelinesConnections
@@ -97,30 +117,32 @@ describe('ConfigurePipelinesServerModal', () => {
       startingStatusModalOpenRef: { current: null },
     } as ReturnType<typeof usePipelinesAPI>);
 
-    mockUsePipelinesConnections.mockReturnValue([[], true]);
+    mockUsePipelinesConnections.mockReturnValue([[], true, undefined, jest.fn()]);
 
     mockUseIsAreaAvailable.mockReturnValue({
       status: false,
       featureFlags: {},
-    });
+      devFlags: {},
+      reliantAreas: {},
+      requiredComponents: {},
+      requiredCapabilities: {},
+      customCondition: jest.fn(),
+    } as ReturnType<typeof useIsAreaAvailable>);
 
-    mockConfigureDSPipelineResourceSpec.mockResolvedValue({
-      apiVersion: 'datasciencepipelinesapplications.opendatahub.io/v1alpha1',
-      kind: 'DataSciencePipelinesApplication',
-      metadata: { name: 'test-dspa' },
-      spec: {},
-    } as any);
+    mockConfigureDSPipelineResourceSpec.mockResolvedValue(
+      {} as Awaited<ReturnType<typeof configureDSPipelineResourceSpec>>,
+    );
 
     mockCreatePipelinesCR.mockResolvedValue({
       metadata: { namespace: 'test-project' },
-    } as any);
+    } as Awaited<ReturnType<typeof createPipelinesCR>>);
   });
 
   it('should render the modal with correct title and description', () => {
     renderModal();
 
     expect(screen.getByRole('dialog')).toBeInTheDocument();
-    expect(screen.getByText('Configure pipeline server')).toBeInTheDocument();
+    expect(screen.getAllByText('Configure pipeline server')).toHaveLength(2); // title and button
     expect(
       screen.getByText('Configuring a pipeline server enables you to create and manage pipelines.'),
     ).toBeInTheDocument();
@@ -154,7 +176,12 @@ describe('ConfigurePipelinesServerModal', () => {
     mockUseIsAreaAvailable.mockReturnValue({
       status: true,
       featureFlags: {},
-    });
+      devFlags: {},
+      reliantAreas: {},
+      requiredComponents: {},
+      requiredCapabilities: {},
+      customCondition: jest.fn(),
+    } as ReturnType<typeof useIsAreaAvailable>);
 
     renderModal();
 
@@ -165,7 +192,12 @@ describe('ConfigurePipelinesServerModal', () => {
     mockUseIsAreaAvailable.mockReturnValue({
       status: false,
       featureFlags: {},
-    });
+      devFlags: {},
+      reliantAreas: {},
+      requiredComponents: {},
+      requiredCapabilities: {},
+      customCondition: jest.fn(),
+    } as ReturnType<typeof useIsAreaAvailable>);
 
     renderModal();
 
@@ -299,7 +331,12 @@ describe('ConfigurePipelinesServerModal', () => {
     objectStorageIsValid.mockReturnValue(true);
 
     // Make createPipelinesCR hang
-    mockCreatePipelinesCR.mockImplementation(() => new Promise(() => {}));
+    mockCreatePipelinesCR.mockImplementation(
+      () =>
+        new Promise(() => {
+          /* never resolves */
+        }),
+    );
 
     renderModal();
 
