@@ -136,7 +136,18 @@ describe('Verify a model can be deployed from a PVC', () => {
       cy.exec(`oc logs ${podName} -n ${projectName}`, { failOnNonZeroExit: false }).then(
         (result) => {
           if (!result.stdout.includes('S3 copy completed successfully')) {
-            throw new Error('S3 copy did not complete successfully');
+            cy.log('S3 copy failed — checking bucket contents for debug...');
+
+            // List the S3 path using the pod itself (so creds and env are all in place)
+            return cy
+              .exec(
+                `oc exec pvc-loader-pod -- aws s3 ls s3://${awsBucketName}/${modelFilePath} --region=${awsBucketRegion}`,
+              )
+              .then((listResult) => {
+                throw new Error(
+                  `S3 copy did not complete successfully.\n\nS3 contents:\n${listResult.stdout}`,
+                );
+              });
           }
         },
       );
