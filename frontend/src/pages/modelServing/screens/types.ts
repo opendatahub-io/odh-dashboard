@@ -85,6 +85,7 @@ export type CreatingInferenceServiceObject = CreatingModelServingObjectCommon & 
   servingRuntimeEnvVars?: ServingContainer['env'];
   isKServeRawDeployment?: boolean;
   imagePullSecrets?: ImagePullSecret[];
+  dashboardNamespace?: string;
 };
 
 export type CreatingModelServingObjectCommon = {

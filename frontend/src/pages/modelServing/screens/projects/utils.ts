@@ -45,6 +45,7 @@ import {
   isModelServingCompatible,
   ModelServingCompatibleTypes,
 } from '#~/concepts/connectionTypes/utils';
+import { useDashboardNamespace } from '#~/redux/selectors';
 import { ModelDeployPrefillInfo } from './usePrefillModelDeployModal';
 
 export const isServingRuntimeTokenEnabled = (servingRuntime: ServingRuntimeKind): boolean =>
@@ -190,10 +191,12 @@ export const useCreateInferenceServiceObject = (
   resetDefaults: () => void,
 ] => {
   const { defaultMode } = useKServeDeploymentMode();
+  const { dashboardNamespace } = useDashboardNamespace();
 
   const createInferenceServiceState = useGenericObjectState<CreatingInferenceServiceObject>({
     ...defaultInferenceService,
     isKServeRawDeployment: defaultMode === DeploymentMode.RawDeployment,
+    dashboardNamespace,
   });
 
   const [, setCreateData] = createInferenceServiceState;

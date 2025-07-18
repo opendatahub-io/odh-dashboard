@@ -64,7 +64,11 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
   editInfo,
 }) => {
   const [createData, setCreateData] = useCreateServingRuntimeObject(editInfo);
-  const podSpecOptionsState = useModelServingPodSpecOptionsState(editInfo?.servingRuntime);
+  const podSpecOptionsState = useModelServingPodSpecOptionsState(
+    editInfo?.servingRuntime,
+    undefined,
+    true,
+  );
 
   const profileIdentifiers = useProfileIdentifiers(
     podSpecOptionsState.acceleratorProfile.formData.profile,
@@ -221,6 +225,7 @@ const ManageServingRuntimeModal: React.FC<ManageServingRuntimeModalProps> = ({
               infoContent="Select a server size that will accommodate your largest model. See the product documentation for more information."
               isEditing={!!editInfo}
               projectName={currentProject.metadata.name}
+              isProjectModelMesh
             />
             <AuthServingRuntimeSection
               data={createData}
