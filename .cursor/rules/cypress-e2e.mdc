@@ -1,3 +1,8 @@
+---
+description: Comprehensive guidelines for creating and maintaining Cypress E2E tests including Robot Framework migrations and new feature testing
+globs: []
+alwaysApply: false
+---
 # Cypress E2E Test Rules
 
 ## Test Sources & Context Requirements
