@@ -24,6 +24,10 @@ jest.mock('#~/pages/modelServing/screens/projects/useModelDeploymentNotification
   }),
 }));
 
+jest.mock('#~/redux/selectors', () => ({
+  useDashboardNamespace: jest.fn(() => ({ dashboardNamespace: 'opendatahub' })),
+}));
+
 const useServingRuntimesMock = jest.mocked(useServingRuntimes);
 const useAppContextMock = jest.mocked(useAppContext);
 
