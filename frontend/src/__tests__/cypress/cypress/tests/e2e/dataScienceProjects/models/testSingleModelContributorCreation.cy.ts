@@ -101,7 +101,7 @@ describe('Verify Model Creation and Validation using the UI', () => {
         checkLatestDeploymentReady: true,
       });
       cy.reload();
-      modelServingSection.findModelServerName(testData.singleModelName);
+      modelServingSection.findModelMetricsLink(testData.singleModelName);
       // Note reload is required as status tooltip was not found due to a stale element
       attemptToClickTooltip();
     },

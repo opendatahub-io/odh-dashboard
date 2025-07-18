@@ -714,7 +714,7 @@ class ModelServingSection {
     return this.find().findByTestId('deployed-model-name').contains(name);
   }
 
-  findModelServerName(name: string) {
+  findModelMetricsLink(name: string) {
     return this.find().findByTestId(`metrics-link-${name}`);
   }
 

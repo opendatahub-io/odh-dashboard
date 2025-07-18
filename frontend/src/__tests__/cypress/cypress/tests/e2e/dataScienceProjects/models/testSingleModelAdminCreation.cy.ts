@@ -103,7 +103,7 @@ describe('Verify Admin Single Model Creation and Validation using the UI', () =>
       });
       // Note reload is required as status tooltip was not found due to a stale element
       cy.reload();
-      modelServingSection.findModelServerName(testData.singleModelAdminName);
+      modelServingSection.findModelMetricsLink(testData.singleModelAdminName);
       attemptToClickTooltip();
 
       //Verify the Model is accessible externally
