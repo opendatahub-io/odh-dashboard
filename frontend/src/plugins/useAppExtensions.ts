@@ -24,9 +24,15 @@ const initRemotes = (remotes: MFConfig[]) => {
 };
 
 const loadModuleExtensions = (moduleName: string): Promise<Record<string, Extension[]>> =>
-  loadRemote<{ default: Extension[] }>(`${moduleName}/extensions`).then((result) => ({
-    [moduleName]: result ? result.default : [],
-  }));
+  loadRemote<{ default: Extension[] }>(`${moduleName}/extensions`)
+    .then((result) => ({
+      [moduleName]: result ? result.default : [],
+    }))
+    .catch((error) => {
+      // eslint-disable-next-line no-console
+      console.warn(`Failed to load module extensions for ${moduleName}:`, error);
+      return { [moduleName]: [] };
+    });
 
 export const useAppExtensions = (): [Record<string, Extension[]>, boolean] => {
   const [appExtensions, setAppExtensions] = React.useState<Record<string, Extension[]>>({});
@@ -34,8 +40,8 @@ export const useAppExtensions = (): [Record<string, Extension[]>, boolean] => {
 
   React.useEffect(() => {
     if (MF_CONFIG) {
-      const remotes: MFConfig[] = JSON.parse(MF_CONFIG);
       try {
+        const remotes: MFConfig[] = JSON.parse(MF_CONFIG);
         if (remotes.length > 0) {
           initRemotes(remotes);
           allSettledPromises(remotes.map((r) => loadModuleExtensions(r.name)))
@@ -46,13 +52,17 @@ export const useAppExtensions = (): [Record<string, Extension[]>, boolean] => {
                 );
               }
             })
+            .catch((error) => {
+              // eslint-disable-next-line no-console
+              console.warn('Error loading module federation extensions:', error);
+            })
             .finally(() => setLoaded(true));
         } else {
           setLoaded(true);
         }
       } catch (error) {
         // eslint-disable-next-line no-console
-        console.error('Error parsing module federation config:', error);
+        console.warn('Error with module federation setup:', error);
         setLoaded(true);
       }
     }
