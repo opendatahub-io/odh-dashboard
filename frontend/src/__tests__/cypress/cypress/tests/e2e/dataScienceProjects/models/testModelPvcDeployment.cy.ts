@@ -136,20 +136,7 @@ describe('Verify a model can be deployed from a PVC', () => {
       cy.exec(`oc logs ${podName} -n ${projectName}`, { failOnNonZeroExit: false }).then(
         (result) => {
           if (!result.stdout.includes('S3 copy completed successfully')) {
-            cy.log('S3 copy failed — checking bucket contents for debug...');
-
-            return cy
-              .exec(
-                `oc exec ${podName} -n ${projectName} -- aws s3 ls s3://${awsBucketName}/${modelFilePath} --region=${awsBucketRegion}`,
-                { failOnNonZeroExit: false }, // prevent hard Cypress failure if the pod is gone
-              )
-              .then((listResult) => {
-                throw new Error(
-                  `S3 copy did not complete successfully.\n\nS3 listing:\n${
-                    listResult.stdout || listResult.stderr
-                  }`,
-                );
-              });
+            throw new Error('S3 copy did not complete successfully');
           }
         },
       );

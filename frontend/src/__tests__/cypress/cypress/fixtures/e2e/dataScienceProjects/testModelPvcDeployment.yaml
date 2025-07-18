@@ -2,5 +2,5 @@
 projectResourceName: 'test-model-pvc-deployment'
 projectDisplayName: 'Test Model PVC Deployment'
 singleModelName: 'test-model'
-modelOpenVinoExamplePath: 'kserve-openvino-test/'
+modelOpenVinoExamplePath: 'kserve-openvino-test/openvino-example-model'
 pvStorageName: 'model-pvc-e2e'

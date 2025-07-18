@@ -18,7 +18,7 @@ spec:
 
           while [ $COUNT -lt $MAX_RETRIES ]; do
             echo "Attempt $((COUNT + 1)) of $MAX_RETRIES..."
-            if aws s3 cp s3://{{AWS_S3_BUCKET}}/{{MODEL_PATH}} /mnt/models/ --region={{AWS_DEFAULT_REGION}}; then
+            if aws s3 cp s3://{{AWS_S3_BUCKET}}/{{MODEL_PATH}} /mnt/models/ --region={{AWS_DEFAULT_REGION}} --recursive; then
               echo "S3 copy completed successfully"
               touch /mnt/models/.copy-complete
               exit 0
