@@ -9,16 +9,13 @@ import {
   MenuToggleElement,
   SearchInput,
   ToolbarContent,
-  ToolbarFilter,
   ToolbarGroup,
   ToolbarItem,
   ToolbarToggleGroup,
 } from '@patternfly/react-core';
 import { EllipsisVIcon, FilterIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router';
-import { SearchType } from '#~/concepts/dashboard/DashboardSearchField';
 import { ModelVersion, RegisteredModel } from '#~/concepts/modelRegistry/types';
-import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
 import EmptyModelRegistryState from '#~/pages/modelRegistry/screens/components/EmptyModelRegistryState';
 import {
   filterModelVersions,
@@ -26,10 +23,16 @@ import {
 } from '#~/pages/modelRegistry/screens/utils';
 import { modelVersionArchiveRoute } from '#~/routes/modelRegistry/modelVersionArchive';
 import { registerVersionForModelRoute } from '#~/routes/modelRegistry/register';
-import { asEnumMember } from '#~/utilities/utils';
 import { ProjectObjectType, typedEmptyImage } from '#~/concepts/design/utils';
 import { filterArchiveVersions, filterLiveVersions } from '#~/concepts/modelRegistry/utils';
 import { ModelRegistriesContext } from '#~/concepts/modelRegistry/context/ModelRegistriesContext';
+import FilterToolbar from '#~/components/FilterToolbar';
+import {
+  ModelRegistryVersionsFilterDataType,
+  ModelRegistryVersionsFilterOptions,
+  initialModelRegistryVersionsFilterData,
+  modelRegistryVersionsFilterOptions,
+} from '#~/pages/modelRegistry/screens/const';
 import ModelVersionsTable from './ModelVersionsTable';
 
 type ModelVersionListViewProps = {
@@ -52,16 +55,25 @@ const ModelVersionListView: React.FC<ModelVersionListViewProps> = ({
   const archiveModelVersions = filterArchiveVersions(modelVersions);
   const navigate = useNavigate();
   const { preferredModelRegistry } = React.useContext(ModelRegistriesContext);
+  const [filterData, setFilterData] = React.useState<ModelRegistryVersionsFilterDataType>(
+    initialModelRegistryVersionsFilterData,
+  );
 
-  const [searchType, setSearchType] = React.useState<SearchType>(SearchType.KEYWORD);
-  const [search, setSearch] = React.useState('');
+  const onFilterUpdate = React.useCallback(
+    (key: string, value: string | { label: string; value: string } | undefined) =>
+      setFilterData((prevValues) => ({ ...prevValues, [key]: value })),
+    [setFilterData],
+  );
 
-  const searchTypes = [SearchType.KEYWORD, SearchType.AUTHOR];
+  const onClearFilters = React.useCallback(
+    () => setFilterData(initialModelRegistryVersionsFilterData),
+    [setFilterData],
+  );
 
   const [isArchivedModelVersionKebabOpen, setIsArchivedModelVersionKebabOpen] =
     React.useState(false);
 
-  const filteredModelVersions = filterModelVersions(unfilteredModelVersions, search, searchType);
+  const filteredModelVersions = filterModelVersions(unfilteredModelVersions, filterData);
   const date = rm.lastUpdateTimeSinceEpoch && new Date(parseInt(rm.lastUpdateTimeSinceEpoch));
 
   if (unfilteredModelVersions.length === 0) {
@@ -125,48 +137,36 @@ const ModelVersionListView: React.FC<ModelVersionListViewProps> = ({
         refresh={refresh}
         isArchiveModel={isArchiveModel}
         registeredModel={rm}
-        clearFilters={() => setSearch('')}
+        clearFilters={onClearFilters}
         modelVersions={sortModelVersionsByCreateTime(filteredModelVersions)}
         toolbarContent={
           <ToolbarContent>
             <ToolbarToggleGroup toggleIcon={<FilterIcon />} breakpoint="xl">
               <ToolbarGroup variant="filter-group">
-                <ToolbarFilter
-                  labels={search === '' ? [] : [search]}
-                  deleteLabel={() => setSearch('')}
-                  deleteLabelGroup={() => setSearch('')}
-                  categoryName={searchType}
-                >
-                  <SimpleSelect
-                    dataTestId="model-versions-table-filter"
-                    options={searchTypes.map(
-                      (key): SimpleSelectOption => ({
-                        key,
-                        label: key,
-                      }),
-                    )}
-                    value={searchType}
-                    onChange={(newSearchType) => {
-                      const enumMember = asEnumMember(newSearchType, SearchType);
-                      if (enumMember !== null) {
-                        setSearchType(enumMember);
-                      }
-                    }}
-                    icon={<FilterIcon />}
-                  />
-                </ToolbarFilter>
-                <ToolbarItem>
-                  <SearchInput
-                    placeholder={`Find by ${searchType.toLowerCase()}`}
-                    value={search}
-                    onChange={(_, searchValue) => {
-                      setSearch(searchValue);
-                    }}
-                    onClear={() => setSearch('')}
-                    style={{ minWidth: '200px' }}
-                    data-testid="model-versions-table-search"
-                  />
-                </ToolbarItem>
+                <FilterToolbar
+                  data-testid="model-versions-table-toolbar"
+                  filterOptions={modelRegistryVersionsFilterOptions}
+                  filterOptionRenders={{
+                    [ModelRegistryVersionsFilterOptions.keyword]: ({ onChange, ...props }) => (
+                      <SearchInput
+                        {...props}
+                        aria-label="Filter by keyword"
+                        placeholder="Filter by keyword"
+                        onChange={(_event, value) => onChange(value)}
+                      />
+                    ),
+                    [ModelRegistryVersionsFilterOptions.author]: ({ onChange, ...props }) => (
+                      <SearchInput
+                        {...props}
+                        aria-label="Filter by author"
+                        placeholder="Filter by author"
+                        onChange={(_event, value) => onChange(value)}
+                      />
+                    ),
+                  }}
+                  filterData={filterData}
+                  onFilterUpdate={onFilterUpdate}
+                />
               </ToolbarGroup>
             </ToolbarToggleGroup>
             {!isArchiveModel && (

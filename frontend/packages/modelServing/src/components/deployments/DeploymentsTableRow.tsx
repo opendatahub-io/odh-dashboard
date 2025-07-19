@@ -8,6 +8,7 @@ import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/
 import { Link } from 'react-router-dom';
 import ResourceNameTooltip from '@odh-dashboard/internal/components/ResourceNameTooltip';
 import { DeploymentRowExpandedSection } from './DeploymentsTableRowExpandedSection';
+import DeploymentLastDeployed from './DeploymentLastDeployed';
 import DeploymentStatus from './DeploymentStatus';
 import {
   useDeploymentExtension,
@@ -72,11 +73,14 @@ export const DeploymentRow: React.FC<{
             deployment.status?.state === InferenceServiceModelState.LOADED ? (
               <Link
                 to={`/projects/${deployment.model.metadata.namespace}/metrics/model/${deployment.model.metadata.name}`}
+                data-testid="deployed-model-name"
               >
                 {getDisplayNameFromK8sResource(deployment.model)}
               </Link>
             ) : (
-              getDisplayNameFromK8sResource(deployment.model)
+              <span data-testid="deployed-model-name">
+                {getDisplayNameFromK8sResource(deployment.model)}
+              </span>
             )}
           </ResourceNameTooltip>
         </Td>
@@ -94,6 +98,9 @@ export const DeploymentRow: React.FC<{
           ) : (
             <Content component={ContentVariants.small}>Not defined</Content>
           )}
+        </Td>
+        <Td dataLabel="Last deployed">
+          <DeploymentLastDeployed deployment={deployment} />
         </Td>
         <Td dataLabel="Status">
           <ModelStatusIcon

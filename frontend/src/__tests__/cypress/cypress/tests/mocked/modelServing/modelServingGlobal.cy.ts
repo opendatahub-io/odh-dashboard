@@ -485,7 +485,6 @@ describe('Model Serving Global', () => {
       }); // KServe should send resources in ServingRuntime after migration
       servingRuntimeMockNoResources.metadata.annotations = {
         ...servingRuntimeMockNoResources.metadata.annotations,
-        'opendatahub.io/legacy-hardware-profile-name': '',
       };
       delete servingRuntimeMock.metadata.annotations?.['enable-auth'];
       delete servingRuntimeMock.metadata.annotations?.['enable-route'];
@@ -717,15 +716,21 @@ describe('Model Serving Global', () => {
   });
 
   it('Display project scoped label on serving runtime selection on Edit', () => {
+    const projectScopedServingRuntime = mockServingRuntimeK8sResource({
+      name: 'test-project-scoped-sr',
+      isProjectScoped: true,
+      scope: 'project',
+      templateDisplayName: 'test-project-scoped-sr',
+    });
+
     initIntercepts({
       projectEnableModelMesh: false,
       disableServingRuntimeParamsConfig: false,
       disableProjectScoped: false,
-      servingRuntimes: [
-        mockServingRuntimeK8sResource({
-          isProjectScoped: true,
-          scope: 'project',
-          templateDisplayName: 'test-project-scoped-sr',
+      servingRuntimes: [projectScopedServingRuntime],
+      inferenceServices: [
+        mockInferenceServiceK8sResource({
+          modelName: 'test-project-scoped-sr', // Set runtime to match serving runtime name
         }),
       ],
     });
@@ -778,21 +783,36 @@ describe('Model Serving Global', () => {
     hardwareProfileSection.findGlobalScopedLabel().should('exist');
   });
 
-  it('Display project scoped label on serving runtime selection on Edit', () => {
+  it('Display project scoped hardware profile on serving runtime selection on Edit', () => {
     initIntercepts({
       projectEnableModelMesh: false,
       disableServingRuntimeParamsConfig: false,
       disableProjectScoped: false,
       disableHardwareProfiles: false,
-      servingRuntimes: [
-        mockServingRuntimeK8sResource({
+      inferenceServices: [
+        mockInferenceServiceK8sResource({
+          namespace: 'test-project',
           hardwareProfileName: 'large-profile-1',
           hardwareProfileNamespace: 'test-project',
+          resources: {
+            requests: {
+              cpu: '4',
+              memory: '8Gi',
+            },
+            limits: {
+              cpu: '8',
+              memory: '16Gi',
+            },
+          },
         }),
       ],
+      servingRuntimes: [mockServingRuntimeK8sResource({})],
     });
+
     modelServingGlobal.visit('test-project');
     modelServingGlobal.getModelRow('Test Inference Service').findKebabAction('Edit').click();
+
+    hardwareProfileSection.findHardwareProfileSearchSelector().should('be.visible');
     hardwareProfileSection
       .findHardwareProfileSearchSelector()
       .should('contain.text', 'Large Profile-1');
@@ -1105,6 +1125,39 @@ describe('Model Serving Global', () => {
 
       // Verify no results were found
       modelServingGlobal.findEmptyResults().should('exist');
+    });
+
+    it('Sort model by last deployed', () => {
+      const inferenceServiceNew = mockInferenceServiceK8sResource({
+        namespace: 'test-project',
+        displayName: 'New Model',
+        modelName: 'test-inference-service-latest',
+        lastTransitionTime: '2025-07-10T12:12:41Z',
+        activeModelState: 'Loaded',
+        isReady: true,
+      });
+      const inferenceServiceOld = mockInferenceServiceK8sResource({
+        namespace: 'test-project',
+        displayName: 'Old Model',
+        modelName: 'test-inference-service-outdated',
+        lastTransitionTime: '2024-09-04T16:12:41Z',
+        activeModelState: 'Loaded',
+        isReady: true,
+      });
+      initIntercepts({
+        inferenceServices: [inferenceServiceNew, inferenceServiceOld],
+      });
+
+      modelServingGlobal.visit('test-project');
+
+      modelServingGlobal.findSortButton('Last deployed').click();
+      modelServingGlobal.findSortButton('Last deployed').should(be.sortAscending);
+      modelServingGlobal.findSortButton('Last deployed').click();
+      modelServingGlobal.findSortButton('Last deployed').should(be.sortDescending);
+
+      const oldModelRow = modelServingSection.getInferenceServiceRow('Old Model');
+      oldModelRow.findLastDeployed().trigger('mouseenter');
+      cy.findByRole('tooltip').should('contain.text', '9/4/2024, 4:12:41 PM UTC');
     });
 
     it('Validate pagination', () => {

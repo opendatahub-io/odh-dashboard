@@ -23,8 +23,11 @@ import {
   isRedHatRegistryUri,
   getCustomPropString,
 } from '#~/pages/modelRegistry/screens/utils';
-import { SearchType } from '#~/concepts/dashboard/DashboardSearchField';
 import { modelSourcePropertiesToCatalogParams } from '#~/concepts/modelRegistry/utils';
+import {
+  ModelRegistryFilterDataType,
+  ModelRegistryVersionsFilterDataType,
+} from '#~/pages/modelRegistry/screens/const';
 
 describe('getLabels', () => {
   it('should return an empty array when customProperties is empty', () => {
@@ -328,23 +331,59 @@ describe('filterModelVersions', () => {
   ];
 
   test('filters by name', () => {
-    const filtered = filterModelVersions(modelVersions, 'Test 1', SearchType.KEYWORD);
+    const filtered = filterModelVersions(modelVersions, {
+      Keyword: 'Test 1',
+      Author: '',
+    } satisfies ModelRegistryVersionsFilterDataType);
     expect(filtered).toEqual([modelVersions[0]]);
   });
 
   test('filters by description', () => {
-    const filtered = filterModelVersions(modelVersions, 'Description2', SearchType.KEYWORD);
+    const filtered = filterModelVersions(modelVersions, {
+      Keyword: 'Description2',
+      Author: '',
+    } satisfies ModelRegistryVersionsFilterDataType);
     expect(filtered).toEqual([modelVersions[1]]);
   });
 
   test('filters by author', () => {
-    const filtered = filterModelVersions(modelVersions, 'Author3', SearchType.AUTHOR);
+    const filtered = filterModelVersions(modelVersions, {
+      Keyword: '',
+      Author: 'Author3',
+    } satisfies ModelRegistryVersionsFilterDataType);
+    expect(filtered).toEqual([modelVersions[2]]);
+  });
+
+  test('filters by keyword and author', () => {
+    const filtered = filterModelVersions(modelVersions, {
+      Keyword: 'Test 3',
+      Author: 'Author3',
+    } satisfies ModelRegistryVersionsFilterDataType);
     expect(filtered).toEqual([modelVersions[2]]);
   });
 
   test('does not filter when search is empty', () => {
-    const filtered = filterModelVersions(modelVersions, '', SearchType.KEYWORD);
+    const filtered = filterModelVersions(modelVersions, {
+      Keyword: '',
+      Author: '',
+    } satisfies ModelRegistryVersionsFilterDataType);
     expect(filtered).toEqual(modelVersions);
+  });
+
+  test('does not filter when keyword is correct but author is incorrect', () => {
+    const filtered = filterModelVersions(modelVersions, {
+      Keyword: 'Test 1',
+      Author: 'Bob',
+    } satisfies ModelRegistryVersionsFilterDataType);
+    expect(filtered).toEqual([]);
+  });
+
+  test('does not filter when keyword is incorrect but author is correct', () => {
+    const filtered = filterModelVersions(modelVersions, {
+      Keyword: 'Test 6',
+      Author: 'Author3',
+    } satisfies ModelRegistryVersionsFilterDataType);
+    expect(filtered).toEqual([]);
   });
 });
 
@@ -362,28 +401,59 @@ describe('filterRegisteredModels', () => {
   ];
 
   test('filters by name', () => {
-    const filtered = filterRegisteredModels(registeredModels, [], 'Test 1', SearchType.KEYWORD);
+    const filtered = filterRegisteredModels(registeredModels, [], {
+      Keyword: 'Test 1',
+      Owner: '',
+    } satisfies ModelRegistryFilterDataType);
     expect(filtered).toEqual([registeredModels[0]]);
   });
 
   test('filters by description', () => {
-    const filtered = filterRegisteredModels(
-      registeredModels,
-      [],
-      'Description2',
-      SearchType.KEYWORD,
-    );
+    const filtered = filterRegisteredModels(registeredModels, [], {
+      Keyword: 'Description2',
+      Owner: '',
+    } satisfies ModelRegistryFilterDataType);
     expect(filtered).toEqual([registeredModels[1]]);
   });
 
   test('filters by owner', () => {
-    const filtered = filterRegisteredModels(registeredModels, [], 'Alice', SearchType.OWNER);
+    const filtered = filterRegisteredModels(registeredModels, [], {
+      Keyword: '',
+      Owner: 'Alice',
+    } satisfies ModelRegistryFilterDataType);
     expect(filtered).toEqual([registeredModels[0], registeredModels[3]]);
   });
 
+  test('filters by keyword and owner', () => {
+    const filtered = filterRegisteredModels(registeredModels, [], {
+      Keyword: 'Test 1',
+      Owner: 'Alice',
+    } satisfies ModelRegistryFilterDataType);
+    expect(filtered).toEqual([registeredModels[0]]);
+  });
+
   test('does not filter when search is empty', () => {
-    const filtered = filterRegisteredModels(registeredModels, [], '', SearchType.KEYWORD);
+    const filtered = filterRegisteredModels(registeredModels, [], {
+      Keyword: '',
+      Owner: '',
+    } satisfies ModelRegistryFilterDataType);
     expect(filtered).toEqual(registeredModels);
+  });
+
+  test('does not filter when keyword is correct but owner is incorrect', () => {
+    const filtered = filterRegisteredModels(registeredModels, [], {
+      Keyword: 'Test 1',
+      Owner: 'Bob',
+    } satisfies ModelRegistryFilterDataType);
+    expect(filtered).toEqual([]);
+  });
+
+  test('does not filter when keyword is incorrect but owner is correct', () => {
+    const filtered = filterRegisteredModels(registeredModels, [], {
+      Keyword: 'Test 6',
+      Owner: 'Alice',
+    } satisfies ModelRegistryFilterDataType);
+    expect(filtered).toEqual([]);
   });
 });
 

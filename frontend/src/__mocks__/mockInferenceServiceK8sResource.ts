@@ -37,6 +37,12 @@ type MockResourceConfigType = {
   tolerations?: Toleration[];
   nodeSelector?: NodeSelector;
   isNonDashboardItem?: boolean;
+  hardwareProfileName?: string;
+  hardwareProfileNamespace?: string;
+  useLegacyHardwareProfile?: boolean;
+  creationTimestamp?: string;
+  lastTransitionTime?: string;
+  isReady?: boolean;
 };
 
 type InferenceServicek8sError = K8sStatus & {
@@ -106,6 +112,12 @@ export const mockInferenceServiceK8sResource = ({
   tolerations,
   nodeSelector,
   isNonDashboardItem = false,
+  hardwareProfileName = '',
+  hardwareProfileNamespace = undefined,
+  useLegacyHardwareProfile = false,
+  creationTimestamp = '2023-03-17T16:12:41Z',
+  lastTransitionTime = '2023-03-17T16:12:41Z',
+  isReady = false,
 }: MockResourceConfigType): InferenceServiceKind => ({
   apiVersion: 'serving.kserve.io/v1beta1',
   kind: 'InferenceService',
@@ -123,8 +135,15 @@ export const mockInferenceServiceK8sResource = ({
           'sidecar.istio.io/inject': 'true',
           'sidecar.istio.io/rewriteAppHTTPProbers': 'true',
         }),
+      ...(hardwareProfileName && {
+        [`opendatahub.io/${useLegacyHardwareProfile ? 'legacy-' : ''}hardware-profile-name`]:
+          hardwareProfileName,
+      }),
+      ...(hardwareProfileNamespace && {
+        'opendatahub.io/hardware-profile-namespace': hardwareProfileNamespace,
+      }),
     },
-    creationTimestamp: '2023-03-17T16:12:41Z',
+    creationTimestamp,
     ...(deleted ? { deletionTimestamp: new Date().toUTCString() } : {}),
     generation: 1,
     labels: {
@@ -182,13 +201,13 @@ export const mockInferenceServiceK8sResource = ({
         url,
         conditions: [
           {
-            lastTransitionTime: '2023-03-17T16:12:41Z',
+            lastTransitionTime,
             status: 'False',
             type: 'PredictorReady',
           },
           {
-            lastTransitionTime: '2023-03-17T16:12:41Z',
-            status: 'False',
+            lastTransitionTime,
+            status: isReady ? 'True' : 'False',
             type: 'Ready',
           },
         ],
