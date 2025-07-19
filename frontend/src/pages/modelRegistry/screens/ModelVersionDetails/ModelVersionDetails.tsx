@@ -14,6 +14,7 @@ import useServingRuntimes from '#~/pages/modelServing/useServingRuntimes';
 import { ModelState } from '#~/concepts/modelRegistry/types';
 import { ModelRegistriesContext } from '#~/concepts/modelRegistry/context/ModelRegistriesContext';
 import useModelArtifactsByVersionId from '#~/concepts/modelRegistry/apiHooks/useModelArtifactsByVersionId';
+import { POLL_INTERVAL } from '#~/utilities/const';
 import { ModelVersionDetailsTab } from './const';
 import ModelVersionsDetailsHeaderActions from './ModelVersionDetailsHeaderActions';
 import ModelVersionDetailsTabs from './ModelVersionDetailsTabs';
@@ -39,6 +40,7 @@ const ModelVersionsDetails: React.FC<ModelVersionsDetailProps> = ({ tab, ...page
     mv?.registeredModelId,
     mv?.id,
     preferredModelRegistry?.metadata.name,
+    { refreshRate: POLL_INTERVAL },
   );
   const [modelArtifacts, modelArtifactsLoaded, modelArtifactsLoadError, refreshModelArtifacts] =
     useModelArtifactsByVersionId(mvId);
