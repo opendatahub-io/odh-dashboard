@@ -32,6 +32,7 @@ import {
   isDspaAllReady,
 } from '#~/concepts/pipelines/context/usePipelineNamespaceCR';
 import { PipelinesDatabaseSection } from './PipelinesDatabaseSection';
+import { PipelineCachingSection } from './PipelineCachingSection';
 import { ObjectStorageSection } from './ObjectStorageSection';
 import {
   DATABASE_CONNECTION_FIELDS,
@@ -49,6 +50,7 @@ const FORM_DEFAULTS: PipelineServerConfigType = {
   database: { useDefault: true, value: EMPTY_DATABASE_CONNECTION },
   objectStorage: { newValue: EMPTY_AWS_PIPELINE_DATA },
   enableInstructLab: false,
+  enableCaching: true,
 };
 
 const serverConfiguredEvent = 'Pipeline Server Configured';
@@ -237,6 +239,11 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
                 connections={connections}
               />
               <PipelinesDatabaseSection setConfig={setConfig} config={config} />
+
+              <PipelineCachingSection
+                enableCaching={config.enableCaching}
+                setEnableCaching={(enableCaching) => setConfig({ ...config, enableCaching })}
+              />
               {isFineTuningAvailable && (
                 <SamplePipelineSettingsSection setConfig={setConfig} config={config} />
               )}
