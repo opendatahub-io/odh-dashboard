@@ -46,6 +46,8 @@ describe('ManageInferenceServiceModal', () => {
       refresh: jest.fn(),
     });
 
+    console.log('here 1', Date.now());
+
     useAppContextMock.mockReturnValue({
       buildStatuses: [],
       dashboardConfig: mockDashboardConfig({}),
@@ -53,6 +55,7 @@ describe('ManageInferenceServiceModal', () => {
       isRHOAI: false,
     });
 
+    console.log('here 2', Date.now());
     const currentProject = mockProjectK8sResource({});
     const wrapper = render(
       <ManageInferenceServiceModal
@@ -64,17 +67,24 @@ describe('ManageInferenceServiceModal', () => {
       />,
     );
 
+    console.log('here 3', Date.now());
     // Find the dropdown
     const dropdown = await wrapper.findByText('Select a model server');
 
+    console.log('here 4', Date.now());
     fireEvent.click(dropdown);
 
+    console.log('here 5', Date.now());
     const option = await wrapper.findByText('Runtime 1');
+    console.log('here 6', Date.now());
     fireEvent.click(option);
+    console.log('here 7', Date.now());
     expect(dropdown.textContent).toBe('Runtime 1');
 
+    console.log('here 8', Date.now());
     const projectChange = mockProjectK8sResource({ phase: 'Terminating' });
 
+    console.log('here 9', Date.now());
     // Change the currentProject prop
     await act(async () => {
       wrapper.rerender(
@@ -88,6 +98,7 @@ describe('ManageInferenceServiceModal', () => {
       );
     });
 
+    console.log('here', Date.now());
     expect(dropdown.textContent).toBe('Runtime 1');
   });
 });

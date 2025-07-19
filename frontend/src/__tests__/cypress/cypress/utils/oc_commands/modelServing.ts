@@ -104,8 +104,8 @@ export const checkInferenceServiceState = (
   const maxAttempts = 96; // 8 minutes / 5 seconds = 96 attempts
   let attempts = 0;
 
-  const checkState = (): Cypress.Chainable<Cypress.Exec> => {
-    return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => {
+  const checkState = (): Cypress.Chainable<Cypress.Exec> =>
+    cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => {
       attempts++;
 
       // Log raw command output for debugging
@@ -262,7 +262,6 @@ export const checkInferenceServiceState = (
         return cy.wait(5000).then(() => checkState());
       }
     });
-  };
 
   return checkState();
 };
@@ -277,8 +276,8 @@ export const checkInferenceServiceState = (
 export const modelExternalTester = (
   modelName: string,
   namespace: string,
-): Cypress.Chainable<{ url: string; response: Cypress.Response<unknown> }> => {
-  return cy.exec(`oc get inferenceService ${modelName} -n ${namespace} -o json`).then((result) => {
+): Cypress.Chainable<{ url: string; response: Cypress.Response<unknown> }> =>
+  cy.exec(`oc get inferenceService ${modelName} -n ${namespace} -o json`).then((result) => {
     const inferenceService = JSON.parse(result.stdout);
     const { url } = inferenceService.status;
 
@@ -350,16 +349,15 @@ export const modelExternalTester = (
           );
 
           // Use Cypress's wait command before making the next attempt
-          return cy.wait(waitTime).then(() => {
-            return makeRequest(attemptNumber + 1, maxAttempts, waitTime);
-          });
+          return cy
+            .wait(waitTime)
+            .then(() => makeRequest(attemptNumber + 1, maxAttempts, waitTime));
         });
     };
 
     // Start the request chain with the first attempt
     return makeRequest();
   });
-};
 
 /**
  * Validates tolerations in a workbench pod

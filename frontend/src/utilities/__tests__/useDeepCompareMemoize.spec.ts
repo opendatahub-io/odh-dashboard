@@ -1,5 +1,5 @@
+import { testHook } from '@odh-dashboard/jest-config/hooks';
 import { useDeepCompareMemoize } from '#~/utilities/useDeepCompareMemoize';
-import { testHook } from '#~/__tests__/unit/testUtils/hooks';
 
 describe('useDeepCompareMemoize', () => {
   it('should return a memoized version of the input value ', () => {

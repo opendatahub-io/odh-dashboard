@@ -1,8 +1,7 @@
 import { K8sStatus, k8sDeleteResource } from '@openshift/dynamic-plugin-sdk-utils';
+import { testHook } from '@odh-dashboard/jest-config/hooks';
 import { mock200Status, mock404Error } from '#~/__mocks__/mockK8sStatus';
-
 import { mockServingRuntimeTemplateK8sResource } from '#~/__mocks__/mockServingRuntimeTemplateK8sResource';
-import { testHook } from '#~/__tests__/unit/testUtils/hooks';
 import {
   assembleServingRuntimeTemplate,
   deleteTemplate,

@@ -189,19 +189,15 @@ export function saveTolerationSettings(): Cypress.Chainable<{
   isChecked: boolean;
   tolerationValue: string;
 }> {
-  return cy.wrap(null).then(() => {
-    return notebookTolerationSettings
-      .findEnabledCheckbox()
-      .then(($checkbox: JQuery<HTMLElement>) => {
-        const isChecked = $checkbox.is(':checked');
-        return notebookTolerationSettings
-          .findKeyInput()
-          .invoke('val')
-          .then((tolerationValue) => {
-            return { isChecked, tolerationValue: tolerationValue as string };
-          });
-      });
-  });
+  return cy.wrap(null).then(() =>
+    notebookTolerationSettings.findEnabledCheckbox().then(($checkbox: JQuery<HTMLElement>) => {
+      const isChecked = $checkbox.is(':checked');
+      return notebookTolerationSettings
+        .findKeyInput()
+        .invoke('val')
+        .then((tolerationValue) => ({ isChecked, tolerationValue: tolerationValue as string }));
+    }),
+  );
 }
 
 /**

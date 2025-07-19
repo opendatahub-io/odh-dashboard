@@ -1,6 +1,6 @@
 import { act } from 'react';
 import { k8sListResource } from '@openshift/dynamic-plugin-sdk-utils';
-import { standardUseFetchStateObject, testHook } from '#~/__tests__/unit/testUtils/hooks';
+import { standardUseFetchStateObject, testHook } from '@odh-dashboard/jest-config/hooks';
 import useModelServingEnabled from '#~/pages/modelServing/useModelServingEnabled';
 import useInferenceServices from '#~/pages/modelServing/useInferenceServices';
 import { useAccessReview } from '#~/api';

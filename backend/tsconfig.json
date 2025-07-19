@@ -1,7 +1,6 @@
-
 {
   "compilerOptions": {
-    "baseUrl": "./src",
+    "baseUrl": ".",
     "module": "commonjs",
     "esModuleInterop": true,
     "target": "es2021",
@@ -10,15 +9,9 @@
     "sourceMap": true,
     "outDir": "dist",
     "paths": {
-      "*": [
-        "node_modules/*",
-      ],
+      "*": ["node_modules/*"]
     }
   },
-  "include": [
-    "src/**/*"
-  ],
-  "exclude": [
-    "node_modules"
-  ]
+  "include": ["./**/*.ts", "./**/*.tsx", "./**/**.js", "./**/*.jsx"],
+  "exclude": ["node_modules", "dist"]
 }

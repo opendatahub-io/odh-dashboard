@@ -17,8 +17,8 @@ describe('Verify Data Science Project - Editing', () => {
   const uuid = generateTestUUID();
 
   // Setup: Load test data and ensure clean state
-  retryableBefore(() => {
-    return loadDSPFixture('e2e/dataScienceProjects/testProjectEditing.yaml')
+  retryableBefore(() =>
+    loadDSPFixture('e2e/dataScienceProjects/testProjectEditing.yaml')
       .then((fixtureData: DataScienceProjectData) => {
         testData = fixtureData;
         projectName = `${testData.projectEditResourceName}-${uuid}`;
@@ -30,8 +30,8 @@ describe('Verify Data Science Project - Editing', () => {
       })
       .then(() => {
         cy.log(`Project ${projectName} confirmed to be created and verified successfully`);
-      });
-  });
+      }),
+  );
   after(() => {
     // Delete provisioned Project
     if (projectName) {

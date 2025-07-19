@@ -1,7 +1,7 @@
 import { act } from 'react';
+import { standardUseFetchStateObject, testHook } from '@odh-dashboard/jest-config/hooks';
 import { getConfigMap } from '#~/api';
 import { mockConfigMap } from '#~/__mocks__/mockConfigMap';
-import { standardUseFetchStateObject, testHook } from '#~/__tests__/unit/testUtils/hooks';
 import { useLMDashboardNamespace } from '#~/pages/lmEval/utilities/useLMDashboardNamespace';
 import useTrustyAIConfigMap from '#~/pages/lmEval/lmEvalForm/useTrustyAIConfigMap';
 

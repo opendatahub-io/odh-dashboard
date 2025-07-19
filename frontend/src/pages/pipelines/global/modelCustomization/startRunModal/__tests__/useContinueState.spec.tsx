@@ -1,4 +1,4 @@
-import { testHook } from '#~/__tests__/unit/testUtils/hooks';
+import { testHook } from '@odh-dashboard/jest-config/hooks';
 import { useIlabPipeline } from '#~/concepts/pipelines/content/modelCustomizationForm/useIlabPipeline';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { useContinueState } from '#~/pages/pipelines/global/modelCustomization/startRunModal/useContinueState';

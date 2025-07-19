@@ -1,6 +1,6 @@
 import { act } from 'react';
+import { testHook } from '@odh-dashboard/jest-config/hooks';
 import axios from '#~/utilities/axios';
-import { testHook } from '#~/__tests__/unit/testUtils/hooks';
 import { mockPrometheusServing } from '#~/__mocks__/mockPrometheusServing';
 import usePrometheusQueryRange from '#~/api/prometheus/usePrometheusQueryRange';
 import { PrometheusQueryRangeResponseData } from '#~/types';
