@@ -64,13 +64,18 @@ export type ModelServingPlatformExtension<D extends Deployment = Deployment> = E
     id: D['modelServingPlatformId'];
     manage: {
       namespaceApplicationCase: NamespaceApplicationCase;
-      enabledProjectMetadata: {
+      priority?: number; // larger numbers are higher priority
+      projectRequirements: {
         annotations?: {
           [key: string]: string;
         };
         labels?: {
           [key: string]: string;
         };
+      };
+      clusterRequirements?: {
+        // for NIM mainly. May change in the future. other types of checks can be added here later.
+        integrationAppName: string;
       };
     };
     enableCardText: {

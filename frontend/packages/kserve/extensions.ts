@@ -35,7 +35,7 @@ const extensions: (
       manage: {
         namespaceApplicationCase: NamespaceApplicationCase.KSERVE_PROMOTION,
         // TODO: set this platform as the default if no other has priority
-        enabledProjectMetadata: {
+        projectRequirements: {
           labels: {
             'modelmesh-enabled': 'false',
           },

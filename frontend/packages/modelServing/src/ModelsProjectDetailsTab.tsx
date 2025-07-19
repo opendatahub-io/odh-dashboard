@@ -1,6 +1,9 @@
 import React from 'react';
 import { ProjectDetailsContext } from '@odh-dashboard/internal/pages/projects/ProjectDetailsContext';
 import { LazyCodeRefComponent, useExtensions } from '@odh-dashboard/plugin-core';
+import DetailsSection from '@odh-dashboard/internal/pages/projects/screens/detail/DetailsSection';
+import { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
+import { ProjectSectionID } from '@odh-dashboard/internal/pages/projects/screens/detail/types';
 import { useProjectServingPlatform } from './concepts/useProjectServingPlatform';
 import { ModelDeploymentsProvider } from './concepts/ModelDeploymentsContext';
 import ModelsProjectDetailsView from './components/projectDetails/ModelsProjectDetailsView';
@@ -18,6 +21,17 @@ const ModelsProjectDetailsTab: React.FC = () => {
     return (
       <LazyCodeRefComponent
         component={activePlatform.properties.backport.ModelsProjectDetailsTab}
+        fallback={
+          <DetailsSection
+            objectType={ProjectObjectType.model}
+            id={ProjectSectionID.MODEL_SERVER}
+            isLoading
+            isEmpty={false}
+            emptyState={null}
+          >
+            {undefined}
+          </DetailsSection>
+        }
       />
     );
   }

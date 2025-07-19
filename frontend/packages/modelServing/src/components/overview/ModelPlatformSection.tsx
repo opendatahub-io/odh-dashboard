@@ -15,19 +15,19 @@ import CollapsibleSection from '@odh-dashboard/internal/concepts/design/Collapsi
 import { ProjectObjectType, SectionType } from '@odh-dashboard/internal/concepts/design/utils';
 import OverviewCard from '@odh-dashboard/internal/pages/projects/screens/detail/overview/components/OverviewCard';
 import { ProjectDetailsContext } from '@odh-dashboard/internal/pages/projects/ProjectDetailsContext';
-import { useExtensions } from '@odh-dashboard/plugin-core';
-import { useProjectServingPlatform } from '../../concepts/useProjectServingPlatform';
+import {
+  useProjectServingPlatform,
+  type ModelServingPlatform,
+} from '../../concepts/useProjectServingPlatform';
 import { DeployButton } from '../deploy/DeployButton';
 import { PlatformSelectionGallery } from '../platformSelection';
-import { isModelServingPlatformExtension } from '../../../extension-points';
 
 const galleryWidth = {
   minWidths: { default: '100%', lg: 'calc(50% - 1rem / 2)' },
   maxWidths: { default: '100%', lg: 'calc(50% - 1rem / 2)' },
 };
 
-const ModelPlatformSection: React.FC = () => {
-  const availablePlatforms = useExtensions(isModelServingPlatformExtension);
+const ModelPlatformSection: React.FC<{ platforms: ModelServingPlatform[] }> = ({ platforms }) => {
   const { currentProject } = React.useContext(ProjectDetailsContext);
 
   const {
@@ -36,7 +36,7 @@ const ModelPlatformSection: React.FC = () => {
     resetProjectPlatform,
     newProjectPlatformLoading,
     projectPlatformError,
-  } = useProjectServingPlatform(currentProject, availablePlatforms);
+  } = useProjectServingPlatform(currentProject, platforms);
 
   // If no platform is selected -
   if (!activePlatform) {
@@ -55,7 +55,7 @@ const ModelPlatformSection: React.FC = () => {
           </FlexItem>
           <FlexItem>
             <PlatformSelectionGallery
-              platforms={availablePlatforms}
+              platforms={platforms}
               onSelect={setProjectPlatform}
               loadingPlatformId={newProjectPlatformLoading?.properties.id}
               useOverviewCard
@@ -96,7 +96,7 @@ const ModelPlatformSection: React.FC = () => {
         headerInfo={
           <Flex gap={{ default: 'gapSm' }}>
             <Label>{enabledText}</Label>
-            {availablePlatforms.length > 1 && (
+            {platforms.length > 1 && (
               <Button
                 data-testid="change-serving-platform-button"
                 variant="link"
