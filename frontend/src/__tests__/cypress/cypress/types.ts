@@ -83,6 +83,18 @@ export type PVCReplacements = {
   STORAGE_CLASS: string;
 };
 
+export type PVCLoaderPodReplacements = {
+  NAMESPACE: string;
+  PVC_NAME: string;
+  AWS_S3_BUCKET: string;
+  AWS_DEFAULT_REGION: string;
+  AWS_S3_ENDPOINT: string;
+  AWS_ACCESS_KEY_ID: string;
+  AWS_SECRET_ACCESS_KEY: string;
+  POD_NAME: string;
+  MODEL_PATH: string;
+};
+
 export type WBEditTestData = {
   editTestNamespace: string;
   editedTestNamespace: string;
