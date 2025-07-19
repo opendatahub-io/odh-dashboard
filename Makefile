@@ -84,6 +84,12 @@ undeploy:
 
 ##################################
 
+.PHONY: plugin
+plugin:
+	cd frontend && npm run make:plugin
+
+##################################
+
 .PHONY: port-forward
 port-forward:
 ifdef NAMESPACE

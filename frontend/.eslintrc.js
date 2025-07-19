@@ -479,7 +479,7 @@ function srcRulesOverrides() {
     },
     // add monorepo packages
     ...packages.map((pkg) => ({
-      files: [`${pkg}/**`],
+      files: [`${pkg}/**/*.{ts,tsx,js,jsx}`],
       parserOptions: {
         tsconfigRootDir: path.join(__dirname, pkg),
       },
