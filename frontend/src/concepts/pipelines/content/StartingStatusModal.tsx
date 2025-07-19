@@ -23,7 +23,7 @@ import { getStatusFromCondition } from '#~/concepts/pipelines/content/utils.tsx'
 import PipelineComponentStatusIcon, {
   StatusType,
 } from '#~/concepts/pipelines/content/PipelineComponentStatusIcon.tsx';
-import { K8sCondition } from '#~/k8sTypes';
+import { K8sCondition, K8sDspaConditionReason } from '#~/k8sTypes';
 import { useWatchAllPodEventsAndFilter } from '#~/concepts/pipelines/context/usePipelineEvents.ts';
 import EventLog from '#~/concepts/k8s/EventLog/EventLog';
 import '#~/concepts/dashboard/ModalStyles.scss';
@@ -55,10 +55,15 @@ const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose }) =>
   );
 
   const statusConditions: [StatusType, K8sCondition][] | undefined =
-    pipelinesServer.crStatus?.conditions?.map((condition) => {
-      const containerStatus = getStatusFromCondition(condition);
-      return [containerStatus, condition];
-    });
+    pipelinesServer.crStatus?.conditions
+      ?.filter(
+        (unfilteredCondition) =>
+          unfilteredCondition.reason !== K8sDspaConditionReason.NotApplicable,
+      )
+      .map((condition) => {
+        const containerStatus = getStatusFromCondition(condition);
+        return [containerStatus, condition];
+      });
 
   // Find all error conditions
   const errorConditions: K8sCondition[] =

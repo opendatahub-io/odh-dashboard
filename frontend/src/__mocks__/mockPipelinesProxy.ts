@@ -35,11 +35,13 @@ export const mockPipelinesProxy: { pipelines: PipelineKF[]; total_size: number }
 export const buildMockPipeline = (pipeline?: Partial<PipelineKF>): PipelineKF => {
   /* eslint-disable @typescript-eslint/naming-convention */
   const display_name = pipeline?.display_name || 'Test pipeline';
+  const name = pipeline?.name;
   const pipeline_id = display_name.replace(/ /g, '-').toLowerCase();
 
   return {
     pipeline_id,
     display_name,
+    name,
     created_at: '2023-11-30T22:55:17Z',
     description: 'some pipeline description',
     ...pipeline,
