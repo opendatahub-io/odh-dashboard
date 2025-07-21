@@ -24,6 +24,10 @@ class AppChrome {
     return cy.get('#page-sidebar');
   }
 
+  findHelpButton() {
+    return cy.get('#help-icon-toggle');
+  }
+
   getApplicationLauncher() {
     return new ApplicationLauncher(() => cy.findByTestId('application-launcher'));
   }
