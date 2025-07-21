@@ -27,9 +27,63 @@ If you get the go-ahead on a new component, place it in the [`frontend/src/compo
 
 Oftentimes developers write `React.useRef`, `React.useMemo`, and `React.useCallback` without thinking about use-cases. Avoid doing performance based optimizations when no gain is in sight. React is pretty performant on its own and we shouldn't jump the gun as there are implications for how they impact the code.
 
-There will be use-cases for this, see the [Custom Hooks](#custom-hooks). 
+**When to use `useCallback` (reference stability matters):**
 
-Main goal here is to memoize functions (`useCallback`) when you're passing the value between components. If you're using it for an `onClick` handler, useCallback has next to no value here. It isn't 100% true, see [this code example](https://github.com/andrewballantyne/code-examples/blob/main/example3/README.md).
+```typescript
+// ✅ GOOD: Function passed as prop to child component
+const handleItemClick = useCallback((id: string) => {
+  setSelectedItem(id);
+}, []);
+
+return <ItemList onItemClick={handleItemClick} />;
+
+// ✅ GOOD: Function used as useEffect dependency
+const fetchData = useCallback(async () => {
+  const data = await api.getData(filter);
+  setData(data);
+}, [filter]);
+
+useEffect(() => {
+  fetchData();
+}, [fetchData]);
+
+// ✅ GOOD: Function returned from custom hook
+const useItemActions = () => {
+  const deleteItem = useCallback((id: string) => {
+    // delete logic
+  }, []);
+  
+  return { deleteItem };
+};
+```
+
+**When NOT to use `useCallback` (unnecessary overhead):**
+
+```typescript
+// ❌ BAD: Simple event handler not passed as prop
+const handleClick = useCallback(() => {
+  setCount(count + 1);
+}, [count]); // Recreates on every count change anyway!
+
+// ✅ GOOD: Just use regular function
+const handleClick = () => {
+  setCount(prev => prev + 1);
+};
+
+// ❌ BAD: Function only used internally
+const processData = useCallback(() => {
+  return data.map(item => ({ ...item, processed: true }));
+}, [data]);
+
+// ✅ GOOD: Use useMemo for computations
+const processedData = useMemo(() => {
+  return data.map(item => ({ ...item, processed: true }));
+}, [data]);
+```
+
+**Key principle:** Only memoize functions when their reference stability actually matters for performance or correctness.
+
+For edge cases and advanced examples, see [this code example](https://github.com/andrewballantyne/code-examples/blob/main/example3/README.md).
 
 ### Custom Hooks
 
