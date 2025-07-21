@@ -368,7 +368,7 @@ describe('Register catalog model page', () => {
       .findFormField(FormFieldSelector.MODEL_DESCRIPTION)
       .clear()
       .type('user-typed-description')
-      .should('have.value', 'user-typed-description', { timeout: 30000 });
+      .should('have.value', 'user-typed-description');
     registerModelPage
       .findFormField(FormFieldSelector.VERSION_NAME)
       .clear()
