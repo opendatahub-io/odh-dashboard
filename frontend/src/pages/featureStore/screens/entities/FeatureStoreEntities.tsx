@@ -2,8 +2,6 @@ import React from 'react';
 import { EmptyStateBody, EmptyStateVariant, EmptyState } from '@patternfly/react-core';
 import { SearchIcon } from '@patternfly/react-icons';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
-import { ProjectObjectType } from '#~/concepts/design/utils';
-import TitleWithIcon from '#~/concepts/design/TitleWithIcon';
 import useFeatureStoreEntities from '#~/pages/featureStore/apiHooks/useFeatureStoreEnitites';
 import FeatureStoreProjectSelectorNavigator from '#~/pages/featureStore/screens/components/FeatureStoreProjectSelectorNavigator';
 import { featureStoreRoute } from '#~/pages/featureStore/FeatureStoreRoutes';
@@ -40,7 +38,7 @@ const FeatureStoreEntities = (): React.ReactElement => {
     <ApplicationsPage
       empty={entities.entities.length === 0}
       emptyStatePage={emptyState}
-      title={<TitleWithIcon title={title} objectType={ProjectObjectType.modelEvaluation} />}
+      title={title}
       description={description}
       loadError={entitiesLoadError}
       loaded={entitiesLoaded}
