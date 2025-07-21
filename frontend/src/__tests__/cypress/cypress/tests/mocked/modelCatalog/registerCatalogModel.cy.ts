@@ -373,6 +373,6 @@ describe('Register catalog model page', () => {
       .findFormField(FormFieldSelector.VERSION_NAME)
       .clear()
       .type('user-typed-version')
-      .should('have.value', 'user-typed-version', { timeout: 30000 });
+      .should('have.value', 'user-typed-version');
   });
 });
