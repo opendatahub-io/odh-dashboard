@@ -46,8 +46,14 @@ Here is a handy list of things to consider when doing a review on any PR.
 - [ ] **Components avoid using useMemo for processes that are not computationally expensive**
 
 - [ ] **Referential stability has been maintained** for variables through render loops and the use-cases have been considered for when it has changed
-  - [ ] *All functions passed to another component have referential integrity* (exception being to PF components and onChange-esk handlers)
-  - [ ] *Understanding use of referential integrity around new hooks added* – useMemo, useEffect, useCallback should all be dependent on referentially stable variables
+  - [ ] *Functions are memoized with useCallback only when necessary:*
+    - Functions passed as props to child components (to prevent unnecessary re-renders)
+    - Functions used as dependencies in useEffect, useMemo, or other hooks
+    - Functions passed to context providers or returned from custom hooks
+  - [ ] *Functions are NOT unnecessarily memoized:*
+    - Simple event handlers (onClick, onChange) that aren't passed as props
+    - Functions without dependencies or only used within the same component
+  - [ ] *All hook dependencies (useEffect, useMemo, useCallback) use referentially stable variables*
 
 - [ ] **No `useEffect`s that take incoming props and computes them for a local `useState`** – this is `useMemo` with extra steps
 
