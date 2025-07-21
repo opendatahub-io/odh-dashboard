@@ -666,12 +666,13 @@ local_show_completed_message() {
   echo ""
   echo "Next steps:"
   echo -e "1. ${CYAN}npm install && npm run build${NC} if not done automatically."
-  echo "2. Start the development environment:"
+  echo -e "2. If ${CYAN}oc${NC} was installed, ensure to add it to your PATH within your .bashrc/.zshrc/etc."
+  echo "3. Start the development environment:"
   echo -e "   For frontend only (backend in cluster): ${CYAN}cd frontend && npm run start:dev:ext${NC}"
   echo -e "   For both backend and frontend: ${CYAN}npm run dev${NC}"
   echo -e "   ${CYAN}npm run start:dev${NC} in /frontend and /backend for each component separately."
   echo ""
-  echo "3. Access the dashboard at:"
+  echo "4. Access the dashboard at:"
   echo -e "   ${CYAN}http://localhost:4010${NC}"
 }
 

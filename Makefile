@@ -25,15 +25,12 @@ CONTAINER_DOCKERFILE?=Dockerfile
 
 reinstall: build push undeploy deploy
 
-.PHONY:dev-setup
-dev-setup:
-	echo "Running dev-setup..."
-	./scripts/dev/setup-dev.sh $(ARGS)
+##################################
 
-.PHOY:dev-env
-dev-env-local:
-	echo "Running dev-env-local..."
-	./scripts/dev/dev-env.sh local $(ARGS)
+.PHONY:setup-dev
+setup-dev:
+	echo "Running setup-dev..."
+	./scripts/dev/setup-dev.sh $(ARGS)
 
 ##################################
 
