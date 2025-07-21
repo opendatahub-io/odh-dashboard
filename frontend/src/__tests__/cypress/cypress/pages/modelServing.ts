@@ -249,6 +249,10 @@ class InferenceServiceModal extends ServingModal {
     });
   }
 
+  findPVCSelect() {
+    return this.find().findByTestId('pvc-connection-selector');
+  }
+
   findHardProfileSelection(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('hardware-profile-select');
   }
@@ -551,6 +555,10 @@ class KServeModal extends InferenceServiceModal {
 
   findMemoryLimitButton(type: 'Plus' | 'Minus') {
     return this.find().findByTestId('memory-limit-input').findByRole('button', { name: type });
+  }
+
+  findPVCConnectionOption() {
+    return this.find().findByTestId('pvc-serving-radio');
   }
 }
 mixin(KServeModal, [ServingRuntimeModal, InferenceServiceModal]);

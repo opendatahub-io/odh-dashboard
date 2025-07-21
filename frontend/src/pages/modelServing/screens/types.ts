@@ -100,6 +100,7 @@ export enum InferenceServiceStorageType {
   NEW_STORAGE = 'new-storage',
   EXISTING_STORAGE = 'existing-storage',
   EXISTING_URI = 'existing-uri',
+  PVC_STORAGE = 'pvc-storage',
 }
 
 export type InferenceServiceStorage = {
@@ -108,6 +109,7 @@ export type InferenceServiceStorage = {
   dataConnection: string;
   uri?: string;
   awsData: EnvVariableDataEntry[];
+  pvcConnection?: string;
   alert?: {
     type: AlertVariant;
     title: string;
