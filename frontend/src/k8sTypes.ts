@@ -1267,7 +1267,6 @@ export type DashboardCommonConfig = {
   disableLlamaStackChatBot: boolean;
   disableLMEval: boolean;
   disableKueue: boolean;
-  disablePVCServing: boolean;
   disableFeatureStore?: boolean;
 };
 

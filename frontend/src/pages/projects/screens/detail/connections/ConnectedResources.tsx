@@ -11,7 +11,6 @@ import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import { useInferenceServicesForConnection } from '#~/pages/projects/useInferenceServicesForConnection';
 import { PersistentVolumeClaimKind } from '#~/k8sTypes';
 import { isModelStorage } from '#~/pages/projects/screens/detail/storage/utils';
-import { useIsAreaAvailable, SupportedArea } from '#~/concepts/areas/index';
 import { EitherNotBoth } from '#~/typeHelpers';
 
 export type ConnectedResourcesProps = EitherNotBoth<
@@ -31,7 +30,6 @@ const ConnectedResources: React.FC<ConnectedResourcesProps> = ({ connection, pvc
     [pvc],
   );
   const modelStorage = React.useMemo(() => (pvc ? isModelStorage(pvc) : false), [pvc]);
-  const pvcServing = useIsAreaAvailable(SupportedArea.PVCSERVING).status;
   const connectedModels = useInferenceServicesForConnection(connection);
 
   if (!notebooksLoaded) {
@@ -61,7 +59,7 @@ const ConnectedResources: React.FC<ConnectedResourcesProps> = ({ connection, pvc
     ));
 
   const renderPVCModelLabel = () =>
-    modelStorage && pvcServing ? (
+    modelStorage ? (
       <ResourceLabel
         key={modelName ?? 'Unknown model'}
         resourceType={ProjectObjectType.deployedModelsList}
