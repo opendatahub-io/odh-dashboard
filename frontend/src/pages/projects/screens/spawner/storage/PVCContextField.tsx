@@ -1,5 +1,12 @@
 import React, { useState } from 'react';
-import { FormGroup, FormHelperText, FormSection, Radio, TextInput } from '@patternfly/react-core';
+import {
+  FormGroup,
+  FormHelperText,
+  FormSection,
+  HelperText,
+  Radio,
+  TextInput,
+} from '@patternfly/react-core';
 import FieldGroupHelpLabelIcon from '#~/components/FieldGroupHelpLabelIcon.tsx';
 
 type PVCContextFieldProps = {
@@ -40,7 +47,7 @@ const PVCContextField: React.FC<PVCContextFieldProps> = ({
           <FieldGroupHelpLabelIcon
             content={
               <p>
-                The storage context is optional and used to identify the purpose of the storage.
+                The context indicates the purpose of the storage: general purpose, or model storage.
               </p>
             }
           />
@@ -58,7 +65,7 @@ const PVCContextField: React.FC<PVCContextFieldProps> = ({
             setValid(true);
             removeModelAnnotations();
           }}
-          description="General storage for all use cases."
+          description="Appropriate for all use cases."
         />
         <br />
         <Radio
@@ -76,7 +83,7 @@ const PVCContextField: React.FC<PVCContextFieldProps> = ({
               validatePath(modelPath);
             }
           }}
-          description="Helps identify where a model is stored inside your storage."
+          description="Appropriate for model storage. Enables you to define the model name and path."
           body={
             !isGeneralPurpose && (
               <FormSection title="Model details">
@@ -97,7 +104,9 @@ const PVCContextField: React.FC<PVCContextFieldProps> = ({
                     isRequired
                   />
                   <FormHelperText>
-                    Where in the cluster storage your model is located.
+                    <HelperText>
+                      Enter the path to the model location within the cluster storage.
+                    </HelperText>
                   </FormHelperText>
                 </FormGroup>
                 <FormGroup label="Model name" fieldId="storage-context-model-storage-model-name">
@@ -109,7 +118,7 @@ const PVCContextField: React.FC<PVCContextFieldProps> = ({
                     onChange={(_, value) => setModelName(value.trim())}
                   />
                   <FormHelperText>
-                    Optionally, the name of the model to help identify it later.
+                    <HelperText>Enter the name of the model.</HelperText>
                   </FormHelperText>
                 </FormGroup>
               </FormSection>

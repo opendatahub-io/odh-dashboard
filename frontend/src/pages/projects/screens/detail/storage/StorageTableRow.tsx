@@ -148,13 +148,13 @@ const StorageTableRow: React.FC<StorageTableRowProps> = ({
           <AccessModeFullName accessModeString={getPvcAccessMode(obj.pvc)} />
         </Content>
       </Td>
-      <Td dataLabel="Type">
+      <Td dataLabel="Storage context">
         <Content component="p">
           <Flex>
             <FlexItem spacer={{ default: 'spacerSm' }}>
               <HddIcon />
             </FlexItem>
-            <FlexItem>{` ${modelStorage ? 'Model' : 'Generic persistent'} storage`}</FlexItem>
+            <FlexItem>{` ${modelStorage ? 'Model storage' : 'General purpose'}`}</FlexItem>
           </Flex>
         </Content>
       </Td>

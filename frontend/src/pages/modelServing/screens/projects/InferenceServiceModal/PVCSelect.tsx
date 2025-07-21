@@ -57,7 +57,7 @@ export const PvcSelect: React.FC<PvcSelectProps> = ({
           value: pvc.metadata.name,
           dropdownLabel: isModelServingPVC ? (
             <Label isCompact color="green">
-              {modelName ?? 'unknown model'}
+              {modelName ?? 'Unknown model name'}
             </Label>
           ) : undefined,
           isSelected: selectedPVC?.metadata.name === pvc.metadata.name,
@@ -89,7 +89,8 @@ export const PvcSelect: React.FC<PvcSelectProps> = ({
         {selectedPVC && accessMode !== AccessMode.RWX && (
           <StackItem>
             <Alert variant="warning" title="Warning" isInline>
-              This cluster storage access mode is not ReadWriteMany.
+              The access mode of the selected cluster storage is not <strong>ReadWriteMany</strong>.
+              This can prevent replicas from working as expected.
             </Alert>
           </StackItem>
         )}

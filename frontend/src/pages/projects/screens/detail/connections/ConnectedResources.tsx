@@ -61,9 +61,9 @@ const ConnectedResources: React.FC<ConnectedResourcesProps> = ({ connection, pvc
   const renderPVCModelLabel = () =>
     modelStorage ? (
       <ResourceLabel
-        key={modelName ?? 'Unknown model'}
+        key={modelName ?? 'Unknown model name'}
         resourceType={ProjectObjectType.deployedModelsList}
-        title={modelName ?? 'Unknown model'}
+        title={modelName ?? 'Unknown model name'}
       />
     ) : null;
 
