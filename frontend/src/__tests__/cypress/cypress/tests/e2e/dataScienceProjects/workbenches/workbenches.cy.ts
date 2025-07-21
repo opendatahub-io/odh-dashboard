@@ -74,7 +74,7 @@ describe('Workbench and PVSs tests', () => {
 
   it(
     'Verify users can create a workbench and connect an existent PersistentVolume',
-    { tags: ['@Smoke', '@SmokeSet1', '@ODS-1814', '@Dashboard'] },
+    { tags: ['@Smoke', '@SmokeSet1', '@ODS-1814', '@Dashboard', '@Workbenches'] },
     () => {
       const workbenchName = projectName.replace('dsp-', '');
       let selectedImageStream: string;
