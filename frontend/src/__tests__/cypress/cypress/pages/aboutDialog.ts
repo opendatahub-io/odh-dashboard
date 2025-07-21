@@ -1,9 +1,10 @@
+import { appChrome } from '#~/__tests__/cypress/cypress/pages/appChrome';
 import { TableRow } from './components/table';
 import Chainable = Cypress.Chainable;
 
 export class AboutDialog {
   show(wait = true): void {
-    cy.get('#help-icon-toggle').click();
+    appChrome.findHelpButton().click();
     cy.findByTestId('help-about-item').click();
     if (wait) {
       this.wait();
