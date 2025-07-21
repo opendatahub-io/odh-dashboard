@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
 
-import { DataSource, DataSources } from '#~/concepts/featureStore/types.ts';
+import { DataSource, DataSources } from '#~/pages/featureStore/types.ts';
 
 /* eslint-disable @typescript-eslint/naming-convention */
 export const mockDataSource_REQUEST_SOURCE = (partial?: Partial<DataSource>): DataSource => ({

@@ -1,21 +1,24 @@
 import { Bullseye, Divider, Flex, FlexItem, MenuItem, Truncate } from '@patternfly/react-core';
 import React from 'react';
 import SearchSelector from '#~/components/searchSelector/SearchSelector.tsx';
-import { FeatureStoreProjectContext } from '#~/concepts/featureStore/context/FeatureStoreProjectContext.tsx';
-import { FeatureStoreProject } from '#~/concepts/featureStore/types.ts';
+import { FeatureStoreProject } from '#~/pages/featureStore/types.ts';
+import useFeatureStoreProjects from '#~/pages/featureStore/apiHooks/useFeatureStoreProjects';
+import { FeatureStoreObject } from '#~/pages/featureStore/const';
 
 type FeatureStoreProjectSelectorProps = {
   featureStoreProject: string;
-  onSelection: (featureStoreProject: string) => void;
+  featureStoreObject: FeatureStoreObject;
+  onSelection: (featureStoreObject: FeatureStoreObject, featureStoreProject?: string) => void;
 };
 
 const FeatureStoreProjectSelector: React.FC<FeatureStoreProjectSelectorProps> = ({
   featureStoreProject,
+  featureStoreObject,
   onSelection,
 }) => {
-  const { featureStoreProjects } = React.useContext(FeatureStoreProjectContext);
+  const { data: featureStoreProjects } = useFeatureStoreProjects();
   const [searchText, setSearchText] = React.useState('');
-  const selection = featureStoreProjects.find(
+  const selection = featureStoreProjects.projects.find(
     (project) => project.spec.name === featureStoreProject,
   );
   const selectionName = selection ? selection.spec.name : 'All projects';
@@ -24,8 +27,8 @@ const FeatureStoreProjectSelector: React.FC<FeatureStoreProjectSelectorProps> = 
       !searchText || project.spec.name.toLowerCase().includes(searchText.toLowerCase()),
     [searchText],
   );
-  const filteredProjects = featureStoreProjects.filter(bySearchText);
-  const toggleLabel = featureStoreProjects.length === 0 ? 'No projects' : selectionName;
+  const filteredProjects = featureStoreProjects.projects.filter(bySearchText);
+  const toggleLabel = featureStoreProjects.projects.length === 0 ? 'No projects' : selectionName;
 
   const selector = (
     <SearchSelector
@@ -44,7 +47,7 @@ const FeatureStoreProjectSelector: React.FC<FeatureStoreProjectSelectorProps> = 
           key="all-projects"
           isSelected={featureStoreProject === ''}
           onClick={() => {
-            onSelection('');
+            onSelection(featureStoreObject);
           }}
         >
           All projects
@@ -57,7 +60,7 @@ const FeatureStoreProjectSelector: React.FC<FeatureStoreProjectSelectorProps> = 
             isSelected={project.spec.name === selection?.spec.name}
             onClick={() => {
               setSearchText('');
-              onSelection(project.spec.name);
+              onSelection(featureStoreObject, project.spec.name);
             }}
           >
             <Truncate content={project.spec.name}>{project.spec.name}</Truncate>

@@ -9,19 +9,16 @@ import { useAccessAllowed, verbModelAccess } from '#~/concepts/userSSAR';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import WhosMyAdministrator from '#~/components/WhosMyAdministrator.tsx';
 import { ProjectObjectType, typedEmptyImage } from '#~/concepts/design/utils.ts';
-import {
-  FeatureStoreProjectContext,
-  FeatureStoreProjectContextProvider,
-} from '#~/concepts/featureStore/context/FeatureStoreProjectContext.tsx';
 import RedirectErrorState from '#~/pages/external/RedirectErrorState';
+import { useFeatureStoreCR } from '#~/pages/featureStore/apiHooks/useFeatureStoreCR.tsx';
 import EmptyStateFeatureStore from './screens/components/EmptyStateFeatureStore';
-import FeatureStoreProjectSelectorNavigator from './screens/FeatureStoreProjectSelectorNavigator';
+import FeatureStoreProjectSelectorNavigator from './screens/components/FeatureStoreProjectSelectorNavigator';
+import { featureStoreRoute } from './FeatureStoreRoutes';
+import { FeatureStoreContextProvider } from './FeatureStoreContext';
 
 type ApplicationPageProps = React.ComponentProps<typeof ApplicationsPage>;
 
-type FeatureStoreCoreLoaderProps = {
-  getInvalidRedirectPath: (featureStoreProject: string) => string;
-};
+type FeatureStoreCoreLoaderProps = Record<string, never>;
 
 type ApplicationPageRenderState = Pick<
   ApplicationPageProps,
@@ -32,34 +29,37 @@ const FeatureStoreCoreLoader: React.FC<FeatureStoreCoreLoaderProps> =
   conditionalArea<FeatureStoreCoreLoaderProps>(
     SupportedArea.FEATURE_STORE,
     false,
-  )(({ getInvalidRedirectPath }) => {
+  )(() => {
     const [isAdmin, isAdminLoaded] = useAccessAllowed(verbModelAccess('create', FeatureStoreModel));
-    const { featureStoreProjectLoaded, featureStoreProjectLoadError, featureStoreProjects } =
-      React.useContext(FeatureStoreProjectContext);
+    const {
+      featureStoreCR,
+      isLoaded: featureStoreCRLoaded,
+      error: featureStoreCRError,
+    } = useFeatureStoreCR();
 
-    if (featureStoreProjectLoadError) {
+    if (featureStoreCRError) {
       return (
-        <ApplicationsPage loaded loadError={featureStoreProjectLoadError} empty={false}>
+        <ApplicationsPage loaded loadError={featureStoreCRError} empty={false}>
           <RedirectErrorState
             title="Feature Store project load error"
-            errorMessage={featureStoreProjectLoadError.message}
+            errorMessage={featureStoreCRError.message}
           />
         </ApplicationsPage>
       );
     }
 
     // Wait for both feature store project and admin permissions to load
-    if (!featureStoreProjectLoaded || !isAdminLoaded) {
+    if (!featureStoreCRLoaded || !isAdminLoaded) {
       return <Bullseye>Loading feature store projects...</Bullseye>;
     }
 
     let renderStateProps: ApplicationPageRenderState & { children?: React.ReactNode };
-    if (featureStoreProjects.length === 0) {
-      const adminTitle = 'Create a Feature store project';
+    if (!featureStoreCR) {
+      const adminTitle = 'Create a Feature store service';
       const adminDescription = (
         <>
-          No feature store projects are available to users in your organization. Create a Feature
-          store project from the <b>OpenShift platform</b>.
+          No feature store service is available to users in your organization. Create a Feature
+          store service from the <b>OpenShift platform</b>.
         </>
       );
 
@@ -88,9 +88,9 @@ const FeatureStoreCoreLoader: React.FC<FeatureStoreCoreLoaderProps> =
       };
     } else {
       return (
-        <FeatureStoreProjectContextProvider>
+        <FeatureStoreContextProvider>
           <Outlet />
-        </FeatureStoreProjectContextProvider>
+        </FeatureStoreContextProvider>
       );
     }
 
@@ -99,7 +99,11 @@ const FeatureStoreCoreLoader: React.FC<FeatureStoreCoreLoaderProps> =
         title="Feature Store"
         description="A catalog of features, entities, feature views and datasets created by your own team"
         headerContent={
-          <FeatureStoreProjectSelectorNavigator getRedirectPath={getInvalidRedirectPath} />
+          <FeatureStoreProjectSelectorNavigator
+            getRedirectPath={(featureStoreObject, featureStoreProject) =>
+              featureStoreRoute(featureStoreObject, featureStoreProject)
+            }
+          />
         }
         {...renderStateProps}
         loaded

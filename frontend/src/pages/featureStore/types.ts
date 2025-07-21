@@ -1,5 +1,14 @@
 import { K8sAPIOptions } from '#~/k8sTypes.ts';
 
+export type FeatureStorePagination = {
+  page: number;
+  limit: number;
+  total_count: number;
+  total_pages: number;
+  has_next: boolean;
+  has_previous: boolean;
+};
+
 export type FeatureStoreMeta = {
   createdTimestamp: string;
   lastUpdatedTimestamp: string;
@@ -19,6 +28,11 @@ export type FeatureStoreProject = {
   meta: FeatureStoreMeta;
 };
 
+export type ProjectList = {
+  projects: FeatureStoreProject[];
+  pagination: FeatureStorePagination;
+};
+
 export type Entity = {
   spec: {
     name: string;
@@ -30,8 +44,9 @@ export type Entity = {
   meta: FeatureStoreMeta;
 };
 
-export type Entities = {
+export type EntityList = {
   entities: Entity[];
+  pagination: FeatureStorePagination;
 };
 
 export type DataSource =
@@ -162,12 +177,11 @@ export type FeatureStoreError = {
   message: string;
 };
 
-export type GetListFeatureStoreProjects = (
-  opts: K8sAPIOptions,
-  name: string,
-  namespace: string,
-) => Promise<FeatureStoreProject[]>;
+export type GetProjects = (opts: K8sAPIOptions) => Promise<ProjectList>;
+
+export type GetEntities = (opts: K8sAPIOptions, project?: string) => Promise<EntityList>;
 
 export type FeatureStoreAPIs = {
-  listFeatureStoreProject: GetListFeatureStoreProjects;
+  listFeatureStoreProject: GetProjects;
+  getEntities: GetEntities;
 };
