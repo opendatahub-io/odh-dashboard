@@ -156,4 +156,12 @@ describe('Application', () => {
     // Wait for the sign out intercept to be triggered
     cy.wait('@signOut');
   });
+
+  it('should contain help actions', () => {
+    appChrome.visit();
+    appChrome.findHelpButton().click();
+
+    cy.findByRole('menuitem', { name: 'Documentation' }).should('exist');
+    cy.findByRole('menuitem', { name: 'Community' }).should('exist');
+  });
 });
