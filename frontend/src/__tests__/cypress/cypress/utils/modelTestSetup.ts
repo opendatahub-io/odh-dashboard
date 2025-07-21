@@ -50,6 +50,179 @@ const checkStorageDeploymentExists = (
   return checkResourceExists('deployment', deploymentName, namespace);
 };
 
+// Robust port extraction function
+const extractPortFromYaml = (yamlContent: string): string => {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const parsedYaml = yaml.load(yamlContent) as any;
+
+    // Try multiple possible paths for port extraction
+    const port =
+      parsedYaml?.spec?.ports?.[0]?.port ||
+      parsedYaml?.spec?.template?.spec?.containers?.[0]?.ports?.[0]?.containerPort ||
+      parsedYaml?.spec?.template?.spec?.containers?.[0]?.ports?.[0]?.port;
+
+    if (port) {
+      return port.toString();
+    }
+
+    // Fallback to regex if YAML parsing doesn't find the port
+    const portMatch = yamlContent.match(/port:\s*(\d+)/);
+    return portMatch ? portMatch[1] : '9000';
+  } catch (error) {
+    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+    cy.log(`Warning: Failed to parse YAML for port extraction: ${error}`);
+    // Fallback to regex
+    const portMatch = yamlContent.match(/port:\s*(\d+)/);
+    return portMatch ? portMatch[1] : '9000';
+  }
+};
+
+// Function to deploy storage if needed
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/restrict-template-expressions */
+const deployStorageIfNeeded = (
+  modelTestConfig: ModelTestConfig,
+  testProjectName: string,
+): Cypress.Chainable<any> => {
+  return checkStorageDeploymentExists(modelTestConfig.storageDeploymentName, testProjectName).then(
+    (storageExists) => {
+      if (storageExists) {
+        cy.log(
+          `Storage deployment ${modelTestConfig.storageDeploymentName} already exists, skipping storage deployment`,
+        );
+        return cy.wrap(undefined);
+      }
+      cy.log(`Deploying storage resources from ${modelTestConfig.storageYaml}`);
+      return cy.fixture(modelTestConfig.storageYaml).then((yamlContent) => {
+        // Use robust port extraction
+        const port = extractPortFromYaml(yamlContent);
+
+        // Construct the storage endpoint automatically from deployment name and namespace
+        const storageEndpoint = `http://${modelTestConfig.storageDeploymentName}.${testProjectName}.svc:${port}`;
+        const encodedEndpoint = Buffer.from(storageEndpoint).toString('base64');
+
+        // Define template variable replacements for storage YAML
+        const storageReplacements = {
+          DEPLOYMENT_NAME: modelTestConfig.storageDeploymentName,
+          STORAGE_SECRET_NAME: modelTestConfig.storageSecretName,
+          STORAGE_ENDPOINT: encodedEndpoint,
+        };
+
+        // Replace template variables
+        const updatedYamlContent = replacePlaceholdersInYaml(yamlContent, storageReplacements);
+
+        // Log the endpoint for debugging
+        cy.log(`Using storage endpoint: ${storageEndpoint} (encoded: ${encodedEndpoint})`);
+        cy.log(`Using deployment name: ${modelTestConfig.storageDeploymentName}`);
+        cy.log(`Using secret name: ${modelTestConfig.storageSecretName}`);
+        cy.log(`Using port: ${port}`);
+
+        // Apply the storage resources using the utility function
+        return applyOpenShiftYaml(updatedYamlContent, testProjectName).then(() => {
+          // Debug: Check if storage was deployed successfully
+          return execWithOutput(
+            `oc get deployment/${modelTestConfig.storageDeploymentName} -n ${testProjectName}`,
+            30, // 30s timeout for status check
+          ).then(({ code: storageCode, stdout: storageStdout, stderr: storageStderr }) => {
+            cy.log('Storage deployment status:', `${storageStdout}\n${storageStderr}`);
+            expect(storageCode).to.equal(0);
+          });
+        });
+      });
+    },
+  );
+};
+
+// Function to deploy ServingRuntime if needed
+const deployServingRuntimeIfNeeded = (
+  servingRuntimeYaml: string,
+  testProjectName: string,
+): Cypress.Chainable<any> => {
+  return checkServingRuntimeExists(testProjectName).then((servingRuntimeExists) => {
+    if (servingRuntimeExists) {
+      cy.log('ServingRuntime already exists, skipping deployment');
+      return cy.wrap(undefined);
+    }
+    cy.log('Applying ServingRuntime');
+    return applyOpenShiftYaml(servingRuntimeYaml, testProjectName).then(
+      ({
+        code: servingRuntimeCode,
+        stdout: servingRuntimeStdout,
+        stderr: servingRuntimeStderr,
+      }) => {
+        cy.log(`ServingRuntime apply result: ${servingRuntimeStdout}\n${servingRuntimeStderr}`);
+
+        // Don't fail if ServingRuntime apply fails - namespace might not be ready yet
+        if (servingRuntimeCode !== 0) {
+          cy.log(
+            `Warning: ServingRuntime apply failed with code ${servingRuntimeCode}, but continuing...`,
+          );
+          cy.log(`ServingRuntime apply result: ${servingRuntimeStdout}\n${servingRuntimeStderr}`);
+        }
+      },
+    );
+  });
+};
+
+// Function to deploy InferenceService if needed
+const deployInferenceServiceIfNeeded = (
+  inferenceServiceYaml: string,
+  modelName: string,
+  testProjectName: string,
+): Cypress.Chainable<any> => {
+  return checkInferenceServiceExists(modelName, testProjectName).then((inferenceServiceExists) => {
+    if (inferenceServiceExists) {
+      cy.log(`InferenceService ${modelName} already exists, skipping deployment`);
+      return cy.wrap(undefined);
+    }
+    cy.log('Applying InferenceService');
+    return applyOpenShiftYaml(inferenceServiceYaml, testProjectName).then(
+      ({
+        code: inferenceServiceCode,
+        stdout: inferenceServiceStdout,
+        stderr: inferenceServiceStderr,
+      }) => {
+        cy.log(
+          `InferenceService apply result: ${inferenceServiceStdout}\n${inferenceServiceStderr}`,
+        );
+
+        // Don't fail if InferenceService apply fails - namespace might not be ready yet
+        if (inferenceServiceCode !== 0) {
+          cy.log(
+            `Warning: InferenceService apply failed with code ${inferenceServiceCode}, but continuing...`,
+          );
+          cy.log(
+            `InferenceService apply result: ${inferenceServiceStdout}\n${inferenceServiceStderr}`,
+          );
+        }
+      },
+    );
+  });
+};
+
+// Function to wait for model to be ready
+const waitForModelReady = (
+  modelName: string,
+  testProjectName: string,
+  timeoutSeconds: number,
+): Cypress.Chainable<any> => {
+  return execWithOutput(
+    `set +e; RC=0;
+  oc wait inferenceservice/${modelName} -n ${testProjectName} --for=condition=Ready=True --timeout=${timeoutSeconds}s || RC=$?;
+  oc describe inferenceservice/${modelName} -n ${testProjectName};
+  exit $RC`,
+    timeoutSeconds + 3,
+  ).then(({ code: waitCode, stdout: waitStdout, stderr: waitStderr }) => {
+    cy.log(`InferenceService wait and describe result: ${waitStdout}\n${waitStderr}`);
+    // Don't fail if InferenceService wait fails - namespace might not be ready yet
+    if (waitCode !== 0) {
+      cy.log(
+        `Warning: InferenceService ${modelName} wait failed with code ${waitCode}, but continuing...`,
+      );
+    }
+  });
+};
+
 export interface ModelTestSetup {
   testProjectName: string;
   modelName: string;
@@ -101,56 +274,8 @@ export const createModelTestSetup = (modelTestConfig: ModelTestConfig): ModelTes
       }
     });
 
-    // Check and deploy storage resources
-    cy.log(`Checking storage resources from ${modelTestConfig.storageYaml}`);
-    checkStorageDeploymentExists(modelTestConfig.storageDeploymentName, testProjectName).then(
-      (storageExists) => {
-        if (storageExists) {
-          cy.log(
-            `Storage deployment ${modelTestConfig.storageDeploymentName} already exists, skipping storage deployment`,
-          );
-        } else {
-          cy.log(`Deploying storage resources from ${modelTestConfig.storageYaml}`);
-          cy.fixture(modelTestConfig.storageYaml).then((yamlContent) => {
-            // Extract port from YAML content (default to 9000 if not found)
-            const portMatch = yamlContent.match(/port:\s*(\d+)/);
-            const port = portMatch ? portMatch[1] : '9000';
-
-            // Construct the storage endpoint automatically from deployment name and namespace
-            const storageEndpoint = `http://${modelTestConfig.storageDeploymentName}.${testProjectName}.svc:${port}`;
-            const encodedEndpoint = Buffer.from(storageEndpoint).toString('base64');
-
-            // Define template variable replacements for storage YAML
-            const storageReplacements = {
-              DEPLOYMENT_NAME: modelTestConfig.storageDeploymentName,
-              STORAGE_SECRET_NAME: modelTestConfig.storageSecretName,
-              STORAGE_ENDPOINT: encodedEndpoint,
-            };
-
-            // Replace template variables
-            const updatedYamlContent = replacePlaceholdersInYaml(yamlContent, storageReplacements);
-
-            // Log the endpoint for debugging
-            cy.log(`Using storage endpoint: ${storageEndpoint} (encoded: ${encodedEndpoint})`);
-            cy.log(`Using deployment name: ${modelTestConfig.storageDeploymentName}`);
-            cy.log(`Using secret name: ${modelTestConfig.storageSecretName}`);
-            cy.log(`Using port: ${port}`);
-
-            // Apply the storage resources using the utility function
-            applyOpenShiftYaml(updatedYamlContent, testProjectName).then(() => {
-              // Debug: Check if storage was deployed successfully
-              execWithOutput(
-                `oc get deployment/${modelTestConfig.storageDeploymentName} -n ${testProjectName}`,
-                30, // 30s timeout for status check
-              ).then(({ code: storageCode, stdout: storageStdout, stderr: storageStderr }) => {
-                cy.log('Storage deployment status:', `${storageStdout}\n${storageStderr}`);
-                expect(storageCode).to.equal(0);
-              });
-            });
-          });
-        }
-      },
-    );
+    // Deploy storage if needed
+    deployStorageIfNeeded(modelTestConfig, testProjectName);
 
     // Check and deploy ServingRuntime and InferenceService
     cy.fixture(modelTestConfig.modelServiceYaml).then((yamlContent) => {
@@ -168,7 +293,7 @@ export const createModelTestSetup = (modelTestConfig: ModelTestConfig): ModelTes
       const servingRuntimeYaml = updatedModelServiceYaml.split('---')[0];
       const inferenceServiceYaml = updatedModelServiceYaml.split('---')[1];
 
-      // Check if ServingRuntime and InferenceService already exist
+      // Check if both resources already exist
       cy.wrap(null)
         .then(() => {
           return checkServingRuntimeExists(testProjectName);
@@ -189,92 +314,17 @@ export const createModelTestSetup = (modelTestConfig: ModelTestConfig): ModelTes
             cy.log(
               `ServingRuntime and InferenceService ${modelName} already exist, skipping deployment`,
             );
-
             // Still wait for the InferenceService to be ready
-            execWithOutput(
-              `set +e; RC=0;
-            oc wait inferenceservice/${modelName} -n ${testProjectName} --for=condition=Ready=True --timeout=${timeoutSeconds}s || RC=$?;
-            oc describe inferenceservice/${modelName} -n ${testProjectName};
-            exit $RC`,
-              timeoutSeconds + 3,
-            ).then(({ code: waitCode, stdout: waitStdout, stderr: waitStderr }) => {
-              cy.log(`InferenceService wait and describe result: ${waitStdout}\n${waitStderr}`);
-              // Don't fail if InferenceService wait fails - namespace might not be ready yet
-              if (waitCode !== 0) {
-                cy.log(
-                  `Warning: InferenceService ${modelName} wait failed with code ${waitCode}, but continuing...`,
-                );
-              }
-            });
+            waitForModelReady(modelName, testProjectName, timeoutSeconds);
           } else {
-            // Apply the ServingRuntime if it doesn't exist
-            if (!servingRuntimeExists) {
-              cy.log('Applying ServingRuntime');
-              applyOpenShiftYaml(servingRuntimeYaml, testProjectName).then(
-                ({
-                  code: servingRuntimeCode,
-                  stdout: servingRuntimeStdout,
-                  stderr: servingRuntimeStderr,
-                }) => {
-                  cy.log(
-                    `ServingRuntime apply result: ${servingRuntimeStdout}\n${servingRuntimeStderr}`,
-                  );
+            // Deploy ServingRuntime if needed
+            deployServingRuntimeIfNeeded(servingRuntimeYaml, testProjectName);
 
-                  // Don't fail if ServingRuntime apply fails - namespace might not be ready yet
-                  if (servingRuntimeCode !== 0) {
-                    cy.log(
-                      `Warning: ServingRuntime apply failed with code ${servingRuntimeCode}, but continuing...`,
-                    );
-                    cy.log(
-                      `ServingRuntime apply result: ${servingRuntimeStdout}\n${servingRuntimeStderr}`,
-                    );
-                  }
-                },
-              );
-            }
+            // Deploy InferenceService if needed
+            deployInferenceServiceIfNeeded(inferenceServiceYaml, modelName, testProjectName);
 
-            // Apply the InferenceService if it doesn't exist
-            if (!inferenceServiceExists) {
-              cy.log('Applying InferenceService');
-              applyOpenShiftYaml(inferenceServiceYaml, testProjectName).then(
-                ({
-                  code: inferenceServiceCode,
-                  stdout: inferenceServiceStdout,
-                  stderr: inferenceServiceStderr,
-                }) => {
-                  cy.log(
-                    `InferenceService apply result: ${inferenceServiceStdout}\n${inferenceServiceStderr}`,
-                  );
-
-                  // Don't fail if InferenceService apply fails - namespace might not be ready yet
-                  if (inferenceServiceCode !== 0) {
-                    cy.log(
-                      `Warning: InferenceService apply failed with code ${inferenceServiceCode}, but continuing...`,
-                    );
-                    cy.log(
-                      `InferenceService apply result: ${inferenceServiceStdout}\n${inferenceServiceStderr}`,
-                    );
-                  }
-                },
-              );
-            }
-
-            // Wait for the InferenceService to be ready - use dynamic timeout
-            execWithOutput(
-              `set +e; RC=0;
-            oc wait inferenceservice/${modelName} -n ${testProjectName} --for=condition=Ready=True --timeout=${timeoutSeconds}s || RC=$?;
-            oc describe inferenceservice/${modelName} -n ${testProjectName};
-            exit $RC`,
-              timeoutSeconds + 3,
-            ).then(({ code: waitCode, stdout: waitStdout, stderr: waitStderr }) => {
-              cy.log(`InferenceService wait and describe result: ${waitStdout}\n${waitStderr}`);
-              // Don't fail if InferenceService wait fails - namespace might not be ready yet
-              if (waitCode !== 0) {
-                cy.log(
-                  `Warning: InferenceService ${modelName} wait failed with code ${waitCode}, but continuing...`,
-                );
-              }
-            });
+            // Wait for the InferenceService to be ready
+            waitForModelReady(modelName, testProjectName, timeoutSeconds);
           }
         });
     });

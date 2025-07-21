@@ -27,6 +27,13 @@ spec:
               value: THESECRETKEY
           ports:
             - containerPort: 9000
+          resources:
+            limits:
+              cpu: 500m
+              memory: 1Gi
+            requests:
+              cpu: 250m
+              memory: 512Mi
 ---
 apiVersion: v1
 kind: Service

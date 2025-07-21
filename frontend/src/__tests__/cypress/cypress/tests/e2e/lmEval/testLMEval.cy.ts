@@ -10,6 +10,7 @@ import {
   configureJob,
   verifyJob,
   waitForJobCreation,
+  navigateToLMEvalEvaluationForm,
 } from '#~/__tests__/cypress/cypress/utils/lmEvalJob';
 import { retryableBefore } from '#~/__tests__/cypress/cypress/utils/retryableHooks';
 import { generateTestUUID } from '#~/__tests__/cypress/cypress/utils/uuidGenerator';
@@ -93,8 +94,7 @@ describe(
 
       // Navigate to evaluation form and fill in form fields
       const staticProjectName = staticTestSetup?.testProjectName || 'test-project';
-      cy.step(`Navigate to evaluation form of project ${staticProjectName}`);
-      lmEvalPage.navigateToEvaluationForm(staticProjectName);
+      navigateToLMEvalEvaluationForm(staticProjectName);
 
       // Verify form fields are present
       cy.step('Verify LMEval form fields are present');
@@ -172,7 +172,9 @@ describe(
 
       cy.intercept('POST', '**/lmevaljobs**', (req) => {
         if (staticConfig) {
-          configureJob(req, staticConfig);
+          const modifiedReq = configureJob(req, staticConfig);
+          // Update the request with the modified version
+          Object.assign(req, modifiedReq);
         }
         req.continue();
       }).as('lmEvalJobCreate');
@@ -196,7 +198,7 @@ describe(
  * Tests LMEval functionality with dynamically downloaded models.
  *
  * - Uses 'dynamic' config that downloads models during deployment
- * - Models (e.g., gpt2) are downloaded via initContainer during pod startup
+ * - Models (e.g., gpt2) are downloaded by vLLM when the container starts
  * - Tests the full model deployment pipeline including download and initialization
  * - Slower execution due to model download time but uses minimal resources
  * - Tokenizer URL points to tiny-untrained-granite for compatibility with small models
@@ -234,8 +236,7 @@ describe(
 
       // Navigate to evaluation form and fill in form fields
       const dynamicProjectName = dynamicTestSetup?.testProjectName || 'test-project';
-      cy.step(`Navigate to evaluation form of project ${dynamicProjectName}`);
-      lmEvalPage.navigateToEvaluationForm(dynamicProjectName);
+      navigateToLMEvalEvaluationForm(dynamicProjectName);
 
       // Fill in form fields to start evaluation
       cy.step(
@@ -266,7 +267,7 @@ describe(
       // Set security settings
       cy.step('Set security settings');
       lmEvalFormPage.setAvailableOnline(true);
-      lmEvalFormPage.setTrustRemoteCode(false);
+      lmEvalFormPage.setTrustRemoteCode(true);
 
       // Set tokenizer URL
       cy.step('Set tokenizer URL');
@@ -288,7 +289,9 @@ describe(
 
       cy.intercept('POST', '**/lmevaljobs**', (req) => {
         if (dynamicConfig) {
-          configureJob(req, dynamicConfig);
+          const modifiedReq = configureJob(req, dynamicConfig);
+          // Update the request with the modified version
+          Object.assign(req, modifiedReq);
         }
         req.continue();
       }).as('lmEvalJobCreate');
