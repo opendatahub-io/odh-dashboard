@@ -5,9 +5,8 @@ metadata:
   labels:
     opendatahub.io/dashboard: 'true'
   annotations:
-    opendatahub.io/recommended-accelerators: '["nvidia.com/gpu"]'
     opendatahub.io/runtime-version: v0.9.1.0
-    openshift.io/display-name: vLLM NVIDIA GPU ServingRuntime for KServe
+    openshift.io/display-name: vLLM CPU ServingRuntime for KServe
 spec:
   annotations:
     prometheus.io/path: /metrics
@@ -16,13 +15,12 @@ spec:
     - args:
         - --port=8032
         - --model=/mnt/models
+        - --served-model-name=qwen-isvc
         - --tensor-parallel-size=1
         - --max-model-len=2048
-        - --gpu-memory-utilization=0.9
-        - --max-num-batched-tokens=2048
-        - --max-num-seqs=256
         - --disable-log-requests
         - --disable-log-stats
+        - --max-num-batched-tokens=2048
       command:
         - python
         - -m
@@ -30,13 +28,8 @@ spec:
       env:
         - name: HF_HOME
           value: /tmp/hf_home
-        - name: OMP_NUM_THREADS
-          value: '8'
-        - name: MKL_NUM_THREADS
-          value: '8'
-        - name: NUMEXPR_NUM_THREADS
-          value: '8'
-      image: quay.io/rh-aiservices-bu/vllm-cpu-openai-ubi9@sha256:d680ff8becb6bbaf83dfee7b2d9b8a2beb130db7fd5aa7f9a6d8286a58cebbfd
+      # Using vLLM v0.2 (created on 2024-06-28)
+      image: quay.io/rh-aiservices-bu/vllm-cpu-openai-ubi9:0.2
       name: kserve-container
       ports:
         - containerPort: 8032

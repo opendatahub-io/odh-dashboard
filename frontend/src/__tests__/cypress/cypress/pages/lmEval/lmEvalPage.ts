@@ -32,21 +32,6 @@ class LMEvalPage {
     return cy.findByTestId('evaluate-model-button');
   }
 
-  navigateToEvaluationForm(projectName?: string) {
-    // Verify we can see the test project in the dropdown
-    if (projectName) {
-      this.selectProjectByName(projectName);
-    }
-    this.findEvaluateModelButton().should('exist').click();
-    if (projectName) {
-      cy.url().should('include', `/modelEvaluations/${projectName}/evaluate`);
-    } else {
-      cy.url().should('include', '/evaluate');
-    }
-    this.findLMEvaluationForm().should('exist');
-    return this;
-  }
-
   findCreateProjectButton() {
     return cy.findByTestId('create-data-science-project');
   }
@@ -66,6 +51,13 @@ class LMEvalPage {
       .contains('button', name)
       .should('be.visible')
       .click();
+  }
+
+  selectAllProjects() {
+    this.findProjectSelector().click();
+    this.findProjectSelectorMenuList().should('be.visible');
+    this.findAllProjectsOption().should('be.visible').click();
+    this.findProjectSelector().should('contain.text', 'All projects');
   }
 
   findBreadcrumb() {
@@ -120,65 +112,50 @@ class LMEvalPage {
     return this;
   }
 
-  switchToAllProjectsView() {
-    // Wait for the project selector to be visible and clickable
-    this.findProjectSelector().should('be.visible').click();
+  findProjectSelectorMenuList() {
+    return cy.findByTestId('project-selector-menuList');
+  }
 
-    // Wait for the dropdown menu to appear
-    cy.findByTestId('project-selector-menuList').should('be.visible');
+  findAllProjectsOption() {
+    return this.findProjectSelectorMenuList().find('button').contains('All projects');
+  }
 
-    // Look for the "All projects" option and click it
-    cy.get('[data-testid="project-selector-menuList"]')
-      .find('button')
-      .contains('All projects')
-      .should('be.visible')
-      .click();
+  // New methods for evaluation details page interactions
+  findEvaluationRunStatus(timeout?: number) {
+    return cy.get('[data-testid="evaluation-run-status"]', { timeout });
+  }
 
-    this.findProjectSelector().should('contain.text', 'All projects');
+  findEvaluationRunLink(evaluationName: string) {
+    return cy.get(`[data-testid="lm-eval-link-${evaluationName}"]`);
+  }
+
+  findDownloadJsonButton() {
+    return cy.get('button').contains('Download JSON');
+  }
+
+  findEvaluationDetailsTitle() {
+    return cy.get('h1');
+  }
+
+  findEvaluationTable() {
+    return cy.get('table');
+  }
+
+  findEvaluationTableRows() {
+    return cy.get('[data-label="Evaluation"]');
+  }
+
+  // Method to verify evaluation details page
+  verifyEvaluationDetailsPage(evaluationName: string, projectName: string) {
+    cy.url().should('include', `/modelEvaluations/${projectName}/${evaluationName}`);
+    this.findEvaluationDetailsTitle().should('contain.text', evaluationName);
+    this.findDownloadJsonButton().should('be.visible').and('not.be.disabled');
     return this;
   }
 
-  // Wait for evaluation run to reach a specific status and verify it exists
-  waitForEvaluationRun(
-    evaluationName: string,
-    expectedStatus: string | string[],
-    modelName?: string,
-    timeout = 60000, // 60 seconds by default
-  ) {
-    // Wait for the table to be visible and loaded
-    cy.get('table').should('be.visible');
-
-    // Wait for the evaluation run to appear in the table first
-    // Use a more specific approach to handle multiple entries with same name
-    cy.get('tr').contains(evaluationName).should('be.visible');
-
-    // Convert expectedStatus to array for consistent handling
-    const expectedStatuses = Array.isArray(expectedStatus) ? expectedStatus : [expectedStatus];
-
-    // Poll for status change using Cypress's built-in retry mechanism
-    cy.get('body', { timeout }).should(($body: JQuery<HTMLElement>) => {
-      // Find all rows containing the evaluation name
-      const evaluationRows = $body.find(`tr:contains("${evaluationName}")`);
-
-      // Check if status matches any of the expected statuses
-      const statusText = evaluationRows.text();
-      const hasExpectedStatus = expectedStatuses.some((status) => statusText.includes(status));
-
-      // Use Cypress assertions instead of throwing errors
-      expect(evaluationRows.length).to.be.greaterThan(0);
-      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-      expect(hasExpectedStatus).to.be.true;
-    });
-
-    // Verify the evaluation run exists with all required elements
-    this.shouldHaveEvaluationRunInTable(evaluationName);
-    if (modelName) {
-      this.shouldHaveModelNameInTable(modelName);
-    }
-    this.shouldHaveEvaluationRunStatus();
-    this.shouldHaveEvaluationRunStartTime();
-    this.shouldHaveEvaluationRunActionsMenu();
-
+  // Method to download JSON results
+  downloadJsonResults() {
+    this.findDownloadJsonButton().click();
     return this;
   }
 }

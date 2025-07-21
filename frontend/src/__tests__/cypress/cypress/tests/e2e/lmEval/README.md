@@ -20,7 +20,8 @@ This directory contains unified tests for LMEval functionality that can work wit
 
 ### Smoke Test (Dynamic Configuration)
 - **Tags**: `@Smoke`, `@SmokeSet3`, `@LMEval`, `@Featureflagged`
-- Uses models that are downloaded via initContainer during pod startup
+- Uses models that are downloaded by vLLM when the container starts
+- vLLM downloads the model (gpt2) automatically when it sees the `--model=gpt2` argument
 - Tests the full model deployment pipeline including download and initialization
 - Tokenizer URL points to tiny-untrained-granite for compatibility with small models
 - Uses gpt2 which is vLLM-compatible and has a smaller footprint than larger models
@@ -56,7 +57,7 @@ static:
 ```yaml
 dynamic:
   name: 'Dynamic Setup (Download models)'
-  description: 'Uses initContainer to download models dynamically'
+  description: 'Uses vLLM to download models dynamically'
   storageYaml: 'e2e/lmEval/minio-dynamic-download.yaml'
   modelServiceYaml: 'e2e/lmEval/inferenceservice-dynamic-tinyllama.yaml'
   modelName: 'tinyllm'
@@ -83,6 +84,22 @@ Both tests follow the same workflow:
 4. Fill in evaluation form with test-specific values
 5. Submit the form and wait for job creation
 6. Verify job execution and results
+
+## Technical Implementation Details
+
+### Static Setup (Pre-baked models)
+- **Model Loading**: Models are pre-stored in MinIO storage and mounted as volumes
+- **Storage Configuration**: Uses `storage` section in InferenceService pointing to MinIO secret
+- **Model Path**: `/mnt/models` (mounted volume with pre-downloaded models)
+- **Resource Usage**: Higher allocation (4 CPU, 16Gi memory) for larger Qwen model
+- **Performance**: Higher concurrency (5 vs 2) due to pre-loaded models
+
+### Dynamic Setup (Download models)
+- **Model Loading**: vLLM downloads models when container starts via `--model=gpt2` argument
+- **Storage Configuration**: No storage section - relies on vLLM's built-in model downloading
+- **Model Path**: `gpt2` (model name that gets downloaded by vLLM)
+- **Resource Usage**: Lower allocation (2 CPU, 10Gi memory) for smaller GPT-2 model
+- **Performance**: Lower concurrency (2 vs 5) due to download overhead
 
 ### Security Settings
 
@@ -130,7 +147,7 @@ npx cypress run --spec "frontend/src/__tests__/cypress/cypress/tests/e2e/lmEval/
 ## YAML Files
 
 - `minio-static.yaml` - MinIO deployment with pre-baked models
-- `minio-dynamic-download.yaml` - MinIO deployment with initContainer for model downloads
+- `minio-dynamic-download.yaml` - MinIO deployment for dynamic model downloads
 - `inferenceservice-static-qwen.yaml` - InferenceService for static setup
 - `inferenceservice-dynamic-tinyllama.yaml` - InferenceService for dynamic setup
 - `test-config.yaml` - Configuration file defining all test setups
