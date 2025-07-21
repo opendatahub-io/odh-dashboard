@@ -1,0 +1,104 @@
+apiVersion: serving.kserve.io/v1alpha1
+kind: ServingRuntime
+metadata:
+  name: vllm-runtime-cpu-fp16
+  labels:
+    opendatahub.io/dashboard: 'true'
+  annotations:
+    opendatahub.io/recommended-accelerators: '["nvidia.com/gpu"]'
+    opendatahub.io/runtime-version: v0.9.1.0
+    openshift.io/display-name: vLLM NVIDIA GPU ServingRuntime for KServe
+spec:
+  annotations:
+    prometheus.io/path: /metrics
+    prometheus.io/port: '8080'
+  containers:
+    - args:
+        - --port=8032
+        - --model=/mnt/models
+        - --tensor-parallel-size=1
+        - --max-model-len=2048
+        - --gpu-memory-utilization=0.9
+        - --max-num-batched-tokens=2048
+        - --max-num-seqs=256
+        - --disable-log-requests
+        - --disable-log-stats
+      command:
+        - python
+        - -m
+        - vllm.entrypoints.openai.api_server
+      env:
+        - name: HF_HOME
+          value: /tmp/hf_home
+        - name: OMP_NUM_THREADS
+          value: '8'
+        - name: MKL_NUM_THREADS
+          value: '8'
+        - name: NUMEXPR_NUM_THREADS
+          value: '8'
+      image: quay.io/rh-aiservices-bu/vllm-cpu-openai-ubi9@sha256:d680ff8becb6bbaf83dfee7b2d9b8a2beb130db7fd5aa7f9a6d8286a58cebbfd
+      name: kserve-container
+      ports:
+        - containerPort: 8032
+          protocol: TCP
+      resources:
+        limits:
+          cpu: '4'
+          memory: 16Gi
+        requests:
+          cpu: '2'
+          memory: 12Gi
+      volumeMounts:
+        - mountPath: /dev/shm
+          name: shm
+  multiModel: false
+  supportedModelFormats:
+    - autoSelect: true
+      name: vLLM
+  volumes:
+    - emptyDir:
+        medium: Memory
+        sizeLimit: 4Gi
+      name: shm
+---
+apiVersion: serving.kserve.io/v1beta1
+kind: InferenceService
+metadata:
+  name: qwen-isvc
+  labels:
+    opendatahub.io/dashboard: 'true'
+  annotations:
+    serving.kserve.io/deploymentMode: RawDeployment
+spec:
+  predictor:
+    automountServiceAccountToken: false
+    model:
+      modelFormat:
+        name: vLLM
+      resources:
+        limits:
+          cpu: '4'
+          memory: 16Gi
+        requests:
+          cpu: '2'
+          memory: 12Gi
+      runtime: vllm-runtime-cpu-fp16
+      storage:
+        key: 'aws-secret-minio-static'
+        path: Qwen2.5-0.5B-Instruct
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: qwen-isvc-predictor
+  labels:
+    component: predictor
+    app: qwen-isvc-predictor
+spec:
+  ports:
+    - name: http
+      port: 80
+      protocol: TCP
+      targetPort: 8032
+  selector:
+    app: qwen-isvc-predictor

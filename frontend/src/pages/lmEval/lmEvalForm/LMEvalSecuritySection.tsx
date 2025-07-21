@@ -76,6 +76,7 @@ const LMEvalSecuritySection: React.FC<LMEvalSecuritySectionProps> = ({
                 }
                 variant="plain"
                 isInline
+                aria-label="Available online help"
               />
             </Popover>
           }
@@ -127,6 +128,7 @@ const LMEvalSecuritySection: React.FC<LMEvalSecuritySectionProps> = ({
                 }
                 variant="plain"
                 isInline
+                aria-label="Trust remote code help"
               />
             </Popover>
           }

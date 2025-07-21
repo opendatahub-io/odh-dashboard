@@ -32,10 +32,10 @@ const LmEvalModelArgumentSection: React.FC<LmEvalModelArgumentSectionProps> = ({
     }
   >
     <FormGroup label="Model name" data-testid="model-argument-name">
-      {modelArgument.name || '-'}
+      <span data-testid="model-argument-name-value">{modelArgument.name || '-'}</span>
     </FormGroup>
     <FormGroup label="Model URL" data-testid="model-argument-url">
-      {modelArgument.url || '-'}
+      <span data-testid="model-argument-url-value">{modelArgument.url || '-'}</span>
     </FormGroup>
     <FormGroup
       label="Tokenized requests"
@@ -58,6 +58,7 @@ const LmEvalModelArgumentSection: React.FC<LmEvalModelArgumentSectionProps> = ({
             }
             variant="plain"
             isInline
+            aria-label="Tokenized requests help"
           />
         </Popover>
       }
@@ -90,12 +91,14 @@ const LmEvalModelArgumentSection: React.FC<LmEvalModelArgumentSectionProps> = ({
             }
             variant="plain"
             isInline
+            aria-label="Tokenizer URL help"
           />
         </Popover>
       }
     >
       <TextInput
         aria-label="Tokenizer text input"
+        data-testid="tokenizer-url-input"
         value={modelArgument.tokenizer}
         onChange={(_event, v) => setModelArgument({ ...modelArgument, tokenizer: v })}
       />

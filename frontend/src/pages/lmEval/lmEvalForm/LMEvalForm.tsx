@@ -122,9 +122,12 @@ const LMEvalForm: React.FC = () => {
       breadcrumb={
         <Breadcrumb>
           <BreadcrumbItem
+            data-testid="breadcrumb-model-evaluation-runs"
             render={() => <Link to="/modelEvaluations">Model evaluation runs</Link>}
           />
-          <BreadcrumbItem isActive>Start an evaluation run</BreadcrumbItem>
+          <BreadcrumbItem isActive data-testid="breadcrumb-start-evaluation-run">
+            Start an evaluation run
+          </BreadcrumbItem>
         </Breadcrumb>
       }
       empty={false}
@@ -218,6 +221,7 @@ const LMEvalForm: React.FC = () => {
                   }
                   variant="plain"
                   isInline
+                  aria-label="Evaluation run name help"
                 />
               </Popover>
             }
