@@ -28,6 +28,14 @@ import { addCommands as webSocketsAddCommands } from './websockets';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const softAssert = require('soft-assert');
 
+// Ignore 'Unexpected token <' errors from webpack-dev-server fallback in E2E tests
+Cypress.on('uncaught:exception', (err) => {
+  if (err.message.includes("Unexpected token '<'")) {
+    return false;
+  }
+  return true;
+});
+
 // ============================
 // Type Definitions
 // ============================

@@ -55,11 +55,23 @@ class LMEvalFormPage {
   }
 
   findModelArgumentName() {
-    return cy.findByTestId('model-argument-name');
+    return cy.findByTestId('model-argument-name-value');
   }
 
   findModelArgumentUrl() {
-    return cy.findByTestId('model-argument-url');
+    return cy.findByTestId('model-argument-url-value');
+  }
+
+  findTokenizerUrlInput() {
+    return cy.findByTestId('tokenizer-url-input');
+  }
+
+  findTasksFormGroup() {
+    return cy.findByTestId('tasks-form-group');
+  }
+
+  findModelTypeDropdown() {
+    return cy.findByLabelText('Options menu');
   }
 
   private findSecuritySection() {
@@ -84,26 +96,38 @@ class LMEvalFormPage {
 
   // Model arguments methods
   shouldHaveModelArgumentName(expectedName: string) {
-    this.findModelArgumentName().should('contain.text', expectedName);
+    this.findModelArgumentName().should('have.text', expectedName);
     return this;
   }
 
   shouldHaveModelArgumentUrl(expectedUrl: string) {
-    this.findModelArgumentUrl().should('contain.text', expectedUrl);
+    this.findModelArgumentUrl().should('have.text', expectedUrl);
     return this;
   }
 
   shouldHaveEmptyModelArguments() {
-    this.findModelArgumentName().should('contain.text', '-');
-    this.findModelArgumentUrl().should('contain.text', '-');
+    this.findModelArgumentName().should('have.text', '-');
+    this.findModelArgumentUrl().should('have.text', '-');
     return this;
   }
 
+  // Model selection method
   selectModelFromDropdown(modelName: string) {
     this.findModelNameDropdown().click();
+
+    // Wait for dropdown to be visible and handle potential timing issues
+    cy.get('[role="listbox"]').should('be.visible');
+
+    // Wait for the specific model option to be available before clicking
     cy.findByText(modelName).should('be.visible').click();
-    // Wait for the model arguments to update by checking that the model name is no longer empty
-    this.findModelArgumentName().should('not.contain.text', '-');
+
+    // Wait for dropdown to close and form state to update
+    cy.get('[role="listbox"]').should('not.exist');
+
+    // Wait for model arguments to be populated (required for form validation)
+    this.findModelArgumentName().should('not.have.text', '-');
+    this.findModelArgumentUrl().should('not.have.text', '-');
+
     return this;
   }
 
@@ -139,6 +163,42 @@ class LMEvalFormPage {
     return this;
   }
 
+  typeTokenizerUrl(url: string) {
+    this.findTokenizerUrlInput().clear().type(url);
+    return this;
+  }
+
+  // Task selection methods
+  selectTasks(taskNames: string[]) {
+    cy.findByTestId('tasks-form-group').find('button').first().click();
+    cy.get('[role="listbox"]').should('be.visible');
+    taskNames.forEach((taskName) => {
+      cy.get('[role="listbox"]').find('[role="option"]').contains(taskName).click();
+    });
+    cy.get('body').type('{esc}');
+    return this;
+  }
+
+  // Model type selection methods
+  selectModelType(modelType: string) {
+    cy.findByTestId('model-type-form-group').find('button').first().click();
+
+    // Wait for dropdown to be visible and handle potential timing issues
+    cy.get('[role="listbox"]').should('be.visible');
+
+    // Wait for the specific option to be available before clicking
+    cy.get('[role="listbox"]')
+      .find('[role="option"]')
+      .contains(modelType)
+      .should('be.visible')
+      .click();
+
+    // Wait for dropdown to close
+    cy.get('[role="listbox"]').should('not.exist');
+
+    return this;
+  }
+
   // Button state methods
   shouldHaveEnabledButtons() {
     this.findSubmitButton().should('exist');
@@ -170,8 +230,8 @@ class LMEvalFormPage {
     return this;
   }
 
-  // Security section methods
-  selectAvailableOnline(value: boolean) {
+  // Security settings methods
+  setAvailableOnline(value: boolean) {
     if (value) {
       this.findAvailableOnlineTrueRadio().click();
     } else {
@@ -180,7 +240,7 @@ class LMEvalFormPage {
     return this;
   }
 
-  selectTrustRemoteCode(value: boolean) {
+  setTrustRemoteCode(value: boolean) {
     if (value) {
       this.findTrustRemoteCodeTrueRadio().click();
     } else {
@@ -231,6 +291,11 @@ class LMEvalFormPage {
   // Navigation methods
   clickCancelButton() {
     this.findCancelButton().click();
+    return this;
+  }
+
+  clickSubmitButton() {
+    this.findSubmitButton().click();
     return this;
   }
 

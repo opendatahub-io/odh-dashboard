@@ -48,6 +48,7 @@ const LMEvalTableRow: React.FC<LMEvalTableRowType> = ({ lmEval, onDeleteLMEval }
       </Td>
       <Td isActionCell>
         <ActionsColumn
+          data-testid="evaluation-run-actions"
           items={[
             ...(currentState === LMEvalState.COMPLETE && lmEval.status?.results
               ? [{ title: 'Download JSON', itemKey: 'download-json', onClick: handleDownload }]

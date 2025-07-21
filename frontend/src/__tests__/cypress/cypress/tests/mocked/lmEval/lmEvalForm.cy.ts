@@ -101,19 +101,19 @@ describe('LMEval Form', () => {
 
     // Test state changes
     lmEvalFormPage
-      .selectAvailableOnline(true)
+      .setAvailableOnline(true)
       .shouldHaveAvailableOnlineSelected(true)
-      .selectTrustRemoteCode(true)
+      .setTrustRemoteCode(true)
       .shouldHaveTrustRemoteCodeSelected(true)
-      .selectAvailableOnline(false)
+      .setAvailableOnline(false)
       .shouldHaveAvailableOnlineSelected(false)
-      .selectTrustRemoteCode(false)
+      .setTrustRemoteCode(false)
       .shouldHaveTrustRemoteCodeSelected(false);
 
     // Test both can be true simultaneously
     lmEvalFormPage
-      .selectAvailableOnline(true)
-      .selectTrustRemoteCode(true)
+      .setAvailableOnline(true)
+      .setTrustRemoteCode(true)
       .shouldHaveAvailableOnlineSelected(true)
       .shouldHaveTrustRemoteCodeSelected(true);
   });

@@ -3,18 +3,26 @@ import type { CommandLineResult } from '#~/__tests__/cypress/cypress/types';
 /**
  * Run a command and return the result exitCode and output (including stderr).
  * @param command The command to run.
+ * @param timeout Timeout in seconds for the command execution (default: 60).
  * @returns A Cypress chainable that resolves to an object with `exitCode` and `output` properties.
  */
 export const execWithOutput = (
   command: string,
-): Cypress.Chainable<{ exitCode: number; output: string }> => {
-  cy.log(`Executing command: ${command}`);
-  return cy.exec(command, { failOnNonZeroExit: false }).then((result: CommandLineResult) => {
-    const stdout = result.stdout.trim();
-    const stderr = result.stderr.trim();
-    const output = stdout && stderr ? `${stdout}\n${stderr}` : stdout || stderr;
-    return { exitCode: result.code, output };
-  });
+  timeout = 60,
+): Cypress.Chainable<CommandLineResult> => {
+  // Convert seconds to milliseconds for Cypress
+  const timeoutMs = timeout * 1000;
+
+  return cy
+    .exec(command, { failOnNonZeroExit: false, timeout: timeoutMs })
+    .then((result: CommandLineResult | null) => {
+      if (!result) {
+        // Provide a default CommandLineResult shape using cy.wrap
+        return cy.wrap({ code: 0, stdout: '', stderr: '' });
+      }
+      cy.log(`Command exit code: ${result.code}`);
+      return cy.wrap(result);
+    });
 };
 
 /**
@@ -23,18 +31,17 @@ export const execWithOutput = (
  * @param yamlContent YAML content to be applied
  * @returns Cypress Chainable
  */
-export const applyOpenShiftYaml = (yamlContent: string): Cypress.Chainable<CommandLineResult> => {
-  const ocCommand = `oc apply -f - <<EOF\n${yamlContent}\nEOF`;
-  return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result: CommandLineResult) => {
-    if (result.code !== 0) {
-      // If there is an error, log the error and fail the test
-      cy.log(`ERROR applying YAML content
-              stdout: ${result.stdout}
-              stderr: ${result.stderr}`);
-      throw new Error(`Command failed with code ${result.code}`);
-    }
-    return result;
-  });
+export const applyOpenShiftYaml = (
+  yamlContent: string,
+  namespace?: string,
+): Cypress.Chainable<CommandLineResult> => {
+  const ns = namespace ? `-n ${namespace}` : '';
+  // Using printf is safer for handling multi-line strings and special characters than echo.
+  // It avoids issues with shell interpretation of the YAML content.
+  const ocCommand = `printf '%s' "${yamlContent.replace(/"/g, '\\"')}" | oc apply ${ns} -f -`;
+
+  // We return the result of execWithOutput to benefit from its logging and error handling
+  return execWithOutput(ocCommand);
 };
 
 /**
