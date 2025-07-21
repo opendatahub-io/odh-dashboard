@@ -12,6 +12,7 @@ spec:
   versions:
     - name: v1alpha1
       deprecated: true
+      deprecationWarning: "DEPRECATED: This version lacks support for the latest scheduling features and is no longer maintained. Please use the HardwareProfile in the 'infrastructure.opendatahub.io' API group."
       served: true
       storage: true
       schema:
