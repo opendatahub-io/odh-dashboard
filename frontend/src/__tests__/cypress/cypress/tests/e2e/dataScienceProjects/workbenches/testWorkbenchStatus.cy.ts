@@ -11,6 +11,10 @@ import { createCleanProject } from '#~/__tests__/cypress/cypress/utils/projectCh
 import { deleteOpenShiftProject } from '#~/__tests__/cypress/cypress/utils/oc_commands/project';
 import { retryableBefore } from '#~/__tests__/cypress/cypress/utils/retryableHooks';
 import { generateTestUUID } from '#~/__tests__/cypress/cypress/utils/uuidGenerator';
+import {
+  selectNotebookImageWithBackendFallback,
+  getImageStreamDisplayName,
+} from '#~/__tests__/cypress/cypress/utils/oc_commands/imageStreams';
 
 describe('Workbenches - status tests', () => {
   let projectName: string;
@@ -48,6 +52,7 @@ describe('Workbenches - status tests', () => {
     { tags: ['@Sanity', '@SanitySet2', '@ODS-1970', '@Dashboard', '@Workbenches'] },
     () => {
       const workbenchName = projectName.replace('dsp-', '');
+      let selectedImageStream: string;
 
       // Authentication and navigation
       cy.step('Log into the application');
@@ -65,41 +70,52 @@ describe('Workbenches - status tests', () => {
       workbenchPage.findCreateButton().click();
       createSpawnerPage.getNameInput().fill(workbenchName);
       createSpawnerPage.getDescriptionInput().type(projectDescription);
-      createSpawnerPage.findNotebookImage('code-server-notebook').click();
-      createSpawnerPage.findSubmitButton().click();
 
-      // Wait for workbench to run
-      cy.step(`Wait for workbench ${workbenchName} to display a "Running" status`);
-      const notebookRow = workbenchPage.getNotebookRow(workbenchName);
-      notebookRow.findNotebookDescription(projectDescription);
-      notebookRow.expectStatusLabelToBe('Running', 120000);
-      notebookRow.shouldHaveNotebookImageName('code-server');
-      notebookRow.shouldHaveContainerSize('Small');
+      // Select notebook image with fallback
+      selectNotebookImageWithBackendFallback('code-server-notebook', createSpawnerPage).then(
+        (imageStreamName) => {
+          selectedImageStream = imageStreamName;
+          cy.log(`Selected imagestream: ${selectedImageStream}`);
 
-      // Click on 'Running' status and validate the Progress steps
-      cy.step(
-        'Click on Running status, validate the Running status and navigate to the Progress tab',
-      );
-      notebookRow.findHaveNotebookStatusText().click();
-      workbenchStatusModal.getNotebookStatus('Running');
+          createSpawnerPage.findSubmitButton().click();
 
-      cy.step('Verify that each Progress Step in the list displays with a Success icon');
-      workbenchStatusModal.findProgressTab().click();
-      workbenchStatusModal.findProgressSteps().each(($step) => {
-        workbenchStatusModal.assertStepSuccess($step).then(() => {
-          workbenchStatusModal.getStepTitle($step).then((stepTitle) => {
-            cy.log(`✅ Step "${stepTitle}" is successful`);
+          // Wait for workbench to run
+          cy.step(`Wait for workbench ${workbenchName} to display a "Running" status`);
+          const notebookRow = workbenchPage.getNotebookRow(workbenchName);
+          notebookRow.findNotebookDescription(projectDescription);
+          notebookRow.expectStatusLabelToBe('Running', 120000);
+
+          // Use dynamic image name verification based on what was actually selected
+          getImageStreamDisplayName(selectedImageStream).then((displayName) => {
+            notebookRow.shouldHaveNotebookImageName(displayName);
+            notebookRow.shouldHaveContainerSize('Small');
+
+            // Click on 'Running' status and validate the Progress steps
+            cy.step(
+              'Click on Running status, validate the Running status and navigate to the Progress tab',
+            );
+            notebookRow.findHaveNotebookStatusText().click();
+            workbenchStatusModal.getNotebookStatus('Running');
+
+            cy.step('Verify that each Progress Step in the list displays with a Success icon');
+            workbenchStatusModal.findProgressTab().click();
+            workbenchStatusModal.findProgressSteps().each(($step) => {
+              workbenchStatusModal.assertStepSuccess($step).then(() => {
+                workbenchStatusModal.getStepTitle($step).then((stepTitle) => {
+                  cy.log(`✅ Step "${stepTitle}" is successful`);
+                });
+              });
+            });
+
+            // Click on the Events log and validate that successful list messages display
+            cy.step('Navigate to Events Tab and verify successful event messages are displayed');
+            workbenchStatusModal.findEventlogTab().click();
+            workbenchStatusModal.findLogEntry('Created container');
+            workbenchStatusModal.findLogEntry('Started container');
+            workbenchStatusModal.findLogEntry('Successfully pulled image');
           });
-        });
-      });
-
-      // Click on the Events log and validate that successful list messages display
-      // TO:DO Refactor this section to validate logs based on backend pod status RHOAIENG-23242
-      cy.step('Verify that each Events log in the list displays with a Successful Message');
-      workbenchStatusModal.findEventlogTab().click();
-      workbenchStatusModal.findLogEntry('Created container');
-      workbenchStatusModal.findLogEntry('Started container');
-      workbenchStatusModal.findLogEntry('Successfully pulled image');
+        },
+      );
     },
   );
 });
