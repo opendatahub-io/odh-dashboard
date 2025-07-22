@@ -1,7 +1,6 @@
 import React from 'react';
 import {
   CardBody,
-  Stack,
   CardFooter,
   Flex,
   Label,
@@ -20,8 +19,7 @@ import {
 } from '@patternfly/react-core';
 import { useNavigate, Link } from 'react-router-dom';
 import { SearchIcon } from '@patternfly/react-icons';
-import { ProjectObjectType, SectionType } from '@odh-dashboard/internal/concepts/design/utils';
-import OverviewCard from '@odh-dashboard/internal/pages/projects/screens/detail/overview/components/OverviewCard';
+import { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
 import TypeBorderedCard from '@odh-dashboard/internal/concepts/design/TypeBorderedCard';
 import HeaderIcon from '@odh-dashboard/internal/concepts/design/HeaderIcon';
 import CollapsibleSection from '@odh-dashboard/internal/concepts/design/CollapsibleSection';
@@ -184,27 +182,8 @@ const DeployedModelsGallery: React.FC<DeployedModelsGalleryProps> = ({
 const DeployedModelsSection: React.FC = () => {
   const availablePlatforms = useExtensions(isModelServingPlatformExtension);
   const { currentProject } = React.useContext(ProjectDetailsContext);
-  const { loaded: deploymentsLoaded } = React.useContext(ModelDeploymentsContext);
   const { activePlatform } = useProjectServingPlatform(currentProject, availablePlatforms);
   const [filteredState, setFilteredState] = React.useState<FilterStates | undefined>();
-
-  if (!deploymentsLoaded) {
-    return (
-      <CollapsibleSection title="Serve models" data-testid="section-model-server">
-        <OverviewCard
-          objectType={ProjectObjectType.deployedModels}
-          sectionType={SectionType.serving}
-          title="Deployed models"
-        >
-          <CardBody>
-            <Stack hasGutter>
-              <Content component="small">Loading deployed models...</Content>
-            </Stack>
-          </CardBody>
-        </OverviewCard>
-      </CollapsibleSection>
-    );
-  }
 
   const platformLabel = activePlatform?.properties.enableCardText.enabledText;
 

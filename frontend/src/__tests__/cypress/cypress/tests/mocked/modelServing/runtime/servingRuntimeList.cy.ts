@@ -97,6 +97,7 @@ type HandlersProps = {
   DscComponents?: DataScienceClusterKindStatus['components'];
   disableProjectScoped?: boolean;
   disableHardwareProfiles?: boolean;
+  disablePVCServing?: boolean;
 };
 import { STOP_MODAL_PREFERENCE_KEY } from '#~/pages/modelServing/useStopModalPreference';
 
@@ -110,6 +111,7 @@ const initIntercepts = ({
   projectEnableModelMesh,
   disableProjectScoped = true,
   disableHardwareProfiles = true,
+  disablePVCServing = true,
   servingRuntimes = [
     mockServingRuntimeK8sResourceLegacy({ tolerations: [], nodeSelector: {} }),
     mockServingRuntimeK8sResource({
@@ -169,6 +171,7 @@ const initIntercepts = ({
       disableKServeRaw,
       disableProjectScoped,
       disableHardwareProfiles,
+      disablePVCServing,
     }),
   );
   cy.interceptK8sList(PodModel, mockK8sResourceList([mockPodK8sResource({})]));
@@ -2363,6 +2366,122 @@ describe('Serving Runtime List', () => {
                   requests: { cpu: '1', memory: '4Gi' },
                   limits: { cpu: '2', memory: '8Gi' },
                 },
+              },
+            },
+          },
+        });
+      });
+    });
+
+    it('Deploy model with PVC', () => {
+      initIntercepts({
+        disableModelMeshConfig: false,
+        disableKServeConfig: false,
+        disableServingRuntimeParams: false,
+        disablePVCServing: false,
+        requiredCapabilities: [StackCapability.SERVICE_MESH, StackCapability.SERVICE_MESH_AUTHZ],
+        projectEnableModelMesh: false,
+      });
+      cy.intercept(
+        'GET',
+        '**/namespaces/test-project/persistentvolumeclaims?labelSelector=opendatahub.io%2Fdashboard%3Dtrue',
+        mockK8sResourceList([
+          mockPVCK8sResource({
+            name: 'test-pvc',
+            namespace: 'test-project',
+            displayName: 'Test PVC',
+            storageClassName: 'openshift-default-sc',
+            annotations: {
+              'dashboard.opendatahub.io/model-name': 'test-model',
+              'dashboard.opendatahub.io/model-path': 'test-path',
+            },
+            labels: {
+              'opendatahub.io/dashboard': 'true',
+            },
+          }),
+        ]),
+      );
+
+      projectDetails.visitSection('test-project', 'model-server');
+      modelServingSection.findDeployModelButton().click();
+
+      kserveModal.shouldBeOpen();
+
+      kserveModal.findModelNameInput().type('Test Name');
+      kserveModal.findServingRuntimeTemplateSearchSelector().click();
+      kserveModal.findGlobalScopedTemplateOption('Caikit').click();
+      kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
+      // Auto-selects the only pvc
+      kserveModal.findPVCConnectionOption().should('be.visible').click();
+      kserveModal.findLocationPathInput().should('have.value', 'test-path');
+      kserveModal.findSubmitButton().should('be.enabled');
+      kserveModal.findSubmitButton().click();
+      kserveModal.shouldBeOpen(false);
+
+      // dry run request
+      cy.wait('@createServingRuntime').then((interception) => {
+        expect(interception.request.url).to.include('?dryRun=All');
+        expect(interception.request.body).to.containSubset({
+          metadata: {
+            name: 'test-name',
+            annotations: {
+              'openshift.io/display-name': 'test-name',
+              'opendatahub.io/apiProtocol': 'REST',
+              'opendatahub.io/template-display-name': 'Caikit',
+              'opendatahub.io/template-name': 'template-2',
+            },
+            namespace: 'test-project',
+          },
+          spec: {
+            protocolVersions: ['grpc-v1'],
+            supportedModelFormats: [
+              { autoSelect: true, name: 'openvino_ir', version: 'opset1' },
+              { autoSelect: true, name: 'onnx', version: '1' },
+            ],
+          },
+        });
+      });
+      // Actual request
+      cy.wait('@createServingRuntime').then((interception) => {
+        expect(interception.request.url).not.to.include('?dryRun=All');
+      });
+
+      // the serving runtime should have been created
+      cy.get('@createServingRuntime.all').then((interceptions) => {
+        expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
+      });
+      cy.wait('@createInferenceService').then((interception) => {
+        expect(interception.request.url).to.include('?dryRun=All');
+        expect(interception.request.body).to.containSubset({
+          apiVersion: 'serving.kserve.io/v1beta1',
+          kind: 'InferenceService',
+          metadata: {
+            annotations: {
+              'openshift.io/display-name': 'Test Name',
+              'serving.knative.openshift.io/enablePassthrough': 'true',
+              'serving.kserve.io/deploymentMode': DeploymentMode.Serverless,
+              'sidecar.istio.io/inject': 'true',
+              'sidecar.istio.io/rewriteAppHTTPProbers': 'true',
+            },
+            labels: {
+              'opendatahub.io/dashboard': 'true',
+              'networking.knative.dev/visibility': 'cluster-local',
+            },
+            name: 'test-name',
+            namespace: 'test-project',
+          },
+          spec: {
+            predictor: {
+              minReplicas: 1,
+              maxReplicas: 1,
+              model: {
+                modelFormat: { name: 'onnx', version: '1' },
+                resources: {
+                  requests: { cpu: '1', memory: '4Gi' },
+                  limits: { cpu: '2', memory: '8Gi' },
+                },
+                runtime: 'test-name',
+                storageUri: 'pvc://test-pvc/test-path',
               },
             },
           },
