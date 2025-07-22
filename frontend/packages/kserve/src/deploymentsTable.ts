@@ -1,4 +1,6 @@
+import * as React from 'react';
 import type { DeploymentsTableColumn } from '@odh-dashboard/model-serving/extension-points';
+import InferenceServiceServingRuntime from '@odh-dashboard/internal/pages/modelServing/screens/global/InferenceServiceServingRuntime';
 import { KServeDeployment } from './deployments';
 
 export const columns = (): DeploymentsTableColumn<KServeDeployment>[] => [
@@ -7,6 +9,6 @@ export const columns = (): DeploymentsTableColumn<KServeDeployment>[] => [
     label: 'Serving runtime',
     sortable: false,
     cellRenderer: (deployment: KServeDeployment) =>
-      deployment.server?.metadata.annotations?.['opendatahub.io/template-display-name'] ?? '-',
+      React.createElement(InferenceServiceServingRuntime, { servingRuntime: deployment.server }),
   },
 ];

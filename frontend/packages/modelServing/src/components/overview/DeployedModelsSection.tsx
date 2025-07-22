@@ -31,6 +31,8 @@ import { ModelStatusIcon } from '@odh-dashboard/internal/concepts/modelServing/M
 import { InferenceServiceModelState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import ResourceNameTooltip from '@odh-dashboard/internal/components/ResourceNameTooltip';
 import { useExtensions } from '@odh-dashboard/plugin-core';
+import InferenceServiceServingRuntime from '@odh-dashboard/internal/pages/modelServing/screens/global/InferenceServiceServingRuntime';
+import { isKServeDeployment } from '../../../../kserve/src/deployments';
 import { ModelDeploymentsContext } from '../../concepts/ModelDeploymentsContext';
 import { useProjectServingPlatform } from '../../concepts/useProjectServingPlatform';
 import { Deployment, isModelServingPlatformExtension } from '../../../extension-points';
@@ -89,9 +91,13 @@ const DeployedModelCard: React.FC<{ deployment: Deployment }> = ({ deployment })
                   fontSize: 'var(--pf-t--global--font--size--body--sm)',
                 }}
               >
-                {deployment.server?.metadata.annotations?.[
-                  'opendatahub.io/template-display-name'
-                ] ?? '-'}
+                {isKServeDeployment(deployment) ? (
+                  <InferenceServiceServingRuntime servingRuntime={deployment.server} />
+                ) : (
+                  deployment.server?.metadata.annotations?.[
+                    'opendatahub.io/template-display-name'
+                  ] ?? '-'
+                )}
               </Content>
             </Content>
           </Content>
