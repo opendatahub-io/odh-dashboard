@@ -1,4 +1,5 @@
-import { Entities, Entity } from '#~/concepts/featureStore/types.ts';
+/* eslint-disable camelcase */
+import { Entity, EntityList } from '#~/pages/featureStore/types.ts';
 
 export const mockEntity = (partial?: Partial<Entity>): Entity => ({
   spec: {
@@ -24,6 +25,14 @@ export const mockEntity = (partial?: Partial<Entity>): Entity => ({
   ...partial,
 });
 
-export const mockEntities = ({ entities = [mockEntity({})] }: Partial<Entities>): Entities => ({
+export const mockEntities = ({ entities = [mockEntity({})] }: Partial<EntityList>): EntityList => ({
   entities,
+  pagination: {
+    page: 1,
+    limit: 10,
+    total_count: 1,
+    total_pages: 1,
+    has_next: false,
+    has_previous: false,
+  },
 });
