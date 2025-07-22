@@ -1,13 +1,5 @@
 import React, { useState } from 'react';
-import {
-  FormGroup,
-  FormHelperText,
-  FormSection,
-  HelperText,
-  HelperTextItem,
-  Radio,
-  TextInput,
-} from '@patternfly/react-core';
+import { FormGroup, FormSection, Radio, TextInput } from '@patternfly/react-core';
 import FieldGroupHelpLabelIcon from '#~/components/FieldGroupHelpLabelIcon.tsx';
 
 type PVCContextFieldProps = {
@@ -92,6 +84,13 @@ const PVCContextField: React.FC<PVCContextFieldProps> = ({
                   label="Model path"
                   fieldId="storage-context-model-storage-model-path"
                   isRequired
+                  labelHelp={
+                    <FieldGroupHelpLabelIcon
+                      content={
+                        <p>Enter the path to the model location within the cluster storage.</p>
+                      }
+                    />
+                  }
                 >
                   <TextInput
                     id="storage-context-model-storage-model-path"
@@ -104,15 +103,14 @@ const PVCContextField: React.FC<PVCContextFieldProps> = ({
                     }}
                     isRequired
                   />
-                  <FormHelperText>
-                    <HelperText>
-                      <HelperTextItem>
-                        Enter the path to the model location within the cluster storage.
-                      </HelperTextItem>
-                    </HelperText>
-                  </FormHelperText>
                 </FormGroup>
-                <FormGroup label="Model name" fieldId="storage-context-model-storage-model-name">
+                <FormGroup
+                  label="Model name"
+                  fieldId="storage-context-model-storage-model-name"
+                  labelHelp={
+                    <FieldGroupHelpLabelIcon content={<p>Enter the name of the model.</p>} />
+                  }
+                >
                   <TextInput
                     id="storage-context-model-storage-model-name"
                     aria-label="Model name"
@@ -120,11 +118,6 @@ const PVCContextField: React.FC<PVCContextFieldProps> = ({
                     value={modelName}
                     onChange={(_, value) => setModelName(value.trim())}
                   />
-                  <FormHelperText>
-                    <HelperText>
-                      <HelperTextItem>Enter the name of the model.</HelperTextItem>
-                    </HelperText>
-                  </FormHelperText>
                 </FormGroup>
               </FormSection>
             )
