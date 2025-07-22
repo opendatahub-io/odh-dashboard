@@ -243,6 +243,19 @@ export interface ModelTestConfig {
   tokenizerUrl?: string; // Optional tokenizer URL for LM evaluation
   modelTimeoutSeconds?: number; // Optional timeout parameter in seconds
   projectName?: string; // Optional project name, falls back to random if not defined
+  lmEval?: {
+    numConcurrent: number;
+    maxRetries: number;
+    lmEvalTimeoutSeconds: number;
+    limit: number;
+    maxSamples: number;
+    numFewshot: number;
+    requestInterval: number;
+    modelPath: string;
+    servicePort: number;
+    evaluationName?: string;
+    taskName: string;
+  };
 }
 
 export interface TestConfigFile {

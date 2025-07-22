@@ -1,16 +1,3 @@
-# Using EmptyDir instead of PVC to avoid storage provider issues
-# apiVersion: v1
-# kind: PersistentVolumeClaim
-# metadata:
-#   name: vllm-models-claim
-# spec:
-#   accessModes:
-#     - ReadWriteOnce
-#   volumeMode: Filesystem
-#   storageClassName: standard-csi
-#   resources:
-#     requests:
-#       storage: 30Gi
 ---
 apiVersion: apps/v1
 kind: Deployment

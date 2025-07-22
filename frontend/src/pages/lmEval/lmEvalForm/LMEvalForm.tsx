@@ -167,7 +167,7 @@ const LMEvalForm: React.FC = () => {
               )}
               shouldFocusToggleOnSelect
             >
-              <SelectList>
+              <SelectList data-testid="model-name-dropdown-list">
                 {isLoading ? (
                   <>
                     <SelectOption key="skeleton-1" isDisabled>
@@ -268,7 +268,7 @@ const LMEvalForm: React.FC = () => {
               )}
               shouldFocusToggleOnSelect
             >
-              <SelectList>
+              <SelectList data-testid="model-type-dropdown-list">
                 {modelTypeOptions.map((option) => (
                   <SelectOption
                     value={option.key}

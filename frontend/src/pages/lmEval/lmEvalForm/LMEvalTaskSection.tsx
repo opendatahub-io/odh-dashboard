@@ -36,6 +36,7 @@ const LMEvalTaskSection: React.FC<LmEvalTaskSectionProps> = ({ tasks, setTasks }
         ariaLabel="Select evaluation tasks"
         placeholder="Select the evaluation to perform"
         noSelectedOptionsMessage="No tasks selected"
+        listTestId="tasks-dropdown-list"
       />
       <FormHelperText>
         <HelperText>
