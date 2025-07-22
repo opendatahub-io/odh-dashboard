@@ -1,7 +1,7 @@
 import React from 'react';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import { featureStoreRoute } from './FeatureStoreRoutes';
-import FeatureStoreProjectSelectorNavigator from './screens/FeatureStoreProjectSelectorNavigator';
+import FeatureStoreProjectSelectorNavigator from './screens/components/FeatureStoreProjectSelectorNavigator';
 
 type FeatureStoreProps = Omit<
   React.ComponentProps<typeof ApplicationsPage>,
@@ -20,7 +20,9 @@ const FeatureStore: React.FC<FeatureStoreProps> = ({ ...pageProps }) => (
     description="A catalog of features, entities, feature views and datasets created by your own team"
     headerContent={
       <FeatureStoreProjectSelectorNavigator
-        getRedirectPath={(featureStore) => `${featureStoreRoute(featureStore)}`}
+        getRedirectPath={(featureStoreObject, featureStoreProject) =>
+          `${featureStoreRoute(featureStoreObject, featureStoreProject)}`
+        }
       />
     }
     loaded
