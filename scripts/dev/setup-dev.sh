@@ -61,6 +61,11 @@ log_step() {
 trap handle_panic EXIT
 
 handle_panic() {
+  local exit_code=$?
+  if [ "$exit_code" -eq 0 ]; then
+    log_info "Exiting gracefully."
+    return
+  fi
   if [ "$OC_CLUSTER_TYPE" == "crc" ]; then
     log_error "An error occurred during the setup. Cleaning up CRC..."
     teardown_crc
