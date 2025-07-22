@@ -1,0 +1,75 @@
+services:
+  odh-dashboard-dev:
+    build:
+      context: .
+      dockerfile: scripts/dev/Dockerfile
+      # dockerignore: .dockerignore
+        # - OC_CLI_PATH=${OC_CLI_PATH:-./oc-cli.tar.gz}
+    develop:
+      watch:
+        - action: sync
+          path: .
+          target: /usr/src/app
+          # ignore:
+          #   - node_modules/
+          #   - frontend/node_modules/
+          #   - backend/node_modules/
+          #   - .git/
+          #   - .next/
+          #   - dist/
+        - action: rebuild
+          path: package.json
+        - action: rebuild
+          path: ./frontend/package.json
+        - action: rebuild
+          path: ./backend/package.json
+    container_name: odh-dashboard
+    network_mode: "host"
+
+    # ports:
+    #   - "3000:3000"
+    #   - "9000:9000"
+    #   - "9001:9001"
+    #   - "8321:8321"
+    #   - "50051:50051"
+    #   - "4000:4000"
+    #   - "8080:8080"
+    #   - "4010:4010"
+    #
+    environment:
+      - NODE_TLS_REJECT_UNAUTHORIZED=0
+      - OC_CLUSTER_TYPE=${OC_CLUSTER_TYPE:-existing}
+      - OC_URL=${OC_URL}
+      - OC_TOKEN=${OC_TOKEN}
+      - OC_USER=${OC_USER}
+      - OC_PASSWORD=${OC_PASSWORD}
+      - CRC_PULL_SECRET=${CRC_PULL_SECRET_PATH}
+      - OC_PROJECT=${OC_PROJECT:-opendatahub}
+      - CONTAINER_BUILDER=${CONTAINER_BUILDER:-docker}
+
+    env_file:
+      # add in ignored .env files
+      - .env.local
+      - .env.development
+
+    command: ["${START_COMMAND}"]
+    working_dir: /usr/src/app
+    entrypoint: ["/usr/src/app/install/dev/entrypoint.sh"]
+    # networks:
+    #   - "odh-dev"
+
+    labels:
+      - "odh.dashboard.dev=true"
+      - "odh.dashboard.version=dev"
+
+# networks:
+#   odh-dev:
+#     driver: bridge
+
+
+volumes:
+  node_modules_cache:
+  frontend_node_modules_cache:
+  backend_node_modules_cache:
+
+
