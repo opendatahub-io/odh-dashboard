@@ -628,6 +628,11 @@ export type RouteKind = K8sResourceCommon & {
     port: {
       targetPort: string;
     };
+    to?: {
+      kind: string;
+      name: string;
+      weight: number;
+    };
   };
 };
 
