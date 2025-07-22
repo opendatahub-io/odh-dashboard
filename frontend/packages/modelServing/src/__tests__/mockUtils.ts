@@ -48,7 +48,7 @@ export const mockModelServingPlatform = ({
     id,
     manage: {
       namespaceApplicationCase,
-      enabledProjectMetadata,
+      projectRequirements: enabledProjectMetadata,
     },
     enableCardText: {
       title,
@@ -75,11 +75,11 @@ export const mockProjectWithPlatform = (
       ...project.metadata,
       labels: {
         ...project.metadata.labels,
-        ...platform.properties.manage.enabledProjectMetadata.labels,
+        ...platform.properties.manage.projectRequirements.labels,
       },
       annotations: {
         ...project.metadata.annotations,
-        ...platform.properties.manage.enabledProjectMetadata.annotations,
+        ...platform.properties.manage.projectRequirements.annotations,
       },
     },
   };

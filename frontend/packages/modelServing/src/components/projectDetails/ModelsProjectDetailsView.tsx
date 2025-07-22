@@ -6,20 +6,27 @@ import DashboardPopupIconButton from '@odh-dashboard/internal/concepts/dashboard
 import { OutlinedQuestionCircleIcon, PencilAltIcon } from '@patternfly/react-icons';
 import { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
 import type { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
-import { useExtensions } from '@odh-dashboard/plugin-core';
 import { SelectPlatformView } from './SelectPlatformView';
 import { NoModelsView } from './NoModelsView';
 import { ProjectDeploymentsTable } from './ProjectDeploymentsTable';
+import { useAvailableClusterPlatforms } from '../../concepts/useAvailableClusterPlatforms';
 import { useProjectServingPlatform } from '../../concepts/useProjectServingPlatform';
 import { ModelDeploymentsContext } from '../../concepts/ModelDeploymentsContext';
 import { DeployButton } from '../deploy/DeployButton';
-import { isModelServingPlatformExtension } from '../../../extension-points';
 
 const ModelsProjectDetailsView: React.FC<{
   project: ProjectKind;
 }> = ({ project }) => {
-  const availablePlatforms = useExtensions(isModelServingPlatformExtension);
-  const { deployments, loaded: deploymentsLoaded } = React.useContext(ModelDeploymentsContext);
+  const {
+    clusterPlatforms: platforms,
+    clusterPlatformsLoaded,
+    clusterPlatformsError,
+  } = useAvailableClusterPlatforms();
+  const {
+    deployments,
+    loaded: deploymentsLoaded,
+    errors: deploymentsErrors,
+  } = React.useContext(ModelDeploymentsContext);
 
   const {
     activePlatform,
@@ -27,10 +34,10 @@ const ModelsProjectDetailsView: React.FC<{
     setProjectPlatform,
     resetProjectPlatform,
     newProjectPlatformLoading,
-  } = useProjectServingPlatform(project, availablePlatforms);
+  } = useProjectServingPlatform(project, platforms);
 
   const isLoading =
-    !project.metadata.name || !!(projectPlatform && (!deployments || !deploymentsLoaded));
+    !project.metadata.name || !clusterPlatformsLoaded || (!!projectPlatform && !deploymentsLoaded);
   const hasModels = !!deployments && deployments.length > 0;
 
   return (
@@ -52,6 +59,7 @@ const ModelsProjectDetailsView: React.FC<{
         ) : undefined
       }
       isLoading={isLoading}
+      loadError={deploymentsErrors?.[0] ?? clusterPlatformsError}
       actions={
         hasModels && activePlatform
           ? [<DeployButton key="deploy-button" platform={activePlatform} variant="secondary" />]
@@ -63,7 +71,7 @@ const ModelsProjectDetailsView: React.FC<{
             <Label data-testid="serving-platform-label">
               {activePlatform?.properties.enableCardText.enabledText}
             </Label>
-            {activePlatform && availablePlatforms.length > 1 && (
+            {activePlatform && platforms.length > 1 && (
               <Button
                 variant="link"
                 isInline
@@ -84,7 +92,7 @@ const ModelsProjectDetailsView: React.FC<{
       emptyState={
         !isLoading && (
           <SelectPlatformView
-            platforms={availablePlatforms}
+            platforms={platforms}
             setModelServingPlatform={setProjectPlatform}
             newPlatformLoading={newProjectPlatformLoading}
           />
