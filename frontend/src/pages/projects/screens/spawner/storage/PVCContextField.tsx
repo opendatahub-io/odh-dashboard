@@ -4,6 +4,7 @@ import {
   FormHelperText,
   FormSection,
   HelperText,
+  HelperTextItem,
   Radio,
   TextInput,
 } from '@patternfly/react-core';
@@ -105,7 +106,9 @@ const PVCContextField: React.FC<PVCContextFieldProps> = ({
                   />
                   <FormHelperText>
                     <HelperText>
-                      Enter the path to the model location within the cluster storage.
+                      <HelperTextItem>
+                        Enter the path to the model location within the cluster storage.
+                      </HelperTextItem>
                     </HelperText>
                   </FormHelperText>
                 </FormGroup>
@@ -118,7 +121,9 @@ const PVCContextField: React.FC<PVCContextFieldProps> = ({
                     onChange={(_, value) => setModelName(value.trim())}
                   />
                   <FormHelperText>
-                    <HelperText>Enter the name of the model.</HelperText>
+                    <HelperText>
+                      <HelperTextItem>Enter the name of the model.</HelperTextItem>
+                    </HelperText>
                   </FormHelperText>
                 </FormGroup>
               </FormSection>
