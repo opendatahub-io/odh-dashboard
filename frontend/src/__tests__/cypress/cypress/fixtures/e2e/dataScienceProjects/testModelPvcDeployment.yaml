@@ -1,4 +1,4 @@
-# testModelStopStart.cy.ts Test Data #
+# testModelPvcDeployment.cy.ts Test Data #
 projectResourceName: 'test-model-pvc-deployment'
 projectDisplayName: 'Test Model PVC Deployment'
 singleModelName: 'test-model'

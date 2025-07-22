@@ -6,6 +6,7 @@ import { AWS_BUCKETS } from '#~/__tests__/cypress/cypress/utils/s3Buckets';
 import {
   checkInferenceServiceState,
   provisionProjectForModelServing,
+  verifyS3CopyCompleted,
 } from '#~/__tests__/cypress/cypress/utils/oc_commands/modelServing';
 import { deleteOpenShiftProject } from '#~/__tests__/cypress/cypress/utils/oc_commands/project';
 import { loadDSPFixture } from '#~/__tests__/cypress/cypress/utils/dataLoader';
@@ -68,7 +69,7 @@ describe('Verify a model can be deployed from a PVC', () => {
   });
   it(
     'should deploy a model from a PVC',
-    { tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing', '@NonConcurrent'] },
+    { tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing'] },
     () => {
       cy.step('log into application with ${HTPASSWD_CLUSTER_ADMIN_USER.USERNAME}');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
@@ -125,17 +126,11 @@ describe('Verify a model can be deployed from a PVC', () => {
 
       // Verify the pod is ready
       cy.step('Verify the pod is ready');
-      waitForPodReady(podName, '60s', projectName);
+      waitForPodReady(podName, projectName);
 
       // Verify the S3 copy completed successfully
       cy.step('Verify S3 copy completed');
-      cy.exec(`oc logs ${podName} -n ${projectName}`, { failOnNonZeroExit: false }).then(
-        (result) => {
-          if (!result.stdout.includes('S3 copy completed successfully')) {
-            throw new Error('S3 copy did not complete successfully');
-          }
-        },
-      );
+      verifyS3CopyCompleted(podName, projectName);
 
       // Deploy the model
       cy.step('Deploy the model');

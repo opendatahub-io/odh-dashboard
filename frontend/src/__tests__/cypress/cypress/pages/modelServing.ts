@@ -231,10 +231,6 @@ class InferenceServiceModal extends ServingModal {
     return this.find().findByTestId('pvc-serving-radio');
   }
 
-  findConnectionTypeDropdown() {
-    return this.find().findByTestId('typeahead-menu-toggle').findByRole('button');
-  }
-
   findUriNewConnectionType() {
     return cy.get('#connection-type ul li').contains('URI');
   }
