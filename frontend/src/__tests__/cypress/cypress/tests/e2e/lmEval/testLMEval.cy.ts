@@ -15,40 +15,13 @@ import {
 import { retryableBefore } from '#~/__tests__/cypress/cypress/utils/retryableHooks';
 import { generateTestUUID } from '#~/__tests__/cypress/cypress/utils/uuidGenerator';
 
-// Extended config type that includes lmEval properties
-interface LMEvalTestConfig extends ModelTestConfig {
-  lmEval: {
-    numConcurrent: number;
-    maxRetries: number;
-    lmEvalTimeoutSeconds: number;
-    limit: number;
-    maxSamples: number;
-    numFewshot: number;
-    requestInterval: number;
-    modelPath: string;
-    servicePort: number;
-    evaluationName?: string;
-    taskName: string;
-  };
-}
-
 // Global variables to track test setups across all describe blocks
 let staticTestSetup: ReturnType<typeof createModelTestSetup> | undefined;
 let dynamicTestSetup: ReturnType<typeof createModelTestSetup> | undefined;
-let staticConfig: LMEvalTestConfig | undefined;
-let dynamicConfig: LMEvalTestConfig | undefined;
+let staticConfig: ModelTestConfig | undefined;
+let dynamicConfig: ModelTestConfig | undefined;
 let staticEvaluationName: string | undefined;
 let dynamicEvaluationName: string | undefined;
-
-// Global cleanup function that will be called at the end of all tests
-after(() => {
-  if (staticTestSetup) {
-    staticTestSetup.cleanupTest();
-  }
-  if (dynamicTestSetup) {
-    dynamicTestSetup.cleanupTest();
-  }
-});
 
 /**
  * Tests LMEval functionality with pre-baked models.
@@ -69,13 +42,15 @@ describe(
     // Load test configuration in retryableBefore hook
     retryableBefore(async () => {
       loadTestConfig('static').then((config) => {
-        staticConfig = config as LMEvalTestConfig;
+        staticConfig = config;
         staticTestSetup = createModelTestSetup(config);
         staticTestSetup.setupTest();
         // Set evaluation name for static test - generate it once and use it consistently
         staticEvaluationName = `test-lmeval-${generateTestUUID()}`;
         // Update the config to use this name
-        staticConfig.lmEval.evaluationName = staticEvaluationName;
+        if (staticConfig?.lmEval) {
+          staticConfig.lmEval.evaluationName = staticEvaluationName;
+        }
       });
     });
 
@@ -126,7 +101,7 @@ describe(
 
       // Select tasks (static config - ultra-fast evaluation for testing)
       cy.step('Select evaluation tasks for static config');
-      if (staticConfig?.lmEval.taskName) {
+      if (staticConfig?.lmEval?.taskName) {
         lmEvalFormPage.selectTasks([staticConfig.lmEval.taskName]);
       }
 
@@ -187,7 +162,7 @@ describe(
       waitForJobCreation('@lmEvalJobCreate');
 
       // Verify evaluation run was created successfully
-      if (staticTestSetup && staticConfig?.lmEval.lmEvalTimeoutSeconds) {
+      if (staticTestSetup && staticConfig?.lmEval?.lmEvalTimeoutSeconds) {
         verifyJob(staticTestSetup, staticConfig.lmEval.lmEvalTimeoutSeconds, staticConfig);
       }
     });
@@ -215,13 +190,15 @@ describe(
     // Load test configuration in retryableBefore hook
     retryableBefore(async () => {
       loadTestConfig('dynamic').then((config) => {
-        dynamicConfig = config as LMEvalTestConfig;
+        dynamicConfig = config;
         dynamicTestSetup = createModelTestSetup(config);
         dynamicTestSetup.setupTest();
         // Set evaluation name for dynamic test - generate it once and use it consistently
         dynamicEvaluationName = `test-lmeval-${generateTestUUID()}`;
         // Update the config to use this name
-        dynamicConfig.lmEval.evaluationName = dynamicEvaluationName;
+        if (dynamicConfig?.lmEval) {
+          dynamicConfig.lmEval.evaluationName = dynamicEvaluationName;
+        }
       });
     });
 
@@ -250,7 +227,7 @@ describe(
 
       // Select tasks (dynamic config - lightweight evaluation)
       cy.step('Select evaluation tasks for dynamic config');
-      if (dynamicConfig?.lmEval.taskName) {
+      if (dynamicConfig?.lmEval?.taskName) {
         lmEvalFormPage.selectTasks([dynamicConfig.lmEval.taskName]);
       }
 
@@ -304,9 +281,19 @@ describe(
       waitForJobCreation('@lmEvalJobCreate');
 
       // Verify evaluation run was created successfully
-      if (dynamicTestSetup && dynamicConfig?.lmEval.lmEvalTimeoutSeconds) {
+      if (dynamicTestSetup && dynamicConfig?.lmEval?.lmEvalTimeoutSeconds) {
         verifyJob(dynamicTestSetup, dynamicConfig.lmEval.lmEvalTimeoutSeconds, dynamicConfig);
       }
     });
   },
 );
+
+// Global cleanup function that will be called at the end of all tests
+after(() => {
+  if (staticTestSetup) {
+    staticTestSetup.cleanupTest();
+  }
+  if (dynamicTestSetup) {
+    dynamicTestSetup.cleanupTest();
+  }
+});

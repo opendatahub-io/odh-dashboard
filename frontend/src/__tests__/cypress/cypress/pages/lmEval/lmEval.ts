@@ -116,13 +116,13 @@ class LMEvalFormPage {
     this.findModelNameDropdown().click();
 
     // Wait for dropdown to be visible and handle potential timing issues
-    cy.get('[role="listbox"]').should('be.visible');
+    cy.findByTestId('model-name-dropdown-list').should('be.visible');
 
     // Wait for the specific model option to be available before clicking
     cy.findByText(modelName).should('be.visible').click();
 
     // Wait for dropdown to close and form state to update
-    cy.get('[role="listbox"]').should('not.exist');
+    cy.findByTestId('model-name-dropdown-list').should('not.exist');
 
     // Wait for model arguments to be populated (required for form validation)
     this.findModelArgumentName().should('not.have.text', '-');
@@ -135,20 +135,22 @@ class LMEvalFormPage {
     this.findModelNameDropdown().click();
 
     // Check if the model option exists in the dropdown
-    cy.get('[role="option"]').then(($options) => {
-      const modelExists = $options
-        .toArray()
-        .some((option) => option.textContent?.includes(modelName));
+    cy.findByTestId('model-name-dropdown-list')
+      .find('[role="option"]')
+      .then(($options) => {
+        const modelExists = $options
+          .toArray()
+          .some((option) => option.textContent?.includes(modelName));
 
-      if (modelExists) {
-        cy.findByText(modelName).click();
-        cy.log(`Successfully selected model: ${modelName}`);
-      } else {
-        // Close dropdown by pressing Escape
-        cy.get('body').type('{esc}');
-        cy.log(`Model "${modelName}" not found in dropdown`);
-      }
-    });
+        if (modelExists) {
+          cy.findByText(modelName).click();
+          cy.log(`Successfully selected model: ${modelName}`);
+        } else {
+          // Close dropdown by pressing Escape
+          cy.get('body').type('{esc}');
+          cy.log(`Model "${modelName}" not found in dropdown`);
+        }
+      });
     return this;
   }
 
@@ -171,9 +173,9 @@ class LMEvalFormPage {
   // Task selection methods
   selectTasks(taskNames: string[]) {
     cy.findByTestId('tasks-form-group').find('button').first().click();
-    cy.get('[role="listbox"]').should('be.visible');
+    cy.findByTestId('tasks-dropdown-list').should('be.visible');
     taskNames.forEach((taskName) => {
-      cy.get('[role="listbox"]').find('[role="option"]').contains(taskName).click();
+      cy.findByTestId('tasks-dropdown-list').find('[role="option"]').contains(taskName).click();
     });
     cy.get('body').type('{esc}');
     return this;
@@ -184,17 +186,17 @@ class LMEvalFormPage {
     cy.findByTestId('model-type-form-group').find('button').first().click();
 
     // Wait for dropdown to be visible and handle potential timing issues
-    cy.get('[role="listbox"]').should('be.visible');
+    cy.findByTestId('model-type-dropdown-list').should('be.visible');
 
     // Wait for the specific option to be available before clicking
-    cy.get('[role="listbox"]')
+    cy.findByTestId('model-type-dropdown-list')
       .find('[role="option"]')
       .contains(modelType)
       .should('be.visible')
       .click();
 
     // Wait for dropdown to close
-    cy.get('[role="listbox"]').should('not.exist');
+    cy.findByTestId('model-type-dropdown-list').should('not.exist');
 
     return this;
   }

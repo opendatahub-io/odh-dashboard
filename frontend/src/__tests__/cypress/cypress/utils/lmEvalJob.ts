@@ -19,7 +19,7 @@ interface LMEvalConfig {
 }
 
 interface TestConfig {
-  lmEval: LMEvalConfig;
+  lmEval?: LMEvalConfig;
   modelName?: string;
 }
 
@@ -85,6 +85,11 @@ interface LMEvalJobResult {
 export const configureJob = (req: LMEvalJobRequest, testConfig: TestConfig): LMEvalJobRequest => {
   // Get LMEval configuration from test config
   const lmEvalConfig = testConfig.lmEval;
+
+  // Early return if no LMEval config is provided
+  if (!lmEvalConfig) {
+    return req;
+  }
 
   // Create a deep copy of the request body to avoid modifying the parameter directly
   const requestBody = JSON.parse(JSON.stringify(req.body));
