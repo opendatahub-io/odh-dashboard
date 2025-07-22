@@ -29,7 +29,6 @@ reinstall: build push undeploy deploy
 
 .PHONY:setup-dev
 setup-dev:
-	echo "Running setup-dev..."
 	./scripts/dev/setup-dev.sh $(ARGS)
 
 ##################################

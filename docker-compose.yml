@@ -3,20 +3,11 @@ services:
     build:
       context: .
       dockerfile: scripts/dev/Dockerfile
-      # dockerignore: .dockerignore
-        # - OC_CLI_PATH=${OC_CLI_PATH:-./oc-cli.tar.gz}
     develop:
       watch:
         - action: sync
           path: .
           target: /usr/src/app
-          # ignore:
-          #   - node_modules/
-          #   - frontend/node_modules/
-          #   - backend/node_modules/
-          #   - .git/
-          #   - .next/
-          #   - dist/
         - action: rebuild
           path: package.json
         - action: rebuild
@@ -26,16 +17,6 @@ services:
     container_name: odh-dashboard
     network_mode: "host"
 
-    # ports:
-    #   - "3000:3000"
-    #   - "9000:9000"
-    #   - "9001:9001"
-    #   - "8321:8321"
-    #   - "50051:50051"
-    #   - "4000:4000"
-    #   - "8080:8080"
-    #   - "4010:4010"
-    #
     environment:
       - NODE_TLS_REJECT_UNAUTHORIZED=0
       - OC_CLUSTER_TYPE=${OC_CLUSTER_TYPE:-existing}

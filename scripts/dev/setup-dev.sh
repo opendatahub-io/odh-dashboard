@@ -219,7 +219,7 @@ setup_crc() {
       local extracted_crc_dir
       extracted_crc_dir=$(find "$temp_dir" -maxdepth 1 -name "crc-linux-*" -type d | head -n1)
 
-      if [ -z "$extracted_crc_dir" ] || [ ! -d "$extracted_crc_dir"]; then
+      if [ -z "$extracted_crc_dir" ] || [ ! -d "$extracted_crc_dir" ]; then
         log_error "No extracted CRC directory found in ${temp_dir}. Please check the downloaded file."
         exit 1
       fi
@@ -311,7 +311,7 @@ container_create_env_file() {
     if [ -n "$oc_user" ] && [ -n "$oc_password" ]; then
       log_info "Using existing OpenShift credentials from environment variables."
     else
-      read -p "Enter your OpenShift cluster username: " oc_user
+      read -p "Enter your OpenShift cluster username (user must have cluster-admin privileges): " oc_user
       read -s -p "Enter your OpenShift cluster password: " oc_password
     fi
 
@@ -646,14 +646,6 @@ EOF
 local_install_node_dependencies() {
   log_step "Installing Node.js dependencies and building project..."
 
-  local install_node_deps
-  read -p "Install Node.js dependencies and build project? [y/N]: " install_node_deps
-
-  if [ "$install_node_deps" != "y" ] && [ "$install_node_deps" != "Y" ]; then
-    log_info "Skipping Node.js dependencies installation."
-    return
-  fi
-
   npm install
   npm run build
 
@@ -665,14 +657,13 @@ local_show_completed_message() {
   echo "Setup completed successfully!"
   echo ""
   echo "Next steps:"
-  echo -e "1. ${CYAN}npm install && npm run build${NC} if not done automatically."
-  echo -e "2. If ${CYAN}oc${NC} was installed, ensure to add it to your PATH within your .bashrc/.zshrc/etc."
-  echo "3. Start the development environment:"
+  echo -e "1. If ${CYAN}oc${NC} was installed, ensure to add it to your PATH within your .bashrc/.zshrc/etc."
+  echo "2. Start the development environment:"
   echo -e "   For frontend only (backend in cluster): ${CYAN}cd frontend && npm run start:dev:ext${NC}"
   echo -e "   For both backend and frontend: ${CYAN}npm run dev${NC}"
   echo -e "   ${CYAN}npm run start:dev${NC} in /frontend and /backend for each component separately."
   echo ""
-  echo "4. Access the dashboard at:"
+  echo "3. Access the dashboard at:"
   echo -e "   ${CYAN}http://localhost:4010${NC}"
 }
 
@@ -692,8 +683,8 @@ parse_flags() {
         exit 1
       fi
       ;;
-    --skip-env-creation)
-      SKIP_ENV_CREATION=true
+    --recreate-env-file)
+      RECREATE_ENV_FILE=true
       shift
       ;;
     --cluster-type=*)
@@ -781,7 +772,7 @@ show_help() {
   echo ""
   echo "Options:"
   # echo "  --env-file FILE                  Specify custom environment file (default: .env.local)"
-  echo "  --skip-env-creation              Skip creating a new environment file"
+  echo "  --recreate-env-file              Creating a new environment file"
   echo "  --cluster-type TYPE              Set cluster type (crc|existing)"
   echo "  --development-environment TYPE   Set development environment (local|container)"
   echo "  --start-command COMMAND          Set custom start command for the development environment"
@@ -791,8 +782,8 @@ show_help() {
   echo "  --help, -h                       Show this help message"
   echo ""
   echo "Examples:"
-  echo "  $0 --cluster-type crc --skip-env-creation --skip-deps"
-  echo "  $0 --development-environment container --container-builder podman"
+  echo "  $0 --cluster-type crc --skip-deps"
+  echo "  $0 --development-environment container --container-builder docker"
   echo "  $0 --skip-deps --verbose"
 }
 
@@ -881,13 +872,16 @@ main() {
       setup_crc "$CRC_PULL_SECRET_PATH" "$CRC_URL" "$CRC_DEFAULT_CLUSTER_ROUTE" "$CRC_DEFAULT_ADMIN_USER" "$CRC_DEFAULT_ADMIN_PASSWORD"
     fi
 
-    if [ ! "$SKIP_ENV_CREATION" ]; then
+    if [ "$RECREATE_ENV_FILE" ] || [ ! -f "$LOCAL_ENV_FILE" ]; then
       container_create_env_file "$OC_CLUSTER_TYPE" "$OC_URL" "$OC_USER" "$OC_PASSWORD" "$OC_PROJECT" "$OC_TOKEN" "$CONTAINER_BUILDER" "$LOCAL_ENV_FILE" "$CRC_DEFAULT_CLUSTER_ROUTE" "$CRC_DEFAULT_ADMIN_USER" "$CRC_DEFAULT_ADMIN_PASSWORD"
     fi
 
-    if [ ! "$SKIP_DEPS" ]; then
+    if [ "$SKIP_DEPS" ]; then
       log_warning "Cannot skip dependency installation in container setup. Node dependencies will be installed."
     fi
+
+    # container entrypoint handles operator installations since this assumes we aren't installing oc locally
+    # LOCAL_ENV_FILE has values that are passed to the container
 
     container_show_completed_message "$LOCAL_ENV_FILE"
     ;;
@@ -900,7 +894,7 @@ main() {
     local_setup_oc "$OC_URL" "$OC_USER" "$OC_PASSWORD" "$OC_TOKEN" "$OC_CLUSTER_TYPE"
     local_setup_cluster
 
-    if [ ! "$SKIP_ENV_CREATION" ]; then
+    if [ "$RECREATE_ENV_FILE" ] || [ ! -f "$LOCAL_ENV_FILE" ]; then
       local_create_env_file "$OC_CLUSTER_TYPE" "$OC_URL" "$OC_USER" "$OC_PASSWORD" "$OC_PROJECT" "$OC_TOKEN" "$CONTAINER_BUILDER" "$LOCAL_ENV_FILE" "$CRC_PULL_SECRET_PATH"
     fi
 
@@ -930,7 +924,7 @@ main() {
   fi
 
   echo ""
-  echo -e "This setup uses existing variables from ${CYAN}${LOCAL_ENV_FILE}${NC} by default. You can modify variables in this file to suit your needs or delete it to start fresh."
+  echo -e "This setup uses existing variables from ${CYAN}${LOCAL_ENV_FILE}${NC} by default. You can modify variables in this file to suit your needs, delete it to start fresh, or set --recreate-env-file to append/recreate the env file."
 
 }
 
