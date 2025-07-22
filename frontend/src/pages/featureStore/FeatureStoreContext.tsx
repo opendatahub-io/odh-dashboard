@@ -1,12 +1,12 @@
 import React from 'react';
 import { useParams } from 'react-router-dom';
-import { FeatureStoreAPIs } from '#~/pages/featureStore/types.ts';
-import { SupportedArea } from '#~/concepts/areas/types.ts';
+import { FeatureStoreAPIs } from '#~/pages/featureStore/types';
+import { SupportedArea } from '#~/concepts/areas/types';
 import { conditionalArea } from '#~/concepts/areas';
-import { useFeatureStoreCR } from '#~/pages/featureStore/apiHooks/useFeatureStoreCR.tsx';
+import { useFeatureStoreCR } from '#~/pages/featureStore/apiHooks/useFeatureStoreCR';
 import useFeatureStoreAPIState, {
   FeatureStoreAPIState,
-} from '#~/pages/featureStore/apiHooks/useFeatureStoreAPIState.tsx';
+} from '#~/pages/featureStore/apiHooks/useFeatureStoreAPIState';
 
 export type FeatureStoreContextType = {
   apiState: FeatureStoreAPIState;

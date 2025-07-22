@@ -2,7 +2,7 @@ import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FeatureStoreObject } from '#~/pages/featureStore/const';
 import { useFeatureStoreObject } from '#~/pages/featureStore/apiHooks/useFeatureStoreObject';
-import { useFeatureStoreProject } from '#~/pages/featureStore/FeatureStoreContext.tsx';
+import { useFeatureStoreProject } from '#~/pages/featureStore/FeatureStoreContext';
 import FeatureStoreProjectSelector from './FeatureStoreProjectSelector';
 
 type FeatureStoreProjectSelectorNavigatorProps = {

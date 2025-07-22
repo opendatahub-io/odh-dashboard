@@ -1,7 +1,7 @@
 import { Bullseye, Divider, Flex, FlexItem, MenuItem, Truncate } from '@patternfly/react-core';
 import React from 'react';
-import SearchSelector from '#~/components/searchSelector/SearchSelector.tsx';
-import { FeatureStoreProject } from '#~/pages/featureStore/types.ts';
+import SearchSelector from '#~/components/searchSelector/SearchSelector';
+import { FeatureStoreProject } from '#~/pages/featureStore/types';
 import useFeatureStoreProjects from '#~/pages/featureStore/apiHooks/useFeatureStoreProjects';
 import { FeatureStoreObject } from '#~/pages/featureStore/const';
 

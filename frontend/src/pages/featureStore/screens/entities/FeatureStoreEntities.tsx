@@ -5,7 +5,7 @@ import ApplicationsPage from '#~/pages/ApplicationsPage';
 import useFeatureStoreEntities from '#~/pages/featureStore/apiHooks/useFeatureStoreEnitites';
 import FeatureStoreProjectSelectorNavigator from '#~/pages/featureStore/screens/components/FeatureStoreProjectSelectorNavigator';
 import { featureStoreRoute } from '#~/pages/featureStore/FeatureStoreRoutes';
-import { useFeatureStoreProject } from '#~/pages/featureStore/FeatureStoreContext.tsx';
+import { useFeatureStoreProject } from '#~/pages/featureStore/FeatureStoreContext';
 import FeatureStoreEntitiesListView from './FeatureStoreEntitiesListView';
 
 const title = 'Entities';

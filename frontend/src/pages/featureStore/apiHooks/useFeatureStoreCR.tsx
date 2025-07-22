@@ -1,13 +1,13 @@
 import React from 'react';
 import { k8sListResource } from '@openshift/dynamic-plugin-sdk-utils';
 import { FeatureStoreKind } from '#~/k8sTypes';
-import { FeatureStoreModel } from '#~/api/models/odh.ts';
+import { FeatureStoreModel } from '#~/api/models/odh';
 import { FetchStateCallbackPromise } from '#~/utilities/useFetchState';
-import useFetch from '#~/utilities/useFetch.ts';
+import useFetch from '#~/utilities/useFetch';
 import {
   FEATURE_STORE_UI_LABEL_KEY,
   FEATURE_STORE_UI_LABEL_VALUE,
-} from '#~/pages/featureStore/const.ts';
+} from '#~/pages/featureStore/const';
 
 type FeatureStoreCRResult = {
   featureStoreCR: FeatureStoreKind | null;

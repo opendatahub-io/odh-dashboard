@@ -1,7 +1,7 @@
-import { ModelRegistryError } from '#~/concepts/modelRegistry/types';
+import { FeatureStoreError } from '#~/pages/featureStore/types';
 import { isCommonStateError } from '#~/utilities/useFetchState';
 
-const isError = (e: unknown): e is ModelRegistryError =>
+const isError = (e: unknown): e is FeatureStoreError =>
   typeof e === 'object' && e !== null && ['code', 'message'].every((key) => key in e);
 
 export const handleFeatureStoreFailures = <T>(promise: Promise<T>): Promise<T> =>

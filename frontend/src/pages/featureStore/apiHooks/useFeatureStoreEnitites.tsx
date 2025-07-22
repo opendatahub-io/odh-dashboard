@@ -1,8 +1,8 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
-import { useFeatureStoreAPI } from '#~/pages/featureStore/FeatureStoreContext.tsx';
-import useFetch, { FetchStateCallbackPromise, FetchStateObject } from '#~/utilities/useFetch.ts';
-import { EntityList } from '#~/pages/featureStore/types.ts';
+import { useFeatureStoreAPI } from '#~/pages/featureStore/FeatureStoreContext';
+import useFetch, { FetchStateCallbackPromise, FetchStateObject } from '#~/utilities/useFetch';
+import { EntityList } from '#~/pages/featureStore/types';
 
 const useFeatureStoreEntities = (project?: string): FetchStateObject<EntityList> => {
   const { api, apiAvailable } = useFeatureStoreAPI();

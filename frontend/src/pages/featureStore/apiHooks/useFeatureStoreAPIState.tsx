@@ -1,8 +1,8 @@
 import React from 'react';
 import { APIState } from '#~/concepts/proxy/types';
-import { FeatureStoreAPIs } from '#~/pages/featureStore/types.ts';
-import { getEntities, listFeatureStoreProject } from '#~/api/featureStore/custom.ts';
-import useAPIState from '#~/concepts/proxy/useAPIState.ts';
+import { FeatureStoreAPIs } from '#~/pages/featureStore/types';
+import { getEntities, listFeatureStoreProject } from '#~/api/featureStore/custom';
+import useAPIState from '#~/concepts/proxy/useAPIState';
 
 export type FeatureStoreAPIState = APIState<FeatureStoreAPIs>;
 

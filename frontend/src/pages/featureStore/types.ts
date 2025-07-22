@@ -1,4 +1,4 @@
-import { K8sAPIOptions } from '#~/k8sTypes.ts';
+import { K8sAPIOptions } from '#~/k8sTypes';
 
 export type FeatureStorePagination = {
   page: number;
