@@ -3,17 +3,11 @@ import { k8sListResource } from '@openshift/dynamic-plugin-sdk-utils';
 import { FeatureStoreKind } from '#~/k8sTypes';
 import { FeatureStoreModel } from '#~/api/models/odh';
 import { FetchStateCallbackPromise } from '#~/utilities/useFetchState';
-import useFetch from '#~/utilities/useFetch';
+import useFetch, { FetchStateObject } from '#~/utilities/useFetch';
 import {
   FEATURE_STORE_UI_LABEL_KEY,
   FEATURE_STORE_UI_LABEL_VALUE,
 } from '#~/pages/featureStore/const';
-
-type FeatureStoreCRResult = {
-  featureStoreCR: FeatureStoreKind | null;
-  isLoaded: boolean;
-  error?: Error;
-};
 
 const listFeatureStoreCR = async (): Promise<FeatureStoreKind | null> => {
   const labelSelector = `${FEATURE_STORE_UI_LABEL_KEY}=${FEATURE_STORE_UI_LABEL_VALUE}`;
@@ -23,30 +17,16 @@ const listFeatureStoreCR = async (): Promise<FeatureStoreKind | null> => {
     queryOptions: { queryParams: { labelSelector } },
   });
 
-  const filteredFeatureStoreCR = featureStoreCRs.items.filter(
-    (cr) => cr.metadata.labels?.[FEATURE_STORE_UI_LABEL_KEY] === FEATURE_STORE_UI_LABEL_VALUE,
-  );
-
-  return filteredFeatureStoreCR[0] || null;
+  return featureStoreCRs.items[0] || null;
 };
 
-export const useFeatureStoreCR: () => FeatureStoreCRResult = () => {
+export const useFeatureStoreCR: () => FetchStateObject<FeatureStoreKind | null> = () => {
   const callback = React.useCallback<FetchStateCallbackPromise<FeatureStoreKind | null>>(
     () => listFeatureStoreCR(),
     [],
   );
 
-  const {
-    data: featureStoreCR,
-    loaded: isLoaded,
-    error,
-  } = useFetch(callback, null, {
+  return useFetch(callback, null, {
     initialPromisePurity: true,
   });
-
-  return {
-    featureStoreCR,
-    isLoaded,
-    error,
-  };
 };

@@ -29,48 +29,24 @@ describe('useFeatureStoreCR', () => {
     },
   };
 
-  const mockFeatureStoreCRWithoutLabel = {
-    ...mockFeatureStoreCR,
-    metadata: {
-      ...mockFeatureStoreCR.metadata,
-      name: 'no-label-cr',
-      labels: {
-        'other-label': 'other-value',
-      },
-    },
-  };
-
-  const mockFeatureStoreCRWithWrongLabel = {
-    ...mockFeatureStoreCR,
-    metadata: {
-      ...mockFeatureStoreCR.metadata,
-      name: 'wrong-label-cr',
-      labels: {
-        [FEATURE_STORE_UI_LABEL_KEY]: 'wrong-value',
-      },
-    },
-  };
-
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
   it('should return successful feature store CR when CR with correct label exists', async () => {
-    k8sListResourceMock.mockResolvedValue(
-      mockK8sResourceList([mockFeatureStoreCRWithLabel, mockFeatureStoreCRWithoutLabel]),
-    );
+    k8sListResourceMock.mockResolvedValue(mockK8sResourceList([mockFeatureStoreCRWithLabel]));
 
     const renderResult = testHook(useFeatureStoreCR)();
 
-    expect(renderResult.result.current.featureStoreCR).toBe(null);
-    expect(renderResult.result.current.isLoaded).toBe(false);
+    expect(renderResult.result.current.data).toBe(null);
+    expect(renderResult.result.current.loaded).toBe(false);
     expect(renderResult.result.current.error).toBeUndefined();
     expect(renderResult).hookToHaveUpdateCount(1);
 
     await renderResult.waitForNextUpdate();
 
-    expect(renderResult.result.current.featureStoreCR).toEqual(mockFeatureStoreCRWithLabel);
-    expect(renderResult.result.current.isLoaded).toBe(true);
+    expect(renderResult.result.current.data).toEqual(mockFeatureStoreCRWithLabel);
+    expect(renderResult.result.current.loaded).toBe(true);
     expect(renderResult.result.current.error).toBeUndefined();
     expect(renderResult).hookToHaveUpdateCount(2);
     expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
@@ -84,41 +60,20 @@ describe('useFeatureStoreCR', () => {
     });
   });
 
-  it('should return null when no CRs match the label filter', async () => {
-    k8sListResourceMock.mockResolvedValue(
-      mockK8sResourceList([mockFeatureStoreCRWithoutLabel, mockFeatureStoreCRWithWrongLabel]),
-    );
-
-    const renderResult = testHook(useFeatureStoreCR)();
-
-    expect(renderResult.result.current.featureStoreCR).toBe(null);
-    expect(renderResult.result.current.isLoaded).toBe(false);
-    expect(renderResult.result.current.error).toBeUndefined();
-    expect(renderResult).hookToHaveUpdateCount(1);
-
-    await renderResult.waitForNextUpdate();
-
-    expect(renderResult.result.current.featureStoreCR).toBe(null);
-    expect(renderResult.result.current.isLoaded).toBe(true);
-    expect(renderResult.result.current.error).toBeUndefined();
-    expect(renderResult).hookToHaveUpdateCount(2);
-    expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
-  });
-
   it('should return null when no CRs exist', async () => {
     k8sListResourceMock.mockResolvedValue(mockK8sResourceList([]));
 
     const renderResult = testHook(useFeatureStoreCR)();
 
-    expect(renderResult.result.current.featureStoreCR).toBe(null);
-    expect(renderResult.result.current.isLoaded).toBe(false);
+    expect(renderResult.result.current.data).toBe(null);
+    expect(renderResult.result.current.loaded).toBe(false);
     expect(renderResult.result.current.error).toBeUndefined();
     expect(renderResult).hookToHaveUpdateCount(1);
 
     await renderResult.waitForNextUpdate();
 
-    expect(renderResult.result.current.featureStoreCR).toBe(null);
-    expect(renderResult.result.current.isLoaded).toBe(true);
+    expect(renderResult.result.current.data).toBe(null);
+    expect(renderResult.result.current.loaded).toBe(true);
     expect(renderResult.result.current.error).toBeUndefined();
     expect(renderResult).hookToHaveUpdateCount(2);
     expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
@@ -130,15 +85,15 @@ describe('useFeatureStoreCR', () => {
 
     const renderResult = testHook(useFeatureStoreCR)();
 
-    expect(renderResult.result.current.featureStoreCR).toBe(null);
-    expect(renderResult.result.current.isLoaded).toBe(false);
+    expect(renderResult.result.current.data).toBe(null);
+    expect(renderResult.result.current.loaded).toBe(false);
     expect(renderResult.result.current.error).toBeUndefined();
     expect(renderResult).hookToHaveUpdateCount(1);
 
     await renderResult.waitForNextUpdate();
 
-    expect(renderResult.result.current.featureStoreCR).toBe(null);
-    expect(renderResult.result.current.isLoaded).toBe(false);
+    expect(renderResult.result.current.data).toBe(null);
+    expect(renderResult.result.current.loaded).toBe(false);
     expect(renderResult.result.current.error).toEqual(testError);
     expect(renderResult).hookToHaveUpdateCount(2);
     expect(k8sListResourceMock).toHaveBeenCalledTimes(1);
@@ -162,8 +117,8 @@ describe('useFeatureStoreCR', () => {
 
     await renderResult.waitForNextUpdate();
 
-    expect(renderResult.result.current.featureStoreCR).toEqual(mockFeatureStoreCRWithLabel);
-    expect(renderResult.result.current.isLoaded).toBe(true);
+    expect(renderResult.result.current.data).toEqual(mockFeatureStoreCRWithLabel);
+    expect(renderResult.result.current.loaded).toBe(true);
     expect(renderResult.result.current.error).toBeUndefined();
     expect(renderResult).hookToHaveUpdateCount(2);
   });
@@ -179,31 +134,9 @@ describe('useFeatureStoreCR', () => {
     renderResult.rerender();
     expect(renderResult).hookToHaveUpdateCount(3);
     expect(renderResult).hookToBeStable({
-      featureStoreCR: false,
-      isLoaded: true,
+      data: false,
+      loaded: true,
       error: true,
     });
-  });
-
-  it('should handle undefined labels in CR metadata', async () => {
-    const crWithUndefinedLabels = {
-      ...mockFeatureStoreCR,
-      metadata: {
-        ...mockFeatureStoreCR.metadata,
-        name: 'undefined-labels-cr',
-        labels: undefined,
-      },
-    };
-
-    k8sListResourceMock.mockResolvedValue(
-      mockK8sResourceList([crWithUndefinedLabels, mockFeatureStoreCRWithLabel]),
-    );
-
-    const renderResult = testHook(useFeatureStoreCR)();
-
-    await renderResult.waitForNextUpdate();
-
-    expect(renderResult.result.current.featureStoreCR).toEqual(mockFeatureStoreCRWithLabel);
-    expect(renderResult).hookToHaveUpdateCount(2);
   });
 });

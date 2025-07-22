@@ -31,7 +31,7 @@ export const FeatureStoreContextProvider = conditionalArea<FeatureStoreContextPr
   SupportedArea.FEATURE_STORE,
   true,
 )(({ children }) => {
-  const { featureStoreCR } = useFeatureStoreCR();
+  const { data: featureStoreCR } = useFeatureStoreCR();
   const hostPath = featureStoreCR
     ? `/api/service/featurestore/${featureStoreCR.metadata.namespace}/${featureStoreCR.metadata.name}`
     : null;

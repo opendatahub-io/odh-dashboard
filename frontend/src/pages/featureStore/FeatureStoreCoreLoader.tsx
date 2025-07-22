@@ -32,8 +32,8 @@ const FeatureStoreCoreLoader: React.FC<FeatureStoreCoreLoaderProps> =
   )(() => {
     const [isAdmin, isAdminLoaded] = useAccessAllowed(verbModelAccess('create', FeatureStoreModel));
     const {
-      featureStoreCR,
-      isLoaded: featureStoreCRLoaded,
+      data: featureStoreCR,
+      loaded: featureStoreCRLoaded,
       error: featureStoreCRError,
     } = useFeatureStoreCR();
 
