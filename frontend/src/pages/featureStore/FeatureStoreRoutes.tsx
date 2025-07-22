@@ -13,7 +13,14 @@ export const featureStoreRoute = (
 
 const FeatureStoreRoutes: React.FC = () => (
   <Routes>
-    <Route path="/" element={<FeatureStoreCoreLoader />}>
+    <Route
+      path="/"
+      element={
+        <FeatureStoreCoreLoader
+          getInvalidRedirectPath={(featureStoreObject) => `/featureStore/${featureStoreObject}`}
+        />
+      }
+    >
       <Route index element={<FeatureStore empty={false} />} />
       <Route path="entities/:fsProjectName?/*" element={<FeatureStoreEntities />} />
     </Route>
