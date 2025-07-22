@@ -1,0 +1,356 @@
+name: PR E2E Tests
+on:
+  issue_comment:
+    types: [created]
+
+env:
+  NODE_VERSION: 20.x
+
+jobs:
+  check-trigger:
+    runs-on: ubuntu-latest
+    if: github.event.issue.pull_request && contains(github.event.comment.body, '/rune2etests')
+    outputs:
+      should_run: ${{ steps.check.outputs.should_run }}
+    steps:
+      - id: check
+        run: |
+          if [[ "${{ github.event.comment.body }}" == "/rune2etests" ]]; then
+            echo "should_run=true" >> $GITHUB_OUTPUT
+          else
+            echo "should_run=false" >> $GITHUB_OUTPUT
+          fi
+
+  Setup:
+    needs: check-trigger
+    if: needs.check-trigger.outputs.should_run == 'true'
+    runs-on: self-hosted
+    outputs:
+      modules-cache-key: ${{ steps.key.outputs.modules-cache-key }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate modules cache key
+        id: key
+        run: |
+          echo "modules-cache-key=${{ runner.os }}-${{ env.NODE_VERSION }}-modules-${{ hashFiles('**/package-lock.json') }}" >> $GITHUB_OUTPUT
+      - name: Node.js modules cache
+        uses: actions/cache@v4
+        id: modules-cache
+        with:
+          lookup-only: true
+          path: |
+            ~/.cache/Cypress
+            ${{ github.workspace }}/node_modules
+            ${{ github.workspace }}/backend/node_modules
+            ${{ github.workspace }}/frontend/node_modules
+          key: ${{ steps.key.outputs.modules-cache-key }}
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        if: steps.modules-cache.outputs.cache-hit != 'true'
+        uses: actions/setup-node@v4.3.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Install dependencies
+        if: steps.modules-cache.outputs.cache-hit != 'true'
+        run: npm install
+
+  Cypress-Setup:
+    needs: [Setup]
+    if: needs.check-trigger.outputs.should_run == 'true'
+    runs-on: self-hosted
+    outputs:
+      cypress-cache-key: ${{ steps.key.outputs.cypress-cache-key }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate cypress cache key
+        id: key
+        run: |
+          echo "cypress-cache-key=${{ runner.os }}-${{ env.NODE_VERSION }}-cypress-build-${{ github.sha }}" >> $GITHUB_OUTPUT
+      - name: Cypress build cache
+        uses: actions/cache@v4
+        id: cypress-build-cache
+        with:
+          lookup-only: true
+          path: |
+            ${{ github.workspace }}/frontend/public-cypress
+          key: ${{ steps.key.outputs.cypress-cache-key }}
+      - name: Restore cache
+        if: steps.cypress-build-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/.cache/Cypress
+            ${{ github.workspace }}/node_modules
+            ${{ github.workspace }}/backend/node_modules
+            ${{ github.workspace }}/frontend/node_modules
+          key: ${{ needs.Setup.outputs.modules-cache-key }}
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        if: steps.cypress-build-cache.outputs.cache-hit != 'true'
+        uses: actions/setup-node@v4.3.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Build frontend for cypress
+        if: steps.cypress-build-cache.outputs.cache-hit != 'true'
+        run: npm run cypress:server:build:coverage
+        working-directory: ./frontend
+
+  Launch-Dashboard:
+    needs: [Setup, Cypress-Setup]
+    if: needs.check-trigger.outputs.should_run == 'true'
+    runs-on: self-hosted
+    outputs:
+      dashboard-url: ${{ steps.get-url.outputs.url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Login to OpenShift
+        run: |
+          oc login -u ${{ secrets.OCP_USERNAME }} \
+                   -p ${{ secrets.OCP_PASSWORD }} \
+                   --server=${{ secrets.OCP_API_URL }}
+      - name: Launch Dashboard
+        id: launch
+        run: |
+          # Launch the dashboard and get the URL
+          DASHBOARD_URL=$(oc get route -n redhat-ods-applications rhods-dashboard -o jsonpath='{.spec.host}')
+          echo "url=https://$DASHBOARD_URL" >> $GITHUB_OUTPUT
+      - name: Create test variables file
+        run: |
+          cat > frontend/src/__tests__/cypress/test-variables-pr.yml << EOF
+          ODH_DASHBOARD_URL: ${{ steps.launch.outputs.url }}
+          PRODUCT: RHODS
+          ODH_DASHBOARD_PROJECT_NAME: Red Hat OpenShift AI
+          APPLICATIONS_NAMESPACE: redhat-ods-applications
+          MONITORING_NAMESPACE: redhat-ods-monitoring
+          OPERATOR_NAMESPACE: redhat-ods-operator
+          NOTEBOOKS_NAMESPACE: rhods-notebooks
+          TEST_USER:
+            AUTH_TYPE: ${{ secrets.TEST_USER_AUTH_TYPE }}
+            USERNAME: ${{ secrets.TEST_USER_USERNAME }}
+            PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+          TEST_USER_3:
+            AUTH_TYPE: ${{ secrets.TEST_USER_3_AUTH_TYPE }}
+            USERNAME: ${{ secrets.TEST_USER_3_USERNAME }}
+            PASSWORD: ${{ secrets.TEST_USER_3_PASSWORD }}
+          OCP_ADMIN_USER:
+            AUTH_TYPE: ${{ secrets.OCP_ADMIN_AUTH_TYPE }}
+            USERNAME: ${{ secrets.OCP_ADMIN_USERNAME }}
+            PASSWORD: ${{ secrets.OCP_ADMIN_PASSWORD }}
+          S3:
+            AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+            AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+            AWS_DEFAULT_ENDPOINT: ${{ secrets.AWS_DEFAULT_ENDPOINT }}
+            AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+            BUCKET_1:
+              NAME: ${{ secrets.BUCKET_1_NAME }}
+              REGION: ${{ secrets.BUCKET_1_REGION }}
+              ENDPOINT: ${{ secrets.BUCKET_1_ENDPOINT }}
+            BUCKET_2:
+              NAME: ${{ secrets.BUCKET_2_NAME }}
+              REGION: ${{ secrets.BUCKET_2_REGION }}
+              ENDPOINT: ${{ secrets.BUCKET_2_ENDPOINT }}
+            BUCKET_3:
+              NAME: ${{ secrets.BUCKET_3_NAME }}
+              REGION: ${{ secrets.BUCKET_3_REGION }}
+              ENDPOINT: ${{ secrets.BUCKET_3_ENDPOINT }}
+            BUCKET_4:
+              NAME: ${{ secrets.BUCKET_4_NAME }}
+              REGION: ${{ secrets.BUCKET_4_REGION }}
+              ENDPOINT: ${{ secrets.BUCKET_4_ENDPOINT }}
+            BUCKET_5:
+              NAME: ${{ secrets.BUCKET_5_NAME }}
+              REGION: ${{ secrets.BUCKET_5_REGION }}
+              ENDPOINT: ${{ secrets.BUCKET_5_ENDPOINT }}
+          PIP_INDEX_URL: ${{ secrets.PIP_INDEX_URL }}
+          PIP_TRUSTED_HOST: ${{ secrets.PIP_TRUSTED_HOST }}
+          NGC_API_KEY: ${{ secrets.NGC_API_KEY }}
+          OCI_SECRET_DETAILS_FILE: ${{ secrets.OCI_SECRET_DETAILS_FILE }}
+          OCI_MODEL_URI: ${{ secrets.OCI_MODEL_URI }}
+          BROWSER:
+            NAME: headlesschrome
+            OPTIONS: add_argument("--ignore-certificate-errors");add_argument("window-size=1920,1024");add_argument('--headless');add_argument('--no-sandbox');add_argument('--disable-gpu');add_argument('--disable-dev-shm-usage')
+          ANACONDA_CE:
+            ACTIVATION_KEY: ${{ secrets.ANACONDA_ACTIVATION_KEY }}
+          TEST_CLUSTERS:
+            ods-qe-01:
+              OCP_CONSOLE_URL: ${{ secrets.TEST_CLUSTER_OCP_CONSOLE_URL }}
+              ODH_DASHBOARD_URL: ${{ secrets.TEST_CLUSTER_ODH_DASHBOARD_URL }}
+              TEST_USER:
+                AUTH_TYPE: ${{ secrets.TEST_CLUSTER_TEST_USER_AUTH_TYPE }}
+                USERNAME: ${{ secrets.TEST_CLUSTER_TEST_USER_USERNAME }}
+                PASSWORD: ${{ secrets.TEST_CLUSTER_TEST_USER_PASSWORD }}
+              OCP_ADMIN_USER:
+                AUTH_TYPE: ${{ secrets.TEST_CLUSTER_OCP_ADMIN_AUTH_TYPE }}
+                USERNAME: ${{ secrets.TEST_CLUSTER_OCP_ADMIN_USERNAME }}
+                PASSWORD: ${{ secrets.TEST_CLUSTER_OCP_ADMIN_PASSWORD }}
+          TEST_USER_2:
+            AUTH_TYPE: ${{ secrets.TEST_USER_2_AUTH_TYPE }}
+            USERNAME: ${{ secrets.TEST_USER_2_USERNAME }}
+            PASSWORD: ${{ secrets.TEST_USER_2_PASSWORD }}
+          TEST_USER_4:
+            AUTH_TYPE: ${{ secrets.TEST_USER_4_AUTH_TYPE }}
+            USERNAME: ${{ secrets.TEST_USER_4_USERNAME }}
+            PASSWORD: ${{ secrets.TEST_USER_4_PASSWORD }}
+          SSO:
+            USERNAME: ${{ secrets.SSO_USERNAME }}
+            PASSWORD: ${{ secrets.SSO_PASSWORD }}
+          RHOSAK_CONFIG_TEST:
+            STREAM_REGION: ${{ secrets.RHOSAK_STREAM_REGION }}
+            CLOUD_PROVIDER: ${{ secrets.RHOSAK_CLOUD_PROVIDER }}
+            SERVICE_ACCOUNT: ${{ secrets.RHOSAK_SERVICE_ACCOUNT }}
+            TOPIC_NAME: ${{ secrets.RHOSAK_TOPIC_NAME }}
+            CONSUMER_GROUP: ${{ secrets.RHOSAK_CONSUMER_GROUP }}
+            STREAM_NAME: ${{ secrets.RHOSAK_STREAM_NAME }}
+          RHODS_BUILD:
+            PULL_SECRET: ${{ secrets.RHODS_PULL_SECRET }}
+            SECRET_FILE: ${{ secrets.RHODS_SECRET_FILE }}
+            IMAGE: ${{ secrets.RHODS_IMAGE }}
+          GITHUB_USER:
+            EMAIL: ${{ secrets.GITHUB_USER_EMAIL }}
+            USERNAME: ${{ secrets.GITHUB_USER_USERNAME }}
+            TOKEN: ${{ secrets.GITHUB_USER_TOKEN }}
+          SERVICE_ACCOUNT:
+            NAME: ${{ secrets.SERVICE_ACCOUNT_NAME }}
+            FULL_NAME: ${{ secrets.SERVICE_ACCOUNT_FULL_NAME }}
+          STARBURST:
+            LICENSE_ENCODED: ${{ secrets.STARBURST_LICENSE_ENCODED }}
+          DEFAULT_NOTIFICATION_EMAIL: ${{ secrets.DEFAULT_NOTIFICATION_EMAIL }}
+          RHM_TOKEN: ${{ secrets.RHM_TOKEN }}
+          COMPONENTS:
+            codeflare: Managed
+            dashboard: Managed
+            datasciencepipelines: Managed
+            kserve: Managed
+            kueue: Managed
+            modelmeshserving: Managed
+            ray: Managed
+            trainingoperator: Removed
+            workbenches: Managed
+            modelregistry: Managed
+            trustyai: Managed
+            feastoperator: Removed
+          OPERATOR_NAME: rhods-operator
+          OPENSHIFT_PIPELINES_CHANNEL: latest
+          RHODS_OSD_INSTALL_REPO: ${{ secrets.RHODS_OSD_INSTALL_REPO }}
+          TEST_CLUSTER_NAME: ${{ secrets.TEST_CLUSTER_NAME }}
+          TEST_CLUSTER_URL: ${{ secrets.TEST_CLUSTER_URL }}
+          OCP_CONSOLE_URL: ${{ secrets.OCP_CONSOLE_URL }}
+          OCP_API_URL: ${{ secrets.OCP_API_URL }}
+          RHODS_PROMETHEUS_URL: ${{ secrets.RHODS_PROMETHEUS_URL }}
+          RHODS_PROMETHEUS_TOKEN: ${{ secrets.RHODS_PROMETHEUS_TOKEN }}
+          EOF
+
+  Run-Smoke-Tests:
+    needs: [Setup, Cypress-Setup, Launch-Dashboard]
+    if: needs.check-trigger.outputs.should_run == 'true'
+    runs-on: self-hosted
+    strategy:
+      fail-fast: false
+      matrix:
+        test-set: ['SmokeSet1', 'SmokeSet2', 'SmokeSet3']
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4.3.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Restore cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/.cache/Cypress
+            ${{ github.workspace }}/node_modules
+            ${{ github.workspace }}/backend/node_modules
+            ${{ github.workspace }}/frontend/node_modules
+          key: ${{ needs.Setup.outputs.modules-cache-key }}
+      - name: Restore Cypress build cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ${{ github.workspace }}/frontend/public-cypress
+          key: ${{ needs.Cypress-Setup.outputs.cypress-cache-key }}
+      - name: Run Cypress Tests
+        run: |
+          cd frontend
+          export CY_TEST_CONFIG=src/__tests__/cypress/test-variables-pr.yml
+          npx cypress run \
+            --env grepTags="@${{ matrix.test-set }}" \
+            skipTags="@Bug,@Maintain,@NonConcurrent" \
+            --browser chrome \
+            --project src/__tests__/cypress
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: smoke-test-results-${{ matrix.test-set }}
+          path: |
+            frontend/src/__tests__/cypress/results
+            frontend/src/__tests__/cypress/videos
+          if-no-files-found: error
+
+  Run-Sanity-Tests:
+    needs: [Setup, Cypress-Setup, Launch-Dashboard]
+    if: needs.check-trigger.outputs.should_run == 'true'
+    runs-on: self-hosted
+    strategy:
+      fail-fast: false
+      matrix:
+        test-set: ['SanitySet1', 'SanitySet2', 'SanitySet3']
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4.3.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Restore cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/.cache/Cypress
+            ${{ github.workspace }}/node_modules
+            ${{ github.workspace }}/backend/node_modules
+            ${{ github.workspace }}/frontend/node_modules
+          key: ${{ needs.Setup.outputs.modules-cache-key }}
+      - name: Restore Cypress build cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ${{ github.workspace }}/frontend/public-cypress
+          key: ${{ needs.Cypress-Setup.outputs.cypress-cache-key }}
+      - name: Run Cypress Tests
+        run: |
+          cd frontend
+          export CY_TEST_CONFIG=src/__tests__/cypress/test-variables-pr.yml
+          npx cypress run \
+            --env grepTags="@${{ matrix.test-set }}" \
+            skipTags="@Bug,@Maintain,@NonConcurrent" \
+            --browser chrome \
+            --project src/__tests__/cypress
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sanity-test-results-${{ matrix.test-set }}
+          path: |
+            frontend/src/__tests__/cypress/results
+            frontend/src/__tests__/cypress/videos
+          if-no-files-found: error
+
+  Combine-Results:
+    needs: [Run-Smoke-Tests, Run-Sanity-Tests]
+    if: needs.check-trigger.outputs.should_run == 'true'
+    runs-on: self-hosted
+    steps:
+      - name: Download all test results
+        uses: actions/download-artifact@v4
+        with:
+          path: all-results
+      - name: Combine test results
+        run: |
+          # Add logic to combine test results here
+          # This could include generating a summary report
+          echo "Test results combined"
+      - name: Upload combined results
+        uses: actions/upload-artifact@v4
+        with:
+          name: combined-test-results
+          path: all-results
+          if-no-files-found: error 
