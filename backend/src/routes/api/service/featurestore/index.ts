@@ -11,6 +11,7 @@ export default proxyService<FeatureStoreKind>(
   {
     internalPort: 443,
     suffix: '-registry-rest',
+    prefix: 'feast-',
   },
   {
     // Use port forwarding for local development:
