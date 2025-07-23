@@ -34,7 +34,11 @@ describe('[Product Bug: NVPE-244] Verify NIM enable flow', () => {
       cy.step('Input Personal API key to verify no warning appears');
       nimCard.getNGCAPIKey().type('nvapi-test-personal-key-123');
       cy.step('Wait for debounce period to ensure no warning appears');
-      cy.wait(600); // Wait longer than debounce timeout (500ms)
+
+      // Wait longer than debounce timeout (500ms)
+      // This is necessary since otherwise cypress will see that it's not there and always pass
+      // eslint-disable-next-line cypress/no-unnecessary-waiting
+      cy.wait(600);
       cy.step('Verify no warning message appears for Personal API key');
       cy.get('[data-testid="warning-message-alert"]').should('not.exist');
 
@@ -43,7 +47,6 @@ describe('[Product Bug: NVPE-244] Verify NIM enable flow', () => {
       nimCard.getNGCAPIKey().clear();
       nimCard.getNGCAPIKey().type(Cypress.env('NGC_API_KEY'));
       cy.step('Wait for debounce period before checking warning');
-      cy.wait(600); // Wait longer than debounce timeout (500ms)
       cy.step('Verify non-Personal API key warning message appears');
       cy.get('[data-testid="warning-message-alert"]', { timeout: 1000 }).should('be.visible');
       cy.get('[data-testid="warning-message-alert"]').should(
