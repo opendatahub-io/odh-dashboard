@@ -5,7 +5,7 @@ import { nimCard } from '#~/__tests__/cypress/cypress/pages/components/NIMCard';
 import { deleteNIMAccount } from '#~/__tests__/cypress/cypress/utils/oc_commands/baseCommands';
 import { wasSetupPerformed } from '#~/__tests__/cypress/cypress/utils/retryableHooks';
 
-describe('[Product Bug: NVPE-244] Verify NIM enable flow', () => {
+describe('Verify NIM enable flow', () => {
   after(() => {
     if (!wasSetupPerformed()) return;
     cy.step('Delete odh-nim-account');
@@ -13,7 +13,7 @@ describe('[Product Bug: NVPE-244] Verify NIM enable flow', () => {
   });
   it(
     'Enable and validate NIM flow',
-    { tags: ['@NIM', '@Sanity', '@NonConcurrent', '@Bug'] },
+    { tags: ['@NIM', '@Sanity', '@NonConcurrent'] },
     () => {
       cy.step('Login to the application');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
