@@ -80,12 +80,6 @@ describe('Verify a model can be deployed from a PVC', () => {
       projectListPage.filterProjectByName(projectName);
       projectListPage.findProjectLink(projectName).click();
 
-      // Flip the feature flag
-      // TODO: remove this once the feature flag is removed
-      cy.window().then((win) => {
-        win.sessionStorage.setItem('odh-feature-flags', '{"disablePVCServing":false}');
-      });
-      cy.reload();
       // Navigate to cluster storage page
       cy.step('Navigate to cluster storage page');
       projectDetails.findSectionTab('cluster-storages').click();
