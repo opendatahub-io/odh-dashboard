@@ -97,7 +97,6 @@ type HandlersProps = {
   DscComponents?: DataScienceClusterKindStatus['components'];
   disableProjectScoped?: boolean;
   disableHardwareProfiles?: boolean;
-  disablePVCServing?: boolean;
 };
 import { STOP_MODAL_PREFERENCE_KEY } from '#~/pages/modelServing/useStopModalPreference';
 
@@ -111,7 +110,6 @@ const initIntercepts = ({
   projectEnableModelMesh,
   disableProjectScoped = true,
   disableHardwareProfiles = true,
-  disablePVCServing = true,
   servingRuntimes = [
     mockServingRuntimeK8sResourceLegacy({ tolerations: [], nodeSelector: {} }),
     mockServingRuntimeK8sResource({
@@ -171,7 +169,6 @@ const initIntercepts = ({
       disableKServeRaw,
       disableProjectScoped,
       disableHardwareProfiles,
-      disablePVCServing,
     }),
   );
   cy.interceptK8sList(PodModel, mockK8sResourceList([mockPodK8sResource({})]));
@@ -2378,7 +2375,6 @@ describe('Serving Runtime List', () => {
         disableModelMeshConfig: false,
         disableKServeConfig: false,
         disableServingRuntimeParams: false,
-        disablePVCServing: false,
         requiredCapabilities: [StackCapability.SERVICE_MESH, StackCapability.SERVICE_MESH_AUTHZ],
         projectEnableModelMesh: false,
       });
