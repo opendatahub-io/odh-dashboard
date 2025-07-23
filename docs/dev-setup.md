@@ -70,10 +70,11 @@ make ARGS="--help" setup-dev
 
 4. Clone the repository
 
-5. Install the required operators in the OpenShift cluster. You can find these in the OperatorHub or install them manually.
+5. Install the required operators in the OpenShift cluster. You can find these in the OperatorHub (recommended) or install them manually.
 
 - The ODH Dashboard requires the following operators to be installed for full functionality:
   - [Open Data Hub Operator](https://github.com/opendatahub-io/opendatahub-operator)
+    - After installling, you will need to create a `DSCInitialization` and then a `DataScienceCluster` by going to the relevant tab in the OpenShift Open Data Hub operator page, clicking create and leaving all defaults.
   - [Authorino Operator](https://github.com/Kuadrant/authorino-operator)
   - [Red Hat OpenShift Serverless Operator](https://github.com/openshift-knative/serverless-operator)
   - [Red Hat OpenShift Service Mesh 2](https://github.com/Maistra/istio-operator)
