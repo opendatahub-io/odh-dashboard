@@ -1,4 +1,4 @@
-import { FeatureStoreProject } from '#~/pages/featureStore/types';
+import { FeatureStoreProject } from '#~/pages/featureStore/types/featureStoreProjects';
 
 export const mockFeatureStoreProject = (
   partial?: Partial<FeatureStoreProject>,

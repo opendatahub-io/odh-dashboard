@@ -3,7 +3,7 @@ import { testHook } from '#~/__tests__/unit/testUtils/hooks';
 import { useFeatureStoreAPI } from '#~/pages/featureStore/FeatureStoreContext.tsx';
 import useFeatureStoreEntities from '#~/pages/featureStore/apiHooks/useFeatureStoreEnitites.tsx';
 import { mockEntity, mockEntities } from '#~/__mocks__/mockEntities.ts';
-import { EntityList } from '#~/pages/featureStore/types.ts';
+import { EntityList } from '#~/pages/featureStore/types/entities';
 
 jest.mock('#~/pages/featureStore/FeatureStoreContext.tsx', () => ({
   useFeatureStoreAPI: jest.fn(),

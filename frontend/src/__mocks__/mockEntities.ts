@@ -1,5 +1,5 @@
 /* eslint-disable camelcase */
-import { Entity, EntityList } from '#~/pages/featureStore/types.ts';
+import { Entity, EntityList } from '#~/pages/featureStore/types/entities';
 
 export const mockEntity = (partial?: Partial<Entity>): Entity => ({
   spec: {

@@ -1,5 +1,5 @@
 /* eslint-disable camelcase */
-import { FeatureService, FeatureServices } from '#~/pages/featureStore/types.ts';
+import { FeatureService, FeatureServices } from '#~/pages/featureStore/types/featureServices';
 
 export const mockFeatureService = (partial?: Partial<FeatureService>): FeatureService => ({
   spec: {
