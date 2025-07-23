@@ -88,7 +88,7 @@ export const PvcSelect: React.FC<PvcSelectProps> = ({
         </StackItem>
         {selectedPVC && accessMode !== AccessMode.RWX && (
           <StackItem>
-            <Alert variant="warning" title="Warning" isInline>
+            <Alert variant="warning" title="Storage access mode warning" isInline>
               The access mode of the selected cluster storage is not <strong>ReadWriteMany</strong>.
               This can prevent replicas from working as expected.
             </Alert>
