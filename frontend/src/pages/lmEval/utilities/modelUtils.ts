@@ -1,6 +1,7 @@
 import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
 import { LmModelArgument } from '#~/pages/lmEval/types';
 
+/** Model option for LMEval configuration */
 export type ModelOption = {
   label: string;
   value: string;
@@ -10,12 +11,14 @@ export type ModelOption = {
   port: number;
 };
 
+/** Model type option with endpoint configuration */
 export type ModelTypeOption = {
   key: string;
   label: string;
   endpoint?: string;
 };
 
+/** Filters vLLM inference services by namespace */
 export const filterVLLMInference = (
   services: InferenceServiceKind[],
   namespace: string,
@@ -26,6 +29,7 @@ export const filterVLLMInference = (
       (service: InferenceServiceKind) => service.spec.predictor.model?.modelFormat?.name === 'vLLM',
     );
 
+/** Generates model options from inference services and serving runtimes */
 export const generateModelOptions = (
   services: InferenceServiceKind[],
   servingRuntimes: ServingRuntimeKind[],
@@ -40,8 +44,25 @@ export const generateModelOptions = (
     const servingRuntime = servingRuntimes.find(
       (sr) => sr.metadata.name === runtimeName && sr.metadata.namespace === serviceNamespace,
     );
-    // TODO: Revisit this when the ServingContainer type is updated to include ports
-    const port = (servingRuntime?.spec.containers[0] as any)?.ports?.[0]?.containerPort || 80;
+
+    // Extract port from serving runtime container configuration
+    let port = 80; // Default fallback
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    const containers = servingRuntime?.spec?.containers;
+    if (containers && containers.length > 0) {
+      const container = containers[0];
+      // Use type guard to safely check for ports configuration
+      if ('ports' in container && Array.isArray(container.ports) && container.ports.length > 0) {
+        const firstPort = container.ports[0];
+        if (firstPort && 'containerPort' in firstPort && firstPort.containerPort) {
+          port = firstPort.containerPort;
+        }
+      }
+    } else if (runtimeName) {
+      console.warn(
+        `Serving runtime '${runtimeName}' not found for service '${name}' in namespace '${serviceNamespace}'`,
+      );
+    }
 
     return {
       label: displayName,
@@ -53,6 +74,7 @@ export const generateModelOptions = (
     };
   });
 
+/** Handles model selection and URL construction */
 export const handleModelSelection = (
   selectedModelName: string,
   modelOptions: ModelOption[],
@@ -85,7 +107,7 @@ export const handleModelSelection = (
     baseUrl.includes('.svc.cluster.local') &&
     !baseUrl.includes('.svc.cluster.local:')
   ) {
-    const port = selectedModelOption.port;
+    const { port } = selectedModelOption;
     urlWithPort = baseUrl.replace('.svc.cluster.local', `.svc.cluster.local:${port}`);
   }
 
@@ -106,6 +128,7 @@ export const handleModelSelection = (
   };
 };
 
+/** Handles model type selection and endpoint updates */
 export const handleModelTypeSelection = (
   modelType: string,
   currentModel: LmModelArgument,
