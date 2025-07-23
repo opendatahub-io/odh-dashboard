@@ -1,0 +1,25 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+commonLabels:
+  app: odh-dashboard
+  app.kubernetes.io/part-of: odh-dashboard
+resources:
+  - ../core-bases/base
+  - federation-configmap.yaml
+patchesJson6902:
+  - path: deployment.yaml
+    target:
+      group: apps
+      version: v1
+      kind: Deployment
+      name: odh-dashboard
+  - path: service.yaml
+    target:
+      version: v1
+      kind: Service
+      name: odh-dashboard
+
+images:
+  - name: model-registry-ui
+    newName: quay.io/lferrnan/model-registry-ui-federated # TODO: Update to the correct image once we set up the module in konflux and onboard it in quay and parametrize this value
+    newTag: latest
