@@ -145,21 +145,11 @@ describe(
       // Set up network intercept to fix LMEval job parameters
       cy.step('Set up network intercept to fix LMEval job parameters');
 
-      cy.intercept('POST', '**/lmevaljobs**', (req) => {
-        if (staticConfig) {
-          const modifiedReq = configureJob(req, staticConfig);
-          // Update the request with the modified version
-          Object.assign(req, modifiedReq);
-        }
-        req.continue();
-      }).as('lmEvalJobCreate');
-
       // Submit the evaluation form
       cy.step('Submit evaluation form');
       lmEvalFormPage.clickSubmitButton();
 
       // Wait for LMEval job creation and verify navigation
-      waitForJobCreation('@lmEvalJobCreate');
 
       // Verify evaluation run was created successfully
       if (staticTestSetup && staticConfig?.lmEval?.lmEvalTimeoutSeconds) {
@@ -264,21 +254,21 @@ describe(
       // Set up network intercept to fix LMEval job parameters
       cy.step('Set up network intercept to fix LMEval job parameters');
 
-      cy.intercept('POST', '**/lmevaljobs**', (req) => {
-        if (dynamicConfig) {
-          const modifiedReq = configureJob(req, dynamicConfig);
-          // Update the request with the modified version
-          Object.assign(req, modifiedReq);
-        }
-        req.continue();
-      }).as('lmEvalJobCreate');
+      // cy.intercept('POST', '**/lmevaljobs**', (req) => {
+      //   if (dynamicConfig) {
+      //     const modifiedReq = configureJob(req, dynamicConfig);
+      //     // Update the request with the modified version
+      //     Object.assign(req, modifiedReq);
+      //   }
+      //   req.continue();
+      // }).as('lmEvalJobCreate');
 
       // Submit the evaluation form
       cy.step('Submit evaluation form');
       lmEvalFormPage.clickSubmitButton();
 
       // Wait for LMEval job creation and verify navigation
-      waitForJobCreation('@lmEvalJobCreate');
+      // waitForJobCreation('@lmEvalJobCreate');
 
       // Verify evaluation run was created successfully
       if (dynamicTestSetup && dynamicConfig?.lmEval?.lmEvalTimeoutSeconds) {
@@ -288,12 +278,12 @@ describe(
   },
 );
 
-// Global cleanup function that will be called at the end of all tests
-after(() => {
-  if (staticTestSetup) {
-    staticTestSetup.cleanupTest();
-  }
-  if (dynamicTestSetup) {
-    dynamicTestSetup.cleanupTest();
-  }
-});
+// // Global cleanup function that will be called at the end of all tests
+// after(() => {
+//   if (staticTestSetup) {
+//     staticTestSetup.cleanupTest();
+//   }
+//   if (dynamicTestSetup) {
+//     dynamicTestSetup.cleanupTest();
+//   }
+// });

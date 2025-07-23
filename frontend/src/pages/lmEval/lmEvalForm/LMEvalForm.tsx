@@ -23,6 +23,7 @@ import { OutlinedQuestionCircleIcon, CubesIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router';
 import { LmEvalFormData, LmModelArgument } from '#~/pages/lmEval/types';
 import useInferenceServices from '#~/pages/modelServing/useInferenceServices';
+import useServingRuntimes from '#~/pages/modelServing/useServingRuntimes';
 import useLMGenericObjectState from '#~/pages/lmEval/utilities/useLMGenericObjectState';
 import LMEvalApplicationPage from '#~/pages/lmEval/components/LMEvalApplicationPage';
 import { LMEvalContext } from '#~/pages/lmEval/global/LMEvalContext';
@@ -66,15 +67,30 @@ const LMEvalForm: React.FC = () => {
   const [open, setOpen] = React.useState(false);
   const [openModelName, setOpenModelName] = React.useState(false);
   const inferenceServices = useInferenceServices();
+  const servingRuntimes = useServingRuntimes();
 
   const modelOptions = React.useMemo(() => {
-    if (!inferenceServices.loaded || inferenceServices.error || !namespace) {
+    if (
+      !inferenceServices.loaded ||
+      inferenceServices.error ||
+      !servingRuntimes.loaded ||
+      servingRuntimes.error ||
+      !namespace
+    ) {
       return [];
     }
 
     const filteredServices = filterVLLMInference(inferenceServices.data.items, namespace);
-    return generateModelOptions(filteredServices);
-  }, [inferenceServices.loaded, inferenceServices.error, inferenceServices.data.items, namespace]);
+    return generateModelOptions(filteredServices, servingRuntimes.data.items);
+  }, [
+    inferenceServices.loaded,
+    inferenceServices.error,
+    inferenceServices.data.items,
+    servingRuntimes.loaded,
+    servingRuntimes.error,
+    servingRuntimes.data,
+    namespace,
+  ]);
 
   const { data: lmEvalName, onDataChange: setLmEvalName } = useK8sNameDescriptionFieldData({});
 
@@ -110,9 +126,13 @@ const LMEvalForm: React.FC = () => {
   );
   const selectedModelLabel = selectedModel?.label || 'Select a model';
 
-  const isLoading = !inferenceServices.loaded && !inferenceServices.error;
+  const isLoading = !inferenceServices.loaded || !servingRuntimes.loaded;
   const hasNoModels =
-    inferenceServices.loaded && !inferenceServices.error && modelOptions.length === 0;
+    inferenceServices.loaded &&
+    !inferenceServices.error &&
+    servingRuntimes.loaded &&
+    !servingRuntimes.error &&
+    modelOptions.length === 0;
 
   return (
     <LMEvalApplicationPage
