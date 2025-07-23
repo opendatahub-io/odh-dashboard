@@ -3,9 +3,9 @@ import { ProjectsContext } from '@odh-dashboard/internal/concepts/projects/Proje
 import { useExtensions } from '@odh-dashboard/plugin-core';
 import { Bullseye, Spinner } from '@patternfly/react-core';
 import { useNavigate, useParams } from 'react-router-dom';
-import GlobalDeploymentsView from './components/global/GlobalDeploymentsView';
-import { ModelDeploymentsProvider } from './concepts/ModelDeploymentsContext';
-import { isModelServingPlatformExtension } from '../extension-points';
+import GlobalDeploymentsView from './GlobalDeploymentsView';
+import { ModelDeploymentsProvider } from '../../concepts/ModelDeploymentsContext';
+import { isModelServingPlatformExtension } from '../../../extension-points';
 
 const GlobalModelsPage: React.FC = () => {
   const availablePlatforms = useExtensions(isModelServingPlatformExtension);
@@ -27,7 +27,7 @@ const GlobalModelsPage: React.FC = () => {
 
   React.useEffect(() => {
     if (!namespace && preferredProject) {
-      navigate(`/model-serving/${preferredProject.metadata.name}`, { replace: true });
+      navigate(`/modelServing/${preferredProject.metadata.name}`, { replace: true });
     }
   }, [namespace, preferredProject, navigate]);
 
@@ -38,7 +38,6 @@ const GlobalModelsPage: React.FC = () => {
       </Bullseye>
     );
   }
-
   return (
     <ModelDeploymentsProvider modelServingPlatforms={availablePlatforms} projects={projectsToShow}>
       <GlobalDeploymentsView projects={projectsToShow} />

@@ -5,7 +5,6 @@ import ResourceTr from '@odh-dashboard/internal/components/ResourceTr';
 import { ModelStatusIcon } from '@odh-dashboard/internal/concepts/modelServing/ModelStatusIcon';
 import { InferenceServiceModelState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
-import { Link } from 'react-router-dom';
 import ResourceNameTooltip from '@odh-dashboard/internal/components/ResourceNameTooltip';
 import { DeploymentRowExpandedSection } from './DeploymentsTableRowExpandedSection';
 import DeploymentLastDeployed from './DeploymentLastDeployed';
@@ -23,6 +22,7 @@ import {
   isModelServingDeploymentsExpandedInfo,
   isModelServingMetricsExtension,
 } from '../../../extension-points';
+import { DeploymentMetricsLink } from '../metrics/DeploymentMetricsLink';
 
 export const DeploymentRow: React.FC<{
   deployment: Deployment;
@@ -71,12 +71,7 @@ export const DeploymentRow: React.FC<{
             {metricsExtension &&
             deployment.model.metadata.namespace &&
             deployment.status?.state === InferenceServiceModelState.LOADED ? (
-              <Link
-                to={`/projects/${deployment.model.metadata.namespace}/metrics/model/${deployment.model.metadata.name}`}
-                data-testid="deployed-model-name"
-              >
-                {getDisplayNameFromK8sResource(deployment.model)}
-              </Link>
+              <DeploymentMetricsLink deployment={deployment} data-testid="deployed-model-name" />
             ) : (
               <span data-testid="deployed-model-name">
                 {getDisplayNameFromK8sResource(deployment.model)}
