@@ -11,6 +11,7 @@ import type {
   ModelServingMetricsExtension,
   ModelServingDeploymentResourcesExtension,
   ModelServingAuthExtension,
+  DeployedModelServingRuntime,
 } from '@odh-dashboard/model-serving/extension-points';
 // eslint-disable-next-line no-restricted-syntax
 import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/index';
@@ -27,6 +28,7 @@ const extensions: (
   | ModelServingDeploymentsExpandedInfo<KServeDeployment>
   | ModelServingDeleteModal<KServeDeployment>
   | ModelServingMetricsExtension<KServeDeployment>
+  | DeployedModelServingRuntime<KServeDeployment>
 )[] = [
   {
     type: 'model-serving.platform',
@@ -113,6 +115,13 @@ const extensions: (
     },
     flags: {
       required: [SupportedArea.K_SERVE_METRICS],
+    },
+  },
+  {
+    type: 'model-serving.deployed-model/serving-runtime',
+    properties: {
+      platform: KSERVE_ID,
+      ServingRuntimeComponent: () => import('./src/deploymentServingRuntimeVersion'),
     },
   },
 ];

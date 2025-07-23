@@ -30,12 +30,15 @@ import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/
 import { ModelStatusIcon } from '@odh-dashboard/internal/concepts/modelServing/ModelStatusIcon';
 import { InferenceServiceModelState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import ResourceNameTooltip from '@odh-dashboard/internal/components/ResourceNameTooltip';
-import { useExtensions } from '@odh-dashboard/plugin-core';
-import InferenceServiceServingRuntime from '@odh-dashboard/internal/pages/modelServing/screens/global/InferenceServiceServingRuntime';
-import { isKServeDeployment } from '../../../../kserve/src/deployments';
+import { useExtensions, LazyCodeRefComponent } from '@odh-dashboard/plugin-core';
 import { ModelDeploymentsContext } from '../../concepts/ModelDeploymentsContext';
 import { useProjectServingPlatform } from '../../concepts/useProjectServingPlatform';
-import { Deployment, isModelServingPlatformExtension } from '../../../extension-points';
+import { useDeploymentExtension } from '../../concepts/extensionUtils';
+import {
+  Deployment,
+  isModelServingPlatformExtension,
+  isDeployedModelServingRuntime,
+} from '../../../extension-points';
 import DeploymentStatus from '../deployments/DeploymentStatus';
 
 enum FilterStates {
@@ -48,6 +51,19 @@ const FAILED_STATUSES = [InferenceServiceModelState.FAILED_TO_LOAD];
 
 const DeployedModelCard: React.FC<{ deployment: Deployment }> = ({ deployment }) => {
   const displayName = getDisplayNameFromK8sResource(deployment.model);
+  const servingRuntimeExtension = useDeploymentExtension(isDeployedModelServingRuntime, deployment);
+
+  const renderServingRuntime = () => {
+    if (servingRuntimeExtension) {
+      return (
+        <LazyCodeRefComponent
+          component={servingRuntimeExtension.properties.ServingRuntimeComponent}
+          props={{ deployment }}
+        />
+      );
+    }
+    return deployment.server?.metadata.annotations?.['opendatahub.io/template-display-name'] ?? '-';
+  };
 
   return (
     <GalleryItem key={deployment.model.metadata.uid}>
@@ -91,13 +107,7 @@ const DeployedModelCard: React.FC<{ deployment: Deployment }> = ({ deployment })
                   fontSize: 'var(--pf-t--global--font--size--body--sm)',
                 }}
               >
-                {isKServeDeployment(deployment) ? (
-                  <InferenceServiceServingRuntime servingRuntime={deployment.server} />
-                ) : (
-                  deployment.server?.metadata.annotations?.[
-                    'opendatahub.io/template-display-name'
-                  ] ?? '-'
-                )}
+                {renderServingRuntime()}
               </Content>
             </Content>
           </Content>

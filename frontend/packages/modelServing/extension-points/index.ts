@@ -195,3 +195,16 @@ export type ModelServingMetricsExtension<D extends Deployment = Deployment> = Ex
 export const isModelServingMetricsExtension = <D extends Deployment = Deployment>(
   extension: Extension,
 ): extension is ModelServingMetricsExtension<D> => extension.type === 'model-serving.metrics';
+
+export type DeployedModelServingRuntime<D extends Deployment = Deployment> = Extension<
+  'model-serving.deployed-model/serving-runtime',
+  {
+    platform: D['modelServingPlatformId'];
+    ServingRuntimeComponent: ComponentCodeRef<{ deployment: D }>;
+  }
+>;
+
+export const isDeployedModelServingRuntime = <D extends Deployment = Deployment>(
+  extension: Extension,
+): extension is DeployedModelServingRuntime<D> =>
+  extension.type === 'model-serving.deployed-model/serving-runtime';
