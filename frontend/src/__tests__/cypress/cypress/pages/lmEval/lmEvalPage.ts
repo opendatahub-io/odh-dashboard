@@ -76,40 +76,29 @@ class LMEvalPage {
     return cy.findByTestId('breadcrumb-start-evaluation-run');
   }
 
-  // Evaluation run verification methods
-  shouldHaveEvaluationRunInTable(evaluationName: string) {
-    // Search specifically within the table using the data-label attribute
-    // Wait for the table to be visible first
-    cy.get('table').should('be.visible');
-
-    // Use a more specific selector that finds the exact row containing the evaluation name
-    cy.get('tr').contains(evaluationName).should('be.visible');
-
-    // Also verify the specific data-label element contains the text
-    cy.get('[data-label="Evaluation"]').should('contain.text', evaluationName);
-    return this;
+  // Evaluation run finder methods
+  findEvaluationTable() {
+    return cy.get('table');
   }
 
-  shouldHaveModelNameInTable(modelName: string) {
-    // Search specifically within the table using the data-label attribute
-    cy.get('[data-label="Model"]').should('contain.text', modelName);
-    return this;
+  findEvaluationRow(evaluationName: string) {
+    return cy.get('tr').contains(evaluationName);
   }
 
-  shouldHaveEvaluationRunStatus() {
-    cy.get('[data-testid="evaluation-run-status"]').should('exist');
-    return this;
+  findEvaluationDataLabel(dataLabel: string) {
+    return cy.get(`[data-label="${dataLabel}"]`);
   }
 
-  shouldHaveEvaluationRunStartTime() {
-    cy.get('body').should('contain.text', 'Started');
-    return this;
+  findEvaluationRunStatus() {
+    return cy.get('[data-testid="evaluation-run-status"]');
   }
 
-  shouldHaveEvaluationRunActionsMenu() {
-    // Look for the kebab menu button (three dots menu) in the table row
-    cy.get('button[aria-label="Kebab toggle"]').should('exist');
-    return this;
+  findEvaluationRunStartTime() {
+    return cy.get('[data-testid="evaluation-run-start-time"]');
+  }
+
+  findEvaluationRunActionsMenu() {
+    return cy.get('button[aria-label="Kebab toggle"]');
   }
 
   findProjectSelectorMenuList() {
@@ -118,11 +107,6 @@ class LMEvalPage {
 
   findAllProjectsOption() {
     return this.findProjectSelectorMenuList().find('button').contains('All projects');
-  }
-
-  // New methods for evaluation details page interactions
-  findEvaluationRunStatus(timeout?: number) {
-    return cy.get('[data-testid="evaluation-run-status"]', { timeout });
   }
 
   findEvaluationRunLink(evaluationName: string) {
@@ -137,26 +121,8 @@ class LMEvalPage {
     return cy.get('h1');
   }
 
-  findEvaluationTable() {
-    return cy.get('table');
-  }
-
   findEvaluationTableRows() {
     return cy.get('[data-label="Evaluation"]');
-  }
-
-  // Method to verify evaluation details page
-  verifyEvaluationDetailsPage(evaluationName: string, projectName: string) {
-    cy.url().should('include', `/modelEvaluations/${projectName}/${evaluationName}`);
-    this.findEvaluationDetailsTitle().should('contain.text', evaluationName);
-    this.findDownloadJsonButton().should('be.visible').and('not.be.disabled');
-    return this;
-  }
-
-  // Method to download JSON results
-  downloadJsonResults() {
-    this.findDownloadJsonButton().click();
-    return this;
   }
 }
 

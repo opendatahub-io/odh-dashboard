@@ -1,4 +1,5 @@
 import { lmEvalPage } from '#~/__tests__/cypress/cypress/pages/lmEval/lmEvalPage';
+import { lmEvalFormPage } from '#~/__tests__/cypress/cypress/pages/lmEval/lmEval';
 import { execWithOutput } from './oc_commands/baseCommands';
 import type { createModelTestSetup } from './modelTestSetup';
 import { generateTestUUID } from './uuidGenerator';
@@ -28,21 +29,7 @@ interface ModelArg {
   value: string;
 }
 
-interface LMEvalJobRequest {
-  body: {
-    spec: {
-      modelArgs: ModelArg[];
-      taskList: {
-        taskNames: string[];
-      };
-      limit?: string;
-    };
-    security?: {
-      allowOnline?: boolean;
-      trustRemoteCode?: boolean;
-    };
-  };
-}
+// Removed unused interface LMEvalJobRequest
 
 interface LMEvalJobResult {
   results: Record<
@@ -69,107 +56,92 @@ interface LMEvalJobResult {
 }
 
 /**
- * Configures LMEval job parameters based on the test configuration
+ * WORKAROUND: Configures missing LMEval job parameters via network intercepts
  *
- * This function customizes job parameters based on test configuration:
+ * This function is needed because the UI doesn't support all LMEval job parameters yet.
+ * We use network intercepts to modify the request before it's sent to the API.
  *
  * Common fixes applied:
- * - Fixes service port in URL to ensure proper connectivity
- * - Adds appropriate security parameters based on UI settings
- * - Adjusts evaluation parameters for efficient testing
- * - Sets optimized concurrency and retry settings
+ * - Sets optimized concurrency and retry settings for efficient testing
+ * - Adjusts evaluation parameters for better test performance
+ * - Configures job limits and other parameters not available in UI
  *
- * @param req The request object to modify
+ * TODO: Remove this workaround once the UI supports all LMEval job parameters
+ *
  * @param testConfig The test configuration object containing LMEval settings
  */
-export const configureJob = (req: LMEvalJobRequest, testConfig: TestConfig): LMEvalJobRequest => {
-  // Get LMEval configuration from test config
-  const lmEvalConfig = testConfig.lmEval;
+export const configureMissingParams = (testConfig: TestConfig): void => {
+  // Set up network intercept to configure LMEval job parameters
+  cy.step('Set up network intercept to configure LMEval job parameters');
+  cy.intercept('POST', '**/lmevaljobs**', (req) => {
+    // Get LMEval configuration from test config
+    const lmEvalConfig = testConfig.lmEval;
 
-  // Early return if no LMEval config is provided
-  if (!lmEvalConfig) {
-    return req;
-  }
-
-  // Create a deep copy of the request body to avoid modifying the parameter directly
-  const requestBody = JSON.parse(JSON.stringify(req.body));
-
-  // Fix model name to use correct model ID from configuration
-  const modelArg = requestBody.spec.modelArgs.find((arg: ModelArg) => arg.name === 'model');
-  if (modelArg) {
-    if (testConfig.modelName) {
-      modelArg.value = testConfig.modelName;
-    } else {
-      modelArg.value = lmEvalConfig.modelPath || modelArg.value;
+    // Early return if no LMEval config is provided
+    if (!lmEvalConfig) {
+      req.continue();
+      return;
     }
-  }
 
-  // Tweak LMEval job parameters via API, since the UI doesn't support it yet
-  const numConcurrentArg = requestBody.spec.modelArgs.find(
-    (arg: ModelArg) => arg.name === 'num_concurrent',
-  );
-  if (numConcurrentArg) {
-    numConcurrentArg.value = lmEvalConfig.numConcurrent.toString();
-  } else {
-    // Add num_concurrent parameter if it doesn't exist
-    requestBody.spec.modelArgs.push({
-      name: 'num_concurrent',
-      value: lmEvalConfig.numConcurrent.toString(),
+    // Create a deep copy of the request body to avoid modifying the parameter directly
+    const requestBody = JSON.parse(JSON.stringify(req.body));
+
+    // WORKAROUND: Tweak LMEval job parameters via API, since the UI doesn't support it yet
+    const numConcurrentArg = requestBody.spec.modelArgs.find(
+      (arg: ModelArg) => arg.name === 'num_concurrent',
+    );
+    if (numConcurrentArg) {
+      numConcurrentArg.value = lmEvalConfig.numConcurrent.toString();
+    } else {
+      // Add num_concurrent parameter if it doesn't exist
+      requestBody.spec.modelArgs.push({
+        name: 'num_concurrent',
+        value: lmEvalConfig.numConcurrent.toString(),
+      });
+    }
+
+    const maxRetriesArg = requestBody.spec.modelArgs.find(
+      (arg: ModelArg) => arg.name === 'max_retries',
+    );
+    if (maxRetriesArg) {
+      maxRetriesArg.value = lmEvalConfig.maxRetries.toString();
+    } else {
+      // Add max_retries parameter if it doesn't exist
+      requestBody.spec.modelArgs.push({
+        name: 'max_retries',
+        value: lmEvalConfig.maxRetries.toString(),
+      });
+    }
+
+    // Set limit parameter as direct spec property (most important for test performance)
+    requestBody.spec.limit = lmEvalConfig.limit.toString();
+
+    // Log the final configuration for debugging
+    console.log('🚀 Final LMEval Job Configuration:');
+    console.log('📋 Task:', requestBody.spec.taskList.taskNames);
+    console.log('🔧 Model Args:');
+    requestBody.spec.modelArgs.forEach((arg: ModelArg) => {
+      console.log(`  - ${arg.name}: ${arg.value}`);
     });
-  }
 
-  const maxRetriesArg = requestBody.spec.modelArgs.find(
-    (arg: ModelArg) => arg.name === 'max_retries',
-  );
-  if (maxRetriesArg) {
-    maxRetriesArg.value = lmEvalConfig.maxRetries.toString();
-  } else {
-    // Add max_retries parameter if it doesn't exist
-    requestBody.spec.modelArgs.push({
-      name: 'max_retries',
-      value: lmEvalConfig.maxRetries.toString(),
-    });
-  }
-
-  // Set limit parameter as direct spec property (most important for test performance)
-  requestBody.spec.limit = lmEvalConfig.limit.toString();
-
-  // Log the final configuration for debugging
-  console.log('🚀 Final LMEval Job Configuration:');
-  console.log('📋 Task:', requestBody.spec.taskList.taskNames);
-  console.log('🔧 Model Args:');
-  requestBody.spec.modelArgs.forEach((arg: ModelArg) => {
-    console.log(`  - ${arg.name}: ${arg.value}`);
-  });
-
-  // Return the modified request
-  return { ...req, body: requestBody };
+    // Update the request with the modified body
+    Object.assign(req, { body: requestBody });
+    req.continue();
+  }).as('lmEvalJobCreate');
 };
 
 /**
- * Waits for LMEval job creation and logs the configuration
- * @param alias The Cypress alias for the intercepted request
+ * Submits the LMEval job form and verifies navigation
+ * @param config Optional test configuration for job parameter optimization
  */
-export const waitForJobCreation = (alias: string): void => {
-  // Wait for LMEval job creation
-  cy.step('Wait for LMEval job creation');
-  cy.wait(alias).then((interception) => {
-    const modelArgs = interception.request.body?.spec?.modelArgs;
-    cy.step('✅ LMEval Job Created with Optimized Configuration');
+export const submitJobForm = (): void => {
+  // Verify submit button is enabled after filling required fields
+  cy.step('Verify submit button is enabled after filling required fields');
+  lmEvalFormPage.findSubmitButton().should('not.be.disabled');
 
-    // Log key optimization parameters
-    const baseUrl = modelArgs?.find((arg: ModelArg) => arg.name === 'base_url')?.value;
-    const concurrent = modelArgs?.find((arg: ModelArg) => arg.name === 'num_concurrent')?.value;
-    const maxRetries = modelArgs?.find((arg: ModelArg) => arg.name === 'max_retries')?.value;
-    const model = modelArgs?.find((arg: ModelArg) => arg.name === 'model')?.value;
-    const limit = interception.request.body?.spec?.limit;
-
-    cy.log(`🔗 Base URL: ${baseUrl}`);
-    cy.log(`⚡ Concurrent Requests: ${concurrent}`);
-    cy.log(`🔄 Max Retries: ${maxRetries}`);
-    cy.log(`📊 Limit: ${limit}`);
-    cy.log(`🤖 Model: ${model}`);
-  });
+  // Submit the evaluation form
+  cy.step('Submit evaluation form');
+  lmEvalFormPage.clickSubmitButton();
 
   // Verify navigation to model evaluations page after submission
   cy.step('Verify navigation after form submission');
@@ -248,7 +220,9 @@ export const verifyDownloadedJsonFile = (evaluationName: string): void => {
  */
 const waitForEvaluationToAppear = (evaluationName: string): void => {
   cy.step('Wait for Evaluation page to load after form submission');
-  lmEvalPage.shouldHaveEvaluationRunInTable(evaluationName);
+  lmEvalPage.findEvaluationTable().should('be.visible');
+  lmEvalPage.findEvaluationRow(evaluationName).should('be.visible');
+  lmEvalPage.findEvaluationDataLabel('Evaluation').should('contain.text', evaluationName);
 
   cy.step('Switch to All projects view');
   lmEvalPage.selectAllProjects();
@@ -332,17 +306,12 @@ const downloadAndVerifyResults = (
 
   // Verify navigation to the evaluation details page
   cy.step('Verify navigation to evaluation details page');
-  lmEvalPage.verifyEvaluationDetailsPage(evaluationName, testSetup.testProjectName);
-
-  // Log the actual URL for debugging
-  cy.url().then((currentUrl) => {
-    const url = currentUrl || 'unknown';
-    cy.log(`📍 Actual evaluation details URL: ${url}`);
-  });
+  cy.url().should('include', `/modelEvaluations/${testSetup.testProjectName}/${evaluationName}`);
+  lmEvalPage.findEvaluationDetailsTitle().should('contain.text', evaluationName);
 
   // Click the download button and verify the downloaded file
   cy.step('Download and verify JSON file');
-  lmEvalPage.downloadJsonResults();
+  lmEvalPage.findDownloadJsonButton().should('be.visible').and('not.be.disabled').click();
 
   // Verify the downloaded file using the new function
   verifyDownloadedJsonFile(evaluationName);
@@ -385,7 +354,7 @@ export const verifyJob = (
  */
 export const waitForEvaluationRunComplete = (evaluationName: string, timeout: number): void => {
   // First wait for the status to be "Complete"
-  lmEvalPage.findEvaluationRunStatus(timeout).should('contain.text', 'Complete');
+  cy.get('[data-testid="evaluation-run-status"]', { timeout }).should('contain.text', 'Complete');
 
   // Then wait for the link to be available and clickable
   cy.get(`[data-testid="lm-eval-link-${evaluationName}"]`, { timeout })
@@ -437,13 +406,15 @@ export const waitForEvaluationRun = (
   });
 
   // Verify the evaluation run exists with all required elements
-  lmEvalPage.shouldHaveEvaluationRunInTable(evaluationName);
+  lmEvalPage.findEvaluationTable().should('be.visible');
+  lmEvalPage.findEvaluationRow(evaluationName).should('be.visible');
+  lmEvalPage.findEvaluationDataLabel('Evaluation').should('contain.text', evaluationName);
   if (modelName) {
-    lmEvalPage.shouldHaveModelNameInTable(modelName);
+    lmEvalPage.findEvaluationDataLabel('Model').should('contain.text', modelName);
   }
-  lmEvalPage.shouldHaveEvaluationRunStatus();
-  lmEvalPage.shouldHaveEvaluationRunStartTime();
-  lmEvalPage.shouldHaveEvaluationRunActionsMenu();
+  lmEvalPage.findEvaluationRunStatus().should('exist');
+  lmEvalPage.findEvaluationRunStartTime().should('exist');
+  lmEvalPage.findEvaluationRunActionsMenu().should('exist');
 
   return lmEvalPage;
 };

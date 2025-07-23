@@ -7,21 +7,20 @@ import {
   type ModelTestConfig,
 } from '#~/__tests__/cypress/cypress/utils/modelTestSetup';
 import {
-  configureJob,
   verifyJob,
-  waitForJobCreation,
+  submitJobForm,
   navigateToLMEvalEvaluationForm,
+  configureMissingParams,
 } from '#~/__tests__/cypress/cypress/utils/lmEvalJob';
-import { retryableBefore } from '#~/__tests__/cypress/cypress/utils/retryableHooks';
 import { generateTestUUID } from '#~/__tests__/cypress/cypress/utils/uuidGenerator';
 
 // Global variables to track test setups across all describe blocks
-let staticTestSetup: ReturnType<typeof createModelTestSetup> | undefined;
-let dynamicTestSetup: ReturnType<typeof createModelTestSetup> | undefined;
-let staticConfig: ModelTestConfig | undefined;
-let dynamicConfig: ModelTestConfig | undefined;
-let staticEvaluationName: string | undefined;
-let dynamicEvaluationName: string | undefined;
+let staticTestSetup: ReturnType<typeof createModelTestSetup>;
+let dynamicTestSetup: ReturnType<typeof createModelTestSetup>;
+let staticConfig: ModelTestConfig;
+let dynamicConfig: ModelTestConfig;
+let staticEvaluationName: string;
+let dynamicEvaluationName: string;
 
 /**
  * Tests LMEval functionality with pre-baked models.
@@ -39,8 +38,8 @@ describe(
     tags: ['@Sanity', '@SanitySet3', '@LMEval', '@Featureflagged'],
   },
   () => {
-    // Load test configuration in retryableBefore hook
-    retryableBefore(async () => {
+    // Load test configuration in before hook
+    before(() => {
       loadTestConfig('static').then((config) => {
         staticConfig = config;
         staticTestSetup = createModelTestSetup(config);
@@ -48,7 +47,7 @@ describe(
         // Set evaluation name for static test - generate it once and use it consistently
         staticEvaluationName = `test-lmeval-${generateTestUUID()}`;
         // Update the config to use this name
-        if (staticConfig?.lmEval) {
+        if (staticConfig.lmEval) {
           staticConfig.lmEval.evaluationName = staticEvaluationName;
         }
       });
@@ -138,18 +137,13 @@ describe(
         lmEvalFormPage.shouldHaveEvaluationName(staticEvaluationName);
       }
 
-      // Verify submit button is enabled after filling required fields
-      cy.step('Verify submit button is enabled after filling required fields');
-      lmEvalFormPage.findSubmitButton().should('not.be.disabled');
-
-      // Set up network intercept to fix LMEval job parameters
-      cy.step('Set up network intercept to fix LMEval job parameters');
+      // WORKAROUND: Intercept missing LMEval job parameters, since the UI doesn't support them yet
+      if (staticConfig?.lmEval) {
+        configureMissingParams(staticConfig);
+      }
 
       // Submit the evaluation form
-      cy.step('Submit evaluation form');
-      lmEvalFormPage.clickSubmitButton();
-
-      // Wait for LMEval job creation and verify navigation
+      submitJobForm();
 
       // Verify evaluation run was created successfully
       if (staticTestSetup && staticConfig?.lmEval?.lmEvalTimeoutSeconds) {
@@ -177,8 +171,8 @@ describe(
     tags: ['@Smoke', '@SmokeSet3', '@LMEval', '@Featureflagged'],
   },
   () => {
-    // Load test configuration in retryableBefore hook
-    retryableBefore(async () => {
+    // Load test configuration in before hook
+    before(() => {
       loadTestConfig('dynamic').then((config) => {
         dynamicConfig = config;
         dynamicTestSetup = createModelTestSetup(config);
@@ -186,7 +180,7 @@ describe(
         // Set evaluation name for dynamic test - generate it once and use it consistently
         dynamicEvaluationName = `test-lmeval-${generateTestUUID()}`;
         // Update the config to use this name
-        if (dynamicConfig?.lmEval) {
+        if (dynamicConfig.lmEval) {
           dynamicConfig.lmEval.evaluationName = dynamicEvaluationName;
         }
       });
@@ -247,28 +241,13 @@ describe(
         lmEvalFormPage.shouldHaveEvaluationName(dynamicEvaluationName);
       }
 
-      // Verify submit button is enabled after filling required fields
-      cy.step('Verify submit button is enabled after filling required fields');
-      lmEvalFormPage.findSubmitButton().should('not.be.disabled');
-
-      // Set up network intercept to fix LMEval job parameters
-      cy.step('Set up network intercept to fix LMEval job parameters');
-
-      // cy.intercept('POST', '**/lmevaljobs**', (req) => {
-      //   if (dynamicConfig) {
-      //     const modifiedReq = configureJob(req, dynamicConfig);
-      //     // Update the request with the modified version
-      //     Object.assign(req, modifiedReq);
-      //   }
-      //   req.continue();
-      // }).as('lmEvalJobCreate');
+      // WORKAROUND: Intercept missing LMEval job parameters, since the UI doesn't support them yet
+      if (dynamicConfig?.lmEval) {
+        configureMissingParams(dynamicConfig);
+      }
 
       // Submit the evaluation form
-      cy.step('Submit evaluation form');
-      lmEvalFormPage.clickSubmitButton();
-
-      // Wait for LMEval job creation and verify navigation
-      // waitForJobCreation('@lmEvalJobCreate');
+      submitJobForm();
 
       // Verify evaluation run was created successfully
       if (dynamicTestSetup && dynamicConfig?.lmEval?.lmEvalTimeoutSeconds) {
@@ -278,12 +257,12 @@ describe(
   },
 );
 
-// // Global cleanup function that will be called at the end of all tests
-// after(() => {
-//   if (staticTestSetup) {
-//     staticTestSetup.cleanupTest();
-//   }
-//   if (dynamicTestSetup) {
-//     dynamicTestSetup.cleanupTest();
-//   }
-// });
+// Global cleanup function that will be called at the end of all tests
+after(() => {
+  if (staticTestSetup) {
+    staticTestSetup.cleanupTest();
+  }
+  if (dynamicTestSetup) {
+    dynamicTestSetup.cleanupTest();
+  }
+});
