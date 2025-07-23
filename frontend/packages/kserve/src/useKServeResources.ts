@@ -8,6 +8,7 @@ export const useKServeResources = (
   const resources = useModelServingPodSpecOptionsState(
     kserveDeployment.server,
     kserveDeployment.model,
+    false,
   );
 
   return resources;

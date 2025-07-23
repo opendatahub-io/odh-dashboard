@@ -100,6 +100,14 @@ class ModelArchive {
     return this.findArchiveModelTable().find('thead').findByRole('button', { name });
   }
 
+  findTableSearch() {
+    return cy.findByTestId('filter-toolbar-text-field');
+  }
+
+  findFilterDropdownItem(name: string) {
+    return cy.findByTestId(`filter-toolbar-dropdown`).findDropdownItem(name);
+  }
+
   findArchiveModelTable() {
     return cy.findByTestId('registered-models-archive-table');
   }

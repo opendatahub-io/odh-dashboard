@@ -46,7 +46,7 @@ const NotebookUpdateImageModalFooter: React.FC<NotebookUpdateImageModalFooterPro
   ) => {
     if (latestImageVersion) {
       const tep: FormTrackingEventProperties = {
-        containers: Object.entries(notebook.spec.template.spec.containers.at(0)?.resources || {})
+        containers: Object.entries(notebook.spec.template.spec.containers[0]?.resources || {})
           .map(([key, value]) =>
             Object.entries(value).map(([k, v]) => `${key}.${k}: ${v?.toString() || ''}`),
           )

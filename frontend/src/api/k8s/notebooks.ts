@@ -55,6 +55,7 @@ export const assembleNotebook = (
       selectedHardwareProfile,
     },
   } = data;
+  const dashboardNamespace = data.dashboardNamespace ?? '';
   const {
     name: notebookName,
     description,
@@ -94,12 +95,15 @@ export const assembleNotebook = (
     volumeMounts.push(getshmVolumeMount());
   }
 
+  const isLegacyHardwareProfile =
+    !!selectedAcceleratorProfile || !selectedHardwareProfile?.metadata.uid;
+
   const hardwareProfileNamespace: Record<string, string | null> =
-    selectedHardwareProfile?.metadata.namespace === projectName
-      ? { 'opendatahub.io/hardware-profile-namespace': projectName }
-      : {
-          'opendatahub.io/hardware-profile-namespace': null,
-        };
+    selectedHardwareProfile && !isLegacyHardwareProfile
+      ? selectedHardwareProfile.metadata.namespace === projectName
+        ? { 'opendatahub.io/hardware-profile-namespace': projectName }
+        : { 'opendatahub.io/hardware-profile-namespace': dashboardNamespace }
+      : { 'opendatahub.io/hardware-profile-namespace': null };
 
   let acceleratorProfileNamespace: Record<string, string | null> = {
     'opendatahub.io/accelerator-profile-namespace': null,
@@ -131,7 +135,13 @@ export const assembleNotebook = (
         'notebooks.opendatahub.io/inject-oauth': 'true',
         'opendatahub.io/username': username,
         'opendatahub.io/accelerator-name': selectedAcceleratorProfile?.metadata.name || '',
-        'opendatahub.io/hardware-profile-name': selectedHardwareProfile?.metadata.name || '',
+        'opendatahub.io/hardware-profile-name': isLegacyHardwareProfile
+          ? ''
+          : selectedHardwareProfile.metadata.name || '',
+        'opendatahub.io/legacy-hardware-profile-name':
+          isLegacyHardwareProfile && selectedHardwareProfile
+            ? selectedHardwareProfile.metadata.name || ''
+            : '',
         'notebooks.opendatahub.io/last-image-version-git-commit-selection':
           image.imageVersion?.annotations?.['opendatahub.io/notebook-build-commit'] ?? '',
       },
@@ -200,8 +210,8 @@ export const assembleNotebook = (
             },
           ],
           volumes,
-          tolerations,
-          nodeSelector,
+          tolerations: isLegacyHardwareProfile ? tolerations : undefined,
+          nodeSelector: isLegacyHardwareProfile ? nodeSelector : undefined,
         },
       },
     },

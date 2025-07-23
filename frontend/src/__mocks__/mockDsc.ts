@@ -38,6 +38,11 @@ export const mockDsc = ({
           name: 'knative-serving',
         },
       },
+      kueue: {
+        defaultClusterQueueName: 'default',
+        defaultLocalQueueName: 'default',
+        managementState: 'Managed',
+      },
     },
   },
   status: {

@@ -11,6 +11,8 @@ type MockResourceConfigType = {
   uid?: string;
   status?: PersistentVolumeClaimKind['status'];
   accessModes?: AccessMode[];
+  annotations?: Record<string, string>;
+  labels?: Record<string, string>;
 };
 
 export const mockPVCK8sResource = ({
@@ -28,6 +30,8 @@ export const mockPVCK8sResource = ({
     },
   },
   accessModes = [AccessMode.RWO],
+  annotations = {},
+  labels = {},
 }: MockResourceConfigType): PersistentVolumeClaimKind => ({
   kind: 'PersistentVolumeClaim',
   apiVersion: 'v1',
@@ -35,11 +39,13 @@ export const mockPVCK8sResource = ({
     annotations: {
       'openshift.io/description': '',
       'openshift.io/display-name': displayName,
+      ...annotations,
     },
     name,
     namespace,
     labels: {
       [KnownLabels.DASHBOARD_RESOURCE]: 'true',
+      ...labels,
     },
     uid,
   },

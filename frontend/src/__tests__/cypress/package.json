@@ -1,0 +1,21 @@
+{
+  "name": "@odh-dashboard/cypress",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "type-check": "tsc --noEmit"
+  },
+  "imports": {
+    "#~/*": [
+      "@odh-dashboard/internal/*",
+      "@odh-dashboard/internal/*.ts",
+      "@odh-dashboard/internal/*.d.ts",
+      "@odh-dashboard/internal/*.tsx",
+      "@odh-dashboard/internal/*/index.ts",
+      "@odh-dashboard/internal/*/index.tsx"
+    ]
+  },
+  "dependencies": {
+    "@odh-dashboard/internal": "*"
+  }
+}

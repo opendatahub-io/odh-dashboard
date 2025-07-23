@@ -231,27 +231,49 @@ describe('Model Versions', () => {
     modelRegistry.findModelVersionsTableHeaderButton('Author').click();
     modelRegistry.findModelVersionsTableHeaderButton('Author').should(be.sortDescending);
 
-    // filtering by keyword
+    // filtering by keyword then both
     modelRegistry.findModelVersionsTableSearch().type('new model version');
     modelRegistry.findModelVersionsTableRows().should('have.length', 1);
     modelRegistry.findModelVersionsTableRows().contains('new model version');
+    modelRegistry.findModelVersionsTableFilterOption('Author').click();
+    modelRegistry.findModelVersionsTableSearch().type('Author 1');
+    modelRegistry.findModelVersionsTableRows().should('have.length', 1);
+    modelRegistry.findModelVersionsTableRows().contains('new model version');
+    modelRegistry.findModelVersionsTableSearch().type('2');
+    modelRegistry.findModelVersionsTableRows().should('have.length', 0);
+    modelRegistry.findModelVersionsTableSearch().focused().clear();
+    modelRegistry.findModelVersionsTableFilterOption('Keyword').click();
+    modelRegistry.findModelVersionsTableSearch().click();
     modelRegistry.findModelVersionsTableSearch().focused().clear();
 
-    // filtering by label
+    // filtering by label then both
     modelRegistry.findModelVersionsTableSearch().type('Financial');
     modelRegistry.findModelVersionsTableRows().should('have.length', 1);
     modelRegistry.findModelVersionsTableRows().contains('new model version');
+    modelRegistry.findModelVersionsTableFilterOption('Author').click();
+    modelRegistry.findModelVersionsTableSearch().type('Author 1');
+    modelRegistry.findModelVersionsTableRows().should('have.length', 1);
+    modelRegistry.findModelVersionsTableRows().contains('new model version');
+    modelRegistry.findModelVersionsTableSearch().type('2');
+    modelRegistry.findModelVersionsTableRows().should('have.length', 0);
+    modelRegistry.findModelVersionsTableSearch().focused().clear();
+    modelRegistry.findModelVersionsTableFilterOption('Keyword').click();
+    modelRegistry.findModelVersionsTableSearch().click();
     modelRegistry.findModelVersionsTableSearch().focused().clear();
 
-    // filtering by model version author
-    modelRegistry.findModelVersionsTableFilter().findSelectOption('Author').click();
+    // filtering by model version author then both
+    modelRegistry.findModelVersionsTableFilterOption('Author').click();
     modelRegistry.findModelVersionsTableSearch().type('Test author');
     modelRegistry.findModelVersionsTableRows().should('have.length', 1);
     modelRegistry.findModelVersionsTableRows().contains('Test author');
+    modelRegistry.findModelVersionsTableFilterOption('Keyword').click();
+    modelRegistry.findModelVersionsTableSearch().type('model version');
+    modelRegistry.findModelVersionsTableRows().should('have.length', 1);
+    modelRegistry.findModelVersionsTableRows().contains('model version');
+    modelRegistry.findModelVersionsTableSearch().type('2');
 
     // searching with no matches shows no results screen
-    modelRegistry.findModelVersionsTableSearch().focused().clear();
-    modelRegistry.findModelVersionsTableSearch().type('no matches for this');
+    modelRegistry.findModelVersionsTableRows().should('have.length', 0);
     modelRegistry.findModelRegistryEmptyTableState();
   });
 

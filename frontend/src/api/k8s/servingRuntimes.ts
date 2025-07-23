@@ -67,12 +67,6 @@ export const assembleServingRuntime = (
     annotations['opendatahub.io/serving-runtime-scope'] = scope;
   }
 
-  if (podSpecOptions.selectedHardwareProfile?.metadata.namespace === namespace) {
-    annotations['opendatahub.io/hardware-profile-namespace'] = namespace;
-  } else {
-    annotations['opendatahub.io/hardware-profile-namespace'] = undefined;
-  }
-
   if (podSpecOptions.selectedAcceleratorProfile?.metadata.namespace === namespace) {
     annotations['opendatahub.io/accelerator-profile-namespace'] = namespace;
   } else {
@@ -99,8 +93,6 @@ export const assembleServingRuntime = (
           'opendatahub.io/template-display-name': getDisplayNameFromK8sResource(servingRuntime),
           'opendatahub.io/accelerator-name':
             podSpecOptions.selectedAcceleratorProfile?.metadata.name || '',
-          'opendatahub.io/hardware-profile-name':
-            podSpecOptions.selectedHardwareProfile?.metadata.name || '',
         }),
       },
     };
@@ -111,8 +103,6 @@ export const assembleServingRuntime = (
         ...annotations,
         'opendatahub.io/accelerator-name':
           podSpecOptions.selectedAcceleratorProfile?.metadata.name || '',
-        'opendatahub.io/hardware-profile-name':
-          podSpecOptions.selectedHardwareProfile?.metadata.name || '',
         ...(isCustomServingRuntimesEnabled && { 'openshift.io/display-name': displayName.trim() }),
       },
     };

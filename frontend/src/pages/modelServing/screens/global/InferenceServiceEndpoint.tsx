@@ -18,6 +18,7 @@ import {
   isServingRuntimeRouteEnabled,
   isInferenceServiceRouteEnabled,
 } from '#~/pages/modelServing/screens/projects/utils';
+import { ToggleState } from '#~/components/StateActionToggle.tsx';
 import useRouteForInferenceService from './useRouteForInferenceService';
 import InternalServicePopoverContent from './InternalServicePopoverContent';
 
@@ -25,13 +26,17 @@ type InferenceServiceEndpointProps = {
   inferenceService: InferenceServiceKind;
   servingRuntime?: ServingRuntimeKind;
   isKserve?: boolean;
+  modelState: ToggleState & { isFailed: boolean };
 };
 
 const InferenceServiceEndpoint: React.FC<InferenceServiceEndpointProps> = ({
   inferenceService,
   servingRuntime,
   isKserve,
+  modelState,
 }) => {
+  const { isStopped, isRunning, isStarting, isStopping, isFailed } = modelState;
+
   const isRouteEnabled = !isKserve
     ? servingRuntime !== undefined && isServingRuntimeRouteEnabled(servingRuntime)
     : isInferenceServiceRouteEnabled(inferenceService);
@@ -41,6 +46,44 @@ const InferenceServiceEndpoint: React.FC<InferenceServiceEndpointProps> = ({
     isRouteEnabled,
     isKserve,
   );
+
+  const endpointDetails = (
+    <InferenceServiceEndpointContent
+      inferenceService={inferenceService}
+      isKserve={isKserve}
+      isRouteEnabled={isRouteEnabled}
+      routeLink={routeLink || undefined}
+      loaded={loaded}
+      loadError={loadError || undefined}
+      modelState={modelState}
+    />
+  );
+
+  if (isFailed && !isStopped) {
+    return <>-</>;
+  }
+
+  if (isStarting || (isRouteEnabled && !loaded && !isStopped && !isStopping)) {
+    return <>Pending...</>;
+  }
+
+  if (isStopped || isRunning) {
+    return endpointDetails;
+  }
+
+  return endpointDetails;
+};
+
+const InferenceServiceEndpointContent: React.FC<{
+  inferenceService: InferenceServiceKind;
+  isKserve?: boolean;
+  isRouteEnabled: boolean;
+  routeLink?: string;
+  loaded: boolean;
+  loadError?: Error;
+  modelState: ToggleState;
+}> = ({ inferenceService, isKserve, isRouteEnabled, routeLink, loaded, loadError, modelState }) => {
+  const { isStopped, isStopping } = modelState;
 
   if (!isRouteEnabled) {
     return (
@@ -70,7 +113,7 @@ const InferenceServiceEndpoint: React.FC<InferenceServiceEndpointProps> = ({
     );
   }
 
-  if (!loaded || !routeLink) {
+  if ((!loaded || !routeLink) && !isStopping && !isStopped) {
     return <Skeleton />;
   }
 
@@ -91,13 +134,19 @@ const InferenceServiceEndpoint: React.FC<InferenceServiceEndpointProps> = ({
               External (can be accessed from inside or outside the cluster)
             </DescriptionListTerm>
             <DescriptionListDescription style={{ paddingLeft: 'var(--pf-t--global--spacer--md)' }}>
-              <ClipboardCopy
-                hoverTip="Copy"
-                clickTip="Copied"
-                variant={ClipboardCopyVariant.inlineCompact}
-              >
-                {isKserve ? routeLink : `${routeLink}/infer`}
-              </ClipboardCopy>
+              {isStopped || isStopping ? (
+                <>Could not find any external service enabled</>
+              ) : routeLink ? (
+                <ClipboardCopy
+                  hoverTip="Copy"
+                  clickTip="Copied"
+                  variant={ClipboardCopyVariant.inlineCompact}
+                >
+                  {isKserve ? routeLink : `${routeLink}/infer`}
+                </ClipboardCopy>
+              ) : (
+                <Skeleton />
+              )}
             </DescriptionListDescription>
           </DescriptionListGroup>
         </DescriptionList>

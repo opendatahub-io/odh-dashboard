@@ -14,6 +14,10 @@ import { createPersistentVolumeClaim } from '#~/__tests__/cypress/cypress/utils/
 import { getOpenshiftDefaultStorageClass } from '#~/__tests__/cypress/cypress/utils/oc_commands/storageClass';
 import { retryableBefore } from '#~/__tests__/cypress/cypress/utils/retryableHooks';
 import { generateTestUUID } from '#~/__tests__/cypress/cypress/utils/uuidGenerator';
+import {
+  selectNotebookImageWithBackendFallback,
+  getImageStreamDisplayName,
+} from '#~/__tests__/cypress/cypress/utils/oc_commands/imageStreams';
 
 describe('Workbench and PVSs tests', () => {
   let projectName: string;
@@ -70,9 +74,10 @@ describe('Workbench and PVSs tests', () => {
 
   it(
     'Verify users can create a workbench and connect an existent PersistentVolume',
-    { tags: ['@Smoke', '@SmokeSet1', '@ODS-1814', '@Dashboard'] },
+    { tags: ['@Smoke', '@SmokeSet1', '@ODS-1814', '@Dashboard', '@Workbenches'] },
     () => {
       const workbenchName = projectName.replace('dsp-', '');
+      let selectedImageStream: string;
 
       // Authentication and navigation
       cy.step('Log into the application');
@@ -87,24 +92,39 @@ describe('Workbench and PVSs tests', () => {
       cy.step(`Create Workbench ${projectName} using storage ${PVCDisplayName}`);
       workbenchPage.findCreateButton().click();
       createSpawnerPage.getNameInput().fill(workbenchName);
-      createSpawnerPage.findNotebookImage('code-server-notebook').click();
-      createSpawnerPage.findAttachExistingStorageButton().click();
-      attachExistingStorageModal.verifyPSDropdownIsDisabled();
-      attachExistingStorageModal.verifyPSDropdownText(PVCDisplayName);
-      attachExistingStorageModal.findStandardPathInput().fill(workbenchName);
-      attachExistingStorageModal.findAttachButton().click();
-      createSpawnerPage.findSubmitButton().click();
 
-      cy.step(`Wait for Workbench ${workbenchName} to display a "Running" status`);
-      const notebookRow = workbenchPage.getNotebookRow(workbenchName);
-      notebookRow.expectStatusLabelToBe('Running', 120000);
-      notebookRow.shouldHaveNotebookImageName('code-server');
-      notebookRow.shouldHaveContainerSize('Small');
+      // Select notebook image with fallback
+      selectNotebookImageWithBackendFallback('code-server-notebook', createSpawnerPage).then(
+        (imageStreamName) => {
+          selectedImageStream = imageStreamName;
+          cy.log(`Selected imagestream: ${selectedImageStream}`);
 
-      cy.step(`Check the cluster storage ${PVCDisplayName} is now connected to ${workbenchName}`);
-      projectDetails.findSectionTab('cluster-storages').click();
-      const csRow = clusterStorage.getClusterStorageRow(PVCDisplayName);
-      csRow.findConnectedWorkbenches().should('have.text', workbenchName);
+          // Attach existing storage workflow
+          createSpawnerPage.findAttachExistingStorageButton().click();
+          attachExistingStorageModal.verifyPSDropdownIsDisabled();
+          attachExistingStorageModal.verifyPSDropdownText(PVCDisplayName);
+          attachExistingStorageModal.findStandardPathInput().fill(workbenchName);
+          attachExistingStorageModal.findAttachButton().click();
+          createSpawnerPage.findSubmitButton().click();
+
+          cy.step(`Wait for Workbench ${workbenchName} to display a "Running" status`);
+          const notebookRow = workbenchPage.getNotebookRow(workbenchName);
+          notebookRow.expectStatusLabelToBe('Running', 120000);
+
+          // Use dynamic image name verification based on what was actually selected
+          getImageStreamDisplayName(selectedImageStream).then((displayName) => {
+            notebookRow.shouldHaveNotebookImageName(displayName);
+            notebookRow.shouldHaveContainerSize('Small');
+
+            cy.step(
+              `Check the cluster storage ${PVCDisplayName} is now connected to ${workbenchName}`,
+            );
+            projectDetails.findSectionTab('cluster-storages').click();
+            const csRow = clusterStorage.getClusterStorageRow(PVCDisplayName);
+            csRow.findConnectedResources().should('have.text', workbenchName);
+          });
+        },
+      );
     },
   );
 });

@@ -65,6 +65,9 @@ export const mockNimInferenceService = ({
     displayName,
     namespace,
     kserveInternalLabel: true,
+    hardwareProfileNamespace: 'opendatahub',
+    hardwareProfileName: 'migrated-gpu-mglzi-serving',
+    useLegacyHardwareProfile: true,
     resources: {
       limits: { cpu: '16', memory: '64Gi' },
       requests: { cpu: '8', memory: '32Gi' },
@@ -174,3 +177,179 @@ export const mockNimModelPVC = (): PersistentVolumeClaimKind => {
 export const mockNimServingResource = (
   resource: ConfigMapKind | SecretKind,
 ): NimServingResponse => ({ body: { body: resource } });
+
+// Mock PVC that contains a specific model
+type MockNimPVCOptions = {
+  name?: string;
+  namespace?: string;
+  modelName?: string;
+  servingRuntimeName?: string;
+  size?: string;
+  storageClassName?: string;
+  createdDaysAgo?: number;
+};
+
+export const mockNimModelPVCWithModel = ({
+  name = 'nim-pvc-arctic-embed-l',
+  namespace = 'test-project',
+  modelName = 'arctic-embed-l',
+  servingRuntimeName = 'test-serving-runtime',
+  size = '50Gi',
+  storageClassName = 'fast-ssd',
+  createdDaysAgo = 2,
+}: MockNimPVCOptions = {}): PersistentVolumeClaimKind => {
+  const createdDate = new Date();
+  createdDate.setDate(createdDate.getDate() - createdDaysAgo);
+
+  const pvc = mockPVCK8sResource({
+    name,
+    namespace,
+    storageClassName,
+  });
+
+  // Add annotations that indicate this PVC contains a specific model
+  if (!pvc.metadata.annotations) {
+    pvc.metadata.annotations = {};
+  }
+  pvc.metadata.annotations['nim.nvidia.com/model-name'] = modelName;
+  pvc.metadata.annotations['nim.nvidia.com/serving-runtime'] = servingRuntimeName;
+  pvc.metadata.annotations['openshift.io/description'] = `NIM PVC containing ${modelName} model`;
+
+  // Set creation timestamp and storage size manually
+  pvc.metadata.creationTimestamp = createdDate.toISOString();
+
+  // Set the size in spec and status
+  pvc.spec.resources.requests = { storage: size };
+  if (pvc.status) {
+    pvc.status.capacity = { storage: size };
+  }
+
+  return pvc;
+};
+
+// Mock ServingRuntime that uses a specific PVC
+type MockNimServingRuntimeWithPVCOptions = {
+  name?: string;
+  namespace?: string;
+  displayName?: string;
+  pvcName?: string;
+  modelName?: string;
+  createdDaysAgo?: number;
+};
+
+export const mockNimServingRuntimeWithPVC = ({
+  name = 'test-serving-runtime',
+  namespace = 'test-project',
+  displayName = 'Test Serving Runtime',
+  pvcName = 'nim-pvc-arctic-embed-l',
+  modelName = 'arctic-embed-l',
+  createdDaysAgo = 2,
+}: MockNimServingRuntimeWithPVCOptions = {}): ServingRuntimeKind => {
+  const createdDate = new Date();
+  createdDate.setDate(createdDate.getDate() - createdDaysAgo);
+
+  const servingRuntime = mockServingRuntimeK8sResource({
+    name,
+    displayName,
+    namespace,
+  });
+
+  // Add NIM-specific annotations
+  if (!servingRuntime.metadata.annotations) {
+    servingRuntime.metadata.annotations = {};
+  }
+  servingRuntime.metadata.annotations['opendatahub.io/template-display-name'] = 'NVIDIA NIM';
+  servingRuntime.metadata.annotations['opendatahub.io/template-name'] = 'nvidia-nim-runtime';
+
+  // Set creation timestamp
+  servingRuntime.metadata.creationTimestamp = createdDate.toISOString();
+
+  // Add PVC volume configuration - this is key for PVC discovery
+  servingRuntime.spec.volumes = [
+    {
+      name: 'model-storage',
+      persistentVolumeClaim: {
+        claimName: pvcName,
+      },
+    },
+  ];
+
+  // Add volume mount to container
+  if (!servingRuntime.spec.containers[0].volumeMounts) {
+    servingRuntime.spec.containers[0].volumeMounts = [];
+  }
+  servingRuntime.spec.containers[0].volumeMounts.push({
+    name: 'model-storage',
+    mountPath: '/mnt/models/cache',
+  });
+
+  // Set supported model format to match the model - use the passed modelName
+  servingRuntime.spec.supportedModelFormats = [
+    {
+      name: modelName, // Use the modelName parameter directly
+      version: '1',
+      autoSelect: true,
+    },
+  ];
+
+  // Set NIM container image to include the model name
+  servingRuntime.spec.containers[0].image = `nvcr.io/nim/snowflake/${modelName}:1.0.1`;
+
+  return servingRuntime;
+};
+
+// Mock multiple PVCs for testing selection scenarios
+export const mockMultipleNimPVCs = (): PersistentVolumeClaimKind[] => [
+  // Recent PVC with arctic-embed-l
+  mockNimModelPVCWithModel({
+    name: 'nim-pvc-arctic-recent',
+    modelName: 'arctic-embed-l',
+    servingRuntimeName: 'arctic-runtime-1',
+    createdDaysAgo: 1,
+    size: '30Gi',
+  }),
+  // Older PVC with arctic-embed-l
+  mockNimModelPVCWithModel({
+    name: 'nim-pvc-arctic-old',
+    modelName: 'arctic-embed-l',
+    servingRuntimeName: 'arctic-runtime-2',
+    createdDaysAgo: 5,
+    size: '40Gi',
+  }),
+  // PVC with different model (should not show up when arctic is selected)
+  mockNimModelPVCWithModel({
+    name: 'nim-pvc-alphafold',
+    modelName: 'alphafold2',
+    servingRuntimeName: 'alphafold-runtime',
+    createdDaysAgo: 3,
+    size: '60Gi',
+  }),
+];
+
+// Mock multiple ServingRuntimes that use different PVCs
+export const mockMultipleNimServingRuntimes = (): ServingRuntimeKind[] => [
+  // ServingRuntime using first PVC
+  mockNimServingRuntimeWithPVC({
+    name: 'arctic-runtime-1',
+    displayName: 'Arctic Runtime 1',
+    pvcName: 'nim-pvc-arctic-recent',
+    modelName: 'arctic-embed-l',
+    createdDaysAgo: 1,
+  }),
+  // ServingRuntime using second PVC
+  mockNimServingRuntimeWithPVC({
+    name: 'arctic-runtime-2',
+    displayName: 'Arctic Runtime 2',
+    pvcName: 'nim-pvc-arctic-old',
+    modelName: 'arctic-embed-l',
+    createdDaysAgo: 5,
+  }),
+  // ServingRuntime using different model PVC
+  mockNimServingRuntimeWithPVC({
+    name: 'alphafold-runtime',
+    displayName: 'AlphaFold Runtime',
+    pvcName: 'nim-pvc-alphafold',
+    modelName: 'alphafold2',
+    createdDaysAgo: 3,
+  }),
+];
