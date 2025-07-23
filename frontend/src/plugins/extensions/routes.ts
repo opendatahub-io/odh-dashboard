@@ -84,6 +84,9 @@ const extensions: RouteExtension[] = [
       path: '/modelServing/*',
       component: () => import('#~/pages/modelServing/ModelServingRoutes'),
     },
+    flags: {
+      disallowed: [SupportedArea.PLUGIN_MODEL_SERVING],
+    },
   },
   {
     type: 'app.route',
