@@ -151,9 +151,12 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
         <InferenceServiceStatus
           inferenceService={inferenceService}
           isKserve={!modelMesh}
-          isStarting={isStarting}
-          isStopping={isStopping}
-          isStopped={isStopped}
+          stoppedStates={{
+            isStarting,
+            isStopping,
+            isStopped,
+            isRunning,
+          }}
         />
       </Td>
       <Td>
