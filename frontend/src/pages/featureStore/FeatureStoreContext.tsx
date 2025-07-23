@@ -1,6 +1,6 @@
 import React from 'react';
 import { useParams } from 'react-router-dom';
-import { FeatureStoreAPIs } from '#~/pages/featureStore/types';
+import { FeatureStoreAPIs } from '#~/pages/featureStore/types/global';
 import { SupportedArea } from '#~/concepts/areas/types';
 import { conditionalArea } from '#~/concepts/areas';
 import { useFeatureStoreCR } from '#~/pages/featureStore/apiHooks/useFeatureStoreCR';

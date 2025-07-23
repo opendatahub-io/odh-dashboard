@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
 import { handleFeatureStoreFailures } from '#~/api/featureStore/errorUtils';
-import { FeatureStoreError } from '#~/pages/featureStore/types';
+import { FeatureStoreError } from '#~/pages/featureStore/types/global';
 import { NotReadyError } from '#~/utilities/useFetchState';
 
 const mockConsoleError = jest.spyOn(console, 'error').mockImplementation(() => undefined);

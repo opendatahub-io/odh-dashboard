@@ -1,5 +1,5 @@
 import React from 'react';
-import { EntityList } from '#~/pages/featureStore/types';
+import { EntityList } from '#~/pages/featureStore/types/entities';
 
 const FeatureStoreEntitiesListView = ({
   entities,

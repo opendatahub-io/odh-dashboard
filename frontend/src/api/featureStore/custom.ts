@@ -1,7 +1,8 @@
 import { proxyGET } from '#~/api/proxyUtils';
 import { K8sAPIOptions } from '#~/k8sTypes';
 import { FEATURE_STORE_API_VERSION } from '#~/pages/featureStore/const';
-import { EntityList, ProjectList } from '#~/pages/featureStore/types';
+import { EntityList } from '#~/pages/featureStore/types/entities';
+import { ProjectList } from '#~/pages/featureStore/types/featureStoreProjects';
 import { handleFeatureStoreFailures } from './errorUtils';
 
 export const listFeatureStoreProject =
