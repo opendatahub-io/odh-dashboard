@@ -109,7 +109,16 @@ const OdhExploreCard: React.FC<OdhExploreCardProps> = ({
             odhApp.metadata.name === 'nvidia-nim'
               ? {
                   field: 'api_key',
-                  validator: (value: string) => !value.startsWith('nvapi-'),
+                  validator: (value: string) => {
+                    const regex = odhApp.spec.enable?.warningValidation?.validationRegex;
+                    if (!regex) return false;
+                    try {
+                      const re = new RegExp(regex);
+                      return re.test(value);
+                    } catch (e) {
+                      return false;
+                    }
+                  },
                   message:
                     "Looks like you're not using a Personal API key. For the best experience and continued access, consider using a Personal API Key instead. You can generate one at https://org.ngc.nvidia.com/setup/api-keys.",
                 }
