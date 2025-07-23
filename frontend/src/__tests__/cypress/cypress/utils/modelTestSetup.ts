@@ -345,18 +345,12 @@ export const createModelTestSetup = (modelTestConfig: ModelTestConfig): ModelTes
 
   // Cleanup function that will be called in after
   const cleanupTest = () => {
-    // We have the model name from the test config, so we can proceed directly with cleanup
-    performCleanup(modelName);
-  };
-
-  // Helper function to perform the actual cleanup
-  const performCleanup = (modelNameToClean: string) => {
     // Delete InferenceService - modelName is always defined in this context
     execWithOutput(
-      `oc delete inferenceservice ${modelNameToClean} -n ${testProjectName} --ignore-not-found`,
+      `oc delete inferenceservice ${modelName} -n ${testProjectName} --ignore-not-found`,
       60, // 60s timeout for cleanup operations
     ).then(() => {
-      cy.log(`Deleted InferenceService ${modelNameToClean}`);
+      cy.log(`Deleted InferenceService ${modelName}`);
     });
 
     // Delete ServingRuntime
