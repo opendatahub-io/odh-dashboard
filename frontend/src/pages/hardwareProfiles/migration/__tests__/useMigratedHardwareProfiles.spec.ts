@@ -154,7 +154,7 @@ describe('useMigratedHardwareProfiles', () => {
         'workbench',
       ),
     );
-    expect(notebookProfile?.spec.tolerations).toEqual([
+    expect(notebookProfile?.spec.scheduling?.node?.tolerations).toEqual([
       {
         key: 'NotebooksOnlyChange',
         effect: 'NoSchedule',

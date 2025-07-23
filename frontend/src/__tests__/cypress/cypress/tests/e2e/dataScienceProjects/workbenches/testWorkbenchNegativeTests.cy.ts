@@ -11,6 +11,7 @@ import { createCleanProject } from '#~/__tests__/cypress/cypress/utils/projectCh
 import { deleteOpenShiftProject } from '#~/__tests__/cypress/cypress/utils/oc_commands/project';
 import { retryableBeforeEach } from '#~/__tests__/cypress/cypress/utils/retryableHooks';
 import { generateTestUUID } from '#~/__tests__/cypress/cypress/utils/uuidGenerator';
+import { selectNotebookImageWithBackendFallback } from '#~/__tests__/cypress/cypress/utils/oc_commands/imageStreams';
 
 describe('Workbenches - negative tests', () => {
   let testData: WBNegativeTestsData;
@@ -48,7 +49,7 @@ describe('Workbenches - negative tests', () => {
     'Verify UI informs users about workbenches failed to start',
     { tags: ['@Sanity', '@SanitySet2', '@ODS-1973', '@Dashboard', '@Workbenches'] },
     () => {
-      const workbenchName = projectName.replace('dsp-', '');
+      const workbenchName = `${projectName.replace('dsp-', '')}-large`;
 
       // Authentication and navigation
       cy.step('Log into the application');
@@ -65,18 +66,25 @@ describe('Workbenches - negative tests', () => {
       cy.step(`Create workbench ${workbenchName}`);
       workbenchPage.findCreateButton().click();
       createSpawnerPage.getNameInput().fill(workbenchName);
-      createSpawnerPage.findNotebookImage('code-server-notebook').click();
-      createSpawnerPage.findContainerSizeInput('Small').click();
-      cy.contains('X Large').click();
-      createSpawnerPage.findSubmitButton().click();
 
-      // Confirm that the Workbench does not start and is at Failed status
-      cy.step(`Wait for workbench ${workbenchName} to display a "Failed" status`);
-      const notebookRow = workbenchPage.getNotebookRow(workbenchName);
-      notebookRow.expectStatusLabelToBe('Failed', 120000);
-      cy.step(`Open the Modal and confirm the status is Failed`);
-      notebookRow.findHaveNotebookStatusText().click();
-      workbenchStatusModal.getNotebookStatus('Failed');
+      // Select notebook image with fallback
+      selectNotebookImageWithBackendFallback('code-server-notebook', createSpawnerPage).then(
+        (imageStreamName) => {
+          cy.log(`Selected imagestream: ${imageStreamName}`);
+
+          createSpawnerPage.findContainerSizeInput('Small').click();
+          cy.contains('X Large').click();
+          createSpawnerPage.findSubmitButton().click();
+
+          // Confirm that the Workbench does not start and is at Failed status
+          cy.step(`Wait for workbench ${workbenchName} to display a "Failed" status`);
+          const notebookRow = workbenchPage.getNotebookRow(workbenchName);
+          notebookRow.expectStatusLabelToBe('Failed', 120000);
+          cy.step(`Open the Modal and confirm the status is Failed`);
+          notebookRow.findHaveNotebookStatusText().click();
+          workbenchStatusModal.getNotebookStatus('Failed');
+        },
+      );
     },
   );
   it(
@@ -100,22 +108,29 @@ describe('Workbenches - negative tests', () => {
       cy.step(`Create workbench ${workbenchName}`);
       workbenchPage.findCreateButton().click();
       createSpawnerPage.getNameInput().fill(workbenchName);
-      createSpawnerPage.findNotebookImage('code-server-notebook').click();
-      createSpawnerPage.getEditResourceLink().click();
 
-      // Test each invalid resource name
-      cy.step('Test invalid resource name and verify that project creation is prevented');
+      // Select notebook image with fallback
+      selectNotebookImageWithBackendFallback('code-server-notebook', createSpawnerPage).then(
+        (imageStreamName) => {
+          cy.log(`Selected imagestream: ${imageStreamName}`);
 
-      testData.invalidResourceNames.forEach((invalidResourceName) => {
-        cy.log(`Testing invalid resource name: ${invalidResourceName}`);
+          createSpawnerPage.getEditResourceLink().click();
 
-        // Clear input, type invalid resource name, and validate behavior
-        createSpawnerPage.getResourceInput().clear().type(invalidResourceName);
-        createSpawnerPage.getResourceInput().should('have.attr', 'aria-invalid', 'true');
-        createSpawnerPage.findSubmitButton().should('be.disabled');
-        // Log success message for invalid resources names being rejected
-        cy.log(`✅ ${invalidResourceName}: not authorised as a Resource Name`);
-      });
+          // Test each invalid resource name
+          cy.step('Test invalid resource name and verify that project creation is prevented');
+
+          testData.invalidResourceNames.forEach((invalidResourceName) => {
+            cy.log(`Testing invalid resource name: ${invalidResourceName}`);
+
+            // Clear input, type invalid resource name, and validate behavior
+            createSpawnerPage.getResourceInput().clear().type(invalidResourceName);
+            createSpawnerPage.getResourceInput().should('have.attr', 'aria-invalid', 'true');
+            createSpawnerPage.findSubmitButton().should('be.disabled');
+            // Log success message for invalid resources names being rejected
+            cy.log(`✅ ${invalidResourceName}: not authorised as a Resource Name`);
+          });
+        },
+      );
     },
   );
 });

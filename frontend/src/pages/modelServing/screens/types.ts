@@ -39,10 +39,6 @@ export enum InferenceServiceModelState {
 
 export type ModelServingState = ToggleState & {
   inferenceService: InferenceServiceKind;
-  isStopped: boolean;
-  isRunning: boolean;
-  isStopping: boolean;
-  isStarting: boolean;
 };
 
 export type ModelStatus = {
@@ -89,6 +85,7 @@ export type CreatingInferenceServiceObject = CreatingModelServingObjectCommon & 
   servingRuntimeEnvVars?: ServingContainer['env'];
   isKServeRawDeployment?: boolean;
   imagePullSecrets?: ImagePullSecret[];
+  dashboardNamespace?: string;
 };
 
 export type CreatingModelServingObjectCommon = {
@@ -103,6 +100,7 @@ export enum InferenceServiceStorageType {
   NEW_STORAGE = 'new-storage',
   EXISTING_STORAGE = 'existing-storage',
   EXISTING_URI = 'existing-uri',
+  PVC_STORAGE = 'pvc-storage',
 }
 
 export type InferenceServiceStorage = {
@@ -111,6 +109,7 @@ export type InferenceServiceStorage = {
   dataConnection: string;
   uri?: string;
   awsData: EnvVariableDataEntry[];
+  pvcConnection?: string;
   alert?: {
     type: AlertVariant;
     title: string;

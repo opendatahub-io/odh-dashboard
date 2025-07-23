@@ -1,7 +1,6 @@
 import React from 'react';
 import {
   CardBody,
-  Stack,
   CardFooter,
   Flex,
   Label,
@@ -14,15 +13,13 @@ import {
   Content,
   ContentVariants,
   CardHeader,
-  Truncate,
   EmptyState,
   EmptyStateBody,
   EmptyStateFooter,
 } from '@patternfly/react-core';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { SearchIcon } from '@patternfly/react-icons';
-import { ProjectObjectType, SectionType } from '@odh-dashboard/internal/concepts/design/utils';
-import OverviewCard from '@odh-dashboard/internal/pages/projects/screens/detail/overview/components/OverviewCard';
+import { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
 import TypeBorderedCard from '@odh-dashboard/internal/concepts/design/TypeBorderedCard';
 import HeaderIcon from '@odh-dashboard/internal/concepts/design/HeaderIcon';
 import CollapsibleSection from '@odh-dashboard/internal/concepts/design/CollapsibleSection';
@@ -34,8 +31,8 @@ import ResourceNameTooltip from '@odh-dashboard/internal/components/ResourceName
 import { useExtensions } from '@odh-dashboard/plugin-core';
 import { ModelDeploymentsContext } from '../../concepts/ModelDeploymentsContext';
 import { useProjectServingPlatform } from '../../concepts/useProjectServingPlatform';
-import { DeploymentEndpointsPopupButton } from '../deployments/DeploymentEndpointsPopupButton';
 import { Deployment, isModelServingPlatformExtension } from '../../../extension-points';
+import DeploymentStatus from '../deployments/DeploymentStatus';
 
 enum FilterStates {
   success = 'success',
@@ -61,8 +58,16 @@ const DeployedModelCard: React.FC<{ deployment: Deployment }> = ({ deployment })
             </FlexItem>
             <FlexItem>
               <ResourceNameTooltip resource={deployment.model}>
-                {/* TODO: Once the Deployed Test metrics page is available, this name should link to it */}
-                <Truncate content={displayName} />
+                {deployment.model.metadata.namespace &&
+                deployment.status?.state === InferenceServiceModelState.LOADED ? (
+                  <Link
+                    to={`/projects/${deployment.model.metadata.namespace}/metrics/model/${deployment.model.metadata.name}`}
+                  >
+                    {displayName}
+                  </Link>
+                ) : (
+                  displayName
+                )}
               </ResourceNameTooltip>
             </FlexItem>
           </Flex>
@@ -90,10 +95,7 @@ const DeployedModelCard: React.FC<{ deployment: Deployment }> = ({ deployment })
           </Content>
         </CardBody>
         <CardFooter>
-          <DeploymentEndpointsPopupButton
-            endpoints={deployment.endpoints}
-            loading={deployment.status?.state === InferenceServiceModelState.LOADING}
-          />
+          <DeploymentStatus deployment={deployment} />
         </CardFooter>
       </TypeBorderedCard>
     </GalleryItem>
@@ -180,27 +182,8 @@ const DeployedModelsGallery: React.FC<DeployedModelsGalleryProps> = ({
 const DeployedModelsSection: React.FC = () => {
   const availablePlatforms = useExtensions(isModelServingPlatformExtension);
   const { currentProject } = React.useContext(ProjectDetailsContext);
-  const { loaded: deploymentsLoaded } = React.useContext(ModelDeploymentsContext);
   const { activePlatform } = useProjectServingPlatform(currentProject, availablePlatforms);
   const [filteredState, setFilteredState] = React.useState<FilterStates | undefined>();
-
-  if (!deploymentsLoaded) {
-    return (
-      <CollapsibleSection title="Serve models" data-testid="section-model-server">
-        <OverviewCard
-          objectType={ProjectObjectType.deployedModels}
-          sectionType={SectionType.serving}
-          title="Deployed models"
-        >
-          <CardBody>
-            <Stack hasGutter>
-              <Content component="small">Loading deployed models...</Content>
-            </Stack>
-          </CardBody>
-        </OverviewCard>
-      </CollapsibleSection>
-    );
-  }
 
   const platformLabel = activePlatform?.properties.enableCardText.enabledText;
 

@@ -30,7 +30,7 @@ const ImageSelectorField: React.FC<ImageSelectorFieldProps> = ({
 }) => {
   const { dashboardNamespace } = useDashboardNamespace();
   const buildStatuses = useBuildStatuses(dashboardNamespace);
-  const [imageStreams, loaded, error] = useImageStreams(dashboardNamespace);
+  const [imageStreams, loaded, error] = useImageStreams(dashboardNamespace, { enabled: true });
   const isProjectScopedAvailable = useIsAreaAvailable(SupportedArea.DS_PROJECT_SCOPED).status;
   const [
     currentProjectImageStreams,

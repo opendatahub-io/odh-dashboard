@@ -249,6 +249,10 @@ class InferenceServiceModal extends ServingModal {
     });
   }
 
+  findPVCSelect() {
+    return this.find().findByTestId('pvc-connection-selector');
+  }
+
   findHardProfileSelection(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('hardware-profile-select');
   }
@@ -552,6 +556,10 @@ class KServeModal extends InferenceServiceModal {
   findMemoryLimitButton(type: 'Plus' | 'Minus') {
     return this.find().findByTestId('memory-limit-input').findByRole('button', { name: type });
   }
+
+  findPVCConnectionOption() {
+    return this.find().findByTestId('pvc-serving-radio');
+  }
 }
 mixin(KServeModal, [ServingRuntimeModal, InferenceServiceModal]);
 
@@ -625,8 +633,11 @@ class KServeRow extends ModelMeshRow {
     return this.find().findByTestId('state-action-toggle');
   }
 
-  findStatusLabel(label: string) {
-    return this.find().findByTestId('model-status-text').should('include.text', label);
+  findStatusLabel(label?: string) {
+    if (label) {
+      return this.find().findByTestId('model-status-text').should('include.text', label);
+    }
+    return this.find().findByTestId('model-status-text');
   }
 }
 
@@ -655,6 +666,10 @@ class InferenceServiceRow extends TableRow {
       .then(() => {
         this.findStatusTooltip().find('button').click();
       });
+  }
+
+  findLastDeployed() {
+    return this.find().find(`[data-label="Last deployed"]`);
   }
 
   findAPIProtocol() {
@@ -707,7 +722,11 @@ class ModelServingSection {
     return this.find().findByTestId('serving-runtime-table');
   }
 
-  findModelServerName(name: string) {
+  findModelServerDeployedName(name: string) {
+    return this.find().findByTestId('deployed-model-name').contains(name);
+  }
+
+  findModelMetricsLink(name: string) {
     return this.find().findByTestId(`metrics-link-${name}`);
   }
 

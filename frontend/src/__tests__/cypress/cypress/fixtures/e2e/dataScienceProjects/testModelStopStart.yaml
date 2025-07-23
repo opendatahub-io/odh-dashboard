@@ -1,0 +1,5 @@
+# testModelStopStart.cy.ts Test Data #
+projectResourceName: 'test-model-stop-start'
+projectDisplayName: 'Test Model Stop Start Project'
+singleModelName: 'test-model'
+modelOpenVinoExamplePath: 'kserve-openvino-test/openvino-example-model'

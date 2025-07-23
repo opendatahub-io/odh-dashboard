@@ -7,8 +7,9 @@ import { InferenceServiceModelState } from '@odh-dashboard/internal/pages/modelS
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
 import { Link } from 'react-router-dom';
 import ResourceNameTooltip from '@odh-dashboard/internal/components/ResourceNameTooltip';
-import { DeploymentEndpointsPopupButton } from './DeploymentEndpointsPopupButton';
 import { DeploymentRowExpandedSection } from './DeploymentsTableRowExpandedSection';
+import DeploymentLastDeployed from './DeploymentLastDeployed';
+import DeploymentStatus from './DeploymentStatus';
 import {
   useDeploymentExtension,
   useResolvedDeploymentExtension,
@@ -67,17 +68,19 @@ export const DeploymentRow: React.FC<{
         )}
         <Td dataLabel="Name">
           <ResourceNameTooltip resource={deployment.model}>
-            {metricsExtension && deployment.model.metadata.namespace ? (
+            {metricsExtension &&
+            deployment.model.metadata.namespace &&
+            deployment.status?.state === InferenceServiceModelState.LOADED ? (
               <Link
-                data-testid={`metrics-link-${getDisplayNameFromK8sResource(deployment.model)}`}
-                to={`/projects/${encodeURIComponent(
-                  deployment.model.metadata.namespace,
-                )}/metrics/model/${encodeURIComponent(deployment.model.metadata.name)}`}
+                to={`/projects/${deployment.model.metadata.namespace}/metrics/model/${deployment.model.metadata.name}`}
+                data-testid="deployed-model-name"
               >
                 {getDisplayNameFromK8sResource(deployment.model)}
               </Link>
             ) : (
-              getDisplayNameFromK8sResource(deployment.model)
+              <span data-testid="deployed-model-name">
+                {getDisplayNameFromK8sResource(deployment.model)}
+              </span>
             )}
           </ResourceNameTooltip>
         </Td>
@@ -87,10 +90,7 @@ export const DeploymentRow: React.FC<{
           </Td>
         ))}
         <Td dataLabel="Inference endpoint">
-          <DeploymentEndpointsPopupButton
-            endpoints={deployment.endpoints}
-            loading={deployment.status?.state === InferenceServiceModelState.LOADING}
-          />
+          <DeploymentStatus deployment={deployment} />
         </Td>
         <Td dataLabel="API protocol">
           {getServerApiProtocol(deployment) ? (
@@ -98,6 +98,9 @@ export const DeploymentRow: React.FC<{
           ) : (
             <Content component={ContentVariants.small}>Not defined</Content>
           )}
+        </Td>
+        <Td dataLabel="Last deployed">
+          <DeploymentLastDeployed deployment={deployment} />
         </Td>
         <Td dataLabel="Status">
           <ModelStatusIcon

@@ -140,7 +140,8 @@ export const getDescriptionForTag = (imageTag?: ImageTagInfo): string => {
 };
 
 export const getImageTagByContainer = (images: ImageInfo[], container?: PodContainer): ImageTag => {
-  const imageTag = container?.image.split('/').at(-1)?.split(':');
+  const containerImages = container?.image.split('/');
+  const imageTag = containerImages?.[containerImages.length - 1]?.split(':');
   if (!imageTag || imageTag.length < 2) {
     return { image: undefined, tag: undefined };
   }

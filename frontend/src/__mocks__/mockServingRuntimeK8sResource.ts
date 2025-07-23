@@ -150,8 +150,7 @@ export const mockServingRuntimeK8sResource = ({
     annotations: {
       'opendatahub.io/template-display-name': templateDisplayName,
       'opendatahub.io/accelerator-name': acceleratorName,
-      'opendatahub.io/hardware-profile-name': hardwareProfileName,
-
+      ...(hardwareProfileName && { 'opendatahub.io/hardware-profile-name': hardwareProfileName }),
       'opendatahub.io/template-name': templateName,
       'openshift.io/display-name': displayName,
       'opendatahub.io/apiProtocol': apiProtocol,

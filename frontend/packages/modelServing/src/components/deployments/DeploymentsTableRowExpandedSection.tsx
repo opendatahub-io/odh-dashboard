@@ -21,6 +21,10 @@ import ScopedLabel from '@odh-dashboard/internal/components/ScopedLabel';
 import { ScopedType } from '@odh-dashboard/internal/pages/modelServing/screens/const';
 import { TokensDescriptionItem } from '@odh-dashboard/internal/concepts/modelServing/ModelRow/TokensDescriptionItem';
 import {
+  getHardwareProfileDisplayName,
+  isHardwareProfileEnabled,
+} from '@odh-dashboard/internal/pages/hardwareProfiles/utils';
+import {
   type Deployment,
   type ModelServingAuthExtension,
   type ModelServingDeploymentResourcesExtension,
@@ -105,7 +109,7 @@ export const DeploymentRowExpandedSection: React.FC<{
                       {hardwareProfile?.initialHardwareProfile ? (
                         <Flex gap={{ default: 'gapSm' }}>
                           <FlexItem>
-                            {hardwareProfile.initialHardwareProfile.spec.displayName}
+                            {getHardwareProfileDisplayName(hardwareProfile.initialHardwareProfile)}
                           </FlexItem>
                           <FlexItem>
                             {isProjectScopedAvailable &&
@@ -117,7 +121,7 @@ export const DeploymentRowExpandedSection: React.FC<{
                               )}
                           </FlexItem>
                           <Flex>
-                            {!hardwareProfile.initialHardwareProfile.spec.enabled
+                            {!isHardwareProfileEnabled(hardwareProfile.initialHardwareProfile)
                               ? '(disabled)'
                               : ''}
                           </Flex>

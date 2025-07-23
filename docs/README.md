@@ -5,6 +5,7 @@
 [Bring Your Own Notebook]: byon.md
 [Architecture]: https://github.com/opendatahub-io/architecture-decision-records/blob/main/documentation/components/dashboard/README.md
 [SDK]: SDK.md
+[Extensibility]: extensibility.md
 
 # Dashboard Documentation
 
@@ -24,3 +25,4 @@ This is the general documentation of the Dashboard component.
 * [Dev setup & Requirements]
 * [Architecture]
 * [SDK]
+* [Extensibility]

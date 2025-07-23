@@ -5,9 +5,13 @@ import {
   fetchNIMModelNames,
   getCreateInferenceServiceLabels,
   getProjectModelServingPlatform,
+  getPVCFromURI,
+  getModelPathFromUri,
   getUrlFromKserveInferenceService,
   isCurrentServingPlatformEnabled,
   isValueFromEnvVar,
+  isPVCUri,
+  getPVCNameFromURI,
 } from '#~/pages/modelServing/screens/projects/utils';
 import { ServingPlatformStatuses } from '#~/pages/modelServing/screens/types';
 import { ServingRuntimePlatform } from '#~/types';
@@ -20,6 +24,7 @@ import {
   updateServingRuntimeTemplate,
 } from '#~/pages/modelServing/screens/projects/nimUtils';
 import { AccessMode } from '#~/pages/storageClasses/storageEnums';
+import { mockPVCK8sResource } from '#~/__mocks__/mockPVCK8sResource';
 
 jest.mock('#~/api', () => ({
   getSecret: jest.fn(),
@@ -576,5 +581,59 @@ describe('isValueFrom', () => {
         name: '',
       }),
     ).toBe(false);
+  });
+});
+
+describe('getPVCFromURI', () => {
+  it('should return the PVC from the URI', () => {
+    const uri = 'pvc://pvc-1/model-path';
+    const pvcs = [
+      mockPVCK8sResource({ name: 'pvc-1', uid: 'pvc-1-uid' }),
+      mockPVCK8sResource({ name: 'pvc-2', uid: 'pvc-2-uid' }),
+    ];
+    expect(getPVCFromURI(uri, pvcs)).toEqual(
+      mockPVCK8sResource({ name: 'pvc-1', uid: 'pvc-1-uid' }),
+    );
+  });
+  it('should return undefined if the pvc is not found', () => {
+    const uri = 'pvc://pvc-3/model-path';
+    const pvcs = [
+      mockPVCK8sResource({ name: 'pvc-1', uid: 'pvc-1-uid' }),
+      mockPVCK8sResource({ name: 'pvc-2', uid: 'pvc-2-uid' }),
+    ];
+    expect(getPVCFromURI(uri, pvcs)).toBeUndefined();
+  });
+});
+
+describe('getModelPathFromUri', () => {
+  it('should return the model path', () => {
+    const uri = 'pvc://pvc-1/model-path';
+    expect(getModelPathFromUri(uri)).toEqual('model-path');
+  });
+  it('should return an empty string if the URI is not a valid URI', () => {
+    const uri = 'not a uri';
+    expect(getModelPathFromUri(uri)).toEqual('');
+  });
+});
+
+describe('isPVCUri', () => {
+  it('should return true if the URI is a PVC URI', () => {
+    const uri = 'pvc://pvc-1/model-path';
+    expect(isPVCUri(uri)).toEqual(true);
+  });
+  it('should return false if the URI is not a PVC URI', () => {
+    const uri = 'not a uri';
+    expect(isPVCUri(uri)).toEqual(false);
+  });
+});
+
+describe('getPVCNameFromURI', () => {
+  it('should return the PVC name from the URI', () => {
+    const uri = 'pvc://pvc-1/model-path';
+    expect(getPVCNameFromURI(uri)).toEqual('pvc-1');
+  });
+  it('should return an empty string if the URI is not a valid URI', () => {
+    const uri = 'not a uri';
+    expect(getPVCNameFromURI(uri)).toEqual('');
   });
 });

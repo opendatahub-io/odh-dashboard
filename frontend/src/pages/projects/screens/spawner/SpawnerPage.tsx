@@ -47,6 +47,7 @@ import {
 } from '#~/concepts/hardwareProfiles/utils';
 import { useNotebookKindPodSpecOptionsState } from '#~/concepts/hardwareProfiles/useNotebookPodSpecOptionsState';
 import { getPvcAccessMode } from '#~/pages/projects/utils.ts';
+import { useDashboardNamespace } from '#~/redux/selectors';
 import { SpawnerPageSectionID } from './types';
 import {
   K8_NOTEBOOK_RESOURCE_NAME_VALIDATOR,
@@ -210,6 +211,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
       initialState: acceleratorProfileInitialState,
       formData: acceleratorProfileFormData,
       setFormData: setAcceleratorProfileFormData,
+      loaded: acceleratorProfilesLoaded,
     },
     hardwareProfile: { formData: hardwareProfileFormData },
   } = podSpecOptionsState;
@@ -229,6 +231,8 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
     },
     [selectedImage.imageStream],
   );
+
+  const { dashboardNamespace } = useDashboardNamespace();
 
   return (
     <ApplicationsPage
@@ -307,6 +311,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                     }
                     initialState={acceleratorProfileInitialState}
                     formData={acceleratorProfileFormData}
+                    acceleratorProfilesLoaded={acceleratorProfilesLoaded}
                     setFormData={setAcceleratorProfileFormData}
                   />
                 </>
@@ -415,6 +420,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                     volumes: [],
                     volumeMounts: [],
                     podSpecOptions: podSpecOptionsState.podSpecOptions,
+                    dashboardNamespace,
                   }}
                   storageData={storageData}
                   envVariables={envVariables}

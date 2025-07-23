@@ -12,6 +12,7 @@ import { mockNotebookK8sResource } from '#~/__mocks__/mockNotebookK8sResource';
 import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
 import { mock200Status } from '#~/__mocks__/mockK8sStatus';
 import { mockStartNotebookData } from '#~/__mocks__/mockStartNotebookData';
+import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile';
 
 import {
   assembleNotebook,
@@ -218,11 +219,11 @@ describe('assembleNotebook', () => {
     expect(result.metadata.annotations?.['notebooks.opendatahub.io/last-image-selection']).toBe(
       'test:2024.2',
     );
-    expect(result.spec.template.spec.containers.at(0)?.image).toBe(
+    expect(result.spec.template.spec.containers[0]?.image).toBe(
       'image-registry.openshift-image-registry.svc:5000/opendatahub/jupyter-minimal-notebook:2024.2',
     );
     expect(
-      result.spec.template.spec.containers.at(0)?.env.includes({
+      result.spec.template.spec.containers[0]?.env.includes({
         name: 'JUPYTER_IMAGE',
         value:
           'image-registry.openshift-image-registry.svc:5000/opendatahub/jupyter-minimal-notebook:2024.2',
@@ -293,6 +294,57 @@ describe('assembleNotebook', () => {
     const result = assembleNotebook(mockNoteBookData, username, canEnablePipelines);
 
     expect(result.metadata.annotations?.['opendatahub.io/image-display-name']).toBeUndefined();
+  });
+
+  it('should not set hardware profile annotation for legacy profiles', () => {
+    const notebookData = mockStartNotebookData({});
+    const hardwareProfile = mockHardwareProfile({});
+    hardwareProfile.metadata.uid = undefined;
+    notebookData.podSpecOptions.selectedHardwareProfile = hardwareProfile;
+    const result = assembleNotebook(notebookData, 'test-user');
+    expect(result.metadata.annotations?.['opendatahub.io/hardware-profile-name']).toBe('');
+  });
+
+  it('should set hardware profile annotation for real profiles', () => {
+    const notebookData = mockStartNotebookData({});
+    const hardwareProfile = mockHardwareProfile({ name: 'real-profile' });
+    hardwareProfile.metadata.uid = 'test-uid';
+    notebookData.podSpecOptions.selectedHardwareProfile = hardwareProfile;
+    const result = assembleNotebook(notebookData, 'test-user');
+    expect(result.metadata.annotations?.['opendatahub.io/hardware-profile-name']).toBe(
+      'real-profile',
+    );
+  });
+
+  it('should set pod specs like tolerations and nodeSelector for legacy hardware profiles', () => {
+    const notebookData = mockStartNotebookData({});
+    const hardwareProfile = mockHardwareProfile({});
+    hardwareProfile.metadata.uid = undefined;
+    notebookData.podSpecOptions.selectedHardwareProfile = hardwareProfile;
+    const result = assembleNotebook(notebookData, 'test-user');
+    expect(result.spec.template.spec.tolerations).toBeDefined();
+    expect(result.spec.template.spec.nodeSelector).toBeDefined();
+  });
+
+  it('should not set pod specs like tolerations and nodeSelector for real hardware profiles', () => {
+    const notebookData = mockStartNotebookData({});
+    const hardwareProfile = mockHardwareProfile({});
+    hardwareProfile.metadata.uid = 'test-uid';
+    notebookData.podSpecOptions.selectedHardwareProfile = hardwareProfile;
+    const result = assembleNotebook(notebookData, 'test-user');
+    expect(result.spec.template.spec.tolerations).toBeUndefined();
+    expect(result.spec.template.spec.nodeSelector).toBeUndefined();
+  });
+
+  it('should set hardware profile namespace annotation to dashboard namespace when global scoped', () => {
+    const notebookData = mockStartNotebookData({});
+    const hardwareProfile = mockHardwareProfile({ name: 'real-profile' });
+    hardwareProfile.metadata.uid = 'test-uid';
+    notebookData.podSpecOptions.selectedHardwareProfile = hardwareProfile;
+    const result = assembleNotebook(notebookData, 'test-user');
+    expect(result.metadata.annotations?.['opendatahub.io/hardware-profile-namespace']).toBe(
+      'opendatahub',
+    );
   });
 
   it('should create a notebook with pipelines without volumes and volumes mount', async () => {
@@ -607,29 +659,45 @@ describe('stopNotebook', () => {
     });
   });
 });
-describe('updateNotebook', () => {
+describe('mergePatchUpdateNotebook', () => {
   it('should update a notebook', async () => {
     const existingNotebook = mockNotebookK8sResource({ uid });
     const notebook = assembleNotebook(
       mockStartNotebookData({ notebookId: existingNotebook.metadata.name }),
       username,
     );
-
+    const oldNodeSelectorToRemove: Record<string, string | null> = {};
+    for (const key of Object.keys(existingNotebook.spec.template.spec.nodeSelector || {})) {
+      oldNodeSelectorToRemove[key] = null;
+    }
     k8sMergePatchResourceMock.mockResolvedValue(existingNotebook);
-
     const renderResult = await mergePatchUpdateNotebook(
       existingNotebook,
       mockStartNotebookData({ notebookId: existingNotebook.metadata.name }),
       username,
     );
-
     expect(k8sMergePatchResourceMock).toHaveBeenCalledWith({
       fetchOptions: {
         requestInit: {},
       },
       model: NotebookModel,
       queryOptions: { queryParams: {} },
-      resource: notebook,
+      resource: {
+        ...notebook,
+        spec: {
+          ...notebook.spec,
+          template: {
+            ...notebook.spec.template,
+            spec: {
+              ...notebook.spec.template.spec,
+              nodeSelector: {
+                ...oldNodeSelectorToRemove,
+                ...notebook.spec.template.spec.nodeSelector,
+              },
+            },
+          },
+        },
+      },
     });
     expect(k8sMergePatchResourceMock).toHaveBeenCalledTimes(1);
     expect(renderResult).toStrictEqual(existingNotebook);
@@ -640,7 +708,10 @@ describe('updateNotebook', () => {
       mockStartNotebookData({ notebookId: existingNotebook.metadata.name }),
       username,
     );
-
+    const oldNodeSelectorToRemove: Record<string, string | null> = {};
+    for (const key of Object.keys(existingNotebook.spec.template.spec.nodeSelector || {})) {
+      oldNodeSelectorToRemove[key] = null;
+    }
     k8sMergePatchResourceMock.mockRejectedValue(new Error('error1'));
     await expect(
       mergePatchUpdateNotebook(
@@ -656,7 +727,22 @@ describe('updateNotebook', () => {
       },
       model: NotebookModel,
       queryOptions: { queryParams: {} },
-      resource: notebook,
+      resource: {
+        ...notebook,
+        spec: {
+          ...notebook.spec,
+          template: {
+            ...notebook.spec.template,
+            spec: {
+              ...notebook.spec.template.spec,
+              nodeSelector: {
+                ...oldNodeSelectorToRemove,
+                ...notebook.spec.template.spec.nodeSelector,
+              },
+            },
+          },
+        },
+      },
     });
   });
 });

@@ -13,6 +13,7 @@ import { mockProjectK8sResource } from '#~/__mocks__/mockProjectK8sResource';
 import { mockServingRuntimeK8sResource } from '#~/__mocks__/mockServingRuntimeK8sResource';
 import { mockServingRuntimeModalData } from '#~/__mocks__/mockServingRuntimeModalData';
 import { mockServingRuntimeTemplateK8sResource } from '#~/__mocks__/mockServingRuntimeTemplateK8sResource';
+import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile';
 import {
   assembleServingRuntime,
   createServingRuntime,
@@ -117,6 +118,8 @@ describe('assembleServingRuntime', () => {
   });
 
   it('should add tolerations and gpu on modelmesh', async () => {
+    const hardwareProfile = mockHardwareProfile({});
+    hardwareProfile.metadata.uid = undefined;
     const podSpecOption: ModelServingPodSpecOptions = mockModelServingPodSpecOptions({
       resources: {
         requests: {
@@ -126,6 +129,14 @@ describe('assembleServingRuntime', () => {
           'nvidia.com/gpu': 1,
         },
       },
+      tolerations: [
+        {
+          key: 'nvidia.com/gpu',
+          operator: TolerationOperator.EXISTS,
+          effect: TolerationEffect.NO_SCHEDULE,
+        },
+      ],
+      selectedHardwareProfile: hardwareProfile,
     });
     const servingRuntime = assembleServingRuntime(
       mockServingRuntimeModalData({
@@ -218,6 +229,148 @@ describe('assembleServingRuntime', () => {
     );
 
     expect(servingRuntime.spec.replicas).toBeUndefined();
+  });
+
+  it('should not set hardware profile annotation for legacy profiles', () => {
+    const hardwareProfile = mockHardwareProfile({});
+    hardwareProfile.metadata.uid = undefined;
+    const podSpecOptions = mockModelServingPodSpecOptions({
+      selectedHardwareProfile: hardwareProfile,
+    });
+    const result = assembleServingRuntime(
+      mockServingRuntimeModalData({}),
+      'test-ns',
+      mockServingRuntimeK8sResource({}),
+      true,
+      podSpecOptions,
+      false,
+      true,
+    );
+    expect(result.metadata.annotations?.['opendatahub.io/hardware-profile-name']).toBeUndefined();
+  });
+
+  it('should not set hardware profile annotation for real profiles', () => {
+    const hardwareProfile = mockHardwareProfile({ name: 'real-profile' });
+    hardwareProfile.metadata.uid = 'test-uid';
+    const podSpecOptions = mockModelServingPodSpecOptions({
+      selectedHardwareProfile: hardwareProfile,
+    });
+    const result = assembleServingRuntime(
+      mockServingRuntimeModalData({}),
+      'test-ns',
+      mockServingRuntimeK8sResource({}),
+      true,
+      podSpecOptions,
+      false,
+      true,
+    );
+    expect(result.metadata.annotations?.['opendatahub.io/hardware-profile-name']).toBeUndefined();
+  });
+
+  it('should not set pod specs like tolerations and nodeSelector for legacy and non-legacy hardware profiles', () => {
+    const legacyHardwareProfile = mockHardwareProfile({});
+    legacyHardwareProfile.metadata.uid = undefined;
+    let podSpecOptions = mockModelServingPodSpecOptions({
+      selectedHardwareProfile: legacyHardwareProfile,
+    });
+    let result = assembleServingRuntime(
+      mockServingRuntimeModalData({}),
+      'test-ns',
+      mockServingRuntimeK8sResource({}),
+      true,
+      podSpecOptions,
+      false,
+      true,
+    );
+    expect(result.spec.tolerations).toEqual([]);
+    expect(result.spec.nodeSelector).toEqual({});
+
+    const hardwareProfile = mockHardwareProfile({});
+    hardwareProfile.metadata.uid = 'uid';
+    podSpecOptions = mockModelServingPodSpecOptions({
+      selectedHardwareProfile: hardwareProfile,
+    });
+    result = assembleServingRuntime(
+      mockServingRuntimeModalData({}),
+      'test-ns',
+      mockServingRuntimeK8sResource({}),
+      true,
+      podSpecOptions,
+      false,
+      true,
+    );
+    expect(result.spec.tolerations).toEqual([]);
+    expect(result.spec.nodeSelector).toEqual({});
+  });
+
+  it('should not set pod specs like tolerations and nodeSelector for real hardware profiles on modelmesh', () => {
+    const hardwareProfile = mockHardwareProfile({});
+    hardwareProfile.metadata.uid = 'test-uid';
+    const podSpecOptions = mockModelServingPodSpecOptions({
+      selectedHardwareProfile: hardwareProfile,
+    });
+    const result = assembleServingRuntime(
+      mockServingRuntimeModalData({}),
+      'test-ns',
+      mockServingRuntimeK8sResource({}),
+      true,
+      podSpecOptions,
+      false,
+      true,
+    );
+    expect(result.spec.tolerations).toEqual([]);
+    expect(result.spec.nodeSelector).toEqual({});
+  });
+
+  it('should not set annotations for hardware profiles, resources, nodeSelectors, and tolerations when isModelMesh is false', () => {
+    const hardwareProfile = mockHardwareProfile({ name: 'test-profile' });
+    hardwareProfile.metadata.uid = 'test-uid';
+    const podSpecOptions = mockModelServingPodSpecOptions({
+      selectedHardwareProfile: hardwareProfile,
+      resources: {
+        requests: {
+          'nvidia.com/gpu': 1,
+        },
+        limits: {
+          'nvidia.com/gpu': 1,
+        },
+      },
+      nodeSelector: {
+        'test-key': 'test-value',
+      },
+      tolerations: [
+        {
+          key: 'nvidia.com/gpu',
+          operator: TolerationOperator.EXISTS,
+          effect: TolerationEffect.NO_SCHEDULE,
+        },
+      ],
+    });
+    const result = assembleServingRuntime(
+      mockServingRuntimeModalData({}),
+      'test-ns',
+      mockServingRuntimeK8sResource({}),
+      true,
+      podSpecOptions,
+      false,
+      false, // isModelMesh is false
+    );
+
+    // Verify annotations for hardware profiles are set
+    expect(result.metadata.annotations?.['opendatahub.io/hardware-profile-name']).toBeUndefined();
+    expect(
+      result.metadata.annotations?.['opendatahub.io/hardware-profile-namespace'],
+    ).toBeUndefined();
+
+    // Verify resources are not set
+    expect(result.spec.containers[0].resources?.limits?.['nvidia.com/gpu']).toBeUndefined();
+    expect(result.spec.containers[0].resources?.requests?.['nvidia.com/gpu']).toBeUndefined();
+
+    // Verify nodeSelector is not set
+    expect(result.spec.nodeSelector).toBeUndefined();
+
+    // Verify tolerations are not set
+    expect(result.spec.tolerations).toBeUndefined();
   });
 });
 

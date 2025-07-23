@@ -1,6 +1,23 @@
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '#~/__tests__/cypress/cypress/utils/e2eUsers';
 import { resources } from '#~/__tests__/cypress/cypress/pages/resources';
 import { verifyResourcesForFilter } from '#~/__tests__/cypress/cypress/utils/resourceUtils';
+import {
+  getEnabledResourceCount,
+  getDisabledResourceCount,
+  getDocumentationResourceCount,
+  getHowToResourceCount,
+  getQuickstartResourceCount,
+  getTutorialResourceCount,
+  getRedHatManagedResourceCount,
+  getElasticResourceCount,
+  getIBMResourceCount,
+  getIntelResourceCount,
+  getNVIDIAResourceCount,
+  getPachydermResourceCount,
+  getRedHatResourceCount,
+  getStarburstResourceCount,
+  getSelfManagedResourceCount,
+} from '#~/__tests__/cypress/cypress/utils/oc_commands/learningResources';
 
 const listView = resources.getListView();
 const cardView = resources.getCardView();
@@ -8,10 +25,10 @@ const cardView = resources.getCardView();
 const resourcesToolbar = resources.getLearningCenterToolbar();
 const resourceFilters = resources.getLearningCenterFilters();
 
-describe('[Product Bug: RHOAIENG-28106] Verify the filters on Resources page', () => {
+describe('Verify the filters on Resources page', () => {
   it(
     'Test whether enabled, resource type, provider and provider type filters are working',
-    { tags: ['@Sanity', '@SanitySet1', '@ODS-489', '@Dashboard', '@Bug'] },
+    { tags: ['@Sanity', '@SanitySet1', '@ODS-489', '@Dashboard'] },
     () => {
       // Authentication
       cy.step('Log into the application');
@@ -19,12 +36,18 @@ describe('[Product Bug: RHOAIENG-28106] Verify the filters on Resources page', (
 
       // Navigate to Resources
       cy.step('Navigate to Resources tab');
-      resources.visit();
+      resources.navigate();
 
       cy.step('Check for Enabled and Not Enabled filters');
 
+      // Verify backend state for enabled resources (documents + quickstarts + dynamic docs)
+      getEnabledResourceCount();
+
       // Enabled filter
       verifyResourcesForFilter('enabled-filter-checkbox');
+
+      // Verify backend state for disabled applications
+      getDisabledResourceCount();
 
       // Not enabled filter
       resourcesToolbar.findCardToggleButton().click();
@@ -33,17 +56,29 @@ describe('[Product Bug: RHOAIENG-28106] Verify the filters on Resources page', (
       // Verify Resource type filter
       cy.step('Resource type filter for card and list view');
 
+      // Verify backend state for documentation resources
+      getDocumentationResourceCount();
+
       // Documentation
       resourcesToolbar.findCardToggleButton().click();
       verifyResourcesForFilter('documentation');
+
+      // Verify backend state for how-to resources
+      getHowToResourceCount();
 
       // HowTo
       resourcesToolbar.findCardToggleButton().click();
       verifyResourcesForFilter('how-to');
 
+      // Verify backend state for quickstart resources
+      getQuickstartResourceCount();
+
       // QuickStart
       resourcesToolbar.findCardToggleButton().click();
       verifyResourcesForFilter('quickstart');
+
+      // Verify backend state for tutorial resources
+      getTutorialResourceCount();
 
       // Tutorial
       resourcesToolbar.findCardToggleButton().click();
@@ -52,13 +87,8 @@ describe('[Product Bug: RHOAIENG-28106] Verify the filters on Resources page', (
       // Provider and Provider type filters
       cy.step('Provider and Provider type filters');
 
-      // Jupyter
-      resourcesToolbar.findCardToggleButton().click();
-      verifyResourcesForFilter('Jupyter');
-
-      // Self-managed
-      resourcesToolbar.findCardToggleButton().click();
-      verifyResourcesForFilter('Self-managed');
+      // Verify backend state for Red Hat managed resources
+      getRedHatManagedResourceCount();
 
       // Red Hat managed
       resourcesToolbar.findCardToggleButton().click();
@@ -84,4 +114,82 @@ describe('[Product Bug: RHOAIENG-28106] Verify the filters on Resources page', (
         );
     },
   );
+
+  it('Test RHOAI-specific filters', { tags: ['@Sanity', '@SanitySet1', '@Dashboard'] }, () => {
+    // Skips this test if not running on RHOAI
+    const applicationsNamespace = Cypress.env('APPLICATIONS_NAMESPACE');
+    if (applicationsNamespace === 'opendatahub') {
+      cy.log(
+        `Skipping RHOAI-specific filter test. Applications namespace: ${applicationsNamespace}`,
+      );
+      return;
+    }
+
+    // Authentication
+    cy.step('Log into the application');
+    cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
+
+    // Navigate to Resources
+    cy.step('Navigate to Resources tab');
+    resources.navigate();
+
+    // RHOAI-specific provider filters
+    cy.step('Test RHOAI-specific provider filters');
+
+    // Verify backend state for Elastic resources
+    getElasticResourceCount();
+
+    // Elastic
+    resourcesToolbar.findCardToggleButton().click();
+    verifyResourcesForFilter('Elastic');
+
+    // Verify backend state for IBM resources
+    getIBMResourceCount();
+
+    // IBM
+    resourcesToolbar.findCardToggleButton().click();
+    verifyResourcesForFilter('IBM');
+
+    // Verify backend state for Intel® resources
+    getIntelResourceCount();
+
+    // Intel®
+    resourcesToolbar.findCardToggleButton().click();
+    verifyResourcesForFilter('Intel®');
+
+    // Verify backend state for NVIDIA resources
+    getNVIDIAResourceCount();
+
+    // NVIDIA
+    resourcesToolbar.findCardToggleButton().click();
+    verifyResourcesForFilter('NVIDIA');
+
+    // Verify backend state for Pachyderm resources
+    getPachydermResourceCount();
+
+    // Pachyderm
+    resourcesToolbar.findCardToggleButton().click();
+    verifyResourcesForFilter('Pachyderm');
+
+    // Verify backend state for Red Hat resources
+    getRedHatResourceCount();
+
+    // Red Hat
+    resourcesToolbar.findCardToggleButton().click();
+    verifyResourcesForFilter('Red Hat');
+
+    // Verify backend state for Starburst resources
+    getStarburstResourceCount();
+
+    // Starburst
+    resourcesToolbar.findCardToggleButton().click();
+    verifyResourcesForFilter('Starburst');
+
+    // Verify backend state for Self-managed resources
+    getSelfManagedResourceCount();
+
+    // Self-managed
+    resourcesToolbar.findCardToggleButton().click();
+    verifyResourcesForFilter('Self-managed');
+  });
 });

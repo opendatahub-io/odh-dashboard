@@ -5,7 +5,7 @@ import { HardwareProfileModel, toggleHardwareProfileEnablement } from '#~/api';
 import { HardwareProfileKind } from '#~/k8sTypes';
 import { HardwareProfileWarningType } from '#~/concepts/hardwareProfiles/types';
 import { useAccessAllowed, verbModelAccess } from '#~/concepts/userSSAR';
-import { validateProfileWarning } from './utils';
+import { isHardwareProfileEnabled, validateProfileWarning } from './utils';
 
 type HardwareProfileEnableToggleProps = {
   hardwareProfile: HardwareProfileKind;
@@ -17,7 +17,7 @@ const HardwareProfileEnableToggle: React.FC<HardwareProfileEnableToggleProps> = 
   isDisabled = false,
 }) => {
   const hardwareProfileWarnings = validateProfileWarning(hardwareProfile);
-  const { enabled } = hardwareProfile.spec;
+  const enabled = isHardwareProfileEnabled(hardwareProfile);
   const warning = hardwareProfileWarnings.some(
     (hardwareProfileWarning) =>
       hardwareProfileWarning.type !==

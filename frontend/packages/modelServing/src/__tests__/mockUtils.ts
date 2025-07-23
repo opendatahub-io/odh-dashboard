@@ -12,8 +12,11 @@ import { ModelServingPlatform } from '../concepts/useProjectServingPlatform';
 export const mockModelServingPlatform = ({
   id = 'kserve',
   namespaceApplicationCase = NamespaceApplicationCase.KSERVE_PROMOTION,
-  enabledLabel = 'kserve',
-  enabledLabelValue = 'true',
+  enabledProjectMetadata = {
+    labels: {
+      'enable-modelmesh': 'false',
+    },
+  },
   title = 'KServe',
   description = 'KServe',
   selectText = 'Select',
@@ -24,8 +27,14 @@ export const mockModelServingPlatform = ({
 }: {
   id?: string;
   namespaceApplicationCase?: NamespaceApplicationCase;
-  enabledLabel?: string;
-  enabledLabelValue?: string;
+  enabledProjectMetadata?: {
+    labels?: {
+      [key: string]: string;
+    };
+    annotations?: {
+      [key: string]: string;
+    };
+  };
   title?: string;
   description?: string;
   selectText?: string;
@@ -39,8 +48,7 @@ export const mockModelServingPlatform = ({
     id,
     manage: {
       namespaceApplicationCase,
-      enabledLabel,
-      enabledLabelValue,
+      projectRequirements: enabledProjectMetadata,
     },
     enableCardText: {
       title,
@@ -67,7 +75,11 @@ export const mockProjectWithPlatform = (
       ...project.metadata,
       labels: {
         ...project.metadata.labels,
-        [platform.properties.manage.enabledLabel]: platform.properties.manage.enabledLabelValue,
+        ...platform.properties.manage.projectRequirements.labels,
+      },
+      annotations: {
+        ...project.metadata.annotations,
+        ...platform.properties.manage.projectRequirements.annotations,
       },
     },
   };
