@@ -2,7 +2,7 @@
 import * as React from 'react';
 import { useFeatureStoreAPI } from '#~/pages/featureStore/FeatureStoreContext';
 import useFetch, { FetchStateCallbackPromise, FetchStateObject } from '#~/utilities/useFetch';
-import { ProjectList } from '#~/pages/featureStore/types';
+import { ProjectList } from '#~/pages/featureStore/types/featureStoreProjects';
 
 const useFeatureStoreProjects = (): FetchStateObject<ProjectList> => {
   const { api, apiAvailable } = useFeatureStoreAPI();

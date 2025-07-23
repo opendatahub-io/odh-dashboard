@@ -4,7 +4,7 @@ import { standardUseFetchStateObject, testHook } from '#~/__tests__/unit/testUti
 import { useFeatureStoreAPI } from '#~/pages/featureStore/FeatureStoreContext.tsx';
 import useFeatureStoreProjects from '#~/pages/featureStore/apiHooks/useFeatureStoreProjects.tsx';
 import { mockFeatureStoreProject } from '#~/__mocks__/mockFeatureStoreProject.ts';
-import { ProjectList } from '#~/pages/featureStore/types.ts';
+import { ProjectList } from '#~/pages/featureStore/types/featureStoreProjects';
 
 jest.mock('#~/pages/featureStore/FeatureStoreContext.tsx', () => ({
   useFeatureStoreAPI: jest.fn(),

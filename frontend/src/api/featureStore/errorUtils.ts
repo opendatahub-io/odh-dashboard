@@ -1,4 +1,4 @@
-import { FeatureStoreError } from '#~/pages/featureStore/types';
+import { FeatureStoreError } from '#~/pages/featureStore/types/global';
 import { isCommonStateError } from '#~/utilities/useFetchState';
 
 const isError = (e: unknown): e is FeatureStoreError =>
