@@ -104,23 +104,6 @@ export const configureJob = (req: LMEvalJobRequest, testConfig: TestConfig): LME
     }
   }
 
-  // IMPORTANT: This workaround is necessary because:
-  // 1. KServe generates the URL without a port (e.g., http://service.namespace.svc.cluster.local)
-  // 2. KServe overrides our service config, setting port to 80 despite YAML specifying 8032
-  // 3. The container actually listens on port 8032
-  // 4. Without this fix, the client tries port 80 and fails with "Connection refused"
-  const baseUrlArg = requestBody.spec.modelArgs.find((arg: ModelArg) => arg.name === 'base_url');
-  if (baseUrlArg && baseUrlArg.value.includes('.svc.cluster.local')) {
-    if (!baseUrlArg.value.includes('.svc.cluster.local:')) {
-      // Use default port 8032 if not specified in config
-      const servicePort = lmEvalConfig.servicePort || 8032;
-      baseUrlArg.value = baseUrlArg.value.replace(
-        '.svc.cluster.local',
-        `.svc.cluster.local:${servicePort}`,
-      );
-    }
-  }
-
   // Tweak LMEval job parameters via API, since the UI doesn't support it yet
   const numConcurrentArg = requestBody.spec.modelArgs.find(
     (arg: ModelArg) => arg.name === 'num_concurrent',

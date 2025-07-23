@@ -1,4 +1,4 @@
-import { InferenceServiceKind } from '#~/k8sTypes';
+import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
 import { LmModelArgument } from '#~/pages/lmEval/types';
 
 export type ModelOption = {
@@ -7,6 +7,7 @@ export type ModelOption = {
   namespace: string;
   displayName: string;
   service: InferenceServiceKind;
+  port: number;
 };
 
 export type ModelTypeOption = {
@@ -25,12 +26,22 @@ export const filterVLLMInference = (
       (service: InferenceServiceKind) => service.spec.predictor.model?.modelFormat?.name === 'vLLM',
     );
 
-export const generateModelOptions = (services: InferenceServiceKind[]): ModelOption[] =>
+export const generateModelOptions = (
+  services: InferenceServiceKind[],
+  servingRuntimes: ServingRuntimeKind[],
+): ModelOption[] =>
   services.map((service: InferenceServiceKind) => {
     const {
       metadata: { annotations, name, namespace: serviceNamespace },
     } = service;
     const displayName = annotations?.['openshift.io/display-name'] || name;
+    const runtimeName = service.spec.predictor.model?.runtime;
+
+    const servingRuntime = servingRuntimes.find(
+      (sr) => sr.metadata.name === runtimeName && sr.metadata.namespace === serviceNamespace,
+    );
+    // TODO: Revisit this when the ServingContainer type is updated to include ports
+    const port = (servingRuntime?.spec.containers[0] as any)?.ports?.[0]?.containerPort || 80;
 
     return {
       label: displayName,
@@ -38,6 +49,7 @@ export const generateModelOptions = (services: InferenceServiceKind[]): ModelOpt
       namespace: serviceNamespace,
       displayName,
       service,
+      port,
     };
   });
 
@@ -67,11 +79,21 @@ export const handleModelSelection = (
     selectedModelOption.service.status?.address?.url ||
     '';
 
-  let finalUrl = baseUrl;
-  if (currentModelType && baseUrl) {
+  let urlWithPort = baseUrl;
+  if (
+    baseUrl &&
+    baseUrl.includes('.svc.cluster.local') &&
+    !baseUrl.includes('.svc.cluster.local:')
+  ) {
+    const port = selectedModelOption.port;
+    urlWithPort = baseUrl.replace('.svc.cluster.local', `.svc.cluster.local:${port}`);
+  }
+
+  let finalUrl = urlWithPort;
+  if (currentModelType && urlWithPort) {
     const modelOption = findOptionForKey(currentModelType);
     const endpoint = modelOption?.endpoint ?? '';
-    finalUrl = `${baseUrl}${endpoint}`;
+    finalUrl = `${urlWithPort}${endpoint}`;
   }
 
   return {
