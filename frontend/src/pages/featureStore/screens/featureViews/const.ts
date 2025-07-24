@@ -22,7 +22,11 @@ export const columns: SortableData<FeatureView>[] = [
     field: 'features',
     label: 'Features',
     width: 25,
-    sortable: false,
+    sortable: (a: FeatureView, b: FeatureView): number => {
+      const aFeatures = a.spec.features.length;
+      const bFeatures = b.spec.features.length;
+      return aFeatures - bFeatures;
+    },
   },
   {
     field: 'created',
