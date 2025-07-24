@@ -4,56 +4,11 @@ import { execWithOutput } from './oc_commands/baseCommands';
 import type { createModelTestSetup } from './modelTestSetup';
 import { generateTestUUID } from './uuidGenerator';
 
-// Types for LMEval job configuration
-interface LMEvalConfig {
-  modelPath: string;
-  servicePort: number;
-  numConcurrent: number;
-  maxRetries: number;
-  lmEvalTimeoutSeconds: number;
-  limit: number;
-  maxSamples: number;
-  numFewshot: number;
-  requestInterval?: number;
-  evaluationName?: string;
-  taskName: string;
-}
-
-interface TestConfig {
-  lmEval?: LMEvalConfig;
-  modelName?: string;
-}
-
-interface ModelArg {
+// Direct type assertions for test data structures
+type ModelArg = {
   name: string;
   value: string;
-}
-
-// Removed unused interface LMEvalJobRequest
-
-interface LMEvalJobResult {
-  results: Record<
-    string,
-    {
-      alias: string;
-      'acc,none': number;
-      'acc_stderr,none': number;
-    }
-  >;
-  config: {
-    model: string;
-    model_args: Record<string, unknown>;
-    device: string;
-    random_seed: number;
-  };
-  configs: Record<string, unknown>;
-  versions: Record<string, unknown>;
-  'n-shot': number;
-  higher_is_better: boolean;
-  'n-samples': number;
-  date: string;
-  total_evaluation_time_seconds: string;
-}
+};
 
 /**
  * WORKAROUND: Configures missing LMEval job parameters via network intercepts
@@ -68,9 +23,24 @@ interface LMEvalJobResult {
  *
  * TODO: Remove this workaround once the UI supports all LMEval job parameters
  *
- * @param testConfig The test configuration object containing LMEval settings
+ * @param testConfig Object containing test configuration with optional lmEval settings
  */
-export const configureMissingParams = (testConfig: TestConfig): void => {
+export const configureMissingParams = (testConfig: {
+  lmEval?: {
+    modelPath: string;
+    servicePort: number;
+    numConcurrent: number;
+    maxRetries: number;
+    lmEvalTimeoutSeconds: number;
+    limit: number;
+    maxSamples: number;
+    numFewshot: number;
+    requestInterval?: number;
+    evaluationName?: string;
+    taskName: string;
+  };
+  modelName?: string;
+}): void => {
   // Set up network intercept to configure LMEval job parameters
   cy.step('Set up network intercept to configure LMEval job parameters');
   cy.intercept('POST', '**/lmevaljobs**', (req) => {
@@ -156,7 +126,29 @@ export const submitJobForm = (): void => {
 export const verifyDownloadedJsonFile = (evaluationName: string): void => {
   cy.step('Verify downloaded file content');
   cy.readFile(`cypress/downloads/${evaluationName}-results.json`, { timeout: 5000 }).then(
-    (jsonData: LMEvalJobResult) => {
+    (jsonData: {
+      results: Record<
+        string,
+        {
+          alias: string;
+          'acc,none': number;
+          'acc_stderr,none': number;
+        }
+      >;
+      config: {
+        model: string;
+        model_args: Record<string, unknown>;
+        device: string;
+        random_seed: number;
+      };
+      configs: Record<string, unknown>;
+      versions: Record<string, unknown>;
+      'n-shot': number;
+      higher_is_better: boolean;
+      'n-samples': number;
+      date: string;
+      total_evaluation_time_seconds: string;
+    }) => {
       cy.log('📁 Downloaded file content verified');
 
       // Verify expected JSON structure for LMEval results
@@ -221,100 +213,70 @@ export const verifyDownloadedJsonFile = (evaluationName: string): void => {
 const waitForEvaluationToAppear = (evaluationName: string): void => {
   cy.step('Wait for Evaluation page to load after form submission');
   lmEvalPage.findEvaluationTable().should('be.visible');
-  lmEvalPage.findEvaluationRow(evaluationName).should('be.visible');
-  lmEvalPage.findEvaluationDataLabel('Evaluation').should('contain.text', evaluationName);
 
+  // Switch to All projects view
   cy.step('Switch to All projects view');
   lmEvalPage.selectAllProjects();
 
-  // List evaluation runs for debugging
-  cy.step('Log evaluation runs in table');
+  // Log all evaluation runs
   lmEvalPage.findEvaluationTableRows().then(($elements) => {
     $elements.each((index, element) => {
       const textContent = element.textContent || '';
       cy.log(`Evaluation run ${index}: "${textContent}"`);
     });
   });
+
+  // Filter for the evaluation to make sure it's there
+  cy.step(`Filter for the evaluation run '${evaluationName}'`);
+  lmEvalPage.filterByName(evaluationName);
+  lmEvalPage.findEvaluationRow(evaluationName).should('be.visible');
+  lmEvalPage.findEvaluationDataLabel('Evaluation').should('contain.text', evaluationName);
 };
 
 /**
  * Verifies backend status using oc commands
- * @param testSetup The test setup object
+ * @param projectName The name of the project
  * @param evaluationName The name of the evaluation
- * @param timeout Timeout in seconds
+ * @param timeoutSeconds Timeout in seconds
  */
 const verifyBackendStatus = (
-  testSetup: ReturnType<typeof createModelTestSetup> | undefined,
+  projectName: string,
   evaluationName: string,
-  timeout: number,
+  timeoutSeconds: number,
 ): void => {
-  if (!testSetup?.modelName) {
-    return;
-  }
-
   cy.step('Wait for the evaluation resource to be running');
   execWithOutput(
     `set +e; RC=0;
-    oc wait --for=jsonpath='{.status.state}'=Running --timeout=${timeout}s lmevaljobs/${evaluationName} -n ${testSetup.testProjectName} || RC=$?;
-    oc describe lmevaljobs/${evaluationName} -n ${testSetup.testProjectName};
+    oc wait --for=jsonpath='{.status.state}'=Running --timeout=${timeoutSeconds}s lmevaljobs/${evaluationName} -n ${projectName} || RC=$?;
+    oc describe lmevaljobs/${evaluationName} -n ${projectName};
     exit $RC`,
-    timeout + 3,
+    timeoutSeconds + 3,
   ).then((result) => {
     cy.log(`oc wait output: ${result.stdout}`);
     if (result.code !== 0) {
       cy.log(`oc wait failed with code ${result.code}: ${result.stderr}`);
     }
   });
-
-  cy.step('Wait for evaluation run to reach a stable state');
-  waitForEvaluationRun(
-    evaluationName,
-    ['In Progress', 'Complete'],
-    testSetup.modelName,
-    timeout * 1000,
-  );
-
-  // Print pod logs at the end
-  cy.step('Print LMEval job pod logs');
-  execWithOutput(`oc logs -n ${testSetup.testProjectName} ${evaluationName}`, 30).then((result) => {
-    cy.log(`📝 LMEval Job Logs:\n${result.stdout}\n${result.stderr}`);
-  });
 };
 
 /**
- * Navigates to evaluation details and downloads results
- * @param testSetup The test setup object
+ * Downloads evaluation results from the details page
  * @param evaluationName The name of the evaluation
- * @param timeout Timeout in milliseconds
+ * @param projectName Optional project name for URL verification
+ * @param timeoutSeconds Optional timeout in seconds
  */
-const downloadAndVerifyResults = (
-  testSetup: ReturnType<typeof createModelTestSetup> | undefined,
-  evaluationName: string,
-  timeout: number,
-): void => {
-  if (!testSetup?.testProjectName) {
-    return;
-  }
+const downloadEvaluationResults = (evaluationName: string, projectName = ''): void => {
+  cy.step(`Wait for '${evaluationName}' to complete and download results`);
 
-  // Switch to the correct project first to ensure we click on the right evaluation
-  cy.step('Switch to the correct project to find the evaluation');
-  lmEvalPage.selectProjectByName(testSetup.testProjectName);
-
-  // Wait for and click on the evaluation run link (select the completed one)
-  cy.step('Wait for evaluation run link to be available and click it');
-  waitForEvaluationRunComplete(evaluationName, timeout);
+  // Click the evaluation link to navigate to details
+  lmEvalPage.findEvaluationRunLink(evaluationName).click();
 
   // Verify navigation to the evaluation details page
-  cy.step('Verify navigation to evaluation details page');
-  cy.url().should('include', `/modelEvaluations/${testSetup.testProjectName}/${evaluationName}`);
+  cy.url().should('include', `/modelEvaluations/${projectName}/${evaluationName}`);
   lmEvalPage.findEvaluationDetailsTitle().should('contain.text', evaluationName);
 
   // Click the download button and verify the downloaded file
-  cy.step('Download and verify JSON file');
   lmEvalPage.findDownloadJsonButton().should('be.visible').and('not.be.disabled').click();
-
-  // Verify the downloaded file using the new function
-  verifyDownloadedJsonFile(evaluationName);
 };
 
 /**
@@ -326,41 +288,51 @@ const downloadAndVerifyResults = (
 export const verifyJob = (
   testSetup: ReturnType<typeof createModelTestSetup> | undefined,
   lmEvalTimeoutSeconds: number,
-  testConfig?: TestConfig,
+  testConfig?: {
+    lmEval?: {
+      modelPath: string;
+      servicePort: number;
+      numConcurrent: number;
+      maxRetries: number;
+      lmEvalTimeoutSeconds: number;
+      limit: number;
+      maxSamples: number;
+      numFewshot: number;
+      requestInterval?: number;
+      evaluationName?: string;
+      taskName: string;
+    };
+    modelName?: string;
+  },
 ): void => {
   // Get the LMEval configuration from test config or use empty object as fallback
-  const lmEvalConfig = testConfig?.lmEval || ({} as LMEvalConfig);
+  const lmEvalConfig = testConfig?.lmEval || {
+    modelPath: '',
+    servicePort: 0,
+    numConcurrent: 1,
+    maxRetries: 3,
+    lmEvalTimeoutSeconds: 300,
+    limit: 10,
+    maxSamples: 10,
+    numFewshot: 0,
+    taskName: '',
+  };
 
   // Get values with defaults
   const evaluationName = lmEvalConfig.evaluationName || `test-lmeval-${generateTestUUID()}`;
+  const projectName = testSetup?.testProjectName || '';
 
-  // Use default timeout if not specified
-  const timeout = lmEvalTimeoutSeconds || 300;
-
-  // Wait for evaluation to appear and switch to all projects view
+  // Wait for evaluation to appear
   waitForEvaluationToAppear(evaluationName);
 
-  // Verify backend status using oc commands
-  verifyBackendStatus(testSetup, evaluationName, timeout);
+  // Wait for evaluation run to reach a valid state (In Progress or Complete)
+  waitForEvaluationRun(projectName, evaluationName, 'Complete', lmEvalTimeoutSeconds);
 
   // Navigate to details and download results
-  downloadAndVerifyResults(testSetup, evaluationName, timeout * 1000);
-};
+  downloadEvaluationResults(evaluationName, projectName);
 
-/**
- * Waits for evaluation run to be complete and clickable
- * @param evaluationName The name of the evaluation to wait for
- * @param timeout Timeout in milliseconds
- */
-export const waitForEvaluationRunComplete = (evaluationName: string, timeout: number): void => {
-  // First wait for the status to be "Complete"
-  cy.get('[data-testid="evaluation-run-status"]', { timeout }).should('contain.text', 'Complete');
-
-  // Then wait for the link to be available and clickable
-  cy.get(`[data-testid="lm-eval-link-${evaluationName}"]`, { timeout })
-    .should('be.visible')
-    .and('contain.text', evaluationName)
-    .click();
+  // Verify the downloaded file
+  verifyDownloadedJsonFile(evaluationName);
 };
 
 /**
@@ -370,51 +342,38 @@ export const waitForEvaluationRunComplete = (evaluationName: string, timeout: nu
  * from the page object to keep page objects focused on simple finder methods.
  *
  * @param evaluationName - The name of the evaluation run to wait for
- * @param expectedStatus - The expected status or array of statuses to wait for
- * @param modelName - Optional model name to verify in the table
- * @param timeout - Timeout in milliseconds (default: 60000)
+ * @param status - The expected status or array of statuses to wait for
+ * @param timeoutSeconds - Optional timeout in seconds (default: 60)
  * @returns The page object for method chaining
  */
 export const waitForEvaluationRun = (
+  projectName: string,
   evaluationName: string,
-  expectedStatus: string | string[],
-  modelName?: string,
-  timeout = 60000, // 60 seconds by default
+  status: string,
+  timeoutSeconds = 60,
 ): typeof lmEvalPage => {
-  // Wait for the table to be visible and loaded
-  cy.get('table').should('be.visible');
+  const timeout = timeoutSeconds * 1000;
 
-  // Wait for the evaluation run to appear in the table first
-  // Use a more specific approach to handle multiple entries with same name
-  cy.get('tr').contains(evaluationName).should('be.visible');
+  // Verify backend status using oc commands
+  verifyBackendStatus(projectName, evaluationName, timeoutSeconds);
 
-  // Convert expectedStatus to array for consistent handling
-  const expectedStatuses = Array.isArray(expectedStatus) ? expectedStatus : [expectedStatus];
+  // Switch to the correct project and filter for the evaluation run
+  cy.step(`Switch to the evaluation project '${projectName}'`);
+  lmEvalPage.selectProjectByName(projectName);
 
-  // Poll for status change using Cypress's built-in retry mechanism
-  cy.get('body', { timeout }).should(($body: JQuery<HTMLElement>) => {
-    // Find all rows containing the evaluation name
-    const evaluationRows = $body.find(`tr:contains("${evaluationName}")`);
+  cy.step(`Filter for the evaluation run '${evaluationName}'`);
+  lmEvalPage.filterByName(evaluationName);
 
-    // Check if status matches any of the expected statuses
-    const statusText = evaluationRows.text();
-    const hasExpectedStatus = expectedStatuses.some((status) => statusText.includes(status));
+  // Wait for the evaluation run to reach the expected status
+  cy.step(`Wait for evaluation run '${evaluationName}' to reach ${status}`);
 
-    // Use Cypress assertions instead of throwing errors
-    expect(evaluationRows.length).to.be.greaterThan(0);
-    expect(hasExpectedStatus).to.equal(true);
+  // Wait for the evaluation status to change with custom timeout
+  cy.get('body', { timeout }).should(($body) => {
+    const row = $body.find(`tr:contains("${evaluationName}")`);
+    const rowText = row.text();
+    expect(row.length).to.be.greaterThan(0);
+    expect(rowText, `Expected '${status}' but found: ${rowText}`).to.include(status);
   });
-
-  // Verify the evaluation run exists with all required elements
-  lmEvalPage.findEvaluationTable().should('be.visible');
-  lmEvalPage.findEvaluationRow(evaluationName).should('be.visible');
-  lmEvalPage.findEvaluationDataLabel('Evaluation').should('contain.text', evaluationName);
-  if (modelName) {
-    lmEvalPage.findEvaluationDataLabel('Model').should('contain.text', modelName);
-  }
-  lmEvalPage.findEvaluationRunStatus().should('exist');
-  lmEvalPage.findEvaluationRunStartTime().should('exist');
-  lmEvalPage.findEvaluationRunActionsMenu().should('exist');
 
   return lmEvalPage;
 };
