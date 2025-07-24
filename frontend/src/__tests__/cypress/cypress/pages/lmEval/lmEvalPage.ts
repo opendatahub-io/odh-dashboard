@@ -86,11 +86,12 @@ class LMEvalPage {
   }
 
   findEvaluationRow(evaluationName: string, timeout?: number) {
+    const getOptions = timeout ? { timeout } : {};
     return cy
-      .get('tr', timeout ? { timeout } : {})
-      .contains(evaluationName)
-      .parents('tr')
-      .first();
+      .get('tr', getOptions)
+      .contains(evaluationName, getOptions)
+      .parents('tr', getOptions)
+      .first(getOptions);
   }
 
   findEvaluationDataLabel(dataLabel: string) {

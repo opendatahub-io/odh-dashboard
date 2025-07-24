@@ -366,14 +366,7 @@ export const waitForEvaluationRun = (
 
   // Wait for the evaluation run to reach the expected status
   cy.step(`Wait for evaluation run '${evaluationName}' to reach ${status}`);
-
-  // Wait for the evaluation status to change with custom timeout
-  cy.get('body', { timeout }).should(($body) => {
-    const row = $body.find(`tr:contains("${evaluationName}")`);
-    const rowText = row.text();
-    expect(row.length).to.be.greaterThan(0);
-    expect(rowText, `Expected '${status}' but found: ${rowText}`).to.include(status);
-  });
+  lmEvalPage.findEvaluationRow(evaluationName, timeout).should('contain.text', status);
 
   return lmEvalPage;
 };
