@@ -32,6 +32,10 @@ class LMEvalPage {
     return cy.findByTestId('evaluate-model-button');
   }
 
+  filterByName(name: string) {
+    cy.findByRole('textbox', { name: 'Filter by name' }).type(name);
+  }
+
   findCreateProjectButton() {
     return cy.findByTestId('create-data-science-project');
   }
@@ -81,8 +85,12 @@ class LMEvalPage {
     return cy.get('table');
   }
 
-  findEvaluationRow(evaluationName: string) {
-    return cy.get('tr').contains(evaluationName);
+  findEvaluationRow(evaluationName: string, timeout?: number) {
+    return cy
+      .get('tr', timeout ? { timeout } : {})
+      .contains(evaluationName)
+      .parents('tr')
+      .first();
   }
 
   findEvaluationDataLabel(dataLabel: string) {
