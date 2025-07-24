@@ -14,8 +14,7 @@ import ModelTimestamp from '~/app/pages/modelRegistry/screens/components/ModelTi
 import ModelLabels from '~/app/pages/modelRegistry/screens/components/ModelLabels';
 import { ArchiveModelVersionModal } from '~/app/pages/modelRegistry/screens/components/ArchiveModelVersionModal';
 import { RestoreModelVersionModal } from '~/app/pages/modelRegistry/screens/components/RestoreModelVersionModal';
-import { LazyCodeRefComponent, useExtensions } from '@odh-dashboard/plugin-core';
-import { isModelRegistryRowActionColumnExtension } from '~/odh/extension-points';
+import MRVersionRowActionColumns from '~/odh/components/MRVersionRowActionColumns';
 
 type ModelVersionsTableRowProps = {
   modelVersion: ModelVersion;
@@ -38,8 +37,6 @@ const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
 
   const [isArchiveModalOpen, setIsArchiveModalOpen] = React.useState(false);
   const [isRestoreModalOpen, setIsRestoreModalOpen] = React.useState(false);
-
-  const actionColumnExtensions = useExtensions(isModelRegistryRowActionColumnExtension);
 
   if (!preferredModelRegistry) {
     return null;
@@ -105,15 +102,12 @@ const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
       </Td>
       {!isArchiveModel && (
         <Td isActionCell>
-          {actionColumnExtensions.map((ext) => (
-            <LazyCodeRefComponent
-              component={ext.properties.component}
-              props={{
-                modelVersion: mv,
-                actions,
-              }}
-            />
-          ))}
+          <MRVersionRowActionColumns
+            mv={mv}
+            mvLoaded={true}
+            mvError={undefined}
+            actions={actions}
+          />
           {isArchiveModalOpen ? (
             <ArchiveModelVersionModal
               onCancel={() => setIsArchiveModalOpen(false)}
