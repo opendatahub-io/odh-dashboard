@@ -1,0 +1,51 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{POD_NAME}}
+  namespace: {{NAMESPACE}}
+spec:
+  containers:
+    - name: s3-downloader
+      image: amazon/aws-cli
+      command: ["/bin/bash", "-c"]
+      args:
+        - |
+          set -e
+          echo "Starting S3 copy from s3://{{AWS_S3_BUCKET}}/{{MODEL_PATH}} to /mnt/models/"
+
+          MAX_RETRIES=3
+          COUNT=0
+
+          while [ $COUNT -lt $MAX_RETRIES ]; do
+            echo "Attempt $((COUNT + 1)) of $MAX_RETRIES..."
+            if aws s3 cp s3://{{AWS_S3_BUCKET}}/{{MODEL_PATH}} /mnt/models/ --region={{AWS_DEFAULT_REGION}} --recursive; then
+              echo "S3 copy completed successfully"
+              touch /mnt/models/.copy-complete
+              exit 0
+            fi
+            echo "S3 copy failed. Retrying in 5 seconds..."
+            COUNT=$((COUNT + 1))
+            sleep 5
+          done
+
+          echo "S3 copy failed after $MAX_RETRIES attempts"
+          exit 1
+      volumeMounts:
+        - name: model-store
+          mountPath: /mnt/models
+      env:
+        - name: AWS_ACCESS_KEY_ID
+          value: "{{AWS_ACCESS_KEY_ID}}"
+        - name: AWS_SECRET_ACCESS_KEY
+          value: "{{AWS_SECRET_ACCESS_KEY}}"
+        - name: AWS_DEFAULT_REGION
+          value: "{{AWS_DEFAULT_REGION}}"
+        - name: AWS_S3_ENDPOINT
+          value: "{{AWS_S3_ENDPOINT}}"
+        - name: AWS_S3_BUCKET
+          value: "{{AWS_S3_BUCKET}}"
+  volumes:
+    - name: model-store
+      persistentVolumeClaim:
+        claimName: {{PVC_NAME}}
+  restartPolicy: Never
