@@ -54,10 +54,10 @@
     "cypress:run:mock:coverage": "rimraf src/__tests__/cypress/coverage src/__tests__/cypress/.nyc_output && CY_COVERAGE=true npm run cypress:run:mock -- {@}",
     "cypress:open:record": "CY_RECORD=1 npm run cypress:open",
     "cypress:run:record": "CY_RECORD=1 npm run cypress:run && npm run cypress:format",
-    "cypress:server:build": "ODH_DIST_DIR=./public-cypress POLL_INTERVAL=9999999 FAST_POLL_INTERVAL=9999999 WS_HOSTNAME=localhost:9002 npm run build",
-    "cypress:server:build:coverage": "COVERAGE=true npm run cypress:server:build",
+    "cypress:server:build": "ODH_DIST_DIR=./public-cypress POLL_INTERVAL=9999999 FAST_POLL_INTERVAL=9999999 WS_HOSTNAME=localhost:9002 CYPRESS_TESTS=true npm run build",
+    "cypress:server:build:coverage": "COVERAGE=true CYPRESS_TESTS=true npm run cypress:server:build",
     "cypress:server": "serve ./public-cypress -p 9001 -s -L",
-    "cypress:server:dev": "POLL_INTERVAL=9999999 FAST_POLL_INTERVAL=9999999 ODH_PORT=9001 WS_HOSTNAME=localhost:9002 npm run start:dev",
+    "cypress:server:dev": "POLL_INTERVAL=9999999 FAST_POLL_INTERVAL=9999999 ODH_PORT=9001 WS_HOSTNAME=localhost:9002 CYPRESS_TESTS=true npm run start:dev",
     "cypress:format": "prettier --write src/__tests__/**/*.snap.json",
     "test:cypress:e2e": "cd src/__tests__/cypress && npx cypress run --env grepTags=\"${CY_TEST_TAGS}\",skipTags=\"${CY_SKIP_TAGS}\" --browser chrome",
     "test:cypress:e2e:open": "cd src/__tests__/cypress && npx cypress open --env grepTags=\"${CY_TEST_TAGS}\",skipTags=\"${CY_SKIP_TAGS}\""

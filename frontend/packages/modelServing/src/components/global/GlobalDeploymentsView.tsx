@@ -35,7 +35,7 @@ const GlobalDeploymentsView: React.FC<GlobalDeploymentsViewProps> = ({ projects 
         <TitleWithIcon title="Model deployments" objectType={ProjectObjectType.deployedModels} />
       }
       headerContent={
-        <ModelServingProjectSelection getRedirectPath={(ns: string) => `/model-serving/${ns}`} />
+        <ModelServingProjectSelection getRedirectPath={(ns: string) => `/modelServing/${ns}`} />
       }
       provideChildrenPadding
     >

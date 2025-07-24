@@ -8,6 +8,7 @@ spec:
   selector:
     deployment: odh-dashboard
   ports:
-  - protocol: TCP
-    targetPort: 8443
-    port: 8443
+    - name: dashboard-ui
+      protocol: TCP
+      port: 8443
+      targetPort: 8443

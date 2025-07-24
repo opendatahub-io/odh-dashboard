@@ -49,6 +49,7 @@ type AcceleratorProfileSelectFieldProps = {
   formData: AcceleratorProfileFormData;
   isRequired?: boolean;
   setFormData: UpdateObjectAtPropAndValue<AcceleratorProfileFormData>;
+  acceleratorProfilesLoaded?: boolean;
 };
 
 const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps> = ({
@@ -61,6 +62,7 @@ const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps
   isRequired = false,
   setFormData,
   currentProject,
+  acceleratorProfilesLoaded = false,
 }) => {
   const acceleratorCountWarning = useAcceleratorCountWarning(
     formData.count,
@@ -258,12 +260,6 @@ const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps
     }
   }
 
-  // add none option
-  options.push({
-    key: 'none',
-    label: 'None',
-  });
-
   if (initialState.unknownProfileDetected) {
     options.push({
       key: 'use-existing',
@@ -273,6 +269,15 @@ const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps
   } else if (formData.profile && !formData.profile.spec.enabled) {
     options.push(formatOption(formData.profile));
   }
+
+  // add none option
+  options.push({
+    key: 'none',
+    label:
+      options.length > 0
+        ? 'None'
+        : 'No enabled or valid accelerator profiles are available. Contact your administrator',
+  });
 
   return (
     <Stack hasGutter>
@@ -390,6 +395,7 @@ const AcceleratorProfileSelectField: React.FC<AcceleratorProfileSelectFieldProps
                 }
               }}
               dataTestId="accelerator-profile-select"
+              isSkeleton={!acceleratorProfilesLoaded || !currentProjectAcceleratorProfilesLoaded}
             />
           )}
         </FormGroup>
