@@ -10,6 +10,7 @@ import type {
 // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/consistent-type-imports
 import { InferenceServiceModelState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import type { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
+import type { EitherNotBoth } from '@odh-dashboard/internal/typeHelpers.js';
 
 export type DeploymentStatus = {
   state: InferenceServiceModelState;
@@ -89,7 +90,16 @@ export type ModelServingPlatformWatchDeploymentsExtension<D extends Deployment =
       platform: D['modelServingPlatformId'];
       watch: CodeRef<
         (
-          project: ProjectKind,
+          watchParams: EitherNotBoth<
+            {
+              project: ProjectKind;
+            },
+            {
+              registeredModelId: string;
+              modelVersionId: string;
+              mrName?: string;
+            }
+          >,
           opts?: K8sAPIOptions,
         ) => [D[] | undefined, boolean, Error | undefined]
       >;

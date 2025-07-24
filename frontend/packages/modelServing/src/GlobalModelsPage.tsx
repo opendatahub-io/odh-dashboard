@@ -51,7 +51,7 @@ const GlobalModelsPageCoreLoader: React.FC = () => {
   return (
     <ModelDeploymentsProvider
       modelServingPlatforms={availablePlatforms}
-      projects={projectsToShow}
+      watchParams={{ projects: projectsToShow }}
       deploymentWatchers={deploymentWatchers}
     >
       <GlobalDeploymentsView currentProject={selectedProject} />

@@ -7,6 +7,7 @@ import {
   ActionListGroup,
   ActionListItem,
   DropdownList,
+  DropdownItem,
 } from '@patternfly/react-core';
 import { useNavigate } from 'react-router';
 import { ModelState, ModelVersion } from '~/app/types';
@@ -14,9 +15,10 @@ import { ModelRegistryContext } from '~/app/context/ModelRegistryContext';
 import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelectorContext';
 import { ArchiveModelVersionModal } from '~/app/pages/modelRegistry/screens/components/ArchiveModelVersionModal';
 import { modelVersionListUrl } from '~/app/pages/modelRegistry/screens/routeUtils';
-import { useExtensions } from '@openshift/dynamic-plugin-sdk';
-import { isArchiveModelVersionButtonExtension } from '~/odh/extension-points';
-import { LazyCodeRefComponent } from '@odh-dashboard/plugin-core';
+import { Deployment, isModelServingPlatformExtension, isModelServingPlatformWatchDeployments } from '~/odh/extension-points';
+import { useExtensions, useResolvedExtensions } from '@openshift/dynamic-plugin-sdk';
+import { KSERVE_ID } from './const';
+import { HookNotify } from '@odh-dashboard/plugin-core';
 
 interface ModelVersionsDetailsHeaderActionsProps {
   mv: ModelVersion;
@@ -39,13 +41,43 @@ const ModelVersionsDetailsHeaderActions: React.FC<ModelVersionsDetailsHeaderActi
   // TODO: [Model Serving] Uncomment when model serving is available
   // const [isDeployModalOpen, setIsDeployModalOpen] = React.useState(false);
   const tooltipRef = React.useRef<HTMLButtonElement>(null);
-  const extensions = useExtensions(isArchiveModelVersionButtonExtension);
+  const availablePlatforms = useExtensions(isModelServingPlatformExtension);
+  const [deploymentWatchers, loaded] = useResolvedExtensions(isModelServingPlatformWatchDeployments);
+  const activePlatform = availablePlatforms.find((p) => p.properties.id === KSERVE_ID);
+  const useWatchDeployments = React.useMemo(() => {
+    if (!loaded) {
+      return null;
+    }
+    const deploymentWatcher = deploymentWatchers.find((w) => w.properties.platform === activePlatform?.properties.id);
+    return deploymentWatcher?.properties.watch;
+  }, [deploymentWatchers, activePlatform, loaded]);
+  const [deployments, setDeployments] = React.useState<Deployment[] | undefined>();
+  // const [deployments] = useWatchDeployments?.({
+  //   registeredModelId: mv.registeredModelId,
+  //   modelVersionId: mv.id,
+  //   mrName,
+  // });
+  console.log('deployments', deployments);
+  console.log('deploymentWatchers', deploymentWatchers);
+  console.log('useWatchDeployments', useWatchDeployments);
+  console.log('loaded', loaded);
+  const hasDeployment = !!deployments && deployments.length > 0;
 
   if (!preferredModelRegistry) {
     return null;
   }
 
   return (
+    <>
+    {
+      useWatchDeployments ? (
+        <HookNotify useHook={useWatchDeployments} onNotify={(value) => setDeployments(value?.[0])} args={[{
+          registeredModelId: mv.registeredModelId,
+          modelVersionId: mv.id,
+          mrName,
+        }]} />
+      ) : null
+    }
     <ActionList className="pf-v5-u-display-flex">
       <ActionListGroup className="pf-v5-u-flex-1">
         {/* // TODO: [Model Serving] Uncomment when model serving is available */}
@@ -80,18 +112,21 @@ const ModelVersionsDetailsHeaderActions: React.FC<ModelVersionsDetailsHeaderActi
             )}
           >
             <DropdownList>
-              {extensions.map((extension) =>
-                <LazyCodeRefComponent
-                  key={extension.properties.id}
-                  component={extension.properties.component}
-                  props={{
-                    mv,
-                    setIsArchiveModalOpen,
-                    ref: tooltipRef,
-                    mrName,
-                  }}
-                />
-              )}
+              <DropdownItem
+                isAriaDisabled={hasDeployment}
+                id="archive-version-button"
+                aria-label="Archive model version"
+                key="archive-version-button"
+                onClick={() => setIsArchiveModalOpen(true)}
+                tooltipProps={
+                  hasDeployment
+                    ? { content: 'Deployed model versions cannot be archived' }
+                    : undefined
+                }
+                ref={tooltipRef}
+              >
+                Archive model version
+              </DropdownItem>
             </DropdownList>
           </Dropdown>
         </ActionListItem>
@@ -133,6 +168,7 @@ const ModelVersionsDetailsHeaderActions: React.FC<ModelVersionsDetailsHeaderActi
         />
       )}
     </ActionList>
+    </>
   );
 };
 

@@ -21,7 +21,7 @@ const ModelsProjectDetailsTab: React.FC = () => {
     <ModelServingPlatformProvider>
       <ModelDeploymentsProvider
         modelServingPlatforms={activePlatform ? [activePlatform] : []}
-        projects={[currentProject]}
+        watchParams={{ projects: [currentProject] }}
         deploymentWatchers={deploymentWatchers}
       >
         <ModelsProjectDetailsView project={currentProject} />

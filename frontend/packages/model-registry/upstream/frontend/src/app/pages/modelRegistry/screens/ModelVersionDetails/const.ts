@@ -13,3 +13,5 @@ export const pipelineRunSpecificKeys: string[] = [
   '_registeredFromPipelineRunId',
   '_registeredFromPipelineRunName',
 ];
+
+export const KSERVE_ID = 'kserve';

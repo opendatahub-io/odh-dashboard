@@ -2,6 +2,7 @@ import { PodModel } from '@odh-dashboard/internal/api/models/index';
 import {
   InferenceServiceKind,
   K8sAPIOptions,
+  KnownLabels,
   PodKind,
   ProjectKind,
   ServingRuntimeKind,
@@ -13,44 +14,66 @@ import {
   ServingRuntimeModel,
 } from '@odh-dashboard/internal/api/models/kserve';
 import { CustomWatchK8sResult } from '@odh-dashboard/internal/types';
+import { EitherNotBoth } from '@odh-dashboard/internal/typeHelpers.js';
 
 export const useWatchInferenceServices = (
-  project: ProjectKind,
+  watchParams: EitherNotBoth<
+    {
+      project: ProjectKind;
+    },
+    {
+      registeredModelId: string;
+      modelVersionId: string;
+      mrName?: string;
+    }
+  >,
   opts?: K8sAPIOptions,
 ): CustomWatchK8sResult<InferenceServiceKind[]> =>
   useK8sWatchResourceList<InferenceServiceKind[]>(
     {
       isList: true,
       groupVersionKind: groupVersionKind(InferenceServiceModel),
-      namespace: project.metadata.name,
+      ...(watchParams.project && { namespace: watchParams.project.metadata.name }),
+      ...((watchParams.registeredModelId || watchParams.modelVersionId) && {
+        queryParams: {
+          labelSelector: [
+            ...(watchParams.registeredModelId
+              ? [`${KnownLabels.REGISTERED_MODEL_ID}=${watchParams.registeredModelId}`]
+              : []),
+            ...(watchParams.modelVersionId
+              ? [`${KnownLabels.MODEL_VERSION_ID}=${watchParams.modelVersionId}`]
+              : []),
+          ].join(','),
+        },
+      }),
     },
     InferenceServiceModel,
     opts,
   );
 
 export const useWatchServingRuntimes = (
-  project: ProjectKind,
+  project?: ProjectKind,
   opts?: K8sAPIOptions,
 ): CustomWatchK8sResult<ServingRuntimeKind[]> =>
   useK8sWatchResourceList<ServingRuntimeKind[]>(
     {
       isList: true,
       groupVersionKind: groupVersionKind(ServingRuntimeModel),
-      namespace: project.metadata.name,
+      ...(project && { namespace: project.metadata.name }),
     },
     ServingRuntimeModel,
     opts,
   );
 
 export const useWatchDeploymentPods = (
-  project: ProjectKind,
+  project?: ProjectKind,
   opts?: K8sAPIOptions,
 ): CustomWatchK8sResult<PodKind[]> =>
   useK8sWatchResourceList<PodKind[]>(
     {
       isList: true,
       groupVersionKind: groupVersionKind(PodModel),
-      namespace: project.metadata.name,
+      ...(project && { namespace: project.metadata.name }),
       selector: {
         matchExpressions: [
           {
