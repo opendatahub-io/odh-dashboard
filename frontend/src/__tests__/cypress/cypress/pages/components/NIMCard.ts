@@ -14,7 +14,7 @@ export class NIMCard extends Card {
   }
 
   getNGCAPIKey(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.get('[data-id="NVIDIA AI Enterprise license key"]');
+    return cy.get('[data-id="NVIDIA personal API key"]');
   }
 
   getNIMSubmit(): Cypress.Chainable<JQuery<HTMLElement>> {

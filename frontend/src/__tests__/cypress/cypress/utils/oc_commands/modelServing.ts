@@ -439,3 +439,16 @@ export const validateInferenceServiceTolerations = (
     }
   });
 };
+
+export const verifyS3CopyCompleted = (
+  podName: string,
+  namespace: string,
+): Cypress.Chainable<Cypress.Exec> => {
+  return cy
+    .exec(`oc logs ${podName} -n ${namespace}`, { failOnNonZeroExit: false })
+    .then((result) => {
+      if (!result.stdout.includes('S3 copy completed successfully')) {
+        throw new Error('S3 copy did not complete successfully');
+      }
+    });
+};
