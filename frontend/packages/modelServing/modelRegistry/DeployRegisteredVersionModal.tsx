@@ -1,6 +1,6 @@
 import React from 'react';
 import DeployPrefilledModelModal from '@odh-dashboard/internal/pages/modelServing/screens/projects/DeployPrefilledModelModal';
-import { ModelDeployPrefillInfo } from '@odh-dashboard/internal/pages/modelServing/screens/projects/usePrefillModelDeployModal.js';
+import { ModelDeployPrefillInfo } from '@odh-dashboard/internal/pages/modelServing/screens/projects/usePrefillModelDeployModal';
 
 export type DeployRegisteredVersionModalProps = {
   data: {
