@@ -12,6 +12,7 @@ import {
   Skeleton,
   MenuItem,
   FormHelperText,
+  Tooltip,
 } from '@patternfly/react-core';
 import * as React from 'react';
 import HardwareProfileDetailsPopover from '#~/concepts/hardwareProfiles/HardwareProfileDetailsPopover';
@@ -205,9 +206,14 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
         description={
           <Stack style={{ marginLeft: '19px' }}>
             {description && (
-              <StackItem>
-                <Truncate content={description} />
-              </StackItem>
+              <Tooltip
+                className="keep-tooltip-visible"
+                content={<TruncatedText maxLines={4} content={description} />}
+              >
+                <StackItem>
+                  <TruncatedText maxLines={2} content={description} />
+                </StackItem>
+              </Tooltip>
             )}
             {profile.spec.identifiers && (
               <StackItem>

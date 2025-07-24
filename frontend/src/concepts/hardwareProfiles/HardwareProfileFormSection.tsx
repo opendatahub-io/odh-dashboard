@@ -12,6 +12,7 @@ import HardwareProfileSelect from './HardwareProfileSelect';
 import HardwareProfileCustomize from './HardwareProfileCustomize';
 import { PodSpecOptionsState, PodSpecOptions } from './types';
 import { getContainerResourcesFromHardwareProfile } from './utils';
+import './HardwareProfileFormSection.scss';
 
 type HardwareProfileFormSectionProps<T extends PodSpecOptions> = {
   isEditing: boolean;
@@ -75,6 +76,7 @@ const HardwareProfileFormSection: React.FC<HardwareProfileFormSectionProps<PodSp
               ) : undefined
             }
           >
+            {/* scss file used to disable patternfly's default tooltips */}
             <HardwareProfileSelect
               isProjectScoped={isProjectScoped}
               hardwareProfileConfig={formData}
