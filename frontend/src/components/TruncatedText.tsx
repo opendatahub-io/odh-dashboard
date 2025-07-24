@@ -4,9 +4,15 @@ import { Tooltip } from '@patternfly/react-core';
 type TruncatedTextProps = {
   maxLines: number;
   content: React.ReactNode;
+  hasTooltip?: boolean;
 } & Omit<React.HTMLProps<HTMLSpanElement>, 'content'>;
 
-const TruncatedText: React.FC<TruncatedTextProps> = ({ maxLines, content, ...props }) => {
+const TruncatedText: React.FC<TruncatedTextProps> = ({
+  maxLines,
+  content,
+  hasTooltip = true,
+  ...props
+}) => {
   const outerElementRef = React.useRef<HTMLElement>(null);
   const textElementRef = React.useRef<HTMLElement>(null);
   const [isTruncated, setIsTruncated] = React.useState<boolean>(false);
@@ -43,7 +49,7 @@ const TruncatedText: React.FC<TruncatedTextProps> = ({ maxLines, content, ...pro
   );
 
   return (
-    <Tooltip hidden={!isTruncated ? true : undefined} content={content}>
+    <Tooltip hidden={!isTruncated || !hasTooltip ? true : undefined} content={content}>
       {truncateBody}
     </Tooltip>
   );
