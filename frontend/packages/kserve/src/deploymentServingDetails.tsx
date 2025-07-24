@@ -6,8 +6,8 @@ type Props = {
   deployment: KServeDeployment;
 };
 
-const DeploymentServingRuntimeVersion: React.FC<Props> = ({ deployment }) => (
+const DeploymentServingDetails: React.FC<Props> = ({ deployment }) => (
   <InferenceServiceServingRuntime servingRuntime={deployment.server} />
 );
 
-export default DeploymentServingRuntimeVersion;
+export default DeploymentServingDetails;

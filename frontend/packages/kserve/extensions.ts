@@ -4,14 +4,13 @@ import { NamespaceApplicationCase } from '@odh-dashboard/internal/pages/projects
 import { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
 import type {
   ModelServingPlatformExtension,
-  ModelServingDeploymentsTableExtension,
   ModelServingDeleteModal,
   ModelServingPlatformWatchDeploymentsExtension,
   ModelServingDeploymentsExpandedInfo,
   ModelServingMetricsExtension,
   ModelServingDeploymentResourcesExtension,
   ModelServingAuthExtension,
-  DeployedModelServingRuntime,
+  DeployedModelServingDetails,
 } from '@odh-dashboard/model-serving/extension-points';
 // eslint-disable-next-line no-restricted-syntax
 import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/index';
@@ -24,11 +23,10 @@ const extensions: (
   | ModelServingPlatformWatchDeploymentsExtension<KServeDeployment>
   | ModelServingDeploymentResourcesExtension<KServeDeployment>
   | ModelServingAuthExtension<KServeDeployment>
-  | ModelServingDeploymentsTableExtension<KServeDeployment>
   | ModelServingDeploymentsExpandedInfo<KServeDeployment>
   | ModelServingDeleteModal<KServeDeployment>
   | ModelServingMetricsExtension<KServeDeployment>
-  | DeployedModelServingRuntime<KServeDeployment>
+  | DeployedModelServingDetails<KServeDeployment>
 )[] = [
   {
     type: 'model-serving.platform',
@@ -84,13 +82,6 @@ const extensions: (
     },
   },
   {
-    type: 'model-serving.deployments-table',
-    properties: {
-      platform: KSERVE_ID,
-      columns: () => import('./src/deploymentsTable').then((m) => m.columns),
-    },
-  },
-  {
     type: 'model-serving.deployments-table/expanded-info',
     properties: {
       platform: KSERVE_ID,
@@ -121,7 +112,7 @@ const extensions: (
     type: 'model-serving.deployed-model/serving-runtime',
     properties: {
       platform: KSERVE_ID,
-      ServingRuntimeComponent: () => import('./src/deploymentServingRuntimeVersion'),
+      ServingDetailsComponent: () => import('./src/deploymentServingDetails'),
     },
   },
 ];
