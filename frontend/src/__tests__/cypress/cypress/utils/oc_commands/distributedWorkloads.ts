@@ -49,6 +49,10 @@ export const createKueueResources = (
  * @param {string} clusterQueueName - The name of the cluster queue to delete.
  * @param {string} resourceFlavor - The name of the resource flavor to delete.
  * @param {string} projectName - The namespace/project in which the resources exist.
+ * @param {object} options - Configuration options for the deletion operation.
+ * @param {number} options.timeout - Timeout in milliseconds for the command (only used when wait is true).
+ * @param {boolean} options.wait - Whether to wait for the deletion to complete (default: true).
+ * @param {boolean} options.ignoreNotFound - Whether to ignore errors when resources are not found (default: false).
  * @returns {Cypress.Chainable<CommandLineResult>} A Cypress chainable resolving with the result of the deletion command.
  */
 export const deleteKueueResources = (
@@ -56,7 +60,10 @@ export const deleteKueueResources = (
   clusterQueueName: string,
   resourceFlavor: string,
   projectName: string,
+  options: { timeout?: number; wait?: boolean; ignoreNotFound?: boolean } = {},
 ): Cypress.Chainable<CommandLineResult> => {
+  const { timeout, wait = true, ignoreNotFound = false } = options;
+
   // Create the OC command to delete the resources
   const ocCommand = `
       oc delete LocalQueue ${localQueueName} -n ${projectName} && 
@@ -66,15 +73,21 @@ export const deleteKueueResources = (
 
   cy.log(`Executing: ${ocCommand}`);
 
-  return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result: CommandLineResult) => {
-    if (result.code !== 0) {
-      throw new Error(`Command failed with code ${result.stderr}`);
-    }
+  // Only apply timeout if we're waiting for the deletion
+  const execOptions = {
+    failOnNonZeroExit: false,
+    ...(wait && timeout && { timeout }),
+  };
 
-    if (result.stdout.trim() === '') {
-      cy.log('No Kueue resources found or deleted');
-    } else {
-      cy.log(`Kueue resources deletion: ${result.stdout}`);
+  return cy.exec(ocCommand, execOptions).then((result) => {
+    if (result.code !== 0) {
+      cy.log(`ERROR deleting Kueue resources
+                stdout: ${result.stdout}
+                stderr: ${result.stderr}`);
+      if (!ignoreNotFound) {
+        throw new Error(`Command failed with code ${result.code}`);
+      }
     }
+    return result;
   });
 };
