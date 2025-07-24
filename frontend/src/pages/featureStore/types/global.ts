@@ -1,5 +1,6 @@
 import { GetEntities } from './entities';
 import { GetProjects } from './featureStoreProjects';
+import { GetFeatureViews } from './featureView';
 
 export type FeatureStorePagination = {
   page: number;
@@ -47,4 +48,5 @@ export type BatchSource = {
 export type FeatureStoreAPIs = {
   listFeatureStoreProject: GetProjects;
   getEntities: GetEntities;
+  getFeatureViews: GetFeatureViews;
 };

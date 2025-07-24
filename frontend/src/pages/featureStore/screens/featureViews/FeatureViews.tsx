@@ -2,46 +2,46 @@ import React from 'react';
 import { EmptyStateBody, EmptyStateVariant, EmptyState } from '@patternfly/react-core';
 import { SearchIcon } from '@patternfly/react-icons';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
-import useFeatureStoreEntities from '#~/pages/featureStore/apiHooks/useFeatureStoreEnitites';
 import FeatureStoreProjectSelectorNavigator from '#~/pages/featureStore/screens/components/FeatureStoreProjectSelectorNavigator';
 import { useFeatureStoreProject } from '#~/pages/featureStore/FeatureStoreContext';
+import useFeatureViews from '#~/pages/featureStore/apiHooks/useFeatureViews';
 import { featureStoreRoute } from '#~/pages/featureStore/routes';
-import FeatureStoreEntitiesListView from './FeatureStoreEntitiesListView';
+import FeatureViewsListView from './FeatureViewsListView';
 
-const title = 'Entities';
+const title = 'Feature views';
 const description =
-  'Select a workspace to view and manage its entities. Entities are collections of related features and can be mapped to the domain of your use case.';
+  'Select a feature store workspace to view and manage its feature views. A feature view defines a group of related features and how to retrieve them from a data source over time.';
 
-const FeatureStoreEntities = (): React.ReactElement => {
+const FeatureViews = (): React.ReactElement => {
   const { currentProject } = useFeatureStoreProject();
   const {
-    data: entities,
-    loaded: entitiesLoaded,
-    error: entitiesLoadError,
-  } = useFeatureStoreEntities(currentProject);
+    data: featureViews,
+    loaded: featureViewsLoaded,
+    error: featureViewsLoadError,
+  } = useFeatureViews(currentProject);
 
   const emptyState = (
     <EmptyState
       headingLevel="h6"
       icon={SearchIcon}
-      titleText="No entities"
+      titleText="No feature views"
       variant={EmptyStateVariant.lg}
       data-testid="empty-state-title"
     >
       <EmptyStateBody data-testid="empty-state-body">
-        No entities have been found in this project.
+        No feature views have been found in this project.
       </EmptyStateBody>
     </EmptyState>
   );
 
   return (
     <ApplicationsPage
-      empty={entities.entities.length === 0}
+      empty={featureViews.featureViews.length === 0}
       emptyStatePage={emptyState}
       title={title}
       description={description}
-      loadError={entitiesLoadError}
-      loaded={entitiesLoaded}
+      loadError={featureViewsLoadError}
+      loaded={featureViewsLoaded}
       headerContent={
         <FeatureStoreProjectSelectorNavigator
           getRedirectPath={(featureStoreObject, featureStoreProject) =>
@@ -51,9 +51,9 @@ const FeatureStoreEntities = (): React.ReactElement => {
       }
       provideChildrenPadding
     >
-      <FeatureStoreEntitiesListView entities={entities} />
+      <FeatureViewsListView featureViews={featureViews.featureViews} fsProject={currentProject} />
     </ApplicationsPage>
   );
 };
 
-export default FeatureStoreEntities;
+export default FeatureViews;
