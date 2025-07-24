@@ -1,4 +1,4 @@
-name: LLAMA-STACK - Modular UI - BFF - Build
+name: Llama-Stack - Modular UI - BFF - Build
 on:
   push:
     branches:
