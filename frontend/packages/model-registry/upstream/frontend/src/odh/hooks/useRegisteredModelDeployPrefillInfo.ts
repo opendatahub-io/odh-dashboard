@@ -1,33 +1,35 @@
 import React from 'react';
-import {
-  ModelArtifactList,
-  ModelVersion,
-  RegisteredModel,
-} from '@odh-dashboard/internal/concepts/modelRegistry/types';
-import { uriToConnectionTypeName } from '@odh-dashboard/internal/concepts/modelRegistry/utils';
-import { ModelDeployPrefillInfo } from '@odh-dashboard/internal/pages/modelServing/screens/projects/usePrefillModelDeployModal';
-import { FetchStateObject } from '@odh-dashboard/internal/utilities/useFetch';
+import { ModelVersion, RegisteredModel } from '~/app/types';
+import { useModelArtifactsByVersionId, useRegisteredModelById } from '~/odh/api';
+import { uriToConnectionTypeName } from '~/odh/utils';
+
+export type ModelDeployPrefillInfo = {
+  modelName: string;
+  modelFormat?: string;
+  modelArtifactUri?: string;
+  connectionTypeName?: string;
+  initialConnectionName?: string;
+  modelRegistryInfo?: {
+    modelVersionId?: string;
+    registeredModelId?: string;
+    mrName?: string;
+  };
+};
 
 const useRegisteredModelDeployPrefillInfo = (
   modelVersion: ModelVersion,
-  registeredModelState: FetchStateObject<RegisteredModel | null>,
-  modelArtifactListState: FetchStateObject<ModelArtifactList>,
   mrName?: string,
 ): {
   modelDeployPrefillInfo: ModelDeployPrefillInfo;
+  registeredModel: RegisteredModel | null;
   loaded: boolean;
   error: Error | undefined;
 } => {
-  const {
-    data: registeredModel,
-    loaded: registeredModelLoaded,
-    error: registeredModelError,
-  } = registeredModelState;
-  const {
-    data: modelArtifactList,
-    loaded: modelArtifactListLoaded,
-    error: modelArtifactListError,
-  } = modelArtifactListState;
+  const [registeredModel, registeredModelLoaded, registeredModelError] = useRegisteredModelById(
+    modelVersion.registeredModelId,
+  );
+  const [modelArtifactList, modelArtifactListLoaded, modelArtifactListError] =
+    useModelArtifactsByVersionId(modelVersion.id);
 
   return React.useMemo(() => {
     const modelName = `${registeredModel?.name ?? ''} - ${modelVersion.name}`.slice(0, 63);
@@ -37,6 +39,7 @@ const useRegisteredModelDeployPrefillInfo = (
         modelDeployPrefillInfo: {
           modelName,
         },
+        registeredModel: null,
         loaded: registeredModelLoaded && modelArtifactListLoaded,
         error: registeredModelError || modelArtifactListError,
       };
@@ -58,6 +61,7 @@ const useRegisteredModelDeployPrefillInfo = (
           mrName,
         },
       } satisfies ModelDeployPrefillInfo,
+      registeredModel,
       loaded: registeredModelLoaded && modelArtifactListLoaded,
       error: registeredModelError || modelArtifactListError,
     };

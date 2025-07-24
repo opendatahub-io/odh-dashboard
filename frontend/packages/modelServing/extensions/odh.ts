@@ -8,10 +8,6 @@ import type {
 // Allow this import as it consists of types and enums only.
 // eslint-disable-next-line no-restricted-syntax
 import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
-import type {
-  ModelRegistryDeployButtonExtension,
-  ModelRegistryRowActionColumnExtension,
-} from '@mf/modelRegistry/extension-points';
 
 const PLUGIN_MODEL_SERVING = 'plugin-model-serving';
 
@@ -21,8 +17,6 @@ const extensions: (
   | HrefNavItemExtension
   | RouteExtension
   | OverviewSectionExtension
-  | ModelRegistryDeployButtonExtension
-  | ModelRegistryRowActionColumnExtension
 )[] = [
   {
     type: 'app.area',
@@ -37,7 +31,7 @@ const extensions: (
     properties: {
       id: 'model-server', // same value as ProjectSectionID.MODEL_SERVER
       title: 'Models',
-      component: () => import('./src/ModelsProjectDetailsTab'),
+      component: () => import('../src/ModelsProjectDetailsTab'),
     },
     flags: {
       required: [PLUGIN_MODEL_SERVING],
@@ -48,7 +42,7 @@ const extensions: (
     properties: {
       id: 'model-server',
       title: 'Serve Models',
-      component: () => import('./src/ServeModelsSection'),
+      component: () => import('../src/ServeModelsSection'),
     },
     flags: {
       required: [PLUGIN_MODEL_SERVING],
@@ -71,24 +65,10 @@ const extensions: (
     type: 'app.route',
     properties: {
       path: '/modelServing/:namespace?/*',
-      component: () => import('./src/GlobalModelsRoutes'),
+      component: () => import('../src/GlobalModelsRoutes'),
     },
     flags: {
       required: [PLUGIN_MODEL_SERVING],
-    },
-  },
-  {
-    type: 'model-registry.model-version/deploy-button',
-    properties: {
-      component: () =>
-        import('./src/components/deploy/DeployButton').then((m) => m.ModelVersionDeployButton),
-    },
-  },
-  {
-    type: 'model-registry.model-version/row-action-column',
-    properties: {
-      component: () =>
-        import('./src/components/deploy/DeployButton').then((m) => m.ModelVersionRowActionColumn),
     },
   },
 ];

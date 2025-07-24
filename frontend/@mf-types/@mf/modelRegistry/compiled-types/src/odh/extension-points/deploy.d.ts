@@ -1,16 +1,19 @@
-import type { ModelVersion } from '~/app/types';
 import type { Extension, CodeRef } from '@openshift/dynamic-plugin-sdk';
-import type { IAction } from '@patternfly/react-table';
-export type ModelRegistryDeployButtonExtension = Extension<'model-registry.model-version/deploy-button', {
-    component: CodeRef<React.ComponentType<{
-        modelVersion: ModelVersion;
+import type { ModelDeployPrefillInfo } from '~/odh/hooks/useRegisteredModelDeployPrefillInfo';
+export type ModelRegistryDeployModalExtension = Extension<'model-registry.model-version/deploy-modal', {
+    useDeployButtonState: CodeRef<() => {
+        visible: boolean;
+        enabled?: boolean;
+        tooltip?: string;
+    }>;
+    modalComponent: CodeRef<React.ComponentType<{
+        data: {
+            modelDeployPrefillInfo: ModelDeployPrefillInfo;
+            loaded: boolean;
+            error: Error | undefined;
+            onSubmit: () => void;
+        };
+        onClose: () => void;
     }>>;
 }>;
-export declare const isModelRegistryDeployButtonExtension: (extension: Extension) => extension is ModelRegistryDeployButtonExtension;
-export type ModelRegistryRowActionColumnExtension = Extension<'model-registry.model-version/row-action-column', {
-    component: CodeRef<React.ComponentType<{
-        modelVersion: ModelVersion;
-        actions: IAction[];
-    }>>;
-}>;
-export declare const isModelRegistryRowActionColumnExtension: (extension: Extension) => extension is ModelRegistryRowActionColumnExtension;
+export declare const isModelRegistryDeployModalExtension: (extension: Extension) => extension is ModelRegistryDeployModalExtension;

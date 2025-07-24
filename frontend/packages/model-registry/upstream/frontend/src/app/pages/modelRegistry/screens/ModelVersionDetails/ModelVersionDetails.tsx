@@ -22,8 +22,7 @@ import { ModelVersionDetailsTab } from './const';
 import ModelVersionSelector from './ModelVersionSelector';
 import ModelVersionDetailsTabs from './ModelVersionDetailsTabs';
 import ModelVersionsDetailsHeaderActions from './ModelVersionDetailsHeaderActions';
-import { LazyCodeRefComponent, useExtensions } from '@odh-dashboard/plugin-core';
-import { isModelRegistryDeployButtonExtension } from '~/odh/extension-points';
+import { MRDeployButton } from '~/odh/components/MRDeployButton';
 
 type ModelVersionsDetailProps = {
   tab: ModelVersionDetailsTab;
@@ -70,8 +69,6 @@ const ModelVersionsDetails: React.FC<ModelVersionsDetailProps> = ({ tab, ...page
     }
   }, [rm?.state, mv?.id, mv?.state, mv?.registeredModelId, preferredModelRegistry?.name, navigate]);
 
-  const deployButtonExtensions = useExtensions(isModelRegistryDeployButtonExtension);
-
   return (
     <ApplicationsPage
       {...pageProps}
@@ -111,16 +108,7 @@ const ModelVersionsDetails: React.FC<ModelVersionsDetailProps> = ({ tab, ...page
                 }
               />
             </FlexItem>
-            {deployButtonExtensions.map((ext) => (
-              <FlexItem>
-                <LazyCodeRefComponent
-                  component={ext.properties.component}
-                  props={{
-                    modelVersion: mv,
-                  }}
-                />
-              </FlexItem>
-            ))}
+            <MRDeployButton mv={mv} mvLoaded={mvLoaded} mvError={mvLoadError} />
             <FlexItem>
               <ModelVersionsDetailsHeaderActions
                 mv={mv}
