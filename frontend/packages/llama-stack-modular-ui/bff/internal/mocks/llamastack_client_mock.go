@@ -160,3 +160,91 @@ func (l *LlamastackClientMock) InsertDocuments(_ integrations.HTTPClientInterfac
 
 	return nil
 }
+
+func (l *LlamastackClientMock) QueryEmbeddingModel(_ integrations.HTTPClientInterface, request llamastack.QueryEmbeddingModelRequest) (llamastack.QueryEmbeddingModelResponse, error) {
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
+
+	// Validate request
+	if request.Content == "" {
+		return llamastack.QueryEmbeddingModelResponse{}, fmt.Errorf("content is required")
+	}
+
+	if len(request.VectorDBIDs) == 0 {
+		return llamastack.QueryEmbeddingModelResponse{}, fmt.Errorf("at least one vector_db_id is required")
+	}
+
+	// Simulate successful query response
+	response := llamastack.QueryEmbeddingModelResponse{
+		Content: []llamastack.ContentItem{
+			{
+				Type: "text",
+				Text: fmt.Sprintf("Mock response for query: %s", request.Content),
+			},
+			{
+				Type: "text",
+				Text: "Additional mock content from vector database",
+			},
+			{
+				Type: "text",
+				Text: "More relevant content based on the query",
+			},
+		},
+		Metadata: llamastack.Metadata{
+			DocumentIDs: []string{"mock-doc-001", "mock-doc-002"},
+			Chunks:      []string{"Mock chunk 1", "Mock chunk 2"},
+			Scores:      []float64{0.95, 0.87},
+		},
+	}
+
+	fmt.Printf("Mock: Query executed successfully for content: %s\n", request.Content)
+	fmt.Printf("Mock: Searched in vector databases: %v\n", request.VectorDBIDs)
+	fmt.Printf("Mock: Returning %d content items\n", len(response.Content))
+
+	return response, nil
+}
+
+func (l *LlamastackClientMock) ChatCompletion(_ integrations.HTTPClientInterface, request llamastack.ChatCompletionRequest) (llamastack.ChatCompletionResponse, error) {
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
+
+	// Validate request
+	if request.ModelID == "" {
+		return llamastack.ChatCompletionResponse{}, fmt.Errorf("model_id is required")
+	}
+
+	if len(request.Messages) == 0 {
+		return llamastack.ChatCompletionResponse{}, fmt.Errorf("messages are required")
+	}
+
+	// Get the last user message for context
+	var lastUserMessage string
+	for i := len(request.Messages) - 1; i >= 0; i-- {
+		if request.Messages[i].Role == "user" {
+			lastUserMessage = request.Messages[i].Content
+			break
+		}
+	}
+
+	// Simulate successful chat completion response
+	response := llamastack.ChatCompletionResponse{
+		Metrics: []llamastack.Metric{
+			{Metric: "prompt_tokens", Value: 50, Unit: nil},
+			{Metric: "completion_tokens", Value: 25, Unit: nil},
+			{Metric: "total_tokens", Value: 75, Unit: nil},
+		},
+		CompletionMessage: llamastack.CompletionMessage{
+			Role:       "assistant",
+			Content:    fmt.Sprintf("Mock response to: %s. This is a simulated chat completion response based on the provided context and messages.", lastUserMessage),
+			StopReason: "stop",
+			ToolCalls:  []interface{}{},
+		},
+		Logprobs: nil,
+	}
+
+	fmt.Printf("Mock: Chat completion executed successfully for model: %s\n", request.ModelID)
+	fmt.Printf("Mock: Processed %d messages\n", len(request.Messages))
+	fmt.Printf("Mock: Returning response with completion message\n")
+
+	return response, nil
+}
