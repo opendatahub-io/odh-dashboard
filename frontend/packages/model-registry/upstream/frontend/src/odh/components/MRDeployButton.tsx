@@ -21,30 +21,30 @@ export const MRDeployButton = ({
   });
 
   const deployButton = (
-    <FlexItem>
-      <Button
-        id="deploy-button"
-        aria-label="Deploy version"
-        variant={ButtonVariant.primary}
-        onClick={() => {
-          setOpenModal(true);
-        }}
-        isAriaDisabled={!buttonState?.enabled}
-        data-testid="deploy-button"
-      >
-        Deploy
-      </Button>
-    </FlexItem>
+    <Button
+      id="deploy-button"
+      aria-label="Deploy version"
+      variant={ButtonVariant.primary}
+      onClick={() => {
+        setOpenModal(true);
+      }}
+      isAriaDisabled={!buttonState?.enabled}
+      data-testid="deploy-button"
+    >
+      Deploy
+    </Button>
   );
 
   return (
     <>
       {buttonState?.visible ? (
-        buttonState.tooltip ? (
-          <Tooltip content={buttonState?.tooltip}>{deployButton}</Tooltip>
-        ) : (
-          deployButton
-        )
+        <FlexItem>
+          {buttonState.tooltip ? (
+            <Tooltip content={buttonState?.tooltip}>{deployButton}</Tooltip>
+          ) : (
+            deployButton
+          )}
+        </FlexItem>
       ) : null}
       {deployModal}
     </>
