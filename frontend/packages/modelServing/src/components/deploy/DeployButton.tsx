@@ -7,13 +7,14 @@ import {
   getTemplateEnabled,
   getTemplateEnabledForPlatform,
 } from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/utils';
-import { getProjectModelServingPlatform } from '@odh-dashboard/internal/pages/modelServing/screens/projects/utils';
 import { isProjectNIMSupported } from '@odh-dashboard/internal/pages/modelServing/screens/projects/nimUtils';
 import ManageServingRuntimeModal from '@odh-dashboard/internal/pages/modelServing/screens/projects/ServingRuntimeModal/ManageServingRuntimeModal';
 import ManageKServeModal from '@odh-dashboard/internal/pages/modelServing/screens/projects/kServeModal/ManageKServeModal';
 import ManageNIMServingModal from '@odh-dashboard/internal/pages/modelServing/screens/projects/NIMServiceModal/ManageNIMServingModal';
-import useServingPlatformStatuses from '@odh-dashboard/internal/pages/modelServing/useServingPlatformStatuses';
-import { ModelServingPlatform } from '../../concepts/useProjectServingPlatform';
+import {
+  useProjectServingPlatform,
+  ModelServingPlatform,
+} from '../../concepts/useProjectServingPlatform';
 
 export const DeployButton: React.FC<{
   platform?: ModelServingPlatform;
@@ -21,11 +22,7 @@ export const DeployButton: React.FC<{
   isDisabled?: boolean;
 }> = ({ platform, variant = 'primary', isDisabled }) => {
   const [modalShown, setModalShown] = React.useState<boolean>(false);
-  const [platformSelected, setPlatformSelected] = React.useState<
-    ServingRuntimePlatform | undefined
-  >(undefined);
-
-  const servingPlatformStatuses = useServingPlatformStatuses();
+  const [platformSelected, setPlatformSelected] = React.useState<ServingRuntimePlatform>();
 
   const {
     servingRuntimes: { refresh: refreshServingRuntime },
@@ -38,14 +35,11 @@ export const DeployButton: React.FC<{
     currentProject,
   } = React.useContext(ProjectDetailsContext);
 
+  const { activePlatform, projectPlatform } = useProjectServingPlatform(currentProject);
+
   const templatesSorted = getSortedTemplates(templates, templateOrder);
   const templatesEnabled = templatesSorted.filter((template) =>
     getTemplateEnabled(template, templateDisablement),
-  );
-
-  const { platform: currentProjectServingPlatform } = getProjectModelServingPlatform(
-    currentProject,
-    servingPlatformStatuses,
   );
 
   const isKServeNIMEnabled = isProjectNIMSupported(currentProject);
@@ -68,7 +62,14 @@ export const DeployButton: React.FC<{
           : ServingRuntimePlatform.SINGLE,
       );
     } else {
-      setPlatformSelected(currentProjectServingPlatform);
+      const currentPlatform = activePlatform || projectPlatform;
+      if (currentPlatform) {
+        setPlatformSelected(
+          currentPlatform.properties.id === 'modelmesh'
+            ? ServingRuntimePlatform.MULTI
+            : ServingRuntimePlatform.SINGLE,
+        );
+      }
     }
     setModalShown(true);
   };
@@ -84,7 +85,9 @@ export const DeployButton: React.FC<{
     </Button>
   );
 
-  if (!platform && !currentProjectServingPlatform) {
+  const hasPlatform = platform || activePlatform || projectPlatform;
+
+  if (!hasPlatform) {
     return <Tooltip content="To deploy a model, select a project.">{deployButton}</Tooltip>;
   }
 
