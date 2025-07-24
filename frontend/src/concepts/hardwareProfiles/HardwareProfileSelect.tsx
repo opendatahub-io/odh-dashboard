@@ -12,8 +12,6 @@ import {
   Skeleton,
   MenuItem,
   FormHelperText,
-  Tooltip,
-  Popover,
 } from '@patternfly/react-core';
 import * as React from 'react';
 import HardwareProfileDetailsPopover from '#~/concepts/hardwareProfiles/HardwareProfileDetailsPopover';
@@ -341,35 +339,23 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
                 <FormHelperText>
                   <HelperText>
                     <HelperTextItem>
-                      <Popover
-                        bodyContent={
-                          <TruncatedText
-                            maxLines={4}
-                            content={getHardwareProfileDescription(
-                              hardwareProfileConfig.selectedProfile,
-                            )}
-                          />
+                      <TruncatedText
+                        maxLines={2}
+                        tooltipMaxLines={20}
+                        content={
+                          getHardwareProfileDescription(hardwareProfileConfig.selectedProfile) ||
+                          (hardwareProfileConfig.selectedProfile.spec.identifiers &&
+                            hardwareProfileConfig.selectedProfile.spec.identifiers
+                              .map((identifier) =>
+                                formatResource(
+                                  identifier.displayName,
+                                  identifier.defaultCount.toString(),
+                                  identifier.defaultCount.toString(),
+                                ),
+                              )
+                              .join('; '))
                         }
-                        triggerAction="hover"
-                      >
-                        <TruncatedText
-                          maxLines={2}
-                          hasTooltip={false}
-                          content={
-                            getHardwareProfileDescription(hardwareProfileConfig.selectedProfile) ||
-                            (hardwareProfileConfig.selectedProfile.spec.identifiers &&
-                              hardwareProfileConfig.selectedProfile.spec.identifiers
-                                .map((identifier) =>
-                                  formatResource(
-                                    identifier.displayName,
-                                    identifier.defaultCount.toString(),
-                                    identifier.defaultCount.toString(),
-                                  ),
-                                )
-                                .join('; '))
-                          }
-                        />
-                      </Popover>
+                      />
                     </HelperTextItem>
                   </HelperText>
                 </FormHelperText>

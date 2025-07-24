@@ -4,13 +4,13 @@ import { Tooltip } from '@patternfly/react-core';
 type TruncatedTextProps = {
   maxLines: number;
   content: React.ReactNode;
-  hasTooltip?: boolean;
+  tooltipMaxLines?: number;
 } & Omit<React.HTMLProps<HTMLSpanElement>, 'content'>;
 
 const TruncatedText: React.FC<TruncatedTextProps> = ({
   maxLines,
   content,
-  hasTooltip = true,
+  tooltipMaxLines,
   ...props
 }) => {
   const outerElementRef = React.useRef<HTMLElement>(null);
@@ -48,8 +48,36 @@ const TruncatedText: React.FC<TruncatedTextProps> = ({
     </span>
   );
 
+  const truncateToolTip = (
+    <span
+      {...props}
+      style={{
+        display: '-webkit-box',
+        WebkitBoxOrient: 'vertical',
+        overflowWrap: 'anywhere',
+        overflow: 'hidden',
+        WebkitLineClamp: tooltipMaxLines,
+        ...(props.style || {}),
+      }}
+      ref={outerElementRef}
+      onMouseEnter={(e) => {
+        props.onMouseEnter?.(e);
+        updateTruncation();
+      }}
+      onFocus={(e) => {
+        props.onFocus?.(e);
+        updateTruncation();
+      }}
+    >
+      <span ref={textElementRef}>{content}</span>
+    </span>
+  );
+
   return (
-    <Tooltip hidden={!isTruncated || !hasTooltip ? true : undefined} content={content}>
+    <Tooltip
+      hidden={!isTruncated ? true : undefined}
+      content={tooltipMaxLines ? truncateToolTip : content}
+    >
       {truncateBody}
     </Tooltip>
   );
