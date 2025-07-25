@@ -22,6 +22,7 @@ import { ModelVersionDetailsTab } from './const';
 import ModelVersionSelector from './ModelVersionSelector';
 import ModelVersionDetailsTabs from './ModelVersionDetailsTabs';
 import ModelVersionsDetailsHeaderActions from './ModelVersionDetailsHeaderActions';
+import { MRDeployButton } from '~/odh/components/MRDeployButton';
 
 type ModelVersionsDetailProps = {
   tab: ModelVersionDetailsTab;
@@ -107,6 +108,7 @@ const ModelVersionsDetails: React.FC<ModelVersionsDetailProps> = ({ tab, ...page
                 }
               />
             </FlexItem>
+            <MRDeployButton mv={mv} mvLoaded={mvLoaded} mvError={mvLoadError} />
             <FlexItem>
               <ModelVersionsDetailsHeaderActions
                 mv={mv}

@@ -9,17 +9,18 @@ import {
   FormHelperText,
   TextInputGroupMain,
   TextInputGroup,
+  SplitItem,
+  Split,
 } from '@patternfly/react-core';
 import spacing from '@patternfly/react-styles/css/utilities/Spacing/spacing';
+import { useExtensions, LazyCodeRefComponent } from '@odh-dashboard/plugin-core';
 import { FormSection, UpdateObjectAtPropAndValue } from 'mod-arch-shared';
-// import { DataConnection, UpdateObjectAtPropAndValue } from '~/pages/projects/types';
-// import { convertAWSSecretData } from '~/pages/projects/screens/detail/data-connections/utils';
 import FormFieldset from '~/app/pages/modelRegistry/screens/components/FormFieldset';
 import { ModelVersion } from '~/app/types';
+import { isAutofillConnectionButtonExtension } from '~/odh/extension-points';
 import { ModelLocationType, RegistrationCommonFormData } from './useRegisterModelData';
 import { isNameValid } from './utils';
 import { MR_CHARACTER_LIMIT } from './const';
-// import { ConnectionModal } from './ConnectionModal';
 
 type RegistrationCommonFormSectionsProps<D extends RegistrationCommonFormData> = {
   formData: D;
@@ -36,26 +37,7 @@ const RegistrationCommonFormSections = <D extends RegistrationCommonFormData>({
   latestVersion,
   isCatalogModel,
 }: RegistrationCommonFormSectionsProps<D>): React.ReactNode => {
-  // const [isAutofillModalOpen, setAutofillModalOpen] = React.useState(false);
   const isVersionNameValid = isNameValid(formData.versionName);
-
-  // const connectionDataMap: Record<
-  //   string,
-  //   keyof Pick<
-  //     RegistrationCommonFormData,
-  //     'modelLocationEndpoint' | 'modelLocationBucket' | 'modelLocationRegion'
-  //   >
-  // > = {
-  //   AWS_S3_ENDPOINT: 'modelLocationEndpoint',
-  //   AWS_S3_BUCKET: 'modelLocationBucket',
-  //   AWS_DEFAULT_REGION: 'modelLocationRegion',
-  // };
-
-  // const fillObjectStorageByConnection = (connection: DataConnection) => {
-  //   convertAWSSecretData(connection).forEach((dataItem) => {
-  //     setData(connectionDataMap[dataItem.key], dataItem.value);
-  //   });
-  // };
 
   const {
     versionName,
@@ -170,6 +152,19 @@ const RegistrationCommonFormSections = <D extends RegistrationCommonFormData>({
     />
   );
 
+  const autofillConnectionButtonExtensions = useExtensions(isAutofillConnectionButtonExtension);
+  const autofillConnectionButtons = autofillConnectionButtonExtensions.map((extension) => (
+    <SplitItem>
+      <LazyCodeRefComponent
+        component={extension.properties.component}
+        props={{
+          modelLocationType,
+          setData,
+        }}
+      />
+    </SplitItem>
+  ));
+
   return (
     <>
       <FormSection
@@ -214,29 +209,23 @@ const RegistrationCommonFormSections = <D extends RegistrationCommonFormData>({
         title="Model location"
         description="Specify the model location by providing either the object storage details or the URI."
       >
-        <Radio
-          isChecked={modelLocationType === ModelLocationType.ObjectStorage}
-          name="location-type-object-storage"
-          isDisabled={isCatalogModel}
-          onChange={() => {
-            setData('modelLocationType', ModelLocationType.ObjectStorage);
-          }}
-          label="Object storage"
-          id="location-type-object-storage"
-        />
-        {/* {modelLocationType === ModelLocationType.ObjectStorage && (
-            <SplitItem>
-              <Button
-                data-testid="object-storage-autofill-button"
-                variant="link"
-                isInline
-                icon={<OptimizeIcon />}
-                onClick={() => setAutofillModalOpen(true)}
-              >
-                Autofill from data connection
-              </Button>
-            </SplitItem>
-          )} */}
+        <Split>
+          <SplitItem isFilled>
+            <Radio
+              isChecked={modelLocationType === ModelLocationType.ObjectStorage}
+              name="location-type-object-storage"
+              isDisabled={isCatalogModel}
+              onChange={() => {
+                setData('modelLocationType', ModelLocationType.ObjectStorage);
+              }}
+              label="Object storage"
+              id="location-type-object-storage"
+            />
+          </SplitItem>
+          {modelLocationType === ModelLocationType.ObjectStorage && (
+            <>{autofillConnectionButtons}</>
+          )}
+        </Split>
         {modelLocationType === ModelLocationType.ObjectStorage && (
           <>
             <FormGroup
@@ -268,32 +257,31 @@ const RegistrationCommonFormSections = <D extends RegistrationCommonFormData>({
             </FormGroup>
           </>
         )}
-        <Radio
-          isChecked={modelLocationType === ModelLocationType.URI}
-          name="location-type-uri"
-          onChange={() => {
-            setData('modelLocationType', ModelLocationType.URI);
-          }}
-          label="URI"
-          id="location-type-uri"
-        />
-        {modelLocationType === ModelLocationType.URI && (
-          <>
+        <Split>
+          <SplitItem isFilled>
+            <Radio
+              isChecked={modelLocationType === ModelLocationType.URI}
+              name="location-type-uri"
+              onChange={() => {
+                setData('modelLocationType', ModelLocationType.URI);
+              }}
+              label="URI"
+              id="location-type-uri"
+            />
+          </SplitItem>
+          {modelLocationType === ModelLocationType.URI && !isCatalogModel && (
+            <>{autofillConnectionButtons}</>
+          )}
+        </Split>
+        {modelLocationType === ModelLocationType.URI &&
+          (!isCatalogModel ? (
             <FormGroup className={spacing.mlLg} label="URI" isRequired fieldId="location-uri">
               <FormFieldset component={uriInput} field="URI" />
             </FormGroup>
-          </>
-        )}
+          ) : (
+            formData.modelLocationURI
+          ))}
       </FormSection>
-      {/* {isAutofillModalOpen ? (
-        <ConnectionModal
-          onClose={() => setAutofillModalOpen(false)}
-          onSubmit={(connection) => {
-            fillObjectStorageByConnection(connection);
-            setAutofillModalOpen(false);
-          }}
-        />
-      ) : null} */}
     </>
   );
 };
