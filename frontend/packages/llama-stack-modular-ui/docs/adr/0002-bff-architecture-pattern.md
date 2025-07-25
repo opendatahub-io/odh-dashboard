@@ -71,156 +71,221 @@ The BFF is implemented as a Go-based HTTP server that:
 ### Architecture Overview
 ```mermaid
 graph TB
-    subgraph "Browser"
-        Frontend[React Frontend<br/>Port 3000]
+    subgraph "Frontend Layer"
+        UI[React UI Components<br/>Port 3000]
+        Cache[In-Memory Model Cache]
+        BrowserCache[Browser Storage<br/>Vector DB Names]
     end
     
-    subgraph "BFF Layer"
-        BFF[Go BFF Server<br/>Port 8080]
-        Auth[Authentication]
+    subgraph "BFF Layer - Go Server (Port 8080)"
+        Router[HTTP Router<br/>httprouter]
+        Middleware[Middleware Stack]
+        Handlers[API Handlers]
+        Repos[Repository Layer]
+        Integration[HTTP Client Integration]
+    end
+    
+    subgraph "Middleware Components"
+        Auth[OAuth Handler]
         CORS[CORS Middleware]
-        Mock[Mock Services]
+        Recovery[Panic Recovery]
+        Telemetry[Telemetry & Logging]
+    end
+    
+    subgraph "API Handlers"
+        ModelsH[Models Handler]
+        VectorDBH[Vector DB Handler]
+        UploadH[Upload Handler]
+        QueryH[Query Handler]
+        ConfigH[Config Handler]
+    end
+    
+    subgraph "Repository Interfaces"
+        ModelsRepo[Models Interface]
+        VectorDBRepo[Vector DB Interface]
+        RAGRepo[RAG Tool Interface]
+    end
+    
+    subgraph "Mock Layer (Development)"
+        MockClient[LlamastackClientMock]
+        MockData[In-Memory Mock Data]
+        MockConfig[MOCK_LS_CLIENT=true]
     end
     
     subgraph "External Services"
-        LS[Llama Stack API]
-        VDB[Vector Databases]
-        LLM[LLM Models]
+        LS[Llama Stack API<br/>Port 8000]
+        VectorStore[Vector Databases<br/>ChromaDB/FAISS]
+        LLMModels[LLM Models<br/>Llama/Granite]
     end
     
-    Frontend -->|HTTP/REST| BFF
-    BFF --> Auth
-    BFF --> CORS
-    BFF -->|Production| LS
-    BFF -->|Development| Mock
-    LS --> VDB
-    LS --> LLM
+    UI --> Cache
+    UI --> BrowserCache
+    UI -->|REST API| Router
+    
+    Router --> Middleware
+    Middleware --> Auth
+    Middleware --> CORS
+    Middleware --> Recovery
+    Middleware --> Telemetry
+    
+    Router --> Handlers
+    Handlers --> ModelsH
+    Handlers --> VectorDBH
+    Handlers --> UploadH
+    Handlers --> QueryH
+    Handlers --> ConfigH
+    
+    ModelsH --> Repos
+    VectorDBH --> Repos
+    UploadH --> Repos
+    QueryH --> Repos
+    
+    Repos --> ModelsRepo
+    Repos --> VectorDBRepo
+    Repos --> RAGRepo
+    
+    ModelsRepo --> Integration
+    VectorDBRepo --> Integration
+    RAGRepo --> Integration
+    
+    Integration -->|Production| LS
+    Integration -->|Development| MockClient
+    MockClient --> MockData
+    MockConfig --> MockClient
+    
+    LS --> VectorStore
+    LS --> LLMModels
     
     classDef frontend fill:#e1f5fe
     classDef bff fill:#f3e5f5
-    classDef external fill:#fff3e0
+    classDef middleware fill:#e8f5e8
+    classDef handlers fill:#fff3e0
+    classDef repos fill:#f0f4ff
+    classDef mock fill:#e8f5e8
+    classDef external fill:#ffeaa7
     
-    class Frontend frontend
-    class BFF,Auth,CORS,Mock bff
-    class LS,VDB,LLM external
+    class UI,Cache,BrowserCache frontend
+    class Router,Middleware,Handlers,Repos,Integration bff
+    class Auth,CORS,Recovery,Telemetry middleware
+    class ModelsH,VectorDBH,UploadH,QueryH,ConfigH handlers
+    class ModelsRepo,VectorDBRepo,RAGRepo repos
+    class MockClient,MockData,MockConfig mock
+    class LS,VectorStore,LLMModels external
 ```
 
-### Request Flow Sequence
-```mermaid
-sequenceDiagram
-    participant User as User
-    participant UI as UI
-    participant BFF as BFF
-    participant LlamaStackRepo as LlamaStack Repository
-    participant LS as llama-stack
-    
-    Note over User,LS: Initial Page Load & Model Setup
-    User->>UI: loadPage()
-    UI->>BFF: GET /api/v1/models?model_type=llm
-    BFF->>LlamaStackRepo: GetAllModels()
-    LlamaStackRepo->>LS: GET /v1/models
-    LS-->>LlamaStackRepo: ModelList{Data: []Model}
-    LlamaStackRepo-->>BFF: ModelList (filtered by LLM type)
-    BFF-->>UI: ModelListEnvelope{Data: ModelList}
-    UI-->>User: page with available models
-    
-    Note over UI,BFF: In-memory cache<br/>Inference models
-    
-    Note over User,LS: File Upload & Vector DB Setup
-    User->>UI: addFileClick()
-    UI-->>User: fileSelectionDialog
-    User->>UI: fileSelected()
-    UI->>BFF: GET /api/v1/models?model_type=embedding
-    BFF->>LlamaStackRepo: GetAllModels()
-    LlamaStackRepo->>LS: GET /v1/models
-    LS-->>LlamaStackRepo: ModelList{Data: []Model}
-    LlamaStackRepo-->>BFF: ModelList (filtered by embedding type)
-    BFF->>BFF: convertModelList()
-    UI->>BFF: GET /api/v1/vector-dbs
-    BFF->>LlamaStackRepo: GetAllVectorDBs()
-    LlamaStackRepo->>LS: GET /v1/vector-dbs
-    LS-->>LlamaStackRepo: VectorDBList{Data: []VectorDB}
-    LlamaStackRepo-->>BFF: VectorDBList
-    BFF-->>UI: models and vector DBs list
-    UI-->>User: modelVectorSelectionDialog
-    
-    User->>UI: confirmClick()
-    Note over UI,BFF: Invalidate<br/>vectorDbName<br/>Browser Cache
-    UI->>BFF: POST /api/v1/upload<br/>{documents, vector_db_id, embedding_model, chunk_size_in_tokens}
-    BFF->>BFF: checkifVectorDBExists(vector_db_id)
-    alt Vector DB doesn't exist
-        BFF->>LlamaStackRepo: RegisterVectorDB(VectorDB, embeddingModel)
-        LlamaStackRepo->>LS: POST /v1/vector-dbs
-        LS-->>LlamaStackRepo: VectorDB creation response
-        LlamaStackRepo-->>BFF: Success/Error
-    end
-    BFF->>LlamaStackRepo: InsertDocuments(DocumentInsertRequest)
-    LlamaStackRepo->>LS: POST /v1/tool-runtime/rag-tool/insert
-    LS-->>LlamaStackRepo: Insert response
-    LlamaStackRepo-->>BFF: Success/Error
-    BFF-->>UI: {message: "Documents uploaded successfully", vector_db_id}
-    UI->>UI: cancelLoadingSpinner
-    UI->>UI: enableChatSuccessAlert
-    
-    Note over UI,BFF: Browser Cache<br/>vectorDbName
-    
-    Note over User,LS: Chat/Query Interaction
-    User->>UI: messageSend(msg: str)
-    UI->>BFF: POST /api/v1/query<br/>{content, vector_db_ids, llm_model_id, query_config, sampling_params}
-    
-    Note over BFF: No Context<br/>Kept in v1
-    
-    alt Has Vector DB IDs
-        BFF->>LlamaStackRepo: QueryEmbeddingModel(QueryEmbeddingModelRequest)
-        LlamaStackRepo->>LS: POST /v1/tool-runtime/rag-tool/query
-        LS-->>LlamaStackRepo: QueryEmbeddingModelResponse
-        LlamaStackRepo-->>BFF: RAG content with chunks
-        BFF->>BFF: Extract context text from RAG response
-    end
-    
-    BFF->>BFF: Create ChatMessage array<br/>(system + user with context)
-    BFF->>LlamaStackRepo: ChatCompletion(ChatCompletionRequest)
-    LlamaStackRepo->>LS: POST /v1/inference/chat-completion
-    LS-->>LlamaStackRepo: ChatCompletionResponse
-    LlamaStackRepo-->>BFF: Generated response
-    BFF->>BFF: Combine RAG + Chat responses
-    BFF-->>UI: {rag_response, chat_completion, has_rag_content, assistant_message}
-    
-    loop repeat
-        Note over UI: Display streaming response
-    end
-```
+### Request Flow Overview
+
+The BFF handles three main types of requests:
+
+1. **Model Discovery**: Frontend requests available models filtered by type (LLM vs embedding)
+2. **Document Upload**: File processing and vector database management
+3. **RAG Queries**: Combined retrieval and chat completion requests
+
+For detailed end-to-end flow documentation including sequence diagrams, see [ADR-0003 - V1 End-to-End Flow](./0003-v1-end-to-end-flow.md).
 
 ### Component Dependencies
 ```mermaid
-graph LR
-    subgraph "BFF Components"
-        API[API Layer]
-        Middleware[Middleware]
-        Auth[Auth Handler]
-        Integrations[Integrations]
-        Repositories[Repositories]
+graph TB
+    subgraph "API Layer"
+        App[App Struct]
+        Router[HTTP Router]
+        Handlers[Handler Functions]
     end
     
-    API --> Middleware
-    API --> Auth
-    API --> Repositories
-    Repositories --> Integrations
-    Middleware --> CORS[CORS]
-    Middleware --> Logging[Logging]
-    Middleware --> Recovery[Panic Recovery]
+    subgraph "Middleware Stack"
+        AuthMW[RequireAuthRoute]
+        CORS[EnableCORS]
+        Recovery[RecoverPanic]
+        Telemetry[EnableTelemetry]
+        RESTClient[AttachRESTClient]
+    end
     
-    classDef core fill:#e3f2fd
-    classDef middleware fill:#f1f8e9
-    classDef integration fill:#fff8e1
+    subgraph "Repository Layer"
+        LSClient[LlamaStackClient]
+        ModelsIF[ModelsInterface]
+        VectorDBIF[VectorDBInterface]
+        RAGIF[RAGToolInterface]
+    end
     
-    class API,Repositories core
-    class Middleware,Auth,CORS,Logging,Recovery middleware
-    class Integrations integration
+    subgraph "Repository Implementations"
+        UIModels[UIModels]
+        UIVectorDB[UIVectorDB]
+        UIRAGTool[UIRAGTool]
+    end
+    
+    subgraph "Mock Implementation"
+        MockLS[LlamastackClientMock]
+        MockState[In-Memory State]
+        TestifyMock[testify/mock]
+    end
+    
+    subgraph "Integration Layer"
+        HTTPClient[HTTPClientInterface]
+        LlamaStackInteg[llamastack package]
+        ConfigMgmt[Configuration]
+    end
+    
+    subgraph "Data Models"
+        Models[models package]
+        Requests[Request/Response DTOs]
+        Envelopes[Envelope patterns]
+    end
+    
+    App --> Router
+    Router --> Handlers
+    Handlers --> AuthMW
+    Handlers --> CORS
+    Handlers --> Recovery
+    Handlers --> Telemetry
+    Handlers --> RESTClient
+    
+    AuthMW --> LSClient
+    RESTClient --> HTTPClient
+    
+    LSClient --> ModelsIF
+    LSClient --> VectorDBIF
+    LSClient --> RAGIF
+    
+    ModelsIF --> UIModels
+    VectorDBIF --> UIVectorDB
+    RAGIF --> UIRAGTool
+    
+    LSClient -->|MockLSClient=true| MockLS
+    MockLS --> MockState
+    MockLS --> TestifyMock
+    
+    UIModels -->|Production| HTTPClient
+    UIVectorDB -->|Production| HTTPClient
+    UIRAGTool -->|Production| HTTPClient
+    
+    HTTPClient --> LlamaStackInteg
+    
+    Handlers --> Models
+    Handlers --> Requests
+    Handlers --> Envelopes
+    
+    App --> ConfigMgmt
+    
+    classDef api fill:#e3f2fd
+    classDef middleware fill:#e8f5e8
+    classDef repository fill:#f0f4ff
+    classDef implementation fill:#fff3e0
+    classDef mock fill:#e8f5e8
+    classDef integration fill:#ffeaa7
+    classDef models fill:#f8f9fa
+    
+    class App,Router,Handlers api
+    class AuthMW,CORS,Recovery,Telemetry,RESTClient middleware
+    class LSClient,ModelsIF,VectorDBIF,RAGIF repository
+    class UIModels,UIVectorDB,UIRAGTool implementation
+    class MockLS,MockState,TestifyMock mock
+    class HTTPClient,LlamaStackInteg,ConfigMgmt integration
+    class Models,Requests,Envelopes models
 ```
 
 ## Links
 
 * [Supersedes] Direct service communication approach
 * [Related to] [Llama Stack API Documentation] - External service specification
-* [Related to] ADR-0001 - Record Architecture Decisions 
+* [Related to] ADR-0001 - Record Architecture Decisions
+* [Related to] ADR-0003 - V1 End-to-End Flow Documentation 

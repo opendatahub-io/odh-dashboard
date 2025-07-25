@@ -15,6 +15,8 @@ Architectural Decision Records (ADRs) are lightweight documents that capture imp
 | ADR | Title | Status | Date |
 |-----|-------|---------|------|
 | [0001](./0001-record-architecture-decisions.md) | Record Architecture Decisions | ACCEPTED | 2025-01-25 |
+| [0002](./0002-bff-architecture-pattern.md) | Backend for Frontend (BFF) Architecture Pattern | ACCEPTED | 2025-01-25 |
+| [0003](./0003-v1-end-to-end-flow.md) | V1 End-to-End Flow Documentation | ACCEPTED | 2025-01-25 |
 
 ## Creating a New ADR
 
