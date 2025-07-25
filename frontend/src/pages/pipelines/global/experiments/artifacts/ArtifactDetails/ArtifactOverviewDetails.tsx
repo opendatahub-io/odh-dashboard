@@ -85,6 +85,7 @@ export const ArtifactOverviewDetails: React.FC<ArtifactOverviewDetailsProps> = (
               data-testid="artifact-details-reference-table"
               variant="compact"
               borders={false}
+              hasAnimations
             >
               <Thead>
                 <Tr>

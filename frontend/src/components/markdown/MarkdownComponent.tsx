@@ -123,7 +123,11 @@ const MarkdownComponent = ({
           );
         },
         li: ({ children, ...props }) => <ListItem {...props}>{children}</ListItem>,
-        table: ({ children, ...props }) => <Table {...props}>{children}</Table>,
+        table: ({ children, ...props }) => (
+          <Table {...props} hasAnimations>
+            {children}
+          </Table>
+        ),
         tbody: ({ children, ...props }) => <Tbody {...props}>{children}</Tbody>,
         thead: ({ children, ...props }) => <Thead {...props}>{children}</Thead>,
         tr: ({ children, ...props }) => <Tr {...props}>{children}</Tr>,
