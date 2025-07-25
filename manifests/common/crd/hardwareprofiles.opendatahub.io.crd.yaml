@@ -1,0 +1,97 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: hardwareprofiles.dashboard.opendatahub.io
+spec:
+  group: dashboard.opendatahub.io
+  scope: Namespaced
+  names:
+    plural: hardwareprofiles
+    singular: hardwareprofile
+    kind: HardwareProfile
+  versions:
+    - name: v1alpha1
+      deprecated: true
+      deprecationWarning: "DEPRECATED: This version lacks support for the latest scheduling features and is no longer maintained. Please use the HardwareProfile in the 'infrastructure.opendatahub.io' API group."
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          required:
+            - spec
+          properties:
+            spec:
+              type: object
+              required:
+                - displayName
+                - enabled
+              properties:
+                displayName:
+                  type: string
+                  description: 'The display name of the hardware profile.'
+                enabled:
+                  type: boolean
+                  description: 'Indicates whether the hardware profile is available for new resources.'
+                description:
+                  type: string
+                  description: 'A short description of the hardware profile.'
+                tolerations:
+                  type: array
+                  description: 'Any number of Kubernetes toleration values that are added to resources when created or updated to this hardware profile.'
+                  items:
+                    type: object
+                    required:
+                      - key
+                    properties:
+                      key:
+                        type: string
+                        description: 'Taint key. Empty matches all keys.'
+                      operator:
+                        type: string
+                        description: "Relationship with the value. Valid: 'Exists', 'Equal'. Defaults to 'Equal'."
+                      value:
+                        type: string
+                        description: "Tolerance value. If key is empty, use 'Exists' to match all values and keys."
+                      effect:
+                        type: string
+                        description: "Taint effect. Empty matches all effects. Allowed: 'NoSchedule', 'PreferNoSchedule', 'NoExecute'."
+                      tolerationSeconds:
+                        type: integer
+                        description: "Duration in seconds. If effect is 'NoExecute', specifies eviction time. Default is forever."
+                identifiers:
+                  type: array
+                  description: 'The array of identifiers'
+                  items:
+                    type: object
+                    required:
+                      - displayName
+                      - identifier
+                      - minCount
+                      - defaultCount
+                    properties:
+                      displayName:
+                        type: string
+                        description: 'The display name of identifier.'
+                      identifier:
+                        type: string
+                        description: 'The resource identifier of the hardware device.'
+                      minCount:
+                        x-kubernetes-int-or-string: true
+                        description: 'The minimum count can be an integer or a string.'
+                      maxCount:
+                        x-kubernetes-int-or-string: true
+                        description: 'The maximum count can be an integer or a string.'
+                      defaultCount:
+                        x-kubernetes-int-or-string: true
+                        description: 'The default count can be an integer or a string.'
+                      resourceType:
+                        description: 'The type of identifier. could be "CPU", "Memory", or "Accelerator". Leave it undefined for the other types.'
+                        type: string
+                        enum: ["CPU", "Memory", "Accelerator"]
+                nodeSelector:
+                  type: object
+                  description: 'The node selector available.'
+                  additionalProperties:
+                    type: string
+                    description: 'The value for the node selector key.'
