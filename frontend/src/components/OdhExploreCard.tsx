@@ -106,7 +106,7 @@ const OdhExploreCard: React.FC<OdhExploreCardProps> = ({
           onClose={onEnableClose}
           selectedApp={odhApp}
           warningProps={
-            odhApp.metadata.name === 'nvidia-nim'
+            odhApp.spec.enable?.warningValidation
               ? {
                   field: 'api_key',
                   validator: (value: string) => {
