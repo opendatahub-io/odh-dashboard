@@ -72,205 +72,148 @@ The BFF is implemented as a Go-based HTTP server that:
 ```mermaid
 graph TB
     subgraph "Frontend Layer"
-        UI[React UI Components<br/>Port 3000]
-        Cache[In-Memory Model Cache]
-        BrowserCache[Browser Storage<br/>Vector DB Names]
+        UI[React UI<br/>Port 3000<br/>• Model Selection<br/>• File Upload<br/>• Chat Interface]
     end
     
-    subgraph "BFF Layer - Go Server (Port 8080)"
+    subgraph "BFF Layer"
+        BFF[Go BFF Server<br/>Port 8080<br/>• API Gateway<br/>• Authentication<br/>• Request Orchestration]
+    end
+    
+    subgraph "Mock Layer (Development)"
+        Mock[Mock Services<br/>• In-Memory Data<br/>• Simulated Responses<br/>• Development Testing]
+    end
+    
+    subgraph "External Services"
+        LS[Llama Stack<br/>Port 8000<br/>• Model Management<br/>• Vector Databases<br/>• RAG & Chat APIs]
+    end
+    
+    UI -->|HTTP/REST<br/>/api/v1/*| BFF
+    BFF -->|Production<br/>HTTP Client| LS
+    BFF -->|Development<br/>MOCK_LS_CLIENT=true| Mock
+    
+    classDef frontend fill:#1976d2,stroke:#0d47a1,stroke-width:3px,color:#ffffff
+    classDef bff fill:#388e3c,stroke:#1b5e20,stroke-width:3px,color:#ffffff
+    classDef mock fill:#f57c00,stroke:#e65100,stroke-width:3px,color:#ffffff
+    classDef external fill:#d32f2f,stroke:#b71c1c,stroke-width:3px,color:#ffffff
+    
+    class UI frontend
+    class BFF bff
+    class Mock mock
+    class LS external
+```
+
+### Component Dependencies
+
+#### Frontend Components
+```mermaid
+graph TB
+    subgraph "React UI Components"
+        ChatUI[Chat Interface]
+        ModelSelect[Model Selection]
+        FileUpload[File Upload Panel]
+        Settings[Settings Modal]
+    end
+    
+    subgraph "Frontend Services"
+        APIService[API Service Layer]
+        AuthService[Authentication Service]
+        StateCache[State Management]
+    end
+    
+    ChatUI --> APIService
+    ModelSelect --> APIService
+    FileUpload --> APIService
+    Settings --> APIService
+    APIService --> AuthService
+    ChatUI --> StateCache
+    ModelSelect --> StateCache
+    
+    classDef ui fill:#1976d2,stroke:#0d47a1,stroke-width:2px,color:#ffffff
+    classDef service fill:#388e3c,stroke:#1b5e20,stroke-width:2px,color:#ffffff
+    
+    class ChatUI,ModelSelect,FileUpload,Settings ui
+    class APIService,AuthService,StateCache service
+```
+
+#### BFF Components
+```mermaid
+graph TB
+    subgraph "HTTP Layer"
         Router[HTTP Router<br/>httprouter]
-        Middleware[Middleware Stack]
-        Handlers[API Handlers]
-        Repos[Repository Layer]
-        Integration[HTTP Client Integration]
-    end
-    
-    subgraph "Middleware Components"
-        Auth[OAuth Handler]
-        CORS[CORS Middleware]
-        Recovery[Panic Recovery]
-        Telemetry[Telemetry & Logging]
+        Middleware[Middleware Chain]
     end
     
     subgraph "API Handlers"
         ModelsH[Models Handler]
-        VectorDBH[Vector DB Handler]
         UploadH[Upload Handler]
         QueryH[Query Handler]
         ConfigH[Config Handler]
     end
     
-    subgraph "Repository Interfaces"
-        ModelsRepo[Models Interface]
-        VectorDBRepo[Vector DB Interface]
-        RAGRepo[RAG Tool Interface]
+    subgraph "Business Logic"
+        Repos[Repository Layer]
+        LlamaStackClient[LlamaStack Client]
     end
     
-    subgraph "Mock Layer (Development)"
-        MockClient[LlamastackClientMock]
-        MockData[In-Memory Mock Data]
-        MockConfig[MOCK_LS_CLIENT=true]
+    subgraph "Integration"
+        HTTPClient[HTTP Client]
+        MockClient[Mock Client]
     end
-    
-    subgraph "External Services"
-        LS[Llama Stack API<br/>Port 8000]
-        VectorStore[Vector Databases<br/>ChromaDB/FAISS]
-        LLMModels[LLM Models<br/>Llama/Granite]
-    end
-    
-    UI --> Cache
-    UI --> BrowserCache
-    UI -->|REST API| Router
     
     Router --> Middleware
-    Middleware --> Auth
-    Middleware --> CORS
-    Middleware --> Recovery
-    Middleware --> Telemetry
-    
-    Router --> Handlers
-    Handlers --> ModelsH
-    Handlers --> VectorDBH
-    Handlers --> UploadH
-    Handlers --> QueryH
-    Handlers --> ConfigH
+    Middleware --> ModelsH
+    Middleware --> UploadH
+    Middleware --> QueryH
+    Middleware --> ConfigH
     
     ModelsH --> Repos
-    VectorDBH --> Repos
     UploadH --> Repos
     QueryH --> Repos
     
-    Repos --> ModelsRepo
-    Repos --> VectorDBRepo
-    Repos --> RAGRepo
+    Repos --> LlamaStackClient
+    LlamaStackClient -->|Production| HTTPClient
+    LlamaStackClient -->|Development| MockClient
     
-    ModelsRepo --> Integration
-    VectorDBRepo --> Integration
-    RAGRepo --> Integration
+    classDef http fill:#1976d2,stroke:#0d47a1,stroke-width:2px,color:#ffffff
+    classDef handlers fill:#388e3c,stroke:#1b5e20,stroke-width:2px,color:#ffffff
+    classDef business fill:#f57c00,stroke:#e65100,stroke-width:2px,color:#ffffff
+    classDef integration fill:#7b1fa2,stroke:#4a148c,stroke-width:2px,color:#ffffff
     
-    Integration -->|Production| LS
-    Integration -->|Development| MockClient
-    MockClient --> MockData
-    MockConfig --> MockClient
-    
-    LS --> VectorStore
-    LS --> LLMModels
-    
-    classDef frontend fill:#1976d2,stroke:#0d47a1,stroke-width:2px,color:#ffffff
-    classDef bff fill:#388e3c,stroke:#1b5e20,stroke-width:2px,color:#ffffff
-    classDef middleware fill:#f57c00,stroke:#e65100,stroke-width:2px,color:#ffffff
-    classDef handlers fill:#7b1fa2,stroke:#4a148c,stroke-width:2px,color:#ffffff
-    classDef repos fill:#c2185b,stroke:#880e4f,stroke-width:2px,color:#ffffff
-    classDef mock fill:#455a64,stroke:#263238,stroke-width:2px,color:#ffffff
-    classDef external fill:#d32f2f,stroke:#b71c1c,stroke-width:2px,color:#ffffff
-    
-    class UI,Cache,BrowserCache frontend
-    class Router,Middleware,Handlers,Repos,Integration bff
-    class Auth,CORS,Recovery,Telemetry middleware
-    class ModelsH,VectorDBH,UploadH,QueryH,ConfigH handlers
-    class ModelsRepo,VectorDBRepo,RAGRepo repos
-    class MockClient,MockData,MockConfig mock
-    class LS,VectorStore,LLMModels external
+    class Router,Middleware http
+    class ModelsH,UploadH,QueryH,ConfigH handlers
+    class Repos,LlamaStackClient business
+    class HTTPClient,MockClient integration
 ```
 
-### Component Dependencies
+#### Llama Stack Components
 ```mermaid
 graph TB
-    subgraph "API Layer"
-        App[App Struct]
-        Router[HTTP Router]
-        Handlers[Handler Functions]
+    subgraph "Model Services"
+        ModelAPI[Model Management API]
+        InferenceAPI[Inference API]
     end
     
-    subgraph "Middleware Stack"
-        AuthMW[RequireAuthRoute]
-        CORS[EnableCORS]
-        Recovery[RecoverPanic]
-        Telemetry[EnableTelemetry]
-        RESTClient[AttachRESTClient]
+    subgraph "RAG Services"
+        VectorDBAPI[Vector Database API]
+        RAGToolAPI[RAG Tool API]
     end
     
-    subgraph "Repository Layer"
-        LSClient[LlamaStackClient]
-        ModelsIF[ModelsInterface]
-        VectorDBIF[VectorDBInterface]
-        RAGIF[RAGToolInterface]
+    subgraph "Storage Layer"
+        VectorStore[Vector Databases<br/>ChromaDB/FAISS]
+        ModelStore[Model Storage<br/>Llama/Granite]
     end
     
-    subgraph "Repository Implementations"
-        UIModels[UIModels]
-        UIVectorDB[UIVectorDB]
-        UIRAGTool[UIRAGTool]
-    end
+    ModelAPI --> ModelStore
+    InferenceAPI --> ModelStore
+    VectorDBAPI --> VectorStore
+    RAGToolAPI --> VectorStore
+    RAGToolAPI --> VectorDBAPI
     
-    subgraph "Mock Implementation"
-        MockLS[LlamastackClientMock]
-        MockState[In-Memory State]
-        TestifyMock[testify/mock]
-    end
+    classDef api fill:#d32f2f,stroke:#b71c1c,stroke-width:2px,color:#ffffff
+    classDef storage fill:#795548,stroke:#3e2723,stroke-width:2px,color:#ffffff
     
-    subgraph "Integration Layer"
-        HTTPClient[HTTPClientInterface]
-        LlamaStackInteg[llamastack package]
-        ConfigMgmt[Configuration]
-    end
-    
-    subgraph "Data Models"
-        Models[models package]
-        Requests[Request/Response DTOs]
-        Envelopes[Envelope patterns]
-    end
-    
-    App --> Router
-    Router --> Handlers
-    Handlers --> AuthMW
-    Handlers --> CORS
-    Handlers --> Recovery
-    Handlers --> Telemetry
-    Handlers --> RESTClient
-    
-    AuthMW --> LSClient
-    RESTClient --> HTTPClient
-    
-    LSClient --> ModelsIF
-    LSClient --> VectorDBIF
-    LSClient --> RAGIF
-    
-    ModelsIF --> UIModels
-    VectorDBIF --> UIVectorDB
-    RAGIF --> UIRAGTool
-    
-    LSClient -->|MockLSClient=true| MockLS
-    MockLS --> MockState
-    MockLS --> TestifyMock
-    
-    UIModels -->|Production| HTTPClient
-    UIVectorDB -->|Production| HTTPClient
-    UIRAGTool -->|Production| HTTPClient
-    
-    HTTPClient --> LlamaStackInteg
-    
-    Handlers --> Models
-    Handlers --> Requests
-    Handlers --> Envelopes
-    
-    App --> ConfigMgmt
-    
-    classDef api fill:#1976d2,stroke:#0d47a1,stroke-width:2px,color:#ffffff
-    classDef middleware fill:#f57c00,stroke:#e65100,stroke-width:2px,color:#ffffff
-    classDef repository fill:#388e3c,stroke:#1b5e20,stroke-width:2px,color:#ffffff
-    classDef implementation fill:#7b1fa2,stroke:#4a148c,stroke-width:2px,color:#ffffff
-    classDef mock fill:#455a64,stroke:#263238,stroke-width:2px,color:#ffffff
-    classDef integration fill:#d32f2f,stroke:#b71c1c,stroke-width:2px,color:#ffffff
-    classDef models fill:#795548,stroke:#3e2723,stroke-width:2px,color:#ffffff
-    
-    class App,Router,Handlers api
-    class AuthMW,CORS,Recovery,Telemetry,RESTClient middleware
-    class LSClient,ModelsIF,VectorDBIF,RAGIF repository
-    class UIModels,UIVectorDB,UIRAGTool implementation
-    class MockLS,MockState,TestifyMock mock
-    class HTTPClient,LlamaStackInteg,ConfigMgmt integration
-    class Models,Requests,Envelopes models
+    class ModelAPI,InferenceAPI,VectorDBAPI,RAGToolAPI api
+    class VectorStore,ModelStore storage
 ```
 
 ## Links
