@@ -1,10 +1,7 @@
 import { SubComponentBase } from '~/__tests__/cypress/cypress/pages/components/subComponents/SubComponentBase';
 
 export class SearchSelector extends SubComponentBase {
-  constructor(
-    private selectorId: string,
-    contextSelectorId?: string,
-  ) {
+  constructor(private selectorId: string, contextSelectorId?: string) {
     super(contextSelectorId);
   }
 
