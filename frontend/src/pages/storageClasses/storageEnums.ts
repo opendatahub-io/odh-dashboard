@@ -84,5 +84,5 @@ export const provisionerAccessModes: Record<StorageProvisioner, AccessMode[]> = 
     AccessMode.RWOP,
   ],
   [StorageProvisioner.NFS_CSI]: [AccessMode.RWO, AccessMode.RWX, AccessMode.ROX],
-  [StorageProvisioner.DISK_CSI_AZURE]: [AccessMode.RWO, AccessMode.ROX],
+  [StorageProvisioner.DISK_CSI_AZURE]: [AccessMode.RWO, AccessMode.RWOP],
 };
