@@ -5,9 +5,9 @@
 // source: google/protobuf/any.proto
 
 /* eslint-disable */
-import _m0 from "protobufjs/minimal";
+import _m0 from 'protobufjs/minimal';
 
-export const protobufPackage = "google.protobuf";
+export const protobufPackage = 'google.protobuf';
 
 /**
  * `Any` contains an arbitrary serialized protocol buffer message along with a
@@ -133,12 +133,12 @@ export interface Any {
 }
 
 function createBaseAny(): Any {
-  return { typeUrl: "", value: new Uint8Array(0) };
+  return { typeUrl: '', value: new Uint8Array(0) };
 }
 
 export const Any = {
   encode(message: Any, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.typeUrl !== "") {
+    if (message.typeUrl !== '') {
       writer.uint32(10).string(message.typeUrl);
     }
     if (message.value.length !== 0) {
@@ -179,14 +179,14 @@ export const Any = {
 
   fromJSON(object: any): Any {
     return {
-      typeUrl: isSet(object.typeUrl) ? globalThis.String(object.typeUrl) : "",
+      typeUrl: isSet(object.typeUrl) ? globalThis.String(object.typeUrl) : '',
       value: isSet(object.value) ? bytesFromBase64(object.value) : new Uint8Array(0),
     };
   },
 
   toJSON(message: Any): unknown {
     const obj: any = {};
-    if (message.typeUrl !== "") {
+    if (message.typeUrl !== '') {
       obj.typeUrl = message.typeUrl;
     }
     if (message.value.length !== 0) {
@@ -200,7 +200,7 @@ export const Any = {
   },
   fromPartial<I extends Exact<DeepPartial<Any>, I>>(object: I): Any {
     const message = createBaseAny();
-    message.typeUrl = object.typeUrl ?? "";
+    message.typeUrl = object.typeUrl ?? '';
     message.value = object.value ?? new Uint8Array(0);
     return message;
   },
@@ -220,19 +220,24 @@ function base64FromBytes(arr: Uint8Array): string {
   arr.forEach((byte) => {
     bin.push(globalThis.String.fromCharCode(byte));
   });
-  return globalThis.btoa(bin.join(""));
+  return globalThis.btoa(bin.join(''));
 }
 
 type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
 
-export type DeepPartial<T> = T extends Builtin ? T
-  : T extends globalThis.Array<infer U> ? globalThis.Array<DeepPartial<U>>
-  : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
-  : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }
+export type DeepPartial<T> = T extends Builtin
+  ? T
+  : T extends globalThis.Array<infer U>
+  ? globalThis.Array<DeepPartial<U>>
+  : T extends ReadonlyArray<infer U>
+  ? ReadonlyArray<DeepPartial<U>>
+  : T extends {}
+  ? { [K in keyof T]?: DeepPartial<T[K]> }
   : Partial<T>;
 
 type KeysOfUnion<T> = T extends T ? keyof T : never;
-export type Exact<P, I extends P> = P extends Builtin ? P
+export type Exact<P, I extends P> = P extends Builtin
+  ? P
   : P & { [K in keyof P]: Exact<P[K], I[K]> } & { [K in Exclude<keyof I, KeysOfUnion<P>>]: never };
 
 function isSet(value: any): boolean {

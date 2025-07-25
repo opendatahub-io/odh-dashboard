@@ -81,12 +81,12 @@ const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
                       preferredModelRegistry.name,
                     )
                   : isArchiveRow
-                    ? modelVersionArchiveDetailsUrl(
-                        mv.id,
-                        mv.registeredModelId,
-                        preferredModelRegistry.name,
-                      )
-                    : modelVersionUrl(mv.id, mv.registeredModelId, preferredModelRegistry.name)
+                  ? modelVersionArchiveDetailsUrl(
+                      mv.id,
+                      mv.registeredModelId,
+                      preferredModelRegistry.name,
+                    )
+                  : modelVersionUrl(mv.id, mv.registeredModelId, preferredModelRegistry.name)
               }
             >
               <Truncate content={mv.name} />

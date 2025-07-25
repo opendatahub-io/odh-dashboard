@@ -6,7 +6,7 @@
   text-decoration: none;
 
   &::after {
-    content: "\00A0";
+    content: '\00A0';
     position: absolute;
     text-decoration: underline;
     right: 0;
