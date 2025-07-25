@@ -1,4 +1,4 @@
-name: 'Llama Stack UI - Frontend - Test and Build'
+name: 'Llama Stack Modular UI - Frontend - Test and Build'
 on:
   push:
     paths:
