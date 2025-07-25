@@ -14,6 +14,7 @@ paths:
     description: >-
       The REST endpoint/path used to check the health status of the service.
     get:
+    
       tags:
         - HealthCheck
       responses:
@@ -24,6 +25,7 @@ paths:
       operationId: healthcheck
       summary: HealthCheck
       description: HealthCheck endpoint to verify service availability.
+      security: []
 
   /api/v1/config:
     summary: Path used to get application configuration.
@@ -40,6 +42,7 @@ paths:
       operationId: getConfig
       summary: Get Configuration
       description: Returns configuration information needed for the frontend application.
+      security: []
 
 
   /api/v1/models:
@@ -178,7 +181,7 @@ paths:
           $ref: "lib/common.yaml#/components/responses/InternalServerError"
       operationId: proxyToLlamaStackGet
       summary: Proxy GET to Llama Stack
-      description: Proxies GET requests directly to the Llama Stack API without authentication.
+      description: Proxies GET requests directly to the Llama Stack API.
     post:
       tags:
         - Proxy
@@ -207,7 +210,7 @@ paths:
           $ref: "lib/common.yaml#/components/responses/InternalServerError"
       operationId: proxyToLlamaStackPost
       summary: Proxy POST to Llama Stack
-      description: Proxies POST requests directly to the Llama Stack API without authentication.
+      description: Proxies POST requests directly to the Llama Stack API.
     put:
       tags:
         - Proxy
@@ -236,7 +239,7 @@ paths:
           $ref: "lib/common.yaml#/components/responses/InternalServerError"
       operationId: proxyToLlamaStackPut
       summary: Proxy PUT to Llama Stack
-      description: Proxies PUT requests directly to the Llama Stack API without authentication.
+      description: Proxies PUT requests directly to the Llama Stack API.
     patch:
       tags:
         - Proxy
@@ -265,7 +268,7 @@ paths:
           $ref: "lib/common.yaml#/components/responses/InternalServerError"
       operationId: proxyToLlamaStackPatch
       summary: Proxy PATCH to Llama Stack
-      description: Proxies PATCH requests directly to the Llama Stack API without authentication.
+      description: Proxies PATCH requests directly to the Llama Stack API.
     delete:
       tags:
         - Proxy
@@ -287,7 +290,7 @@ paths:
           $ref: "lib/common.yaml#/components/responses/InternalServerError"
       operationId: proxyToLlamaStackDelete
       summary: Proxy DELETE to Llama Stack
-      description: Proxies DELETE requests directly to the Llama Stack API without authentication.
+      description: Proxies DELETE requests directly to the Llama Stack API.
 
 components:
   schemas:
