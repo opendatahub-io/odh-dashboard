@@ -79,15 +79,16 @@ const FeatureViewTableRow: React.FC<FeatureViewTableRowType> = ({ featureView, f
     <Td dataLabel="Owner">{featureView.spec.owner ?? '-'}</Td>
     <Td dataLabel="Store type">
       {featureView.spec.offline && (
-        <FeatureStoreLabels color="green" variant="outline" icon={<CheckCircleIcon />}>
+        <FeatureStoreLabels color="red" variant="outline" icon={<CheckCircleIcon />}>
           Offline
         </FeatureStoreLabels>
       )}
       {featureView.spec.online && (
-        <FeatureStoreLabels color="red" variant="outline" icon={<CheckCircleIcon />}>
+        <FeatureStoreLabels color="green" variant="outline" icon={<CheckCircleIcon />}>
           Online
         </FeatureStoreLabels>
       )}
+      {!featureView.spec.offline && !featureView.spec.online && '-'}
     </Td>
   </Tr>
 );
