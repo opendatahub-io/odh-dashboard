@@ -24,7 +24,7 @@ let modelFilePath: string;
 const awsBucket = 'BUCKET_1' as const;
 const uuid = generateTestUUID();
 
-describe('[Product Bug: RHOAIENG-30376] Verify Admin Single Model Creation and Validation using the UI', () => {
+describe('Verify Admin Single Model Creation and Validation using the UI', () => {
   retryableBefore(() => {
     // Setup: Load test data and ensure clean state
     return loadDSPFixture('e2e/dataScienceProjects/testSingleModelAdminCreation.yaml').then(
@@ -56,15 +56,7 @@ describe('[Product Bug: RHOAIENG-30376] Verify Admin Single Model Creation and V
   it(
     'Verify that an Admin can Serve, Query a Single Model using both the UI and External links',
     {
-      tags: [
-        '@Smoke',
-        '@SmokeSet3',
-        '@ODS-2626',
-        '@Dashboard',
-        '@Modelserving',
-        '@NonConcurrent',
-        '@Bug',
-      ],
+      tags: ['@Smoke', '@SmokeSet3', '@ODS-2626', '@Dashboard', '@Modelserving', '@NonConcurrent'],
     },
     () => {
       cy.log('Model Name:', modelName);
