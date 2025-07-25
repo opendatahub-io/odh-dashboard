@@ -153,7 +153,7 @@ const initIntercepts = ({
   cy.interceptK8sList(SecretModel, mockK8sResourceList([mockSecretK8sResource({})]));
   cy.interceptK8sList(
     ServingRuntimeModel,
-    mockK8sResourceList(servingRuntimes, { namespace: 'modelServing' }),
+    mockK8sResourceList(servingRuntimes, { namespace: 'test-project' }),
   );
   cy.interceptK8sList(
     { model: ServingRuntimeModel, ns: undefined },
@@ -163,7 +163,7 @@ const initIntercepts = ({
     },
   ).as('getServingRuntimes');
   cy.interceptK8sList(
-    { model: InferenceServiceModel, ns: 'modelServing' },
+    { model: InferenceServiceModel, ns: 'test-project' },
     mockK8sResourceList(inferenceServices),
   );
   cy.interceptK8sList(
@@ -180,7 +180,7 @@ const initIntercepts = ({
   ).as('inferenceServicesError');
   cy.interceptK8sList(
     SecretModel,
-    mockK8sResourceList([mockSecretK8sResource({ namespace: 'modelServing' })]),
+    mockK8sResourceList([mockSecretK8sResource({ namespace: 'test-project' })]),
   );
   cy.interceptK8s(ServingRuntimeModel, mockServingRuntimeK8sResource({}));
   cy.interceptK8sList(
