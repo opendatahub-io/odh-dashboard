@@ -23,3 +23,6 @@ reviewers:
 - andrewballantyne
 - lucferbux
 - antowaddle
+
+labels:
+  - area/llama-stack-modular-ui
