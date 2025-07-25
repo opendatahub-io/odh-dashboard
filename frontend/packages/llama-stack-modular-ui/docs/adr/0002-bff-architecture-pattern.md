@@ -108,28 +108,87 @@ graph TB
 ### Request Flow Sequence
 ```mermaid
 sequenceDiagram
-    participant FE as Frontend
-    participant BFF as BFF Server
-    participant Auth as Auth Service
-    participant LS as Llama Stack
-    participant VDB as Vector DB
+    participant User as User
+    participant UI as UI
+    participant BFF as BFF
+    participant LlamaStackRepo as LlamaStack Repository
+    participant LS as llama-stack
     
-    FE->>BFF: POST /api/v1/query
-    BFF->>Auth: Validate request
-    Auth-->>BFF: Authorized
+    Note over User,LS: Initial Page Load & Model Setup
+    User->>UI: loadPage()
+    UI->>BFF: GET /api/v1/models?model_type=llm
+    BFF->>LlamaStackRepo: GetAllModels()
+    LlamaStackRepo->>LS: GET /v1/models
+    LS-->>LlamaStackRepo: ModelList{Data: []Model}
+    LlamaStackRepo-->>BFF: ModelList (filtered by LLM type)
+    BFF-->>UI: ModelListEnvelope{Data: ModelList}
+    UI-->>User: page with available models
     
-    alt RAG Query
-        BFF->>LS: Query vector database
-        LS->>VDB: Search documents
-        VDB-->>LS: Relevant chunks
-        LS-->>BFF: RAG results
+    Note over UI,BFF: In-memory cache<br/>Inference models
+    
+    Note over User,LS: File Upload & Vector DB Setup
+    User->>UI: addFileClick()
+    UI-->>User: fileSelectionDialog
+    User->>UI: fileSelected()
+    UI->>BFF: GET /api/v1/models?model_type=embedding
+    BFF->>LlamaStackRepo: GetAllModels()
+    LlamaStackRepo->>LS: GET /v1/models
+    LS-->>LlamaStackRepo: ModelList{Data: []Model}
+    LlamaStackRepo-->>BFF: ModelList (filtered by embedding type)
+    BFF->>BFF: convertModelList()
+    UI->>BFF: GET /api/v1/vector-dbs
+    BFF->>LlamaStackRepo: GetAllVectorDBs()
+    LlamaStackRepo->>LS: GET /v1/vector-dbs
+    LS-->>LlamaStackRepo: VectorDBList{Data: []VectorDB}
+    LlamaStackRepo-->>BFF: VectorDBList
+    BFF-->>UI: models and vector DBs list
+    UI-->>User: modelVectorSelectionDialog
+    
+    User->>UI: confirmClick()
+    Note over UI,BFF: Invalidate<br/>vectorDbName<br/>Browser Cache
+    UI->>BFF: POST /api/v1/upload<br/>{documents, vector_db_id, embedding_model, chunk_size_in_tokens}
+    BFF->>BFF: checkifVectorDBExists(vector_db_id)
+    alt Vector DB doesn't exist
+        BFF->>LlamaStackRepo: RegisterVectorDB(VectorDB, embeddingModel)
+        LlamaStackRepo->>LS: POST /v1/vector-dbs
+        LS-->>LlamaStackRepo: VectorDB creation response
+        LlamaStackRepo-->>BFF: Success/Error
+    end
+    BFF->>LlamaStackRepo: InsertDocuments(DocumentInsertRequest)
+    LlamaStackRepo->>LS: POST /v1/tool-runtime/rag-tool/insert
+    LS-->>LlamaStackRepo: Insert response
+    LlamaStackRepo-->>BFF: Success/Error
+    BFF-->>UI: {message: "Documents uploaded successfully", vector_db_id}
+    UI->>UI: cancelLoadingSpinner
+    UI->>UI: enableChatSuccessAlert
+    
+    Note over UI,BFF: Browser Cache<br/>vectorDbName
+    
+    Note over User,LS: Chat/Query Interaction
+    User->>UI: messageSend(msg: str)
+    UI->>BFF: POST /api/v1/query<br/>{content, vector_db_ids, llm_model_id, query_config, sampling_params}
+    
+    Note over BFF: No Context<br/>Kept in v1
+    
+    alt Has Vector DB IDs
+        BFF->>LlamaStackRepo: QueryEmbeddingModel(QueryEmbeddingModelRequest)
+        LlamaStackRepo->>LS: POST /v1/tool-runtime/rag-tool/query
+        LS-->>LlamaStackRepo: QueryEmbeddingModelResponse
+        LlamaStackRepo-->>BFF: RAG content with chunks
+        BFF->>BFF: Extract context text from RAG response
     end
     
-    BFF->>LS: Chat completion request
-    LS-->>BFF: Generated response
+    BFF->>BFF: Create ChatMessage array<br/>(system + user with context)
+    BFF->>LlamaStackRepo: ChatCompletion(ChatCompletionRequest)
+    LlamaStackRepo->>LS: POST /v1/inference/chat-completion
+    LS-->>LlamaStackRepo: ChatCompletionResponse
+    LlamaStackRepo-->>BFF: Generated response
+    BFF->>BFF: Combine RAG + Chat responses
+    BFF-->>UI: {rag_response, chat_completion, has_rag_content, assistant_message}
     
-    BFF->>BFF: Transform & combine results
-    BFF-->>FE: Formatted response
+    loop repeat
+        Note over UI: Display streaming response
+    end
 ```
 
 ### Component Dependencies
