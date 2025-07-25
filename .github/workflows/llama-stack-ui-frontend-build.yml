@@ -1,0 +1,55 @@
+name: 'Llama Stack UI - Frontend - Test and Build'
+on:
+  push:
+    paths:
+      - 'frontend/packages/llama-stack-modular-ui/**'
+      - '!LICENSE*'
+      - '!DOCKERFILE*'
+      - '!**.gitignore'
+      - '!**.md'
+
+  pull_request:
+    paths:
+      - 'frontend/packages/llama-stack-modular-ui/**'
+      - '!LICENSE*'
+      - '!DOCKERFILE*'
+      - '!**.gitignore'
+      - '!**.md'
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        working-directory: frontend/packages/llama-stack-modular-ui/frontend
+        run: npm install
+
+      - name: Run tests
+        working-directory: frontend/packages/llama-stack-modular-ui/frontend
+        run: npm run test
+
+      - name: Run clean
+        working-directory: frontend/packages/llama-stack-modular-ui/frontend
+        run: npm run clean
+
+      - name: Run build
+        working-directory: frontend/packages/llama-stack-modular-ui/frontend
+        run: npm run build
+
+      - name: Check if there are uncommitted file changes
+        working-directory: frontend/packages/llama-stack-modular-ui/frontend
+        run: |
+          clean=$(git status --porcelain)
+          if [[ -z "$clean" ]]; then
+              echo "Empty git status --porcelain: $clean"
+          else
+              echo "Uncommitted file changes detected: $clean"
+              git diff
+              exit 1
+          fi
