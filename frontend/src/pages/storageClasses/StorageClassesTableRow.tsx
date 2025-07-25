@@ -43,6 +43,7 @@ import {
   isValidAccessModeSettings,
   isValidConfigValue,
 } from './utils';
+import { AccessMode } from './storageEnums';
 
 interface StorageClassesTableRowProps {
   storageClass: StorageClassKind;
@@ -177,7 +178,8 @@ export const StorageClassesTableRow: React.FC<StorageClassesTableRowProps> = ({ 
                           {getSupportedAccessModesForProvisioner(storageClass.provisioner)
                             .filter(
                               (modeValue) =>
-                                storageClassConfig.accessModeSettings[modeValue] === true,
+                                storageClassConfig.accessModeSettings[modeValue] === true ||
+                                modeValue === AccessMode.RWO,
                             )
                             .map((modeValue) => (
                               <AccessModeLabel key={modeValue} accessMode={modeValue} />
