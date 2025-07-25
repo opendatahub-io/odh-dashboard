@@ -107,7 +107,7 @@ describe('getFeatureViews', () => {
     expect(proxyGETMock).toHaveBeenCalledTimes(1);
     expect(proxyGETMock).toHaveBeenCalledWith(
       hostPath,
-      `/api/${FEATURE_STORE_API_VERSION}/featureviews/all&include_relationships=false`,
+      `/api/${FEATURE_STORE_API_VERSION}/featureviews/all?include_relationships=false`,
       opts,
     );
     expect(handleFeatureStoreFailuresMock).toHaveBeenCalledTimes(1);

@@ -3,7 +3,7 @@ import { FeatureView } from '#~/pages/featureStore/types/featureView.ts';
 
 export const columns: SortableData<FeatureView>[] = [
   {
-    field: 'featue_view',
+    field: 'feature_view',
     label: 'Feature View',
     width: 25,
     sortable: (a: FeatureView, b: FeatureView): number => a.spec.name.localeCompare(b.spec.name),

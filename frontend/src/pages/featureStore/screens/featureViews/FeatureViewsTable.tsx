@@ -7,14 +7,12 @@ import FeatureViewTableRow from './FeatureViewTableRow';
 
 type FeatureViewsTableProps = {
   featureViews: FeatureView[];
-  clearFilters?: () => void;
   onClearFilters: () => void;
   fsProject?: string;
 } & Partial<Pick<React.ComponentProps<typeof Table>, 'enablePagination' | 'toolbarContent'>>;
 
 const FeatureViewsTable: React.FC<FeatureViewsTableProps> = ({
   featureViews,
-  clearFilters,
   onClearFilters,
   toolbarContent,
   fsProject,
@@ -27,9 +25,7 @@ const FeatureViewsTable: React.FC<FeatureViewsTableProps> = ({
     columns={columns}
     onClearFilters={onClearFilters}
     toolbarContent={toolbarContent}
-    emptyTableView={
-      clearFilters ? <DashboardEmptyTableView onClearFilters={clearFilters} /> : undefined
-    }
+    emptyTableView={<DashboardEmptyTableView onClearFilters={onClearFilters} />}
     rowRenderer={(fv, idx) => (
       <FeatureViewTableRow key={`${fv.spec.name}-${idx}`} featureView={fv} fsProject={fsProject} />
     )}

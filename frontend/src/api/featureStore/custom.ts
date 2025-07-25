@@ -3,7 +3,7 @@ import { K8sAPIOptions } from '#~/k8sTypes';
 import { FEATURE_STORE_API_VERSION } from '#~/pages/featureStore/const';
 import { EntityList } from '#~/pages/featureStore/types/entities';
 import { ProjectList } from '#~/pages/featureStore/types/featureStoreProjects';
-import { FeatureViewsList } from '#~/pages/featureStore/types/featureView.ts';
+import { FeatureViewsList } from '#~/pages/featureStore/types/featureView';
 import { handleFeatureStoreFailures } from './errorUtils';
 
 export const listFeatureStoreProject =
