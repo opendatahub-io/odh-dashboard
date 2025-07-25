@@ -76,7 +76,7 @@ const FeatureViewTableRow: React.FC<FeatureViewTableRowType> = ({ featureView, f
         'Unknown'
       )}
     </Td>
-    <Td dataLabel="Owner">{featureView.spec.owner}</Td>
+    <Td dataLabel="Owner">{featureView.spec.owner ?? '-'}</Td>
     <Td dataLabel="Store type">
       {featureView.spec.online ? (
         <FeatureStoreLabels color="green" variant="outline" icon={<CheckCircleIcon />}>
