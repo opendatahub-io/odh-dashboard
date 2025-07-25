@@ -3,11 +3,12 @@ package api
 import (
 	"context"
 	"fmt"
-	"github.com/julienschmidt/httprouter"
-	"github.com/opendatahub-io/llama-stack-modular-ui/internal/integrations"
 	"log/slog"
 	"net/http"
 	"runtime/debug"
+
+	"github.com/julienschmidt/httprouter"
+	"github.com/opendatahub-io/llama-stack-modular-ui/internal/integrations"
 
 	"github.com/google/uuid"
 	"github.com/opendatahub-io/llama-stack-modular-ui/internal/constants"

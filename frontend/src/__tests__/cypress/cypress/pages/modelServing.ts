@@ -227,6 +227,10 @@ class InferenceServiceModal extends ServingModal {
     return this.find().findByTestId('new-connection-radio');
   }
 
+  findExistingPVCConnectionOption() {
+    return this.find().findByTestId('pvc-serving-radio');
+  }
+
   findExistingConnectionOption() {
     return this.find().findByTestId('existing-connection-radio');
   }
@@ -344,6 +348,10 @@ class InferenceServiceModal extends ServingModal {
 
   findLocationPathInput() {
     return this.find().findByTestId('folder-path');
+  }
+
+  findUriLocationPathInput() {
+    return this.find().findByTestId('field URI');
   }
 
   findLocationPathInputError() {

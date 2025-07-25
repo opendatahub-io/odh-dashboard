@@ -6,6 +6,7 @@ import { ModelStatusIcon } from '@odh-dashboard/internal/concepts/modelServing/M
 import { InferenceServiceModelState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
 import ResourceNameTooltip from '@odh-dashboard/internal/components/ResourceNameTooltip';
+import DeployedModelsVersion from './DeployedModelsVersion';
 import { DeploymentRowExpandedSection } from './DeploymentsTableRowExpandedSection';
 import DeploymentLastDeployed from './DeploymentLastDeployed';
 import DeploymentStatus from './DeploymentStatus';
@@ -84,6 +85,9 @@ export const DeploymentRow: React.FC<{
             {column.cellRenderer(deployment, column.field)}
           </Td>
         ))}
+        <Td dataLabel="Serving runtime">
+          <DeployedModelsVersion deployment={deployment} />
+        </Td>
         <Td dataLabel="Inference endpoint">
           <DeploymentStatus deployment={deployment} />
         </Td>
