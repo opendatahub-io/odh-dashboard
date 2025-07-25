@@ -31,8 +31,11 @@ const isPlatformEnabled = (platform: ModelServingPlatform, project: ProjectKind)
 export const getProjectServingPlatform = (
   project: ProjectKind,
   platforms: ModelServingPlatform[],
+  defaultIfNoMatch = false,
 ): ModelServingPlatform | null => {
-  const enabledPlatforms = platforms.filter((p) => isPlatformEnabled(p, project));
+  const enabledPlatforms = platforms.filter(
+    (p) => isPlatformEnabled(p, project) || (defaultIfNoMatch && p.properties.manage.default),
+  );
   const sortedEnabledPlatforms = enabledPlatforms.toSorted(
     (a, b) => (b.properties.manage.priority ?? 0) - (a.properties.manage.priority ?? 0),
   );

@@ -13,6 +13,7 @@ const extensions: ModelServingPlatformExtension[] = [
       id: 'model-mesh',
       manage: {
         namespaceApplicationCase: NamespaceApplicationCase.MODEL_MESH_PROMOTION,
+        priority: 10,
         projectRequirements: {
           labels: {
             'modelmesh-enabled': 'true',
