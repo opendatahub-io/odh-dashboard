@@ -156,13 +156,13 @@ graph TB
     LS --> VectorStore
     LS --> LLMModels
     
-    classDef frontend fill:#e1f5fe
-    classDef bff fill:#f3e5f5
-    classDef middleware fill:#e8f5e8
-    classDef handlers fill:#fff3e0
-    classDef repos fill:#f0f4ff
-    classDef mock fill:#e8f5e8
-    classDef external fill:#ffeaa7
+    classDef frontend fill:#1976d2,stroke:#0d47a1,stroke-width:2px,color:#ffffff
+    classDef bff fill:#388e3c,stroke:#1b5e20,stroke-width:2px,color:#ffffff
+    classDef middleware fill:#f57c00,stroke:#e65100,stroke-width:2px,color:#ffffff
+    classDef handlers fill:#7b1fa2,stroke:#4a148c,stroke-width:2px,color:#ffffff
+    classDef repos fill:#c2185b,stroke:#880e4f,stroke-width:2px,color:#ffffff
+    classDef mock fill:#455a64,stroke:#263238,stroke-width:2px,color:#ffffff
+    classDef external fill:#d32f2f,stroke:#b71c1c,stroke-width:2px,color:#ffffff
     
     class UI,Cache,BrowserCache frontend
     class Router,Middleware,Handlers,Repos,Integration bff
@@ -172,16 +172,6 @@ graph TB
     class MockClient,MockData,MockConfig mock
     class LS,VectorStore,LLMModels external
 ```
-
-### Request Flow Overview
-
-The BFF handles three main types of requests:
-
-1. **Model Discovery**: Frontend requests available models filtered by type (LLM vs embedding)
-2. **Document Upload**: File processing and vector database management
-3. **RAG Queries**: Combined retrieval and chat completion requests
-
-For detailed end-to-end flow documentation including sequence diagrams, see [ADR-0003 - V1 End-to-End Flow](./0003-v1-end-to-end-flow.md).
 
 ### Component Dependencies
 ```mermaid
@@ -266,13 +256,13 @@ graph TB
     
     App --> ConfigMgmt
     
-    classDef api fill:#e3f2fd
-    classDef middleware fill:#e8f5e8
-    classDef repository fill:#f0f4ff
-    classDef implementation fill:#fff3e0
-    classDef mock fill:#e8f5e8
-    classDef integration fill:#ffeaa7
-    classDef models fill:#f8f9fa
+    classDef api fill:#1976d2,stroke:#0d47a1,stroke-width:2px,color:#ffffff
+    classDef middleware fill:#f57c00,stroke:#e65100,stroke-width:2px,color:#ffffff
+    classDef repository fill:#388e3c,stroke:#1b5e20,stroke-width:2px,color:#ffffff
+    classDef implementation fill:#7b1fa2,stroke:#4a148c,stroke-width:2px,color:#ffffff
+    classDef mock fill:#455a64,stroke:#263238,stroke-width:2px,color:#ffffff
+    classDef integration fill:#d32f2f,stroke:#b71c1c,stroke-width:2px,color:#ffffff
+    classDef models fill:#795548,stroke:#3e2723,stroke-width:2px,color:#ffffff
     
     class App,Router,Handlers api
     class AuthMW,CORS,Recovery,Telemetry,RESTClient middleware
@@ -288,4 +278,3 @@ graph TB
 * [Supersedes] Direct service communication approach
 * [Related to] [Llama Stack API Documentation] - External service specification
 * [Related to] ADR-0001 - Record Architecture Decisions
-* [Related to] ADR-0003 - V1 End-to-End Flow Documentation 
