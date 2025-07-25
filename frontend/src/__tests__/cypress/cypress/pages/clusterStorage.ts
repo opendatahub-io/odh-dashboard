@@ -4,7 +4,7 @@ import { TableRow } from './components/table';
 
 class ClusterStorageRow extends TableRow {
   shouldHaveStorageTypeValue(name: string) {
-    this.find().find(`[data-label=Type]`).contains(name).should('exist');
+    this.find().find(`[data-label="Storage context"]`).contains(name).should('exist');
     return this;
   }
 
@@ -34,7 +34,7 @@ class ClusterStorageRow extends TableRow {
   }
 
   findStorageTypeColumn() {
-    return this.find().find('[data-label="Type"]');
+    return this.find().find('[data-label="Storage context"]');
   }
 
   findSizeColumn() {
