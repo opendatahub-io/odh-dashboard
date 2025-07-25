@@ -5,7 +5,8 @@ commonLabels:
   app.kubernetes.io/part-of: odh-dashboard
 resources:
   - ../common
-  - ../core-bases/base
+  - ../modular-architecture
+# - ../core-bases/base
   - ../core-bases/consolelink
 configMapGenerator:
   - name: odh-dashboard-params
