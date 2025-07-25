@@ -8,7 +8,6 @@ The items and criteria of flexibility in what is a good thing to do. Sections sh
 
 It is tempting to “just add a bit of CSS” for minor tweaks, but this usually indicates we are drifting away from native PatternFly behaviour and should reconsider the approach. If you feel the need to do CSS or applying "styles" or "className" properties to "nudge" or minorly manipulate your UI rendering, you're likely going in the wrong direction.
 
-
 There are rare exceptions to break from this rule. See [Custom Components](#custom-components) & [PF Bugs & CSS Solutions](#pf-bugs--css-solutions).
 
 ### PF Bugs & CSS Solutions
@@ -83,7 +82,7 @@ const processedData = useMemo(() => {
 
 **Key principle:** Only memoize functions when their reference stability actually matters for performance or correctness.
 
-For edge cases and advanced examples, see [this code example](https://github.com/andrewballantyne/code-examples/blob/main/example3/README.md).
+For edge cases and advanced examples, see [this code example](code_examples.md).
 
 ### Custom Hooks
 
