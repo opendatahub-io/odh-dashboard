@@ -1,6 +1,7 @@
 import * as React from 'react';
-import DeleteModal from '@odh-dashboard/internal/pages/projects/components/DeleteModal';
 import { Bullseye, Spinner } from '@patternfly/react-core';
+import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
+import DeleteModal from '@odh-dashboard/internal/pages/projects/components/DeleteModal';
 import {
   isModelServingDeleteModal,
   Deployment,
@@ -25,7 +26,7 @@ const DeleteModelServingModal: React.FC<DeleteModelServingModalProps> = ({
   );
 
   const onDelete = async () => {
-    if (!deployment.model.metadata.name) {
+    if (!getDisplayNameFromK8sResource(deployment.model)) {
       return;
     }
 
@@ -54,7 +55,7 @@ const DeleteModelServingModal: React.FC<DeleteModelServingModalProps> = ({
       <Spinner />
     </Bullseye>
   ) : (
-    deployment.model.metadata.name && (
+    getDisplayNameFromK8sResource(deployment.model) && (
       <DeleteModal
         title={deleteModal.properties.title}
         onClose={() => onBeforeClose(false)}
@@ -62,7 +63,7 @@ const DeleteModelServingModal: React.FC<DeleteModelServingModalProps> = ({
         onDelete={onDelete}
         deleting={isDeleting}
         error={error}
-        deleteName={deployment.model.metadata.name}
+        deleteName={getDisplayNameFromK8sResource(deployment.model)}
       >
         This action cannot be undone.
       </DeleteModal>

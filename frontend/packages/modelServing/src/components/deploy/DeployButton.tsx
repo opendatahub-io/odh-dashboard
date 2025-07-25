@@ -19,8 +19,12 @@ export const DeployButton: React.FC<{
       Deploy Model
     </Button>
   );
-  if (!platform) {
-    return <Tooltip content="To deploy a model, select a project.">{deployButton}</Tooltip>;
+  if (!platform || isDisabled) {
+    return (
+      <Tooltip data-testid="deploy-model-tooltip" content="To deploy a model, select a project.">
+        {deployButton}
+      </Tooltip>
+    );
   }
   return <>{deployButton}</>;
 };
