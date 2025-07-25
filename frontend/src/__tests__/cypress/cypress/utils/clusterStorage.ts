@@ -7,11 +7,10 @@ import { clusterStorage } from '#~/__tests__/cypress/cypress/pages/clusterStorag
  * 2. When there are already at least 1 Cluster Storage
  *
  */
-export const findAddClusterStorageButton = (): Cypress.Chainable<JQuery<HTMLElement>> => {
-  return cy.get('body').then(($body) => {
+export const findAddClusterStorageButton = (): Cypress.Chainable<JQuery<HTMLElement>> =>
+  cy.get('body').then(($body) => {
     if ($body.find('[data-testid="cluster-storage-button"]').length > 0) {
       return clusterStorage.findCreateButton();
     }
     return clusterStorage.findCreateButtonFromActions();
   });
-};

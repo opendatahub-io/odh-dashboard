@@ -7,13 +7,13 @@ import { retryableBefore } from '#~/__tests__/cypress/cypress/utils/retryableHoo
 describe('Verify OOTB Connection Types', () => {
   let testData: OOTBConnectionTypesData;
 
-  retryableBefore(() => {
-    return loadOOTBConnectionTypesFixture('e2e/connectionTypes/testOOTBConnectionType.yaml').then(
+  retryableBefore(() =>
+    loadOOTBConnectionTypesFixture('e2e/connectionTypes/testOOTBConnectionType.yaml').then(
       (fixtureData: OOTBConnectionTypesData) => {
         testData = fixtureData;
       },
-    );
-  });
+    ),
+  );
 
   it(
     'should have pre-installed label and unable to be edited or deleted',

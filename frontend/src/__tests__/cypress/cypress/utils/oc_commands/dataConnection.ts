@@ -22,11 +22,10 @@ import { applyOpenShiftYaml } from './baseCommands';
 export const createDataConnection = (
   dataConnectionReplacements: DataConnectionReplacements,
   yamlFilePath = 'resources/yaml/data_connection.yaml',
-): Cypress.Chainable<CommandLineResult> => {
-  return cy.fixture(yamlFilePath).then((yamlContent) => {
+): Cypress.Chainable<CommandLineResult> =>
+  cy.fixture(yamlFilePath).then((yamlContent) => {
     const modifiedYamlContent = replacePlaceholdersInYaml(yamlContent, dataConnectionReplacements);
 
     cy.log(`Yaml:${modifiedYamlContent}`);
     return applyOpenShiftYaml(modifiedYamlContent);
   });
-};

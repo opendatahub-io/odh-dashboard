@@ -1,4 +1,3 @@
-import * as path from 'path';
 import { execSync } from 'child_process';
 import { registerProxy } from '../utils/proxy';
 import { KubeFastifyInstance } from '../types';
@@ -31,10 +30,8 @@ type ModuleFederationConfig = {
  */
 const getWorkspacePackages = (fastify: KubeFastifyInstance): any[] => {
   try {
-    const frontendPath = path.resolve(__dirname, '../../../frontend');
     const stdout = execSync('npm query .workspace --json', {
       encoding: 'utf8',
-      cwd: frontendPath,
     });
     return JSON.parse(stdout);
   } catch (error) {

@@ -1,36 +1,29 @@
-interface ImageStreamTag {
-  name: string;
-  annotations?: Record<string, string>;
-}
-
-interface ImageStream {
-  metadata: { name: string };
-  spec: { tags?: ImageStreamTag[] };
-}
-
 export interface NotebookImageInfo {
   image: string;
   versions: string[];
 }
 
-export const getNotebookImageNames = (
-  namespace: string,
-): Cypress.Chainable<NotebookImageInfo[]> => {
-  return cy.exec(`oc get imagestream -n ${namespace} -o json`).then((result) => {
-    const imagestreams: ImageStream[] = JSON.parse(result.stdout).items;
-    const imageInfos: NotebookImageInfo[] = [];
+export const getNotebookImageNames = (namespace: string): Cypress.Chainable<NotebookImageInfo[]> =>
+  cy
+    .exec(`oc get imagestream -n ${namespace} -o jsonpath='{.items[*].metadata.name}'`)
+    .then((result) => {
+      const imageNames = result.stdout.trim().split(' ');
+      const imageInfos: NotebookImageInfo[] = [];
 
-    imagestreams
-      .filter((image) => image.metadata.name.includes('notebook'))
-      .forEach((image) => {
-        // Filter out outdated tags
-        const validTags = (image.spec.tags || []).filter(
-          (tag) => tag.annotations?.['opendatahub.io/image-tag-outdated'] !== 'true',
+      // Create a chain of promises for each notebook image
+      const imagePromises = imageNames
+        .filter((imageName) => imageName.includes('notebook'))
+        .map((imageName) =>
+          cy
+            .exec(
+              `oc get imagestream ${imageName} -n ${namespace} -o jsonpath='{.spec.tags[*].name}'`,
+            )
+            .then((tagResult) => {
+              const versions = tagResult.stdout.trim().split(' ');
+              imageInfos.push({ image: imageName, versions });
+            }),
         );
-        const versions = validTags.map((tag) => tag.name);
-        imageInfos.push({ image: image.metadata.name, versions });
-      });
 
-    return imageInfos;
-  });
-};
+      // Wait for all image version queries to complete
+      return cy.wrap(Promise.all(imagePromises)).then(() => imageInfos);
+    });

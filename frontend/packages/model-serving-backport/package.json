@@ -6,7 +6,15 @@
   "exports": {
     "./extensions": "./extensions.ts"
   },
+  "scripts": {
+    "lint": "eslint .",
+    "type-check": "tsc --noEmit"
+  },
   "dependencies": {
     "@odh-dashboard/internal": "*"
+  },
+  "devDependencies": {
+    "@odh-dashboard/eslint-config": "*",
+    "@odh-dashboard/tsconfig": "*"
   }
 }

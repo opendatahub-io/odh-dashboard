@@ -23,3 +23,5 @@ yarn.lock
 .dccache
 
 .turbo
+
+jest-coverage

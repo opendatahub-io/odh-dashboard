@@ -155,9 +155,7 @@ class LearningCenterFilters extends Contextual<HTMLElement> {
   findResourceCountById(id: string) {
     return this.find()
       .findCheckboxLabelNumberByTestId(id)
-      .then((count) => {
-        return count;
-      });
+      .then((count) => count);
   }
 
   findCategoryFilter(index: number) {

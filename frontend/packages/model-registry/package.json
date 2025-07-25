@@ -31,5 +31,9 @@
       "name": "odh-dashboard",
       "port": 8043
     }
+  },
+  "devDependencies": {
+    "@odh-dashboard/eslint-config": "*",
+    "@odh-dashboard/tsconfig": "*"
   }
 }

@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
 import { k8sListResource } from '@openshift/dynamic-plugin-sdk-utils';
-import { testHook } from '#~/__tests__/unit/testUtils/hooks';
+import { testHook } from '@odh-dashboard/jest-config/hooks';
 import { useFeatureStoreCR } from '#~/pages/featureStore/apiHooks/useFeatureStoreCR.tsx';
 import { mockFeatureStore } from '#~/__mocks__/mockFeatureStore.ts';
 import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
