@@ -1,14 +1,16 @@
 import * as React from 'react';
 import { Switch } from '@patternfly/react-core';
 import { BYONImage } from '#~/types';
-import { updateBYONImage } from '#~/services/imagesService';
 import useNotification from '#~/utilities/useNotification';
+import { updateBYONImageStream } from '#~/api/k8s/imageStreams.ts';
+import { useDashboardNamespace } from '#~/redux/selectors';
 
 type BYONImageStatusToggleProps = {
   image: BYONImage;
 };
 
 const BYONImageStatusToggle: React.FC<BYONImageStatusToggleProps> = ({ image }) => {
+  const { dashboardNamespace } = useDashboardNamespace();
   const [isLoading, setLoading] = React.useState(false);
   const [isEnabled, setEnabled] = React.useState(!image.error && image.visible);
   const notification = useNotification();
@@ -21,7 +23,7 @@ const BYONImageStatusToggle: React.FC<BYONImageStatusToggleProps> = ({ image }) 
 
   const handleChange = (checked: boolean) => {
     setLoading(true);
-    updateBYONImage({
+    updateBYONImageStream(dashboardNamespace, {
       name: image.name,
       visible: checked,
     })
