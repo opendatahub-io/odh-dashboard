@@ -12,7 +12,7 @@ import { DSPipelineKind, DSPipelineManagedPipelinesKind, ProjectKind } from '#~/
 import { byName, ProjectsContext } from '#~/concepts/projects/ProjectsContext';
 import DeletePipelineServerModal from '#~/concepts/pipelines/content/DeletePipelineServerModal';
 import { ConfigurePipelinesServerModal } from '#~/concepts/pipelines/content/configurePipelinesServer/ConfigurePipelinesServerModal';
-import ViewPipelineServerModal from '#~/concepts/pipelines/content/ViewPipelineServerModal';
+import ManagePipelineServerModal from '#~/concepts/pipelines/content/ManagePipelineServerModal.tsx';
 import useSyncPreferredProject from '#~/concepts/projects/useSyncPreferredProject';
 import { conditionalArea, SupportedArea } from '#~/concepts/areas';
 import { DEV_MODE } from '#~/utilities/const';
@@ -299,7 +299,7 @@ export const ViewServerModal = ({ onClose }: { onClose: () => void }): React.JSX
   const { namespace } = React.useContext(PipelinesContext);
   const [pipelineNamespaceCR] = usePipelineNamespaceCR(namespace);
 
-  return <ViewPipelineServerModal onClose={onClose} pipelineNamespaceCR={pipelineNamespaceCR} />;
+  return <ManagePipelineServerModal onClose={onClose} pipelineNamespaceCR={pipelineNamespaceCR} />;
 };
 
 export const PipelineServerTimedOut: React.FC = () => {
