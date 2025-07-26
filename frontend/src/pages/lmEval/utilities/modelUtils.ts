@@ -1,20 +1,24 @@
-import { InferenceServiceKind } from '#~/k8sTypes';
+import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
 import { LmModelArgument } from '#~/pages/lmEval/types';
 
+/** Model option for LMEval configuration */
 export type ModelOption = {
   label: string;
   value: string;
   namespace: string;
   displayName: string;
   service: InferenceServiceKind;
+  port: number;
 };
 
+/** Model type option with endpoint configuration */
 export type ModelTypeOption = {
   key: string;
   label: string;
   endpoint?: string;
 };
 
+/** Filters vLLM inference services by namespace */
 export const filterVLLMInference = (
   services: InferenceServiceKind[],
   namespace: string,
@@ -25,12 +29,40 @@ export const filterVLLMInference = (
       (service: InferenceServiceKind) => service.spec.predictor.model?.modelFormat?.name === 'vLLM',
     );
 
-export const generateModelOptions = (services: InferenceServiceKind[]): ModelOption[] =>
+/** Generates model options from inference services and serving runtimes */
+export const generateModelOptions = (
+  services: InferenceServiceKind[],
+  servingRuntimes: ServingRuntimeKind[],
+): ModelOption[] =>
   services.map((service: InferenceServiceKind) => {
     const {
       metadata: { annotations, name, namespace: serviceNamespace },
     } = service;
     const displayName = annotations?.['openshift.io/display-name'] || name;
+    const runtimeName = service.spec.predictor.model?.runtime;
+
+    const servingRuntime = servingRuntimes.find(
+      (sr) => sr.metadata.name === runtimeName && sr.metadata.namespace === serviceNamespace,
+    );
+
+    // Extract port from serving runtime container configuration
+    let port = 80; // Default fallback
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    const containers = servingRuntime?.spec?.containers;
+    if (containers && containers.length > 0) {
+      const container = containers[0];
+      // Use type guard to safely check for ports configuration
+      if ('ports' in container && Array.isArray(container.ports) && container.ports.length > 0) {
+        const firstPort = container.ports[0];
+        if (firstPort && 'containerPort' in firstPort && firstPort.containerPort) {
+          port = firstPort.containerPort;
+        }
+      }
+    } else if (runtimeName) {
+      console.warn(
+        `Serving runtime '${runtimeName}' not found for service '${name}' in namespace '${serviceNamespace}'`,
+      );
+    }
 
     return {
       label: displayName,
@@ -38,9 +70,11 @@ export const generateModelOptions = (services: InferenceServiceKind[]): ModelOpt
       namespace: serviceNamespace,
       displayName,
       service,
+      port,
     };
   });
 
+/** Handles model selection and URL construction */
 export const handleModelSelection = (
   selectedModelName: string,
   modelOptions: ModelOption[],
@@ -67,11 +101,21 @@ export const handleModelSelection = (
     selectedModelOption.service.status?.address?.url ||
     '';
 
-  let finalUrl = baseUrl;
-  if (currentModelType && baseUrl) {
+  let urlWithPort = baseUrl;
+  if (
+    baseUrl &&
+    baseUrl.includes('.svc.cluster.local') &&
+    !baseUrl.includes('.svc.cluster.local:')
+  ) {
+    const { port } = selectedModelOption;
+    urlWithPort = baseUrl.replace('.svc.cluster.local', `.svc.cluster.local:${port}`);
+  }
+
+  let finalUrl = urlWithPort;
+  if (currentModelType && urlWithPort) {
     const modelOption = findOptionForKey(currentModelType);
     const endpoint = modelOption?.endpoint ?? '';
-    finalUrl = `${baseUrl}${endpoint}`;
+    finalUrl = `${urlWithPort}${endpoint}`;
   }
 
   return {
@@ -84,6 +128,7 @@ export const handleModelSelection = (
   };
 };
 
+/** Handles model type selection and endpoint updates */
 export const handleModelTypeSelection = (
   modelType: string,
   currentModel: LmModelArgument,

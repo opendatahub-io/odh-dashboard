@@ -2,6 +2,7 @@ import * as React from 'react';
 import { screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import useInferenceServices from '#~/pages/modelServing/useInferenceServices';
+import useServingRuntimes from '#~/pages/modelServing/useServingRuntimes';
 import { standardUseFetchStateObject } from '#~/__tests__/unit/testUtils/hooks';
 import { mockInferenceServices, nonVllmService } from './__mocks__/mockInferenceServicesData';
 import {
@@ -14,6 +15,11 @@ import {
 
 // Mock the dependencies
 jest.mock('#~/pages/modelServing/useInferenceServices', () => ({
+  __esModule: true,
+  default: jest.fn(),
+}));
+
+jest.mock('#~/pages/modelServing/useServingRuntimes', () => ({
   __esModule: true,
   default: jest.fn(),
 }));
@@ -52,12 +58,23 @@ jest.mock('#~/pages/lmEval/lmEvalForm/LMEvalModelArgumentSection', () => ({
 }));
 
 const mockUseInferenceServices = jest.mocked(useInferenceServices);
+const mockUseServingRuntimes = jest.mocked(useServingRuntimes);
 
 // Helper function to setup standard inference services mock
 const setupInferenceServicesMock = (services = mockInferenceServices) => {
   mockUseInferenceServices.mockReturnValue(
     standardUseFetchStateObject({
       data: { items: services, hasNonDashboardItems: false },
+      loaded: true,
+    }),
+  );
+};
+
+// Helper function to setup standard serving runtimes mock
+const setupServingRuntimesMock = () => {
+  mockUseServingRuntimes.mockReturnValue(
+    standardUseFetchStateObject({
+      data: { items: [], hasNonDashboardItems: false },
       loaded: true,
     }),
   );
@@ -91,6 +108,7 @@ describe('LMEvalForm', () => {
 
   it('should use default namespace when no project in context', () => {
     setupInferenceServicesMock();
+    setupServingRuntimesMock();
     renderWithContext();
 
     // Should show model dropdown
@@ -100,6 +118,7 @@ describe('LMEvalForm', () => {
 
   it('should render the form with model dropdown when project is provided', () => {
     setupInferenceServicesMock();
+    setupServingRuntimesMock();
     renderWithContext('default');
 
     // Should not show namespace dropdown
@@ -113,6 +132,7 @@ describe('LMEvalForm', () => {
 
   it('should show models from the project namespace', async () => {
     setupInferenceServicesMock();
+    setupServingRuntimesMock();
     renderWithContext('default');
 
     // Open model dropdown
@@ -133,6 +153,7 @@ describe('LMEvalForm', () => {
         loaded: false,
       }),
     );
+    setupServingRuntimesMock();
 
     renderWithContext('default');
 
@@ -157,10 +178,11 @@ describe('LMEvalForm', () => {
     mockUseInferenceServices.mockReturnValue(
       standardUseFetchStateObject({
         data: { items: [], hasNonDashboardItems: false },
-        loaded: false,
+        loaded: true,
         error: new Error('Failed to fetch inference services'),
       }),
     );
+    setupServingRuntimesMock();
 
     renderWithContext('default');
 
@@ -181,6 +203,7 @@ describe('LMEvalForm', () => {
 
   it('should show empty state when no models are available', () => {
     setupInferenceServicesMock([]);
+    setupServingRuntimesMock();
     renderWithContext('default');
 
     // Model dropdown should be enabled when data is loaded
@@ -199,6 +222,7 @@ describe('LMEvalForm', () => {
 
   it('should render all form sections', () => {
     setupInferenceServicesMock();
+    setupServingRuntimesMock();
     renderWithContext('default');
 
     expect(screen.getByTestId('lm-eval-task-section')).toBeInTheDocument();
@@ -211,6 +235,7 @@ describe('LMEvalForm', () => {
     // Include both vLLM and non-vLLM services
     const mixedServices = [...mockInferenceServices, nonVllmService];
     setupInferenceServicesMock(mixedServices);
+    setupServingRuntimesMock();
     renderWithContext('default');
 
     // Open model dropdown
@@ -228,6 +253,7 @@ describe('LMEvalForm', () => {
 
   it('should filter models by the project namespace', async () => {
     setupInferenceServicesMock();
+    setupServingRuntimesMock();
     // Render with 'production' namespace
     renderWithContext('production');
 
@@ -248,6 +274,7 @@ describe('LMEvalForm', () => {
     const mockSetData = setupLMGenericObjectStateMock();
     const mockServicesWithUrls = createMockServicesWithUrls();
     setupInferenceServicesMock(mockServicesWithUrls as typeof mockInferenceServices);
+    setupServingRuntimesMock();
     renderWithContext('default');
 
     await selectModel('Model One');
@@ -270,6 +297,7 @@ describe('LMEvalForm', () => {
     });
     const mockServicesWithUrls = createMockServicesWithUrls();
     setupInferenceServicesMock(mockServicesWithUrls as typeof mockInferenceServices);
+    setupServingRuntimesMock();
     renderWithContext('default');
 
     await selectModel('Model One');
@@ -295,6 +323,7 @@ describe('LMEvalForm', () => {
     });
     // Mock inference services that don't include model-1 (simulating namespace change)
     setupInferenceServicesMock([]);
+    setupServingRuntimesMock();
     renderWithContext('default');
 
     // The useEffect should trigger and clear the model
@@ -318,6 +347,7 @@ describe('LMEvalForm', () => {
       },
     });
     setupInferenceServicesMock();
+    setupServingRuntimesMock();
     renderWithContext('default');
 
     selectModelType('Local chat completion');

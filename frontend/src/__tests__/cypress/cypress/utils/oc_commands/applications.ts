@@ -36,13 +36,13 @@ export const getResourceVersionByName = (resourceName: string): Cypress.Chainabl
     /\s/g,
     '',
   )} -A -o jsonpath='{.items[*].status.releases[*].version}'`;
-  return execWithOutput(ocCommand).then(({ exitCode, output }) => {
-    if (exitCode !== 0) {
-      cy.log(`Failed to retrieve version of ${resourceName}:\n${output}`);
+  return execWithOutput(ocCommand).then(({ code, stdout, stderr }) => {
+    if (code !== 0) {
+      cy.log(`Failed to retrieve version of ${resourceName}:\n${stdout}\n${stderr}`);
       return cy.wrap<string[]>([]);
     }
-    cy.log(`Retrieved version of ${resourceName}:\n${output}`);
-    return cy.wrap(output.trim().split(' '));
+    cy.log(`Retrieved version of ${resourceName}:\n${stdout}\n${stderr}`);
+    return cy.wrap(stdout.trim().split(' '));
   });
 };
 
@@ -61,11 +61,13 @@ export const getCsvByDisplayName = (
     namespace ? `-n ${namespace}` : '-A'
   } -o json | jq -r '[.items[] | select(.spec.displayName | test("${displayName}")) | select(.status.phase != "Failed")] | first // empty'`;
 
-  return execWithOutput(csvCommand).then(({ exitCode: csvExitCode, output: csvOutput }) => {
-    if (csvExitCode !== 0 || !csvOutput.trim()) {
-      throw new Error(`Failed to find active non-failed CSV for '${displayName}':\n${csvOutput}`);
+  return execWithOutput(csvCommand).then(({ code, stdout, stderr }) => {
+    if (code !== 0 || !stdout.trim()) {
+      throw new Error(
+        `Failed to find active non-failed CSV for '${displayName}':\n${stdout}\n${stderr}`,
+      );
     }
-    return JSON.parse(csvOutput.trim());
+    return JSON.parse(stdout.trim());
   });
 };
 
@@ -99,12 +101,12 @@ export const getSubscriptionChannelFromCsv = (csvObject: {
   const packageName = csvObject.metadata.name.split('.')[0];
   const ocCommand = `oc get subscription -A -o json | jq -r '.items[] | select(.status.installedCSV | test("${packageName}")) | .spec.channel' | head -n 1`;
 
-  return execWithOutput(ocCommand).then(({ exitCode, output }) => {
-    if (exitCode !== 0 || !output.trim()) {
+  return execWithOutput(ocCommand).then(({ code, stdout, stderr }) => {
+    if (code !== 0 || !stdout.trim()) {
       throw new Error(
-        `Failed to retrieve subscription channel for package '${packageName}'\n${output}`,
+        `Failed to retrieve subscription channel for package '${packageName}'\n${stdout}\n${stderr}`,
       );
     }
-    return output.trim();
+    return stdout.trim();
   });
 };
