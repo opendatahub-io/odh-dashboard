@@ -376,6 +376,7 @@ export type TriggerKF = {
 
 export type PipelineCoreResourceKF = {
   display_name: string;
+  name?: string;
   description?: string;
   created_at: string;
 };

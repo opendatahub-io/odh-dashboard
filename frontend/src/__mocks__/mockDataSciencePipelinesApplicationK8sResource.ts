@@ -1,4 +1,4 @@
-import { DSPipelineKind } from '#~/k8sTypes';
+import { DSPipelineAPIServerStore, DSPipelineKind } from '#~/k8sTypes';
 
 type MockResourceConfigType = {
   name?: string;
@@ -8,6 +8,7 @@ type MockResourceConfigType = {
   initializing?: boolean;
   message?: string;
   dspaSecretName?: string;
+  pipelineStore?: DSPipelineAPIServerStore;
 };
 
 export const mockDataSciencePipelineApplicationK8sResource = ({
@@ -17,6 +18,7 @@ export const mockDataSciencePipelineApplicationK8sResource = ({
   initializing = false,
   message = '',
   dspaSecretName = 'aws-connection-testdb',
+  pipelineStore,
 }: MockResourceConfigType): DSPipelineKind => ({
   apiVersion: 'datasciencepipelinesapplications.opendatahub.io/v1',
   kind: 'DataSciencePipelinesApplication',
@@ -29,6 +31,7 @@ export const mockDataSciencePipelineApplicationK8sResource = ({
     dspVersion,
     apiServer: {
       enableSamplePipeline: false,
+      pipelineStore,
     },
     database: {
       mariaDB: {

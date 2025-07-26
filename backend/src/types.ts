@@ -1093,6 +1093,11 @@ export type DSPipelineExternalStorageKind = {
   };
 };
 
+export enum DSPipelineAPIServerPipelineStore {
+  KUBERNETES = 'kubernetes',
+  DATABASE = 'database',
+}
+
 export type DSPipelineKind = K8sResourceCommon & {
   metadata: {
     name: string;
@@ -1108,6 +1113,7 @@ export type DSPipelineKind = K8sResourceCommon & {
         name: string;
       }>;
       enableSamplePipeline: boolean;
+      pipelineStore?: DSPipelineAPIServerPipelineStore;
     }>;
     database?: Partial<{
       externalDB: Partial<{

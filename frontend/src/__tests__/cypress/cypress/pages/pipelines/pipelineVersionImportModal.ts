@@ -22,6 +22,14 @@ class PipelineImportModal extends Modal {
     return this.find().findByTestId('pipeline-name');
   }
 
+  findVersionResourceNameInput() {
+    return this.find().findByTestId('pipeline-resourceName');
+  }
+
+  findVersionEditResourceNameButton() {
+    return this.find().findByTestId('pipeline-editResourceLink');
+  }
+
   findVersionDescriptionInput() {
     return this.find().findByTestId('pipeline-description');
   }
@@ -67,6 +75,10 @@ class PipelineImportModal extends Modal {
 
   fillVersionName(value: string) {
     this.findVersionNameInput().clear().type(value);
+  }
+
+  fillVersionResourceName(value: string) {
+    this.findVersionResourceNameInput().clear().type(value);
   }
 
   fillVersionDescription(value: string) {
