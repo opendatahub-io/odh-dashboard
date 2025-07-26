@@ -1,3 +1,4 @@
+import { K8sAPIOptions } from '#~/k8sTypes';
 import { FeatureStoreMeta, BatchSource, FileOptions, NameValueTypePair } from './global';
 import { FeatureColumns } from './features';
 
@@ -80,13 +81,15 @@ export type StandardFeatureView = {
     tags?: Record<string, string>;
     ttl: string;
     batchSource: BatchSource;
-    online: boolean;
+    online?: boolean;
+    offline?: boolean;
     description?: string;
     owner?: string;
     entityColumns: NameValueTypePair[];
     streamSource?: StreamSource;
   };
   meta: FeatureStoreMeta;
+  project?: string;
 };
 
 export type OnDemandFeatureView = {
@@ -98,12 +101,15 @@ export type OnDemandFeatureView = {
     description?: string;
     tags?: Record<string, string>;
     owner?: string;
+    online?: boolean;
+    offline?: boolean;
     featureTransformation: FeatureTransformation;
     mode: string;
     entities: string[];
     entityColumns: NameValueTypePair[];
   };
   meta: FeatureStoreMeta;
+  project?: string;
 };
 
 export type FeatureView = StandardFeatureView | OnDemandFeatureView;
@@ -112,3 +118,5 @@ export type FeatureViewsList = {
   featureViews: FeatureView[];
   pagination: FeatureViewsPagination;
 };
+
+export type GetFeatureViews = (opts: K8sAPIOptions, project?: string) => Promise<FeatureViewsList>;

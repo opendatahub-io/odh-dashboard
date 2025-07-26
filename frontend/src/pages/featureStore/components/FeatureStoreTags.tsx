@@ -41,7 +41,7 @@ const FeatureStoreTagsGroup: React.FC<FeatureStoreTagsGroupProps> = ({
 
 const FeatureStoreTags: React.FC<FeatureStoreTagsProps> = ({
   tags,
-  showAllTags = true,
+  showAllTags = false,
   threshold = 3,
 }) => {
   const tagEntries = Object.entries(tags);
