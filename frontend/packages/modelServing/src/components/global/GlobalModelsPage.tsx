@@ -1,10 +1,11 @@
 import React from 'react';
 import { ProjectsContext } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
-import { useExtensions } from '@odh-dashboard/plugin-core';
+import { LazyCodeRefComponent, useExtensions } from '@odh-dashboard/plugin-core';
 import { Bullseye, Spinner } from '@patternfly/react-core';
 import { useNavigate, useParams } from 'react-router-dom';
 import GlobalDeploymentsView from './GlobalDeploymentsView';
 import { ModelDeploymentsProvider } from '../../concepts/ModelDeploymentsContext';
+import { getMultiProjectServingPlatforms } from '../../concepts/useProjectServingPlatform';
 import { isModelServingPlatformExtension } from '../../../extension-points';
 
 const GlobalModelsPage: React.FC = () => {
@@ -30,6 +31,25 @@ const GlobalModelsPage: React.FC = () => {
       navigate(`/modelServing/${preferredProject.metadata.name}`, { replace: true });
     }
   }, [namespace, preferredProject, navigate]);
+
+  const BackportPageComponent = React.useMemo(() => {
+    const platforms = getMultiProjectServingPlatforms(projectsToShow, availablePlatforms);
+    return platforms.find((p) => p.properties.backport?.GlobalModelsPage)?.properties.backport
+      ?.GlobalModelsPage;
+  }, [projectsToShow, availablePlatforms]);
+
+  if (BackportPageComponent) {
+    return (
+      <LazyCodeRefComponent
+        component={BackportPageComponent}
+        fallback={
+          <Bullseye>
+            <Spinner />
+          </Bullseye>
+        }
+      />
+    );
+  }
 
   if (!projectsLoaded) {
     return (
