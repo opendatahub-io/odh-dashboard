@@ -1,0 +1,35 @@
+{
+  "private": true,
+  "name": "@odh-dashboard/lm-eval",
+  "description": "Language Model Evaluation plugin.",
+  "version": "0.0.0",
+  "scripts": {
+    "update-subtree": "../../scripts/package-subtree.sh lm-eval"
+  },
+  "subtree": {
+    "repo": "https://github.com/trustyai-explainability/trustyai-dashboard.git",
+    "src": "",
+    "target": "upstream",
+    "commit": "5f736271041e4bcaf8cbe90e7e5cc1de0693d4ae"
+  },
+  "module-federation": {
+    "name": "lmEval",
+    "remoteEntry": "/remoteEntry.js",
+    "authorize": true,
+    "tls": false,
+    "proxy": [
+      {
+        "path": "/lm-eval/api",
+        "pathRewrite": "/api"
+      }
+    ],
+    "local": {
+      "host": "localhost",
+      "port": 9001
+    },
+    "service": {
+      "name": "lm-eval-ui-service",
+      "port": 8081
+    }
+  }
+}
