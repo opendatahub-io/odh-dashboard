@@ -10,7 +10,7 @@
     "repo": "https://github.com/trustyai-explainability/trustyai-dashboard.git",
     "src": "",
     "target": "upstream",
-    "commit": "5f736271041e4bcaf8cbe90e7e5cc1de0693d4ae"
+    "commit": "56c0e0f6810ed617e73cb1d5f094c3be3d58a1a6"
   },
   "module-federation": {
     "name": "lmEval",
