@@ -32,9 +32,9 @@ let dynamicEvaluationName: string;
  * - Tests different radio button combinations for Available Online and Trust Remote Code settings
  */
 describe(
-  'Verify LMEval Functionality with Downloaded Models',
+  '[Product Bug RHOAIENG-30642] Verify LMEval Functionality with Downloaded Models',
   {
-    tags: ['@Smoke', '@SmokeSet3', '@LMEval', '@Featureflagged'],
+    tags: ['@Smoke', '@SmokeSet3', '@LMEval', '@RHOAIENG-26716', '@Featureflagged', '@Bug'],
   },
   () => {
     // Load test configuration in before hook

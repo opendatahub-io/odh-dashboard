@@ -72,14 +72,6 @@ class LMEvalPage {
     return this.findBreadcrumb().findByText(name);
   }
 
-  findBreadcrumbModelEvaluationRuns() {
-    return cy.findByTestId('breadcrumb-model-evaluation-runs');
-  }
-
-  findBreadcrumbStartEvaluationRun() {
-    return cy.findByTestId('breadcrumb-start-evaluation-run');
-  }
-
   // Evaluation run finder methods
   findEvaluationTable() {
     return cy.get('table');

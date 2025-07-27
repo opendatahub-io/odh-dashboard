@@ -175,7 +175,7 @@ const deployInferenceServiceIfNeeded = (
       cy.log(`InferenceService ${modelName} already exists, skipping deployment`);
       return cy.wrap(undefined);
     }
-    cy.log('Applying InferenceService');
+    cy.log(`Deploying Model '${modelName}' in project '${testProjectName}'`);
     return applyOpenShiftYaml(inferenceServiceYaml, testProjectName).then(
       ({
         code: inferenceServiceCode,
@@ -206,6 +206,9 @@ const waitForModelReady = (
   testProjectName: string,
   timeoutSeconds: number,
 ): Cypress.Chainable<any> => {
+  cy.log(
+    `Waiting for Model '${modelName}' to be ready in project '${testProjectName}' up to ${timeoutSeconds} seconds`,
+  );
   return execWithOutput(
     `set +e; RC=0;
   oc wait inferenceservice/${modelName} -n ${testProjectName} --for=condition=Ready=True --timeout=${timeoutSeconds}s || RC=$?;

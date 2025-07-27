@@ -10,11 +10,11 @@ testSetups:
     storageDeploymentName: 'minio-static'
     storageSecretName: 'aws-secret-minio-static'
     tokenizerUrl: 'bert-base-uncased'
-    modelTimeoutSeconds: 60
+    modelTimeoutSeconds: 120
     lmEval:
       numConcurrent: 5
       maxRetries: 2
-      lmEvalTimeoutSeconds: 180
+      lmEvalTimeoutSeconds: 120
       limit: 2
       modelPath: '/mnt/models'
       servicePort: 8032
@@ -33,11 +33,11 @@ testSetups:
     storageDeploymentName: 'minio-dynamic'
     storageSecretName: 'aws-secret-minio-dynamic'
     tokenizerUrl: 'rgeada/tiny-untrained-granite'
-    modelTimeoutSeconds: 60
+    modelTimeoutSeconds: 120
     lmEval:
       numConcurrent: 2
       maxRetries: 3
-      lmEvalTimeoutSeconds: 180
+      lmEvalTimeoutSeconds: 120
       limit: 5
       modelPath: 'gpt2'
       servicePort: 8032

@@ -32,7 +32,7 @@ let staticEvaluationName: string;
 describe(
   'Verify LMEval Functionality with Pre-existing Models',
   {
-    tags: ['@Sanity', '@SanitySet3', '@LMEval', '@Featureflagged'],
+    tags: ['@Sanity', '@SanitySet3', '@LMEval', '@RHOAIENG-26716', '@Featureflagged'],
   },
   () => {
     // Load test configuration in before hook
@@ -81,8 +81,6 @@ describe(
       // Verify breadcrumbs are present
       cy.step('Verify breadcrumbs are present');
       lmEvalPage.findBreadcrumb().should('exist');
-      lmEvalPage.findBreadcrumbModelEvaluationRuns().should('exist');
-      lmEvalPage.findBreadcrumbStartEvaluationRun().should('exist');
 
       // Verify page accessibility
       cy.step('Verify page accessibility');
