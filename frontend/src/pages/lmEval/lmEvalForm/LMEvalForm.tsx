@@ -242,6 +242,9 @@ const LMEvalForm: React.FC = () => {
                   variant="plain"
                   isInline
                   aria-label="Evaluation run name help"
+                  title="Evaluation run name help"
+                  aria-describedby="evaluation-run-name-help"
+                  role="button"
                 />
               </Popover>
             }

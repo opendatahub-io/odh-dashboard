@@ -52,72 +52,78 @@ describe(
       });
     });
 
-    it('should complete LMEval evaluation workflow for dynamic model', () => {
-      // Login to the application
-      cy.step('Login to the application');
-      cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
+    it(
+      'should complete LMEval evaluation workflow for dynamic model',
+      {
+        tags: ['@Smoke', '@SmokeSet3', '@LMEval', '@RHOAIENG-26716', '@Featureflagged', '@Bug'],
+      },
+      () => {
+        // Login to the application
+        cy.step('Login to the application');
+        cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
-      // Navigate to LMEval page
-      cy.step('Navigate to LMEval page');
-      lmEvalPage.visit();
+        // Navigate to LMEval page
+        cy.step('Navigate to LMEval page');
+        lmEvalPage.visit();
 
-      // Navigate to evaluation form and fill in form fields
-      const dynamicProjectName = dynamicTestSetup.testProjectName || 'test-project';
-      navigateToLMEvalEvaluationForm(dynamicProjectName);
+        // Navigate to evaluation form and fill in form fields
+        const dynamicProjectName = dynamicTestSetup.testProjectName || 'test-project';
+        navigateToLMEvalEvaluationForm(dynamicProjectName);
 
-      // Fill in form fields to start evaluation
-      cy.step(
-        `Fill in evaluation form fields for new job '${
-          dynamicEvaluationName || 'test-evaluation'
-        }'`,
-      );
-      lmEvalFormPage.typeEvaluationName(dynamicEvaluationName);
+        // Fill in form fields to start evaluation
+        cy.step(
+          `Fill in evaluation form fields for new job '${
+            dynamicEvaluationName || 'test-evaluation'
+          }'`,
+        );
+        lmEvalFormPage.typeEvaluationName(dynamicEvaluationName);
 
-      // Select tasks (dynamic config - lightweight evaluation)
-      cy.step('Select evaluation tasks for dynamic config');
-      if (dynamicConfig.lmEval?.taskName) {
-        lmEvalFormPage.selectTasks([dynamicConfig.lmEval.taskName]);
-      }
+        // Select tasks (dynamic config - lightweight evaluation)
+        cy.step('Select evaluation tasks for dynamic config');
+        if (dynamicConfig.lmEval?.taskName) {
+          lmEvalFormPage.selectTasks([dynamicConfig.lmEval.taskName]);
+        }
 
-      // Select model type (dynamic config - Local completion)
-      cy.step('Select model type for dynamic config');
-      lmEvalFormPage.selectModelType('Local completion');
+        // Select model type (dynamic config - Local completion)
+        cy.step('Select model type for dynamic config');
+        lmEvalFormPage.selectModelType('Local completion');
 
-      // Select model from dropdown
-      cy.step('Select model from dropdown');
-      lmEvalFormPage.selectModelFromDropdown(dynamicTestSetup.modelName);
+        // Select model from dropdown
+        cy.step('Select model from dropdown');
+        lmEvalFormPage.selectModelFromDropdown(dynamicTestSetup.modelName);
 
-      // Set security settings
-      cy.step('Set security settings');
-      lmEvalFormPage.setAvailableOnline(true);
-      lmEvalFormPage.setTrustRemoteCode(true);
+        // Set security settings
+        cy.step('Set security settings');
+        lmEvalFormPage.setAvailableOnline(true);
+        lmEvalFormPage.setTrustRemoteCode(true);
 
-      // Set tokenizer URL
-      cy.step('Set tokenizer URL');
-      const tokenizerUrl = dynamicConfig.tokenizerUrl || 'rgeada/tiny-untrained-granite';
-      lmEvalFormPage.typeTokenizerUrl(tokenizerUrl);
+        // Set tokenizer URL
+        cy.step('Set tokenizer URL');
+        const tokenizerUrl = dynamicConfig.tokenizerUrl || 'rgeada/tiny-untrained-granite';
+        lmEvalFormPage.typeTokenizerUrl(tokenizerUrl);
 
-      // Verify form is partially filled
-      cy.step('Verify form fields are filled');
-      if (dynamicEvaluationName) {
-        lmEvalFormPage.shouldHaveEvaluationName(dynamicEvaluationName);
-      }
+        // Verify form is partially filled
+        cy.step('Verify form fields are filled');
+        if (dynamicEvaluationName) {
+          lmEvalFormPage.shouldHaveEvaluationName(dynamicEvaluationName);
+        }
 
-      // WORKAROUND: Intercept missing LMEval job parameters, since the UI doesn't support them yet
-      configureMissingParams(dynamicConfig);
+        // WORKAROUND: Intercept missing LMEval job parameters, since the UI doesn't support them yet
+        configureMissingParams(dynamicConfig);
 
-      // Submit the evaluation form
-      submitJobForm();
+        // Submit the evaluation form
+        submitJobForm();
 
-      // Verify evaluation run was created successfully
-      if (dynamicConfig.lmEval?.lmEvalTimeoutSeconds) {
-        verifyJob(dynamicTestSetup, dynamicConfig.lmEval.lmEvalTimeoutSeconds, dynamicConfig);
-      }
+        // Verify evaluation run was created successfully
+        if (dynamicConfig.lmEval?.lmEvalTimeoutSeconds) {
+          verifyJob(dynamicTestSetup, dynamicConfig.lmEval.lmEvalTimeoutSeconds, dynamicConfig);
+        }
+      },
+    );
+
+    // Cleanup function that will be called at the end of this test suite
+    after(() => {
+      dynamicTestSetup.cleanupTest();
     });
   },
 );
-
-// Global cleanup function that will be called at the end of all tests
-after(() => {
-  dynamicTestSetup.cleanupTest();
-});

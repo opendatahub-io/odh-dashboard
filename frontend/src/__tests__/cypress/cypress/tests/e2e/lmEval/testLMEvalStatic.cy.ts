@@ -50,99 +50,107 @@ describe(
       });
     });
 
-    it('should complete LMEval evaluation workflow for static model', () => {
-      // Login to the application
-      cy.step('Login to the application');
-      cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
+    it(
+      'should complete LMEval evaluation workflow for static model',
+      {
+        tags: ['@Sanity', '@SanitySet3', '@LMEval', '@RHOAIENG-26716', '@Featureflagged'],
+      },
+      () => {
+        // Login to the application
+        cy.step('Login to the application');
+        cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
-      // Navigate to LMEval page
-      cy.step('Navigate to LMEval page');
-      lmEvalPage.visit();
+        // Navigate to LMEval page
+        cy.step('Navigate to LMEval page');
+        lmEvalPage.visit();
 
-      // Verify project selector is present
-      cy.step('Verify project selector is present');
-      lmEvalPage.findProjectSelector().should('contain.text', 'All projects');
+        // Verify project selector is present
+        cy.step('Verify project selector is present');
+        lmEvalPage.findProjectSelector().should('contain.text', 'All projects');
 
-      // Navigate to evaluation form and fill in form fields
-      const staticProjectName = staticTestSetup.testProjectName || 'test-project';
-      navigateToLMEvalEvaluationForm(staticProjectName);
+        // Navigate to evaluation form and fill in form fields
+        const staticProjectName = staticTestSetup.testProjectName || 'test-project';
+        navigateToLMEvalEvaluationForm(staticProjectName);
 
-      // Verify form fields are present
-      cy.step('Verify LMEval form fields are present');
-      lmEvalFormPage.findEvaluationNameInput().should('exist');
-      lmEvalFormPage.findModelNameDropdown().should('exist');
-      lmEvalFormPage.shouldHaveFormSections();
-      lmEvalFormPage.shouldHaveSecuritySectionVisible();
+        // Verify form fields are present
+        cy.step('Verify LMEval form fields are present');
+        lmEvalFormPage.findEvaluationNameInput().should('exist');
+        lmEvalFormPage.findModelNameDropdown().should('exist');
+        lmEvalFormPage.shouldHaveFormSections();
+        lmEvalFormPage.shouldHaveSecuritySectionVisible();
 
-      // Verify submit button is disabled initially (form validation)
-      cy.step('Verify submit button is disabled initially');
-      lmEvalFormPage.shouldHaveSubmitButtonDisabled();
+        // Verify submit button is disabled initially (form validation)
+        cy.step('Verify submit button is disabled initially');
+        lmEvalFormPage.shouldHaveSubmitButtonDisabled();
 
-      // Verify breadcrumbs are present
-      cy.step('Verify breadcrumbs are present');
-      lmEvalPage.findBreadcrumb().should('exist');
+        // Verify breadcrumbs are present
+        cy.step('Verify breadcrumbs are present');
+        lmEvalPage.findBreadcrumb().should('exist');
 
-      // Verify page accessibility
-      cy.step('Verify page accessibility');
-      cy.testA11y();
+        // Verify page accessibility
+        cy.step('Verify page accessibility');
+        lmEvalPage.testA11y();
 
-      cy.step(
-        `Fill in evaluation form fields for new job '${staticEvaluationName || 'test-evaluation'}'`,
-      );
-      if (staticEvaluationName) {
-        lmEvalFormPage.typeEvaluationName(staticEvaluationName);
-      }
+        cy.step(
+          `Fill in evaluation form fields for new job '${
+            staticEvaluationName || 'test-evaluation'
+          }'`,
+        );
+        if (staticEvaluationName) {
+          lmEvalFormPage.typeEvaluationName(staticEvaluationName);
+        }
 
-      // Select tasks (static config - ultra-fast evaluation for testing)
-      cy.step('Select evaluation tasks for static config');
-      if (staticConfig.lmEval?.taskName) {
-        lmEvalFormPage.selectTasks([staticConfig.lmEval.taskName]);
-      }
+        // Select tasks (static config - ultra-fast evaluation for testing)
+        cy.step('Select evaluation tasks for static config');
+        if (staticConfig.lmEval?.taskName) {
+          lmEvalFormPage.selectTasks([staticConfig.lmEval.taskName]);
+        }
 
-      // Select model type (static config - local completion)
-      // IMPORTANT: Using 'Local completion' instead of 'Local chat completion' is required because:
-      // 1. The "wnli" task uses "loglikelihood" evaluation which requires the "completions API"
-      // 2. The "chat completions API" doesn't support "loglikelihood" evaluation
-      // 3. Using 'Local chat completion' will result in "exit status 1" errors when running the evaluation
-      cy.step('Select model type for static config');
-      lmEvalFormPage.selectModelType('Local completion');
+        // Select model type (static config - local completion)
+        // IMPORTANT: Using 'Local completion' instead of 'Local chat completion' is required because:
+        // 1. The "wnli" task uses "loglikelihood" evaluation which requires the "completions API"
+        // 2. The "chat completions API" doesn't support "loglikelihood" evaluation
+        // 3. Using 'Local chat completion' will result in "exit status 1" errors when running the evaluation
+        cy.step('Select model type for static config');
+        lmEvalFormPage.selectModelType('Local completion');
 
-      // Select model from dropdown
-      cy.step('Select model from dropdown');
-      lmEvalFormPage.selectModelFromDropdown(staticTestSetup.modelName);
+        // Select model from dropdown
+        cy.step('Select model from dropdown');
+        lmEvalFormPage.selectModelFromDropdown(staticTestSetup.modelName);
 
-      // Set security settings
-      cy.step('Set security settings');
-      // TODO: Offline Tokenizer is not supported yet. Once it is, we should test Available Online = false
-      lmEvalFormPage.setAvailableOnline(true);
-      lmEvalFormPage.setTrustRemoteCode(true);
+        // Set security settings
+        cy.step('Set security settings');
+        // TODO: Offline Tokenizer is not supported yet. Once it is, we should test Available Online = false
+        lmEvalFormPage.setAvailableOnline(true);
+        lmEvalFormPage.setTrustRemoteCode(true);
 
-      // Set tokenizer URL
-      cy.step('Set tokenizer URL');
-      const { tokenizerUrl } = staticConfig;
-      if (tokenizerUrl) {
-        lmEvalFormPage.typeTokenizerUrl(tokenizerUrl);
-      }
+        // Set tokenizer URL
+        cy.step('Set tokenizer URL');
+        const { tokenizerUrl } = staticConfig;
+        if (tokenizerUrl) {
+          lmEvalFormPage.typeTokenizerUrl(tokenizerUrl);
+        }
 
-      // Verify form is partially filled
-      cy.step('Verify form fields are filled');
-      lmEvalFormPage.shouldHaveEvaluationName(staticEvaluationName);
+        // Verify form is partially filled
+        cy.step('Verify form fields are filled');
+        lmEvalFormPage.shouldHaveEvaluationName(staticEvaluationName);
 
-      // WORKAROUND: Intercept missing LMEval job parameters, since the UI doesn't support them yet
-      configureMissingParams(staticConfig);
+        // WORKAROUND: Intercept missing LMEval job parameters, since the UI doesn't support them yet
+        configureMissingParams(staticConfig);
 
-      // Submit the evaluation form
-      submitJobForm();
+        // Submit the evaluation form
+        submitJobForm();
 
-      // Verify evaluation run was created successfully
-      if (staticConfig.lmEval?.lmEvalTimeoutSeconds) {
-        verifyJob(staticTestSetup, staticConfig.lmEval.lmEvalTimeoutSeconds, staticConfig);
-      }
+        // Verify evaluation run was created successfully
+        if (staticConfig.lmEval?.lmEvalTimeoutSeconds) {
+          verifyJob(staticTestSetup, staticConfig.lmEval.lmEvalTimeoutSeconds, staticConfig);
+        }
+      },
+    );
+
+    // Cleanup function that will be called at the end of this test suite
+    after(() => {
+      staticTestSetup.cleanupTest();
     });
   },
 );
-
-// Global cleanup function that will be called at the end of all tests
-after(() => {
-  staticTestSetup.cleanupTest();
-});

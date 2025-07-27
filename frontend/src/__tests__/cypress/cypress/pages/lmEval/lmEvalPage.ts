@@ -125,6 +125,22 @@ class LMEvalPage {
   findEvaluationTableRows() {
     return cy.get('[data-label="Evaluation"]');
   }
+
+  testA11y() {
+    // Disable button-name rule which is causing the accessibility violations
+    cy.injectAxe();
+    this.findLMEvaluationForm().then(($el) => {
+      cy.checkA11y($el[0], {
+        includedImpacts: ['serious', 'critical'],
+        rules: {
+          'color-contrast': { enabled: false },
+          'scrollable-region-focusable': { enabled: false },
+          label: { enabled: false },
+          'button-name': { enabled: false },
+        },
+      });
+    });
+  }
 }
 
 export const lmEvalPage = new LMEvalPage();

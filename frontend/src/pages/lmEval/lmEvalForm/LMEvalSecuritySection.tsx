@@ -35,7 +35,7 @@ const LMEvalSecuritySection: React.FC<LMEvalSecuritySectionProps> = ({
       data-testid="lm-eval-security-section"
       style={{ border: 0 }}
       isExpanded
-      toggleAriaLabel="Details"
+      toggleAriaLabel="Security settings details"
       header={
         <FormFieldGroupHeader
           titleText={{
@@ -77,6 +77,9 @@ const LMEvalSecuritySection: React.FC<LMEvalSecuritySectionProps> = ({
                 variant="plain"
                 isInline
                 aria-label="Available online help"
+                title="Available online help"
+                aria-describedby="available-online-help"
+                role="button"
               />
             </Popover>
           }
@@ -129,6 +132,9 @@ const LMEvalSecuritySection: React.FC<LMEvalSecuritySectionProps> = ({
                 variant="plain"
                 isInline
                 aria-label="Trust remote code help"
+                title="Trust remote code help"
+                aria-describedby="trust-remote-code-help"
+                role="button"
               />
             </Popover>
           }

@@ -59,6 +59,9 @@ const LmEvalModelArgumentSection: React.FC<LmEvalModelArgumentSectionProps> = ({
             variant="plain"
             isInline
             aria-label="Tokenized requests help"
+            title="Tokenized requests help"
+            aria-describedby="tokenized-requests-help"
+            role="button"
           />
         </Popover>
       }
@@ -92,6 +95,9 @@ const LmEvalModelArgumentSection: React.FC<LmEvalModelArgumentSectionProps> = ({
             variant="plain"
             isInline
             aria-label="Tokenizer URL help"
+            title="Tokenizer URL help"
+            aria-describedby="tokenizer-url-help"
+            role="button"
           />
         </Popover>
       }
