@@ -37,7 +37,6 @@ const LMEvalTaskSection: React.FC<LmEvalTaskSectionProps> = ({ tasks, setTasks }
         placeholder="Select the evaluation to perform"
         noSelectedOptionsMessage="No tasks selected"
         listTestId="tasks-dropdown-list"
-        toggleTestId="tasks-dropdown-toggle"
       />
       <FormHelperText>
         <HelperText>

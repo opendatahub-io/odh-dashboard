@@ -283,6 +283,7 @@ const LMEvalForm: React.FC = () => {
                   isFullWidth
                   ref={toggleRef}
                   aria-label="Options menu"
+                  data-testid="model-type-toggle"
                   onClick={() => setOpen(!open)}
                   isExpanded={open}
                 >

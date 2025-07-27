@@ -1,6 +1,6 @@
 import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
 import { InferenceServiceModel } from '#~/api/models';
-import { lmEvalFormPage } from '#~/__tests__/cypress/cypress/pages/lmEval/lmEval';
+import { lmEvalFormPage } from '#~/__tests__/cypress/cypress/pages/lmEval/lmEvalFormPage';
 import { createVLLMInferenceService, setupBasicMocks } from './lmEvalTestUtils';
 
 describe('LMEval Form', () => {

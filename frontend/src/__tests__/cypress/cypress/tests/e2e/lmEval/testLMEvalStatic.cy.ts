@@ -1,5 +1,5 @@
 import { lmEvalPage } from '#~/__tests__/cypress/cypress/pages/lmEval/lmEvalPage';
-import { lmEvalFormPage } from '#~/__tests__/cypress/cypress/pages/lmEval/lmEval';
+import { lmEvalFormPage } from '#~/__tests__/cypress/cypress/pages/lmEval/lmEvalFormPage';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '#~/__tests__/cypress/cypress/utils/e2eUsers';
 import {
   createModelTestSetup,
@@ -89,7 +89,7 @@ describe(
 
         // Verify page accessibility
         cy.step('Verify page accessibility');
-        lmEvalPage.testA11y();
+        lmEvalFormPage.testA11y();
 
         cy.step(
           `Fill in evaluation form fields for new job '${

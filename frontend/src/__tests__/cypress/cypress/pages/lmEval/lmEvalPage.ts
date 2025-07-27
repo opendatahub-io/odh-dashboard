@@ -32,10 +32,6 @@ class LMEvalPage {
     return cy.findByTestId('evaluate-model-button');
   }
 
-  filterByName(name: string) {
-    cy.findByRole('textbox', { name: 'Filter by name' }).type(name);
-  }
-
   findCreateProjectButton() {
     return cy.findByTestId('create-data-science-project');
   }
@@ -124,22 +120,6 @@ class LMEvalPage {
 
   findEvaluationTableRows() {
     return cy.get('[data-label="Evaluation"]');
-  }
-
-  testA11y() {
-    // Disable button-name rule which is causing the accessibility violations
-    cy.injectAxe();
-    this.findLMEvaluationForm().then(($el) => {
-      cy.checkA11y($el[0], {
-        includedImpacts: ['serious', 'critical'],
-        rules: {
-          'color-contrast': { enabled: false },
-          'scrollable-region-focusable': { enabled: false },
-          label: { enabled: false },
-          'button-name': { enabled: false },
-        },
-      });
-    });
   }
 }
 
