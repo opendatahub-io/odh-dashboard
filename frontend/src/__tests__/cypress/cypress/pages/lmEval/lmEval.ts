@@ -172,8 +172,15 @@ class LMEvalFormPage {
 
   // Task selection methods
   selectTasks(taskNames: string[]) {
-    cy.findByTestId('tasks-form-group').find('button').first().click();
-    cy.findByTestId('tasks-dropdown-list').should('be.visible');
+    // Wait for the form to be fully loaded before attempting to interact
+    cy.findByTestId('tasks-form-group').should('be.visible');
+
+    // Click on the MenuToggle using test ID to open the dropdown
+    cy.findByTestId('tasks-dropdown-toggle').should('be.visible').click();
+
+    // Wait for dropdown to be visible with increased timeout for Jenkins
+    cy.findByTestId('tasks-dropdown-list', { timeout: 20000 }).should('be.visible');
+
     taskNames.forEach((taskName) => {
       cy.findByTestId('tasks-dropdown-list').find('[role="option"]').contains(taskName).click();
     });
@@ -183,7 +190,7 @@ class LMEvalFormPage {
 
   // Model type selection methods
   selectModelType(modelType: string) {
-    cy.findByTestId('model-type-form-group').find('button').first().click();
+    this.findModelTypeDropdown().click();
 
     // Wait for dropdown to be visible and handle potential timing issues
     cy.findByTestId('model-type-dropdown-list').should('be.visible');
