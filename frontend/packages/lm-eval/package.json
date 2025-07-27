@@ -19,7 +19,7 @@
     "tls": false,
     "proxy": [
       {
-        "path": "/lm-eval/api",
+        "path": "/lm-eval-api",
         "pathRewrite": "/api"
       }
     ],
@@ -29,7 +29,7 @@
     },
     "service": {
       "name": "lm-eval-ui-service",
-      "port": 8081
+      "port": 8080
     }
   }
 }
