@@ -44,7 +44,7 @@ export const checkModelRegistry = (registryName: string): Cypress.Chainable<bool
  */
 export const checkModelRegistryAvailable = (registryName: string): Cypress.Chainable<boolean> => {
   const targetNamespace = getModelRegistryNamespace();
-  const command = `oc wait --for=condition=Available modelregistry.modelregistry.opendatahub.io/${registryName} -n ${targetNamespace} --timeout=120s`;
+  const command = `oc wait --for=condition=Available modelregistry.modelregistry.opendatahub.io/${registryName} -n ${targetNamespace} --timeout=240s`;
   cy.log(`Waiting for model registry ${registryName} to be available...`);
   return cy.exec(command, { failOnNonZeroExit: false }).then((result: CommandLineResult) => {
     if (result.stdout) {
