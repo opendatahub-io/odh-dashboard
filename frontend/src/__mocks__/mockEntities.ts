@@ -35,4 +35,5 @@ export const mockEntities = ({ entities = [mockEntity({})] }: Partial<EntityList
     has_next: false,
     has_previous: false,
   },
+  relationships: {},
 });
