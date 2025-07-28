@@ -154,7 +154,7 @@ func (app *App) Routes() http.Handler {
 	healthcheckMux := http.NewServeMux()
 	healthcheckRouter := httprouter.New()
 	healthcheckRouter.GET(HealthCheckPath, app.HealthcheckHandler)
-	healthcheckMux.Handle(HealthCheckPath, app.RecoverPanic(app.EnableTelemetry(healthcheckRouter)))
+	healthcheckMux.Handle(HealthCheckPath, app.RecoverPanic(app.EnableTelemetry(app.EnableCORS(healthcheckRouter))))
 
 	// Combines the healthcheck endpoint with the rest of the routes
 	combinedMux := http.NewServeMux()
