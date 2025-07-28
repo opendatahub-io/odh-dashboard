@@ -3,7 +3,7 @@ import { Message, MessageProps } from '@patternfly/chatbot';
 
 type ChatbotMessagesListProps = {
   messageList: MessageProps[];
-  scrollRef: React.RefObject<HTMLDivElement | null>;
+  scrollRef: React.RefObject<HTMLDivElement>;
 };
 
 const ChatbotMessagesList: React.FC<ChatbotMessagesListProps> = ({ messageList, scrollRef }) => (
