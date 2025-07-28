@@ -27,8 +27,6 @@ import {
   MessageBox,
   MessageProps,
 } from '@patternfly/chatbot';
-import userAvatar from '../bgimages/user_avatar.svg';
-import botAvatar from '../bgimages/bot_avatar.svg';
 import useFetchLlamaModels from '@app/utilities/useFetchLlamaModels';
 import { ChatMessage, completeChat } from '@app/services/llamaStackService';
 import { getId } from '@app/utilities/utils';
@@ -38,6 +36,8 @@ import {
   ChatbotSourceSettingsModal,
 } from './sourceUpload/ChatbotSourceSettingsModal';
 import { ChatbotSourceUploadPanel } from './sourceUpload/ChatbotSourceUploadPanel';
+import userAvatar from '../bgimages/user_avatar.svg';
+import botAvatar from '../bgimages/bot_avatar.svg';
 import '@patternfly/chatbot/dist/css/main.css';
 
 const initialBotMessage: MessageProps = {

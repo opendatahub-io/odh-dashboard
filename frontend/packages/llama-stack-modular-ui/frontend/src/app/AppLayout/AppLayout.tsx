@@ -18,8 +18,8 @@ import {
   SkipToContent,
 } from '@patternfly/react-core';
 import { BarsIcon } from '@patternfly/react-icons';
-import logo from '../bgimages/bot_avatar.svg';
 import { IAppRoute, IAppRouteGroup, routes } from '@app/routes';
+import logo from '../bgimages/bot_avatar.svg';
 
 interface IAppLayout {
   children: React.ReactNode;
