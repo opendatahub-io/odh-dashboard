@@ -9,27 +9,27 @@ import {
 } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 
-const NotFound: React.FC = () => {
+const NotFound: React.FunctionComponent = () => {
   function GoHomeBtn() {
     const navigate = useNavigate();
     function handleClick() {
       navigate('/');
     }
-    return <Button onClick={handleClick}>Take me home</Button>;
+    return (
+      <Button onClick={handleClick}>Take me home</Button>
+    );
   }
 
   return (
     <PageSection hasBodyWrapper={false}>
-      <EmptyState titleText="404 Page not found" variant="full" icon={ExclamationTriangleIcon}>
+      <EmptyState titleText="404 Page not found" variant="full" icon={ExclamationTriangleIcon} >
         <EmptyStateBody>
           We didn&apos;t find a page that matches the address you navigated to.
-        </EmptyStateBody>
-        <EmptyStateFooter>
-          <GoHomeBtn />
-        </EmptyStateFooter>
-      </EmptyState>
+        </EmptyStateBody><EmptyStateFooter>
+        <GoHomeBtn />
+      </EmptyStateFooter></EmptyState>
     </PageSection>
-  );
+  )
 };
 
-export default NotFound;
+export { NotFound };
