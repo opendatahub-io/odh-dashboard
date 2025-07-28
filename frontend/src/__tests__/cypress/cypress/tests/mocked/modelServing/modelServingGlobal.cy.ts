@@ -984,6 +984,7 @@ describe('Model Serving Global', () => {
     modelServingGlobal.getModelMetricLink('Test Inference Service').click();
     cy.findByTestId('app-page-title').should('have.text', 'Test Inference Service metrics');
   });
+
   it('Display the version label and status label correctly', () => {
     const servingRuntimeWithLatestVersion = mockServingRuntimeK8sResource({
       namespace: 'test-project',
@@ -1130,6 +1131,7 @@ describe('Model Serving Global', () => {
     it('Sort model by last deployed', () => {
       const inferenceServiceNew = mockInferenceServiceK8sResource({
         namespace: 'test-project',
+        name: 'new-model',
         displayName: 'New Model',
         modelName: 'test-inference-service-latest',
         lastTransitionTime: '2025-07-10T12:12:41Z',
@@ -1138,6 +1140,7 @@ describe('Model Serving Global', () => {
       });
       const inferenceServiceOld = mockInferenceServiceK8sResource({
         namespace: 'test-project',
+        name: 'old-model',
         displayName: 'Old Model',
         modelName: 'test-inference-service-outdated',
         lastTransitionTime: '2024-09-04T16:12:41Z',
@@ -1166,6 +1169,7 @@ describe('Model Serving Global', () => {
         { length: totalItems },
         (_, i) =>
           mockInferenceServiceK8sResource({
+            name: `test-inference-service-${i}`,
             displayName: `Test Inference Service-${i}`,
           }),
       );
