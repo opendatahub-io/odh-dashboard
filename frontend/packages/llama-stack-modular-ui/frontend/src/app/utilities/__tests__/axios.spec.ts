@@ -1,5 +1,5 @@
-import axiosInstance from '@app/utilities/axios';
 import { authService } from '@app/services/authService';
+import axiosInstance from '@app/utilities/axios';
 
 // Mock the authService
 jest.mock('@app/services/authService', () => ({

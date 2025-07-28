@@ -31,9 +31,9 @@ const routes: AppRouteConfig[] = [
   },
 ];
 
-const flattenedRoutes: IAppRoute[] = routes.reduce(
+const flattenedRoutes: IAppRoute[] = routes.reduce<IAppRoute[]>(
   (flattened, route) => [...flattened, ...(route.routes ? route.routes : [route])],
-  [] as IAppRoute[],
+  [],
 );
 
 const AppRoutes = (): React.ReactElement => (

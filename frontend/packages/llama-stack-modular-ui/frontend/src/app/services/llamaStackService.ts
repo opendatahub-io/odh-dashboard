@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
 import type { Model as LlamaModel } from 'llama-stack-client/resources/models';
-import axios from '../utilities/axios';
+import axios from '~/app/utilities/axios';
 
 // Roles must be 'user' and 'assistant' according to the Llama Stack API
 type ChatMessage = {

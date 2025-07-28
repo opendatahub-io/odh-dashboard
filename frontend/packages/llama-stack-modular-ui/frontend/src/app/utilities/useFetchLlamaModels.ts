@@ -1,6 +1,6 @@
 import * as React from 'react';
 import type { Model as LlamaModel } from 'llama-stack-client/resources/models';
-import { listModels } from '../services/llamaStackService';
+import { listModels } from '~/app/services/llamaStackService';
 
 const useFetchLlamaModels = (): {
   models: LlamaModel[];
@@ -21,7 +21,7 @@ const useFetchLlamaModels = (): {
 
       setModels(modelList);
     } catch (err) {
-      setError('Failed to fetch models');
+      setError(`Failed to fetch models; ${err}`);
     } finally {
       setLoading(false);
     }

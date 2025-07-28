@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 /* eslint-disable camelcase */
+import { authService } from '@app/services/authService';
 import { mockLlamaModels } from '~/src/__mocks__/llamaStackModels';
 import axios from '@app/utilities/axios';
-import { authService } from '@app/services/authService';
 import { listModels, completeChat, type ChatMessage } from '@app/services/llamaStackService';
 
 // Mock axios

@@ -16,9 +16,9 @@ import {
   PageSidebarBody,
   SkipToContent,
 } from '@patternfly/react-core';
-import { IAppRoute, IAppRouteGroup, routes } from '@app/routes';
 import { BarsIcon } from '@patternfly/react-icons';
-import logo from '../bgimages/bot_avatar.svg';
+import logo from '~/app/bgimages/bot_avatar.svg';
+import { IAppRoute, IAppRouteGroup, routes } from '@app/routes';
 
 interface IAppLayout {
   children: React.ReactNode;
@@ -51,7 +51,11 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
   const renderNavItem = (route: IAppRoute, idx: number) => {
     const navItemId = `nav-item-${route.path.replace(/[^\w-]/g, '')}`;
     return (
-      <NavItem key={`${idx}-${route.path}`} id={navItemId} isActive={route.path === location.pathname}>
+      <NavItem
+        key={`${idx}-${route.path}`}
+        id={navItemId}
+        isActive={route.path === location.pathname}
+      >
         <NavLink to={route.path}>{route.label}</NavLink>
       </NavItem>
     );
@@ -70,7 +74,8 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
     <Nav id="nav-primary-simple">
       <NavList id="nav-list-simple">
         {routes.map(
-          (route, idx) => route.label && (!route.routes ? renderNavItem(route, idx) : renderNavGroup(route, idx)),
+          (route, idx) =>
+            route.label && (!route.routes ? renderNavItem(route, idx) : renderNavGroup(route, idx)),
         )}
       </NavList>
     </Nav>

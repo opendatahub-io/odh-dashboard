@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-unnecessary-condition */
 import * as React from 'react';
 import {
   Alert,
@@ -25,14 +26,17 @@ import {
   MessageBox,
   MessageProps,
 } from '@patternfly/chatbot';
+import userAvatar from '~/app/bgimages/user_avatar.svg';
+import botAvatar from '~/app/bgimages/bot_avatar.svg';
 import useFetchLlamaModels from '@app/utilities/useFetchLlamaModels';
-import { ChatbotMessages } from './ChatbotMessagesList';
 import { ChatMessage, completeChat } from '@app/services/llamaStackService';
-import { ChatbotSourceSettings, ChatbotSourceSettingsModal } from './sourceUpload/ChatbotSourceSettingsModal';
-import { ChatbotSourceUploadPanel } from './sourceUpload/ChatbotSourceUploadPanel';
 import { getId } from '@app/utilities/utils';
-import userAvatar from '../bgimages/user_avatar.svg';
-import botAvatar from '../bgimages/bot_avatar.svg';
+import { ChatbotMessages } from './ChatbotMessagesList';
+import {
+  ChatbotSourceSettings,
+  ChatbotSourceSettingsModal,
+} from './sourceUpload/ChatbotSourceSettingsModal';
+import { ChatbotSourceUploadPanel } from './sourceUpload/ChatbotSourceUploadPanel';
 import '@patternfly/chatbot/dist/css/main.css';
 
 const initialBotMessage: MessageProps = {
@@ -52,7 +56,8 @@ const ChatbotMain: React.FunctionComponent = () => {
   const [isSourceSettingsOpen, setIsSourceSettingsOpen] = React.useState(false);
   const [messages, setMessages] = React.useState<MessageProps[]>([initialBotMessage]);
   const [selectedSource, setSelectedSource] = React.useState<File[]>([]);
-  const [selectedSourceSettings, setSelectedSourceSettings] = React.useState<ChatbotSourceSettings | null>(null);
+  const [selectedSourceSettings, setSelectedSourceSettings] =
+    React.useState<ChatbotSourceSettings | null>(null);
   const [showPopover, setShowPopover] = React.useState(false);
   const [showSuccessAlert, setShowSuccessAlert] = React.useState(false);
   const scrollToBottomRef = React.useRef<HTMLDivElement>(null);
@@ -90,8 +95,8 @@ const ChatbotMain: React.FunctionComponent = () => {
       onTimeout={() => setShowSuccessAlert(false)}
     >
       <p>
-        This source must be chunked and embedded before it is available for retrieval. This may take a few minutes
-        depending on the size.
+        This source must be chunked and embedded before it is available for retrieval. This may take
+        a few minutes depending on the size.
       </p>
     </Alert>
   ) : (
@@ -219,7 +224,7 @@ const ChatbotMain: React.FunctionComponent = () => {
           onSubmitSettings={handleSourceSettingsSubmit}
         />
       )}
-      <Drawer isExpanded={true} isInline={true} position="right">
+      <Drawer isExpanded isInline position="right">
         <DrawerContent
           panelContent={
             <ChatbotSourceUploadPanel
@@ -232,7 +237,9 @@ const ChatbotMain: React.FunctionComponent = () => {
             />
           }
         >
-          <DrawerContentBody style={{ overflowY: 'hidden', display: 'flex', flexDirection: 'column' }}>
+          <DrawerContentBody
+            style={{ overflowY: 'hidden', display: 'flex', flexDirection: 'column' }}
+          >
             <Chatbot displayMode={displayMode} data-testid="chatbot">
               <ChatbotHeader>
                 <ChatbotHeaderMain>
@@ -240,7 +247,11 @@ const ChatbotMain: React.FunctionComponent = () => {
                     <Title headingLevel="h1" size="xl" style={{ fontWeight: 'bold' }}>
                       Chatbot
                     </Title>
-                    <Label variant="outline" color="blue" style={{ marginLeft: 'var(--pf-t--global--spacer--sm)' }}>
+                    <Label
+                      variant="outline"
+                      color="blue"
+                      style={{ marginLeft: 'var(--pf-t--global--spacer--sm)' }}
+                    >
                       {modelId}
                     </Label>
                   </ChatbotHeaderTitle>
@@ -248,7 +259,10 @@ const ChatbotMain: React.FunctionComponent = () => {
               </ChatbotHeader>
               <ChatbotContent>
                 <MessageBox position="bottom">
-                  <ChatbotWelcomePrompt title="Hello, User!" description="Ask a question to chat with your model" />
+                  <ChatbotWelcomePrompt
+                    title="Hello, User!"
+                    description="Ask a question to chat with your model"
+                  />
                   <ChatbotMessages messageList={messages} scrollRef={scrollToBottomRef} />
                 </MessageBox>
               </ChatbotContent>
