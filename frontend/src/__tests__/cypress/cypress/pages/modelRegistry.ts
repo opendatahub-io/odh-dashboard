@@ -177,8 +177,14 @@ class ModelRegistry {
   }
 
   findSelectModelRegistry(registryName: string) {
-    this.findModelRegistry().click();
-    cy.findByTestId(registryName).click();
+    // Check if the registry is already selected
+    this.findModelRegistry().then(($dropdown) => {
+      if (!$dropdown.text().includes(registryName)) {
+        // Registry is not selected, perform click actions
+        this.findModelRegistry().click();
+        cy.findByTestId(registryName).click();
+      }
+    });
     return this;
   }
 
@@ -264,6 +270,23 @@ class ModelRegistry {
 
   findEmptyStateNonAdminHelpButton() {
     return cy.findByRole('button', { name: "Who's my administrator?" });
+  }
+
+  // handle both empty and non-empty registry states
+  clickRegisterModel(timeout?: number) {
+    // Wait for either the empty state or the models view to be ready
+    cy.get('body').should('contain.text', 'Register model');
+
+    return cy.get('body').then(($body) => {
+      if ($body.find('[data-testid="empty-model-registry-primary-action"]').length > 0) {
+        // Registry is empty, use empty state button
+        cy.log('Found empty registry button, clicking it');
+        return this.findEmptyRegisterModelButton(timeout).click();
+      }
+      // Registry has models, use regular register button
+      cy.log('Empty registry button not found, using regular register button');
+      return this.findRegisterModelButton(timeout).click();
+    });
   }
 }
 
