@@ -1,4 +1,5 @@
 /* eslint-disable camelcase */
+/* eslint-disable no-relative-import-paths/no-relative-import-paths */
 import type { Model as LlamaModel } from 'llama-stack-client/resources/models';
 import axios from '../utilities/axios';
 

@@ -1,3 +1,4 @@
+/* eslint-disable no-relative-import-paths/no-relative-import-paths */
 import * as React from 'react';
 import type { Model as LlamaModel } from 'llama-stack-client/resources/models';
 import { listModels } from '../services/llamaStackService';
