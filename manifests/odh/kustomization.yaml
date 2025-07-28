@@ -37,4 +37,3 @@ vars:
       fieldpath: data.dashboard-url
 configurations:
   - params.yaml
-namespace: opendatahub
