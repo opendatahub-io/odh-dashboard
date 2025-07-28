@@ -243,6 +243,14 @@ class InferenceServiceModal extends ServingModal {
     return this.find().findByTestId('service-account-form-name');
   }
 
+  findSpecificServiceAccountNameInput(index: number) {
+    return this.find().findAllByTestId('service-account-form-name').eq(index);
+  }
+
+  findAddServiceAccountButton() {
+    return this.find().findByTestId('add-service-account-button');
+  }
+
   findExistingConnectionSelect() {
     return this.find().findByTestId('typeahead-menu-toggle');
   }
