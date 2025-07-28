@@ -48,36 +48,29 @@ const TruncatedText: React.FC<TruncatedTextProps> = ({
     </span>
   );
 
-  const truncateToolTip = (
-    <span
-      {...props}
-      style={{
-        display: '-webkit-box',
-        WebkitBoxOrient: 'vertical',
-        overflowWrap: 'anywhere',
-        overflow: 'hidden',
-        WebkitLineClamp: tooltipMaxLines,
-        ...(props.style || {}),
-      }}
-      ref={outerElementRef}
-      onMouseEnter={(e) => {
-        props.onMouseEnter?.(e);
-        updateTruncation();
-      }}
-      onFocus={(e) => {
-        props.onFocus?.(e);
-        updateTruncation();
-      }}
-    >
-      <span ref={textElementRef}>{content}</span>
-    </span>
-  );
+  const tooltipContent = (() => {
+    if (!tooltipMaxLines) {
+      return content;
+    }
+
+    return (
+      <div
+        style={{
+          display: '-webkit-box',
+          WebkitBoxOrient: 'vertical',
+          overflowWrap: 'anywhere',
+          overflow: 'hidden',
+          WebkitLineClamp: tooltipMaxLines,
+          pointerEvents: 'none',
+        }}
+      >
+        {content}
+      </div>
+    );
+  })();
 
   return (
-    <Tooltip
-      hidden={!isTruncated ? true : undefined}
-      content={tooltipMaxLines ? truncateToolTip : content}
-    >
+    <Tooltip hidden={!isTruncated ? true : undefined} content={tooltipContent}>
       {truncateBody}
     </Tooltip>
   );
