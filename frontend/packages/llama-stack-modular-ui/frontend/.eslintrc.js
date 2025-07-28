@@ -1,5 +1,6 @@
 module.exports = {
   parser: '@typescript-eslint/parser',
+  root: true,
   env: {
     browser: true,
     node: true,
@@ -154,7 +155,16 @@ module.exports = {
           },
         ],
         pathGroupsExcludedImportTypes: ['builtin'],
-        groups: ['builtin', 'external', 'internal', 'index', 'sibling', 'parent', 'object', 'unknown'],
+        groups: [
+          'builtin',
+          'external',
+          'internal',
+          'index',
+          'sibling',
+          'parent',
+          'object',
+          'unknown',
+        ],
       },
     ],
     'no-restricted-properties': [
@@ -201,11 +211,13 @@ module.exports = {
       'error',
       {
         name: 'isFinite',
-        message: 'Use Number.isFinite instead https://github.com/airbnb/javascript#standard-library--isfinite',
+        message:
+          'Use Number.isFinite instead https://github.com/airbnb/javascript#standard-library--isfinite',
       },
       {
         name: 'isNaN',
-        message: 'Use Number.isNaN instead https://github.com/airbnb/javascript#standard-library--isnan',
+        message:
+          'Use Number.isNaN instead https://github.com/airbnb/javascript#standard-library--isnan',
       },
     ],
     'no-sequences': 'error',
@@ -265,103 +277,12 @@ module.exports = {
             patterns: [
               {
                 group: ['@patternfly/**'],
-                message: 'Cypress tests should only import mocks and types from outside the Cypress test directory.',
-              },
-            ],
-          },
-        ],
-      },
-    },
-    {
-      files: ['src/__tests__/cypress/**/*.js'],
-      parser: 'espree',
-      parserOptions: {
-        ecmaVersion: 'latest',
-        sourceType: 'script',
-      },
-      env: {
-        node: true,
-      },
-      rules: {
-        '@typescript-eslint/consistent-type-imports': 'off',
-        '@typescript-eslint/explicit-module-boundary-types': 'off',
-        '@typescript-eslint/no-unused-vars': 'off',
-        '@typescript-eslint/no-var-requires': 'off',
-        '@typescript-eslint/no-require-imports': 'off',
-        '@typescript-eslint/dot-notation': 'off',
-        '@typescript-eslint/default-param-last': 'off',
-        '@typescript-eslint/method-signature-style': 'off',
-        '@typescript-eslint/naming-convention': 'off',
-        '@typescript-eslint/no-unused-expressions': 'off',
-        '@typescript-eslint/no-redeclare': 'off',
-        '@typescript-eslint/no-shadow': 'off',
-        '@typescript-eslint/return-await': 'off',
-        '@typescript-eslint/no-base-to-string': 'off',
-        '@typescript-eslint/no-empty-function': 'off',
-        '@typescript-eslint/no-inferrable-types': 'off',
-        '@typescript-eslint/no-unnecessary-condition': 'off',
-      },
-    },
-    {
-      files: ['./src/__tests__/cypress/**/*.ts'],
-      parserOptions: {
-        project: ['./src/__tests__/cypress/tsconfig.json'],
-      },
-      extends: [
-        'eslint:recommended',
-        'plugin:react/recommended',
-        'plugin:@typescript-eslint/recommended',
-        'plugin:prettier/recommended',
-        'prettier',
-        'plugin:cypress/recommended',
-      ],
-    },
-    {
-      files: ['src/__tests__/cypress/**'],
-      rules: {
-        '@typescript-eslint/consistent-type-imports': 'error',
-        'no-restricted-imports': [
-          'error',
-          {
-            patterns: [
-              {
-                group: ['@patternfly/**'],
                 message:
                   'Cypress tests should only import mocks and types from outside the Cypress test directory.',
               },
             ],
           },
         ],
-      },
-    },
-    {
-      files: ['src/__tests__/cypress/**/*.js'],
-      parser: 'espree',
-      parserOptions: {
-        ecmaVersion: 'latest',
-        sourceType: 'script',
-      },
-      env: {
-        node: true,
-      },
-      rules: {
-        '@typescript-eslint/consistent-type-imports': 'off',
-        '@typescript-eslint/explicit-module-boundary-types': 'off',
-        '@typescript-eslint/no-unused-vars': 'off',
-        '@typescript-eslint/no-var-requires': 'off',
-        '@typescript-eslint/no-require-imports': 'off',
-        '@typescript-eslint/dot-notation': 'off',
-        '@typescript-eslint/default-param-last': 'off',
-        '@typescript-eslint/method-signature-style': 'off',
-        '@typescript-eslint/naming-convention': 'off',
-        '@typescript-eslint/no-unused-expressions': 'off',
-        '@typescript-eslint/no-redeclare': 'off',
-        '@typescript-eslint/no-shadow': 'off',
-        '@typescript-eslint/return-await': 'off',
-        '@typescript-eslint/no-base-to-string': 'off',
-        '@typescript-eslint/no-empty-function': 'off',
-        '@typescript-eslint/no-inferrable-types': 'off',
-        '@typescript-eslint/no-unnecessary-condition': 'off',
       },
     },
   ],
