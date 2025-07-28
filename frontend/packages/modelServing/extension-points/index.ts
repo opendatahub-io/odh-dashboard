@@ -94,6 +94,7 @@ export type ModelServingPlatformExtension<D extends Deployment = Deployment> = E
     backport?: {
       ModelsProjectDetailsTab?: ComponentCodeRef;
       ServeModelsSection?: ComponentCodeRef;
+      GlobalModelsPage?: ComponentCodeRef;
     };
   }
 >;
