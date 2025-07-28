@@ -1,0 +1,103 @@
+import { SortableData } from '#~/components/table/types.ts';
+import { Entity } from '#~/pages/featureStore/types/entities';
+
+export const columns: SortableData<Entity>[] = [
+  {
+    field: 'spec.name',
+    label: 'Entities',
+    width: 50,
+    sortable: (a, b): number => a.spec.name.localeCompare(b.spec.name),
+  },
+  {
+    field: 'spec.tags',
+    label: 'Tags',
+    width: 40,
+    sortable: false,
+  },
+  {
+    field: 'spec.joinKey',
+    label: 'Join key',
+    width: 25,
+    sortable: (a, b): number => (a.spec.joinKey || '').localeCompare(b.spec.joinKey || ''),
+    info: {
+      popover:
+        'A join key is the field used to match feature data to your training or inference dataset. Features that share a join key can be retrieved together during model training or online inference.',
+      popoverProps: {
+        position: 'left',
+      },
+    },
+  },
+  {
+    field: 'spec.valueType',
+    label: 'Value type',
+    // width: 10,
+    sortable: (a, b): number => (a.spec.valueType || '').localeCompare(b.spec.valueType || ''),
+    info: {
+      popover:
+        'The data type of the join key (also called the entity ID). It must match the type used in your training and inference data.',
+      popoverProps: {
+        position: 'left',
+      },
+    },
+  },
+  {
+    field: 'relationships',
+    label: 'Feature views',
+    // width: 10,
+    sortable: false,
+    info: {
+      popover:
+        'The total number of feature views that are configured to pull features from data sources within this entity. A feature view defines a group of related features and how to retrieve them from a source. ',
+      popoverProps: {
+        position: 'left',
+      },
+    },
+  },
+  {
+    field: 'meta.createdTimestamp',
+    label: 'Created',
+    // width: 10,
+    sortable: (a, b): number =>
+      (a.meta.createdTimestamp || '').localeCompare(b.meta.createdTimestamp || ''),
+  },
+  {
+    field: 'meta.lastUpdatedTimestamp',
+    label: 'Last modified',
+    // width: 10,
+    sortable: (a, b): number =>
+      (a.meta.lastUpdatedTimestamp || '').localeCompare(b.meta.lastUpdatedTimestamp || ''),
+  },
+  {
+    field: 'spec.owner',
+    label: 'Owner',
+    // width: 10,
+    sortable: (a, b): number => (a.spec.owner || '').localeCompare(b.spec.owner || ''),
+  },
+];
+
+export const AllProjectColumns: SortableData<Entity>[] = [
+  ...columns,
+  {
+    field: 'project',
+    label: 'Project',
+    width: 25,
+    sortable: (a, b): number => (a.project || '').localeCompare(b.project || ''),
+  },
+];
+
+export const entityTableFilterOptions = (
+  currentProject: string | undefined,
+): Record<string, string> => ({
+  entity: 'Entity',
+  joinKey: 'Join key',
+  valueType: 'Value type',
+  owner: 'Owner',
+  tag: 'Tag',
+  featureViews: 'Feature Views',
+  ...(currentProject ? {} : { project: 'Project' }),
+});
+
+export enum EntityDetailsTab {
+  DETAILS = 'Details',
+  FEATURE_VIEWS = 'Feature Views',
+}
