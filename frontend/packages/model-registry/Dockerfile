@@ -3,9 +3,9 @@ ARG UI_SOURCE_CODE=./upstream/frontend
 ARG BFF_SOURCE_CODE=./upstream/bff
 
 # Set the base images for the build stages
-ARG NODE_BASE_IMAGE=node:20
-ARG GOLANG_BASE_IMAGE=golang:1.24.3
-ARG DISTROLESS_BASE_IMAGE=gcr.io/distroless/static:nonroot
+ARG NODE_BASE_IMAGE=registry.access.redhat.com/ubi9/nodejs-20:latest
+ARG GOLANG_BASE_IMAGE=registry.access.redhat.com/ubi9/go-toolset:1.24
+ARG DISTROLESS_BASE_IMAGE=registry.redhat.io/ubi9-minimal:latest
 
 # UI build stage
 FROM ${NODE_BASE_IMAGE} AS ui-builder
