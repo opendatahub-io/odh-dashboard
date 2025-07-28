@@ -30,6 +30,7 @@ describe('useFeatureStoreEntities', () => {
       has_next: false,
       has_previous: false,
     },
+    relationships: {},
   };
 
   beforeEach(() => {
