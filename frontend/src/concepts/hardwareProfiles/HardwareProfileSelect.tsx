@@ -341,7 +341,6 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
                     <HelperTextItem>
                       <TruncatedText
                         maxLines={2}
-                        tooltipMaxLines={30}
                         content={
                           getHardwareProfileDescription(hardwareProfileConfig.selectedProfile) ||
                           (hardwareProfileConfig.selectedProfile.spec.identifiers &&
