@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-unnecessary-condition */
+/* eslint-disable no-relative-import-paths/no-relative-import-paths */
 import * as React from 'react';
 import {
   Alert,
@@ -26,8 +27,8 @@ import {
   MessageBox,
   MessageProps,
 } from '@patternfly/chatbot';
-import userAvatar from '~/app/bgimages/user_avatar.svg';
-import botAvatar from '~/app/bgimages/bot_avatar.svg';
+import userAvatar from '../bgimages/user_avatar.svg';
+import botAvatar from '../bgimages/bot_avatar.svg';
 import useFetchLlamaModels from '@app/utilities/useFetchLlamaModels';
 import { ChatMessage, completeChat } from '@app/services/llamaStackService';
 import { getId } from '@app/utilities/utils';

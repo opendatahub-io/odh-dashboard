@@ -1,3 +1,4 @@
+/* eslint-disable no-relative-import-paths/no-relative-import-paths */
 import * as React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
@@ -17,7 +18,7 @@ import {
   SkipToContent,
 } from '@patternfly/react-core';
 import { BarsIcon } from '@patternfly/react-icons';
-import logo from '~/app/bgimages/bot_avatar.svg';
+import logo from '../bgimages/bot_avatar.svg';
 import { IAppRoute, IAppRouteGroup, routes } from '@app/routes';
 
 interface IAppLayout {
