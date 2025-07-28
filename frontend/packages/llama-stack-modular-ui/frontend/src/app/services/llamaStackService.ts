@@ -13,7 +13,7 @@ export const listModels = (): Promise<LlamaModel[]> => {
   const url = '/api/llama-stack/models/list';
   return axios
     .get(url)
-    .then((response) => response.data as LlamaModel[])
+    .then((response) => response.data)
     .catch((error) => {
       throw new Error(error.response.data.message || 'Failed to fetch models');
     });
