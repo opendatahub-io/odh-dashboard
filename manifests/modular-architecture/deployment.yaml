@@ -1,5 +1,5 @@
 - op: add
-  path: /spec/template/spec/containers/0/env/-
+  path: /spec/template/spec/containers/0/env
   value:
     name: MODULE_FEDERATION_CONFIG
     valueFrom:
