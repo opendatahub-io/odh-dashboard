@@ -12,6 +12,7 @@ objectStorageEndpoint: "http://minio.example.com:9000"
 objectStorageBucket: "test-models"
 objectStorageRegion: "us-east-1"
 objectStoragePath: "models/test-model/v1.0"
+modelOpenVinoPath: "kserve-openvino-test/openvino-example-model"
 
 # Second model (URI)
 uriModelName: "test-uri-model"
