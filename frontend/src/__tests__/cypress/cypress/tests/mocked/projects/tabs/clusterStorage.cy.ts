@@ -357,12 +357,6 @@ describe('ClusterStorage', () => {
   });
 
   it('Add cluster storage with model storage', () => {
-    cy.interceptOdh(
-      'GET /api/config',
-      mockDashboardConfig({
-        disablePVCServing: false,
-      }),
-    );
     initInterceptors({ isEmpty: true });
     storageClassesPage.mockGetStorageClasses([
       openshiftDefaultStorageClass,
@@ -406,17 +400,11 @@ describe('ClusterStorage', () => {
       openshiftDefaultStorageClass,
       buildMockStorageClass(otherStorageClass, { isEnabled: true }),
     ]);
-    cy.interceptOdh(
-      'GET /api/config',
-      mockDashboardConfig({
-        disablePVCServing: false,
-      }),
-    );
     clusterStorage.visit('test-project');
     const modelStorageRow = clusterStorage.getClusterStorageRow('Model Storage');
     modelStorageRow.findStorageTypeColumn().should('contain.text', 'Model storage');
     const genericStorageRow = clusterStorage.getClusterStorageRow('Test Storage');
-    genericStorageRow.findStorageTypeColumn().should('contain.text', 'Generic persistent storage');
+    genericStorageRow.findStorageTypeColumn().should('contain.text', 'General purpose');
   });
 
   it('Should prefill model storage pvc with name and path on edit', () => {
@@ -425,12 +413,6 @@ describe('ClusterStorage', () => {
       openshiftDefaultStorageClass,
       buildMockStorageClass(otherStorageClass, { isEnabled: true }),
     ]);
-    cy.interceptOdh(
-      'GET /api/config',
-      mockDashboardConfig({
-        disablePVCServing: false,
-      }),
-    );
     clusterStorage.visit('test-project');
     const modelStorageRow = clusterStorage.getClusterStorageRow('Model Storage');
     modelStorageRow.findKebabAction('Edit storage').click();
@@ -450,7 +432,7 @@ describe('ClusterStorage', () => {
     clusterStorage.visit('test-project');
     const clusterStorageRow = clusterStorage.getClusterStorageRow('Test Storage');
     clusterStorageRow.findStorageClassColumn().should('not.exist');
-    clusterStorageRow.shouldHaveStorageTypeValue('Generic persistent storage');
+    clusterStorageRow.shouldHaveStorageTypeValue('General purpose');
     clusterStorageRow.findConnectedResources().should('have.text', '');
     clusterStorageRow.findSizeColumn().contains('5GiB');
 

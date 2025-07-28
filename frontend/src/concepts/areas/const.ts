@@ -16,7 +16,6 @@ export const devTemporaryFeatureFlags = {
   disableKueue: true,
   disableFeatureStore: true,
   disableLlamaStackChatBot: true, // internal dev only
-  disablePVCServing: true,
   disableProjectScoped: true,
 } satisfies Partial<DashboardCommonConfig>;
 
@@ -146,9 +145,6 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   [SupportedArea.MODEL_SERVING]: {
     featureFlags: ['disableModelServing'],
   },
-  [SupportedArea.PVCSERVING]: {
-    featureFlags: ['disablePVCServing'],
-  },
   [SupportedArea.USER_MANAGEMENT]: {
     featureFlags: ['disableUserManagement'],
   },
@@ -220,7 +216,7 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.FEATURE_STORE]: {
     featureFlags: ['disableFeatureStore'],
-    requiredComponents: [StackComponent.FEAST_OPERATOR],
+    // requiredComponents: [StackComponent.FEAST_OPERATOR], // TODO: Enable this once latest Feast operator is released .
   },
 };
 

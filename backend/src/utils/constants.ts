@@ -83,7 +83,6 @@ export const blankDashboardCR: DashboardConfig = {
       disableFineTuning: true,
       disableKueue: true,
       disableLMEval: true,
-      disablePVCServing: true,
     },
     notebookController: {
       enabled: true,

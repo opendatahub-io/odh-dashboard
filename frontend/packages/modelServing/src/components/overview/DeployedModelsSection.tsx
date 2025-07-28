@@ -31,6 +31,7 @@ import ResourceNameTooltip from '@odh-dashboard/internal/components/ResourceName
 import { useExtensions } from '@odh-dashboard/plugin-core';
 import { ModelDeploymentsContext } from '../../concepts/ModelDeploymentsContext';
 import { useProjectServingPlatform } from '../../concepts/useProjectServingPlatform';
+import DeployedModelsDetails from '../deployments/DeployedModelsVersion';
 import { Deployment, isModelServingPlatformExtension } from '../../../extension-points';
 import DeploymentStatus from '../deployments/DeploymentStatus';
 
@@ -87,9 +88,7 @@ const DeployedModelCard: React.FC<{ deployment: Deployment }> = ({ deployment })
                   fontSize: 'var(--pf-t--global--font--size--body--sm)',
                 }}
               >
-                {deployment.server?.metadata.annotations?.[
-                  'opendatahub.io/template-display-name'
-                ] ?? '-'}
+                <DeployedModelsDetails deployment={deployment} />
               </Content>
             </Content>
           </Content>

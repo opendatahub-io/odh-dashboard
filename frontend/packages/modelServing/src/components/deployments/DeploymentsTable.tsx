@@ -23,6 +23,11 @@ const genericColumns: SortableData<Deployment>[] = [
   },
   // Platform specific columns go here
   {
+    field: 'servingRuntime',
+    label: 'Serving runtime',
+    sortable: false,
+  },
+  {
     label: 'Inference endpoint',
     field: 'inferenceEndpoint',
     sortable: false,

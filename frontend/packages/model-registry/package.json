@@ -28,8 +28,8 @@
       "port": 9000
     },
     "service": {
-      "name": "model-registry-ui-service",
-      "port": 8080
+      "name": "odh-dashboard",
+      "port": 8043
     }
   }
 }

@@ -628,6 +628,11 @@ export type RouteKind = K8sResourceCommon & {
     port: {
       targetPort: string;
     };
+    to?: {
+      kind: string;
+      name: string;
+      weight: number;
+    };
   };
 };
 
@@ -1267,7 +1272,6 @@ export type DashboardCommonConfig = {
   disableLlamaStackChatBot: boolean;
   disableLMEval: boolean;
   disableKueue: boolean;
-  disablePVCServing: boolean;
   disableFeatureStore?: boolean;
 };
 

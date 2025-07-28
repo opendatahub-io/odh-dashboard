@@ -78,7 +78,6 @@ const CreateNewStorageSection = <D extends StorageData>({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clusterStorageNameDesc, isValidModelPath]);
 
-  const isPVCServingEnabled = useIsAreaAvailable(SupportedArea.PVCSERVING).status;
   return (
     <FormSection>
       <K8sNameDescriptionField
@@ -123,16 +122,15 @@ const CreateNewStorageSection = <D extends StorageData>({
           />
         </>
       )}
-      {isPVCServingEnabled && (
-        <PVCContextField
-          modelName={data.modelName || ''}
-          modelPath={data.modelPath || ''}
-          setModelName={(name) => setData('modelName', name)}
-          setModelPath={(path) => setData('modelPath', path)}
-          setValid={setIsValidModelPath}
-          removeModelAnnotations={removeModelAnnotations}
-        />
-      )}
+      <PVCContextField
+        modelName={data.modelName || ''}
+        modelPath={data.modelPath || ''}
+        setModelName={(name) => setData('modelName', name)}
+        setModelPath={(path) => setData('modelPath', path)}
+        setValid={setIsValidModelPath}
+        removeModelAnnotations={removeModelAnnotations}
+      />
+
       <PVSizeField
         fieldID="create-new-storage-size"
         currentStatus={currentStatus}

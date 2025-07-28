@@ -42,6 +42,8 @@ const extensions: ModelServingPlatformExtension[] = [
           import(
             '@odh-dashboard/internal/pages/projects/screens/detail/overview/serverModels/ServeModelsSection'
           ),
+        GlobalModelsPage: () =>
+          import('@odh-dashboard/internal/pages/modelServing/ModelServingRoutes'),
       },
     },
     flags: {
@@ -87,6 +89,8 @@ const extensions: ModelServingPlatformExtension[] = [
           import(
             '@odh-dashboard/internal/pages/projects/screens/detail/overview/serverModels/ServeModelsSection'
           ),
+        GlobalModelsPage: () =>
+          import('@odh-dashboard/internal/pages/modelServing/ModelServingRoutes'),
       },
     },
     flags: {
