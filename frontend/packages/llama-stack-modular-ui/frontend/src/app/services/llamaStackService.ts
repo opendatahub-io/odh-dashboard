@@ -14,8 +14,8 @@ export const listModels = (): Promise<LlamaModel[]> => {
   return axios
     .get(url)
     .then((response) => response.data as LlamaModel[])
-    .catch((e: any) => {
-      throw new Error(e.response.data.message);
+    .catch((error) => {
+      throw new Error(error.response.data.message || 'Failed to fetch models');
     });
 };
 
