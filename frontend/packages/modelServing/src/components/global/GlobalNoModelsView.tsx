@@ -9,9 +9,6 @@ type GlobalNoModelsViewProps = {
 };
 
 export const GlobalNoModelsView: React.FC<GlobalNoModelsViewProps> = ({ project }) => (
-  // const navigate = useNavigate();
-  // const { activePlatform } = useProjectServingPlatform(project);
-
   <EmptyDetailsView
     title="No deployed models"
     description="To get started, deploy a model."
