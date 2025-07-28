@@ -76,7 +76,7 @@ describe('Verify that models and versions can be archived and restored via model
       cy.findByTestId(registryName).click();
 
       cy.step('Register a model using object storage');
-      modelRegistry.findRegisterModelButton().click();
+      modelRegistry.clickRegisterModel(30000);
 
       // Fill in model details
       registerModelPage
