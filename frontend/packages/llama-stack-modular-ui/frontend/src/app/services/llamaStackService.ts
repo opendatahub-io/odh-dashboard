@@ -1,9 +1,9 @@
 /* eslint-disable camelcase */
 import type { Model as LlamaModel } from 'llama-stack-client/resources/models';
-import axios from '~/app/utilities/axios';
+import axios from '../utilities/axios';
 
 // Roles must be 'user' and 'assistant' according to the Llama Stack API
-type ChatMessage = {
+export type ChatMessage = {
   role: 'user' | 'assistant';
   content: string;
   stop_reason?: string;
@@ -13,8 +13,8 @@ export const listModels = (): Promise<LlamaModel[]> => {
   const url = '/api/llama-stack/models/list';
   return axios
     .get(url)
-    .then((response) => response.data)
-    .catch((e) => {
+    .then((response) => response.data as LlamaModel[])
+    .catch((e: any) => {
       throw new Error(e.response.data.message);
     });
 };
