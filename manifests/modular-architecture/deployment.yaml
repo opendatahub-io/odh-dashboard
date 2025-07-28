@@ -41,7 +41,7 @@
         memory: 1Gi
     ports:
       - containerPort: 8043
-        name: https
+        name: mr-ui
     volumeMounts:
       - name: proxy-tls
         mountPath: /etc/tls/private
