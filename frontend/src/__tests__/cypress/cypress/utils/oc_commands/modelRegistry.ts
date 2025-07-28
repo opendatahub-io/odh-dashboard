@@ -46,15 +46,17 @@ export const checkModelRegistryAvailable = (registryName: string): Cypress.Chain
   const targetNamespace = getModelRegistryNamespace();
   const command = `oc wait --for=condition=Available modelregistry.modelregistry.opendatahub.io/${registryName} -n ${targetNamespace} --timeout=240s`;
   cy.log(`Waiting for model registry ${registryName} to be available...`);
-  return cy.exec(command, { failOnNonZeroExit: false }).then((result: CommandLineResult) => {
-    if (result.stdout) {
-      cy.log(`Wait result: ${result.stdout}`);
-    }
-    if (result.stderr) {
-      cy.log(`Wait stderr: ${result.stderr}`);
-    }
-    return cy.wrap(result.code === 0);
-  });
+  return cy
+    .exec(command, { failOnNonZeroExit: false, timeout: 240000 })
+    .then((result: CommandLineResult) => {
+      if (result.stdout) {
+        cy.log(`Wait result: ${result.stdout}`);
+      }
+      if (result.stderr) {
+        cy.log(`Wait stderr: ${result.stderr}`);
+      }
+      return cy.wrap(result.code === 0);
+    });
 };
 
 /**
