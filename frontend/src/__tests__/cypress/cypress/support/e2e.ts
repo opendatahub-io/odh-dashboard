@@ -117,6 +117,14 @@ Cypress.on('uncaught:exception', (err) => {
   return true;
 });
 
+// Ignore 'Unexpected token <' errors from webpack-dev-server fallback in E2E tests
+Cypress.on('uncaught:exception', (err) => {
+  if (err.message.includes("Unexpected token '<'")) {
+    return false;
+  }
+  return true;
+});
+
 // Configure grep filtering
 const grepTags = Cypress.env('grepTags') ? Cypress.env('grepTags').split(' ') : [];
 const skipTags = Cypress.env('skipTags') ? Cypress.env('skipTags').split(' ') : [];
