@@ -1,4 +1,4 @@
-import { GetEntities } from './entities';
+import { GetEntities, GetEntityByName } from './entities';
 import { GetProjects } from './featureStoreProjects';
 import { GetFeatureViews } from './featureView';
 
@@ -49,4 +49,5 @@ export type FeatureStoreAPIs = {
   listFeatureStoreProject: GetProjects;
   getEntities: GetEntities;
   getFeatureViews: GetFeatureViews;
+  getEntityByName: GetEntityByName;
 };
