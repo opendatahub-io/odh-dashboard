@@ -2,9 +2,9 @@ import React from 'react';
 import { EntityList } from '#~/pages/featureStore/types/entities';
 import { useFeatureStoreProject } from '#~/pages/featureStore/FeatureStoreContext';
 import { FeatureStoreToolbar } from '#~/pages/featureStore/components/FeatureStoreToolbar';
+import { applyEntityFilters } from '#~/pages/featureStore/screens/entities/utils';
+import { entityTableFilterOptions } from '#~/pages/featureStore/screens/entities/const';
 import FeatureStoreEntitiesTable from './FeatureStoreEntitiesTable';
-import { applyEntityFilters } from '../utils';
-import { entityTableFilterOptions } from '../const';
 
 const FeatureStoreEntitiesListView = ({
   entities,

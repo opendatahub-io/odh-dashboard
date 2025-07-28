@@ -8,7 +8,7 @@ import { Entity, EntityRelationship } from '#~/pages/featureStore/types/entities
 import FeatureStoreTags from '#~/pages/featureStore/components/FeatureStoreTags';
 import ScrollableLinksPopover from '#~/pages/featureStore/components/ScrollableLinksPopover';
 import FeatureStoreTimestamp from '#~/pages/featureStore/components/FeatureStoreTimestamp';
-import { getRelationshipsByTargetType } from '../utils';
+import { getRelationshipsByTargetType } from '#~/pages/featureStore/screens/entities/utils';
 
 type FeatureStoreEntitiesTableRowType = {
   entity: Entity;
@@ -22,9 +22,11 @@ const EntityName: React.FC<{ entity: Entity; currentProject: string | undefined 
   <TableRowTitleDescription
     title={
       <Link
-        to={`/featureStore/entities/${entity.project ? entity.project : currentProject}/${
-          entity.spec.name
-        }`}
+        to={
+          currentProject
+            ? `/featureStore/entities/${currentProject}/${entity.spec.name}`
+            : `/featureStore/entities/${entity.project || ''}/${entity.spec.name}`
+        }
         data-testid="entity-name-link"
       >
         <Truncate content={entity.spec.name} style={{ textDecoration: 'underline' }} />

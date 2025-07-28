@@ -2,9 +2,9 @@ import '#~/pages/pipelines/global/runs/GlobalPipelineRunsTabs.scss';
 import { PageSection, Tab, Tabs, TabTitleText } from '@patternfly/react-core';
 import * as React from 'react';
 import { Entity } from '#~/pages/featureStore/types/entities.ts';
+import { EntityDetailsTab } from '#~/pages/featureStore/screens/entities/const';
 import EntityDetailsView from './EntityDetailsView';
 import EntityFeatureViewsTab from './EntityFeatureViewsTab';
-import { EntityDetailsTab } from '../const';
 
 type EntityDetailsTabsProps = {
   entity: Entity;
