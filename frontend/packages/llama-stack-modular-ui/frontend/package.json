@@ -27,8 +27,8 @@
     "clean": "rimraf dist",
     "cypress:server:dev": "webpack serve --color --progress --config webpack.dev.js --port 8080 --no-open",
     "cypress:server": "cd ../bff && make run PORT=9001",
-    "cypress:open:mock": "cypress open --config-file src/__tests__/cypress/cypress.config.js",
-    "cypress:run": "cypress run -b chrome --config-file src/__tests__/cypress/cypress.config.js",
+    "cypress:open:mock": "cypress open --config-file src/__tests__/cypress/cypress.config.ts",
+    "cypress:run": "cypress run -b chrome --config-file src/__tests__/cypress/cypress.config.ts",
     "cypress:run:mock": "CY_MOCK=1 CY_WS_PORT=9002 npm run cypress:run -- ",
     "test:cypress-ci": "npx concurrently -P -k -s first \"npm run cypress:server:dev\" \"npx wait-on http://localhost:8080 && npm run cypress:run:mock\" -- "
   },
@@ -42,6 +42,7 @@
     "@testing-library/react": "^16.2.0",
     "@testing-library/user-event": "^14.6.1",
     "@types/jest": "^29.5.14",
+    "@types/react-dom": "^18",
     "@types/react-router-dom": "^5.3.3",
     "@typescript-eslint/eslint-plugin": "^8.17.0",
     "@typescript-eslint/parser": "^8.17.0",
@@ -117,5 +118,5 @@
     "eslint-plugin-react": "^7.37.2",
     "eslint-plugin-react-hooks": "^5.0.0"
   },
-  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
+  "packageManager": "npm@10.9.2"
 }

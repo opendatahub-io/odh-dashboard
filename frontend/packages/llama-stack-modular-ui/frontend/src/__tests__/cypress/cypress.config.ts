@@ -1,6 +1,6 @@
-const { defineConfig } = require('cypress');
+import { defineConfig } from 'cypress';
 
-module.exports = defineConfig({
+export default defineConfig({
   e2e: {
     baseUrl: 'http://localhost:8080',
     supportFile: 'src/__tests__/cypress/support/e2e.ts',
