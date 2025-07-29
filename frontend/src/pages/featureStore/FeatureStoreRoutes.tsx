@@ -3,13 +3,8 @@ import { Route, Routes } from 'react-router-dom';
 import FeatureStore from './FeatureStore';
 import FeatureStoreCoreLoader from './FeatureStoreCoreLoader';
 import FeatureStoreEntities from './screens/entities/FeatureStoreEntities';
-import { FeatureStoreObject } from './const';
-
-export const featureStoreRoute = (
-  featureStoreObject: FeatureStoreObject,
-  featureStoreProject?: string,
-): string =>
-  `/featureStore/${featureStoreObject}${featureStoreProject ? `/${featureStoreProject}` : ''}`;
+import FeatureViews from './screens/featureViews/FeatureViews';
+import FeatureViewDetails from './screens/featureViews/featureViewDetails/FeatureViewDetails';
 
 const FeatureStoreRoutes: React.FC = () => (
   <Routes>
@@ -23,6 +18,8 @@ const FeatureStoreRoutes: React.FC = () => (
     >
       <Route index element={<FeatureStore empty={false} />} />
       <Route path="entities/:fsProjectName?/*" element={<FeatureStoreEntities />} />
+      <Route path="featureViews/:fsProjectName?/*" element={<FeatureViews />} />
+      <Route path="featureViews/:fsProjectName/:featureViewName" element={<FeatureViewDetails />} />
     </Route>
   </Routes>
 );

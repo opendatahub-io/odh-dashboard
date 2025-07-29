@@ -1648,6 +1648,7 @@ export type FeatureStoreKind = K8sResourceCommon & {
     name: string;
     namespace: string;
     annotations?: Record<string, string>;
+    labels?: Record<string, string>;
   };
   spec: {
     feastProject: string;
