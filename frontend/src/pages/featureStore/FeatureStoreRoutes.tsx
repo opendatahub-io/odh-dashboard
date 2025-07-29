@@ -9,6 +9,7 @@ import { FeatureStoreObject } from './const';
 import EntitiesDetailsPage from './screens/entities/EntitiesDetails/EntitiesDetailsPage';
 import Features from './screens/features/Features';
 import FeatureDetails from './screens/features/featureDetails/FeatureDetails';
+import FeatureServices from './screens/featureServices/FeatureServices';
 
 export const featureStoreRootRoute = (): string => `/featureStore`;
 
@@ -45,6 +46,7 @@ const FeatureStoreRoutes: React.FC = () => (
         path="features/:fsProjectName?/:featureViewName/:featureName"
         element={<FeatureDetails />}
       />
+      <Route path="featureServices/:fsProjectName?/*" element={<FeatureServices />} />
     </Route>
   </Routes>
 );

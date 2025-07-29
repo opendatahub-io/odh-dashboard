@@ -24,6 +24,12 @@ class FeatureStoreGlobal {
     this.waitForFeatures();
   }
 
+  visitFeatureServices(project: string) {
+    const projectName = project;
+    cy.visitWithLogin(`/featureStore/featureServices/${projectName}`);
+    this.waitForFeatureServices();
+  }
+
   navigate() {
     appChrome.findNavItem('Feature store').click();
     this.wait();
@@ -65,6 +71,11 @@ class FeatureStoreGlobal {
 
   private waitForFeatures() {
     cy.findByTestId('app-page-title').should('have.text', 'Features');
+    cy.testA11y();
+  }
+
+  private waitForFeatureServices() {
+    cy.findByTestId('app-page-title').should('have.text', 'Feature services');
     cy.testA11y();
   }
 
