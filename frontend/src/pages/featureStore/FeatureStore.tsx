@@ -1,6 +1,6 @@
 import React from 'react';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
-import { featureStoreRoute } from './FeatureStoreRoutes';
+import { featureStoreRoute } from './routes';
 import FeatureStoreProjectSelectorNavigator from './screens/components/FeatureStoreProjectSelectorNavigator';
 
 type FeatureStoreProps = Omit<

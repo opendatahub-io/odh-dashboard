@@ -1,7 +1,7 @@
 import React from 'react';
 import { APIState } from '#~/concepts/proxy/types';
 import { FeatureStoreAPIs } from '#~/pages/featureStore/types/global';
-import { getEntities, listFeatureStoreProject } from '#~/api/featureStore/custom';
+import { getEntities, getFeatureViews, listFeatureStoreProject } from '#~/api/featureStore/custom';
 import useAPIState from '#~/concepts/proxy/useAPIState';
 
 export type FeatureStoreAPIState = APIState<FeatureStoreAPIs>;
@@ -13,6 +13,7 @@ const useFeatureStoreAPIState = (
     (path: string) => ({
       listFeatureStoreProject: listFeatureStoreProject(path),
       getEntities: getEntities(path),
+      getFeatureViews: getFeatureViews(path),
     }),
     [],
   );
