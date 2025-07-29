@@ -1,8 +1,8 @@
 # Build arguments
 ARG SOURCE_CODE=.
 
-# Use ubi8/nodejs-18 as default base image
-ARG BASE_IMAGE="registry.access.redhat.com/ubi8/nodejs-20:latest"
+# Use ubi9/nodejs-20 as default base image
+ARG BASE_IMAGE="registry.access.redhat.com/ubi9/nodejs-20:latest"
 
 FROM ${BASE_IMAGE} as builder
 
@@ -52,6 +52,6 @@ CMD ["npm", "run", "start"]
 
 LABEL io.opendatahub.component="odh-dashboard" \
       io.k8s.display-name="odh-dashboard" \
-      name="open-data-hub/odh-dashboard-ubi8" \
+      name="open-data-hub/odh-dashboard-ubi9" \
       summary="odh-dashboard" \
       description="Open Data Hub Dashboard"
