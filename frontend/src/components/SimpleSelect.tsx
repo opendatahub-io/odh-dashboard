@@ -156,7 +156,9 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
                     <SelectOption
                       key={key}
                       value={key}
-                      description={<TruncatedText maxLines={2} content={description} />}
+                      description={
+                        <TruncatedText truncateTooltip maxLines={2} content={description} />
+                      }
                       isDisabled={optionDisabled}
                       isFavorited={isFavorited}
                       data-testid={optionDataTestId || key}
@@ -185,7 +187,7 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
                 <SelectOption
                   key={key}
                   value={key}
-                  description={<TruncatedText maxLines={2} content={description} />}
+                  description={<TruncatedText truncateTooltip maxLines={2} content={description} />}
                   isFavorited={isFavorited}
                   isDisabled={optionDisabled}
                   data-testid={optionDataTestId || key}
