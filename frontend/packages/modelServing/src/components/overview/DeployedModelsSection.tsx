@@ -55,6 +55,7 @@ const DeployedModelCard: React.FC<{ deployment: Deployment }> = ({ deployment })
               <ModelStatusIcon
                 state={deployment.status?.state ?? InferenceServiceModelState.UNKNOWN}
                 bodyContent={deployment.status?.message}
+                stoppedStates={deployment.status?.stoppedStates}
               />
             </FlexItem>
             <FlexItem>
