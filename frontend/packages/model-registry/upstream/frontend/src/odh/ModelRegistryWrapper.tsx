@@ -17,7 +17,7 @@ const modularArchConfig: ModularArchConfig = {
   deploymentMode: DeploymentMode.Federated,
   URL_PREFIX,
   BFF_API_VERSION,
-  mandatoryNamespace: 'kubeflow',
+  mandatoryNamespace: 'odh-model-registries',
 };
 
 const ModelRegistryWrapper: React.FC = () => {
