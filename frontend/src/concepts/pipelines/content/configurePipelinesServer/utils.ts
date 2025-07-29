@@ -144,7 +144,9 @@ export const createDSPipelineResourceSpec = (
       managedPipelines: {
         instructLab: { state: config.enableInstructLab ? 'Managed' : 'Removed' },
       },
-      pipelineStore: config.storeYamlInKubernetes ? DSPipelineAPIServerStore.KUBERNETES : undefined,
+      pipelineStore: config.storeYamlInKubernetes
+        ? DSPipelineAPIServerStore.KUBERNETES
+        : DSPipelineAPIServerStore.DATABASE,
     },
   };
 };

@@ -132,6 +132,7 @@ const ViewPipelineServerModal: React.FC<ViewPipelineServerModalProps> = ({
                       data-testid="pipeline-kubernetes-store-checkbox"
                       isDisabled
                       label="Store pipeline definitions in Kubernetes"
+                      description="Store pipeline specifications as Kubernetes resources. This enables GitOps workflows and easier integration with tools like OpenShift GitOps."
                       isChecked={
                         pipelineNamespaceCR.spec.apiServer?.pipelineStore ===
                         DSPipelineAPIServerStore.KUBERNETES

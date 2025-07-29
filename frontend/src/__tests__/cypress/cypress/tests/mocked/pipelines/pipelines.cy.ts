@@ -276,7 +276,7 @@ describe('Pipelines', () => {
     configurePipelineServerModal.findRegionInput().should('have.value', 'us-east-1');
     configurePipelineServerModal.findBucketInput().type('test-bucket');
 
-    configurePipelineServerModal.findToggleButton('Advanced settings').click();
+    configurePipelineServerModal.findAdvancedSettingsButton().click();
     configurePipelineServerModal.findExternalMYSQLDatabaseRadio().click();
     configurePipelineServerModal.findSubmitButton().should('be.disabled');
 
@@ -387,8 +387,8 @@ describe('Pipelines', () => {
     configurePipelineServerModal.findBucketInput().type('test-bucket');
 
     // Find and check the store pipeline yaml in kubernetes checkbox
-    configurePipelineServerModal.findToggleButton('Advanced settings').click();
-    configurePipelineServerModal.findPipelineStoreCheckbox().check();
+    configurePipelineServerModal.findAdvancedSettingsButton().click();
+    configurePipelineServerModal.findPipelineStoreCheckbox().should('be.checked');
 
     configurePipelineServerModal.findSubmitButton().should('be.enabled');
     configurePipelineServerModal.findSubmitButton().click();

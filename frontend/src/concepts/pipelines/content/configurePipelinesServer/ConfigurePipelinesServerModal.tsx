@@ -51,7 +51,7 @@ const FORM_DEFAULTS: PipelineServerConfigType = {
   database: { useDefault: true, value: EMPTY_DATABASE_CONNECTION },
   objectStorage: { newValue: EMPTY_AWS_PIPELINE_DATA },
   enableInstructLab: false,
-  storeYamlInKubernetes: false,
+  storeYamlInKubernetes: true,
 };
 
 const serverConfiguredEvent = 'Pipeline Server Configured';
@@ -66,6 +66,7 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
   const [config, setConfig] = React.useState<PipelineServerConfigType>(FORM_DEFAULTS);
   const { registerNotification } = React.useContext(NotificationWatcherContext);
   const isFineTuningAvailable = useIsAreaAvailable(SupportedArea.FINE_TUNING).status;
+  const advancedSettingsRef = React.useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
   const databaseIsValid = config.database.useDefault
@@ -241,16 +242,30 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
                 connections={connections}
               />
               <ExpandableSection
+                data-testid="advanced-settings-section"
                 isIndented
                 toggleText="Advanced settings"
-                onToggle={() => setAdvancedSettingsExpanded(!advancedSettingsExpanded)}
+                onToggle={() => {
+                  setAdvancedSettingsExpanded(!advancedSettingsExpanded);
+
+                  if (!advancedSettingsExpanded) {
+                    requestAnimationFrame(() => {
+                      advancedSettingsRef.current?.scrollIntoView({
+                        behavior: 'instant',
+                        block: 'start',
+                      });
+                    });
+                  }
+                }}
                 isExpanded={advancedSettingsExpanded}
               >
-                <PipelinesDatabaseSection setConfig={setConfig} config={config} />
-                {isFineTuningAvailable && (
-                  <SamplePipelineSettingsSection setConfig={setConfig} config={config} />
-                )}
-                <PipelinesDefinitionStorageSection setConfig={setConfig} config={config} />
+                <div ref={advancedSettingsRef}>
+                  <PipelinesDatabaseSection setConfig={setConfig} config={config} />
+                  {isFineTuningAvailable && (
+                    <SamplePipelineSettingsSection setConfig={setConfig} config={config} />
+                  )}
+                  <PipelinesDefinitionStorageSection setConfig={setConfig} config={config} />
+                </div>
               </ExpandableSection>
             </Form>
           </StackItem>
