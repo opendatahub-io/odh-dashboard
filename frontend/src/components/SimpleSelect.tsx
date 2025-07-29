@@ -201,11 +201,7 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
         <FormHelperText>
           <HelperText>
             <HelperTextItem>
-              <TruncatedText
-                maxLines={2}
-                tooltipMaxLines={30}
-                content={selectedOption.description}
-              />
+              <TruncatedText maxLines={2} truncateTooltip content={selectedOption.description} />
             </HelperTextItem>
           </HelperText>
         </FormHelperText>
