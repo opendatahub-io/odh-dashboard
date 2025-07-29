@@ -1,9 +1,7 @@
 # 0001 - Record Architecture Decisions
 
-* Status: ACCEPTED
 * Date: 2025-01-25
 * Authors: Matias Schimuneck
-* Reviewers: TBD
 
 ## Context and Problem Statement
 

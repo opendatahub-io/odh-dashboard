@@ -12,31 +12,20 @@ Architectural Decision Records (ADRs) are lightweight documents that capture imp
 
 ## ADR Index
 
-| ADR | Title | Status | Date |
-|-----|-------|---------|------|
-| [0001](./0001-record-architecture-decisions.md) | Record Architecture Decisions | ACCEPTED | 2025-01-25 |
-| [0002](./0002-bff-architecture-pattern.md) | Backend for Frontend (BFF) Architecture Pattern | ACCEPTED | 2025-01-25 |
-| [0003](./0003-v1-end-to-end-flow.md) | V1 End-to-End Flow Documentation | ACCEPTED | 2025-01-25 |
+| ADR | Title | Date |
+|-----|-------|------|
+| [0001](./0001-record-architecture-decisions.md) | Record Architecture Decisions | 2025-01-25 |
+| [0002](./0002-system-architecture.md) | Llama Stack Modular UI System Architecture | 2025-01-25 |
+| [0003](./0003-core-user-flows.md) | Core User Flows | 2025-01-25 |
 
 ## Creating a New ADR
 
 1. Copy the [template](./template.md)
-2. Number it sequentially (next would be `0002`)
+2. Number it sequentially
 3. Use kebab-case for the filename
 4. Fill in all sections
 5. Submit as part of your PR
 6. Update this README index
-
-## ADR Lifecycle
-
-```
-PROPOSED → ACCEPTED → [DEPRECATED/SUPERSEDED]
-```
-
-- **PROPOSED**: Under discussion, not yet implemented
-- **ACCEPTED**: Decision made and being/has been implemented  
-- **DEPRECATED**: No longer valid, but not replaced
-- **SUPERSEDED**: Replaced by a newer ADR (link to the superseding ADR)
 
 ## Guidelines
 

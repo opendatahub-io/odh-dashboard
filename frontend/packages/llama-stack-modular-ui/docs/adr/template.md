@@ -1,9 +1,7 @@
 # [SHORT_TITLE_OF_SOLVED_PROBLEM_AND_SOLUTION]
 
-* Status: [PROPOSED | ACCEPTED | DEPRECATED | SUPERSEDED] 
 * Date: [YYYY-MM-DD when the decision was last updated]
 * Authors: [List of authors]
-* Reviewers: [List of reviewers if applicable]
 
 ## Context and Problem Statement
 
@@ -52,5 +50,4 @@ Chosen option: "[Option X]", because [justification. e.g., only option which mee
 **Notes:**
 - Remove this notes section when creating a real ADR
 - Number your ADR sequentially (e.g., 0001, 0002, etc.)
-- Use kebab-case for the filename (e.g., `0001-api-authentication-strategy.md`)
-- Update the status as the decision evolves through the review process 
+- Use kebab-case for the filename (e.g., `0001-api-authentication-strategy.md`) 
