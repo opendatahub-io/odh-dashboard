@@ -53,9 +53,12 @@ const DeployedModelCard: React.FC<DeployedModelCardProps> = ({
               <InferenceServiceStatus
                 inferenceService={inferenceService}
                 isKserve={!isModelMesh(inferenceService)}
-                isStarting={isStarting}
-                isStopping={isStopping}
-                isStopped={isStopped}
+                stoppedStates={{
+                  isStarting,
+                  isStopping,
+                  isStopped,
+                  isRunning,
+                }}
               />
             </FlexItem>
             <FlexItem>
