@@ -1,11 +1,13 @@
 import React from 'react';
-import { FormSection, Button, Flex, FlexItem } from '@patternfly/react-core';
+import { Button, FormGroup } from '@patternfly/react-core';
 import { AddCircleOIcon } from '@patternfly/react-icons';
 import { NodeSelector } from '#~/types';
 import ManageNodeSelectorModal from '#~/pages/hardwareProfiles/nodeSelector/ManageNodeSelectorModal';
 import NodeSelectorTable from '#~/pages/hardwareProfiles/nodeSelector/NodeSelectorTable';
 import { ManageHardwareProfileSectionTitles } from '#~/pages/hardwareProfiles/const';
 import { ManageHardwareProfileSectionID } from '#~/pages/hardwareProfiles/manage/types';
+import DashboardHelpTooltip from '#~/concepts/dashboard/DashboardHelpTooltip.tsx';
+import { HARDWARE_PROFILE_RESOURCE_ALLOCATION_HELP } from '#~/pages/hardwareProfiles/nodeResource/const.ts';
 
 type ManageNodeSelectorSectionProps = {
   nodeSelector: NodeSelector;
@@ -20,52 +22,47 @@ const ManageNodeSelectorSection: React.FC<ManageNodeSelectorSectionProps> = ({
   const isEmpty = Object.keys(nodeSelector).length === 0;
   return (
     <>
-      <FormSection
-        title={
-          <Flex>
-            <FlexItem>
-              {ManageHardwareProfileSectionTitles[ManageHardwareProfileSectionID.NODE_SELECTORS]}
-            </FlexItem>
-            {!isEmpty && (
-              <FlexItem>
-                <Button
-                  variant="secondary"
-                  onClick={() => setIsNodeSelectorModalOpen(true)}
-                  data-testid="add-node-selector-button"
-                >
-                  Add node selector
-                </Button>
-              </FlexItem>
-            )}
-          </Flex>
+      <FormGroup
+        isInline
+        label={ManageHardwareProfileSectionTitles[ManageHardwareProfileSectionID.NODE_SELECTORS]}
+        fieldId={ManageHardwareProfileSectionID.NODE_SELECTORS}
+        labelHelp={
+          <DashboardHelpTooltip content={HARDWARE_PROFILE_RESOURCE_ALLOCATION_HELP.nodeSelectors} />
         }
       >
-        Node selectors are added to a pod spec to allow the pod to be scheduled on nodes with
-        matching labels.
+        {!isEmpty && (
+          <Button
+            variant="secondary"
+            onClick={() => setIsNodeSelectorModalOpen(true)}
+            data-testid="add-node-selector-button"
+          >
+            Add node selector
+          </Button>
+        )}
         {!isEmpty && (
           <NodeSelectorTable
             nodeSelector={nodeSelector}
             onUpdate={(newNodeSelector) => setNodeSelector(newNodeSelector)}
           />
         )}
-      </FormSection>
-      {isNodeSelectorModalOpen && (
-        <ManageNodeSelectorModal
-          onClose={() => setIsNodeSelectorModalOpen(false)}
-          onSave={(ns) => setNodeSelector({ ...nodeSelector, [ns.key]: ns.value })}
-        />
-      )}
-      {isEmpty && (
-        <Button
-          isInline
-          icon={<AddCircleOIcon />}
-          variant="link"
-          onClick={() => setIsNodeSelectorModalOpen(true)}
-          data-testid="add-node-selector-button"
-        >
-          Add node selector
-        </Button>
-      )}
+        {isNodeSelectorModalOpen && (
+          <ManageNodeSelectorModal
+            onClose={() => setIsNodeSelectorModalOpen(false)}
+            onSave={(ns) => setNodeSelector({ ...nodeSelector, [ns.key]: ns.value })}
+          />
+        )}
+        {isEmpty && (
+          <Button
+            isInline
+            icon={<AddCircleOIcon />}
+            variant="link"
+            onClick={() => setIsNodeSelectorModalOpen(true)}
+            data-testid="add-node-selector-button"
+          >
+            Add node selector
+          </Button>
+        )}
+      </FormGroup>
     </>
   );
 };

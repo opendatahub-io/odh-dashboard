@@ -227,6 +227,10 @@ class InferenceServiceModal extends ServingModal {
     return this.find().findByTestId('new-connection-radio');
   }
 
+  findExistingPVCConnectionOption() {
+    return this.find().findByTestId('pvc-serving-radio');
+  }
+
   findExistingConnectionOption() {
     return this.find().findByTestId('existing-connection-radio');
   }
@@ -247,6 +251,10 @@ class InferenceServiceModal extends ServingModal {
     return this.findExistingConnectionSelect().findByRole('combobox', {
       name: 'Type to filter',
     });
+  }
+
+  findPVCSelect() {
+    return this.find().findByTestId('pvc-connection-selector');
   }
 
   findHardProfileSelection(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -340,6 +348,10 @@ class InferenceServiceModal extends ServingModal {
 
   findLocationPathInput() {
     return this.find().findByTestId('folder-path');
+  }
+
+  findUriLocationPathInput() {
+    return this.find().findByTestId('field URI');
   }
 
   findLocationPathInputError() {
@@ -552,6 +564,10 @@ class KServeModal extends InferenceServiceModal {
   findMemoryLimitButton(type: 'Plus' | 'Minus') {
     return this.find().findByTestId('memory-limit-input').findByRole('button', { name: type });
   }
+
+  findPVCConnectionOption() {
+    return this.find().findByTestId('pvc-serving-radio');
+  }
 }
 mixin(KServeModal, [ServingRuntimeModal, InferenceServiceModal]);
 
@@ -660,6 +676,10 @@ class InferenceServiceRow extends TableRow {
       });
   }
 
+  findLastDeployed() {
+    return this.find().find(`[data-label="Last deployed"]`);
+  }
+
   findAPIProtocol() {
     return this.find().find(`[data-label="API protocol"]`);
   }
@@ -710,7 +730,11 @@ class ModelServingSection {
     return this.find().findByTestId('serving-runtime-table');
   }
 
-  findModelServerName(name: string) {
+  findModelServerDeployedName(name: string) {
+    return this.find().findByTestId('deployed-model-name').contains(name);
+  }
+
+  findModelMetricsLink(name: string) {
     return this.find().findByTestId(`metrics-link-${name}`);
   }
 

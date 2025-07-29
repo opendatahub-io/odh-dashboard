@@ -5,18 +5,19 @@ import {
   getInferenceServiceModelState,
   getInferenceServiceStatusMessage,
 } from '#~/concepts/modelServingKServe/kserveStatusUtils';
+import { ToggleState } from '#~/components/StateActionToggle';
 import { useModelStatus } from './useModelStatus';
 
 type InferenceServiceStatusProps = {
   inferenceService: InferenceServiceKind;
   isKserve: boolean;
-  isStarting?: boolean;
+  stoppedStates: ToggleState;
 };
 
 const InferenceServiceStatus: React.FC<InferenceServiceStatusProps> = ({
   inferenceService,
   isKserve,
-  isStarting,
+  stoppedStates,
 }) => {
   const [modelPodStatus] = useModelStatus(
     inferenceService.metadata.namespace,
@@ -32,8 +33,7 @@ const InferenceServiceStatus: React.FC<InferenceServiceStatusProps> = ({
       state={state}
       defaultHeaderContent="Inference Service Status"
       bodyContent={bodyContent}
-      inferenceService={inferenceService}
-      isStarting={isStarting}
+      stoppedStates={stoppedStates}
     />
   );
 };

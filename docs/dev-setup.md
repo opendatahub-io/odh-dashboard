@@ -63,7 +63,7 @@ For in-depth testing guidance review the [testing guidelines](./testing.md)
 
 ### Dev Feature Flags
 
-Feature flags are defined in the [dashboard config](./dashboard-config.md#features). When testing on a live cluster, changing feature flags via the config affects all users on the cluster. It is also possible to personally control the enablement of feature flags within the browser session. Simply append `?devFeatureFlags` to the dashboard URL. A blue banner will appear at the top of the page where a modal can be opened, allowing one to adjust the enablement of feature flags. These settings will persist for the length of the browser session.
+Feature flags are defined in the odh-dashboard-config ([architectural documentation](https://github.com/opendatahub-io/architecture-decision-records/blob/main/documentation/components/dashboard/configuringDashboard.md) on feature flags). When testing on a live cluster, changing feature flags via the config affects all users on the cluster. It is also possible to personally control the enablement of feature flags within the browser session. Simply append `?devFeatureFlags` to the dashboard URL. A blue banner will appear at the top of the page where a modal can be opened, allowing one to adjust the enablement of feature flags. These settings will persist for the length of the browser session.
 
 With the dev feature flags modal opened, the browser URL will update to include the current feature flag enablement settings. The URL can then be bookmarked or shared.
 

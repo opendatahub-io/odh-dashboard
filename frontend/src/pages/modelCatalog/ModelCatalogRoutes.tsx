@@ -5,7 +5,7 @@ import { ModelRegistryPageContextProvider } from '#~/concepts/modelRegistry/cont
 import ModelCatalogCoreLoader from './ModelCatalogCoreLoader';
 import ModelDetailsPage from './screens/ModelDetailsPage';
 import ModelCatalog from './screens/ModelCatalog';
-import RegisterCatalogModel from './screens/RegisterCatalogModel';
+import RegisterCatalogModelPage from './screens/RegisterCatalogModelPage';
 
 const ModelCatalogRoutes: React.FC = () => {
   const { preferredModelRegistry } = React.useContext(ModelRegistriesContext);
@@ -21,7 +21,7 @@ const ModelCatalogRoutes: React.FC = () => {
               <ModelRegistryPageContextProvider
                 modelRegistryName={preferredModelRegistry?.metadata.name || null}
               >
-                <RegisterCatalogModel />
+                <RegisterCatalogModelPage />
               </ModelRegistryPageContextProvider>
             }
           />

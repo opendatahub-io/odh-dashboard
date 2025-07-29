@@ -73,6 +73,7 @@ export const mockStartNotebookData = ({
       name: volumeName,
     },
   ],
+  dashboardNamespace: 'opendatahub',
 });
 
 export const mockStorageData: StorageData[] = [

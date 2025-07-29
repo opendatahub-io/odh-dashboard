@@ -25,14 +25,8 @@ let modelFilePath: string;
 const awsBucket = 'BUCKET_1' as const;
 const uuid = generateTestUUID();
 
-describe('Verify Admin Multi Model Creation and Validation using the UI', () => {
+describe('[Product Bug: RHOAIENG-30799] Verify Admin Multi Model Creation and Validation using the UI', () => {
   retryableBefore(() => {
-    Cypress.on('uncaught:exception', (err) => {
-      if (err.message.includes('Error: secrets "ds-pipeline-config" already exists')) {
-        return false;
-      }
-      return true;
-    });
     // Setup: Load test data and ensure clean state
     return loadDSPFixture('e2e/dataScienceProjects/testMultiModelAdminCreation.yaml').then(
       (fixtureData: DataScienceProjectData) => {
@@ -55,7 +49,9 @@ describe('Verify Admin Multi Model Creation and Validation using the UI', () => 
     );
   });
   after(() => {
-    deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
+    // Delete provisioned Project - wait for completion due to RHOAIENG-19969 to support test retries, 5 minute timeout
+    // TODO: Review this timeout once RHOAIENG-19969 is resolved
+    deleteOpenShiftProject(projectName, { wait: true, ignoreNotFound: true, timeout: 300000 });
   });
 
   it(
@@ -69,6 +65,7 @@ describe('Verify Admin Multi Model Creation and Validation using the UI', () => 
         '@Dashboard',
         '@Modelserving',
         '@NonConcurrent',
+        '@Bug',
       ],
     },
     () => {

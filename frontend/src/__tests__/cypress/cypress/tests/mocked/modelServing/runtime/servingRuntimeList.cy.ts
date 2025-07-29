@@ -737,6 +737,7 @@ describe('Serving Runtime List', () => {
             },
             deleted: true,
             isModelMesh: true,
+            activeModelState: 'Loaded',
           }),
         ],
       });
@@ -817,6 +818,7 @@ describe('Serving Runtime List', () => {
             },
             deleted: true,
             isModelMesh: true,
+            activeModelState: 'Loaded',
           }),
         ],
         servingRuntimes: [
@@ -1642,7 +1644,18 @@ describe('Serving Runtime List', () => {
       kserveRow.findConfirmStopModalCheckbox().click();
       kserveRow.findConfirmStopModalCheckbox().should('be.checked');
       kserveRow.findConfirmStopModalButton().click();
+
+      cy.interceptK8sList(
+        {
+          model: PodModel,
+          ns: 'test-project',
+          queryParams: { labelSelector: 'serving.kserve.io/inferenceservice=test-model' },
+        },
+        mockK8sResourceList([]),
+      ).as('getPods');
+
       cy.wait(['@stopModelPatch', '@getStoppedModel']);
+
       kserveRow.findStatusLabel('Stopped');
       kserveRow.findStateActionToggle().should('have.text', 'Start');
       cy.window().then((win) => {
@@ -2356,6 +2369,121 @@ describe('Serving Runtime List', () => {
         });
       });
     });
+
+    it('Deploy model with PVC', () => {
+      initIntercepts({
+        disableModelMeshConfig: false,
+        disableKServeConfig: false,
+        disableServingRuntimeParams: false,
+        requiredCapabilities: [StackCapability.SERVICE_MESH, StackCapability.SERVICE_MESH_AUTHZ],
+        projectEnableModelMesh: false,
+      });
+      cy.intercept(
+        'GET',
+        '**/namespaces/test-project/persistentvolumeclaims?labelSelector=opendatahub.io%2Fdashboard%3Dtrue',
+        mockK8sResourceList([
+          mockPVCK8sResource({
+            name: 'test-pvc',
+            namespace: 'test-project',
+            displayName: 'Test PVC',
+            storageClassName: 'openshift-default-sc',
+            annotations: {
+              'dashboard.opendatahub.io/model-name': 'test-model',
+              'dashboard.opendatahub.io/model-path': 'test-path',
+            },
+            labels: {
+              'opendatahub.io/dashboard': 'true',
+            },
+          }),
+        ]),
+      );
+
+      projectDetails.visitSection('test-project', 'model-server');
+      modelServingSection.findDeployModelButton().click();
+
+      kserveModal.shouldBeOpen();
+
+      kserveModal.findModelNameInput().type('Test Name');
+      kserveModal.findServingRuntimeTemplateSearchSelector().click();
+      kserveModal.findGlobalScopedTemplateOption('Caikit').click();
+      kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
+      // Auto-selects the only pvc
+      kserveModal.findPVCConnectionOption().should('be.visible').click();
+      kserveModal.findLocationPathInput().should('have.value', 'test-path');
+      kserveModal.findSubmitButton().should('be.enabled');
+      kserveModal.findSubmitButton().click();
+      kserveModal.shouldBeOpen(false);
+
+      // dry run request
+      cy.wait('@createServingRuntime').then((interception) => {
+        expect(interception.request.url).to.include('?dryRun=All');
+        expect(interception.request.body).to.containSubset({
+          metadata: {
+            name: 'test-name',
+            annotations: {
+              'openshift.io/display-name': 'test-name',
+              'opendatahub.io/apiProtocol': 'REST',
+              'opendatahub.io/template-display-name': 'Caikit',
+              'opendatahub.io/template-name': 'template-2',
+            },
+            namespace: 'test-project',
+          },
+          spec: {
+            protocolVersions: ['grpc-v1'],
+            supportedModelFormats: [
+              { autoSelect: true, name: 'openvino_ir', version: 'opset1' },
+              { autoSelect: true, name: 'onnx', version: '1' },
+            ],
+          },
+        });
+      });
+      // Actual request
+      cy.wait('@createServingRuntime').then((interception) => {
+        expect(interception.request.url).not.to.include('?dryRun=All');
+      });
+
+      // the serving runtime should have been created
+      cy.get('@createServingRuntime.all').then((interceptions) => {
+        expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
+      });
+      cy.wait('@createInferenceService').then((interception) => {
+        expect(interception.request.url).to.include('?dryRun=All');
+        expect(interception.request.body).to.containSubset({
+          apiVersion: 'serving.kserve.io/v1beta1',
+          kind: 'InferenceService',
+          metadata: {
+            annotations: {
+              'openshift.io/display-name': 'Test Name',
+              'serving.knative.openshift.io/enablePassthrough': 'true',
+              'serving.kserve.io/deploymentMode': DeploymentMode.Serverless,
+              'sidecar.istio.io/inject': 'true',
+              'sidecar.istio.io/rewriteAppHTTPProbers': 'true',
+            },
+            labels: {
+              'opendatahub.io/dashboard': 'true',
+              'networking.knative.dev/visibility': 'cluster-local',
+            },
+            name: 'test-name',
+            namespace: 'test-project',
+          },
+          spec: {
+            predictor: {
+              minReplicas: 1,
+              maxReplicas: 1,
+              model: {
+                modelFormat: { name: 'onnx', version: '1' },
+                resources: {
+                  requests: { cpu: '1', memory: '4Gi' },
+                  limits: { cpu: '2', memory: '8Gi' },
+                },
+                runtime: 'test-name',
+                storageUri: 'pvc://test-pvc/test-path',
+              },
+            },
+          },
+        });
+      });
+    });
   });
 
   describe('ModelMesh model server', () => {
@@ -2602,7 +2730,7 @@ describe('Serving Runtime List', () => {
         .should('have.text', 'AcceleratorSmall Profile Project-scoped');
     });
 
-    it('Check project-scoped hardware when enabled and selected', () => {
+    it('should not display hardware profile section when project is model mesh enabled and hardware profile flag is enabled', () => {
       initIntercepts({
         projectEnableModelMesh: true,
         disableKServeConfig: false,
@@ -2620,12 +2748,10 @@ describe('Serving Runtime List', () => {
 
       projectDetails.visitSection('test-project', 'model-server');
       modelServingSection.findModelServer().click();
-      modelServingSection
-        .findHardwareSection()
-        .should('have.text', 'Large Profile-1Project-scoped');
+      modelServingSection.findHardwareSection().should('not.exist');
     });
 
-    it('should display hardware profile selection when both hardware profile and project-scoped feature flag is enabled for Model mesh, while adding model server', () => {
+    it('should not display hardware profile selection when both hardware profile and project-scoped feature flag is enabled for Model mesh, while adding model server', () => {
       initIntercepts({
         projectEnableModelMesh: true,
         disableKServeConfig: false,
@@ -2653,32 +2779,10 @@ describe('Serving Runtime List', () => {
 
       createServingRuntimeModal.shouldBeOpen();
 
-      // Verify hardware profile section exists
-      hardwareProfileSection.findHardwareProfileSearchSelector().should('exist');
-      hardwareProfileSection.findHardwareProfileSearchSelector().click();
-
-      // verify available project-scoped hardware profile
-      const projectScopedHardwareProfile = hardwareProfileSection.getProjectScopedHardwareProfile();
-      projectScopedHardwareProfile
-        .find()
-        .findByRole('menuitem', {
-          name: 'Small Profile CPU: Request = 1; Limit = 1; Memory: Request = 2Gi; Limit = 2Gi',
-          hidden: true,
-        })
-        .click();
-      hardwareProfileSection.findProjectScopedLabel().should('exist');
-
-      // verify available global-scoped hardware profile
-      hardwareProfileSection.findHardwareProfileSearchSelector().click();
-      const globalScopedHardwareProfile = hardwareProfileSection.getGlobalScopedHardwareProfile();
-      globalScopedHardwareProfile
-        .find()
-        .findByRole('menuitem', {
-          name: 'Small Profile CPU: Request = 1; Limit = 1; Memory: Request = 2Gi; Limit = 2Gi',
-          hidden: true,
-        })
-        .click();
-      hardwareProfileSection.findGlobalScopedLabel().should('exist');
+      // Verify hardware profile section is missing
+      hardwareProfileSection.findHardwareProfileSearchSelector().should('not.exist');
+      // replaced by the Model server size section
+      createServingRuntimeModal.findModelServerSizeSelect().should('exist');
     });
 
     it('should display hardware profile selection when both hardware profile and project-scoped feature flag is enabled for Model mesh, while editing model server', () => {
@@ -2715,10 +2819,7 @@ describe('Serving Runtime List', () => {
 
       editServingRuntimeModal.shouldBeOpen();
 
-      hardwareProfileSection
-        .findHardwareProfileSearchSelector()
-        .should('contain.text', 'Large Profile-1');
-      hardwareProfileSection.findProjectScopedLabel().should('exist');
+      hardwareProfileSection.findHardwareProfileSearchSelector().should('not.exist');
     });
 
     it('Edit ModelMesh model server', () => {
@@ -3596,6 +3697,7 @@ describe('Serving Runtime List', () => {
               restUrl: 'http://modelmesh-serving.modelmesh:8008',
               url: 'grpc://modelmesh-serving.modelmesh:8033',
             },
+            activeModelState: 'Loaded',
           }),
           mockInferenceServiceK8sResource({
             name: 'model-not-loaded',
@@ -3622,11 +3724,7 @@ describe('Serving Runtime List', () => {
       // Get modal of inference service when is not loaded
       const notLoadedInferenceServiceRow =
         modelServingSection.getInferenceServiceRow('Model not loaded');
-      notLoadedInferenceServiceRow.findInternalServiceButton().click();
-      notLoadedInferenceServiceRow
-        .findInternalServicePopover()
-        .findByText('Could not find any internal service enabled')
-        .should('exist');
+      notLoadedInferenceServiceRow.find().should('contain.text', 'Pending...');
     });
 
     it('Check internal service is rendered when the model is loaded in Kserve', () => {
@@ -3654,6 +3752,7 @@ describe('Serving Runtime List', () => {
             isModelMesh: false,
             kserveInternalUrl: 'http://test.kserve.svc.cluster.local',
             kserveInternalLabel: true,
+            activeModelState: 'Loaded',
           }),
           mockInferenceServiceK8sResource({
             name: 'model-not-loaded',
@@ -3670,15 +3769,14 @@ describe('Serving Runtime List', () => {
       // Get modal of inference service when is loaded
       const kserveRowModelLoaded = modelServingSection.getKServeRow('Loaded model');
       kserveRowModelLoaded.findInternalServiceButton().click();
-      kserveRowModelLoaded.findInternalServicePopover().findByText('url').should('exist');
+      kserveRowModelLoaded
+        .findInternalServicePopover()
+        .findByText('Internal (can only be accessed from inside the cluster)')
+        .should('exist');
 
       // Get modal of inference service when is not loaded
       const kserveRowModelNotLoaded = modelServingSection.getKServeRow('Model Not loaded');
-      kserveRowModelNotLoaded.findInternalServiceButton().click();
-      kserveRowModelLoaded
-        .findInternalServicePopover()
-        .findByText('Could not find any internal service enabled')
-        .should('exist');
+      kserveRowModelNotLoaded.find().should('contain.text', 'Pending...');
     });
   });
   describe('Serving Runtime Template Selection', () => {

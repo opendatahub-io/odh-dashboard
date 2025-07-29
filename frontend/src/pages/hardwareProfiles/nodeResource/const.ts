@@ -88,3 +88,16 @@ export const DEFAULT_MEMORY_SIZE = {
 
 export const DEFAULT_CPU_IDENTIFIER = 'cpu';
 export const DEFAULT_MEMORY_IDENTIFIER = 'memory';
+
+export const DEFAULT_PRIORITY_CLASS = 'None';
+
+export const HARDWARE_PROFILE_RESOURCE_ALLOCATION_HELP = {
+  localQueue:
+    'Local queue is an entry point for users to submit their workloads for shared resource management provided by Kueue.',
+  workloadPriority:
+    "The workload priority determines how the workload is handled within Kueue's resource management system. For example, you might assign production workloads a higher priority than development workloads.",
+  nodeSelectors:
+    'Node selectors are added to a pod spec to allow the pod to be scheduled on nodes with matching labels.',
+  tolerations:
+    'Tolerations are applied to pods and allow the scheduler to schedule pods on nodes with matching taints.',
+};

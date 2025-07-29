@@ -117,6 +117,18 @@ class ModelVersionArchive {
     return this.findArchiveVersionTable().find('tbody tr');
   }
 
+  findArchiveVersionTableSearch() {
+    return cy.findByTestId('filter-toolbar-text-field');
+  }
+
+  findArchiveVersionTableFilterOption(name: string) {
+    return cy.findByTestId('filter-toolbar-dropdown').findDropdownItem(name);
+  }
+
+  findArchiveVersionEmptyTableState() {
+    return cy.findByTestId('dashboard-empty-table-state');
+  }
+
   findRestoreButton() {
     return cy.findByTestId('restore-button');
   }

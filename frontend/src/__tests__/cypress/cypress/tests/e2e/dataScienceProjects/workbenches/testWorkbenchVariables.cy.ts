@@ -8,6 +8,10 @@ import { deleteOpenShiftProject } from '#~/__tests__/cypress/cypress/utils/oc_co
 import { validateWorkbenchEnvironmentVariables } from '#~/__tests__/cypress/cypress/utils/oc_commands/workbench';
 import { retryableBeforeEach } from '#~/__tests__/cypress/cypress/utils/retryableHooks';
 import { generateTestUUID } from '#~/__tests__/cypress/cypress/utils/uuidGenerator';
+import {
+  selectNotebookImageWithBackendFallback,
+  getImageStreamDisplayName,
+} from '#~/__tests__/cypress/cypress/utils/oc_commands/imageStreams';
 
 describe('Workbenches - variable tests', () => {
   let projectName: string;
@@ -48,6 +52,9 @@ describe('Workbenches - variable tests', () => {
     () => {
       const workbenchName = projectName;
       const workbenchName2 = projectName.replace('dsp-', 'secondwb-');
+      let selectedImageStream: string;
+      let selectedImageStream2: string;
+
       // Authentication and navigation
       cy.step('Log into the application');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
@@ -64,58 +71,86 @@ describe('Workbenches - variable tests', () => {
       workbenchPage.findCreateButton().click();
       createSpawnerPage.getNameInput().fill(workbenchName);
       createSpawnerPage.getDescriptionInput().type(projectDescription);
-      createSpawnerPage.findNotebookImage('code-server-notebook').click();
-      createSpawnerPage.findAddVariableButton().click();
-      const secretEnvVarField = createSpawnerPage.getEnvironmentVariableTypeField(0);
-      secretEnvVarField.selectEnvironmentVariableType('Secret');
-      secretEnvVarField.selectEnvDataType('Upload');
-      secretEnvVarField.uploadConfigYaml(testData.secretYamlPath);
-      createSpawnerPage.findSubmitButton().click();
 
-      // Wait for workbench to run
-      cy.step(`Wait for workbench ${workbenchName} to display a "Running" status`);
-      const notebookRow = workbenchPage.getNotebookRow(workbenchName);
-      notebookRow.findNotebookDescription(testData.wbVariablesTestDescription);
-      notebookRow.expectStatusLabelToBe('Running', 120000);
-      notebookRow.shouldHaveNotebookImageName('code-server');
-      notebookRow.shouldHaveContainerSize('Small');
+      // Select notebook image with fallback for first workbench
+      selectNotebookImageWithBackendFallback('code-server-notebook', createSpawnerPage).then(
+        (imageStreamName) => {
+          selectedImageStream = imageStreamName;
+          cy.log(`Selected imagestream for first workbench: ${selectedImageStream}`);
 
-      // Validate that the variables are present in the Workbench container
-      cy.step(`Validate that the variables are present in the Workbench container `);
-      const secretVariables = {
-        FAKE_ID: testData.FAKE_ID,
-        FAKE_VALUE: testData.FAKE_VALUE,
-      };
-      validateWorkbenchEnvironmentVariables(projectName, workbenchName, secretVariables);
+          createSpawnerPage.findAddVariableButton().click();
+          const secretEnvVarField = createSpawnerPage.getEnvironmentVariableTypeField(0);
+          secretEnvVarField.selectEnvironmentVariableType('Secret');
+          secretEnvVarField.selectEnvDataType('Upload');
+          secretEnvVarField.uploadConfigYaml(testData.secretYamlPath);
+          createSpawnerPage.findSubmitButton().click();
 
-      // Create a second workbench with Config Map variables by uploading a yaml file
-      cy.step(`Create a second workbench ${workbenchName2} using config map variables`);
-      workbenchPage.findCreateButton().click();
-      createSpawnerPage.getNameInput().fill(workbenchName2);
-      createSpawnerPage.getDescriptionInput().type(projectDescription);
-      createSpawnerPage.findNotebookImage('code-server-notebook').click();
-      createSpawnerPage.findAddVariableButton().click();
-      const secretEnvVarField2 = createSpawnerPage.getEnvironmentVariableTypeField(0);
-      secretEnvVarField2.selectEnvironmentVariableType('Config Map');
-      secretEnvVarField2.selectEnvDataType('Upload');
-      secretEnvVarField2.uploadConfigYaml(testData.configMapYamlPath);
-      createSpawnerPage.findSubmitButton().click();
+          // Wait for workbench to run
+          cy.step(`Wait for workbench ${workbenchName} to display a "Running" status`);
+          const notebookRow = workbenchPage.getNotebookRow(workbenchName);
+          notebookRow.findNotebookDescription(testData.wbVariablesTestDescription);
+          notebookRow.expectStatusLabelToBe('Running', 120000);
 
-      // Wait for workbench to run
-      cy.step(`Wait for workbench ${workbenchName2} to display a "Running" status`);
-      const notebookRow2 = workbenchPage.getNotebookRow(workbenchName2);
-      notebookRow2.findNotebookDescription(testData.wbVariablesTestDescription);
-      notebookRow2.expectStatusLabelToBe('Running', 120000);
-      notebookRow2.shouldHaveNotebookImageName('code-server');
-      notebookRow2.shouldHaveContainerSize('Small');
+          // Use dynamic image name verification for first workbench
+          getImageStreamDisplayName(selectedImageStream).then((displayName) => {
+            notebookRow.shouldHaveNotebookImageName(displayName);
+            notebookRow.shouldHaveContainerSize('Small');
 
-      // Validate that the variables are present in the Workbench container
-      cy.step(`Validate that the variables are present in the Workbench container `);
-      const configMapVariables = {
-        MY_VAR2: testData.MY_VAR2,
-        MY_VAR1: testData.MY_VAR1,
-      };
-      validateWorkbenchEnvironmentVariables(projectName, workbenchName2, configMapVariables);
+            // Validate that the variables are present in the Workbench container
+            cy.step(`Validate that the variables are present in the Workbench container `);
+            const secretVariables = {
+              FAKE_ID: testData.FAKE_ID,
+              FAKE_VALUE: testData.FAKE_VALUE,
+            };
+            validateWorkbenchEnvironmentVariables(projectName, workbenchName, secretVariables);
+
+            // Create a second workbench with Config Map variables by uploading a yaml file
+            cy.step(`Create a second workbench ${workbenchName2} using config map variables`);
+            workbenchPage.findCreateButton().click();
+            createSpawnerPage.getNameInput().fill(workbenchName2);
+            createSpawnerPage.getDescriptionInput().type(projectDescription);
+
+            // Select notebook image with fallback for second workbench
+            selectNotebookImageWithBackendFallback('code-server-notebook', createSpawnerPage).then(
+              (imageStreamName2) => {
+                selectedImageStream2 = imageStreamName2;
+                cy.log(`Selected imagestream for second workbench: ${selectedImageStream2}`);
+
+                createSpawnerPage.findAddVariableButton().click();
+                const secretEnvVarField2 = createSpawnerPage.getEnvironmentVariableTypeField(0);
+                secretEnvVarField2.selectEnvironmentVariableType('Config Map');
+                secretEnvVarField2.selectEnvDataType('Upload');
+                secretEnvVarField2.uploadConfigYaml(testData.configMapYamlPath);
+                createSpawnerPage.findSubmitButton().click();
+
+                // Wait for workbench to run
+                cy.step(`Wait for workbench ${workbenchName2} to display a "Running" status`);
+                const notebookRow2 = workbenchPage.getNotebookRow(workbenchName2);
+                notebookRow2.findNotebookDescription(testData.wbVariablesTestDescription);
+                notebookRow2.expectStatusLabelToBe('Running', 120000);
+
+                // Use dynamic image name verification for second workbench
+                getImageStreamDisplayName(selectedImageStream2).then((displayName2) => {
+                  notebookRow2.shouldHaveNotebookImageName(displayName2);
+                  notebookRow2.shouldHaveContainerSize('Small');
+
+                  // Validate that the variables are present in the Workbench container
+                  cy.step(`Validate that the variables are present in the Workbench container `);
+                  const configMapVariables = {
+                    MY_VAR2: testData.MY_VAR2,
+                    MY_VAR1: testData.MY_VAR1,
+                  };
+                  validateWorkbenchEnvironmentVariables(
+                    projectName,
+                    workbenchName2,
+                    configMapVariables,
+                  );
+                });
+              },
+            );
+          });
+        },
+      );
     },
   );
   it(
@@ -126,6 +161,9 @@ describe('Workbenches - variable tests', () => {
     () => {
       const workbenchName = projectName;
       const workbenchName2 = projectName.replace('dsp-', 'secondwb-');
+      let selectedImageStream: string;
+      let selectedImageStream2: string;
+
       // Authentication and navigation
       cy.step('Log into the application');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
@@ -142,58 +180,86 @@ describe('Workbenches - variable tests', () => {
       workbenchPage.findCreateButton().click();
       createSpawnerPage.getNameInput().fill(workbenchName);
       createSpawnerPage.getDescriptionInput().type(projectDescription);
-      createSpawnerPage.findNotebookImage('code-server-notebook').click();
-      createSpawnerPage.findAddVariableButton().click();
-      const secretEnvVarField = createSpawnerPage.getEnvironmentVariableTypeField(0);
-      secretEnvVarField.selectEnvironmentVariableType('Secret');
-      secretEnvVarField.selectEnvDataType('Key / value');
-      secretEnvVarField.findKeyInput().fill(testData.FAKE_SECRET_KEY);
-      secretEnvVarField.findKeyValue().fill(testData.FAKE_SECRET_VALUE);
-      createSpawnerPage.findSubmitButton().click();
 
-      // Wait for workbench to run
-      cy.step(`Wait for workbench ${workbenchName} to display a "Running" status`);
-      const notebookRow = workbenchPage.getNotebookRow(workbenchName);
-      notebookRow.findNotebookDescription(testData.wbVariablesTestDescription);
-      notebookRow.expectStatusLabelToBe('Running', 120000);
-      notebookRow.shouldHaveNotebookImageName('code-server');
-      notebookRow.shouldHaveContainerSize('Small');
+      // Select notebook image with fallback for first workbench
+      selectNotebookImageWithBackendFallback('code-server-notebook', createSpawnerPage).then(
+        (imageStreamName) => {
+          selectedImageStream = imageStreamName;
+          cy.log(`Selected imagestream for first workbench: ${selectedImageStream}`);
 
-      // Validate that the variables are present in the Workbench container
-      cy.step(`Validate that the variables are present in the Workbench container`);
-      const secretVariables = {
-        [testData.FAKE_SECRET_KEY]: testData.FAKE_SECRET_VALUE,
-      };
-      validateWorkbenchEnvironmentVariables(projectName, workbenchName, secretVariables);
+          createSpawnerPage.findAddVariableButton().click();
+          const secretEnvVarField = createSpawnerPage.getEnvironmentVariableTypeField(0);
+          secretEnvVarField.selectEnvironmentVariableType('Secret');
+          secretEnvVarField.selectEnvDataType('Key / value');
+          secretEnvVarField.findKeyInput().fill(testData.FAKE_SECRET_KEY);
+          secretEnvVarField.findKeyValue().fill(testData.FAKE_SECRET_VALUE);
+          createSpawnerPage.findSubmitButton().click();
 
-      // Create a second workbench with Config Map variables via Key / Value
-      cy.step(`Create a second workbench ${workbenchName2} using config map variables`);
-      workbenchPage.findCreateButton().click();
-      createSpawnerPage.getNameInput().fill(workbenchName2);
-      createSpawnerPage.getDescriptionInput().type(projectDescription);
-      createSpawnerPage.findNotebookImage('code-server-notebook').click();
-      createSpawnerPage.findAddVariableButton().click();
-      const secretEnvVarField2 = createSpawnerPage.getEnvironmentVariableTypeField(0);
-      secretEnvVarField2.selectEnvironmentVariableType('Config Map');
-      secretEnvVarField2.selectEnvDataType('Key / value');
-      secretEnvVarField2.findKeyInput().fill(testData.FAKE_CM_KEY);
-      secretEnvVarField2.findKeyValue().fill(testData.FAKE_CM_VALUE);
-      createSpawnerPage.findSubmitButton().click();
+          // Wait for workbench to run
+          cy.step(`Wait for workbench ${workbenchName} to display a "Running" status`);
+          const notebookRow = workbenchPage.getNotebookRow(workbenchName);
+          notebookRow.findNotebookDescription(testData.wbVariablesTestDescription);
+          notebookRow.expectStatusLabelToBe('Running', 120000);
 
-      // Wait for workbench to run
-      cy.step(`Wait for workbench ${workbenchName2} to display a "Running" status`);
-      const notebookRow2 = workbenchPage.getNotebookRow(workbenchName2);
-      notebookRow2.findNotebookDescription(testData.wbVariablesTestDescription);
-      notebookRow2.expectStatusLabelToBe('Running', 120000);
-      notebookRow2.shouldHaveNotebookImageName('code-server');
-      notebookRow2.shouldHaveContainerSize('Small');
+          // Use dynamic image name verification for first workbench
+          getImageStreamDisplayName(selectedImageStream).then((displayName) => {
+            notebookRow.shouldHaveNotebookImageName(displayName);
+            notebookRow.shouldHaveContainerSize('Small');
 
-      // Validate that the variables are present in the Workbench container
-      cy.step(`Validate that the variables are present in the Workbench container `);
-      const configMapVariables = {
-        [testData.FAKE_CM_KEY]: testData.FAKE_CM_VALUE,
-      };
-      validateWorkbenchEnvironmentVariables(projectName, workbenchName2, configMapVariables);
+            // Validate that the variables are present in the Workbench container
+            cy.step(`Validate that the variables are present in the Workbench container`);
+            const secretVariables = {
+              [testData.FAKE_SECRET_KEY]: testData.FAKE_SECRET_VALUE,
+            };
+            validateWorkbenchEnvironmentVariables(projectName, workbenchName, secretVariables);
+
+            // Create a second workbench with Config Map variables via Key / Value
+            cy.step(`Create a second workbench ${workbenchName2} using config map variables`);
+            workbenchPage.findCreateButton().click();
+            createSpawnerPage.getNameInput().fill(workbenchName2);
+            createSpawnerPage.getDescriptionInput().type(projectDescription);
+
+            // Select notebook image with fallback for second workbench
+            selectNotebookImageWithBackendFallback('code-server-notebook', createSpawnerPage).then(
+              (imageStreamName2) => {
+                selectedImageStream2 = imageStreamName2;
+                cy.log(`Selected imagestream for second workbench: ${selectedImageStream2}`);
+
+                createSpawnerPage.findAddVariableButton().click();
+                const secretEnvVarField2 = createSpawnerPage.getEnvironmentVariableTypeField(0);
+                secretEnvVarField2.selectEnvironmentVariableType('Config Map');
+                secretEnvVarField2.selectEnvDataType('Key / value');
+                secretEnvVarField2.findKeyInput().fill(testData.FAKE_CM_KEY);
+                secretEnvVarField2.findKeyValue().fill(testData.FAKE_CM_VALUE);
+                createSpawnerPage.findSubmitButton().click();
+
+                // Wait for workbench to run
+                cy.step(`Wait for workbench ${workbenchName2} to display a "Running" status`);
+                const notebookRow2 = workbenchPage.getNotebookRow(workbenchName2);
+                notebookRow2.findNotebookDescription(testData.wbVariablesTestDescription);
+                notebookRow2.expectStatusLabelToBe('Running', 120000);
+
+                // Use dynamic image name verification for second workbench
+                getImageStreamDisplayName(selectedImageStream2).then((displayName2) => {
+                  notebookRow2.shouldHaveNotebookImageName(displayName2);
+                  notebookRow2.shouldHaveContainerSize('Small');
+
+                  // Validate that the variables are present in the Workbench container
+                  cy.step(`Validate that the variables are present in the Workbench container `);
+                  const configMapVariables = {
+                    [testData.FAKE_CM_KEY]: testData.FAKE_CM_VALUE,
+                  };
+                  validateWorkbenchEnvironmentVariables(
+                    projectName,
+                    workbenchName2,
+                    configMapVariables,
+                  );
+                });
+              },
+            );
+          });
+        },
+      );
     },
   );
 });

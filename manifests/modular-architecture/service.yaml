@@ -1,0 +1,7 @@
+- op: add
+  path: /spec/ports/-
+  value:
+    name: mr-ui
+    protocol: TCP
+    port: 8043
+    targetPort: 8043

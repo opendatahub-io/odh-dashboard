@@ -1,6 +1,8 @@
 import React from 'react';
 import { ProjectDetailsContext } from '@odh-dashboard/internal/pages/projects/ProjectDetailsContext';
-import { useExtensions } from '@odh-dashboard/plugin-core';
+import { LazyCodeRefComponent, useExtensions } from '@odh-dashboard/plugin-core';
+import { Bullseye, Card, CardBody, Spinner } from '@patternfly/react-core';
+import CollapsibleSection from '@odh-dashboard/internal/concepts/design/CollapsibleSection';
 import {
   ModelDeploymentsProvider,
   ModelDeploymentsContext,
@@ -8,23 +10,50 @@ import {
 import { useProjectServingPlatform } from './concepts/useProjectServingPlatform';
 import ModelPlatformSection from './components/overview/ModelPlatformSection';
 import DeployedModelsSection from './components/overview/DeployedModelsSection';
+import { useAvailableClusterPlatforms } from './concepts/useAvailableClusterPlatforms';
 import { isModelServingPlatformExtension } from '../extension-points';
 
-const ServeModelsSectionContent: React.FC = () => {
-  const { deployments } = React.useContext(ModelDeploymentsContext);
-  const hasModels = !!deployments && deployments.length > 0;
+const EmptyLoadingSection: React.FC = () => (
+  <CollapsibleSection title="Serve models" data-testid="section-model-server">
+    <Card>
+      <CardBody>
+        <Bullseye>
+          <Spinner />
+        </Bullseye>
+      </CardBody>
+    </Card>
+  </CollapsibleSection>
+);
 
+const ServeModelsSectionContent: React.FC = () => {
+  const { deployments, loaded: deploymentsLoaded } = React.useContext(ModelDeploymentsContext);
+  const { clusterPlatforms, clusterPlatformsLoaded } = useAvailableClusterPlatforms();
+
+  if (!clusterPlatformsLoaded || !deploymentsLoaded) {
+    return <EmptyLoadingSection />;
+  }
+
+  const hasModels = !!deployments && deployments.length > 0;
   if (hasModels) {
     return <DeployedModelsSection />;
   }
-  return <ModelPlatformSection />;
+  return <ModelPlatformSection platforms={clusterPlatforms} />;
 };
 
 const ServeModelsSection: React.FC = () => {
   const { currentProject } = React.useContext(ProjectDetailsContext);
-  const availablePlatforms = useExtensions(isModelServingPlatformExtension);
+  const platformExtensions = useExtensions(isModelServingPlatformExtension);
+  const { activePlatform } = useProjectServingPlatform(currentProject, platformExtensions);
 
-  const { activePlatform } = useProjectServingPlatform(currentProject, availablePlatforms);
+  // TODO: remove this once modelmesh and nim are fully supported plugins
+  if (activePlatform?.properties.backport?.ServeModelsSection) {
+    return (
+      <LazyCodeRefComponent
+        component={activePlatform.properties.backport.ServeModelsSection}
+        fallback={<EmptyLoadingSection />}
+      />
+    );
+  }
 
   return (
     <ModelDeploymentsProvider

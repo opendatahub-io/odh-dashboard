@@ -20,7 +20,7 @@ spec:
   getStartedLink: 'https://developer.nvidia.com/nim'
   internalRoute: '/api/integrations/nim'
   enable:
-    title: Enter NVIDIA AI Enterprise license key
+    title: Enter NVIDIA personal API key
     actionLabel: Submit
     description: ''
     inProgressText: |
@@ -29,7 +29,7 @@ spec:
     variables:
       api_key: password
     variableDisplayText:
-      api_key: NVIDIA AI Enterprise license key
+      api_key: NVIDIA personal API key
     variableHelpText:
       api_key: This key is given to you by NVIDIA
   getStartedMarkDown: |-

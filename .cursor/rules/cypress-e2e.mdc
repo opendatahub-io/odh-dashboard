@@ -1,0 +1,330 @@
+---
+description: Comprehensive guidelines for creating and maintaining Cypress E2E tests including Robot Framework migrations and new feature testing
+globs: []
+alwaysApply: false
+---
+# Cypress E2E Test Rules
+
+## Test Sources & Context Requirements
+
+**CRITICAL**: Always ask for context before implementing any test. Never proceed without understanding the test source and purpose.
+
+### Test Source Indicators
+
+**Robot Framework Conversions**:
+- JIRA issues mentioning "Robot Framework", "Robot test", or "migration"
+- References to existing Robot test files or ODS-CI repository
+- Tags like "ODS-XXXX" referring to original Robot test tickets
+
+**New Feature Tests**:
+- JIRA epics for new dashboard features
+- Requirements from Miro boards or feature documentation
+- References to new UI components or workflows
+
+### Required Context for Robot Conversions
+1. **Original Robot Framework test code** - Get the complete .robot file content
+2. **JIRA URL context** - Review the original ODS tickets and current migration ticket
+3. **Original test purpose** - Understand the user journey, edge cases, and validation points
+4. **Environment setup** - What test data, users, and cluster state is required
+
+### Required Context for New Features
+1. **JIRA epic and related tickets** - Understand the full feature scope
+2. **Miro boards or design docs** - Review the intended user experience
+3. **Feature documentation** - Check for API changes, new components, or workflows
+4. **Existing mock tests** - Verify if component-level tests already exist
+
+### E2E vs Mock Tests
+- **E2E Tests**: End-to-end user journeys on live clusters with real backend APIs
+- **Mock Tests**: Component testing with mocked backends for faster, isolated testing
+- Both serve different purposes - E2E tests verify full system integration
+
+### Implementation Approach
+1. **Gather Context** - Always ask for and review all context before starting
+2. **Review Existing Tests** - Search for similar tests in the e2e directory first
+3. **Plan Structure** - Break down into utilities, fixtures, and test scenarios
+4. **Implement with Standards** - Follow all patterns below
+5. **Verify and Test** - Run linting and ensure test quality
+
+## Framework Structure and Standards
+
+### Folder Structure
+```
+frontend/src/__tests__/cypress/cypress/
+├── fixtures/e2e/           # Test data files (YAML only)
+├── pages/                  # Page Object Model files
+├── tests/e2e/             # Test files organized by feature area
+├── utils/                 # Utility functions
+│   ├── oc_commands/       # OpenShift CLI operations
+│   └── ...                # Other utilities
+└── types.ts               # Type definitions
+```
+
+### Test Data Management
+
+**Use test-variables.yml for user data**:
+- User configuration is ALWAYS stored in `test-variables.yml`
+- Reference users, buckets, clusters from this file like other tests
+- Use `test-variables.yml.example` as template for what gets checked in
+- Load test variables: `cy.getTestConfig().then((config) => { ... })`
+
+**Fixture files for test configuration**:
+- Store test-specific data in YAML fixture files
+- Use descriptive names like `testFeatureName.yaml`
+- Load fixtures: `cy.fixture('e2e/path/file.yaml')`
+- **NEVER include tags in fixture files** - tags are subject to change and belong in test files (see below for tagging convention)
+- **NEVER include user credentials in fixtures** - use test-variables.yml
+
+**Tagging convention**:
+- Tags should be specified in the test file, in the `it()` block options, e.g. `it('...', { tags: ['@Tag'] }, ...)`
+- Never include tags in fixture files.
+- See [project tagging guidelines](#) for more details (update with actual link if available).
+
+**No interfaces for test data**:
+- Don't create TypeScript interfaces for test data
+- Use direct object access patterns like other tests
+- Follow existing patterns in the codebase
+
+### Test Organization
+
+**File naming**: Use descriptive names matching feature area
+- `testFeatureName.cy.ts` for main functionality
+- Group related tests in feature directories
+
+**Test structure**:
+```typescript
+describe('Feature Name', () => {
+  // No beforeEach - not standard pattern
+  
+  before(() => {
+    // Setup only what's absolutely necessary
+  });
+
+  after(() => {
+    // Cleanup only
+  });
+
+  it('should describe specific behavior', { tags: ['@Tag'] }, () => {
+    // Test implementation
+  });
+});
+```
+
+### Navigation and Page Interactions
+
+**MANDATORY: Use page objects for ALL UI interactions**:
+- **NEVER use `cy.findByTestId()` directly in tests**
+- **NEVER use `cy.findByRole()` directly in tests**
+- **Do NOT call `cy.get()` directly in test files; use it only inside page-object `find...` helper methods.**
+- All UI interactions must go through page objects
+- If a test ID exists but no page object, create the page object method
+- If a test ID doesn't exist, create both the test ID and page object method
+- Search existing page objects first before creating new ones
+- Example: `projectDetails.findSectionTab('cluster-storages').click()`
+
+**Page object requirements**:
+- All selectors must be encapsulated in page object methods
+- Page objects should return Cypress chainables or other page objects
+- Use descriptive method names that indicate the action or element
+- Group related functionality in the same page object class
+
+**Navigation patterns**:
+- Use `.navigate()` methods when available instead of `cy.visit()`
+- Example: `projectListPage.navigate()` instead of `cy.visit('/projects')`
+- Follow navigation patterns from existing tests
+
+**Step documentation**:
+- Use `cy.step('Description')` instead of `cy.log()` 
+- Steps auto-number and provide better test reporting
+- Be descriptive about what each step accomplishes
+
+### Waiting and Timing
+
+**No arbitrary waits**:
+- Never use `cy.wait(milliseconds)` for arbitrary time periods
+- Use OC commands to wait for resource state changes
+- Wait for specific UI elements with proper selectors
+- Use retryable assertions with should() statements
+
+**OC command waiting**:
+```typescript
+// Wait for resource readiness using OC commands
+cy.exec('oc wait --for=condition=Ready pod/my-pod --timeout=300s');
+```
+
+### Validation Patterns
+
+**Prefer test IDs over text validation**:
+- Use `data-testid` attributes for validation when possible
+- Avoid text-based assertions unless absolutely necessary
+- Text can change, test IDs provide stable selectors
+
+**Validation examples**:
+```typescript
+// Good: Test ID validation through page objects
+pageObject.findStatusIndicator().should('have.attr', 'data-testid', 'status-ready');
+
+// Acceptable when needed: Text validation with proper page object
+pageObject.findStatusText().should('contain', 'Running');
+```
+
+### Utility Functions
+
+**OC commands in utilities**:
+- All OpenShift CLI operations must be in `utils/oc_commands/`
+- Group by functionality (e.g., `pvcManagement.ts`, `projectOperations.ts`)
+- Return Cypress chainables for test integration
+
+**API requests in utilities**:
+- All API calls must be in utility functions in `utils/`
+- Don't make inline API requests in tests
+- Provide clear error handling and logging
+
+### Code Quality and Linting
+
+**MANDATORY: Always lint before claiming test is complete**:
+
+> **Linting/fixing commands (frontend only):**
+> - From the frontend directory, run:
+>   ```bash
+>   npm run test:lint
+>   npm run test:fix
+>   ```
+
+**All linting errors must be fixed**:
+- No test is ready until ALL linting errors are resolved
+- Use object destructuring for variables
+- Proper formatting and spacing
+- No unused variables or imports
+- No `any` types unless absolutely necessary
+- Follow existing code patterns
+
+### Reusability and Research
+
+**Search existing tests first**:
+- Before writing new page objects, search for existing ones
+- Look for similar test patterns in the e2e directory
+- Reuse existing utility functions and patterns
+- Example: Search for "workbench" or "cluster storage" tests
+
+**Page object reuse**:
+- Use existing page objects like `projectDetails`, `clusterStorage`
+- Extend existing page objects rather than duplicating
+- Follow established patterns for new page objects
+
+### Test Independence
+
+**Each test should be independent**:
+- Tests should not depend on other tests running first
+- Clean up test artifacts after each test
+- Use unique identifiers (UUIDs) for test resources
+
+**Resource cleanup**:
+- Delete test projects, PVCs, and other resources after tests
+- Use `after()` hooks for cleanup
+- Handle cleanup failures gracefully
+
+### Error Handling
+
+**Robust error handling**:
+- Handle expected failure scenarios
+- Provide clear error messages
+- Use proper Cypress assertions and retries
+
+**Debug information**:
+- Log important test state and variables
+- Use descriptive step names for troubleshooting
+- Capture relevant system state on failures
+
+## Implementation Checklist
+
+Before writing any test:
+- [ ] Gathered all required context (Robot code, JIRA details, etc.)
+- [ ] Searched for existing similar tests to reuse patterns
+- [ ] Reviewed existing page objects and utilities
+- [ ] Planned test data strategy using test-variables.yml
+- [ ] Identified reusable components and utilities needed
+
+During implementation:
+- [ ] Use page objects for ALL UI interactions (no direct cy.findByTestId, cy.findByRole, cy.get)
+- [ ] Create page object methods for any missing test IDs or UI elements
+- [ ] Follow navigation patterns (.navigate() over cy.visit())
+- [ ] Use cy.step() for test documentation
+- [ ] Implement proper waiting strategies (no cy.wait())
+- [ ] Prefer test ID validation over text validation
+- [ ] Place OC commands and API calls in utility functions
+- [ ] Never include tags in fixture files
+
+After implementation:
+- [ ] Run linting: `npm run test:lint && npm run test:fix` (from the frontend directory)
+- [ ] Fix ALL linting errors before claiming test is complete
+- [ ] Verify test independence and cleanup
+- [ ] Test on clean environment
+- [ ] Document any new page objects or utilities created
+
+## Pre-Execution Checklist: Test Variables & Cluster Connection
+
+**MANDATORY: Before running any E2E test, ensure the following:**
+
+1. **Test Variables Configuration**
+   - Update `test-variables.yml` with the correct user credentials, cluster details, and any other required test data.
+   - Ensure the users, buckets, and clusters referenced in the test exist and match the current environment.
+   - If unsure, review `test-variables.yml.example` for required fields.
+
+2. **Cluster Connection**
+   - Confirm you are connected to the correct OpenShift/Kubernetes cluster where the test will run.
+   - Your `oc` CLI context should match the cluster referenced in `test-variables.yml`.
+   - Run `oc whoami` and `oc config current-context` to verify your connection.
+
+3. **User Prompt Before Test Execution**
+   - Always prompt the user to:
+     - Provide or confirm the test variable details (users, cluster, etc.)
+     - Confirm cluster connection and context
+   - Do not proceed with test execution until these details are confirmed.
+
+**Checklist Before Running E2E Test:**
+- [ ] Updated `test-variables.yml` with correct users and cluster details
+- [ ] Confirmed connection to the correct cluster (`oc whoami`, `oc config current-context`)
+- [ ] User has provided/confirmed all required test variable and cluster details
+
+## Test Execution & Failure Handling
+
+**After user confirms test variables and cluster connection:**
+
+1. **Run the E2E Test(s):**
+   - Execute the created E2E test(s) against the connected cluster.
+   - Use Cypress in headless mode for automated runs, or Cypress open mode for live debugging if requested or if failures occur.
+
+2. **Test Passes:**
+   - If the test passes, proceed as normal and report success.
+
+3. **Test Fails:**
+   - If the test fails:
+     - Perform a basic analysis of the failure output/logs.
+     - Hypothesize possible causes and suggest next steps or fixes.
+     - Recommend running the test in Cypress open mode (`cypress open`) to allow the user to observe the test execution live and assist with debugging.
+
+**Checklist:**
+- [ ] Run E2E test(s) after user confirmation
+- [ ] If test fails, analyze output and suggest fixes
+- [ ] Offer Cypress open mode for live debugging
+
+## Namespace Handling for OC Commands
+
+**MANDATORY: Never hardcode namespaces in tests or utilities.**
+- Always derive namespaces from test variables, typically using `Cypress.env('APPLICATIONS_NAMESPACE')` or similar environment variables loaded from `test-variables.yml`.
+- This ensures tests are portable between RHOAI and ODH environments, where namespaces may differ.
+- When writing or updating utilities, accept the namespace as a parameter or use the environment variable as the default.
+- Review existing utilities in `oc_commands/` for examples of this pattern.
+
+## Cypress Test Execution Directory and Input Handling
+
+- When running Cypress tests, always run from the correct directory (e.g., 'frontend') so that the --project flag is relative to that directory.
+- Do not use absolute or user-specific paths in scripts or documentation; use relative paths for portability.
+- When updating input fields in E2E tests, always clear the field before typing a new value to avoid concatenation issues (e.g., use .clear().type('newValue')).
+
+## Page Object and Test Action Separation
+
+- All page object methods named `find...` must only return Cypress chainables for elements, never perform actions (e.g., no `.click()` or `.type()` inside the method).
+- All actions (e.g., `.click()`, `.type()`) must be performed in the test itself, not inside the page object method.
+- When updating cluster settings or any backend-driven config, always verify the backend value is updated (e.g., using `cy.getDashboardConfig`) before proceeding to UI validation or further steps.
+- Always add `data-testid` attributes to the UI and corresponding `find...` methods in page objects whenever a test needs to interact with or validate an element.

@@ -1,21 +1,57 @@
 import React from 'react';
 import type { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
-import { ResolvedExtension } from '@openshift/dynamic-plugin-sdk';
 import { addSupportServingPlatformProject } from '@odh-dashboard/internal/api/k8s/projects';
 import { NamespaceApplicationCase } from '@odh-dashboard/internal/pages/projects/types';
 import { ModelServingPlatformExtension } from '../../extension-points';
 
-export type ModelServingPlatform = ResolvedExtension<ModelServingPlatformExtension>;
+export type ModelServingPlatform = ModelServingPlatformExtension;
 
+const isPlatformEnabled = (platform: ModelServingPlatform, project: ProjectKind): boolean => {
+  const requirements = platform.properties.manage.projectRequirements;
+
+  const labelsMatch =
+    !requirements.labels ||
+    Object.entries(requirements.labels).every(
+      ([key, value]) => project.metadata.labels?.[key] === value,
+    );
+
+  const annotationsMatch =
+    !requirements.annotations ||
+    Object.entries(requirements.annotations).every(
+      ([key, value]) => project.metadata.annotations?.[key] === value,
+    );
+
+  return labelsMatch && annotationsMatch;
+};
+
+/**
+ * Check the project labels and annotations to see if it matches any of the platforms.
+ * Returns the platform with the highest priority if there are multiple matches.
+ */
 export const getProjectServingPlatform = (
   project: ProjectKind,
   platforms: ModelServingPlatform[],
-): ModelServingPlatform | null =>
-  platforms.find(
-    (p) =>
-      project.metadata.labels?.[p.properties.manage.enabledLabel] ===
-      p.properties.manage.enabledLabelValue,
-  ) ?? null;
+): ModelServingPlatform | null => {
+  const enabledPlatforms = platforms.filter((p) => isPlatformEnabled(p, project));
+  const sortedEnabledPlatforms = enabledPlatforms.toSorted(
+    (a, b) => (b.properties.manage.priority ?? 0) - (a.properties.manage.priority ?? 0),
+  );
+  return sortedEnabledPlatforms[0] ?? null;
+};
+
+export const getMultiProjectServingPlatforms = (
+  projects: ProjectKind[],
+  platforms: ModelServingPlatform[],
+): ModelServingPlatform[] => {
+  const result = [];
+  for (const project of projects) {
+    const platform = getProjectServingPlatform(project, platforms);
+    if (platform) {
+      result.push(platform);
+    }
+  }
+  return result;
+};
 
 export const useProjectServingPlatform = (
   project: ProjectKind,

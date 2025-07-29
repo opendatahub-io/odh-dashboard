@@ -24,14 +24,8 @@ let modelFilePath: string;
 const awsBucket = 'BUCKET_1' as const;
 const uuid = generateTestUUID();
 
-describe('Verify Admin Single Model Creation and Validation using the UI', () => {
+describe('[Product Bug: RHOAIENG-30799] Verify Admin Single Model Creation and Validation using the UI', () => {
   retryableBefore(() => {
-    Cypress.on('uncaught:exception', (err) => {
-      if (err.message.includes('Error: secrets "ds-pipeline-config" already exists')) {
-        return false;
-      }
-      return true;
-    });
     // Setup: Load test data and ensure clean state
     return loadDSPFixture('e2e/dataScienceProjects/testSingleModelAdminCreation.yaml').then(
       (fixtureData: DataScienceProjectData) => {
@@ -54,14 +48,23 @@ describe('Verify Admin Single Model Creation and Validation using the UI', () =>
     );
   });
   after(() => {
-    // Delete provisioned Project
-    deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
+    // Delete provisioned Project - wait for completion due to RHOAIENG-19969 to support test retries, 5 minute timeout
+    // TODO: Review this timeout once RHOAIENG-19969 is resolved
+    deleteOpenShiftProject(projectName, { wait: true, ignoreNotFound: true, timeout: 300000 });
   });
 
   it(
     'Verify that an Admin can Serve, Query a Single Model using both the UI and External links',
     {
-      tags: ['@Smoke', '@SmokeSet3', '@ODS-2626', '@Dashboard', '@Modelserving', '@NonConcurrent'],
+      tags: [
+        '@Smoke',
+        '@SmokeSet3',
+        '@ODS-2626',
+        '@Dashboard',
+        '@Modelserving',
+        '@NonConcurrent',
+        '@Bug',
+      ],
     },
     () => {
       cy.log('Model Name:', modelName);
@@ -98,7 +101,7 @@ describe('Verify Admin Single Model Creation and Validation using the UI', () =>
       inferenceServiceModal.findLocationPathInput().type(modelFilePath);
       inferenceServiceModal.findSubmitButton().click();
       inferenceServiceModal.shouldBeOpen(false);
-      modelServingSection.findModelServerName(testData.singleModelAdminName);
+      modelServingSection.findModelServerDeployedName(testData.singleModelAdminName);
 
       //Verify the model created
       cy.step('Verify that the Model is created Successfully on the backend and frontend');
@@ -106,9 +109,9 @@ describe('Verify Admin Single Model Creation and Validation using the UI', () =>
         checkReady: true,
         checkLatestDeploymentReady: true,
       });
-      modelServingSection.findModelServerName(testData.singleModelAdminName);
       // Note reload is required as status tooltip was not found due to a stale element
       cy.reload();
+      modelServingSection.findModelMetricsLink(testData.singleModelAdminName);
       attemptToClickTooltip();
 
       //Verify the Model is accessible externally

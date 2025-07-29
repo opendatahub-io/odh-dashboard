@@ -6,8 +6,10 @@ import {
   isOciModelUri,
   getInferenceServiceStoppedStatus,
   getServingRuntimeVersionStatus,
+  getModelServingPVCAnnotations,
 } from '#~/pages/modelServing/utils';
 import { mockServingRuntimeK8sResource } from '#~/__mocks__/mockServingRuntimeK8sResource';
+import { mockPVCK8sResource } from '#~/__mocks__/mockPVCK8sResource';
 import { ContainerResources } from '#~/types';
 import { mockServiceAccountK8sResource } from '#~/__mocks__/mockServiceAccountK8sResource';
 import { mockRoleBindingK8sResource } from '#~/__mocks__/mockRoleBindingK8sResource';
@@ -310,28 +312,26 @@ describe('isOciModelUri', () => {
   });
 });
 
-describe('getModelServingStatus', () => {
-  it('should return correct status when model is running', () => {
+describe('getInferenceServiceStoppedStatus', () => {
+  it('should return running status when model is running', () => {
     const inferenceService = mockInferenceServiceK8sResource({});
+
     expect(getInferenceServiceStoppedStatus(inferenceService)).toEqual({
       inferenceService,
       isStopped: false,
       isRunning: true,
-      isStopping: false,
-      isStarting: false,
     });
   });
 
-  it('should return correct status when model is stopped', () => {
+  it('should return stopped status when model is stopped', () => {
     const inferenceService = mockInferenceServiceK8sResource({});
     inferenceService.metadata.annotations ??= {};
     inferenceService.metadata.annotations['serving.kserve.io/stop'] = 'true';
+
     expect(getInferenceServiceStoppedStatus(inferenceService)).toEqual({
       inferenceService,
       isStopped: true,
       isRunning: false,
-      isStopping: false,
-      isStarting: false,
     });
   });
 });
@@ -351,5 +351,28 @@ describe('getServingRuntimeVersionStatus', () => {
     expect(getServingRuntimeVersionStatus('1.0.0', '2.0.0')).toBe(
       ServingRuntimeVersionStatusLabel.OUTDATED,
     );
+  });
+});
+
+describe('getModelServingPVCAnnotations', () => {
+  it('should return the right annotations', () => {
+    const pvc = mockPVCK8sResource({
+      annotations: {
+        'dashboard.opendatahub.io/model-name': 'test-model',
+        'dashboard.opendatahub.io/model-path': 'test-path',
+      },
+    });
+    expect(getModelServingPVCAnnotations(pvc)).toEqual({
+      modelName: 'test-model',
+      modelPath: 'test-path',
+    });
+  });
+
+  it('should return null if annotations are not present', () => {
+    const pvc = mockPVCK8sResource({});
+    expect(getModelServingPVCAnnotations(pvc)).toEqual({
+      modelName: null,
+      modelPath: null,
+    });
   });
 });

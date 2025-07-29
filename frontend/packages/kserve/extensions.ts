@@ -4,13 +4,14 @@ import { NamespaceApplicationCase } from '@odh-dashboard/internal/pages/projects
 import { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
 import type {
   ModelServingPlatformExtension,
-  ModelServingDeploymentsTableExtension,
   ModelServingDeleteModal,
   ModelServingPlatformWatchDeploymentsExtension,
   ModelServingDeploymentsExpandedInfo,
   ModelServingMetricsExtension,
   ModelServingDeploymentResourcesExtension,
   ModelServingAuthExtension,
+  DeployedModelServingDetails,
+  ModelServingStartStopAction,
 } from '@odh-dashboard/model-serving/extension-points';
 // eslint-disable-next-line no-restricted-syntax
 import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/index';
@@ -23,10 +24,11 @@ const extensions: (
   | ModelServingPlatformWatchDeploymentsExtension<KServeDeployment>
   | ModelServingDeploymentResourcesExtension<KServeDeployment>
   | ModelServingAuthExtension<KServeDeployment>
-  | ModelServingDeploymentsTableExtension<KServeDeployment>
   | ModelServingDeploymentsExpandedInfo<KServeDeployment>
   | ModelServingDeleteModal<KServeDeployment>
   | ModelServingMetricsExtension<KServeDeployment>
+  | DeployedModelServingDetails<KServeDeployment>
+  | ModelServingStartStopAction<KServeDeployment>
 )[] = [
   {
     type: 'model-serving.platform',
@@ -34,8 +36,12 @@ const extensions: (
       id: KSERVE_ID,
       manage: {
         namespaceApplicationCase: NamespaceApplicationCase.KSERVE_PROMOTION,
-        enabledLabel: 'modelmesh-enabled',
-        enabledLabelValue: 'false',
+        // TODO: set this platform as the default if no other has priority
+        projectRequirements: {
+          labels: {
+            'modelmesh-enabled': 'false',
+          },
+        },
       },
       enableCardText: {
         title: 'Single-model serving platform',
@@ -50,6 +56,9 @@ const extensions: (
         startHintDescription: 'Each model is deployed on its own model server',
         deployButtonText: 'Deploy model',
       },
+    },
+    flags: {
+      required: [SupportedArea.K_SERVE],
     },
   },
   {
@@ -72,13 +81,6 @@ const extensions: (
       platform: KSERVE_ID,
       usePlatformAuthEnabled: () =>
         import('./src/useAuth').then((m) => m.useKServePlatformAuthEnabled),
-    },
-  },
-  {
-    type: 'model-serving.deployments-table',
-    properties: {
-      platform: KSERVE_ID,
-      columns: () => import('./src/deploymentsTable').then((m) => m.columns),
     },
   },
   {
@@ -106,6 +108,21 @@ const extensions: (
     },
     flags: {
       required: [SupportedArea.K_SERVE_METRICS],
+    },
+  },
+  {
+    type: 'model-serving.deployed-model/serving-runtime',
+    properties: {
+      platform: KSERVE_ID,
+      ServingDetailsComponent: () => import('./src/deploymentServingDetails'),
+    },
+  },
+  {
+    type: 'model-serving.deployments-table/start-stop-action',
+    properties: {
+      platform: KSERVE_ID,
+      patchDeploymentStoppedStatus: () =>
+        import('./src/deploymentStatus').then((m) => m.patchDeploymentStoppedStatus),
     },
   },
 ];

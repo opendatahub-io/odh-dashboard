@@ -2,18 +2,20 @@ import * as React from 'react';
 import {
   SearchInput,
   ToolbarContent,
-  ToolbarFilter,
   ToolbarGroup,
-  ToolbarItem,
   ToolbarToggleGroup,
 } from '@patternfly/react-core';
 import { FilterIcon, SearchIcon } from '@patternfly/react-icons';
-import { SearchType } from '#~/concepts/dashboard/DashboardSearchField';
 import { ModelVersion, RegisteredModel } from '#~/concepts/modelRegistry/types';
-import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
 import { filterModelVersions } from '#~/pages/modelRegistry/screens/utils';
 import EmptyModelRegistryState from '#~/pages/modelRegistry/screens/components/EmptyModelRegistryState';
-import { asEnumMember } from '#~/utilities/utils';
+import FilterToolbar from '#~/components/FilterToolbar';
+import {
+  initialModelRegistryVersionsFilterData,
+  ModelRegistryVersionsFilterDataType,
+  ModelRegistryVersionsFilterOptions,
+  modelRegistryVersionsFilterOptions,
+} from '#~/pages/modelRegistry/screens/const';
 import ModelVersionsArchiveTable from './ModelVersionsArchiveTable';
 
 type ModelVersionsArchiveListViewProps = {
@@ -27,12 +29,22 @@ const ModelVersionsArchiveListView: React.FC<ModelVersionsArchiveListViewProps> 
   registeredModel,
   refresh,
 }) => {
-  const [searchType, setSearchType] = React.useState<SearchType>(SearchType.KEYWORD);
-  const [search, setSearch] = React.useState('');
+  const [filterData, setFilterData] = React.useState<ModelRegistryVersionsFilterDataType>(
+    initialModelRegistryVersionsFilterData,
+  );
 
-  const searchTypes = [SearchType.KEYWORD, SearchType.AUTHOR];
+  const onFilterUpdate = React.useCallback(
+    (key: string, value: string | { label: string; value: string } | undefined) =>
+      setFilterData((prevValues) => ({ ...prevValues, [key]: value })),
+    [setFilterData],
+  );
 
-  const filteredModelVersions = filterModelVersions(unfilteredmodelVersions, search, searchType);
+  const onClearFilters = React.useCallback(
+    () => setFilterData(initialModelRegistryVersionsFilterData),
+    [setFilterData],
+  );
+
+  const filteredModelVersions = filterModelVersions(unfilteredmodelVersions, filterData);
 
   if (unfilteredmodelVersions.length === 0) {
     return (
@@ -49,47 +61,36 @@ const ModelVersionsArchiveListView: React.FC<ModelVersionsArchiveListViewProps> 
     <ModelVersionsArchiveTable
       refresh={refresh}
       registeredModel={registeredModel}
-      clearFilters={() => setSearch('')}
+      clearFilters={onClearFilters}
       modelVersions={filteredModelVersions}
       toolbarContent={
         <ToolbarContent>
           <ToolbarToggleGroup toggleIcon={<FilterIcon />} breakpoint="xl">
             <ToolbarGroup variant="filter-group">
-              <ToolbarFilter
-                labels={search === '' ? [] : [search]}
-                deleteLabel={() => setSearch('')}
-                deleteLabelGroup={() => setSearch('')}
-                categoryName="Keyword"
-              >
-                <SimpleSelect
-                  options={searchTypes.map(
-                    (key): SimpleSelectOption => ({
-                      key,
-                      label: key,
-                    }),
-                  )}
-                  value={searchType}
-                  onChange={(newSearchType) => {
-                    const enumMember = asEnumMember(newSearchType, SearchType);
-                    if (enumMember) {
-                      setSearchType(enumMember);
-                    }
-                  }}
-                  icon={<FilterIcon />}
-                />
-              </ToolbarFilter>
-              <ToolbarItem>
-                <SearchInput
-                  placeholder={`Find by ${searchType.toLowerCase()}`}
-                  value={search}
-                  onChange={(_, searchValue) => {
-                    setSearch(searchValue);
-                  }}
-                  onClear={() => setSearch('')}
-                  style={{ minWidth: '200px' }}
-                  data-testid="model-versions-archive-table-search"
-                />
-              </ToolbarItem>
+              <FilterToolbar
+                data-testid="model-versions-archive-table-toolbar"
+                filterOptions={modelRegistryVersionsFilterOptions}
+                filterOptionRenders={{
+                  [ModelRegistryVersionsFilterOptions.keyword]: ({ onChange, ...props }) => (
+                    <SearchInput
+                      {...props}
+                      aria-label="Filter by keyword"
+                      placeholder="Filter by keyword"
+                      onChange={(_event, value) => onChange(value)}
+                    />
+                  ),
+                  [ModelRegistryVersionsFilterOptions.author]: ({ onChange, ...props }) => (
+                    <SearchInput
+                      {...props}
+                      aria-label="Filter by author"
+                      placeholder="Filter by author"
+                      onChange={(_event, value) => onChange(value)}
+                    />
+                  ),
+                }}
+                filterData={filterData}
+                onFilterUpdate={onFilterUpdate}
+              />
             </ToolbarGroup>
           </ToolbarToggleGroup>
         </ToolbarContent>

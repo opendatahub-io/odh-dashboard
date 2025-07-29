@@ -106,7 +106,6 @@ const extensions: NavExtension[] = [
       path: '/modelEvaluations/*',
     },
   },
-
   {
     type: 'app.navigation/section',
     properties: {
@@ -189,7 +188,107 @@ const extensions: NavExtension[] = [
       path: '/artifacts/*',
     },
   },
-
+  {
+    type: 'app.navigation/section',
+    flags: {
+      required: [SupportedArea.FEATURE_STORE],
+    },
+    properties: {
+      id: 'feature-store',
+      title: 'Feature store',
+    },
+  },
+  {
+    type: 'app.navigation/href',
+    flags: {
+      required: [SupportedArea.FEATURE_STORE],
+    },
+    properties: {
+      id: 'overview',
+      title: 'Overview',
+      href: '/featureStore/overview',
+      section: 'feature-store',
+      path: '/featureStore/overview/*',
+    },
+  },
+  {
+    type: 'app.navigation/href',
+    flags: {
+      required: [SupportedArea.FEATURE_STORE],
+    },
+    properties: {
+      id: 'entities',
+      title: 'Entities',
+      href: '/featureStore/entities',
+      section: 'feature-store',
+      path: '/featureStore/entities/*',
+    },
+  },
+  {
+    type: 'app.navigation/href',
+    flags: {
+      required: [SupportedArea.FEATURE_STORE],
+    },
+    properties: {
+      id: 'data-sources',
+      title: 'Data sources',
+      href: '/featureStore/data-sources',
+      section: 'feature-store',
+      path: '/featureStore/data-sources/*',
+    },
+  },
+  {
+    type: 'app.navigation/href',
+    flags: {
+      required: [SupportedArea.FEATURE_STORE],
+    },
+    properties: {
+      id: 'data-sets',
+      title: 'Data sets',
+      href: '/featureStore/data-sets',
+      section: 'feature-store',
+      path: '/featureStore/data-sets/*',
+    },
+  },
+  {
+    type: 'app.navigation/href',
+    flags: {
+      required: [SupportedArea.FEATURE_STORE],
+    },
+    properties: {
+      id: 'features',
+      title: 'Features',
+      href: '/featureStore/features',
+      section: 'feature-store',
+      path: '/featureStore/features/*',
+    },
+  },
+  {
+    type: 'app.navigation/href',
+    flags: {
+      required: [SupportedArea.FEATURE_STORE],
+    },
+    properties: {
+      id: 'feature-views',
+      title: 'Feature views',
+      href: '/featureStore/featureViews',
+      section: 'feature-store',
+      path: '/featureStore/featureViews/*',
+    },
+  },
+  {
+    type: 'app.navigation/href',
+    flags: {
+      required: [SupportedArea.FEATURE_STORE],
+    },
+    properties: {
+      id: 'feature-services',
+      title: 'Feature services',
+      href: '/featureStore/feature-services',
+      section: 'feature-store',
+      path: '/featureStore/feature-services/*',
+    },
+  },
   {
     type: 'app.navigation/href',
     flags: {

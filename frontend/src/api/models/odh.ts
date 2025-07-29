@@ -16,7 +16,7 @@ export const AcceleratorProfileModel: K8sModelCommon = {
 
 export const HardwareProfileModel: K8sModelCommon = {
   apiVersion: 'v1alpha1',
-  apiGroup: 'dashboard.opendatahub.io',
+  apiGroup: 'infrastructure.opendatahub.io',
   kind: 'HardwareProfile',
   plural: 'hardwareprofiles',
 };
@@ -61,4 +61,11 @@ export const LMEvalModel: K8sModelCommon = {
   apiGroup: 'trustyai.opendatahub.io',
   kind: 'LMEvalJob',
   plural: 'lmevaljobs',
+};
+
+export const FeatureStoreModel: K8sModelCommon = {
+  apiVersion: 'v1alpha1',
+  apiGroup: 'feast.dev',
+  kind: 'FeatureStore',
+  plural: 'featurestores',
 };

@@ -23,7 +23,7 @@ let modelFilePath: string;
 const awsBucket = 'BUCKET_1' as const;
 const uuid = generateTestUUID();
 
-describe('A model can be stopped and started', () => {
+describe('[Product Bug: RHOAIENG-30799] A model can be stopped and started', () => {
   retryableBefore(() => {
     cy.log('Loading test data');
     return loadDSPFixture('e2e/dataScienceProjects/testModelStopStart.yaml').then(
@@ -48,14 +48,15 @@ describe('A model can be stopped and started', () => {
   });
 
   after(() => {
-    // Delete the Project
-    deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
+    // Delete provisioned Project - wait for completion due to RHOAIENG-19969 to support test retries, 5 minute timeout
+    // TODO: Review this timeout once RHOAIENG-19969 is resolved
+    deleteOpenShiftProject(projectName, { wait: true, ignoreNotFound: true, timeout: 300000 });
   });
 
   it(
     'Verify that a model can be stopped and started',
     {
-      tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@Modelserving', '@NonConcurrent'],
+      tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@Modelserving', '@NonConcurrent', '@Bug'],
     },
     () => {
       cy.log('Model Name:', modelName);
@@ -84,7 +85,7 @@ describe('A model can be stopped and started', () => {
       inferenceServiceModal.findLocationPathInput().type(modelFilePath);
       inferenceServiceModal.findSubmitButton().click();
       inferenceServiceModal.shouldBeOpen(false);
-      modelServingSection.findModelServerName(testData.singleModelName);
+      modelServingSection.findModelServerDeployedName(testData.singleModelName);
       const kServeRow = modelServingSection.getKServeRow(testData.singleModelName);
 
       //Verify the model created and is running

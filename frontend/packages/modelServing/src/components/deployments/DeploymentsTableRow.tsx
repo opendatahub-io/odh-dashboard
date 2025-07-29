@@ -5,10 +5,13 @@ import ResourceTr from '@odh-dashboard/internal/components/ResourceTr';
 import { ModelStatusIcon } from '@odh-dashboard/internal/concepts/modelServing/ModelStatusIcon';
 import { InferenceServiceModelState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
-import { Link } from 'react-router-dom';
 import ResourceNameTooltip from '@odh-dashboard/internal/components/ResourceNameTooltip';
-import { DeploymentEndpointsPopupButton } from './DeploymentEndpointsPopupButton';
+import StateActionToggle from '@odh-dashboard/internal/components/StateActionToggle';
+import DeployedModelsVersion from './DeployedModelsVersion';
 import { DeploymentRowExpandedSection } from './DeploymentsTableRowExpandedSection';
+import DeploymentLastDeployed from './DeploymentLastDeployed';
+import DeploymentStatus from './DeploymentStatus';
+import ModelServingStopModal from './ModelServingStopModal';
 import {
   useDeploymentExtension,
   useResolvedDeploymentExtension,
@@ -21,7 +24,10 @@ import {
   isModelServingDeploymentResourcesExtension,
   isModelServingDeploymentsExpandedInfo,
   isModelServingMetricsExtension,
+  isModelServingStartStopAction,
 } from '../../../extension-points';
+import { DeploymentMetricsLink } from '../metrics/DeploymentMetricsLink';
+import useStopModalPreference from '../../concepts/useStopModalPreference';
 
 export const DeploymentRow: React.FC<{
   deployment: Deployment;
@@ -49,8 +55,31 @@ export const DeploymentRow: React.FC<{
     isModelServingAuthExtension,
     deployment,
   );
+  const startStopActionExtension = useDeploymentExtension(
+    isModelServingStartStopAction,
+    deployment,
+  );
 
   const [isExpanded, setExpanded] = React.useState(false);
+
+  const [dontShowModalValue] = useStopModalPreference();
+  const [isOpenConfirm, setOpenConfirm] = React.useState(false);
+
+  const onStart = React.useCallback(() => {
+    startStopActionExtension?.properties
+      .patchDeploymentStoppedStatus()
+      .then((resolvedFunction) => resolvedFunction(deployment, false));
+  }, [deployment, startStopActionExtension]);
+
+  const onStop = React.useCallback(() => {
+    if (dontShowModalValue) {
+      startStopActionExtension?.properties
+        .patchDeploymentStoppedStatus()
+        .then((resolvedFunction) => resolvedFunction(deployment, true));
+    } else {
+      setOpenConfirm(true);
+    }
+  }, [dontShowModalValue, deployment, startStopActionExtension]);
 
   return (
     <Tbody isExpanded={isExpanded}>
@@ -67,17 +96,15 @@ export const DeploymentRow: React.FC<{
         )}
         <Td dataLabel="Name">
           <ResourceNameTooltip resource={deployment.model}>
-            {metricsExtension && deployment.model.metadata.namespace ? (
-              <Link
-                data-testid={`metrics-link-${getDisplayNameFromK8sResource(deployment.model)}`}
-                to={`/projects/${encodeURIComponent(
-                  deployment.model.metadata.namespace,
-                )}/metrics/model/${encodeURIComponent(deployment.model.metadata.name)}`}
-              >
-                {getDisplayNameFromK8sResource(deployment.model)}
-              </Link>
+            {metricsExtension &&
+            deployment.model.metadata.namespace &&
+            (deployment.status?.stoppedStates?.isRunning ||
+              deployment.status?.stoppedStates?.isStopped) ? (
+              <DeploymentMetricsLink deployment={deployment} data-testid="deployed-model-name" />
             ) : (
-              getDisplayNameFromK8sResource(deployment.model)
+              <span data-testid="deployed-model-name">
+                {getDisplayNameFromK8sResource(deployment.model)}
+              </span>
             )}
           </ResourceNameTooltip>
         </Td>
@@ -86,11 +113,11 @@ export const DeploymentRow: React.FC<{
             {column.cellRenderer(deployment, column.field)}
           </Td>
         ))}
+        <Td dataLabel="Serving runtime">
+          <DeployedModelsVersion deployment={deployment} />
+        </Td>
         <Td dataLabel="Inference endpoint">
-          <DeploymentEndpointsPopupButton
-            endpoints={deployment.endpoints}
-            loading={deployment.status?.state === InferenceServiceModelState.LOADING}
-          />
+          <DeploymentStatus deployment={deployment} />
         </Td>
         <Td dataLabel="API protocol">
           {getServerApiProtocol(deployment) ? (
@@ -99,12 +126,26 @@ export const DeploymentRow: React.FC<{
             <Content component={ContentVariants.small}>Not defined</Content>
           )}
         </Td>
+        <Td dataLabel="Last deployed">
+          <DeploymentLastDeployed deployment={deployment} />
+        </Td>
         <Td dataLabel="Status">
           <ModelStatusIcon
             state={deployment.status?.state ?? InferenceServiceModelState.UNKNOWN}
             bodyContent={deployment.status?.message}
             defaultHeaderContent="Inference Service Status"
+            stoppedStates={deployment.status?.stoppedStates}
           />
+        </Td>
+        <Td dataLabel="State toggle">
+          {startStopActionExtension && deployment.status?.stoppedStates && (
+            <StateActionToggle
+              currentState={deployment.status.stoppedStates}
+              onStart={onStart}
+              onStop={onStop}
+              isDisabledWhileStarting={false}
+            />
+          )}
         </Td>
         <Td isActionCell>
           <ActionsColumn
@@ -132,6 +173,20 @@ export const DeploymentRow: React.FC<{
             usePlatformAuth={resolvedAuthExtension.properties.usePlatformAuthEnabled}
           />
         )}
+      {isOpenConfirm && startStopActionExtension && (
+        <ModelServingStopModal
+          modelName={getDisplayNameFromK8sResource(deployment.model)}
+          title="Stop model deployment?"
+          onClose={(confirmStatus: boolean) => {
+            setOpenConfirm(false);
+            if (confirmStatus) {
+              startStopActionExtension.properties
+                .patchDeploymentStoppedStatus()
+                .then((resolvedFunction) => resolvedFunction(deployment, true));
+            }
+          }}
+        />
+      )}
     </Tbody>
   );
 };

@@ -14,6 +14,7 @@ import HardwareProfilesToolbar from '#~/pages/hardwareProfiles/HardwareProfilesT
 import { createHardwareProfileFromResource } from '#~/api';
 import { MigrationAction } from './migration/types';
 import MigrationModal from './migration/MigrationModal';
+import { getHardwareProfileDisplayName, isHardwareProfileEnabled } from './utils';
 
 type HardwareProfilesTableProps = {
   hardwareProfiles: HardwareProfileKind[];
@@ -45,7 +46,9 @@ const HardwareProfilesTable: React.FC<HardwareProfilesTableProps> = ({
         const nameFilter = filterData.Name?.toLowerCase();
         const enableFilter = filterData.Enabled;
         const visibilityFilter = filterData.Visibility;
-        if (nameFilter && !cr.spec.displayName.toLowerCase().includes(nameFilter)) {
+        const enabledCr = isHardwareProfileEnabled(cr);
+        const displayName = getHardwareProfileDisplayName(cr);
+        if (nameFilter && !displayName.toLowerCase().includes(nameFilter)) {
           return false;
         }
 
@@ -64,8 +67,8 @@ const HardwareProfilesTable: React.FC<HardwareProfilesTableProps> = ({
 
         return (
           !enableFilter ||
-          (enableFilter === HardwareProfileEnableType.enabled && cr.spec.enabled) ||
-          (enableFilter === HardwareProfileEnableType.disabled && !cr.spec.enabled)
+          (enableFilter === HardwareProfileEnableType.enabled && enabledCr) ||
+          (enableFilter === HardwareProfileEnableType.disabled && !enabledCr)
         );
       }),
     [hardwareProfiles, filterData],

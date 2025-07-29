@@ -6,9 +6,10 @@ import {
   OffIcon,
   OutlinedQuestionCircleIcon,
   PlayIcon,
+  SyncAltIcon,
 } from '@patternfly/react-icons';
 import { InferenceServiceModelState } from '#~/pages/modelServing/screens/types';
-import { InferenceServiceKind } from '#~/k8sTypes';
+import { ToggleState } from '#~/components/StateActionToggle';
 
 type ModelStatusIconProps = {
   state: InferenceServiceModelState;
@@ -16,8 +17,7 @@ type ModelStatusIconProps = {
   bodyContent?: string;
   isCompact?: boolean;
   onClick?: LabelProps['onClick'];
-  inferenceService?: InferenceServiceKind;
-  isStarting?: boolean;
+  stoppedStates?: ToggleState;
 };
 
 export const ModelStatusIcon: React.FC<ModelStatusIconProps> = ({
@@ -26,8 +26,7 @@ export const ModelStatusIcon: React.FC<ModelStatusIconProps> = ({
   bodyContent = '',
   isCompact,
   onClick,
-  inferenceService,
-  isStarting,
+  stoppedStates,
 }) => {
   const statusSettings = React.useMemo((): {
     label: string;
@@ -37,8 +36,7 @@ export const ModelStatusIcon: React.FC<ModelStatusIconProps> = ({
     message?: string;
   } => {
     // Highest-priority: service explicitly stopped
-    const isStopped = inferenceService?.metadata.annotations?.['serving.kserve.io/stop'] === 'true';
-    if (isStopped) {
+    if (stoppedStates?.isStopped) {
       return {
         label: 'Stopped',
         color: 'grey',
@@ -46,9 +44,17 @@ export const ModelStatusIcon: React.FC<ModelStatusIconProps> = ({
         message: 'Offline and not using resources. Restart to use model.',
       };
     }
+
+    if (stoppedStates?.isStopping) {
+      return {
+        label: 'Stopping',
+        color: 'grey',
+        icon: <SyncAltIcon className="odh-u-spin" />,
+      };
+    }
     // Show 'Starting' for optimistic updates or for loading/pending states from the backend.
     if (
-      isStarting ||
+      stoppedStates?.isStarting ||
       state === InferenceServiceModelState.LOADING ||
       state === InferenceServiceModelState.PENDING
     ) {
@@ -82,7 +88,7 @@ export const ModelStatusIcon: React.FC<ModelStatusIconProps> = ({
           icon: <OutlinedQuestionCircleIcon />,
         };
     }
-  }, [state, defaultHeaderContent, inferenceService, isStarting]);
+  }, [state, defaultHeaderContent, stoppedStates]);
 
   return (
     <Popover

@@ -187,11 +187,15 @@ class ModelRegistry {
   }
 
   findTableSearch() {
-    return cy.findByTestId('registered-model-table-search');
+    return cy.findByTestId('filter-toolbar-text-field');
+  }
+
+  findFilterDropdownItem(name: string) {
+    return cy.findByTestId(`filter-toolbar-dropdown`).findDropdownItem(name);
   }
 
   findModelVersionsTableSearch() {
-    return cy.findByTestId('model-versions-table-search');
+    return cy.findByTestId('model-versions-table-toolbar');
   }
 
   findModelBreadcrumbItem() {
@@ -206,8 +210,8 @@ class ModelRegistry {
     return cy.findByTestId('model-version-action-toggle');
   }
 
-  findModelVersionsTableFilter() {
-    return cy.findByTestId('model-versions-table-filter');
+  findModelVersionsTableFilterOption(name: string) {
+    return cy.findByTestId('filter-toolbar-dropdown').findDropdownItem(name);
   }
 
   findRegisterModelButton(timeout?: number) {

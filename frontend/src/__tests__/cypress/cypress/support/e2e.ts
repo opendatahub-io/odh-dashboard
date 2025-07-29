@@ -20,6 +20,7 @@ import '@cypress/code-coverage/support';
 import 'cypress-mochawesome-reporter/register';
 import 'cypress-plugin-steps';
 import './commands';
+import '#~/__tests__/cypress/cypress/utils/moduleFederationMock';
 import { asProjectAdminUser } from '#~/__tests__/cypress/cypress/utils/mockUsers';
 import { mockDscStatus } from '#~/__mocks__/mockDscStatus';
 import { addCommands as webSocketsAddCommands } from './websockets';
@@ -113,6 +114,14 @@ Cypress.on('uncaught:exception', (err) => {
     return false;
   }
   // Let other errors fail the test as expected
+  return true;
+});
+
+// Ignore 'Unexpected token <' errors from webpack-dev-server fallback in E2E tests
+Cypress.on('uncaught:exception', (err) => {
+  if (err.message.includes("Unexpected token '<'")) {
+    return false;
+  }
   return true;
 });
 
@@ -325,6 +334,10 @@ beforeEach(function beforeEachHook(this: Mocha.Context) {
   if (Cypress.env('MOCK')) {
     // Fallback: return 404 for all API requests.
     cy.intercept({ pathname: '/api/**' }, { statusCode: 404 });
+
+    // Return 404 for all module federation requests.
+    cy.intercept({ pathname: '/_mf/**' }, { statusCode: 404 });
+
     // Default intercepts.
     cy.interceptOdh('GET /api/dsc/status', mockDscStatus({}));
     asProjectAdminUser();

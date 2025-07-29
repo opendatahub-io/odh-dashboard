@@ -4,7 +4,7 @@ metadata:
   name: fetch-hardware-profiles-role
 rules:
   - apiGroups:
-      - dashboard.opendatahub.io
+      - infrastructure.opendatahub.io
     verbs:
       - get
       - list
