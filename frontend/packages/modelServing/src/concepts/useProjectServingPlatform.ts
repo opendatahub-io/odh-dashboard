@@ -39,6 +39,20 @@ export const getProjectServingPlatform = (
   return sortedEnabledPlatforms[0] ?? null;
 };
 
+export const getMultiProjectServingPlatforms = (
+  projects: ProjectKind[],
+  platforms: ModelServingPlatform[],
+): ModelServingPlatform[] => {
+  const result = [];
+  for (const project of projects) {
+    const platform = getProjectServingPlatform(project, platforms);
+    if (platform) {
+      result.push(platform);
+    }
+  }
+  return result;
+};
+
 export const useProjectServingPlatform = (
   project: ProjectKind,
   platforms?: ModelServingPlatform[],
