@@ -680,6 +680,10 @@ class InferenceServiceRow extends TableRow {
     return this.find().find(`[data-label="Last deployed"]`);
   }
 
+  findLastDeployedTimestamp() {
+    return this.find().findByTestId('last-deployed-timestamp');
+  }
+
   findAPIProtocol() {
     return this.find().find(`[data-label="API protocol"]`);
   }

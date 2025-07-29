@@ -61,7 +61,6 @@ export const DeploymentRow: React.FC<{
   );
 
   const [isExpanded, setExpanded] = React.useState(false);
-
   const [dontShowModalValue] = useStopModalPreference();
   const [isOpenConfirm, setOpenConfirm] = React.useState(false);
 
@@ -81,8 +80,8 @@ export const DeploymentRow: React.FC<{
     }
   }, [dontShowModalValue, deployment, startStopActionExtension]);
 
-  return (
-    <Tbody isExpanded={isExpanded}>
+  const row = (
+    <>
       <ResourceTr resource={deployment.model}>
         {detailsExtension && showExpandedInfo && (
           <Td
@@ -100,7 +99,7 @@ export const DeploymentRow: React.FC<{
             deployment.model.metadata.namespace &&
             (deployment.status?.stoppedStates?.isRunning ||
               deployment.status?.stoppedStates?.isStopped) ? (
-              <DeploymentMetricsLink deployment={deployment} data-testid="deployed-model-name" />
+              <DeploymentMetricsLink deployment={deployment} />
             ) : (
               <span data-testid="deployed-model-name">
                 {getDisplayNameFromK8sResource(deployment.model)}
@@ -161,7 +160,6 @@ export const DeploymentRow: React.FC<{
         </Td>
       </ResourceTr>
       {isExpanded &&
-        showExpandedInfo &&
         resolvedResourcesExtension &&
         resolvedExpandedInfoExtension &&
         resolvedAuthExtension && (
@@ -187,6 +185,8 @@ export const DeploymentRow: React.FC<{
           }}
         />
       )}
-    </Tbody>
+    </>
   );
+
+  return detailsExtension && showExpandedInfo ? <Tbody isExpanded={isExpanded}>{row}</Tbody> : row;
 };

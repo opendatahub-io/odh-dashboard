@@ -67,6 +67,7 @@ export type ModelServingPlatformExtension<D extends Deployment = Deployment> = E
     manage: {
       namespaceApplicationCase: NamespaceApplicationCase;
       priority?: number; // larger numbers are higher priority
+      default?: boolean; // if true, this platform will be the default if no other has priority
       projectRequirements: {
         annotations?: {
           [key: string]: string;
