@@ -98,7 +98,7 @@ describe('Feature Views', () => {
   it('should display feature views page with correct title and content', () => {
     featureStoreGlobal.visitFeatureViews(fsProjectName);
 
-    cy.findByTestId('app-page-title').should('have.text', 'Feature views');
+    featureStoreGlobal.findHeading().should('have.text', 'Feature views');
 
     featureStoreGlobal.findProjectSelector().should('exist');
     featureStoreGlobal.findProjectSelector().click();
@@ -168,24 +168,6 @@ describe('Feature Views', () => {
 
     featureStoreGlobal.visitFeatureViews(fsProjectName);
 
-    // Verify empty state is displayed
-    cy.findByTestId('empty-state-title').should('exist');
-    cy.findByTestId('empty-state-title').should('contain.text', 'No feature views');
-    cy.findByTestId('empty-state-body').should(
-      'contain.text',
-      'No feature views have been found in this project.',
-    );
-  });
-
-  it('should handle project selection and navigation', () => {
-    featureStoreGlobal.visitFeatureViews(fsProjectName);
-
-    featureStoreGlobal.findProjectSelector().click();
-
-    const projectSelector = featureStoreGlobal.findProjectSelectorDropdown();
-    projectSelector.should('contain.text', fsProjectName);
-
-    cy.findByRole('menuitem', { name: 'test2' }).click();
-    cy.get('body').click(0, 0);
+    featureStoreGlobal.shouldBeEmpty();
   });
 });

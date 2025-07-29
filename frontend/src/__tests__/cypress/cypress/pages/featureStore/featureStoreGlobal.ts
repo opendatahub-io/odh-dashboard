@@ -34,6 +34,10 @@ class FeatureStoreGlobal {
     this.waitForEntities();
   }
 
+  findHeading() {
+    return cy.findByTestId('app-page-title');
+  }
+
   private wait() {
     cy.findByTestId('app-page-title').should('have.text', 'Feature Store');
     cy.testA11y();
@@ -68,8 +72,9 @@ class FeatureStoreGlobal {
   }
 
   selectProject(projectName: string) {
-    this.findProjectSelectorDropdown().click();
-    cy.findByRole('menuitem', { name: projectName }).click();
+    this.findProjectSelector().click();
+    this.findProjectSelectorDropdown().should('contain.text', projectName);
+    this.findProjectSelectorDropdown().findByRole('menuitem', { name: projectName }).click();
   }
 }
 
