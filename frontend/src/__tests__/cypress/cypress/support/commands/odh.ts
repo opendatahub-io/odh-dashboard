@@ -63,6 +63,7 @@ import type { ConnectionTypeConfigMap } from '#~/concepts/connectionTypes/types'
 import type { ProjectList } from '#~/pages/featureStore/types/featureStoreProjects';
 import type { FeatureViewsList } from '#~/pages/featureStore/types/featureView';
 import type { EntityList } from '#~/pages/featureStore/types/entities';
+import type { FeatureServicesList } from '#~/pages/featureStore/types/featureServices';
 
 type SuccessErrorResponse = {
   success: boolean;
@@ -820,6 +821,13 @@ declare global {
             path: { namespace: string; serviceName: string; apiVersion: string };
           },
           response: OdhResponse<EntityList>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/service/featurestore/:namespace/:serviceName/api/:apiVersion/feature_services',
+          options: {
+            path: { namespace: string; serviceName: string; apiVersion: string };
+          },
+          response: OdhResponse<FeatureServicesList>,
         ) => Cypress.Chainable<null>);
     }
   }

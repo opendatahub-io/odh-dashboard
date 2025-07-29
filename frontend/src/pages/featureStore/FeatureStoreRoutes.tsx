@@ -7,6 +7,7 @@ import FeatureViews from './screens/featureViews/FeatureViews';
 import FeatureViewDetails from './screens/featureViews/featureViewDetails/FeatureViewDetails';
 import { FeatureStoreObject } from './const';
 import EntitiesDetailsPage from './screens/entities/EntitiesDetails/EntitiesDetailsPage';
+import FeatureServices from './screens/featureServices/FeatureServices';
 
 export const featureStoreRoute = (
   featureStoreObject: FeatureStoreObject,
@@ -29,6 +30,7 @@ const FeatureStoreRoutes: React.FC = () => (
       <Route path="featureViews/:fsProjectName?/*" element={<FeatureViews />} />
       <Route path="featureViews/:fsProjectName/:featureViewName" element={<FeatureViewDetails />} />
       <Route path="entities/:fsProjectName/:entityName" element={<EntitiesDetailsPage />} />
+      <Route path="featureServices/:fsProjectName?/*" element={<FeatureServices />} />
     </Route>
   </Routes>
 );

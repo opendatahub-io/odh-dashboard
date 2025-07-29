@@ -4,6 +4,7 @@ import { FEATURE_STORE_API_VERSION } from '#~/pages/featureStore/const';
 import { Entity, EntityList } from '#~/pages/featureStore/types/entities';
 import { ProjectList } from '#~/pages/featureStore/types/featureStoreProjects';
 import { FeatureViewsList } from '#~/pages/featureStore/types/featureView';
+import { FeatureServicesList } from '#~/pages/featureStore/types/featureServices';
 import { handleFeatureStoreFailures } from './errorUtils';
 
 export const listFeatureStoreProject =
@@ -47,4 +48,17 @@ export const getEntityByName =
     )}?include_relationships=true&project=${encodeURIComponent(project)}`;
 
     return handleFeatureStoreFailures<Entity>(proxyGET(hostPath, endpoint, opts));
+  };
+
+export const getFeatureServices =
+  (hostPath: string) =>
+  (opts: K8sAPIOptions, project?: string): Promise<FeatureServicesList> => {
+    let endpoint = `/api/${FEATURE_STORE_API_VERSION}/feature_services/all`;
+    if (project) {
+      endpoint = `/api/${FEATURE_STORE_API_VERSION}/feature_services?project=${encodeURIComponent(
+        project,
+      )}`;
+    }
+
+    return handleFeatureStoreFailures<FeatureServicesList>(proxyGET(hostPath, endpoint, opts));
   };
