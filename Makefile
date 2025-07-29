@@ -29,7 +29,7 @@ reinstall: build push undeploy deploy
 
 .PHONY:setup-dev
 setup-dev:
-	./scripts/dev/setup-dev.sh $(ARGS)
+	./scripts/dev/setup-dev.sh --development-environment=local --cluster-type=existing $(ARGS)
 
 ##################################
 
