@@ -1,18 +1,12 @@
 import React from 'react';
-import { Tooltip } from '@patternfly/react-core';
+import { Panel, PanelMain, PanelMainBody, Popover } from '@patternfly/react-core';
 
 type TruncatedTextProps = {
   maxLines: number;
   content: React.ReactNode;
-  tooltipMaxHeight?: string;
 } & Omit<React.HTMLProps<HTMLSpanElement>, 'content'>;
 
-const TruncatedText: React.FC<TruncatedTextProps> = ({
-  maxLines,
-  content,
-  tooltipMaxHeight,
-  ...props
-}) => {
+const TruncatedText: React.FC<TruncatedTextProps> = ({ maxLines, content, ...props }) => {
   const outerElementRef = React.useRef<HTMLElement>(null);
   const textElementRef = React.useRef<HTMLElement>(null);
   const [isTruncated, setIsTruncated] = React.useState<boolean>(false);
@@ -48,21 +42,21 @@ const TruncatedText: React.FC<TruncatedTextProps> = ({
     </span>
   );
 
-  const tooltipContent = (
-    <div
-      style={{
-        maxHeight: '50vh',
-        overflowY: 'scroll',
-      }}
+  return isTruncated ? (
+    <Popover
+      triggerAction="hover"
+      bodyContent={
+        <Panel isScrollable>
+          <PanelMain tabIndex={0}>
+            <PanelMainBody>{content}</PanelMainBody>
+          </PanelMain>
+        </Panel>
+      }
     >
-      {content}
-    </div>
-  );
-
-  return (
-    <Tooltip hidden={!isTruncated ? true : undefined} content={tooltipContent}>
       {truncateBody}
-    </Tooltip>
+    </Popover>
+  ) : (
+    <>{truncateBody}</>
   );
 };
 
