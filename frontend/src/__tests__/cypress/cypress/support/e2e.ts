@@ -260,7 +260,7 @@ before(function setupGlobalIntercepts() {
   }
 });
 
-// Root-level before hook to skip suite if no tests match grep tags
+// Root-level before hook to skip suite if no tests match grep tags or if all tests should be skipped
 before(function checkGrepTags() {
   if (grepTags.length > 0) {
     // Collect all test tags
@@ -270,6 +270,16 @@ before(function checkGrepTags() {
       return allTestTags.some((t: string) => t === tag || t === `@${plainTag}`);
     });
     if (!hasMatchingTest) {
+      this.skip();
+    }
+  }
+
+  // Check if all tests should be skipped based on skip tags
+  if (skipTags.length > 0 && Object.keys(Cypress.testTags).length > 0) {
+    const allTestsShouldBeSkipped = Object.values(Cypress.testTags).every((testTags) =>
+      skipTags.some((tag: string) => mapTestTags(testTags).includes(tag)),
+    );
+    if (allTestsShouldBeSkipped) {
       this.skip();
     }
   }
