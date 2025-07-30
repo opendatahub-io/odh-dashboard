@@ -1,6 +1,6 @@
 import { proxyGET } from '#~/api/proxyUtils';
 import { handleFeatureStoreFailures } from '#~/api/featureStore/errorUtils';
-import { listFeatureStoreProject, getEntities } from '#~/api/featureStore/custom';
+import { listFeatureStoreProject, getEntities, getFeatureViews } from '#~/api/featureStore/custom';
 import { FEATURE_STORE_API_VERSION } from '#~/pages/featureStore/const';
 
 const mockProxyPromise = Promise.resolve();
@@ -85,6 +85,47 @@ describe('getEntities', () => {
     expect(proxyGETMock).toHaveBeenCalledWith(
       hostPath,
       `/api/${FEATURE_STORE_API_VERSION}/entities?project=${encodeURIComponent(project)}`,
+      opts,
+    );
+    expect(handleFeatureStoreFailuresMock).toHaveBeenCalledTimes(1);
+    expect(handleFeatureStoreFailuresMock).toHaveBeenCalledWith(mockProxyPromise);
+    expect(result).toBe(mockProxyPromise);
+  });
+});
+
+describe('getFeatureViews', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('should call proxyGET with all feature views endpoint when no project is provided', () => {
+    const hostPath = 'test-host';
+    const opts = { dryRun: true };
+
+    const result = getFeatureViews(hostPath)(opts);
+
+    expect(proxyGETMock).toHaveBeenCalledTimes(1);
+    expect(proxyGETMock).toHaveBeenCalledWith(
+      hostPath,
+      `/api/${FEATURE_STORE_API_VERSION}/feature_views/all`,
+      opts,
+    );
+    expect(handleFeatureStoreFailuresMock).toHaveBeenCalledTimes(1);
+    expect(handleFeatureStoreFailuresMock).toHaveBeenCalledWith(mockProxyPromise);
+    expect(result).toBe(mockProxyPromise);
+  });
+
+  it('should call proxyGET with project-specific endpoint when project is provided', () => {
+    const hostPath = 'test-host';
+    const opts = { dryRun: true };
+    const project = 'test-project';
+
+    const result = getFeatureViews(hostPath)(opts, project);
+
+    expect(proxyGETMock).toHaveBeenCalledTimes(1);
+    expect(proxyGETMock).toHaveBeenCalledWith(
+      hostPath,
+      `/api/${FEATURE_STORE_API_VERSION}/feature_views?project=${encodeURIComponent(project)}`,
       opts,
     );
     expect(handleFeatureStoreFailuresMock).toHaveBeenCalledTimes(1);

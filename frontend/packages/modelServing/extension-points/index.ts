@@ -11,11 +11,13 @@ import type { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/
 import type { ModelServingPodSpecOptionsState } from '@odh-dashboard/internal/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
 import type { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import type { InferenceServiceModelState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
+import type { ToggleState } from '@odh-dashboard/internal/components/StateActionToggle';
 import type { ComponentCodeRef } from '../../plugin-core/src/extension-points/types';
 
 export type DeploymentStatus = {
   state: InferenceServiceModelState;
   message?: string;
+  stoppedStates?: ToggleState;
 };
 
 export type DeploymentEndpoint = {
@@ -65,6 +67,7 @@ export type ModelServingPlatformExtension<D extends Deployment = Deployment> = E
     manage: {
       namespaceApplicationCase: NamespaceApplicationCase;
       priority?: number; // larger numbers are higher priority
+      default?: boolean; // if true, this platform will be the default if no other has priority
       projectRequirements: {
         annotations?: {
           [key: string]: string;
@@ -214,3 +217,18 @@ export const isDeployedModelServingDetails = <D extends Deployment = Deployment>
   extension: Extension,
 ): extension is DeployedModelServingDetails<D> =>
   extension.type === 'model-serving.deployed-model/serving-runtime';
+
+export type ModelServingStartStopAction<D extends Deployment = Deployment> = Extension<
+  'model-serving.deployments-table/start-stop-action',
+  {
+    platform: D['modelServingPlatformId'];
+    patchDeploymentStoppedStatus: CodeRef<
+      (deployment: D, isStopped: boolean) => Promise<D['model']>
+    >;
+  }
+>;
+
+export const isModelServingStartStopAction = <D extends Deployment = Deployment>(
+  extension: Extension,
+): extension is ModelServingStartStopAction<D> =>
+  extension.type === 'model-serving.deployments-table/start-stop-action';

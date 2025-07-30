@@ -14,7 +14,9 @@ const listFeatureStoreCR = async (): Promise<FeatureStoreKind | null> => {
 
   const featureStoreCRs = await k8sListResource<FeatureStoreKind>({
     model: FeatureStoreModel,
-    queryOptions: { queryParams: { labelSelector } },
+    queryOptions: {
+      queryParams: { labelSelector },
+    },
   });
 
   return featureStoreCRs.items[0] || null;

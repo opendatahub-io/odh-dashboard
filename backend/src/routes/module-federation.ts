@@ -97,9 +97,9 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
       const serviceNamespace =
         getEnvVar('SERVICE_NAMESPACE') ?? service.namespace ?? process.env.OC_PROJECT;
       const servicePort = getEnvVar('SERVICE_PORT') ?? service.port;
-      const host = getEnvVar('LOCAL_HOST') ?? local.host ?? 'localhost';
-      const port = getEnvVar('LOCAL_PORT') ?? local.port;
-      const tls = getEnvVar('TLS') ? getEnvVar('TLS') === 'true' : !!mfTls;
+      const host = getEnvVar('LOCAL_HOST') ?? local?.host ?? 'localhost';
+      const port = getEnvVar('LOCAL_PORT') ?? local?.port;
+      const tls = getEnvVar('TLS') ? getEnvVar('TLS') === 'true' : mfTls ?? true;
 
       registerProxy(fastify, {
         prefix: `/_mf/${name}`,
