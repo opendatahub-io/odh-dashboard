@@ -42,9 +42,9 @@ export const getFeatureViews =
 export const getEntityByName =
   (hostPath: string) =>
   (opts: K8sAPIOptions, project: string, entityName: string): Promise<Entity> => {
-    const endpoint = `/api/${FEATURE_STORE_API_VERSION}/entities/${entityName}?include_relationships=true&project=${encodeURIComponent(
-      project,
-    )}`;
+    const endpoint = `/api/${FEATURE_STORE_API_VERSION}/entities/${encodeURIComponent(
+      entityName,
+    )}?include_relationships=true&project=${encodeURIComponent(project)}`;
 
     return handleFeatureStoreFailures<Entity>(proxyGET(hostPath, endpoint, opts));
   };

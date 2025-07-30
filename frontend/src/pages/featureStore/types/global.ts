@@ -12,8 +12,9 @@ export type FeatureStorePagination = {
 };
 
 export type FeatureStoreError = {
-  code: string;
-  message: string;
+  code?: string;
+  message?: string;
+  detail?: string;
 };
 
 export type FeatureStoreMeta = {
