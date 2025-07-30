@@ -9,7 +9,7 @@ type FeatureServicesTableProps = {
   featureServices: FeatureService[];
   onClearFilters: () => void;
   fsProject?: string;
-} & Partial<Pick<React.ComponentProps<typeof Table>, 'enablePagination' | 'toolbarContent'>>;
+} & Partial<Pick<React.ComponentProps<typeof Table>, 'toolbarContent'>>;
 
 const FeatureServicesTable: React.FC<FeatureServicesTableProps> = ({
   featureServices,
