@@ -2,8 +2,8 @@
 
 echo "🔍 Checking for lint errors in staged files..."
 
-# Get list of staged files
-STAGED_FILES=$(git diff --cached --name-only)
+# Get list of staged files (excluding deleted files)
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM)
 
 # Filter staged files by directory and file type
 FRONTEND_FILES=$(echo "$STAGED_FILES" | grep "^frontend/" | grep -E "\.(js|ts|jsx|tsx)$" || true)
@@ -24,14 +24,22 @@ if [ -n "$FRONTEND_FILES" ]; then
     echo "$FRONTEND_FILES" | sed 's/^/  - /'
     cd frontend
     
-    # Convert file paths to be relative to frontend directory
-    FRONTEND_FILES_RELATIVE=$(echo "$FRONTEND_FILES" | sed 's|^frontend/||')
+    # Convert file paths to be relative to frontend directory and check they exist
+    FRONTEND_FILES_RELATIVE=""
+    for file in $FRONTEND_FILES; do
+        RELATIVE_FILE=$(echo "$file" | sed 's|^frontend/||')
+        if [ -f "$RELATIVE_FILE" ]; then
+            FRONTEND_FILES_RELATIVE="$FRONTEND_FILES_RELATIVE $RELATIVE_FILE"
+        fi
+    done
     
-    if ! echo "$FRONTEND_FILES_RELATIVE" | xargs npx eslint --max-warnings 0; then
-        echo "❌ Frontend lint failed!"
-        LINT_FAILED=1
-    else
-        echo "✅ Frontend lint passed!"
+    if [ -n "$FRONTEND_FILES_RELATIVE" ]; then
+        if ! npx eslint --max-warnings 0 $FRONTEND_FILES_RELATIVE; then
+            echo "❌ Frontend lint failed!"
+            LINT_FAILED=1
+        else
+            echo "✅ Frontend lint passed!"
+        fi
     fi
     cd ..
 fi
@@ -42,14 +50,22 @@ if [ -n "$BACKEND_FILES" ]; then
     echo "$BACKEND_FILES" | sed 's/^/  - /'
     cd backend
     
-    # Convert file paths to be relative to backend directory
-    BACKEND_FILES_RELATIVE=$(echo "$BACKEND_FILES" | sed 's|^backend/||')
+    # Convert file paths to be relative to backend directory and check they exist
+    BACKEND_FILES_RELATIVE=""
+    for file in $BACKEND_FILES; do
+        RELATIVE_FILE=$(echo "$file" | sed 's|^backend/||')
+        if [ -f "$RELATIVE_FILE" ]; then
+            BACKEND_FILES_RELATIVE="$BACKEND_FILES_RELATIVE $RELATIVE_FILE"
+        fi
+    done
     
-    if ! echo "$BACKEND_FILES_RELATIVE" | xargs npx eslint --max-warnings 0; then
-        echo "❌ Backend lint failed!"
-        LINT_FAILED=1
-    else
-        echo "✅ Backend lint passed!"
+    if [ -n "$BACKEND_FILES_RELATIVE" ]; then
+        if ! npx eslint --max-warnings 0 $BACKEND_FILES_RELATIVE; then
+            echo "❌ Backend lint failed!"
+            LINT_FAILED=1
+        else
+            echo "✅ Backend lint passed!"
+        fi
     fi
     cd ..
 fi
