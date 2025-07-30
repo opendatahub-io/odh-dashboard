@@ -22,7 +22,6 @@
     "dev:backend": "cd ./backend && npm run start:dev",
     "dev:frontend": "cd ./frontend && npm run start:dev",
     "format": "prettier --write \"backend/**/*.ts\" \"frontend/**/*.ts\" \"frontend/**/*.tsx\"",
-
     "make": "make",
     "make:build": "make build",
     "make:deploy": "make deploy",
