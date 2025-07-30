@@ -278,9 +278,6 @@ class ModelRegistry {
 
   // handle both empty and non-empty registry states
   clickRegisterModel(timeout?: number) {
-    // Wait for either the empty state or the models view to be ready
-    cy.get('body').should('contain.text', 'Register model');
-
     return cy.get('body').then(($body) => {
       if ($body.find('[data-testid="empty-model-registry-primary-action"]').length > 0) {
         // Registry is empty, use empty state button
