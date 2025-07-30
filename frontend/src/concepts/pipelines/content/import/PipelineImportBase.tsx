@@ -36,6 +36,7 @@ import { K8sNameDescriptionFieldUpdateFunction } from '#~/concepts/k8s/K8sNameDe
 import { PipelineUploadOption, extractKindFromPipelineYAML, isYAMLPipelineV1 } from './utils';
 import PipelineUploadRadio from './PipelineUploadRadio';
 import { PipelineImportData } from './useImportModalData';
+import { PIPELINE_IMPORT_BASE_TEST_ID } from './const';
 
 export type PipelineImportBaseProps = {
   title: string;
@@ -52,7 +53,6 @@ export type PipelineImportBaseProps = {
   children?: React.ReactNode;
 };
 
-const pipelineImportBaseTestId = 'import-pipeline-modal';
 const PipelineImportBase: React.FC<PipelineImportBaseProps> = ({
   title,
   submitButtonText,
@@ -174,7 +174,7 @@ const PipelineImportBase: React.FC<PipelineImportBaseProps> = ({
         isOpen
         onClose={() => onBeforeClose()}
         variant="medium"
-        data-testid={pipelineImportBaseTestId}
+        data-testid={PIPELINE_IMPORT_BASE_TEST_ID}
       >
         <ModalHeader title={title} />
         <ModalBody>
@@ -190,11 +190,11 @@ const PipelineImportBase: React.FC<PipelineImportBaseProps> = ({
         isOpen
         onClose={() => onBeforeClose()}
         variant="medium"
-        data-testid={pipelineImportBaseTestId}
+        data-testid={PIPELINE_IMPORT_BASE_TEST_ID}
       >
         <ModalHeader title={title} />
         <ModalBody>
-          <Stack hasGutter style={{ flex: 'auto' }}>
+          <Stack hasGutter>
             <Alert data-testid="error-message-alert" isInline variant="danger" title="Error">
               {crLoadError instanceof Error ? crLoadError.message : crLoadError}
             </Alert>
@@ -209,7 +209,7 @@ const PipelineImportBase: React.FC<PipelineImportBaseProps> = ({
       isOpen
       onClose={() => onBeforeClose()}
       variant="medium"
-      data-testid={pipelineImportBaseTestId}
+      data-testid={PIPELINE_IMPORT_BASE_TEST_ID}
     >
       <ModalHeader title={title} />
       <ModalBody>

@@ -123,7 +123,9 @@ class ConfigurePipelineServerModal extends Modal {
   }
 
   findAdvancedSettingsButton() {
-    return this.find().findByTestId('advanced-settings-section').findByRole('button');
+    return this.find()
+      .findByTestId('advanced-settings-section')
+      .get('[id=advanced-settings-toggle]');
   }
 
   findExternalMYSQLDatabaseRadio() {

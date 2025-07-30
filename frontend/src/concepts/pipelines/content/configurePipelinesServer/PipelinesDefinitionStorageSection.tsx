@@ -1,6 +1,7 @@
-import { Checkbox, FormGroup } from '@patternfly/react-core';
+import { FormGroup } from '@patternfly/react-core';
 import React from 'react';
 import FormSection from '#~/components/pf-overrides/FormSection';
+import PipelineKubernetesStoreCheckbox from '#~/concepts/pipelines/content/PipelineKubernetesStoreCheckbox';
 import { PipelineServerConfigType } from './types';
 
 type PipelinesAdditionalConfigurationSectionProps = {
@@ -15,11 +16,7 @@ const PipelinesDefinitionStorageSection = ({
   <FormSection title="Pipeline definition storage">
     <FormGroup hasNoPaddingTop isStack>
       <FormGroup hasNoPaddingTop isStack>
-        <Checkbox
-          id="pipeline-kubernetes-store-checkbox"
-          data-testid="pipeline-kubernetes-store-checkbox"
-          label="Store pipeline definitions in Kubernetes"
-          description="Store your pipeline definitions as Kubernetes custom resources. This enables GitOps, letting you manage, version, and deploy your ML pipelines with tools like OpenShift GitOps for consistent, traceable workflows."
+        <PipelineKubernetesStoreCheckbox
           isChecked={config.storeYamlInKubernetes}
           onChange={(_, enabled) => {
             setConfig({

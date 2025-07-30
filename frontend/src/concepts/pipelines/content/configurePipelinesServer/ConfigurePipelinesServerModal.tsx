@@ -244,6 +244,7 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
               <ExpandableSection
                 data-testid="advanced-settings-section"
                 isIndented
+                toggleId="advanced-settings-toggle"
                 toggleText="Advanced settings"
                 onToggle={() => {
                   setAdvancedSettingsExpanded(!advancedSettingsExpanded);

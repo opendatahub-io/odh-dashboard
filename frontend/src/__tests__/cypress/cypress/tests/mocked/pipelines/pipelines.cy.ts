@@ -386,7 +386,7 @@ describe('Pipelines', () => {
     configurePipelineServerModal.findRegionInput().should('have.value', 'us-east-1');
     configurePipelineServerModal.findBucketInput().type('test-bucket');
 
-    // Find and check the store pipeline yaml in kubernetes checkbox
+    // Find and ensure the store pipeline yaml in kubernetes checkbox is checked
     configurePipelineServerModal.findAdvancedSettingsButton().click();
     configurePipelineServerModal.findPipelineStoreCheckbox().should('be.checked');
 

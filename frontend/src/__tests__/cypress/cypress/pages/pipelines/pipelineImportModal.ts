@@ -1,6 +1,7 @@
 import type { CreatePipelineAndVersionKFData, PipelineKF } from '#~/concepts/pipelines/kfTypes';
 import { buildMockPipeline } from '#~/__mocks__/mockPipelinesProxy';
 import { Modal } from '#~/__tests__/cypress/cypress/pages/components/Modal';
+import { PIPELINE_IMPORT_BASE_TEST_ID } from '#~/concepts/pipelines/content/import/const';
 
 class PipelineImportModal extends Modal {
   constructor() {
@@ -8,7 +9,7 @@ class PipelineImportModal extends Modal {
   }
 
   find() {
-    return cy.findByTestId('import-pipeline-modal');
+    return cy.findByTestId(PIPELINE_IMPORT_BASE_TEST_ID);
   }
 
   findPipelineNameInput() {

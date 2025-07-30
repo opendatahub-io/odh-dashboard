@@ -8,7 +8,6 @@ import {
   Modal,
   ModalBody,
   ModalHeader,
-  Checkbox,
 } from '@patternfly/react-core';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import PasswordHiddenText from '#~/components/PasswordHiddenText';
@@ -16,6 +15,7 @@ import { dataEntryToRecord } from '#~/utilities/dataEntryToRecord';
 import useNamespaceSecret from '#~/concepts/projects/apiHooks/useNamespaceSecret';
 import { ExternalDatabaseSecret } from '#~/concepts/pipelines/content/configurePipelinesServer/const';
 import { DSPipelineAPIServerStore, DSPipelineKind } from '#~/k8sTypes';
+import PipelineKubernetesStoreCheckbox from './PipelineKubernetesStoreCheckbox';
 
 type ViewPipelineServerModalProps = {
   onClose: () => void;
@@ -127,12 +127,8 @@ const ViewPipelineServerModal: React.FC<ViewPipelineServerModalProps> = ({
                 <DescriptionListGroup>
                   <DescriptionListTerm>Pipeline definition storage</DescriptionListTerm>
                   <DescriptionListDescription>
-                    <Checkbox
-                      id="pipeline-kubernetes-store-checkbox"
-                      data-testid="pipeline-kubernetes-store-checkbox"
+                    <PipelineKubernetesStoreCheckbox
                       isDisabled
-                      label="Store pipeline definitions in Kubernetes"
-                      description="Store pipeline specifications as Kubernetes resources. This enables GitOps workflows and easier integration with tools like OpenShift GitOps."
                       isChecked={
                         pipelineNamespaceCR.spec.apiServer?.pipelineStore ===
                         DSPipelineAPIServerStore.KUBERNETES
