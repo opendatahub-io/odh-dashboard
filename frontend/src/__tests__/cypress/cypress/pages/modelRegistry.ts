@@ -236,6 +236,10 @@ class ModelRegistry {
     return cy.findByRole('button', { name: 'Register new version' });
   }
 
+  findDeploymentsTab() {
+    return cy.findByTestId('deployments-tab');
+  }
+
   // Empty state selectors for admin users
   findEmptyStateAdminTitle() {
     return cy.findByText('Create a model registry');

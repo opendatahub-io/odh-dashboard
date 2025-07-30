@@ -160,7 +160,7 @@ describe('Verify models can be deployed from model registry', () => {
       kserveModal.findSubmitButton().click();
 
       // Check deployment status in model registry deployments view
-      cy.findByTestId('deployments-tab').click();
+      modelRegistry.findDeploymentsTab().click();
       cy.contains(modelName, { timeout: 30000 }).should('be.visible');
       cy.contains('Started', { timeout: 120000 }).should('be.visible');
 
