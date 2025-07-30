@@ -113,8 +113,6 @@ describe('A model can be deployed with token auth', () => {
       const kserveRow = modelServingSection.getKServeRow(testData.singleModelName);
       kserveRow.findToggleButton().click();
 
-      //cy.window({ log: false }).then((win) => win.focus());
-
       cy.window().then((win) => {
         const copied: string[] = [];
         cy.wrap(copied).as('copiedTokens');
