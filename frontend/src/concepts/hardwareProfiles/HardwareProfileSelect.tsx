@@ -137,7 +137,7 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
           <Stack>
             {description && (
               <StackItem>
-                <TruncatedText maxLines={1} content={description} />
+                <TruncatedText maxLines={1} truncateTooltip content={description} />
               </StackItem>
             )}
             {profile.spec.identifiers && (
