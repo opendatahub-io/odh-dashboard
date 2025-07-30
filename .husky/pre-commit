@@ -1,0 +1,57 @@
+#!/usr/bin/env sh
+
+echo "🔍 Checking for lint errors in changed files..."
+
+# Get list of staged files
+STAGED_FILES=$(git diff --cached --name-only)
+
+# Check if there are any changes in frontend directory
+FRONTEND_CHANGES=$(echo "$STAGED_FILES" | grep "^frontend/" || true)
+
+# Check if there are any changes in backend directory  
+BACKEND_CHANGES=$(echo "$STAGED_FILES" | grep "^backend/" || true)
+
+# Exit early if no changes in frontend or backend
+if [ -z "$FRONTEND_CHANGES" ] && [ -z "$BACKEND_CHANGES" ]; then
+    echo "✅ No changes in frontend or backend directories, skipping lint checks"
+    exit 0
+fi
+
+# Track if any linting failed
+LINT_FAILED=0
+
+# Run frontend lint if there are frontend changes
+if [ -n "$FRONTEND_CHANGES" ]; then
+    echo "📝 Found changes in frontend directory, running lint..."
+    cd frontend
+    if ! npm run test:lint; then
+        echo "❌ Frontend lint failed!"
+        LINT_FAILED=1
+    else
+        echo "✅ Frontend lint passed!"
+    fi
+    cd ..
+fi
+
+# Run backend lint if there are backend changes
+if [ -n "$BACKEND_CHANGES" ]; then
+    echo "📝 Found changes in backend directory, running lint..."
+    cd backend
+    if ! npm run test:lint; then
+        echo "❌ Backend lint failed!"
+        LINT_FAILED=1
+    else
+        echo "✅ Backend lint passed!"
+    fi
+    cd ..
+fi
+
+# Exit with error if any lint check failed
+if [ $LINT_FAILED -eq 1 ]; then
+    echo "💥 Commit aborted due to lint errors. Please fix the issues and try again."
+    echo "💡 You can run 'npm run test:fix' in the respective directory to auto-fix some issues."
+    exit 1
+fi
+
+echo "🎉 All lint checks passed!"
+exit 0 
