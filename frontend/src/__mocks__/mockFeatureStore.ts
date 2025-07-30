@@ -1,15 +1,24 @@
 import { FeatureStoreKind } from '#~/k8sTypes.ts';
 
-export const mockFeatureStore = (): FeatureStoreKind => ({
+export const mockFeatureStore = ({
+  name = 'demo',
+  namespace = 'default',
+}: {
+  name?: string;
+  namespace?: string;
+}): FeatureStoreKind => ({
   apiVersion: 'feast.dev/v1alpha1',
   kind: 'FeatureStore',
   metadata: {
     creationTimestamp: '2025-07-02T12:43:05Z',
     generation: 1,
-    name: 'demo',
-    namespace: 'default',
+    name,
+    namespace,
     resourceVersion: '19247356',
     uid: 'bf7d217f-4f10-4b67-b188-3d9478fc93ed',
+    labels: {
+      'feature-store-ui': 'enabled',
+    },
   },
   spec: {
     feastProject: 'demo',

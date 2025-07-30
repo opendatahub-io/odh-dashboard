@@ -1,5 +1,4 @@
 import React from 'react';
-import { Spinner, Bullseye } from '@patternfly/react-core';
 import { SortableData, Table } from '@odh-dashboard/internal/components/table/index';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
@@ -85,31 +84,24 @@ const DeploymentsTable: React.FC<DeploymentsTableProps> = ({
     [platformColumns, showExpandedInfo],
   );
 
-  if (!loaded) {
-    return (
-      <Bullseye>
-        <Spinner />
-      </Bullseye>
-    );
-  }
-
   return (
     <>
       <Table
         data-testid="inference-service-table" // legacy testid
         columns={allColumns}
         data={deployments}
-        disableRowRenderSupport
+        disableRowRenderSupport={showExpandedInfo}
         rowRenderer={(row: Deployment, rowIndex: number) => (
           <DeploymentRow
-            key={row.model.metadata.creationTimestamp}
+            key={row.model.metadata.uid}
+            rowIndex={rowIndex}
             deployment={row}
             platformColumns={platformColumns ?? []}
             onDelete={() => setDeleteDeployment(row)}
-            rowIndex={rowIndex}
             showExpandedInfo={showExpandedInfo}
           />
         )}
+        loading={!loaded}
         {...tableProps}
       />
       {deleteDeployment && (

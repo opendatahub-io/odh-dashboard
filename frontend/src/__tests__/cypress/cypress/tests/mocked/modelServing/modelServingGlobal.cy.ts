@@ -153,7 +153,7 @@ const initIntercepts = ({
   cy.interceptK8sList(SecretModel, mockK8sResourceList([mockSecretK8sResource({})]));
   cy.interceptK8sList(
     ServingRuntimeModel,
-    mockK8sResourceList(servingRuntimes, { namespace: 'modelServing' }),
+    mockK8sResourceList(servingRuntimes, { namespace: 'test-project' }),
   );
   cy.interceptK8sList(
     { model: ServingRuntimeModel, ns: undefined },
@@ -163,7 +163,7 @@ const initIntercepts = ({
     },
   ).as('getServingRuntimes');
   cy.interceptK8sList(
-    { model: InferenceServiceModel, ns: 'modelServing' },
+    { model: InferenceServiceModel, ns: 'test-project' },
     mockK8sResourceList(inferenceServices),
   );
   cy.interceptK8sList(
@@ -180,7 +180,7 @@ const initIntercepts = ({
   ).as('inferenceServicesError');
   cy.interceptK8sList(
     SecretModel,
-    mockK8sResourceList([mockSecretK8sResource({ namespace: 'modelServing' })]),
+    mockK8sResourceList([mockSecretK8sResource({ namespace: 'test-project' })]),
   );
   cy.interceptK8s(ServingRuntimeModel, mockServingRuntimeK8sResource({}));
   cy.interceptK8sList(
@@ -984,6 +984,7 @@ describe('Model Serving Global', () => {
     modelServingGlobal.getModelMetricLink('Test Inference Service').click();
     cy.findByTestId('app-page-title').should('have.text', 'Test Inference Service metrics');
   });
+
   it('Display the version label and status label correctly', () => {
     const servingRuntimeWithLatestVersion = mockServingRuntimeK8sResource({
       namespace: 'test-project',
@@ -1130,6 +1131,7 @@ describe('Model Serving Global', () => {
     it('Sort model by last deployed', () => {
       const inferenceServiceNew = mockInferenceServiceK8sResource({
         namespace: 'test-project',
+        name: 'new-model',
         displayName: 'New Model',
         modelName: 'test-inference-service-latest',
         lastTransitionTime: '2025-07-10T12:12:41Z',
@@ -1138,6 +1140,7 @@ describe('Model Serving Global', () => {
       });
       const inferenceServiceOld = mockInferenceServiceK8sResource({
         namespace: 'test-project',
+        name: 'old-model',
         displayName: 'Old Model',
         modelName: 'test-inference-service-outdated',
         lastTransitionTime: '2024-09-04T16:12:41Z',
@@ -1156,7 +1159,7 @@ describe('Model Serving Global', () => {
       modelServingGlobal.findSortButton('Last deployed').should(be.sortDescending);
 
       const oldModelRow = modelServingSection.getInferenceServiceRow('Old Model');
-      oldModelRow.findLastDeployed().trigger('mouseenter');
+      oldModelRow.findLastDeployedTimestamp().trigger('mouseenter');
       cy.findByRole('tooltip').should('contain.text', '9/4/2024, 4:12:41 PM UTC');
     });
 
@@ -1166,6 +1169,7 @@ describe('Model Serving Global', () => {
         { length: totalItems },
         (_, i) =>
           mockInferenceServiceK8sResource({
+            name: `test-inference-service-${i}`,
             displayName: `Test Inference Service-${i}`,
           }),
       );

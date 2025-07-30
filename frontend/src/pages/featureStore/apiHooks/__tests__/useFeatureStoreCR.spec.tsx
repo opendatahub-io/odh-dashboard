@@ -18,7 +18,10 @@ jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
 const k8sListResourceMock = jest.mocked(k8sListResource<FeatureStoreKind>);
 
 describe('useFeatureStoreCR', () => {
-  const mockFeatureStoreCR = mockFeatureStore();
+  const mockFeatureStoreCR = mockFeatureStore({
+    name: 'demo',
+    namespace: 'default',
+  });
   const mockFeatureStoreCRWithLabel = {
     ...mockFeatureStoreCR,
     metadata: {
