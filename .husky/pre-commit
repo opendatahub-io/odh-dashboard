@@ -1,30 +1,33 @@
 #!/usr/bin/env sh
 
-echo "🔍 Checking for lint errors in changed files..."
+echo "🔍 Checking for lint errors in staged files..."
 
 # Get list of staged files
 STAGED_FILES=$(git diff --cached --name-only)
 
-# Check if there are any changes in frontend directory
-FRONTEND_CHANGES=$(echo "$STAGED_FILES" | grep "^frontend/" || true)
+# Filter staged files by directory and file type
+FRONTEND_FILES=$(echo "$STAGED_FILES" | grep "^frontend/" | grep -E "\.(js|ts|jsx|tsx)$" || true)
+BACKEND_FILES=$(echo "$STAGED_FILES" | grep "^backend/" | grep -E "\.(js|ts|json)$" || true)
 
-# Check if there are any changes in backend directory  
-BACKEND_CHANGES=$(echo "$STAGED_FILES" | grep "^backend/" || true)
-
-# Exit early if no changes in frontend or backend
-if [ -z "$FRONTEND_CHANGES" ] && [ -z "$BACKEND_CHANGES" ]; then
-    echo "✅ No changes in frontend or backend directories, skipping lint checks"
+# Exit early if no relevant files are staged
+if [ -z "$FRONTEND_FILES" ] && [ -z "$BACKEND_FILES" ]; then
+    echo "✅ No frontend or backend files staged for commit, skipping lint checks"
     exit 0
 fi
 
 # Track if any linting failed
 LINT_FAILED=0
 
-# Run frontend lint if there are frontend changes
-if [ -n "$FRONTEND_CHANGES" ]; then
-    echo "📝 Found changes in frontend directory, running lint..."
+# Run frontend lint on specific staged files
+if [ -n "$FRONTEND_FILES" ]; then
+    echo "📝 Linting staged frontend files:"
+    echo "$FRONTEND_FILES" | sed 's/^/  - /'
     cd frontend
-    if ! npm run test:lint; then
+    
+    # Convert file paths to be relative to frontend directory
+    FRONTEND_FILES_RELATIVE=$(echo "$FRONTEND_FILES" | sed 's|^frontend/||')
+    
+    if ! echo "$FRONTEND_FILES_RELATIVE" | xargs npx eslint --max-warnings 0; then
         echo "❌ Frontend lint failed!"
         LINT_FAILED=1
     else
@@ -33,11 +36,16 @@ if [ -n "$FRONTEND_CHANGES" ]; then
     cd ..
 fi
 
-# Run backend lint if there are backend changes
-if [ -n "$BACKEND_CHANGES" ]; then
-    echo "📝 Found changes in backend directory, running lint..."
+# Run backend lint on specific staged files  
+if [ -n "$BACKEND_FILES" ]; then
+    echo "📝 Linting staged backend files:"
+    echo "$BACKEND_FILES" | sed 's/^/  - /'
     cd backend
-    if ! npm run test:lint; then
+    
+    # Convert file paths to be relative to backend directory
+    BACKEND_FILES_RELATIVE=$(echo "$BACKEND_FILES" | sed 's|^backend/||')
+    
+    if ! echo "$BACKEND_FILES_RELATIVE" | xargs npx eslint --max-warnings 0; then
         echo "❌ Backend lint failed!"
         LINT_FAILED=1
     else
@@ -49,7 +57,7 @@ fi
 # Exit with error if any lint check failed
 if [ $LINT_FAILED -eq 1 ]; then
     echo "💥 Commit aborted due to lint errors. Please fix the issues and try again."
-    echo "💡 You can run 'npm run test:fix' in the respective directory to auto-fix some issues."
+    echo "💡 You can run 'npx eslint --fix <file>' to auto-fix some issues."
     exit 1
 fi
 
