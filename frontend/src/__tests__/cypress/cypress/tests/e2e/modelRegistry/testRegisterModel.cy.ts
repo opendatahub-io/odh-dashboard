@@ -8,6 +8,7 @@ import {
   registerVersionPage,
 } from '#~/__tests__/cypress/cypress/pages/modelRegistry/registerVersionPage';
 import { modelRegistry } from '#~/__tests__/cypress/cypress/pages/modelRegistry';
+import { clickRegisterModelButton } from '#~/__tests__/cypress/cypress/utils/modelRegistryUtils';
 import { retryableBeforeEach } from '#~/__tests__/cypress/cypress/utils/retryableHooks';
 import {
   checkModelExistsInDatabase,
@@ -66,7 +67,7 @@ describe('Verify models can be registered in a model registry', () => {
       modelRegistry.findSelectModelRegistry(registryName);
 
       cy.step('Register a model using object storage');
-      modelRegistry.findEmptyRegisterModelButton(30000).click();
+      clickRegisterModelButton(30000);
 
       // Fill in model details for object storage
       registerModelPage.findFormField(FormFieldSelector.MODEL_NAME).type(objectStorageModelName);
