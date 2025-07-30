@@ -9,6 +9,7 @@ import FeatureStoreTags from '#~/pages/featureStore/components/FeatureStoreTags'
 import ScrollableLinksPopover from '#~/pages/featureStore/components/ScrollableLinksPopover';
 import FeatureStoreTimestamp from '#~/pages/featureStore/components/FeatureStoreTimestamp';
 import { getRelationshipsByTargetType } from '#~/pages/featureStore/screens/entities/utils';
+import { featureViewRoute, featureEntityRoute } from '#~/pages/featureStore/routes.ts';
 
 type FeatureStoreEntitiesTableRowType = {
   entity: Entity;
@@ -24,8 +25,8 @@ const EntityName: React.FC<{ entity: Entity; currentProject: string | undefined 
       <Link
         to={
           currentProject
-            ? `/featureStore/entities/${currentProject}/${entity.spec.name}`
-            : `/featureStore/entities/${entity.project || ''}/${entity.spec.name}`
+            ? featureEntityRoute(entity.spec.name, currentProject)
+            : featureEntityRoute(entity.spec.name, entity.project || '')
         }
         data-testid="entity-name-link"
       >
@@ -67,7 +68,7 @@ const FeatureStoreEntitiesTableRow: React.FC<FeatureStoreEntitiesTableRowType> =
 
     return featureViews.map((rel) => ({
       name: rel.target.name,
-      to: `/featureStore/featureViews/${project}/${rel.target.name}`,
+      to: featureViewRoute(rel.target.name, project),
       type: rel.target.type,
     }));
   }, [featureViews, entity.project, currentProject]);

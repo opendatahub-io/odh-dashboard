@@ -14,6 +14,7 @@ import { Link, useParams } from 'react-router-dom';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import { useFeatureStoreProject } from '#~/pages/featureStore/FeatureStoreContext';
 import useFeatureStoreEntityByName from '#~/pages/featureStore/apiHooks/useFeatureStoreEntityByName.ts';
+import { featureStoreRootRoute } from '#~/pages/featureStore/routes.ts';
 import EntityDetailsTabs from './EntityDetailsTabs';
 
 const EntitiesDetailsPage = (): React.ReactElement => {
@@ -52,7 +53,7 @@ const EntitiesDetailsPage = (): React.ReactElement => {
       </EmptyStateBody>
       <EmptyStateFooter>
         <EmptyStateActions>
-          <Link to="/featureStore/entities">Go to Entities</Link>
+          <Link to={`${featureStoreRootRoute()}/entities`}>Go to Entities</Link>
         </EmptyStateActions>
       </EmptyStateFooter>
     </EmptyState>
@@ -72,7 +73,7 @@ const EntitiesDetailsPage = (): React.ReactElement => {
       breadcrumb={
         <Breadcrumb>
           <BreadcrumbItem
-            render={() => <Link to="/featureStore/entities">Entities</Link>}
+            render={() => <Link to={`${featureStoreRootRoute()}/entities`}>Entities</Link>}
             data-testid="entity-details-breadcrumb-link"
           />
           <BreadcrumbItem
