@@ -201,10 +201,7 @@ describe('NIM Model Serving', () => {
           disableNIMModelServing: false,
         });
         projectDetailsOverviewTab.visit('test-project');
-        projectDetailsOverviewTab
-          .findModelServingPlatform('nvidia-nim')
-          .findByTestId('nvidia-nim-select-button')
-          .should('be.enabled');
+        projectDetailsOverviewTab.findSelectPlatformButton('nvidia-nim').should('be.enabled');
       });
 
       it("should allow deploying NIM from a Project's Overview tab when NIM is selected", () => {
@@ -228,10 +225,7 @@ describe('NIM Model Serving', () => {
           disableNIMModelServing: false,
         });
         projectDetails.visitSection('test-project', 'model-server');
-        projectDetails
-          .findModelServingPlatform('nvidia-nim')
-          .findByTestId('nvidia-nim-select-button')
-          .should('be.enabled');
+        projectDetails.findSelectPlatformButton('nvidia-nim').should('be.enabled');
       });
 
       it("should allow deploying NIM from a Project's Models tab when NIM is selected", () => {
@@ -282,7 +276,7 @@ describe('NIM Model Serving', () => {
         });
         projectDetails.visitSection('test-project', 'model-server');
         projectDetails.findModelServingPlatform('nvidia-nim').should('not.exist');
-        cy.findByTestId('nvidia-nim-select-button').should('not.exist');
+        projectDetails.findSelectPlatformButton('nvidia-nim').should('not.exist');
       });
     });
 
@@ -338,7 +332,7 @@ describe('NIM Model Serving', () => {
         );
         projectDetails.visitSection('test-project', 'model-server');
         projectDetails.findModelServingPlatform('nvidia-nim').should('not.exist');
-        cy.findByTestId('nvidia-nim-select-button').should('not.exist');
+        projectDetails.findSelectPlatformButton('nvidia-nim').should('not.exist');
       });
     });
   });

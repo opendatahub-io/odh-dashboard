@@ -241,7 +241,7 @@ class ProjectDetails {
   }
 
   findSelectPlatformButton(platform: string) {
-    return cy.findByTestId(`${platform}-serving-select-button`);
+    return cy.findByTestId(`${platform}-select-button`);
   }
 
   findResetPlatformButton() {
@@ -384,6 +384,10 @@ class ProjectDetailsOverviewTab extends ProjectDetails {
 
   findModelServingPlatform(name: string) {
     return cy.findByTestId(`${name}-platform-card`);
+  }
+
+  findSelectPlatformButton(name: string) {
+    return cy.findByTestId(`${name}-select-button`);
   }
 }
 
