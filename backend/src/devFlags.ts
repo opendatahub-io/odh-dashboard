@@ -1,4 +1,3 @@
-// Development flags and impersonation utilities
 import { DEV_MODE } from './utils/constants';
 
 let accessToken = '';

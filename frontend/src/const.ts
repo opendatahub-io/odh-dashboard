@@ -1,4 +1,3 @@
-// Frontend constants and label selectors
 import { KnownLabels } from '#~/k8sTypes';
 
 export const LABEL_SELECTOR_DASHBOARD_RESOURCE = `${KnownLabels.DASHBOARD_RESOURCE}=true`;
