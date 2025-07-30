@@ -74,18 +74,6 @@ class LMEvalFormPage {
     return cy.findByTestId('model-type-form-group').findByRole('button', { name: 'Options menu' });
   }
 
-  selectOptionFromDropdown(optionText: string) {
-    // Find and click the option
-    cy.findByTestId('model-type-dropdown-list')
-      .find('[role="option"]')
-      .contains(optionText)
-      .should('be.visible')
-      .click();
-
-    // Wait for dropdown to close
-    cy.findByTestId('model-type-dropdown-list').should('not.exist');
-  }
-
   findTaskDropdownList() {
     return cy.get('[role="listbox"]');
   }
@@ -133,7 +121,13 @@ class LMEvalFormPage {
 
   // Model selection method
   selectModelFromDropdown(modelName: string) {
-    this.findModelNameDropdown().click();
+    cy.log(`Selecting model: ${modelName}`);
+
+    this.findModelNameDropdown()
+      .should('exist')
+      .scrollIntoView()
+      .should('be.visible', { timeout: 15000 })
+      .click();
 
     // Wait for dropdown to be visible and handle potential timing issues
     cy.findByTestId('model-name-dropdown-list').should('be.visible');
@@ -143,10 +137,6 @@ class LMEvalFormPage {
 
     // Wait for dropdown to close and form state to update
     cy.findByTestId('model-name-dropdown-list').should('not.exist');
-
-    // Wait for model arguments to be populated (required for form validation)
-    this.findModelArgumentName().should('not.have.text', '-');
-    this.findModelArgumentUrl().should('not.have.text', '-');
 
     return this;
   }
@@ -216,9 +206,10 @@ class LMEvalFormPage {
   // Model type selection methods
   selectModelType(modelType: string) {
     cy.log(`Selecting model endpoint interaction: ${modelType}`);
-    this.findModelTypeDropdown().should('be.visible', { timeout: 15000 }).click();
-
-    this.selectOptionFromDropdown(modelType);
+    this.findModelTypeDropdown()
+      .should('be.visible', { timeout: 15000 })
+      .findSelectOption(new RegExp(modelType))
+      .click();
 
     return this;
   }

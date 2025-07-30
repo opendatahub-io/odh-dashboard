@@ -32,13 +32,17 @@ let dynamicEvaluationName: string;
  * - Tests different radio button combinations for Available Online and Trust Remote Code settings
  */
 describe(
-  '[Product Bug RHOAIENG-30642] Verify LMEval Functionality with Downloaded Models',
+  'Verify LMEval Functionality with Downloaded Models',
   {
-    tags: ['@Smoke', '@SmokeSet3', '@LMEval', '@RHOAIENG-26716', '@Featureflagged', '@Bug'],
+    tags: ['@Smoke', '@SmokeSet3', '@LMEval', '@RHOAIENG-26716', '@Featureflagged'],
   },
   () => {
     // Load test configuration in before hook
     before(() => {
+      // Login to the application before the test, to avoid session race conditions with devFeatureFlags
+      cy.step('Login to the application');
+      cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
+
       loadTestConfig('dynamic').then((config) => {
         dynamicConfig = config;
         dynamicTestSetup = createModelTestSetup(config);
@@ -52,22 +56,23 @@ describe(
       });
     });
 
+    // Cleanup function that will be called at the end of this test suite
+    after(() => {
+      dynamicTestSetup.cleanupTest();
+    });
+
     it(
       'should complete LMEval evaluation workflow for dynamic model',
       {
-        tags: ['@Smoke', '@SmokeSet3', '@LMEval', '@RHOAIENG-26716', '@Featureflagged', '@Bug'],
+        tags: ['@Smoke', '@SmokeSet3', '@LMEval', '@RHOAIENG-26716', '@Featureflagged'],
       },
       () => {
-        // Login to the application
-        cy.step('Login to the application');
-        cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
-
         // Navigate to LMEval page
         cy.step('Navigate to LMEval page');
         lmEvalPage.visit();
 
         // Navigate to evaluation form and fill in form fields
-        const dynamicProjectName = dynamicTestSetup.testProjectName || 'test-project';
+        const dynamicProjectName = dynamicTestSetup.testProjectName;
         navigateToLMEvalEvaluationForm(dynamicProjectName);
 
         // Fill in form fields to start evaluation
@@ -120,10 +125,5 @@ describe(
         }
       },
     );
-
-    // Cleanup function that will be called at the end of this test suite
-    after(() => {
-      dynamicTestSetup.cleanupTest();
-    });
   },
 );

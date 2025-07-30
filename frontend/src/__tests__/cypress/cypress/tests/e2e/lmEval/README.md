@@ -11,22 +11,20 @@ This directory contains tests for LMEval functionality with different model serv
 
 ### Static Test (Pre-baked Models)
 - **File**: `testLMEvalStatic.cy.ts`
-- **Tags**: `@Sanity`, `@SanitySet3`, `@LMEval`, `@Featureflagged`
-- Uses pre-baked models already available in MinIO, skipping download
-- Models (e.g., Qwen) are already available in storage for faster tests
-- Tokenizer URL points to bert-base-uncased for compatibility with larger models
-- Provides faster test execution but requires more storage resources
-- Model: `qwen-isvc` with optimized configuration
+- **Purpose**: Tests using pre-baked models already available in MinIO, skipping download
+- **Models**: Pre-baked models (e.g., Qwen) are already available in storage for faster tests
+- **Tokenizer**: Points to bert-base-uncased for compatibility with larger models
+- **Performance**: Provides faster test execution but requires more storage resources
+- **Model**: `qwen-isvc` with optimized configuration
 
 ### Dynamic Test (Downloaded Models)
 - **File**: `testLMEvalDynamic.cy.ts`
-- **Tags**: `@Smoke`, `@SmokeSet3`, `@LMEval`, `@Featureflagged`
-- Uses models that are downloaded by vLLM when the container starts
-- vLLM downloads the model (gpt2) automatically when it sees the `--model=gpt2` argument
-- Tests the full model deployment pipeline including download and initialization
-- Tokenizer URL points to tiny-untrained-granite for compatibility with small models
-- Uses gpt2 which is vLLM-compatible and has a smaller footprint than larger models
-- Model: `tinyllm` (gpt2)
+- **Purpose**: Tests using models that are downloaded by vLLM when the container starts
+- **Models**: vLLM downloads the model (gpt2) automatically when it sees the `--model=gpt2` argument
+- **Pipeline**: Tests the full model deployment pipeline including download and initialization
+- **Tokenizer**: Points to tiny-untrained-granite for compatibility with small models
+- **Model**: Uses gpt2 which is vLLM-compatible and has a smaller footprint than larger models
+- **Model Name**: `tinyllm` (gpt2)
 
 ## YAML Files
 
@@ -41,3 +39,10 @@ This directory contains tests for LMEval functionality with different model serv
 - Both tests use `Local completion` instead of `Local chat completion` because the "wnli" task uses "loglikelihood" evaluation which requires the "completions API"
 - The "chat completions API" doesn't support "loglikelihood" evaluation
 - Security settings: Both tests use `Available Online = true`, `Trust Remote Code = true`
+
+## Test Tags
+
+> **Note**: Test tags are defined in the test files themselves and may change over time.
+> For the most current tag information, please refer to the actual test files:
+> - `testLMEvalStatic.cy.ts` - Check the `describe` and `it` blocks for current tags
+> - `testLMEvalDynamic.cy.ts` - Check the `describe` and `it` blocks for current tags

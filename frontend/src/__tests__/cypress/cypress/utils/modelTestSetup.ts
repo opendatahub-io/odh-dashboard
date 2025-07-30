@@ -53,17 +53,21 @@ const checkStorageDeploymentExists = (
 // Robust port extraction function
 const extractPortFromYaml = (yamlContent: string): string => {
   try {
+    // Handle multiple YAML documents by using loadAll
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const parsedYaml = yaml.load(yamlContent) as any;
+    const parsedYamls = yaml.loadAll(yamlContent) as any[];
 
-    // Try multiple possible paths for port extraction
-    const port =
-      parsedYaml?.spec?.ports?.[0]?.port ||
-      parsedYaml?.spec?.template?.spec?.containers?.[0]?.ports?.[0]?.containerPort ||
-      parsedYaml?.spec?.template?.spec?.containers?.[0]?.ports?.[0]?.port;
+    // Search through all documents for port information
+    for (const parsedYaml of parsedYamls) {
+      // Try multiple possible paths for port extraction
+      const port =
+        parsedYaml?.spec?.ports?.[0]?.port ||
+        parsedYaml?.spec?.template?.spec?.containers?.[0]?.ports?.[0]?.containerPort ||
+        parsedYaml?.spec?.template?.spec?.containers?.[0]?.ports?.[0]?.port;
 
-    if (port) {
-      return port.toString();
+      if (port) {
+        return port.toString();
+      }
     }
 
     // Fallback to regex if YAML parsing doesn't find the port
@@ -94,40 +98,39 @@ const deployStorageIfNeeded = (
       }
       cy.log(`Deploying storage resources from ${modelTestConfig.storageYaml}`);
       return cy.fixture(modelTestConfig.storageYaml).then((yamlContent) => {
-        // Use robust port extraction
-        const port = extractPortFromYaml(yamlContent);
+        try {
+          // Use robust port extraction
+          const port = extractPortFromYaml(yamlContent);
 
-        // Construct the storage endpoint automatically from deployment name and namespace
-        const storageEndpoint = `http://${modelTestConfig.storageDeploymentName}.${testProjectName}.svc:${port}`;
-        const encodedEndpoint = Buffer.from(storageEndpoint).toString('base64');
+          // Construct the storage endpoint automatically from deployment name and namespace
+          const storageEndpoint = `http://${modelTestConfig.storageDeploymentName}.${testProjectName}.svc:${port}`;
+          const encodedEndpoint = Buffer.from(storageEndpoint).toString('base64');
 
-        // Define template variable replacements for storage YAML
-        const storageReplacements = {
-          DEPLOYMENT_NAME: modelTestConfig.storageDeploymentName,
-          STORAGE_SECRET_NAME: modelTestConfig.storageSecretName,
-          STORAGE_ENDPOINT: encodedEndpoint,
-        };
+          // Define template variable replacements for storage YAML
+          const storageReplacements = {
+            DEPLOYMENT_NAME: modelTestConfig.storageDeploymentName,
+            STORAGE_SECRET_NAME: modelTestConfig.storageSecretName,
+            STORAGE_ENDPOINT: encodedEndpoint,
+          };
 
-        // Replace template variables
-        const updatedYamlContent = replacePlaceholdersInYaml(yamlContent, storageReplacements);
+          // Replace template variables
+          const updatedYamlContent = replacePlaceholdersInYaml(yamlContent, storageReplacements);
 
-        // Log the endpoint for debugging
-        cy.log(`Using storage endpoint: ${storageEndpoint} (encoded: ${encodedEndpoint})`);
-        cy.log(`Using deployment name: ${modelTestConfig.storageDeploymentName}`);
-        cy.log(`Using secret name: ${modelTestConfig.storageSecretName}`);
-        cy.log(`Using port: ${port}`);
-
-        // Apply the storage resources using the utility function
-        return applyOpenShiftYaml(updatedYamlContent, testProjectName).then(() => {
-          // Debug: Check if storage was deployed successfully
-          return execWithOutput(
-            `oc get deployment/${modelTestConfig.storageDeploymentName} -n ${testProjectName}`,
-            30, // 30s timeout for status check
-          ).then(({ code: storageCode, stdout: storageStdout, stderr: storageStderr }) => {
-            cy.log('Storage deployment status:', `${storageStdout}\n${storageStderr}`);
-            expect(storageCode).to.equal(0);
+          // Apply the storage resources using the utility function
+          return applyOpenShiftYaml(updatedYamlContent, testProjectName).then(() => {
+            // Check if storage was deployed successfully
+            return execWithOutput(
+              `oc get deployment/${modelTestConfig.storageDeploymentName} -n ${testProjectName}`,
+              30, // 30s timeout for status check
+            ).then(({ code: storageCode }) => {
+              expect(storageCode).to.equal(0);
+            });
           });
-        });
+        } catch (error) {
+          // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+          cy.log(`Error during storage deployment setup: ${error}`);
+          throw error;
+        }
       });
     },
   );
@@ -145,19 +148,12 @@ const deployServingRuntimeIfNeeded = (
     }
     cy.log('Applying ServingRuntime');
     return applyOpenShiftYaml(servingRuntimeYaml, testProjectName).then(
-      ({
-        code: servingRuntimeCode,
-        stdout: servingRuntimeStdout,
-        stderr: servingRuntimeStderr,
-      }) => {
-        cy.log(`ServingRuntime apply result: ${servingRuntimeStdout}\n${servingRuntimeStderr}`);
-
+      ({ code: servingRuntimeCode }) => {
         // Don't fail if ServingRuntime apply fails - namespace might not be ready yet
         if (servingRuntimeCode !== 0) {
           cy.log(
             `Warning: ServingRuntime apply failed with code ${servingRuntimeCode}, but continuing...`,
           );
-          cy.log(`ServingRuntime apply result: ${servingRuntimeStdout}\n${servingRuntimeStderr}`);
         }
       },
     );
@@ -177,22 +173,11 @@ const deployInferenceServiceIfNeeded = (
     }
     cy.log(`Deploying Model '${modelName}' in project '${testProjectName}'`);
     return applyOpenShiftYaml(inferenceServiceYaml, testProjectName).then(
-      ({
-        code: inferenceServiceCode,
-        stdout: inferenceServiceStdout,
-        stderr: inferenceServiceStderr,
-      }) => {
-        cy.log(
-          `InferenceService apply result: ${inferenceServiceStdout}\n${inferenceServiceStderr}`,
-        );
-
+      ({ code: inferenceServiceCode }) => {
         // Don't fail if InferenceService apply fails - namespace might not be ready yet
         if (inferenceServiceCode !== 0) {
           cy.log(
             `Warning: InferenceService apply failed with code ${inferenceServiceCode}, but continuing...`,
-          );
-          cy.log(
-            `InferenceService apply result: ${inferenceServiceStdout}\n${inferenceServiceStderr}`,
           );
         }
       },
@@ -215,8 +200,7 @@ const waitForModelReady = (
   oc describe inferenceservice/${modelName} -n ${testProjectName};
   exit $RC`,
     timeoutSeconds + 3,
-  ).then(({ code: waitCode, stdout: waitStdout, stderr: waitStderr }) => {
-    cy.log(`InferenceService wait and describe result: ${waitStdout}\n${waitStderr}`);
+  ).then(({ code: waitCode }) => {
     // Don't fail if InferenceService wait fails - namespace might not be ready yet
     if (waitCode !== 0) {
       cy.log(
@@ -407,30 +391,37 @@ export const loadTestConfig = (
   configPath = 'e2e/lmEval/test-config.yaml',
 ): Cypress.Chainable<ModelTestConfig> =>
   cy.fixture(configPath).then((yamlString: string) => {
-    cy.log('Loaded test config file as string');
+    try {
+      // Parse the YAML string into an object
+      const configFile = yaml.load(yamlString) as TestConfigFile;
 
-    // Parse the YAML string into an object
-    const configFile = yaml.load(yamlString) as TestConfigFile;
-    cy.log('Parsed config file structure:', JSON.stringify(configFile, null, 2));
+      // Validate the config file structure using assertion
+      cy.wrap(configFile)
+        .should('have.property', 'testSetups')
+        .then(() => {
+          // Get configuration from the YAML file
+          const modelTestConfig = configFile.testSetups[setupName];
 
-    // Validate the config file structure using assertion
-    cy.wrap(configFile)
-      .should('have.property', 'testSetups')
-      .then(() => {
-        cy.log(`Looking for setup: ${setupName}`);
-        cy.log(`Available setups: ${Object.keys(configFile.testSetups).join(', ')}`);
+          // Validate the model test config using assertion
+          cy.wrap(modelTestConfig)
+            .should('exist')
+            .then(() => {
+              // Validate required fields
+              cy.wrap(modelTestConfig).should('have.property', 'name');
+              cy.wrap(modelTestConfig).should('have.property', 'description');
+              cy.wrap(modelTestConfig).should('have.property', 'storageYaml');
+              cy.wrap(modelTestConfig).should('have.property', 'modelServiceYaml');
+              cy.wrap(modelTestConfig).should('have.property', 'modelName');
+              cy.wrap(modelTestConfig).should('have.property', 'storageDeploymentName');
+              cy.wrap(modelTestConfig).should('have.property', 'storageSecretName');
 
-        // Get configuration from the YAML file
-        const modelTestConfig = configFile.testSetups[setupName];
-
-        // Validate the model test config using assertion
-        cy.wrap(modelTestConfig)
-          .should('exist')
-          .then(() => {
-            cy.log(`Found test config: ${modelTestConfig.name}`);
-
-            // Return the test config through a Cypress command to avoid async/sync mixing
-            return cy.wrap(modelTestConfig);
-          });
-      });
+              // Return the test config through a Cypress command to avoid async/sync mixing
+              return cy.wrap(modelTestConfig);
+            });
+        });
+    } catch (error) {
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+      cy.log(`Error parsing YAML config file: ${error}`);
+      throw error;
+    }
   });

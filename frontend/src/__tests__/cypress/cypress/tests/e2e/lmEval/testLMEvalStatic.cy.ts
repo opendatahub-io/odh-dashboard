@@ -37,6 +37,10 @@ describe(
   () => {
     // Load test configuration in before hook
     before(() => {
+      // Login to the application before the test, to avoid session race conditions with devFeatureFlags
+      cy.step('Login to the application');
+      cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
+
       loadTestConfig('static').then((config) => {
         staticConfig = config;
         staticTestSetup = createModelTestSetup(config);
@@ -50,16 +54,17 @@ describe(
       });
     });
 
+    // Cleanup function that will be called at the end of this test suite
+    after(() => {
+      staticTestSetup.cleanupTest();
+    });
+
     it(
       'should complete LMEval evaluation workflow for static model',
       {
         tags: ['@Sanity', '@SanitySet3', '@LMEval', '@RHOAIENG-26716', '@Featureflagged'],
       },
       () => {
-        // Login to the application
-        cy.step('Login to the application');
-        cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
-
         // Navigate to LMEval page
         cy.step('Navigate to LMEval page');
         lmEvalPage.visit();
@@ -69,7 +74,7 @@ describe(
         lmEvalPage.findProjectSelector().should('contain.text', 'All projects');
 
         // Navigate to evaluation form and fill in form fields
-        const staticProjectName = staticTestSetup.testProjectName || 'test-project';
+        const staticProjectName = staticTestSetup.testProjectName;
         navigateToLMEvalEvaluationForm(staticProjectName);
 
         // Verify form fields are present
@@ -147,10 +152,5 @@ describe(
         }
       },
     );
-
-    // Cleanup function that will be called at the end of this test suite
-    after(() => {
-      staticTestSetup.cleanupTest();
-    });
   },
 );

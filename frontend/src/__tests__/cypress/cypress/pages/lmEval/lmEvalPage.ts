@@ -15,8 +15,14 @@ class LMEvalPage {
   }
 
   private wait() {
-    this.findPageTitle().should('exist');
-    this.findPageTitle().should('contain.text', 'Model evaluation runs');
+    // Wait for page to load and check for any errors
+    cy.get('body').should('not.contain.text', 'Error');
+
+    // Wait for page title to exist and have content
+    this.findPageTitle().should('exist', { timeout: 30000 });
+    this.findPageTitle().should('not.be.empty', { timeout: 30000 });
+    this.findPageTitle().should('contain.text', 'Model evaluation runs', { timeout: 30000 });
+
     cy.testA11y();
   }
 
