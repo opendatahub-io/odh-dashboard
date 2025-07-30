@@ -165,7 +165,7 @@ export const assembleServingRuntime = (
 
   updatedServingRuntime.spec.volumes = volumes;
 
-  return updatedServingRuntime;
+  return _.merge(servingRuntime, updatedServingRuntime);
 };
 
 export const listServingRuntimes = (

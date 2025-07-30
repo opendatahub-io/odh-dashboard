@@ -134,16 +134,10 @@ export const assembleInferenceService = (
   }
 
   let updateInferenceService: InferenceServiceKind = inferenceService
-    ? {
-        ...inferenceService,
+    ? _.merge(inferenceService, {
         metadata: {
-          ...inferenceService.metadata,
           annotations: {
-            ...inferenceService.metadata.annotations,
             ...annotations,
-          },
-          labels: {
-            ...inferenceService.metadata.labels,
           },
         },
         spec: {
@@ -170,7 +164,7 @@ export const assembleInferenceService = (
             },
           },
         },
-      }
+      })
     : {
         apiVersion: 'serving.kserve.io/v1beta1',
         kind: 'InferenceService',
