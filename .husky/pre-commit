@@ -2,4 +2,28 @@
 
 echo "🔍 Running lint-staged to check staged files..."
 
-npx lint-staged 
+# Run lint-staged and if it fails, show helpful instructions
+if ! npx lint-staged; then
+    echo ""
+    echo "💥 Lint checks failed! Here's how to fix the issues:"
+    echo ""
+    echo "🔧 Auto-fix many issues:"
+    echo "   Frontend: cd frontend && npm run test:fix"
+    echo "   Backend:  cd backend && npm run test:fix"
+    echo ""
+    echo "🔍 Manual review of errors:"
+    echo "   Frontend: cd frontend && npm run test:lint"
+    echo "   Backend:  cd backend && npm run test:lint"
+    echo ""
+    echo "💡 After fixing, stage your changes and commit again:"
+    echo "   git add ."
+    echo "   git commit -m \"Your commit message\""
+    echo ""
+    echo "⚠️  To bypass this check (not recommended):"
+    echo "   git commit --no-verify"
+    echo ""
+    exit 1
+fi
+
+echo "🎉 All lint checks passed!"
+exit 0 
