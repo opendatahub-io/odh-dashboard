@@ -92,7 +92,7 @@ const EntityDetailsView: React.FC<EntityDetailsViewProps> = ({ entity }) => (
         <Title headingLevel="h3" data-testid="entity-tags" style={{ margin: '1em 0' }}>
           Tags
         </Title>
-        <FeatureStoreTags tags={entity.spec.tags ?? {}} />
+        <FeatureStoreTags tags={entity.spec.tags ?? {}} showAllTags />
       </FlexItem>
       <FlexItem>
         <Title

@@ -5,9 +5,11 @@ import {
   EmptyState,
   Breadcrumb,
   BreadcrumbItem,
+  EmptyStateFooter,
+  EmptyStateActions,
 } from '@patternfly/react-core';
 import { t_global_spacer_xs as ExtraSmallSpacerSize } from '@patternfly/react-tokens';
-import { SearchIcon } from '@patternfly/react-icons';
+import { SearchIcon, PathMissingIcon } from '@patternfly/react-icons';
 import { Link, useParams } from 'react-router-dom';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import { useFeatureStoreProject } from '#~/pages/featureStore/FeatureStoreContext';
@@ -22,6 +24,7 @@ const EntitiesDetailsPage = (): React.ReactElement => {
     loaded: entityLoaded,
     error: entityLoadError,
   } = useFeatureStoreEntityByName(currentProject, entityName);
+
   const emptyState = (
     <EmptyState
       headingLevel="h6"
@@ -36,20 +39,44 @@ const EntitiesDetailsPage = (): React.ReactElement => {
     </EmptyState>
   );
 
+  const errorState = (
+    <EmptyState
+      headingLevel="h6"
+      icon={PathMissingIcon}
+      titleText="Entity not found"
+      variant={EmptyStateVariant.lg}
+      data-testid="error-state-title"
+    >
+      <EmptyStateBody data-testid="error-state-body">
+        {entityLoadError?.message || 'The requested entity could not be found.'}
+      </EmptyStateBody>
+      <EmptyStateFooter>
+        <EmptyStateActions>
+          <Link to="/featureStore/entities">Go to Entities</Link>
+        </EmptyStateActions>
+      </EmptyStateFooter>
+    </EmptyState>
+  );
+
   return (
     <ApplicationsPage
       empty={!entityLoaded}
       emptyStatePage={emptyState}
       title={entity.spec.name}
+      data-testid="entity-details-page"
       description={entity.spec.description}
       loadError={entityLoadError}
+      loadErrorPage={entityLoadError ? errorState : undefined}
       loaded={entityLoaded}
       provideChildrenPadding
       breadcrumb={
         <Breadcrumb>
-          <BreadcrumbItem render={() => <Link to="/featureStore/entities">Entities</Link>} />
           <BreadcrumbItem
-            data-testid="breadcrumb-version-name"
+            render={() => <Link to="/featureStore/entities">Entities</Link>}
+            data-testid="entity-details-breadcrumb-link"
+          />
+          <BreadcrumbItem
+            data-testid="entity-details-breadcrumb-item"
             isActive
             style={{
               textDecoration: 'underline',

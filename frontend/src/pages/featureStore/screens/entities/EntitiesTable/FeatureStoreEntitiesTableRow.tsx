@@ -59,15 +59,18 @@ const FeatureStoreEntitiesTableRow: React.FC<FeatureStoreEntitiesTableRowType> =
     return getRelationshipsByTargetType(relationships, entityKey, 'featureView');
   }, [relationships, entity.spec.name]);
 
-  const featureViewLinks = React.useMemo(
-    () =>
-      featureViews.map((rel) => ({
-        name: rel.target.name,
-        to: `/featureStore/featureView/${entity.project ?? ''}/${rel.target.name}`,
-        type: rel.target.type,
-      })),
-    [featureViews, entity.project],
-  );
+  const featureViewLinks = React.useMemo(() => {
+    const project = entity.project || currentProject;
+    if (!project) {
+      return [];
+    }
+
+    return featureViews.map((rel) => ({
+      name: rel.target.name,
+      to: `/featureStore/featureViews/${project}/${rel.target.name}`,
+      type: rel.target.type,
+    }));
+  }, [featureViews, entity.project, currentProject]);
 
   const featureViewsTrigger = (
     <Button variant="link" isInline>

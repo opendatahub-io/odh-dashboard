@@ -29,7 +29,7 @@ const renderLabel = (key: string, value: string, textMaxWidth?: string) => (
 );
 
 const FeatureStoreTagsGroup: React.FC<FeatureStoreTagsGroupProps> = ({
-  dataTestId,
+  dataTestId = 'feature-store-tags-group',
   numLabels,
   tags,
   textMaxWidth,
