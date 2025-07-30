@@ -19,7 +19,7 @@ const SelectSingleModelCard: React.FC<SelectSingleModelCardProps> = ({
       objectType={ProjectObjectType.singleModel}
       sectionType={SectionType.serving}
       title="Single-model serving platform"
-      data-testid="single-serving-platform-card"
+      data-testid="kserve-platform-card"
     >
       <CardBody>
         <Content component="small">
@@ -34,7 +34,7 @@ const SelectSingleModelCard: React.FC<SelectSingleModelCardProps> = ({
           setError={setErrorSelectingPlatform}
           variant="link"
           isInline
-          data-testid="single-serving-select-button"
+          data-testid="kserve-select-button"
         />
       </CardFooter>
     </OverviewCard>

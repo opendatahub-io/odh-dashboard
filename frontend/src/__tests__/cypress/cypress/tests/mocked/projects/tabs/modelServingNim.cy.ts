@@ -203,7 +203,7 @@ describe('NIM Model Serving', () => {
         projectDetailsOverviewTab.visit('test-project');
         projectDetailsOverviewTab
           .findModelServingPlatform('nvidia-nim')
-          .findByTestId('nim-serving-select-button')
+          .findByTestId('nvidia-nim-select-button')
           .should('be.enabled');
       });
 
@@ -229,8 +229,8 @@ describe('NIM Model Serving', () => {
         });
         projectDetails.visitSection('test-project', 'model-server');
         projectDetails
-          .findModelServingPlatform('nvidia-nim-model')
-          .findByTestId('nim-serving-select-button')
+          .findModelServingPlatform('nvidia-nim')
+          .findByTestId('nvidia-nim-select-button')
           .should('be.enabled');
       });
 
@@ -281,8 +281,8 @@ describe('NIM Model Serving', () => {
           disableNIMModelServing: true,
         });
         projectDetails.visitSection('test-project', 'model-server');
-        projectDetails.findModelServingPlatform('nvidia-nim-model').should('not.exist');
-        cy.findByTestId('nim-serving-select-button').should('not.exist');
+        projectDetails.findModelServingPlatform('nvidia-nim').should('not.exist');
+        cy.findByTestId('nvidia-nim-select-button').should('not.exist');
       });
     });
 
@@ -337,8 +337,8 @@ describe('NIM Model Serving', () => {
           true,
         );
         projectDetails.visitSection('test-project', 'model-server');
-        projectDetails.findModelServingPlatform('nvidia-nim-model').should('not.exist');
-        cy.findByTestId('nim-serving-select-button').should('not.exist');
+        projectDetails.findModelServingPlatform('nvidia-nim').should('not.exist');
+        cy.findByTestId('nvidia-nim-select-button').should('not.exist');
       });
     });
   });

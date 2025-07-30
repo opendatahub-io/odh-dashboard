@@ -205,7 +205,7 @@ class ProjectDetails {
   }
 
   findModelServingPlatform(name: string) {
-    return this.findComponent('model-server').findByTestId(`${name}-serving-platform-card`);
+    return this.findComponent('model-server').findByTestId(`${name}-platform-card`);
   }
 
   showProjectResourceDetails() {
