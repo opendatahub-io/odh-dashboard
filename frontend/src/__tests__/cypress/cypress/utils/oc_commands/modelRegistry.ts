@@ -93,6 +93,46 @@ export const createModelRegistryViaYAML = (
 };
 
 /**
+ * Create a model registry and verify it's ready for use
+ * @param registryName Name of the model registry to create
+ * @returns Cypress.Chainable that resolves when the registry is created and available
+ */
+export const createAndVerifyModelRegistry = (registryName: string): Cypress.Chainable => {
+  cy.step('Create a model registry using YAML');
+  return createModelRegistryViaYAML(registryName)
+    .then(() => {
+      cy.step('Verify model registry is created');
+      return checkModelRegistry(registryName).should('be.true');
+    })
+    .then(() => {
+      cy.step('Wait for model registry to be in Available state');
+      return checkModelRegistryAvailable(registryName).should('be.true');
+    });
+};
+
+/**
+ * Complete cleanup for model registry components
+ * @param modelNames Array of model names to clean up from database
+ * @param registryName Name of the model registry to delete
+ * @returns Cypress.Chainable that resolves when cleanup is complete
+ */
+export const cleanupModelRegistryComponents = (
+  modelNames: string[],
+  registryName: string,
+): Cypress.Chainable => {
+  cy.step('Clean up registered models from database');
+  return cleanupRegisteredModelsFromDatabase(modelNames)
+    .then(() => {
+      cy.step('Delete the model registry');
+      return deleteModelRegistry(registryName);
+    })
+    .then(() => {
+      cy.step('Verify model registry is removed from the backend');
+      return checkModelRegistry(registryName).should('be.false');
+    });
+};
+
+/**
  * Delete a model registry
  * @param registryName Name of the model registry to delete
  * @returns Cypress.Chainable<CommandLineResult>

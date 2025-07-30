@@ -7,11 +7,8 @@ import { modelRegistry } from '#~/__tests__/cypress/cypress/pages/modelRegistry'
 import { retryableBefore } from '#~/__tests__/cypress/cypress/utils/retryableHooks';
 import {
   checkModelExistsInDatabase,
-  checkModelRegistry,
-  checkModelRegistryAvailable,
-  cleanupRegisteredModelsFromDatabase,
-  createModelRegistryViaYAML,
-  deleteModelRegistry,
+  cleanupModelRegistryComponents,
+  createAndVerifyModelRegistry,
 } from '#~/__tests__/cypress/cypress/utils/oc_commands/modelRegistry';
 import { loadRegisterModelFixture } from '#~/__tests__/cypress/cypress/utils/dataLoader';
 import { generateTestUUID } from '#~/__tests__/cypress/cypress/utils/uuidGenerator';
@@ -39,17 +36,9 @@ describe('Verify models can be deployed from model registry', () => {
       modelName = `${testData.objectStorageModelName}-${uuid}`;
       projectName = `${testData.deployProjectNamePrefix}-${uuid}`;
 
-      // Create a model registry
-      cy.step('Create a model registry using YAML');
-      createModelRegistryViaYAML(registryName);
+      cy.step('Create a model registry and verify it is ready');
+      createAndVerifyModelRegistry(registryName);
 
-      cy.step('Verify model registry is created');
-      checkModelRegistry(registryName).should('be.true');
-
-      cy.step('Wait for model registry to be in Available state');
-      checkModelRegistryAvailable(registryName).should('be.true');
-
-      // Create a project for deployment
       cy.step('Create a project for model deployment');
       createCleanProject(projectName);
     });
@@ -59,17 +48,11 @@ describe('Verify models can be deployed from model registry', () => {
     cy.clearCookies();
     cy.clearLocalStorage();
 
-    cy.step('Clean up registered models from database');
-    cleanupRegisteredModelsFromDatabase([modelName]);
+    cy.step('Clean up model registry components');
+    cleanupModelRegistryComponents([modelName], registryName);
 
     cy.step('Delete the test project');
     deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
-
-    cy.step('Delete the model registry');
-    deleteModelRegistry(registryName);
-
-    cy.step('Verify model registry is removed from the backend');
-    checkModelRegistry(registryName).should('be.false');
   });
 
   it(
