@@ -5,6 +5,8 @@ import {
   getEntities,
   getFeatureViews,
   listFeatureStoreProject,
+  getFeatureByName,
+  getFeatures,
   getEntityByName,
 } from '#~/api/featureStore/custom';
 
@@ -21,6 +23,8 @@ const useFeatureStoreAPIState = (
       getEntities: getEntities(path),
       getFeatureViews: getFeatureViews(path),
       getEntityByName: getEntityByName(path),
+      getFeatures: getFeatures(path),
+      getFeatureByName: getFeatureByName(path),
     }),
     [],
   );
