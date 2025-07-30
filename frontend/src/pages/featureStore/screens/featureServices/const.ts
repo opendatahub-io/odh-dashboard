@@ -61,6 +61,16 @@ export const columns: SortableData<FeatureService>[] = [
   },
 ];
 
+export const AllProjectColumns: SortableData<FeatureService>[] = [
+  ...columns,
+  {
+    field: 'project',
+    label: 'Project',
+    width: 25,
+    sortable: (a, b): number => (a.project || '').localeCompare(b.project || ''),
+  },
+];
+
 export enum FeatureServiceToolbarFilterOptions {
   featureService = 'Feature service',
   tags = 'Tags',
