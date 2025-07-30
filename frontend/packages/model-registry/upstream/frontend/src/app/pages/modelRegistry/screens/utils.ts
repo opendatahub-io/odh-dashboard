@@ -3,11 +3,13 @@ import { SearchType } from 'mod-arch-shared/dist/components/DashboardSearchField
 import {
   ModelRegistry,
   ModelRegistryCustomProperties,
+  ModelRegistryCustomProperty,
   ModelRegistryMetadataType,
   ModelRegistryStringCustomProperties,
   ModelVersion,
   RegisteredModel,
 } from '~/app/types';
+import { COMPANY_URI } from '~/app/utilities/const';
 
 export type ObjectStorageFields = {
   endpoint: string;
@@ -45,7 +47,7 @@ export const mergeUpdatedLabels = (
   return customPropertiesCopy;
 };
 
-// Retrives the customProperties that are not labels (they have a defined string_value).
+// Retrieves the customProperties that are not special (_registeredFrom) or labels (they have a defined string_value).
 export const getProperties = <T extends ModelRegistryCustomProperties>(
   customProperties: T,
 ): ModelRegistryStringCustomProperties => {
@@ -53,7 +55,7 @@ export const getProperties = <T extends ModelRegistryCustomProperties>(
   return Object.keys(customProperties).reduce((acc, key) => {
     // _lastModified is a property that is required to update the timestamp on the backend and we have a workaround for it. It should be resolved by
     // backend team
-    if (key === '_lastModified') {
+    if (key === '_lastModified' || /^_registeredFrom/.test(key)) {
       return acc;
     }
 
@@ -87,6 +89,20 @@ export const mergeUpdatedProperty = (
     };
   }
   return customPropertiesCopy;
+};
+
+export const getCustomPropString = <
+  T extends Record<string, ModelRegistryCustomProperty | undefined>,
+>(
+  customProperties: T,
+  key: string,
+): string => {
+  const prop = customProperties[key];
+
+  if (prop?.metadataType === 'MetadataStringValue') {
+    return prop.string_value;
+  }
+  return '';
 };
 
 export const filterModelVersions = (
@@ -183,21 +199,4 @@ export const isValidHttpUrl = (value: string): boolean => {
   }
 };
 
-export const filterCustomProperties = (
-  customProperties: ModelRegistryCustomProperties,
-  keys: string[],
-): ModelRegistryCustomProperties => {
-  const filteredCustomProperties: ModelRegistryCustomProperties = {};
-  Object.keys(customProperties).forEach((key) => {
-    if (!keys.includes(key)) {
-      filteredCustomProperties[key] = customProperties[key];
-    }
-  });
-  return filteredCustomProperties;
-};
-
-export const isPipelineRunExist = (
-  customProperties: ModelRegistryCustomProperties,
-  keys: string[],
-): boolean => keys.every((key) => key in customProperties);
-export const isRedHatRegistryUri = (uri: string): boolean => uri.startsWith('oci://example.io/'); // TODO: Change this to a proper check
+export const isCompanyUri = (uri: string): boolean => uri.startsWith(`${COMPANY_URI}/`);
