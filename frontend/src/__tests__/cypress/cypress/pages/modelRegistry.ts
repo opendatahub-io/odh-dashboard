@@ -177,8 +177,14 @@ class ModelRegistry {
   }
 
   findSelectModelRegistry(registryName: string) {
-    this.findModelRegistry().click();
-    cy.findByTestId(registryName).click();
+    // Check if the registry is already selected
+    this.findModelRegistry().then(($dropdown) => {
+      if (!$dropdown.text().includes(registryName)) {
+        // Registry is not selected, perform click actions
+        this.findModelRegistry().click();
+        cy.findByTestId(registryName).click();
+      }
+    });
     return this;
   }
 
@@ -228,6 +234,10 @@ class ModelRegistry {
 
   findRegisterNewVersionButton() {
     return cy.findByRole('button', { name: 'Register new version' });
+  }
+
+  findDeploymentsTab() {
+    return cy.findByTestId('deployments-tab');
   }
 
   // Empty state selectors for admin users

@@ -4,6 +4,7 @@ import {
   registerModelPage,
 } from '#~/__tests__/cypress/cypress/pages/modelRegistry/registerModelPage';
 import { modelRegistry } from '#~/__tests__/cypress/cypress/pages/modelRegistry';
+import { clickRegisterModelButton } from '#~/__tests__/cypress/cypress/utils/modelRegistryUtils';
 import { retryableBeforeEach } from '#~/__tests__/cypress/cypress/utils/retryableHooks';
 import {
   checkModelRegistry,
@@ -76,7 +77,7 @@ describe('Verify that models and versions can be archived and restored via model
       cy.findByTestId(registryName).click();
 
       cy.step('Register a model using object storage');
-      modelRegistry.findRegisterModelButton().click();
+      clickRegisterModelButton(30000);
 
       // Fill in model details
       registerModelPage

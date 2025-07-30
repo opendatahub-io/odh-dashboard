@@ -17,6 +17,10 @@ class ModelVersionDeployModal extends Modal {
       .should('be.visible')
       .click();
   }
+
+  findGoToProjectPageLink() {
+    return cy.findByTestId('go-to-project-page-link');
+  }
 }
 
 export const modelVersionDeployModal = new ModelVersionDeployModal();
