@@ -3,37 +3,61 @@ import { Entity, EntityList } from '#~/pages/featureStore/types/entities';
 
 export const mockEntity = (partial?: Partial<Entity>): Entity => ({
   spec: {
-    name: 'dob_ssn',
+    name: 'user_id',
     valueType: 'STRING',
-    description:
-      'Unique identifier combining date of birth and last four digits of SSN for customer identification',
-    joinKey: 'dob_ssn',
+    description: 'Unique identifier for each user',
+    joinKey: 'user_id',
     tags: {
-      sensitive: 'critical',
-      regulatory: 'privacy_protected',
-      pii: 'true',
-      // eslint-disable-next-line camelcase
       join_key: 'true',
-      domain: 'customer',
       cardinality: 'high',
+      domain: 'user',
+      pii: 'false',
     },
+    owner: 'data-team@company.com',
   },
+  featureDefinition:
+    'from feast import Entity\n\n__dummy = Entity(\n    name="__dummy",\n    join_keys=[\'__dummy_id\']) ',
   meta: {
-    createdTimestamp: '2025-06-30T07:46:22.705314Z',
-    lastUpdatedTimestamp: '2025-06-30T07:46:22.705314Z',
+    createdTimestamp: '2025-01-15T10:30:00.000000Z',
+    lastUpdatedTimestamp: '2025-01-15T10:30:00.000000Z',
   },
   ...partial,
 });
 
-export const mockEntities = ({ entities = [mockEntity({})] }: Partial<EntityList>): EntityList => ({
+export const mockEntities = ({ entities = [] }: Partial<EntityList>): EntityList => ({
   entities,
   pagination: {
     page: 1,
-    limit: 10,
-    total_count: 1,
+    limit: 50,
+    total_count: 2,
     total_pages: 1,
     has_next: false,
     has_previous: false,
   },
-  relationships: {},
+  relationships: {
+    user_id: [
+      {
+        source: {
+          type: 'entity',
+          name: 'user_id',
+        },
+        target: {
+          type: 'featureView',
+          name: 'user_features',
+        },
+      },
+    ],
+    transaction_id: [
+      {
+        source: {
+          type: 'entity',
+          name: 'transaction_id',
+        },
+        target: {
+          type: 'featureView',
+          name: 'transaction_features',
+        },
+      },
+    ],
+  },
 });
