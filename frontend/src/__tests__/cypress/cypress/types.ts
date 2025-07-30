@@ -347,6 +347,7 @@ export type RegisterModelTestData = {
 
   newNameSuffix: string;
   newDescription: string;
+  deployProjectNamePrefix: string;
 };
 
 export type ManageRegistryPermissionsTestData = {

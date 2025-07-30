@@ -4,7 +4,7 @@ import {
   registerModelPage,
 } from '#~/__tests__/cypress/cypress/pages/modelRegistry/registerModelPage';
 import { modelRegistry } from '#~/__tests__/cypress/cypress/pages/modelRegistry';
-import { retryableBeforeEach } from '#~/__tests__/cypress/cypress/utils/retryableHooks';
+import { retryableBefore } from '#~/__tests__/cypress/cypress/utils/retryableHooks';
 import {
   checkModelExistsInDatabase,
   checkModelRegistry,
@@ -31,13 +31,13 @@ describe('Verify models can be deployed from model registry', () => {
   let projectName: string;
   const uuid = generateTestUUID();
 
-  before(() => {
+  retryableBefore(() => {
     cy.step('Load test data from fixture');
     loadRegisterModelFixture('e2e/modelRegistry/testRegisterModel.yaml').then((fixtureData) => {
       testData = fixtureData;
       registryName = `${testData.registryNamePrefix}-${uuid}`;
       modelName = `${testData.objectStorageModelName}-${uuid}`;
-      projectName = `test-deploy-project-${uuid}`;
+      projectName = `${testData.deployProjectNamePrefix}-${uuid}`;
 
       // Create a model registry
       cy.step('Create a model registry using YAML');
@@ -55,9 +55,21 @@ describe('Verify models can be deployed from model registry', () => {
     });
   });
 
-  retryableBeforeEach(() => {
+  after(() => {
     cy.clearCookies();
     cy.clearLocalStorage();
+
+    cy.step('Clean up registered models from database');
+    cleanupRegisteredModelsFromDatabase([modelName]);
+
+    cy.step('Delete the test project');
+    deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
+
+    cy.step('Delete the model registry');
+    deleteModelRegistry(registryName);
+
+    cy.step('Verify model registry is removed from the backend');
+    checkModelRegistry(registryName).should('be.false');
   });
 
   it(
@@ -129,7 +141,7 @@ describe('Verify models can be deployed from model registry', () => {
 
       // Configure model serving platform for the project
       cy.step('Configure model serving platform for the project');
-      modelVersionDeployModal.findGoToProjectPageLink(projectName).click();
+      modelVersionDeployModal.findGoToProjectPageLink().click();
 
       cy.url().should('include', projectName);
 
@@ -176,21 +188,4 @@ describe('Verify models can be deployed from model registry', () => {
       });
     },
   );
-
-  after(() => {
-    cy.clearCookies();
-    cy.clearLocalStorage();
-
-    cy.step('Clean up registered models from database');
-    cleanupRegisteredModelsFromDatabase([modelName]);
-
-    cy.step('Delete the test project');
-    deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
-
-    cy.step('Delete the model registry');
-    deleteModelRegistry(registryName);
-
-    cy.step('Verify model registry is removed from the backend');
-    checkModelRegistry(registryName).should('be.false');
-  });
 });

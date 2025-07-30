@@ -18,8 +18,8 @@ class ModelVersionDeployModal extends Modal {
       .click();
   }
 
-  findGoToProjectPageLink(projectName: string) {
-    return cy.contains(`Go to ${projectName} project page`);
+  findGoToProjectPageLink() {
+    return cy.findByTestId('go-to-project-page-link');
   }
 }
 
