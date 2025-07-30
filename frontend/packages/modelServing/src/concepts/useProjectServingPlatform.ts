@@ -57,7 +57,7 @@ export const getMultiProjectServingPlatforms = (
 };
 
 export const useProjectServingPlatform = (
-  project: ProjectKind,
+  project: ProjectKind | null,
   platforms?: ModelServingPlatform[],
 ): {
   activePlatform?: ModelServingPlatform | null; // This includes preselecting a platform if there is only one
@@ -69,14 +69,14 @@ export const useProjectServingPlatform = (
 } => {
   const [tmpProjectPlatform, setTmpProjectPlatform] = React.useState<
     ModelServingPlatform | null | undefined
-  >(project.metadata.name && platforms ? getProjectServingPlatform(project, platforms) : undefined);
+  >(project && platforms ? getProjectServingPlatform(project, platforms) : undefined);
   const [projectPlatformError, setProjectPlatformError] = React.useState<string | null>(null);
   const [newProjectPlatformLoading, setNewProjectPlatformLoading] = React.useState<
     ModelServingPlatform | null | undefined
   >();
 
   React.useEffect(() => {
-    if (!project.metadata.name || !platforms) {
+    if (!project || !platforms) {
       return;
     }
     const p = getProjectServingPlatform(project, platforms);
@@ -88,6 +88,9 @@ export const useProjectServingPlatform = (
 
   const setProjectPlatform = React.useCallback(
     (platformToEnable: ModelServingPlatform) => {
+      if (!project) {
+        return;
+      }
       setNewProjectPlatformLoading(platformToEnable);
       setProjectPlatformError(null);
 
@@ -103,6 +106,9 @@ export const useProjectServingPlatform = (
   );
 
   const resetProjectPlatform = React.useCallback(() => {
+    if (!project) {
+      return;
+    }
     setNewProjectPlatformLoading(null);
     setProjectPlatformError(null);
 
