@@ -5,20 +5,22 @@ ARG BFF_SOURCE_CODE=./bff
 # Set the base images for the build stages
 ARG NODE_BASE_IMAGE=registry.access.redhat.com/ubi9/nodejs-20:latest
 ARG GOLANG_BASE_IMAGE=registry.access.redhat.com/ubi9/go-toolset:1.24
-ARG DISTROLESS_BASE_IMAGE=registry.redhat.io/ubi9-minimal:latest
+ARG DISTROLESS_BASE_IMAGE=registry.access.redhat.com/ubi9-minimal:latest
 
 # UI build stage
 FROM ${NODE_BASE_IMAGE} AS ui-builder
 
 ARG UI_SOURCE_CODE
+ARG DEPLOYMENT_MODE
+ARG PLATFORM_MODE
 
 WORKDIR /usr/src/app
 
 # Copy the source code to the container
-COPY ${UI_SOURCE_CODE} /usr/src/app
+COPY --chown=default:root ${UI_SOURCE_CODE} /usr/src/app
 
-# List files for debugging
-RUN ls -la /usr/src/app
+# Change file ownership to the assemble user
+USER default
 
 # Install the dependencies and build
 RUN npm cache clean --force
