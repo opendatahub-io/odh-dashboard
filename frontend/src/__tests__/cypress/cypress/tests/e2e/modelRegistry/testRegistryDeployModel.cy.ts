@@ -14,6 +14,7 @@ import { loadRegisterModelFixture } from '#~/__tests__/cypress/cypress/utils/dat
 import { generateTestUUID } from '#~/__tests__/cypress/cypress/utils/uuidGenerator';
 import type { RegisterModelTestData } from '#~/__tests__/cypress/cypress/types';
 import { modelVersionDeployModal } from '#~/__tests__/cypress/cypress/pages/modelRegistry/modelVersionDeployModal';
+import { clickRegisterModelButton } from '#~/__tests__/cypress/cypress/utils/modelRegistryUtils';
 import { kserveModal, modelServingGlobal } from '#~/__tests__/cypress/cypress/pages/modelServing';
 import { checkInferenceServiceState } from '#~/__tests__/cypress/cypress/utils/oc_commands/modelServing';
 import { projectDetails } from '#~/__tests__/cypress/cypress/pages/projects';
@@ -69,7 +70,7 @@ describe('Verify models can be deployed from model registry', () => {
       modelRegistry.findSelectModelRegistry(registryName);
 
       cy.step('Register a model using object storage');
-      modelRegistry.clickRegisterModel(30000);
+      clickRegisterModelButton(30000);
 
       // Fill in model details for object storage
       registerModelPage.findFormField(FormFieldSelector.MODEL_NAME).type(modelName);
