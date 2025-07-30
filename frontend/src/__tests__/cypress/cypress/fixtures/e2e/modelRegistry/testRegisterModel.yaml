@@ -31,4 +31,4 @@ uriVersion2: "s3://test-bucket/models/tensorflow-model-v2?endpoint=http%3A%2F%2F
 
 newNameSuffix: "-edited"
 newDescription: "Updated description for e2e test"
-deployProjectNamePrefix: "test-deploy-project"  
+deployProjectNamePrefix: "test-deploy-project"
