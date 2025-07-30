@@ -4,6 +4,7 @@ import { DSPA_SECRET_NAME } from '#~/concepts/pipelines/content/configurePipelin
 import { PipelineServerConfigType } from '#~/concepts/pipelines/content/configurePipelinesServer/types';
 import { createDSPipelineResourceSpec } from '#~/concepts/pipelines/content/configurePipelinesServer/utils';
 import { deleteServer, isGeneratedDSPAExternalStorageSecret } from '#~/concepts/pipelines/utils';
+import { DSPipelineAPIServerStore } from '#~/k8sTypes.ts';
 import { AwsKeys } from '#~/pages/projects/dataConnections/const';
 import { genRandomChars } from '#~/utilities/string';
 
@@ -172,6 +173,7 @@ describe('configure pipeline server utils', () => {
               state: 'Removed',
             },
           },
+          pipelineStore: DSPipelineAPIServerStore.DATABASE,
         },
       });
     });
