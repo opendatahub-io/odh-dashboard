@@ -67,6 +67,7 @@ const FeatureServiceTableRow: React.FC<FeatureServiceTableRowType> = ({
       )}
     </Td>
     <Td dataLabel="Owner">{featureService.spec.owner ?? '-'}</Td>
+    {!fsProject && <Td dataLabel="Project">{featureService.project}</Td>}
   </Tr>
 );
 
