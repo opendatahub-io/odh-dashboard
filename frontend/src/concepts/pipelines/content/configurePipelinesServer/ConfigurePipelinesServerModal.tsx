@@ -252,7 +252,7 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
                   if (!advancedSettingsExpanded) {
                     requestAnimationFrame(() => {
                       advancedSettingsRef.current?.scrollIntoView({
-                        behavior: 'instant',
+                        behavior: 'smooth',
                         block: 'start',
                       });
                     });
