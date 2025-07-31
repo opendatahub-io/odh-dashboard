@@ -44,17 +44,19 @@ export const checkModelRegistry = (registryName: string): Cypress.Chainable<bool
  */
 export const checkModelRegistryAvailable = (registryName: string): Cypress.Chainable<boolean> => {
   const targetNamespace = getModelRegistryNamespace();
-  const command = `oc wait --for=condition=Available modelregistry.modelregistry.opendatahub.io/${registryName} -n ${targetNamespace} --timeout=120s`;
+  const command = `oc wait --for=condition=Available modelregistry.modelregistry.opendatahub.io/${registryName} -n ${targetNamespace} --timeout=240s`;
   cy.log(`Waiting for model registry ${registryName} to be available...`);
-  return cy.exec(command, { failOnNonZeroExit: false }).then((result: CommandLineResult) => {
-    if (result.stdout) {
-      cy.log(`Wait result: ${result.stdout}`);
-    }
-    if (result.stderr) {
-      cy.log(`Wait stderr: ${result.stderr}`);
-    }
-    return cy.wrap(result.code === 0);
-  });
+  return cy
+    .exec(command, { failOnNonZeroExit: false, timeout: 240000 })
+    .then((result: CommandLineResult) => {
+      if (result.stdout) {
+        cy.log(`Wait result: ${result.stdout}`);
+      }
+      if (result.stderr) {
+        cy.log(`Wait stderr: ${result.stderr}`);
+      }
+      return cy.wrap(result.code === 0);
+    });
 };
 
 /**
@@ -87,6 +89,46 @@ export const createModelRegistryViaYAML = (
     })
     .then((result: CommandLineResult) => {
       return result;
+    });
+};
+
+/**
+ * Create a model registry and verify it's ready for use
+ * @param registryName Name of the model registry to create
+ * @returns Cypress.Chainable that resolves when the registry is created and available
+ */
+export const createAndVerifyModelRegistry = (registryName: string): Cypress.Chainable => {
+  cy.step('Create a model registry using YAML');
+  return createModelRegistryViaYAML(registryName)
+    .then(() => {
+      cy.step('Verify model registry is created');
+      return checkModelRegistry(registryName).should('be.true');
+    })
+    .then(() => {
+      cy.step('Wait for model registry to be in Available state');
+      return checkModelRegistryAvailable(registryName).should('be.true');
+    });
+};
+
+/**
+ * Complete cleanup for model registry components
+ * @param modelNames Array of model names to clean up from database
+ * @param registryName Name of the model registry to delete
+ * @returns Cypress.Chainable that resolves when cleanup is complete
+ */
+export const cleanupModelRegistryComponents = (
+  modelNames: string[],
+  registryName: string,
+): Cypress.Chainable => {
+  cy.step('Clean up registered models from database');
+  return cleanupRegisteredModelsFromDatabase(modelNames)
+    .then(() => {
+      cy.step('Delete the model registry');
+      return deleteModelRegistry(registryName);
+    })
+    .then(() => {
+      cy.step('Verify model registry is removed from the backend');
+      return checkModelRegistry(registryName).should('be.false');
     });
 };
 

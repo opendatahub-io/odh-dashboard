@@ -91,6 +91,7 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
                   to={`/projects/${
                     selectedProject.metadata.name
                   }?${projectLinkUrlParams.toString()}`}
+                  data-testid="go-to-project-page-link"
                 >
                   Go to <b>{getDisplayNameFromK8sResource(selectedProject)}</b> project page
                 </Link>
