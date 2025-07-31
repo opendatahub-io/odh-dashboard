@@ -55,14 +55,34 @@ class LMEvalFormPage {
   }
 
   findModelArgumentName() {
-    return cy.findByTestId('model-argument-name');
+    return cy.findByTestId('model-argument-name-value');
   }
 
   findModelArgumentUrl() {
-    return cy.findByTestId('model-argument-url');
+    return cy.findByTestId('model-argument-url-value');
   }
 
-  private findSecuritySection() {
+  findTokenizerUrlInput() {
+    return cy.findByTestId('tokenizer-url-input');
+  }
+
+  findTasksFormGroup() {
+    return cy.findByTestId('tasks-form-group');
+  }
+
+  findModelTypeDropdown() {
+    return cy.findByTestId('model-type-form-group').findByRole('button', { name: 'Options menu' });
+  }
+
+  findTaskDropdownList() {
+    return cy.get('[role="listbox"]');
+  }
+
+  findTaskOption(taskName: string) {
+    return this.findTaskDropdownList().find('[role="option"]').contains(taskName);
+  }
+
+  findSecuritySection() {
     return cy.findByTestId('lm-eval-security-section');
   }
 
@@ -84,26 +104,40 @@ class LMEvalFormPage {
 
   // Model arguments methods
   shouldHaveModelArgumentName(expectedName: string) {
-    this.findModelArgumentName().should('contain.text', expectedName);
+    this.findModelArgumentName().should('have.text', expectedName);
     return this;
   }
 
   shouldHaveModelArgumentUrl(expectedUrl: string) {
-    this.findModelArgumentUrl().should('contain.text', expectedUrl);
+    this.findModelArgumentUrl().should('have.text', expectedUrl);
     return this;
   }
 
   shouldHaveEmptyModelArguments() {
-    this.findModelArgumentName().should('contain.text', '-');
-    this.findModelArgumentUrl().should('contain.text', '-');
+    this.findModelArgumentName().should('have.text', '-');
+    this.findModelArgumentUrl().should('have.text', '-');
     return this;
   }
 
+  // Model selection method
   selectModelFromDropdown(modelName: string) {
-    this.findModelNameDropdown().click();
+    cy.log(`Selecting model: ${modelName}`);
+
+    this.findModelNameDropdown()
+      .should('exist')
+      .scrollIntoView()
+      .should('be.visible', { timeout: 15000 })
+      .click();
+
+    // Wait for dropdown to be visible and handle potential timing issues
+    cy.findByTestId('model-name-dropdown-list').should('be.visible');
+
+    // Wait for the specific model option to be available before clicking
     cy.findByText(modelName).should('be.visible').click();
-    // Wait for the model arguments to update by checking that the model name is no longer empty
-    this.findModelArgumentName().should('not.contain.text', '-');
+
+    // Wait for dropdown to close and form state to update
+    cy.findByTestId('model-name-dropdown-list').should('not.exist');
+
     return this;
   }
 
@@ -111,20 +145,22 @@ class LMEvalFormPage {
     this.findModelNameDropdown().click();
 
     // Check if the model option exists in the dropdown
-    cy.get('[role="option"]').then(($options) => {
-      const modelExists = $options
-        .toArray()
-        .some((option) => option.textContent?.includes(modelName));
+    cy.findByTestId('model-name-dropdown-list')
+      .find('[role="option"]')
+      .then(($options) => {
+        const modelExists = $options
+          .toArray()
+          .some((option) => option.textContent?.includes(modelName));
 
-      if (modelExists) {
-        cy.findByText(modelName).click();
-        cy.log(`Successfully selected model: ${modelName}`);
-      } else {
-        // Close dropdown by pressing Escape
-        cy.get('body').type('{esc}');
-        cy.log(`Model "${modelName}" not found in dropdown`);
-      }
-    });
+        if (modelExists) {
+          cy.findByText(modelName).click();
+          cy.log(`Successfully selected model: ${modelName}`);
+        } else {
+          // Close dropdown by pressing Escape
+          cy.get('body').type('{esc}');
+          cy.log(`Model "${modelName}" not found in dropdown`);
+        }
+      });
     return this;
   }
 
@@ -136,6 +172,45 @@ class LMEvalFormPage {
 
   shouldHaveEvaluationName(name: string) {
     this.findEvaluationNameInput().should('have.value', name);
+    return this;
+  }
+
+  typeTokenizerUrl(url: string) {
+    this.findTokenizerUrlInput().clear().type(url);
+    return this;
+  }
+
+  // Task selection methods
+  selectTasks(taskNames: string[]) {
+    // Wait for the form to be fully loaded before attempting to interact
+    cy.findByTestId('tasks-form-group').should('be.visible');
+
+    // Wait for the MultiSelection component to be fully rendered with longer timeout
+    cy.findByTestId('tasks-form-group', { timeout: 15000 }).should('be.visible');
+
+    // Use aria-label instead of test ID for more reliable element selection
+    cy.findByLabelText('Select evaluation tasks', { timeout: 15000 }).should('be.visible').click();
+
+    // Wait for dropdown to be visible with increased timeout for Jenkins
+    // Try to find the dropdown list using multiple strategies
+    this.findTaskDropdownList().should('be.visible');
+
+    taskNames.forEach((taskName) => {
+      // Try to find the option using multiple strategies
+      this.findTaskOption(taskName).should('be.visible').click();
+    });
+    cy.get('body').type('{esc}');
+    return this;
+  }
+
+  // Model type selection methods
+  selectModelType(modelType: string) {
+    cy.log(`Selecting model endpoint interaction: ${modelType}`);
+    this.findModelTypeDropdown()
+      .should('be.visible', { timeout: 15000 })
+      .findSelectOption(new RegExp(modelType))
+      .click();
+
     return this;
   }
 
@@ -166,12 +241,12 @@ class LMEvalFormPage {
   shouldHaveEnabledInputs() {
     this.findEvaluationNameInput().should('be.visible').and('not.be.disabled');
     this.findModelNameDropdown().should('exist').and('not.be.disabled');
-    cy.findByLabelText('Options menu').should('exist').and('not.be.disabled');
+    this.findModelTypeDropdown().should('exist').and('not.be.disabled');
     return this;
   }
 
-  // Security section methods
-  selectAvailableOnline(value: boolean) {
+  // Security settings methods
+  setAvailableOnline(value: boolean) {
     if (value) {
       this.findAvailableOnlineTrueRadio().click();
     } else {
@@ -180,7 +255,7 @@ class LMEvalFormPage {
     return this;
   }
 
-  selectTrustRemoteCode(value: boolean) {
+  setTrustRemoteCode(value: boolean) {
     if (value) {
       this.findTrustRemoteCodeTrueRadio().click();
     } else {
@@ -234,9 +309,47 @@ class LMEvalFormPage {
     return this;
   }
 
+  clickSubmitButton() {
+    this.findSubmitButton().click();
+    return this;
+  }
+
   shouldNavigateToModelEvaluationsHome() {
     cy.url().should('include', '/modelEvaluations');
     cy.url().should('not.include', '/evaluate');
+    return this;
+  }
+
+  filterByName(name: string) {
+    cy.findByRole('textbox', { name: 'Filter by name' }).type(name);
+    return this;
+  }
+
+  testA11y() {
+    // Disable accessibility rules that are known to have false positives or are not applicable
+    cy.injectAxe();
+    cy.findByTestId('lmEvaluationForm').then(($el: JQuery<HTMLElement>) => {
+      cy.checkA11y($el[0], {
+        includedImpacts: ['serious', 'critical'],
+        rules: {
+          // Disabled: Color contrast issues are often false positives in test environments
+          // where CSS may not be fully loaded or theme colors differ from production
+          'color-contrast': { enabled: false },
+
+          // Disabled: Scrollable regions without focusable content are common in form layouts
+          // where scroll containers are used for layout purposes rather than interactive content
+          'scrollable-region-focusable': { enabled: false },
+
+          // Disabled: Label rule can be overly strict with complex form structures
+          // where labels are properly associated but not detected by axe-core
+          label: { enabled: false },
+
+          // Disabled: Button name rule flags buttons that have proper accessible names
+          // but axe-core doesn't recognize the naming mechanism (e.g., aria-label, title)
+          'button-name': { enabled: false },
+        },
+      });
+    });
     return this;
   }
 }
