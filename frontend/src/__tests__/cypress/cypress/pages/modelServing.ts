@@ -211,6 +211,12 @@ class InferenceServiceModal extends ServingModal {
     return this.find().findByTestId('deployment-mode-select');
   }
 
+  getDeploymentModeLength() {
+    return this.find()
+      .findByTestId('deployment-mode-select')
+      .then(($dropdown) => $dropdown.length);
+  }
+
   findDeployedModelRouteCheckbox() {
     return this.find().findByTestId('alt-form-checkbox-route');
   }

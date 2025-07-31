@@ -452,3 +452,37 @@ export const verifyS3CopyCompleted = (
       }
     });
 };
+
+/**
+ * Verifies that an InferenceService has the correct deployment mode annotation
+ * @param serviceName InferenceService name
+ * @param namespace The namespace where the InferenceService is deployed
+ * @param expectedMode The expected deployment mode ('RawDeployment' or 'Serverless')
+ */
+export const checkInferenceServiceDeploymentMode = (
+  serviceName: string,
+  namespace: string,
+  expectedMode: 'RawDeployment' | 'Serverless',
+): Cypress.Chainable<Cypress.Exec> => {
+  const ocCommand = `oc get inferenceService ${serviceName} -n ${namespace} -o jsonpath='{.metadata.annotations.serving\\.kserve\\.io/deploymentMode}'`;
+
+  return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => {
+    if (result.code !== 0) {
+      throw new Error(`Failed to get InferenceService deployment mode: ${result.stderr}`);
+    }
+
+    const actualMode = result.stdout.trim();
+    cy.log(`🔍 InferenceService deployment mode check:
+      Service: ${serviceName}
+      Expected: ${expectedMode}
+      Actual: ${actualMode}
+      Match: ${actualMode === expectedMode ? '✅' : '❌'}`);
+
+    if (actualMode !== expectedMode) {
+      throw new Error(`Deployment mode mismatch. Expected: ${expectedMode}, Actual: ${actualMode}`);
+    }
+
+    cy.log(`✅ InferenceService ${serviceName} has correct deployment mode: ${expectedMode}`);
+    return cy.wrap(result);
+  });
+};
