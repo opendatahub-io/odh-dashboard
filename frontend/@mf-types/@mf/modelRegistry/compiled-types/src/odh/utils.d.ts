@@ -11,3 +11,7 @@ export declare const S3ConnectionTypeKeys: string[];
 export declare const uriToModelLocation: (uri?: string) => RegisteredModelLocation;
 export declare const getModelServingConnectionTypeName: (type: ModelServingCompatibleTypes) => string;
 export declare const uriToConnectionTypeName: (uri?: string) => string;
+export declare const getDeployButtonState: (availablePlatformIds: string[]) => {
+    enabled?: boolean;
+    tooltip?: string;
+};

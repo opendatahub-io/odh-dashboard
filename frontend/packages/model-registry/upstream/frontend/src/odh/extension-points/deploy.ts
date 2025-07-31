@@ -4,15 +4,15 @@ import type { ModelDeployPrefillInfo } from '~/odh/hooks/useRegisteredModelDeplo
 export type ModelRegistryDeployModalExtension = Extension<
   'model-registry.model-version/deploy-modal',
   {
-    useDeployButtonState: CodeRef<() => { visible: boolean; enabled?: boolean; tooltip?: string }>;
+    useAvailablePlatformIds: CodeRef<() => string[]>;
     modalComponent: CodeRef<
       React.ComponentType<{
-        data: {
-          modelDeployPrefillInfo: ModelDeployPrefillInfo;
+        modelDeployPrefill: {
+          data: ModelDeployPrefillInfo;
           loaded: boolean;
           error: Error | undefined;
-          onSubmit: () => void;
         };
+        onSubmit: () => void;
         onClose: () => void;
       }>
     >;

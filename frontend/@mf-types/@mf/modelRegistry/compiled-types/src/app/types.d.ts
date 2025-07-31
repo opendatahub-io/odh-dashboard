@@ -1,4 +1,5 @@
 import { APIOptions } from 'mod-arch-shared';
+import { ModelSourceProperties } from '~/concepts/modelRegistry/types';
 export declare enum ModelState {
     LIVE = "LIVE",
     ARCHIVED = "ARCHIVED"
@@ -82,7 +83,7 @@ export type ModelRegistryBase = {
     lastUpdateTimeSinceEpoch: string;
     customProperties: ModelRegistryCustomProperties;
 };
-export type ModelArtifact = ModelRegistryBase & {
+export type ModelArtifact = ModelRegistryBase & ModelSourceProperties & {
     uri?: string;
     state?: ModelArtifactState;
     author?: string;

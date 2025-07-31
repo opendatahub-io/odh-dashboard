@@ -5,7 +5,7 @@ import type {
 } from '~/app/pages/modelRegistry/screens/RegisterModel/useRegisterModelData';
 
 export type AutofillConnectionButtonExtension = Extension<
-  'model-registry.register/autofill-connection-button',
+  'model-registry.register/autofill-connection',
   {
     component: CodeRef<{
       default: React.ComponentType<{
@@ -28,4 +28,4 @@ export type AutofillConnectionButtonExtension = Extension<
 export const isAutofillConnectionButtonExtension = (
   extension: Extension,
 ): extension is AutofillConnectionButtonExtension =>
-  extension.type === 'model-registry.register/autofill-connection-button';
+  extension.type === 'model-registry.register/autofill-connection';

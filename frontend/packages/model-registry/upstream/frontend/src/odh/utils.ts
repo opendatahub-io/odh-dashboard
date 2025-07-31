@@ -1,6 +1,7 @@
 // TODO: remove this file once we have connection types support upstream
 // and update the reference to this file to the one in the model-serving upstream package
 import { RegisteredModelLocation } from '~/app/utils';
+import { DEPLOY_BUTTON_TOOLTIP } from '~/odh/const';
 
 export enum ModelServingCompatibleTypes {
   S3ObjectStorage = 'S3 compatible object storage',
@@ -93,4 +94,27 @@ export const uriToConnectionTypeName = (uri?: string): string => {
     return getModelServingConnectionTypeName(ModelServingCompatibleTypes.OCI);
   }
   return getModelServingConnectionTypeName(ModelServingCompatibleTypes.URI);
+};
+
+export const getDeployButtonState = (
+  availablePlatformIds: string[],
+): { enabled?: boolean; tooltip?: string } => {
+  if (availablePlatformIds.length === 0) {
+    return {
+      enabled: false,
+      tooltip: DEPLOY_BUTTON_TOOLTIP.ENABLE_MODEL_SERVING_PLATFORM,
+    };
+  }
+
+  // TODO: add OCI check when OCI model serving is supported
+  if (!availablePlatformIds.includes('kserve')) {
+    return {
+      enabled: false,
+      tooltip: DEPLOY_BUTTON_TOOLTIP.ENABLE_SINGLE_MODEL_SERVING,
+    };
+  }
+
+  return {
+    enabled: true,
+  };
 };

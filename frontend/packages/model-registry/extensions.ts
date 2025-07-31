@@ -2,7 +2,7 @@ import type { AutofillConnectionButtonExtension } from '@mf/modelRegistry/extens
 
 const extensions: AutofillConnectionButtonExtension[] = [
   {
-    type: 'model-registry.register/autofill-connection-button',
+    type: 'model-registry.register/autofill-connection',
     properties: {
       component: () => import('./src/connection/AutofillConnectionButton'),
     },

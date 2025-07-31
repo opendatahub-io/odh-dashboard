@@ -4,6 +4,7 @@ type ModelRegistrySelectorProps = {
     onSelection: (modelRegistry: string) => void;
     primary?: boolean;
     isFullWidth?: boolean;
+    hasError?: boolean;
 };
 declare const ModelRegistrySelector: React.FC<ModelRegistrySelectorProps>;
 export default ModelRegistrySelector;

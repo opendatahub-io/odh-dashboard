@@ -1,3 +1,3 @@
 
-    export type RemoteKeys = '@mf/modelRegistry/extensions' | '@mf/modelRegistry/extension-points' | '@mf/modelRegistry/api';
-    type PackageType<T> = T extends '@mf/modelRegistry/api' ? typeof import('@mf/modelRegistry/api') :T extends '@mf/modelRegistry/extension-points' ? typeof import('@mf/modelRegistry/extension-points') :T extends '@mf/modelRegistry/extensions' ? typeof import('@mf/modelRegistry/extensions') :any;
+    export type RemoteKeys = '@mf/modelRegistry/extensions' | '@mf/modelRegistry/extension-points';
+    type PackageType<T> = T extends '@mf/modelRegistry/extension-points' ? typeof import('@mf/modelRegistry/extension-points') :T extends '@mf/modelRegistry/extensions' ? typeof import('@mf/modelRegistry/extensions') :any;

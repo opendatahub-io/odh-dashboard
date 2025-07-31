@@ -102,12 +102,7 @@ const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
       </Td>
       {!isArchiveModel && (
         <Td isActionCell>
-          <MRVersionRowActionColumns
-            mv={mv}
-            mvLoaded={true}
-            mvError={undefined}
-            actions={actions}
-          />
+          <MRVersionRowActionColumns mv={mv} actions={actions} />
           {isArchiveModalOpen ? (
             <ArchiveModelVersionModal
               onCancel={() => setIsArchiveModalOpen(false)}

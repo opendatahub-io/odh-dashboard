@@ -1,6 +1,6 @@
 import { KeyValuePair } from 'mod-arch-shared';
 import { SearchType } from 'mod-arch-shared/dist/components/DashboardSearchField';
-import { ModelRegistry, ModelRegistryCustomProperties, ModelRegistryStringCustomProperties, ModelVersion, RegisteredModel } from '~/app/types';
+import { ModelRegistry, ModelRegistryCustomProperties, ModelRegistryCustomProperty, ModelRegistryStringCustomProperties, ModelVersion, RegisteredModel } from '~/app/types';
 export type ObjectStorageFields = {
     endpoint: string;
     bucket: string;
@@ -23,11 +23,10 @@ export declare const mergeUpdatedProperty: (args: {
     op: "delete";
     oldKey: string;
 })) => ModelRegistryCustomProperties;
+export declare const getCustomPropString: <T extends Record<string, ModelRegistryCustomProperty | undefined>>(customProperties: T, key: string) => string;
 export declare const filterModelVersions: (unfilteredModelVersions: ModelVersion[], search: string, searchType: SearchType) => ModelVersion[];
 export declare const sortModelVersionsByCreateTime: (registeredModels: ModelVersion[]) => ModelVersion[];
 export declare const filterRegisteredModels: (unfilteredRegisteredModels: RegisteredModel[], unfilteredModelVersions: ModelVersion[], search: string, searchType: SearchType) => RegisteredModel[];
 export declare const getServerAddress: (resource: ModelRegistry) => string;
 export declare const isValidHttpUrl: (value: string) => boolean;
-export declare const filterCustomProperties: (customProperties: ModelRegistryCustomProperties, keys: string[]) => ModelRegistryCustomProperties;
-export declare const isPipelineRunExist: (customProperties: ModelRegistryCustomProperties, keys: string[]) => boolean;
-export declare const isRedHatRegistryUri: (uri: string) => boolean;
+export declare const isCompanyUri: (uri: string) => boolean;

@@ -8,19 +8,17 @@ import useRegisteredModelDeployPrefillInfo from '~/odh/hooks/useRegisteredModelD
 
 const MRDeployFormDataLoader = ({
   mv,
-  mvLoaded,
-  mvError,
   renderData,
 }: {
   mv: ModelVersion;
-  mvLoaded: boolean;
-  mvError: Error | undefined;
-  renderData: (data: {
-    modelDeployPrefillInfo: ModelDeployPrefillInfo;
-    loaded: boolean;
-    error: Error | undefined;
-    onSubmit: () => void;
-  }) => React.ReactNode;
+  renderData: (
+    modelDeployPrefill: {
+      data: ModelDeployPrefillInfo;
+      loaded: boolean;
+      error: Error | undefined;
+    },
+    onSubmit: () => void,
+  ) => React.ReactNode;
 }) => {
   const { apiState } = React.useContext(ModelRegistryContext);
   const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
@@ -38,17 +36,13 @@ const MRDeployFormDataLoader = ({
     }
   }, [apiState.api, mv, registeredModel]);
 
-  const data: {
-    modelDeployPrefillInfo: ModelDeployPrefillInfo;
+  const modelDeployPrefill: {
+    data: ModelDeployPrefillInfo;
     loaded: boolean;
     error: Error | undefined;
-    onSubmit: () => void;
-  } | null =
-    loaded && !error && mvLoaded && !mvError
-      ? { modelDeployPrefillInfo, loaded, error, onSubmit }
-      : null;
+  } | null = loaded && !error ? { data: modelDeployPrefillInfo, loaded, error } : null;
 
-  return data ? renderData(data) : null;
+  return modelDeployPrefill ? renderData(modelDeployPrefill, onSubmit) : null;
 };
 
 export default MRDeployFormDataLoader;

@@ -1,15 +1,12 @@
 import React from 'react';
 import { ModelVersion } from '~/app/types';
 import { ModelDeployPrefillInfo } from '~/odh/hooks/useRegisteredModelDeployPrefillInfo';
-declare const MRDeployFormDataLoader: ({ mv, mvLoaded, mvError, renderData, }: {
+declare const MRDeployFormDataLoader: ({ mv, renderData, }: {
     mv: ModelVersion;
-    mvLoaded: boolean;
-    mvError: Error | undefined;
-    renderData: (data: {
-        modelDeployPrefillInfo: ModelDeployPrefillInfo;
+    renderData: (modelDeployPrefill: {
+        data: ModelDeployPrefillInfo;
         loaded: boolean;
         error: Error | undefined;
-        onSubmit: () => void;
-    }) => React.ReactNode;
+    }, onSubmit: () => void) => React.ReactNode;
 }) => React.ReactNode;
 export default MRDeployFormDataLoader;
