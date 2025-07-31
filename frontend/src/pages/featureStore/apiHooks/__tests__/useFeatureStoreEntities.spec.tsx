@@ -1,7 +1,7 @@
 /* eslint-disable camelcase */
 import { testHook } from '#~/__tests__/unit/testUtils/hooks';
 import { useFeatureStoreAPI } from '#~/pages/featureStore/FeatureStoreContext.tsx';
-import useFeatureStoreEntities from '#~/pages/featureStore/apiHooks/useFeatureStoreEnitites.tsx';
+import useFeatureStoreEntities from '#~/pages/featureStore/apiHooks/useFeatureStoreEnitites.ts';
 import { mockEntity, mockEntities } from '#~/__mocks__/mockEntities.ts';
 import { EntityList } from '#~/pages/featureStore/types/entities';
 
@@ -30,6 +30,7 @@ describe('useFeatureStoreEntities', () => {
       has_next: false,
       has_previous: false,
     },
+    relationships: {},
   };
 
   beforeEach(() => {

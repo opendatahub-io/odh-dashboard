@@ -39,7 +39,7 @@ export const getNameEqualsFilter = (name: string): Pick<PipelineParams, 'filter'
   filter: {
     predicates: [
       {
-        key: 'name',
+        key: 'display_name',
         operation: PipelinesFilterOp.EQUALS,
         // eslint-disable-next-line camelcase
         string_value: name,

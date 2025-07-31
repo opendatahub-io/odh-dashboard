@@ -2,7 +2,7 @@ import { FeatureStoreError } from '#~/pages/featureStore/types/global';
 import { isCommonStateError } from '#~/utilities/useFetchState';
 
 const isError = (e: unknown): e is FeatureStoreError =>
-  typeof e === 'object' && e !== null && ['code', 'message'].every((key) => key in e);
+  typeof e === 'object' && e !== null && ['code', 'message', 'detail'].some((key) => key in e);
 
 export const handleFeatureStoreFailures = <T>(promise: Promise<T>): Promise<T> =>
   promise
@@ -14,8 +14,12 @@ export const handleFeatureStoreFailures = <T>(promise: Promise<T>): Promise<T> =
     })
     .catch((e) => {
       if (isError(e)) {
+        if (e.detail) {
+          throw new Error(e.detail);
+        }
         throw new Error(e.message);
       }
+
       if (isCommonStateError(e)) {
         // Common state errors are handled by useFetchState at storage level, let them deal with it
         throw e;
