@@ -78,16 +78,16 @@ const extensions: RouteExtension[] = [
       component: () => import('#~/pages/notebookController/NotebookLogoutRedirect'),
     },
   },
-  {
-    type: 'app.route',
-    properties: {
-      path: '/modelServing/*',
-      component: () => import('#~/pages/modelServing/ModelServingRoutes'),
-    },
-    flags: {
-      disallowed: [SupportedArea.PLUGIN_MODEL_SERVING],
-    },
-  },
+  // {
+  //   type: 'app.route',
+  //   properties: {
+  //     path: '/modelServing/*',
+  //     component: () => import('#~/pages/modelServing/ModelServingRoutes'),
+  //   },
+  //   flags: {
+  //     disallowed: [SupportedArea.PLUGIN_MODEL_SERVING],
+  //   },
+  // },
   {
     type: 'app.route',
     properties: {
