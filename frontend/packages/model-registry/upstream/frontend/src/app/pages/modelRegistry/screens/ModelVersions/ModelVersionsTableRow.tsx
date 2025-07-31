@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { ActionsColumn, IAction, Td, Tr } from '@patternfly/react-table';
+import { IAction, Td, Tr } from '@patternfly/react-table';
 import { Content, ContentVariants, Truncate, FlexItem } from '@patternfly/react-core';
 import { Link, useNavigate } from 'react-router-dom';
 import { ModelState, ModelVersion } from '~/app/types';
@@ -14,6 +14,7 @@ import ModelTimestamp from '~/app/pages/modelRegistry/screens/components/ModelTi
 import ModelLabels from '~/app/pages/modelRegistry/screens/components/ModelLabels';
 import { ArchiveModelVersionModal } from '~/app/pages/modelRegistry/screens/components/ArchiveModelVersionModal';
 import { RestoreModelVersionModal } from '~/app/pages/modelRegistry/screens/components/RestoreModelVersionModal';
+import MRVersionRowActionColumns from '~/odh/components/MRVersionRowActionColumns';
 
 type ModelVersionsTableRowProps = {
   modelVersion: ModelVersion;
@@ -101,7 +102,7 @@ const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
       </Td>
       {!isArchiveModel && (
         <Td isActionCell>
-          <ActionsColumn items={actions} />
+          <MRVersionRowActionColumns mv={mv} actions={actions} />
           {isArchiveModalOpen ? (
             <ArchiveModelVersionModal
               onCancel={() => setIsArchiveModalOpen(false)}

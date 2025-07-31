@@ -31,5 +31,11 @@
       "name": "odh-dashboard",
       "port": 8043
     }
+  },
+  "exports": {
+    "./extensions": "./extensions.ts"
+  },
+  "dependencies": {
+    "@odh-dashboard/internal": "*"
   }
 }

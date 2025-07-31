@@ -31,7 +31,6 @@ interface DeployPrefilledModelModalProps {
   modelDeployPrefillInfo: ModelDeployPrefillInfo;
   prefillInfoLoaded: boolean;
   prefillInfoLoadError?: Error;
-  projectLinkExtraUrlParams?: Record<string, string | undefined>;
   onCancel: () => void;
   onSubmit?: (selectedProject: ProjectKind) => void;
 }
@@ -58,7 +57,6 @@ const DeployPrefilledModelModalContents: React.FC<
   modelDeployPrefillInfo,
   prefillInfoLoaded,
   prefillInfoLoadError,
-  projectLinkExtraUrlParams,
   onCancel,
   onSubmit,
   selectedProject,
@@ -89,6 +87,18 @@ const DeployPrefilledModelModalContents: React.FC<
 
   const loaded = servingContextLoaded && prefillInfoLoaded;
   const loadError = prefillInfoLoadError; // Note: serving context load errors are handled/rendered in ModelServingContextProvider
+
+  const projectLinkExtraUrlParams = React.useMemo(
+    () =>
+      modelDeployPrefillInfo.modelRegistryInfo
+        ? {
+            modelRegistryName: modelDeployPrefillInfo.modelRegistryInfo.mrName,
+            registeredModelId: modelDeployPrefillInfo.modelRegistryInfo.registeredModelId,
+            modelVersionId: modelDeployPrefillInfo.modelRegistryInfo.modelVersionId,
+          }
+        : undefined,
+    [modelDeployPrefillInfo],
+  );
 
   const handleSubmit = React.useCallback(async () => {
     if (selectedProject) {
