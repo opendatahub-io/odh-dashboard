@@ -1,0 +1,14 @@
+# Quality Gates Configuration
+# Silence quality gate notifications for RHOAI modules
+
+modules:
+  # Example: Once a module is promoted to RHOAI, silence notifications
+  # model-registry:
+  #   status: silent
+  #   reason: "Module is in RHOAI production"
+  #   rhoai_promotion_date: "2024-03-15"
+    
+# Usage:
+# 1. Add your RHOAI module here with status: silent
+# 2. PRs will be faster with no quality gate output noise
+# 3. Quality checks may still run in background for metrics 
