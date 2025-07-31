@@ -1,7 +1,15 @@
 /* eslint-disable camelcase */
 /* eslint-disable no-relative-import-paths/no-relative-import-paths */
-import type { Model as LlamaModel } from 'llama-stack-client/resources/models';
 import axios from '../utilities/axios';
+
+export type LlamaModel = {
+  identifier: string;
+  metadata: Record<string, boolean | number | string | Array<unknown> | unknown | null>;
+  model_type: 'llm' | 'embedding';
+  provider_id: string;
+  type: 'model';
+  provider_resource_id?: string;
+};
 
 // Roles must be 'user' and 'assistant' according to the Llama Stack API
 export type ChatMessage = {
@@ -10,16 +18,17 @@ export type ChatMessage = {
   stop_reason?: string;
 };
 
-export const listModels = (): Promise<LlamaModel[]> => {
-  const url = '/api/llama-stack/models/list';
+export const getModels = (): Promise<LlamaModel[]> => {
+  const url = '/api/v1/models';
   return axios
     .get(url)
-    .then((response) => response.data)
+    .then((response) => response.data.data.items)
     .catch((error) => {
       throw new Error(error.response.data.message || 'Failed to fetch models');
     });
 };
 
+//Fix this to use the new BFF endpoint
 export const completeChat = (messages: ChatMessage[], model_id: string): Promise<string> => {
   const url = '/api/llama-stack/chat/complete';
 
