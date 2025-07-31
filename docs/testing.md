@@ -222,6 +222,72 @@ npm run cypress:open:record
 npm run cypress:run:record
 ```
 
+### Cypress Environment Variables
+
+Cypress uses several environment variables to control test behavior and configuration. These can be set in your shell or passed directly to the Cypress commands.
+
+#### CY_TEST_CONFIG
+- **Purpose**: Path to test configuration YAML file
+- **Values**: File path to YAML configuration (e.g., `./test-variables.yml`)
+- **Effect**: Loads test variables and configuration from a YAML file
+- **Usage**: `export CY_TEST_CONFIG='PATH_TO_YOUR_TEST_VARIABLES'`
+- **Required**: Yes, for e2e tests
+
+#### CY_MOCK
+- **Purpose**: Enables mocked test mode
+- **Values**: `1` (enabled) or `0`/unset (disabled)
+- **Effect**:
+  - Runs tests from `cypress/tests/mocked/` directory instead of `cypress/tests/e2e/`
+  - Changes results directory to `results/mocked/`
+  - Disables test retries by default
+  - Loads different environment files (`.env.cypress.mock`)
+- **Usage**: `CY_MOCK=1 npm run cypress:run`
+
+#### CY_RETRY
+- **Purpose**: Controls test retry behavior
+- **Values**: Number of retries (e.g., `0`, `1`, `2`)
+- **Default**: `2` retries for e2e tests, `0` for mocked tests
+- **Effect**: Sets the number of additional attempts a test will retry if it fails
+- **Usage**: `CY_RETRY=0 npm run cypress:run` (no retries)
+
+#### CY_RECORD
+- **Purpose**: Enables snapshot recording mode
+- **Values**: `1` (enabled) or `0`/unset (disabled)
+- **Effect**: Records network responses for snapshot testing
+- **Usage**: `CY_RECORD=1 npm run cypress:run`
+
+#### CY_WATCH
+- **Purpose**: Controls file watching behavior
+- **Values**: `false` to disable, any other value to enable
+- **Effect**: Enables/disables watching for file changes during test execution
+- **Usage**: `CY_WATCH=false npm run cypress:open`
+
+#### CY_WS_PORT
+- **Purpose**: Sets the WebSocket server port for mocked tests
+- **Values**: Port number (e.g., `9002`)
+- **Default**: Used in mocked test scripts
+- **Effect**: Configures the WebSocket server port for real-time communication in mocked tests
+- **Usage**: Set automatically in npm scripts like `cypress:run:mock`
+
+#### CY_COVERAGE
+- **Purpose**: Enables code coverage collection
+- **Values**: `true` (enabled) or `false`/unset (disabled)
+- **Effect**: Enables code coverage reporting during test execution
+- **Usage**: `CY_COVERAGE=true npm run cypress:run`
+
+#### CY_RESULTS_DIR
+- **Purpose**: Sets the directory for test results
+- **Values**: Directory path (e.g., `results`, `custom-results`)
+- **Default**: `results`
+- **Effect**: Changes where test results (screenshots, videos, reports) are stored
+- **Usage**: `CY_RESULTS_DIR=custom-results npm run cypress:run`
+
+#### CY_TEST_TIMEOUT_SECONDS
+- **Purpose**: Sets global test timeout
+- **Values**: Number of seconds
+- **Effect**: Configures the global timeout for all tests
+- **Usage**: `CY_TEST_TIMEOUT_SECONDS=300 npm run cypress:run`
+
 ### Page Objects
 
 Page Objects are TypeScript objects / classes used to encapsulate all the selectors and functions related to a particular page or UI element. The functions exposed by a page object use the following prefixes:
@@ -290,7 +356,7 @@ cy.wsK8s('DELETED', ProjectModel, <project resource>);
 
 Always start a new test with a `visit` to the page being tested.
 
-Use variants of `intercept` to mock network requests. 
+Use variants of `intercept` to mock network requests.
 
 When a UI action results in a network request, the test must wait to ensure the request was issued:
 ```ts
@@ -298,36 +364,3 @@ cy.interceptOdh(...).as('some-request');
 ...
 cy.wait('@some-request');
 ```
-
-When a payload is sent as part of the network request, the test should assert the payload is the expected value. For example after filling out and submitting a form, assert the form values are present in the network request:
-```ts
-cy.wait('@create-project').then((interception) => {
-  expect(interception.request.body).to.eql({
-    apiVersion: 'project.openshift.io/v1',
-    description: 'Test project description.',
-    displayName: 'My Test Project',
-    kind: 'ProjectRequest',
-    metadata: {
-      name: 'test-project',
-    },
-  });
-});
-```
-
-Use chai's [containSubset](https://www.chaijs.com/plugins/) command to perform object equality assertions on a subset of an object. The above example can be simplified if all we wanted to check was the `displayName` and `name`:
-```ts
-cy.wait('@create-project').then((interception) => {
-  expect(interception.request.body).to.containSubset({
-    displayName: 'My Test Project',
-    metadata: {
-      name: 'test-project',
-    },
-  });
-});
-```
-
-## Accessibility Testing
-
-Accessibility testing is done as part of our Cypress tests. The process isn't automatic, however Cypress tests which following the existing patterns will get good coverage of accessibility testing for free.
-
-By default, when visiting a new page or when a model is first opened, the DOM will be checked for accessibility errors. If any other point in time accessibility should be tested, run the `cy.testA11y()` command.

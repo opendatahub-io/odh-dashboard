@@ -148,10 +148,18 @@ export default defineConfig({
         await mergeFiles(outputFile, inputFiles);
       });
 
-      // Apply retries only for tests in the "e2e" folder
+      // Apply retries only for tests in the "e2e" folder. 2 retries by default, after a test failure.
+      // Set CY_RETRY=N env var for the number of retries (CY_RETRY=0 means no retries).
+      const retryConfig =
+        env.CY_RETRY !== undefined
+          ? { runMode: parseInt(env.CY_RETRY), openMode: 0 }
+          : !env.CY_MOCK && !env.CY_RECORD
+          ? { runMode: 2, openMode: 0 }
+          : config.retries;
+
       return {
         ...config,
-        retries: !env.CY_MOCK && !env.CY_RECORD ? { runMode: 2, openMode: 0 } : config.retries,
+        retries: retryConfig,
       };
     },
   },
