@@ -73,8 +73,7 @@ describe('Verify that models and versions can be archived and restored via model
       appChrome.findNavItem('Model registry', 'Models').click();
 
       cy.step('Select the created model registry');
-      modelRegistry.findModelRegistry().click();
-      cy.findByTestId(registryName).click();
+      modelRegistry.findSelectModelRegistry(registryName);
 
       cy.step('Register a model using object storage');
       clickRegisterModelButton(30000);

@@ -10,7 +10,14 @@ import { modelRegistry } from '#~/__tests__/cypress/cypress/pages/modelRegistry'
  * @param timeout Optional timeout for button interactions
  */
 export const clickRegisterModelButton = (timeout?: number): Cypress.Chainable => {
-  return cy.get('body').then(($body) => {
+  // Wait for either button to appear in DOM
+  return cy.get('body').should(() => {
+    const body = Cypress.$('body');
+    const hasEmptyButton = body.find('[data-testid="empty-model-registry-primary-action"]').length > 0;
+    const hasRegularButton = body.find('[data-testid="register-model-button"]').length > 0;
+    
+    expect(hasEmptyButton || hasRegularButton).to.be.true;
+  }).then(($body) => {
     if ($body.find('[data-testid="empty-model-registry-primary-action"]').length > 0) {
       // Registry is empty, use empty state button
       cy.log('Found empty registry button, clicking it');
