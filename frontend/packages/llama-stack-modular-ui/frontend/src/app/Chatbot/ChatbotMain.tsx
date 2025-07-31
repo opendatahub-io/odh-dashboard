@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable @typescript-eslint/no-unnecessary-condition */
 /* eslint-disable no-relative-import-paths/no-relative-import-paths */
 import * as React from 'react';
 import {
@@ -310,12 +308,13 @@ const ChatbotMain: React.FunctionComponent = () => {
     setSelectedSourceSettings(settings);
     setIsSourceSettingsOpen(!isSourceSettingsOpen);
 
-    if (settings?.chunkOverlap && settings?.maxChunkLength) {
+    if (settings && settings.chunkOverlap && settings.maxChunkLength) {
       showAlert();
     } else {
       setSelectedSource([]);
     }
   };
+
   const handleEditSystemInstructions = () => {
     setOriginalSystemInstructions(systemInstructions);
     setIsSystemInstructionsReadOnly(false);
