@@ -11,8 +11,9 @@ export const replacePlaceholdersInYaml = (
 ): string => {
   let modifiedYaml = yamlContent;
   for (const [key, value] of Object.entries(replacements)) {
-    const placeholder = `{{${key}}}`;
-    modifiedYaml = modifiedYaml.split(placeholder).join(value);
+    // Handle both {{var}} and { { var } } formats using regex
+    const regex = new RegExp(`\\{\\s*{\\s*${key}\\s*}\\s*}`, 'g');
+    modifiedYaml = modifiedYaml.replace(regex, value);
   }
   return modifiedYaml;
 };
