@@ -82,11 +82,10 @@ describe('handleFeatureStoreFailures', () => {
     const unknownError = new Error('Unknown error');
 
     await expect(handleFeatureStoreFailures(Promise.reject(unknownError))).rejects.toThrow(
-      'Error communicating with feature store server',
+      'Unknown error',
     );
 
-    expect(mockConsoleError).toHaveBeenCalledTimes(1);
-    expect(mockConsoleError).toHaveBeenCalledWith('Unknown feature store API error', unknownError);
+    expect(mockConsoleError).toHaveBeenCalledTimes(0);
   });
 
   it('should handle non-Error objects and throw generic error', async () => {

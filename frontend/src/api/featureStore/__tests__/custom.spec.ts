@@ -1,6 +1,11 @@
 import { proxyGET } from '#~/api/proxyUtils';
 import { handleFeatureStoreFailures } from '#~/api/featureStore/errorUtils';
-import { listFeatureStoreProject, getEntities, getFeatureViews } from '#~/api/featureStore/custom';
+import {
+  listFeatureStoreProject,
+  getEntities,
+  getFeatureViews,
+  getEntityByName,
+} from '#~/api/featureStore/custom';
 import { FEATURE_STORE_API_VERSION } from '#~/pages/featureStore/const';
 
 const mockProxyPromise = Promise.resolve();
@@ -66,7 +71,7 @@ describe('getEntities', () => {
     expect(proxyGETMock).toHaveBeenCalledTimes(1);
     expect(proxyGETMock).toHaveBeenCalledWith(
       hostPath,
-      `/api/${FEATURE_STORE_API_VERSION}/entities/all`,
+      `/api/${FEATURE_STORE_API_VERSION}/entities/all?include_relationships=true`,
       opts,
     );
     expect(handleFeatureStoreFailuresMock).toHaveBeenCalledTimes(1);
@@ -84,7 +89,30 @@ describe('getEntities', () => {
     expect(proxyGETMock).toHaveBeenCalledTimes(1);
     expect(proxyGETMock).toHaveBeenCalledWith(
       hostPath,
-      `/api/${FEATURE_STORE_API_VERSION}/entities?project=${encodeURIComponent(project)}`,
+      `/api/${FEATURE_STORE_API_VERSION}/entities?project=${encodeURIComponent(
+        project,
+      )}&include_relationships=true`,
+      opts,
+    );
+    expect(handleFeatureStoreFailuresMock).toHaveBeenCalledTimes(1);
+    expect(handleFeatureStoreFailuresMock).toHaveBeenCalledWith(mockProxyPromise);
+    expect(result).toBe(mockProxyPromise);
+  });
+
+  it('should call proxyGET with project-specific endpoint when project is provided and include_relationships', () => {
+    const hostPath = 'test-host';
+    const opts = { dryRun: true };
+    const project = 'test-project';
+    const entityName = 'test-entity';
+
+    const result = getEntityByName(hostPath)(opts, project, entityName);
+
+    expect(proxyGETMock).toHaveBeenCalledTimes(1);
+    expect(proxyGETMock).toHaveBeenCalledWith(
+      hostPath,
+      `/api/${FEATURE_STORE_API_VERSION}/entities/${entityName}?include_relationships=true&project=${encodeURIComponent(
+        project,
+      )}`,
       opts,
     );
     expect(handleFeatureStoreFailuresMock).toHaveBeenCalledTimes(1);
