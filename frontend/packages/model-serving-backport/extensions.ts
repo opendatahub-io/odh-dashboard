@@ -6,11 +6,14 @@ import { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils
 import { NamespaceApplicationCase } from '@odh-dashboard/internal/pages/projects/types';
 import type { ModelServingPlatformExtension } from '@odh-dashboard/model-serving/extension-points';
 
+const MODEL_MESH_ID = 'model-mesh';
+const NIM_ID = 'nvidia-nim';
+
 const extensions: ModelServingPlatformExtension[] = [
   {
     type: 'model-serving.platform',
     properties: {
-      id: 'model-mesh',
+      id: MODEL_MESH_ID,
       manage: {
         namespaceApplicationCase: NamespaceApplicationCase.MODEL_MESH_PROMOTION,
         priority: 10,
@@ -54,7 +57,7 @@ const extensions: ModelServingPlatformExtension[] = [
   {
     type: 'model-serving.platform',
     properties: {
-      id: 'nim',
+      id: NIM_ID,
       manage: {
         namespaceApplicationCase: NamespaceApplicationCase.KSERVE_NIM_PROMOTION,
         priority: 100,
