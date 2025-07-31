@@ -34,8 +34,8 @@ describe('[Product Bug: NVPE-244] Verify NIM enable flow', () => {
       nimCard.getNGCAPIKey().type(Cypress.env('NGC_API_KEY'));
       cy.step('Click submit to enable the NIM application');
       nimCard.getNIMSubmit().click();
-      cy.step('Wait for "Validating..." to complete and verify the validation message');
-      nimCard.getProgressTitle().should('contain', 'Validating your entries');
+      cy.step('Wait for validation to complete and verify the validation message');
+      nimCard.getProgressTitle().should('contain', 'Contacting NVIDIA to validate the license key');
       nimCard.getProgressTitle({ timeout: 120000 }).should('not.exist');
       cy.step('Check for success notification');
       toastNotifications.findToastNotification(0).should('contain.text', 'NIM has been moved to the enable page');
