@@ -57,7 +57,7 @@ export const getMultiProjectServingPlatforms = (
 };
 
 export const useProjectServingPlatform = (
-  project: ProjectKind | null,
+  project?: ProjectKind,
   platforms?: ModelServingPlatform[],
 ): {
   activePlatform?: ModelServingPlatform | null; // This includes preselecting a platform if there is only one
