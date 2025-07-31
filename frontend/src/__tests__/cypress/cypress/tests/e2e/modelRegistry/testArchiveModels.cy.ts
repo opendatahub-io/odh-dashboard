@@ -103,7 +103,7 @@ describe('Verify that models and versions can be archived and restored via model
         .findFormField(FormFieldSelector.LOCATION_PATH)
         .type('models/test-model/v1.0');
 
-      registerModelPage.findSubmitButton().click();
+      registerModelPage.findSubmitButton().should('be.enabled').click();
 
       cy.step('Verify the model was registered');
       cy.url().should('include', '/modelRegistry');
@@ -144,7 +144,7 @@ describe('Verify that models and versions can be archived and restored via model
         .findFormField(VersionFormFieldSelector.LOCATION_PATH)
         .type('models/test-model/v2.0');
 
-      registerVersionPage.findSubmitButton().click();
+      registerVersionPage.findSubmitButton().should('be.enabled').click();
 
       cy.step('Verify v1.0 & v2.0 are registered');
       cy.contains(testData.version2Name, { timeout: 10000 }).should('be.visible');
