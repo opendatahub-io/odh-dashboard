@@ -1,6 +1,8 @@
 import * as React from 'react';
 import '@patternfly/react-core/dist/styles/base.css';
 import './app.css';
+
+// Demo comment: Testing quality gates workflow output
 import {
   Alert,
   Bullseye,

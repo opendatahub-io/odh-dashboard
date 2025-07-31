@@ -45,8 +45,19 @@ jobs:
         run: |
           CHANGED_MODULES=$(git diff --name-only ${{ github.event.before || 'HEAD~1' }}..HEAD | grep '^frontend/packages/' | cut -d'/' -f3 | sort -u)
           if [ -n "$CHANGED_MODULES" ]; then
-            MATRIX_JSON=$(echo "$CHANGED_MODULES" | jq -R . | jq -s . | jq -c .)
-            echo "modules-matrix=$MATRIX_JSON" >> $GITHUB_OUTPUT
+            # Create JSON array properly with error handling
+            MATRIX_JSON="["
+            FIRST=true
+            for module in $CHANGED_MODULES; do
+              if [ "$FIRST" = true ]; then
+                MATRIX_JSON="${MATRIX_JSON}\"${module}\""
+                FIRST=false
+              else
+                MATRIX_JSON="${MATRIX_JSON},\"${module}\""
+              fi
+            done
+            MATRIX_JSON="${MATRIX_JSON}]"
+            echo "modules-matrix=${MATRIX_JSON}" >> $GITHUB_OUTPUT
           else
             echo "modules-matrix=[]" >> $GITHUB_OUTPUT
           fi
