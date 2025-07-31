@@ -5,7 +5,7 @@ export const columns: SortableData<Entity>[] = [
   {
     field: 'spec.name',
     label: 'Entities',
-    width: 50,
+    width: 60,
     sortable: (a, b): number => a.spec.name.localeCompare(b.spec.name),
   },
   {
@@ -17,7 +17,7 @@ export const columns: SortableData<Entity>[] = [
   {
     field: 'spec.joinKey',
     label: 'Join key',
-    width: 25,
+    width: 15,
     sortable: (a, b): number => (a.spec.joinKey || '').localeCompare(b.spec.joinKey || ''),
     info: {
       popover:
@@ -30,7 +30,6 @@ export const columns: SortableData<Entity>[] = [
   {
     field: 'spec.valueType',
     label: 'Value type',
-    // width: 10,
     sortable: (a, b): number => (a.spec.valueType || '').localeCompare(b.spec.valueType || ''),
     info: {
       popover:
@@ -43,7 +42,6 @@ export const columns: SortableData<Entity>[] = [
   {
     field: 'relationships',
     label: 'Feature views',
-    // width: 10,
     sortable: false,
     info: {
       popover:
@@ -56,21 +54,18 @@ export const columns: SortableData<Entity>[] = [
   {
     field: 'meta.createdTimestamp',
     label: 'Created',
-    // width: 10,
     sortable: (a, b): number =>
       (a.meta.createdTimestamp || '').localeCompare(b.meta.createdTimestamp || ''),
   },
   {
     field: 'meta.lastUpdatedTimestamp',
     label: 'Last modified',
-    // width: 10,
     sortable: (a, b): number =>
       (a.meta.lastUpdatedTimestamp || '').localeCompare(b.meta.lastUpdatedTimestamp || ''),
   },
   {
     field: 'spec.owner',
     label: 'Owner',
-    // width: 10,
     sortable: (a, b): number => (a.spec.owner || '').localeCompare(b.spec.owner || ''),
   },
 ];
@@ -80,7 +75,6 @@ export const AllProjectColumns: SortableData<Entity>[] = [
   {
     field: 'project',
     label: 'Project',
-    width: 25,
     sortable: (a, b): number => (a.project || '').localeCompare(b.project || ''),
   },
 ];
@@ -88,12 +82,12 @@ export const AllProjectColumns: SortableData<Entity>[] = [
 export const entityTableFilterOptions = (
   currentProject: string | undefined,
 ): Record<string, string> => ({
-  entity: 'Entity',
+  entity: 'Entities',
+  tag: 'Tags',
   joinKey: 'Join key',
   valueType: 'Value type',
+  featureViews: 'Feature views',
   owner: 'Owner',
-  tag: 'Tag',
-  featureViews: 'Feature Views',
   ...(currentProject ? {} : { project: 'Project' }),
 });
 

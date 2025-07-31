@@ -8,12 +8,14 @@ import { Entity, EntityRelationship } from '#~/pages/featureStore/types/entities
  * @returns Array of relationships that match the target type
  */
 export const getRelationshipsByTargetType = (
-  relationships: Record<string, EntityRelationship[]>,
+  relationships: Record<string, EntityRelationship[] | undefined>,
   entityKey: string,
   targetType: string,
 ): EntityRelationship[] => {
   const entityRelationships = relationships[entityKey];
-  return entityRelationships.filter((relationship) => relationship.target.type === targetType);
+  return (
+    entityRelationships?.filter((relationship) => relationship.target.type === targetType) || []
+  );
 };
 
 // Type guard to check if value is a record of strings
@@ -28,6 +30,9 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 
 // Helper function to get nested values from objects
 export const getNestedValue = (obj: Record<string, unknown>, path: string): unknown => {
+  if (!path) {
+    return obj;
+  }
   const keys = path.split('.');
   let result: unknown = obj;
   for (const key of keys) {
