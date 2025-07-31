@@ -38,7 +38,9 @@ describe('[Product Bug: NVPE-244] Verify NIM enable flow', () => {
       nimCard.getProgressTitle().should('contain', 'Contacting NVIDIA to validate the license key');
       nimCard.getProgressTitle({ timeout: 120000 }).should('not.exist');
       cy.step('Check for success notification');
-      toastNotifications.findToastNotification(0).should('contain.text', 'NVIDIA NIM has been added to the Enabled page');
+      toastNotifications
+        .findToastNotification(0)
+        .should('contain.text', 'NVIDIA NIM has been added to the Enabled page');
       cy.step('Visit the enabled applications page');
       enabledPage.visit();
       cy.step('Validate NIM Card contents on Enabled page');
