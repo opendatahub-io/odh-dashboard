@@ -143,6 +143,16 @@ npm run cypress:run \
 - `@Maintain`: Skip tests that require maintenance
 - `@NonConcurrent`: Skip tests that cannot run concurrently (to prevent resource conflicts)
 
+## Environment Variables
+
+For comprehensive documentation of all Cypress environment variables, see the [Cypress Environment Variables section in the main testing documentation](../../../../../docs/testing.md#cypress-environment-variables).
+
+The most commonly used environment variable is `CY_TEST_CONFIG`, which is required for e2e tests:
+
+```bash
+export CY_TEST_CONFIG='PATH_TO_YOUR_TEST_VARIABLES'
+```
+
 ## Writing Tests
 
 e2e tests should focus on user journeys through the application, validating that features work as intended from the user's perspective.
@@ -198,7 +208,7 @@ Tests are parameterized using tags and applied to the 'it' block:
 * `Workbenches/Pipelines etc.`: Functional Area
 * `Destructive`: Tests that have the potential to break other tests (changing configuration etc.) 
 * `Bug`: Tests that are currently failing due to a Product Bug
-* `Maintain`: Tests that are currently failing and require maintenance 
+* `Maintain`: Tests that are currently failing and require maintenance
 * `NonConcurrent`: Tests that cannot run concurrently (to prevent resource conflicts)
 
 **Usage in tests:**
