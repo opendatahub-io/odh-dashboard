@@ -277,6 +277,7 @@ export const checkInferenceServiceState = (
 export const modelExternalTester = (
   modelName: string,
   namespace: string,
+  token?: string,
 ): Cypress.Chainable<{ url: string; response: Cypress.Response<unknown> }> => {
   return cy.exec(`oc get inferenceService ${modelName} -n ${namespace} -o json`).then((result) => {
     const inferenceService = JSON.parse(result.stdout);
@@ -294,7 +295,12 @@ export const modelExternalTester = (
       cy.log(`Request attempt ${attemptNumber} of ${maxAttempts}`);
       cy.log(`Request URL: ${url}/v2/models/${modelName}/infer`);
       cy.log(`Request method: POST`);
-      cy.log(`Request headers: ${JSON.stringify({ 'Content-Type': 'application/json' })}`);
+      cy.log(
+        `Request headers: ${JSON.stringify({
+          'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` }),
+        })}`,
+      );
       cy.log(
         `Request body: ${JSON.stringify({
           inputs: [
@@ -314,6 +320,7 @@ export const modelExternalTester = (
           url: `${url}/v2/models/${modelName}/infer`,
           headers: {
             'Content-Type': 'application/json',
+            ...(token && { Authorization: `Bearer ${token}` }),
           },
           body: {
             inputs: [
@@ -451,4 +458,61 @@ export const verifyS3CopyCompleted = (
         throw new Error('S3 copy did not complete successfully');
       }
     });
+};
+/**
+ * Retrieve the token for a given service account and model
+ *
+ * @param namespace The namespace where the InferenceService is deployed.
+ * @param serviceAccountName The name of the service account to get the token for.
+ * @param modelName The name of the model to get the token for.
+ * @returns Cypress.Chainable<string> that resolves after validation.
+ */
+export const getModelExternalToken = (
+  namespace: string,
+  serviceAccountName: string,
+  modelName: string,
+): Cypress.Chainable<string> => {
+  return cy
+    .exec(
+      `oc get secret ${serviceAccountName}-${modelName}-sa -n ${namespace} -o jsonpath='{.data.token}' | base64 -d`,
+    )
+    .then((result) => {
+      return result.stdout;
+    });
+};
+
+/**
+ * Verify the model is accessible with a token
+ *
+ * @param modelName The name of the model to test.
+ * @param namespace The namespace where the model is deployed.
+ * @param token The (optional) token to use for the request.
+ * @returns Cypress.Chainable<Cypress.Response<unknown>> that resolves after validation.
+ */
+export const verifyModelExternalToken = (
+  modelName: string,
+  namespace: string,
+  token?: string,
+): Cypress.Chainable<Cypress.Response<unknown>> => {
+  return cy.exec(`oc get inferenceService ${modelName} -n ${namespace} -o json`).then((result) => {
+    const inferenceService = JSON.parse(result.stdout);
+    const { url } = inferenceService.status;
+
+    if (!url) {
+      throw new Error('External URL not found in InferenceService');
+    }
+
+    return cy
+      .request({
+        method: 'GET',
+        url: `${url}/v2/models/${modelName}`,
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+      })
+      .then((response) => {
+        cy.log('Model metadata:', JSON.stringify(response.body));
+        return cy.wrap(response);
+      });
+  });
 };
