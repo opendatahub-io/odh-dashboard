@@ -19,7 +19,6 @@ import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/i
 import useTemplateOrder from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/useTemplateOrder';
 import useTemplateDisablement from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/useTemplateDisablement';
 import useConnections from '@odh-dashboard/internal/pages/projects/screens/detail/connections/useConnections';
-import useServingRuntimeSecrets from '@odh-dashboard/internal/pages/modelServing/screens/projects/useServingRuntimeSecrets';
 import { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
 import { isProjectNIMSupported } from '@odh-dashboard/internal/pages/modelServing/screens/projects/nimUtils';
 import { ModelDeploymentsContext } from '../../concepts/ModelDeploymentsContext';
@@ -37,12 +36,8 @@ const DeployButtonModal: React.FC<{
   const { namespace } = useParams();
   const { dashboardNamespace } = useDashboardNamespace();
   const [servingRuntimeTemplates] = useTemplates(dashboardNamespace);
-  const servingRuntimeTemplateOrder = useTemplateOrder(dashboardNamespace, undefined, {
-    refreshRate: POLL_INTERVAL,
-  });
-  const servingRuntimeTemplateDisablement = useTemplateDisablement(dashboardNamespace, undefined, {
-    refreshRate: POLL_INTERVAL,
-  });
+  const servingRuntimeTemplateOrder = useTemplateOrder(dashboardNamespace, undefined);
+  const servingRuntimeTemplateDisablement = useTemplateDisablement(dashboardNamespace, undefined);
   const connections = useConnections(namespace);
   const templatesSorted = getSortedTemplates(
     servingRuntimeTemplates,
@@ -88,7 +83,7 @@ export const DeployButton: React.FC<{
   const [platformSelected, setPlatformSelected] = React.useState<ServingRuntimePlatform>();
   const { namespace } = useParams();
   const { projects } = React.useContext(ProjectsContext);
-  const match = namespace ? projects.find(byName(namespace)) ?? null : null;
+  const match = namespace ? projects.find(byName(namespace)) : undefined;
   const { clusterPlatforms } = useAvailableClusterPlatforms();
   const { activePlatform, projectPlatform } = useProjectServingPlatform(match, clusterPlatforms);
   const inferenceServices = useInferenceServices(namespace, undefined, undefined, undefined, {
@@ -97,7 +92,6 @@ export const DeployButton: React.FC<{
   const inferenceServiceRefresh = inferenceServices.refresh;
   const servingRuntimes = useServingRuntimes(namespace, undefined, { refreshRate: POLL_INTERVAL });
   const servingRuntimeRefresh = servingRuntimes.refresh;
-  const serverSecrets = useServingRuntimeSecrets(namespace, { refreshRate: POLL_INTERVAL });
   const { projects: modelProjects } = React.useContext(ModelDeploymentsContext);
   const { namespace: modelNamespace } = useParams<{ namespace: string }>();
   const currentProject = modelProjects?.find(byName(modelNamespace));
@@ -108,7 +102,6 @@ export const DeployButton: React.FC<{
     if (submit) {
       servingRuntimeRefresh();
       inferenceServiceRefresh();
-      setTimeout(serverSecrets.refresh, 500);
     }
   };
 
