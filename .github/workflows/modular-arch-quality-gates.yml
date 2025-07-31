@@ -363,33 +363,72 @@ jobs:
 
           # Test 2: Mock Testing (Clusterless)
           echo "2️⃣ Mock Testing (Clusterless/BFF Mocking)"
+          MOCK_FOUND=false
+          
           if [ -d "$MODULE_PATH/frontend" ] || [ -d "$MODULE_PATH/upstream/frontend" ]; then
             FRONTEND_PATH="$MODULE_PATH/frontend"
             [ -d "$MODULE_PATH/upstream/frontend" ] && FRONTEND_PATH="$MODULE_PATH/upstream/frontend"
 
+            # Check module-specific mock tests
             if [ -f "$FRONTEND_PATH/package.json" ] && grep -q 'cypress.*mock\|mock.*cypress' "$FRONTEND_PATH/package.json"; then
-              echo "   ✅ Mock Tests - IMPLEMENTED (Cypress)"
-              IMPLEMENTED_TESTS=$((IMPLEMENTED_TESTS + 1))
+              MOCK_FOUND=true
             elif find "$MODULE_PATH" -path "*/cypress/*" -name "*.cy.*" -exec grep -l "mock\|stub\|intercept" {} \; 2>/dev/null | head -1 > /dev/null; then
-              echo "   ✅ Mock Tests - IMPLEMENTED (Cypress intercepts)"
-              IMPLEMENTED_TESTS=$((IMPLEMENTED_TESTS + 1))
-            else
-              echo "   ❌ Mock Tests - MISSING"
-              MISSING_TESTS+=("Mock Tests (Cypress with mocked BFF)")
+              MOCK_FOUND=true
             fi
+          fi
+          
+          # Check main dashboard mocked tests for this module
+          MODULE_NAME=$(basename "$MODULE_PATH")
+          if [ -d "frontend/src/__tests__/cypress/cypress/tests/mocked/$MODULE_NAME" ] || [ -d "frontend/src/__tests__/cypress/cypress/tests/mocked/$(echo $MODULE_NAME | sed 's/-//g')" ]; then
+            MOCK_FOUND=true
+          fi
+          
+          if [ "$MOCK_FOUND" = true ]; then
+            echo "   ✅ Mock Tests - IMPLEMENTED (Cypress with mocked BFF)"
+            # Show where tests were found for transparency
+            if find "$MODULE_PATH" -path "*/cypress/*" -name "*.cy.*" -exec grep -l "mock\|stub\|intercept" {} \; 2>/dev/null | head -1 > /dev/null; then
+              echo "   📁 Found in: Module-specific cypress tests"
+            fi
+            if [ -d "frontend/src/__tests__/cypress/cypress/tests/mocked/$MODULE_NAME" ]; then
+              echo "   📁 Found in: frontend/src/__tests__/cypress/cypress/tests/mocked/$MODULE_NAME/"
+            elif [ -d "frontend/src/__tests__/cypress/cypress/tests/mocked/$(echo $MODULE_NAME | sed 's/-//g')" ]; then
+              echo "   📁 Found in: frontend/src/__tests__/cypress/cypress/tests/mocked/$(echo $MODULE_NAME | sed 's/-//g')/"
+            fi
+            IMPLEMENTED_TESTS=$((IMPLEMENTED_TESTS + 1))
+          else
+            echo "   ❌ Mock Tests - MISSING"
+            MISSING_TESTS+=("Mock Tests (Cypress with mocked BFF)")
           fi
 
           # Test 3: Integration Testing (E2E workflows like Model Registry)
           echo "3️⃣ Integration Testing (E2E User Workflows)"
+          E2E_FOUND=false
+          
+          # Check module-specific cypress tests
           if find "$MODULE_PATH" -path "*/cypress/*" -name "*.cy.*" 2>/dev/null | head -1 > /dev/null; then
-            # Check for comprehensive workflow tests (not just basic app loading)
             if find "$MODULE_PATH" -path "*/cypress/*" -name "*.cy.*" -exec grep -l "step\|visit.*(\|click()\|type(\|should(" {} \; 2>/dev/null | head -1 > /dev/null; then
-              echo "   ✅ E2E Integration Tests - IMPLEMENTED (Comprehensive workflows)"
-              IMPLEMENTED_TESTS=$((IMPLEMENTED_TESTS + 1))
-            else
-              echo "   ⚠️  E2E Integration Tests - BASIC (upgrade to full workflows)"
-              MISSING_TESTS+=("Comprehensive E2E workflows (like Model Registry)")
+              E2E_FOUND=true
             fi
+          fi
+          
+          # Check main dashboard e2e tests for this module
+          MODULE_NAME=$(basename "$MODULE_PATH")
+          if [ -d "frontend/src/__tests__/cypress/cypress/tests/e2e/$MODULE_NAME" ] || [ -d "frontend/src/__tests__/cypress/cypress/tests/e2e/$(echo $MODULE_NAME | sed 's/-//g')" ]; then
+            E2E_FOUND=true
+          fi
+          
+          if [ "$E2E_FOUND" = true ]; then
+            echo "   ✅ E2E Integration Tests - IMPLEMENTED (Comprehensive workflows)"
+            # Show where tests were found for transparency
+            if find "$MODULE_PATH" -path "*/cypress/*" -name "*.cy.*" 2>/dev/null | head -1 > /dev/null; then
+              echo "   📁 Found in: Module-specific cypress tests"
+            fi
+            if [ -d "frontend/src/__tests__/cypress/cypress/tests/e2e/$MODULE_NAME" ]; then
+              echo "   📁 Found in: frontend/src/__tests__/cypress/cypress/tests/e2e/$MODULE_NAME/"
+            elif [ -d "frontend/src/__tests__/cypress/cypress/tests/e2e/$(echo $MODULE_NAME | sed 's/-//g')" ]; then
+              echo "   📁 Found in: frontend/src/__tests__/cypress/cypress/tests/e2e/$(echo $MODULE_NAME | sed 's/-//g')/"
+            fi
+            IMPLEMENTED_TESTS=$((IMPLEMENTED_TESTS + 1))
           else
             echo "   ❌ E2E Integration Tests - MISSING"
             MISSING_TESTS+=("E2E Integration Tests (Cypress user workflows)")
@@ -486,14 +525,24 @@ jobs:
           UI_TESTS_FOUND=0
           FRONTEND_PATH="$MODULE_PATH/frontend"
           [ -d "$MODULE_PATH/upstream/frontend" ] && FRONTEND_PATH="$MODULE_PATH/upstream/frontend"
+          MODULE_NAME=$(basename "$MODULE_PATH")
 
+          # Unit tests
           if [ -f "$FRONTEND_PATH/package.json" ] && grep -q '"test.*jest\|jest.*test"' "$FRONTEND_PATH/package.json"; then
             UI_TESTS_FOUND=$((UI_TESTS_FOUND + 1))
           fi
+          
+          # Integration tests (module-specific + main dashboard)
           if find "$MODULE_PATH" -path "*/cypress/*" -name "*.cy.*" -exec grep -l "step\|visit.*(\|click()\|type(\|should(" {} \; 2>/dev/null | head -1 > /dev/null; then
             UI_TESTS_FOUND=$((UI_TESTS_FOUND + 1))
+          elif [ -d "frontend/src/__tests__/cypress/cypress/tests/e2e/$MODULE_NAME" ] || [ -d "frontend/src/__tests__/cypress/cypress/tests/e2e/$(echo $MODULE_NAME | sed 's/-//g')" ]; then
+            UI_TESTS_FOUND=$((UI_TESTS_FOUND + 1))
           fi
+          
+          # Mock tests (module-specific + main dashboard)
           if find "$MODULE_PATH" -path "*/cypress/*" -name "*.cy.*" -exec grep -l "mock\|stub\|intercept" {} \; 2>/dev/null | head -1 > /dev/null; then
+            UI_TESTS_FOUND=$((UI_TESTS_FOUND + 1))
+          elif [ -d "frontend/src/__tests__/cypress/cypress/tests/mocked/$MODULE_NAME" ] || [ -d "frontend/src/__tests__/cypress/cypress/tests/mocked/$(echo $MODULE_NAME | sed 's/-//g')" ]; then
             UI_TESTS_FOUND=$((UI_TESTS_FOUND + 1))
           fi
 
