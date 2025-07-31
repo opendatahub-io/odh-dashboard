@@ -33,9 +33,9 @@ const extensions: (
       title: 'Models',
       component: () => import('../src/ModelsProjectDetailsTab'),
     },
-    // flags: {
-    //   required: [PLUGIN_MODEL_SERVING],
-    // },
+    flags: {
+      required: [SupportedArea.MODEL_SERVING],
+    },
   },
   {
     type: 'app.project-details/overview-section',
@@ -44,15 +44,15 @@ const extensions: (
       title: 'Serve Models',
       component: () => import('../src/ServeModelsSection'),
     },
-    // flags: {
-    //   required: [PLUGIN_MODEL_SERVING],
-    // },
+    flags: {
+      required: [SupportedArea.MODEL_SERVING],
+    },
   },
   {
     type: 'app.navigation/href',
-    // flags: {
-    //   required: [PLUGIN_MODEL_SERVING],
-    // },
+    flags: {
+      required: [SupportedArea.MODEL_SERVING],
+    },
     properties: {
       id: 'modelServing',
       title: 'Model deployments',
@@ -67,9 +67,9 @@ const extensions: (
       path: '/modelServing/:namespace?/*',
       component: () => import('../src/GlobalModelsRoutes'),
     },
-    // flags: {
-    //   required: [PLUGIN_MODEL_SERVING],
-    // },
+    flags: {
+      required: [SupportedArea.MODEL_SERVING],
+    },
   },
 ];
 
