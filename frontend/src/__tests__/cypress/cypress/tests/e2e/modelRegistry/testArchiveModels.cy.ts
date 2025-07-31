@@ -206,9 +206,7 @@ describe('Verify that models and versions can be archived and restored via model
 
       cy.step('Verify the model is archived');
       // Navigate to archived models to verify
-      modelRegistry.findEmptyModelRegistrySecondaryButton()
-        .should('be.visible')
-        .click();
+      modelRegistry.findEmptyModelRegistrySecondaryButton().should('be.visible').click();
       registeredModelArchive
         .findArchiveModelTable()
         .contains('td', testData.objectStorageModelName, { timeout: 10000 })
