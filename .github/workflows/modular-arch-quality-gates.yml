@@ -200,6 +200,7 @@ jobs:
           fi
 
       - name: 🧪 Run Code Quality Checks
+        if: steps.check-config.outputs.silent_mode != 'true'
         run: |
           MODULE_PATH="frontend/packages/${{ matrix.module }}"
 
@@ -271,7 +272,7 @@ jobs:
       matrix:
         module: ${{ fromJson(needs.detect-changes.outputs.modules-matrix) }}
     outputs:
-      coverage-artifacts: ${{ steps.coverage-check.outputs.coverage-artifacts }}
+      has-coverage: ${{ steps.coverage-check.outputs.has-coverage }}
     steps:
       - uses: actions/checkout@v4
 
@@ -527,6 +528,13 @@ jobs:
         run: |
           MODULE_PATH="frontend/packages/${{ matrix.module }}"
           HAS_COVERAGE=false
+
+          # Skip actual testing in silent mode but still set output
+          if [ "${{ steps.check-config.outputs.silent_mode }}" = "true" ]; then
+            echo "🔕 Skipping coverage tests in silent mode"
+            echo "has-coverage=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
 
           # Run frontend tests with coverage
           if [ -d "$MODULE_PATH/frontend" ]; then
