@@ -228,6 +228,10 @@ class ModelRegistry {
     return cy.findByTestId('empty-model-registry-primary-action', { timeout });
   }
 
+  findEmptyModelRegistrySecondaryButton(timeout?: number) {
+    return cy.findByTestId('empty-model-registry-secondary-action', { timeout });
+  }
+
   findModelVersionsTab() {
     return cy.findByTestId('model-versions-tab');
   }

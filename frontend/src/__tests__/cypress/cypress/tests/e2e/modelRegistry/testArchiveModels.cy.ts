@@ -206,8 +206,8 @@ describe('Verify that models and versions can be archived and restored via model
 
       cy.step('Verify the model is archived');
       // Navigate to archived models to verify
-      cy.findByTestId('registered-models-table-kebab-action')
-        .findDropdownItem('View archived models')
+      modelRegistry.findEmptyModelRegistrySecondaryButton()
+        .should('be.visible')
         .click();
       registeredModelArchive
         .findArchiveModelTable()
