@@ -24,7 +24,7 @@ USER default
 
 # Install the dependencies and build
 RUN npm cache clean --force
-RUN npm ci --omit=optional
+RUN npm ci --omit=optional --ignore-scripts
 RUN npm run build
 
 # BFF build stage
@@ -48,7 +48,7 @@ COPY ${BFF_SOURCE_CODE}/cmd/ cmd/
 COPY ${BFF_SOURCE_CODE}/internal/ internal/
 
 # Build the Go application
-RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -o bff ./cmd
+RUN CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -ldflags="-s -w" -tags strictfipsruntime -o bff ./cmd
 
 # Final stage
 # Use distroless as minimal base image to package the application binary
