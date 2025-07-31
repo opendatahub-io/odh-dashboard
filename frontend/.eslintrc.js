@@ -454,6 +454,29 @@ module.exports = {
         ],
       },
     },
+    {
+      files: ['**/*.yaml', '**/*.yml'],
+      parser: 'yaml-eslint-parser',
+      plugins: ['yml'],
+      extends: ['plugin:yml/recommended'],
+      rules: {
+        '@typescript-eslint/consistent-type-imports': 'off',
+        '@typescript-eslint/dot-notation': 'off',
+        '@typescript-eslint/return-await': 'off',
+        '@typescript-eslint/no-base-to-string': 'off',
+        '@typescript-eslint/no-unnecessary-condition': 'off',
+        '@typescript-eslint/restrict-template-expressions': 'off',
+        '@typescript-eslint/naming-convention': 'off',
+      },
+    },
+    {
+      files: ['**/*.md'],
+      processor: 'markdown/markdown',
+      plugins: ['markdown'],
+      rules: {
+        '@typescript-eslint/no-unused-vars': 'off',
+      },
+    },
   ],
 };
 
