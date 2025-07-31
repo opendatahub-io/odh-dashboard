@@ -3,6 +3,7 @@ import '@patternfly/react-core/dist/styles/base.css';
 import './app.css';
 
 // Demo comment: Testing quality gates workflow output
+// Updated: Testing enhanced test detection with main dashboard e2e/mocked tests
 import {
   Alert,
   Bullseye,

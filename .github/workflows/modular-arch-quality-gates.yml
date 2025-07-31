@@ -364,7 +364,7 @@ jobs:
           # Test 2: Mock Testing (Clusterless)
           echo "2️⃣ Mock Testing (Clusterless/BFF Mocking)"
           MOCK_FOUND=false
-          
+
           if [ -d "$MODULE_PATH/frontend" ] || [ -d "$MODULE_PATH/upstream/frontend" ]; then
             FRONTEND_PATH="$MODULE_PATH/frontend"
             [ -d "$MODULE_PATH/upstream/frontend" ] && FRONTEND_PATH="$MODULE_PATH/upstream/frontend"
@@ -376,13 +376,13 @@ jobs:
               MOCK_FOUND=true
             fi
           fi
-          
+
           # Check main dashboard mocked tests for this module
           MODULE_NAME=$(basename "$MODULE_PATH")
           if [ -d "frontend/src/__tests__/cypress/cypress/tests/mocked/$MODULE_NAME" ] || [ -d "frontend/src/__tests__/cypress/cypress/tests/mocked/$(echo $MODULE_NAME | sed 's/-//g')" ]; then
             MOCK_FOUND=true
           fi
-          
+
           if [ "$MOCK_FOUND" = true ]; then
             echo "   ✅ Mock Tests - IMPLEMENTED (Cypress with mocked BFF)"
             # Show where tests were found for transparency
@@ -403,20 +403,20 @@ jobs:
           # Test 3: Integration Testing (E2E workflows like Model Registry)
           echo "3️⃣ Integration Testing (E2E User Workflows)"
           E2E_FOUND=false
-          
+
           # Check module-specific cypress tests
           if find "$MODULE_PATH" -path "*/cypress/*" -name "*.cy.*" 2>/dev/null | head -1 > /dev/null; then
             if find "$MODULE_PATH" -path "*/cypress/*" -name "*.cy.*" -exec grep -l "step\|visit.*(\|click()\|type(\|should(" {} \; 2>/dev/null | head -1 > /dev/null; then
               E2E_FOUND=true
             fi
           fi
-          
+
           # Check main dashboard e2e tests for this module
           MODULE_NAME=$(basename "$MODULE_PATH")
           if [ -d "frontend/src/__tests__/cypress/cypress/tests/e2e/$MODULE_NAME" ] || [ -d "frontend/src/__tests__/cypress/cypress/tests/e2e/$(echo $MODULE_NAME | sed 's/-//g')" ]; then
             E2E_FOUND=true
           fi
-          
+
           if [ "$E2E_FOUND" = true ]; then
             echo "   ✅ E2E Integration Tests - IMPLEMENTED (Comprehensive workflows)"
             # Show where tests were found for transparency
@@ -531,14 +531,14 @@ jobs:
           if [ -f "$FRONTEND_PATH/package.json" ] && grep -q '"test.*jest\|jest.*test"' "$FRONTEND_PATH/package.json"; then
             UI_TESTS_FOUND=$((UI_TESTS_FOUND + 1))
           fi
-          
+
           # Integration tests (module-specific + main dashboard)
           if find "$MODULE_PATH" -path "*/cypress/*" -name "*.cy.*" -exec grep -l "step\|visit.*(\|click()\|type(\|should(" {} \; 2>/dev/null | head -1 > /dev/null; then
             UI_TESTS_FOUND=$((UI_TESTS_FOUND + 1))
           elif [ -d "frontend/src/__tests__/cypress/cypress/tests/e2e/$MODULE_NAME" ] || [ -d "frontend/src/__tests__/cypress/cypress/tests/e2e/$(echo $MODULE_NAME | sed 's/-//g')" ]; then
             UI_TESTS_FOUND=$((UI_TESTS_FOUND + 1))
           fi
-          
+
           # Mock tests (module-specific + main dashboard)
           if find "$MODULE_PATH" -path "*/cypress/*" -name "*.cy.*" -exec grep -l "mock\|stub\|intercept" {} \; 2>/dev/null | head -1 > /dev/null; then
             UI_TESTS_FOUND=$((UI_TESTS_FOUND + 1))
@@ -622,9 +622,9 @@ jobs:
                 HAS_COVERAGE=true
 
                 # Create coverage directory for upload
-                mkdir -p ../../coverage/
+                mkdir -p "$GITHUB_WORKSPACE/coverage"
                 if [ -f "coverage/coverage-final.json" ]; then
-                  cp coverage/coverage-final.json "../../coverage/${{ matrix.module }}-unit-coverage.json"
+                  cp coverage/coverage-final.json "$GITHUB_WORKSPACE/coverage/${{ matrix.module }}-unit-coverage.json"
                 fi
               elif grep -q '"test:unit"' package.json; then
                 echo "🧪 Running unit tests..."
@@ -1056,78 +1056,78 @@ jobs:
         with:
           script: |
             const fs = require('fs');
-            
+
             // Build summary comment
             let comment = `## 🚦 Modular Architecture Quality Gates Results\n\n`;
-            
+
             // Code Quality Gate
             const codeQualityResult = '${{ needs.code-quality-gate.result }}';
             if (codeQualityResult !== 'success') {
               comment += `### 🚨 Code Quality Gate: FAILED
-              
+
               **⛔ MODULE MUST BE TOGGLED OFF ⛔**
-              
+
               - Module does not meet architectural standards
               - Cannot be enabled in deployment until fixed
               - Fix mod-arch-shared dependency and other quality issues
-              
+
               `;
             } else {
               comment += `### ✅ Code Quality Gate: PASSED
-              
-              - Module meets architectural standards  
+
+              - Module meets architectural standards
               - Ready for deployment enablement
-              
+
               `;
             }
-            
+
             // Application Quality Gate
             const appQualityResult = '${{ needs.application-quality-gate.result }}';
             if (appQualityResult === 'success') {
               comment += `### ✅ Application Quality Gate: COMPLETED
-              
+
               - Testing maturity assessed
               - Available tests executed successfully
               - Check detailed output for RHOAI readiness
-              
+
               `;
             } else {
               comment += `### ⚠️ Application Quality Gate: NEEDS ATTENTION
-              
+
               - Consider implementing missing test types
               - RHOAI requires 75% coverage + API/UI testing standards
               - See job logs for specific recommendations
-              
+
               `;
             }
-            
-            // Deployment Quality Gate  
+
+            // Deployment Quality Gate
             const deploymentResult = '${{ needs.deployment-quality-gate.result }}';
             if (deploymentResult === 'success') {
               comment += `### ✅ Deployment Quality Gate: COMPLETED
-              
+
               - Deployment readiness assessed
               - Container and ODH integration requirements checked
-              
+
               `;
             } else {
               comment += `### ⚠️ Deployment Quality Gate: NEEDS ATTENTION
-              
+
               - Complete deployment requirements for ODH/RHOAI
               - Reference Model Registry example (PR #4540)
-              
+
               `;
             }
-            
+
             comment += `
             **📚 Resources:**
             - [Modular Architecture Guide](https://github.com/opendatahub-io/mod-arch-shared-library)
             - [Testing Strategy](https://miro.com/app/board/uXjVJYjWx4I=/)
             - [Quality Gates Documentation](docs/modular-architecture-quality-gates.md)
-            
+
             > 💡 This is an automated assessment. PRs can merge regardless of gate status, but modules with Code Quality failures must remain disabled.
             `;
-            
+
             // Post comment
             github.rest.issues.createComment({
               issue_number: context.issue.number,
