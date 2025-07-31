@@ -86,7 +86,7 @@ jobs:
             ${{ github.workspace }}/frontend/node_modules
           key: ${{ runner.os }}-${{ env.NODE_VERSION }}-modules-${{ hashFiles('**/package-lock.json') }}
       - name: Run linting and formatting checks
-        run: npm run lint:frontend:backend
+        run: NODE_OPTIONS="--max-old-space-size=4096" npm run lint:frontend:backend
 
   Unit-Tests:
     needs: [Setup, Lint, Type-Check]
