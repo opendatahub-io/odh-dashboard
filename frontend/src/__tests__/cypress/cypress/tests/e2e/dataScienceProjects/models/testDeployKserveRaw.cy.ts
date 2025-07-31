@@ -88,7 +88,6 @@ describe('Deploy KServe Raw Deployment Model', { testIsolation: false }, () => {
       inferenceServiceModal.getDeploymentModeLength().then((length) => {
         if (length > 0) {
           cy.log('Setting deployment mode to KServe Raw (Standard)');
-          //inferenceServiceModal.findDeploymentModeSelect().click();
           inferenceServiceModal.findDeploymentModeSelect().findSelectOption('Standard').click();
           inferenceServiceModal
             .findDeploymentModeSelect()
