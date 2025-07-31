@@ -1,0 +1,6 @@
+# testModelTokenAuth.cy.ts Test Data #
+projectResourceName: 'test-model-token-auth'
+projectDisplayName: 'Test Model Token Auth'
+singleModelName: 'test-model'
+modelOpenVinoExamplePath: 'kserve-openvino-test/openvino-example-model/'
+

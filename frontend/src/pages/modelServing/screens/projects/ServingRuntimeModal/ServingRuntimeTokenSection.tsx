@@ -74,6 +74,7 @@ const ServingRuntimeTokenSection = <D extends CreatingModelServingObjectCommon>(
                   variant="link"
                   icon={<PlusCircleIcon />}
                   isDisabled={!allowCreate}
+                  data-testid="add-service-account-button"
                 >
                   Add a service account
                 </Button>

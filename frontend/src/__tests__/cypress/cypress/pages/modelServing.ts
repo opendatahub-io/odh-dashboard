@@ -108,6 +108,13 @@ class ModelServingGlobal {
   findServingRuntime(name: string) {
     return this.findModelsTable().find(`[data-label=Serving Runtime]`).contains(name);
   }
+
+  findTokenCopyButton(index: number) {
+    if (index === 0) {
+      return cy.findAllByTestId('token-secret').findAllByRole('button').eq(0);
+    }
+    return cy.findAllByTestId('token-secret').eq(index).findAllByRole('button').eq(0);
+  }
 }
 
 class ServingRuntimeGroup extends Contextual<HTMLElement> {}
@@ -241,6 +248,14 @@ class InferenceServiceModal extends ServingModal {
 
   findServiceAccountNameInput() {
     return this.find().findByTestId('service-account-form-name');
+  }
+
+  findServiceAccountIndex(index: number) {
+    return this.find().findAllByTestId('service-account-form-name').eq(index);
+  }
+
+  findAddServiceAccountButton() {
+    return this.find().findByTestId('add-service-account-button');
   }
 
   findExistingConnectionSelect() {
