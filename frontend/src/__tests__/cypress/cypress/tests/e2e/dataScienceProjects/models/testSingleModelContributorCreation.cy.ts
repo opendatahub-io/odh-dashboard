@@ -27,7 +27,7 @@ let modelFilePath: string;
 const awsBucket = 'BUCKET_3' as const;
 const uuid = generateTestUUID();
 
-describe('[Product Bug: RHOAIENG-30799] Verify Model Creation and Validation using the UI', () => {
+describe('Verify Model Creation and Validation using the UI', () => {
   retryableBefore(() => {
     // Setup: Load test data and ensure clean state
     return loadDSPFixture('e2e/dataScienceProjects/testSingleModelContributorCreation.yaml').then(
@@ -68,7 +68,6 @@ describe('[Product Bug: RHOAIENG-30799] Verify Model Creation and Validation usi
         '@Dashboard',
         '@Modelserving',
         '@NonConcurrent',
-        '@Bug',
       ],
     },
     () => {
