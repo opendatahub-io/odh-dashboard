@@ -6,7 +6,7 @@ import useFeatureStoreEntities from '#~/pages/featureStore/apiHooks/useFeatureSt
 import FeatureStoreProjectSelectorNavigator from '#~/pages/featureStore/screens/components/FeatureStoreProjectSelectorNavigator';
 import { useFeatureStoreProject } from '#~/pages/featureStore/FeatureStoreContext';
 import { featureStoreRoute } from '#~/pages/featureStore/routes';
-import FeatureStoreEntitiesListView from './FeatureStoreEntitiesListView';
+import FeatureStoreEntitiesListView from './EntitiesTable/FeatureStoreEntitiesListView';
 
 const title = 'Entities';
 const description =
@@ -19,7 +19,6 @@ const FeatureStoreEntities = (): React.ReactElement => {
     loaded: entitiesLoaded,
     error: entitiesLoadError,
   } = useFeatureStoreEntities(currentProject);
-
   const emptyState = (
     <EmptyState
       headingLevel="h6"
