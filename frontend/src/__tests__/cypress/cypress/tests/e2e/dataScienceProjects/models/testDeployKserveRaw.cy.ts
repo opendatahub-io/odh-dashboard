@@ -23,7 +23,7 @@ let modelFilePath: string;
 const awsBucket = 'BUCKET_1' as const;
 const uuid = generateTestUUID();
 
-describe('Deploy KServe Raw Deployment Model', { testIsolation: false }, () => {
+describe('Deploy KServe Raw Deployment Model', () => {
   retryableBefore(() => {
     cy.log('Loading test data');
     return loadDSPFixture('e2e/dataScienceProjects/testDeployKserveRaw.yaml').then(
@@ -58,12 +58,11 @@ describe('Deploy KServe Raw Deployment Model', { testIsolation: false }, () => {
   it(
     'Configure cluster deployment mode settings and deploy model with KServe Raw',
     {
-      tags: ['@Smoke', '@Dashboard', '@Modelserving', '@ClusterSettings', '@NonConcurrent'],
+      tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@Modelserving', '@NonConcurrent'],
     },
     () => {
       cy.step(`Log into the application with ${HTPASSWD_CLUSTER_ADMIN_USER.USERNAME}`);
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
-      cy.step('Navigate to project for model deployment');
       // Project navigation
       cy.step(`Navigate to the Project list tab and search for ${projectName}`);
       projectListPage.navigate();
@@ -74,10 +73,7 @@ describe('Deploy KServe Raw Deployment Model', { testIsolation: false }, () => {
       projectDetails.findSectionTab('model-server').click();
       modelServingGlobal.findSingleServingModelButton().click();
       modelServingGlobal.findDeployModelButton().click();
-
-      cy.step('Verify deployment mode dropdown exists and has both options');
       inferenceServiceModal.shouldBeOpen();
-
       cy.step('Launch a Single Serving Model and configure deployment mode');
       inferenceServiceModal.findModelNameInput().type(modelName);
       inferenceServiceModal.findServingRuntimeTemplateSearchSelector().click();
