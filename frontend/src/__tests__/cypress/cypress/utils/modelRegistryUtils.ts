@@ -19,7 +19,7 @@ export const clickRegisterModelButton = (timeout?: number): Cypress.Chainable =>
         body.find('[data-testid="empty-model-registry-primary-action"]').length > 0;
       const hasRegularButton = body.find('[data-testid="register-model-button"]').length > 0;
 
-      expect(hasEmptyButton || hasRegularButton).to.be.true;
+      void expect(hasEmptyButton || hasRegularButton).to.be.true;
     })
     .then(($body) => {
       if ($body.find('[data-testid="empty-model-registry-primary-action"]').length > 0) {
