@@ -9,7 +9,7 @@ import {
 } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 
-const NotFound: React.FC = () => {
+const NotFound: React.FunctionComponent = () => {
   function GoHomeBtn() {
     const navigate = useNavigate();
     function handleClick() {
@@ -32,4 +32,4 @@ const NotFound: React.FC = () => {
   );
 };
 
-export default NotFound;
+export { NotFound };

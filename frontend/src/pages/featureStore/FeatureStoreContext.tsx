@@ -7,6 +7,7 @@ import { useFeatureStoreCR } from '#~/pages/featureStore/apiHooks/useFeatureStor
 import useFeatureStoreAPIState, {
   FeatureStoreAPIState,
 } from '#~/pages/featureStore/apiHooks/useFeatureStoreAPIState';
+import EnsureFeatureStoreAPIAvailability from './EnsureAPIAvailability';
 
 export type FeatureStoreContextType = {
   apiState: FeatureStoreAPIState;
@@ -54,7 +55,7 @@ export const FeatureStoreContextProvider = conditionalArea<FeatureStoreContextPr
         setCurrentProject,
       }}
     >
-      {children}
+      <EnsureFeatureStoreAPIAvailability>{children}</EnsureFeatureStoreAPIAvailability>
     </FeatureStoreContext.Provider>
   );
 });

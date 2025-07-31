@@ -12,13 +12,13 @@ import { ProjectObjectType, typedEmptyImage } from '#~/concepts/design/utils';
 import RedirectErrorState from '#~/pages/external/RedirectErrorState';
 import { useFeatureStoreCR } from '#~/pages/featureStore/apiHooks/useFeatureStoreCR';
 import EmptyStateFeatureStore from './screens/components/EmptyStateFeatureStore';
-import { featureStoreRoute } from './FeatureStoreRoutes';
 import { FeatureStoreContextProvider } from './FeatureStoreContext';
 import { FeatureStoreObject } from './const';
 import { useFeatureStoreObject } from './apiHooks/useFeatureStoreObject';
 import useFeatureStoreProjects from './apiHooks/useFeatureStoreProjects';
 import InvalidFeatureStoreProject from './screens/components/InvalidFeatureStoreProject';
 import { getFeatureStoreObjectDisplayName } from './utils';
+import { featureStoreRoute } from './routes';
 
 type ApplicationPageProps = React.ComponentProps<typeof ApplicationsPage>;
 

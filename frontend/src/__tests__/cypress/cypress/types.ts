@@ -330,6 +330,7 @@ export type RegisterModelTestData = {
   objectStorageBucket: string;
   objectStorageRegion: string;
   objectStoragePath: string;
+  modelOpenVinoPath: string;
   // Second model (URI)
   uriModelName: string;
   uriModelDescription: string;
@@ -346,6 +347,7 @@ export type RegisterModelTestData = {
 
   newNameSuffix: string;
   newDescription: string;
+  deployProjectNamePrefix: string;
 };
 
 export type ManageRegistryPermissionsTestData = {

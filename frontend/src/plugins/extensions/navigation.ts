@@ -271,9 +271,9 @@ const extensions: NavExtension[] = [
     properties: {
       id: 'feature-views',
       title: 'Feature views',
-      href: '/featureStore/feature-views',
+      href: '/featureStore/featureViews',
       section: 'feature-store',
-      path: '/featureStore/feature-views/*',
+      path: '/featureStore/featureViews/*',
     },
   },
   {
