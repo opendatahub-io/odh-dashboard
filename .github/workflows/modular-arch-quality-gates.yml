@@ -418,11 +418,11 @@ jobs:
 
           # Test 5: API Contract Testing (Pact)
           echo "5️⃣ API Contract Testing (Consumer-Driven)"
-          if find "$MODULE_PATH" -name "*.pact.*" -o -name "*pact*" 2>/dev/null | head -1 > /dev/null; then
+          if find "$MODULE_PATH" -name "*.pact.js" -o -name "*.pact.ts" -o -name "pact.json" 2>/dev/null | head -1 > /dev/null; then
             echo "   ✅ API Contract Tests - IMPLEMENTED (Pact)"
             IMPLEMENTED_TESTS=$((IMPLEMENTED_TESTS + 1))
-          elif [ -n "${BFF_PATH:-}" ] && find "${BFF_PATH:-$MODULE_PATH}" -name "*contract*" -o -name "*schema*" 2>/dev/null | head -1 > /dev/null; then
-            echo "   ✅ API Contract Tests - IMPLEMENTED (Schema validation)"
+          elif [ -n "${BFF_PATH:-}" ] && find "${BFF_PATH:-$MODULE_PATH}" -name "*_contract_test.go" -o -name "contract_test.go" 2>/dev/null | head -1 > /dev/null; then
+            echo "   ✅ API Contract Tests - IMPLEMENTED (Go contract tests)"
             IMPLEMENTED_TESTS=$((IMPLEMENTED_TESTS + 1))
           else
             echo "   ❌ API Contract Tests - MISSING"
@@ -431,10 +431,10 @@ jobs:
 
           # Test 6: API Performance Testing (K6/JMeter/Taurus)
           echo "6️⃣ API Performance Testing (Load/Stress)"
-          if find "$MODULE_PATH" -name "*.k6.*" -o -name "*performance*" -o -name "*load*" -o -name "*.jmx" 2>/dev/null | head -1 > /dev/null; then
+          if find "$MODULE_PATH" -name "*.k6.js" -o -name "*.k6.ts" -o -name "load-test.*" -o -name "*.jmx" 2>/dev/null | head -1 > /dev/null; then
             echo "   ✅ API Performance Tests - IMPLEMENTED"
             IMPLEMENTED_TESTS=$((IMPLEMENTED_TESTS + 1))
-          elif [ -n "${BFF_PATH:-}" ] && find "${BFF_PATH:-$MODULE_PATH}" -name "*benchmark*" -o -name "*perf*" 2>/dev/null | head -1 > /dev/null; then
+          elif [ -n "${BFF_PATH:-}" ] && find "${BFF_PATH:-$MODULE_PATH}" -name "*_benchmark_test.go" -o -name "benchmark_test.go" 2>/dev/null | head -1 > /dev/null; then
             echo "   ✅ API Performance Tests - IMPLEMENTED (Go benchmarks)"
             IMPLEMENTED_TESTS=$((IMPLEMENTED_TESTS + 1))
           else
@@ -468,9 +468,15 @@ jobs:
 
           # Check API Testing readiness (BFF + Performance + Contract)
           API_TESTS_FOUND=0
-          [ -d "$MODULE_PATH/bff" ] && find "$MODULE_PATH/bff" -name "*_test.go" 2>/dev/null | head -1 > /dev/null && API_TESTS_FOUND=$((API_TESTS_FOUND + 1))
-          find "$MODULE_PATH" -name "*.k6.*" -o -name "*performance*" -o -name "*.jmx" 2>/dev/null | head -1 > /dev/null && API_TESTS_FOUND=$((API_TESTS_FOUND + 1))
-          find "$MODULE_PATH" -name "*.pact.*" -o -name "*pact*" -o -name "*contract*" 2>/dev/null | head -1 > /dev/null && API_TESTS_FOUND=$((API_TESTS_FOUND + 1))
+          if [ -d "$MODULE_PATH/bff" ] && find "$MODULE_PATH/bff" -name "*_test.go" 2>/dev/null | head -1 > /dev/null; then
+            API_TESTS_FOUND=$((API_TESTS_FOUND + 1))
+          fi
+          if find "$MODULE_PATH" -name "*.k6.js" -o -name "*.k6.ts" -o -name "load-test.*" -o -name "*.jmx" 2>/dev/null | head -1 > /dev/null; then
+            API_TESTS_FOUND=$((API_TESTS_FOUND + 1))
+          fi
+          if find "$MODULE_PATH" -name "*.pact.js" -o -name "*.pact.ts" -o -name "pact.json" 2>/dev/null | head -1 > /dev/null; then
+            API_TESTS_FOUND=$((API_TESTS_FOUND + 1))
+          fi
 
           if [ "$API_TESTS_FOUND" -ge 2 ]; then
             API_TESTING_READY="true"
@@ -481,9 +487,15 @@ jobs:
           FRONTEND_PATH="$MODULE_PATH/frontend"
           [ -d "$MODULE_PATH/upstream/frontend" ] && FRONTEND_PATH="$MODULE_PATH/upstream/frontend"
 
-          [ -f "$FRONTEND_PATH/package.json" ] && grep -q '"test.*jest\|jest.*test"' "$FRONTEND_PATH/package.json" && UI_TESTS_FOUND=$((UI_TESTS_FOUND + 1))
-          find "$MODULE_PATH" -path "*/cypress/*" -name "*.cy.*" -exec grep -l "step\|visit.*(\|click()\|type(\|should(" {} \; 2>/dev/null | head -1 > /dev/null && UI_TESTS_FOUND=$((UI_TESTS_FOUND + 1))
-          find "$MODULE_PATH" -path "*/cypress/*" -name "*.cy.*" -exec grep -l "mock\|stub\|intercept" {} \; 2>/dev/null | head -1 > /dev/null && UI_TESTS_FOUND=$((UI_TESTS_FOUND + 1))
+          if [ -f "$FRONTEND_PATH/package.json" ] && grep -q '"test.*jest\|jest.*test"' "$FRONTEND_PATH/package.json"; then
+            UI_TESTS_FOUND=$((UI_TESTS_FOUND + 1))
+          fi
+          if find "$MODULE_PATH" -path "*/cypress/*" -name "*.cy.*" -exec grep -l "step\|visit.*(\|click()\|type(\|should(" {} \; 2>/dev/null | head -1 > /dev/null; then
+            UI_TESTS_FOUND=$((UI_TESTS_FOUND + 1))
+          fi
+          if find "$MODULE_PATH" -path "*/cypress/*" -name "*.cy.*" -exec grep -l "mock\|stub\|intercept" {} \; 2>/dev/null | head -1 > /dev/null; then
+            UI_TESTS_FOUND=$((UI_TESTS_FOUND + 1))
+          fi
 
           if [ "$UI_TESTS_FOUND" -ge 2 ]; then
             UI_TESTING_READY="true"
@@ -988,3 +1000,89 @@ jobs:
           else
             echo "✅ Code Quality Gate passed - Module can be ENABLED in deployment"
           fi
+
+      - name: Comment PR with Quality Gates Summary
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            
+            // Build summary comment
+            let comment = `## 🚦 Modular Architecture Quality Gates Results\n\n`;
+            
+            // Code Quality Gate
+            const codeQualityResult = '${{ needs.code-quality-gate.result }}';
+            if (codeQualityResult !== 'success') {
+              comment += `### 🚨 Code Quality Gate: FAILED
+              
+              **⛔ MODULE MUST BE TOGGLED OFF ⛔**
+              
+              - Module does not meet architectural standards
+              - Cannot be enabled in deployment until fixed
+              - Fix mod-arch-shared dependency and other quality issues
+              
+              `;
+            } else {
+              comment += `### ✅ Code Quality Gate: PASSED
+              
+              - Module meets architectural standards  
+              - Ready for deployment enablement
+              
+              `;
+            }
+            
+            // Application Quality Gate
+            const appQualityResult = '${{ needs.application-quality-gate.result }}';
+            if (appQualityResult === 'success') {
+              comment += `### ✅ Application Quality Gate: COMPLETED
+              
+              - Testing maturity assessed
+              - Available tests executed successfully
+              - Check detailed output for RHOAI readiness
+              
+              `;
+            } else {
+              comment += `### ⚠️ Application Quality Gate: NEEDS ATTENTION
+              
+              - Consider implementing missing test types
+              - RHOAI requires 75% coverage + API/UI testing standards
+              - See job logs for specific recommendations
+              
+              `;
+            }
+            
+            // Deployment Quality Gate  
+            const deploymentResult = '${{ needs.deployment-quality-gate.result }}';
+            if (deploymentResult === 'success') {
+              comment += `### ✅ Deployment Quality Gate: COMPLETED
+              
+              - Deployment readiness assessed
+              - Container and ODH integration requirements checked
+              
+              `;
+            } else {
+              comment += `### ⚠️ Deployment Quality Gate: NEEDS ATTENTION
+              
+              - Complete deployment requirements for ODH/RHOAI
+              - Reference Model Registry example (PR #4540)
+              
+              `;
+            }
+            
+            comment += `
+            **📚 Resources:**
+            - [Modular Architecture Guide](https://github.com/opendatahub-io/mod-arch-shared-library)
+            - [Testing Strategy](https://miro.com/app/board/uXjVJYjWx4I=/)
+            - [Quality Gates Documentation](docs/modular-architecture-quality-gates.md)
+            
+            > 💡 This is an automated assessment. PRs can merge regardless of gate status, but modules with Code Quality failures must remain disabled.
+            `;
+            
+            // Post comment
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
