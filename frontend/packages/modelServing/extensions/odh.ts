@@ -31,7 +31,7 @@ const extensions: (
     properties: {
       id: 'model-server', // same value as ProjectSectionID.MODEL_SERVER
       title: 'Models',
-      component: () => import('./src/ModelsProjectDetailsTab'),
+      component: () => import('../src/ModelsProjectDetailsTab'),
     },
     flags: {
       required: [PLUGIN_MODEL_SERVING],
@@ -42,7 +42,7 @@ const extensions: (
     properties: {
       id: 'model-server',
       title: 'Serve Models',
-      component: () => import('./src/ServeModelsSection'),
+      component: () => import('../src/ServeModelsSection'),
     },
     flags: {
       required: [PLUGIN_MODEL_SERVING],
@@ -65,7 +65,7 @@ const extensions: (
     type: 'app.route',
     properties: {
       path: '/modelServing/:namespace?/*',
-      component: () => import('./src/GlobalModelsRoutes'),
+      component: () => import('../src/GlobalModelsRoutes'),
     },
     flags: {
       required: [PLUGIN_MODEL_SERVING],
