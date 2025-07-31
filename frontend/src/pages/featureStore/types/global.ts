@@ -1,4 +1,4 @@
-import { GetEntities } from './entities';
+import { GetEntities, GetEntityByName } from './entities';
 import { GetProjects } from './featureStoreProjects';
 import { GetFeatureViews } from './featureView';
 
@@ -12,8 +12,9 @@ export type FeatureStorePagination = {
 };
 
 export type FeatureStoreError = {
-  code: string;
-  message: string;
+  code?: string;
+  message?: string;
+  detail?: string;
 };
 
 export type FeatureStoreMeta = {
@@ -49,4 +50,5 @@ export type FeatureStoreAPIs = {
   listFeatureStoreProject: GetProjects;
   getEntities: GetEntities;
   getFeatureViews: GetFeatureViews;
+  getEntityByName: GetEntityByName;
 };

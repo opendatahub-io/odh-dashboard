@@ -30,6 +30,7 @@ const useFeatureStoreEntities = (project?: string): FetchStateObject<EntityList>
         has_next: false,
         has_previous: false,
       },
+      relationships: {},
     },
     { initialPromisePurity: true },
   );
