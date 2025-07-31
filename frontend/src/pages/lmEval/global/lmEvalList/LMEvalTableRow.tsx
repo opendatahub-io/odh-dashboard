@@ -38,7 +38,10 @@ const LMEvalTableRow: React.FC<LMEvalTableRowType> = ({ lmEval, onDeleteLMEval }
       </Td>
       <Td dataLabel="Evaluated">
         {lmEval.metadata.creationTimestamp ? (
-          <Timestamp date={new Date(lmEval.metadata.creationTimestamp)} />
+          <Timestamp
+            data-testid="evaluation-run-start-time"
+            date={new Date(lmEval.metadata.creationTimestamp)}
+          />
         ) : (
           'Unknown'
         )}
@@ -48,6 +51,7 @@ const LMEvalTableRow: React.FC<LMEvalTableRowType> = ({ lmEval, onDeleteLMEval }
       </Td>
       <Td isActionCell>
         <ActionsColumn
+          data-testid="evaluation-run-actions"
           items={[
             ...(currentState === LMEvalState.COMPLETE && lmEval.status?.results
               ? [{ title: 'Download JSON', itemKey: 'download-json', onClick: handleDownload }]

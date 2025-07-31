@@ -90,6 +90,7 @@ export default defineConfig({
 
           return Promise.resolve({});
         },
+
         extractHttpsUrls(directory: string) {
           return extractHttpsUrlsWithLocation(directory);
         },
