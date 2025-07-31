@@ -372,7 +372,7 @@ jobs:
             # Check module-specific mock tests
             if [ -f "$FRONTEND_PATH/package.json" ] && grep -q 'cypress.*mock\|mock.*cypress' "$FRONTEND_PATH/package.json"; then
               MOCK_FOUND=true
-            elif find "$MODULE_PATH" -path "*/cypress/*" -name "*.cy.*" -exec grep -l "mock\|stub\|intercept" {} \; 2>/dev/null | head -1 > /dev/null; then
+            elif [ -n "$(find "$MODULE_PATH" -path "*/cypress/*" -name "*.cy.*" -exec grep -l "mock\|stub\|intercept" {} \; 2>/dev/null | head -1)" ]; then
               MOCK_FOUND=true
             fi
           fi
@@ -386,7 +386,7 @@ jobs:
           if [ "$MOCK_FOUND" = true ]; then
             echo "   ✅ Mock Tests - IMPLEMENTED (Cypress with mocked BFF)"
             # Show where tests were found for transparency
-            if find "$MODULE_PATH" -path "*/cypress/*" -name "*.cy.*" -exec grep -l "mock\|stub\|intercept" {} \; 2>/dev/null | head -1 > /dev/null; then
+            if [ -n "$(find "$MODULE_PATH" -path "*/cypress/*" -name "*.cy.*" -exec grep -l "mock\|stub\|intercept" {} \; 2>/dev/null | head -1)" ]; then
               echo "   📁 Found in: Module-specific cypress tests"
             fi
             if [ -d "frontend/src/__tests__/cypress/cypress/tests/mocked/$MODULE_NAME" ]; then
@@ -405,8 +405,8 @@ jobs:
           E2E_FOUND=false
 
           # Check module-specific cypress tests
-          if find "$MODULE_PATH" -path "*/cypress/*" -name "*.cy.*" 2>/dev/null | head -1 > /dev/null; then
-            if find "$MODULE_PATH" -path "*/cypress/*" -name "*.cy.*" -exec grep -l "step\|visit.*(\|click()\|type(\|should(" {} \; 2>/dev/null | head -1 > /dev/null; then
+          if [ -n "$(find "$MODULE_PATH" -path "*/cypress/*" -name "*.cy.*" 2>/dev/null | head -1)" ]; then
+            if [ -n "$(find "$MODULE_PATH" -path "*/cypress/*" -name "*.cy.*" -exec grep -l "step\|visit.*(\|click()\|type(\|should(" {} \; 2>/dev/null | head -1)" ]; then
               E2E_FOUND=true
             fi
           fi
@@ -420,7 +420,7 @@ jobs:
           if [ "$E2E_FOUND" = true ]; then
             echo "   ✅ E2E Integration Tests - IMPLEMENTED (Comprehensive workflows)"
             # Show where tests were found for transparency
-            if find "$MODULE_PATH" -path "*/cypress/*" -name "*.cy.*" 2>/dev/null | head -1 > /dev/null; then
+            if [ -n "$(find "$MODULE_PATH" -path "*/cypress/*" -name "*.cy.*" 2>/dev/null | head -1)" ]; then
               echo "   📁 Found in: Module-specific cypress tests"
             fi
             if [ -d "frontend/src/__tests__/cypress/cypress/tests/e2e/$MODULE_NAME" ]; then
@@ -440,7 +440,7 @@ jobs:
             BFF_PATH="$MODULE_PATH/bff"
             [ -d "$MODULE_PATH/upstream/bff" ] && BFF_PATH="$MODULE_PATH/upstream/bff"
 
-            if find "$BFF_PATH" -name "*_test.go" 2>/dev/null | head -1 > /dev/null; then
+            if [ -n "$(find "$BFF_PATH" -name "*_test.go" 2>/dev/null | head -1)" ]; then
               echo "   ✅ API Functional Tests - IMPLEMENTED (Go tests)"
               IMPLEMENTED_TESTS=$((IMPLEMENTED_TESTS + 1))
             elif [ -f "$BFF_PATH/Makefile" ] && grep -q "^test:" "$BFF_PATH/Makefile"; then
@@ -457,10 +457,10 @@ jobs:
 
           # Test 5: API Contract Testing (Pact)
           echo "5️⃣ API Contract Testing (Consumer-Driven)"
-          if find "$MODULE_PATH" -name "*.pact.js" -o -name "*.pact.ts" -o -name "pact.json" 2>/dev/null | head -1 > /dev/null; then
+          if [ -n "$(find "$MODULE_PATH" -name "*.pact.js" -o -name "*.pact.ts" -o -name "pact.json" 2>/dev/null | head -1)" ]; then
             echo "   ✅ API Contract Tests - IMPLEMENTED (Pact)"
             IMPLEMENTED_TESTS=$((IMPLEMENTED_TESTS + 1))
-          elif [ -n "${BFF_PATH:-}" ] && find "${BFF_PATH:-$MODULE_PATH}" -name "*_contract_test.go" -o -name "contract_test.go" 2>/dev/null | head -1 > /dev/null; then
+          elif [ -n "${BFF_PATH:-}" ] && [ -n "$(find "${BFF_PATH:-$MODULE_PATH}" -name "*_contract_test.go" -o -name "contract_test.go" 2>/dev/null | head -1)" ]; then
             echo "   ✅ API Contract Tests - IMPLEMENTED (Go contract tests)"
             IMPLEMENTED_TESTS=$((IMPLEMENTED_TESTS + 1))
           else
@@ -470,10 +470,10 @@ jobs:
 
           # Test 6: API Performance Testing (K6/JMeter/Taurus)
           echo "6️⃣ API Performance Testing (Load/Stress)"
-          if find "$MODULE_PATH" -name "*.k6.js" -o -name "*.k6.ts" -o -name "load-test.*" -o -name "*.jmx" 2>/dev/null | head -1 > /dev/null; then
+          if [ -n "$(find "$MODULE_PATH" -name "*.k6.js" -o -name "*.k6.ts" -o -name "load-test.*" -o -name "*.jmx" 2>/dev/null | head -1)" ]; then
             echo "   ✅ API Performance Tests - IMPLEMENTED"
             IMPLEMENTED_TESTS=$((IMPLEMENTED_TESTS + 1))
-          elif [ -n "${BFF_PATH:-}" ] && find "${BFF_PATH:-$MODULE_PATH}" -name "*_benchmark_test.go" -o -name "benchmark_test.go" 2>/dev/null | head -1 > /dev/null; then
+          elif [ -n "${BFF_PATH:-}" ] && [ -n "$(find "${BFF_PATH:-$MODULE_PATH}" -name "*_benchmark_test.go" -o -name "benchmark_test.go" 2>/dev/null | head -1)" ]; then
             echo "   ✅ API Performance Tests - IMPLEMENTED (Go benchmarks)"
             IMPLEMENTED_TESTS=$((IMPLEMENTED_TESTS + 1))
           else
@@ -489,7 +489,7 @@ jobs:
           if [ -f "$FRONTEND_PATH/package.json" ] && grep -q 'bundlesize\|size-limit\|bundlewatch' "$FRONTEND_PATH/package.json"; then
             echo "   ✅ Bundle Size Monitoring - IMPLEMENTED"
             IMPLEMENTED_TESTS=$((IMPLEMENTED_TESTS + 1))
-          elif find "$MODULE_PATH" -name "webpack*.js" -exec grep -l "performance\|BundleAnalyzer" {} \; 2>/dev/null | head -1 > /dev/null; then
+          elif [ -n "$(find "$MODULE_PATH" -name "webpack*.js" -exec grep -l "performance\|BundleAnalyzer" {} \; 2>/dev/null | head -1)" ]; then
             echo "   ✅ Bundle Size Monitoring - IMPLEMENTED (Webpack analysis)"
             IMPLEMENTED_TESTS=$((IMPLEMENTED_TESTS + 1))
           else
@@ -507,13 +507,13 @@ jobs:
 
           # Check API Testing readiness (BFF + Performance + Contract)
           API_TESTS_FOUND=0
-          if [ -d "$MODULE_PATH/bff" ] && find "$MODULE_PATH/bff" -name "*_test.go" 2>/dev/null | head -1 > /dev/null; then
+          if [ -d "$MODULE_PATH/bff" ] && [ -n "$(find "$MODULE_PATH/bff" -name "*_test.go" 2>/dev/null | head -1)" ]; then
             API_TESTS_FOUND=$((API_TESTS_FOUND + 1))
           fi
-          if find "$MODULE_PATH" -name "*.k6.js" -o -name "*.k6.ts" -o -name "load-test.*" -o -name "*.jmx" 2>/dev/null | head -1 > /dev/null; then
+          if [ -n "$(find "$MODULE_PATH" -name "*.k6.js" -o -name "*.k6.ts" -o -name "load-test.*" -o -name "*.jmx" 2>/dev/null | head -1)" ]; then
             API_TESTS_FOUND=$((API_TESTS_FOUND + 1))
           fi
-          if find "$MODULE_PATH" -name "*.pact.js" -o -name "*.pact.ts" -o -name "pact.json" 2>/dev/null | head -1 > /dev/null; then
+          if [ -n "$(find "$MODULE_PATH" -name "*.pact.js" -o -name "*.pact.ts" -o -name "pact.json" 2>/dev/null | head -1)" ]; then
             API_TESTS_FOUND=$((API_TESTS_FOUND + 1))
           fi
 
@@ -533,14 +533,14 @@ jobs:
           fi
 
           # Integration tests (module-specific + main dashboard)
-          if find "$MODULE_PATH" -path "*/cypress/*" -name "*.cy.*" -exec grep -l "step\|visit.*(\|click()\|type(\|should(" {} \; 2>/dev/null | head -1 > /dev/null; then
+          if [ -n "$(find "$MODULE_PATH" -path "*/cypress/*" -name "*.cy.*" -exec grep -l "step\|visit.*(\|click()\|type(\|should(" {} \; 2>/dev/null | head -1)" ]; then
             UI_TESTS_FOUND=$((UI_TESTS_FOUND + 1))
           elif [ -d "frontend/src/__tests__/cypress/cypress/tests/e2e/$MODULE_NAME" ] || [ -d "frontend/src/__tests__/cypress/cypress/tests/e2e/$(echo $MODULE_NAME | sed 's/-//g')" ]; then
             UI_TESTS_FOUND=$((UI_TESTS_FOUND + 1))
           fi
 
           # Mock tests (module-specific + main dashboard)
-          if find "$MODULE_PATH" -path "*/cypress/*" -name "*.cy.*" -exec grep -l "mock\|stub\|intercept" {} \; 2>/dev/null | head -1 > /dev/null; then
+          if [ -n "$(find "$MODULE_PATH" -path "*/cypress/*" -name "*.cy.*" -exec grep -l "mock\|stub\|intercept" {} \; 2>/dev/null | head -1)" ]; then
             UI_TESTS_FOUND=$((UI_TESTS_FOUND + 1))
           elif [ -d "frontend/src/__tests__/cypress/cypress/tests/mocked/$MODULE_NAME" ] || [ -d "frontend/src/__tests__/cypress/cypress/tests/mocked/$(echo $MODULE_NAME | sed 's/-//g')" ]; then
             UI_TESTS_FOUND=$((UI_TESTS_FOUND + 1))
@@ -803,7 +803,7 @@ jobs:
             BFF_PATH="$MODULE_PATH/bff"
             [ -d "$MODULE_PATH/upstream/bff" ] && BFF_PATH="$MODULE_PATH/upstream/bff"
 
-            if find "$BFF_PATH" -name "*.go" -exec grep -l "health\|/health\|healthcheck" {} \; | head -1 > /dev/null; then
+            if [ -n "$(find "$BFF_PATH" -name "*.go" -exec grep -l "health\|/health\|healthcheck" {} \; 2>/dev/null | head -1)" ]; then
               echo "✅ Health Check Endpoint - PRESENT"
               IMPLEMENTED_CHECKS=$((IMPLEMENTED_CHECKS + 1))
             else
@@ -1051,7 +1051,7 @@ jobs:
           fi
 
       - name: Comment PR with Quality Gates Summary
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && !github.event.pull_request.head.repo.fork
         uses: actions/github-script@v7
         with:
           script: |
