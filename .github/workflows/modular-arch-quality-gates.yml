@@ -261,9 +261,9 @@ jobs:
             cd - > /dev/null
           fi
 
-  # Quality Gate 2: Deployment Quality Gate
+  # Quality Gate 3: Application Quality Gate
   application-quality-gate:
-    name: Deployment Quality Gate
+    name: Application Quality Gate
     runs-on: ubuntu-latest
     needs: detect-changes
     if: needs.detect-changes.outputs.has-changes == 'true'
@@ -591,9 +591,9 @@ jobs:
           name: coverage-${{ matrix.module }}
           path: coverage/
 
-  # Quality Gate 3: Application Quality Gate
+  # Quality Gate 2: Deployment Quality Gate
   deployment-quality-gate:
-    name: Application Quality Gate
+    name: Deployment Quality Gate
     runs-on: ubuntu-latest
     needs: detect-changes
     if: needs.detect-changes.outputs.has-changes == 'true'
