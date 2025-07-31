@@ -34,17 +34,16 @@ git clone https://github.com/opendatahub-io/odh-dashboard
 2. Run the quick start script
 
 ```bash
-# for first time setup
+# For first time setup. This invokes scripts/dev/setup-dev.sh --cluster-type=existing --development-environment=local
 cd odh-dashboard && make setup-dev
 
-# recommended approach for subsequent use (skips dependencies installation/build steps and starts dev server automatically)
-# start-command can be changed to any other command (such as npm run dev)
+# Recommended approach for subsequent use (skips dependencies installation/build steps and starts dev server automatically)
 make ARGS="--start-command='cd frontend && npm run start:dev:ext' --skip-deps" setup-dev
 ```
 
 ```bash
-# to view the help menu
-make ARGS="--help" setup-dev
+# To view the help menu if you want a more custom setup.
+scripts/dev/setup-dev.sh --help
 ```
 
 - This script will install OpenShift CLI (oc), login to an existing cluster, setup the required operators, install node dependencies, and build the project.
