@@ -2,6 +2,7 @@ import { HTPASSWD_CLUSTER_ADMIN_USER } from '#~/__tests__/cypress/cypress/utils/
 import { explorePage } from '#~/__tests__/cypress/cypress/pages/explore';
 import { enabledPage } from '#~/__tests__/cypress/cypress/pages/enabled';
 import { nimCard } from '#~/__tests__/cypress/cypress/pages/components/NIMCard';
+import { toastNotifications } from '#~/__tests__/cypress/cypress/pages/components/ToastNotifications';
 import { deleteNIMAccount } from '#~/__tests__/cypress/cypress/utils/oc_commands/baseCommands';
 import { wasSetupPerformed } from '#~/__tests__/cypress/cypress/utils/retryableHooks';
 
@@ -33,9 +34,11 @@ describe('[Product Bug: NVPE-244] Verify NIM enable flow', () => {
       nimCard.getNGCAPIKey().type(Cypress.env('NGC_API_KEY'));
       cy.step('Click submit to enable the NIM application');
       nimCard.getNIMSubmit().click();
-      cy.step('Wait for "Validating..." to complete');
+      cy.step('Wait for "Validating..." to complete and verify the validation message');
       nimCard.getProgressTitle().should('contain', 'Validating your entries');
       nimCard.getProgressTitle({ timeout: 120000 }).should('not.exist');
+      cy.step('Check for success notification');
+      toastNotifications.findToastNotification(0).should('contain.text', 'NIM has been moved to the enable page');
       cy.step('Visit the enabled applications page');
       enabledPage.visit();
       cy.step('Validate NIM Card contents on Enabled page');
