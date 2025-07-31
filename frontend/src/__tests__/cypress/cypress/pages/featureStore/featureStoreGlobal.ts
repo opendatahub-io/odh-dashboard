@@ -13,9 +13,8 @@ class FeatureStoreGlobal {
     this.waitForFeatureViews();
   }
 
-  visitEntities(project: string) {
-    const projectName = project;
-    cy.visitWithLogin(`/featureStore/entities/${projectName}`);
+  visitEntities(project?: string) {
+    cy.visitWithLogin(`/featureStore/entities${project ? `/${project}` : ''}`);
     this.waitForEntities();
   }
 
