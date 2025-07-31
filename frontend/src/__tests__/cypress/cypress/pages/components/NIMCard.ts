@@ -14,7 +14,9 @@ export class NIMCard extends Card {
   }
 
   getNGCAPIKey(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.get('[data-id="NVIDIA personal API key"]');
+    // Use a more generic selector that looks for password input field
+    // This should be more resilient to data-id changes
+    return cy.get('input[type="password"]');
   }
 
   getNIMSubmit(): Cypress.Chainable<JQuery<HTMLElement>> {
