@@ -6,7 +6,8 @@ import { FeatureService } from '#~/pages/featureStore/types/featureServices';
 import TableRowTitleDescription from '#~/components/table/TableRowTitleDescription.tsx';
 import FeatureStoreTags from '#~/pages/featureStore/components/FeatureStoreTags';
 import { relativeTime } from '#~/utilities/time.ts';
-import { featureServiceRoute } from '#~/pages/featureStore/routes';
+import { featureServiceRoute, featureViewRoute } from '#~/pages/featureStore/routes';
+import ScrollableLinksPopover from '../../components/ScrollableLinksPopover';
 
 type FeatureServiceTableRowType = {
   featureService: FeatureService;
@@ -37,7 +38,20 @@ const FeatureServiceTableRow: React.FC<FeatureServiceTableRowType> = ({
     <Td dataLabel="Tags">
       <FeatureStoreTags tags={featureService.spec.tags ?? {}} threshold={3} />
     </Td>
-    <Td dataLabel="Feature views">{featureService.spec.features?.length ?? 0}</Td>
+    <Td dataLabel="Feature views">
+      <ScrollableLinksPopover
+        trigger={<span>{featureService.spec.features?.length ?? 0}</span>}
+        links={
+          featureService.spec.features?.map((feature) => ({
+            name: feature.featureViewName,
+            to: featureViewRoute(
+              feature.featureViewName,
+              fsProject ?? featureService.project ?? '',
+            ),
+          })) ?? []
+        }
+      />
+    </Td>
     <Td dataLabel="Created">
       {featureService.meta.createdTimestamp ? (
         <Timestamp
