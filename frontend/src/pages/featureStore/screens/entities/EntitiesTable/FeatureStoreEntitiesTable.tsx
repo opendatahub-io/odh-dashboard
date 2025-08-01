@@ -4,8 +4,8 @@ import DashboardEmptyTableView from '#~/concepts/dashboard/DashboardEmptyTableVi
 import { useFeatureStoreProject } from '#~/pages/featureStore/FeatureStoreContext';
 import { Entity } from '#~/pages/featureStore/types/entities';
 import { AllProjectColumns, columns } from '#~/pages/featureStore/screens/entities/const';
-import FeatureStoreEntitiesTableRow from './FeatureStoreEntitiesTableRow';
 import { FeatureStoreRelationship } from '#~/pages/featureStore/types/global.ts';
+import FeatureStoreEntitiesTableRow from './FeatureStoreEntitiesTableRow';
 
 type FeatureStoreEntitiesTableProps = {
   entities: Entity[];
