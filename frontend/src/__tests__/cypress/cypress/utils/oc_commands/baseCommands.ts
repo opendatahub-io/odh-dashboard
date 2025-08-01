@@ -56,13 +56,17 @@ export const applyNIMApplication = (
 ): Cypress.Chainable<CommandLineResult> => {
   cy.log('Applying NVIDIA NIM OdhApplication manifest...');
   
-  // Get the current working directory to construct the correct path
-  return cy.exec('pwd').then((pwdResult) => {
-    const currentDir = pwdResult.stdout.trim();
-    cy.log(`Current working directory: ${currentDir}`);
+  // Find the manifest file in the current directory structure
+  return cy.exec('find . -name "nvidia-nim-app.yaml" -type f').then((findResult) => {
+    if (findResult.code !== 0 || !findResult.stdout.trim()) {
+      cy.log('❌ Could not find nvidia-nim-app.yaml file');
+      cy.log(`find command output: ${findResult.stdout}`);
+      cy.log(`find command error: ${findResult.stderr}`);
+      throw new Error('NIM manifest file not found. Please ensure the file exists in the repository.');
+    }
     
-    const manifestPath = `${currentDir}/manifests/rhoai/shared/apps/nvidia-nim/nvidia-nim-app.yaml`;
-    cy.log(`Manifest path: ${manifestPath}`);
+    const manifestPath = findResult.stdout.trim();
+    cy.log(`Found manifest file at: ${manifestPath}`);
     
     const ns = namespace ? `-n ${namespace}` : '';
     const ocCommand = `oc apply -f ${manifestPath} ${ns}`;
