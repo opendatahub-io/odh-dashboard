@@ -30,16 +30,19 @@ type ProjectDeploymentWatcherProps = {
     state: { deployments?: Deployment[]; loaded: boolean; error?: Error },
   ) => void;
   unloadProjectDeployments: (projectName: string) => void;
+  labelSelectors?: { [key: string]: string };
 };
 
 const ProjectDeploymentWatcher: React.FC<ProjectDeploymentWatcherProps> = ({
   project,
   watcher,
+  labelSelectors,
   onStateChange,
   unloadProjectDeployments,
 }) => {
   const useWatchDeployments = watcher.properties.watch;
-  const [deployments, loaded, error] = useWatchDeployments(project);
+
+  const [deployments, loaded, error] = useWatchDeployments(project, labelSelectors);
   const projectName = project.metadata.name;
 
   React.useEffect(() => {
@@ -55,12 +58,14 @@ const ProjectDeploymentWatcher: React.FC<ProjectDeploymentWatcherProps> = ({
 type ModelDeploymentsProviderProps = {
   projects: ProjectKind[];
   modelServingPlatforms: ModelServingPlatform[];
+  labelSelectors?: { [key: string]: string };
   children: React.ReactNode;
 };
 
 export const ModelDeploymentsProvider: React.FC<ModelDeploymentsProviderProps> = ({
   projects,
   modelServingPlatforms,
+  labelSelectors,
   children,
 }) => {
   const [deploymentWatchers, deploymentWatchersLoaded] = useResolvedExtensions(
@@ -118,7 +123,7 @@ export const ModelDeploymentsProvider: React.FC<ModelDeploymentsProviderProps> =
       {
         // the only way to dynamically call hooks (useWatchDeployments) is to render them in dynamic components
         projects.map((project) => {
-          const platform = getProjectServingPlatform(project, modelServingPlatforms, true);
+          const platform = getProjectServingPlatform(project, modelServingPlatforms);
           const watcher = deploymentWatchers.find(
             (w) => w.properties.platform === platform?.properties.id,
           );
@@ -132,6 +137,7 @@ export const ModelDeploymentsProvider: React.FC<ModelDeploymentsProviderProps> =
               key={project.metadata.name}
               project={project}
               watcher={watcher}
+              labelSelectors={labelSelectors}
               onStateChange={updateProjectDeployments}
               unloadProjectDeployments={unloadProjectDeployments}
             />
