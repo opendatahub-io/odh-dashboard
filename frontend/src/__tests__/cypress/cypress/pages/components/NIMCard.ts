@@ -6,10 +6,10 @@ export class NIMCard extends Card {
   }
 
   getNIMCard(): Cypress.Chainable<JQuery<HTMLElement>> {
-    // Try the specific selector first, then fall back to the original
-    return cy.get('label[for="nvidia-nim-selectable-card-id"]').then(($element) => {
+    // Try the specific input selector first, then fall back to the original
+    return cy.get('input[id="nvidia-nim-selectable-card-id"]').then(($element) => {
       if ($element.length > 0) {
-        cy.log('✅ NIM card found using label selector');
+        cy.log('✅ NIM card found using input selector');
         return $element;
       } else {
         cy.log('🔄 Falling back to original testid selector');
@@ -23,8 +23,8 @@ export class NIMCard extends Card {
       // Try multiple selectors to find the NIM card
       const selectors = [
         '[data-testid="card nvidia-nim"]',
-        '[for="nvidia-nim-selectable-card-id"]',
-        'label[for="nvidia-nim-selectable-card-id"]',
+        '#nvidia-nim-selectable-card-id',
+        'input[id="nvidia-nim-selectable-card-id"]',
         '[data-testid*="nvidia-nim"]',
         '[id*="nvidia-nim"]'
       ];
