@@ -19,12 +19,12 @@ import { dataEntryToRecord } from '#~/utilities/dataEntryToRecord';
 import useNamespaceSecret from '#~/concepts/projects/apiHooks/useNamespaceSecret';
 import { ExternalDatabaseSecret } from '#~/concepts/pipelines/content/configurePipelinesServer/const';
 import { DSPipelineAPIServerStore, DSPipelineKind } from '#~/k8sTypes';
-import PipelineKubernetesStoreCheckbox from './PipelineKubernetesStoreCheckbox';
 import { updatePipelineCaching } from '#~/api/pipelines/k8s.ts';
 import {
   NotificationResponseStatus,
   NotificationWatcherContext,
 } from '#~/concepts/notificationWatcher/NotificationWatcherContext';
+import PipelineKubernetesStoreCheckbox from './PipelineKubernetesStoreCheckbox';
 import { MANAGE_PIPELINE_SERVER_TITLE } from './const';
 import { PipelineCachingSection } from './configurePipelinesServer/PipelineCachingSection';
 
