@@ -65,7 +65,7 @@ class ModelServingGlobal {
   }
 
   findSingleServingModelButton() {
-    return cy.findByTestId('single-serving-select-button');
+    return cy.findByTestId('kserve-select-button');
   }
 
   findMultiModelButton() {
