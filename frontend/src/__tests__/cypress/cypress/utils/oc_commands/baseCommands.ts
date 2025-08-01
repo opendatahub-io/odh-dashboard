@@ -46,7 +46,7 @@ export const applyOpenShiftYaml = (
 
 /**
  * Applies the NVIDIA NIM OdhApplication manifest to enable NIM on the cluster.
- * This function reads the NIM manifest file and applies it using oc apply.
+ * This function applies the NIM manifest file directly using oc apply -f.
  * 
  * @param namespace The namespace where the OdhApplication should be applied (default: APPLICATIONS_NAMESPACE)
  * @returns A Cypress chainable that applies the NIM manifest
@@ -56,11 +56,11 @@ export const applyNIMApplication = (
 ): Cypress.Chainable<CommandLineResult> => {
   cy.log('Applying NVIDIA NIM OdhApplication manifest...');
   
-  // Read the NIM manifest file directly from the file system
-  return cy.readFile('manifests/rhoai/shared/apps/nvidia-nim/nvidia-nim-app.yaml').then((yamlContent) => {
-    cy.log('NIM manifest loaded, applying to cluster...');
-    return applyOpenShiftYaml(yamlContent, namespace);
-  });
+  const ns = namespace ? `-n ${namespace}` : '';
+  const ocCommand = `oc apply -f manifests/rhoai/shared/apps/nvidia-nim/nvidia-nim-app.yaml ${ns}`;
+  
+  cy.log(`Executing: ${ocCommand}`);
+  return execWithOutput(ocCommand);
 };
 
 /**
