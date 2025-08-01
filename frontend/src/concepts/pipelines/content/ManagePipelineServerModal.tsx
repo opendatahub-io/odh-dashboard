@@ -19,7 +19,7 @@ import { dataEntryToRecord } from '#~/utilities/dataEntryToRecord';
 import useNamespaceSecret from '#~/concepts/projects/apiHooks/useNamespaceSecret';
 import { ExternalDatabaseSecret } from '#~/concepts/pipelines/content/configurePipelinesServer/const';
 import { DSPipelineAPIServerStore, DSPipelineKind } from '#~/k8sTypes';
-import { updatePipelineCaching } from '#~/api/pipelines/k8s.ts';
+import { updatePipelineCaching } from '#~/api/pipelines/k8s';
 import {
   NotificationResponseStatus,
   NotificationWatcherContext,
