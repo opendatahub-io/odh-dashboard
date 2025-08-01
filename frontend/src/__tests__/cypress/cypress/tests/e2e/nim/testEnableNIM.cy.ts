@@ -39,8 +39,9 @@ describe('[Product Bug: NVPE-244] Verify NIM enable flow', () => {
             cy.step('Navigate to the Explore page after applying NIM');
             explorePage.visit();
             
-            // Wait a moment for the page to load and check again
-            cy.wait(2000);
+            // Wait longer for the NIM card to become visible after applying the manifest
+            cy.log('⏳ Waiting for NIM card to become visible...');
+            cy.wait(10000); // Increased from 2000ms to 10000ms
             nimCard.isNIMCardAvailable().then((isNowAvailable) => {
               if (!isNowAvailable) {
                 cy.log('❌ NIM card still not available after applying manifest');

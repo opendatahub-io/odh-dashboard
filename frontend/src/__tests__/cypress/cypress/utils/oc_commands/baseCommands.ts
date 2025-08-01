@@ -56,42 +56,13 @@ export const applyNIMApplication = (
 ): Cypress.Chainable<CommandLineResult> => {
   cy.log('Applying NVIDIA NIM OdhApplication manifest...');
   
-  // Debug: Check current directory and navigate to odh-dashboard root
-  return cy.exec('pwd').then((pwdResult) => {
-    cy.log(`Current working directory: ${pwdResult.stdout.trim()}`);
-    
-    // Navigate to the odh-dashboard root (6 levels up from cypress directory)
-    return cy.exec('cd ../../../../../.. && pwd').then((rootResult) => {
-      cy.log(`Odh-dashboard root directory: ${rootResult.stdout.trim()}`);
-      
-      // Now look for the manifest file from the root
-      return cy.exec('cd ../../../../../.. && find . -name "nvidia-nim-app.yaml" -type f').then((findResult) => {
-        cy.log(`Manifest search from root: ${findResult.stdout}`);
-        
-        if (findResult.code !== 0 || !findResult.stdout.trim()) {
-          cy.log('❌ Could not find nvidia-nim-app.yaml file in odh-dashboard root');
-          cy.log(`Find command output: ${findResult.stdout}`);
-          cy.log(`Find command error: ${findResult.stderr}`);
-          
-          // Try to list the manifests directory from root
-          return cy.exec('cd ../../../../../.. && ls -la manifests/ 2>/dev/null || echo "manifests/ not found"').then((lsResult) => {
-            cy.log(`manifests/ directory contents from root: ${lsResult.stdout}`);
-            
-            throw new Error('NIM manifest file not found. Please ensure the file exists in the repository.');
-          });
-        }
-        
-        const manifestPath = findResult.stdout.trim();
-        cy.log(`Found manifest file at: ${manifestPath}`);
-        
-        const ns = namespace ? `-n ${namespace}` : '';
-        const ocCommand = `cd ../../../../../.. && oc apply -f ${manifestPath} ${ns}`;
-        
-        cy.log(`Executing: ${ocCommand}`);
-        return execWithOutput(ocCommand);
-      });
-    });
-  });
+  // Use the hardcoded path we discovered from Jenkins environment
+  const manifestPath = './dashboard-tests/odh-dashboard/manifests/rhoai/shared/apps/nvidia-nim/nvidia-nim-app.yaml';
+  const ns = namespace ? `-n ${namespace}` : '';
+  const ocCommand = `cd ../../../../../.. && oc apply -f ${manifestPath} ${ns}`;
+  
+  cy.log(`Executing: ${ocCommand}`);
+  return execWithOutput(ocCommand);
 };
 
 /**
