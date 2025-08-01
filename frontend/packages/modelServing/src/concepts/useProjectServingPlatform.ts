@@ -65,12 +65,13 @@ export const useProjectServingPlatform = (
   setProjectPlatform: (platform: ModelServingPlatform) => void;
   resetProjectPlatform: () => void;
   newProjectPlatformLoading?: ModelServingPlatform | null;
-  projectPlatformError: string | null;
+  projectPlatformError: Error | null;
+  clearProjectPlatformError: () => void;
 } => {
   const [tmpProjectPlatform, setTmpProjectPlatform] = React.useState<
     ModelServingPlatform | null | undefined
   >(project && platforms ? getProjectServingPlatform(project, platforms) : undefined);
-  const [projectPlatformError, setProjectPlatformError] = React.useState<string | null>(null);
+  const [projectPlatformError, setProjectPlatformError] = React.useState<Error | null>(null);
   const [newProjectPlatformLoading, setNewProjectPlatformLoading] = React.useState<
     ModelServingPlatform | null | undefined
   >();
@@ -98,7 +99,11 @@ export const useProjectServingPlatform = (
         project.metadata.name,
         platformToEnable.properties.manage.namespaceApplicationCase,
       ).catch((e) => {
-        setProjectPlatformError(e.message);
+        if (e instanceof Error) {
+          setProjectPlatformError(e);
+        } else {
+          setProjectPlatformError(new Error('Error selecting platform'));
+        }
         setNewProjectPlatformLoading(undefined);
       });
     },
@@ -136,5 +141,6 @@ export const useProjectServingPlatform = (
     resetProjectPlatform,
     newProjectPlatformLoading,
     projectPlatformError,
+    clearProjectPlatformError: () => setProjectPlatformError(null),
   };
 };
