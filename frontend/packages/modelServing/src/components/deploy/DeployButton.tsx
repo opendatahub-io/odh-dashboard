@@ -16,7 +16,7 @@ export const DeployButton: React.FC<{
       // }}
       isAriaDisabled={isDisabled}
     >
-      Deploy Model
+      Deploy model
     </Button>
   );
   if (!platform || isDisabled) {
