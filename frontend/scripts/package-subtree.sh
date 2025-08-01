@@ -56,14 +56,146 @@ if [ "$CURRENT_COMMIT" = "$ACTUAL_COMMIT" ] && [ -d "$TARGET_DIR" ]; then
   exit 0
 fi
 
-# Copy content (staying in monorepo root)
-rm -rf "$TARGET_DIR"
-mkdir -p "$TARGET_DIR"
-
-if [ -n "$UPSTREAM_SUBDIR" ]; then
-  cp -r "$TMP_DIR/repo/$UPSTREAM_SUBDIR/." "$TARGET_DIR/"
+# Handle first-time setup vs updates
+if [ ! -d "$TARGET_DIR" ] || [ -z "$CURRENT_COMMIT" ] || [ "$CURRENT_COMMIT" = "null" ]; then
+  echo "Performing initial copy from $UPSTREAM_REPO"
+  mkdir -p "$TARGET_DIR"
+  
+  if [ -n "$UPSTREAM_SUBDIR" ]; then
+    cp -r "$TMP_DIR/repo/$UPSTREAM_SUBDIR/." "$TARGET_DIR/"
+  else
+    cp -r "$TMP_DIR/repo/." "$TARGET_DIR/"
+  fi
 else
-  cp -r "$TMP_DIR/repo/." "$TARGET_DIR/"
+  echo "Applying changes from $CURRENT_COMMIT to $ACTUAL_COMMIT"
+  
+  # Create a temporary git repo to generate and apply the diff
+  PATCH_DIR=$(mktemp -d)
+  trap "cd '$MONOREPO_ROOT'; rm -rf '$TMP_DIR' '$PATCH_DIR'" EXIT
+  
+  # Clone and setup for patch generation
+  git clone -q "$UPSTREAM_REPO" "$PATCH_DIR/repo"
+  cd "$PATCH_DIR/repo"
+  
+  # Generate patch between commits
+  echo "Generating patch between $CURRENT_COMMIT..$ACTUAL_COMMIT"
+  if [ -n "$UPSTREAM_SUBDIR" ]; then
+    # Generate patch for subdirectory only
+    echo "Using subdirectory filter: $UPSTREAM_SUBDIR"
+    git format-patch --relative="$UPSTREAM_SUBDIR" --stdout "$CURRENT_COMMIT..$ACTUAL_COMMIT" > "$PATCH_DIR/changes.patch"
+  else
+    # Generate patch for entire repo
+    echo "Using entire repo"
+    git format-patch --stdout "$CURRENT_COMMIT..$ACTUAL_COMMIT" > "$PATCH_DIR/changes.patch"
+  fi
+  
+  echo "Patch file size: $(wc -c < "$PATCH_DIR/changes.patch") bytes"
+  
+  # Return to monorepo root
+  cd "$MONOREPO_ROOT"
+  
+  # Apply patch if it's not empty
+  if [ -s "$PATCH_DIR/changes.patch" ]; then
+    echo "Applying upstream changes..."
+    echo "Patch contents:"
+    cat "$PATCH_DIR/changes.patch"
+    echo "---"
+    
+    # Create backup of target directory
+    BACKUP_DIR=$(mktemp -d)
+    cp -r "$TARGET_DIR/." "$BACKUP_DIR/"
+    
+    # Try to apply the patch
+    echo "Attempting to apply patch in directory: $TARGET_DIR"
+    if (cd "$TARGET_DIR" && git apply --verbose --whitespace=warn "$PATCH_DIR/changes.patch"); then
+      echo "✅ Successfully applied upstream changes"
+      rm -rf "$BACKUP_DIR"
+    else
+      echo "⚠️  Patch application failed, attempting 3-way merge..."
+      
+      # Restore backup
+      rm -rf "$TARGET_DIR"
+      mv "$BACKUP_DIR" "$TARGET_DIR"
+      
+      # Try 3-way merge approach
+      MERGE_DIR=$(mktemp -d)
+      
+      # Setup merge directories
+      mkdir -p "$MERGE_DIR/base" "$MERGE_DIR/upstream" "$MERGE_DIR/current"
+      
+      # Get base version (old commit)
+      cd "$TMP_DIR/repo"
+      git checkout -q "$CURRENT_COMMIT"
+      if [ -n "$UPSTREAM_SUBDIR" ]; then
+        cp -r "$UPSTREAM_SUBDIR/." "$MERGE_DIR/base/" 2>/dev/null || true
+      else
+        cp -r . "$MERGE_DIR/base/"
+      fi
+      
+      # Get upstream version (new commit)
+      git checkout -q "$ACTUAL_COMMIT"
+      if [ -n "$UPSTREAM_SUBDIR" ]; then
+        cp -r "$UPSTREAM_SUBDIR/." "$MERGE_DIR/upstream/" 2>/dev/null || true
+      else
+        cp -r . "$MERGE_DIR/upstream/"
+      fi
+      
+      # Copy current version
+      cp -r "$TARGET_DIR/." "$MERGE_DIR/current/"
+      
+      cd "$MONOREPO_ROOT"
+      
+      # Perform 3-way merge using git
+      cd "$MERGE_DIR"
+      git init -q
+      git config user.email "package-subtree@local"
+      git config user.name "Package Subtree"
+      
+      # Add base version
+      cp -r base/. .
+      git add -A
+      git commit -q -m "Base version"
+      BASE_COMMIT=$(git rev-parse HEAD)
+      
+      # Add current version
+      rm -rf * .[^.]*
+      cp -r current/. .
+      git add -A
+      git commit -q -m "Current version"
+      CURRENT_MERGE_COMMIT=$(git rev-parse HEAD)
+      
+      # Create upstream branch and merge
+      git checkout -q -b upstream "$BASE_COMMIT"
+      rm -rf * .[^.]*
+      cp -r upstream/. .
+      git add -A
+      git commit -q -m "Upstream version"
+      
+      # Attempt merge
+      git checkout -q "$CURRENT_MERGE_COMMIT"
+      if git merge -q --no-edit upstream; then
+        echo "✅ 3-way merge successful"
+        # Copy merged result back
+        rm -rf "$TARGET_DIR"
+        mkdir -p "$TARGET_DIR"
+        cp -r . "$TARGET_DIR/"
+        # Remove git artifacts
+        rm -rf "$TARGET_DIR/.git"
+      else
+        echo "❌ Merge conflicts detected. Manual resolution required."
+        echo "Merge workspace available at: $MERGE_DIR"
+        echo "Current directory preserved unchanged."
+        # Don't clean up merge dir so user can inspect
+        trap "cd '$MONOREPO_ROOT'; rm -rf '$TMP_DIR'" EXIT
+        exit 1
+      fi
+      
+      cd "$MONOREPO_ROOT"
+      rm -rf "$MERGE_DIR"
+    fi
+  else
+    echo "No changes to apply between $CURRENT_COMMIT and $ACTUAL_COMMIT"
+  fi
 fi
 
 # Update package.json with the new commit ID
