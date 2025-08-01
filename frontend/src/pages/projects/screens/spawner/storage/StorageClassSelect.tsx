@@ -104,7 +104,7 @@ const StorageClassSelect: React.FC<StorageClassSelectProps> = ({
           <SplitItem isFilled />
           <SplitItem>
             {/* If multiple storage classes have `isDefault` set to true,
-            prioritize the one returned by useAdminDefaultStorageClass() as the default class */}
+            prioritize the one returned by useDefaultStorageClass() as the default class */}
             <LabelGroup>
               {getPossibleStorageClassAccessModes(sc).adminSupportedAccessModes.map(
                 (accessMode, index) => (
