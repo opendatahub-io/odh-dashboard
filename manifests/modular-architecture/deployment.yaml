@@ -10,7 +10,7 @@
   path: /spec/template/spec/containers/-
   value: 
     name: model-registry-ui
-    image: model-registry-ui
+    image: $(model-registry-ui-image)
     imagePullPolicy: Always
     livenessProbe:
       httpGet:
