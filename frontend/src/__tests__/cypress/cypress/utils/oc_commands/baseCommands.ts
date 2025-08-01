@@ -1,4 +1,8 @@
 import type { CommandLineResult } from '#~/__tests__/cypress/cypress/types';
+import * as path from 'path';
+
+// Get the project root directory (5 levels up from this file)
+const PROJECT_ROOT = path.resolve(__dirname, '../../../../../');
 
 /**
  * Run a command and return the result exitCode and output (including stderr).
@@ -56,17 +60,12 @@ export const applyNIMApplication = (
 ): Cypress.Chainable<CommandLineResult> => {
   cy.log('Applying NVIDIA NIM OdhApplication manifest...');
   
-  // Get the current working directory to construct absolute path
-  return cy.exec('pwd').then((pwdResult) => {
-    const currentDir = pwdResult.stdout.trim();
-    const manifestPath = `${currentDir}/manifests/rhoai/shared/apps/nvidia-nim/nvidia-nim-app.yaml`;
-    
-    const ns = namespace ? `-n ${namespace}` : '';
-    const ocCommand = `oc apply -f ${manifestPath} ${ns}`;
-    
-    cy.log(`Executing: ${ocCommand}`);
-    return execWithOutput(ocCommand);
-  });
+  const manifestPath = `${PROJECT_ROOT}/manifests/rhoai/shared/apps/nvidia-nim/nvidia-nim-app.yaml`;
+  const ns = namespace ? `-n ${namespace}` : '';
+  const ocCommand = `oc apply -f ${manifestPath} ${ns}`;
+  
+  cy.log(`Executing: ${ocCommand}`);
+  return execWithOutput(ocCommand);
 };
 
 /**
