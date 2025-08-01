@@ -1,5 +1,4 @@
 import React from 'react';
-import ModelServingToolbar from '@odh-dashboard/internal/pages/modelServing/screens/global/ModelServingToolbar';
 import {
   initialModelServingFilterData,
   type ModelServingFilterDataType,
@@ -11,6 +10,7 @@ import { ProjectsContext } from '@odh-dashboard/internal/concepts/projects/Proje
 import { useExtensions, useResolvedExtensions } from '@odh-dashboard/plugin-core';
 import type { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
 import { Label } from '@patternfly/react-core';
+import GlobalModelsToolbar from './GlobalModelsToolbar';
 import DeploymentsTable from '../deployments/DeploymentsTable';
 import {
   isModelServingDeploymentsTableExtension,
@@ -107,7 +107,7 @@ const GlobalDeploymentsTable: React.FC<{ deployments: Deployment[]; loaded: bool
       loaded={loaded && tableExtensionsLoaded}
       platformColumns={platformColumns}
       toolbarContent={
-        <ModelServingToolbar
+        <GlobalModelsToolbar
           filterData={filterData}
           onFilterUpdate={(key, value) => setFilterData((prev) => ({ ...prev, [key]: value }))}
         />
