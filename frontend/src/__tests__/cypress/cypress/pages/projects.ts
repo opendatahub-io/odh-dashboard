@@ -269,7 +269,7 @@ class ProjectDetails {
   }
 
   findDeployModelTooltip() {
-    return cy.findByTestId('model-serving-action-tooltip');
+    return cy.findByTestId('deploy-model-tooltip');
   }
 
   shouldHaveNoPlatformSelectedText() {
