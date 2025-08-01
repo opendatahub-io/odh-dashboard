@@ -45,8 +45,8 @@ describe('[Product Bug: NVPE-244] Verify NIM enable flow', () => {
               if (!isNowAvailable) {
                 cy.log('❌ NIM card still not available after applying manifest');
                 cy.log('💡 This might be due to timing or cluster configuration issues');
-                cy.log('⏭️  Skipping NIM enable test');
-                return;
+                // Let the test fail instead of skipping - this helps identify real issues
+                throw new Error('NIM card is not available after applying manifest. This indicates a real issue that needs investigation.');
               }
               
               cy.log('✅ NIM card is now available, proceeding with test');
