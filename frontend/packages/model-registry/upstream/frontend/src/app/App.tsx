@@ -1,6 +1,16 @@
 import * as React from 'react';
 import '@patternfly/react-core/dist/styles/base.css';
 import './app.css';
+
+// Demo comment: Testing quality gates workflow output
+// Updated: Testing enhanced test detection with main dashboard e2e/mocked tests
+// Updated: Testing FIXED quality gates - should show accurate results now!
+// Updated: Testing pipeline trigger after branch updates
+// Updated: Clean pipeline run after CSV cleanup
+// Updated: Testing PR comment fix - should post summary now!
+// Updated: Testing ROBUST PR comment solution - multi-layer visibility!
+// Updated: Testing CRITICAL REGEX FIX - proper test detection!
+// Updated: Testing DIRECT FILE READ FIX - PR comments should work now!
 import {
   Alert,
   Bullseye,

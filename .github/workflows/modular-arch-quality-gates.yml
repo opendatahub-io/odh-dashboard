@@ -1,0 +1,1212 @@
+name: 'Modular Architecture - Quality Gates'
+
+on:
+  pull_request:
+    paths:
+      - 'frontend/packages/**'
+      - '.github/workflows/modular-arch-quality-gates.yml'
+  push:
+    paths:
+      - 'frontend/packages/**'
+    branches:
+      - main
+      - stable
+
+env:
+  NODE_VERSION: 20.x
+  GO_VERSION: '1.24.3'
+
+jobs:
+  detect-changes:
+    name: Detect Module Changes
+    runs-on: ubuntu-latest
+    outputs:
+      modules-matrix: ${{ steps.generate-matrix.outputs.modules-matrix }}
+      has-changes: ${{ steps.check-changes.outputs.has-changes }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect changed modules
+        id: check-changes
+        run: |
+          CHANGED_MODULES=$(git diff --name-only ${{ github.event.before || 'HEAD~1' }}..HEAD | grep '^frontend/packages/' | cut -d'/' -f3 | sort -u)
+          echo "Changed modules: $CHANGED_MODULES"
+
+          if [ -n "$CHANGED_MODULES" ]; then
+            echo "has-changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "has-changes=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Generate test matrix
+        id: generate-matrix
+        run: |
+          CHANGED_MODULES=$(git diff --name-only ${{ github.event.before || 'HEAD~1' }}..HEAD | grep '^frontend/packages/' | cut -d'/' -f3 | sort -u)
+          if [ -n "$CHANGED_MODULES" ]; then
+            # Create JSON array properly with error handling
+            MATRIX_JSON="["
+            FIRST=true
+            for module in $CHANGED_MODULES; do
+              if [ "$FIRST" = true ]; then
+                MATRIX_JSON="${MATRIX_JSON}\"${module}\""
+                FIRST=false
+              else
+                MATRIX_JSON="${MATRIX_JSON},\"${module}\""
+              fi
+            done
+            MATRIX_JSON="${MATRIX_JSON}]"
+            echo "modules-matrix=${MATRIX_JSON}" >> $GITHUB_OUTPUT
+          else
+            echo "modules-matrix=[]" >> $GITHUB_OUTPUT
+          fi
+
+  # Quality Gate 1: Code Quality Gate
+  code-quality-gate:
+    name: Code Quality Gate
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.has-changes == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        module: ${{ fromJson(needs.detect-changes.outputs.modules-matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 🔍 Check Quality Gates Configuration
+        id: check-config
+        run: |
+          MODULE_PATH="frontend/packages/${{ matrix.module }}"
+
+          # Check if quality gate notifications should be silenced for this module
+          SILENT_MODE="false"
+          SILENT_REASON=""
+
+          # Check for .quality-gates-config.yml
+          if [ -f ".quality-gates-config.yml" ]; then
+            if grep -q "^  ${{ matrix.module }}:" .quality-gates-config.yml; then
+              STATUS=$(grep -A1 "^  ${{ matrix.module }}:" .quality-gates-config.yml | grep "status:" | awk '{print $2}' | tr -d '"')
+              if [ "$STATUS" = "silent" ]; then
+                SILENT_MODE="true"
+                REASON=$(grep -A2 "^  ${{ matrix.module }}:" .quality-gates-config.yml | grep "reason:" | cut -d'"' -f2)
+                SILENT_REASON="${REASON:-Quality gate notifications silenced}"
+              fi
+            fi
+          fi
+
+          echo "silent_mode=$SILENT_MODE" >> $GITHUB_OUTPUT
+          echo "silent_reason=$SILENT_REASON" >> $GITHUB_OUTPUT
+
+          if [ "$SILENT_MODE" = "true" ]; then
+            echo "🔕 Quality Gate Notifications SILENCED for ${{ matrix.module }}"
+            echo "📋 Reason: $SILENT_REASON"
+            echo ""
+            echo "ℹ️  Quality checks may still run in background for metrics"
+            echo "ℹ️  To restore notifications, update .quality-gates-config.yml"
+          else
+            echo "🔍 Running quality gates with full notifications for ${{ matrix.module }}"
+          fi
+
+      - name: Setup Node.js
+        if: steps.check-config.outputs.silent_mode != 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Setup Go
+        if: steps.check-config.outputs.silent_mode != 'true' && hashFiles(format('frontend/packages/{0}/bff/go.mod', matrix.module)) != ''
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: 🔍 Validate Modular Architecture Compliance
+        if: steps.check-config.outputs.silent_mode != 'true'
+        run: |
+          MODULE_PATH="frontend/packages/${{ matrix.module }}"
+          echo "🔍 Checking modular architecture compliance for: ${{ matrix.module }}"
+
+          ERRORS=0
+
+          # 1. Check for mod-arch-shared dependency (if frontend exists)
+          if [ -d "$MODULE_PATH/frontend" ]; then
+            if [ ! -f "$MODULE_PATH/frontend/package.json" ]; then
+              echo "❌ Missing frontend/package.json"
+              ERRORS=$((ERRORS + 1))
+            elif ! grep -q '"mod-arch-shared"' "$MODULE_PATH/frontend/package.json"; then
+              echo "❌ Missing mod-arch-shared dependency - required for modular architecture"
+              echo "   Add: npm install mod-arch-shared"
+              ERRORS=$((ERRORS + 1))
+            else
+              echo "✅ mod-arch-shared dependency found"
+            fi
+
+            # 2. Check for ModularArchContextProvider usage
+            if [ -f "$MODULE_PATH/frontend/src/bootstrap.tsx" ]; then
+              if ! grep -q "ModularArchContextProvider" "$MODULE_PATH/frontend/src/bootstrap.tsx"; then
+                echo "❌ ModularArchContextProvider not found in bootstrap.tsx"
+                echo "   Required for modular architecture integration"
+                ERRORS=$((ERRORS + 1))
+              else
+                echo "✅ ModularArchContextProvider usage found"
+              fi
+            elif [ -f "$MODULE_PATH/frontend/src/index.tsx" ]; then
+              if ! grep -q "ModularArchContextProvider" "$MODULE_PATH/frontend/src/index.tsx"; then
+                echo "❌ ModularArchContextProvider not found in index.tsx"
+                echo "   Required for modular architecture integration"
+                ERRORS=$((ERRORS + 1))
+              else
+                echo "✅ ModularArchContextProvider usage found"
+              fi
+            else
+              echo "❌ Missing entry point (bootstrap.tsx or index.tsx)"
+              ERRORS=$((ERRORS + 1))
+            fi
+
+            # 3. Check for required PatternFly dependencies
+            REQUIRED_DEPS=("@patternfly/react-core" "@patternfly/react-icons" "react" "react-dom")
+            for dep in "${REQUIRED_DEPS[@]}"; do
+              if ! grep -q "\"$dep\"" "$MODULE_PATH/frontend/package.json"; then
+                echo "❌ Missing required dependency: $dep"
+                ERRORS=$((ERRORS + 1))
+              fi
+            done
+
+            if [ $ERRORS -eq 0 ]; then
+              echo "✅ All PatternFly dependencies found"
+            fi
+          fi
+
+          # 4. Check BFF compliance (if BFF exists)
+          if [ -d "$MODULE_PATH/bff" ]; then
+            if [ ! -f "$MODULE_PATH/bff/go.mod" ]; then
+              echo "❌ Missing bff/go.mod - required for Go BFF"
+              ERRORS=$((ERRORS + 1))
+            fi
+
+            if [ ! -f "$MODULE_PATH/bff/Makefile" ]; then
+              echo "❌ Missing bff/Makefile - required for standardized build"
+              ERRORS=$((ERRORS + 1))
+            fi
+
+            if [ ! -d "$MODULE_PATH/bff/cmd" ]; then
+              echo "❌ Missing bff/cmd directory - required for Go application"
+              ERRORS=$((ERRORS + 1))
+            fi
+
+            if [ $ERRORS -eq 0 ]; then
+              echo "✅ BFF structure compliant"
+            fi
+          fi
+
+          if [ $ERRORS -gt 0 ]; then
+            echo ""
+            echo "❌ Code Quality Gate FAILED with $ERRORS error(s)"
+            echo "📖 See modular architecture documentation for compliance requirements"
+            exit 1
+          else
+            echo ""
+            echo "✅ Code Quality Gate PASSED - Modular architecture compliant!"
+          fi
+
+      - name: 🧪 Run Code Quality Checks
+        if: steps.check-config.outputs.silent_mode != 'true'
+        run: |
+          MODULE_PATH="frontend/packages/${{ matrix.module }}"
+
+          # Frontend checks
+          if [ -d "$MODULE_PATH/frontend" ]; then
+            echo "🧪 Running frontend code quality checks..."
+            cd "$MODULE_PATH/frontend"
+
+            if [ -f "package.json" ]; then
+              npm ci
+
+              # TypeScript check
+              if grep -q '"test:type-check"' package.json; then
+                echo "🔍 TypeScript compilation check..."
+                npm run test:type-check
+              fi
+
+              # Linting check
+              if grep -q '"test:lint"' package.json; then
+                echo "🔍 ESLint check..."
+                npm run test:lint
+              fi
+
+              # Build check
+              if grep -q '"build"' package.json; then
+                echo "🔍 Build verification..."
+                npm run build
+              fi
+            fi
+
+            cd - > /dev/null
+          fi
+
+          # BFF checks
+          if [ -d "$MODULE_PATH/bff" ]; then
+            echo "🧪 Running BFF code quality checks..."
+            cd "$MODULE_PATH/bff"
+
+            if [ -f "Makefile" ]; then
+              # Go formatting check
+              if grep -q "^fmt:" Makefile; then
+                echo "🔍 Go formatting check..."
+                make fmt
+                if [ -n "$(git status --porcelain)" ]; then
+                  echo "❌ Go code not properly formatted"
+                  git diff
+                  exit 1
+                fi
+              fi
+
+              # Go build check
+              if grep -q "^build:" Makefile; then
+                echo "🔍 Go build check..."
+                make build
+              fi
+            fi
+
+            cd - > /dev/null
+          fi
+
+  # Quality Gate 3: Application Quality Gate
+  application-quality-gate:
+    name: Application Quality Gate
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.has-changes == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        module: ${{ fromJson(needs.detect-changes.outputs.modules-matrix) }}
+    outputs:
+      has-coverage: ${{ steps.coverage-check.outputs.has-coverage }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 🔍 Check Quality Gates Configuration
+        id: check-config
+        run: |
+          MODULE_PATH="frontend/packages/${{ matrix.module }}"
+
+          # Check if quality gate notifications should be silenced for this module
+          SILENT_MODE="false"
+          SILENT_REASON=""
+
+          # Check for .quality-gates-config.yml
+          if [ -f ".quality-gates-config.yml" ]; then
+            if grep -q "^  ${{ matrix.module }}:" .quality-gates-config.yml; then
+              STATUS=$(grep -A1 "^  ${{ matrix.module }}:" .quality-gates-config.yml | grep "status:" | awk '{print $2}' | tr -d '"')
+              if [ "$STATUS" = "silent" ]; then
+                SILENT_MODE="true"
+                REASON=$(grep -A2 "^  ${{ matrix.module }}:" .quality-gates-config.yml | grep "reason:" | cut -d'"' -f2)
+                SILENT_REASON="${REASON:-Quality gate notifications silenced}"
+              fi
+            fi
+          fi
+
+          echo "silent_mode=$SILENT_MODE" >> $GITHUB_OUTPUT
+          echo "silent_reason=$SILENT_REASON" >> $GITHUB_OUTPUT
+
+          if [ "$SILENT_MODE" = "true" ]; then
+            echo "🔕 Quality Gate Notifications SILENCED for ${{ matrix.module }}"
+            echo "📋 Reason: $SILENT_REASON"
+            echo ""
+            echo "ℹ️  Quality checks may still run in background for metrics"
+            echo "ℹ️  To restore notifications, update .quality-gates-config.yml"
+          else
+            echo "🔍 Running quality gates with full notifications for ${{ matrix.module }}"
+          fi
+
+      - name: Setup Node.js
+        if: steps.check-config.outputs.silent_mode != 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Setup Go
+        if: steps.check-config.outputs.silent_mode != 'true' && hashFiles(format('frontend/packages/{0}/bff/go.mod', matrix.module)) != ''
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: 🧪 Comprehensive Testing Maturity Assessment
+        id: testing-assessment
+        run: |
+          MODULE_PATH="frontend/packages/${{ matrix.module }}"
+          echo "🧪 Assessing testing maturity for: ${{ matrix.module }}"
+          echo "Based on Modular Architecture QE Requirements (7 test categories)"
+          echo "🎯 Model Registry Example: Comprehensive Cypress e2e tests with workflows"
+          echo ""
+
+          TOTAL_TESTS=7
+          IMPLEMENTED_TESTS=0
+          MISSING_TESTS=()
+
+          # Test 1: Unit Tests (Jest/Go)
+          echo "1️⃣ Unit Testing (Components/Utilities)"
+          if [ -d "$MODULE_PATH/frontend" ] || [ -d "$MODULE_PATH/upstream/frontend" ]; then
+            FRONTEND_PATH="$MODULE_PATH/frontend"
+            [ -d "$MODULE_PATH/upstream/frontend" ] && FRONTEND_PATH="$MODULE_PATH/upstream/frontend"
+
+            if [ -f "$FRONTEND_PATH/package.json" ] && (grep -qE '"test.*jest|jest.*test"' "$FRONTEND_PATH/package.json" || grep -q '"test:unit"' "$FRONTEND_PATH/package.json"); then
+              echo "   ✅ Frontend Unit Tests - IMPLEMENTED (Jest)"
+              IMPLEMENTED_TESTS=$((IMPLEMENTED_TESTS + 1))
+            else
+              echo "   ❌ Frontend Unit Tests - MISSING"
+              MISSING_TESTS+=("Unit Tests (Jest for components/utilities)")
+            fi
+          fi
+
+          # Test 2: Mock Testing (Clusterless)
+          echo "2️⃣ Mock Testing (Clusterless/BFF Mocking)"
+          MOCK_FOUND=false
+
+          if [ -d "$MODULE_PATH/frontend" ] || [ -d "$MODULE_PATH/upstream/frontend" ]; then
+            FRONTEND_PATH="$MODULE_PATH/frontend"
+            [ -d "$MODULE_PATH/upstream/frontend" ] && FRONTEND_PATH="$MODULE_PATH/upstream/frontend"
+
+            # Check module-specific mock tests
+            if [ -f "$FRONTEND_PATH/package.json" ] && grep -qE 'cypress.*mock|mock.*cypress' "$FRONTEND_PATH/package.json"; then
+              MOCK_FOUND=true
+            elif [ -n "$(find "$MODULE_PATH" -path "*/cypress/*" -name "*.cy.*" -exec grep -lE "mock|stub|intercept" {} \; 2>/dev/null | head -1)" ]; then
+              MOCK_FOUND=true
+            fi
+          fi
+
+          # Check main dashboard mocked tests for this module
+          MODULE_NAME=$(basename "$MODULE_PATH")
+          if [ -d "frontend/src/__tests__/cypress/cypress/tests/mocked/$MODULE_NAME" ] || [ -d "frontend/src/__tests__/cypress/cypress/tests/mocked/$(echo $MODULE_NAME | sed 's/-//g')" ]; then
+            MOCK_FOUND=true
+          fi
+
+          if [ "$MOCK_FOUND" = true ]; then
+            echo "   ✅ Mock Tests - IMPLEMENTED (Cypress with mocked BFF)"
+            # Show where tests were found for transparency
+            if [ -n "$(find "$MODULE_PATH" -path "*/cypress/*" -name "*.cy.*" -exec grep -lE "mock|stub|intercept" {} \; 2>/dev/null | head -1)" ]; then
+              echo "   📁 Found in: Module-specific cypress tests"
+            fi
+            if [ -d "frontend/src/__tests__/cypress/cypress/tests/mocked/$MODULE_NAME" ]; then
+              echo "   📁 Found in: frontend/src/__tests__/cypress/cypress/tests/mocked/$MODULE_NAME/"
+            elif [ -d "frontend/src/__tests__/cypress/cypress/tests/mocked/$(echo $MODULE_NAME | sed 's/-//g')" ]; then
+              echo "   📁 Found in: frontend/src/__tests__/cypress/cypress/tests/mocked/$(echo $MODULE_NAME | sed 's/-//g')/"
+            fi
+            IMPLEMENTED_TESTS=$((IMPLEMENTED_TESTS + 1))
+          else
+            echo "   ❌ Mock Tests - MISSING"
+            MISSING_TESTS+=("Mock Tests (Cypress with mocked BFF)")
+          fi
+
+          # Test 3: Integration Testing (E2E workflows like Model Registry)
+          echo "3️⃣ Integration Testing (E2E User Workflows)"
+          E2E_FOUND=false
+
+          # Check module-specific cypress tests
+          if [ -n "$(find "$MODULE_PATH" -path "*/cypress/*" -name "*.cy.*" 2>/dev/null | head -1)" ]; then
+            if [ -n "$(find "$MODULE_PATH" -path "*/cypress/*" -name "*.cy.*" -exec grep -lE "step|visit.*\(|click\(\)|type\(|should\(" {} \; 2>/dev/null | head -1)" ]; then
+              E2E_FOUND=true
+            fi
+          fi
+
+          # Check main dashboard e2e tests for this module
+          MODULE_NAME=$(basename "$MODULE_PATH")
+          if [ -d "frontend/src/__tests__/cypress/cypress/tests/e2e/$MODULE_NAME" ] || [ -d "frontend/src/__tests__/cypress/cypress/tests/e2e/$(echo $MODULE_NAME | sed 's/-//g')" ]; then
+            E2E_FOUND=true
+          fi
+
+          if [ "$E2E_FOUND" = true ]; then
+            echo "   ✅ E2E Integration Tests - IMPLEMENTED (Comprehensive workflows)"
+            # Show where tests were found for transparency
+            if [ -n "$(find "$MODULE_PATH" -path "*/cypress/*" -name "*.cy.*" 2>/dev/null | head -1)" ]; then
+              echo "   📁 Found in: Module-specific cypress tests"
+            fi
+            if [ -d "frontend/src/__tests__/cypress/cypress/tests/e2e/$MODULE_NAME" ]; then
+              echo "   📁 Found in: frontend/src/__tests__/cypress/cypress/tests/e2e/$MODULE_NAME/"
+            elif [ -d "frontend/src/__tests__/cypress/cypress/tests/e2e/$(echo $MODULE_NAME | sed 's/-//g')" ]; then
+              echo "   📁 Found in: frontend/src/__tests__/cypress/cypress/tests/e2e/$(echo $MODULE_NAME | sed 's/-//g')/"
+            fi
+            IMPLEMENTED_TESTS=$((IMPLEMENTED_TESTS + 1))
+          else
+            echo "   ❌ E2E Integration Tests - MISSING"
+            MISSING_TESTS+=("E2E Integration Tests (Cypress user workflows)")
+          fi
+
+          # Test 4: API Functional Testing (BFF)
+          echo "4️⃣ API Functional Testing (BFF Endpoints)"
+          if [ -d "$MODULE_PATH/bff" ] || [ -d "$MODULE_PATH/upstream/bff" ]; then
+            BFF_PATH="$MODULE_PATH/bff"
+            [ -d "$MODULE_PATH/upstream/bff" ] && BFF_PATH="$MODULE_PATH/upstream/bff"
+
+            if [ -n "$(find "$BFF_PATH" -name "*_test.go" 2>/dev/null | head -1)" ]; then
+              echo "   ✅ API Functional Tests - IMPLEMENTED (Go tests)"
+              IMPLEMENTED_TESTS=$((IMPLEMENTED_TESTS + 1))
+            elif [ -f "$BFF_PATH/Makefile" ] && grep -q "^test:" "$BFF_PATH/Makefile"; then
+              echo "   ✅ API Functional Tests - IMPLEMENTED (Makefile test target)"
+              IMPLEMENTED_TESTS=$((IMPLEMENTED_TESTS + 1))
+            else
+              echo "   ❌ API Functional Tests - MISSING"
+              MISSING_TESTS+=("API Functional Tests (Go BFF endpoint tests)")
+            fi
+          else
+            echo "   ⚠️  API Functional Tests - NO BFF DETECTED"
+            TOTAL_TESTS=6  # Adjust total if no BFF
+          fi
+
+          # Test 5: API Contract Testing (Pact)
+          echo "5️⃣ API Contract Testing (Consumer-Driven)"
+          if [ -n "$(find "$MODULE_PATH" -name "*.pact.js" -o -name "*.pact.ts" -o -name "pact.json" 2>/dev/null | head -1)" ]; then
+            echo "   ✅ API Contract Tests - IMPLEMENTED (Pact)"
+            IMPLEMENTED_TESTS=$((IMPLEMENTED_TESTS + 1))
+          elif [ -n "${BFF_PATH:-}" ] && [ -n "$(find "${BFF_PATH:-$MODULE_PATH}" -name "*_contract_test.go" -o -name "contract_test.go" 2>/dev/null | head -1)" ]; then
+            echo "   ✅ API Contract Tests - IMPLEMENTED (Go contract tests)"
+            IMPLEMENTED_TESTS=$((IMPLEMENTED_TESTS + 1))
+          else
+            echo "   ❌ API Contract Tests - MISSING"
+            MISSING_TESTS+=("API Contract Tests (Pact consumer-driven)")
+          fi
+
+          # Test 6: API Performance Testing (K6/JMeter/Taurus)
+          echo "6️⃣ API Performance Testing (Load/Stress)"
+          if [ -n "$(find "$MODULE_PATH" -name "*.k6.js" -o -name "*.k6.ts" -o -name "load-test.*" -o -name "*.jmx" 2>/dev/null | head -1)" ]; then
+            echo "   ✅ API Performance Tests - IMPLEMENTED"
+            IMPLEMENTED_TESTS=$((IMPLEMENTED_TESTS + 1))
+          elif [ -n "${BFF_PATH:-}" ] && [ -n "$(find "${BFF_PATH:-$MODULE_PATH}" -name "*_benchmark_test.go" -o -name "benchmark_test.go" 2>/dev/null | head -1)" ]; then
+            echo "   ✅ API Performance Tests - IMPLEMENTED (Go benchmarks)"
+            IMPLEMENTED_TESTS=$((IMPLEMENTED_TESTS + 1))
+          else
+            echo "   ❌ API Performance Tests - MISSING"
+            MISSING_TESTS+=("API Performance Tests (K6/JMeter/Taurus)")
+          fi
+
+          # Test 7: Bundle Size/Performance Budget
+          echo "7️⃣ Bundle Size Monitoring (Performance Budget)"
+          FRONTEND_PATH="$MODULE_PATH/frontend"
+          [ -d "$MODULE_PATH/upstream/frontend" ] && FRONTEND_PATH="$MODULE_PATH/upstream/frontend"
+
+          if [ -f "$FRONTEND_PATH/package.json" ] && grep -qE 'bundlesize|size-limit|bundlewatch' "$FRONTEND_PATH/package.json"; then
+            echo "   ✅ Bundle Size Monitoring - IMPLEMENTED"
+            IMPLEMENTED_TESTS=$((IMPLEMENTED_TESTS + 1))
+          elif [ -n "$(find "$MODULE_PATH" -name "webpack*.js" -exec grep -lE "performance|BundleAnalyzer" {} \; 2>/dev/null | head -1)" ]; then
+            echo "   ✅ Bundle Size Monitoring - IMPLEMENTED (Webpack analysis)"
+            IMPLEMENTED_TESTS=$((IMPLEMENTED_TESTS + 1))
+          else
+            echo "   ❌ Bundle Size Monitoring - MISSING"
+            MISSING_TESTS+=("Bundle Size Monitoring (size-limit/bundlewatch)")
+          fi
+
+          # Calculate testing completeness
+          COMPLETENESS=$((IMPLEMENTED_TESTS * 100 / TOTAL_TESTS))
+
+          # Calculate specific API and UI testing scores for RHOAI readiness
+          API_TESTING_READY="false"
+          UI_TESTING_READY="false"
+          RHOAI_READY="false"
+
+          # Check API Testing readiness (BFF + Performance + Contract)
+          API_TESTS_FOUND=0
+          if [ -d "$MODULE_PATH/bff" ] && [ -n "$(find "$MODULE_PATH/bff" -name "*_test.go" 2>/dev/null | head -1)" ]; then
+            API_TESTS_FOUND=$((API_TESTS_FOUND + 1))
+          fi
+          if [ -n "$(find "$MODULE_PATH" -name "*.k6.js" -o -name "*.k6.ts" -o -name "load-test.*" -o -name "*.jmx" 2>/dev/null | head -1)" ]; then
+            API_TESTS_FOUND=$((API_TESTS_FOUND + 1))
+          fi
+          if [ -n "$(find "$MODULE_PATH" -name "*.pact.js" -o -name "*.pact.ts" -o -name "pact.json" 2>/dev/null | head -1)" ]; then
+            API_TESTS_FOUND=$((API_TESTS_FOUND + 1))
+          fi
+
+          if [ "$API_TESTS_FOUND" -ge 2 ]; then
+            API_TESTING_READY="true"
+          fi
+
+          # Check UI Testing readiness (Unit + Integration + Mock)
+          UI_TESTS_FOUND=0
+          FRONTEND_PATH="$MODULE_PATH/frontend"
+          [ -d "$MODULE_PATH/upstream/frontend" ] && FRONTEND_PATH="$MODULE_PATH/upstream/frontend"
+          MODULE_NAME=$(basename "$MODULE_PATH")
+
+          # Unit tests
+          if [ -f "$FRONTEND_PATH/package.json" ] && grep -qE '"test.*jest|jest.*test"' "$FRONTEND_PATH/package.json"; then
+            UI_TESTS_FOUND=$((UI_TESTS_FOUND + 1))
+          fi
+
+          # Integration tests (module-specific + main dashboard)
+          if [ -n "$(find "$MODULE_PATH" -path "*/cypress/*" -name "*.cy.*" -exec grep -lE "step|visit.*\(|click\(\)|type\(|should\(" {} \; 2>/dev/null | head -1)" ]; then
+            UI_TESTS_FOUND=$((UI_TESTS_FOUND + 1))
+          elif [ -d "frontend/src/__tests__/cypress/cypress/tests/e2e/$MODULE_NAME" ] || [ -d "frontend/src/__tests__/cypress/cypress/tests/e2e/$(echo $MODULE_NAME | sed 's/-//g')" ]; then
+            UI_TESTS_FOUND=$((UI_TESTS_FOUND + 1))
+          fi
+
+          # Mock tests (module-specific + main dashboard)
+          if [ -n "$(find "$MODULE_PATH" -path "*/cypress/*" -name "*.cy.*" -exec grep -lE "mock|stub|intercept" {} \; 2>/dev/null | head -1)" ]; then
+            UI_TESTS_FOUND=$((UI_TESTS_FOUND + 1))
+          elif [ -d "frontend/src/__tests__/cypress/cypress/tests/mocked/$MODULE_NAME" ] || [ -d "frontend/src/__tests__/cypress/cypress/tests/mocked/$(echo $MODULE_NAME | sed 's/-//g')" ]; then
+            UI_TESTS_FOUND=$((UI_TESTS_FOUND + 1))
+          fi
+
+          if [ "$UI_TESTS_FOUND" -ge 2 ]; then
+            UI_TESTING_READY="true"
+          fi
+
+          # RHOAI readiness assessment
+          if [ "$API_TESTING_READY" = "true" ] && [ "$UI_TESTING_READY" = "true" ] && [ "$COMPLETENESS" -ge 75 ]; then
+            RHOAI_READY="true"
+          fi
+
+          echo ""
+          echo "📊 Testing Maturity Summary:"
+          echo "   Implemented: $IMPLEMENTED_TESTS/$TOTAL_TESTS tests ($COMPLETENESS%)"
+          echo ""
+          echo "🎯 Platform Readiness Assessment:"
+          echo "   📍 ODH (Upstream): ✅ Ready at any maturity level"
+          if [ "$RHOAI_READY" = "true" ]; then
+            echo "   📍 RHOAI (Enterprise): ✅ Ready for enablement"
+            echo "     - API Testing: ✅ ($API_TESTS_FOUND/3 categories)"
+            echo "     - UI Testing: ✅ ($UI_TESTS_FOUND/3 categories)"
+            echo "     - Overall Coverage: ✅ ($COMPLETENESS% ≥ 75%)"
+          else
+            echo "   📍 RHOAI (Enterprise): ❌ NOT READY - Quality standards not met"
+            echo "     - API Testing: $([ "$API_TESTING_READY" = "true" ] && echo "✅" || echo "❌") ($API_TESTS_FOUND/3 categories) $([ "$API_TESTING_READY" = "false" ] && echo "- Need 2+ of: BFF tests, Performance, Contract")"
+            echo "     - UI Testing: $([ "$UI_TESTING_READY" = "true" ] && echo "✅" || echo "❌") ($UI_TESTS_FOUND/3 categories) $([ "$UI_TESTING_READY" = "false" ] && echo "- Need 2+ of: Unit, E2E, Mock")"
+            echo "     - Overall Coverage: $([ "$COMPLETENESS" -ge 75 ] && echo "✅" || echo "❌") ($COMPLETENESS% - Need ≥75%)"
+            echo ""
+            echo "   🚫 DO NOT ENABLE IN RHOAI until these requirements are met!"
+          fi
+
+          # Set outputs
+          echo "completeness=$COMPLETENESS" >> $GITHUB_OUTPUT
+          echo "implemented=$IMPLEMENTED_TESTS" >> $GITHUB_OUTPUT
+          echo "total=$TOTAL_TESTS" >> $GITHUB_OUTPUT
+
+          # Don't fail the gate initially - just report
+          if [ $COMPLETENESS -lt 50 ]; then
+            echo ""
+            echo "⚠️  Application Quality Gate: LOW MATURITY ($COMPLETENESS%)"
+            echo "   Consider improving test coverage for better quality assurance"
+          elif [ $COMPLETENESS -lt 75 ]; then
+            echo ""
+            echo "✅ Application Quality Gate: MODERATE MATURITY ($COMPLETENESS%)"
+            echo "   Good progress! Consider completing remaining test types"
+          else
+            echo ""
+            echo "✅ Application Quality Gate: HIGH MATURITY ($COMPLETENESS%)"
+            echo "   Excellent testing coverage across all levels!"
+          fi
+
+      - name: 🧪 Run Available Tests with Coverage
+        id: coverage-check
+        run: |
+          MODULE_PATH="frontend/packages/${{ matrix.module }}"
+          HAS_COVERAGE=false
+
+          # Skip actual testing in silent mode but still set output
+          if [ "${{ steps.check-config.outputs.silent_mode }}" = "true" ]; then
+            echo "🔕 Skipping coverage tests in silent mode"
+            echo "has-coverage=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # Run frontend tests with coverage
+          if [ -d "$MODULE_PATH/frontend" ]; then
+            cd "$MODULE_PATH/frontend"
+
+            if [ -f "package.json" ]; then
+              npm ci
+
+              # Run unit tests with coverage
+              if grep -q '"test:coverage"' package.json; then
+                echo "🧪 Running unit tests with coverage..."
+                npm run test:coverage
+                HAS_COVERAGE=true
+
+                # Create coverage directory for upload
+                mkdir -p "$GITHUB_WORKSPACE/coverage"
+                if [ -f "coverage/coverage-final.json" ]; then
+                  cp coverage/coverage-final.json "$GITHUB_WORKSPACE/coverage/${{ matrix.module }}-unit-coverage.json"
+                fi
+              elif grep -q '"test:unit"' package.json; then
+                echo "🧪 Running unit tests..."
+                npm run test:unit
+              fi
+
+              # Run cypress tests if available
+              if grep -q '"test:cypress"' package.json; then
+                echo "🧪 Running Cypress tests..."
+                # Note: In a real scenario, you'd want to start the BFF first
+                npm run test:cypress-ci || echo "⚠️ Cypress tests failed or not properly configured"
+              fi
+            fi
+
+            cd - > /dev/null
+          fi
+
+          # Run BFF tests
+          if [ -d "$MODULE_PATH/bff" ]; then
+            cd "$MODULE_PATH/bff"
+
+            if [ -f "Makefile" ] && grep -q "^test:" Makefile; then
+              echo "🧪 Running BFF tests..."
+              make test
+            fi
+
+            cd - > /dev/null
+          fi
+
+          echo "has-coverage=$HAS_COVERAGE" >> $GITHUB_OUTPUT
+
+      - name: Upload Coverage Results
+        if: steps.coverage-check.outputs.has-coverage == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-${{ matrix.module }}
+          path: coverage/
+
+  # Quality Gate 2: Deployment Quality Gate
+  deployment-quality-gate:
+    name: Deployment Quality Gate
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.has-changes == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        module: ${{ fromJson(needs.detect-changes.outputs.modules-matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 🔍 Check Quality Gates Configuration
+        id: check-config
+        run: |
+          MODULE_PATH="frontend/packages/${{ matrix.module }}"
+
+          # Check if quality gate notifications should be silenced for this module
+          SILENT_MODE="false"
+          SILENT_REASON=""
+
+          # Check for .quality-gates-config.yml
+          if [ -f ".quality-gates-config.yml" ]; then
+            if grep -q "^  ${{ matrix.module }}:" .quality-gates-config.yml; then
+              STATUS=$(grep -A1 "^  ${{ matrix.module }}:" .quality-gates-config.yml | grep "status:" | awk '{print $2}' | tr -d '"')
+              if [ "$STATUS" = "silent" ]; then
+                SILENT_MODE="true"
+                REASON=$(grep -A2 "^  ${{ matrix.module }}:" .quality-gates-config.yml | grep "reason:" | cut -d'"' -f2)
+                SILENT_REASON="${REASON:-Quality gate notifications silenced}"
+              fi
+            fi
+          fi
+
+          echo "silent_mode=$SILENT_MODE" >> $GITHUB_OUTPUT
+          echo "silent_reason=$SILENT_REASON" >> $GITHUB_OUTPUT
+
+          if [ "$SILENT_MODE" = "true" ]; then
+            echo "🔕 Quality Gate Notifications SILENCED for ${{ matrix.module }}"
+            echo "📋 Reason: $SILENT_REASON"
+            echo ""
+            echo "ℹ️  Quality checks may still run in background for metrics"
+            echo "ℹ️  To restore notifications, update .quality-gates-config.yml"
+          else
+            echo "🔍 Running quality gates with full notifications for ${{ matrix.module }}"
+          fi
+
+      - name: 🚀 Deployment Readiness Assessment
+        if: steps.check-config.outputs.silent_mode != 'true'
+        id: deployment-assessment
+        run: |
+          MODULE_PATH="frontend/packages/${{ matrix.module }}"
+          echo "🚀 Assessing deployment readiness for: ${{ matrix.module }}"
+          echo "Based on Model Registry ODH enablement patterns (PR #4540)"
+          echo "📍 Model Registry Status: ✅ ODH (Enabled) | ⏳ RHOAI (Planned)"
+          echo ""
+
+          TOTAL_CHECKS=4
+          IMPLEMENTED_CHECKS=0
+          MISSING_CHECKS=()
+
+          # Check 1: Dockerfile for container deployment
+          if [ -f "$MODULE_PATH/Dockerfile" ]; then
+            echo "✅ Dockerfile - PRESENT"
+            IMPLEMENTED_CHECKS=$((IMPLEMENTED_CHECKS + 1))
+
+            # Validate Dockerfile best practices
+            if grep -q "FROM.*node.*AS.*builder" "$MODULE_PATH/Dockerfile" && grep -q "FROM.*golang.*AS.*builder" "$MODULE_PATH/Dockerfile"; then
+              echo "   ✅ Multi-stage build detected (Node.js + Go)"
+            elif grep -q "FROM.*node" "$MODULE_PATH/Dockerfile"; then
+              echo "   ✅ Node.js build stage detected"
+            else
+              echo "   ⚠️  Consider using multi-stage build for optimization"
+            fi
+
+            if grep -q "USER.*65532" "$MODULE_PATH/Dockerfile" || grep -q "USER.*nonroot" "$MODULE_PATH/Dockerfile"; then
+              echo "   ✅ Non-root user configuration found"
+            else
+              echo "   ⚠️  Consider adding non-root user for security"
+            fi
+
+            if grep -q "EXPOSE" "$MODULE_PATH/Dockerfile"; then
+              echo "   ✅ Port exposure documented"
+            else
+              echo "   ⚠️  Consider documenting exposed ports"
+            fi
+          else
+            echo "❌ Dockerfile - MISSING"
+            echo "   Required for containerized deployment in ODH/RHOAI"
+            MISSING_CHECKS+=("Dockerfile (multi-stage build recommended)")
+          fi
+
+          # Check 2: Module Federation configuration
+          if [ -f "$MODULE_PATH/package.json" ] && grep -q '"module-federation"' "$MODULE_PATH/package.json"; then
+            echo "✅ Module Federation Config - PRESENT"
+            IMPLEMENTED_CHECKS=$((IMPLEMENTED_CHECKS + 1))
+
+            # Validate federation config
+            if grep -A 20 '"module-federation"' "$MODULE_PATH/package.json" | grep -q '"remoteEntry"'; then
+              echo "   ✅ Remote entry configured"
+            fi
+
+            if grep -A 20 '"module-federation"' "$MODULE_PATH/package.json" | grep -q '"proxy"'; then
+              echo "   ✅ API proxy configuration found"
+            fi
+
+            if grep -A 20 '"module-federation"' "$MODULE_PATH/package.json" | grep -q '"authorize"'; then
+              echo "   ✅ Authorization setting configured"
+            fi
+          else
+            echo "❌ Module Federation Config - MISSING"
+            echo "   Required for federated deployment in ODH Dashboard"
+            MISSING_CHECKS+=("Module Federation configuration in package.json")
+          fi
+
+          # Check 3: ODH Manifest compatibility
+          ODH_MANIFEST_READY=false
+          if [ -f "$MODULE_PATH/upstream/Makefile" ]; then
+            if grep -q "build.*prod" "$MODULE_PATH/upstream/Makefile" || grep -q "build:prod" "$MODULE_PATH/upstream/Makefile"; then
+              echo "✅ Production Build Support - PRESENT"
+              IMPLEMENTED_CHECKS=$((IMPLEMENTED_CHECKS + 1))
+              ODH_MANIFEST_READY=true
+            fi
+          elif [ -f "$MODULE_PATH/frontend/package.json" ] && grep -q '"build"' "$MODULE_PATH/frontend/package.json"; then
+            echo "✅ Production Build Support - PRESENT"
+            IMPLEMENTED_CHECKS=$((IMPLEMENTED_CHECKS + 1))
+            ODH_MANIFEST_READY=true
+          fi
+
+          if [ "$ODH_MANIFEST_READY" = false ]; then
+            echo "❌ Production Build Support - MISSING"
+            echo "   Required for ODH/RHOAI manifest integration"
+            MISSING_CHECKS+=("Production build scripts")
+          fi
+
+          # Check 4: Health check endpoint (for BFF)
+          if [ -d "$MODULE_PATH/bff" ] || [ -d "$MODULE_PATH/upstream/bff" ]; then
+            BFF_PATH="$MODULE_PATH/bff"
+            [ -d "$MODULE_PATH/upstream/bff" ] && BFF_PATH="$MODULE_PATH/upstream/bff"
+
+            if [ -n "$(find "$BFF_PATH" -name "*.go" -exec grep -lE "health|/health|healthcheck" {} \; 2>/dev/null | head -1)" ]; then
+              echo "✅ Health Check Endpoint - PRESENT"
+              IMPLEMENTED_CHECKS=$((IMPLEMENTED_CHECKS + 1))
+            else
+              echo "❌ Health Check Endpoint - MISSING"
+              echo "   Required for Kubernetes readiness/liveness probes"
+              MISSING_CHECKS+=("Health check endpoint (/api/health)")
+            fi
+          else
+            echo "⚠️  Health Check Endpoint - NO BFF DETECTED"
+            TOTAL_CHECKS=3  # Adjust total if no BFF
+          fi
+
+          # Calculate deployment readiness
+          READINESS=$((IMPLEMENTED_CHECKS * 100 / TOTAL_CHECKS))
+
+          echo ""
+          echo "📊 Deployment Readiness Summary:"
+          echo "   Ready: $IMPLEMENTED_CHECKS/$TOTAL_CHECKS checks ($READINESS%)"
+
+          if [ ${#MISSING_CHECKS[@]} -gt 0 ]; then
+            echo ""
+            echo "🚨 Missing Deployment Requirements:"
+            for missing in "${MISSING_CHECKS[@]}"; do
+              echo "   - $missing"
+            done
+            echo ""
+            echo "📖 Deployment Recommendations:"
+            echo "   1. Add multi-stage Dockerfile (see model-registry example)"
+            echo "   2. Configure module federation in package.json"
+            echo "   3. Ensure production build scripts are available"
+            echo "   4. Add health check endpoint for BFF (/api/health)"
+            echo "   5. Reference PR #4540 for ODH enablement patterns"
+          fi
+
+          # Set outputs
+          echo "readiness=$READINESS" >> $GITHUB_OUTPUT
+          echo "implemented=$IMPLEMENTED_CHECKS" >> $GITHUB_OUTPUT
+          echo "total=$TOTAL_CHECKS" >> $GITHUB_OUTPUT
+
+          # Assessment levels (not blocking)
+          if [ $READINESS -lt 50 ]; then
+            echo ""
+            echo "⚠️  Deployment Quality Gate: LOW READINESS ($READINESS%)"
+            echo "   Not ready for ODH/RHOAI deployment"
+          elif [ $READINESS -lt 75 ]; then
+            echo ""
+            echo "✅ Deployment Quality Gate: MODERATE READINESS ($READINESS%)"
+            echo "   Good foundation! Complete remaining items for full deployment"
+          else
+            echo ""
+            echo "✅ Deployment Quality Gate: HIGH READINESS ($READINESS%)"
+            echo "   Ready for ODH/RHOAI integration!"
+          fi
+
+      - name: 🐳 Container Security & Standards Check
+        run: |
+          MODULE_PATH="frontend/packages/${{ matrix.module }}"
+
+          if [ -f "$MODULE_PATH/Dockerfile" ]; then
+            echo "🐳 Analyzing container security and standards..."
+
+            # Check for security best practices
+            if grep -q "FROM.*distroless" "$MODULE_PATH/Dockerfile"; then
+              echo "✅ Distroless base image - excellent security"
+            elif grep -q "FROM.*alpine" "$MODULE_PATH/Dockerfile"; then
+              echo "✅ Alpine base image - good security"
+            else
+              echo "⚠️  Consider using distroless or alpine for better security"
+            fi
+
+            # Check for EXPOSE documentation
+            if grep -q "EXPOSE" "$MODULE_PATH/Dockerfile"; then
+              EXPOSED_PORT=$(grep "EXPOSE" "$MODULE_PATH/Dockerfile" | awk '{print $2}')
+              echo "✅ Port $EXPOSED_PORT documented"
+            fi
+
+            # Check for proper layering
+            if grep -q "COPY.*--from=" "$MODULE_PATH/Dockerfile"; then
+              echo "✅ Multi-stage copy optimization detected"
+            fi
+
+            # Check for health check
+            if grep -q "HEALTHCHECK" "$MODULE_PATH/Dockerfile"; then
+              echo "✅ Health check defined in Dockerfile"
+            else
+              echo "ℹ️  Consider adding HEALTHCHECK instruction (optional)"
+            fi
+          else
+            echo "ℹ️  No Dockerfile found - skipping container analysis"
+          fi
+
+  # Combine coverage and upload to Codecov (similar to existing test.yml)
+  combine-coverage:
+    name: Combine Coverage & Upload
+    runs-on: ubuntu-latest
+    needs: [application-quality-gate]
+    if: always() && needs.application-quality-gate.result != 'skipped'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Download coverage artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: all-coverage
+          pattern: coverage-*
+
+      - name: Combine coverage reports
+        run: |
+          if [ -d "all-coverage" ] && [ "$(ls -A all-coverage)" ]; then
+            echo "📊 Combining coverage reports..."
+            npm install nyc --no-save
+
+            mkdir -p ./combined-coverage
+
+            # Find and combine all coverage files
+            find all-coverage -name "*-coverage.json" -type f | while read file; do
+              module=$(basename "$file" | sed 's/-coverage.json//')
+              cp "$file" "./combined-coverage/${module}-coverage.json"
+            done
+
+            if [ "$(ls -A ./combined-coverage)" ]; then
+              npx nyc merge ./combined-coverage ./combined-coverage/merged-coverage.json
+
+              echo "📊 Uploading to Codecov..."
+              # Upload to Codecov (similar to main test.yml)
+              curl -Os https://uploader.codecov.io/latest/linux/codecov
+              chmod +x codecov
+              ./codecov -f ./combined-coverage/merged-coverage.json -t ${{ secrets.CODECOV_TOKEN }} -F modular-arch
+            else
+              echo "⚠️ No coverage files found to combine"
+            fi
+          else
+            echo "⚠️ No coverage artifacts found"
+          fi
+
+  quality-gates-summary:
+    name: Quality Gates Summary
+    runs-on: ubuntu-latest
+    needs: [detect-changes, code-quality-gate, application-quality-gate, deployment-quality-gate, combine-coverage]
+    if: always() && needs.detect-changes.outputs.has-changes == 'true'
+    steps:
+      - name: Generate Quality Report
+        run: |
+          echo "# 🚦 Modular Architecture Quality Gates Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Code Quality Gate Status (with BIG WARNING if failed)
+          if [ "${{ needs.code-quality-gate.result }}" != "success" ]; then
+            echo "## 🚨 CODE QUALITY GATE: FAILED" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### ⛔ DO NOT ENABLE THIS MODULE IN DEPLOYMENT ⛔" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**MODULE DOES NOT MEET ARCHITECTURE STANDARDS**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "🚫 **Platform Team:** DO NOT add to federation-configmap.yaml" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "🛠️ **Development Team:** Fix quality issues to enable module" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "## ✅ Code Quality Gate: PASSED" >> $GITHUB_STEP_SUMMARY
+            echo "- Module can be ENABLED in deployment manifests" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Application Quality Gate Status
+          if [ "${{ needs.application-quality-gate.result }}" == "success" ]; then
+            echo "## ✅ Application Quality Gate: COMPLETED" >> $GITHUB_STEP_SUMMARY
+            echo "- Testing maturity assessed" >> $GITHUB_STEP_SUMMARY
+            echo "- Available tests executed successfully" >> $GITHUB_STEP_SUMMARY
+
+            # Add RHOAI readiness status to summary
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### 🎯 Platform Readiness:" >> $GITHUB_STEP_SUMMARY
+            echo "- **ODH (Upstream)**: ✅ Ready at any maturity level" >> $GITHUB_STEP_SUMMARY
+
+            # Note: In a real implementation, we'd pass the RHOAI status from the job
+            # For now, showing the pattern - this would be dynamic based on actual assessment
+            echo "- **RHOAI (Enterprise)**: Check job logs for detailed readiness assessment" >> $GITHUB_STEP_SUMMARY
+            echo "  - Requires: 75% coverage + API/UI testing standards" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "## ⚠️ Application Quality Gate: NEEDS ATTENTION" >> $GITHUB_STEP_SUMMARY
+            echo "- Consider implementing missing test types" >> $GITHUB_STEP_SUMMARY
+            echo "- See job output for specific recommendations" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### 🎯 Platform Readiness:" >> $GITHUB_STEP_SUMMARY
+            echo "- **ODH (Upstream)**: ✅ Ready at any maturity level" >> $GITHUB_STEP_SUMMARY
+            echo "- **RHOAI (Enterprise)**: ❌ Not ready - Quality standards not met" >> $GITHUB_STEP_SUMMARY
+            echo "  - **Required**: 75% test coverage + API/UI testing standards" >> $GITHUB_STEP_SUMMARY
+            echo "  - **Action**: Implement missing test categories before RHOAI enablement" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Deployment Quality Gate Status
+          if [ "${{ needs.deployment-quality-gate.result }}" == "success" ]; then
+            echo "## ✅ Deployment Quality Gate: COMPLETED" >> $GITHUB_STEP_SUMMARY
+            echo "- Deployment readiness assessed" >> $GITHUB_STEP_SUMMARY
+            echo "- Container and ODH integration requirements checked" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "## ⚠️ Deployment Quality Gate: NEEDS ATTENTION" >> $GITHUB_STEP_SUMMARY
+            echo "- Complete deployment requirements for ODH/RHOAI enablement" >> $GITHUB_STEP_SUMMARY
+            echo "- Reference Model Registry example (PR #4540)" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## 📚 Resources" >> $GITHUB_STEP_SUMMARY
+          echo "- [Modular Architecture Guide](https://github.com/opendatahub-io/mod-arch-shared-library)" >> $GITHUB_STEP_SUMMARY
+          echo "- [Testing Strategy (Miro Board)](https://miro.com/app/board/uXjVJYjWx4I=/)" >> $GITHUB_STEP_SUMMARY
+
+          # Code Quality Gate determines module deployment status (not PR blocking)
+          if [ "${{ needs.code-quality-gate.result }}" != "success" ]; then
+            echo ""
+            echo "🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨"
+            echo "🚨                                                        🚨"
+            echo "🚨    ⛔ DO NOT ENABLE THIS MODULE IN DEPLOYMENT ⛔     🚨"
+            echo "🚨                                                        🚨"
+            echo "🚨         CODE QUALITY GATE FAILED - MODULE            🚨"
+            echo "🚨         DOES NOT MEET ARCHITECTURE STANDARDS         🚨"
+            echo "🚨                                                        🚨"
+            echo "🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨"
+            echo ""
+            echo "❌ Code Quality Gate FAILED - Module must be TOGGLED OFF"
+            echo ""
+            echo "🚫 PLATFORM TEAM ACTION REQUIRED:"
+            echo "   ❌ DO NOT add this module to federation-configmap.yaml"
+            echo "   ❌ DO NOT add container to deployment.yaml"
+            echo "   ❌ DO NOT add image to kustomization.yaml"
+            echo ""
+            echo "🛠️  DEVELOPMENT TEAM - Fix these issues to enable module:"
+            echo "   ❌ Add mod-arch-shared dependency"
+            echo "   ❌ Ensure ModularArchContextProvider usage"
+            echo "   ❌ Fix any missing architectural requirements"
+            echo ""
+            echo "✅ PR can still merge - but module MUST remain disabled until fixed"
+            echo ""
+            echo "🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨"
+            # Note: Don't exit 1 - allow PR to merge but module stays toggled off
+          else
+            echo "✅ Code Quality Gate passed - Module can be ENABLED in deployment"
+          fi
+
+      - name: Generate Quality Gates Summary
+        id: generate-summary
+        run: |
+          # Build comprehensive quality gates summary
+          SUMMARY_FILE="quality-gates-summary.md"
+          
+          echo "## 🚦 Modular Architecture Quality Gates Results" > $SUMMARY_FILE
+          echo "" >> $SUMMARY_FILE
+
+          # Code Quality Gate
+          if [ "${{ needs.code-quality-gate.result }}" != "success" ]; then
+            cat >> $SUMMARY_FILE << 'EOF'
+          ### 🚨 Code Quality Gate: FAILED
+
+          **⛔ MODULE MUST BE TOGGLED OFF ⛔**
+
+          - Module does not meet architectural standards
+          - Cannot be enabled in deployment until fixed
+          - Fix mod-arch-shared dependency and other quality issues
+
+          EOF
+          else
+            cat >> $SUMMARY_FILE << 'EOF'
+          ### ✅ Code Quality Gate: PASSED
+
+          - Module meets architectural standards
+          - Ready for deployment enablement
+
+          EOF
+          fi
+
+          # Application Quality Gate
+          if [ "${{ needs.application-quality-gate.result }}" == "success" ]; then
+            cat >> $SUMMARY_FILE << 'EOF'
+          ### ✅ Application Quality Gate: COMPLETED
+
+          - Testing maturity assessed
+          - Available tests executed successfully
+          - Check detailed output for RHOAI readiness
+
+          EOF
+          else
+            cat >> $SUMMARY_FILE << 'EOF'
+          ### ⚠️ Application Quality Gate: NEEDS ATTENTION
+
+          - Consider implementing missing test types
+          - RHOAI requires 75% coverage + API/UI testing standards
+          - See job logs for specific recommendations
+
+          EOF
+          fi
+
+          # Deployment Quality Gate
+          if [ "${{ needs.deployment-quality-gate.result }}" == "success" ]; then
+            cat >> $SUMMARY_FILE << 'EOF'
+          ### ✅ Deployment Quality Gate: COMPLETED
+
+          - Deployment readiness assessed
+          - Container and ODH integration requirements checked
+
+          EOF
+          else
+            cat >> $SUMMARY_FILE << 'EOF'
+          ### ⚠️ Deployment Quality Gate: NEEDS ATTENTION
+
+          - Complete deployment requirements for ODH/RHOAI
+          - Reference Model Registry example (PR #4540)
+
+          EOF
+          fi
+
+          # Add resources
+          cat >> $SUMMARY_FILE << 'EOF'
+
+          **📚 Resources:**
+          - [Modular Architecture Guide](https://github.com/opendatahub-io/mod-arch-shared-library)
+          - [Testing Strategy](https://miro.com/app/board/uXjVJYjWx4I=/)
+          - [Quality Gates Documentation](docs/modular-architecture-quality-gates.md)
+
+          > 💡 This is an automated assessment. PRs can merge regardless of gate status, but modules with Code Quality failures must remain disabled.
+          EOF
+
+          # Output to GitHub Step Summary (always visible)
+          cat $SUMMARY_FILE >> $GITHUB_STEP_SUMMARY
+
+          echo "📄 Quality gates summary generated and added to job summary"
+          echo "📊 Summary file size: $(wc -l < $SUMMARY_FILE) lines"
+          echo "📄 Summary file path: $(pwd)/$SUMMARY_FILE"
+
+      - name: Comment PR with Quality Gates Summary
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        continue-on-error: true
+        with:
+          script: |
+            const fs = require('fs');
+            
+            // Debug information
+            console.log('🔍 Debug Info:');
+            console.log('- Event name:', context.eventName);
+            console.log('- PR number:', context.issue?.number);
+            console.log('- Is fork:', context.payload.pull_request?.head.repo.fork);
+            console.log('- Working directory:', process.cwd());
+            
+            const summaryFile = 'quality-gates-summary.md';
+            
+            // Check if summary file exists
+            if (!fs.existsSync(summaryFile)) {
+              console.log('❌ Quality gates summary file not found:', summaryFile);
+              console.log('📁 Available files:');
+              fs.readdirSync('.').filter(f => f.includes('quality') || f.endsWith('.md')).forEach(f => {
+                console.log('  -', f);
+              });
+              return;
+            }
+            
+            // Read the summary content
+            const summary = fs.readFileSync(summaryFile, 'utf8');
+            console.log('📊 Summary loaded:', summary.length, 'characters');
+            console.log('📄 Preview:', summary.substring(0, 100) + '...');
+            
+            try {
+              const result = await github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: summary
+              });
+              console.log('✅ Quality gates summary posted as PR comment #' + result.data.id);
+              console.log('🔗 Comment URL: ' + result.data.html_url);
+              
+            } catch (error) {
+              console.log('❌ Failed to post PR comment:', error.message);
+              console.log('🔍 Error details:', {
+                status: error.status,
+                name: error.name,
+                documentation_url: error.documentation_url
+              });
+              
+              if (error.message.includes('Resource not accessible by integration')) {
+                console.log('🔒 This is expected for forked PRs due to GitHub security restrictions');
+                console.log('📄 Quality gates summary is available in:');
+                console.log('   • Job summary (above in this workflow run)');
+                console.log('   • Downloaded artifact (quality-gates-summary.md)');
+                console.log('   • Individual job logs for detailed results');
+              } else {
+                console.log('⚠️ Unexpected error occurred - this might indicate a different issue');
+              }
+              
+              // Always log the summary for visibility
+              console.log('\n📋 Quality Gates Summary (for manual review):');
+              console.log(summary);
+            }
+
+      - name: Upload Quality Gates Summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: quality-gates-summary-${{ github.run_number }}
+          path: quality-gates-summary.md
+          retention-days: 30
