@@ -8,7 +8,6 @@ resources:
   - ../modular-architecture
 # - ../core-bases/base
   - ../core-bases/consolelink
-  - ../rhoai/shared/apps/nvidia-nim 
 configMapGenerator:
   - name: odh-dashboard-params
     env: params.env

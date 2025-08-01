@@ -9,6 +9,12 @@ export class NIMCard extends Card {
     return cy.findByTestId('card nvidia-nim');
   }
 
+  isNIMCardAvailable(): Cypress.Chainable<boolean> {
+    return cy.get('body').then(($body) => {
+      return $body.find('[data-testid="card nvidia-nim"]').length > 0;
+    });
+  }
+
   getEnableNIMButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('enable-app');
   }
