@@ -8,6 +8,7 @@ import './app.css';
 // Updated: Testing pipeline trigger after branch updates
 // Updated: Clean pipeline run after CSV cleanup
 // Updated: Testing PR comment fix - should post summary now!
+// Updated: Testing ROBUST PR comment solution - multi-layer visibility!
 import {
   Alert,
   Bullseye,
