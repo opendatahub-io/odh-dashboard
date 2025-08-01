@@ -157,4 +157,4 @@ export const createFeatureStoreFilterUtils = <
   R extends GenericRelationship,
 >(
   filterKeyMapping: Record<string, string>,
-) => new FeatureStoreFilterUtils<T, R>(filterKeyMapping);
+): FeatureStoreFilterUtils<T, R> => new FeatureStoreFilterUtils<T, R>(filterKeyMapping);

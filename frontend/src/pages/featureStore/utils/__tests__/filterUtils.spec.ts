@@ -5,7 +5,7 @@ import {
   createFeatureStoreFilterUtils,
   FilterableItem,
   GenericRelationship,
-} from '../filterUtils';
+} from '#~/pages/featureStore/utils/filterUtils';
 
 // Mock types for testing
 interface MockFilterableItem extends FilterableItem {

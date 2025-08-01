@@ -1,6 +1,6 @@
 import { Entity } from '#~/pages/featureStore/types/entities';
 import { FeatureStoreRelationship } from '#~/pages/featureStore/types/global';
-import { createFeatureStoreFilterUtils } from '../../utils/filterUtils';
+import { createFeatureStoreFilterUtils } from '#~/pages/featureStore/utils/filterUtils';
 
 export const entityTableFilterKeyMapping: Record<string, string> = {
   entity: 'spec.name',
