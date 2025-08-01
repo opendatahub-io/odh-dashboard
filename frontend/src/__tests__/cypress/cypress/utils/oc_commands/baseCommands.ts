@@ -56,8 +56,8 @@ export const applyNIMApplication = (
 ): Cypress.Chainable<CommandLineResult> => {
   cy.log('Applying NVIDIA NIM OdhApplication manifest...');
   
-  // Read the NIM manifest file from fixtures
-  return cy.fixture('e2e/nim/nvidia-nim-app.yaml').then((yamlContent) => {
+  // Read the NIM manifest file directly from the file system
+  return cy.readFile('manifests/rhoai/shared/apps/nvidia-nim/nvidia-nim-app.yaml').then((yamlContent) => {
     cy.log('NIM manifest loaded, applying to cluster...');
     return applyOpenShiftYaml(yamlContent, namespace);
   });
