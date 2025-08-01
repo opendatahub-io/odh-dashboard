@@ -2,6 +2,7 @@ import { proxyGET } from '#~/api/proxyUtils';
 import { K8sAPIOptions } from '#~/k8sTypes';
 import { FEATURE_STORE_API_VERSION } from '#~/pages/featureStore/const';
 import { Entity, EntityList } from '#~/pages/featureStore/types/entities';
+import { Features, FeaturesList } from '#~/pages/featureStore/types/features.ts';
 import { ProjectList } from '#~/pages/featureStore/types/featureStoreProjects';
 import { FeatureViewsList } from '#~/pages/featureStore/types/featureView';
 import { handleFeatureStoreFailures } from './errorUtils';
@@ -47,4 +48,31 @@ export const getEntityByName =
     )}?include_relationships=true&project=${encodeURIComponent(project)}`;
 
     return handleFeatureStoreFailures<Entity>(proxyGET(hostPath, endpoint, opts));
+  };
+
+export const getFeatures =
+  (hostPath: string) =>
+  (opts: K8sAPIOptions, project?: string): Promise<FeaturesList> => {
+    let endpoint = `/api/${FEATURE_STORE_API_VERSION}/features/all`;
+    if (project) {
+      endpoint = `/api/${FEATURE_STORE_API_VERSION}/features?project=${encodeURIComponent(
+        project,
+      )}`;
+    }
+    return handleFeatureStoreFailures<FeaturesList>(proxyGET(hostPath, endpoint, opts));
+  };
+
+export const getFeatureByName =
+  (hostPath: string) =>
+  (
+    opts: K8sAPIOptions,
+    project: string,
+    featureViewName: string,
+    featureName: string,
+  ): Promise<Features> => {
+    const endpoint = `/api/${FEATURE_STORE_API_VERSION}/features/${featureViewName}/${featureName}?project=${encodeURIComponent(
+      project,
+    )}&include_relationships=true`;
+
+    return handleFeatureStoreFailures<Features>(proxyGET(hostPath, endpoint, opts));
   };

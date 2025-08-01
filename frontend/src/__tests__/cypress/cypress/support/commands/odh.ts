@@ -808,7 +808,7 @@ declare global {
           response: OdhResponse<ProjectList>,
         ) => Cypress.Chainable<null>) &
         ((
-          type: 'GET /api/service/featurestore/:namespace/:serviceName/api/:apiVersion/feature_views',
+          type: 'GET /api/service/featurestore/:namespace/:serviceName/api/:apiVersion/features',
           options: {
             path: { namespace: string; serviceName: string; apiVersion: string };
           },
