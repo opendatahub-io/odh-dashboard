@@ -33,7 +33,7 @@ import ModelServingContextProvider from '#~/pages/modelServing/ModelServingConte
 import { isProjectNIMSupported } from '#~/pages/modelServing/screens/projects/nimUtils';
 import { NamespaceApplicationCase } from '#~/pages/projects/types';
 import ModelServingPlatformSelectButton from '#~/pages/modelServing/screens/projects/ModelServingPlatformSelectButton';
-import ModelServingPlatformSelectErrorAlert from '#~/pages/modelServing/screens/ModelServingPlatformSelectErrorAlert';
+import ModelServingPlatformSelectErrorAlert from '#~/concepts/modelServing/Platforms/ModelServingPlatformSelectErrorAlert.tsx';
 import DeployedModelsCard from './DeployedModelsCard';
 
 interface DeployedModelsSectionProps {
