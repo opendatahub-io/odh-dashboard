@@ -1050,89 +1050,136 @@ jobs:
             echo "✅ Code Quality Gate passed - Module can be ENABLED in deployment"
           fi
 
+      - name: Generate Quality Gates Summary
+        id: generate-summary
+        run: |
+          # Build comprehensive quality gates summary
+          SUMMARY_FILE="quality-gates-summary.md"
+          
+          echo "## 🚦 Modular Architecture Quality Gates Results" > $SUMMARY_FILE
+          echo "" >> $SUMMARY_FILE
+
+          # Code Quality Gate
+          if [ "${{ needs.code-quality-gate.result }}" != "success" ]; then
+            cat >> $SUMMARY_FILE << 'EOF'
+          ### 🚨 Code Quality Gate: FAILED
+
+          **⛔ MODULE MUST BE TOGGLED OFF ⛔**
+
+          - Module does not meet architectural standards
+          - Cannot be enabled in deployment until fixed
+          - Fix mod-arch-shared dependency and other quality issues
+
+          EOF
+          else
+            cat >> $SUMMARY_FILE << 'EOF'
+          ### ✅ Code Quality Gate: PASSED
+
+          - Module meets architectural standards
+          - Ready for deployment enablement
+
+          EOF
+          fi
+
+          # Application Quality Gate
+          if [ "${{ needs.application-quality-gate.result }}" == "success" ]; then
+            cat >> $SUMMARY_FILE << 'EOF'
+          ### ✅ Application Quality Gate: COMPLETED
+
+          - Testing maturity assessed
+          - Available tests executed successfully
+          - Check detailed output for RHOAI readiness
+
+          EOF
+          else
+            cat >> $SUMMARY_FILE << 'EOF'
+          ### ⚠️ Application Quality Gate: NEEDS ATTENTION
+
+          - Consider implementing missing test types
+          - RHOAI requires 75% coverage + API/UI testing standards
+          - See job logs for specific recommendations
+
+          EOF
+          fi
+
+          # Deployment Quality Gate
+          if [ "${{ needs.deployment-quality-gate.result }}" == "success" ]; then
+            cat >> $SUMMARY_FILE << 'EOF'
+          ### ✅ Deployment Quality Gate: COMPLETED
+
+          - Deployment readiness assessed
+          - Container and ODH integration requirements checked
+
+          EOF
+          else
+            cat >> $SUMMARY_FILE << 'EOF'
+          ### ⚠️ Deployment Quality Gate: NEEDS ATTENTION
+
+          - Complete deployment requirements for ODH/RHOAI
+          - Reference Model Registry example (PR #4540)
+
+          EOF
+          fi
+
+          # Add resources
+          cat >> $SUMMARY_FILE << 'EOF'
+
+          **📚 Resources:**
+          - [Modular Architecture Guide](https://github.com/opendatahub-io/mod-arch-shared-library)
+          - [Testing Strategy](https://miro.com/app/board/uXjVJYjWx4I=/)
+          - [Quality Gates Documentation](docs/modular-architecture-quality-gates.md)
+
+          > 💡 This is an automated assessment. PRs can merge regardless of gate status, but modules with Code Quality failures must remain disabled.
+          EOF
+
+          # Output to GitHub Step Summary (always visible)
+          cat $SUMMARY_FILE >> $GITHUB_STEP_SUMMARY
+
+          # Save summary to environment for comment step
+          echo "QUALITY_SUMMARY<<EOF" >> $GITHUB_ENV
+          cat $SUMMARY_FILE >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+          echo "📄 Quality gates summary generated and added to job summary"
+
       - name: Comment PR with Quality Gates Summary
         if: github.event_name == 'pull_request'
         uses: actions/github-script@v7
         continue-on-error: true
         with:
           script: |
-            const fs = require('fs');
-
-            // Build summary comment
-            let comment = `## 🚦 Modular Architecture Quality Gates Results\n\n`;
-
-            // Code Quality Gate
-            const codeQualityResult = '${{ needs.code-quality-gate.result }}';
-            if (codeQualityResult !== 'success') {
-              comment += `### 🚨 Code Quality Gate: FAILED
-
-              **⛔ MODULE MUST BE TOGGLED OFF ⛔**
-
-              - Module does not meet architectural standards
-              - Cannot be enabled in deployment until fixed
-              - Fix mod-arch-shared dependency and other quality issues
-
-              `;
-            } else {
-              comment += `### ✅ Code Quality Gate: PASSED
-
-              - Module meets architectural standards
-              - Ready for deployment enablement
-
-              `;
+            const summary = process.env.QUALITY_SUMMARY;
+            
+            try {
+              const result = await github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: summary
+              });
+              console.log('✅ Quality gates summary posted as PR comment #' + result.data.id);
+              
+            } catch (error) {
+              console.log('❌ Failed to post PR comment:', error.message);
+              
+              if (error.message.includes('Resource not accessible by integration')) {
+                console.log('🔒 This is expected for forked PRs due to GitHub security restrictions');
+                console.log('📄 Quality gates summary is available in:');
+                console.log('   • Job summary (above in this workflow run)');
+                console.log('   • Downloaded artifact (quality-gates-summary.md)');
+                console.log('   • Individual job logs for detailed results');
+              } else {
+                console.log('⚠️ Unexpected error occurred:', error);
+              }
+              
+              // Still log the summary for visibility
+              console.log('\n📋 Quality Gates Summary:');
+              console.log(summary);
             }
 
-            // Application Quality Gate
-            const appQualityResult = '${{ needs.application-quality-gate.result }}';
-            if (appQualityResult === 'success') {
-              comment += `### ✅ Application Quality Gate: COMPLETED
-
-              - Testing maturity assessed
-              - Available tests executed successfully
-              - Check detailed output for RHOAI readiness
-
-              `;
-            } else {
-              comment += `### ⚠️ Application Quality Gate: NEEDS ATTENTION
-
-              - Consider implementing missing test types
-              - RHOAI requires 75% coverage + API/UI testing standards
-              - See job logs for specific recommendations
-
-              `;
-            }
-
-            // Deployment Quality Gate
-            const deploymentResult = '${{ needs.deployment-quality-gate.result }}';
-            if (deploymentResult === 'success') {
-              comment += `### ✅ Deployment Quality Gate: COMPLETED
-
-              - Deployment readiness assessed
-              - Container and ODH integration requirements checked
-
-              `;
-            } else {
-              comment += `### ⚠️ Deployment Quality Gate: NEEDS ATTENTION
-
-              - Complete deployment requirements for ODH/RHOAI
-              - Reference Model Registry example (PR #4540)
-
-              `;
-            }
-
-            comment += `
-            **📚 Resources:**
-            - [Modular Architecture Guide](https://github.com/opendatahub-io/mod-arch-shared-library)
-            - [Testing Strategy](https://miro.com/app/board/uXjVJYjWx4I=/)
-            - [Quality Gates Documentation](docs/modular-architecture-quality-gates.md)
-
-            > 💡 This is an automated assessment. PRs can merge regardless of gate status, but modules with Code Quality failures must remain disabled.
-            `;
-
-            // Post comment
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: comment
-            });
+      - name: Upload Quality Gates Summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: quality-gates-summary-${{ github.run_number }}
+          path: quality-gates-summary.md
+          retention-days: 30
