@@ -126,15 +126,17 @@ describe('ManagePipelineServerModal', () => {
 
     // expect(screen.getByText('Additional Configurations')).toBeInTheDocument();
     expect(screen.getByText('Pipeline caching')).toBeInTheDocument();
-    expect(screen.getByText('Allow caching to be configured per pipeline and task')).toBeInTheDocument();
+    expect(
+      screen.getByText('Allow caching to be configured per pipeline and task'),
+    ).toBeInTheDocument();
 
     const cachingCheckbox = screen.getByTestId('pipeline-cache-enabling');
     const additionalTextHeader = screen.getByTestId('additionalConfig-headerText');
     const kubeStoreCheckbox = screen.getByTestId('pipeline-kubernetes-store-checkbox');
-     
-    expect (additionalTextHeader).toBeInTheDocument();
+
+    expect(additionalTextHeader).toBeInTheDocument();
     expect(cachingCheckbox).toBeInTheDocument();
-    expect (kubeStoreCheckbox).toBeInTheDocument();
+    expect(kubeStoreCheckbox).toBeInTheDocument();
   });
 
   it('should initialize caching checkbox with correct state from DSPA resource', () => {
@@ -257,8 +259,9 @@ describe('ManagePipelineServerModal', () => {
 
   it('should show error notification on failed save', async () => {
     // Suppress console.error for this test since we're intentionally testing error handling
+    // eslint-disable-next-line @typescript-eslint/no-empty-function
     const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-    
+
     const error = new Error('Update failed');
     mockUpdatePipelineCaching.mockRejectedValue(error);
 
@@ -286,7 +289,7 @@ describe('ManagePipelineServerModal', () => {
       title: 'Failed to update pipeline caching',
       message: 'Update failed',
     });
-    
+
     // Restore console.error
     consoleErrorSpy.mockRestore();
   });
