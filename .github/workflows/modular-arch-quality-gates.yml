@@ -1051,8 +1051,9 @@ jobs:
           fi
 
       - name: Comment PR with Quality Gates Summary
-        if: github.event_name == 'pull_request' && !github.event.pull_request.head.repo.fork
+        if: github.event_name == 'pull_request'
         uses: actions/github-script@v7
+        continue-on-error: true
         with:
           script: |
             const fs = require('fs');
