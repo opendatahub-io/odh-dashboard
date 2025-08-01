@@ -11,9 +11,6 @@ import ManageKServeModal from '@odh-dashboard/internal/pages/modelServing/screen
 import ManageNIMServingModal from '@odh-dashboard/internal/pages/modelServing/screens/projects/NIMServiceModal/ManageNIMServingModal';
 import { byName, ProjectsContext } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
 import { useParams } from 'react-router-dom';
-import { POLL_INTERVAL } from '@odh-dashboard/internal/utilities/const';
-import useInferenceServices from '@odh-dashboard/internal/pages/modelServing/useInferenceServices';
-import useServingRuntimes from '@odh-dashboard/internal/pages/modelServing/useServingRuntimes';
 import { useTemplates } from '@odh-dashboard/internal/api/k8s/templates';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/index';
 import useTemplateOrder from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/useTemplateOrder';
@@ -86,23 +83,13 @@ export const DeployButton: React.FC<{
   const match = namespace ? projects.find(byName(namespace)) : undefined;
   const { clusterPlatforms } = useAvailableClusterPlatforms();
   const { activePlatform, projectPlatform } = useProjectServingPlatform(match, clusterPlatforms);
-  const inferenceServices = useInferenceServices(namespace, undefined, undefined, undefined, {
-    refreshRate: POLL_INTERVAL,
-  });
-  const inferenceServiceRefresh = inferenceServices.refresh;
-  const servingRuntimes = useServingRuntimes(namespace, undefined, { refreshRate: POLL_INTERVAL });
-  const servingRuntimeRefresh = servingRuntimes.refresh;
   const { projects: modelProjects } = React.useContext(ModelDeploymentsContext);
   const { namespace: modelNamespace } = useParams<{ namespace: string }>();
   const currentProject = modelProjects?.find(byName(modelNamespace));
 
-  const onSubmit = (submit: boolean) => {
+  const onSubmit = () => {
     setModalShown(false);
     setPlatformSelected(undefined);
-    if (submit) {
-      servingRuntimeRefresh();
-      inferenceServiceRefresh();
-    }
   };
 
   const handleDeployClick = () => {
