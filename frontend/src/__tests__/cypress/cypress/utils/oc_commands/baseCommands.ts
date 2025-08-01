@@ -56,11 +56,17 @@ export const applyNIMApplication = (
 ): Cypress.Chainable<CommandLineResult> => {
   cy.log('Applying NVIDIA NIM OdhApplication manifest...');
   
-  const ns = namespace ? `-n ${namespace}` : '';
-  const ocCommand = `oc apply -f manifests/rhoai/shared/apps/nvidia-nim/nvidia-nim-app.yaml ${ns}`;
-  
-  cy.log(`Executing: ${ocCommand}`);
-  return execWithOutput(ocCommand);
+  // Get the current working directory to construct absolute path
+  return cy.exec('pwd').then((pwdResult) => {
+    const currentDir = pwdResult.stdout.trim();
+    const manifestPath = `${currentDir}/manifests/rhoai/shared/apps/nvidia-nim/nvidia-nim-app.yaml`;
+    
+    const ns = namespace ? `-n ${namespace}` : '';
+    const ocCommand = `oc apply -f ${manifestPath} ${ns}`;
+    
+    cy.log(`Executing: ${ocCommand}`);
+    return execWithOutput(ocCommand);
+  });
 };
 
 /**
