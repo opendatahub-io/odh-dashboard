@@ -15,7 +15,7 @@
     "public",
     "public-cypress",
     "src/__tests__/cypress",
-    "**/packages/llama-stack-modular-ui",
+    "**/packages/rag-playground",
     "**/upstream"
   ]
 }
