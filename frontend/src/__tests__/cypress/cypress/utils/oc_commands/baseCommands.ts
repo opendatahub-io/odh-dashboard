@@ -56,23 +56,43 @@ export const applyNIMApplication = (
 ): Cypress.Chainable<CommandLineResult> => {
   cy.log('Applying NVIDIA NIM OdhApplication manifest...');
   
-  // Find the manifest file in the current directory structure
-  return cy.exec('find . -name "nvidia-nim-app.yaml" -type f').then((findResult) => {
-    if (findResult.code !== 0 || !findResult.stdout.trim()) {
-      cy.log('❌ Could not find nvidia-nim-app.yaml file');
-      cy.log(`find command output: ${findResult.stdout}`);
-      cy.log(`find command error: ${findResult.stderr}`);
-      throw new Error('NIM manifest file not found. Please ensure the file exists in the repository.');
-    }
+  // Debug: Check current directory and search for the file
+  return cy.exec('pwd').then((pwdResult) => {
+    cy.log(`Current working directory: ${pwdResult.stdout.trim()}`);
     
-    const manifestPath = findResult.stdout.trim();
-    cy.log(`Found manifest file at: ${manifestPath}`);
-    
-    const ns = namespace ? `-n ${namespace}` : '';
-    const ocCommand = `oc apply -f ${manifestPath} ${ns}`;
-    
-    cy.log(`Executing: ${ocCommand}`);
-    return execWithOutput(ocCommand);
+    return cy.exec('find /home -name "nvidia-nim-app.yaml" -type f 2>/dev/null | head -5').then((findResult) => {
+      cy.log(`System-wide search results: ${findResult.stdout}`);
+      
+      return cy.exec('find . -name "nvidia-nim-app.yaml" -type f').then((localFindResult) => {
+        cy.log(`Local directory search: ${localFindResult.stdout}`);
+        
+        if (localFindResult.code !== 0 || !localFindResult.stdout.trim()) {
+          cy.log('❌ Could not find nvidia-nim-app.yaml file in current directory');
+          cy.log(`Local find command output: ${localFindResult.stdout}`);
+          cy.log(`Local find command error: ${localFindResult.stderr}`);
+          
+          // Try to find it in common locations
+          return cy.exec('ls -la manifests/ 2>/dev/null || echo "manifests/ not found"').then((lsResult) => {
+            cy.log(`manifests/ directory contents: ${lsResult.stdout}`);
+            
+            return cy.exec('find . -name "*.yaml" | grep -i nim | head -5').then((grepResult) => {
+              cy.log(`Any YAML files with 'nim' in name: ${grepResult.stdout}`);
+              
+              throw new Error('NIM manifest file not found. Please ensure the file exists in the repository.');
+            });
+          });
+        }
+        
+        const manifestPath = localFindResult.stdout.trim();
+        cy.log(`Found manifest file at: ${manifestPath}`);
+        
+        const ns = namespace ? `-n ${namespace}` : '';
+        const ocCommand = `oc apply -f ${manifestPath} ${ns}`;
+        
+        cy.log(`Executing: ${ocCommand}`);
+        return execWithOutput(ocCommand);
+      });
+    });
   });
 };
 
