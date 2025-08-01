@@ -3,9 +3,11 @@ package api
 import (
 	"context"
 	"fmt"
+	"github.com/opendatahub-io/llama-stack-modular-ui/internal/config"
 	"log/slog"
 	"net/http"
 	"runtime/debug"
+	"strings"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/llama-stack-modular-ui/internal/integrations"
@@ -14,8 +16,6 @@ import (
 	"github.com/opendatahub-io/llama-stack-modular-ui/internal/constants"
 	helper "github.com/opendatahub-io/llama-stack-modular-ui/internal/helpers"
 	"github.com/rs/cors"
-
-	"github.com/opendatahub-io/llama-stack-modular-ui/internal/auth"
 )
 
 func (app *App) RecoverPanic(next http.Handler) http.Handler {
@@ -68,57 +68,6 @@ func (app *App) EnableTelemetry(next http.Handler) http.Handler {
 	})
 }
 
-func (app *App) RequireAuth(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !app.config.OAuthEnabled {
-			next.ServeHTTP(w, r)
-			return
-		}
-
-		token, err := auth.ExtractToken(r)
-		if err != nil {
-			app.forbiddenResponse(w, r, "authentication required")
-			return
-		}
-
-		logger := helper.GetContextLoggerFromReq(r)
-		oauthHandler := auth.NewOAuthHandler(app.config, logger)
-		if err := oauthHandler.ValidateToken(r.Context(), token); err != nil {
-			app.forbiddenResponse(w, r, err.Error())
-			return
-		}
-
-		// Store token in context for downstream use
-		ctx := context.WithValue(r.Context(), constants.AuthTokenKey, token)
-		next.ServeHTTP(w, r.WithContext(ctx))
-	})
-}
-
-func (app *App) RequireAuthRoute(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
-	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-		if !app.config.OAuthEnabled {
-			next(w, r, ps)
-			return
-		}
-		token, err := auth.ExtractToken(r)
-		if err != nil {
-			app.forbiddenResponse(w, r, "authentication required")
-			return
-		}
-
-		logger := helper.GetContextLoggerFromReq(r)
-		oauthHandler := auth.NewOAuthHandler(app.config, logger)
-		if err := oauthHandler.ValidateToken(r.Context(), token); err != nil {
-			app.forbiddenResponse(w, r, err.Error())
-			return
-		}
-
-		// Store token in context for downstream use
-		ctx := context.WithValue(r.Context(), constants.AuthTokenKey, token)
-		next(w, r.WithContext(ctx), ps)
-	}
-}
-
 func (app *App) AttachRESTClient(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		// Set up a child logger for the rest client that automatically adds the request id to all statements for
@@ -143,5 +92,64 @@ func (app *App) AttachRESTClient(next func(http.ResponseWriter, *http.Request, h
 		}
 		ctx := context.WithValue(r.Context(), constants.LlamaStackHttpClientKey, restHttpClient)
 		next(w, r.WithContext(ctx), ps)
+	}
+}
+
+func (app *App) InjectRequestIdentity(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		//skip use headers check if we are not on /api/v1 (i.e. we are on /healthcheck and / (static fe files) )
+		if !strings.HasPrefix(r.URL.Path, ApiPathPrefix) {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		//TODO: store somewhere e.g. app so it doesn't have to be recreated each time.
+		tokenFactory := integrations.NewTokenClientFactory(app.logger, app.config)
+
+		identity, error := tokenFactory.ExtractRequestIdentity(r.Header)
+		if error != nil {
+			app.badRequestResponse(w, r, error)
+			return
+		}
+
+		ctx := context.WithValue(r.Context(), constants.RequestIdentityKey, identity)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+func (app *App) RequireAccessToService(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+		// If authentication is disabled skip these steps.
+		if app.config.AuthMethod == config.AuthMethodDisabled {
+			next(w, r, ps)
+			return
+		}
+
+		ctx := r.Context()
+		identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
+
+		//TODO: store somewhere e.g. app so it doesn't have to be recreated each time.
+		tokenFactory := integrations.NewTokenClientFactory(app.logger, app.config)
+
+		if !ok || identity == nil {
+			app.badRequestResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
+			return
+		}
+
+		if err := tokenFactory.ValidateRequestIdentity(identity); err != nil {
+			app.badRequestResponse(w, r, err)
+			return
+		}
+
+		//TODO Insert logic to verify user is authorized to make a call to llamastack service once decided how
+		// this could be with an SSAR or possibly just attaching the token to all upstream requests and allowing
+		// llamastack to validate this.
+
+		logger := helper.GetContextLoggerFromReq(r)
+
+		// Simply used to validate basic functionality, remove when implemented as identity is redacted in logs anyhow.
+		logger.Info("User is authorized as: ", slog.Any("RequestIdentity", identity))
+
+		next(w, r, ps)
 	}
 }

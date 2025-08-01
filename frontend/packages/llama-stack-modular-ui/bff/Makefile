@@ -7,6 +7,7 @@ LOG_LEVEL ?= debug
 ALLOWED_ORIGINS ?= ""
 LLAMA_STACK_URL ?= ""
 MOCK_LS_CLIENT ?= false
+AUTH_METHOD ?= "disabled"
 
 .PHONY: all
 all: build
@@ -47,7 +48,7 @@ build: fmt vet test ## Builds the project to produce a binary executable.
 .PHONY: run
 run: fmt vet envtest ## Runs the project.
 	ENVTEST_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" \
-	go run ./cmd --port=$(PORT) --static-assets-dir=$(STATIC_ASSETS_DIR) --log-level=$(LOG_LEVEL) --allowed-origins=$(ALLOWED_ORIGINS) --llama-stack-url=$(LLAMA_STACK_URL) --mock-ls-client=$(MOCK_LS_CLIENT)
+	go run ./cmd --port=$(PORT) --static-assets-dir=$(STATIC_ASSETS_DIR) --log-level=$(LOG_LEVEL) --allowed-origins=$(ALLOWED_ORIGINS) --llama-stack-url=$(LLAMA_STACK_URL) --mock-ls-client=$(MOCK_LS_CLIENT) --auth-method=$(AUTH_METHOD)
 
 ##@ Dependencies
 

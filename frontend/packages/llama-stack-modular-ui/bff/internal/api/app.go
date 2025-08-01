@@ -62,25 +62,6 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 
 	logger.Info("Initializing app with config", slog.Any("config", cfg))
 
-	// Validate OAuth configuration
-	if cfg.OAuthEnabled {
-		if cfg.OAuthServerURL == "" {
-			return nil, fmt.Errorf("OAUTH_SERVER_URL is required when OAuth is enabled")
-		}
-		if cfg.OAuthClientID == "" {
-			return nil, fmt.Errorf("OAUTH_CLIENT_ID is required when OAuth is enabled")
-		}
-		if cfg.OAuthClientSecret == "" {
-			return nil, fmt.Errorf("OAUTH_CLIENT_SECRET is required when OAuth is enabled")
-		}
-		if cfg.OAuthRedirectURI == "" {
-			return nil, fmt.Errorf("OAUTH_REDIRECT_URI is required when OAuth is enabled")
-		}
-		logger.Info("OAuth configuration validated",
-			slog.String("oauth_server_url", cfg.OAuthServerURL),
-			slog.String("openshift_api_server_url", cfg.OpenShiftApiServerUrl))
-	}
-
 	if cfg.MockLSClient {
 		lsClient, err = mocks.NewLlamastackClientMock()
 	} else {
@@ -113,40 +94,16 @@ func (app *App) Routes() http.Handler {
 	apiRouter.NotFound = http.HandlerFunc(app.notFoundResponse)
 	apiRouter.MethodNotAllowed = http.HandlerFunc(app.methodNotAllowedResponse)
 
-	// OAuth routes
-	if app.config.OAuthEnabled {
-		apiRouter.POST(OauthCallbackPath, app.HandleOAuthCallback)
-		apiRouter.GET(OauthStatePath, app.HandleOAuthState)
-	}
-
-	// Config endpoint (not authenticated)
-	apiRouter.GET(ConfigPath, app.HandleConfig)
-
-	apiRouter.GET(ModelListPath, app.RequireAuthRoute(app.AttachRESTClient(app.GetAllModelsHandler)))
-	apiRouter.GET(VectorDBListPath, app.RequireAuthRoute(app.AttachRESTClient(app.GetAllVectorDBsHandler)))
+	apiRouter.GET(ModelListPath, app.RequireAccessToService(app.AttachRESTClient(app.GetAllModelsHandler)))
+	apiRouter.GET(VectorDBListPath, app.RequireAccessToService(app.AttachRESTClient(app.GetAllVectorDBsHandler)))
 
 	// POST to register the vectorDB (/v1/vector-dbs)
-	apiRouter.POST(VectorDBListPath, app.RequireAuthRoute(app.AttachRESTClient(app.RegisterVectorDBHandler)))
-	apiRouter.POST(UploadPath, app.RequireAuthRoute(app.AttachRESTClient(app.UploadHandler)))
-	apiRouter.POST(QueryPath, app.RequireAuthRoute(app.AttachRESTClient(app.QueryHandler)))
+	apiRouter.POST(VectorDBListPath, app.RequireAccessToService(app.AttachRESTClient(app.RegisterVectorDBHandler)))
+	apiRouter.POST(UploadPath, app.RequireAccessToService(app.AttachRESTClient(app.UploadHandler)))
+	apiRouter.POST(QueryPath, app.RequireAccessToService(app.AttachRESTClient(app.QueryHandler)))
 
 	// App Router
 	appMux := http.NewServeMux()
-
-	//// Register /api/v1/config as a public endpoint
-	//appMux.HandleFunc(ApiPathPrefix+"/config", func(w http.ResponseWriter, r *http.Request) {
-	//	app.HandleConfig(w, r, nil)
-	//})
-	//
-	//// Register /api/v1/auth/callback as a public endpoint
-	//appMux.HandleFunc(ApiPathPrefix+"/auth/callback", func(w http.ResponseWriter, r *http.Request) {
-	//	app.HandleOAuthCallback(w, r, nil)
-	//})
-	//
-	//// Register /api/v1/auth/state as a public endpoint
-	//appMux.HandleFunc(ApiPathPrefix+"/auth/state", func(w http.ResponseWriter, r *http.Request) {
-	//	app.HandleOAuthState(w, r, nil)
-	//})
 
 	//All other /api/v1/* routes require auth
 	appMux.Handle(ApiPathPrefix+"/", apiRouter)
@@ -200,7 +157,7 @@ func (app *App) Routes() http.Handler {
 	combinedMux.HandleFunc(OpenAPIYAMLPath, app.openAPI.HandleOpenAPIYAMLWrapper)
 	combinedMux.HandleFunc(SwaggerUIPath, app.openAPI.HandleSwaggerUIWrapper)
 
-	combinedMux.Handle("/", app.RecoverPanic(app.EnableTelemetry(app.EnableCORS(appMux))))
+	combinedMux.Handle("/", app.RecoverPanic(app.EnableTelemetry(app.EnableCORS(app.InjectRequestIdentity(appMux)))))
 
 	return combinedMux
 }
