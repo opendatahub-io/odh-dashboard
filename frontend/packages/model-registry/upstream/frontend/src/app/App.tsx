@@ -6,6 +6,7 @@ import './app.css';
 // Updated: Testing enhanced test detection with main dashboard e2e/mocked tests
 // Updated: Testing FIXED quality gates - should show accurate results now!
 // Updated: Testing pipeline trigger after branch updates
+// Updated: Clean pipeline run after CSV cleanup
 import {
   Alert,
   Bullseye,
