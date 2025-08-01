@@ -16,13 +16,13 @@ export const clickRegisterModelButton = (timeout?: number): Cypress.Chainable =>
     .should(() => {
       const body = Cypress.$('body');
       const hasEmptyButton =
-        body.find('[data-testid="empty-model-registry-primary-action"]').length > 0;
-      const hasRegularButton = body.find('[data-testid="register-model-button"]').length > 0;
+        body.find(modelRegistry.getEmptyRegisterModelButtonSelector()).length > 0;
+      const hasRegularButton = body.find(modelRegistry.getRegisterModelButtonSelector()).length > 0;
 
       void expect(hasEmptyButton || hasRegularButton).to.be.true;
     })
     .then(($body) => {
-      if ($body.find('[data-testid="empty-model-registry-primary-action"]').length > 0) {
+      if ($body.find(modelRegistry.getEmptyRegisterModelButtonSelector()).length > 0) {
         // Registry is empty, use empty state button
         cy.log('Found empty registry button, clicking it');
         return modelRegistry.findEmptyRegisterModelButton(timeout).click();
