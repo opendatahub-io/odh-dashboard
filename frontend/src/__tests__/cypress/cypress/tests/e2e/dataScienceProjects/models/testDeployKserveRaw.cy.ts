@@ -8,7 +8,6 @@ import type { DataScienceProjectData } from '#~/__tests__/cypress/cypress/types'
 import { loadDSPFixture } from '#~/__tests__/cypress/cypress/utils/dataLoader';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '#~/__tests__/cypress/cypress/utils/e2eUsers';
 import {
-  checkInferenceServiceDeploymentMode,
   checkInferenceServiceState,
   provisionProjectForModelServing,
 } from '#~/__tests__/cypress/cypress/utils/oc_commands/modelServing';
@@ -80,24 +79,17 @@ describe('[Product Bug: RHOAIENG-31261] Verify a user can deploy KServe Raw Depl
       inferenceServiceModal.findGlobalScopedTemplateOption('OpenVINO Model Server').click();
       inferenceServiceModal.findModelFrameworkSelect().click();
       inferenceServiceModal.findOpenVinoIROpSet13().click();
-      // Select KServe Raw deployment mode if available
-      inferenceServiceModal.getDeploymentModeLength().then((length) => {
-        if (length > 0) {
-          cy.log('Setting deployment mode to KServe Raw (Standard)');
-          inferenceServiceModal.findDeploymentModeSelect().findSelectOption('Standard').click();
-          inferenceServiceModal
-            .findDeploymentModeSelect()
-            .findSelectOption('Standard')
-            .should('have.attr', 'aria-selected', 'true');
+      // Select Standard Deployment mode (KServe Raw)
+      inferenceServiceModal.findDeploymentModeSelect().findSelectOption('Standard').click();
+      inferenceServiceModal
+        .findDeploymentModeSelect()
+        .findSelectOption('Standard')
+        .should('have.attr', 'aria-selected', 'false');
 
-          inferenceServiceModal
-            .findDeploymentModeSelect()
-            .findSelectOption('Advanced')
-            .should('have.attr', 'aria-selected', 'false');
-        } else {
-          cy.log('Deployment mode selector not available - using default configuration');
-        }
-      });
+      inferenceServiceModal
+        .findDeploymentModeSelect()
+        .findSelectOption('Advanced')
+        .should('have.attr', 'aria-selected', 'true');
       inferenceServiceModal.findLocationPathInput().type(modelFilePath);
       cy.step('Deploy the model');
       inferenceServiceModal.findSubmitButton().click();
@@ -107,12 +99,15 @@ describe('[Product Bug: RHOAIENG-31261] Verify a user can deploy KServe Raw Depl
       cy.step('Verify that the Model is created Successfully on the backend and frontend');
       // For KServe Raw deployments, we only need to check Ready condition
       // LatestDeploymentReady is specific to Serverless deployments
-      checkInferenceServiceState(modelName, projectName, {
-        checkReady: true,
-      });
-
-      cy.step('Verify InferenceService has correct KServe Raw deployment mode annotation');
-      checkInferenceServiceDeploymentMode(modelName, projectName, 'RawDeployment');
+      // Validate DeploymentMode parameter in inferenceService is RawDeployment
+      checkInferenceServiceState(
+        modelName,
+        projectName,
+        {
+          checkReady: true,
+        },
+        'RawDeployment',
+      );
     },
   );
 });
