@@ -468,8 +468,8 @@ describe('Project Details', () => {
     it('Both model serving platforms are enabled, no platform selected', () => {
       initIntercepts({ disableKServeConfig: false, disableModelConfig: false });
       projectDetails.visitSection('test-project', 'model-server');
-      projectDetails.findSelectPlatformButton('single').should('exist');
-      projectDetails.findSelectPlatformButton('multi').should('exist');
+      projectDetails.findSelectPlatformButton('kserve').should('exist');
+      projectDetails.findSelectPlatformButton('model-mesh').should('exist');
     });
 
     it('Only single serving platform enabled, no serving runtimes templates', () => {
@@ -722,7 +722,7 @@ describe('Project Details', () => {
       initModelServingIntercepts({});
       initIntercepts({ disableKServeConfig: false, disableModelConfig: false });
       projectDetails.visitSection('test-project', 'model-server');
-      projectDetails.findSelectPlatformButton('single').click();
+      projectDetails.findSelectPlatformButton('kserve').click();
       cy.wait('@addSupportServingPlatformProject').then((interception) => {
         expect(interception.request.url).to.contain(
           `/api/namespaces/test-project/${NamespaceApplicationCase.KSERVE_PROMOTION}`,
@@ -752,7 +752,7 @@ describe('Project Details', () => {
         disableModelConfig: false,
       });
       projectDetails.visitSection('test-project', 'model-server');
-      projectDetails.findSelectPlatformButton('multi').click();
+      projectDetails.findSelectPlatformButton('model-mesh').click();
       cy.wait('@addSupportServingPlatformProject').then((interception) => {
         expect(interception.request.url).to.contain(
           `/api/namespaces/test-project/${NamespaceApplicationCase.MODEL_MESH_PROMOTION}`,
@@ -785,7 +785,7 @@ describe('Project Details', () => {
         disableNIMConfig: false,
       });
       projectDetails.visitSection('test-project', 'model-server');
-      projectDetails.findSelectPlatformButton('nim').click();
+      projectDetails.findSelectPlatformButton('nvidia-nim').click();
       cy.wait('@addSupportServingPlatformProject').then((interception) => {
         expect(interception.request.url).to.contain(
           `/api/namespaces/test-project/${NamespaceApplicationCase.KSERVE_NIM_PROMOTION}`,
@@ -820,7 +820,7 @@ describe('Project Details', () => {
         rejectAddSupportServingPlatformProject: true,
       });
       projectDetails.visitSection('test-project', 'overview');
-      projectDetails.findSelectPlatformButton('single').click();
+      projectDetails.findSelectPlatformButton('kserve').click();
       projectDetails.findErrorSelectingPlatform().should('exist');
     });
 
@@ -841,7 +841,7 @@ describe('Project Details', () => {
       initModelServingIntercepts({});
       initIntercepts({ disableKServeConfig: false, disableModelConfig: false });
       projectDetails.visitSection('test-project', 'overview');
-      projectDetails.findSelectPlatformButton('single').click();
+      projectDetails.findSelectPlatformButton('kserve').click();
       cy.wait('@addSupportServingPlatformProject').then((interception) => {
         expect(interception.request.url).to.contain(
           `/api/namespaces/test-project/${NamespaceApplicationCase.KSERVE_PROMOTION}`,
@@ -872,7 +872,7 @@ describe('Project Details', () => {
         disableModelConfig: false,
       });
       projectDetails.visitSection('test-project', 'overview');
-      projectDetails.findSelectPlatformButton('multi').click();
+      projectDetails.findSelectPlatformButton('model-mesh').click();
       cy.wait('@addSupportServingPlatformProject').then((interception) => {
         expect(interception.request.url).to.contain(
           `/api/namespaces/test-project/${NamespaceApplicationCase.MODEL_MESH_PROMOTION}`,
@@ -904,7 +904,7 @@ describe('Project Details', () => {
         disableNIMConfig: false,
       });
       projectDetails.visitSection('test-project', 'overview');
-      projectDetails.findSelectPlatformButton('nim').click();
+      projectDetails.findSelectPlatformButton('nvidia-nim').click();
       cy.wait('@addSupportServingPlatformProject').then((interception) => {
         expect(interception.request.url).to.contain(
           `/api/namespaces/test-project/${NamespaceApplicationCase.KSERVE_NIM_PROMOTION}`,
@@ -938,7 +938,7 @@ describe('Project Details', () => {
       });
       initModelServingIntercepts({ isEmpty: true });
       projectDetails.visitSection('test-project', 'model-server');
-      projectDetails.findSelectPlatformButton('single').click();
+      projectDetails.findSelectPlatformButton('kserve').click();
       projectDetails.findErrorSelectingPlatform().should('exist');
     });
 

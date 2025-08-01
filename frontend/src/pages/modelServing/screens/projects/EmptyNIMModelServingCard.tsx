@@ -27,7 +27,7 @@ const EmptyNIMModelServingCard: React.FC<EmptyNIMModelServingCardProps> = ({
         border: 'var(--pf-t--global--border--color--default)',
         borderRadius: 16,
       }}
-      data-testid="nvidia-nim-model-serving-platform-card"
+      data-testid="nvidia-nim-platform-card"
     >
       <CardTitle>
         <Content component={ContentVariants.h2}>NVIDIA NIM model serving platform</Content>
@@ -44,7 +44,7 @@ const EmptyNIMModelServingCard: React.FC<EmptyNIMModelServingCardProps> = ({
             servingPlatform={NamespaceApplicationCase.KSERVE_NIM_PROMOTION}
             setError={setErrorSelectingPlatform}
             variant="secondary"
-            data-testid="nim-serving-select-button"
+            data-testid="nvidia-nim-select-button"
           />
         </Bullseye>
       </CardFooter>

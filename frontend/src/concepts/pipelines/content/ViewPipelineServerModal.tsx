@@ -14,7 +14,8 @@ import PasswordHiddenText from '#~/components/PasswordHiddenText';
 import { dataEntryToRecord } from '#~/utilities/dataEntryToRecord';
 import useNamespaceSecret from '#~/concepts/projects/apiHooks/useNamespaceSecret';
 import { ExternalDatabaseSecret } from '#~/concepts/pipelines/content/configurePipelinesServer/const';
-import { DSPipelineKind } from '#~/k8sTypes';
+import { DSPipelineAPIServerStore, DSPipelineKind } from '#~/k8sTypes';
+import PipelineKubernetesStoreCheckbox from './PipelineKubernetesStoreCheckbox';
 
 type ViewPipelineServerModalProps = {
   onClose: () => void;
@@ -120,6 +121,23 @@ const ViewPipelineServerModal: React.FC<ViewPipelineServerModalProps> = ({
                   </DescriptionListGroup>
                 </>
               )}
+            <>
+              <Title headingLevel="h2">Additional configurations</Title>
+              <DescriptionList isHorizontal isFluid>
+                <DescriptionListGroup>
+                  <DescriptionListTerm>Pipeline definition storage</DescriptionListTerm>
+                  <DescriptionListDescription>
+                    <PipelineKubernetesStoreCheckbox
+                      isDisabled
+                      isChecked={
+                        pipelineNamespaceCR.spec.apiServer?.pipelineStore ===
+                        DSPipelineAPIServerStore.KUBERNETES
+                      }
+                    />
+                  </DescriptionListDescription>
+                </DescriptionListGroup>
+              </DescriptionList>
+            </>
           </DescriptionList>
         )}
       </ModalBody>

@@ -52,7 +52,7 @@ export const PlatformSelectionCard: React.FC<{
         border: '1px solid var(--pf-t--global--border--color--default)',
         borderRadius: 16,
       }}
-      data-testid="single-serving-platform-card"
+      data-testid={`${platform.properties.id}-platform-card`}
     >
       <CardTitle>
         <Content component={ContentVariants.h2}>{platform.properties.enableCardText.title}</Content>
@@ -60,7 +60,13 @@ export const PlatformSelectionCard: React.FC<{
       <CardBody>{platform.properties.enableCardText.description}</CardBody>
       <CardFooter>
         <Bullseye>
-          <Button isLoading={loading} isDisabled={loading} variant="secondary" onClick={onSelect}>
+          <Button
+            isLoading={loading}
+            isDisabled={loading}
+            variant="secondary"
+            onClick={onSelect}
+            data-testid={`${platform.properties.id}-select-button`}
+          >
             {platform.properties.enableCardText.selectText}
           </Button>
         </Bullseye>

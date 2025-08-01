@@ -329,16 +329,23 @@ export const updatePipelineRecurringRun: UpdatePipelineRecurringRunAPI =
     );
 
 export const uploadPipeline: UploadPipelineAPI =
-  (hostPath) => (opts, name, description, fileContents) =>
+  (hostPath) => (opts, name, description, fileContents, displayName) =>
     handlePipelineFailures(
-      proxyFILE(hostPath, '/apis/v2beta1/pipelines/upload', fileContents, { name, description }),
+      proxyFILE(hostPath, '/apis/v2beta1/pipelines/upload', fileContents, {
+        name,
+        // eslint-disable-next-line camelcase
+        display_name: displayName,
+        description,
+      }),
     );
 
 export const uploadPipelineVersion: UploadPipelineVersionAPI =
-  (hostPath) => (opts, name, description, fileContents, pipelineId) =>
+  (hostPath) => (opts, name, description, fileContents, pipelineId, displayName) =>
     handlePipelineFailures(
       proxyFILE(hostPath, '/apis/v2beta1/pipelines/upload_version', fileContents, {
         name,
+        // eslint-disable-next-line camelcase
+        display_name: displayName,
         description,
         pipelineid: pipelineId,
       }),

@@ -69,7 +69,9 @@ const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
               </Content>
               <Stack hasGutter>
                 {subtext && <StackItem>{subtext}</StackItem>}
-                {description && <StackItem>{description}</StackItem>}
+                {description && (
+                  <StackItem data-testid="app-page-description">{description}</StackItem>
+                )}
               </Stack>
             </FlexItem>
             <FlexItem>{headerAction}</FlexItem>
