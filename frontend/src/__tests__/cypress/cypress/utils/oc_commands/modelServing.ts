@@ -59,6 +59,7 @@ type InferenceServiceState = {
         activeModelState?: string;
       };
     };
+    deploymentMode?: string;
   };
 };
 
@@ -99,6 +100,7 @@ export const checkInferenceServiceState = (
   serviceName: string,
   namespace: string,
   options: ConditionCheckOptions = {},
+  DeploymentMode?: 'RawDeployment' | 'Serverless',
 ): Cypress.Chainable<Cypress.Exec> => {
   const ocCommand = `oc get inferenceService ${serviceName} -n ${namespace} -o json`;
   const maxAttempts = 96; // 8 minutes / 5 seconds = 96 attempts
@@ -147,10 +149,14 @@ export const checkInferenceServiceState = (
         serviceState.status?.modelStatus?.states?.activeModelState || 'EMPTY';
       const conditions = serviceState.status?.conditions || [];
 
+      // Check deployment mode
+      const actualDeploymentMode = serviceState.status?.deploymentMode || 'EMPTY';
+
       // Detailed initial logging
       cy.log(`🧐 Attempt ${attempts}: Checking InferenceService state
         Service Name: ${serviceName}
         Active Model State: ${activeModelState}
+        Deployment Mode: ${actualDeploymentMode}
         Total Conditions: ${conditions.length}`);
 
       // Prepare condition checks with logging
@@ -214,6 +220,24 @@ export const checkInferenceServiceState = (
       const isModelLoaded = activeModelState === 'Loaded';
       cy.log(`Active Model State Check: ${isModelLoaded ? '✅ Loaded' : '❌ Not Loaded'}`);
 
+      if (DeploymentMode) {
+        const expectedDeploymentMode = DeploymentMode;
+        cy.log(`🔍 InferenceService deployment mode check:
+        Service: ${serviceName}
+        Expected: ${expectedDeploymentMode}
+        Actual: ${actualDeploymentMode}
+        Match: ${actualDeploymentMode === expectedDeploymentMode ? '✅' : '❌'}`);
+
+        if (actualDeploymentMode !== expectedDeploymentMode) {
+          throw new Error(
+            `Deployment mode mismatch. Expected: ${expectedDeploymentMode}, Actual: ${actualDeploymentMode}`,
+          );
+        }
+
+        cy.log(
+          `✅ InferenceService ${serviceName} has correct deployment mode: ${expectedDeploymentMode}`,
+        );
+      }
       // Determine overall success
       // If no condition checks were specified, only check model state
       const allConditionsPassed =
@@ -459,6 +483,7 @@ export const verifyS3CopyCompleted = (
       }
     });
 };
+
 /**
  * Retrieve the token for a given service account and model
  *
