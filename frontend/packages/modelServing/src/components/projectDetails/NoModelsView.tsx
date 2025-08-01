@@ -8,7 +8,7 @@ export const NoModelsView: React.FC<{ platform: ModelServingPlatform }> = ({ pla
   <EmptyDetailsView
     allowCreate
     iconImage={typedEmptyImage(ProjectObjectType.modelServer)}
-    // imageAlt={isProjectModelMesh ? 'No model servers' : 'No deployed models'}
+    imageAlt="No deployed models"
     title={platform.properties.deployedModelsView.startHintTitle}
     description={platform.properties.deployedModelsView.startHintDescription}
     createButton={<DeployButton platform={platform} />}
