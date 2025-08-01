@@ -27,9 +27,9 @@ spec:
   - name: output-image
     value: quay.io/redhat-user-workloads/open-data-hub-tenant/modarch-poc:{{revision}}
   - name: dockerfile
-    value: Dockerfile
+    value: packages/model-registry/Dockerfile.workspace
   - name: path-context
-    value: frontend/packages/model-registry
+    value: ./frontend
   pipelineSpec:
     description: |
       This pipeline is ideal for building container images from a Containerfile while maintaining trust after pipeline customization.
