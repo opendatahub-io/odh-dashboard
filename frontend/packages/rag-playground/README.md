@@ -1,4 +1,4 @@
-# Llama Stack Modular UI
+#  RAG Playground
 
 A modern web application with a modular architecture, featuring a React frontend and Go backend for frontend (BFF).
 

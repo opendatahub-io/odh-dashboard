@@ -1,4 +1,4 @@
-# Deploying Llama Stack Modular UI on OpenShift
+# Deploying RAG Playground on OpenShift
 
 This guide explains how to deploy the application on OpenShift using the `Dockerfile.openshift` container file.
 

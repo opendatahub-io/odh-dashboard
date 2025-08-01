@@ -1,9 +1,9 @@
 {
-  "name": "llama-chatbot",
+  "name": "rag-playground",
   "version": "0.0.2",
   "description": "An open source build scaffolding utility for web apps.",
-  "repository": "https://github.com/opendatahub-io/rag-playground.git",
-  "homepage": "https://github.com/opendatahub-io/rag-playground",
+  "repository": "https://github.com/opendatahub-io/odh-dashboard.git",
+  "homepage": "https://github.com/opendatahub-io/odh-dashboard/tree/main/frontend/packages/rag-playground",
   "license": "MIT",
   "private": true,
   "scripts": {
