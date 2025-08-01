@@ -65,7 +65,7 @@ class ModelServingGlobal {
   }
 
   findSingleServingModelButton() {
-    return cy.findByTestId('kserve-select-button');
+    return cy.findByTestId('single-serving-select-button');
   }
 
   findMultiModelButton() {
@@ -216,10 +216,6 @@ class InferenceServiceModal extends ServingModal {
 
   findDeploymentModeSelect() {
     return this.find().findByTestId('deployment-mode-select');
-  }
-
-  getDeploymentModeLength() {
-    return this.findDeploymentModeSelect().then(($dropdown) => $dropdown.length);
   }
 
   findDeployedModelRouteCheckbox() {
