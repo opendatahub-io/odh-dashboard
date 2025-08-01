@@ -33,9 +33,10 @@ export const DeploymentRow: React.FC<{
   deployment: Deployment;
   platformColumns: DeploymentsTableColumn[];
   onDelete: (deployment: Deployment) => void;
+  onEdit: (deployment: Deployment) => void;
   rowIndex: number;
   showExpandedInfo?: boolean;
-}> = ({ deployment, platformColumns, onDelete, rowIndex, showExpandedInfo }) => {
+}> = ({ deployment, platformColumns, onDelete, onEdit, rowIndex, showExpandedInfo }) => {
   const metricsExtension = useDeploymentExtension(isModelServingMetricsExtension, deployment);
   // Loads instantly so we know if the row is expandable
   const detailsExtension = useDeploymentExtension(
@@ -149,6 +150,13 @@ export const DeploymentRow: React.FC<{
         <Td isActionCell>
           <ActionsColumn
             items={[
+              {
+                title: 'Edit',
+                onClick: () => {
+                  onEdit(deployment);
+                },
+              },
+              { isSeparator: true },
               {
                 title: 'Delete',
                 onClick: () => {
