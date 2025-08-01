@@ -2,13 +2,14 @@ import * as React from 'react';
 import { Table } from '#~/components/table';
 import DashboardEmptyTableView from '#~/concepts/dashboard/DashboardEmptyTableView.tsx';
 import { useFeatureStoreProject } from '#~/pages/featureStore/FeatureStoreContext';
-import { Entity, EntityRelationship } from '#~/pages/featureStore/types/entities';
+import { Entity } from '#~/pages/featureStore/types/entities';
 import { AllProjectColumns, columns } from '#~/pages/featureStore/screens/entities/const';
 import FeatureStoreEntitiesTableRow from './FeatureStoreEntitiesTableRow';
+import { FeatureStoreRelationship } from '#~/pages/featureStore/types/global.ts';
 
 type FeatureStoreEntitiesTableProps = {
   entities: Entity[];
-  relationships: Record<string, EntityRelationship[]>;
+  relationships: Record<string, FeatureStoreRelationship[]>;
   onClearFilters: () => void;
   toolbarContent: React.ComponentProps<typeof Table>['toolbarContent'];
 } & Partial<Pick<React.ComponentProps<typeof Table>, 'enablePagination'>>;
