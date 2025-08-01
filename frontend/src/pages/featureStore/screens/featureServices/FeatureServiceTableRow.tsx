@@ -8,6 +8,7 @@ import FeatureStoreTags from '#~/pages/featureStore/components/FeatureStoreTags'
 import { relativeTime } from '#~/utilities/time.ts';
 import { featureServiceRoute, featureViewRoute } from '#~/pages/featureStore/routes';
 import ScrollableLinksPopover from '../../components/ScrollableLinksPopover';
+import FeatureStoreTimestamp from '../../components/FeatureStoreTimestamp';
 
 type FeatureServiceTableRowType = {
   featureService: FeatureService;
@@ -53,32 +54,10 @@ const FeatureServiceTableRow: React.FC<FeatureServiceTableRowType> = ({
       />
     </Td>
     <Td dataLabel="Created">
-      {featureService.meta.createdTimestamp ? (
-        <Timestamp
-          date={new Date(featureService.meta.createdTimestamp)}
-          tooltip={{
-            variant: TimestampTooltipVariant.default,
-          }}
-        >
-          {relativeTime(Date.now(), new Date(featureService.meta.createdTimestamp).getTime())}
-        </Timestamp>
-      ) : (
-        'Unknown'
-      )}
+      <FeatureStoreTimestamp date={featureService.meta.createdTimestamp} />
     </Td>
     <Td dataLabel="Updated">
-      {featureService.meta.lastUpdatedTimestamp ? (
-        <Timestamp
-          date={new Date(featureService.meta.lastUpdatedTimestamp)}
-          tooltip={{
-            variant: TimestampTooltipVariant.default,
-          }}
-        >
-          {relativeTime(Date.now(), new Date(featureService.meta.lastUpdatedTimestamp).getTime())}
-        </Timestamp>
-      ) : (
-        'Unknown'
-      )}
+      <FeatureStoreTimestamp date={featureService.meta.lastUpdatedTimestamp} />
     </Td>
     <Td dataLabel="Owner">{featureService.spec.owner ?? '-'}</Td>
     {!fsProject && <Td dataLabel="Project">{featureService.project}</Td>}
