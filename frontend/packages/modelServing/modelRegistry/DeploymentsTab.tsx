@@ -5,7 +5,6 @@ import GlobalDeploymentsTable from '../src/components/global/GlobalDeploymentsTa
 import { ModelDeploymentsContext } from '../src/concepts/ModelDeploymentsContext';
 
 const DeploymentsTab: React.FC = () => {
-  // Note: We don't use the props currently, but they're required by the extension interface
   const { deployments, loaded: deploymentsLoaded } = React.useContext(ModelDeploymentsContext);
   if (deploymentsLoaded && deployments?.length === 0) {
     return (

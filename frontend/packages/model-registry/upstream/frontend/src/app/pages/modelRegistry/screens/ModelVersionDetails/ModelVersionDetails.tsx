@@ -19,7 +19,7 @@ import ModelVersionDetailsTabs from './ModelVersionDetailsTabs';
 import ModelVersionsDetailsHeaderActions from './ModelVersionDetailsHeaderActions';
 import { MRDeployButton } from '~/odh/components/MRDeployButton';
 import { MRDeploymentsContextProvider } from '~/odh/components/MRDeploymentsContextProvider';
-import { KnownLabels } from '@odh-dashboard/internal/k8sTypes';
+import { KnownLabels } from '~/odh/k8sTypes';
 
 type ModelVersionsDetailProps = {
   tab: ModelVersionDetailsTab;

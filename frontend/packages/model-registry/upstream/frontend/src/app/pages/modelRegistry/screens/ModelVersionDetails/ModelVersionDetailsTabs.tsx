@@ -54,15 +54,7 @@ const ModelVersionDetailsTabs: React.FC<ModelVersionDetailTabsProps> = ({
           isFilled
           data-testid={`${extension.properties.id}-tab-content`}
         >
-          <LazyCodeRefComponent
-            component={extension.properties.component}
-            props={{
-              mv,
-              mrName: preferredModelRegistry?.name,
-              refresh,
-              isArchiveVersion,
-            }}
-          />
+          <LazyCodeRefComponent component={extension.properties.component} />
         </PageSection>
       </Tab>
     )),

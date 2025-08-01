@@ -123,7 +123,7 @@ export const ModelDeploymentsProvider: React.FC<ModelDeploymentsProviderProps> =
       {
         // the only way to dynamically call hooks (useWatchDeployments) is to render them in dynamic components
         projects.map((project) => {
-          const platform = getProjectServingPlatform(project, modelServingPlatforms);
+          const platform = getProjectServingPlatform(project, modelServingPlatforms, true);
           const watcher = deploymentWatchers.find(
             (w) => w.properties.platform === platform?.properties.id,
           );
