@@ -126,12 +126,15 @@ describe('ManagePipelineServerModal', () => {
 
     // expect(screen.getByText('Additional Configurations')).toBeInTheDocument();
     expect(screen.getByText('Pipeline caching')).toBeInTheDocument();
-    expect(screen.getByText('Enable caching configuration in pipelines')).toBeInTheDocument();
+    expect(screen.getByText('Allow caching to be configured per pipeline and task')).toBeInTheDocument();
 
-    const cachingCheckbox = screen.getByRole('checkbox', {
-      name: /Enable caching configuration in pipelines/i,
-    });
+    const cachingCheckbox = screen.getByTestId('pipeline-cache-enabling');
+    const additionalTextHeader = screen.getByTestId('additionalConfig-headerText');
+    const kubeStoreCheckbox = screen.getByTestId('pipeline-kubernetes-store-checkbox');
+     
+    expect (additionalTextHeader).toBeInTheDocument();
     expect(cachingCheckbox).toBeInTheDocument();
+    expect (kubeStoreCheckbox).toBeInTheDocument();
   });
 
   it('should initialize caching checkbox with correct state from DSPA resource', () => {
@@ -145,9 +148,8 @@ describe('ManagePipelineServerModal', () => {
       pipelineNamespaceCR: pipelineWithCachingEnabled,
     });
 
-    const cachingCheckbox = screen.getByRole('checkbox', {
-      name: /Enable caching configuration in pipelines/i,
-    });
+    const cachingCheckbox = screen.getByTestId('pipeline-cache-enabling');
+
     expect(cachingCheckbox).toBeChecked();
   });
 
@@ -184,9 +186,7 @@ describe('ManagePipelineServerModal', () => {
       pipelineNamespaceCR: pipelineWithCachingEnabled,
     });
 
-    const cachingCheckbox = screen.getByRole('checkbox', {
-      name: /Enable caching configuration in pipelines/i,
-    });
+    const cachingCheckbox = screen.getByTestId('pipeline-cache-enabling');
 
     // Initially checked, no alert
     expect(cachingCheckbox).toBeChecked();
@@ -218,7 +218,7 @@ describe('ManagePipelineServerModal', () => {
     fireEvent.click(saveButton);
 
     await waitFor(() => {
-      expect(mockUpdatePipelineCaching).toHaveBeenCalledWith('test-project', 'dspa', false);
+      expect(mockUpdatePipelineCaching).toHaveBeenCalledWith('test-project', false);
     });
   });
 
@@ -256,6 +256,9 @@ describe('ManagePipelineServerModal', () => {
   });
 
   it('should show error notification on failed save', async () => {
+    // Suppress console.error for this test since we're intentionally testing error handling
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    
     const error = new Error('Update failed');
     mockUpdatePipelineCaching.mockRejectedValue(error);
 
@@ -283,6 +286,9 @@ describe('ManagePipelineServerModal', () => {
       title: 'Failed to update pipeline caching',
       message: 'Update failed',
     });
+    
+    // Restore console.error
+    consoleErrorSpy.mockRestore();
   });
 
   it('should close modal when cancel button is clicked', () => {
