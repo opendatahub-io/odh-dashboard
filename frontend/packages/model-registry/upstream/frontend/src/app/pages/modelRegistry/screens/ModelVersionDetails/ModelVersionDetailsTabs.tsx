@@ -6,7 +6,6 @@ import { ModelVersionDetailsTabTitle, ModelVersionDetailsTab } from './const';
 import ModelVersionDetailsView from './ModelVersionDetailsView';
 import { isModelRegistryVersionDetailsTabExtension } from '~/odh/extension-points/details';
 import { LazyCodeRefComponent, useExtensions } from '@odh-dashboard/plugin-core';
-import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelectorContext';
 
 type ModelVersionDetailTabsProps = {
   tab: ModelVersionDetailsTab;
@@ -22,7 +21,6 @@ const ModelVersionDetailsTabs: React.FC<ModelVersionDetailTabsProps> = ({
   refresh,
 }) => {
   const navigate = useNavigate();
-  const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
   const tabExtensions = useExtensions(isModelRegistryVersionDetailsTabExtension);
 
   const modelVersionDetails = [
