@@ -27,7 +27,7 @@ const RunsWithArchivedExperimentTable: React.FC<RunsWithArchivedExperimentProps>
   const groupedRuns = getGroupRunsByExperiment(runs, allExperiments);
 
   return (
-    <Table variant="compact">
+    <Table variant="compact" hasAnimations>
       <Thead noWrap>
         <Tr>
           <Th>Run</Th>

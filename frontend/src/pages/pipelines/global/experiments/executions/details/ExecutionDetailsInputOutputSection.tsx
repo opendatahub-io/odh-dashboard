@@ -59,6 +59,7 @@ const ExecutionDetailsInputOutputSection: React.FC<ExecutionDetailsInputOutputSe
             aria-label={`Execution details ${title.toLowerCase()} table`}
             variant="compact"
             borders={false}
+            hasAnimations
           >
             <Thead>
               <Tr>

@@ -45,6 +45,7 @@ const DisplayedContentTable: React.FC<DisplayedContentTableProps> = ({
           data-testid={`displayed-content-table-${content}`}
           className={tableProps.className}
           variant="compact"
+          hasAnimations
         >
           <Thead noWrap>
             <Tr>

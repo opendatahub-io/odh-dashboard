@@ -142,7 +142,11 @@ const DropdownAdvancedPropertiesForm: React.FC<AdvancedFieldProps<DropdownField>
         </Flex>
       </FormGroup>
       <FormGroup>
-        <Table data-testid="connection-type-fields-table" className={tableProps.className}>
+        <Table
+          data-testid="connection-type-fields-table"
+          className={tableProps.className}
+          hasAnimations
+        >
           <Thead noWrap>
             <Tr>
               <Th screenReaderText="Drag and drop" />
