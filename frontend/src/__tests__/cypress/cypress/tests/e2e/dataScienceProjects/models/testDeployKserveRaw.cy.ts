@@ -84,12 +84,12 @@ describe('[Product Bug: RHOAIENG-31261] Verify a user can deploy KServe Raw Depl
       inferenceServiceModal
         .findDeploymentModeSelect()
         .findSelectOption('Standard')
-        .should('have.attr', 'aria-selected', 'false');
+        .should('have.attr', 'aria-selected', 'true');
 
       inferenceServiceModal
         .findDeploymentModeSelect()
         .findSelectOption('Advanced')
-        .should('have.attr', 'aria-selected', 'true');
+        .should('have.attr', 'aria-selected', 'false');
       inferenceServiceModal.findLocationPathInput().type(modelFilePath);
       cy.step('Deploy the model');
       inferenceServiceModal.findSubmitButton().click();
