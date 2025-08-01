@@ -1,0 +1,97 @@
+# Node modules - these are installed during build
+node_modules/
+**/node_modules/
+npm-debug.log*
+
+# Build outputs - we want to build fresh
+**/dist/
+**/build/
+**/coverage/
+**/.next/
+**/.nuxt/
+**/.turbo/
+
+# Development and test files
+**/__tests__/
+**/__mocks__/
+**/test-results/
+**/cypress/
+**/.cypress/
+**/*.test.ts
+**/*.test.tsx
+**/*.test.js
+**/*.test.jsx
+**/*.spec.ts
+**/*.spec.tsx
+**/*.spec.js
+**/*.spec.jsx
+
+# Environment files (sensitive data)
+**/.env
+**/.env.local
+**/.env.development
+**/.env.test
+**/.env.production
+
+# IDE and editor files
+**/.vscode/
+**/.idea/
+**/.DS_Store
+**/*.swp
+**/*.swo
+**/Thumbs.db
+
+# Source control
+**/.git/
+**/.gitignore
+**/.gitattributes
+
+# Logs
+**/logs/
+**/*.log
+**/npm-debug.log*
+**/yarn-debug.log*
+**/yarn-error.log*
+
+# Runtime data
+**/pids/
+**/*.pid
+**/*.seed
+**/*.pid.lock
+
+# Documentation and config files we don't need in the image
+**/*.md
+**/.eslintrc*
+**/.prettierrc*
+**/.prettierignore
+**/.eslintignore
+**/jest.config.*
+**/babel.config.*
+**/tsconfig*.json
+
+# Cache directories
+**/.npm/
+**/.yarn/
+**/.cache/
+**/tmp/
+**/temp/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Module federation build artifacts that we rebuild
+**/@mf-types/
+**/public-cypress/
+
+# Exclude other modules' upstream content to reduce build context
+# But allow the target module and shared packages
+packages/*/upstream/
+!packages/model-registry/upstream/
+!packages/plugin-core/
+!packages/tsconfig/
