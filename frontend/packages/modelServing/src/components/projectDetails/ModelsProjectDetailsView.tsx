@@ -59,7 +59,7 @@ const ModelsProjectDetailsView: React.FC<{
         ) : undefined
       }
       isLoading={isLoading}
-      loadError={deploymentsErrors?.[0] ?? clusterPlatformsError}
+      loadError={deploymentsErrors?.[0] || clusterPlatformsError}
       actions={
         hasModels && activePlatform
           ? [<DeployButton key="deploy-button" platform={activePlatform} variant="secondary" />]
@@ -73,6 +73,7 @@ const ModelsProjectDetailsView: React.FC<{
             </Label>
             {activePlatform && platforms.length > 1 && (
               <Button
+                data-testid="change-serving-platform-button"
                 variant="link"
                 isInline
                 icon={<PencilAltIcon />}
