@@ -128,10 +128,10 @@ export const useDefaultStorageClass = (
   // 1. First priority: admin storage class (from Dashboard Admin Configuration)
   if (
     isStorageClassesAvailable &&
-    (adminDefaultStorageClassError || adminDefaultStorageClassLoaded)
+    adminDefaultStorageClassLoaded &&
+    !adminDefaultStorageClassError
   ) {
     storageClass = adminDefaultStorageClass;
-    error = adminDefaultStorageClassError;
     loaded = adminDefaultStorageClassLoaded;
   }
   // 2. Second priority: preferred storage class (from OdhDashboardConfig CR)
@@ -147,6 +147,12 @@ export const useDefaultStorageClass = (
     storageClass = storageClasses[0] || null;
     error = storageClassesError;
     loaded = storageClassesLoaded;
+  }
+
+  // If no storage class was found and admin default had an error, use that error
+  if (!storageClass && isStorageClassesAvailable && adminDefaultStorageClassError) {
+    error = adminDefaultStorageClassError;
+    loaded = adminDefaultStorageClassLoaded;
   }
 
   return [storageClass, loaded, error, refresh];
