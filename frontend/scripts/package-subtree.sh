@@ -105,10 +105,16 @@ else
     BACKUP_DIR=$(mktemp -d)
     cp -r "$TARGET_DIR/." "$BACKUP_DIR/"
     
-    # Try to apply the patch
+    # Try to apply the patch with multiple methods
     echo "Attempting to apply patch in directory: $TARGET_DIR"
-    if (cd "$TARGET_DIR" && git apply --verbose --whitespace=warn "$PATCH_DIR/changes.patch"); then
-      echo "✅ Successfully applied upstream changes"
+    
+    # Method 1: Try git apply with permissive flags
+    if (cd "$TARGET_DIR" && git apply --ignore-whitespace --ignore-space-change --verbose "$PATCH_DIR/changes.patch" 2>/dev/null); then
+      echo "✅ Successfully applied upstream changes with git apply"
+      rm -rf "$BACKUP_DIR"
+    # Method 2: Try standard patch command  
+    elif (cd "$TARGET_DIR" && patch -p1 < "$PATCH_DIR/changes.patch"); then
+      echo "✅ Successfully applied upstream changes with patch command"
       rm -rf "$BACKUP_DIR"
     else
       echo "⚠️  Patch application failed, attempting 3-way merge..."
