@@ -11,7 +11,6 @@ import {
 import { PersistentVolumeClaimKind } from '#~/k8sTypes';
 import CreateNewStorageSection from '#~/pages/projects/screens/spawner/storage/CreateNewStorageSection';
 import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
-import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import { useDefaultStorageClass } from '#~/pages/projects/screens/spawner/storage/useDefaultStorageClass';
 import { useCreateStorageObject } from '#~/pages/projects/screens/spawner/storage/utils';
 import { StorageData } from '#~/pages/projects/types';
@@ -49,7 +48,6 @@ const BaseStorageModal: React.FC<BaseStorageModalProps> = ({
   onClose,
   onNameChange,
 }) => {
-  const isStorageClassesAvailable = useIsAreaAvailable(SupportedArea.STORAGE_CLASSES).status;
   const [defaultStorageClass] = useDefaultStorageClass();
   const [createData, setCreateData] = useCreateStorageObject(existingPvc, existingData);
   const [nameDescValid, setNameDescValid] = React.useState<boolean>();
