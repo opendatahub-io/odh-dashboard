@@ -7,3 +7,16 @@ export enum FeatureStoreObject {
   FEATURE_VIEWS = 'featureViews',
   FEATURE_SERVICES = 'featureServices',
 }
+
+export enum FeatureStoreSections {
+  VALUE_TYPE = 'Value type',
+  TAGS = 'Tags',
+  INTERACTIVE_EXAMPLE = 'Interactive example',
+  DATA_SOURCE = 'Data source',
+  ENTITIES = 'Entities',
+  SCHEMA = 'Schema',
+  INPUTS = 'Inputs',
+  CONSUMING_FEATURE_VIEWS = 'Consuming Feature Views',
+}
+
+export const hasContent = (value: string): boolean => !!value.trim().length;

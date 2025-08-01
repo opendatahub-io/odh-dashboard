@@ -93,4 +93,5 @@ export const getInitialFeatureFilterData = (showAllProjects: boolean): FeatureFi
 
 export enum FeatureDetailsTab {
   DETAILS = 'Details',
+  FEATURE_VIEWS = 'Feature views',
 }

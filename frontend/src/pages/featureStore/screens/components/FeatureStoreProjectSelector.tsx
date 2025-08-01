@@ -72,7 +72,7 @@ const FeatureStoreProjectSelector: React.FC<FeatureStoreProjectSelectorProps> = 
   return (
     <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
       <FlexItem>
-        <Bullseye>Feature store projects</Bullseye>
+        <Bullseye>Feature Store Project</Bullseye>
       </FlexItem>
       <FlexItem>{selector}</FlexItem>
     </Flex>
