@@ -1,0 +1,12 @@
+{
+  "private": true,
+  "name": "@odh-dashboard/template",
+  "description": "This is a template for creating new packages",
+  "version": "0.0.0",
+  "scripts__options": {
+    "lint": "eslint .",
+    "test-unit": "jest --silent",
+    "test-unit-coverage": "jest --silent --coverage",
+    "type-check": "tsc --noEmit"
+  }
+}

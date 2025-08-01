@@ -12,7 +12,7 @@ import type { ModelServingPodSpecOptionsState } from '@odh-dashboard/internal/co
 import type { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import type { InferenceServiceModelState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import type { ToggleState } from '@odh-dashboard/internal/components/StateActionToggle';
-import type { ComponentCodeRef } from '../../plugin-core/src/extension-points/types';
+import type { ComponentCodeRef } from '@odh-dashboard/plugin-core';
 
 export type DeploymentStatus = {
   state: InferenceServiceModelState;

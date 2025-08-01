@@ -1,13 +1,13 @@
 import { act } from 'react';
 import { k8sGetResource } from '@openshift/dynamic-plugin-sdk-utils';
 import { waitFor } from '@testing-library/react';
+import { testHook } from '@odh-dashboard/jest-config/hooks';
 import { useAccessReview, useRulesReview, listServices } from '#~/api';
 import { ServiceKind } from '#~/k8sTypes';
 import {
   useModelRegistryServices,
   ModelRegistryServicesResult,
 } from '#~/concepts/modelRegistry/apiHooks/useModelRegistryServices';
-import { testHook } from '#~/__tests__/unit/testUtils/hooks';
 import { mockModelRegistryService } from '#~/__mocks__/mockModelRegistryService';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({

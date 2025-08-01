@@ -1,6 +1,6 @@
+import { testHook } from '@odh-dashboard/jest-config/hooks';
 import { mockAcceleratorProfile } from '#~/__mocks__/mockAcceleratorProfile';
 import { mockDashboardConfig } from '#~/__mocks__';
-import { testHook } from '#~/__tests__/unit/testUtils/hooks';
 import { useWatchHardwareProfiles } from '#~/utilities/useWatchHardwareProfiles';
 import useAcceleratorProfiles from '#~/pages/notebookController/screens/server/useAcceleratorProfiles';
 import { useDashboardNamespace } from '#~/redux/selectors';

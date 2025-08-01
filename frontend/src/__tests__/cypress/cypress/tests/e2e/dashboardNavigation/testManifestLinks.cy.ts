@@ -81,10 +81,14 @@ const formatUrlLocationsByFile = (urlLocations: UrlLocation[]): string => {
 };
 
 const getLocationInfo = (url: string, allLocations?: Map<string, UrlLocation[]>): string => {
-  if (!allLocations) return '';
+  if (!allLocations) {
+    return '';
+  }
 
   const locations = allLocations.get(url);
-  if (!locations || locations.length === 0) return '';
+  if (!locations || locations.length === 0) {
+    return '';
+  }
 
   const locationInfo = locations
     .map((loc) => {

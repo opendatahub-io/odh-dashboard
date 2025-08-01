@@ -1,4 +1,4 @@
-import { testHook } from '#~/__tests__/unit/testUtils/hooks';
+import { testHook } from '@odh-dashboard/jest-config/hooks';
 import { getRoute } from '#~/api';
 import useRouteForNotebook from '#~/concepts/notebooks/apiHooks/useRouteForNotebook';
 
