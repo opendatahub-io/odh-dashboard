@@ -3,6 +3,7 @@ import { SortableData, Table } from '@odh-dashboard/internal/components/table/in
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
 import { DeploymentRow } from './DeploymentsTableRow';
+import { EditModelServingModal } from '../deploy/EditModelServingModal';
 import { deploymentNameSort, deploymentLastDeployedSort } from '../../concepts/deploymentUtils';
 import { Deployment, type DeploymentsTableColumn } from '../../../extension-points';
 import DeleteModelServingModal from '../deleteModal/DeleteModelServingModal';
@@ -73,7 +74,7 @@ const DeploymentsTable: React.FC<DeploymentsTableProps> = ({
   ...tableProps
 }) => {
   const [deleteDeployment, setDeleteDeployment] = React.useState<Deployment | undefined>(undefined);
-
+  const [editDeployment, setEditDeployment] = React.useState<Deployment | undefined>(undefined);
   const allColumns: SortableData<Deployment>[] = React.useMemo(
     () => [
       ...(showExpandedInfo ? [expandedInfoColumn] : []),
@@ -98,6 +99,7 @@ const DeploymentsTable: React.FC<DeploymentsTableProps> = ({
             deployment={row}
             platformColumns={platformColumns ?? []}
             onDelete={() => setDeleteDeployment(row)}
+            onEdit={() => setEditDeployment(row)}
             showExpandedInfo={showExpandedInfo}
           />
         )}
@@ -113,6 +115,14 @@ const DeploymentsTable: React.FC<DeploymentsTableProps> = ({
               type: 'single',
             });
             setDeleteDeployment(undefined);
+          }}
+        />
+      )}
+      {editDeployment && (
+        <EditModelServingModal
+          deployment={editDeployment}
+          onClose={() => {
+            setEditDeployment(undefined);
           }}
         />
       )}
