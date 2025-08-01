@@ -1135,12 +1135,9 @@ jobs:
           # Output to GitHub Step Summary (always visible)
           cat $SUMMARY_FILE >> $GITHUB_STEP_SUMMARY
 
-          # Save summary to environment for comment step
-          echo "QUALITY_SUMMARY<<EOF" >> $GITHUB_ENV
-          cat $SUMMARY_FILE >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
-
           echo "📄 Quality gates summary generated and added to job summary"
+          echo "📊 Summary file size: $(wc -l < $SUMMARY_FILE) lines"
+          echo "📄 Summary file path: $(pwd)/$SUMMARY_FILE"
 
       - name: Comment PR with Quality Gates Summary
         if: github.event_name == 'pull_request'
@@ -1148,7 +1145,31 @@ jobs:
         continue-on-error: true
         with:
           script: |
-            const summary = process.env.QUALITY_SUMMARY;
+            const fs = require('fs');
+            
+            // Debug information
+            console.log('🔍 Debug Info:');
+            console.log('- Event name:', context.eventName);
+            console.log('- PR number:', context.issue?.number);
+            console.log('- Is fork:', context.payload.pull_request?.head.repo.fork);
+            console.log('- Working directory:', process.cwd());
+            
+            const summaryFile = 'quality-gates-summary.md';
+            
+            // Check if summary file exists
+            if (!fs.existsSync(summaryFile)) {
+              console.log('❌ Quality gates summary file not found:', summaryFile);
+              console.log('📁 Available files:');
+              fs.readdirSync('.').filter(f => f.includes('quality') || f.endsWith('.md')).forEach(f => {
+                console.log('  -', f);
+              });
+              return;
+            }
+            
+            // Read the summary content
+            const summary = fs.readFileSync(summaryFile, 'utf8');
+            console.log('📊 Summary loaded:', summary.length, 'characters');
+            console.log('📄 Preview:', summary.substring(0, 100) + '...');
             
             try {
               const result = await github.rest.issues.createComment({
@@ -1158,9 +1179,15 @@ jobs:
                 body: summary
               });
               console.log('✅ Quality gates summary posted as PR comment #' + result.data.id);
+              console.log('🔗 Comment URL: ' + result.data.html_url);
               
             } catch (error) {
               console.log('❌ Failed to post PR comment:', error.message);
+              console.log('🔍 Error details:', {
+                status: error.status,
+                name: error.name,
+                documentation_url: error.documentation_url
+              });
               
               if (error.message.includes('Resource not accessible by integration')) {
                 console.log('🔒 This is expected for forked PRs due to GitHub security restrictions');
@@ -1169,11 +1196,11 @@ jobs:
                 console.log('   • Downloaded artifact (quality-gates-summary.md)');
                 console.log('   • Individual job logs for detailed results');
               } else {
-                console.log('⚠️ Unexpected error occurred:', error);
+                console.log('⚠️ Unexpected error occurred - this might indicate a different issue');
               }
               
-              // Still log the summary for visibility
-              console.log('\n📋 Quality Gates Summary:');
+              // Always log the summary for visibility
+              console.log('\n📋 Quality Gates Summary (for manual review):');
               console.log(summary);
             }
 
