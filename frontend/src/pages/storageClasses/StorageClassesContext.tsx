@@ -92,28 +92,10 @@ export const StorageClassContextProvider: React.FC<StorageClassContextProviderPr
 
         const accessModeSettings = getStorageClassDefaultAccessModeSettings(storageClass);
 
-        // Add a default config annotation when one doesn't exist
-        if (!config) {
-          let isDefault = isOpenshiftDefault;
-          let isEnabled = isDefault;
-
-          if (!openshiftDefaultScName) {
-            isDefault = isFirstConfig;
-            isEnabled = true;
-          }
-
-          acc.push(
-            updateStorageClassConfig(name, {
-              isDefault,
-              isEnabled,
-              displayName: name,
-              accessModeSettings,
-            }),
-          );
-        }
-        // If multiple defaults are set via OpenShift's dashboard,
-        // unset all except the first indexed storage class
-        else {
+        // Only create/update configs for manual editing scenarios, not auto-patch on load
+        if (config) {
+          // If multiple defaults are set via OpenShift's dashboard,
+          // unset all except the first indexed storage class
           if (config.isDefault === true) {
             if (!hasDefaultConfig) {
               hasDefaultConfig = true;
@@ -183,7 +165,8 @@ export const StorageClassContextProvider: React.FC<StorageClassContextProviderPr
     refresh,
   ]);
 
-  // Initialize storage class configs
+  // Run updateConfigs when storage class configurations change
+  // This handles both user edits and ensures consistency
   React.useEffect(() => {
     updateConfigs();
   }, [defaultStorageClassName, openshiftDefaultScName, storageClassConfigs, updateConfigs]);
