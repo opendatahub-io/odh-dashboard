@@ -7,6 +7,7 @@ import './app.css';
 // Updated: Testing FIXED quality gates - should show accurate results now!
 // Updated: Testing pipeline trigger after branch updates
 // Updated: Clean pipeline run after CSV cleanup
+// Updated: Testing PR comment fix - should post summary now!
 import {
   Alert,
   Bullseye,
