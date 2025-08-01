@@ -10,8 +10,7 @@ import * as useNIMPVCModule from '#~/pages/modelServing/screens/projects/NIMServ
 import * as podSpecOptionsModule from '#~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
 import * as storageConfigModule from '#~/pages/projects/screens/spawner/storage/useGetStorageClassConfig';
 import * as StorageClassSelectModule from '#~/pages/projects/screens/spawner/storage/StorageClassSelect';
-import * as useAdminDefaultStorageClassModule from '#~/pages/projects/screens/spawner/storage/useAdminDefaultStorageClass';
-import * as useOpenshiftDefaultStorageClassModule from '#~/pages/projects/screens/spawner/storage/useOpenshiftDefaultStorageClass.ts';
+import * as useDefaultStorageClassModule from '#~/pages/projects/screens/spawner/storage/useDefaultStorageClass';
 
 // Mock dependencies
 jest.mock('#~/pages/modelServing/screens/projects/utils', () => ({
@@ -104,14 +103,9 @@ jest.mock('#~/pages/projects/screens/spawner/storage/StorageClassSelect', () => 
   }),
 }));
 
-jest.mock('#~/pages/projects/screens/spawner/storage/useAdminDefaultStorageClass', () => ({
+jest.mock('#~/pages/projects/screens/spawner/storage/useDefaultStorageClass', () => ({
   __esModule: true,
-  default: jest.fn(() => [mockStorageClasses[0]]),
-}));
-
-jest.mock('#~/pages/projects/screens/spawner/storage/useOpenshiftDefaultStorageClass.ts', () => ({
-  __esModule: true,
-  default: jest.fn(() => mockStorageClasses[0]),
+  useDefaultStorageClass: jest.fn(() => [mockStorageClasses[0]]),
 }));
 
 jest.mock('#~/pages/modelServing/screens/projects/useModelDeploymentNotification', () => ({
@@ -184,9 +178,7 @@ const mockUseModelServingPodSpecOptionsState =
   podSpecOptionsModule.useModelServingPodSpecOptionsState as jest.Mock;
 const mockUseGetStorageClassConfig = storageConfigModule.useGetStorageClassConfig as jest.Mock;
 const mockStorageClassSelect = StorageClassSelectModule.default as jest.Mock;
-const mockUseAdminDefaultStorageClass = useAdminDefaultStorageClassModule.default as jest.Mock;
-const mockUseOpenshiftDefaultStorageClass =
-  useOpenshiftDefaultStorageClassModule.default as jest.Mock;
+const mockUseDefaultStorageClass = useDefaultStorageClassModule.useDefaultStorageClass as jest.Mock;
 
 describe('ManageNIMServingModal', () => {
   const mockOnClose = jest.fn();
@@ -307,8 +299,7 @@ describe('ManageNIMServingModal', () => {
     mockUseModelServingPodSpecOptionsState.mockReturnValue(defaultMockPodSpecOptionsState);
 
     // Setup default storage class mocks with correct FetchState format
-    mockUseAdminDefaultStorageClass.mockReturnValue([mockStorageClasses[0], true, null, jest.fn()]);
-    mockUseOpenshiftDefaultStorageClass.mockReturnValue(mockStorageClasses[0]);
+    mockUseDefaultStorageClass.mockReturnValue([mockStorageClasses[0], true, null, jest.fn()]);
     mockUseGetStorageClassConfig.mockReturnValue({
       storageClasses: [mockStorageClasses[0], mockStorageClasses[1]],
       storageClassesLoaded: true,
@@ -628,8 +619,7 @@ describe('ManageNIMServingModal - Storage Class Fallback Logic', () => {
     mockUseModelServingPodSpecOptionsState.mockReturnValue(defaultMockPodSpecOptionsState);
 
     // Setup default storage class mocks with correct FetchState format
-    mockUseAdminDefaultStorageClass.mockReturnValue([mockStorageClasses[0], true, null, jest.fn()]);
-    mockUseOpenshiftDefaultStorageClass.mockReturnValue(mockStorageClasses[0]);
+    mockUseDefaultStorageClass.mockReturnValue([mockStorageClasses[0], true, null, jest.fn()]);
     mockUseGetStorageClassConfig.mockReturnValue({
       storageClasses: [mockStorageClasses[0], mockStorageClasses[1]],
       storageClassesLoaded: true,
@@ -640,13 +630,12 @@ describe('ManageNIMServingModal - Storage Class Fallback Logic', () => {
   describe('Storage Class Default Selection Logic', () => {
     it('prefers ODH default over OpenShift default', () => {
       // Mock ODH default available
-      mockUseAdminDefaultStorageClass.mockReturnValue([
+      mockUseDefaultStorageClass.mockReturnValue([
         mockStorageClasses[0],
         true,
         null,
         jest.fn(),
       ]);
-      mockUseOpenshiftDefaultStorageClass.mockReturnValue(mockStorageClasses[0]);
 
       mockUseGetStorageClassConfig.mockReturnValue({
         storageClasses: [mockStorageClasses[0], mockStorageClasses[1]],
@@ -666,8 +655,7 @@ describe('ManageNIMServingModal - Storage Class Fallback Logic', () => {
 
     it('falls back to OpenShift default when no ODH default is available', () => {
       // Mock no ODH default, but OpenShift default available
-      mockUseAdminDefaultStorageClass.mockReturnValue([null, true, null, jest.fn()]);
-      mockUseOpenshiftDefaultStorageClass.mockReturnValue(mockStorageClasses[0]);
+      mockUseDefaultStorageClass.mockReturnValue([null, true, null, jest.fn()]);
 
       mockUseGetStorageClassConfig.mockReturnValue({
         storageClasses: [mockStorageClasses[0]],
@@ -691,8 +679,7 @@ describe('ManageNIMServingModal - Storage Class Fallback Logic', () => {
       const { useIsAreaAvailable } = require('#~/concepts/areas');
       useIsAreaAvailable.mockReturnValue({ status: true });
       // Mock no ODH configs but OpenShift default available
-      mockUseAdminDefaultStorageClass.mockReturnValue([null, true, null, jest.fn()]);
-      mockUseOpenshiftDefaultStorageClass.mockReturnValue(mockStorageClasses[0]);
+      mockUseDefaultStorageClass.mockReturnValue([null, true, null, jest.fn()]);
 
       // Create a storage class with no ODH config annotation
       const noConfigStorageClass = {
@@ -720,13 +707,12 @@ describe('ManageNIMServingModal - Storage Class Fallback Logic', () => {
 
     it('shows enabled select when ODH storage class configs exist', () => {
       // Mock ODH configs available
-      mockUseAdminDefaultStorageClass.mockReturnValue([
+      mockUseDefaultStorageClass.mockReturnValue([
         mockStorageClasses[0],
         true,
         null,
         jest.fn(),
       ]);
-      mockUseOpenshiftDefaultStorageClass.mockReturnValue(mockStorageClasses[0]);
 
       mockUseGetStorageClassConfig.mockReturnValue({
         storageClasses: [mockStorageClasses[0], mockStorageClasses[1]],
@@ -763,13 +749,12 @@ describe('ManageNIMServingModal - Storage Class Fallback Logic', () => {
       });
 
       // Mock defaults available
-      mockUseAdminDefaultStorageClass.mockReturnValue([
+      mockUseDefaultStorageClass.mockReturnValue([
         mockStorageClasses[0],
         true,
         null,
         jest.fn(),
       ]);
-      mockUseOpenshiftDefaultStorageClass.mockReturnValue(mockStorageClasses[0]);
 
       mockUseGetStorageClassConfig.mockReturnValue({
         storageClasses: [mockStorageClasses[0], mockStorageClasses[1]],
@@ -804,13 +789,12 @@ describe('ManageNIMServingModal - Storage Class Fallback Logic', () => {
       });
 
       // Mock defaults available
-      mockUseAdminDefaultStorageClass.mockReturnValue([
+      mockUseDefaultStorageClass.mockReturnValue([
         mockStorageClasses[0],
         true,
         null,
         jest.fn(),
       ]);
-      mockUseOpenshiftDefaultStorageClass.mockReturnValue(mockStorageClasses[0]);
 
       mockUseGetStorageClassConfig.mockReturnValue({
         storageClasses: [mockStorageClasses[0], mockStorageClasses[1]],
@@ -849,13 +833,12 @@ describe('ManageNIMServingModal - Storage Class Fallback Logic', () => {
       const { useIsAreaAvailable } = require('#~/concepts/areas');
       useIsAreaAvailable.mockReturnValue({ status: true }); // Storage classes available
 
-      mockUseAdminDefaultStorageClass.mockReturnValue([
+      mockUseDefaultStorageClass.mockReturnValue([
         mockStorageClasses[0],
         true,
         null,
         jest.fn(),
       ]);
-      mockUseOpenshiftDefaultStorageClass.mockReturnValue(mockStorageClasses[0]);
 
       mockUseGetStorageClassConfig.mockReturnValue({
         storageClasses: [mockStorageClasses[0], mockStorageClasses[1]],
@@ -872,13 +855,12 @@ describe('ManageNIMServingModal - Storage Class Fallback Logic', () => {
       const { useIsAreaAvailable } = require('#~/concepts/areas');
       useIsAreaAvailable.mockReturnValue({ status: true }); // Storage classes available
 
-      mockUseAdminDefaultStorageClass.mockReturnValue([
+      mockUseDefaultStorageClass.mockReturnValue([
         mockStorageClasses[0],
         true,
         null,
         jest.fn(),
       ]);
-      mockUseOpenshiftDefaultStorageClass.mockReturnValue(mockStorageClasses[0]);
 
       mockUseGetStorageClassConfig.mockReturnValue({
         storageClasses: [mockStorageClasses[0], mockStorageClasses[1]],
