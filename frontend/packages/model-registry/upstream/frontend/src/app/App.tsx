@@ -10,6 +10,7 @@ import './app.css';
 // Updated: Testing PR comment fix - should post summary now!
 // Updated: Testing ROBUST PR comment solution - multi-layer visibility!
 // Updated: Testing CRITICAL REGEX FIX - proper test detection!
+// Updated: Testing DIRECT FILE READ FIX - PR comments should work now!
 import {
   Alert,
   Bullseye,
