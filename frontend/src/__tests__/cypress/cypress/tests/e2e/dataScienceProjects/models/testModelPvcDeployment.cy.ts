@@ -71,7 +71,7 @@ describe('[Product Bug: RHOAIENG-31261] Verify a model can be deployed from a PV
     'should deploy a model from a PVC',
     { tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@Modelserving', '@Bug'] },
     () => {
-      cy.step('log into application with ${HTPASSWD_CLUSTER_ADMIN_USER.USERNAME}');
+      cy.step(`log into application with ${HTPASSWD_CLUSTER_ADMIN_USER.USERNAME}`);
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
       // Navigate to the project
