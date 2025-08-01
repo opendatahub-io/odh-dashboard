@@ -1,8 +1,4 @@
 import type { CommandLineResult } from '#~/__tests__/cypress/cypress/types';
-import * as path from 'path';
-
-// Get the project root directory (5 levels up from this file)
-const PROJECT_ROOT = path.resolve(__dirname, '../../../../../');
 
 /**
  * Run a command and return the result exitCode and output (including stderr).
@@ -60,31 +56,20 @@ export const applyNIMApplication = (
 ): Cypress.Chainable<CommandLineResult> => {
   cy.log('Applying NVIDIA NIM OdhApplication manifest...');
   
-  // Debug: Log the current directory and path resolution
-  cy.log(`__dirname: ${__dirname}`);
-  cy.log(`PROJECT_ROOT: ${PROJECT_ROOT}`);
-  
-  // Try multiple approaches to find the manifest file
-  const possiblePaths = [
-    `${PROJECT_ROOT}/manifests/rhoai/shared/apps/nvidia-nim/nvidia-nim-app.yaml`,
-    `manifests/rhoai/shared/apps/nvidia-nim/nvidia-nim-app.yaml`,
-    `./manifests/rhoai/shared/apps/nvidia-nim/nvidia-nim-app.yaml`,
-    `../manifests/rhoai/shared/apps/nvidia-nim/nvidia-nim-app.yaml`,
-    `../../manifests/rhoai/shared/apps/nvidia-nim/nvidia-nim-app.yaml`,
-  ];
-  
-  cy.log('Checking possible manifest paths:');
-  possiblePaths.forEach((path, index) => {
-    cy.log(`  ${index + 1}. ${path}`);
+  // Get the current working directory to construct the correct path
+  return cy.exec('pwd').then((pwdResult) => {
+    const currentDir = pwdResult.stdout.trim();
+    cy.log(`Current working directory: ${currentDir}`);
+    
+    const manifestPath = `${currentDir}/manifests/rhoai/shared/apps/nvidia-nim/nvidia-nim-app.yaml`;
+    cy.log(`Manifest path: ${manifestPath}`);
+    
+    const ns = namespace ? `-n ${namespace}` : '';
+    const ocCommand = `oc apply -f ${manifestPath} ${ns}`;
+    
+    cy.log(`Executing: ${ocCommand}`);
+    return execWithOutput(ocCommand);
   });
-  
-  // Use the first path for now, but we'll need to verify it exists
-  const manifestPath = possiblePaths[0];
-  const ns = namespace ? `-n ${namespace}` : '';
-  const ocCommand = `oc apply -f ${manifestPath} ${ns}`;
-  
-  cy.log(`Executing: ${ocCommand}`);
-  return execWithOutput(ocCommand);
 };
 
 /**
