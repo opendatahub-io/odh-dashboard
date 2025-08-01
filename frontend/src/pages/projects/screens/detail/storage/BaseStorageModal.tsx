@@ -12,8 +12,7 @@ import { PersistentVolumeClaimKind } from '#~/k8sTypes';
 import CreateNewStorageSection from '#~/pages/projects/screens/spawner/storage/CreateNewStorageSection';
 import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
-import usePreferredStorageClass from '#~/pages/projects/screens/spawner/storage/usePreferredStorageClass';
-import useAdminDefaultStorageClass from '#~/pages/projects/screens/spawner/storage/useAdminDefaultStorageClass';
+import { useDefaultStorageClass } from '#~/pages/projects/screens/spawner/storage/useDefaultStorageClass';
 import { useCreateStorageObject } from '#~/pages/projects/screens/spawner/storage/utils';
 import { StorageData } from '#~/pages/projects/types';
 import { AccessMode } from '#~/pages/storageClasses/storageEnums';
@@ -51,8 +50,7 @@ const BaseStorageModal: React.FC<BaseStorageModalProps> = ({
   onNameChange,
 }) => {
   const isStorageClassesAvailable = useIsAreaAvailable(SupportedArea.STORAGE_CLASSES).status;
-  const preferredStorageClass = usePreferredStorageClass();
-  const [defaultStorageClass] = useAdminDefaultStorageClass();
+  const [defaultStorageClass] = useDefaultStorageClass();
   const [createData, setCreateData] = useCreateStorageObject(existingPvc, existingData);
   const [nameDescValid, setNameDescValid] = React.useState<boolean>();
   const [error, setError] = React.useState<Error | undefined>();
@@ -60,16 +58,9 @@ const BaseStorageModal: React.FC<BaseStorageModalProps> = ({
 
   React.useEffect(() => {
     if (!existingPvc) {
-      const storageClass = isStorageClassesAvailable ? defaultStorageClass : preferredStorageClass;
-      setCreateData('storageClassName', storageClass?.metadata.name);
+      setCreateData('storageClassName', defaultStorageClass?.metadata.name);
     }
-  }, [
-    isStorageClassesAvailable,
-    defaultStorageClass,
-    preferredStorageClass,
-    existingPvc,
-    setCreateData,
-  ]);
+  }, [defaultStorageClass, existingPvc, setCreateData]);
 
   React.useEffect(() => {
     if (!existingPvc && createData.storageClassName) {

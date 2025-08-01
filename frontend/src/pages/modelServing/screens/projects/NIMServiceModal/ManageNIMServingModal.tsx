@@ -63,8 +63,7 @@ import { KServeDeploymentModeDropdown } from '#~/pages/modelServing/screens/proj
 import { useModelServingPodSpecOptionsState } from '#~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
 import { useKServeDeploymentMode } from '#~/pages/modelServing/useKServeDeploymentMode';
 import StorageClassSelect from '#~/pages/projects/screens/spawner/storage/StorageClassSelect';
-import useAdminDefaultStorageClass from '#~/pages/projects/screens/spawner/storage/useAdminDefaultStorageClass';
-import useOpenshiftDefaultStorageClass from '#~/pages/projects/screens/spawner/storage/useOpenshiftDefaultStorageClass';
+import { useDefaultStorageClass } from '#~/pages/projects/screens/spawner/storage/useDefaultStorageClass';
 import { useModelDeploymentNotification } from '#~/pages/modelServing/screens/projects/useModelDeploymentNotification';
 import { useGetStorageClassConfig } from '#~/pages/projects/screens/spawner/storage/useGetStorageClassConfig';
 import useModelServerSizeValidation from '#~/pages/modelServing/screens/projects/useModelServerSizeValidation.ts';
@@ -156,10 +155,7 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
   );
 
   const isStorageClassesAvailable = useIsAreaAvailable(SupportedArea.STORAGE_CLASSES).status;
-  const odhDefaultScResult = useAdminDefaultStorageClass();
-  const openshiftDefaultSc = useOpenshiftDefaultStorageClass();
-  const odhDefaultSc = odhDefaultScResult[0];
-  const defaultSc = odhDefaultSc || openshiftDefaultSc;
+  const [defaultSc] = useDefaultStorageClass();
   const defaultStorageClassName = defaultSc?.metadata.name ?? '';
   const deployedStorageClassName = pvc?.spec.storageClassName || '';
   const [storageClassName, setStorageClassName] = React.useState(
