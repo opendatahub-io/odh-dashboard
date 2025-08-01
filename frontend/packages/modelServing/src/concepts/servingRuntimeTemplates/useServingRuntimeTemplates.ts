@@ -58,6 +58,9 @@ export const useServingRuntimeTemplates = (): CustomWatchK8sResult<TemplateKind[
   } = useTemplateDisablement(dashboardNamespace);
 
   const result = React.useMemo(() => {
+    if (templates.length === 0) {
+      return [];
+    }
     const sortedTemplates = getSortedTemplates(templates, order);
     const filteredTemplates = sortedTemplates.filter((template) =>
       getTemplateEnabled(template, disablement),
