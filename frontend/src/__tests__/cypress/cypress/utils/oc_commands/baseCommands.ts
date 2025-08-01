@@ -60,7 +60,26 @@ export const applyNIMApplication = (
 ): Cypress.Chainable<CommandLineResult> => {
   cy.log('Applying NVIDIA NIM OdhApplication manifest...');
   
-  const manifestPath = `${PROJECT_ROOT}/manifests/rhoai/shared/apps/nvidia-nim/nvidia-nim-app.yaml`;
+  // Debug: Log the current directory and path resolution
+  cy.log(`__dirname: ${__dirname}`);
+  cy.log(`PROJECT_ROOT: ${PROJECT_ROOT}`);
+  
+  // Try multiple approaches to find the manifest file
+  const possiblePaths = [
+    `${PROJECT_ROOT}/manifests/rhoai/shared/apps/nvidia-nim/nvidia-nim-app.yaml`,
+    `manifests/rhoai/shared/apps/nvidia-nim/nvidia-nim-app.yaml`,
+    `./manifests/rhoai/shared/apps/nvidia-nim/nvidia-nim-app.yaml`,
+    `../manifests/rhoai/shared/apps/nvidia-nim/nvidia-nim-app.yaml`,
+    `../../manifests/rhoai/shared/apps/nvidia-nim/nvidia-nim-app.yaml`,
+  ];
+  
+  cy.log('Checking possible manifest paths:');
+  possiblePaths.forEach((path, index) => {
+    cy.log(`  ${index + 1}. ${path}`);
+  });
+  
+  // Use the first path for now, but we'll need to verify it exists
+  const manifestPath = possiblePaths[0];
   const ns = namespace ? `-n ${namespace}` : '';
   const ocCommand = `oc apply -f ${manifestPath} ${ns}`;
   
