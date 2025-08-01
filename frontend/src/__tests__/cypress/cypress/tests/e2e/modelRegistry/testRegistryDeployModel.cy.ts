@@ -103,7 +103,7 @@ describe('Verify models can be deployed from model registry', () => {
         .findFormField(FormFieldSelector.LOCATION_PATH)
         .type(testData.modelOpenVinoPath);
 
-      registerModelPage.findSubmitButton().click();
+      registerModelPage.findSubmitButton().should('be.enabled').click();
 
       cy.step('Verify the model was registered');
       cy.url().should('include', '/modelRegistry');
