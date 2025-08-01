@@ -9,6 +9,7 @@ import './app.css';
 // Updated: Clean pipeline run after CSV cleanup
 // Updated: Testing PR comment fix - should post summary now!
 // Updated: Testing ROBUST PR comment solution - multi-layer visibility!
+// Updated: Testing CRITICAL REGEX FIX - proper test detection!
 import {
   Alert,
   Bullseye,
