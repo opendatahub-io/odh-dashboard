@@ -352,7 +352,7 @@ jobs:
             FRONTEND_PATH="$MODULE_PATH/frontend"
             [ -d "$MODULE_PATH/upstream/frontend" ] && FRONTEND_PATH="$MODULE_PATH/upstream/frontend"
 
-            if [ -f "$FRONTEND_PATH/package.json" ] && (grep -q '"test.*jest\|jest.*test"' "$FRONTEND_PATH/package.json" || grep -q '"test:unit"' "$FRONTEND_PATH/package.json"); then
+            if [ -f "$FRONTEND_PATH/package.json" ] && (grep -qE '"test.*jest|jest.*test"' "$FRONTEND_PATH/package.json" || grep -q '"test:unit"' "$FRONTEND_PATH/package.json"); then
               echo "   ✅ Frontend Unit Tests - IMPLEMENTED (Jest)"
               IMPLEMENTED_TESTS=$((IMPLEMENTED_TESTS + 1))
             else
@@ -370,9 +370,9 @@ jobs:
             [ -d "$MODULE_PATH/upstream/frontend" ] && FRONTEND_PATH="$MODULE_PATH/upstream/frontend"
 
             # Check module-specific mock tests
-            if [ -f "$FRONTEND_PATH/package.json" ] && grep -q 'cypress.*mock\|mock.*cypress' "$FRONTEND_PATH/package.json"; then
+            if [ -f "$FRONTEND_PATH/package.json" ] && grep -qE 'cypress.*mock|mock.*cypress' "$FRONTEND_PATH/package.json"; then
               MOCK_FOUND=true
-            elif [ -n "$(find "$MODULE_PATH" -path "*/cypress/*" -name "*.cy.*" -exec grep -l "mock\|stub\|intercept" {} \; 2>/dev/null | head -1)" ]; then
+            elif [ -n "$(find "$MODULE_PATH" -path "*/cypress/*" -name "*.cy.*" -exec grep -lE "mock|stub|intercept" {} \; 2>/dev/null | head -1)" ]; then
               MOCK_FOUND=true
             fi
           fi
@@ -386,7 +386,7 @@ jobs:
           if [ "$MOCK_FOUND" = true ]; then
             echo "   ✅ Mock Tests - IMPLEMENTED (Cypress with mocked BFF)"
             # Show where tests were found for transparency
-            if [ -n "$(find "$MODULE_PATH" -path "*/cypress/*" -name "*.cy.*" -exec grep -l "mock\|stub\|intercept" {} \; 2>/dev/null | head -1)" ]; then
+            if [ -n "$(find "$MODULE_PATH" -path "*/cypress/*" -name "*.cy.*" -exec grep -lE "mock|stub|intercept" {} \; 2>/dev/null | head -1)" ]; then
               echo "   📁 Found in: Module-specific cypress tests"
             fi
             if [ -d "frontend/src/__tests__/cypress/cypress/tests/mocked/$MODULE_NAME" ]; then
@@ -406,7 +406,7 @@ jobs:
 
           # Check module-specific cypress tests
           if [ -n "$(find "$MODULE_PATH" -path "*/cypress/*" -name "*.cy.*" 2>/dev/null | head -1)" ]; then
-            if [ -n "$(find "$MODULE_PATH" -path "*/cypress/*" -name "*.cy.*" -exec grep -l "step\|visit.*(\|click()\|type(\|should(" {} \; 2>/dev/null | head -1)" ]; then
+            if [ -n "$(find "$MODULE_PATH" -path "*/cypress/*" -name "*.cy.*" -exec grep -lE "step|visit.*\(|click\(\)|type\(|should\(" {} \; 2>/dev/null | head -1)" ]; then
               E2E_FOUND=true
             fi
           fi
@@ -486,10 +486,10 @@ jobs:
           FRONTEND_PATH="$MODULE_PATH/frontend"
           [ -d "$MODULE_PATH/upstream/frontend" ] && FRONTEND_PATH="$MODULE_PATH/upstream/frontend"
 
-          if [ -f "$FRONTEND_PATH/package.json" ] && grep -q 'bundlesize\|size-limit\|bundlewatch' "$FRONTEND_PATH/package.json"; then
+          if [ -f "$FRONTEND_PATH/package.json" ] && grep -qE 'bundlesize|size-limit|bundlewatch' "$FRONTEND_PATH/package.json"; then
             echo "   ✅ Bundle Size Monitoring - IMPLEMENTED"
             IMPLEMENTED_TESTS=$((IMPLEMENTED_TESTS + 1))
-          elif [ -n "$(find "$MODULE_PATH" -name "webpack*.js" -exec grep -l "performance\|BundleAnalyzer" {} \; 2>/dev/null | head -1)" ]; then
+          elif [ -n "$(find "$MODULE_PATH" -name "webpack*.js" -exec grep -lE "performance|BundleAnalyzer" {} \; 2>/dev/null | head -1)" ]; then
             echo "   ✅ Bundle Size Monitoring - IMPLEMENTED (Webpack analysis)"
             IMPLEMENTED_TESTS=$((IMPLEMENTED_TESTS + 1))
           else
@@ -528,19 +528,19 @@ jobs:
           MODULE_NAME=$(basename "$MODULE_PATH")
 
           # Unit tests
-          if [ -f "$FRONTEND_PATH/package.json" ] && grep -q '"test.*jest\|jest.*test"' "$FRONTEND_PATH/package.json"; then
+          if [ -f "$FRONTEND_PATH/package.json" ] && grep -qE '"test.*jest|jest.*test"' "$FRONTEND_PATH/package.json"; then
             UI_TESTS_FOUND=$((UI_TESTS_FOUND + 1))
           fi
 
           # Integration tests (module-specific + main dashboard)
-          if [ -n "$(find "$MODULE_PATH" -path "*/cypress/*" -name "*.cy.*" -exec grep -l "step\|visit.*(\|click()\|type(\|should(" {} \; 2>/dev/null | head -1)" ]; then
+          if [ -n "$(find "$MODULE_PATH" -path "*/cypress/*" -name "*.cy.*" -exec grep -lE "step|visit.*\(|click\(\)|type\(|should\(" {} \; 2>/dev/null | head -1)" ]; then
             UI_TESTS_FOUND=$((UI_TESTS_FOUND + 1))
           elif [ -d "frontend/src/__tests__/cypress/cypress/tests/e2e/$MODULE_NAME" ] || [ -d "frontend/src/__tests__/cypress/cypress/tests/e2e/$(echo $MODULE_NAME | sed 's/-//g')" ]; then
             UI_TESTS_FOUND=$((UI_TESTS_FOUND + 1))
           fi
 
           # Mock tests (module-specific + main dashboard)
-          if [ -n "$(find "$MODULE_PATH" -path "*/cypress/*" -name "*.cy.*" -exec grep -l "mock\|stub\|intercept" {} \; 2>/dev/null | head -1)" ]; then
+          if [ -n "$(find "$MODULE_PATH" -path "*/cypress/*" -name "*.cy.*" -exec grep -lE "mock|stub|intercept" {} \; 2>/dev/null | head -1)" ]; then
             UI_TESTS_FOUND=$((UI_TESTS_FOUND + 1))
           elif [ -d "frontend/src/__tests__/cypress/cypress/tests/mocked/$MODULE_NAME" ] || [ -d "frontend/src/__tests__/cypress/cypress/tests/mocked/$(echo $MODULE_NAME | sed 's/-//g')" ]; then
             UI_TESTS_FOUND=$((UI_TESTS_FOUND + 1))
@@ -803,7 +803,7 @@ jobs:
             BFF_PATH="$MODULE_PATH/bff"
             [ -d "$MODULE_PATH/upstream/bff" ] && BFF_PATH="$MODULE_PATH/upstream/bff"
 
-            if [ -n "$(find "$BFF_PATH" -name "*.go" -exec grep -l "health\|/health\|healthcheck" {} \; 2>/dev/null | head -1)" ]; then
+            if [ -n "$(find "$BFF_PATH" -name "*.go" -exec grep -lE "health|/health|healthcheck" {} \; 2>/dev/null | head -1)" ]; then
               echo "✅ Health Check Endpoint - PRESENT"
               IMPLEMENTED_CHECKS=$((IMPLEMENTED_CHECKS + 1))
             else
