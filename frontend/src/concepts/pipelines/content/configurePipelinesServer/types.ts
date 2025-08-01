@@ -12,4 +12,5 @@ export type PipelineServerConfigType = {
   objectStorage: ObjectStorageNew;
   enableInstructLab: boolean;
   storeYamlInKubernetes: boolean;
+  enableCaching: boolean;
 };

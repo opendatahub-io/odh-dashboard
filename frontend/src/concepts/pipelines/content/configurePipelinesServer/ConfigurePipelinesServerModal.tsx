@@ -33,6 +33,7 @@ import {
   isDspaAllReady,
 } from '#~/concepts/pipelines/context/usePipelineNamespaceCR';
 import { PipelinesDatabaseSection } from './PipelinesDatabaseSection';
+import { PipelineCachingSection } from './PipelineCachingSection';
 import { ObjectStorageSection } from './ObjectStorageSection';
 import {
   DATABASE_CONNECTION_FIELDS,
@@ -52,6 +53,7 @@ const FORM_DEFAULTS: PipelineServerConfigType = {
   objectStorage: { newValue: EMPTY_AWS_PIPELINE_DATA },
   enableInstructLab: false,
   storeYamlInKubernetes: true,
+  enableCaching: true,
 };
 
 const serverConfiguredEvent = 'Pipeline Server Configured';
@@ -266,6 +268,10 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
                     <SamplePipelineSettingsSection setConfig={setConfig} config={config} />
                   )}
                   <PipelinesDefinitionStorageSection setConfig={setConfig} config={config} />
+                  <PipelineCachingSection
+                    enableCaching={config.enableCaching}
+                    setEnableCaching={(enableCaching) => setConfig({ ...config, enableCaching })}
+                  />
                 </div>
               </ExpandableSection>
             </Form>
