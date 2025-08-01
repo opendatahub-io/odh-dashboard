@@ -2,6 +2,10 @@ import * as React from 'react';
 import { AppContext } from '#~/app/AppContext';
 import { MetadataAnnotation, StorageClassKind } from '#~/k8sTypes';
 
+/**
+ * @deprecated This hook has been consolidated into useDefaultStorageClass.
+ * Do not import this hook directly. Use useDefaultStorageClass instead.
+ */
 const usePreferredStorageClass = (): StorageClassKind | undefined => {
   const {
     dashboardConfig: {
@@ -41,4 +45,5 @@ const usePreferredStorageClass = (): StorageClassKind | undefined => {
   return storageClassDashBoardConfigVsCluster[0];
 };
 
-export default usePreferredStorageClass;
+// Commented out to prevent external imports - logic moved to useDefaultStorageClass
+// export default usePreferredStorageClass;

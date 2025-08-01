@@ -9,6 +9,10 @@ import useFetchState, {
   NotReadyError,
 } from '#~/utilities/useFetchState';
 
+/**
+ * @deprecated This hook has been consolidated into useDefaultStorageClass.
+ * Do not import this hook directly. Use useDefaultStorageClass instead.
+ */
 const useAdminDefaultStorageClass = (): FetchState<StorageClassKind | null> => {
   const isStorageClassesAvailable = useIsAreaAvailable(SupportedArea.STORAGE_CLASSES).status;
   const [storageClasses, storageClassesLoaded, storageClassesError] = useStorageClasses();
@@ -49,4 +53,5 @@ const useAdminDefaultStorageClass = (): FetchState<StorageClassKind | null> => {
   return useFetchState(fetchDefaultStorageClass, null);
 };
 
-export default useAdminDefaultStorageClass;
+// Commented out to prevent external imports - logic moved to useDefaultStorageClass
+// export default useAdminDefaultStorageClass;
