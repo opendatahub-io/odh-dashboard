@@ -11,12 +11,17 @@ export type FilterOptionRenders = {
 };
 
 export function createDefaultFilterOptionRenders(
-  keys: string[],
+  filterOptions: Record<string, string>,
 ): Record<string, (props: FilterOptionRenders) => React.ReactNode> {
   const result: Record<string, (props: FilterOptionRenders) => React.ReactNode> = {};
-  for (const key of keys) {
+  for (const key of Object.keys(filterOptions)) {
     result[key] = ({ onChange, value, ...props }) => (
-      <SearchInput {...props} value={value || ''} onChange={(_event, v) => onChange(v)} />
+      <SearchInput
+        {...props}
+        value={value || ''}
+        onChange={(_event, v) => onChange(v)}
+        placeholder={`Filter by ${filterOptions[key]}`}
+      />
     );
   }
   return result;
@@ -36,21 +41,19 @@ export function FeatureStoreToolbar({
   children,
 }: FeatureStoreToolbarProps): JSX.Element {
   const filterOptionRenders = React.useMemo(
-    () => createDefaultFilterOptionRenders(Object.keys(filterOptions)),
+    () => createDefaultFilterOptionRenders(filterOptions),
     [filterOptions],
   );
 
   return (
-    <div className="pf-v5-c-toolbar">
-      <FilterToolbar<keyof typeof filterOptions>
-        data-testid="feature-store-table-toolbar"
-        filterOptions={filterOptions}
-        filterOptionRenders={filterOptionRenders}
-        filterData={filterData}
-        onFilterUpdate={onFilterUpdate}
-      >
-        {children}
-      </FilterToolbar>
-    </div>
+    <FilterToolbar<keyof typeof filterOptions>
+      data-testid="feature-store-table-toolbar"
+      filterOptions={filterOptions}
+      filterOptionRenders={filterOptionRenders}
+      filterData={filterData}
+      onFilterUpdate={onFilterUpdate}
+    >
+      {children}
+    </FilterToolbar>
   );
 }
