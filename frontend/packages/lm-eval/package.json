@@ -29,7 +29,7 @@
     },
     "service": {
       "name": "lm-eval-ui-service",
-      "port": 8080
+      "port": 8048
     }
   }
 }
