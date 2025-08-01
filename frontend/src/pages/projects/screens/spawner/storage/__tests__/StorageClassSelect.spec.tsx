@@ -19,9 +19,9 @@ const createMockStorageClass = (name: string): StorageClassKind => ({
 });
 
 // Mock dependencies
-jest.mock('#~/pages/projects/screens/spawner/storage/useAdminDefaultStorageClass', () => ({
+jest.mock('#~/pages/projects/screens/spawner/storage/useDefaultStorageClass', () => ({
   __esModule: true,
-  default: jest.fn(),
+  useDefaultStorageClass: jest.fn(),
 }));
 
 jest.mock('#~/pages/storageClasses/utils', () => ({
@@ -42,14 +42,14 @@ jest.mock('#~/components/SimpleSelect', () => ({
 }));
 
 // Import mocked modules
-import useAdminDefaultStorageClass from '#~/pages/projects/screens/spawner/storage/useAdminDefaultStorageClass';
+import { useDefaultStorageClass } from '#~/pages/projects/screens/spawner/storage/useDefaultStorageClass';
 import {
   getStorageClassConfig,
   getPossibleStorageClassAccessModes,
 } from '#~/pages/storageClasses/utils';
 import SimpleSelect from '#~/components/SimpleSelect';
 
-const mockUseAdminDefaultStorageClass = useAdminDefaultStorageClass as jest.Mock;
+const mockUseDefaultStorageClass = useDefaultStorageClass as jest.Mock;
 const mockGetStorageClassConfig = getStorageClassConfig as jest.Mock;
 const mockGetPossibleStorageClassAccessModes = getPossibleStorageClassAccessModes as jest.Mock;
 const mockSimpleSelect = SimpleSelect as jest.Mock;
@@ -89,7 +89,7 @@ const defaultProps = {
 beforeEach(() => {
   jest.clearAllMocks();
   // Default mock implementations
-  mockUseAdminDefaultStorageClass.mockReturnValue([mockStorageClasses[0]]);
+  mockUseDefaultStorageClass.mockReturnValue([mockStorageClasses[0]]);
   mockGetStorageClassConfig.mockReturnValue(mockStorageClassConfig);
   mockGetPossibleStorageClassAccessModes.mockReturnValue({
     adminSupportedAccessModes: ['ReadWriteOnce'],
@@ -120,7 +120,7 @@ describe('StorageClassSelect - showDefaultWhenNoConfig Functionality', () => {
     it('shows all storage classes but disables the select when showDefaultWhenNoConfig is true and no ODH configs exist', () => {
       // No storage classes have ODH configs
       mockGetStorageClassConfig.mockReturnValue(null);
-      mockUseAdminDefaultStorageClass.mockReturnValue([mockStorageClasses[0]]);
+      mockUseDefaultStorageClass.mockReturnValue([mockStorageClasses[0]]);
 
       render(<StorageClassSelect {...defaultProps} showDefaultWhenNoConfig />);
 
@@ -175,7 +175,7 @@ describe('StorageClassSelect - showDefaultWhenNoConfig Functionality', () => {
 
     it('shows OpenShift default label when showDefaultWhenNoConfig is true and no ODH configs exist', () => {
       mockGetStorageClassConfig.mockReturnValue(null);
-      mockUseAdminDefaultStorageClass.mockReturnValue([mockStorageClasses[0]]);
+      mockUseDefaultStorageClass.mockReturnValue([mockStorageClasses[0]]);
       render(<StorageClassSelect {...defaultProps} showDefaultWhenNoConfig />);
       const { options: options2 } = mockSimpleSelect.mock.calls[0][0];
       // The first option should have the default label
@@ -198,7 +198,7 @@ describe('StorageClassSelect - showDefaultWhenNoConfig Functionality', () => {
 
     it('uses metadata name as label when no ODH configs exist', () => {
       mockGetStorageClassConfig.mockReturnValue(null);
-      mockUseAdminDefaultStorageClass.mockReturnValue([mockStorageClasses[0]]);
+      mockUseDefaultStorageClass.mockReturnValue([mockStorageClasses[0]]);
       render(<StorageClassSelect {...defaultProps} showDefaultWhenNoConfig />);
       expect(mockSimpleSelect).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -216,7 +216,7 @@ describe('StorageClassSelect - showDefaultWhenNoConfig Functionality', () => {
   describe('Storage Class Sorting with showDefaultWhenNoConfig', () => {
     it('shows all storage classes when showDefaultWhenNoConfig is true', () => {
       mockGetStorageClassConfig.mockReturnValue(null);
-      mockUseAdminDefaultStorageClass.mockReturnValue([mockStorageClasses[1]]);
+      mockUseDefaultStorageClass.mockReturnValue([mockStorageClasses[1]]);
       render(<StorageClassSelect {...defaultProps} showDefaultWhenNoConfig />);
       const { options } = mockSimpleSelect.mock.calls[0][0];
       expect(options).toHaveLength(2);
@@ -226,7 +226,7 @@ describe('StorageClassSelect - showDefaultWhenNoConfig Functionality', () => {
 
     it('uses metadata name as label when no ODH configs exist', () => {
       mockGetStorageClassConfig.mockReturnValue(null);
-      mockUseAdminDefaultStorageClass.mockReturnValue([mockStorageClasses[0]]);
+      mockUseDefaultStorageClass.mockReturnValue([mockStorageClasses[0]]);
       render(<StorageClassSelect {...defaultProps} showDefaultWhenNoConfig />);
       expect(mockSimpleSelect).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -253,7 +253,7 @@ describe('StorageClassSelect - showDefaultWhenNoConfig Functionality', () => {
 
     it('handles missing default storage class with showDefaultWhenNoConfig', () => {
       mockGetStorageClassConfig.mockReturnValue(null);
-      mockUseAdminDefaultStorageClass.mockReturnValue([null]);
+      mockUseDefaultStorageClass.mockReturnValue([null]);
       render(<StorageClassSelect {...defaultProps} showDefaultWhenNoConfig />);
       // Should not crash and should render with all storage classes
       expect(screen.getByTestId('storage-class-select')).toBeInTheDocument();

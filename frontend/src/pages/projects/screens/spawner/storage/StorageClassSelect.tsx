@@ -19,7 +19,7 @@ import {
   getStorageClassConfig,
 } from '#~/pages/storageClasses/utils';
 import { StorageClassConfig, StorageClassKind } from '#~/k8sTypes';
-import useAdminDefaultStorageClass from './useAdminDefaultStorageClass';
+import { useDefaultStorageClass } from './useDefaultStorageClass';
 import AccessModeLabel from './AccessModeLabel';
 
 type StorageClassSelectProps = {
@@ -50,7 +50,7 @@ const StorageClassSelect: React.FC<StorageClassSelectProps> = ({
   showDefaultWhenNoConfig = false,
 }) => {
   const hasStorageClassConfigs = storageClasses.some((sc) => !!getStorageClassConfig(sc));
-  const [defaultSc] = useAdminDefaultStorageClass();
+  const [defaultSc] = useDefaultStorageClass();
 
   const enabledStorageClasses = storageClasses
     .filter((sc) => getStorageClassConfig(sc)?.isEnabled)
@@ -104,7 +104,7 @@ const StorageClassSelect: React.FC<StorageClassSelectProps> = ({
           <SplitItem isFilled />
           <SplitItem>
             {/* If multiple storage classes have `isDefault` set to true,
-            prioritize the one returned by useAdminDefaultStorageClass() as the default class */}
+            prioritize the one returned by useDefaultStorageClass() as the default class */}
             <LabelGroup>
               {getPossibleStorageClassAccessModes(sc).adminSupportedAccessModes.map(
                 (accessMode, index) => (
