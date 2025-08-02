@@ -55,6 +55,8 @@ export const columns: SortableData<PyTorchJobKind>[] = [
     label: 'Status',
     width: 15,
     sortable: (a: PyTorchJobKind, b: PyTorchJobKind): number => {
+      // For sorting, we use the sync version for performance
+      // The actual hibernation status will be shown in the UI
       const aState = getJobStatus(a);
       const bState = getJobStatus(b);
       return aState.localeCompare(bState);
