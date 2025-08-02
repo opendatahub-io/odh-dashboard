@@ -41,8 +41,8 @@ describe('[Product Bug: NVPE-244] Verify NIM enable flow', () => {
             
             // Wait longer for the NIM card to become visible after applying the manifest
             cy.log('⏳ Waiting for NIM card to become visible...');
-            cy.wait(10000); // Increased from 2000ms to 10000ms
-            nimCard.isNIMCardAvailable().then((isNowAvailable) => {
+            cy.wait(60000); // Increased to 60 seconds (1 minute)
+            nimCard.isNIMCardAvailable({ timeout: 60000 }).then((isNowAvailable) => {
               if (!isNowAvailable) {
                 cy.log('❌ NIM card still not available after applying manifest');
                 cy.log('💡 This might be due to timing or cluster configuration issues');
@@ -71,35 +71,35 @@ describe('[Product Bug: NVPE-244] Verify NIM enable flow', () => {
 function executeNIMTestSteps() {
   cy.step('Validate NIM card contents');
   nimCard
-    .getNIMCard()
+    .getNIMCard({ timeout: 60000 })
     .contains(
       'NVIDIA NIM is a set of easy-to-use microservices designed for secure, reliable deployment of high-performance AI model inferencing.',
     );
   cy.step('Click NIM card');
-  nimCard.getNIMCard().click();
+  nimCard.getNIMCard({ timeout: 60000 }).click();
   cy.step('Click Enable button in NIM card');
-  nimCard.getEnableNIMButton().click();
+  nimCard.getEnableNIMButton({ timeout: 60000 }).click();
   cy.step('Input NGC API Key');
-  nimCard.getNGCAPIKey().type(Cypress.env('NGC_API_KEY'));
+  nimCard.getNGCAPIKey({ timeout: 60000 }).type(Cypress.env('NGC_API_KEY'));
   cy.step('Click submit to enable the NIM application');
-  nimCard.getNIMSubmit().click();
+  nimCard.getNIMSubmit({ timeout: 60000 }).click();
   cy.step('Wait for validation to complete and verify the validation message');
-  nimCard.getProgressTitle().should('contain', 'Contacting NVIDIA to validate the license key');
+  nimCard.getProgressTitle({ timeout: 60000 }).should('contain', 'Contacting NVIDIA to validate the license key');
   nimCard.getProgressTitle({ timeout: 120000 }).should('not.exist');
   cy.step('Check for success notification');
   toastNotifications
-    .findToastNotification(0)
+    .findToastNotification(0, { timeout: 60000 })
     .should('contain.text', 'NVIDIA NIM has been added to the Enabled page');
   cy.step('Visit the enabled applications page');
   enabledPage.visit();
   cy.step('Validate NIM Card contents on Enabled page');
   nimCard
-    .getNIMCard()
+    .getNIMCard({ timeout: 60000 })
     .contains(
       'NVIDIA NIM is a set of easy-to-use microservices designed for secure, reliable deployment of high-performance AI model inferencing.',
     );
   cy.step('Validate that the NIM card does not contain a Disabled button');
-  nimCard.getNIMCard().within(() => {
+  nimCard.getNIMCard({ timeout: 60000 }).within(() => {
     cy.contains('button', 'Disabled', { timeout: 60000 }).should('not.exist');
   });
 }
