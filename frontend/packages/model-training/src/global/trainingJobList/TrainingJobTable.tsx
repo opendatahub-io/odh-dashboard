@@ -2,18 +2,23 @@ import * as React from 'react';
 import { Table } from '@odh-dashboard/internal/components/table/index';
 import DashboardEmptyTableView from '@odh-dashboard/internal/concepts/dashboard/DashboardEmptyTableView';
 import { columns } from './const';
-import TrainingJobTableRow from './TrainingJobTableRow';
 import DeleteTrainingJobModal from './DeleteTrainingJobModal';
+import TrainingJobTableRow from './TrainingJobTableRow';
 import { PyTorchJobKind } from '../../k8sTypes';
+import { PyTorchJobState } from '../../types';
 
 type TrainingJobTableProps = {
   trainingJobs: PyTorchJobKind[];
+  jobStatuses?: Map<string, PyTorchJobState>; // Batch fetched statuses
+  onStatusUpdate?: (jobId: string, newStatus: PyTorchJobState) => void;
   clearFilters?: () => void;
   onClearFilters: () => void;
 } & Partial<Pick<React.ComponentProps<typeof Table>, 'enablePagination' | 'toolbarContent'>>;
 
 const TrainingJobTable: React.FC<TrainingJobTableProps> = ({
   trainingJobs,
+  jobStatuses,
+  onStatusUpdate,
   clearFilters,
   onClearFilters,
   toolbarContent,
@@ -33,13 +38,20 @@ const TrainingJobTable: React.FC<TrainingJobTableProps> = ({
         emptyTableView={
           clearFilters ? <DashboardEmptyTableView onClearFilters={clearFilters} /> : undefined
         }
-        rowRenderer={(job: PyTorchJobKind) => (
-          <TrainingJobTableRow
-            key={job.metadata.uid || job.metadata.name}
-            job={job}
-            onDelete={(trainingJob) => setDeleteTrainingJob(trainingJob)}
-          />
-        )}
+        rowRenderer={(job: PyTorchJobKind) => {
+          const jobId = job.metadata.uid || job.metadata.name;
+          const jobStatus = jobStatuses?.get(jobId);
+
+          return (
+            <TrainingJobTableRow
+              key={jobId}
+              job={job}
+              jobStatus={jobStatus}
+              onStatusUpdate={onStatusUpdate}
+              onDelete={(trainingJob) => setDeleteTrainingJob(trainingJob)}
+            />
+          );
+        }}
       />
 
       {deleteTrainingJob ? (
