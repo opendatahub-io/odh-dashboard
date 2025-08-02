@@ -4,6 +4,7 @@ export enum PyTorchJobState {
   RUNNING = 'Running',
   SUCCEEDED = 'Succeeded',
   FAILED = 'Failed',
+  HIBERNATED = 'Hibernated',
   UNKNOWN = 'Unknown',
 }
 
