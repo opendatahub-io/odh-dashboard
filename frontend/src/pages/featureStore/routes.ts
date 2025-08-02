@@ -15,3 +15,9 @@ export const featureViewRoute = (featureViewName: string, featureStoreProject: s
 
 export const featureEntityRoute = (entityName: string, featureStoreProject: string): string =>
   `${featureStoreRootRoute()}/entities/${featureStoreProject}/${entityName}`;
+
+export const featureServiceRoute = (
+  featureServiceName: string,
+  featureStoreProject: string,
+): string =>
+  `${featureStoreRootRoute()}/featureServices/${featureStoreProject}/${featureServiceName}`;
