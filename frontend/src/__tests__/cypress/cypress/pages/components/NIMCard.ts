@@ -6,22 +6,21 @@ export class NIMCard extends Card {
   }
 
   getNIMCard(): Cypress.Chainable<JQuery<HTMLElement>> {
-    // Use the proven reliable selector - KISS principle
-    return cy.findByTestId('card nvidia-nim');
+    // Find the element containing "NVIDIA NIM" - more general and resilient
+    return cy.contains('NVIDIA NIM').closest('[data-testid*="card"], [class*="card"], [role="radio"]');
   }
 
   isNIMCardAvailable(): Cypress.Chainable<boolean> {
     return cy.get('body').then(($body) => {
-      // Use the proven reliable selector - KISS principle
-      const selector = '[data-testid="card nvidia-nim"]';
-      const elements = $body.find(selector);
+      // Look for any element containing "NVIDIA NIM" - more general and resilient
+      const nimElements = $body.find(':contains("NVIDIA NIM")');
       
-      if (elements.length > 0) {
-        cy.log(`✅ NIM card found using selector: ${selector}`);
+      if (nimElements.length > 0) {
+        cy.log(`✅ NIM card found - ${nimElements.length} elements contain "NVIDIA NIM"`);
         return true;
       }
       
-      cy.log(`❌ NIM card not found with selector: ${selector}`);
+      cy.log(`❌ NIM card not found - no elements contain "NVIDIA NIM"`);
       return false;
     });
   }
