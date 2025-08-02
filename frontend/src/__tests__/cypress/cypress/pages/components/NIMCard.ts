@@ -6,17 +6,18 @@ export class NIMCard extends Card {
   }
 
   getNIMCard(): Cypress.Chainable<JQuery<HTMLElement>> {
-    // Try multiple selectors to find the NIM card
+    // Try multiple selectors to find the NIM card, ordered by reliability
     const selectors = [
-      'input[id="nvidia-nim-selectable-card-id"]',
-      '#nvidia-nim-selectable-card-id',
-      '[data-testid="card nvidia-nim"]',
-      '[data-testid*="nvidia-nim"]',
-      '[id*="nvidia-nim"]',
-      '[data-testid*="nim"]',
-      '[id*="nim"]',
-      '[class*="nim"]',
-      '[aria-labelledby*="nim"]'
+      '[data-testid="card nvidia-nim"]',           // Most reliable - the main card container
+      '#nvidia-nim',                               // The card div ID
+      'input[id="nvidia-nim-selectable-card-id"]', // The radio input
+      '#nvidia-nim-selectable-card-id',            // Radio input by ID
+      '[data-testid*="nvidia-nim"]',               // Any data-testid containing nvidia-nim
+      '[id*="nvidia-nim"]',                        // Any ID containing nvidia-nim
+      '[data-testid*="nim"]',                      // Any data-testid containing nim
+      '[id*="nim"]',                               // Any ID containing nim
+      '[class*="nim"]',                            // Any class containing nim
+      '[aria-labelledby*="nim"]'                   // Any aria-labelledby containing nim
     ];
     
     cy.log(`🔍 Trying to get NIM card with ${selectors.length} different selectors...`);
@@ -57,19 +58,19 @@ export class NIMCard extends Card {
 
   isNIMCardAvailable(): Cypress.Chainable<boolean> {
     return cy.get('body').then(($body) => {
-      // Try multiple selectors to find the NIM card
+      // Try multiple selectors to find the NIM card, ordered by reliability
       const selectors = [
-        '[data-testid="card nvidia-nim"]',
-        '#nvidia-nim-selectable-card-id',
-        'input[id="nvidia-nim-selectable-card-id"]',
-        '[data-testid*="nvidia-nim"]',
-        '[id*="nvidia-nim"]',
-        // Additional selectors for different possible structures
-        '[data-testid*="nim"]',
-        '[id*="nim"]',
-        '[class*="nim"]',
-        '[aria-labelledby*="nim"]',
-        '[for*="nim"]',
+        '[data-testid="card nvidia-nim"]',           // Most reliable - the main card container
+        '#nvidia-nim',                               // The card div ID
+        'input[id="nvidia-nim-selectable-card-id"]', // The radio input
+        '#nvidia-nim-selectable-card-id',            // Radio input by ID
+        '[data-testid*="nvidia-nim"]',               // Any data-testid containing nvidia-nim
+        '[id*="nvidia-nim"]',                        // Any ID containing nvidia-nim
+        '[data-testid*="nim"]',                      // Any data-testid containing nim
+        '[id*="nim"]',                               // Any ID containing nim
+        '[class*="nim"]',                            // Any class containing nim
+        '[aria-labelledby*="nim"]',                  // Any aria-labelledby containing nim
+        '[for*="nim"]',                              // Any for attribute containing nim
         // Look for any element containing "NVIDIA NIM" text
         ':contains("NVIDIA NIM")',
         ':contains("NIM")'
@@ -84,7 +85,7 @@ export class NIMCard extends Card {
           cy.log(`📊 Found ${elements.length} elements with this selector`);
           // Log the first element's details for debugging
           const firstElement = elements.first();
-          cy.log(`📋 First element: tagName=${firstElement.prop('tagName')}, id=${firstElement.attr('id')}, class=${firstElement.attr('class')}`);
+          cy.log(`📋 First element: tagName=${firstElement.prop('tagName')}, id=${firstElement.attr('id')}, class=${firstElement.attr('class')}, data-testid=${firstElement.attr('data-testid')}`);
           return true;
         }
       }
