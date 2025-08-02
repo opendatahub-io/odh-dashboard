@@ -14,14 +14,7 @@ export class NIMCard extends Card {
     return cy.get('body').then(($body) => {
       // Look for any element containing "NVIDIA NIM" - more general and resilient
       const nimElements = $body.find(':contains("NVIDIA NIM")');
-      
-      if (nimElements.length > 0) {
-        cy.log(`✅ NIM card found - ${nimElements.length} elements contain "NVIDIA NIM"`);
-        return true;
-      }
-      
-      cy.log(`❌ NIM card not found - no elements contain "NVIDIA NIM"`);
-      return false;
+      return nimElements.length > 0;
     });
   }
 
