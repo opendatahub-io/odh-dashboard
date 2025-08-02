@@ -45,6 +45,27 @@ export const applyOpenShiftYaml = (
 };
 
 /**
+ * Applies the NVIDIA NIM OdhApplication manifest to enable NIM on the cluster.
+ * This function applies the NIM manifest file directly using oc apply -f.
+ * 
+ * @param namespace The namespace where the OdhApplication should be applied (default: APPLICATIONS_NAMESPACE)
+ * @returns A Cypress chainable that applies the NIM manifest
+ */
+export const applyNIMApplication = (
+  namespace: string = Cypress.env('APPLICATIONS_NAMESPACE'),
+): Cypress.Chainable<CommandLineResult> => {
+  cy.log('Applying NVIDIA NIM OdhApplication manifest...');
+  
+  // Use the hardcoded path we discovered from Jenkins environment
+  const manifestPath = './dashboard-tests/odh-dashboard/manifests/rhoai/shared/apps/nvidia-nim/nvidia-nim-app.yaml';
+  const ns = namespace ? `-n ${namespace}` : '';
+  const ocCommand = `cd ../../../../../.. && oc apply -f ${manifestPath} ${ns}`;
+  
+  cy.log(`Executing: ${ocCommand}`);
+  return execWithOutput(ocCommand);
+};
+
+/**
  * Patches an OpenShift resource using the `oc patch` command.
  *
  * @param resourceType The type of resource to patch (e.g., 'storageclass')
