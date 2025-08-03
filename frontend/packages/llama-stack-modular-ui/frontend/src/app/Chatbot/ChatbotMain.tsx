@@ -1,4 +1,5 @@
 /* eslint-disable no-relative-import-paths/no-relative-import-paths */
+/* eslint-disable camelcase */
 import * as React from 'react';
 import {
   Accordion,
@@ -19,15 +20,12 @@ import {
   FormGroup,
   FormSelect,
   FormSelectOption,
-  InputGroup,
-  TextInput,
   Button,
-  Split,
-  SplitItem,
   ButtonVariant,
-  SliderOnChangeEvent,
-  Slider,
   Divider,
+  TextArea,
+  Stack,
+  Flex,
 } from '@patternfly/react-core';
 import {
   Chatbot,
@@ -43,18 +41,16 @@ import {
   MessageBox,
   MessageProps,
 } from '@patternfly/chatbot';
-import { CheckIcon, PencilAltIcon, TimesIcon } from '@patternfly/react-icons';
-import useFetchLlamaModels from '@app/utilities/useFetchLlamaModels';
-import { ChatMessage, completeChat, LlamaModel } from '@app/services/llamaStackService';
 import { getId } from '@app/utilities/utils';
 import { ChatbotMessages } from './ChatbotMessagesList';
-import {
-  ChatbotSourceSettings,
-  ChatbotSourceSettingsModal,
-} from './sourceUpload/ChatbotSourceSettingsModal';
+import { ChatbotSourceSettingsModal } from './sourceUpload/ChatbotSourceSettingsModal';
 import { ChatbotSourceUploadPanel } from './sourceUpload/ChatbotSourceUploadPanel';
 import userAvatar from '../bgimages/user_avatar.svg';
 import botAvatar from '../bgimages/bot_avatar.svg';
+import { extractTextFromFile } from '../utilities/extractPdfText';
+import useFetchLlamaModels from '../../../src/app/hooks/useFetchLlamaModels';
+import { uploadSource, querySource } from '../services/llamaStackService';
+import { ChatbotSourceSettings, Query } from '../types';
 import '@patternfly/chatbot/dist/css/main.css';
 
 const initialBotMessage: MessageProps = {
@@ -63,42 +59,6 @@ const initialBotMessage: MessageProps = {
   content: 'Send a message to test your configuration',
   name: 'Bot',
   avatar: botAvatar,
-};
-
-const createSliderGroup = (
-  id: string,
-  label: string,
-  value: number,
-  inputValue: number,
-  setValue: (value: number) => void,
-  setInputValue: (value: number) => void,
-  min = 0,
-  max = 100,
-) => {
-  const handleSliderChange = (
-    _event: SliderOnChangeEvent,
-    newValue: number,
-    newInputValue?: number,
-  ) => {
-    const finalValue = typeof newInputValue === 'number' ? newInputValue : newValue;
-    const clampedValue = Math.max(min, Math.min(max, finalValue));
-    setValue(clampedValue);
-    setInputValue(clampedValue);
-  };
-
-  return (
-    <FormGroup label={label} fieldId={id}>
-      <Slider
-        isInputVisible
-        showBoundaries={false}
-        value={value}
-        inputValue={inputValue}
-        min={min}
-        max={max}
-        onChange={handleSliderChange}
-      />
-    </FormGroup>
-  );
 };
 
 const ChatbotMain: React.FunctionComponent = () => {
@@ -111,8 +71,8 @@ const ChatbotMain: React.FunctionComponent = () => {
   const [selectedSource, setSelectedSource] = React.useState<File[]>([]);
   const [selectedSourceSettings, setSelectedSourceSettings] =
     React.useState<ChatbotSourceSettings | null>(null);
-  const [showPopover, setShowPopover] = React.useState(false);
   const [showSuccessAlert, setShowSuccessAlert] = React.useState(false);
+  const [showErrorAlert, setShowErrorAlert] = React.useState(false);
   const scrollToBottomRef = React.useRef<HTMLDivElement>(null);
   const [expandedAccordionItems, setExpandedAccordionItems] = React.useState<string[]>([
     'model-details-item',
@@ -121,46 +81,9 @@ const ChatbotMain: React.FunctionComponent = () => {
   const [isSystemInstructionsReadOnly, setIsSystemInstructionsReadOnly] = React.useState(true);
   const [originalSystemInstructions, setOriginalSystemInstructions] =
     React.useState(systemInstructions);
-  const [slider1Value, setSlider1Value] = React.useState(10);
-  const [slider1InputValue, setSlider1InputValue] = React.useState(10);
-  const [slider2Value, setSlider2Value] = React.useState(40);
-  const [slider2InputValue, setSlider2InputValue] = React.useState(40);
-  const [slider3Value, setSlider3Value] = React.useState(30);
-  const [slider3InputValue, setSlider3InputValue] = React.useState(30);
-  const [slider4Value, setSlider4Value] = React.useState(90);
-  const [slider4InputValue, setSlider4InputValue] = React.useState(90);
   const [selectedModel, setSelectedModel] = React.useState<string>('');
-
-  const modelsList: LlamaModel[] = React.useMemo(() => {
-    if (Array.isArray(models)) {
-      return models;
-    }
-    return [];
-  }, [models]);
-
-  const modelId = selectedModel || modelsList[0]?.identifier;
-
-  const footnoteProps = {
-    label: 'Bot uses AI. Check for mistakes.',
-    popover: {
-      title: 'Verify information',
-      description:
-        'While ChatBot strives for accuracy, AI is experimental and can make mistakes. We cannot guarantee that all information provided by ChatBot is up to date or without error. You should always verify responses using reliable sources, especially for crucial information and decision making.',
-      bannerImage: {
-        src: 'https://cdn.dribbble.com/userupload/10651749/file/original-8a07b8e39d9e8bf002358c66fce1223e.gif',
-        alt: 'Image for footnote popover',
-      },
-      isVisible: showPopover,
-      cta: {
-        label: 'Dismiss',
-        onClick: () => setShowPopover(!showPopover),
-      },
-      link: {
-        label: 'View AI policy',
-        url: 'https://www.redhat.com/',
-      },
-    },
-  };
+  const [extractedText, setExtractedText] = React.useState<string>('');
+  const modelId = selectedModel || models[0]?.identifier;
 
   const successAlert = showSuccessAlert ? (
     <Alert
@@ -181,6 +104,22 @@ const ChatbotMain: React.FunctionComponent = () => {
     <></>
   );
 
+  const errorAlert = showErrorAlert ? (
+    <Alert
+      key={`source-upload-error-${alertKey}`}
+      isInline
+      variant="danger"
+      title="Failed to upload source"
+      timeout={4000}
+      actionClose={<AlertActionCloseButton onClose={() => setShowErrorAlert(false)} />}
+      onTimeout={() => setShowErrorAlert(false)}
+    >
+      <p>Please try again.</p>
+    </Alert>
+  ) : (
+    <></>
+  );
+
   React.useEffect(() => {
     const fetchModels = async () => {
       await fetchLlamaModels();
@@ -191,10 +130,10 @@ const ChatbotMain: React.FunctionComponent = () => {
   }, []);
 
   React.useEffect(() => {
-    if (modelsList.length > 0 && !selectedModel) {
-      setSelectedModel(modelsList[0].identifier);
+    if (models.length > 0 && !selectedModel) {
+      setSelectedModel(models[0].identifier);
     }
-  }, [modelsList, selectedModel]);
+  }, [models, selectedModel]);
 
   React.useEffect(() => {
     if (scrollToBottomRef.current) {
@@ -220,98 +159,68 @@ const ChatbotMain: React.FunctionComponent = () => {
     );
   }
 
-  const handleSourceDrop = (event: DropEvent, source: File[]) => {
+  const handleSourceDrop = async (event: DropEvent, source: File[]) => {
     setSelectedSource(source);
+
+    if (source.length > 0) {
+      try {
+        const textFromFile = await extractTextFromFile(source[0]);
+        setExtractedText(textFromFile);
+      } catch {
+        setExtractedText('');
+        setSelectedSource([]);
+      }
+    }
+  };
+
+  const removeUploadedSource = () => {
+    setExtractedText('');
+    setSelectedSource([]);
     setSelectedSourceSettings(null);
   };
 
-  const removeUploadedSource = (sourceName: string) => {
-    setSelectedSource((sources) => sources.filter((f) => f.name !== sourceName));
-  };
-
-  const handleMessageSend = async (userInput: string) => {
-    if (!userInput) {
-      return;
-    }
-
-    if (!modelId) {
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: getId(),
-          role: 'bot',
-          content: 'Please select a model before sending a message.',
-          name: 'Bot',
-          avatar: botAvatar,
-        },
-      ]);
-      return;
-    }
-
-    setIsMessageSendButtonDisabled(true);
-
-    const userMessage: MessageProps = {
-      id: getId(),
-      role: 'user',
-      content: userInput,
-      name: 'User',
-      avatar: userAvatar,
-    };
-
-    const updatedMessages = [...messages, userMessage];
-
-    const transformMessage: ChatMessage[] = updatedMessages.map((msg) => ({
-      role: msg.role === 'bot' ? 'assistant' : 'user',
-      content: msg.content ?? '',
-      // eslint-disable-next-line camelcase
-      stop_reason: 'end_of_message',
-    }));
-
-    setMessages(updatedMessages);
-
-    try {
-      const response = await completeChat(transformMessage, modelId);
-      const responseObject = JSON.parse(response);
-      const completion = responseObject?.completion_message;
-
-      const assistantMessage: MessageProps = {
-        id: getId(),
-        role: 'bot',
-        content: completion?.content ?? 'Error receiving response',
-        name: 'Bot',
-        avatar: botAvatar,
-      };
-
-      setMessages((prev) => [...prev, assistantMessage]);
-    } catch (err) {
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: getId(),
-          role: 'bot',
-          content: `An error occurred while generating a response: ${err}`,
-          name: 'Bot',
-          avatar: botAvatar,
-        },
-      ]);
-    } finally {
-      setIsMessageSendButtonDisabled(false);
-    }
-  };
-
-  const showAlert = () => {
+  const showSuccAlert = () => {
     setAlertKey((key) => key + 1);
     setShowSuccessAlert(true);
   };
 
-  const handleSourceSettingsSubmit = (settings: ChatbotSourceSettings | null) => {
+  const showErrAlert = () => {
+    setAlertKey((key) => key + 1);
+    setShowErrorAlert(true);
+  };
+
+  const handleSourceSettingsSubmit = async (settings: ChatbotSourceSettings | null) => {
     setSelectedSourceSettings(settings);
     setIsSourceSettingsOpen(!isSourceSettingsOpen);
 
     if (settings && settings.chunkOverlap && settings.maxChunkLength) {
-      showAlert();
+      const source = {
+        documents: [
+          {
+            document_id: selectedSource[0].name,
+            content: extractedText,
+          },
+        ],
+      };
+      const sourceSettings = {
+        embeddingModel: settings.embeddingModel,
+        vectorDB: settings.vectorDB,
+        delimiter: settings.delimiter,
+        chunkOverlap: settings.chunkOverlap,
+        maxChunkLength: settings.maxChunkLength,
+      };
+
+      try {
+        await uploadSource(source, sourceSettings);
+        showSuccAlert();
+      } catch {
+        showErrAlert();
+      }
     } else {
       setSelectedSource([]);
+      setShowErrorAlert(false);
+      setShowSuccessAlert(false);
+      setExtractedText('');
     }
   };
 
@@ -322,12 +231,70 @@ const ChatbotMain: React.FunctionComponent = () => {
 
   const handleSaveSystemInstructions = () => {
     setIsSystemInstructionsReadOnly(true);
-    // Optional: Trigger API call or other action to persist the change
+    // TODO
   };
 
   const handleCancelSystemInstructions = () => {
     setSystemInstructions(originalSystemInstructions);
     setIsSystemInstructionsReadOnly(true);
+  };
+
+  const handleMessageSend = async (message: string) => {
+    const userMessage: MessageProps = {
+      id: getId(),
+      role: 'user',
+      content: message,
+      name: 'User',
+      avatar: userAvatar,
+    };
+
+    setMessages((prevMessages) => [...prevMessages, userMessage]);
+    setIsMessageSendButtonDisabled(true);
+
+    try {
+      if (!modelId || !selectedSourceSettings) {
+        throw new Error('No model or source settings selected');
+      }
+
+      const query: Query = {
+        content: message,
+        vector_db_ids: [selectedSourceSettings.vectorDB],
+        query_config: {
+          chunk_template: 'Result {index}\nContent: {chunk.content}\nMetadata: {metadata}\n',
+          max_chunks: 5,
+          max_tokens_in_context: 1000,
+        },
+        llm_model_id: modelId,
+        sampling_params: {
+          strategy: {
+            type: 'greedy',
+          },
+          max_tokens: 500,
+        },
+      };
+
+      const response = await querySource(query);
+
+      const botMessage: MessageProps = {
+        id: getId(),
+        role: 'bot',
+        content: response.chat_completion.completion_message.content || 'No response received',
+        name: 'Bot',
+        avatar: botAvatar,
+      };
+      setMessages((prevMessages) => [...prevMessages, botMessage]);
+    } catch {
+      const botMessage: MessageProps = {
+        id: getId(),
+        role: 'bot',
+        content: 'Sorry, I encountered an error while processing your request. Please try again.',
+        name: 'Bot',
+        avatar: botAvatar,
+      };
+      setMessages((prevMessages) => [...prevMessages, botMessage]);
+    } finally {
+      setIsMessageSendButtonDisabled(false);
+    }
   };
 
   const handleAccordionToggle = (id: string) => {
@@ -357,14 +324,14 @@ const ChatbotMain: React.FunctionComponent = () => {
             </AccordionToggle>
             <AccordionContent id="model-details-content" className="pf-v6-u-p-md">
               <Form>
-                <FormGroup label="Model" fieldId="model-select" isRequired>
+                <FormGroup label="Model" fieldId="model-select">
                   <FormSelect
                     value={selectedModel}
                     onChange={(_event, value) => setSelectedModel(value)}
                     aria-label="Select Model"
-                    isDisabled={modelsList.length === 0}
+                    isDisabled={models.length === 0}
                   >
-                    {modelsList.length === 0 ? (
+                    {models.length === 0 ? (
                       <FormSelectOption
                         key="no-models"
                         value=""
@@ -374,7 +341,7 @@ const ChatbotMain: React.FunctionComponent = () => {
                     ) : (
                       <>
                         <FormSelectOption key="select" value="" label="Select a model" isDisabled />
-                        {modelsList.map((model, index) => (
+                        {models.map((model, index) => (
                           <FormSelectOption
                             key={index + 1}
                             value={model.identifier}
@@ -386,81 +353,50 @@ const ChatbotMain: React.FunctionComponent = () => {
                   </FormSelect>
                 </FormGroup>
                 <FormGroup label="System instructions" fieldId="system-instructions">
-                  <InputGroup>
-                    <TextInput
+                  <Stack hasGutter>
+                    <TextArea
                       id="system-instructions-input"
                       type="text"
                       value={systemInstructions}
                       onChange={(_event, value) => setSystemInstructions(value)}
                       aria-label="System instructions input"
                       {...(isSystemInstructionsReadOnly && { readOnlyVariant: 'default' })}
+                      rows={8}
                     />
                     {isSystemInstructionsReadOnly ? (
                       <Button
-                        variant={ButtonVariant.plain}
+                        variant={ButtonVariant.secondary}
                         aria-label="Edit system instructions"
                         onClick={handleEditSystemInstructions}
+                        style={{ marginTop: 'var(--pf-t--global--spacer--sm)', width: '100%' }}
                       >
-                        {' '}
-                        <PencilAltIcon />{' '}
+                        Edit
                       </Button>
                     ) : (
-                      <Split>
-                        <SplitItem>
-                          <Button
-                            variant={ButtonVariant.plain}
-                            aria-label="Save system instructions"
-                            onClick={handleSaveSystemInstructions}
-                          >
-                            <CheckIcon />
-                          </Button>
-                        </SplitItem>
-                        <SplitItem>
-                          <Button
-                            variant={ButtonVariant.plain}
-                            aria-label="Cancel editing system instructions"
-                            onClick={handleCancelSystemInstructions}
-                          >
-                            {' '}
-                            <TimesIcon />{' '}
-                          </Button>
-                        </SplitItem>
-                      </Split>
+                      <Flex
+                        gap={{ default: 'gapMd' }}
+                        style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}
+                      >
+                        <Button
+                          variant={ButtonVariant.secondary}
+                          aria-label="Save system instructions"
+                          onClick={handleSaveSystemInstructions}
+                          style={{ flex: 1 }}
+                        >
+                          Save
+                        </Button>
+                        <Button
+                          variant={ButtonVariant.secondary}
+                          aria-label="Cancel editing system instructions"
+                          onClick={handleCancelSystemInstructions}
+                          style={{ flex: 1 }}
+                        >
+                          Cancel
+                        </Button>
+                      </Flex>
                     )}
-                  </InputGroup>
+                  </Stack>
                 </FormGroup>
-                {createSliderGroup(
-                  'slider-1',
-                  'Temperature',
-                  slider1Value,
-                  slider1InputValue,
-                  setSlider1Value,
-                  setSlider1InputValue,
-                )}
-                {createSliderGroup(
-                  'slider-2',
-                  'Top P',
-                  slider2Value,
-                  slider2InputValue,
-                  setSlider2Value,
-                  setSlider2InputValue,
-                )}
-                {createSliderGroup(
-                  'slider-3',
-                  'Max Token',
-                  slider3Value,
-                  slider3InputValue,
-                  setSlider3Value,
-                  setSlider3InputValue,
-                )}
-                {createSliderGroup(
-                  'slider-4',
-                  'Repetition',
-                  slider4Value,
-                  slider4InputValue,
-                  setSlider4Value,
-                  setSlider4InputValue,
-                )}
               </Form>
             </AccordionContent>
           </AccordionItem>
@@ -481,7 +417,8 @@ const ChatbotMain: React.FunctionComponent = () => {
               <Form>
                 <FormGroup fieldId="sources">
                   <ChatbotSourceUploadPanel
-                    alert={successAlert}
+                    successAlert={successAlert}
+                    errorAlert={errorAlert}
                     handleSourceDrop={handleSourceDrop}
                     selectedSource={selectedSource}
                     selectedSourceSettings={selectedSourceSettings}
@@ -563,7 +500,7 @@ const ChatbotMain: React.FunctionComponent = () => {
                   isSendButtonDisabled={isMessageSendButtonDisabled}
                   data-testid="chatbot-message-bar"
                 />
-                <ChatbotFootnote {...footnoteProps} />
+                <ChatbotFootnote {...{ label: 'Bot uses AI. Check for mistakes.' }} />
               </ChatbotFooter>
             </Chatbot>
           </DrawerContentBody>

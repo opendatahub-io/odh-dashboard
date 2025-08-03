@@ -1,6 +1,7 @@
 /* eslint-disable no-relative-import-paths/no-relative-import-paths */
 import * as React from 'react';
-import { getModels, LlamaModel } from '../services/llamaStackService';
+import { getModels } from '../services/llamaStackService';
+import { LlamaModel } from '../types';
 
 const useFetchLlamaModels = (): {
   models: LlamaModel[];

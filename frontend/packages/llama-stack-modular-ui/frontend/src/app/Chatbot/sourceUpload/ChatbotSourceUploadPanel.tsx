@@ -7,10 +7,11 @@ import {
   MultipleFileUploadStatusItem,
 } from '@patternfly/react-core';
 import { FileIcon } from '@patternfly/react-icons';
-import { ChatbotSourceSettings } from './ChatbotSourceSettingsModal';
+import { ChatbotSourceSettings } from '../../../app/types';
 
 type ChatbotSourceUploadPanelProps = {
-  alert?: React.ReactElement;
+  successAlert?: React.ReactElement;
+  errorAlert?: React.ReactElement;
   handleSourceDrop: (event: DropEvent, sources: File[]) => void;
   removeUploadedSource: (sourceName: string) => void;
   selectedSource: File[];
@@ -19,7 +20,8 @@ type ChatbotSourceUploadPanelProps = {
 };
 
 const ChatbotSourceUploadPanel: React.FC<ChatbotSourceUploadPanelProps> = ({
-  alert,
+  successAlert,
+  errorAlert,
   handleSourceDrop,
   selectedSource,
   selectedSourceSettings,
@@ -28,25 +30,28 @@ const ChatbotSourceUploadPanel: React.FC<ChatbotSourceUploadPanelProps> = ({
 }) => (
   <>
     <AlertGroup hasAnimations isToast isLiveRegion>
-      {alert}
+      {successAlert}
+      {errorAlert}
     </AlertGroup>
     <MultipleFileUpload
       onFileDrop={handleSourceDrop}
       dropzoneProps={{
         accept: {
-          'application/msword': ['.doc'],
           'application/pdf': ['.pdf'],
+          'application/msword': ['.doc'],
+          'text/csv': ['.csv'],
         },
         maxFiles: 1,
       }}
       aria-label="Source upload area"
     >
       <MultipleFileUploadMain
-        browseButtonText="Add"
+        browseButtonText="Upload"
         titleIcon={<FileIcon />}
         titleText="Drag and drop file here"
         titleTextSeparator="or"
-        infoText="Upload a PDF or DOC file to be used in retrieval."
+        infoText="Accepted file types: PDF"
+        // infoText="Accepted file types: PDF, DOC, CSV"
       />
       {selectedSourceSettings &&
         selectedSource.map((file) => (
