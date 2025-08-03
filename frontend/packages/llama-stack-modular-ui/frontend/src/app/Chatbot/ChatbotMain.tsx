@@ -130,12 +130,6 @@ const ChatbotMain: React.FunctionComponent = () => {
   }, []);
 
   React.useEffect(() => {
-    if (models.length > 0 && !selectedModel) {
-      setSelectedModel(models[0].identifier);
-    }
-  }, [models, selectedModel]);
-
-  React.useEffect(() => {
     if (scrollToBottomRef.current) {
       scrollToBottomRef.current.scrollIntoView({ behavior: 'smooth' });
     }
