@@ -80,6 +80,10 @@ describe('[Product Bug: RHOAIENG-31261] Verify a user can deploy KServe Raw Depl
       inferenceServiceModal.findModelFrameworkSelect().click();
       inferenceServiceModal.findOpenVinoIROpSet13().click();
       // Select Standard Deployment mode (KServe Raw)
+      cy.step(
+        'Verify deployment mode dropdown exists and Select Standard Deployment mode (KServe Raw)',
+      );
+      inferenceServiceModal.findDeploymentModeSelect().should('exist');
       inferenceServiceModal.findDeploymentModeSelect().findSelectOption('Standard').click();
       inferenceServiceModal
         .findDeploymentModeSelect()
