@@ -3,11 +3,12 @@ package api
 import (
 	"context"
 	"fmt"
-	"github.com/opendatahub-io/llama-stack-modular-ui/internal/config"
 	"log/slog"
 	"net/http"
 	"runtime/debug"
 	"strings"
+
+	"github.com/opendatahub-io/llama-stack-modular-ui/internal/config"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/llama-stack-modular-ui/internal/integrations"
@@ -99,6 +100,12 @@ func (app *App) InjectRequestIdentity(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		//skip use headers check if we are not on /api/v1 (i.e. we are on /healthcheck and / (static fe files) )
 		if !strings.HasPrefix(r.URL.Path, ApiPathPrefix) {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		// If authentication is disabled, skip identity extraction
+		if app.config.AuthMethod == config.AuthMethodDisabled {
 			next.ServeHTTP(w, r)
 			return
 		}
