@@ -105,10 +105,10 @@ const HardwareProfileDetailsPopover: React.FC<HardwareProfileDetailsPopoverProps
               </StackItem>
             ))}
           {localQueueName && (
-            <StackItem>{renderSection('Local Queue', [localQueueName])}</StackItem>
+            <StackItem>{renderSection('Local queue', [localQueueName])}</StackItem>
           )}
           {priorityClass && (
-            <StackItem>{renderSection('Workload Priority', [priorityClass])}</StackItem>
+            <StackItem>{renderSection('Workload priority', [priorityClass])}</StackItem>
           )}
           {tolerations && tolerations.length > 0 && (
             <StackItem>
