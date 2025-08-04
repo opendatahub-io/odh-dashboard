@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import App from '@app/index';
+import App from './app/App';
 
 if (process.env.NODE_ENV !== 'production') {
   const config = {

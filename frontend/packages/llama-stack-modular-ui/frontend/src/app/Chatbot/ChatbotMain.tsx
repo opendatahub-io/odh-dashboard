@@ -1,4 +1,3 @@
-/* eslint-disable no-relative-import-paths/no-relative-import-paths */
 /* eslint-disable camelcase */
 import * as React from 'react';
 import {
@@ -41,17 +40,18 @@ import {
   MessageBox,
   MessageProps,
 } from '@patternfly/chatbot';
-import { getId } from '@app/utilities/utils';
-import { ChatbotMessages } from './ChatbotMessagesList';
-import { ChatbotSourceSettingsModal } from './sourceUpload/ChatbotSourceSettingsModal';
-import { ChatbotSourceUploadPanel } from './sourceUpload/ChatbotSourceUploadPanel';
-import userAvatar from '../bgimages/user_avatar.svg';
-import botAvatar from '../bgimages/bot_avatar.svg';
-import { extractTextFromFile } from '../utilities/extractPdfText';
-import useFetchLlamaModels from '../../../src/app/hooks/useFetchLlamaModels';
-import { uploadSource, querySource } from '../services/llamaStackService';
-import { ChatbotSourceSettings, Query } from '../types';
+
+import userAvatar from '~/app/bgimages/user_avatar.svg';
+import botAvatar from '~/app/bgimages/bot_avatar.svg';
+import { extractTextFromFile } from '~/app/utilities/extractPdfText';
+import useFetchLlamaModels from '~/app/hooks/useFetchLlamaModels';
+import { uploadSource, querySource } from '~/app/services/llamaStackService';
+import { ChatbotSourceSettings, Query } from '~/app/types';
 import '@patternfly/chatbot/dist/css/main.css';
+import { getId } from '~/app/utilities/utils';
+import { ChatbotSourceUploadPanel } from './sourceUpload/ChatbotSourceUploadPanel';
+import { ChatbotSourceSettingsModal } from './sourceUpload/ChatbotSourceSettingsModal';
+import { ChatbotMessages } from './ChatbotMessagesList';
 
 const initialBotMessage: MessageProps = {
   id: getId(),
