@@ -47,7 +47,7 @@ export const PipelineCachingSection = ({
         setEnableCaching(!enableCaching);
         setUserClickedCheckbox(true);
       }}
-      body="When enabled, pipelines and tasks can configure caching. By default, caching is on unless changed. This setting can only be changed later in DSPA."
+      description="When enabled, pipelines and tasks can configure caching. By default, caching is on unless changed. This setting can only be changed later in DSPA."
     />
   );
 
@@ -79,7 +79,11 @@ export const PipelineCachingSection = ({
 
     return (
       <FormSection title="Pipeline caching" description="">
-        <FormGroup hasNoPaddingTop>{checkboxElement}</FormGroup>
+        <FormGroup hasNoPaddingTop isStack>
+          <FormGroup hasNoPaddingTop isStack>
+            {checkboxElement}
+          </FormGroup>
+        </FormGroup>
       </FormSection>
     );
   };

@@ -20,10 +20,7 @@ import useNamespaceSecret from '#~/concepts/projects/apiHooks/useNamespaceSecret
 import { ExternalDatabaseSecret } from '#~/concepts/pipelines/content/configurePipelinesServer/const';
 import { DSPipelineAPIServerStore, DSPipelineKind } from '#~/k8sTypes';
 import { updatePipelineCaching } from '#~/api/pipelines/k8s';
-import {
-  NotificationResponseStatus,
-  NotificationWatcherContext,
-} from '#~/concepts/notificationWatcher/NotificationWatcherContext';
+import useNotification from '#~/utilities/useNotification';
 import PipelineKubernetesStoreCheckbox from './PipelineKubernetesStoreCheckbox';
 import { MANAGE_PIPELINE_SERVER_TITLE } from './const';
 import { PipelineCachingSection } from './configurePipelinesServer/PipelineCachingSection';
@@ -38,7 +35,7 @@ const ManagePipelineServerModal: React.FC<ManagePipelineServerModalProps> = ({
   pipelineNamespaceCR,
 }) => {
   const { namespace } = usePipelinesAPI();
-  const { registerNotification } = React.useContext(NotificationWatcherContext);
+  const notification = useNotification();
   const [pipelineResult] = useNamespaceSecret(
     namespace,
     pipelineNamespaceCR?.spec.objectStorage.externalStorage?.s3CredentialsSecret.secretName ?? '',
@@ -68,28 +65,28 @@ const ManagePipelineServerModal: React.FC<ManagePipelineServerModalProps> = ({
 
     updatePipelineCaching(namespace, enableCaching)
       .then(() => {
-        registerNotification({
-          callback: async () => ({
-            status: NotificationResponseStatus.SUCCESS,
-            title: 'Pipeline caching updated',
-            message: `Caching has been ${enableCaching ? 'enabled' : 'disabled'} successfully.`,
-          }),
-        });
+        notification.success(
+          'Pipeline caching updated',
+          `Caching has been ${enableCaching ? 'enabled' : 'disabled'} successfully.`,
+        );
 
         setIsUpdating(false);
         onClose();
       })
-      .catch((error) => {
+      .catch((error: unknown) => {
         console.error('Failed to update caching:', error);
 
-        registerNotification({
-          callback: async () => ({
-            status: NotificationResponseStatus.ERROR,
-            title: 'Failed to update pipeline caching',
-            message:
-              error.message || 'An unexpected error occurred while updating caching settings.',
-          }),
-        });
+        let errorMessage = 'An unexpected error occurred while updating caching settings.';
+        if (
+          error &&
+          typeof error === 'object' &&
+          'message' in error &&
+          typeof (error as any).message === 'string'
+        ) {
+          errorMessage = (error as any).message;
+        }
+
+        notification.error('Failed to update pipeline caching', errorMessage);
 
         setIsUpdating(false);
       });
