@@ -85,6 +85,7 @@ const initIntercept = () => {
         totalCount: 1,
         totalPages: 1,
       },
+      relationships: {},
     },
   );
 };
@@ -163,6 +164,7 @@ describe('Feature Services', () => {
           totalCount: 0,
           totalPages: 0,
         },
+        relationships: {},
       },
     );
 

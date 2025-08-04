@@ -1,6 +1,6 @@
 import { FeatureService } from '#~/pages/featureStore/types/featureServices';
-import { FeatureStoreRelationship } from '../../types/global';
-import { createFeatureStoreFilterUtils } from '../../utils/filterUtils';
+import { FeatureStoreRelationship } from '#~/pages/featureStore/types/global';
+import { createFeatureStoreFilterUtils } from '#~/pages/featureStore/utils/filterUtils';
 
 export const featureServiceTableFilterKeyMapping: Record<string, string> = {
   featureService: 'spec.name',
