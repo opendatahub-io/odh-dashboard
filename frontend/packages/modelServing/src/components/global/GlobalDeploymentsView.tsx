@@ -4,8 +4,8 @@ import { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils
 import TitleWithIcon from '@odh-dashboard/internal/concepts/design/TitleWithIcon';
 import type { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
 import ModelServingLoading from '@odh-dashboard/internal/pages/modelServing/screens/global/ModelServingLoading';
-import { useNavigate } from 'react-router-dom';
-import { ProjectsContext } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
+import { useNavigate, useParams } from 'react-router-dom';
+import { byName, ProjectsContext } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
 import { GlobalNoModelsView } from './GlobalNoModelsView';
 import GlobalDeploymentsTable from './GlobalDeploymentsTable';
 import ModelServingProjectSelection from './ModelServingProjectSelection';
@@ -24,6 +24,9 @@ const GlobalDeploymentsView: React.FC<GlobalDeploymentsViewProps> = ({ projects 
   const hasDeployments = deployments && deployments.length > 0;
   const isLoading = !deploymentsLoaded;
   const isEmpty = projects.length === 0 || (!isLoading && !hasDeployments);
+  const { projects: modelProjects } = React.useContext(ModelDeploymentsContext);
+  const { namespace: modelNamespace } = useParams<{ namespace: string }>();
+  const currentProject = modelProjects?.find(byName(modelNamespace));
 
   return (
     <ApplicationsPage
@@ -46,7 +49,7 @@ const GlobalDeploymentsView: React.FC<GlobalDeploymentsViewProps> = ({ projects 
         projects.length === 0 ? (
           <NoProjectsPage />
         ) : (
-          <GlobalNoModelsView project={preferredProject ?? undefined} />
+          <GlobalNoModelsView project={currentProject ?? undefined} />
         )
       }
       description="Manage and view the health and performance of your deployed models."
