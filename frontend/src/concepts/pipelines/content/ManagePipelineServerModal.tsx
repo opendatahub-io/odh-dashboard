@@ -76,17 +76,10 @@ const ManagePipelineServerModal: React.FC<ManagePipelineServerModalProps> = ({
       .catch((error: unknown) => {
         console.error('Failed to update caching:', error);
 
-        let errorMessage = 'An unexpected error occurred while updating caching settings.';
-        if (
-          error &&
-          typeof error === 'object' &&
-          'message' in error &&
-          typeof (error as any).message === 'string'
-        ) {
-          errorMessage = (error as any).message;
-        }
-
-        notification.error('Failed to update pipeline caching', errorMessage);
+        notification.error(
+          'Failed to update pipeline caching',
+          'An unexpected error occurred while updating caching settings.',
+        );
 
         setIsUpdating(false);
       });
