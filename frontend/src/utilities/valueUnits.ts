@@ -161,12 +161,13 @@ export const isCpuLimitLarger = (
   requestCpu?: ValueUnitCPU,
   limitCpu?: ValueUnitCPU,
   isEqualOkay = false,
+  isUndefinedOkay = false,
 ): boolean => {
   const requestCpuString = typeof requestCpu === 'number' ? `${requestCpu}` : requestCpu;
   const limitCpuString = typeof limitCpu === 'number' ? `${limitCpu}` : limitCpu;
 
   if (!limitCpuString || !requestCpuString) {
-    return false;
+    return isUndefinedOkay;
   }
 
   return isLarger(limitCpuString, requestCpuString, CPU_UNITS, isEqualOkay);
@@ -182,9 +183,10 @@ export const isMemoryLimitLarger = (
   requestMemory?: ValueUnitString,
   limitMemory?: ValueUnitString,
   isEqualOkay = false,
+  isUndefinedOkay = false,
 ): boolean => {
   if (!limitMemory || !requestMemory) {
-    return false;
+    return isUndefinedOkay;
   }
 
   return isLarger(limitMemory, requestMemory, MEMORY_UNITS_FOR_PARSING, isEqualOkay);

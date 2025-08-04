@@ -1,24 +1,31 @@
 import * as React from 'react';
 import {
   FormGroup,
-  FormHelperText,
-  HelperText,
-  HelperTextItem,
   Grid,
   GridItem,
   Stack,
   StackItem,
   Popover,
   Button,
+  FormHelperText,
+  HelperText,
+  HelperTextItem,
 } from '@patternfly/react-core';
 import { QuestionCircleIcon } from '@patternfly/react-icons';
 import { ContainerResources, Identifier } from '#~/types';
-import CPUField from '#~/components/CPUField';
-import MemoryField from '#~/components/MemoryField';
-import NumberInputWrapper from '#~/components/NumberInputWrapper';
+import CPUField, { CPUFieldWithCheckbox } from '#~/components/CPUField';
+import MemoryField, { MemoryFieldWithCheckbox } from '#~/components/MemoryField';
+import NumberInputWrapper, {
+  NumberInputWrapperWithCheckbox,
+} from '#~/components/NumberInputWrapper';
 import { ValidationContext } from '#~/utilities/useValidation';
+import {
+  formatResourceValue,
+  hardwareProfileIdentifierHelpMessage,
+} from '#~/concepts/hardwareProfiles/utils.ts';
+import { HARDWARE_PROFILES_MISSING_REQUEST_MESSAGE } from '#~/concepts/hardwareProfiles/const.ts';
 import DashboardHelpTooltip from '#~/concepts/dashboard/DashboardHelpTooltip';
-import { formatResourceValue } from './utils';
+import { ProfileIdentifier, ProfileIdentifierType } from './types';
 
 type HardwareProfileCustomizeProps = {
   identifiers: Identifier[];
@@ -26,6 +33,7 @@ type HardwareProfileCustomizeProps = {
   hideLimitOption?: boolean;
   data: ContainerResources;
   setData: (data: ContainerResources) => void;
+  isLegacyHardwareProfile?: boolean;
 };
 
 const HardwareProfileCustomize: React.FC<HardwareProfileCustomizeProps> = ({
@@ -34,13 +42,14 @@ const HardwareProfileCustomize: React.FC<HardwareProfileCustomizeProps> = ({
   hideLimitOption,
   data,
   setData,
+  isLegacyHardwareProfile = false,
 }) => {
   // Sort identifiers to put CPU and Memory first
   const sortedIdentifiers = React.useMemo(() => {
-    const cpuIdentifier = identifiers.find((i) => i.identifier === 'cpu');
-    const memoryIdentifier = identifiers.find((i) => i.identifier === 'memory');
+    const cpuIdentifier = identifiers.find((i) => i.identifier === ProfileIdentifier.CPU);
+    const memoryIdentifier = identifiers.find((i) => i.identifier === ProfileIdentifier.MEMORY);
     const otherIdentifiers = identifiers.filter(
-      (i) => i.identifier !== 'cpu' && i.identifier !== 'memory',
+      (i) => i.identifier !== ProfileIdentifier.CPU && i.identifier !== ProfileIdentifier.MEMORY,
     );
 
     return [
@@ -52,17 +61,33 @@ const HardwareProfileCustomize: React.FC<HardwareProfileCustomizeProps> = ({
 
   const { getAllValidationIssues } = React.useContext(ValidationContext);
 
-  const renderField = (identifier: Identifier, type: 'requests' | 'limits') => {
+  const renderField = (identifier: Identifier, type: ProfileIdentifierType) => {
     const value = data[type]?.[identifier.identifier];
-    const onChange = (v: string | undefined) =>
-      setData({
-        ...data,
-        [type]: {
-          ...data[type],
-          [identifier.identifier]: v,
-        },
-        ...(hideLimitOption && { limits: { ...data.limits, [identifier.identifier]: v } }),
-      });
+    const onChange = (v: string | undefined) => {
+      if (v === undefined && isLegacyHardwareProfile) {
+        const restOfType = data[type] || {};
+        delete restOfType[identifier.identifier];
+        const nextData: ContainerResources = {
+          ...data,
+          [type]: restOfType,
+        };
+        if (type === ProfileIdentifierType.REQUEST) {
+          const restOfLimits = data.limits || {};
+          delete restOfLimits[identifier.identifier];
+          nextData.limits = restOfLimits;
+        }
+        setData(nextData);
+      } else {
+        setData({
+          ...data,
+          [type]: {
+            ...data[type],
+            [identifier.identifier]: v,
+          },
+          ...(hideLimitOption && { limits: { ...data.limits, [identifier.identifier]: v } }),
+        });
+      }
+    };
 
     const validationIssues = getAllValidationIssues([
       ...hardwareValidationPath,
@@ -71,72 +96,115 @@ const HardwareProfileCustomize: React.FC<HardwareProfileCustomizeProps> = ({
       identifier.identifier,
     ]);
     const validated = validationIssues.length > 0 ? 'error' : 'default';
-
+    const isDisabled =
+      type === ProfileIdentifierType.LIMIT && !data.requests?.[identifier.identifier];
+    const checkboxId = `${identifier.identifier}-${type}-checkbox`;
+    const dataTestId = `${identifier.identifier}-${type}`;
+    const helperMessage = hardwareProfileIdentifierHelpMessage(identifier.identifier, type);
+    const checkboxTooltip = isDisabled ? HARDWARE_PROFILES_MISSING_REQUEST_MESSAGE : helperMessage;
     const field = (() => {
       switch (identifier.identifier) {
-        case 'cpu':
-          return (
+        case ProfileIdentifier.CPU:
+          return isLegacyHardwareProfile ? (
+            <CPUFieldWithCheckbox
+              value={value}
+              onChange={onChange}
+              validated={validated}
+              dataTestId={dataTestId}
+              checkboxId={checkboxId}
+              label={`CPU ${type}`}
+              isDisabled={isDisabled}
+              checkboxTooltip={checkboxTooltip}
+              min={0}
+            />
+          ) : (
             <CPUField
               value={value}
               onChange={onChange}
               validated={validated}
-              dataTestId={`${identifier.identifier}-${type}`}
+              dataTestId={dataTestId}
               min={0}
             />
           );
-        case 'memory':
-          return (
+        case ProfileIdentifier.MEMORY:
+          return isLegacyHardwareProfile ? (
+            <MemoryFieldWithCheckbox
+              value={value}
+              onChange={onChange}
+              validated={validated}
+              dataTestId={dataTestId}
+              checkboxId={checkboxId}
+              label={`Memory ${type}`}
+              isDisabled={isDisabled}
+              checkboxTooltip={checkboxTooltip}
+              min={0}
+            />
+          ) : (
             <MemoryField
               value={value}
               onChange={onChange}
               validated={validated}
-              dataTestId={`${identifier.identifier}-${type}`}
+              dataTestId={dataTestId}
               min={0}
             />
           );
         default:
-          return (
+          return isLegacyHardwareProfile ? (
+            <NumberInputWrapperWithCheckbox
+              min={0}
+              value={value ? Number(value) : undefined}
+              onChange={(v) => onChange(v !== undefined ? String(v) : undefined)}
+              validated={validated}
+              dataTestId={dataTestId}
+              checkboxId={checkboxId}
+              label={`${identifier.displayName} ${type}`}
+              isDisabled={isDisabled}
+              checkboxTooltip={checkboxTooltip}
+              intOnly
+            />
+          ) : (
             <NumberInputWrapper
               min={0}
               value={Number(value || identifier.defaultCount)}
               onChange={(v) => onChange(String(v))}
               validated={validated}
-              data-testid={`${identifier.identifier}-${type}`}
+              data-testid={dataTestId}
               intOnly
             />
           );
       }
     })();
 
-    return (
+    const renderFormHelper = () => (
+      <FormHelperText>
+        <HelperText>
+          {validationIssues.length > 0 && (
+            <HelperTextItem variant="error">
+              {validationIssues.map((issue) => issue.message).join(', ')}
+            </HelperTextItem>
+          )}
+          <HelperTextItem>
+            Min = {formatResourceValue(identifier.minCount, identifier.resourceType)}, Max ={' '}
+            {identifier.maxCount === undefined
+              ? 'unrestricted'
+              : formatResourceValue(identifier.maxCount, identifier.resourceType)}
+          </HelperTextItem>
+        </HelperText>
+      </FormHelperText>
+    );
+
+    return isLegacyHardwareProfile ? (
+      <FormGroup>
+        {field}
+        {renderFormHelper()}
+      </FormGroup>
+    ) : (
       <FormGroup
         label={`${identifier.displayName} ${type}`}
-        labelHelp={
-          <DashboardHelpTooltip
-            content={
-              type === 'requests'
-                ? `The minimum amount of ${identifier.identifier} that will be reserved for this workload. The scheduler will only place the workload on nodes that can provide this amount.`
-                : `The maximum amount of ${identifier.identifier} that this workload is allowed to use. If exceeded, the workload may be terminated or throttled.`
-            }
-          />
-        }
+        labelHelp={<DashboardHelpTooltip content={helperMessage} />}
       >
         {field}
-        <FormHelperText>
-          <HelperText>
-            {validationIssues.length > 0 && (
-              <HelperTextItem variant="error">
-                {validationIssues.map((issue) => issue.message).join(', ')}
-              </HelperTextItem>
-            )}
-            <HelperTextItem>
-              Min = {formatResourceValue(identifier.minCount, identifier.resourceType)}, Max ={' '}
-              {identifier.maxCount === undefined
-                ? 'unrestricted'
-                : formatResourceValue(identifier.maxCount, identifier.resourceType)}
-            </HelperTextItem>
-          </HelperText>
-        </FormHelperText>
+        {renderFormHelper()}
       </FormGroup>
     );
   };
@@ -146,8 +214,10 @@ const HardwareProfileCustomize: React.FC<HardwareProfileCustomizeProps> = ({
       {sortedIdentifiers.map((identifier) => (
         <StackItem key={identifier.identifier}>
           <Grid hasGutter md={12} lg={6}>
-            <GridItem>{renderField(identifier, 'requests')}</GridItem>
-            {!hideLimitOption && <GridItem>{renderField(identifier, 'limits')}</GridItem>}
+            <GridItem>{renderField(identifier, ProfileIdentifierType.REQUEST)}</GridItem>
+            {!hideLimitOption && (
+              <GridItem>{renderField(identifier, ProfileIdentifierType.LIMIT)}</GridItem>
+            )}
           </Grid>
         </StackItem>
       ))}

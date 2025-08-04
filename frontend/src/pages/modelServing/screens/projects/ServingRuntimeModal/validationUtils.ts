@@ -42,10 +42,14 @@ export const containerResourcesSchema = z
     limits: resourceSchema.optional(),
   })
   .superRefine((data, ctx) => {
+    const isUndefinedOkay =
+      (data.requests !== undefined && data.limits === undefined) ||
+      (data.requests === undefined && data.limits === undefined);
+
     if (
       data.requests?.cpu &&
       data.limits?.cpu &&
-      !isCpuLimitLarger(data.requests.cpu, data.limits.cpu, true)
+      !isCpuLimitLarger(data.requests.cpu, data.limits.cpu, true, isUndefinedOkay)
     ) {
       ctx.addIssue({
         path: ['requests', 'cpu'],
@@ -61,7 +65,7 @@ export const containerResourcesSchema = z
     if (
       data.requests?.memory &&
       data.limits?.memory &&
-      !isMemoryLimitLarger(data.requests.memory, data.limits.memory, true)
+      !isMemoryLimitLarger(data.requests.memory, data.limits.memory, true, isUndefinedOkay)
     ) {
       ctx.addIssue({
         path: ['requests', 'memory'],

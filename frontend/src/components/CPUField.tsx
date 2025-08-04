@@ -65,6 +65,12 @@ export const CPUFieldWithCheckbox: React.FC<CPUFieldWithCheckboxProps> = ({
   // Store the value when the checkbox is unchecked to restore it when the checkbox is checked again
   const storedValue = React.useRef(value);
 
+  React.useEffect(() => {
+    if (value !== undefined) {
+      storedValue.current = value;
+    }
+  }, [value]);
+
   return (
     <Stack hasGutter>
       <Checkbox

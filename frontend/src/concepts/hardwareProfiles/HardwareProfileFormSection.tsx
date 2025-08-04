@@ -62,6 +62,13 @@ const HardwareProfileFormSection: React.FC<HardwareProfileFormSectionProps<PodSp
     setFormData('resources', newResources);
   };
 
+  const [isLegacyHardwareProfile, setIsLegacyHardwareProfile] = React.useState(false);
+  React.useEffect(() => {
+    setIsLegacyHardwareProfile(
+      formData.selectedProfile ? formData.selectedProfile.metadata.uid === undefined : false,
+    );
+  }, [formData.selectedProfile]);
+
   return (
     <ValidationContext.Provider value={validation}>
       <Stack hasGutter data-testid="hardware-profile-section">
@@ -111,6 +118,7 @@ const HardwareProfileFormSection: React.FC<HardwareProfileFormSectionProps<PodSp
                   identifiers={formData.selectedProfile.spec.identifiers}
                   data={formData.resources}
                   setData={(newData: ContainerResources) => setFormData('resources', newData)}
+                  isLegacyHardwareProfile={isLegacyHardwareProfile}
                 />
               </ExpandableSection>
             </StackItem>

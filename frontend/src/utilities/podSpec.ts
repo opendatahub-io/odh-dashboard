@@ -18,8 +18,14 @@ export const assemblePodSpecOptions = (
 } => {
   const affinity: PodAffinity = structuredClone(affinitySettings || {});
   let resources: ContainerResources = {
-    limits: { ...existingResources?.limits, ...resourceSettings.limits },
-    requests: { ...existingResources?.requests, ...resourceSettings.requests },
+    limits:
+      Object.keys(resourceSettings.limits ?? {}).length === 0
+        ? {}
+        : { ...existingResources?.limits, ...resourceSettings.limits },
+    requests:
+      Object.keys(resourceSettings.requests ?? {}).length === 0
+        ? {}
+        : { ...existingResources?.requests, ...resourceSettings.requests },
   };
 
   // if not using existing settings, just use the new settings

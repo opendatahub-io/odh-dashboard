@@ -15,6 +15,7 @@ import {
   SecretModel,
   StorageClassModel,
 } from '#~/__tests__/cypress/cypress/utils/models';
+import { ProfileIdentifierType } from '#~/concepts/hardwareProfiles/types';
 import {
   mockK8sResourceList,
   mockNotebookK8sResource,
@@ -280,7 +281,6 @@ describe('Workbench Hardware Profiles', () => {
       '3',
       'Must be at least 4 Cores',
     );
-    hardwareProfileSection.verifyResourceValidation('cpu-requests', '', 'CPU must be provided');
     hardwareProfileSection.verifyResourceValidation('cpu-requests', '9', 'Must not exceed 8 Cores');
     hardwareProfileSection.verifyResourceValidation('cpu-requests', '6');
     hardwareProfileSection.verifyResourceValidation(
@@ -295,11 +295,7 @@ describe('Workbench Hardware Profiles', () => {
       '1',
       'Must be at least 8 GiB',
     );
-    hardwareProfileSection.verifyResourceValidation(
-      'memory-requests',
-      '',
-      'Memory must be provided',
-    );
+
     hardwareProfileSection.verifyResourceValidation(
       'memory-requests',
       '17',
@@ -549,6 +545,282 @@ describe('Workbench Hardware Profiles', () => {
       editSpawnerPage.visit('test-notebook');
       editSpawnerPage.findAlertMessage().should('not.exist');
       hardwareProfileSection.findSelect().should('contain.text', 'Use existing settings');
+    });
+  });
+
+  describe('Hardware profile customization for legacy profiles', () => {
+    beforeEach(() => {
+      initIntercepts({ disableHardwareProfiles: false });
+
+      // Mock notebook with initial values
+      cy.interceptK8sList(
+        NotebookModel,
+        mockK8sResourceList([
+          mockNotebookK8sResource({
+            opts: {
+              spec: {
+                template: {
+                  spec: {
+                    containers: [
+                      {
+                        name: 'test-notebook',
+                        resources: {
+                          requests: {
+                            cpu: '4',
+                            memory: '8Gi',
+                          },
+                          limits: {
+                            cpu: '4',
+                            memory: '8Gi',
+                          },
+                        },
+                      },
+                    ],
+                  },
+                },
+              },
+            },
+          }),
+        ]),
+      );
+
+      // Navigate to workbench creation
+      projectDetails.visit(projectName);
+      projectDetails.findSectionTab('workbenches').click();
+      workbenchPage.findCreateButton().click();
+
+      // Select profile and open customization
+      hardwareProfileSection.selectProfile(
+        'Small CPU: Request = 1 Cores; Limit = 1 Cores; Memory: Request = 8 GiB; Limit = 8 GiB',
+      );
+      hardwareProfileSection.findCustomizeButton().click();
+    });
+
+    it('should show requests and limits info popover', () => {
+      // Click info button and verify popover content
+      hardwareProfileSection.findRequestsLimitsInfoButton().click();
+      hardwareProfileSection.findRequestsLimitsPopover().should('be.visible');
+
+      // Verify popover content
+      cy.contains('Requests: A request is the guaranteed minimum amount').should('exist');
+      cy.contains('Limits: A limit is the maximum amount').should('exist');
+      cy.contains('Request and limit values must be within the minimum and maximum bounds').should(
+        'exist',
+      );
+    });
+
+    it('should handle checkbox interactions correctly', () => {
+      hardwareProfileSection.verifyResourceCheckboxState(
+        'cpu',
+        ProfileIdentifierType.REQUEST,
+        true,
+      );
+      hardwareProfileSection.verifyResourceCheckboxState(
+        'cpu',
+        ProfileIdentifierType.LIMIT,
+        true,
+        false,
+      );
+      hardwareProfileSection.verifyResourceCheckboxState(
+        'memory',
+        ProfileIdentifierType.REQUEST,
+        true,
+      );
+      hardwareProfileSection.verifyResourceCheckboxState(
+        'memory',
+        ProfileIdentifierType.LIMIT,
+        true,
+        false,
+      );
+
+      // Verify initial values
+      hardwareProfileSection.verifyResourceValue('cpu', ProfileIdentifierType.REQUEST, '1');
+      hardwareProfileSection.verifyResourceValue('cpu', ProfileIdentifierType.LIMIT, '1');
+      hardwareProfileSection.verifyResourceValue('memory', ProfileIdentifierType.REQUEST, '8');
+      hardwareProfileSection.verifyResourceValue('memory', ProfileIdentifierType.LIMIT, '8');
+
+      // Disable CPU requests, CPU limits should also be disabled automatically
+      hardwareProfileSection.findCPURequestsCheckbox().click();
+      hardwareProfileSection.verifyResourceCheckboxState(
+        'cpu',
+        ProfileIdentifierType.REQUEST,
+        false,
+      );
+      hardwareProfileSection.verifyResourceCheckboxState(
+        'cpu',
+        ProfileIdentifierType.LIMIT,
+        false,
+        true,
+      );
+
+      // Re-enable CPU requests and limits
+      hardwareProfileSection.findCPURequestsCheckbox().click();
+      hardwareProfileSection.findCPULimitsCheckbox().click();
+      hardwareProfileSection.verifyResourceCheckboxState(
+        'cpu',
+        ProfileIdentifierType.REQUEST,
+        true,
+      );
+      hardwareProfileSection.verifyResourceCheckboxState(
+        'cpu',
+        ProfileIdentifierType.LIMIT,
+        true,
+        false,
+      );
+
+      // Disable Memory requests should also disable and uncheck limits
+      hardwareProfileSection.findMemoryRequestsCheckbox().click();
+      hardwareProfileSection.verifyResourceCheckboxState(
+        'memory',
+        ProfileIdentifierType.REQUEST,
+        false,
+      );
+      hardwareProfileSection.verifyResourceCheckboxState(
+        'memory',
+        ProfileIdentifierType.LIMIT,
+        false,
+        true,
+      );
+    });
+
+    it('should validate resource dependencies', () => {
+      // Set CPU requests
+      hardwareProfileSection.setResourceValue('cpu', ProfileIdentifierType.REQUEST, '2');
+      hardwareProfileSection.verifyResourceValue('cpu', ProfileIdentifierType.REQUEST, '2');
+
+      // Set CPU limits lower than requests - should show error
+      hardwareProfileSection.setResourceValue('cpu', ProfileIdentifierType.LIMIT, '1');
+      cy.contains('Limit must be greater than or equal to request').should('exist');
+
+      hardwareProfileSection.setResourceValue('cpu', ProfileIdentifierType.LIMIT, '4');
+      cy.contains('Must not exceed 2 Cores').should('exist');
+
+      // Set CPU limits higher than requests - should show error
+      hardwareProfileSection.setResourceValue('cpu', ProfileIdentifierType.LIMIT, '5');
+      cy.contains('Must not exceed 2 Cores').should('exist');
+
+      // Set CPU requests higher than limits - should show error
+      hardwareProfileSection.setResourceValue('cpu', ProfileIdentifierType.REQUEST, '6');
+      cy.contains('Must not exceed 2 Cores').should('exist');
+
+      // Set CPU requests higher than max count - should show error
+      hardwareProfileSection.setResourceValue('cpu', ProfileIdentifierType.REQUEST, '2');
+      hardwareProfileSection.setResourceValue('cpu', ProfileIdentifierType.LIMIT, '1');
+      cy.contains('Limit must be greater than or equal to request').should('exist');
+      hardwareProfileSection.setResourceValue('cpu', ProfileIdentifierType.LIMIT, '2');
+
+      // Set Memory requests
+      hardwareProfileSection.setResourceValue('memory', ProfileIdentifierType.REQUEST, '8');
+      hardwareProfileSection.verifyResourceValue('memory', ProfileIdentifierType.REQUEST, '8');
+
+      // Set Memory limits lower than requests - should show error
+      hardwareProfileSection.setResourceValue('memory', ProfileIdentifierType.LIMIT, '6');
+      cy.contains('Must be at least 8 GiB').should('exist');
+
+      // Set Memory limits equal to requests - should be valid
+      hardwareProfileSection.setResourceValue('memory', ProfileIdentifierType.LIMIT, '8');
+      cy.contains('Limit must be greater than or equal to request').should('not.exist');
+
+      // Set Memory limits higher than requests - should be valid
+      hardwareProfileSection.setResourceValue('memory', ProfileIdentifierType.LIMIT, '10');
+      cy.contains('Must not exceed 8 GiB').should('exist');
+
+      // Set Memory requests higher than limits - should show error
+      hardwareProfileSection.setResourceValue('memory', ProfileIdentifierType.REQUEST, '12');
+      cy.contains('Must not exceed 8 GiB').should('exist');
+    });
+
+    it('should validate memory values with units', () => {
+      // Set Memory requests with GiB units
+      hardwareProfileSection.setResourceValue('memory', ProfileIdentifierType.REQUEST, '8');
+      hardwareProfileSection.selectResourceUnit('memory', ProfileIdentifierType.REQUEST, 'Gi');
+      hardwareProfileSection.setResourceValue('memory', ProfileIdentifierType.LIMIT, '8');
+      hardwareProfileSection.selectResourceUnit('memory', ProfileIdentifierType.LIMIT, 'Gi');
+
+      hardwareProfileSection.verifyResourceValue('memory', ProfileIdentifierType.REQUEST, '8');
+      hardwareProfileSection.verifyResourceUnit('memory', ProfileIdentifierType.REQUEST, 'Gi');
+      hardwareProfileSection.verifyResourceValue('memory', ProfileIdentifierType.LIMIT, '8');
+      hardwareProfileSection.verifyResourceUnit('memory', ProfileIdentifierType.LIMIT, 'Gi');
+
+      // Try setting memory with MiB units
+      hardwareProfileSection.setResourceValue('memory', ProfileIdentifierType.LIMIT, '9216');
+      hardwareProfileSection.selectResourceUnit('memory', ProfileIdentifierType.LIMIT, 'Mi');
+      hardwareProfileSection.setResourceValue('memory', ProfileIdentifierType.REQUEST, '9216');
+      hardwareProfileSection.selectResourceUnit('memory', ProfileIdentifierType.REQUEST, 'Mi');
+
+      hardwareProfileSection.verifyResourceValue('memory', ProfileIdentifierType.LIMIT, '9216');
+      hardwareProfileSection.verifyResourceUnit('memory', ProfileIdentifierType.LIMIT, 'Mi');
+      hardwareProfileSection.verifyResourceValue('memory', ProfileIdentifierType.REQUEST, '9216');
+      hardwareProfileSection.verifyResourceUnit('memory', ProfileIdentifierType.REQUEST, 'Mi');
+    });
+
+    it('should restore previous values when re-enabling checkboxes', () => {
+      // Set initial values
+      hardwareProfileSection.setResourceValue('cpu', ProfileIdentifierType.REQUEST, '4');
+      hardwareProfileSection.setResourceValue('cpu', ProfileIdentifierType.LIMIT, '6');
+
+      // Disable CPU requests (should also disable limits)
+      hardwareProfileSection.findCPURequestsCheckbox().click();
+      hardwareProfileSection.verifyResourceCheckboxState(
+        'cpu',
+        ProfileIdentifierType.REQUEST,
+        false,
+      );
+      hardwareProfileSection.verifyResourceCheckboxState(
+        'cpu',
+        ProfileIdentifierType.LIMIT,
+        false,
+        true,
+      );
+
+      // Re-enable CPU requests - should restore previous value
+      hardwareProfileSection.findCPURequestsCheckbox().click();
+      hardwareProfileSection.verifyResourceValue('cpu', ProfileIdentifierType.REQUEST, '4');
+
+      // Re-enable CPU limits - should restore previous value
+      hardwareProfileSection.findCPULimitsCheckbox().click();
+      hardwareProfileSection.verifyResourceValue('cpu', ProfileIdentifierType.LIMIT, '6');
+      // Set initial values for memory
+      hardwareProfileSection.setResourceValue('memory', ProfileIdentifierType.REQUEST, '8');
+      hardwareProfileSection.setResourceValue('memory', ProfileIdentifierType.LIMIT, '10');
+
+      // Disable Memory requests (should also disable limits)
+      hardwareProfileSection.findMemoryRequestsCheckbox().click();
+      hardwareProfileSection.verifyResourceCheckboxState(
+        'memory',
+        ProfileIdentifierType.REQUEST,
+        false,
+      );
+      hardwareProfileSection.verifyResourceCheckboxState(
+        'memory',
+        ProfileIdentifierType.LIMIT,
+        false,
+        true,
+      );
+
+      // Re-enable Memory requests - should restore previous value
+      hardwareProfileSection.findMemoryRequestsCheckbox().click();
+      hardwareProfileSection.verifyResourceValue('memory', ProfileIdentifierType.REQUEST, '8');
+
+      // Re-enable Memory limits - should restore previous value
+      hardwareProfileSection.findMemoryLimitsCheckbox().click();
+      hardwareProfileSection.verifyResourceValue('memory', ProfileIdentifierType.LIMIT, '10');
+    });
+
+    it('should handle min/max validation for all resources', () => {
+      // CPU validation
+      hardwareProfileSection.setResourceValue('cpu', ProfileIdentifierType.REQUEST, '0.5');
+      cy.contains('Must be at least 1 Cores').should('exist');
+
+      hardwareProfileSection.setResourceValue('cpu', ProfileIdentifierType.REQUEST, '10');
+      cy.contains('Must not exceed 2 Cores').should('exist');
+
+      // Memory validation
+      hardwareProfileSection.setResourceValue('memory', ProfileIdentifierType.REQUEST, '4Gi');
+      cy.contains('Must be at least 8 GiB').should('exist');
+
+      hardwareProfileSection.setResourceValue('memory', ProfileIdentifierType.REQUEST, '20Gi');
+      cy.contains('Must not exceed 8 GiB').should('exist');
     });
   });
 });
