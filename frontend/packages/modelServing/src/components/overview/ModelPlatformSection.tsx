@@ -13,6 +13,7 @@ import CollapsibleSection from '@odh-dashboard/internal/concepts/design/Collapsi
 import { ProjectObjectType, SectionType } from '@odh-dashboard/internal/concepts/design/utils';
 import OverviewCard from '@odh-dashboard/internal/pages/projects/screens/detail/overview/components/OverviewCard';
 import { ProjectDetailsContext } from '@odh-dashboard/internal/pages/projects/ProjectDetailsContext';
+import { NavigateBackToRegistryButton } from '@odh-dashboard/internal/concepts/modelServing/NavigateBackToRegistryButton';
 import {
   useProjectServingPlatform,
   type ModelServingPlatform,
@@ -115,7 +116,10 @@ const ModelPlatformSection: React.FC<{ platforms: ModelServingPlatform[] }> = ({
           </Stack>
         </CardBody>
         <CardFooter>
-          <DeployButton project={currentProject} variant="link" />
+          <Flex>
+            <DeployButton project={currentProject} variant="link" />
+            <NavigateBackToRegistryButton isInline />
+          </Flex>
         </CardFooter>
       </OverviewCard>
     </CollapsibleSection>
