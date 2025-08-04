@@ -1,5 +1,6 @@
 /* eslint-disable camelcase */
-import type { Model as LlamaModel } from 'llama-stack-client/resources/models';
+
+import { LlamaModel } from '@app/types';
 
 export const mockLlamaModels: LlamaModel[] = [
   {

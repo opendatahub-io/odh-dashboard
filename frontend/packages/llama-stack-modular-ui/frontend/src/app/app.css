@@ -9,3 +9,47 @@ body,
   --pf-v6-c-content--blockquote--BorderLeftColor: var(--pf-t--global--color--nonstatus--purple--default); /* changes all <blockquote> left border color to the semantic token for non-status (purple) */
   --pf-v6-c-content--hr--BackgroundColor: var(--pf-t--global--color--nonstatus--yellow--default); /* changes a <hr> color to the semantic token for non-status (yellow) */
 }
+
+/* Remove background color from all accordion items (expanded and collapsed) */
+.pf-v6-c-accordion__item {
+  background-color: transparent !important;
+}
+
+.pf-v6-c-accordion__item .pf-v6-c-accordion__toggle {
+  background-color: transparent !important;
+}
+
+.pf-v6-c-accordion__item .pf-v6-c-accordion__content {
+  background-color: transparent !important;
+}
+
+/* Remove background color from expanded accordion items */
+.pf-v6-c-accordion__item.pf-m-expanded {
+  background-color: transparent !important;
+}
+
+.pf-v6-c-accordion__item.pf-m-expanded .pf-v6-c-accordion__toggle {
+  background-color: transparent !important;
+}
+
+.pf-v6-c-accordion__item.pf-m-expanded .pf-v6-c-accordion__content {
+  background-color: transparent !important;
+}
+
+/* Remove background color on hover for all accordion items */
+.pf-v6-c-accordion__item:hover {
+  background-color: transparent !important;
+}
+
+.pf-v6-c-accordion__item:hover .pf-v6-c-accordion__toggle {
+  background-color: transparent !important;
+}
+
+/* Also remove background color on hover for expanded items */
+.pf-v6-c-accordion__item.pf-m-expanded:hover {
+  background-color: transparent !important;
+}
+
+.pf-v6-c-accordion__item.pf-m-expanded:hover .pf-v6-c-accordion__toggle {
+  background-color: transparent !important;
+}
