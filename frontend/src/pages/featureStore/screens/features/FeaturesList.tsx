@@ -1,6 +1,6 @@
 import React from 'react';
 import { Features } from '#~/pages/featureStore/types/features';
-import FeaturesToolbar from './FeaturesToolbar';
+import { FeatureStoreToolbar } from '#~/pages/featureStore/components/FeatureStoreToolbar';
 import {
   FeatureFilterDataType,
   getInitialFeatureFilterData,
@@ -56,7 +56,7 @@ const FeaturesList = ({
       fsProject={fsProject}
       onClearFilters={onClearFilters}
       toolbarContent={
-        <FeaturesToolbar
+        <FeatureStoreToolbar
           filterData={filterData}
           onFilterUpdate={onFilterUpdate}
           filterOptions={filterOptions}
