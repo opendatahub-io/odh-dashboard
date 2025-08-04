@@ -187,7 +187,7 @@ const ManagePipelineServerModal: React.FC<ManagePipelineServerModalProps> = ({
               <Title headingLevel="h2" data-testid="additionalConfig-headerText">
                 Additional configurations
               </Title>
-              <DescriptionList isHorizontal isFluid>
+              <DescriptionList isHorizontal>
                 <DescriptionListGroup>
                   <DescriptionListTerm>Pipeline definition storage</DescriptionListTerm>
                   <DescriptionListDescription>
