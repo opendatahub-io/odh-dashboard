@@ -820,6 +820,11 @@ declare global {
             path: { namespace: string; serviceName: string; apiVersion: string };
           },
           response: OdhResponse<EntityList>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/service/featurestore/:namespace/:serviceName/api/:apiVersion/feature_views',
+          options: { path: { namespace: string; serviceName: string; apiVersion: string } },
+          response: OdhResponse<FeatureViewsList>,
         ) => Cypress.Chainable<null>);
     }
   }
