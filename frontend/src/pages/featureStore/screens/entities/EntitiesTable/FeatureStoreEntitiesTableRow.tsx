@@ -4,16 +4,17 @@ import { Content, Truncate, Button } from '@patternfly/react-core';
 import { Link } from 'react-router';
 import TableRowTitleDescription from '#~/components/table/TableRowTitleDescription';
 import { useFeatureStoreProject } from '#~/pages/featureStore/FeatureStoreContext.tsx';
-import { Entity, EntityRelationship } from '#~/pages/featureStore/types/entities';
+import { Entity } from '#~/pages/featureStore/types/entities';
 import FeatureStoreTags from '#~/pages/featureStore/components/FeatureStoreTags';
 import ScrollableLinksPopover from '#~/pages/featureStore/components/ScrollableLinksPopover';
 import FeatureStoreTimestamp from '#~/pages/featureStore/components/FeatureStoreTimestamp';
-import { getRelationshipsByTargetType } from '#~/pages/featureStore/screens/entities/utils';
 import { featureViewRoute, featureEntityRoute } from '#~/pages/featureStore/routes.ts';
+import { FeatureStoreRelationship } from '#~/pages/featureStore/types/global.ts';
+import { getRelationshipsByTargetType } from '#~/pages/featureStore/utils/filterUtils.ts';
 
 type FeatureStoreEntitiesTableRowType = {
   entity: Entity;
-  relationships?: Record<string, EntityRelationship[]>;
+  relationships?: Record<string, FeatureStoreRelationship[]>;
 };
 
 const EntityName: React.FC<{ entity: Entity; currentProject: string | undefined }> = ({
