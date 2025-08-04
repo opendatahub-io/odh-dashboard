@@ -30,7 +30,7 @@ class FeaturesTable extends Contextual<HTMLElement> {
   }
 
   findToolbar() {
-    return new FeatureToolbar(() => cy.findByTestId('feature-table-toolbar'));
+    return new FeatureToolbar(() => cy.findByTestId('feature-store-table-toolbar'));
   }
 
   // Clear filters button in empty state (with test ID)
