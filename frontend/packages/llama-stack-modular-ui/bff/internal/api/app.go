@@ -13,40 +13,45 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/llama-stack-modular-ui/internal/config"
 	helper "github.com/opendatahub-io/llama-stack-modular-ui/internal/helpers"
+	"github.com/opendatahub-io/llama-stack-modular-ui/internal/integrations"
 )
 
 const (
 	Version = "1.0.0"
 
-	ApiPathPrefix   = "/api/v1"
 	HealthCheckPath = "/healthcheck"
-
-	OauthCallbackPath = ApiPathPrefix + "/auth/callback"
-	OauthStatePath    = ApiPathPrefix + "/auth/state"
-
-	ConfigPath = ApiPathPrefix + "/config"
-
-	ModelListPath    = ApiPathPrefix + "/models"
-	VectorDBListPath = ApiPathPrefix + "/vector-dbs"
-
-	// making it simpler than /tool-runtime/rag-tool/insert
-	UploadPath = ApiPathPrefix + "/upload"
-	QueryPath  = ApiPathPrefix + "/query"
 )
 
 // isAPIRoute checks if the given path is an API route
-func isAPIRoute(path string) bool {
+func (app *App) isAPIRoute(path string) bool {
 	return path == HealthCheckPath ||
 		path == OpenAPIPath ||
 		path == OpenAPIJSONPath ||
 		path == OpenAPIYAMLPath ||
 		path == SwaggerUIPath ||
-		// Match exactly “/api/v1” or any sub-path under it
-		path == ApiPathPrefix ||
-		strings.HasPrefix(path, ApiPathPrefix+"/") ||
+		// Match exactly the configured API path prefix or any sub-path under it
+		path == app.config.APIPathPrefix ||
+		strings.HasPrefix(path, app.config.APIPathPrefix+"/") ||
 		// Similarly for the llama-stack prefix
 		path == "/llama-stack" ||
 		strings.HasPrefix(path, "/llama-stack/")
+}
+
+// Path generation methods for configurable API paths
+func (app *App) getModelListPath() string {
+	return app.config.APIPathPrefix + "/models"
+}
+
+func (app *App) getVectorDBListPath() string {
+	return app.config.APIPathPrefix + "/vector-dbs"
+}
+
+func (app *App) getUploadPath() string {
+	return app.config.APIPathPrefix + "/upload"
+}
+
+func (app *App) getQueryPath() string {
+	return app.config.APIPathPrefix + "/query"
 }
 
 type App struct {
@@ -54,6 +59,7 @@ type App struct {
 	logger       *slog.Logger
 	repositories *repositories.Repositories
 	openAPI      *OpenAPIHandler
+	tokenFactory *integrations.TokenClientFactory
 }
 
 func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
@@ -83,6 +89,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		logger:       logger,
 		repositories: repositories.NewRepositories(lsClient),
 		openAPI:      openAPIHandler,
+		tokenFactory: integrations.NewTokenClientFactory(logger, cfg),
 	}
 	return app, nil
 }
@@ -94,19 +101,19 @@ func (app *App) Routes() http.Handler {
 	apiRouter.NotFound = http.HandlerFunc(app.notFoundResponse)
 	apiRouter.MethodNotAllowed = http.HandlerFunc(app.methodNotAllowedResponse)
 
-	apiRouter.GET(ModelListPath, app.RequireAccessToService(app.AttachRESTClient(app.GetAllModelsHandler)))
-	apiRouter.GET(VectorDBListPath, app.RequireAccessToService(app.AttachRESTClient(app.GetAllVectorDBsHandler)))
+	apiRouter.GET(app.getModelListPath(), app.RequireAccessToService(app.AttachRESTClient(app.GetAllModelsHandler)))
+	apiRouter.GET(app.getVectorDBListPath(), app.RequireAccessToService(app.AttachRESTClient(app.GetAllVectorDBsHandler)))
 
 	// POST to register the vectorDB (/v1/vector-dbs)
-	apiRouter.POST(VectorDBListPath, app.RequireAccessToService(app.AttachRESTClient(app.RegisterVectorDBHandler)))
-	apiRouter.POST(UploadPath, app.RequireAccessToService(app.AttachRESTClient(app.UploadHandler)))
-	apiRouter.POST(QueryPath, app.RequireAccessToService(app.AttachRESTClient(app.QueryHandler)))
+	apiRouter.POST(app.getVectorDBListPath(), app.RequireAccessToService(app.AttachRESTClient(app.RegisterVectorDBHandler)))
+	apiRouter.POST(app.getUploadPath(), app.RequireAccessToService(app.AttachRESTClient(app.UploadHandler)))
+	apiRouter.POST(app.getQueryPath(), app.RequireAccessToService(app.AttachRESTClient(app.QueryHandler)))
 
 	// App Router
 	appMux := http.NewServeMux()
 
-	//All other /api/v1/* routes require auth
-	appMux.Handle(ApiPathPrefix+"/", apiRouter)
+	//All other API routes require auth
+	appMux.Handle(app.config.APIPathPrefix+"/", apiRouter)
 
 	// Llama Stack proxy handler (unprotected)
 	appMux.HandleFunc("/llama-stack/", app.HandleLlamaStackProxy)
@@ -121,7 +128,7 @@ func (app *App) Routes() http.Handler {
 
 		// Skip API routes
 		if (r.URL.Path == "/" || r.URL.Path == "/index.html") ||
-			(len(r.URL.Path) > 0 && r.URL.Path[0] == '/' && !isAPIRoute(r.URL.Path)) {
+			(len(r.URL.Path) > 0 && r.URL.Path[0] == '/' && !app.isAPIRoute(r.URL.Path)) {
 
 			// Check if the requested file exists
 			cleanPath := path.Clean(r.URL.Path)

@@ -41,4 +41,8 @@ type EnvConfig struct {
 	// Optional prefix to strip from the token header value.
 	// Default is "Bearer ", can be set to empty if the token is sent without a prefix.
 	AuthTokenPrefix string
+
+	// API path prefix for the BFF endpoints.
+	// Default is "/api/v1" and can be overridden via CLI/env for different deployment scenarios.
+	APIPathPrefix string
 }

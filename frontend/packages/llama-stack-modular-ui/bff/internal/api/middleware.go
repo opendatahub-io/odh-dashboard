@@ -98,8 +98,8 @@ func (app *App) AttachRESTClient(next func(http.ResponseWriter, *http.Request, h
 
 func (app *App) InjectRequestIdentity(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		//skip use headers check if we are not on /api/v1 (i.e. we are on /healthcheck and / (static fe files) )
-		if !strings.HasPrefix(r.URL.Path, ApiPathPrefix) {
+		//skip use headers check if we are not on the configured API path prefix (i.e. we are on /healthcheck and / (static fe files) )
+		if !strings.HasPrefix(r.URL.Path, app.config.APIPathPrefix) {
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -110,10 +110,7 @@ func (app *App) InjectRequestIdentity(next http.Handler) http.Handler {
 			return
 		}
 
-		//TODO: store somewhere e.g. app so it doesn't have to be recreated each time.
-		tokenFactory := integrations.NewTokenClientFactory(app.logger, app.config)
-
-		identity, error := tokenFactory.ExtractRequestIdentity(r.Header)
+		identity, error := app.tokenFactory.ExtractRequestIdentity(r.Header)
 		if error != nil {
 			app.badRequestResponse(w, r, error)
 			return
@@ -135,28 +132,54 @@ func (app *App) RequireAccessToService(next func(http.ResponseWriter, *http.Requ
 		ctx := r.Context()
 		identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
 
-		//TODO: store somewhere e.g. app so it doesn't have to be recreated each time.
-		tokenFactory := integrations.NewTokenClientFactory(app.logger, app.config)
-
 		if !ok || identity == nil {
 			app.badRequestResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
 			return
 		}
 
-		if err := tokenFactory.ValidateRequestIdentity(identity); err != nil {
+		if err := app.tokenFactory.ValidateRequestIdentity(identity); err != nil {
 			app.badRequestResponse(w, r, err)
 			return
 		}
 
-		//TODO Insert logic to verify user is authorized to make a call to llamastack service once decided how
-		// this could be with an SSAR or possibly just attaching the token to all upstream requests and allowing
-		// llamastack to validate this.
+		// Implement service-level authorization
+		if err := app.authorizeServiceAccess(identity); err != nil {
+			app.forbiddenResponse(w, r, err.Error())
+			return
+		}
 
 		logger := helper.GetContextLoggerFromReq(r)
-
-		// Simply used to validate basic functionality, remove when implemented as identity is redacted in logs anyhow.
-		logger.Info("User is authorized as: ", slog.Any("RequestIdentity", identity))
+		logger.Debug("Request authorized", slog.String("user_id", identity.UserID))
 
 		next(w, r, ps)
 	}
+}
+
+// authorizeServiceAccess implements service-level authorization logic
+// to verify the user/service has permission to access the llamastack service
+func (app *App) authorizeServiceAccess(identity *integrations.RequestIdentity) error {
+	// Basic authorization check - ensure user has a valid identity
+	if identity == nil {
+		return fmt.Errorf("missing user identity")
+	}
+
+	// Check if user has a valid token
+	if identity.Token == "" {
+		return fmt.Errorf("missing authentication token")
+	}
+
+	// Check if user has a valid user ID
+	if identity.UserID == "" {
+		return fmt.Errorf("missing user ID")
+	}
+
+	// TODO: Add more sophisticated authorization logic here as needed:
+	// - Check user permissions/roles
+	// - Validate against user groups
+	// - Check rate limiting
+	// - Verify service-specific permissions
+
+	// For now, we'll allow access if the basic identity validation passes
+	// This can be extended with more complex authorization rules as needed
+	return nil
 }
