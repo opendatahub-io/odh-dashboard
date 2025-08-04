@@ -195,7 +195,7 @@ class ManagePipelineServerModal extends Modal {
     return this.find().findByTestId('pipeline-cache-enabling');
   }
 
-  findButton(name: string, isEnabled: boolean) {
+  checkButtonState(name: string, isEnabled: boolean) {
     const id = `managePipelineServer-modal-${name}Btn`;
     const enabledState = isEnabled ? 'be.enabled' : 'be.disabled';
     return this.find().findByTestId(id).should(enabledState).should('be.visible');

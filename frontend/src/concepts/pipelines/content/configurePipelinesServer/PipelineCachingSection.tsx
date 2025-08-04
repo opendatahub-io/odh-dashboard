@@ -59,7 +59,6 @@ export const PipelineCachingSection = ({
         variant="warning"
         isInline
         title="Caching is disabled"
-        style={{ marginTop: '8px' }}
         data-testid="pipeline-caching-disabled-alert"
       >
         All pipelines will be prevented from caching.

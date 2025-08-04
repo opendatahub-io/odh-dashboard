@@ -104,8 +104,8 @@ describe('PipelinesList', () => {
     const checkbox = managePipelineServerModal.getPipelineCachingCheckbox();
     checkbox.should('be.checked');
 
-    managePipelineServerModal.findButton('save', false);
-    managePipelineServerModal.findButton('cancel', true);
+    managePipelineServerModal.checkButtonState('save', false);
+    managePipelineServerModal.checkButtonState('cancel', true);
 
     managePipelineServerModal.findCloseButton().click();
   });

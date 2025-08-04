@@ -505,15 +505,15 @@ describe('Pipelines', () => {
       .should('be.disabled')
       .should('not.be.checked');
 
-    managePipelineServerModal.findButton('save', false);
-    managePipelineServerModal.findButton('cancel', true);
+    managePipelineServerModal.checkButtonState('save', false);
+    managePipelineServerModal.checkButtonState('cancel', true);
 
     const checkbox = managePipelineServerModal.getPipelineCachingCheckbox();
     checkbox.should('be.checked');
     checkbox.click();
     checkbox.should('not.be.checked');
-    managePipelineServerModal.findButton('save', true);
-    managePipelineServerModal.findButton('cancel', true);
+    managePipelineServerModal.checkButtonState('save', true);
+    managePipelineServerModal.checkButtonState('cancel', true);
 
     managePipelineServerModal.findCloseButton().click();
   });
