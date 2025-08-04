@@ -11,8 +11,8 @@ import type { CommandLineResult } from '#~/__tests__/cypress/cypress/types';
 export const createCustomResource = (
   resourceNamespace: string,
   customYamlPath: string,
-): Cypress.Chainable<CommandLineResult> => {
-  return cy.fixture(customYamlPath).then((yamlContent) => {
+): Cypress.Chainable<CommandLineResult> =>
+  cy.fixture(customYamlPath).then((yamlContent) => {
     // Write the YAML content to a temporary file
     const tempFilePath = `/tmp/temp_${Date.now()}.yaml`;
     cy.writeFile(tempFilePath, yamlContent);
@@ -34,7 +34,6 @@ export const createCustomResource = (
       return cy.wrap(result);
     });
   });
-};
 
 /**
  * Retrieve a custom resource from a specified namespace using label selectors.

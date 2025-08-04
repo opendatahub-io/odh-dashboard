@@ -1,5 +1,5 @@
 import { act } from '@testing-library/react';
-import { testHook } from '#~/__tests__/unit/testUtils/hooks';
+import { testHook } from '@odh-dashboard/jest-config/hooks';
 import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile';
 import { useHardwareProfileConfig } from '#~/concepts/hardwareProfiles/useHardwareProfileConfig';
 import * as areasUtils from '#~/concepts/areas';

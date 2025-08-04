@@ -24,8 +24,8 @@ describe('Start, Stop, Launch and Delete a Workbench in RHOAI', () => {
   const uuid = generateTestUUID();
 
   // Setup: Load test data and ensure clean state
-  retryableBefore(() => {
-    return loadWBControlSuiteFixture('e2e/dataScienceProjects/testWorkbenchControlSuite.yaml')
+  retryableBefore(() =>
+    loadWBControlSuiteFixture('e2e/dataScienceProjects/testWorkbenchControlSuite.yaml')
       .then((fixtureData: WBControlSuiteTestData) => {
         controlSuiteTestNamespace = `${fixtureData.controlSuiteTestNamespace}-${uuid}`;
         controlSuiteTestDescription = fixtureData.controlSuiteTestDescription;
@@ -40,8 +40,8 @@ describe('Start, Stop, Launch and Delete a Workbench in RHOAI', () => {
         cy.log(
           `Project ${controlSuiteTestNamespace} confirmed to be created and verified successfully`,
         );
-      });
-  });
+      }),
+  );
 
   after(() => {
     // Delete provisioned Project

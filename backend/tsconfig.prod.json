@@ -1,5 +1,9 @@
 {
   "extends": "./tsconfig",
+  "compilerOptions": {
+    "rootDir": "./src",
+  },
+  "include": ["./src/**/*.ts", "./src/**/*.tsx", "./src/**/**.js", "./src/**/*.jsx"],
   "exclude": [
     "src/__tests__/"
   ]

@@ -1,6 +1,6 @@
 import * as React from 'react';
+import { renderHook } from '@odh-dashboard/jest-config/hooks';
 import { mockNotebookK8sResource } from '#~/__mocks__/mockNotebookK8sResource';
-import { renderHook } from '#~/__tests__/unit/testUtils/hooks';
 import { NotebookControllerContext } from '#~/pages/notebookController/NotebookControllerContext';
 import { NotebookControllerContextProps } from '#~/pages/notebookController/notebookControllerContextTypes';
 import { getRoute } from '#~/services/routeService';

@@ -19,9 +19,7 @@ retryableBefore(() => {
   });
 
   cy.wrap(null)
-    .then(() => {
-      return getMultiModelServingRuntimeInfo();
-    })
+    .then(() => getMultiModelServingRuntimeInfo())
     .then((info) => {
       // Load Multi-Model serving runtime info before tests run
       modelServingName = info.multiModelServingName;

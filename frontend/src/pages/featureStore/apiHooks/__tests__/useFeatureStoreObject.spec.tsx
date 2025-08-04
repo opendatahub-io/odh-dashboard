@@ -1,5 +1,5 @@
 import { useLocation } from 'react-router';
-import { testHook } from '#~/__tests__/unit/testUtils/hooks';
+import { testHook } from '@odh-dashboard/jest-config/hooks';
 import { FeatureStoreObject } from '#~/pages/featureStore/const';
 import {
   getFeatureStoreObjectFromPath,

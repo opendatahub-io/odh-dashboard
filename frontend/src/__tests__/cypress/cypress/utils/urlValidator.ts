@@ -174,15 +174,29 @@ export async function validateHttpsUrls(
 
 // Categorize HTTP status codes and network errors into error types
 export const getErrorType = (status: number, error?: string): string => {
-  if (status >= 400 && status < 500) return 'CLIENT_ERROR';
-  if (status >= 500 && status < 600) return 'SERVER_ERROR';
+  if (status >= 400 && status < 500) {
+    return 'CLIENT_ERROR';
+  }
+  if (status >= 500 && status < 600) {
+    return 'SERVER_ERROR';
+  }
 
   if (status === 0 && error) {
-    if (error.includes('timed out')) return 'TIMEOUT';
-    if (error.includes('Too many redirects')) return 'REDIRECT_MAX';
-    if (error.includes('Invalid redirect URL')) return 'REDIRECT_INVALID';
-    if (error.includes('aborted')) return 'ABORTED';
-    if (error.includes('Code:')) return 'NETWORK_ERROR';
+    if (error.includes('timed out')) {
+      return 'TIMEOUT';
+    }
+    if (error.includes('Too many redirects')) {
+      return 'REDIRECT_MAX';
+    }
+    if (error.includes('Invalid redirect URL')) {
+      return 'REDIRECT_INVALID';
+    }
+    if (error.includes('aborted')) {
+      return 'ABORTED';
+    }
+    if (error.includes('Code:')) {
+      return 'NETWORK_ERROR';
+    }
   }
 
   return 'UNKNOWN';

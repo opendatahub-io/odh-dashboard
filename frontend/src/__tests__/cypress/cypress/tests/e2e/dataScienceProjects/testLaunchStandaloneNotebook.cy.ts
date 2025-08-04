@@ -12,15 +12,15 @@ import { retryableBefore } from '#~/__tests__/cypress/cypress/utils/retryableHoo
 describe('Verify a Jupyter Notebook can be launched directly from the Data Science Project List View', () => {
   let testData: NotebookImageData;
 
-  retryableBefore(() => {
-    return cy
+  retryableBefore(() =>
+    cy
       .fixture('e2e/dataScienceProjects/testNotebookCreation.yaml', 'utf8')
       .then((yamlContent: string) => {
         testData = yaml.load(yamlContent) as NotebookImageData;
         // Check if a notebook is running and delete if it is
         deleteNotebook('jupyter-nb');
-      });
-  });
+      }),
+  );
 
   it(
     'Verify User Can Access Jupyter Launcher From DS Project Page',

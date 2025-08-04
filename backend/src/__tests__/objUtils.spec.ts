@@ -4,7 +4,7 @@ describe('objUtils', () => {
   describe('smartMergeArraysWithNameObjects', () => {
     /** we only use the first two params of the customization utility, so ignore the last 3 */
     const smartMergeArraysWithNameObjectsWithUsedParams = (v1: any, v2: any) =>
-      smartMergeArraysWithNameObjects(v1, v2, undefined, undefined, undefined);
+      smartMergeArraysWithNameObjects(v1, v2, undefined, undefined, undefined, undefined);
 
     it('should do nothing with nulls', () => {
       expect(smartMergeArraysWithNameObjectsWithUsedParams(null, null)).toBe(undefined);
