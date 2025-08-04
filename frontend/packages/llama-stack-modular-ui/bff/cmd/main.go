@@ -23,18 +23,13 @@ func main() {
 	flag.TextVar(&cfg.LogLevel, "log-level", parseLevel(getEnvAsString("LOG_LEVEL", "DEBUG")), "Sets server log level, possible values: error, warn, info, debug")
 	flag.Func("allowed-origins", "Sets allowed origins for CORS purposes, accepts a comma separated list of origins or * to allow all, default none", newOriginParser(&cfg.AllowedOrigins, getEnvAsString("ALLOWED_ORIGINS", "")))
 	flag.BoolVar(&cfg.MockLSClient, "mock-ls-client", false, "Use mock Llama Stack client")
+	flag.StringVar(&cfg.AuthMethod, "auth-method", "disabled", "Authentication method (disabled or user_token)")
+	flag.StringVar(&cfg.AuthTokenHeader, "auth-token-header", getEnvAsString("AUTH_TOKEN_HEADER", config.DefaultAuthTokenHeader), "Header used to extract the token (e.g., Authorization)")
+	flag.StringVar(&cfg.AuthTokenPrefix, "auth-token-prefix", getEnvAsString("AUTH_TOKEN_PREFIX", config.DefaultAuthTokenPrefix), "Prefix used in the token header (e.g., 'Bearer ')")
+	flag.StringVar(&cfg.APIPathPrefix, "api-path-prefix", getEnvAsString("API_PATH_PREFIX", "/api/v1"), "API path prefix for BFF endpoints (e.g., /api/v1)")
 
 	// Llama Stack configuration
 	flag.StringVar(&cfg.LlamaStackURL, "llama-stack-url", getEnvAsString("LLAMA_STACK_URL", ""), "Llama Stack server URL for proxying requests")
-
-	// OAuth configuration
-	flag.BoolVar(&cfg.OAuthEnabled, "oauth-enabled", getEnvAsBool("OAUTH_ENABLED", false), "Enable OAuth authentication")
-	flag.StringVar(&cfg.OAuthClientID, "oauth-client-id", getEnvAsString("OAUTH_CLIENT_ID", ""), "OAuth client ID")
-	flag.StringVar(&cfg.OAuthClientSecret, "oauth-client-secret", getEnvAsString("OAUTH_CLIENT_SECRET", ""), "OAuth client secret")
-	flag.StringVar(&cfg.OAuthRedirectURI, "oauth-redirect-uri", getEnvAsString("OAUTH_REDIRECT_URI", ""), "OAuth redirect URI")
-	flag.StringVar(&cfg.OAuthServerURL, "oauth-server-url", getEnvAsString("OAUTH_SERVER_URL", ""), "OAuth server URL")
-	flag.StringVar(&cfg.OpenShiftApiServerUrl, "openshift-api-server-url", getEnvAsString("OPENSHIFT_API_SERVER_URL", "https://kubernetes.default.svc.cluster.local"), "OpenShift API server URL for token validation")
-	flag.StringVar(&cfg.OAuthUserInfoEndpoint, "oauth-user-info-endpoint", getEnvAsString("OAUTH_USER_INFO_ENDPOINT", ""), "OAuth user info endpoint URL for token validation (optional, defaults to OpenShift API server + /apis/user.openshift.io/v1/users/~)")
 
 	flag.Parse()
 
