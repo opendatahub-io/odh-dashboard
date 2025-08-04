@@ -364,3 +364,36 @@ cy.interceptOdh(...).as('some-request');
 ...
 cy.wait('@some-request');
 ```
+
+When a payload is sent as part of the network request, the test should assert the payload is the expected value. For example after filling out and submitting a form, assert the form values are present in the network request:
+```ts
+cy.wait('@create-project').then((interception) => {
+  expect(interception.request.body).to.eql({
+    apiVersion: 'project.openshift.io/v1',
+    description: 'Test project description.',
+    displayName: 'My Test Project',
+    kind: 'ProjectRequest',
+    metadata: {
+      name: 'test-project',
+    },
+  });
+});
+```
+
+Use chai's [containSubset](https://www.chaijs.com/plugins/) command to perform object equality assertions on a subset of an object. The above example can be simplified if all we wanted to check was the `displayName` and `name`:
+```ts
+cy.wait('@create-project').then((interception) => {
+  expect(interception.request.body).to.containSubset({
+    displayName: 'My Test Project',
+    metadata: {
+      name: 'test-project',
+    },
+  });
+});
+```
+
+## Accessibility Testing
+
+Accessibility testing is done as part of our Cypress tests. The process isn't automatic, however Cypress tests which following the existing patterns will get good coverage of accessibility testing for free.
+
+By default, when visiting a new page or when a model is first opened, the DOM will be checked for accessibility errors. If any other point in time accessibility should be tested, run the `cy.testA11y()` command.

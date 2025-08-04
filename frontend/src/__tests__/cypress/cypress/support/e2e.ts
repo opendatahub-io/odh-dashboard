@@ -105,23 +105,21 @@ Cypress.Keyboard.defaults({
   keystrokeDelay: 0,
 });
 
-// Handle ChunkLoadError - ignore these errors as they are usually due to code splitting issues during development
+// Uncaught exceptions handler
 Cypress.on('uncaught:exception', (err) => {
-  // Returning false here prevents Cypress from failing the test
+  // Handle ChunkLoadError - ignore these errors as they are usually due to code splitting issues during development
   if (err.name === 'ChunkLoadError') {
     // eslint-disable-next-line no-console
     console.warn('ChunkLoadError caught and ignored:', err.message);
     return false;
   }
-  // Let other errors fail the test as expected
-  return true;
-});
 
-// Ignore 'Unexpected token <' errors from webpack-dev-server fallback in E2E tests
-Cypress.on('uncaught:exception', (err) => {
+  // Ignore 'Unexpected token <' errors from webpack-dev-server fallback in E2E tests
   if (err.message.includes("Unexpected token '<'")) {
     return false;
   }
+
+  // Let all other errors (including timeout errors) fail the test as expected
   return true;
 });
 
