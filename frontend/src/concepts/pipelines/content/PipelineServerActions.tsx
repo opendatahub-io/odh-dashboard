@@ -13,7 +13,7 @@ import { PipelineAndVersionContext } from '#~/concepts/pipelines/content/Pipelin
 import DeletePipelinesModal from '#~/concepts/pipelines/content/DeletePipelinesModal';
 import { getDashboardMainContainer } from '#~/utilities/utils';
 import { fireSimpleTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
-import { MANAGE_PIPELINE_SERVER_CONFIGURATION_TITLE } from '#~/concepts/pipelines/content/const.ts';
+import { MANAGE_PIPELINE_SERVER_CONFIGURATION_TITLE } from '#~/concepts/pipelines/content/const';
 
 type PipelineServerActionsProps = {
   variant?: 'kebab' | 'dropdown';
