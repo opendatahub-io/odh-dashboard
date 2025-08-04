@@ -1,10 +1,6 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
 import {
-  Accordion,
-  AccordionItem,
-  AccordionContent,
-  AccordionToggle,
   Alert,
   AlertActionCloseButton,
   Drawer,
@@ -13,18 +9,6 @@ import {
   DropEvent,
   Spinner,
   Title,
-  DrawerPanelContent,
-  DrawerPanelBody,
-  Form,
-  FormGroup,
-  FormSelect,
-  FormSelectOption,
-  Button,
-  ButtonVariant,
-  Divider,
-  TextArea,
-  Stack,
-  Flex,
 } from '@patternfly/react-core';
 import {
   Chatbot,
@@ -49,17 +33,17 @@ import { uploadSource, querySource } from '~/app/services/llamaStackService';
 import { ChatbotSourceSettings, Query } from '~/app/types';
 import '@patternfly/chatbot/dist/css/main.css';
 import { getId } from '~/app/utilities/utils';
-import { ChatbotSourceUploadPanel } from './sourceUpload/ChatbotSourceUploadPanel';
 import { ChatbotSourceSettingsModal } from './sourceUpload/ChatbotSourceSettingsModal';
 import { ChatbotMessages } from './ChatbotMessagesList';
-
-const initialBotMessage: MessageProps = {
-  id: getId(),
-  role: 'bot',
-  content: 'Send a message to test your configuration',
-  name: 'Bot',
-  avatar: botAvatar,
-};
+import { ChatbotSettingsPanel } from './components/ChatbotSettingsPanel';
+import {
+  ALERT_TIMEOUT_MS,
+  DEFAULT_EXPANDED_ACCORDION_ITEMS,
+  QUERY_CONFIG,
+  SAMPLING_STRATEGY,
+  initialBotMessage,
+  ERROR_MESSAGES,
+} from './const';
 
 const ChatbotMain: React.FunctionComponent = () => {
   const [alertKey, setAlertKey] = React.useState<number>(0);
@@ -67,16 +51,16 @@ const ChatbotMain: React.FunctionComponent = () => {
   const { models, loading, error, fetchLlamaModels } = useFetchLlamaModels();
   const [isMessageSendButtonDisabled, setIsMessageSendButtonDisabled] = React.useState(false);
   const [isSourceSettingsOpen, setIsSourceSettingsOpen] = React.useState(false);
-  const [messages, setMessages] = React.useState<MessageProps[]>([initialBotMessage]);
+  const [messages, setMessages] = React.useState<MessageProps[]>([initialBotMessage()]);
   const [selectedSource, setSelectedSource] = React.useState<File[]>([]);
   const [selectedSourceSettings, setSelectedSourceSettings] =
     React.useState<ChatbotSourceSettings | null>(null);
   const [showSuccessAlert, setShowSuccessAlert] = React.useState(false);
   const [showErrorAlert, setShowErrorAlert] = React.useState(false);
   const scrollToBottomRef = React.useRef<HTMLDivElement>(null);
-  const [expandedAccordionItems, setExpandedAccordionItems] = React.useState<string[]>([
-    'model-details-item',
-  ]);
+  const [expandedAccordionItems, setExpandedAccordionItems] = React.useState<string[]>(
+    DEFAULT_EXPANDED_ACCORDION_ITEMS,
+  );
   const [systemInstructions, setSystemInstructions] = React.useState('');
   const [isSystemInstructionsReadOnly, setIsSystemInstructionsReadOnly] = React.useState(true);
   const [originalSystemInstructions, setOriginalSystemInstructions] =
@@ -91,7 +75,7 @@ const ChatbotMain: React.FunctionComponent = () => {
       isInline
       variant="success"
       title="Source uploaded"
-      timeout={4000}
+      timeout={ALERT_TIMEOUT_MS}
       actionClose={<AlertActionCloseButton onClose={() => setShowSuccessAlert(false)} />}
       onTimeout={() => setShowSuccessAlert(false)}
     >
@@ -110,7 +94,7 @@ const ChatbotMain: React.FunctionComponent = () => {
       isInline
       variant="danger"
       title="Failed to upload source"
-      timeout={4000}
+      timeout={ALERT_TIMEOUT_MS}
       actionClose={<AlertActionCloseButton onClose={() => setShowErrorAlert(false)} />}
       onTimeout={() => setShowErrorAlert(false)}
     >
@@ -247,23 +231,23 @@ const ChatbotMain: React.FunctionComponent = () => {
 
     try {
       if (!modelId || !selectedSourceSettings) {
-        throw new Error('No model or source settings selected');
+        throw new Error(ERROR_MESSAGES.NO_MODEL_OR_SOURCE);
       }
 
       const query: Query = {
         content: message,
         vector_db_ids: [selectedSourceSettings.vectorDB],
         query_config: {
-          chunk_template: 'Result {index}\nContent: {chunk.content}\nMetadata: {metadata}\n',
-          max_chunks: 5,
-          max_tokens_in_context: 1000,
+          chunk_template: QUERY_CONFIG.CHUNK_TEMPLATE,
+          max_chunks: QUERY_CONFIG.MAX_CHUNKS,
+          max_tokens_in_context: QUERY_CONFIG.MAX_TOKENS_IN_CONTEXT,
         },
         llm_model_id: modelId,
         sampling_params: {
           strategy: {
-            type: 'greedy',
+            type: SAMPLING_STRATEGY.TYPE,
           },
-          max_tokens: 500,
+          max_tokens: QUERY_CONFIG.MAX_TOKENS,
         },
       };
 
@@ -302,153 +286,26 @@ const ChatbotMain: React.FunctionComponent = () => {
   };
 
   const settingsPanelContent = (
-    <DrawerPanelContent isResizable defaultSize="400px" minSize="300px">
-      <DrawerPanelBody>
-        <Accordion asDefinitionList={false}>
-          {/* Model Details Accordion Item */}
-          <AccordionItem isExpanded={expandedAccordionItems.includes('model-details-item')}>
-            <AccordionToggle
-              onClick={() => handleAccordionToggle('model-details-item')}
-              id="model-details-item"
-            >
-              <Title headingLevel="h1" size="lg">
-                {' '}
-                Model details{' '}
-              </Title>
-            </AccordionToggle>
-            <AccordionContent id="model-details-content" className="pf-v6-u-p-md">
-              <Form>
-                <FormGroup label="Model" fieldId="model-select">
-                  <FormSelect
-                    value={selectedModel}
-                    onChange={(_event, value) => setSelectedModel(value)}
-                    aria-label="Select Model"
-                    isDisabled={models.length === 0}
-                  >
-                    {models.length === 0 ? (
-                      <FormSelectOption
-                        key="no-models"
-                        value=""
-                        label="No models available"
-                        isDisabled
-                      />
-                    ) : (
-                      <>
-                        <FormSelectOption key="select" value="" label="Select a model" isDisabled />
-                        {models.map((model, index) => (
-                          <FormSelectOption
-                            key={index + 1}
-                            value={model.identifier}
-                            label={model.identifier}
-                          />
-                        ))}
-                      </>
-                    )}
-                  </FormSelect>
-                </FormGroup>
-                <FormGroup label="System instructions" fieldId="system-instructions">
-                  <Stack hasGutter>
-                    <TextArea
-                      id="system-instructions-input"
-                      type="text"
-                      value={systemInstructions}
-                      onChange={(_event, value) => setSystemInstructions(value)}
-                      aria-label="System instructions input"
-                      {...(isSystemInstructionsReadOnly && { readOnlyVariant: 'default' })}
-                      rows={8}
-                    />
-                    {isSystemInstructionsReadOnly ? (
-                      <Button
-                        variant={ButtonVariant.secondary}
-                        aria-label="Edit system instructions"
-                        onClick={handleEditSystemInstructions}
-                        style={{ marginTop: 'var(--pf-t--global--spacer--sm)', width: '100%' }}
-                      >
-                        Edit
-                      </Button>
-                    ) : (
-                      <Flex
-                        gap={{ default: 'gapMd' }}
-                        style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}
-                      >
-                        <Button
-                          variant={ButtonVariant.secondary}
-                          aria-label="Save system instructions"
-                          onClick={handleSaveSystemInstructions}
-                          style={{ flex: 1 }}
-                        >
-                          Save
-                        </Button>
-                        <Button
-                          variant={ButtonVariant.secondary}
-                          aria-label="Cancel editing system instructions"
-                          onClick={handleCancelSystemInstructions}
-                          style={{ flex: 1 }}
-                        >
-                          Cancel
-                        </Button>
-                      </Flex>
-                    )}
-                  </Stack>
-                </FormGroup>
-              </Form>
-            </AccordionContent>
-          </AccordionItem>
-          <Divider />
-          {/* Sources Accordion Item */}
-          <AccordionItem isExpanded={expandedAccordionItems.includes('sources-item')}>
-            <AccordionToggle
-              onClick={() => handleAccordionToggle('sources-item')}
-              id="sources-item"
-            >
-              {' '}
-              <Title headingLevel="h1" size="lg">
-                {' '}
-                Sources{' '}
-              </Title>{' '}
-            </AccordionToggle>
-            <AccordionContent id="sources-content" className="pf-v6-u-p-md">
-              <Form>
-                <FormGroup fieldId="sources">
-                  <ChatbotSourceUploadPanel
-                    successAlert={successAlert}
-                    errorAlert={errorAlert}
-                    handleSourceDrop={handleSourceDrop}
-                    selectedSource={selectedSource}
-                    selectedSourceSettings={selectedSourceSettings}
-                    removeUploadedSource={removeUploadedSource}
-                    setSelectedSourceSettings={setSelectedSourceSettings}
-                  />
-                </FormGroup>
-              </Form>
-            </AccordionContent>
-          </AccordionItem>
-          <Divider />
-          {/* MCP Servers Accordion Item */}
-          <AccordionItem isExpanded={expandedAccordionItems.includes('mcp-servers-item')}>
-            <AccordionToggle
-              onClick={() => handleAccordionToggle('mcp-servers-item')}
-              id="mcp-servers-item"
-            >
-              {' '}
-              <Title headingLevel="h1" size="lg">
-                {' '}
-                MCP servers{' '}
-              </Title>{' '}
-            </AccordionToggle>
-            <AccordionContent id="mcp-servers-content" className="pf-v6-u-p-md">
-              <Form>
-                <FormGroup fieldId="mcpServers">
-                  <Title headingLevel="h2" size="md">
-                    List of mcp servers
-                  </Title>
-                </FormGroup>
-              </Form>
-            </AccordionContent>
-          </AccordionItem>
-        </Accordion>
-      </DrawerPanelBody>
-    </DrawerPanelContent>
+    <ChatbotSettingsPanel
+      expandedAccordionItems={expandedAccordionItems}
+      onAccordionToggle={handleAccordionToggle}
+      models={models}
+      selectedModel={selectedModel}
+      onModelChange={setSelectedModel}
+      systemInstructions={systemInstructions}
+      onSystemInstructionsChange={setSystemInstructions}
+      isSystemInstructionsReadOnly={isSystemInstructionsReadOnly}
+      onEditSystemInstructions={handleEditSystemInstructions}
+      onSaveSystemInstructions={handleSaveSystemInstructions}
+      onCancelSystemInstructions={handleCancelSystemInstructions}
+      successAlert={successAlert}
+      errorAlert={errorAlert}
+      onSourceDrop={handleSourceDrop}
+      selectedSource={selectedSource}
+      selectedSourceSettings={selectedSourceSettings}
+      onRemoveUploadedSource={removeUploadedSource}
+      onSetSelectedSourceSettings={setSelectedSourceSettings}
+    />
   );
 
   return (
