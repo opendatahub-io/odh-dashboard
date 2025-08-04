@@ -7,7 +7,7 @@ import {
   MultipleFileUploadStatusItem,
 } from '@patternfly/react-core';
 import { FileIcon } from '@patternfly/react-icons';
-import { ChatbotSourceSettings } from '../../../app/types';
+import { ChatbotSourceSettings } from '@app/types';
 
 type ChatbotSourceUploadPanelProps = {
   successAlert?: React.ReactElement;
