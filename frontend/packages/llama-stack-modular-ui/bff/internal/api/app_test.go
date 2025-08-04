@@ -1,12 +1,23 @@
 package api
 
 import (
+	"log/slog"
 	"testing"
 
+	"github.com/opendatahub-io/llama-stack-modular-ui/internal/config"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestIsAPIRoute(t *testing.T) {
+	// Create a test app with default API path prefix
+	cfg := config.EnvConfig{
+		APIPathPrefix: "/api/v1",
+	}
+	app := &App{
+		config: cfg,
+		logger: slog.Default(),
+	}
+
 	tests := []struct {
 		name     string
 		path     string
@@ -49,42 +60,42 @@ func TestIsAPIRoute(t *testing.T) {
 		// API v1 routes - exact matches
 		{
 			name:     "api v1 prefix exact match",
-			path:     ApiPathPrefix,
+			path:     "/api/v1",
 			expected: true,
 		},
 		{
 			name:     "api v1 config",
-			path:     ApiPathPrefix + "/config",
+			path:     "/api/v1/config",
 			expected: true,
 		},
 		{
 			name:     "api v1 models",
-			path:     ApiPathPrefix + "/models",
+			path:     "/api/v1/models",
 			expected: true,
 		},
 		{
 			name:     "api v1 vector-dbs",
-			path:     ApiPathPrefix + "/vector-dbs",
+			path:     "/api/v1/vector-dbs",
 			expected: true,
 		},
 		{
 			name:     "api v1 upload",
-			path:     ApiPathPrefix + "/upload",
+			path:     "/api/v1/upload",
 			expected: true,
 		},
 		{
 			name:     "api v1 query",
-			path:     ApiPathPrefix + "/query",
+			path:     "/api/v1/query",
 			expected: true,
 		},
 		{
 			name:     "api v1 auth callback",
-			path:     ApiPathPrefix + "/auth/callback",
+			path:     "/api/v1/auth/callback",
 			expected: true,
 		},
 		{
 			name:     "api v1 auth state",
-			path:     ApiPathPrefix + "/auth/state",
+			path:     "/api/v1/auth/state",
 			expected: true,
 		},
 
@@ -226,7 +237,7 @@ func TestIsAPIRoute(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := isAPIRoute(tt.path)
+			result := app.isAPIRoute(tt.path)
 			assert.Equal(t, tt.expected, result,
 				"Path: %s, Expected: %v, Got: %v", tt.path, tt.expected, result)
 		})
@@ -235,6 +246,14 @@ func TestIsAPIRoute(t *testing.T) {
 
 // TestIsAPIRouteEdgeCases tests additional edge cases and boundary conditions
 func TestIsAPIRouteEdgeCases(t *testing.T) {
+	// Create a test app with default API path prefix
+	cfg := config.EnvConfig{
+		APIPathPrefix: "/api/v1",
+	}
+	app := &App{
+		config: cfg,
+		logger: slog.Default(),
+	}
 	tests := []struct {
 		name     string
 		path     string
@@ -304,7 +323,7 @@ func TestIsAPIRouteEdgeCases(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := isAPIRoute(tt.path)
+			result := app.isAPIRoute(tt.path)
 			assert.Equal(t, tt.expected, result,
 				"Path: %s, Expected: %v, Got: %v", tt.path, tt.expected, result)
 		})
@@ -313,13 +332,22 @@ func TestIsAPIRouteEdgeCases(t *testing.T) {
 
 // TestIsAPIRoutePerformance tests that the function handles various path lengths efficiently
 func TestIsAPIRoutePerformance(t *testing.T) {
+	// Create a test app with default API path prefix
+	cfg := config.EnvConfig{
+		APIPathPrefix: "/api/v1",
+	}
+	app := &App{
+		config: cfg,
+		logger: slog.Default(),
+	}
+
 	// Test with very long paths to ensure no performance issues
 	longPath := "/api/v1/" + string(make([]byte, 1000))
-	result := isAPIRoute(longPath)
+	result := app.isAPIRoute(longPath)
 	assert.True(t, result, "Long API path should still be recognized as API route")
 
 	// Test with very long non-API paths
 	longNonAPIPath := "/dashboard/" + string(make([]byte, 1000))
-	result = isAPIRoute(longNonAPIPath)
+	result = app.isAPIRoute(longNonAPIPath)
 	assert.False(t, result, "Long non-API path should not be recognized as API route")
 }
