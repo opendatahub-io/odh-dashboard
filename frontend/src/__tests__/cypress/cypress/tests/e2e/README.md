@@ -145,13 +145,7 @@ npm run cypress:run \
 
 ## Environment Variables
 
-For comprehensive documentation of all Cypress environment variables, see the [Cypress Environment Variables section in the main testing documentation](../../../../../docs/testing.md#cypress-environment-variables).
-
-The most commonly used environment variable is `CY_TEST_CONFIG`, which is required for e2e tests:
-
-```bash
-export CY_TEST_CONFIG='PATH_TO_YOUR_TEST_VARIABLES'
-```
+For comprehensive documentation of all Cypress environment variables, see the [Cypress Environment Variables section in the main testing documentation](/docs/testing.md#cypress-environment-variables).
 
 ## Writing Tests
 
@@ -281,4 +275,3 @@ unset CY_TEST_CONFIG
 [Dashboard documentation]: docs/README.md
 [contributing guidelines]: CONTRIBUTING.md
 [issue]: https://github.com/opendatahub-io/odh-dashboard/issues/new/choose
-[definition of ready]: docs/definition-of-ready.md
