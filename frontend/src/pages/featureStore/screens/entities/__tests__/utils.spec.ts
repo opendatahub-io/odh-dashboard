@@ -1,13 +1,16 @@
-import { Entity, EntityRelationship } from '#~/pages/featureStore/types/entities';
+import { Entity } from '#~/pages/featureStore/types/entities';
+import { FeatureStoreRelationship } from '#~/pages/featureStore/types/global.ts';
 import {
-  getRelationshipsByTargetType,
-  getNestedValue,
-  entityTableFilterKeyMapping,
   applyEntityFilters,
+  entityTableFilterKeyMapping,
 } from '#~/pages/featureStore/screens/entities/utils';
+import {
+  getNestedValue,
+  getRelationshipsByTargetType,
+} from '#~/pages/featureStore/utils/filterUtils.ts';
 
 describe('getRelationshipsByTargetType', () => {
-  const mockRelationships: Record<string, EntityRelationship[]> = {
+  const mockRelationships: Record<string, FeatureStoreRelationship[]> = {
     driver: [
       {
         source: { name: 'driver', type: 'entity' },
@@ -48,7 +51,7 @@ describe('getRelationshipsByTargetType', () => {
   });
 
   it('should handle multiple relationships of same type', () => {
-    const relationshipsWithMultiple: Record<string, EntityRelationship[]> = {
+    const relationshipsWithMultiple: Record<string, FeatureStoreRelationship[]> = {
       driver: [
         {
           source: { name: 'driver', type: 'entity' },
@@ -161,7 +164,7 @@ describe('applyEntityFilters', () => {
     },
   ];
 
-  const mockRelationships: Record<string, EntityRelationship[]> = {
+  const mockRelationships: Record<string, FeatureStoreRelationship[]> = {
     driver: [
       {
         source: { name: 'driver', type: 'entity' },

@@ -46,6 +46,17 @@ export type BatchSource = {
   meta?: FeatureStoreMeta;
 };
 
+export type FeatureStoreRelationship = {
+  source: {
+    type: string;
+    name: string;
+  };
+  target: {
+    type: string;
+    name: string;
+  };
+};
+
 export type FeatureStoreAPIs = {
   listFeatureStoreProject: GetProjects;
   getEntities: GetEntities;
