@@ -7,13 +7,16 @@ import {
   BreadcrumbItem,
   Bullseye,
   Spinner,
+  EmptyStateFooter,
+  EmptyStateActions,
 } from '@patternfly/react-core';
 import { t_global_spacer_xs as ExtraSmallSpacerSize } from '@patternfly/react-tokens';
-import { ExclamationCircleIcon } from '@patternfly/react-icons';
+import { PathMissingIcon, SearchIcon } from '@patternfly/react-icons';
 import { Link, useParams } from 'react-router-dom';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import { useFeatureStoreProject } from '#~/pages/featureStore/FeatureStoreContext';
 import useFeatureByName from '#~/pages/featureStore/apiHooks/useFeatureByName.ts';
+import { featureStoreRootRoute } from '#~/pages/featureStore/routes.ts';
 import FeatureDetailsTabs from './FeatureDetailsTab';
 
 const FeatureDetails = (): React.ReactElement => {
@@ -25,16 +28,36 @@ const FeatureDetails = (): React.ReactElement => {
     error: featureLoadError,
   } = useFeatureByName(currentProject, featureViewName, featureName);
 
+  const emptyState = (
+    <EmptyState
+      headingLevel="h6"
+      icon={SearchIcon}
+      titleText="No entities"
+      variant={EmptyStateVariant.lg}
+      data-testid="empty-state-title"
+    >
+      <EmptyStateBody data-testid="empty-state-body">
+        No entities have been found in this project.
+      </EmptyStateBody>
+    </EmptyState>
+  );
   if (featureLoadError) {
     return (
       <EmptyState
         headingLevel="h4"
-        icon={ExclamationCircleIcon}
+        icon={PathMissingIcon}
         titleText="Error loading feature details"
         variant={EmptyStateVariant.lg}
         data-id="error-empty-state"
       >
-        <EmptyStateBody>{featureLoadError.message}</EmptyStateBody>
+        <EmptyStateBody>
+          {featureLoadError.message || 'The requested feature could not be found.'}
+        </EmptyStateBody>
+        <EmptyStateFooter>
+          <EmptyStateActions>
+            <Link to={`${featureStoreRootRoute()}/features`}>Go to Features</Link>
+          </EmptyStateActions>
+        </EmptyStateFooter>
       </EmptyState>
     );
   }
@@ -49,7 +72,8 @@ const FeatureDetails = (): React.ReactElement => {
 
   return (
     <ApplicationsPage
-      empty={false}
+      empty={!featureLoaded}
+      emptyStatePage={emptyState}
       title={feature.name}
       description={feature.description}
       loadError={featureLoadError}
@@ -57,9 +81,12 @@ const FeatureDetails = (): React.ReactElement => {
       provideChildrenPadding
       breadcrumb={
         <Breadcrumb>
-          <BreadcrumbItem render={() => <Link to="/featureStore/features">Features</Link>} />
           <BreadcrumbItem
-            data-testid="breadcrumb-version-name"
+            data-testid="feature-details-breadcrumb-link"
+            render={() => <Link to={`${featureStoreRootRoute()}/features`}>Features</Link>}
+          />
+          <BreadcrumbItem
+            data-testid="feature-details-breadcrumb-item"
             isActive
             style={{
               textDecoration: 'underline',

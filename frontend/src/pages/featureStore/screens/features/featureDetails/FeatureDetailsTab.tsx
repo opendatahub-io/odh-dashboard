@@ -1,10 +1,9 @@
-import '#~/pages/pipelines/global/runs/GlobalPipelineRunsTabs.scss';
 import {
+  Content,
   DescriptionList,
   DescriptionListDescription,
   DescriptionListGroup,
   DescriptionListTerm,
-  Divider,
   Flex,
   FlexItem,
   PageSection,
@@ -15,46 +14,12 @@ import {
   Title,
 } from '@patternfly/react-core';
 import * as React from 'react';
-import { Link } from 'react-router';
-import { Features, FeatureRelationship } from '#~/pages/featureStore/types/features.ts';
+import { Features } from '#~/pages/featureStore/types/features.ts';
 import { FeatureDetailsTab } from '#~/pages/featureStore/screens/features/const';
 import FeatureStoreTags from '#~/pages/featureStore/components/FeatureStoreTags';
 import FeatureStoreCodeBlock from '#~/pages/featureStore/components/FeatureStoreCodeBlock';
-
-// Utility functions to extract information from relationships
-const extractFeatureViewsFromRelationships = (relationships?: FeatureRelationship[]): string[] => {
-  if (!relationships || !Array.isArray(relationships)) {
-    return [];
-  }
-
-  const featureViews = new Set<string>();
-
-  relationships.forEach((relationship) => {
-    if (relationship.target.type === 'featureView') {
-      featureViews.add(relationship.target.name);
-    }
-  });
-
-  return Array.from(featureViews);
-};
-
-const extractFeatureServicesFromRelationships = (
-  relationships?: FeatureRelationship[],
-): string[] => {
-  if (!relationships || !Array.isArray(relationships)) {
-    return [];
-  }
-
-  const featureServices = new Set<string>();
-
-  relationships.forEach((relationship) => {
-    if (relationship.target.type === 'featureService') {
-      featureServices.add(relationship.target.name);
-    }
-  });
-
-  return Array.from(featureServices);
-};
+import { FeatureStoreSections, hasContent } from '#~/pages/featureStore/const.ts';
+import FeatureStoreInfoTooltip from '#~/pages/featureStore/screens/components/FeatureStoreInfoTooltip';
 
 type FeatureDetailsTabsProps = {
   feature: Features;
@@ -64,9 +29,6 @@ const FeatureDetailsTabs: React.FC<FeatureDetailsTabsProps> = ({ feature }) => {
   const [activeTabKey, setActiveTabKey] = React.useState<string | number>(
     FeatureDetailsTab.DETAILS,
   );
-
-  const featureViews = extractFeatureViewsFromRelationships(feature.relationships);
-  const featureServices = extractFeatureServicesFromRelationships(feature.relationships);
 
   return (
     <Tabs
@@ -84,7 +46,7 @@ const FeatureDetailsTabs: React.FC<FeatureDetailsTabsProps> = ({ feature }) => {
         aria-label="Feature details tab"
         data-testid="feature-details-tab"
       >
-        <TabContentBody data-testid="pipeline-parameter-tab">
+        <TabContentBody data-testid="feature-details-tab-content">
           <PageSection
             isFilled
             padding={{ default: 'noPadding' }}
@@ -100,83 +62,29 @@ const FeatureDetailsTabs: React.FC<FeatureDetailsTabsProps> = ({ feature }) => {
                 <DescriptionList isCompact isHorizontal>
                   <DescriptionListGroup>
                     <DescriptionListTerm data-testid="feature-type-label">
-                      Value Type
+                      {FeatureStoreSections.VALUE_TYPE}
                     </DescriptionListTerm>
                     <DescriptionListDescription data-testid="feature-value-type">
-                      {feature.type}
+                      {feature.type && hasContent(feature.type)
+                        ? feature.type
+                        : `No ${FeatureStoreSections.VALUE_TYPE.toLowerCase()}`}
                     </DescriptionListDescription>
                   </DescriptionListGroup>
                 </DescriptionList>
               </FlexItem>
-
-              {featureViews.length > 0 && (
-                <FlexItem>
-                  <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsLg' }}>
-                    <FlexItem>
-                      <Title headingLevel="h3" data-testid="feature-views-label">
-                        Feature Views
-                      </Title>
-                    </FlexItem>
-                    <Flex
-                      direction={{ default: 'column' }}
-                      spaceItems={{ default: 'spaceItemsMd' }}
-                    >
-                      {featureViews.map((featureViewName) => (
-                        <React.Fragment key={featureViewName}>
-                          <FlexItem>
-                            <Link to={`/featureStore/featureViews/${featureViewName}`}>
-                              {featureViewName}
-                            </Link>
-                          </FlexItem>
-
-                          <FlexItem>
-                            <Divider />
-                          </FlexItem>
-                        </React.Fragment>
-                      ))}
-                    </Flex>
-                  </Flex>
-                </FlexItem>
-              )}
-
-              {featureServices.length > 0 && (
-                <FlexItem>
-                  <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsLg' }}>
-                    <FlexItem>
-                      <Title headingLevel="h3" data-testid="feature-services-label">
-                        Feature Services
-                      </Title>
-                    </FlexItem>
-                    <Flex
-                      direction={{ default: 'column' }}
-                      spaceItems={{ default: 'spaceItemsMd' }}
-                    >
-                      {featureServices.map((featureServiceName) => (
-                        <React.Fragment key={featureServiceName}>
-                          <FlexItem>
-                            <Link to={`/featureStore/featureServices/${featureServiceName}`}>
-                              {featureServiceName}
-                            </Link>
-                          </FlexItem>
-                          <FlexItem>
-                            <Divider />
-                          </FlexItem>
-                        </React.Fragment>
-                      ))}
-                    </Flex>
-                  </Flex>
-                </FlexItem>
-              )}
-
               <FlexItem>
                 <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsLg' }}>
                   <FlexItem>
                     <Title headingLevel="h3" data-testid="feature-tags">
-                      Tags
+                      {FeatureStoreSections.TAGS}
                     </Title>
                   </FlexItem>
                   <FlexItem>
-                    <FeatureStoreTags tags={feature.tags ?? {}} />
+                    {feature.tags && Object.keys(feature.tags).length > 0 ? (
+                      <FeatureStoreTags tags={feature.tags ?? {}} showAllTags />
+                    ) : (
+                      <Content>{`No ${FeatureStoreSections.TAGS.toLowerCase()}`}</Content>
+                    )}
                   </FlexItem>
                 </Flex>
               </FlexItem>
@@ -185,14 +93,18 @@ const FeatureDetailsTabs: React.FC<FeatureDetailsTabsProps> = ({ feature }) => {
                   <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsLg' }}>
                     <FlexItem>
                       <Title headingLevel="h3" data-testid="feature-interactive-example">
-                        Interactive example
+                        {FeatureStoreSections.INTERACTIVE_EXAMPLE}
                       </Title>
                     </FlexItem>
                     <FlexItem>
-                      <FeatureStoreCodeBlock
-                        content={feature.featureDefinition}
-                        id={feature.name}
-                      />
+                      {hasContent(feature.featureDefinition) ? (
+                        <FeatureStoreCodeBlock
+                          content={feature.featureDefinition}
+                          id={feature.name}
+                        />
+                      ) : (
+                        <Content>{`No ${FeatureStoreSections.INTERACTIVE_EXAMPLE.toLowerCase()}`}</Content>
+                      )}
                     </FlexItem>
                   </Flex>
                 </FlexItem>
@@ -200,6 +112,24 @@ const FeatureDetailsTabs: React.FC<FeatureDetailsTabsProps> = ({ feature }) => {
             </Flex>
           </PageSection>
         </TabContentBody>
+      </Tab>
+      <Tab
+        eventKey={FeatureDetailsTab.FEATURE_VIEWS}
+        title={
+          <>
+            <TabTitleText>{FeatureDetailsTab.FEATURE_VIEWS}</TabTitleText>
+            <FeatureStoreInfoTooltip>
+              <Content>
+                Feature views group related features and define how they&apos;re retrieved from a
+                data source.
+              </Content>
+            </FeatureStoreInfoTooltip>
+          </>
+        }
+        aria-label="Feature views tab"
+        data-testid="feature-views-tab"
+      >
+        <TabContentBody data-testid="feature-views-tab-content">feature views</TabContentBody>
       </Tab>
     </Tabs>
   );

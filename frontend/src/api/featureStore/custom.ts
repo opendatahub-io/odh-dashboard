@@ -72,7 +72,7 @@ export const getFeatureByName =
   ): Promise<Features> => {
     const endpoint = `/api/${FEATURE_STORE_API_VERSION}/features/${featureViewName}/${featureName}?project=${encodeURIComponent(
       project,
-    )}&include_relationships=true&allow_cache=true`;
+    )}&include_relationships=true`;
 
     return handleFeatureStoreFailures<Features>(proxyGET(hostPath, endpoint, opts));
   };

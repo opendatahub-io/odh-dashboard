@@ -12,6 +12,16 @@ export enum FeatureToolbarFilterOptions {
 
 export type FeatureFilterDataType = Record<FeatureToolbarFilterOptions, string | undefined>;
 
+// Filter key mapping for features - maps filter keys to property paths
+export const featureTableFilterKeyMapping: Record<string, string> = {
+  [FeatureToolbarFilterOptions.feature]: 'name',
+  [FeatureToolbarFilterOptions.project]: 'project',
+  [FeatureToolbarFilterOptions.valueType]: 'type',
+  [FeatureToolbarFilterOptions.featureView]: 'featureView',
+  [FeatureToolbarFilterOptions.owner]: 'owner',
+};
+
+// Table column definitions
 const baseColumns: SortableData<Features>[] = [
   {
     field: 'feature',
@@ -66,7 +76,6 @@ export const getFeatureFilterOptions = (
 ): Partial<Record<FeatureToolbarFilterOptions, string>> => {
   const options = {
     [FeatureToolbarFilterOptions.feature]: 'Feature',
-    [FeatureToolbarFilterOptions.tags]: 'Tags',
     [FeatureToolbarFilterOptions.valueType]: 'Value type',
     [FeatureToolbarFilterOptions.featureView]: 'Feature view',
     [FeatureToolbarFilterOptions.owner]: 'Owner',
@@ -93,4 +102,5 @@ export const getInitialFeatureFilterData = (showAllProjects: boolean): FeatureFi
 
 export enum FeatureDetailsTab {
   DETAILS = 'Details',
+  FEATURE_VIEWS = 'Feature views',
 }

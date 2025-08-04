@@ -32,6 +32,9 @@ const isRecordOfStrings = (value: unknown): value is Record<string, string> =>
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
+// Type guard to check if value is a string
+const isString = (value: unknown): value is string => typeof value === 'string';
+
 // Helper function to get nested values from objects
 export const getNestedValue = (obj: Record<string, unknown>, path: string): unknown => {
   if (!path) {
@@ -64,18 +67,31 @@ export const getRelationshipsByTargetType = <T extends GenericRelationship>(
 /**
  * Generic filter functions that can be reused across different feature store components
  */
-export class FeatureStoreFilterUtils<T extends FilterableItem, R extends GenericRelationship> {
+export class FeatureStoreFilterUtils<
+  T extends Record<string, unknown>,
+  R extends GenericRelationship,
+> {
   private filterKeyMapping: Record<string, string>;
 
-  constructor(filterKeyMapping: Record<string, string>) {
+  private namePath: string;
+
+  private tagsPath: string;
+
+  constructor(
+    filterKeyMapping: Record<string, string>,
+    namePath = 'spec.name',
+    tagsPath = 'spec.tags',
+  ) {
     this.filterKeyMapping = filterKeyMapping;
+    this.namePath = namePath;
+    this.tagsPath = tagsPath;
   }
 
   /**
    * Filter by tags - searches both tag keys and values
    */
   private filterByTags = (item: T, filterString: string): boolean => {
-    const itemValue = getNestedValue(item, 'spec.tags');
+    const itemValue = getNestedValue(item, this.tagsPath);
     if (!itemValue || !isRecordOfStrings(itemValue)) {
       return false;
     }
@@ -95,7 +111,11 @@ export class FeatureStoreFilterUtils<T extends FilterableItem, R extends Generic
     relationships: Record<string, R[]>,
     filterString: string,
   ): boolean => {
-    const itemKey = item.spec.name;
+    const itemKey = getNestedValue(item, this.namePath);
+    if (!isString(itemKey)) {
+      return false;
+    }
+
     const featureViews = getRelationshipsByTargetType(relationships, itemKey, 'featureView');
 
     return featureViews.some((fv) =>
@@ -140,7 +160,7 @@ export class FeatureStoreFilterUtils<T extends FilterableItem, R extends Generic
           return this.filterByFeatureViews(item, relationships, filterString);
         }
 
-        if (propertyPath === 'spec.tags') {
+        if (propertyPath === this.tagsPath) {
           return this.filterByTags(item, filterString);
         }
 
@@ -153,8 +173,11 @@ export class FeatureStoreFilterUtils<T extends FilterableItem, R extends Generic
  * Factory function to create filter utilities for specific types
  */
 export const createFeatureStoreFilterUtils = <
-  T extends FilterableItem,
+  T extends Record<string, unknown>,
   R extends GenericRelationship,
 >(
   filterKeyMapping: Record<string, string>,
-): FeatureStoreFilterUtils<T, R> => new FeatureStoreFilterUtils<T, R>(filterKeyMapping);
+  namePath?: string,
+  tagsPath?: string,
+): FeatureStoreFilterUtils<T, R> =>
+  new FeatureStoreFilterUtils<T, R>(filterKeyMapping, namePath, tagsPath);
