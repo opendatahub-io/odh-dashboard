@@ -81,11 +81,11 @@ export const getFeatureByName =
 export const getFeatureServices =
   (hostPath: string) =>
   (opts: K8sAPIOptions, project?: string): Promise<FeatureServicesList> => {
-    let endpoint = `/api/${FEATURE_STORE_API_VERSION}/feature_services/all`;
+    let endpoint = `/api/${FEATURE_STORE_API_VERSION}/feature_services/all?include_relationships=true`;
     if (project) {
       endpoint = `/api/${FEATURE_STORE_API_VERSION}/feature_services?project=${encodeURIComponent(
         project,
-      )}`;
+      )}&include_relationships=true`;
     }
 
     return handleFeatureStoreFailures<FeatureServicesList>(proxyGET(hostPath, endpoint, opts));

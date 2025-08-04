@@ -71,22 +71,12 @@ export const AllProjectColumns: SortableData<FeatureService>[] = [
   },
 ];
 
-export enum FeatureServiceToolbarFilterOptions {
-  featureService = 'Feature service',
-  tags = 'Tags',
-}
-
-export const FeatureServiceFilterOptions = {
-  [FeatureServiceToolbarFilterOptions.featureService]: 'Feature service',
-  [FeatureServiceToolbarFilterOptions.tags]: 'Tags',
-};
-
-export type FeatureServiceFilterDataType = Record<
-  FeatureServiceToolbarFilterOptions,
-  string | undefined
->;
-
-export const initialFeatureServiceFilterData: FeatureServiceFilterDataType = {
-  [FeatureServiceToolbarFilterOptions.featureService]: '',
-  [FeatureServiceToolbarFilterOptions.tags]: '',
-};
+export const featureServiceTableFilterOptions = (
+  currentProject: string | undefined,
+): Record<string, string> => ({
+  featureService: 'Feature service',
+  tags: 'Tags',
+  featureViews: 'Feature views',
+  owner: 'Owner',
+  ...(currentProject ? {} : { project: 'Project' }),
+});

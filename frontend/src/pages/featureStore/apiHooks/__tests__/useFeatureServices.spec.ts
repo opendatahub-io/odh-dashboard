@@ -22,6 +22,7 @@ describe('useFeatureServices', () => {
       totalCount: 2,
       totalPages: 1,
     },
+    relationships: {},
   };
 
   const defaultFeatureServicesList: FeatureServicesList = {
@@ -30,6 +31,7 @@ describe('useFeatureServices', () => {
       totalCount: 0,
       totalPages: 0,
     },
+    relationships: {},
   };
 
   beforeEach(() => {
@@ -214,6 +216,7 @@ describe('useFeatureServices', () => {
         totalCount: 0,
         totalPages: 0,
       },
+      relationships: {},
     };
 
     useFeatureStoreAPIMock.mockReturnValue({

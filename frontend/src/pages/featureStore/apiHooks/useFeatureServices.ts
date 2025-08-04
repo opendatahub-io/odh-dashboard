@@ -25,6 +25,7 @@ const useFeatureServices = (project?: string): FetchStateObject<FeatureServicesL
         totalCount: 0,
         totalPages: 0,
       },
+      relationships: {},
     },
     { initialPromisePurity: true },
   );

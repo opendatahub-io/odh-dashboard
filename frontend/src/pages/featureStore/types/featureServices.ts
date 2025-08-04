@@ -1,5 +1,5 @@
 import { K8sAPIOptions } from '#~/k8sTypes';
-import { FeatureStoreMeta } from './global';
+import { FeatureStoreMeta, FeatureStoreRelationship } from './global';
 import { Features } from './features';
 
 export type FeatureService = {
@@ -20,6 +20,7 @@ export type FeatureServicesList = {
     totalCount: number;
     totalPages: number;
   };
+  relationships: Record<string, FeatureStoreRelationship[]>;
 };
 
 export type GetFeatureServices = (

@@ -1,52 +1,37 @@
 import React from 'react';
-import { FeatureService } from '#~/pages/featureStore/types/featureServices';
-import FeatureServiceToolbar from './FeatureServiceToolbar';
-import { FeatureServiceFilterDataType, initialFeatureServiceFilterData } from './const';
+import { FeatureServicesList } from '#~/pages/featureStore/types/featureServices';
+import { featureServiceTableFilterOptions } from './const';
 import FeatureServicesTable from './FeatureServicesTable';
+import { FeatureStoreToolbar } from '#~/pages/featureStore/components/FeatureStoreToolbar';
+import { applyFeatureServiceFilters } from './utils';
 
 const FeatureServicesListView = ({
-  featureServices: unfilteredFeatureServices,
+  featureServices,
   fsProject,
 }: {
-  featureServices: FeatureService[];
+  featureServices: FeatureServicesList;
   fsProject?: string;
 }): React.ReactElement => {
-  const [filterData, setFilterData] = React.useState<FeatureServiceFilterDataType>(
-    initialFeatureServiceFilterData,
-  );
+  const [filterData, setFilterData] = React.useState<
+    Record<string, string | { label: string; value: string } | undefined>
+  >({});
 
-  const onClearFilters = React.useCallback(
-    () => setFilterData(initialFeatureServiceFilterData),
-    [setFilterData],
-  );
-
-  const filteredFeatureServices = React.useMemo(
-    () =>
-      unfilteredFeatureServices.filter((featureService) => {
-        const featureServiceFilter = filterData['Feature service']?.toLowerCase();
-        const tagsFilter = filterData.Tags?.toLowerCase();
-
-        if (
-          featureServiceFilter &&
-          !featureService.spec.name.toLowerCase().includes(featureServiceFilter)
-        ) {
-          return false;
-        }
-
-        return (
-          !tagsFilter ||
-          Object.entries(featureService.spec.tags ?? {}).some(([key, value]) =>
-            `${key}=${value}`.toLowerCase().includes(tagsFilter.toLowerCase()),
-          )
-        );
-      }),
-    [unfilteredFeatureServices, filterData],
-  );
+  const onClearFilters = React.useCallback(() => setFilterData({}), [setFilterData]);
 
   const onFilterUpdate = React.useCallback(
     (key: string, value: string | { label: string; value: string } | undefined) =>
       setFilterData((prevValues) => ({ ...prevValues, [key]: value })),
     [setFilterData],
+  );
+
+  const filteredFeatureServices = React.useMemo(
+    () =>
+      applyFeatureServiceFilters(
+        featureServices.featureServices,
+        featureServices.relationships,
+        filterData,
+      ),
+    [featureServices, filterData],
   );
 
   return (
@@ -55,7 +40,11 @@ const FeatureServicesListView = ({
       fsProject={fsProject}
       onClearFilters={onClearFilters}
       toolbarContent={
-        <FeatureServiceToolbar filterData={filterData} onFilterUpdate={onFilterUpdate} />
+        <FeatureStoreToolbar
+          filterOptions={featureServiceTableFilterOptions(fsProject)}
+          filterData={filterData}
+          onFilterUpdate={onFilterUpdate}
+        />
       }
     />
   );
