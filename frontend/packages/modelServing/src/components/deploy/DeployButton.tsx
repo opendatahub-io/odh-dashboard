@@ -28,14 +28,14 @@ import { useAvailableClusterPlatforms } from '../../concepts/useAvailableCluster
 const DeployButtonModal: React.FC<{
   platform: ServingRuntimePlatform;
   currentProject: ProjectKind;
+  namespace?: string;
   onClose: (submit: boolean) => void;
-}> = ({ platform, currentProject, onClose }) => {
-  const { namespace } = useParams();
+}> = ({ platform, currentProject, namespace, onClose }) => {
   const { dashboardNamespace } = useDashboardNamespace();
   const [servingRuntimeTemplates] = useTemplates(dashboardNamespace);
   const servingRuntimeTemplateOrder = useTemplateOrder(dashboardNamespace, undefined);
   const servingRuntimeTemplateDisablement = useTemplateDisablement(dashboardNamespace, undefined);
-  const connections = useConnections(namespace);
+  const connections = useConnections(namespace || '');
   const templatesSorted = getSortedTemplates(
     servingRuntimeTemplates,
     servingRuntimeTemplateOrder.data,
@@ -78,14 +78,16 @@ export const DeployButton: React.FC<{
 }> = ({ platform, variant = 'primary', isDisabled }) => {
   const [modalShown, setModalShown] = React.useState<boolean>(false);
   const [platformSelected, setPlatformSelected] = React.useState<ServingRuntimePlatform>();
-  const { namespace } = useParams();
-  const { projects } = React.useContext(ProjectsContext);
-  const match = namespace ? projects.find(byName(namespace)) : undefined;
-  const { clusterPlatforms } = useAvailableClusterPlatforms();
-  const { activePlatform, projectPlatform } = useProjectServingPlatform(match, clusterPlatforms);
-  const { projects: modelProjects } = React.useContext(ModelDeploymentsContext);
   const { namespace: modelNamespace } = useParams<{ namespace: string }>();
+  const { projects } = React.useContext(ProjectsContext);
+  const { clusterPlatforms } = useAvailableClusterPlatforms();
+  const { projects: modelProjects } = React.useContext(ModelDeploymentsContext);
+  const match = modelNamespace ? projects.find(byName(modelNamespace)) : undefined;
   const currentProject = modelProjects?.find(byName(modelNamespace));
+  const { activePlatform, projectPlatform } = useProjectServingPlatform(match, clusterPlatforms);
+
+  const getServingRuntimePlatform = (platformId: string): ServingRuntimePlatform =>
+    platformId === 'modelmesh' ? ServingRuntimePlatform.MULTI : ServingRuntimePlatform.SINGLE;
 
   const onSubmit = () => {
     setModalShown(false);
@@ -94,19 +96,11 @@ export const DeployButton: React.FC<{
 
   const handleDeployClick = () => {
     if (platform) {
-      setPlatformSelected(
-        platform.properties.id === 'modelmesh'
-          ? ServingRuntimePlatform.MULTI
-          : ServingRuntimePlatform.SINGLE,
-      );
+      setPlatformSelected(getServingRuntimePlatform(platform.properties.id));
     } else {
       const currentPlatform = activePlatform || projectPlatform;
       if (currentProject && currentPlatform) {
-        setPlatformSelected(
-          currentPlatform.properties.id === 'modelmesh'
-            ? ServingRuntimePlatform.MULTI
-            : ServingRuntimePlatform.SINGLE,
-        );
+        setPlatformSelected(getServingRuntimePlatform(currentPlatform.properties.id));
       }
     }
     setModalShown(true);
@@ -138,6 +132,7 @@ export const DeployButton: React.FC<{
         <DeployButtonModal
           platform={platformSelected}
           currentProject={currentProject}
+          namespace={modelNamespace}
           onClose={onSubmit}
         />
       ) : null}
