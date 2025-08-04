@@ -526,6 +526,7 @@ export type InferenceServiceKind = K8sResourceCommon & {
   };
   spec: {
     predictor: {
+      annotations?: Record<string, string>;
       tolerations?: Toleration[];
       nodeSelector?: NodeSelector;
       model?: {

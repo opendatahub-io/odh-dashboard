@@ -469,7 +469,8 @@ describe('Model Serving Global', () => {
     inferenceServiceModalEdit.findSubmitButton().should('be.disabled');
     inferenceServiceModalEdit.findConnectionNameInput().type('Test Name');
     inferenceServiceModalEdit.findConnectionFieldInput('URI').type('/');
-    inferenceServiceModalEdit.findSubmitButton().click().should('be.disabled');
+    inferenceServiceModalEdit.findConnectionFieldInput('URI').blur();
+    inferenceServiceModalEdit.findSubmitButton().should('be.disabled');
     inferenceServiceModalEdit.findConnectionFieldInput('URI').clear().type('https://test');
     inferenceServiceModalEdit.findSubmitButton().should('be.enabled');
     inferenceServiceModalEdit.findExistingConnectionOption().click();
