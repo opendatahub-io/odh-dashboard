@@ -8,8 +8,8 @@ module.exports = {
     '**/__tests__/?(*.)+(spec|test).ts?(x)',
   ],
 
-  // Ignore tests in the upstream directory
-  modulePathIgnorePatterns: ['/upstream/', '/llama-stack-modular-ui/'],
+  // Ignore tests in the following directories
+  modulePathIgnorePatterns: ['/upstream/', '/rag-playground/'],
 
   // Automatically clear mock calls and instances between every test
   clearMocks: true,
