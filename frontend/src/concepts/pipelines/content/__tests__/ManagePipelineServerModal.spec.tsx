@@ -8,6 +8,7 @@ import useNamespaceSecret from '#~/concepts/projects/apiHooks/useNamespaceSecret
 import { updatePipelineCaching } from '#~/api/pipelines/k8s';
 import { NotificationWatcherContext } from '#~/concepts/notificationWatcher/NotificationWatcherContext';
 import { SecretCategory, EnvironmentVariableType } from '#~/pages/projects/types';
+import useNotification from '#~/utilities/useNotification';
 
 // Mock dependencies
 jest.mock('#~/concepts/pipelines/context', () => ({
@@ -23,18 +24,27 @@ jest.mock('#~/api/pipelines/k8s', () => ({
   updatePipelineCaching: jest.fn(),
 }));
 
+jest.mock('#~/utilities/useNotification', () => ({
+  __esModule: true,
+  default: jest.fn(),
+}));
+
 const mockUsePipelinesAPI = usePipelinesAPI as jest.MockedFunction<typeof usePipelinesAPI>;
 const mockUseNamespaceSecret = useNamespaceSecret as jest.MockedFunction<typeof useNamespaceSecret>;
 const mockUpdatePipelineCaching = updatePipelineCaching as jest.MockedFunction<
   typeof updatePipelineCaching
 >;
+const mockUseNotification = useNotification as jest.MockedFunction<typeof useNotification>;
 
 describe('ManagePipelineServerModal', () => {
   const mockOnClose = jest.fn();
   const mockRegisterNotification = jest.fn();
+  const mockSuccessNotification = jest.fn();
+  const mockErrorNotification = jest.fn();
 
   // Mock scrollIntoView
   beforeAll(() => {
+    // @ts-expect-error - mocking DOM method
     Element.prototype.scrollIntoView = jest.fn();
   });
 
@@ -96,6 +106,13 @@ describe('ManagePipelineServerModal', () => {
     mockUpdatePipelineCaching.mockResolvedValue(
       {} as Awaited<ReturnType<typeof updatePipelineCaching>>,
     );
+
+    mockUseNotification.mockReturnValue({
+      success: mockSuccessNotification,
+      error: mockErrorNotification,
+      info: jest.fn(),
+      warning: jest.fn(),
+    });
   });
 
   it('should render the modal with correct title', () => {
@@ -241,19 +258,10 @@ describe('ManagePipelineServerModal', () => {
     fireEvent.click(saveButton);
 
     await waitFor(() => {
-      expect(mockRegisterNotification).toHaveBeenCalledWith({
-        callback: expect.any(Function),
-      });
-    });
-
-    // Test the notification callback
-    const notificationCall = mockRegisterNotification.mock.calls[0][0];
-    const result = await notificationCall.callback();
-
-    expect(result).toEqual({
-      status: 'success',
-      title: 'Pipeline caching updated',
-      message: 'Caching has been disabled successfully.',
+      expect(mockSuccessNotification).toHaveBeenCalledWith(
+        'Pipeline caching updated',
+        'Caching has been disabled successfully.',
+      );
     });
   });
 
@@ -275,19 +283,10 @@ describe('ManagePipelineServerModal', () => {
     fireEvent.click(saveButton);
 
     await waitFor(() => {
-      expect(mockRegisterNotification).toHaveBeenCalledWith({
-        callback: expect.any(Function),
-      });
-    });
-
-    // Test the error notification callback
-    const notificationCall = mockRegisterNotification.mock.calls[0][0];
-    const result = await notificationCall.callback();
-
-    expect(result).toEqual({
-      status: 'error',
-      title: 'Failed to update pipeline caching',
-      message: 'Update failed',
+      expect(mockErrorNotification).toHaveBeenCalledWith(
+        'Failed to update pipeline caching',
+        'An unexpected error occurred while updating caching settings.',
+      );
     });
 
     // Restore console.error
