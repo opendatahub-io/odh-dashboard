@@ -650,7 +650,7 @@ describe('ManageNIMServingModal - Storage Class Fallback Logic', () => {
 
     it('falls back to OpenShift default when no ODH default is available', () => {
       // Mock no ODH default, but OpenShift default available
-      mockUseDefaultStorageClass.mockReturnValue([null, true, null, jest.fn()]);
+      mockUseDefaultStorageClass.mockReturnValue([mockStorageClasses[0], true, null, jest.fn()]);
 
       mockUseGetStorageClassConfig.mockReturnValue({
         storageClasses: [mockStorageClasses[0]],
