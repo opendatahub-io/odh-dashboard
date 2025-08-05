@@ -8,7 +8,7 @@ import { isModelRegistryVersionDetailsTabExtension } from '~/odh/extension-point
 import { LazyCodeRefComponent, useExtensions } from '@odh-dashboard/plugin-core';
 
 type ModelVersionDetailTabsProps = {
-  tab: ModelVersionDetailsTab;
+  tab: string;
   modelVersion: ModelVersion;
   isArchiveVersion?: boolean;
   refresh: () => void;

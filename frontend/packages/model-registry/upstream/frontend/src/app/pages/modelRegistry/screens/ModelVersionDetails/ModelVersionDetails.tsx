@@ -13,7 +13,6 @@ import {
   modelVersionUrl,
   registeredModelUrl,
 } from '~/app/pages/modelRegistry/screens/routeUtils';
-import { ModelVersionDetailsTab } from './const';
 import ModelVersionSelector from './ModelVersionSelector';
 import ModelVersionDetailsTabs from './ModelVersionDetailsTabs';
 import ModelVersionsDetailsHeaderActions from './ModelVersionDetailsHeaderActions';
@@ -22,7 +21,7 @@ import { MRDeploymentsContextProvider } from '~/odh/components/MRDeploymentsCont
 import { KnownLabels } from '~/odh/k8sTypes';
 
 type ModelVersionsDetailProps = {
-  tab: ModelVersionDetailsTab;
+  tab: string;
 } & Omit<
   React.ComponentProps<typeof ApplicationsPage>,
   'breadcrumb' | 'title' | 'description' | 'loadError' | 'loaded' | 'provideChildrenPadding'
