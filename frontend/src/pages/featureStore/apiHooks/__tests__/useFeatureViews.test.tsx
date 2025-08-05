@@ -60,6 +60,7 @@ describe('useFeatureViews', () => {
     expect(mockGetFeatureViews).toHaveBeenCalledWith(
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
       undefined,
+      undefined,
     );
   });
 
@@ -92,6 +93,41 @@ describe('useFeatureViews', () => {
     expect(mockGetFeatureViews).toHaveBeenCalledWith(
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
       projectName,
+      undefined,
+    );
+  });
+
+  it('should return successful feature views list with project and entity parameters', async () => {
+    const projectName = 'test-project';
+    const entityName = 'test-entity';
+
+    useFeatureStoreAPIMock.mockReturnValue({
+      api: {
+        getFeatureViews: mockGetFeatureViews,
+      },
+      apiAvailable: true,
+    } as unknown as ReturnType<typeof useFeatureStoreAPI>);
+
+    mockGetFeatureViews.mockResolvedValue(mockFeatureViewsList);
+
+    const renderResult = testHook(useFeatureViews)(projectName, entityName);
+
+    expect(renderResult.result.current.data).toEqual(defaultFeatureViewsList);
+    expect(renderResult.result.current.loaded).toBe(false);
+    expect(renderResult.result.current.error).toBeUndefined();
+    expect(renderResult).hookToHaveUpdateCount(1);
+
+    await renderResult.waitForNextUpdate();
+
+    expect(renderResult.result.current.data).toEqual(mockFeatureViewsList);
+    expect(renderResult.result.current.loaded).toBe(true);
+    expect(renderResult.result.current.error).toBeUndefined();
+    expect(renderResult).hookToHaveUpdateCount(2);
+    expect(mockGetFeatureViews).toHaveBeenCalledTimes(1);
+    expect(mockGetFeatureViews).toHaveBeenCalledWith(
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+      projectName,
+      entityName,
     );
   });
 
@@ -149,6 +185,7 @@ describe('useFeatureViews', () => {
 
   it('should be stable when re-rendered with same parameters', async () => {
     const projectName = 'test-project';
+    const entityName = 'test-entity';
 
     useFeatureStoreAPIMock.mockReturnValue({
       api: {
@@ -159,12 +196,12 @@ describe('useFeatureViews', () => {
 
     mockGetFeatureViews.mockResolvedValue(mockFeatureViewsList);
 
-    const renderResult = testHook(useFeatureViews)(projectName);
+    const renderResult = testHook(useFeatureViews)(projectName, entityName);
 
     await renderResult.waitForNextUpdate();
     expect(renderResult).hookToHaveUpdateCount(2);
 
-    renderResult.rerender(projectName);
+    renderResult.rerender(projectName, entityName);
     expect(renderResult).hookToHaveUpdateCount(3);
     expect(renderResult).hookToBeStable({
       data: false,
@@ -192,6 +229,7 @@ describe('useFeatureViews', () => {
     expect(mockGetFeatureViews).toHaveBeenLastCalledWith(
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
       'project-1',
+      undefined,
     );
 
     renderResult.rerender('project-2');
@@ -201,6 +239,39 @@ describe('useFeatureViews', () => {
     expect(mockGetFeatureViews).toHaveBeenLastCalledWith(
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
       'project-2',
+      undefined,
+    );
+  });
+
+  it('should refetch when entity parameter changes', async () => {
+    useFeatureStoreAPIMock.mockReturnValue({
+      api: {
+        getFeatureViews: mockGetFeatureViews,
+      },
+      apiAvailable: true,
+    } as unknown as ReturnType<typeof useFeatureStoreAPI>);
+
+    mockGetFeatureViews.mockResolvedValue(mockFeatureViewsList);
+
+    const renderResult = testHook(useFeatureViews)('project-1', 'entity-1');
+
+    await renderResult.waitForNextUpdate();
+    expect(renderResult).hookToHaveUpdateCount(2);
+    expect(mockGetFeatureViews).toHaveBeenCalledTimes(1);
+    expect(mockGetFeatureViews).toHaveBeenLastCalledWith(
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+      'project-1',
+      'entity-1',
+    );
+
+    renderResult.rerender('project-1', 'entity-2');
+
+    await renderResult.waitForNextUpdate();
+    expect(mockGetFeatureViews).toHaveBeenCalledTimes(2);
+    expect(mockGetFeatureViews).toHaveBeenLastCalledWith(
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+      'project-1',
+      'entity-2',
     );
   });
 

@@ -3,6 +3,7 @@
 import { featureStoreGlobal } from '#~/__tests__/cypress/cypress/pages/featureStore/featureStoreGlobal';
 import { featureEntitiesTable } from '#~/__tests__/cypress/cypress/pages/featureStore/featureEntities';
 import { featureEntityDetails } from '#~/__tests__/cypress/cypress/pages/featureStore/featureEntityDetails';
+import { featureViewsTable } from '#~/__tests__/cypress/cypress/pages/featureStore/featureView';
 import { mockDashboardConfig } from '#~/__mocks__/mockDashboardConfig';
 import { mockDscStatus } from '#~/__mocks__/mockDscStatus';
 import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
@@ -13,6 +14,7 @@ import { mockFeatureStoreService } from '#~/__mocks__/mockFeatureStoreService';
 import { mockFeatureStore } from '#~/__mocks__/mockFeatureStore';
 import { mockFeatureStoreProject } from '#~/__mocks__/mockFeatureStoreProject';
 import { mockEntities, mockEntity } from '#~/__mocks__/mockEntities';
+import { mockFeatureView } from '#~/__mocks__/mockFeatureViews';
 
 const k8sNamespace = 'default';
 const fsName = 'demo';
@@ -158,6 +160,20 @@ const mockEntityDetailsIntercept = () => {
       project: fsProjectName,
     }),
   ).as('getEntityDetails');
+};
+
+const mockEntityFeatureViewsIntercept = () => {
+  cy.intercept(
+    'GET',
+    `/api/service/featurestore/${k8sNamespace}/${fsName}/api/v1/feature_views?project=${fsProjectName}&entity=user_id*`,
+    {
+      featureViews: [mockFeatureView(), mockFeatureView()],
+      pagination: {
+        totalCount: 2,
+        totalPages: 1,
+      },
+    },
+  ).as('getEntityFeatureViews');
 };
 
 describe('Feature Entities for all projects', () => {
@@ -310,11 +326,12 @@ describe('Feature Entities', () => {
     featureStoreGlobal.visitEntities(fsProjectName);
 
     featureEntitiesTable.findTable().should('be.visible');
-
     featureEntitiesTable.findRow('user_id').findFeatureViews().find('button').click();
+
     cy.findByRole('dialog').should('be.visible');
     cy.findByText('user_features').should('be.visible');
     cy.findByRole('dialog').findByText('user_features').click();
+    cy.url().should('include', '/featureStore/featureViews/credit_scoring_local/user_features');
     cy.url().should('include', '/featureStore/featureViews/credit_scoring_local/user_features');
   });
 
@@ -332,5 +349,83 @@ describe('Feature Entities', () => {
     cy.findByText(`Entity nonexistent does not exist in project ${fsProjectName}`).should(
       'be.visible',
     );
+  });
+});
+
+describe('Entity Feature Views Tab', () => {
+  beforeEach(() => {
+    asClusterAdminUser();
+    initCommonIntercepts();
+    mockEntityDetailsIntercept();
+    mockEntityFeatureViewsIntercept();
+  });
+
+  it('should display feature views tab with loading state', () => {
+    cy.visit(`/featureStore/entities/${fsProjectName}/user_id`);
+    cy.wait('@getEntityDetails');
+
+    featureEntityDetails.clickFeatureViewsTab();
+    featureEntityDetails.findFeatureViewsTabContent().within(() => {
+      cy.get('[data-testid="loading-spinner"]').should('be.visible');
+    });
+  });
+
+  it('should display feature views for the entity', () => {
+    cy.visit(`/featureStore/entities/${fsProjectName}/user_id`);
+    cy.wait('@getEntityDetails');
+
+    featureEntityDetails.clickFeatureViewsTab();
+    cy.wait('@getEntityFeatureViews');
+    featureEntityDetails.findFeatureViewsTabContent().within(() => {
+      featureViewsTable.findTable().should('be.visible');
+      featureViewsTable
+        .findRow('zipcode_features')
+        .shouldHaveFeatureViewName('zipcode_features')
+        .shouldHaveOwner('risk-team@company.com');
+    });
+  });
+
+  it('should display empty state when no feature views exist for entity', () => {
+    cy.intercept(
+      'GET',
+      `/api/service/featurestore/${k8sNamespace}/${fsName}/api/v1/feature_views?project=${fsProjectName}&entity=user_id*`,
+      {
+        featureViews: [],
+        pagination: {
+          totalCount: 0,
+          totalPages: 0,
+        },
+      },
+    ).as('getEmptyEntityFeatureViews');
+
+    cy.visit(`/featureStore/entities/${fsProjectName}/user_id`);
+    cy.wait('@getEntityDetails');
+    featureEntityDetails.clickFeatureViewsTab();
+    cy.wait('@getEmptyEntityFeatureViews');
+    featureEntityDetails.findFeatureViewsTabContent().within(() => {
+      cy.findByText('No feature views found').should('be.visible');
+      cy.findByText('No feature views are associated with this entity.').should('be.visible');
+    });
+  });
+
+  it('should only call feature views API when tab is clicked', () => {
+    cy.visit(`/featureStore/entities/${fsProjectName}/user_id`);
+    cy.wait('@getEntityDetails');
+
+    cy.get('@getEntityFeatureViews.all').should('have.length', 0);
+    featureEntityDetails.clickFeatureViewsTab();
+    cy.wait('@getEntityFeatureViews');
+    cy.get('@getEntityFeatureViews.all').should('have.length', 2);
+  });
+
+  it('should navigate to feature view details when clicking on feature view name', () => {
+    cy.visit(`/featureStore/entities/${fsProjectName}/user_id`);
+    cy.wait('@getEntityDetails');
+    featureEntityDetails.clickFeatureViewsTab();
+    cy.wait('@getEntityFeatureViews');
+    featureEntityDetails.findFeatureViewsTabContent().within(() => {
+      featureViewsTable.findRow('zipcode_features').clickFeatureViewLink();
+    });
+    cy.url().should('include', `/featureStore/featureViews/${fsProjectName}/zipcode_features`);
   });
 });
