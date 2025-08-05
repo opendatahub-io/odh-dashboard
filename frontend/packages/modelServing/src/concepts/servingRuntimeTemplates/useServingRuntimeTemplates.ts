@@ -61,7 +61,7 @@ export const useServingRuntimeTemplates = (
   } = useTemplateDisablement(dashboardNamespace);
 
   const result = React.useMemo(() => {
-    if (templates.length === 0) {
+    if (templates.length === 0 || !orderLoaded || !disablementLoaded) {
       return [];
     }
     const sortedTemplates = getSortedTemplates(templates, order);
@@ -70,7 +70,7 @@ export const useServingRuntimeTemplates = (
     );
 
     return filteredTemplates;
-  }, [templates, order, disablement]);
+  }, [templates, order, disablement, orderLoaded, disablementLoaded]);
 
   return [
     result,

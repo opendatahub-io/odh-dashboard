@@ -73,14 +73,8 @@ export const DeployButton: React.FC<{
     setModalShown(true);
   };
 
-  const [globalTemplates, globalTemplatesLoaded] = useServingRuntimeTemplates();
-  const [projectTemplates, projectTemplatesLoaded] = useServingRuntimeTemplates(
-    project?.metadata.name,
-  );
-  const isMissingTemplates =
-    globalTemplates.length === 0 &&
-    globalTemplatesLoaded && // avoid flicker for edge case by waiting for loading to complete
-    (project ? projectTemplates.length === 0 && projectTemplatesLoaded : true);
+  const [globalTemplates] = useServingRuntimeTemplates();
+  const isMissingTemplates = globalTemplates.length === 0;
 
   const disableButton = !project || isMissingTemplates;
   const disabledReason = isMissingTemplates
