@@ -2,6 +2,7 @@ import { GetEntities, GetEntityByName } from './entities';
 import { GetFeatureByName, GetFeatures } from './features';
 import { GetProjects } from './featureStoreProjects';
 import { GetFeatureViews } from './featureView';
+import { GetFeatureServices } from './featureServices';
 
 export type FeatureStorePagination = {
   page: number;
@@ -65,4 +66,5 @@ export type FeatureStoreAPIs = {
   getEntityByName: GetEntityByName;
   getFeatures: GetFeatures;
   getFeatureByName: GetFeatureByName;
+  getFeatureServices: GetFeatureServices;
 };

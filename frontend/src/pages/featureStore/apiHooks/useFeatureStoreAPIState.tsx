@@ -8,8 +8,8 @@ import {
   getFeatureByName,
   getFeatures,
   getEntityByName,
+  getFeatureServices,
 } from '#~/api/featureStore/custom';
-
 import useAPIState from '#~/concepts/proxy/useAPIState';
 
 export type FeatureStoreAPIState = APIState<FeatureStoreAPIs>;
@@ -25,6 +25,7 @@ const useFeatureStoreAPIState = (
       getEntityByName: getEntityByName(path),
       getFeatures: getFeatures(path),
       getFeatureByName: getFeatureByName(path),
+      getFeatureServices: getFeatureServices(path),
     }),
     [],
   );
