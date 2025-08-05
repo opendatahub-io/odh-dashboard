@@ -34,6 +34,7 @@ const FeatureServiceTableRow: React.FC<FeatureServiceTableRowType> = ({
         truncateDescriptionLines={2}
       />
     </Td>
+    <Td dataLabel="Project">{fsProject ?? featureService.project}</Td>
     <Td dataLabel="Tags">
       <FeatureStoreTags tags={featureService.spec.tags ?? {}} threshold={3} />
     </Td>
@@ -58,7 +59,6 @@ const FeatureServiceTableRow: React.FC<FeatureServiceTableRowType> = ({
       <FeatureStoreTimestamp date={featureService.meta.lastUpdatedTimestamp} />
     </Td>
     <Td dataLabel="Owner">{featureService.spec.owner ?? '-'}</Td>
-    {!fsProject && <Td dataLabel="Project">{featureService.project}</Td>}
   </Tr>
 );
 

@@ -10,6 +10,12 @@ export const columns: SortableData<FeatureService>[] = [
       a.spec.name.localeCompare(b.spec.name),
   },
   {
+    field: 'project',
+    label: 'Project',
+    width: 25,
+    sortable: (a, b): number => (a.project || '').localeCompare(b.project || ''),
+  },
+  {
     field: 'tags',
     label: 'Tags',
     width: 25,
@@ -61,22 +67,9 @@ export const columns: SortableData<FeatureService>[] = [
   },
 ];
 
-export const AllProjectColumns: SortableData<FeatureService>[] = [
-  ...columns,
-  {
-    field: 'project',
-    label: 'Project',
-    width: 25,
-    sortable: (a, b): number => (a.project || '').localeCompare(b.project || ''),
-  },
-];
-
-export const featureServiceTableFilterOptions = (
-  currentProject: string | undefined,
-): Record<string, string> => ({
+export const featureServiceTableFilterOptions = (): Record<string, string> => ({
   featureService: 'Feature service',
   tags: 'Tags',
   featureViews: 'Feature views',
   owner: 'Owner',
-  ...(currentProject ? {} : { project: 'Project' }),
 });

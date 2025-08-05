@@ -41,7 +41,7 @@ const FeatureServicesListView = ({
       onClearFilters={onClearFilters}
       toolbarContent={
         <FeatureStoreToolbar
-          filterOptions={featureServiceTableFilterOptions(fsProject)}
+          filterOptions={featureServiceTableFilterOptions()}
           filterData={filterData}
           onFilterUpdate={onFilterUpdate}
         />
