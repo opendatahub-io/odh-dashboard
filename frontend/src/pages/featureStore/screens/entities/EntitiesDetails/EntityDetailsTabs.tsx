@@ -19,6 +19,8 @@ const EntityDetailsTabs: React.FC<EntityDetailsTabsProps> = ({ entity }) => {
       aria-label="Entity details page"
       role="region"
       data-testid="entity-details-page"
+      mountOnEnter
+      unmountOnExit
       onSelect={(e, tabIndex) => {
         setActiveTabKey(tabIndex);
       }}
@@ -40,7 +42,7 @@ const EntityDetailsTabs: React.FC<EntityDetailsTabsProps> = ({ entity }) => {
         data-testid="entity-feature-views-tab"
       >
         <PageSection hasBodyWrapper={false} isFilled data-testid="entity-feature-views-tab-content">
-          <EntityFeatureViewsTab />
+          <EntityFeatureViewsTab entity={entity} />
         </PageSection>
       </Tab>
     </Tabs>

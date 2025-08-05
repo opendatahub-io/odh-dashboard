@@ -7,26 +7,33 @@ import {
   Flex,
   FlexItem,
   PageSection,
+  Content,
   Title,
 } from '@patternfly/react-core';
+import text from '@patternfly/react-styles/css/utilities/Text/text';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import { Entity } from '#~/pages/featureStore/types/entities.ts';
 import FeatureStoreTags from '#~/pages/featureStore/components/FeatureStoreTags.tsx';
 import FeatureStoreCodeBlock from '#~/pages/featureStore/components/FeatureStoreCodeBlock.tsx';
 import FeatureStoreTimestamp from '#~/pages/featureStore/components/FeatureStoreTimestamp.tsx';
+import { hasContent } from '#~/pages/featureStore/const.ts';
 
 type DetailsItemProps = {
   label: string;
   value: React.ReactNode;
   testId?: string;
+  className?: string;
 };
 
-const DetailsItem: React.FC<DetailsItemProps> = ({ label, value, testId }) => (
+const DetailsItem: React.FC<DetailsItemProps> = ({ label, value, testId, className }) => (
   <DescriptionListGroup>
     <DescriptionListTerm data-testid={testId ? `${testId}-label` : undefined}>
       {label}
     </DescriptionListTerm>
-    <DescriptionListDescription data-testid={testId ? `${testId}-value` : undefined}>
+    <DescriptionListDescription
+      data-testid={testId ? `${testId}-value` : undefined}
+      className={className}
+    >
       {value}
     </DescriptionListDescription>
   </DescriptionListGroup>
@@ -35,6 +42,11 @@ const DetailsItem: React.FC<DetailsItemProps> = ({ label, value, testId }) => (
 type EntityDetailsViewProps = {
   entity: Entity;
 };
+const getDisabledClassName = (value: string | undefined) =>
+  value && hasContent(value) ? '' : text.textColorDisabled;
+
+const getContentValue = (value: string | undefined, fallback: string) =>
+  value && hasContent(value) ? value : fallback;
 
 const EntityDetailsView: React.FC<EntityDetailsViewProps> = ({ entity }) => (
   <PageSection
@@ -44,14 +56,24 @@ const EntityDetailsView: React.FC<EntityDetailsViewProps> = ({ entity }) => (
     isWidthLimited
     style={{ maxWidth: '75%' }}
   >
-    <Flex direction={{ default: 'column' }} gap={{ default: 'gap2xl' }}>
+    <Flex
+      direction={{ default: 'column' }}
+      spaceItems={{ default: 'spaceItems2xl' }}
+      className="pf-v6-u-mt-xl"
+    >
       <FlexItem>
         <DescriptionList isCompact isHorizontal>
-          <DetailsItem label="Join key" value={entity.spec.joinKey} testId="entity-join-key" />
+          <DetailsItem
+            label="Join key"
+            value={getContentValue(entity.spec.joinKey, 'No join key')}
+            testId="entity-join-key"
+            className={getDisabledClassName(entity.spec.joinKey)}
+          />
           <DetailsItem
             label="Value type"
-            value={entity.spec.valueType || '-'}
+            value={getContentValue(entity.spec.valueType, 'No value type')}
             testId="entity-value-type"
+            className={getDisabledClassName(entity.spec.valueType)}
           />
         </DescriptionList>
       </FlexItem>
@@ -85,14 +107,22 @@ const EntityDetailsView: React.FC<EntityDetailsViewProps> = ({ entity }) => (
             </Tbody>
           </Table>
         ) : (
-          <>-</>
+          <Content component="p" className={text.textColorDisabled}>
+            No data sources
+          </Content>
         )}
       </FlexItem>
       <FlexItem>
         <Title headingLevel="h3" data-testid="entity-tags" style={{ margin: '1em 0' }}>
           Tags
         </Title>
-        <FeatureStoreTags tags={entity.spec.tags ?? {}} showAllTags />
+        {Object.keys(entity.spec.tags ?? {}).length > 0 ? (
+          <FeatureStoreTags tags={entity.spec.tags ?? {}} showAllTags />
+        ) : (
+          <Content component="p" className={text.textColorDisabled}>
+            No tags
+          </Content>
+        )}
       </FlexItem>
       <FlexItem>
         <Title
