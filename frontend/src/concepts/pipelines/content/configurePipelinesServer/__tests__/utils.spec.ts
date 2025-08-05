@@ -69,6 +69,7 @@ describe('configure pipeline server utils', () => {
               state: 'Removed',
             },
           },
+          pipelineStore: DSPipelineAPIServerStore.DATABASE,
         },
       });
     });
