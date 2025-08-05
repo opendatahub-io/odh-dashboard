@@ -5,27 +5,20 @@ import { getTemplateEnabledForPlatform } from '@odh-dashboard/internal/pages/mod
 import ManageServingRuntimeModal from '@odh-dashboard/internal/pages/modelServing/screens/projects/ServingRuntimeModal/ManageServingRuntimeModal';
 import ManageKServeModal from '@odh-dashboard/internal/pages/modelServing/screens/projects/kServeModal/ManageKServeModal';
 import ManageNIMServingModal from '@odh-dashboard/internal/pages/modelServing/screens/projects/NIMServiceModal/ManageNIMServingModal';
-import { byName, ProjectsContext } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
-import { useParams } from 'react-router-dom';
 import useConnections from '@odh-dashboard/internal/pages/projects/screens/detail/connections/useConnections';
 import { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
 import { isProjectNIMSupported } from '@odh-dashboard/internal/pages/modelServing/screens/projects/nimUtils';
 import { useServingRuntimeTemplates } from '../../concepts/servingRuntimeTemplates/useServingRuntimeTemplates';
-import { ModelDeploymentsContext } from '../../concepts/ModelDeploymentsContext';
-import {
-  useProjectServingPlatform,
-  ModelServingPlatform,
-} from '../../concepts/useProjectServingPlatform';
+import { useProjectServingPlatform } from '../../concepts/useProjectServingPlatform';
 import { useAvailableClusterPlatforms } from '../../concepts/useAvailableClusterPlatforms';
 
 const DeployButtonModal: React.FC<{
-  platform: ServingRuntimePlatform;
+  platform?: ServingRuntimePlatform;
   currentProject: ProjectKind;
-  namespace?: string;
   onClose: (submit: boolean) => void;
-}> = ({ platform, currentProject, namespace, onClose }) => {
+}> = ({ platform, currentProject, onClose }) => {
   const [templates] = useServingRuntimeTemplates();
-  const connections = useConnections(namespace || '');
+  const connections = useConnections(currentProject.metadata.name);
 
   if (platform === ServingRuntimePlatform.MULTI) {
     return (
@@ -55,44 +48,41 @@ const DeployButtonModal: React.FC<{
 };
 
 export const DeployButton: React.FC<{
-  platform?: ModelServingPlatform;
+  project: ProjectKind | null;
   variant?: ButtonProps['variant'];
-  isDisabled?: boolean;
-}> = ({ platform, variant = 'primary', isDisabled }) => {
+}> = ({ project, variant = 'primary' }) => {
   const [modalShown, setModalShown] = React.useState<boolean>(false);
-  const [platformSelected, setPlatformSelected] = React.useState<ServingRuntimePlatform>();
-  const { namespace: modelNamespace } = useParams<{ namespace: string }>();
-  const { projects } = React.useContext(ProjectsContext);
-  const { clusterPlatforms } = useAvailableClusterPlatforms();
-  const { projects: modelProjects } = React.useContext(ModelDeploymentsContext);
-  const match = modelNamespace ? projects.find(byName(modelNamespace)) : undefined;
-  const currentProject = modelProjects?.find(byName(modelNamespace));
-  const { activePlatform, projectPlatform } = useProjectServingPlatform(match, clusterPlatforms);
 
-  const getServingRuntimePlatform = (platformId: string): ServingRuntimePlatform =>
-    platformId === 'modelmesh' ? ServingRuntimePlatform.MULTI : ServingRuntimePlatform.SINGLE;
+  const { clusterPlatforms } = useAvailableClusterPlatforms();
+  const { activePlatform } = useProjectServingPlatform(project ?? undefined, clusterPlatforms);
+
+  // TODO: remove once we have the wizard
+  const legacyServingRuntimePlatform = React.useMemo(
+    () =>
+      activePlatform?.properties.id === 'modelmesh'
+        ? ServingRuntimePlatform.MULTI
+        : ServingRuntimePlatform.SINGLE,
+    [activePlatform],
+  );
 
   const onSubmit = () => {
     setModalShown(false);
-    setPlatformSelected(undefined);
   };
 
   const handleDeployClick = () => {
-    if (platform) {
-      setPlatformSelected(getServingRuntimePlatform(platform.properties.id));
-    } else {
-      const currentPlatform = activePlatform || projectPlatform;
-      if (currentProject && currentPlatform) {
-        setPlatformSelected(getServingRuntimePlatform(currentPlatform.properties.id));
-      }
-    }
     setModalShown(true);
   };
 
-  const [templates, templatesLoaded] = useServingRuntimeTemplates();
-  const isMissingTemplates = templates.length === 0 || !templatesLoaded;
+  const [globalTemplates, globalTemplatesLoaded] = useServingRuntimeTemplates();
+  const [projectTemplates, projectTemplatesLoaded] = useServingRuntimeTemplates(
+    project?.metadata.name,
+  );
+  const isMissingTemplates =
+    globalTemplates.length === 0 &&
+    globalTemplatesLoaded && // avoid flicker for edge case by waiting for loading to complete
+    (project ? projectTemplates.length === 0 && projectTemplatesLoaded : true);
 
-  const disableButton = !platform || !currentProject || isDisabled || isMissingTemplates;
+  const disableButton = !project || isMissingTemplates;
   const disabledReason = isMissingTemplates
     ? 'At least one serving runtime must be enabled to deploy a model. Contact your administrator.'
     : 'To deploy a model, select a project.';
@@ -124,11 +114,10 @@ export const DeployButton: React.FC<{
   return (
     <>
       {deployButton}
-      {modalShown && platformSelected ? (
+      {modalShown ? (
         <DeployButtonModal
-          platform={platformSelected}
-          currentProject={currentProject}
-          namespace={modelNamespace}
+          platform={legacyServingRuntimePlatform}
+          currentProject={project}
           onClose={onSubmit}
         />
       ) : null}

@@ -62,7 +62,7 @@ const ModelsProjectDetailsView: React.FC<{
       loadError={deploymentsErrors?.[0] || clusterPlatformsError}
       actions={
         hasModels && activePlatform
-          ? [<DeployButton key="deploy-button" platform={activePlatform} variant="secondary" />]
+          ? [<DeployButton key="deploy-button" project={project} variant="secondary" />]
           : undefined
       }
       labels={[
@@ -102,7 +102,7 @@ const ModelsProjectDetailsView: React.FC<{
     >
       {activePlatform &&
         (!hasModels ? (
-          <NoModelsView platform={activePlatform} />
+          <NoModelsView platform={activePlatform} project={project} />
         ) : (
           <ProjectDeploymentsTable
             modelServingPlatform={activePlatform}

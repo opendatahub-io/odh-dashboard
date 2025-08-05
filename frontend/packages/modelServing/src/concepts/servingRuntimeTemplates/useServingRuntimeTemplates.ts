@@ -12,6 +12,7 @@ import {
 
 /**
  * Custom hook that retrieves, sorts, and filters serving runtime templates for model serving.
+ * @param namespace - The namespace to fetch templates from. If not provided, the dashboard namespace is used.
  *
  * @description This hook orchestrates the fetching and processing of serving runtime templates
  * by combining template data with ordering and enablement configurations. The logic determines
@@ -42,10 +43,12 @@ import {
  *   - `loaded`: Boolean indicating if all data sources have finished loading
  *   - `error`: Any error that occurred during data fetching from templates, ordering, or disablement
  */
-export const useServingRuntimeTemplates = (): CustomWatchK8sResult<TemplateKind[]> => {
+export const useServingRuntimeTemplates = (
+  namespace?: string,
+): CustomWatchK8sResult<TemplateKind[]> => {
   const { dashboardNamespace } = useDashboardNamespace();
 
-  const [templates, loaded, error] = useTemplates(dashboardNamespace);
+  const [templates, loaded, error] = useTemplates(namespace || dashboardNamespace);
   const {
     data: order,
     loaded: orderLoaded,

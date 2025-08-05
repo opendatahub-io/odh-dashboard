@@ -122,7 +122,7 @@ const ModelPlatformSection: React.FC<{ platforms: ModelServingPlatform[] }> = ({
           </Stack>
         </CardBody>
         <CardFooter>
-          <DeployButton platform={activePlatform} variant="link" />
+          <DeployButton project={currentProject} variant="link" />
         </CardFooter>
       </OverviewCard>
     </CollapsibleSection>
