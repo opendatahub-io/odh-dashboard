@@ -177,7 +177,7 @@ describe('getFeatureServices', () => {
     expect(proxyGETMock).toHaveBeenCalledTimes(1);
     expect(proxyGETMock).toHaveBeenCalledWith(
       hostPath,
-      `/api/${FEATURE_STORE_API_VERSION}/feature_services/all`,
+      `/api/${FEATURE_STORE_API_VERSION}/feature_services/all?include_relationships=true`,
       opts,
     );
     expect(handleFeatureStoreFailuresMock).toHaveBeenCalledTimes(1);
@@ -195,7 +195,9 @@ describe('getFeatureServices', () => {
     expect(proxyGETMock).toHaveBeenCalledTimes(1);
     expect(proxyGETMock).toHaveBeenCalledWith(
       hostPath,
-      `/api/${FEATURE_STORE_API_VERSION}/feature_services?project=${encodeURIComponent(project)}`,
+      `/api/${FEATURE_STORE_API_VERSION}/feature_services?project=${encodeURIComponent(
+        project,
+      )}&include_relationships=true`,
       opts,
     );
     expect(handleFeatureStoreFailuresMock).toHaveBeenCalledTimes(1);

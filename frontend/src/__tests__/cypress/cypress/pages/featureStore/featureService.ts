@@ -33,7 +33,7 @@ class FeatureServicesTable extends Contextual<HTMLElement> {
   }
 
   findToolbar() {
-    return new FeatureServiceToolbar(() => cy.findByTestId('feature-service-table-toolbar'));
+    return new FeatureServiceToolbar(() => cy.findByTestId('feature-store-table-toolbar'));
   }
 }
 
