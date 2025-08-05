@@ -119,7 +119,7 @@ class FeatureServiceDetailsTabs extends Contextual<HTMLElement> {
   }
 
   shouldHaveFeatureViewsTabContent() {
-    this.findTabContent('feature-service-details-tab').should('exist');
+    this.findTabContent('feature-views-table').should('exist');
     return this;
   }
 }

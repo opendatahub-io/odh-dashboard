@@ -1,4 +1,3 @@
-import '#~/pages/pipelines/global/runs/GlobalPipelineRunsTabs.scss';
 import { PageSection, Tab, TabContentBody, Tabs, TabTitleText } from '@patternfly/react-core';
 import * as React from 'react';
 import { FeatureService } from '#~/pages/featureStore/types/featureServices';

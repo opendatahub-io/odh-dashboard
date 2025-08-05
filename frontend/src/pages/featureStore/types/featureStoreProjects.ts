@@ -13,15 +13,4 @@ export type ProjectList = {
   pagination: FeatureStorePagination;
 };
 
-export type FeatureStoreRelationship = {
-  source: {
-    type: string;
-    name: string;
-  };
-  target: {
-    type: string;
-    name: string;
-  };
-};
-
 export type GetProjects = (opts: K8sAPIOptions) => Promise<ProjectList>;
