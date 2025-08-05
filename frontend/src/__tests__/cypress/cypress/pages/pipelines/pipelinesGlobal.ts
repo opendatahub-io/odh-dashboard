@@ -2,6 +2,7 @@ import { DeleteModal } from '#~/__tests__/cypress/cypress/pages/components/Delet
 import { Modal } from '#~/__tests__/cypress/cypress/pages/components/Modal';
 import { appChrome } from '#~/__tests__/cypress/cypress/pages/appChrome';
 import { SearchSelector } from '#~/__tests__/cypress/cypress/pages/components/subComponents/SearchSelector';
+import { MANAGE_PIPELINE_SERVER_TITLE } from '#~/concepts/pipelines/content/const';
 
 class PipelinesGlobal {
   projectDropdown = new SearchSelector('project-selector');
@@ -157,9 +158,9 @@ class ConfigurePipelineServerModal extends Modal {
   }
 }
 
-class ViewPipelineServerModal extends Modal {
+class ManagePipelineServerModal extends Modal {
   constructor() {
-    super('View pipeline server');
+    super(MANAGE_PIPELINE_SERVER_TITLE);
   }
 
   shouldHaveAccessKey(value: string) {
@@ -189,6 +190,16 @@ class ViewPipelineServerModal extends Modal {
   findPipelineStoreCheckbox() {
     return this.find().findByTestId('pipeline-kubernetes-store-checkbox');
   }
+
+  getPipelineCachingCheckbox() {
+    return this.find().findByTestId('pipeline-cache-enabling');
+  }
+
+  checkButtonState(name: string, isEnabled: boolean) {
+    const id = `managePipelineServer-modal-${name}Btn`;
+    const enabledState = isEnabled ? 'be.enabled' : 'be.disabled';
+    return this.find().findByTestId(id).should(enabledState).should('be.visible');
+  }
 }
 
 class PipelineDeleteModal extends DeleteModal {
@@ -204,4 +215,4 @@ class PipelineDeleteModal extends DeleteModal {
 export const pipelineDeleteModal = new PipelineDeleteModal();
 export const pipelinesGlobal = new PipelinesGlobal();
 export const configurePipelineServerModal = new ConfigurePipelineServerModal();
-export const viewPipelineServerModal = new ViewPipelineServerModal();
+export const managePipelineServerModal = new ManagePipelineServerModal();
