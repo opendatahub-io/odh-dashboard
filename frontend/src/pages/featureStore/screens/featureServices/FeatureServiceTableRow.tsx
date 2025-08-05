@@ -1,14 +1,12 @@
 import * as React from 'react';
 import { Td, Tr } from '@patternfly/react-table';
-import { Timestamp, TimestampTooltipVariant } from '@patternfly/react-core';
 import { Link } from 'react-router';
 import { FeatureService } from '#~/pages/featureStore/types/featureServices';
 import TableRowTitleDescription from '#~/components/table/TableRowTitleDescription.tsx';
 import FeatureStoreTags from '#~/pages/featureStore/components/FeatureStoreTags';
-import { relativeTime } from '#~/utilities/time.ts';
 import { featureServiceRoute, featureViewRoute } from '#~/pages/featureStore/routes';
-import ScrollableLinksPopover from '../../components/ScrollableLinksPopover';
-import FeatureStoreTimestamp from '../../components/FeatureStoreTimestamp';
+import FeatureStoreTimestamp from '#~/pages/featureStore/components/FeatureStoreTimestamp';
+import ScrollableLinksPopover from '#~/pages/featureStore/components/ScrollableLinksPopover';
 
 type FeatureServiceTableRowType = {
   featureService: FeatureService;

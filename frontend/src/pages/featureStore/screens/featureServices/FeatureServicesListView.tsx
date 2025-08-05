@@ -1,8 +1,8 @@
 import React from 'react';
 import { FeatureServicesList } from '#~/pages/featureStore/types/featureServices';
+import { FeatureStoreToolbar } from '#~/pages/featureStore/components/FeatureStoreToolbar';
 import { featureServiceTableFilterOptions } from './const';
 import FeatureServicesTable from './FeatureServicesTable';
-import { FeatureStoreToolbar } from '#~/pages/featureStore/components/FeatureStoreToolbar';
 import { applyFeatureServiceFilters } from './utils';
 
 const FeatureServicesListView = ({
