@@ -1,5 +1,6 @@
 import React from 'react';
 import {
+  Content,
   DescriptionList,
   DescriptionListDescription,
   DescriptionListGroup,
@@ -12,6 +13,7 @@ import {
   Title,
 } from '@patternfly/react-core';
 import { Link } from 'react-router';
+import text from '@patternfly/react-styles/css/utilities/Text/text';
 import { FeatureService } from '#~/pages/featureStore/types/featureServices';
 import FeatureStoreTimestamp from '#~/pages/featureStore/components/FeatureStoreTimestamp.tsx';
 import { featureEntityRoute } from '#~/pages/featureStore/routes.ts';
@@ -111,7 +113,13 @@ const FeatureServiceDetailsPage: React.FC<FeatureServiceDetailsPageProps> = ({
             </Title>
           </FlexItem>
           <FlexItem>
-            <FeatureStoreTags tags={featureService.spec.tags ?? {}} threshold={10} />
+            {Object.keys(featureService.spec.tags ?? {}).length > 0 ? (
+              <FeatureStoreTags tags={featureService.spec.tags ?? {}} showAllTags />
+            ) : (
+              <Content component="p" className={text.textColorDisabled}>
+                No tags
+              </Content>
+            )}
           </FlexItem>
         </Flex>
       </FlexItem>
