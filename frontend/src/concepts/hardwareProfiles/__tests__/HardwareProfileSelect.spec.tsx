@@ -69,6 +69,7 @@ const renderComponent = (
   hardwareProfiles: HardwareProfileKind[],
   currentProject: ProjectKind,
   isKueueEnabled: boolean,
+  allowExistingSettings = false,
 ) => {
   useIsAreaAvailableMock.mockReturnValue({
     status: isKueueEnabled,
@@ -112,7 +113,7 @@ const renderComponent = (
         hardwareProfilesLoaded
         hardwareProfilesError={undefined}
         projectScopedHardwareProfiles={[[], true, undefined, () => Promise.resolve()]}
-        allowExistingSettings={false}
+        allowExistingSettings={allowExistingSettings}
         hardwareProfileConfig={hardwareProfileConfig}
         isHardwareProfileSupported={() => true}
         onChange={() => null}
@@ -159,5 +160,18 @@ describe('HardwareProfileSelect filtering', () => {
     expect(screen.getByText('Kueue Profile 2')).toBeInTheDocument();
     expect(screen.getByText('Node Profile')).toBeInTheDocument();
     expect(screen.getByText('Node Profile 2')).toBeInTheDocument();
+  });
+
+  it('should show "Use existing settings" as the first option when allowExistingSettings is true', async () => {
+    const project = mockProjectK8sResource({});
+    project.metadata.labels ??= {};
+    project.metadata.labels[KnownLabels.KUEUE_MANAGED] = 'true';
+
+    renderComponent(mockProfiles, project, true, true);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Options menu' }));
+
+    const options = screen.getAllByRole('option');
+    expect(options[0]).toHaveTextContent('Use existing settings');
   });
 });
