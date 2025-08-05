@@ -144,7 +144,7 @@ describe('Feature Services', () => {
     const toolbar = featureServicesTable.findToolbar();
 
     toolbar.findFilterMenuOption('filter-toolbar-dropdown', 'Tags').click();
-    toolbar.findSearchInput().type('team=risk');
+    toolbar.findSearchInput().type('team');
     featureServicesTable.shouldHaveFeatureServiceCount(1);
 
     toolbar.findSearchInput().clear().type('nonexistent');
