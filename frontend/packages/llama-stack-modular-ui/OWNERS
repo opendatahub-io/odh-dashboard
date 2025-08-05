@@ -17,6 +17,7 @@ reviewers:
 - alexcreasy
 - andrewballantyne
 - antowaddle
+- Bobbins228
 - christianvogt
 - ChristianZaccaria
 - ederign
@@ -24,6 +25,7 @@ reviewers:
 - pnaik1
 - Schimuneck
 - varshaprasad96
+- Ygnas
 
 labels:
   - area/llama-stack-modular-ui
