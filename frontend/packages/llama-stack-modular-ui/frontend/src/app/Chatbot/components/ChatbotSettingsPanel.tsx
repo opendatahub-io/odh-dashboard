@@ -10,62 +10,46 @@ import {
   FormGroup,
   Divider,
   Title,
-  DropEvent,
 } from '@patternfly/react-core';
-import { ChatbotSourceSettings } from '~/app/types';
 import { ChatbotSourceUploadPanel } from '~/app/Chatbot/sourceUpload/ChatbotSourceUploadPanel';
 import { ACCORDION_ITEMS } from '~/app/Chatbot/const';
+import { UseAccordionStateReturn } from '~/app/Chatbot/hooks/useAccordionState';
+import { UseSystemInstructionsReturn } from '~/app/Chatbot/hooks/useSystemInstructions';
+import { UseSourceManagementReturn } from '~/app/Chatbot/hooks/useSourceManagement';
 import { ModelSelectFormGroup } from './ModelSelectFormGroup';
 import { SystemInstructionsFormGroup } from './SystemInstructionsFormGroup';
 
 interface ChatbotSettingsPanelProps {
-  expandedAccordionItems: string[];
-  onAccordionToggle: (id: string) => void;
+  accordionState: UseAccordionStateReturn;
   models: Array<{ identifier: string }>;
   selectedModel: string;
   onModelChange: (value: string) => void;
-  systemInstructions: string;
-  onSystemInstructionsChange: (value: string) => void;
-  isSystemInstructionsReadOnly: boolean;
-  onEditSystemInstructions: () => void;
-  onSaveSystemInstructions: () => void;
-  onCancelSystemInstructions: () => void;
-  successAlert: React.ReactElement | undefined;
-  errorAlert: React.ReactElement | undefined;
-  onSourceDrop: (event: DropEvent, source: File[]) => void;
-  selectedSource: File[];
-  selectedSourceSettings: ChatbotSourceSettings | null;
-  onRemoveUploadedSource: () => void;
-  onSetSelectedSourceSettings: (settings: ChatbotSourceSettings | null) => void;
+  systemInstructions: UseSystemInstructionsReturn;
+  alerts: {
+    successAlert: React.ReactElement | undefined;
+    errorAlert: React.ReactElement | undefined;
+  };
+  sourceManagement: UseSourceManagementReturn;
 }
 
 const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> = ({
-  expandedAccordionItems,
-  onAccordionToggle,
+  accordionState,
   models,
   selectedModel,
   onModelChange,
   systemInstructions,
-  onSystemInstructionsChange,
-  isSystemInstructionsReadOnly,
-  onEditSystemInstructions,
-  onSaveSystemInstructions,
-  onCancelSystemInstructions,
-  successAlert,
-  errorAlert,
-  onSourceDrop,
-  selectedSource,
-  selectedSourceSettings,
-  onRemoveUploadedSource,
-  onSetSelectedSourceSettings,
+  alerts,
+  sourceManagement,
 }) => (
   <DrawerPanelContent isResizable defaultSize="400px" minSize="300px">
     <DrawerPanelBody>
       <Accordion asDefinitionList={false}>
         {/* Model Details Accordion Item */}
-        <AccordionItem isExpanded={expandedAccordionItems.includes(ACCORDION_ITEMS.MODEL_DETAILS)}>
+        <AccordionItem
+          isExpanded={accordionState.expandedAccordionItems.includes(ACCORDION_ITEMS.MODEL_DETAILS)}
+        >
           <AccordionToggle
-            onClick={() => onAccordionToggle(ACCORDION_ITEMS.MODEL_DETAILS)}
+            onClick={() => accordionState.onAccordionToggle(ACCORDION_ITEMS.MODEL_DETAILS)}
             id={ACCORDION_ITEMS.MODEL_DETAILS}
           >
             <Title headingLevel="h1" size="lg">
@@ -79,41 +63,34 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
                 selectedModel={selectedModel}
                 onModelChange={onModelChange}
               />
-              <SystemInstructionsFormGroup
-                systemInstructions={systemInstructions}
-                onSystemInstructionsChange={onSystemInstructionsChange}
-                isSystemInstructionsReadOnly={isSystemInstructionsReadOnly}
-                onEditSystemInstructions={onEditSystemInstructions}
-                onSaveSystemInstructions={onSaveSystemInstructions}
-                onCancelSystemInstructions={onCancelSystemInstructions}
-              />
+              <SystemInstructionsFormGroup {...systemInstructions} />
             </Form>
           </AccordionContent>
         </AccordionItem>
         <Divider />
         {/* Sources Accordion Item */}
-        <AccordionItem isExpanded={expandedAccordionItems.includes(ACCORDION_ITEMS.SOURCES)}>
+        <AccordionItem
+          isExpanded={accordionState.expandedAccordionItems.includes(ACCORDION_ITEMS.SOURCES)}
+        >
           <AccordionToggle
-            onClick={() => onAccordionToggle(ACCORDION_ITEMS.SOURCES)}
+            onClick={() => accordionState.onAccordionToggle(ACCORDION_ITEMS.SOURCES)}
             id={ACCORDION_ITEMS.SOURCES}
           >
-            {' '}
             <Title headingLevel="h1" size="lg">
-              {' '}
               Sources{' '}
-            </Title>{' '}
+            </Title>
           </AccordionToggle>
           <AccordionContent id="sources-content" className="pf-v6-u-p-md">
             <Form>
               <FormGroup fieldId="sources">
                 <ChatbotSourceUploadPanel
-                  successAlert={successAlert}
-                  errorAlert={errorAlert}
-                  handleSourceDrop={onSourceDrop}
-                  selectedSource={selectedSource}
-                  selectedSourceSettings={selectedSourceSettings}
-                  removeUploadedSource={onRemoveUploadedSource}
-                  setSelectedSourceSettings={onSetSelectedSourceSettings}
+                  successAlert={alerts.successAlert}
+                  errorAlert={alerts.errorAlert}
+                  handleSourceDrop={sourceManagement.handleSourceDrop}
+                  selectedSource={sourceManagement.selectedSource}
+                  selectedSourceSettings={sourceManagement.selectedSourceSettings}
+                  removeUploadedSource={sourceManagement.removeUploadedSource}
+                  setSelectedSourceSettings={sourceManagement.setSelectedSourceSettings}
                 />
               </FormGroup>
             </Form>
@@ -121,9 +98,11 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
         </AccordionItem>
         <Divider />
         {/* MCP Servers Accordion Item */}
-        <AccordionItem isExpanded={expandedAccordionItems.includes(ACCORDION_ITEMS.MCP_SERVERS)}>
+        <AccordionItem
+          isExpanded={accordionState.expandedAccordionItems.includes(ACCORDION_ITEMS.MCP_SERVERS)}
+        >
           <AccordionToggle
-            onClick={() => onAccordionToggle(ACCORDION_ITEMS.MCP_SERVERS)}
+            onClick={() => accordionState.onAccordionToggle(ACCORDION_ITEMS.MCP_SERVERS)}
             id={ACCORDION_ITEMS.MCP_SERVERS}
           >
             <Title headingLevel="h1" size="lg">
