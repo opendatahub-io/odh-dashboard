@@ -123,4 +123,5 @@ export type GetFeatureViews = (
   opts: K8sAPIOptions,
   project?: string,
   entity?: string,
+  featureService?: string,
 ) => Promise<FeatureViewsList>;

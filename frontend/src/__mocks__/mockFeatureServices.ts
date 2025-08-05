@@ -1,9 +1,9 @@
 /* eslint-disable camelcase */
 import { FeatureService } from '#~/pages/featureStore/types/featureServices';
 
-export const mockFeatureService = (partial?: Partial<FeatureService>): FeatureService => ({
+export const mockFeatureService = ({ name }: { name: string }): FeatureService => ({
   spec: {
-    name: 'credit_assessment_v1',
+    name,
     features: [
       {
         featureViewName: 'credit_history',
@@ -270,5 +270,37 @@ export const mockFeatureService = (partial?: Partial<FeatureService>): FeatureSe
     createdTimestamp: '2025-06-30T07:46:22.716396Z',
     lastUpdatedTimestamp: '2025-06-30T07:46:22.716396Z',
   },
-  ...partial,
+  relationships: [
+    {
+      source: {
+        type: 'featureView',
+        name: 'credit_history',
+      },
+      target: {
+        type: 'featureService',
+        name: 'basic_underwriting_v1',
+      },
+    },
+    {
+      source: {
+        type: 'featureView',
+        name: 'person_demographics',
+      },
+      target: {
+        type: 'featureService',
+        name: 'basic_underwriting_v1',
+      },
+    },
+    {
+      source: {
+        type: 'entity',
+        name: 'dob_ssn',
+      },
+      target: {
+        type: 'featureService',
+        name: 'basic_underwriting_v1',
+      },
+    },
+  ],
+  featureDefinition: `from feast import FeatureService\n\nbasic_underwriting_v1 = FeatureService(\n    name=\\"basic_underwriting_v1\\",\n    features=[],\ntags={'team': 'underwriting', 'version': 'v1', 'use_case': 'basic_underwriting', 'complexity': 'simple'},description=\\"Basic underwriting feature set combining credit history and demographics",) `,
 });
