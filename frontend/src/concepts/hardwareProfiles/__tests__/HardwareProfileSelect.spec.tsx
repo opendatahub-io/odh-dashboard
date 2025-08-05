@@ -161,17 +161,32 @@ describe('HardwareProfileSelect filtering', () => {
     expect(screen.getByText('Node Profile')).toBeInTheDocument();
     expect(screen.getByText('Node Profile 2')).toBeInTheDocument();
   });
+});
+
+describe('HardwareProfileSelect - Use existing settings', () => {
+  it('should not show "Use existing settings" as the first option when allowExistingSettings is false', async () => {
+    const project = mockProjectK8sResource({});
+    renderComponent([nodeHardwareProfile, nodeHardwareProfile2], project, false, false);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Options menu' }));
+
+    const options = screen.getAllByRole('option');
+    expect(options[0]).toHaveTextContent('Node Profile');
+    expect(options[1]).toHaveTextContent('Node Profile 2');
+  });
 
   it('should show "Use existing settings" as the first option when allowExistingSettings is true', async () => {
     const project = mockProjectK8sResource({});
     project.metadata.labels ??= {};
     project.metadata.labels[KnownLabels.KUEUE_MANAGED] = 'true';
 
-    renderComponent(mockProfiles, project, true, true);
+    renderComponent([nodeHardwareProfile, nodeHardwareProfile2], project, false, true);
 
     await userEvent.click(screen.getByRole('button', { name: 'Options menu' }));
 
     const options = screen.getAllByRole('option');
     expect(options[0]).toHaveTextContent('Use existing settings');
+    expect(options[1]).toHaveTextContent('Node Profile');
+    expect(options[2]).toHaveTextContent('Node Profile 2');
   });
 });
