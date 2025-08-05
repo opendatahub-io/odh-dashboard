@@ -1,28 +1,29 @@
 approvers:
-- alexcreasy
 - agagancarczyk
-- pnaik1
 - akram
-- varshaprasad96
-- Schimuneck
-- ederign
-- christianvogt
+- alexcreasy
 - andrewballantyne
-- lucferbux
 - antowaddle
+- christianvogt
+- ederign
+- lucferbux
+- pnaik1
+- Schimuneck
+- varshaprasad96
 
 reviewers:
-- alexcreasy
 - agagancarczyk
-- pnaik1
 - akram
-- varshaprasad96
-- Schimuneck
-- ederign
-- christianvogt
+- alexcreasy
 - andrewballantyne
-- lucferbux
 - antowaddle
+- christianvogt
+- ChristianZaccaria
+- ederign
+- lucferbux
+- pnaik1
+- Schimuneck
+- varshaprasad96
 
 labels:
   - area/llama-stack-modular-ui
