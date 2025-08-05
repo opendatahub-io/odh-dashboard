@@ -44,7 +44,6 @@ describe('ManagePipelineServerModal', () => {
 
   // Mock scrollIntoView
   beforeAll(() => {
-    // @ts-expect-error - mocking DOM method
     Element.prototype.scrollIntoView = jest.fn();
   });
 
