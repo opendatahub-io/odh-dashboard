@@ -30,13 +30,13 @@ This file declares how the LM-Eval UI components and routes are exposed to and l
 1. **Build the Micro-Frontend:**
    In a new terminal, navigate into [./upstream/frontend], run `npm install`.
 
-   Then run `npm run start:dev`
+   Then run `npm run start:dev -- --port 9001`
 
 2. **Start the LM Eval BFF:**
 
    In a new terminal, navigate into [./upstream/bff].
 
-   Then run `go run ./cmd --auth-method=mock --allowed-origins=http://localhost:4010,http://localhost:9000`
+   Then run `go run ./cmd --auth-method=mock --allowed-origins=http://localhost:9001,http://localhost:9000`
 
    This would run the bff in mock mode and can be used for development.
 
