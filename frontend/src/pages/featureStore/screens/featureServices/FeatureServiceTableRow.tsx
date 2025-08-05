@@ -59,7 +59,6 @@ const FeatureServiceTableRow: React.FC<FeatureServiceTableRowType> = ({
       <FeatureStoreTimestamp date={featureService.meta.lastUpdatedTimestamp} />
     </Td>
     <Td dataLabel="Owner">{featureService.spec.owner ?? '-'}</Td>
-    {!fsProject && <Td dataLabel="Project">{featureService.project}</Td>}
   </Tr>
 );
 
