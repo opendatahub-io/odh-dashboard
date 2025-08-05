@@ -1,11 +1,19 @@
 import { K8sAPIOptions } from '#~/k8sTypes';
-import { FeatureStoreMeta, FeatureStoreRelationship } from './global';
-import { Features } from './features';
+import { BatchSource, FeatureStoreMeta, FeatureStoreRelationship } from './global';
+import { FeatureColumns } from './features';
+
+export type FeatureSerivceFeatures = {
+  featureViewName: string;
+  featureColumns: FeatureColumns[];
+  timestampField?: string;
+  createdTimestampColumn?: string;
+  batchSource?: BatchSource;
+}[];
 
 export type FeatureService = {
   spec: {
     name: string;
-    features?: Features;
+    features?: FeatureSerivceFeatures;
     tags?: Record<string, string>;
     description?: string;
     owner?: string;
