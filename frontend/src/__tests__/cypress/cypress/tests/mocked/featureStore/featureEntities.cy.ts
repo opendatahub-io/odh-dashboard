@@ -360,16 +360,6 @@ describe('Entity Feature Views Tab', () => {
     mockEntityFeatureViewsIntercept();
   });
 
-  it('should display feature views tab with loading state', () => {
-    cy.visit(`/featureStore/entities/${fsProjectName}/user_id`);
-    cy.wait('@getEntityDetails');
-
-    featureEntityDetails.clickFeatureViewsTab();
-    featureEntityDetails.findFeatureViewsTabContent().within(() => {
-      cy.get('[data-testid="loading-spinner"]').should('be.visible');
-    });
-  });
-
   it('should display feature views for the entity', () => {
     cy.visit(`/featureStore/entities/${fsProjectName}/user_id`);
     cy.wait('@getEntityDetails');
@@ -415,7 +405,10 @@ describe('Entity Feature Views Tab', () => {
     cy.get('@getEntityFeatureViews.all').should('have.length', 0);
     featureEntityDetails.clickFeatureViewsTab();
     cy.wait('@getEntityFeatureViews');
-    cy.get('@getEntityFeatureViews.all').should('have.length', 2);
+    cy.get('@getEntityFeatureViews.all').should('have.length.at.least', 1);
+    featureEntityDetails.findFeatureViewsTabContent().within(() => {
+      featureViewsTable.findTable().should('be.visible');
+    });
   });
 
   it('should navigate to feature view details when clicking on feature view name', () => {

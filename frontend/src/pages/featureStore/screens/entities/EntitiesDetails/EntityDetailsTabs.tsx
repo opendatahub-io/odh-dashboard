@@ -41,7 +41,12 @@ const EntityDetailsTabs: React.FC<EntityDetailsTabsProps> = ({ entity }) => {
         aria-label="Entity feature views tab"
         data-testid="entity-feature-views-tab"
       >
-        <PageSection hasBodyWrapper={false} isFilled data-testid="entity-feature-views-tab-content">
+        <PageSection
+          hasBodyWrapper={false}
+          isFilled
+          data-testid="entity-feature-views-tab-content"
+          className="pf-v6-u-mt-xl"
+        >
           <EntityFeatureViewsTab entity={entity} />
         </PageSection>
       </Tab>
