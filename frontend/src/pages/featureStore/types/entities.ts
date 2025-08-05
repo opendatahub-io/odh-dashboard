@@ -1,6 +1,6 @@
 import { K8sAPIOptions } from '#~/k8sTypes';
 import { DataSource } from './dataSources';
-import { FeatureStoreMeta, FeatureStorePagination } from './global';
+import { FeatureStoreMeta, FeatureStorePagination, FeatureStoreRelationship } from './global';
 
 export type Entity = {
   spec: {
@@ -17,20 +17,10 @@ export type Entity = {
   dataSources?: DataSource[];
 };
 
-export type EntityConnection = {
-  type: string;
-  name: string;
-};
-
-export type EntityRelationship = {
-  source: EntityConnection;
-  target: EntityConnection;
-};
-
 export type EntityList = {
   entities: Entity[];
   pagination: FeatureStorePagination;
-  relationships: Record<string, EntityRelationship[]>;
+  relationships: Record<string, FeatureStoreRelationship[]>;
 };
 
 export type GetEntities = (opts: K8sAPIOptions, project?: string) => Promise<EntityList>;

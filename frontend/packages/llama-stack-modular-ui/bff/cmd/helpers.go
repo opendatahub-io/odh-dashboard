@@ -24,6 +24,9 @@ func getEnvAsString(name string, defaultVal string) string {
 	return defaultVal
 }
 
+// TODO: remove nolint comment below when we use this method
+//
+//nolint:unused
 func getEnvAsBool(name string, defaultVal bool) bool {
 	if value, exists := os.LookupEnv(name); exists {
 		boolValue, err := strconv.ParseBool(value)

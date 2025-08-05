@@ -10,6 +10,6 @@ const (
 	TraceIdKey     contextKey = "TraceIdKey"
 	TraceLoggerKey contextKey = "TraceLoggerKey"
 
-	// OAuth related keys
-	AuthTokenKey contextKey = "AuthTokenKey"
+	// The following keys are used to store the user access token in the context
+	RequestIdentityKey contextKey = "requestIdentityKey"
 )

@@ -526,7 +526,7 @@ describe('Hardware Profile', () => {
       hardwareProfile.visit();
       const row = hardwareProfile.getRow('Test Hardware Profile With Queue');
       row.findExpandButton().click();
-      row.findExpandableSection().contains('Local Queue').should('be.visible');
+      row.findExpandableSection().contains('Local queue').should('be.visible');
       row.findExpandableSection().contains('test-queue').should('be.visible');
       row.findExpandableSection().contains('Workload priority').should('be.visible');
       row.findExpandableSection().contains('high').should('be.visible');
