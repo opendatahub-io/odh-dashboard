@@ -6,6 +6,8 @@ import {
   DescriptionListGroup,
   DescriptionListTerm,
   DescriptionListDescription,
+  Stack,
+  StackItem,
 } from '@patternfly/react-core';
 import FormSection from '#~/components/pf-overrides/FormSection';
 
@@ -51,18 +53,23 @@ export const PipelineCachingSection = ({
     />
   );
 
-  // note:  alert is in a div because PatternFly's Alert is a function component that doesn't accept refs directly
-  // need the ref for auto-scrolling
+  // note:  alert is in a div because the :
+  // 1) alerts don't take refs
+  // 2) the StackItem is not properly passing down the ref (the auto-scrolling is not happening when the ref is on the stackItem)
+  //   using the Stackitem for the margins; as opposed to adding a margin directly with explicit css.
+  // need the ref for auto-scrolling (scroll to the alert upon unchecking the box; else the alert is below the fold and invisible to the user)
   const alertElement = !enableCaching && (
     <div ref={alertRef}>
-      <Alert
-        variant="warning"
-        isInline
-        title="Caching is disabled"
-        data-testid="pipeline-caching-disabled-alert"
-      >
-        All pipelines will be prevented from caching.
-      </Alert>
+      <StackItem>
+        <Alert
+          variant="warning"
+          isInline
+          title="Caching is disabled"
+          data-testid="pipeline-caching-disabled-alert"
+        >
+          All pipelines will be prevented from caching.
+        </Alert>
+      </StackItem>
     </div>
   );
 
@@ -88,8 +95,8 @@ export const PipelineCachingSection = ({
   };
 
   return (
-    <>
+    <Stack hasGutter>
       {getMainComponent()} {alertElement}
-    </>
+    </Stack>
   );
 };
