@@ -2,7 +2,7 @@ import { K8sAPIOptions } from '#~/k8sTypes';
 import { BatchSource, FeatureStoreMeta, FeatureStoreRelationship } from './global';
 import { FeatureColumns } from './features';
 
-export type FeatureSerivceFeatures = {
+export type FeatureServiceFeatures = {
   featureViewName: string;
   featureColumns: FeatureColumns[];
   timestampField?: string;
@@ -13,7 +13,7 @@ export type FeatureSerivceFeatures = {
 export type FeatureService = {
   spec: {
     name: string;
-    features?: FeatureSerivceFeatures;
+    features?: FeatureServiceFeatures;
     tags?: Record<string, string>;
     description?: string;
     owner?: string;
