@@ -98,7 +98,7 @@ export const DeployButton: React.FC<{
       <Tooltip
         data-testid="deploy-model-tooltip"
         aria-label="Model Serving Action Info"
-        content={<div>{disabledReason}</div>}
+        content={disabledReason}
       >
         {deployButton}
       </Tooltip>

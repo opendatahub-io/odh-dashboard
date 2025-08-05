@@ -8,9 +8,7 @@ import {
   Stack,
   Label,
   CardFooter,
-  Button,
 } from '@patternfly/react-core';
-import { PencilAltIcon } from '@patternfly/react-icons';
 import CollapsibleSection from '@odh-dashboard/internal/concepts/design/CollapsibleSection';
 import { ProjectObjectType, SectionType } from '@odh-dashboard/internal/concepts/design/utils';
 import OverviewCard from '@odh-dashboard/internal/pages/projects/screens/detail/overview/components/OverviewCard';
@@ -20,7 +18,8 @@ import {
   type ModelServingPlatform,
 } from '../../concepts/useProjectServingPlatform';
 import { DeployButton } from '../deploy/DeployButton';
-import { PlatformSelectionGallery } from '../platformSelection';
+import { PlatformSelectionGallery } from '../platforms/platformSelection';
+import { ResetPlatformButton } from '../platforms/ResetPlatformButton';
 
 const galleryWidth = {
   minWidths: { default: '100%', lg: 'calc(50% - 1rem / 2)' },
@@ -96,18 +95,12 @@ const ModelPlatformSection: React.FC<{ platforms: ModelServingPlatform[] }> = ({
         headerInfo={
           <Flex gap={{ default: 'gapSm' }}>
             <Label>{enabledText}</Label>
-            {platforms.length > 1 && (
-              <Button
-                data-testid="change-serving-platform-button"
-                variant="link"
-                isInline
-                onClick={resetProjectPlatform}
-                icon={<PencilAltIcon />}
-                isDisabled={!!newProjectPlatformLoading}
-              >
-                Change
-              </Button>
-            )}
+            <ResetPlatformButton
+              platforms={platforms}
+              hasDeployments={false}
+              isLoading={!!newProjectPlatformLoading}
+              onReset={resetProjectPlatform}
+            />
           </Flex>
         }
       >
