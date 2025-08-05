@@ -1,5 +1,5 @@
-import { Features } from './features';
 import { FeatureStoreMeta } from './global';
+import { Features } from './features';
 
 export type FeatureService = {
   spec: {

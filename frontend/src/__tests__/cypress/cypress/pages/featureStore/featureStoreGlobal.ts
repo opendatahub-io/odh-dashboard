@@ -18,6 +18,12 @@ class FeatureStoreGlobal {
     this.waitForEntities();
   }
 
+  visitFeatures(project?: string) {
+    const projectName = project;
+    cy.visitWithLogin(`/featureStore/features${projectName ? `/${projectName}` : ''}`);
+    this.waitForFeatures();
+  }
+
   navigate() {
     appChrome.findNavItem('Feature store').click();
     this.wait();
@@ -31,6 +37,11 @@ class FeatureStoreGlobal {
   navigateToEntities() {
     appChrome.findNavItem('Entities').click();
     this.waitForEntities();
+  }
+
+  navigateToFeatures() {
+    appChrome.findNavItem('Features').click();
+    this.waitForFeatures();
   }
 
   findHeading() {
@@ -49,6 +60,11 @@ class FeatureStoreGlobal {
 
   private waitForEntities() {
     cy.findByTestId('app-page-title').should('have.text', 'Entities');
+    cy.testA11y();
+  }
+
+  private waitForFeatures() {
+    cy.findByTestId('app-page-title').should('have.text', 'Features');
     cy.testA11y();
   }
 
