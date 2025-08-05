@@ -36,7 +36,7 @@ const TruncatedText: React.FC<TruncatedTextProps> = ({
       }}
       ref={outerElementRef}
       onMouseEnter={(e) => {
-        props.onMouseLeave?.(e);
+        props.onMouseEnter?.(e);
         updateTruncation();
       }}
       onFocus={(e) => {
