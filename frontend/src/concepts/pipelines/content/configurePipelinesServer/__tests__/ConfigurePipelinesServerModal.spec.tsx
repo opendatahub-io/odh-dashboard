@@ -169,7 +169,10 @@ describe('ConfigurePipelinesServerModal', () => {
 
     // Pipeline Caching Section
     expect(screen.getByText('Pipeline caching')).toBeInTheDocument();
-    expect(screen.getByText('Enable caching configuration in pipelines')).toBeInTheDocument();
+    expect(screen.getByText('Pipeline definition storage')).toBeInTheDocument();
+    expect(
+      screen.getByText('Allow caching to be configured per pipeline and task'),
+    ).toBeInTheDocument();
   });
 
   it('should show fine-tuning section when available', () => {
