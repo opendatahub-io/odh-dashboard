@@ -21,9 +21,8 @@ export class NIMCard extends Card {
         return cy.get('[aria-labelledby="nvidia-nim"]').then(($aria) => {
           if ($aria.length > 0) {
             return cy.wrap($aria);
-          } else {
-            throw new Error('NIM card not found with any available selector');
           }
+          throw new Error('NIM card not found with any available selector');
         });
       });
     });
@@ -35,7 +34,7 @@ export class NIMCard extends Card {
       // Try each selector using jQuery find() which doesn't throw errors
       let found = false;
       let selector = '';
-      
+
       // 1. Try [data-testid="card nvidia-nim"]
       const cardElements = $body.find('[data-testid="card nvidia-nim"]');
       if (cardElements.length > 0) {
@@ -44,7 +43,7 @@ export class NIMCard extends Card {
         cy.log(`🔍 NIM card detection: found ${cardElements.length} elements with ${selector}`);
         cy.wrap(cardElements).scrollIntoView();
       }
-      
+
       // 2. If not found, try #nvidia-nim-selectable-card-id
       if (!found) {
         const radioElements = $body.find('#nvidia-nim-selectable-card-id');
@@ -55,7 +54,7 @@ export class NIMCard extends Card {
           cy.wrap(radioElements).scrollIntoView();
         }
       }
-      
+
       // 3. If not found, try [aria-labelledby="nvidia-nim"]
       if (!found) {
         const ariaElements = $body.find('[aria-labelledby="nvidia-nim"]');
@@ -66,11 +65,11 @@ export class NIMCard extends Card {
           cy.wrap(ariaElements).scrollIntoView();
         }
       }
-      
+
       if (!found) {
         cy.log(`🔍 NIM card detection: found 0 elements with any selector`);
       }
-      
+
       return cy.wrap(found);
     });
   }
@@ -83,10 +82,10 @@ export class NIMCard extends Card {
     return cy.get('body').then(($body) => {
       const enableButtons = $body.find('[data-testid="enable-app"]');
       const count = enableButtons.length;
-      
+
       // Log the detection result before returning
       cy.log(`🔍 Enable button detection: found ${count} elements with [data-testid="enable-app"]`);
-      
+
       // Return the result without any cy commands after this point
       return count > 0;
     });

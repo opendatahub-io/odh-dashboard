@@ -9,7 +9,6 @@ import {
   checkNIMApplicationExists,
 } from '#~/__tests__/cypress/cypress/utils/oc_commands/nimCommands';
 
-
 /**
  * NIM Application Enablement Test
  *
@@ -20,13 +19,12 @@ import {
  * 4. Validates the NIM card contents and description
  * 5. Clicks the NIM card and enables it with NGC API key
  * 6. Verifies the validation process and success notification
- * 7. Confirms the NIM application appears on the Enabled page
+ * 7. Confirms the NIM application appears on the Enabled page:
  *
  * The test is designed to work in both ODH and RHOAI environments,
  * automatically handling cases where NIM is not included by default.
  */
 describe('Verify NIM enable flow', () => {
-
   before(() => {
     cy.step('Clean up any existing NIM account before test');
     deleteNIMAccount();
@@ -35,7 +33,7 @@ describe('Verify NIM enable flow', () => {
   it(
     'Enable and validate NIM flow',
     { tags: ['@NIM', '@Sanity', '@SanitySet3', '@NonConcurrent'] },
-    function() {
+    function enableAndValidateNIMFlow() {
       cy.step('Login to the application');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
@@ -46,7 +44,7 @@ describe('Verify NIM enable flow', () => {
       checkNIMApplicationExists().then((nimExists) => {
         if (nimExists) {
           cy.log('✅ NIM OdhApplication exists on cluster - checking UI');
-          
+
           cy.step('Check if NIM card is available in UI');
           nimCard.isNIMCardAvailable().then((isAvailable) => {
             if (isAvailable) {
@@ -151,24 +149,24 @@ function executeNIMTestSteps(): Cypress.Chainable<boolean> {
     );
   cy.step('Click NIM card');
   nimCard.getNIMCard().click();
-  
+
   // Wait for the drawer to be visible and content to load
   cy.step('Wait for drawer content to load');
   cy.get('.pf-v6-c-drawer__panel-main', { timeout: 10000 }).should('be.visible');
-  
+
   // Validate that the drawer action list is visible
   cy.step('Validate drawer action list is visible');
   cy.get('.pf-v6-c-action-list', { timeout: 10000 }).should('be.visible');
-  
+
   // Wait for enable button to be visible in the action list
   cy.step('Wait for enable button to be visible in action list');
   cy.get('[data-testid="enable-app"]', { timeout: 10000 }).should('be.visible');
-  
+
   // Enable button exists, proceed with enablement
   cy.log('✅ Enable button is available - NIM application is ready to be enabled');
   cy.step('Click Enable button in NIM card');
   nimCard.getEnableNIMButton().click();
-  
+
   // Continue with enablement steps
   cy.step('Input NGC API Key');
   nimCard.getNGCAPIKey().clear().type(Cypress.env('NGC_API_KEY'));
