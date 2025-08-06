@@ -171,6 +171,7 @@ describe('HardwareProfileSelect - Use existing settings', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Options menu' }));
 
     const options = screen.getAllByRole('option');
+    expect(screen.queryByText('Use existing settings')).not.toBeInTheDocument();
     expect(options[0]).toHaveTextContent('Node Profile');
     expect(options[1]).toHaveTextContent('Node Profile 2');
   });
