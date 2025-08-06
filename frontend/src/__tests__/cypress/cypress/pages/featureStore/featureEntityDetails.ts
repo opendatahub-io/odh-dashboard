@@ -69,6 +69,19 @@ class FeatureEntityDetails extends Contextual<HTMLElement> {
     return cy.findByTestId('properties-table');
   }
 
+  findFeatureViewsTab() {
+    return cy.findByTestId('entity-feature-views-tab');
+  }
+
+  clickFeatureViewsTab() {
+    this.findFeatureViewsTab().click();
+    return this;
+  }
+
+  findFeatureViewsTabContent() {
+    return cy.findByTestId('entity-feature-views-tab-content');
+  }
+
   shouldHaveApplicationsPageDescription(description: string) {
     this.findApplicationsPageDescription().should('contain.text', description);
     return this;
