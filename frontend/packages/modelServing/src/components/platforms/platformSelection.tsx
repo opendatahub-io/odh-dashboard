@@ -13,7 +13,7 @@ import {
 } from '@patternfly/react-core';
 import { SectionType } from '@odh-dashboard/internal/concepts/design/utils';
 import OverviewCard from '@odh-dashboard/internal/pages/projects/screens/detail/overview/components/OverviewCard';
-import type { ModelServingPlatform } from '../concepts/useProjectServingPlatform';
+import type { ModelServingPlatform } from '../../concepts/useProjectServingPlatform';
 
 // Shared card component for platform selection -
 export const PlatformSelectionCard: React.FC<{
