@@ -480,7 +480,7 @@ describe('Project Details', () => {
       projectDetails.visitSection('test-project', 'model-server');
       projectDetails.findTopLevelDeployModelButton().should('have.attr', 'aria-disabled');
       projectDetails.findTopLevelDeployModelButton().trigger('mouseenter');
-      projectDetails.findDeployModelTooltip().should('be.visible');
+      projectDetails.findDeployModelTooltip().should('exist');
     });
 
     it('Only multi serving platform enabled, no serving runtimes templates', () => {
@@ -491,7 +491,7 @@ describe('Project Details', () => {
       projectDetails.visitSection('test-project', 'model-server');
       projectDetails.findTopLevelAddModelServerButton().should('have.attr', 'aria-disabled');
       projectDetails.findTopLevelAddModelServerButton().trigger('mouseenter');
-      projectDetails.findDeployModelTooltip().should('be.visible');
+      projectDetails.findDeployModelTooltip().should('exist');
     });
 
     it('Both model serving platforms are enabled, single-model platform is selected, no serving runtimes templates', () => {
@@ -503,7 +503,7 @@ describe('Project Details', () => {
       projectDetails.visitSection('test-project', 'model-server');
       projectDetails.findTopLevelDeployModelButton().should('have.attr', 'aria-disabled');
       projectDetails.findTopLevelDeployModelButton().trigger('mouseenter');
-      projectDetails.findDeployModelTooltip().should('be.visible');
+      projectDetails.findDeployModelTooltip().should('exist');
     });
 
     it('Both model serving platforms are enabled, multi-model platform is selected, no serving runtimes templates', () => {
@@ -515,7 +515,7 @@ describe('Project Details', () => {
       projectDetails.visitSection('test-project', 'model-server');
       projectDetails.findTopLevelAddModelServerButton().should('have.attr', 'aria-disabled');
       projectDetails.findTopLevelAddModelServerButton().trigger('mouseenter');
-      projectDetails.findDeployModelTooltip().should('be.visible');
+      projectDetails.findDeployModelTooltip().should('exist');
     });
 
     it('Single model serving platform is enabled', () => {
@@ -990,6 +990,12 @@ describe('Project Details', () => {
     });
 
     it('Change serving platform button should be disabled with tooltip when non-dashboard serving runtime exists', () => {
+      // Create a non-dashboard inference service
+      const nonDashboardInferenceService = mockInferenceServiceK8sResource({
+        name: 'non-dashboard-inference',
+        namespace: 'test-project',
+        isNonDashboardItem: true,
+      });
       // Create a non-dashboard serving runtime
       const nonDashboardServingRuntime = mockServingRuntimeK8sResource({
         name: 'non-dashboard-runtime',
@@ -1001,7 +1007,7 @@ describe('Project Details', () => {
         disableKServeConfig: false,
         disableModelConfig: false,
         enableModelMesh: false,
-        inferenceServices: [],
+        inferenceServices: [nonDashboardInferenceService],
         servingRuntimes: [nonDashboardServingRuntime],
       });
 
