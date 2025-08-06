@@ -34,3 +34,4 @@ export * from './mockFeatureViews';
 export * from './mockEntities';
 export * from './mockFeatureStoreProject';
 export * from './mockFeatureStoreService';
+export * from './mockFeatures';

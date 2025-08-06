@@ -8,6 +8,10 @@ import {
   Modal,
   ModalBody,
   ModalHeader,
+  ModalFooter,
+  Button,
+  ActionGroup,
+  Spinner,
 } from '@patternfly/react-core';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import PasswordHiddenText from '#~/components/PasswordHiddenText';
@@ -15,18 +19,23 @@ import { dataEntryToRecord } from '#~/utilities/dataEntryToRecord';
 import useNamespaceSecret from '#~/concepts/projects/apiHooks/useNamespaceSecret';
 import { ExternalDatabaseSecret } from '#~/concepts/pipelines/content/configurePipelinesServer/const';
 import { DSPipelineAPIServerStore, DSPipelineKind } from '#~/k8sTypes';
+import { updatePipelineCaching } from '#~/api/pipelines/k8s';
+import useNotification from '#~/utilities/useNotification';
 import PipelineKubernetesStoreCheckbox from './PipelineKubernetesStoreCheckbox';
+import { MANAGE_PIPELINE_SERVER_TITLE } from './const';
+import { PipelineCachingSection } from './configurePipelinesServer/PipelineCachingSection';
 
-type ViewPipelineServerModalProps = {
+type ManagePipelineServerModalProps = {
   onClose: () => void;
   pipelineNamespaceCR: DSPipelineKind | null;
 };
 
-const ViewPipelineServerModal: React.FC<ViewPipelineServerModalProps> = ({
+const ManagePipelineServerModal: React.FC<ManagePipelineServerModalProps> = ({
   onClose,
   pipelineNamespaceCR,
 }) => {
   const { namespace } = usePipelinesAPI();
+  const notification = useNotification();
   const [pipelineResult] = useNamespaceSecret(
     namespace,
     pipelineNamespaceCR?.spec.objectStorage.externalStorage?.s3CredentialsSecret.secretName ?? '',
@@ -35,10 +44,56 @@ const ViewPipelineServerModal: React.FC<ViewPipelineServerModalProps> = ({
   const [result] = useNamespaceSecret(namespace, ExternalDatabaseSecret.NAME);
   const databaseSecret = dataEntryToRecord(result?.values?.data ?? []);
 
+  const initCachingEnabled = pipelineNamespaceCR?.spec.apiServer?.cacheEnabled || false;
+
+  // State for caching configuration
+  const [enableCaching, setEnableCaching] = React.useState<boolean>(initCachingEnabled);
+
+  // Track if changes have been made
+  const hasChanges = enableCaching !== initCachingEnabled;
+
+  const [isUpdating, setIsUpdating] = React.useState(false);
+
+  React.useEffect(() => {
+    const value = pipelineNamespaceCR?.spec.apiServer?.cacheEnabled ?? false;
+
+    setEnableCaching(value);
+  }, [pipelineNamespaceCR]);
+
+  const updateCaching = () => {
+    setIsUpdating(true);
+
+    updatePipelineCaching(namespace, enableCaching)
+      .then(() => {
+        notification.success(
+          'Pipeline caching updated',
+          `Caching has been ${enableCaching ? 'enabled' : 'disabled'} successfully.`,
+        );
+
+        setIsUpdating(false);
+        onClose();
+      })
+      .catch((error: unknown) => {
+        console.error('Failed to update caching:', error);
+
+        notification.error(
+          'Failed to update pipeline caching',
+          'An unexpected error occurred while updating caching settings.',
+        );
+
+        setIsUpdating(false);
+      });
+  };
+
   return (
     <Modal isOpen onClose={onClose} variant="small">
-      <ModalHeader title="View pipeline server" />
+      <ModalHeader title={MANAGE_PIPELINE_SERVER_TITLE} />
       <ModalBody>
+        {!pipelineNamespaceCR && (
+          <>
+            Loading ... <Spinner size="lg" />
+          </>
+        )}
         {pipelineNamespaceCR && (
           <DescriptionList termWidth="20ch" isHorizontal>
             {!!pipelineNamespaceCR.spec.objectStorage.externalStorage?.s3CredentialsSecret
@@ -122,8 +177,10 @@ const ViewPipelineServerModal: React.FC<ViewPipelineServerModalProps> = ({
                 </>
               )}
             <>
-              <Title headingLevel="h2">Additional configurations</Title>
-              <DescriptionList isHorizontal isFluid>
+              <Title headingLevel="h2" data-testid="additionalConfig-headerText">
+                Additional configurations
+              </Title>
+              <DescriptionList isHorizontal>
                 <DescriptionListGroup>
                   <DescriptionListTerm>Pipeline definition storage</DescriptionListTerm>
                   <DescriptionListDescription>
@@ -136,13 +193,38 @@ const ViewPipelineServerModal: React.FC<ViewPipelineServerModalProps> = ({
                     />
                   </DescriptionListDescription>
                 </DescriptionListGroup>
+                <PipelineCachingSection
+                  enableCaching={enableCaching}
+                  setEnableCaching={setEnableCaching}
+                  variant="description"
+                />
               </DescriptionList>
             </>
           </DescriptionList>
         )}
       </ModalBody>
+      <ModalFooter>
+        <ActionGroup>
+          <Button
+            variant="primary"
+            onClick={updateCaching}
+            isLoading={isUpdating}
+            isDisabled={!hasChanges || isUpdating}
+            data-testid="managePipelineServer-modal-saveBtn"
+          >
+            Save
+          </Button>
+          <Button
+            variant="link"
+            onClick={onClose}
+            data-testid="managePipelineServer-modal-cancelBtn"
+          >
+            Cancel
+          </Button>
+        </ActionGroup>
+      </ModalFooter>
     </Modal>
   );
 };
 
-export default ViewPipelineServerModal;
+export default ManagePipelineServerModal;

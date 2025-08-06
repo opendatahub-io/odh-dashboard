@@ -14,6 +14,8 @@ export const entityTableFilterKeyMapping: Record<string, string> = {
 
 const entityFilterUtils = createFeatureStoreFilterUtils<Entity, FeatureStoreRelationship>(
   entityTableFilterKeyMapping,
+  'spec.name', // namePath - Entity has spec.name
+  'spec.tags', // tagsPath - Entity has spec.tags
 );
 
 export const applyEntityFilters = entityFilterUtils.applyFilters;
