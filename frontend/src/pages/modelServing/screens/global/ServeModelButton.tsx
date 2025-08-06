@@ -15,6 +15,7 @@ import { byName, ProjectsContext } from '#~/concepts/projects/ProjectsContext';
 import { isProjectNIMSupported } from '#~/pages/modelServing/screens/projects/nimUtils';
 import ManageNIMServingModal from '#~/pages/modelServing/screens/projects/NIMServiceModal/ManageNIMServingModal';
 import useServingPlatformStatuses from '#~/pages/modelServing/useServingPlatformStatuses';
+import useKueueDisabled from '#~/concepts/projects/hooks/useKueueDisabled.ts';
 
 const ServeModelButton: React.FC = () => {
   const [platformSelected, setPlatformSelected] = React.useState<
@@ -35,11 +36,18 @@ const ServeModelButton: React.FC = () => {
 
   const project = projects.find(byName(namespace));
 
+  const { isKueueDisabled } = project ? useKueueDisabled(project) : { isKueueDisabled: false };
+
   const templatesSorted = getSortedTemplates(templates, templateOrder);
   const templatesEnabled = templatesSorted.filter((template) =>
     getTemplateEnabled(template, templateDisablement),
   );
   const isKServeNIMEnabled = !!project && isProjectNIMSupported(project);
+
+  const isProjectModelMesh =
+    project &&
+    getProjectModelServingPlatform(project, servingPlatformStatuses).platform ===
+      ServingRuntimePlatform.MULTI;
 
   const onSubmit = (submit: boolean) => {
     if (submit) {
@@ -60,7 +68,10 @@ const ServeModelButton: React.FC = () => {
         )
       }
       isAriaDisabled={
-        !project || templatesEnabled.length === 0 || (!isNIMAvailable && isKServeNIMEnabled)
+        !project ||
+        templatesEnabled.length === 0 ||
+        (!isNIMAvailable && isKServeNIMEnabled) ||
+        (!isProjectModelMesh && isKueueDisabled)
       }
     >
       Deploy model
@@ -78,6 +89,14 @@ const ServeModelButton: React.FC = () => {
   if (!isNIMAvailable && isKServeNIMEnabled) {
     return (
       <Tooltip content="NIM is not available. Contact your administrator.">{deployButton}</Tooltip>
+    );
+  }
+
+  if (!isProjectModelMesh && isKueueDisabled) {
+    return (
+      <Tooltip content="Model deployment requires Kueue. Contact your admin.">
+        {deployButton}
+      </Tooltip>
     );
   }
 
