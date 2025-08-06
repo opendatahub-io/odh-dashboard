@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
 
-import { LlamaModel } from '@app/types';
+import { LlamaModel } from '~/app/types';
 
 export const mockLlamaModels: LlamaModel[] = [
   {
