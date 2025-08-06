@@ -19,6 +19,8 @@ import FeatureStoreTimestamp from '#~/pages/featureStore/components/FeatureStore
 import { featureEntityRoute } from '#~/pages/featureStore/routes.ts';
 import FeatureStoreTags from '#~/pages/featureStore/components/FeatureStoreTags.tsx';
 import FeatureStoreCodeBlock from '#~/pages/featureStore/components/FeatureStoreCodeBlock.tsx';
+import { hasContent } from '#~/pages/featureStore/const';
+import { countFeatures } from './utils';
 
 type FeatureServiceDetailsPageProps = {
   featureService: FeatureService;
@@ -45,14 +47,8 @@ const FeatureServiceDetailsPage: React.FC<FeatureServiceDetailsPageProps> = ({
           <DescriptionListGroup>
             <DescriptionListTerm data-testid="feature-overview-label">Overview</DescriptionListTerm>
             <DescriptionListDescription data-testid="feature-overview-value">
-              <Label>
-                {featureService.spec.features?.reduce(
-                  (acc, fv) => acc + (fv.featureColumns.length || 0),
-                  0,
-                )}{' '}
-                features
-              </Label>{' '}
-              from <Label>{featureService.spec.features?.length} feature views</Label>
+              <Label>{countFeatures(featureService) ?? 0} features</Label> from{' '}
+              <Label>{featureService.spec.features?.length ?? 0} feature views</Label>
             </DescriptionListDescription>
           </DescriptionListGroup>
           <DescriptionListGroup>
@@ -74,15 +70,16 @@ const FeatureServiceDetailsPage: React.FC<FeatureServiceDetailsPageProps> = ({
         </DescriptionList>
       </FlexItem>
 
-      {featureService.relationships &&
-        featureService.relationships.filter((rel) => rel.source.type === 'entity').length > 0 && (
+      <FlexItem>
+        <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsLg' }}>
           <FlexItem>
-            <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsLg' }}>
-              <FlexItem>
-                <Title headingLevel="h3" data-testid="entities-label">
-                  Entities
-                </Title>
-              </FlexItem>
+            <Title headingLevel="h3" data-testid="entities-label">
+              Entities
+            </Title>
+          </FlexItem>
+          {featureService.relationships &&
+          featureService.relationships.filter((rel) => rel.source.type === 'entity').length > 0 ? (
+            <FlexItem>
               <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsMd' }}>
                 {featureService.relationships
                   .filter((rel) => rel.source.type === 'entity')
@@ -101,9 +98,16 @@ const FeatureServiceDetailsPage: React.FC<FeatureServiceDetailsPageProps> = ({
                     </React.Fragment>
                   ))}
               </Flex>
-            </Flex>
-          </FlexItem>
-        )}
+            </FlexItem>
+          ) : (
+            <FlexItem>
+              <Content component="p" className={text.textColorDisabled}>
+                No entities
+              </Content>
+            </FlexItem>
+          )}
+        </Flex>
+      </FlexItem>
 
       <FlexItem>
         <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsLg' }}>
@@ -133,10 +137,16 @@ const FeatureServiceDetailsPage: React.FC<FeatureServiceDetailsPageProps> = ({
               </Title>
             </FlexItem>
             <FlexItem>
-              <FeatureStoreCodeBlock
-                content={featureService.featureDefinition}
-                id={featureService.spec.name}
-              />
+              {hasContent(featureService.featureDefinition) ? (
+                <FeatureStoreCodeBlock
+                  content={featureService.featureDefinition}
+                  id={featureService.spec.name}
+                />
+              ) : (
+                <Content component="p" className={text.textColorDisabled}>
+                  No interactive example
+                </Content>
+              )}
             </FlexItem>
           </Flex>
         </FlexItem>
