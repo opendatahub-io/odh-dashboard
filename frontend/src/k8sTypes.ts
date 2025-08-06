@@ -1280,6 +1280,7 @@ export type DashboardCommonConfig = {
   disableLlamaStackChatBot: boolean;
   disableLMEval: boolean;
   disableKueue: boolean;
+  disableModelTraining: boolean;
   disableFeatureStore?: boolean;
 };
 

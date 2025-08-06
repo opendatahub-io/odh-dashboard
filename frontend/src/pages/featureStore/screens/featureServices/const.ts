@@ -73,3 +73,8 @@ export const featureServiceTableFilterOptions = (): Record<string, string> => ({
   featureViews: 'Feature views',
   owner: 'Owner',
 });
+
+export enum FeatureServiceDetailsTab {
+  DETAILS = 'Details',
+  FEATURE_VIEWS = 'Feature views',
+}

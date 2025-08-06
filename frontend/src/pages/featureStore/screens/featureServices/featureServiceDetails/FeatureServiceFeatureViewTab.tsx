@@ -9,21 +9,22 @@ import {
 import { SearchIcon } from '@patternfly/react-icons';
 import { useFeatureStoreProject } from '#~/pages/featureStore/FeatureStoreContext';
 import useFeatureViews from '#~/pages/featureStore/apiHooks/useFeatureViews';
-import { Entity } from '#~/pages/featureStore/types/entities';
 import FeatureViewsListView from '#~/pages/featureStore/screens/featureViews/FeatureViewsListView';
 
-type EntityFeatureViewsTabProps = {
-  entity: Entity;
+type FeatureServiceFeatureViewTabProps = {
+  featureServiceName: string;
 };
 
-const EntityFeatureViewsTab: React.FC<EntityFeatureViewsTabProps> = ({ entity }) => {
+const FeatureServiceFeatureViewTab: React.FC<FeatureServiceFeatureViewTabProps> = ({
+  featureServiceName,
+}) => {
   const { currentProject } = useFeatureStoreProject();
 
   const {
     data: featureViews,
     loaded: featureViewsLoaded,
     error: featureViewsLoadError,
-  } = useFeatureViews({ project: currentProject, entity: entity.spec.name });
+  } = useFeatureViews({ project: currentProject, featureService: featureServiceName });
 
   if (!featureViewsLoaded) {
     return (
@@ -43,7 +44,7 @@ const EntityFeatureViewsTab: React.FC<EntityFeatureViewsTabProps> = ({ entity })
         data-testid="error-state-title"
       >
         <EmptyStateBody data-testid="error-state-body">
-          Failed to load feature views for this entity.
+          Failed to load feature views for this feature service.
         </EmptyStateBody>
       </EmptyState>
     );
@@ -59,7 +60,7 @@ const EntityFeatureViewsTab: React.FC<EntityFeatureViewsTabProps> = ({ entity })
         data-testid="empty-state-title"
       >
         <EmptyStateBody data-testid="empty-state-body">
-          No feature views are associated with this entity.
+          No feature views are associated with this feature service.
         </EmptyStateBody>
       </EmptyState>
     );
@@ -70,4 +71,4 @@ const EntityFeatureViewsTab: React.FC<EntityFeatureViewsTabProps> = ({ entity })
   );
 };
 
-export default EntityFeatureViewsTab;
+export default FeatureServiceFeatureViewTab;
