@@ -142,7 +142,7 @@ export const processImageInfo = (imageStream: ImageStream): ImageInfo => {
     tags: getTagInfo(imageStream),
     order: +annotations[IMAGE_ANNOTATIONS.IMAGE_ORDER] || 100,
     dockerImageRepo: imageStream.status?.dockerImageRepository || '',
-    error: isBYONImage && getBYONImageErrorMessage(imageStream),
+    error: isBYONImage(imageStream) && getBYONImageErrorMessage(imageStream),
   };
 
   return imageInfo;
