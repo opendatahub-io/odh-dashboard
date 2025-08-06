@@ -1,6 +1,6 @@
 # Best Practices
 
-The items and criteria of flexibility in what is a good thing to do. Sections should offer contradictions of things that are commonly done.
+This document outlines coding standards and development practices for the ODH Dashboard. The following sections provide guidance on what to do and what to avoid, including common anti-patterns to watch out for.
 
 ## React Coding
 
@@ -18,7 +18,7 @@ Every now and then we run into a scenario where PF is not quite managing somethi
 
 ### Custom Components
 
-We are a PF first application. You should almost never have to reach into the toolbox for the "new and custom component" tool. If you do, best verify with the Advisors first.
+We are a PF first application. You should almost never have to reach into the toolbox for the "new and custom component" tool. If you do, best verify with the team first.
 
 If you get the go-ahead on a new component, place it in the [`frontend/src/components`](../frontend/src/components) folder. Goal is to make a folder if you need to compose a bunch of them together or create multiple variants (eg. the Table component).
 
@@ -51,7 +51,7 @@ const useItemActions = () => {
   const deleteItem = useCallback((id: string) => {
     // delete logic
   }, []);
-  
+
   return { deleteItem };
 };
 ```
@@ -66,17 +66,22 @@ const handleClick = useCallback(() => {
 
 // ✅ GOOD: Just use regular function
 const handleClick = () => {
-  setCount(prev => prev + 1);
+  setCount((prev) => prev + 1);
 };
 
-// ❌ BAD: Function only used internally
+// ❌ BAD: useCallback for function only used internally in same component
 const processData = useCallback(() => {
-  return data.map(item => ({ ...item, processed: true }));
+  return data.map((item) => ({ ...item, processed: true }));
 }, [data]);
 
-// ✅ GOOD: Use useMemo for computations
-const processedData = useMemo(() => {
-  return data.map(item => ({ ...item, processed: true }));
+const result = processData(); // Calling the memoized function
+
+// ✅ GOOD: Just call the function directly (no memoization needed)
+const processedData = data.map((item) => ({ ...item, processed: true }));
+
+// ✅ GOOD: If the computation is expensive, use useMemo to memoize the result
+const expensiveProcessedData = useMemo(() => {
+  return data.map((item) => ({ ...item, processed: true, expensive: heavyComputation(item) }));
 }, [data]);
 ```
 
@@ -97,4 +102,41 @@ Oftentimes we will want to create custom hooks for reusability among multiple co
 
 - Primitives don't need to be memoized
 - Objects are optionally memoized (arrays, objects, etc) – determine this on if you think there is added value and/or you know it will be unstable references but same data (makes it easier on the user of your hook)
-- Always memoize functions you send out of your custom hooks – [see the reason why](#hooks--performance-considerations)
+- **Always memoize functions you send out of your custom hooks** – this is critical because once a function leaves your hook, you cannot control how consumers will use it. Without memoization, the function creates unstable references that will cause unnecessary re-renders in child components and re-execution of effects that depend on it. There's no way to "memoize it later" from the consuming side.
+
+**Example of why function memoization matters in custom hooks:**
+
+```typescript
+// ❌ BAD: Unstable function reference from custom hook
+const useData = () => {
+  const [data, setData] = useState([]);
+  
+  const refreshData = () => {  // New function on every render!
+    api.fetchData().then(setData);
+  };
+  
+  return { data, refreshData };
+};
+
+// Consumer component suffers from unnecessary re-renders
+const MyComponent = () => {
+  const { data, refreshData } = useData();
+  
+  useEffect(() => {
+    refreshData(); // This effect runs on EVERY render!
+  }, [refreshData]); // refreshData changes every time
+  
+  return <ChildComponent onRefresh={refreshData} />; // Child re-renders unnecessarily
+};
+
+// ✅ GOOD: Stable function reference from custom hook
+const useData = () => {
+  const [data, setData] = useState([]);
+  
+  const refreshData = useCallback(() => {  // Stable reference
+    api.fetchData().then(setData);
+  }, []);
+  
+  return { data, refreshData };
+};
+```
