@@ -7,7 +7,6 @@ import {
   Truncate,
   Alert,
   AlertActionCloseButton,
-  PageSection,
 } from '@patternfly/react-core';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useModelServingTab } from '#~/concepts/projects/projectDetails/useModelServingTab';
@@ -26,7 +25,7 @@ import {
 import ResourceNameTooltip from '#~/components/ResourceNameTooltip';
 import HeaderIcon from '#~/concepts/design/HeaderIcon';
 import { useProjectPermissionsTabVisible } from '#~/concepts/projects/accessChecks';
-import { KnownLabels } from '#~/k8sTypes';
+import useKueueDisabled from '#~/concepts/projects/hooks/useKueueDisabled';
 import useCheckLogoutParams from './useCheckLogoutParams';
 import ProjectOverview from './overview/ProjectOverview';
 import NotebookList from './notebooks/NotebookList';
@@ -56,10 +55,13 @@ const ProjectDetails: React.FC = () => {
 
   useCheckLogoutParams();
 
-  const isKueueEnabled = useIsAreaAvailable(SupportedArea.KUEUE).status;
-  const isProjectKueueEnabled =
-    currentProject.metadata.labels?.[KnownLabels.KUEUE_MANAGED] === 'true';
-  const shouldShowKueueAlert = isProjectKueueEnabled && !isKueueEnabled;
+  const { shouldShowKueueAlert } = useKueueDisabled(currentProject);
+
+  const [isKueueAlertDismissed, setIsKueueAlertDismissed] = React.useState(false);
+
+  const handleKueueAlertClose = React.useCallback(() => {
+    setIsKueueAlertDismissed(true);
+  }, []);
 
   return (
     <ApplicationsPage
@@ -86,16 +88,14 @@ const ProjectDetails: React.FC = () => {
       empty={false}
       headerAction={<ProjectActions project={currentProject} />}
     >
-      {shouldShowKueueAlert && (
+      {shouldShowKueueAlert && !isKueueAlertDismissed && (
         <Flex direction={{ default: 'column' }} className="pf-v6-u-px-lg">
           <Alert
             variant="info"
             isInline
             title="Kueue is disabled in this cluster"
             isExpandable={true}
-            actionClose={
-              <AlertActionCloseButton onClose={() => console.log('Clicked the close button')} />
-            }
+            actionClose={<AlertActionCloseButton onClose={handleKueueAlertClose} />}
           >
             <p>
               This project uses local queue for workload allocation, which relies on Kueue. To
