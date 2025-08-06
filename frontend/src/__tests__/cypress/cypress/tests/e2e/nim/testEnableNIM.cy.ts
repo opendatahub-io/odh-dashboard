@@ -135,15 +135,15 @@ function executeNIMTestSteps(): void {
 
   // Wait for the drawer to be visible and content to load
   cy.step('Wait for drawer content to load');
-  cy.get('.pf-v6-c-drawer__panel-main', { timeout: 10000 }).should('be.visible');
+  nimCard.findDrawerPanel().should('be.visible');
 
   // Validate that the drawer action list is visible
   cy.step('Validate drawer action list is visible');
-  cy.get('.pf-v6-c-action-list', { timeout: 10000 }).should('be.visible');
+  nimCard.findActionList().should('be.visible');
 
   // Wait for enable button to be visible in the action list
   cy.step('Wait for enable button to be visible in action list');
-  cy.get('[data-testid="enable-app"]', { timeout: 10000 }).should('be.visible');
+  nimCard.findEnableButton().should('be.visible');
 
   // Enable button exists, proceed with enablement
   cy.step('Enable button is available - NIM application is ready to be enabled');

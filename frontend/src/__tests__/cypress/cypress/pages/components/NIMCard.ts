@@ -104,6 +104,18 @@ export class NIMCard extends Card {
   getProgressTitle(options: object = {}): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.get('.odh-enable-modal__progress-title', options);
   }
+
+  findDrawerPanel(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.get('.pf-v6-c-drawer__panel-main', { timeout: 10000 });
+  }
+
+  findActionList(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.get('.pf-v6-c-action-list', { timeout: 10000 });
+  }
+
+  findEnableButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.get('[data-testid="enable-app"]', { timeout: 10000 });
+  }
 }
 
 export const nimCard = new NIMCard();
