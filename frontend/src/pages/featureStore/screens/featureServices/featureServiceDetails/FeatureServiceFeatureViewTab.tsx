@@ -44,7 +44,7 @@ const FeatureServiceFeatureViewTab: React.FC<FeatureServiceFeatureViewTabProps> 
         data-testid="error-state-title"
       >
         <EmptyStateBody data-testid="error-state-body">
-          Failed to load feature views for this entity.
+          Failed to load feature views for this feature service.
         </EmptyStateBody>
       </EmptyState>
     );
@@ -60,7 +60,7 @@ const FeatureServiceFeatureViewTab: React.FC<FeatureServiceFeatureViewTabProps> 
         data-testid="empty-state-title"
       >
         <EmptyStateBody data-testid="empty-state-body">
-          No feature views are associated with this entity.
+          No feature views are associated with this feature service.
         </EmptyStateBody>
       </EmptyState>
     );
