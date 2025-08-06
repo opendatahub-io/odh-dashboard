@@ -183,8 +183,7 @@ export const StorageClassContextProvider: React.FC<StorageClassContextProviderPr
     refresh,
   ]);
 
-  // Run updateConfigs when storage class configurations change
-  // This handles both user edits and ensures consistency
+  // Initialize storage class configs
   React.useEffect(() => {
     updateConfigs();
   }, [defaultStorageClassName, openshiftDefaultScName, storageClassConfigs, updateConfigs]);
