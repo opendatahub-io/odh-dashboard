@@ -26,6 +26,7 @@ import {
 import ResourceNameTooltip from '#~/components/ResourceNameTooltip';
 import HeaderIcon from '#~/concepts/design/HeaderIcon';
 import { useProjectPermissionsTabVisible } from '#~/concepts/projects/accessChecks';
+import { KnownLabels } from '#~/k8sTypes';
 import useCheckLogoutParams from './useCheckLogoutParams';
 import ProjectOverview from './overview/ProjectOverview';
 import NotebookList from './notebooks/NotebookList';
@@ -55,6 +56,11 @@ const ProjectDetails: React.FC = () => {
 
   useCheckLogoutParams();
 
+  const isKueueEnabled = useIsAreaAvailable(SupportedArea.KUEUE).status;
+  const isProjectKueueEnabled =
+    currentProject.metadata.labels?.[KnownLabels.KUEUE_MANAGED] === 'true';
+  const shouldShowKueueAlert = isProjectKueueEnabled && !isKueueEnabled;
+
   return (
     <ApplicationsPage
       title={
@@ -80,23 +86,26 @@ const ProjectDetails: React.FC = () => {
       empty={false}
       headerAction={<ProjectActions project={currentProject} />}
     >
-      <Flex direction={{ default: 'column' }} className="pf-v6-u-px-lg">
-        <Alert
-          variant="info"
-          isInline
-          title="Kueue is disabled in this cluster"
-          isExpandable={true}
-          actionClose={
-            <AlertActionCloseButton onClose={() => console.log('Clicked the close button')} />
-          }
-        >
-          <p>
-            This project uses local queue for workload allocation, which relies on Kueue. To deploy
-            a model or create a workbench in this project, ask your administrator to enable Kueue or
-            change this project's workload allocation strategy.
-          </p>
-        </Alert>
-      </Flex>
+      {shouldShowKueueAlert && (
+        <Flex direction={{ default: 'column' }} className="pf-v6-u-px-lg">
+          <Alert
+            variant="info"
+            isInline
+            title="Kueue is disabled in this cluster"
+            isExpandable={true}
+            actionClose={
+              <AlertActionCloseButton onClose={() => console.log('Clicked the close button')} />
+            }
+          >
+            <p>
+              This project uses local queue for workload allocation, which relies on Kueue. To
+              deploy a model or create a workbench in this project, ask your administrator to enable
+              Kueue or change this project's workload allocation strategy.
+            </p>
+          </Alert>
+        </Flex>
+      )}
+
       <GenericHorizontalBar
         activeKey={state}
         onSectionChange={React.useCallback(
