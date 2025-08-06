@@ -24,7 +24,7 @@ const FeatureServiceFeatureViewTab: React.FC<FeatureServiceFeatureViewTabProps> 
     data: featureViews,
     loaded: featureViewsLoaded,
     error: featureViewsLoadError,
-  } = useFeatureViews(currentProject, featureServiceName);
+  } = useFeatureViews({ project: currentProject, featureService: featureServiceName });
 
   if (!featureViewsLoaded) {
     return (

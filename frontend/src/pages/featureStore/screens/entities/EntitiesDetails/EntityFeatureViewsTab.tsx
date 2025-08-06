@@ -23,7 +23,7 @@ const EntityFeatureViewsTab: React.FC<EntityFeatureViewsTabProps> = ({ entity })
     data: featureViews,
     loaded: featureViewsLoaded,
     error: featureViewsLoadError,
-  } = useFeatureViews(currentProject, entity.spec.name);
+  } = useFeatureViews({ project: currentProject, entity: entity.spec.name });
 
   if (!featureViewsLoaded) {
     return (

@@ -3,11 +3,17 @@ import { useFeatureStoreAPI } from '#~/pages/featureStore/FeatureStoreContext';
 import useFetch, { FetchStateCallbackPromise, FetchStateObject } from '#~/utilities/useFetch';
 import { FeatureViewsList } from '#~/pages/featureStore/types/featureView';
 
-const useFeatureViews = (
-  project?: string,
-  entity?: string,
-  featureService?: string,
-): FetchStateObject<FeatureViewsList> => {
+type UseFeatureViewsProps = {
+  project?: string;
+  entity?: string;
+  featureService?: string;
+};
+
+const useFeatureViews = ({
+  project,
+  entity,
+  featureService,
+}: UseFeatureViewsProps): FetchStateObject<FeatureViewsList> => {
   const { api, apiAvailable } = useFeatureStoreAPI();
 
   const call = React.useCallback<FetchStateCallbackPromise<FeatureViewsList>>(
