@@ -121,7 +121,11 @@ export const useProjectServingPlatform = (
       project.metadata.name,
       NamespaceApplicationCase.RESET_MODEL_SERVING_PLATFORM,
     ).catch((e) => {
-      setProjectPlatformError(e.message);
+      if (e instanceof Error) {
+        setProjectPlatformError(e);
+      } else {
+        setProjectPlatformError(new Error('Error resetting platform'));
+      }
       setNewProjectPlatformLoading(undefined);
     });
   }, [project]);
