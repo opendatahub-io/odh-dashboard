@@ -110,14 +110,15 @@ const initIntercept = () => {
     }),
   );
 
-  // Mock feature views for the Feature Views tab
-  cy.intercept(
-    'GET',
-    `/api/service/featurestore/${k8sNamespace}/${fsName}/api/v1/feature_views?featureService=${featureServiceName}`,
+  cy.interceptOdh(
+    'GET /api/service/featurestore/:namespace/:serviceName/api/:apiVersion/feature_views',
     {
-      featureViews: [mockFeatureView(), mockFeatureView()],
+      path: { namespace: k8sNamespace, serviceName: fsName, apiVersion: 'v1' },
+    },
+    {
+      featureViews: [mockFeatureView()],
       pagination: {
-        totalCount: 2,
+        totalCount: 1,
         totalPages: 1,
       },
     },
