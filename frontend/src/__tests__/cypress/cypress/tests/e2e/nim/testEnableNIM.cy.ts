@@ -43,37 +43,37 @@ describe('Verify NIM enable flow', () => {
       cy.step('Check if NIM application exists on cluster');
       checkNIMApplicationExists().then((nimExists) => {
         if (nimExists) {
-          cy.log('✅ NIM OdhApplication exists on cluster - checking UI');
+          cy.step('NIM OdhApplication exists on cluster - checking UI');
 
           cy.step('Check if NIM card is available in UI');
           nimCard.isNIMCardAvailable().then((isAvailable) => {
             if (isAvailable) {
-              cy.log('✅ NIM card is available - proceeding with enablement test');
+              cy.step('NIM card is available - proceeding with enablement test');
               cy.log('💡 No need to apply manifest, proceeding directly with enablement test');
               executeNIMTestSteps();
             } else {
-              cy.log('⚠️  NIM application exists on cluster but card is not visible in UI');
+              cy.step('NIM application exists on cluster but card is not visible in UI');
               cy.log('💡 This might be a UI issue - proceeding with test anyway');
               executeNIMTestSteps();
             }
           });
         } else {
-          cy.log('⚠️  NIM OdhApplication does not exist on cluster');
+          cy.step('NIM OdhApplication does not exist on cluster');
           cy.log('💡 This is common for ODH deployments where NIM is not included by default');
-          cy.log('🔄 Attempting to apply NIM manifest automatically...');
+          cy.step('Attempting to apply NIM manifest automatically...');
 
           // Apply the NIM manifest to enable NIM on the cluster
           applyNIMApplication().then(() => {
-            cy.log('✅ NIM OdhApplication applied successfully');
-            cy.log('🔄 Refreshing page to see the NIM card...');
+            cy.step('NIM OdhApplication applied successfully');
+            cy.step('Refreshing page to see the NIM card...');
 
             // Refresh the page to see the newly applied NIM card
-            cy.reload();
+            explorePage.reload();
             cy.step('Navigate to the Explore page after applying NIM');
             explorePage.visit();
 
             // Wait longer for the NIM card to become visible after applying the manifest
-            cy.log('⏳ Waiting for NIM card to become visible...');
+            cy.step('Waiting for NIM card to become visible...');
 
             // Wait with periodic refreshes to ensure the NIM card loads
             let attempts = 0;
@@ -81,10 +81,10 @@ describe('Verify NIM enable flow', () => {
 
             const checkForNIMCard = () => {
               attempts++;
-              cy.log(`🔄 Attempt ${attempts}/${maxAttempts} - Checking for NIM card...`);
+              cy.step(`Attempt ${attempts}/${maxAttempts} - Checking for NIM card...`);
 
               // Refresh the page every 20 seconds to ensure fresh content
-              cy.reload();
+              explorePage.reload();
               cy.step(`Navigate to Explore page (attempt ${attempts})`);
               explorePage.visit();
 
@@ -94,15 +94,15 @@ describe('Verify NIM enable flow', () => {
 
               nimCard.isNIMCardAvailable().then((isNowAvailable) => {
                 if (isNowAvailable) {
-                  cy.log('✅ NIM card is now available, proceeding with test');
+                  cy.step('NIM card is now available, proceeding with test');
                   executeNIMTestSteps();
                 } else if (attempts < maxAttempts) {
-                  cy.log(`⏳ NIM card not yet available, waiting before next attempt...`);
+                  cy.step('NIM card not yet available, waiting before next attempt...');
                   // eslint-disable-next-line cypress/no-unnecessary-waiting
                   cy.wait(20000); // Wait before next attempt
                   checkForNIMCard();
                 } else {
-                  cy.log('❌ NIM card still not available after all attempts');
+                  cy.step('NIM card still not available after all attempts');
                   cy.log('💡 This might be due to timing or cluster configuration issues');
                   throw new Error(
                     'NIM card is not available after applying manifest. This indicates a real issue that needs investigation.',
@@ -146,7 +146,7 @@ function executeNIMTestSteps(): void {
   cy.get('[data-testid="enable-app"]', { timeout: 10000 }).should('be.visible');
 
   // Enable button exists, proceed with enablement
-  cy.log('✅ Enable button is available - NIM application is ready to be enabled');
+  cy.step('Enable button is available - NIM application is ready to be enabled');
   cy.step('Click Enable button in NIM card');
   nimCard.getEnableNIMButton().click();
 
