@@ -43,7 +43,7 @@ describe('useFeatureViews', () => {
 
     mockGetFeatureViews.mockResolvedValue(mockFeatureViewsList);
 
-    const renderResult = testHook(useFeatureViews)();
+    const renderResult = testHook(useFeatureViews)({});
 
     expect(renderResult.result.current.data).toEqual(defaultFeatureViewsList);
     expect(renderResult.result.current.loaded).toBe(false);
@@ -59,6 +59,7 @@ describe('useFeatureViews', () => {
     expect(mockGetFeatureViews).toHaveBeenCalledTimes(1);
     expect(mockGetFeatureViews).toHaveBeenCalledWith(
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
+      undefined,
       undefined,
       undefined,
     );
@@ -76,7 +77,7 @@ describe('useFeatureViews', () => {
 
     mockGetFeatureViews.mockResolvedValue(mockFeatureViewsList);
 
-    const renderResult = testHook(useFeatureViews)(projectName);
+    const renderResult = testHook(useFeatureViews)({ project: projectName });
 
     expect(renderResult.result.current.data).toEqual(defaultFeatureViewsList);
     expect(renderResult.result.current.loaded).toBe(false);
@@ -94,6 +95,7 @@ describe('useFeatureViews', () => {
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
       projectName,
       undefined,
+      undefined,
     );
   });
 
@@ -110,7 +112,7 @@ describe('useFeatureViews', () => {
 
     mockGetFeatureViews.mockResolvedValue(mockFeatureViewsList);
 
-    const renderResult = testHook(useFeatureViews)(projectName, entityName);
+    const renderResult = testHook(useFeatureViews)({ project: projectName, entity: entityName });
 
     expect(renderResult.result.current.data).toEqual(defaultFeatureViewsList);
     expect(renderResult.result.current.loaded).toBe(false);
@@ -128,6 +130,7 @@ describe('useFeatureViews', () => {
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
       projectName,
       entityName,
+      undefined,
     );
   });
 
@@ -143,7 +146,7 @@ describe('useFeatureViews', () => {
 
     mockGetFeatureViews.mockRejectedValue(testError);
 
-    const renderResult = testHook(useFeatureViews)();
+    const renderResult = testHook(useFeatureViews)({});
 
     expect(renderResult.result.current.data).toEqual(defaultFeatureViewsList);
     expect(renderResult.result.current.loaded).toBe(false);
@@ -167,7 +170,7 @@ describe('useFeatureViews', () => {
       apiAvailable: false,
     } as unknown as ReturnType<typeof useFeatureStoreAPI>);
 
-    const renderResult = testHook(useFeatureViews)();
+    const renderResult = testHook(useFeatureViews)({});
 
     expect(renderResult.result.current.data).toEqual(defaultFeatureViewsList);
     expect(renderResult.result.current.loaded).toBe(false);
@@ -196,12 +199,12 @@ describe('useFeatureViews', () => {
 
     mockGetFeatureViews.mockResolvedValue(mockFeatureViewsList);
 
-    const renderResult = testHook(useFeatureViews)(projectName, entityName);
+    const renderResult = testHook(useFeatureViews)({ project: projectName, entity: entityName });
 
     await renderResult.waitForNextUpdate();
     expect(renderResult).hookToHaveUpdateCount(2);
 
-    renderResult.rerender(projectName, entityName);
+    renderResult.rerender({ project: projectName, entity: entityName });
     expect(renderResult).hookToHaveUpdateCount(3);
     expect(renderResult).hookToBeStable({
       data: false,
@@ -221,7 +224,7 @@ describe('useFeatureViews', () => {
 
     mockGetFeatureViews.mockResolvedValue(mockFeatureViewsList);
 
-    const renderResult = testHook(useFeatureViews)('project-1');
+    const renderResult = testHook(useFeatureViews)({ project: 'project-1' });
 
     await renderResult.waitForNextUpdate();
     expect(renderResult).hookToHaveUpdateCount(2);
@@ -230,15 +233,17 @@ describe('useFeatureViews', () => {
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
       'project-1',
       undefined,
+      undefined,
     );
 
-    renderResult.rerender('project-2');
+    renderResult.rerender({ project: 'project-2' });
 
     await renderResult.waitForNextUpdate();
     expect(mockGetFeatureViews).toHaveBeenCalledTimes(2);
     expect(mockGetFeatureViews).toHaveBeenLastCalledWith(
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
       'project-2',
+      undefined,
       undefined,
     );
   });
@@ -253,7 +258,7 @@ describe('useFeatureViews', () => {
 
     mockGetFeatureViews.mockResolvedValue(mockFeatureViewsList);
 
-    const renderResult = testHook(useFeatureViews)('project-1', 'entity-1');
+    const renderResult = testHook(useFeatureViews)({ project: 'project-1', entity: 'entity-1' });
 
     await renderResult.waitForNextUpdate();
     expect(renderResult).hookToHaveUpdateCount(2);
@@ -262,9 +267,10 @@ describe('useFeatureViews', () => {
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
       'project-1',
       'entity-1',
+      undefined,
     );
 
-    renderResult.rerender('project-1', 'entity-2');
+    renderResult.rerender({ project: 'project-1', entity: 'entity-2' });
 
     await renderResult.waitForNextUpdate();
     expect(mockGetFeatureViews).toHaveBeenCalledTimes(2);
@@ -272,6 +278,7 @@ describe('useFeatureViews', () => {
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
       'project-1',
       'entity-2',
+      undefined,
     );
   });
 
@@ -285,7 +292,7 @@ describe('useFeatureViews', () => {
 
     mockGetFeatureViews.mockResolvedValue(mockFeatureViewsList);
 
-    const renderResult = testHook(useFeatureViews)();
+    const renderResult = testHook(useFeatureViews)({});
 
     await renderResult.waitForNextUpdate();
     expect(renderResult).hookToHaveUpdateCount(2);

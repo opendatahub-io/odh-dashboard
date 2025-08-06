@@ -15,8 +15,8 @@ const mockGetFeatureServices = jest.fn();
 describe('useFeatureServices', () => {
   const mockFeatureServicesList: FeatureServicesList = {
     featureServices: [
-      mockFeatureService({ spec: { name: 'feature-service-1' } }),
-      mockFeatureService({ spec: { name: 'feature-service-2' } }),
+      mockFeatureService({ name: 'feature-service-1' }),
+      mockFeatureService({ name: 'feature-service-2' }),
     ],
     pagination: {
       totalCount: 2,

@@ -18,7 +18,7 @@ const FeatureViews = (): React.ReactElement => {
     data: featureViews,
     loaded: featureViewsLoaded,
     error: featureViewsLoadError,
-  } = useFeatureViews(currentProject);
+  } = useFeatureViews({ project: currentProject });
 
   const emptyState = (
     <EmptyState

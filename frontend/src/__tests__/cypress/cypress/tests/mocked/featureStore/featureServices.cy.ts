@@ -80,7 +80,7 @@ const initIntercept = () => {
       path: { namespace: k8sNamespace, serviceName: fsName, apiVersion: 'v1' },
     },
     {
-      featureServices: [mockFeatureService()],
+      featureServices: [mockFeatureService({ name: 'credit_assessment_v1' })],
       pagination: {
         totalCount: 1,
         totalPages: 1,
