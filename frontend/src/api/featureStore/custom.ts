@@ -5,7 +5,7 @@ import { Entity, EntityList } from '#~/pages/featureStore/types/entities';
 import { Features, FeaturesList } from '#~/pages/featureStore/types/features.ts';
 import { ProjectList } from '#~/pages/featureStore/types/featureStoreProjects';
 import { FeatureViewsList } from '#~/pages/featureStore/types/featureView';
-import { FeatureServicesList } from '#~/pages/featureStore/types/featureServices';
+import { FeatureService, FeatureServicesList } from '#~/pages/featureStore/types/featureServices';
 import { handleFeatureStoreFailures } from './errorUtils';
 
 export const listFeatureStoreProject =
@@ -30,17 +30,31 @@ export const getEntities =
 
 export const getFeatureViews =
   (hostPath: string) =>
-  (opts: K8sAPIOptions, project?: string, entity?: string): Promise<FeatureViewsList> => {
-    let endpoint = `/api/${FEATURE_STORE_API_VERSION}/feature_views/all`;
+  (
+    opts: K8sAPIOptions,
+    project?: string,
+    entity?: string,
+    featureService?: string,
+  ): Promise<FeatureViewsList> => {
+    let endpoint = `/api/${FEATURE_STORE_API_VERSION}/feature_views`;
+    const queryParams: string[] = [];
+
     if (project) {
-      endpoint = `/api/${FEATURE_STORE_API_VERSION}/feature_views?project=${encodeURIComponent(
-        project,
-      )}`;
+      queryParams.push(`project=${encodeURIComponent(project)}`);
+    } else {
+      endpoint += '/all';
+    }
+
+    if (featureService) {
+      queryParams.push(`feature_service=${encodeURIComponent(featureService)}`);
     }
 
     if (entity) {
-      const separator = endpoint.includes('?') ? '&' : '?';
-      endpoint += `${separator}entity=${encodeURIComponent(entity)}`;
+      queryParams.push(`entity=${encodeURIComponent(entity)}`);
+    }
+
+    if (queryParams.length > 0) {
+      endpoint += `?${queryParams.join('&')}`;
     }
 
     return handleFeatureStoreFailures<FeatureViewsList>(proxyGET(hostPath, endpoint, opts));
@@ -95,3 +109,16 @@ export const getFeatureServices =
 
     return handleFeatureStoreFailures<FeatureServicesList>(proxyGET(hostPath, endpoint, opts));
   };
+
+export const getFeatureServiceByName =
+  (hostPath: string) =>
+  (opts: K8sAPIOptions, project: string, featureServiceName: string): Promise<FeatureService> =>
+    handleFeatureStoreFailures<FeatureService>(
+      proxyGET(
+        hostPath,
+        `/api/${FEATURE_STORE_API_VERSION}/feature_services/${encodeURIComponent(
+          featureServiceName,
+        )}?project=${encodeURIComponent(project)}&include_relationships=true`,
+        opts,
+      ),
+    );
