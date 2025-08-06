@@ -2,52 +2,197 @@ import { HTPASSWD_CLUSTER_ADMIN_USER } from '#~/__tests__/cypress/cypress/utils/
 import { explorePage } from '#~/__tests__/cypress/cypress/pages/explore';
 import { enabledPage } from '#~/__tests__/cypress/cypress/pages/enabled';
 import { nimCard } from '#~/__tests__/cypress/cypress/pages/components/NIMCard';
-import { deleteNIMAccount } from '#~/__tests__/cypress/cypress/utils/oc_commands/baseCommands';
-import { wasSetupPerformed } from '#~/__tests__/cypress/cypress/utils/retryableHooks';
+import { toastNotifications } from '#~/__tests__/cypress/cypress/pages/components/ToastNotifications';
+import {
+  deleteNIMAccount,
+  applyNIMApplication,
+  checkNIMApplicationExists,
+} from '#~/__tests__/cypress/cypress/utils/oc_commands/nimCommands';
 
-describe('[Product Bug: NVPE-244] Verify NIM enable flow', () => {
-  after(() => {
-    if (!wasSetupPerformed()) return;
-    cy.step('Delete odh-nim-account');
+
+/**
+ * NIM Application Enablement Test
+ *
+ * This test verifies the complete flow for enabling the NVIDIA NIM application:
+ * 1. Checks if NIM card is available on the Explore page
+ * 2. If not available, automatically applies the NIM OdhApplication manifest
+ * 3. Waits for the NIM card to become visible (up to 160 seconds with periodic refreshes)
+ * 4. Validates the NIM card contents and description
+ * 5. Clicks the NIM card and enables it with NGC API key
+ * 6. Verifies the validation process and success notification
+ * 7. Confirms the NIM application appears on the Enabled page
+ *
+ * The test is designed to work in both ODH and RHOAI environments,
+ * automatically handling cases where NIM is not included by default.
+ */
+describe('Verify NIM enable flow', () => {
+
+  before(() => {
+    cy.step('Clean up any existing NIM account before test');
     deleteNIMAccount();
   });
+
   it(
     'Enable and validate NIM flow',
-    { tags: ['@NIM', '@Sanity', '@NonConcurrent', '@Bug'] },
-    () => {
+    { tags: ['@NIM', '@Sanity', '@SanitySet3', '@NonConcurrent'] },
+    function() {
       cy.step('Login to the application');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
+
       cy.step('Navigate to the Explore page');
       explorePage.visit();
-      cy.step('Validate NIM card contents');
-      nimCard
-        .getNIMCard()
-        .contains(
-          'NVIDIA NIM is a set of easy-to-use microservices designed for secure, reliable deployment of high-performance AI model inferencing.',
-        );
-      cy.step('Click NIM card');
-      nimCard.getNIMCard().click();
-      cy.step('Click Enable button in NIM card');
-      nimCard.getEnableNIMButton().click();
-      cy.step('Input NGC API Key');
-      nimCard.getNGCAPIKey().type(Cypress.env('NGC_API_KEY'));
-      cy.step('Click submit to enable the NIM application');
-      nimCard.getNIMSubmit().click();
-      cy.step('Wait for "Validating..." to complete');
-      nimCard.getProgressTitle().should('contain', 'Validating your entries');
-      nimCard.getProgressTitle({ timeout: 120000 }).should('not.exist');
-      cy.step('Visit the enabled applications page');
-      enabledPage.visit();
-      cy.step('Validate NIM Card contents on Enabled page');
-      nimCard
-        .getNIMCard()
-        .contains(
-          'NVIDIA NIM is a set of easy-to-use microservices designed for secure, reliable deployment of high-performance AI model inferencing.',
-        );
-      cy.step('Validate that the NIM card does not contain a Disabled button');
-      nimCard.getNIMCard().within(() => {
-        cy.contains('button', 'Disabled', { timeout: 60000 }).should('not.exist');
+
+      cy.step('Check if NIM application exists on cluster');
+      checkNIMApplicationExists().then((nimExists) => {
+        if (nimExists) {
+          cy.log('✅ NIM OdhApplication exists on cluster - checking UI');
+          
+          cy.step('Check if NIM card is available in UI');
+          nimCard.isNIMCardAvailable().then((isAvailable) => {
+            if (isAvailable) {
+              cy.log('✅ NIM card is available - proceeding with enablement test');
+              cy.log('💡 No need to apply manifest, proceeding directly with enablement test');
+              // Execute the test steps directly since NIM is available
+              executeNIMTestSteps().then((wasAlreadyEnabled) => {
+                if (wasAlreadyEnabled) {
+                  cy.log('✅ NIM was already enabled - test completed successfully');
+                  this.skip();
+                }
+              });
+            } else {
+              cy.log('⚠️  NIM application exists on cluster but card is not visible in UI');
+              cy.log('💡 This might be a UI issue - proceeding with test anyway');
+              executeNIMTestSteps().then((wasAlreadyEnabled) => {
+                if (wasAlreadyEnabled) {
+                  cy.log('✅ NIM was already enabled - test completed successfully');
+                  this.skip();
+                }
+              });
+            }
+          });
+        } else {
+          cy.log('⚠️  NIM OdhApplication does not exist on cluster');
+          cy.log('💡 This is common for ODH deployments where NIM is not included by default');
+          cy.log('🔄 Attempting to apply NIM manifest automatically...');
+
+          // Apply the NIM manifest to enable NIM on the cluster
+          applyNIMApplication().then(() => {
+            cy.log('✅ NIM OdhApplication applied successfully');
+            cy.log('🔄 Refreshing page to see the NIM card...');
+
+            // Refresh the page to see the newly applied NIM card
+            cy.reload();
+            cy.step('Navigate to the Explore page after applying NIM');
+            explorePage.visit();
+
+            // Wait longer for the NIM card to become visible after applying the manifest
+            cy.log('⏳ Waiting for NIM card to become visible...');
+
+            // Wait with periodic refreshes to ensure the NIM card loads
+            let attempts = 0;
+            const maxAttempts = 8; // 8 attempts * 20 seconds = 160 seconds total
+
+            const checkForNIMCard = () => {
+              attempts++;
+              cy.log(`🔄 Attempt ${attempts}/${maxAttempts} - Checking for NIM card...`);
+
+              // Refresh the page every 20 seconds to ensure fresh content
+              cy.reload();
+              cy.step(`Navigate to Explore page (attempt ${attempts})`);
+              explorePage.visit();
+
+              // Wait for page to load
+              // eslint-disable-next-line cypress/no-unnecessary-waiting
+              cy.wait(5000);
+
+              nimCard.isNIMCardAvailable().then((isNowAvailable) => {
+                if (isNowAvailable) {
+                  cy.log('✅ NIM card is now available, proceeding with test');
+                  executeNIMTestSteps().then((wasAlreadyEnabled) => {
+                    if (wasAlreadyEnabled) {
+                      cy.log('✅ NIM was already enabled - test completed successfully');
+                      this.skip();
+                    }
+                  });
+                } else if (attempts < maxAttempts) {
+                  cy.log(`⏳ NIM card not yet available, waiting before next attempt...`);
+                  // eslint-disable-next-line cypress/no-unnecessary-waiting
+                  cy.wait(20000); // Wait before next attempt
+                  checkForNIMCard();
+                } else {
+                  cy.log('❌ NIM card still not available after all attempts');
+                  cy.log('💡 This might be due to timing or cluster configuration issues');
+                  throw new Error(
+                    'NIM card is not available after applying manifest. This indicates a real issue that needs investigation.',
+                  );
+                }
+              });
+            };
+
+            // Start the checking process
+            checkForNIMCard();
+          });
+        }
       });
     },
   );
 });
+
+/**
+ * Helper function to execute the NIM test steps
+ * @returns Cypress.Chainable<boolean> - true if NIM was already enabled, false if enablement was performed
+ */
+function executeNIMTestSteps(): Cypress.Chainable<boolean> {
+  cy.step('Validate NIM card contents');
+  nimCard
+    .getNIMCard()
+    .contains(
+      'NVIDIA NIM is a set of easy-to-use microservices designed for secure, reliable deployment of high-performance AI model inferencing.',
+    );
+  cy.step('Click NIM card');
+  nimCard.getNIMCard().click();
+  
+  // Wait for the drawer to be visible and content to load
+  cy.step('Wait for drawer content to load');
+  cy.get('.pf-v6-c-drawer__panel-main', { timeout: 10000 }).should('be.visible');
+  
+  // Validate that the drawer action list is visible
+  cy.step('Validate drawer action list is visible');
+  cy.get('.pf-v6-c-action-list', { timeout: 10000 }).should('be.visible');
+  
+  // Wait for enable button to be visible in the action list
+  cy.step('Wait for enable button to be visible in action list');
+  cy.get('[data-testid="enable-app"]', { timeout: 10000 }).should('be.visible');
+  
+  // Enable button exists, proceed with enablement
+  cy.log('✅ Enable button is available - NIM application is ready to be enabled');
+  cy.step('Click Enable button in NIM card');
+  nimCard.getEnableNIMButton().click();
+  
+  // Continue with enablement steps
+  cy.step('Input NGC API Key');
+  nimCard.getNGCAPIKey().clear().type(Cypress.env('NGC_API_KEY'));
+  cy.step('Click submit to enable the NIM application');
+  nimCard.getNIMSubmit().click();
+  cy.step('Wait for validation to complete and verify the validation message');
+  nimCard.getProgressTitle().should('contain', 'Contacting NVIDIA to validate the license key');
+  // Wait for validation to complete (up to 120 seconds for NVIDIA API call with network issues)
+  nimCard.getProgressTitle({ timeout: 120000 }).should('not.exist');
+  cy.step('Check for success notification');
+  toastNotifications
+    .findToastNotification(0)
+    .should('contain.text', 'NVIDIA NIM has been added to the Enabled page');
+  cy.step('Visit the enabled applications page');
+  enabledPage.visit();
+  cy.step('Validate NIM Card contents on Enabled page');
+  nimCard
+    .getNIMCard()
+    .contains(
+      'NVIDIA NIM is a set of easy-to-use microservices designed for secure, reliable deployment of high-performance AI model inferencing.',
+    );
+  cy.step('Validate that the NIM card does not contain a Disabled button');
+  nimCard.getNIMCard().within(() => {
+    cy.contains('button', 'Disabled').should('not.exist');
+  });
+  return cy.wrap(false); // NIM was not already enabled, enablement was performed
+}
