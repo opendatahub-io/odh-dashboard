@@ -7,6 +7,10 @@ import {
   Truncate,
   Alert,
   AlertActionCloseButton,
+  Popover,
+  Button,
+  ListItem,
+  List,
 } from '@patternfly/react-core';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useModelServingTab } from '#~/concepts/projects/projectDetails/useModelServingTab';
@@ -36,6 +40,7 @@ import ProjectActions from './ProjectActions';
 import RagChatbot from './chatbot/RagChatbot';
 
 import './ProjectDetails.scss';
+import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 
 const ProjectDetails: React.FC = () => {
   const { currentProject } = React.useContext(ProjectDetailsContext);
@@ -102,6 +107,28 @@ const ProjectDetails: React.FC = () => {
               deploy a model or create a workbench in this project, ask your administrator to enable
               Kueue or change this project's workload allocation strategy.
             </p>
+            <Popover
+              position="bottom"
+              headerContent="Who's my administrator?"
+              bodyContent={
+                <div>
+                  Your administrator might be:
+                  <List>
+                    <ListItem>
+                      The person who assigned you your username, or who heelped you log in for the
+                      first time
+                    </ListItem>
+                    <ListItem>Someone in your IT department or help desk</ListItem>
+                    <ListItem>A project manager or developer</ListItem>
+                    <ListItem>Your preofessor (at a school)</ListItem>
+                  </List>
+                </div>
+              }
+            >
+              <Button variant="link" icon={<OutlinedQuestionCircleIcon />} aria-label="More info">
+                Who's my administrator?
+              </Button>
+            </Popover>
           </Alert>
         </Flex>
       )}
