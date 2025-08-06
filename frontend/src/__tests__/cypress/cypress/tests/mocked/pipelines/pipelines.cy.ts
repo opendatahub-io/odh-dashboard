@@ -19,7 +19,7 @@ import {
   pipelineVersionImportModal,
   pipelineDeleteModal,
   configurePipelineServerModal,
-  viewPipelineServerModal,
+  managePipelineServerModal,
   PipelineSort,
   pipelineDetails,
 } from '#~/__tests__/cypress/cypress/pages/pipelines';
@@ -36,6 +36,8 @@ import { verifyRelativeURL } from '#~/__tests__/cypress/cypress/utils/url';
 import { pipelineRunsGlobal } from '#~/__tests__/cypress/cypress/pages/pipelines/pipelineRunsGlobal';
 import { argoAlert } from '#~/__tests__/cypress/cypress/pages/pipelines/argoAlert';
 import { toastNotifications } from '#~/__tests__/cypress/cypress/pages/components/ToastNotifications';
+import { DSPipelineAPIServerStore } from '#~/k8sTypes.ts';
+import { MANAGE_PIPELINE_SERVER_CONFIGURATION_TITLE } from '#~/concepts/pipelines/content/const';
 
 const projectName = 'test-project-name';
 const initialMockPipeline = buildMockPipeline({ display_name: 'Test pipeline' });
@@ -275,7 +277,7 @@ describe('Pipelines', () => {
     configurePipelineServerModal.findRegionInput().should('have.value', 'us-east-1');
     configurePipelineServerModal.findBucketInput().type('test-bucket');
 
-    configurePipelineServerModal.findToggleButton().click();
+    configurePipelineServerModal.findAdvancedSettingsButton().click();
     configurePipelineServerModal.findExternalMYSQLDatabaseRadio().click();
     configurePipelineServerModal.findSubmitButton().should('be.disabled');
 
@@ -354,6 +356,92 @@ describe('Pipelines', () => {
     });
   });
 
+  it('Configure pipeline server with store pipeline yaml in kubernetes option', () => {
+    initIntercepts({ isEmpty: true });
+    pipelinesGlobal.visit(projectName);
+
+    cy.interceptK8s(
+      'POST',
+      {
+        model: SecretModel,
+        ns: projectName,
+      },
+      mockSecretK8sResource({ namespace: projectName }),
+    ).as('createSecret');
+
+    cy.interceptK8s(
+      'POST',
+      DataSciencePipelineApplicationModel,
+      mockDataSciencePipelineApplicationK8sResource({
+        namespace: projectName,
+      }),
+    ).as('createDSPA');
+
+    pipelinesGlobal.findConfigurePipelineServerButton().should('be.enabled');
+    pipelinesGlobal.findConfigurePipelineServerButton().click();
+
+    // Fill out basic required fields
+    configurePipelineServerModal.findAwsKeyInput().type('test-aws-key');
+    configurePipelineServerModal.findAwsSecretKeyInput().type('test-secret-key');
+    configurePipelineServerModal.findEndpointInput().type('https://s3.amazonaws.com');
+    configurePipelineServerModal.findRegionInput().should('have.value', 'us-east-1');
+    configurePipelineServerModal.findBucketInput().type('test-bucket');
+
+    // Find and ensure the store pipeline yaml in kubernetes checkbox is checked
+    configurePipelineServerModal.findAdvancedSettingsButton().click();
+    configurePipelineServerModal.findPipelineStoreCheckbox().should('be.checked');
+
+    configurePipelineServerModal.findSubmitButton().should('be.enabled');
+    configurePipelineServerModal.findSubmitButton().click();
+
+    cy.wait('@createSecret').then((interception) => {
+      expect(interception.request.url).to.include('?dryRun=All');
+      expect(interception.request.body).to.containSubset({
+        metadata: {
+          name: 'dashboard-dspa-secret',
+          namespace: projectName,
+          annotations: {},
+          labels: { 'opendatahub.io/dashboard': 'true' },
+        },
+        stringData: { AWS_ACCESS_KEY_ID: 'test-aws-key', AWS_SECRET_ACCESS_KEY: 'test-secret-key' },
+      });
+    });
+
+    cy.wait('@createSecret').then((interception) => {
+      expect(interception.request.url).not.to.include('?dryRun=All');
+    });
+
+    cy.get('@createSecret.all').then((interceptions) => {
+      expect(interceptions).to.have.length(2); // 1 dry-run request and 1 actual request
+    });
+
+    cy.wait('@createDSPA').then((interception) => {
+      expect(interception.request.body).to.containSubset({
+        metadata: { name: 'dspa', namespace: projectName },
+        spec: {
+          apiServer: {
+            enableSamplePipeline: false,
+            pipelineStore: DSPipelineAPIServerStore.KUBERNETES,
+          },
+          dspVersion: 'v2',
+          objectStorage: {
+            externalStorage: {
+              host: 's3.amazonaws.com',
+              scheme: 'https',
+              bucket: 'test-bucket',
+              region: 'us-east-1',
+              s3CredentialsSecret: {
+                accessKey: 'AWS_ACCESS_KEY_ID',
+                secretKey: 'AWS_SECRET_ACCESS_KEY',
+                secretName: 'test-secret',
+              },
+            },
+          },
+        },
+      });
+    });
+  });
+
   it('Delete pipeline server', () => {
     initIntercepts({});
 
@@ -405,14 +493,29 @@ describe('Pipelines', () => {
     );
     pipelinesGlobal.visit(projectName);
 
-    pipelinesGlobal.selectPipelineServerAction('View pipeline server configuration');
-    viewPipelineServerModal.shouldHaveAccessKey('sdsd');
-    viewPipelineServerModal.findPasswordHiddenButton().click();
-    viewPipelineServerModal.shouldHaveSecretKey('sdsd');
-    viewPipelineServerModal.shouldHaveEndPoint('https://s3.amazonaws.com');
-    viewPipelineServerModal.shouldHaveBucketName('test-pipelines-bucket');
+    pipelinesGlobal.selectPipelineServerAction(MANAGE_PIPELINE_SERVER_CONFIGURATION_TITLE);
+    managePipelineServerModal.shouldHaveAccessKey('sdsd');
+    managePipelineServerModal.findPasswordHiddenButton().click();
+    managePipelineServerModal.shouldHaveSecretKey('sdsd');
+    managePipelineServerModal.shouldHaveEndPoint('https://s3.amazonaws.com');
+    managePipelineServerModal.shouldHaveBucketName('test-pipelines-bucket');
 
-    viewPipelineServerModal.findCloseButton().click();
+    managePipelineServerModal
+      .findPipelineStoreCheckbox()
+      .should('be.disabled')
+      .should('not.be.checked');
+
+    managePipelineServerModal.checkButtonState('save', false);
+    managePipelineServerModal.checkButtonState('cancel', true);
+
+    const checkbox = managePipelineServerModal.getPipelineCachingCheckbox();
+    checkbox.should('be.checked');
+    checkbox.click();
+    checkbox.should('not.be.checked');
+    managePipelineServerModal.checkButtonState('save', true);
+    managePipelineServerModal.checkButtonState('cancel', true);
+
+    managePipelineServerModal.findCloseButton().click();
   });
 
   it('renders the page with pipelines table data', () => {
@@ -568,6 +671,7 @@ describe('Pipelines', () => {
     pipelinesGlobal.visit(projectName);
     const uploadPipelineParams = {
       display_name: 'New pipeline',
+      name: 'New pipeline',
       description: 'New pipeline description',
     };
     const uploadedMockPipeline = buildMockPipeline(uploadPipelineParams);
@@ -619,7 +723,90 @@ describe('Pipelines', () => {
 
       expect(interception.request.query).to.eql({
         name: 'New pipeline',
+        display_name: 'New pipeline',
         description: 'New pipeline description',
+      });
+    });
+
+    cy.wait('@refreshPipelines');
+    cy.wait('@getPipeline');
+    cy.wait('@getPipelineVersion');
+
+    verifyRelativeURL(
+      `/pipelines/${projectName}/${uploadedMockPipeline.pipeline_id}/${initialMockPipelineVersion.pipeline_version_id}/view`,
+    );
+  });
+
+  it('imports a new pipeline to be stored as kubernetes resource', () => {
+    initIntercepts({
+      pipelineStore: DSPipelineAPIServerStore.KUBERNETES,
+    });
+
+    pipelinesGlobal.visit(projectName);
+    const uploadPipelineParams = {
+      display_name: 'New pipeline',
+      name: 'new-pipeline',
+      description: 'New pipeline description',
+    };
+    const uploadedMockPipeline = buildMockPipeline(uploadPipelineParams);
+
+    // Intercept upload/re-fetch of pipelines
+    pipelineImportModal.mockUploadPipeline(uploadPipelineParams, projectName).as('uploadPipeline');
+    pipelinesTable.mockGetPipelines([initialMockPipeline], projectName);
+    pipelinesTable.mockGetPipelineVersions(
+      [initialMockPipelineVersion],
+      'new-pipeline',
+      projectName,
+    );
+
+    // Wait for the pipelines table to load
+    pipelinesTable.find();
+
+    // Open the "Import pipeline" modal
+    pipelinesGlobal.findImportPipelineButton().click();
+
+    // Fill out the "Import pipeline" modal and submit
+    // Instead of just Name/Desc field, there is now display/resource name and desc due to k8s pipeline store
+    pipelineImportModal.shouldBeOpen();
+    pipelineImportModal.fillPipelineName(initialMockPipeline.display_name);
+    pipelineImportModal.fillPipelineName('New pipeline');
+
+    pipelineImportModal.findPipelineResourceNameInput().should('not.exist');
+    pipelineImportModal.findPipelineEditResourceNameButton().should('exist');
+
+    // change default generate resource name
+    pipelineImportModal.findPipelineEditResourceNameButton().click();
+    pipelineImportModal.fillPipelineResourceName('new-pipeline-resource');
+
+    pipelineImportModal.fillPipelineDescription('New pipeline description');
+    pipelineImportModal.uploadPipelineYaml(pipelineYamlPath);
+    pipelinesTable
+      .mockGetPipelines([initialMockPipeline, uploadedMockPipeline], projectName)
+      .as('refreshPipelines');
+    pipelineDetails.mockGetPipeline(projectName, uploadedMockPipeline).as('getPipeline');
+    pipelineDetails
+      .mockGetPipelineVersion(
+        uploadedMockPipeline.pipeline_id,
+        initialMockPipelineVersion,
+        projectName,
+      )
+      .as('getPipelineVersion');
+    pipelineImportModal.submit();
+
+    // Wait for pipeline upload
+    cy.wait('@uploadPipeline').then((interception) => {
+      // Note: contain is used instead of equals as different browser engines will add a different boundary
+      // to the body - the aim is to not limit these tests to working with one specific engine.
+      expect(interception.request.body).to.contain(
+        'Content-Disposition: form-data; name="uploadfile"; filename="uploadedFile.yml"',
+      );
+      expect(interception.request.body).to.contain('Content-Type: application/x-yaml');
+      expect(interception.request.body).to.contain('test-yaml-pipeline-content');
+
+      expect(interception.request.query).to.eql({
+        name: 'new-pipeline-resource',
+        description: 'New pipeline description',
+        display_name: 'New pipeline',
       });
     });
 
@@ -801,6 +988,88 @@ describe('Pipelines', () => {
 
       expect(interception.request.query).to.eql({
         name: 'New pipeline version',
+        display_name: 'New pipeline version',
+        description: 'New pipeline version description',
+        pipelineid: 'test-pipeline',
+      });
+    });
+
+    cy.wait('@refreshVersions').then((interception) => {
+      expect(interception.request.query).to.include({
+        sort_by: 'created_at desc',
+        pipeline_id: 'test-pipeline',
+      });
+    });
+
+    cy.wait('@getPipeline');
+    cy.wait('@getPipelineVersion');
+
+    verifyRelativeURL(
+      `/pipelines/${projectName}/${initialMockPipeline.pipeline_id}/${uploadedMockPipelineVersion.pipeline_version_id}/view`,
+    );
+  });
+
+  it('uploads a new pipeline version to be stored as a kubernetes resource', () => {
+    initIntercepts({
+      pipelineStore: DSPipelineAPIServerStore.KUBERNETES,
+    });
+    pipelinesGlobal.visit(projectName);
+    const uploadVersionParams = {
+      display_name: 'New pipeline version',
+      name: 'new-pipeline-version', // should automatically generate based on display name
+      description: 'New pipeline version description',
+      pipeline_id: 'test-pipeline',
+    };
+
+    // Wait for the pipelines table to load
+    pipelinesTable.find();
+
+    // Open the "Upload new version" modal
+    pipelinesGlobal.findUploadVersionButton().click();
+
+    const uploadedMockPipelineVersion = buildMockPipelineVersion(uploadVersionParams);
+
+    // Intercept upload/re-fetch of pipeline versions
+    pipelineVersionImportModal
+      .mockUploadVersion(uploadVersionParams, projectName)
+      .as('uploadVersion');
+
+    // Fill out the "Upload new version" modal and submit
+    pipelineVersionImportModal.shouldBeOpen();
+    pipelineVersionImportModal.selectPipelineByName('Test pipeline');
+    pipelineVersionImportModal.fillVersionName('New pipeline version');
+    pipelineVersionImportModal.fillVersionDescription('New pipeline version description');
+    pipelineVersionImportModal.uploadPipelineYaml(pipelineYamlPath);
+    pipelinesTable
+      .mockGetPipelineVersions(
+        [initialMockPipelineVersion, uploadedMockPipelineVersion],
+        initialMockPipeline.pipeline_id,
+        projectName,
+      )
+      .as('refreshVersions');
+    pipelineDetails.mockGetPipeline(projectName, uploadedMockPipelineVersion).as('getPipeline');
+    pipelineDetails
+      .mockGetPipelineVersion(
+        initialMockPipeline.pipeline_id,
+        uploadedMockPipelineVersion,
+        projectName,
+      )
+      .as('getPipelineVersion');
+    pipelineVersionImportModal.submit();
+
+    // Wait for upload/fetch requests
+    cy.wait('@uploadVersion').then((interception) => {
+      // Note: contain is used instead of equals as different browser engines will add a different boundary
+      // to the body - the aim is to not limit these tests to working with one specific engine.
+      expect(interception.request.body).to.contain(
+        'Content-Disposition: form-data; name="uploadfile"; filename="uploadedFile.yml"',
+      );
+      expect(interception.request.body).to.contain('Content-Type: application/x-yaml');
+      expect(interception.request.body).to.contain('test-yaml-pipeline-content');
+
+      expect(interception.request.query).to.eql({
+        display_name: 'New pipeline version',
+        name: 'new-pipeline-version',
         description: 'New pipeline version description',
         pipelineid: 'test-pipeline',
       });
@@ -1338,6 +1607,7 @@ type HandlersProps = {
   errorMessage?: string;
   initializing?: boolean;
   nextPageToken?: string | undefined;
+  pipelineStore?: DSPipelineAPIServerStore;
 };
 
 const initIntercepts = ({
@@ -1349,6 +1619,7 @@ const initIntercepts = ({
   errorMessage,
   totalSize = mockPipelines.length,
   nextPageToken,
+  pipelineStore,
 }: HandlersProps): void => {
   cy.interceptK8sList(
     DataSciencePipelineApplicationModel,
@@ -1369,6 +1640,7 @@ const initIntercepts = ({
       dspaSecretName: 'aws-connection-test',
       initializing,
       message: errorMessage,
+      pipelineStore,
     }),
   );
   cy.interceptK8s(

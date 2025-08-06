@@ -1,6 +1,8 @@
 import { GetEntities, GetEntityByName } from './entities';
+import { GetFeatureByName, GetFeatures } from './features';
 import { GetProjects } from './featureStoreProjects';
 import { GetFeatureViews } from './featureView';
+import { GetFeatureServices } from './featureServices';
 
 export type FeatureStorePagination = {
   page: number;
@@ -46,9 +48,23 @@ export type BatchSource = {
   meta?: FeatureStoreMeta;
 };
 
+export type FeatureStoreRelationship = {
+  source: {
+    type: string;
+    name: string;
+  };
+  target: {
+    type: string;
+    name: string;
+  };
+};
+
 export type FeatureStoreAPIs = {
   listFeatureStoreProject: GetProjects;
   getEntities: GetEntities;
   getFeatureViews: GetFeatureViews;
   getEntityByName: GetEntityByName;
+  getFeatures: GetFeatures;
+  getFeatureByName: GetFeatureByName;
+  getFeatureServices: GetFeatureServices;
 };

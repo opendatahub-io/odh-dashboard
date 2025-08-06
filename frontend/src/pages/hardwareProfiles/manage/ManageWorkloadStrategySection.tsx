@@ -73,7 +73,7 @@ const ManageWorkloadStrategySection: React.FC<ManageWorkloadStrategySectionProps
             id="node-strategy"
             name={ManageHardwareProfileSectionID.ALLOCATION_STRATEGY}
             data-testid="node-strategy-radio-input"
-            label="Node Selectors and tolerations"
+            label="Node selectors and tolerations"
             isChecked={schedulingType === SchedulingType.NODE}
             onChange={() => setSchedulingType(SchedulingType.NODE)}
           />

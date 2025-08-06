@@ -9,6 +9,7 @@ import {
   ModalBody,
   ModalHeader,
   ModalFooter,
+  ExpandableSection,
 } from '@patternfly/react-core';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { createPipelinesCR, deleteSecret, listPipelinesCR } from '#~/api';
@@ -32,6 +33,7 @@ import {
   isDspaAllReady,
 } from '#~/concepts/pipelines/context/usePipelineNamespaceCR';
 import { PipelinesDatabaseSection } from './PipelinesDatabaseSection';
+import { PipelineCachingSection } from './PipelineCachingSection';
 import { ObjectStorageSection } from './ObjectStorageSection';
 import {
   DATABASE_CONNECTION_FIELDS,
@@ -40,6 +42,7 @@ import {
 } from './const';
 import { configureDSPipelineResourceSpec, objectStorageIsValid } from './utils';
 import { PipelineServerConfigType } from './types';
+import PipelinesDefinitionStorageSection from './PipelinesDefinitionStorageSection';
 
 type ConfigurePipelinesServerModalProps = {
   onClose: () => void;
@@ -49,6 +52,8 @@ const FORM_DEFAULTS: PipelineServerConfigType = {
   database: { useDefault: true, value: EMPTY_DATABASE_CONNECTION },
   objectStorage: { newValue: EMPTY_AWS_PIPELINE_DATA },
   enableInstructLab: false,
+  storeYamlInKubernetes: true,
+  enableCaching: true,
 };
 
 const serverConfiguredEvent = 'Pipeline Server Configured';
@@ -59,9 +64,11 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
   const [connections, loaded] = usePipelinesConnections(namespace);
   const [fetching, setFetching] = React.useState(false);
   const [error, setError] = React.useState<Error>();
+  const [advancedSettingsExpanded, setAdvancedSettingsExpanded] = React.useState(false);
   const [config, setConfig] = React.useState<PipelineServerConfigType>(FORM_DEFAULTS);
   const { registerNotification } = React.useContext(NotificationWatcherContext);
   const isFineTuningAvailable = useIsAreaAvailable(SupportedArea.FINE_TUNING).status;
+  const advancedSettingsRef = React.useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
   const databaseIsValid = config.database.useDefault
@@ -236,10 +243,37 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
                 loaded={loaded}
                 connections={connections}
               />
-              <PipelinesDatabaseSection setConfig={setConfig} config={config} />
-              {isFineTuningAvailable && (
-                <SamplePipelineSettingsSection setConfig={setConfig} config={config} />
-              )}
+              <ExpandableSection
+                data-testid="advanced-settings-section"
+                isIndented
+                toggleId="advanced-settings-toggle"
+                toggleText="Advanced settings"
+                onToggle={() => {
+                  setAdvancedSettingsExpanded(!advancedSettingsExpanded);
+
+                  if (!advancedSettingsExpanded) {
+                    requestAnimationFrame(() => {
+                      advancedSettingsRef.current?.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start',
+                      });
+                    });
+                  }
+                }}
+                isExpanded={advancedSettingsExpanded}
+              >
+                <div ref={advancedSettingsRef}>
+                  <PipelinesDatabaseSection setConfig={setConfig} config={config} />
+                  {isFineTuningAvailable && (
+                    <SamplePipelineSettingsSection setConfig={setConfig} config={config} />
+                  )}
+                  <PipelinesDefinitionStorageSection setConfig={setConfig} config={config} />
+                  <PipelineCachingSection
+                    enableCaching={config.enableCaching}
+                    setEnableCaching={(enableCaching) => setConfig({ ...config, enableCaching })}
+                  />
+                </div>
+              </ExpandableSection>
             </Form>
           </StackItem>
         </Stack>

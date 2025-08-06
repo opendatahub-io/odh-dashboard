@@ -25,9 +25,11 @@ const mockDeployment = (partial: Partial<Deployment> = {}) => ({
 
 describe('DeploymentsTableRow', () => {
   let onDelete: jest.Mock;
+  let onEdit: jest.Mock;
 
   beforeEach(() => {
     onDelete = jest.fn();
+    onEdit = jest.fn();
     mockExtensions();
   });
 
@@ -38,6 +40,7 @@ describe('DeploymentsTableRow', () => {
           deployment={mockDeployment({})}
           platformColumns={[]}
           onDelete={onDelete}
+          onEdit={onEdit}
           rowIndex={0}
         />
       </table>,
@@ -75,6 +78,7 @@ describe('DeploymentsTableRow', () => {
             },
           ]}
           onDelete={onDelete}
+          onEdit={onEdit}
           rowIndex={0}
         />
       </table>,
@@ -92,6 +96,7 @@ describe('DeploymentsTableRow', () => {
           })}
           platformColumns={[]}
           onDelete={onDelete}
+          onEdit={onEdit}
           rowIndex={0}
         />
       </table>,
@@ -116,6 +121,7 @@ describe('DeploymentsTableRow', () => {
             })}
             platformColumns={[]}
             onDelete={onDelete}
+            onEdit={onEdit}
             rowIndex={0}
           />
         </table>,
@@ -144,6 +150,7 @@ describe('DeploymentsTableRow', () => {
             })}
             platformColumns={[]}
             onDelete={onDelete}
+            onEdit={onEdit}
             rowIndex={0}
           />
         </table>,
@@ -177,6 +184,7 @@ describe('DeploymentsTableRow', () => {
             })}
             platformColumns={[]}
             onDelete={onDelete}
+            onEdit={onEdit}
             rowIndex={0}
           />
         </table>,
@@ -211,6 +219,7 @@ describe('DeploymentsTableRow', () => {
           })}
           platformColumns={[]}
           onDelete={onDelete}
+          onEdit={onEdit}
           rowIndex={0}
         />
       </table>,

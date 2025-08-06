@@ -228,6 +228,18 @@ class ModelRegistry {
     return cy.findByTestId('empty-model-registry-primary-action', { timeout });
   }
 
+  getRegisterModelButtonSelector() {
+    return '[data-testid="register-model-button"]';
+  }
+
+  getEmptyRegisterModelButtonSelector() {
+    return '[data-testid="empty-model-registry-primary-action"]';
+  }
+
+  findEmptyModelRegistrySecondaryButton(timeout?: number) {
+    return cy.findByTestId('empty-model-registry-secondary-action', { timeout });
+  }
+
   findModelVersionsTab() {
     return cy.findByTestId('model-versions-tab');
   }
