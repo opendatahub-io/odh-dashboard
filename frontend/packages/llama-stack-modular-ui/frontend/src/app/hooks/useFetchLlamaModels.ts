@@ -13,7 +13,7 @@ const useFetchLlamaModels = (): {
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
 
-  const fetchLlamaModels = async () => {
+  const fetchLlamaModels = React.useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -26,7 +26,12 @@ const useFetchLlamaModels = (): {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  // Automatically fetch models on hook initialization
+  React.useEffect(() => {
+    fetchLlamaModels();
+  }, [fetchLlamaModels]);
 
   return { models, loading, error, fetchLlamaModels };
 };

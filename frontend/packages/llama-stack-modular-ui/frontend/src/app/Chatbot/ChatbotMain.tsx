@@ -2,6 +2,7 @@
 import * as React from 'react';
 import {
   Alert,
+  Bullseye,
   Drawer,
   DrawerContent,
   DrawerContentBody,
@@ -37,9 +38,15 @@ import SourceUploadErrorAlert from './components/alerts/SourceUploadErrorAlert';
 
 const ChatbotMain: React.FunctionComponent = () => {
   const displayMode = ChatbotDisplayMode.fullscreen;
-  const { models, loading, error, fetchLlamaModels } = useFetchLlamaModels();
+  const { models, loading, error } = useFetchLlamaModels();
   const [selectedModel, setSelectedModel] = React.useState<string>('');
   const modelId = selectedModel || models[0]?.identifier;
+
+  React.useEffect(() => {
+    if (!selectedModel) {
+      setSelectedModel(models[0]?.identifier);
+    }
+  }, [models, selectedModel]);
 
   // Custom hooks for managing different aspects of the chatbot
   const alertManagement = useAlertManagement();
@@ -71,19 +78,13 @@ const ChatbotMain: React.FunctionComponent = () => {
     />
   );
 
-  // Fetch models on component mount
-  React.useEffect(() => {
-    const fetchModels = async () => {
-      await fetchLlamaModels();
-    };
-
-    fetchModels();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   // Loading and error states
   if (loading) {
-    return <Spinner size="sm" />;
+    return (
+      <Bullseye>
+        <Spinner />
+      </Bullseye>
+    );
   }
 
   if (error) {
