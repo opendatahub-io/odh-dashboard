@@ -3,7 +3,7 @@ import { useFeatureStoreAPI } from '#~/pages/featureStore/FeatureStoreContext';
 import useFetch, { FetchStateCallbackPromise, FetchStateObject } from '#~/utilities/useFetch';
 import { FeatureViewsList } from '#~/pages/featureStore/types/featureView';
 
-const useFeatureViews = (project?: string): FetchStateObject<FeatureViewsList> => {
+const useFeatureViews = (project?: string, entity?: string): FetchStateObject<FeatureViewsList> => {
   const { api, apiAvailable } = useFeatureStoreAPI();
 
   const call = React.useCallback<FetchStateCallbackPromise<FeatureViewsList>>(
@@ -12,9 +12,9 @@ const useFeatureViews = (project?: string): FetchStateObject<FeatureViewsList> =
         return Promise.reject(new Error('API not yet available'));
       }
 
-      return api.getFeatureViews(opts, project);
+      return api.getFeatureViews(opts, project, entity);
     },
-    [api, apiAvailable, project],
+    [api, apiAvailable, project, entity],
   );
 
   return useFetch(
