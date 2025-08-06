@@ -1,3 +1,4 @@
+//TODO: Move this to a shared library eventually
 import React from 'react';
 import {
   Button,
@@ -10,7 +11,7 @@ import {
 } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
 
-type EmptyModelRegistryStateType = {
+type EmptyDeploymentsStateType = {
   testid?: string;
   title: string;
   description: React.ReactNode;
@@ -22,7 +23,7 @@ type EmptyModelRegistryStateType = {
   customAction?: React.ReactNode;
 };
 
-const EmptyModelRegistryState: React.FC<EmptyModelRegistryStateType> = ({
+const EmptyDeploymentsState: React.FC<EmptyDeploymentsStateType> = ({
   testid,
   title,
   description,
@@ -44,7 +45,7 @@ const EmptyModelRegistryState: React.FC<EmptyModelRegistryStateType> = ({
       {primaryActionText && (
         <EmptyStateActions>
           <Button
-            data-testid="empty-model-registry-primary-action"
+            data-testid="empty-deployment-primary-action"
             variant={ButtonVariant.primary}
             onClick={primaryActionOnClick}
           >
@@ -56,7 +57,7 @@ const EmptyModelRegistryState: React.FC<EmptyModelRegistryStateType> = ({
       {secondaryActionText && (
         <EmptyStateActions>
           <Button
-            data-testid="empty-model-registry-secondary-action"
+            data-testid="empty-deployment-secondary-action"
             variant="link"
             onClick={secondaryActionOnClick}
           >
@@ -70,4 +71,4 @@ const EmptyModelRegistryState: React.FC<EmptyModelRegistryStateType> = ({
   </EmptyState>
 );
 
-export default EmptyModelRegistryState;
+export default EmptyDeploymentsState;

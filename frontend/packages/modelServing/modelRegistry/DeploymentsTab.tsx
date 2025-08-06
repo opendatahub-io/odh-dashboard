@@ -1,6 +1,6 @@
 import React from 'react';
 import { ProjectObjectType, typedEmptyImage } from '@odh-dashboard/internal/concepts/design/utils';
-import EmptyModelRegistryState from './EmptyModelRegistryState';
+import EmptyDeploymentsState from './EmptyDeploymentsState';
 import GlobalDeploymentsTable from '../src/components/global/GlobalDeploymentsTable';
 import { ModelDeploymentsContext } from '../src/concepts/ModelDeploymentsContext';
 
@@ -8,7 +8,7 @@ const DeploymentsTab: React.FC = () => {
   const { deployments, loaded: deploymentsLoaded } = React.useContext(ModelDeploymentsContext);
   if (deploymentsLoaded && deployments?.length === 0) {
     return (
-      <EmptyModelRegistryState
+      <EmptyDeploymentsState
         title="No deployments from model registry"
         headerIcon={() => (
           <img
