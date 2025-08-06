@@ -116,7 +116,7 @@ const ModelPlatformSection: React.FC<{ platforms: ModelServingPlatform[] }> = ({
           </Stack>
         </CardBody>
         <CardFooter>
-          <Flex>
+          <Flex gap={{ default: 'gapMd' }}>
             <DeployButton project={currentProject} variant="link" />
             <NavigateBackToRegistryButton isInline />
           </Flex>
