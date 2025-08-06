@@ -4,7 +4,7 @@ import EmptyDetailsView from '@odh-dashboard/internal/components/EmptyDetailsVie
 import { ProjectObjectType, typedEmptyImage } from '@odh-dashboard/internal/concepts/design/utils';
 import EmptyModelServingPlatform from '@odh-dashboard/internal/pages/modelServing/screens/projects/EmptyModelServingPlatform';
 import { ModelServingPlatform } from '../../concepts/useProjectServingPlatform';
-import { PlatformSelectionGallery } from '../platformSelection';
+import { PlatformSelectionGallery } from '../platforms/platformSelection';
 
 export const SelectPlatformView: React.FC<{
   platforms?: ModelServingPlatform[];
