@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Button, Popover } from '@patternfly/react-core';
+import { Button, Popover, Tooltip } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { ProjectSectionID } from '#~/pages/projects/screens/detail/types';
@@ -12,6 +12,7 @@ import DashboardPopupIconButton from '#~/concepts/dashboard/DashboardPopupIconBu
 import { ProjectObjectType, typedEmptyImage } from '#~/concepts/design/utils';
 import useRefreshInterval from '#~/utilities/useRefreshInterval';
 import NotebookTable from './NotebookTable';
+import useKueueDisabled from '#~/concepts/projects/hooks/useKueueDisabled.ts';
 
 const NotebookList: React.FC = () => {
   const {
@@ -39,6 +40,36 @@ const NotebookList: React.FC = () => {
       .forEach((notebookState) => notebookState.refresh()),
   );
 
+  const { isKueueDisabled } = useKueueDisabled(currentProject);
+
+  const getCreateButton = () => {
+    if (isKueueDisabled) {
+      return (
+        <Tooltip content="Workbench creation requires Kueue. Contact your admin.">
+          <Button
+            key={`action-${ProjectSectionID.WORKBENCHES}`}
+            onClick={() => navigate(`/projects/${projectName}/spawner`)}
+            data-testid="create-workbench-button"
+            variant="primary"
+            isAriaDisabled
+          >
+            Create workbench
+          </Button>
+        </Tooltip>
+      );
+    }
+    return (
+      <Button
+        key={`action-${ProjectSectionID.WORKBENCHES}`}
+        onClick={() => navigate(`/projects/${projectName}/spawner`)}
+        data-testid="create-workbench-button"
+        variant="primary"
+      >
+        Create workbench
+      </Button>
+    );
+  };
+
   return (
     <DetailsSection
       objectType={ProjectObjectType.notebook}
@@ -57,16 +88,7 @@ const NotebookList: React.FC = () => {
           </Popover>
         )
       }
-      actions={[
-        <Button
-          key={`action-${ProjectSectionID.WORKBENCHES}`}
-          onClick={() => navigate(`/projects/${projectName}/spawner`)}
-          data-testid="create-workbench-button"
-          variant="primary"
-        >
-          Create workbench
-        </Button>,
-      ]}
+      actions={[getCreateButton()]}
       isLoading={!notebooksLoaded}
       loadError={notebooksError}
       isEmpty={isNotebooksEmpty}
@@ -76,16 +98,7 @@ const NotebookList: React.FC = () => {
           description="A workbench is an isolated area where you can work with models in your preferred IDE, such as a Jupyter notebook. You can add accelerators and connections, create pipelines, and add cluster storage in your workbench."
           iconImage={typedEmptyImage(ProjectObjectType.notebook)}
           imageAlt="create a workbench"
-          createButton={
-            <Button
-              key={`action-${ProjectSectionID.WORKBENCHES}`}
-              data-testid="create-workbench-button"
-              onClick={() => navigate(`/projects/${projectName}/spawner`)}
-              variant="primary"
-            >
-              Create workbench
-            </Button>
-          }
+          createButton={getCreateButton()}
         />
       }
     >
