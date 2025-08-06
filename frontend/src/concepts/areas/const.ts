@@ -65,6 +65,7 @@ export const advancedAIMLFlags = {
   disableModelRegistrySecureDB: false,
   disableFineTuning: true,
   disableLMEval: true,
+  disableModelTraining: true,
 } satisfies Partial<DashboardCommonConfig>;
 
 // Combined feature flags object
@@ -217,6 +218,10 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   [SupportedArea.FEATURE_STORE]: {
     featureFlags: ['disableFeatureStore'],
     // requiredComponents: [StackComponent.FEAST_OPERATOR], // TODO: Enable this once latest Feast operator is released .
+  },
+  [SupportedArea.MODEL_TRAINING]: {
+    featureFlags: ['disableModelTraining'],
+    requiredComponents: [StackComponent.TRAINING_OPERATOR, StackComponent.KUEUE],
   },
 };
 
