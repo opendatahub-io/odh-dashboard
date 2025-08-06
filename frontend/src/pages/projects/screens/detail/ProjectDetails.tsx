@@ -1,5 +1,14 @@
 import * as React from 'react';
-import { Breadcrumb, BreadcrumbItem, Flex, FlexItem, Truncate } from '@patternfly/react-core';
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  Flex,
+  FlexItem,
+  Truncate,
+  Alert,
+  AlertActionCloseButton,
+  PageSection,
+} from '@patternfly/react-core';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useModelServingTab } from '#~/concepts/projects/projectDetails/useModelServingTab';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
@@ -71,6 +80,23 @@ const ProjectDetails: React.FC = () => {
       empty={false}
       headerAction={<ProjectActions project={currentProject} />}
     >
+      <Flex direction={{ default: 'column' }} className="pf-v6-u-px-lg">
+        <Alert
+          variant="info"
+          isInline
+          title="Kueue is disabled in this cluster"
+          isExpandable={true}
+          actionClose={
+            <AlertActionCloseButton onClose={() => console.log('Clicked the close button')} />
+          }
+        >
+          <p>
+            This project uses local queue for workload allocation, which relies on Kueue. To deploy
+            a model or create a workbench in this project, ask your administrator to enable Kueue or
+            change this project's workload allocation strategy.
+          </p>
+        </Alert>
+      </Flex>
       <GenericHorizontalBar
         activeKey={state}
         onSectionChange={React.useCallback(
