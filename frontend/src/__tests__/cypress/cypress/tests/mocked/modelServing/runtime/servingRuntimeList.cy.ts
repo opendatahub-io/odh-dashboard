@@ -1922,6 +1922,12 @@ describe('Serving Runtime List', () => {
       kserveModal.findMinReplicasPlusButton().click();
       kserveModal.findMinReplicasInput().should('have.value', '2');
 
+      // Test max replicas error message
+      kserveModal.findMaxReplicasInput().clear();
+      kserveModal.findMaxReplicasErrorMessage().should('exist');
+      kserveModal.findMaxReplicasInput().type('6');
+      kserveModal.findMaxReplicasErrorMessage().should('not.exist');
+
       // Test max limit of 99
       kserveModal.findMaxReplicasInput().clear().type('100');
       kserveModal.findMaxReplicasInput().should('have.value', '99');
