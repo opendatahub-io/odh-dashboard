@@ -19,7 +19,7 @@ import {
  * 4. Validates the NIM card contents and description
  * 5. Clicks the NIM card and enables it with NGC API key
  * 6. Verifies the validation process and success notification
- * 7. Confirms the NIM application appears on the Enabled page:
+ * 7. Confirms the NIM application appears on the Enabled page
  *
  * The test is designed to work in both ODH and RHOAI environments,
  * automatically handling cases where NIM is not included by default.
@@ -50,22 +50,11 @@ describe('Verify NIM enable flow', () => {
             if (isAvailable) {
               cy.log('✅ NIM card is available - proceeding with enablement test');
               cy.log('💡 No need to apply manifest, proceeding directly with enablement test');
-              // Execute the test steps directly since NIM is available
-              executeNIMTestSteps().then((wasAlreadyEnabled) => {
-                if (wasAlreadyEnabled) {
-                  cy.log('✅ NIM was already enabled - test completed successfully');
-                  this.skip();
-                }
-              });
+              executeNIMTestSteps();
             } else {
               cy.log('⚠️  NIM application exists on cluster but card is not visible in UI');
               cy.log('💡 This might be a UI issue - proceeding with test anyway');
-              executeNIMTestSteps().then((wasAlreadyEnabled) => {
-                if (wasAlreadyEnabled) {
-                  cy.log('✅ NIM was already enabled - test completed successfully');
-                  this.skip();
-                }
-              });
+              executeNIMTestSteps();
             }
           });
         } else {
@@ -106,12 +95,7 @@ describe('Verify NIM enable flow', () => {
               nimCard.isNIMCardAvailable().then((isNowAvailable) => {
                 if (isNowAvailable) {
                   cy.log('✅ NIM card is now available, proceeding with test');
-                  executeNIMTestSteps().then((wasAlreadyEnabled) => {
-                    if (wasAlreadyEnabled) {
-                      cy.log('✅ NIM was already enabled - test completed successfully');
-                      this.skip();
-                    }
-                  });
+                  executeNIMTestSteps();
                 } else if (attempts < maxAttempts) {
                   cy.log(`⏳ NIM card not yet available, waiting before next attempt...`);
                   // eslint-disable-next-line cypress/no-unnecessary-waiting
@@ -138,9 +122,8 @@ describe('Verify NIM enable flow', () => {
 
 /**
  * Helper function to execute the NIM test steps
- * @returns Cypress.Chainable<boolean> - true if NIM was already enabled, false if enablement was performed
  */
-function executeNIMTestSteps(): Cypress.Chainable<boolean> {
+function executeNIMTestSteps(): void {
   cy.step('Validate NIM card contents');
   nimCard
     .getNIMCard()
@@ -192,5 +175,4 @@ function executeNIMTestSteps(): Cypress.Chainable<boolean> {
   nimCard.getNIMCard().within(() => {
     cy.contains('button', 'Disabled').should('not.exist');
   });
-  return cy.wrap(false); // NIM was not already enabled, enablement was performed
 }
