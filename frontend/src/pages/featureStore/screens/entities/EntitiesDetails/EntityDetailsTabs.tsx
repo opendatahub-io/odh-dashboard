@@ -3,8 +3,8 @@ import { PageSection, Tab, Tabs, TabTitleText } from '@patternfly/react-core';
 import * as React from 'react';
 import { Entity } from '#~/pages/featureStore/types/entities.ts';
 import { EntityDetailsTab } from '#~/pages/featureStore/screens/entities/const';
+import FeatureViewTab from '#~/pages/featureStore/screens/components/FeatureViewTab';
 import EntityDetailsView from './EntityDetailsView';
-import EntityFeatureViewsTab from './EntityFeatureViewsTab';
 
 type EntityDetailsTabsProps = {
   entity: Entity;
@@ -47,7 +47,7 @@ const EntityDetailsTabs: React.FC<EntityDetailsTabsProps> = ({ entity }) => {
           data-testid="entity-feature-views-tab-content"
           className="pf-v6-u-mt-xl"
         >
-          <EntityFeatureViewsTab entity={entity} />
+          <FeatureViewTab fsObject={{ entity: entity.spec.name }} contextName="entity" />
         </PageSection>
       </Tab>
     </Tabs>

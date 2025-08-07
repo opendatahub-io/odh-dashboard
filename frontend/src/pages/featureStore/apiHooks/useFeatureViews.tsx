@@ -7,12 +7,14 @@ type UseFeatureViewsProps = {
   project?: string;
   entity?: string;
   featureService?: string;
+  feature?: string;
 };
 
 const useFeatureViews = ({
   project,
   entity,
   featureService,
+  feature,
 }: UseFeatureViewsProps): FetchStateObject<FeatureViewsList> => {
   const { api, apiAvailable } = useFeatureStoreAPI();
 
@@ -22,9 +24,9 @@ const useFeatureViews = ({
         return Promise.reject(new Error('API not yet available'));
       }
 
-      return api.getFeatureViews(opts, project, entity, featureService);
+      return api.getFeatureViews(opts, project, entity, featureService, feature);
     },
-    [api, apiAvailable, project, entity, featureService],
+    [api, apiAvailable, project, entity, featureService, feature],
   );
 
   return useFetch(

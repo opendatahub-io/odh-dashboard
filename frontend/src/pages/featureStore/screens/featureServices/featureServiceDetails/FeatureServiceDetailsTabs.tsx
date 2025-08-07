@@ -2,8 +2,8 @@ import { PageSection, Tab, TabContentBody, Tabs, TabTitleText } from '@patternfl
 import * as React from 'react';
 import { FeatureService } from '#~/pages/featureStore/types/featureServices';
 import { FeatureServiceDetailsTab } from '#~/pages/featureStore/screens/featureServices/const';
+import FeatureViewTab from '#~/pages/featureStore/screens/components/FeatureViewTab';
 import FeatureServiceDetailsPage from './FeatureServiceDetailsPage';
-import FeatureServiceFeatureViewTab from './FeatureServiceFeatureViewTab';
 
 type FeatureServiceDetailsTabsProps = {
   featureService: FeatureService;
@@ -51,7 +51,10 @@ const FeatureServiceDetailsTabs: React.FC<FeatureServiceDetailsTabsProps> = ({
             hasBodyWrapper={false}
             className="pf-v6-u-mt-xl"
           >
-            <FeatureServiceFeatureViewTab featureServiceName={featureService.spec.name} />
+            <FeatureViewTab
+              fsObject={{ featureService: featureService.spec.name }}
+              contextName="feature service"
+            />
           </PageSection>
         </TabContentBody>
       </Tab>
