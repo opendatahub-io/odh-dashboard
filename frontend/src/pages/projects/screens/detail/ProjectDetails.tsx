@@ -96,6 +96,7 @@ const ProjectDetails: React.FC = () => {
       {shouldShowKueueAlert && !isKueueAlertDismissed && (
         <Flex direction={{ default: 'column' }} className="pf-v6-u-px-lg">
           <Alert
+            data-testid="kueue-disabled-alert-project-details"
             variant="info"
             isInline
             title="Kueue is disabled in this cluster"
