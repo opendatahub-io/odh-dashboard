@@ -77,6 +77,7 @@ const FeatureViewMaterialization: React.FC<FeatureViewMaterializationProps> = ({
             <Table
               data-testid="materialization-intervals-table"
               id="materialization-intervals-table"
+              variant="compact"
               data={materializationIntervals}
               columns={materializationColumns}
               rowRenderer={(interval, idx) => (
