@@ -15,7 +15,8 @@ import { byName, ProjectsContext } from '#~/concepts/projects/ProjectsContext';
 import { isProjectNIMSupported } from '#~/pages/modelServing/screens/projects/nimUtils';
 import ManageNIMServingModal from '#~/pages/modelServing/screens/projects/NIMServiceModal/ManageNIMServingModal';
 import useServingPlatformStatuses from '#~/pages/modelServing/useServingPlatformStatuses';
-import useKueueDisabled from '#~/concepts/projects/hooks/useKueueDisabled.ts';
+import { useKueueConfiguration } from '#~/concepts/projects/hooks/useKueueConfiguration';
+import { ProjectKind } from '#~/k8sTypes';
 
 const ServeModelButton: React.FC = () => {
   const [platformSelected, setPlatformSelected] = React.useState<
@@ -36,7 +37,7 @@ const ServeModelButton: React.FC = () => {
 
   const project = projects.find(byName(namespace));
 
-  const { isKueueDisabled } = project ? useKueueDisabled(project) : { isKueueDisabled: false };
+  const { isKueueDisabled } = useKueueConfiguration(project);
 
   const templatesSorted = getSortedTemplates(templates, templateOrder);
   const templatesEnabled = templatesSorted.filter((template) =>

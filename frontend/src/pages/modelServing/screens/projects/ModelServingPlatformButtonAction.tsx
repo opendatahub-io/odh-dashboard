@@ -3,7 +3,7 @@ import { Button, ButtonProps, Content, Tooltip } from '@patternfly/react-core';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import { isProjectNIMSupported } from '#~/pages/modelServing/screens/projects/nimUtils';
 import useServingPlatformStatuses from '#~/pages/modelServing/useServingPlatformStatuses';
-import useKueueDisabled from '#~/concepts/projects/hooks/useKueueDisabled.ts';
+import { useKueueConfiguration } from '#~/concepts/projects/hooks/useKueueConfiguration';
 
 type ModelServingPlatformButtonActionProps = ButtonProps & {
   isProjectModelMesh: boolean;
@@ -27,7 +27,7 @@ const ModelServingPlatformButtonAction: React.FC<ModelServingPlatformButtonActio
   const isKServeNIMEnabled = isProjectNIMSupported(currentProject);
   const isNimDisabled = !isNIMAvailable && isKServeNIMEnabled;
 
-  const { isKueueDisabled } = useKueueDisabled(currentProject);
+  const { isKueueDisabled } = useKueueConfiguration(currentProject);
 
   const actionButton = (
     <Button

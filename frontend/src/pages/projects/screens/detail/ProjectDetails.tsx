@@ -12,6 +12,7 @@ import {
   ListItem,
   List,
 } from '@patternfly/react-core';
+import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useModelServingTab } from '#~/concepts/projects/projectDetails/useModelServingTab';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
@@ -29,7 +30,7 @@ import {
 import ResourceNameTooltip from '#~/components/ResourceNameTooltip';
 import HeaderIcon from '#~/concepts/design/HeaderIcon';
 import { useProjectPermissionsTabVisible } from '#~/concepts/projects/accessChecks';
-import useKueueDisabled from '#~/concepts/projects/hooks/useKueueDisabled';
+import { useKueueConfiguration } from '#~/concepts/projects/hooks/useKueueConfiguration';
 import useCheckLogoutParams from './useCheckLogoutParams';
 import ProjectOverview from './overview/ProjectOverview';
 import NotebookList from './notebooks/NotebookList';
@@ -40,7 +41,6 @@ import ProjectActions from './ProjectActions';
 import RagChatbot from './chatbot/RagChatbot';
 
 import './ProjectDetails.scss';
-import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 
 const ProjectDetails: React.FC = () => {
   const { currentProject } = React.useContext(ProjectDetailsContext);
@@ -60,7 +60,7 @@ const ProjectDetails: React.FC = () => {
 
   useCheckLogoutParams();
 
-  const { shouldShowKueueAlert } = useKueueDisabled(currentProject);
+  const { shouldShowKueueAlert } = useKueueConfiguration(currentProject);
 
   const [isKueueAlertDismissed, setIsKueueAlertDismissed] = React.useState(false);
 
@@ -99,7 +99,7 @@ const ProjectDetails: React.FC = () => {
             variant="info"
             isInline
             title="Kueue is disabled in this cluster"
-            isExpandable={true}
+            isExpandable
             actionClose={<AlertActionCloseButton onClose={handleKueueAlertClose} />}
           >
             <p>

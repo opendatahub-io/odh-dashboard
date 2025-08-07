@@ -11,8 +11,8 @@ import EmptyDetailsView from '#~/components/EmptyDetailsView';
 import DashboardPopupIconButton from '#~/concepts/dashboard/DashboardPopupIconButton';
 import { ProjectObjectType, typedEmptyImage } from '#~/concepts/design/utils';
 import useRefreshInterval from '#~/utilities/useRefreshInterval';
+import { useKueueConfiguration } from '#~/concepts/projects/hooks/useKueueConfiguration';
 import NotebookTable from './NotebookTable';
-import useKueueDisabled from '#~/concepts/projects/hooks/useKueueDisabled.ts';
 
 const NotebookList: React.FC = () => {
   const {
@@ -40,7 +40,7 @@ const NotebookList: React.FC = () => {
       .forEach((notebookState) => notebookState.refresh()),
   );
 
-  const { isKueueDisabled } = useKueueDisabled(currentProject);
+  const { isKueueDisabled } = useKueueConfiguration(currentProject);
 
   const getCreateButton = () => {
     if (isKueueDisabled) {
