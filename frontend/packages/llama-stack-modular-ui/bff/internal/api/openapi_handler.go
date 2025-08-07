@@ -66,6 +66,43 @@ func NewOpenAPIHandler(logger *slog.Logger, cfg config.EnvConfig) (*OpenAPIHandl
 	}, nil
 }
 
+// NewOpenAPIHandlerWithSpecPath creates a new OpenAPI handler with a custom spec file path
+// This is primarily used for testing to avoid changing the global working directory
+func NewOpenAPIHandlerWithSpecPath(logger *slog.Logger, cfg config.EnvConfig, specPath string) (*OpenAPIHandler, error) {
+	// Load the OpenAPI specification from the provided file path
+	specData, err := os.ReadFile(specPath)
+	if err != nil {
+		return nil, err
+	}
+
+	// Parse the OpenAPI specification
+	loader := openapi3.NewLoader()
+	loader.IsExternalRefsAllowed = true // Allow external references
+
+	// Set the working directory for resolving relative references
+	specDir := filepath.Dir(specPath)
+	loader.ReadFromURIFunc = func(loader *openapi3.Loader, url *url.URL) ([]byte, error) {
+		if url.Scheme == "" && url.Host == "" {
+			// Handle relative file paths relative to the spec file directory
+			filePath := filepath.Join(specDir, url.Path)
+			return os.ReadFile(filePath)
+		}
+		return nil, fmt.Errorf("unsupported URL scheme: %s", url.Scheme)
+	}
+
+	spec, err := loader.LoadFromData(specData)
+	if err != nil {
+		return nil, err
+	}
+
+	return &OpenAPIHandler{
+		logger:   logger,
+		spec:     spec,
+		specYAML: specData,
+		config:   cfg,
+	}, nil
+}
+
 // getDynamicSpec returns the OpenAPI spec with dynamic path prefixes
 func (h *OpenAPIHandler) getDynamicSpec() *openapi3.T {
 	// Create a deep copy of the spec by marshaling and unmarshaling JSON
