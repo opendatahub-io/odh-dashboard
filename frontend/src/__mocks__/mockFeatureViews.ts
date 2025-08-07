@@ -114,6 +114,8 @@ export const mockFeatureView = (partial?: Partial<StandardFeatureView>): Standar
       },
     ],
   },
+  featureDefinition: '',
+  relationships: [],
   meta: {
     createdTimestamp: '2025-06-30T07:46:22.705846Z',
     lastUpdatedTimestamp: '2025-06-30T07:50:13.105086Z',

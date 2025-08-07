@@ -91,7 +91,30 @@ const initIntercept = () => {
         totalCount: 1,
         totalPages: 1,
       },
-      relationships: {},
+      relationships: {
+        [featureServiceName]: [
+          {
+            source: {
+              type: 'featureView',
+              name: 'credit_history',
+            },
+            target: {
+              type: 'featureService',
+              name: featureServiceName,
+            },
+          },
+          {
+            source: {
+              type: 'featureView',
+              name: 'person_demographics',
+            },
+            target: {
+              type: 'featureService',
+              name: featureServiceName,
+            },
+          },
+        ],
+      },
     },
   );
 
@@ -107,6 +130,38 @@ const initIntercept = () => {
     },
     mockFeatureService({
       name: featureServiceName,
+      relationships: [
+        {
+          source: {
+            type: 'featureView',
+            name: 'credit_history',
+          },
+          target: {
+            type: 'featureService',
+            name: featureServiceName,
+          },
+        },
+        {
+          source: {
+            type: 'featureView',
+            name: 'person_demographics',
+          },
+          target: {
+            type: 'featureService',
+            name: featureServiceName,
+          },
+        },
+        {
+          source: {
+            type: 'entity',
+            name: 'dob_ssn',
+          },
+          target: {
+            type: 'featureService',
+            name: featureServiceName,
+          },
+        },
+      ],
     }),
   );
 
@@ -117,6 +172,7 @@ const initIntercept = () => {
     },
     {
       featureViews: [mockFeatureView()],
+      relationships: {},
       pagination: {
         totalCount: 1,
         totalPages: 1,
@@ -194,7 +250,7 @@ describe('Feature Service Details', () => {
       featureServiceDetailsPage.findUpdatedAtLabel().should('contain.text', 'Updated at');
       featureServiceDetailsPage
         .findUpdatedAtValue()
-        .should('contain.text', 'Jun 30, 2025, 7:46 AM UTC');
+        .should('contain.text', '30 Jun 2025, 07:46 UTC');
     });
   });
 
