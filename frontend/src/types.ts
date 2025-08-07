@@ -589,6 +589,7 @@ export enum ImageStreamAnnotation {
 
 export enum ImageStreamLabel {
   NOTEBOOK = 'opendatahub.io/notebook-image',
+  IMAGE_TYPE = 'app.kubernetes.io/created-by',
 }
 
 export enum ImageStreamSpecTagAnnotation {
@@ -597,6 +598,7 @@ export enum ImageStreamSpecTagAnnotation {
   OUTDATED = 'opendatahub.io/image-tag-outdated',
   RECOMMENDED = 'opendatahub.io/workbench-image-recommended',
   DEFAULT = 'opendatahub.io/default-image',
+  IMPORT_URL = 'openshift.io/imported-from',
 }
 
 export enum DisplayNameAnnotation {
