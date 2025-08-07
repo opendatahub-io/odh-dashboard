@@ -100,7 +100,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
                   <FlexItem>
                     <Switch
                       id="no-label-switch-on"
-                      aria-label="Togglable option for no visible label example"
+                      aria-label="Toggle uploaded mode"
                       isChecked={sourceManagement.isRawUploaded}
                       onChange={() =>
                         sourceManagement.setIsRawUploaded(!sourceManagement.isRawUploaded)

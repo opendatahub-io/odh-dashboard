@@ -59,7 +59,7 @@ export const getVectorDBs = (): Promise<VectorDB[]> => {
     .then((response) => response.data.data.items)
     .catch((error) => {
       throw new Error(
-        error.response?.data?.error?.message || error.message || 'Failed to vector dbs',
+        error.response?.data?.error?.message || error.message || 'Failed to fetch vector dbs',
       );
     });
 };
