@@ -116,12 +116,12 @@ const ProjectDetails: React.FC = () => {
                   Your administrator might be:
                   <List>
                     <ListItem>
-                      The person who assigned you your username, or who heelped you log in for the
+                      The person who assigned you your username, or who helped you log in for the
                       first time
                     </ListItem>
                     <ListItem>Someone in your IT department or help desk</ListItem>
                     <ListItem>A project manager or developer</ListItem>
-                    <ListItem>Your preofessor (at a school)</ListItem>
+                    <ListItem>Your professor (at a school)</ListItem>
                   </List>
                 </div>
               }
