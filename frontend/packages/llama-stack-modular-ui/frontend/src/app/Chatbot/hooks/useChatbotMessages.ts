@@ -23,11 +23,13 @@ export interface UseChatbotMessagesReturn {
 interface UseChatbotMessagesProps {
   modelId: string;
   selectedSourceSettings: ChatbotSourceSettings | null;
+  systemPrompt: string;
 }
 
 const useChatbotMessages = ({
   modelId,
   selectedSourceSettings,
+  systemPrompt,
 }: UseChatbotMessagesProps): UseChatbotMessagesReturn => {
   const [messages, setMessages] = React.useState<MessageProps[]>([initialBotMessage()]);
   const [isMessageSendButtonDisabled, setIsMessageSendButtonDisabled] = React.useState(false);
@@ -73,6 +75,7 @@ const useChatbotMessages = ({
             },
             max_tokens: QUERY_CONFIG.MAX_TOKENS,
           },
+          system_prompt: systemPrompt,
         };
 
         const response = await querySource(query);
@@ -98,7 +101,7 @@ const useChatbotMessages = ({
         setIsMessageSendButtonDisabled(false);
       }
     },
-    [modelId, selectedSourceSettings],
+    [modelId, selectedSourceSettings, systemPrompt],
   );
 
   return {

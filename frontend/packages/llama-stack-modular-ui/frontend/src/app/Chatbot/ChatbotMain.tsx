@@ -1,11 +1,13 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
 import {
-  Alert,
   Bullseye,
   Drawer,
   DrawerContent,
   DrawerContentBody,
+  EmptyState,
+  EmptyStateBody,
+  EmptyStateVariant,
   Spinner,
   Title,
 } from '@patternfly/react-core';
@@ -23,6 +25,7 @@ import {
   MessageBox,
 } from '@patternfly/chatbot';
 
+import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import useFetchLlamaModels from '~/app/hooks/useFetchLlamaModels';
 import '@patternfly/chatbot/dist/css/main.css';
 import { ChatbotSourceSettingsModal } from './sourceUpload/ChatbotSourceSettingsModal';
@@ -31,16 +34,16 @@ import { ChatbotSettingsPanel } from './components/ChatbotSettingsPanel';
 import useChatbotMessages from './hooks/useChatbotMessages';
 import useSourceManagement from './hooks/useSourceManagement';
 import useAlertManagement from './hooks/useAlertManagement';
-import useSystemInstructions from './hooks/useSystemInstructions';
-import useAccordionState from './hooks/useAccordionState';
 import SourceUploadSuccessAlert from './components/alerts/SourceUploadSuccessAlert';
 import SourceUploadErrorAlert from './components/alerts/SourceUploadErrorAlert';
+import { DEFAULT_SYSTEM_INSTRUCTIONS } from './const';
 
 const ChatbotMain: React.FunctionComponent = () => {
   const displayMode = ChatbotDisplayMode.fullscreen;
   const { models, loading, error } = useFetchLlamaModels();
   const [selectedModel, setSelectedModel] = React.useState<string>('');
   const modelId = selectedModel || models[0]?.identifier;
+  const [systemPrompt, setSystemPrompt] = React.useState<string>(DEFAULT_SYSTEM_INSTRUCTIONS);
 
   React.useEffect(() => {
     if (!selectedModel) {
@@ -54,11 +57,11 @@ const ChatbotMain: React.FunctionComponent = () => {
     onShowSuccessAlert: alertManagement.onShowSuccessAlert,
     onShowErrorAlert: alertManagement.onShowErrorAlert,
   });
-  const systemInstructions = useSystemInstructions();
-  const accordionState = useAccordionState();
+
   const chatbotMessages = useChatbotMessages({
     modelId,
     selectedSourceSettings: sourceManagement.selectedSourceSettings,
+    systemPrompt,
   });
 
   // Create alert components
@@ -89,22 +92,31 @@ const ChatbotMain: React.FunctionComponent = () => {
 
   if (error) {
     return (
-      <Alert variant="warning" isInline title="Cannot fetch models">
-        {error}
-      </Alert>
+      <EmptyState
+        titleText={
+          <Title headingLevel="h4" size="lg">
+            Error loading models
+          </Title>
+        }
+        icon={ExclamationCircleIcon}
+        variant={EmptyStateVariant.lg}
+        data-id="error-empty-state"
+      >
+        <EmptyStateBody>{error}</EmptyStateBody>
+      </EmptyState>
     );
   }
 
   // Settings panel content
   const settingsPanelContent = (
     <ChatbotSettingsPanel
-      accordionState={accordionState}
       models={models}
       selectedModel={selectedModel}
       onModelChange={setSelectedModel}
-      systemInstructions={systemInstructions}
       alerts={{ successAlert, errorAlert }}
       sourceManagement={sourceManagement}
+      systemPrompt={systemPrompt}
+      onSystemPromptChange={setSystemPrompt}
     />
   );
 

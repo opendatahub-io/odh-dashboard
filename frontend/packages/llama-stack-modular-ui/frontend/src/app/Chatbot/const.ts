@@ -41,3 +41,6 @@ export const initialBotMessage = (): MessageProps => ({
 export const ERROR_MESSAGES = {
   NO_MODEL_OR_SOURCE: 'No model or source settings selected',
 } as const;
+
+export const DEFAULT_SYSTEM_INSTRUCTIONS = `You are a helpful Assistant. You are designed to answer questions in a concise and professional manner.
+`;

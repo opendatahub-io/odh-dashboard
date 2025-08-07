@@ -47,6 +47,7 @@ export type Query = {
     };
     max_tokens: number;
   };
+  system_prompt?: string;
 };
 
 export type SuccessResponse = {
