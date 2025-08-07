@@ -176,7 +176,7 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
 
     // allow usage of existing settings if no hardware profile is found
     if (allowExistingSettings) {
-      formattedOptions.push({
+      formattedOptions.unshift({
         key: EXISTING_SETTINGS_KEY,
         label: 'Use existing settings',
         description: 'Use existing resource requests/limits, tolerations, and node selectors.',
