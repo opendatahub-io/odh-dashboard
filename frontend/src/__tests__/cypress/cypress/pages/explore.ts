@@ -4,6 +4,11 @@ class ExplorePage {
     this.wait();
   }
 
+  reload() {
+    cy.reload();
+    this.wait();
+  }
+
   private wait() {
     cy.findByTestId('explore-applications').should('be.visible');
     cy.testA11y();
