@@ -96,7 +96,7 @@ const FeatureViewMaterialization: React.FC<FeatureViewMaterializationProps> = ({
               data-testid="no-materialization-jobs-empty-state"
             >
               <EmptyStateBody>
-                No materialization jobs are available. Schedule job cons in OpenShift Platform.
+                No materialization jobs are available. Schedule job crons in OpenShift Platform.
               </EmptyStateBody>
             </EmptyState>
           )}

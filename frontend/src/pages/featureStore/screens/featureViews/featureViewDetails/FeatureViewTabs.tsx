@@ -29,9 +29,9 @@ const FeatureViewTabs: React.FC<FeatureViewTabsProps> = ({ featureView }) => {
   return (
     <Tabs
       activeKey={activeTabKey}
-      aria-label="Entity details page"
+      aria-label="Feature view details page"
       role="region"
-      data-testid="entity-details-page"
+      data-testid="feature-view-details-page"
       onSelect={(e, tabIndex) => {
         setActiveTabKey(tabIndex);
       }}
