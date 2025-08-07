@@ -23,13 +23,15 @@ export interface UseChatbotMessagesReturn {
 interface UseChatbotMessagesProps {
   modelId: string;
   selectedSourceSettings: ChatbotSourceSettings | null;
-  systemPrompt: string;
+  systemInstruction: string;
+  isRawUploaded: boolean;
 }
 
 const useChatbotMessages = ({
   modelId,
   selectedSourceSettings,
-  systemPrompt,
+  systemInstruction,
+  isRawUploaded,
 }: UseChatbotMessagesProps): UseChatbotMessagesReturn => {
   const [messages, setMessages] = React.useState<MessageProps[]>([initialBotMessage()]);
   const [isMessageSendButtonDisabled, setIsMessageSendButtonDisabled] = React.useState(false);
@@ -56,13 +58,16 @@ const useChatbotMessages = ({
       setIsMessageSendButtonDisabled(true);
 
       try {
-        if (!modelId || !selectedSourceSettings) {
+        if (!modelId) {
           throw new Error(ERROR_MESSAGES.NO_MODEL_OR_SOURCE);
         }
 
         const query: Query = {
           content: message,
-          vector_db_ids: [selectedSourceSettings.vectorDB],
+          ...(isRawUploaded &&
+            selectedSourceSettings && {
+              vector_db_ids: [selectedSourceSettings.vectorDB],
+            }),
           query_config: {
             chunk_template: QUERY_CONFIG.CHUNK_TEMPLATE,
             max_chunks: QUERY_CONFIG.MAX_CHUNKS,
@@ -75,7 +80,7 @@ const useChatbotMessages = ({
             },
             max_tokens: QUERY_CONFIG.MAX_TOKENS,
           },
-          system_prompt: systemPrompt,
+          system_prompt: systemInstruction,
         };
 
         const response = await querySource(query);
@@ -101,7 +106,7 @@ const useChatbotMessages = ({
         setIsMessageSendButtonDisabled(false);
       }
     },
-    [modelId, selectedSourceSettings, systemPrompt],
+    [isRawUploaded, modelId, selectedSourceSettings, systemInstruction],
   );
 
   return {

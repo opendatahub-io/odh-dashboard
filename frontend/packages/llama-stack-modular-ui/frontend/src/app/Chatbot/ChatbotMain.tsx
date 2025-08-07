@@ -5,11 +5,7 @@ import {
   Drawer,
   DrawerContent,
   DrawerContentBody,
-  EmptyState,
-  EmptyStateBody,
-  EmptyStateVariant,
   Spinner,
-  Title,
 } from '@patternfly/react-core';
 import {
   Chatbot,
@@ -17,15 +13,11 @@ import {
   ChatbotDisplayMode,
   ChatbotFooter,
   ChatbotFootnote,
-  ChatbotHeader,
-  ChatbotHeaderMain,
-  ChatbotHeaderTitle,
   ChatbotWelcomePrompt,
   MessageBar,
   MessageBox,
 } from '@patternfly/chatbot';
 
-import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import useFetchLlamaModels from '~/app/hooks/useFetchLlamaModels';
 import '@patternfly/chatbot/dist/css/main.css';
 import { ChatbotSourceSettingsModal } from './sourceUpload/ChatbotSourceSettingsModal';
@@ -37,13 +29,17 @@ import useAlertManagement from './hooks/useAlertManagement';
 import SourceUploadSuccessAlert from './components/alerts/SourceUploadSuccessAlert';
 import SourceUploadErrorAlert from './components/alerts/SourceUploadErrorAlert';
 import { DEFAULT_SYSTEM_INSTRUCTIONS } from './const';
+import ChatbotApplicationPage from './components/ChatbotApplicationPage';
 
 const ChatbotMain: React.FunctionComponent = () => {
-  const displayMode = ChatbotDisplayMode.fullscreen;
+  const displayMode = ChatbotDisplayMode.embedded;
   const { models, loading, error } = useFetchLlamaModels();
   const [selectedModel, setSelectedModel] = React.useState<string>('');
+
   const modelId = selectedModel || models[0]?.identifier;
-  const [systemPrompt, setSystemPrompt] = React.useState<string>(DEFAULT_SYSTEM_INSTRUCTIONS);
+  const [systemInstruction, setSystemInstruction] = React.useState<string>(
+    DEFAULT_SYSTEM_INSTRUCTIONS,
+  );
 
   React.useEffect(() => {
     if (!selectedModel) {
@@ -61,7 +57,8 @@ const ChatbotMain: React.FunctionComponent = () => {
   const chatbotMessages = useChatbotMessages({
     modelId,
     selectedSourceSettings: sourceManagement.selectedSourceSettings,
-    systemPrompt,
+    systemInstruction,
+    isRawUploaded: sourceManagement.isRawUploaded,
   });
 
   // Create alert components
@@ -90,23 +87,6 @@ const ChatbotMain: React.FunctionComponent = () => {
     );
   }
 
-  if (error) {
-    return (
-      <EmptyState
-        titleText={
-          <Title headingLevel="h4" size="lg">
-            Error loading models
-          </Title>
-        }
-        icon={ExclamationCircleIcon}
-        variant={EmptyStateVariant.lg}
-        data-id="error-empty-state"
-      >
-        <EmptyStateBody>{error}</EmptyStateBody>
-      </EmptyState>
-    );
-  }
-
   // Settings panel content
   const settingsPanelContent = (
     <ChatbotSettingsPanel
@@ -115,13 +95,19 @@ const ChatbotMain: React.FunctionComponent = () => {
       onModelChange={setSelectedModel}
       alerts={{ successAlert, errorAlert }}
       sourceManagement={sourceManagement}
-      systemPrompt={systemPrompt}
-      onSystemPromptChange={setSystemPrompt}
+      systemInstruction={systemInstruction}
+      onSystemInstructionChange={setSystemInstruction}
     />
   );
 
   return (
-    <>
+    <ChatbotApplicationPage
+      title="AI playground"
+      loaded={!loading}
+      empty={false}
+      loadError={error}
+      headerContent={<></>}
+    >
       {sourceManagement.isSourceSettingsOpen && (
         <ChatbotSourceSettingsModal
           onToggle={() =>
@@ -132,19 +118,8 @@ const ChatbotMain: React.FunctionComponent = () => {
       )}
       <Drawer isExpanded isInline position="right">
         <DrawerContent panelContent={settingsPanelContent}>
-          <DrawerContentBody
-            style={{ overflowY: 'hidden', display: 'flex', flexDirection: 'column' }}
-          >
+          <DrawerContentBody>
             <Chatbot displayMode={displayMode} data-testid="chatbot">
-              <ChatbotHeader>
-                <ChatbotHeaderMain>
-                  <ChatbotHeaderTitle>
-                    <Title headingLevel="h1" size="lg">
-                      AI playground
-                    </Title>
-                  </ChatbotHeaderTitle>
-                </ChatbotHeaderMain>
-              </ChatbotHeader>
               <ChatbotContent>
                 <MessageBox position="bottom">
                   <ChatbotWelcomePrompt
@@ -174,7 +149,7 @@ const ChatbotMain: React.FunctionComponent = () => {
           </DrawerContentBody>
         </DrawerContent>
       </Drawer>
-    </>
+    </ChatbotApplicationPage>
   );
 };
 

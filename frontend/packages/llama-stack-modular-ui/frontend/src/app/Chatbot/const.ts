@@ -13,7 +13,10 @@ export const ACCORDION_ITEMS = {
 } as const;
 
 // Default expanded accordion items
-export const DEFAULT_EXPANDED_ACCORDION_ITEMS = [ACCORDION_ITEMS.MODEL_DETAILS];
+export const DEFAULT_EXPANDED_ACCORDION_ITEMS = [
+  ACCORDION_ITEMS.MODEL_DETAILS,
+  ACCORDION_ITEMS.SOURCES,
+];
 
 // Query configuration constants
 export const QUERY_CONFIG = {
@@ -42,5 +45,5 @@ export const ERROR_MESSAGES = {
   NO_MODEL_OR_SOURCE: 'No model or source settings selected',
 } as const;
 
-export const DEFAULT_SYSTEM_INSTRUCTIONS = `You are a helpful Assistant. You are designed to answer questions in a concise and professional manner.
+export const DEFAULT_SYSTEM_INSTRUCTIONS = `You are a helpful AI assistant. You are designed to answer questions in a concise and professional manner.
 `;
