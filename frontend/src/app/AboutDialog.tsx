@@ -72,6 +72,12 @@ const AboutDialog: React.FC<AboutDialogProps> = ({ onClose }) => {
     return result;
   }, [dscStatus?.components]);
 
+  // Print commit hash only *once* when dialog opens (though since this is mounted twice; it prints out twice)
+  // (to make it only show once we would need to use a reference; which is overkill)
+  React.useEffect(() => {
+    console.log('commit hash: ', __COMMIT_HASH__ || 'Unknown');
+  }, []);
+
   return (
     <AboutModal
       className="odh-about-dialog"
@@ -105,10 +111,7 @@ const AboutDialog: React.FC<AboutDialogProps> = ({ onClose }) => {
             <Content component="dd" data-testid="about-version">
               {dsciStatus?.release?.version || 'Unknown'}
             </Content>
-            <Content component="dt">Commit Hash</Content>
-            <Content component="dd" data-testid="about-commit-hash">
-              {__COMMIT_HASH__ || 'Unknown'}
-            </Content>
+
             <Content component="dt">Channel</Content>
             <Content component="dd" data-testid="about-channel">
               {subStatus?.channel || 'Unknown'}
