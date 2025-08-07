@@ -99,6 +99,7 @@ type HandlersProps = {
   disableHardwareProfiles?: boolean;
 };
 import { STOP_MODAL_PREFERENCE_KEY } from '#~/pages/modelServing/useStopModalPreference';
+import { mockOdhApplication } from '#~/__mocks__/mockOdhApplication';
 
 const initIntercepts = ({
   disableKServeConfig,
@@ -171,6 +172,18 @@ const initIntercepts = ({
       disableHardwareProfiles,
     }),
   );
+  // mock NIM because the model serving plugin has broader error detection
+  cy.interceptOdh('GET /api/components', null, [mockOdhApplication({})]);
+  cy.interceptOdh(
+    'GET /api/integrations/:internalRoute',
+    { path: { internalRoute: 'nim' } },
+    {
+      isInstalled: false,
+      isEnabled: false,
+      canInstall: false,
+      error: '',
+    },
+  );
   cy.interceptK8sList(PodModel, mockK8sResourceList([mockPodK8sResource({})]));
   cy.interceptK8s(RouteModel, mockRouteK8sResource({}));
   cy.interceptK8sList(NotebookModel, mockK8sResourceList([mockNotebookK8sResource({})]));
@@ -184,6 +197,10 @@ const initIntercepts = ({
     mockProjectK8sResource({ enableModelMesh: projectEnableModelMesh }),
   );
   cy.interceptK8sList(InferenceServiceModel, mockK8sResourceList(inferenceServices));
+  cy.interceptK8sList(
+    { model: InferenceServiceModel, ns: 'test-project' },
+    mockK8sResourceList(inferenceServices),
+  );
   cy.interceptK8s(
     'POST',
     {
@@ -306,6 +323,10 @@ const initIntercepts = ({
         },
   ).as('createRole');
   cy.interceptK8sList(ServingRuntimeModel, mockK8sResourceList(servingRuntimes));
+  cy.interceptK8sList(
+    { model: ServingRuntimeModel, ns: 'test-project' },
+    mockK8sResourceList(servingRuntimes),
+  );
 
   // Mock hardware profiles
   cy.interceptK8sList(
@@ -509,7 +530,7 @@ describe('Serving Runtime List', () => {
       initIntercepts({
         projectEnableModelMesh: true,
         disableKServeConfig: false,
-        disableModelMeshConfig: true,
+        disableModelMeshConfig: false,
         inferenceServices: [
           mockInferenceServiceK8sResource({ name: 'test-inference', isModelMesh: true }),
           mockInferenceServiceK8sResource({
@@ -609,7 +630,7 @@ describe('Serving Runtime List', () => {
       initIntercepts({
         projectEnableModelMesh: true,
         disableKServeConfig: false,
-        disableModelMeshConfig: true,
+        disableModelMeshConfig: false,
         inferenceServices: [
           mockInferenceServiceK8sResource({
             name: 'ovms-testing',
@@ -642,7 +663,7 @@ describe('Serving Runtime List', () => {
       initIntercepts({
         projectEnableModelMesh: true,
         disableKServeConfig: false,
-        disableModelMeshConfig: true,
+        disableModelMeshConfig: false,
         inferenceServices: [
           mockInferenceServiceK8sResource({ name: 'test-inference', isModelMesh: true }),
           mockInferenceServiceK8sResource({
@@ -727,7 +748,7 @@ describe('Serving Runtime List', () => {
       initIntercepts({
         projectEnableModelMesh: true,
         disableKServeConfig: false,
-        disableModelMeshConfig: true,
+        disableModelMeshConfig: false,
         inferenceServices: [
           mockInferenceServiceK8sResource({
             name: 'another-inference-service',
@@ -770,6 +791,7 @@ describe('Serving Runtime List', () => {
 
     it('Display only project scoped label on deployments table', () => {
       initIntercepts({
+        projectEnableModelMesh: false,
         disableKServeConfig: false,
         disableModelMeshConfig: true,
         disableProjectScoped: false,
@@ -802,7 +824,7 @@ describe('Serving Runtime List', () => {
       initIntercepts({
         projectEnableModelMesh: true,
         disableKServeConfig: false,
-        disableModelMeshConfig: true,
+        disableModelMeshConfig: false,
         inferenceServices: [
           mockInferenceServiceK8sResource({
             name: 'another-inference-service',
@@ -1231,6 +1253,7 @@ describe('Serving Runtime List', () => {
         disableKServeConfig: false,
         servingRuntimes: [],
         rejectAddSupportServingPlatformProject: true,
+        projectEnableModelMesh: false,
       });
 
       projectDetails.visitSection('test-project', 'model-server');
