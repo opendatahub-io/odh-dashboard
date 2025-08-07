@@ -53,9 +53,6 @@ export const countRelationshipTypes = (
   return counts;
 };
 
-export const pluralizeText = (count: number, singular: string, plural: string): string =>
-  `${count} ${count < 1 ? singular : plural}`;
-
 export const getFeatureViewType = (type: FeatureView['type']): string => {
   switch (type) {
     case 'featureView':

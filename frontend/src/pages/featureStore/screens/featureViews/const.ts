@@ -98,15 +98,6 @@ export enum FeatureViewTab {
   TRANSFORMATIONS = 'Transformations',
 }
 
-export const getFeatureViewFilterOptions = (): Record<string, string> => ({
-  'Feature view': 'Feature view',
-  Project: 'Project',
-  Tags: 'Tags',
-  Features: 'Features',
-  Owner: 'Owner',
-  'Store type': 'Store type',
-});
-
 // Schema table constants
 export const schemaColumns = [
   {

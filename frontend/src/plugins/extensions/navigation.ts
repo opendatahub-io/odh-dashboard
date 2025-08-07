@@ -230,11 +230,11 @@ const extensions: NavExtension[] = [
       required: [SupportedArea.FEATURE_STORE],
     },
     properties: {
-      id: 'data-sources',
+      id: 'dataSources',
       title: 'Data sources',
-      href: '/featureStore/data-sources',
+      href: '/featureStore/dataSources',
       section: 'feature-store',
-      path: '/featureStore/data-sources/*',
+      path: '/featureStore/dataSources/*',
     },
   },
   {

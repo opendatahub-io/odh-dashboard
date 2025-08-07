@@ -139,5 +139,5 @@ export type GetFeatureViews = (
 export type GetFeatureViewsByName = (
   opts: K8sAPIOptions,
   project?: string,
-  fetureViewName?: string,
+  featureViewName?: string,
 ) => Promise<FeatureView>;

@@ -28,4 +28,4 @@ export const featureRoute = (featureName: string, featureStoreProject: string): 
 export const featureDataSourceRoute = (
   dataSourceName: string,
   featureStoreProject: string,
-): string => `${featureStoreRootRoute()}/data-sources/${featureStoreProject}/${dataSourceName}`;
+): string => `${featureStoreRootRoute()}/dataSources/${featureStoreProject}/${dataSourceName}`;

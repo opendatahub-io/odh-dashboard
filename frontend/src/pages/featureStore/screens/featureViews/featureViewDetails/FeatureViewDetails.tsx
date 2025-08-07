@@ -19,15 +19,6 @@ import FeatureStoreLabels from '#~/pages/featureStore/components/FeatureStoreLab
 import { getFeatureViewType } from '#~/pages/featureStore/screens/featureViews/utils';
 import FeatureViewTabs from './FeatureViewTabs';
 
-/**
- * 1. a details page for feature view with breadcrumb
- * 2.  A header section on the details page with the tag part
- * All the tabs on the details page to be listed out
- * 3. sections to be created the different files for each of them
- * 4. Create a use feature view by name hook
- *
- *
- */
 const FeatureViewDetails = (): React.ReactElement => {
   const { currentProject } = useFeatureStoreProject();
   const { featureViewName } = useParams();
