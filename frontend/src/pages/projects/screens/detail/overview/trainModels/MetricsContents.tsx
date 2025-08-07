@@ -8,6 +8,7 @@ import {
   Content,
   Tooltip,
 } from '@patternfly/react-core';
+import { KUEUE_WORKBENCH_CREATION_DISABLED_MESSAGE } from '#~/kueueUtils';
 
 type MetricsCardProps = {
   title: string;
@@ -69,7 +70,7 @@ const MetricsContents: React.FC<MetricsCardProps> = ({
     <CardFooter>
       {createButton ||
         (isKueueDisabled ? (
-          <Tooltip content="Workbench creation requires Kueue. Contact your admin.">
+          <Tooltip content={KUEUE_WORKBENCH_CREATION_DISABLED_MESSAGE}>
             <Button isAriaDisabled variant="link" isInline onClick={onCreate}>
               {createText}
             </Button>
