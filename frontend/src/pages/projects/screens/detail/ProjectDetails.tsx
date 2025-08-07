@@ -105,7 +105,7 @@ const ProjectDetails: React.FC = () => {
             <p>
               This project uses local queue for workload allocation, which relies on Kueue. To
               deploy a model or create a workbench in this project, ask your administrator to enable
-              Kueue or change this project's workload allocation strategy.
+              Kueue or change this project&apos;s workload allocation strategy.
             </p>
             <Popover
               position="bottom"
@@ -126,7 +126,7 @@ const ProjectDetails: React.FC = () => {
               }
             >
               <Button variant="link" icon={<OutlinedQuestionCircleIcon />} aria-label="More info">
-                Who's my administrator?
+                Who&apos;s my administrator?
               </Button>
             </Popover>
           </Alert>
