@@ -13,6 +13,6 @@ export const featureServiceTableFilterKeyMapping: Record<string, string> = {
 const featureServiceFilterUtils = createFeatureStoreFilterUtils<
   FeatureService,
   FeatureStoreRelationship
->(featureServiceTableFilterKeyMapping);
+>(featureServiceTableFilterKeyMapping, 'spec.name', 'spec.tags');
 
 export const applyFeatureServiceFilters = featureServiceFilterUtils.applyFilters;

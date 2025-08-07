@@ -1,8 +1,8 @@
 import { K8sAPIOptions } from '#~/k8sTypes';
+import { Relationship } from '#~/pages/featureStore/screens/featureViews/utils';
 import { FeatureStoreMeta, BatchSource, FileOptions, NameValueTypePair } from './global';
 import { FeatureColumns } from './features';
 
-// Alternative pagination format for feature views list
 export type FeatureViewsPagination = {
   totalCount: number;
   totalPages: number;
@@ -31,6 +31,7 @@ export type DataSources = {
 };
 
 export type StreamSource = {
+  fileOptions: FileOptions;
   type: string;
   dataSourceClassType: string;
   name: string;
@@ -48,11 +49,13 @@ export type RequestDataSource = {
 };
 
 export type FeatureViewProjection = {
+  name: string;
   featureViewName: string;
   featureColumns: FeatureColumns[];
   timestampField?: string;
   createdTimestampColumn?: string;
   batchSource?: BatchSource;
+  streamSource?: StreamSource;
 };
 
 export type OnDemandFeatureViewSources = {
@@ -87,7 +90,10 @@ export type StandardFeatureView = {
     owner?: string;
     entityColumns: NameValueTypePair[];
     streamSource?: StreamSource;
+    mode?: string;
   };
+  featureDefinition?: string;
+  relationships: Relationship[];
   meta: FeatureStoreMeta;
   project?: string;
 };
@@ -108,6 +114,8 @@ export type OnDemandFeatureView = {
     entities: string[];
     entityColumns: NameValueTypePair[];
   };
+  featureDefinition?: string;
+  relationships: Relationship[];
   meta: FeatureStoreMeta;
   project?: string;
 };
@@ -116,6 +124,7 @@ export type FeatureView = StandardFeatureView | OnDemandFeatureView;
 
 export type FeatureViewsList = {
   featureViews: FeatureView[];
+  relationships: Record<string, Relationship[]>;
   pagination: FeatureViewsPagination;
 };
 
@@ -126,3 +135,9 @@ export type GetFeatureViews = (
   featureService?: string,
   feature?: string,
 ) => Promise<FeatureViewsList>;
+
+export type GetFeatureViewsByName = (
+  opts: K8sAPIOptions,
+  project?: string,
+  fetureViewName?: string,
+) => Promise<FeatureView>;
