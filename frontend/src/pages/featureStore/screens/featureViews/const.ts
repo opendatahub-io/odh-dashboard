@@ -1,12 +1,28 @@
 import { SortableData } from '#~/components/table/types.ts';
 import { FeatureView } from '#~/pages/featureStore/types/featureView.ts';
 
+export const featureViewTableFilterOptions: Record<string, string> = {
+  'Feature view': 'Feature view',
+  Project: 'Project',
+  Tags: 'Tags',
+  Features: 'Features',
+  Owner: 'Owner',
+  'Store type': 'Store type',
+};
+
 export const columns: SortableData<FeatureView>[] = [
   {
     field: 'feature_view',
     label: 'Feature View',
     width: 25,
     sortable: (a: FeatureView, b: FeatureView): number => a.spec.name.localeCompare(b.spec.name),
+  },
+  {
+    field: 'project',
+    label: 'Project',
+    width: 25,
+    sortable: (a: FeatureView, b: FeatureView): number =>
+      a.project?.localeCompare(b.project ?? '') ?? 0,
   },
   {
     field: 'tags',
@@ -66,19 +82,62 @@ export const columns: SortableData<FeatureView>[] = [
   },
 ];
 
-export enum FeatureViewToolbarFilterOptions {
-  featureView = 'Feature view',
-  tags = 'Tags',
-}
-
-export const FeatureViewFilterOptions = {
-  [FeatureViewToolbarFilterOptions.featureView]: 'Feature view',
-  [FeatureViewToolbarFilterOptions.tags]: 'Tags',
-};
-
-export type FeatureViewFilterDataType = Record<FeatureViewToolbarFilterOptions, string | undefined>;
+export type FeatureViewFilterDataType = Record<string, string | undefined>;
 
 export const initialFeatureViewFilterData: FeatureViewFilterDataType = {
-  [FeatureViewToolbarFilterOptions.featureView]: '',
-  [FeatureViewToolbarFilterOptions.tags]: '',
+  'Feature view': '',
+  Tags: '',
+};
+
+export enum FeatureViewTab {
+  DETAILS = 'Details',
+  LINEAGE = 'Lineage',
+  FEATURES = 'Features',
+  CONSUMING_SERVICES = 'Consuming Feature Services',
+  MATERIALIZATION = 'Materialization',
+  TRANSFORMATIONS = 'Transformations',
+}
+
+export const getFeatureViewFilterOptions = (): Record<string, string> => ({
+  'Feature view': 'Feature view',
+  Project: 'Project',
+  Tags: 'Tags',
+  Features: 'Features',
+  Owner: 'Owner',
+  'Store type': 'Store type',
+});
+
+// Schema table constants
+export const schemaColumns = [
+  {
+    field: 'column',
+    label: 'Column',
+    width: 25 as const,
+    sortable: true,
+  },
+  {
+    field: 'type',
+    label: 'Type',
+    width: 20 as const,
+    sortable: true,
+  },
+  {
+    field: 'dataType',
+    label: 'Data Type',
+    width: 25 as const,
+    sortable: true,
+  },
+  {
+    field: 'description',
+    label: 'Description',
+    width: 30 as const,
+    sortable: true,
+  },
+];
+
+export const schemaFilterOptions = {
+  column: 'Column',
+  type: 'Type',
+  dataType: 'Data Type',
+  description: 'Description',
 };

@@ -1,7 +1,7 @@
 import { GetEntities, GetEntityByName } from './entities';
 import { GetFeatureByName, GetFeatures } from './features';
 import { GetProjects } from './featureStoreProjects';
-import { GetFeatureViews } from './featureView';
+import { GetFeatureViews, GetFeatureViewsByName } from './featureView';
 import { GetFeatureServiceByName, GetFeatureServices } from './featureServices';
 
 export type FeatureStorePagination = {
@@ -19,9 +19,15 @@ export type FeatureStoreError = {
   detail?: string;
 };
 
+export type MaterializationInterval = {
+  startTime: string;
+  endTime: string;
+};
+
 export type FeatureStoreMeta = {
   createdTimestamp: string;
   lastUpdatedTimestamp: string;
+  materializationIntervals?: MaterializationInterval[];
 };
 
 export type FileOptions = {
@@ -34,6 +40,7 @@ export type FileOptions = {
 export type NameValueTypePair = {
   name: string;
   valueType: string;
+  description?: string;
 };
 
 export type BatchSource = {
@@ -68,4 +75,5 @@ export type FeatureStoreAPIs = {
   getFeatureByName: GetFeatureByName;
   getFeatureServices: GetFeatureServices;
   getFeatureServiceByName: GetFeatureServiceByName;
+  getFeatureViewByName: GetFeatureViewsByName;
 };
