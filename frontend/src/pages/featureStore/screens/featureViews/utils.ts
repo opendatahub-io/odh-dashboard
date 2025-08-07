@@ -2,6 +2,8 @@ import { FeatureView, OnDemandFeatureViewSources } from '#~/pages/featureStore/t
 import { FeatureStoreRelationship } from '#~/pages/featureStore/types/global';
 import { createFeatureStoreFilterUtils } from '#~/pages/featureStore/utils/filterUtils';
 import { SchemaItem } from '#~/pages/featureStore/screens/featureViews/featureViewDetails/FeatureViewSchemaTable';
+import { featureEntityRoute } from '#~/pages/featureStore/routes';
+import { featureRoute } from '#~/pages/featureStore/FeatureStoreRoutes';
 
 export interface Relationship {
   source: { type: string; name: string };
@@ -318,4 +320,21 @@ export const getSchemaItemValue = (item: SchemaItem, key: string): string => {
     default:
       return '';
   }
+};
+
+export const getSchemaItemLink = (
+  item: SchemaItem,
+  featureView: FeatureView,
+  currentProject?: string,
+): string => {
+  const project = featureView.project || currentProject;
+  if (!project) {
+    return '#';
+  }
+
+  return item.type === 'ENTITY'
+    ? featureEntityRoute(item.column, project)
+    : item.type === 'FEATURE'
+    ? featureRoute(item.column, featureView.spec.name, project)
+    : '#';
 };

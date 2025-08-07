@@ -4,6 +4,7 @@ import {
   DescriptionListDescription,
   DescriptionListGroup,
   DescriptionListTerm,
+  Divider,
   Flex,
   FlexItem,
   PageSection,
@@ -25,6 +26,7 @@ import {
 import { useFeatureStoreProject } from '#~/pages/featureStore/FeatureStoreContext.tsx';
 import { featureDataSourceRoute, featureEntityRoute } from '#~/pages/featureStore/routes.ts';
 import { hasContent } from '#~/pages/featureStore/const.ts';
+import IndentSection from '#~/pages/projects/components/IndentSection';
 
 type DataSource = {
   sourceType: string;
@@ -76,7 +78,9 @@ const DataSourcesTable: React.FC<DataSourcesTableProps> = ({ dataSources, curren
                   {dataSource.name}
                 </Link>
               ) : (
-                <span style={{ color: '#666' }}>{dataSource.name}</span>
+                <Content component="small" className={text.textColorDisabled}>
+                  {dataSource.name}
+                </Content>
               )}
             </Td>
             <Td>{dataSource.fileUrl}</Td>
@@ -208,21 +212,16 @@ const FeatureViewDetailsView: React.FC<FeatureViewDetailsViewProps> = ({ feature
             Entities
           </Title>
           {featureView.spec.entities.length > 0 ? (
-            <Table
-              aria-label="Feature view entities table"
-              data-testid="feature-view-entities-table"
-              variant="compact"
-            >
-              <Tbody>
-                {featureView.spec.entities.map((entity) => (
-                  <Tr key={entity}>
-                    <Td>
-                      <Link to={featureEntityRoute(entity, currentProject ?? '')}>{entity}</Link>
-                    </Td>
-                  </Tr>
-                ))}
-              </Tbody>
-            </Table>
+            <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsNone' }}>
+              {featureView.spec.entities.map((entity, index) => (
+                <React.Fragment key={`${entity}-${index}`}>
+                  <IndentSection>
+                    <Link to={featureEntityRoute(entity, currentProject ?? '')}>{entity}</Link>
+                  </IndentSection>
+                  <Divider />
+                </React.Fragment>
+              ))}
+            </Flex>
           ) : (
             <Content component="p" className={text.textColorDisabled}>
               No entities

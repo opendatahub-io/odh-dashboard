@@ -1,5 +1,6 @@
 import { SortableData } from '#~/components/table/types.ts';
 import { FeatureView } from '#~/pages/featureStore/types/featureView.ts';
+import { MaterializationInterval } from '#~/pages/featureStore/types/global';
 
 export const featureViewTableFilterOptions: Record<string, string> = {
   'Feature view': 'Feature view',
@@ -132,3 +133,27 @@ export const schemaFilterOptions = {
   dataType: 'Data Type',
   description: 'Description',
 };
+
+// Materialization table constants
+export const materializationColumns: SortableData<MaterializationInterval>[] = [
+  {
+    field: 'interval',
+    label: 'Materialization Interval',
+    width: 40,
+    sortable: false,
+  },
+  {
+    field: 'created',
+    label: 'Created',
+    width: 30,
+    sortable: (a: MaterializationInterval, b: MaterializationInterval): number =>
+      new Date(a.startTime).getTime() - new Date(b.startTime).getTime(),
+  },
+  {
+    field: 'updated',
+    label: 'Updated',
+    width: 30,
+    sortable: (a: MaterializationInterval, b: MaterializationInterval): number =>
+      new Date(a.endTime).getTime() - new Date(b.endTime).getTime(),
+  },
+];

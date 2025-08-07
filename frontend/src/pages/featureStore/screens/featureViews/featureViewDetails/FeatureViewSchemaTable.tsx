@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { Td, Tr } from '@patternfly/react-table';
+import { Link } from 'react-router';
 import { Table } from '#~/components/table';
 import {
   schemaColumns,
@@ -7,7 +8,11 @@ import {
 } from '#~/pages/featureStore/screens/featureViews/const';
 import { FeatureView } from '#~/pages/featureStore/types/featureView';
 import { FeatureStoreToolbar } from '#~/pages/featureStore/components/FeatureStoreToolbar';
-import { getSchemaItemValue } from '#~/pages/featureStore/screens/featureViews/utils';
+import {
+  getSchemaItemValue,
+  getSchemaItemLink,
+} from '#~/pages/featureStore/screens/featureViews/utils';
+import { useFeatureStoreProject } from '#~/pages/featureStore/FeatureStoreContext';
 
 export type SchemaItem = {
   column: string;
@@ -20,14 +25,24 @@ type FeatureViewSchemaTableProps = {
   featureView: FeatureView;
 };
 
-const SchemaTableRow: React.FC<{ item: SchemaItem; index: number }> = ({ item, index }) => (
-  <Tr key={`${item.column}-${index}`}>
-    <Td dataLabel="Column">{item.column}</Td>
-    <Td dataLabel="Type">{item.type}</Td>
-    <Td dataLabel="Data Type">{item.dataType}</Td>
-    <Td dataLabel="Description">{item.description}</Td>
-  </Tr>
-);
+const SchemaTableRow: React.FC<{
+  item: SchemaItem;
+  index: number;
+  featureView: FeatureView;
+}> = ({ item, index, featureView }) => {
+  const { currentProject } = useFeatureStoreProject();
+
+  return (
+    <Tr key={`${item.column}-${index}`}>
+      <Td dataLabel="Column">
+        <Link to={getSchemaItemLink(item, featureView, currentProject)}>{item.column}</Link>
+      </Td>
+      <Td dataLabel="Type">{item.type}</Td>
+      <Td dataLabel="Data Type">{item.dataType}</Td>
+      <Td dataLabel="Description">{item.description}</Td>
+    </Tr>
+  );
+};
 
 const FeatureViewSchemaTable: React.FC<FeatureViewSchemaTableProps> = ({ featureView }) => {
   const [filterData, setFilterData] = React.useState<
@@ -88,7 +103,9 @@ const FeatureViewSchemaTable: React.FC<FeatureViewSchemaTableProps> = ({ feature
       data={filteredSchemaData}
       columns={schemaColumns}
       emptyTableView={<div>No schema data available</div>}
-      rowRenderer={(item, index) => <SchemaTableRow item={item} index={index} />}
+      rowRenderer={(item, index) => (
+        <SchemaTableRow item={item} index={index} featureView={featureView} />
+      )}
       toolbarContent={
         <FeatureStoreToolbar
           filterOptions={schemaFilterOptions}

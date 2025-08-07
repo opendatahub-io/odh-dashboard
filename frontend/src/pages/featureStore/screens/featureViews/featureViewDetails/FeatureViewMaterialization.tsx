@@ -8,15 +8,36 @@ import {
   FlexItem,
   PageSection,
 } from '@patternfly/react-core';
-import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
+import { Td, Tr } from '@patternfly/react-table';
 import { PlusCircleIcon } from '@patternfly/react-icons';
 import React from 'react';
+import { Table } from '#~/components/table';
 import { FeatureView } from '#~/pages/featureStore/types/featureView.ts';
+import { MaterializationInterval } from '#~/pages/featureStore/types/global';
 import FeatureStoreTimestamp from '#~/pages/featureStore/components/FeatureStoreTimestamp';
+import { materializationColumns } from '#~/pages/featureStore/screens/featureViews/const';
 
 type FeatureViewMaterializationProps = {
   featureView: FeatureView;
 };
+
+const MaterializationIntervalRow: React.FC<{
+  interval: MaterializationInterval;
+  index: number;
+}> = ({ interval, index }) => (
+  <Tr key={index}>
+    <Td dataLabel="Materialization Interval">
+      {new Date(interval.startTime).toLocaleString()} to{' '}
+      {new Date(interval.endTime).toLocaleString()}
+    </Td>
+    <Td dataLabel="Created">
+      <FeatureStoreTimestamp date={new Date(interval.startTime)} />
+    </Td>
+    <Td dataLabel="Updated">
+      <FeatureStoreTimestamp date={new Date(interval.endTime)} />
+    </Td>
+  </Tr>
+);
 
 const FeatureViewMaterialization: React.FC<FeatureViewMaterializationProps> = ({ featureView }) => {
   const { materializationIntervals } = featureView.meta;
@@ -54,34 +75,14 @@ const FeatureViewMaterialization: React.FC<FeatureViewMaterializationProps> = ({
         <FlexItem>
           {hasMaterializationData ? (
             <Table
-              aria-label="Materialization intervals table"
               data-testid="materialization-intervals-table"
-              variant="compact"
-            >
-              <Thead>
-                <Tr>
-                  <Th>Materialization Interval</Th>
-                  <Th>Created</Th>
-                  <Th>Updated</Th>
-                </Tr>
-              </Thead>
-              <Tbody>
-                {materializationIntervals.map((interval, index) => (
-                  <Tr key={index}>
-                    <Td>
-                      {new Date(interval.startTime).toLocaleString()} -{' '}
-                      {new Date(interval.endTime).toLocaleString()}
-                    </Td>
-                    <Td>
-                      <FeatureStoreTimestamp date={new Date(interval.startTime)} />
-                    </Td>
-                    <Td>
-                      <FeatureStoreTimestamp date={new Date(interval.endTime)} />
-                    </Td>
-                  </Tr>
-                ))}
-              </Tbody>
-            </Table>
+              id="materialization-intervals-table"
+              data={materializationIntervals}
+              columns={materializationColumns}
+              rowRenderer={(interval, idx) => (
+                <MaterializationIntervalRow key={idx} interval={interval} index={idx} />
+              )}
+            />
           ) : (
             <EmptyState
               width="100%"

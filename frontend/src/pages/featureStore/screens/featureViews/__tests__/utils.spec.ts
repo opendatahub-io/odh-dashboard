@@ -8,6 +8,7 @@ import {
   formatFeatureViewDataSources,
   formatOnDemandFeatureViewSources,
   getSchemaItemValue,
+  getSchemaItemLink,
 } from '#~/pages/featureStore/screens/featureViews/utils';
 
 describe('Feature View Utils', () => {
@@ -642,6 +643,104 @@ describe('Feature View Utils', () => {
     it('should return empty string for unknown key', () => {
       const result = getSchemaItemValue(mockSchemaItem, 'unknown');
       expect(result).toBe('');
+    });
+  });
+
+  describe('getSchemaItemLink for transform schema items', () => {
+    const mockFeatureView: FeatureView = {
+      type: 'featureView',
+      spec: {
+        name: 'test-feature-view',
+        online: true,
+        offline: false,
+      },
+      project: 'test-project',
+      relationships: {},
+      meta: {},
+    } as unknown as FeatureView;
+
+    const mockEntityItem: SchemaItem = {
+      column: 'test-entity',
+      type: 'ENTITY',
+      dataType: 'STRING',
+      description: 'Test entity',
+    };
+
+    const mockFeatureItem: SchemaItem = {
+      column: 'test-feature',
+      type: 'FEATURE',
+      dataType: 'INT64',
+      description: 'Test feature',
+    };
+
+    it('should return entity route for entity items', () => {
+      const result = getSchemaItemLink(mockEntityItem, mockFeatureView, 'test-project');
+      expect(result).toBe('/featureStore/entities/test-project/test-entity');
+    });
+
+    it('should return feature route for feature items', () => {
+      const result = getSchemaItemLink(mockFeatureItem, mockFeatureView, 'test-project');
+      expect(result).toBe('/featureStore/features/test-project/test-feature-view/test-feature');
+    });
+
+    it('should use featureView.project when currentProject is not provided', () => {
+      const result = getSchemaItemLink(mockEntityItem, mockFeatureView);
+      expect(result).toBe('/featureStore/entities/test-project/test-entity');
+    });
+
+    it('should use currentProject when featureView.project is not available', () => {
+      const featureViewWithoutProject = {
+        ...mockFeatureView,
+        project: undefined,
+      } as FeatureView;
+
+      const result = getSchemaItemLink(
+        mockEntityItem,
+        featureViewWithoutProject,
+        'fallback-project',
+      );
+      expect(result).toBe('/featureStore/entities/fallback-project/test-entity');
+    });
+
+    it('should return "#" when no project is available', () => {
+      const featureViewWithoutProject = {
+        ...mockFeatureView,
+        project: undefined,
+      } as FeatureView;
+
+      const result = getSchemaItemLink(mockEntityItem, featureViewWithoutProject);
+      expect(result).toBe('#');
+    });
+
+    it('should return "#" for unknown item types', () => {
+      const unknownItem: SchemaItem = {
+        column: 'unknown-item',
+        type: 'UNKNOWN',
+        dataType: 'STRING',
+        description: 'Unknown item',
+      };
+
+      const result = getSchemaItemLink(unknownItem, mockFeatureView, 'test-project');
+      expect(result).toBe('#');
+    });
+
+    it('should handle feature items with different feature view names', () => {
+      const featureViewWithDifferentName = {
+        ...mockFeatureView,
+        spec: {
+          ...mockFeatureView.spec,
+          name: 'different-feature-view',
+        },
+      } as FeatureView;
+
+      const result = getSchemaItemLink(
+        mockFeatureItem,
+        featureViewWithDifferentName,
+        'test-project',
+      );
+      expect(result).toBe(
+        '/featureStore/features/test-project/different-feature-view/test-feature',
+      );
     });
   });
 });
