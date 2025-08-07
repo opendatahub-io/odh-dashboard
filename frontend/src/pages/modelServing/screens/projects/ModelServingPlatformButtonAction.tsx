@@ -3,7 +3,7 @@ import { Button, ButtonProps, Content, Tooltip } from '@patternfly/react-core';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import { isProjectNIMSupported } from '#~/pages/modelServing/screens/projects/nimUtils';
 import useServingPlatformStatuses from '#~/pages/modelServing/useServingPlatformStatuses';
-import { useKueueConfiguration } from '#~/concepts/projects/hooks/useKueueConfiguration';
+import { useKueueConfiguration } from '#~/kueueUtils';
 
 type ModelServingPlatformButtonActionProps = ButtonProps & {
   isProjectModelMesh: boolean;

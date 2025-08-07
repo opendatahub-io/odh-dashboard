@@ -37,10 +37,7 @@ import {
   isHardwareProfileEnabled,
 } from '#~/pages/hardwareProfiles/utils.ts';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
-import {
-  useKueueConfiguration,
-  KueueFilteringState,
-} from '#~/concepts/projects/hooks/useKueueConfiguration';
+import { useKueueConfiguration, KueueFilteringState } from '#~/kueueUtils';
 import { SchedulingType } from '#~/types';
 
 type HardwareProfileSelectProps = {
