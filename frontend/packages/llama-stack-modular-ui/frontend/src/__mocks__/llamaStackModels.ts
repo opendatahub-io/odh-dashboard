@@ -8,7 +8,6 @@ export const mockLlamaModels: LlamaModel[] = [
     provider_id: 'meta-reference',
     provider_resource_id: 'llama-3.1-8b-instruct',
     model_type: 'llm',
-    type: 'model',
     metadata: {},
   },
   {
@@ -16,7 +15,6 @@ export const mockLlamaModels: LlamaModel[] = [
     provider_id: 'meta-reference',
     provider_resource_id: 'llama-3.1-70b-instruct',
     model_type: 'llm',
-    type: 'model',
     metadata: {},
   },
 ];
@@ -26,6 +24,6 @@ export const mockSingleModel: LlamaModel = {
   provider_id: 'meta-reference',
   provider_resource_id: 'llama-3.1-8b-instruct',
   model_type: 'llm',
-  type: 'model',
+
   metadata: {},
 };

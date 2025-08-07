@@ -6,27 +6,32 @@ import { LlamaModel } from '../types';
 const useFetchLlamaModels = (): {
   models: LlamaModel[];
   loading: boolean;
-  error: string | null;
+  error: Error | undefined;
   fetchLlamaModels: () => Promise<void>;
 } => {
   const [models, setModels] = React.useState<LlamaModel[]>([]);
   const [loading, setLoading] = React.useState(true);
-  const [error, setError] = React.useState<string | null>(null);
+  const [error, setError] = React.useState<Error | undefined>(undefined);
 
-  const fetchLlamaModels = async () => {
+  const fetchLlamaModels = React.useCallback(async () => {
     try {
       setLoading(true);
-      setError(null);
+      setError(undefined);
 
       const modelList: LlamaModel[] = await getModels();
 
       setModels(modelList);
     } catch (err) {
-      setError(`Failed to fetch models; ${err}`);
+      setError(new Error(`Failed to fetch models; ${err}`));
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  // Automatically fetch models on hook initialization
+  React.useEffect(() => {
+    fetchLlamaModels();
+  }, [fetchLlamaModels]);
 
   return { models, loading, error, fetchLlamaModels };
 };
