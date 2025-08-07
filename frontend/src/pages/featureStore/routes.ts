@@ -24,3 +24,8 @@ export const featureServiceRoute = (
 
 export const featureRoute = (featureName: string, featureStoreProject: string): string =>
   `${featureStoreRootRoute()}/features/${featureStoreProject}/${featureName}`;
+
+export const featureDataSourceRoute = (
+  dataSourceName: string,
+  featureStoreProject: string,
+): string => `${featureStoreRootRoute()}/data-sources/${featureStoreProject}/${dataSourceName}`;

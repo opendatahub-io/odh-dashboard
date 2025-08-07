@@ -15,6 +15,7 @@ const mockGetFeatureViews = jest.fn();
 describe('useFeatureViews', () => {
   const mockFeatureViewsList: FeatureViewsList = {
     featureViews: [mockFeatureView(), mockFeatureView()],
+    relationships: {},
     pagination: {
       totalCount: 2,
       totalPages: 1,
@@ -23,6 +24,7 @@ describe('useFeatureViews', () => {
 
   const defaultFeatureViewsList: FeatureViewsList = {
     featureViews: [],
+    relationships: {},
     pagination: {
       totalCount: 0,
       totalPages: 0,
@@ -307,6 +309,7 @@ describe('useFeatureViews', () => {
 
     const updatedFeatureViewsList: FeatureViewsList = {
       featureViews: [mockFeatureView()],
+      relationships: {},
       pagination: {
         totalCount: 1,
         totalPages: 1,

@@ -52,6 +52,10 @@ const FeatureStoreRoutes: React.FC = () => (
         path="featureServices/:fsProjectName/:featureServiceName"
         element={<FeatureServiceDetails />}
       />
+      <Route
+        path="data-sources/:fsProjectName?/:dataSourceName"
+        element={<>Data source details page</>}
+      />
     </Route>
   </Routes>
 );
