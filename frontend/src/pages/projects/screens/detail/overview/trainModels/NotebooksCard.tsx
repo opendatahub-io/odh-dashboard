@@ -103,10 +103,10 @@ const NotebooksCard: React.FC = () => {
                     create pipelines, and configure cluster storage in your workbench.
                   </Content>
                 </Content>
-                {isKueueDisabled ? (
-                  <Tooltip content={KUEUE_WORKBENCH_CREATION_DISABLED_MESSAGE}>
+                {(() => {
+                  const button = (
                     <Button
-                      isAriaDisabled
+                      isAriaDisabled={isKueueDisabled}
                       variant={ButtonVariant.primary}
                       onClick={() => navigate(`/projects/${currentProject.metadata.name}/spawner`)}
                     >
@@ -119,23 +119,14 @@ const NotebooksCard: React.FC = () => {
                         <ArrowRightIcon />
                       </Flex>
                     </Button>
-                  </Tooltip>
-                ) : (
-                  <Button
-                    isDisabled={isKueueDisabled}
-                    variant={ButtonVariant.primary}
-                    onClick={() => navigate(`/projects/${currentProject.metadata.name}/spawner`)}
-                  >
-                    <Flex
-                      gap={{ default: 'gapMd' }}
-                      alignItems={{ default: 'alignItemsCenter' }}
-                      flexWrap={{ default: 'nowrap' }}
-                    >
-                      <FlexItem>Create a workbench</FlexItem>
-                      <ArrowRightIcon />
-                    </Flex>
-                  </Button>
-                )}
+                  );
+
+                  return isKueueDisabled ? (
+                    <Tooltip content={KUEUE_WORKBENCH_CREATION_DISABLED_MESSAGE}>{button}</Tooltip>
+                  ) : (
+                    button
+                  );
+                })()}
               </Flex>
             </FlexItem>
           </Flex>
