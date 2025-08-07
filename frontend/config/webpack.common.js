@@ -22,7 +22,6 @@ const ODH_PRODUCT_NAME = process.env.ODH_PRODUCT_NAME;
 const COVERAGE = process.env.COVERAGE;
 const COMMIT_HASH_DIRECT = execSync('git rev-parse --short HEAD').toString().trim();
 
-
 if (OUTPUT_ONLY !== 'true') {
   console.info(
     `\nPrepping files...\n  SRC DIR: ${SRC_DIR}\n  OUTPUT DIR: ${DIST_DIR}\n  PUBLIC PATH: ${PUBLIC_PATH}\n`,
@@ -249,7 +248,7 @@ module.exports = (env) => ({
       MF_CONFIG: JSON.stringify(moduleFederationConfig),
     }),
     new webpack.DefinePlugin({
-	__COMMIT_HASH__: JSON.stringify(COMMIT_HASH_DIRECT),
+      __COMMIT_HASH__: JSON.stringify(COMMIT_HASH_DIRECT),
     }),
     ...moduleFederationPlugins,
   ],
