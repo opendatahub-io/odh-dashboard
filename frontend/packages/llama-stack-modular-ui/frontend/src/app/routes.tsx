@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Route, Routes } from 'react-router-dom';
-import { ChatbotMain } from '@app/Chatbot/ChatbotMain';
-import { NotFound } from '@app/NotFound/NotFound';
+import { ChatbotMain } from './Chatbot/ChatbotMain';
+import { NotFound } from './NotFound/NotFound';
 
 export interface IAppRoute {
   label?: string; // Excluding the label will exclude the route from the nav sidebar in AppLayout

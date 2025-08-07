@@ -19,7 +19,9 @@ export type FeatureService = {
     owner?: string;
   };
   meta: FeatureStoreMeta;
+  relationships?: FeatureStoreRelationship[];
   project?: string;
+  featureDefinition?: string;
 };
 
 export type FeatureServicesList = {
@@ -35,3 +37,9 @@ export type GetFeatureServices = (
   opts: K8sAPIOptions,
   project?: string,
 ) => Promise<FeatureServicesList>;
+
+export type GetFeatureServiceByName = (
+  opts: K8sAPIOptions,
+  project: string,
+  featureServiceName: string,
+) => Promise<FeatureService>;

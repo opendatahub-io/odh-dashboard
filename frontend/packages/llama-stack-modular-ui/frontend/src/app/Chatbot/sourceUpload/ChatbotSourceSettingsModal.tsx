@@ -18,9 +18,9 @@ import {
   TextInput,
   Title,
 } from '@patternfly/react-core';
-import useFetchModelsByType from '@app/hooks/useFetchModelsByType';
-import useFetchVectorDBs from '@app/hooks/useFetchVectorDBs';
-import { ChatbotSourceSettings } from '@app/types';
+import useFetchModelsByType from '~/app/hooks/useFetchModelsByType';
+import useFetchVectorDBs from '~/app/hooks/useFetchVectorDBs';
+import { ChatbotSourceSettings } from '~/app/types';
 
 type ChatbotSourceSettingsModalProps = {
   onToggle: () => void;

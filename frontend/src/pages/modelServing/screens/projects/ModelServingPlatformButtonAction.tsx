@@ -44,7 +44,7 @@ const ModelServingPlatformButtonAction: React.FC<ModelServingPlatformButtonActio
 
   return (
     <Tooltip
-      data-testid="model-serving-action-tooltip"
+      data-testid="deploy-model-tooltip"
       aria-label="Model Serving Action Info"
       content={
         isNimDisabled ? (

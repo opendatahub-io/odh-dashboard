@@ -119,4 +119,9 @@ export type FeatureViewsList = {
   pagination: FeatureViewsPagination;
 };
 
-export type GetFeatureViews = (opts: K8sAPIOptions, project?: string) => Promise<FeatureViewsList>;
+export type GetFeatureViews = (
+  opts: K8sAPIOptions,
+  project?: string,
+  entity?: string,
+  featureService?: string,
+) => Promise<FeatureViewsList>;
