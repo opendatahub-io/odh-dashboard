@@ -16,7 +16,7 @@ const ModelServingPlatformSelectErrorAlert: React.FC<ModelServingPlatformSelectE
     isInline
     title="Model serving platform selection failed"
     actionClose={<AlertActionCloseButton onClose={clearError} />}
-    isExpandable
+    isExpandable={!!error.message}
     className={alignment.textAlignStart}
     data-testid="error-selecting-serving-platform"
   >
