@@ -250,7 +250,7 @@ describe('Feature Service Details', () => {
       featureServiceDetailsPage.findUpdatedAtLabel().should('contain.text', 'Updated at');
       featureServiceDetailsPage
         .findUpdatedAtValue()
-        .should('contain.text', '30 Jun 2025, 07:46 UTC');
+        .should('contain.text', 'Jun 30, 2025, 7:46 AM UTC');
     });
   });
 
