@@ -22,7 +22,6 @@ const useFeatureServiceByName = (
       if (!featureServiceName) {
         return Promise.reject(new Error('Feature name is required'));
       }
-      console.log('project', project);
 
       return api.getFeatureServiceByName(opts, project, featureServiceName);
     },
