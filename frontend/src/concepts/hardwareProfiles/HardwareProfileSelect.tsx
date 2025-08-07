@@ -37,6 +37,7 @@ import {
   isHardwareProfileEnabled,
 } from '#~/pages/hardwareProfiles/utils.ts';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
+import { ProjectsContext, byName } from '#~/concepts/projects/ProjectsContext';
 import { useKueueConfiguration, KueueFilteringState } from '#~/kueueUtils';
 import { SchedulingType } from '#~/types';
 
@@ -85,7 +86,20 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
   ] = projectScopedHardwareProfiles;
 
   const { currentProject } = React.useContext(ProjectDetailsContext);
-  const { kueueFilteringState } = useKueueConfiguration(currentProject);
+  const { projects } = React.useContext(ProjectsContext);
+
+  // Get the project for Kueue configuration:
+  // 1. If we have a project prop (namespace string), find the actual project object
+  // 2. Otherwise use currentProject from ProjectDetailsContext (works in project details pages)
+  const projectForKueue = React.useMemo(() => {
+    if (project) {
+      return projects.find(byName(project));
+    }
+    // Fallback to currentProject, but only if it has a real name (not empty default)
+    return currentProject.metadata.name ? currentProject : undefined;
+  }, [project, projects, currentProject]);
+
+  const { kueueFilteringState } = useKueueConfiguration(projectForKueue);
 
   const filterHardwareProfilesByKueue = React.useCallback(
     (hp: HardwareProfileKind) => {
