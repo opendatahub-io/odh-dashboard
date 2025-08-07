@@ -11,7 +11,7 @@ import EmptyDetailsView from '#~/components/EmptyDetailsView';
 import DashboardPopupIconButton from '#~/concepts/dashboard/DashboardPopupIconButton';
 import { ProjectObjectType, typedEmptyImage } from '#~/concepts/design/utils';
 import useRefreshInterval from '#~/utilities/useRefreshInterval';
-import { useKueueConfiguration } from '#~/concepts/projects/hooks/useKueueConfiguration';
+import { useKueueConfiguration, KUEUE_WORKBENCH_CREATION_DISABLED_MESSAGE } from '#~/kueueUtils';
 import NotebookTable from './NotebookTable';
 
 const NotebookList: React.FC = () => {
@@ -45,7 +45,7 @@ const NotebookList: React.FC = () => {
   const getCreateButton = () => {
     if (isKueueDisabled) {
       return (
-        <Tooltip content="Workbench creation requires Kueue. Contact your admin.">
+        <Tooltip content={KUEUE_WORKBENCH_CREATION_DISABLED_MESSAGE}>
           <Button
             key={`action-${ProjectSectionID.WORKBENCHES}`}
             onClick={() => navigate(`/projects/${projectName}/spawner`)}

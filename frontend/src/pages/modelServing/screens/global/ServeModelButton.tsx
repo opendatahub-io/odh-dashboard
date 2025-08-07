@@ -15,8 +15,7 @@ import { byName, ProjectsContext } from '#~/concepts/projects/ProjectsContext';
 import { isProjectNIMSupported } from '#~/pages/modelServing/screens/projects/nimUtils';
 import ManageNIMServingModal from '#~/pages/modelServing/screens/projects/NIMServiceModal/ManageNIMServingModal';
 import useServingPlatformStatuses from '#~/pages/modelServing/useServingPlatformStatuses';
-import { useKueueConfiguration } from '#~/concepts/projects/hooks/useKueueConfiguration';
-import { ProjectKind } from '#~/k8sTypes';
+import { useKueueConfiguration, KUEUE_MODEL_DEPLOYMENT_DISABLED_MESSAGE } from '#~/kueueUtils';
 
 const ServeModelButton: React.FC = () => {
   const [platformSelected, setPlatformSelected] = React.useState<
@@ -94,11 +93,7 @@ const ServeModelButton: React.FC = () => {
   }
 
   if (!isProjectModelMesh && isKueueDisabled) {
-    return (
-      <Tooltip content="Model deployment requires Kueue. Contact your admin.">
-        {deployButton}
-      </Tooltip>
-    );
+    return <Tooltip content={KUEUE_MODEL_DEPLOYMENT_DISABLED_MESSAGE}>{deployButton}</Tooltip>;
   }
 
   return (
