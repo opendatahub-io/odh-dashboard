@@ -3,7 +3,7 @@ import { Button, ButtonProps, Content, Tooltip } from '@patternfly/react-core';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import { isProjectNIMSupported } from '#~/pages/modelServing/screens/projects/nimUtils';
 import useServingPlatformStatuses from '#~/pages/modelServing/useServingPlatformStatuses';
-import { useKueueConfiguration } from '#~/kueueUtils';
+import { useKueueConfiguration, KUEUE_MODEL_DEPLOYMENT_DISABLED_MESSAGE } from '#~/kueueUtils';
 
 type ModelServingPlatformButtonActionProps = ButtonProps & {
   isProjectModelMesh: boolean;
@@ -58,7 +58,7 @@ const ModelServingPlatformButtonAction: React.FC<ModelServingPlatformButtonActio
         isNimDisabled ? (
           'NIM is not available. Contact your administrator.'
         ) : !isProjectModelMesh && isKueueDisabled ? (
-          'Deployment requires Kueue. Contact your admin.'
+          KUEUE_MODEL_DEPLOYMENT_DISABLED_MESSAGE
         ) : (
           <Content component="p">{`At least one serving runtime must be enabled to ${
             isProjectModelMesh ? 'add a model server' : 'deploy a model'

@@ -16,7 +16,7 @@ import { ArrowRightIcon, ExclamationCircleIcon } from '@patternfly/react-icons';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import { ProjectObjectType, SectionType, typedEmptyImage } from '#~/concepts/design/utils';
 import OverviewCard from '#~/pages/projects/screens/detail/overview/components/OverviewCard';
-import { useKueueConfiguration } from '#~/kueueUtils';
+import { useKueueConfiguration, KUEUE_WORKBENCH_CREATION_DISABLED_MESSAGE } from '#~/kueueUtils';
 import NotebooksCardItems from './NotebooksCardItems';
 import MetricsContents from './MetricsContents';
 
@@ -104,7 +104,7 @@ const NotebooksCard: React.FC = () => {
                   </Content>
                 </Content>
                 {isKueueDisabled ? (
-                  <Tooltip content="Workbench creation requires Kueue. Contact your admin.">
+                  <Tooltip content={KUEUE_WORKBENCH_CREATION_DISABLED_MESSAGE}>
                     <Button
                       isAriaDisabled
                       variant={ButtonVariant.primary}
