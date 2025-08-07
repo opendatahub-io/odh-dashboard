@@ -127,7 +127,7 @@ describe('DeploymentsTableRow', () => {
         </table>,
       );
 
-      const button = screen.getByRole('button', { name: 'Internal endpoint details' });
+      const button = screen.getByRole('button', { name: 'Internal endpoint' });
       expect(button).toBeInTheDocument();
       await act(async () => {
         fireEvent.click(button);
@@ -156,7 +156,7 @@ describe('DeploymentsTableRow', () => {
         </table>,
       );
 
-      const button = screen.getByRole('button', { name: 'Internal and external endpoint details' });
+      const button = screen.getByRole('button', { name: 'Internal and external endpoint' });
       expect(button).toBeInTheDocument();
       await act(async () => {
         fireEvent.click(button);
@@ -190,7 +190,7 @@ describe('DeploymentsTableRow', () => {
         </table>,
       );
 
-      const button = screen.getByRole('button', { name: 'Internal and external endpoint details' });
+      const button = screen.getByRole('button', { name: 'Internal and external endpoint' });
       expect(button).toBeInTheDocument();
       await act(async () => {
         fireEvent.click(button);

@@ -116,8 +116,11 @@ export const DeploymentRow: React.FC<{
         <Td dataLabel="Serving runtime">
           <DeployedModelsVersion deployment={deployment} />
         </Td>
-        <Td dataLabel="Inference endpoint">
-          <DeploymentStatus deployment={deployment} />
+        <Td dataLabel="Inference endpoints">
+          <DeploymentStatus
+            deployment={deployment}
+            stoppedStates={deployment.status?.stoppedStates}
+          />
         </Td>
         <Td dataLabel="API protocol">
           {getServerApiProtocol(deployment) ? (
@@ -155,6 +158,9 @@ export const DeploymentRow: React.FC<{
                 onClick: () => {
                   onEdit(deployment);
                 },
+                isDisabled:
+                  deployment.status?.stoppedStates?.isStarting ||
+                  deployment.status?.stoppedStates?.isStopping,
               },
               { isSeparator: true },
               {
@@ -162,6 +168,9 @@ export const DeploymentRow: React.FC<{
                 onClick: () => {
                   onDelete(deployment);
                 },
+                isDisabled:
+                  deployment.status?.stoppedStates?.isStarting ||
+                  deployment.status?.stoppedStates?.isStopping,
               },
             ]}
           />
