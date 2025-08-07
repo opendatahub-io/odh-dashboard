@@ -8,6 +8,7 @@ import {
   Source,
   Query,
   QueryResponse,
+  SuccessResponse,
 } from '../types';
 import axios from '../utilities/axios';
 
@@ -22,7 +23,9 @@ export const getModels = (): Promise<LlamaModel[]> => {
     .get(url)
     .then((response) => response.data.data.items)
     .catch((error) => {
-      throw new Error(error.response.data.message || 'Failed to fetch models');
+      throw new Error(
+        error.response?.data?.error?.message || error.message || 'Failed to fetch models',
+      );
     });
 };
 
@@ -38,7 +41,9 @@ export const getModelsByType = (modelType: LlamaModelType): Promise<LlamaModel[]
     .get(url)
     .then((response) => response.data.data.items)
     .catch((error) => {
-      throw new Error(error.response.data.message || 'Failed to fetch models');
+      throw new Error(
+        error.response?.data?.error?.message || error.message || 'Failed to fetch models',
+      );
     });
 };
 
@@ -53,7 +58,9 @@ export const getVectorDBs = (): Promise<VectorDB[]> => {
     .get(url)
     .then((response) => response.data.data.items)
     .catch((error) => {
-      throw new Error(error.response.data.message || 'Failed to fetch models');
+      throw new Error(
+        error.response?.data?.error?.message || error.message || 'Failed to fetch vector dbs',
+      );
     });
 };
 
@@ -63,13 +70,21 @@ export const getVectorDBs = (): Promise<VectorDB[]> => {
  * @returns Promise<void> - A promise that resolves when the vector db is registered
  * @throws Error - When the API request fails or returns an error response
  */
-export const registerVectorDB = (vectorDB: VectorDB): Promise<void> => {
+export const registerVectorDB = (
+  vectorDBId: VectorDB,
+  embeddingModel: string,
+): Promise<{ message: string; vector_db_id: string }> => {
   const url = '/api/v1/vector-dbs';
   return axios
-    .post(url, vectorDB)
+    .post(url, {
+      vector_db_id: vectorDBId,
+      embedding_model: embeddingModel,
+    })
     .then((response) => response.data)
     .catch((error) => {
-      throw new Error(error.response.data.message || 'Failed to register vector db');
+      throw new Error(
+        error.response?.data?.error?.message || error.message || 'Failed to register vector db',
+      );
     });
 };
 
@@ -80,7 +95,10 @@ export const registerVectorDB = (vectorDB: VectorDB): Promise<void> => {
  * @returns Promise<void> - A promise that resolves when the source is uploaded
  * @throws Error - When the API request fails or returns an error response
  */
-export const uploadSource = (source: Source, settings: ChatbotSourceSettings): Promise<void> => {
+export const uploadSource = (
+  source: Source,
+  settings: ChatbotSourceSettings,
+): Promise<SuccessResponse> => {
   const url = '/api/v1/upload';
   const payload = {
     documents: source.documents,
@@ -93,7 +111,9 @@ export const uploadSource = (source: Source, settings: ChatbotSourceSettings): P
     .post(url, payload)
     .then((response) => response.data)
     .catch((error) => {
-      throw new Error(error.response.data.message || 'Failed to upload source');
+      throw new Error(
+        error.response?.data?.error?.message || error.message || 'Failed to upload source',
+      );
     });
 };
 
@@ -109,6 +129,8 @@ export const querySource = (query: Query): Promise<QueryResponse> => {
     .post(url, query)
     .then((response) => response.data)
     .catch((error) => {
-      throw new Error(error.response.data.message || 'Failed to query source');
+      throw new Error(
+        error.response?.data?.error?.message || error.message || 'Failed to query source',
+      );
     });
 };

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Page, SkipToContent } from '@patternfly/react-core';
+import { Page, PageSidebar, SkipToContent } from '@patternfly/react-core';
 
 interface IAppLayout {
   children: React.ReactNode;
@@ -22,7 +22,13 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
   );
 
   return (
-    <Page mainContainerId={pageId} skipToContent={PageSkipToContent} isContentFilled>
+    <Page
+      mainContainerId={pageId}
+      isManagedSidebar={false}
+      sidebar={<PageSidebar isSidebarOpen={false} />}
+      skipToContent={PageSkipToContent}
+      isContentFilled
+    >
       {children}
     </Page>
   );
