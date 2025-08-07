@@ -20,6 +20,7 @@ import FeatureStoreTags from '#~/pages/featureStore/components/FeatureStoreTags'
 import FeatureStoreCodeBlock from '#~/pages/featureStore/components/FeatureStoreCodeBlock';
 import { FeatureStoreSections, hasContent } from '#~/pages/featureStore/const.ts';
 import FeatureStoreInfoTooltip from '#~/pages/featureStore/screens/components/FeatureStoreInfoTooltip';
+import FeatureViewTab from '#~/pages/featureStore/screens/components/FeatureViewTab';
 
 type FeatureDetailsTabsProps = {
   feature: Features;
@@ -129,7 +130,16 @@ const FeatureDetailsTabs: React.FC<FeatureDetailsTabsProps> = ({ feature }) => {
         aria-label="Feature views tab"
         data-testid="feature-views-tab"
       >
-        <TabContentBody data-testid="feature-views-tab-content">feature views</TabContentBody>
+        <TabContentBody data-testid="feature-views-tab-content">
+          <PageSection
+            isFilled
+            padding={{ default: 'noPadding' }}
+            hasBodyWrapper={false}
+            className="pf-v6-u-mt-xl"
+          >
+            <FeatureViewTab fsObject={{ feature: feature.name }} contextName="feature" />
+          </PageSection>
+        </TabContentBody>
       </Tab>
     </Tabs>
   );

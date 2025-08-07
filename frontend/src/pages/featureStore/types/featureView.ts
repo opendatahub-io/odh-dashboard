@@ -124,4 +124,5 @@ export type GetFeatureViews = (
   project?: string,
   entity?: string,
   featureService?: string,
+  feature?: string,
 ) => Promise<FeatureViewsList>;
