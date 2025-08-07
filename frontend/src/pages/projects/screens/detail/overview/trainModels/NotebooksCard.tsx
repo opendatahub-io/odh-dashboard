@@ -16,9 +16,9 @@ import { ArrowRightIcon, ExclamationCircleIcon } from '@patternfly/react-icons';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import { ProjectObjectType, SectionType, typedEmptyImage } from '#~/concepts/design/utils';
 import OverviewCard from '#~/pages/projects/screens/detail/overview/components/OverviewCard';
+import { useKueueConfiguration } from '#~/concepts/projects/hooks/useKueueConfiguration';
 import NotebooksCardItems from './NotebooksCardItems';
 import MetricsContents from './MetricsContents';
-import useKueueDisabled from '#~/concepts/projects/hooks/useKueueDisabled.ts';
 
 const NotebooksCard: React.FC = () => {
   const navigate = useNavigate();
@@ -27,7 +27,7 @@ const NotebooksCard: React.FC = () => {
     notebooks: { data: notebooks, loaded, error },
   } = React.useContext(ProjectDetailsContext);
 
-  const { isKueueDisabled } = useKueueDisabled(currentProject);
+  const { isKueueDisabled } = useKueueConfiguration(currentProject);
 
   const statistics = React.useMemo(
     () => [
