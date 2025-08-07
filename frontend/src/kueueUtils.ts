@@ -64,7 +64,7 @@ export const useKueueConfiguration = (
 
   return {
     isKueueDisabled,
-    shouldShowKueueAlert: isKueueDisabled, // Same logic for now, but can be extended
+    shouldShowKueueAlert: isKueueDisabled,
     isKueueFeatureEnabled,
     isProjectKueueEnabled,
     kueueFilteringState,
