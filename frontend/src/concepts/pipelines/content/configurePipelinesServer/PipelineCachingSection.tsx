@@ -49,7 +49,7 @@ export const PipelineCachingSection = ({
         setEnableCaching(!enableCaching);
         setUserClickedCheckbox(true);
       }}
-      description="When enabled, pipelines and tasks can configure caching. By default, caching is on unless changed. This setting can only be changed later in DSPA."
+      description="When enabled, pipelines and tasks can configure caching. By default, caching is on unless changed."
     />
   );
 
@@ -67,7 +67,8 @@ export const PipelineCachingSection = ({
           title="Caching is disabled"
           data-testid="pipeline-caching-disabled-alert"
         >
-          All pipelines will be prevented from caching.
+          Disabling this option will turn off caching for all pipelines and tasks on this server.
+          This overrides any cache configuration at the pipeline or task level.
         </Alert>
       </StackItem>
     </div>
