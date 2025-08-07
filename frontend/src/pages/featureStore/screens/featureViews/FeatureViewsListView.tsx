@@ -1,44 +1,32 @@
 import React from 'react';
-import { FeatureView } from '#~/pages/featureStore/types/featureView';
-import FeatureViewToolbar from './FeatureViewToolbar';
-import { FeatureViewFilterDataType, initialFeatureViewFilterData } from './const';
-import FeatureViewsTable from './FeatureViewsTable';
+import { FeatureViewsList } from '#~/pages/featureStore/types/featureView';
+import { useFeatureStoreProject } from '#~/pages/featureStore/FeatureStoreContext';
+import { FeatureStoreToolbar } from '#~/pages/featureStore/components/FeatureStoreToolbar';
+import { featureViewTableFilterOptions } from '#~/pages/featureStore/screens/featureViews/const';
+import { applyFeatureViewFilters } from '#~/pages/featureStore/screens/featureViews/utils';
+import FeatureViewsTable from '#~/pages/featureStore/screens/featureViews/FeatureViewsTable';
 
 const FeatureViewsListView = ({
-  featureViews: unfilteredFeatureViews,
+  featureViews: featureViewsList,
   fsProject,
 }: {
-  featureViews: FeatureView[];
+  featureViews: FeatureViewsList;
   fsProject?: string;
 }): React.ReactElement => {
-  const [filterData, setFilterData] = React.useState<FeatureViewFilterDataType>(
-    initialFeatureViewFilterData,
-  );
+  const [filterData, setFilterData] = React.useState<
+    Record<string, string | { label: string; value: string } | undefined>
+  >({});
+  const { currentProject } = useFeatureStoreProject();
 
-  const onClearFilters = React.useCallback(
-    () => setFilterData(initialFeatureViewFilterData),
-    [setFilterData],
-  );
-
-  const filteredFeatureViews = React.useMemo(
-    () =>
-      unfilteredFeatureViews.filter((featureView) => {
-        const featureViewFilter = filterData['Feature view']?.toLowerCase();
-        const tagsFilter = filterData.Tags?.toLowerCase();
-
-        if (featureViewFilter && !featureView.spec.name.toLowerCase().includes(featureViewFilter)) {
-          return false;
-        }
-
-        return (
-          !tagsFilter ||
-          Object.entries(featureView.spec.tags ?? {}).some(([key, value]) =>
-            `${key}=${value}`.toLowerCase().includes(tagsFilter.toLowerCase()),
-          )
-        );
-      }),
-    [unfilteredFeatureViews, filterData],
-  );
+  const processedFeatureViews = React.useMemo(() => {
+    if (currentProject) {
+      return featureViewsList.featureViews.map((featureView) => ({
+        ...featureView,
+        project: featureView.project || currentProject,
+      }));
+    }
+    return featureViewsList.featureViews;
+  }, [featureViewsList.featureViews, currentProject]);
 
   const onFilterUpdate = React.useCallback(
     (key: string, value: string | { label: string; value: string } | undefined) =>
@@ -46,13 +34,26 @@ const FeatureViewsListView = ({
     [setFilterData],
   );
 
+  const onClearFilters = React.useCallback(() => setFilterData({}), [setFilterData]);
+
+  const filteredFeatureViews = React.useMemo(
+    () =>
+      applyFeatureViewFilters(processedFeatureViews, featureViewsList.relationships, filterData),
+    [processedFeatureViews, featureViewsList.relationships, filterData],
+  );
+
   return (
     <FeatureViewsTable
       featureViews={filteredFeatureViews}
+      relationships={featureViewsList.relationships}
       fsProject={fsProject}
       onClearFilters={onClearFilters}
       toolbarContent={
-        <FeatureViewToolbar filterData={filterData} onFilterUpdate={onFilterUpdate} />
+        <FeatureStoreToolbar
+          filterData={filterData}
+          onFilterUpdate={onFilterUpdate}
+          filterOptions={featureViewTableFilterOptions}
+        />
       }
     />
   );
