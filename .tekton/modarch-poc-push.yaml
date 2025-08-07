@@ -25,7 +25,7 @@ spec:
   - name: revision
     value: '{{revision}}'
   - name: output-image
-    value: quay.io/redhat-user-workloads/open-data-hub-tenant/modarch-poc:{{revision}}
+    value: quay.io/opendatahub/odh-mod-arch-modular-architecture:{{revision}}
   - name: dockerfile
     value: packages/model-registry/Dockerfile.workspace
   - name: path-context
