@@ -1,5 +1,6 @@
 /* eslint-disable prefer-destructuring, @typescript-eslint/restrict-template-expressions */
 const path = require('path');
+const { execSync } = require('child_process');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const CopyPlugin = require('copy-webpack-plugin');
 const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
@@ -19,6 +20,8 @@ const OUTPUT_ONLY = process.env._ODH_OUTPUT_ONLY;
 const ODH_FAVICON = process.env.ODH_FAVICON;
 const ODH_PRODUCT_NAME = process.env.ODH_PRODUCT_NAME;
 const COVERAGE = process.env.COVERAGE;
+const COMMIT_HASH_DIRECT = execSync('git rev-parse --short HEAD').toString().trim();
+
 
 if (OUTPUT_ONLY !== 'true') {
   console.info(
@@ -244,6 +247,9 @@ module.exports = (env) => ({
     }),
     new webpack.EnvironmentPlugin({
       MF_CONFIG: JSON.stringify(moduleFederationConfig),
+    }),
+    new webpack.DefinePlugin({
+	__COMMIT_HASH__: JSON.stringify(COMMIT_HASH_DIRECT),
     }),
     ...moduleFederationPlugins,
   ],
