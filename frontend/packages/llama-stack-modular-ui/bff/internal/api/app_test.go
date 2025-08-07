@@ -11,7 +11,7 @@ import (
 func TestIsAPIRoute(t *testing.T) {
 	// Create a test app with default API path prefix
 	cfg := config.EnvConfig{
-		APIPathPrefix: "/api/v1",
+		APIPathPrefix: "/rag/api/v1",
 	}
 	app := &App{
 		config: cfg,
@@ -60,42 +60,42 @@ func TestIsAPIRoute(t *testing.T) {
 		// API v1 routes - exact matches
 		{
 			name:     "api v1 prefix exact match",
-			path:     "/api/v1",
+			path:     "/rag/api/v1",
 			expected: true,
 		},
 		{
 			name:     "api v1 config",
-			path:     "/api/v1/config",
+			path:     "/rag/api/v1/config",
 			expected: true,
 		},
 		{
 			name:     "api v1 models",
-			path:     "/api/v1/models",
+			path:     "/rag/api/v1/models",
 			expected: true,
 		},
 		{
 			name:     "api v1 vector-dbs",
-			path:     "/api/v1/vector-dbs",
+			path:     "/rag/api/v1/vector-dbs",
 			expected: true,
 		},
 		{
 			name:     "api v1 upload",
-			path:     "/api/v1/upload",
+			path:     "/rag/api/v1/upload",
 			expected: true,
 		},
 		{
 			name:     "api v1 query",
-			path:     "/api/v1/query",
+			path:     "/rag/api/v1/query",
 			expected: true,
 		},
 		{
 			name:     "api v1 auth callback",
-			path:     "/api/v1/auth/callback",
+			path:     "/rag/api/v1/auth/callback",
 			expected: true,
 		},
 		{
 			name:     "api v1 auth state",
-			path:     "/api/v1/auth/state",
+			path:     "/rag/api/v1/auth/state",
 			expected: true,
 		},
 
@@ -119,32 +119,32 @@ func TestIsAPIRoute(t *testing.T) {
 		// False positive cases - these should NOT be API routes
 		{
 			name:     "api v1something (false positive case)",
-			path:     "/api/v1something",
+			path:     "/rag/api/v1something",
 			expected: false,
 		},
 		{
 			name:     "api v1-other",
-			path:     "/api/v1-other",
+			path:     "/rag/api/v1-other",
 			expected: false,
 		},
 		{
 			name:     "api v1_other",
-			path:     "/api/v1_other",
+			path:     "/rag/api/v1_other",
 			expected: false,
 		},
 		{
 			name:     "api v1other",
-			path:     "/api/v1other",
+			path:     "/rag/api/v1other",
 			expected: false,
 		},
 		{
 			name:     "api v1.",
-			path:     "/api/v1.",
+			path:     "/rag/api/v1.",
 			expected: false,
 		},
 		{
 			name:     "api v1/",
-			path:     "/api/v1/",
+			path:     "/rag/api/v1/",
 			expected: true, // This should be true as it has the trailing slash
 		},
 
@@ -198,17 +198,17 @@ func TestIsAPIRoute(t *testing.T) {
 		},
 		{
 			name:     "path without leading slash",
-			path:     "api/v1/config",
+			path:     "rag/api/v1/config",
 			expected: false,
 		},
 		{
 			name:     "path with query params",
-			path:     "/api/v1/config?param=value",
+			path:     "/rag/api/v1/config?param=value",
 			expected: true, // The function should match the path portion before query params
 		},
 		{
 			name:     "path with fragments",
-			path:     "/api/v1/config#section",
+			path:     "/rag/api/v1/config#section",
 			expected: true, // The function should match the path portion before fragments
 		},
 
@@ -248,7 +248,7 @@ func TestIsAPIRoute(t *testing.T) {
 func TestIsAPIRouteEdgeCases(t *testing.T) {
 	// Create a test app with default API path prefix
 	cfg := config.EnvConfig{
-		APIPathPrefix: "/api/v1",
+		APIPathPrefix: "/rag/api/v1",
 	}
 	app := &App{
 		config: cfg,
@@ -262,22 +262,22 @@ func TestIsAPIRouteEdgeCases(t *testing.T) {
 		// Boundary testing for API v1 prefix
 		{
 			name:     "api v1 with single character after",
-			path:     "/api/v1a",
+			path:     "/rag/api/v1a",
 			expected: false,
 		},
 		{
 			name:     "api v1 with number after",
-			path:     "/api/v12",
+			path:     "/rag/api/v12",
 			expected: false,
 		},
 		{
 			name:     "api v1 with special character after",
-			path:     "/api/v1@",
+			path:     "/rag/api/v1@",
 			expected: false,
 		},
 		{
 			name:     "api v1 with space after",
-			path:     "/api/v1 ",
+			path:     "/rag/api/v1 ",
 			expected: false,
 		},
 
@@ -334,7 +334,7 @@ func TestIsAPIRouteEdgeCases(t *testing.T) {
 func TestIsAPIRoutePerformance(t *testing.T) {
 	// Create a test app with default API path prefix
 	cfg := config.EnvConfig{
-		APIPathPrefix: "/api/v1",
+		APIPathPrefix: "/rag/api/v1",
 	}
 	app := &App{
 		config: cfg,
@@ -342,7 +342,7 @@ func TestIsAPIRoutePerformance(t *testing.T) {
 	}
 
 	// Test with very long paths to ensure no performance issues
-	longPath := "/api/v1/" + string(make([]byte, 1000))
+	longPath := "/rag/api/v1/" + string(make([]byte, 1000))
 	result := app.isAPIRoute(longPath)
 	assert.True(t, result, "Long API path should still be recognized as API route")
 
