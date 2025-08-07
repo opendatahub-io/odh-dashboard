@@ -253,12 +253,16 @@ const FeatureViewDetailsView: React.FC<FeatureViewDetailsViewProps> = ({ feature
           >
             Interactive example
           </Title>
-          {featureView.featureDefinition && (
+          {featureView.featureDefinition && hasContent(featureView.featureDefinition) ? (
             <FeatureStoreCodeBlock
               lang={featureView.spec.mode}
               content={featureView.featureDefinition}
               id={featureView.spec.name}
             />
+          ) : (
+            <Content component="p" className={text.textColorDisabled}>
+              No interactive example
+            </Content>
           )}
         </FlexItem>
       </Flex>
