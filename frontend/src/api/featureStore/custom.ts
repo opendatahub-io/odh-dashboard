@@ -35,6 +35,7 @@ export const getFeatureViews =
     project?: string,
     entity?: string,
     featureService?: string,
+    feature?: string,
   ): Promise<FeatureViewsList> => {
     let endpoint = `/api/${FEATURE_STORE_API_VERSION}/feature_views`;
     const queryParams: string[] = [];
@@ -51,6 +52,10 @@ export const getFeatureViews =
 
     if (entity) {
       queryParams.push(`entity=${encodeURIComponent(entity)}`);
+    }
+
+    if (feature) {
+      queryParams.push(`feature=${encodeURIComponent(feature)}`);
     }
 
     if (queryParams.length > 0) {

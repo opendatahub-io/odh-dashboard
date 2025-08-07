@@ -1,11 +1,8 @@
 import * as React from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import {
   Alert,
-  Button,
   Content,
-  EmptyStateActions,
   Flex,
   FlexItem,
   Gallery,
@@ -42,8 +39,8 @@ import ManageNIMServingModal from '#~/pages/modelServing/screens/projects/NIMSer
 import { NamespaceApplicationCase } from '#~/pages/projects/types';
 import ModelServingPlatformSelectButton from '#~/pages/modelServing/screens/projects/ModelServingPlatformSelectButton';
 import ModelServingPlatformSelectErrorAlert from '#~/pages/modelServing/screens/ModelServingPlatformSelectErrorAlert';
-import { modelVersionRoute } from '#~/routes/modelRegistry/modelVersions';
 import useServingPlatformStatuses from '#~/pages/modelServing/useServingPlatformStatuses';
+import { NavigateBackToRegistryButton } from '#~/concepts/modelServing/NavigateBackToRegistryButton.tsx';
 import ManageServingRuntimeModal from './ServingRuntimeModal/ManageServingRuntimeModal';
 import ModelMeshServingRuntimeTable from './ModelMeshSection/ServingRuntimeTable';
 import ModelServingPlatformButtonAction from './ModelServingPlatformButtonAction';
@@ -55,14 +52,6 @@ const ModelServingPlatform: React.FC = () => {
   >(undefined);
 
   const [errorSelectingPlatform, setErrorSelectingPlatform] = React.useState<Error>();
-
-  const navigate = useNavigate();
-  const [queryParams] = useSearchParams();
-  const modelRegistryName = queryParams.get('modelRegistryName');
-  const registeredModelId = queryParams.get('registeredModelId');
-  const modelVersionId = queryParams.get('modelVersionId');
-  // deployingFromRegistry = User came from the Model Registry page because this project didn't have a serving platform selected
-  const deployingFromRegistry = !!(modelRegistryName && registeredModelId && modelVersionId);
 
   const servingPlatformStatuses = useServingPlatformStatuses();
   const kServeEnabled = servingPlatformStatuses.kServe.enabled;
@@ -162,22 +151,7 @@ const ModelServingPlatform: React.FC = () => {
             />
           }
           footerExtraChildren={
-            deployingFromRegistry &&
-            !isProjectModelMesh && ( // For modelmesh we don't want to offer this until there is a model server
-              <EmptyStateActions>
-                <Button
-                  variant="link"
-                  onClick={() =>
-                    navigate(
-                      modelVersionRoute(modelVersionId, registeredModelId, modelRegistryName),
-                    )
-                  }
-                  data-testid="deploy-from-registry"
-                >
-                  Deploy model from model registry
-                </Button>
-              </EmptyStateActions>
-            )
+            !isProjectModelMesh && <NavigateBackToRegistryButton isEmptyStateAction /> // For modelmesh we don't want to offer this until there is a model server
           }
         />
       );

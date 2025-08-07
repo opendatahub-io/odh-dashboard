@@ -9,7 +9,6 @@ import {
   MastheadBrand,
   PageToggleButton,
 } from '@patternfly/react-core';
-import { BarsIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router-dom';
 import { ODH_LOGO, ODH_LOGO_DARK, ODH_PRODUCT_NAME } from '#~/utilities/const';
 import { useUser } from '#~/redux/selectors';
@@ -40,9 +39,8 @@ const Header: React.FC<Props> = (props) => {
               id="page-nav-toggle"
               variant="plain"
               aria-label="Dashboard navigation"
-            >
-              <BarsIcon />
-            </PageToggleButton>
+              isHamburgerButton
+            />
           </MastheadToggle>
         )}
         <MastheadBrand>
