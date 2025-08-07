@@ -14,7 +14,6 @@ export const featureViewTableFilterKeyMapping: Record<string, string> = {
   Tags: 'spec.tags',
   Features: 'features',
   Owner: 'spec.owner',
-  'Store type': 'type',
 };
 
 const featureViewFilterUtils = createFeatureStoreFilterUtils<FeatureView, FeatureStoreRelationship>(
@@ -23,7 +22,50 @@ const featureViewFilterUtils = createFeatureStoreFilterUtils<FeatureView, Featur
   'spec.tags', // tagsPath - FeatureView has spec.tags
 );
 
-export const applyFeatureViewFilters = featureViewFilterUtils.applyFilters;
+const applyStoreTypeFilter = (featureViews: FeatureView[], filterString: string): FeatureView[] => {
+  if (!filterString) {
+    return featureViews;
+  }
+
+  const lowerFilterString = filterString.toLowerCase();
+
+  return featureViews.filter((featureView) => {
+    const { online, offline } = featureView.spec;
+
+    const filterConditions = {
+      online,
+      offline,
+      '-': !online && !offline,
+    };
+    return Object.entries(filterConditions).some(
+      ([term, condition]) => term.includes(lowerFilterString) && condition,
+    );
+  });
+};
+
+export const applyFeatureViewFilters = (
+  featureViews: FeatureView[],
+  relationships: Record<string, FeatureStoreRelationship[]>,
+  filterData: Record<string, string | { label: string; value: string } | undefined>,
+): FeatureView[] => {
+  const storeTypeFilter = filterData['Store type'];
+  const otherFilters = { ...filterData };
+  delete otherFilters['Store type'];
+
+  let filteredViews = featureViewFilterUtils.applyFilters(
+    featureViews,
+    relationships,
+    otherFilters,
+  );
+
+  if (storeTypeFilter) {
+    const filterString =
+      typeof storeTypeFilter === 'string' ? storeTypeFilter : storeTypeFilter.value;
+    filteredViews = applyStoreTypeFilter(filteredViews, filterString);
+  }
+
+  return filteredViews;
+};
 
 /**
  * Counts occurrences of specified types in relationships

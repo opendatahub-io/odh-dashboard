@@ -77,6 +77,137 @@ describe('Feature View Utils', () => {
       const result = applyFeatureViewFilters(mockFeatureViews, mockRelationships, filters);
       expect(result).toHaveLength(0);
     });
+
+    it('should filter by store type (online)', () => {
+      const mockFeatureViewsWithStoreType: FeatureView[] = [
+        {
+          type: 'featureView',
+          spec: {
+            name: 'online-feature-view',
+            online: true,
+            offline: false,
+          },
+          project: 'test-project',
+          relationships: {},
+          meta: {},
+        } as unknown as FeatureView,
+        {
+          type: 'featureView',
+          spec: {
+            name: 'offline-feature-view',
+            online: false,
+            offline: true,
+          },
+          project: 'test-project',
+          relationships: {},
+          meta: {},
+        } as unknown as FeatureView,
+        {
+          type: 'featureView',
+          spec: {
+            name: 'both-feature-view',
+            online: true,
+            offline: true,
+          },
+          project: 'test-project',
+          relationships: {},
+          meta: {},
+        } as unknown as FeatureView,
+        {
+          type: 'featureView',
+          spec: {
+            name: 'neither-feature-view',
+            online: false,
+            offline: false,
+          },
+          project: 'test-project',
+          relationships: {},
+          meta: {},
+        } as unknown as FeatureView,
+      ];
+
+      const filters = { 'Store type': 'online' };
+      const result = applyFeatureViewFilters(
+        mockFeatureViewsWithStoreType,
+        mockRelationships,
+        filters,
+      );
+      expect(result).toHaveLength(2); // online-feature-view and both-feature-view
+      expect(result.map((fv) => fv.spec.name)).toContain('online-feature-view');
+      expect(result.map((fv) => fv.spec.name)).toContain('both-feature-view');
+    });
+
+    it('should filter by store type (offline)', () => {
+      const mockFeatureViewsWithStoreType: FeatureView[] = [
+        {
+          type: 'featureView',
+          spec: {
+            name: 'online-feature-view',
+            online: true,
+            offline: false,
+          },
+          project: 'test-project',
+          relationships: {},
+          meta: {},
+        } as unknown as FeatureView,
+        {
+          type: 'featureView',
+          spec: {
+            name: 'offline-feature-view',
+            online: false,
+            offline: true,
+          },
+          project: 'test-project',
+          relationships: {},
+          meta: {},
+        } as unknown as FeatureView,
+      ];
+
+      const filters = { 'Store type': 'offline' };
+      const result = applyFeatureViewFilters(
+        mockFeatureViewsWithStoreType,
+        mockRelationships,
+        filters,
+      );
+      expect(result).toHaveLength(1);
+      expect(result[0].spec.name).toBe('offline-feature-view');
+    });
+
+    it('should filter by store type (dash for neither)', () => {
+      const mockFeatureViewsWithStoreType: FeatureView[] = [
+        {
+          type: 'featureView',
+          spec: {
+            name: 'online-feature-view',
+            online: true,
+            offline: false,
+          },
+          project: 'test-project',
+          relationships: {},
+          meta: {},
+        } as unknown as FeatureView,
+        {
+          type: 'featureView',
+          spec: {
+            name: 'neither-feature-view',
+            online: false,
+            offline: false,
+          },
+          project: 'test-project',
+          relationships: {},
+          meta: {},
+        } as unknown as FeatureView,
+      ];
+
+      const filters = { 'Store type': '-' };
+      const result = applyFeatureViewFilters(
+        mockFeatureViewsWithStoreType,
+        mockRelationships,
+        filters,
+      );
+      expect(result).toHaveLength(1);
+      expect(result[0].spec.name).toBe('neither-feature-view');
+    });
   });
 
   describe('countRelationshipTypes', () => {
