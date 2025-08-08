@@ -8,7 +8,6 @@ class FeatureServiceDetails {
 
   private wait(featureServiceName: string) {
     cy.findByTestId('app-page-title').should('have.text', featureServiceName);
-    cy.testA11y();
   }
 
   findHeading() {

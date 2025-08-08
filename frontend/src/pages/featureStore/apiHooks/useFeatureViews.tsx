@@ -33,6 +33,7 @@ const useFeatureViews = ({
     call,
     {
       featureViews: [],
+      relationships: {},
       pagination: {
         totalCount: 0,
         totalPages: 0,

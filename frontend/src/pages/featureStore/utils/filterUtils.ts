@@ -108,7 +108,7 @@ export class FeatureStoreFilterUtils<
    */
   private filterByFeatureViews = (
     item: T,
-    relationships: Record<string, R[]>,
+    relationships: Record<string, R[] | undefined>,
     filterString: string,
   ): boolean => {
     const itemKey = getNestedValue(item, this.namePath);
@@ -116,11 +116,39 @@ export class FeatureStoreFilterUtils<
       return false;
     }
 
-    const featureViews = getRelationshipsByTargetType(relationships, itemKey, 'featureView');
+    const itemRelationships = relationships[itemKey];
+    if (!itemRelationships) {
+      return false;
+    }
 
-    return featureViews.some((fv) =>
-      fv.target.name.toLowerCase().includes(filterString.toLowerCase()),
-    );
+    // Check both source and target for featureView relationships
+    return itemRelationships.some((rel) => {
+      // Check the feature view name (could be in source or target)
+      const featureViewName = rel.source.type === 'featureView' ? rel.source.name : rel.target.name;
+
+      return (
+        (rel.source.type === 'featureView' || rel.target.type === 'featureView') &&
+        featureViewName.toLowerCase().includes(filterString.toLowerCase())
+      );
+    });
+  };
+
+  /**
+   * Filter by features - searches through feature names in the features array
+   */
+  private filterByFeatures = (item: T, filterString: string): boolean => {
+    const features = getNestedValue(item, 'spec.features');
+    if (!Array.isArray(features)) {
+      return false;
+    }
+
+    return features.some((feature: Record<string, unknown>) => {
+      const featureName = feature.name;
+      return (
+        typeof featureName === 'string' &&
+        featureName.toLowerCase().includes(filterString.toLowerCase())
+      );
+    });
   };
 
   /**
@@ -139,7 +167,7 @@ export class FeatureStoreFilterUtils<
    */
   public applyFilters = (
     items: T[],
-    relationships: Record<string, R[]>,
+    relationships: Record<string, R[] | undefined>,
     filterData: Record<string, string | { label: string; value: string } | undefined>,
   ): T[] =>
     items.filter((item) =>
@@ -158,6 +186,10 @@ export class FeatureStoreFilterUtils<
         // Apply the appropriate filter based on property path
         if (propertyPath === 'featureViews') {
           return this.filterByFeatureViews(item, relationships, filterString);
+        }
+
+        if (propertyPath === 'features') {
+          return this.filterByFeatures(item, filterString);
         }
 
         if (propertyPath === this.tagsPath) {

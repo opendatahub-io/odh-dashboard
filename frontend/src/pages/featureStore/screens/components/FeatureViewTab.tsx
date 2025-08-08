@@ -69,9 +69,7 @@ const FeatureViewTab: React.FC<FeatureViewTabProps> = ({ fsObject, contextName }
     );
   }
 
-  return (
-    <FeatureViewsListView featureViews={featureViews.featureViews} fsProject={currentProject} />
-  );
+  return <FeatureViewsListView featureViews={featureViews} fsProject={currentProject} />;
 };
 
 export default FeatureViewTab;

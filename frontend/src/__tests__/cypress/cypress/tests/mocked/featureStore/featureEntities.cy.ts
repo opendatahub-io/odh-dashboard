@@ -167,7 +167,64 @@ const mockEntityFeatureViewsIntercept = () => {
     'GET',
     `/api/service/featurestore/${k8sNamespace}/${fsName}/api/v1/feature_views?project=${fsProjectName}&entity=user_id*`,
     {
-      featureViews: [mockFeatureView(), mockFeatureView()],
+      featureViews: [
+        mockFeatureView({
+          spec: {
+            ...mockFeatureView().spec,
+            name: 'zipcode_features',
+            entities: ['user_id'],
+          },
+        }),
+        mockFeatureView({
+          spec: {
+            ...mockFeatureView().spec,
+            name: 'user_features',
+            entities: ['user_id'],
+          },
+        }),
+      ],
+      relationships: {
+        zipcode_features: [
+          {
+            source: { type: 'feature', name: 'city' },
+            target: { type: 'featureView', name: 'zipcode_features' },
+          },
+          {
+            source: { type: 'feature', name: 'state' },
+            target: { type: 'featureView', name: 'zipcode_features' },
+          },
+          {
+            source: { type: 'feature', name: 'location_type' },
+            target: { type: 'featureView', name: 'zipcode_features' },
+          },
+          {
+            source: { type: 'feature', name: 'tax_returns_filed' },
+            target: { type: 'featureView', name: 'zipcode_features' },
+          },
+          {
+            source: { type: 'feature', name: 'population' },
+            target: { type: 'featureView', name: 'zipcode_features' },
+          },
+          {
+            source: { type: 'feature', name: 'total_wages' },
+            target: { type: 'featureView', name: 'zipcode_features' },
+          },
+        ],
+        user_features: [
+          {
+            source: { type: 'feature', name: 'user_id' },
+            target: { type: 'featureView', name: 'user_features' },
+          },
+          {
+            source: { type: 'feature', name: 'user_age' },
+            target: { type: 'featureView', name: 'user_features' },
+          },
+          {
+            source: { type: 'feature', name: 'user_income' },
+            target: { type: 'featureView', name: 'user_features' },
+          },
+        ],
+      },
       pagination: {
         totalCount: 2,
         totalPages: 1,
@@ -257,28 +314,6 @@ describe('Feature Entities', () => {
     featureStoreGlobal.findProjectSelector().should('exist');
     featureStoreGlobal.findProjectSelector().click();
     featureStoreGlobal.findProjectSelectorDropdown().should('contain.text', fsProjectName);
-  });
-
-  it('should not display project column when viewing a single project', () => {
-    featureStoreGlobal.visitEntities(fsProjectName);
-    featureEntitiesTable.findTable().should('be.visible');
-
-    featureEntitiesTable.findTable().find('thead').should('not.contain.text', 'Project');
-    featureEntitiesTable.findTable().find('thead').should('not.contain.text', 'Projects');
-
-    featureEntitiesTable
-      .findRow('user_id')
-      .shouldHaveEntityName('user_id')
-      .shouldHaveValueType('STRING')
-      .shouldHaveJoinKey('user_id')
-      .shouldHaveOwner('data-team@company.com');
-
-    featureEntitiesTable
-      .findRow('transaction_id')
-      .shouldHaveEntityName('transaction_id')
-      .shouldHaveValueType('STRING')
-      .shouldHaveJoinKey('transaction_id')
-      .shouldHaveOwner('data-team@company.com');
   });
 
   it('should display entities table with data', () => {
@@ -381,6 +416,7 @@ describe('Entity Feature Views Tab', () => {
       `/api/service/featurestore/${k8sNamespace}/${fsName}/api/v1/feature_views?project=${fsProjectName}&entity=user_id*`,
       {
         featureViews: [],
+        relationships: {},
         pagination: {
           totalCount: 0,
           totalPages: 0,

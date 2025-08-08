@@ -67,12 +67,13 @@ export const columns: SortableData<FeatureService>[] = [
   },
 ];
 
-export const featureServiceTableFilterOptions = (): Record<string, string> => ({
+export const featureServiceTableFilterOptions: Record<string, string> = {
   featureService: 'Feature service',
+  project: 'Project',
   tags: 'Tags',
   featureViews: 'Feature views',
   owner: 'Owner',
-});
+};
 
 export enum FeatureServiceDetailsTab {
   DETAILS = 'Details',

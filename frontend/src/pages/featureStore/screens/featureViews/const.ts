@@ -1,5 +1,15 @@
 import { SortableData } from '#~/components/table/types.ts';
 import { FeatureView } from '#~/pages/featureStore/types/featureView.ts';
+import { MaterializationInterval } from '#~/pages/featureStore/types/global';
+
+export const featureViewTableFilterOptions: Record<string, string> = {
+  'Feature view': 'Feature view',
+  Project: 'Project',
+  Tags: 'Tags',
+  Features: 'Features',
+  Owner: 'Owner',
+  'Store type': 'Store type',
+};
 
 export const columns: SortableData<FeatureView>[] = [
   {
@@ -7,6 +17,13 @@ export const columns: SortableData<FeatureView>[] = [
     label: 'Feature View',
     width: 25,
     sortable: (a: FeatureView, b: FeatureView): number => a.spec.name.localeCompare(b.spec.name),
+  },
+  {
+    field: 'project',
+    label: 'Project',
+    width: 25,
+    sortable: (a: FeatureView, b: FeatureView): number =>
+      a.project?.localeCompare(b.project ?? '') ?? 0,
   },
   {
     field: 'tags',
@@ -66,19 +83,77 @@ export const columns: SortableData<FeatureView>[] = [
   },
 ];
 
-export enum FeatureViewToolbarFilterOptions {
-  featureView = 'Feature view',
-  tags = 'Tags',
-}
-
-export const FeatureViewFilterOptions = {
-  [FeatureViewToolbarFilterOptions.featureView]: 'Feature view',
-  [FeatureViewToolbarFilterOptions.tags]: 'Tags',
-};
-
-export type FeatureViewFilterDataType = Record<FeatureViewToolbarFilterOptions, string | undefined>;
+export type FeatureViewFilterDataType = Record<string, string | undefined>;
 
 export const initialFeatureViewFilterData: FeatureViewFilterDataType = {
-  [FeatureViewToolbarFilterOptions.featureView]: '',
-  [FeatureViewToolbarFilterOptions.tags]: '',
+  'Feature view': '',
+  Tags: '',
 };
+
+export enum FeatureViewTab {
+  DETAILS = 'Details',
+  LINEAGE = 'Lineage',
+  FEATURES = 'Features',
+  CONSUMING_SERVICES = 'Consuming Feature Services',
+  MATERIALIZATION = 'Materialization',
+  TRANSFORMATIONS = 'Transformations',
+}
+
+// Schema table constants
+export const schemaColumns = [
+  {
+    field: 'column',
+    label: 'Column',
+    width: 25 as const,
+    sortable: true,
+  },
+  {
+    field: 'type',
+    label: 'Type',
+    width: 20 as const,
+    sortable: true,
+  },
+  {
+    field: 'dataType',
+    label: 'Data Type',
+    width: 25 as const,
+    sortable: true,
+  },
+  {
+    field: 'description',
+    label: 'Description',
+    width: 30 as const,
+    sortable: true,
+  },
+];
+
+export const schemaFilterOptions = {
+  column: 'Column',
+  type: 'Type',
+  dataType: 'Data Type',
+  description: 'Description',
+};
+
+// Materialization table constants
+export const materializationColumns: SortableData<MaterializationInterval>[] = [
+  {
+    field: 'interval',
+    label: 'Materialization Interval',
+    width: 40,
+    sortable: false,
+  },
+  {
+    field: 'created',
+    label: 'Created',
+    width: 30,
+    sortable: (a: MaterializationInterval, b: MaterializationInterval): number =>
+      new Date(a.startTime).getTime() - new Date(b.startTime).getTime(),
+  },
+  {
+    field: 'updated',
+    label: 'Updated',
+    width: 30,
+    sortable: (a: MaterializationInterval, b: MaterializationInterval): number =>
+      new Date(a.endTime).getTime() - new Date(b.endTime).getTime(),
+  },
+];
