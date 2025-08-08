@@ -28,7 +28,7 @@ const genericColumns: SortableData<Deployment>[] = [
     sortable: false,
   },
   {
-    label: 'Inference endpoint',
+    label: 'Inference endpoints',
     field: 'inferenceEndpoint',
     sortable: false,
   },
