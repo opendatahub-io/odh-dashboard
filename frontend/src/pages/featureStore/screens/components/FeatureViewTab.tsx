@@ -11,20 +11,23 @@ import { useFeatureStoreProject } from '#~/pages/featureStore/FeatureStoreContex
 import useFeatureViews from '#~/pages/featureStore/apiHooks/useFeatureViews';
 import FeatureViewsListView from '#~/pages/featureStore/screens/featureViews/FeatureViewsListView';
 
-type FeatureServiceFeatureViewTabProps = {
-  featureServiceName: string;
+type FeatureViewTabProps = {
+  fsObject: {
+    entity?: string;
+    feature?: string;
+    featureService?: string;
+  };
+  contextName: string;
 };
 
-const FeatureServiceFeatureViewTab: React.FC<FeatureServiceFeatureViewTabProps> = ({
-  featureServiceName,
-}) => {
+const FeatureViewTab: React.FC<FeatureViewTabProps> = ({ fsObject, contextName }) => {
   const { currentProject } = useFeatureStoreProject();
 
   const {
     data: featureViews,
     loaded: featureViewsLoaded,
     error: featureViewsLoadError,
-  } = useFeatureViews({ project: currentProject, featureService: featureServiceName });
+  } = useFeatureViews({ project: currentProject, ...fsObject });
 
   if (!featureViewsLoaded) {
     return (
@@ -44,7 +47,7 @@ const FeatureServiceFeatureViewTab: React.FC<FeatureServiceFeatureViewTabProps> 
         data-testid="error-state-title"
       >
         <EmptyStateBody data-testid="error-state-body">
-          Failed to load feature views for this feature service.
+          Failed to load feature views for this {contextName}.
         </EmptyStateBody>
       </EmptyState>
     );
@@ -60,7 +63,7 @@ const FeatureServiceFeatureViewTab: React.FC<FeatureServiceFeatureViewTabProps> 
         data-testid="empty-state-title"
       >
         <EmptyStateBody data-testid="empty-state-body">
-          No feature views are associated with this feature service.
+          No feature views are associated with this {contextName}.
         </EmptyStateBody>
       </EmptyState>
     );
@@ -71,4 +74,4 @@ const FeatureServiceFeatureViewTab: React.FC<FeatureServiceFeatureViewTabProps> 
   );
 };
 
-export default FeatureServiceFeatureViewTab;
+export default FeatureViewTab;

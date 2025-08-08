@@ -1,12 +1,11 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
 import {
-  Alert,
+  Bullseye,
   Drawer,
   DrawerContent,
   DrawerContentBody,
   Spinner,
-  Title,
 } from '@patternfly/react-core';
 import {
   Chatbot,
@@ -14,9 +13,6 @@ import {
   ChatbotDisplayMode,
   ChatbotFooter,
   ChatbotFootnote,
-  ChatbotHeader,
-  ChatbotHeaderMain,
-  ChatbotHeaderTitle,
   ChatbotWelcomePrompt,
   MessageBar,
   MessageBox,
@@ -30,16 +26,26 @@ import { ChatbotSettingsPanel } from './components/ChatbotSettingsPanel';
 import useChatbotMessages from './hooks/useChatbotMessages';
 import useSourceManagement from './hooks/useSourceManagement';
 import useAlertManagement from './hooks/useAlertManagement';
-import useSystemInstructions from './hooks/useSystemInstructions';
-import useAccordionState from './hooks/useAccordionState';
 import SourceUploadSuccessAlert from './components/alerts/SourceUploadSuccessAlert';
 import SourceUploadErrorAlert from './components/alerts/SourceUploadErrorAlert';
+import { DEFAULT_SYSTEM_INSTRUCTIONS } from './const';
+import ChatbotApplicationPage from './components/ChatbotApplicationPage';
 
 const ChatbotMain: React.FunctionComponent = () => {
-  const displayMode = ChatbotDisplayMode.fullscreen;
-  const { models, loading, error, fetchLlamaModels } = useFetchLlamaModels();
+  const displayMode = ChatbotDisplayMode.embedded;
+  const { models, loading, error } = useFetchLlamaModels();
   const [selectedModel, setSelectedModel] = React.useState<string>('');
+
   const modelId = selectedModel || models[0]?.identifier;
+  const [systemInstruction, setSystemInstruction] = React.useState<string>(
+    DEFAULT_SYSTEM_INSTRUCTIONS,
+  );
+
+  React.useEffect(() => {
+    if (!selectedModel) {
+      setSelectedModel(models[0]?.identifier);
+    }
+  }, [models, selectedModel]);
 
   // Custom hooks for managing different aspects of the chatbot
   const alertManagement = useAlertManagement();
@@ -47,11 +53,12 @@ const ChatbotMain: React.FunctionComponent = () => {
     onShowSuccessAlert: alertManagement.onShowSuccessAlert,
     onShowErrorAlert: alertManagement.onShowErrorAlert,
   });
-  const systemInstructions = useSystemInstructions();
-  const accordionState = useAccordionState();
+
   const chatbotMessages = useChatbotMessages({
     modelId,
     selectedSourceSettings: sourceManagement.selectedSourceSettings,
+    systemInstruction,
+    isRawUploaded: sourceManagement.isRawUploaded,
   });
 
   // Create alert components
@@ -71,44 +78,36 @@ const ChatbotMain: React.FunctionComponent = () => {
     />
   );
 
-  // Fetch models on component mount
-  React.useEffect(() => {
-    const fetchModels = async () => {
-      await fetchLlamaModels();
-    };
-
-    fetchModels();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   // Loading and error states
   if (loading) {
-    return <Spinner size="sm" />;
-  }
-
-  if (error) {
     return (
-      <Alert variant="warning" isInline title="Cannot fetch models">
-        {error}
-      </Alert>
+      <Bullseye>
+        <Spinner />
+      </Bullseye>
     );
   }
 
   // Settings panel content
   const settingsPanelContent = (
     <ChatbotSettingsPanel
-      accordionState={accordionState}
       models={models}
       selectedModel={selectedModel}
       onModelChange={setSelectedModel}
-      systemInstructions={systemInstructions}
       alerts={{ successAlert, errorAlert }}
       sourceManagement={sourceManagement}
+      systemInstruction={systemInstruction}
+      onSystemInstructionChange={setSystemInstruction}
     />
   );
 
   return (
-    <>
+    <ChatbotApplicationPage
+      title="AI playground"
+      loaded={!loading}
+      empty={false}
+      loadError={error}
+      headerContent={<></>}
+    >
       {sourceManagement.isSourceSettingsOpen && (
         <ChatbotSourceSettingsModal
           onToggle={() =>
@@ -119,19 +118,8 @@ const ChatbotMain: React.FunctionComponent = () => {
       )}
       <Drawer isExpanded isInline position="right">
         <DrawerContent panelContent={settingsPanelContent}>
-          <DrawerContentBody
-            style={{ overflowY: 'hidden', display: 'flex', flexDirection: 'column' }}
-          >
+          <DrawerContentBody>
             <Chatbot displayMode={displayMode} data-testid="chatbot">
-              <ChatbotHeader>
-                <ChatbotHeaderMain>
-                  <ChatbotHeaderTitle>
-                    <Title headingLevel="h1" size="lg">
-                      AI playground
-                    </Title>
-                  </ChatbotHeaderTitle>
-                </ChatbotHeaderMain>
-              </ChatbotHeader>
               <ChatbotContent>
                 <MessageBox position="bottom">
                   <ChatbotWelcomePrompt
@@ -161,7 +149,7 @@ const ChatbotMain: React.FunctionComponent = () => {
           </DrawerContentBody>
         </DrawerContent>
       </Drawer>
-    </>
+    </ChatbotApplicationPage>
   );
 };
 

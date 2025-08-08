@@ -24,12 +24,24 @@ describe('useChatbotMessages', () => {
 
   const mockSuccessResponse: QueryResponse = {
     chat_completion: {
+      metrics: [],
       completion_message: {
         role: 'assistant',
         content: 'This is a bot response',
         stop_reason: 'stop',
       },
     },
+    rag_response: {
+      content: [],
+      metadata: {
+        document_ids: [],
+        chunks: [],
+        scores: [],
+      },
+    },
+    has_rag_content: false,
+    used_vector_dbs: false,
+    assistant_message: 'This is a bot response',
   };
 
   beforeEach(() => {
@@ -44,6 +56,8 @@ describe('useChatbotMessages', () => {
         useChatbotMessages({
           modelId: mockModelId,
           selectedSourceSettings: mockSourceSettings,
+          systemInstruction: '',
+          isRawUploaded: true,
         }),
       );
 
@@ -67,6 +81,8 @@ describe('useChatbotMessages', () => {
         useChatbotMessages({
           modelId: mockModelId,
           selectedSourceSettings: mockSourceSettings,
+          systemInstruction: '',
+          isRawUploaded: true,
         }),
       );
 
@@ -99,6 +115,8 @@ describe('useChatbotMessages', () => {
         useChatbotMessages({
           modelId: mockModelId,
           selectedSourceSettings: mockSourceSettings,
+          systemInstruction: '',
+          isRawUploaded: true,
         }),
       );
 
@@ -120,6 +138,8 @@ describe('useChatbotMessages', () => {
         useChatbotMessages({
           modelId: mockModelId,
           selectedSourceSettings: mockSourceSettings,
+          systemInstruction: '',
+          isRawUploaded: true,
         }),
       );
 
@@ -142,6 +162,7 @@ describe('useChatbotMessages', () => {
           },
           max_tokens: 500,
         },
+        system_prompt: '',
       });
     });
   });
@@ -152,6 +173,8 @@ describe('useChatbotMessages', () => {
         useChatbotMessages({
           modelId: '',
           selectedSourceSettings: mockSourceSettings,
+          systemInstruction: '',
+          isRawUploaded: true,
         }),
       );
 
@@ -169,11 +192,15 @@ describe('useChatbotMessages', () => {
       expect(mockQuerySource).not.toHaveBeenCalled();
     });
 
-    it('should handle missing selectedSourceSettings', async () => {
+    it('should handle missing selectedSourceSettings by calling querySource without vector_db_ids', async () => {
+      mockQuerySource.mockResolvedValueOnce(mockSuccessResponse);
+
       const { result } = renderHook(() =>
         useChatbotMessages({
           modelId: mockModelId,
           selectedSourceSettings: null,
+          systemInstruction: '',
+          isRawUploaded: false,
         }),
       );
 
@@ -181,14 +208,29 @@ describe('useChatbotMessages', () => {
         await result.current.handleMessageSend('Test message');
       });
 
-      expect(result.current.messages).toHaveLength(3); // initial + user + error bot
+      expect(result.current.messages).toHaveLength(3); // initial + user + bot response
       expect(result.current.messages[2]).toMatchObject({
         role: 'bot',
-        content: 'Sorry, I encountered an error while processing your request. Please try again.',
+        content: 'This is a bot response',
         name: 'Bot',
       });
       expect(result.current.isMessageSendButtonDisabled).toBe(false);
-      expect(mockQuerySource).not.toHaveBeenCalled();
+      expect(mockQuerySource).toHaveBeenCalledWith({
+        content: 'Test message',
+        query_config: {
+          chunk_template: 'Result {index}\nContent: {chunk.content}\nMetadata: {metadata}\n',
+          max_chunks: 5,
+          max_tokens_in_context: 1000,
+        },
+        llm_model_id: 'test-model-id',
+        sampling_params: {
+          strategy: {
+            type: 'greedy',
+          },
+          max_tokens: 500,
+        },
+        system_prompt: '',
+      });
     });
 
     it('should handle API errors', async () => {
@@ -198,6 +240,8 @@ describe('useChatbotMessages', () => {
         useChatbotMessages({
           modelId: mockModelId,
           selectedSourceSettings: mockSourceSettings,
+          systemInstruction: '',
+          isRawUploaded: true,
         }),
       );
 
@@ -221,6 +265,8 @@ describe('useChatbotMessages', () => {
         useChatbotMessages({
           modelId: mockModelId,
           selectedSourceSettings: mockSourceSettings,
+          systemInstruction: '',
+          isRawUploaded: true,
         }),
       );
 
