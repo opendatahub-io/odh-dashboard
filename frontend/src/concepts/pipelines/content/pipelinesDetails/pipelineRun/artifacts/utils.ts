@@ -10,7 +10,7 @@ export const getArtifactProperties = (artifact: Artifact): ArtifactProperty[] =>
         acc: { name: string; value: string }[],
         [customPropKey, { stringValue, intValue, doubleValue, boolValue }],
       ) => {
-        if (customPropKey !== 'display_name') {
+        if (customPropKey !== 'display_name' && customPropKey !== 'store_session_info') {
           acc.push({
             name: customPropKey,
             value: stringValue || (intValue || doubleValue || boolValue).toString(),

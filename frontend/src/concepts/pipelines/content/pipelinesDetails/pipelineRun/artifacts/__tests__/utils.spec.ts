@@ -9,6 +9,9 @@ describe('getArtifactProperties', () => {
   mockArtifact.setId(1);
   mockArtifact.setName('artifact-1');
   mockArtifact.getCustomPropertiesMap().set('display_name', new Value());
+  mockArtifact
+    .getCustomPropertiesMap()
+    .set('store_session_info', new Value().setStringValue('some string'));
 
   it('returns empty array when no custom props exist other than display_name', () => {
     const result = getArtifactProperties(mockArtifact);
