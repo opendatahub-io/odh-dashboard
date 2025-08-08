@@ -7,7 +7,7 @@
       "#~/*": ["../../*"]
     }
   },
-  "include": ["cypress/**/*", "cypress.d.ts"],
+  "include": ["cypress/**/*", "cypress.d.ts", "cypress.config.ts"],
   "exclude": ["../../concepts/design/**/*"],
   "files": ["../../typings.d.ts"]
 }
