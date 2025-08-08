@@ -659,6 +659,7 @@ describe('Serving Runtime List', () => {
             name: 'ovms-testing',
             displayName: 'OVMS ONNX',
             activeModelState: 'FailedToLoad',
+            targetModelState: 'FailedToLoad',
             isModelMesh: true,
             lastFailureInfoMessage: 'Failed to pull model from storage due to error',
           }),
@@ -707,7 +708,7 @@ describe('Serving Runtime List', () => {
       inferenceServiceRow = modelServingSection.getInferenceServiceRow('Loaded model');
       inferenceServiceRow.findStatusLabel('Started');
       inferenceServiceRow.findStatusTooltip().should('be.visible');
-      inferenceServiceRow.findStatusTooltipValue('Model is deployed.');
+      inferenceServiceRow.findStatusTooltipValue('Model deployment is active.');
 
       // Check API protocol in row
       inferenceServiceRow.findAPIProtocol().should('have.text', 'REST');
@@ -751,10 +752,7 @@ describe('Serving Runtime List', () => {
         'Another Inference Service',
       );
       inferenceServiceRow.findExternalServiceButton().click();
-      inferenceServiceRow
-        .findExternalServicePopover()
-        .findByText('Internal (can only be accessed from inside the cluster)')
-        .should('exist');
+      inferenceServiceRow.findExternalServicePopover().findByText('Internal').should('exist');
       inferenceServiceRow
         .findExternalServicePopover()
         .findByText('grpc://modelmesh-serving.app:8033')
@@ -763,10 +761,7 @@ describe('Serving Runtime List', () => {
         .findExternalServicePopover()
         .findByText('http:///modelmesh-serving.app:8000')
         .should('exist');
-      inferenceServiceRow
-        .findExternalServicePopover()
-        .findByText('External (can be accessed from inside or outside the cluster)')
-        .should('exist');
+      inferenceServiceRow.findExternalServicePopover().findByText('External').should('exist');
       inferenceServiceRow
         .findExternalServicePopover()
         .findByText('https://another-inference-service-test-project.apps.user.com/infer')
@@ -841,10 +836,7 @@ describe('Serving Runtime List', () => {
         'Another Inference Service',
       );
       inferenceServiceRow.findInternalServiceButton().click();
-      inferenceServiceRow
-        .findInternalServicePopover()
-        .findByText('Internal (can only be accessed from inside the cluster)')
-        .should('exist');
+      inferenceServiceRow.findInternalServicePopover().findByText('Internal').should('exist');
       inferenceServiceRow
         .findInternalServicePopover()
         .findByText('grpc://modelmesh-serving.app:8033')
@@ -3699,11 +3691,6 @@ describe('Serving Runtime List', () => {
             },
             activeModelState: 'Loaded',
           }),
-          mockInferenceServiceK8sResource({
-            name: 'model-not-loaded',
-            displayName: 'Model not loaded',
-            isModelMesh: true,
-          }),
         ],
       });
 
@@ -3720,11 +3707,6 @@ describe('Serving Runtime List', () => {
       const loadedInferenceServiceRow = modelServingSection.getInferenceServiceRow('Loaded model');
       loadedInferenceServiceRow.findInternalServiceButton().click();
       loadedInferenceServiceRow.findInternalServicePopover().findByText('grpcUrl').should('exist');
-
-      // Get modal of inference service when is not loaded
-      const notLoadedInferenceServiceRow =
-        modelServingSection.getInferenceServiceRow('Model not loaded');
-      notLoadedInferenceServiceRow.find().should('contain.text', 'Pending...');
     });
 
     it('Check internal service is rendered when the model is loaded in Kserve', () => {
@@ -3754,13 +3736,6 @@ describe('Serving Runtime List', () => {
             kserveInternalLabel: true,
             activeModelState: 'Loaded',
           }),
-          mockInferenceServiceK8sResource({
-            name: 'model-not-loaded',
-            modelName: 'est-model-not-loaded',
-            displayName: 'Model Not loaded',
-            isModelMesh: false,
-            kserveInternalLabel: true,
-          }),
         ],
       });
 
@@ -3769,14 +3744,7 @@ describe('Serving Runtime List', () => {
       // Get modal of inference service when is loaded
       const kserveRowModelLoaded = modelServingSection.getKServeRow('Loaded model');
       kserveRowModelLoaded.findInternalServiceButton().click();
-      kserveRowModelLoaded
-        .findInternalServicePopover()
-        .findByText('Internal (can only be accessed from inside the cluster)')
-        .should('exist');
-
-      // Get modal of inference service when is not loaded
-      const kserveRowModelNotLoaded = modelServingSection.getKServeRow('Model Not loaded');
-      kserveRowModelNotLoaded.find().should('contain.text', 'Pending...');
+      kserveRowModelLoaded.findInternalServicePopover().findByText('Internal').should('exist');
     });
   });
   describe('Serving Runtime Template Selection', () => {

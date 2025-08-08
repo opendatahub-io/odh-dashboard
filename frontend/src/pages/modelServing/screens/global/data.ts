@@ -54,7 +54,7 @@ const buildProjectCol = (projects: ProjectKind[]): SortableData<InferenceService
 });
 const COL_ENDPOINT: SortableData<InferenceServiceKind> = {
   field: ColumnField.Endpoint,
-  label: 'Inference endpoint',
+  label: 'Inference endpoints',
   width: 45,
   sortable: false,
 };

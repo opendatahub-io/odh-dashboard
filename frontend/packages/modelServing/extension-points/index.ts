@@ -23,6 +23,7 @@ export type DeploymentStatus = {
 export type DeploymentEndpoint = {
   type: 'internal' | 'external';
   name?: string;
+  description?: string;
   url: string;
   error?: string;
 };
