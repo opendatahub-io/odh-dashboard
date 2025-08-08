@@ -15,7 +15,8 @@ import { byName, ProjectsContext } from '#~/concepts/projects/ProjectsContext';
 import { isProjectNIMSupported } from '#~/pages/modelServing/screens/projects/nimUtils';
 import ManageNIMServingModal from '#~/pages/modelServing/screens/projects/NIMServiceModal/ManageNIMServingModal';
 import useServingPlatformStatuses from '#~/pages/modelServing/useServingPlatformStatuses';
-import { useKueueConfiguration, KUEUE_MODEL_DEPLOYMENT_DISABLED_MESSAGE } from '#~/kueueUtils';
+import { useKueueConfiguration } from '#~/kueueUtils';
+import { KUEUE_MODEL_DEPLOYMENT_DISABLED_MESSAGE } from '#~/kueueConstants';
 
 const ServeModelButton: React.FC = () => {
   const [platformSelected, setPlatformSelected] = React.useState<
