@@ -60,7 +60,7 @@ const ProjectDetails: React.FC = () => {
 
   useCheckLogoutParams();
 
-  const { shouldShowKueueAlert } = useKueueConfiguration(currentProject);
+  const { isKueueDisabled } = useKueueConfiguration(currentProject);
 
   const [isKueueAlertDismissed, setIsKueueAlertDismissed] = React.useState(false);
 
@@ -93,7 +93,7 @@ const ProjectDetails: React.FC = () => {
       empty={false}
       headerAction={<ProjectActions project={currentProject} />}
     >
-      {shouldShowKueueAlert && !isKueueAlertDismissed && (
+      {isKueueDisabled && !isKueueAlertDismissed && (
         <Flex direction={{ default: 'column' }} className="pf-v6-u-px-lg">
           <Alert
             data-testid="kueue-disabled-alert-project-details"

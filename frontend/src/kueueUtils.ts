@@ -3,19 +3,10 @@ import { useIsAreaAvailable, SupportedArea } from '#~/concepts/areas';
 import { KnownLabels, ProjectKind } from '#~/k8sTypes';
 
 /**
- * Constants for Kueue-related messages
- */
-export const KUEUE_MODEL_DEPLOYMENT_DISABLED_MESSAGE =
-  'Model deployment requires Kueue. Contact your admin.';
-export const KUEUE_WORKBENCH_CREATION_DISABLED_MESSAGE =
-  'Workbench creation requires Kueue. Contact your admin.';
-
-/**
  * Custom hook to manage Kueue configuration state and determine various Kueue-related behaviors.
  *
  * Returns:
  * - isKueueDisabled: true when project has Kueue enabled but feature flag is disabled
- * - shouldShowKueueAlert: whether to show Kueue-related alerts
  * - isKueueFeatureEnabled: whether Kueue feature flag is enabled globally
  * - isProjectKueueEnabled: whether the project has Kueue enabled
  * - kueueFilteringState: enum indicating which hardware profiles should be shown
@@ -30,7 +21,6 @@ export const useKueueConfiguration = (
   project: ProjectKind | undefined,
 ): {
   isKueueDisabled: boolean;
-  shouldShowKueueAlert: boolean;
   isKueueFeatureEnabled: boolean;
   isProjectKueueEnabled: boolean;
   kueueFilteringState: KueueFilteringState;
@@ -64,11 +54,8 @@ export const useKueueConfiguration = (
 
   return {
     isKueueDisabled,
-    shouldShowKueueAlert: isKueueDisabled,
     isKueueFeatureEnabled,
     isProjectKueueEnabled,
     kueueFilteringState,
   };
 };
-
-export default useKueueConfiguration;
