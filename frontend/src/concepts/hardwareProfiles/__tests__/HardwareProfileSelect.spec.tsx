@@ -77,7 +77,6 @@ const renderComponent = (
   // Mock useKueueConfiguration to return the specified filtering state
   useKueueConfigurationMock.mockReturnValue({
     isKueueDisabled: false,
-    shouldShowKueueAlert: false,
     isKueueFeatureEnabled: true,
     isProjectKueueEnabled: false,
     kueueFilteringState,
