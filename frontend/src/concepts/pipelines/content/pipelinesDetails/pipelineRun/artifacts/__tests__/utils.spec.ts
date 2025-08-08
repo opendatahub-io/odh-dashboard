@@ -5,20 +5,25 @@ import {
 } from '#~/concepts/pipelines/content/pipelinesDetails/pipelineRun/artifacts/utils';
 
 describe('getArtifactProperties', () => {
-  const mockArtifact = new Artifact();
-  mockArtifact.setId(1);
-  mockArtifact.setName('artifact-1');
-  mockArtifact.getCustomPropertiesMap().set('display_name', new Value());
-  mockArtifact
-    .getCustomPropertiesMap()
-    .set('store_session_info', new Value().setStringValue('some string'));
+  const createMockArtifact = () => {
+    const mockArtifact = new Artifact();
+    mockArtifact.setId(1);
+    mockArtifact.setName('artifact-1');
+    mockArtifact.getCustomPropertiesMap().set('display_name', new Value());
+    mockArtifact
+      .getCustomPropertiesMap()
+      .set('store_session_info', new Value().setStringValue('some string'));
+    return mockArtifact;
+  };
 
   it('returns empty array when no custom props exist other than display_name', () => {
+    const mockArtifact = createMockArtifact();
     const result = getArtifactProperties(mockArtifact);
     expect(result).toEqual([]);
   });
 
   it('returns artifact properties when custom props exist other than display_name', () => {
+    const mockArtifact = createMockArtifact();
     mockArtifact
       .getCustomPropertiesMap()
       .set('metric-string', new Value().setStringValue('some string'));
@@ -33,6 +38,31 @@ describe('getArtifactProperties', () => {
       { name: 'metric-int', value: '10' },
       { name: 'metric-string', value: 'some string' },
     ]);
+  });
+
+  it('handles zero values correctly', () => {
+    const mockArtifact = createMockArtifact();
+    mockArtifact.getCustomPropertiesMap().set('metric-zero', new Value().setIntValue(0));
+    mockArtifact
+      .getCustomPropertiesMap()
+      .set('metric-zero-double', new Value().setDoubleValue(0.0));
+    mockArtifact.getCustomPropertiesMap().set('metric-false', new Value().setBoolValue(false));
+
+    const result = getArtifactProperties(mockArtifact);
+    expect(result).toHaveLength(3);
+    expect(result).toContainEqual({ name: 'metric-false', value: 'false' });
+    expect(result).toContainEqual({ name: 'metric-zero-double', value: '0' });
+    expect(result).toContainEqual({ name: 'metric-zero', value: '0' });
+  });
+
+  it('handles undefined values gracefully', () => {
+    const mockArtifact = createMockArtifact();
+    // Create a Value object without setting any specific value type
+    const emptyValue = new Value();
+    mockArtifact.getCustomPropertiesMap().set('metric-undefined', emptyValue);
+
+    const result = getArtifactProperties(mockArtifact);
+    expect(result).toEqual([{ name: 'metric-undefined', value: '' }]);
   });
 });
 
