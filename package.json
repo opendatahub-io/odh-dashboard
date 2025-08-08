@@ -50,7 +50,8 @@
     "test:fix-frontend": "cd ./frontend && npm run test:fix",
     "test:type-check": "run-p test:type-check:*",
     "test:type-check:backend": "cd ./backend && npm run test:type-check",
-    "test:type-check:frontend": "cd ./frontend && npm run test:type-check"
+    "test:type-check:frontend": "cd ./frontend && npm run test:type-check",
+    "commit:skip-lint-hook": "SKIP_LINT_HOOK=true git commit"
   },
   "dependencies": {
     "dotenv": "^16.4.7",

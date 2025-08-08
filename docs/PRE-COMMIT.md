@@ -259,13 +259,6 @@ git commit -m "Second commit"
 unset SKIP_LINT_HOOK  # Re-enable when done
 ```
 
-### Different behavior on Windows?
-
-The bash commands should work on Windows with Git Bash. If you encounter issues:
-
-- Ensure you're using Git Bash (not Command Prompt)
-- Verify Node.js and npm are in your PATH
-
 ## Technical details
 
 ### Why lint-staged?

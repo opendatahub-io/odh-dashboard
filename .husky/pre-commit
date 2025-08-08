@@ -1,5 +1,11 @@
 #!/usr/bin/env sh
 
+# Allow developers to skip the hook via environment variable
+if [ "$SKIP_LINT_HOOK" = "true" ]; then
+    echo "⏭️  Skipping lint checks (SKIP_LINT_HOOK=true)"
+    exit 0
+fi
+
 echo "🔍 Running lint-staged to check staged files..."
 
 # Run lint-staged and if it fails, show helpful instructions
@@ -19,8 +25,13 @@ if ! npx lint-staged; then
     echo "   git add ."
     echo "   git commit -m \"Your commit message\""
     echo ""
-    echo "⚠️  To bypass this check (not recommended):"
-    echo "   git commit --no-verify"
+    echo "⚠️  To bypass this check:"
+    echo "   One-time: npm run commit:skip-lint-hook -- -m \"Your message\""
+    echo "   One-time: SKIP_LINT_HOOK=true git commit -m \"Your message\""
+    echo "   One-time: git commit --no-verify -m \"Your message\""
+    echo ""
+    echo "⚠️  To disable for entire session:"
+    echo "   export SKIP_LINT_HOOK=true"
     echo ""
     exit 1
 fi
