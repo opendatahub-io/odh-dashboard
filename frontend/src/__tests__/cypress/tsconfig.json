@@ -3,8 +3,11 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "cypress/*": ["../../../node_modules/cypress/*"]
+      "cypress/*": ["../../../node_modules/cypress/*"],
+      "#~/*": ["../../*"]
     }
   },
-  "files": []
+  "include": ["cypress/**/*", "cypress.d.ts", "cypress.config.ts"],
+  "exclude": ["../../concepts/design/**/*"],
+  "files": ["../../typings.d.ts"]
 }

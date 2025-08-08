@@ -91,7 +91,30 @@ const initIntercept = () => {
         totalCount: 1,
         totalPages: 1,
       },
-      relationships: {},
+      relationships: {
+        [featureServiceName]: [
+          {
+            source: {
+              type: 'featureView',
+              name: 'credit_history',
+            },
+            target: {
+              type: 'featureService',
+              name: featureServiceName,
+            },
+          },
+          {
+            source: {
+              type: 'featureView',
+              name: 'person_demographics',
+            },
+            target: {
+              type: 'featureService',
+              name: featureServiceName,
+            },
+          },
+        ],
+      },
     },
   );
 
@@ -107,6 +130,38 @@ const initIntercept = () => {
     },
     mockFeatureService({
       name: featureServiceName,
+      relationships: [
+        {
+          source: {
+            type: 'featureView',
+            name: 'credit_history',
+          },
+          target: {
+            type: 'featureService',
+            name: featureServiceName,
+          },
+        },
+        {
+          source: {
+            type: 'featureView',
+            name: 'person_demographics',
+          },
+          target: {
+            type: 'featureService',
+            name: featureServiceName,
+          },
+        },
+        {
+          source: {
+            type: 'entity',
+            name: 'dob_ssn',
+          },
+          target: {
+            type: 'featureService',
+            name: featureServiceName,
+          },
+        },
+      ],
     }),
   );
 
@@ -117,6 +172,7 @@ const initIntercept = () => {
     },
     {
       featureViews: [mockFeatureView()],
+      relationships: {},
       pagination: {
         totalCount: 1,
         totalPages: 1,

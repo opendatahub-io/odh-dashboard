@@ -28,6 +28,9 @@ describe('useFeatureStoreEntityByName', () => {
       createdTimestamp: '',
       lastUpdatedTimestamp: '',
     },
+    project: '',
+    featureDefinition: '',
+    dataSources: [],
   };
 
   beforeEach(() => {

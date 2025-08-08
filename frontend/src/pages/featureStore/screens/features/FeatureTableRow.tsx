@@ -9,14 +9,9 @@ import { featureViewRoute } from '#~/pages/featureStore/routes';
 type FeatureTableRowType = {
   features: Features;
   fsProject?: string;
-  showAllProjects: boolean;
 };
 
-const FeatureTableRow: React.FC<FeatureTableRowType> = ({
-  features,
-  fsProject,
-  showAllProjects,
-}) => (
+const FeatureTableRow: React.FC<FeatureTableRowType> = ({ features, fsProject }) => (
   <Tr>
     <Td dataLabel="Feature">
       <TableRowTitleDescription
@@ -35,7 +30,7 @@ const FeatureTableRow: React.FC<FeatureTableRowType> = ({
         truncateDescriptionLines={2}
       />
     </Td>
-    {showAllProjects && <Td dataLabel="Project">{features.project ?? '-'}</Td>}
+    <Td dataLabel="Project">{features.project ?? '-'}</Td>
     <Td dataLabel="Value Type">{features.type ?? '-'}</Td>
     <Td dataLabel="Feature View">
       <Link to={featureViewRoute(features.featureView, fsProject ?? features.project ?? '')}>

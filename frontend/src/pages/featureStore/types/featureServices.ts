@@ -36,6 +36,7 @@ export type FeatureServicesList = {
 export type GetFeatureServices = (
   opts: K8sAPIOptions,
   project?: string,
+  featureView?: string,
 ) => Promise<FeatureServicesList>;
 
 export type GetFeatureServiceByName = (

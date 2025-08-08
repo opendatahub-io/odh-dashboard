@@ -1,18 +1,26 @@
 import * as React from 'react';
 import { Td, Tr } from '@patternfly/react-table';
-import { Timestamp, TimestampTooltipVariant } from '@patternfly/react-core';
+import { Button } from '@patternfly/react-core';
 import { Link } from 'react-router';
 import { CheckCircleIcon } from '@patternfly/react-icons';
 import { FeatureView } from '#~/pages/featureStore/types/featureView';
 import TableRowTitleDescription from '#~/components/table/TableRowTitleDescription.tsx';
 import FeatureStoreTags from '#~/pages/featureStore/components/FeatureStoreTags';
 import FeatureStoreLabels from '#~/pages/featureStore/components/FeatureStoreLabels';
-import { relativeTime } from '#~/utilities/time.ts';
 import { featureViewRoute } from '#~/pages/featureStore/routes';
+import { featureRoute } from '#~/pages/featureStore/FeatureStoreRoutes';
+import { useFeatureStoreProject } from '#~/pages/featureStore/FeatureStoreContext';
+import {
+  getRelationshipsByTargetType,
+  Relationship,
+} from '#~/pages/featureStore/screens/featureViews/utils';
+import FeatureStoreTimestamp from '#~/pages/featureStore/components/FeatureStoreTimestamp';
+import ScrollableLinksPopover from '#~/pages/featureStore/components/ScrollableLinksPopover';
 
 type FeatureViewTableRowType = {
   featureView: FeatureView;
   fsProject?: string;
+  relationships: Record<string, Relationship[]>;
 };
 
 const getFeatureViewType = (type: FeatureView['type']) => {
@@ -25,72 +33,100 @@ const getFeatureViewType = (type: FeatureView['type']) => {
   }
 };
 
-const FeatureViewTableRow: React.FC<FeatureViewTableRowType> = ({ featureView, fsProject }) => (
-  <Tr>
-    <Td dataLabel="Feature View">
-      <TableRowTitleDescription
-        title={
-          <Link
-            to={featureViewRoute(featureView.spec.name, fsProject ?? featureView.project ?? '')}
-          >
-            {featureView.spec.name}
-          </Link>
-        }
-        description={featureView.spec.description ?? ''}
-        truncateDescriptionLines={2}
-      />
+const FeatureViewTableRow: React.FC<FeatureViewTableRowType> = ({
+  featureView,
+  fsProject,
+  relationships,
+}) => {
+  const { currentProject } = useFeatureStoreProject();
+  const features = React.useMemo(() => {
+    const featureKey = featureView.spec.name;
+    return getRelationshipsByTargetType<Relationship>(
+      relationships,
+      featureKey,
+      'feature',
+      'source',
+    );
+  }, [relationships, featureView.spec.name]);
 
-      <FeatureStoreLabels color="blue" isCompact>
-        {getFeatureViewType(featureView.type)}
-      </FeatureStoreLabels>
-    </Td>
-    <Td dataLabel="Tags">
-      <FeatureStoreTags tags={featureView.spec.tags ?? {}} threshold={3} />
-    </Td>
-    <Td dataLabel="Features">{featureView.spec.features.length}</Td>
-    <Td dataLabel="Created">
-      {featureView.meta.createdTimestamp ? (
-        <Timestamp
+  const featureLinks = React.useMemo(() => {
+    const project = featureView.project || fsProject;
+
+    if (!project) {
+      return [];
+    }
+
+    return features.map((rel) => ({
+      name: rel.source.name,
+      to: featureRoute(rel.source.name, rel.target.name, project),
+      type: rel.source.type,
+    }));
+  }, [features, featureView.project, fsProject]);
+
+  const featuresTrigger = (
+    <Button variant="link" isInline>
+      {features.length} {features.length === 1 ? 'feature' : 'features'}
+    </Button>
+  );
+
+  return (
+    <Tr>
+      <Td dataLabel="Feature View">
+        <TableRowTitleDescription
+          title={
+            <Link
+              to={featureViewRoute(featureView.spec.name, fsProject ?? featureView.project ?? '')}
+            >
+              {featureView.spec.name}
+            </Link>
+          }
+          description={featureView.spec.description ?? ''}
+          truncateDescriptionLines={2}
+        />
+
+        <FeatureStoreLabels color="blue" isCompact>
+          {getFeatureViewType(featureView.type)}
+        </FeatureStoreLabels>
+      </Td>
+      <Td dataLabel="Project">{featureView.project ? featureView.project : currentProject}</Td>
+      <Td dataLabel="Tags">
+        <FeatureStoreTags tags={featureView.spec.tags ?? {}} threshold={3} />
+      </Td>
+      <Td dataLabel="Features">
+        <ScrollableLinksPopover
+          trigger={featuresTrigger}
+          links={featureLinks}
+          aria-label="Feature views popover"
+        />
+      </Td>
+      <Td dataLabel="Created">
+        <FeatureStoreTimestamp
           date={new Date(featureView.meta.createdTimestamp)}
-          tooltip={{
-            variant: TimestampTooltipVariant.default,
-          }}
-        >
-          {relativeTime(Date.now(), new Date(featureView.meta.createdTimestamp).getTime())}
-        </Timestamp>
-      ) : (
-        'Unknown'
-      )}
-    </Td>
-    <Td dataLabel="Updated">
-      {featureView.meta.lastUpdatedTimestamp ? (
-        <Timestamp
+          fallback="Unknown"
+        />
+      </Td>
+      <Td dataLabel="Updated">
+        <FeatureStoreTimestamp
           date={new Date(featureView.meta.lastUpdatedTimestamp)}
-          tooltip={{
-            variant: TimestampTooltipVariant.default,
-          }}
-        >
-          {relativeTime(Date.now(), new Date(featureView.meta.lastUpdatedTimestamp).getTime())}
-        </Timestamp>
-      ) : (
-        'Unknown'
-      )}
-    </Td>
-    <Td dataLabel="Owner">{featureView.spec.owner ?? '-'}</Td>
-    <Td dataLabel="Store type">
-      {featureView.spec.offline && (
-        <FeatureStoreLabels color="red" variant="outline" icon={<CheckCircleIcon />}>
-          Offline
-        </FeatureStoreLabels>
-      )}
-      {featureView.spec.online && (
-        <FeatureStoreLabels color="green" variant="outline" icon={<CheckCircleIcon />}>
-          Online
-        </FeatureStoreLabels>
-      )}
-      {!featureView.spec.offline && !featureView.spec.online && '-'}
-    </Td>
-  </Tr>
-);
+          fallback="Unknown"
+        />
+      </Td>
+      <Td dataLabel="Owner">{featureView.spec.owner ?? '-'}</Td>
+      <Td dataLabel="Store type">
+        {featureView.spec.offline && (
+          <FeatureStoreLabels color="red" variant="outline" icon={<CheckCircleIcon />}>
+            Offline
+          </FeatureStoreLabels>
+        )}
+        {featureView.spec.online && (
+          <FeatureStoreLabels color="green" variant="outline" icon={<CheckCircleIcon />}>
+            Online
+          </FeatureStoreLabels>
+        )}
+        {!featureView.spec.offline && !featureView.spec.online && '-'}
+      </Td>
+    </Tr>
+  );
+};
 
 export default FeatureViewTableRow;

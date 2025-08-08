@@ -1,11 +1,8 @@
 import React from 'react';
 import { Features } from '#~/pages/featureStore/types/features';
 import { FeatureStoreToolbar } from '#~/pages/featureStore/components/FeatureStoreToolbar';
-import {
-  FeatureFilterDataType,
-  getInitialFeatureFilterData,
-  getFeatureFilterOptions,
-} from './const';
+import { useFeatureStoreProject } from '#~/pages/featureStore/FeatureStoreContext';
+import { featureTableFilterOptions } from './const';
 import { applyFeatureFilters } from './utils';
 import FeaturesTable from './FeaturesTable';
 
@@ -18,36 +15,32 @@ const FeaturesList = ({
   features: unfilteredFeatures,
   fsProject,
 }: FeaturesListProps): React.ReactElement => {
-  // Show all projects when fsProject is empty/undefined
-  const showAllProjects = !fsProject;
-  const filterOptions = React.useMemo(
-    () => getFeatureFilterOptions(showAllProjects),
-    [showAllProjects],
-  );
+  const [filterData, setFilterData] = React.useState<
+    Record<string, string | { label: string; value: string } | undefined>
+  >({});
+  const { currentProject } = useFeatureStoreProject();
 
-  const [filterData, setFilterData] = React.useState<FeatureFilterDataType>(() =>
-    getInitialFeatureFilterData(showAllProjects),
-  );
-
-  // Update filter data when showAllProjects changes
-  React.useEffect(() => {
-    setFilterData(getInitialFeatureFilterData(showAllProjects));
-  }, [showAllProjects]);
-
-  const onClearFilters = React.useCallback(
-    () => setFilterData(getInitialFeatureFilterData(showAllProjects)),
-    [setFilterData, showAllProjects],
-  );
-
-  const filteredFeatures = React.useMemo(
-    () => applyFeatureFilters(unfilteredFeatures, filterData),
-    [unfilteredFeatures, filterData],
-  );
+  const processedFeatures = React.useMemo(() => {
+    if (currentProject) {
+      return unfilteredFeatures.map((feature) => ({
+        ...feature,
+        project: feature.project || currentProject,
+      }));
+    }
+    return unfilteredFeatures;
+  }, [unfilteredFeatures, currentProject]);
 
   const onFilterUpdate = React.useCallback(
     (key: string, value: string | { label: string; value: string } | undefined) =>
       setFilterData((prevValues) => ({ ...prevValues, [key]: value })),
     [setFilterData],
+  );
+
+  const onClearFilters = React.useCallback(() => setFilterData({}), [setFilterData]);
+
+  const filteredFeatures = React.useMemo(
+    () => applyFeatureFilters(processedFeatures, filterData, {}),
+    [processedFeatures, filterData],
   );
 
   return (
@@ -59,7 +52,7 @@ const FeaturesList = ({
         <FeatureStoreToolbar
           filterData={filterData}
           onFilterUpdate={onFilterUpdate}
-          filterOptions={filterOptions}
+          filterOptions={featureTableFilterOptions}
         />
       }
     />

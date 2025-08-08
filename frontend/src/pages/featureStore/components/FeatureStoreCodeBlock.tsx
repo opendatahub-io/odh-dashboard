@@ -11,6 +11,7 @@ type FeatureStoreCodeBlockProps = {
   content: string;
   testId?: string;
   className?: string;
+  lang?: string;
 };
 
 const FeatureStoreCodeBlock: React.FC<FeatureStoreCodeBlockProps> = ({
@@ -18,6 +19,7 @@ const FeatureStoreCodeBlock: React.FC<FeatureStoreCodeBlockProps> = ({
   content,
   testId,
   className,
+  lang = 'python',
 }) => {
   const [copied, setCopied] = React.useState(false);
 
@@ -32,6 +34,7 @@ const FeatureStoreCodeBlock: React.FC<FeatureStoreCodeBlockProps> = ({
 
   return (
     <CodeBlock
+      lang={lang}
       data-testid={testId}
       className={className}
       actions={

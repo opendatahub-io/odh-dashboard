@@ -3,7 +3,7 @@ import { Table } from '#~/components/table';
 import DashboardEmptyTableView from '#~/concepts/dashboard/DashboardEmptyTableView.tsx';
 import { useFeatureStoreProject } from '#~/pages/featureStore/FeatureStoreContext';
 import { Entity } from '#~/pages/featureStore/types/entities';
-import { AllProjectColumns, columns } from '#~/pages/featureStore/screens/entities/const';
+import { columns } from '#~/pages/featureStore/screens/entities/const';
 import { FeatureStoreRelationship } from '#~/pages/featureStore/types/global.ts';
 import FeatureStoreEntitiesTableRow from './FeatureStoreEntitiesTableRow';
 
@@ -21,7 +21,6 @@ const FeatureStoreEntitiesTable: React.FC<FeatureStoreEntitiesTableProps> = ({
   toolbarContent,
 }) => {
   const { currentProject } = useFeatureStoreProject();
-  const entityColumns = currentProject ? columns : AllProjectColumns;
 
   return (
     <Table
@@ -29,7 +28,7 @@ const FeatureStoreEntitiesTable: React.FC<FeatureStoreEntitiesTableProps> = ({
       id="feature-store-entities-table"
       enablePagination
       data={entities}
-      columns={entityColumns}
+      columns={columns}
       onClearFilters={onClearFilters}
       toolbarContent={toolbarContent}
       emptyTableView={<DashboardEmptyTableView onClearFilters={onClearFilters} />}

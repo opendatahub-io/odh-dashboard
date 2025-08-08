@@ -80,7 +80,43 @@ const initIntercept = () => {
       path: { namespace: k8sNamespace, serviceName: fsName, apiVersion: 'v1' },
     },
     {
-      featureViews: [mockFeatureView()],
+      featureViews: [
+        mockFeatureView({
+          spec: {
+            ...mockFeatureView().spec,
+            name: 'zipcode_features',
+            entities: ['user_id'],
+          },
+        }),
+      ],
+      relationships: {
+        zipcode_features: [
+          {
+            source: { type: 'feature', name: 'city' },
+            target: { type: 'featureView', name: 'zipcode_features' },
+          },
+          {
+            source: { type: 'feature', name: 'state' },
+            target: { type: 'featureView', name: 'zipcode_features' },
+          },
+          {
+            source: { type: 'feature', name: 'location_type' },
+            target: { type: 'featureView', name: 'zipcode_features' },
+          },
+          {
+            source: { type: 'feature', name: 'tax_returns_filed' },
+            target: { type: 'featureView', name: 'zipcode_features' },
+          },
+          {
+            source: { type: 'feature', name: 'population' },
+            target: { type: 'featureView', name: 'zipcode_features' },
+          },
+          {
+            source: { type: 'feature', name: 'total_wages' },
+            target: { type: 'featureView', name: 'zipcode_features' },
+          },
+        ],
+      },
       pagination: {
         totalCount: 1,
         totalPages: 1,
@@ -143,7 +179,7 @@ describe('Feature Views', () => {
     const toolbar = featureViewsTable.findToolbar();
 
     toolbar.findFilterMenuOption('filter-toolbar-dropdown', 'Tags').click();
-    toolbar.findSearchInput().type('team=risk');
+    toolbar.findSearchInput().type('pii');
     featureViewsTable.shouldHaveFeatureViewCount(1);
 
     toolbar.findSearchInput().clear().type('nonexistent=tag');
@@ -159,6 +195,7 @@ describe('Feature Views', () => {
       },
       {
         featureViews: [],
+        relationships: {},
         pagination: {
           totalCount: 0,
           totalPages: 0,
