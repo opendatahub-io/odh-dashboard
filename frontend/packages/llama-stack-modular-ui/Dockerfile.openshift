@@ -4,7 +4,7 @@ COPY ./frontend/ ./
 RUN npm cache clean --force && npm ci --omit=optional && npm run build
 
 # Backend build stage
-FROM registry.redhat.io/ubi9/go-toolset:1.23.6 AS bff-builder
+FROM registry.redhat.io/ubi9/go-toolset:1.24.4 AS bff-builder
 WORKDIR /usr/src/app
 COPY bff/go.mod bff/go.sum ./
 RUN go mod download
