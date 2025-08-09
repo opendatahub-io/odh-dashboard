@@ -79,7 +79,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	}
 
 	// Initialize OpenAPI handler
-	openAPIHandler, err := NewOpenAPIHandler(logger)
+	openAPIHandler, err := NewOpenAPIHandler(logger, cfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create OpenAPI handler: %w", err)
 	}
@@ -95,7 +95,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 }
 
 func (app *App) Routes() http.Handler {
-	// Router for /api/v1/*
+	// Router for /rag/api/v1/*
 	apiRouter := httprouter.New()
 
 	apiRouter.NotFound = http.HandlerFunc(app.notFoundResponse)
