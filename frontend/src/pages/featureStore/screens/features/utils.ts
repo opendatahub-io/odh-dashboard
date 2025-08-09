@@ -1,6 +1,13 @@
 import { Features, FeatureRelationship } from '#~/pages/featureStore/types/features';
 import { createFeatureStoreFilterUtils } from '#~/pages/featureStore/utils/filterUtils';
-import { featureTableFilterKeyMapping } from '#~/pages/featureStore/screens/features/const';
+
+export const featureTableFilterKeyMapping: Record<string, string> = {
+  feature: 'name',
+  project: 'project',
+  valueType: 'type',
+  featureView: 'featureView',
+  owner: 'owner',
+};
 
 const featureFilterUtils = createFeatureStoreFilterUtils<Features, FeatureRelationship>(
   featureTableFilterKeyMapping,

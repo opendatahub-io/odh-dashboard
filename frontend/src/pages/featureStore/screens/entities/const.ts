@@ -9,6 +9,11 @@ export const columns: SortableData<Entity>[] = [
     sortable: (a, b): number => a.spec.name.localeCompare(b.spec.name),
   },
   {
+    field: 'project',
+    label: 'Project',
+    sortable: (a, b): number => (a.project || '').localeCompare(b.project || ''),
+  },
+  {
     field: 'spec.tags',
     label: 'Tags',
     width: 40,
@@ -70,26 +75,15 @@ export const columns: SortableData<Entity>[] = [
   },
 ];
 
-export const AllProjectColumns: SortableData<Entity>[] = [
-  ...columns,
-  {
-    field: 'project',
-    label: 'Project',
-    sortable: (a, b): number => (a.project || '').localeCompare(b.project || ''),
-  },
-];
-
-export const entityTableFilterOptions = (
-  currentProject: string | undefined,
-): Record<string, string> => ({
+export const entityTableFilterOptions: Record<string, string> = {
   entity: 'Entities',
+  project: 'Project',
   tag: 'Tags',
   joinKey: 'Join key',
   valueType: 'Value type',
   featureViews: 'Feature views',
   owner: 'Owner',
-  ...(currentProject ? {} : { project: 'Project' }),
-});
+};
 
 export enum EntityDetailsTab {
   DETAILS = 'Details',

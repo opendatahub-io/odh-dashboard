@@ -83,6 +83,7 @@ const FeatureStoreEntitiesTableRow: React.FC<FeatureStoreEntitiesTableRowType> =
   return (
     <Tr>
       {renderTableCell('Entities', <EntityName entity={entity} currentProject={currentProject} />)}
+      {renderTableCell('Project', entity.project, 'project-name')}
       {renderTableCell(
         'Tags',
         <FeatureStoreTags tags={entity.spec.tags ?? {}} showAllTags={false} />,
@@ -112,7 +113,6 @@ const FeatureStoreEntitiesTableRow: React.FC<FeatureStoreEntitiesTableRowType> =
         'updated',
       )}
       {renderTableCell('Owner', entity.spec.owner ?? '-', 'owner')}
-      {entity.project && renderTableCell('Project', entity.project, 'project-name')}
     </Tr>
   );
 };

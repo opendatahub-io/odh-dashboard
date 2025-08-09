@@ -44,6 +44,9 @@ const useFeatureStoreEntityByName = (
         createdTimestamp: '',
         lastUpdatedTimestamp: '',
       },
+      project: '',
+      featureDefinition: '',
+      dataSources: [],
     },
     { initialPromisePurity: true },
   );

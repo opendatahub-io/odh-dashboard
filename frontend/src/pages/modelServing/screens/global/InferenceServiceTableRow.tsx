@@ -117,7 +117,7 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
         </Td>
       )}
 
-      <Td dataLabel="Inference endpoint">
+      <Td dataLabel="Inference endpoints">
         <InferenceServiceEndpoint
           inferenceService={inferenceService}
           servingRuntime={servingRuntime}
@@ -185,7 +185,7 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
                 onClick: () => {
                   onEditInferenceService(inferenceService);
                 },
-                isDisabled: !isNIMAvailable && isKServeNIMEnabled,
+                isDisabled: (!isNIMAvailable && isKServeNIMEnabled) || isStarting || isStopping,
               },
               { isSeparator: true },
               {
@@ -193,6 +193,7 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
                 onClick: () => {
                   onDeleteInferenceService(inferenceService);
                 },
+                isDisabled: isStarting || isStopping,
               },
             ]}
           />

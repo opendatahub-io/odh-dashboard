@@ -98,8 +98,8 @@ const extensions: (
     properties: {
       platform: KSERVE_ID,
       onDelete: () => import('./src/deployments').then((m) => m.deleteDeployment),
-      title: 'Delete deployed model?',
-      submitButtonLabel: 'Delete deployed model',
+      title: 'Delete model deployment?',
+      submitButtonLabel: 'Delete model deployment',
     },
   },
   {

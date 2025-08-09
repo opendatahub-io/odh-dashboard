@@ -1,5 +1,13 @@
 import React, { useState } from 'react';
-import { FormGroup, FormSection, Radio, TextInput } from '@patternfly/react-core';
+import {
+  FormGroup,
+  FormHelperText,
+  FormSection,
+  HelperText,
+  HelperTextItem,
+  Radio,
+  TextInput,
+} from '@patternfly/react-core';
 import FieldGroupHelpLabelIcon from '#~/components/FieldGroupHelpLabelIcon.tsx';
 
 type PVCContextFieldProps = {
@@ -103,6 +111,14 @@ const PVCContextField: React.FC<PVCContextFieldProps> = ({
                     }}
                     isRequired
                   />
+                  <FormHelperText>
+                    <HelperText>
+                      <HelperTextItem>
+                        Enter a path to your model or a folder containing your model. The path
+                        cannot point to a root folder.
+                      </HelperTextItem>
+                    </HelperText>
+                  </FormHelperText>
                 </FormGroup>
                 <FormGroup
                   label="Model name"

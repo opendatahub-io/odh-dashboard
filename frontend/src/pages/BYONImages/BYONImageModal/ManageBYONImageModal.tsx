@@ -2,18 +2,17 @@ import React from 'react';
 import {
   Form,
   FormGroup,
-  Tabs,
-  Tab,
-  TabTitleText,
-  Popover,
   Modal,
   ModalBody,
-  ModalHeader,
   ModalFooter,
+  ModalHeader,
+  Popover,
+  Tab,
+  Tabs,
+  TabTitleText,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
-import { importBYONImage, updateBYONImage } from '#~/services/imagesService';
-import { ResponseStatus, BYONImagePackage, BYONImage } from '#~/types';
+import { BYONImage, BYONImagePackage } from '#~/types';
 import { useAppSelector } from '#~/redux/hooks';
 import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
 import { filterBlankPackages } from '#~/pages/BYONImages/utils';
@@ -25,6 +24,9 @@ import K8sNameDescriptionField, {
 import { isK8sNameDescriptionDataValid } from '#~/concepts/k8s/K8sNameDescriptionField/utils';
 import { HardwareProfileIdentifierMultiselect } from '#~/pages/BYONImages/BYONImageModal/HardwareProfileIdentifierMultiselect';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { useDashboardNamespace } from '#~/redux/selectors';
+import { createBYONImageStream, updateBYONImageStream } from '#~/api/k8s/imageStreams.ts';
+import { ImageStreamKind } from '#~/k8sTypes.ts';
 import ImageLocationField from './ImageLocationField';
 import DisplayedContentTabContent from './DisplayedContentTabContent';
 
@@ -40,6 +42,7 @@ export enum DisplayedContentTab {
 
 const ManageBYONImageModal: React.FC<ManageBYONImageModalProps> = ({ existingImage, onClose }) => {
   const isHardwareProfileAvailable = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;
+  const { dashboardNamespace } = useDashboardNamespace();
   const [activeTabKey, setActiveTabKey] = React.useState<string | number>(
     DisplayedContentTab.SOFTWARE,
   );
@@ -75,39 +78,47 @@ const ManageBYONImageModal: React.FC<ManageBYONImageModalProps> = ({ existingIma
     }
   }, [existingImage]);
 
-  const handleResponse = (response: ResponseStatus) => {
-    setIsProgress(false);
-    if (response.success === false) {
-      setError(new Error(response.error));
-    } else {
-      onClose(true);
-    }
+  const handleResponse = (promise: Promise<ImageStreamKind>) => {
+    setIsProgress(true);
+    promise
+      .then(() => {
+        setIsProgress(false);
+        onClose(true);
+      })
+      .catch((e) => {
+        setIsProgress(false);
+        setError(new Error(e.message));
+      });
   };
 
   const submit = () => {
     setIsProgress(true);
     if (existingImage) {
-      updateBYONImage({
-        name: existingImage.name,
-        // eslint-disable-next-line camelcase
-        display_name: byonNameDesc.name,
-        description: byonNameDesc.description,
-        recommendedAcceleratorIdentifiers,
-        packages: filterBlankPackages(packages),
-        software: filterBlankPackages(software),
-      }).then(handleResponse);
+      handleResponse(
+        updateBYONImageStream(dashboardNamespace, {
+          name: existingImage.name,
+          // eslint-disable-next-line camelcase
+          display_name: byonNameDesc.name,
+          description: byonNameDesc.description,
+          recommendedAcceleratorIdentifiers,
+          packages: filterBlankPackages(packages),
+          software: filterBlankPackages(software),
+        }),
+      );
     } else {
-      importBYONImage({
-        // eslint-disable-next-line camelcase
-        display_name: byonNameDesc.name,
-        name: byonNameDesc.k8sName.value,
-        url: repository,
-        description: byonNameDesc.description,
-        recommendedAcceleratorIdentifiers,
-        provider: userName,
-        packages: filterBlankPackages(packages),
-        software: filterBlankPackages(software),
-      }).then(handleResponse);
+      handleResponse(
+        createBYONImageStream(dashboardNamespace, {
+          // eslint-disable-next-line camelcase
+          display_name: byonNameDesc.name,
+          name: byonNameDesc.k8sName.value,
+          url: repository,
+          description: byonNameDesc.description,
+          recommendedAcceleratorIdentifiers,
+          provider: userName,
+          packages: filterBlankPackages(packages),
+          software: filterBlankPackages(software),
+        }),
+      );
     }
   };
 
