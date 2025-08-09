@@ -1,6 +1,15 @@
 import * as React from 'react';
-import { FormGroup, Popover, Icon, Flex, FlexItem } from '@patternfly/react-core';
-import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
+import {
+  FormGroup,
+  Popover,
+  Icon,
+  Flex,
+  FlexItem,
+  FormHelperText,
+  HelperText,
+  HelperTextItem,
+} from '@patternfly/react-core';
+import { OutlinedQuestionCircleIcon, ExclamationTriangleIcon } from '@patternfly/react-icons';
 import NumberInputWrapper from '#~/components/NumberInputWrapper';
 import { normalizeBetween } from '#~/utilities/utils';
 
@@ -27,6 +36,7 @@ const ReplicaFormGroup: React.FC<ReplicaSectionProps> = ({
   onMaxChange,
 }) => {
   const maxLimit = showMinMax ? upperLimit : maxValue;
+  const maxLessThanMin = !showMinMax && maxValue < value;
 
   return (
     <FormGroup
@@ -87,16 +97,32 @@ const ReplicaFormGroup: React.FC<ReplicaSectionProps> = ({
               data-testid="max-replicas"
             >
               <NumberInputWrapper
-                min={value}
+                min={lowerLimit}
                 max={upperLimit}
                 value={maxValue}
+                validated={maxLessThanMin ? 'warning' : 'default'}
+                minusBtnProps={{ isDisabled: maxValue <= value }}
+                onBlur={() => {
+                  if (maxValue < value) {
+                    onMaxChange(value);
+                  }
+                }}
                 onChange={(val) => {
                   const newSize = val === undefined ? 0 : Number(val);
-                  if (!Number.isNaN(newSize) && newSize <= upperLimit && newSize >= value) {
-                    onMaxChange(normalizeBetween(newSize, value, upperLimit));
+                  if (!Number.isNaN(newSize) && newSize <= upperLimit) {
+                    onMaxChange(normalizeBetween(newSize, lowerLimit, upperLimit));
                   }
                 }}
               />
+              {maxLessThanMin && (
+                <FormHelperText>
+                  <HelperText>
+                    <HelperTextItem icon={<ExclamationTriangleIcon />} variant="warning">
+                      Maximum replicas must be greater than or equal to minimum replicas.
+                    </HelperTextItem>
+                  </HelperText>
+                </FormHelperText>
+              )}
             </FormGroup>
           </FlexItem>
         )}

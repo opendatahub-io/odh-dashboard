@@ -30,9 +30,6 @@ const KServeAutoscalerReplicaSection: React.FC<KServeAutoscalerReplicaSectionPro
     maxValue={data.maxReplicas}
     onMaxChange={(value) => {
       setData('maxReplicas', value);
-      if (value < data.minReplicas) {
-        setData('minReplicas', value);
-      }
     }}
   />
 );
