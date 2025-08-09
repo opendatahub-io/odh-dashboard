@@ -10,6 +10,7 @@ import {
 } from '#~/types';
 import { useIsAreaAvailable, SupportedArea } from '#~/concepts/areas';
 import { splitValueUnit, CPU_UNITS, MEMORY_UNITS_FOR_PARSING } from '#~/utilities/valueUnits';
+import { ProfileIdentifierType } from '#~/concepts/hardwareProfiles/types.ts';
 
 export const formatToleration = (toleration: Toleration): string => {
   const parts = [`Key = ${toleration.key}`];
@@ -174,3 +175,11 @@ export const getProfileScore = (profile: HardwareProfileKind): number => {
 
   return score;
 };
+
+export const hardwareProfileIdentifierHelpMessage = (
+  identifier: string,
+  type: ProfileIdentifierType,
+): string =>
+  type === ProfileIdentifierType.REQUEST
+    ? `The minimum amount of ${identifier} that will be reserved for this workload. The scheduler will only place the workload on nodes that can provide this amount.`
+    : `The maximum amount of ${identifier} that this workload is allowed to use. If exceeded, the workload may be terminated or throttled.`;
