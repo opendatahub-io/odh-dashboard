@@ -4,7 +4,7 @@ ARG BFF_SOURCE_CODE=./upstream/bff
 
 # Set the base images for the build stages
 ARG NODE_BASE_IMAGE=registry.access.redhat.com/ubi9/nodejs-20:latest
-ARG GOLANG_BASE_IMAGE=registry.access.redhat.com/ubi9/go-toolset:1.24
+ARG GOLANG_BASE_IMAGE=registry.access.redhat.com/ubi9/go-toolset:9.6-1754467841
 ARG DISTROLESS_BASE_IMAGE=registry.access.redhat.com/ubi9-minimal:latest
 
 # UI build stage
