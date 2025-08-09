@@ -12,7 +12,7 @@ export const fetchComponents = (installed: boolean): Promise<OdhApplication[]> =
     .get(url, options)
     .then((response) => response.data)
     .catch((e) => {
-      throw new Error(e.response.data.message);
+      throw new Error(e.response?.data?.message || e.message);
     });
 };
 
@@ -27,6 +27,6 @@ export const removeComponent = (appName: string): Promise<{ success: boolean; er
     .get(url, options)
     .then((response) => response.data)
     .catch((e) => {
-      throw new Error(e.response.data.error);
+      throw new Error(e.response?.data?.error || e.message);
     });
 };
