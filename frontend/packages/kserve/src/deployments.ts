@@ -19,10 +19,11 @@ export const isKServeDeployment = (deployment: Deployment): deployment is KServe
 
 export const useWatchDeployments = (
   project: ProjectKind,
+  labelSelectors?: { [key: string]: string },
   opts?: K8sAPIOptions,
 ): [KServeDeployment[] | undefined, boolean, Error | undefined] => {
   const [inferenceServices, inferenceServiceLoaded, inferenceServiceError] =
-    useWatchInferenceServices(project, opts);
+    useWatchInferenceServices(project, labelSelectors, opts);
   const [servingRuntimes, servingRuntimeLoaded, servingRuntimeError] = useWatchServingRuntimes(
     project,
     opts,

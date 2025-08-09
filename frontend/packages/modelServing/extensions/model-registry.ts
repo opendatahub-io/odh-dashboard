@@ -1,8 +1,16 @@
 // eslint-disable-next-line no-restricted-syntax
 import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
-import type { ModelRegistryDeployModalExtension } from '@mf/modelRegistry/extension-points';
+import type {
+  ModelRegistryDeployModalExtension,
+  ModelRegistryVersionDeploymentsContextExtension,
+  ModelRegistryVersionDetailsTabExtension,
+} from '@mf/modelRegistry/extension-points';
 
-const extensions: ModelRegistryDeployModalExtension[] = [
+const extensions: (
+  | ModelRegistryDeployModalExtension
+  | ModelRegistryVersionDetailsTabExtension
+  | ModelRegistryVersionDeploymentsContextExtension
+)[] = [
   {
     type: 'model-registry.model-version/deploy-modal',
     properties: {
@@ -12,6 +20,28 @@ const extensions: ModelRegistryDeployModalExtension[] = [
         import('../modelRegistry/DeployRegisteredVersionModal').then(
           (m) => m.DeployRegisteredVersionModal,
         ),
+    },
+    flags: {
+      required: [SupportedArea.MODEL_SERVING],
+    },
+  },
+  {
+    type: 'model-registry.version-details/tab',
+    properties: {
+      id: 'deployments',
+      title: 'Deployments',
+      component: () => import('../modelRegistry/DeploymentsTab').then((m) => m.default),
+    },
+    flags: {
+      required: [SupportedArea.MODEL_SERVING],
+    },
+  },
+  {
+    type: 'model-registry.model-version/deployments-context',
+    properties: {
+      useDeploymentsContext: () => import('../modelRegistry/useDeployments').then((m) => m.default),
+      DeploymentsProvider: () =>
+        import('../modelRegistry/DeploymentsContextProvider').then((m) => m.default),
     },
     flags: {
       required: [SupportedArea.MODEL_SERVING],
