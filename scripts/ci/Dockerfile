@@ -1,33 +1,40 @@
-FROM quay.io/fedora/fedora:40
+FROM quay.io/fedora/fedora:42
 
 ARG USER=cypress
 ARG USER_HOME=/home/$USER
-ARG NPM_CACHE=/opt/app-root/src/.npm-global
+ARG NPM_CACHE=$USER_HOME/.npm-cache
 ARG CYPRESS_CACHE=$USER_HOME/.cypress-cache
+ARG POETRY_CACHE=$USER_HOME/.poetry-cache
 ARG CHROME=https://dl.google.com/linux/direct/google-chrome-stable_current_x86_64.rpm
 ARG OCP_CLI=https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable/openshift-client-linux.tar.gz
-ARG NVM_INSTALLER=https://raw.githubusercontent.com/creationix/nvm/v0.39.7/install.sh
+ARG NVM_INSTALLER=https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.0/install.sh
 ARG NODE_VERSION=v20.18.0
+ARG OCM_CLI=https://github.com/openshift-online/ocm-cli/releases/download/v1.0.7/ocm-linux-amd64
 
 USER root
 
 # Add local user to avoid permissions issues during job execution
 RUN mkdir -p "$USER_HOME"
-RUN useradd -m -g root "$USER" -d "$USER_HOME" --uid 1000
+RUN useradd -m -g root "$USER" -d "$USER_HOME"
 RUN chgrp -R 0 "$USER_HOME"
-RUN chmod -R g=u "$USER_HOME"
+RUN chmod -R 775 "$USER_HOME"
 
-# Create global NPM cache directory
+# Create local NPM cache directory
 RUN mkdir -p "$NPM_CACHE"
-RUN chgrp -R 0 "$NPM_CACHE"
-RUN chmod -R 777 "$NPM_CACHE"
+RUN chown -R $USER:0 "$NPM_CACHE"
+RUN chmod -R 775 "$NPM_CACHE"
 
 # Create local Cypress cache directory
 RUN mkdir -p "$CYPRESS_CACHE"
-RUN chgrp -R 0 "$CYPRESS_CACHE"
-RUN chmod -R 777 "$CYPRESS_CACHE"
+RUN chown -R $USER:0 "$CYPRESS_CACHE"
+RUN chmod -R 775 "$CYPRESS_CACHE"
 
-# Install tools including Xvfb and Chrome
+# Create local Poetry cache directory
+RUN mkdir -p "$POETRY_CACHE"
+RUN chown -R $USER:0 "$POETRY_CACHE"
+RUN chmod -R 775 "$POETRY_CACHE"
+
+# Install tools including Xvfb, Chrome, and additional required packages
 RUN dnf update -y
 RUN dnf install --nodocs -y \
     wget \
@@ -36,10 +43,38 @@ RUN dnf install --nodocs -y \
     jq \
     git \
     xorg-x11-server-Xvfb \
+    krb5-workstation \
+    python3-pip \
+    python3.11 \
+    python3.11-devel \
+    yq \
+    python3-distro \
+    curl \
+    openssl \
+    chromedriver \
+    gcc \
+    gcc-c++ \
+    make \
+    libcap \
+    skopeo \
     "$CHROME"
 
 # Install OCP client
 RUN wget -qO- "$OCP_CLI" | tar zxv -C /usr/local/bin/ oc kubectl
+
+# Install OCM CLI
+RUN curl -Lo /usr/local/bin/ocm "$OCM_CLI" && \
+    chmod +x /usr/local/bin/ocm
+
+# Install droute tool (to send results to Report Portal)
+COPY --from=quay.io/dno/droute:latest /droute /usr/local/bin/droute
+RUN chmod +x /usr/local/bin/droute
+
+# Install ca-certificates and prepare for corporate certificates
+RUN dnf install -y ca-certificates
+
+# Install Python Poetry
+RUN pip3 install poetry
 
 # Clean system cache
 RUN dnf clean all
@@ -48,9 +83,9 @@ RUN rm -rf /var/cache/yum
 # Set capability to adjust OOM score for Node
 RUN echo CAP_SYS_NICE >> /etc/security/limits.conf
 
-# Copy NodeJS packages lists (json files) from "frontend" directory 
+# Copy NodeJS packages lists (json files)
 WORKDIR $USER_HOME
-COPY ./frontend/package*.json ./
+COPY ./package*.json ./
 RUN chown $USER:0 ./*
 
 # Switch to the user, export env variables, and prepare NVM directories
@@ -59,23 +94,32 @@ ENV USER $USER
 ENV HOME $USER_HOME
 ENV NVM_DIR $USER_HOME/nvm
 ENV NODE_PATH "$NVM_DIR/versions/node/$NODE_VERSION/lib/node_modules"
-ENV PATH "$NVM_DIR/versions/node/$NODE_VERSION/bin:/bin:$HOME/.local/bin:/root/.local/bin:$PATH"
+ENV PATH "$NVM_DIR/versions/node/$NODE_VERSION/bin:/bin:$HOME/.local/bin:/root/.local/bin:/usr/local/bin:$NPM_CACHE/bin:/usr/bin:$PATH"
 RUN mkdir -p $NVM_DIR
 
-# Install Node Version Manager, NodeJS and the packages for CI (package-lock.json) 
+# Install Node Version Manager, NodeJS and the packages for CI (package-lock.json)
 RUN curl -o- $NVM_INSTALLER | bash
 RUN /bin/bash -c "source $NVM_DIR/nvm.sh && \
     nvm install $NODE_VERSION && \
     nvm use --delete-prefix $NODE_VERSION && \
-    npm config set prefix '$NPM_CACHE' && \
-    echo 'export PATH=$PATH' >> '$USER_HOME/.profile' && \
-    source $USER_HOME/.profile && \
-    npm cache -g clean --force && \
+    echo 'export PATH=$PATH' >> '$USER_HOME/.bashrc' && \
+    source $USER_HOME/.bashrc && \
+    npm config set cache '$NPM_CACHE' && \
+    npm cache verify && \
     npm ci --cache=$NPM_CACHE"
 
-# Export NPM and Cypress Cache directories (to be accesible by rootless user)
+# Install Cypress and additional NodeJS packages globally
+RUN /bin/bash -c "source $NVM_DIR/nvm.sh && \
+    nvm use $NODE_VERSION && \
+    npm config set cache '$NPM_CACHE' && \
+    npm install --prefix=$NPM_CACHE -g \
+    cypress \
+    junit-report-merger"
+
+# Export environment variables for the Cache directories
 ENV NPM_CONFIG_CACHE $NPM_CACHE
 ENV CYPRESS_CACHE_FOLDER $CYPRESS_CACHE
+ENV POETRY_CACHE_DIR $POETRY_CACHE
 
 # Label the Image
 LABEL io.opendatahub.component="odh-cypress" \
