@@ -4,8 +4,8 @@ import { FEATURE_STORE_API_VERSION } from '#~/pages/featureStore/const';
 import { Entity, EntityList } from '#~/pages/featureStore/types/entities';
 import { Features, FeaturesList } from '#~/pages/featureStore/types/features.ts';
 import { ProjectList } from '#~/pages/featureStore/types/featureStoreProjects';
-import { FeatureViewsList } from '#~/pages/featureStore/types/featureView';
 import { FeatureService, FeatureServicesList } from '#~/pages/featureStore/types/featureServices';
+import { FeatureView, FeatureViewsList } from '#~/pages/featureStore/types/featureView';
 import { handleFeatureStoreFailures } from './errorUtils';
 
 export const listFeatureStoreProject =
@@ -62,6 +62,9 @@ export const getFeatureViews =
       endpoint += `?${queryParams.join('&')}`;
     }
 
+    endpoint +=
+      queryParams.length > 0 ? '&include_relationships=true' : '?include_relationships=true';
+
     return handleFeatureStoreFailures<FeatureViewsList>(proxyGET(hostPath, endpoint, opts));
   };
 
@@ -104,12 +107,15 @@ export const getFeatureByName =
 
 export const getFeatureServices =
   (hostPath: string) =>
-  (opts: K8sAPIOptions, project?: string): Promise<FeatureServicesList> => {
+  (opts: K8sAPIOptions, project?: string, featureView?: string): Promise<FeatureServicesList> => {
     let endpoint = `/api/${FEATURE_STORE_API_VERSION}/feature_services/all?include_relationships=true`;
     if (project) {
       endpoint = `/api/${FEATURE_STORE_API_VERSION}/feature_services?project=${encodeURIComponent(
         project,
       )}&include_relationships=true`;
+    }
+    if (featureView) {
+      endpoint += `&feature_view=${encodeURIComponent(featureView)}`;
     }
 
     return handleFeatureStoreFailures<FeatureServicesList>(proxyGET(hostPath, endpoint, opts));
@@ -127,3 +133,19 @@ export const getFeatureServiceByName =
         opts,
       ),
     );
+export const getFeatureViewByName =
+  (hostPath: string) =>
+  (opts: K8sAPIOptions, project?: string, featureViewName?: string): Promise<FeatureView> => {
+    if (!project) {
+      throw new Error('Project is required');
+    }
+    if (!featureViewName) {
+      throw new Error('Feature view name is required');
+    }
+
+    const endpoint = `/api/${FEATURE_STORE_API_VERSION}/feature_views/${encodeURIComponent(
+      featureViewName,
+    )}?project=${encodeURIComponent(project)}&include_relationships=true`;
+
+    return handleFeatureStoreFailures<FeatureView>(proxyGET(hostPath, endpoint, opts));
+  };

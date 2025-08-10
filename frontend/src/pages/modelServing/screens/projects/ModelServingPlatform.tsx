@@ -38,7 +38,7 @@ import { isProjectNIMSupported } from '#~/pages/modelServing/screens/projects/ni
 import ManageNIMServingModal from '#~/pages/modelServing/screens/projects/NIMServiceModal/ManageNIMServingModal';
 import { NamespaceApplicationCase } from '#~/pages/projects/types';
 import ModelServingPlatformSelectButton from '#~/pages/modelServing/screens/projects/ModelServingPlatformSelectButton';
-import ModelServingPlatformSelectErrorAlert from '#~/pages/modelServing/screens/ModelServingPlatformSelectErrorAlert';
+import ModelServingPlatformSelectErrorAlert from '#~/concepts/modelServing/Platforms/ModelServingPlatformSelectErrorAlert';
 import useServingPlatformStatuses from '#~/pages/modelServing/useServingPlatformStatuses';
 import { NavigateBackToRegistryButton } from '#~/concepts/modelServing/NavigateBackToRegistryButton.tsx';
 import ManageServingRuntimeModal from './ServingRuntimeModal/ManageServingRuntimeModal';

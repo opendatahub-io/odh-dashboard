@@ -59,15 +59,15 @@ const InferenceServiceEndpoint: React.FC<InferenceServiceEndpointProps> = ({
     />
   );
 
-  if (isFailed && !isStopped) {
-    return <>-</>;
+  if (isFailed || isStopped || isStopping) {
+    return <>Not available</>;
   }
 
-  if (isStarting || (isRouteEnabled && !loaded && !isStopped && !isStopping)) {
-    return <>Pending...</>;
+  if (isStarting || (isRouteEnabled && !loaded)) {
+    return <>Pending</>;
   }
 
-  if (isStopped || isRunning) {
+  if (isRunning) {
     return endpointDetails;
   }
 
@@ -97,7 +97,7 @@ const InferenceServiceEndpointContent: React.FC<{
         }
       >
         <Button data-testid="internal-service-button" isInline variant="link">
-          Internal endpoint details
+          Internal endpoint
         </Button>
       </Popover>
     );
@@ -130,10 +130,11 @@ const InferenceServiceEndpointContent: React.FC<{
         <DescriptionList>
           <DescriptionListGroup>
             <Divider />
-            <DescriptionListTerm>
-              External (can be accessed from inside or outside the cluster)
-            </DescriptionListTerm>
-            <DescriptionListDescription style={{ paddingLeft: 'var(--pf-t--global--spacer--md)' }}>
+            <DescriptionListTerm>External</DescriptionListTerm>
+            <DescriptionListDescription>
+              Accessible from inside or outside the cluster.
+            </DescriptionListDescription>
+            <DescriptionListDescription>
               {isStopped || isStopping ? (
                 <>Could not find any external service enabled</>
               ) : routeLink ? (
@@ -153,7 +154,7 @@ const InferenceServiceEndpointContent: React.FC<{
       }
     >
       <Button data-testid="internal-external-service-button" isInline variant="link">
-        Internal and external endpoint details
+        Internal and external endpoint
       </Button>
     </Popover>
   );

@@ -17,6 +17,7 @@ type ChatbotSourceUploadPanelProps = {
   selectedSource: File[];
   selectedSourceSettings: ChatbotSourceSettings | null;
   setSelectedSourceSettings: (settings: ChatbotSourceSettings | null) => void;
+  onTextExtracted?: (text: string) => void; // PatternFly handles the extraction
 };
 
 const ChatbotSourceUploadPanel: React.FC<ChatbotSourceUploadPanelProps> = ({
@@ -27,6 +28,7 @@ const ChatbotSourceUploadPanel: React.FC<ChatbotSourceUploadPanelProps> = ({
   selectedSourceSettings,
   removeUploadedSource,
   setSelectedSourceSettings,
+  onTextExtracted,
 }) => (
   <>
     <AlertGroup hasAnimations isToast isLiveRegion>
@@ -47,11 +49,11 @@ const ChatbotSourceUploadPanel: React.FC<ChatbotSourceUploadPanelProps> = ({
     >
       <MultipleFileUploadMain
         browseButtonText="Upload"
+        type="text"
         titleIcon={<FileIcon />}
         titleText="Drag and drop file here"
         titleTextSeparator="or"
-        infoText="Accepted file types: PDF"
-        // infoText="Accepted file types: PDF, DOC, CSV"
+        infoText="Accepted file types: PDF, DOC, CSV"
       />
       {selectedSourceSettings &&
         selectedSource.map((file) => (
@@ -61,6 +63,12 @@ const ChatbotSourceUploadPanel: React.FC<ChatbotSourceUploadPanelProps> = ({
             onClearClick={() => {
               removeUploadedSource(file.name);
               setSelectedSourceSettings(null);
+            }}
+            onReadSuccess={(data) => {
+              // PatternFly automatically extracts text content when type="text"
+              if (onTextExtracted) {
+                onTextExtracted(data);
+              }
             }}
             aria-label={`Uploaded file: ${file.name}`}
           />

@@ -1,7 +1,10 @@
 /* eslint-disable camelcase */
 import { FeatureService } from '#~/pages/featureStore/types/featureServices';
 
-export const mockFeatureService = ({ name }: { name: string }): FeatureService => ({
+export const mockFeatureService = ({
+  name,
+  ...partial
+}: { name: string } & Partial<FeatureService>): FeatureService => ({
   spec: {
     name,
     features: [
@@ -303,4 +306,5 @@ export const mockFeatureService = ({ name }: { name: string }): FeatureService =
     },
   ],
   featureDefinition: `from feast import FeatureService\n\nbasic_underwriting_v1 = FeatureService(\n    name=\\"basic_underwriting_v1\\",\n    features=[],\ntags={'team': 'underwriting', 'version': 'v1', 'use_case': 'basic_underwriting', 'complexity': 'simple'},description=\\"Basic underwriting feature set combining credit history and demographics",) `,
+  ...partial,
 });

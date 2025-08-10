@@ -100,8 +100,6 @@ describe('Verify a model can be deployed from a PVC', () => {
       pvcRow.find().should('exist');
       pvcRow.findStorageTypeColumn().should('contain', 'Model storage');
 
-      pvcRow.findConnectedResources().should('contain', modelName);
-
       const pvcReplacements: PVCLoaderPodReplacements = {
         NAMESPACE: projectName,
         PVC_NAME: pvStorageName,

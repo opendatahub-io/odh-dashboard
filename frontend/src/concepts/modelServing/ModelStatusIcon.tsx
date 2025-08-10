@@ -41,7 +41,7 @@ export const ModelStatusIcon: React.FC<ModelStatusIconProps> = ({
         label: 'Stopped',
         color: 'grey',
         icon: <OffIcon />,
-        message: 'Offline and not using resources. Restart to use model.',
+        message: 'Offline and not using resources. To use the model, restart it.',
       };
     }
 
@@ -50,6 +50,7 @@ export const ModelStatusIcon: React.FC<ModelStatusIconProps> = ({
         label: 'Stopping',
         color: 'grey',
         icon: <SyncAltIcon className="odh-u-spin" />,
+        message: 'Model deployment is stopping.',
       };
     }
     // Show 'Starting' for optimistic updates or for loading/pending states from the backend.
@@ -62,6 +63,7 @@ export const ModelStatusIcon: React.FC<ModelStatusIconProps> = ({
         label: 'Starting',
         color: 'blue',
         icon: <InProgressIcon className="odh-u-spin" />,
+        message: 'Model deployment is starting.',
       };
     }
 
@@ -73,7 +75,7 @@ export const ModelStatusIcon: React.FC<ModelStatusIconProps> = ({
           label: 'Started',
           status: 'success',
           icon: <PlayIcon />,
-          message: 'Model is deployed.',
+          message: 'Model deployment is active.',
         };
       case InferenceServiceModelState.FAILED_TO_LOAD:
         return {

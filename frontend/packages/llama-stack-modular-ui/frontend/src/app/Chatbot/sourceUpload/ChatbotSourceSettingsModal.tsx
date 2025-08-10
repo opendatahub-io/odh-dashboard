@@ -7,6 +7,7 @@ import {
   Form,
   FormGroup,
   FormGroupLabelHelp,
+  FormSection,
   MenuToggle,
   MenuToggleElement,
   Modal,
@@ -145,11 +146,12 @@ const ChatbotSourceSettingsModal: React.FC<ChatbotSourceSettingsModalProps> = ({
         {vectorDBs.length !== 0 ? (
           <>
             <ModalBody>
-              <Form id="source-settings-form">
-                <FormGroup fieldId="source-settings-form-vectorDB">
-                  <Title headingLevel="h5" style={{ marginBottom: '1.25rem' }}>
-                    Vector Database
-                  </Title>
+              <Form id="source-settings-form" isWidthLimited>
+                <FormGroup
+                  label="Vector Database"
+                  fieldId="source-settings-form-vectorDB"
+                  isRequired
+                >
                   <Dropdown
                     isOpen={isVectorDBDropdownOpen}
                     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
@@ -175,10 +177,11 @@ const ChatbotSourceSettingsModal: React.FC<ChatbotSourceSettingsModalProps> = ({
                     </DropdownList>
                   </Dropdown>
                 </FormGroup>
-                <FormGroup fieldId="source-settings-form-embeddingModel">
-                  <Title headingLevel="h5" style={{ marginBottom: '1.25rem' }}>
-                    Embedding model
-                  </Title>
+                <FormGroup
+                  label="Embedding model"
+                  fieldId="source-settings-form-embeddingModel"
+                  isRequired
+                >
                   <Dropdown
                     isOpen={isEmbeddingModelDropdownOpen}
                     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
@@ -204,57 +207,62 @@ const ChatbotSourceSettingsModal: React.FC<ChatbotSourceSettingsModalProps> = ({
                     </DropdownList>
                   </Dropdown>
                 </FormGroup>
-                <Title headingLevel="h5">Chunk settings</Title>
-                <FormGroup label="Delimiter" fieldId="source-settings-form-delimiter">
-                  <TextInput
-                    type="text"
-                    id="source-settings-form-delimiter"
-                    name="delimiter"
-                    value={fields.delimiter}
-                    onChange={handleInputChange}
-                  />
-                </FormGroup>
-                <FormGroup
-                  label="Maximum chunk length"
-                  labelHelp={
-                    <Popover
-                      triggerRef={maxChunkLengthLabelHelpRef}
-                      headerContent={<div>Maximum chunk length</div>}
-                      bodyContent={
-                        <div>The maximum length of a chunk of text to be used for embedding.</div>
-                      }
-                    >
-                      <FormGroupLabelHelp
-                        ref={maxChunkLengthLabelHelpRef}
-                        aria-label="More info for maximum chunk length"
+                <FormGroup>
+                  <FormSection title="Chunk settings">
+                    <FormGroup label="Delimiter" fieldId="source-settings-form-delimiter">
+                      <TextInput
+                        type="text"
+                        id="source-settings-form-delimiter"
+                        name="delimiter"
+                        value={fields.delimiter}
+                        onChange={handleInputChange}
                       />
-                    </Popover>
-                  }
-                  isRequired
-                  fieldId="source-settings-form-maxChunkLength"
-                >
-                  <TextInput
-                    isRequired
-                    type="text"
-                    id="source-settings-form-maxChunkLength"
-                    name="maxChunkLength"
-                    value={fields.maxChunkLength}
-                    onChange={handleInputChange}
-                  />
-                </FormGroup>
-                <FormGroup
-                  label="Chunk overlap"
-                  isRequired
-                  fieldId="source-settings-form-chunkOverlap"
-                >
-                  <TextInput
-                    type="text"
-                    id="source-settings-form-chunkOverlap"
-                    name="chunkOverlap"
-                    isRequired
-                    value={fields.chunkOverlap}
-                    onChange={handleInputChange}
-                  />
+                    </FormGroup>
+                    <FormGroup
+                      label="Maximum chunk length"
+                      labelHelp={
+                        <Popover
+                          triggerRef={maxChunkLengthLabelHelpRef}
+                          headerContent={<div>Maximum chunk length</div>}
+                          bodyContent={
+                            <div>
+                              The maximum length of a chunk of text to be used for embedding.
+                            </div>
+                          }
+                        >
+                          <FormGroupLabelHelp
+                            ref={maxChunkLengthLabelHelpRef}
+                            aria-label="More info for maximum chunk length"
+                          />
+                        </Popover>
+                      }
+                      isRequired
+                      fieldId="source-settings-form-maxChunkLength"
+                    >
+                      <TextInput
+                        isRequired
+                        type="text"
+                        id="source-settings-form-maxChunkLength"
+                        name="maxChunkLength"
+                        value={fields.maxChunkLength}
+                        onChange={handleInputChange}
+                      />
+                    </FormGroup>
+                    <FormGroup
+                      label="Chunk overlap"
+                      isRequired
+                      fieldId="source-settings-form-chunkOverlap"
+                    >
+                      <TextInput
+                        type="text"
+                        id="source-settings-form-chunkOverlap"
+                        name="chunkOverlap"
+                        isRequired
+                        value={fields.chunkOverlap}
+                        onChange={handleInputChange}
+                      />
+                    </FormGroup>
+                  </FormSection>
                 </FormGroup>
               </Form>
             </ModalBody>

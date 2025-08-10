@@ -1,7 +1,6 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
 import { DropEvent } from '@patternfly/react-core';
-import { extractTextFromFile } from '~/app/utilities/extractPdfText';
 import { uploadSource } from '~/app/services/llamaStackService';
 import { ChatbotSourceSettings } from '~/app/types';
 
@@ -10,7 +9,10 @@ export interface UseSourceManagementReturn {
   selectedSourceSettings: ChatbotSourceSettings | null;
   isSourceSettingsOpen: boolean;
   extractedText: string;
+  isRawUploaded: boolean;
+  setIsRawUploaded: (isRawUploaded: boolean) => void;
   handleSourceDrop: (event: DropEvent, source: File[]) => Promise<void>;
+  handleTextExtracted: (text: string, file: File) => void;
   removeUploadedSource: () => void;
   handleSourceSettingsSubmit: (settings: ChatbotSourceSettings | null) => Promise<void>;
   setIsSourceSettingsOpen: (open: boolean) => void;
@@ -27,8 +29,10 @@ const useSourceManagement = ({
   onShowErrorAlert,
 }: UseSourceManagementProps): UseSourceManagementReturn => {
   const [selectedSource, setSelectedSource] = React.useState<File[]>([]);
+
   const [selectedSourceSettings, setSelectedSourceSettings] =
     React.useState<ChatbotSourceSettings | null>(null);
+  const [isRawUploaded, setIsRawUploaded] = React.useState(false);
   const [isSourceSettingsOpen, setIsSourceSettingsOpen] = React.useState(false);
   const [extractedText, setExtractedText] = React.useState<string>('');
 
@@ -41,16 +45,13 @@ const useSourceManagement = ({
 
   const handleSourceDrop = React.useCallback(async (event: DropEvent, source: File[]) => {
     setSelectedSource(source);
+    // Note: Text extraction is handled by PatternFly's FileUpload component
+    // with type="text" - the text content will be provided via onReadSuccess callback
+  }, []);
 
-    if (source.length > 0) {
-      try {
-        const textFromFile = await extractTextFromFile(source[0]);
-        setExtractedText(textFromFile);
-      } catch {
-        setExtractedText('');
-        setSelectedSource([]);
-      }
-    }
+  const handleTextExtracted = React.useCallback((text: string) => {
+    // This is called automatically by PatternFly when file text is extracted
+    setExtractedText(text);
   }, []);
 
   const removeUploadedSource = React.useCallback(() => {
@@ -99,8 +100,11 @@ const useSourceManagement = ({
     selectedSource,
     selectedSourceSettings,
     isSourceSettingsOpen,
+    isRawUploaded,
+    setIsRawUploaded,
     extractedText,
     handleSourceDrop,
+    handleTextExtracted,
     removeUploadedSource,
     handleSourceSettingsSubmit,
     setIsSourceSettingsOpen,

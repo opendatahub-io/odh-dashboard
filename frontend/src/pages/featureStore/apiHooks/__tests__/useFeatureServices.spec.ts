@@ -65,6 +65,7 @@ describe('useFeatureServices', () => {
     expect(mockGetFeatureServices).toHaveBeenCalledWith(
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
       undefined,
+      undefined,
     );
   });
 
@@ -97,6 +98,41 @@ describe('useFeatureServices', () => {
     expect(mockGetFeatureServices).toHaveBeenCalledWith(
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
       projectName,
+      undefined,
+    );
+  });
+
+  it('should return successful feature services list with project and featureView parameters', async () => {
+    const projectName = 'test-project';
+    const featureViewName = 'test-feature-view';
+
+    useFeatureStoreAPIMock.mockReturnValue({
+      api: {
+        getFeatureServices: mockGetFeatureServices,
+      },
+      apiAvailable: true,
+    } as unknown as ReturnType<typeof useFeatureStoreAPI>);
+
+    mockGetFeatureServices.mockResolvedValue(mockFeatureServicesList);
+
+    const renderResult = testHook(useFeatureServices)(projectName, featureViewName);
+
+    expect(renderResult.result.current.data).toEqual(defaultFeatureServicesList);
+    expect(renderResult.result.current.loaded).toBe(false);
+    expect(renderResult.result.current.error).toBeUndefined();
+    expect(renderResult).hookToHaveUpdateCount(1);
+
+    await renderResult.waitForNextUpdate();
+
+    expect(renderResult.result.current.data).toEqual(mockFeatureServicesList);
+    expect(renderResult.result.current.loaded).toBe(true);
+    expect(renderResult.result.current.error).toBeUndefined();
+    expect(renderResult).hookToHaveUpdateCount(2);
+    expect(mockGetFeatureServices).toHaveBeenCalledTimes(1);
+    expect(mockGetFeatureServices).toHaveBeenCalledWith(
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+      projectName,
+      featureViewName,
     );
   });
 
@@ -197,6 +233,7 @@ describe('useFeatureServices', () => {
     expect(mockGetFeatureServices).toHaveBeenLastCalledWith(
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
       'project-1',
+      undefined,
     );
 
     renderResult.rerender('project-2');
@@ -206,6 +243,39 @@ describe('useFeatureServices', () => {
     expect(mockGetFeatureServices).toHaveBeenLastCalledWith(
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
       'project-2',
+      undefined,
+    );
+  });
+
+  it('should refetch when featureView parameter changes', async () => {
+    useFeatureStoreAPIMock.mockReturnValue({
+      api: {
+        getFeatureServices: mockGetFeatureServices,
+      },
+      apiAvailable: true,
+    } as unknown as ReturnType<typeof useFeatureStoreAPI>);
+
+    mockGetFeatureServices.mockResolvedValue(mockFeatureServicesList);
+
+    const renderResult = testHook(useFeatureServices)('project-1', 'feature-view-1');
+
+    await renderResult.waitForNextUpdate();
+    expect(renderResult).hookToHaveUpdateCount(2);
+    expect(mockGetFeatureServices).toHaveBeenCalledTimes(1);
+    expect(mockGetFeatureServices).toHaveBeenLastCalledWith(
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+      'project-1',
+      'feature-view-1',
+    );
+
+    renderResult.rerender('project-1', 'feature-view-2');
+
+    await renderResult.waitForNextUpdate();
+    expect(mockGetFeatureServices).toHaveBeenCalledTimes(2);
+    expect(mockGetFeatureServices).toHaveBeenLastCalledWith(
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+      'project-1',
+      'feature-view-2',
     );
   });
 

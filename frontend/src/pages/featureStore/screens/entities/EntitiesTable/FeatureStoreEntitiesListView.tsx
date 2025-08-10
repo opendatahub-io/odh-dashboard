@@ -1,9 +1,9 @@
 import React from 'react';
 import { EntityList } from '#~/pages/featureStore/types/entities';
-import { useFeatureStoreProject } from '#~/pages/featureStore/FeatureStoreContext';
 import { FeatureStoreToolbar } from '#~/pages/featureStore/components/FeatureStoreToolbar';
 import { applyEntityFilters } from '#~/pages/featureStore/screens/entities/utils';
 import { entityTableFilterOptions } from '#~/pages/featureStore/screens/entities/const';
+import { useFeatureStoreProject } from '#~/pages/featureStore/FeatureStoreContext.tsx';
 import FeatureStoreEntitiesTable from './FeatureStoreEntitiesTable';
 
 const FeatureStoreEntitiesListView = ({
@@ -11,11 +11,19 @@ const FeatureStoreEntitiesListView = ({
 }: {
   entities: EntityList;
 }): React.ReactElement => {
-  const { currentProject } = useFeatureStoreProject();
-
   const [filterData, setFilterData] = React.useState<
     Record<string, string | { label: string; value: string } | undefined>
   >({});
+  const { currentProject } = useFeatureStoreProject();
+  const processedEntities = React.useMemo(() => {
+    if (currentProject) {
+      return entities.entities.map((entity) => ({
+        ...entity,
+        project: entity.project || currentProject,
+      }));
+    }
+    return entities.entities;
+  }, [entities.entities, currentProject]);
 
   const onFilterUpdate = React.useCallback(
     (key: string, value: string | { label: string; value: string } | undefined) =>
@@ -26,8 +34,8 @@ const FeatureStoreEntitiesListView = ({
   const onClearFilters = React.useCallback(() => setFilterData({}), [setFilterData]);
 
   const filteredEntities = React.useMemo(
-    () => applyEntityFilters(entities.entities, entities.relationships, filterData),
-    [entities.entities, entities.relationships, filterData],
+    () => applyEntityFilters(processedEntities, entities.relationships, filterData),
+    [processedEntities, entities.relationships, filterData],
   );
 
   return (
@@ -37,7 +45,7 @@ const FeatureStoreEntitiesListView = ({
       onClearFilters={onClearFilters}
       toolbarContent={
         <FeatureStoreToolbar
-          filterOptions={entityTableFilterOptions(currentProject)}
+          filterOptions={entityTableFilterOptions}
           filterData={filterData}
           onFilterUpdate={onFilterUpdate}
         />

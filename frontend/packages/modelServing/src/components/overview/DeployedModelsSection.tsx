@@ -95,7 +95,10 @@ const DeployedModelCard: React.FC<{ deployment: Deployment }> = ({ deployment })
           </Content>
         </CardBody>
         <CardFooter>
-          <DeploymentStatus deployment={deployment} />
+          <DeploymentStatus
+            deployment={deployment}
+            stoppedStates={deployment.status?.stoppedStates}
+          />
         </CardFooter>
       </TypeBorderedCard>
     </GalleryItem>

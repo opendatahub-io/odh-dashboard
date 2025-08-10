@@ -51,7 +51,7 @@ const FeatureViews = (): React.ReactElement => {
       }
       provideChildrenPadding
     >
-      <FeatureViewsListView featureViews={featureViews.featureViews} fsProject={currentProject} />
+      <FeatureViewsListView featureViews={featureViews} fsProject={currentProject} />
     </ApplicationsPage>
   );
 };

@@ -185,7 +185,11 @@ describe('ManagePipelineServerModal', () => {
 
     // Alert should be visible when caching is disabled
     expect(screen.getByText('Caching is disabled')).toBeInTheDocument();
-    expect(screen.getByText('All pipelines will be prevented from caching.')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Disabling this option will turn off caching for all pipelines and tasks on this server. This overrides any cache configuration at the pipeline or task level.',
+      ),
+    ).toBeInTheDocument();
   });
 
   it('should toggle caching checkbox and show/hide alert accordingly', () => {
@@ -216,8 +220,11 @@ describe('ManagePipelineServerModal', () => {
     // Now unchecked, alert should appear
     expect(cachingCheckbox).not.toBeChecked();
     expect(screen.getByText('Caching is disabled')).toBeInTheDocument();
-    expect(screen.getByText('All pipelines will be prevented from caching.')).toBeInTheDocument();
-
+    expect(
+      screen.getByText(
+        'Disabling this option will turn off caching for all pipelines and tasks on this server. This overrides any cache configuration at the pipeline or task level.',
+      ),
+    ).toBeInTheDocument();
     // Check the checkbox again
     fireEvent.click(cachingCheckbox);
 
