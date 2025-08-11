@@ -1,7 +1,12 @@
 import React from 'react';
 import type { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
+import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
 import { getProjectServingPlatform, ModelServingPlatform } from './useProjectServingPlatform';
-import { Deployment, type ModelServingPlatformWatchDeployments } from '../../extension-points';
+import {
+  Deployment,
+  isModelServingPlatformWatchDeployments,
+  type ModelServingPlatformWatchDeployments,
+} from '../../extension-points';
 
 type ModelDeploymentsContextType = {
   deployments?: Deployment[];
@@ -50,16 +55,18 @@ const ProjectDeploymentWatcher: React.FC<ProjectDeploymentWatcherProps> = ({
 type ModelDeploymentsProviderProps = {
   projects: ProjectKind[];
   modelServingPlatforms: ModelServingPlatform[];
-  deploymentWatchers: ModelServingPlatformWatchDeployments[];
   children: React.ReactNode;
 };
 
 export const ModelDeploymentsProvider: React.FC<ModelDeploymentsProviderProps> = ({
   projects,
   modelServingPlatforms,
-  deploymentWatchers,
   children,
 }) => {
+  const [deploymentWatchers, deploymentWatchersLoaded] = useResolvedExtensions(
+    isModelServingPlatformWatchDeployments,
+  );
+
   const [projectDeployments, setProjectDeployments] = React.useState<{
     [key: string]: { deployments?: Deployment[]; loaded: boolean; error?: Error };
   }>({});
@@ -95,7 +102,8 @@ export const ModelDeploymentsProvider: React.FC<ModelDeploymentsProviderProps> =
       }
     }
 
-    const allLoaded = Object.values(projectDeployments).every((state) => state.loaded);
+    const allLoaded =
+      deploymentWatchersLoaded && Object.values(projectDeployments).every((state) => state.loaded);
 
     return {
       deployments: allLoaded ? allDeployments : undefined,
@@ -103,14 +111,14 @@ export const ModelDeploymentsProvider: React.FC<ModelDeploymentsProviderProps> =
       errors,
       projects,
     };
-  }, [projects, projectDeployments]);
+  }, [projects, projectDeployments, deploymentWatchersLoaded]);
 
   return (
     <ModelDeploymentsContext.Provider value={contextValue}>
       {
         // the only way to dynamically call hooks (useWatchDeployments) is to render them in dynamic components
         projects.map((project) => {
-          const platform = getProjectServingPlatform(project, modelServingPlatforms);
+          const platform = getProjectServingPlatform(project, modelServingPlatforms, true);
           const watcher = deploymentWatchers.find(
             (w) => w.properties.platform === platform?.properties.id,
           );

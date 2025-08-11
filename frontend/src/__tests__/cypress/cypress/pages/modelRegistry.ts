@@ -64,7 +64,7 @@ class ModelRegistry {
   }
 
   navigate() {
-    appChrome.findNavItem('Model registry').click();
+    appChrome.findNavItem('Model registry', 'Models').click();
     this.wait();
   }
 
@@ -176,16 +176,32 @@ class ModelRegistry {
     return cy.findByTestId('model-registry-selector-dropdown');
   }
 
+  findSelectModelRegistry(registryName: string) {
+    // Check if the registry is already selected
+    this.findModelRegistry().then(($dropdown) => {
+      if (!$dropdown.text().includes(registryName)) {
+        // Registry is not selected, perform click actions
+        this.findModelRegistry().click();
+        cy.findByTestId(registryName).click();
+      }
+    });
+    return this;
+  }
+
   findModelVersionsTableHeaderButton(name: string) {
     return this.findModelVersionsTable().find('thead').findByRole('button', { name });
   }
 
   findTableSearch() {
-    return cy.findByTestId('registered-model-table-search');
+    return cy.findByTestId('filter-toolbar-text-field');
+  }
+
+  findFilterDropdownItem(name: string) {
+    return cy.findByTestId(`filter-toolbar-dropdown`).findDropdownItem(name);
   }
 
   findModelVersionsTableSearch() {
-    return cy.findByTestId('model-versions-table-search');
+    return cy.findByTestId('model-versions-table-toolbar');
   }
 
   findModelBreadcrumbItem() {
@@ -200,12 +216,40 @@ class ModelRegistry {
     return cy.findByTestId('model-version-action-toggle');
   }
 
-  findModelVersionsTableFilter() {
-    return cy.findByTestId('model-versions-table-filter');
+  findModelVersionsTableFilterOption(name: string) {
+    return cy.findByTestId('filter-toolbar-dropdown').findDropdownItem(name);
   }
 
-  findRegisterModelButton() {
-    return cy.findByRole('button', { name: 'Register model' });
+  findRegisterModelButton(timeout?: number) {
+    return cy.findByTestId('register-model-button', { timeout });
+  }
+
+  findEmptyRegisterModelButton(timeout?: number) {
+    return cy.findByTestId('empty-model-registry-primary-action', { timeout });
+  }
+
+  getRegisterModelButtonSelector() {
+    return '[data-testid="register-model-button"]';
+  }
+
+  getEmptyRegisterModelButtonSelector() {
+    return '[data-testid="empty-model-registry-primary-action"]';
+  }
+
+  findEmptyModelRegistrySecondaryButton(timeout?: number) {
+    return cy.findByTestId('empty-model-registry-secondary-action', { timeout });
+  }
+
+  findModelVersionsTab() {
+    return cy.findByTestId('model-versions-tab');
+  }
+
+  findRegisterNewVersionButton() {
+    return cy.findByRole('button', { name: 'Register new version' });
+  }
+
+  findDeploymentsTab() {
+    return cy.findByTestId('deployments-tab');
   }
 
   // Empty state selectors for admin users

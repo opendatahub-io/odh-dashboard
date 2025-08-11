@@ -77,6 +77,7 @@ const initIntercepts = ({
     }),
     mockRegisteredModel({
       name: 'Label modal',
+      owner: 'Author 2',
       description:
         'A machine learning model trained to detect fraudulent transactions in financial data',
       customProperties: {
@@ -409,10 +410,26 @@ describe('Model Registry core', () => {
       modelRegistry.findRegisteredModelTableHeaderButton('Last modified').should(be.sortDescending);
     });
 
-    it('Filter by keyword', () => {
+    it('Filter by keyword then both', () => {
       modelRegistry.findTableSearch().type('Fraud detection model');
       modelRegistry.findTableRows().should('have.length', 1);
+      modelRegistry.findFilterDropdownItem('Owner').click();
+      modelRegistry.findTableSearch().type('Author 1');
+      modelRegistry.findTableRows().should('have.length', 1);
       modelRegistry.findTableRows().contains('Fraud detection model');
+      modelRegistry.findTableSearch().type('2');
+      modelRegistry.findTableRows().should('have.length', 0);
+    });
+
+    it('Filter by owner then both', () => {
+      modelRegistry.findFilterDropdownItem('Owner').click();
+      modelRegistry.findTableSearch().type('Author 2');
+      modelRegistry.findTableRows().should('have.length', 1);
+      modelRegistry.findFilterDropdownItem('Keyword').click();
+      modelRegistry.findTableSearch().type('Label modal');
+      modelRegistry.findTableRows().should('have.length', 1);
+      modelRegistry.findTableSearch().type('.');
+      modelRegistry.findTableRows().should('have.length', 0);
     });
   });
 });
@@ -421,7 +438,7 @@ describe('Register Model button', () => {
   it('Navigates to register page from empty state', () => {
     initIntercepts({ disableModelRegistryFeature: false, registeredModels: [] });
     modelRegistry.visit();
-    modelRegistry.findRegisterModelButton().click();
+    modelRegistry.findEmptyRegisterModelButton().click();
     cy.findByTestId('app-page-title').should('exist');
     cy.findByTestId('app-page-title').contains('Register model');
     cy.findByText('Model registry - modelregistry-sample').should('exist');

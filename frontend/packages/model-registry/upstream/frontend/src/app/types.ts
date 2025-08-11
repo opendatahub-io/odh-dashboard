@@ -1,4 +1,5 @@
 import { APIOptions } from 'mod-arch-shared';
+import { ModelSourceProperties } from '~/concepts/modelRegistry/types';
 
 export enum ModelState {
   LIVE = 'LIVE',
@@ -20,6 +21,26 @@ export type ModelRegistry = {
   displayName: string;
   description: string;
   serverAddress?: string;
+};
+
+export type ModelRegistryPayload = {
+  modelRegistry: {
+    metadata: {
+      name: string;
+      annotations: {
+        'openshift.io/display-name': string;
+        'openshift.io/description': string;
+      };
+    };
+    spec: {
+      mysql: {
+        host: string;
+        port: number;
+        username: string;
+        database: string;
+      };
+    };
+  };
 };
 
 export enum ModelRegistryMetadataType {
@@ -83,17 +104,18 @@ export type ModelRegistryBase = {
   customProperties: ModelRegistryCustomProperties;
 };
 
-export type ModelArtifact = ModelRegistryBase & {
-  uri?: string;
-  state?: ModelArtifactState;
-  author?: string;
-  modelFormatName?: string;
-  storageKey?: string;
-  storagePath?: string;
-  modelFormatVersion?: string;
-  serviceAccountName?: string;
-  artifactType: string;
-};
+export type ModelArtifact = ModelRegistryBase &
+  ModelSourceProperties & {
+    uri?: string;
+    state?: ModelArtifactState;
+    author?: string;
+    modelFormatName?: string;
+    storageKey?: string;
+    storagePath?: string;
+    modelFormatVersion?: string;
+    serviceAccountName?: string;
+    artifactType: string;
+  };
 
 export type ModelVersion = ModelRegistryBase & {
   state?: ModelState;

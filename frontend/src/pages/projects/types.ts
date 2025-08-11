@@ -67,6 +67,8 @@ export type StorageData = {
   existingPvc?: PersistentVolumeClaimKind;
   accessMode?: AccessMode;
   id?: number;
+  modelName?: string;
+  modelPath?: string;
 };
 
 export type StartNotebookData = {
@@ -77,6 +79,7 @@ export type StartNotebookData = {
   volumes?: Volume[];
   volumeMounts?: VolumeMount[];
   envFrom?: EnvironmentFromVariable[];
+  dashboardNamespace?: string;
 };
 
 export type SecretRef = {

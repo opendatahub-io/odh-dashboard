@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"strings"
 	"time"
 
 	"github.com/kubeflow/model-registry/ui/bff/internal/constants"
@@ -64,6 +65,7 @@ func (kc *SharedClientLogic) GetServiceDetails(sessionCtx context.Context, names
 		services = append(services, *serviceDetails)
 
 	}
+
 	return services, nil
 }
 
@@ -73,17 +75,19 @@ func buildServiceDetails(service *corev1.Service, logger *slog.Logger) (*Service
 	}
 
 	var httpPort int32
+	var isHTTPS bool
 	hasHTTPPort := false
 	for _, port := range service.Spec.Ports {
-		if port.Name == "http-api" {
+		if port.Name == "http-api" || port.Name == "https-api" {
 			httpPort = port.Port
+			isHTTPS = port.Name == "https-api"
 			hasHTTPPort = true
 			break
 		}
 	}
 	if !hasHTTPPort {
-		logger.Error("service missing HTTP port", "serviceName", service.Name)
-		return nil, fmt.Errorf("service %q missing required 'http-api' port", service.Name)
+		logger.Error("service missing HTTP/HTTPS port", "serviceName", service.Name)
+		return nil, fmt.Errorf("service %q missing required 'http-api' or 'https-api' port", service.Name)
 	}
 
 	if service.Spec.ClusterIP == "" {
@@ -93,24 +97,30 @@ func buildServiceDetails(service *corev1.Service, logger *slog.Logger) (*Service
 
 	displayName := ""
 	description := ""
+	externalAddressRest := ""
+
+	// Check for annotations including external-address-rest
 	if service.Annotations != nil {
 		displayName = service.Annotations["displayName"]
 		description = service.Annotations["description"]
-	}
 
-	if displayName == "" {
-		logger.Warn("service missing displayName annotation", "serviceName", service.Name)
-	}
-	if description == "" {
-		logger.Warn("service missing description annotation", "serviceName", service.Name)
+		// Look for external-address-rest annotation with any prefix
+		for key, value := range service.Annotations {
+			if strings.HasSuffix(key, "/external-address-rest") {
+				externalAddressRest = value
+				break
+			}
+		}
 	}
 
 	return &ServiceDetails{
-		Name:        service.Name,
-		DisplayName: displayName,
-		Description: description,
-		ClusterIP:   service.Spec.ClusterIP,
-		HTTPPort:    httpPort,
+		Name:                service.Name,
+		DisplayName:         displayName,
+		Description:         description,
+		ClusterIP:           service.Spec.ClusterIP,
+		HTTPPort:            httpPort,
+		IsHTTPS:             isHTTPS,
+		ExternalAddressRest: externalAddressRest,
 	}, nil
 }
 

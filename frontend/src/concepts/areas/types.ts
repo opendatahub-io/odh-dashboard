@@ -81,6 +81,12 @@ export enum SupportedArea {
 
   /* LM Eval */
   LM_EVAL = 'lm-eval',
+
+  /* Feature store */
+  FEATURE_STORE = 'feature-store',
+
+  /* Model Training */
+  MODEL_TRAINING = 'model-training',
 }
 
 export type SupportedAreaType = SupportedArea | string;
@@ -96,7 +102,9 @@ export enum StackComponent {
   WORKBENCHES = 'workbenches',
   TRUSTY_AI = 'trustyai',
   KUEUE = 'kueue',
+  TRAINING_OPERATOR = 'trainingoperator',
   MODEL_REGISTRY = 'model-registry-operator',
+  FEAST_OPERATOR = 'feastoperator',
 }
 
 /** The possible component names that are used as keys in the `components` object of the DSC Status.

@@ -47,6 +47,7 @@ import {
 } from '#~/concepts/hardwareProfiles/utils';
 import { useNotebookKindPodSpecOptionsState } from '#~/concepts/hardwareProfiles/useNotebookPodSpecOptionsState';
 import { getPvcAccessMode } from '#~/pages/projects/utils.ts';
+import { useDashboardNamespace } from '#~/redux/selectors';
 import { SpawnerPageSectionID } from './types';
 import {
   K8_NOTEBOOK_RESOURCE_NAME_VALIDATOR,
@@ -58,8 +59,7 @@ import ImageSelectorField from './imageSelector/ImageSelectorField';
 import ContainerSizeSelector from './deploymentSize/ContainerSizeSelector';
 import EnvironmentVariables from './environmentVariables/EnvironmentVariables';
 import { useNotebookEnvVariables } from './environmentVariables/useNotebookEnvVariables';
-import useAdminDefaultStorageClass from './storage/useAdminDefaultStorageClass';
-import usePreferredStorageClass from './storage/usePreferredStorageClass';
+import { useDefaultStorageClass } from './storage/useDefaultStorageClass';
 import { ConnectionsFormSection } from './connections/ConnectionsFormSection';
 import { getConnectionsFromNotebook } from './connections/utils';
 import AlertWarningText from './environmentVariables/AlertWarningText';
@@ -100,9 +100,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
     imageStream: undefined,
     imageVersion: undefined,
   });
-  const [defaultStorageClass] = useAdminDefaultStorageClass();
-  const preferredStorageClass = usePreferredStorageClass();
-  const isStorageClassesAvailable = useIsAreaAvailable(SupportedArea.STORAGE_CLASSES).status;
+  const [defaultStorageClass] = useDefaultStorageClass();
   const isHardwareProfilesAvailable = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;
 
   const {
@@ -111,9 +109,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
     error: storagesLoadError,
   } = useProjectPvcs(currentProject.metadata.name);
 
-  const defaultStorageClassName = isStorageClassesAvailable
-    ? defaultStorageClass?.metadata.name
-    : preferredStorageClass?.metadata.name;
+  const defaultStorageClassName = defaultStorageClass?.metadata.name;
   const defaultNotebookSize = useDefaultPvcSize();
 
   const [existingPvcs] = useNotebookPVCItems(existingNotebook);
@@ -210,6 +206,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
       initialState: acceleratorProfileInitialState,
       formData: acceleratorProfileFormData,
       setFormData: setAcceleratorProfileFormData,
+      loaded: acceleratorProfilesLoaded,
     },
     hardwareProfile: { formData: hardwareProfileFormData },
   } = podSpecOptionsState;
@@ -229,6 +226,8 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
     },
     [selectedImage.imageStream],
   );
+
+  const { dashboardNamespace } = useDashboardNamespace();
 
   return (
     <ApplicationsPage
@@ -307,6 +306,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                     }
                     initialState={acceleratorProfileInitialState}
                     formData={acceleratorProfileFormData}
+                    acceleratorProfilesLoaded={acceleratorProfilesLoaded}
                     setFormData={setAcceleratorProfileFormData}
                   />
                 </>
@@ -415,6 +415,7 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                     volumes: [],
                     volumeMounts: [],
                     podSpecOptions: podSpecOptionsState.podSpecOptions,
+                    dashboardNamespace,
                   }}
                   storageData={storageData}
                   envVariables={envVariables}

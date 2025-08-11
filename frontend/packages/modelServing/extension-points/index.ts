@@ -1,5 +1,4 @@
 import type { Extension, CodeRef, ResolvedExtension } from '@openshift/dynamic-plugin-sdk';
-import type { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import type { NamespaceApplicationCase } from '@odh-dashboard/internal/pages/projects/types';
 import type { SortableData } from '@odh-dashboard/internal/components/table/types';
 import type {
@@ -8,19 +7,23 @@ import type {
   ProjectKind,
 } from '@odh-dashboard/internal/k8sTypes';
 // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/consistent-type-imports
-import { InferenceServiceModelState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import type { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
 import type { ModelServingPodSpecOptionsState } from '@odh-dashboard/internal/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
-import type { ContainerResources } from '@odh-dashboard/internal/types.js';
+import type { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
+import type { InferenceServiceModelState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
+import type { ToggleState } from '@odh-dashboard/internal/components/StateActionToggle';
+import type { ComponentCodeRef } from '../../plugin-core/src/extension-points/types';
 
 export type DeploymentStatus = {
   state: InferenceServiceModelState;
   message?: string;
+  stoppedStates?: ToggleState;
 };
 
 export type DeploymentEndpoint = {
   type: 'internal' | 'external';
   name?: string;
+  description?: string;
   url: string;
   error?: string;
 };
@@ -30,6 +33,7 @@ export type DeploymentEndpoint = {
 export type ServerResourceType = K8sResourceCommon & {
   metadata: {
     name: string;
+    namespace: string;
     annotations?: DisplayNameAnnotations &
       Partial<{
         'opendatahub.io/apiProtocol': string;
@@ -40,6 +44,7 @@ export type ServerResourceType = K8sResourceCommon & {
 export type ModelResourceType = K8sResourceCommon & {
   metadata: {
     name: string;
+    namespace: string;
     annotations?: DisplayNameAnnotations;
   };
 };
@@ -53,6 +58,7 @@ export type Deployment<
   server?: ServerResource;
   status?: DeploymentStatus;
   endpoints?: DeploymentEndpoint[];
+  resources?: ModelServingPodSpecOptionsState;
 };
 
 export type ModelServingPlatformExtension<D extends Deployment = Deployment> = Extension<
@@ -61,8 +67,20 @@ export type ModelServingPlatformExtension<D extends Deployment = Deployment> = E
     id: D['modelServingPlatformId'];
     manage: {
       namespaceApplicationCase: NamespaceApplicationCase;
-      enabledLabel: string;
-      enabledLabelValue: string;
+      priority?: number; // larger numbers are higher priority
+      default?: boolean; // if true, this platform will be the default if no other has priority
+      projectRequirements: {
+        annotations?: {
+          [key: string]: string;
+        };
+        labels?: {
+          [key: string]: string;
+        };
+      };
+      clusterRequirements?: {
+        // for NIM mainly. May change in the future. other types of checks can be added here later.
+        integrationAppName: string;
+      };
     };
     enableCardText: {
       title: string;
@@ -75,6 +93,12 @@ export type ModelServingPlatformExtension<D extends Deployment = Deployment> = E
       startHintTitle: string;
       startHintDescription: string;
       deployButtonText: string;
+    };
+    // TODO: remove this once modelmesh and nim are fully supported plugins
+    backport?: {
+      ModelsProjectDetailsTab?: ComponentCodeRef;
+      ServeModelsSection?: ComponentCodeRef;
+      GlobalModelsPage?: ComponentCodeRef;
     };
   }
 >;
@@ -102,10 +126,33 @@ export const isModelServingPlatformWatchDeployments = <D extends Deployment = De
 ): extension is ModelServingPlatformWatchDeploymentsExtension<D> =>
   extension.type === 'model-serving.platform/watch-deployments';
 
+export type ModelServingDeploymentResourcesExtension<D extends Deployment = Deployment> = Extension<
+  'model-serving.deployment/resources',
+  {
+    platform: D['modelServingPlatformId'];
+    useResources: CodeRef<(deployment: D) => ModelServingPodSpecOptionsState | null>;
+  }
+>;
+export const isModelServingDeploymentResourcesExtension = <D extends Deployment = Deployment>(
+  extension: Extension,
+): extension is ModelServingDeploymentResourcesExtension<D> =>
+  extension.type === 'model-serving.deployment/resources';
+
+export type ModelServingAuthExtension<D extends Deployment = Deployment> = Extension<
+  'model-serving.auth',
+  {
+    platform: D['modelServingPlatformId'];
+    usePlatformAuthEnabled: CodeRef<(deployment?: D) => boolean>;
+  }
+>;
+export const isModelServingAuthExtension = <D extends Deployment = Deployment>(
+  extension: Extension,
+): extension is ModelServingAuthExtension<D> => extension.type === 'model-serving.auth';
+
 // Model serving deployments table extension
 
 export type DeploymentsTableColumn<D extends Deployment = Deployment> = SortableData<D> & {
-  cellRenderer: (deployment: D, column: string) => string;
+  cellRenderer: (deployment: D, column: string) => React.ReactNode;
 };
 
 export type ModelServingDeploymentsTableExtension<D extends Deployment = Deployment> = Extension<
@@ -124,11 +171,8 @@ export type ModelServingDeploymentsExpandedInfo<D extends Deployment = Deploymen
   'model-serving.deployments-table/expanded-info',
   {
     platform: D['modelServingPlatformId'];
-    getFramework: CodeRef<(deployment: D) => string | null>;
-    getReplicas: CodeRef<(deployment: D) => number | null>;
-    getResourceSize: CodeRef<(deployment: D) => ContainerResources | null>;
-    getHardwareAccelerator: CodeRef<(deployment: D) => ModelServingPodSpecOptionsState | null>;
-    getTokens: CodeRef<(deployment: D) => string[] | null>;
+    useFramework: CodeRef<(deployment: D) => string | null>;
+    useReplicas: CodeRef<(deployment: D) => number | null>;
   }
 >;
 export const isModelServingDeploymentsExpandedInfo = <D extends Deployment = Deployment>(
@@ -150,3 +194,42 @@ export const isModelServingDeleteModal = <D extends Deployment = Deployment>(
   extension: Extension,
 ): extension is ModelServingDeleteModal<D> =>
   extension.type === 'model-serving.platform/delete-modal';
+
+export type ModelServingMetricsExtension<D extends Deployment = Deployment> = Extension<
+  'model-serving.metrics',
+  {
+    platform: D['modelServingPlatformId'];
+  }
+>;
+
+export const isModelServingMetricsExtension = <D extends Deployment = Deployment>(
+  extension: Extension,
+): extension is ModelServingMetricsExtension<D> => extension.type === 'model-serving.metrics';
+
+export type DeployedModelServingDetails<D extends Deployment = Deployment> = Extension<
+  'model-serving.deployed-model/serving-runtime',
+  {
+    platform: D['modelServingPlatformId'];
+    ServingDetailsComponent: ComponentCodeRef<{ deployment: D }>;
+  }
+>;
+
+export const isDeployedModelServingDetails = <D extends Deployment = Deployment>(
+  extension: Extension,
+): extension is DeployedModelServingDetails<D> =>
+  extension.type === 'model-serving.deployed-model/serving-runtime';
+
+export type ModelServingStartStopAction<D extends Deployment = Deployment> = Extension<
+  'model-serving.deployments-table/start-stop-action',
+  {
+    platform: D['modelServingPlatformId'];
+    patchDeploymentStoppedStatus: CodeRef<
+      (deployment: D, isStopped: boolean) => Promise<D['model']>
+    >;
+  }
+>;
+
+export const isModelServingStartStopAction = <D extends Deployment = Deployment>(
+  extension: Extension,
+): extension is ModelServingStartStopAction<D> =>
+  extension.type === 'model-serving.deployments-table/start-stop-action';

@@ -32,6 +32,7 @@ import {
   RoleKind,
   ServingContainer,
   DeploymentMode,
+  PersistentVolumeClaimKind,
 } from '#~/k8sTypes';
 import { ContainerResources } from '#~/types';
 import { getDisplayNameFromK8sResource, translateDisplayNameForK8s } from '#~/concepts/k8s/utils';
@@ -44,6 +45,7 @@ import {
   ModelServingState,
 } from '#~/pages/modelServing/screens/types';
 import { ModelServingPodSpecOptionsState } from '#~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
+import { ServingRuntimeVersionStatusLabel } from './screens/const';
 
 type TokenNames = {
   serviceAccountName: string;
@@ -366,17 +368,39 @@ export const isModelMesh = (inferenceService: InferenceServiceKind): boolean =>
   inferenceService.metadata.annotations?.['serving.kserve.io/deploymentMode'] ===
   DeploymentMode.ModelMesh;
 
+export const isModelServingStopped = (inferenceService?: InferenceServiceKind): boolean =>
+  inferenceService?.metadata.annotations?.['serving.kserve.io/stop'] === 'true';
+
 export const isOciModelUri = (modelUri?: string): boolean => !!modelUri?.includes('oci://');
 
 export const getInferenceServiceStoppedStatus = (
   inferenceService: InferenceServiceKind,
 ): ModelServingState => {
-  const status = inferenceService.metadata.annotations?.['serving.kserve.io/stop'] === 'true';
+  const status = isModelServingStopped(inferenceService);
   return {
     inferenceService,
     isStopped: status,
     isRunning: !status,
-    isStopping: false,
-    isStarting: false,
   };
+};
+
+export const getServingRuntimeVersionStatus = (
+  servingRuntimeVersion: string | undefined,
+  templateVersion: string | undefined,
+): string | undefined => {
+  if (!servingRuntimeVersion || !templateVersion) {
+    return undefined;
+  }
+  return servingRuntimeVersion === templateVersion
+    ? ServingRuntimeVersionStatusLabel.LATEST
+    : ServingRuntimeVersionStatusLabel.OUTDATED;
+};
+
+export const getModelServingPVCAnnotations = (
+  pvc: PersistentVolumeClaimKind,
+): { modelName: string | null; modelPath: string | null } => {
+  const modelName = pvc.metadata.annotations?.['dashboard.opendatahub.io/model-name'] || null;
+  const modelPath = pvc.metadata.annotations?.['dashboard.opendatahub.io/model-path'] || null;
+
+  return { modelName, modelPath };
 };

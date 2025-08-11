@@ -37,7 +37,7 @@ func TestHTTPClient_GET_Success(t *testing.T) {
 
 	// Create http client pointing to test server
 	logger := setupTestLogger()
-	client, err := NewHTTPClient(logger, "test-registry", server.URL)
+	client, err := NewHTTPClient(logger, "test-registry", server.URL, nil)
 	require.NoError(t, err)
 
 	// Make the request
@@ -73,7 +73,7 @@ func TestHTTPClient_GET_Error(t *testing.T) {
 
 	// Create http client pointing to test server
 	logger := setupTestLogger()
-	client, err := NewHTTPClient(logger, "test-registry", server.URL)
+	client, err := NewHTTPClient(logger, "test-registry", server.URL, nil)
 	require.NoError(t, err)
 
 	// Make the request
@@ -123,7 +123,7 @@ func TestHTTPClient_POST_Success(t *testing.T) {
 
 	// Create http client pointing to test server
 	logger := setupTestLogger()
-	client, err := NewHTTPClient(logger, "test-registry", server.URL)
+	client, err := NewHTTPClient(logger, "test-registry", server.URL, nil)
 	require.NoError(t, err)
 
 	// Prepare request body
@@ -164,7 +164,7 @@ func TestHTTPClient_POST_Error(t *testing.T) {
 
 	// Create http client pointing to test server
 	logger := setupTestLogger()
-	client, err := NewHTTPClient(logger, "test-registry", server.URL)
+	client, err := NewHTTPClient(logger, "test-registry", server.URL, nil)
 	require.NoError(t, err)
 
 	// Prepare request body
@@ -218,7 +218,7 @@ func TestHTTPClient_PATCH_Success(t *testing.T) {
 
 	// Create http client pointing to test server
 	logger := setupTestLogger()
-	client, err := NewHTTPClient(logger, "test-registry", server.URL)
+	client, err := NewHTTPClient(logger, "test-registry", server.URL, nil)
 	require.NoError(t, err)
 
 	// Prepare request body
@@ -259,7 +259,7 @@ func TestHTTPClient_PATCH_Error(t *testing.T) {
 
 	// Create client pointing to test server
 	logger := setupTestLogger()
-	client, err := NewHTTPClient(logger, "test-registry", server.URL)
+	client, err := NewHTTPClient(logger, "test-registry", server.URL, nil)
 	require.NoError(t, err)
 
 	// Prepare request body
@@ -278,4 +278,42 @@ func TestHTTPClient_PATCH_Error(t *testing.T) {
 	assert.Equal(t, http.StatusNotFound, httpErr.StatusCode)
 	assert.Equal(t, errorResponse.Code, httpErr.Code)
 	assert.Equal(t, errorResponse.Message, httpErr.Message)
+}
+
+func TestHTTPClient_GET_NonJSONError(t *testing.T) {
+	// Setup test server that returns a non-JSON error (like HTML)
+	htmlErrorResponse := `<!DOCTYPE html>
+<html>
+<head><title>Connection refused</title></head>
+<body><h1>Connection refused</h1></body>
+</html>`
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+
+		w.Header().Set("Content-Type", "text/html")
+		w.WriteHeader(http.StatusBadGateway)
+		_, err := w.Write([]byte(htmlErrorResponse))
+		assert.NoError(t, err)
+	}))
+	defer server.Close()
+
+	// Create http client pointing to test server
+	logger := setupTestLogger()
+	client, err := NewHTTPClient(logger, "test-registry", server.URL, nil)
+	require.NoError(t, err)
+
+	// Make the request
+	response, err := client.GET("/test")
+
+	// Verify error handling
+	assert.Error(t, err)
+	assert.Nil(t, response)
+
+	httpErr, ok := err.(*HTTPError)
+	assert.True(t, ok)
+	assert.Equal(t, http.StatusBadGateway, httpErr.StatusCode)
+	assert.Equal(t, "502", httpErr.Code)
+	assert.Contains(t, httpErr.Message, "Connection refused")
+	assert.Contains(t, httpErr.Message, "502")
 }

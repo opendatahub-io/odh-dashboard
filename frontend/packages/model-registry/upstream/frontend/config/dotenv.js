@@ -145,13 +145,14 @@ const setupDotenvFilesForEnv = ({ env }) => {
   setupDotenvFile(path.resolve(RELATIVE_DIRNAME, '.env.local'));
   setupDotenvFile(path.resolve(RELATIVE_DIRNAME, '.env'));
 
-  const DEPLOYMENT_MODE = process.env.DEPLOYMENT_MODE || 'integrated';
+  const DEPLOYMENT_MODE = process.env.DEPLOYMENT_MODE || 'kubeflow';
+  const AUTH_METHOD = process.env.AUTH_METHOD || 'internal';
   const IMAGES_DIRNAME = process.env.IMAGES_DIRNAME || 'images';
   const PUBLIC_PATH = process.env.PUBLIC_PATH || '/';
   const SRC_DIR = path.resolve(RELATIVE_DIRNAME, process.env.SRC_DIR || TS_BASE_URL || 'src');
   const COMMON_DIR = path.resolve(RELATIVE_DIRNAME, process.env.COMMON_DIR || '../common');
   const DIST_DIR = path.resolve(RELATIVE_DIRNAME, process.env.DIST_DIR || TS_OUT_DIR || 'public');
-  const HOST = process.env.HOST || DEPLOYMENT_MODE === 'integrated' ? '0.0.0.0' : 'localhost';
+  const HOST = process.env.HOST || DEPLOYMENT_MODE === 'kubeflow' ? '0.0.0.0' : 'localhost';
   const PORT = process.env.PORT || '9000';
   const PROXY_PROTOCOL = process.env.PROXY_PROTOCOL || 'http';
   const PROXY_HOST = process.env.PROXY_HOST || 'localhost';
@@ -174,6 +175,7 @@ const setupDotenvFilesForEnv = ({ env }) => {
   process.env._OUTPUT_ONLY = OUTPUT_ONLY;
   process.env._DEV_MODE = DEV_MODE;
   process.env._DEPLOYMENT_MODE = DEPLOYMENT_MODE;
+  process.env._AUTH_METHOD = AUTH_METHOD;
 };
 
 module.exports = { setupWebpackDotenvFilesForEnv, setupDotenvFilesForEnv };

@@ -41,8 +41,8 @@ export const columns: SortableData<StorageTableData>[] = [
     },
   },
   {
-    field: 'type',
-    label: 'Type',
+    field: 'storageContext',
+    label: 'Storage context',
     width: 25,
     sortable: false,
   },
@@ -54,7 +54,7 @@ export const columns: SortableData<StorageTableData>[] = [
   },
   {
     field: 'connected',
-    label: 'Workbench connections',
+    label: 'Connected resources',
     width: 20,
     sortable: false,
   },

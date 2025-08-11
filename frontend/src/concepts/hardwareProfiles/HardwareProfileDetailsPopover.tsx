@@ -13,9 +13,15 @@ import {
 import { QuestionCircleIcon } from '@patternfly/react-icons';
 import { Toleration, NodeSelector, ContainerResources } from '#~/types';
 import { HardwareProfileKind } from '#~/k8sTypes';
+import {
+  getHardwareProfileDescription,
+  getHardwareProfileDisplayName,
+} from '#~/pages/hardwareProfiles/utils.ts';
 import { formatToleration, formatNodeSelector, formatResource, formatResourceValue } from './utils';
 
 type HardwareProfileDetailsPopoverProps = {
+  localQueueName?: string;
+  priorityClass?: string;
   tolerations?: Toleration[];
   nodeSelector?: NodeSelector;
   resources?: ContainerResources;
@@ -23,6 +29,8 @@ type HardwareProfileDetailsPopoverProps = {
 };
 
 const HardwareProfileDetailsPopover: React.FC<HardwareProfileDetailsPopoverProps> = ({
+  localQueueName,
+  priorityClass,
   tolerations,
   nodeSelector,
   resources,
@@ -62,19 +70,22 @@ const HardwareProfileDetailsPopover: React.FC<HardwareProfileDetailsPopoverProps
   if (!tolerations && !nodeSelector && !resources) {
     return null;
   }
+  const description = hardwareProfile && getHardwareProfileDescription(hardwareProfile);
 
   return (
     <Popover
       hasAutoWidth
       headerContent={
-        hardwareProfile ? `${hardwareProfile.spec.displayName} details` : 'Existing settings'
+        hardwareProfile
+          ? `${getHardwareProfileDisplayName(hardwareProfile)} details`
+          : 'Existing settings'
       }
       bodyContent={
         <Stack hasGutter data-testid="hardware-profile-details">
           {hardwareProfile ? (
-            hardwareProfile.spec.description && (
+            description && (
               <StackItem>
-                <Truncate content={hardwareProfile.spec.description} />
+                <Truncate content={description} />
               </StackItem>
             )
           ) : (
@@ -93,7 +104,12 @@ const HardwareProfileDetailsPopover: React.FC<HardwareProfileDetailsPopoverProps
                 ])}
               </StackItem>
             ))}
-
+          {localQueueName && (
+            <StackItem>{renderSection('Local queue', [localQueueName])}</StackItem>
+          )}
+          {priorityClass && (
+            <StackItem>{renderSection('Workload priority', [priorityClass])}</StackItem>
+          )}
           {tolerations && tolerations.length > 0 && (
             <StackItem>
               {renderSection(

@@ -24,6 +24,7 @@ type ServingRuntimeSizeSectionProps = {
   infoContent?: string;
   isEditing?: boolean;
   customDefaults?: ModelServingSize;
+  isProjectModelMesh?: boolean;
 };
 
 const ServingRuntimeSizeSection = ({
@@ -33,6 +34,7 @@ const ServingRuntimeSizeSection = ({
   infoContent,
   isEditing = false,
   customDefaults,
+  isProjectModelMesh = false,
 }: ServingRuntimeSizeSectionProps): React.ReactNode => {
   const isHardwareProfileEnabled = useIsAreaAvailable(SupportedArea.HARDWARE_PROFILES).status;
 
@@ -97,7 +99,7 @@ const ServingRuntimeSizeSection = ({
 
   return (
     <>
-      {isHardwareProfileEnabled ? (
+      {isHardwareProfileEnabled && !isProjectModelMesh ? (
         <HardwareProfileFormSection
           project={projectName}
           podSpecOptionsState={podSpecOptionState}
@@ -151,11 +153,12 @@ const ServingRuntimeSizeSection = ({
                 />
               </StackItem>
             )}
-            {!gpuDisabled && (
+            {!gpuDisabled && !isHardwareProfileEnabled && (
               <AcceleratorProfileSelectField
                 hasAdditionalPopoverInfo
                 currentProject={projectName}
                 initialState={podSpecOptionState.acceleratorProfile.initialState}
+                acceleratorProfilesLoaded={podSpecOptionState.acceleratorProfile.loaded}
                 compatibleIdentifiers={
                   servingRuntimeSelected ? getCompatibleIdentifiers(servingRuntimeSelected) : []
                 }

@@ -26,7 +26,7 @@ let modelDeploymentName: string;
 const uuid = generateTestUUID();
 
 describe(
-  'A user can create an OCI connection and deploy a model with it',
+  '[Product Bug: RHOAIENG-31085] A user can create an OCI connection and deploy a model with it',
   { testIsolation: false },
   () => {
     let testData: DeployOCIModelData;
@@ -50,13 +50,16 @@ describe(
     });
 
     after(() => {
-      // Delete provisioned Project
-      deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
+      // Delete provisioned Project - wait for completion due to RHOAIENG-19969 to support test retries, 5 minute timeout
+      // TODO: Review this timeout once RHOAIENG-19969 is resolved
+      deleteOpenShiftProject(projectName, { wait: true, ignoreNotFound: true, timeout: 300000 });
     });
 
     it(
       'Verify User Can Create an OCI Connection in DS Connections Page And Deploy the Model',
-      { tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@Modelserving', '@NonConcurrent'] },
+      {
+        tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@Modelserving', '@NonConcurrent', '@Bug'],
+      },
       () => {
         cy.step(`Navigate to DS Project ${projectName}`);
         cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
@@ -90,9 +93,9 @@ describe(
         inferenceServiceModal.findOCIModelURI().type(modelDeploymentURI);
         inferenceServiceModal.findSubmitButton().focus().click();
         checkInferenceServiceState(modelDeploymentName, projectName);
-        modelServingSection.findModelServerName(modelDeploymentName);
         // Note reload is required as status tooltip was not found due to a stale element
         cy.reload();
+        modelServingSection.findModelMetricsLink(modelDeploymentName);
         modelServingSection.findStatusTooltip().click({ force: true });
         cy.contains('Model is deployed', { timeout: 120000 }).should('be.visible');
       },

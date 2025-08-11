@@ -22,10 +22,12 @@ import {
   KubeflowDocs,
   useThemeContext,
   SimpleSelect,
+  InlineTruncatedClipboardCopy,
 } from 'mod-arch-shared';
 import { SimpleSelectOption } from 'mod-arch-shared/dist/components/SimpleSelect';
 import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelectorContext';
 import { ModelRegistry } from '~/app/types';
+import { getServerAddress } from './utils';
 
 const MODEL_REGISTRY_FAVORITE_STORAGE_KEY = 'kubeflow.dashboard.model.registry.favorite';
 
@@ -34,6 +36,7 @@ type ModelRegistrySelectorProps = {
   onSelection: (modelRegistry: string) => void;
   primary?: boolean;
   isFullWidth?: boolean;
+  hasError?: boolean;
 };
 
 const ModelRegistrySelector: React.FC<ModelRegistrySelectorProps> = ({
@@ -41,6 +44,7 @@ const ModelRegistrySelector: React.FC<ModelRegistrySelectorProps> = ({
   onSelection,
   primary,
   isFullWidth,
+  hasError,
 }) => {
   const { modelRegistries, updatePreferredModelRegistry } = React.useContext(
     ModelRegistrySelectorContext,
@@ -95,7 +99,7 @@ const ModelRegistrySelector: React.FC<ModelRegistrySelectorProps> = ({
       isScrollable
       placeholder="Select a model registry"
       dataTestId="model-registry-selector-dropdown"
-      toggleProps={{ id: 'download-steps-logs-toggle' }}
+      toggleProps={{ id: 'download-steps-logs-toggle', status: hasError ? 'danger' : undefined }}
       toggleLabel={toggleLabel}
       aria-label="Model registry toggle"
       previewDescription={false}
@@ -167,6 +171,14 @@ const ModelRegistrySelector: React.FC<ModelRegistrySelectorProps> = ({
                     className={!selection.description ? text.textColorDisabled : ''}
                   >
                     {selection.description || 'No description'}
+                  </DescriptionListDescription>
+                </DescriptionListGroup>
+                <DescriptionListGroup>
+                  <DescriptionListTerm>Server URL</DescriptionListTerm>
+                  <DescriptionListDescription>
+                    <InlineTruncatedClipboardCopy
+                      textToCopy={`https://${getServerAddress(selection)}`}
+                    />
                   </DescriptionListDescription>
                 </DescriptionListGroup>
               </DescriptionList>

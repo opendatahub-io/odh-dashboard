@@ -19,7 +19,7 @@ import {
 } from '#~/__tests__/cypress/cypress/utils/workloadMetricsUtils';
 import { generateTestUUID } from '#~/__tests__/cypress/cypress/utils/uuidGenerator';
 
-describe('Verify Workload Metrics Default page Contents', () => {
+describe('[Product Bug: RHOAIENG-30510] Verify Workload Metrics Default page Contents', () => {
   let testData: WorkloadMetricsTestData;
   let projectName: string;
   const uuid = generateTestUUID();
@@ -53,6 +53,7 @@ describe('Verify Workload Metrics Default page Contents', () => {
       testData.clusterQueue,
       testData.resourceFlavour,
       projectName,
+      { wait: false, ignoreNotFound: true },
     );
     cy.log('Deleting Namespace ${projectName}');
     deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
@@ -60,7 +61,7 @@ describe('Verify Workload Metrics Default page Contents', () => {
 
   it(
     'Verify Workload Metrics Home page Contents',
-    { tags: ['@Sanity', '@SanitySet3', '@WorkloadMetrics'] },
+    { tags: ['@Sanity', '@SanitySet3', '@WorkloadMetrics', '@Bug'] },
     () => {
       cy.step('Login to the Application');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);

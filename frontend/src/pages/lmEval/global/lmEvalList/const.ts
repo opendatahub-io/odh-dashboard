@@ -6,12 +6,14 @@ export const columns: SortableData<LMEvalKind>[] = [
   {
     field: 'name',
     label: 'Name',
+    width: 25,
     sortable: (a: LMEvalKind, b: LMEvalKind): number =>
       a.metadata.name.localeCompare(b.metadata.name),
   },
   {
     field: 'model',
     label: 'Model',
+    width: 25,
     sortable: (a: LMEvalKind, b: LMEvalKind): number => {
       const aModel = a.spec.modelArgs?.find((arg) => arg.name === 'model')?.value;
       const bModel = b.spec.modelArgs?.find((arg) => arg.name === 'model')?.value;
@@ -21,6 +23,7 @@ export const columns: SortableData<LMEvalKind>[] = [
   {
     field: 'started',
     label: 'Started',
+    width: 25,
     sortable: (a: LMEvalKind, b: LMEvalKind): number => {
       const first = a.metadata.creationTimestamp;
       const second = b.metadata.creationTimestamp;
@@ -30,6 +33,7 @@ export const columns: SortableData<LMEvalKind>[] = [
   {
     field: 'status',
     label: 'Status',
+    width: 25,
     sortable: (a: LMEvalKind, b: LMEvalKind): number => {
       const aState = getLMEvalState(a.status);
       const bState = getLMEvalState(b.status);

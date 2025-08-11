@@ -212,6 +212,10 @@ module.exports = {
       {
         pathGroups: [
           {
+            pattern: '#~/**',
+            group: 'internal',
+          },
+          {
             pattern: '@mf/**',
             group: 'external',
             position: 'after',
@@ -450,6 +454,29 @@ module.exports = {
         ],
       },
     },
+    {
+      files: ['**/*.yaml', '**/*.yml'],
+      parser: 'yaml-eslint-parser',
+      plugins: ['yml'],
+      extends: ['plugin:yml/recommended'],
+      rules: {
+        '@typescript-eslint/consistent-type-imports': 'off',
+        '@typescript-eslint/dot-notation': 'off',
+        '@typescript-eslint/return-await': 'off',
+        '@typescript-eslint/no-base-to-string': 'off',
+        '@typescript-eslint/no-unnecessary-condition': 'off',
+        '@typescript-eslint/restrict-template-expressions': 'off',
+        '@typescript-eslint/naming-convention': 'off',
+      },
+    },
+    {
+      files: ['**/*.md'],
+      processor: 'markdown/markdown',
+      plugins: ['markdown'],
+      rules: {
+        '@typescript-eslint/no-unused-vars': 'off',
+      },
+    },
   ],
 };
 
@@ -463,8 +490,8 @@ function srcRulesOverrides() {
   return [
     {
       files: ['src/**'],
+      excludedFiles: ['src/__tests__/cypress/**'],
       rules: {
-        'no-console': 'error',
         'import/no-extraneous-dependencies': [
           'error',
           {
@@ -475,12 +502,11 @@ function srcRulesOverrides() {
     },
     // add monorepo packages
     ...packages.map((pkg) => ({
-      files: [`${pkg}/src/**`],
+      files: [`${pkg}/**`],
       parserOptions: {
         tsconfigRootDir: path.join(__dirname, pkg),
       },
       rules: {
-        'no-console': 'error',
         'import/no-extraneous-dependencies': [
           'error',
           {

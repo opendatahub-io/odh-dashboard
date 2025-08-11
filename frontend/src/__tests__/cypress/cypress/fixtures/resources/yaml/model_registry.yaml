@@ -19,3 +19,22 @@ spec:
     passwordSecret:
       name: model-registry-db
       key: database-password
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: model-registry-db
+  namespace: {{NAMESPACE}}
+  labels:
+    app.kubernetes.io/name: model-registry-db
+    app.kubernetes.io/instance: model-registry-db
+    app.kubernetes.io/part-of: model-registry-db
+    app.kubernetes.io/managed-by: kustomize
+  annotations:
+    template.openshift.io/expose-database_name: '{.data[''database-name'']}'
+    template.openshift.io/expose-password: '{.data[''database-password'']}'
+    template.openshift.io/expose-username: '{.data[''database-user'']}'
+stringData:
+  database-name: "model_registry"
+  database-password: "TheBlurstOfTimes"
+  database-user: "mlmduser"

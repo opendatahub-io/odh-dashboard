@@ -11,11 +11,16 @@ import { EitherNotBoth } from './typeHelpers';
 import { NotebookPodSpecOptions } from './concepts/hardwareProfiles/useNotebookPodSpecOptionsState';
 import { FetchStateObject } from './utilities/useFetch';
 
-export type DevFeatureFlags = {
+export type FeatureFlagProps = {
   devFeatureFlags: Record<FeatureFlag | string, boolean | undefined> | null;
   setDevFeatureFlag: (flag: FeatureFlag | string, value: boolean) => void;
   resetDevFeatureFlags: (turnOff: boolean) => void;
+};
+
+// to add to below:  isBannerVisible: boolean;
+export type DevFeatureFlags = FeatureFlagProps & {
   setDevFeatureFlagQueryVisible: (visible: boolean) => void;
+  isBannerVisible: boolean;
 };
 
 export type PrometheusQueryResponse<TResultExtraProps extends object = object> = {
@@ -283,6 +288,30 @@ export type NotebookPort = {
   containerPort: number;
   protocol: string;
 };
+
+export type HardwareProfileAnnotations = Partial<{
+  'opendatahub.io/display-name': string;
+  'opendatahub.io/description': string;
+  'opendatahub.io/dashboard-feature-visibility': string; // JSON stringified HardwareProfileFeatureVisibility[]
+  'opendatahub.io/disabled': string;
+}>;
+
+export type HardwareProfileScheduling = {
+  type: SchedulingType;
+  kueue?: {
+    localQueueName: string;
+    priorityClass?: string;
+  };
+  node?: {
+    nodeSelector?: NodeSelector;
+    tolerations?: Toleration[];
+  };
+};
+
+export enum SchedulingType {
+  QUEUE = 'Queue',
+  NODE = 'Node',
+}
 
 export enum TolerationOperator {
   EXISTS = 'Exists',
@@ -560,6 +589,7 @@ export enum ImageStreamAnnotation {
 
 export enum ImageStreamLabel {
   NOTEBOOK = 'opendatahub.io/notebook-image',
+  IMAGE_TYPE = 'app.kubernetes.io/created-by',
 }
 
 export enum ImageStreamSpecTagAnnotation {
@@ -568,11 +598,14 @@ export enum ImageStreamSpecTagAnnotation {
   OUTDATED = 'opendatahub.io/image-tag-outdated',
   RECOMMENDED = 'opendatahub.io/workbench-image-recommended',
   DEFAULT = 'opendatahub.io/default-image',
+  IMPORT_URL = 'openshift.io/imported-from',
 }
 
 export enum DisplayNameAnnotation {
   DISP_NAME = 'openshift.io/display-name',
   DESC = 'openshift.io/description',
+  ODH_DISP_NAME = 'opendatahub.io/display-name',
+  ODH_DESC = 'opendatahub.io/description',
 }
 
 export type Volume = {

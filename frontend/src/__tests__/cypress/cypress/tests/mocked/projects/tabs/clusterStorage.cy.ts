@@ -29,6 +29,7 @@ import { mock200Status } from '#~/__mocks__/mockK8sStatus';
 import { mockPrometheusQueryResponse } from '#~/__mocks__/mockPrometheusQueryResponse';
 import { storageClassesPage } from '#~/__tests__/cypress/cypress/pages/storageClasses';
 import { AccessMode } from '#~/__tests__/cypress/cypress/types';
+import { PvcModelAnnotation } from '#~/pages/projects/screens/spawner/storage/types';
 
 type HandlersProps = {
   isEmpty?: boolean;
@@ -77,6 +78,15 @@ const initInterceptors = ({ isEmpty = false, storageClassName }: HandlersProps) 
                       'Waiting for user to (re-)start a pod to finish file system resize of volume on node.',
                   },
                 ],
+              },
+            }),
+            mockPVCK8sResource({
+              displayName: 'Model Storage',
+              storageClassName,
+              storage: '5Gi',
+              annotations: {
+                [PvcModelAnnotation.MODEL_NAME]: 'name',
+                [PvcModelAnnotation.MODEL_PATH]: 'path/example',
               },
             }),
           ],
@@ -346,6 +356,71 @@ describe('ClusterStorage', () => {
     });
   });
 
+  it('Add cluster storage with model storage', () => {
+    initInterceptors({ isEmpty: true });
+    storageClassesPage.mockGetStorageClasses([
+      openshiftDefaultStorageClass,
+      buildMockStorageClass(otherStorageClass, { isEnabled: true }),
+    ]);
+    cy.interceptK8s('POST', { model: PVCModel, ns: 'test-project' }, mockPVCK8sResource({})).as(
+      'addClusterStorage',
+    );
+    clusterStorage.visit('test-project');
+    clusterStorage.findCreateButton().click();
+    addClusterStorageModal.findNameInput().fill('test-storage');
+    addClusterStorageModal.findModelStorageRadio().click();
+    addClusterStorageModal.findModelNameInput().fill('name');
+    addClusterStorageModal.findModelPathInput().fill('path/example');
+    addClusterStorageModal.findSubmitButton().click();
+
+    cy.wait('@addClusterStorage').then((interception) => {
+      expect(interception.request.url).to.include('?dryRun=All');
+      expect(interception.request.body).to.containSubset({
+        metadata: {
+          annotations: {
+            [PvcModelAnnotation.MODEL_NAME]: 'name',
+            [PvcModelAnnotation.MODEL_PATH]: 'path/example',
+          },
+        },
+      });
+    });
+
+    cy.wait('@addClusterStorage').then((interception) => {
+      expect(interception.request.url).not.to.include('?dryRun=All');
+    });
+
+    cy.get('@addClusterStorage.all').then((interceptions) => {
+      expect(interceptions).to.have.length(2);
+    });
+  });
+
+  it('Should list correct storage type', () => {
+    initInterceptors({});
+    storageClassesPage.mockGetStorageClasses([
+      openshiftDefaultStorageClass,
+      buildMockStorageClass(otherStorageClass, { isEnabled: true }),
+    ]);
+    clusterStorage.visit('test-project');
+    const modelStorageRow = clusterStorage.getClusterStorageRow('Model Storage');
+    modelStorageRow.findStorageTypeColumn().should('contain.text', 'Model storage');
+    const genericStorageRow = clusterStorage.getClusterStorageRow('Test Storage');
+    genericStorageRow.findStorageTypeColumn().should('contain.text', 'General purpose');
+  });
+
+  it('Should prefill model storage pvc with name and path on edit', () => {
+    initInterceptors({});
+    storageClassesPage.mockGetStorageClasses([
+      openshiftDefaultStorageClass,
+      buildMockStorageClass(otherStorageClass, { isEnabled: true }),
+    ]);
+    clusterStorage.visit('test-project');
+    const modelStorageRow = clusterStorage.getClusterStorageRow('Model Storage');
+    modelStorageRow.findKebabAction('Edit storage').click();
+    updateClusterStorageModal.findModelStorageRadio().should('be.checked');
+    updateClusterStorageModal.findModelNameInput().should('have.value', 'name');
+    updateClusterStorageModal.findModelPathInput().should('have.value', 'path/example');
+  });
+
   it('list cluster storage and Table sorting', () => {
     cy.interceptOdh(
       'GET /api/config',
@@ -357,8 +432,8 @@ describe('ClusterStorage', () => {
     clusterStorage.visit('test-project');
     const clusterStorageRow = clusterStorage.getClusterStorageRow('Test Storage');
     clusterStorageRow.findStorageClassColumn().should('not.exist');
-    clusterStorageRow.shouldHaveStorageTypeValue('Persistent storage');
-    clusterStorageRow.findConnectedWorkbenches().should('have.text', 'No connections');
+    clusterStorageRow.shouldHaveStorageTypeValue('General purpose');
+    clusterStorageRow.findConnectedResources().should('have.text', '');
     clusterStorageRow.findSizeColumn().contains('5GiB');
 
     //sort by Name

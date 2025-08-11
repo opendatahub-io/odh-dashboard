@@ -16,7 +16,7 @@ export class JupyterCard extends Card {
 
   findDrawerPanel(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('explore-drawer-panel').then(() => {
-      cy.get('h2').findByText('Jupyter');
+      cy.get('h2').findByText('Start basic workbench');
     });
   }
 }

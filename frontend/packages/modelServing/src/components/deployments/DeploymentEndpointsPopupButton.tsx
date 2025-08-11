@@ -18,8 +18,11 @@ import { DeploymentEndpoint } from '../../../extension-points';
 const EndpointListItem: React.FC<{ endpoint: DeploymentEndpoint }> = ({ endpoint }) => (
   <DescriptionListGroup key={endpoint.name}>
     {endpoint.name && <DescriptionListTerm>{endpoint.name}</DescriptionListTerm>}
+    {endpoint.description && (
+      <DescriptionListDescription>{endpoint.description}</DescriptionListDescription>
+    )}
     <DescriptionListDescription
-      style={!endpoint.name ? { paddingLeft: 'var(--pf-t--global--spacer--md)' } : undefined} //keep old indent styling
+      style={endpoint.error ? { paddingLeft: 'var(--pf-t--global--spacer--md)' } : undefined}
     >
       {endpoint.error ? (
         <HelperText>
@@ -86,9 +89,10 @@ export const DeploymentEndpointsPopupButton: React.FC<DeploymentEndpointsPopupBu
           {externalEndpoints.length > 0 && (
             <>
               <Divider />
-              <DescriptionListTerm>
-                External (can be accessed from inside or outside the cluster)
-              </DescriptionListTerm>
+              <DescriptionListTerm>External</DescriptionListTerm>
+              <DescriptionListDescription>
+                Accessible from inside or outside the cluster.
+              </DescriptionListDescription>
 
               {externalEndpoints.map((endpoint) => (
                 <EndpointListItem key={endpoint.name} endpoint={endpoint} />
@@ -105,9 +109,7 @@ export const DeploymentEndpointsPopupButton: React.FC<DeploymentEndpointsPopupBu
         isInline
         variant="link"
       >
-        {hasExternalEndpoints
-          ? 'Internal and external endpoint details'
-          : 'Internal endpoint details'}
+        {hasExternalEndpoints ? 'Internal and external endpoint' : 'Internal endpoint'}
       </Button>
     </Popover>
   );

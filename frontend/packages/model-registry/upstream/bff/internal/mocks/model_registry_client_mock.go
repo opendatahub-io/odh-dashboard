@@ -52,6 +52,11 @@ func (m *ModelRegistryClientMock) GetModelVersion(_ mrserver.HTTPClientInterface
 		return &mockData, nil
 	}
 
+	if id == "2" {
+		mockData := GetModelVersionMocks()[1]
+		return &mockData, nil
+	}
+
 	mockData := GetModelVersionMocks()[0]
 	return &mockData, nil
 }
@@ -66,8 +71,21 @@ func (m *ModelRegistryClientMock) UpdateModelVersion(_ mrserver.HTTPClientInterf
 	return &mockData, nil
 }
 
-func (m *ModelRegistryClientMock) GetAllModelVersionsForRegisteredModel(_ mrserver.HTTPClientInterface, _ string, _ url.Values) (*openapi.ModelVersionList, error) {
-	mockData := GetModelVersionListMock()
+func (m *ModelRegistryClientMock) GetAllModelVersionsForRegisteredModel(_ mrserver.HTTPClientInterface, id string, _ url.Values) (*openapi.ModelVersionList, error) {
+	mockList := GetModelVersionListMock()
+	mockData := openapi.ModelVersionList{
+		Items:         []openapi.ModelVersion{},
+		NextPageToken: mockList.NextPageToken,
+		PageSize:      mockList.PageSize,
+		Size:          0,
+	}
+
+	for _, mv := range mockList.Items {
+		if mv.RegisteredModelId == id {
+			mockData.Items = append(mockData.Items, mv)
+		}
+	}
+	mockData.Size = int32(len(mockData.Items))
 	return &mockData, nil
 }
 

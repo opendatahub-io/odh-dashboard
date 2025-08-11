@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { ActionsColumn, IAction, Td, Tr } from '@patternfly/react-table';
+import { IAction, Td, Tr } from '@patternfly/react-table';
 import { Content, ContentVariants, Truncate, FlexItem } from '@patternfly/react-core';
 import { Link, useNavigate } from 'react-router-dom';
 import { ModelState, ModelVersion } from '~/app/types';
@@ -14,6 +14,7 @@ import ModelTimestamp from '~/app/pages/modelRegistry/screens/components/ModelTi
 import ModelLabels from '~/app/pages/modelRegistry/screens/components/ModelLabels';
 import { ArchiveModelVersionModal } from '~/app/pages/modelRegistry/screens/components/ArchiveModelVersionModal';
 import { RestoreModelVersionModal } from '~/app/pages/modelRegistry/screens/components/RestoreModelVersionModal';
+import MRVersionRowActionColumns from '~/odh/components/MRVersionRowActionColumns';
 
 type ModelVersionsTableRowProps = {
   modelVersion: ModelVersion;
@@ -36,8 +37,6 @@ const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
 
   const [isArchiveModalOpen, setIsArchiveModalOpen] = React.useState(false);
   const [isRestoreModalOpen, setIsRestoreModalOpen] = React.useState(false);
-  // TODO: [Model Serving] Uncomment when model serving is available
-  // const [isDeployModalOpen, setIsDeployModalOpen] = React.useState(false);
 
   if (!preferredModelRegistry) {
     return null;
@@ -51,11 +50,6 @@ const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
         },
       ]
     : [
-        // TODO: [Model Serving] Uncomment when model serving is available
-        // {
-        //   title: 'Deploy',
-        //   onClick: () => setIsDeployModalOpen(true),
-        // },
         { isSeparator: true },
         {
           title: 'Archive model version',
@@ -108,7 +102,7 @@ const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
       </Td>
       {!isArchiveModel && (
         <Td isActionCell>
-          <ActionsColumn items={actions} />
+          <MRVersionRowActionColumns mv={mv} actions={actions} />
           {isArchiveModalOpen ? (
             <ArchiveModelVersionModal
               onCancel={() => setIsArchiveModalOpen(false)}
@@ -126,22 +120,6 @@ const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
               modelVersionName={mv.name}
             />
           ) : null}
-          {/* TODO: [Model Serving] Uncomment when model serving is available */}
-          {/* {isDeployModalOpen ? (
-            <DeployRegisteredModelModal
-              onSubmit={() => {
-                navigate(
-                  modelVersionDeploymentsUrl(
-                    mv.id,
-                    mv.registeredModelId,
-                    preferredModelRegistry.metadata.name,
-                  ),
-                );
-              }}
-              onCancel={() => setIsDeployModalOpen(false)}
-              modelVersion={mv}
-            />
-          ) : null} */}
           {isRestoreModalOpen ? (
             <RestoreModelVersionModal
               onCancel={() => setIsRestoreModalOpen(false)}

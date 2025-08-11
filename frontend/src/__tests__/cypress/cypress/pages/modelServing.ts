@@ -65,11 +65,11 @@ class ModelServingGlobal {
   }
 
   findSingleServingModelButton() {
-    return cy.findByTestId('single-serving-select-button');
+    return cy.findByTestId('kserve-select-button');
   }
 
   findMultiModelButton() {
-    return cy.findByTestId('multi-serving-select-button');
+    return cy.findByTestId('model-mesh-select-button');
   }
 
   private findModelsTable() {
@@ -109,8 +109,11 @@ class ModelServingGlobal {
     return this.findModelsTable().find(`[data-label=Serving Runtime]`).contains(name);
   }
 
-  findServingRuntimeVersionLabel() {
-    return cy.findByTestId('serving-runtime-version-label');
+  findTokenCopyButton(index: number) {
+    if (index === 0) {
+      return cy.findAllByTestId('token-secret').findAllByRole('button').eq(0);
+    }
+    return cy.findAllByTestId('token-secret').eq(index).findAllByRole('button').eq(0);
   }
 }
 
@@ -231,6 +234,10 @@ class InferenceServiceModal extends ServingModal {
     return this.find().findByTestId('new-connection-radio');
   }
 
+  findExistingPVCConnectionOption() {
+    return this.find().findByTestId('pvc-serving-radio');
+  }
+
   findExistingConnectionOption() {
     return this.find().findByTestId('existing-connection-radio');
   }
@@ -243,6 +250,14 @@ class InferenceServiceModal extends ServingModal {
     return this.find().findByTestId('service-account-form-name');
   }
 
+  findServiceAccountIndex(index: number) {
+    return this.find().findAllByTestId('service-account-form-name').eq(index);
+  }
+
+  findAddServiceAccountButton() {
+    return this.find().findByTestId('add-service-account-button');
+  }
+
   findExistingConnectionSelect() {
     return this.find().findByTestId('typeahead-menu-toggle');
   }
@@ -251,6 +266,10 @@ class InferenceServiceModal extends ServingModal {
     return this.findExistingConnectionSelect().findByRole('combobox', {
       name: 'Type to filter',
     });
+  }
+
+  findPVCSelect() {
+    return this.find().findByTestId('pvc-connection-selector');
   }
 
   findHardProfileSelection(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -344,6 +363,10 @@ class InferenceServiceModal extends ServingModal {
 
   findLocationPathInput() {
     return this.find().findByTestId('folder-path');
+  }
+
+  findUriLocationPathInput() {
+    return this.find().findByTestId('field URI');
   }
 
   findLocationPathInputError() {
@@ -509,6 +532,22 @@ class KServeModal extends InferenceServiceModal {
     return this.find().findByTestId('max-replicas').findByRole('button', { name: 'Minus' });
   }
 
+  findCPURequestedCheckbox() {
+    return this.find().findByTestId('cpu-requested-checkbox');
+  }
+
+  findCPULimitCheckbox() {
+    return this.find().findByTestId('cpu-limit-checkbox');
+  }
+
+  findMemoryRequestedCheckbox() {
+    return this.find().findByTestId('memory-requested-checkbox');
+  }
+
+  findMemoryLimitCheckbox() {
+    return this.find().findByTestId('memory-limit-checkbox');
+  }
+
   findCPURequestedInput() {
     return this.find().findByTestId('cpu-requested-input').find('input');
   }
@@ -539,6 +578,10 @@ class KServeModal extends InferenceServiceModal {
 
   findMemoryLimitButton(type: 'Plus' | 'Minus') {
     return this.find().findByTestId('memory-limit-input').findByRole('button', { name: type });
+  }
+
+  findPVCConnectionOption() {
+    return this.find().findByTestId('pvc-serving-radio');
   }
 }
 mixin(KServeModal, [ServingRuntimeModal, InferenceServiceModal]);
@@ -613,12 +656,23 @@ class KServeRow extends ModelMeshRow {
     return this.find().findByTestId('state-action-toggle');
   }
 
-  findStatusLabel(label: string) {
-    return this.find().findByTestId('model-status-text').should('include.text', label);
+  findStatusLabel(label?: string) {
+    if (label) {
+      return this.find().findByTestId('model-status-text').should('include.text', label);
+    }
+    return this.find().findByTestId('model-status-text');
   }
 }
 
 class InferenceServiceRow extends TableRow {
+  findServingRuntimeVersionLabel() {
+    return this.find().findByTestId('serving-runtime-version-label');
+  }
+
+  findServingRuntimeVersionStatusLabel() {
+    return this.find().findByTestId('serving-runtime-version-status-label');
+  }
+
   findStatusTooltip() {
     return this.find()
       .findByTestId('model-status-text')
@@ -635,6 +689,14 @@ class InferenceServiceRow extends TableRow {
       .then(() => {
         this.findStatusTooltip().find('button').click();
       });
+  }
+
+  findLastDeployed() {
+    return this.find().find(`[data-label="Last deployed"]`);
+  }
+
+  findLastDeployedTimestamp() {
+    return this.find().findByTestId('last-deployed-timestamp');
   }
 
   findAPIProtocol() {
@@ -687,7 +749,11 @@ class ModelServingSection {
     return this.find().findByTestId('serving-runtime-table');
   }
 
-  findModelServerName(name: string) {
+  findModelServerDeployedName(name: string) {
+    return this.find().findByTestId('deployed-model-name').contains(name);
+  }
+
+  findModelMetricsLink(name: string) {
     return this.find().findByTestId(`metrics-link-${name}`);
   }
 

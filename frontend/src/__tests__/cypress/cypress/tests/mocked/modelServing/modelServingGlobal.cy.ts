@@ -28,7 +28,12 @@ import {
   ServingRuntimeModel,
   TemplateModel,
 } from '#~/__tests__/cypress/cypress/utils/models';
-import { DeploymentMode, type InferenceServiceKind, type ServingRuntimeKind } from '#~/k8sTypes';
+import {
+  DeploymentMode,
+  type TemplateKind,
+  type InferenceServiceKind,
+  type ServingRuntimeKind,
+} from '#~/k8sTypes';
 import { ServingRuntimePlatform } from '#~/types';
 import { be } from '#~/__tests__/cypress/cypress/utils/should';
 import { asClusterAdminUser } from '#~/__tests__/cypress/cypress/utils/mockUsers';
@@ -63,6 +68,7 @@ type HandlersProps = {
   disableServingRuntimeParamsConfig?: boolean;
   disableProjectScoped?: boolean;
   disableHardwareProfiles?: boolean;
+  servingRuntimesTemplates?: TemplateKind[];
 };
 
 const initIntercepts = ({
@@ -147,7 +153,7 @@ const initIntercepts = ({
   cy.interceptK8sList(SecretModel, mockK8sResourceList([mockSecretK8sResource({})]));
   cy.interceptK8sList(
     ServingRuntimeModel,
-    mockK8sResourceList(servingRuntimes, { namespace: 'modelServing' }),
+    mockK8sResourceList(servingRuntimes, { namespace: 'test-project' }),
   );
   cy.interceptK8sList(
     { model: ServingRuntimeModel, ns: undefined },
@@ -157,7 +163,7 @@ const initIntercepts = ({
     },
   ).as('getServingRuntimes');
   cy.interceptK8sList(
-    { model: InferenceServiceModel, ns: 'modelServing' },
+    { model: InferenceServiceModel, ns: 'test-project' },
     mockK8sResourceList(inferenceServices),
   );
   cy.interceptK8sList(
@@ -174,7 +180,7 @@ const initIntercepts = ({
   ).as('inferenceServicesError');
   cy.interceptK8sList(
     SecretModel,
-    mockK8sResourceList([mockSecretK8sResource({ namespace: 'modelServing' })]),
+    mockK8sResourceList([mockSecretK8sResource({ namespace: 'test-project' })]),
   );
   cy.interceptK8s(ServingRuntimeModel, mockServingRuntimeK8sResource({}));
   cy.interceptK8sList(
@@ -477,6 +483,9 @@ describe('Model Serving Global', () => {
         disableReplicas: true,
         disableModelMeshAnnotations: true,
       }); // KServe should send resources in ServingRuntime after migration
+      servingRuntimeMockNoResources.metadata.annotations = {
+        ...servingRuntimeMockNoResources.metadata.annotations,
+      };
       delete servingRuntimeMock.metadata.annotations?.['enable-auth'];
       delete servingRuntimeMock.metadata.annotations?.['enable-route'];
       delete servingRuntimeMock.spec.replicas;
@@ -707,15 +716,21 @@ describe('Model Serving Global', () => {
   });
 
   it('Display project scoped label on serving runtime selection on Edit', () => {
+    const projectScopedServingRuntime = mockServingRuntimeK8sResource({
+      name: 'test-project-scoped-sr',
+      isProjectScoped: true,
+      scope: 'project',
+      templateDisplayName: 'test-project-scoped-sr',
+    });
+
     initIntercepts({
       projectEnableModelMesh: false,
       disableServingRuntimeParamsConfig: false,
       disableProjectScoped: false,
-      servingRuntimes: [
-        mockServingRuntimeK8sResource({
-          isProjectScoped: true,
-          scope: 'project',
-          templateDisplayName: 'test-project-scoped-sr',
+      servingRuntimes: [projectScopedServingRuntime],
+      inferenceServices: [
+        mockInferenceServiceK8sResource({
+          modelName: 'test-project-scoped-sr', // Set runtime to match serving runtime name
         }),
       ],
     });
@@ -768,21 +783,36 @@ describe('Model Serving Global', () => {
     hardwareProfileSection.findGlobalScopedLabel().should('exist');
   });
 
-  it('Display project scoped label on serving runtime selection on Edit', () => {
+  it('Display project scoped hardware profile on serving runtime selection on Edit', () => {
     initIntercepts({
       projectEnableModelMesh: false,
       disableServingRuntimeParamsConfig: false,
       disableProjectScoped: false,
       disableHardwareProfiles: false,
-      servingRuntimes: [
-        mockServingRuntimeK8sResource({
+      inferenceServices: [
+        mockInferenceServiceK8sResource({
+          namespace: 'test-project',
           hardwareProfileName: 'large-profile-1',
           hardwareProfileNamespace: 'test-project',
+          resources: {
+            requests: {
+              cpu: '4',
+              memory: '8Gi',
+            },
+            limits: {
+              cpu: '8',
+              memory: '16Gi',
+            },
+          },
         }),
       ],
+      servingRuntimes: [mockServingRuntimeK8sResource({})],
     });
+
     modelServingGlobal.visit('test-project');
     modelServingGlobal.getModelRow('Test Inference Service').findKebabAction('Edit').click();
+
+    hardwareProfileSection.findHardwareProfileSearchSelector().should('be.visible');
     hardwareProfileSection
       .findHardwareProfileSearchSelector()
       .should('contain.text', 'Large Profile-1');
@@ -939,7 +969,14 @@ describe('Model Serving Global', () => {
     modelServingGlobal.getModelRow('Test Inference Service').should('have.length', 1);
     modelServingGlobal.getModelMetricLink('Test Inference Service').should('not.exist');
 
-    initIntercepts({ disableKServeMetrics: false });
+    initIntercepts({
+      disableKServeMetrics: false,
+      inferenceServices: [
+        mockInferenceServiceK8sResource({
+          activeModelState: 'Loaded',
+        }),
+      ],
+    });
     modelServingGlobal.visit('test-project');
 
     modelServingGlobal.getModelRow('Test Inference Service').should('have.length', 1);
@@ -947,19 +984,47 @@ describe('Model Serving Global', () => {
     modelServingGlobal.getModelMetricLink('Test Inference Service').click();
     cy.findByTestId('app-page-title').should('have.text', 'Test Inference Service metrics');
   });
-  it('Display the version label if the annotation is present', () => {
-    const servingRuntimeWithVersion = mockServingRuntimeK8sResource({});
-    servingRuntimeWithVersion.metadata.annotations =
-      servingRuntimeWithVersion.metadata.annotations || {};
-    servingRuntimeWithVersion.metadata.annotations['opendatahub.io/runtime-version'] = '1.2.3';
 
-    initIntercepts({
-      servingRuntimes: [servingRuntimeWithVersion],
+  it('Display the version label and status label correctly', () => {
+    const servingRuntimeWithLatestVersion = mockServingRuntimeK8sResource({
+      namespace: 'test-project',
+      name: 'test-inference-service-latest',
+      templateName: 'template-2',
+      version: '1.0.0',
+    });
+    const servingRuntimeWithOutdatedVersion = mockServingRuntimeK8sResource({
+      namespace: 'test-project',
+      name: 'test-inference-service-outdated',
+      templateName: 'template-2',
+      version: '0.5.0',
+    });
+    const inferenceServiceLatest = mockInferenceServiceK8sResource({
+      name: 'test-inference-service-latest',
+      namespace: 'test-project',
+      displayName: 'Latest Model',
+      modelName: 'test-inference-service-latest',
+    });
+    const inferenceServiceOutdated = mockInferenceServiceK8sResource({
+      name: 'test-inference-service-outdated',
+      namespace: 'test-project',
+      displayName: 'Outdated Model',
+      modelName: 'test-inference-service-outdated',
     });
 
-    modelServingGlobal.visit();
-    modelServingGlobal.findServingRuntimeVersionLabel().should('exist');
-    modelServingGlobal.findServingRuntimeVersionLabel().should('contain.text', '1.2.3');
+    initIntercepts({
+      servingRuntimes: [servingRuntimeWithLatestVersion, servingRuntimeWithOutdatedVersion],
+      inferenceServices: [inferenceServiceLatest, inferenceServiceOutdated],
+    });
+
+    modelServingGlobal.visit('test-project');
+
+    const latestRow = modelServingSection.getInferenceServiceRow('Latest Model');
+    latestRow.findServingRuntimeVersionLabel().should('contain.text', '1.0.0');
+    latestRow.findServingRuntimeVersionStatusLabel().should('have.text', 'Latest');
+
+    const outdatedRow = modelServingSection.getInferenceServiceRow('Outdated Model');
+    outdatedRow.findServingRuntimeVersionLabel().should('contain.text', '0.5.0');
+    outdatedRow.findServingRuntimeVersionStatusLabel().should('have.text', 'Outdated');
   });
 
   it('Not display the version label if the annotation is absent', () => {
@@ -969,8 +1034,15 @@ describe('Model Serving Global', () => {
       servingRuntimes: [servingRuntimeWithoutVersion],
     });
 
-    modelServingGlobal.visit();
-    modelServingGlobal.findServingRuntimeVersionLabel().should('not.exist');
+    modelServingGlobal.visit('test-project');
+    modelServingSection
+      .getInferenceServiceRow('Test Inference Service')
+      .findServingRuntimeVersionLabel()
+      .should('not.exist');
+    modelServingSection
+      .getInferenceServiceRow('Test Inference Service')
+      .findServingRuntimeVersionStatusLabel()
+      .should('not.exist');
   });
 
   it('Should display env vars from a valueFrom secret', () => {
@@ -1056,12 +1128,48 @@ describe('Model Serving Global', () => {
       modelServingGlobal.findEmptyResults().should('exist');
     });
 
+    it('Sort model by last deployed', () => {
+      const inferenceServiceNew = mockInferenceServiceK8sResource({
+        namespace: 'test-project',
+        name: 'new-model',
+        displayName: 'New Model',
+        modelName: 'test-inference-service-latest',
+        lastTransitionTime: '2025-07-10T12:12:41Z',
+        activeModelState: 'Loaded',
+        isReady: true,
+      });
+      const inferenceServiceOld = mockInferenceServiceK8sResource({
+        namespace: 'test-project',
+        name: 'old-model',
+        displayName: 'Old Model',
+        modelName: 'test-inference-service-outdated',
+        lastTransitionTime: '2024-09-04T16:12:41Z',
+        activeModelState: 'Loaded',
+        isReady: true,
+      });
+      initIntercepts({
+        inferenceServices: [inferenceServiceNew, inferenceServiceOld],
+      });
+
+      modelServingGlobal.visit('test-project');
+
+      modelServingGlobal.findSortButton('Last deployed').click();
+      modelServingGlobal.findSortButton('Last deployed').should(be.sortAscending);
+      modelServingGlobal.findSortButton('Last deployed').click();
+      modelServingGlobal.findSortButton('Last deployed').should(be.sortDescending);
+
+      const oldModelRow = modelServingSection.getInferenceServiceRow('Old Model');
+      oldModelRow.findLastDeployedTimestamp().trigger('mouseenter');
+      cy.findByRole('tooltip').should('contain.text', '9/4/2024, 4:12:41 PM UTC');
+    });
+
     it('Validate pagination', () => {
       const totalItems = 50;
       const mockInferenceService: InferenceServiceKind[] = Array.from(
         { length: totalItems },
         (_, i) =>
           mockInferenceServiceK8sResource({
+            name: `test-inference-service-${i}`,
             displayName: `Test Inference Service-${i}`,
           }),
       );

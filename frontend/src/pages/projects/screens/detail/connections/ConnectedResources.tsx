@@ -9,15 +9,20 @@ import { ProjectObjectType } from '#~/concepts/design/utils';
 import ResourceLabel from '#~/pages/projects/screens/detail/connections/ResourceLabel';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import { useInferenceServicesForConnection } from '#~/pages/projects/useInferenceServicesForConnection';
+import { PersistentVolumeClaimKind } from '#~/k8sTypes';
+import { EitherNotBoth } from '#~/typeHelpers';
 
-type Props = {
-  connection: Connection;
-};
+export type ConnectedResourcesProps = EitherNotBoth<
+  { connection: Connection },
+  { pvc: PersistentVolumeClaimKind }
+>;
 
-const ConnectedResources: React.FC<Props> = ({ connection }) => {
+const ConnectedResources: React.FC<ConnectedResourcesProps> = ({ connection, pvc }) => {
   const { notebooks: connectedNotebooks, loaded: notebooksLoaded } = useRelatedNotebooks(
-    ConnectedNotebookContext.EXISTING_DATA_CONNECTION,
-    connection.metadata.name,
+    connection
+      ? ConnectedNotebookContext.EXISTING_DATA_CONNECTION
+      : ConnectedNotebookContext.EXISTING_PVC,
+    connection ? connection.metadata.name : pvc.metadata.name,
   );
   const connectedModels = useInferenceServicesForConnection(connection);
 
@@ -29,22 +34,28 @@ const ConnectedResources: React.FC<Props> = ({ connection }) => {
     return '-';
   }
 
+  const renderNotebookLabels = () =>
+    connectedNotebooks.map((notebook) => (
+      <ResourceLabel
+        key={notebook.metadata.name}
+        resourceType={ProjectObjectType.build}
+        title={getDisplayNameFromK8sResource(notebook)}
+      />
+    ));
+
+  const renderModelLabels = () =>
+    connectedModels.map((model) => (
+      <ResourceLabel
+        key={model.metadata.name}
+        resourceType={ProjectObjectType.deployedModelsList}
+        title={getDisplayNameFromK8sResource(model)}
+      />
+    ));
+
   return (
     <LabelGroup>
-      {connectedNotebooks.map((notebook) => (
-        <ResourceLabel
-          key={notebook.metadata.name}
-          resourceType={ProjectObjectType.build}
-          title={getDisplayNameFromK8sResource(notebook)}
-        />
-      ))}
-      {connectedModels.map((model) => (
-        <ResourceLabel
-          key={model.metadata.name}
-          resourceType={ProjectObjectType.deployedModelsList}
-          title={getDisplayNameFromK8sResource(model)}
-        />
-      ))}
+      {renderNotebookLabels()}
+      {renderModelLabels()}
     </LabelGroup>
   );
 };

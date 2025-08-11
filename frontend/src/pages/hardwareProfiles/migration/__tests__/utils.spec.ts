@@ -81,14 +81,14 @@ describe('transformContainerSizeToHardwareProfile', () => {
         name: 'test-profile',
         namespace: 'test-namespace',
         annotations: {
+          'opendatahub.io/display-name': 'Test Size',
+          'opendatahub.io/disabled': 'false',
           'opendatahub.io/dashboard-feature-visibility': JSON.stringify([
             HardwareProfileFeatureVisibility.WORKBENCH,
           ]),
         },
       },
       spec: {
-        displayName: 'Test Size',
-        enabled: true,
         identifiers: expect.arrayContaining([
           expect.objectContaining({
             identifier: 'cpu',
@@ -146,15 +146,14 @@ describe('createAcceleratorHardwareProfiles', () => {
       metadata: {
         name: 'test-profile-notebooks',
         annotations: {
+          'opendatahub.io/display-name': 'Test Accelerator',
+          'opendatahub.io/disabled': 'false',
           'opendatahub.io/dashboard-feature-visibility': JSON.stringify([
             HardwareProfileFeatureVisibility.WORKBENCH,
           ]),
         },
       },
-      spec: {
-        displayName: 'Test Accelerator',
-        enabled: true,
-      },
+      spec: {},
     });
 
     // Check serving profile
@@ -162,16 +161,15 @@ describe('createAcceleratorHardwareProfiles', () => {
       metadata: {
         name: 'test-profile-serving',
         annotations: {
+          'opendatahub.io/display-name': 'Test Accelerator',
+          'opendatahub.io/disabled': 'false',
           'opendatahub.io/dashboard-feature-visibility': JSON.stringify([
             HardwareProfileFeatureVisibility.MODEL_SERVING,
             HardwareProfileFeatureVisibility.PIPELINES,
           ]),
         },
       },
-      spec: {
-        displayName: 'Test Accelerator',
-        enabled: true,
-      },
+      spec: {},
     });
   });
 });

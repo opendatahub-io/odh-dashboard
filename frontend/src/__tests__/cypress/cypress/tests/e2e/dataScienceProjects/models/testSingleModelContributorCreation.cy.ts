@@ -29,12 +29,6 @@ const uuid = generateTestUUID();
 
 describe('Verify Model Creation and Validation using the UI', () => {
   retryableBefore(() => {
-    Cypress.on('uncaught:exception', (err) => {
-      if (err.message.includes('Error: secrets "ds-pipeline-config" already exists')) {
-        return false;
-      }
-      return true;
-    });
     // Setup: Load test data and ensure clean state
     return loadDSPFixture('e2e/dataScienceProjects/testSingleModelContributorCreation.yaml').then(
       (fixtureData: DataScienceProjectData) => {
@@ -59,8 +53,9 @@ describe('Verify Model Creation and Validation using the UI', () => {
     );
   });
   after(() => {
-    // Delete provisioned Project
-    deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
+    // Delete provisioned Project - wait for completion due to RHOAIENG-19969 to support test retries, 5 minute timeout
+    // TODO: Review this timeout once RHOAIENG-19969 is resolved
+    deleteOpenShiftProject(projectName, { wait: true, ignoreNotFound: true, timeout: 300000 });
   });
 
   it(
@@ -97,7 +92,7 @@ describe('Verify Model Creation and Validation using the UI', () => {
       inferenceServiceModal.findLocationPathInput().type(modelFilePath);
       inferenceServiceModal.findSubmitButton().click();
       inferenceServiceModal.shouldBeOpen(false);
-      modelServingSection.findModelServerName(testData.singleModelName);
+      modelServingSection.findModelServerDeployedName(testData.singleModelName);
 
       //Verify the model created
       cy.step('Verify that the Model is created Successfully on the backend and frontend');
@@ -105,9 +100,9 @@ describe('Verify Model Creation and Validation using the UI', () => {
         checkReady: true,
         checkLatestDeploymentReady: true,
       });
-      modelServingSection.findModelServerName(testData.singleModelName);
-      // Note reload is required as status tooltip was not found due to a stale element
       cy.reload();
+      modelServingSection.findModelMetricsLink(testData.singleModelName);
+      // Note reload is required as status tooltip was not found due to a stale element
       attemptToClickTooltip();
     },
   );

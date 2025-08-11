@@ -23,7 +23,7 @@ import { getStatusFromCondition } from '#~/concepts/pipelines/content/utils.tsx'
 import PipelineComponentStatusIcon, {
   StatusType,
 } from '#~/concepts/pipelines/content/PipelineComponentStatusIcon.tsx';
-import { K8sCondition } from '#~/k8sTypes';
+import { K8sCondition, K8sDspaConditionReason } from '#~/k8sTypes';
 import { useWatchAllPodEventsAndFilter } from '#~/concepts/pipelines/context/usePipelineEvents.ts';
 import EventLog from '#~/concepts/k8s/EventLog/EventLog';
 import '#~/concepts/dashboard/ModalStyles.scss';
@@ -55,10 +55,15 @@ const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose }) =>
   );
 
   const statusConditions: [StatusType, K8sCondition][] | undefined =
-    pipelinesServer.crStatus?.conditions?.map((condition) => {
-      const containerStatus = getStatusFromCondition(condition);
-      return [containerStatus, condition];
-    });
+    pipelinesServer.crStatus?.conditions
+      ?.filter(
+        (unfilteredCondition) =>
+          unfilteredCondition.reason !== K8sDspaConditionReason.NotApplicable,
+      )
+      .map((condition) => {
+        const containerStatus = getStatusFromCondition(condition);
+        return [containerStatus, condition];
+      });
 
   // Find all error conditions
   const errorConditions: K8sCondition[] =
@@ -66,20 +71,25 @@ const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose }) =>
       ?.filter((contents1) => contents1[0] === StatusType.ERROR)
       .map((contents) => contents[1]) || [];
 
+  const serverErroredOut = errorConditions.some((c) => c.type === 'Ready');
+
   const renderProgress = () => (
     <Panel isScrollable>
       <PanelMain>
-        {/* Render an Alert for each error condition */}
-        {errorConditions.map((condition, idx) => (
-          <Alert
-            key={condition.type + idx}
-            variant="danger"
-            title={`${condition.type} - ${condition.reason || 'Unknown'}` || 'Error'}
-            style={{ marginBottom: 16 }}
-          >
-            {condition.message || 'An error occurred.'}
-          </Alert>
-        ))}
+        {/* Render an Alert for each error condition  that has a message*/}
+        {errorConditions
+          .filter((c) => c.message)
+          .map((condition, idx) => (
+            <Alert
+              data-testid={`error-${idx}`}
+              key={condition.type + idx}
+              variant="danger"
+              title={`${condition.type} - ${condition.reason || 'Unknown'}` || 'Error'}
+              style={{ marginBottom: 16 }}
+            >
+              {condition.message}
+            </Alert>
+          ))}
         <Stack hasGutter>
           <StackItem>
             <Stack hasGutter>
@@ -112,7 +122,7 @@ const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose }) =>
   );
 
   const renderLogs = () => (
-    <Panel className="odh-modal__scrollable-panel">
+    <Panel isScrollable>
       <PanelMain>
         <EventLog
           events={allEvents}
@@ -134,6 +144,26 @@ const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose }) =>
       Closing this dialog will not affect the pipeline server creation.
     </Content>
   );
+
+  const errorDesc = (
+    <Content data-testid="errorDescription">
+      We encountered an error creating your pipeline server. Close this modal to see further
+      instructions.
+    </Content>
+  );
+
+  const modalTitle = serverErroredOut
+    ? 'Pipeline Initialization Failed'
+    : isServerReadyAndCompletelyDone
+    ? 'Pipeline Server Initialized'
+    : spinner;
+
+  const modalDesc = serverErroredOut
+    ? errorDesc
+    : isServerReadyAndCompletelyDone
+    ? successDesc
+    : inProgressDesc;
+
   return (
     <Modal
       data-testid="pipeline-server-starting-modal"
@@ -143,10 +173,7 @@ const StartingStatusModal: React.FC<StartingStatusModalProps> = ({ onClose }) =>
       title="Pipeline Server Status"
       disableFocusTrap
     >
-      <ModalHeader
-        title={isServerReadyAndCompletelyDone ? 'Pipeline Server Initialized' : spinner}
-        description={isServerReadyAndCompletelyDone ? successDesc : inProgressDesc}
-      />
+      <ModalHeader title={modalTitle} description={modalDesc} />
       <ModalBody className="odh-modal__content-height">
         <Stack hasGutter>
           <StackItem>

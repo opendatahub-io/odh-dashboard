@@ -3,6 +3,7 @@ import {
   Dropdown,
   DropdownItem,
   DropdownList,
+  Flex,
   MenuToggle,
   MenuToggleAction,
   MenuToggleElement,
@@ -39,8 +40,11 @@ const RegisteredModelsTableToolbar: React.FC<RegisteredModelsTableToolbarProps> 
   return (
     <Toolbar data-testid="registered-models-table-toolbar" clearAllFilters={onClearAllFilters}>
       <ToolbarContent>
-        <ToolbarToggleGroup toggleIcon={<FilterIcon />} breakpoint="xl">
-          {tableToggleGroupItems}
+        {/* TODO: Remove this Flex after the ToolbarContent can center the children elements */}
+        <Flex>
+          <ToolbarToggleGroup toggleIcon={<FilterIcon />} breakpoint="xl">
+            {tableToggleGroupItems}
+          </ToolbarToggleGroup>
           <ToolbarItem>
             <Dropdown
               isOpen={isRegisterNewVersionOpen}
@@ -112,7 +116,7 @@ const RegisteredModelsTableToolbar: React.FC<RegisteredModelsTableToolbarProps> 
               </DropdownList>
             </Dropdown>
           </ToolbarItem>
-        </ToolbarToggleGroup>
+        </Flex>
       </ToolbarContent>
     </Toolbar>
   );

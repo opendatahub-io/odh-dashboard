@@ -4,6 +4,7 @@ import {
   registerModelPage,
 } from '#~/__tests__/cypress/cypress/pages/modelRegistry/registerModelPage';
 import { modelRegistry } from '#~/__tests__/cypress/cypress/pages/modelRegistry';
+import { clickRegisterModelButton } from '#~/__tests__/cypress/cypress/utils/modelRegistryUtils';
 import { retryableBeforeEach } from '#~/__tests__/cypress/cypress/utils/retryableHooks';
 import {
   checkModelRegistry,
@@ -63,7 +64,7 @@ describe('Verify that models and versions can be archived and restored via model
 
   it(
     'Registers model, adds versions, archives version, restores version, archives whole model, restores whole model',
-    { tags: ['@Maintain', '@ModelRegistry', '@NonConcurrent'] },
+    { tags: ['@Maintain', '@ModelRegistry', '@NonConcurrent', '@Featureflagged'] },
     () => {
       cy.step('Login as an Admin');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
@@ -72,11 +73,10 @@ describe('Verify that models and versions can be archived and restored via model
       appChrome.findNavItem('Model registry', 'Models').click();
 
       cy.step('Select the created model registry');
-      modelRegistry.findModelRegistry().click();
-      cy.findByTestId(registryName).click();
+      modelRegistry.findSelectModelRegistry(registryName);
 
       cy.step('Register a model using object storage');
-      modelRegistry.findRegisterModelButton().click();
+      clickRegisterModelButton(30000);
 
       // Fill in model details
       registerModelPage
@@ -103,7 +103,7 @@ describe('Verify that models and versions can be archived and restored via model
         .findFormField(FormFieldSelector.LOCATION_PATH)
         .type('models/test-model/v1.0');
 
-      registerModelPage.findSubmitButton().click();
+      registerModelPage.findSubmitButton().should('be.enabled').click();
 
       cy.step('Verify the model was registered');
       cy.url().should('include', '/modelRegistry');
@@ -144,7 +144,7 @@ describe('Verify that models and versions can be archived and restored via model
         .findFormField(VersionFormFieldSelector.LOCATION_PATH)
         .type('models/test-model/v2.0');
 
-      registerVersionPage.findSubmitButton().click();
+      registerVersionPage.findSubmitButton().should('be.enabled').click();
 
       cy.step('Verify v1.0 & v2.0 are registered');
       cy.contains(testData.version2Name, { timeout: 10000 }).should('be.visible');
@@ -206,9 +206,7 @@ describe('Verify that models and versions can be archived and restored via model
 
       cy.step('Verify the model is archived');
       // Navigate to archived models to verify
-      cy.findByTestId('registered-models-table-kebab-action')
-        .findDropdownItem('View archived models')
-        .click();
+      modelRegistry.findEmptyModelRegistrySecondaryButton().should('be.visible').click();
       registeredModelArchive
         .findArchiveModelTable()
         .contains('td', testData.objectStorageModelName, { timeout: 10000 })

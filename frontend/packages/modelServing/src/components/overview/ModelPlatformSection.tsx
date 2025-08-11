@@ -8,26 +8,28 @@ import {
   Stack,
   Label,
   CardFooter,
-  Button,
 } from '@patternfly/react-core';
-import { PencilAltIcon } from '@patternfly/react-icons';
 import CollapsibleSection from '@odh-dashboard/internal/concepts/design/CollapsibleSection';
 import { ProjectObjectType, SectionType } from '@odh-dashboard/internal/concepts/design/utils';
 import OverviewCard from '@odh-dashboard/internal/pages/projects/screens/detail/overview/components/OverviewCard';
 import { ProjectDetailsContext } from '@odh-dashboard/internal/pages/projects/ProjectDetailsContext';
-import { ModelServingPlatformContext } from '../../concepts/ModelServingPlatformContext';
-import { useProjectServingPlatform } from '../../concepts/useProjectServingPlatform';
+import ModelServingPlatformSelectErrorAlert from '@odh-dashboard/internal/concepts/modelServing/Platforms/ModelServingPlatformSelectErrorAlert';
+import { NavigateBackToRegistryButton } from '@odh-dashboard/internal/concepts/modelServing/NavigateBackToRegistryButton';
+import {
+  useProjectServingPlatform,
+  type ModelServingPlatform,
+} from '../../concepts/useProjectServingPlatform';
 import { DeployButton } from '../deploy/DeployButton';
-import { PlatformSelectionGallery } from '../platformSelection';
+import { PlatformSelectionGallery } from '../platforms/platformSelection';
+import { ResetPlatformButton } from '../platforms/ResetPlatformButton';
 
 const galleryWidth = {
   minWidths: { default: '100%', lg: 'calc(50% - 1rem / 2)' },
   maxWidths: { default: '100%', lg: 'calc(50% - 1rem / 2)' },
 };
 
-const ModelPlatformSection: React.FC = () => {
+const ModelPlatformSection: React.FC<{ platforms: ModelServingPlatform[] }> = ({ platforms }) => {
   const { currentProject } = React.useContext(ProjectDetailsContext);
-  const { availablePlatforms } = React.useContext(ModelServingPlatformContext);
 
   const {
     activePlatform,
@@ -35,7 +37,8 @@ const ModelPlatformSection: React.FC = () => {
     resetProjectPlatform,
     newProjectPlatformLoading,
     projectPlatformError,
-  } = useProjectServingPlatform(currentProject, availablePlatforms);
+    clearProjectPlatformError,
+  } = useProjectServingPlatform(currentProject, platforms);
 
   // If no platform is selected -
   if (!activePlatform) {
@@ -54,7 +57,7 @@ const ModelPlatformSection: React.FC = () => {
           </FlexItem>
           <FlexItem>
             <PlatformSelectionGallery
-              platforms={availablePlatforms || []}
+              platforms={platforms}
               onSelect={setProjectPlatform}
               loadingPlatformId={newProjectPlatformLoading?.properties.id}
               useOverviewCard
@@ -63,9 +66,10 @@ const ModelPlatformSection: React.FC = () => {
           </FlexItem>
           {projectPlatformError && (
             <FlexItem>
-              <Alert isInline title="Error" variant="danger">
-                {projectPlatformError}
-              </Alert>
+              <ModelServingPlatformSelectErrorAlert
+                error={projectPlatformError}
+                clearError={clearProjectPlatformError}
+              />
             </FlexItem>
           )}
           <FlexItem>
@@ -95,33 +99,31 @@ const ModelPlatformSection: React.FC = () => {
         headerInfo={
           <Flex gap={{ default: 'gapSm' }}>
             <Label>{enabledText}</Label>
-            {(availablePlatforms?.length ?? 0) > 1 && (
-              <Button
-                data-testid="change-serving-platform-button"
-                variant="link"
-                isInline
-                onClick={resetProjectPlatform}
-                icon={<PencilAltIcon />}
-                isDisabled={!!newProjectPlatformLoading}
-              >
-                Change
-              </Button>
-            )}
+            <ResetPlatformButton
+              platforms={platforms}
+              hasDeployments={false}
+              isLoading={!!newProjectPlatformLoading}
+              onReset={resetProjectPlatform}
+            />
           </Flex>
         }
       >
         <CardBody>
           <Stack hasGutter>
             {projectPlatformError && (
-              <Alert isInline title="Loading error" variant="danger">
-                {projectPlatformError}
-              </Alert>
+              <ModelServingPlatformSelectErrorAlert
+                error={projectPlatformError}
+                clearError={clearProjectPlatformError}
+              />
             )}
             <Content component="small">{startHintDescription}</Content>
           </Stack>
         </CardBody>
         <CardFooter>
-          <DeployButton platform={activePlatform} variant="secondary" />
+          <Flex gap={{ default: 'gapMd' }}>
+            <DeployButton project={currentProject} variant="link" />
+            <NavigateBackToRegistryButton isInline />
+          </Flex>
         </CardFooter>
       </OverviewCard>
     </CollapsibleSection>

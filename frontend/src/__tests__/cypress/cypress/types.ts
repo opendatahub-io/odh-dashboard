@@ -59,6 +59,7 @@ export type DspaReplacements = {
   DSPA_SECRET_NAME: string;
   NAMESPACE: string;
   AWS_S3_BUCKET: string;
+  AWS_REGION: string;
 };
 
 export type StorageClassConfig = {
@@ -80,6 +81,18 @@ export type PVCReplacements = {
   PVC_DISPLAY_NAME: string;
   PVC_SIZE: string;
   STORAGE_CLASS: string;
+};
+
+export type PVCLoaderPodReplacements = {
+  NAMESPACE: string;
+  PVC_NAME: string;
+  AWS_S3_BUCKET: string;
+  AWS_DEFAULT_REGION: string;
+  AWS_S3_ENDPOINT: string;
+  AWS_ACCESS_KEY_ID: string;
+  AWS_SECRET_ACCESS_KEY: string;
+  POD_NAME: string;
+  MODEL_PATH: string;
 };
 
 export type WBEditTestData = {
@@ -306,12 +319,41 @@ export type NotebookTolerationsTestData = {
 
 export type RegisterModelTestData = {
   registryNamePrefix: string;
+  // First model (Object Storage)
   objectStorageModelName: string;
-  uriModelName: string;
+  objectStorageModelDescription: string;
   version1Name: string;
+  version1Description: string;
+  modelFormatOnnx: string;
+  formatVersion1_0: string;
+  objectStorageEndpoint: string;
+  objectStorageBucket: string;
+  objectStorageRegion: string;
+  objectStoragePath: string;
+  modelOpenVinoPath: string;
+  // Second model (URI)
+  uriModelName: string;
+  uriModelDescription: string;
+  uriVersion1Description: string;
+  modelFormatPytorch: string;
+  formatVersion2_0: string;
+  uriPrimary: string;
+  // New version registration (Versions view)
   version2Name: string;
+  version2Description: string;
+  modelFormatTensorflow: string;
+  formatVersion3_0: string;
+  uriVersion2: string;
+
   newNameSuffix: string;
   newDescription: string;
+  deployProjectNamePrefix: string;
+};
+
+export type ManageRegistryPermissionsTestData = {
+  registryNamePrefix: string;
+  testProjectNamePrefix: string;
+  rhodsUsersGroup: string;
 };
 
 export enum AccessMode {

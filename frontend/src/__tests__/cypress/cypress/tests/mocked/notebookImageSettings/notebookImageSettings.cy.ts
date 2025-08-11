@@ -18,7 +18,13 @@ import {
   HardwareProfileModel,
   ImageStreamModel,
 } from '#~/__tests__/cypress/cypress/utils/models';
-import { mockDashboardConfig, mockK8sResourceList } from '#~/__mocks__';
+import {
+  mock200Status,
+  mock403Error,
+  mock404Error,
+  mockDashboardConfig,
+  mockK8sResourceList,
+} from '#~/__mocks__';
 import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile';
 import { mockAcceleratorProfile } from '#~/__mocks__/mockAcceleratorProfile';
 import {
@@ -180,7 +186,9 @@ describe('Workbench image settings', () => {
       { model: ImageStreamModel, ns: 'opendatahub' },
       mockK8sResourceList([mockImageStreamK8sResource({})]),
     );
-    cy.interceptOdh('POST /api/images', { success: true }).as('importNotebookImage');
+    cy.interceptK8s('POST', { model: ImageStreamModel, ns: 'opendatahub' }, mock200Status({})).as(
+      'importNotebookImage',
+    );
 
     notebookImageSettings.visit();
 
@@ -257,21 +265,50 @@ describe('Workbench image settings', () => {
 
     importNotebookImageModal.findSubmitButton().click();
 
-    cy.wait('@importNotebookImage').then((interception) => {
-      expect(interception.request.body).to.eql({
-        /* eslint-disable-next-line camelcase */
-        display_name: 'image',
+    const expectedImageStream = {
+      apiVersion: 'image.openshift.io/v1',
+      kind: 'ImageStream',
+      metadata: {
+        annotations: {
+          'opendatahub.io/notebook-image-creator': 'test-user',
+          'opendatahub.io/notebook-image-desc': '',
+          'opendatahub.io/notebook-image-name': 'image',
+          'opendatahub.io/notebook-image-url': 'image:latest',
+          'opendatahub.io/recommended-accelerators': '[]',
+        },
+        labels: {
+          'app.kubernetes.io/created-by': 'byon',
+          'opendatahub.io/dashboard': 'true',
+          'opendatahub.io/notebook-image': 'true',
+        },
         name: 'image',
-        url: 'image:latest',
-        description: '',
-        recommendedAcceleratorIdentifiers: [],
-        provider: 'test-user',
-        packages: [
-          { name: 'packages', version: 'version', visible: true },
-          { name: 'packages-1', version: 'version-1', visible: true },
+        namespace: 'opendatahub',
+      },
+      spec: {
+        lookupPolicy: {
+          local: true,
+        },
+        tags: [
+          {
+            annotations: {
+              'openshift.io/imported-from': 'image:latest',
+              'opendatahub.io/notebook-software':
+                '[{"name":"software","version":"version","visible":true}]',
+              'opendatahub.io/notebook-python-dependencies':
+                '[{"name":"packages","version":"version","visible":true},{"name":"packages-1","version":"version-1","visible":true}]',
+            },
+            from: {
+              kind: 'DockerImage',
+              name: 'image:latest',
+            },
+            name: 'latest',
+          },
         ],
-        software: [{ name: 'software', version: 'version', visible: true }],
-      });
+      },
+    };
+
+    cy.wait('@importNotebookImage').then((interception) => {
+      expect(interception.request.body).to.eql(expectedImageStream);
     });
   });
 
@@ -318,11 +355,79 @@ describe('Workbench image settings', () => {
       }),
     );
 
-    cy.interceptOdh(
-      'PUT /api/images/:image',
-      { path: { image: 'byon-123' } },
-      { success: true },
+    cy.interceptK8s(
+      'PUT',
+      { model: ImageStreamModel, ns: 'opendatahub', name: 'byon-123' },
+      mock200Status({}),
     ).as('editNotebookImage');
+
+    const expectedImageStream = mockImageStreamK8sResource({
+      name: 'byon-123',
+      namespace: 'opendatahub',
+      imageTag: 'image:latest',
+      tagName: 'latest',
+      displayName: 'Updated custom image',
+      opts: {
+        metadata: {
+          uid: 'd6a75af7-f215-47d1-a167-e1c1e78d465c',
+          resourceVersion: '1579802',
+          generation: 2,
+          creationTimestamp: '2023-06-30T15:07:35Z',
+          annotations: {
+            'kfctl.kubeflow.io/kfdef-instance': 'opendatahub.opendatahub',
+            'opendatahub.io/notebook-image-desc': 'A custom notebook image',
+            'opendatahub.io/notebook-image-order': '1',
+            'opendatahub.io/notebook-image-url':
+              'https://github.com//opendatahub-io/notebooks/tree/main/jupyter/minimal',
+            'opendatahub.io/recommended-accelerators': '["hwp1","hwp2"]',
+          },
+        },
+        spec: {
+          lookupPolicy: {
+            local: true,
+          },
+          tags: [
+            {
+              name: 'latest',
+              from: {
+                kind: 'DockerImage',
+                name: 'image:latest',
+              },
+              annotations: {
+                'openshift.io/imported-from': 'image:latest',
+                'opendatahub.io/notebook-software':
+                  '[{"name":"test-software","version":"2.0","visible":true}]',
+                'opendatahub.io/notebook-python-dependencies':
+                  '[{"name":"test-package","version":"1.0","visible":true}]',
+              },
+            },
+          ],
+        },
+        status: {
+          dockerImageRepository:
+            'image-registry.openshift-image-registry.svc:5000/opendatahub/jupyter-minimal-notebook',
+          tags: [
+            {
+              tag: 'latest',
+              items: [
+                {
+                  created: '2023-06-30T15:07:36Z',
+                  dockerImageReference: 'image:latest',
+                  image: 'image:latest',
+                  generation: 2,
+                },
+              ],
+            },
+          ],
+        },
+      },
+    });
+
+    cy.interceptK8s(
+      'GET',
+      { model: ImageStreamModel, ns: 'opendatahub', name: 'byon-123' },
+      expectedImageStream,
+    ).as('getNotebookImage');
 
     cy.interceptK8sList(
       { model: AcceleratorProfileModel, ns: 'opendatahub' },
@@ -430,23 +535,15 @@ describe('Workbench image settings', () => {
     updateNotebookImageModal.findSubmitButton().click();
 
     cy.wait('@editNotebookImage').then((interception) => {
-      expect(interception.request.body).to.eql({
-        name: 'byon-123',
-        /* eslint-disable-next-line camelcase */
-        display_name: 'Updated custom image',
-        description: 'A custom notebook image',
-        recommendedAcceleratorIdentifiers: ['hwp1', 'hwp2'],
-        packages: [{ name: 'test-package', version: '1.0', visible: true }],
-        software: [{ name: 'test-software', version: '2.0', visible: true }],
-      });
+      expect(interception.request.body).to.eql(expectedImageStream);
     });
   });
 
   it('Delete form', () => {
-    cy.interceptOdh(
-      'DELETE /api/images/:image',
-      { path: { image: 'byon-123' } },
-      { success: true },
+    cy.interceptK8s(
+      'DELETE',
+      { model: ImageStreamModel, ns: 'opendatahub', name: 'byon-123' },
+      mock200Status({}),
     ).as('delete');
 
     cy.interceptK8sList(
@@ -497,26 +594,34 @@ describe('Workbench image settings', () => {
   });
 
   it('Error messages', () => {
-    cy.interceptOdh('POST /api/images', {
-      success: false,
-      error: 'Testing create error message',
-    }).as('createError');
+    cy.interceptK8s(
+      'POST',
+      { model: ImageStreamModel, ns: 'opendatahub' },
+      mock403Error({ message: 'Testing create error message' }),
+    ).as('createError');
 
-    cy.interceptOdh(
-      'PUT /api/images/:image',
-      { path: { image: 'byon-1' } },
-      {
-        success: false,
-        error: 'Testing edit error message',
-      },
+    cy.interceptK8s(
+      'PUT',
+      { model: ImageStreamModel, ns: 'opendatahub', name: 'byon-1' },
+      mock404Error({ message: 'Testing edit error message' }),
     ).as('editError');
 
-    cy.interceptOdh(
-      'DELETE /api/images/:image',
-      { path: { image: 'byon-1' } },
-      {
-        statusCode: 404,
-      },
+    cy.interceptK8s(
+      'GET',
+      { model: ImageStreamModel, ns: 'opendatahub', name: 'byon-1' },
+      mockImageStreamK8sResource({
+        name: 'byon-1',
+        namespace: 'opendatahub',
+        imageTag: 'image:latest',
+        tagName: 'latest',
+        displayName: 'Updated custom image',
+      }),
+    );
+
+    cy.interceptK8s(
+      'DELETE',
+      { model: ImageStreamModel, ns: 'opendatahub', name: 'byon-1' },
+      mock404Error({ message: 'Danger alert:Error deleting Testing Custom Image' }),
     ).as('deleteError');
 
     cy.interceptK8sList(
@@ -593,7 +698,7 @@ describe('Workbench image settings', () => {
     cy.wait('@deleteError');
     notebookImageDeleteModal
       .findAlertMessage()
-      .should('have.text', 'Danger alert:Error deleting Testing Custom Image');
+      .should('contain.text', 'Danger alert:Error deleting Testing Custom Image');
     deleteModal.findCloseButton().click();
 
     // test error icon

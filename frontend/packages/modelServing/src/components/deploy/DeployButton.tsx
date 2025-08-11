@@ -1,26 +1,120 @@
 import React from 'react';
-import { Button, Tooltip } from '@patternfly/react-core';
-import { ModelServingPlatform } from '../../concepts/useProjectServingPlatform';
+import { Button, Tooltip, type ButtonProps } from '@patternfly/react-core';
+import { ServingRuntimePlatform } from '@odh-dashboard/internal/types';
+import { getTemplateEnabledForPlatform } from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/utils';
+import ManageServingRuntimeModal from '@odh-dashboard/internal/pages/modelServing/screens/projects/ServingRuntimeModal/ManageServingRuntimeModal';
+import ManageKServeModal from '@odh-dashboard/internal/pages/modelServing/screens/projects/kServeModal/ManageKServeModal';
+import ManageNIMServingModal from '@odh-dashboard/internal/pages/modelServing/screens/projects/NIMServiceModal/ManageNIMServingModal';
+import useConnections from '@odh-dashboard/internal/pages/projects/screens/detail/connections/useConnections';
+import { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
+import { isProjectNIMSupported } from '@odh-dashboard/internal/pages/modelServing/screens/projects/nimUtils';
+import { useServingRuntimeTemplates } from '../../concepts/servingRuntimeTemplates/useServingRuntimeTemplates';
+import { useProjectServingPlatform } from '../../concepts/useProjectServingPlatform';
+import { useAvailableClusterPlatforms } from '../../concepts/useAvailableClusterPlatforms';
+
+const DeployButtonModal: React.FC<{
+  platform?: ServingRuntimePlatform;
+  currentProject: ProjectKind;
+  onClose: (submit: boolean) => void;
+}> = ({ platform, currentProject, onClose }) => {
+  const [templates] = useServingRuntimeTemplates();
+  const connections = useConnections(currentProject.metadata.name);
+
+  if (platform === ServingRuntimePlatform.MULTI) {
+    return (
+      <ManageServingRuntimeModal
+        currentProject={currentProject}
+        servingRuntimeTemplates={templates.filter((t) =>
+          getTemplateEnabledForPlatform(t, ServingRuntimePlatform.MULTI),
+        )}
+        onClose={onClose}
+      />
+    );
+  }
+
+  const isNIMSupported = isProjectNIMSupported(currentProject);
+  if (isNIMSupported) {
+    return <ManageNIMServingModal projectContext={{ currentProject }} onClose={onClose} />;
+  }
+  return (
+    <ManageKServeModal
+      projectContext={{ currentProject, connections: connections.data }}
+      servingRuntimeTemplates={templates.filter((t) =>
+        getTemplateEnabledForPlatform(t, ServingRuntimePlatform.SINGLE),
+      )}
+      onClose={onClose}
+    />
+  );
+};
 
 export const DeployButton: React.FC<{
-  platform?: ModelServingPlatform;
-  variant?: 'primary' | 'secondary';
-  isDisabled?: boolean;
-}> = ({ platform, variant = 'primary', isDisabled }) => {
+  project: ProjectKind | null;
+  variant?: ButtonProps['variant'];
+}> = ({ project, variant = 'primary' }) => {
+  const [modalShown, setModalShown] = React.useState<boolean>(false);
+
+  const { clusterPlatforms } = useAvailableClusterPlatforms();
+  const { activePlatform } = useProjectServingPlatform(project ?? undefined, clusterPlatforms);
+
+  // TODO: remove once we have the wizard
+  const legacyServingRuntimePlatform = React.useMemo(
+    () =>
+      activePlatform?.properties.id === 'modelmesh'
+        ? ServingRuntimePlatform.MULTI
+        : ServingRuntimePlatform.SINGLE,
+    [activePlatform],
+  );
+
+  const onSubmit = () => {
+    setModalShown(false);
+  };
+
+  const handleDeployClick = () => {
+    setModalShown(true);
+  };
+
+  const [globalTemplates] = useServingRuntimeTemplates();
+  const isMissingTemplates = globalTemplates.length === 0;
+
+  const disableButton = !project || isMissingTemplates;
+  const disabledReason = isMissingTemplates
+    ? 'At least one serving runtime must be enabled to deploy a model. Contact your administrator.'
+    : 'To deploy a model, select a project.';
+
   const deployButton = (
     <Button
-      variant={variant}
       data-testid="deploy-button"
-      // onClick={() => {
-      //   do something
-      // }}
-      isAriaDisabled={isDisabled}
+      variant={variant}
+      onClick={handleDeployClick}
+      isAriaDisabled={disableButton}
+      isInline={variant === 'link'}
     >
-      Deploy Model
+      Deploy model
     </Button>
   );
-  if (!platform) {
-    return <Tooltip content="To deploy a model, select a project.">{deployButton}</Tooltip>;
+
+  if (disableButton) {
+    return (
+      <Tooltip
+        data-testid="deploy-model-tooltip"
+        aria-label="Model Serving Action Info"
+        content={disabledReason}
+      >
+        {deployButton}
+      </Tooltip>
+    );
   }
-  return <>{deployButton}</>;
+
+  return (
+    <>
+      {deployButton}
+      {modalShown ? (
+        <DeployButtonModal
+          platform={legacyServingRuntimePlatform}
+          currentProject={project}
+          onClose={onSubmit}
+        />
+      ) : null}
+    </>
+  );
 };

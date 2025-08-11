@@ -24,12 +24,7 @@ import {
   AccessReviewResourceAttributes,
   SecretKind,
 } from '#~/k8sTypes';
-import {
-  getKServeContainerArgs,
-  getKServeContainerEnvVarStrs,
-  requestsUnderLimits,
-  resourcesArePositive,
-} from '#~/pages/modelServing/utils';
+import { getKServeContainerArgs, getKServeContainerEnvVarStrs } from '#~/pages/modelServing/utils';
 import useCustomServingRuntimesEnabled from '#~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
 import { getServingRuntimeFromName } from '#~/pages/modelServing/customServingRuntimes/utils';
 import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
@@ -65,6 +60,8 @@ import usePrefillModelDeployModal, {
 import { useKServeDeploymentMode } from '#~/pages/modelServing/useKServeDeploymentMode';
 import { SERVING_RUNTIME_SCOPE } from '#~/pages/modelServing/screens/const';
 import { useModelDeploymentNotification } from '#~/pages/modelServing/screens/projects/useModelDeploymentNotification';
+import useModelServerSizeValidation from '#~/pages/modelServing/screens/projects/useModelServerSizeValidation.ts';
+import usePvcs from '#~/pages/modelServing/usePvcs';
 import KServeAutoscalerReplicaSection from './KServeAutoscalerReplicaSection';
 import EnvironmentVariablesSection from './EnvironmentVariablesSection';
 import ServingRuntimeArgsSection from './ServingRuntimeArgsSection';
@@ -124,10 +121,13 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
   const podSpecOptionsState = useModelServingPodSpecOptionsState(
     editInfo?.servingRuntimeEditInfo?.servingRuntime,
     editInfo?.inferenceServiceEditInfo,
+    false,
   );
   const { data: kServeNameDesc, onDataChange: setKserveNameDesc } = useK8sNameDescriptionFieldData({
     initialData: editInfo?.inferenceServiceEditInfo,
   });
+
+  const { isValid: isModelServerSizeValid } = useModelServerSizeValidation(podSpecOptionsState);
 
   const [connection, setConnection] = React.useState<Connection>();
   const [isConnectionValid, setIsConnectionValid] = React.useState(false);
@@ -137,6 +137,8 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
     createDataInferenceService.isKServeRawDeployment;
   const currentProjectName = projectContext?.currentProject.metadata.name;
   const namespace = currentProjectName || createDataInferenceService.project;
+
+  const pvcs = usePvcs(namespace);
 
   const projectTemplates = useTemplates(namespace);
 
@@ -221,13 +223,9 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
     return isConnectionValid;
   };
 
-  const baseInputValueValid =
-    createDataInferenceService.maxReplicas >= 0 &&
-    podSpecOptionsState.podSpecOptions.resources &&
-    resourcesArePositive(podSpecOptionsState.podSpecOptions.resources) &&
-    requestsUnderLimits(podSpecOptionsState.podSpecOptions.resources);
+  const baseInputValueValid = createDataInferenceService.maxReplicas >= 0 && isModelServerSizeValid;
 
-  const isDisabledInferenceService = () =>
+  const isDisabledInferenceService =
     !isK8sNameDescriptionDataValid(kServeNameDesc) ||
     createDataInferenceService.project === '' ||
     createDataInferenceService.format.name === '' ||
@@ -383,7 +381,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
                   onDataChange={setKserveNameDesc}
                   dataTestId="inference-service"
                   nameLabel="Model deployment name"
-                  nameHelperText="This is the name of the inference service created when the model is deployed"
+                  nameHelperText="This is the name of the inference service created when the model is deployed."
                   hideDescription
                 />
                 <ServingRuntimeTemplateSection
@@ -473,6 +471,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
                 setConnection={setConnection}
                 setIsConnectionValid={setIsConnectionValid}
                 connections={connections}
+                pvcs={pvcs.data}
               />
             </FormSection>
           )}
@@ -502,7 +501,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
           submitLabel={editInfo ? 'Redeploy' : 'Deploy'}
           onSubmit={submit}
           onCancel={() => onBeforeClose(false)}
-          isSubmitDisabled={isDisabledServingRuntime || isDisabledInferenceService()}
+          isSubmitDisabled={isDisabledServingRuntime || isDisabledInferenceService}
           error={error}
           alertTitle="Error creating model server"
         />

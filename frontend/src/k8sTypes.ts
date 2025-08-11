@@ -7,6 +7,7 @@ import {
   ContainerResourceAttributes,
   ContainerResources,
   Identifier,
+  HardwareProfileScheduling,
   ImageStreamStatusTagCondition,
   ImageStreamStatusTagItem,
   NodeSelector,
@@ -17,6 +18,7 @@ import {
   TolerationSettings,
   Volume,
   VolumeMount,
+  HardwareProfileAnnotations,
 } from './types';
 import { ModelServingSize } from './pages/modelServing/screens/types';
 
@@ -31,6 +33,7 @@ export enum KnownLabels {
   REGISTERED_MODEL_ID = 'modelregistry.opendatahub.io/registered-model-id',
   MODEL_VERSION_ID = 'modelregistry.opendatahub.io/model-version-id',
   MODEL_REGISTRY_NAME = 'modelregistry.opendatahub.io/name',
+  KUEUE_MANAGED = 'kueue.openshift.io/managed',
 }
 
 export type K8sVerb =
@@ -103,6 +106,7 @@ type ImageStreamSpecTagAnnotations = Partial<{
   'opendatahub.io/default-image': string;
   'opendatahub.io/image-tag-outdated': string;
   'opendatahub.io/notebook-build-commit': string;
+  'openshift.io/imported-from': string;
 }>;
 
 export type NotebookAnnotations = Partial<{
@@ -145,6 +149,7 @@ export enum K8sDspaConditionReason {
   ComponentDeploymentNotFound = 'ComponentDeploymentNotFound',
   UnsupportedVersion = 'UnsupportedVersion',
   Deploying = 'Deploying',
+  NotApplicable = 'NotApplicable',
 }
 
 export type ServingRuntimeAnnotations = Partial<{
@@ -155,7 +160,6 @@ export type ServingRuntimeAnnotations = Partial<{
   'opendatahub.io/accelerator-name': string;
   'opendatahub.io/apiProtocol': string;
   'opendatahub.io/serving-runtime-scope': string;
-  'opendatahub.io/hardware-profile-namespace': string | undefined;
   'opendatahub.io/accelerator-profile-namespace': string | undefined;
   'enable-route': string;
   'enable-auth': string;
@@ -492,9 +496,17 @@ export enum DeploymentMode {
   Serverless = 'Serverless',
 }
 
-export type InferenceServiceAnnotations = Partial<{
-  'security.opendatahub.io/enable-auth': string;
-}>;
+export type InferenceServiceAnnotations = DisplayNameAnnotations &
+  Partial<{
+    'security.opendatahub.io/enable-auth': string;
+    'serving.kserve.io/deploymentMode': DeploymentMode;
+    'serving.knative.openshift.io/enablePassthrough': 'true';
+    'sidecar.istio.io/inject': 'true';
+    'sidecar.istio.io/rewriteAppHTTPProbers': 'true';
+    'opendatahub.io/hardware-profile-name': string;
+    'opendatahub.io/hardware-profile-namespace': string;
+    'opendatahub.io/legacy-hardware-profile-name': string;
+  }>;
 
 export type InferenceServiceLabels = Partial<{
   'networking.knative.dev/visibility': string;
@@ -509,14 +521,7 @@ export type InferenceServiceKind = K8sResourceCommon & {
   metadata: {
     name: string;
     namespace: string;
-    annotations?: InferenceServiceAnnotations &
-      DisplayNameAnnotations &
-      Partial<{
-        'serving.kserve.io/deploymentMode': DeploymentMode;
-        'serving.knative.openshift.io/enablePassthrough': 'true';
-        'sidecar.istio.io/inject': 'true';
-        'sidecar.istio.io/rewriteAppHTTPProbers': 'true';
-      }>;
+    annotations?: InferenceServiceAnnotations;
     labels?: InferenceServiceLabels;
   };
   spec: {
@@ -625,6 +630,11 @@ export type RouteKind = K8sResourceCommon & {
     port: {
       targetPort: string;
     };
+    to?: {
+      kind: string;
+      name: string;
+      weight: number;
+    };
   };
 };
 
@@ -700,6 +710,11 @@ export type DSPipelineManagedPipelinesKind = {
   };
 };
 
+export enum DSPipelineAPIServerStore {
+  KUBERNETES = 'kubernetes',
+  DATABASE = 'database',
+}
+
 export type DSPipelineKind = K8sResourceCommon & {
   metadata: {
     name: string;
@@ -715,7 +730,9 @@ export type DSPipelineKind = K8sResourceCommon & {
         name: string;
       }>;
       enableSamplePipeline: boolean;
+      cacheEnabled: boolean;
       managedPipelines?: DSPipelineManagedPipelinesKind;
+      pipelineStore?: DSPipelineAPIServerStore;
     }>;
     database?: Partial<{
       externalDB: Partial<{
@@ -1100,6 +1117,15 @@ export type WorkloadCondition = {
   type: 'QuotaReserved' | 'Admitted' | 'PodsReady' | 'Finished' | 'Evicted' | 'Failed';
 };
 
+export type WorkloadPriorityClassKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+    namespace?: string;
+  };
+  value: number;
+  description?: string;
+};
+
 export type AccessReviewResourceAttributes = {
   /** CRD group, '*' for all groups, omit for core resources */
   group?: '*' | string;
@@ -1255,6 +1281,8 @@ export type DashboardCommonConfig = {
   disableLlamaStackChatBot: boolean;
   disableLMEval: boolean;
   disableKueue: boolean;
+  disableModelTraining: boolean;
+  disableFeatureStore?: boolean;
 };
 
 // [1] Intentionally disjointed fields from the CRD in this type definition
@@ -1344,18 +1372,11 @@ export type HardwareProfileKind = K8sResourceCommon & {
   metadata: {
     name: string;
     namespace: string;
-    annotations?: Partial<{
-      // JSON stringified HardwareProfileFeatureVisibility[]
-      'opendatahub.io/dashboard-feature-visibility': string;
-    }>;
+    annotations?: HardwareProfileAnnotations;
   };
   spec: {
-    displayName: string;
-    enabled: boolean;
-    description?: string;
-    tolerations?: Toleration[];
     identifiers?: Identifier[];
-    nodeSelector?: NodeSelector;
+    scheduling?: HardwareProfileScheduling;
   };
 };
 
@@ -1406,6 +1427,10 @@ export type DataScienceClusterKind = K8sResourceCommon & {
       };
       [DataScienceStackComponent.MODEL_REGISTRY]?: DataScienceClusterComponent & {
         registriesNamespace: string;
+      };
+      [DataScienceStackComponent.KUEUE]?: DataScienceClusterComponent & {
+        defaultLocalQueueName: string;
+        defaultClusterQueueName: string;
       };
     };
   };
@@ -1575,5 +1600,104 @@ export type AuthKind = K8sResourceCommon & {
   spec: {
     adminGroups: string[];
     allowedGroups: string[];
+  };
+};
+
+export type Server = {
+  env?: Record<string, never>[][];
+  envFrom?: Record<string, never>[];
+  grpc?: boolean;
+  image?: string;
+  restAPI?: boolean;
+  tls?: {
+    secretKeyNames: {
+      tlsCrt: string;
+      tlsKey: string;
+    };
+    secretRef: {
+      name: string;
+    };
+  };
+  volumeMounts?: Record<string, never>[];
+};
+
+export type Persistence = {
+  file?: { path?: string; pvc?: Record<string, never> };
+  store?: { type?: string; secretKeyName?: Record<string, never> };
+};
+
+export type Services = {
+  offlineStore?: {
+    persistence?: Persistence;
+    server?: Server;
+  };
+  onlineStore?: {
+    persistence?: Persistence;
+    server?: Server;
+  };
+  registry: {
+    local: {
+      persistence?: Persistence;
+      server?: Server;
+    };
+  };
+  ui?: Server;
+};
+
+export type FeastProjectDir = {
+  git?: {
+    url: string;
+    featureRepoPath: string;
+    ref: string;
+  };
+  init?: { minimal?: boolean; template?: string };
+};
+
+export type FeatureStoreKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+    namespace: string;
+    annotations?: Record<string, string>;
+    labels?: Record<string, string>;
+  };
+  spec: {
+    feastProject: string;
+    feastProjectDir?: FeastProjectDir;
+    services: Services;
+    authz?: {
+      kubernetes?: {
+        roles?: string[];
+      };
+      oidc?: {
+        secretRef: {
+          name: string;
+        };
+      };
+    };
+    cronJob?: Record<string, never>;
+    volumes?: Record<string, never>[];
+  };
+  status?: {
+    applied?: {
+      cronJob?: {
+        concurrencyPolicy: string;
+        containerConfigs: {
+          commands: string[];
+          image: string;
+        };
+        schedule: string;
+        startingDeadlineSeconds: number;
+        suspend: boolean;
+      };
+      feastProject: string;
+      feastProjectDir?: FeastProjectDir;
+      services?: Services;
+    };
+    clientConfigMap?: string;
+    conditions?: K8sCondition[];
+    cronJob?: string;
+    feastVersion?: string;
+    phase?: string;
+    serviceHostnames?: Record<string, string>;
   };
 };

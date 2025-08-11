@@ -6,7 +6,6 @@ import {
   K8sStatus,
   k8sUpdateResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { mockAcceleratorProfile } from '#~/__mocks__/mockAcceleratorProfile';
 import { mockInferenceServiceK8sResource } from '#~/__mocks__/mockInferenceServiceK8sResource';
 import { mockInferenceServiceModalData } from '#~/__mocks__/mockInferenceServiceModalData';
 import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
@@ -29,6 +28,7 @@ import { ModelServingPodSpecOptions } from '#~/concepts/hardwareProfiles/useMode
 import { DeploymentMode, InferenceServiceKind, ProjectKind } from '#~/k8sTypes';
 import { ModelServingSize } from '#~/pages/modelServing/screens/types';
 import { TolerationEffect, TolerationOperator } from '#~/types';
+import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile.ts';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   k8sListResource: jest.fn(),
@@ -167,7 +167,7 @@ describe('assembleInferenceService', () => {
     expect(inferenceService.metadata.annotations?.['openshift.io/display-name']).toBe(name);
   });
 
-  it('should add resources and tolerations if kserve and podSpecOptions found', async () => {
+  it('should add resources but not tolerations even if kserve and podSpecOptions found', async () => {
     const podSpecOption: ModelServingPodSpecOptions = mockModelServingPodSpecOptions({
       resources: {
         requests: {
@@ -195,10 +195,8 @@ describe('assembleInferenceService', () => {
       podSpecOption,
     );
 
-    expect(inferenceService.spec.predictor.tolerations).toBeDefined();
-    expect(inferenceService.spec.predictor.tolerations?.[0].key).toBe(
-      mockAcceleratorProfile({}).spec.tolerations?.[0].key,
-    );
+    expect(inferenceService.spec.predictor.tolerations).toBeUndefined();
+    expect(inferenceService.spec.predictor.model?.resources).toBeDefined();
     expect(inferenceService.spec.predictor.model?.resources?.limits?.['nvidia.com/gpu']).toBe(1);
     expect(inferenceService.spec.predictor.model?.resources?.requests?.['nvidia.com/gpu']).toBe(1);
   });
@@ -349,7 +347,7 @@ describe('assembleInferenceService', () => {
     );
   });
 
-  it('should omit requests on modelmesh', async () => {
+  it('should add requests on kserve but omit on modelmesh', async () => {
     const podSpecOption: ModelServingPodSpecOptions = mockModelServingPodSpecOptions({
       resources: {
         requests: {
@@ -363,7 +361,8 @@ describe('assembleInferenceService', () => {
       },
     });
 
-    const inferenceService = assembleInferenceService(
+    // Test with modelmesh
+    const inferenceServiceModelMesh = assembleInferenceService(
       mockInferenceServiceModalData({}),
       undefined,
       undefined,
@@ -373,7 +372,24 @@ describe('assembleInferenceService', () => {
       podSpecOption,
     );
 
-    expect(inferenceService.spec.predictor.model?.resources).toBeUndefined();
+    expect(inferenceServiceModelMesh.spec.predictor.model?.resources).toBeUndefined();
+
+    // Test with KServe
+    const inferenceServiceKServe = assembleInferenceService(
+      mockInferenceServiceModalData({}),
+      undefined,
+      undefined,
+      false,
+      undefined,
+      undefined,
+      podSpecOption,
+    );
+
+    expect(inferenceServiceKServe.spec.predictor.model?.resources).toBeDefined();
+    expect(inferenceServiceKServe.spec.predictor.model?.resources?.requests?.cpu).toBe('1');
+    expect(inferenceServiceKServe.spec.predictor.model?.resources?.requests?.memory).toBe('1Gi');
+    expect(inferenceServiceKServe.spec.predictor.model?.resources?.limits?.cpu).toBe('2');
+    expect(inferenceServiceKServe.spec.predictor.model?.resources?.limits?.memory).toBe('2Gi');
   });
 
   it('should have base annotations for kserve raw', async () => {
@@ -428,6 +444,146 @@ describe('assembleInferenceService', () => {
     expect(both.metadata.labels?.['networking.kserve.io/visibility']).toBe('exposed');
     expect(both.metadata.labels?.['networking.knative.dev/visibility']).toBe(undefined);
   });
+
+  it('should set hardware profile annotation for real profiles', () => {
+    const hardwareProfile = mockHardwareProfile({ name: 'real-profile' });
+    hardwareProfile.metadata.uid = 'test-uid';
+    const podSpecOptions = mockModelServingPodSpecOptions({
+      selectedHardwareProfile: hardwareProfile,
+    });
+    const result = assembleInferenceService(
+      mockInferenceServiceModalData({
+        isKServeRawDeployment: true,
+        externalRoute: true,
+        tokenAuth: true,
+      }),
+      undefined,
+      undefined,
+      false,
+      undefined,
+      undefined,
+      podSpecOptions,
+    );
+    expect(result.metadata.annotations?.['opendatahub.io/hardware-profile-name']).toBe(
+      'real-profile',
+    );
+  });
+
+  it('should set hardware profile namespace annotation for real profiles if not model mesh', () => {
+    const hardwareProfile = mockHardwareProfile({ name: 'real-profile' });
+    hardwareProfile.metadata.uid = 'test-uid';
+    const podSpecOptions = mockModelServingPodSpecOptions({
+      selectedHardwareProfile: hardwareProfile,
+    });
+    const result = assembleInferenceService(
+      mockInferenceServiceModalData({
+        isKServeRawDeployment: true,
+        externalRoute: true,
+        tokenAuth: true,
+      }),
+      undefined,
+      undefined,
+      false,
+      undefined,
+      undefined,
+      podSpecOptions,
+    );
+    expect(result.metadata.annotations?.['opendatahub.io/hardware-profile-name']).toBe(
+      'real-profile',
+    );
+  });
+
+  it('should set hardware profile namespace annotation to dashboard namespace when global scoped and not model mesh', () => {
+    const hardwareProfile = mockHardwareProfile({ name: 'real-profile' });
+    const podSpecOptions = mockModelServingPodSpecOptions({
+      selectedHardwareProfile: hardwareProfile,
+    });
+    const result = assembleInferenceService(
+      mockInferenceServiceModalData({
+        isKServeRawDeployment: true,
+        externalRoute: true,
+        tokenAuth: true,
+      }),
+      undefined,
+      undefined,
+      false,
+      undefined,
+      undefined,
+      podSpecOptions,
+    );
+    expect(result.metadata.annotations?.['opendatahub.io/hardware-profile-namespace']).toBe(
+      'opendatahub',
+    );
+  });
+
+  it('should not set hardware profile name and namespace annotation for real profiles if model mesh', () => {
+    const hardwareProfile = mockHardwareProfile({ name: 'real-profile' });
+    hardwareProfile.metadata.uid = 'test-uid';
+    const podSpecOptions = mockModelServingPodSpecOptions({
+      selectedHardwareProfile: hardwareProfile,
+    });
+    const result = assembleInferenceService(
+      mockInferenceServiceModalData({
+        isKServeRawDeployment: true,
+        externalRoute: true,
+        tokenAuth: true,
+      }),
+      undefined,
+      undefined,
+      true,
+      undefined,
+      undefined,
+      podSpecOptions,
+    );
+    expect(result.metadata.annotations?.['opendatahub.io/hardware-profile-name']).toBeUndefined();
+    expect(
+      result.metadata.annotations?.['opendatahub.io/hardware-profile-namespace'],
+    ).toBeUndefined();
+  });
+
+  it('should not set pod specs like tolerations and nodeSelector for hardware profiles', () => {
+    const hardwareProfile = mockHardwareProfile({});
+    hardwareProfile.metadata.uid = 'test-uid'; // not a legacy hardware profile
+    const podSpecOptions = mockModelServingPodSpecOptions({
+      selectedHardwareProfile: hardwareProfile,
+    });
+
+    // Test with modelmesh
+    const resultModelMesh = assembleInferenceService(
+      mockInferenceServiceModalData({
+        isKServeRawDeployment: true,
+        externalRoute: true,
+        tokenAuth: true,
+      }),
+      undefined,
+      undefined,
+      true,
+      undefined,
+      undefined,
+      podSpecOptions,
+    );
+
+    expect(resultModelMesh.spec.tolerations).toBeUndefined();
+    expect(resultModelMesh.spec.nodeSelector).toBeUndefined();
+
+    // Test with KServe
+    const resultKServe = assembleInferenceService(
+      mockInferenceServiceModalData({
+        isKServeRawDeployment: true,
+        externalRoute: true,
+        tokenAuth: true,
+      }),
+      undefined,
+      undefined,
+      false,
+      undefined,
+      undefined,
+      podSpecOptions,
+    );
+
+    expect(resultKServe.spec.predictor.tolerations).toBeUndefined();
+    expect(resultKServe.spec.predictor.nodeSelector).toBeUndefined();
+  });
 });
 
 describe('listInferenceService', () => {
@@ -455,6 +611,7 @@ describe('listInferenceService', () => {
     });
   });
 });
+
 describe('listScopedInferenceService', () => {
   it('should return list of scoped inference service with no label selector', async () => {
     const inferenceServiceMock = mockInferenceServiceK8sResource({});
@@ -683,6 +840,94 @@ describe('updateInferenceService', () => {
       ),
     );
     expect(k8sUpdateResourceMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('project scoped hardware profile on inference service', () => {
+  it('should correctly set project-scoped hardware profile annotations on inference service', () => {
+    // Create an inference service with project-scoped hardware profile
+    const inferenceService = mockInferenceServiceK8sResource({
+      namespace: 'test-project',
+      hardwareProfileName: 'large-profile-1',
+      hardwareProfileNamespace: 'test-project',
+    });
+
+    // Verify the hardware profile annotations are set correctly
+    expect(inferenceService.metadata.annotations).toBeDefined();
+    expect(inferenceService.metadata.annotations?.['opendatahub.io/hardware-profile-name']).toBe(
+      'large-profile-1',
+    );
+    expect(
+      inferenceService.metadata.annotations?.['opendatahub.io/hardware-profile-namespace'],
+    ).toBe('test-project');
+  });
+
+  it('should preserve hardware profile annotations when assembling inference service', () => {
+    // Create a mock inference service with hardware profile annotations
+    const existingInferenceService = mockInferenceServiceK8sResource({
+      namespace: 'test-project',
+      hardwareProfileName: 'large-profile-1',
+      hardwareProfileNamespace: 'test-project',
+    });
+
+    // Assemble a new inference service based on the existing one
+    const assembledInferenceService = assembleInferenceService(
+      mockInferenceServiceModalData({}),
+      undefined,
+      undefined,
+      false,
+      existingInferenceService,
+    );
+
+    // Verify the hardware profile annotations are preserved
+    expect(assembledInferenceService.metadata.annotations).toBeDefined();
+    expect(
+      assembledInferenceService.metadata.annotations?.['opendatahub.io/hardware-profile-name'],
+    ).toBe('large-profile-1');
+    expect(
+      assembledInferenceService.metadata.annotations?.['opendatahub.io/hardware-profile-namespace'],
+    ).toBe('test-project');
+  });
+
+  it('should update hardware profile annotations when using a different hardware profile', () => {
+    // Create a mock inference service with hardware profile annotations
+    const existingInferenceService = mockInferenceServiceK8sResource({
+      namespace: 'test-project',
+      hardwareProfileName: 'large-profile-1',
+      hardwareProfileNamespace: 'test-project',
+    });
+
+    // Create a hardware profile to use in the pod spec options
+    const hardwareProfile = mockHardwareProfile({
+      name: 'small-profile',
+      namespace: 'opendatahub',
+      displayName: 'Small Profile',
+    });
+
+    // Create pod spec options with the new hardware profile
+    const podSpecOptions = mockModelServingPodSpecOptions({
+      selectedHardwareProfile: hardwareProfile,
+    });
+
+    // Assemble a new inference service with the new hardware profile
+    const assembledInferenceService = assembleInferenceService(
+      mockInferenceServiceModalData({}),
+      undefined,
+      undefined,
+      false,
+      existingInferenceService,
+      undefined,
+      podSpecOptions,
+    );
+
+    // Verify the hardware profile annotations are updated
+    expect(assembledInferenceService.metadata.annotations).toBeDefined();
+    expect(
+      assembledInferenceService.metadata.annotations?.['opendatahub.io/hardware-profile-name'],
+    ).toBe('small-profile');
+    expect(
+      assembledInferenceService.metadata.annotations?.['opendatahub.io/hardware-profile-namespace'],
+    ).toBe('opendatahub');
   });
 });
 

@@ -1093,6 +1093,11 @@ export type DSPipelineExternalStorageKind = {
   };
 };
 
+export enum DSPipelineAPIServerPipelineStore {
+  KUBERNETES = 'kubernetes',
+  DATABASE = 'database',
+}
+
 export type DSPipelineKind = K8sResourceCommon & {
   metadata: {
     name: string;
@@ -1108,6 +1113,7 @@ export type DSPipelineKind = K8sResourceCommon & {
         name: string;
       }>;
       enableSamplePipeline: boolean;
+      pipelineStore?: DSPipelineAPIServerPipelineStore;
     }>;
     database?: Partial<{
       externalDB: Partial<{
@@ -1303,6 +1309,52 @@ export type AuthKind = K8sResourceCommon & {
   spec: {
     adminGroups: string[];
     allowedGroups: string[];
+  };
+};
+
+export type FeatureStoreKind = K8sResourceCommon & {
+  metadata: {
+    name: string;
+    namespace: string;
+    annotations?: Record<string, string>;
+  };
+  spec: {
+    feastProject: string;
+    services: Record<string, any>;
+    authz?: {
+      kubernetes?: {
+        roles?: string[];
+      };
+      oidc?: {
+        secretRef: {
+          name: string;
+        };
+      };
+    };
+    cronJob?: Record<string, never>;
+    volumes?: Record<string, never>[];
+  };
+  status?: {
+    applied?: {
+      cronJob?: {
+        concurrencyPolicy: string;
+        containerConfigs: {
+          commands: string[];
+          image: string;
+        };
+        schedule: string;
+        startingDeadlineSeconds: number;
+        suspend: boolean;
+      };
+      feastProject: string;
+      services?: Record<string, any>;
+    };
+    clientConfigMap?: string;
+    conditions?: K8sCondition[];
+    cronJob?: string;
+    feastVersion?: string;
+    phase?: string;
+    serviceHostnames?: Record<string, string>;
   };
 };
 

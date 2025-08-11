@@ -4,11 +4,17 @@ import { NamespaceApplicationCase } from '@odh-dashboard/internal/pages/projects
 import { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
 import type {
   ModelServingPlatformExtension,
-  ModelServingDeploymentsTableExtension,
   ModelServingDeleteModal,
   ModelServingPlatformWatchDeploymentsExtension,
   ModelServingDeploymentsExpandedInfo,
+  ModelServingMetricsExtension,
+  ModelServingDeploymentResourcesExtension,
+  ModelServingAuthExtension,
+  DeployedModelServingDetails,
+  ModelServingStartStopAction,
 } from '@odh-dashboard/model-serving/extension-points';
+// eslint-disable-next-line no-restricted-syntax
+import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/index';
 import type { KServeDeployment } from './src/deployments';
 
 export const KSERVE_ID = 'kserve';
@@ -16,9 +22,13 @@ export const KSERVE_ID = 'kserve';
 const extensions: (
   | ModelServingPlatformExtension<KServeDeployment>
   | ModelServingPlatformWatchDeploymentsExtension<KServeDeployment>
-  | ModelServingDeploymentsTableExtension<KServeDeployment>
+  | ModelServingDeploymentResourcesExtension<KServeDeployment>
+  | ModelServingAuthExtension<KServeDeployment>
   | ModelServingDeploymentsExpandedInfo<KServeDeployment>
   | ModelServingDeleteModal<KServeDeployment>
+  | ModelServingMetricsExtension<KServeDeployment>
+  | DeployedModelServingDetails<KServeDeployment>
+  | ModelServingStartStopAction<KServeDeployment>
 )[] = [
   {
     type: 'model-serving.platform',
@@ -26,8 +36,13 @@ const extensions: (
       id: KSERVE_ID,
       manage: {
         namespaceApplicationCase: NamespaceApplicationCase.KSERVE_PROMOTION,
-        enabledLabel: 'modelmesh-enabled',
-        enabledLabelValue: 'false',
+        priority: 0,
+        default: true,
+        projectRequirements: {
+          labels: {
+            'modelmesh-enabled': 'false',
+          },
+        },
       },
       enableCardText: {
         title: 'Single-model serving platform',
@@ -43,6 +58,9 @@ const extensions: (
         deployButtonText: 'Deploy model',
       },
     },
+    flags: {
+      required: [SupportedArea.K_SERVE],
+    },
   },
   {
     type: 'model-serving.platform/watch-deployments',
@@ -52,24 +70,27 @@ const extensions: (
     },
   },
   {
-    type: 'model-serving.deployments-table',
+    type: 'model-serving.deployment/resources',
     properties: {
       platform: KSERVE_ID,
-      columns: () => import('./src/deploymentsTable').then((m) => m.columns),
+      useResources: () => import('./src/useKServeResources').then((m) => m.useKServeResources),
+    },
+  },
+  {
+    type: 'model-serving.auth',
+    properties: {
+      platform: KSERVE_ID,
+      usePlatformAuthEnabled: () =>
+        import('./src/useAuth').then((m) => m.useKServePlatformAuthEnabled),
     },
   },
   {
     type: 'model-serving.deployments-table/expanded-info',
     properties: {
       platform: KSERVE_ID,
-      getFramework: () =>
-        import('./src/deploymentExpandedDetails').then((m) => m.getKserveFramework),
-      getReplicas: () => import('./src/deploymentExpandedDetails').then((m) => m.getKserveReplicas),
-      getResourceSize: () =>
-        import('./src/deploymentExpandedDetails').then((m) => m.getKserveResourceSize),
-      getHardwareAccelerator: () =>
-        import('./src/deploymentExpandedDetails').then((m) => m.getKserveHardwareAccelerator),
-      getTokens: () => import('./src/deploymentExpandedDetails').then((m) => m.getKserveTokens),
+      useReplicas: () => import('./src/deploymentExpandedDetails').then((m) => m.useKserveReplicas),
+      useFramework: () =>
+        import('./src/deploymentExpandedDetails').then((m) => m.useKserveFramework),
     },
   },
   {
@@ -77,8 +98,32 @@ const extensions: (
     properties: {
       platform: KSERVE_ID,
       onDelete: () => import('./src/deployments').then((m) => m.deleteDeployment),
-      title: 'Delete deployed model?',
-      submitButtonLabel: 'Delete deployed model',
+      title: 'Delete model deployment?',
+      submitButtonLabel: 'Delete model deployment',
+    },
+  },
+  {
+    type: 'model-serving.metrics',
+    properties: {
+      platform: KSERVE_ID,
+    },
+    flags: {
+      required: [SupportedArea.K_SERVE_METRICS],
+    },
+  },
+  {
+    type: 'model-serving.deployed-model/serving-runtime',
+    properties: {
+      platform: KSERVE_ID,
+      ServingDetailsComponent: () => import('./src/deploymentServingDetails'),
+    },
+  },
+  {
+    type: 'model-serving.deployments-table/start-stop-action',
+    properties: {
+      platform: KSERVE_ID,
+      patchDeploymentStoppedStatus: () =>
+        import('./src/deploymentStatus').then((m) => m.patchDeploymentStoppedStatus),
     },
   },
 ];

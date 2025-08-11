@@ -23,6 +23,7 @@ import { OutlinedQuestionCircleIcon, CubesIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router';
 import { LmEvalFormData, LmModelArgument } from '#~/pages/lmEval/types';
 import useInferenceServices from '#~/pages/modelServing/useInferenceServices';
+import useServingRuntimes from '#~/pages/modelServing/useServingRuntimes';
 import useLMGenericObjectState from '#~/pages/lmEval/utilities/useLMGenericObjectState';
 import LMEvalApplicationPage from '#~/pages/lmEval/components/LMEvalApplicationPage';
 import { LMEvalContext } from '#~/pages/lmEval/global/LMEvalContext';
@@ -66,15 +67,30 @@ const LMEvalForm: React.FC = () => {
   const [open, setOpen] = React.useState(false);
   const [openModelName, setOpenModelName] = React.useState(false);
   const inferenceServices = useInferenceServices();
+  const servingRuntimes = useServingRuntimes();
 
   const modelOptions = React.useMemo(() => {
-    if (!inferenceServices.loaded || inferenceServices.error || !namespace) {
+    if (
+      !inferenceServices.loaded ||
+      inferenceServices.error ||
+      !servingRuntimes.loaded ||
+      servingRuntimes.error ||
+      !namespace
+    ) {
       return [];
     }
 
     const filteredServices = filterVLLMInference(inferenceServices.data.items, namespace);
-    return generateModelOptions(filteredServices);
-  }, [inferenceServices.loaded, inferenceServices.error, inferenceServices.data.items, namespace]);
+    return generateModelOptions(filteredServices, servingRuntimes.data.items);
+  }, [
+    inferenceServices.loaded,
+    inferenceServices.error,
+    inferenceServices.data.items,
+    servingRuntimes.loaded,
+    servingRuntimes.error,
+    servingRuntimes.data,
+    namespace,
+  ]);
 
   const { data: lmEvalName, onDataChange: setLmEvalName } = useK8sNameDescriptionFieldData({});
 
@@ -110,9 +126,13 @@ const LMEvalForm: React.FC = () => {
   );
   const selectedModelLabel = selectedModel?.label || 'Select a model';
 
-  const isLoading = !inferenceServices.loaded && !inferenceServices.error;
+  const isLoading = !inferenceServices.loaded || !servingRuntimes.loaded;
   const hasNoModels =
-    inferenceServices.loaded && !inferenceServices.error && modelOptions.length === 0;
+    inferenceServices.loaded &&
+    !inferenceServices.error &&
+    servingRuntimes.loaded &&
+    !servingRuntimes.error &&
+    modelOptions.length === 0;
 
   return (
     <LMEvalApplicationPage
@@ -121,8 +141,13 @@ const LMEvalForm: React.FC = () => {
       description="Configure details for your model evaluation run."
       breadcrumb={
         <Breadcrumb>
-          <BreadcrumbItem render={() => <Link to="/modelEvaluations">Model evaluations</Link>} />
-          <BreadcrumbItem isActive>Start an evaluation run</BreadcrumbItem>
+          <BreadcrumbItem
+            data-testid="breadcrumb-model-evaluation-runs"
+            render={() => <Link to="/modelEvaluations">Model evaluation runs</Link>}
+          />
+          <BreadcrumbItem isActive data-testid="breadcrumb-start-evaluation-run">
+            Start an evaluation run
+          </BreadcrumbItem>
         </Breadcrumb>
       }
       empty={false}
@@ -162,7 +187,7 @@ const LMEvalForm: React.FC = () => {
               )}
               shouldFocusToggleOnSelect
             >
-              <SelectList>
+              <SelectList data-testid="model-name-dropdown-list">
                 {isLoading ? (
                   <>
                     <SelectOption key="skeleton-1" isDisabled>
@@ -216,6 +241,10 @@ const LMEvalForm: React.FC = () => {
                   }
                   variant="plain"
                   isInline
+                  aria-label="Evaluation run name help"
+                  title="Evaluation run name help"
+                  aria-describedby="evaluation-run-name-help"
+                  role="button"
                 />
               </Popover>
             }
@@ -254,6 +283,7 @@ const LMEvalForm: React.FC = () => {
                   isFullWidth
                   ref={toggleRef}
                   aria-label="Options menu"
+                  data-testid="model-type-toggle"
                   onClick={() => setOpen(!open)}
                   isExpanded={open}
                 >
@@ -262,7 +292,7 @@ const LMEvalForm: React.FC = () => {
               )}
               shouldFocusToggleOnSelect
             >
-              <SelectList>
+              <SelectList data-testid="model-type-dropdown-list">
                 {modelTypeOptions.map((option) => (
                   <SelectOption
                     value={option.key}
