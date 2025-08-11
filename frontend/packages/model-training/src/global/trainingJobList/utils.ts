@@ -7,7 +7,7 @@ export const getJobStatus = (job: PyTorchJobKind): PyTorchJobState => {
   }
 
   // Sort conditions by lastTransitionTime (most recent first)
-  const sortedConditions = job.status.conditions.sort((a, b) =>
+  const sortedConditions = job.status.conditions.toSorted((a, b) =>
     (b.lastTransitionTime || '').localeCompare(a.lastTransitionTime || ''),
   );
 

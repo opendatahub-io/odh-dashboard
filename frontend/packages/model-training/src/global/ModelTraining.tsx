@@ -1,20 +1,14 @@
 import React from 'react';
-import {
-  EmptyStateActions,
-  EmptyStateFooter,
-  EmptyStateBody,
-  EmptyStateVariant,
-  EmptyState,
-} from '@patternfly/react-core';
+import { EmptyStateBody, EmptyStateVariant, EmptyState } from '@patternfly/react-core';
 import { SearchIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
 import TitleWithIcon from '@odh-dashboard/internal/concepts/design/TitleWithIcon';
-import ModelTrainingProjectSelector from '../components/ModelTrainingProjectSelector';
 import { ModelTrainingContext } from './ModelTrainingContext';
 import ModelTrainingLoading from './ModelTrainingLoading';
 import TrainingJobListView from './trainingJobList/TrainingJobListView';
+import ModelTrainingProjectSelector from '../components/ModelTrainingProjectSelector';
 
 const title = 'Model training';
 const description =
