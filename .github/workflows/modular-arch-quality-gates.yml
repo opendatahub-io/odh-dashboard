@@ -787,26 +787,26 @@ jobs:
           fi
 
           # Check 2: Module Federation configuration
-          if [ -f "$MODULE_PATH/package.json" ] && grep -q '"module-federation"' "$MODULE_PATH/package.json"; then
+          if [ -f "$FRONTEND_PATH/package.json" ] && grep -q '"module-federation"' "$FRONTEND_PATH/package.json"; then
             echo "✅ Module Federation Config - PRESENT"
             IMPLEMENTED_CHECKS=$((IMPLEMENTED_CHECKS + 1))
 
             # Validate federation config
-            if grep -A 20 '"module-federation"' "$MODULE_PATH/package.json" | grep -q '"remoteEntry"'; then
+            if grep -A 20 '"module-federation"' "$FRONTEND_PATH/package.json" | grep -q '"remoteEntry"'; then
               echo "   ✅ Remote entry configured"
             fi
 
-            if grep -A 20 '"module-federation"' "$MODULE_PATH/package.json" | grep -q '"proxy"'; then
+            if grep -A 20 '"module-federation"' "$FRONTEND_PATH/package.json" | grep -q '"proxy"'; then
               echo "   ✅ API proxy configuration found"
             fi
 
-            if grep -A 20 '"module-federation"' "$MODULE_PATH/package.json" | grep -q '"authorize"'; then
+            if grep -A 20 '"module-federation"' "$FRONTEND_PATH/package.json" | grep -q '"authorize"'; then
               echo "   ✅ Authorization setting configured"
             fi
           else
             echo "❌ Module Federation Config - MISSING"
             echo "   Required for federated deployment in ODH Dashboard"
-            MISSING_CHECKS+=("Module Federation configuration in package.json")
+            MISSING_CHECKS+=("Module Federation configuration in frontend package.json")
           fi
 
           # Check 3: ODH Manifest compatibility
@@ -954,9 +954,10 @@ jobs:
 
             mkdir -p ./combined-coverage
 
-            # Find and combine all coverage files
-            find all-coverage -name "*-coverage.json" -type f | while read file; do
-              module=$(basename "$file" | sed 's/-coverage.json//')
+            # Find and combine coverage files from per-module artifacts
+            # Support both "<module>-coverage.json" and "<module>-unit-coverage.json"
+            find all-coverage -type f \( -name "*-coverage.json" -o -name "*-unit-coverage.json" \) | while read file; do
+              module=$(basename "$file" | sed -E 's/-(unit-)?coverage\.json$//')
               cp "$file" "./combined-coverage/${module}-coverage.json"
             done
 
