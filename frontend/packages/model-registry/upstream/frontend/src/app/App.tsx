@@ -2,6 +2,7 @@
 // Test simplified module detection logic  
 // Fix test detection and coverage upload
 // Fix E2E test detection for modelRegistry folder
+// Use general pattern for E2E test detection
 import * as React from 'react';
 import '@patternfly/react-core/dist/styles/base.css';
 import './app.css';

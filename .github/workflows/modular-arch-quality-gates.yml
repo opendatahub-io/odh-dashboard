@@ -332,15 +332,22 @@ jobs:
           
           # Check 2: E2E Tests - Look for module-specific e2e directories  
           E2E_TESTS_FOUND=false
+          E2E_BASE_DIR="frontend/src/__tests__/cypress/cypress/tests/e2e"
           
-          # Check in the exact path shown: frontend/src/__tests__/cypress/cypress/tests/e2e/modelRegistry/
-          MODULE_NAME_PATTERN=$(echo ${{ matrix.module }} | sed 's/-//g')  # model-registry -> modelRegistry
-          E2E_MODULE_DIR="frontend/src/__tests__/cypress/cypress/tests/e2e/${MODULE_NAME_PATTERN}"
+          # Check multiple naming patterns for the module in the global e2e directory
+          MODULE_PATTERNS=(
+            "${{ matrix.module }}"                    # exact name: model-registry
+            "$(echo ${{ matrix.module }} | sed 's/-//g')"  # no hyphens: modelregistry  
+            "$(echo ${{ matrix.module }} | sed 's/-\([a-z]\)/\U\1/g')"  # camelCase: modelRegistry
+          )
           
-          if [ -d "$E2E_MODULE_DIR" ] && [ -n "$(find "$E2E_MODULE_DIR" -name "*.cy.ts" 2>/dev/null | head -1)" ]; then
-            E2E_TESTS_FOUND=true
-            echo "   📁 Found E2E tests in: $E2E_MODULE_DIR"
-          fi
+          for pattern in "${MODULE_PATTERNS[@]}"; do
+            if [ -d "$E2E_BASE_DIR/$pattern" ] && [ -n "$(find "$E2E_BASE_DIR/$pattern" -name "*.cy.ts" 2>/dev/null | head -1)" ]; then
+              E2E_TESTS_FOUND=true
+              echo "   📁 Found E2E tests in: $E2E_BASE_DIR/$pattern"
+              break
+            fi
+          done
           
           # Also check module's own cypress structure
           if [ -n "$(find "$MODULE_PATH" -path "*/cypress/tests/e2e/*" -name "*.cy.ts" 2>/dev/null | head -1)" ]; then
