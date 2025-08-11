@@ -32,14 +32,16 @@ jobs:
         id: check-changes
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            BASE_SHA="${{ github.event.pull_request.base.sha }}"
-            HEAD_SHA="${{ github.sha }}"
+            git remote add base "${{ github.event.pull_request.base.repo.clone_url }}"
+            git fetch --no-tags --prune --depth=1 base "${{ github.event.pull_request.base.ref }}"
+            BASE_REF="base/${{ github.event.pull_request.base.ref }}"
+            MERGE_BASE=$(git merge-base "$BASE_REF" HEAD)
+            DIFF_RANGE="$MERGE_BASE...HEAD"
           else
-            BASE_SHA="${{ github.event.before || 'HEAD~1' }}"
-            HEAD_SHA="HEAD"
+            DIFF_RANGE="${{ github.event.before || 'HEAD~1' }}..HEAD"
           fi
 
-          CHANGED_MODULES=$(git diff --name-only "$BASE_SHA"..."$HEAD_SHA" | grep '^frontend/packages/' | cut -d'/' -f3 | sort -u)
+          CHANGED_MODULES=$(git diff --name-only $DIFF_RANGE | grep '^frontend/packages/' | cut -d'/' -f3 | sort -u)
           echo "Changed modules: $CHANGED_MODULES"
 
           if [ -n "$CHANGED_MODULES" ]; then
@@ -52,14 +54,16 @@ jobs:
         id: generate-matrix
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            BASE_SHA="${{ github.event.pull_request.base.sha }}"
-            HEAD_SHA="${{ github.sha }}"
+            git remote add base "${{ github.event.pull_request.base.repo.clone_url }}"
+            git fetch --no-tags --prune --depth=1 base "${{ github.event.pull_request.base.ref }}"
+            BASE_REF="base/${{ github.event.pull_request.base.ref }}"
+            MERGE_BASE=$(git merge-base "$BASE_REF" HEAD)
+            DIFF_RANGE="$MERGE_BASE...HEAD"
           else
-            BASE_SHA="${{ github.event.before || 'HEAD~1' }}"
-            HEAD_SHA="HEAD"
+            DIFF_RANGE="${{ github.event.before || 'HEAD~1' }}..HEAD"
           fi
 
-          CHANGED_MODULES=$(git diff --name-only "$BASE_SHA"..."$HEAD_SHA" | grep '^frontend/packages/' | cut -d'/' -f3 | sort -u)
+          CHANGED_MODULES=$(git diff --name-only $DIFF_RANGE | grep '^frontend/packages/' | cut -d'/' -f3 | sort -u)
           if [ -n "$CHANGED_MODULES" ]; then
             # Create JSON array properly with error handling
             MATRIX_JSON="["
@@ -1165,74 +1169,10 @@ jobs:
           echo "📊 Summary file size: $(wc -l < $SUMMARY_FILE) lines"
           echo "📄 Summary file path: $(pwd)/$SUMMARY_FILE"
 
-      - name: Comment PR with Quality Gates Summary
-        if: github.event_name == 'pull_request'
-        uses: actions/github-script@v7
-        continue-on-error: true
-        with:
-          script: |
-            const fs = require('fs');
-            
-            // Debug information
-            console.log('🔍 Debug Info:');
-            console.log('- Event name:', context.eventName);
-            console.log('- PR number:', context.issue?.number);
-            console.log('- Is fork:', context.payload.pull_request?.head.repo.fork);
-            console.log('- Working directory:', process.cwd());
-            
-            const summaryFile = 'quality-gates-summary.md';
-            
-            // Check if summary file exists
-            if (!fs.existsSync(summaryFile)) {
-              console.log('❌ Quality gates summary file not found:', summaryFile);
-              console.log('📁 Available files:');
-              fs.readdirSync('.').filter(f => f.includes('quality') || f.endsWith('.md')).forEach(f => {
-                console.log('  -', f);
-              });
-              return;
-            }
-            
-            // Read the summary content
-            const summary = fs.readFileSync(summaryFile, 'utf8');
-            console.log('📊 Summary loaded:', summary.length, 'characters');
-            console.log('📄 Preview:', summary.substring(0, 100) + '...');
-            
-            try {
-              const result = await github.rest.issues.createComment({
-                issue_number: context.issue.number,
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                body: summary
-              });
-              console.log('✅ Quality gates summary posted as PR comment #' + result.data.id);
-              console.log('🔗 Comment URL: ' + result.data.html_url);
-              
-            } catch (error) {
-              console.log('❌ Failed to post PR comment:', error.message);
-              console.log('🔍 Error details:', {
-                status: error.status,
-                name: error.name,
-                documentation_url: error.documentation_url
-              });
-              
-              if (error.message.includes('Resource not accessible by integration')) {
-                console.log('🔒 This is expected for forked PRs due to GitHub security restrictions');
-                console.log('📄 Quality gates summary is available in:');
-                console.log('   • Job summary (above in this workflow run)');
-                console.log('   • Downloaded artifact (quality-gates-summary.md)');
-                console.log('   • Individual job logs for detailed results');
-              } else {
-                console.log('⚠️ Unexpected error occurred - this might indicate a different issue');
-              }
-              
-              // Always log the summary for visibility
-              console.log('\n📋 Quality Gates Summary (for manual review):');
-              console.log(summary);
-            }
 
       - name: Upload Quality Gates Summary
         uses: actions/upload-artifact@v4
         with:
-          name: quality-gates-summary-${{ github.run_number }}
+          name: quality-gates-summary
           path: quality-gates-summary.md
           retention-days: 30
