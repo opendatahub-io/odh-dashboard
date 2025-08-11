@@ -1,6 +1,6 @@
 import { SortableData } from '@odh-dashboard/internal/components/table/index';
-import { PyTorchJobKind } from '../../k8sTypes';
 import { getJobStatus } from './utils';
+import { PyTorchJobKind } from '../../k8sTypes';
 
 export const columns: SortableData<PyTorchJobKind>[] = [
   {
@@ -20,30 +20,19 @@ export const columns: SortableData<PyTorchJobKind>[] = [
       a.metadata.namespace.localeCompare(b.metadata.namespace),
   },
   {
-    field: 'replicas',
-    label: 'Master/Worker',
+    field: 'workerNodes',
+    label: 'Worker nodes',
     width: 15,
     sortable: (a: PyTorchJobKind, b: PyTorchJobKind): number => {
-      const aMaster = a.spec.pytorchReplicaSpecs.Master?.replicas || 0;
       const aWorker = a.spec.pytorchReplicaSpecs.Worker?.replicas || 0;
-      const bMaster = b.spec.pytorchReplicaSpecs.Master?.replicas || 0;
       const bWorker = b.spec.pytorchReplicaSpecs.Worker?.replicas || 0;
 
-      // Sort by total replicas (Master + Worker)
-      const aTotal = aMaster + aWorker;
-      const bTotal = bMaster + bWorker;
-
-      if (aTotal !== bTotal) {
-        return aTotal - bTotal;
-      }
-
-      // If total is the same, sort by Worker replicas as secondary sort
       return aWorker - bWorker;
     },
   },
   {
-    field: 'queue',
-    label: 'Queue',
+    field: 'clusterQueue',
+    label: 'Cluster queue',
     width: 10,
     sortable: (a: PyTorchJobKind, b: PyTorchJobKind): number => {
       const aQueue = a.metadata.labels?.['kueue.x-k8s.io/queue-name'] || '';
@@ -59,16 +48,6 @@ export const columns: SortableData<PyTorchJobKind>[] = [
       const first = a.metadata.creationTimestamp;
       const second = b.metadata.creationTimestamp;
       return new Date(first ?? 0).getTime() - new Date(second ?? 0).getTime();
-    },
-  },
-  {
-    field: 'duration',
-    label: 'Duration',
-    width: 15,
-    sortable: (a: PyTorchJobKind, b: PyTorchJobKind): number => {
-      const aStart = new Date(a.status?.startTime || 0).getTime();
-      const bStart = new Date(b.status?.startTime || 0).getTime();
-      return aStart - bStart;
     },
   },
   {
@@ -90,13 +69,13 @@ export const columns: SortableData<PyTorchJobKind>[] = [
 
 export enum TrainingJobToolbarFilterOptions {
   name = 'Name',
-  queue = 'Queue',
+  clusterQueue = 'Cluster queue',
   status = 'Status',
 }
 
 export const TrainingJobFilterOptions = {
   [TrainingJobToolbarFilterOptions.name]: 'Name',
-  [TrainingJobToolbarFilterOptions.queue]: 'Queue',
+  [TrainingJobToolbarFilterOptions.clusterQueue]: 'Cluster queue',
   [TrainingJobToolbarFilterOptions.status]: 'Status',
 };
 
@@ -104,6 +83,6 @@ export type TrainingJobFilterDataType = Record<TrainingJobToolbarFilterOptions, 
 
 export const initialTrainingJobFilterData: TrainingJobFilterDataType = {
   [TrainingJobToolbarFilterOptions.name]: '',
-  [TrainingJobToolbarFilterOptions.queue]: '',
+  [TrainingJobToolbarFilterOptions.clusterQueue]: '',
   [TrainingJobToolbarFilterOptions.status]: '',
 };

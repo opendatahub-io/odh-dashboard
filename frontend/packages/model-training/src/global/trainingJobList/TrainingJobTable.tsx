@@ -1,10 +1,10 @@
 import * as React from 'react';
 import { Table } from '@odh-dashboard/internal/components/table/index';
 import DashboardEmptyTableView from '@odh-dashboard/internal/concepts/dashboard/DashboardEmptyTableView';
-import { PyTorchJobKind } from '../../k8sTypes';
+import { columns } from './const';
 import TrainingJobTableRow from './TrainingJobTableRow';
 import DeleteTrainingJobModal from './DeleteTrainingJobModal';
-import { columns } from './const';
+import { PyTorchJobKind } from '../../k8sTypes';
 
 type TrainingJobTableProps = {
   trainingJobs: PyTorchJobKind[];

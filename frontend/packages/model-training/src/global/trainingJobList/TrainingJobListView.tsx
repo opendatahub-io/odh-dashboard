@@ -1,11 +1,10 @@
 import * as React from 'react';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
-import { ProjectsContext, byName } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
-import { PyTorchJobKind } from '../../k8sTypes';
 import TrainingJobTable from './TrainingJobTable';
 import TrainingJobToolbar from './TrainingJobToolbar';
 import { initialTrainingJobFilterData, TrainingJobFilterDataType } from './const';
 import { getJobStatus } from './utils';
+import { PyTorchJobKind } from '../../k8sTypes';
 
 type TrainingJobListViewProps = {
   trainingJobs: PyTorchJobKind[];
@@ -14,7 +13,6 @@ type TrainingJobListViewProps = {
 const TrainingJobListView: React.FC<TrainingJobListViewProps> = ({
   trainingJobs: unfilteredTrainingJobs,
 }) => {
-  const { projects } = React.useContext(ProjectsContext);
   const [filterData, setFilterData] = React.useState<TrainingJobFilterDataType>(
     initialTrainingJobFilterData,
   );
@@ -29,7 +27,7 @@ const TrainingJobListView: React.FC<TrainingJobListViewProps> = ({
       unfilteredTrainingJobs.filter((job) => {
         const nameFilter = filterData.Name?.toLowerCase();
         const statusFilter = filterData.Status?.toLowerCase();
-        const queueFilter = filterData.Queue?.toLowerCase();
+        const clusterQueueFilter = filterData['Cluster queue']?.toLowerCase();
 
         if (nameFilter && !getDisplayNameFromK8sResource(job).toLowerCase().includes(nameFilter)) {
           return false;
@@ -40,17 +38,17 @@ const TrainingJobListView: React.FC<TrainingJobListViewProps> = ({
         }
 
         if (
-          queueFilter &&
+          clusterQueueFilter &&
           !(job.metadata.labels?.['kueue.x-k8s.io/queue-name'] || '')
             .toLowerCase()
-            .includes(queueFilter)
+            .includes(clusterQueueFilter)
         ) {
           return false;
         }
 
         return true;
       }),
-    [filterData, unfilteredTrainingJobs, projects],
+    [filterData, unfilteredTrainingJobs],
   );
 
   const onFilterUpdate = React.useCallback(

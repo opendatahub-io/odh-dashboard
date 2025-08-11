@@ -25,10 +25,10 @@ const TrainingJobToolbar: React.FC<TrainingJobToolbarProps> = ({ filterData, onF
           onChange={(_event, value) => onChange(value)}
         />
       ),
-      [TrainingJobToolbarFilterOptions.queue]: ({ onChange, ...props }) => (
+      [TrainingJobToolbarFilterOptions.clusterQueue]: ({ onChange, ...props }) => (
         <SearchInput
           {...props}
-          aria-label="Filter by queue"
+          aria-label="Filter by cluster queue"
           placeholder="Filter by queue"
           onChange={(_event, value) => onChange(value)}
         />
