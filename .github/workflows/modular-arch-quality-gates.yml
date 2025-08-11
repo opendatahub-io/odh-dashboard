@@ -27,6 +27,15 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          
+      - name: Fetch base branch
+        run: |
+          echo "🔍 Fetching base branch for proper diff comparison"
+          git remote -v
+          git fetch origin ${{ github.event.pull_request.base.ref }}:base-ref || echo "Fetch failed"
+          git log --oneline -3
+          echo "🔍 Base ref: ${{ github.event.pull_request.base.ref }}"
+          echo "🔍 Base SHA: ${{ github.event.pull_request.base.sha }}"
 
       - name: Detect changed modules
         id: check-changes
@@ -35,26 +44,23 @@ jobs:
           echo "🔍 DEBUG: GitHub SHA: ${{ github.sha }}"
           echo "🔍 DEBUG: PR base SHA: ${{ github.event.pull_request.base.sha }}"
           
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            # For PRs, use the base SHA directly (GitHub Actions provides it)
-            BASE_SHA="${{ github.event.pull_request.base.sha }}"
-            HEAD_SHA="${{ github.sha }}"
-            DIFF_RANGE="$BASE_SHA...$HEAD_SHA"
-          else
-            DIFF_RANGE="${{ github.event.before || 'HEAD~1' }}..HEAD"
-          fi
-
-          echo "🔍 DEBUG: DIFF_RANGE=$DIFF_RANGE"
-          echo "🔍 DEBUG: All changed files:"
-          git diff --name-only $DIFF_RANGE || echo "Git diff failed"
-          echo "🔍 DEBUG: Frontend package files:"
-          git diff --name-only $DIFF_RANGE | grep '^frontend/packages/' || echo "No frontend/packages files found"
+          # Use a more reliable approach - fetch the base and compare
+          git fetch origin ${{ github.event.pull_request.base.ref }}
+          BASE_SHA="origin/${{ github.event.pull_request.base.ref }}"
+          HEAD_SHA="HEAD"
           
-          CHANGED_MODULES=$(git diff --name-only $DIFF_RANGE | grep '^frontend/packages/' | cut -d'/' -f3 | sort -u)
+          echo "🔍 DEBUG: Using BASE_SHA=$BASE_SHA HEAD_SHA=$HEAD_SHA"
+          echo "🔍 DEBUG: All changed files:"
+          git diff --name-only $BASE_SHA...$HEAD_SHA || echo "Git diff failed"
+          echo "🔍 DEBUG: Frontend package files:"
+          git diff --name-only $BASE_SHA...$HEAD_SHA | grep '^frontend/packages/' || echo "No frontend/packages files found"
+          
+          CHANGED_MODULES=$(git diff --name-only $BASE_SHA...$HEAD_SHA | grep '^frontend/packages/' | cut -d'/' -f3 | sort -u)
           echo "🔍 DEBUG: Changed modules: '$CHANGED_MODULES'"
 
           if [ -n "$CHANGED_MODULES" ]; then
             echo "✅ has-changes=true" >> $GITHUB_OUTPUT
+            echo "changed-modules=$CHANGED_MODULES" >> $GITHUB_OUTPUT
           else
             echo "❌ has-changes=false" >> $GITHUB_OUTPUT
           fi
@@ -64,17 +70,13 @@ jobs:
         run: |
           echo "🔍 DEBUG MATRIX: Event name: ${{ github.event_name }}"
           
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            # For PRs, use the base SHA directly (GitHub Actions provides it)
-            BASE_SHA="${{ github.event.pull_request.base.sha }}"
-            HEAD_SHA="${{ github.sha }}"
-            DIFF_RANGE="$BASE_SHA...$HEAD_SHA"
-          else
-            DIFF_RANGE="${{ github.event.before || 'HEAD~1' }}..HEAD"
-          fi
+          # Use the same approach as change detection
+          git fetch origin ${{ github.event.pull_request.base.ref }}
+          BASE_SHA="origin/${{ github.event.pull_request.base.ref }}"
+          HEAD_SHA="HEAD"
 
-          echo "🔍 DEBUG MATRIX: DIFF_RANGE=$DIFF_RANGE"
-          CHANGED_MODULES=$(git diff --name-only $DIFF_RANGE | grep '^frontend/packages/' | cut -d'/' -f3 | sort -u)
+          echo "🔍 DEBUG MATRIX: Using BASE_SHA=$BASE_SHA HEAD_SHA=$HEAD_SHA"
+          CHANGED_MODULES=$(git diff --name-only $BASE_SHA...$HEAD_SHA | grep '^frontend/packages/' | cut -d'/' -f3 | sort -u)
           echo "🔍 DEBUG MATRIX: Changed modules for matrix: '$CHANGED_MODULES'"
           
           if [ -n "$CHANGED_MODULES" ]; then
