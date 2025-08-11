@@ -173,6 +173,24 @@ jobs:
             MISSING_CHECKS+=("TypeScript configuration")
           fi
           
+          # Check 3: mod-arch-shared dependency
+          if [ -f "$FRONTEND_PATH/package.json" ] && grep -q '"mod-arch-shared"' "$FRONTEND_PATH/package.json"; then
+            echo "✅ mod-arch-shared Dependency - PRESENT"
+            COMPLIANCE_CHECKS=$((COMPLIANCE_CHECKS + 1))
+          else
+            echo "❌ mod-arch-shared Dependency - MISSING"
+            MISSING_CHECKS+=("mod-arch-shared dependency for shared components")
+          fi
+          
+          # Check 4: PatternFly usage
+          if [ -f "$FRONTEND_PATH/package.json" ] && grep -qE '"@patternfly/react-core"|"@patternfly/react-components"' "$FRONTEND_PATH/package.json"; then
+            echo "✅ PatternFly Dependencies - PRESENT"
+            COMPLIANCE_CHECKS=$((COMPLIANCE_CHECKS + 1))
+          else
+            echo "❌ PatternFly Dependencies - MISSING"
+            MISSING_CHECKS+=("PatternFly UI framework dependencies")
+          fi
+          
           # Frontend quality checks
           if [ -d "$FRONTEND_PATH" ]; then
             echo "🎨 Running frontend checks..."
@@ -186,9 +204,19 @@ jobs:
             fi
           fi
           
-          # BFF quality checks
+          # BFF structure and quality checks
           if [ -d "$BFF_PATH" ] && [ -f "$BFF_PATH/go.mod" ]; then
             echo "🔧 Running BFF checks..."
+            
+            # Check 5: BFF structure (go.mod + cmd/)
+            if [ -d "$BFF_PATH/cmd" ]; then
+              echo "✅ BFF Structure - COMPLIANT (go.mod + cmd/)"
+              COMPLIANCE_CHECKS=$((COMPLIANCE_CHECKS + 1))
+            else
+              echo "❌ BFF Structure - INCOMPLETE (missing cmd/ directory)"
+              MISSING_CHECKS+=("BFF cmd/ directory structure")
+            fi
+            
             cd "$BFF_PATH"
             
             # Go formatting
@@ -203,6 +231,8 @@ jobs:
             if command -v golangci-lint &> /dev/null; then
               golangci-lint run || echo "⚠️ Linting issues found"
             fi
+          else
+            echo "⚠️ No BFF structure detected (go.mod not found)"
           fi
           
           echo "📊 Code Quality Summary:"
@@ -338,7 +368,9 @@ jobs:
           MODULE_PATTERNS=(
             "${{ matrix.module }}"                    # exact name: model-registry
             "$(echo ${{ matrix.module }} | sed 's/-//g')"  # no hyphens: modelregistry  
-            "$(echo ${{ matrix.module }} | sed 's/-\([a-z]\)/\U\1/g')"  # camelCase: modelRegistry
+            "modelRegistry"                          # common camelCase for model-registry
+            "llamaStack"                             # common camelCase for llama-stack
+            "nim"                                    # single word modules
           )
           
           for pattern in "${MODULE_PATTERNS[@]}"; do
@@ -529,6 +561,49 @@ jobs:
             echo "⚠️ No BFF detected, health checks not applicable"
             TOTAL_CHECKS=$((TOTAL_CHECKS - 1))
           fi
+          
+          # Check 5: Security configurations
+          SECURITY_FOUND=false
+          
+          # Check Dockerfile for security best practices
+          if [ -f "$MODULE_PATH/Dockerfile" ] || [ -f "$MODULE_PATH/Dockerfile.workspace" ]; then
+            DOCKERFILE=$(find "$MODULE_PATH" -name "Dockerfile*" | head -1)
+            
+            # Check for non-root user
+            if grep -q "USER.*[0-9]" "$DOCKERFILE"; then
+              echo "   ✅ Non-root user configured"
+              SECURITY_FOUND=true
+            fi
+            
+            # Check for security-focused base images
+            if grep -qE "distroless|scratch|alpine|DISTROLESS_BASE_IMAGE" "$DOCKERFILE"; then
+              echo "   ✅ Security-focused base image"
+              SECURITY_FOUND=true
+            fi
+            
+            # Check for exposed ports
+            if grep -q "EXPOSE" "$DOCKERFILE"; then
+              echo "   ✅ Port exposure configured"
+              SECURITY_FOUND=true
+            fi
+          fi
+          
+          # Check for authorization in Module Federation
+          if [ -f "$MODULE_PATH/package.json" ] && grep -A 10 '"module-federation"' "$MODULE_PATH/package.json" | grep -q '"authorize".*true'; then
+            echo "   ✅ Authorization enabled in Module Federation"
+            SECURITY_FOUND=true
+          fi
+          
+          if [ "$SECURITY_FOUND" = true ]; then
+            echo "✅ Security Configurations - PRESENT"
+            IMPLEMENTED_CHECKS=$((IMPLEMENTED_CHECKS + 1))
+          else
+            echo "❌ Security Configurations - MISSING"
+            MISSING_CHECKS+=("Security configurations (non-root user, secure base images, authorization)")
+          fi
+          
+          # Update total checks to include security
+          TOTAL_CHECKS=5
           
           # Calculate percentage
           PERCENTAGE=$((IMPLEMENTED_CHECKS * 100 / TOTAL_CHECKS))
