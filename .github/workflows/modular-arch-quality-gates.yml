@@ -26,7 +26,7 @@ jobs:
       - name: Detect changed modules
         id: check-changes
         run: |
-          # Simple change detection that worked in the successful run
+          # Simple change detection - get modules as space-separated string
           CHANGED_MODULES=$(git diff --name-only ${{ github.event.pull_request.base.sha }}...${{ github.sha }} | grep "^frontend/packages/" | cut -d'/' -f3 | sort -u | tr '\n' ' ' | sed 's/ $//')
           
           echo "Changed modules: '$CHANGED_MODULES'"
@@ -52,10 +52,12 @@ jobs:
       - name: Generate test matrix
         id: generate-matrix
         run: |
-          # Generate matrix from detected modules
-          CHANGED_MODULES=$(git diff --name-only ${{ github.event.pull_request.base.sha }}...${{ github.sha }} | grep "^frontend/packages/" | cut -d'/' -f3 | sort -u)
+          # Use the detected modules from previous job output
+          CHANGED_MODULES="${{ needs.detect-changes.outputs.changed-modules }}"
           
-          # Build JSON array
+          echo "Generating matrix for modules: '$CHANGED_MODULES'"
+          
+          # Build JSON array from space-separated string
           JSON_ARRAY="["
           FIRST=true
           for module in $CHANGED_MODULES; do
@@ -68,6 +70,7 @@ jobs:
           done
           JSON_ARRAY="$JSON_ARRAY]"
           
+          echo "Generated matrix: $JSON_ARRAY"
           echo "matrix=$JSON_ARRAY" >> $GITHUB_OUTPUT
 
   # Quality Gate 1: Code Quality Gate
