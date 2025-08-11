@@ -2400,7 +2400,7 @@ describe('Serving Runtime List', () => {
       kserveModal.findGlobalScopedTemplateOption('Caikit').click();
       kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
       // Auto-selects the only pvc
-      kserveModal.findPVCConnectionOption().should('be.visible').click();
+      kserveModal.findPVCConnectionOption().scrollIntoView().should('be.visible').click();
       kserveModal.findLocationPathInput().should('have.value', 'test-path');
       kserveModal.findSubmitButton().should('be.enabled');
       kserveModal.findSubmitButton().click();

@@ -211,7 +211,7 @@ export const typedColor = (objectType: ProjectObjectType): string => {
     case ProjectObjectType.notebookImage:
       return 'var(--ai-training--BackgroundColor)';
     case ProjectObjectType.build:
-      return 'var(--ai-model-server--Color)';
+      return 'var(--ai-notebook--Color)';
     case ProjectObjectType.pipeline:
     case ProjectObjectType.pipelineRun:
     case ProjectObjectType.pipelineExecution:
