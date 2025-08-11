@@ -7,8 +7,7 @@
     "type-check": "tsc --noEmit"
   },
   "exports": {
-    "./extensions": "./extensions.ts",
-    "./FeatureStoreRoutes": "./src/FeatureStoreRoutes.tsx"
+    "./extensions": "./extensions.ts"
   },
   "dependencies": {
     "@odh-dashboard/internal": "*",
