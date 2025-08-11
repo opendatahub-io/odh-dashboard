@@ -31,6 +31,10 @@ jobs:
       - name: Detect changed modules
         id: check-changes
         run: |
+          echo "🔍 DEBUG: Event name: ${{ github.event_name }}"
+          echo "🔍 DEBUG: GitHub SHA: ${{ github.sha }}"
+          echo "🔍 DEBUG: PR base SHA: ${{ github.event.pull_request.base.sha }}"
+          
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             # For PRs, use the base SHA directly (GitHub Actions provides it)
             BASE_SHA="${{ github.event.pull_request.base.sha }}"
@@ -40,12 +44,13 @@ jobs:
             DIFF_RANGE="${{ github.event.before || 'HEAD~1' }}..HEAD"
           fi
 
-          CHANGED_MODULES=$(git diff --name-only $DIFF_RANGE | grep '^frontend/packages/' | cut -d'/' -f3 | sort -u)
           echo "🔍 DEBUG: DIFF_RANGE=$DIFF_RANGE"
           echo "🔍 DEBUG: All changed files:"
-          git diff --name-only $DIFF_RANGE
+          git diff --name-only $DIFF_RANGE || echo "Git diff failed"
           echo "🔍 DEBUG: Frontend package files:"
           git diff --name-only $DIFF_RANGE | grep '^frontend/packages/' || echo "No frontend/packages files found"
+          
+          CHANGED_MODULES=$(git diff --name-only $DIFF_RANGE | grep '^frontend/packages/' | cut -d'/' -f3 | sort -u)
           echo "🔍 DEBUG: Changed modules: '$CHANGED_MODULES'"
 
           if [ -n "$CHANGED_MODULES" ]; then
@@ -57,6 +62,8 @@ jobs:
       - name: Generate test matrix
         id: generate-matrix
         run: |
+          echo "🔍 DEBUG MATRIX: Event name: ${{ github.event_name }}"
+          
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             # For PRs, use the base SHA directly (GitHub Actions provides it)
             BASE_SHA="${{ github.event.pull_request.base.sha }}"
@@ -66,18 +73,16 @@ jobs:
             DIFF_RANGE="${{ github.event.before || 'HEAD~1' }}..HEAD"
           fi
 
+          echo "🔍 DEBUG MATRIX: DIFF_RANGE=$DIFF_RANGE"
           CHANGED_MODULES=$(git diff --name-only $DIFF_RANGE | grep '^frontend/packages/' | cut -d'/' -f3 | sort -u)
-          echo "🔍 DEBUG: DIFF_RANGE=$DIFF_RANGE"
-          echo "🔍 DEBUG: All changed files in matrix generation:"
-          git diff --name-only $DIFF_RANGE
-          echo "🔍 DEBUG: Changed modules for matrix: '$CHANGED_MODULES'"
+          echo "🔍 DEBUG MATRIX: Changed modules for matrix: '$CHANGED_MODULES'"
           
           if [ -n "$CHANGED_MODULES" ]; then
             # Create JSON array properly with error handling
             MATRIX_JSON="["
             FIRST=true
             for module in $CHANGED_MODULES; do
-              echo "🔍 DEBUG: Adding module to matrix: $module"
+              echo "🔍 DEBUG MATRIX: Adding module to matrix: $module"
               if [ "$FIRST" = true ]; then
                 MATRIX_JSON="${MATRIX_JSON}\"${module}\""
                 FIRST=false
@@ -86,10 +91,10 @@ jobs:
               fi
             done
             MATRIX_JSON="${MATRIX_JSON}]"
-            echo "🔍 DEBUG: Final matrix JSON: $MATRIX_JSON"
+            echo "🔍 DEBUG MATRIX: Final matrix JSON: $MATRIX_JSON"
             echo "modules-matrix=${MATRIX_JSON}" >> $GITHUB_OUTPUT
           else
-            echo "🔍 DEBUG: No changed modules - setting empty matrix"
+            echo "🔍 DEBUG MATRIX: No changed modules - setting empty matrix"
             echo "modules-matrix=[]" >> $GITHUB_OUTPUT
           fi
 
