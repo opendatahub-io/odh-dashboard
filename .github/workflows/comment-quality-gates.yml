@@ -15,7 +15,7 @@ jobs:
   comment-pr:
     name: Post Quality Gates Summary
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ github.event.workflow_run.event == 'pull_request' && (github.event.workflow_run.conclusion == 'success' || github.event.workflow_run.conclusion == 'failure') }}
     steps:
       - name: Download Quality Gates Summary
         uses: actions/download-artifact@v4

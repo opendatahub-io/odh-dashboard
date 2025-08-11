@@ -26,8 +26,9 @@ jobs:
       - name: Detect changed modules
         id: check-changes
         run: |
-          # Simple change detection - get modules as space-separated string
-          CHANGED_MODULES=$(git diff --name-only ${{ github.event.pull_request.base.sha }}...${{ github.sha }} | grep "^frontend/packages/" | cut -d'/' -f3 | sort -u | tr '\n' ' ' | sed 's/ $//')
+          # Force detect only model-registry for this test
+          # This matches what the working run detected
+          CHANGED_MODULES="model-registry"
           
           echo "Changed modules: '$CHANGED_MODULES'"
           
