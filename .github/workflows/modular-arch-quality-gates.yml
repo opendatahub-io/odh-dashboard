@@ -32,11 +32,10 @@ jobs:
         id: check-changes
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            git remote add base "${{ github.event.pull_request.base.repo.clone_url }}"
-            git fetch --no-tags --prune --depth=1 base "${{ github.event.pull_request.base.ref }}"
-            BASE_REF="base/${{ github.event.pull_request.base.ref }}"
-            MERGE_BASE=$(git merge-base "$BASE_REF" HEAD)
-            DIFF_RANGE="$MERGE_BASE...HEAD"
+            # For PRs, use the base SHA directly (GitHub Actions provides it)
+            BASE_SHA="${{ github.event.pull_request.base.sha }}"
+            HEAD_SHA="${{ github.sha }}"
+            DIFF_RANGE="$BASE_SHA...$HEAD_SHA"
           else
             DIFF_RANGE="${{ github.event.before || 'HEAD~1' }}..HEAD"
           fi
@@ -54,11 +53,10 @@ jobs:
         id: generate-matrix
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            git remote add base "${{ github.event.pull_request.base.repo.clone_url }}"
-            git fetch --no-tags --prune --depth=1 base "${{ github.event.pull_request.base.ref }}"
-            BASE_REF="base/${{ github.event.pull_request.base.ref }}"
-            MERGE_BASE=$(git merge-base "$BASE_REF" HEAD)
-            DIFF_RANGE="$MERGE_BASE...HEAD"
+            # For PRs, use the base SHA directly (GitHub Actions provides it)
+            BASE_SHA="${{ github.event.pull_request.base.sha }}"
+            HEAD_SHA="${{ github.sha }}"
+            DIFF_RANGE="$BASE_SHA...$HEAD_SHA"
           else
             DIFF_RANGE="${{ github.event.before || 'HEAD~1' }}..HEAD"
           fi
@@ -951,18 +949,21 @@ jobs:
 
             if [ "$(ls -A ./combined-coverage)" ]; then
               npx nyc merge ./combined-coverage ./combined-coverage/merged-coverage.json
-
-              echo "📊 Uploading to Codecov..."
-              # Upload to Codecov (similar to main test.yml)
-              curl -Os https://uploader.codecov.io/latest/linux/codecov
-              chmod +x codecov
-              ./codecov -f ./combined-coverage/merged-coverage.json -t ${{ secrets.CODECOV_TOKEN }} -F modular-arch
+              echo "📊 Coverage files merged successfully"
             else
               echo "⚠️ No coverage files found to combine"
             fi
           else
             echo "⚠️ No coverage artifacts found"
           fi
+
+      - name: Upload to Codecov
+        if: hashFiles('./combined-coverage/merged-coverage.json') != ''
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./combined-coverage/merged-coverage.json
+          flags: modular-arch
+          token: ${{ secrets.CODECOV_TOKEN }}
 
   quality-gates-summary:
     name: Quality Gates Summary

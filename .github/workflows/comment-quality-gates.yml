@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   comment:
-    if: ${{ github.event.workflow_run.event == 'pull_request' }}
+    if: ${{ github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     steps:
       - name: Download artifacts
@@ -21,28 +21,58 @@ jobs:
           script: |
             const runId = context.payload.workflow_run.id;
             const {owner, repo} = context.repo;
+            
+            console.log(`Searching for artifacts in run ${runId}`);
             const artifacts = await github.rest.actions.listWorkflowRunArtifacts({ owner, repo, run_id: runId });
+            console.log(`Found ${artifacts.data.artifacts.length} artifacts`);
+            
             const artifact = artifacts.data.artifacts.find(a => a.name.startsWith('quality-gates-summary'));
             if (!artifact) {
+              console.log('Available artifacts:', artifacts.data.artifacts.map(a => a.name));
               core.setFailed('No quality-gates-summary artifact found');
               return;
             }
+            
+            console.log(`Downloading artifact: ${artifact.name}`);
             const archive = await github.rest.actions.downloadArtifact({ owner, repo, artifact_id: artifact.id, archive_format: 'zip' });
             require('fs').writeFileSync('artifact.zip', Buffer.from(archive.data));
+            console.log('Artifact downloaded successfully');
+            
       - name: Unzip artifact
         run: |
           unzip -o artifact.zip
+          echo "Files after unzip:"
           ls -la
+          
       - name: Post comment
         uses: actions/github-script@v7
+        continue-on-error: true
         with:
           script: |
             const fs = require('fs');
-            const summary = fs.readFileSync('quality-gates-summary.md', 'utf8');
-            const prUrl = context.payload.workflow_run.pull_requests?.[0]?.url;
-            if (!prUrl) {
-              core.setFailed('No associated PR found');
+            
+            if (!fs.existsSync('quality-gates-summary.md')) {
+              console.log('quality-gates-summary.md not found');
               return;
             }
+            
+            const summary = fs.readFileSync('quality-gates-summary.md', 'utf8');
+            console.log(`Summary length: ${summary.length} characters`);
+            
+            const prUrl = context.payload.workflow_run.pull_requests?.[0]?.url;
+            if (!prUrl) {
+              console.log('No associated PR found');
+              return;
+            }
+            
             const { data: pr } = await github.request(prUrl);
-            await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number: pr.number, body: summary }); 
+            console.log(`Posting comment to PR #${pr.number}`);
+            
+            const result = await github.rest.issues.createComment({ 
+              owner: context.repo.owner, 
+              repo: context.repo.repo, 
+              issue_number: pr.number, 
+              body: summary 
+            });
+            
+            console.log(`Comment posted successfully: ${result.data.html_url}`); 

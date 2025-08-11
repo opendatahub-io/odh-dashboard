@@ -7,7 +7,7 @@ import './app.css';
 // Updated: Testing FIXED quality gates - should show accurate results now!
 // Updated: Testing pipeline trigger after branch updates
 // Updated: Clean pipeline run after CSV cleanup
-// Updated: Testing PR comment fix - should post summary now!
+// Updated: Testing fixed change detection - only model-registry should run!
 // Updated: Testing ROBUST PR comment solution - multi-layer visibility!
 // Updated: Testing CRITICAL REGEX FIX - proper test detection!
 // Updated: Testing DIRECT FILE READ FIX - PR comments should work now!
