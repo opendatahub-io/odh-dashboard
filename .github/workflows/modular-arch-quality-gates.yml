@@ -333,15 +333,19 @@ jobs:
           # Check 2: E2E Tests - Look for module-specific e2e directories  
           E2E_TESTS_FOUND=false
           
-          # Check in global cypress e2e directory for module-specific files
-          MODULE_NAME_PATTERN=$(echo ${{ matrix.module }} | sed 's/-//g')  # Remove hyphens for matching
-          if [ -n "$(find "frontend/src/__tests__/cypress/cypress/tests/e2e/" -name "*${MODULE_NAME_PATTERN}*" -o -name "*$(echo ${{ matrix.module }})*" 2>/dev/null | head -1)" ]; then
+          # Check in the exact path shown: frontend/src/__tests__/cypress/cypress/tests/e2e/modelRegistry/
+          MODULE_NAME_PATTERN=$(echo ${{ matrix.module }} | sed 's/-//g')  # model-registry -> modelRegistry
+          E2E_MODULE_DIR="frontend/src/__tests__/cypress/cypress/tests/e2e/${MODULE_NAME_PATTERN}"
+          
+          if [ -d "$E2E_MODULE_DIR" ] && [ -n "$(find "$E2E_MODULE_DIR" -name "*.cy.ts" 2>/dev/null | head -1)" ]; then
             E2E_TESTS_FOUND=true
+            echo "   📁 Found E2E tests in: $E2E_MODULE_DIR"
           fi
           
-          # Check module's own cypress structure
+          # Also check module's own cypress structure
           if [ -n "$(find "$MODULE_PATH" -path "*/cypress/tests/e2e/*" -name "*.cy.ts" 2>/dev/null | head -1)" ]; then
             E2E_TESTS_FOUND=true
+            echo "   📁 Found E2E tests in module path: $MODULE_PATH"
           fi
           
           if [ "$E2E_TESTS_FOUND" = true ]; then
@@ -669,4 +673,59 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: quality-gates-summary
-          path: quality-gates-summary.md 
+          path: quality-gates-summary.md
+
+      - name: Post Quality Gates Summary as PR Comment
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        continue-on-error: true
+        with:
+          script: |
+            const fs = require('fs');
+            let summaryContent = '';
+            try {
+              summaryContent = fs.readFileSync('quality-gates-summary.md', 'utf8');
+              console.log('✅ Successfully read quality gates summary');
+            } catch (error) {
+              console.log('❌ Failed to read quality gates summary:', error.message);
+              summaryContent = '## 🚦 Quality Gates Summary\n\n❌ Unable to load summary content.';
+            }
+
+            const prNumber = context.issue.number;
+            console.log('📋 Posting to PR #' + prNumber);
+
+            // Look for existing comment
+            const comments = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber
+            });
+
+            const botComment = comments.data.find(comment => 
+              comment.user.type === 'Bot' && 
+              comment.body.includes('🚦 Modular Architecture Quality Gates Results')
+            );
+
+            try {
+              if (botComment) {
+                await github.rest.issues.updateComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: botComment.id,
+                  body: summaryContent
+                });
+                console.log('✅ Updated existing quality gates comment');
+              } else {
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: prNumber,
+                  body: summaryContent
+                });
+                console.log('✅ Created new quality gates comment');
+              }
+            } catch (error) {
+              console.log('❌ Failed to post comment:', error.message);
+              console.log('📊 Summary content:');
+              console.log(summaryContent);
+            } 
