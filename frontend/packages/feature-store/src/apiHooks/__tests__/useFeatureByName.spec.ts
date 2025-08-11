@@ -7,7 +7,7 @@ import { mockFeature } from '@odh-dashboard/internal/__mocks__/mockFeatures';
 import { useFeatureStoreAPI } from '../../FeatureStoreContext';
 import useFeatureByName from '../useFeatureByName';
 
-jest.mock('#~/FeatureStoreContext', () => ({
+jest.mock('../../FeatureStoreContext', () => ({
   useFeatureStoreAPI: jest.fn(),
 }));
 

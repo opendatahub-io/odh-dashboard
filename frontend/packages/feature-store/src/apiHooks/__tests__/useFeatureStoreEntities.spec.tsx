@@ -5,7 +5,7 @@ import { useFeatureStoreAPI } from '../../FeatureStoreContext';
 import { EntityList } from '../../types/entities';
 import useFeatureStoreEntities from '../useFeatureStoreEnitites';
 
-jest.mock('#~/FeatureStoreContext', () => ({
+jest.mock('../../FeatureStoreContext', () => ({
   useFeatureStoreAPI: jest.fn(),
 }));
 

@@ -9,7 +9,7 @@ import { useFeatureStoreAPI } from '../../FeatureStoreContext';
 import { ProjectList } from '../../types/featureStoreProjects';
 import useFeatureStoreProjects from '../useFeatureStoreProjects';
 
-jest.mock('#~/FeatureStoreContext', () => ({
+jest.mock('../../FeatureStoreContext', () => ({
   useFeatureStoreAPI: jest.fn(),
 }));
 

@@ -8,11 +8,11 @@ import { useFeatureStoreCR } from '../apiHooks/useFeatureStoreCR';
 import { FeatureStoreAPIs } from '../types/global';
 import EnsureFeatureStoreAPIAvailability from '../EnsureAPIAvailability';
 
-jest.mock('#~/FeatureStoreContext', () => ({
+jest.mock('../FeatureStoreContext', () => ({
   useFeatureStoreAPI: jest.fn(),
 }));
 
-jest.mock('#~/apiHooks/useFeatureStoreCR', () => ({
+jest.mock('../apiHooks/useFeatureStoreCR', () => ({
   useFeatureStoreCR: jest.fn(),
 }));
 

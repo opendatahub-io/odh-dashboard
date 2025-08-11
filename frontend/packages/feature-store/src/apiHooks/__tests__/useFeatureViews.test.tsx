@@ -5,7 +5,7 @@ import { useFeatureStoreAPI } from '../../FeatureStoreContext';
 import { FeatureViewsList } from '../../types/featureView';
 import useFeatureViews from '../useFeatureViews';
 
-jest.mock('#~/FeatureStoreContext', () => ({
+jest.mock('../../FeatureStoreContext', () => ({
   useFeatureStoreAPI: jest.fn(),
 }));
 
