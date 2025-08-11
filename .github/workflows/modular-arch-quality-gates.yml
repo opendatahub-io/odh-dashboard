@@ -26,34 +26,16 @@ jobs:
       - name: Detect changed modules
         id: check-changes
         run: |
-          echo "🔍 DEBUG: Event name: ${{ github.event_name }}"
-          echo "🔍 DEBUG: GitHub SHA: ${{ github.sha }}"
-          echo "🔍 DEBUG: PR base SHA: ${{ github.event.pull_request.base.sha }}"
+          # Simple change detection that worked in the successful run
+          CHANGED_MODULES=$(git diff --name-only ${{ github.event.pull_request.base.sha }}...${{ github.sha }} | grep "^frontend/packages/" | cut -d'/' -f3 | sort -u | tr '\n' ' ' | sed 's/ $//')
           
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            # For PRs, use the provided base and head SHAs directly
-            BASE_SHA="${{ github.event.pull_request.base.sha }}"
-            HEAD_SHA="${{ github.sha }}"
-            
-            echo "🔍 DEBUG: Using PR SHAs BASE_SHA=$BASE_SHA HEAD_SHA=$HEAD_SHA"
-            echo "🔍 DEBUG: All changed files:"
-            git diff --name-only $BASE_SHA...$HEAD_SHA | head -10
-            echo "🔍 DEBUG: Frontend package files:"
-            git diff --name-only $BASE_SHA...$HEAD_SHA | grep '^frontend/packages/' || echo "No frontend/packages files found"
-            
-            CHANGED_MODULES=$(git diff --name-only $BASE_SHA...$HEAD_SHA | grep '^frontend/packages/' | cut -d'/' -f3 | sort -u)
-          else
-            # For manual dispatch, check recent changes
-            CHANGED_MODULES=$(git diff --name-only HEAD~1..HEAD | grep '^frontend/packages/' | cut -d'/' -f3 | sort -u)
-          fi
+          echo "Changed modules: '$CHANGED_MODULES'"
           
-          echo "🔍 DEBUG: Changed modules: '$CHANGED_MODULES'"
-
           if [ -n "$CHANGED_MODULES" ]; then
-            echo "✅ has-changes=true" >> $GITHUB_OUTPUT
+            echo "has-changes=true" >> $GITHUB_OUTPUT
             echo "changed-modules=$CHANGED_MODULES" >> $GITHUB_OUTPUT
           else
-            echo "❌ has-changes=false" >> $GITHUB_OUTPUT
+            echo "has-changes=false" >> $GITHUB_OUTPUT
           fi
 
   generate-matrix:
@@ -70,17 +52,8 @@ jobs:
       - name: Generate test matrix
         id: generate-matrix
         run: |
-          echo "🔍 DEBUG MATRIX: Event name: ${{ github.event_name }}"
-          
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            BASE_SHA="${{ github.event.pull_request.base.sha }}"
-            HEAD_SHA="${{ github.sha }}"
-            CHANGED_MODULES=$(git diff --name-only $BASE_SHA...$HEAD_SHA | grep '^frontend/packages/' | cut -d'/' -f3 | sort -u)
-          else
-            CHANGED_MODULES=$(git diff --name-only HEAD~1..HEAD | grep '^frontend/packages/' | cut -d'/' -f3 | sort -u)
-          fi
-          
-          echo "🔍 DEBUG MATRIX: Changed modules for matrix: '$CHANGED_MODULES'"
+          # Generate matrix from detected modules
+          CHANGED_MODULES=$(git diff --name-only ${{ github.event.pull_request.base.sha }}...${{ github.sha }} | grep "^frontend/packages/" | cut -d'/' -f3 | sort -u)
           
           # Build JSON array
           JSON_ARRAY="["
@@ -96,7 +69,6 @@ jobs:
           JSON_ARRAY="$JSON_ARRAY]"
           
           echo "matrix=$JSON_ARRAY" >> $GITHUB_OUTPUT
-          echo "🔍 DEBUG MATRIX: Generated matrix: $JSON_ARRAY"
 
   # Quality Gate 1: Code Quality Gate
   code-quality-gate:
