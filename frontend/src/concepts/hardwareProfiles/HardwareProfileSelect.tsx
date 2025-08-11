@@ -314,7 +314,9 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
     <>
       <Flex direction={{ default: 'row' }} spaceItems={{ default: 'spaceItemsSm' }}>
         <FlexItem grow={{ default: 'grow' }}>
-          {isProjectScoped && currentProjectHardwareProfiles.length > 0 ? (
+          {isProjectScoped &&
+          currentProjectHardwareProfiles.length > 0 &&
+          (getHardwareProfiles().length > 0 || getDashboardHardwareProfiles().length > 0) ? (
             <>
               <ProjectScopedSearchDropdown
                 projectScopedItems={getHardwareProfiles()}
