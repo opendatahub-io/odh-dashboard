@@ -31,12 +31,11 @@ jobs:
           echo "🔍 DEBUG: PR base SHA: ${{ github.event.pull_request.base.sha }}"
           
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            # For PRs, use merge-base for reliable diff
-            git fetch origin ${{ github.event.pull_request.base.ref }}
-            BASE_SHA=$(git merge-base origin/${{ github.event.pull_request.base.ref }} HEAD)
-            HEAD_SHA="HEAD"
+            # For PRs, use the provided base and head SHAs directly
+            BASE_SHA="${{ github.event.pull_request.base.sha }}"
+            HEAD_SHA="${{ github.sha }}"
             
-            echo "🔍 DEBUG: Using merge-base BASE_SHA=$BASE_SHA HEAD_SHA=$HEAD_SHA"
+            echo "🔍 DEBUG: Using PR SHAs BASE_SHA=$BASE_SHA HEAD_SHA=$HEAD_SHA"
             echo "🔍 DEBUG: All changed files:"
             git diff --name-only $BASE_SHA...$HEAD_SHA | head -10
             echo "🔍 DEBUG: Frontend package files:"
@@ -74,9 +73,9 @@ jobs:
           echo "🔍 DEBUG MATRIX: Event name: ${{ github.event_name }}"
           
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            git fetch origin ${{ github.event.pull_request.base.ref }}
-            BASE_SHA=$(git merge-base origin/${{ github.event.pull_request.base.ref }} HEAD)
-            CHANGED_MODULES=$(git diff --name-only $BASE_SHA...HEAD | grep '^frontend/packages/' | cut -d'/' -f3 | sort -u)
+            BASE_SHA="${{ github.event.pull_request.base.sha }}"
+            HEAD_SHA="${{ github.sha }}"
+            CHANGED_MODULES=$(git diff --name-only $BASE_SHA...$HEAD_SHA | grep '^frontend/packages/' | cut -d'/' -f3 | sort -u)
           else
             CHANGED_MODULES=$(git diff --name-only HEAD~1..HEAD | grep '^frontend/packages/' | cut -d'/' -f3 | sort -u)
           fi
