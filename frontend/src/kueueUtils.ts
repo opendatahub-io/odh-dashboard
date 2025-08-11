@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { useIsAreaAvailable, SupportedArea } from '#~/concepts/areas';
-import { KnownLabels, ProjectKind } from '#~/k8sTypes';
+import { KnownLabels, ProjectKind, HardwareProfileKind } from '#~/k8sTypes';
+import { SchedulingType } from '#~/types';
 
 /**
  * Custom hook to manage Kueue configuration state and determine various Kueue-related behaviors.
@@ -58,4 +59,25 @@ export const useKueueConfiguration = (
     isProjectKueueEnabled,
     kueueFilteringState,
   };
+};
+
+export const filterProfilesByKueue = (
+  profiles: HardwareProfileKind[],
+  kueueFilteringState: KueueFilteringState,
+): HardwareProfileKind[] => {
+  if (kueueFilteringState === KueueFilteringState.NO_PROFILES) {
+    return [];
+  }
+
+  return profiles.filter((profile) => {
+    const isKueueProfile = profile.spec.scheduling?.type === SchedulingType.QUEUE;
+    switch (kueueFilteringState) {
+      case KueueFilteringState.ONLY_KUEUE_PROFILES:
+        return isKueueProfile;
+      case KueueFilteringState.ONLY_NON_KUEUE_PROFILES:
+        return !isKueueProfile;
+      default:
+        return true;
+    }
+  });
 };
