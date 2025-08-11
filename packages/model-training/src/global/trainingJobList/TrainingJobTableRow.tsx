@@ -1,14 +1,14 @@
 import * as React from 'react';
 import { Tr, Td, ActionsColumn } from '@patternfly/react-table';
 import { Label, Timestamp, Flex, FlexItem } from '@patternfly/react-core';
-import { CubesIcon, UsersIcon, ClockIcon } from '@patternfly/react-icons';
+import { CubesIcon } from '@patternfly/react-icons';
 import ResourceNameTooltip from '@odh-dashboard/internal/components/ResourceNameTooltip';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
-import { relativeDuration } from '@odh-dashboard/internal/utilities/time';
+import TrainingJobProject from './TrainingJobProject';
+import { getJobStatus } from './utils';
+import TrainingJobClusterQueue from './TrainingJobClusterQueue';
 import { PyTorchJobKind } from '../../k8sTypes';
 import { PyTorchJobState } from '../../types';
-import { getJobStatus } from './utils';
-import TrainingJobProject from './TrainingJobProject';
 
 type PyTorchJobTableRowProps = {
   job: PyTorchJobKind;
@@ -35,43 +35,11 @@ const getStatusColor = (
   }
 };
 
-// Helper function to format duration
-const formatDuration = (startTime?: string, completionTime?: string): React.ReactNode => {
-  if (!startTime) {
-    return '-';
-  }
-
-  const start = new Date(startTime).getTime();
-  if (Number.isNaN(start)) {
-    return '-';
-  }
-
-  const end = completionTime ? new Date(completionTime).getTime() : Date.now();
-  if (Number.isNaN(end)) {
-    return '-';
-  }
-
-  const duration = end - start;
-  if (duration <= 0) {
-    return '-';
-  }
-
-  return (
-    <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsXs' }}>
-      <FlexItem>
-        <ClockIcon />
-      </FlexItem>
-      <FlexItem>{relativeDuration(duration)}</FlexItem>
-    </Flex>
-  );
-};
-
 const TrainingJobTableRow: React.FC<PyTorchJobTableRowProps> = ({ job, onDelete }) => {
   const status = getJobStatus(job);
   const displayName = getDisplayNameFromK8sResource(job);
-  const queueName = job.metadata.labels?.['kueue.x-k8s.io/queue-name'] || '-';
-  const masterReplicas = job.spec.pytorchReplicaSpecs.Master?.replicas || 0;
   const workerReplicas = job.spec.pytorchReplicaSpecs.Worker?.replicas || 0;
+  const localQueueName = job.metadata.labels?.['kueue.x-k8s.io/queue-name'];
 
   return (
     <Tr>
@@ -91,33 +59,23 @@ const TrainingJobTableRow: React.FC<PyTorchJobTableRowProps> = ({ job, onDelete 
               <FlexItem>
                 <CubesIcon />
               </FlexItem>
-              <FlexItem>{masterReplicas}</FlexItem>
-            </Flex>
-          </FlexItem>
-          <FlexItem>/</FlexItem>
-          <FlexItem>
-            <Flex
-              alignItems={{ default: 'alignItemsCenter' }}
-              spaceItems={{ default: 'spaceItemsXs' }}
-            >
-              <FlexItem>
-                <UsersIcon />
-              </FlexItem>
               <FlexItem>{workerReplicas}</FlexItem>
             </Flex>
           </FlexItem>
         </Flex>
       </Td>
-      <Td dataLabel="Queue">{queueName}</Td>
+      <Td dataLabel="Cluster queue">
+        <TrainingJobClusterQueue
+          localQueueName={localQueueName}
+          namespace={job.metadata.namespace}
+        />
+      </Td>
       <Td dataLabel="Created">
         {job.metadata.creationTimestamp ? (
           <Timestamp date={new Date(job.metadata.creationTimestamp)} />
         ) : (
           'Unknown'
         )}
-      </Td>
-      <Td dataLabel="Duration">
-        {formatDuration(job.status?.startTime, job.status?.completionTime)}
       </Td>
       <Td dataLabel="Status">
         <Label color={getStatusColor(status)}>{status}</Label>
