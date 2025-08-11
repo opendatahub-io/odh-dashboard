@@ -1,3 +1,4 @@
+// Clean test: Quality gates workflow trigger for Model Registry module
 import * as React from 'react';
 import '@patternfly/react-core/dist/styles/base.css';
 import './app.css';
