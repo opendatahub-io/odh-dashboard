@@ -1,5 +1,7 @@
+import * as React from 'react';
 import { HardwareProfileFeatureVisibility, InferenceServiceKind } from '#~/k8sTypes';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
+import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import {
   useHardwareProfileConfig,
   UseHardwareProfileConfigResult,
@@ -8,6 +10,7 @@ import {
 const useServingHardwareProfileConfig = (
   inferenceService?: InferenceServiceKind | null,
 ): UseHardwareProfileConfigResult => {
+  const { currentProject } = React.useContext(ProjectDetailsContext);
   const legacyName =
     inferenceService?.metadata.annotations?.['opendatahub.io/legacy-hardware-profile-name'];
   const name =
@@ -15,10 +18,14 @@ const useServingHardwareProfileConfig = (
   const resources = inferenceService?.spec.predictor.model?.resources;
   const tolerations = inferenceService?.spec.predictor.tolerations;
   const nodeSelector = inferenceService?.spec.predictor.nodeSelector;
-  const namespace = inferenceService?.metadata.namespace;
   const isProjectScoped = useIsAreaAvailable(SupportedArea.DS_PROJECT_SCOPED).status;
   const hardwareProfileNamespace =
     inferenceService?.metadata.annotations?.['opendatahub.io/hardware-profile-namespace'];
+
+  // Use inferenceService namespace if available (editing), otherwise use current project (creating new)
+  const namespace =
+    inferenceService?.metadata.namespace ||
+    (isProjectScoped ? currentProject.metadata.name : undefined);
 
   return useHardwareProfileConfig(
     name,
@@ -26,7 +33,7 @@ const useServingHardwareProfileConfig = (
     tolerations,
     nodeSelector,
     [HardwareProfileFeatureVisibility.MODEL_SERVING],
-    isProjectScoped ? namespace : undefined,
+    namespace,
     hardwareProfileNamespace,
   );
 };

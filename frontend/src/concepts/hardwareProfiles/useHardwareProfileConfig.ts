@@ -8,6 +8,8 @@ import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import { useHardwareProfilesByFeatureVisibility } from '#~/pages/hardwareProfiles/migration/useHardwareProfilesByFeatureVisibility';
 import { isHardwareProfileEnabled } from '#~/pages/hardwareProfiles/utils.ts';
 import { useDashboardNamespace } from '#~/redux/selectors';
+import { ProjectsContext, byName } from '#~/concepts/projects/ProjectsContext';
+import { useKueueConfiguration, filterProfilesByKueue } from '#~/kueueUtils';
 import { isHardwareProfileConfigValid } from './validationUtils';
 import { getContainerResourcesFromHardwareProfile } from './utils';
 
@@ -135,6 +137,17 @@ export const useHardwareProfileConfig = (
   );
 
   const { dashboardNamespace } = useDashboardNamespace();
+  const { projects } = React.useContext(ProjectsContext);
+
+  // Get project for Kueue configuration if namespace is provided
+  const project = React.useMemo(() => {
+    if (!namespace) {
+      return undefined;
+    }
+    return projects.find(byName(namespace));
+  }, [namespace, projects]);
+
+  const { kueueFilteringState } = useKueueConfiguration(project);
 
   React.useEffect(() => {
     if (!profilesLoaded || formData.selectedProfile) {
@@ -171,7 +184,11 @@ export const useHardwareProfileConfig = (
 
       // if not editing existing profile, select the first enabled profile
       else {
-        selectedProfile = profiles.find((profile) => isHardwareProfileEnabled(profile));
+        const filteredProfiles = filterProfilesByKueue(
+          profiles.filter(isHardwareProfileEnabled),
+          kueueFilteringState,
+        );
+        selectedProfile = filteredProfiles.length > 0 ? filteredProfiles[0] : undefined;
         if (selectedProfile) {
           setFormData('resources', getContainerResourcesFromHardwareProfile(selectedProfile));
           setFormData('selectedProfile', selectedProfile);
@@ -192,6 +209,7 @@ export const useHardwareProfileConfig = (
     projectScopedProfiles,
     dashboardProfiles,
     dashboardNamespace,
+    kueueFilteringState,
   ]);
 
   return {
