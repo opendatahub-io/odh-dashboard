@@ -234,17 +234,6 @@ describe('HardwareProfileSelect', () => {
       expect(screen.queryByText('Node Profile 2')).not.toBeInTheDocument();
     });
 
-    it('should handle empty hardware profiles list', async () => {
-      const project = mockProjectK8sResource({});
-      renderComponent([], project, KueueFilteringState.ONLY_KUEUE_PROFILES);
-
-      await userEvent.click(screen.getByRole('button', { name: 'Options menu' }));
-
-      // Should show no options
-      expect(screen.queryByText('Kueue Profile')).not.toBeInTheDocument();
-      expect(screen.queryByText('Node Profile')).not.toBeInTheDocument();
-    });
-
     it('should handle only Kueue profiles when filtering for non-Kueue', async () => {
       const kueueOnlyProfiles = [kueueHardwareProfile, kueueHardwareProfile2];
       const project = mockProjectK8sResource({});
@@ -267,6 +256,27 @@ describe('HardwareProfileSelect', () => {
       // Should show no profiles since all are non-Kueue profiles
       expect(screen.queryByText('Node Profile')).not.toBeInTheDocument();
       expect(screen.queryByText('Node Profile 2')).not.toBeInTheDocument();
+    });
+
+    it('should show appropriate message when no Kueue profiles are available', () => {
+      const nonKueueOnlyProfiles = [nodeHardwareProfile, nodeHardwareProfile2];
+      const project = mockProjectK8sResource({});
+      renderComponent(nonKueueOnlyProfiles, project, KueueFilteringState.ONLY_KUEUE_PROFILES);
+
+      // Should show generic message
+      expect(screen.getByRole('button')).toHaveTextContent(
+        'No enabled or valid hardware profiles are available. Contact your administrator.',
+      );
+    });
+
+    it('should show appropriate message when Kueue is disabled for Kueue-enabled project', () => {
+      const project = mockProjectK8sResource({});
+      renderComponent(mockProfiles, project, KueueFilteringState.NO_PROFILES);
+
+      // Should show generic message
+      expect(screen.getByRole('button')).toHaveTextContent(
+        'No enabled or valid hardware profiles are available. Contact your administrator.',
+      );
     });
   });
 });
@@ -311,5 +321,29 @@ describe('HardwareProfileSelect - Use existing settings', () => {
     expect(options[0]).toHaveTextContent('Use existing settings');
     expect(options[1]).toHaveTextContent('Node Profile');
     expect(options[2]).toHaveTextContent('Node Profile 2');
+  });
+
+  it('should use SimpleSelect when disableProjectScoped=false but all profiles filtered by Kueue', () => {
+    const projectHardwareProfile = mockHardwareProfile({
+      name: 'project-profile',
+      displayName: 'Project Profile',
+      namespace: 'test-project',
+    });
+    const project = mockProjectK8sResource({ k8sName: 'test-project' });
+    const projects = [project];
+
+    renderComponent(
+      [projectHardwareProfile, nodeHardwareProfile], // Has project-scoped profiles
+      project,
+      KueueFilteringState.NO_PROFILES, // But Kueue filters them all out
+      projects,
+      'test-project', // Project prop passed
+      false, // allowExistingSettings = false, so disableProjectScoped = false
+    );
+
+    // Should fall back to SimpleSelect with generic message
+    expect(screen.getByRole('button')).toHaveTextContent(
+      'No enabled or valid hardware profiles are available. Contact your administrator.',
+    );
   });
 });
