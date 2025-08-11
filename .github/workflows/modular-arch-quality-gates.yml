@@ -41,12 +41,17 @@ jobs:
           fi
 
           CHANGED_MODULES=$(git diff --name-only $DIFF_RANGE | grep '^frontend/packages/' | cut -d'/' -f3 | sort -u)
-          echo "Changed modules: $CHANGED_MODULES"
+          echo "🔍 DEBUG: DIFF_RANGE=$DIFF_RANGE"
+          echo "🔍 DEBUG: All changed files:"
+          git diff --name-only $DIFF_RANGE
+          echo "🔍 DEBUG: Frontend package files:"
+          git diff --name-only $DIFF_RANGE | grep '^frontend/packages/' || echo "No frontend/packages files found"
+          echo "🔍 DEBUG: Changed modules: '$CHANGED_MODULES'"
 
           if [ -n "$CHANGED_MODULES" ]; then
-            echo "has-changes=true" >> $GITHUB_OUTPUT
+            echo "✅ has-changes=true" >> $GITHUB_OUTPUT
           else
-            echo "has-changes=false" >> $GITHUB_OUTPUT
+            echo "❌ has-changes=false" >> $GITHUB_OUTPUT
           fi
 
       - name: Generate test matrix
@@ -62,11 +67,17 @@ jobs:
           fi
 
           CHANGED_MODULES=$(git diff --name-only $DIFF_RANGE | grep '^frontend/packages/' | cut -d'/' -f3 | sort -u)
+          echo "🔍 DEBUG: DIFF_RANGE=$DIFF_RANGE"
+          echo "🔍 DEBUG: All changed files in matrix generation:"
+          git diff --name-only $DIFF_RANGE
+          echo "🔍 DEBUG: Changed modules for matrix: '$CHANGED_MODULES'"
+          
           if [ -n "$CHANGED_MODULES" ]; then
             # Create JSON array properly with error handling
             MATRIX_JSON="["
             FIRST=true
             for module in $CHANGED_MODULES; do
+              echo "🔍 DEBUG: Adding module to matrix: $module"
               if [ "$FIRST" = true ]; then
                 MATRIX_JSON="${MATRIX_JSON}\"${module}\""
                 FIRST=false
@@ -75,8 +86,10 @@ jobs:
               fi
             done
             MATRIX_JSON="${MATRIX_JSON}]"
+            echo "🔍 DEBUG: Final matrix JSON: $MATRIX_JSON"
             echo "modules-matrix=${MATRIX_JSON}" >> $GITHUB_OUTPUT
           else
+            echo "🔍 DEBUG: No changed modules - setting empty matrix"
             echo "modules-matrix=[]" >> $GITHUB_OUTPUT
           fi
 
