@@ -31,7 +31,15 @@ jobs:
       - name: Detect changed modules
         id: check-changes
         run: |
-          CHANGED_MODULES=$(git diff --name-only ${{ github.event.before || 'HEAD~1' }}..HEAD | grep '^frontend/packages/' | cut -d'/' -f3 | sort -u)
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE_SHA="${{ github.event.pull_request.base.sha }}"
+            HEAD_SHA="${{ github.sha }}"
+          else
+            BASE_SHA="${{ github.event.before || 'HEAD~1' }}"
+            HEAD_SHA="HEAD"
+          fi
+
+          CHANGED_MODULES=$(git diff --name-only "$BASE_SHA"..."$HEAD_SHA" | grep '^frontend/packages/' | cut -d'/' -f3 | sort -u)
           echo "Changed modules: $CHANGED_MODULES"
 
           if [ -n "$CHANGED_MODULES" ]; then
@@ -43,7 +51,15 @@ jobs:
       - name: Generate test matrix
         id: generate-matrix
         run: |
-          CHANGED_MODULES=$(git diff --name-only ${{ github.event.before || 'HEAD~1' }}..HEAD | grep '^frontend/packages/' | cut -d'/' -f3 | sort -u)
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE_SHA="${{ github.event.pull_request.base.sha }}"
+            HEAD_SHA="${{ github.sha }}"
+          else
+            BASE_SHA="${{ github.event.before || 'HEAD~1' }}"
+            HEAD_SHA="HEAD"
+          fi
+
+          CHANGED_MODULES=$(git diff --name-only "$BASE_SHA"..."$HEAD_SHA" | grep '^frontend/packages/' | cut -d'/' -f3 | sort -u)
           if [ -n "$CHANGED_MODULES" ]; then
             # Create JSON array properly with error handling
             MATRIX_JSON="["
@@ -1056,7 +1072,17 @@ jobs:
           # Build comprehensive quality gates summary
           SUMMARY_FILE="quality-gates-summary.md"
           
+          # Compute stats
+          CODE_PASS=$([ "${{ needs.code-quality-gate.result }}" == "success" ] && echo 1 || echo 0)
+          APP_PASS=$([ "${{ needs.application-quality-gate.result }}" == "success" ] && echo 1 || echo 0)
+          DEP_PASS=$([ "${{ needs.deployment-quality-gate.result }}" == "success" ] && echo 1 || echo 0)
+          TOTAL=$((3))
+          PASSED=$((CODE_PASS + APP_PASS + DEP_PASS))
+          FAILED=$((TOTAL - PASSED))
+
           echo "## 🚦 Modular Architecture Quality Gates Results" > $SUMMARY_FILE
+          echo "" >> $SUMMARY_FILE
+          echo "**Summary:** ${PASSED}/${TOTAL} gates passed (${FAILED} failed)" >> $SUMMARY_FILE
           echo "" >> $SUMMARY_FILE
 
           # Code Quality Gate
