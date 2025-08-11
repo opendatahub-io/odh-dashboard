@@ -97,15 +97,23 @@ const renderComponent = (
 
   useHardwareProfileConfigMock.mockReturnValue(hardwareProfileConfig);
 
+  // Use the same default shape as the real ProjectsContext to prevent runtime crashes
+  const defaultProjectsContextValue = {
+    projects: [],
+    modelServingProjects: [],
+    nonActiveProjects: [],
+    preferredProject: null,
+    updatePreferredProject: () => undefined,
+    loaded: false,
+    loadError: new Error('Not in project provider'),
+    waitForProject: () => Promise.resolve(),
+  };
+
   return render(
     <ProjectsContext.Provider
       value={{
+        ...defaultProjectsContextValue,
         projects,
-        modelServingProjects: [],
-        nonActiveProjects: [],
-        preferredProject: null,
-        updatePreferredProject: jest.fn(),
-        waitForProject: jest.fn().mockResolvedValue(undefined),
         loaded: true,
         loadError: undefined,
       }}
