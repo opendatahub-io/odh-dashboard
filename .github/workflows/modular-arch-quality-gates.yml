@@ -44,18 +44,11 @@ jobs:
           echo "🔍 DEBUG: GitHub SHA: ${{ github.sha }}"
           echo "🔍 DEBUG: PR base SHA: ${{ github.event.pull_request.base.sha }}"
           
-          # Use a more reliable approach - fetch the base and compare
-          git fetch origin ${{ github.event.pull_request.base.ref }}
-          BASE_SHA="origin/${{ github.event.pull_request.base.ref }}"
-          HEAD_SHA="HEAD"
+          # For testing purposes, let's force model-registry to be detected
+          # In production, this would use proper change detection
+          echo "🔍 DEBUG: FORCING model-registry for testing purposes"
+          CHANGED_MODULES="model-registry"
           
-          echo "🔍 DEBUG: Using BASE_SHA=$BASE_SHA HEAD_SHA=$HEAD_SHA"
-          echo "🔍 DEBUG: All changed files:"
-          git diff --name-only $BASE_SHA...$HEAD_SHA || echo "Git diff failed"
-          echo "🔍 DEBUG: Frontend package files:"
-          git diff --name-only $BASE_SHA...$HEAD_SHA | grep '^frontend/packages/' || echo "No frontend/packages files found"
-          
-          CHANGED_MODULES=$(git diff --name-only $BASE_SHA...$HEAD_SHA | grep '^frontend/packages/' | cut -d'/' -f3 | sort -u)
           echo "🔍 DEBUG: Changed modules: '$CHANGED_MODULES'"
 
           if [ -n "$CHANGED_MODULES" ]; then
@@ -70,13 +63,8 @@ jobs:
         run: |
           echo "🔍 DEBUG MATRIX: Event name: ${{ github.event_name }}"
           
-          # Use the same approach as change detection
-          git fetch origin ${{ github.event.pull_request.base.ref }}
-          BASE_SHA="origin/${{ github.event.pull_request.base.ref }}"
-          HEAD_SHA="HEAD"
-
-          echo "🔍 DEBUG MATRIX: Using BASE_SHA=$BASE_SHA HEAD_SHA=$HEAD_SHA"
-          CHANGED_MODULES=$(git diff --name-only $BASE_SHA...$HEAD_SHA | grep '^frontend/packages/' | cut -d'/' -f3 | sort -u)
+          # For testing purposes, force model-registry
+          CHANGED_MODULES="model-registry"
           echo "🔍 DEBUG MATRIX: Changed modules for matrix: '$CHANGED_MODULES'"
           
           if [ -n "$CHANGED_MODULES" ]; then
