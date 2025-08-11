@@ -309,22 +309,42 @@ jobs:
           MISSING_CHECKS=()
           TOTAL_CHECKS=7
           
-          # Check 1: Unit Tests
-          if [ -d "$FRONTEND_PATH" ] && [ -f "$FRONTEND_PATH/package.json" ] && grep -qE '"test.*jest|jest.*test"' "$FRONTEND_PATH/package.json"; then
-            echo "✅ Unit Tests - PRESENT"
-            IMPLEMENTED_CHECKS=$((IMPLEMENTED_CHECKS + 1))
-            
-            # Count test files
-            UNIT_TEST_COUNT=$(find "$FRONTEND_PATH" -name "*.spec.ts" -o -name "*.spec.tsx" -o -name "*.test.ts" -o -name "*.test.tsx" | wc -l)
-            echo "   📊 Unit test files found: $UNIT_TEST_COUNT"
-          else
-            echo "❌ Unit Tests - MISSING"
-            MISSING_CHECKS+=("Unit tests (Jest configuration)")
+          # Check 1: Unit Tests - Look in both module-specific and global test directories
+          UNIT_TESTS_FOUND=false
+          
+          # Check for unit tests in module's own structure
+          if [ -n "$(find "$MODULE_PATH" -path "*/__tests__/unit/*" -name "*.test.*" -o -path "*/__tests__/unit/*" -name "*.spec.*" 2>/dev/null | head -1)" ]; then
+            UNIT_TESTS_FOUND=true
           fi
           
-          # Check 2: E2E Tests
-          if [ -n "$(find "$MODULE_PATH" -path "*/cypress/tests/e2e/*" -name "*.cy.ts" 2>/dev/null | head -1)" ] || \
-             [ -n "$(find "frontend/src/__tests__/cypress/cypress/tests/e2e/" -name "*$(echo ${{ matrix.module }} | tr '-' '*')*" 2>/dev/null | head -1)" ]; then
+          # Check for unit tests in global frontend test directory
+          if [ -n "$(find "frontend/src/__tests__/unit/" -name "*$(echo ${{ matrix.module }} | tr '-' '*')*" 2>/dev/null | head -1)" ]; then
+            UNIT_TESTS_FOUND=true
+          fi
+          
+          if [ "$UNIT_TESTS_FOUND" = true ]; then
+            echo "✅ Unit Tests - PRESENT"
+            IMPLEMENTED_CHECKS=$((IMPLEMENTED_CHECKS + 1))
+          else
+            echo "❌ Unit Tests - MISSING"
+            MISSING_CHECKS+=("Unit tests")
+          fi
+          
+          # Check 2: E2E Tests - Look for module-specific e2e directories  
+          E2E_TESTS_FOUND=false
+          
+          # Check in global cypress e2e directory for module-specific files
+          MODULE_NAME_PATTERN=$(echo ${{ matrix.module }} | sed 's/-//g')  # Remove hyphens for matching
+          if [ -n "$(find "frontend/src/__tests__/cypress/cypress/tests/e2e/" -name "*${MODULE_NAME_PATTERN}*" -o -name "*$(echo ${{ matrix.module }})*" 2>/dev/null | head -1)" ]; then
+            E2E_TESTS_FOUND=true
+          fi
+          
+          # Check module's own cypress structure
+          if [ -n "$(find "$MODULE_PATH" -path "*/cypress/tests/e2e/*" -name "*.cy.ts" 2>/dev/null | head -1)" ]; then
+            E2E_TESTS_FOUND=true
+          fi
+          
+          if [ "$E2E_TESTS_FOUND" = true ]; then
             echo "✅ E2E Tests - PRESENT"
             IMPLEMENTED_CHECKS=$((IMPLEMENTED_CHECKS + 1))
           else
@@ -521,7 +541,7 @@ jobs:
     name: Combine Coverage & Upload
     runs-on: ubuntu-latest
     needs: [code-quality-gate]
-    if: always() && needs.code-quality-gate.outputs.has-coverage == 'true'
+    if: always()
     steps:
       - name: Checkout code
         uses: actions/checkout@v4

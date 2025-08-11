@@ -17,6 +17,13 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ github.event.workflow_run.event == 'pull_request' }}
     steps:
+      - name: Debug workflow run info
+        run: |
+          echo "Workflow run event: ${{ github.event.workflow_run.event }}"
+          echo "Workflow run conclusion: ${{ github.event.workflow_run.conclusion }}"
+          echo "Workflow run head SHA: ${{ github.event.workflow_run.head_sha }}"
+          echo "Workflow run ID: ${{ github.event.workflow_run.id }}"
+          
       - name: Download Quality Gates Summary
         uses: actions/download-artifact@v4
         with:
