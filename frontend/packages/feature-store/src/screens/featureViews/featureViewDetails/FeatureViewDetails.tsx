@@ -77,7 +77,9 @@ const FeatureViewDetails = (): React.ReactElement => {
               {featureView.spec.name}
             </BreadcrumbItem>
           ) : (
-            <Skeleton height="20px" width="100px" />
+            <BreadcrumbItem>
+              <Skeleton height="20px" width="100px" />
+            </BreadcrumbItem>
           )}
         </Breadcrumb>
       }

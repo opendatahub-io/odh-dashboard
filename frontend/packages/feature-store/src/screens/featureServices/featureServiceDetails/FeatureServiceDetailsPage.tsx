@@ -14,13 +14,13 @@ import {
 } from '@patternfly/react-core';
 import { Link } from 'react-router';
 import text from '@patternfly/react-styles/css/utilities/Text/text';
+import { countFeatures } from './utils';
 import { FeatureService } from '../../../types/featureServices';
 import FeatureStoreTimestamp from '../../../components/FeatureStoreTimestamp';
 import { featureEntityRoute } from '../../../routes';
 import FeatureStoreTags from '../../../components/FeatureStoreTags';
 import FeatureStoreCodeBlock from '../../../components/FeatureStoreCodeBlock';
 import { hasContent } from '../../../const';
-import { countFeatures } from './utils';
 
 type FeatureServiceDetailsPageProps = {
   featureService: FeatureService;

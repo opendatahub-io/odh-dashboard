@@ -21,13 +21,12 @@ type FeatureViewSchemaTableProps = {
 
 const SchemaTableRow: React.FC<{
   item: SchemaItem;
-  index: number;
   featureView: FeatureView;
-}> = ({ item, index, featureView }) => {
+}> = ({ item, featureView }) => {
   const { currentProject } = useFeatureStoreProject();
 
   return (
-    <Tr key={`${item.column}-${index}`}>
+    <Tr>
       <Td dataLabel="Column">
         <Link to={getSchemaItemLink(item, featureView, currentProject)}>{item.column}</Link>
       </Td>
@@ -98,7 +97,7 @@ const FeatureViewSchemaTable: React.FC<FeatureViewSchemaTableProps> = ({ feature
       columns={schemaColumns}
       emptyTableView={<div>No schema data available</div>}
       rowRenderer={(item, index) => (
-        <SchemaTableRow item={item} index={index} featureView={featureView} />
+        <SchemaTableRow key={`${item.column}-${index}`} item={item} featureView={featureView} />
       )}
       toolbarContent={
         <FeatureStoreToolbar

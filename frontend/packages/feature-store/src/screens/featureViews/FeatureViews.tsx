@@ -2,11 +2,11 @@ import React from 'react';
 import { EmptyStateBody, EmptyStateVariant, EmptyState } from '@patternfly/react-core';
 import { SearchIcon } from '@patternfly/react-icons';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
+import FeatureViewsListView from './FeatureViewsListView';
 import FeatureStoreProjectSelectorNavigator from '../components/FeatureStoreProjectSelectorNavigator';
 import { useFeatureStoreProject } from '../../FeatureStoreContext';
 import useFeatureViews from '../../apiHooks/useFeatureViews';
 import { featureStoreRoute } from '../../routes';
-import FeatureViewsListView from './FeatureViewsListView';
 
 const title = 'Feature views';
 const description =

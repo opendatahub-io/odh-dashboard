@@ -1,8 +1,8 @@
 import { PageSection, Tab, TabContentBody, Tabs, TabTitleText } from '@patternfly/react-core';
 import * as React from 'react';
+import FeatureServiceDetailsPage from './FeatureServiceDetailsPage';
 import { FeatureService } from '../../../types/featureServices';
 import FeatureViewTab from '../../components/FeatureViewTab';
-import FeatureServiceDetailsPage from './FeatureServiceDetailsPage';
 import { FeatureServiceDetailsTab } from '../const';
 
 type FeatureServiceDetailsTabsProps = {
