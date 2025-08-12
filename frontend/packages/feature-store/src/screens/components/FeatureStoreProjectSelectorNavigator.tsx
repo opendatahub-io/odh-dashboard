@@ -14,11 +14,12 @@ const FeatureStoreProjectSelectorNavigator: React.FC<FeatureStoreProjectSelector
 }) => {
   const navigate = useNavigate();
   const currentFeatureStoreObject = useFeatureStoreObject();
-  const { currentProject } = useFeatureStoreProject();
+  const { currentProject, updatePreferredFeatureStoreProject } = useFeatureStoreProject();
 
   return (
     <FeatureStoreProjectSelector
       onSelection={(featureStoreObject: FeatureStoreObject, featureStoreProject?: string) => {
+        updatePreferredFeatureStoreProject(featureStoreProject || null);
         navigate(getRedirectPath(featureStoreObject, featureStoreProject));
       }}
       featureStoreProject={currentProject ?? ''}

@@ -19,16 +19,19 @@ const FeatureStoreProjectSelector: React.FC<FeatureStoreProjectSelectorProps> = 
   const { data: featureStoreProjects } = useFeatureStoreProjects();
   const [searchText, setSearchText] = React.useState('');
   const selection = featureStoreProjects.projects.find(
-    (project: FeatureStoreProject) => project.spec.name === featureStoreProject,
+    (project) => project.spec.name === featureStoreProject,
   );
-  const selectionName = selection ? selection.spec.name : 'All projects';
+
+  const selectionName = featureStoreProject || 'All projects';
   const bySearchText = React.useCallback(
     (project: FeatureStoreProject) =>
       !searchText || project.spec.name.toLowerCase().includes(searchText.toLowerCase()),
     [searchText],
   );
+
   const filteredProjects = featureStoreProjects.projects.filter(bySearchText);
-  const toggleLabel = featureStoreProjects.projects.length === 0 ? 'No projects' : selectionName;
+
+  const toggleLabel = selectionName;
 
   const selector = (
     <SearchSelector
@@ -45,7 +48,7 @@ const FeatureStoreProjectSelector: React.FC<FeatureStoreProjectSelectorProps> = 
       <>
         <MenuItem
           key="all-projects"
-          isSelected={featureStoreProject === ''}
+          isSelected={!featureStoreProject}
           onClick={() => {
             onSelection(featureStoreObject);
           }}
@@ -54,7 +57,7 @@ const FeatureStoreProjectSelector: React.FC<FeatureStoreProjectSelectorProps> = 
         </MenuItem>
         <Divider component="li" />
         {filteredProjects.length === 0 && <MenuItem isDisabled>No matching results</MenuItem>}
-        {filteredProjects.map((project: FeatureStoreProject) => (
+        {filteredProjects.map((project) => (
           <MenuItem
             key={project.spec.name}
             isSelected={project.spec.name === selection?.spec.name}
