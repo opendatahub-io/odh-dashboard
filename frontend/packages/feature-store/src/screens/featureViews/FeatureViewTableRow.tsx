@@ -3,14 +3,17 @@ import { Td, Tr } from '@patternfly/react-table';
 import { Button } from '@patternfly/react-core';
 import { Link } from 'react-router';
 import { CheckCircleIcon } from '@patternfly/react-icons';
-import TableRowTitleDescription from '@odh-dashboard/internal/components/table/TableRowTitleDescription';
-import { getRelationshipsByTargetType, Relationship } from './utils';
 import { FeatureView } from '../../types/featureView';
+import TableRowTitleDescription from '@odh-dashboard/internal/components/table/TableRowTitleDescription';
 import FeatureStoreTags from '../../components/FeatureStoreTags';
 import FeatureStoreLabels from '../../components/FeatureStoreLabels';
 import { featureViewRoute } from '../../routes';
 import { featureRoute } from '../../FeatureStoreRoutes';
 import { useFeatureStoreProject } from '../../FeatureStoreContext';
+import {
+  getRelationshipsByTargetType,
+  Relationship,
+} from './utils';
 import FeatureStoreTimestamp from '../../components/FeatureStoreTimestamp';
 import ScrollableLinksPopover from '../../components/ScrollableLinksPopover';
 
@@ -18,6 +21,7 @@ type FeatureViewTableRowType = {
   featureView: FeatureView;
   fsProject?: string;
   relationships: Record<string, Relationship[]>;
+  onTagClick: (tag: string) => void;
 };
 
 const getFeatureViewType = (type: FeatureView['type']) => {
@@ -34,6 +38,7 @@ const FeatureViewTableRow: React.FC<FeatureViewTableRowType> = ({
   featureView,
   fsProject,
   relationships,
+  onTagClick,
 }) => {
   const { currentProject } = useFeatureStoreProject();
   const features = React.useMemo(() => {
@@ -87,7 +92,11 @@ const FeatureViewTableRow: React.FC<FeatureViewTableRowType> = ({
       </Td>
       <Td dataLabel="Project">{featureView.project ? featureView.project : currentProject}</Td>
       <Td dataLabel="Tags">
-        <FeatureStoreTags tags={featureView.spec.tags ?? {}} threshold={3} />
+        <FeatureStoreTags
+          tags={featureView.spec.tags ?? {}}
+          threshold={3}
+          onTagClick={onTagClick}
+        />
       </Td>
       <Td dataLabel="Features">
         <ScrollableLinksPopover

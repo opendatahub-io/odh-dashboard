@@ -155,9 +155,11 @@ describe('Feature Views', () => {
     featureViewRow.shouldHaveFeaturesCount(6); // Based on m  ock data
     featureViewRow.shouldHaveOwner('risk-team@company.com');
 
-    featureViewRow.shouldHaveTag('pii = false');
-    featureViewRow.shouldHaveTag('team = risk');
-    featureViewRow.shouldHaveTag('domain = demographics');
+    featureViewRow.findTags().within(() => {
+      cy.contains('pii=false');
+      cy.contains('team=risk');
+      cy.contains('domain=demographics');
+    });
   });
 
   it('should allow filtering by feature view name', () => {
