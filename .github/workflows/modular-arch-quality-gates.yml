@@ -356,7 +356,7 @@ jobs:
           
           IMPLEMENTED_CHECKS=0
           MISSING_CHECKS=()
-          TOTAL_CHECKS=7
+          TOTAL_CHECKS=6
           
           # Check 1: Unit Tests - Look in both module-specific and global test directories
           UNIT_TESTS_FOUND=false
@@ -418,22 +418,26 @@ jobs:
             "nim"                                    # single word modules
           )
           
+          E2E_FOUND_PATH=""
           for pattern in "${MODULE_PATTERNS[@]}"; do
             if [ -d "$E2E_BASE_DIR/$pattern" ] && [ -n "$(find "$E2E_BASE_DIR/$pattern" -name "*.cy.ts" 2>/dev/null | head -1)" ]; then
               E2E_TESTS_FOUND=true
-              echo "   📁 Found E2E tests in: $E2E_BASE_DIR/$pattern"
+              E2E_FOUND_PATH="$E2E_BASE_DIR/$pattern"
               break
             fi
           done
           
           # Also check module's own cypress structure
-          if [ -n "$(find "$MODULE_PATH" -path "*/cypress/tests/e2e/*" -name "*.cy.ts" 2>/dev/null | head -1)" ]; then
+          if [ "$E2E_TESTS_FOUND" = false ] && [ -n "$(find "$MODULE_PATH" -path "*/cypress/tests/e2e/*" -name "*.cy.ts" 2>/dev/null | head -1)" ]; then
             E2E_TESTS_FOUND=true
-            echo "   📁 Found E2E tests in module path: $MODULE_PATH"
+            E2E_FOUND_PATH="$MODULE_PATH/cypress/tests/e2e/"
           fi
           
           if [ "$E2E_TESTS_FOUND" = true ]; then
             echo "✅ E2E Tests - PRESENT"
+            if [ -n "$E2E_FOUND_PATH" ]; then
+              echo "   📁 Found E2E tests in: $E2E_FOUND_PATH"
+            fi
             IMPLEMENTED_CHECKS=$((IMPLEMENTED_CHECKS + 1))
           else
             echo "❌ E2E Tests - MISSING"
@@ -501,16 +505,9 @@ jobs:
             MISSING_CHECKS+=("Bundle size monitoring")
           fi
           
-          # Check 7: Accessibility Testing
-          if [ -n "$(find "$MODULE_PATH" -name "*a11y*" -o -name "*accessibility*" -o -name "*axe*" 2>/dev/null | head -1)" ]; then
-            echo "✅ Accessibility Testing - PRESENT"
-            A11Y_FILE=$(find "$MODULE_PATH" -name "*a11y*" -o -name "*accessibility*" -o -name "*axe*" 2>/dev/null | head -1)
-            echo "   📁 Found accessibility tests in: $(dirname "$A11Y_FILE")"
-            IMPLEMENTED_CHECKS=$((IMPLEMENTED_CHECKS + 1))
-          else
-            echo "❌ Accessibility Testing - MISSING"
-            MISSING_CHECKS+=("Accessibility testing")
-          fi
+          # Check 7: Accessibility Testing - REMOVED (inaccurate detection)
+          # Accessibility testing detection was producing false positives
+          echo "⚠️ Accessibility Testing - REMOVED (inaccurate detection)"
           
           # Calculate percentage
           PERCENTAGE=$((IMPLEMENTED_CHECKS * 100 / TOTAL_CHECKS))
