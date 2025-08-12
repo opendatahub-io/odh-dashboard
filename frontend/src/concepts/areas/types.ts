@@ -61,6 +61,7 @@ export enum SupportedArea {
   TRUSTY_AI = 'trusty-ai',
   NIM_MODEL = 'nim-model',
   SERVING_RUNTIME_PARAMS = 'serving-runtime-params',
+  DEPLOYMENT_WIZARD = 'deployment-wizard',
 
   /* Distributed Workloads areas */
   DISTRIBUTED_WORKLOADS = 'distributed-workloads',
