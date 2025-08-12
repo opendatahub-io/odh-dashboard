@@ -152,8 +152,11 @@ const initIntercepts = ({
   cy.interceptK8sList(InferenceServiceModel, mockK8sResourceList(inferenceServices));
   cy.interceptK8sList(SecretModel, mockK8sResourceList([mockSecretK8sResource({})]));
   cy.interceptK8sList(
-    ServingRuntimeModel,
-    mockK8sResourceList(servingRuntimes, { namespace: 'test-project' }),
+    { model: ServingRuntimeModel, ns: 'test-project' },
+    {
+      delay: delayServingRuntimes ? 500 : 0, //TODO: Remove the delay when we add support for loading states
+      body: mockK8sResourceList(servingRuntimes),
+    },
   );
   cy.interceptK8sList(
     { model: ServingRuntimeModel, ns: undefined },
@@ -162,13 +165,6 @@ const initIntercepts = ({
       body: mockK8sResourceList(servingRuntimes),
     },
   ).as('getServingRuntimes');
-  cy.interceptK8sList(
-    { model: ServingRuntimeModel, ns: 'test-project' },
-    {
-      delay: delayServingRuntimes ? 500 : 0, //TODO: Remove the delay when we add support for loading states
-      body: mockK8sResourceList(servingRuntimes),
-    },
-  );
   cy.interceptK8sList(
     { model: InferenceServiceModel, ns: 'test-project' },
     mockK8sResourceList(inferenceServices),
@@ -290,7 +286,7 @@ describe('Model Serving Global', () => {
 
     modelServingGlobal.shouldBeEmpty();
 
-    modelServingGlobal.findDeployModelButton().click();
+    modelServingGlobal.clickDeployModelButtonWithRetry();
 
     // test that you can not submit on empty
     inferenceServiceModal.shouldBeOpen();
