@@ -1,5 +1,19 @@
 # Pre-commit Hook Setup
 
+## 🚀 Quick Setup (New Team Members)
+
+**Zero configuration needed!** Just run:
+
+```bash
+git clone <repository>
+cd odh-dashboard
+npm install
+```
+
+The pre-commit hook will be automatically set up and ready to use! ✨
+
+---
+
 This repository uses `lint-staged` with Husky to automatically run lint checks on staged files before commits.
 
 ## What it does
@@ -294,8 +308,11 @@ This ensures ESLint runs with the correct configuration and relative paths.
 
 New team members need zero configuration:
 
-1. Clone repository
-2. Run `npm install`
-3. Start committing - the hook works automatically!
+1. **Clone repository**: `git clone <repository>`
+2. **Install dependencies**: `npm install` 
+   - Automatically installs `husky` and `lint-staged`
+   - Automatically sets up Git hooks via the `prepare` script
+   - Ready to use immediately!
+3. **Start committing** - the hook works automatically!
 
 The pre-commit hook is a **quality gate** that helps maintain consistent, high-quality code across the entire team. 🛡️
