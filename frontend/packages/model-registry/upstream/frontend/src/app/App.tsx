@@ -32,7 +32,7 @@ import { ModelRegistrySelectorContextProvider } from './context/ModelRegistrySel
 import 'mod-arch-shared/style/MUI-theme.scss';
 import AppNavSidebar from './AppNavSidebar';
 
-// Updated: Testing COMPREHENSIVE FIXES - all quality gates should now pass!
+// Updated: Testing FINAL COMPREHENSIVE SOLUTION with marketplace PR comment action!
 const App: React.FC = () => {
   const {
     configSettings,
