@@ -4,7 +4,10 @@
   "description": "Feature store plugin for managing feature engineering and data pipelines.",
   "version": "0.0.0",
   "scripts": {
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test": "run-s test:lint test:jest",
+    "test:lint": "eslint . --ext .ts,.tsx",
+    "test:jest": "jest"
   },
   "exports": {
     "./extensions": "./extensions.ts"
@@ -12,5 +15,16 @@
   "dependencies": {
     "@odh-dashboard/internal": "*",
     "@odh-dashboard/plugin-core": "*"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "*",
+    "@testing-library/react": "*",
+    "@testing-library/user-event": "*",
+    "@types/jest": "*",
+    "jest": "*",
+    "jest-environment-jsdom": "*",
+    "ts-jest": "*",
+    "identity-obj-proxy": "*",
+    "jest-transform-stub": "*"
   }
 }
