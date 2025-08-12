@@ -147,7 +147,7 @@ jobs:
         run: |
           MODULE_PATH="frontend/packages/${{ matrix.module }}"
           FRONTEND_PATH="$MODULE_PATH/upstream/frontend"
-          BFF_PATH="$MODULE_PATH/bff"
+          BFF_PATH="$MODULE_PATH/upstream/bff"
           
           echo "🔍 Checking modular architecture compliance for ${{ matrix.module }}"
           
@@ -203,8 +203,13 @@ jobs:
             
             # ESLint check
             if [ -f "$FRONTEND_PATH/.eslintrc.js" ] || [ -f "$FRONTEND_PATH/.eslintrc.cjs" ]; then
-              echo "✅ ESLint Config - PRESENT"
-              cd "$FRONTEND_PATH" && npm run lint || echo "⚠️ Linting issues found"
+                          echo "✅ ESLint Config - PRESENT"
+            cd "$FRONTEND_PATH" 
+            if npm run --silent 2>&1 | grep -q "lint"; then
+              npm run lint || echo "⚠️ Linting issues found"
+            else
+              echo "   📝 No lint script found, skipping lint execution"
+            fi
             else
               echo "⚠️ ESLint Config - MISSING"
             fi
@@ -257,7 +262,7 @@ jobs:
         run: |
           MODULE_PATH="frontend/packages/${{ matrix.module }}"
           FRONTEND_PATH="$MODULE_PATH/upstream/frontend"
-          BFF_PATH="$MODULE_PATH/bff"
+          BFF_PATH="$MODULE_PATH/upstream/bff"
           HAS_COVERAGE=false
           
           echo "🧪 Running available tests for ${{ matrix.module }}"
@@ -355,12 +360,16 @@ jobs:
           
           # Check module's upstream frontend for tests (excluding e2e/mocked)
           if [ "$UNIT_TESTS_FOUND" = false ] && [ -d "$FRONTEND_PATH" ]; then
-            UNIT_TEST_FILES=$(find "$FRONTEND_PATH" -name "*__tests__*" -type d -not -path "*/e2e/*" -not -path "*/mocked/*" -exec find {} -name "*.test.*" -o -name "*.spec.*" \; 2>/dev/null)
-            if [ -n "$UNIT_TEST_FILES" ]; then
-              UNIT_TESTS_FOUND=true
-              echo "   📁 Found unit tests in upstream frontend:"
-              echo "$UNIT_TEST_FILES" | head -3 | sed 's/^/      /'
-            fi
+            # Find __tests__ directories that are NOT e2e or mocked
+            TEST_DIRS=$(find "$FRONTEND_PATH" -name "*__tests__*" -type d 2>/dev/null | grep -v "/e2e" | grep -v "/mocked")
+            for test_dir in $TEST_DIRS; do
+              UNIT_TEST_FILES=$(find "$test_dir" -name "*.test.*" -o -name "*.spec.*" 2>/dev/null)
+              if [ -n "$UNIT_TEST_FILES" ]; then
+                UNIT_TESTS_FOUND=true
+                echo "   📁 Found unit tests in: $test_dir"
+                break
+              fi
+            done
           fi
           
           # Check for unit tests in global frontend test directory  
@@ -406,8 +415,6 @@ jobs:
             if [ -d "$E2E_BASE_DIR/$pattern" ] && [ -n "$(find "$E2E_BASE_DIR/$pattern" -name "*.cy.ts" 2>/dev/null | head -1)" ]; then
               E2E_TESTS_FOUND=true
               echo "   📁 Found E2E tests in: $E2E_BASE_DIR/$pattern"
-              E2E_FILES=$(find "$E2E_BASE_DIR/$pattern" -name "*.cy.ts" 2>/dev/null)
-              echo "$E2E_FILES" | head -2 | sed 's/^/      /'
               break
             fi
           done
@@ -607,7 +614,7 @@ jobs:
           fi
           
           # Check 4: Health checks
-          BFF_PATH="$MODULE_PATH/bff"
+          BFF_PATH="$MODULE_PATH/upstream/bff"
           if [ -d "$BFF_PATH" ]; then
             if grep -r "health" "$BFF_PATH" > /dev/null 2>&1; then
               echo "✅ Health Checks - PRESENT"
