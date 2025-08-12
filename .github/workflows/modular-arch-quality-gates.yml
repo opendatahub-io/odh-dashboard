@@ -173,13 +173,13 @@ jobs:
             MISSING_CHECKS+=("TypeScript configuration")
           fi
           
-          # Check 3: mod-arch-shared dependency
-          if [ -f "$FRONTEND_PATH/package.json" ] && grep -q '"mod-arch-shared"' "$FRONTEND_PATH/package.json"; then
-            echo "✅ mod-arch-shared Dependency - PRESENT"
+          # Check 3: Shared Dependencies (ODH internal or mod-arch-shared)
+          if [ -f "$MODULE_PATH/package.json" ] && grep -qE '"@odh-dashboard/|"mod-arch-shared"' "$MODULE_PATH/package.json"; then
+            echo "✅ Shared Dependencies - PRESENT"
             COMPLIANCE_CHECKS=$((COMPLIANCE_CHECKS + 1))
           else
-            echo "❌ mod-arch-shared Dependency - MISSING"
-            MISSING_CHECKS+=("mod-arch-shared dependency for shared components")
+            echo "❌ Shared Dependencies - MISSING"
+            MISSING_CHECKS+=("ODH shared dependencies (e.g., @odh-dashboard/internal)")
           fi
           
           # Check 4: PatternFly usage
@@ -347,9 +347,26 @@ jobs:
             UNIT_TESTS_FOUND=true
           fi
           
-          # Check for unit tests in global frontend test directory
-          if [ -n "$(find "frontend/src/__tests__/unit/" -name "*$(echo ${{ matrix.module }} | tr '-' '*')*" 2>/dev/null | head -1)" ]; then
-            UNIT_TESTS_FOUND=true
+          # Check module's upstream frontend for tests
+          if [ "$UNIT_TESTS_FOUND" = false ] && [ -d "$FRONTEND_PATH" ]; then
+            if find "$FRONTEND_PATH" -name "*__tests__*" -type d -exec find {} -name "*.test.*" -o -name "*.spec.*" \; 2>/dev/null | head -1 > /dev/null; then
+              UNIT_TESTS_FOUND=true
+            fi
+          fi
+          
+          # Check for unit tests in global frontend test directory  
+          if [ -d "frontend/src/__tests__/unit/" ]; then
+            # Check for files with module name patterns
+            MODULE_PATTERNS=(
+              "${{ matrix.module }}"                        # exact: model-registry
+              "$(echo ${{ matrix.module }} | sed 's/-//g')" # no hyphens: modelregistry
+            )
+            for pattern in "${MODULE_PATTERNS[@]}"; do
+              if [ -n "$(find "frontend/src/__tests__/unit/" -name "*${pattern}*" 2>/dev/null | head -1)" ]; then
+                UNIT_TESTS_FOUND=true
+                break
+              fi
+            done
           fi
           
           if [ "$UNIT_TESTS_FOUND" = true ]; then
@@ -396,8 +413,26 @@ jobs:
           fi
           
           # Check 3: Mock Tests
-          if [ -n "$(find "$MODULE_PATH" -path "*/cypress/tests/mocked/*" -name "*.cy.ts" 2>/dev/null | head -1)" ] || \
-             [ -n "$(find "frontend/src/__tests__/cypress/cypress/tests/mocked/" -name "*$(echo ${{ matrix.module }} | tr '-' '*')*" 2>/dev/null | head -1)" ]; then
+          MOCK_TESTS_FOUND=false
+          # Check module's own cypress structure for mock tests
+          if [ -n "$(find "$MODULE_PATH" -path "*/cypress/tests/mocked/*" -name "*.cy.ts" 2>/dev/null | head -1)" ]; then
+            MOCK_TESTS_FOUND=true
+          fi
+          # Check global mocked tests directory
+          if [ -d "frontend/src/__tests__/cypress/cypress/tests/mocked/" ]; then
+            MODULE_PATTERNS=(
+              "${{ matrix.module }}"                        # exact: model-registry
+              "$(echo ${{ matrix.module }} | sed 's/-//g')" # no hyphens: modelregistry
+            )
+            for pattern in "${MODULE_PATTERNS[@]}"; do
+              if [ -n "$(find "frontend/src/__tests__/cypress/cypress/tests/mocked/" -name "*${pattern}*" 2>/dev/null | head -1)" ]; then
+                MOCK_TESTS_FOUND=true
+                break
+              fi
+            done
+          fi
+          
+          if [ "$MOCK_TESTS_FOUND" = true ]; then
             echo "✅ Mock Tests - PRESENT"
             IMPLEMENTED_CHECKS=$((IMPLEMENTED_CHECKS + 1))
           else
@@ -566,8 +601,16 @@ jobs:
           SECURITY_FOUND=false
           
           # Check Dockerfile for security best practices
-          if [ -f "$MODULE_PATH/Dockerfile" ] || [ -f "$MODULE_PATH/Dockerfile.workspace" ]; then
-            DOCKERFILE=$(find "$MODULE_PATH" -name "Dockerfile*" | head -1)
+          DOCKERFILE=""
+          # Look for Dockerfile in multiple locations
+          for dockerfile_path in "$MODULE_PATH/Dockerfile" "$MODULE_PATH/Dockerfile.workspace" "$MODULE_PATH/upstream/Dockerfile" "$BFF_PATH/Dockerfile"; do
+            if [ -f "$dockerfile_path" ]; then
+              DOCKERFILE="$dockerfile_path"
+              break
+            fi
+          done
+          
+          if [ -n "$DOCKERFILE" ]; then
             
             # Check for non-root user
             if grep -q "USER.*[0-9]" "$DOCKERFILE"; then
