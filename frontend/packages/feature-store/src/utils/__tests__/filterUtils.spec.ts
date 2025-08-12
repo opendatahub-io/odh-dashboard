@@ -178,6 +178,7 @@ describe('FeatureStoreFilterUtils', () => {
     tags: 'spec.tags',
     featureViews: 'featureViews',
     created: 'meta.createdTimestamp',
+    updated: 'meta.lastUpdatedTimestamp',
   };
 
   const mockItems: MockFilterableItem[] = [
@@ -190,6 +191,7 @@ describe('FeatureStoreFilterUtils', () => {
       project: 'project-a',
       meta: {
         createdTimestamp: '2023-01-01T00:00:00Z',
+        lastUpdatedTimestamp: '2023-01-01T00:00:00Z',
       },
     },
     {
@@ -201,6 +203,7 @@ describe('FeatureStoreFilterUtils', () => {
       project: 'project-b',
       meta: {
         createdTimestamp: '2023-01-02T00:00:00Z',
+        lastUpdatedTimestamp: '2023-01-02T00:00:00Z',
       },
     },
   ];
@@ -266,6 +269,29 @@ describe('FeatureStoreFilterUtils', () => {
     it('should filter by tags (value)', () => {
       const result = filterUtils.applyFilters(mockItems, mockRelationships, {
         tags: 'production',
+      });
+      expect(result).toHaveLength(1);
+      expect(result[0].spec.name).toBe('item-1');
+    });
+
+    it('should filter by exact tag match (key=value format)', () => {
+      const result = filterUtils.applyFilters(mockItems, mockRelationships, {
+        tags: 'environment=production',
+      });
+      expect(result).toHaveLength(1);
+      expect(result[0].spec.name).toBe('item-1');
+    });
+
+    it('should filter by tag prefix (key=)', () => {
+      const result = filterUtils.applyFilters(mockItems, mockRelationships, {
+        tags: 'environment=',
+      });
+      expect(result).toHaveLength(2); // Both items have 'environment' tag
+    });
+
+    it('should filter by tag partial match (key=partial_value)', () => {
+      const result = filterUtils.applyFilters(mockItems, mockRelationships, {
+        tags: 'team=ml',
       });
       expect(result).toHaveLength(1);
       expect(result[0].spec.name).toBe('item-1');
@@ -373,8 +399,15 @@ describe('FeatureStoreFilterUtils', () => {
       const result = filterUtils.applyFilters(mockItems, mockRelationships, {
         created: '2023-01-01',
       });
-      expect(result).toHaveLength(1);
+      expect(result).toHaveLength(2);
       expect(result[0].spec.name).toBe('item-1');
+    });
+
+    it('should handle updated timestamp filtering', () => {
+      const result = filterUtils.applyFilters(mockItems, mockRelationships, {
+        updated: '2023-01-01',
+      });
+      expect(result).toHaveLength(2);
     });
 
     it('should handle undefined filter values', () => {
@@ -383,7 +416,7 @@ describe('FeatureStoreFilterUtils', () => {
         owner: 'team-a',
       });
       expect(result).toHaveLength(1);
-      expect(result[0].spec.owner).toBe('team-a');
+      expect(result[0].owner).toBe('team-a');
     });
 
     it('should handle empty string filter values', () => {

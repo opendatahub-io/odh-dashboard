@@ -88,7 +88,7 @@ export class FeatureStoreFilterUtils<
   }
 
   /**
-   * Filter by tags - searches both tag keys and values
+   * Filter by tags - searches both tag keys and values, and also exact tag string matches
    */
   private filterByTags = (item: T, filterString: string): boolean => {
     const itemValue = getNestedValue(item, this.tagsPath);
@@ -96,12 +96,86 @@ export class FeatureStoreFilterUtils<
       return false;
     }
 
-    return Object.entries(itemValue).some(
-      ([tagKey, tagValue]) =>
-        tagKey.toLowerCase().includes(filterString.toLowerCase()) ||
-        tagValue.toLowerCase().includes(filterString.toLowerCase()),
+    const normalizedFilterString = filterString.trim();
+    const tagEntries = Object.entries(itemValue);
+
+    // Check for exact tag string match (key=value format)
+    const hasExactMatch = tagEntries.some(
+      ([tagKey, tagValue]) => `${tagKey}=${tagValue}` === normalizedFilterString,
     );
+    if (hasExactMatch) {
+      return true;
+    }
+
+    const searchPattern = this.getTagSearchPattern(normalizedFilterString);
+
+    switch (searchPattern.type) {
+      case 'prefix': {
+        const { key } = searchPattern;
+        if (!key) {
+          return false;
+        }
+        return tagEntries.some(([tagKey]) => tagKey.toLowerCase() === key.toLowerCase());
+      }
+
+      case 'partial': {
+        const { key, value } = searchPattern;
+        if (!key || !value) {
+          return false;
+        }
+        return tagEntries.some(([tagKey, tagValue]) => {
+          const keyMatches = tagKey.toLowerCase() === key.toLowerCase();
+          const valueMatches = tagValue.toLowerCase().includes(value.toLowerCase());
+          return keyMatches && valueMatches;
+        });
+      }
+
+      case 'general':
+        return tagEntries.some(
+          ([tagKey, tagValue]) =>
+            tagKey.toLowerCase().includes(normalizedFilterString.toLowerCase()) ||
+            tagValue.toLowerCase().includes(normalizedFilterString.toLowerCase()),
+        );
+
+      default:
+        return false;
+    }
   };
+
+  /**
+   * Determine the type of tag search pattern
+   */
+  private getTagSearchPattern(filterString: string): {
+    type: 'prefix' | 'partial' | 'general';
+    key?: string;
+    value?: string;
+  } {
+    // Pattern 1: "key=" (prefix search - matches all tags with that key)
+    const prefixPattern = /^([^=]+)=$/;
+    const prefixMatch = filterString.match(prefixPattern);
+    if (prefixMatch) {
+      return {
+        type: 'prefix',
+        key: prefixMatch[1].trim(),
+      };
+    }
+
+    // Pattern 2: "key=partial_value" (partial tag match)
+    const partialPattern = /^([^=]+)=(.+)$/;
+    const partialMatch = filterString.match(partialPattern);
+    if (partialMatch) {
+      return {
+        type: 'partial',
+        key: partialMatch[1].trim(),
+        value: partialMatch[2].trim(),
+      };
+    }
+
+    // Pattern 3: General search (partial matching on keys and values)
+    return {
+      type: 'general',
+    };
+  }
 
   /**
    * Filter by feature views - searches related feature view names
@@ -163,6 +237,28 @@ export class FeatureStoreFilterUtils<
   };
 
   /**
+   * Filter by date - checks if the item's date is after the filter date
+   */
+  private filterByDate = (item: T, propertyPath: string, filterString: string): boolean => {
+    const itemValue = getNestedValue(item, propertyPath);
+    if (!itemValue) {
+      return false;
+    }
+
+    const filterDate = new Date(filterString);
+    if (Number.isNaN(filterDate.getTime())) {
+      return false;
+    }
+
+    const itemDate = new Date(String(itemValue));
+    if (Number.isNaN(itemDate.getTime())) {
+      return false;
+    }
+
+    return itemDate >= filterDate;
+  };
+
+  /**
    * Apply all filters to an array of items
    */
   public applyFilters = (
@@ -194,6 +290,10 @@ export class FeatureStoreFilterUtils<
 
         if (propertyPath === this.tagsPath) {
           return this.filterByTags(item, filterString);
+        }
+
+        if (key === 'created' || key === 'updated') {
+          return this.filterByDate(item, propertyPath, filterString);
         }
 
         return this.filterByProperty(item, propertyPath, filterString);
