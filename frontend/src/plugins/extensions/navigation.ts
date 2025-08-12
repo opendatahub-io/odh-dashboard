@@ -38,6 +38,7 @@ const extensions: NavExtension[] = [
     properties: {
       id: 'models',
       title: 'Models',
+      group: '3_models',
     },
   },
   {
@@ -111,6 +112,7 @@ const extensions: NavExtension[] = [
     properties: {
       id: 'pipelines-and-runs',
       title: 'Data science pipelines',
+      group: '4_pipelines',
     },
   },
   {
@@ -147,6 +149,7 @@ const extensions: NavExtension[] = [
     properties: {
       id: 'experiments',
       title: 'Experiments',
+      group: '5_experiments',
     },
   },
   {
@@ -299,6 +302,7 @@ const extensions: NavExtension[] = [
       title: 'Distributed workloads',
       href: '/distributedWorkloads',
       path: '/distributedWorkloads/*',
+      group: '6_distributed_workloads',
     },
   },
 
@@ -307,7 +311,7 @@ const extensions: NavExtension[] = [
     properties: {
       id: 'applications',
       title: 'Applications',
-      group: '7_other',
+      group: '9_other',
     },
   },
   {
@@ -350,7 +354,7 @@ const extensions: NavExtension[] = [
       id: 'resources',
       title: 'Resources',
       href: '/resources',
-      group: '7_other',
+      group: '9_other',
     },
   },
 
@@ -359,7 +363,7 @@ const extensions: NavExtension[] = [
     properties: {
       id: 'settings',
       title: 'Settings',
-      group: '9_settings',
+      group: '10_settings',
     },
   },
   {
