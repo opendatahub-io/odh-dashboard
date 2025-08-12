@@ -32,7 +32,7 @@ import { ModelRegistrySelectorContextProvider } from './context/ModelRegistrySel
 import 'mod-arch-shared/style/MUI-theme.scss';
 import AppNavSidebar from './AppNavSidebar';
 
-// Updated: Testing ALL CI FIXES - frontend paths, module federation, unit test separation!
+// Updated: Testing COMPREHENSIVE CI FIXES - lint, BFF detection, test separation, PR comments!
 const App: React.FC = () => {
   const {
     configSettings,
