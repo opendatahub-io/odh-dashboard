@@ -32,24 +32,11 @@ jobs:
           repository: ${{ github.repository }}
           run-id: ${{ github.event.workflow_run.id }}
 
-      - name: Post comment on PR
+      - name: Get PR number from workflow run
+        id: get-pr
         uses: actions/github-script@v7
-        continue-on-error: true
         with:
           script: |
-            const fs = require('fs');
-            
-            // Read the quality gates summary
-            let summaryContent = '';
-            try {
-              summaryContent = fs.readFileSync('quality-gates-summary.md', 'utf8');
-              console.log('✅ Successfully read quality gates summary');
-              console.log('📊 Summary length:', summaryContent.length, 'characters');
-            } catch (error) {
-              console.log('❌ Failed to read quality gates summary:', error.message);
-              summaryContent = '## 🚦 Quality Gates Summary\n\n❌ Unable to load summary content. Please check the workflow logs.';
-            }
-            
             // Get PR number from the workflow run
             const pullRequests = await github.rest.repos.listPullRequestsAssociatedWithCommit({
               owner: context.repo.owner,
@@ -64,47 +51,39 @@ jobs:
             
             const prNumber = pullRequests.data[0].number;
             console.log('📋 Found PR #' + prNumber);
+            core.setOutput('pr-number', prNumber);
+            return prNumber;
+
+      - name: Read quality gates summary
+        id: read-summary
+        run: |
+          if [ -f "quality-gates-summary.md" ]; then
+            echo "✅ Found quality gates summary file"
+            echo "summary-exists=true" >> $GITHUB_OUTPUT
+            # Read content and escape for output
+            summary_content=$(cat quality-gates-summary.md)
+            echo "summary-content<<EOF" >> $GITHUB_OUTPUT
+            echo "$summary_content" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Quality gates summary file not found"
+            echo "summary-exists=false" >> $GITHUB_OUTPUT
+            echo "summary-content<<EOF" >> $GITHUB_OUTPUT
+            echo "## 🚦 Quality Gates Summary" >> $GITHUB_OUTPUT
+            echo "" >> $GITHUB_OUTPUT
+            echo "❌ Unable to load summary content. Please check the workflow logs." >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Post or update PR comment
+        if: steps.get-pr.outputs.pr-number
+        uses: mshick/add-pr-comment@v2
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          issue: ${{ steps.get-pr.outputs.pr-number }}
+          message: ${{ steps.read-summary.outputs.summary-content }}
+          message-id: "quality-gates-summary"
+          message-failure: |
+            ## 🚦 Quality Gates Summary
             
-            // Check for existing quality gates comments
-            const comments = await github.rest.issues.listComments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: prNumber
-            });
-            
-            const botComment = comments.data.find(comment => 
-              comment.user.type === 'Bot' && 
-              comment.body.includes('🚦 Modular Architecture Quality Gates Results')
-            );
-            
-            try {
-              if (botComment) {
-                // Update existing comment
-                await github.rest.issues.updateComment({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  comment_id: botComment.id,
-                  body: summaryContent
-                });
-                console.log('✅ Updated existing quality gates comment');
-              } else {
-                // Create new comment
-                await github.rest.issues.createComment({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number: prNumber,
-                  body: summaryContent
-                });
-                console.log('✅ Created new quality gates comment');
-              }
-            } catch (error) {
-              console.log('❌ Failed to post/update comment:', error.message);
-              console.log('📊 This may be due to permissions on forked PRs');
-              console.log('📄 Summary content length:', summaryContent.length);
-              
-              // Log summary to console as fallback
-              console.log('📄 Quality Gates Summary (fallback):');
-              console.log('='.repeat(50));
-              console.log(summaryContent);
-              console.log('='.repeat(50));
-            } 
+            ❌ Unable to post quality gates summary. Please check the workflow logs for details.
