@@ -383,8 +383,7 @@ jobs:
               UNIT_FILES=$(find "frontend/src/__tests__/unit/" -name "*${pattern}*" 2>/dev/null)
               if [ -n "$UNIT_FILES" ]; then
                 UNIT_TESTS_FOUND=true
-                echo "   📁 Found unit tests in global directory:"
-                echo "$UNIT_FILES" | head -3 | sed 's/^/      /'
+                echo "   📁 Found unit tests in: frontend/src/__tests__/unit/ (pattern: ${pattern})"
                 break
               fi
             done
@@ -455,6 +454,12 @@ jobs:
           
           if [ "$MOCK_TESTS_FOUND" = true ]; then
             echo "✅ Mock Tests - PRESENT"
+            # Show where mock tests were found
+            if [ -n "$(find "$MODULE_PATH" -path "*/cypress/tests/mocked/*" -name "*.cy.ts" 2>/dev/null | head -1)" ]; then
+              echo "   📁 Found mock tests in: $MODULE_PATH/cypress/tests/mocked/"
+            else
+              echo "   📁 Found mock tests in: frontend/src/__tests__/cypress/cypress/tests/mocked/"
+            fi
             IMPLEMENTED_CHECKS=$((IMPLEMENTED_CHECKS + 1))
           else
             echo "❌ Mock Tests - MISSING"
@@ -491,6 +496,8 @@ jobs:
           # Check 7: Accessibility Testing
           if [ -n "$(find "$MODULE_PATH" -name "*a11y*" -o -name "*accessibility*" -o -name "*axe*" 2>/dev/null | head -1)" ]; then
             echo "✅ Accessibility Testing - PRESENT"
+            A11Y_FILE=$(find "$MODULE_PATH" -name "*a11y*" -o -name "*accessibility*" -o -name "*axe*" 2>/dev/null | head -1)
+            echo "   📁 Found accessibility tests in: $(dirname "$A11Y_FILE")"
             IMPLEMENTED_CHECKS=$((IMPLEMENTED_CHECKS + 1))
           else
             echo "❌ Accessibility Testing - MISSING"
@@ -836,4 +843,59 @@ jobs:
         with:
           name: quality-gates-summary
           path: quality-gates-summary.md
+
+      - name: Post Quality Gates Summary as PR Comment
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        continue-on-error: true
+        with:
+          script: |
+            const fs = require('fs');
+            
+            try {
+              // Read the summary file
+              const summaryContent = fs.readFileSync('quality-gates-summary.md', 'utf8');
+              console.log('✅ Successfully read quality gates summary');
+              console.log(`📊 Summary length: ${summaryContent.length} characters`);
+              
+              const prNumber = context.issue.number;
+              console.log(`📋 Posting to PR #${prNumber}`);
+              
+              // Check for existing quality gates comments
+              const comments = await github.rest.issues.listComments({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber
+              });
+              
+              const botComment = comments.data.find(comment => 
+                comment.user.type === 'Bot' && 
+                comment.body.includes('🚦 Modular Architecture Quality Gates Results')
+              );
+              
+              if (botComment) {
+                // Update existing comment
+                await github.rest.issues.updateComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: botComment.id,
+                  body: summaryContent
+                });
+                console.log('✅ Updated existing quality gates comment');
+              } else {
+                // Create new comment
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: prNumber,
+                  body: summaryContent
+                });
+                console.log('✅ Created new quality gates comment on PR');
+              }
+              
+            } catch (error) {
+              console.log('❌ Failed to post PR comment:', error.message);
+              console.log('📊 This may be due to permissions on forked PRs');
+              console.log('📄 Summary will be available in artifacts and job summary');
+            }
 
