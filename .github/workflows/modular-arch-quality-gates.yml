@@ -146,7 +146,7 @@ jobs:
         if: steps.check-config.outputs.silent_mode != 'true'
         run: |
           MODULE_PATH="frontend/packages/${{ matrix.module }}"
-          FRONTEND_PATH="$MODULE_PATH/frontend"
+          FRONTEND_PATH="$MODULE_PATH/upstream/frontend"
           BFF_PATH="$MODULE_PATH/bff"
           
           echo "🔍 Checking modular architecture compliance for ${{ matrix.module }}"
@@ -256,7 +256,7 @@ jobs:
         id: run-tests
         run: |
           MODULE_PATH="frontend/packages/${{ matrix.module }}"
-          FRONTEND_PATH="$MODULE_PATH/frontend"
+          FRONTEND_PATH="$MODULE_PATH/upstream/frontend"
           BFF_PATH="$MODULE_PATH/bff"
           HAS_COVERAGE=false
           
@@ -337,7 +337,7 @@ jobs:
       - name: Assess Testing Maturity
         run: |
           MODULE_PATH="frontend/packages/${{ matrix.module }}"
-          FRONTEND_PATH="$MODULE_PATH/frontend"
+          FRONTEND_PATH="$MODULE_PATH/upstream/frontend"
           
           echo "🎯 Assessing testing maturity for ${{ matrix.module }}"
           
@@ -353,23 +353,29 @@ jobs:
             UNIT_TESTS_FOUND=true
           fi
           
-          # Check module's upstream frontend for tests
+          # Check module's upstream frontend for tests (excluding e2e/mocked)
           if [ "$UNIT_TESTS_FOUND" = false ] && [ -d "$FRONTEND_PATH" ]; then
-            if find "$FRONTEND_PATH" -name "*__tests__*" -type d -exec find {} -name "*.test.*" -o -name "*.spec.*" \; 2>/dev/null | head -1 > /dev/null; then
+            UNIT_TEST_FILES=$(find "$FRONTEND_PATH" -name "*__tests__*" -type d -not -path "*/e2e/*" -not -path "*/mocked/*" -exec find {} -name "*.test.*" -o -name "*.spec.*" \; 2>/dev/null)
+            if [ -n "$UNIT_TEST_FILES" ]; then
               UNIT_TESTS_FOUND=true
+              echo "   📁 Found unit tests in upstream frontend:"
+              echo "$UNIT_TEST_FILES" | head -3 | sed 's/^/      /'
             fi
           fi
           
           # Check for unit tests in global frontend test directory  
-          if [ -d "frontend/src/__tests__/unit/" ]; then
+          if [ "$UNIT_TESTS_FOUND" = false ] && [ -d "frontend/src/__tests__/unit/" ]; then
             # Check for files with module name patterns
             MODULE_PATTERNS=(
               "${{ matrix.module }}"                        # exact: model-registry
               "$(echo ${{ matrix.module }} | sed 's/-//g')" # no hyphens: modelregistry
             )
             for pattern in "${MODULE_PATTERNS[@]}"; do
-              if [ -n "$(find "frontend/src/__tests__/unit/" -name "*${pattern}*" 2>/dev/null | head -1)" ]; then
+              UNIT_FILES=$(find "frontend/src/__tests__/unit/" -name "*${pattern}*" 2>/dev/null)
+              if [ -n "$UNIT_FILES" ]; then
                 UNIT_TESTS_FOUND=true
+                echo "   📁 Found unit tests in global directory:"
+                echo "$UNIT_FILES" | head -3 | sed 's/^/      /'
                 break
               fi
             done
@@ -400,6 +406,8 @@ jobs:
             if [ -d "$E2E_BASE_DIR/$pattern" ] && [ -n "$(find "$E2E_BASE_DIR/$pattern" -name "*.cy.ts" 2>/dev/null | head -1)" ]; then
               E2E_TESTS_FOUND=true
               echo "   📁 Found E2E tests in: $E2E_BASE_DIR/$pattern"
+              E2E_FILES=$(find "$E2E_BASE_DIR/$pattern" -name "*.cy.ts" 2>/dev/null)
+              echo "$E2E_FILES" | head -2 | sed 's/^/      /'
               break
             fi
           done
@@ -533,7 +541,7 @@ jobs:
       - name: Validate Deployment Readiness
         run: |
           MODULE_PATH="frontend/packages/${{ matrix.module }}"
-          FRONTEND_PATH="$MODULE_PATH/frontend"
+          FRONTEND_PATH="$MODULE_PATH/upstream/frontend"
           
           echo "🚀 Validating deployment readiness for ${{ matrix.module }}"
           
@@ -552,26 +560,36 @@ jobs:
           fi
           
           # Check 2: Module Federation configuration
-          if [ -f "$FRONTEND_PATH/package.json" ] && grep -q '"module-federation"' "$FRONTEND_PATH/package.json"; then
-            echo "✅ Module Federation Config - PRESENT"
+          MODULE_FEDERATION_FOUND=false
+          # Check module root package.json first
+          if [ -f "$MODULE_PATH/package.json" ] && grep -q '"module-federation"' "$MODULE_PATH/package.json"; then
+            echo "✅ Module Federation Config - PRESENT (module root)"
+            MODULE_FEDERATION_FOUND=true
+          # Then check upstream frontend package.json
+          elif [ -f "$FRONTEND_PATH/package.json" ] && grep -qE '"@module-federation|module-federation"' "$FRONTEND_PATH/package.json"; then
+            echo "✅ Module Federation Config - PRESENT (upstream frontend)"
+            MODULE_FEDERATION_FOUND=true
+          fi
+          
+          if [ "$MODULE_FEDERATION_FOUND" = true ]; then
             IMPLEMENTED_CHECKS=$((IMPLEMENTED_CHECKS + 1))
             
-            # Validate federation config
-            if grep -A 20 '"module-federation"' "$FRONTEND_PATH/package.json" | grep -q '"remoteEntry"'; then
+            # Validate federation config (check module root first)
+            if [ -f "$MODULE_PATH/package.json" ] && grep -A 20 '"module-federation"' "$MODULE_PATH/package.json" | grep -q '"remoteEntry"'; then
               echo "   ✅ Remote entry configured"
             fi
             
-            if grep -A 20 '"module-federation"' "$FRONTEND_PATH/package.json" | grep -q '"proxy"'; then
+            if [ -f "$MODULE_PATH/package.json" ] && grep -A 20 '"module-federation"' "$MODULE_PATH/package.json" | grep -q '"proxy"'; then
               echo "   ✅ API proxy configuration found"
             fi
             
-            if grep -A 20 '"module-federation"' "$FRONTEND_PATH/package.json" | grep -q '"authorize"'; then
+            if [ -f "$MODULE_PATH/package.json" ] && grep -A 20 '"module-federation"' "$MODULE_PATH/package.json" | grep -q '"authorize"'; then
               echo "   ✅ Authorization setting configured"
             fi
           else
             echo "❌ Module Federation Config - MISSING"
             echo "   Required for federated deployment in ODH Dashboard"
-            MISSING_CHECKS+=("Module Federation configuration in frontend package.json")
+            MISSING_CHECKS+=("Module Federation configuration")
           fi
           
           # Check 3: ODH Extensions compatibility

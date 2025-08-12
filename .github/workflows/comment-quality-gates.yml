@@ -77,13 +77,61 @@ jobs:
 
       - name: Post or update PR comment
         if: steps.get-pr.outputs.pr-number
-        uses: mshick/add-pr-comment@v2
+        uses: actions/github-script@v7
         with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          issue: ${{ steps.get-pr.outputs.pr-number }}
-          message: ${{ steps.read-summary.outputs.summary-content }}
-          message-id: "quality-gates-summary"
-          message-failure: |
-            ## 🚦 Quality Gates Summary
+          script: |
+            const prNumber = ${{ steps.get-pr.outputs.pr-number }};
+            const summaryContent = `${{ steps.read-summary.outputs.summary-content }}`;
             
-            ❌ Unable to post quality gates summary. Please check the workflow logs for details.
+            console.log(`📋 Posting to PR #${prNumber}`);
+            console.log(`📊 Summary length: ${summaryContent.length} characters`);
+            
+            try {
+              // Check for existing quality gates comments
+              const comments = await github.rest.issues.listComments({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber
+              });
+              
+              const botComment = comments.data.find(comment => 
+                comment.user.type === 'Bot' && 
+                comment.body.includes('🚦 Modular Architecture Quality Gates Results')
+              );
+              
+              if (botComment) {
+                // Update existing comment
+                await github.rest.issues.updateComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: botComment.id,
+                  body: summaryContent
+                });
+                console.log('✅ Updated existing quality gates comment');
+              } else {
+                // Create new comment
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: prNumber,
+                  body: summaryContent
+                });
+                console.log('✅ Created new quality gates comment');
+              }
+            } catch (error) {
+              console.log('❌ Failed to post comment:', error.message);
+              console.log('📊 Error details:', error);
+              
+              // Fallback: try to post a simple message
+              try {
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: prNumber,
+                  body: '## 🚦 Quality Gates Summary\n\n❌ Failed to post detailed summary. Check workflow logs for details.'
+                });
+                console.log('✅ Posted fallback comment');
+              } catch (fallbackError) {
+                console.log('❌ Fallback comment also failed:', fallbackError.message);
+              }
+            }
