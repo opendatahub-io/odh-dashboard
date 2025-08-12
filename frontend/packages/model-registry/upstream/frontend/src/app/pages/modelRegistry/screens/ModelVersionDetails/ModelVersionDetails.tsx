@@ -17,8 +17,6 @@ import ModelVersionSelector from './ModelVersionSelector';
 import ModelVersionDetailsTabs from './ModelVersionDetailsTabs';
 import ModelVersionsDetailsHeaderActions from './ModelVersionDetailsHeaderActions';
 import { MRDeployButton } from '~/odh/components/MRDeployButton';
-import { MRDeploymentsContextProvider } from '~/odh/components/MRDeploymentsContextProvider';
-import { KnownLabels } from '~/odh/k8sTypes';
 
 type ModelVersionsDetailProps = {
   tab: string;
@@ -52,77 +50,65 @@ const ModelVersionsDetails: React.FC<ModelVersionsDetailProps> = ({ tab, ...page
     }
   }, [rm?.state, mv?.id, mv?.state, mv?.registeredModelId, preferredModelRegistry?.name, navigate]);
 
-  const labelSelectors = React.useMemo(() => {
-    if (!rmId || !mvId) {
-      return undefined;
-    }
-    return {
-      [KnownLabels.REGISTERED_MODEL_ID]: rmId,
-      [KnownLabels.MODEL_VERSION_ID]: mvId,
-    };
-  }, [rmId, mvId]);
-
   return (
-    <MRDeploymentsContextProvider labelSelectors={labelSelectors}>
-      <ApplicationsPage
-        {...pageProps}
-        breadcrumb={
-          <Breadcrumb>
-            <BreadcrumbItem
-              render={() => (
-                <Link to="/model-registry">Model registry - {preferredModelRegistry?.name}</Link>
-              )}
-            />
-            <BreadcrumbItem
-              render={() => (
-                <Link to={registeredModelUrl(rmId, preferredModelRegistry?.name)}>
-                  {rm?.name || 'Loading...'}
-                </Link>
-              )}
-            />
-            <BreadcrumbItem data-testid="breadcrumb-version-name" isActive>
-              {mv?.name || 'Loading...'}
-            </BreadcrumbItem>
-          </Breadcrumb>
-        }
-        title={mv?.name}
-        headerAction={
-          mvLoaded &&
-          mv && (
-            <Flex
-              spaceItems={{ default: 'spaceItemsMd' }}
-              alignItems={{ default: 'alignItemsFlexStart' }}
-            >
-              <FlexItem style={{ width: '300px' }}>
-                <ModelVersionSelector
-                  rmId={rmId}
-                  selection={mv}
-                  onSelect={(modelVersionId) =>
-                    navigate(modelVersionUrl(modelVersionId, rmId, preferredModelRegistry?.name))
-                  }
-                />
-              </FlexItem>
-              <MRDeployButton mv={mv} />
-              <FlexItem>
-                <ModelVersionsDetailsHeaderActions mv={mv} refresh={refresh} />
-              </FlexItem>
-            </Flex>
-          )
-        }
-        description={<Truncate content={mv?.description || ''} />}
-        loadError={mvLoadError}
-        loaded={mvLoaded}
-        provideChildrenPadding
-      >
-        {mv !== null && (
-          <ModelVersionDetailsTabs
-            tab={tab}
-            modelVersion={mv}
-            refresh={refresh}
+    <ApplicationsPage
+      {...pageProps}
+      breadcrumb={
+        <Breadcrumb>
+          <BreadcrumbItem
+            render={() => (
+              <Link to="/model-registry">Model registry - {preferredModelRegistry?.name}</Link>
+            )}
           />
-        )}
-      </ApplicationsPage>
-    </MRDeploymentsContextProvider>
+          <BreadcrumbItem
+            render={() => (
+              <Link to={registeredModelUrl(rmId, preferredModelRegistry?.name)}>
+                {rm?.name || 'Loading...'}
+              </Link>
+            )}
+          />
+          <BreadcrumbItem data-testid="breadcrumb-version-name" isActive>
+            {mv?.name || 'Loading...'}
+          </BreadcrumbItem>
+        </Breadcrumb>
+      }
+      title={mv?.name}
+      headerAction={
+        mvLoaded &&
+        mv && (
+          <Flex
+            spaceItems={{ default: 'spaceItemsMd' }}
+            alignItems={{ default: 'alignItemsFlexStart' }}
+          >
+            <FlexItem style={{ width: '300px' }}>
+              <ModelVersionSelector
+                rmId={rmId}
+                selection={mv}
+                onSelect={(modelVersionId) =>
+                  navigate(modelVersionUrl(modelVersionId, rmId, preferredModelRegistry?.name))
+                }
+              />
+            </FlexItem>
+            <MRDeployButton mv={mv} />
+            <FlexItem>
+              <ModelVersionsDetailsHeaderActions mv={mv} refresh={refresh} />
+            </FlexItem>
+          </Flex>
+        )
+      }
+      description={<Truncate content={mv?.description || ''} />}
+      loadError={mvLoadError}
+      loaded={mvLoaded}
+      provideChildrenPadding
+    >
+      {mv !== null && (
+        <ModelVersionDetailsTabs
+          tab={tab}
+          modelVersion={mv}
+          refresh={refresh}
+        />
+      )}
+    </ApplicationsPage>
   );
 };
 

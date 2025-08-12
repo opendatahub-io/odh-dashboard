@@ -9,8 +9,6 @@ import { ModelState } from '~/app/types';
 import { modelVersionUrl } from '~/app/pages/modelRegistry/screens/routeUtils';
 import ModelVersionDetailsTabs from '~/app/pages/modelRegistry/screens/ModelVersionDetails/ModelVersionDetailsTabs';
 import ArchiveModelVersionDetailsBreadcrumb from './ArchiveModelVersionDetailsBreadcrumb';
-import { MRDeploymentsContextProvider } from '~/odh/components/MRDeploymentsContextProvider';
-import { KnownLabels } from '~/odh/k8sTypes';
 
 type ArchiveModelVersionDetailsProps = {
   tab: string;
@@ -35,61 +33,49 @@ const ArchiveModelVersionDetails: React.FC<ArchiveModelVersionDetailsProps> = ({
     }
   }, [rm?.state, mv?.id, mv?.registeredModelId, preferredModelRegistry?.name, navigate]);
 
-  const labelSelectors = React.useMemo(() => {
-    if (!rmId || !mvId) {
-      return undefined;
-    }
-    return {
-      [KnownLabels.REGISTERED_MODEL_ID]: rmId,
-      [KnownLabels.MODEL_VERSION_ID]: mvId,
-    };
-  }, [rmId, mvId]);
-
   return (
-    <MRDeploymentsContextProvider labelSelectors={labelSelectors}>
-      <ApplicationsPage
-        {...pageProps}
-        breadcrumb={
-          <ArchiveModelVersionDetailsBreadcrumb
-            preferredModelRegistry={preferredModelRegistry?.name}
-            registeredModel={rm}
-            modelVersionName={mv?.name}
-          />
-        }
-        title={
-          mv && (
-            <Flex>
-              <FlexItem>
-                <Content>{mv.name}</Content>
-              </FlexItem>
-              <FlexItem>
-                <Label>Archived</Label>
-              </FlexItem>
-            </Flex>
-          )
-        }
-        headerAction={
-          <Tooltip content="The version of an archived model cannot be restored unless the model is restored.">
-            <Button data-testid="restore-button" aria-label="restore version" isAriaDisabled>
-              Restore version
-            </Button>
-          </Tooltip>
-        }
-        description={<Truncate content={mv?.description || ''} />}
-        loadError={mvLoadError}
-        loaded={mvLoaded}
-        provideChildrenPadding
-      >
-        {mv !== null && (
-          <ModelVersionDetailsTabs
-            isArchiveVersion
-            tab={tab}
-            modelVersion={mv}
-            refresh={refreshModelVersion}
-          />
-        )}
-      </ApplicationsPage>
-    </MRDeploymentsContextProvider>
+    <ApplicationsPage
+      {...pageProps}
+      breadcrumb={
+        <ArchiveModelVersionDetailsBreadcrumb
+          preferredModelRegistry={preferredModelRegistry?.name}
+          registeredModel={rm}
+          modelVersionName={mv?.name}
+        />
+      }
+      title={
+        mv && (
+          <Flex>
+            <FlexItem>
+              <Content>{mv.name}</Content>
+            </FlexItem>
+            <FlexItem>
+              <Label>Archived</Label>
+            </FlexItem>
+          </Flex>
+        )
+      }
+      headerAction={
+        <Tooltip content="The version of an archived model cannot be restored unless the model is restored.">
+          <Button data-testid="restore-button" aria-label="restore version" isAriaDisabled>
+            Restore version
+          </Button>
+        </Tooltip>
+      }
+      description={<Truncate content={mv?.description || ''} />}
+      loadError={mvLoadError}
+      loaded={mvLoaded}
+      provideChildrenPadding
+    >
+      {mv !== null && (
+        <ModelVersionDetailsTabs
+          isArchiveVersion
+          tab={tab}
+          modelVersion={mv}
+          refresh={refreshModelVersion}
+        />
+      )}
+    </ApplicationsPage>
   );
 };
 

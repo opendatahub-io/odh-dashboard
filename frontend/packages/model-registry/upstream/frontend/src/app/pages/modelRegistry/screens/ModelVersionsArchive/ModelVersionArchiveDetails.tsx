@@ -14,8 +14,6 @@ import {
 import ModelVersionDetailsTabs from '~/app/pages/modelRegistry/screens/ModelVersionDetails/ModelVersionDetailsTabs';
 import { RestoreModelVersionModal } from '~/app/pages/modelRegistry/screens/components/RestoreModelVersionModal';
 import ModelVersionArchiveDetailsBreadcrumb from './ModelVersionArchiveDetailsBreadcrumb';
-import { KnownLabels } from '~/odh/k8sTypes';
-import { MRDeploymentsContextProvider } from '~/odh/components/MRDeploymentsContextProvider';
 
 type ModelVersionsArchiveDetailsProps = {
   tab: string;
@@ -48,18 +46,9 @@ const ModelVersionsArchiveDetails: React.FC<ModelVersionsArchiveDetailsProps> = 
     }
   }, [rm?.state, mv?.state, mv?.id, mv?.registeredModelId, preferredModelRegistry?.name, navigate]);
 
-  const labelSelectors = React.useMemo(() => {
-    if (!rmId || !mvId) {
-      return undefined;
-    }
-    return {
-      [KnownLabels.REGISTERED_MODEL_ID]: rmId,
-      [KnownLabels.MODEL_VERSION_ID]: mvId,
-    };
-  }, [rmId, mvId]);
 
   return (
-    <MRDeploymentsContextProvider labelSelectors={labelSelectors}>
+    <>
       <ApplicationsPage
         {...pageProps}
         breadcrumb={
@@ -113,7 +102,7 @@ const ModelVersionsArchiveDetails: React.FC<ModelVersionsArchiveDetailsProps> = 
           modelVersionName={mv.name}
         />
       ) : null}
-    </MRDeploymentsContextProvider>
+    </>
   );
 };
 
