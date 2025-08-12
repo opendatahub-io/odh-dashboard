@@ -304,15 +304,4 @@ This ensures ESLint runs with the correct configuration and relative paths.
 6. **Prefer npm script**: Use `npm run commit:skip-lint-hook` over `--no-verify` for clarity
 7. **Re-enable promptly**: If using session-wide skip, remember to `unset SKIP_LINT_HOOK`
 
-## Team setup
-
-New team members need zero configuration:
-
-1. **Clone repository**: `git clone <repository>`
-2. **Install dependencies**: `npm install` 
-   - Automatically installs `husky` and `lint-staged`
-   - Automatically sets up Git hooks via the `prepare` script
-   - Ready to use immediately!
-3. **Start committing** - the hook works automatically!
-
 The pre-commit hook is a **quality gate** that helps maintain consistent, high-quality code across the entire team. 🛡️
