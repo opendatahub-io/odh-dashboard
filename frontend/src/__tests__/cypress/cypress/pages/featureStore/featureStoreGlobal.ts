@@ -3,36 +3,52 @@ import { Contextual } from '#~/__tests__/cypress/cypress/pages/components/Contex
 
 class FeatureStoreGlobal {
   visit(project?: string) {
-    cy.visitWithLogin(`/featureStore${project ? `/${project}` : ''}`);
+    cy.visitWithLogin(
+      `/featureStore${project ? `/${project}` : ''}?devFeatureFlags=Feature+store+plugin%3Dtrue`,
+    );
     this.wait();
   }
 
   visitFeatureViews(project: string) {
     const projectName = project;
-    cy.visitWithLogin(`/featureStore/featureViews/${projectName}`);
+    cy.visitWithLogin(
+      `/featureStore/featureViews/${projectName}?devFeatureFlags=Feature+store+plugin%3Dtrue`,
+    );
     this.waitForFeatureViews();
   }
 
   visitEntities(project?: string) {
-    cy.visitWithLogin(`/featureStore/entities${project ? `/${project}` : ''}`);
+    cy.visitWithLogin(
+      `/featureStore/entities${
+        project ? `/${project}` : ''
+      }?devFeatureFlags=Feature+store+plugin%3Dtrue`,
+    );
     this.waitForEntities();
   }
 
   visitFeatures(project?: string) {
     const projectName = project;
-    cy.visitWithLogin(`/featureStore/features${projectName ? `/${projectName}` : ''}`);
+    cy.visitWithLogin(
+      `/featureStore/features${
+        projectName ? `/${projectName}` : ''
+      }?devFeatureFlags=Feature+store+plugin%3Dtrue`,
+    );
     this.waitForFeatures();
   }
 
   visitFeatureServices(project: string) {
     const projectName = project;
-    cy.visitWithLogin(`/featureStore/featureServices/${projectName}`);
+    cy.visitWithLogin(
+      `/featureStore/featureServices/${projectName}?devFeatureFlags=Feature+store+plugin%3Dtrue`,
+    );
     this.waitForFeatureServices();
   }
 
   visitFeatureServiceDetails(project: string, featureService: string) {
     const projectName = project;
-    cy.visitWithLogin(`/featureStore/featureServices/${projectName}/${featureService}`);
+    cy.visitWithLogin(
+      `/featureStore/featureServices/${projectName}/${featureService}?devFeatureFlags=Feature+store+plugin%3Dtrue`,
+    );
     this.waitForFeatureServiceDetails(featureService);
   }
 
