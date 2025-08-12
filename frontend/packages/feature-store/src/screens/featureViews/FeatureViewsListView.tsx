@@ -1,11 +1,11 @@
 import React from 'react';
+import useDebounceCallback from '@odh-dashboard/internal/utilities/useDebounceCallback';
+import { applyFeatureViewFilters } from './utils';
+import { featureViewTableFilterOptions } from './const';
+import FeatureViewsTable from './FeatureViewsTable';
 import { FeatureViewsList } from '../../types/featureView';
 import { useFeatureStoreProject } from '../../FeatureStoreContext';
 import { FeatureStoreToolbar } from '../../components/FeatureStoreToolbar';
-import { featureViewTableFilterOptions } from './const';
-import { applyFeatureViewFilters } from './utils';
-import FeatureViewsTable from './FeatureViewsTable';
-import useDebounceCallback from '@odh-dashboard/internal/utilities/useDebounceCallback';
 import { useTagFilterHandlers } from '../../utils/useTagFilterHandlers';
 
 const FeatureViewsListView = ({

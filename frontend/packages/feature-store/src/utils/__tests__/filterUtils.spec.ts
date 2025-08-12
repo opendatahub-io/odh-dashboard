@@ -416,7 +416,7 @@ describe('FeatureStoreFilterUtils', () => {
         owner: 'team-a',
       });
       expect(result).toHaveLength(1);
-      expect(result[0].owner).toBe('team-a');
+      expect(result[0].spec.owner).toBe('team-a');
     });
 
     it('should handle empty string filter values', () => {

@@ -3,17 +3,14 @@ import { Td, Tr } from '@patternfly/react-table';
 import { Button } from '@patternfly/react-core';
 import { Link } from 'react-router';
 import { CheckCircleIcon } from '@patternfly/react-icons';
-import { FeatureView } from '../../types/featureView';
 import TableRowTitleDescription from '@odh-dashboard/internal/components/table/TableRowTitleDescription';
+import { getRelationshipsByTargetType, Relationship } from './utils';
+import { FeatureView } from '../../types/featureView';
 import FeatureStoreTags from '../../components/FeatureStoreTags';
 import FeatureStoreLabels from '../../components/FeatureStoreLabels';
 import { featureViewRoute } from '../../routes';
 import { featureRoute } from '../../FeatureStoreRoutes';
 import { useFeatureStoreProject } from '../../FeatureStoreContext';
-import {
-  getRelationshipsByTargetType,
-  Relationship,
-} from './utils';
 import FeatureStoreTimestamp from '../../components/FeatureStoreTimestamp';
 import ScrollableLinksPopover from '../../components/ScrollableLinksPopover';
 
