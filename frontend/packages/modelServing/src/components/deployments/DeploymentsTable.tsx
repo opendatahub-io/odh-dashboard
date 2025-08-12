@@ -62,7 +62,11 @@ type DeploymentsTableProps = {
 } & Partial<
   Pick<
     React.ComponentProps<typeof Table>,
-    'enablePagination' | 'toolbarContent' | 'onClearFilters' | 'emptyTableView'
+    | 'enablePagination'
+    | 'toolbarContent'
+    | 'onClearFilters'
+    | 'emptyTableView'
+    | 'defaultSortColumn'
   >
 >;
 
