@@ -37,7 +37,7 @@ module.exports = {
 
   // Use the project's babel config for transformation
   transform: {
-    '^.+.(js|jsx|ts|tsx)$': '<rootDir>/../../node_modules/babel-jest',
+    '^.+\\.(js|jsx|ts|tsx)$': 'babel-jest',
   },
 
   // include projects from node_modules as required
@@ -57,5 +57,6 @@ module.exports = {
     '!<rootDir>/src/__tests__/**',
     '!<rootDir>/src/__mocks__/**',
     '!**/*.spec.{ts,tsx}',
+    '!**/*.test.{ts,tsx}',
   ],
 };
