@@ -258,7 +258,7 @@ const extensions: RouteExtension[] = [
       required: [SupportedArea.FEATURE_STORE],
     },
     properties: {
-      path: '/featureStore/*',
+      path: '/featureStorex/*',
       component: () => import('#~/pages/featureStore/FeatureStoreRoutes'),
     },
   },
