@@ -11,7 +11,7 @@ import { isModelServingPlatformExtension } from '../../../extension-points';
 const GlobalModelsPage: React.FC = () => {
   const availablePlatforms = useExtensions(isModelServingPlatformExtension);
 
-  const { projects, preferredProject } = React.useContext(ProjectsContext);
+  const { projects, loaded: projectsLoaded, preferredProject } = React.useContext(ProjectsContext);
 
   const { namespace } = useParams();
   const navigate = useNavigate();
@@ -53,7 +53,7 @@ const GlobalModelsPage: React.FC = () => {
 
   return (
     <ModelDeploymentsProvider modelServingPlatforms={availablePlatforms} projects={projectsToShow}>
-      <GlobalDeploymentsView projects={projectsToShow} />
+      <GlobalDeploymentsView projects={projectsToShow} projectsLoaded={projectsLoaded} />
     </ModelDeploymentsProvider>
   );
 };

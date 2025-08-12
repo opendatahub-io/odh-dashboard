@@ -14,15 +14,19 @@ import { ModelDeploymentsContext } from '../../concepts/ModelDeploymentsContext'
 
 type GlobalDeploymentsViewProps = {
   projects: ProjectKind[];
+  projectsLoaded: boolean;
 };
 
-const GlobalDeploymentsView: React.FC<GlobalDeploymentsViewProps> = ({ projects }) => {
+const GlobalDeploymentsView: React.FC<GlobalDeploymentsViewProps> = ({
+  projects,
+  projectsLoaded,
+}) => {
   const { preferredProject } = React.useContext(ProjectsContext);
   const navigate = useNavigate();
 
   const { deployments, loaded: deploymentsLoaded } = React.useContext(ModelDeploymentsContext);
   const hasDeployments = deployments && deployments.length > 0;
-  const isLoading = !deploymentsLoaded;
+  const isLoading = !deploymentsLoaded || !projectsLoaded;
   const isEmpty = projects.length === 0 || (!isLoading && !hasDeployments);
   const { projects: modelProjects } = React.useContext(ModelDeploymentsContext);
   const { namespace: modelNamespace } = useParams<{ namespace: string }>();
