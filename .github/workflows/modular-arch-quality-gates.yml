@@ -216,6 +216,14 @@ jobs:
           fi
           
           # BFF structure and quality checks
+          echo "🔍 DEBUG: Checking BFF at: $BFF_PATH"
+          echo "🔍 DEBUG: Directory exists: $([ -d "$BFF_PATH" ] && echo "YES" || echo "NO")"
+          echo "🔍 DEBUG: go.mod exists: $([ -f "$BFF_PATH/go.mod" ] && echo "YES" || echo "NO")"
+          if [ -d "$BFF_PATH" ]; then
+            echo "🔍 DEBUG: Contents of $BFF_PATH:"
+            ls -la "$BFF_PATH" || echo "Failed to list directory"
+          fi
+          
           if [ -d "$BFF_PATH" ] && [ -f "$BFF_PATH/go.mod" ]; then
             echo "🔧 Running BFF checks..."
             
