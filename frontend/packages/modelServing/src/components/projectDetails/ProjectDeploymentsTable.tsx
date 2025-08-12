@@ -29,7 +29,6 @@ export const ProjectDeploymentsTable: React.FC<{
       loaded={loaded && tableExtensionLoaded}
       showExpandedInfo={!!expandedInfoExtension}
       platformColumns={tableExtension?.properties.columns()}
-      defaultSortColumn={1}
     />
   );
 };
