@@ -3,15 +3,6 @@
   "name": "@odh-dashboard/lm-eval",
   "description": "Language Model Evaluation plugin.",
   "version": "0.0.0",
-  "scripts": {
-    "update-subtree": "../../scripts/package-subtree.sh lm-eval"
-  },
-  "subtree": {
-    "repo": "https://github.com/trustyai-explainability/trustyai-dashboard.git",
-    "src": "",
-    "target": "upstream",
-    "commit": "7423dd3e579096f7074ed1be24b552b4d2e31981"
-  },
   "module-federation": {
     "name": "lmEval",
     "remoteEntry": "/remoteEntry.js",
