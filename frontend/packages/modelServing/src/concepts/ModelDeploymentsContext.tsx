@@ -30,16 +30,19 @@ type ProjectDeploymentWatcherProps = {
     state: { deployments?: Deployment[]; loaded: boolean; error?: Error },
   ) => void;
   unloadProjectDeployments: (projectName: string) => void;
+  labelSelectors?: { [key: string]: string };
 };
 
 const ProjectDeploymentWatcher: React.FC<ProjectDeploymentWatcherProps> = ({
   project,
   watcher,
+  labelSelectors,
   onStateChange,
   unloadProjectDeployments,
 }) => {
   const useWatchDeployments = watcher.properties.watch;
-  const [deployments, loaded, error] = useWatchDeployments(project);
+
+  const [deployments, loaded, error] = useWatchDeployments(project, labelSelectors);
   const projectName = project.metadata.name;
 
   React.useEffect(() => {
@@ -73,12 +76,14 @@ const EmptyProjectWatcher: React.FC<{
 type ModelDeploymentsProviderProps = {
   projects: ProjectKind[];
   modelServingPlatforms: ModelServingPlatform[];
+  labelSelectors?: { [key: string]: string };
   children: React.ReactNode;
 };
 
 export const ModelDeploymentsProvider: React.FC<ModelDeploymentsProviderProps> = ({
   projects,
   modelServingPlatforms,
+  labelSelectors,
   children,
 }) => {
   const [deploymentWatchers, deploymentWatchersLoaded] = useResolvedExtensions(
@@ -158,6 +163,7 @@ export const ModelDeploymentsProvider: React.FC<ModelDeploymentsProviderProps> =
               key={project.metadata.name}
               project={project}
               watcher={watcher}
+              labelSelectors={labelSelectors}
               onStateChange={updateProjectDeployments}
               unloadProjectDeployments={unloadProjectDeployments}
             />
