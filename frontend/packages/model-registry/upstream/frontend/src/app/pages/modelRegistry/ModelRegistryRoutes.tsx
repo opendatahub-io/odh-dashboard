@@ -1,6 +1,5 @@
 import * as React from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
-import { DeploymentMode, useModularArchContext } from 'mod-arch-shared';
 import ModelRegistry from './screens/ModelRegistry';
 import ModelRegistryCoreLoader from './ModelRegistryCoreLoader';
 import { modelRegistryUrl } from './screens/routeUtils';
@@ -15,13 +14,13 @@ import ArchiveModelVersionDetails from './screens/ModelVersionsArchive/ArchiveMo
 import RegisteredModelsArchiveDetails from './screens/RegisteredModelsArchive/RegisteredModelArchiveDetails';
 import RegisterModel from './screens/RegisterModel/RegisterModel';
 import RegisterVersion from './screens/RegisterModel/RegisterVersion';
+import { generateVersionDetailsTabExtensionRoutes } from '~/odh/VersionDetailsTabExtensionRoutes';
+import { useExtensions } from '@odh-dashboard/plugin-core';
+import { isModelRegistryVersionDetailsTabExtension } from '~/odh/extension-points';
 
 const ModelRegistryRoutes: React.FC = () => {
-  const { config } = useModularArchContext();
-  const { deploymentMode } = config;
-  const isStandalone = deploymentMode === DeploymentMode.Standalone;
-  const isFederated = deploymentMode === DeploymentMode.Federated;
-  return (
+  const tabExtensions = useExtensions(isModelRegistryVersionDetailsTabExtension);
+  return(
     <Routes>
       <Route
         path={'/:modelRegistry?/*'}
@@ -49,14 +48,7 @@ const ModelRegistryRoutes: React.FC = () => {
               path={ModelVersionDetailsTab.DETAILS}
               element={<ModelVersionsDetails tab={ModelVersionDetailsTab.DETAILS} empty={false} />}
             />
-            {(isStandalone || isFederated) && (
-              <Route
-                path={ModelVersionDetailsTab.DEPLOYMENTS}
-                element={
-                  <ModelVersionsDetails tab={ModelVersionDetailsTab.DEPLOYMENTS} empty={false} />
-                }
-              />
-            )}
+            {generateVersionDetailsTabExtensionRoutes({ tabExtensions })}
             <Route path="*" element={<Navigate to="." />} />
           </Route>
           <Route path="versions/archive">
@@ -69,17 +61,7 @@ const ModelRegistryRoutes: React.FC = () => {
                   <ModelVersionsArchiveDetails tab={ModelVersionDetailsTab.DETAILS} empty={false} />
                 }
               />
-              {(isStandalone || isFederated) && (
-                <Route
-                  path={ModelVersionDetailsTab.DEPLOYMENTS}
-                  element={
-                    <ModelVersionsArchiveDetails
-                      tab={ModelVersionDetailsTab.DEPLOYMENTS}
-                      empty={false}
-                    />
-                  }
-                />
-              )}
+              {generateVersionDetailsTabExtensionRoutes({ tabExtensions, isModelVersionsArchiveDetails: true })}
 
               <Route path="*" element={<Navigate to="." />} />
             </Route>
@@ -111,17 +93,7 @@ const ModelRegistryRoutes: React.FC = () => {
                   <ArchiveModelVersionDetails tab={ModelVersionDetailsTab.DETAILS} empty={false} />
                 }
               />
-              {(isStandalone || isFederated) && (
-                <Route
-                  path={ModelVersionDetailsTab.DEPLOYMENTS}
-                  element={
-                    <ArchiveModelVersionDetails
-                      tab={ModelVersionDetailsTab.DEPLOYMENTS}
-                      empty={false}
-                    />
-                  }
-                />
-              )}
+              {generateVersionDetailsTabExtensionRoutes({ tabExtensions, isArchiveModelVersionDetails: true })}
 
               <Route path="*" element={<Navigate to="." />} />
             </Route>
@@ -135,6 +107,6 @@ const ModelRegistryRoutes: React.FC = () => {
       </Route>
     </Routes>
   );
-};
+}
 
 export default ModelRegistryRoutes;
