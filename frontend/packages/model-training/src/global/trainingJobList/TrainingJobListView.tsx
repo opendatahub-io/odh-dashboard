@@ -3,7 +3,7 @@ import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/
 import TrainingJobTable from './TrainingJobTable';
 import TrainingJobToolbar from './TrainingJobToolbar';
 import { initialTrainingJobFilterData, TrainingJobFilterDataType } from './const';
-import { getJobStatus } from './utils';
+import { getJobStatusFromPyTorchJob, getJobStatusWithHibernation } from './utils';
 import { PyTorchJobKind } from '../../k8sTypes';
 import { PyTorchJobState } from '../../types';
 
@@ -29,10 +29,14 @@ const TrainingJobListView: React.FC<TrainingJobListViewProps> = ({
           const status = await getJobStatusWithHibernation(job);
           return { jobId: job.metadata.uid || job.metadata.name, status };
         } catch {
-          return { jobId: job.metadata.uid || job.metadata.name, status: getJobStatus(job) };
+          return {
+            jobId: job.metadata.uid || job.metadata.name,
+            status: getJobStatusFromPyTorchJob(job),
+          };
         }
       });
 
+      // eslint-disable-next-line no-restricted-properties
       const results = await Promise.allSettled(statusPromises);
       results.forEach((result) => {
         if (result.status === 'fulfilled') {
@@ -73,7 +77,7 @@ const TrainingJobListView: React.FC<TrainingJobListViewProps> = ({
 
         if (statusFilter) {
           const jobId = job.metadata.uid || job.metadata.name;
-          const jobStatus = jobStatuses.get(jobId) || getJobStatus(job);
+          const jobStatus = jobStatuses.get(jobId) || getJobStatusFromPyTorchJob(job);
           if (!jobStatus.toLowerCase().includes(statusFilter)) {
             return false;
           }
