@@ -44,9 +44,23 @@ jobs:
           
           echo "Changed modules from API: '$CHANGED_FILES'"
           
-          if [ -n "$CHANGED_FILES" ]; then
+          # Exclude non-runnable modules (templates/config packages)
+          FILTERED_MODULES=""
+          for mod in $CHANGED_FILES; do
+            if [ "$mod" = "template" ] || [ "$mod" = "tsconfig" ]; then
+              echo "Skipping excluded module: $mod"
+              continue
+            fi
+            if [ -z "$FILTERED_MODULES" ]; then
+              FILTERED_MODULES="$mod"
+            else
+              FILTERED_MODULES="$FILTERED_MODULES $mod"
+            fi
+          done
+
+          if [ -n "$FILTERED_MODULES" ]; then
             echo "has-changes=true" >> $GITHUB_OUTPUT
-            echo "changed-modules=$CHANGED_FILES" >> $GITHUB_OUTPUT
+            echo "changed-modules=$FILTERED_MODULES" >> $GITHUB_OUTPUT
           else
             echo "has-changes=false" >> $GITHUB_OUTPUT
           fi
@@ -185,14 +199,12 @@ jobs:
           E2E_TESTS_FOUND=false
           E2E_BASE_DIR="frontend/src/__tests__/cypress/cypress/tests/e2e"
           
-          # Check multiple naming patterns for the module in the global e2e directory
-          MODULE_PATTERNS=(
-            "${{ matrix.module }}"                    # exact name: model-registry
-            "$(echo ${{ matrix.module }} | sed 's/-//g')"  # no hyphens: modelregistry  
-            "modelRegistry"                          # common camelCase for model-registry
-            "llamaStack"                             # common camelCase for llama-stack
-            "nim"                                    # single word modules
-          )
+          # Build module name patterns dynamically
+          RAW_MODULE="${{ matrix.module }}"
+          MODULE_NO_HYPHENS=$(echo "$RAW_MODULE" | sed 's/-//g')
+          # module to camelCase (best-effort: split on '-')
+          MODULE_CAMEL=$(echo "$RAW_MODULE" | awk -F'-' '{for(i=1;i<=NF;i++){if(i==1){printf $i}else{printf toupper(substr($i,1,1)) substr($i,2)}}}')
+          MODULE_PATTERNS=("$RAW_MODULE" "$MODULE_NO_HYPHENS" "$MODULE_CAMEL")
           
           E2E_FOUND_PATH=""
           for pattern in "${MODULE_PATTERNS[@]}"; do
@@ -268,22 +280,67 @@ jobs:
           # Check 5: API Functional Testing
           API_FUNC_FOUND=false
           API_FUNC_PATH=""
-          # Cypress-based API tests in global structure
-          if [ -d "frontend/src/__tests__/cypress/cypress/tests/api" ] && [ -n "$(find "frontend/src/__tests__/cypress/cypress/tests/api" -name "*.cy.*" 2>/dev/null | head -1)" ]; then
-            API_FUNC_FOUND=true
-            API_FUNC_PATH="frontend/src/__tests__/cypress/cypress/tests/api"
+          # Cypress-based API tests in global structure (scoped by module patterns)
+          API_BASE_DIR="frontend/src/__tests__/cypress/cypress/tests/api"
+          if [ -d "$API_BASE_DIR" ]; then
+            for pattern in "${MODULE_PATTERNS[@]}"; do
+              if [ -d "$API_BASE_DIR/$pattern" ] && [ -n "$(find "$API_BASE_DIR/$pattern" -name "*.cy.*" 2>/dev/null | head -1)" ]; then
+                API_FUNC_FOUND=true
+                API_FUNC_PATH="$API_BASE_DIR/$pattern"
+                break
+              fi
+              # accept -api or Api suffixed
+              if [ -d "$API_BASE_DIR/${pattern}-api" ] && [ -n "$(find "$API_BASE_DIR/${pattern}-api" -name "*.cy.*" 2>/dev/null | head -1)" ]; then
+                API_FUNC_FOUND=true
+                API_FUNC_PATH="$API_BASE_DIR/${pattern}-api"
+                break
+              fi
+              if [ -d "$API_BASE_DIR/${pattern}Api" ] && [ -n "$(find "$API_BASE_DIR/${pattern}Api" -name "*.cy.*" 2>/dev/null | head -1)" ]; then
+                API_FUNC_FOUND=true
+                API_FUNC_PATH="$API_BASE_DIR/${pattern}Api"
+                break
+              fi
+            done
           fi
-          # Module cypress api tests
-          if [ "$API_FUNC_FOUND" = false ] && [ -n "$(find "$MODULE_PATH" -path "*/cypress/tests/api*/*" -name "*.cy.*" 2>/dev/null | head -1)" ]; then
-            API_FUNC_FOUND=true
-            API_FUNC_PATH="$MODULE_PATH/cypress/tests/"
+          # Module cypress api tests (scoped)
+          if [ "$API_FUNC_FOUND" = false ]; then
+            if [ -n "$(find "$MODULE_PATH" -path "*/cypress/tests/api*/*" -name "*.cy.*" 2>/dev/null | head -1)" ]; then
+              # Prefer subdir matching module patterns if present
+              FOUND=""
+              for pattern in "${MODULE_PATTERNS[@]}"; do
+                CANDIDATE="$MODULE_PATH/cypress/tests/api/$pattern"
+                if [ -d "$CANDIDATE" ] && [ -n "$(find "$CANDIDATE" -name "*.cy.*" 2>/dev/null | head -1)" ]; then
+                  FOUND="$CANDIDATE"
+                  break
+                fi
+              done
+              if [ -n "$FOUND" ]; then
+                API_FUNC_FOUND=true
+                API_FUNC_PATH="$FOUND"
+              else
+                API_FUNC_FOUND=true
+                API_FUNC_PATH="$MODULE_PATH/cypress/tests/"
+              fi
+            fi
           fi
-          # Jest-style API tests in frontend
+          # Jest-style API tests in frontend (scoped by module patterns in path or filename)
           if [ "$API_FUNC_FOUND" = false ] && [ -d "$FRONTEND_PATH/src/__tests__" ]; then
-            API_JEST_FILE=$(find "$FRONTEND_PATH/src/__tests__" -type f \( -path "*/api/*" -o -name "*.api.test.*" -o -name "*.api.spec.*" \) 2>/dev/null | head -1)
+            API_JEST_FILE=$(find "$FRONTEND_PATH/src/__tests__" -type f \( -path "*/api/*" -o -name "*.api.test.*" -o -name "*.api.spec.*" \) 2>/dev/null | grep -E "$(printf '%s|' "${MODULE_PATTERNS[@]}" | sed 's/|$//')" | head -1)
             if [ -n "$API_JEST_FILE" ]; then
               API_FUNC_FOUND=true
               API_FUNC_PATH=$(dirname "$API_JEST_FILE")
+            fi
+          fi
+
+          # Shared tests under frontend/packages (scoped by module patterns, excluding templates/config)
+          if [ "$API_FUNC_FOUND" = false ] && [ -d "frontend/packages" ]; then
+            SHARED_API_PATH=$(find frontend/packages -type d \( -path "*/src/__tests__/api/*" -o -path "*/cypress/tests/api*/*" \) 2>/dev/null \
+              | grep -Ev "/template/|/tsconfig/" \
+              | grep -E "$(printf '%s|' "${MODULE_PATTERNS[@]}" | sed 's/|$//')" \
+              | head -1)
+            if [ -n "$SHARED_API_PATH" ]; then
+              API_FUNC_FOUND=true
+              API_FUNC_PATH="$SHARED_API_PATH"
             fi
           fi
           if [ "$API_FUNC_FOUND" = true ]; then
