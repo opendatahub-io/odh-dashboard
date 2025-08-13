@@ -10,13 +10,13 @@ import { PlatformSelectionGallery } from '../platforms/platformSelection';
 export const SelectPlatformView: React.FC<{
   platforms?: ModelServingPlatform[];
   setModelServingPlatform: (platform: ModelServingPlatform) => void;
-  newPlatformLoading?: ModelServingPlatform | null;
+  newPlatformLoadingId?: string | null;
   errorSelectingPlatform?: Error;
   clearErrorSelectingPlatform: () => void;
 }> = ({
   platforms,
   setModelServingPlatform,
-  newPlatformLoading,
+  newPlatformLoadingId,
   errorSelectingPlatform,
   clearErrorSelectingPlatform,
 }) => {
@@ -46,7 +46,7 @@ export const SelectPlatformView: React.FC<{
             <PlatformSelectionGallery
               platforms={platforms}
               onSelect={setModelServingPlatform}
-              loadingPlatformId={newPlatformLoading?.properties.id}
+              loadingPlatformId={newPlatformLoadingId}
               useOverviewCard={false}
             />
           </StackItem>

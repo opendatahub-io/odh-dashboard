@@ -15,13 +15,16 @@ import ScopedLabel from '#~/components/ScopedLabel';
 import { useTemplateByName } from '#~/pages/modelServing/customServingRuntimes/useTemplateByName';
 import ServingRuntimeVersionStatus from '#~/pages/modelServing/screens/ServingRuntimeVersionStatus';
 import { getServingRuntimeVersionStatus } from '#~/pages/modelServing/utils';
+import useIsAreaAvailable from '#~/concepts/areas/useIsAreaAvailable.ts';
+import { SupportedArea } from '#~/concepts/areas/types.ts';
 
 type Props = {
   servingRuntime?: ServingRuntimeKind;
-  isProjectScoped?: boolean;
 };
 
-const InferenceServiceServingRuntime: React.FC<Props> = ({ servingRuntime, isProjectScoped }) => {
+const InferenceServiceServingRuntime: React.FC<Props> = ({ servingRuntime }) => {
+  const isProjectScopedAvailable = useIsAreaAvailable(SupportedArea.DS_PROJECT_SCOPED).status;
+
   const templateName = servingRuntime
     ? getTemplateNameFromServingRuntime(servingRuntime)
     : undefined;
@@ -57,7 +60,7 @@ const InferenceServiceServingRuntime: React.FC<Props> = ({ servingRuntime, isPro
                   templateVersion={getServingRuntimeVersion(template) || ''}
                 />
               )}
-              {isProjectScoped &&
+              {isProjectScopedAvailable &&
                 servingRuntime.metadata.annotations?.['opendatahub.io/serving-runtime-scope'] ===
                   SERVING_RUNTIME_SCOPE.Project && (
                   <ScopedLabel isProject color="blue" isCompact>

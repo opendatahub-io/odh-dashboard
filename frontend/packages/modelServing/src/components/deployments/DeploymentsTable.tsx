@@ -90,6 +90,7 @@ const DeploymentsTable: React.FC<DeploymentsTableProps> = ({
       <Table
         data-testid="inference-service-table" // legacy testid
         columns={allColumns}
+        defaultSortColumn={showExpandedInfo ? 1 : 0}
         data={deployments}
         disableRowRenderSupport={showExpandedInfo}
         rowRenderer={(row: Deployment, rowIndex: number) => (
