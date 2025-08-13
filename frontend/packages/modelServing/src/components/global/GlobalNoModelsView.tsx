@@ -14,7 +14,16 @@ export const GlobalNoModelsView: React.FC<GlobalNoModelsViewProps> = ({ project 
     description="To get started, deploy a model."
     iconImage={typedEmptyImage(ProjectObjectType.modelServer)}
     imageAlt="deploy a model"
-    createButton={<DeployButton project={project ?? null} />}
+    createButton={
+      <DeployButton
+        project={project ?? null}
+        createRoute={
+          project?.metadata.name
+            ? `/modelServing/${project.metadata.name}/deploy/create`
+            : undefined
+        }
+      />
+    }
   />
 );
 export default GlobalNoModelsView;

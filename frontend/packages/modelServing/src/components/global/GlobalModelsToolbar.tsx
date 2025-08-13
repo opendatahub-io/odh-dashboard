@@ -50,7 +50,14 @@ const GlobalModelsToolbar: React.FC<GlobalModelsToolbarProps> = ({
     >
       <ToolbarGroup>
         <ToolbarItem>
-          <DeployButton project={currentProject ?? null} />
+          <DeployButton
+            project={currentProject ?? null}
+            createRoute={
+              currentProject?.metadata.name
+                ? `/modelServing/${currentProject.metadata.name}/deploy/create`
+                : undefined
+            }
+          />
         </ToolbarItem>
       </ToolbarGroup>
     </FilterToolbar>

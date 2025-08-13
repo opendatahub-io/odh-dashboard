@@ -65,7 +65,14 @@ const ModelsProjectDetailsView: React.FC<{
       loadError={deploymentsErrors?.[0] || clusterPlatformsError}
       actions={
         hasModels && activePlatform
-          ? [<DeployButton key="deploy-button" project={project} variant="secondary" />]
+          ? [
+              <DeployButton
+                key="deploy-button"
+                project={project}
+                variant="secondary"
+                createRoute={`/projects/${project.metadata.name}/deploy/create`}
+              />,
+            ]
           : undefined
       }
       labels={[

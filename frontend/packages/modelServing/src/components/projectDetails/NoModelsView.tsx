@@ -30,7 +30,12 @@ export const NoModelsView: React.FC<{
         <StackItem>{platform.properties.deployedModelsView.startHintDescription}</StackItem>
       </Stack>
     }
-    createButton={<DeployButton project={project} />}
+    createButton={
+      <DeployButton
+        project={project}
+        createRoute={`/projects/${project.metadata.name}/deploy/create`}
+      />
+    }
     footerExtraChildren={<NavigateBackToRegistryButton isEmptyStateAction />}
   />
 );

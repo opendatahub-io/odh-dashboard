@@ -121,7 +121,11 @@ const ModelPlatformSection: React.FC<{ platforms: ModelServingPlatform[] }> = ({
         </CardBody>
         <CardFooter>
           <Flex gap={{ default: 'gapMd' }}>
-            <DeployButton project={currentProject} variant="link" />
+            <DeployButton
+              project={currentProject}
+              variant="link"
+              createRoute={`/projects/${currentProject.metadata.name}/deploy/create`}
+            />
             <NavigateBackToRegistryButton isInline />
           </Flex>
         </CardFooter>
