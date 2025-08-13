@@ -2480,7 +2480,7 @@ describe('Serving Runtime List', () => {
       initIntercepts({
         projectEnableModelMesh: true,
         disableKServeConfig: false,
-        disableModelMeshConfig: true,
+        disableModelMeshConfig: false,
         inferenceServices: [
           mockInferenceServiceK8sResource({ name: 'test-inference', isModelMesh: true }),
           mockInferenceServiceK8sResource({
@@ -2601,7 +2601,7 @@ describe('Serving Runtime List', () => {
       initIntercepts({
         projectEnableModelMesh: true,
         disableKServeConfig: false,
-        disableModelMeshConfig: true,
+        disableModelMeshConfig: false,
         disableProjectScoped: false,
         inferenceServices: [
           mockInferenceServiceK8sResource({ name: 'test-inference', isModelMesh: true }),
@@ -2658,7 +2658,7 @@ describe('Serving Runtime List', () => {
       initIntercepts({
         projectEnableModelMesh: true,
         disableKServeConfig: false,
-        disableModelMeshConfig: true,
+        disableModelMeshConfig: false,
         disableAccelerator: false,
         disableProjectScoped: false,
         servingRuntimes: [
@@ -2698,7 +2698,7 @@ describe('Serving Runtime List', () => {
       initIntercepts({
         projectEnableModelMesh: true,
         disableKServeConfig: false,
-        disableModelMeshConfig: true,
+        disableModelMeshConfig: false,
         disableAccelerator: false,
         disableProjectScoped: false,
         servingRuntimes: [
@@ -2723,7 +2723,7 @@ describe('Serving Runtime List', () => {
       initIntercepts({
         projectEnableModelMesh: true,
         disableKServeConfig: false,
-        disableModelMeshConfig: true,
+        disableModelMeshConfig: false,
         disableHardwareProfiles: false,
         disableAccelerator: false,
         disableProjectScoped: false,
@@ -2744,7 +2744,7 @@ describe('Serving Runtime List', () => {
       initIntercepts({
         projectEnableModelMesh: true,
         disableKServeConfig: false,
-        disableModelMeshConfig: true,
+        disableModelMeshConfig: false,
         disableHardwareProfiles: false,
         disableProjectScoped: false,
         inferenceServices: [
@@ -2778,7 +2778,7 @@ describe('Serving Runtime List', () => {
       initIntercepts({
         projectEnableModelMesh: true,
         disableKServeConfig: false,
-        disableModelMeshConfig: true,
+        disableModelMeshConfig: false,
         disableHardwareProfiles: false,
         disableProjectScoped: false,
         servingRuntimes: [
@@ -2815,7 +2815,7 @@ describe('Serving Runtime List', () => {
       initIntercepts({
         projectEnableModelMesh: true,
         disableKServeConfig: false,
-        disableModelMeshConfig: true,
+        disableModelMeshConfig: false,
         inferenceServices: [
           mockInferenceServiceK8sResource({ name: 'test-inference', isModelMesh: true }),
           mockInferenceServiceK8sResource({
