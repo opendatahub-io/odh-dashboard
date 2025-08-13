@@ -20,7 +20,13 @@ const OUTPUT_ONLY = process.env._ODH_OUTPUT_ONLY;
 const ODH_FAVICON = process.env.ODH_FAVICON;
 const ODH_PRODUCT_NAME = process.env.ODH_PRODUCT_NAME;
 const COVERAGE = process.env.COVERAGE;
-const COMMIT_HASH_DIRECT = execSync('git rev-parse --short HEAD').toString().trim();
+let COMMIT_HASH_DIRECT;
+try {
+  COMMIT_HASH_DIRECT = execSync('git rev-parse --short HEAD').toString().trim();
+} catch (error) {
+  console.warn('Unable to get git commit hash:', error.message);
+  COMMIT_HASH_DIRECT = 'unknown';
+}
 
 if (OUTPUT_ONLY !== 'true') {
   console.info(
