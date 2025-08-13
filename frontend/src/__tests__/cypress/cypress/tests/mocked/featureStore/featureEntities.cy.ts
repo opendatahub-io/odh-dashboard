@@ -380,7 +380,9 @@ describe('Feature Entities', () => {
       },
     ).as('getEntityNotFound');
 
-    cy.visit(`/featureStore/entities/${fsProjectName}/nonexistent`);
+    cy.visit(
+      `/featureStore/entities/${fsProjectName}/nonexistent?devFeatureFlags=Feature+store+plugin%3Dtrue`,
+    );
     cy.findByText(`Entity nonexistent does not exist in project ${fsProjectName}`).should(
       'be.visible',
     );
@@ -396,7 +398,9 @@ describe('Entity Feature Views Tab', () => {
   });
 
   it('should display feature views for the entity', () => {
-    cy.visit(`/featureStore/entities/${fsProjectName}/user_id`);
+    cy.visit(
+      `/featureStore/entities/${fsProjectName}/user_id?devFeatureFlags=Feature+store+plugin%3Dtrue`,
+    );
     cy.wait('@getEntityDetails');
 
     featureEntityDetails.clickFeatureViewsTab();
@@ -424,7 +428,9 @@ describe('Entity Feature Views Tab', () => {
       },
     ).as('getEmptyEntityFeatureViews');
 
-    cy.visit(`/featureStore/entities/${fsProjectName}/user_id`);
+    cy.visit(
+      `/featureStore/entities/${fsProjectName}/user_id?devFeatureFlags=Feature+store+plugin%3Dtrue`,
+    );
     cy.wait('@getEntityDetails');
     featureEntityDetails.clickFeatureViewsTab();
     cy.wait('@getEmptyEntityFeatureViews');
@@ -435,7 +441,9 @@ describe('Entity Feature Views Tab', () => {
   });
 
   it('should only call feature views API when tab is clicked', () => {
-    cy.visit(`/featureStore/entities/${fsProjectName}/user_id`);
+    cy.visit(
+      `/featureStore/entities/${fsProjectName}/user_id?devFeatureFlags=Feature+store+plugin%3Dtrue`,
+    );
     cy.wait('@getEntityDetails');
 
     cy.get('@getEntityFeatureViews.all').should('have.length', 0);
@@ -448,7 +456,9 @@ describe('Entity Feature Views Tab', () => {
   });
 
   it('should navigate to feature view details when clicking on feature view name', () => {
-    cy.visit(`/featureStore/entities/${fsProjectName}/user_id`);
+    cy.visit(
+      `/featureStore/entities/${fsProjectName}/user_id?devFeatureFlags=Feature+store+plugin%3Dtrue`,
+    );
     cy.wait('@getEntityDetails');
     featureEntityDetails.clickFeatureViewsTab();
     cy.wait('@getEntityFeatureViews');
