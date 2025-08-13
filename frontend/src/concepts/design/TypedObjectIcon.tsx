@@ -116,7 +116,7 @@ const TypedObjectIcon: React.FC<TypedObjectIconProps> = ({
     case ProjectObjectType.deployingModels:
       Icon = DeployedModelIcon;
       break;
-    case ProjectObjectType.deployedModelsList:
+    case ProjectObjectType.connectedModels:
       Icon = ModelConnectionIcon;
       break;
     case ProjectObjectType.servingRuntime:

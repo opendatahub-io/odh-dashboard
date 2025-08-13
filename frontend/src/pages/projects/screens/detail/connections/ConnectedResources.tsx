@@ -48,7 +48,7 @@ const ConnectedResources: React.FC<ConnectedResourcesProps> = ({ connection, pvc
     connectedModels.map((model) => (
       <ResourceLabel
         key={model.metadata.name}
-        resourceType={ProjectObjectType.deployedModelsList}
+        resourceType={ProjectObjectType.connectedModels}
         title={getDisplayNameFromK8sResource(model)}
         outlineColor="purple"
       />
