@@ -35,3 +35,4 @@ export * from './mockEntities';
 export * from './mockFeatureStoreProject';
 export * from './mockFeatureStoreService';
 export * from './mockFeatures';
+export * from './mockPyTorchJobK8sResource';

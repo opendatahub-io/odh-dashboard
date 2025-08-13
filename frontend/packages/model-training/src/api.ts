@@ -4,7 +4,7 @@ import { applyK8sAPIOptions } from '@odh-dashboard/internal/api/apiMergeUtils';
 import { groupVersionKind } from '@odh-dashboard/internal/api/k8sUtils';
 import { CustomWatchK8sResult } from '@odh-dashboard/internal/types';
 import useK8sWatchResourceList from '@odh-dashboard/internal/utilities/useK8sWatchResourceList';
-import { PyTorchJobModel } from './models';
+import { PyTorchJobModel } from '@odh-dashboard/internal/api/models/kubeflow';
 import { PyTorchJobKind } from './k8sTypes';
 
 export const usePyTorchJobs = (namespace: string): CustomWatchK8sResult<PyTorchJobKind[]> =>
