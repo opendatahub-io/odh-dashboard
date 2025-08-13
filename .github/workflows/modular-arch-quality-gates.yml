@@ -527,30 +527,9 @@ jobs:
           # Build comprehensive quality gates summary
           SUMMARY_FILE="quality-gates-summary.md"
           
-          # Compute stats (Application gate only)
-          APP_PASS=$([ "${{ needs.application-quality-gate.result }}" == "success" ] && echo 1 || echo 0)
-          TOTAL=$((1))
-          PASSED=$((APP_PASS))
-          FAILED=$((TOTAL - PASSED))
-
           echo "## 🚦 Modular Architecture Quality Gates Results" > $SUMMARY_FILE
           echo "" >> $SUMMARY_FILE
-          echo "**Summary:** ${PASSED}/${TOTAL} gates passed (${FAILED} failed)" >> $SUMMARY_FILE
-          echo "" >> $SUMMARY_FILE
-          
-          echo "### 📋 Gate Results (Application only)" >> $SUMMARY_FILE
-          echo "" >> $SUMMARY_FILE
-          
-          # Application Quality Gate
-          if [ "${{ needs.application-quality-gate.result }}" == "success" ]; then
-            echo "✅ **Application Quality Gate** - PASSED" >> $SUMMARY_FILE
-          else
-            echo "⚠️ **Application Quality Gate** - ASSESSMENT" >> $SUMMARY_FILE
-          fi
-          echo "   - Testing maturity assessment" >> $SUMMARY_FILE
-          echo "   - RHOAI quality thresholds evaluation" >> $SUMMARY_FILE
-          echo "   - Recommendations provided" >> $SUMMARY_FILE
-          echo "" >> $SUMMARY_FILE
+          # Assessment only; omit pass/fail copy
           
           # Other gates are intentionally omitted in this branch
           
