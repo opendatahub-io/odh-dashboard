@@ -111,7 +111,6 @@ const AboutDialog: React.FC<AboutDialogProps> = ({ onClose }) => {
             <Content component="dd" data-testid="about-version">
               {dsciStatus?.release?.version || 'Unknown'}
             </Content>
-
             <Content component="dt">Channel</Content>
             <Content component="dd" data-testid="about-channel">
               {subStatus?.channel || 'Unknown'}
