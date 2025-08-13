@@ -495,6 +495,14 @@ jobs:
             echo "   📈 Good foundation: Multiple test categories implemented" >> "$OUT_FILE"
           fi
 
+      - name: Upload per-module assessment
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-gate-${{ matrix.module }}
+          path: ${{ github.workspace }}/app-gate/*.md
+          if-no-files-found: ignore
+
   # Deployment Quality Gate removed for now
 
   # Coverage combine step removed for now
@@ -505,6 +513,13 @@ jobs:
     needs: [detect-changes, application-quality-gate]
     if: always() && needs.detect-changes.outputs.has-changes == 'true'
     steps:
+      - name: Download per-module assessments
+        uses: actions/download-artifact@v4
+        with:
+          pattern: app-gate-*
+          merge-multiple: true
+          path: ${{ github.workspace }}/app-gate
+
       - name: Generate Quality Gates Summary
         run: |
           echo "📊 Generating Quality Gates Summary..."
@@ -556,6 +571,8 @@ jobs:
               echo '```' >> $SUMMARY_FILE
               echo "" >> $SUMMARY_FILE
             done
+          else
+            echo "(no assessments found)" >> $SUMMARY_FILE
           fi
           
           echo "### 📚 Resources" >> $SUMMARY_FILE
