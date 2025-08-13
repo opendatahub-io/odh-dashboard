@@ -10,8 +10,10 @@ import {
   checkModelRegistry,
   checkModelRegistryAvailable,
   cleanupRegisteredModelsFromDatabase,
+  createAndVerifyDatabase,
   createModelRegistryViaYAML,
   deleteModelRegistry,
+  deleteModelRegistryDatabase,
 } from '#~/__tests__/cypress/cypress/utils/oc_commands/modelRegistry';
 import { loadRegisterModelFixture } from '#~/__tests__/cypress/cypress/utils/dataLoader';
 import { generateTestUUID } from '#~/__tests__/cypress/cypress/utils/uuidGenerator';
@@ -43,6 +45,10 @@ describe('Verify that models and versions can be archived and restored via model
       (fixtureData) => {
         testData = fixtureData;
         registryName = `${testData.registryNamePrefix}-${uuid}`;
+
+        // Create and verify SQL database
+        cy.step('Create and verify SQL database for model registry');
+        createAndVerifyDatabase().should('be.true');
 
         // creates a model registry
         cy.step('Create a model registry using YAML');
@@ -242,5 +248,8 @@ describe('Verify that models and versions can be archived and restored via model
 
     cy.step('Verify model registry is removed from the backend');
     checkModelRegistry(registryName).should('be.false');
+
+    cy.step('Delete the SQL database');
+    deleteModelRegistryDatabase();
   });
 });

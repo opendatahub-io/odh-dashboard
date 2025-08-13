@@ -22,6 +22,92 @@ export const getModelRegistryNamespace = (): string => {
 };
 
 /**
+ * Create a SQL database for model registry using YAML fixtures
+ * @returns Cypress.Chainable<CommandLineResult>
+ */
+export const createModelRegistryDatabaseViaYAML = (): Cypress.Chainable<CommandLineResult> => {
+  const targetNamespace = getModelRegistryNamespace();
+
+  const databaseReplacements = {
+    NAMESPACE: targetNamespace,
+  };
+
+  cy.log(`Creating SQL database for model registry in namespace ${targetNamespace}`);
+
+  return cy
+    .fixture('resources/yaml/model_registry_database.yaml')
+    .then((databaseYamlContent) => {
+      const modifiedDatabaseYaml = replacePlaceholdersInYaml(
+        databaseYamlContent,
+        databaseReplacements,
+      );
+      // Write to temp file and apply
+      const tempFile = `/tmp/db-${Date.now()}.yaml`;
+      return cy
+        .writeFile(tempFile, modifiedDatabaseYaml)
+        .then(() => cy.exec(`oc apply -f ${tempFile}`, { failOnNonZeroExit: false }))
+        .then((result) => {
+          cy.exec(`rm -f ${tempFile}`, { failOnNonZeroExit: false });
+          return result;
+        });
+    })
+    .then((result: CommandLineResult) => {
+      return result;
+    });
+};
+
+/**
+ * Wait for the model registry database to be ready
+ * @returns Cypress.Chainable<boolean> that resolves to true if the database is ready
+ */
+export const waitForModelRegistryDatabase = (): Cypress.Chainable<boolean> => {
+  const targetNamespace = getModelRegistryNamespace();
+  const command = `oc wait --for=condition=Available deployment/model-registry-db -n ${targetNamespace} --timeout=300s`;
+
+  cy.log('Waiting for model registry database to be ready...');
+  return cy
+    .exec(command, { failOnNonZeroExit: false, timeout: 300000 })
+    .then((result: CommandLineResult) => {
+      if (result.stdout) {
+        cy.log(`Database wait result: ${result.stdout}`);
+      }
+      if (result.stderr) {
+        cy.log(`Database wait stderr: ${result.stderr}`);
+      }
+      return cy.wrap(result.code === 0);
+    });
+};
+
+/**
+ * Create a SQL database for model registry and wait for it to be ready
+ * @returns Cypress.Chainable<boolean> that resolves to true if the database is created and ready
+ */
+export const createAndVerifyDatabase = (): Cypress.Chainable<boolean> => {
+  cy.step('Create SQL database for model registry');
+  return createModelRegistryDatabaseViaYAML()
+    .then(() => {
+      cy.step('Wait for model registry database to be ready');
+      return waitForModelRegistryDatabase().should('be.true');
+    })
+    .then(() => {
+      return cy.wrap(true);
+    });
+};
+
+/**
+ * Delete the model registry database
+ * @returns Cypress.Chainable<CommandLineResult>
+ */
+export const deleteModelRegistryDatabase = (): Cypress.Chainable<CommandLineResult> => {
+  const targetNamespace = getModelRegistryNamespace();
+  const command = `oc delete service,pvc,deployment,secret -l app.kubernetes.io/name=model-registry-db -n ${targetNamespace}`;
+
+  cy.log(`Deleting model registry database from namespace ${targetNamespace}`);
+
+  return cy.exec(command, { failOnNonZeroExit: false });
+};
+
+/**
  * Check if a model registry exists in any namespace
  * @param registryName Name of the model registry to check
  * @returns Cypress.Chainable<boolean> that resolves to true if the registry exists

@@ -3,8 +3,10 @@ import { retryableBeforeEach } from '#~/__tests__/cypress/cypress/utils/retryabl
 import {
   checkModelRegistry,
   checkModelRegistryAvailable,
+  createAndVerifyDatabase,
   createModelRegistryViaYAML,
   deleteModelRegistry,
+  deleteModelRegistryDatabase,
 } from '#~/__tests__/cypress/cypress/utils/oc_commands/modelRegistry';
 import { loadRegisterModelFixture } from '#~/__tests__/cypress/cypress/utils/dataLoader';
 import { generateTestUUID } from '#~/__tests__/cypress/cypress/utils/uuidGenerator';
@@ -26,6 +28,10 @@ describe('Verify that admin users can edit a model registry', () => {
       testData = fixtureData;
       registryName = `${testData.registryNamePrefix}-${uuid}`;
       originalRegistryName = registryName; // Store original name for cleanup
+
+      // Create and verify SQL database
+      cy.step('Create and verify SQL database for model registry');
+      createAndVerifyDatabase().should('be.true');
 
       // creates a model registry
       cy.step('Create a model registry using YAML');
@@ -98,5 +104,8 @@ describe('Verify that admin users can edit a model registry', () => {
 
     cy.step('Verify model registry is removed from the backend');
     checkModelRegistry(originalRegistryName).should('be.false');
+
+    cy.step('Delete the SQL database');
+    deleteModelRegistryDatabase();
   });
 });
