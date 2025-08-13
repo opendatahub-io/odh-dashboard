@@ -405,6 +405,96 @@ jobs:
             echo "   📈 Good foundation: Multiple test categories implemented"
           fi
 
+          # Write a per-module detailed block to include in the final summary
+          OUT_DIR="$GITHUB_WORKSPACE/app-gate"
+          mkdir -p "$OUT_DIR"
+          OUT_FILE="$OUT_DIR/${{ matrix.module }}.md"
+
+          echo "Run MODULE_PATH=\"$MODULE_PATH\"" > "$OUT_FILE"
+          echo "🎯 Assessing testing maturity for ${{ matrix.module }}" >> "$OUT_FILE"
+
+          # Unit
+          if [ "$UNIT_TESTS_FOUND" = true ]; then
+            echo "✅ Unit Tests - PRESENT" >> "$OUT_FILE"
+            if [ -n "$UNIT_FOUND_PATH" ]; then
+              echo "   📁 Found unit tests in: $UNIT_FOUND_PATH" >> "$OUT_FILE"
+            fi
+          else
+            echo "❌ Unit Tests - MISSING" >> "$OUT_FILE"
+          fi
+
+          # E2E
+          if [ "$E2E_TESTS_FOUND" = true ]; then
+            echo "✅ E2E Tests - PRESENT" >> "$OUT_FILE"
+            if [ -n "$E2E_FOUND_PATH" ]; then
+              echo "   📁 Found E2E tests in: $E2E_FOUND_PATH" >> "$OUT_FILE"
+            fi
+          else
+            echo "❌ E2E Tests - MISSING" >> "$OUT_FILE"
+          fi
+
+          # Mock
+          if [ "$MOCK_TESTS_FOUND" = true ]; then
+            echo "✅ Mock Tests - PRESENT" >> "$OUT_FILE"
+            if [ -n "$(find "$MODULE_PATH" -path "*/cypress/tests/mocked/*" -name "*.cy.*" 2>/dev/null | head -1)" ]; then
+              echo "   📁 Found mock tests in: $MODULE_PATH/cypress/tests/mocked/" >> "$OUT_FILE"
+            else
+              echo "   📁 Found mock tests in: frontend/src/__tests__/cypress/cypress/tests/mocked/" >> "$OUT_FILE"
+            fi
+          else
+            echo "❌ Mock Tests - MISSING" >> "$OUT_FILE"
+          fi
+
+          # Pact
+          if [ -n "$PACT_FILE" ]; then
+            echo "✅ Pact Testing - PRESENT" >> "$OUT_FILE"
+          else
+            echo "❌ Pact Testing - MISSING" >> "$OUT_FILE"
+          fi
+
+          # API Functional
+          if [ "$API_FUNC_FOUND" = true ]; then
+            echo "✅ API Functional Testing - PRESENT" >> "$OUT_FILE"
+            if [ -n "$API_FUNC_PATH" ]; then
+              echo "   📁 Found API functional tests in: $API_FUNC_PATH" >> "$OUT_FILE"
+            fi
+          else
+            echo "❌ API Functional Testing - MISSING" >> "$OUT_FILE"
+          fi
+
+          # API Performance
+          if [ -n "$PERF_FILE" ]; then
+            echo "✅ API Performance Testing - PRESENT" >> "$OUT_FILE"
+            echo "   📁 Found API performance tests in: $(dirname "$PERF_FILE")" >> "$OUT_FILE"
+          else
+            echo "❌ API Performance Testing - MISSING" >> "$OUT_FILE"
+          fi
+
+          # Bundle Size
+          if [ -f "$FRONTEND_PATH/package.json" ] && grep -qE '"size-limit|bundlewatch"' "$FRONTEND_PATH/package.json"; then
+            echo "✅ Bundle Size Monitoring - PRESENT" >> "$OUT_FILE"
+            echo "   📁 Found bundle size config in: $FRONTEND_PATH/package.json" >> "$OUT_FILE"
+          else
+            echo "❌ Bundle Size Monitoring - MISSING" >> "$OUT_FILE"
+          fi
+
+          echo "" >> "$OUT_FILE"
+          echo "📊 Testing Maturity Assessment:" >> "$OUT_FILE"
+          echo "   Implemented: $IMPLEMENTED_CHECKS/$TOTAL_CHECKS ($PERCENTAGE%)" >> "$OUT_FILE"
+          if [ $PERCENTAGE -ge 75 ]; then
+            echo "   🎯 RHOAI Quality Threshold: ✅ PASSED ($PERCENTAGE% >= 75%)" >> "$OUT_FILE"
+          else
+            echo "   🎯 RHOAI Quality Threshold: ❌ NEEDS IMPROVEMENT ($PERCENTAGE% < 75%)" >> "$OUT_FILE"
+          fi
+          echo "" >> "$OUT_FILE"
+          echo "📋 Recommendations for RHOAI readiness:" >> "$OUT_FILE"
+          for check in "${MISSING_CHECKS[@]}"; do
+            echo "   • Implement $check" >> "$OUT_FILE"
+          done
+          if [ $IMPLEMENTED_CHECKS -ge 2 ]; then
+            echo "   📈 Good foundation: Multiple test categories implemented" >> "$OUT_FILE"
+          fi
+
   # Deployment Quality Gate removed for now
 
   # Coverage combine step removed for now
@@ -451,8 +541,22 @@ jobs:
           
           echo "### 🎯 Changed Modules" >> $SUMMARY_FILE
           echo "" >> $SUMMARY_FILE
-          echo "- ${{ needs.detect-changes.outputs.changed-modules }}" >> $SUMMARY_FILE
+          for mod in ${{ needs.detect-changes.outputs.changed-modules }}; do
+            echo "- $mod" >> $SUMMARY_FILE
+          done
           echo "" >> $SUMMARY_FILE
+
+          echo "### 🧪 Assess Testing Maturity (details)" >> $SUMMARY_FILE
+          echo "" >> $SUMMARY_FILE
+          if [ -d "$GITHUB_WORKSPACE/app-gate" ]; then
+            for f in "$GITHUB_WORKSPACE"/app-gate/*.md; do
+              [ -f "$f" ] || continue
+              echo '```' >> $SUMMARY_FILE
+              cat "$f" >> $SUMMARY_FILE
+              echo '```' >> $SUMMARY_FILE
+              echo "" >> $SUMMARY_FILE
+            done
+          fi
           
           echo "### 📚 Resources" >> $SUMMARY_FILE
           echo "" >> $SUMMARY_FILE
