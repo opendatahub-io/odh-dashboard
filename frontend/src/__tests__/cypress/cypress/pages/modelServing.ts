@@ -56,6 +56,17 @@ class ModelServingGlobal {
     return cy.findByTestId('deploy-button');
   }
 
+  clickDeployModelButtonWithRetry() {
+    this.findDeployModelButton().click();
+    // If modal doesn't appear, retry once
+    cy.get('body').then(($body) => {
+      if ($body.find('[role="dialog"]:visible').length === 0) {
+        this.findDeployModelButton().click();
+      }
+    });
+    return this;
+  }
+
   findNoProjectSelectedTooltip() {
     return cy.findByTestId('deploy-model-tooltip');
   }
