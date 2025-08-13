@@ -92,7 +92,7 @@ export const patchWorkloadHibernation = async (
     ),
   );
 
-  return result as unknown as WorkloadKind;
+  return result;
 };
 
 export const togglePyTorchJobHibernation = async (

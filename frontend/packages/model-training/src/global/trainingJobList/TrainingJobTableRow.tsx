@@ -1,13 +1,15 @@
 import * as React from 'react';
 import { Tr, Td, ActionsColumn } from '@patternfly/react-table';
-import { Label, Timestamp, Flex, FlexItem, Skeleton } from '@patternfly/react-core';
+import { Timestamp, Flex, FlexItem, TimestampTooltipVariant } from '@patternfly/react-core';
 import { CubesIcon } from '@patternfly/react-icons';
 import ResourceNameTooltip from '@odh-dashboard/internal/components/ResourceNameTooltip';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
+import { relativeTime } from '@odh-dashboard/internal/utilities/time';
 import TrainingJobProject from './TrainingJobProject';
-import { getJobStatus, getStatusInfo } from './utils';
+import { getJobStatusFromPyTorchJob } from './utils';
 import TrainingJobClusterQueue from './TrainingJobClusterQueue';
 import HibernationToggleModal from './HibernationToggleModal';
+import TrainingJobStatus from './components/TrainingJobStatus';
 import { PyTorchJobKind } from '../../k8sTypes';
 import { PyTorchJobState } from '../../types';
 import { togglePyTorchJobHibernation } from '../../api';
@@ -32,9 +34,8 @@ const TrainingJobTableRow: React.FC<PyTorchJobTableRowProps> = ({
   const workerReplicas = job.spec.pytorchReplicaSpecs.Worker?.replicas || 0;
   const localQueueName = job.metadata.labels?.['kueue.x-k8s.io/queue-name'];
 
-  const status = jobStatus || getJobStatus(job);
-  const isLoadingStatus = jobStatus === undefined;
-  const isHibernated = status === PyTorchJobState.HIBERNATED;
+  const status = jobStatus || getJobStatusFromPyTorchJob(job);
+  const isSuspended = status === PyTorchJobState.SUSPENDED;
 
   const handleHibernationToggle = async () => {
     setIsToggling(true);
@@ -42,7 +43,7 @@ const TrainingJobTableRow: React.FC<PyTorchJobTableRowProps> = ({
       const result = await togglePyTorchJobHibernation(job);
       if (result.success) {
         // Update status optimistically
-        const newStatus = isHibernated ? PyTorchJobState.RUNNING : PyTorchJobState.HIBERNATED;
+        const newStatus = isSuspended ? PyTorchJobState.RUNNING : PyTorchJobState.SUSPENDED;
         const jobId = job.metadata.uid || job.metadata.name;
         onStatusUpdate?.(jobId, newStatus);
       } else {
@@ -68,7 +69,7 @@ const TrainingJobTableRow: React.FC<PyTorchJobTableRowProps> = ({
 
     if (!isTerminalState) {
       items.push({
-        title: isHibernated ? 'Resume' : 'Hibernate',
+        title: isSuspended ? 'Resume' : 'Suspend',
         onClick: () => setHibernationModalOpen(true),
       });
     }
@@ -80,7 +81,7 @@ const TrainingJobTableRow: React.FC<PyTorchJobTableRowProps> = ({
     });
 
     return items;
-  }, [status, isHibernated, job, onDelete]);
+  }, [status, isSuspended, job, onDelete]);
 
   return (
     <>
@@ -93,7 +94,7 @@ const TrainingJobTableRow: React.FC<PyTorchJobTableRowProps> = ({
           <TrainingJobProject trainingJob={job} />
         </Td>
 
-        <Td dataLabel="Master/Worker">
+        <Td dataLabel="Worker nodes">
           <Flex
             alignItems={{ default: 'alignItemsCenter' }}
             spaceItems={{ default: 'spaceItemsSm' }}
@@ -119,13 +120,20 @@ const TrainingJobTableRow: React.FC<PyTorchJobTableRowProps> = ({
         </Td>
         <Td dataLabel="Created">
           {job.metadata.creationTimestamp ? (
-            <Timestamp date={new Date(job.metadata.creationTimestamp)} />
+            <Timestamp
+              date={new Date(job.metadata.creationTimestamp)}
+              tooltip={{
+                variant: TimestampTooltipVariant.default,
+              }}
+            >
+              {relativeTime(Date.now(), new Date(job.metadata.creationTimestamp).getTime())}
+            </Timestamp>
           ) : (
             'Unknown'
           )}
         </Td>
         <Td dataLabel="Status">
-          {isLoadingStatus ? (
+          {/* {isLoadingStatus ? (
             <Skeleton height="24px" width="80px" />
           ) : (
             (() => {
@@ -141,7 +149,8 @@ const TrainingJobTableRow: React.FC<PyTorchJobTableRowProps> = ({
                 </Label>
               );
             })()
-          )}
+          )} */}
+          <TrainingJobStatus job={job} jobStatus={jobStatus} />
         </Td>
         <Td isActionCell>
           <ActionsColumn items={actions} />
@@ -150,7 +159,7 @@ const TrainingJobTableRow: React.FC<PyTorchJobTableRowProps> = ({
 
       <HibernationToggleModal
         job={hibernationModalOpen ? job : undefined}
-        isHibernated={isHibernated}
+        isSuspended={isSuspended}
         isToggling={isToggling}
         onClose={() => setHibernationModalOpen(false)}
         onConfirm={handleHibernationToggle}

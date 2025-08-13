@@ -11,6 +11,7 @@ export type PyTorchJobKind = K8sResourceCommon & {
       'kueue.x-k8s.io/queue-name'?: string;
       [key: string]: string | undefined;
     };
+    uid: string;
   };
   spec: {
     pytorchReplicaSpecs: {
@@ -65,6 +66,7 @@ export type PyTorchJobKind = K8sResourceCommon & {
     };
   };
   status?: {
+    completionPercentage?: number;
     conditions?: Array<{
       type: string;
       status: string;
