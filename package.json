@@ -52,6 +52,7 @@
     "test:type-check:backend": "cd ./backend && npm run test:type-check",
     "test:type-check:frontend": "cd ./frontend && npm run test:type-check",
     "commit:skip-lint-hook": "SKIP_LINT_HOOK=true git commit",
+    "commit:force-lint-hook": "FORCE_LINT_HOOK=true git commit",
     "prepare": "husky"
   },
   "dependencies": {

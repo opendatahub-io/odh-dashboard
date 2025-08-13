@@ -121,6 +121,22 @@ unset SKIP_LINT_HOOK
 git commit -m "This will run the hook"  # Hook runs normally
 ```
 
+### Force linting (override skip)
+
+Even when `SKIP_LINT_HOOK=true` is set, you can force the hook to run:
+
+```bash
+# Set skip for session
+export SKIP_LINT_HOOK=true
+
+# These will be skipped
+git commit -m "WIP commit"  # Skipped
+
+# Force linting anyway (overrides SKIP_LINT_HOOK)
+npm run commit:force-lint-hook -- -m "Ready for review"  # Runs lint!
+FORCE_LINT_HOOK=true git commit -m "Final commit"        # Runs lint!
+```
+
 ### When to skip
 
 - **Emergency hotfixes** where speed is critical
@@ -273,6 +289,18 @@ git commit -m "Second commit"
 unset SKIP_LINT_HOOK  # Re-enable when done
 ```
 
+### Need to force linting when SKIP_LINT_HOOK is set?
+
+```bash
+# Method 1: npm script (recommended)
+npm run commit:force-lint-hook -- -m "Ready for review"
+
+# Method 2: Environment variable override
+FORCE_LINT_HOOK=true git commit -m "Final commit"
+
+# These work even when SKIP_LINT_HOOK=true is set in your session
+```
+
 ## Technical details
 
 ### Why lint-staged?
@@ -303,16 +331,5 @@ This ensures ESLint runs with the correct configuration and relative paths.
 5. **Use skip options wisely**: Skip for WIP commits, but always run before pushing
 6. **Prefer npm script**: Use `npm run commit:skip-lint-hook` over `--no-verify` for clarity
 7. **Re-enable promptly**: If using session-wide skip, remember to `unset SKIP_LINT_HOOK`
-
-## Team setup
-
-New team members need zero configuration:
-
-1. **Clone repository**: `git clone <repository>`
-2. **Install dependencies**: `npm install` 
-   - Automatically installs `husky` and `lint-staged`
-   - Automatically sets up Git hooks via the `prepare` script
-   - Ready to use immediately!
-3. **Start committing** - the hook works automatically!
 
 The pre-commit hook is a **quality gate** that helps maintain consistent, high-quality code across the entire team. 🛡️

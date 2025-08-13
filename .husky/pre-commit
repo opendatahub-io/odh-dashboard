@@ -1,8 +1,11 @@
 #!/usr/bin/env sh
 
-# Allow developers to skip the hook via environment variable
-if [ "$SKIP_LINT_HOOK" = "true" ]; then
+# Check for force override first (takes precedence over skip)
+if [ "$FORCE_LINT_HOOK" = "true" ]; then
+    echo "🔒 Forcing lint checks (FORCE_LINT_HOOK=true overrides SKIP_LINT_HOOK)"
+elif [ "$SKIP_LINT_HOOK" = "true" ]; then
     echo "⏭️  Skipping lint checks (SKIP_LINT_HOOK=true)"
+    echo "💡 To force linting anyway: FORCE_LINT_HOOK=true git commit -m \"message\""
     exit 0
 fi
 
@@ -32,6 +35,10 @@ if ! npx lint-staged; then
     echo ""
     echo "⚠️  To disable for entire session:"
     echo "   export SKIP_LINT_HOOK=true"
+    echo ""
+    echo "🔒 To force linting even when SKIP_LINT_HOOK=true:"
+    echo "   npm run commit:force-lint-hook -- -m \"Your message\""
+    echo "   FORCE_LINT_HOOK=true git commit -m \"Your message\""
     echo ""
     exit 1
 fi
