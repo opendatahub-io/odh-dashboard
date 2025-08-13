@@ -389,7 +389,7 @@ jobs:
           fi
           
           # Check 7: Bundle Size Monitoring
-          if [ -f "$FRONTEND_PATH/package.json" ] && grep -qE '"size-limit|bundlewatch"' "$FRONTEND_PATH/package.json"; then
+          if [ -f "$FRONTEND_PATH/package.json" ] && grep -qE '"(size-limit|bundlewatch)"' "$FRONTEND_PATH/package.json"; then
             echo "✅ Bundle Size Monitoring - PRESENT"
             echo "   📁 Found bundle size config in: $FRONTEND_PATH/package.json"
             IMPLEMENTED_CHECKS=$((IMPLEMENTED_CHECKS + 1))
@@ -491,7 +491,7 @@ jobs:
           fi
 
           # Bundle Size
-          if [ -f "$FRONTEND_PATH/package.json" ] && grep -qE '"size-limit|bundlewatch"' "$FRONTEND_PATH/package.json"; then
+          if [ -f "$FRONTEND_PATH/package.json" ] && grep -qE '"(size-limit|bundlewatch)"' "$FRONTEND_PATH/package.json"; then
             echo "✅ Bundle Size Monitoring - PRESENT" >> "$OUT_FILE"
             echo "   📁 Found bundle size config in: $FRONTEND_PATH/package.json" >> "$OUT_FILE"
           else
