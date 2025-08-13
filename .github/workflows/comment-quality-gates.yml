@@ -69,7 +69,8 @@ jobs:
             try {
               body = fs.readFileSync('quality-gates-summary.md', 'utf8');
             } catch (e) {
-              body = '## 🚦 Quality Gates Summary\n\n❌ Failed to load detailed summary. Check workflow logs.';
+              body = '## 🚦 Modular Architecture Quality Gates Results\n\n' +
+                     '❌ Failed to load detailed summary. Check workflow logs.';
             }
             console.log(`📋 Posting to PR #${prNumber}`);
             console.log(`📊 Summary length: ${body.length} characters`);

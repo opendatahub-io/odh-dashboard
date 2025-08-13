@@ -257,7 +257,7 @@ jobs:
           # Check 3: Mock Tests
           MOCK_TESTS_FOUND=false
           # Check module's own cypress structure for mock tests
-          if [ -n "$(find "$MODULE_PATH" -path "*/cypress/tests/mocked/*" -type f -name "*.cy.ts" 2>/dev/null | head -1)" ]; then
+          if [ -n "$(find "$MODULE_PATH" -path "*/cypress/tests/mocked/*" -type f \( -name "*.cy.ts" -o -name "*.cy.*" \) 2>/dev/null | head -1)" ]; then
             MOCK_TESTS_FOUND=true
           fi
           # Check global mocked tests directory
@@ -277,7 +277,7 @@ jobs:
           if [ "$MOCK_TESTS_FOUND" = true ]; then
             echo "✅ Mock Tests - PRESENT"
             # Show where mock tests were found
-            if [ -n "$(find "$MODULE_PATH" -path "*/cypress/tests/mocked/*" -type f -name "*.cy.ts" 2>/dev/null | head -1)" ]; then
+            if [ -n "$(find "$MODULE_PATH" -path "*/cypress/tests/mocked/*" -type f \( -name "*.cy.ts" -o -name "*.cy.*" \) 2>/dev/null | head -1)" ]; then
               echo "   📁 Found mock tests in: $MODULE_PATH/cypress/tests/mocked/"
             else
               echo "   📁 Found mock tests in: frontend/src/__tests__/cypress/cypress/tests/mocked/"
