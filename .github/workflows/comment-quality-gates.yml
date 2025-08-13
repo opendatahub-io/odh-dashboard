@@ -32,27 +32,18 @@ jobs:
           repository: ${{ github.repository }}
           run-id: ${{ github.event.workflow_run.id }}
 
-      - name: Get PR number from workflow run
+      - name: Get PR number from workflow_run payload
         id: get-pr
         uses: actions/github-script@v7
         with:
           script: |
-            // Get PR number from the workflow run
-            const pullRequests = await github.rest.repos.listPullRequestsAssociatedWithCommit({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              commit_sha: '${{ github.event.workflow_run.head_sha }}'
-            });
-            
-            if (pullRequests.data.length === 0) {
-              console.log('❌ No PR found for this workflow run');
+            const pr = context.payload.workflow_run.pull_requests && context.payload.workflow_run.pull_requests[0];
+            if (!pr) {
+              core.setFailed('❌ No PR found on workflow_run payload');
               return;
             }
-            
-            const prNumber = pullRequests.data[0].number;
-            console.log('📋 Found PR #' + prNumber);
-            core.setOutput('pr-number', prNumber);
-            return prNumber;
+            console.log('📋 Found PR #' + pr.number);
+            core.setOutput('pr-number', pr.number);
 
       - name: Read quality gates summary
         id: read-summary
