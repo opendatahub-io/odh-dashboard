@@ -44,17 +44,19 @@ jobs:
           
           echo "Changed modules from API: '$CHANGED_FILES'"
           
-          # Exclude non-runnable modules (templates/config packages)
+          # Include only structurally valid modules (no hardcoded names)
           FILTERED_MODULES=""
           for mod in $CHANGED_FILES; do
-            if [ "$mod" = "template" ] || [ "$mod" = "tsconfig" ]; then
-              echo "Skipping excluded module: $mod"
-              continue
-            fi
-            if [ -z "$FILTERED_MODULES" ]; then
-              FILTERED_MODULES="$mod"
+            base="frontend/packages/$mod"
+            if [ -d "$base/upstream/frontend" ] || [ -d "$base/upstream/bff" ] || [ -d "$base/src" ] || [ -d "$base/bff" ]; then
+              if [ -z "$FILTERED_MODULES" ]; then
+                FILTERED_MODULES="$mod"
+              else
+                FILTERED_MODULES="$FILTERED_MODULES $mod"
+              fi
+              echo "Including module (structurally valid): $mod"
             else
-              FILTERED_MODULES="$FILTERED_MODULES $mod"
+              echo "Skipping non-module structure: $mod"
             fi
           done
 
@@ -332,10 +334,13 @@ jobs:
             fi
           fi
 
-          # Shared tests under frontend/packages (scoped by module patterns, excluding templates/config)
+          # Shared tests under frontend/packages (scoped by module patterns, excluding non-modules by structure)
           if [ "$API_FUNC_FOUND" = false ] && [ -d "frontend/packages" ]; then
             SHARED_API_PATH=$(find frontend/packages -type d \( -path "*/src/__tests__/api/*" -o -path "*/cypress/tests/api*/*" \) 2>/dev/null \
-              | grep -Ev "/template/|/tsconfig/" \
+              | awk -F'/frontend/packages/' '{print $2}' | awk -F'/' 'NF{print $1"/"$0}' \
+              | while read rel; do mod=$(echo "$rel" | cut -d'/' -f1); base="frontend/packages/$mod"; \
+                  if [ -d "$base/upstream/frontend" ] || [ -d "$base/upstream/bff" ] || [ -d "$base/src" ] || [ -d "$base/bff" ]; then echo "$rel"; fi; done \
+              | sed 's#^#frontend/packages/#' \
               | grep -E "$(printf '%s|' "${MODULE_PATTERNS[@]}" | sed 's/|$//')" \
               | head -1)
             if [ -n "$SHARED_API_PATH" ]; then
