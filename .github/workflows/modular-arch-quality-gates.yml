@@ -6,6 +6,11 @@ on:
       - 'frontend/packages/**'
   workflow_dispatch:
 
+permissions:
+  contents: read
+  actions: read
+  pull-requests: write
+
 env:
   NODE_VERSION: '20'
   GO_VERSION: '1.24.3'
@@ -126,10 +131,12 @@ jobs:
           
           # Check 1: Unit Tests - Look in both module-specific and global test directories
           UNIT_TESTS_FOUND=false
+          UNIT_FOUND_PATH=""
           
           # Check for unit tests in module's own structure
           if [ -n "$(find "$MODULE_PATH" -path "*/__tests__/unit/*" -name "*.test.*" -o -path "*/__tests__/unit/*" -name "*.spec.*" 2>/dev/null | head -1)" ]; then
             UNIT_TESTS_FOUND=true
+            UNIT_FOUND_PATH="$MODULE_PATH"
           fi
           
           # Check module's upstream frontend for tests (excluding e2e/mocked)
@@ -139,8 +146,8 @@ jobs:
             for test_dir in $TEST_DIRS; do
               UNIT_TEST_FILES=$(find "$test_dir" -name "*.test.*" -o -name "*.spec.*" 2>/dev/null)
               if [ -n "$UNIT_TEST_FILES" ]; then
-                UNIT_TESTS_FOUND=true
-                echo "   📁 Found unit tests in: $test_dir"
+              UNIT_TESTS_FOUND=true
+              UNIT_FOUND_PATH="$test_dir"
                 break
               fi
             done
@@ -156,8 +163,8 @@ jobs:
             for pattern in "${MODULE_PATTERNS[@]}"; do
               UNIT_FILES=$(find "frontend/src/__tests__/unit/" -name "*${pattern}*" 2>/dev/null)
               if [ -n "$UNIT_FILES" ]; then
-                UNIT_TESTS_FOUND=true
-                echo "   📁 Found unit tests in: frontend/src/__tests__/unit/ (pattern: ${pattern})"
+              UNIT_TESTS_FOUND=true
+              UNIT_FOUND_PATH="frontend/src/__tests__/unit/"
                 break
               fi
             done
@@ -165,6 +172,9 @@ jobs:
           
           if [ "$UNIT_TESTS_FOUND" = true ]; then
             echo "✅ Unit Tests - PRESENT"
+            if [ -n "$UNIT_FOUND_PATH" ]; then
+              echo "   📁 Found unit tests in: $UNIT_FOUND_PATH"
+            fi
             IMPLEMENTED_CHECKS=$((IMPLEMENTED_CHECKS + 1))
           else
             echo "❌ Unit Tests - MISSING"
@@ -245,37 +255,72 @@ jobs:
           fi
           
           # Check 4: Pact Testing
-          if [ -n "$(find "$MODULE_PATH" -name "*pact*" -o -name "*contract*" 2>/dev/null | head -1)" ]; then
+          PACT_FILE=$(find "$MODULE_PATH" -name "*pact*" -o -name "*contract*" 2>/dev/null | head -1)
+          if [ -n "$PACT_FILE" ]; then
             echo "✅ Pact Testing - PRESENT"
+            echo "   📁 Found Pact tests in: $(dirname "$PACT_FILE")"
             IMPLEMENTED_CHECKS=$((IMPLEMENTED_CHECKS + 1))
           else
             echo "❌ Pact Testing - MISSING"
             MISSING_CHECKS+=("API contract testing (Pact)")
           fi
           
-          # Check 5: API Performance Testing
-          if [ -n "$(find "$MODULE_PATH" -name "*k6*" -o -name "*jmeter*" -o -name "*performance*" 2>/dev/null | head -1)" ]; then
+          # Check 5: API Functional Testing
+          API_FUNC_FOUND=false
+          API_FUNC_PATH=""
+          # Cypress-based API tests in global structure
+          if [ -d "frontend/src/__tests__/cypress/cypress/tests/api" ] && [ -n "$(find "frontend/src/__tests__/cypress/cypress/tests/api" -name "*.cy.*" 2>/dev/null | head -1)" ]; then
+            API_FUNC_FOUND=true
+            API_FUNC_PATH="frontend/src/__tests__/cypress/cypress/tests/api"
+          fi
+          # Module cypress api tests
+          if [ "$API_FUNC_FOUND" = false ] && [ -n "$(find "$MODULE_PATH" -path "*/cypress/tests/api*/*" -name "*.cy.*" 2>/dev/null | head -1)" ]; then
+            API_FUNC_FOUND=true
+            API_FUNC_PATH="$MODULE_PATH/cypress/tests/"
+          fi
+          # Jest-style API tests in frontend
+          if [ "$API_FUNC_FOUND" = false ] && [ -d "$FRONTEND_PATH/src/__tests__" ]; then
+            API_JEST_FILE=$(find "$FRONTEND_PATH/src/__tests__" -type f \( -path "*/api/*" -o -name "*.api.test.*" -o -name "*.api.spec.*" \) 2>/dev/null | head -1)
+            if [ -n "$API_JEST_FILE" ]; then
+              API_FUNC_FOUND=true
+              API_FUNC_PATH=$(dirname "$API_JEST_FILE")
+            fi
+          fi
+          if [ "$API_FUNC_FOUND" = true ]; then
+            echo "✅ API Functional Testing - PRESENT"
+            echo "   📁 Found API functional tests in: $API_FUNC_PATH"
+            IMPLEMENTED_CHECKS=$((IMPLEMENTED_CHECKS + 1))
+          else
+            echo "❌ API Functional Testing - MISSING"
+            MISSING_CHECKS+=("API functional tests")
+          fi
+          
+          # Check 6: API Performance Testing
+          PERF_FILE=$(find "$MODULE_PATH" -name "*k6*" -o -name "*jmeter*" -o -name "*performance*" 2>/dev/null | head -1)
+          if [ -n "$PERF_FILE" ]; then
             echo "✅ API Performance Testing - PRESENT"
+            echo "   📁 Found API performance tests in: $(dirname "$PERF_FILE")"
             IMPLEMENTED_CHECKS=$((IMPLEMENTED_CHECKS + 1))
           else
             echo "❌ API Performance Testing - MISSING"
             MISSING_CHECKS+=("API performance testing")
           fi
           
-          # Check 6: Bundle Size Monitoring
+          # Check 7: Bundle Size Monitoring
           if [ -f "$FRONTEND_PATH/package.json" ] && grep -qE '"size-limit|bundlewatch"' "$FRONTEND_PATH/package.json"; then
             echo "✅ Bundle Size Monitoring - PRESENT"
+            echo "   📁 Found bundle size config in: $FRONTEND_PATH/package.json"
             IMPLEMENTED_CHECKS=$((IMPLEMENTED_CHECKS + 1))
           else
             echo "❌ Bundle Size Monitoring - MISSING"
             MISSING_CHECKS+=("Bundle size monitoring")
           fi
-          
-          # Check 7: Accessibility Testing - REMOVED (inaccurate detection)
-          # Accessibility testing detection was producing false positives
-          echo "⚠️ Accessibility Testing - REMOVED (inaccurate detection)"
+
+          # Accessibility testing check removed entirely
           
           # Calculate percentage
+          # Update total checks to reflect categories (Unit, E2E, Mock, Pact, API Functional, API Performance, Bundle Size)
+          TOTAL_CHECKS=7
           PERCENTAGE=$((IMPLEMENTED_CHECKS * 100 / TOTAL_CHECKS))
           
           echo ""
