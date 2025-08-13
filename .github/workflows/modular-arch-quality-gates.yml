@@ -1,7 +1,8 @@
 ---
+# yamllint disable rule:line-length
 name: Modular Architecture - Quality Gates
 
-on:
+'on':
   pull_request:
     paths:
       - 'frontend/packages/**'
@@ -36,6 +37,7 @@ jobs:
       - name: Detect changed modules
         id: check-changes
         run: |
+          # yamllint disable rule:line-length
           set -euo pipefail
           CHANGED_FILES=""
           if [ "${{ github.event_name }}" = "pull_request" ]; then
@@ -61,9 +63,10 @@ jobs:
               echo "No PR context and no modules input; nothing to do"
             fi
           fi
-          
+
           echo "Changed modules: '$CHANGED_FILES'"
-          
+          # yamllint enable rule:line-length
+
           # Include only structurally valid modules (no hardcoded names)
           FILTERED_MODULES=""
           for mod in $CHANGED_FILES; do
@@ -101,11 +104,12 @@ jobs:
       - name: Generate test matrix
         id: generate-matrix
         run: |
+          # yamllint disable rule:line-length
           # Use the detected modules from previous job output
           CHANGED_MODULES="${{ needs.detect-changes.outputs.changed-modules }}"
-          
+
           echo "Generating matrix for modules: '$CHANGED_MODULES'"
-          
+
           # Build JSON array from space-separated string
           JSON_ARRAY="["
           FIRST=true
@@ -118,11 +122,10 @@ jobs:
             JSON_ARRAY="$JSON_ARRAY\"$module\""
           done
           JSON_ARRAY="$JSON_ARRAY]"
-          
+
           echo "Generated matrix: $JSON_ARRAY"
           echo "matrix=$JSON_ARRAY" >> $GITHUB_OUTPUT
-
-  
+          # yamllint enable rule:line-length
 
   # Quality Gate 2: Application Quality Gate
   application-quality-gate:
@@ -156,25 +159,26 @@ jobs:
 
       - name: Assess Testing Maturity
         run: |
+          # yamllint disable rule:line-length
           MODULE_PATH="frontend/packages/${{ matrix.module }}"
           FRONTEND_PATH="$MODULE_PATH/upstream/frontend"
-          
+
           echo "🎯 Assessing testing maturity for ${{ matrix.module }}"
-          
+
           IMPLEMENTED_CHECKS=0
           MISSING_CHECKS=()
           TOTAL_CHECKS=6
-          
+
           # Check 1: Unit Tests - Look in both module-specific and global test directories
           UNIT_TESTS_FOUND=false
           UNIT_FOUND_PATH=""
-          
+
           # Check for unit tests in module's own structure
           if [ -n "$(find "$MODULE_PATH" -path "*/__tests__/unit/*" -name "*.test.*" -o -path "*/__tests__/unit/*" -name "*.spec.*" 2>/dev/null | head -1)" ]; then
             UNIT_TESTS_FOUND=true
             UNIT_FOUND_PATH="$MODULE_PATH"
           fi
-          
+
           # Check module's upstream frontend for tests (excluding e2e/mocked)
           if [ "$UNIT_TESTS_FOUND" = false ] && [ -d "$FRONTEND_PATH" ]; then
             # Find __tests__ directories that are NOT e2e or mocked
@@ -188,8 +192,8 @@ jobs:
               fi
             done
           fi
-          
-          # Check for unit tests in global frontend test directory  
+
+          # Check for unit tests in global frontend test directory
           if [ "$UNIT_TESTS_FOUND" = false ] && [ -d "frontend/src/__tests__/unit/" ]; then
             # Check for files with module name patterns
             MODULE_PATTERNS=(
@@ -205,7 +209,7 @@ jobs:
               fi
             done
           fi
-          
+
           if [ "$UNIT_TESTS_FOUND" = true ]; then
             echo "✅ Unit Tests - PRESENT"
             if [ -n "$UNIT_FOUND_PATH" ]; then
@@ -216,18 +220,18 @@ jobs:
             echo "❌ Unit Tests - MISSING"
             MISSING_CHECKS+=("Unit tests")
           fi
-          
-          # Check 2: E2E Tests - Look for module-specific e2e directories  
+
+          # Check 2: E2E Tests - Look for module-specific e2e directories
           E2E_TESTS_FOUND=false
           E2E_BASE_DIR="frontend/src/__tests__/cypress/cypress/tests/e2e"
-          
+
           # Build module name patterns dynamically
           RAW_MODULE="${{ matrix.module }}"
           MODULE_NO_HYPHENS=$(echo "$RAW_MODULE" | sed 's/-//g')
           # module to camelCase (best-effort: split on '-')
           MODULE_CAMEL=$(echo "$RAW_MODULE" | awk -F'-' '{for(i=1;i<=NF;i++){if(i==1){printf $i}else{printf toupper(substr($i,1,1)) substr($i,2)}}}')
           MODULE_PATTERNS=("$RAW_MODULE" "$MODULE_NO_HYPHENS" "$MODULE_CAMEL")
-          
+
           E2E_FOUND_PATH=""
           for pattern in "${MODULE_PATTERNS[@]}"; do
             if [ -d "$E2E_BASE_DIR/$pattern" ] && [ -n "$(find "$E2E_BASE_DIR/$pattern" -type f -name "*.cy.ts" 2>/dev/null | head -1)" ]; then
@@ -236,13 +240,13 @@ jobs:
               break
             fi
           done
-          
+
           # Also check module's own cypress structure
           if [ "$E2E_TESTS_FOUND" = false ] && [ -n "$(find "$MODULE_PATH" -path "*/cypress/tests/e2e/*" -type f -name "*.cy.ts" 2>/dev/null | head -1)" ]; then
             E2E_TESTS_FOUND=true
             E2E_FOUND_PATH="$MODULE_PATH/cypress/tests/e2e/"
           fi
-          
+
           if [ "$E2E_TESTS_FOUND" = true ]; then
             echo "✅ E2E Tests - PRESENT"
             if [ -n "$E2E_FOUND_PATH" ]; then
@@ -253,7 +257,7 @@ jobs:
             echo "❌ E2E Tests - MISSING"
             MISSING_CHECKS+=("End-to-end tests")
           fi
-          
+
           # Check 3: Mock Tests
           MOCK_TESTS_FOUND=false
           # Check module's own cypress structure for mock tests
@@ -273,7 +277,7 @@ jobs:
               fi
             done
           fi
-          
+
           if [ "$MOCK_TESTS_FOUND" = true ]; then
             echo "✅ Mock Tests - PRESENT"
             # Show where mock tests were found
@@ -287,7 +291,7 @@ jobs:
             echo "❌ Mock Tests - MISSING"
             MISSING_CHECKS+=("Mock tests")
           fi
-          
+
           # Check 4: Pact Testing (files only, grouped predicates)
           PACT_FILE=$(find "$MODULE_PATH" -type f \( -iname "*pact*" -o -iname "*contract*" \) 2>/dev/null | head -1)
           if [ -n "$PACT_FILE" ]; then
@@ -298,7 +302,7 @@ jobs:
             echo "❌ Pact Testing - MISSING"
             MISSING_CHECKS+=("API contract testing (Pact)")
           fi
-          
+
           # Check 5: API Functional Testing
           API_FUNC_FOUND=false
           API_FUNC_PATH=""
@@ -376,7 +380,7 @@ jobs:
             echo "❌ API Functional Testing - MISSING"
             MISSING_CHECKS+=("API functional tests")
           fi
-          
+
           # Check 6: API Performance Testing (files only, grouped predicates)
           PERF_FILE=$(find "$MODULE_PATH" -type f \( -iname "*k6*" -o -iname "*jmeter*" -o -iname "*performance*" \) 2>/dev/null | head -1)
           if [ -n "$PERF_FILE" ]; then
@@ -387,7 +391,7 @@ jobs:
             echo "❌ API Performance Testing - MISSING"
             MISSING_CHECKS+=("API performance testing")
           fi
-          
+
           # Check 7: Bundle Size Monitoring
           if [ -f "$FRONTEND_PATH/package.json" ] && grep -qE '"(size-limit|bundlewatch)"' "$FRONTEND_PATH/package.json"; then
             echo "✅ Bundle Size Monitoring - PRESENT"
@@ -399,16 +403,16 @@ jobs:
           fi
 
           # Accessibility testing check removed entirely
-          
+
           # Calculate percentage
           # Update total checks to reflect categories (Unit, E2E, Mock, Pact, API Functional, API Performance, Bundle Size)
           TOTAL_CHECKS=7
           PERCENTAGE=$((IMPLEMENTED_CHECKS * 100 / TOTAL_CHECKS))
-          
+
           echo ""
           echo "📊 Testing Maturity Assessment:"
           echo "   Implemented: $IMPLEMENTED_CHECKS/$TOTAL_CHECKS ($PERCENTAGE%)"
-          
+
           # RHOAI Quality Thresholds
           if [ $PERCENTAGE -ge 75 ]; then
             echo "   🎯 RHOAI Quality Threshold: ✅ PASSED ($PERCENTAGE% >= 75%)"
@@ -420,7 +424,7 @@ jobs:
               echo "   • Implement $check"
             done
           fi
-          
+
           if [ $IMPLEMENTED_CHECKS -ge 2 ]; then
             echo "   📈 Good foundation: Multiple test categories implemented"
           fi
@@ -514,6 +518,7 @@ jobs:
           if [ $IMPLEMENTED_CHECKS -ge 2 ]; then
             echo "   📈 Good foundation: Multiple test categories implemented" >> "$OUT_FILE"
           fi
+          # yamllint enable rule:line-length
 
       - name: Upload per-module assessment
         if: always()
@@ -522,10 +527,6 @@ jobs:
           name: app-gate-${{ matrix.module }}
           path: ${{ github.workspace }}/app-gate/*.md
           if-no-files-found: ignore
-
-  
-
-  
 
   quality-gates-summary:
     name: Quality Gates Summary
@@ -542,17 +543,16 @@ jobs:
 
       - name: Generate Quality Gates Summary
         run: |
+          # yamllint disable rule:line-length
           echo "📊 Generating Quality Gates Summary..."
-          
+
           # Build comprehensive quality gates summary
           SUMMARY_FILE="quality-gates-summary.md"
-          
+
           echo "## 🚦 Modular Architecture Quality Gates Results" > $SUMMARY_FILE
           echo "" >> $SUMMARY_FILE
           # Assessment only; omit pass/fail copy
-          
-          
-          
+
           echo "### 🎯 Changed Modules" >> $SUMMARY_FILE
           echo "" >> $SUMMARY_FILE
           for mod in ${{ needs.detect-changes.outputs.changed-modules }}; do
@@ -573,7 +573,7 @@ jobs:
           else
             echo "(no assessments found)" >> $SUMMARY_FILE
           fi
-          
+
           echo "### 📚 Resources" >> $SUMMARY_FILE
           echo "" >> $SUMMARY_FILE
           echo "- [Modular Architecture Guide](https://github.com/opendatahub-io/odh-dashboard/blob/main/docs/modular-architecture.md)" >> $SUMMARY_FILE
@@ -581,17 +581,15 @@ jobs:
           echo "" >> $SUMMARY_FILE
           echo "---" >> $SUMMARY_FILE
           echo "*Generated by ODH Dashboard Modular Architecture Quality Gates*" >> $SUMMARY_FILE
-          
+
           # Log to step summary
           cat $SUMMARY_FILE >> $GITHUB_STEP_SUMMARY
-          
+
           echo "✅ Summary generated and logged to step summary"
+          # yamllint enable rule:line-length
 
       - name: Upload summary as artifact
         uses: actions/upload-artifact@v4
         with:
           name: quality-gates-summary
           path: quality-gates-summary.md
-
-      # PR comments handled by helper workflow (workflow_run)
-

@@ -1,7 +1,8 @@
 ---
+# yamllint disable rule:line-length
 name: Comment Quality Gates Summary
 
-on:
+'on':
   workflow_run:
     workflows: ["Modular Architecture - Quality Gates"]
     types:
@@ -27,7 +28,7 @@ jobs:
           echo "Workflow run conclusion: ${{ github.event.workflow_run.conclusion }}"
           echo "Workflow run head SHA: ${{ github.event.workflow_run.head_sha }}"
           echo "Workflow run ID: ${{ github.event.workflow_run.id }}"
-          
+
       - name: Download Quality Gates Summary
         uses: actions/download-artifact@v4
         continue-on-error: true
