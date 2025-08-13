@@ -14,6 +14,7 @@ import { useProjectServingPlatform } from '../../concepts/useProjectServingPlatf
 import { ModelDeploymentsContext } from '../../concepts/ModelDeploymentsContext';
 import { DeployButton } from '../deploy/DeployButton';
 import { ResetPlatformButton } from '../platforms/ResetPlatformButton';
+import { getDeploymentWizardRoute } from '../deploymentWizard/utils';
 
 const ModelsProjectDetailsView: React.FC<{
   project: ProjectKind;
@@ -70,7 +71,7 @@ const ModelsProjectDetailsView: React.FC<{
                 key="deploy-button"
                 project={project}
                 variant="secondary"
-                createRoute={`/projects/${project.metadata.name}/deploy/create`}
+                createRoute={getDeploymentWizardRoute(`/projects/${project.metadata.name}`)}
               />,
             ]
           : undefined

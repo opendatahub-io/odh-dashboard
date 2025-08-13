@@ -3,6 +3,7 @@ import EmptyDetailsView from '@odh-dashboard/internal/components/EmptyDetailsVie
 import { ProjectObjectType, typedEmptyImage } from '@odh-dashboard/internal/concepts/design/utils';
 import { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
 import { DeployButton } from '../../components/deploy/DeployButton';
+import { getDeploymentWizardRoute } from '../deploymentWizard/utils';
 
 type GlobalNoModelsViewProps = {
   project?: ProjectKind | undefined;
@@ -19,7 +20,7 @@ export const GlobalNoModelsView: React.FC<GlobalNoModelsViewProps> = ({ project 
         project={project ?? null}
         createRoute={
           project?.metadata.name
-            ? `/modelServing/${project.metadata.name}/deploy/create`
+            ? getDeploymentWizardRoute(`/modelServing/${project.metadata.name}`)
             : undefined
         }
       />

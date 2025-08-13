@@ -22,6 +22,7 @@ import {
 import { DeployButton } from '../deploy/DeployButton';
 import { PlatformSelectionGallery } from '../platforms/platformSelection';
 import { ResetPlatformButton } from '../platforms/ResetPlatformButton';
+import { getDeploymentWizardRoute } from '../deploymentWizard/utils';
 
 const galleryWidth = {
   minWidths: { default: '100%', lg: 'calc(50% - 1rem / 2)' },
@@ -124,7 +125,7 @@ const ModelPlatformSection: React.FC<{ platforms: ModelServingPlatform[] }> = ({
             <DeployButton
               project={currentProject}
               variant="link"
-              createRoute={`/projects/${currentProject.metadata.name}/deploy/create`}
+              createRoute={getDeploymentWizardRoute(`/projects/${currentProject.metadata.name}`)}
             />
             <NavigateBackToRegistryButton isInline />
           </Flex>
