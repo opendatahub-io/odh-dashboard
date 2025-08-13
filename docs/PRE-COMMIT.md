@@ -75,7 +75,7 @@ git commit -m "My changes"
 
 ### Recommended fix workflow
 
-````bash
+```bash
 # 1. Auto-fix common issues
 cd frontend && npm run test:fix
 # or
@@ -89,6 +89,7 @@ cd backend && npm run test:lint
 # 3. Fix remaining issues manually, then commit
 git add .
 git commit -m "Fix lint issues and add feature"
+```
 
 ## Skipping the hook (when needed)
 
@@ -103,7 +104,7 @@ SKIP_LINT_HOOK=true git commit -m "Your commit message"
 
 # Method 3: Using git's built-in bypass
 git commit --no-verify -m "Your commit message"
-````
+```
 
 ### Session-wide skip
 
@@ -151,8 +152,6 @@ FORCE_LINT_HOOK=true git commit -m "Final commit"        # Runs lint!
 - **Merge commits** to main/master branches
 - **Code reviews** - reviewers expect clean, linted code
 
-````
-
 ## Works from any directory
 
 The pre-commit hook works correctly whether you run `git commit` from:
@@ -180,7 +179,7 @@ The pre-commit hook is configured in:
     "bash -c 'cd backend && npx eslint --max-warnings 0 \"${@#backend/}\"' --"
   ]
 }
-````
+```
 
 This configuration:
 
@@ -251,6 +250,34 @@ git config core.hooksPath
 ls -la .husky/pre-commit
 # Should show: -rwxr-xr-x ... .husky/pre-commit
 ```
+
+#### Recovery steps if hooks are missing:
+
+**For existing clones or CI checkouts:**
+
+```bash
+# Method 1: Run prepare script (recommended for team members)
+npm run prepare
+
+# Method 2: Install husky manually (if prepare script fails)
+npx husky install
+# or for yarn users:
+# yarn husky install
+
+# Method 3: Manual setup (if above methods fail)
+git config core.hooksPath .husky/_
+chmod +x .husky/pre-commit
+
+# Verify setup works
+git config core.hooksPath  # Should show: .husky/_
+ls -la .husky/pre-commit   # Should show: -rwxr-xr-x
+```
+
+**Common scenarios:**
+
+- **Fresh clone**: Run `npm install` (calls prepare automatically)
+- **CI/CD environment**: Run `npm run prepare` after `npm ci`
+- **Hook not working**: Check permissions with `chmod +x .husky/pre-commit`
 
 ### lint-staged not found?
 
