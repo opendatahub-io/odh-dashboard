@@ -1,0 +1,117 @@
+apiVersion: kubeflow.org/v1
+kind: PyTorchJob
+metadata:
+  name: pytorch-distributed-training
+  namespace: test-project
+  labels:
+    kueue.x-k8s.io/queue-name: training-queue
+    app.kubernetes.io/name: pytorch-job
+    app.kubernetes.io/component: training
+  annotations:
+    opendatahub.io/display-name: 'Distributed Training Job'
+spec:
+  pytorchReplicaSpecs:
+    Master:
+      replicas: 1
+      restartPolicy: OnFailure
+      template:
+        spec:
+          containers:
+            - name: pytorch
+              image: pytorch/pytorch:2.0.0-cuda11.7-cudnn8-devel
+              args: ['python', 'train.py', '--epochs', '100']
+              resources:
+                limits:
+                  nvidia.com/gpu: 1
+                  cpu: '2'
+                  memory: '4Gi'
+                requests:
+                  cpu: '1'
+                  memory: '2Gi'
+    Worker:
+      replicas: 3
+      restartPolicy: OnFailure
+      template:
+        spec:
+          containers:
+            - name: pytorch
+              image: pytorch/pytorch:2.0.0-cuda11.7-cudnn8-devel
+              args: ['python', 'train.py', '--epochs', '100']
+              resources:
+                limits:
+                  nvidia.com/gpu: 1
+                  cpu: '2'
+                  memory: '4Gi'
+                requests:
+                  cpu: '1'
+                  memory: '2Gi'
+status:
+  conditions:
+    - type: Created
+      status: 'True'
+      lastUpdateTime: '2024-01-15T10:30:00Z'
+      lastTransitionTime: '2024-01-15T10:30:00Z'
+      reason: PyTorchJobCreated
+      message: PyTorchJob pytorch-distributed-training is created.
+    - type: Running
+      status: 'True'
+      lastUpdateTime: '2024-01-15T10:32:00Z'
+      lastTransitionTime: '2024-01-15T10:32:00Z'
+      reason: PyTorchJobRunning
+      message: PyTorchJob pytorch-distributed-training is running.
+  replicaStatuses:
+    Master:
+      active: 1
+    Worker:
+      active: 3
+  startTime: '2024-01-15T10:32:00Z'
+---
+apiVersion: kubeflow.org/v1
+kind: PyTorchJob
+metadata:
+  name: pytorch-single-node
+  namespace: test-project
+  labels:
+    kueue.x-k8s.io/queue-name: default-queue
+    app.kubernetes.io/name: pytorch-job
+    app.kubernetes.io/component: training
+  annotations:
+    opendatahub.io/display-name: 'Single Node Training'
+spec:
+  pytorchReplicaSpecs:
+    Master:
+      replicas: 1
+      restartPolicy: OnFailure
+      template:
+        spec:
+          containers:
+            - name: pytorch
+              image: pytorch/pytorch:2.0.0-cuda11.7-cudnn8-devel
+              args: ['python', 'simple_train.py']
+              resources:
+                limits:
+                  nvidia.com/gpu: 1
+                  cpu: '1'
+                  memory: '2Gi'
+                requests:
+                  cpu: '500m'
+                  memory: '1Gi'
+status:
+  conditions:
+    - type: Created
+      status: 'True'
+      lastUpdateTime: '2024-01-14T08:15:00Z'
+      lastTransitionTime: '2024-01-14T08:15:00Z'
+      reason: PyTorchJobCreated
+      message: PyTorchJob pytorch-single-node is created.
+    - type: Succeeded
+      status: 'True'
+      lastUpdateTime: '2024-01-14T09:30:00Z'
+      lastTransitionTime: '2024-01-14T09:30:00Z'
+      reason: PyTorchJobSucceeded
+      message: PyTorchJob pytorch-single-node is successfully completed.
+  replicaStatuses:
+    Master:
+      succeeded: 1
+  startTime: '2024-01-14T08:16:00Z'
+  completionTime: '2024-01-14T09:30:00Z'
