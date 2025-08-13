@@ -160,7 +160,7 @@ jobs:
             # Find __tests__ directories that are NOT e2e or mocked
             TEST_DIRS=$(find "$FRONTEND_PATH" -name "*__tests__*" -type d 2>/dev/null | grep -v "/e2e" | grep -v "/mocked")
             for test_dir in $TEST_DIRS; do
-              UNIT_TEST_FILES=$(find "$test_dir" -name "*.test.*" -o -name "*.spec.*" 2>/dev/null)
+              UNIT_TEST_FILES=$(find "$test_dir" -type f \( -name "*.test.*" -o -name "*.spec.*" \) 2>/dev/null)
               if [ -n "$UNIT_TEST_FILES" ]; then
               UNIT_TESTS_FOUND=true
               UNIT_FOUND_PATH="$test_dir"
@@ -177,7 +177,7 @@ jobs:
               "$(echo ${{ matrix.module }} | sed 's/-//g')" # no hyphens: modelregistry
             )
             for pattern in "${MODULE_PATTERNS[@]}"; do
-              UNIT_FILES=$(find "frontend/src/__tests__/unit/" -name "*${pattern}*" 2>/dev/null)
+              UNIT_FILES=$(find "frontend/src/__tests__/unit/" -type f -name "*${pattern}*" 2>/dev/null)
               if [ -n "$UNIT_FILES" ]; then
               UNIT_TESTS_FOUND=true
               UNIT_FOUND_PATH="frontend/src/__tests__/unit/"
@@ -286,18 +286,18 @@ jobs:
           API_BASE_DIR="frontend/src/__tests__/cypress/cypress/tests/api"
           if [ -d "$API_BASE_DIR" ]; then
             for pattern in "${MODULE_PATTERNS[@]}"; do
-              if [ -d "$API_BASE_DIR/$pattern" ] && [ -n "$(find "$API_BASE_DIR/$pattern" -name "*.cy.*" 2>/dev/null | head -1)" ]; then
+              if [ -d "$API_BASE_DIR/$pattern" ] && [ -n "$(find "$API_BASE_DIR/$pattern" -type f -name "*.cy.*" 2>/dev/null | head -1)" ]; then
                 API_FUNC_FOUND=true
                 API_FUNC_PATH="$API_BASE_DIR/$pattern"
                 break
               fi
               # accept -api or Api suffixed
-              if [ -d "$API_BASE_DIR/${pattern}-api" ] && [ -n "$(find "$API_BASE_DIR/${pattern}-api" -name "*.cy.*" 2>/dev/null | head -1)" ]; then
+              if [ -d "$API_BASE_DIR/${pattern}-api" ] && [ -n "$(find "$API_BASE_DIR/${pattern}-api" -type f -name "*.cy.*" 2>/dev/null | head -1)" ]; then
                 API_FUNC_FOUND=true
                 API_FUNC_PATH="$API_BASE_DIR/${pattern}-api"
                 break
               fi
-              if [ -d "$API_BASE_DIR/${pattern}Api" ] && [ -n "$(find "$API_BASE_DIR/${pattern}Api" -name "*.cy.*" 2>/dev/null | head -1)" ]; then
+              if [ -d "$API_BASE_DIR/${pattern}Api" ] && [ -n "$(find "$API_BASE_DIR/${pattern}Api" -type f -name "*.cy.*" 2>/dev/null | head -1)" ]; then
                 API_FUNC_FOUND=true
                 API_FUNC_PATH="$API_BASE_DIR/${pattern}Api"
                 break
@@ -306,12 +306,12 @@ jobs:
           fi
           # Module cypress api tests (scoped)
           if [ "$API_FUNC_FOUND" = false ]; then
-            if [ -n "$(find "$MODULE_PATH" -path "*/cypress/tests/api*/*" -name "*.cy.*" 2>/dev/null | head -1)" ]; then
+            if [ -n "$(find "$MODULE_PATH" -path "*/cypress/tests/api*/*" -type f -name "*.cy.*" 2>/dev/null | head -1)" ]; then
               # Prefer subdir matching module patterns if present
               FOUND=""
               for pattern in "${MODULE_PATTERNS[@]}"; do
                 CANDIDATE="$MODULE_PATH/cypress/tests/api/$pattern"
-                if [ -d "$CANDIDATE" ] && [ -n "$(find "$CANDIDATE" -name "*.cy.*" 2>/dev/null | head -1)" ]; then
+                if [ -d "$CANDIDATE" ] && [ -n "$(find "$CANDIDATE" -type f -name "*.cy.*" 2>/dev/null | head -1)" ]; then
                   FOUND="$CANDIDATE"
                   break
                 fi
@@ -357,8 +357,8 @@ jobs:
             MISSING_CHECKS+=("API functional tests")
           fi
           
-          # Check 6: API Performance Testing
-          PERF_FILE=$(find "$MODULE_PATH" -name "*k6*" -o -name "*jmeter*" -o -name "*performance*" 2>/dev/null | head -1)
+          # Check 6: API Performance Testing (files only, grouped predicates)
+          PERF_FILE=$(find "$MODULE_PATH" -type f \( -iname "*k6*" -o -iname "*jmeter*" -o -iname "*performance*" \) 2>/dev/null | head -1)
           if [ -n "$PERF_FILE" ]; then
             echo "✅ API Performance Testing - PRESENT"
             echo "   📁 Found API performance tests in: $(dirname "$PERF_FILE")"
