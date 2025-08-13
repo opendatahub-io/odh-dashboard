@@ -36,6 +36,7 @@ jobs:
       - name: Detect changed modules
         id: check-changes
         run: |
+          set -euo pipefail
           CHANGED_FILES=""
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             PR_NUMBER="${{ github.event.pull_request.number }}"
@@ -43,7 +44,8 @@ jobs:
             # Paginate through changed files (in case > 100)
             PAGE=1
             while : ; do
-              RESP=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+              RESP=$(curl -sS -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+                -H "Accept: application/vnd.github+json" \
                 "https://api.github.com/repos/${{ github.repository }}/pulls/$PR_NUMBER/files?per_page=100&page=$PAGE")
               PAGE_FILES=$(echo "$RESP" | jq -r '.[].filename')
               [ -z "$PAGE_FILES" ] && break
@@ -120,7 +122,7 @@ jobs:
           echo "Generated matrix: $JSON_ARRAY"
           echo "matrix=$JSON_ARRAY" >> $GITHUB_OUTPUT
 
-  # Code Quality Gate removed for now
+  
 
   # Quality Gate 2: Application Quality Gate
   application-quality-gate:
@@ -521,9 +523,9 @@ jobs:
           path: ${{ github.workspace }}/app-gate/*.md
           if-no-files-found: ignore
 
-  # Deployment Quality Gate removed for now
+  
 
-  # Coverage combine step removed for now
+  
 
   quality-gates-summary:
     name: Quality Gates Summary
@@ -549,7 +551,7 @@ jobs:
           echo "" >> $SUMMARY_FILE
           # Assessment only; omit pass/fail copy
           
-          # Other gates are intentionally omitted in this branch
+          
           
           echo "### 🎯 Changed Modules" >> $SUMMARY_FILE
           echo "" >> $SUMMARY_FILE
