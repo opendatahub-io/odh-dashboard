@@ -1643,6 +1643,7 @@ describe('Serving Runtime List', () => {
         mockK8sResourceList([]),
       ).as('getPods');
 
+      cy.reload();
       cy.wait(['@stopModelPatch', '@getStoppedModel']);
 
       kserveRow.findStatusLabel('Stopped');
@@ -1677,6 +1678,7 @@ describe('Serving Runtime List', () => {
       );
 
       kserveRow.findStateActionToggle().should('have.text', 'Start').click();
+      cy.reload();
       cy.wait(['@startModelPatch', '@getStartedModel']);
       kserveRow.findStatusLabel('Started');
       kserveRow.findStateActionToggle().should('have.text', 'Stop');
