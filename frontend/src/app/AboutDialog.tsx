@@ -24,6 +24,9 @@ interface AboutDialogProps {
   onClose: () => void;
 }
 
+// The current commit hash of the latest code is printed to the console 
+// every time this dialog is opened.  it is not put on the 
+// dialog itself so as not to confuse users.
 const AboutDialog: React.FC<AboutDialogProps> = ({ onClose }) => {
   const { isAdmin } = useUser();
   const { isRHOAI } = useAppContext();
