@@ -1,5 +1,5 @@
 import { SortableData } from '@odh-dashboard/internal/components/table/index';
-import { getJobStatus } from './utils';
+import { getJobStatusFromPyTorchJob } from './utils';
 import { PyTorchJobKind } from '../../k8sTypes';
 
 export const columns: SortableData<PyTorchJobKind>[] = [
@@ -57,8 +57,8 @@ export const columns: SortableData<PyTorchJobKind>[] = [
     sortable: (a: PyTorchJobKind, b: PyTorchJobKind): number => {
       // For sorting, we use the sync version for performance
       // The actual hibernation status will be shown in the UI
-      const aState = getJobStatus(a);
-      const bState = getJobStatus(b);
+      const aState = getJobStatusFromPyTorchJob(a);
+      const bState = getJobStatusFromPyTorchJob(b);
       return aState.localeCompare(bState);
     },
   },
