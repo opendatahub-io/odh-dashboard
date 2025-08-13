@@ -1,6 +1,3 @@
-import { PyTorchJobKind } from '../../k8sTypes';
-import { PyTorchJobState } from '../../types';
-import { getWorkloadForPyTorchJob } from '../../api';
 import {
   CheckCircleIcon,
   ExclamationCircleIcon,
@@ -10,6 +7,9 @@ import {
   PauseIcon,
 } from '@patternfly/react-icons';
 import { LabelProps } from '@patternfly/react-core';
+import { PyTorchJobKind } from '../../k8sTypes';
+import { PyTorchJobState } from '../../types';
+import { getWorkloadForPyTorchJob } from '../../api';
 
 export const getStatusInfo = (
   status: PyTorchJobState,
@@ -50,9 +50,9 @@ export const getStatusInfo = (
         color: 'grey',
         IconComponent: PlayIcon,
       };
-    case PyTorchJobState.HIBERNATED:
+    case PyTorchJobState.SUSPENDED:
       return {
-        label: 'Hibernated',
+        label: 'Suspended',
         color: 'grey',
         IconComponent: PauseIcon,
       };
@@ -65,7 +65,7 @@ export const getStatusInfo = (
   }
 };
 
-export const getJobStatus = (job: PyTorchJobKind): PyTorchJobState => {
+export const getJobStatusFromPyTorchJob = (job: PyTorchJobKind): PyTorchJobState => {
   if (!job.status?.conditions) {
     return PyTorchJobState.UNKNOWN;
   }
@@ -89,8 +89,6 @@ export const getJobStatus = (job: PyTorchJobKind): PyTorchJobState => {
       return PyTorchJobState.FAILED;
     case 'Running':
       return PyTorchJobState.RUNNING;
-    case 'Suspended':
-      return PyTorchJobState.PENDING;
     case 'Created':
       return PyTorchJobState.CREATED;
     default:
@@ -101,7 +99,7 @@ export const getJobStatus = (job: PyTorchJobKind): PyTorchJobState => {
 export const getJobStatusWithHibernation = async (
   job: PyTorchJobKind,
 ): Promise<PyTorchJobState> => {
-  const standardStatus = getJobStatus(job);
+  const standardStatus = getJobStatusFromPyTorchJob(job);
 
   // If the job is in a terminal state (succeeded or failed), don't check hibernation
   // Terminal states take precedence over hibernation status
@@ -112,7 +110,7 @@ export const getJobStatusWithHibernation = async (
   try {
     const workload = await getWorkloadForPyTorchJob(job);
     if (workload && workload.spec.active === false) {
-      return PyTorchJobState.HIBERNATED;
+      return PyTorchJobState.SUSPENDED;
     }
   } catch (error) {
     console.warn('Failed to check hibernation status for PyTorchJob:', error);
