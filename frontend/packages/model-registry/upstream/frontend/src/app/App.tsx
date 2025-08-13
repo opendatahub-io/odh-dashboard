@@ -1,4 +1,3 @@
-//
 import * as React from 'react';
 import '@patternfly/react-core/dist/styles/base.css';
 import './app.css';
@@ -28,7 +27,6 @@ import { ModelRegistrySelectorContextProvider } from './context/ModelRegistrySel
 import 'mod-arch-shared/style/MUI-theme.scss';
 import AppNavSidebar from './AppNavSidebar';
 
-//
 const App: React.FC = () => {
   const {
     configSettings,
