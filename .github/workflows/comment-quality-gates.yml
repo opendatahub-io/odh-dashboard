@@ -1,3 +1,4 @@
+---
 name: Comment Quality Gates Summary
 
 on:
@@ -52,9 +53,8 @@ jobs:
             echo "✅ Found quality gates summary file"
             echo "summary-exists=true" >> $GITHUB_OUTPUT
             # Read content and escape for output
-            summary_content=$(cat quality-gates-summary.md)
-            echo "summary-content<<EOF" >> $GITHUB_OUTPUT
-            echo "$summary_content" >> $GITHUB_OUTPUT
+            echo "summary-content<<'EOF'" >> $GITHUB_OUTPUT
+            cat quality-gates-summary.md >> $GITHUB_OUTPUT
             echo "EOF" >> $GITHUB_OUTPUT
           else
             echo "❌ Quality gates summary file not found"

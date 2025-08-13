@@ -1,3 +1,4 @@
+---
 name: Modular Architecture - Quality Gates
 
 on:
@@ -5,11 +6,15 @@ on:
     paths:
       - 'frontend/packages/**'
   workflow_dispatch:
+    inputs:
+      modules:
+        description: 'Space-separated module names to run (optional)'
+        required: false
+        type: string
 
 permissions:
   contents: read
   actions: read
-  pull-requests: write
 
 env:
   NODE_VERSION: '20'
@@ -31,18 +36,31 @@ jobs:
       - name: Detect changed modules
         id: check-changes
         run: |
-          # Use GitHub API to get the actual files changed in this PR
-          # This avoids issues with merge base and branch history
-          PR_NUMBER="${{ github.event.pull_request.number }}"
+          CHANGED_FILES=""
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            PR_NUMBER="${{ github.event.pull_request.number }}"
+            echo "Fetching files changed in PR #$PR_NUMBER"
+            # Paginate through changed files (in case > 100)
+            PAGE=1
+            while : ; do
+              RESP=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+                "https://api.github.com/repos/${{ github.repository }}/pulls/$PR_NUMBER/files?per_page=100&page=$PAGE")
+              PAGE_FILES=$(echo "$RESP" | jq -r '.[].filename')
+              [ -z "$PAGE_FILES" ] && break
+              CHANGED_FILES="$CHANGED_FILES $PAGE_FILES"
+              PAGE=$((PAGE+1))
+            done
+            CHANGED_FILES=$(echo "$CHANGED_FILES" | tr ' ' '\n' | grep "^frontend/packages/" | cut -d'/' -f3 | sort -u | tr '\n' ' ' | sed 's/ $//')
+          else
+            # workflow_dispatch path: allow manual override via input
+            if [ -n "${{ github.event.inputs.modules }}" ]; then
+              CHANGED_FILES="${{ github.event.inputs.modules }}"
+            else
+              echo "No PR context and no modules input; nothing to do"
+            fi
+          fi
           
-          echo "Fetching files changed in PR #$PR_NUMBER"
-          
-          # Get changed files from GitHub API
-          CHANGED_FILES=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-            "https://api.github.com/repos/${{ github.repository }}/pulls/$PR_NUMBER/files" | \
-            jq -r '.[].filename' | grep "^frontend/packages/" | cut -d'/' -f3 | sort -u | tr '\n' ' ' | sed 's/ $//')
-          
-          echo "Changed modules from API: '$CHANGED_FILES'"
+          echo "Changed modules: '$CHANGED_FILES'"
           
           # Include only structurally valid modules (no hardcoded names)
           FILTERED_MODULES=""
@@ -268,8 +286,8 @@ jobs:
             MISSING_CHECKS+=("Mock tests")
           fi
           
-          # Check 4: Pact Testing
-          PACT_FILE=$(find "$MODULE_PATH" -name "*pact*" -o -name "*contract*" 2>/dev/null | head -1)
+          # Check 4: Pact Testing (files only, grouped predicates)
+          PACT_FILE=$(find "$MODULE_PATH" -type f \( -iname "*pact*" -o -iname "*contract*" \) 2>/dev/null | head -1)
           if [ -n "$PACT_FILE" ]; then
             echo "✅ Pact Testing - PRESENT"
             echo "   📁 Found Pact tests in: $(dirname "$PACT_FILE")"
