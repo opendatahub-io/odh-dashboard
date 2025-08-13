@@ -52,6 +52,24 @@ const ProjectDeploymentWatcher: React.FC<ProjectDeploymentWatcherProps> = ({
   return null;
 };
 
+const EmptyProjectWatcher: React.FC<{
+  projectName: string;
+  onStateChange: (
+    projectName: string,
+    state: { deployments?: Deployment[]; loaded: boolean; error?: Error },
+  ) => void;
+  unloadProjectDeployments: (projectName: string) => void;
+}> = ({ projectName, onStateChange, unloadProjectDeployments }) => {
+  React.useEffect(() => {
+    onStateChange(projectName, { deployments: [], loaded: true, error: undefined });
+    return () => {
+      unloadProjectDeployments(projectName);
+    };
+  }, [projectName, onStateChange, unloadProjectDeployments]);
+
+  return null;
+};
+
 type ModelDeploymentsProviderProps = {
   projects: ProjectKind[];
   modelServingPlatforms: ModelServingPlatform[];
@@ -69,7 +87,7 @@ export const ModelDeploymentsProvider: React.FC<ModelDeploymentsProviderProps> =
 
   const [projectDeployments, setProjectDeployments] = React.useState<{
     [key: string]: { deployments?: Deployment[]; loaded: boolean; error?: Error };
-  }>({});
+  }>(Object.fromEntries(projects.map((p) => [p.metadata.name, { loaded: false }])));
 
   const updateProjectDeployments = React.useCallback(
     (projectName: string, data: { deployments?: Deployment[]; loaded: boolean; error?: Error }) => {
@@ -124,7 +142,15 @@ export const ModelDeploymentsProvider: React.FC<ModelDeploymentsProviderProps> =
           );
 
           if (!platform || !watcher) {
-            return null;
+            // If the project doesn't have model serving, this will set the loaded state to true for it
+            return (
+              <EmptyProjectWatcher
+                key={project.metadata.name}
+                projectName={project.metadata.name}
+                onStateChange={updateProjectDeployments}
+                unloadProjectDeployments={unloadProjectDeployments}
+              />
+            );
           }
 
           return (
