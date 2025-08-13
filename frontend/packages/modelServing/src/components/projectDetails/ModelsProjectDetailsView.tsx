@@ -34,7 +34,7 @@ const ModelsProjectDetailsView: React.FC<{
     projectPlatform,
     setProjectPlatform,
     resetProjectPlatform,
-    newProjectPlatformLoading,
+    loadingState,
     projectPlatformError,
     clearProjectPlatformError,
   } = useProjectServingPlatform(project, platforms);
@@ -78,7 +78,7 @@ const ModelsProjectDetailsView: React.FC<{
               <ResetPlatformButton
                 platforms={platforms}
                 hasDeployments={hasModels}
-                isLoading={!!newProjectPlatformLoading}
+                isLoading={loadingState.type === 'reset'}
                 onReset={resetProjectPlatform}
               />
             )}
@@ -91,7 +91,7 @@ const ModelsProjectDetailsView: React.FC<{
           <SelectPlatformView
             platforms={platforms}
             setModelServingPlatform={setProjectPlatform}
-            newPlatformLoading={newProjectPlatformLoading}
+            newPlatformLoadingId={loadingState.platform?.properties.id}
             errorSelectingPlatform={projectPlatformError ?? undefined}
             clearErrorSelectingPlatform={clearProjectPlatformError}
           />
