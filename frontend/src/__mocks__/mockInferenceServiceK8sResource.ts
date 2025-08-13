@@ -43,6 +43,7 @@ type MockResourceConfigType = {
   creationTimestamp?: string;
   lastTransitionTime?: string;
   isReady?: boolean;
+  predictorAnnotations?: Record<string, string>;
 };
 
 type InferenceServicek8sError = K8sStatus & {
@@ -118,6 +119,7 @@ export const mockInferenceServiceK8sResource = ({
   creationTimestamp = '2023-03-17T16:12:41Z',
   lastTransitionTime = '2023-03-17T16:12:41Z',
   isReady = false,
+  predictorAnnotations = undefined,
 }: MockResourceConfigType): InferenceServiceKind => ({
   apiVersion: 'serving.kserve.io/v1beta1',
   kind: 'InferenceService',
@@ -159,6 +161,7 @@ export const mockInferenceServiceK8sResource = ({
   },
   spec: {
     predictor: {
+      ...(predictorAnnotations && { annotations: predictorAnnotations }),
       minReplicas,
       maxReplicas,
       imagePullSecrets,
