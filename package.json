@@ -50,12 +50,27 @@
     "test:fix-frontend": "cd ./frontend && npm run test:fix",
     "test:type-check": "run-p test:type-check:*",
     "test:type-check:backend": "cd ./backend && npm run test:type-check",
-    "test:type-check:frontend": "cd ./frontend && npm run test:type-check"
+    "test:type-check:frontend": "cd ./frontend && npm run test:type-check",
+    "commit:skip-lint-hook": "SKIP_LINT_HOOK=true git commit",
+    "commit:force-lint-hook": "FORCE_LINT_HOOK=true git commit",
+    "prepare": "husky"
   },
   "dependencies": {
     "dotenv": "^16.4.7",
     "dotenv-expand": "^5.1.0",
     "npm-run-all": "^4.1.5",
     "prettier": "^2.2.1"
+  },
+  "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^16.1.2"
+  },
+  "lint-staged": {
+    "frontend/**/*.{js,ts,jsx,tsx}": [
+      "bash -c 'cd frontend && npx eslint --max-warnings 0 \"${@#frontend/}\"' --"
+    ],
+    "backend/**/*.{js,ts,json}": [
+      "bash -c 'cd backend && npx eslint --max-warnings 0 \"${@#backend/}\"' --"
+    ]
   }
 }

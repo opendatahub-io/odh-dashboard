@@ -1,5 +1,5 @@
 /* eslint-disable camelcase */
-import { FeatureService } from '#~/pages/featureStore/types/featureServices';
+import { FeatureService } from '../../packages/feature-store/src/types/featureServices';
 
 export const mockFeatureService = ({
   name,

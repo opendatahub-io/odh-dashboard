@@ -15,6 +15,7 @@ import { ModelRegistryContext } from '~/app/context/ModelRegistryContext';
 import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelectorContext';
 import { ArchiveModelVersionModal } from '~/app/pages/modelRegistry/screens/components/ArchiveModelVersionModal';
 import { modelVersionListUrl } from '~/app/pages/modelRegistry/screens/routeUtils';
+import { useDeploymentsState } from '~/odh/hooks/useDeploymentsState';
 
 interface ModelVersionsDetailsHeaderActionsProps {
   mv: ModelVersion;
@@ -26,6 +27,8 @@ const ModelVersionsDetailsHeaderActions: React.FC<ModelVersionsDetailsHeaderActi
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   refresh,
 }) => {
+  const { deployments } = useDeploymentsState();
+  const hasDeployment = deployments && deployments.length > 0;
   const { apiState } = React.useContext(ModelRegistryContext);
   const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
   const navigate = useNavigate();
@@ -61,10 +64,16 @@ const ModelVersionsDetailsHeaderActions: React.FC<ModelVersionsDetailsHeaderActi
           >
             <DropdownList>
               <DropdownItem
+                isAriaDisabled={hasDeployment}
                 id="archive-version-button"
                 aria-label="Archive model version"
                 key="archive-version-button"
                 onClick={() => setIsArchiveModalOpen(true)}
+                tooltipProps={
+                  hasDeployment
+                    ? { content: 'Deployed model versions cannot be archived' }
+                    : undefined
+                }
                 ref={tooltipRef}
               >
                 Archive model version

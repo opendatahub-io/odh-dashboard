@@ -137,7 +137,7 @@ const initIntercepts = ({
         : []),
       ...(!disableNIMConfig ? [mockNimServingRuntimeTemplate()] : []),
     ]),
-  );
+  ).as('templates');
   if (!disableNIMConfig) {
     cy.interceptK8s(TemplateModel, mockNimServingRuntimeTemplate());
   }
@@ -477,7 +477,9 @@ describe('Project Details', () => {
         disableKServeConfig: false,
         disableModelConfig: true,
       });
+      initModelServingIntercepts({ isEmpty: true });
       projectDetails.visitSection('test-project', 'model-server');
+      cy.wait('@templates');
       projectDetails.findTopLevelDeployModelButton().should('have.attr', 'aria-disabled');
       projectDetails.findTopLevelDeployModelButton().trigger('mouseenter');
       projectDetails.findDeployModelTooltip().should('exist');

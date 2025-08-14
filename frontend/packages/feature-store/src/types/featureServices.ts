@@ -1,4 +1,4 @@
-import { K8sAPIOptions } from '@odh-dashboard/internal/k8sTypes.js';
+import { K8sAPIOptions } from '@odh-dashboard/internal/k8sTypes';
 import { BatchSource, FeatureStoreMeta, FeatureStoreRelationship } from './global';
 import { FeatureColumns } from './features';
 

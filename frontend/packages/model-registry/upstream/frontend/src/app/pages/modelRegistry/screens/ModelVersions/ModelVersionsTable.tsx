@@ -3,6 +3,7 @@ import { DashboardEmptyTableView, Table } from 'mod-arch-shared';
 import { ModelVersion } from '~/app/types';
 import { mvColumns } from '~/app/pages/modelRegistry/screens/ModelVersions/ModelVersionsTableColumns';
 import ModelVersionsTableRow from '~/app/pages/modelRegistry/screens/ModelVersions/ModelVersionsTableRow';
+import { MRDeploymentsContextProvider } from '~/odh/components/MRDeploymentsContextProvider';
 
 type ModelVersionsTableProps = {
   clearFilters: () => void;
@@ -28,13 +29,14 @@ const ModelVersionsTable: React.FC<ModelVersionsTableProps> = ({
     onClearFilters={clearFilters}
     emptyTableView={<DashboardEmptyTableView onClearFilters={clearFilters} />}
     rowRenderer={(mv: ModelVersion) => (
-      <ModelVersionsTableRow
-        hasDeployment={false}
-        key={mv.name}
-        modelVersion={mv}
-        isArchiveModel={isArchiveModel}
-        refresh={refresh}
-      />
+      <MRDeploymentsContextProvider>
+        <ModelVersionsTableRow
+          key={mv.name}
+          modelVersion={mv}
+          isArchiveModel={isArchiveModel}
+          refresh={refresh}
+        />
+      </MRDeploymentsContextProvider>
     )}
   />
 );

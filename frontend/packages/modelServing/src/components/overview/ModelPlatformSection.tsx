@@ -35,7 +35,7 @@ const ModelPlatformSection: React.FC<{ platforms: ModelServingPlatform[] }> = ({
     activePlatform,
     setProjectPlatform,
     resetProjectPlatform,
-    newProjectPlatformLoading,
+    loadingState,
     projectPlatformError,
     clearProjectPlatformError,
   } = useProjectServingPlatform(currentProject, platforms);
@@ -59,7 +59,7 @@ const ModelPlatformSection: React.FC<{ platforms: ModelServingPlatform[] }> = ({
             <PlatformSelectionGallery
               platforms={platforms}
               onSelect={setProjectPlatform}
-              loadingPlatformId={newProjectPlatformLoading?.properties.id}
+              loadingPlatformId={loadingState.platform?.properties.id}
               useOverviewCard
               galleryProps={{ ...galleryWidth }}
             />
@@ -102,7 +102,7 @@ const ModelPlatformSection: React.FC<{ platforms: ModelServingPlatform[] }> = ({
             <ResetPlatformButton
               platforms={platforms}
               hasDeployments={false}
-              isLoading={!!newProjectPlatformLoading}
+              isLoading={loadingState.type === 'reset'}
               onReset={resetProjectPlatform}
             />
           </Flex>
