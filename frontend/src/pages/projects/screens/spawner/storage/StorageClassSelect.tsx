@@ -150,6 +150,7 @@ const StorageClassSelect: React.FC<StorageClassSelectProps> = ({
         popperProps={{ appendTo: menuAppendTo }}
         toggleProps={{ status: validated ? validatedToToggleStatus[validated] : undefined }}
         previewDescription={false}
+        isScrollable
       />
       <FormHelperText>
         {selectedStorageClassConfig && !selectedStorageClassConfig.isEnabled ? (
