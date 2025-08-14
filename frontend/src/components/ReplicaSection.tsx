@@ -27,7 +27,7 @@ type ReplicaSectionProps = {
   onValidationChange?: (hasValidationErrors: boolean) => void;
 };
 
-const ReplicaFormGroup: React.FC<ReplicaSectionProps> = ({
+const ReplicaSection: React.FC<ReplicaSectionProps> = ({
   value,
   onChange,
   infoContent,
@@ -177,4 +177,4 @@ const ReplicaFormGroup: React.FC<ReplicaSectionProps> = ({
   );
 };
 
-export default ReplicaFormGroup;
+export default ReplicaSection;
