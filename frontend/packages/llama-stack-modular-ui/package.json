@@ -23,9 +23,6 @@
       "port": 8043
     }
   },
-  "scripts": {
-    "type-check": "cd frontend && tsc --noEmit"
-  },
   "dependencies": {
     "@odh-dashboard/plugin-core": "*"
   }
