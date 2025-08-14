@@ -20,13 +20,28 @@ const OUTPUT_ONLY = process.env._ODH_OUTPUT_ONLY;
 const ODH_FAVICON = process.env.ODH_FAVICON;
 const ODH_PRODUCT_NAME = process.env.ODH_PRODUCT_NAME;
 const COVERAGE = process.env.COVERAGE;
-let COMMIT_HASH_DIRECT;
-try {
-  COMMIT_HASH_DIRECT = execSync('git rev-parse --short HEAD').toString().trim();
-} catch (error) {
-  console.warn('Unable to get git commit hash:', error.message);
-  COMMIT_HASH_DIRECT = 'unknown';
-}
+
+const COMMIT_HASH_DIRECT = (() => {
+  // Prefer CI-provided SHAs, then fall back to git; never fail the build due to missing git/.git
+  const fromEnv =
+    process.env.ODH_COMMIT_HASH ||
+    process.env.SOURCE_GIT_COMMIT ||
+    process.env.GITHUB_SHA ||
+    process.env.GIT_COMMIT ||
+    process.env.OPENSHIFT_BUILD_COMMIT;
+  if (fromEnv) {
+    return fromEnv.slice(0, 7);
+  }
+  try {
+    return execSync('git rev-parse --short HEAD', { stdio: ['ignore', 'pipe', 'ignore'] })
+      .toString()
+      .trim();
+  }catch (error) {
+    console.warn('Unable to get git commit hash:', error.message);
+    return 'unknown';
+  }
+})();
+
 
 if (OUTPUT_ONLY !== 'true') {
   console.info(
