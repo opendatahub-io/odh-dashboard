@@ -1,18 +1,17 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
-import useNotification from '#~/utilities/useNotification';
+import useNotification from '@odh-dashboard/internal/utilities/useNotification';
 import {
   NotificationResponseStatus,
   NotificationWatcherContext,
-} from '#~/concepts/notificationWatcher/NotificationWatcherContext';
-import { getInferenceService } from '#~/api';
-import { InferenceServiceModelState } from '#~/pages/modelServing/screens/types';
+} from '@odh-dashboard/internal/concepts/notificationWatcher/NotificationWatcherContext';
+import { InferenceServiceModelState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import {
   getInferenceServiceLastFailureReason,
   getInferenceServiceModelState,
-} from '#~/concepts/modelServingKServe/kserveStatusUtils';
-import { useModelStatus } from '#~/pages/modelServing/screens/global/useModelStatus';
-import { getInferenceServiceStoppedStatus } from '#~/pages/modelServing/utils';
+} from '@odh-dashboard/internal/concepts/modelServingKServe/kserveStatusUtils';
+
+import { getInferenceService } from '@odh-dashboard/internal/api/k8s/inferenceServices';
 
 type ModelDeploymentNotification = {
   watchDeployment: () => void;
@@ -21,44 +20,32 @@ type ModelDeploymentNotification = {
 export const useModelDeploymentNotification = (
   namespace: string,
   modelName: string,
-  isKserve: boolean,
 ): ModelDeploymentNotification => {
   const navigate = useNavigate();
   const notification = useNotification();
   const { registerNotification } = React.useContext(NotificationWatcherContext);
-  const [modelStatus] = useModelStatus(namespace, modelName, isKserve);
   const lastSeenState = React.useRef<InferenceServiceModelState | null>(null);
 
   const watchDeployment = React.useCallback(() => {
     registerNotification({
       callback: async (signal) => {
-        // Early failure detection from pod scheduling
-        if (modelStatus?.failedToSchedule) {
-          notification.error(
-            'Model deployment failed',
-            'Insufficient resources to schedule the model deployment. Please check your resource quotas and try again.',
-            [
-              {
-                title: 'View deployment',
-                onClick: () => navigate(`/modelServing/${namespace}`),
-              },
-            ],
-          );
-          return { status: NotificationResponseStatus.STOP };
-        }
-
         try {
           const inferenceService = await getInferenceService(modelName, namespace, { signal });
-
-          const baseStatus = getInferenceServiceStoppedStatus(inferenceService);
           const inferenceServiceModelState = getInferenceServiceModelState(inferenceService);
 
-          const { isStopped } = baseStatus;
+          // A model is considered "stopped" if it has no active pods and is not in a starting/failed state
+          const isStopped =
+            !inferenceService.status?.modelStatus?.states?.activeModelState &&
+            inferenceServiceModelState !== InferenceServiceModelState.PENDING &&
+            inferenceServiceModelState !== InferenceServiceModelState.LOADING &&
+            inferenceServiceModelState !== InferenceServiceModelState.UNKNOWN &&
+            inferenceServiceModelState !== InferenceServiceModelState.FAILED_TO_LOAD; // Don't consider failed models as stopped
+
           const isStarting =
             !inferenceService.status?.modelStatus?.states?.activeModelState &&
             inferenceService.status?.modelStatus?.states?.targetModelState !==
               InferenceServiceModelState.FAILED_TO_LOAD &&
-            !baseStatus.isStopped;
+            !isStopped;
 
           const isRunning = inferenceServiceModelState === InferenceServiceModelState.LOADED;
 
@@ -95,7 +82,13 @@ export const useModelDeploymentNotification = (
           }
 
           if (isStopped) {
-            // Model is stopped, stop polling
+            // Model appears stopped, but let's continue polling for a bit to see if it's just in transition
+            // Only stop if we've seen the same stopped state multiple times
+            if (lastState === InferenceServiceModelState.UNKNOWN || lastState === null) {
+              // First time seeing this state, continue polling
+              return { status: NotificationResponseStatus.REPOLL };
+            }
+            // Model is genuinely stopped, stop polling
             return { status: NotificationResponseStatus.STOP };
           }
 
@@ -108,7 +101,6 @@ export const useModelDeploymentNotification = (
             return { status: NotificationResponseStatus.REPOLL };
           }
 
-          // For any other state, stop polling
           return { status: NotificationResponseStatus.STOP };
         } catch (error: unknown) {
           // If we can't fetch the inference service, it was probably deleted
@@ -125,14 +117,7 @@ export const useModelDeploymentNotification = (
         }
       },
     });
-  }, [
-    registerNotification,
-    modelStatus?.failedToSchedule,
-    navigate,
-    namespace,
-    modelName,
-    notification,
-  ]);
+  }, [registerNotification, navigate, namespace, modelName, notification]);
 
   return { watchDeployment };
 };
