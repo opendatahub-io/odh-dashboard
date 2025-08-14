@@ -5,8 +5,8 @@ import EditModelDeploymentPage from './components/deploymentWizard/EditModelDepl
 
 const ModelDeploymentWizardRoutes: React.FC = () => (
   <Routes>
-    <Route path="/create" element={<CreateModelDeploymentPage />} />
-    <Route path="/edit/:name?" element={<EditModelDeploymentPage />} />
+    <Route path="create" element={<CreateModelDeploymentPage />} />
+    <Route path="edit/:name?" element={<EditModelDeploymentPage />} />
   </Routes>
 );
 

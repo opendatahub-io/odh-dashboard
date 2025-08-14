@@ -5,7 +5,7 @@ import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 
 type ModelDeploymentWizardProps = {
   title: string;
-  description: string;
+  description?: string;
   primaryButtonText: string;
 };
 
@@ -25,20 +25,16 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
   return (
     <ApplicationsPage title={title} description={description} loaded empty={false}>
       <Wizard title="Basic wizard" onClose={exitWizard} onSave={exitWizard}>
-        <WizardStep name="Step 1" id="basic-first-step">
+        <WizardStep name="Source model" id="source-model-step">
           Step 1 content
         </WizardStep>
-        <WizardStep name="Step 2" id="basic-second-step">
+        <WizardStep name="Model deployment" id="model-deployment-step">
           Step 2 content
         </WizardStep>
-        <WizardStep name="Step 3" id="basic-third-step">
+        <WizardStep name="Advanced options" id="advanced-options-step">
           Step 3 content
         </WizardStep>
-        <WizardStep
-          name="Review"
-          id="basic-review-step"
-          footer={{ nextButtonText: primaryButtonText }}
-        >
+        <WizardStep name="Summary" id="summary-step" footer={{ nextButtonText: primaryButtonText }}>
           Review step content
         </WizardStep>
       </Wizard>
