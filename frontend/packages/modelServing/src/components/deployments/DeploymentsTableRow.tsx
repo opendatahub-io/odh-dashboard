@@ -27,6 +27,7 @@ import {
   isModelServingMetricsExtension,
   isModelServingStartStopAction,
 } from '../../../extension-points';
+import { useModelDeploymentNotification } from '../../concepts/useModelDeploymentNotification';
 import { DeploymentMetricsLink } from '../metrics/DeploymentMetricsLink';
 import useStopModalPreference from '../../concepts/useStopModalPreference';
 
@@ -61,16 +62,23 @@ export const DeploymentRow: React.FC<{
     isModelServingStartStopAction,
     deployment,
   );
-
   const [isExpanded, setExpanded] = React.useState(false);
   const [dontShowModalValue] = useStopModalPreference();
   const [isOpenConfirm, setOpenConfirm] = React.useState(false);
 
+  // Always call the hook unconditionally
+  const { watchDeployment } = useModelDeploymentNotification(
+    deployment.model.metadata.namespace,
+    deployment.model.metadata.name,
+  );
+
   const onStart = React.useCallback(() => {
-    startStopActionExtension?.properties
-      .patchDeploymentStoppedStatus()
-      .then((resolvedFunction) => resolvedFunction(deployment, false));
-  }, [deployment, startStopActionExtension]);
+    startStopActionExtension?.properties.patchDeploymentStoppedStatus().then((resolvedFunction) => {
+      resolvedFunction(deployment, false);
+      // Start watching for deployment status changes
+      watchDeployment();
+    });
+  }, [deployment, startStopActionExtension, watchDeployment]);
 
   const onStop = React.useCallback(() => {
     if (dontShowModalValue) {
