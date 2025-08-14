@@ -1,12 +1,16 @@
 import React from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { SortableData, Table } from '@odh-dashboard/internal/components/table/index';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
+import useIsAreaAvailable from '@odh-dashboard/internal/concepts/areas/useIsAreaAvailable';
+import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
 import { DeploymentRow } from './DeploymentsTableRow';
 import { EditModelServingModal } from '../deploy/EditModelServingModal';
 import { deploymentNameSort, deploymentLastDeployedSort } from '../../concepts/deploymentUtils';
 import { Deployment, type DeploymentsTableColumn } from '../../../extension-points';
 import DeleteModelServingModal from '../deleteModal/DeleteModelServingModal';
+import { getDeploymentWizardRoute } from '../deploymentWizard/utils';
 
 const expandedInfoColumn: SortableData<Deployment> = {
   field: 'expand',
@@ -73,6 +77,11 @@ const DeploymentsTable: React.FC<DeploymentsTableProps> = ({
   loaded = true,
   ...tableProps
 }) => {
+  const navigate = useNavigate();
+  const currentPath = useLocation().pathname;
+
+  const deploymentWizardAvailable = useIsAreaAvailable(SupportedArea.DEPLOYMENT_WIZARD).status;
+
   const [deleteDeployment, setDeleteDeployment] = React.useState<Deployment | undefined>(undefined);
   const [editDeployment, setEditDeployment] = React.useState<Deployment | undefined>(undefined);
   const allColumns: SortableData<Deployment>[] = React.useMemo(
@@ -100,7 +109,13 @@ const DeploymentsTable: React.FC<DeploymentsTableProps> = ({
             deployment={row}
             platformColumns={platformColumns ?? []}
             onDelete={() => setDeleteDeployment(row)}
-            onEdit={() => setEditDeployment(row)}
+            onEdit={() => {
+              if (deploymentWizardAvailable) {
+                navigate(getDeploymentWizardRoute(currentPath, row.model.metadata.name));
+              } else {
+                setEditDeployment(row);
+              }
+            }}
             showExpandedInfo={showExpandedInfo}
           />
         )}
