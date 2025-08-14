@@ -6,7 +6,6 @@ type DeploymentsStateContextType = {
   loaded: boolean;
   errors?: Error[];
   projects?: any[];
-  isExtensionLoaded: boolean;
 };
 
 export const DeploymentsStateContext = React.createContext<DeploymentsStateContextType>({
@@ -14,7 +13,6 @@ export const DeploymentsStateContext = React.createContext<DeploymentsStateConte
   loaded: false,
   errors: undefined,
   projects: undefined,
-  isExtensionLoaded: false,
 });
 
 /**

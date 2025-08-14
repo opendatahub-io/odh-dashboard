@@ -29,14 +29,12 @@ const ModelVersionsTable: React.FC<ModelVersionsTableProps> = ({
     onClearFilters={clearFilters}
     emptyTableView={<DashboardEmptyTableView onClearFilters={clearFilters} />}
     rowRenderer={(mv: ModelVersion) => (
-      <MRDeploymentsContextProvider>
-        <ModelVersionsTableRow
-          key={mv.name}
-          modelVersion={mv}
-          isArchiveModel={isArchiveModel}
-          refresh={refresh}
-        />
-      </MRDeploymentsContextProvider>
+      <ModelVersionsTableRow
+        key={mv.name}
+        modelVersion={mv}
+        isArchiveModel={isArchiveModel}
+        refresh={refresh}
+      />
     )}
   />
 );

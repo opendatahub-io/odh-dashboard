@@ -1,6 +1,7 @@
 import React from 'react';
-import { useDeploymentsContext } from '~/odh/hooks/useDeploymentsContext';
 import { DeploymentsStateContext } from '~/odh/hooks/useDeploymentsState';
+import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
+import { isModelRegistryVersionDeploymentsContextExtension } from '~/odh/extension-points/deploy';
 
 interface MRDeploymentsContextProviderProps {
   children: React.ReactNode;
@@ -9,42 +10,38 @@ interface MRDeploymentsContextProviderProps {
 
 /**
  * Provider component that automatically wraps children with deployments context if available.
- * Uses extensions to provide the deployments provider and hook.
+ * Uses extensions to provide the deployments provider.
  */
 export const MRDeploymentsContextProvider: React.FC<MRDeploymentsContextProviderProps> = ({
   children,
   labelSelectors,
 }) => {
-  const { DeploymentsProviderComponent, hookNotifyComponent, deploymentsState, isExtensionLoaded } =
-    useDeploymentsContext();
-
-  // Create context value for deployments state
-  const deploymentsContextValue = React.useMemo(
-    () => ({
-      deployments: deploymentsState.deployments,
-      loaded: deploymentsState.loaded,
-      errors: deploymentsState.errors,
-      projects: deploymentsState.projects,
-      isExtensionLoaded,
-    }),
-    [deploymentsState, isExtensionLoaded],
+  const [deploymentsContextExtensions, deploymentsContextLoaded] = useResolvedExtensions(
+    isModelRegistryVersionDeploymentsContextExtension,
   );
 
-  const content = (
-    <DeploymentsStateContext.Provider value={deploymentsContextValue}>
-      {hookNotifyComponent}
-      {children}
-    </DeploymentsStateContext.Provider>
+  const DeploymentsProviderComponent = React.useMemo(
+    () =>
+      deploymentsContextLoaded && deploymentsContextExtensions?.[0]?.properties.DeploymentsProvider,
+    [deploymentsContextLoaded, deploymentsContextExtensions],
   );
 
-  // Wrap with provider if available
-  if (DeploymentsProviderComponent) {
+  if (deploymentsContextLoaded && DeploymentsProviderComponent) {
     return (
       <DeploymentsProviderComponent labelSelectors={labelSelectors}>
-        {content}
+        {
+          (deploymentsContextValue) => {
+            console.log('deploymentsContextValue', deploymentsContextValue);
+            return (
+              <DeploymentsStateContext.Provider value={deploymentsContextValue}>
+                {children}
+              </DeploymentsStateContext.Provider>
+            );
+          }
+        }
       </DeploymentsProviderComponent>
     );
   }
 
-  return content;
+  return children;
 };

@@ -1,11 +1,26 @@
 import React from 'react';
 import { ProjectsContext } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
 import { useExtensions } from '@odh-dashboard/plugin-core';
-import { ModelDeploymentsProvider } from '../src/concepts/ModelDeploymentsContext';
+import { ProjectKind } from '@odh-dashboard/internal/k8sTypes.js';
+import {
+  ModelDeploymentsContext,
+  ModelDeploymentsProvider,
+} from '../src/concepts/ModelDeploymentsContext';
 import { isModelServingPlatformExtension } from '../extension-points';
 
 interface DeploymentsContextProviderProps {
-  children: React.ReactNode;
+  children: ({
+    deployments,
+    loaded,
+    errors,
+    projects,
+  }: {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    deployments?: any[];
+    loaded: boolean;
+    errors?: Error[];
+    projects?: ProjectKind[];
+  }) => React.ReactNode;
   labelSelectors?: { [key: string]: string };
 }
 
@@ -26,7 +41,9 @@ const DeploymentsContextProvider: React.FC<DeploymentsContextProviderProps> = ({
       modelServingPlatforms={modelServingPlatforms}
       labelSelectors={labelSelectors}
     >
-      {children}
+      <ModelDeploymentsContext.Consumer>
+        {({ deployments, loaded, errors }) => children({ deployments, loaded, errors, projects })}
+      </ModelDeploymentsContext.Consumer>
     </ModelDeploymentsProvider>
   );
 };
