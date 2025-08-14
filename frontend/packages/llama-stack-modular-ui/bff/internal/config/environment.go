@@ -45,4 +45,8 @@ type EnvConfig struct {
 	// API path prefix for the BFF endpoints.
 	// Default is "/api/v1" and can be overridden via CLI/env for different deployment scenarios.
 	APIPathPrefix string
+
+	// Path prefix for the BFF endpoints.
+	// Default is "/api/v1" and can be overridden via CLI/env for different deployment scenarios.
+	PathPrefix string
 }

@@ -1,10 +1,10 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
 import {
-  Bullseye,
   Drawer,
   DrawerContent,
   DrawerContentBody,
+  Bullseye,
   Spinner,
 } from '@patternfly/react-core';
 import {

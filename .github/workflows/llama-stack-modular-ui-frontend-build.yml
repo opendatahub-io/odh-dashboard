@@ -32,7 +32,7 @@ jobs:
 
       - name: Run tests
         working-directory: frontend/packages/llama-stack-modular-ui/frontend
-        run: npm run test
+        run: npm run test:ci
 
       - name: Run clean
         working-directory: frontend/packages/llama-stack-modular-ui/frontend
