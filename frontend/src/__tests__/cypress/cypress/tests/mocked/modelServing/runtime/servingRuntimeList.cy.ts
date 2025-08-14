@@ -1928,6 +1928,13 @@ describe('Serving Runtime List', () => {
       kserveModal.findMaxReplicasInput().type('6');
       kserveModal.findMaxReplicasErrorMessage().should('not.exist');
 
+      // Test min replicas error message
+      kserveModal.findMaxReplicasInput().clear().type('6');
+      kserveModal.findMinReplicasInput().clear().type('8');
+      kserveModal.findMinReplicasErrorMessage().should('exist');
+      kserveModal.findMinReplicasInput().clear().type('4');
+      kserveModal.findMinReplicasErrorMessage().should('not.exist');
+
       // Test max limit of 99
       kserveModal.findMaxReplicasInput().clear().type('100');
       kserveModal.findMaxReplicasInput().should('have.value', '99');
@@ -1993,8 +2000,8 @@ describe('Serving Runtime List', () => {
           },
           spec: {
             predictor: {
-              minReplicas: 2,
-              maxReplicas: 2,
+              minReplicas: 40,
+              maxReplicas: 40,
               model: {
                 modelFormat: { name: 'onnx', version: '1' },
                 runtime: 'test-name',

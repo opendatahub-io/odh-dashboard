@@ -24,6 +24,7 @@ type ReplicaSectionProps = {
   showMinMax: boolean;
   maxValue: number;
   onMaxChange?: (value: number) => void;
+  onValidationChange?: (hasValidationErrors: boolean) => void;
 };
 
 const ReplicaFormGroup: React.FC<ReplicaSectionProps> = ({
@@ -34,9 +35,19 @@ const ReplicaFormGroup: React.FC<ReplicaSectionProps> = ({
   showMinMax = true,
   maxValue,
   onMaxChange,
+  onValidationChange,
 }) => {
-  const maxLimit = showMinMax ? upperLimit : maxValue;
+  const [editingField, setEditingField] = React.useState<'min' | 'max' | null>(null);
   const maxLessThanMin = !showMinMax && maxValue < value;
+  const minGreaterThanMax = !showMinMax && value > maxValue;
+  const showMinWarning = minGreaterThanMax && editingField === 'min';
+  const showMaxWarning = maxLessThanMin && editingField === 'max';
+
+  const hasValidationErrors = showMinWarning || showMaxWarning;
+
+  React.useEffect(() => {
+    onValidationChange?.(hasValidationErrors);
+  }, [hasValidationErrors, onValidationChange]);
 
   return (
     <FormGroup
@@ -64,12 +75,22 @@ const ReplicaFormGroup: React.FC<ReplicaSectionProps> = ({
             >
               <NumberInputWrapper
                 min={lowerLimit}
-                max={maxLimit}
+                max={upperLimit}
                 value={value}
+                validated={showMinWarning ? 'warning' : 'default'}
+                plusBtnProps={{ isDisabled: value >= maxValue }}
+                onFocus={() => setEditingField('min')}
+                onBlur={() => {
+                  setEditingField(null);
+                  if (value > maxValue) {
+                    onChange(maxValue);
+                  }
+                }}
                 onChange={(val) => {
+                  setEditingField('min');
                   const newSize = val === undefined ? 0 : Number(val);
-                  if (!Number.isNaN(newSize) && newSize <= maxLimit) {
-                    onChange(normalizeBetween(newSize, lowerLimit, maxLimit));
+                  if (!Number.isNaN(newSize) && newSize <= upperLimit) {
+                    onChange(normalizeBetween(newSize, lowerLimit, upperLimit));
                   }
                 }}
               />
@@ -95,38 +116,63 @@ const ReplicaFormGroup: React.FC<ReplicaSectionProps> = ({
               label={<span style={{ fontWeight: 'normal' }}>Maximum replicas</span>}
               fieldId="max-replicas"
               data-testid="max-replicas"
+              style={{ position: 'relative' }}
             >
               <NumberInputWrapper
                 min={lowerLimit}
                 max={upperLimit}
                 value={maxValue}
-                validated={maxLessThanMin ? 'warning' : 'default'}
+                validated={showMaxWarning ? 'warning' : 'default'}
                 minusBtnProps={{ isDisabled: maxValue <= value }}
+                onFocus={() => setEditingField('max')}
                 onBlur={() => {
+                  setEditingField(null);
                   if (maxValue < value) {
                     onMaxChange(value);
                   }
                 }}
                 onChange={(val) => {
+                  setEditingField('max');
                   const newSize = val === undefined ? 0 : Number(val);
                   if (!Number.isNaN(newSize) && newSize <= upperLimit) {
                     onMaxChange(normalizeBetween(newSize, lowerLimit, upperLimit));
                   }
                 }}
               />
-              {maxLessThanMin && (
-                <FormHelperText>
-                  <HelperText>
-                    <HelperTextItem icon={<ExclamationTriangleIcon />} variant="warning">
-                      Maximum replicas must be greater than or equal to minimum replicas.
-                    </HelperTextItem>
-                  </HelperText>
-                </FormHelperText>
-              )}
             </FormGroup>
           </FlexItem>
         )}
       </Flex>
+      {!showMinMax && (showMinWarning || showMaxWarning) && (
+        <>
+          {showMinWarning && (
+            <FormHelperText
+              style={{
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <HelperText>
+                <HelperTextItem icon={<ExclamationTriangleIcon />} variant="warning">
+                  Minimum replicas must be less than or equal to maximum replicas.
+                </HelperTextItem>
+              </HelperText>
+            </FormHelperText>
+          )}
+          {showMaxWarning && (
+            <FormHelperText
+              style={{
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <HelperText>
+                <HelperTextItem icon={<ExclamationTriangleIcon />} variant="warning">
+                  Maximum replicas must be greater than or equal to minimum replicas.
+                </HelperTextItem>
+              </HelperText>
+            </FormHelperText>
+          )}
+        </>
+      )}
     </FormGroup>
   );
 };

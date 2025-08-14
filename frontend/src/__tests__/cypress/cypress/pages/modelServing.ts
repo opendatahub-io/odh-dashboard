@@ -538,6 +538,10 @@ class KServeModal extends InferenceServiceModal {
     );
   }
 
+  findMinReplicasErrorMessage() {
+    return this.find().contains('Minimum replicas must be less than or equal to maximum replicas');
+  }
+
   findCPURequestedCheckbox() {
     return this.find().findByTestId('cpu-requested-checkbox');
   }
