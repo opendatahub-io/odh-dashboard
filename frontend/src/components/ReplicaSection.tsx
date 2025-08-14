@@ -38,6 +38,8 @@ const ReplicaSection: React.FC<ReplicaSectionProps> = ({
   onValidationChange,
 }) => {
   const [editingField, setEditingField] = React.useState<'min' | 'max' | null>(null);
+  const [isMinEmpty, setIsMinEmpty] = React.useState(false);
+  const [isMaxEmpty, setIsMaxEmpty] = React.useState(false);
   const maxLessThanMin = !showMinMax && maxValue < value;
   const minGreaterThanMax = !showMinMax && value > maxValue;
   const showMinWarning = minGreaterThanMax && editingField === 'min';
@@ -74,21 +76,27 @@ const ReplicaSection: React.FC<ReplicaSectionProps> = ({
               data-testid="min-replicas"
             >
               <NumberInputWrapper
-                min={lowerLimit}
+                min={isMinEmpty && editingField === 'min' ? undefined : lowerLimit}
                 max={upperLimit}
-                value={value}
+                value={isMinEmpty && editingField === 'min' ? '' : value}
                 validated={showMinWarning ? 'warning' : 'default'}
                 plusBtnProps={{ isDisabled: value >= maxValue }}
                 onFocus={() => setEditingField('min')}
                 onBlur={() => {
                   setEditingField(null);
+                  setIsMinEmpty(false);
                   if (value > maxValue) {
                     onChange(maxValue);
                   }
                 }}
                 onChange={(val) => {
                   setEditingField('min');
-                  const newSize = val === undefined ? 0 : Number(val);
+                  if (val === undefined) {
+                    setIsMinEmpty(true);
+                    return;
+                  }
+                  setIsMinEmpty(false);
+                  const newSize = Number(val);
                   if (!Number.isNaN(newSize) && newSize <= upperLimit) {
                     onChange(normalizeBetween(newSize, lowerLimit, upperLimit));
                   }
@@ -119,21 +127,27 @@ const ReplicaSection: React.FC<ReplicaSectionProps> = ({
               style={{ position: 'relative' }}
             >
               <NumberInputWrapper
-                min={lowerLimit}
+                min={isMaxEmpty && editingField === 'max' ? undefined : lowerLimit}
                 max={upperLimit}
-                value={maxValue}
+                value={isMaxEmpty && editingField === 'max' ? '' : maxValue}
                 validated={showMaxWarning ? 'warning' : 'default'}
                 minusBtnProps={{ isDisabled: maxValue <= value }}
                 onFocus={() => setEditingField('max')}
                 onBlur={() => {
                   setEditingField(null);
+                  setIsMaxEmpty(false);
                   if (maxValue < value) {
                     onMaxChange(value);
                   }
                 }}
                 onChange={(val) => {
                   setEditingField('max');
-                  const newSize = val === undefined ? 0 : Number(val);
+                  if (val === undefined) {
+                    setIsMaxEmpty(true);
+                    return;
+                  }
+                  setIsMaxEmpty(false);
+                  const newSize = Number(val);
                   if (!Number.isNaN(newSize) && newSize <= upperLimit) {
                     onMaxChange(normalizeBetween(newSize, lowerLimit, upperLimit));
                   }
