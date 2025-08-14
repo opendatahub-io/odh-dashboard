@@ -1,5 +1,6 @@
 import React from 'react';
 import { APIState } from '@odh-dashboard/internal/concepts/proxy/types';
+import useAPIState from '@odh-dashboard/internal/concepts/proxy/useAPIState';
 import {
   getEntities,
   getFeatureViews,
@@ -10,8 +11,7 @@ import {
   getFeatureServices,
   getFeatureServiceByName,
   getFeatureViewByName,
-} from '@odh-dashboard/internal/api/featureStore/custom';
-import useAPIState from '@odh-dashboard/internal/concepts/proxy/useAPIState';
+} from '../api/custom';
 import { FeatureStoreAPIs } from '../types/global';
 
 export type FeatureStoreAPIState = APIState<FeatureStoreAPIs>;

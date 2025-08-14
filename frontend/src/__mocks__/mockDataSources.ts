@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
 
-import { DataSource, DataSources } from '#~/pages/featureStore/types/featureView';
+import { DataSource, DataSources } from '../../packages/feature-store/src/types/featureView';
 
 /* eslint-disable @typescript-eslint/naming-convention */
 export const mockDataSource_REQUEST_SOURCE = (partial?: Partial<DataSource>): DataSource => ({

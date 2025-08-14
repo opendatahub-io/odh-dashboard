@@ -252,16 +252,6 @@ const extensions: RouteExtension[] = [
       component: () => import('#~/pages/lmEval/LMEvalRoutes'),
     },
   },
-  {
-    type: 'app.route',
-    flags: {
-      required: [SupportedArea.FEATURE_STORE],
-    },
-    properties: {
-      path: '/featureStorex/*',
-      component: () => import('#~/pages/featureStore/FeatureStoreRoutes'),
-    },
-  },
 ];
 
 export default extensions;

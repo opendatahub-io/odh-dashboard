@@ -1,5 +1,5 @@
 /* eslint-disable camelcase */
-import { StandardFeatureView } from '#~/pages/featureStore/types/featureView';
+import { StandardFeatureView } from '../../packages/feature-store/src/types/featureView';
 
 export const mockFeatureView = (partial?: Partial<StandardFeatureView>): StandardFeatureView => ({
   type: 'featureView',
