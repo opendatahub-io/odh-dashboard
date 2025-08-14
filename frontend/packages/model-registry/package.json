@@ -4,7 +4,10 @@
   "description": "Model registry plugin.",
   "version": "0.0.0",
   "scripts": {
-    "update-subtree": "../../scripts/package-subtree.sh model-registry"
+    "update-subtree": "../../scripts/package-subtree.sh model-registry",
+    "test:contract": "jest --config=pact/jest.contract.config.js",
+    "test:contract:watch": "npm run test:contract -- --watch",
+    "test:contract:with-bff": "pact/scripts/run-with-mock-bff.sh"
   },
   "subtree": {
     "repo": "https://github.com/kubeflow/model-registry.git",
@@ -37,5 +40,14 @@
   },
   "dependencies": {
     "@odh-dashboard/internal": "*"
+  },
+  "optionalDependencies": {
+    "@types/jest": "^29.5.13",
+    "jest": "^29.7.0",
+    "jest-junit": "^16.0.0",
+    "jest-html-reporters": "^3.1.7",
+    "axios": "^1.6.0",
+    "ajv": "^8.12.0",
+    "ajv-formats": "^2.1.1"
   }
 }
