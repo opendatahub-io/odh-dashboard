@@ -53,6 +53,7 @@ module.exports = smp.wrap(
           '**/jest-coverage',
           '**/.nyc_output',
           '**/upstream',
+          '**/llama-stack-modular-ui',
         ],
       },
       devServer: {
