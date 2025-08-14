@@ -135,11 +135,7 @@ export function FeatureStoreToolbar({
 
   const customOnFilterUpdate = React.useCallback(
     (key: string, value?: string | { label: string; value: string }) => {
-      if (key === 'tag') {
-        onFilterUpdate(key, value);
-      } else {
-        onFilterUpdate(key, value);
-      }
+      onFilterUpdate(key, value);
     },
     [onFilterUpdate],
   );

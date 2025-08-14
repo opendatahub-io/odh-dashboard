@@ -1,38 +1,21 @@
-import * as React from 'react';
+import React from 'react';
+import { FilterIcon } from '@patternfly/react-icons';
 import {
+  Dropdown,
+  DropdownItem,
+  DropdownList,
+  MenuToggle,
   ToolbarFilter,
   ToolbarGroup,
   ToolbarItem,
   ToolbarToggleGroup,
-  Dropdown,
-  DropdownList,
-  DropdownItem,
-  MenuToggle,
 } from '@patternfly/react-core';
-import { FilterIcon } from '@patternfly/react-icons';
-
-export type FilterOptionRenders = {
-  onChange: (value?: string, label?: string) => void;
-  value?: string;
-  label?: string;
-};
-
-export type FeatureStoreFilterToolbarProps<T extends string> = React.ComponentProps<
-  typeof ToolbarGroup
-> & {
-  children?: React.ReactNode;
-  filterOptions: { [key in T]?: string };
-  filterOptionRenders: Record<T, (props: FilterOptionRenders) => React.ReactNode>;
-  filterData: Record<T, string | { label: string; value: string } | undefined>;
-  onFilterUpdate: (filterType: T, value?: string | { label: string; value: string }) => void;
-  testId?: string;
-  currentFilterType?: T;
-  onFilterTypeChange?: (filterType: T) => void;
-  multipleLabels?: Record<
-    T,
-    Array<{ key: string; label: string; onRemove: () => void; testId?: string }>
-  >;
-};
+import {
+  buildFilterLabelList,
+  handleLabelDelete,
+  getFilterOptionProps,
+} from '../utils/toolbarUtils';
+import { FeatureStoreFilterToolbarProps, FilterLabel } from '../types/toolbarTypes';
 
 function FeatureStoreFilterToolbar<T extends string>({
   filterOptions,
@@ -47,20 +30,31 @@ function FeatureStoreFilterToolbar<T extends string>({
   ...toolbarGroupProps
 }: FeatureStoreFilterToolbarProps<T>): React.JSX.Element {
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-  const keys = Object.keys(filterOptions) as T[];
+  const keys = React.useMemo(() => Object.keys(filterOptions) as T[], [filterOptions]);
+
   const [open, setOpen] = React.useState(false);
   const [internalCurrentFilterType, setInternalCurrentFilterType] = React.useState<T>(keys[0]);
 
   const currentFilterType = externalCurrentFilterType ?? internalCurrentFilterType;
-  const setCurrentFilterType = (filterType: T) => {
-    if (onFilterTypeChange) {
-      onFilterTypeChange(filterType);
-    } else {
-      setInternalCurrentFilterType(filterType);
-    }
-  };
 
-  const filterItem = filterData[currentFilterType];
+  const setCurrentFilterType = React.useCallback(
+    (filterType: T) => {
+      if (onFilterTypeChange) {
+        onFilterTypeChange(filterType);
+      } else {
+        setInternalCurrentFilterType(filterType);
+      }
+    },
+    [onFilterTypeChange],
+  );
+
+  const allFilterItems = React.useMemo(() => {
+    const result = new Map<T, FilterLabel[]>();
+    keys.forEach((filterKey) => {
+      result.set(filterKey, buildFilterLabelList(filterKey, filterData, multipleLabels));
+    });
+    return result;
+  }, [keys, filterData, multipleLabels]);
 
   return (
     <>
@@ -104,55 +98,27 @@ function FeatureStoreFilterToolbar<T extends string>({
           </ToolbarItem>
           {keys.map((filterKey) => {
             const optionValue = filterOptions[filterKey];
-            const data = filterData[filterKey];
-            const dataValue: { label: string; value: string } | undefined =
-              typeof data === 'string' ? { label: data, value: data } : data;
-
-            const multipleLabelsForType = multipleLabels?.[filterKey] || [];
-
-            const allLabels = [
-              ...(data && dataValue
-                ? [
-                    {
-                      key: filterKey,
-                      node: dataValue.label,
-                    },
-                  ]
-                : []),
-              ...multipleLabelsForType.map((label) => ({
-                key: label.key,
-                node: label.label,
-                props: label.testId ? { 'data-testid': label.testId } : undefined,
-              })),
-            ];
+            const allActiveFilterItems = allFilterItems.get(filterKey);
 
             return optionValue ? (
               <ToolbarFilter
                 key={filterKey}
                 categoryName={optionValue}
                 data-testid={`${testId}-text-field`}
-                labels={allLabels}
-                deleteLabel={(category, labelToDelete) => {
-                  if (typeof labelToDelete === 'string') {
-                    onFilterUpdate(filterKey, '');
-                  } else {
-                    const labelKey = labelToDelete.key;
-                    const tagsToRemove = multipleLabelsForType.find((l) => l.key === labelKey);
-
-                    if (tagsToRemove) {
-                      tagsToRemove.onRemove();
-                    } else if (labelKey === filterKey) {
-                      onFilterUpdate(filterKey, '');
-                    }
-                  }
-                }}
+                labels={allActiveFilterItems}
+                deleteLabel={(category, labelToDelete) =>
+                  handleLabelDelete(
+                    labelToDelete,
+                    filterKey,
+                    multipleLabels?.[filterKey] || [],
+                    onFilterUpdate,
+                  )
+                }
                 showToolbarItem={currentFilterType === filterKey}
               >
-                {filterOptionRenders[filterKey]({
-                  onChange: (value, label) =>
-                    onFilterUpdate(filterKey, label && value ? { label, value } : value),
-                  ...(typeof filterItem === 'string' ? { value: filterItem } : filterItem),
-                })}
+                {filterOptionRenders[filterKey](
+                  getFilterOptionProps(filterKey, filterData[filterKey], onFilterUpdate),
+                )}
               </ToolbarFilter>
             ) : null;
           })}
