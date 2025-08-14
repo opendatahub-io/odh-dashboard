@@ -11,6 +11,7 @@ import {
   SuccessResponse,
 } from '../types';
 import axios from '../utilities/axios';
+import { URL_PREFIX } from '../utilities/const';
 
 /**
  * Fetches all available models from the Llama Stack API
@@ -18,7 +19,7 @@ import axios from '../utilities/axios';
  * @throws Error - When the API request fails or returns an error response
  */
 export const getModels = (): Promise<LlamaModel[]> => {
-  const url = '/api/v1/models';
+  const url = `${URL_PREFIX}/api/v1/models`;
   return axios
     .get(url)
     .then((response) => response.data.data.items)
@@ -36,7 +37,7 @@ export const getModels = (): Promise<LlamaModel[]> => {
  * @throws Error - When the API request fails or returns an error response
  */
 export const getModelsByType = (modelType: LlamaModelType): Promise<LlamaModel[]> => {
-  const url = `/api/v1/models?model_type=${modelType}`;
+  const url = `${URL_PREFIX}/api/v1/models?model_type=${modelType}`;
   return axios
     .get(url)
     .then((response) => response.data.data.items)
@@ -53,7 +54,7 @@ export const getModelsByType = (modelType: LlamaModelType): Promise<LlamaModel[]
  * @throws Error - When the API request fails or returns an error response
  */
 export const getVectorDBs = (): Promise<VectorDB[]> => {
-  const url = '/api/v1/vector-dbs';
+  const url = `${URL_PREFIX}/api/v1/vector-dbs`;
   return axios
     .get(url)
     .then((response) => response.data.data.items)
@@ -74,7 +75,7 @@ export const registerVectorDB = (
   vectorDBId: VectorDB,
   embeddingModel: string,
 ): Promise<{ message: string; vector_db_id: string }> => {
-  const url = '/api/v1/vector-dbs';
+  const url = `${URL_PREFIX}/api/v1/vector-dbs`;
   return axios
     .post(url, {
       vector_db_id: vectorDBId,
@@ -99,7 +100,7 @@ export const uploadSource = (
   source: Source,
   settings: ChatbotSourceSettings,
 ): Promise<SuccessResponse> => {
-  const url = '/api/v1/upload';
+  const url = `${URL_PREFIX}/api/v1/upload`;
   const payload = {
     documents: source.documents,
     vector_db_id: settings.vectorDB,
@@ -124,7 +125,7 @@ export const uploadSource = (
  * @throws Error - When the API request fails or returns an error response
  */
 export const querySource = (query: Query): Promise<QueryResponse> => {
-  const url = '/api/v1/query';
+  const url = `${URL_PREFIX}/api/v1/query`;
   return axios
     .post(url, query)
     .then((response) => response.data)

@@ -5,22 +5,29 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const CopyPlugin = require('copy-webpack-plugin');
 const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
 const Dotenv = require('dotenv-webpack');
+const { moduleFederationPlugins } = require('./config/moduleFederation');
 const BG_IMAGES_DIRNAME = 'bgimages';
 const ASSET_PATH = process.env.ASSET_PATH || '/';
+const { name } = require('../package.json');
 module.exports = (env) => {
   return {
+    entry: {
+      app: './src/index.ts',
+    },
     module: {
       rules: [
         {
           test: /\.(tsx|ts|jsx)?$/,
           use: [
-            {
-              loader: 'ts-loader',
-              options: {
-                transpileOnly: true,
-                experimentalWatchApi: true,
-              },
-            },
+            env === 'development'
+              ? { loader: 'swc-loader' }
+              : {
+                  loader: 'ts-loader',
+                  options: {
+                    transpileOnly: true,
+                    experimentalWatchApi: true,
+                  },
+                },
           ],
         },
         {
@@ -31,7 +38,10 @@ module.exports = (env) => {
           include: [
             path.resolve(__dirname, 'node_modules/patternfly/dist/fonts'),
             path.resolve(__dirname, 'node_modules/@patternfly/react-core/dist/styles/assets/fonts'),
-            path.resolve(__dirname, 'node_modules/@patternfly/react-core/dist/styles/assets/pficon'),
+            path.resolve(
+              __dirname,
+              'node_modules/@patternfly/react-core/dist/styles/assets/pficon',
+            ),
             path.resolve(__dirname, 'node_modules/@patternfly/patternfly/assets/fonts'),
             path.resolve(__dirname, 'node_modules/@patternfly/patternfly/assets/pficon'),
           ],
@@ -78,18 +88,21 @@ module.exports = (env) => {
             path.resolve(__dirname, 'node_modules/patternfly'),
             path.resolve(__dirname, 'node_modules/@patternfly/patternfly/assets/images'),
             path.resolve(__dirname, 'node_modules/@patternfly/react-styles/css/assets/images'),
-            path.resolve(__dirname, 'node_modules/@patternfly/react-core/dist/styles/assets/images'),
             path.resolve(
               __dirname,
-              'node_modules/@patternfly/react-core/node_modules/@patternfly/react-styles/css/assets/images'
+              'node_modules/@patternfly/react-core/dist/styles/assets/images',
             ),
             path.resolve(
               __dirname,
-              'node_modules/@patternfly/react-table/node_modules/@patternfly/react-styles/css/assets/images'
+              'node_modules/@patternfly/react-core/node_modules/@patternfly/react-styles/css/assets/images',
             ),
             path.resolve(
               __dirname,
-              'node_modules/@patternfly/react-inline-edit-extension/node_modules/@patternfly/react-styles/css/assets/images'
+              'node_modules/@patternfly/react-table/node_modules/@patternfly/react-styles/css/assets/images',
+            ),
+            path.resolve(
+              __dirname,
+              'node_modules/@patternfly/react-inline-edit-extension/node_modules/@patternfly/react-styles/css/assets/images',
             ),
           ],
           type: 'asset/inline',
@@ -112,11 +125,14 @@ module.exports = (env) => {
     output: {
       filename: '[name].bundle.js',
       path: path.resolve(__dirname, 'dist'),
-      publicPath: ASSET_PATH,
+      publicPath: 'auto',
+      uniqueName: name,
     },
     plugins: [
+      ...moduleFederationPlugins,
       new HtmlWebpackPlugin({
         template: path.resolve(__dirname, 'src', 'index.html'),
+        chunks: ['app'],
       }),
       new Dotenv({
         systemvars: true,

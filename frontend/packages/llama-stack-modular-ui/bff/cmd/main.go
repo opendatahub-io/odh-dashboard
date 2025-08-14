@@ -27,6 +27,7 @@ func main() {
 	flag.StringVar(&cfg.AuthTokenHeader, "auth-token-header", getEnvAsString("AUTH_TOKEN_HEADER", config.DefaultAuthTokenHeader), "Header used to extract the token (e.g., Authorization)")
 	flag.StringVar(&cfg.AuthTokenPrefix, "auth-token-prefix", getEnvAsString("AUTH_TOKEN_PREFIX", config.DefaultAuthTokenPrefix), "Prefix used in the token header (e.g., 'Bearer ')")
 	flag.StringVar(&cfg.APIPathPrefix, "api-path-prefix", getEnvAsString("API_PATH_PREFIX", "/api/v1"), "API path prefix for BFF endpoints (e.g., /api/v1)")
+	flag.StringVar(&cfg.PathPrefix, "path-prefix", getEnvAsString("PATH_PREFIX", ""), "Path prefix for BFF endpoints (e.g., /llama-stack)")
 
 	// Llama Stack configuration
 	flag.StringVar(&cfg.LlamaStackURL, "llama-stack-url", getEnvAsString("LLAMA_STACK_URL", ""), "Llama Stack server URL for proxying requests")
