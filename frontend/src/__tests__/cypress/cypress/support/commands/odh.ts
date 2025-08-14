@@ -60,13 +60,13 @@ import type { NimServingResponse } from '#~/__mocks__/mockNimResource';
 import type { BuildMockPipelinveVersionsType } from '#~/__mocks__';
 import type { ArtifactStorage } from '#~/concepts/pipelines/types';
 import type { ConnectionTypeConfigMap } from '#~/concepts/connectionTypes/types';
-import type { ProjectList } from '#~/pages/featureStore/types/featureStoreProjects';
-import type { FeatureViewsList } from '#~/pages/featureStore/types/featureView';
-import type { EntityList } from '#~/pages/featureStore/types/entities';
 import type {
   FeatureService,
   FeatureServicesList,
-} from '#~/pages/featureStore/types/featureServices';
+} from '../../../../../../packages/feature-store/src/types/featureServices';
+import type { FeatureViewsList } from '../../../../../../packages/feature-store/src/types/featureView';
+import type { EntityList } from '../../../../../../packages/feature-store/src/types/entities';
+import type { ProjectList } from '../../../../../../packages/feature-store/src/types/featureStoreProjects';
 
 type SuccessErrorResponse = {
   success: boolean;

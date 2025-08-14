@@ -1,5 +1,9 @@
 /* eslint-disable camelcase */
-import { Features, FeaturesList, FeatureRelationship } from '#~/pages/featureStore/types/features';
+import {
+  Features,
+  FeaturesList,
+  FeatureRelationship,
+} from '../../packages/feature-store/src/types/features';
 
 export const mockFeatureRelationship = (
   partial?: Partial<FeatureRelationship>,
