@@ -2,6 +2,7 @@ import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Wizard, WizardStep } from '@patternfly/react-core';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
+import { getDeploymentWizardExitRoute } from './utils';
 
 type ModelDeploymentWizardProps = {
   title: string;
@@ -15,12 +16,11 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
   primaryButtonText,
 }) => {
   const navigate = useNavigate();
-  const url = useLocation().pathname;
+  const location = useLocation();
 
-  const exitWizard = () => {
-    const baseUrl = url.substring(0, url.lastIndexOf('deploy'));
-    navigate(baseUrl);
-  };
+  const exitWizard = React.useCallback(() => {
+    navigate(getDeploymentWizardExitRoute(location.pathname));
+  }, [navigate, location.pathname]);
 
   return (
     <ApplicationsPage title={title} description={description} loaded empty={false}>

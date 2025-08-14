@@ -86,6 +86,7 @@ describe('Model Serving Deploy Wizard', () => {
       mockK8sResourceList([mockServingRuntimeK8sResource({})]),
     );
 
+    // TODO: visit directly when plugin is enabled
     cy.visitWithLogin('/modelServing/test-project?devFeatureFlags=Model+Serving+Plugin%3Dtrue');
     modelServingGlobal.findDeployModelButton().click();
     cy.findByRole('heading', { name: 'Deploy a model' }).should('exist');
