@@ -36,12 +36,11 @@ const COMMIT_HASH_DIRECT = (() => {
     return execSync('git rev-parse --short HEAD', { stdio: ['ignore', 'pipe', 'ignore'] })
       .toString()
       .trim();
-  }catch (error) {
+  } catch (error) {
     console.warn('Unable to get git commit hash:', error.message);
     return 'unknown';
   }
 })();
-
 
 if (OUTPUT_ONLY !== 'true') {
   console.info(
