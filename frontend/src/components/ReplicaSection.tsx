@@ -45,7 +45,7 @@ const ReplicaSection: React.FC<ReplicaSectionProps> = ({
   const showMinWarning = minGreaterThanMax && editingField === 'min';
   const showMaxWarning = maxLessThanMin && editingField === 'max';
 
-  const hasValidationErrors = showMinWarning || showMaxWarning;
+  const hasValidationErrors = editingField !== null && (showMinWarning || showMaxWarning);
 
   React.useEffect(() => {
     onValidationChange?.(hasValidationErrors);
