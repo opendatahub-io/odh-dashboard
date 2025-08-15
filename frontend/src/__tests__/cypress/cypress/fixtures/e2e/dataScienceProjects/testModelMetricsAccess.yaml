@@ -1,0 +1,6 @@
+#testModelMetricsAccess.cy.ts Test Data #
+projectDisplayName: Test Access to Model Metrics From UI Project
+projectDescription: Test project to Access the Model Metrics from UI.
+projectResourceName: test-model-metrics-project
+singleModelName: 'test-model-metrics'
+modelOpenVinoPath: kserve-openvino-test/openvino-example-model
