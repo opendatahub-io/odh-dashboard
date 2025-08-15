@@ -14,11 +14,6 @@ import (
 type ModelEnvelope Envelope[models.Model, None]
 type ModelListEnvelope Envelope[models.ModelList, None]
 
-const (
-	LLMModelType       = "llm"
-	EmbeddingModelType = "embedding"
-)
-
 func (app *App) GetAllModelsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	client, ok := r.Context().Value(constants.LlamaStackHttpClientKey).(integrations.HTTPClientInterface)
 
@@ -37,7 +32,7 @@ func (app *App) GetAllModelsHandler(w http.ResponseWriter, r *http.Request, _ ht
 	modelType := params.Get("model_type")
 
 	switch modelType {
-	case LLMModelType:
+	case constants.LLMModelType:
 		llmModels := []llamastack.Model{}
 		for _, model := range modelList.Data {
 			if model.ModelType == llamastack.LLMModelType {
@@ -45,7 +40,7 @@ func (app *App) GetAllModelsHandler(w http.ResponseWriter, r *http.Request, _ ht
 			}
 		}
 		modelList = &llamastack.ModelList{Data: llmModels}
-	case EmbeddingModelType:
+	case constants.EmbeddingModelType:
 		embeddingModels := []llamastack.Model{}
 		for _, model := range modelList.Data {
 			if model.ModelType == llamastack.EmbeddingModelType {

@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/opendatahub-io/llama-stack-modular-ui/internal/config"
+	"github.com/opendatahub-io/llama-stack-modular-ui/internal/constants"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -26,34 +27,34 @@ func TestIsAPIRoute(t *testing.T) {
 		// Health check routes
 		{
 			name:     "health check path",
-			path:     HealthCheckPath,
+			path:     constants.HealthCheckPath,
 			expected: true,
 		},
 		{
 			name:     "health check path with trailing slash",
-			path:     HealthCheckPath + "/",
+			path:     constants.HealthCheckPath + "/",
 			expected: false,
 		},
 
 		// OpenAPI routes
 		{
 			name:     "openapi path",
-			path:     OpenAPIPath,
+			path:     constants.OpenAPIPath,
 			expected: true,
 		},
 		{
 			name:     "openapi json path",
-			path:     OpenAPIJSONPath,
+			path:     constants.OpenAPIJSONPath,
 			expected: true,
 		},
 		{
 			name:     "openapi yaml path",
-			path:     OpenAPIYAMLPath,
+			path:     constants.OpenAPIYAMLPath,
 			expected: true,
 		},
 		{
 			name:     "swagger ui path",
-			path:     SwaggerUIPath,
+			path:     constants.SwaggerUIPath,
 			expected: true,
 		},
 
