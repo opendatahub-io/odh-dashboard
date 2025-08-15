@@ -39,7 +39,8 @@
     "./extensions": "./extensions.ts"
   },
   "dependencies": {
-    "@odh-dashboard/internal": "*"
+    "@odh-dashboard/internal": "*",
+    "@odh-dashboard/pact-testing": "*"
   },
   "optionalDependencies": {
     "@types/jest": "^29.5.13",

@@ -1,3 +1,8 @@
+/* eslint-disable no-console */
+
+// Import Jest types for better TypeScript support
+import 'jest';
+
 // Global test timeout for contract tests
 jest.setTimeout(30000);
 

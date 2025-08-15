@@ -5,8 +5,62 @@
  * Generates a comprehensive HTML report with API details, similar to Cypress mochawesome reports
  */
 
-const fs = require('fs');
-const path = require('path');
+/* eslint-disable @typescript-eslint/no-unnecessary-condition */
+
+import * as fs from 'fs';
+import * as path from 'path';
+
+// Type definitions
+interface ApiCallHeaders {
+  [key: string]: string;
+}
+
+// Type guards
+function isApiCallHeaders(obj: unknown): obj is ApiCallHeaders {
+  return (
+    typeof obj === 'object' &&
+    obj !== null &&
+    Object.values(obj).every((value) => typeof value === 'string')
+  );
+}
+
+function isRecord(obj: unknown): obj is Record<string, unknown> {
+  return typeof obj === 'object' && obj !== null;
+}
+
+interface ApiResponse {
+  status: string | null;
+  headers: ApiCallHeaders;
+  body: Record<string, unknown>;
+}
+
+interface ApiError {
+  status: string | null;
+  headers: ApiCallHeaders;
+  body: Record<string, unknown>;
+}
+
+interface ApiCall {
+  timestamp: string;
+  method: string;
+  url: string;
+  headers: ApiCallHeaders;
+  response: ApiResponse | null;
+  error: ApiError | null;
+  testName: string;
+}
+
+interface TestResults {
+  total: number;
+  passed: number;
+  failed: number;
+  duration: string;
+}
+
+interface ParsedTestData {
+  apiCalls: ApiCall[];
+  testResults: TestResults;
+}
 
 // Get the test results directory from environment or use latest
 const resultsDir = process.env.PACT_TEST_RESULTS_DIR || './pact/pact-test-results/latest';
@@ -19,18 +73,20 @@ if (!fs.existsSync(resultsDir)) {
   fs.mkdirSync(resultsDir, { recursive: true });
 }
 
-// Parse test output for enhanced reporting
-function parseTestOutput(logContent) {
-  const apiCalls = [];
-  const testResults = {
+/**
+ * Parse test output for enhanced reporting
+ */
+function parseTestOutput(logContent: string): ParsedTestData {
+  const apiCalls: ApiCall[] = [];
+  const testResults: TestResults = {
     total: 0,
     passed: 0,
     failed: 0,
-    duration: '0s'
+    duration: '0s',
   };
 
   const lines = logContent.split('\n');
-  let currentApiCall = null;
+  let currentApiCall: ApiCall | null = null;
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
@@ -41,67 +97,95 @@ function parseTestOutput(logContent) {
       const timestamp = timestampMatch ? timestampMatch[1] : '';
       const urlMatch = line.match(/] GET (.*?)$/);
       const url = urlMatch ? urlMatch[1].trim() : '';
-      
-      currentApiCall = { 
-        timestamp, 
-        method: 'GET', 
-        url, 
-        headers: {}, 
-        response: null, 
+
+      currentApiCall = {
+        timestamp,
+        method: 'GET',
+        url,
+        headers: {},
+        response: null,
         error: null,
-        testName: ''
+        testName: '',
       };
     }
 
     // Parse request headers - look for 📤 pattern followed by JSON
     if (line.includes('📤 Request Headers:') && currentApiCall) {
       const headerText = line.split('📤 Request Headers: ')[1];
-      
+
       // Check if it's inline JSON (like "📤 Request Headers: {}")
       if (headerText && headerText.trim().length > 0) {
         try {
-          currentApiCall.headers = JSON.parse(headerText.trim());
+          const parsedHeaders = JSON.parse(headerText.trim());
+          if (isApiCallHeaders(parsedHeaders)) {
+            currentApiCall.headers = parsedHeaders;
+          }
         } catch (e) {
           // If inline parsing fails, it might be multi-line JSON
           // Parse multi-line JSON starting from next line
           let jsonStr = headerText.trim(); // Start with what we have
           let braceCount = 0;
-          
+
           // Count braces in the initial text
-          for (let char of jsonStr) {
-            if (char === '{') braceCount++;
-            if (char === '}') braceCount--;
+          for (const char of jsonStr) {
+            if (char === '{') {
+              braceCount++;
+            }
+            if (char === '}') {
+              braceCount--;
+            }
           }
-          
+
           // If braces are balanced, try parsing now
           if (braceCount === 0) {
             try {
-              currentApiCall.headers = JSON.parse(jsonStr);
+              const parsedHeaders = JSON.parse(jsonStr);
+              if (isApiCallHeaders(parsedHeaders)) {
+                currentApiCall.headers = parsedHeaders;
+              }
             } catch (e2) {
-              console.log('Failed to parse inline request headers:', e2.message, jsonStr);
+              console.log(
+                'Failed to parse inline request headers:',
+                e2 instanceof Error ? e2.message : String(e2),
+                jsonStr,
+              );
             }
           } else {
             // Continue parsing multi-line JSON
             for (let j = i + 1; j < Math.min(i + 10, lines.length); j++) {
               const nextLine = lines[j].trim();
-              
-              if (nextLine.includes('at logApiCall') || nextLine.includes('at Object.<anonymous>')) {
+
+              if (
+                nextLine.includes('at logApiCall') ||
+                nextLine.includes('at Object.<anonymous>')
+              ) {
                 break; // End of this log entry
               }
-              
+
               jsonStr += nextLine;
-              
+
               // Count braces to know when JSON object is complete
-              for (let char of nextLine) {
-                if (char === '{') braceCount++;
-                if (char === '}') braceCount--;
+              for (const char of nextLine) {
+                if (char === '{') {
+                  braceCount++;
+                }
+                if (char === '}') {
+                  braceCount--;
+                }
               }
-              
+
               if (braceCount === 0 && jsonStr.trim().length > 0) {
                 try {
-                  currentApiCall.headers = JSON.parse(jsonStr);
+                  const parsedHeaders = JSON.parse(jsonStr);
+                  if (isApiCallHeaders(parsedHeaders)) {
+                    currentApiCall.headers = parsedHeaders;
+                  }
                 } catch (e3) {
-                  console.log('Failed to parse multi-line request headers:', e3.message, jsonStr);
+                  console.log(
+                    'Failed to parse multi-line request headers:',
+                    e3 instanceof Error ? e3.message : String(e3),
+                    jsonStr,
+                  );
                 }
                 break;
               }
@@ -117,86 +201,120 @@ function parseTestOutput(logContent) {
         const testNameMatch = line.match(/Response for "([^"]*)":/);
         currentApiCall.testName = testNameMatch ? testNameMatch[1] : '';
         currentApiCall.response = { status: null, headers: {}, body: {} };
-        
+
         // Look ahead for response details
         for (let j = i + 1; j < Math.min(i + 20, lines.length); j++) {
           const nextLine = lines[j].trim();
-          
+
           if (nextLine.includes('📊 Status:')) {
-            currentApiCall.response.status = nextLine.split('📊 Status: ')[1]?.trim();
+            currentApiCall.response.status = nextLine.split('📊 Status: ')[1]?.trim() || null;
           }
-          
+
           if (nextLine.includes('📋 Headers:')) {
             // Parse multi-line JSON for response headers
             let jsonStr = '';
             let braceCount = 0;
             let startedJson = false;
-            
+
             for (let k = j + 1; k < Math.min(j + 10, lines.length); k++) {
               const jsonLine = lines[k].trim();
-              
-              if (jsonLine.includes('at logApiResponse') || jsonLine.includes('📄 Response Body:')) {
+
+              if (
+                jsonLine.includes('at logApiResponse') ||
+                jsonLine.includes('📄 Response Body:')
+              ) {
                 break;
               }
-              
+
               if (jsonLine.startsWith('{') || startedJson) {
                 startedJson = true;
                 jsonStr += jsonLine;
-                
-                for (let char of jsonLine) {
-                  if (char === '{') braceCount++;
-                  if (char === '}') braceCount--;
+
+                for (const char of jsonLine) {
+                  if (char === '{') {
+                    braceCount++;
+                  }
+                  if (char === '}') {
+                    braceCount--;
+                  }
                 }
-                
+
                 if (braceCount === 0 && jsonStr.trim().length > 0) {
                   try {
-                    currentApiCall.response.headers = JSON.parse(jsonStr);
+                    const parsedHeaders = JSON.parse(jsonStr);
+                    if (isApiCallHeaders(parsedHeaders) && currentApiCall.response) {
+                      currentApiCall.response.headers = parsedHeaders;
+                    }
                   } catch (e) {
-                    console.log('Failed to parse multi-line response headers:', e.message);
+                    console.log(
+                      'Failed to parse multi-line response headers:',
+                      e instanceof Error ? e.message : String(e),
+                    );
                   }
                   break;
                 }
               }
             }
           }
-          
+
           if (nextLine.includes('📄 Response Body:')) {
             const bodyText = nextLine.split('📄 Response Body: ')[1];
-            
+
             if (bodyText && bodyText.trim().length > 0) {
               // Try inline JSON first
               try {
-                currentApiCall.response.body = JSON.parse(bodyText.trim());
+                const parsedBody = JSON.parse(bodyText.trim());
+                if (isRecord(parsedBody) && currentApiCall.response) {
+                  currentApiCall.response.body = parsedBody;
+                }
               } catch (e) {
                 // Parse multi-line JSON for response body
                 let jsonStr = bodyText.trim();
                 let braceCount = 0;
-                
-                for (let char of jsonStr) {
-                  if (char === '{') braceCount++;
-                  if (char === '}') braceCount--;
+
+                for (const char of jsonStr) {
+                  if (char === '{') {
+                    braceCount++;
+                  }
+                  if (char === '}') {
+                    braceCount--;
+                  }
                 }
-                
+
                 if (braceCount !== 0) {
                   for (let k = j + 1; k < Math.min(j + 10, lines.length); k++) {
                     const jsonLine = lines[k].trim();
-                    
-                    if (jsonLine.includes('at logApiResponse') || jsonLine.includes('⏱️  Response Time:')) {
+
+                    if (
+                      jsonLine.includes('at logApiResponse') ||
+                      jsonLine.includes('⏱️  Response Time:')
+                    ) {
                       break;
                     }
-                    
+
                     jsonStr += jsonLine;
-                    
-                    for (let char of jsonLine) {
-                      if (char === '{') braceCount++;
-                      if (char === '}') braceCount--;
+
+                    for (const char of jsonLine) {
+                      if (char === '{') {
+                        braceCount++;
+                      }
+                      if (char === '}') {
+                        braceCount--;
+                      }
                     }
-                    
+
                     if (braceCount === 0 && jsonStr.trim().length > 0) {
                       try {
-                        currentApiCall.response.body = JSON.parse(jsonStr);
+                        const parsedBody = JSON.parse(jsonStr);
+                        if (isRecord(parsedBody) && currentApiCall.response) {
+                          currentApiCall.response.body = parsedBody;
+                        }
                       } catch (e2) {
-                        console.log('Failed to parse multi-line response body:', e2.message, jsonStr);
+                        console.log(
+                          'Failed to parse multi-line response body:',
+                          e2 instanceof Error ? e2.message : String(e2),
+                          jsonStr,
+                        );
                       }
                       break;
                     }
@@ -204,7 +322,7 @@ function parseTestOutput(logContent) {
                 }
               }
             }
-            
+
             // This is the end of response parsing, add the call
             apiCalls.push({ ...currentApiCall });
             currentApiCall = null;
@@ -220,86 +338,114 @@ function parseTestOutput(logContent) {
         const testNameMatch = line.match(/Error for "([^"]*)":/);
         currentApiCall.testName = testNameMatch ? testNameMatch[1] : '';
         currentApiCall.error = { status: null, headers: {}, body: {} };
-        
+
         // Look ahead for error details
         for (let j = i + 1; j < Math.min(i + 20, lines.length); j++) {
           const nextLine = lines[j].trim();
-          
+
           if (nextLine.includes('📊 Error Status:')) {
-            currentApiCall.error.status = nextLine.split('📊 Error Status: ')[1]?.trim();
+            currentApiCall.error.status = nextLine.split('📊 Error Status: ')[1]?.trim() || null;
           }
-          
+
           if (nextLine.includes('📋 Error Headers:')) {
             // Parse multi-line JSON for error headers
             let jsonStr = '';
             let braceCount = 0;
             let startedJson = false;
-            
+
             for (let k = j + 1; k < Math.min(j + 10, lines.length); k++) {
               const jsonLine = lines[k].trim();
-              
+
               if (jsonLine.includes('at logApiError') || jsonLine.includes('📄 Error Body:')) {
                 break;
               }
-              
+
               if (jsonLine.startsWith('{') || startedJson) {
                 startedJson = true;
                 jsonStr += jsonLine;
-                
-                for (let char of jsonLine) {
-                  if (char === '{') braceCount++;
-                  if (char === '}') braceCount--;
+
+                for (const char of jsonLine) {
+                  if (char === '{') {
+                    braceCount++;
+                  }
+                  if (char === '}') {
+                    braceCount--;
+                  }
                 }
-                
+
                 if (braceCount === 0 && jsonStr.trim().length > 0) {
                   try {
-                    currentApiCall.error.headers = JSON.parse(jsonStr);
+                    const parsedHeaders = JSON.parse(jsonStr);
+                    if (isApiCallHeaders(parsedHeaders) && currentApiCall.error) {
+                      currentApiCall.error.headers = parsedHeaders;
+                    }
                   } catch (e) {
-                    console.log('Failed to parse multi-line error headers:', e.message);
+                    console.log(
+                      'Failed to parse multi-line error headers:',
+                      e instanceof Error ? e.message : String(e),
+                    );
                   }
                   break;
                 }
               }
             }
           }
-          
+
           if (nextLine.includes('📄 Error Body:')) {
             const bodyText = nextLine.split('📄 Error Body: ')[1];
-            
+
             if (bodyText && bodyText.trim().length > 0) {
               // Try inline JSON first
               try {
-                currentApiCall.error.body = JSON.parse(bodyText.trim());
+                const parsedBody = JSON.parse(bodyText.trim());
+                if (isRecord(parsedBody) && currentApiCall.error) {
+                  currentApiCall.error.body = parsedBody;
+                }
               } catch (e) {
                 // Parse multi-line JSON for error body
                 let jsonStr = bodyText.trim();
                 let braceCount = 0;
-                
-                for (let char of jsonStr) {
-                  if (char === '{') braceCount++;
-                  if (char === '}') braceCount--;
+
+                for (const char of jsonStr) {
+                  if (char === '{') {
+                    braceCount++;
+                  }
+                  if (char === '}') {
+                    braceCount--;
+                  }
                 }
-                
+
                 if (braceCount !== 0) {
                   for (let k = j + 1; k < Math.min(j + 10, lines.length); k++) {
                     const jsonLine = lines[k].trim();
-                    
+
                     if (jsonLine.includes('at logApiError')) {
                       break;
                     }
-                    
+
                     jsonStr += jsonLine;
-                    
-                    for (let char of jsonLine) {
-                      if (char === '{') braceCount++;
-                      if (char === '}') braceCount--;
+
+                    for (const char of jsonLine) {
+                      if (char === '{') {
+                        braceCount++;
+                      }
+                      if (char === '}') {
+                        braceCount--;
+                      }
                     }
-                    
+
                     if (braceCount === 0 && jsonStr.trim().length > 0) {
                       try {
-                        currentApiCall.error.body = JSON.parse(jsonStr);
+                        const parsedBody = JSON.parse(jsonStr);
+                        if (isRecord(parsedBody) && currentApiCall.error) {
+                          currentApiCall.error.body = parsedBody;
+                        }
                       } catch (e2) {
-                        console.log('Failed to parse multi-line error body:', e2.message, jsonStr);
+                        console.log(
+                          'Failed to parse multi-line error body:',
+                          e2 instanceof Error ? e2.message : String(e2),
+                          jsonStr,
+                        );
                       }
                       break;
                     }
@@ -307,7 +453,7 @@ function parseTestOutput(logContent) {
                 }
               }
             }
-            
+
             // This is the end of error parsing, add the call
             apiCalls.push({ ...currentApiCall });
             currentApiCall = null;
@@ -319,45 +465,64 @@ function parseTestOutput(logContent) {
 
     // Parse test results summary
     if (line.includes('Test Suites:')) {
-      // Handle different formats: "1 failed, 1 total" or "1 passed, 1 total"  
+      // Handle different formats: "1 failed, 1 total" or "1 passed, 1 total"
       const failedMatch = line.match(/(\d+) failed/);
       const passedMatch = line.match(/(\d+) passed/);
       const totalMatch = line.match(/(\d+) total/);
-      
-      if (failedMatch) testResults.failed = parseInt(failedMatch[1]);
-      if (passedMatch) testResults.passed = parseInt(passedMatch[1]);
-      if (totalMatch) testResults.total = parseInt(totalMatch[1]);
+
+      if (failedMatch) {
+        testResults.failed = parseInt(failedMatch[1], 10);
+      }
+      if (passedMatch) {
+        testResults.passed = parseInt(passedMatch[1], 10);
+      }
+      if (totalMatch) {
+        testResults.total = parseInt(totalMatch[1], 10);
+      }
     }
-    
+
     if (line.includes('Tests:')) {
       // Format: "3 passed, 3 total" or "2 failed, 1 passed, 3 total"
       const failedMatch = line.match(/(\d+) failed/);
       const passedMatch = line.match(/(\d+) passed/);
       const totalMatch = line.match(/(\d+) total/);
-      
-      if (failedMatch) testResults.failed = parseInt(failedMatch[1]);
-      if (passedMatch) testResults.passed = parseInt(passedMatch[1]);
-      if (totalMatch) testResults.total = parseInt(totalMatch[1]);
+
+      if (failedMatch) {
+        testResults.failed = parseInt(failedMatch[1], 10);
+      }
+      if (passedMatch) {
+        testResults.passed = parseInt(passedMatch[1], 10);
+      }
+      if (totalMatch) {
+        testResults.total = parseInt(totalMatch[1], 10);
+      }
     }
-    
+
     if (line.includes('Time:')) {
       const timeMatch = line.match(/Time:\s+([\d.]+\s*s)/);
       if (timeMatch) {
-        testResults.duration = timeMatch[1];
+        [, testResults.duration] = timeMatch;
       }
     }
   }
 
   console.log(`📊 Parsed ${apiCalls.length} API calls`);
   console.log('📈 Test Results:', testResults);
-  
+
   return { apiCalls, testResults };
 }
 
-// Generate HTML report
-function generateHtmlReport(apiCalls, testResults, bffLogs) {
+/**
+ * Generate HTML report
+ */
+function generateHtmlReport(
+  apiCalls: ApiCall[],
+  testResults: TestResults,
+  bffLogs: string,
+): string {
   const timestamp = new Date().toISOString();
-  const successRate = testResults.total > 0 ? ((testResults.passed / testResults.total) * 100).toFixed(1) : '0';
+  const successRate =
+    testResults.total > 0 ? ((testResults.passed / testResults.total) * 100).toFixed(1) : '0';
 
   const html = `
 <!DOCTYPE html>
@@ -555,12 +720,17 @@ function generateHtmlReport(apiCalls, testResults, bffLogs) {
             🌐 API Contract Test Details
         </div>
         <div class="section-content">
-            ${apiCalls.length === 0 ? `
+            ${
+              apiCalls.length === 0
+                ? `
                 <div class="api-call">
                     <p>⚠️ No API calls were parsed from the test output. This might indicate a parsing issue.</p>
                     <p>Check the console output of the HTML report generator for more details.</p>
                 </div>
-            ` : apiCalls.map(call => `
+            `
+                : apiCalls
+                    .map(
+                      (call) => `
                 <div class="api-call ${call.error ? 'error' : 'success'}">
                     <div class="api-header">
                         <span class="method">${call.method}</span>
@@ -573,31 +743,70 @@ function generateHtmlReport(apiCalls, testResults, bffLogs) {
                     <h5>📤 Request Headers:</h5>
                     <div class="json-display">${JSON.stringify(call.headers, null, 2)}</div>
                     
-                    ${call.error ? `
+                    ${
+                      call.error
+                        ? `
                         <div class="error-details">
-                            <div class="error-status">❌ HTTP ${call.error.status}</div>
+                            <div class="error-status">❌ HTTP ${
+                              call.error.status ?? 'Unknown'
+                            }</div>
                             <h5>📄 Error Response:</h5>
-                            <div class="json-display">${JSON.stringify(call.error.body, null, 2)}</div>
-                            ${call.error.headers && Object.keys(call.error.headers).length > 0 ? `
+                            <div class="json-display">${JSON.stringify(
+                              call.error.body,
+                              null,
+                              2,
+                            )}</div>
+                            ${
+                              Object.keys(call.error.headers).length > 0
+                                ? `
                                 <h5>📋 Error Headers:</h5>
-                                <div class="json-display">${JSON.stringify(call.error.headers, null, 2)}</div>
-                            ` : ''}
+                                <div class="json-display">${JSON.stringify(
+                                  call.error.headers,
+                                  null,
+                                  2,
+                                )}</div>
+                            `
+                                : ''
+                            }
                         </div>
-                    ` : ''}
+                    `
+                        : ''
+                    }
                     
-                    ${call.response ? `
+                    ${
+                      call.response
+                        ? `
                         <div class="success-details">
-                            <div class="success-status" style="color: #28a745; font-weight: bold; margin-bottom: 10px;">✅ HTTP ${call.response.status}</div>
+                            <div class="success-status" style="color: #28a745; font-weight: bold; margin-bottom: 10px;">✅ HTTP ${
+                              call.response.status ?? 'Unknown'
+                            }</div>
                             <h5>📥 Response Body:</h5>
-                            <div class="json-display">${JSON.stringify(call.response.body, null, 2)}</div>
-                            ${call.response.headers && Object.keys(call.response.headers).length > 0 ? `
+                            <div class="json-display">${JSON.stringify(
+                              call.response.body,
+                              null,
+                              2,
+                            )}</div>
+                            ${
+                              Object.keys(call.response.headers).length > 0
+                                ? `
                                 <h5>📋 Response Headers:</h5>
-                                <div class="json-display">${JSON.stringify(call.response.headers, null, 2)}</div>
-                            ` : ''}
+                                <div class="json-display">${JSON.stringify(
+                                  call.response.headers,
+                                  null,
+                                  2,
+                                )}</div>
+                            `
+                                : ''
+                            }
                         </div>
-                    ` : ''}
+                    `
+                        : ''
+                    }
                 </div>
-            `).join('')}
+            `,
+                    )
+                    .join('')
+            }
         </div>
     </div>
 
@@ -624,18 +833,18 @@ function generateHtmlReport(apiCalls, testResults, bffLogs) {
 // Main execution
 try {
   console.log('📊 Generating Enhanced HTML Report...');
-  
+
   // Read log files
   let testOutput = '';
   let bffLogs = '';
-  
+
   if (fs.existsSync(testOutputFile)) {
     testOutput = fs.readFileSync(testOutputFile, 'utf8');
     console.log('✅ Test output loaded');
   } else {
     console.log('⚠️  No test output file found');
   }
-  
+
   if (fs.existsSync(bffLogFile)) {
     bffLogs = fs.readFileSync(bffLogFile, 'utf8');
     console.log('✅ BFF logs loaded');
@@ -650,11 +859,10 @@ try {
   // Generate HTML report
   const htmlContent = generateHtmlReport(apiCalls, testResults, bffLogs);
   fs.writeFileSync(htmlReportFile, htmlContent);
-  
+
   console.log('🎉 Enhanced HTML Report generated!');
   console.log(`📁 Report location: ${path.resolve(htmlReportFile)}`);
   console.log(`🌐 Open in browser: file://${path.resolve(htmlReportFile)}`);
-  
 } catch (error) {
   console.error('❌ Error generating HTML report:', error);
   process.exit(1);

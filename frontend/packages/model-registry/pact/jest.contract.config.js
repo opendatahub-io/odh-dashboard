@@ -8,6 +8,8 @@ module.exports = {
   // Module resolution - extending from parent config
   moduleNameMapper: {
     '^~/(.*)$': '<rootDir>/upstream/frontend/src/$1',
+    '^@odh-dashboard/pact-testing$': '<rootDir>/../pact-testing/src/index',
+    '^@odh-dashboard/pact-testing/(.*)$': '<rootDir>/../pact-testing/src/$1',
   },
 
   // TypeScript configuration

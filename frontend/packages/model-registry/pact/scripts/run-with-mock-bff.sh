@@ -182,27 +182,26 @@ show_results() {
         grep "Tests:" "$TEST_OUTPUT_FILE" || true
     fi
     
-    # Generate enhanced HTML report
-    log_info "📊 Generating HTML report..."
-    cd "$PACKAGE_DIR"
-    if node pact/scripts/generate-html-report.js; then
-        log_success "📄 HTML report generated!"
+    # Open Jest HTML report
+    JEST_HTML_REPORT="$TEST_RUN_DIR/contract-test-report.html"
+    if [[ -f "$JEST_HTML_REPORT" ]]; then
+        log_info "📊 Opening Jest HTML report..."
         if command -v open >/dev/null 2>&1; then
             log_info "🌐 Opening report in browser..."
-            open "file://$TEST_RUN_DIR/contract-test-report-enhanced.html"
+            open "file://$JEST_HTML_REPORT"
         elif command -v xdg-open >/dev/null 2>&1; then
             log_info "🌐 Opening report in browser..."
-            xdg-open "file://$TEST_RUN_DIR/contract-test-report-enhanced.html"
+            xdg-open "file://$JEST_HTML_REPORT"
         else
-            log_info "🌐 Open in browser: file://$TEST_RUN_DIR/contract-test-report-enhanced.html"
+            log_info "🌐 Open in browser: file://$JEST_HTML_REPORT"
         fi
     else
-        log_warning "HTML report generation failed, but tests completed"
+        log_warning "Jest HTML report not found at $JEST_HTML_REPORT"
     fi
     
     log_success "🎉 Mock BFF integration test completed!"
     log_info "💡 View detailed results: ls -la $TEST_RUN_DIR"
-    log_info "📊 HTML Report: $TEST_RUN_DIR/contract-test-report-enhanced.html"
+    log_info "📊 HTML Report: $TEST_RUN_DIR/contract-test-report.html"
 }
 
 # Main execution

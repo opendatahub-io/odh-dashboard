@@ -4,6 +4,20 @@
     "no-op": {},
     "type-check": {
       "dependsOn": ["^no-op"]
+    },
+    "test:contract:with-bff": {
+      "dependsOn": ["^no-op"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "pact/**",
+        "upstream/bff/**",
+        "../pact-testing/**",
+        "../plugin-core/**",
+        "../tsconfig/**"
+      ],
+      "outputs": [
+        "pact/pact-test-results/**"
+      ]
     }
   }
 }
