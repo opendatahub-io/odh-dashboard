@@ -1228,6 +1228,7 @@ export type TemplateKind = K8sResourceCommon & {
       'opendatahub.io/template-enabled': string;
       'opendatahub.io/modelServingSupport': string;
       'opendatahub.io/apiProtocol': string;
+      'opendatahub.io/modelServingType': string;
     }>;
     name: string;
     namespace: string;

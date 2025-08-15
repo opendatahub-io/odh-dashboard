@@ -98,6 +98,17 @@ export const updateServingRuntimeTemplateBackend = (
                   'opendatahub.io/modelServingSupport': JSON.stringify(platforms),
                 },
               },
+          existingTemplate.metadata.annotations?.['opendatahub.io/modelServingType']
+            ? {
+                op: 'replace',
+                path: '/metadata/annotations/opendatahub.io~1modelServingType',
+                value: '["predictive", "generative"]',
+              }
+            : {
+                op: 'add',
+                path: '/metadata/annotations/opendatahub.io~1modelServingType',
+                value: '["predictive", "generative"]',
+              },
           existingTemplate.metadata.annotations?.['opendatahub.io/apiProtocol']
             ? {
                 op: 'replace',
