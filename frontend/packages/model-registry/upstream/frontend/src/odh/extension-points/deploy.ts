@@ -32,8 +32,10 @@ export type ModelRegistryVersionDeploymentsContextExtension = Extension<
       React.ComponentType<{
         children: ({
           deployments,
+          loaded,
         }: {
           deployments?: any[];
+          loaded: boolean;
         }) => React.ReactNode;
         labelSelectors?: { [key: string]: string };
       }>

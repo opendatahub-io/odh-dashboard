@@ -30,14 +30,11 @@ export const MRDeploymentsContextProvider: React.FC<MRDeploymentsContextProvider
     return (
       <DeploymentsProviderComponent labelSelectors={labelSelectors}>
         {
-          (deploymentsContextValue) => {
-            console.log('deploymentsContextValue', deploymentsContextValue);
-            return (
+          (deploymentsContextValue) => (
               <DeploymentsStateContext.Provider value={deploymentsContextValue}>
                 {children}
               </DeploymentsStateContext.Provider>
-            );
-          }
+          )
         }
       </DeploymentsProviderComponent>
     );

@@ -35,7 +35,6 @@ const ModelVersionsDetailsHeaderActions: React.FC<ModelVersionsDetailsHeaderActi
   const navigate = useNavigate();
   const [isOpenActionDropdown, setOpenActionDropdown] = React.useState(false);
   const [isArchiveModalOpen, setIsArchiveModalOpen] = React.useState(false);
-  const tooltipRef = React.useRef<HTMLButtonElement>(null);
 
   if (!preferredModelRegistry) {
     return null;

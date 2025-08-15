@@ -9,8 +9,8 @@ type ArchiveButtonDropdownItemProps = {
     setIsArchiveModalOpen: (isOpen: boolean) => void;
 }
 
-const ArchiveButtonDropdownItemContent: React.FC<ArchiveButtonDropdownItemProps> = ({ setIsArchiveModalOpen }) => {
-    const { deployments } = useDeploymentsState();
+const ArchiveButtonDropdownItemContent: React.FC<Omit<ArchiveButtonDropdownItemProps, 'rm'>> = ({ setIsArchiveModalOpen }) => {
+    const { deployments, loaded } = useDeploymentsState();
     const hasDeployments = deployments && deployments.length > 0;
     const tooltipRef = React.useRef<HTMLButtonElement>(null);
     return (
@@ -20,7 +20,7 @@ const ArchiveButtonDropdownItemContent: React.FC<ArchiveButtonDropdownItemProps>
             key="archive-model-button"
             onClick={() => setIsArchiveModalOpen(true)}
             ref={tooltipRef}
-            isAriaDisabled={hasDeployments}
+            isAriaDisabled={hasDeployments || !loaded}
             tooltipProps={
                 hasDeployments
                 ? { content: 'Models with deployed versions cannot be archived.' }
@@ -33,16 +33,15 @@ const ArchiveButtonDropdownItemContent: React.FC<ArchiveButtonDropdownItemProps>
 };
 
 const ArchiveButtonDropdownItem: React.FC<ArchiveButtonDropdownItemProps> = ({ setIsArchiveModalOpen }) => {
-    const { modelVersionId: mvId, registeredModelId: rmId } = useParams();
+    const { registeredModelId: rmId } = useParams();
     const labelSelectors = React.useMemo(() => {
-        if (!rmId || !mvId) {
+        if (!rmId) {
           return undefined;
         }
         return {
           [KnownLabels.REGISTERED_MODEL_ID]: rmId,
-          [KnownLabels.MODEL_VERSION_ID]: mvId,
-        };
-    }, [rmId, mvId]);
+        }
+    }, [rmId]);
     return (
     <MRDeploymentsContextProvider labelSelectors={labelSelectors}>
         <ArchiveButtonDropdownItemContent setIsArchiveModalOpen={setIsArchiveModalOpen} />

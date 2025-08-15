@@ -1,4 +1,3 @@
-import { ProjectKind } from '@odh-dashboard/internal/k8sTypes.js';
 import type { Extension, CodeRef } from '@openshift/dynamic-plugin-sdk';
 import type { ModelDeployPrefillInfo } from '~/odh/hooks/useRegisteredModelDeployPrefillInfo';
 export type ModelRegistryDeployModalExtension = Extension<'model-registry.model-version/deploy-modal', {
@@ -16,11 +15,9 @@ export type ModelRegistryDeployModalExtension = Extension<'model-registry.model-
 export declare const isModelRegistryDeployModalExtension: (extension: Extension) => extension is ModelRegistryDeployModalExtension;
 export type ModelRegistryVersionDeploymentsContextExtension = Extension<'model-registry.model-version/deployments-context', {
     DeploymentsProvider: CodeRef<React.ComponentType<{
-        children: ({ deployments, loaded, errors, projects, }: {
+        children: ({ deployments, loaded, }: {
             deployments?: any[];
             loaded: boolean;
-            errors?: Error[];
-            projects?: ProjectKind[];
         }) => React.ReactNode;
         labelSelectors?: {
             [key: string]: string;

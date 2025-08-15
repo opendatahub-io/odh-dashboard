@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Table } from 'mod-arch-shared';
-import { ModelVersion } from '~/app/types';
+import { ModelVersion, RegisteredModel } from '~/app/types';
 import OdhModelVersionsTable from '~/odh/components/OdhModelVersionsTable';
 
 type ModelVersionsTableProps = {
@@ -8,6 +8,7 @@ type ModelVersionsTableProps = {
   modelVersions: ModelVersion[];
   isArchiveModel?: boolean;
   refresh: () => void;
+  rm: RegisteredModel;
 } & Partial<Pick<React.ComponentProps<typeof Table>, 'toolbarContent'>>;
 
 const ModelVersionsTable: React.FC<ModelVersionsTableProps> = ({
@@ -16,6 +17,7 @@ const ModelVersionsTable: React.FC<ModelVersionsTableProps> = ({
   toolbarContent,
   isArchiveModel,
   refresh,
+  rm,
 }) => (
   <OdhModelVersionsTable
     clearFilters={clearFilters}
@@ -23,6 +25,7 @@ const ModelVersionsTable: React.FC<ModelVersionsTableProps> = ({
     toolbarContent={toolbarContent}
     isArchiveModel={isArchiveModel}
     refresh={refresh}
+    rm={rm}
   />
 );
 

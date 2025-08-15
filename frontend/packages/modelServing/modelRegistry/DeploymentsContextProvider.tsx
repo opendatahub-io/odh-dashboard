@@ -8,15 +8,27 @@ import {
 import { Deployment, isModelServingPlatformExtension } from '../extension-points';
 
 interface DeploymentsContextProviderProps {
-  children: ({ deployments }: { deployments?: Deployment[] }) => React.ReactNode;
+  children: ({
+    deployments,
+    loaded,
+  }: {
+    deployments?: Deployment[];
+    loaded: boolean;
+  }) => React.ReactNode;
   labelSelectors?: { [key: string]: string };
 }
 
 const ModelDeploymentsProviderContent: React.FC<{
-  children: ({ deployments }: { deployments?: Deployment[] }) => React.ReactNode;
+  children: ({
+    deployments,
+    loaded,
+  }: {
+    deployments?: Deployment[];
+    loaded: boolean;
+  }) => React.ReactNode;
 }> = ({ children }) => {
-  const { deployments } = React.useContext(ModelDeploymentsContext);
-  return <>{children({ deployments })}</>;
+  const { deployments, loaded } = React.useContext(ModelDeploymentsContext);
+  return <>{children({ deployments, loaded })}</>;
 };
 
 const DeploymentsContextProvider: React.FC<DeploymentsContextProviderProps> = ({
