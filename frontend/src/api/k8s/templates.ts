@@ -40,6 +40,7 @@ export const assembleServingRuntimeTemplate = (
       },
       annotations: {
         'opendatahub.io/modelServingSupport': JSON.stringify(platforms),
+        'opendatahub.io/modelServingType': '["predictive", "generative"]',
         ...(apiProtocol && { 'opendatahub.io/apiProtocol': apiProtocol }),
       },
     },

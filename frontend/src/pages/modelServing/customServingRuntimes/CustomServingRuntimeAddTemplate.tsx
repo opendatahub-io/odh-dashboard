@@ -23,6 +23,7 @@ import {
 } from '#~/services/templateService';
 import { ServingRuntimeAPIProtocol, ServingRuntimePlatform } from '#~/types';
 import CustomServingRuntimePlatformsSelector from '#~/pages/modelServing/customServingRuntimes/CustomServingRuntimePlatformsSelector';
+import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import {
   getAPIProtocolFromTemplate,
   getEnabledPlatformsFromTemplate,
@@ -32,6 +33,7 @@ import {
 } from './utils';
 import { CustomServingRuntimeContext } from './CustomServingRuntimeContext';
 import CustomServingRuntimeAPIProtocolSelector from './CustomServingRuntimeAPIProtocolSelector';
+import CustomServingRuntimeModelTypeSelector from './CustomServingRuntimeModelTypeSelector';
 
 type CustomServingRuntimeAddTemplateProps = {
   existingTemplate?: TemplateKind;
@@ -121,6 +123,8 @@ const CustomServingRuntimeAddTemplate: React.FC<CustomServingRuntimeAddTemplateP
     !selectedAPIProtocol ||
     loading;
 
+  const isDeploymentWizardEnabled = useIsAreaAvailable(SupportedArea.DEPLOYMENT_WIZARD).status;
+
   return (
     <ApplicationsPage
       title={
@@ -168,6 +172,11 @@ const CustomServingRuntimeAddTemplate: React.FC<CustomServingRuntimeAddTemplateP
               selectedPlatforms={selectedPlatforms}
             />
           </StackItem>
+          {isDeploymentWizardEnabled && (
+            <StackItem>
+              <CustomServingRuntimeModelTypeSelector />
+            </StackItem>
+          )}
           <StackItem isFilled>
             <DashboardCodeEditor
               testId="dashboard-code-editor"
