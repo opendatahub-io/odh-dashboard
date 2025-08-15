@@ -1,9 +1,7 @@
 import * as React from 'react';
-import { DashboardEmptyTableView, Table } from 'mod-arch-shared';
+import { Table } from 'mod-arch-shared';
 import { ModelVersion } from '~/app/types';
-import { mvColumns } from '~/app/pages/modelRegistry/screens/ModelVersions/ModelVersionsTableColumns';
-import ModelVersionsTableRow from '~/app/pages/modelRegistry/screens/ModelVersions/ModelVersionsTableRow';
-import { MRDeploymentsContextProvider } from '~/odh/components/MRDeploymentsContextProvider';
+import OdhModelVersionsTable from '~/odh/components/OdhModelVersionsTable';
 
 type ModelVersionsTableProps = {
   clearFilters: () => void;
@@ -19,23 +17,12 @@ const ModelVersionsTable: React.FC<ModelVersionsTableProps> = ({
   isArchiveModel,
   refresh,
 }) => (
-  <Table
-    data-testid="model-versions-table"
-    data={modelVersions}
-    columns={mvColumns}
+  <OdhModelVersionsTable
+    clearFilters={clearFilters}
+    modelVersions={modelVersions}
     toolbarContent={toolbarContent}
-    defaultSortColumn={3}
-    enablePagination
-    onClearFilters={clearFilters}
-    emptyTableView={<DashboardEmptyTableView onClearFilters={clearFilters} />}
-    rowRenderer={(mv: ModelVersion) => (
-      <ModelVersionsTableRow
-        key={mv.name}
-        modelVersion={mv}
-        isArchiveModel={isArchiveModel}
-        refresh={refresh}
-      />
-    )}
+    isArchiveModel={isArchiveModel}
+    refresh={refresh}
   />
 );
 

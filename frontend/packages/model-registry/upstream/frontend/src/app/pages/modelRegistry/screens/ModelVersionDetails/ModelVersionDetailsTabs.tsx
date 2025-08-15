@@ -1,11 +1,12 @@
 import * as React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { PageSection, Tab, Tabs, TabTitleText } from '@patternfly/react-core';
 import { ModelVersion } from '~/app/types';
 import { ModelVersionDetailsTabTitle, ModelVersionDetailsTab } from './const';
 import ModelVersionDetailsView from './ModelVersionDetailsView';
 import { isModelRegistryVersionDetailsTabExtension } from '~/odh/extension-points/details';
 import { LazyCodeRefComponent, useExtensions } from '@odh-dashboard/plugin-core';
+import { KnownLabels } from '~/odh/k8sTypes';
 
 type ModelVersionDetailTabsProps = {
   tab: string;
@@ -22,6 +23,7 @@ const ModelVersionDetailsTabs: React.FC<ModelVersionDetailTabsProps> = ({
 }) => {
   const navigate = useNavigate();
   const tabExtensions = useExtensions(isModelRegistryVersionDetailsTabExtension);
+  const { modelVersionId: mvId, registeredModelId: rmId } = useParams();
 
   const modelVersionDetails = [
     <Tab
@@ -52,7 +54,7 @@ const ModelVersionDetailsTabs: React.FC<ModelVersionDetailTabsProps> = ({
           isFilled
           data-testid={`${extension.properties.id}-tab-content`}
         >
-          <LazyCodeRefComponent component={extension.properties.component} />
+          <LazyCodeRefComponent component={extension.properties.component} props={{ rmId, mvId }} />
         </PageSection>
       </Tab>
     )),

@@ -3,16 +3,10 @@ import React from 'react';
 // Context for sharing deployments state
 type DeploymentsStateContextType = {
   deployments?: any[];
-  loaded: boolean;
-  errors?: Error[];
-  projects?: any[];
 };
 
 export const DeploymentsStateContext = React.createContext<DeploymentsStateContextType>({
   deployments: undefined,
-  loaded: false,
-  errors: undefined,
-  projects: undefined,
 });
 
 /**
