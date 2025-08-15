@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
-import { testHook } from '@odh-dashboard/internal/__tests__/unit/testUtils/hooks';
-import { mockFeatureView } from '@odh-dashboard/internal/__mocks__/mockFeatureViews';
+import { testHook } from '@odh-dashboard/jest-config/hooks';
+import { mockFeatureView } from '../../__mocks__/mockFeatureViews';
 import { useFeatureStoreAPI } from '../../FeatureStoreContext';
 import { FeatureViewsList } from '../../types/featureView';
 import useFeatureViews from '../useFeatureViews';

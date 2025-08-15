@@ -1,7 +1,7 @@
 import { act } from 'react';
 import { waitFor } from '@testing-library/react';
+import { standardUseFetchState, testHook } from '@odh-dashboard/jest-config/hooks';
 import useFetchState, { FetchState } from '#~/utilities/useFetchState';
-import { standardUseFetchState, testHook } from '#~/__tests__/unit/testUtils/hooks';
 
 // These tests are around to keep the deprecated useFetchState working,
 // but are redundant with the useFetch tests and should be removed when useFetchState is removed.

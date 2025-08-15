@@ -1,7 +1,7 @@
 import { waitFor } from '@testing-library/dom';
+import { testHook } from '@odh-dashboard/jest-config/hooks';
 import { mockConnection } from '#~/__mocks__/mockConnection';
 import useConnections from '#~/pages/projects/screens/detail/connections/useConnections';
-import { testHook } from '#~/__tests__/unit/testUtils/hooks';
 import usePipelinesConnections from '#~/pages/projects/screens/detail/connections/usePipelinesConnections';
 import useServingConnections from '#~/pages/projects/screens/detail/connections/useServingConnections';
 

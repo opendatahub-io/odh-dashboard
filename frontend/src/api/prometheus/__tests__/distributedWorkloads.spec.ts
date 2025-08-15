@@ -1,10 +1,10 @@
 import { act } from 'react';
+import { testHook } from '@odh-dashboard/jest-config/hooks';
 import axios from '#~/utilities/axios';
 import { mockPrometheusQueryVectorResponse } from '#~/__mocks__/mockPrometheusQueryVectorResponse';
 import { mockWorkloadK8sResource } from '#~/__mocks__/mockWorkloadK8sResource';
 import { WorkloadKind, WorkloadOwnerType } from '#~/k8sTypes';
 import { getWorkloadOwner } from '#~/concepts/distributedWorkloads/utils';
-import { testHook } from '#~/__tests__/unit/testUtils/hooks';
 import { POLL_INTERVAL } from '#~/utilities/const';
 import {
   DWProjectCurrentMetrics,

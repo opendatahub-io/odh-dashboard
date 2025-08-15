@@ -1,4 +1,4 @@
-import { standardUseFetchState, testHook } from '#~/__tests__/unit/testUtils/hooks';
+import { standardUseFetchState, testHook } from '@odh-dashboard/jest-config/hooks';
 import usePipelineQuery from '#~/concepts/pipelines/apiHooks/usePipelineQuery';
 
 describe('usePipelineQuery', () => {

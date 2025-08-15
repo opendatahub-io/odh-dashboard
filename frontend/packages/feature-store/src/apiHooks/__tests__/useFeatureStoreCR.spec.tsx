@@ -1,10 +1,10 @@
 /* eslint-disable camelcase */
 import { k8sListResource } from '@openshift/dynamic-plugin-sdk-utils';
-import { testHook } from '@odh-dashboard/internal/__tests__/unit/testUtils/hooks';
-import { mockFeatureStore } from '@odh-dashboard/internal/__mocks__/mockFeatureStore';
+import { testHook } from '@odh-dashboard/jest-config/hooks';
 import { mockK8sResourceList } from '@odh-dashboard/internal/__mocks__/mockK8sResourceList';
 import { FeatureStoreKind } from '@odh-dashboard/internal/k8sTypes';
 import { FeatureStoreModel } from '@odh-dashboard/internal/api/models/odh';
+import { mockFeatureStore } from '../../__mocks__/mockFeatureStore';
 import { FEATURE_STORE_UI_LABEL_KEY, FEATURE_STORE_UI_LABEL_VALUE } from '../../const';
 import { useFeatureStoreCR } from '../useFeatureStoreCR';
 

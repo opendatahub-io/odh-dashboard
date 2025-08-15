@@ -1,9 +1,0 @@
-{
-  "$schema": "https://turbo.build/schema.json",
-  "tasks": {
-    "no-op": {},
-    "type-check": {
-      "dependsOn": ["^no-op"]
-    }
-  }
-}

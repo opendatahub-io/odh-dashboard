@@ -1,4 +1,4 @@
-import { testHook, standardUseFetchState } from '#~/__tests__/unit/testUtils/hooks';
+import { standardUseFetchState, testHook } from '@odh-dashboard/jest-config/hooks';
 import useModelArtifactsByVersionId from '#~/concepts/modelRegistry/apiHooks/useModelArtifactsByVersionId';
 import { ModelArtifactList } from '#~/concepts/modelRegistry/types';
 import { mockModelArtifactList } from '#~/__mocks__/mockModelArtifactList';
