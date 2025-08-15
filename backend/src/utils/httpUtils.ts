@@ -61,7 +61,7 @@ export const proxyCall = (
           requestOptions.headers = {
             ...requestOptions.headers,
             'Content-Type': contentType,
-            'Content-Length': Buffer.byteLength(requestData, 'utf8'),
+            'Content-Length': String(Buffer.byteLength(requestData, 'utf8')),
           };
         }
 

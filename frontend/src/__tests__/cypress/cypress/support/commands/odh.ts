@@ -1,5 +1,12 @@
 import type { K8sResourceListResult, K8sStatus } from '@openshift/dynamic-plugin-sdk-utils';
 import type { GenericStaticResponse, RouteHandlerController } from 'cypress/types/net-stubbing';
+import type {
+  FeatureService,
+  FeatureServicesList,
+} from '@odh-dashboard/feature-store/types/featureServices';
+import type { FeatureViewsList } from '@odh-dashboard/feature-store/types/featureView';
+import type { EntityList } from '@odh-dashboard/feature-store/types/entities';
+import type { ProjectList } from '@odh-dashboard/feature-store/types/featureStoreProjects';
 import type { BaseMetricCreationResponse, BaseMetricListResponse } from '#~/api';
 import type {
   ModelArtifact,
@@ -60,13 +67,6 @@ import type { NimServingResponse } from '#~/__mocks__/mockNimResource';
 import type { BuildMockPipelinveVersionsType } from '#~/__mocks__';
 import type { ArtifactStorage } from '#~/concepts/pipelines/types';
 import type { ConnectionTypeConfigMap } from '#~/concepts/connectionTypes/types';
-import type {
-  FeatureService,
-  FeatureServicesList,
-} from '../../../../../../packages/feature-store/src/types/featureServices';
-import type { FeatureViewsList } from '../../../../../../packages/feature-store/src/types/featureView';
-import type { EntityList } from '../../../../../../packages/feature-store/src/types/entities';
-import type { ProjectList } from '../../../../../../packages/feature-store/src/types/featureStoreProjects';
 
 type SuccessErrorResponse = {
   success: boolean;

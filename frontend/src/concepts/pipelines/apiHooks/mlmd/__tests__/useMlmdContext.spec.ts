@@ -1,4 +1,4 @@
-import { testHook, standardUseFetchState } from '#~/__tests__/unit/testUtils/hooks';
+import { standardUseFetchState, testHook } from '@odh-dashboard/jest-config/hooks';
 import { MetadataStoreServicePromiseClient, Context } from '#~/third_party/mlmd';
 import { MlmdContextTypes } from '#~/concepts/pipelines/apiHooks/mlmd/types';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';

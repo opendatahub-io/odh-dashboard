@@ -22,8 +22,8 @@ describe('Workbenches - status tests', () => {
   const uuid = generateTestUUID();
 
   // Setup: Load test data and ensure clean state
-  retryableBefore(() => {
-    return loadWBStatusFixture('e2e/dataScienceProjects/testWorkbenchStatus.yaml')
+  retryableBefore(() =>
+    loadWBStatusFixture('e2e/dataScienceProjects/testWorkbenchStatus.yaml')
       .then((fixtureData: WBStatusTestData) => {
         projectName = `${fixtureData.wbStatusTestNamespace}-${uuid}`;
         projectDescription = fixtureData.wbStatusTestDescription;
@@ -36,8 +36,8 @@ describe('Workbenches - status tests', () => {
       })
       .then(() => {
         cy.log(`Project ${projectName} confirmed to be created and verified successfully`);
-      });
-  });
+      }),
+  );
 
   after(() => {
     // Delete provisioned Project
