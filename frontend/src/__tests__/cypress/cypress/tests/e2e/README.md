@@ -207,7 +207,7 @@ Tests are parameterized using tags and applied to the 'it' block:
 
 **Usage in tests:**
 ```javascript
-{ tags: ['@Sanity', '@SanitySet1', '@ODS-1931', '@Dashboard', '@Workbenches'] }
+it('test name', { tags: ['@Sanity', '@SanitySet1', '@ODS-1931', '@Dashboard', '@Workbenches'] }, () => {})
 ```
 
 ### Test Contents
