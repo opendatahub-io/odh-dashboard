@@ -6,20 +6,16 @@ import {
   NotificationWatcherContext,
 } from '@odh-dashboard/internal/concepts/notificationWatcher/NotificationWatcherContext';
 import { InferenceServiceModelState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
-import {
-  getInferenceServiceLastFailureReason,
-  getInferenceServiceModelState,
-} from '@odh-dashboard/internal/concepts/modelServingKServe/kserveStatusUtils';
-
-import { getInferenceService } from '@odh-dashboard/internal/api/k8s/inferenceServices';
+import { FAST_POLL_INTERVAL } from '@odh-dashboard/internal/utilities/const';
+import { DeploymentStatus } from '../../extension-points';
 
 type ModelDeploymentNotification = {
   watchDeployment: () => void;
 };
 
 export const useModelDeploymentNotification = (
+  deploymentStatusRef: React.MutableRefObject<DeploymentStatus | undefined>,
   namespace: string,
-  modelName: string,
 ): ModelDeploymentNotification => {
   const navigate = useNavigate();
   const notification = useNotification();
@@ -28,43 +24,34 @@ export const useModelDeploymentNotification = (
 
   const watchDeployment = React.useCallback(() => {
     registerNotification({
-      callback: async (signal) => {
+      callbackDelay: FAST_POLL_INTERVAL,
+      callback: async () => {
         try {
-          const inferenceService = await getInferenceService(modelName, namespace, { signal });
-          const inferenceServiceModelState = getInferenceServiceModelState(inferenceService);
+          const currentStatus = deploymentStatusRef.current;
+          if (!currentStatus) {
+            return { status: NotificationResponseStatus.STOP };
+          }
 
-          // A model is considered "stopped" if it has no active pods and is not in a starting/failed state
-          const isStopped =
-            !inferenceService.status?.modelStatus?.states?.activeModelState &&
-            inferenceServiceModelState !== InferenceServiceModelState.PENDING &&
-            inferenceServiceModelState !== InferenceServiceModelState.LOADING &&
-            inferenceServiceModelState !== InferenceServiceModelState.UNKNOWN &&
-            inferenceServiceModelState !== InferenceServiceModelState.FAILED_TO_LOAD; // Don't consider failed models as stopped
-
-          const isStarting =
-            !inferenceService.status?.modelStatus?.states?.activeModelState &&
-            inferenceService.status?.modelStatus?.states?.targetModelState !==
-              InferenceServiceModelState.FAILED_TO_LOAD &&
-            !isStopped;
-
-          const isRunning = inferenceServiceModelState === InferenceServiceModelState.LOADED;
+          const deploymentState = currentStatus.state;
+          //const isStoppedState = currentStatus.stoppedStates?.isStopped || false;
+          const {
+            isStarting: isStartingState,
+            isRunning: isRunningState,
+            isStopped: isStoppedState,
+          } = currentStatus.stoppedStates || {};
+          const isFailedState = deploymentState === InferenceServiceModelState.FAILED_TO_LOAD;
 
           // Track previous state
           const lastState = lastSeenState.current;
-          lastSeenState.current = inferenceServiceModelState;
+          lastSeenState.current = deploymentState;
 
           // Only consider it failed if it's not stopped, the state is FAILED_TO_LOAD, and the last state was PENDING
-          const isFailed =
-            !isStopped &&
-            inferenceServiceModelState === InferenceServiceModelState.FAILED_TO_LOAD &&
-            lastState === InferenceServiceModelState.PENDING;
-
-          const lastFailureReason = getInferenceServiceLastFailureReason(inferenceService);
+          const isFailed = isFailedState && lastState === InferenceServiceModelState.PENDING;
 
           if (isFailed) {
             notification.error(
               'Model deployment failed',
-              lastFailureReason ||
+              currentStatus.message ||
                 'Failed to load the model. Please check the model configuration and try again.',
               [
                 {
@@ -76,12 +63,12 @@ export const useModelDeploymentNotification = (
             return { status: NotificationResponseStatus.STOP };
           }
 
-          if (isRunning && lastState === InferenceServiceModelState.LOADED) {
+          if (isRunningState && lastState === InferenceServiceModelState.LOADED) {
             // Model is running, stop polling
             return { status: NotificationResponseStatus.STOP };
           }
 
-          if (isStopped) {
+          if (isStoppedState) {
             // Model appears stopped, but let's continue polling for a bit to see if it's just in transition
             // Only stop if we've seen the same stopped state multiple times
             if (lastState === InferenceServiceModelState.UNKNOWN || lastState === null) {
@@ -93,9 +80,9 @@ export const useModelDeploymentNotification = (
           }
 
           if (
-            isStarting ||
-            inferenceServiceModelState === InferenceServiceModelState.PENDING ||
-            inferenceServiceModelState === InferenceServiceModelState.LOADING
+            isStartingState ||
+            lastState === InferenceServiceModelState.PENDING ||
+            lastState === InferenceServiceModelState.LOADING
           ) {
             // Model is still starting/loading, continue polling
             return { status: NotificationResponseStatus.REPOLL };
@@ -117,7 +104,7 @@ export const useModelDeploymentNotification = (
         }
       },
     });
-  }, [registerNotification, navigate, namespace, modelName, notification]);
+  }, [registerNotification, navigate, deploymentStatusRef, namespace, notification]);
 
   return { watchDeployment };
 };
