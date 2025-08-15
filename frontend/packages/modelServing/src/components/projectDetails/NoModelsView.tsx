@@ -7,6 +7,7 @@ import { Stack, StackItem } from '@patternfly/react-core';
 import { NavigateBackToRegistryButton } from '@odh-dashboard/internal/concepts/modelServing/NavigateBackToRegistryButton';
 import { ModelServingPlatform } from '../../concepts/useProjectServingPlatform';
 import { DeployButton } from '../deploy/DeployButton';
+import { getDeploymentWizardRoute } from '../deploymentWizard/utils';
 
 export const NoModelsView: React.FC<{
   platform: ModelServingPlatform;
@@ -30,7 +31,12 @@ export const NoModelsView: React.FC<{
         <StackItem>{platform.properties.deployedModelsView.startHintDescription}</StackItem>
       </Stack>
     }
-    createButton={<DeployButton project={project} />}
+    createButton={
+      <DeployButton
+        project={project}
+        createRoute={getDeploymentWizardRoute(`/projects/${project.metadata.name}`)}
+      />
+    }
     footerExtraChildren={<NavigateBackToRegistryButton isEmptyStateAction />}
   />
 );
