@@ -21,7 +21,7 @@ import {
   ClusterSettingsIcon,
   EnabledApplicationsIcon,
   ExploreApplicationsIcon,
-  PipelineExecutionIcon,
+  CheckmarkIcon,
   ArtifactIcon,
   DistributedWorkloadIcon,
   AcceleratorProfileIcon,
@@ -34,7 +34,6 @@ import {
   ModelCatalogIcon,
   ModelRegistrySelectIcon,
   ModelEvaluationIcon,
-  ModelConnectionIcon,
   LabTuningIcon,
 } from '#~/images/icons';
 
@@ -76,7 +75,7 @@ const TypedObjectIcon: React.FC<TypedObjectIconProps> = ({
       Icon = ExperimentIcon;
       break;
     case ProjectObjectType.pipelineExecution:
-      Icon = PipelineExecutionIcon;
+      Icon = CheckmarkIcon;
       break;
     case ProjectObjectType.pipelineArtifact:
       Icon = ArtifactIcon;
@@ -117,7 +116,7 @@ const TypedObjectIcon: React.FC<TypedObjectIconProps> = ({
       Icon = DeployedModelIcon;
       break;
     case ProjectObjectType.connectedModels:
-      Icon = ModelConnectionIcon;
+      Icon = CheckmarkIcon;
       break;
     case ProjectObjectType.servingRuntime:
       Icon = ServingRuntimeIcon;
