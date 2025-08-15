@@ -28,7 +28,7 @@ Oftentimes developers write `React.useRef`, `React.useMemo`, and `React.useCallb
 
 **When to use `useCallback` (reference stability matters):**
 
-```typescript
+```tsx
 // ✅ GOOD: Function passed as prop to child component
 const handleItemClick = useCallback((id: string) => {
   setSelectedItem(id);
@@ -58,7 +58,7 @@ const useItemActions = () => {
 
 **When NOT to use `useCallback` (unnecessary overhead):**
 
-```typescript
+```tsx
 // ❌ BAD: Simple event handler not passed as prop
 const handleClick = useCallback(() => {
   setCount(count + 1);
@@ -106,7 +106,7 @@ Oftentimes we will want to create custom hooks for reusability among multiple co
 
 **Example of why function memoization matters in custom hooks:**
 
-```typescript
+```tsx
 // ❌ BAD: Unstable function reference from custom hook
 const useData = () => {
   const [data, setData] = useState([]);
