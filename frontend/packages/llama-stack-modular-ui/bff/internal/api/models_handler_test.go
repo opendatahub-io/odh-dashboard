@@ -5,6 +5,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/opendatahub-io/llama-stack-modular-ui/internal/constants"
 	"github.com/opendatahub-io/llama-stack-modular-ui/internal/integrations/llamastack"
 	"github.com/opendatahub-io/llama-stack-modular-ui/internal/models"
 )
@@ -176,8 +177,8 @@ var _ = Describe("Models Handler", func() {
 
 	Describe("Model Constants", func() {
 		It("should have correct constant values", func() {
-			Expect(LLMModelType).To(Equal("llm"))
-			Expect(EmbeddingModelType).To(Equal("embedding"))
+			Expect(constants.LLMModelType).To(Equal("llm"))
+			Expect(constants.EmbeddingModelType).To(Equal("embedding"))
 		})
 	})
 })
