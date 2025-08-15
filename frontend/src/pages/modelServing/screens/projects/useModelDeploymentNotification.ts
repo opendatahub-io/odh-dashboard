@@ -13,6 +13,7 @@ import {
 } from '#~/concepts/modelServingKServe/kserveStatusUtils';
 import { useModelStatus } from '#~/pages/modelServing/screens/global/useModelStatus';
 import { getInferenceServiceStoppedStatus } from '#~/pages/modelServing/utils';
+import { FAST_POLL_INTERVAL } from '#~/utilities/const';
 
 type ModelDeploymentNotification = {
   watchDeployment: () => void;
@@ -31,6 +32,7 @@ export const useModelDeploymentNotification = (
 
   const watchDeployment = React.useCallback(() => {
     registerNotification({
+      callbackDelay: FAST_POLL_INTERVAL,
       callback: async (signal) => {
         // Early failure detection from pod scheduling
         if (modelStatus?.failedToSchedule) {
