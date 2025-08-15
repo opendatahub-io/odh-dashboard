@@ -4,6 +4,7 @@
   "description": "Model training plugin for managing training jobs and experiments.",
   "version": "0.0.0",
   "scripts": {
+    "lint": "eslint .",
     "type-check": "tsc --noEmit"
   },
   "exports": {

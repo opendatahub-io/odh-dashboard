@@ -42,6 +42,10 @@
     "@odh-dashboard/internal": "*",
     "@odh-dashboard/pact-testing": "*"
   },
+  "devDependencies": {
+    "@odh-dashboard/eslint-config": "*",
+    "@odh-dashboard/tsconfig": "*"
+  },
   "optionalDependencies": {
     "@types/jest": "^29.5.13",
     "jest": "^29.7.0",

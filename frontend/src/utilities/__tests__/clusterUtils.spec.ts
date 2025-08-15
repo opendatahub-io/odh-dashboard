@@ -1,6 +1,6 @@
+import { testHook } from '@odh-dashboard/jest-config/hooks';
 import { useClusterInfo } from '#~/redux/selectors/clusterInfo';
 import { getOpenShiftConsoleServerURL, useOpenShiftURL } from '#~/utilities/clusterUtils';
-import { testHook } from '#~/__tests__/unit/testUtils/hooks';
 
 const originalLocation = window.location;
 

@@ -19,8 +19,8 @@ describe('[Feature behing a Dev Feature Flag] Verify Hardware Profiles - Creatin
   const uuid = generateTestUUID();
 
   // Setup: Load test data and ensure clean state
-  retryableBefore(() => {
-    return cy
+  retryableBefore(() =>
+    cy
       .fixture('e2e/hardwareProfiles/testHardwareProfiles.yaml', 'utf8')
       .then((yamlContent: string) => {
         testData = yaml.load(yamlContent) as HardwareProfilesData;
@@ -31,8 +31,8 @@ describe('[Feature behing a Dev Feature Flag] Verify Hardware Profiles - Creatin
 
         // Call cleanupHardwareProfiles here, after hardwareProfileResourceName is set
         return cleanupHardwareProfiles(hardwareProfileResourceName);
-      });
-  });
+      }),
+  );
 
   it(
     'Create, Edit and Delete a Hardware Profile',
