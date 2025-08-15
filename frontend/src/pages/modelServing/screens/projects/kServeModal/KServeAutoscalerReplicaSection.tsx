@@ -7,12 +7,14 @@ type KServeAutoscalerReplicaSectionProps = {
   data: CreatingInferenceServiceObject;
   setData: UpdateObjectAtPropAndValue<CreatingInferenceServiceObject>;
   infoContent?: string;
+  onValidationChange?: (hasValidationErrors: boolean) => void;
 };
 
 const KServeAutoscalerReplicaSection: React.FC<KServeAutoscalerReplicaSectionProps> = ({
   data,
   setData,
   infoContent,
+  onValidationChange,
 }) => (
   <ReplicaSection
     infoContent={infoContent}
@@ -21,8 +23,6 @@ const KServeAutoscalerReplicaSection: React.FC<KServeAutoscalerReplicaSectionPro
       setData('minReplicas', value);
       if (data.isKServeRawDeployment) {
         setData('maxReplicas', value);
-      } else if (value > data.maxReplicas) {
-        setData('maxReplicas', value);
       }
     }}
     value={data.minReplicas}
@@ -30,10 +30,8 @@ const KServeAutoscalerReplicaSection: React.FC<KServeAutoscalerReplicaSectionPro
     maxValue={data.maxReplicas}
     onMaxChange={(value) => {
       setData('maxReplicas', value);
-      if (value < data.minReplicas) {
-        setData('minReplicas', value);
-      }
     }}
+    onValidationChange={onValidationChange}
   />
 );
 
