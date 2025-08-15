@@ -63,7 +63,7 @@ describe('[Automation Bug: RHOAIENG-32294] Verify Admin Single Model Creation an
         '@Dashboard',
         '@Modelserving',
         '@NonConcurrent',
-        '@Bug',
+        '@Maintain',
       ],
     },
     () => {
