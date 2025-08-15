@@ -23,7 +23,7 @@ export { default as MultiModelIcon } from './MultiModelIcon';
 export { default as NotebookIcon } from './NotebookIcon';
 export { default as NotebookImageIcon } from './NotebookImageIcon';
 export { default as PermissionsIcon } from './PermissionsIcon';
-export { default as PipelineExecutionIcon } from './PipelineExecutionIcon';
+export { default as CheckmarkIcon } from './CheckmarkIcon';
 export { default as PipelineIcon } from './PipelineIcon';
 export { default as PipelineRunIcon } from './PipelineRunIcon';
 export { default as ProjectIcon } from './ProjectIcon';

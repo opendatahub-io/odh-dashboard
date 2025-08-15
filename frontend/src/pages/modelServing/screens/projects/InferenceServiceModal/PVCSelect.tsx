@@ -1,5 +1,5 @@
 import React from 'react';
-import { Alert, FormGroup, Label, Stack, StackItem } from '@patternfly/react-core';
+import { Alert, FormGroup, Stack, StackItem } from '@patternfly/react-core';
 import TypeaheadSelect, { TypeaheadSelectOption } from '#~/components/TypeaheadSelect';
 import { PersistentVolumeClaimKind } from '#~/k8sTypes';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
@@ -55,12 +55,10 @@ export const PvcSelect: React.FC<PvcSelectProps> = ({
         return {
           content: displayName,
           value: pvc.metadata.name,
-          dropdownLabel: isModelServingPVC ? (
-            <Label isCompact color="green">
-              {modelName ?? 'Unknown model name'}
-            </Label>
-          ) : undefined,
           isSelected: selectedPVC?.metadata.name === pvc.metadata.name,
+          description: isModelServingPVC
+            ? `Stored model: ${modelName ?? 'Model name not specified'}`
+            : undefined,
         };
       }) || [],
     [pvcs, selectedPVC],
