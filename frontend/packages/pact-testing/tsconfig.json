@@ -4,6 +4,6 @@
     "rootDir": "./src",
     "outDir": "./dist"
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", ".eslintrc.js"],
   "exclude": ["dist", "node_modules"]
 }
