@@ -1,0 +1,26 @@
+# Pact generated files
+pacts/
+logs/
+
+# Test results and logs
+pact-test-results/
+*.log
+contract-test-output.log
+full-test-output.log
+junit.xml
+
+# Jest test outputs  
+test-results.json
+
+# HTML reports
+contract-test-report.html
+
+# Node modules (if any local dependencies)
+node_modules/
+
+# Coverage reports
+coverage/
+
+# OS generated files
+.DS_Store
+Thumbs.db
