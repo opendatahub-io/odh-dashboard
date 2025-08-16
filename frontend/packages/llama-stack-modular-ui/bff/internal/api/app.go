@@ -12,22 +12,18 @@ import (
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/llama-stack-modular-ui/internal/config"
+	"github.com/opendatahub-io/llama-stack-modular-ui/internal/constants"
 	helper "github.com/opendatahub-io/llama-stack-modular-ui/internal/helpers"
 	"github.com/opendatahub-io/llama-stack-modular-ui/internal/integrations"
 )
 
-const (
-	Version         = "1.0.0"
-	HealthCheckPath = "/healthcheck"
-)
-
 // isAPIRoute checks if the given path is an API route
 func (app *App) isAPIRoute(path string) bool {
-	return path == HealthCheckPath ||
-		path == OpenAPIPath ||
-		path == OpenAPIJSONPath ||
-		path == OpenAPIYAMLPath ||
-		path == SwaggerUIPath ||
+	return path == constants.HealthCheckPath ||
+		path == constants.OpenAPIPath ||
+		path == constants.OpenAPIJSONPath ||
+		path == constants.OpenAPIYAMLPath ||
+		path == constants.SwaggerUIPath ||
 		// Match exactly the configured API path prefix or any sub-path under it
 		path == app.config.APIPathPrefix ||
 		strings.HasPrefix(path, app.config.APIPathPrefix+"/") ||
@@ -155,18 +151,18 @@ func (app *App) Routes() http.Handler {
 
 	healthcheckMux := http.NewServeMux()
 	healthcheckRouter := httprouter.New()
-	healthcheckRouter.GET(HealthCheckPath, app.HealthcheckHandler)
-	healthcheckMux.Handle(HealthCheckPath, app.RecoverPanic(app.EnableTelemetry(app.EnableCORS(healthcheckRouter))))
+	healthcheckRouter.GET(constants.HealthCheckPath, app.HealthcheckHandler)
+	healthcheckMux.Handle(constants.HealthCheckPath, app.RecoverPanic(app.EnableTelemetry(app.EnableCORS(healthcheckRouter))))
 
 	// Combines the healthcheck endpoint with the rest of the routes
 	combinedMux := http.NewServeMux()
-	combinedMux.Handle(HealthCheckPath, healthcheckMux)
+	combinedMux.Handle(constants.HealthCheckPath, healthcheckMux)
 
 	// OpenAPI routes (unprotected) - handle these before the main app routes
-	combinedMux.HandleFunc(OpenAPIPath, app.openAPI.HandleOpenAPIRedirectWrapper)
-	combinedMux.HandleFunc(OpenAPIJSONPath, app.openAPI.HandleOpenAPIJSONWrapper)
-	combinedMux.HandleFunc(OpenAPIYAMLPath, app.openAPI.HandleOpenAPIYAMLWrapper)
-	combinedMux.HandleFunc(SwaggerUIPath, app.openAPI.HandleSwaggerUIWrapper)
+	combinedMux.HandleFunc(constants.OpenAPIPath, app.openAPI.HandleOpenAPIRedirectWrapper)
+	combinedMux.HandleFunc(constants.OpenAPIJSONPath, app.openAPI.HandleOpenAPIJSONWrapper)
+	combinedMux.HandleFunc(constants.OpenAPIYAMLPath, app.openAPI.HandleOpenAPIYAMLWrapper)
+	combinedMux.HandleFunc(constants.SwaggerUIPath, app.openAPI.HandleSwaggerUIWrapper)
 
 	combinedMux.Handle("/", app.RecoverPanic(app.EnableTelemetry(app.EnableCORS(app.InjectRequestIdentity(appMux)))))
 
