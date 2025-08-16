@@ -4,10 +4,12 @@ import { createFeatureStoreFilterUtils } from '../../utils/filterUtils';
 
 export const featureServiceTableFilterKeyMapping: Record<string, string> = {
   featureService: 'spec.name',
-  tags: 'spec.tags',
+  tag: 'spec.tags',
   featureViews: 'featureViews',
   owner: 'spec.owner',
   project: 'project',
+  created: 'meta.createdTimestamp',
+  updated: 'meta.lastUpdatedTimestamp',
 };
 
 const featureServiceFilterUtils = createFeatureStoreFilterUtils<

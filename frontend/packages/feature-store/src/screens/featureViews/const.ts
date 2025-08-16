@@ -3,12 +3,14 @@ import { FeatureView } from '../../types/featureView';
 import { MaterializationInterval } from '../../types/global';
 
 export const featureViewTableFilterOptions: Record<string, string> = {
-  'Feature view': 'Feature view',
-  Project: 'Project',
-  Tags: 'Tags',
-  Features: 'Features',
-  Owner: 'Owner',
-  'Store type': 'Store type',
+  featureView: 'Feature view',
+  project: 'Project',
+  tag: 'Tags',
+  features: 'Features',
+  created: 'Created after',
+  updated: 'Updated after',
+  owner: 'Owner',
+  storeType: 'Store type',
 };
 
 export const columns: SortableData<FeatureView>[] = [
@@ -86,8 +88,8 @@ export const columns: SortableData<FeatureView>[] = [
 export type FeatureViewFilterDataType = Record<string, string | undefined>;
 
 export const initialFeatureViewFilterData: FeatureViewFilterDataType = {
-  'Feature view': '',
-  Tags: '',
+  featureView: '',
+  tag: '',
 };
 
 export enum FeatureViewTab {
@@ -154,6 +156,6 @@ export const materializationColumns: SortableData<MaterializationInterval>[] = [
     label: 'Updated',
     width: 30,
     sortable: (a: MaterializationInterval, b: MaterializationInterval): number =>
-      new Date(a.endTime).getTime() - new Date(b.endTime).getTime(),
+      new Date(b.endTime).getTime() - new Date(a.endTime).getTime(),
   },
 ];

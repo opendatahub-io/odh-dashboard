@@ -120,9 +120,11 @@ describe('Feature Services', () => {
     featureServiceRow.shouldHaveFeaturesViewsCount(5); // Based on mock data - 5 feature views
     featureServiceRow.shouldHaveOwner('risk-team@company.com');
 
-    featureServiceRow.shouldHaveTag('version = v1');
-    featureServiceRow.shouldHaveTag('team = risk');
-    featureServiceRow.shouldHaveTag('use_case = credit_scoring');
+    featureServiceRow.findTags().within(() => {
+      cy.contains('version=v1');
+      cy.contains('team=risk');
+      cy.contains('use_case=credit_scoring');
+    });
   });
 
   it('should allow filtering by feature service name', () => {
@@ -132,19 +134,6 @@ describe('Feature Services', () => {
 
     toolbar.findFilterMenuOption('filter-toolbar-dropdown', 'Feature service').click();
     toolbar.findSearchInput().type('credit');
-    featureServicesTable.shouldHaveFeatureServiceCount(1);
-
-    toolbar.findSearchInput().clear().type('nonexistent');
-    featureServicesTable.shouldHaveFeatureServiceCount(0);
-  });
-
-  it('should allow filtering by tags', () => {
-    featureStoreGlobal.visitFeatureServices(fsProjectName);
-
-    const toolbar = featureServicesTable.findToolbar();
-
-    toolbar.findFilterMenuOption('filter-toolbar-dropdown', 'Tags').click();
-    toolbar.findSearchInput().type('team');
     featureServicesTable.shouldHaveFeatureServiceCount(1);
 
     toolbar.findSearchInput().clear().type('nonexistent');

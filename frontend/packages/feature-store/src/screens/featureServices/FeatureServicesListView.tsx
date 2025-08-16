@@ -5,6 +5,7 @@ import { applyFeatureServiceFilters } from './utils';
 import { FeatureServicesList } from '../../types/featureServices';
 import { FeatureStoreToolbar } from '../../components/FeatureStoreToolbar';
 import { useFeatureStoreProject } from '../../FeatureStoreContext';
+import { useTagFilterHandlers } from '../../utils/useTagFilterHandlers';
 
 const FeatureServicesListView = ({
   featureServices,
@@ -16,7 +17,11 @@ const FeatureServicesListView = ({
   const [filterData, setFilterData] = React.useState<
     Record<string, string | { label: string; value: string } | undefined>
   >({});
+  const [currentFilterType, setCurrentFilterType] = React.useState<string>('featureService');
+  const [tagFilters, setTagFilters] = React.useState<string[]>([]);
   const { currentProject } = useFeatureStoreProject();
+
+  const tagHandlers = useTagFilterHandlers(setTagFilters, setCurrentFilterType);
 
   const processedFeatureServices = React.useMemo(() => {
     if (currentProject) {
@@ -34,28 +39,46 @@ const FeatureServicesListView = ({
     [setFilterData],
   );
 
-  const onClearFilters = React.useCallback(() => setFilterData({}), [setFilterData]);
+  const onClearFilters = React.useCallback(() => {
+    setFilterData({});
+    setTagFilters([]);
+  }, []);
 
-  const filteredFeatureServices = React.useMemo(
-    () =>
-      applyFeatureServiceFilters(
-        processedFeatureServices,
-        featureServices.relationships,
-        filterData,
-      ),
-    [processedFeatureServices, featureServices.relationships, filterData],
-  );
+  const filteredFeatureServices = React.useMemo(() => {
+    let filtered = applyFeatureServiceFilters(
+      processedFeatureServices,
+      featureServices.relationships,
+      filterData,
+    );
+
+    if (tagFilters.length > 0) {
+      filtered = filtered.filter((featureService) => {
+        const featureServiceTags = featureService.spec.tags || {};
+        return tagFilters.every((tagFilter) => {
+          const tagEntries = Object.entries(featureServiceTags);
+          return tagEntries.some(([key, value]) => `${key}=${value}` === tagFilter);
+        });
+      });
+    }
+    return filtered;
+  }, [processedFeatureServices, featureServices.relationships, filterData, tagFilters]);
 
   return (
     <FeatureServicesTable
       featureServices={filteredFeatureServices}
       fsProject={fsProject}
       onClearFilters={onClearFilters}
+      onTagClick={tagHandlers.handleTagClick}
       toolbarContent={
         <FeatureStoreToolbar
           filterOptions={featureServiceTableFilterOptions}
           filterData={filterData}
           onFilterUpdate={onFilterUpdate}
+          currentFilterType={currentFilterType}
+          onFilterTypeChange={tagHandlers.handleFilterTypeChange}
+          tagFilters={tagFilters}
+          onTagFilterRemove={tagHandlers.handleTagFilterRemove}
+          onTagFilterAdd={tagHandlers.handleTagFilterAdd}
         />
       }
     />

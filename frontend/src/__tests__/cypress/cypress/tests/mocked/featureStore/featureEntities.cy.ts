@@ -387,6 +387,32 @@ describe('Feature Entities', () => {
       'be.visible',
     );
   });
+
+  it('should add tag to filter when clicking on a tag for the entity row', () => {
+    featureStoreGlobal.visitEntities(fsProjectName);
+    featureEntitiesTable.findTable().should('be.visible');
+
+    featureEntitiesTable
+      .findRow('transaction_id')
+      .findTags()
+      .within(() => {
+        cy.contains('cardinality=high').click({ force: true });
+      });
+
+    featureEntitiesTable
+      .findRow('transaction_id')
+      .findTags()
+      .within(() => {
+        cy.contains('domain=transaction').click({ force: true });
+      });
+
+    featureEntitiesTable.shouldHaveEntityCount(1);
+    featureEntitiesTable.findRow('transaction_id').findEntityName().should('be.visible');
+
+    featureEntitiesTable.findToolbarClearFiltersButton().should('exist');
+    featureEntitiesTable.findToolbarClearFiltersButton().click();
+    featureEntitiesTable.shouldHaveEntityCount(2);
+  });
 });
 
 describe('Entity Feature Views Tab', () => {

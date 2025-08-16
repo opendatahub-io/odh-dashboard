@@ -10,6 +10,8 @@ export const entityTableFilterKeyMapping: Record<string, string> = {
   project: 'project',
   tag: 'spec.tags',
   featureViews: 'featureViews',
+  created: 'meta.createdTimestamp',
+  updated: 'meta.lastUpdatedTimestamp',
 };
 
 const entityFilterUtils = createFeatureStoreFilterUtils<Entity, FeatureStoreRelationship>(

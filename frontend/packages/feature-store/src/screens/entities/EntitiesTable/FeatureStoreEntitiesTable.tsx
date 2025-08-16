@@ -12,6 +12,7 @@ type FeatureStoreEntitiesTableProps = {
   relationships: Record<string, FeatureStoreRelationship[]>;
   onClearFilters: () => void;
   toolbarContent: React.ComponentProps<typeof Table>['toolbarContent'];
+  onTagClick?: (tagString: string) => void;
 } & Partial<Pick<React.ComponentProps<typeof Table>, 'enablePagination'>>;
 
 const FeatureStoreEntitiesTable: React.FC<FeatureStoreEntitiesTableProps> = ({
@@ -19,6 +20,7 @@ const FeatureStoreEntitiesTable: React.FC<FeatureStoreEntitiesTableProps> = ({
   relationships,
   onClearFilters,
   toolbarContent,
+  onTagClick,
 }) => {
   const { currentProject } = useFeatureStoreProject();
 
@@ -37,6 +39,7 @@ const FeatureStoreEntitiesTable: React.FC<FeatureStoreEntitiesTableProps> = ({
           key={currentProject ? cr.spec.name : `${cr.spec.name}-${cr.project ?? ''}`}
           entity={cr}
           relationships={relationships}
+          onTagClick={onTagClick}
         />
       )}
     />

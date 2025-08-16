@@ -30,7 +30,11 @@ class FeatureEntitiesTable extends Contextual<HTMLElement> {
   }
 
   findToolbar() {
-    return new FeatureEntityToolbar(() => cy.findByTestId('feature-entity-table-toolbar'));
+    return new FeatureEntityToolbar(() => cy.findByTestId('filter-toolbar'));
+  }
+
+  findToolbarClearFiltersButton() {
+    return cy.findByRole('button', { name: 'Clear all filters' });
   }
 }
 
@@ -45,6 +49,10 @@ class FeatureEntityToolbar extends Contextual<HTMLElement> {
 
   findSearchInput(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().findByTestId('filter-toolbar-text-field');
+  }
+
+  findFilterDropdown(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('filter-toolbar-dropdown');
   }
 }
 

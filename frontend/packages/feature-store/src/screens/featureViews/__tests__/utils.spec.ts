@@ -1,4 +1,5 @@
 import { FeatureView, OnDemandFeatureViewSources } from '../../../types/featureView';
+import { SchemaItem } from '../featureViewDetails/FeatureViewSchemaTable';
 import {
   applyFeatureViewFilters,
   countRelationshipTypes,
@@ -9,7 +10,6 @@ import {
   getSchemaItemValue,
   getSchemaItemLink,
 } from '../utils';
-import { SchemaItem } from '../featureViewDetails/FeatureViewSchemaTable';
 
 describe('Feature View Utils', () => {
   describe('applyFeatureViewFilters', () => {
@@ -41,28 +41,28 @@ describe('Feature View Utils', () => {
     const mockRelationships = {};
 
     it('should filter by feature view name', () => {
-      const filters = { 'Feature view': 'test' };
+      const filters = { featureView: 'test' };
       const result = applyFeatureViewFilters(mockFeatureViews, mockRelationships, filters);
       expect(result).toHaveLength(1);
       expect(result[0].spec.name).toBe('test-feature-view');
     });
 
     it('should filter by project', () => {
-      const filters = { Project: 'test-project' };
+      const filters = { project: 'test-project' };
       const result = applyFeatureViewFilters(mockFeatureViews, mockRelationships, filters);
       expect(result).toHaveLength(1);
       expect(result[0].project).toBe('test-project');
     });
 
     it('should filter by tags', () => {
-      const filters = { Tags: 'tag1' };
+      const filters = { tag: 'tag1' };
       const result = applyFeatureViewFilters(mockFeatureViews, mockRelationships, filters);
       expect(result).toHaveLength(1);
       expect(result[0].spec.tags).toContain('tag1');
     });
 
     it('should filter by owner', () => {
-      const filters = { Owner: 'test-owner' };
+      const filters = { owner: 'test-owner' };
       const result = applyFeatureViewFilters(mockFeatureViews, mockRelationships, filters);
       expect(result).toHaveLength(1);
       expect(result[0].spec.owner).toBe('test-owner');
@@ -74,7 +74,7 @@ describe('Feature View Utils', () => {
     });
 
     it('should return empty array when no matches found', () => {
-      const filters = { 'Feature view': 'nonexistent' };
+      const filters = { featureView: 'nonexistent' };
       const result = applyFeatureViewFilters(mockFeatureViews, mockRelationships, filters);
       expect(result).toHaveLength(0);
     });
@@ -127,7 +127,7 @@ describe('Feature View Utils', () => {
         } as unknown as FeatureView,
       ];
 
-      const filters = { 'Store type': 'online' };
+      const filters = { storeType: 'online' };
       const result = applyFeatureViewFilters(
         mockFeatureViewsWithStoreType,
         mockRelationships,
@@ -164,7 +164,7 @@ describe('Feature View Utils', () => {
         } as unknown as FeatureView,
       ];
 
-      const filters = { 'Store type': 'offline' };
+      const filters = { storeType: 'offline' };
       const result = applyFeatureViewFilters(
         mockFeatureViewsWithStoreType,
         mockRelationships,
@@ -200,7 +200,7 @@ describe('Feature View Utils', () => {
         } as unknown as FeatureView,
       ];
 
-      const filters = { 'Store type': '-' };
+      const filters = { storeType: '-' };
       const result = applyFeatureViewFilters(
         mockFeatureViewsWithStoreType,
         mockRelationships,

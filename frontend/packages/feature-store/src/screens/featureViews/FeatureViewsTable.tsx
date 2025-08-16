@@ -1,9 +1,9 @@
 import * as React from 'react';
 import DashboardEmptyTableView from '@odh-dashboard/internal/concepts/dashboard/DashboardEmptyTableView';
 import Table from '@odh-dashboard/internal/components/table/Table';
+import { columns } from './const';
 import { Relationship } from './utils';
 import FeatureViewTableRow from './FeatureViewTableRow';
-import { columns } from './const';
 import { FeatureView } from '../../types/featureView';
 
 type FeatureViewsTableProps = {
@@ -11,6 +11,7 @@ type FeatureViewsTableProps = {
   relationships: Record<string, Relationship[]>;
   onClearFilters: () => void;
   fsProject?: string;
+  onTagClick: (tag: string) => void;
 } & Partial<Pick<React.ComponentProps<typeof Table>, 'enablePagination' | 'toolbarContent'>>;
 
 const FeatureViewsTable: React.FC<FeatureViewsTableProps> = ({
@@ -19,6 +20,7 @@ const FeatureViewsTable: React.FC<FeatureViewsTableProps> = ({
   onClearFilters,
   toolbarContent,
   fsProject,
+  onTagClick,
 }) => (
   <Table
     data-testid="feature-views-table"
@@ -35,6 +37,7 @@ const FeatureViewsTable: React.FC<FeatureViewsTableProps> = ({
         featureView={fv}
         fsProject={fsProject}
         relationships={relationships}
+        onTagClick={onTagClick}
       />
     )}
   />

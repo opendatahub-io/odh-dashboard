@@ -6,6 +6,7 @@ type FeatureStoreTagsProps = {
   showAllTags?: boolean;
   tags: Record<string, string>;
   threshold?: number;
+  onTagClick?: (tagString: string) => void;
 };
 
 type FeatureStoreTagsGroupProps = {
@@ -13,29 +14,40 @@ type FeatureStoreTagsGroupProps = {
   numLabels: number;
   tags: [string, string][];
   textMaxWidth?: string;
+  onTagClick?: (tagString: string) => void;
 };
 
-const renderLabel = (key: string, value: string, textMaxWidth?: string) => (
-  <FeatureStoreLabels
-    color="blue"
-    dataTestId="feature-store-label"
-    isCompact={false}
-    key={key}
-    textMaxWidth={textMaxWidth}
-    variant="filled"
-  >
-    {key} = {value}
-  </FeatureStoreLabels>
-);
+const renderLabel = (
+  key: string,
+  value: string,
+  textMaxWidth?: string,
+  onTagClick?: (tagString: string) => void,
+) => {
+  const tagString = `${key}=${value}`;
+  return (
+    <FeatureStoreLabels
+      color="blue"
+      dataTestId="feature-store-label"
+      isCompact={false}
+      key={key}
+      textMaxWidth={textMaxWidth}
+      variant="filled"
+      onClick={onTagClick ? () => onTagClick(tagString) : undefined}
+    >
+      {key}={value}
+    </FeatureStoreLabels>
+  );
+};
 
 const FeatureStoreTagsGroup: React.FC<FeatureStoreTagsGroupProps> = ({
   dataTestId = 'feature-store-tags-group',
   numLabels,
   tags,
   textMaxWidth,
+  onTagClick,
 }) => (
   <LabelGroup numLabels={numLabels} data-testid={dataTestId}>
-    {tags.map(([key, value]) => renderLabel(key, value, textMaxWidth))}
+    {tags.map(([key, value]) => renderLabel(key, value, textMaxWidth, onTagClick))}
   </LabelGroup>
 );
 
@@ -43,6 +55,7 @@ const FeatureStoreTags: React.FC<FeatureStoreTagsProps> = ({
   tags,
   showAllTags = false,
   threshold = 3,
+  onTagClick,
 }) => {
   const tagEntries = Object.entries(tags);
   const totalTagsCount = tagEntries.length;
@@ -58,6 +71,7 @@ const FeatureStoreTags: React.FC<FeatureStoreTagsProps> = ({
         numLabels={totalTagsCount}
         tags={tagEntries}
         textMaxWidth={textMaxWidth}
+        onTagClick={onTagClick}
       />
     );
   }
@@ -72,6 +86,7 @@ const FeatureStoreTags: React.FC<FeatureStoreTagsProps> = ({
         numLabels={totalTagsCount}
         tags={visibleTags}
         textMaxWidth={textMaxWidth}
+        onTagClick={onTagClick}
       />
       {overflowCount > 0 && (
         <Popover
@@ -81,6 +96,7 @@ const FeatureStoreTags: React.FC<FeatureStoreTagsProps> = ({
               numLabels={overflowCount}
               tags={overflowTags}
               textMaxWidth={textMaxWidth}
+              onTagClick={onTagClick}
             />
           }
         >
