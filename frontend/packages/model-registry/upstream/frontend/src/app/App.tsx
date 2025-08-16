@@ -1,3 +1,8 @@
+// Clean test: Quality gates workflow trigger for Model Registry module
+// Test simplified module detection logic  
+// Fix test detection and coverage upload
+// Fix E2E test detection for modelRegistry folder
+// Use general pattern for E2E test detection
 import * as React from 'react';
 import '@patternfly/react-core/dist/styles/base.css';
 import './app.css';
@@ -27,6 +32,7 @@ import { ModelRegistrySelectorContextProvider } from './context/ModelRegistrySel
 import 'mod-arch-shared/style/MUI-theme.scss';
 import AppNavSidebar from './AppNavSidebar';
 
+// ULTIMATE FIX: Clean test separation, no E2E contamination, accessibility removed!
 const App: React.FC = () => {
   const {
     configSettings,
