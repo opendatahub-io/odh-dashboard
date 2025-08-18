@@ -25,7 +25,7 @@ const awsBucket = 'BUCKET_1' as const;
 const uuid = generateTestUUID();
 
 describe('[Automation Bug: RHOAIENG-32294] Verify Admin Single Model Creation and Validation using the UI', () => {
-  retryableBefore(() =>
+  retryableBefore(() => {
     // Setup: Load test data and ensure clean state
     return loadDSPFixture('e2e/dataScienceProjects/testSingleModelAdminCreation.yaml').then(
       (fixtureData: DataScienceProjectData) => {
