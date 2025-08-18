@@ -1,4 +1,4 @@
-import { K8sAPIOptions } from '@odh-dashboard/internal/k8sTypes.js';
+import { K8sAPIOptions } from '@odh-dashboard/internal/k8sTypes';
 import { FeatureStorePagination, NameValueTypePair } from './global';
 
 export type FeatureColumns = NameValueTypePair & {

@@ -8,7 +8,9 @@ import { retryableBefore } from '#~/__tests__/cypress/cypress/utils/retryableHoo
 import {
   checkModelExistsInDatabase,
   cleanupModelRegistryComponents,
+  createAndVerifyDatabase,
   createAndVerifyModelRegistry,
+  deleteModelRegistryDatabase,
 } from '#~/__tests__/cypress/cypress/utils/oc_commands/modelRegistry';
 import { loadRegisterModelFixture } from '#~/__tests__/cypress/cypress/utils/dataLoader';
 import { generateTestUUID } from '#~/__tests__/cypress/cypress/utils/uuidGenerator';
@@ -37,6 +39,10 @@ describe('Verify models can be deployed from model registry', () => {
       modelName = `${testData.objectStorageModelName}-${uuid}`;
       projectName = `${testData.deployProjectNamePrefix}-${uuid}`;
 
+      // Create and verify SQL database
+      cy.step('Create and verify SQL database for model registry');
+      createAndVerifyDatabase().should('be.true');
+
       cy.step('Create a model registry and verify it is ready');
       createAndVerifyModelRegistry(registryName);
 
@@ -54,6 +60,9 @@ describe('Verify models can be deployed from model registry', () => {
 
     cy.step('Delete the test project');
     deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
+
+    cy.step('Delete the SQL database');
+    deleteModelRegistryDatabase();
   });
 
   it(

@@ -1,7 +1,7 @@
 import { k8sListResourceItems } from '@openshift/dynamic-plugin-sdk-utils';
 import { act } from 'react';
+import { standardUseFetchState, testHook } from '@odh-dashboard/jest-config/hooks';
 import { mockWorkloadK8sResource } from '#~/__mocks__/mockWorkloadK8sResource';
-import { standardUseFetchState, testHook } from '#~/__tests__/unit/testUtils/hooks';
 import useDistributedWorkloadsEnabled from '#~/concepts/distributedWorkloads/useDistributedWorkloadsEnabled';
 import { WorkloadKind } from '#~/k8sTypes';
 import useWorkloads from '#~/concepts/distributedWorkloads/useWorkloads';

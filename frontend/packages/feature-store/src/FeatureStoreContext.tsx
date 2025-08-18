@@ -12,6 +12,8 @@ export type FeatureStoreContextType = {
   refreshAPIState: () => void;
   currentProject: string | undefined;
   setCurrentProject: (project?: string) => void;
+  preferredFeatureStoreProject: string | null;
+  updatePreferredFeatureStoreProject: (project: string | null) => void;
 };
 
 type FeatureStoreContextProviderProps = {
@@ -24,6 +26,8 @@ export const FeatureStoreContext = React.createContext<FeatureStoreContextType>(
   refreshAPIState: () => undefined,
   currentProject: undefined,
   setCurrentProject: () => undefined,
+  preferredFeatureStoreProject: null,
+  updatePreferredFeatureStoreProject: () => undefined,
 });
 
 export const FeatureStoreContextProvider = conditionalArea<FeatureStoreContextProviderProps>(
@@ -38,11 +42,23 @@ export const FeatureStoreContextProvider = conditionalArea<FeatureStoreContextPr
   const [apiState, refreshAPIState] = useFeatureStoreAPIState(hostPath);
 
   const { fsProjectName } = useParams<{ fsProjectName: string }>();
-  const [currentProject, setCurrentProject] = React.useState<string | undefined>(fsProjectName);
+  const [preferredFeatureStoreProject, setPreferredFeatureStoreProject] = React.useState<
+    string | null
+  >(null);
 
-  React.useEffect(() => {
-    setCurrentProject(fsProjectName);
-  }, [fsProjectName]);
+  const currentProject = React.useMemo(() => {
+    if (fsProjectName !== undefined) {
+      return fsProjectName;
+    }
+    return preferredFeatureStoreProject || undefined;
+  }, [fsProjectName, preferredFeatureStoreProject]);
+
+  const setCurrentProject = React.useCallback(
+    (project?: string) => {
+      setPreferredFeatureStoreProject(project || null);
+    },
+    [setPreferredFeatureStoreProject],
+  );
 
   return (
     <FeatureStoreContext.Provider
@@ -51,6 +67,8 @@ export const FeatureStoreContextProvider = conditionalArea<FeatureStoreContextPr
         refreshAPIState,
         currentProject,
         setCurrentProject,
+        preferredFeatureStoreProject,
+        updatePreferredFeatureStoreProject: setPreferredFeatureStoreProject,
       }}
     >
       <EnsureFeatureStoreAPIAvailability>{children}</EnsureFeatureStoreAPIAvailability>
@@ -74,11 +92,20 @@ export const useFeatureStoreAPI = (): UseFeatureStoreAPI => {
 export const useFeatureStoreProject = (): {
   currentProject?: string;
   setCurrentProject: (project?: string) => void;
+  preferredFeatureStoreProject: string | null;
+  updatePreferredFeatureStoreProject: (project: string | null) => void;
 } => {
-  const { currentProject, setCurrentProject } = React.useContext(FeatureStoreContext);
+  const {
+    currentProject,
+    setCurrentProject,
+    preferredFeatureStoreProject,
+    updatePreferredFeatureStoreProject,
+  } = React.useContext(FeatureStoreContext);
 
   return {
     currentProject,
     setCurrentProject,
+    preferredFeatureStoreProject,
+    updatePreferredFeatureStoreProject,
   };
 };

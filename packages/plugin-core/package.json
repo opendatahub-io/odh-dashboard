@@ -1,0 +1,25 @@
+{
+  "private": true,
+  "name": "@odh-dashboard/plugin-core",
+  "description": "Plugin utilities and extension point definitions.",
+  "version": "0.0.0",
+  "scripts": {
+    "lint": "eslint .",
+    "test-unit": "jest --silent",
+    "test-unit-coverage": "jest --silent --coverage",
+    "type-check": "tsc --noEmit"
+  },
+  "exports": {
+    ".": "./src/core/index.ts",
+    "./extension-points": "./src/extension-points/index.ts",
+    "./testing": "./src/testing/utils.ts"
+  },
+  "dependencies": {
+    "@openshift/dynamic-plugin-sdk": "^5.0.1"
+  },
+  "devDependencies": {
+    "@odh-dashboard/eslint-config": "*",
+    "@odh-dashboard/jest-config": "*",
+    "@odh-dashboard/tsconfig": "*"
+  }
+}

@@ -81,7 +81,7 @@ export const DeploymentRowExpandedSection: React.FC<{
             <StackItem>
               <DescriptionList isHorizontal horizontalTermWidthModifier={{ default: '250px' }}>
                 <DescriptionListGroup>
-                  <DescriptionListTerm>Replicas</DescriptionListTerm>
+                  <DescriptionListTerm>Model server replicas</DescriptionListTerm>
                   <DescriptionListDescription>{replicas || 'Unknown'}</DescriptionListDescription>
                 </DescriptionListGroup>
                 <DescriptionListGroup>

@@ -1,6 +1,7 @@
 import React from 'react';
-import { Td, ActionsColumn, Tbody } from '@patternfly/react-table';
+import { Td, Tbody } from '@patternfly/react-table';
 import { Label, Content, ContentVariants } from '@patternfly/react-core';
+import ResourceActionsColumn from '@odh-dashboard/internal/components/ResourceActionsColumn';
 import ResourceTr from '@odh-dashboard/internal/components/ResourceTr';
 import { ModelStatusIcon } from '@odh-dashboard/internal/concepts/modelServing/ModelStatusIcon';
 import { InferenceServiceModelState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
@@ -86,6 +87,7 @@ export const DeploymentRow: React.FC<{
       <ResourceTr resource={deployment.model}>
         {detailsExtension && showExpandedInfo && (
           <Td
+            data-testid={`${deployment.modelServingPlatformId}-model-row-item`}
             expand={{
               rowIndex,
               expandId: `${deployment.modelServingPlatformId}-model-row-item`,
@@ -151,7 +153,8 @@ export const DeploymentRow: React.FC<{
           )}
         </Td>
         <Td isActionCell>
-          <ActionsColumn
+          <ResourceActionsColumn
+            resource={deployment.model}
             items={[
               {
                 title: 'Edit',

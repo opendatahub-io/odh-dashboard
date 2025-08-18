@@ -56,6 +56,11 @@ export const getMultiProjectServingPlatforms = (
   return result;
 };
 
+type LoadingState = {
+  type: 'platform' | 'reset' | null;
+  platform?: ModelServingPlatform;
+};
+
 export const useProjectServingPlatform = (
   project?: ProjectKind,
   platforms?: ModelServingPlatform[],
@@ -64,7 +69,7 @@ export const useProjectServingPlatform = (
   projectPlatform?: ModelServingPlatform | null; // Platform saved on project
   setProjectPlatform: (platform: ModelServingPlatform) => void;
   resetProjectPlatform: () => void;
-  newProjectPlatformLoading?: ModelServingPlatform | null;
+  loadingState: LoadingState;
   projectPlatformError: Error | null;
   clearProjectPlatformError: () => void;
 } => {
@@ -72,9 +77,7 @@ export const useProjectServingPlatform = (
     ModelServingPlatform | null | undefined
   >(project && platforms ? getProjectServingPlatform(project, platforms) : undefined);
   const [projectPlatformError, setProjectPlatformError] = React.useState<Error | null>(null);
-  const [newProjectPlatformLoading, setNewProjectPlatformLoading] = React.useState<
-    ModelServingPlatform | null | undefined
-  >();
+  const [loadingState, setLoadingState] = React.useState<LoadingState>({ type: null });
 
   React.useEffect(() => {
     if (!project || !platforms) {
@@ -83,16 +86,16 @@ export const useProjectServingPlatform = (
     const p = getProjectServingPlatform(project, platforms);
     if (p?.properties.id !== tmpProjectPlatform?.properties.id) {
       setTmpProjectPlatform(p);
-      setNewProjectPlatformLoading(undefined);
+      setLoadingState({ type: null });
     }
-  }, [project, platforms, tmpProjectPlatform?.properties.id, setNewProjectPlatformLoading]);
+  }, [project, platforms, tmpProjectPlatform?.properties.id]);
 
   const setProjectPlatform = React.useCallback(
     (platformToEnable: ModelServingPlatform) => {
       if (!project) {
         return;
       }
-      setNewProjectPlatformLoading(platformToEnable);
+      setLoadingState({ type: 'platform', platform: platformToEnable });
       setProjectPlatformError(null);
 
       addSupportServingPlatformProject(
@@ -104,17 +107,17 @@ export const useProjectServingPlatform = (
         } else {
           setProjectPlatformError(new Error('Error selecting platform'));
         }
-        setNewProjectPlatformLoading(undefined);
+        setLoadingState({ type: null });
       });
     },
-    [project, setNewProjectPlatformLoading],
+    [project],
   );
 
   const resetProjectPlatform = React.useCallback(() => {
     if (!project) {
       return;
     }
-    setNewProjectPlatformLoading(null);
+    setLoadingState({ type: 'reset' });
     setProjectPlatformError(null);
 
     addSupportServingPlatformProject(
@@ -126,7 +129,7 @@ export const useProjectServingPlatform = (
       } else {
         setProjectPlatformError(new Error('Error resetting platform'));
       }
-      setNewProjectPlatformLoading(undefined);
+      setLoadingState({ type: null });
     });
   }, [project]);
 
@@ -143,7 +146,7 @@ export const useProjectServingPlatform = (
     projectPlatform: tmpProjectPlatform,
     setProjectPlatform,
     resetProjectPlatform,
-    newProjectPlatformLoading,
+    loadingState,
     projectPlatformError,
     clearProjectPlatformError: () => setProjectPlatformError(null),
   };

@@ -25,7 +25,7 @@ import {
 } from '#~/api/k8s/inferenceServices';
 import { InferenceServiceModel, ProjectModel } from '#~/api/models';
 import { ModelServingPodSpecOptions } from '#~/concepts/hardwareProfiles/useModelServingPodSpecOptionsState';
-import { DeploymentMode, InferenceServiceKind, ProjectKind } from '#~/k8sTypes';
+import { DeploymentMode, InferenceServiceKind, ProjectKind, KnownLabels } from '#~/k8sTypes';
 import { ModelServingSize } from '#~/pages/modelServing/screens/types';
 import { TolerationEffect, TolerationOperator } from '#~/types';
 import { mockHardwareProfile } from '#~/__mocks__/mockHardwareProfile.ts';
@@ -987,6 +987,270 @@ describe('deleteInferenceService', () => {
         ns: 'test-project',
         queryParams: {},
       },
+    });
+  });
+});
+
+describe('assembleInferenceService - Preservation Tests', () => {
+  it('should preserve existing metadata annotations when updating inference service', () => {
+    const existingAnnotations = {
+      'custom.annotation': 'custom-value',
+      'another.annotation': 'another-value',
+      'openshift.io/display-name': 'Original Display Name',
+    };
+
+    const existingInferenceService = mockInferenceServiceK8sResource({
+      name: 'existing-service',
+      namespace: 'test-project',
+      displayName: 'Original Display Name',
+    });
+    existingInferenceService.metadata.annotations = {
+      ...existingInferenceService.metadata.annotations,
+      ...existingAnnotations,
+    };
+
+    const updateData = mockInferenceServiceModalData({
+      name: 'Updated Display Name',
+      k8sName: 'existing-service',
+      project: 'test-project',
+    });
+
+    const result = assembleInferenceService(
+      updateData,
+      undefined,
+      undefined,
+      false,
+      existingInferenceService,
+    );
+
+    // Should preserve existing custom annotations
+    expect(result.metadata.annotations?.['custom.annotation']).toBe('custom-value');
+    expect(result.metadata.annotations?.['another.annotation']).toBe('another-value');
+
+    // Should update the display name
+    expect(result.metadata.annotations?.['openshift.io/display-name']).toBe('Updated Display Name');
+
+    // Should add new required annotations
+    expect(result.metadata.annotations?.['serving.kserve.io/deploymentMode']).toBeDefined();
+    expect(result.metadata.annotations?.['serving.knative.openshift.io/enablePassthrough']).toBe(
+      'true',
+    );
+  });
+
+  it('should preserve existing metadata labels when updating inference service', () => {
+    const existingLabels = {
+      'custom.label': 'custom-value',
+      'another.label': 'another-value',
+      team: 'ml-team',
+    };
+
+    const existingInferenceService = mockInferenceServiceK8sResource({
+      name: 'existing-isvc',
+      namespace: 'test-project',
+      additionalLabels: existingLabels,
+    });
+
+    const updateData = mockInferenceServiceModalData({
+      name: 'Updated ISVC',
+      k8sName: 'existing-isvc',
+      project: 'test-project',
+      labels: {
+        'new.label': 'new-value',
+      },
+    });
+
+    const result = assembleInferenceService(
+      updateData,
+      undefined,
+      undefined,
+      false,
+      existingInferenceService,
+    );
+
+    // Should preserve existing custom labels
+    expect(result.metadata.labels?.['custom.label']).toBe('custom-value');
+    expect(result.metadata.labels?.['another.label']).toBe('another-value');
+    expect(result.metadata.labels?.team).toBe('ml-team');
+
+    // Should add new labels from update data
+    expect(result.metadata.labels?.['new.label']).toBe('new-value');
+
+    // Should always have dashboard resource label
+    expect(result.metadata.labels?.[KnownLabels.DASHBOARD_RESOURCE]).toBe('true');
+  });
+
+  it('should preserve existing spec.predictor.metadata properties when updating inference service', () => {
+    const existingInferenceService = mockInferenceServiceK8sResource({
+      name: 'existing-isvc',
+      namespace: 'test-project',
+      minReplicas: 2,
+      maxReplicas: 5,
+      predictorAnnotations: {
+        'serving.knative.dev/progress-deadline': '30m',
+      },
+    });
+
+    const updateData = mockInferenceServiceModalData({
+      name: 'Updated Service',
+      k8sName: 'existing-isvc',
+      project: 'test-project',
+      minReplicas: 3,
+      maxReplicas: 7,
+    });
+
+    const result = assembleInferenceService(
+      updateData,
+      undefined,
+      undefined,
+      false, // KServe mode
+      existingInferenceService,
+    );
+
+    // Should update replica counts
+    expect(result.spec.predictor.minReplicas).toBe(3);
+    expect(result.spec.predictor.maxReplicas).toBe(7);
+
+    // Should preserve existing predictor annotations
+    expect(result.spec.predictor.annotations).toEqual({
+      'serving.knative.dev/progress-deadline': '30m',
+    });
+  });
+
+  it('should replace existing spec.predictor.model.storage when updating with URI storage', () => {
+    const existingInferenceService = mockInferenceServiceK8sResource({
+      name: 'existing-service',
+      namespace: 'test-project',
+      path: '/existing/path',
+    });
+
+    const updateData = mockInferenceServiceModalData({
+      name: 'Updated Service',
+      k8sName: 'existing-service',
+      project: 'test-project',
+      storage: {
+        ...mockInferenceServiceModalData({}).storage,
+        uri: 's3://bucket/new-model',
+      },
+    });
+
+    const result = assembleInferenceService(
+      updateData,
+      undefined,
+      undefined,
+      false,
+      existingInferenceService,
+    );
+
+    // Should switch to URI storage
+    expect(result.spec.predictor.model?.storageUri).toBe('s3://bucket/new-model');
+    expect(result.spec.predictor.model?.storage).toBeUndefined();
+  });
+
+  it('should update existing spec.predictor.model.storage when updating with storage path', () => {
+    const existingInferenceService = mockInferenceServiceK8sResource({
+      name: 'existing-service',
+      namespace: 'test-project',
+      path: '/existing/path',
+    });
+
+    const updateData = mockInferenceServiceModalData({
+      name: 'Updated Service',
+      k8sName: 'existing-service',
+      project: 'test-project',
+      storage: {
+        ...mockInferenceServiceModalData({}).storage,
+        path: '/new/path',
+        dataConnection: 'new-connection',
+      },
+    });
+
+    const result = assembleInferenceService(
+      updateData,
+      undefined,
+      undefined,
+      false,
+      existingInferenceService,
+    );
+
+    // Should update storage path and connection
+    expect(result.spec.predictor.model?.storageUri).toBeUndefined();
+    expect(result.spec.predictor.model?.storage).toEqual({
+      key: 'new-connection',
+      path: '/new/path',
+    });
+  });
+
+  it('should preserve existing spec.predictor.model.resources.claims when updating with podSpecOptions', () => {
+    const existingResources = {
+      requests: {
+        cpu: '500m',
+        memory: '1Gi',
+      },
+      limits: {
+        cpu: '1000m',
+        memory: '2Gi',
+      },
+      claims: [
+        {
+          name: 'existing-claim',
+        },
+      ],
+    };
+
+    const existingInferenceService = mockInferenceServiceK8sResource({
+      name: 'existing-service',
+      namespace: 'test-project',
+      resources: existingResources,
+    });
+
+    const podSpecOptions = mockModelServingPodSpecOptions({
+      resources: {
+        requests: {
+          cpu: '5000m',
+          memory: '2Gi',
+          'nvidia.com/gpu': 1,
+        },
+        limits: {
+          cpu: '10000m',
+          memory: '20Gi',
+          'nvidia.com/gpu': 1,
+        },
+      },
+    });
+
+    const updateData = mockInferenceServiceModalData({
+      name: 'Updated Service',
+      k8sName: 'existing-service',
+      project: 'test-project',
+    });
+
+    const result = assembleInferenceService(
+      updateData,
+      undefined,
+      undefined,
+      false,
+      existingInferenceService,
+      undefined,
+      podSpecOptions,
+    );
+
+    // Should merge existing and new resources
+    expect(result.spec.predictor.model?.resources).toEqual({
+      requests: {
+        cpu: '5000m',
+        memory: '2Gi',
+        'nvidia.com/gpu': 1,
+      },
+      limits: {
+        cpu: '10000m',
+        memory: '20Gi',
+        'nvidia.com/gpu': 1,
+      },
+      claims: [
+        {
+          name: 'existing-claim',
+        },
+      ],
     });
   });
 });

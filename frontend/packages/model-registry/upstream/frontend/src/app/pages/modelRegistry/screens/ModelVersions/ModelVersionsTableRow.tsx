@@ -15,12 +15,12 @@ import ModelLabels from '~/app/pages/modelRegistry/screens/components/ModelLabel
 import { ArchiveModelVersionModal } from '~/app/pages/modelRegistry/screens/components/ArchiveModelVersionModal';
 import { RestoreModelVersionModal } from '~/app/pages/modelRegistry/screens/components/RestoreModelVersionModal';
 import MRVersionRowActionColumns from '~/odh/components/MRVersionRowActionColumns';
+import { useDeploymentsState } from '~/odh/hooks/useDeploymentsState';
 
 type ModelVersionsTableRowProps = {
   modelVersion: ModelVersion;
   isArchiveRow?: boolean;
   isArchiveModel?: boolean;
-  hasDeployment?: boolean;
   refresh: () => void;
 };
 
@@ -28,9 +28,10 @@ const ModelVersionsTableRow: React.FC<ModelVersionsTableRowProps> = ({
   modelVersion: mv,
   isArchiveRow,
   isArchiveModel,
-  hasDeployment = false,
   refresh,
 }) => {
+  const { deployments } = useDeploymentsState();
+  const hasDeployment = deployments && deployments.length > 0;
   const navigate = useNavigate();
   const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
   const { apiState } = React.useContext(ModelRegistryContext);

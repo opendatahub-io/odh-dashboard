@@ -27,8 +27,8 @@ describe('Workbenches - tolerations tests', () => {
   const hardwareProfileUuid = generateTestUUID();
 
   // Setup: Load test data and ensure clean state
-  retryableBefore(() => {
-    return loadWBTolerationsFixture('e2e/hardwareProfiles/testWorkbenchTolerations.yaml')
+  retryableBefore(() =>
+    loadWBTolerationsFixture('e2e/hardwareProfiles/testWorkbenchTolerations.yaml')
       .then((fixtureData: WBTolerationsTestData) => {
         projectName = `${fixtureData.wbTolerationsTestNamespace}-${projectUuid}`;
         projectDescription = fixtureData.wbTolerationsTestDescription;
@@ -48,8 +48,8 @@ describe('Workbenches - tolerations tests', () => {
         cy.log(`Loaded Hardware Profile Name: ${hardwareProfileResourceName}`);
         // Cleanup Hardware Profile if it already exists
         createCleanHardwareProfile(testData.resourceYamlPath);
-      });
-  });
+      }),
+  );
 
   // Cleanup: Delete Hardware Profile and the associated Project
   after(() => {

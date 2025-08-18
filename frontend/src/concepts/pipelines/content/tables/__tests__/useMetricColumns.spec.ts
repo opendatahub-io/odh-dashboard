@@ -1,4 +1,4 @@
-import { testHook } from '#~/__tests__/unit/testUtils/hooks';
+import { testHook } from '@odh-dashboard/jest-config/hooks';
 import { useMetricColumnNames } from '#~/concepts/pipelines/content/tables/pipelineRun/useMetricColumns';
 
 describe('useMetricColumnNames', () => {

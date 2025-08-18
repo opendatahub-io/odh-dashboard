@@ -1,0 +1,37 @@
+{
+  "compilerOptions": {
+    "module": "esnext",
+    "target": "es2021",
+    "lib": ["es2021", "dom", "ES2023.Array"],
+    "sourceMap": true,
+    "jsx": "react",
+    "moduleResolution": "bundler",
+    "downlevelIteration": true,
+    "forceConsistentCasingInFileNames": true,
+    "noImplicitReturns": true,
+    "noImplicitThis": true,
+    "noImplicitAny": true,
+    "allowJs": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "strict": true,
+    "importHelpers": true,
+    "skipLibCheck": true,
+    "noErrorTruncation": true,
+    "baseUrl": "${configDir}",
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "paths": {
+      "@mf/*": ["../../@mf-types/@mf/*"]
+    }
+  },
+  "include": [
+    "${configDir}/**/*.ts",
+    "${configDir}/**/*.tsx",
+    "${configDir}/**/*.jsx",
+    "${configDir}/**/**.js",
+    "${configDir}/**/**.cjs"
+  ],
+  "exclude": ["node_modules"],
+  "files": ["./typings.d.ts", "../jest-config/typings.d.ts"]
+}

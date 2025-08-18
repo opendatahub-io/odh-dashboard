@@ -58,7 +58,7 @@ export default fp(async (fastify: FastifyInstance) => {
       .readNamespacedConfigMap('console-config', 'openshift-console')
       .then((result) => result.body);
     if (consoleConfig.data?.[CONSOLE_CONFIG_YAML_FIELD]) {
-      const consoleConfigData = jsYaml.load(consoleConfig.data[CONSOLE_CONFIG_YAML_FIELD]);
+      const consoleConfigData = jsYaml.load(consoleConfig.data[CONSOLE_CONFIG_YAML_FIELD]) as any;
       clusterBranding = consoleConfigData.customization?.branding || 'okd';
       fastify.log.info(`Cluster Branding: ${clusterBranding}`);
     }
