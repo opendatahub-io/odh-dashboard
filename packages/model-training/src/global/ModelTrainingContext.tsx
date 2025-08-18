@@ -48,3 +48,6 @@ export const ModelTrainingContextProvider: React.FC<ModelTrainingContextProvider
     <ModelTrainingContext.Provider value={contextValue}>{children}</ModelTrainingContext.Provider>
   );
 };
+
+export const useModelTrainingContext = (): ModelTrainingContextType =>
+  React.useContext(ModelTrainingContext);
