@@ -636,4 +636,8 @@ describe('getPVCNameFromURI', () => {
     const uri = 'not a uri';
     expect(getPVCNameFromURI(uri)).toEqual('');
   });
+  it('should return an empty string if the URI is not a PVC URI', () => {
+    const uri = 'http://pvc-1/model-path';
+    expect(getPVCNameFromURI(uri)).toEqual('');
+  });
 });
