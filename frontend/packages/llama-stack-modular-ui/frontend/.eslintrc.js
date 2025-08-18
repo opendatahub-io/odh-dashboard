@@ -1,6 +1,6 @@
 module.exports = {
   parser: '@typescript-eslint/parser',
-  root: true,
+  root: true, // Required to prevent prettier plugin conflicts
   env: {
     browser: true,
     node: true,
@@ -230,6 +230,30 @@ module.exports = {
     'func-names': 'warn',
   },
   overrides: [
+    {
+      // Config files: disable TypeScript parser to avoid project conflicts
+      files: ['.eslintrc.js', 'config/**/*.js'],
+      parser: 'espree',
+      env: { node: true },
+      parserOptions: { ecmaVersion: 2020, sourceType: 'script' },
+      extends: ['eslint:recommended'],
+      rules: {
+        // Disable TypeScript rules that require type information
+        '@typescript-eslint/dot-notation': 'off',
+        '@typescript-eslint/naming-convention': 'off',
+        '@typescript-eslint/no-unused-expressions': 'off',
+        '@typescript-eslint/no-redeclare': 'off',
+        '@typescript-eslint/no-shadow': 'off',
+        '@typescript-eslint/return-await': 'off',
+        '@typescript-eslint/no-base-to-string': 'off',
+        '@typescript-eslint/no-unnecessary-condition': 'off',
+        '@typescript-eslint/default-param-last': 'off',
+        '@typescript-eslint/method-signature-style': 'off',
+        '@typescript-eslint/no-require-imports': 'off',
+        '@typescript-eslint/no-var-requires': 'off',
+        'import/no-extraneous-dependencies': 'off',
+      },
+    },
     {
       files: ['./src/api/**'],
       rules: {
