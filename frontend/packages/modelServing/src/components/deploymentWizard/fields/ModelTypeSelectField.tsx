@@ -62,6 +62,7 @@ export const ModelTypeSelectField: React.FC<ModelTypeSelectFieldProps> = ({
       onBlur={validationProps?.onBlur}
       placeholder="Select model type"
       value={modelType}
+      toggleProps={{ style: { minWidth: '250px' } }}
     />
     <ZodErrorHelperText zodIssue={validationIssues} />
   </FormGroup>
