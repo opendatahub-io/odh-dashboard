@@ -12,14 +12,3 @@ export type ProjectDetailsTab = Extension<
 >;
 export const isProjectDetailsTab = (extension: Extension): extension is ProjectDetailsTab =>
   extension.type === 'app.project-details/tab';
-
-export type ProjectDetailsRoute = Extension<
-  'app.project-details/route',
-  {
-    component: ComponentCodeRef;
-    path: string;
-  }
->;
-
-export const isProjectDetailsRoute = (extension: Extension): extension is ProjectDetailsRoute =>
-  extension.type === 'app.project-details/route';
