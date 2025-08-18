@@ -17,7 +17,6 @@ const DIST_DIR = process.env._DIST_DIR;
 const OUTPUT_ONLY = process.env._OUTPUT_ONLY;
 
 if (OUTPUT_ONLY !== 'true') {
-  // eslint-disable-next-line no-console
   console.info(`Cleaning OUTPUT DIR...\n  ${DIST_DIR}\n`);
 }
 

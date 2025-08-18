@@ -252,6 +252,8 @@ module.exports = {
         '@typescript-eslint/no-require-imports': 'off',
         '@typescript-eslint/no-var-requires': 'off',
         'import/no-extraneous-dependencies': 'off',
+        'prefer-destructuring': 'off',
+        'no-console': 'off',
       },
     },
     {

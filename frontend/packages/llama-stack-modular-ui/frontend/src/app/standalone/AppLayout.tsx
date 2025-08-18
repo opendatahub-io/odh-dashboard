@@ -27,9 +27,7 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
               logout().then(() => window.location.reload());
             }}
           />
-        ) : (
-          ''
-        )
+        ) : undefined
       }
       isManagedSidebar={isStandalone}
       sidebar={isStandalone ? <AppNavSidebar /> : undefined}

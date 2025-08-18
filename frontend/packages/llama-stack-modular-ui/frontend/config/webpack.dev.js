@@ -7,11 +7,11 @@ const { setupWebpackDotenvFilesForEnv, setupDotenvFilesForEnv } = require('./dot
 setupDotenvFilesForEnv({ env: 'development' });
 const common = require('./webpack.common.js');
 
-const HOST = process.env.HOST || 'localhost';
-const PORT = process.env.PORT || '9000';
-const PROXY_HOST = process.env.PROXY_HOST || 'localhost';
-const PROXY_PROTOCOL = process.env.PROXY_PROTOCOL || 'http';
-const PROXY_PORT = process.env.PROXY_PORT || '8080';
+const HOST = process.env.HOST;
+const PORT = process.env.PORT;
+const PROXY_HOST = process.env.PROXY_HOST;
+const PROXY_PROTOCOL = process.env.PROXY_PROTOCOL;
+const PROXY_PORT = process.env.PROXY_PORT;
 const RELATIVE_DIRNAME = process.env._RELATIVE_DIRNAME;
 const SRC_DIR = process.env._SRC_DIR;
 const COMMON_DIR = process.env._COMMON_DIR;
