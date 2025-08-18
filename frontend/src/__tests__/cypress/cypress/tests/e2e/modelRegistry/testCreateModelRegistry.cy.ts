@@ -4,10 +4,20 @@ import {
   modelRegistrySettings,
 } from '#~/__tests__/cypress/cypress/pages/modelRegistrySettings';
 import { retryableBeforeEach } from '#~/__tests__/cypress/cypress/utils/retryableHooks';
-import { checkModelRegistry } from '#~/__tests__/cypress/cypress/utils/oc_commands/modelRegistry';
+import {
+  checkModelRegistry,
+  createAndVerifyDatabase,
+  deleteModelRegistryDatabase,
+} from '#~/__tests__/cypress/cypress/utils/oc_commands/modelRegistry';
 
 describe('Verify a model registry can be created and deleted', () => {
   const registryName = `e2e-test-registry`;
+
+  before(() => {
+    // Create and verify SQL database
+    cy.step('Create and verify SQL database for model registry');
+    createAndVerifyDatabase().should('be.true');
+  });
 
   retryableBeforeEach(() => {
     cy.clearCookies();
@@ -16,7 +26,7 @@ describe('Verify a model registry can be created and deleted', () => {
 
   it(
     'Creates a model registry and then deletes it',
-    { tags: ['@Dashboard', '@Maintain', '@ModelRegistry', '@NonConcurrent', '@Featureflagged'] },
+    { tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@Featureflagged'] },
     () => {
       cy.step('Login as an Admin');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
@@ -61,5 +71,8 @@ describe('Verify a model registry can be created and deleted', () => {
   after(() => {
     cy.clearCookies();
     cy.clearLocalStorage();
+
+    cy.step('Delete the SQL database');
+    deleteModelRegistryDatabase();
   });
 });
