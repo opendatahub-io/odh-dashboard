@@ -2,7 +2,7 @@ import {
   FilterLabel,
   FilterData,
   MultipleLabels,
-  FilterOptionRenders,
+  BaseFilterOptionRenders,
   OnFilterUpdate,
   LabelToDelete,
   MultipleLabelForType,
@@ -11,7 +11,7 @@ import {
 export const buildFilterLabel = (key: string, node: string, testIdParam?: string): FilterLabel => ({
   key,
   node,
-  ...(testIdParam && { props: { 'data-testid': testIdParam } }),
+  ...(testIdParam ? { props: { 'data-testid': testIdParam } } : {}),
 });
 
 export const buildFilterLabelList = <T extends string>(
@@ -72,8 +72,8 @@ export const getFilterOptionProps = <T extends string>(
   filterKey: T,
   filterItem: string | { label: string; value: string } | undefined,
   onFilterUpdate: OnFilterUpdate<T>,
-): FilterOptionRenders => ({
+): BaseFilterOptionRenders => ({
   onChange: (value?: string, label?: string) =>
     onFilterUpdate(filterKey, label && value ? { label, value } : value),
-  ...(typeof filterItem === 'string' ? { value: filterItem } : filterItem),
+  ...(typeof filterItem === 'string' ? { value: filterItem } : filterItem ?? {}),
 });

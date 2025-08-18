@@ -6,7 +6,7 @@ export type FeatureStoreFilterToolbarProps<T extends string> = React.ComponentPr
 > & {
   children?: React.ReactNode;
   filterOptions: { [key in T]?: string };
-  filterOptionRenders: Record<T, (props: FilterOptionRenders) => React.ReactNode>;
+  filterOptionRenders: Record<T, (props: BaseFilterOptionRenders) => React.ReactNode>;
   filterData: FilterData<T>;
   onFilterUpdate: OnFilterUpdate<T>;
   testId?: string;
@@ -36,7 +36,7 @@ export type MultipleLabel = {
 
 export type MultipleLabels<T extends string> = Record<T, Array<MultipleLabel>>;
 
-export type FilterOptionRenders = {
+export type BaseFilterOptionRenders = {
   onChange: (value?: string, label?: string) => void;
   value?: string;
   label?: string;

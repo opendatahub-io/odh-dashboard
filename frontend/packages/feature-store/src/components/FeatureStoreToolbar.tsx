@@ -2,13 +2,11 @@ import * as React from 'react';
 import { SearchInput } from '@patternfly/react-core';
 import DashboardDatePicker from '@odh-dashboard/internal/components/DashboardDatePicker';
 import FeatureStoreFilterToolbar from './FeatureStoreFilterToolbar';
+import { BaseFilterOptionRenders } from '../types/toolbarTypes';
 
-export type FilterOptionRenders = {
+export type FilterOptionRenders = BaseFilterOptionRenders & {
   'aria-label'?: string;
-  label?: string;
-  onChange: (value?: string, label?: string) => void;
   placeholder?: string;
-  value?: string;
 };
 
 export type TagFilterProps = {
@@ -77,14 +75,14 @@ export function createDefaultFilterOptionRenders(
         />
       );
     } else if (key === 'created' || key === 'updated') {
-      result[key] = (props) => (
+      result[key] = ({ onChange, ...props }) => (
         <DashboardDatePicker
           {...props}
           hideError
           aria-label={`Select a ${key} date`}
           onChange={(_, value, date) => {
             if (date || !value) {
-              props.onChange(value);
+              onChange(value);
             }
           }}
         />
