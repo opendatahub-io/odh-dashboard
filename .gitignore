@@ -24,4 +24,5 @@ yarn.lock
 
 .turbo
 
-jest-coveragefrontend/packages/model-registry/upstream/bff/bff-mock
+jest-coverage
+frontend/packages/model-registry/upstream/bff/bff-mock
