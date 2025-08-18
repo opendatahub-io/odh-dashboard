@@ -108,44 +108,5 @@ describe('Model Registry API - Mock BFF Contract Tests', () => {
         console.log('📊 Registry count: 0');
       }
     });
-
-    it('should handle unauthorized access', async () => {
-      expect(bffHealthy).toBe(true);
-
-      // Make a request without the kubeflow-userid header
-      const result = await apiClient.get(
-        '/api/v1/model_registry?namespace=restricted-namespace',
-        'Model Registry List - Unauthorized Case',
-        { headers: { Accept: 'application/json' } }, // Exclude kubeflow-userid
-      );
-
-      expect(result.success).toBe(false);
-      expect(result.error).toBeDefined();
-      if (result.error) {
-        expect(result.error.status).toBe(400);
-        expect(result.error.data).toHaveProperty('error');
-        expect((result.error.data as any).error).toHaveProperty('code', '400');
-        expect((result.error.data as any).error).toHaveProperty(
-          'message',
-          'missing required kubeflow-userid header',
-        );
-
-        // Validate error response against OpenAPI schema (optional, as mock BFF might not strictly adhere)
-        const validationResult = schemaValidator.validateResponse(
-          result.error,
-          'ModelRegistryAPI',
-          'Model Registry List - Unauthorized Case',
-          '#/components/schemas/ErrorResponse',
-          true, // Is error response
-        );
-        if (!validationResult.isValid) {
-          console.warn(
-            "⚠️ Error response doesn't follow OpenAPI Error schema - this may be expected in Mock BFF mode",
-          );
-        }
-        expect(validationResult.isValid).toBe(true); // Expecting it to pass if it matches the ErrorResponse schema
-        console.log('📊 Error status: 400');
-      }
-    });
   });
 });

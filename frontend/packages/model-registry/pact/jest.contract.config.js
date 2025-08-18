@@ -8,8 +8,8 @@ module.exports = {
   // Module resolution - extending from parent config
   moduleNameMapper: {
     '^~/(.*)$': '<rootDir>/upstream/frontend/src/$1',
-    '^@odh-dashboard/pact-testing$': '<rootDir>/../pact-testing/src/index',
-    '^@odh-dashboard/pact-testing/(.*)$': '<rootDir>/../pact-testing/src/$1',
+    '^@odh-dashboard/pact-testing$': '<rootDir>/../../pact-testing/src/index.ts',
+    '^@odh-dashboard/pact-testing/(.*)$': '<rootDir>/../../pact-testing/src/$1',
   },
 
   // TypeScript configuration
@@ -17,16 +17,14 @@ module.exports = {
     '^.+\\.(ts|tsx)$': 'ts-jest',
   },
 
-  moduleFileExtensions: ['ts', 'tsx', 'js', 'json'],
-
   // Jest globals and types
   globals: {
     'ts-jest': {
-      tsconfig: {
-        types: ['jest', 'node'],
-      },
+      tsconfig: './pact/tsconfig.json',
     },
   },
+
+  moduleFileExtensions: ['ts', 'tsx', 'js', 'json'],
 
   // Setup files
   setupFilesAfterEnv: ['<rootDir>/setup.ts'],

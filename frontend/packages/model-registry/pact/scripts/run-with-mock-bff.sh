@@ -1,31 +1,19 @@
 #!/bin/bash
 
-# Model Registry Contract Tests with Mock BFF
-# This script starts the BFF in mock mode and runs contract tests against it
+# Model Registry Pact Tests with Mock BFF
+# This script builds and runs the Model Registry BFF server in mock mode,
+# then executes contract tests against it to generate real Pact contracts.
 
-set -e
+set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PACKAGE_DIR="$(dirname "$(dirname "$SCRIPT_DIR")")"
-BFF_DIR="$PACKAGE_DIR/upstream/bff"
-PACT_DIR="$PACKAGE_DIR/pact"
-RESULTS_DIR="$PACT_DIR/pact-test-results"
-
-# Ensure results directory exists
-mkdir -p "$RESULTS_DIR"
-
-# Add timestamp for this test run
-TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-TEST_RUN_DIR="$RESULTS_DIR/$TIMESTAMP"
-mkdir -p "$TEST_RUN_DIR"
-
-# Colors for output
-GREEN='\033[0;32m'
-BLUE='\033[0;34m'
-YELLOW='\033[1;33m'
+# Colors for output  
 RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
 NC='\033[0m'
 
+# Logging functions
 log_info() {
     echo -e "${BLUE}ℹ️  $1${NC}"
 }
@@ -42,17 +30,29 @@ log_error() {
     echo -e "${RED}❌ $1${NC}"
 }
 
-# PID file for cleanup
-BFF_PID_FILE="$RESULTS_DIR/bff-mock.pid"
+# Configuration
+PACKAGE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+PACT_DIR="$PACKAGE_DIR/pact"
+BFF_DIR="$PACKAGE_DIR/upstream/bff"
+TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+TEST_RUN_DIR="$PACT_DIR/pact-test-results/$TIMESTAMP"
+BFF_PID_FILE="$TEST_RUN_DIR/bff.pid"
+BFF_PID=""
+
+# Create test results directory
+mkdir -p "$TEST_RUN_DIR"
 
 # Cleanup function
 cleanup() {
-    if [ -f "$BFF_PID_FILE" ]; then
+    if [[ -f "$BFF_PID_FILE" ]]; then
         BFF_PID=$(cat "$BFF_PID_FILE")
-        if kill -0 "$BFF_PID" 2>/dev/null; then
+        if [[ -n "$BFF_PID" ]]; then
             log_info "Stopping Mock BFF server (PID: $BFF_PID)"
             kill "$BFF_PID" 2>/dev/null || true
+            
+            # Wait a moment for graceful shutdown
             sleep 2
+            
             # Force kill if still running
             if kill -0 "$BFF_PID" 2>/dev/null; then
                 kill -9 "$BFF_PID" 2>/dev/null || true
@@ -97,6 +97,12 @@ build_bff() {
 start_mock_bff() {
     log_info "Starting Mock BFF server on port 8080..."
     cd "$BFF_DIR"
+    
+    # Set up envtest path for Kubernetes testing
+    if [[ -z "${KUBEBUILDER_ASSETS:-}" ]]; then
+        export KUBEBUILDER_ASSETS=$(./bin/setup-envtest-release-0.17 use 1.29.0 --print path)
+        log_info "Setting KUBEBUILDER_ASSETS to: $KUBEBUILDER_ASSETS"
+    fi
     
     # Start BFF with mock settings
     BFF_LOG_FILE="$TEST_RUN_DIR/bff-mock.log"

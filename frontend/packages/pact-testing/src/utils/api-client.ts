@@ -214,7 +214,7 @@ export class ContractApiClient {
     if (axios.isAxiosError(error)) {
       const apiError: ApiError = {
         status: error.response?.status,
-        headers: error.response?.headers,
+        headers: error.response?.headers as any,
         data: error.response?.data,
         message: error.message,
       };

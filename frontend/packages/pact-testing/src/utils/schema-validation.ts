@@ -26,6 +26,7 @@ export class ContractSchemaValidator {
     this.ajv = new Ajv({ 
       strict: config.strict ?? false,
       allErrors: true,
+      validateSchema: false, // Disable meta-schema validation to avoid issues with draft versions
     });
     addFormats(this.ajv);
   }
@@ -57,12 +58,16 @@ export class ContractSchemaValidator {
    * Validate an API response against a schema
    */
   validateResponse(
-    response: ApiResponse,
+    response: ApiResponse | any,
     schemaId: string,
-    testName: string
+    testName: string,
+    schemaPath?: string,
+    isErrorResponse?: boolean
   ): ValidationResult {
     try {
-      const isValid = this.ajv.validate(schemaId, response.data);
+      // For error responses, validate against the error data structure
+      const dataToValidate = isErrorResponse ? response : response.data;
+      const isValid = this.ajv.validate(schemaId, dataToValidate);
 
       if (isValid) {
         console.log(`✅ OpenAPI contract validation passed for ${testName}`);

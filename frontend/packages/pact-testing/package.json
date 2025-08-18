@@ -4,11 +4,9 @@
   "description": "Shared utilities for Pact contract testing across ODH Dashboard packages.",
   "version": "0.0.0",
   "scripts": {},
+  "main": "./src/index.ts",
   "exports": {
-    "./logging": "./src/logging.ts",
-    "./bff-verification": "./src/bff-verification.ts",
-    "./api-client": "./src/api-client.ts",
-    "./schema-validation": "./src/schema-validation.ts"
+    ".": "./src/index.ts"
   },
   "dependencies": {
     "@odh-dashboard/internal": "*"

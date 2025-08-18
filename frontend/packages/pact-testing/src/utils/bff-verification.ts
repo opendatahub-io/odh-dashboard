@@ -44,7 +44,7 @@ export async function verifyBffHealth(config: BffConfig): Promise<BffHealthResul
     
     logApiResponse('BFF Health Check', {
       status: response.status,
-      headers: response.headers,
+      headers: response.headers as any,
       data: response.data,
     });
     
@@ -61,7 +61,7 @@ export async function verifyBffHealth(config: BffConfig): Promise<BffHealthResul
     logApiError('BFF Health Check', {
       message: errorMessage,
       status: axios.isAxiosError(error) ? error.response?.status : undefined,
-      headers: axios.isAxiosError(error) ? error.response?.headers : undefined,
+      headers: axios.isAxiosError(error) ? (error.response?.headers as any) : undefined,
       data: axios.isAxiosError(error) ? error.response?.data : undefined,
     });
     
