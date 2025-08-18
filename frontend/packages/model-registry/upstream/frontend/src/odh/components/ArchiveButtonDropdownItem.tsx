@@ -5,33 +5,35 @@ import { useDeploymentsState } from '../hooks/useDeploymentsState';
 import { useParams } from 'react-router';
 import { KnownLabels } from '~/odh/k8sTypes';
 import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelectorContext';
+import { ModelVersion } from '~/app/types';
 
 type ArchiveButtonDropdownItemProps = {
+    mv?: ModelVersion;
     setIsArchiveModalOpen: (isOpen: boolean) => void;
 }
 
-const ArchiveButtonDropdownItemContent: React.FC<Omit<ArchiveButtonDropdownItemProps, 'rm'>> = ({ setIsArchiveModalOpen }) => {
+const ArchiveButtonDropdownItemContent: React.FC<ArchiveButtonDropdownItemProps> = ({ mv, setIsArchiveModalOpen }) => {
     const { deployments, loaded } = useDeploymentsState();
     const hasDeployments = deployments && deployments.length > 0;
     return (
         <DropdownItem
-            id="archive-model-button"
-            aria-label="Archive model"
-            key="archive-model-button"
+            id={mv ? "archive-version-button" : "archive-model-button"}
+            aria-label={mv ? "Archive model version" :"Archive model"}
+            key={mv ? "archive-version-button" : "archive-model-button"}
             onClick={() => setIsArchiveModalOpen(true)}
             isAriaDisabled={hasDeployments || !loaded}
             tooltipProps={
                 hasDeployments
-                ? { content: 'Models with deployed versions cannot be archived.' }
+                ? { content: mv ? 'Deployed model versions cannot be archived' : 'Models with deployed versions cannot be archived.' }
                 : undefined
             }
             >
-            Archive model
+            {mv ? "Archive model version" : "Archive model"}
         </DropdownItem>
     );
 };
 
-const ArchiveButtonDropdownItem: React.FC<ArchiveButtonDropdownItemProps> = ({ setIsArchiveModalOpen }) => {
+const ArchiveButtonDropdownItem: React.FC<ArchiveButtonDropdownItemProps> = ({ mv, setIsArchiveModalOpen }) => {
     const { registeredModelId: rmId } = useParams();
     const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
     const labelSelectors = React.useMemo(() => {
@@ -40,11 +42,12 @@ const ArchiveButtonDropdownItem: React.FC<ArchiveButtonDropdownItemProps> = ({ s
         }
         return {
           [KnownLabels.REGISTERED_MODEL_ID]: rmId,
-        }
-    }, [rmId]);
+          ...(mv && { [KnownLabels.MODEL_VERSION_ID]: mv.id }),
+        };
+      }, [rmId, mv]);
     return (
     <MRDeploymentsContextProvider labelSelectors={labelSelectors} mrName={preferredModelRegistry?.name}>
-        <ArchiveButtonDropdownItemContent setIsArchiveModalOpen={setIsArchiveModalOpen} />
+        <ArchiveButtonDropdownItemContent mv={mv} setIsArchiveModalOpen={setIsArchiveModalOpen} />
     </MRDeploymentsContextProvider>
   );
 };

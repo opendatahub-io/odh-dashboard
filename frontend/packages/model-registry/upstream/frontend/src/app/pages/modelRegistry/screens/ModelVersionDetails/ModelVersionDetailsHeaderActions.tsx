@@ -63,7 +63,7 @@ const ModelVersionsDetailsHeaderActions: React.FC<ModelVersionsDetailsHeaderActi
             )}
           >
             <DropdownList>
-              <ArchiveButtonDropdownItem setIsArchiveModalOpen={setIsArchiveModalOpen} />
+              <ArchiveButtonDropdownItem mv={mv} setIsArchiveModalOpen={setIsArchiveModalOpen} />
             </DropdownList>
           </Dropdown>
         </ActionListItem>

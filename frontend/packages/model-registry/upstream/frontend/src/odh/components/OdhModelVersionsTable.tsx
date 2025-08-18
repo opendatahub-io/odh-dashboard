@@ -59,14 +59,9 @@ const OdhModelVersionsTable: React.FC<OdhModelVersionsTableProps> = ({
   refresh,
   rm,
 }) => {
-    const labelSelectors = React.useMemo(() => {
-        if (!rm.id) {
-          return undefined;
-        }
-        return {
-          [KnownLabels.REGISTERED_MODEL_ID]: rm.id,
-        };
-    }, [rm.id]);
+    const labelSelectors = {
+        [KnownLabels.REGISTERED_MODEL_ID]: rm.id,
+    }
     const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
     return (
         <MRDeploymentsContextProvider labelSelectors={labelSelectors} mrName={preferredModelRegistry?.name}>
