@@ -8,7 +8,7 @@ import type { BooleanValues, RenderHookResultExt } from '../types';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 global.TextEncoder = TextEncoder;
- 
+
 // Mock webpack-injected global variables
 declare global {
   // eslint-disable-next-line no-var, @typescript-eslint/naming-convention
