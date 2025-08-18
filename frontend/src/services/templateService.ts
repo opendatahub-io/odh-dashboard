@@ -3,7 +3,11 @@ import YAML from 'yaml';
 import axios from '#~/utilities/axios';
 import { assembleServingRuntimeTemplate } from '#~/api';
 import { ServingRuntimeKind, TemplateKind } from '#~/k8sTypes';
-import { ServingRuntimeAPIProtocol, ServingRuntimePlatform } from '#~/types';
+import {
+  ServingRuntimeAPIProtocol,
+  ServingRuntimePlatform,
+  ServingRuntimeModelType,
+} from '#~/types';
 import { addTypesToK8sListedResources } from '#~/utilities/addTypesToK8sListedResources';
 
 export const listTemplatesBackend = async (
@@ -77,6 +81,12 @@ export const updateServingRuntimeTemplateBackend = (
         `Cannot change serving runtime name (original: "${servingRuntimeName}", updated: "${servingRuntime.metadata.name}").`,
       );
     }
+
+    const runtimeModelTypeValue = JSON.stringify([
+      ServingRuntimeModelType.PREDICTIVE,
+      ServingRuntimeModelType.GENERATIVE,
+    ]);
+
     return dryRunServingRuntimeForTemplateCreationBackend(servingRuntime, namespace).then(() =>
       axios
         .patch<TemplateKind>(`/api/templates/${namespace}/${name}`, [
@@ -102,12 +112,12 @@ export const updateServingRuntimeTemplateBackend = (
             ? {
                 op: 'replace',
                 path: '/metadata/annotations/opendatahub.io~1modelServingType',
-                value: '["predictive", "generative"]',
+                value: runtimeModelTypeValue,
               }
             : {
                 op: 'add',
                 path: '/metadata/annotations/opendatahub.io~1modelServingType',
-                value: '["predictive", "generative"]',
+                value: runtimeModelTypeValue,
               },
           existingTemplate.metadata.annotations?.['opendatahub.io/apiProtocol']
             ? {

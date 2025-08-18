@@ -1,36 +1,59 @@
 import * as React from 'react';
 import { FormGroup } from '@patternfly/react-core';
-import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
+import { ServingRuntimeModelType } from '#~/types';
+import { MultiSelection, SelectionOptions } from '#~/components/MultiSelection';
 
-const CustomServingRuntimeModelTypeSelector: React.FC = () => {
-  const [selectedValue, setSelectedValue] = React.useState<string>('');
+type CustomServingRuntimeModelTypeSelectorProps = {
+  selectedModelTypes: ServingRuntimeModelType[];
+  setSelectedModelTypes: (modelTypes: ServingRuntimeModelType[]) => void;
+};
 
-  const options: SimpleSelectOption[] = [
+const CustomServingRuntimeModelTypeSelector: React.FC<
+  CustomServingRuntimeModelTypeSelectorProps
+> = ({ selectedModelTypes, setSelectedModelTypes }) => {
+  const options: SelectionOptions[] = [
     {
-      key: 'Predictive model',
-      label: 'Predictive model',
+      id: ServingRuntimeModelType.PREDICTIVE,
+      name: 'Predictive model',
+      selected: selectedModelTypes.includes(ServingRuntimeModelType.PREDICTIVE),
     },
     {
-      key: 'Generative AI model (e.g., LLM)',
-      label: 'Generative AI model (e.g., LLM)',
+      id: ServingRuntimeModelType.GENERATIVE,
+      name: 'Generative AI model (e.g., LLM)',
+      selected: selectedModelTypes.includes(ServingRuntimeModelType.GENERATIVE),
     },
   ];
+
+  const handleSelectionChange = (newState: SelectionOptions[]) => {
+    const selectedTypes: ServingRuntimeModelType[] = [];
+    newState.forEach((option) => {
+      if (option.selected) {
+        if (option.id === ServingRuntimeModelType.PREDICTIVE) {
+          selectedTypes.push(ServingRuntimeModelType.PREDICTIVE);
+        } else if (option.id === ServingRuntimeModelType.GENERATIVE) {
+          selectedTypes.push(ServingRuntimeModelType.GENERATIVE);
+        }
+      }
+    });
+    setSelectedModelTypes(selectedTypes);
+  };
 
   return (
     <FormGroup
       label="Select the model type this runtime supports"
-      fieldId="custom-serving-model-type-selection"
-      isRequired
+      fieldId="serving-model-type-selection"
     >
-      <SimpleSelect
-        dataTestId="custom-serving-model-type-selection"
-        aria-label="Select a model type"
-        placeholder="Select a value"
-        options={options}
-        value={selectedValue}
-        onChange={(key) => setSelectedValue(key)}
-        popperProps={{ maxWidth: undefined }}
-      />
+      <div style={{ width: 'fit-content' }}>
+        <MultiSelection
+          ariaLabel="Select model types"
+          value={options}
+          setValue={handleSelectionChange}
+          placeholder="Select model types"
+          toggleTestId="serving-model-type-selection"
+          id="serving-model-type-selection"
+          toggleId="serving-model-type-selection"
+        />
+      </div>
     </FormGroup>
   );
 };

@@ -8,7 +8,12 @@ import {
 import { KnownLabels, ServingRuntimeKind, TemplateKind } from '#~/k8sTypes';
 import { TemplateModel } from '#~/api/models';
 import { genRandomChars } from '#~/utilities/string';
-import { CustomWatchK8sResult, ServingRuntimeAPIProtocol, ServingRuntimePlatform } from '#~/types';
+import {
+  CustomWatchK8sResult,
+  ServingRuntimeAPIProtocol,
+  ServingRuntimePlatform,
+  ServingRuntimeModelType,
+} from '#~/types';
 import useModelServingEnabled from '#~/pages/modelServing/useModelServingEnabled';
 import useCustomServingRuntimesEnabled from '#~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
 import { groupVersionKind } from '#~/api/k8sUtils';
@@ -40,7 +45,10 @@ export const assembleServingRuntimeTemplate = (
       },
       annotations: {
         'opendatahub.io/modelServingSupport': JSON.stringify(platforms),
-        'opendatahub.io/modelServingType': '["predictive", "generative"]',
+        'opendatahub.io/modelServingType': JSON.stringify([
+          ServingRuntimeModelType.PREDICTIVE,
+          ServingRuntimeModelType.GENERATIVE,
+        ]),
         ...(apiProtocol && { 'opendatahub.io/apiProtocol': apiProtocol }),
       },
     },

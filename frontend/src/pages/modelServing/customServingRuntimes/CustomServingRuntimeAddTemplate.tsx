@@ -21,7 +21,11 @@ import {
   createServingRuntimeTemplateBackend,
   updateServingRuntimeTemplateBackend,
 } from '#~/services/templateService';
-import { ServingRuntimeAPIProtocol, ServingRuntimePlatform } from '#~/types';
+import {
+  ServingRuntimeAPIProtocol,
+  ServingRuntimePlatform,
+  ServingRuntimeModelType,
+} from '#~/types';
 import CustomServingRuntimePlatformsSelector from '#~/pages/modelServing/customServingRuntimes/CustomServingRuntimePlatformsSelector';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import {
@@ -108,6 +112,7 @@ const CustomServingRuntimeAddTemplate: React.FC<CustomServingRuntimeAddTemplateP
   const [selectedAPIProtocol, setSelectedAPIProtocol] = React.useState<
     ServingRuntimeAPIProtocol | undefined
   >(apiProtocol);
+  const [selectedModelTypes, setSelectedModelTypes] = React.useState<ServingRuntimeModelType[]>([]);
   const [loading, setIsLoading] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>(undefined);
   const navigate = useNavigate();
@@ -174,7 +179,10 @@ const CustomServingRuntimeAddTemplate: React.FC<CustomServingRuntimeAddTemplateP
           </StackItem>
           {isDeploymentWizardEnabled && (
             <StackItem>
-              <CustomServingRuntimeModelTypeSelector />
+              <CustomServingRuntimeModelTypeSelector
+                selectedModelTypes={selectedModelTypes}
+                setSelectedModelTypes={setSelectedModelTypes}
+              />
             </StackItem>
           )}
           <StackItem isFilled>
