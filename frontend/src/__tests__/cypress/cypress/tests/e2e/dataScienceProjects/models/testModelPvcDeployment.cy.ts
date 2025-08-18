@@ -23,7 +23,7 @@ import {
   addClusterStorageModal,
 } from '#~/__tests__/cypress/cypress/pages/clusterStorage';
 import { createS3LoaderPod } from '#~/__tests__/cypress/cypress/utils/oc_commands/pvcLoaderPod';
-import { waitForPodReady } from '#~/__tests__/cypress/cypress/utils/oc_commands/baseCommands';
+import { waitForPodCompletion } from '#~/__tests__/cypress/cypress/utils/oc_commands/baseCommands';
 
 let testData: DataScienceProjectData;
 let projectName: string;
@@ -116,9 +116,9 @@ describe('Verify a model can be deployed from a PVC', () => {
       cy.step('Create pod to mount the PVC');
       createS3LoaderPod(pvcReplacements);
 
-      // Verify the pod is ready
-      cy.step('Verify the pod is ready');
-      waitForPodReady(podName, projectName);
+      // Verify the pod completes successfully
+      cy.step('Verify the pod completes successfully');
+      waitForPodCompletion(podName, '300s', projectName);
 
       // Verify the S3 copy completed successfully
       cy.step('Verify S3 copy completed');
