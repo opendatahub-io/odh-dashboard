@@ -11,6 +11,7 @@ import type {
   ModelServingDeploymentResourcesExtension,
   ModelServingAuthExtension,
   DeployedModelServingDetails,
+  ModelServingStartStopAction,
 } from '@odh-dashboard/model-serving/extension-points';
 // eslint-disable-next-line no-restricted-syntax
 import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/index';
@@ -27,6 +28,7 @@ const extensions: (
   | ModelServingDeleteModal<KServeDeployment>
   | ModelServingMetricsExtension<KServeDeployment>
   | DeployedModelServingDetails<KServeDeployment>
+  | ModelServingStartStopAction<KServeDeployment>
 )[] = [
   {
     type: 'model-serving.platform',
@@ -34,7 +36,8 @@ const extensions: (
       id: KSERVE_ID,
       manage: {
         namespaceApplicationCase: NamespaceApplicationCase.KSERVE_PROMOTION,
-        // TODO: set this platform as the default if no other has priority
+        priority: 0,
+        default: true,
         projectRequirements: {
           labels: {
             'modelmesh-enabled': 'false',
@@ -95,8 +98,8 @@ const extensions: (
     properties: {
       platform: KSERVE_ID,
       onDelete: () => import('./src/deployments').then((m) => m.deleteDeployment),
-      title: 'Delete deployed model?',
-      submitButtonLabel: 'Delete deployed model',
+      title: 'Delete model deployment?',
+      submitButtonLabel: 'Delete model deployment',
     },
   },
   {
@@ -113,6 +116,14 @@ const extensions: (
     properties: {
       platform: KSERVE_ID,
       ServingDetailsComponent: () => import('./src/deploymentServingDetails'),
+    },
+  },
+  {
+    type: 'model-serving.deployments-table/start-stop-action',
+    properties: {
+      platform: KSERVE_ID,
+      patchDeploymentStoppedStatus: () =>
+        import('./src/deploymentStatus').then((m) => m.patchDeploymentStoppedStatus),
     },
   },
 ];

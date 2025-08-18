@@ -24,10 +24,10 @@ let modelFilePath: string;
 const awsBucket = 'BUCKET_1' as const;
 const uuid = generateTestUUID();
 
-describe('Verify Admin Single Model Creation and Validation using the UI', () => {
-  retryableBefore(() => {
+describe('[Automation Bug: RHOAIENG-32294] Verify Admin Single Model Creation and Validation using the UI', () => {
+  retryableBefore(() =>
     // Setup: Load test data and ensure clean state
-    return loadDSPFixture('e2e/dataScienceProjects/testSingleModelAdminCreation.yaml').then(
+    loadDSPFixture('e2e/dataScienceProjects/testSingleModelAdminCreation.yaml').then(
       (fixtureData: DataScienceProjectData) => {
         testData = fixtureData;
         projectName = `${testData.projectSingleModelAdminResourceName}-${uuid}`;
@@ -45,8 +45,8 @@ describe('Verify Admin Single Model Creation and Validation using the UI', () =>
           'resources/yaml/data_connection_model_serving.yaml',
         );
       },
-    );
-  });
+    ),
+  );
   after(() => {
     // Delete provisioned Project - wait for completion due to RHOAIENG-19969 to support test retries, 5 minute timeout
     // TODO: Review this timeout once RHOAIENG-19969 is resolved
@@ -56,7 +56,15 @@ describe('Verify Admin Single Model Creation and Validation using the UI', () =>
   it(
     'Verify that an Admin can Serve, Query a Single Model using both the UI and External links',
     {
-      tags: ['@Smoke', '@SmokeSet3', '@ODS-2626', '@Dashboard', '@Modelserving', '@NonConcurrent'],
+      tags: [
+        '@Smoke',
+        '@SmokeSet3',
+        '@ODS-2626',
+        '@Dashboard',
+        '@Modelserving',
+        '@NonConcurrent',
+        '@Maintain',
+      ],
     },
     () => {
       cy.log('Model Name:', modelName);

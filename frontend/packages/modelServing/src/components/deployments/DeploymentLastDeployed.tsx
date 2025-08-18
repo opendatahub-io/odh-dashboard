@@ -1,7 +1,7 @@
 import React from 'react';
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
+import { LastDeployed } from '@odh-dashboard/internal/components/LastDeployed';
 import { Deployment, ModelResourceType } from '../../../extension-points';
-import { LastDeployed } from '../../../../../src/components/LastDeployed.tsx';
 
 type ModelWithStatus = ModelResourceType & {
   status?: { conditions?: { type: string; lastTransitionTime: string }[] };

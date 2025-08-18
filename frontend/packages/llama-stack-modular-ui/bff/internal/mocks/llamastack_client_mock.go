@@ -31,16 +31,28 @@ func (l *LlamastackClientMock) GetAllModels(_ integrations.HTTPClientInterface) 
 	data := llamastack.ModelList{
 		Data: []llamastack.Model{
 			{
-				Identifier:         "default-model-id-1",
+				Identifier:         "llama-3.1-8b",
 				ModelType:          llamastack.LLMModelType,
-				ProviderID:         "default-provider-id-1",
-				ProviderResourceID: "default-provider-resource-id-1",
+				ProviderID:         "meta",
+				ProviderResourceID: "llama-3.1-8b-instruct",
 			},
 			{
-				Identifier:         "default-model-id-2",
+				Identifier:         "text-embedding-ada-002",
 				ModelType:          llamastack.EmbeddingModelType,
-				ProviderID:         "default-provider-id-2",
-				ProviderResourceID: "default-provider-resource-id-2",
+				ProviderID:         "openai",
+				ProviderResourceID: "openai/text-embedding-ada-002",
+			},
+			{
+				Identifier:         "claude-3-sonnet",
+				ModelType:          llamastack.LLMModelType,
+				ProviderID:         "anthropic",
+				ProviderResourceID: "claude-3-sonnet-20240229",
+			},
+			{
+				Identifier:         "sentence-transformers",
+				ModelType:          llamastack.EmbeddingModelType,
+				ProviderID:         "test-provider-4",
+				ProviderResourceID: "all-MiniLM-L6-v2",
 			},
 		},
 	}

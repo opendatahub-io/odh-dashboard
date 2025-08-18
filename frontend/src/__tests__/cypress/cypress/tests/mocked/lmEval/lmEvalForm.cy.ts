@@ -1,6 +1,6 @@
 import { mockK8sResourceList } from '#~/__mocks__/mockK8sResourceList';
 import { InferenceServiceModel } from '#~/api/models';
-import { lmEvalFormPage } from '#~/__tests__/cypress/cypress/pages/lmEval/lmEval';
+import { lmEvalFormPage } from '#~/__tests__/cypress/cypress/pages/lmEval/lmEvalFormPage';
 import { createVLLMInferenceService, setupBasicMocks } from './lmEvalTestUtils';
 
 describe('LMEval Form', () => {
@@ -101,19 +101,19 @@ describe('LMEval Form', () => {
 
     // Test state changes
     lmEvalFormPage
-      .selectAvailableOnline(true)
+      .setAvailableOnline(true)
       .shouldHaveAvailableOnlineSelected(true)
-      .selectTrustRemoteCode(true)
+      .setTrustRemoteCode(true)
       .shouldHaveTrustRemoteCodeSelected(true)
-      .selectAvailableOnline(false)
+      .setAvailableOnline(false)
       .shouldHaveAvailableOnlineSelected(false)
-      .selectTrustRemoteCode(false)
+      .setTrustRemoteCode(false)
       .shouldHaveTrustRemoteCodeSelected(false);
 
     // Test both can be true simultaneously
     lmEvalFormPage
-      .selectAvailableOnline(true)
-      .selectTrustRemoteCode(true)
+      .setAvailableOnline(true)
+      .setTrustRemoteCode(true)
       .shouldHaveAvailableOnlineSelected(true)
       .shouldHaveTrustRemoteCodeSelected(true);
   });

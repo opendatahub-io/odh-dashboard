@@ -3,14 +3,23 @@ import { Content, Flex, FlexItem, Stack, StackItem, Alert } from '@patternfly/re
 import EmptyDetailsView from '@odh-dashboard/internal/components/EmptyDetailsView';
 import { ProjectObjectType, typedEmptyImage } from '@odh-dashboard/internal/concepts/design/utils';
 import EmptyModelServingPlatform from '@odh-dashboard/internal/pages/modelServing/screens/projects/EmptyModelServingPlatform';
+import ModelServingPlatformSelectErrorAlert from '@odh-dashboard/internal/concepts/modelServing/Platforms/ModelServingPlatformSelectErrorAlert';
 import { ModelServingPlatform } from '../../concepts/useProjectServingPlatform';
-import { PlatformSelectionGallery } from '../platformSelection';
+import { PlatformSelectionGallery } from '../platforms/platformSelection';
 
 export const SelectPlatformView: React.FC<{
   platforms?: ModelServingPlatform[];
   setModelServingPlatform: (platform: ModelServingPlatform) => void;
-  newPlatformLoading?: ModelServingPlatform | null;
-}> = ({ platforms, setModelServingPlatform, newPlatformLoading }) => {
+  newPlatformLoadingId?: string | null;
+  errorSelectingPlatform?: Error;
+  clearErrorSelectingPlatform: () => void;
+}> = ({
+  platforms,
+  setModelServingPlatform,
+  newPlatformLoadingId,
+  errorSelectingPlatform,
+  clearErrorSelectingPlatform,
+}) => {
   if (!platforms || platforms.length === 0) {
     return <EmptyModelServingPlatform />;
   }
@@ -37,16 +46,16 @@ export const SelectPlatformView: React.FC<{
             <PlatformSelectionGallery
               platforms={platforms}
               onSelect={setModelServingPlatform}
-              loadingPlatformId={newPlatformLoading?.properties.id}
+              loadingPlatformId={newPlatformLoadingId}
               useOverviewCard={false}
             />
           </StackItem>
-          {/* {errorSelectingPlatform && (
+          {errorSelectingPlatform && (
             <ModelServingPlatformSelectErrorAlert
               error={errorSelectingPlatform}
-              clearError={() => setErrorSelectingPlatform(undefined)}
+              clearError={clearErrorSelectingPlatform}
             />
-          )} */}
+          )}
           <StackItem>
             <Alert
               variant="info"

@@ -51,16 +51,9 @@ const GlobalModelsPage: React.FC = () => {
     );
   }
 
-  if (!projectsLoaded) {
-    return (
-      <Bullseye>
-        <Spinner />
-      </Bullseye>
-    );
-  }
   return (
     <ModelDeploymentsProvider modelServingPlatforms={availablePlatforms} projects={projectsToShow}>
-      <GlobalDeploymentsView projects={projectsToShow} />
+      <GlobalDeploymentsView projects={projectsToShow} projectsLoaded={projectsLoaded} />
     </ModelDeploymentsProvider>
   );
 };

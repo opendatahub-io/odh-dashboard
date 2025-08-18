@@ -26,7 +26,7 @@ export default defineConfig({
   // Disable watching only if env variable `CY_WATCH=false`
   watchForFileChanges: env.CY_WATCH ? env.CY_WATCH !== 'false' : undefined,
   // Use relative path as a workaround to https://github.com/cypress-io/cypress/issues/6406
-  reporter: '../../../node_modules/cypress-multi-reporters',
+  reporter: '../../../../node_modules/cypress-multi-reporters',
   reporterOptions: {
     reporterEnabled: 'cypress-mochawesome-reporter, mocha-junit-reporter',
     mochaJunitReporterReporterOptions: {
@@ -72,10 +72,32 @@ export default defineConfig({
       : `cypress/tests/e2e/**/*.cy.ts`,
     experimentalInteractiveRunEvents: true,
     setupNodeEvents(on, config) {
+      // Dynamically merge all CY_ variables from both process.env and --env sources, with --env taking precedence
+      // This allows setting CY_ variables via shell environment (CY_RETRY=1) or Cypress --env flag (--env CY_RETRY=1)
+      // Update the existing env variable with merged values
+      Object.assign(env, {
+        ...Object.fromEntries(
+          Object.keys(config.env)
+            .filter((key) => key.startsWith('CY_'))
+            .map((key) => [key, config.env[key]]),
+        ),
+        WS_PORT: (config.env.CY_WS_PORT ?? env.CY_WS_PORT ?? '9002').toString(),
+      });
+
+      // Create config with merged environment variables
+      // config.env (--env vars) takes precedence over process.env (shell env vars)
+      const configWithEnv = {
+        ...config,
+        env: {
+          ...env,
+          ...config.env,
+        },
+      };
+
       registerCypressGrep(config);
       cypressHighResolution(on, config);
       coverage(on, config);
-      setupWebsockets(on, config);
+      setupWebsockets(on, configWithEnv);
 
       on('task', {
         readJSON(filePath: string) {
@@ -90,6 +112,7 @@ export default defineConfig({
 
           return Promise.resolve({});
         },
+
         extractHttpsUrls(directory: string) {
           return extractHttpsUrlsWithLocation(directory);
         },
@@ -147,10 +170,19 @@ export default defineConfig({
         await mergeFiles(outputFile, inputFiles);
       });
 
-      // Apply retries only for tests in the "e2e" folder
+      // Apply retries only for tests in the "e2e" folder. 2 retries by default, after a test failure.
+      // Set CY_RETRY=N env var for the number of retries (CY_RETRY=0 means no retries).
+      const retryConfig =
+        env.CY_RETRY !== undefined
+          ? { runMode: Math.max(0, parseInt(env.CY_RETRY) || 0), openMode: 0 }
+          : !env.CY_MOCK && !env.CY_RECORD
+          ? { runMode: 2, openMode: 0 }
+          : config.retries;
+
       return {
         ...config,
-        retries: !env.CY_MOCK && !env.CY_RECORD ? { runMode: 2, openMode: 0 } : config.retries,
+        retries: retryConfig,
+        env,
       };
     },
   },

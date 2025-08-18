@@ -1,4 +1,3 @@
-import * as path from 'path';
 import { execSync } from 'child_process';
 import { registerProxy } from '../utils/proxy';
 import { KubeFastifyInstance } from '../types';
@@ -31,10 +30,8 @@ type ModuleFederationConfig = {
  */
 const getWorkspacePackages = (fastify: KubeFastifyInstance): any[] => {
   try {
-    const frontendPath = path.resolve(__dirname, '../../../frontend');
     const stdout = execSync('npm query .workspace --json', {
       encoding: 'utf8',
-      cwd: frontendPath,
     });
     return JSON.parse(stdout);
   } catch (error) {
@@ -97,9 +94,9 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
       const serviceNamespace =
         getEnvVar('SERVICE_NAMESPACE') ?? service.namespace ?? process.env.OC_PROJECT;
       const servicePort = getEnvVar('SERVICE_PORT') ?? service.port;
-      const host = getEnvVar('LOCAL_HOST') ?? local.host ?? 'localhost';
-      const port = getEnvVar('LOCAL_PORT') ?? local.port;
-      const tls = getEnvVar('TLS') ? getEnvVar('TLS') === 'true' : !!mfTls;
+      const host = getEnvVar('LOCAL_HOST') ?? local?.host ?? 'localhost';
+      const port = getEnvVar('LOCAL_PORT') ?? local?.port;
+      const tls = getEnvVar('TLS') ? getEnvVar('TLS') === 'true' : mfTls ?? true;
 
       registerProxy(fastify, {
         prefix: `/_mf/${name}`,

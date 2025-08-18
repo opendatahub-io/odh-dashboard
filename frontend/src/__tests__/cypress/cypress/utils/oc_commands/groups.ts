@@ -51,7 +51,5 @@ export const groupExists = (groupName: string): Cypress.Chainable<boolean> => {
   const ocCommand = `oc get group ${groupName}`;
   cy.log(`Checking group existence with command: ${ocCommand}`);
 
-  return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => {
-    return result.code === 0;
-  });
+  return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => result.code === 0);
 };

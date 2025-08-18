@@ -9,6 +9,7 @@ import {
   SyncAltIcon,
 } from '@patternfly/react-icons';
 import { InferenceServiceModelState } from '#~/pages/modelServing/screens/types';
+import { ToggleState } from '#~/components/StateActionToggle';
 
 type ModelStatusIconProps = {
   state: InferenceServiceModelState;
@@ -16,9 +17,7 @@ type ModelStatusIconProps = {
   bodyContent?: string;
   isCompact?: boolean;
   onClick?: LabelProps['onClick'];
-  isStarting?: boolean;
-  isStopping?: boolean;
-  isStopped?: boolean;
+  stoppedStates?: ToggleState;
 };
 
 export const ModelStatusIcon: React.FC<ModelStatusIconProps> = ({
@@ -27,9 +26,7 @@ export const ModelStatusIcon: React.FC<ModelStatusIconProps> = ({
   bodyContent = '',
   isCompact,
   onClick,
-  isStarting,
-  isStopping,
-  isStopped,
+  stoppedStates,
 }) => {
   const statusSettings = React.useMemo((): {
     label: string;
@@ -39,25 +36,26 @@ export const ModelStatusIcon: React.FC<ModelStatusIconProps> = ({
     message?: string;
   } => {
     // Highest-priority: service explicitly stopped
-    if (isStopped) {
+    if (stoppedStates?.isStopped) {
       return {
         label: 'Stopped',
         color: 'grey',
         icon: <OffIcon />,
-        message: 'Offline and not using resources. Restart to use model.',
+        message: 'Offline and not using resources. To use the model, restart it.',
       };
     }
 
-    if (isStopping) {
+    if (stoppedStates?.isStopping) {
       return {
         label: 'Stopping',
         color: 'grey',
         icon: <SyncAltIcon className="odh-u-spin" />,
+        message: 'Model deployment is stopping.',
       };
     }
     // Show 'Starting' for optimistic updates or for loading/pending states from the backend.
     if (
-      isStarting ||
+      stoppedStates?.isStarting ||
       state === InferenceServiceModelState.LOADING ||
       state === InferenceServiceModelState.PENDING
     ) {
@@ -65,6 +63,7 @@ export const ModelStatusIcon: React.FC<ModelStatusIconProps> = ({
         label: 'Starting',
         color: 'blue',
         icon: <InProgressIcon className="odh-u-spin" />,
+        message: 'Model deployment is starting.',
       };
     }
 
@@ -76,7 +75,7 @@ export const ModelStatusIcon: React.FC<ModelStatusIconProps> = ({
           label: 'Started',
           status: 'success',
           icon: <PlayIcon />,
-          message: 'Model is deployed.',
+          message: 'Model deployment is active.',
         };
       case InferenceServiceModelState.FAILED_TO_LOAD:
         return {
@@ -91,7 +90,7 @@ export const ModelStatusIcon: React.FC<ModelStatusIconProps> = ({
           icon: <OutlinedQuestionCircleIcon />,
         };
     }
-  }, [state, defaultHeaderContent, isStarting, isStopping, isStopped]);
+  }, [state, defaultHeaderContent, stoppedStates]);
 
   return (
     <Popover

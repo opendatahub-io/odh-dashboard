@@ -20,6 +20,8 @@ type QueryRequest struct {
 	// Chat completion options (LLM model for generating responses)
 	LLMModelID     string                     `json:"llm_model_id"`
 	SamplingParams *llamastack.SamplingParams `json:"sampling_params,omitempty"`
+	// System prompt for the chat completion
+	SystemPrompt string `json:"system_prompt,omitempty"`
 }
 
 func (app *App) QueryHandler(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
@@ -100,12 +102,20 @@ func (app *App) QueryHandler(w http.ResponseWriter, r *http.Request, params http
 	// Create messages for chat completion
 	var messages []llamastack.ChatMessage
 
+	// Determine system prompt - use provided one or fall back to default
+	var systemPrompt string
+	if queryRequest.SystemPrompt != "" {
+		systemPrompt = queryRequest.SystemPrompt
+	} else {
+		systemPrompt = "You are a helpful assistant that explains concepts. If you have specific context about the topic, use it to provide accurate and concise answers."
+	}
+
 	if hasRAGContent {
 		// Use RAG context if available
 		messages = []llamastack.ChatMessage{
 			{
 				Role:    "system",
-				Content: "You are a helpful assistant that explains concepts based on the provided context. Use the context to answer the user's question accurately and concisely.",
+				Content: systemPrompt,
 			},
 			{
 				Role:    "user",
@@ -117,7 +127,7 @@ func (app *App) QueryHandler(w http.ResponseWriter, r *http.Request, params http
 		messages = []llamastack.ChatMessage{
 			{
 				Role:    "system",
-				Content: "You are a helpful assistant that explains concepts. If you don't have specific context about the topic, provide a general explanation based on your knowledge.",
+				Content: systemPrompt,
 			},
 			{
 				Role:    "user",

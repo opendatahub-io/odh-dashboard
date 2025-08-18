@@ -1,6 +1,6 @@
 import { act } from 'react';
+import { standardUseFetchState, testHook } from '@odh-dashboard/jest-config/hooks';
 import axios from '#~/utilities/axios';
-import { standardUseFetchState, testHook } from '#~/__tests__/unit/testUtils/hooks';
 import { mockDsciStatus } from '#~/__mocks__/mockDsciStatus';
 import useFetchDsciStatus from '#~/concepts/areas/useFetchDsciStatus';
 

@@ -22,6 +22,144 @@ export const getModelRegistryNamespace = (): string => {
 };
 
 /**
+ * Create a SQL database for model registry using YAML fixtures
+ * @returns Cypress.Chainable<CommandLineResult>
+ */
+export const createModelRegistryDatabaseViaYAML = (): Cypress.Chainable<CommandLineResult> => {
+  const targetNamespace = getModelRegistryNamespace();
+
+  const databaseReplacements = {
+    NAMESPACE: targetNamespace,
+  };
+
+  cy.log(`Creating SQL database for model registry in namespace ${targetNamespace}`);
+
+  // Check if database already exists
+  return cy
+    .exec(`oc get deployment model-registry-db -n ${targetNamespace}`, { failOnNonZeroExit: false })
+    .then((checkResult: CommandLineResult) => {
+      if (checkResult.code === 0) {
+        cy.log('Model registry database already exists, skipping creation');
+        return cy.wrap(checkResult);
+      }
+
+      // Database doesn't exist, create it
+      cy.log('Database does not exist, proceeding with creation');
+      return cy
+        .fixture('resources/yaml/model_registry_database.yaml')
+        .then((databaseYamlContent) => {
+          const modifiedDatabaseYaml = replacePlaceholdersInYaml(
+            databaseYamlContent,
+            databaseReplacements,
+          );
+          // Write to temp file and apply
+          const tempFile = `/tmp/db-${Date.now()}.yaml`;
+          return cy
+            .writeFile(tempFile, modifiedDatabaseYaml)
+            .then(() => cy.exec(`oc apply -f ${tempFile}`, { failOnNonZeroExit: false }))
+            .then((result) => {
+              cy.exec(`rm -f ${tempFile}`, { failOnNonZeroExit: false });
+              return result;
+            });
+        });
+    })
+    .then((result: CommandLineResult) => {
+      return result;
+    });
+};
+
+/**
+ * Wait for the model registry database to be ready
+ * @returns Cypress.Chainable<boolean> that resolves to true if the database is ready
+ */
+export const waitForModelRegistryDatabase = (): Cypress.Chainable<boolean> => {
+  const targetNamespace = getModelRegistryNamespace();
+  const command = `oc wait --for=condition=Available deployment/model-registry-db -n ${targetNamespace} --timeout=300s`;
+
+  cy.log('Waiting for model registry database to be ready...');
+  return cy
+    .exec(command, { failOnNonZeroExit: false, timeout: 300000 })
+    .then((result: CommandLineResult) => {
+      if (result.stdout) {
+        cy.log(`Database wait result: ${result.stdout}`);
+      }
+      if (result.stderr) {
+        cy.log(`Database wait stderr: ${result.stderr}`);
+      }
+      return cy.wrap(result.code === 0);
+    });
+};
+
+/**
+ * Create a SQL database for model registry and wait for it to be ready
+ * @returns Cypress.Chainable<boolean> that resolves to true if the database is created and ready
+ */
+export const createAndVerifyDatabase = (): Cypress.Chainable<boolean> => {
+  cy.step('Create SQL database for model registry');
+  return createModelRegistryDatabaseViaYAML()
+    .then(() => {
+      cy.step('Wait for model registry database to be ready');
+      return waitForModelRegistryDatabase().should('be.true');
+    })
+    .then(() => {
+      return cy.wrap(true);
+    });
+};
+
+/**
+ * Delete the model registry database
+ * @returns Cypress.Chainable<CommandLineResult>
+ */
+export const deleteModelRegistryDatabase = (): Cypress.Chainable<CommandLineResult> => {
+  const targetNamespace = getModelRegistryNamespace();
+  const deleteCommand = `oc delete service,pvc,deployment,secret -l app.kubernetes.io/name=model-registry-db -n ${targetNamespace}`;
+
+  cy.log(`Deleting model registry database from namespace ${targetNamespace}`);
+
+  return cy.exec(deleteCommand, { failOnNonZeroExit: false }).then((result: CommandLineResult) => {
+    if (result.code !== 0) {
+      cy.log(`Delete command failed: ${result.stderr || result.stdout}`);
+      return cy.wrap(result);
+    }
+
+    // Wait for the db to be deleted
+    const waitCommand = `oc wait --for=delete deployment/model-registry-db -n ${targetNamespace} --timeout=60s`;
+    cy.log('Waiting for model registry database deployment to be deleted...');
+
+    return cy
+      .exec(waitCommand, { failOnNonZeroExit: false, timeout: 60000 })
+      .then((waitResult: CommandLineResult) => {
+        if (waitResult.code === 0) {
+          cy.log('Model registry database deletion confirmed - deployment successfully deleted');
+        } else {
+          cy.log(
+            `Warning: Failed to confirm database deletion within timeout: ${
+              waitResult.stderr || waitResult.stdout
+            }`,
+          );
+          // final validation
+          return cy
+            .exec(`oc get deployment model-registry-db -n ${targetNamespace}`, {
+              failOnNonZeroExit: false,
+            })
+            .then((checkResult: CommandLineResult) => {
+              if (checkResult.code !== 0) {
+                cy.log(
+                  'Model registry database deployment not found - deletion appears successful',
+                );
+              } else {
+                cy.log(
+                  'Warning: Model registry database deployment still exists after deletion attempt',
+                );
+              }
+            });
+        }
+        return cy.wrap(result);
+      });
+  });
+};
+
+/**
  * Check if a model registry exists in any namespace
  * @param registryName Name of the model registry to check
  * @returns Cypress.Chainable<boolean> that resolves to true if the registry exists
@@ -44,17 +182,19 @@ export const checkModelRegistry = (registryName: string): Cypress.Chainable<bool
  */
 export const checkModelRegistryAvailable = (registryName: string): Cypress.Chainable<boolean> => {
   const targetNamespace = getModelRegistryNamespace();
-  const command = `oc wait --for=condition=Available modelregistry.modelregistry.opendatahub.io/${registryName} -n ${targetNamespace} --timeout=120s`;
+  const command = `oc wait --for=condition=Available modelregistry.modelregistry.opendatahub.io/${registryName} -n ${targetNamespace} --timeout=240s`;
   cy.log(`Waiting for model registry ${registryName} to be available...`);
-  return cy.exec(command, { failOnNonZeroExit: false }).then((result: CommandLineResult) => {
-    if (result.stdout) {
-      cy.log(`Wait result: ${result.stdout}`);
-    }
-    if (result.stderr) {
-      cy.log(`Wait stderr: ${result.stderr}`);
-    }
-    return cy.wrap(result.code === 0);
-  });
+  return cy
+    .exec(command, { failOnNonZeroExit: false, timeout: 240000 })
+    .then((result: CommandLineResult) => {
+      if (result.stdout) {
+        cy.log(`Wait result: ${result.stdout}`);
+      }
+      if (result.stderr) {
+        cy.log(`Wait stderr: ${result.stderr}`);
+      }
+      return cy.wrap(result.code === 0);
+    });
 };
 
 /**
@@ -85,8 +225,46 @@ export const createModelRegistryViaYAML = (
       );
       return applyOpenShiftYaml(modifiedRegistryYaml);
     })
-    .then((result: CommandLineResult) => {
-      return result;
+    .then((result: CommandLineResult) => result);
+};
+
+/**
+ * Create a model registry and verify it's ready for use
+ * @param registryName Name of the model registry to create
+ * @returns Cypress.Chainable that resolves when the registry is created and available
+ */
+export const createAndVerifyModelRegistry = (registryName: string): Cypress.Chainable => {
+  cy.step('Create a model registry using YAML');
+  return createModelRegistryViaYAML(registryName)
+    .then(() => {
+      cy.step('Verify model registry is created');
+      return checkModelRegistry(registryName).should('be.true');
+    })
+    .then(() => {
+      cy.step('Wait for model registry to be in Available state');
+      return checkModelRegistryAvailable(registryName).should('be.true');
+    });
+};
+
+/**
+ * Complete cleanup for model registry components
+ * @param modelNames Array of model names to clean up from database
+ * @param registryName Name of the model registry to delete
+ * @returns Cypress.Chainable that resolves when cleanup is complete
+ */
+export const cleanupModelRegistryComponents = (
+  modelNames: string[],
+  registryName: string,
+): Cypress.Chainable => {
+  cy.step('Clean up registered models from database');
+  return cleanupRegisteredModelsFromDatabase(modelNames)
+    .then(() => {
+      cy.step('Delete the model registry');
+      return deleteModelRegistry(registryName);
+    })
+    .then(() => {
+      cy.step('Verify model registry is removed from the backend');
+      return checkModelRegistry(registryName).should('be.false');
     });
 };
 

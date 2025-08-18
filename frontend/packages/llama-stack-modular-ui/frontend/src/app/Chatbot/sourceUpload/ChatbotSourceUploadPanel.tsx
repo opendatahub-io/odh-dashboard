@@ -1,19 +1,17 @@
 import React from 'react';
 import {
   AlertGroup,
-  DrawerPanelBody,
-  DrawerPanelContent,
   type DropEvent,
   MultipleFileUpload,
   MultipleFileUploadMain,
   MultipleFileUploadStatusItem,
-  Title,
 } from '@patternfly/react-core';
 import { FileIcon } from '@patternfly/react-icons';
-import { ChatbotSourceSettings } from './ChatbotSourceSettingsModal';
+import { ChatbotSourceSettings } from '~/app/types';
 
 type ChatbotSourceUploadPanelProps = {
-  alert?: React.ReactElement;
+  successAlert?: React.ReactElement;
+  errorAlert?: React.ReactElement;
   handleSourceDrop: (event: DropEvent, sources: File[]) => void;
   removeUploadedSource: (sourceName: string) => void;
   selectedSource: File[];
@@ -22,57 +20,50 @@ type ChatbotSourceUploadPanelProps = {
 };
 
 const ChatbotSourceUploadPanel: React.FC<ChatbotSourceUploadPanelProps> = ({
-  alert,
+  successAlert,
+  errorAlert,
   handleSourceDrop,
   selectedSource,
   selectedSourceSettings,
   removeUploadedSource,
   setSelectedSourceSettings,
 }) => (
-  <DrawerPanelContent isResizable defaultSize="400px" minSize="300px">
+  <>
     <AlertGroup hasAnimations isToast isLiveRegion>
-      {alert}
+      {successAlert}
+      {errorAlert}
     </AlertGroup>
-    <DrawerPanelBody>
-      <Title
-        headingLevel="h5"
-        style={{ fontWeight: 'bold', marginBottom: 'var(--pf-t--global--spacer--2xl)' }}
-      >
-        Sources
-      </Title>
-      <MultipleFileUpload
-        onFileDrop={handleSourceDrop}
-        dropzoneProps={{
-          accept: {
-            'application/msword': ['.doc'],
-            'application/pdf': ['.pdf'],
-          },
-          maxFiles: 1,
-        }}
-        aria-label="Source upload area"
-      >
-        <MultipleFileUploadMain
-          browseButtonText="Add"
-          titleIcon={<FileIcon />}
-          titleText="Drag and drop file here"
-          titleTextSeparator="or"
-          infoText="Upload a PDF or DOC file to be used in retrieval."
-        />
-        {selectedSourceSettings &&
-          selectedSource.map((file) => (
-            <MultipleFileUploadStatusItem
-              file={file}
-              key={file.name}
-              onClearClick={() => {
-                removeUploadedSource(file.name);
-                setSelectedSourceSettings(null);
-              }}
-              aria-label={`Uploaded file: ${file.name}`}
-            />
-          ))}
-      </MultipleFileUpload>
-    </DrawerPanelBody>
-  </DrawerPanelContent>
+    <MultipleFileUpload
+      onFileDrop={handleSourceDrop}
+      dropzoneProps={{
+        accept: {
+          'text/plain': ['.txt'],
+        },
+        maxFiles: 1,
+      }}
+      aria-label="Source upload area"
+    >
+      <MultipleFileUploadMain
+        browseButtonText="Upload"
+        titleIcon={<FileIcon />}
+        titleText="Drag and drop file here"
+        titleTextSeparator="or"
+        infoText="Accepted file types: TXT"
+      />
+      {selectedSourceSettings &&
+        selectedSource.map((file) => (
+          <MultipleFileUploadStatusItem
+            file={file}
+            key={file.name}
+            onClearClick={() => {
+              removeUploadedSource(file.name);
+              setSelectedSourceSettings(null);
+            }}
+            aria-label={`Uploaded file: ${file.name}`}
+          />
+        ))}
+    </MultipleFileUpload>
+  </>
 );
 
 export { ChatbotSourceUploadPanel };

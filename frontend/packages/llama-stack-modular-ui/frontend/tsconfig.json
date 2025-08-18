@@ -1,14 +1,15 @@
 {
   "compilerOptions": {
-    "baseUrl": ".",
+    "baseUrl": "./src",
     "rootDir": ".",
     "outDir": "dist",
     "module": "esnext",
     "target": "es2021",
-    "lib": ["es2021", "dom"],
+    "lib": ["es2021", "dom", "ES2023.Array"],
     "sourceMap": true,
     "jsx": "react",
     "moduleResolution": "bundler",
+    "downlevelIteration": true,
     "forceConsistentCasingInFileNames": true,
     "noImplicitReturns": true,
     "noImplicitThis": true,
@@ -19,7 +20,6 @@
     "strict": true,
     "paths": {
       "~/*": ["./*"],
-      "@app/*": ["src/app/*"],
       "@assets/*": ["node_modules/@patternfly/react-core/dist/styles/assets/*"]
     },
     "importHelpers": true,

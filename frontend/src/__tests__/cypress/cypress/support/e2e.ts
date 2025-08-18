@@ -105,23 +105,21 @@ Cypress.Keyboard.defaults({
   keystrokeDelay: 0,
 });
 
-// Handle ChunkLoadError - ignore these errors as they are usually due to code splitting issues during development
+// Uncaught exceptions handler
 Cypress.on('uncaught:exception', (err) => {
-  // Returning false here prevents Cypress from failing the test
+  // Handle ChunkLoadError - ignore these errors as they are usually due to code splitting issues during development
   if (err.name === 'ChunkLoadError') {
     // eslint-disable-next-line no-console
     console.warn('ChunkLoadError caught and ignored:', err.message);
     return false;
   }
-  // Let other errors fail the test as expected
-  return true;
-});
 
-// Ignore 'Unexpected token <' errors from webpack-dev-server fallback in E2E tests
-Cypress.on('uncaught:exception', (err) => {
+  // Ignore 'Unexpected token <' errors from webpack-dev-server fallback in E2E tests
   if (err.message.includes("Unexpected token '<'")) {
     return false;
   }
+
+  // Let all other errors (including timeout errors) fail the test as expected
   return true;
 });
 
@@ -260,7 +258,7 @@ before(function setupGlobalIntercepts() {
   }
 });
 
-// Root-level before hook to skip suite if no tests match grep tags
+// Root-level before hook to skip suite if no tests match grep tags or if all tests should be skipped
 before(function checkGrepTags() {
   if (grepTags.length > 0) {
     // Collect all test tags
@@ -270,6 +268,16 @@ before(function checkGrepTags() {
       return allTestTags.some((t: string) => t === tag || t === `@${plainTag}`);
     });
     if (!hasMatchingTest) {
+      this.skip();
+    }
+  }
+
+  // Check if all tests should be skipped based on skip tags
+  if (skipTags.length > 0 && Object.keys(Cypress.testTags).length > 0) {
+    const allTestsShouldBeSkipped = Object.values(Cypress.testTags).every((testTags) =>
+      skipTags.some((tag: string) => mapTestTags(testTags).includes(tag)),
+    );
+    if (allTestsShouldBeSkipped) {
       this.skip();
     }
   }
@@ -346,7 +354,9 @@ beforeEach(function beforeEachHook(this: Mocha.Context) {
 
 // Handle skipped suites in afterEach hook
 afterEach(function afterEachHook(this: Mocha.Context) {
-  if (!this.currentTest) return;
+  if (!this.currentTest) {
+    return;
+  }
 
   const suiteTitle = this.currentTest.parent?.title;
   if (suiteTitle && Cypress.skippedSuites.has(suiteTitle)) {

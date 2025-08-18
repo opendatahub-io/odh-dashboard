@@ -4,6 +4,8 @@
 [Architecture]: https://github.com/opendatahub-io/architecture-decision-records/blob/main/documentation/components/dashboard/README.md
 [SDK]: SDK.md
 [Extensibility]: extensibility.md
+[Module Federation]: module-federation.md
+[Workspace Dockerfiles]: workspace-dockerfiles.md
 
 # Dashboard Documentation
 
@@ -22,3 +24,5 @@ This is the general documentation of the Dashboard component.
 * [Architecture]
 * [SDK]
 * [Extensibility]
+* [Module Federation]
+* [Workspace Dockerfiles]

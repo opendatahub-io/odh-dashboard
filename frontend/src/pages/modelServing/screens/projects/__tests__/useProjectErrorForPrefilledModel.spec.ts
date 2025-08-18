@@ -1,7 +1,7 @@
 import React from 'react';
+import { testHook } from '@odh-dashboard/jest-config/hooks';
 import { mockDashboardConfig } from '#~/__mocks__';
 import { mockServingRuntimeK8sResource } from '#~/__mocks__/mockServingRuntimeK8sResource';
-import { testHook } from '#~/__tests__/unit/testUtils/hooks';
 import { useAccessReview } from '#~/api';
 import { useAppContext } from '#~/app/AppContext';
 import { ServingRuntimeKind } from '#~/k8sTypes';

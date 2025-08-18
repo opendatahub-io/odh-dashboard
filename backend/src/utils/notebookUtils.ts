@@ -1,16 +1,21 @@
 import { getClusterStatus, getDashboardConfig } from './resourceUtils';
 import { mergeWith } from 'lodash';
 import {
+  BYONImagePackage,
   ContainerResources,
   EnvironmentVariable,
   ImageInfo,
+  ImageStream,
+  ImageStreamTag,
   ImageTag,
+  ImageTagInfo,
   KubeFastifyInstance,
   Notebook,
   NotebookData,
   NotebookList,
   RecursivePartial,
   Route,
+  TagContent,
   VolumeMount,
 } from '../types';
 import { getUserInfo, usernameTranslate } from './userUtils';
@@ -21,11 +26,10 @@ import {
   V1Role,
   V1RoleBinding,
 } from '@kubernetes/client-node';
-import { DEFAULT_PVC_SIZE, MOUNT_PATH } from './constants';
+import { DEFAULT_PVC_SIZE, IMAGE_ANNOTATIONS, MOUNT_PATH } from './constants';
 import { FastifyRequest } from 'fastify';
 import { verifyEnvVars } from './envUtils';
 import { smartMergeArraysWithNameObjects } from './objUtils';
-import { getImageInfo } from '../routes/api/images/imageUtils';
 
 export const generateNotebookNameFromUsername = (username: string): string =>
   `jupyter-nb-${usernameTranslate(username)}`;
@@ -49,7 +53,7 @@ export const getWorkbenchNamespace = (fastify: KubeFastifyInstance): string => {
 
     return workbenchNamespace;
   } catch (error) {
-    fastify.log.error('Failed to fetch cluster status for workbench namespace:', error);
+    fastify.log.error(error, 'Failed to fetch cluster status for workbench namespace:');
     return undefined;
   }
 };
@@ -653,3 +657,119 @@ const assemblePvc = (
     phase: 'Pending',
   },
 });
+
+const getImage = async (fastify: KubeFastifyInstance, imageName: string): Promise<ImageStream> => {
+  return fastify.kube.customObjectsApi
+    .getNamespacedCustomObject(
+      'image.openshift.io',
+      'v1',
+      fastify.kube.namespace,
+      'imagestreams',
+      imageName,
+    )
+    .then((res) => {
+      return res.body as ImageStream;
+    });
+};
+
+export const getImageInfo = async (
+  fastify: KubeFastifyInstance,
+  imageName: string,
+): Promise<ImageInfo> => {
+  return getImage(fastify, imageName).then((res) => {
+    return processImageInfo(res);
+  });
+};
+
+export const processImageInfo = (imageStream: ImageStream): ImageInfo => {
+  const annotations = imageStream.metadata.annotations || {};
+
+  const imageInfo: ImageInfo = {
+    name: imageStream.metadata.name,
+    description: annotations[IMAGE_ANNOTATIONS.DESC] || '',
+    url: annotations[IMAGE_ANNOTATIONS.URL] || '',
+    display_name: annotations[IMAGE_ANNOTATIONS.DISP_NAME] || imageStream.metadata.name,
+    tags: getTagInfo(imageStream),
+    order: +annotations[IMAGE_ANNOTATIONS.IMAGE_ORDER] || 100,
+    dockerImageRepo: imageStream.status?.dockerImageRepository || '',
+    error: isBYONImage(imageStream) && getBYONImageErrorMessage(imageStream),
+  };
+
+  return imageInfo;
+};
+
+const getTagInfo = (imageStream: ImageStream): ImageTagInfo[] => {
+  const tagInfoArray: ImageTagInfo[] = [];
+  const tags = imageStream.spec.tags;
+  if (!tags?.length) {
+    console.error(`${imageStream.metadata.name} does not have any tags.`);
+    return;
+  }
+  tags.forEach((tag) => {
+    let tagAnnotations;
+    if (tag.annotations != null) {
+      tagAnnotations = tag.annotations;
+    } else {
+      tag.annotations = {};
+      tagAnnotations = {};
+    }
+    if (!checkTagExistence(tag, imageStream)) {
+      return; //Skip tag
+    }
+    if (tagAnnotations[IMAGE_ANNOTATIONS.OUTDATED]) {
+      return; // tag is outdated - we want to keep it around for existing notebooks, not for new ones
+    }
+
+    const tagInfo: ImageTagInfo = {
+      content: getTagContent(tag),
+      name: tag.name,
+      recommended: JSON.parse(tagAnnotations[IMAGE_ANNOTATIONS.RECOMMENDED] || 'false'),
+      default: JSON.parse(tagAnnotations[IMAGE_ANNOTATIONS.DEFAULT] || 'false'),
+    };
+    tagInfoArray.push(tagInfo);
+  });
+  return tagInfoArray;
+};
+
+// Check for existence in status.tags
+const checkTagExistence = (tag: ImageStreamTag, imageStream: ImageStream): boolean => {
+  if (imageStream.status) {
+    const tags = imageStream.status.tags;
+    if (tags) {
+      for (let i = 0; i < tags.length; i++) {
+        if (tags[i].tag === tag.name) {
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+};
+
+const getTagContent = (tag: ImageStreamTag): TagContent => {
+  const content: TagContent = {
+    software: jsonParsePackage(tag.annotations[IMAGE_ANNOTATIONS.SOFTWARE]),
+    dependencies: jsonParsePackage(tag.annotations[IMAGE_ANNOTATIONS.DEPENDENCIES]),
+  };
+  return content;
+};
+
+const jsonParsePackage = (unparsedPackage: string): BYONImagePackage[] => {
+  try {
+    return JSON.parse(unparsedPackage) || [];
+  } catch {
+    return [];
+  }
+};
+
+const isBYONImage = (imageStream: ImageStream) =>
+  imageStream.metadata.labels?.['app.kubernetes.io/created-by'] === 'byon';
+
+const getBYONImageErrorMessage = (imageStream: ImageStream) => {
+  // there will be always only 1 tag in the spec for BYON images
+  // status tags could be more than one
+  const activeTag = imageStream.status?.tags?.find(
+    (statusTag) => statusTag.tag === imageStream.spec.tags?.[0].name,
+  );
+  return activeTag?.conditions?.[0]?.message;
+};

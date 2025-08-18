@@ -136,6 +136,7 @@ const AboutDialog: React.FC<AboutDialogProps> = ({ onClose }) => {
           >
             <h4>Installed components</h4>
             {groupedComponents.length > 0 ? (
+              // TODO: Replace with the TableBase component https://issues.redhat.com/browse/RHOAIENG-31246
               <Table aria-label="Component Releases Table" data-testid="component-releases-table">
                 <Thead>
                   <Tr data-testid="table-row-title">

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { testHook, standardUseFetchState } from '#~/__tests__/unit/testUtils/hooks';
+import { standardUseFetchState, testHook } from '@odh-dashboard/jest-config/hooks';
 import useModelVersionsByRegisteredModel from '#~/concepts/modelRegistry/apiHooks/useModelVersionsByRegisteredModel';
 import { ModelVersionList } from '#~/concepts/modelRegistry/types';
 import useFetchState from '#~/utilities/useFetchState';

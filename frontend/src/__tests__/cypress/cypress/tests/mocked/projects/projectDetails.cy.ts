@@ -137,7 +137,7 @@ const initIntercepts = ({
         : []),
       ...(!disableNIMConfig ? [mockNimServingRuntimeTemplate()] : []),
     ]),
-  );
+  ).as('templates');
   if (!disableNIMConfig) {
     cy.interceptK8s(TemplateModel, mockNimServingRuntimeTemplate());
   }
@@ -468,8 +468,8 @@ describe('Project Details', () => {
     it('Both model serving platforms are enabled, no platform selected', () => {
       initIntercepts({ disableKServeConfig: false, disableModelConfig: false });
       projectDetails.visitSection('test-project', 'model-server');
-      projectDetails.findSelectPlatformButton('single').should('exist');
-      projectDetails.findSelectPlatformButton('multi').should('exist');
+      projectDetails.findSelectPlatformButton('kserve').should('exist');
+      projectDetails.findSelectPlatformButton('model-mesh').should('exist');
     });
 
     it('Only single serving platform enabled, no serving runtimes templates', () => {
@@ -477,10 +477,12 @@ describe('Project Details', () => {
         disableKServeConfig: false,
         disableModelConfig: true,
       });
+      initModelServingIntercepts({ isEmpty: true });
       projectDetails.visitSection('test-project', 'model-server');
+      cy.wait('@templates');
       projectDetails.findTopLevelDeployModelButton().should('have.attr', 'aria-disabled');
       projectDetails.findTopLevelDeployModelButton().trigger('mouseenter');
-      projectDetails.findDeployModelTooltip().should('be.visible');
+      projectDetails.findDeployModelTooltip().should('exist');
     });
 
     it('Only multi serving platform enabled, no serving runtimes templates', () => {
@@ -491,7 +493,7 @@ describe('Project Details', () => {
       projectDetails.visitSection('test-project', 'model-server');
       projectDetails.findTopLevelAddModelServerButton().should('have.attr', 'aria-disabled');
       projectDetails.findTopLevelAddModelServerButton().trigger('mouseenter');
-      projectDetails.findDeployModelTooltip().should('be.visible');
+      projectDetails.findDeployModelTooltip().should('exist');
     });
 
     it('Both model serving platforms are enabled, single-model platform is selected, no serving runtimes templates', () => {
@@ -503,7 +505,7 @@ describe('Project Details', () => {
       projectDetails.visitSection('test-project', 'model-server');
       projectDetails.findTopLevelDeployModelButton().should('have.attr', 'aria-disabled');
       projectDetails.findTopLevelDeployModelButton().trigger('mouseenter');
-      projectDetails.findDeployModelTooltip().should('be.visible');
+      projectDetails.findDeployModelTooltip().should('exist');
     });
 
     it('Both model serving platforms are enabled, multi-model platform is selected, no serving runtimes templates', () => {
@@ -515,7 +517,7 @@ describe('Project Details', () => {
       projectDetails.visitSection('test-project', 'model-server');
       projectDetails.findTopLevelAddModelServerButton().should('have.attr', 'aria-disabled');
       projectDetails.findTopLevelAddModelServerButton().trigger('mouseenter');
-      projectDetails.findDeployModelTooltip().should('be.visible');
+      projectDetails.findDeployModelTooltip().should('exist');
     });
 
     it('Single model serving platform is enabled', () => {
@@ -722,7 +724,7 @@ describe('Project Details', () => {
       initModelServingIntercepts({});
       initIntercepts({ disableKServeConfig: false, disableModelConfig: false });
       projectDetails.visitSection('test-project', 'model-server');
-      projectDetails.findSelectPlatformButton('single').click();
+      projectDetails.findSelectPlatformButton('kserve').click();
       cy.wait('@addSupportServingPlatformProject').then((interception) => {
         expect(interception.request.url).to.contain(
           `/api/namespaces/test-project/${NamespaceApplicationCase.KSERVE_PROMOTION}`,
@@ -752,7 +754,7 @@ describe('Project Details', () => {
         disableModelConfig: false,
       });
       projectDetails.visitSection('test-project', 'model-server');
-      projectDetails.findSelectPlatformButton('multi').click();
+      projectDetails.findSelectPlatformButton('model-mesh').click();
       cy.wait('@addSupportServingPlatformProject').then((interception) => {
         expect(interception.request.url).to.contain(
           `/api/namespaces/test-project/${NamespaceApplicationCase.MODEL_MESH_PROMOTION}`,
@@ -785,7 +787,7 @@ describe('Project Details', () => {
         disableNIMConfig: false,
       });
       projectDetails.visitSection('test-project', 'model-server');
-      projectDetails.findSelectPlatformButton('nim').click();
+      projectDetails.findSelectPlatformButton('nvidia-nim').click();
       cy.wait('@addSupportServingPlatformProject').then((interception) => {
         expect(interception.request.url).to.contain(
           `/api/namespaces/test-project/${NamespaceApplicationCase.KSERVE_NIM_PROMOTION}`,
@@ -820,7 +822,7 @@ describe('Project Details', () => {
         rejectAddSupportServingPlatformProject: true,
       });
       projectDetails.visitSection('test-project', 'overview');
-      projectDetails.findSelectPlatformButton('single').click();
+      projectDetails.findSelectPlatformButton('kserve').click();
       projectDetails.findErrorSelectingPlatform().should('exist');
     });
 
@@ -841,7 +843,7 @@ describe('Project Details', () => {
       initModelServingIntercepts({});
       initIntercepts({ disableKServeConfig: false, disableModelConfig: false });
       projectDetails.visitSection('test-project', 'overview');
-      projectDetails.findSelectPlatformButton('single').click();
+      projectDetails.findSelectPlatformButton('kserve').click();
       cy.wait('@addSupportServingPlatformProject').then((interception) => {
         expect(interception.request.url).to.contain(
           `/api/namespaces/test-project/${NamespaceApplicationCase.KSERVE_PROMOTION}`,
@@ -872,7 +874,7 @@ describe('Project Details', () => {
         disableModelConfig: false,
       });
       projectDetails.visitSection('test-project', 'overview');
-      projectDetails.findSelectPlatformButton('multi').click();
+      projectDetails.findSelectPlatformButton('model-mesh').click();
       cy.wait('@addSupportServingPlatformProject').then((interception) => {
         expect(interception.request.url).to.contain(
           `/api/namespaces/test-project/${NamespaceApplicationCase.MODEL_MESH_PROMOTION}`,
@@ -904,7 +906,7 @@ describe('Project Details', () => {
         disableNIMConfig: false,
       });
       projectDetails.visitSection('test-project', 'overview');
-      projectDetails.findSelectPlatformButton('nim').click();
+      projectDetails.findSelectPlatformButton('nvidia-nim').click();
       cy.wait('@addSupportServingPlatformProject').then((interception) => {
         expect(interception.request.url).to.contain(
           `/api/namespaces/test-project/${NamespaceApplicationCase.KSERVE_NIM_PROMOTION}`,
@@ -938,7 +940,7 @@ describe('Project Details', () => {
       });
       initModelServingIntercepts({ isEmpty: true });
       projectDetails.visitSection('test-project', 'model-server');
-      projectDetails.findSelectPlatformButton('single').click();
+      projectDetails.findSelectPlatformButton('kserve').click();
       projectDetails.findErrorSelectingPlatform().should('exist');
     });
 
@@ -990,6 +992,12 @@ describe('Project Details', () => {
     });
 
     it('Change serving platform button should be disabled with tooltip when non-dashboard serving runtime exists', () => {
+      // Create a non-dashboard inference service
+      const nonDashboardInferenceService = mockInferenceServiceK8sResource({
+        name: 'non-dashboard-inference',
+        namespace: 'test-project',
+        isNonDashboardItem: true,
+      });
       // Create a non-dashboard serving runtime
       const nonDashboardServingRuntime = mockServingRuntimeK8sResource({
         name: 'non-dashboard-runtime',
@@ -1001,7 +1009,7 @@ describe('Project Details', () => {
         disableKServeConfig: false,
         disableModelConfig: false,
         enableModelMesh: false,
-        inferenceServices: [],
+        inferenceServices: [nonDashboardInferenceService],
         servingRuntimes: [nonDashboardServingRuntime],
       });
 

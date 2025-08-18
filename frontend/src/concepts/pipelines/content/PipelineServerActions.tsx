@@ -13,6 +13,7 @@ import { PipelineAndVersionContext } from '#~/concepts/pipelines/content/Pipelin
 import DeletePipelinesModal from '#~/concepts/pipelines/content/DeletePipelinesModal';
 import { getDashboardMainContainer } from '#~/utilities/utils';
 import { fireSimpleTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
+import { MANAGE_PIPELINE_SERVER_CONFIGURATION_TITLE } from '#~/concepts/pipelines/content/const';
 
 type PipelineServerActionsProps = {
   variant?: 'kebab' | 'dropdown';
@@ -73,7 +74,7 @@ const PipelineServerActions: React.FC<PipelineServerActionsProps> = ({ variant, 
               fireSimpleTrackingEvent('Pipeline Server Config Viewed');
             }}
           >
-            View pipeline server configuration
+            {MANAGE_PIPELINE_SERVER_CONFIGURATION_TITLE}
           </DropdownItem>,
           ...(pipelinesServer.compatible
             ? [

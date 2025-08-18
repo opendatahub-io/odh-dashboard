@@ -25,9 +25,11 @@ const mockDeployment = (partial: Partial<Deployment> = {}) => ({
 
 describe('DeploymentsTableRow', () => {
   let onDelete: jest.Mock;
+  let onEdit: jest.Mock;
 
   beforeEach(() => {
     onDelete = jest.fn();
+    onEdit = jest.fn();
     mockExtensions();
   });
 
@@ -38,6 +40,7 @@ describe('DeploymentsTableRow', () => {
           deployment={mockDeployment({})}
           platformColumns={[]}
           onDelete={onDelete}
+          onEdit={onEdit}
           rowIndex={0}
         />
       </table>,
@@ -75,6 +78,7 @@ describe('DeploymentsTableRow', () => {
             },
           ]}
           onDelete={onDelete}
+          onEdit={onEdit}
           rowIndex={0}
         />
       </table>,
@@ -92,6 +96,7 @@ describe('DeploymentsTableRow', () => {
           })}
           platformColumns={[]}
           onDelete={onDelete}
+          onEdit={onEdit}
           rowIndex={0}
         />
       </table>,
@@ -116,12 +121,13 @@ describe('DeploymentsTableRow', () => {
             })}
             platformColumns={[]}
             onDelete={onDelete}
+            onEdit={onEdit}
             rowIndex={0}
           />
         </table>,
       );
 
-      const button = screen.getByRole('button', { name: 'Internal endpoint details' });
+      const button = screen.getByRole('button', { name: 'Internal endpoint' });
       expect(button).toBeInTheDocument();
       await act(async () => {
         fireEvent.click(button);
@@ -144,12 +150,13 @@ describe('DeploymentsTableRow', () => {
             })}
             platformColumns={[]}
             onDelete={onDelete}
+            onEdit={onEdit}
             rowIndex={0}
           />
         </table>,
       );
 
-      const button = screen.getByRole('button', { name: 'Internal and external endpoint details' });
+      const button = screen.getByRole('button', { name: 'Internal and external endpoint' });
       expect(button).toBeInTheDocument();
       await act(async () => {
         fireEvent.click(button);
@@ -177,12 +184,13 @@ describe('DeploymentsTableRow', () => {
             })}
             platformColumns={[]}
             onDelete={onDelete}
+            onEdit={onEdit}
             rowIndex={0}
           />
         </table>,
       );
 
-      const button = screen.getByRole('button', { name: 'Internal and external endpoint details' });
+      const button = screen.getByRole('button', { name: 'Internal and external endpoint' });
       expect(button).toBeInTheDocument();
       await act(async () => {
         fireEvent.click(button);
@@ -211,6 +219,7 @@ describe('DeploymentsTableRow', () => {
           })}
           platformColumns={[]}
           onDelete={onDelete}
+          onEdit={onEdit}
           rowIndex={0}
         />
       </table>,

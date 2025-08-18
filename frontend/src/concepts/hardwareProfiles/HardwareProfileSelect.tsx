@@ -61,6 +61,7 @@ type HardwareProfileSelectProps = {
 };
 
 const EXISTING_SETTINGS_KEY = '.existing';
+const TOOLTIP_MAX_LINES = 30;
 
 const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
   initialHardwareProfile,
@@ -137,7 +138,11 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
           <Stack>
             {description && (
               <StackItem>
-                <TruncatedText maxLines={1} content={description} />
+                <TruncatedText
+                  maxLines={1}
+                  tooltipMaxLines={TOOLTIP_MAX_LINES}
+                  content={description}
+                />
               </StackItem>
             )}
             {profile.spec.identifiers && (
@@ -171,7 +176,7 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
 
     // allow usage of existing settings if no hardware profile is found
     if (allowExistingSettings) {
-      formattedOptions.push({
+      formattedOptions.unshift({
         key: EXISTING_SETTINGS_KEY,
         label: 'Use existing settings',
         description: 'Use existing resource requests/limits, tolerations, and node selectors.',
@@ -341,6 +346,7 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
                     <HelperTextItem>
                       <TruncatedText
                         maxLines={2}
+                        tooltipMaxLines={TOOLTIP_MAX_LINES}
                         content={
                           getHardwareProfileDescription(hardwareProfileConfig.selectedProfile) ||
                           (hardwareProfileConfig.selectedProfile.spec.identifiers &&

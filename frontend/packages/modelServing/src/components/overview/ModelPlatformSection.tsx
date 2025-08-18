@@ -8,19 +8,21 @@ import {
   Stack,
   Label,
   CardFooter,
-  Button,
 } from '@patternfly/react-core';
-import { PencilAltIcon } from '@patternfly/react-icons';
 import CollapsibleSection from '@odh-dashboard/internal/concepts/design/CollapsibleSection';
 import { ProjectObjectType, SectionType } from '@odh-dashboard/internal/concepts/design/utils';
 import OverviewCard from '@odh-dashboard/internal/pages/projects/screens/detail/overview/components/OverviewCard';
 import { ProjectDetailsContext } from '@odh-dashboard/internal/pages/projects/ProjectDetailsContext';
+import ModelServingPlatformSelectErrorAlert from '@odh-dashboard/internal/concepts/modelServing/Platforms/ModelServingPlatformSelectErrorAlert';
+import { NavigateBackToRegistryButton } from '@odh-dashboard/internal/concepts/modelServing/NavigateBackToRegistryButton';
 import {
   useProjectServingPlatform,
   type ModelServingPlatform,
 } from '../../concepts/useProjectServingPlatform';
 import { DeployButton } from '../deploy/DeployButton';
-import { PlatformSelectionGallery } from '../platformSelection';
+import { PlatformSelectionGallery } from '../platforms/platformSelection';
+import { ResetPlatformButton } from '../platforms/ResetPlatformButton';
+import { getDeploymentWizardRoute } from '../deploymentWizard/utils';
 
 const galleryWidth = {
   minWidths: { default: '100%', lg: 'calc(50% - 1rem / 2)' },
@@ -34,8 +36,9 @@ const ModelPlatformSection: React.FC<{ platforms: ModelServingPlatform[] }> = ({
     activePlatform,
     setProjectPlatform,
     resetProjectPlatform,
-    newProjectPlatformLoading,
+    loadingState,
     projectPlatformError,
+    clearProjectPlatformError,
   } = useProjectServingPlatform(currentProject, platforms);
 
   // If no platform is selected -
@@ -57,16 +60,17 @@ const ModelPlatformSection: React.FC<{ platforms: ModelServingPlatform[] }> = ({
             <PlatformSelectionGallery
               platforms={platforms}
               onSelect={setProjectPlatform}
-              loadingPlatformId={newProjectPlatformLoading?.properties.id}
+              loadingPlatformId={loadingState.platform?.properties.id}
               useOverviewCard
               galleryProps={{ ...galleryWidth }}
             />
           </FlexItem>
           {projectPlatformError && (
             <FlexItem>
-              <Alert isInline title="Error" variant="danger">
-                {projectPlatformError}
-              </Alert>
+              <ModelServingPlatformSelectErrorAlert
+                error={projectPlatformError}
+                clearError={clearProjectPlatformError}
+              />
             </FlexItem>
           )}
           <FlexItem>
@@ -96,33 +100,35 @@ const ModelPlatformSection: React.FC<{ platforms: ModelServingPlatform[] }> = ({
         headerInfo={
           <Flex gap={{ default: 'gapSm' }}>
             <Label>{enabledText}</Label>
-            {platforms.length > 1 && (
-              <Button
-                data-testid="change-serving-platform-button"
-                variant="link"
-                isInline
-                onClick={resetProjectPlatform}
-                icon={<PencilAltIcon />}
-                isDisabled={!!newProjectPlatformLoading}
-              >
-                Change
-              </Button>
-            )}
+            <ResetPlatformButton
+              platforms={platforms}
+              hasDeployments={false}
+              isLoading={loadingState.type === 'reset'}
+              onReset={resetProjectPlatform}
+            />
           </Flex>
         }
       >
         <CardBody>
           <Stack hasGutter>
             {projectPlatformError && (
-              <Alert isInline title="Loading error" variant="danger">
-                {projectPlatformError}
-              </Alert>
+              <ModelServingPlatformSelectErrorAlert
+                error={projectPlatformError}
+                clearError={clearProjectPlatformError}
+              />
             )}
             <Content component="small">{startHintDescription}</Content>
           </Stack>
         </CardBody>
         <CardFooter>
-          <DeployButton platform={activePlatform} variant="secondary" />
+          <Flex gap={{ default: 'gapMd' }}>
+            <DeployButton
+              project={currentProject}
+              variant="link"
+              createRoute={getDeploymentWizardRoute(`/projects/${currentProject.metadata.name}`)}
+            />
+            <NavigateBackToRegistryButton isInline />
+          </Flex>
         </CardFooter>
       </OverviewCard>
     </CollapsibleSection>

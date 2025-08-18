@@ -152,8 +152,11 @@ const initIntercepts = ({
   cy.interceptK8sList(InferenceServiceModel, mockK8sResourceList(inferenceServices));
   cy.interceptK8sList(SecretModel, mockK8sResourceList([mockSecretK8sResource({})]));
   cy.interceptK8sList(
-    ServingRuntimeModel,
-    mockK8sResourceList(servingRuntimes, { namespace: 'modelServing' }),
+    { model: ServingRuntimeModel, ns: 'test-project' },
+    {
+      delay: delayServingRuntimes ? 500 : 0, //TODO: Remove the delay when we add support for loading states
+      body: mockK8sResourceList(servingRuntimes),
+    },
   );
   cy.interceptK8sList(
     { model: ServingRuntimeModel, ns: undefined },
@@ -163,7 +166,7 @@ const initIntercepts = ({
     },
   ).as('getServingRuntimes');
   cy.interceptK8sList(
-    { model: InferenceServiceModel, ns: 'modelServing' },
+    { model: InferenceServiceModel, ns: 'test-project' },
     mockK8sResourceList(inferenceServices),
   );
   cy.interceptK8sList(
@@ -180,7 +183,7 @@ const initIntercepts = ({
   ).as('inferenceServicesError');
   cy.interceptK8sList(
     SecretModel,
-    mockK8sResourceList([mockSecretK8sResource({ namespace: 'modelServing' })]),
+    mockK8sResourceList([mockSecretK8sResource({ namespace: 'test-project' })]),
   );
   cy.interceptK8s(ServingRuntimeModel, mockServingRuntimeK8sResource({}));
   cy.interceptK8sList(
@@ -283,7 +286,7 @@ describe('Model Serving Global', () => {
 
     modelServingGlobal.shouldBeEmpty();
 
-    modelServingGlobal.findDeployModelButton().click();
+    modelServingGlobal.clickDeployModelButtonWithRetry();
 
     // test that you can not submit on empty
     inferenceServiceModal.shouldBeOpen();
@@ -301,19 +304,14 @@ describe('Model Serving Global', () => {
 
     // Visit the all-projects view (no project name passed here)
     modelServingGlobal.visit();
-    cy.findByRole('button', { name: 'Models' }).should('exist').click();
 
+    // Wait for the loading state to be visible and hit the cancel button -> this redirects to the preferred project page
     modelServingGlobal.shouldWaitAndCancel();
 
+    // Verify the empty state is visible
     modelServingGlobal.shouldBeEmpty();
 
-    cy.wait('@getServingRuntimes').then((response) => {
-      expect(response.error?.message).to.eq('Socket closed before finished writing response');
-    });
-
-    cy.wait('@getInferenceServices').then((response) => {
-      expect(response.error?.message).to.eq('Socket closed before finished writing response');
-    });
+    cy.url().should('include', '/modelServing/test-project');
   });
 
   it('All projects with every type of serving listed', () => {
@@ -469,7 +467,8 @@ describe('Model Serving Global', () => {
     inferenceServiceModalEdit.findSubmitButton().should('be.disabled');
     inferenceServiceModalEdit.findConnectionNameInput().type('Test Name');
     inferenceServiceModalEdit.findConnectionFieldInput('URI').type('/');
-    inferenceServiceModalEdit.findSubmitButton().click().should('be.disabled');
+    inferenceServiceModalEdit.findConnectionFieldInput('URI').blur();
+    inferenceServiceModalEdit.findSubmitButton().should('be.disabled');
     inferenceServiceModalEdit.findConnectionFieldInput('URI').clear().type('https://test');
     inferenceServiceModalEdit.findSubmitButton().should('be.enabled');
     inferenceServiceModalEdit.findExistingConnectionOption().click();
@@ -667,7 +666,7 @@ describe('Model Serving Global', () => {
     });
     modelServingGlobal.visit('test-project');
 
-    modelServingGlobal.findDeployModelButton().click();
+    modelServingGlobal.clickDeployModelButtonWithRetry();
 
     kserveModal.shouldBeOpen();
     kserveModal.findServingRuntimeTemplateHelptext().should('not.exist');
@@ -684,7 +683,9 @@ describe('Model Serving Global', () => {
     });
     modelServingGlobal.visit('test-project');
 
-    modelServingGlobal.findDeployModelButton().click();
+    modelServingGlobal.clickDeployModelButtonWithRetry();
+
+    kserveModal.shouldBeOpen();
 
     kserveModal.findModelNameInput().should('exist');
 
@@ -752,7 +753,9 @@ describe('Model Serving Global', () => {
       disableHardwareProfiles: false,
     });
     modelServingGlobal.visit('test-project');
-    modelServingGlobal.findDeployModelButton().click();
+    modelServingGlobal.findDeployModelButton().should('be.enabled');
+    modelServingGlobal.clickDeployModelButtonWithRetry();
+    kserveModal.shouldBeOpen();
     kserveModal.findModelNameInput().should('exist');
 
     // Verify hardware profile section exists
@@ -826,7 +829,7 @@ describe('Model Serving Global', () => {
       disableProjectScoped: false,
     });
     modelServingGlobal.visit('test-project');
-    modelServingGlobal.findDeployModelButton().click();
+    modelServingGlobal.clickDeployModelButtonWithRetry();
     kserveModal.findModelNameInput().should('exist');
 
     // Verify accelerator profile section exists
@@ -926,9 +929,10 @@ describe('Model Serving Global', () => {
     });
     modelServingGlobal.visit('test-project');
 
-    modelServingGlobal.findDeployModelButton().click();
+    modelServingGlobal.clickDeployModelButtonWithRetry();
 
     kserveModal.shouldBeOpen();
+    kserveModal.findPredefinedArgsButton().scrollIntoView();
     kserveModal.findPredefinedArgsButton().click();
     kserveModal.findPredefinedArgsList().should('not.exist');
     kserveModal.findPredefinedArgsTooltip().should('exist');
@@ -947,7 +951,7 @@ describe('Model Serving Global', () => {
     });
     modelServingGlobal.visit('test-project');
 
-    modelServingGlobal.findDeployModelButton().click();
+    modelServingGlobal.clickDeployModelButtonWithRetry();
 
     kserveModal.shouldBeOpen();
     kserveModal.findPredefinedVarsButton().click();
@@ -984,6 +988,7 @@ describe('Model Serving Global', () => {
     modelServingGlobal.getModelMetricLink('Test Inference Service').click();
     cy.findByTestId('app-page-title').should('have.text', 'Test Inference Service metrics');
   });
+
   it('Display the version label and status label correctly', () => {
     const servingRuntimeWithLatestVersion = mockServingRuntimeK8sResource({
       namespace: 'test-project',
@@ -1130,6 +1135,7 @@ describe('Model Serving Global', () => {
     it('Sort model by last deployed', () => {
       const inferenceServiceNew = mockInferenceServiceK8sResource({
         namespace: 'test-project',
+        name: 'new-model',
         displayName: 'New Model',
         modelName: 'test-inference-service-latest',
         lastTransitionTime: '2025-07-10T12:12:41Z',
@@ -1138,6 +1144,7 @@ describe('Model Serving Global', () => {
       });
       const inferenceServiceOld = mockInferenceServiceK8sResource({
         namespace: 'test-project',
+        name: 'old-model',
         displayName: 'Old Model',
         modelName: 'test-inference-service-outdated',
         lastTransitionTime: '2024-09-04T16:12:41Z',
@@ -1156,7 +1163,7 @@ describe('Model Serving Global', () => {
       modelServingGlobal.findSortButton('Last deployed').should(be.sortDescending);
 
       const oldModelRow = modelServingSection.getInferenceServiceRow('Old Model');
-      oldModelRow.findLastDeployed().trigger('mouseenter');
+      oldModelRow.findLastDeployedTimestamp().trigger('mouseenter');
       cy.findByRole('tooltip').should('contain.text', '9/4/2024, 4:12:41 PM UTC');
     });
 
@@ -1166,6 +1173,7 @@ describe('Model Serving Global', () => {
         { length: totalItems },
         (_, i) =>
           mockInferenceServiceK8sResource({
+            name: `test-inference-service-${i}`,
             displayName: `Test Inference Service-${i}`,
           }),
       );

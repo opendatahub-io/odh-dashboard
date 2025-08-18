@@ -205,7 +205,7 @@ class ProjectDetails {
   }
 
   findModelServingPlatform(name: string) {
-    return this.findComponent('model-server').findByTestId(`${name}-serving-platform-card`);
+    return this.findComponent('model-server').findByTestId(`${name}-platform-card`);
   }
 
   showProjectResourceDetails() {
@@ -241,7 +241,7 @@ class ProjectDetails {
   }
 
   findSelectPlatformButton(platform: string) {
-    return cy.findByTestId(`${platform}-serving-select-button`);
+    return cy.findByTestId(`${platform}-select-button`);
   }
 
   findResetPlatformButton() {
@@ -269,7 +269,7 @@ class ProjectDetails {
   }
 
   findDeployModelTooltip() {
-    return cy.findByTestId('model-serving-action-tooltip');
+    return cy.findByTestId('deploy-model-tooltip');
   }
 
   shouldHaveNoPlatformSelectedText() {
@@ -384,6 +384,10 @@ class ProjectDetailsOverviewTab extends ProjectDetails {
 
   findModelServingPlatform(name: string) {
     return cy.findByTestId(`${name}-platform-card`);
+  }
+
+  findSelectPlatformButton(name: string) {
+    return cy.findByTestId(`${name}-select-button`);
   }
 }
 

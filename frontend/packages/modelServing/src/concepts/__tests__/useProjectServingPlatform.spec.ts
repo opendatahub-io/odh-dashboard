@@ -1,4 +1,4 @@
-import { renderHook } from '@odh-dashboard/internal/__tests__/unit/testUtils/hooks';
+import { renderHook } from '@odh-dashboard/jest-config/hooks';
 import { mockProjectK8sResource } from '@odh-dashboard/internal/__mocks__/mockProjectK8sResource';
 import { mockModelServingPlatform, mockProjectWithPlatform } from '../../__tests__/mockUtils';
 import { useProjectServingPlatform } from '../useProjectServingPlatform';

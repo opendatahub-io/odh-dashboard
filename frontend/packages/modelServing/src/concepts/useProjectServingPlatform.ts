@@ -31,8 +31,11 @@ const isPlatformEnabled = (platform: ModelServingPlatform, project: ProjectKind)
 export const getProjectServingPlatform = (
   project: ProjectKind,
   platforms: ModelServingPlatform[],
+  defaultIfNoMatch = false,
 ): ModelServingPlatform | null => {
-  const enabledPlatforms = platforms.filter((p) => isPlatformEnabled(p, project));
+  const enabledPlatforms = platforms.filter(
+    (p) => isPlatformEnabled(p, project) || (defaultIfNoMatch && p.properties.manage.default),
+  );
   const sortedEnabledPlatforms = enabledPlatforms.toSorted(
     (a, b) => (b.properties.manage.priority ?? 0) - (a.properties.manage.priority ?? 0),
   );
@@ -53,62 +56,80 @@ export const getMultiProjectServingPlatforms = (
   return result;
 };
 
+type LoadingState = {
+  type: 'platform' | 'reset' | null;
+  platform?: ModelServingPlatform;
+};
+
 export const useProjectServingPlatform = (
-  project: ProjectKind,
+  project?: ProjectKind,
   platforms?: ModelServingPlatform[],
 ): {
   activePlatform?: ModelServingPlatform | null; // This includes preselecting a platform if there is only one
   projectPlatform?: ModelServingPlatform | null; // Platform saved on project
   setProjectPlatform: (platform: ModelServingPlatform) => void;
   resetProjectPlatform: () => void;
-  newProjectPlatformLoading?: ModelServingPlatform | null;
-  projectPlatformError: string | null;
+  loadingState: LoadingState;
+  projectPlatformError: Error | null;
+  clearProjectPlatformError: () => void;
 } => {
   const [tmpProjectPlatform, setTmpProjectPlatform] = React.useState<
     ModelServingPlatform | null | undefined
-  >(project.metadata.name && platforms ? getProjectServingPlatform(project, platforms) : undefined);
-  const [projectPlatformError, setProjectPlatformError] = React.useState<string | null>(null);
-  const [newProjectPlatformLoading, setNewProjectPlatformLoading] = React.useState<
-    ModelServingPlatform | null | undefined
-  >();
+  >(project && platforms ? getProjectServingPlatform(project, platforms) : undefined);
+  const [projectPlatformError, setProjectPlatformError] = React.useState<Error | null>(null);
+  const [loadingState, setLoadingState] = React.useState<LoadingState>({ type: null });
 
   React.useEffect(() => {
-    if (!project.metadata.name || !platforms) {
+    if (!project || !platforms) {
       return;
     }
     const p = getProjectServingPlatform(project, platforms);
     if (p?.properties.id !== tmpProjectPlatform?.properties.id) {
       setTmpProjectPlatform(p);
-      setNewProjectPlatformLoading(undefined);
+      setLoadingState({ type: null });
     }
-  }, [project, platforms, tmpProjectPlatform?.properties.id, setNewProjectPlatformLoading]);
+  }, [project, platforms, tmpProjectPlatform?.properties.id]);
 
   const setProjectPlatform = React.useCallback(
     (platformToEnable: ModelServingPlatform) => {
-      setNewProjectPlatformLoading(platformToEnable);
+      if (!project) {
+        return;
+      }
+      setLoadingState({ type: 'platform', platform: platformToEnable });
       setProjectPlatformError(null);
 
       addSupportServingPlatformProject(
         project.metadata.name,
         platformToEnable.properties.manage.namespaceApplicationCase,
       ).catch((e) => {
-        setProjectPlatformError(e.message);
-        setNewProjectPlatformLoading(undefined);
+        if (e instanceof Error) {
+          setProjectPlatformError(e);
+        } else {
+          setProjectPlatformError(new Error('Error selecting platform'));
+        }
+        setLoadingState({ type: null });
       });
     },
-    [project, setNewProjectPlatformLoading],
+    [project],
   );
 
   const resetProjectPlatform = React.useCallback(() => {
-    setNewProjectPlatformLoading(null);
+    if (!project) {
+      return;
+    }
+    setLoadingState({ type: 'reset' });
     setProjectPlatformError(null);
 
     addSupportServingPlatformProject(
       project.metadata.name,
       NamespaceApplicationCase.RESET_MODEL_SERVING_PLATFORM,
     ).catch((e) => {
-      setProjectPlatformError(e.message);
-      setNewProjectPlatformLoading(undefined);
+      if (e instanceof Error) {
+        setProjectPlatformError(e);
+      } else {
+        setProjectPlatformError(new Error('Error resetting platform'));
+      }
+      setLoadingState({ type: null });
     });
   }, [project]);
 
@@ -125,7 +146,8 @@ export const useProjectServingPlatform = (
     projectPlatform: tmpProjectPlatform,
     setProjectPlatform,
     resetProjectPlatform,
-    newProjectPlatformLoading,
+    loadingState,
     projectPlatformError,
+    clearProjectPlatformError: () => setProjectPlatformError(null),
   };
 };

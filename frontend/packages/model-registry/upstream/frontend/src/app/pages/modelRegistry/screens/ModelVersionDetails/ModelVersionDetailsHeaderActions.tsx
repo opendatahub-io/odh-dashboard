@@ -15,27 +15,25 @@ import { ModelRegistryContext } from '~/app/context/ModelRegistryContext';
 import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelectorContext';
 import { ArchiveModelVersionModal } from '~/app/pages/modelRegistry/screens/components/ArchiveModelVersionModal';
 import { modelVersionListUrl } from '~/app/pages/modelRegistry/screens/routeUtils';
+import { useDeploymentsState } from '~/odh/hooks/useDeploymentsState';
 
 interface ModelVersionsDetailsHeaderActionsProps {
   mv: ModelVersion;
-  hasDeployment?: boolean;
   refresh: () => void;
 }
 
 const ModelVersionsDetailsHeaderActions: React.FC<ModelVersionsDetailsHeaderActionsProps> = ({
   mv,
-  hasDeployment = false,
-  // TODO: [Model Serving] Uncomment when model serving is available
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   refresh,
 }) => {
+  const { deployments } = useDeploymentsState();
+  const hasDeployment = deployments && deployments.length > 0;
   const { apiState } = React.useContext(ModelRegistryContext);
   const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
   const navigate = useNavigate();
   const [isOpenActionDropdown, setOpenActionDropdown] = React.useState(false);
   const [isArchiveModalOpen, setIsArchiveModalOpen] = React.useState(false);
-  // TODO: [Model Serving] Uncomment when model serving is available
-  // const [isDeployModalOpen, setIsDeployModalOpen] = React.useState(false);
   const tooltipRef = React.useRef<HTMLButtonElement>(null);
 
   if (!preferredModelRegistry) {
@@ -45,18 +43,6 @@ const ModelVersionsDetailsHeaderActions: React.FC<ModelVersionsDetailsHeaderActi
   return (
     <ActionList className="pf-v5-u-display-flex">
       <ActionListGroup className="pf-v5-u-flex-1">
-        {/* // TODO: [Model Serving] Uncomment when model serving is available */}
-        {/* <ActionListItem>
-          <Button
-            id="deploy-button"
-            aria-label="Deploy version"
-            ref={tooltipRef}
-            variant={ButtonVariant.primary}
-            onClick={() => setIsDeployModalOpen(true)}
-          >
-            Deploy
-          </Button>
-        </ActionListItem> */}
         <ActionListItem>
           <Dropdown
             isOpen={isOpenActionDropdown}
@@ -96,23 +82,6 @@ const ModelVersionsDetailsHeaderActions: React.FC<ModelVersionsDetailsHeaderActi
           </Dropdown>
         </ActionListItem>
       </ActionListGroup>
-      {/* // TODO: [Model Serving] Uncomment when model serving is available
-      {isDeployModalOpen && (
-        <DeployRegisteredModelModal
-          onSubmit={() => {
-            refresh();
-            navigate(
-              modelVersionDeploymentsUrl(
-                mv.id,
-                mv.registeredModelId,
-                preferredModelRegistry.metadata.name,
-              ),
-            );
-          }}
-          onCancel={() => setIsDeployModalOpen(false)}
-          modelVersion={mv}
-        />
-      )}  */}
       {isArchiveModalOpen && (
         <ArchiveModelVersionModal
           onCancel={() => setIsArchiveModalOpen(false)}

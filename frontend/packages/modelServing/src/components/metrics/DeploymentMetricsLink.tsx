@@ -18,7 +18,11 @@ export const DeploymentMetricsLink: React.FC<{
   const metricsUrl = getMetricsUrl(currentPath, deployment);
 
   return (
-    <Link to={metricsUrl} {...props}>
+    <Link
+      to={metricsUrl}
+      data-testid={`metrics-link-${getDisplayNameFromK8sResource(deployment.model)}`}
+      {...props}
+    >
       {getDisplayNameFromK8sResource(deployment.model)}
     </Link>
   );

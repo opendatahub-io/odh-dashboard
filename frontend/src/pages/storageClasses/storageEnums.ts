@@ -26,6 +26,7 @@ export enum StorageProvisioner {
   RBD_CSI = 'rbd.csi.ceph.com',
   FILE_CSI_AZURE = 'file.csi.azure.com',
   NFS_CSI = 'nfs.csi.k8s.io',
+  DISK_CSI_AZURE = 'disk.csi.azure.com',
 }
 
 // list of access modes
@@ -83,4 +84,5 @@ export const provisionerAccessModes: Record<StorageProvisioner, AccessMode[]> = 
     AccessMode.RWOP,
   ],
   [StorageProvisioner.NFS_CSI]: [AccessMode.RWO, AccessMode.RWX, AccessMode.ROX],
+  [StorageProvisioner.DISK_CSI_AZURE]: [AccessMode.RWO],
 };

@@ -1,12 +1,7 @@
 import React, { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { Button, Flex, FlexItem, Label, Truncate } from '@patternfly/react-core';
-import {
-  FetchStateObject,
-  ApplicationsPage,
-  InferenceServiceKind,
-  ServingRuntimeKind,
-} from 'mod-arch-shared';
+import { ApplicationsPage } from 'mod-arch-shared';
 import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelectorContext';
 import { ModelRegistryContext } from '~/app/context/ModelRegistryContext';
 import useRegisteredModelById from '~/app/hooks/useRegisteredModelById';
@@ -18,11 +13,10 @@ import {
 } from '~/app/pages/modelRegistry/screens/routeUtils';
 import ModelVersionDetailsTabs from '~/app/pages/modelRegistry/screens/ModelVersionDetails/ModelVersionDetailsTabs';
 import { RestoreModelVersionModal } from '~/app/pages/modelRegistry/screens/components/RestoreModelVersionModal';
-import { ModelVersionDetailsTab } from '~/app/pages/modelRegistry/screens/ModelVersionDetails/const';
 import ModelVersionArchiveDetailsBreadcrumb from './ModelVersionArchiveDetailsBreadcrumb';
 
 type ModelVersionsArchiveDetailsProps = {
-  tab: ModelVersionDetailsTab;
+  tab: string;
 } & Omit<
   React.ComponentProps<typeof ApplicationsPage>,
   'breadcrumb' | 'title' | 'description' | 'loadError' | 'loaded' | 'provideChildrenPadding'
@@ -42,19 +36,6 @@ const ModelVersionsArchiveDetails: React.FC<ModelVersionsArchiveDetailsProps> = 
   const [mv, mvLoaded, mvLoadError, refreshModelVersion] = useModelVersionById(mvId);
   const [isRestoreModalOpen, setIsRestoreModalOpen] = React.useState(false);
 
-  const inferenceServices: FetchStateObject<InferenceServiceKind[]> = {
-    data: [],
-    loaded: false,
-    // eslint-disable-next-line @typescript-eslint/no-empty-function
-    refresh: () => {},
-  };
-  const servingRuntimes: FetchStateObject<ServingRuntimeKind[]> = {
-    data: [],
-    loaded: false,
-    // eslint-disable-next-line @typescript-eslint/no-empty-function
-    refresh: () => {},
-  };
-
   useEffect(() => {
     if (rm?.state === ModelState.ARCHIVED && mv?.id) {
       navigate(
@@ -64,6 +45,7 @@ const ModelVersionsArchiveDetails: React.FC<ModelVersionsArchiveDetailsProps> = 
       navigate(modelVersionUrl(mv.id, mv.registeredModelId, preferredModelRegistry?.name));
     }
   }, [rm?.state, mv?.state, mv?.id, mv?.registeredModelId, preferredModelRegistry?.name, navigate]);
+
 
   return (
     <>
@@ -99,8 +81,6 @@ const ModelVersionsArchiveDetails: React.FC<ModelVersionsArchiveDetailsProps> = 
             isArchiveVersion
             tab={tab}
             modelVersion={mv}
-            inferenceServices={inferenceServices}
-            servingRuntimes={servingRuntimes}
             refresh={refreshModelVersion}
           />
         )}

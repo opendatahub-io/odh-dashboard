@@ -21,7 +21,7 @@ paths:
         "200":
           $ref: "#/components/responses/HealthCheckResponse"
         "500":
-          $ref: "lib/common.yaml#/components/responses/InternalServerError"
+          $ref: "#/components/responses/InternalServerError"
       operationId: healthcheck
       summary: HealthCheck
       description: HealthCheck endpoint to verify service availability.
@@ -38,7 +38,7 @@ paths:
         "200":
           $ref: "#/components/responses/ConfigResponse"
         "500":
-          $ref: "lib/common.yaml#/components/responses/InternalServerError"
+          $ref: "#/components/responses/InternalServerError"
       operationId: getConfig
       summary: Get Configuration
       description: Returns configuration information needed for the frontend application.
@@ -64,7 +64,7 @@ paths:
         "200":
           $ref: "#/components/responses/ModelListResponse"
         "500":
-          $ref: "lib/common.yaml#/components/responses/InternalServerError"
+          $ref: "#/components/responses/InternalServerError"
       operationId: getModels
       summary: List All Models
       description: Gets a list of all available models, optionally filtered by model type.
@@ -80,7 +80,7 @@ paths:
         "200":
           $ref: "#/components/responses/VectorDBListResponse"
         "500":
-          $ref: "lib/common.yaml#/components/responses/InternalServerError"
+          $ref: "#/components/responses/InternalServerError"
       operationId: getVectorDBs
       summary: List All Vector Databases
       description: Gets a list of all registered vector databases.
@@ -98,9 +98,9 @@ paths:
         "201":
           $ref: "#/components/responses/VectorDBRegistrationResponse"
         "400":
-          $ref: "lib/common.yaml#/components/responses/BadRequest"
+          $ref: "#/components/responses/BadRequest"
         "500":
-          $ref: "lib/common.yaml#/components/responses/InternalServerError"
+          $ref: "#/components/responses/InternalServerError"
       operationId: registerVectorDB
       summary: Register Vector Database
       description: Registers a new vector database with the specified embedding model.
@@ -123,9 +123,9 @@ paths:
         "200":
           $ref: "#/components/responses/UploadResponse"
         "400":
-          $ref: "lib/common.yaml#/components/responses/BadRequest"
+          $ref: "#/components/responses/BadRequest"
         "500":
-          $ref: "lib/common.yaml#/components/responses/InternalServerError"
+          $ref: "#/components/responses/InternalServerError"
       operationId: uploadDocuments
       summary: Upload Documents
       description: Uploads documents for processing and indexing into the specified vector database.
@@ -149,9 +149,9 @@ paths:
         "200":
           $ref: "#/components/responses/QueryResponse"
         "400":
-          $ref: "lib/common.yaml#/components/responses/BadRequest"
+          $ref: "#/components/responses/BadRequest"
         "500":
-          $ref: "lib/common.yaml#/components/responses/InternalServerError"
+          $ref: "#/components/responses/InternalServerError"
       operationId: queryDocuments
       summary: Query Documents with RAG
       description: Queries documents using RAG if vector databases are provided, then generates a response using chat completion.
@@ -174,11 +174,11 @@ paths:
         "200":
           description: Successful proxy response
         "400":
-          $ref: "lib/common.yaml#/components/responses/BadRequest"
+          $ref: "#/components/responses/BadRequest"
         "502":
           description: Bad Gateway - Proxy error
         "500":
-          $ref: "lib/common.yaml#/components/responses/InternalServerError"
+          $ref: "#/components/responses/InternalServerError"
       operationId: proxyToLlamaStackGet
       summary: Proxy GET to Llama Stack
       description: Proxies GET requests directly to the Llama Stack API.
@@ -203,11 +203,11 @@ paths:
         "200":
           description: Successful proxy response
         "400":
-          $ref: "lib/common.yaml#/components/responses/BadRequest"
+          $ref: "#/components/responses/BadRequest"
         "502":
           description: Bad Gateway - Proxy error
         "500":
-          $ref: "lib/common.yaml#/components/responses/InternalServerError"
+          $ref: "#/components/responses/InternalServerError"
       operationId: proxyToLlamaStackPost
       summary: Proxy POST to Llama Stack
       description: Proxies POST requests directly to the Llama Stack API.
@@ -232,11 +232,11 @@ paths:
         "200":
           description: Successful proxy response
         "400":
-          $ref: "lib/common.yaml#/components/responses/BadRequest"
+          $ref: "#/components/responses/BadRequest"
         "502":
           description: Bad Gateway - Proxy error
         "500":
-          $ref: "lib/common.yaml#/components/responses/InternalServerError"
+          $ref: "#/components/responses/InternalServerError"
       operationId: proxyToLlamaStackPut
       summary: Proxy PUT to Llama Stack
       description: Proxies PUT requests directly to the Llama Stack API.
@@ -261,11 +261,11 @@ paths:
         "200":
           description: Successful proxy response
         "400":
-          $ref: "lib/common.yaml#/components/responses/BadRequest"
+          $ref: "#/components/responses/BadRequest"
         "502":
           description: Bad Gateway - Proxy error
         "500":
-          $ref: "lib/common.yaml#/components/responses/InternalServerError"
+          $ref: "#/components/responses/InternalServerError"
       operationId: proxyToLlamaStackPatch
       summary: Proxy PATCH to Llama Stack
       description: Proxies PATCH requests directly to the Llama Stack API.
@@ -283,11 +283,11 @@ paths:
         "200":
           description: Successful proxy response
         "400":
-          $ref: "lib/common.yaml#/components/responses/BadRequest"
+          $ref: "#/components/responses/BadRequest"
         "502":
           description: Bad Gateway - Proxy error
         "500":
-          $ref: "lib/common.yaml#/components/responses/InternalServerError"
+          $ref: "#/components/responses/InternalServerError"
       operationId: proxyToLlamaStackDelete
       summary: Proxy DELETE to Llama Stack
       description: Proxies DELETE requests directly to the Llama Stack API.
@@ -317,6 +317,27 @@ components:
         version:
           type: string
           example: "1.0.0"
+
+    Error:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          example: "400"
+        message:
+          type: string
+          example: "Bad request"
+
+    ErrorEnvelope:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          $ref: "#/components/schemas/Error"
 
     Config:
       type: object
@@ -675,6 +696,34 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/Config"
+
+    BadRequest:
+      description: Bad Request
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+
+    NotFound:
+      description: Not Found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+
+    InternalServerError:
+      description: Internal Server Error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
 
 
 

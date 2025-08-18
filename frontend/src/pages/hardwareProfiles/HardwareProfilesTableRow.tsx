@@ -233,7 +233,7 @@ const HardwareProfilesTableRow: React.FC<HardwareProfilesTableRowProps> = ({
                 )}
               {localQueueName && (
                 <StackItem>
-                  <p className="pf-v6-u-font-weight-bold">Local Queue</p>
+                  <p className="pf-v6-u-font-weight-bold">Local queue</p>
                   {localQueueName}
                 </StackItem>
               )}

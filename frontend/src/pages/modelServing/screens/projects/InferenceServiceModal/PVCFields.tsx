@@ -5,6 +5,11 @@ import {
   TextInput,
   InputGroupItem,
   InputGroup,
+  HelperText,
+  HelperTextItem,
+  FormHelperText,
+  Stack,
+  StackItem,
 } from '@patternfly/react-core';
 import { PersistentVolumeClaimKind } from '#~/k8sTypes';
 
@@ -50,34 +55,48 @@ export const PVCFields: React.FC<PVCFieldsProps> = ({
   }, [selectedPVC, modelPath]);
 
   return (
-    <FormGroup label="Model path" isRequired>
-      <InputGroup>
-        <InputGroupText>pvc://{selectedPVC.metadata.name}/</InputGroupText>
-        <InputGroupItem isFill>
-          <TextInput
-            id="folder-path"
-            aria-label="Model path"
-            data-testid="folder-path"
-            type="text"
-            value={modelPath}
-            isRequired
-            onChange={(e, value: string) => {
-              handlePathChange(value);
-            }}
-            onBlur={() => {
-              const trimmed = modelPath.trim();
-              if (trimmed !== modelPath) {
-                handlePathChange(trimmed);
-              }
-            }}
-            onPaste={(e) => {
-              const pastedText = e.clipboardData.getData('text').trim();
-              handlePathChange(pastedText);
-              e.preventDefault();
-            }}
-          />
-        </InputGroupItem>
-      </InputGroup>
-    </FormGroup>
+    <Stack hasGutter>
+      <StackItem>
+        <FormGroup label="Model path" isRequired>
+          <InputGroup>
+            <InputGroupText>pvc://{selectedPVC.metadata.name}/</InputGroupText>
+            <InputGroupItem isFill>
+              <TextInput
+                id="folder-path"
+                aria-label="Model path"
+                data-testid="folder-path"
+                type="text"
+                value={modelPath}
+                isRequired
+                onChange={(e, value: string) => {
+                  handlePathChange(value);
+                }}
+                onBlur={() => {
+                  const trimmed = modelPath.trim();
+                  if (trimmed !== modelPath) {
+                    handlePathChange(trimmed);
+                  }
+                }}
+                onPaste={(e) => {
+                  const pastedText = e.clipboardData.getData('text').trim();
+                  handlePathChange(pastedText);
+                  e.preventDefault();
+                }}
+              />
+            </InputGroupItem>
+          </InputGroup>
+        </FormGroup>
+      </StackItem>
+      <StackItem>
+        <FormHelperText>
+          <HelperText>
+            <HelperTextItem>
+              Enter a path to your model or a folder containing your model. The path cannot point to
+              a root folder.
+            </HelperTextItem>
+          </HelperText>
+        </FormHelperText>
+      </StackItem>
+    </Stack>
   );
 };

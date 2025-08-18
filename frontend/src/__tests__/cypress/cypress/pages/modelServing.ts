@@ -56,6 +56,17 @@ class ModelServingGlobal {
     return cy.findByTestId('deploy-button');
   }
 
+  clickDeployModelButtonWithRetry() {
+    this.findDeployModelButton().click();
+    // If modal doesn't appear, retry once
+    cy.get('body').then(($body) => {
+      if ($body.find('[role="dialog"]:visible').length === 0) {
+        this.findDeployModelButton().click();
+      }
+    });
+    return this;
+  }
+
   findNoProjectSelectedTooltip() {
     return cy.findByTestId('deploy-model-tooltip');
   }
@@ -65,11 +76,11 @@ class ModelServingGlobal {
   }
 
   findSingleServingModelButton() {
-    return cy.findByTestId('single-serving-select-button');
+    return cy.findByTestId('kserve-select-button');
   }
 
   findMultiModelButton() {
-    return cy.findByTestId('multi-serving-select-button');
+    return cy.findByTestId('model-mesh-select-button');
   }
 
   private findModelsTable() {
@@ -107,6 +118,13 @@ class ModelServingGlobal {
 
   findServingRuntime(name: string) {
     return this.findModelsTable().find(`[data-label=Serving Runtime]`).contains(name);
+  }
+
+  findTokenCopyButton(index: number) {
+    if (index === 0) {
+      return cy.findAllByTestId('token-secret').findAllByRole('button').eq(0);
+    }
+    return cy.findAllByTestId('token-secret').eq(index).findAllByRole('button').eq(0);
   }
 }
 
@@ -241,6 +259,14 @@ class InferenceServiceModal extends ServingModal {
 
   findServiceAccountNameInput() {
     return this.find().findByTestId('service-account-form-name');
+  }
+
+  findServiceAccountIndex(index: number) {
+    return this.find().findAllByTestId('service-account-form-name').eq(index);
+  }
+
+  findAddServiceAccountButton() {
+    return this.find().findByTestId('add-service-account-button');
   }
 
   findExistingConnectionSelect() {
@@ -517,6 +543,16 @@ class KServeModal extends InferenceServiceModal {
     return this.find().findByTestId('max-replicas').findByRole('button', { name: 'Minus' });
   }
 
+  findMaxReplicasErrorMessage() {
+    return this.find().contains(
+      'Maximum replicas must be greater than or equal to minimum replicas',
+    );
+  }
+
+  findMinReplicasErrorMessage() {
+    return this.find().contains('Minimum replicas must be less than or equal to maximum replicas');
+  }
+
   findCPURequestedCheckbox() {
     return this.find().findByTestId('cpu-requested-checkbox');
   }
@@ -678,6 +714,10 @@ class InferenceServiceRow extends TableRow {
 
   findLastDeployed() {
     return this.find().find(`[data-label="Last deployed"]`);
+  }
+
+  findLastDeployedTimestamp() {
+    return this.find().findByTestId('last-deployed-timestamp');
   }
 
   findAPIProtocol() {

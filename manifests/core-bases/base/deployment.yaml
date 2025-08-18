@@ -87,7 +87,7 @@ spec:
           image: oauth-proxy
           ports:
             - containerPort: 8443
-              name: https
+              name: dashboard-ui
           livenessProbe:
             httpGet:
               path: /oauth/healthz

@@ -8,6 +8,7 @@ import {
   registerVersionPage,
 } from '#~/__tests__/cypress/cypress/pages/modelRegistry/registerVersionPage';
 import { modelRegistry } from '#~/__tests__/cypress/cypress/pages/modelRegistry';
+import { clickRegisterModelButton } from '#~/__tests__/cypress/cypress/utils/modelRegistryUtils';
 import { retryableBeforeEach } from '#~/__tests__/cypress/cypress/utils/retryableHooks';
 import {
   checkModelExistsInDatabase,
@@ -15,8 +16,10 @@ import {
   checkModelRegistryAvailable,
   checkModelVersionExistsInDatabase,
   cleanupRegisteredModelsFromDatabase,
+  createAndVerifyDatabase,
   createModelRegistryViaYAML,
   deleteModelRegistry,
+  deleteModelRegistryDatabase,
 } from '#~/__tests__/cypress/cypress/utils/oc_commands/modelRegistry';
 import { loadRegisterModelFixture } from '#~/__tests__/cypress/cypress/utils/dataLoader';
 import { generateTestUUID } from '#~/__tests__/cypress/cypress/utils/uuidGenerator';
@@ -34,6 +37,10 @@ describe('Verify models can be registered in a model registry', () => {
       testData = fixtureData;
       registryName = `${testData.registryNamePrefix}-${uuid}`;
       objectStorageModelName = `${testData.objectStorageModelName}-${uuid}`;
+
+      // create and verify SQL database for the model registry
+      cy.step('Create and verify SQL database for model registry');
+      createAndVerifyDatabase().should('be.true');
 
       // creates a model registry
       cy.step('Create a model registry using YAML');
@@ -54,7 +61,7 @@ describe('Verify models can be registered in a model registry', () => {
 
   it(
     'Registers models via model registry using object storage and URI',
-    { tags: ['@Maintain', '@ModelRegistry', '@NonConcurrent', '@Featureflagged'] },
+    { tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@Featureflagged'] },
     () => {
       cy.step('Log into the application');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
@@ -66,7 +73,7 @@ describe('Verify models can be registered in a model registry', () => {
       modelRegistry.findSelectModelRegistry(registryName);
 
       cy.step('Register a model using object storage');
-      modelRegistry.findEmptyRegisterModelButton(30000).click();
+      clickRegisterModelButton(30000);
 
       // Fill in model details for object storage
       registerModelPage.findFormField(FormFieldSelector.MODEL_NAME).type(objectStorageModelName);
@@ -99,7 +106,7 @@ describe('Verify models can be registered in a model registry', () => {
         .findFormField(FormFieldSelector.LOCATION_PATH)
         .type(testData.objectStoragePath);
 
-      registerModelPage.findSubmitButton().click();
+      registerModelPage.findSubmitButton().should('be.enabled').click();
 
       cy.step('Verify the object storage model was registered');
       cy.url().should('include', '/modelRegistry');
@@ -132,7 +139,7 @@ describe('Verify models can be registered in a model registry', () => {
       registerModelPage.findFormField(FormFieldSelector.LOCATION_TYPE_URI).click();
       registerModelPage.findFormField(FormFieldSelector.LOCATION_URI).type(testData.uriPrimary);
 
-      registerModelPage.findSubmitButton().click();
+      registerModelPage.findSubmitButton().should('be.enabled').click();
 
       cy.step('Verify the URI model was registered');
       cy.url().should('include', '/modelRegistry');
@@ -152,7 +159,7 @@ describe('Verify models can be registered in a model registry', () => {
 
   it(
     'Registers a new version via versions view',
-    { tags: ['@Maintain', '@ModelRegistry', '@NonConcurrent', '@Featureflagged'] },
+    { tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@Featureflagged'] },
     () => {
       cy.step('Log into the application');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
@@ -219,5 +226,8 @@ describe('Verify models can be registered in a model registry', () => {
 
     cy.step('Verify model registry is removed from the backend');
     checkModelRegistry(registryName).should('be.false');
+
+    cy.step('Delete the SQL database');
+    deleteModelRegistryDatabase();
   });
 });
