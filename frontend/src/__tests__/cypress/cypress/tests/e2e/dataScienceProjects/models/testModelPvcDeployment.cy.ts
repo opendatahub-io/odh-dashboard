@@ -118,7 +118,7 @@ describe('Verify a model can be deployed from a PVC', () => {
 
       // Verify the pod is ready
       cy.step('Verify the pod is ready');
-      waitForPodReady(podName, projectName);
+      waitForPodReady(podName, '300s', projectName);
 
       // Verify the S3 copy completed successfully
       cy.step('Verify S3 copy completed');
