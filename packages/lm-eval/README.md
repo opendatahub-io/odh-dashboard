@@ -27,7 +27,7 @@ This file declares how the LM-Eval UI components and routes are exposed to and l
 
 ## Testing the Integration
 
-1. **Build the Micro-Frontend:**
+1. **Start the Micro-Frontend:**
    In a new terminal, navigate into [./upstream/frontend], run `npm install`.
 
    Then run `npm run start:dev -- --port 9001`
