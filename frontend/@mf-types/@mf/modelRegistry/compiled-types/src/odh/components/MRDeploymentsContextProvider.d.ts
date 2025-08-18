@@ -4,6 +4,7 @@ interface MRDeploymentsContextProviderProps {
     labelSelectors?: {
         [key: string]: string;
     };
+    mrName?: string;
 }
 /**
  * Provider component that automatically wraps children with deployments context if available.

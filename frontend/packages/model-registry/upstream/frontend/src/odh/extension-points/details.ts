@@ -5,7 +5,7 @@ export type ModelRegistryVersionDetailsTabExtension = Extension<
   {
     id: string;
     title: string;
-    component: CodeRef<React.ComponentType<{ rmId?: string; mvId?: string }>>;
+    component: CodeRef<React.ComponentType<{ rmId?: string; mvId?: string; mrName?: string }>>;
   }
 >;
 

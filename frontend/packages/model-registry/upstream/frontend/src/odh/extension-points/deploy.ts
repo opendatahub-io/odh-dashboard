@@ -38,6 +38,7 @@ export type ModelRegistryVersionDeploymentsContextExtension = Extension<
           loaded: boolean;
         }) => React.ReactNode;
         labelSelectors?: { [key: string]: string };
+        mrName?: string;
       }>
     >;
   }

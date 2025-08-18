@@ -6,6 +6,7 @@ import { isModelRegistryVersionDeploymentsContextExtension } from '~/odh/extensi
 interface MRDeploymentsContextProviderProps {
   children: React.ReactNode;
   labelSelectors?: { [key: string]: string };
+  mrName?: string;
 }
 
 /**
@@ -15,6 +16,7 @@ interface MRDeploymentsContextProviderProps {
 export const MRDeploymentsContextProvider: React.FC<MRDeploymentsContextProviderProps> = ({
   children,
   labelSelectors,
+  mrName,
 }) => {
   const [deploymentsContextExtensions, deploymentsContextLoaded] = useResolvedExtensions(
     isModelRegistryVersionDeploymentsContextExtension,
@@ -28,7 +30,7 @@ export const MRDeploymentsContextProvider: React.FC<MRDeploymentsContextProvider
 
   if (deploymentsContextLoaded && DeploymentsProviderComponent) {
     return (
-      <DeploymentsProviderComponent labelSelectors={labelSelectors}>
+      <DeploymentsProviderComponent labelSelectors={labelSelectors} mrName={mrName}>
         {
           (deploymentsContextValue) => (
               <DeploymentsStateContext.Provider value={deploymentsContextValue}>

@@ -16,6 +16,7 @@ interface DeploymentsContextProviderProps {
     loaded: boolean;
   }) => React.ReactNode;
   labelSelectors?: { [key: string]: string };
+  mrName?: string;
 }
 
 const ModelDeploymentsProviderContent: React.FC<{
@@ -34,6 +35,7 @@ const ModelDeploymentsProviderContent: React.FC<{
 const DeploymentsContextProvider: React.FC<DeploymentsContextProviderProps> = ({
   children,
   labelSelectors,
+  mrName,
 }) => {
   const { projects } = React.useContext(ProjectsContext);
   const modelServingPlatforms = useExtensions(isModelServingPlatformExtension);
@@ -43,6 +45,7 @@ const DeploymentsContextProvider: React.FC<DeploymentsContextProviderProps> = ({
       projects={projects}
       modelServingPlatforms={modelServingPlatforms}
       labelSelectors={labelSelectors}
+      mrName={mrName}
     >
       <ModelDeploymentsProviderContent>{children}</ModelDeploymentsProviderContent>
     </ModelDeploymentsProvider>

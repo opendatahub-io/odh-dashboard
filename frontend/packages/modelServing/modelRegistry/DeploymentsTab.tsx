@@ -31,7 +31,11 @@ const DeploymentsTabContent: React.FC = () => {
   return <GlobalDeploymentsTable deployments={deployments ?? []} loaded={deploymentsLoaded} />;
 };
 
-const DeploymentsTab: React.FC<{ rmId?: string; mvId?: string }> = ({ rmId, mvId }) => {
+const DeploymentsTab: React.FC<{ rmId?: string; mvId?: string; mrName?: string }> = ({
+  rmId,
+  mvId,
+  mrName,
+}) => {
   const { projects } = React.useContext(ProjectsContext);
   const modelServingPlatforms = useExtensions(isModelServingPlatformExtension);
   const labelSelectors = React.useMemo(() => {
@@ -49,6 +53,7 @@ const DeploymentsTab: React.FC<{ rmId?: string; mvId?: string }> = ({ rmId, mvId
       projects={projects}
       modelServingPlatforms={modelServingPlatforms}
       labelSelectors={labelSelectors}
+      mrName={mrName}
     >
       <DeploymentsTabContent />
     </ModelDeploymentsProvider>

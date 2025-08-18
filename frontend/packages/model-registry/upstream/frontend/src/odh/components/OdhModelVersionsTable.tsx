@@ -6,6 +6,7 @@ import ModelVersionsTableRow from '~/app/pages/modelRegistry/screens/ModelVersio
 import { useDeploymentsState } from '~/odh/hooks/useDeploymentsState';
 import { KnownLabels } from '~/odh/k8sTypes';
 import { MRDeploymentsContextProvider } from './MRDeploymentsContextProvider';
+import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelectorContext';
 
 type OdhModelVersionsTableProps = {
     clearFilters: () => void;
@@ -66,8 +67,9 @@ const OdhModelVersionsTable: React.FC<OdhModelVersionsTableProps> = ({
           [KnownLabels.REGISTERED_MODEL_ID]: rm.id,
         };
     }, [rm.id]);
+    const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
     return (
-        <MRDeploymentsContextProvider labelSelectors={labelSelectors}>
+        <MRDeploymentsContextProvider labelSelectors={labelSelectors} mrName={preferredModelRegistry?.name}>
             <OdhModelVersionsTableContent
                 clearFilters={clearFilters}
                 modelVersions={modelVersions}

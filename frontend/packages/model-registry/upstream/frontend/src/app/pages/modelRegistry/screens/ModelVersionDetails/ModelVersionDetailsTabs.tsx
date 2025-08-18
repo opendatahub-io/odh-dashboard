@@ -6,6 +6,7 @@ import { ModelVersionDetailsTabTitle, ModelVersionDetailsTab } from './const';
 import ModelVersionDetailsView from './ModelVersionDetailsView';
 import { isModelRegistryVersionDetailsTabExtension } from '~/odh/extension-points/details';
 import { LazyCodeRefComponent, useExtensions } from '@odh-dashboard/plugin-core';
+import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelectorContext';
 
 type ModelVersionDetailTabsProps = {
   tab: string;
@@ -23,7 +24,7 @@ const ModelVersionDetailsTabs: React.FC<ModelVersionDetailTabsProps> = ({
   const navigate = useNavigate();
   const tabExtensions = useExtensions(isModelRegistryVersionDetailsTabExtension);
   const { registeredModelId: rmId } = useParams();
-
+  const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
   const modelVersionDetails = [
     <Tab
       key={ModelVersionDetailsTab.DETAILS}
@@ -53,7 +54,10 @@ const ModelVersionDetailsTabs: React.FC<ModelVersionDetailTabsProps> = ({
           isFilled
           data-testid={`${extension.properties.id}-tab-content`}
         >
-          <LazyCodeRefComponent component={extension.properties.component} props={{ rmId, mvId: mv.id }} />
+          <LazyCodeRefComponent
+            component={extension.properties.component}
+            props={{ rmId, mvId: mv.id, mrName: preferredModelRegistry?.name }}
+          />
         </PageSection>
       </Tab>
     )),

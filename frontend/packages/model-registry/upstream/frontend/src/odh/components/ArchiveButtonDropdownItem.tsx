@@ -4,6 +4,7 @@ import { MRDeploymentsContextProvider } from './MRDeploymentsContextProvider';
 import { useDeploymentsState } from '../hooks/useDeploymentsState';
 import { useParams } from 'react-router';
 import { KnownLabels } from '~/odh/k8sTypes';
+import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelectorContext';
 
 type ArchiveButtonDropdownItemProps = {
     setIsArchiveModalOpen: (isOpen: boolean) => void;
@@ -12,14 +13,12 @@ type ArchiveButtonDropdownItemProps = {
 const ArchiveButtonDropdownItemContent: React.FC<Omit<ArchiveButtonDropdownItemProps, 'rm'>> = ({ setIsArchiveModalOpen }) => {
     const { deployments, loaded } = useDeploymentsState();
     const hasDeployments = deployments && deployments.length > 0;
-    const tooltipRef = React.useRef<HTMLButtonElement>(null);
     return (
         <DropdownItem
             id="archive-model-button"
             aria-label="Archive model"
             key="archive-model-button"
             onClick={() => setIsArchiveModalOpen(true)}
-            ref={tooltipRef}
             isAriaDisabled={hasDeployments || !loaded}
             tooltipProps={
                 hasDeployments
@@ -34,6 +33,7 @@ const ArchiveButtonDropdownItemContent: React.FC<Omit<ArchiveButtonDropdownItemP
 
 const ArchiveButtonDropdownItem: React.FC<ArchiveButtonDropdownItemProps> = ({ setIsArchiveModalOpen }) => {
     const { registeredModelId: rmId } = useParams();
+    const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
     const labelSelectors = React.useMemo(() => {
         if (!rmId) {
           return undefined;
@@ -43,7 +43,7 @@ const ArchiveButtonDropdownItem: React.FC<ArchiveButtonDropdownItemProps> = ({ s
         }
     }, [rmId]);
     return (
-    <MRDeploymentsContextProvider labelSelectors={labelSelectors}>
+    <MRDeploymentsContextProvider labelSelectors={labelSelectors} mrName={preferredModelRegistry?.name}>
         <ArchiveButtonDropdownItemContent setIsArchiveModalOpen={setIsArchiveModalOpen} />
     </MRDeploymentsContextProvider>
   );
