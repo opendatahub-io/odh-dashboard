@@ -34,9 +34,10 @@ const TrainingJobStatus = ({
           {statusInfo.label}
         </Label>
       </FlexItem>
-      {isRunning ? (
+      {/* Only show progress bar if job is running and completion percentage is available */}
+      {isRunning && job.status?.completionPercentage ? (
         <FlexItem>
-          <Progress value={job.status?.completionPercentage} style={{ width: '200px' }} size="sm" />
+          <Progress value={job.status.completionPercentage} style={{ width: '200px' }} size="sm" />
         </FlexItem>
       ) : null}
     </Flex>

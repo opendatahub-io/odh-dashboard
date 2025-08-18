@@ -2,6 +2,7 @@ import * as React from 'react';
 import { Tr, Td, ActionsColumn } from '@patternfly/react-table';
 import { Timestamp, Flex, FlexItem, TimestampTooltipVariant } from '@patternfly/react-core';
 import { CubesIcon } from '@patternfly/react-icons';
+import { Link } from 'react-router-dom';
 import ResourceNameTooltip from '@odh-dashboard/internal/components/ResourceNameTooltip';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
 import { relativeTime } from '@odh-dashboard/internal/utilities/time';
@@ -87,7 +88,11 @@ const TrainingJobTableRow: React.FC<PyTorchJobTableRowProps> = ({
     <>
       <Tr>
         <Td dataLabel="Name">
-          <ResourceNameTooltip resource={job}>{displayName}</ResourceNameTooltip>
+          <ResourceNameTooltip resource={job}>
+            <Link to={`/modelTraining/${job.metadata.namespace}/${job.metadata.name}`}>
+              {displayName}
+            </Link>
+          </ResourceNameTooltip>
         </Td>
 
         <Td dataLabel="Project">
@@ -133,23 +138,6 @@ const TrainingJobTableRow: React.FC<PyTorchJobTableRowProps> = ({
           )}
         </Td>
         <Td dataLabel="Status">
-          {/* {isLoadingStatus ? (
-            <Skeleton height="24px" width="80px" />
-          ) : (
-            (() => {
-              const statusInfo = getStatusInfo(status);
-              return (
-                <Label
-                  status={statusInfo.status}
-                  color={statusInfo.color}
-                  icon={<statusInfo.IconComponent />}
-                  data-testid="training-job-status"
-                >
-                  {statusInfo.label}
-                </Label>
-              );
-            })()
-          )} */}
           <TrainingJobStatus job={job} jobStatus={jobStatus} />
         </Td>
         <Td isActionCell>
