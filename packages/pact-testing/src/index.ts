@@ -37,20 +37,71 @@
  * ```
  */
 
+/* eslint-disable no-barrel-files/no-barrel-files */
+/* eslint-disable import/no-duplicates */
+
 // =============================================================================
 // HELPER UTILITIES - For consistent test logging and setup
 // =============================================================================
-export * from './helpers/logging';
+import {
+  logApiCall,
+  logApiResponse,
+  logApiError,
+  logTestSetup,
+  logTestSuccess,
+  type ApiCallHeaders,
+  type ApiResponse,
+  type ApiError,
+} from './helpers/logging';
 
 // =============================================================================
 // CORE UTILITIES - Main testing functionality
 // =============================================================================
 
 // BFF Health Verification - Works with any BFF backend
-export * from './utils/bff-verification';
+import {
+  verifyBffHealth,
+  waitForBffHealth,
+  createBffConfig,
+  DEFAULT_BFF_CONFIG,
+  type BffConfig,
+  type BffHealthResult,
+} from './utils/bff-verification';
 
 // HTTP Client - Standardized API client with logging
-export { ContractApiClient, type ApiTestConfig, type ApiTestResult } from './utils/api-client';
+import { ContractApiClient, type ApiTestConfig, type ApiTestResult } from './utils/api-client';
 
 // Schema Validation - OpenAPI/JSON Schema validation
-export { ContractSchemaValidator, type SchemaValidationConfig, type ValidationResult } from './utils/schema-validation';
+import {
+  ContractSchemaValidator,
+  type SchemaValidationConfig,
+  type ValidationResult,
+} from './utils/schema-validation';
+
+// Re-export everything
+export {
+  // Logging utilities
+  logApiCall,
+  logApiResponse,
+  logApiError,
+  logTestSetup,
+  logTestSuccess,
+  type ApiCallHeaders,
+  type ApiResponse,
+  type ApiError,
+  // BFF utilities
+  verifyBffHealth,
+  waitForBffHealth,
+  createBffConfig,
+  DEFAULT_BFF_CONFIG,
+  type BffConfig,
+  type BffHealthResult,
+  // API client
+  ContractApiClient,
+  type ApiTestConfig,
+  type ApiTestResult,
+  // Schema validation
+  ContractSchemaValidator,
+  type SchemaValidationConfig,
+  type ValidationResult,
+};

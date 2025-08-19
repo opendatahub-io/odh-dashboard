@@ -1,148 +1,139 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, no-console, @typescript-eslint/no-unsafe-assignment */
-import Ajv from 'ajv';
+import type { JSONSchemaType } from 'ajv';
+import AjvModule from 'ajv';
 import addFormats from 'ajv-formats';
-import { ApiResponse } from '../helpers/logging';
 
 export interface SchemaValidationConfig {
-  schemaPath: string;
   strict?: boolean;
-  additionalSchemas?: Record<string, any>;
+  allErrors?: boolean;
 }
 
 export interface ValidationResult {
   isValid: boolean;
-  errors?: any[] | null;
-  message?: string;
+  errors?: string[];
 }
 
 /**
- * Schema validator for contract testing
+ * JSON Schema validator for contract testing
  */
 export class ContractSchemaValidator {
-  private ajv: Ajv;
-  private schemas: Map<string, any> = new Map();
+  private ajv: AjvModule;
 
-  constructor(config: { strict?: boolean } = {}) {
-    this.ajv = new Ajv({ 
-      strict: config.strict ?? false,
-      allErrors: true,
-      validateSchema: false, // Disable meta-schema validation to avoid issues with draft versions
+  private schemas: Map<string, JSONSchemaType<unknown>>;
+
+  constructor(config?: SchemaValidationConfig) {
+    this.ajv = new AjvModule({
+      strict: config?.strict ?? false,
+      allErrors: config?.allErrors ?? true,
     });
+
     addFormats(this.ajv);
+    this.schemas = new Map();
   }
 
   /**
-   * Load a schema from a JSON file or object
+   * Load a schema for validation
    */
-  async loadSchema(schemaId: string, schema: any): Promise<void> {
-    try {
-      // Add the main schema
-      this.ajv.addSchema(schema, schemaId);
-      this.schemas.set(schemaId, schema);
-
-      console.log('✅ Schema loaded: ' + schemaId);
-    } catch (error) {
-      console.error('❌ Failed to load schema ' + schemaId + ':', error);
-      throw error;
-    }
+  async loadSchema(schemaId: string, schema: JSONSchemaType<unknown>): Promise<void> {
+    this.schemas.set(schemaId, schema);
+    this.ajv.addSchema(schema, schemaId);
   }
 
   /**
-   * Validate an API response against a schema
+   * Validate a response against a schema
    */
   validateResponse(
-    response: ApiResponse | any,
+    response: unknown,
     schemaId: string,
-    testName: string,
+    _testName: string,
     schemaPath?: string,
-    isErrorResponse?: boolean
+    isErrorResponse = false,
   ): ValidationResult {
-    try {
-      // For error responses, validate against the error data structure
-      const dataToValidate = isErrorResponse ? response : response.data;
-      
-      let isValid: boolean;
-      
-      if (schemaPath) {
-        // Validate against a JSON Pointer sub-schema
-        const refSchema = { $ref: schemaId + (schemaPath.startsWith('#') ? schemaPath : '#' + schemaPath) };
-        isValid = this.ajv.validate(refSchema, dataToValidate) as boolean;
-      } else {
-        // Validate against the whole schema
-        isValid = this.ajv.validate(schemaId, dataToValidate) as boolean;
-      }
-
-      if (isValid) {
-        console.log('✅ Contract validation passed for ' + testName);
-        return { isValid: true };
-      }
-
-      console.log('❌ Contract validation failed for ' + testName);
-      console.log('Schema errors:', this.ajv.errors);
-
+    const schema = this.schemas.get(schemaId);
+    if (!schema) {
       return {
         isValid: false,
-        errors: this.ajv.errors,
-        message: 'Schema validation failed: ' + this.ajv.errorsText(),
-      };
-    } catch (error) {
-      const msg = 'Schema validation error: ' + (error instanceof Error ? error.message : 'Unknown error');
-      console.log('⚠️ ' + msg);
-
-      return {
-        isValid: false,
-        message: msg,
+        errors: [`Schema '${schemaId}' not found`],
       };
     }
+
+    const dataToValidate = isErrorResponse ? response : (response as any)?.data;
+    let isValid = false;
+
+    try {
+      if (schemaPath) {
+        // Validate against a JSON Pointer sub-schema
+        const refSchema = {
+          $ref: `${schemaId}${schemaPath.startsWith('#') ? schemaPath : `#${schemaPath}`}`,
+        };
+        isValid = this.ajv.validate(refSchema, dataToValidate);
+      } else {
+        // Validate against the whole schema
+        isValid = this.ajv.validate(schemaId, dataToValidate);
+      }
+    } catch (error) {
+      return {
+        isValid: false,
+        errors: [
+          `Schema validation error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        ],
+      };
+    }
+
+    if (!isValid) {
+      const errors = this.ajv.errors?.map((err) => {
+        const path = err.instancePath || '/';
+        const msg = err.message || 'Unknown error';
+        return `${path}: ${msg}`;
+      });
+
+      return {
+        isValid: false,
+        errors: errors || ['Unknown validation error'],
+      };
+    }
+
+    return { isValid: true };
   }
 
   /**
-   * Validate that a response matches expected structure (less strict)
+   * Validate a property against a schema
    */
-  validateResponseStructure(
-    response: ApiResponse,
-    expectedProperties: string[],
-    testName: string
-  ): ValidationResult {
-    try {
-      const data = response.data as Record<string, any>;
+  validateProperty(property: unknown, schemaId: string, propertyPath: string): ValidationResult {
+    const schema = this.schemas.get(schemaId);
+    if (!schema) {
+      return {
+        isValid: false,
+        errors: [`Schema '${schemaId}' not found`],
+      };
+    }
 
-      if (!data || typeof data !== 'object') {
+    try {
+      const refSchema = {
+        $ref: `${schemaId}#${propertyPath.startsWith('/') ? propertyPath : `/${propertyPath}`}`,
+      };
+      const isValid = this.ajv.validate(refSchema, property);
+
+      if (!isValid) {
+        const errors = this.ajv.errors?.map((err) => {
+          const path = err.instancePath || '/';
+          const msg = err.message || 'Unknown error';
+          return `${path}: ${msg}`;
+        });
+
         return {
           isValid: false,
-          message: 'Response data is not an object',
+          errors: errors || ['Unknown validation error'],
         };
       }
 
-      const missingProps = expectedProperties.filter(prop => !(prop in data));
-
-      if (missingProps.length === 0) {
-        console.log('✅ Structure validation passed for ' + testName);
-        return { isValid: true };
-      }
-
-      const msg = 'Missing properties: ' + missingProps.join(', ');
-      console.log('❌ Structure validation failed for ' + testName + ': ' + msg);
-
-      return {
-        isValid: false,
-        message: msg,
-      };
+      return { isValid: true };
     } catch (error) {
-      const msg = 'Structure validation error: ' + (error instanceof Error ? error.message : 'Unknown error');
-      console.log('⚠️ ' + msg);
-
       return {
         isValid: false,
-        message: msg,
+        errors: [
+          `Schema validation error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        ],
       };
     }
-  }
-
-  /**
-   * Get available schemas
-   */
-  getAvailableSchemas(): string[] {
-    return Array.from(this.schemas.keys());
   }
 }

@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/consistent-type-assertions, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/comma-dangle */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import axios, { AxiosResponse } from 'axios';
 import { logApiCall, logApiResponse, logApiError, ApiResponse, ApiError } from '../helpers/logging';
 
@@ -84,13 +84,13 @@ export class ContractApiClient {
     data: unknown,
     options: {
       headers?: Record<string, string>;
-    } = {}
+    } = {},
   ): Promise<ApiTestResult> {
     const url = `${this.config.baseUrl}${path}`;
-    const headers = { 
+    const headers = {
       'Content-Type': 'application/json',
-      ...this.config.defaultHeaders, 
-      ...options.headers 
+      ...this.config.defaultHeaders,
+      ...options.headers,
     };
     const controller = new AbortController();
 
@@ -135,13 +135,13 @@ export class ContractApiClient {
     data: unknown,
     options: {
       headers?: Record<string, string>;
-    } = {}
+    } = {},
   ): Promise<ApiTestResult> {
     const url = `${this.config.baseUrl}${path}`;
-    const headers = { 
+    const headers = {
       'Content-Type': 'application/json',
-      ...this.config.defaultHeaders, 
-      ...options.headers 
+      ...this.config.defaultHeaders,
+      ...options.headers,
     };
     const controller = new AbortController();
 
@@ -185,7 +185,7 @@ export class ContractApiClient {
     testName: string,
     options: {
       headers?: Record<string, string>;
-    } = {}
+    } = {},
   ): Promise<ApiTestResult> {
     const url = `${this.config.baseUrl}${path}`;
     const headers = { ...this.config.defaultHeaders, ...options.headers };
