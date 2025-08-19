@@ -4,6 +4,7 @@ import type {
   FeatureService,
   FeatureServicesList,
 } from '@odh-dashboard/feature-store/types/featureServices';
+import type { DataSetList, DataSet } from '@odh-dashboard/feature-store/types/dataSets';
 import type { FeatureViewsList } from '@odh-dashboard/feature-store/types/featureView';
 import type { EntityList } from '@odh-dashboard/feature-store/types/entities';
 import type { ProjectList } from '@odh-dashboard/feature-store/types/featureStoreProjects';
@@ -848,6 +849,28 @@ declare global {
             };
           },
           response: OdhResponse<FeatureService>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/service/featurestore/:namespace/:serviceName/api/:apiVersion/data_sets',
+          options: { path: { namespace: string; serviceName: string; apiVersion: string } },
+          response: OdhResponse<DataSetList>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/service/featurestore/:namespace/:serviceName/api/:apiVersion/saved_datasets',
+          options: { path: { namespace: string; serviceName: string; apiVersion: string } },
+          response: OdhResponse<DataSetList>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /api/service/featurestore/:namespace/:serviceName/api/:apiVersion/saved_datasets/:dataSetName',
+          options: {
+            path: {
+              namespace: string;
+              serviceName: string;
+              apiVersion: string;
+              dataSetName: string;
+            };
+          },
+          response: OdhResponse<DataSet>,
         ) => Cypress.Chainable<null>);
     }
   }
