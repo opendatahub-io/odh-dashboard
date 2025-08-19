@@ -32,7 +32,7 @@ export function redactHeaders(headers: ApiCallHeaders): ApiCallHeaders {
     /^cookie$/i,
     /^set-cookie$/i,
     /token/i,
-    /secret/i
+    /secret/i,
   ];
 
   for (const [key, value] of Object.entries(redacted)) {
@@ -41,7 +41,10 @@ export function redactHeaders(headers: ApiCallHeaders): ApiCallHeaders {
         if (pattern.test(key)) {
           if (key.toLowerCase() === 'authorization' && value.toLowerCase().startsWith('bearer ')) {
             redacted[key] = 'Bearer REDACTED';
-          } else if (key.toLowerCase() === 'authorization' && value.toLowerCase().startsWith('basic ')) {
+          } else if (
+            key.toLowerCase() === 'authorization' &&
+            value.toLowerCase().startsWith('basic ')
+          ) {
             redacted[key] = 'Basic REDACTED';
           } else {
             redacted[key] = 'REDACTED';
@@ -61,10 +64,11 @@ export function redactHeaders(headers: ApiCallHeaders): ApiCallHeaders {
 export function sanitizeResponseBody(body: unknown): unknown {
   if (typeof body === 'string') {
     // Simple redaction for common sensitive fields in JSON strings
-    return body.replace(/"token":\s*"[^"]*"/g, '"token": "REDACTED"')
-               .replace(/"secret":\s*"[^"]*"/g, '"secret": "REDACTED"')
-               .replace(/"password":\s*"[^"]*"/g, '"password": "REDACTED"')
-               .replace(/"api_key":\s*"[^"]*"/g, '"api_key": "REDACTED"');
+    return body
+      .replace(/"token":\s*"[^"]*"/g, '"token": "REDACTED"')
+      .replace(/"secret":\s*"[^"]*"/g, '"secret": "REDACTED"')
+      .replace(/"password":\s*"[^"]*"/g, '"password": "REDACTED"')
+      .replace(/"api_key":\s*"[^"]*"/g, '"api_key": "REDACTED"');
   }
   return body;
 }
@@ -96,16 +100,13 @@ export function logApiResponse(testName: string, response: ApiResponse): void {
  */
 export function logApiError(testName: string, error: ApiError): void {
   console.error(`\n❌ [${new Date().toISOString()}] Error for "${testName}":`);
-  
   if (error.status) {
     console.error(`📊 Error Status: ${error.status}`);
   }
-  
   if (error.headers) {
     const redactedHeaders = redactHeaders(error.headers);
     console.error(`📋 Error Headers: ${JSON.stringify(redactedHeaders, null, 2)}`);
   }
-  
   if (error.data) {
     const sanitizedBody = sanitizeResponseBody(error.data);
     console.error(`📄 Error Body: ${JSON.stringify(sanitizedBody, null, 2)}`);
