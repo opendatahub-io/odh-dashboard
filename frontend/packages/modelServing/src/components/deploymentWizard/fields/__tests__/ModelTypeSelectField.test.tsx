@@ -31,7 +31,7 @@ describe('ModelTypeSelectField', () => {
       const result = modelTypeSelectFieldSchema.safeParse(undefined);
       expect(result.success).toBe(false);
       if (!result.success) {
-        expect(result.error.issues[0].message).toBe('Please select a model type');
+        expect(result.error.issues[0].message).toBe('Select a model type.');
       }
     });
   });
@@ -101,12 +101,12 @@ describe('ModelTypeSelectField', () => {
       const validationIssues: ZodIssue[] = [
         {
           code: 'custom',
-          message: 'Please select a model type',
+          message: 'Select a model type.',
           path: [],
         },
       ];
       render(<ModelTypeSelectField validationIssues={validationIssues} />);
-      expect(screen.getByText('Please select a model type')).toBeInTheDocument();
+      expect(screen.getByText('Select a model type.')).toBeInTheDocument();
     });
 
     it('should render both model type options', () => {

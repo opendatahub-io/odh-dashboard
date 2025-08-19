@@ -9,7 +9,7 @@ import { ZodErrorHelperText } from '@odh-dashboard/internal/components/ZodErrorF
 
 export const modelTypeSelectFieldSchema = z.enum(['predictive-model', 'generative-model'], {
   // eslint-disable-next-line @typescript-eslint/naming-convention, camelcase
-  required_error: 'Please select a model type',
+  required_error: 'Select a model type.',
 });
 
 export type ModelTypeFieldData = z.infer<typeof modelTypeSelectFieldSchema>;
