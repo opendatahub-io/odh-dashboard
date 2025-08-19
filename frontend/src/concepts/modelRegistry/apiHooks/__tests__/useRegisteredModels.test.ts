@@ -1,4 +1,4 @@
-import { testHook, standardUseFetchState } from '#~/__tests__/unit/testUtils/hooks';
+import { standardUseFetchState, testHook } from '@odh-dashboard/jest-config/hooks';
 import { useModelRegistryAPI } from '#~/concepts/modelRegistry/context/ModelRegistryPageContext';
 import { RegisteredModelList } from '#~/concepts/modelRegistry/types';
 import useRegisteredModels from '#~/concepts/modelRegistry/apiHooks/useRegisteredModels';

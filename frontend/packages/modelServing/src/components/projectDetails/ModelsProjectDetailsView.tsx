@@ -14,6 +14,7 @@ import { useProjectServingPlatform } from '../../concepts/useProjectServingPlatf
 import { ModelDeploymentsContext } from '../../concepts/ModelDeploymentsContext';
 import { DeployButton } from '../deploy/DeployButton';
 import { ResetPlatformButton } from '../platforms/ResetPlatformButton';
+import { getDeploymentWizardRoute } from '../deploymentWizard/utils';
 
 const ModelsProjectDetailsView: React.FC<{
   project: ProjectKind;
@@ -34,7 +35,7 @@ const ModelsProjectDetailsView: React.FC<{
     projectPlatform,
     setProjectPlatform,
     resetProjectPlatform,
-    newProjectPlatformLoading,
+    loadingState,
     projectPlatformError,
     clearProjectPlatformError,
   } = useProjectServingPlatform(project, platforms);
@@ -65,7 +66,14 @@ const ModelsProjectDetailsView: React.FC<{
       loadError={deploymentsErrors?.[0] || clusterPlatformsError}
       actions={
         hasModels && activePlatform
-          ? [<DeployButton key="deploy-button" project={project} variant="secondary" />]
+          ? [
+              <DeployButton
+                key="deploy-button"
+                project={project}
+                variant="secondary"
+                createRoute={getDeploymentWizardRoute(`/projects/${project.metadata.name}`)}
+              />,
+            ]
           : undefined
       }
       labels={[
@@ -78,7 +86,7 @@ const ModelsProjectDetailsView: React.FC<{
               <ResetPlatformButton
                 platforms={platforms}
                 hasDeployments={hasModels}
-                isLoading={!!newProjectPlatformLoading}
+                isLoading={loadingState.type === 'reset'}
                 onReset={resetProjectPlatform}
               />
             )}
@@ -91,7 +99,7 @@ const ModelsProjectDetailsView: React.FC<{
           <SelectPlatformView
             platforms={platforms}
             setModelServingPlatform={setProjectPlatform}
-            newPlatformLoading={newProjectPlatformLoading}
+            newPlatformLoadingId={loadingState.platform?.properties.id}
             errorSelectingPlatform={projectPlatformError ?? undefined}
             clearErrorSelectingPlatform={clearProjectPlatformError}
           />

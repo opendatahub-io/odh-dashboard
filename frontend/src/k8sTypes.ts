@@ -526,6 +526,7 @@ export type InferenceServiceKind = K8sResourceCommon & {
   };
   spec: {
     predictor: {
+      annotations?: Record<string, string>;
       tolerations?: Toleration[];
       nodeSelector?: NodeSelector;
       model?: {
@@ -1282,6 +1283,7 @@ export type DashboardCommonConfig = {
   disableLMEval: boolean;
   disableKueue: boolean;
   disableModelTraining: boolean;
+  disableDeploymentWizard: boolean;
   disableFeatureStore?: boolean;
 };
 

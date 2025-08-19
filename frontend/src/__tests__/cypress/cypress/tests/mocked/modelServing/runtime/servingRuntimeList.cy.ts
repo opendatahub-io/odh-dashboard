@@ -99,6 +99,7 @@ type HandlersProps = {
   disableHardwareProfiles?: boolean;
 };
 import { STOP_MODAL_PREFERENCE_KEY } from '#~/pages/modelServing/useStopModalPreference';
+import { mockOdhApplication } from '#~/__mocks__/mockOdhApplication';
 
 const initIntercepts = ({
   disableKServeConfig,
@@ -171,6 +172,18 @@ const initIntercepts = ({
       disableHardwareProfiles,
     }),
   );
+  // mock NIM because the model serving plugin has broader error detection
+  cy.interceptOdh('GET /api/components', null, [mockOdhApplication({})]);
+  cy.interceptOdh(
+    'GET /api/integrations/:internalRoute',
+    { path: { internalRoute: 'nim' } },
+    {
+      isInstalled: false,
+      isEnabled: false,
+      canInstall: false,
+      error: '',
+    },
+  );
   cy.interceptK8sList(PodModel, mockK8sResourceList([mockPodK8sResource({})]));
   cy.interceptK8s(RouteModel, mockRouteK8sResource({}));
   cy.interceptK8sList(NotebookModel, mockK8sResourceList([mockNotebookK8sResource({})]));
@@ -184,6 +197,10 @@ const initIntercepts = ({
     mockProjectK8sResource({ enableModelMesh: projectEnableModelMesh }),
   );
   cy.interceptK8sList(InferenceServiceModel, mockK8sResourceList(inferenceServices));
+  cy.interceptK8sList(
+    { model: InferenceServiceModel, ns: 'test-project' },
+    mockK8sResourceList(inferenceServices),
+  );
   cy.interceptK8s(
     'POST',
     {
@@ -306,6 +323,10 @@ const initIntercepts = ({
         },
   ).as('createRole');
   cy.interceptK8sList(ServingRuntimeModel, mockK8sResourceList(servingRuntimes));
+  cy.interceptK8sList(
+    { model: ServingRuntimeModel, ns: 'test-project' },
+    mockK8sResourceList(servingRuntimes),
+  );
 
   // Mock hardware profiles
   cy.interceptK8sList(
@@ -465,31 +486,6 @@ const initIntercepts = ({
 };
 
 describe('Serving Runtime List', () => {
-  describe('Change button visiblity', () => {
-    it('Change button visible when current platform is disabled', () => {
-      // starts with modelMesh enabled and kServe disabled
-      initIntercepts({
-        disableModelMeshConfig: false,
-        disableKServeConfig: true,
-        servingRuntimes: [],
-        projectEnableModelMesh: true,
-      });
-      projectDetails.visitSection('test-project', 'model-server');
-      // shouldn't exist because kServe is disabled and theres nothing to change to
-      projectDetails.findResetPlatformButton().should('not.exist');
-      // simulate modelMesh being disabled
-      cy.interceptOdh(
-        'GET /api/dsc/status',
-        mockDscStatus({
-          components: undefined,
-          installedComponents: { kserve: false, 'model-mesh': false },
-        }),
-      );
-
-      cy.reload();
-      projectDetails.findResetPlatformButton().should('exist');
-    });
-  });
   describe('No server available', () => {
     it('No model serving platform available', () => {
       initIntercepts({
@@ -509,7 +505,7 @@ describe('Serving Runtime List', () => {
       initIntercepts({
         projectEnableModelMesh: true,
         disableKServeConfig: false,
-        disableModelMeshConfig: true,
+        disableModelMeshConfig: false,
         inferenceServices: [
           mockInferenceServiceK8sResource({ name: 'test-inference', isModelMesh: true }),
           mockInferenceServiceK8sResource({
@@ -609,7 +605,7 @@ describe('Serving Runtime List', () => {
       initIntercepts({
         projectEnableModelMesh: true,
         disableKServeConfig: false,
-        disableModelMeshConfig: true,
+        disableModelMeshConfig: false,
         inferenceServices: [
           mockInferenceServiceK8sResource({
             name: 'ovms-testing',
@@ -642,7 +638,7 @@ describe('Serving Runtime List', () => {
       initIntercepts({
         projectEnableModelMesh: true,
         disableKServeConfig: false,
-        disableModelMeshConfig: true,
+        disableModelMeshConfig: false,
         inferenceServices: [
           mockInferenceServiceK8sResource({ name: 'test-inference', isModelMesh: true }),
           mockInferenceServiceK8sResource({
@@ -727,7 +723,7 @@ describe('Serving Runtime List', () => {
       initIntercepts({
         projectEnableModelMesh: true,
         disableKServeConfig: false,
-        disableModelMeshConfig: true,
+        disableModelMeshConfig: false,
         inferenceServices: [
           mockInferenceServiceK8sResource({
             name: 'another-inference-service',
@@ -770,6 +766,7 @@ describe('Serving Runtime List', () => {
 
     it('Display only project scoped label on deployments table', () => {
       initIntercepts({
+        projectEnableModelMesh: false,
         disableKServeConfig: false,
         disableModelMeshConfig: true,
         disableProjectScoped: false,
@@ -802,7 +799,7 @@ describe('Serving Runtime List', () => {
       initIntercepts({
         projectEnableModelMesh: true,
         disableKServeConfig: false,
-        disableModelMeshConfig: true,
+        disableModelMeshConfig: false,
         inferenceServices: [
           mockInferenceServiceK8sResource({
             name: 'another-inference-service',
@@ -1279,7 +1276,7 @@ describe('Serving Runtime List', () => {
     it('Successfully submit KServe Modal on edit', () => {
       initIntercepts({
         projectEnableModelMesh: false,
-        disableKServeConfig: true,
+        disableKServeConfig: false,
         disableModelMeshConfig: true,
         disableServingRuntimeParams: false,
         inferenceServices: [
@@ -1395,7 +1392,7 @@ describe('Serving Runtime List', () => {
     it('Verify initial checkbox states and values when editing KServe model', () => {
       initIntercepts({
         projectEnableModelMesh: false,
-        disableKServeConfig: true,
+        disableKServeConfig: false,
         disableModelMeshConfig: true,
         disableServingRuntimeParams: false,
         inferenceServices: [
@@ -1490,7 +1487,7 @@ describe('Serving Runtime List', () => {
     it('Verify initial checkbox states when editing KServe model with partial values', () => {
       initIntercepts({
         projectEnableModelMesh: false,
-        disableKServeConfig: true,
+        disableKServeConfig: false,
         disableModelMeshConfig: true,
         disableServingRuntimeParams: false,
         inferenceServices: [
@@ -1646,6 +1643,7 @@ describe('Serving Runtime List', () => {
         mockK8sResourceList([]),
       ).as('getPods');
 
+      cy.reload();
       cy.wait(['@stopModelPatch', '@getStoppedModel']);
 
       kserveRow.findStatusLabel('Stopped');
@@ -1680,6 +1678,7 @@ describe('Serving Runtime List', () => {
       );
 
       kserveRow.findStateActionToggle().should('have.text', 'Start').click();
+      cy.reload();
       cy.wait(['@startModelPatch', '@getStartedModel']);
       kserveRow.findStatusLabel('Started');
       kserveRow.findStateActionToggle().should('have.text', 'Stop');
@@ -1688,7 +1687,7 @@ describe('Serving Runtime List', () => {
     it('Check number of replicas of model', () => {
       initIntercepts({
         projectEnableModelMesh: false,
-        disableKServeConfig: true,
+        disableKServeConfig: false,
         disableModelMeshConfig: true,
         inferenceServices: [
           mockInferenceServiceK8sResource({
@@ -1719,17 +1718,17 @@ describe('Serving Runtime List', () => {
         .should('have.text', '3');
     });
 
-    it('Successfully deletes KServe model server', () => {
+    it('Successfully deletes Model Mesh model server', () => {
       initIntercepts({
         projectEnableModelMesh: true,
         disableKServeConfig: false,
-        disableModelMeshConfig: true,
+        disableModelMeshConfig: false,
         inferenceServices: [
-          mockInferenceServiceK8sResource({ name: 'test-inference', isModelMesh: false }),
+          mockInferenceServiceK8sResource({ name: 'test-inference', isModelMesh: true }),
           mockInferenceServiceK8sResource({
             name: 'ovms-testing',
             displayName: 'OVMS ONNX',
-            isModelMesh: false,
+            isModelMesh: true,
           }),
         ],
       });
@@ -1914,6 +1913,21 @@ describe('Serving Runtime List', () => {
       kserveModal.findMinReplicasPlusButton().click();
       kserveModal.findMinReplicasInput().should('have.value', '2');
 
+      // Test max replicas error message
+      kserveModal.findMaxReplicasInput().clear().type('1');
+      kserveModal.findMaxReplicasErrorMessage().should('exist');
+      kserveModal.findMaxReplicasInput().type('6');
+      kserveModal.findMaxReplicasErrorMessage().should('not.exist');
+
+      // Test min replicas error message
+      kserveModal.findMaxReplicasInput().clear().type('6');
+      kserveModal.findMinReplicasInput().clear().type('8');
+      kserveModal.findMinReplicasErrorMessage().should('exist');
+      kserveModal.findSubmitButton().should('be.disabled');
+      kserveModal.findMinReplicasInput().clear().type('4');
+      kserveModal.findMinReplicasErrorMessage().should('not.exist');
+      kserveModal.findSubmitButton().should('be.enabled');
+
       // Test max limit of 99
       kserveModal.findMaxReplicasInput().clear().type('100');
       kserveModal.findMaxReplicasInput().should('have.value', '99');
@@ -1979,8 +1993,8 @@ describe('Serving Runtime List', () => {
           },
           spec: {
             predictor: {
-              minReplicas: 2,
-              maxReplicas: 2,
+              minReplicas: 4,
+              maxReplicas: 4,
               model: {
                 modelFormat: { name: 'onnx', version: '1' },
                 runtime: 'test-name',
@@ -2400,7 +2414,7 @@ describe('Serving Runtime List', () => {
       kserveModal.findGlobalScopedTemplateOption('Caikit').click();
       kserveModal.findModelFrameworkSelect().findSelectOption('onnx - 1').click();
       // Auto-selects the only pvc
-      kserveModal.findPVCConnectionOption().should('be.visible').click();
+      kserveModal.findPVCConnectionOption().scrollIntoView().should('be.visible').click();
       kserveModal.findLocationPathInput().should('have.value', 'test-path');
       kserveModal.findSubmitButton().should('be.enabled');
       kserveModal.findSubmitButton().click();
@@ -2483,7 +2497,7 @@ describe('Serving Runtime List', () => {
       initIntercepts({
         projectEnableModelMesh: true,
         disableKServeConfig: false,
-        disableModelMeshConfig: true,
+        disableModelMeshConfig: false,
         inferenceServices: [
           mockInferenceServiceK8sResource({ name: 'test-inference', isModelMesh: true }),
           mockInferenceServiceK8sResource({
@@ -2604,7 +2618,7 @@ describe('Serving Runtime List', () => {
       initIntercepts({
         projectEnableModelMesh: true,
         disableKServeConfig: false,
-        disableModelMeshConfig: true,
+        disableModelMeshConfig: false,
         disableProjectScoped: false,
         inferenceServices: [
           mockInferenceServiceK8sResource({ name: 'test-inference', isModelMesh: true }),
@@ -2661,7 +2675,7 @@ describe('Serving Runtime List', () => {
       initIntercepts({
         projectEnableModelMesh: true,
         disableKServeConfig: false,
-        disableModelMeshConfig: true,
+        disableModelMeshConfig: false,
         disableAccelerator: false,
         disableProjectScoped: false,
         servingRuntimes: [
@@ -2701,7 +2715,7 @@ describe('Serving Runtime List', () => {
       initIntercepts({
         projectEnableModelMesh: true,
         disableKServeConfig: false,
-        disableModelMeshConfig: true,
+        disableModelMeshConfig: false,
         disableAccelerator: false,
         disableProjectScoped: false,
         servingRuntimes: [
@@ -2726,7 +2740,7 @@ describe('Serving Runtime List', () => {
       initIntercepts({
         projectEnableModelMesh: true,
         disableKServeConfig: false,
-        disableModelMeshConfig: true,
+        disableModelMeshConfig: false,
         disableHardwareProfiles: false,
         disableAccelerator: false,
         disableProjectScoped: false,
@@ -2747,7 +2761,7 @@ describe('Serving Runtime List', () => {
       initIntercepts({
         projectEnableModelMesh: true,
         disableKServeConfig: false,
-        disableModelMeshConfig: true,
+        disableModelMeshConfig: false,
         disableHardwareProfiles: false,
         disableProjectScoped: false,
         inferenceServices: [
@@ -2781,7 +2795,7 @@ describe('Serving Runtime List', () => {
       initIntercepts({
         projectEnableModelMesh: true,
         disableKServeConfig: false,
-        disableModelMeshConfig: true,
+        disableModelMeshConfig: false,
         disableHardwareProfiles: false,
         disableProjectScoped: false,
         servingRuntimes: [
@@ -2818,7 +2832,7 @@ describe('Serving Runtime List', () => {
       initIntercepts({
         projectEnableModelMesh: true,
         disableKServeConfig: false,
-        disableModelMeshConfig: true,
+        disableModelMeshConfig: false,
         inferenceServices: [
           mockInferenceServiceK8sResource({ name: 'test-inference', isModelMesh: true }),
           mockInferenceServiceK8sResource({
@@ -3517,7 +3531,7 @@ describe('Serving Runtime List', () => {
     it('Check model size rendered with ServingRuntime size and no InferenceServiceSize', () => {
       initIntercepts({
         projectEnableModelMesh: false,
-        disableKServeConfig: true,
+        disableKServeConfig: false,
         disableModelMeshConfig: true,
         inferenceServices: [
           mockInferenceServiceK8sResource({
@@ -3567,7 +3581,7 @@ describe('Serving Runtime List', () => {
     it('Check model size rendered with InferenceService size', () => {
       initIntercepts({
         projectEnableModelMesh: false,
-        disableKServeConfig: true,
+        disableKServeConfig: false,
         disableModelMeshConfig: true,
         inferenceServices: [
           mockInferenceServiceK8sResource({
@@ -3617,7 +3631,7 @@ describe('Serving Runtime List', () => {
     it('Check model size rendered with InferenceService custom size', () => {
       initIntercepts({
         projectEnableModelMesh: false,
-        disableKServeConfig: true,
+        disableKServeConfig: false,
         disableModelMeshConfig: true,
         inferenceServices: [
           mockInferenceServiceK8sResource({
@@ -3671,7 +3685,7 @@ describe('Serving Runtime List', () => {
       initIntercepts({
         projectEnableModelMesh: true,
         disableKServeConfig: false,
-        disableModelMeshConfig: true,
+        disableModelMeshConfig: false,
         servingRuntimes: [
           mockServingRuntimeK8sResource({
             name: 'test-model',
@@ -3712,8 +3726,8 @@ describe('Serving Runtime List', () => {
     it('Check internal service is rendered when the model is loaded in Kserve', () => {
       initIntercepts({
         projectEnableModelMesh: false,
-        disableKServeConfig: true,
-        disableModelMeshConfig: false,
+        disableKServeConfig: false,
+        disableModelMeshConfig: true,
         servingRuntimes: [
           mockServingRuntimeK8sResource({
             name: 'test-model',

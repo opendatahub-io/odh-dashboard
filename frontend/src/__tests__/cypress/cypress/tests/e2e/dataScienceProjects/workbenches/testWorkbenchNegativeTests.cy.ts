@@ -19,8 +19,8 @@ describe('Workbenches - negative tests', () => {
   const uuid = generateTestUUID();
 
   // Setup: Load test data and ensure clean state
-  retryableBeforeEach(() => {
-    return cy
+  retryableBeforeEach(() =>
+    cy
       .fixture('e2e/dataScienceProjects/testWorkbenchNegativeTests.yaml', 'utf8')
       .then((yamlContent: string) => {
         testData = yaml.load(yamlContent) as WBNegativeTestsData;
@@ -34,8 +34,8 @@ describe('Workbenches - negative tests', () => {
       })
       .then(() => {
         cy.log(`Project ${projectName} confirmed to be created and verified successfully`);
-      });
-  });
+      }),
+  );
 
   after(() => {
     // Delete provisioned Project

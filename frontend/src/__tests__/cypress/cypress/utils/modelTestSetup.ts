@@ -10,45 +10,39 @@ const checkResourceExists = (
   resourceType: string,
   resourceName: string,
   namespace: string,
-): Cypress.Chainable<boolean> => {
-  return execWithOutput(
-    `oc get ${resourceType} ${resourceName} -n ${namespace} --no-headers`,
-    30,
-  ).then(({ code, stdout }) => {
-    const exists = code === 0 && stdout.trim() !== '';
-    cy.log(
-      `Resource ${resourceType}/${resourceName} exists check: code=${code}, stdout='${stdout.trim()}', exists=${exists}`,
-    );
-    return cy.wrap(exists);
-  });
-};
+): Cypress.Chainable<boolean> =>
+  execWithOutput(`oc get ${resourceType} ${resourceName} -n ${namespace} --no-headers`, 30).then(
+    ({ code, stdout }) => {
+      const exists = code === 0 && stdout.trim() !== '';
+      cy.log(
+        `Resource ${resourceType}/${resourceName} exists check: code=${code}, stdout='${stdout.trim()}', exists=${exists}`,
+      );
+      return cy.wrap(exists);
+    },
+  );
 
 const checkInferenceServiceExists = (
   modelName: string,
   namespace: string,
-): Cypress.Chainable<boolean> => {
-  return checkResourceExists('inferenceservice', modelName, namespace).then((exists) => {
+): Cypress.Chainable<boolean> =>
+  checkResourceExists('inferenceservice', modelName, namespace).then((exists) => {
     cy.log(`InferenceService ${modelName} exists check result: ${exists}`);
     return cy.wrap(exists);
   });
-};
 
-const checkServingRuntimeExists = (namespace: string): Cypress.Chainable<boolean> => {
-  return execWithOutput(`oc get servingruntime -n ${namespace} --no-headers | wc -l`, 30).then(
+const checkServingRuntimeExists = (namespace: string): Cypress.Chainable<boolean> =>
+  execWithOutput(`oc get servingruntime -n ${namespace} --no-headers | wc -l`, 30).then(
     ({ code, stdout }) => {
       const exists = code === 0 && parseInt(stdout.trim()) > 0;
       cy.log(`ServingRuntime exists check result: ${exists} (count: ${stdout.trim()})`);
       return cy.wrap(exists);
     },
   );
-};
 
 const checkStorageDeploymentExists = (
   deploymentName: string,
   namespace: string,
-): Cypress.Chainable<boolean> => {
-  return checkResourceExists('deployment', deploymentName, namespace);
-};
+): Cypress.Chainable<boolean> => checkResourceExists('deployment', deploymentName, namespace);
 
 // Robust port extraction function
 const extractPortFromYaml = (yamlContent: string): string => {
@@ -87,8 +81,8 @@ const extractPortFromYaml = (yamlContent: string): string => {
 const deployStorageIfNeeded = (
   modelTestConfig: ModelTestConfig,
   testProjectName: string,
-): Cypress.Chainable<any> => {
-  return checkStorageDeploymentExists(modelTestConfig.storageDeploymentName, testProjectName).then(
+): Cypress.Chainable<any> =>
+  checkStorageDeploymentExists(modelTestConfig.storageDeploymentName, testProjectName).then(
     (storageExists) => {
       if (storageExists) {
         cy.log(
@@ -117,15 +111,15 @@ const deployStorageIfNeeded = (
           const updatedYamlContent = replacePlaceholdersInYaml(yamlContent, storageReplacements);
 
           // Apply the storage resources using the utility function
-          return applyOpenShiftYaml(updatedYamlContent, testProjectName).then(() => {
+          return applyOpenShiftYaml(updatedYamlContent, testProjectName).then(() =>
             // Check if storage was deployed successfully
-            return execWithOutput(
+            execWithOutput(
               `oc get deployment/${modelTestConfig.storageDeploymentName} -n ${testProjectName}`,
               30, // 30s timeout for status check
             ).then(({ code: storageCode }) => {
               expect(storageCode).to.equal(0);
-            });
-          });
+            }),
+          );
         } catch (error) {
           // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
           cy.log(`Error during storage deployment setup: ${error}`);
@@ -134,14 +128,13 @@ const deployStorageIfNeeded = (
       });
     },
   );
-};
 
 // Function to deploy ServingRuntime if needed
 const deployServingRuntimeIfNeeded = (
   servingRuntimeYaml: string,
   testProjectName: string,
-): Cypress.Chainable<any> => {
-  return checkServingRuntimeExists(testProjectName).then((servingRuntimeExists) => {
+): Cypress.Chainable<any> =>
+  checkServingRuntimeExists(testProjectName).then((servingRuntimeExists) => {
     if (servingRuntimeExists) {
       cy.log('ServingRuntime already exists, skipping deployment');
       return cy.wrap(undefined);
@@ -158,15 +151,14 @@ const deployServingRuntimeIfNeeded = (
       },
     );
   });
-};
 
 // Function to deploy InferenceService if needed
 const deployInferenceServiceIfNeeded = (
   inferenceServiceYaml: string,
   modelName: string,
   testProjectName: string,
-): Cypress.Chainable<any> => {
-  return checkInferenceServiceExists(modelName, testProjectName).then((inferenceServiceExists) => {
+): Cypress.Chainable<any> =>
+  checkInferenceServiceExists(modelName, testProjectName).then((inferenceServiceExists) => {
     if (inferenceServiceExists) {
       cy.log(`InferenceService ${modelName} already exists, skipping deployment`);
       return cy.wrap(undefined);
@@ -183,7 +175,6 @@ const deployInferenceServiceIfNeeded = (
       },
     );
   });
-};
 
 // Function to wait for model to be ready
 const waitForModelReady = (
@@ -295,16 +286,12 @@ export const createModelTestSetup = (modelTestConfig: ModelTestConfig): ModelTes
 
       // Check if both resources already exist
       cy.wrap(null)
-        .then(() => {
-          return checkServingRuntimeExists(testProjectName);
-        })
-        .then((servingRuntimeExists) => {
-          return checkInferenceServiceExists(modelName, testProjectName).then(
-            (inferenceServiceExists) => {
-              return { servingRuntimeExists, inferenceServiceExists };
-            },
-          );
-        })
+        .then(() => checkServingRuntimeExists(testProjectName))
+        .then((servingRuntimeExists) =>
+          checkInferenceServiceExists(modelName, testProjectName).then(
+            (inferenceServiceExists) => ({ servingRuntimeExists, inferenceServiceExists }),
+          ),
+        )
         .then(({ servingRuntimeExists, inferenceServiceExists }) => {
           cy.log(
             `ServingRuntime exists: ${servingRuntimeExists}, InferenceService exists: ${inferenceServiceExists}`,

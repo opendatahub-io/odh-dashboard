@@ -31,7 +31,7 @@ const ConnectedResources: React.FC<ConnectedResourcesProps> = ({ connection, pvc
   }
 
   if (!connectedNotebooks.length && !connectedModels.length) {
-    return '-';
+    return '--';
   }
 
   const renderNotebookLabels = () =>
@@ -40,6 +40,7 @@ const ConnectedResources: React.FC<ConnectedResourcesProps> = ({ connection, pvc
         key={notebook.metadata.name}
         resourceType={ProjectObjectType.build}
         title={getDisplayNameFromK8sResource(notebook)}
+        outlineColor="teal"
       />
     ));
 
@@ -47,8 +48,9 @@ const ConnectedResources: React.FC<ConnectedResourcesProps> = ({ connection, pvc
     connectedModels.map((model) => (
       <ResourceLabel
         key={model.metadata.name}
-        resourceType={ProjectObjectType.deployedModelsList}
+        resourceType={ProjectObjectType.connectedModels}
         title={getDisplayNameFromK8sResource(model)}
+        outlineColor="purple"
       />
     ));
 

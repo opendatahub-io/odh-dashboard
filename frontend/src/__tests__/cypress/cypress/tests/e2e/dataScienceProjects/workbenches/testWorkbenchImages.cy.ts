@@ -18,8 +18,8 @@ describe('Workbenches - image/version tests', () => {
   let projectName: string;
   const uuid = generateTestUUID();
 
-  retryableBefore(() => {
-    return loadPVCFixture('e2e/dataScienceProjects/testProjectWbPV.yaml').then(
+  retryableBefore(() =>
+    loadPVCFixture('e2e/dataScienceProjects/testProjectWbPV.yaml').then(
       (fixtureData: PVCReplacements) => {
         projectName = `${fixtureData.NAMESPACE}-${uuid}`;
         if (!projectName) {
@@ -28,8 +28,8 @@ describe('Workbenches - image/version tests', () => {
         cy.log(`Loaded project name: ${projectName}`);
         return createCleanProject(projectName);
       },
-    );
-  });
+    ),
+  );
 
   after(() => {
     // Delete provisioned Project

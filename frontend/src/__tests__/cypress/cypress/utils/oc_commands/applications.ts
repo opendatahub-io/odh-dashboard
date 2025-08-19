@@ -80,10 +80,9 @@ export const getCsvByDisplayName = (
  */
 export const getVersionFromCsv = (csvObject: {
   spec: { version: string };
-}): Cypress.Chainable<string> => {
+}): Cypress.Chainable<string> =>
   // Remove the unnecessary conditional
-  return cy.wrap(csvObject.spec.version);
-};
+  cy.wrap(csvObject.spec.version);
 
 /**
  * Get the subscription channel that matches the given CSV.

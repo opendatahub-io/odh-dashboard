@@ -18,8 +18,8 @@ describe('Verify that users can provide admin project permissions to non-admin u
   const uuid = generateTestUUID();
 
   // Setup: Load test data and ensure clean state
-  retryableBefore(() => {
-    return loadDSPFixture('e2e/dataScienceProjects/testProjectAdminPermissions.yaml')
+  retryableBefore(() =>
+    loadDSPFixture('e2e/dataScienceProjects/testProjectAdminPermissions.yaml')
       .then((fixtureData: DataScienceProjectData) => {
         testData = fixtureData;
         projectName = `${testData.projectPermissionResourceName}-${uuid}`;
@@ -31,8 +31,8 @@ describe('Verify that users can provide admin project permissions to non-admin u
       })
       .then(() => {
         cy.log(`Project ${projectName} confirmed to be created and verified successfully`);
-      });
-  });
+      }),
+  );
   after(() => {
     // Delete provisioned Project
     if (projectName) {

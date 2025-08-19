@@ -70,8 +70,10 @@ export const columns: SortableData<FeatureService>[] = [
 export const featureServiceTableFilterOptions: Record<string, string> = {
   featureService: 'Feature service',
   project: 'Project',
-  tags: 'Tags',
+  tag: 'Tags',
   featureViews: 'Feature views',
+  created: 'Created after',
+  updated: 'Updated after',
   owner: 'Owner',
 };
 

@@ -9,9 +9,9 @@ import { modelRegistry } from '#~/__tests__/cypress/cypress/pages/modelRegistry'
  * Handles both empty and populated registry states automatically
  * @param timeout Optional timeout for button interactions
  */
-export const clickRegisterModelButton = (timeout?: number): Cypress.Chainable => {
+export const clickRegisterModelButton = (timeout?: number): Cypress.Chainable =>
   // Wait for either button to appear in DOM
-  return cy
+  cy
     .get('body')
     .should(() => {
       const body = Cypress.$('body');
@@ -31,4 +31,3 @@ export const clickRegisterModelButton = (timeout?: number): Cypress.Chainable =>
       cy.log('Empty registry button not found, using regular register button');
       return modelRegistry.findRegisterModelButton(timeout).click();
     });
-};
