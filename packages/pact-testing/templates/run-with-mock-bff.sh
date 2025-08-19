@@ -71,7 +71,12 @@ fi
 
 # Display results
 display_test_summary "$TEST_RUN_DIR"
-open_html_report "$TEST_RUN_DIR"
+
+# Only open HTML report in browser if not in CI environment
+if [[ -z "${CI:-}" ]]; then
+    open_html_report "$TEST_RUN_DIR"
+fi
+
 complete_test_summary "$PACKAGE_NAME" "$TEST_RUN_DIR"
 
 exit $TEST_EXIT_CODE

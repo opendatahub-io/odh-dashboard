@@ -7,14 +7,9 @@ export default {
 
   // TypeScript configuration
   transform: {
-    '^.+\\.(ts|tsx)$': 'ts-jest',
-  },
-
-  // Jest globals and types
-  globals: {
-    'ts-jest': {
-      tsconfig: './tsconfig.json',
-    },
+    '^.+\\.(ts|tsx)$': ['ts-jest', {
+      tsconfig: './tsconfig.json'
+    }],
   },
 
   moduleFileExtensions: ['ts', 'tsx', 'js', 'json'],
