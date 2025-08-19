@@ -34,7 +34,10 @@ export function useZodFormValidation<T>(
   },
 ): {
   markFieldTouched: (fieldPath?: (string | number)[]) => void;
-  getFieldValidation: (fieldPath?: (string | number)[]) => ZodIssue[];
+  getFieldValidation: (
+    fieldPath?: (string | number)[],
+    ignoreTouchedFields?: boolean,
+  ) => ZodIssue[];
   getFieldValidationProps: (fieldPath?: (string | number)[]) => FieldValidationProps;
 } {
   const [touchedFields, setTouchedFields] = useState<Record<string, boolean>>({});
@@ -45,10 +48,13 @@ export function useZodFormValidation<T>(
     setTouchedFields((prev) => ({ ...prev, [key]: true }));
   };
 
-  const getFieldValidation = (fieldPath?: (string | number)[]): ZodIssue[] => {
+  const getFieldValidation = (
+    fieldPath?: (string | number)[],
+    ignoreTouchedFields?: boolean,
+  ): ZodIssue[] => {
     const key = fieldPath ? fieldPath.join('.') : '/';
     const issues = getAllValidationIssues(fieldPath);
-    if (touchedFields[key] || options?.ignoreTouchedFields) {
+    if (touchedFields[key] || options?.ignoreTouchedFields || ignoreTouchedFields) {
       return issues;
     }
     return [];
