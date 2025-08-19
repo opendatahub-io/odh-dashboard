@@ -128,13 +128,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0 
-      
+          fetch-depth: 0
+
       - name: Setup Node.js ${{ env.NODE_VERSION }}
         uses: actions/setup-node@v4.3.0
         with:
           node-version: ${{ env.NODE_VERSION }}
-      
+
       - name: Restore node modules cache
         uses: actions/cache/restore@v4
         with:
@@ -142,7 +142,7 @@ jobs:
             ~/.cache/Cypress
             **/node_modules
           key: ${{ needs.Setup.outputs.modules-cache-key }}
-      
+
       - name: Cache turbo
         uses: actions/cache@v4
         with:
@@ -150,30 +150,31 @@ jobs:
           key: ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-${{ github.sha }}-contract-tests
           restore-keys: |
             ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-
-      
+
       - name: Check for model-registry changes
         id: changes
         working-directory: ./frontend
         run: |
           # Use turbo to check if model-registry package has changes that would affect contract tests
           # This includes the package itself and its dependencies (plugin-core, tsconfig, etc.)
+          # TODO: Remove this check once Model Registry has its own pipeline
           echo "Checking for changes in model-registry package and its dependencies..."
-          
+
           # Check if there are tasks to run for the model-registry package
           if npx turbo run test:contract:with-bff --filter=@odh-dashboard/model-registry --dry-run=json 2>/dev/null | jq -e '.tasks | length > 0' >/dev/null; then
-            echo "changed=true" >> $GITHUB_OUTPUT
+            echo "changed=true" >> "$GITHUB_OUTPUT"
             echo "✅ Model Registry or its dependencies have changes, running contract tests"
           else
-            echo "changed=false" >> $GITHUB_OUTPUT
+            echo "changed=false" >> "$GITHUB_OUTPUT"
             echo "⏭️  No relevant changes found, skipping contract tests"
           fi
-      
+
       - name: Setup Go 1.24.6
         if: steps.changes.outputs.changed == 'true'
         uses: actions/setup-go@v5
         with:
           go-version: '1.24.6'
-      
+
       - name: Cache Go modules
         if: steps.changes.outputs.changed == 'true'
         uses: actions/cache@v4
@@ -184,26 +185,26 @@ jobs:
           key: ${{ runner.os }}-go-1.24.6-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-1.24.6-
-      
+
       - name: Setup Go test dependencies (kubebuilder assets)
         if: steps.changes.outputs.changed == 'true'
         working-directory: ./frontend/packages/model-registry/upstream/bff
         run: |
           echo "📦 Installing kubebuilder test assets..."
           make envtest
-          
+
           # Set up test assets and export path for subsequent steps
           ASSETS_PATH=$(./bin/setup-envtest-release-0.17 use 1.29.0 -p path)
-          echo "KUBEBUILDER_ASSETS=$ASSETS_PATH" >> $GITHUB_ENV
+          echo "KUBEBUILDER_ASSETS=$ASSETS_PATH" >> "$GITHUB_ENV"
           echo "✅ Kubebuilder assets installed at: $ASSETS_PATH"
-      
+
       - name: Run Model Registry contract tests
         if: steps.changes.outputs.changed == 'true'
         working-directory: ./frontend/packages/model-registry
         run: |
           echo "🧪 Running Model Registry contract tests..."
           npm run test:contract:with-bff
-      
+
       - name: Upload contract test results
         if: steps.changes.outputs.changed == 'true' && always()
         uses: actions/upload-artifact@v4
@@ -232,15 +233,15 @@ jobs:
 
           if [ -d "frontend/src/__tests__/cypress/cypress/tests/mocked" ]; then
             echo "Found mocked tests directory"
-            
+
             # Get directories and create JSON array - force compact output with -c
             DIRS=$(cd frontend/src/__tests__/cypress/cypress/tests/mocked && \
                   find . -name "*.cy.*" -printf "%h\n" | sed 's|^\./||' | sort -u | \
                   jq -R . | jq -c -s .)
-            
+
             # Output in the correct format for GitHub Actions
             echo "test-groups=$DIRS" >> "$GITHUB_OUTPUT"
-            
+
             echo "Generated test groups:"
             cat "$GITHUB_OUTPUT"
           else
@@ -319,19 +320,16 @@ jobs:
             npm run test:cypress-ci:coverage:nobuild -- --spec "src/__tests__/cypress/cypress/tests/mocked/${{ matrix.test-group }}/*"
           fi
         working-directory: ./frontend
-      - name: Test group name
-        if: ${{ always() }}
-        run: echo "TEST_GROUP_NAME=$(echo ${{ matrix.test-group }} | tr '/' '_')" >> $GITHUB_ENV
       - name: Upload Cypress Mock results
         uses: actions/upload-artifact@v4
         if: ${{ always() }}
         with:
-          name: cypress-results-${{ env.TEST_GROUP_NAME }}
+          name: cypress-results-${{ matrix.test-group }}
           path: ./frontend/src/__tests__/cypress/results/mocked
       - name: Upload Cypress coverage
         uses: actions/upload-artifact@v4
         with:
-          name: cypress-coverage-${{ env.TEST_GROUP_NAME }}
+          name: cypress-coverage-${{ matrix.test-group }}
           path: ./frontend/src/__tests__/cypress/coverage
 
   Combine-Results-and-Upload:

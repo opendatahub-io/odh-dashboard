@@ -1,43 +1,24 @@
+const baseConfig = require('../../../../packages/pact-testing/jest.contract.config.base.js');
+
 module.exports = {
-  roots: ['<rootDir>'],
-  testMatch: ['**/*.contract.test.{ts,js}'],
-  testTimeout: 30000,
-  preset: 'ts-jest',
-  testEnvironment: 'node',
+  ...baseConfig,
 
   // Module resolution - extending from parent config
   moduleNameMapper: {
     '^~/(.*)$': '<rootDir>/upstream/frontend/src/$1',
-    '^@odh-dashboard/pact-testing$': '<rootDir>/../../pact-testing/src/index.ts',
-    '^@odh-dashboard/pact-testing/(.*)$': '<rootDir>/../../pact-testing/src/$1',
-  },
-
-  // TypeScript configuration
-  transform: {
-    '^.+\\.(ts|tsx)$': 'ts-jest',
+    '^@odh-dashboard/pact-testing$': '<rootDir>/../../../../packages/pact-testing/src/index.ts',
+    '^@odh-dashboard/pact-testing/(.*)$': '<rootDir>/../../../../packages/pact-testing/src/$1',
   },
 
   // Jest globals and types
   globals: {
     'ts-jest': {
-      tsconfig: './pact/tsconfig.json',
+      tsconfig: './tsconfig.json',
     },
   },
 
-  moduleFileExtensions: ['ts', 'tsx', 'js', 'json'],
-
   // Setup files
-  setupFilesAfterEnv: ['<rootDir>/setup.ts'],
-
-  // Coverage settings
-  collectCoverageFrom: ['**/*.{ts,tsx}', '!**/*.d.ts', '!**/*.contract.test.{ts,tsx}'],
-
-  // Clear mocks between tests
-  clearMocks: true,
-
-  // Enhanced test output
-  verbose: true,
-  silent: false,
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
 
   // HTML Reporter configuration (similar to Cypress mochawesome)
   reporters: [
@@ -75,10 +56,4 @@ module.exports = {
       },
     ],
   ],
-
-  // Force exit after tests complete
-  forceExit: true,
-
-  // Detect open handles for debugging
-  detectOpenHandles: true,
 };

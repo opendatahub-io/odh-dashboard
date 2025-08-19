@@ -24,9 +24,9 @@
         "$TURBO_DEFAULT$",
         "pact/**",
         "upstream/bff/**",
-        "../pact-testing/**",
-        "../plugin-core/**",
-        "../tsconfig/**"
+        "$TURBO_ROOT$/packages/pact-testing/**",
+        "$TURBO_ROOT$/packages/plugin-core/**",
+        "$TURBO_ROOT$/packages/tsconfig/**"
       ],
       "outputs": [
         "pact/pact-test-results/**"

@@ -39,11 +39,12 @@
     "./extensions": "./extensions.ts"
   },
   "dependencies": {
-    "@odh-dashboard/internal": "*",
-    "@odh-dashboard/pact-testing": "*"
+    "@odh-dashboard/internal": "*"
   },
   "devDependencies": {
     "@odh-dashboard/eslint-config": "*",
-    "@odh-dashboard/tsconfig": "*"
+    "@odh-dashboard/tsconfig": "*",
+    "@odh-dashboard/pact-testing": "*",
+    "@jest/globals": "^29.5.0"
   }
 }

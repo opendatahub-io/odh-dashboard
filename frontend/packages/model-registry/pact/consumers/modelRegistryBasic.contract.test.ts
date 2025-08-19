@@ -1,11 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-argument, @typescript-eslint/consistent-type-assertions */
 
-// Import Jest globals for TypeScript
-/// <reference types="jest" />
-/// <reference types="@types/jest" />
-
 import * as fs from 'fs';
 import * as path from 'path';
+import { describe, it, expect, beforeAll } from '@jest/globals';
 import {
   logTestSetup,
   verifyBffHealth,
@@ -73,7 +70,7 @@ describe('Model Registry API - Mock BFF Contract Tests', () => {
           result.response,
           'ModelRegistryAPI',
           'Model Registry List - Success Case',
-          '#/components/schemas/ModelRegistryList',
+          '#/definitions/ModelRegistryResponse',
         );
         expect(validationResult.isValid).toBe(true);
         console.log(`📊 Found ${(result.response.data as any).data.length} registries`);
@@ -102,7 +99,7 @@ describe('Model Registry API - Mock BFF Contract Tests', () => {
           result.response,
           'ModelRegistryAPI',
           'Model Registry List - Empty Case',
-          '#/components/schemas/ModelRegistryList',
+          '#/definitions/ModelRegistryResponse',
         );
         expect(validationResult.isValid).toBe(true);
         console.log('📊 Registry count: 0');

@@ -1,8 +1,7 @@
 /* eslint-disable no-console */
 
-// Global test timeout for contract tests
-jest.setTimeout(30000);
+// Import base setup
+import '../../../../packages/pact-testing/setup.base';
 
-// Log test start for debugging
-console.log('🔧 Contract test setup complete');
-console.log('🕐 Test timeout: 30s');
+// Model Registry specific setup
+console.log('🏗️  Model Registry contract test setup complete');

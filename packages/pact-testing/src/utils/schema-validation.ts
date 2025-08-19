@@ -40,16 +40,9 @@ export class ContractSchemaValidator {
       this.ajv.addSchema(schema, schemaId);
       this.schemas.set(schemaId, schema);
 
-      // Add any definitions as separate schemas for $ref support
-      if (schema.definitions) {
-        Object.keys(schema.definitions).forEach(key => {
-          this.ajv.addSchema(schema.definitions[key], key);
-        });
-      }
-
-      console.log(`✅ Schema loaded: ${schemaId}`);
+      console.log('✅ Schema loaded: ' + schemaId);
     } catch (error) {
-      console.error(`❌ Failed to load schema ${schemaId}:`, error);
+      console.error('❌ Failed to load schema ' + schemaId + ':', error);
       throw error;
     }
   }
@@ -67,28 +60,38 @@ export class ContractSchemaValidator {
     try {
       // For error responses, validate against the error data structure
       const dataToValidate = isErrorResponse ? response : response.data;
-      const isValid = this.ajv.validate(schemaId, dataToValidate);
+      
+      let isValid: boolean;
+      
+      if (schemaPath) {
+        // Validate against a JSON Pointer sub-schema
+        const refSchema = { $ref: schemaId + (schemaPath.startsWith('#') ? schemaPath : '#' + schemaPath) };
+        isValid = this.ajv.validate(refSchema, dataToValidate) as boolean;
+      } else {
+        // Validate against the whole schema
+        isValid = this.ajv.validate(schemaId, dataToValidate) as boolean;
+      }
 
       if (isValid) {
-        console.log(`✅ OpenAPI contract validation passed for ${testName}`);
+        console.log('✅ Contract validation passed for ' + testName);
         return { isValid: true };
       }
 
-      console.log(`❌ OpenAPI contract validation failed for ${testName}`);
+      console.log('❌ Contract validation failed for ' + testName);
       console.log('Schema errors:', this.ajv.errors);
 
       return {
         isValid: false,
         errors: this.ajv.errors,
-        message: `Schema validation failed: ${this.ajv.errorsText()}`,
+        message: 'Schema validation failed: ' + this.ajv.errorsText(),
       };
     } catch (error) {
-      const message = `Schema validation error: ${error instanceof Error ? error.message : 'Unknown error'}`;
-      console.log(`⚠️ ${message}`);
+      const msg = 'Schema validation error: ' + (error instanceof Error ? error.message : 'Unknown error');
+      console.log('⚠️ ' + msg);
 
       return {
         isValid: false,
-        message,
+        message: msg,
       };
     }
   }
@@ -111,27 +114,27 @@ export class ContractSchemaValidator {
         };
       }
 
-      const missingProperties = expectedProperties.filter(prop => !(prop in data));
+      const missingProps = expectedProperties.filter(prop => !(prop in data));
 
-      if (missingProperties.length === 0) {
-        console.log(`✅ Response structure validation passed for ${testName}`);
+      if (missingProps.length === 0) {
+        console.log('✅ Structure validation passed for ' + testName);
         return { isValid: true };
       }
 
-      const message = `Missing properties: ${missingProperties.join(', ')}`;
-      console.log(`❌ Response structure validation failed for ${testName}: ${message}`);
+      const msg = 'Missing properties: ' + missingProps.join(', ');
+      console.log('❌ Structure validation failed for ' + testName + ': ' + msg);
 
       return {
         isValid: false,
-        message,
+        message: msg,
       };
     } catch (error) {
-      const message = `Structure validation error: ${error instanceof Error ? error.message : 'Unknown error'}`;
-      console.log(`⚠️ ${message}`);
+      const msg = 'Structure validation error: ' + (error instanceof Error ? error.message : 'Unknown error');
+      console.log('⚠️ ' + msg);
 
       return {
         isValid: false,
-        message,
+        message: msg,
       };
     }
   }
