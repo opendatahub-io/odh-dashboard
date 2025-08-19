@@ -11,6 +11,8 @@ import {
   getFeatureServices,
   getFeatureServiceByName,
   getFeatureViewByName,
+  getSavedDatasets,
+  getDataSetByName,
 } from '../api/custom';
 import { FeatureStoreAPIs } from '../types/global';
 
@@ -30,6 +32,8 @@ const useFeatureStoreAPIState = (
       getFeatureServices: getFeatureServices(path),
       getFeatureServiceByName: getFeatureServiceByName(path),
       getFeatureViewByName: getFeatureViewByName(path),
+      getSavedDatasets: getSavedDatasets(path),
+      getDataSetByName: getDataSetByName(path),
     }),
     [],
   );
