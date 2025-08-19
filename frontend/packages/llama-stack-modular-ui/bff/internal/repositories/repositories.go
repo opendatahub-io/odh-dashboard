@@ -1,14 +1,25 @@
 package repositories
 
+import (
+	"github.com/opendatahub-io/llama-stack-modular-ui/internal/interfaces"
+)
+
 // Repositories struct is a single convenient container to hold and represent all our repositories.
 type Repositories struct {
-	HealthCheck      *HealthCheckRepository
-	LlamaStackClient LlamaStackClientInterface
+	HealthCheck            *HealthCheckRepository
+	LlamaStackModels       *LlamaStackModels
+	LlamaStackVectorStores *LlamaStackVectorStores
+	LlamaStackResponses    *LlamaStackResponses
+	LlamaStackFiles        *LlamaStackFiles
 }
 
-func NewRepositories(llamaStackClient LlamaStackClientInterface) *Repositories {
+// NewRepositories creates repositories with OpenAI SDK support
+func NewRepositories(client interfaces.LlamaStackClientInterface) *Repositories {
 	return &Repositories{
-		HealthCheck:      NewHealthCheckRepository(),
-		LlamaStackClient: llamaStackClient,
+		HealthCheck:            NewHealthCheckRepository(),
+		LlamaStackModels:       NewLlamaStackModels(client),
+		LlamaStackVectorStores: NewLlamaStackVectorStores(client),
+		LlamaStackResponses:    NewLlamaStackResponses(client),
+		LlamaStackFiles:        NewLlamaStackFiles(client),
 	}
 }

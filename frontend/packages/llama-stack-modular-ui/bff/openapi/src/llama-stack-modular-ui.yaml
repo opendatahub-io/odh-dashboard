@@ -27,7 +27,7 @@ paths:
       description: HealthCheck endpoint to verify service availability.
       security: []
 
-  /api/v1/config:
+  /genai/v1/config:
     summary: Path used to get application configuration.
     description: >-
       The REST endpoint/path used to retrieve configuration information for the frontend.
@@ -45,7 +45,7 @@ paths:
       security: []
 
 
-  /api/v1/models:
+  /genai/v1/models:
     summary: Path used to manage models.
     description: >-
       The REST endpoint/path used to list available models from Llama Stack.
@@ -69,7 +69,7 @@ paths:
       summary: List All Models
       description: Gets a list of all available models, optionally filtered by model type.
 
-  /api/v1/vector-dbs:
+  /genai/v1/vector-dbs:
     summary: Path used to manage vector databases.
     description: >-
       The REST endpoint/path used to list and register vector databases.
@@ -105,7 +105,7 @@ paths:
       summary: Register Vector Database
       description: Registers a new vector database with the specified embedding model.
 
-  /api/v1/upload:
+  /genai/v1/upload:
     summary: Path used to upload documents.
     description: >-
       The REST endpoint/path used to upload documents for processing and indexing into vector databases.
@@ -130,7 +130,7 @@ paths:
       summary: Upload Documents
       description: Uploads documents for processing and indexing into the specified vector database.
 
-  /api/v1/query:
+  /genai/v1/query:
     summary: Path used to query documents with RAG and chat completion.
     description: >-
       The REST endpoint/path used to query documents using retrieval-augmented generation (RAG) 
