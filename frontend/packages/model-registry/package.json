@@ -1,7 +1,7 @@
 {
   "private": true,
   "name": "@odh-dashboard/model-registry",
-  "description": "Model registry plugin.",
+  "description": "Model registry plugin - Manages model metadata and artifacts.",
   "version": "0.0.0",
   "scripts": {
     "update-subtree": "../../scripts/package-subtree.sh model-registry"
