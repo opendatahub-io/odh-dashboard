@@ -1,7 +1,7 @@
 import { createIcon } from '@patternfly/react-icons/dist/esm/createIcon';
 
-const PipelineExecutionIcon = createIcon({
-  name: 'PipelineExecutionIcon',
+const CheckmarkIcon = createIcon({
+  name: 'CheckmarkIcon',
   width: 36,
   height: 36,
   svgPath:
@@ -10,4 +10,4 @@ const PipelineExecutionIcon = createIcon({
   yOffset: 0,
 });
 
-export default PipelineExecutionIcon;
+export default CheckmarkIcon;

@@ -1,13 +1,14 @@
 import * as React from 'react';
 import { Route, Routes } from 'react-router-dom';
-import { ChatbotMain } from './Chatbot/ChatbotMain';
-import { NotFound } from './NotFound/NotFound';
+import { ChatbotMain } from '~/app/Chatbot/ChatbotMain';
+import { NotFound } from '~/app/NotFound/NotFound';
+import { NavDataItem } from '~/app/standalone/types';
+
+import '@patternfly/chatbot/dist/css/main.css';
 
 export interface IAppRoute {
   label?: string; // Excluding the label will exclude the route from the nav sidebar in AppLayout
-  /* eslint-disable @typescript-eslint/no-explicit-any */
   element: React.ReactElement;
-  /* eslint-enable @typescript-eslint/no-explicit-any */
   exact?: boolean;
   path: string;
   title: string;
@@ -36,12 +37,24 @@ const flattenedRoutes: IAppRoute[] = routes.reduce<IAppRoute[]>(
   [],
 );
 
+export const useNavData = (): NavDataItem[] => [
+  {
+    label: 'Gen AI V3',
+    children: [
+      {
+        label: 'Chat playground',
+        path: '/',
+      },
+    ],
+  },
+];
+
 const AppRoutes = (): React.ReactElement => (
   <Routes>
     {flattenedRoutes.map(({ path, element }, idx) => (
       <Route path={path} element={element} key={idx} />
     ))}
-    <Route element={<NotFound />} />
+    <Route path="*" element={<NotFound />} />
   </Routes>
 );
 

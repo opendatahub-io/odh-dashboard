@@ -17,9 +17,8 @@ import {
   MessageBar,
   MessageBox,
 } from '@patternfly/chatbot';
-
+import { ApplicationsPage } from 'mod-arch-shared';
 import useFetchLlamaModels from '~/app/hooks/useFetchLlamaModels';
-import '@patternfly/chatbot/dist/css/main.css';
 import { ChatbotSourceSettingsModal } from './sourceUpload/ChatbotSourceSettingsModal';
 import { ChatbotMessages } from './ChatbotMessagesList';
 import { ChatbotSettingsPanel } from './components/ChatbotSettingsPanel';
@@ -29,7 +28,6 @@ import useAlertManagement from './hooks/useAlertManagement';
 import SourceUploadSuccessAlert from './components/alerts/SourceUploadSuccessAlert';
 import SourceUploadErrorAlert from './components/alerts/SourceUploadErrorAlert';
 import { DEFAULT_SYSTEM_INSTRUCTIONS } from './const';
-import ChatbotApplicationPage from './components/ChatbotApplicationPage';
 
 const ChatbotMain: React.FunctionComponent = () => {
   const displayMode = ChatbotDisplayMode.embedded;
@@ -101,7 +99,7 @@ const ChatbotMain: React.FunctionComponent = () => {
   );
 
   return (
-    <ChatbotApplicationPage
+    <ApplicationsPage
       title="AI playground"
       loaded={!loading}
       empty={false}
@@ -149,7 +147,7 @@ const ChatbotMain: React.FunctionComponent = () => {
           </DrawerContentBody>
         </DrawerContent>
       </Drawer>
-    </ChatbotApplicationPage>
+    </ApplicationsPage>
   );
 };
 

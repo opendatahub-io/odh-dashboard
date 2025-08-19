@@ -82,6 +82,8 @@ export const entityTableFilterOptions: Record<string, string> = {
   joinKey: 'Join key',
   valueType: 'Value type',
   featureViews: 'Feature views',
+  created: 'Created after',
+  updated: 'Updated after',
   owner: 'Owner',
 };
 

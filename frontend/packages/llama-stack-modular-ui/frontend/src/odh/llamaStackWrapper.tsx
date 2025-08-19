@@ -1,6 +1,21 @@
 import React from 'react';
-import { AppRoutes } from '~/app/routes';
+import { ModularArchConfig, DeploymentMode, ModularArchContextProvider } from 'mod-arch-core';
+import { Theme, ThemeProvider } from 'mod-arch-kubeflow';
+import { AppRoutes } from '~/app/AppRoutes';
+import { URL_PREFIX } from '~/app/utilities/const';
 
-const LlamaStackWrapper: React.FC = () => <AppRoutes />;
+const modularArchConfig: ModularArchConfig = {
+  deploymentMode: DeploymentMode.Federated,
+  URL_PREFIX,
+  BFF_API_VERSION: 'v1',
+};
+
+const LlamaStackWrapper: React.FC = () => (
+  <ModularArchContextProvider config={modularArchConfig}>
+    <ThemeProvider theme={Theme.Patternfly}>
+      <AppRoutes />
+    </ThemeProvider>
+  </ModularArchContextProvider>
+);
 
 export default LlamaStackWrapper;
