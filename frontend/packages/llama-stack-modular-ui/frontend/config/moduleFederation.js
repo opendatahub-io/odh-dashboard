@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-require-imports */
 const { ModuleFederationPlugin } = require('@module-federation/enhanced/webpack');
 const deps = require('../package.json').dependencies;
 
