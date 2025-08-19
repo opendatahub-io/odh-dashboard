@@ -1,9 +1,6 @@
 /* eslint-disable camelcase */
-import {
-  testHook,
-  standardUseFetchStateObject,
-} from '@odh-dashboard/internal/__tests__/unit/testUtils/hooks';
-import { mockFeature } from '@odh-dashboard/internal/__mocks__/mockFeatures';
+import { testHook, standardUseFetchStateObject } from '@odh-dashboard/jest-config/hooks';
+import { mockFeature } from '../../__mocks__/mockFeatures';
 import { useFeatureStoreAPI } from '../../FeatureStoreContext';
 import useFeatureByName from '../useFeatureByName';
 

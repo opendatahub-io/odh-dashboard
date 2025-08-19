@@ -1,8 +1,7 @@
 import * as React from 'react';
 import { ModelVersion } from '~/app/types';
-import { ModelVersionDetailsTab } from './const';
 type ModelVersionDetailTabsProps = {
-    tab: ModelVersionDetailsTab;
+    tab: string;
     modelVersion: ModelVersion;
     isArchiveVersion?: boolean;
     refresh: () => void;

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button, Tooltip, type ButtonProps } from '@patternfly/react-core';
 import { ServingRuntimePlatform } from '@odh-dashboard/internal/types';
 import { getTemplateEnabledForPlatform } from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/utils';
@@ -8,6 +9,8 @@ import ManageNIMServingModal from '@odh-dashboard/internal/pages/modelServing/sc
 import useConnections from '@odh-dashboard/internal/pages/projects/screens/detail/connections/useConnections';
 import { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
 import { isProjectNIMSupported } from '@odh-dashboard/internal/pages/modelServing/screens/projects/nimUtils';
+import useIsAreaAvailable from '@odh-dashboard/internal/concepts/areas/useIsAreaAvailable';
+import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/index';
 import { useServingRuntimeTemplates } from '../../concepts/servingRuntimeTemplates/useServingRuntimeTemplates';
 import { useProjectServingPlatform } from '../../concepts/useProjectServingPlatform';
 import { useAvailableClusterPlatforms } from '../../concepts/useAvailableClusterPlatforms';
@@ -50,11 +53,15 @@ const DeployButtonModal: React.FC<{
 export const DeployButton: React.FC<{
   project: ProjectKind | null;
   variant?: ButtonProps['variant'];
-}> = ({ project, variant = 'primary' }) => {
+  createRoute?: string;
+}> = ({ project, variant = 'primary', createRoute }) => {
+  const navigate = useNavigate();
+
   const [modalShown, setModalShown] = React.useState<boolean>(false);
 
   const { clusterPlatforms } = useAvailableClusterPlatforms();
   const { activePlatform } = useProjectServingPlatform(project ?? undefined, clusterPlatforms);
+  const deploymentWizardAvailable = useIsAreaAvailable(SupportedArea.DEPLOYMENT_WIZARD).status;
 
   // TODO: remove once we have the wizard
   const legacyServingRuntimePlatform = React.useMemo(
@@ -70,11 +77,16 @@ export const DeployButton: React.FC<{
   };
 
   const handleDeployClick = () => {
-    setModalShown(true);
+    if (deploymentWizardAvailable && createRoute) {
+      navigate(createRoute);
+    } else {
+      // Use legacy modal
+      setModalShown(true);
+    }
   };
 
-  const [globalTemplates] = useServingRuntimeTemplates();
-  const isMissingTemplates = globalTemplates.length === 0;
+  const [globalTemplates, globalTemplatesLoaded] = useServingRuntimeTemplates();
+  const isMissingTemplates = globalTemplates.length === 0 && globalTemplatesLoaded;
 
   const disableButton = !project || isMissingTemplates;
   const disabledReason = isMissingTemplates
@@ -108,7 +120,7 @@ export const DeployButton: React.FC<{
   return (
     <>
       {deployButton}
-      {modalShown ? (
+      {modalShown && !deploymentWizardAvailable ? (
         <DeployButtonModal
           platform={legacyServingRuntimePlatform}
           currentProject={project}

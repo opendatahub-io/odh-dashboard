@@ -21,9 +21,7 @@ retryableBefore(() => {
     return true;
   });
   cy.wrap(null)
-    .then(() => {
-      return getSingleModelServingRuntimeInfo();
-    })
+    .then(() => getSingleModelServingRuntimeInfo())
     .then((info) => {
       // Load Single-Model serving runtime info before tests run
       modelServingSingleName = info.singleModelServingName;

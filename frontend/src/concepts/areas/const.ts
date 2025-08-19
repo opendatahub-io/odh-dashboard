@@ -221,7 +221,7 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.FEATURE_STORE]: {
     featureFlags: ['disableFeatureStore'],
-    // requiredComponents: [StackComponent.FEAST_OPERATOR], // TODO: Enable this once latest Feast operator is released .
+    requiredComponents: [StackComponent.FEAST_OPERATOR],
   },
   [SupportedArea.MODEL_TRAINING]: {
     featureFlags: ['disableModelTraining'],

@@ -11,9 +11,9 @@ describe('Verify RHODS Explore Section Contains Only Expected ISVs', () => {
 
   retryableBefore(() => {
     // Setup: Retrieve the resource names of 'OdhApplication' objects from the OpenShift cluster
-    getOcResourceNames(applicationNamespace, 'OdhApplication').then((metadataNames) => {
+    getOcResourceNames(applicationNamespace, 'OdhApplication').then((metadataNames) =>
       // Filter out the 'RHOAI' application if it is marked as hidden in the RHOAI YAML configuration
-      return filterRhoaiIfHidden(metadataNames).then((filteredApps) => {
+      filterRhoaiIfHidden(metadataNames).then((filteredApps) => {
         // Store the filtered applications (excluding 'RHOAI' if hidden) into the expectedISVs variable
         expectedISVs = filteredApps;
         cy.log(
@@ -21,8 +21,8 @@ describe('Verify RHODS Explore Section Contains Only Expected ISVs', () => {
             ', ',
           )}`,
         );
-      });
-    });
+      }),
+    );
   });
 
   it(

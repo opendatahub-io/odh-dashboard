@@ -13,14 +13,13 @@ import {
   modelVersionUrl,
   registeredModelUrl,
 } from '~/app/pages/modelRegistry/screens/routeUtils';
-import { ModelVersionDetailsTab } from './const';
 import ModelVersionSelector from './ModelVersionSelector';
 import ModelVersionDetailsTabs from './ModelVersionDetailsTabs';
 import ModelVersionsDetailsHeaderActions from './ModelVersionDetailsHeaderActions';
 import { MRDeployButton } from '~/odh/components/MRDeployButton';
 
 type ModelVersionsDetailProps = {
-  tab: ModelVersionDetailsTab;
+  tab: string;
 } & Omit<
   React.ComponentProps<typeof ApplicationsPage>,
   'breadcrumb' | 'title' | 'description' | 'loadError' | 'loaded' | 'provideChildrenPadding'
@@ -102,7 +101,13 @@ const ModelVersionsDetails: React.FC<ModelVersionsDetailProps> = ({ tab, ...page
       loaded={mvLoaded}
       provideChildrenPadding
     >
-      {mv !== null && <ModelVersionDetailsTabs tab={tab} modelVersion={mv} refresh={refresh} />}
+      {mv !== null && (
+        <ModelVersionDetailsTabs
+          tab={tab}
+          modelVersion={mv}
+          refresh={refresh}
+        />
+      )}
     </ApplicationsPage>
   );
 };

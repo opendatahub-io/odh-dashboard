@@ -1,5 +1,5 @@
+import { testHook } from '@odh-dashboard/jest-config/hooks';
 import { groupVersionKind, useAccessReview, useGroups } from '#~/api';
-import { testHook } from '#~/__tests__/unit/testUtils/hooks';
 import { GroupModel } from '#~/api/models';
 import { mockGroup } from '#~/__mocks__/mockGroup';
 import useK8sWatchResourceList from '#~/utilities/useK8sWatchResourceList';

@@ -22,6 +22,7 @@ import {
 import { DeployButton } from '../deploy/DeployButton';
 import { PlatformSelectionGallery } from '../platforms/platformSelection';
 import { ResetPlatformButton } from '../platforms/ResetPlatformButton';
+import { getDeploymentWizardRoute } from '../deploymentWizard/utils';
 
 const galleryWidth = {
   minWidths: { default: '100%', lg: 'calc(50% - 1rem / 2)' },
@@ -35,7 +36,7 @@ const ModelPlatformSection: React.FC<{ platforms: ModelServingPlatform[] }> = ({
     activePlatform,
     setProjectPlatform,
     resetProjectPlatform,
-    newProjectPlatformLoading,
+    loadingState,
     projectPlatformError,
     clearProjectPlatformError,
   } = useProjectServingPlatform(currentProject, platforms);
@@ -59,7 +60,7 @@ const ModelPlatformSection: React.FC<{ platforms: ModelServingPlatform[] }> = ({
             <PlatformSelectionGallery
               platforms={platforms}
               onSelect={setProjectPlatform}
-              loadingPlatformId={newProjectPlatformLoading?.properties.id}
+              loadingPlatformId={loadingState.platform?.properties.id}
               useOverviewCard
               galleryProps={{ ...galleryWidth }}
             />
@@ -102,7 +103,7 @@ const ModelPlatformSection: React.FC<{ platforms: ModelServingPlatform[] }> = ({
             <ResetPlatformButton
               platforms={platforms}
               hasDeployments={false}
-              isLoading={!!newProjectPlatformLoading}
+              isLoading={loadingState.type === 'reset'}
               onReset={resetProjectPlatform}
             />
           </Flex>
@@ -121,7 +122,11 @@ const ModelPlatformSection: React.FC<{ platforms: ModelServingPlatform[] }> = ({
         </CardBody>
         <CardFooter>
           <Flex gap={{ default: 'gapMd' }}>
-            <DeployButton project={currentProject} variant="link" />
+            <DeployButton
+              project={currentProject}
+              variant="link"
+              createRoute={getDeploymentWizardRoute(`/projects/${currentProject.metadata.name}`)}
+            />
             <NavigateBackToRegistryButton isInline />
           </Flex>
         </CardFooter>

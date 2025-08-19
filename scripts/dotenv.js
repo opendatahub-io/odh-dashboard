@@ -7,7 +7,7 @@ const dotenv = require('dotenv');
  * @param {string} path
  * @returns {*}
  */
-const setupDotenvFile = path => dotenv.config({ path });
+const setupDotenvFile = (path) => dotenv.config({ path });
 
 /**
  * Setup and access local and specific dotenv file parameters.

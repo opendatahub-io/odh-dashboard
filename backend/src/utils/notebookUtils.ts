@@ -53,7 +53,7 @@ export const getWorkbenchNamespace = (fastify: KubeFastifyInstance): string => {
 
     return workbenchNamespace;
   } catch (error) {
-    fastify.log.error('Failed to fetch cluster status for workbench namespace:', error);
+    fastify.log.error(error, 'Failed to fetch cluster status for workbench namespace:');
     return undefined;
   }
 };

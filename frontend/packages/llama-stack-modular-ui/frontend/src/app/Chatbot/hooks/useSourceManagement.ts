@@ -3,6 +3,7 @@ import * as React from 'react';
 import { DropEvent } from '@patternfly/react-core';
 import { uploadSource } from '~/app/services/llamaStackService';
 import { ChatbotSourceSettings } from '~/app/types';
+import { extractTextFromFile } from '~/app/utilities/utils';
 
 export interface UseSourceManagementReturn {
   selectedSource: File[];
@@ -12,7 +13,6 @@ export interface UseSourceManagementReturn {
   isRawUploaded: boolean;
   setIsRawUploaded: (isRawUploaded: boolean) => void;
   handleSourceDrop: (event: DropEvent, source: File[]) => Promise<void>;
-  handleTextExtracted: (text: string, file: File) => void;
   removeUploadedSource: () => void;
   handleSourceSettingsSubmit: (settings: ChatbotSourceSettings | null) => Promise<void>;
   setIsSourceSettingsOpen: (open: boolean) => void;
@@ -43,16 +43,25 @@ const useSourceManagement = ({
     }
   }, [selectedSource]);
 
-  const handleSourceDrop = React.useCallback(async (event: DropEvent, source: File[]) => {
-    setSelectedSource(source);
-    // Note: Text extraction is handled by PatternFly's FileUpload component
-    // with type="text" - the text content will be provided via onReadSuccess callback
-  }, []);
+  const handleSourceDrop = React.useCallback(
+    async (event: DropEvent, source: File[]) => {
+      setSelectedSource(source);
 
-  const handleTextExtracted = React.useCallback((text: string) => {
-    // This is called automatically by PatternFly when file text is extracted
-    setExtractedText(text);
-  }, []);
+      if (source.length > 0) {
+        try {
+          const text = await extractTextFromFile(source[0]);
+          setExtractedText(text);
+        } catch (error) {
+          // eslint-disable-next-line no-console
+          console.error('Error extracting text from file:', error);
+          onShowErrorAlert();
+          // Clear the selected source on error
+          setSelectedSource([]);
+        }
+      }
+    },
+    [onShowErrorAlert],
+  );
 
   const removeUploadedSource = React.useCallback(() => {
     setExtractedText('');
@@ -104,7 +113,6 @@ const useSourceManagement = ({
     setIsRawUploaded,
     extractedText,
     handleSourceDrop,
-    handleTextExtracted,
     removeUploadedSource,
     handleSourceSettingsSubmit,
     setIsSourceSettingsOpen,

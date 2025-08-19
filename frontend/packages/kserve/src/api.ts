@@ -16,6 +16,7 @@ import { CustomWatchK8sResult } from '@odh-dashboard/internal/types';
 
 export const useWatchInferenceServices = (
   project: ProjectKind,
+  labelSelectors?: { [key: string]: string },
   opts?: K8sAPIOptions,
 ): CustomWatchK8sResult<InferenceServiceKind[]> =>
   useK8sWatchResourceList<InferenceServiceKind[]>(
@@ -23,6 +24,7 @@ export const useWatchInferenceServices = (
       isList: true,
       groupVersionKind: groupVersionKind(InferenceServiceModel),
       namespace: project.metadata.name,
+      ...(labelSelectors && { selector: labelSelectors }),
     },
     InferenceServiceModel,
     opts,

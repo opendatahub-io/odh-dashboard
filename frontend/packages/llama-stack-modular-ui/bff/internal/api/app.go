@@ -17,8 +17,7 @@ import (
 )
 
 const (
-	Version = "1.0.0"
-
+	Version         = "1.0.0"
 	HealthCheckPath = "/healthcheck"
 )
 
@@ -114,6 +113,11 @@ func (app *App) Routes() http.Handler {
 
 	//All other API routes require auth
 	appMux.Handle(app.config.APIPathPrefix+"/", apiRouter)
+
+	// Only register the path prefix handler if PathPrefix is not empty to avoid duplicate route registration
+	if app.config.PathPrefix != "" {
+		appMux.Handle(app.config.PathPrefix+app.config.APIPathPrefix+"/", http.StripPrefix(app.config.PathPrefix, apiRouter))
+	}
 
 	// Llama Stack proxy handler (unprotected)
 	appMux.HandleFunc("/llama-stack/", app.HandleLlamaStackProxy)

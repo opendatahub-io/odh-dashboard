@@ -13,3 +13,18 @@ export type ModelRegistryDeployModalExtension = Extension<'model-registry.model-
     }>>;
 }>;
 export declare const isModelRegistryDeployModalExtension: (extension: Extension) => extension is ModelRegistryDeployModalExtension;
+export type ModelRegistryVersionDeploymentsContextExtension = Extension<'model-registry.model-version/deployments-context', {
+    useDeploymentsContext: CodeRef<() => {
+        deployments?: any[];
+        loaded: boolean;
+        errors?: Error[];
+        projects?: any[];
+    }>;
+    DeploymentsProvider: CodeRef<React.ComponentType<{
+        children: React.ReactNode;
+        labelSelectors?: {
+            [key: string]: string;
+        };
+    }>>;
+}>;
+export declare const isModelRegistryVersionDeploymentsContextExtension: (extension: Extension) => extension is ModelRegistryVersionDeploymentsContextExtension;

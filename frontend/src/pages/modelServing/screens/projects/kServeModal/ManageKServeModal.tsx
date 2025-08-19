@@ -131,6 +131,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
 
   const [connection, setConnection] = React.useState<Connection>();
   const [isConnectionValid, setIsConnectionValid] = React.useState(false);
+  const [hasReplicaValidationErrors, setHasReplicaValidationErrors] = React.useState(false);
 
   const isAuthAvailable =
     useIsAreaAvailable(SupportedArea.K_SERVE_AUTH).status ||
@@ -432,6 +433,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
                   setData={setCreateDataInferenceService}
                   infoContent="Consider network traffic and failover scenarios when specifying the number of model
                 server replicas."
+                  onValidationChange={setHasReplicaValidationErrors}
                 />
                 <ServingRuntimeSizeSection
                   podSpecOptionState={podSpecOptionsState}
@@ -501,7 +503,9 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
           submitLabel={editInfo ? 'Redeploy' : 'Deploy'}
           onSubmit={submit}
           onCancel={() => onBeforeClose(false)}
-          isSubmitDisabled={isDisabledServingRuntime || isDisabledInferenceService}
+          isSubmitDisabled={
+            isDisabledServingRuntime || isDisabledInferenceService || hasReplicaValidationErrors
+          }
           error={error}
           alertTitle="Error creating model server"
         />
