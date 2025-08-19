@@ -145,18 +145,18 @@ const setupDotenvFilesForEnv = ({ env }) => {
   setupDotenvFile(path.resolve(RELATIVE_DIRNAME, '.env.local'));
   setupDotenvFile(path.resolve(RELATIVE_DIRNAME, '.env'));
 
-  const DEPLOYMENT_MODE = process.env.DEPLOYMENT_MODE || 'kubeflow';
+  const DEPLOYMENT_MODE = process.env.DEPLOYMENT_MODE || 'federated';
   const AUTH_METHOD = process.env.AUTH_METHOD || 'internal';
   const IMAGES_DIRNAME = process.env.IMAGES_DIRNAME || 'images';
   const PUBLIC_PATH = process.env.PUBLIC_PATH || '/';
   const SRC_DIR = path.resolve(RELATIVE_DIRNAME, process.env.SRC_DIR || TS_BASE_URL || 'src');
   const COMMON_DIR = path.resolve(RELATIVE_DIRNAME, process.env.COMMON_DIR || '../common');
   const DIST_DIR = path.resolve(RELATIVE_DIRNAME, process.env.DIST_DIR || TS_OUT_DIR || 'public');
-  const HOST = process.env.HOST || DEPLOYMENT_MODE === 'kubeflow' ? '0.0.0.0' : 'localhost';
+  const HOST = process.env.HOST ? '0.0.0.0' : 'localhost';
   const PORT = process.env.PORT || '9002';
   const PROXY_PROTOCOL = process.env.PROXY_PROTOCOL || 'http';
   const PROXY_HOST = process.env.PROXY_HOST || 'localhost';
-  const PROXY_PORT = process.env.PROXY_PORT || process.env.PORT || 4000;
+  const PROXY_PORT = process.env.PROXY_PORT || 8080;
   const DEV_MODE = process.env.DEV_MODE || undefined;
   const OUTPUT_ONLY = process.env._OUTPUT_ONLY === 'true';
 
