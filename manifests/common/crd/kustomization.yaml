@@ -5,5 +5,4 @@ resources:
 - odhquickstarts.console.openshift.io.crd.yaml
 - odhdocuments.dashboard.opendatahub.io.crd.yaml
 - odhapplications.dashboard.opendatahub.io.crd.yaml
-- acceleratorprofiles.opendatahub.io.crd.yaml
 - hardwareprofiles.opendatahub.io.crd.yaml
