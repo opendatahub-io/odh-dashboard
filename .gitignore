@@ -26,3 +26,9 @@ yarn.lock
 
 jest-coverage
 frontend/packages/model-registry/upstream/bff/bff-mock
+
+# Build outputs
+dist/
+
+# Local copies of shared files
+frontend/packages/model-registry/pact/scripts/helpers/
